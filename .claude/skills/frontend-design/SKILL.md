@@ -20,10 +20,11 @@ Treat each as a smell to justify or remove. ORIVILO's resolver and reviewer both
 2. Near-black background with a single acid-green or vermilion accent.
 3. Broadsheet layout: hairline rules, zero radius, dense columns.
 4. The SaaS card kit: everything chopped into identical rounded cards, one radius for every hierarchy level, the same soft grey shadow under each, gradient washes as decoration.
-5. Template chrome regardless of subject: tracked-out ALL-CAPS eyebrow above every heading, middle-dot meta strings, "WORD — fragment" labels, tinted near-black standing in for black, monospace for small data labels, an arrow appended to every link.
+5. Template chrome regardless of subject: tracked-out ALL-CAPS eyebrow above every heading, middle-dot meta strings, "WORD, dash, fragment" labels, tinted near-black standing in for black, monospace for small data labels, an arrow appended to every link.
 6. Typography tells: one accented word in a headline, all-caps labels, labels above content that add nothing.
 7. Motion tells: fade-and-slide-up on every section, hover transitions on every card. One orchestrated moment beats scattered effects. Motion that answers a user action is welcome.
 8. Numbered markers (01 / 02 / 03) on content that is not a sequence.
+9. Any middot or em dash in UI text. This one is a hard rule from the owner, not a smell: remove it.
 
 ## Process
 

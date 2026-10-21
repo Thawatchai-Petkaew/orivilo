@@ -1,4 +1,4 @@
-# DESIGN.md — ORIVILO (agent-readable, v1)
+# DESIGN.md: ORIVILO (agent-readable, v1)
 
 Read this before any UI work: a Studio screen, a shared component, a story, a recipe, a preview, or a review of generated output. It is the design contract the `frontend-design` skill critiques against and the **design gate** (§11) that blocks G3. Rules that enforce it live in `.claude/rules/design-system.md`; the component registry lives in `packages/design-system/catalog/`.
 
@@ -34,7 +34,7 @@ Naming: token path `group.role` ⇔ CSS custom property `--ds-group-role` ⇔ Ta
 | `surface.card`         | #FFFFFF | Content containers, inputs, menus                                 | Full-page background                            |
 | `surface.selected`     | #F4EEFD | Selected row, chosen option, active nav item                      | Hover (hover is a border or ink change)         |
 | `surface.inverse`      | #16151D | Inverse blocks, tooltips, the dark set's canvas                   | Decorative tints                                |
-| `text.primary`         | #16151D | Body, headings, values (canvas 16.4 · white 18.1)                 |                                                 |
+| `text.primary`         | #16151D | Body, headings, values (canvas 16.4, white 18.1)                  |                                                 |
 | `text.secondary`       | #5B5A66 | Supporting text, meta, placeholders (canvas 6.2)                  | Primary content                                 |
 | `text.on-action`       | #FFFFFF | Text and icons on `action.*` surfaces (7.3 on primary)            |                                                 |
 | `action.primary`       | #7A22C7 | One primary action per view; links (as text on canvas 6.6)        | Status, selection fill, decoration              |
@@ -42,7 +42,7 @@ Naming: token path `group.role` ⇔ CSS custom property `--ds-group-role` ⇔ Ta
 | `action.primary-press` | #3F1366 | Pressed of the above                                              |                                                 |
 | `selection.fg`         | #6B22B0 | Text and icon on `surface.selected` (7.5)                         |                                                 |
 | `focus.ring`           | #16151D | 2 px ring with a 2 px gap of the surface colour, on any ground    | Replaced by brand accent or selection           |
-| `border.control`       | #85838F | Inputs, checkboxes, outlined buttons (white 3.7 · canvas 3.4)     |                                                 |
+| `border.control`       | #85838F | Inputs, checkboxes, outlined buttons (white 3.7, canvas 3.4)      |                                                 |
 | `border.subtle`        | #E3E2DC | Dividers, card edges; decorative only                             | The only cue of a control's edge                |
 | `brand.signature`      | #D9F66F | Mark dot, one highlight plane, a selected tab's bead              | Text on light ground (1.2), status, large fills |
 | `feedback.success`     | #0B6E4F | Success text/icon/border (canvas 5.7)                             |                                                 |
@@ -62,7 +62,7 @@ Feedback colours get a tint surface (`feedback.<name>.surface`) and a text pair 
 | `text.primary`     | #F2F1EC                                                                                     | card 14.8                            |
 | `text.secondary`   | #A9A7B3                                                                                     | 7.0                                  |
 | `text.on-action`   | #16151D                                                                                     | ink on violet-400 6.1                |
-| `action.primary`   | #B07FEE                                                                                     | hover #C49AF2 · press #9A63E0        |
+| `action.primary`   | #B07FEE                                                                                     | hover #C49AF2, press #9A63E0         |
 | `focus.ring`       | #F2F1EC                                                                                     | 2 px + 2 px gap                      |
 | `border.control`   | #6F6D7A                                                                                     |                                      |
 | `border.subtle`    | #2B2A36                                                                                     |                                      |
@@ -73,23 +73,23 @@ Dark mode is a remap by role, not an inversion (handoff §10). `surface.selected
 
 ### 3.3 Shape, space, size, motion
 
-| Group   | Tokens                                                                                                                                                                          |
-| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Radius  | `shape.control.radius` 6 · `shape.container.radius` 10 · `shape.media.radius` 14 · `shape.overlay.radius` 22                                                                    |
-| Space   | 8-px scale: `space.1` 4 · `space.2` 8 · `space.3` 12 · `space.4` 16 · `space.6` 24 · `space.8` 32 · `space.12` 48                                                               |
-| Size    | `size.control.min-height` 40 (sm 32, lg 48) · `size.touch` 44 minimum on touch surfaces                                                                                         |
-| Motion  | `motion.feedback.duration` 120 ms · `motion.overlay.duration` 200 ms · `motion.page.duration` 320 ms · one ease-out · `prefers-reduced-motion` removes all non-essential motion |
-| Density | `comfortable` (default) and `compact` (row block 8 instead of 12); a profile may set one, a page may not                                                                        |
+| Group   | Tokens                                                                                                                                                                      |
+| ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Radius  | `shape.control.radius` 6, `shape.container.radius` 10, `shape.media.radius` 14, `shape.overlay.radius` 22                                                                   |
+| Space   | 8-px scale: `space.1` 4, `space.2` 8, `space.3` 12, `space.4` 16, `space.6` 24, `space.8` 32, `space.12` 48                                                                 |
+| Size    | `size.control.min-height` 40 (sm 32, lg 48), `size.touch` 44 minimum on touch surfaces                                                                                      |
+| Motion  | `motion.feedback.duration` 120 ms, `motion.overlay.duration` 200 ms, `motion.page.duration` 320 ms, one ease-out, `prefers-reduced-motion` removes all non-essential motion |
+| Density | `comfortable` (default) and `compact` (row block 8 instead of 12); a profile may set one, a page may not                                                                    |
 
 Radius expresses hierarchy: controls are tighter than containers, containers tighter than overlays. One radius for every level is anti-pattern 4 (§9).
 
 ## 4. Typography, Thai and Latin together
 
-| Role    | Family stack                                                   | Weights       | Size / line-height             |
-| ------- | -------------------------------------------------------------- | ------------- | ------------------------------ |
-| Display | `"Anuphan", "IBM Plex Sans Thai", system-ui, sans-serif`       | 600, 700      | 56 / 1.2 · 32 / 1.25           |
-| Body/UI | `"IBM Plex Sans", "IBM Plex Sans Thai", system-ui, sans-serif` | 400, 500, 600 | 20 / 1.5 · 16 / 1.7 · 14 / 1.6 |
-| Mono    | `"IBM Plex Mono", ui-monospace, monospace`                     | 400, 500      | 14 / 1.6                       |
+| Role    | Family stack                                                   | Weights       | Size / line-height     |
+| ------- | -------------------------------------------------------------- | ------------- | ---------------------- |
+| Display | `"Anuphan", "IBM Plex Sans Thai", system-ui, sans-serif`       | 600, 700      | 56/1.2 and 32/1.25     |
+| Body/UI | `"IBM Plex Sans", "IBM Plex Sans Thai", system-ui, sans-serif` | 400, 500, 600 | 20/1.5, 16/1.7, 14/1.6 |
+| Mono    | `"IBM Plex Mono", ui-monospace, monospace`                     | 400, 500      | 14 / 1.6               |
 
 Rules (from the specimen run, brand spec §6 and §8):
 
@@ -174,7 +174,7 @@ From `.claude/skills/frontend-design/SKILL.md`, with ORIVILO's own added:
 1. **Cream-serif-terracotta** and **near-black-with-acid-accent** as a default look.
 2. **Broadsheet**: hairlines, zero radius, dense columns, for a tool that needs air.
 3. **Card kit**: every block a rounded card with the same radius and the same soft shadow.
-4. **Template chrome**: tracked ALL-CAPS eyebrows, middle-dot meta strings, "WORD — fragment" labels, tinted near-black for black, monospace for small labels, arrows on every link.
+4. **Template chrome**: tracked ALL-CAPS eyebrows, middle-dot meta strings, "WORD, dash, fragment" labels, tinted near-black for black, monospace for small labels, arrows on every link.
 5. **One accented word** in a headline; labels above content that add nothing.
 6. **Ambient motion**: fade-and-slide on every section, hover transitions on every card.
 7. **Numbered markers** on content that is not a sequence.
@@ -185,6 +185,8 @@ From `.claude/skills/frontend-design/SKILL.md`, with ORIVILO's own added:
 12. **Per-page mood patch**: a hex, radius, or font value in a page or component to make one screen feel different.
 
 ## 10. Writing in the UI
+
+**Hard rule (owner, 2026-10-21): no middot (·) and no em dash (—) anywhere in UI text.** Not in labels, meta lines, breadcrumbs, captions, generated copy, or Storybook docs. Separate with a comma, a colon, a slash with spaces, or a line break. The copy check in E2-0 fails the build on either character in a component, story, or message file.
 
 Sentence case. A button says what happens ("บันทึกการเปลี่ยนแปลง", "Save changes") and keeps its name through the flow. An error says what went wrong and how to fix it. An empty state invites the next action. No jargon in user copy (API, endpoint, token are developer words). Thai copy on a screen is reviewed by reading it aloud; if it sounds translated, rewrite it.
 
@@ -203,6 +205,7 @@ The reviewer records each line as pass, fail, or not applicable, with the story 
 - [ ] Walked §9: each tell either absent or justified in the PR description in one line.
 - [ ] Nothing claims AI interpretation, Figma sync, accessibility, or export beyond what is implemented and tested.
 - [ ] Thai copy reads as Thai.
+- [ ] No middot or em dash in any UI string (copy check passes).
 
 ## 12. What is real today
 
@@ -217,4 +220,4 @@ The reviewer records each line as pass, fail, or not applicable, with the story 
 | Catalog page examples per tier                 | Planned: E2-7                                         |
 | Contrast check in CI                           | Planned: E0-5                                         |
 
-Change log: v1 (2026-10-21) created from brand spec v1.1, handoff §9–§17 and §23, ADR 0003, and the owner's rule that Storybook and this file come before any UI.
+Change log: v1.0.1 (2026-10-21) adds the owner's no-middot, no-em-dash rule to §10 and §11. v1 (2026-10-21) created from brand spec v1.1, handoff §9–§17 and §23, ADR 0003, and the owner's rule that Storybook and this file come before any UI.

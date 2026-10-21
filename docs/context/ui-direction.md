@@ -6,7 +6,7 @@ Status: proposal for the owner's decision. Visual version with references and a 
 
 A calm studio with one living signal. The shell is quiet and precise so the customer's brand in the preview is the subject; ORIVILO itself shows as a single lime dot that moves when the system is thinking or has answered.
 
-Five words: calm · precise · alive (one point) · direct · neutrally warm.
+Five words: calm, precise, alive (one point), direct, neutrally warm.
 Avoid: loud, cold developer-tool, "AI vibe" (violet-blue gradients, sparkles), the SaaS card kit, emptiness that does not say what to do next.
 
 ## Why, from our own product

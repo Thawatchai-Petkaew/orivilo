@@ -30,6 +30,7 @@ As an agent or developer on the ORIVILO team, I want a running Storybook that re
 | 7   | A component or page uses `bg-[#…]`, `rounded-[…]`, `shadow-…`, `font-[…]`, or a raw Tailwind palette class | `pnpm lint`                                              | Lint fails on that line with the rule name and a pointer to `DESIGN.md` §5                                          | None                                                |
 | 8   | Repo root                                                                                                  | `pnpm lint && pnpm typecheck && pnpm test && pnpm build` | All pass, Storybook static build included in `build`, output attached to the PR                                     | None                                                |
 | 9   | Storybook open                                                                                             | The a11y addon panel is opened on a Foundations page     | Zero violations                                                                                                     | None                                                |
+| 11  | A component, story, or message file contains a middot (·) or an em dash (—)                                | `pnpm test`                                              | The `check-copy` test fails and names the file and line (owner's rule of 2026-10-21)                                | None                                                |
 | 10  | PR description                                                                                             | Reading it                                               | States what is real (Storybook, tokens, lint, check script) and what is not (no components, neutral profile only)   | None                                                |
 
 ## Rules and bounds
@@ -39,6 +40,7 @@ As an agent or developer on the ORIVILO team, I want a running Storybook that re
 - Token CSS: `src/tokens/orivilo.css` declares `--ds-*` for light under `:root, [data-mode="light"]` and dark under `[data-mode="dark"]`, plus `@theme` aliases so Tailwind utilities like `bg-surface-canvas` resolve. Values copied from `DESIGN.md` §3 with a comment naming the section; the dark placeholders are marked as such.
 - Mode and profile switching is a decorator that renders the preview inside a minimal `DesignProfileBoundary` (sets `data-mode` and `data-design-profile`, nothing else). E2-3 replaces its internals; its props stay.
 - Lint rule as a flat-config ESLint rule in the package and in `apps/web`; no backlog exists, so it is blocking from the first commit.
+- `check-copy` is a Vitest test that scans `src/**/*.{ts,tsx}` and `catalog/**` for U+00B7 and U+2014 and fails on any hit; it ships blocking because no UI exists yet.
 - `check-catalog` is a Vitest test that reads `catalog/**/*.yaml` and `src/**/*.stories.tsx`; it does not need Storybook to run.
 - Fonts self-hosted under the package (OFL files committed with their licence text), loaded by the Storybook preview head and later by `apps/web`.
 - PR size ≤ ~400 lines of hand-written code; generated Storybook scaffolding and font binaries excluded from that count but listed.
@@ -65,4 +67,5 @@ As an agent or developer on the ORIVILO team, I want a running Storybook that re
 
 ## Changelog
 
+- v1.1 (2026-10-21): AC 11 and the copy check added for the owner's no-middot, no-em-dash rule.
 - v1 (2026-10-21): first spec, written from the owner's request, ADR 0003, DESIGN.md v1.

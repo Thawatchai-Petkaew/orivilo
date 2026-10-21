@@ -43,6 +43,7 @@ Read `DESIGN.md` first; it is the contract these rules enforce. The catalog is `
 ## UX and writing
 
 - Sentence case; a button names its outcome and keeps that name through the flow; errors say what went wrong and how to fix it; empty states invite an action.
+- No middot (·) and no em dash (—) in any UI text, ever (owner's rule, 2026-10-21). Use a comma, colon, slash, or line break. The copy check (E2-0) fails the build on either character in components, stories, and message files.
 - No letter-spacing or text-transform on Thai. Thai copy is written as Thai; if it reads as a translation, rewrite it.
 - Label rule-based behavior as rule-based and mock data as mock. Never render trust badges, ratings, discounts, countdowns, or success states without backing data.
 - Brand accent never replaces error, warning, selection, or focus semantics. Studio colours never appear inside a customer preview frame.
