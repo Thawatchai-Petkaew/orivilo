@@ -250,7 +250,7 @@ export class TokenSet {
       "}",
       "",
       "/* Tailwind utilities resolve to semantic tokens only (DESIGN.md §5). The defaults are removed first",
-      " * so a raw class such as bg-red-500 or rounded-lg produces no CSS. */",
+      " * so a raw palette or default radius class produces no CSS. */",
       "@theme inline {",
       "  --color-*: initial;",
       "  --radius-*: initial;",
