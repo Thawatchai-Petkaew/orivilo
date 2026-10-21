@@ -1,8 +1,9 @@
 /* Generated from src/tokens/source/*.json by scripts/build-tokens.ts. Do not edit. */
 
-/* Primitives (--op-*) and semantic light (--ds-*) */
+/* Primitives (--op-*) and semantic light (--ds-*). data-mode=system follows the OS and starts light. */
 :root,
-[data-mode="light"] {
+[data-mode="light"],
+[data-mode="system"] {
   color-scheme: light;
   --op-color-gray-25: #FCFCFA;
   --op-color-gray-50: #F4F4F0;
@@ -397,6 +398,71 @@
   --ds-feedback-info-border: var(--op-color-blue-700);
   --ds-elevation-overlay: var(--op-shadow-overlay-dark);
   --ds-elevation-glow-opacity: var(--op-opacity-glow-dark);
+}
+
+/* The same dark values for a system boundary when the OS prefers dark; no script, no flash. */
+@media (prefers-color-scheme: dark) {
+  [data-mode="system"] {
+    color-scheme: dark;
+    --ds-surface-canvas: var(--op-color-gray-900);
+    --ds-surface-card: var(--op-color-gray-800);
+    --ds-surface-raised: var(--op-color-gray-700);
+    --ds-surface-sunken: var(--op-color-gray-950);
+    --ds-surface-hover: var(--op-color-gray-700);
+    --ds-surface-selected: var(--op-color-violet-950);
+    --ds-surface-disabled: var(--op-color-gray-700);
+    --ds-surface-inverse: var(--op-color-gray-50);
+    --ds-surface-scrim: var(--op-color-black);
+    --ds-text-primary: var(--op-color-gray-100);
+    --ds-text-secondary: var(--op-color-gray-400);
+    --ds-text-tertiary: var(--op-color-gray-400);
+    --ds-text-placeholder: var(--op-color-gray-400);
+    --ds-text-disabled: var(--op-color-gray-600);
+    --ds-text-on-action: var(--op-color-gray-900);
+    --ds-text-on-intent: var(--op-color-gray-900);
+    --ds-text-on-destructive: var(--op-color-gray-900);
+    --ds-text-on-inverse: var(--op-color-gray-900);
+    --ds-text-link: var(--op-color-violet-300);
+    --ds-text-link-hover: var(--op-color-violet-200);
+    --ds-text-brand: var(--op-color-violet-300);
+    --ds-border-control: var(--op-color-gray-500);
+    --ds-border-control-hover: var(--op-color-gray-400);
+    --ds-border-subtle: var(--op-color-gray-700);
+    --ds-border-strong: var(--op-color-gray-100);
+    --ds-border-card: var(--op-color-gray-700);
+    --ds-border-disabled: var(--op-color-gray-700);
+    --ds-border-error: var(--op-color-red-400);
+    --ds-action-primary: var(--op-color-gray-100);
+    --ds-action-primary-hover: var(--op-color-white);
+    --ds-action-primary-press: var(--op-color-gray-200);
+    --ds-action-primary-disabled: var(--op-color-gray-700);
+    --ds-action-intent: var(--op-color-lime-300);
+    --ds-action-intent-hover: var(--op-color-lime-400);
+    --ds-action-intent-press: var(--op-color-lime-500);
+    --ds-action-destructive: var(--op-color-red-400);
+    --ds-action-destructive-hover: var(--op-color-red-300);
+    --ds-action-destructive-press: var(--op-color-red-500);
+    --ds-selection-bg: var(--op-color-violet-950);
+    --ds-selection-fg: var(--op-color-violet-400);
+    --ds-focus-ring: var(--op-color-gray-100);
+    --ds-focus-offset: var(--op-color-gray-900);
+    --ds-brand-signature: var(--op-color-lime-300);
+    --ds-brand-ink: var(--op-color-gray-900);
+    --ds-feedback-success-fg: var(--op-color-green-400);
+    --ds-feedback-success-surface: var(--op-color-green-950);
+    --ds-feedback-success-border: var(--op-color-green-700);
+    --ds-feedback-warning-fg: var(--op-color-amber-400);
+    --ds-feedback-warning-surface: var(--op-color-amber-950);
+    --ds-feedback-warning-border: var(--op-color-amber-700);
+    --ds-feedback-danger-fg: var(--op-color-red-400);
+    --ds-feedback-danger-surface: var(--op-color-red-950);
+    --ds-feedback-danger-border: var(--op-color-red-700);
+    --ds-feedback-info-fg: var(--op-color-blue-300);
+    --ds-feedback-info-surface: var(--op-color-blue-950);
+    --ds-feedback-info-border: var(--op-color-blue-700);
+    --ds-elevation-overlay: var(--op-shadow-overlay-dark);
+    --ds-elevation-glow-opacity: var(--op-opacity-glow-dark);
+  }
 }
 
 /* Component tokens (--cmp-*) reference semantic names. A custom property is computed where it is

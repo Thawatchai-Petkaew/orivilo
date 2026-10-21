@@ -21,6 +21,18 @@ type Json = Record<string, unknown>;
 export const LOCKED_GROUPS: readonly string[] = ["feedback", "focus"];
 
 /**
+ * Where each Studio-scoped token points inside a profile boundary (E2-3). The Intent Engine action
+ * is the Studio's; a profile never carries it, so inside a customer boundary it renders as the
+ * profile's own primary action rather than leaking the Studio's lime (DESIGN.md §9 item 10).
+ */
+export const STUDIO_REMAP: Readonly<Record<string, string>> = {
+  "action.intent": "action.primary",
+  "action.intent-hover": "action.primary-hover",
+  "action.intent-press": "action.primary-press",
+  "text.on-intent": "text.on-action",
+};
+
+/**
  * Decisions a profile declares (handoff §12.1), each with the values the system knows. `shape` and
  * `surfaceTreatment` are checked against the tokens; the rest describe the author's intent and are
  * checked for vocabulary only.
@@ -142,6 +154,12 @@ export class Profile {
         );
         continue;
       }
+      if (target["$extensions"] && scopeOf(target) === "studio") {
+        this.errors.push(
+          `${source.$id}: ${path} is Studio-only; a profile never carries it (inside a boundary it renders as ${STUDIO_REMAP[path] ?? "its remap"})`,
+        );
+        continue;
+      }
       if (LOCKED_GROUPS.includes(group)) {
         this.errors.push(
           `${source.$id}: ${path} is locked; ${group} semantics never change per profile (DESIGN.md §8)`,
@@ -193,6 +211,14 @@ export class Profile {
       if (!(key in this.decisions)) errors.push(`${this.id}: decision ${key} is required`);
     }
     if (this.overrides.length === 0) errors.push(`${this.id}: overrides nothing`);
+    for (const t of this.base.layer("semantic")) {
+      if (t.scope === "identity" && !this.overrides.includes(t.path))
+        errors.push(
+          `${this.id}: ${t.path} carries ORIVILO's identity and must be overridden by every profile (DESIGN.md §9 item 10)`,
+        );
+      if (t.scope === "studio" && !STUDIO_REMAP[t.path])
+        errors.push(`${t.path} is Studio-scoped but has no entry in STUDIO_REMAP`);
+    }
     for (const path of this.overrides) {
       const token = this.tokens.get("semantic", path);
       if (!token) continue;
@@ -253,8 +279,22 @@ export class Profile {
    * so a profile wins inside its boundary whatever the source order. A boundary always carries both
    * `data-design-profile` and `data-mode` (DesignProfileBoundary sets them together).
    */
+  /** Studio-scoped tokens and the profile token each one renders as, for diffs and docs. */
+  get studioRemaps(): [string, string][] {
+    return this.base
+      .layer("semantic")
+      .filter((t) => t.scope === "studio")
+      .map((t) => [t.path, STUDIO_REMAP[t.path] ?? ""]);
+  }
+
   emitCss(): string {
     const blocks: string[] = [];
+    const remap = this.studioRemaps.map(([from, to]) => {
+      const f = this.tokens.get("semantic", from);
+      const t = this.tokens.get("semantic", to);
+      if (!f || !t) throw new Error(`studio remap ${from} to ${to}: token missing`);
+      return `${TokenSet.cssVar(f)}: var(${TokenSet.cssVar(t)});`;
+    });
     for (const mode of MODES) {
       const lines: string[] = [];
       for (const path of this.ownPrimitives) {
@@ -268,17 +308,27 @@ export class Profile {
         const value = isModeValue(raw) ? raw[mode] : raw;
         lines.push(...this.tokens.declarations(t, value));
       }
-      const selector =
-        mode === "light"
-          ? `[data-design-profile="${this.id}"]:not([data-mode="dark"])`
-          : `[data-design-profile="${this.id}"][data-mode="dark"]`;
-      blocks.push(`${selector} {\n${lines.map((l) => `  ${l}`).join("\n")}\n}`);
+      lines.push(...remap);
+      const body = lines.map((l) => `  ${l}`).join("\n");
+      if (mode === "light") {
+        blocks.push(`[data-design-profile="${this.id}"]:not([data-mode="dark"]) {\n${body}\n}`);
+      } else {
+        blocks.push(`[data-design-profile="${this.id}"][data-mode="dark"] {\n${body}\n}`);
+        blocks.push(
+          `@media (prefers-color-scheme: dark) {\n  [data-design-profile="${this.id}"][data-mode="system"] {\n${lines.map((l) => `    ${l}`).join("\n")}\n  }\n}`,
+        );
+      }
     }
     return [
       `/* Profile ${this.id}: ${this.name.en} (${this.name.th}). ${this.overrides.length} overrides, ${this.ownPrimitives.length} own primitives. */`,
       ...blocks,
     ].join("\n");
   }
+}
+
+function scopeOf(node: Json): string | undefined {
+  const ext = node["$extensions"] as { orivilo?: { scope?: string } } | undefined;
+  return ext?.orivilo?.scope;
 }
 
 function isModeValue(value: unknown): value is Record<Mode, unknown> {

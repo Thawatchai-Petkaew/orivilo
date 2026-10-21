@@ -37,6 +37,44 @@ describe("generated.css", () => {
     const committed = readFileSync(path.join(import.meta.dirname, "generated.css"), "utf8");
     expect(committed).toBe(tokens.emitCss());
   });
+
+  it("gives a system boundary the light set, then the dark set under the OS media query", () => {
+    const css = tokens.emitCss();
+    expect(css).toContain(':root,\n[data-mode="light"],\n[data-mode="system"] {');
+    const media = css.slice(css.indexOf("@media (prefers-color-scheme: dark)"));
+    expect(media).toContain('[data-mode="system"] {');
+    expect(media).toContain("color-scheme: dark;");
+    const dark = tokens.get("semantic", "surface.canvas");
+    if (!dark) throw new Error("surface.canvas missing");
+    expect(media).toContain(`--ds-surface-canvas: var(--op-color-gray-900);`);
+  });
+});
+
+describe("token scope", () => {
+  it("marks the Intent Engine action as the Studio's and the violet and lime carriers as identity", () => {
+    const by = (scope: string) =>
+      tokens
+        .layer("semantic")
+        .filter((t) => t.scope === scope)
+        .map((t) => t.path)
+        .sort();
+    expect(by("studio")).toEqual([
+      "action.intent",
+      "action.intent-hover",
+      "action.intent-press",
+      "text.on-intent",
+    ]);
+    expect(by("identity")).toEqual([
+      "brand.ink",
+      "brand.signature",
+      "selection.bg",
+      "selection.fg",
+      "surface.selected",
+      "text.brand",
+      "text.link",
+      "text.link-hover",
+    ]);
+  });
 });
 
 describe("contrast pairs declared in semantic.json", () => {

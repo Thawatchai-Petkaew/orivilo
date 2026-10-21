@@ -14,11 +14,19 @@ export interface ContrastRule {
   floor: number | null;
 }
 
+/**
+ * `studio`: the Studio's own token (the Intent Engine action); a profile never carries it and the
+ * profile CSS remaps it to the profile's primary action. `identity`: carries ORIVILO's look (violet,
+ * lime); every profile must override it so nothing of the shell shows inside a preview (DESIGN.md §9).
+ */
+export type TokenScope = "studio" | "identity";
+
 export interface Token {
   path: string;
   layer: Layer;
   type: string;
   description: string | undefined;
+  scope: TokenScope | undefined;
   /** The raw `$value`: a literal, a `{reference}`, a `{ light, dark }` pair, or a composite object. */
   raw: unknown;
   contrast: ContrastRule | undefined;
@@ -53,12 +61,14 @@ export function flatten(source: Json, layer: Layer, prefix = ""): Token[] {
     const path = prefix ? `${prefix}.${key}` : key;
     const n = node as Json;
     if ("$value" in n) {
-      const ext = n["$extensions"] as { orivilo?: { contrast?: ContrastRule } } | undefined;
+      const ext = n["$extensions"] as
+        { orivilo?: { contrast?: ContrastRule; scope?: TokenScope } } | undefined;
       out.push({
         path,
         layer,
         type: String(n["$type"] ?? "unknown"),
         description: typeof n["$description"] === "string" ? n["$description"] : undefined,
+        scope: ext?.orivilo?.scope,
         raw: n["$value"],
         contrast: ext?.orivilo?.contrast,
       });
@@ -164,6 +174,12 @@ export class TokenSet {
       if (token.contrast && !this.get("semantic", token.contrast.against)) {
         errors.push(`${token.path} contrast pair ${token.contrast.against} does not exist`);
       }
+      if (token.scope && token.layer !== "semantic") {
+        errors.push(`${token.path}: only semantic tokens carry a scope`);
+      }
+      if (token.scope && !["studio", "identity"].includes(token.scope)) {
+        errors.push(`${token.path}: scope must be studio or identity`);
+      }
     }
     return errors;
   }
@@ -243,8 +259,8 @@ export class TokenSet {
     return [
       "/* Generated from src/tokens/source/*.json by scripts/build-tokens.ts. Do not edit. */",
       "",
-      "/* Primitives (--op-*) and semantic light (--ds-*) */",
-      ':root,\n[data-mode="light"] {',
+      "/* Primitives (--op-*) and semantic light (--ds-*). data-mode=system follows the OS and starts light. */",
+      ':root,\n[data-mode="light"],\n[data-mode="system"] {',
       "  color-scheme: light;",
       indent(light),
       "}",
@@ -253,6 +269,14 @@ export class TokenSet {
       '[data-mode="dark"] {',
       "  color-scheme: dark;",
       indent(dark),
+      "}",
+      "",
+      "/* The same dark values for a system boundary when the OS prefers dark; no script, no flash. */",
+      "@media (prefers-color-scheme: dark) {",
+      '  [data-mode="system"] {',
+      "    color-scheme: dark;",
+      indent(dark.map((l) => `  ${l}`)),
+      "  }",
       "}",
       "",
       "/* Component tokens (--cmp-*) reference semantic names. A custom property is computed where it is",

@@ -9,6 +9,7 @@ export {
   DECISIONS,
   LOCKED_GROUPS,
   PROFILE_IDS,
+  STUDIO_REMAP,
   Profile,
   profileById,
   profiles,
