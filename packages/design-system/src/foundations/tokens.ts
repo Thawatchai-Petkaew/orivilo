@@ -41,7 +41,7 @@ export const COLOUR_TOKENS: readonly ColourToken[] = [
     name: "action.primary",
     against: "surface.canvas",
     floor: 4.5,
-    note: "One primary action per view; links as text",
+    note: "One primary action per view, as an ink pill",
   },
   {
     name: "action.primary-hover",
@@ -55,6 +55,31 @@ export const COLOUR_TOKENS: readonly ColourToken[] = [
     floor: null,
     note: "Pressed of action.primary",
   },
+  {
+    name: "action.intent",
+    against: "surface.canvas",
+    floor: null,
+    note: "The one Intent Engine button per screen",
+  },
+  {
+    name: "action.intent-hover",
+    against: "surface.canvas",
+    floor: null,
+    note: "Hover of action.intent",
+  },
+  {
+    name: "action.intent-press",
+    against: "surface.canvas",
+    floor: null,
+    note: "Pressed of action.intent",
+  },
+  {
+    name: "text.on-intent",
+    against: "action.intent",
+    floor: 4.5,
+    note: "Text and icons on action.intent",
+  },
+  { name: "text.link", against: "surface.canvas", floor: 4.5, note: "Links in running text" },
   {
     name: "selection.fg",
     against: "surface.selected",
