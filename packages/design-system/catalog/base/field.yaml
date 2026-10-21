@@ -1,0 +1,22 @@
+name: Field
+tier: base
+status: stable
+since: E2-4
+import: "@orivilo/design-system"
+story: base-field
+useWhen:
+  - "Any Input, Textarea or Select on a form: it supplies the visible label, the help text and the error"
+avoidWhen:
+  - "A Checkbox (it carries its own label and error)"
+  - "A control whose label is a table header or a dialog title (link it with aria-labelledby instead)"
+contract: FieldProps
+variants: []
+sizes: []
+states: [default, required, disabled, invalid]
+recipes: [neutral, professional, friendly]
+examples: []
+rules:
+  - "Exactly one control as children; it reads the wiring through context (useFieldControl)"
+  - "Error copy says what went wrong and how to fix it"
+a11y:
+  - "Label linked by for/id; description and error by aria-describedby; error sets aria-invalid and is announced as an alert"

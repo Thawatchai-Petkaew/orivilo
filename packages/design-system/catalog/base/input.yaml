@@ -1,8 +1,8 @@
 name: Input
 tier: base
-status: planned
+status: stable
 since: E2-4
-import: none
+import: "@orivilo/design-system"
 story: base-input
 useWhen:
   - Single-line text, number, email, or password with a visible label
@@ -13,9 +13,10 @@ contract: InputProps
 variants: [default]
 sizes: [sm, md, lg]
 states: [default, hover, focus-visible, disabled, read-only, invalid]
-recipes: []
-examples: []
+recipes: [neutral, professional, friendly]
+examples: [] # the reference screen (E2-8) is the first
 rules:
+  - "Inside a Field it takes the label, description, error and required wiring from context"
   - Label is always visible; placeholder is never the label
   - Error message says what went wrong and how to fix it
   - Thai and Latin input render at the same visual size

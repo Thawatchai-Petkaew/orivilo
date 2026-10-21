@@ -1,8 +1,8 @@
 name: Tooltip
 tier: base
-status: planned
+status: stable
 since: E2-4
-import: none
+import: "@orivilo/design-system"
 story: base-tooltip
 useWhen:
   - "A short label for an icon-only control or a truncated value"
@@ -13,9 +13,10 @@ contract: TooltipProps
 variants: []
 sizes: []
 states: [closed, open, delayed]
-recipes: []
-examples: []
+recipes: [neutral, professional, friendly]
+examples: [] # the reference screen (E2-8) is the first
 rules:
+  - "Content re-opens the trigger's profile through PortalScope (E2-4)"
   - "Never the only way to learn a control's name; the control carries an accessible name itself"
   - "No interactive content inside"
 a11y:

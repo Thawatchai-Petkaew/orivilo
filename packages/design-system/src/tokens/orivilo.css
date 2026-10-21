@@ -5,11 +5,14 @@
  * semantic and component names only; no hex or raw value is written anywhere else.
  * Profiles (src/profiles/source/*.json, E2-2) override semantic values inside their
  * DesignProfileBoundary; the same build writes them to src/profiles/generated.css.
+ * Recipes (src/recipes/recipes.css, E2-4) are the classes components consume; every value in them
+ * is a component or semantic custom property.
  */
 
 @import "tailwindcss";
 @import "./generated.css";
 @import "../profiles/generated.css";
+@import "../recipes/recipes.css";
 
 /* generated.css removes Tailwind's default palette, radii, shadows, fonts, and text sizes before
  * adding the semantic ones, so a raw class such as `bg-red-500` produces no CSS (the lint rule

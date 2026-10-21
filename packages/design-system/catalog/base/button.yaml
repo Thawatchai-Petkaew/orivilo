@@ -1,8 +1,8 @@
 name: Button
 tier: base
-status: planned
+status: stable
 since: E2-4
-import: none
+import: "@orivilo/design-system"
 story: base-button
 useWhen:
   - One primary action per view; secondary and ghost for the rest
@@ -11,12 +11,14 @@ avoidWhen:
   - Navigation that changes the URL (use a Link styled by the link recipe)
   - Toggling a setting that applies immediately (use Switch)
 contract: ButtonProps
-variants: [primary, secondary, ghost, destructive]
+variants: [primary, secondary, ghost, destructive, intent]
 sizes: [sm, md, lg]
 states: [default, hover, focus-visible, pressed, disabled, loading]
-recipes: []
-examples: []
+recipes: [neutral, professional, friendly]
+examples: [] # the reference screen (E2-8) is the first
 rules:
+  - "intent is the one Intent Engine button per Studio screen; inside a profile boundary it renders as that profile's primary action (E2-3 remap)"
+  - "asChild renders the recipe on a child element such as a link"
   - Label says what happens and keeps its name through the flow
   - Icon-only form requires an accessible name
   - Only one primary per view

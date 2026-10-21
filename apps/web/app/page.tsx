@@ -14,10 +14,14 @@ const real = [
     story: "E2-2",
   },
   { what: "Shell นี้ใช้ profile neutral และตามโหมดสีของเครื่อง", story: "E2-3" },
+  {
+    what: "Component ชุดแรก 10 ตัว (ปุ่ม, ช่องกรอก, select, checkbox, tooltip, popover, tabs) ใน Storybook ผ่าน 3 profile และ 2 โหมด",
+    story: "E2-4",
+  },
 ];
 
 const notYet = [
-  "Component ที่ใช้ร่วมกัน (ปุ่ม, ช่องกรอก, dialog) ยังไม่มี: E2-4 เป็นต้นไป",
+  "Dialog, Card และ Table ยังไม่มี: E2-5 และ E2-6; หน้านี้ยังไม่ได้ใช้ component ใดเลย (หน้าอ้างอิงคือ E2-8)",
   "Canvas และ node ของ Studio ยังไม่มี: epic E4",
   "การตีความ brief ยังไม่มี; เมื่อมาจะเป็นแบบกฎก่อนและบอกตามจริง: E2-10",
 ];

@@ -108,7 +108,7 @@
   --op-color-navy-950: #091326;
   --ds-surface-canvas: var(--op-color-slate-900);
   --ds-surface-card: var(--op-color-slate-800);
-  --ds-surface-raised: var(--op-color-slate-700);
+  --ds-surface-raised: var(--op-color-slate-800);
   --ds-surface-sunken: var(--op-color-slate-950);
   --ds-surface-hover: var(--op-color-slate-700);
   --ds-surface-selected: var(--op-color-navy-950);
@@ -187,7 +187,7 @@
     --op-color-navy-950: #091326;
     --ds-surface-canvas: var(--op-color-slate-900);
     --ds-surface-card: var(--op-color-slate-800);
-    --ds-surface-raised: var(--op-color-slate-700);
+    --ds-surface-raised: var(--op-color-slate-800);
     --ds-surface-sunken: var(--op-color-slate-950);
     --ds-surface-hover: var(--op-color-slate-700);
     --ds-surface-selected: var(--op-color-navy-950);
@@ -303,7 +303,7 @@
   --ds-border-disabled: var(--op-color-cream-200);
   --ds-action-primary: var(--op-color-coral-500);
   --ds-action-primary-hover: var(--op-color-coral-400);
-  --ds-action-primary-press: var(--op-color-coral-600);
+  --ds-action-primary-press: var(--op-color-coral-300);
   --ds-action-primary-disabled: var(--op-color-cream-300);
   --ds-selection-bg: var(--op-color-teal-50);
   --ds-selection-fg: var(--op-color-teal-700);
@@ -371,7 +371,7 @@
   --op-color-teal-950: #021B18;
   --ds-surface-canvas: var(--op-color-cream-900);
   --ds-surface-card: var(--op-color-cream-800);
-  --ds-surface-raised: var(--op-color-cream-700);
+  --ds-surface-raised: var(--op-color-cream-800);
   --ds-surface-sunken: var(--op-color-cream-950);
   --ds-surface-hover: var(--op-color-cream-700);
   --ds-surface-selected: var(--op-color-teal-950);
@@ -464,7 +464,7 @@
     --op-color-teal-950: #021B18;
     --ds-surface-canvas: var(--op-color-cream-900);
     --ds-surface-card: var(--op-color-cream-800);
-    --ds-surface-raised: var(--op-color-cream-700);
+    --ds-surface-raised: var(--op-color-cream-800);
     --ds-surface-sunken: var(--op-color-cream-950);
     --ds-surface-hover: var(--op-color-cream-700);
     --ds-surface-selected: var(--op-color-teal-950);

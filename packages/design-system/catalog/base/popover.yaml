@@ -1,8 +1,8 @@
 name: Popover
 tier: base
-status: planned
+status: stable
 since: E2-4
-import: none
+import: "@orivilo/design-system"
 story: base-popover
 useWhen:
   - "A small task anchored to a trigger: a picker, a quick form, the chat opened at the cursor"
@@ -13,9 +13,10 @@ contract: PopoverProps
 variants: []
 sizes: []
 states: [closed, open, pending]
-recipes: []
-examples: []
+recipes: [neutral, professional, friendly]
+examples: [] # the reference screen (E2-8) is the first
 rules:
-  - "Rendered through the portal with the same DesignProfileBoundary as the trigger; a test proves it"
+  - "PopoverTrigger and PopoverClose default to asChild so a Button keeps its recipe"
+  - "Rendered through the portal with the same DesignProfileBoundary as the trigger (PortalScope); the InsideProfile story proves it"
 a11y:
   - "Focus moves inside on open and returns on close; Escape closes"

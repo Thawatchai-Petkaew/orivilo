@@ -2,6 +2,8 @@
 
 Status: decided 2026-10-21. The owner chose mood E (airy bento, from the Docuverse reference) over A to D; the decisions are in `DESIGN.md` v1.1 §2, §3.1, §3.2, §3.3, §8. This file keeps the study and the reasons.
 
+Correction 2026-10-21 (DESIGN.md v1.6): the ink primary action that v1.1 bundled with the bento layout was not part of the brand case study, which keeps Orbit violet for buttons, links and selection (boards 06, 08, 09). `action.primary` is violet again; the bento layout, lime `action.intent` and pill controls stand.
+
 Original status: proposal for the owner's decision. Visual version with references and a shell mock: the "ORIVILO UI direction" artifact. Once the owner agrees, the decisions below move into `DESIGN.md` (v1.1) and the open tests into Storybook stories.
 
 ## The feeling

@@ -1,8 +1,8 @@
 name: Select
 tier: base
-status: planned
+status: stable
 since: E2-4
-import: none
+import: "@orivilo/design-system"
 story: base-select
 useWhen:
   - Pick one of six or more known options that need no search
@@ -13,10 +13,11 @@ contract: SelectProps
 variants: [default]
 sizes: [sm, md, lg]
 states: [default, hover, focus-visible, open, disabled, invalid, empty]
-recipes: []
-examples: []
+recipes: [neutral, professional, friendly]
+examples: [] # the reference screen (E2-8) is the first
 rules:
-  - Listbox is rendered through a portal and must receive the trigger's profile (E2-5 proves this)
+  - "options is an array; an empty array shows emptyText instead of a blank listbox"
+  - "The listbox re-opens the trigger's profile through PortalScope (E2-4); the InsideProfile story proves it"
   - Selected option uses surface.selected and selection.fg, distinct from focus
 a11y:
   - Keyboard: arrows, type-ahead, Escape closes and returns focus

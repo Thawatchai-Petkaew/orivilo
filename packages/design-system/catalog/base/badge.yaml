@@ -1,8 +1,8 @@
 name: Badge
 tier: base
-status: planned
+status: stable
 since: E2-4
-import: none
+import: "@orivilo/design-system"
 story: base-badge
 useWhen:
   - "A short status word next to a title: draft, approved, stale, running"
@@ -13,8 +13,8 @@ contract: BadgeProps
 variants: [neutral, success, warning, danger, info, brand]
 sizes: [sm, md]
 states: [default]
-recipes: []
-examples: []
+recipes: [neutral, professional, friendly]
+examples: [] # the reference screen (E2-8) is the first
 rules:
   - "Status colours come from feedback tokens, never the brand accent"
   - "Never rendered without backing data (AGENTS.md)"
