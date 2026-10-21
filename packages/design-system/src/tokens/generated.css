@@ -714,6 +714,7 @@
   --cmp-field-text-type-line-height: var(--ds-type-body-sm-line-height);
   --cmp-field-text-type-font-weight: var(--ds-type-body-sm-font-weight);
   --cmp-field-text-type-letter-spacing: var(--ds-type-body-sm-letter-spacing);
+  --cmp-textarea-radius: var(--ds-shape-media-radius);
 }
 
 /* Tailwind utilities resolve to semantic tokens only (DESIGN.md §5). The defaults are removed first

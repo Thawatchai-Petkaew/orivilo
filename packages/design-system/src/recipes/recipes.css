@@ -228,10 +228,11 @@
   color: var(--cmp-input-icon);
 }
 
-/* Textarea: a multi-line control with vertical padding; the component bounds its height. */
+/* Textarea: a multi-line control with vertical padding and the media radius; the component bounds its height. */
 .ds-control[data-multiline] {
   align-items: flex-start;
   padding-block: var(--cmp-input-padding-y);
+  border-radius: var(--cmp-textarea-radius);
   resize: none;
   overflow-y: auto;
 }

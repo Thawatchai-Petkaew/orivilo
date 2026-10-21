@@ -814,5 +814,12 @@
       "$type": "typography",
       "$value": "{type.body.sm}"
     }
+  },
+  "textarea": {
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.media.radius}",
+      "$description": "A multi-line box takes the media radius, not the pill: a pill wrapping three lines reads as a capsule, not a field"
+    }
   }
 }
