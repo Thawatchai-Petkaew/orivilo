@@ -208,9 +208,9 @@
   --ds-border-card: var(--op-color-transparent);
   --ds-border-disabled: var(--op-color-gray-200);
   --ds-border-error: var(--op-color-red-700);
-  --ds-action-primary: var(--op-color-gray-900);
-  --ds-action-primary-hover: var(--op-color-gray-700);
-  --ds-action-primary-press: var(--op-color-black);
+  --ds-action-primary: var(--op-color-violet-600);
+  --ds-action-primary-hover: var(--op-color-violet-700);
+  --ds-action-primary-press: var(--op-color-violet-900);
   --ds-action-primary-disabled: var(--op-color-gray-300);
   --ds-action-intent: var(--op-color-lime-300);
   --ds-action-intent-hover: var(--op-color-lime-400);
@@ -370,9 +370,9 @@
   --ds-border-card: var(--op-color-gray-700);
   --ds-border-disabled: var(--op-color-gray-700);
   --ds-border-error: var(--op-color-red-400);
-  --ds-action-primary: var(--op-color-gray-100);
-  --ds-action-primary-hover: var(--op-color-white);
-  --ds-action-primary-press: var(--op-color-gray-200);
+  --ds-action-primary: var(--op-color-violet-400);
+  --ds-action-primary-hover: var(--op-color-violet-300);
+  --ds-action-primary-press: var(--op-color-violet-500);
   --ds-action-primary-disabled: var(--op-color-gray-700);
   --ds-action-intent: var(--op-color-lime-300);
   --ds-action-intent-hover: var(--op-color-lime-400);
@@ -434,9 +434,9 @@
     --ds-border-card: var(--op-color-gray-700);
     --ds-border-disabled: var(--op-color-gray-700);
     --ds-border-error: var(--op-color-red-400);
-    --ds-action-primary: var(--op-color-gray-100);
-    --ds-action-primary-hover: var(--op-color-white);
-    --ds-action-primary-press: var(--op-color-gray-200);
+    --ds-action-primary: var(--op-color-violet-400);
+    --ds-action-primary-hover: var(--op-color-violet-300);
+    --ds-action-primary-press: var(--op-color-violet-500);
     --ds-action-primary-disabled: var(--op-color-gray-700);
     --ds-action-intent: var(--op-color-lime-300);
     --ds-action-intent-hover: var(--op-color-lime-400);

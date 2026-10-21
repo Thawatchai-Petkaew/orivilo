@@ -364,10 +364,10 @@
     "primary": {
       "$type": "color",
       "$value": {
-        "light": "{color.gray.900}",
-        "dark": "{color.gray.100}"
+        "light": "{color.violet.600}",
+        "dark": "{color.violet.400}"
       },
-      "$description": "One primary action per view, as an ink pill",
+      "$description": "One primary action per view, Orbit violet (brand case study board 06); ink is for text and focus",
       "$extensions": {
         "orivilo": {
           "contrast": {
@@ -380,16 +380,16 @@
     "primary-hover": {
       "$type": "color",
       "$value": {
-        "light": "{color.gray.700}",
-        "dark": "{color.white}"
+        "light": "{color.violet.700}",
+        "dark": "{color.violet.300}"
       },
       "$description": "Hover of action.primary"
     },
     "primary-press": {
       "$type": "color",
       "$value": {
-        "light": "{color.black}",
-        "dark": "{color.gray.200}"
+        "light": "{color.violet.900}",
+        "dark": "{color.violet.500}"
       },
       "$description": "Pressed of action.primary"
     },

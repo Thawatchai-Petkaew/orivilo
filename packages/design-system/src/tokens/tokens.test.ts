@@ -25,10 +25,10 @@ describe("token layers", () => {
     expect(bg).toBeDefined();
     if (!bg) return;
     expect(tokens.resolve(bg, "light")).toEqual({
-      value: "#16151D",
-      chain: ["semantic:action.primary", "primitive:color.gray.900"],
+      value: "#7A22C7",
+      chain: ["semantic:action.primary", "primitive:color.violet.600"],
     });
-    expect(tokens.resolve(bg, "dark").value).toBe("#F2F1EC");
+    expect(tokens.resolve(bg, "dark").value).toBe("#B07FEE");
   });
 });
 
