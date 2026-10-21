@@ -1,0 +1,20 @@
+name: Sheet
+tier: application
+status: planned
+since: E4-4
+import: none
+story: application-sheet
+useWhen:
+  - "A side panel for a longer task that keeps the canvas visible: the inspector on small screens"
+avoidWhen:
+  - "A short confirmation (use Dialog)"
+contract: SheetProps
+variants: []
+sizes: [md, lg]
+states: [closed, open, pending]
+recipes: []
+examples: []
+rules:
+  - "Portal content receives the trigger's DesignProfileBoundary; a test proves it"
+a11y:
+  - "Focus trapped while open; Escape closes unless pending"

@@ -2,7 +2,8 @@
  * Catalog and Storybook parity (DESIGN.md §11, catalog/README.md).
  * A story in a component tier (base, application, marketing) needs a catalog entry whose `story`
  * field is its id; an entry with status draft or stable needs a story. Foundations stories are
- * documentation, not components, and are exempt. Runs on the file system; Storybook is not needed.
+ * documentation, not components, and are exempt. `catalog/commands/` is the command registry, checked
+ * by check-commands. Runs on the file system; Storybook is not needed.
  */
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
@@ -24,7 +25,7 @@ function walk(dir: string, match: (file: string) => boolean): string[] {
   for (const dirent of readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, dirent.name);
     if (dirent.isDirectory()) {
-      if (dirent.name === "node_modules" || dirent.name === "storybook-static") continue;
+      if (["node_modules", "storybook-static", "commands"].includes(dirent.name)) continue;
       out = out.concat(walk(full, match));
     } else if (match(dirent.name)) {
       out.push(full);

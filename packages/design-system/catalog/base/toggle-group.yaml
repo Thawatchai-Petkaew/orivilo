@@ -1,0 +1,20 @@
+name: ToggleGroup
+tier: base
+status: planned
+since: E4-3
+import: none
+story: base-toggle-group
+useWhen:
+  - "One of a few modes: pan or select, light or dark, grid on or off"
+avoidWhen:
+  - "More than five options (use Select)"
+contract: ToggleGroupProps
+variants: []
+sizes: [sm, md]
+states: [default, hover, focus-visible, pressed, disabled]
+recipes: []
+examples: []
+rules:
+  - "Pressed state uses selection tokens and an edge change, never a tint alone"
+a11y:
+  - "Roving tabindex; aria-pressed or radio semantics by mode"

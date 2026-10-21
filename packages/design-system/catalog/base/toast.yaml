@@ -1,0 +1,22 @@
+name: Toast
+tier: base
+status: planned
+since: E4-5
+import: none
+story: base-toast
+useWhen:
+  - "A short confirmation or failure that does not block: saved, generation failed"
+avoidWhen:
+  - "Anything needing a decision (use Dialog)"
+  - "Errors tied to a field (inline)"
+contract: ToastProps
+variants: [neutral, success, danger]
+sizes: []
+states: [entering, visible, leaving]
+recipes: []
+examples: []
+rules:
+  - "Says what happened and, on failure, how to fix it"
+  - "Never a success toast without backing data"
+a11y:
+  - "Polite live region; failure uses assertive; dismissable by keyboard"

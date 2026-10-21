@@ -1,0 +1,21 @@
+name: CompareStrip
+tier: application
+status: planned
+since: E4-6
+import: none
+story: application-compare-strip
+useWhen:
+  - "Two or three directions side by side on the same content and task (handoff §17.3)"
+avoidWhen:
+  - "One direction"
+contract: CompareStripProps
+variants: []
+sizes: []
+states: [2-items, 3-items, loading, empty]
+recipes: []
+examples: []
+rules:
+  - "Each item is a preview node under its own DesignProfileBoundary"
+  - "Differences must be more than a colour swap, and the strip says what differs"
+a11y:
+  - "Items are labelled by direction name; arrow keys move between them"

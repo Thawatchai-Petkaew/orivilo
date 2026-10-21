@@ -1,0 +1,19 @@
+name: CanvasControls
+tier: application
+status: planned
+since: E4-3
+import: none
+story: application-canvas-controls
+useWhen:
+  - "Zoom in, zoom out, fit, 100 percent, pan or select mode, undo, redo"
+avoidWhen: []
+contract: CanvasControlsProps
+variants: []
+sizes: []
+states: [default, disabled-undo, disabled-redo]
+recipes: []
+examples: []
+rules:
+  - "Every control has a command and a shortcut in the registry"
+a11y:
+  - "Each button named with its shortcut in the tooltip"

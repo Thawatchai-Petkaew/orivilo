@@ -1,0 +1,22 @@
+name: NodePort
+tier: application
+status: planned
+since: E4-2
+import: none
+story: application-node-port
+useWhen:
+  - "A connection point on a node, typed by the data it carries: text, image, palette, type, profile"
+avoidWhen:
+  - "Decorative dots"
+contract: NodePortProps
+variants: [input, output]
+sizes: [md]
+states: [idle, hover, connecting, valid-target, invalid-target, connected, disabled]
+recipes: []
+examples: []
+rules:
+  - "Type is shown by shape and icon as well as colour"
+  - "Dragging from a port lists only compatible nodes (Krea pattern); an invalid drop explains why"
+a11y:
+  - "Keyboard connect: C on a focused node starts a connection, arrow keys pick a target, Enter confirms"
+  - "Port carries an accessible name: direction plus type"

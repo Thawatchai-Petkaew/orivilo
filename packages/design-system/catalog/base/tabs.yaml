@@ -1,0 +1,21 @@
+name: Tabs
+tier: base
+status: planned
+since: E2-4
+import: none
+story: base-tabs
+useWhen:
+  - "Sections of one object the user switches between: the inspector's tabs"
+avoidWhen:
+  - "Steps in a sequence (use a stepper pattern)"
+  - "Navigation that changes the URL"
+contract: TabsProps
+variants: []
+sizes: [sm, md]
+states: [default, hover, focus-visible, selected, disabled]
+recipes: []
+examples: []
+rules:
+  - "Selected tab uses selection tokens; the indicator is an edge, not a tint only"
+a11y:
+  - "Arrow keys move between tabs; the panel is labelled by its tab"

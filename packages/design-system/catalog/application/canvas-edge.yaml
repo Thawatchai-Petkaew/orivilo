@@ -1,0 +1,22 @@
+name: CanvasEdge
+tier: application
+status: planned
+since: E4-2
+import: none
+story: application-canvas-edge
+useWhen:
+  - "A link between two nodes that means input, reference or derived-from"
+avoidWhen:
+  - "Grouping (use NodeGroup)"
+contract: CanvasEdgeProps
+variants: [input, reference, derived]
+sizes: []
+states: [default, hover, selected, focus-visible, invalid, stale]
+recipes: []
+examples: []
+rules:
+  - "The three meanings differ by stroke style and label, never by colour alone"
+  - "Deleting an edge never deletes a node"
+a11y:
+  - "aria-label reads: <meaning> from <source> to <target>"
+  - "Selectable by keyboard with Tab; Delete removes it"

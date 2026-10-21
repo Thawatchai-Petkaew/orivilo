@@ -1,0 +1,22 @@
+name: Badge
+tier: base
+status: planned
+since: E2-4
+import: none
+story: base-badge
+useWhen:
+  - "A short status word next to a title: draft, approved, stale, running"
+avoidWhen:
+  - "Counts that change every second (use plain text with a live region)"
+  - "Actions (use Button)"
+contract: BadgeProps
+variants: [neutral, success, warning, danger, info, brand]
+sizes: [sm, md]
+states: [default]
+recipes: []
+examples: []
+rules:
+  - "Status colours come from feedback tokens, never the brand accent"
+  - "Never rendered without backing data (AGENTS.md)"
+a11y:
+  - "Colour never carries the meaning alone; the word does"

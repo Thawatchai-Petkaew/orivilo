@@ -1,0 +1,22 @@
+name: DropdownMenu
+tier: base
+status: planned
+since: E4-3
+import: none
+story: base-dropdown-menu
+useWhen:
+  - "A list of actions behind one trigger: the node's more menu, the project menu"
+avoidWhen:
+  - "Choosing a value for a field (use Select)"
+  - "Right-click on a surface (use ContextMenu)"
+contract: DropdownMenuProps
+variants: []
+sizes: []
+states: [closed, open, item-hover, item-disabled, item-destructive]
+recipes: []
+examples: []
+rules:
+  - "Destructive items use feedback.danger and sit last"
+  - "Shortcut hints rendered with Kbd from the command registry"
+a11y:
+  - "Arrow keys move, typeahead selects, Escape closes, focus returns to trigger"

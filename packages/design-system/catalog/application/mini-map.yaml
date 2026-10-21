@@ -1,0 +1,20 @@
+name: MiniMap
+tier: application
+status: planned
+since: E4-3
+import: none
+story: application-mini-map
+useWhen:
+  - "Boards larger than one viewport"
+avoidWhen:
+  - "Fewer than about ten nodes (hidden)"
+contract: MiniMapProps
+variants: []
+sizes: []
+states: [default, dragging, hidden]
+recipes: []
+examples: []
+rules:
+  - "Node colours come from node kind tokens"
+a11y:
+  - "Decorative for screen readers; the same navigation exists in CanvasControls"

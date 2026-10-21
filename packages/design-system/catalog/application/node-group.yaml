@@ -1,0 +1,21 @@
+name: NodeGroup
+tier: application
+status: planned
+since: E4-3
+import: none
+story: application-node-group
+useWhen:
+  - "A named frame around related nodes: a mood board, a storyboard, one direction"
+avoidWhen:
+  - "A single node"
+contract: NodeGroupProps
+variants: []
+sizes: []
+states: [default, hover, selected, collapsed, read-only]
+recipes: []
+examples: []
+rules:
+  - "Children move with the group; a child can be dragged out"
+  - "Collapsing hides children and keeps their edges summarised on the group"
+a11y:
+  - "Group is a focusable landmark with its name; children are reachable inside it"

@@ -1,0 +1,21 @@
+name: Textarea
+tier: base
+status: planned
+since: E2-4
+import: none
+story: base-textarea
+useWhen:
+  - "Multi-line text: a prompt, a brief, a note on the canvas"
+avoidWhen:
+  - "A single value (use Input)"
+contract: TextareaProps
+variants: []
+sizes: [md, lg]
+states: [default, hover, focus-visible, disabled, read-only, invalid, auto-grow]
+recipes: []
+examples: []
+rules:
+  - "Grows with content up to a bound, then scrolls"
+  - "Thai and Latin on the same line without size parity loss"
+a11y:
+  - "Label always present; error message linked with aria-describedby"

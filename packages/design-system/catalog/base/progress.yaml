@@ -1,0 +1,20 @@
+name: Progress
+tier: base
+status: planned
+since: E4-5
+import: none
+story: base-progress
+useWhen:
+  - "A generation job with known or unknown length"
+avoidWhen:
+  - "A finished state (use Badge or text)"
+contract: ProgressProps
+variants: [determinate, indeterminate]
+sizes: [sm, md]
+states: [running, done, failed]
+recipes: []
+examples: []
+rules:
+  - "Indeterminate shows motion only when reduced motion is off; otherwise a static bar with text"
+a11y:
+  - "role progressbar with aria-valuenow or aria-busy; status announced in a live region"

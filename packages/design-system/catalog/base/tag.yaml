@@ -1,0 +1,20 @@
+name: Tag
+tier: base
+status: planned
+since: E4-5
+import: none
+story: base-tag
+useWhen:
+  - "A removable label chosen by the user: a reference, a filter, a mention"
+avoidWhen:
+  - "Read-only status (use Badge)"
+contract: TagProps
+variants: []
+sizes: [sm, md]
+states: [default, hover, focus-visible, selected, disabled]
+recipes: []
+examples: []
+rules:
+  - "Remove is a real button inside the tag with its own accessible name"
+a11y:
+  - "Remove button reachable by keyboard; removal announced"
