@@ -1,0 +1,20 @@
+name: Kbd
+tier: base
+status: planned
+since: E4-5
+import: none
+story: base-kbd
+useWhen:
+  - "A keyboard shortcut hint in a menu, tooltip, or the shortcut sheet"
+avoidWhen:
+  - "Body copy"
+contract: KbdProps
+variants: []
+sizes: [sm]
+states: [default]
+recipes: []
+examples: []
+rules:
+  - "Keys come from the command registry; the modifier renders as Cmd on macOS and Ctrl elsewhere"
+a11y:
+  - "Rendered as kbd elements; screen readers read the key names"

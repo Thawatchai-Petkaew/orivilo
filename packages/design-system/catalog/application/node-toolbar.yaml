@@ -1,0 +1,22 @@
+name: NodeToolbar
+tier: application
+status: planned
+since: E4-3
+import: none
+story: application-node-toolbar
+useWhen:
+  - "Actions for the selected node: generate, open, duplicate, lock, send to compare, more"
+avoidWhen:
+  - "More than six actions (the rest go behind more)"
+contract: NodeToolbarProps
+variants: []
+sizes: []
+states: [hidden, visible, multi-select, disabled-while-running]
+recipes: []
+examples: []
+rules:
+  - "Does not scale with zoom"
+  - "Hidden when several nodes are selected; selection actions live in the ContextMenu"
+  - "Items come from the command registry filtered by node kind"
+a11y:
+  - "Toolbar role with arrow-key movement; each button named"

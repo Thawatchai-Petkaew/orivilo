@@ -1,0 +1,22 @@
+name: CanvasChat
+tier: application
+status: planned
+since: E4-5
+import: none
+story: application-canvas-chat
+useWhen:
+  - "Talking to the engine at a point on the board (press /) or in the sidebar; answers land as nodes"
+avoidWhen:
+  - "Editing a value that has a field"
+contract: CanvasChatProps
+variants: [at-cursor, sidebar]
+sizes: []
+states: [idle, streaming, error, mock]
+recipes: []
+examples: []
+rules:
+  - "Replies are placed as nodes linked to the node they came from"
+  - "Labelled rule-based or mock until a real adapter exists (AGENTS.md rule 4)"
+  - "@ mentions reference nodes on the board"
+a11y:
+  - "Textarea labelled; streaming output in a polite live region; Escape closes the at-cursor form"

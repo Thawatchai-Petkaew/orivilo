@@ -1,0 +1,22 @@
+name: Inspector
+tier: application
+status: planned
+since: E4-4
+import: none
+story: application-inspector
+useWhen:
+  - "The right panel for the selected node: conversation, missing inputs, knowledge sources, Intent to Decisions to Tokens to Recipes"
+avoidWhen:
+  - "Nothing selected (shows the board summary)"
+contract: InspectorProps
+variants: []
+sizes: []
+states: [no-selection, loading, ready, rule-based-label]
+recipes: []
+examples: []
+rules:
+  - "Progressive disclosure in the handoff §17.5 order"
+  - "Rule-based behavior is labelled rule-based; mock data is labelled mock"
+  - "On small screens becomes a Sheet"
+a11y:
+  - "Tabs for sections; the conversation log is a live region"

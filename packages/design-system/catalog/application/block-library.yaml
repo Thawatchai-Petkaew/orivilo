@@ -1,0 +1,21 @@
+name: BlockLibrary
+tier: application
+status: planned
+since: E4-4
+import: none
+story: application-block-library
+useWhen:
+  - "The left panel of input blocks: search, drag to the board, see what is filled"
+avoidWhen:
+  - "A board with no blocks (empty state invites the first block)"
+contract: BlockLibraryProps
+variants: []
+sizes: []
+states: [empty-search, default, filled, unfilled, collapsed]
+recipes: []
+examples: []
+rules:
+  - "Each block shows filled or not from the board's data, never a guess"
+  - "Drag to the board or press Enter to place at the viewport centre"
+a11y:
+  - "List is searchable by keyboard; placing a block by keyboard is announced"

@@ -1,0 +1,20 @@
+name: VersionBadge
+tier: application
+status: planned
+since: E4-6
+import: none
+story: application-version-badge
+useWhen:
+  - "Draft, approved or stale state on a node or a board"
+avoidWhen:
+  - "A status that is not versioned"
+contract: VersionBadgeProps
+variants: [draft, approved, stale]
+sizes: []
+states: [default]
+recipes: []
+examples: []
+rules:
+  - "Approved is immutable; an edit creates a new draft (handoff §17.6)"
+a11y:
+  - "The word carries the meaning"

@@ -1,0 +1,20 @@
+name: CanvasContextMenu
+tier: application
+status: planned
+since: E4-3
+import: none
+story: application-canvas-context-menu
+useWhen:
+  - "Right-click or long-press on the board, a node, an edge or a selection"
+avoidWhen:
+  - "As the only way to reach an action"
+contract: CanvasContextMenuProps
+variants: []
+sizes: []
+states: [closed, open]
+recipes: []
+examples: []
+rules:
+  - "Items come from the command registry filtered by scope"
+a11y:
+  - "Shift+F10 opens at the focused element"

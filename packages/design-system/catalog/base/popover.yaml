@@ -1,0 +1,21 @@
+name: Popover
+tier: base
+status: planned
+since: E2-4
+import: none
+story: base-popover
+useWhen:
+  - "A small task anchored to a trigger: a picker, a quick form, the chat opened at the cursor"
+avoidWhen:
+  - "A decision that must finish first (use Dialog)"
+  - "A plain label (use Tooltip)"
+contract: PopoverProps
+variants: []
+sizes: []
+states: [closed, open, pending]
+recipes: []
+examples: []
+rules:
+  - "Rendered through the portal with the same DesignProfileBoundary as the trigger; a test proves it"
+a11y:
+  - "Focus moves inside on open and returns on close; Escape closes"

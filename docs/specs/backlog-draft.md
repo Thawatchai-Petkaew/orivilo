@@ -23,7 +23,7 @@ Goal: every node of the canvas has knowledge with provenance, and decision rules
 
 | #    | Story                                                                              | Lane | Risk flag       | Depends on | Done when                                                                                |
 | ---- | ---------------------------------------------------------------------------------- | ---- | --------------- | ---------- | ---------------------------------------------------------------------------------------- |
-| E1-1 | Knowledge entry schema (source, verifiedAt, confidence, license, scope)            | L    | schema contract |            | zod schema in `packages/intent-engine`, round-trip test, ADR 0004 records the shape      |
+| E1-1 | Knowledge entry schema (source, verifiedAt, confidence, license, scope)            | L    | schema contract |            | zod schema in `packages/intent-engine`, round-trip test, an ADR records the shape        |
 | E1-2 | Decision-rule grammar (closed form, no free text)                                  | L    | resolver logic  | E1-1       | Rules parse, validate and evaluate deterministically; conflicting rules are reported     |
 | E1-3 | Seed corpus from UI/UX Pro Max data (MIT), confidence capped 0.7                   | M    | licensing       | E1-1       | Entries imported with provenance; license file included; a report lists what was skipped |
 | E1-4 | Brand node knowledge: the brand CI method as rules                                 | M    |                 | E1-2       | §3–§6 of `brand-ci-method.md` encoded as rules with tests for the ORIVILO vector         |
@@ -41,7 +41,7 @@ Goal: two brand or intent sets drive the same components and patterns with behav
 | E2-2  | Primitive palette and two hand-made profiles (Professional, Friendly)                                                                            | L    | profile/token schema    | E2-1           | Swapping profiles changes the look; every state still present; tokens pass E0-5                    |
 | E2-3  | Neutral Studio profile for the app shell                                                                                                         | M    |                         | E2-2           | Shell uses ink, canvas, one violet; no brand token inside the preview frame                        |
 | E2-0  | Storybook foundation: `packages/design-system` with Storybook, token CSS, mode/profile toolbar, a11y and Vitest addons, catalog check, lint rule | M    | tooling before UI       | ADR 0003       | Spec `docs/specs/E2-0/spec.md` AC 1–10 pass; no component claimed; owner's rule: no UI before this |
-| E2-4  | Button, Input, Select, Checkbox on shadcn primitives with recipes                                                                                | L    | component public API    | E2-0, E2-2     | Each shows at least two recipes in Storybook; lint forbids raw color and radius classes            |
+| E2-4  | Button, Input, Select, Checkbox, Textarea, Tooltip, Badge, Popover, Tabs on shadcn primitives with recipes                                       | L    | component public API    | E2-0, E2-2     | Each shows at least two recipes in Storybook; lint forbids raw color and radius classes            |
 | E2-5  | Dialog (overlay) and Card with profile scope through portals                                                                                     | L    | component public API    | E2-4           | Overlay subtree receives the profile; test proves theme scope                                      |
 | E2-6  | Small Table or list with Thai and Latin content, long names, missing data                                                                        | M    |                         | E2-4           | Fixture content renders in both profiles without layout breakage                                   |
 | E2-7  | Catalog page examples per tier in Storybook and coverage update                                                                                  | M    |                         | E2-0, E2-4     | Each tier has at least one page example story; `coverage.md` shows gaps honestly                   |
@@ -50,9 +50,25 @@ Goal: two brand or intent sets drive the same components and patterns with behav
 | E2-10 | Brief interpreter, rule-based, with an LLM adapter interface                                                                                     | L    | AI claims               | E2-9           | UI labels it rule-based; adapter interface typed; no AI claim without implementation               |
 | E2-11 | Two directions on one task, with live preview and inspector                                                                                      | M    |                         | E2-10          | Directions differ visibly; preview keeps its inputs and state when style changes                   |
 | E2-12 | Draft, approve, version, export and import JSON                                                                                                  | L    | data access             | E2-9, ADR 0002 | Approved snapshot immutable; edits create drafts; round-trip returns the same look                 |
-| E2-13 | Canvas board with block input and per-node drill-down conversation                                                                               | L    | UX architecture         | E2-11          | Input works as blocks, not a form; a node asks for missing dependencies when opened                |
+| E2-13 | Superseded by epic E4 (canvas set, ADR 0004); kept so references resolve                                                                         | L    | UX architecture         | E2-11          | See E4                                                                                             |
 | E2-14 | Agent catalog exercise: an agent composes a screen from public components only                                                                   | M    |                         | E2-7           | Generated code imports real components and props; no duplicates created                            |
 | E2-15 | Auth and workspace data access (Better Auth, restricted role)                                                                                    | L    | auth/data access        | ADR 0002       | Every query goes through the authorization helper; default deny tested                             |
+
+## Epic E4: Canvas and nodes (ADR 0004, study in `docs/context/canvas-node-study.md`)
+
+Goal: the Intent Studio board works as blocks and nodes on an infinite canvas, every result is a node linked to its source, and a node asks for what it is missing. Catalog entries for the whole set exist (status planned); each story turns its entries to draft, then stable.
+
+| #    | Story                                                                                                            | Lane | Risk flag               | Depends on   | Done when                                                                                                     |
+| ---- | ---------------------------------------------------------------------------------------------------------------- | ---- | ----------------------- | ------------ | ------------------------------------------------------------------------------------------------------------- |
+| E4-0 | ADR 0004, catalog entries, command registry and this epic                                                        | S    |                         | study        | Landed 2026-10-21 (this PR); `check-catalog` and `check-commands` pass                                        |
+| E4-1 | Canvas tokens: surface.board, grid, selection, port kinds, edge meanings, status; node and port component tokens | L    | semantic token contract | E2-1         | Contrast tests pass in both modes; port kinds differ by shape as well as colour; impact list in the PR        |
+| E4-2 | CanvasBoard, CanvasNode, NodePort, CanvasEdge on React Flow, every catalog state as a story                      | L    | component public API    | E4-1, E2-4   | Keyboard connect, nudge and delete proven in a browser test; a11y addon clean; no React Flow theme CSS loaded |
+| E4-3 | NodeGroup, NodeToolbar, MiniMap, CanvasControls, CanvasContextMenu, CommandMenu from the command registry        | M    |                         | E4-2         | Every registry command with a surface renders there; toolbar hides on multi-select; shortcut sheet lists all  |
+| E4-4 | BlockLibrary, Inspector, MissingInputsPrompt, Sheet, Resizable, ScrollArea, Slider                               | L    | UX architecture         | E4-2         | A node asks for missing inputs one at a time; filled state shows on the library and the node without a guess  |
+| E4-5 | CanvasChat (at cursor and sidebar), TaskBar, Toast, Progress, Tag, Kbd, labelled rule-based                      | M    |                         | E4-4, E2-10  | Replies land as nodes linked to their source; failed jobs say why and retry; label says rule-based or mock    |
+| E4-6 | CompareStrip and VersionBadge                                                                                    | M    |                         | E2-11, E2-12 | Two or three directions on the same content; approved is immutable and an edit creates a draft                |
+| E4-7 | Present mode (read-only board) and present commands                                                              | M    |                         | E4-3         | Board opens read-only with no editing surface; Escape exits                                                   |
+| E4-8 | Canvas example page in Storybook and coverage update                                                             | M    |                         | E4-5         | Full board example in both modes at 360 px and desktop; `coverage.md` marks the set draft or stable honestly  |
 
 ## Epic E3: ORIVILO brand, run through our own pipeline
 
@@ -71,9 +87,10 @@ Goal: ORIVILO is the first customer of its own tool, and its brand passes the te
 1. E0-4, E0-3, E0-1, E0-2 (one week of mechanics so every later story runs through the loop).
 2. E2-0 first (owner's rule: Storybook, DESIGN.md and the catalog before any UI), then E2-1 → E2-2 → E2-3 → E2-4 (the vertical slice starts here; E1-1 and E1-2 run in parallel because E2-9 needs them).
 3. E2-5, E2-6, E2-7, E2-8, then E0-5.
-4. E2-9, E2-10, E2-11, E2-12, E2-15.
-5. E2-13, E2-14, E1-3 to E1-7, E3-4, E3-5.
-6. E3-1 and E3-2 can run any time; E3-3 after E3-1.
+4. E4-1 → E4-2 → E4-3 → E4-4 (the canvas is the Studio's main UX, owner's decision 2026-10-21), with E2-9 and E2-10 in parallel.
+5. E4-5, E4-6, E2-11, E2-12, E2-15, E4-7, E4-8.
+6. E2-14, E1-3 to E1-7, E3-4, E3-5.
+7. E3-1 and E3-2 can run any time; E3-3 after E3-1.
 
 ## Open questions for the owner (each with the default we use if no answer)
 

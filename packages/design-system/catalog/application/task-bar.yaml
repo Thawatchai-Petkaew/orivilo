@@ -1,0 +1,21 @@
+name: TaskBar
+tier: application
+status: planned
+since: E4-5
+import: none
+story: application-task-bar
+useWhen:
+  - "Running and finished generation jobs with a jump to their node"
+avoidWhen:
+  - "A board with no jobs (collapsed by default)"
+contract: TaskBarProps
+variants: []
+sizes: []
+states: [empty, running, failed, done, collapsed]
+recipes: []
+examples: []
+rules:
+  - "A failed job says why and offers retry"
+  - "Jump pans and zooms to the node and selects it"
+a11y:
+  - "Job status in a live region; the list is keyboard navigable"

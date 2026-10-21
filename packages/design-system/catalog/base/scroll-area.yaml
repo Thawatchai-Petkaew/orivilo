@@ -1,0 +1,20 @@
+name: ScrollArea
+tier: base
+status: planned
+since: E4-4
+import: none
+story: base-scroll-area
+useWhen:
+  - "A panel with its own scroll: block library, inspector, task bar list"
+avoidWhen:
+  - "The page itself"
+contract: ScrollAreaProps
+variants: []
+sizes: []
+states: [default, scrolling]
+recipes: []
+examples: []
+rules:
+  - "Scrollbar styled from tokens; never hidden on keyboard focus"
+a11y:
+  - "Region is focusable and labelled when it scrolls"

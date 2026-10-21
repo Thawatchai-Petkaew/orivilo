@@ -10,7 +10,7 @@ Tiers follow Untitled UI's structure; the implementation does not (ADR 0003 item
 | `application/` | Application | Shells, overlays, tables, empty and loading states, settings layouts |
 | `marketing/`   | Marketing   | Sections for generated landing and brand pages                       |
 
-`coverage.md` is the checklist of what each tier should eventually hold and what exists today.
+`coverage.md` is the checklist of what each tier should eventually hold and what exists today. `commands/canvas.yaml` is the command registry of the canvas (ADR 0004): every action, shortcut, scope and surface, checked by `tests/check-commands.test.ts`; menus, toolbars and the shortcut sheet read it and never define a key themselves.
 
 ## Entry shape
 

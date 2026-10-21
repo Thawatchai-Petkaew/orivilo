@@ -1,0 +1,21 @@
+name: MissingInputsPrompt
+tier: application
+status: planned
+since: E4-4
+import: none
+story: application-missing-inputs-prompt
+useWhen:
+  - "A node that cannot run yet asks for its missing inputs one at a time"
+avoidWhen:
+  - "All inputs present"
+contract: MissingInputsPromptProps
+variants: []
+sizes: []
+states: [0-of-n, k-of-n, complete, blocked]
+recipes: []
+examples: []
+rules:
+  - "Asks for one input at a time, like collecting items (brief)"
+  - "Each answer is saved to the node at once and the count updates on the node"
+a11y:
+  - "Progress announced; each question is a labelled field"

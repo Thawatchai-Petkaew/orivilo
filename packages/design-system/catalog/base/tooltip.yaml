@@ -1,0 +1,23 @@
+name: Tooltip
+tier: base
+status: planned
+since: E2-4
+import: none
+story: base-tooltip
+useWhen:
+  - "A short label for an icon-only control or a truncated value"
+avoidWhen:
+  - "Content the user must act on (use Popover)"
+  - "Text that is already visible"
+contract: TooltipProps
+variants: []
+sizes: []
+states: [closed, open, delayed]
+recipes: []
+examples: []
+rules:
+  - "Never the only way to learn a control's name; the control carries an accessible name itself"
+  - "No interactive content inside"
+a11y:
+  - "Opens on focus as well as hover; Escape closes"
+  - "Linked to its trigger with aria-describedby"

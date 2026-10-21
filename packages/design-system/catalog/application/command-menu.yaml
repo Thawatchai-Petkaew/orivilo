@@ -1,0 +1,20 @@
+name: CommandMenu
+tier: application
+status: planned
+since: E4-3
+import: none
+story: application-command-menu
+useWhen:
+  - "Search and run any command, add a node by name, jump to a node (Mod+K)"
+avoidWhen: []
+contract: CommandMenuProps
+variants: []
+sizes: []
+states: [closed, open, empty-results]
+recipes: []
+examples: []
+rules:
+  - "Every command in the registry is reachable here; shortcuts shown with Kbd"
+  - "Search covers node titles on the board"
+a11y:
+  - "Combobox semantics; results announced"

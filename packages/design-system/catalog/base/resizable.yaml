@@ -1,0 +1,20 @@
+name: Resizable
+tier: base
+status: planned
+since: E4-4
+import: none
+story: base-resizable
+useWhen:
+  - "Side panels the user widens: block library, inspector"
+avoidWhen:
+  - "Fixed layouts"
+contract: ResizableProps
+variants: []
+sizes: []
+states: [default, handle-hover, handle-focus-visible, dragging, collapsed]
+recipes: []
+examples: []
+rules:
+  - "Sizes persist per user; a collapsed panel keeps a reopen control visible"
+a11y:
+  - "Handle is focusable; arrow keys resize"

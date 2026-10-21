@@ -14,21 +14,27 @@ Legend: `none` not started, `planned` entry exists, no code, `draft` code and st
 | Checkbox      | planned | E2-4  |
 | RadioGroup    | none    |       |
 | Switch        | none    |       |
-| Textarea      | none    |       |
+| Textarea      | planned | E2-4  |
 | Combobox      | none    |       |
-| Badge         | none    |       |
-| Tag           | none    |       |
+| Badge         | planned | E2-4  |
+| Tag           | planned | E4-5  |
 | Avatar        | none    |       |
-| Tooltip       | none    |       |
-| Dropdown menu | none    |       |
-| Tabs          | none    |       |
+| Tooltip       | planned | E2-4  |
+| Dropdown menu | planned | E4-3  |
+| Tabs          | planned | E2-4  |
 | Breadcrumb    | none    |       |
 | Pagination    | none    |       |
-| Progress      | none    |       |
-| Slider        | none    |       |
-| Toast         | none    |       |
+| Progress      | planned | E4-5  |
+| Slider        | planned | E4-4  |
+| Toast         | planned | E4-5  |
 | File upload   | none    |       |
 | Date picker   | none    |       |
+| Popover       | planned | E2-4  |
+| ContextMenu   | planned | E4-3  |
+| ToggleGroup   | planned | E4-3  |
+| ScrollArea    | planned | E4-4  |
+| Kbd           | planned | E4-5  |
+| Resizable     | planned | E4-4  |
 
 ## Application
 
@@ -37,18 +43,41 @@ Legend: `none` not started, `planned` entry exists, no code, `draft` code and st
 | Dialog                  | planned | E2-5  |
 | Card                    | planned | E2-5  |
 | Table                   | planned | E2-6  |
-| Sheet                   | none    |       |
+| Sheet                   | planned | E4-4  |
 | Top navigation          | none    |       |
 | Sidebar navigation      | none    |       |
 | Page header             | none    |       |
 | Section header          | none    |       |
 | Empty state             | none    |       |
 | Loading state           | none    |       |
-| Command menu            | none    |       |
+| Command menu            | planned | E4-3  |
 | Metric                  | none    |       |
 | Filters                 | none    |       |
 | Settings layout         | none    |       |
 | ConfirmDialog (pattern) | none    |       |
+
+## Application, canvas set (ADR 0004)
+
+| Component           | Status  | Story |
+| ------------------- | ------- | ----- |
+| CanvasBoard         | planned | E4-2  |
+| CanvasNode          | planned | E4-2  |
+| NodePort            | planned | E4-2  |
+| CanvasEdge          | planned | E4-2  |
+| NodeGroup           | planned | E4-3  |
+| NodeToolbar         | planned | E4-3  |
+| MiniMap             | planned | E4-3  |
+| CanvasControls      | planned | E4-3  |
+| CanvasContextMenu   | planned | E4-3  |
+| BlockLibrary        | planned | E4-4  |
+| Inspector           | planned | E4-4  |
+| MissingInputsPrompt | planned | E4-4  |
+| CanvasChat          | planned | E4-5  |
+| TaskBar             | planned | E4-5  |
+| CompareStrip        | planned | E4-6  |
+| VersionBadge        | planned | E4-6  |
+
+Commands and shortcuts for the set: `commands/canvas.yaml` (checked by `check-commands`).
 
 ## Marketing
 

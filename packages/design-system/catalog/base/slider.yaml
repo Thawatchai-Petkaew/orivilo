@@ -1,0 +1,20 @@
+name: Slider
+tier: base
+status: planned
+since: E4-4
+import: none
+story: base-slider
+useWhen:
+  - "A bounded numeric value with immediate visual effect: density, strength, zoom"
+avoidWhen:
+  - "Exact values typed by the user (pair with Input or use Input alone)"
+contract: SliderProps
+variants: []
+sizes: [md]
+states: [default, hover, focus-visible, dragging, disabled]
+recipes: []
+examples: []
+rules:
+  - "Shows the current value as text next to the thumb"
+a11y:
+  - "Arrow keys step; Page keys step by 10; value announced with aria-valuetext"
