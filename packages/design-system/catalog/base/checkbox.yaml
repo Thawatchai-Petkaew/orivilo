@@ -1,0 +1,23 @@
+name: Checkbox
+tier: base
+status: planned
+since: E2-4
+import: none
+story: base-checkbox
+useWhen:
+  - Zero or more of a short list, applied on submit
+  - A single consent or confirmation line
+avoidWhen:
+  - A setting that applies immediately (Switch)
+  - Exactly one of a list (RadioGroup)
+contract: CheckboxProps
+variants: [default]
+sizes: [md]
+states: [default, hover, focus-visible, checked, indeterminate, disabled, invalid]
+recipes: []
+examples: []
+rules:
+  - Checked state is a glyph plus fill, never fill alone
+  - Label is part of the hit area
+a11y:
+  - Indeterminate exposed with aria-checked="mixed"

@@ -1,0 +1,23 @@
+name: Input
+tier: base
+status: planned
+since: E2-4
+import: none
+story: base-input
+useWhen:
+  - Single-line text, number, email, or password with a visible label
+avoidWhen:
+  - Multi-line text (Textarea)
+  - Choosing from known values (Select, Combobox, RadioGroup)
+contract: InputProps
+variants: [default]
+sizes: [sm, md, lg]
+states: [default, hover, focus-visible, disabled, read-only, invalid]
+recipes: []
+examples: []
+rules:
+  - Label is always visible; placeholder is never the label
+  - Error message says what went wrong and how to fix it
+  - Thai and Latin input render at the same visual size
+a11y:
+  - Error text is linked with aria-describedby

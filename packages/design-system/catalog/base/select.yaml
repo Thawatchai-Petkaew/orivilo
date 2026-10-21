@@ -1,0 +1,22 @@
+name: Select
+tier: base
+status: planned
+since: E2-4
+import: none
+story: base-select
+useWhen:
+  - Pick one of six or more known options that need no search
+avoidWhen:
+  - Five or fewer options that should all be visible (RadioGroup)
+  - Long lists that need search or async loading (Combobox)
+contract: SelectProps
+variants: [default]
+sizes: [sm, md, lg]
+states: [default, hover, focus-visible, open, disabled, invalid, empty]
+recipes: []
+examples: []
+rules:
+  - Listbox is rendered through a portal and must receive the trigger's profile (E2-5 proves this)
+  - Selected option uses surface.selected and selection.fg, distinct from focus
+a11y:
+  - Keyboard: arrows, type-ahead, Escape closes and returns focus

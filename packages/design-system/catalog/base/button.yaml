@@ -1,0 +1,25 @@
+name: Button
+tier: base
+status: planned
+since: E2-4
+import: none
+story: base-button
+useWhen:
+  - One primary action per view; secondary and ghost for the rest
+  - Destructive action that is confirmed by a ConfirmDialog
+avoidWhen:
+  - Navigation that changes the URL (use a Link styled by the link recipe)
+  - Toggling a setting that applies immediately (use Switch)
+contract: ButtonProps
+variants: [primary, secondary, ghost, destructive]
+sizes: [sm, md, lg]
+states: [default, hover, focus-visible, pressed, disabled, loading]
+recipes: []
+examples: []
+rules:
+  - Label says what happens and keeps its name through the flow
+  - Icon-only form requires an accessible name
+  - Only one primary per view
+a11y:
+  - Loading prevents repeat submission and announces status, not a spinner alone
+  - Focus ring from focus.ring, never removed

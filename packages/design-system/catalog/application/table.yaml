@@ -1,0 +1,22 @@
+name: Table
+tier: application
+status: planned
+since: E2-6
+import: none
+story: application-table
+useWhen:
+  - Rows of the same shape that are scanned or compared
+avoidWhen:
+  - Fewer than three rows or mixed shapes (a list or cards)
+contract: TableProps
+variants: [default, compact]
+sizes: [md]
+states: [default, loading, empty, error, row-selected]
+recipes: []
+examples: []
+rules:
+  - Fixture content includes Thai, Latin, a long Thai name without spaces, and missing cells
+  - Numbers align right in mono; text wraps rather than truncates unless the column opts in
+  - Works at 360 px by collapsing to a defined layout, not by horizontal overflow alone
+a11y:
+  - Proper table semantics; sortable headers announce the sort

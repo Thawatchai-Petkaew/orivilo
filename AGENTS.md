@@ -42,7 +42,8 @@ Gate review packets use the `gate-packet` skill. Request changes → rework → 
 
 ## Design-system rules (from the handoff §23)
 
-- Read the catalog (`design-system/catalog/`, once it exists) before composing UI. Use team patterns and components when the requirement matches.
+- Read `DESIGN.md` before any UI work; its design gate blocks G3. Read the catalog (`packages/design-system/catalog/`) before composing UI. Use team patterns and components when the requirement matches.
+- Storybook is the catalog's visual half (ADR 0003). No shared component exists without a story and a catalog entry in the same PR; no Studio UI is built before Storybook is set up (E2-0).
 - Read type signatures and an example before using props. Never invent token names or public APIs without adding them to the contract.
 - Recipes use semantic tokens. No per-page hex, radius, or font values to change a mood.
 - Brand accent never replaces error, warning, selection, or focus semantics.

@@ -1,0 +1,21 @@
+name: Card
+tier: application
+status: planned
+since: E2-5
+import: none
+story: application-card
+useWhen:
+  - A self-contained unit the user acts on or compares with its siblings
+avoidWhen:
+  - Sectioning a page (use headings and space); cards on cards are anti-pattern 3 in DESIGN.md
+contract: CardProps
+variants: [default, selected, interactive]
+sizes: [md]
+states: [default, hover, focus-visible, selected]
+recipes: []
+examples: []
+rules:
+  - Elevation and edge come from the recipe (surface depth), not from the card
+  - Whole-card click and inner actions never compete; one is the target
+a11y:
+  - Interactive card is a single focusable element with a name
