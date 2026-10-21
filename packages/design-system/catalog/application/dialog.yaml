@@ -1,23 +1,27 @@
 name: Dialog
 tier: application
-status: planned
+status: stable
 since: E2-5
-import: none
+import: "@orivilo/design-system"
 story: application-dialog
 useWhen:
   - A short secondary task or confirmation that must finish before returning
 avoidWhen:
   - Long forms or browsing (Sheet or a page)
   - Information that does not need a decision (inline or toast)
-contract: DialogProps
+contract: DialogContentProps
 variants: [default, destructive]
 sizes: [sm, md]
 states: [closed, open, pending, error]
-recipes: []
+recipes: [neutral, professional, friendly]
 examples: []
 rules:
-  - Content rendered through the portal receives the same DesignProfileBoundary as the trigger; a test proves it
+  - Content rendered through the portal receives the same DesignProfileBoundary as the trigger; the InsideProfile story proves it
   - Primary action is named after the outcome, never "OK"
   - Destructive variant uses feedback.danger, never brand colours
+  - Modal by default; `modal={false}` only for previews and the recipe matrix
+  - "`container` mounts the portal inside a frame (a preview); the content still re-opens the trigger's boundary"
+  - The close control sits last in reading order so first focus lands on the task, and top-right in the recipe
 a11y:
   - Focus trapped while open and returned to the trigger on close; Escape closes unless pending
+  - The title is the accessible name; the description is linked when given; the error has role alert

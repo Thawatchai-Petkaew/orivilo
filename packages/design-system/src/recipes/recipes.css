@@ -542,6 +542,179 @@
   outline-offset: 2px;
 }
 
+/* Dialog ----------------------------------------------------------------------------------- */
+
+/* The scrim and the panel are fixed to the viewport, or to the nearest `contain: layout` ancestor
+ * when the content mounts into a frame (preview, matrix cell). */
+.ds-dialog__scrim {
+  position: fixed;
+  inset: 0;
+  background: var(--cmp-dialog-scrim);
+  opacity: var(--cmp-dialog-scrim-opacity);
+  z-index: var(--cmp-dialog-layer);
+  animation: ds-fade-in var(--ds-motion-overlay-duration) var(--ds-motion-easing);
+}
+.ds-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmp-dialog-gap);
+  width: calc(100% - 2 * var(--ds-space-gutter));
+  max-height: calc(100% - 2 * var(--ds-space-gutter));
+  padding: var(--cmp-dialog-padding);
+  border: 1px solid var(--cmp-dialog-border);
+  border-radius: var(--cmp-dialog-radius);
+  background: var(--cmp-dialog-bg);
+  color: var(--cmp-dialog-fg);
+  box-shadow: var(--cmp-dialog-shadow);
+  font-family: var(--cmp-dialog-body-type-font-family);
+  font-size: var(--cmp-dialog-body-type-font-size);
+  line-height: var(--cmp-dialog-body-type-line-height);
+  font-weight: var(--cmp-dialog-body-type-font-weight);
+  letter-spacing: var(--cmp-dialog-body-type-letter-spacing);
+  overflow-wrap: anywhere;
+  z-index: var(--cmp-dialog-layer);
+  animation: ds-dialog-in var(--ds-motion-overlay-duration) var(--ds-motion-easing);
+}
+.ds-dialog__header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ds-space-inline-md);
+  /* Room for the close control, which sits last in the DOM and top-right in the recipe. */
+  padding-inline-end: var(--cmp-button-height-sm);
+}
+.ds-dialog__glyph {
+  margin-top: var(--ds-space-inline-sm);
+  color: var(--cmp-dialog-destructive);
+}
+.ds-dialog__title {
+  margin: 0;
+  font-family: var(--cmp-dialog-title-type-font-family);
+  font-size: var(--cmp-dialog-title-type-font-size);
+  line-height: var(--cmp-dialog-title-type-line-height);
+  font-weight: var(--cmp-dialog-title-type-font-weight);
+  letter-spacing: var(--cmp-dialog-title-type-letter-spacing);
+  text-wrap: balance;
+}
+.ds-dialog__description {
+  margin: 0;
+  color: var(--cmp-dialog-description);
+}
+/* The body scrolls, and a scroll container clips what draws outside a control, such as the focus
+ * ring and its gap. The body bleeds that distance and pads it back, so the ring stays whole. */
+.ds-dialog__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  margin: calc(-1 * var(--cmp-dialog-body-bleed));
+  padding: var(--cmp-dialog-body-bleed);
+  scroll-padding: var(--cmp-dialog-body-bleed);
+}
+.ds-dialog__error {
+  margin: 0;
+  color: var(--cmp-dialog-error);
+  font-family: var(--cmp-field-text-type-font-family);
+  font-size: var(--cmp-field-text-type-font-size);
+  line-height: var(--cmp-field-text-type-line-height);
+  font-weight: var(--cmp-field-text-type-font-weight);
+  letter-spacing: var(--cmp-field-text-type-letter-spacing);
+}
+.ds-dialog__footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--ds-space-inline-md);
+}
+.ds-dialog__footer > * {
+  flex: 1 0 auto;
+}
+@media (min-width: 480px) {
+  .ds-dialog__footer > * {
+    flex: 0 0 auto;
+  }
+}
+.ds-dialog__close {
+  position: absolute;
+  top: var(--ds-space-inset-md);
+  inset-inline-end: var(--ds-space-inset-md);
+}
+@keyframes ds-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes ds-dialog-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.98);
+  }
+}
+
+/* Card -------------------------------------------------------------------------------------- */
+
+.ds-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--cmp-card-gap);
+  min-width: 0;
+  padding: var(--cmp-card-padding);
+  border: 1px solid var(--cmp-card-border);
+  border-radius: var(--cmp-card-radius);
+  background: var(--cmp-card-bg);
+  color: var(--cmp-card-fg);
+  box-shadow: var(--cmp-card-shadow);
+  font: inherit;
+  text-align: start;
+  overflow-wrap: anywhere;
+}
+/* Interactive: one button or link. Hover is an edge change, never a tint alone (DESIGN.md §7). */
+.ds-card[data-interactive] {
+  width: 100%;
+  appearance: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: border-color var(--ds-motion-feedback-duration) var(--ds-motion-easing);
+}
+.ds-card[data-interactive]:hover,
+.ds-card[data-interactive]:active {
+  border-color: var(--cmp-card-border-hover);
+}
+/* Selected: ground and edge from the selection semantics, distinct from the focus ring. */
+.ds-card[data-selected] {
+  background: var(--cmp-card-bg-selected);
+  border-color: var(--cmp-card-border-selected);
+}
+.ds-card__title {
+  margin: 0;
+  font-family: var(--cmp-card-title-type-font-family);
+  font-size: var(--cmp-card-title-type-font-size);
+  line-height: var(--cmp-card-title-type-line-height);
+  font-weight: var(--cmp-card-title-type-font-weight);
+  letter-spacing: var(--cmp-card-title-type-letter-spacing);
+  text-wrap: balance;
+}
+.ds-card__value {
+  margin: 0;
+  color: var(--cmp-card-value-fg);
+  font-family: var(--cmp-card-value-type-font-family);
+  font-size: var(--cmp-card-value-type-font-size);
+  line-height: var(--cmp-card-value-type-line-height);
+  font-weight: var(--cmp-card-value-type-font-weight);
+  letter-spacing: var(--cmp-card-value-type-letter-spacing);
+  font-variant-numeric: tabular-nums;
+}
+.ds-card__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ds-space-inline-md);
+  margin-top: auto;
+}
+
 /* Spinner: essential motion, so it keeps its duration under reduced motion. ----------------- */
 
 .ds-spin {

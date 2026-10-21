@@ -39,23 +39,23 @@ Legend: `none` not started, `planned` entry exists, no code, `draft` code and st
 
 ## Application
 
-| Component               | Status  | Story |
-| ----------------------- | ------- | ----- |
-| Dialog                  | planned | E2-5  |
-| Card                    | planned | E2-5  |
-| Table                   | planned | E2-6  |
-| Sheet                   | planned | E4-4  |
-| Top navigation          | none    |       |
-| Sidebar navigation      | none    |       |
-| Page header             | none    |       |
-| Section header          | none    |       |
-| Empty state             | none    |       |
-| Loading state           | none    |       |
-| Command menu            | planned | E4-3  |
-| Metric                  | none    |       |
-| Filters                 | none    |       |
-| Settings layout         | none    |       |
-| ConfirmDialog (pattern) | none    |       |
+| Component               | Status  | Story              |
+| ----------------------- | ------- | ------------------ |
+| Dialog                  | stable  | application-dialog |
+| Card                    | stable  | application-card   |
+| Table                   | planned | E2-6               |
+| Sheet                   | planned | E4-4               |
+| Top navigation          | none    |                    |
+| Sidebar navigation      | none    |                    |
+| Page header             | none    |                    |
+| Section header          | none    |                    |
+| Empty state             | none    |                    |
+| Loading state           | none    |                    |
+| Command menu            | planned | E4-3               |
+| Metric                  | none    |                    |
+| Filters                 | none    |                    |
+| Settings layout         | none    |                    |
+| ConfirmDialog (pattern) | none    |                    |
 
 ## Application, canvas set (ADR 0004)
 

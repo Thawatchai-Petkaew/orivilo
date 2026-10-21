@@ -270,21 +270,55 @@
       "$type": "color",
       "$value": "{surface.card}"
     },
+    "fg": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    },
     "border": {
       "$type": "color",
-      "$value": "{border.card}"
+      "$value": "{border.card}",
+      "$description": "Transparent on the light canvas (mood E: borderless cards); marks the edge in dark"
+    },
+    "border-hover": {
+      "$type": "color",
+      "$value": "{border.control-hover}"
+    },
+    "bg-selected": {
+      "$type": "color",
+      "$value": "{surface.selected}"
+    },
+    "border-selected": {
+      "$type": "color",
+      "$value": "{selection.fg}"
     },
     "radius": {
       "$type": "dimension",
       "$value": "{shape.container.radius}"
     },
+    "shadow": {
+      "$type": "shadow",
+      "$value": "{elevation.shell}"
+    },
     "padding": {
       "$type": "dimension",
       "$value": "{space.inset.lg}"
     },
-    "shadow": {
-      "$type": "shadow",
-      "$value": "{elevation.shell}"
+    "gap": {
+      "$type": "dimension",
+      "$value": "{space.stack.md}"
+    },
+    "title-type": {
+      "$type": "typography",
+      "$value": "{type.heading.sm}"
+    },
+    "value-type": {
+      "$type": "typography",
+      "$value": "{type.numeral.md}",
+      "$description": "Digits only; the tight tracking never reaches Thai text (DESIGN.md §3.3)"
+    },
+    "value-fg": {
+      "$type": "color",
+      "$value": "{text.primary}"
     }
   },
   "tile": {
@@ -378,9 +412,29 @@
     }
   },
   "dialog": {
+    "scrim": {
+      "$type": "color",
+      "$value": "{surface.scrim}"
+    },
+    "scrim-opacity": {
+      "$type": "number",
+      "$value": "{opacity.scrim}"
+    },
     "bg": {
       "$type": "color",
-      "$value": "{surface.card}"
+      "$value": "{surface.raised}"
+    },
+    "fg": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    },
+    "description": {
+      "$type": "color",
+      "$value": "{text.secondary}"
+    },
+    "border": {
+      "$type": "color",
+      "$value": "{border.subtle}"
     },
     "radius": {
       "$type": "dimension",
@@ -392,15 +446,37 @@
     },
     "padding": {
       "$type": "dimension",
-      "$value": "{space.inset.xl}"
+      "$value": "{space.inset.lg}"
     },
-    "scrim": {
+    "gap": {
+      "$type": "dimension",
+      "$value": "{space.stack.md}"
+    },
+    "body-bleed": {
+      "$type": "dimension",
+      "$value": "{space.inline.sm}",
+      "$description": "How far the scrolling body bleeds past its box so a control's focus ring (2 px plus a 2 px gap) is not clipped"
+    },
+    "title-type": {
+      "$type": "typography",
+      "$value": "{type.heading.sm}"
+    },
+    "body-type": {
+      "$type": "typography",
+      "$value": "{type.body.md}"
+    },
+    "destructive": {
       "$type": "color",
-      "$value": "{surface.scrim}"
+      "$value": "{feedback.danger.fg}",
+      "$description": "The glyph before a destructive title; the confirming Button is destructive too"
     },
-    "scrim-opacity": {
+    "error": {
+      "$type": "color",
+      "$value": "{feedback.danger.fg}"
+    },
+    "layer": {
       "$type": "number",
-      "$value": "{opacity.scrim}"
+      "$value": "{layer.overlay}"
     }
   },
   "toast": {
