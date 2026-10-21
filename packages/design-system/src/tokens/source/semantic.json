@@ -1,6 +1,6 @@
 {
   "$schema": "https://design-tokens.github.io/community-group/format/",
-  "$description": "ORIVILO semantic tokens (DESIGN.md §3, v1.1 mood E). Every value references a primitive; colour tokens carry a light and a dark value. Components and recipes use these names; pages never reach past them.",
+  "$description": "ORIVILO semantic tokens (DESIGN.md §3, v1.1 mood E). Every value references a primitive; colour tokens carry a light and a dark value. Components and recipes use these names; pages never reach past them. Scope studio marks the Studio's own tokens, never carried by a profile; scope identity marks the tokens that carry ORIVILO's look, overridden by every profile (E2-3).",
   "surface": {
     "canvas": {
       "$type": "color",
@@ -48,7 +48,12 @@
         "light": "{color.violet.50}",
         "dark": "{color.violet.950}"
       },
-      "$description": "Selected row, chosen option"
+      "$description": "Selected row, chosen option",
+      "$extensions": {
+        "orivilo": {
+          "scope": "identity"
+        }
+      }
     },
     "disabled": {
       "$type": "color",
@@ -176,7 +181,8 @@
           "contrast": {
             "against": "action.intent",
             "floor": 4.5
-          }
+          },
+          "scope": "studio"
         }
       }
     },
@@ -224,7 +230,8 @@
           "contrast": {
             "against": "surface.canvas",
             "floor": 4.5
-          }
+          },
+          "scope": "identity"
         }
       }
     },
@@ -240,7 +247,8 @@
           "contrast": {
             "against": "surface.canvas",
             "floor": 4.5
-          }
+          },
+          "scope": "identity"
         }
       }
     },
@@ -256,7 +264,8 @@
           "contrast": {
             "against": "surface.canvas",
             "floor": 4.5
-          }
+          },
+          "scope": "identity"
         }
       }
     }
@@ -404,7 +413,8 @@
           "contrast": {
             "against": "surface.canvas",
             "floor": null
-          }
+          },
+          "scope": "studio"
         }
       }
     },
@@ -414,7 +424,12 @@
         "light": "{color.lime.400}",
         "dark": "{color.lime.400}"
       },
-      "$description": "Hover of action.intent"
+      "$description": "Hover of action.intent",
+      "$extensions": {
+        "orivilo": {
+          "scope": "studio"
+        }
+      }
     },
     "intent-press": {
       "$type": "color",
@@ -422,7 +437,12 @@
         "light": "{color.lime.500}",
         "dark": "{color.lime.500}"
       },
-      "$description": "Pressed of action.intent"
+      "$description": "Pressed of action.intent",
+      "$extensions": {
+        "orivilo": {
+          "scope": "studio"
+        }
+      }
     },
     "destructive": {
       "$type": "color",
@@ -464,7 +484,12 @@
         "light": "{color.violet.50}",
         "dark": "{color.violet.950}"
       },
-      "$description": "Selected ground; same as surface.selected"
+      "$description": "Selected ground; same as surface.selected",
+      "$extensions": {
+        "orivilo": {
+          "scope": "identity"
+        }
+      }
     },
     "fg": {
       "$type": "color",
@@ -478,7 +503,8 @@
           "contrast": {
             "against": "selection.bg",
             "floor": 4.5
-          }
+          },
+          "scope": "identity"
         }
       }
     }
@@ -516,7 +542,12 @@
         "light": "{color.lime.300}",
         "dark": "{color.lime.300}"
       },
-      "$description": "Mark dot, one highlight plane; never text on light ground"
+      "$description": "Mark dot, one highlight plane; never text on light ground",
+      "$extensions": {
+        "orivilo": {
+          "scope": "identity"
+        }
+      }
     },
     "ink": {
       "$type": "color",
@@ -530,7 +561,8 @@
           "contrast": {
             "against": "brand.signature",
             "floor": 4.5
-          }
+          },
+          "scope": "identity"
         }
       }
     }

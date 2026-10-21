@@ -18,6 +18,7 @@ import {
   PROFILE_IDS,
   Profile,
   type ProfileSource,
+  STUDIO_REMAP,
   emitProfilesCss,
   profiles,
 } from "./index";
@@ -32,10 +33,39 @@ function source(overrides: Partial<ProfileSource> = {}): ProfileSource {
     $description: "test fixture",
     $decisions: { shape: "rounded", surfaceTreatment: "flat" },
     semantic: {
+      ...IDENTITY_OVERRIDES,
       action: { primary: { $value: { light: "{color.blue.700}", dark: "{color.blue.300}" } } },
     },
     ...overrides,
   };
+}
+
+/** Every identity token, mapped to blue, so a fixture is valid unless a test breaks something else. */
+const IDENTITY_OVERRIDES = {
+  surface: { selected: { $value: { light: "{color.blue.50}", dark: "{color.blue.950}" } } },
+  text: {
+    link: { $value: { light: "{color.blue.700}", dark: "{color.blue.300}" } },
+    "link-hover": { $value: { light: "{color.blue.900}", dark: "{color.blue.200}" } },
+    brand: { $value: { light: "{color.blue.700}", dark: "{color.blue.300}" } },
+  },
+  selection: {
+    bg: { $value: { light: "{color.blue.50}", dark: "{color.blue.950}" } },
+    fg: { $value: { light: "{color.blue.700}", dark: "{color.blue.300}" } },
+  },
+  brand: {
+    signature: { $value: { light: "{color.blue.600}", dark: "{color.blue.400}" } },
+    ink: { $value: { light: "{color.white}", dark: "{color.gray.900}" } },
+  },
+};
+
+/** Merges an override tree into the fixture's semantic tree (one level of groups). */
+function withSemantic(extra: Record<string, Record<string, unknown>>): ProfileSource {
+  const base = source();
+  const semantic: Record<string, unknown> = { ...base.semantic };
+  for (const [group, nodes] of Object.entries(extra)) {
+    semantic[group] = { ...((semantic[group] as Record<string, unknown>) ?? {}), ...nodes };
+  }
+  return { ...base, semantic };
 }
 
 describe("the shipped profiles", () => {
@@ -117,39 +147,52 @@ describe("profile CSS", () => {
     expect(css).not.toContain("--cmp-");
   });
 
+  it("follows the OS for a system boundary with the same dark values", () => {
+    const css = new Profile(base, source()).emitCss();
+    const media = css.slice(css.indexOf("@media (prefers-color-scheme: dark)"));
+    expect(media).toContain('[data-design-profile="probe"][data-mode="system"] {');
+    expect(media).toContain("--ds-action-primary: var(--op-color-blue-300);");
+    expect(media).not.toContain("--op-color-blue-700");
+  });
+
+  it("remaps every Studio-only token to the profile's own action in every block", () => {
+    const css = new Profile(base, source()).emitCss();
+    for (const [from, to] of Object.entries(STUDIO_REMAP)) {
+      const line = `--ds-${from.replaceAll(".", "-")}: var(--ds-${to.replaceAll(".", "-")});`;
+      expect(css.split(line)).toHaveLength(4);
+    }
+    const studio = tokens.layer("semantic").filter((t) => t.scope === "studio");
+    expect(studio.map((t) => t.path).sort()).toEqual(Object.keys(STUDIO_REMAP).sort());
+  });
+
   it("emits own primitives before the overrides that use them, in both blocks", () => {
-    const p = new Profile(
-      base,
-      source({
-        primitives: { color: { probe: { "500": { $type: "color", $value: "#123456" } } } },
-        semantic: {
-          action: {
-            primary: { $value: { light: "{color.probe.500}", dark: "{color.probe.500}" } },
-          },
+    const p = new Profile(base, {
+      ...withSemantic({
+        action: {
+          primary: { $value: { light: "{color.probe.500}", dark: "{color.probe.500}" } },
         },
       }),
-    );
+      primitives: { color: { probe: { "500": { $type: "color", $value: "#123456" } } } },
+    });
     expect(p.validate()).toEqual([]);
     const css = p.emitCss();
-    expect(css.match(/--op-color-probe-500: #123456;/g)).toHaveLength(2);
+    expect(css.match(/--op-color-probe-500: #123456;/g)).toHaveLength(3);
     expect(css.indexOf("--op-color-probe-500")).toBeLessThan(css.indexOf("--ds-action-primary"));
   });
 
   it("expands a typography override to its five parts", () => {
     const p = new Profile(
       base,
-      source({
-        semantic: {
-          type: {
-            display: {
-              lg: {
-                $value: {
-                  fontFamily: "{font.family.plex-sans}",
-                  fontSize: "{font.size.56}",
-                  lineHeight: "{font.line-height.1-2}",
-                  fontWeight: "{font.weight.700}",
-                  letterSpacing: "{font.letter-spacing.tight}",
-                },
+      withSemantic({
+        type: {
+          display: {
+            lg: {
+              $value: {
+                fontFamily: "{font.family.plex-sans}",
+                fontSize: "{font.size.56}",
+                lineHeight: "{font.line-height.1-2}",
+                fontWeight: "{font.weight.700}",
+                letterSpacing: "{font.letter-spacing.tight}",
               },
             },
           },
@@ -174,10 +217,10 @@ describe("Profile.validate catches", () => {
   it("an override of a name that is not in the contract", () => {
     const p = new Profile(
       base,
-      source({ semantic: { surface: { glow: { $value: "{color.lime.300}" } } } }),
+      withSemantic({ surface: { glow: { $value: "{color.lime.300}" } } }),
     );
     expect(p.validate().join("\n")).toMatch(/surface\.glow is not a semantic token/);
-    expect(p.overrides).toEqual([]);
+    expect(p.overrides).not.toContain("surface.glow");
   });
 
   it("an override inside a locked group", () => {
@@ -186,9 +229,9 @@ describe("Profile.validate catches", () => {
       const node = rest.reduceRight<Record<string, unknown>>((acc, key) => ({ [key]: acc }), {
         $value: { light: "{color.lime.300}", dark: "{color.lime.300}" },
       });
-      const p = new Profile(base, source({ semantic: { [g ?? ""]: node } }));
+      const p = new Profile(base, withSemantic({ [g ?? ""]: node }));
       expect(p.validate().join("\n")).toMatch(new RegExp(`${path.replace(".", "\\.")} is locked`));
-      expect(p.overrides).toEqual([]);
+      expect(p.overrides).not.toContain(path);
     }
   });
 
@@ -206,10 +249,8 @@ describe("Profile.validate catches", () => {
   it("a reference to a primitive that does not exist", () => {
     const p = new Profile(
       base,
-      source({
-        semantic: {
-          action: { primary: { $value: { light: "{color.navy.700}", dark: "{color.navy.300}" } } },
-        },
+      withSemantic({
+        action: { primary: { $value: { light: "{color.navy.700}", dark: "{color.navy.300}" } } },
       }),
     );
     expect(p.validate().join("\n")).toMatch(/unknown primitive color\.navy\.700/);
@@ -230,7 +271,7 @@ describe("Profile.validate catches", () => {
   it("a colour override without both modes", () => {
     const p = new Profile(
       base,
-      source({ semantic: { action: { primary: { $value: "{color.blue.700}" } } } }),
+      withSemantic({ action: { primary: { $value: "{color.blue.700}" } } }),
     );
     expect(p.validate().join("\n")).toMatch(/action\.primary needs a light and a dark value/);
   });
@@ -264,6 +305,34 @@ describe("Profile.validate catches", () => {
     expect(bordered.validate().join("\n")).toMatch(
       /surfaceTreatment bordered needs a visible border\.card/,
     );
+  });
+
+  it("an override of a Studio-only token", () => {
+    const p = new Profile(
+      base,
+      withSemantic({
+        action: { intent: { $value: { light: "{color.blue.700}", dark: "{color.blue.300}" } } },
+      }),
+    );
+    expect(p.validate().join("\n")).toMatch(/action\.intent is Studio-only/);
+    expect(p.overrides).not.toContain("action.intent");
+  });
+
+  it("a profile that leaves an identity token at the shell's value", () => {
+    const p = new Profile(
+      base,
+      source({
+        semantic: {
+          action: { primary: { $value: { light: "{color.blue.700}", dark: "{color.blue.300}" } } },
+        },
+      }),
+    );
+    const errors = p.validate().join("\n");
+    for (const path of Object.keys(IDENTITY_OVERRIDES).flatMap((g) =>
+      Object.keys(IDENTITY_OVERRIDES[g as keyof typeof IDENTITY_OVERRIDES]).map((k) => `${g}.${k}`),
+    )) {
+      expect(errors).toMatch(new RegExp(`${path.replace(".", "\\.")} carries ORIVILO's identity`));
+    }
   });
 
   it("an id that is not a slug, or neutral", () => {

@@ -1,12 +1,16 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect } from "storybook/test";
 import {
+  type BoundaryMode,
   DesignProfileBoundary,
   type Mode,
   PROFILES,
   type ProfileId,
 } from "../boundary/DesignProfileBoundary";
-import { DECISIONS, LOCKED_GROUPS, type Profile, profileById } from "../profiles/index";
+import { DECISIONS, LOCKED_GROUPS, Profile, profileById } from "../profiles/index";
+import component from "../tokens/source/component.json" with { type: "json" };
+import primitives from "../tokens/source/primitives.json" with { type: "json" };
+import semantic from "../tokens/source/semantic.json" with { type: "json" };
 import { TokenSet, tokens } from "../tokens/index";
 import { contrastRatio } from "./contrast";
 import { Cell, Page, Section, Swatch, Table, chainText, varOf } from "./shared";
@@ -18,13 +22,61 @@ const WHITE = "#FFFFFF";
 /** Decisions the model checks against the tokens (Profile.validate); the rest are declared intent. */
 const CHECKED = ["shape", "surfaceTreatment"];
 
+function label2(p: Profile): string {
+  return `${p.name.en} (${p.name.th})`;
+}
+
 function label(id: ProfileId): string {
   const p = profileById(id);
   return p ? `${p.name.en} (${p.name.th})` : "Neutral (base)";
 }
 
+/**
+ * A profile that exists only at runtime: not registered, not in generated.css. The boundary renders
+ * its CSS inline, which is how resolved customer profiles (E2-9) will reach the preview.
+ */
+const runtimeProbe = new Profile(
+  { primitives, semantic, component },
+  {
+    $id: "runtime-probe",
+    $name: { th: "ตัวอย่างรันไทม์", en: "Runtime probe" },
+    $description:
+      "Built in the story from the base files; proves a Profile object renders without a build.",
+    $decisions: { shape: "rounded", surfaceTreatment: "flat" },
+    semantic: {
+      surface: { selected: { $value: { light: "{color.blue.50}", dark: "{color.blue.950}" } } },
+      text: {
+        link: { $value: { light: "{color.blue.700}", dark: "{color.blue.300}" } },
+        "link-hover": { $value: { light: "{color.blue.900}", dark: "{color.blue.200}" } },
+        brand: { $value: { light: "{color.blue.700}", dark: "{color.blue.300}" } },
+        "on-action": { $value: { light: "{color.white}", dark: "{color.gray.900}" } },
+      },
+      selection: {
+        bg: { $value: { light: "{color.blue.50}", dark: "{color.blue.950}" } },
+        fg: { $value: { light: "{color.blue.700}", dark: "{color.blue.300}" } },
+      },
+      brand: {
+        signature: { $value: { light: "{color.blue.600}", dark: "{color.blue.400}" } },
+        ink: { $value: { light: "{color.white}", dark: "{color.gray.900}" } },
+      },
+      action: {
+        primary: { $value: { light: "{color.blue.700}", dark: "{color.blue.300}" } },
+        "primary-hover": { $value: { light: "{color.blue.800}", dark: "{color.blue.200}" } },
+        "primary-press": { $value: { light: "{color.blue.900}", dark: "{color.blue.400}" } },
+      },
+    },
+  },
+);
+
 function setOf(id: string): TokenSet {
+  if (id === runtimeProbe.id) return runtimeProbe.tokens;
   return profileById(id)?.tokens ?? tokens;
+}
+
+/** The mode a boundary resolves to in this browser. */
+function resolvedMode(mode: BoundaryMode): Mode {
+  if (mode !== "system") return mode;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
 /** The same spec sheet under one boundary. `data-profile-sample` is read by the play function. */
@@ -93,6 +145,25 @@ function OwnPrimitives({ profile }: { profile: Profile }) {
 function Overrides({ profile, mode }: { profile: Profile; mode: Mode }) {
   return (
     <Table head={["Token", "Neutral", profile.name.en, "Contrast under the profile"]}>
+      {profile.studioRemaps.map(([from, to]) => {
+        const base = profile.baseToken(from);
+        return base ? (
+          <tr key={from}>
+            <Cell>
+              <span className="inline-flex items-center gap-2">
+                <Swatch
+                  cssVar={varOf(base)}
+                  label={`${from} under ${profile.id} in ${mode} mode`}
+                />
+                <span className="font-mono">{from}</span>
+              </span>
+            </Cell>
+            <Cell mono>{chainText(base, mode)}</Cell>
+            <Cell>Studio-only: renders as {to} inside this boundary</Cell>
+            <Cell>{""}</Cell>
+          </tr>
+        ) : null;
+      })}
       {profile.overrides.map((path) => {
         const base = profile.baseToken(path);
         const t = profile.tokens.get("semantic", path);
@@ -136,7 +207,7 @@ function ProfilesPage({ mode, profile }: { mode: Mode; profile: ProfileId }) {
   return (
     <Page
       title={`Profiles, ${mode} mode`}
-      lead="A profile is a semantic overlay (DESIGN.md §5): it changes the value behind existing names inside its DesignProfileBoundary and may bring primitive ramps of its own. It never adds a name, never changes a base primitive, and never touches feedback or focus. The two profiles here are hand-made interpretations (handoff §19), not customer brands. Every declared contrast pair is tested under each profile in both modes by profiles.test.ts."
+      lead="A profile is a semantic overlay (DESIGN.md §5): it changes the value behind existing names inside its DesignProfileBoundary and may bring primitive ramps of its own. It never adds a name, never changes a base primitive, and never touches feedback or focus. It must override every identity token (the shell's violet and lime), and it never carries the Studio's intent action, which renders as the profile's primary action inside the boundary. The two profiles here are hand-made interpretations (handoff §19), not customer brands. Every declared contrast pair is tested under each profile in both modes by profiles.test.ts."
     >
       <Section title="The same spec sheet under each profile">
         <div className="grid gap-4 lg:grid-cols-3">
@@ -177,6 +248,26 @@ function ProfilesPage({ mode, profile }: { mode: Mode; profile: ProfileId }) {
                     </div>
                   </div>
                 </DesignProfileBoundary>
+              </div>
+            </div>
+          </DesignProfileBoundary>
+        </div>
+      </Section>
+      <Section title="A profile object at runtime">
+        <p className="max-w-prose text-body-sm text-text-secondary">
+          This boundary receives a Profile object built in the story, not a registered id, so its
+          CSS is rendered inline by the boundary. Resolved customer profiles reach the preview this
+          way. The play function checks its computed values too.
+        </p>
+        <div className="mt-3 max-w-xl">
+          <DesignProfileBoundary mode={mode} profile={runtimeProbe}>
+            <div
+              data-profile-sample={runtimeProbe.id}
+              className="rounded-container bg-surface-canvas p-4 text-text-primary"
+            >
+              <span className="text-label-md">{label2(runtimeProbe)}</span>
+              <div className="mt-4">
+                <SpecSheet scope="profile-runtime-probe" />
               </div>
             </div>
           </DesignProfileBoundary>
@@ -248,20 +339,31 @@ const meta = {
   ),
   play: async ({ canvasElement }) => {
     const samples = canvasElement.querySelectorAll<HTMLElement>("[data-profile-sample]");
-    expect(samples.length).toBeGreaterThanOrEqual(PROFILES.length + 3);
+    expect(samples.length).toBeGreaterThanOrEqual(PROFILES.length + 4);
     for (const el of samples) {
       const boundary = el.closest<HTMLElement>("[data-design-profile]");
       if (!boundary) throw new Error("sample outside a boundary");
       const id = boundary.dataset["designProfile"] ?? "";
-      const mode = boundary.dataset["mode"] as Mode;
+      const mode = resolvedMode(boundary.dataset["mode"] as BoundaryMode);
       const set = setOf(id);
       const computed = getComputedStyle(el);
+      const read = (path: string) => {
+        const token = set.get("semantic", path);
+        if (!token) throw new Error(`${path} missing`);
+        return computed.getPropertyValue(TokenSet.cssVar(token)).trim().toLowerCase();
+      };
       for (const path of CHECKED_PATHS) {
         const token = set.get("semantic", path);
         if (!token) throw new Error(`${path} missing`);
         const expected = String(set.resolve(token, mode).value).toLowerCase();
-        const actual = computed.getPropertyValue(TokenSet.cssVar(token)).trim().toLowerCase();
-        expect(actual, `${path} under ${id} in ${mode}`).toBe(expected);
+        expect(read(path), `${path} under ${id} in ${mode}`).toBe(expected);
+      }
+      // The Studio's intent action never shows inside a profile boundary: it renders as the primary action.
+      if (id !== "neutral") {
+        expect(read("action.intent"), `action.intent under ${id}`).toBe(read("action.primary"));
+        expect(read("text.on-intent"), `text.on-intent under ${id}`).toBe(read("text.on-action"));
+      } else {
+        expect(read("action.intent")).not.toBe(read("action.primary"));
       }
     }
   },

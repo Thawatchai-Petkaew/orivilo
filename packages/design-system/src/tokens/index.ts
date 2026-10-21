@@ -6,4 +6,4 @@ import { TokenSet } from "./model.ts";
 /** The one token set, built from the three source files. */
 export const tokens = new TokenSet(primitives, semantic, component);
 export { TokenSet, MODES, LAYERS, REFERENCES, displayValue, cssLiteral } from "./model.ts";
-export type { Token, Layer, Mode, Resolved, ContrastRule } from "./model.ts";
+export type { Token, TokenScope, Layer, Mode, Resolved, ContrastRule } from "./model.ts";

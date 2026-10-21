@@ -1,16 +1,7 @@
-@import "tailwindcss";
-
-/* Placeholder semantic tokens for the scaffold. The real token contract arrives with its own story. */
-@theme {
-  --color-surface: oklch(0.99 0 0);
-  --color-on-surface: oklch(0.2 0 0);
-  --color-muted: oklch(0.5 0 0);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-surface: oklch(0.18 0 0);
-    --color-on-surface: oklch(0.95 0 0);
-    --color-muted: oklch(0.7 0 0);
-  }
-}
+/*
+ * The Studio shell runs the neutral profile (DESIGN.md §1). Fonts and the three token layers come
+ * from the design-system package; nothing visual is declared here. Mode follows the OS through
+ * data-mode="system" on the root boundary (app/layout.tsx), with no script and no flash.
+ */
+@import "@orivilo/design-system/fonts.css";
+@import "@orivilo/design-system/tokens.css";

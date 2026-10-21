@@ -23,5 +23,5 @@ export function profileById(id: string): Profile | undefined {
   return profiles.find((p) => p.id === id);
 }
 
-export { DECISIONS, LOCKED_GROUPS, Profile, emitProfilesCss } from "./model.ts";
+export { DECISIONS, LOCKED_GROUPS, STUDIO_REMAP, Profile, emitProfilesCss } from "./model.ts";
 export type { BaseSources, ProfileSource } from "./model.ts";
