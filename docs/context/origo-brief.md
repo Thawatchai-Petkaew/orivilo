@@ -96,6 +96,20 @@ Not decided yet, and marked for research before the Build module is specced:
 
 Whatever the answer, the export must respect the bounded-sync principle above: tokens and component mappings sync; free-form edits go through review.
 
+### Knowledge is the core value (owner, 2026-10-21)
+
+ORIGO is not a project that only builds a slick UI; anyone can copy UI and UX. The moat is the **architecture of knowledge inside the system**: what others would have to follow if they wanted to catch up.
+
+Scope of that knowledge, as examples:
+
+- **Themes of a design system.** There are many (glass, minimal, and so on). For each, ORIGO must know how to do it properly, not just name it.
+- **Industry patterns.** For finance, which features and which objects a product tends to need, and what they look like.
+- **Reference sources to learn from**, each with its own collection method: Mobbin (real product use cases and flows), Dribbble (UI examples), public Storybooks of many teams (Spotify's and others), and similar.
+
+How it works in the product: intent + references + decision knowledge → output. The knowledge base is a planned part of the core product, with research and collection methods decided per source, and it must be versioned like every other contract.
+
+Collection must respect the licensing split noted above: principles and patterns summarized in our own words; third-party visuals kept as links and metadata, not copied assets.
+
 Implication for the Intent Studio MVP: input and interpretation must work as blocks on a canvas with a drill-down conversation per element, not as a single form.
 
 ## First milestone
