@@ -1,8 +1,8 @@
-# DESIGN.md: ORIVILO (agent-readable, v1)
+# DESIGN.md: ORIVILO (agent-readable, v1.2)
 
 Read this before any UI work: a Studio screen, a shared component, a story, a recipe, a preview, or a review of generated output. It is the design contract the `frontend-design` skill critiques against and the **design gate** (§11) that blocks G3. Rules that enforce it live in `.claude/rules/design-system.md`; the component registry lives in `packages/design-system/catalog/`.
 
-Status, so nobody over-reads this file: the values in §3–§5 are ORIVILO's brand v1.1 **hypothesis** (`docs/context/brand/orivilo-brand-spec-v1.1.md`, tests still open in its §8). No shared component, recipe, or Storybook exists yet; `apps/web/app/globals.css` holds three placeholder tokens. Each "planned" item names the backlog story that makes it real (`docs/specs/backlog-draft.md`).
+Status, so nobody over-reads this file: the values in §3–§5 are ORIVILO's brand v1.1 **hypothesis** (`docs/context/brand/orivilo-brand-spec-v1.1.md`, tests still open in its §8). Storybook and the token CSS exist (`packages/design-system/src/tokens/orivilo.css`, E2-0); no shared component or recipe exists yet. The mood (§2, airy bento) is the owner's choice of 2026-10-21 from the UI direction study (`docs/context/ui-direction.md`). Each "planned" item names the backlog story that makes it real (`docs/specs/backlog-draft.md`).
 
 ## 1. What this file governs, and what it does not
 
@@ -18,7 +18,8 @@ Two namespaces, one component set. A component never knows which brand it is ren
 
 - **Idea.** A loop that does not close, and the dot it stays connected to: a product keeps becoming, and every artifact traces back to its reason. Space, restraint, one signature colour spent where it counts.
 - **ORIVILO is its own first customer.** The shell must pass the same tests we run on generated output: the "tells of generated design" list in `.claude/skills/frontend-design/SKILL.md`, contrast on real pairs in every mode, Thai and Latin on the same line.
-- **Spend boldness once.** Lime is the signature; it appears as a bead, a highlight, or a single plane, never as body text on light ground and never as a status colour. Violet does the work of action. Everything else is ink and canvas.
+- **Spend boldness once.** Lime is the signature; it appears as a bead, a highlight plane, or the one Intent Engine button per screen, never as body text on light ground and never as a status colour. Ink does the work of action. Violet marks selection and links. Everything else is ink and canvas.
+- **Airy bento (mood E, owner's choice 2026-10-21).** Overview screens are a loose grid of borderless white cards on the warm canvas with generous padding, pill controls, big numerals set in the body face at weight 600, and at most one soft lime glow per screen. Working surfaces (canvas, inspector, tables) keep the compact density of §3.3; the bento is for reading, not for operating. In dark mode the same shapes hold, with the lime limited to one button and one bead so the screen does not collapse into the near-black-with-acid-accent look (§9 item 1).
 - **Honest UI.** Rule-based behavior is labelled rule-based. Mock data is labelled mock. No trust badge, rating, discount, countdown, or success state without backing data (`AGENTS.md`).
 - **Words are design.** Sentence case, plain verbs, from the user's view, in the user's language. Thai copy is written as Thai, never translated word by word.
 
@@ -26,62 +27,87 @@ Two namespaces, one component set. A component never knows which brand it is ren
 
 Naming: token path `group.role` ⇔ CSS custom property `--ds-group-role` ⇔ Tailwind utility `bg-surface-canvas` / `text-text-secondary` through `@theme`. Components and pages use these names only. shadcn's variable set (`--primary`, `--ring`, …) is an adapter target inside recipes (ADR 0003) and never appears in a profile, a story, or a page.
 
-### 3.1 Colour, light mode (sRGB; ratios from the brand spec, computed 2026-10-21)
+### 3.1 Colour, both modes (snapshot of `semantic.json`, 2026-10-21)
 
-| Token                  | Value   | Use for                                                           | Never for                                       |
-| ---------------------- | ------- | ----------------------------------------------------------------- | ----------------------------------------------- |
-| `surface.canvas`       | #F4F4F0 | Page background                                                   | Cards stacked on cards                          |
-| `surface.card`         | #FFFFFF | Content containers, inputs, menus                                 | Full-page background                            |
-| `surface.selected`     | #F4EEFD | Selected row, chosen option, active nav item                      | Hover (hover is a border or ink change)         |
-| `surface.inverse`      | #16151D | Inverse blocks, tooltips, the dark set's canvas                   | Decorative tints                                |
-| `text.primary`         | #16151D | Body, headings, values (canvas 16.4, white 18.1)                  |                                                 |
-| `text.secondary`       | #5B5A66 | Supporting text, meta, placeholders (canvas 6.1)                  | Primary content                                 |
-| `text.on-action`       | #FFFFFF | Text and icons on `action.*` surfaces (7.3 on primary)            |                                                 |
-| `action.primary`       | #7A22C7 | One primary action per view; links (as text on canvas 6.6)        | Status, selection fill, decoration              |
-| `action.primary-hover` | #6B22B0 | Hover of the above                                                |                                                 |
-| `action.primary-press` | #3F1366 | Pressed of the above                                              |                                                 |
-| `selection.fg`         | #6B22B0 | Text and icon on `surface.selected` (7.5)                         |                                                 |
-| `focus.ring`           | #16151D | 2 px ring with a 2 px gap of the surface colour, on any ground    | Replaced by brand accent or selection           |
-| `border.control`       | #85838F | Inputs, checkboxes, outlined buttons (white 3.7, canvas 3.4)      |                                                 |
-| `border.subtle`        | #E3E2DC | Dividers, card edges; decorative only                             | The only cue of a control's edge                |
-| `brand.signature`      | #D9F66F | Mark dot, one highlight plane, a selected tab's bead              | Text on light ground (1.1), status, large fills |
-| `feedback.success`     | #0B6E4F | Success text/icon/border (canvas 5.7)                             |                                                 |
-| `feedback.warning`     | #B54708 | Warning text/icon/border (canvas 4.9)                             |                                                 |
-| `feedback.danger`      | #B42318 | Errors, destructive actions (canvas 6.0)                          |                                                 |
-| `feedback.info`        | #1D6FD6 | Info at 18 px+ or bold (canvas 4.4); below that use ink plus icon |                                                 |
+The source of truth is `packages/design-system/src/tokens/source/semantic.json`; Storybook renders it live under Foundations › Semantic with the reference chain and the contrast of every declared pair. The table below is a snapshot so the contract can be read without the tool. Each cell names the primitive step and its hex. Dark is a remap by role, not an inversion (handoff §10). Every declared pair is tested in both modes by `tokens.test.ts`; a failing pair fails `pnpm test`.
 
-Feedback colours get a tint surface (`feedback.<name>.surface`) and a text pair when the first component needs them; add both in the same story, with the ratio.
+| Token                      | Light                   | Dark               | Pair, floor             | Use for                                                                                       |
+| -------------------------- | ----------------------- | ------------------ | ----------------------- | --------------------------------------------------------------------------------------------- |
+| `surface.canvas`           | gray.50 #F4F4F0         | gray.900 #16151D   |                         | Page background                                                                               |
+| `surface.card`             | white #FFFFFF           | gray.800 #1E1D26   |                         | Content containers, inputs, menus                                                             |
+| `surface.raised`           | gray.25 #FCFCFA         | gray.700 #2B2A36   |                         | A surface on a card: menus, nested panels                                                     |
+| `surface.sunken`           | gray.100 #F2F1EC        | gray.950 #060509   |                         | Wells, code blocks, table headers                                                             |
+| `surface.hover`            | gray.100 #F2F1EC        | gray.700 #2B2A36   |                         | Hover ground for rows, ghost buttons, nav items                                               |
+| `surface.selected`         | violet.50 #F4EEFD       | violet.950 #2A2140 |                         | Selected row, chosen option                                                                   |
+| `surface.disabled`         | gray.200 #E3E2DC        | gray.700 #2B2A36   |                         | Disabled controls                                                                             |
+| `surface.inverse`          | gray.900 #16151D        | gray.50 #F4F4F0    |                         | Inverse blocks, toasts, tooltips                                                              |
+| `surface.scrim`            | black #000000           | black #000000      |                         | Behind overlays, at opacity.scrim                                                             |
+| `text.primary`             | gray.900 #16151D        | gray.100 #F2F1EC   | surface.canvas, 4.5     | Body, headings, values                                                                        |
+| `text.secondary`           | gray.600 #5B5A66        | gray.400 #A9A7B3   | surface.canvas, 4.5     | Supporting text, meta                                                                         |
+| `text.tertiary`            | gray.600 #5B5A66        | gray.400 #A9A7B3   | surface.card, 4.5       | Hints, timestamps. Same value as secondary until a three-level hierarchy is proven in a story |
+| `text.placeholder`         | gray.600 #5B5A66        | gray.400 #A9A7B3   | surface.card, 4.5       | Placeholder in inputs; must read at 4.5 like any text                                         |
+| `text.disabled`            | gray.400 #A9A7B3        | gray.600 #5B5A66   |                         | Disabled labels                                                                               |
+| `text.on-action`           | white #FFFFFF           | gray.900 #16151D   | action.primary, 4.5     | On action.primary                                                                             |
+| `text.on-intent`           | gray.900 #16151D        | gray.900 #16151D   | action.intent, 4.5      | On action.intent                                                                              |
+| `text.on-destructive`      | white #FFFFFF           | gray.900 #16151D   | action.destructive, 4.5 | On action.destructive                                                                         |
+| `text.on-inverse`          | gray.100 #F2F1EC        | gray.900 #16151D   | surface.inverse, 4.5    | On surface.inverse                                                                            |
+| `text.link`                | violet.700 #6B22B0      | violet.300 #C49AF2 | surface.canvas, 4.5     | Links in running text                                                                         |
+| `text.link-hover`          | violet.900 #3F1366      | violet.200 #D3B6F7 | surface.canvas, 4.5     | Hover of links                                                                                |
+| `text.brand`               | violet.700 #6B22B0      | violet.300 #C49AF2 | surface.canvas, 4.5     | Brand-coloured text, used rarely                                                              |
+| `border.control`           | gray.500 #85838F        | gray.500 #85838F   | surface.card, 3         | Inputs, checkboxes, outlined buttons                                                          |
+| `border.control-hover`     | gray.600 #5B5A66        | gray.400 #A9A7B3   | surface.card, 3         | Hover of control edges                                                                        |
+| `border.subtle`            | gray.200 #E3E2DC        | gray.700 #2B2A36   |                         | Dividers; card edges in dark mode only                                                        |
+| `border.strong`            | gray.900 #16151D        | gray.100 #F2F1EC   | surface.card, 3         | Emphasised edges, selected chips                                                              |
+| `border.card`              | transparent transparent | gray.700 #2B2A36   |                         | Card edge: none in light, subtle in dark                                                      |
+| `border.disabled`          | gray.200 #E3E2DC        | gray.700 #2B2A36   |                         | Disabled control edges                                                                        |
+| `border.error`             | red.700 #B42318         | red.400 #F58A80    | surface.card, 3         | Invalid inputs                                                                                |
+| `action.primary`           | gray.900 #16151D        | gray.100 #F2F1EC   | surface.canvas, 3       | One primary action per view, as an ink pill                                                   |
+| `action.primary-hover`     | gray.700 #2B2A36        | white #FFFFFF      |                         | Hover of action.primary                                                                       |
+| `action.primary-press`     | black #000000           | gray.200 #E3E2DC   |                         | Pressed of action.primary                                                                     |
+| `action.primary-disabled`  | gray.300 #C6C5CC        | gray.700 #2B2A36   |                         | Disabled primary                                                                              |
+| `action.intent`            | lime.300 #D9F66F        | lime.300 #D9F66F   | surface.canvas          | The one Intent Engine button per screen                                                       |
+| `action.intent-hover`      | lime.400 #CFEF5C        | lime.400 #CFEF5C   |                         | Hover of action.intent                                                                        |
+| `action.intent-press`      | lime.500 #BFE23F        | lime.500 #BFE23F   |                         | Pressed of action.intent                                                                      |
+| `action.destructive`       | red.700 #B42318         | red.400 #F58A80    | surface.canvas, 3       | Destructive actions, confirmed by a dialog                                                    |
+| `action.destructive-hover` | red.800 #770602         | red.300 #FEA69D    |                         | Hover of action.destructive                                                                   |
+| `action.destructive-press` | red.900 #4F0B06         | red.500 #E06B5F    |                         | Pressed of action.destructive                                                                 |
+| `selection.bg`             | violet.50 #F4EEFD       | violet.950 #2A2140 |                         | Selected ground; same as surface.selected                                                     |
+| `selection.fg`             | violet.700 #6B22B0      | violet.400 #B07FEE | selection.bg, 4.5       | Text and icon on selection.bg                                                                 |
+| `focus.ring`               | gray.900 #16151D        | gray.100 #F2F1EC   | surface.canvas, 3       | 2 px ring with a 2 px gap, on any ground                                                      |
+| `focus.offset`             | gray.50 #F4F4F0         | gray.900 #16151D   |                         | The gap colour between ring and control                                                       |
+| `brand.signature`          | lime.300 #D9F66F        | lime.300 #D9F66F   |                         | Mark dot, one highlight plane; never text on light ground                                     |
+| `brand.ink`                | gray.900 #16151D        | gray.900 #16151D   | brand.signature, 4.5    | Ink on the signature                                                                          |
+| `feedback.success.fg`      | green.700 #0B6E4F       | green.400 #5CC9A3  | surface.canvas, 4.5     | Success text, icon                                                                            |
+| `feedback.success.surface` | green.50 #EAF9F3        | green.950 #072016  |                         |                                                                                               |
+| `feedback.success.border`  | green.300 #83D4B5       | green.700 #0B6E4F  |                         |                                                                                               |
+| `feedback.warning.fg`      | amber.700 #B54708       | amber.400 #F0A060  | surface.canvas, 4.5     | Warning text, icon                                                                            |
+| `feedback.warning.surface` | amber.50 #FFF2E9        | amber.950 #300F02  |                         |                                                                                               |
+| `feedback.warning.border`  | amber.300 #F2B180       | amber.700 #B54708  |                         |                                                                                               |
+| `feedback.danger.fg`       | red.700 #B42318         | red.400 #F58A80    | surface.canvas, 4.5     | Errors, destructive                                                                           |
+| `feedback.danger.surface`  | red.50 #FFF0EE          | red.950 #2F0503    |                         |                                                                                               |
+| `feedback.danger.border`   | red.300 #FEA69D         | red.700 #B42318    |                         |                                                                                               |
+| `feedback.info.fg`         | blue.700 #0C55AB        | blue.300 #7FB3F5   | surface.canvas, 4.5     | Info text, icon; reads at body size                                                           |
+| `feedback.info.surface`    | blue.50 #ECF6FF         | blue.950 #071A35   |                         |                                                                                               |
+| `feedback.info.border`     | blue.300 #7FB3F5        | blue.700 #0C55AB   |                         |                                                                                               |
 
-### 3.2 Colour, dark mode
+Ratios recorded elsewhere in this file were computed from these values. `surface.scrim` is used at `opacity.scrim`; `border.card` is transparent in light so cards sit on the canvas without an edge (mood E) and takes `border.subtle` in dark where card on canvas is only 1.1.
 
-| Token              | Value                                                                                       | Note                                 |
-| ------------------ | ------------------------------------------------------------------------------------------- | ------------------------------------ |
-| `surface.canvas`   | #16151D                                                                                     |                                      |
-| `surface.card`     | #1E1D26                                                                                     |                                      |
-| `surface.selected` | #2A2140                                                                                     | violet-900 tint; pair with `#B07FEE` |
-| `text.primary`     | #F2F1EC                                                                                     | card 14.8                            |
-| `text.secondary`   | #A9A7B3                                                                                     | 7.0                                  |
-| `text.on-action`   | #16151D                                                                                     | ink on violet-400 6.1                |
-| `action.primary`   | #B07FEE                                                                                     | hover #C49AF2, press #9A63E0         |
-| `focus.ring`       | #F2F1EC                                                                                     | 2 px + 2 px gap                      |
-| `border.control`   | #6F6D7A                                                                                     |                                      |
-| `border.subtle`    | #2B2A36                                                                                     |                                      |
-| `brand.signature`  | #D9F66F                                                                                     | unchanged; ink on it 15.0            |
-| feedback           | lighten each hue until ≥ 4.5 on `surface.card`; values set with the contrast script in E0-5 |
+### 3.2 Primitives behind the names
 
-Dark mode is a remap by role, not an inversion (handoff §10). `surface.selected` and the dark feedback values above are untested placeholders until E0-5 computes them; the gate requires the computed pair.
+`primitives.json` holds seven colour ramps of twelve steps (25 to 950) for gray, violet, lime, red, amber, green, and blue, anchored on the brand spec v1.1 values and interpolated in OKLCH, plus the radius, space, size, font, shadow, blur, opacity, duration, easing, breakpoint, and z scales. Primitives carry no meaning; a page or component that references `--op-*` directly fails the gate. Storybook renders every ramp under Foundations › Primitives with the best contrast ink or white reaches on each step.
 
-### 3.3 Shape, space, size, motion
+### 3.3 Shape, space, size, type, motion (semantic, from `semantic.json`)
 
-| Group   | Tokens                                                                                                                                                                      |
-| ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Radius  | `shape.control.radius` 6, `shape.container.radius` 10, `shape.media.radius` 14, `shape.overlay.radius` 22                                                                   |
-| Space   | 8-px scale: `space.1` 4, `space.2` 8, `space.3` 12, `space.4` 16, `space.6` 24, `space.8` 32, `space.12` 48                                                                 |
-| Size    | `size.control.min-height` 40 (sm 32, lg 48), `size.touch` 44 minimum on touch surfaces                                                                                      |
-| Motion  | `motion.feedback.duration` 120 ms, `motion.overlay.duration` 200 ms, `motion.page.duration` 320 ms, one ease-out, `prefers-reduced-motion` removes all non-essential motion |
-| Density | `comfortable` (default) and `compact` (row block 8 instead of 12); a profile may set one, a page may not                                                                    |
+| Group   | Tokens                                                                                                                                                                                                                                                                                                                     |
+| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Radius  | `shape.control.radius` 999 (pill), `shape.media.radius` 12, `shape.container.radius` 16, `shape.overlay.radius` 24                                                                                                                                                                                                         |
+| Depth   | Flat: no shadow in the shell. Light: cards sit on the canvas with no border. Dark: `border.subtle` marks card edges (card on canvas is 1.1). Glass only on floating layers (toolbar over a preview, command palette, toasts) with a solid fallback; a soft lime glow (radial, 35% light, 14% dark) at most once per screen |
+| Space   | 8-px scale: `space.1` 4, `space.2` 8, `space.3` 12, `space.4` 16, `space.6` 24, `space.8` 32, `space.12` 48                                                                                                                                                                                                                |
+| Size    | `size.control.min-height` 40 (sm 32, lg 48), `size.touch` 44 minimum on touch surfaces                                                                                                                                                                                                                                     |
+| Motion  | `motion.feedback.duration` 120 ms, `motion.overlay.duration` 200 ms, `motion.page.duration` 320 ms, one ease-out, `prefers-reduced-motion` removes all non-essential motion                                                                                                                                                |
+| Density | `comfortable` (default) and `compact` (row block 8 instead of 12); a profile may set one, a page may not                                                                                                                                                                                                                   |
 
-Radius expresses hierarchy: controls are tighter than containers, containers tighter than overlays. One radius for every level is anti-pattern 4 (§9).
+Controls are pills; rectangular shapes grow with their level: media 12 inside a container 16 inside an overlay 24. One radius for every level is anti-pattern 3 (§9). Numerals in a bento tile use the body face at weight 600 with letter-spacing -0.02em on Latin digits only, never on Thai.
 
 ## 4. Typography, Thai and Latin together
 
@@ -101,16 +127,16 @@ Rules (from the specimen run, brand spec §6 and §8):
 
 ## 5. Layers: where a value may live
 
-| Layer           | Contains                                                        | Who may add                             |
-| --------------- | --------------------------------------------------------------- | --------------------------------------- |
-| Primitive       | Scales: palette steps, radius, space, duration                  | Token story; never a page               |
-| Semantic        | §3 names, per mode                                              | Contract change (L lane, impact list)   |
-| Component token | `button.primary.bg` only when a semantic name cannot express it | The component's story, with the reason  |
-| Recipe          | Which token each slot/state uses; surface depth, edge, motion   | Recipe story; proven under ≥ 2 profiles |
-| Component       | Behavior, props, states; consumes recipe classes                | Component story + catalog entry         |
-| Page/pattern    | Composition from components; layout utilities only              | Feature story                           |
+| Layer           | Contains                                                                                           | Who may add                             |
+| --------------- | -------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| Primitive       | `primitives.json`, CSS `--op-*`: palette steps, radius, space, duration                            | Token story; never a page               |
+| Semantic        | `semantic.json`, CSS `--ds-*`: §3 names, per mode; references primitives only                      | Contract change (L lane, impact list)   |
+| Component token | `component.json`, CSS `--cmp-*`: one name per slot (`button.primary.bg`); references semantic only | The component's story, with the reason  |
+| Recipe          | Which token each slot/state uses; surface depth, edge, motion                                      | Recipe story; proven under ≥ 2 profiles |
+| Component       | Behavior, props, states; consumes recipe classes                                                   | Component story + catalog entry         |
+| Page/pattern    | Composition from components; layout utilities only                                                 | Feature story                           |
 
-Tailwind is allowed for layout and composition (flex, grid, gap, width). It is forbidden for colour, radius, shadow, and font values in components and pages; the lint rule from E2-0 fails the build on `bg-[#…]`, `rounded-[…]`, `shadow-…`, `font-[…]`, and raw Tailwind palette classes.
+The three files compile to `generated.css` (`pnpm --filter @orivilo/design-system tokens`); `tokens.test.ts` fails when a layer references the wrong layer, when a semantic colour lacks a mode, or when the generated file is stale. Tailwind is allowed for layout and composition (flex, grid, gap, width). It is forbidden for colour, radius, shadow, and font values in components and pages; the lint rule from E2-0 fails the build on `bg-[#…]`, `rounded-[…]`, `shadow-…`, `font-[…]`, and raw Tailwind palette classes.
 
 ## 6. Choosing a component (handoff §15)
 
@@ -154,24 +180,26 @@ Hover and focus stay interaction states, not public props (handoff §14). Icon-o
 
 ## 8. Colour roles: meaning never moves
 
-| Meaning           | Colour             | Not interchangeable with |
-| ----------------- | ------------------ | ------------------------ |
-| Act               | `action.primary`   | brand signature, info    |
-| Selected          | `surface.selected` | focus, hover             |
-| Focused           | `focus.ring` (ink) | selection, brand         |
-| Brand presence    | `brand.signature`  | any feedback, any action |
-| Wrong / dangerous | `feedback.danger`  | warning, brand           |
-| Caution           | `feedback.warning` | danger                   |
-| Done well         | `feedback.success` | brand signature          |
-| Learn             | `feedback.info`    | action                   |
+| Meaning           | Colour                 | Not interchangeable with     |
+| ----------------- | ---------------------- | ---------------------------- |
+| Act               | `action.primary` (ink) | selection, info              |
+| Ask the engine    | `action.intent` (lime) | any other action, any status |
+| Go somewhere      | `text.link` (violet)   | buttons                      |
+| Selected          | `surface.selected`     | focus, hover                 |
+| Focused           | `focus.ring` (ink)     | selection, brand             |
+| Brand presence    | `brand.signature`      | any feedback, any action     |
+| Wrong / dangerous | `feedback.danger`      | warning, brand               |
+| Caution           | `feedback.warning`     | danger                       |
+| Done well         | `feedback.success`     | brand signature              |
+| Learn             | `feedback.info`        | action                       |
 
-Proportion for the shell: about 60 canvas and card, 30 ink and neutrals, 10 violet and lime together. Charts and illustrations take a separate graphic palette (profile group 6 in handoff §10), never the transaction colours.
+Proportion for the shell: about 60 canvas and card, 30 ink and neutrals, 10 violet and lime together; lime alone stays under 2. Charts and illustrations take a separate graphic palette (profile group 6 in handoff §10), never the transaction colours.
 
 ## 9. Named anti-patterns (the gate checks each)
 
 From `.claude/skills/frontend-design/SKILL.md`, with ORIVILO's own added:
 
-1. **Cream-serif-terracotta** and **near-black-with-acid-accent** as a default look.
+1. **Cream-serif-terracotta** and **near-black-with-acid-accent** as a default look. Mood E keeps ink actions and one lime button on a light canvas; in dark mode lime stays at one button and one bead and the glow at 14%, which is the line between the brand and this tell.
 2. **Broadsheet**: hairlines, zero radius, dense columns, for a tool that needs air.
 3. **Card kit**: every block a rounded card with the same radius and the same soft shadow.
 4. **Template chrome**: tracked ALL-CAPS eyebrows, middle-dot meta strings, "WORD, dash, fragment" labels, tinted near-black for black, monospace for small labels, arrows on every link.
@@ -209,15 +237,17 @@ The reviewer records each line as pass, fail, or not applicable, with the story 
 
 ## 12. What is real today
 
-| Item                                           | Status                                                   |
-| ---------------------------------------------- | -------------------------------------------------------- |
-| Brand values in §3–§4                          | Hypothesis v1.1; similarity, lineup, print tests open    |
-| Dark `surface.selected`, dark feedback values  | Placeholder until E0-5 computes them                     |
-| `packages/design-system`, Storybook, lint rule | Real: E2-0 slice B (tokens, Foundations, checks)         |
-| Neutral profile for the shell                  | Planned: E2-3                                            |
-| Button, Input, Select, Checkbox                | Planned: E2-4                                            |
-| `DesignProfileBoundary`, portal scope          | Minimal attribute-only boundary (E2-0); real: E2-3, E2-5 |
-| Catalog page examples per tier                 | Planned: E2-7                                            |
-| Contrast check in CI                           | Planned: E0-5                                            |
+| Item                                                             | Status                                                                                            |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Brand values in §3–§4                                            | Hypothesis v1.1 plus mood E; similarity, lineup, print tests open                                 |
+| Three-layer token files, generated CSS, layer and contrast tests | Real: E2-1 (`src/tokens/source/*.json`, Foundations pages Primitives, Semantic, Component tokens) |
+| Mood E in Storybook                                              | Tokens only; the `airy` recipe and a bento example page are planned: E2-2, E2-7                   |
+| Dark `surface.selected`, dark feedback values                    | Placeholder until E0-5 computes them                                                              |
+| `packages/design-system`, Storybook, lint rule                   | Real: E2-0 slice B (tokens, Foundations, checks)                                                  |
+| Neutral profile for the shell                                    | Planned: E2-3                                                                                     |
+| Button, Input, Select, Checkbox                                  | Planned: E2-4                                                                                     |
+| `DesignProfileBoundary`, portal scope                            | Minimal attribute-only boundary (E2-0); real: E2-3, E2-5                                          |
+| Catalog page examples per tier                                   | Planned: E2-7                                                                                     |
+| Contrast check in CI                                             | Planned: E0-5                                                                                     |
 
-Change log: v1.0.2 (2026-10-21) corrects two §3.1 ratios from the token source (text.secondary 6.1, brand.signature 1.1) and marks E2-0 slice B as real in §12. v1.0.1 (2026-10-21) adds the owner's no-middot, no-em-dash rule to §10 and §11. v1 (2026-10-21) created from brand spec v1.1, handoff §9–§17 and §23, ADR 0003, and the owner's rule that Storybook and this file come before any UI.
+Change log: v1.2 (2026-10-21) replaces the hand-written §3.1 and §3.2 with the three-layer token source (primitive, semantic, component) and its snapshot; value changes against v1.1 from the ramps: `text.tertiary` and `text.placeholder` to gray.600/gray.400 (placeholders must read at 4.5), `border.control` dark to gray.500 (4.5 on card), `action.primary-hover` to gray.700, dark `action.primary-press` to gray.200, `feedback.info.fg` to blue.700 (reads at body size); new names: surface.raised, surface.sunken, surface.hover, surface.disabled, surface.scrim, text.tertiary, text.disabled, text.on-destructive, text.on-inverse, text.link-hover, text.brand, border.control-hover, border.strong, border.card, border.disabled, border.error, action.primary-disabled, action.destructive and its states, selection.bg, focus.offset, brand.ink, feedback._.surface and .border, shape.check, space._, size._, type._, font._, elevation._, opacity.*. v1.1 (2026-10-21) folds in the owner's mood choice (E, airy bento): ink actions, lime `action.intent`, violet `text.link`, pill controls, radii 12/16/24, flat depth with one glow, bento rule in §2 and §3.3. Impact: `action.primary`, `action.primary-hover`, `action.primary-press`, `text.on-action` change value; `action.intent`, `action.intent-hover`, `action.intent-press`, `text.on-intent`, `text.link` are new; `shape.*.radius` change value. No component consumes them yet (E2-0 Foundations only), so no code outside the token CSS and the Foundations page changes. v1.0.2 (2026-10-21) corrects two §3.1 ratios from the token source (text.secondary 6.1, brand.signature 1.1) and marks E2-0 slice B as real in §12. v1.0.1 (2026-10-21) adds the owner's no-middot, no-em-dash rule to §10 and §11. v1 (2026-10-21) created from brand spec v1.1, handoff §9–§17 and §23, ADR 0003, and the owner's rule that Storybook and this file come before any UI.

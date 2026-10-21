@@ -1,6 +1,8 @@
 # UI direction for the Studio shell (proposal, 2026-10-21)
 
-Status: proposal for the owner's decision. Visual version with references and a shell mock: the "ORIVILO UI direction" artifact. Once the owner agrees, the decisions below move into `DESIGN.md` (v1.1) and the open tests into Storybook stories.
+Status: decided 2026-10-21. The owner chose mood E (airy bento, from the Docuverse reference) over A to D; the decisions are in `DESIGN.md` v1.1 §2, §3.1, §3.2, §3.3, §8. This file keeps the study and the reasons.
+
+Original status: proposal for the owner's decision. Visual version with references and a shell mock: the "ORIVILO UI direction" artifact. Once the owner agrees, the decisions below move into `DESIGN.md` (v1.1) and the open tests into Storybook stories.
 
 ## The feeling
 

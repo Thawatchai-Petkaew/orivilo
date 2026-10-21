@@ -1,0 +1,1023 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "$description": "ORIVILO semantic tokens (DESIGN.md §3, v1.1 mood E). Every value references a primitive; colour tokens carry a light and a dark value. Components and recipes use these names; pages never reach past them.",
+  "surface": {
+    "canvas": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.gray.50}",
+        "dark": "{color.gray.900}"
+      },
+      "$description": "Page background"
+    },
+    "card": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.white}",
+        "dark": "{color.gray.800}"
+      },
+      "$description": "Content containers, inputs, menus"
+    },
+    "raised": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.gray.25}",
+        "dark": "{color.gray.700}"
+      },
+      "$description": "A surface on a card: menus, nested panels"
+    },
+    "sunken": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.gray.100}",
+        "dark": "{color.gray.950}"
+      },
+      "$description": "Wells, code blocks, table headers"
+    },
+    "hover": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.gray.100}",
+        "dark": "{color.gray.700}"
+      },
+      "$description": "Hover ground for rows, ghost buttons, nav items"
+    },
+    "selected": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.violet.50}",
+        "dark": "{color.violet.950}"
+      },
+      "$description": "Selected row, chosen option"
+    },
+    "disabled": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.gray.200}",
+        "dark": "{color.gray.700}"
+      },
+      "$description": "Disabled controls"
+    },
+    "inverse": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.gray.900}",
+        "dark": "{color.gray.50}"
+      },
+      "$description": "Inverse blocks, toasts, tooltips"
+    },
+    "scrim": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.black}",
+        "dark": "{color.black}"
+      },
+      "$description": "Behind overlays, at opacity.scrim"
+    }
+  },
+  "text": {
+    "primary": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.gray.900}",
+        "dark": "{color.gray.100}"
+      },
+      "$description": "Body, headings, values",
+      "$extensions": {
+        "orivilo": {
+          "contrast": {
+            "against": "surface.canvas",
+            "floor": 4.5
+          }
+        }
+      }
+    },
+    "secondary": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.gray.600}",
+        "dark": "{color.gray.400}"
+      },
+      "$description": "Supporting text, meta",
+      "$extensions": {
+        "orivilo": {
+          "contrast": {
+            "against": "surface.canvas",
+            "floor": 4.5
+          }
+        }
+      }
+    },
+    "tertiary": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.gray.600}",
+        "dark": "{color.gray.400}"
+      },
+      "$description": "Hints, timestamps. Same value as secondary until a three-level hierarchy is proven in a story",
+      "$extensions": {
+        "orivilo": {
+          "contrast": {
+            "against": "surface.card",
+            "floor": 4.5
+          }
+        }
+      }
+    },
+    "placeholder": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.gray.600}",
+        "dark": "{color.gray.400}"
+      },
+      "$description": "Placeholder in inputs; must read at 4.5 like any text",
+      "$extensions": {
+        "orivilo": {
+          "contrast": {
+            "against": "surface.card",
+            "floor": 4.5
+          }
+        }
+      }
+    },
+    "disabled": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.gray.400}",
+        "dark": "{color.gray.600}"
+      },
+      "$description": "Disabled labels"
+    },
+    "on-action": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.white}",
+        "dark": "{color.gray.900}"
+      },
+      "$description": "On action.primary",
+      "$extensions": {
+        "orivilo": {
+          "contrast": {
+            "against": "action.primary",
+            "floor": 4.5
+          }
+        }
+      }
+    },
+    "on-intent": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.gray.900}",
+        "dark": "{color.gray.900}"
+      },
+      "$description": "On action.intent",
+      "$extensions": {
+        "orivilo": {
+          "contrast": {
+            "against": "action.intent",
+            "floor": 4.5
+          }
+        }
+      }
+    },
+    "on-destructive": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.white}",
+        "dark": "{color.gray.900}"
+      },
+      "$description": "On action.destructive",
+      "$extensions": {
+        "orivilo": {
+          "contrast": {
+            "against": "action.destructive",
+            "floor": 4.5
+          }
+        }
+      }
+    },
+    "on-inverse": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.gray.100}",
+        "dark": "{color.gray.900}"
+      },
+      "$description": "On surface.inverse",
+      "$extensions": {
+        "orivilo": {
+          "contrast": {
+            "against": "surface.inverse",
+            "floor": 4.5
+          }
+        }
+      }
+    },
+    "link": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.violet.700}",
+        "dark": "{color.violet.300}"
+      },
+      "$description": "Links in running text",
+      "$extensions": {
+        "orivilo": {
+          "contrast": {
+            "against": "surface.canvas",
+            "floor": 4.5
+          }
+        }
+      }
+    },
+    "link-hover": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.violet.900}",
+        "dark": "{color.violet.200}"
+      },
+      "$description": "Hover of links",
+      "$extensions": {
+        "orivilo": {
+          "contrast": {
+            "against": "surface.canvas",
+            "floor": 4.5
+          }
+        }
+      }
+    },
+    "brand": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.violet.700}",
+        "dark": "{color.violet.300}"
+      },
+      "$description": "Brand-coloured text, used rarely",
+      "$extensions": {
+        "orivilo": {
+          "contrast": {
+            "against": "surface.canvas",
+            "floor": 4.5
+          }
+        }
+      }
+    }
+  },
+  "border": {
+    "control": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.gray.500}",
+        "dark": "{color.gray.500}"
+      },
+      "$description": "Inputs, checkboxes, outlined buttons",
+      "$extensions": {
+        "orivilo": {
+          "contrast": {
+            "against": "surface.card",
+            "floor": 3
+          }
+        }
+      }
+    },
+    "control-hover": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.gray.600}",
+        "dark": "{color.gray.400}"
+      },
+      "$description": "Hover of control edges",
+      "$extensions": {
+        "orivilo": {
+          "contrast": {
+            "against": "surface.card",
+            "floor": 3
+          }
+        }
+      }
+    },
+    "subtle": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.gray.200}",
+        "dark": "{color.gray.700}"
+      },
+      "$description": "Dividers; card edges in dark mode only"
+    },
+    "strong": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.gray.900}",
+        "dark": "{color.gray.100}"
+      },
+      "$description": "Emphasised edges, selected chips",
+      "$extensions": {
+        "orivilo": {
+          "contrast": {
+            "against": "surface.card",
+            "floor": 3
+          }
+        }
+      }
+    },
+    "card": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.transparent}",
+        "dark": "{color.gray.700}"
+      },
+      "$description": "Card edge: none in light, subtle in dark"
+    },
+    "disabled": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.gray.200}",
+        "dark": "{color.gray.700}"
+      },
+      "$description": "Disabled control edges"
+    },
+    "error": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.red.700}",
+        "dark": "{color.red.400}"
+      },
+      "$description": "Invalid inputs",
+      "$extensions": {
+        "orivilo": {
+          "contrast": {
+            "against": "surface.card",
+            "floor": 3
+          }
+        }
+      }
+    }
+  },
+  "action": {
+    "primary": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.gray.900}",
+        "dark": "{color.gray.100}"
+      },
+      "$description": "One primary action per view, as an ink pill",
+      "$extensions": {
+        "orivilo": {
+          "contrast": {
+            "against": "surface.canvas",
+            "floor": 3
+          }
+        }
+      }
+    },
+    "primary-hover": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.gray.700}",
+        "dark": "{color.white}"
+      },
+      "$description": "Hover of action.primary"
+    },
+    "primary-press": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.black}",
+        "dark": "{color.gray.200}"
+      },
+      "$description": "Pressed of action.primary"
+    },
+    "primary-disabled": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.gray.300}",
+        "dark": "{color.gray.700}"
+      },
+      "$description": "Disabled primary"
+    },
+    "intent": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.lime.300}",
+        "dark": "{color.lime.300}"
+      },
+      "$description": "The one Intent Engine button per screen",
+      "$extensions": {
+        "orivilo": {
+          "contrast": {
+            "against": "surface.canvas",
+            "floor": null
+          }
+        }
+      }
+    },
+    "intent-hover": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.lime.400}",
+        "dark": "{color.lime.400}"
+      },
+      "$description": "Hover of action.intent"
+    },
+    "intent-press": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.lime.500}",
+        "dark": "{color.lime.500}"
+      },
+      "$description": "Pressed of action.intent"
+    },
+    "destructive": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.red.700}",
+        "dark": "{color.red.400}"
+      },
+      "$description": "Destructive actions, confirmed by a dialog",
+      "$extensions": {
+        "orivilo": {
+          "contrast": {
+            "against": "surface.canvas",
+            "floor": 3
+          }
+        }
+      }
+    },
+    "destructive-hover": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.red.800}",
+        "dark": "{color.red.300}"
+      },
+      "$description": "Hover of action.destructive"
+    },
+    "destructive-press": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.red.900}",
+        "dark": "{color.red.500}"
+      },
+      "$description": "Pressed of action.destructive"
+    }
+  },
+  "selection": {
+    "bg": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.violet.50}",
+        "dark": "{color.violet.950}"
+      },
+      "$description": "Selected ground; same as surface.selected"
+    },
+    "fg": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.violet.700}",
+        "dark": "{color.violet.400}"
+      },
+      "$description": "Text and icon on selection.bg",
+      "$extensions": {
+        "orivilo": {
+          "contrast": {
+            "against": "selection.bg",
+            "floor": 4.5
+          }
+        }
+      }
+    }
+  },
+  "focus": {
+    "ring": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.gray.900}",
+        "dark": "{color.gray.100}"
+      },
+      "$description": "2 px ring with a 2 px gap, on any ground",
+      "$extensions": {
+        "orivilo": {
+          "contrast": {
+            "against": "surface.canvas",
+            "floor": 3
+          }
+        }
+      }
+    },
+    "offset": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.gray.50}",
+        "dark": "{color.gray.900}"
+      },
+      "$description": "The gap colour between ring and control"
+    }
+  },
+  "brand": {
+    "signature": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.lime.300}",
+        "dark": "{color.lime.300}"
+      },
+      "$description": "Mark dot, one highlight plane; never text on light ground"
+    },
+    "ink": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.gray.900}",
+        "dark": "{color.gray.900}"
+      },
+      "$description": "Ink on the signature",
+      "$extensions": {
+        "orivilo": {
+          "contrast": {
+            "against": "brand.signature",
+            "floor": 4.5
+          }
+        }
+      }
+    }
+  },
+  "feedback": {
+    "success": {
+      "fg": {
+        "$type": "color",
+        "$value": {
+          "light": "{color.green.700}",
+          "dark": "{color.green.400}"
+        },
+        "$description": "Success text, icon",
+        "$extensions": {
+          "orivilo": {
+            "contrast": {
+              "against": "surface.canvas",
+              "floor": 4.5
+            }
+          }
+        }
+      },
+      "surface": {
+        "$type": "color",
+        "$value": {
+          "light": "{color.green.50}",
+          "dark": "{color.green.950}"
+        }
+      },
+      "border": {
+        "$type": "color",
+        "$value": {
+          "light": "{color.green.300}",
+          "dark": "{color.green.700}"
+        }
+      }
+    },
+    "warning": {
+      "fg": {
+        "$type": "color",
+        "$value": {
+          "light": "{color.amber.700}",
+          "dark": "{color.amber.400}"
+        },
+        "$description": "Warning text, icon",
+        "$extensions": {
+          "orivilo": {
+            "contrast": {
+              "against": "surface.canvas",
+              "floor": 4.5
+            }
+          }
+        }
+      },
+      "surface": {
+        "$type": "color",
+        "$value": {
+          "light": "{color.amber.50}",
+          "dark": "{color.amber.950}"
+        }
+      },
+      "border": {
+        "$type": "color",
+        "$value": {
+          "light": "{color.amber.300}",
+          "dark": "{color.amber.700}"
+        }
+      }
+    },
+    "danger": {
+      "fg": {
+        "$type": "color",
+        "$value": {
+          "light": "{color.red.700}",
+          "dark": "{color.red.400}"
+        },
+        "$description": "Errors, destructive",
+        "$extensions": {
+          "orivilo": {
+            "contrast": {
+              "against": "surface.canvas",
+              "floor": 4.5
+            }
+          }
+        }
+      },
+      "surface": {
+        "$type": "color",
+        "$value": {
+          "light": "{color.red.50}",
+          "dark": "{color.red.950}"
+        }
+      },
+      "border": {
+        "$type": "color",
+        "$value": {
+          "light": "{color.red.300}",
+          "dark": "{color.red.700}"
+        }
+      }
+    },
+    "info": {
+      "fg": {
+        "$type": "color",
+        "$value": {
+          "light": "{color.blue.700}",
+          "dark": "{color.blue.300}"
+        },
+        "$description": "Info text, icon; reads at body size",
+        "$extensions": {
+          "orivilo": {
+            "contrast": {
+              "against": "surface.canvas",
+              "floor": 4.5
+            }
+          }
+        }
+      },
+      "surface": {
+        "$type": "color",
+        "$value": {
+          "light": "{color.blue.50}",
+          "dark": "{color.blue.950}"
+        }
+      },
+      "border": {
+        "$type": "color",
+        "$value": {
+          "light": "{color.blue.300}",
+          "dark": "{color.blue.700}"
+        }
+      }
+    }
+  },
+  "shape": {
+    "control": {
+      "radius": {
+        "$type": "dimension",
+        "$value": "{radius.full}",
+        "$description": "Buttons, inputs, chips: pills (mood E)"
+      }
+    },
+    "media": {
+      "radius": {
+        "$type": "dimension",
+        "$value": "{radius.12}",
+        "$description": "Images, previews inside a container"
+      }
+    },
+    "container": {
+      "radius": {
+        "$type": "dimension",
+        "$value": "{radius.16}",
+        "$description": "Cards, panels, bento tiles"
+      }
+    },
+    "overlay": {
+      "radius": {
+        "$type": "dimension",
+        "$value": "{radius.24}",
+        "$description": "Dialogs, command palette, sheets"
+      }
+    },
+    "check": {
+      "radius": {
+        "$type": "dimension",
+        "$value": "{radius.4}",
+        "$description": "Checkboxes and small chips inside controls"
+      }
+    }
+  },
+  "space": {
+    "inset": {
+      "sm": {
+        "$type": "dimension",
+        "$value": "{space.2}"
+      },
+      "md": {
+        "$type": "dimension",
+        "$value": "{space.4}"
+      },
+      "lg": {
+        "$type": "dimension",
+        "$value": "{space.6}"
+      },
+      "xl": {
+        "$type": "dimension",
+        "$value": "{space.8}"
+      }
+    },
+    "stack": {
+      "sm": {
+        "$type": "dimension",
+        "$value": "{space.2}"
+      },
+      "md": {
+        "$type": "dimension",
+        "$value": "{space.4}"
+      },
+      "lg": {
+        "$type": "dimension",
+        "$value": "{space.6}"
+      }
+    },
+    "inline": {
+      "sm": {
+        "$type": "dimension",
+        "$value": "{space.1}"
+      },
+      "md": {
+        "$type": "dimension",
+        "$value": "{space.2}"
+      },
+      "lg": {
+        "$type": "dimension",
+        "$value": "{space.3}"
+      }
+    },
+    "gutter": {
+      "$type": "dimension",
+      "$value": "{space.4}",
+      "$description": "Side gutter at every width"
+    },
+    "bento-gap": {
+      "$type": "dimension",
+      "$value": "{space.4}",
+      "$description": "Gap between bento tiles"
+    },
+    "row-block": {
+      "comfortable": {
+        "$type": "dimension",
+        "$value": "{space.3}"
+      },
+      "compact": {
+        "$type": "dimension",
+        "$value": "{space.2}"
+      }
+    }
+  },
+  "size": {
+    "control": {
+      "sm": {
+        "$type": "dimension",
+        "$value": "{size.8}"
+      },
+      "md": {
+        "$type": "dimension",
+        "$value": "{size.10}"
+      },
+      "lg": {
+        "$type": "dimension",
+        "$value": "{size.12}"
+      }
+    },
+    "touch": {
+      "$type": "dimension",
+      "$value": "{size.11}",
+      "$description": "Minimum hit area on touch surfaces"
+    },
+    "icon": {
+      "sm": {
+        "$type": "dimension",
+        "$value": "{size.icon-4}"
+      },
+      "md": {
+        "$type": "dimension",
+        "$value": "{size.icon-5}"
+      },
+      "lg": {
+        "$type": "dimension",
+        "$value": "{size.icon-6}"
+      }
+    }
+  },
+  "type": {
+    "display": {
+      "lg": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "{font.family.anuphan}",
+          "fontSize": "{font.size.56}",
+          "lineHeight": "{font.line-height.1-2}",
+          "fontWeight": "{font.weight.600}",
+          "letterSpacing": "{font.letter-spacing.normal}"
+        }
+      },
+      "md": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "{font.family.anuphan}",
+          "fontSize": "{font.size.32}",
+          "lineHeight": "{font.line-height.1-25}",
+          "fontWeight": "{font.weight.600}",
+          "letterSpacing": "{font.letter-spacing.normal}"
+        }
+      }
+    },
+    "heading": {
+      "md": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "{font.family.plex-sans}",
+          "fontSize": "{font.size.24}",
+          "lineHeight": "{font.line-height.1-3}",
+          "fontWeight": "{font.weight.600}",
+          "letterSpacing": "{font.letter-spacing.normal}"
+        }
+      },
+      "sm": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "{font.family.plex-sans}",
+          "fontSize": "{font.size.20}",
+          "lineHeight": "{font.line-height.1-5}",
+          "fontWeight": "{font.weight.600}",
+          "letterSpacing": "{font.letter-spacing.normal}"
+        }
+      }
+    },
+    "body": {
+      "lg": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "{font.family.plex-sans}",
+          "fontSize": "{font.size.20}",
+          "lineHeight": "{font.line-height.1-5}",
+          "fontWeight": "{font.weight.400}",
+          "letterSpacing": "{font.letter-spacing.normal}"
+        }
+      },
+      "md": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "{font.family.plex-sans}",
+          "fontSize": "{font.size.16}",
+          "lineHeight": "{font.line-height.1-7}",
+          "fontWeight": "{font.weight.400}",
+          "letterSpacing": "{font.letter-spacing.normal}"
+        }
+      },
+      "sm": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "{font.family.plex-sans}",
+          "fontSize": "{font.size.14}",
+          "lineHeight": "{font.line-height.1-6}",
+          "fontWeight": "{font.weight.400}",
+          "letterSpacing": "{font.letter-spacing.normal}"
+        }
+      }
+    },
+    "label": {
+      "md": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "{font.family.plex-sans}",
+          "fontSize": "{font.size.14}",
+          "lineHeight": "{font.line-height.1-6}",
+          "fontWeight": "{font.weight.500}",
+          "letterSpacing": "{font.letter-spacing.normal}"
+        }
+      },
+      "sm": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "{font.family.plex-sans}",
+          "fontSize": "{font.size.13}",
+          "lineHeight": "{font.line-height.1-5}",
+          "fontWeight": "{font.weight.500}",
+          "letterSpacing": "{font.letter-spacing.normal}"
+        }
+      }
+    },
+    "code": {
+      "md": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "{font.family.plex-mono}",
+          "fontSize": "{font.size.14}",
+          "lineHeight": "{font.line-height.1-6}",
+          "fontWeight": "{font.weight.400}",
+          "letterSpacing": "{font.letter-spacing.normal}"
+        }
+      }
+    },
+    "numeral": {
+      "lg": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "{font.family.plex-sans}",
+          "fontSize": "{font.size.40}",
+          "lineHeight": "{font.line-height.1}",
+          "fontWeight": "{font.weight.600}",
+          "letterSpacing": "{font.letter-spacing.tight}"
+        }
+      },
+      "md": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "{font.family.plex-sans}",
+          "fontSize": "{font.size.32}",
+          "lineHeight": "{font.line-height.1}",
+          "fontWeight": "{font.weight.600}",
+          "letterSpacing": "{font.letter-spacing.tight}"
+        }
+      }
+    }
+  },
+  "elevation": {
+    "shell": {
+      "$type": "shadow",
+      "$value": "{shadow.none}",
+      "$description": "Flat shell: no shadow on cards"
+    },
+    "overlay": {
+      "$type": "shadow",
+      "$value": {
+        "light": "{shadow.overlay}",
+        "dark": "{shadow.overlay-dark}"
+      },
+      "$description": "Floating layers only"
+    },
+    "glass": {
+      "blur": {
+        "$type": "dimension",
+        "$value": "{blur.glass}"
+      }
+    },
+    "glow": {
+      "opacity": {
+        "$type": "number",
+        "$value": {
+          "light": "{opacity.glow-light}",
+          "dark": "{opacity.glow-dark}"
+        },
+        "$description": "The one lime glow per screen"
+      }
+    }
+  },
+  "motion": {
+    "feedback": {
+      "duration": {
+        "$type": "duration",
+        "$value": "{duration.120}"
+      }
+    },
+    "overlay": {
+      "duration": {
+        "$type": "duration",
+        "$value": "{duration.200}"
+      }
+    },
+    "page": {
+      "duration": {
+        "$type": "duration",
+        "$value": "{duration.320}"
+      }
+    },
+    "easing": {
+      "$type": "cubicBezier",
+      "$value": "{easing.out}"
+    }
+  },
+  "opacity": {
+    "disabled": {
+      "$type": "number",
+      "$value": "{opacity.disabled}"
+    },
+    "scrim": {
+      "$type": "number",
+      "$value": "{opacity.scrim}"
+    }
+  },
+  "font": {
+    "display": {
+      "$type": "fontFamily",
+      "$value": "{font.family.anuphan}",
+      "$description": "Display role, loopless Thai at 24 px and above"
+    },
+    "body": {
+      "$type": "fontFamily",
+      "$value": "{font.family.plex-sans}",
+      "$description": "Body and UI role, looped Thai"
+    },
+    "mono": {
+      "$type": "fontFamily",
+      "$value": "{font.family.plex-mono}"
+    }
+  }
+}

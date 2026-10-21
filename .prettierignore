@@ -1,2 +1,3 @@
 pnpm-lock.yaml
 docs/context/intent-studio-handoff.md
+packages/design-system/src/tokens/generated.css
