@@ -58,6 +58,17 @@ The path there, in order:
 4. **Implement.** Set up or redesign a project, or connect to Figma to create matching local variables and tokens, so Figma design and the frontend team share one token set. From there, draw code straight from the frontend as a prototype, or build in Figma on the same tokens.
 5. **Later layers:** image generation, and voice with rich interaction matched to the work at hand.
 
+### Two adjustment layers (owner, 2026-10-21)
+
+Besides the canvas and voice, the user can pick a **UI template**, state the intent ("how it should feel"), and get an analyzed result including color. After that the result stays adjustable on two layers:
+
+| Layer  | Who                    | Controls                          | Example                                                                           |
+| ------ | ---------------------- | --------------------------------- | --------------------------------------------------------------------------------- |
+| Intent | anyone                 | mood and tone words               | more minimal, more formal, friendlier                                             |
+| Expert | people who know design | the underlying scales and presets | drag the border radius scale, drag the padding scale, pick or edit a color preset |
+
+Both layers write to the same profile and resolve through the same deterministic path (handoff §12). The expert layer edits the values the intent layer would have chosen; it never bypasses the token contract.
+
 Implication for the Intent Studio MVP: input and interpretation must work as blocks on a canvas with a drill-down conversation per element, not as a single form.
 
 ## First milestone
