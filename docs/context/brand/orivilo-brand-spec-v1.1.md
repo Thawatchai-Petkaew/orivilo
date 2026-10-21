@@ -24,9 +24,9 @@ Why 55°, not 20°: with the opening on the right the ring read as a "c". Moving
 
 ## 3. Wordmark
 
-File: `assets/orivilo-wordmark.svg` (479 × 150 grid, x-height 100, ascender 135, baseline at y = 100).
+File: `assets/orivilo-wordmark.svg` (473 × 150 grid, x-height 100, ascender 137, baseline at y = 100). Proportions measured from the owner's reference image (stroke, counters, letter gaps, dot size and gap, v apex) and redrawn at x-height 100.
 
-Drawn, not typeset, to the owner's reference: lowercase geometric sans, monoline stroke 25, flat (butt) terminals, round i-dots (radius 14), the o is a true circle (radius 37.5, counter 50). Letters: o r i v i l o. The r is a stem with a quarter-circle shoulder cut flat; the v is a pointed polygon with its apex on the baseline; the l is a plain ascender stem. Only the i-dots and the o are round. Never set the name in a font for a logo context; the drawn wordmark is the only form. The wordmark is not used below 20 px high.
+Drawn, not typeset, to the owner's reference: lowercase geometric sans, monoline stroke 24, flat (butt) terminals, round i-dots (radius 15, 10 above the stem), the o is a true circle (radius 40, outer 104, counter 56). Letters: o r i v i l o. The r is a stem with a quarter-circle shoulder cut flat; the v is a polygon whose point is cut flat by the baseline (20 wide), inner notch at 58% of the x-height; letter gaps 7 · 7 · 5 · 5 · 11 · 13 (round forms get the wider gaps); the l is a plain ascender stem. Only the i-dots and the o are round. Never set the name in a font for a logo context; the drawn wordmark is the only form. The wordmark is not used below 20 px high.
 
 ## 4. Lockup and balance
 
@@ -34,7 +34,7 @@ File: `assets/orivilo-lockup.svg`.
 
 - Mark box and wordmark box are both 150 high and bottom-aligned, so the ring bottom (y = 145) sits on the wordmark baseline and the ring's outer height (135) equals the ascender.
 - Gap between the boxes = 40 units (about 0.27 × ring height).
-- Stroke-to-height: mark 30 / 135 = 0.22, wordmark o 25 / 100 = 0.25. The wordmark is slightly heavier on purpose, matching the reference; the mark's round caps make it read a touch lighter than its measure.
+- Stroke-to-height: mark 30 / 135 = 0.22, wordmark o 24 / 104 = 0.23. The wordmark is slightly heavier on purpose, matching the reference; the mark's round caps make it read a touch lighter than its measure.
 - Stacked: mark centred above the wordmark, gap = 0.5 × mark height. One-colour: dot takes the ring colour.
 
 ## 5. Colour (sRGB, WCAG 2 ratios computed 2026-10-21)
