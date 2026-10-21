@@ -82,6 +82,20 @@ Rules for a node:
 
 Implication: knowledge collection and curation (per node, per industry) is product work with its own stories, and the Intent Engine needs a place to hold and version that knowledge.
 
+### What the developer receives (owner, 2026-10-21, still open)
+
+The end result must be something a developer can take and implement, with an **MCP connection** so the handoff is easy. What the next person needs: the brand book and brand guidelines, and a frontend project skeleton.
+
+Not decided yet, and marked for research before the Build module is specced:
+
+| Question                                                                          | Options the owner named                                          | Default until decided                                                                                                    |
+| --------------------------------------------------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Is Storybook part of the package, or does ORIGO connect to an existing Storybook? | ship Storybook · connect to theirs                               | Research both; no default                                                                                                |
+| Do we ask for the team's current tech stack, or output one opinionated stack?     | ask first · Tailwind + shadcn/ui · Ant Design · others           | Ask the tech stack first; our own reference implementation stays Tailwind + shadcn/ui (ADR 0001)                         |
+| Can a developer adjust a component by prompt or voice at the component level?     | "this card: more border radius", "more minimal", "make it glass" | Yes in principle, through the same two adjustment layers and the token contract, never as a per-component style override |
+
+Whatever the answer, the export must respect the bounded-sync principle above: tokens and component mappings sync; free-form edits go through review.
+
 Implication for the Intent Studio MVP: input and interpretation must work as blocks on a canvas with a drill-down conversation per element, not as a single form.
 
 ## First milestone
