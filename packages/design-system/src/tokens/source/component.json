@@ -624,6 +624,32 @@
     }
   },
   "table": {
+    "bg": {
+      "$type": "color",
+      "$value": "{surface.card}",
+      "$description": "A table is a card on the canvas"
+    },
+    "border": {
+      "$type": "color",
+      "$value": "{border.card}"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.container.radius}"
+    },
+    "fg": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    },
+    "fg-secondary": {
+      "$type": "color",
+      "$value": "{text.secondary}"
+    },
+    "fg-missing": {
+      "$type": "color",
+      "$value": "{text.tertiary}",
+      "$description": "A cell the data did not fill reads the missing label in tertiary ink, never blank"
+    },
     "header-bg": {
       "$type": "color",
       "$value": "{surface.sunken}"
@@ -632,13 +658,27 @@
       "$type": "color",
       "$value": "{text.secondary}"
     },
+    "header-type": {
+      "$type": "typography",
+      "$value": "{type.label.sm}"
+    },
+    "body-type": {
+      "$type": "typography",
+      "$value": "{type.body.sm}"
+    },
+    "numeric-type": {
+      "$type": "typography",
+      "$value": "{type.code.md}",
+      "$description": "Numeric columns: mono tabular figures, end-aligned"
+    },
     "row-border": {
       "$type": "color",
       "$value": "{border.subtle}"
     },
     "row-hover": {
       "$type": "color",
-      "$value": "{surface.hover}"
+      "$value": "{surface.sunken}",
+      "$description": "The well, not surface.hover: in dark a control's edge keeps 3.0 on it under every profile"
     },
     "row-selected": {
       "$type": "color",
@@ -651,6 +691,23 @@
     "row-block": {
       "$type": "dimension",
       "$value": "{space.row-block.comfortable}"
+    },
+    "row-block-compact": {
+      "$type": "dimension",
+      "$value": "{space.row-block.compact}"
+    },
+    "cell-padding-x": {
+      "$type": "dimension",
+      "$value": "{space.inset.md}"
+    },
+    "status-padding": {
+      "$type": "dimension",
+      "$value": "{space.stack.lg}",
+      "$description": "Block padding of the loading, empty and error row"
+    },
+    "error": {
+      "$type": "color",
+      "$value": "{feedback.danger.fg}"
     }
   },
   "checkbox": {

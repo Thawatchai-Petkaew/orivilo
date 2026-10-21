@@ -22,10 +22,14 @@ const real = [
     what: "Dialog (จับ focus, pending, error) และ Card (bento) ใน Storybook ผ่าน 3 profile และ 2 โหมด",
     story: "E2-5",
   },
+  {
+    what: "Table (เรียง, เลือกแถว, loading, ว่าง, ผิดพลาด, ยุบเป็นบล็อกที่ 360 px) ใน Storybook ผ่าน 3 profile และ 2 โหมด",
+    story: "E2-6",
+  },
 ];
 
 const notYet = [
-  "Table ยังไม่มี: E2-6; หน้านี้ยังไม่ได้ใช้ component ใดเลย (หน้าอ้างอิงคือ E2-8)",
+  "หน้านี้ยังไม่ได้ใช้ component ใดเลย (หน้าอ้างอิงคือ E2-8)",
   "Canvas และ node ของ Studio ยังไม่มี: epic E4",
   "การตีความ brief ยังไม่มี; เมื่อมาจะเป็นแบบกฎก่อนและบอกตามจริง: E2-10",
 ];

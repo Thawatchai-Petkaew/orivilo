@@ -43,7 +43,7 @@ Legend: `none` not started, `planned` entry exists, no code, `draft` code and st
 | ----------------------- | ------- | ------------------ |
 | Dialog                  | stable  | application-dialog |
 | Card                    | stable  | application-card   |
-| Table                   | planned | E2-6               |
+| Table                   | stable  | application-table  |
 | Sheet                   | planned | E4-4               |
 | Top navigation          | none    |                    |
 | Sidebar navigation      | none    |                    |

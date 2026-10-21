@@ -1,8 +1,8 @@
 name: Table
 tier: application
-status: planned
+status: stable
 since: E2-6
-import: none
+import: "@orivilo/design-system"
 story: application-table
 useWhen:
   - Rows of the same shape that are scanned or compared
@@ -11,12 +11,18 @@ avoidWhen:
 contract: TableProps
 variants: [default, compact]
 sizes: [md]
-states: [default, loading, empty, error, row-selected]
-recipes: []
+states: [default, loading, empty, error, row-selected, sorted]
+recipes: [neutral, professional, friendly]
 examples: []
 rules:
   - Fixture content includes Thai, Latin, a long Thai name without spaces, and missing cells
-  - Numbers align right in mono; text wraps rather than truncates unless the column opts in
-  - Works at 360 px by collapsing to a defined layout, not by horizontal overflow alone
+  - A missing cell reads the missing label in tertiary ink, never blank
+  - Numbers align right in mono tabular figures; text wraps rather than truncates unless the column opts in
+  - Works at 360 px by collapsing each row to a block that prints the column name before every value, never by horizontal overflow
+  - Loading, empty and error are rows inside the table; the surface never disappears under the user
+  - A row is selected through its checkbox; a row is never a link
+  - Density comes from the profile, not from the page
 a11y:
-  - Proper table semantics; sortable headers announce the sort
+  - Proper table semantics kept by explicit roles when cells become blocks; the caption names the table
+  - Sortable headers are buttons; aria-sort on the header cell and a status text announce the sort
+  - Row checkboxes carry the row's name; the header box selects every row and reads mixed when only some are selected

@@ -715,6 +715,217 @@
   margin-top: auto;
 }
 
+/* Table: rows of the same shape, scanned or compared (DESIGN.md §6). The frame is a card on the
+ * canvas; the header row is a well; numbers sit end-aligned in mono. The frame is a size container:
+ * under 480 px the rows become blocks and each cell prints its column name first, so nothing
+ * scrolls sideways (catalog rule). ----------------------------------------------------------- */
+
+.ds-table__frame {
+  container: ds-table / inline-size;
+  min-width: 0;
+  border: 1px solid var(--cmp-table-border);
+  border-radius: var(--cmp-table-radius);
+  background: var(--cmp-table-bg);
+  color: var(--cmp-table-fg);
+  overflow: hidden;
+}
+.ds-table__frame[data-density="compact"] {
+  --cmp-table-row-block: var(--cmp-table-row-block-compact);
+}
+.ds-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--cmp-table-body-type-font-family);
+  font-size: var(--cmp-table-body-type-font-size);
+  line-height: var(--cmp-table-body-type-line-height);
+  font-weight: var(--cmp-table-body-type-font-weight);
+  letter-spacing: var(--cmp-table-body-type-letter-spacing);
+}
+.ds-table__caption {
+  caption-side: top;
+  padding: var(--cmp-table-row-block) var(--cmp-table-cell-padding-x);
+  color: var(--cmp-table-fg-secondary);
+  text-align: start;
+}
+.ds-table__th {
+  padding: var(--cmp-table-row-block) var(--cmp-table-cell-padding-x);
+  background: var(--cmp-table-header-bg);
+  color: var(--cmp-table-header-fg);
+  font-family: var(--cmp-table-header-type-font-family);
+  font-size: var(--cmp-table-header-type-font-size);
+  line-height: var(--cmp-table-header-type-line-height);
+  font-weight: var(--cmp-table-header-type-font-weight);
+  letter-spacing: var(--cmp-table-header-type-letter-spacing);
+  text-align: start;
+  vertical-align: bottom;
+  /* A column name never breaks mid-word; the column grows instead. */
+  white-space: nowrap;
+}
+/* A sortable header is a real button: it has a name and takes the focus ring. */
+.ds-table__sort {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-space-inline-sm);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--cmp-table-header-fg);
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+.ds-table__sort:hover {
+  text-decoration: underline;
+}
+.ds-table__sort-glyph {
+  flex: none;
+  transition: transform var(--ds-motion-feedback-duration) var(--ds-motion-easing);
+}
+.ds-table__sort-glyph[data-direction="ascending"] {
+  transform: rotate(180deg);
+}
+.ds-table__td {
+  padding: var(--cmp-table-row-block) var(--cmp-table-cell-padding-x);
+  border-top: 1px solid var(--cmp-table-row-border);
+  vertical-align: top;
+}
+.ds-table__cell {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ds-table__th[data-align="end"],
+.ds-table__td[data-align="end"] {
+  text-align: end;
+}
+.ds-table__td[data-numeric] {
+  font-family: var(--cmp-table-numeric-type-font-family);
+  font-size: var(--cmp-table-numeric-type-font-size);
+  line-height: var(--cmp-table-numeric-type-line-height);
+  font-weight: var(--cmp-table-numeric-type-font-weight);
+  letter-spacing: var(--cmp-table-numeric-type-letter-spacing);
+  font-variant-numeric: tabular-nums;
+}
+/* A figure or a date never wraps; the text columns give way. */
+.ds-table__td[data-numeric] > .ds-table__cell {
+  white-space: nowrap;
+}
+/* Truncation is per column and off by default: the default wraps (catalog rule). */
+.ds-table__td[data-truncate] {
+  max-width: 0;
+}
+.ds-table__td[data-truncate] > .ds-table__cell {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ds-table__th[data-select],
+.ds-table__td[data-select] {
+  width: var(--cmp-checkbox-size);
+  padding-inline-end: 0;
+}
+/* Hover marks a row only where a row can be acted on (DESIGN.md §7). */
+.ds-table[data-selectable] .ds-table__row:hover {
+  background: var(--cmp-table-row-hover);
+}
+/* Selected: ground and a start edge from the selection semantics, distinct from the focus ring. */
+.ds-table__row[data-selected] {
+  background: var(--cmp-table-row-selected);
+}
+.ds-table__row[data-selected] > .ds-table__td:first-child {
+  border-inline-start: 2px solid var(--cmp-table-row-selected-fg);
+  padding-inline-start: calc(var(--cmp-table-cell-padding-x) - 2px);
+}
+.ds-table__missing {
+  color: var(--cmp-table-fg-missing);
+}
+.ds-table__status {
+  padding: var(--cmp-table-status-padding) var(--cmp-table-cell-padding-x);
+  border-top: 1px solid var(--cmp-table-row-border);
+  color: var(--cmp-table-fg-secondary);
+  text-align: center;
+}
+.ds-table__status[data-tone="error"] {
+  color: var(--cmp-table-error);
+}
+.ds-table__status-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ds-space-stack-sm);
+}
+.ds-table__status-title {
+  margin: 0;
+  color: var(--cmp-table-fg);
+  font-weight: var(--cmp-table-header-type-font-weight);
+}
+.ds-table__status[data-tone="error"] .ds-table__status-title {
+  color: var(--cmp-table-error);
+}
+.ds-table__status-text {
+  margin: 0;
+}
+@container ds-table (max-width: 479px) {
+  .ds-table,
+  .ds-table__caption,
+  .ds-table__head,
+  .ds-table__body,
+  .ds-table__row,
+  .ds-table__td {
+    display: block;
+  }
+  /* The header row stays in the tree for assistive technology; each cell prints its own label. */
+  .ds-table__head {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .ds-table__row {
+    padding-block: var(--cmp-table-row-block);
+    border-top: 1px solid var(--cmp-table-row-border);
+  }
+  .ds-table__td {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    gap: var(--ds-space-inline-md);
+    padding-block: calc(var(--cmp-table-row-block) / 2);
+    border-top: 0;
+  }
+  .ds-table__td::before {
+    content: attr(data-label);
+    text-align: start;
+    color: var(--cmp-table-header-fg);
+    font-family: var(--cmp-table-header-type-font-family);
+    font-size: var(--cmp-table-header-type-font-size);
+    line-height: var(--cmp-table-header-type-line-height);
+    font-weight: var(--cmp-table-header-type-font-weight);
+    letter-spacing: var(--cmp-table-header-type-letter-spacing);
+  }
+  .ds-table__td[data-truncate] {
+    max-width: none;
+  }
+  .ds-table__th[data-select],
+  .ds-table__td[data-select] {
+    width: auto;
+    padding-inline-end: var(--cmp-table-cell-padding-x);
+  }
+  .ds-table__row[data-selected] {
+    border-inline-start: 2px solid var(--cmp-table-row-selected-fg);
+  }
+  .ds-table__row[data-selected] > .ds-table__td:first-child {
+    border-inline-start: 0;
+    padding-inline-start: calc(var(--cmp-table-cell-padding-x) - 2px);
+  }
+  .ds-table__status {
+    border-top: 1px solid var(--cmp-table-row-border);
+  }
+}
+
 /* Spinner: essential motion, so it keeps its duration under reduced motion. ----------------- */
 
 .ds-spin {
