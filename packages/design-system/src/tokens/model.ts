@@ -175,8 +175,11 @@ export class TokenSet {
     return `${prefix}-${token.path.replaceAll(".", "-")}`;
   }
 
-  /** CSS text for a literal or a reference (`var(--…)`). Composite tokens expand to several lines. */
-  private cssDeclarations(token: Token, value: unknown): string[] {
+  /**
+   * CSS declarations for one token and one of its values: a literal or a reference (`var(--…)`).
+   * Composite tokens expand to several lines. Public so a profile overlay can emit its overrides.
+   */
+  declarations(token: Token, value: unknown): string[] {
     const name = TokenSet.cssVar(token);
     const below = REFERENCES[token.layer];
     const target = refTarget(value);
@@ -206,12 +209,12 @@ export class TokenSet {
     const component: string[] = [];
     for (const token of this.tokens) {
       if (token.layer === "component") {
-        component.push(...this.cssDeclarations(token, token.raw));
+        component.push(...this.declarations(token, token.raw));
       } else if (isModeValue(token.raw)) {
-        light.push(...this.cssDeclarations(token, token.raw.light));
-        dark.push(...this.cssDeclarations(token, token.raw.dark));
+        light.push(...this.declarations(token, token.raw.light));
+        dark.push(...this.declarations(token, token.raw.dark));
       } else {
-        light.push(...this.cssDeclarations(token, token.raw));
+        light.push(...this.declarations(token, token.raw));
       }
     }
     const theme: string[] = [];

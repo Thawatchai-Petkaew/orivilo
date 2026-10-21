@@ -1,18 +1,23 @@
-// Writes src/tokens/generated.css from the three source files. Run: pnpm --filter @orivilo/design-system tokens
-import { readFileSync, writeFileSync } from "node:fs";
+// Writes src/tokens/generated.css from the three source files and src/profiles/generated.css from
+// the profiles registered in src/profiles/index.ts. Run: pnpm --filter @orivilo/design-system tokens
+import { writeFileSync } from "node:fs";
 import path from "node:path";
-import { TokenSet } from "../src/tokens/model.ts";
+import { emitProfilesCss, profiles } from "../src/profiles/index.ts";
+import { tokens } from "../src/tokens/index.ts";
 
-const dir = path.join(import.meta.dirname, "..", "src", "tokens");
-const read = (name: string) =>
-  JSON.parse(readFileSync(path.join(dir, "source", `${name}.json`), "utf8"));
-const set = new TokenSet(read("primitives"), read("semantic"), read("component"));
-const errors = set.validate();
+const src = path.join(import.meta.dirname, "..", "src");
+const errors = [...tokens.validate(), ...profiles.flatMap((p) => p.validate())];
 if (errors.length > 0) {
   console.error(errors.join("\n"));
   process.exit(1);
 }
-writeFileSync(path.join(dir, "generated.css"), set.emitCss());
+writeFileSync(path.join(src, "tokens", "generated.css"), tokens.emitCss());
+writeFileSync(path.join(src, "profiles", "generated.css"), emitProfilesCss(profiles));
 console.log(
-  `generated.css: ${set.tokens.length} tokens (${set.layer("primitive").length} primitive, ${set.layer("semantic").length} semantic, ${set.layer("component").length} component)`,
+  `tokens/generated.css: ${tokens.tokens.length} tokens (${tokens.layer("primitive").length} primitive, ${tokens.layer("semantic").length} semantic, ${tokens.layer("component").length} component)`,
 );
+for (const p of profiles) {
+  console.log(
+    `profiles/generated.css: ${p.id}, ${p.overrides.length} overrides, ${p.ownPrimitives.length} own primitives`,
+  );
+}
