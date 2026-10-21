@@ -35,7 +35,7 @@ Naming: token path `group.role` ⇔ CSS custom property `--ds-group-role` ⇔ Ta
 | `surface.selected`     | #F4EEFD | Selected row, chosen option, active nav item                      | Hover (hover is a border or ink change)         |
 | `surface.inverse`      | #16151D | Inverse blocks, tooltips, the dark set's canvas                   | Decorative tints                                |
 | `text.primary`         | #16151D | Body, headings, values (canvas 16.4, white 18.1)                  |                                                 |
-| `text.secondary`       | #5B5A66 | Supporting text, meta, placeholders (canvas 6.2)                  | Primary content                                 |
+| `text.secondary`       | #5B5A66 | Supporting text, meta, placeholders (canvas 6.1)                  | Primary content                                 |
 | `text.on-action`       | #FFFFFF | Text and icons on `action.*` surfaces (7.3 on primary)            |                                                 |
 | `action.primary`       | #7A22C7 | One primary action per view; links (as text on canvas 6.6)        | Status, selection fill, decoration              |
 | `action.primary-hover` | #6B22B0 | Hover of the above                                                |                                                 |
@@ -44,7 +44,7 @@ Naming: token path `group.role` ⇔ CSS custom property `--ds-group-role` ⇔ Ta
 | `focus.ring`           | #16151D | 2 px ring with a 2 px gap of the surface colour, on any ground    | Replaced by brand accent or selection           |
 | `border.control`       | #85838F | Inputs, checkboxes, outlined buttons (white 3.7, canvas 3.4)      |                                                 |
 | `border.subtle`        | #E3E2DC | Dividers, card edges; decorative only                             | The only cue of a control's edge                |
-| `brand.signature`      | #D9F66F | Mark dot, one highlight plane, a selected tab's bead              | Text on light ground (1.2), status, large fills |
+| `brand.signature`      | #D9F66F | Mark dot, one highlight plane, a selected tab's bead              | Text on light ground (1.1), status, large fills |
 | `feedback.success`     | #0B6E4F | Success text/icon/border (canvas 5.7)                             |                                                 |
 | `feedback.warning`     | #B54708 | Warning text/icon/border (canvas 4.9)                             |                                                 |
 | `feedback.danger`      | #B42318 | Errors, destructive actions (canvas 6.0)                          |                                                 |
@@ -209,15 +209,15 @@ The reviewer records each line as pass, fail, or not applicable, with the story 
 
 ## 12. What is real today
 
-| Item                                           | Status                                                |
-| ---------------------------------------------- | ----------------------------------------------------- |
-| Brand values in §3–§4                          | Hypothesis v1.1; similarity, lineup, print tests open |
-| Dark `surface.selected`, dark feedback values  | Placeholder until E0-5 computes them                  |
-| `packages/design-system`, Storybook, lint rule | Planned: E2-0                                         |
-| Neutral profile for the shell                  | Planned: E2-3                                         |
-| Button, Input, Select, Checkbox                | Planned: E2-4                                         |
-| `DesignProfileBoundary`, portal scope          | Planned: E2-3, E2-5                                   |
-| Catalog page examples per tier                 | Planned: E2-7                                         |
-| Contrast check in CI                           | Planned: E0-5                                         |
+| Item                                           | Status                                                   |
+| ---------------------------------------------- | -------------------------------------------------------- |
+| Brand values in §3–§4                          | Hypothesis v1.1; similarity, lineup, print tests open    |
+| Dark `surface.selected`, dark feedback values  | Placeholder until E0-5 computes them                     |
+| `packages/design-system`, Storybook, lint rule | Real: E2-0 slice B (tokens, Foundations, checks)         |
+| Neutral profile for the shell                  | Planned: E2-3                                            |
+| Button, Input, Select, Checkbox                | Planned: E2-4                                            |
+| `DesignProfileBoundary`, portal scope          | Minimal attribute-only boundary (E2-0); real: E2-3, E2-5 |
+| Catalog page examples per tier                 | Planned: E2-7                                            |
+| Contrast check in CI                           | Planned: E0-5                                            |
 
-Change log: v1.0.1 (2026-10-21) adds the owner's no-middot, no-em-dash rule to §10 and §11. v1 (2026-10-21) created from brand spec v1.1, handoff §9–§17 and §23, ADR 0003, and the owner's rule that Storybook and this file come before any UI.
+Change log: v1.0.2 (2026-10-21) corrects two §3.1 ratios from the token source (text.secondary 6.1, brand.signature 1.1) and marks E2-0 slice B as real in §12. v1.0.1 (2026-10-21) adds the owner's no-middot, no-em-dash rule to §10 and §11. v1 (2026-10-21) created from brand spec v1.1, handoff §9–§17 and §23, ADR 0003, and the owner's rule that Storybook and this file come before any UI.

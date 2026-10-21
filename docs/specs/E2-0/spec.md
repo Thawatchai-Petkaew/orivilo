@@ -1,7 +1,7 @@
 ---
 issue: E2-0 (placeholder; folder is renamed to the ORV key when the Jira issue is created)
 lane: M
-version: 1
+version: 1.2
 ---
 
 ## Why
@@ -67,5 +67,6 @@ As an agent or developer on the ORIVILO team, I want a running Storybook that re
 
 ## Changelog
 
+- v1.2 (2026-10-21): slice B implemented. Decisions taken while building: Playwright pinned to 1.56.1 because the CI and cloud images ship that Chromium (1194); Tailwind's default palette, radii, shadows, font families, and text sizes are removed in `@theme` so a raw class produces no CSS in addition to failing lint; `font-mono` is allowed because `mono` is a §4 role; the §4 scale is exposed as `text-display-lg` through `text-body-sm`; `check-copy` also scans `.css`, `.json`, `.md` under `src/`; the Storybook addon applies preview annotations itself since 10.3, so there is no Vitest setup file; `turbo.json` passes `PLAYWRIGHT_BROWSERS_PATH` through to `test`. Hand-written code came to about 930 lines (token CSS, two Foundations pages, two checks, the lint rule), above the ~400 guideline; the owner may ask for a split.
 - v1.1 (2026-10-21): AC 11 and the copy check added for the owner's no-middot, no-em-dash rule.
 - v1 (2026-10-21): first spec, written from the owner's request, ADR 0003, DESIGN.md v1.

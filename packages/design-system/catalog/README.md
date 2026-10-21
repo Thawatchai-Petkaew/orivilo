@@ -1,6 +1,6 @@
 # Component catalog
 
-The registry agents read before composing UI (handoff §15, ADR 0003 item 4 and 5). One YAML file per component or pattern, in its tier directory. Storybook (planned in E2-0) is the visual half of the same catalog: an entry without a story, or a story without an entry, fails `check-catalog` (E2-0) and the design gate in `DESIGN.md` §11.
+The registry agents read before composing UI (handoff §15, ADR 0003 item 4 and 5). One YAML file per component or pattern, in its tier directory. Storybook (`pnpm --filter @orivilo/design-system storybook`, E2-0) is the visual half of the same catalog: an entry without a story, or a story without an entry, fails `check-catalog` (E2-0) and the design gate in `DESIGN.md` §11.
 
 Tiers follow Untitled UI's structure; the implementation does not (ADR 0003 item 5). Untitled UI is not installed.
 
