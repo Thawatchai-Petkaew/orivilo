@@ -1,8 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -45 473 150">
-  <g fill="none" stroke="#16151D" stroke-width="24" stroke-linecap="butt">
+  <g fill="none" stroke="#16151D" stroke-width="24" stroke-linecap="butt" stroke-linejoin="round">
     <circle cx="52" cy="50" r="40"/>
-    <path d="M 125 100 L 125 0"/>
-    <path d="M 125 51 A 39 39 0 0 1 164 12"/>
+    <path d="M 125 100 L 125 42 A 30 30 0 0 1 155 12 L 164 12"/>
     <path d="M 182 100 L 182 0"/>
     <path d="M 310 100 L 310 0"/>
     <path d="M 344 100 L 344 -37"/>
