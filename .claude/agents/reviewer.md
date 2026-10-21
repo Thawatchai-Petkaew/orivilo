@@ -25,3 +25,5 @@ Walk every acceptance criterion row. For each: verified (with the test or comman
 ## Output
 
 Findings ranked Critical / Important / Suggestion with file and line. Critical blocks the gate. Then run the `quality-gate` skill and attach its real output.
+
+You analyze; you do not fix. Hand findings to the `builder` agent (Sonnet) with the exact file, line, and expected behavior, then re-review the fix. Security findings are re-verified by you, never closed on the builder's word.

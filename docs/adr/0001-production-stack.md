@@ -6,7 +6,7 @@
 
 ## Context
 
-ORIGO needs a production-ready stack that a small team plus AI agents can run, that popular open-source Next.js projects use (so agents and humans find examples), and that keeps the Intent Engine independent of the web framework.
+ORIVILO needs a production-ready stack that a small team plus AI agents can run, that popular open-source Next.js projects use (so agents and humans find examples), and that keeps the Intent Engine independent of the web framework.
 
 ## Decision
 

@@ -1,8 +1,8 @@
-# ORIGO
+# ORIVILO
 
 From business intent to living digital products. A Brand-to-Product Platform: Discover → Brand → Design System → Product → Build → Review, with the Intent Engine as the shared core.
 
-- Product brief: [docs/context/origo-brief.md](docs/context/origo-brief.md)
+- Product brief: [docs/context/orivilo-brief.md](docs/context/orivilo-brief.md)
 - First milestone (Intent Studio): [docs/context/intent-studio-handoff.md](docs/context/intent-studio-handoff.md)
 - How humans and AI agents work here: [AGENTS.md](AGENTS.md)
 - Decisions: [docs/adr/](docs/adr/)

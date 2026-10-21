@@ -1,12 +1,12 @@
-# AGENTS.md — ORIGO
+# AGENTS.md — ORIVILO
 
 The single source of rules for every AI agent and human working in this repo. `CLAUDE.md` imports this file; other tools read it directly. Keep it under 100 lines; details live in `.claude/rules/`, `.claude/skills/`, and `docs/`.
 
 ## What we are building
 
-**ORIGO**: a Brand-to-Product Platform. "From business intent to living digital products." Modules: Discover → Brand → Design System → Product → Build → Review, with the **Intent Engine** as the shared core that interprets, decides, and keeps every artifact traceable to its source reasons.
+**ORIVILO**: a Brand-to-Product Platform. "From business intent to living digital products." Modules: Discover → Brand → Design System → Product → Build → Review, with the **Intent Engine** as the shared core that interprets, decides, and keeps every artifact traceable to its source reasons.
 
-First milestone: the MVP of the **Design System module** (Intent Studio), scoped in `docs/context/intent-studio-handoff.md` §19. Product brief: `docs/context/origo-brief.md`.
+First milestone: the MVP of the **Design System module** (Intent Studio), scoped in `docs/context/intent-studio-handoff.md` §19. Product brief: `docs/context/orivilo-brief.md`.
 
 ## Stack (decided, see `docs/adr/`)
 
@@ -14,7 +14,7 @@ Turborepo + pnpm · Next.js App Router · TypeScript strict · Tailwind CSS v4 +
 
 | Path                      | Purpose                                                                              |
 | ------------------------- | ------------------------------------------------------------------------------------ |
-| `apps/web`                | The ORIGO app (Studio UI, server actions)                                            |
+| `apps/web`                | The ORIVILO app (Studio UI, server actions)                                          |
 | `packages/intent-engine`  | Schemas, interpreter adapters, deterministic resolver. Pure TS, no framework imports |
 | `packages/*` (later)      | `design-system`, `db`, `auth`, added by their own stories                            |
 | `docs/specs/<ISSUE-KEY>/` | Spec, design, tech notes per Jira issue                                              |
@@ -23,7 +23,7 @@ Turborepo + pnpm · Next.js App Router · TypeScript strict · Tailwind CSS v4 +
 ## Iron rules
 
 1. **Spec first.** No code without a Jira issue and acceptance criteria. Ambiguous request → write the spec and ask.
-2. **Trace everything.** Every PR names its Jira key in the title (`ORIGO-123: ...`), links its spec, and lists the decisions it relies on. A change to a contract (schema, token, component API, resolver) includes an impact list.
+2. **Trace everything.** Every PR names its Jira key in the title (`ORV-123: ...`), links its spec, and lists the decisions it relies on. A change to a contract (schema, token, component API, resolver) includes an impact list.
 3. **Verify before handoff.** Run `pnpm lint && pnpm typecheck && pnpm test && pnpm build` and report real output. Never claim a check passed that you did not run.
 4. **Be honest about what is real.** Label mocks and rule-based behavior as such in UI and reports. Never claim AI interpretation, Figma sync, accessibility, or export works without an implementation and a test.
 5. **Humans own the gates.** Agents never approve their own gate, merge to `main`, or deploy to production.

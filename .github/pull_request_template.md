@@ -1,6 +1,6 @@
 ## Issue
 
-ORIGO-___ · Spec: `docs/specs/ORIGO-___/spec.md` · Lane: S / M / L
+ORV-___ · Spec: `docs/specs/ORV-___/spec.md` · Lane: S / M / L
 
 ## What changed
 

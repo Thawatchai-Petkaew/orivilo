@@ -5,7 +5,7 @@ description: Turn a request or Jira issue into a spec with testable acceptance c
 
 # Discover
 
-1. **Research first.** Read the Jira issue, `docs/context/origo-brief.md`, the relevant handoff sections, existing specs in `docs/specs/`, and the code it touches. Search Jira for duplicates.
+1. **Research first.** Read the Jira issue, `docs/context/orivilo-brief.md`, the relevant handoff sections, existing specs in `docs/specs/`, and the code it touches. Search Jira for duplicates.
 2. **Gap list.** For each dimension (business, functional, technical, UX, data/security, risk) mark every gap: closed (evidence), assumed (state the default), must-ask (blocker), or not applicable.
 3. **Write `docs/specs/<KEY>/spec.md`:**
 

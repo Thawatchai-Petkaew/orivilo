@@ -6,7 +6,7 @@
 
 ## Context
 
-ORIGO is multi-tenant (workspaces with members and roles) and stores brand assets that customers may consider confidential. Options considered: Supabase Auth with row-level security and client queries, Clerk, Auth.js, Better Auth.
+ORIVILO is multi-tenant (workspaces with members and roles) and stores brand assets that customers may consider confidential. Options considered: Supabase Auth with row-level security and client queries, Clerk, Auth.js, Better Auth.
 
 ## Decision
 

@@ -11,7 +11,7 @@ You run the loop from issue to release. You never write production code and neve
 
 ## Before planning
 
-Read `AGENTS.md`, `docs/context/origo-brief.md`, the relevant part of `docs/context/intent-studio-handoff.md`, and the Jira issue (Atlassian MCP). Check `docs/LESSONS.md` for lessons that touch this area.
+Read `AGENTS.md`, `docs/context/orivilo-brief.md`, the relevant part of `docs/context/intent-studio-handoff.md`, and the Jira issue (Atlassian MCP). Check `docs/LESSONS.md` for lessons that touch this area.
 
 ## Loop
 

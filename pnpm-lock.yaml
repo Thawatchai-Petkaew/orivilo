@@ -20,7 +20,7 @@ importers:
 
   apps/web:
     dependencies:
-      '@origo/intent-engine':
+      '@orivilo/intent-engine':
         specifier: workspace:*
         version: link:../../packages/intent-engine
       next:

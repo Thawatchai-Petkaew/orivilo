@@ -1,6 +1,6 @@
-# ORIGO product brief
+# ORIVILO product brief
 
-Source: the owner (GOLF), project chat, October 2026. This is the stable product context; change it only with the owner.
+Source: the owner (GOLF), project chat, October 2026. The team and the product are both named **ORIVILO** (the working name ORIGO was dropped on 2026-10-21). This is the stable product context; change it only with the owner.
 
 > **From business intent to living digital products.**
 > เปลี่ยนเจตนาของธุรกิจ ให้เป็นแบรนด์ ระบบออกแบบ และผลิตภัณฑ์ดิจิทัลที่พัฒนาต่อได้
@@ -31,7 +31,7 @@ Discover → Brand → Design System → Product → Build → Review. The **Int
 ## Principles
 
 - **Industry is context, not a style lock.** A finance product need not be blue. Options weigh audience, positioning, and personality together.
-- **Full loop means you can go back and change things knowing the impact.** Example: the brand moves from "fun and approachable" to "calm and premium". ORIGO must show which creative directions need review, which colors, fonts, and graphic recipes change, which tokens and components change, which Figma screens and frontend views will differ, and which artifacts need re-review before a new version ships.
+- **Full loop means you can go back and change things knowing the impact.** Example: the brand moves from "fun and approachable" to "calm and premium". ORIVILO must show which creative directions need review, which colors, fonts, and graphic recipes change, which tokens and components change, which Figma screens and frontend views will differ, and which artifacts need re-review before a new version ships.
 - **Figma and frontend sync is bounded.**
 
   | Linked     | Approach                                                            |
@@ -53,7 +53,7 @@ Owner's direction, 2026-10-21. The target experience stays close to **Zero UI**:
 The path there, in order:
 
 1. **Canvas first.** The user fills elements on a canvas. The left side holds input blocks (think ~100 of them) such as product goal, brand position, brand feeling, brand concept, colors, and desired emotions. Blocks can be filled before any research exists.
-2. **Auto-generate groups on the canvas.** Filled blocks generate a new group, for example a mood board. The user points at any element (say, the logo) to go deeper: ORIGO asks until the logo, then the colors, are right, generating images along the way.
+2. **Auto-generate groups on the canvas.** Filled blocks generate a new group, for example a mood board. The user points at any element (say, the logo) to go deeper: ORIVILO asks until the logo, then the colors, are right, generating images along the way.
 3. **Mood board → Digital Product Brand Book → tokens**, each through the same ask-and-refine process.
 4. **Implement.** Set up or redesign a project, or connect to Figma to create matching local variables and tokens, so Figma design and the frontend team share one token set. From there, draw code straight from the frontend as a prototype, or build in Figma on the same tokens.
 5. **Later layers:** image generation, and voice with rich interaction matched to the work at hand.
@@ -88,21 +88,21 @@ The end result must be something a developer can take and implement, with an **M
 
 Not decided yet, and marked for research before the Build module is specced:
 
-| Question                                                                          | Options the owner named                                          | Default until decided                                                                                                    |
-| --------------------------------------------------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Is Storybook part of the package, or does ORIGO connect to an existing Storybook? | ship Storybook · connect to theirs                               | Research both; no default                                                                                                |
-| Do we ask for the team's current tech stack, or output one opinionated stack?     | ask first · Tailwind + shadcn/ui · Ant Design · others           | Ask the tech stack first; our own reference implementation stays Tailwind + shadcn/ui (ADR 0001)                         |
-| Can a developer adjust a component by prompt or voice at the component level?     | "this card: more border radius", "more minimal", "make it glass" | Yes in principle, through the same two adjustment layers and the token contract, never as a per-component style override |
+| Question                                                                            | Options the owner named                                          | Default until decided                                                                                                    |
+| ----------------------------------------------------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Is Storybook part of the package, or does ORIVILO connect to an existing Storybook? | ship Storybook · connect to theirs                               | Research both; no default                                                                                                |
+| Do we ask for the team's current tech stack, or output one opinionated stack?       | ask first · Tailwind + shadcn/ui · Ant Design · others           | Ask the tech stack first; our own reference implementation stays Tailwind + shadcn/ui (ADR 0001)                         |
+| Can a developer adjust a component by prompt or voice at the component level?       | "this card: more border radius", "more minimal", "make it glass" | Yes in principle, through the same two adjustment layers and the token contract, never as a per-component style override |
 
 Whatever the answer, the export must respect the bounded-sync principle above: tokens and component mappings sync; free-form edits go through review.
 
 ### Knowledge is the core value (owner, 2026-10-21)
 
-ORIGO is not a project that only builds a slick UI; anyone can copy UI and UX. The moat is the **architecture of knowledge inside the system**: what others would have to follow if they wanted to catch up.
+ORIVILO is not a project that only builds a slick UI; anyone can copy UI and UX. The moat is the **architecture of knowledge inside the system**: what others would have to follow if they wanted to catch up.
 
 Scope of that knowledge, as examples:
 
-- **Themes of a design system.** There are many (glass, minimal, and so on). For each, ORIGO must know how to do it properly, not just name it.
+- **Themes of a design system.** There are many (glass, minimal, and so on). For each, ORIVILO must know how to do it properly, not just name it.
 - **Industry patterns.** For finance, which features and which objects a product tends to need, and what they look like.
 - **Reference sources to learn from**, each with its own collection method: Mobbin (real product use cases and flows), Dribbble (UI examples), public Storybooks of many teams (Spotify's and others), and similar.
 
@@ -114,7 +114,7 @@ Collection must respect the licensing split noted above: principles and patterns
 
 **Preview to present.** The canvas board must be previewable so its owner can present it. Who uses it: UX/UI designers and product managers bringing branding, brand positioning, or marketing in before a digital product exists; and dev teams with an existing product who want to revise it.
 
-**Starting assets vary and are incomplete.** Before entering the process, ORIGO inventories what already exists: a git repo to study, an existing website, an existing brand book, previous project documents, a previous TOR, and so on. Sources differ in shape and are rarely complete. The process is still designed end to end; whatever comes in, it works.
+**Starting assets vary and are incomplete.** Before entering the process, ORIVILO inventories what already exists: a git repo to study, an existing website, an existing brand book, previous project documents, a previous TOR, and so on. Sources differ in shape and are rarely complete. The process is still designed end to end; whatever comes in, it works.
 
 **Sequential or not, the user chooses.** Work can run in order or jump straight to any node: UI patterns first, or illustration patterns, or the color system. The graph of nodes must therefore track what each node depends on and what is still missing, and ask for it when the user arrives there, instead of forcing an order.
 

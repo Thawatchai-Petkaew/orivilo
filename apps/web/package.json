@@ -1,5 +1,5 @@
 {
-  "name": "@origo/web",
+  "name": "@orivilo/web",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -11,7 +11,7 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "@origo/intent-engine": "workspace:*",
+    "@orivilo/intent-engine": "workspace:*",
     "next": "16.4.0",
     "react": "19.3.0",
     "react-dom": "19.3.0"
