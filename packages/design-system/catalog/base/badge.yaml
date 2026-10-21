@@ -17,6 +17,7 @@ recipes: [neutral, professional, friendly]
 examples:
   - src/examples/decision-log.tsx
   - src/examples/landing.tsx
+  - src/examples/workspace.tsx
 rules:
   - "Status colours come from feedback tokens, never the brand accent"
   - "Never rendered without backing data (AGENTS.md)"

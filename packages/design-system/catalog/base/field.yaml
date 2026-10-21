@@ -16,6 +16,7 @@ states: [default, required, disabled, invalid]
 recipes: [neutral, professional, friendly]
 examples:
   - src/examples/settings-form.tsx
+  - src/examples/workspace.tsx
 rules:
   - "Exactly one control as children; it reads the wiring through context (useFieldControl)"
   - "Error copy says what went wrong and how to fix it"

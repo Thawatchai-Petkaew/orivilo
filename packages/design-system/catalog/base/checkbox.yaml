@@ -17,6 +17,7 @@ states: [default, hover, focus-visible, checked, indeterminate, disabled, invali
 recipes: [neutral, professional, friendly]
 examples:
   - src/examples/settings-form.tsx
+  - src/examples/workspace.tsx
 rules:
   - "Carries its own label, description and error; it is not wrapped in a Field"
   - Checked state is a glyph plus fill, never fill alone

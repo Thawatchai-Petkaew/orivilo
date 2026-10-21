@@ -16,6 +16,7 @@ states: [default, hover, focus-visible, open, disabled, invalid, empty]
 recipes: [neutral, professional, friendly]
 examples:
   - src/examples/settings-form.tsx
+  - src/examples/workspace.tsx
 rules:
   - "options is an array; an empty array shows emptyText instead of a blank listbox"
   - "The listbox re-opens the trigger's profile through PortalScope (E2-4); the InsideProfile story proves it"

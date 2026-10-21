@@ -15,6 +15,7 @@ states: [default, loading, empty, error, row-selected, sorted]
 recipes: [neutral, professional, friendly]
 examples:
   - src/examples/decision-log.tsx
+  - src/examples/workspace.tsx
 rules:
   - Fixture content includes Thai, Latin, a long Thai name without spaces, and missing cells
   - A missing cell reads the missing label in tertiary ink, never blank

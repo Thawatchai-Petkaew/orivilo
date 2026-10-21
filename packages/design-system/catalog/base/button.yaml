@@ -19,6 +19,7 @@ examples:
   - src/examples/settings-form.tsx
   - src/examples/decision-log.tsx
   - src/examples/landing.tsx
+  - src/examples/workspace.tsx
 rules:
   - "intent is the one Intent Engine button per Studio screen; inside a profile boundary it renders as that profile's primary action (E2-3 remap)"
   - "asChild renders the recipe on a child element such as a link"

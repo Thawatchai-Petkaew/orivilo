@@ -14,6 +14,13 @@
 @import "../profiles/generated.css";
 @import "../recipes/recipes.css";
 
+/* The app's Tailwind runs from apps/web and does not see this package's sources on its own, so the
+ * layout classes the components and examples use are declared here as sources (E2-8). Paths are
+ * relative to this file. */
+@source "../boundary";
+@source "../components";
+@source "../examples";
+
 /* generated.css removes Tailwind's default palette, radii, shadows, fonts, and text sizes before
  * adding the semantic ones, so a raw class such as `bg-red-500` produces no CSS (the lint rule
  * reports it as well). */

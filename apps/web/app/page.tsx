@@ -1,5 +1,6 @@
 import { PROFILES } from "@orivilo/design-system";
 import { designProfileSchema } from "@orivilo/intent-engine";
+import Link from "next/link";
 
 const schemaVersion = designProfileSchema.shape.schemaVersion.value;
 
@@ -30,10 +31,14 @@ const real = [
     what: "หน้าตัวอย่างเต็ม 3 หน้าใน Storybook (ฟอร์มตั้งค่า, บันทึกการตัดสินใจแบบ bento, หน้า landing) ประกอบจาก component ที่มีอยู่เท่านั้น",
     story: "E2-7",
   },
+  {
+    what: "หน้าอ้างอิง (เวิร์กสเปซของทีม พร้อมสร้างโปรเจกต์และเก็บถาวร) ที่ /workspace ประกอบจาก component ที่มีอยู่ พิสูจน์แล้วกับข้อมูลยาว จอ 360 px ข้อผิดพลาด และ overlay ใน 2 profile",
+    story: "E2-8",
+  },
 ];
 
 const notYet = [
-  "หน้านี้ยังไม่ได้ใช้ component ใดเลย (หน้าอ้างอิงคือ E2-8)",
+  "Shell ของ Studio พร้อม navigation ยังไม่มี หน้านี้เป็นรายการสถานะ: epic E4",
   "Canvas และ node ของ Studio ยังไม่มี: epic E4",
   "การตีความ brief ยังไม่มี; เมื่อมาจะเป็นแบบกฎก่อนและบอกตามจริง: E2-10",
 ];
@@ -51,6 +56,14 @@ export default function Home() {
         </h1>
         <p className="max-w-prose text-body-lg text-text-secondary">
           Brand-to-Product Platform ที่ทุกชิ้นงานสืบย้อนไปถึงเหตุผลของมันได้
+        </p>
+        <p className="text-body-md">
+          <Link
+            className="text-text-link underline-offset-4 hover:text-text-link-hover hover:underline"
+            href="/workspace"
+          >
+            เปิดหน้าอ้างอิง: เวิร์กสเปซของทีม
+          </Link>
         </p>
       </header>
 
