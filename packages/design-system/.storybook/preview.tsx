@@ -7,6 +7,7 @@ import {
   type ProfileId,
   PROFILES,
 } from "../src/boundary/DesignProfileBoundary";
+import { profileById } from "../src/profiles/index";
 
 /**
  * Mode and profile come from the toolbar and reach the story only through the same boundary
@@ -39,11 +40,14 @@ const preview: Preview = {
       },
     },
     profile: {
-      description: "Design profile (only neutral exists until E2-3)",
+      description: "Design profile: neutral is the base set; the others are the E2-2 overlays",
       toolbar: {
         title: "Profile",
         icon: "paintbrush",
-        items: PROFILES.map((id) => ({ value: id, title: id })),
+        items: PROFILES.map((id) => {
+          const p = profileById(id);
+          return { value: id, title: p ? `${p.name.en} (${p.name.th})` : "Neutral (base)" };
+        }),
         dynamicTitle: true,
       },
     },

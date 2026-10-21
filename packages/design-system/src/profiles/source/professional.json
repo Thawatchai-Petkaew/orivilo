@@ -1,0 +1,382 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "$id": "professional",
+  "$name": {
+    "th": "สุขุม",
+    "en": "Professional"
+  },
+  "$description": "Hand-made profile for a focused, precise product (handoff §19 and §18.3 Linear calibration). Cool slate neutrals, navy for actions, links and selection, crisp radii, bordered cards, one type face, quiet motion. Values are an interpretation, not a customer brand.",
+  "$decisions": {
+    "shape": "crisp",
+    "surfaceTreatment": "bordered",
+    "emphasis": "restrained",
+    "typeVoice": "single",
+    "motion": "quiet"
+  },
+  "primitives": {
+    "color": {
+      "slate": {
+        "25": {
+          "$type": "color",
+          "$value": "#FBFCFD"
+        },
+        "50": {
+          "$type": "color",
+          "$value": "#F5F7F9"
+        },
+        "100": {
+          "$type": "color",
+          "$value": "#E8EBEF"
+        },
+        "200": {
+          "$type": "color",
+          "$value": "#D6DBE2"
+        },
+        "300": {
+          "$type": "color",
+          "$value": "#BAC2CB"
+        },
+        "400": {
+          "$type": "color",
+          "$value": "#9DA5B1"
+        },
+        "500": {
+          "$type": "color",
+          "$value": "#7D8794"
+        },
+        "600": {
+          "$type": "color",
+          "$value": "#616A75"
+        },
+        "700": {
+          "$type": "color",
+          "$value": "#49505A"
+        },
+        "800": {
+          "$type": "color",
+          "$value": "#30363D"
+        },
+        "900": {
+          "$type": "color",
+          "$value": "#1B1E23"
+        },
+        "950": {
+          "$type": "color",
+          "$value": "#06070A"
+        }
+      },
+      "navy": {
+        "25": {
+          "$type": "color",
+          "$value": "#F6FAFF"
+        },
+        "50": {
+          "$type": "color",
+          "$value": "#EFF6FF"
+        },
+        "100": {
+          "$type": "color",
+          "$value": "#DEECFF"
+        },
+        "200": {
+          "$type": "color",
+          "$value": "#C4DCFF"
+        },
+        "300": {
+          "$type": "color",
+          "$value": "#A0C1FE"
+        },
+        "400": {
+          "$type": "color",
+          "$value": "#7CA4EE"
+        },
+        "500": {
+          "$type": "color",
+          "$value": "#5A84D4"
+        },
+        "600": {
+          "$type": "color",
+          "$value": "#4066B0"
+        },
+        "700": {
+          "$type": "color",
+          "$value": "#254582"
+        },
+        "800": {
+          "$type": "color",
+          "$value": "#19315E"
+        },
+        "900": {
+          "$type": "color",
+          "$value": "#11213E"
+        },
+        "950": {
+          "$type": "color",
+          "$value": "#091326"
+        }
+      }
+    }
+  },
+  "semantic": {
+    "surface": {
+      "canvas": {
+        "$value": {
+          "light": "{color.slate.50}",
+          "dark": "{color.slate.900}"
+        }
+      },
+      "card": {
+        "$value": {
+          "light": "{color.white}",
+          "dark": "{color.slate.800}"
+        }
+      },
+      "raised": {
+        "$value": {
+          "light": "{color.slate.25}",
+          "dark": "{color.slate.700}"
+        }
+      },
+      "sunken": {
+        "$value": {
+          "light": "{color.slate.100}",
+          "dark": "{color.slate.950}"
+        }
+      },
+      "hover": {
+        "$value": {
+          "light": "{color.slate.100}",
+          "dark": "{color.slate.700}"
+        }
+      },
+      "selected": {
+        "$value": {
+          "light": "{color.navy.50}",
+          "dark": "{color.navy.950}"
+        }
+      },
+      "disabled": {
+        "$value": {
+          "light": "{color.slate.200}",
+          "dark": "{color.slate.700}"
+        }
+      },
+      "inverse": {
+        "$value": {
+          "light": "{color.slate.900}",
+          "dark": "{color.slate.50}"
+        }
+      }
+    },
+    "text": {
+      "primary": {
+        "$value": {
+          "light": "{color.slate.900}",
+          "dark": "{color.slate.100}"
+        }
+      },
+      "secondary": {
+        "$value": {
+          "light": "{color.slate.600}",
+          "dark": "{color.slate.400}"
+        }
+      },
+      "tertiary": {
+        "$value": {
+          "light": "{color.slate.600}",
+          "dark": "{color.slate.400}"
+        }
+      },
+      "placeholder": {
+        "$value": {
+          "light": "{color.slate.600}",
+          "dark": "{color.slate.400}"
+        }
+      },
+      "disabled": {
+        "$value": {
+          "light": "{color.slate.400}",
+          "dark": "{color.slate.600}"
+        }
+      },
+      "on-action": {
+        "$value": {
+          "light": "{color.white}",
+          "dark": "{color.slate.900}"
+        }
+      },
+      "on-inverse": {
+        "$value": {
+          "light": "{color.slate.100}",
+          "dark": "{color.slate.900}"
+        }
+      },
+      "link": {
+        "$value": {
+          "light": "{color.navy.700}",
+          "dark": "{color.navy.300}"
+        }
+      },
+      "link-hover": {
+        "$value": {
+          "light": "{color.navy.900}",
+          "dark": "{color.navy.200}"
+        }
+      },
+      "brand": {
+        "$value": {
+          "light": "{color.navy.700}",
+          "dark": "{color.navy.300}"
+        }
+      }
+    },
+    "border": {
+      "control": {
+        "$value": {
+          "light": "{color.slate.500}",
+          "dark": "{color.slate.500}"
+        }
+      },
+      "control-hover": {
+        "$value": {
+          "light": "{color.slate.600}",
+          "dark": "{color.slate.400}"
+        }
+      },
+      "subtle": {
+        "$value": {
+          "light": "{color.slate.200}",
+          "dark": "{color.slate.700}"
+        }
+      },
+      "strong": {
+        "$value": {
+          "light": "{color.slate.900}",
+          "dark": "{color.slate.100}"
+        }
+      },
+      "card": {
+        "$value": {
+          "light": "{color.slate.200}",
+          "dark": "{color.slate.700}"
+        }
+      },
+      "disabled": {
+        "$value": {
+          "light": "{color.slate.200}",
+          "dark": "{color.slate.700}"
+        }
+      }
+    },
+    "action": {
+      "primary": {
+        "$value": {
+          "light": "{color.navy.800}",
+          "dark": "{color.navy.300}"
+        }
+      },
+      "primary-hover": {
+        "$value": {
+          "light": "{color.navy.900}",
+          "dark": "{color.navy.200}"
+        }
+      },
+      "primary-press": {
+        "$value": {
+          "light": "{color.navy.950}",
+          "dark": "{color.navy.400}"
+        }
+      },
+      "primary-disabled": {
+        "$value": {
+          "light": "{color.slate.300}",
+          "dark": "{color.slate.700}"
+        }
+      }
+    },
+    "selection": {
+      "bg": {
+        "$value": {
+          "light": "{color.navy.50}",
+          "dark": "{color.navy.950}"
+        }
+      },
+      "fg": {
+        "$value": {
+          "light": "{color.navy.700}",
+          "dark": "{color.navy.300}"
+        }
+      }
+    },
+    "brand": {
+      "signature": {
+        "$value": {
+          "light": "{color.navy.700}",
+          "dark": "{color.navy.400}"
+        }
+      },
+      "ink": {
+        "$value": {
+          "light": "{color.white}",
+          "dark": "{color.slate.900}"
+        }
+      }
+    },
+    "shape": {
+      "control": {
+        "radius": {
+          "$value": "{radius.6}"
+        }
+      },
+      "media": {
+        "radius": {
+          "$value": "{radius.8}"
+        }
+      },
+      "container": {
+        "radius": {
+          "$value": "{radius.12}"
+        }
+      },
+      "overlay": {
+        "radius": {
+          "$value": "{radius.16}"
+        }
+      }
+    },
+    "type": {
+      "display": {
+        "lg": {
+          "$value": {
+            "fontFamily": "{font.family.plex-sans}",
+            "fontSize": "{font.size.56}",
+            "lineHeight": "{font.line-height.1-2}",
+            "fontWeight": "{font.weight.600}",
+            "letterSpacing": "{font.letter-spacing.tight}"
+          }
+        },
+        "md": {
+          "$value": {
+            "fontFamily": "{font.family.plex-sans}",
+            "fontSize": "{font.size.32}",
+            "lineHeight": "{font.line-height.1-25}",
+            "fontWeight": "{font.weight.600}",
+            "letterSpacing": "{font.letter-spacing.tight}"
+          }
+        }
+      }
+    },
+    "motion": {
+      "overlay": {
+        "duration": {
+          "$value": "{duration.120}"
+        }
+      },
+      "page": {
+        "duration": {
+          "$value": "{duration.200}"
+        }
+      }
+    }
+  }
+}

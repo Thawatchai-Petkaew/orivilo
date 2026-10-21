@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 import { type Mode, type Token, TokenSet, displayValue, tokens } from "../tokens/index";
 
-/** Reads the chain and the resolved value of a token for one mode. */
-export function chainText(token: Token, mode: Mode): string {
-  const { chain, value } = tokens.resolve(token, mode);
+/** Reads the chain and the resolved value of a token for one mode, in the base set unless given one. */
+export function chainText(token: Token, mode: Mode, set: TokenSet = tokens): string {
+  const { chain, value } = set.resolve(token, mode);
   const names = chain.map((c) => c.split(":")[1]);
   return [...names, displayValue(value, token.type)].join(" > ");
 }

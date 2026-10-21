@@ -1,0 +1,438 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "$id": "friendly",
+  "$name": {
+    "th": "เป็นมิตร",
+    "en": "Friendly"
+  },
+  "$description": "Hand-made profile for a welcoming, touch-first product (handoff §19 and §18.4 Airbnb calibration). Warm cream neutrals, coral actions with ink text (white on a coral this bright cannot reach 4.5) that lighten on hover, teal links and selection, pill controls with soft containers, flat cards, Anuphan on headings, 44 px controls. Values are an interpretation, not a customer brand.",
+  "$decisions": {
+    "shape": "soft",
+    "surfaceTreatment": "flat",
+    "emphasis": "expressive",
+    "typeVoice": "paired",
+    "motion": "standard"
+  },
+  "primitives": {
+    "color": {
+      "cream": {
+        "25": {
+          "$type": "color",
+          "$value": "#FDFBF9"
+        },
+        "50": {
+          "$type": "color",
+          "$value": "#F9F6F2"
+        },
+        "100": {
+          "$type": "color",
+          "$value": "#F2ECE3"
+        },
+        "200": {
+          "$type": "color",
+          "$value": "#E3D9CA"
+        },
+        "300": {
+          "$type": "color",
+          "$value": "#CDBFAA"
+        },
+        "400": {
+          "$type": "color",
+          "$value": "#B3A288"
+        },
+        "500": {
+          "$type": "color",
+          "$value": "#968367"
+        },
+        "600": {
+          "$type": "color",
+          "$value": "#77664C"
+        },
+        "700": {
+          "$type": "color",
+          "$value": "#5C4D38"
+        },
+        "800": {
+          "$type": "color",
+          "$value": "#3E3424"
+        },
+        "900": {
+          "$type": "color",
+          "$value": "#241D13"
+        },
+        "950": {
+          "$type": "color",
+          "$value": "#0C0804"
+        }
+      },
+      "coral": {
+        "25": {
+          "$type": "color",
+          "$value": "#FFF7F4"
+        },
+        "50": {
+          "$type": "color",
+          "$value": "#FFF0EB"
+        },
+        "100": {
+          "$type": "color",
+          "$value": "#FFE0D8"
+        },
+        "200": {
+          "$type": "color",
+          "$value": "#FFC7B8"
+        },
+        "300": {
+          "$type": "color",
+          "$value": "#FFA28F"
+        },
+        "400": {
+          "$type": "color",
+          "$value": "#FC826B"
+        },
+        "500": {
+          "$type": "color",
+          "$value": "#E05C45"
+        },
+        "600": {
+          "$type": "color",
+          "$value": "#C14530"
+        },
+        "700": {
+          "$type": "color",
+          "$value": "#972F1D"
+        },
+        "800": {
+          "$type": "color",
+          "$value": "#6C1F12"
+        },
+        "900": {
+          "$type": "color",
+          "$value": "#45140B"
+        },
+        "950": {
+          "$type": "color",
+          "$value": "#2A0A06"
+        }
+      },
+      "teal": {
+        "25": {
+          "$type": "color",
+          "$value": "#F5FCFB"
+        },
+        "50": {
+          "$type": "color",
+          "$value": "#EBF8F6"
+        },
+        "100": {
+          "$type": "color",
+          "$value": "#D8F2ED"
+        },
+        "200": {
+          "$type": "color",
+          "$value": "#B7E6DF"
+        },
+        "300": {
+          "$type": "color",
+          "$value": "#8AD1C7"
+        },
+        "400": {
+          "$type": "color",
+          "$value": "#5BB7AC"
+        },
+        "500": {
+          "$type": "color",
+          "$value": "#26998E"
+        },
+        "600": {
+          "$type": "color",
+          "$value": "#007A70"
+        },
+        "700": {
+          "$type": "color",
+          "$value": "#00645B"
+        },
+        "800": {
+          "$type": "color",
+          "$value": "#004842"
+        },
+        "900": {
+          "$type": "color",
+          "$value": "#05302C"
+        },
+        "950": {
+          "$type": "color",
+          "$value": "#021B18"
+        }
+      }
+    }
+  },
+  "semantic": {
+    "surface": {
+      "canvas": {
+        "$value": {
+          "light": "{color.cream.50}",
+          "dark": "{color.cream.900}"
+        }
+      },
+      "card": {
+        "$value": {
+          "light": "{color.white}",
+          "dark": "{color.cream.800}"
+        }
+      },
+      "raised": {
+        "$value": {
+          "light": "{color.cream.25}",
+          "dark": "{color.cream.700}"
+        }
+      },
+      "sunken": {
+        "$value": {
+          "light": "{color.cream.100}",
+          "dark": "{color.cream.950}"
+        }
+      },
+      "hover": {
+        "$value": {
+          "light": "{color.cream.100}",
+          "dark": "{color.cream.700}"
+        }
+      },
+      "selected": {
+        "$value": {
+          "light": "{color.teal.50}",
+          "dark": "{color.teal.950}"
+        }
+      },
+      "disabled": {
+        "$value": {
+          "light": "{color.cream.200}",
+          "dark": "{color.cream.700}"
+        }
+      },
+      "inverse": {
+        "$value": {
+          "light": "{color.cream.900}",
+          "dark": "{color.cream.50}"
+        }
+      }
+    },
+    "text": {
+      "primary": {
+        "$value": {
+          "light": "{color.cream.900}",
+          "dark": "{color.cream.100}"
+        }
+      },
+      "secondary": {
+        "$value": {
+          "light": "{color.cream.600}",
+          "dark": "{color.cream.400}"
+        }
+      },
+      "tertiary": {
+        "$value": {
+          "light": "{color.cream.600}",
+          "dark": "{color.cream.400}"
+        }
+      },
+      "placeholder": {
+        "$value": {
+          "light": "{color.cream.600}",
+          "dark": "{color.cream.400}"
+        }
+      },
+      "disabled": {
+        "$value": {
+          "light": "{color.cream.400}",
+          "dark": "{color.cream.600}"
+        }
+      },
+      "on-action": {
+        "$value": {
+          "light": "{color.cream.900}",
+          "dark": "{color.cream.900}"
+        }
+      },
+      "on-inverse": {
+        "$value": {
+          "light": "{color.cream.100}",
+          "dark": "{color.cream.900}"
+        }
+      },
+      "link": {
+        "$value": {
+          "light": "{color.teal.700}",
+          "dark": "{color.teal.300}"
+        }
+      },
+      "link-hover": {
+        "$value": {
+          "light": "{color.teal.900}",
+          "dark": "{color.teal.200}"
+        }
+      },
+      "brand": {
+        "$value": {
+          "light": "{color.coral.700}",
+          "dark": "{color.coral.300}"
+        }
+      }
+    },
+    "border": {
+      "control": {
+        "$value": {
+          "light": "{color.cream.500}",
+          "dark": "{color.cream.500}"
+        }
+      },
+      "control-hover": {
+        "$value": {
+          "light": "{color.cream.600}",
+          "dark": "{color.cream.400}"
+        }
+      },
+      "subtle": {
+        "$value": {
+          "light": "{color.cream.200}",
+          "dark": "{color.cream.700}"
+        }
+      },
+      "strong": {
+        "$value": {
+          "light": "{color.cream.900}",
+          "dark": "{color.cream.100}"
+        }
+      },
+      "card": {
+        "$value": {
+          "light": "{color.transparent}",
+          "dark": "{color.cream.700}"
+        }
+      },
+      "disabled": {
+        "$value": {
+          "light": "{color.cream.200}",
+          "dark": "{color.cream.700}"
+        }
+      }
+    },
+    "action": {
+      "primary": {
+        "$value": {
+          "light": "{color.coral.500}",
+          "dark": "{color.coral.300}"
+        }
+      },
+      "primary-hover": {
+        "$value": {
+          "light": "{color.coral.400}",
+          "dark": "{color.coral.200}"
+        }
+      },
+      "primary-press": {
+        "$value": {
+          "light": "{color.coral.600}",
+          "dark": "{color.coral.400}"
+        }
+      },
+      "primary-disabled": {
+        "$value": {
+          "light": "{color.cream.300}",
+          "dark": "{color.cream.700}"
+        }
+      }
+    },
+    "selection": {
+      "bg": {
+        "$value": {
+          "light": "{color.teal.50}",
+          "dark": "{color.teal.950}"
+        }
+      },
+      "fg": {
+        "$value": {
+          "light": "{color.teal.700}",
+          "dark": "{color.teal.300}"
+        }
+      }
+    },
+    "brand": {
+      "signature": {
+        "$value": {
+          "light": "{color.coral.400}",
+          "dark": "{color.coral.400}"
+        }
+      },
+      "ink": {
+        "$value": {
+          "light": "{color.cream.900}",
+          "dark": "{color.cream.900}"
+        }
+      }
+    },
+    "shape": {
+      "control": {
+        "radius": {
+          "$value": "{radius.full}"
+        }
+      },
+      "media": {
+        "radius": {
+          "$value": "{radius.16}"
+        }
+      },
+      "container": {
+        "radius": {
+          "$value": "{radius.20}"
+        }
+      },
+      "overlay": {
+        "radius": {
+          "$value": "{radius.32}"
+        }
+      },
+      "check": {
+        "radius": {
+          "$value": "{radius.6}"
+        }
+      }
+    },
+    "type": {
+      "heading": {
+        "md": {
+          "$value": {
+            "fontFamily": "{font.family.anuphan}",
+            "fontSize": "{font.size.24}",
+            "lineHeight": "{font.line-height.1-3}",
+            "fontWeight": "{font.weight.600}",
+            "letterSpacing": "{font.letter-spacing.normal}"
+          }
+        },
+        "sm": {
+          "$value": {
+            "fontFamily": "{font.family.anuphan}",
+            "fontSize": "{font.size.20}",
+            "lineHeight": "{font.line-height.1-5}",
+            "fontWeight": "{font.weight.600}",
+            "letterSpacing": "{font.letter-spacing.normal}"
+          }
+        }
+      }
+    },
+    "size": {
+      "control": {
+        "md": {
+          "$value": "{size.11}"
+        },
+        "lg": {
+          "$value": "{size.12}"
+        }
+      },
+      "touch": {
+        "$value": "{size.12}"
+      }
+    }
+  }
+}

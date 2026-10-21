@@ -1,6 +1,6 @@
-import component from "./source/component.json";
-import primitives from "./source/primitives.json";
-import semantic from "./source/semantic.json";
+import component from "./source/component.json" with { type: "json" };
+import primitives from "./source/primitives.json" with { type: "json" };
+import semantic from "./source/semantic.json" with { type: "json" };
 import { TokenSet } from "./model.ts";
 
 /** The one token set, built from the three source files. */
