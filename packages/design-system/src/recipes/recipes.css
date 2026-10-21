@@ -603,10 +603,15 @@
   margin: 0;
   color: var(--cmp-dialog-description);
 }
+/* The body scrolls, and a scroll container clips what draws outside a control, such as the focus
+ * ring and its gap. The body bleeds that distance and pads it back, so the ring stays whole. */
 .ds-dialog__body {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+  margin: calc(-1 * var(--cmp-dialog-body-bleed));
+  padding: var(--cmp-dialog-body-bleed);
+  scroll-padding: var(--cmp-dialog-body-bleed);
 }
 .ds-dialog__error {
   margin: 0;

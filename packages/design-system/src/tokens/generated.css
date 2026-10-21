@@ -613,6 +613,7 @@
   --cmp-dialog-shadow: var(--ds-elevation-overlay);
   --cmp-dialog-padding: var(--ds-space-inset-lg);
   --cmp-dialog-gap: var(--ds-space-stack-md);
+  --cmp-dialog-body-bleed: var(--ds-space-inline-sm);
   --cmp-dialog-title-type-font-family: var(--ds-type-heading-sm-font-family);
   --cmp-dialog-title-type-font-size: var(--ds-type-heading-sm-font-size);
   --cmp-dialog-title-type-line-height: var(--ds-type-heading-sm-line-height);

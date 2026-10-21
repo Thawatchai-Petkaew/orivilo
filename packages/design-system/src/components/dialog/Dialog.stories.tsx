@@ -113,7 +113,32 @@ export const Closed: Story = {
   },
 };
 
-export const Open: Story = { args: { defaultOpen: true } };
+/**
+ * Open with first focus on the name field. The play proves the focus ring is whole: the scrolling
+ * body is a scroll container, which clips what draws outside a control, so the body bleeds the
+ * ring's distance (2 px ring plus 2 px gap) on every side.
+ */
+export const Open: Story = {
+  args: { defaultOpen: true },
+  play: async () => {
+    const input = await body().findByRole("textbox", { name: "ชื่อใหม่" });
+    await waitFor(() => expect(input).toHaveFocus());
+    const scroller = input.closest<HTMLElement>(".ds-dialog__body");
+    await expect(scroller).not.toBeNull();
+    if (!scroller) return;
+    // The panel scales in; measure once its animations have finished.
+    await Promise.all(scroller.getAnimations({ subtree: true }).map((a) => a.finished));
+    const dialog = scroller.closest<HTMLElement>(".ds-dialog");
+    await Promise.all((dialog?.getAnimations() ?? []).map((a) => a.finished));
+    const ring = 4;
+    const inner = input.getBoundingClientRect();
+    const outer = scroller.getBoundingClientRect();
+    await expect(outer.left).toBeLessThanOrEqual(inner.left - ring);
+    await expect(outer.right).toBeGreaterThanOrEqual(inner.right + ring);
+    await expect(outer.top).toBeLessThanOrEqual(inner.top - ring);
+    await expect(outer.bottom).toBeGreaterThanOrEqual(inner.bottom + ring);
+  },
+};
 
 export const Medium: Story = {
   args: {
