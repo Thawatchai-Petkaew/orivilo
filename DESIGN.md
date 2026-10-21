@@ -181,18 +181,18 @@ Hover and focus stay interaction states, not public props (handoff §14). Icon-o
 
 ## 8. Colour roles: meaning never moves
 
-| Meaning           | Colour                 | Not interchangeable with     |
-| ----------------- | ---------------------- | ---------------------------- |
-| Act               | `action.primary` (violet) | selection fill, info      |
-| Ask the engine    | `action.intent` (lime) | any other action, any status |
-| Go somewhere      | `text.link` (violet text) | buttons                   |
-| Selected          | `surface.selected`     | focus, hover                 |
-| Focused           | `focus.ring` (ink)     | selection, brand             |
-| Brand presence    | `brand.signature`      | any feedback, any action     |
-| Wrong / dangerous | `feedback.danger`      | warning, brand               |
-| Caution           | `feedback.warning`     | danger                       |
-| Done well         | `feedback.success`     | brand signature              |
-| Learn             | `feedback.info`        | action                       |
+| Meaning           | Colour                    | Not interchangeable with     |
+| ----------------- | ------------------------- | ---------------------------- |
+| Act               | `action.primary` (violet) | selection fill, info         |
+| Ask the engine    | `action.intent` (lime)    | any other action, any status |
+| Go somewhere      | `text.link` (violet text) | buttons                      |
+| Selected          | `surface.selected`        | focus, hover                 |
+| Focused           | `focus.ring` (ink)        | selection, brand             |
+| Brand presence    | `brand.signature`         | any feedback, any action     |
+| Wrong / dangerous | `feedback.danger`         | warning, brand               |
+| Caution           | `feedback.warning`        | danger                       |
+| Done well         | `feedback.success`        | brand signature              |
+| Learn             | `feedback.info`           | action                       |
 
 Proportion for the shell: about 60 canvas and card, 30 ink and neutrals, 10 violet and lime together; lime alone stays under 2. Charts and illustrations take a separate graphic palette (profile group 6 in handoff §10), never the transaction colours.
 
