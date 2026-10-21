@@ -14,7 +14,8 @@ variants: [default, destructive]
 sizes: [sm, md]
 states: [closed, open, pending, error]
 recipes: [neutral, professional, friendly]
-examples: []
+examples:
+  - src/examples/decision-log.tsx
 rules:
   - Content rendered through the portal receives the same DesignProfileBoundary as the trigger; the InsideProfile story proves it
   - Primary action is named after the outcome, never "OK"

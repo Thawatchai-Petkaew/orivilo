@@ -14,7 +14,8 @@ variants: []
 sizes: [sm, md]
 states: [default, hover, focus-visible, selected, disabled]
 recipes: [neutral, professional, friendly]
-examples: [] # the reference screen (E2-8) is the first
+examples:
+  - src/examples/settings-form.tsx
 rules:
   - "Composed from Tabs, TabsList (size), TabsTrigger, TabsContent"
   - "Selected tab uses selection tokens; the indicator is an edge, not a tint only"

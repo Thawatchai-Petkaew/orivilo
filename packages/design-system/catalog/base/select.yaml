@@ -14,7 +14,8 @@ variants: [default]
 sizes: [sm, md, lg]
 states: [default, hover, focus-visible, open, disabled, invalid, empty]
 recipes: [neutral, professional, friendly]
-examples: [] # the reference screen (E2-8) is the first
+examples:
+  - src/examples/settings-form.tsx
 rules:
   - "options is an array; an empty array shows emptyText instead of a blank listbox"
   - "The listbox re-opens the trigger's profile through PortalScope (E2-4); the InsideProfile story proves it"

@@ -26,6 +26,10 @@ const real = [
     what: "Table (เรียง, เลือกแถว, loading, ว่าง, ผิดพลาด, ยุบเป็นบล็อกที่ 360 px) ใน Storybook ผ่าน 3 profile และ 2 โหมด",
     story: "E2-6",
   },
+  {
+    what: "หน้าตัวอย่างเต็ม 3 หน้าใน Storybook (ฟอร์มตั้งค่า, บันทึกการตัดสินใจแบบ bento, หน้า landing) ประกอบจาก component ที่มีอยู่เท่านั้น",
+    story: "E2-7",
+  },
 ];
 
 const notYet = [

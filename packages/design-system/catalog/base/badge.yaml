@@ -14,7 +14,9 @@ variants: [neutral, success, warning, danger, info, brand]
 sizes: [sm, md]
 states: [default]
 recipes: [neutral, professional, friendly]
-examples: [] # the reference screen (E2-8) is the first
+examples:
+  - src/examples/decision-log.tsx
+  - src/examples/landing.tsx
 rules:
   - "Status colours come from feedback tokens, never the brand accent"
   - "Never rendered without backing data (AGENTS.md)"

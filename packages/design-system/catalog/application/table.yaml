@@ -13,11 +13,12 @@ variants: [default, compact]
 sizes: [md]
 states: [default, loading, empty, error, row-selected, sorted]
 recipes: [neutral, professional, friendly]
-examples: []
+examples:
+  - src/examples/decision-log.tsx
 rules:
   - Fixture content includes Thai, Latin, a long Thai name without spaces, and missing cells
   - A missing cell reads the missing label in tertiary ink, never blank
-  - Numbers align right in mono tabular figures; text wraps rather than truncates unless the column opts in
+  - Numbers align right in mono tabular figures; text wraps rather than truncates unless the column opts in; in the block layout under 480 px the opted-in column wraps too
   - Works at 360 px by collapsing each row to a block that prints the column name before every value, never by horizontal overflow
   - Loading, empty and error are rows inside the table; the surface never disappears under the user
   - A row is selected through its checkbox; a row is never a link

@@ -15,7 +15,8 @@ variants: [default]
 sizes: [md]
 states: [default, hover, focus-visible, checked, indeterminate, disabled, invalid]
 recipes: [neutral, professional, friendly]
-examples: [] # the reference screen (E2-8) is the first
+examples:
+  - src/examples/settings-form.tsx
 rules:
   - "Carries its own label, description and error; it is not wrapped in a Field"
   - Checked state is a glyph plus fill, never fill alone

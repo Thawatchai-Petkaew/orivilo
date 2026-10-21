@@ -49,3 +49,31 @@ export function Matrix({ children }: { children: ReactNode }) {
 export function Narrow({ children }: { children: ReactNode }) {
   return <div className="w-[360px] max-w-full">{children}</div>;
 }
+
+/**
+ * One page under one profile and mode. Page examples use this instead of the Matrix because six
+ * copies of a page in one document duplicate its landmarks (nav, regions), which the a11y addon
+ * rightly reports; a component has no landmark, so the Matrix stays the tool for components.
+ */
+export function Under({
+  profile,
+  mode,
+  children,
+}: {
+  profile: ProfileId;
+  mode: Mode;
+  children: ReactNode;
+}) {
+  return (
+    <DesignProfileBoundary mode={mode} profile={profile}>
+      <div
+        data-matrix-cell=""
+        data-matrix-profile={profile}
+        data-matrix-mode={mode}
+        className="min-h-dvh bg-surface-canvas font-body text-text-primary"
+      >
+        {children}
+      </div>
+    </DesignProfileBoundary>
+  );
+}

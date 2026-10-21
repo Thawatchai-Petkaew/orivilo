@@ -14,7 +14,8 @@ variants: [default]
 sizes: [sm, md, lg]
 states: [default, hover, focus-visible, disabled, read-only, invalid]
 recipes: [neutral, professional, friendly]
-examples: [] # the reference screen (E2-8) is the first
+examples:
+  - src/examples/settings-form.tsx
 rules:
   - "Inside a Field it takes the label, description, error and required wiring from context"
   - Label is always visible; placeholder is never the label

@@ -14,7 +14,8 @@ variants: []
 sizes: []
 states: [closed, open, pending]
 recipes: [neutral, professional, friendly]
-examples: [] # the reference screen (E2-8) is the first
+examples:
+  - src/examples/settings-form.tsx
 rules:
   - "PopoverTrigger and PopoverClose default to asChild so a Button keeps its recipe"
   - "Rendered through the portal with the same DesignProfileBoundary as the trigger (PortalScope); the InsideProfile story proves it"

@@ -15,7 +15,10 @@ variants: [primary, secondary, ghost, destructive, intent]
 sizes: [sm, md, lg]
 states: [default, hover, focus-visible, pressed, disabled, loading]
 recipes: [neutral, professional, friendly]
-examples: [] # the reference screen (E2-8) is the first
+examples:
+  - src/examples/settings-form.tsx
+  - src/examples/decision-log.tsx
+  - src/examples/landing.tsx
 rules:
   - "intent is the one Intent Engine button per Studio screen; inside a profile boundary it renders as that profile's primary action (E2-3 remap)"
   - "asChild renders the recipe on a child element such as a link"
