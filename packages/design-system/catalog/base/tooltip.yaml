@@ -14,7 +14,8 @@ variants: []
 sizes: []
 states: [closed, open, delayed]
 recipes: [neutral, professional, friendly]
-examples: [] # the reference screen (E2-8) is the first
+examples:
+  - src/examples/settings-form.tsx
 rules:
   - "Content re-opens the trigger's profile through PortalScope (E2-4)"
   - "Never the only way to learn a control's name; the control carries an accessible name itself"

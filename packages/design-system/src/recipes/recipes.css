@@ -906,8 +906,14 @@
     font-weight: var(--cmp-table-header-type-font-weight);
     letter-spacing: var(--cmp-table-header-type-letter-spacing);
   }
+  /* A truncating column wraps in the block layout: the block has the width, and a phone cannot hover for the rest (E2-7). */
   .ds-table__td[data-truncate] {
     max-width: none;
+  }
+  .ds-table__td[data-truncate] > .ds-table__cell {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
   }
   .ds-table__th[data-select],
   .ds-table__td[data-select] {

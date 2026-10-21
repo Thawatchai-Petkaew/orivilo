@@ -13,7 +13,9 @@ variants: [default, selected, interactive]
 sizes: [md]
 states: [default, hover, focus-visible, selected]
 recipes: [neutral, professional, friendly]
-examples: []
+examples:
+  - src/examples/decision-log.tsx
+  - src/examples/landing.tsx
 rules:
   - Elevation and edge come from the recipe (surface depth), not from the card
   - Whole-card click and inner actions never compete; one is the target. An interactive card contains no other control

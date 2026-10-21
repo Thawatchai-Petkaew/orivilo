@@ -3,9 +3,11 @@
  * A story in a component tier (base, application, marketing) needs a catalog entry whose `story`
  * field is its id; an entry with status draft or stable needs a story. Foundations stories are
  * documentation, not components, and are exempt. `catalog/commands/` is the command registry, checked
- * by check-commands. Runs on the file system; Storybook is not needed.
+ * by check-commands. Page examples (E2-7): every `examples` path in an entry exists, every page
+ * example row in coverage.md with status draft or stable names a story that resolves, and every
+ * story under src/examples/ is titled `Examples/`. Runs on the file system; Storybook is not needed.
  */
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { load } from "js-yaml";
 import { describe, expect, it } from "vitest";
@@ -17,6 +19,15 @@ interface Entry {
   name: string;
   tier: string;
   status: "planned" | "draft" | "stable" | "deprecated";
+  story: string;
+  file: string;
+  examples: string[];
+}
+
+interface PageExample {
+  name: string;
+  tier: string;
+  status: string;
   story: string;
 }
 
@@ -50,8 +61,37 @@ function readEntries(): Entry[] {
     if (!doc.name || !doc.tier || !doc.status || !doc.story) {
       throw new Error(`${path.relative(root, file)}: needs name, tier, status, story`);
     }
-    return { name: doc.name, tier: doc.tier, status: doc.status, story: doc.story };
+    const examples = Array.isArray(doc.examples) ? doc.examples : [];
+    if (examples.some((e) => typeof e !== "string")) {
+      throw new Error(`${path.relative(root, file)}: examples must be paths`);
+    }
+    return {
+      name: doc.name,
+      tier: doc.tier,
+      status: doc.status,
+      story: doc.story,
+      file: path.relative(root, file),
+      examples,
+    };
   });
+}
+
+/** The rows of the "Page examples" table in coverage.md: name, tier, status, story id. */
+function readPageExamples(): PageExample[] {
+  const text = readFileSync(path.join(root, "catalog", "coverage.md"), "utf8");
+  const section = text.split(/^## /m).find((part) => part.startsWith("Page examples"));
+  if (!section) throw new Error("catalog/coverage.md has no '## Page examples' section");
+  return section
+    .split("\n")
+    .filter((line) => line.startsWith("|"))
+    .map((line) => line.split("|").map((cell) => cell.trim()))
+    .filter((cells) => cells.length >= 5 && cells[1] !== "Example" && !/^-+$/.test(cells[1] ?? ""))
+    .map((cells) => ({
+      name: cells[1] ?? "",
+      tier: cells[2] ?? "",
+      status: cells[3] ?? "",
+      story: cells[4] ?? "",
+    }));
 }
 
 function readStoryTitles(): { file: string; title: string }[] {
@@ -93,6 +133,43 @@ describe("catalog and stories agree", () => {
           !TIERS.includes(e.tier as (typeof TIERS)[number]) || !e.story.startsWith(`${e.tier}-`),
       )
       .map((e) => `${e.tier}/${e.name} (story ${e.story})`);
+    expect(wrong).toEqual([]);
+  });
+});
+
+describe("page examples (E2-7)", () => {
+  const entries = readEntries();
+  const stories = readStoryTitles();
+  const storyIds = new Set(stories.map((s) => storyId(s.title)));
+  const pages = readPageExamples();
+
+  it("every examples path in a catalog entry exists", () => {
+    const missing = entries
+      .flatMap((e) => e.examples.map((p) => ({ entry: e.file, path: p })))
+      .filter(({ path: p }) => !existsSync(path.join(root, p)))
+      .map(({ entry, path: p }) => `${entry} lists ${p}`);
+    expect(missing, "catalog examples that do not exist").toEqual([]);
+  });
+
+  it("coverage.md lists at least one page example per component tier", () => {
+    const tiers = new Set(pages.map((p) => p.tier));
+    expect([...TIERS].filter((t) => !tiers.has(t))).toEqual([]);
+  });
+
+  it("every draft or stable page example in coverage.md has a story", () => {
+    const missing = pages
+      .filter((p) => p.status === "draft" || p.status === "stable")
+      .filter((p) => !storyIds.has(p.story))
+      .map((p) => `${p.name} (${p.tier}, story ${p.story})`);
+    expect(missing, "page example rows without a story").toEqual([]);
+  });
+
+  it("stories under src/examples/ are titled Examples/ and nothing else is", () => {
+    const wrong = stories
+      .filter(
+        (s) => s.file.startsWith("src/examples/") !== s.title.toLowerCase().startsWith("examples/"),
+      )
+      .map((s) => `${s.file} (title "${s.title}")`);
     expect(wrong).toEqual([]);
   });
 });
