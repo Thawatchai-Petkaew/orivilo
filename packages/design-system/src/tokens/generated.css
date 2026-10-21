@@ -689,7 +689,7 @@
   --cmp-tabs-bg-hover: var(--ds-surface-hover);
   --cmp-tabs-indicator: var(--ds-selection-fg);
   --cmp-tabs-border: var(--ds-border-subtle);
-  --cmp-tabs-radius: var(--ds-shape-control-radius);
+  --cmp-tabs-radius: var(--ds-shape-check-radius);
   --cmp-tabs-height-sm: var(--ds-size-control-sm);
   --cmp-tabs-height-md: var(--ds-size-control-md);
   --cmp-tabs-padding-x: var(--ds-space-inset-sm);

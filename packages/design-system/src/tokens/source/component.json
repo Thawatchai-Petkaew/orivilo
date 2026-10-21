@@ -760,7 +760,8 @@
     },
     "radius": {
       "$type": "dimension",
-      "$value": "{shape.control.radius}"
+      "$value": "{shape.check.radius}",
+      "$description": "The hover tint behind a tab is a small rounded rectangle; the pill radius on a top edge reads as a dome, and the selected state is the 2 px edge, not the shape"
     },
     "height": {
       "sm": {

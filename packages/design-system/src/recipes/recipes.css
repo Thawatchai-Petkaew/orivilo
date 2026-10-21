@@ -499,7 +499,7 @@
   min-height: var(--cmp-tabs-height-md);
   padding-inline: var(--cmp-tabs-padding-x);
   border: 0;
-  border-radius: var(--cmp-tabs-radius) var(--cmp-tabs-radius) 0 0;
+  border-radius: var(--cmp-tabs-radius);
   background: transparent;
   color: var(--cmp-tabs-fg);
   font-family: var(--cmp-tabs-type-font-family);
