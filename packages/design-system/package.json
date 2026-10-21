@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./examples": "./src/examples/index.ts",
     "./tokens.css": "./src/tokens/orivilo.css",
     "./fonts.css": "./src/tokens/fonts.css",
     "./eslint": "./eslint/no-raw-style-classes.mjs"

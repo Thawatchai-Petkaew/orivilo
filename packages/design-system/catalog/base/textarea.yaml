@@ -15,6 +15,7 @@ states: [default, hover, focus-visible, disabled, read-only, invalid, auto-grow]
 recipes: [neutral, professional, friendly]
 examples:
   - src/examples/settings-form.tsx
+  - src/examples/workspace.tsx
 rules:
   - "rows and maxRows bound the auto-grow; manual resize is off because the bound is the contract"
   - "Grows with content up to a bound, then scrolls"

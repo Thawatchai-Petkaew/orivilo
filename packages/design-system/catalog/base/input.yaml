@@ -16,6 +16,7 @@ states: [default, hover, focus-visible, disabled, read-only, invalid]
 recipes: [neutral, professional, friendly]
 examples:
   - src/examples/settings-form.tsx
+  - src/examples/workspace.tsx
 rules:
   - "Inside a Field it takes the label, description, error and required wiring from context"
   - Label is always visible; placeholder is never the label
