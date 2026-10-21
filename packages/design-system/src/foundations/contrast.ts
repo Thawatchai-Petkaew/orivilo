@@ -1,4 +1,4 @@
-/** WCAG 2.x relative luminance and contrast ratio for sRGB hex colours. Display only (E0-5 owns CI checks). */
+/** WCAG 2.x relative luminance and contrast ratio for sRGB hex colours. Used by the Foundations pages and by the contrast check (`src/tokens/contrast-pairs.ts`, E0-5). */
 
 function channel(value: number): number {
   const c = value / 255;

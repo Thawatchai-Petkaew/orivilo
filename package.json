@@ -11,6 +11,7 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
+    "contrast": "pnpm --filter @orivilo/design-system contrast",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

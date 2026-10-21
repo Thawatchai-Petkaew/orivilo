@@ -12,6 +12,7 @@
   },
   "scripts": {
     "tokens": "node scripts/build-tokens.ts",
+    "contrast": "node scripts/check-contrast.ts",
     "storybook": "storybook dev -p 6006",
     "build": "storybook build",
     "lint": "eslint .",

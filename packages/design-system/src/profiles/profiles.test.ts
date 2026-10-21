@@ -1,13 +1,12 @@
 /**
  * The profile contract (DESIGN.md §5, §8; spec E2-2). Fails when a profile overrides a name that
  * does not exist, touches a locked group, collides with a base primitive, references an unknown
- * primitive, declares a decision its tokens contradict, breaks a contrast pair in either mode, or
- * when src/profiles/generated.css is stale.
+ * primitive, declares a decision its tokens contradict, or when src/profiles/generated.css is
+ * stale. Contrast under each profile is checked in ../tokens/contrast-pairs.test.ts (E0-5).
  */
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { contrastRatio } from "../foundations/contrast";
 import component from "../tokens/source/component.json" with { type: "json" };
 import primitives from "../tokens/source/primitives.json" with { type: "json" };
 import semantic from "../tokens/source/semantic.json" with { type: "json" };
@@ -109,23 +108,6 @@ describe("the shipped profiles", () => {
         );
         expect(changed).toEqual(["action.primary", "surface.canvas", "shape.control.radius"]);
       });
-
-      const pairs = p.tokens
-        .layer("semantic")
-        .filter((t) => t.contrast && t.contrast.floor !== null);
-      for (const token of pairs) {
-        for (const mode of MODES) {
-          it(`${token.path} on ${token.contrast?.against} meets ${token.contrast?.floor} in ${mode}`, () => {
-            const against = p.tokens.get("semantic", token.contrast?.against ?? "");
-            if (!against || !token.contrast?.floor) throw new Error("pair missing");
-            const fg = String(p.tokens.resolve(token, mode).value);
-            const bg = String(p.tokens.resolve(against, mode).value);
-            const ratio = contrastRatio(fg, bg);
-            expect(ratio, `${fg} on ${bg}`).not.toBeNull();
-            expect(ratio ?? 0).toBeGreaterThanOrEqual(token.contrast.floor);
-          });
-        }
-      }
     });
   }
 });

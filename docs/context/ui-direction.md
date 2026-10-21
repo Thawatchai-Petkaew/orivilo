@@ -39,7 +39,7 @@ Avoid: loud, cold developer-tool, "AI vibe" (violet-blue gradients, sparkles), t
 
 - Control radius 6 vs 10 on Button and Input (Storybook, E2-4).
 - Glass toolbar over a preview with real photography: icon contrast still ≥ 3.0.
-- Dark `surface.selected` and feedback values stay placeholders until E0-5 computes them.
+- Dark `surface.selected` and feedback values: computed by E0-5 (`pnpm contrast`); the text on them passes under every profile. Whether the tints read as intended is a lineup question, not a ratio.
 - Lineup: our shell next to Linear, Figma, Framer for three outsiders; must not be picked as "the AI one".
 
 ## Sources
