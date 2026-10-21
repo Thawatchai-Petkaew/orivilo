@@ -69,6 +69,19 @@ Besides the canvas and voice, the user can pick a **UI template**, state the int
 
 Both layers write to the same profile and resolve through the same deterministic path (handoff §12). The expert layer edits the values the intent layer would have chosen; it never bypasses the token contract.
 
+### Every node carries a knowledge base (owner, 2026-10-21)
+
+When the user asks (by voice or by clicking) for help with, say, a logo, a **logo node** appears on the canvas. Each node is a module that must be expert in its subject, because a correct digital product visual plus brand book draws on a large body of knowledge: digital and classic marketing, brand positioning, product positioning, product vision, user personas, and how each of these shapes design.
+
+Rules for a node:
+
+- **Collect before generating.** A node knows which inputs it needs. If the user mentions a topic that is not filled yet, the node asks for the missing pieces one by one, by voice or through UI controls, like collecting items in a game, until it can generate. Results are saved in that node.
+- **Know-how, not a bare prompt.** A single prompt for "a logo" does not work. A node runs a process built on domain knowledge: for logos, the logo types that exist (wordmark, lettermark, iconic, combination, and so on), which type fits this product, and many reference examples from real brands for each type, so the generating team has enough references to produce what should be produced.
+- **Map to the real business.** Knowledge comes from real brand books and brand guidelines, collected per industry: what a finance or accounting brand's logo tends to communicate, how formal it is, which colors, which fonts, rounded or square terminals, whether Thai and English both need support, and so on.
+- **Node by node.** Every node on the path to a design system and brand book guideline (not only the logo) gets this treatment. Missing knowledge is a gap to fill, never something to improvise silently (ties to iron rule 4: be honest about what is real).
+
+Implication: knowledge collection and curation (per node, per industry) is product work with its own stories, and the Intent Engine needs a place to hold and version that knowledge.
+
 Implication for the Intent Studio MVP: input and interpretation must work as blocks on a canvas with a drill-down conversation per element, not as a single form.
 
 ## First milestone
