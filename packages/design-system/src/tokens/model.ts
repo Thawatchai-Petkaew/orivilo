@@ -203,8 +203,11 @@ export class TokenSet {
   emitCss(): string {
     const light: string[] = [];
     const dark: string[] = [];
+    const component: string[] = [];
     for (const token of this.tokens) {
-      if (isModeValue(token.raw)) {
+      if (token.layer === "component") {
+        component.push(...this.cssDeclarations(token, token.raw));
+      } else if (isModeValue(token.raw)) {
         light.push(...this.cssDeclarations(token, token.raw.light));
         dark.push(...this.cssDeclarations(token, token.raw.dark));
       } else {
@@ -237,7 +240,7 @@ export class TokenSet {
     return [
       "/* Generated from src/tokens/source/*.json by scripts/build-tokens.ts. Do not edit. */",
       "",
-      "/* Primitives (--op-*), semantic light (--ds-*), component (--cmp-*) */",
+      "/* Primitives (--op-*) and semantic light (--ds-*) */",
       ':root,\n[data-mode="light"] {',
       "  color-scheme: light;",
       indent(light),
@@ -247,6 +250,13 @@ export class TokenSet {
       '[data-mode="dark"] {',
       "  color-scheme: dark;",
       indent(dark),
+      "}",
+      "",
+      "/* Component tokens (--cmp-*) reference semantic names. A custom property is computed where it is",
+      " * declared, so they are declared again on every boundary that remaps the semantic layer (mode",
+      " * or profile); otherwise a dark boundary would inherit light component values from :root. */",
+      ":root,\n[data-mode],\n[data-design-profile] {",
+      indent(component),
       "}",
       "",
       "/* Tailwind utilities resolve to semantic tokens only (DESIGN.md §5). The defaults are removed first",
