@@ -44,5 +44,15 @@ export {
   TabsTrigger,
   type TabsTriggerProps,
 } from "./tabs/Tabs";
+export {
+  type SortDirection,
+  Table,
+  type TableColumn,
+  type TableDensity,
+  type TableEmpty,
+  type TableError,
+  type TableProps,
+  type TableSort,
+} from "./table/Table";
 export { Textarea, type TextareaProps } from "./textarea/Textarea";
 export { Tooltip, type TooltipProps, TooltipProvider } from "./tooltip/Tooltip";

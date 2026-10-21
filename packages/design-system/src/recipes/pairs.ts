@@ -4,8 +4,8 @@
  * every profile in both modes. `recipes.test.ts` resolves each pair from the token source; the
  * design gate reads this list as the "real pairs used" evidence.
  *
- * Not listed: `menu.border`, `tabs.border` and `dialog.border`, which are `border.subtle`
- * dividers, and `card.border`, which is transparent on the light canvas. A menu is identified by
+ * Not listed: `menu.border`, `tabs.border`, `dialog.border` and `table.row-border`, which are
+ * `border.subtle` dividers, and `card.border`, which is transparent on the light canvas. A menu is identified by
  * its shadow and its options, a tab list by its tabs and the selected edge, a dialog by its scrim
  * and shadow, a card by its ground; the edge is decoration and WCAG 1.4.11 does not apply to it.
  *
@@ -351,5 +351,83 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     fg: "ds:text.secondary",
     bg: "card.bg-selected",
     floor: TEXT,
+  },
+  // Table
+  {
+    recipe: "table",
+    slot: "text",
+    fg: "table.fg",
+    bg: "table.bg",
+    floor: TEXT,
+  },
+  {
+    recipe: "table",
+    slot: "secondary text",
+    fg: "table.fg-secondary",
+    bg: "table.bg",
+    floor: TEXT,
+  },
+  {
+    recipe: "table",
+    slot: "missing cell",
+    fg: "table.fg-missing",
+    bg: "table.bg",
+    floor: TEXT,
+  },
+  {
+    recipe: "table",
+    slot: "header",
+    fg: "table.header-fg",
+    bg: "table.header-bg",
+    floor: TEXT,
+  },
+  {
+    recipe: "table",
+    slot: "error",
+    fg: "table.error",
+    bg: "table.bg",
+    floor: TEXT,
+  },
+  {
+    recipe: "table",
+    slot: "hover text",
+    fg: "table.fg",
+    bg: "table.row-hover",
+    floor: TEXT,
+  },
+  {
+    recipe: "table",
+    slot: "selected text",
+    fg: "table.fg",
+    bg: "table.row-selected",
+    floor: TEXT,
+  },
+  {
+    recipe: "table",
+    slot: "selected secondary text",
+    fg: "table.fg-secondary",
+    bg: "table.row-selected",
+    floor: TEXT,
+  },
+  {
+    recipe: "table",
+    slot: "selected edge",
+    fg: "table.row-selected-fg",
+    bg: "table.row-selected",
+    floor: UI,
+  },
+  {
+    recipe: "table",
+    slot: "checkbox on selected row",
+    fg: "ds:border.control",
+    bg: "table.row-selected",
+    floor: UI,
+  },
+  {
+    recipe: "table",
+    slot: "checkbox on hover row",
+    fg: "ds:border.control",
+    bg: "table.row-hover",
+    floor: UI,
   },
 ];
