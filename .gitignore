@@ -11,5 +11,6 @@ next-env.d.ts
 .vercel/
 .DS_Store
 .claude/settings.local.json
+storybook-static/
 playwright-report/
 test-results/

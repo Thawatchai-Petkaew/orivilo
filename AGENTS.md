@@ -1,4 +1,4 @@
-# AGENTS.md — ORIVILO
+# AGENTS.md: ORIVILO
 
 The single source of rules for every AI agent and human working in this repo. `CLAUDE.md` imports this file; other tools read it directly. Keep it under 100 lines; details live in `.claude/rules/`, `.claude/skills/`, and `docs/`.
 
@@ -10,7 +10,7 @@ First milestone: the MVP of the **Design System module** (Intent Studio), scoped
 
 ## Stack (decided, see `docs/adr/`)
 
-Turborepo + pnpm · Next.js App Router · TypeScript strict · Tailwind CSS v4 + shadcn/ui · zod · Vitest + Playwright · Supabase (Postgres + Storage) · Drizzle · Better Auth (organization plugin) · Claude API server-side · Vercel.
+Turborepo + pnpm, Next.js App Router, TypeScript strict, Tailwind CSS v4 + shadcn/ui, zod, Vitest + Playwright, Supabase (Postgres + Storage), Drizzle, Better Auth (organization plugin), Claude API server-side, Vercel.
 
 | Path                      | Purpose                                                                              |
 | ------------------------- | ------------------------------------------------------------------------------------ |
@@ -32,20 +32,22 @@ Turborepo + pnpm · Next.js App Router · TypeScript strict · Tailwind CSS v4 +
 
 ## Lanes and gates (status lives in Jira)
 
-| Lane | When                                                                                                                                           | Gates the owner approves                                        |
-| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| L    | Epic, or any risk flag: profile/token schema, semantic token contract, component public API, resolver logic, auth/data access, asset licensing | G1 Scope · G2 Design · G3 PR · G4 Staging sign-off · G5 Release |
-| M    | Normal story                                                                                                                                   | G2 Plan (scope + design together) · G3 PR · G5 Release          |
-| S    | Small fix or chore, no risk flag                                                                                                               | G3 PR · G5 Release                                              |
+| Lane | When                                                                                                                                           | Gates the owner approves                                     |
+| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| L    | Epic, or any risk flag: profile/token schema, semantic token contract, component public API, resolver logic, auth/data access, asset licensing | G1 Scope, G2 Design, G3 PR / G4 Staging sign-off, G5 Release |
+| M    | Normal story                                                                                                                                   | G2 Plan (scope + design together), G3 PR / G5 Release        |
+| S    | Small fix or chore, no risk flag                                                                                                               | G3 PR / G5 Release                                           |
 
 Gate review packets use the `gate-packet` skill. Request changes → rework → re-raise the same gate.
 
 ## Design-system rules (from the handoff §23)
 
-- Read the catalog (`design-system/catalog/`, once it exists) before composing UI. Use team patterns and components when the requirement matches.
+- Read `DESIGN.md` before any UI work; its design gate blocks G3. Read the catalog (`packages/design-system/catalog/`) before composing UI. Use team patterns and components when the requirement matches.
+- Storybook is the catalog's visual half (ADR 0003). No shared component exists without a story and a catalog entry in the same PR; no Studio UI is built before Storybook is set up (E2-0).
 - Read type signatures and an example before using props. Never invent token names or public APIs without adding them to the contract.
 - Recipes use semantic tokens. No per-page hex, radius, or font values to change a mood.
 - Brand accent never replaces error, warning, selection, or focus semantics.
+- No middot (·) and no em dash (—) in any UI text. Hard rule from the owner; the copy check fails the build on them.
 - Never render trust badges, ratings, discounts, countdowns, or success states without backing data.
 - A profile changes visual expression only. Business logic, permissions, and validation come from the domain.
 

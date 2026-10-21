@@ -1,0 +1,23 @@
+name: Dialog
+tier: application
+status: planned
+since: E2-5
+import: none
+story: application-dialog
+useWhen:
+  - A short secondary task or confirmation that must finish before returning
+avoidWhen:
+  - Long forms or browsing (Sheet or a page)
+  - Information that does not need a decision (inline or toast)
+contract: DialogProps
+variants: [default, destructive]
+sizes: [sm, md]
+states: [closed, open, pending, error]
+recipes: []
+examples: []
+rules:
+  - Content rendered through the portal receives the same DesignProfileBoundary as the trigger; a test proves it
+  - Primary action is named after the outcome, never "OK"
+  - Destructive variant uses feedback.danger, never brand colours
+a11y:
+  - Focus trapped while open and returned to the trigger on close; Escape closes unless pending

@@ -3,11 +3,13 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+      "outputs": [".next/**", "!.next/cache/**", "dist/**", "storybook-static/**"]
     },
     "lint": {},
     "typecheck": {},
-    "test": {},
+    "test": {
+      "passThroughEnv": ["PLAYWRIGHT_BROWSERS_PATH"]
+    },
     "dev": {
       "cache": false,
       "persistent": true
