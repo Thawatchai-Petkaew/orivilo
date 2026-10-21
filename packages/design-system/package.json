@@ -10,6 +10,7 @@
     "./eslint": "./eslint/no-raw-style-classes.mjs"
   },
   "scripts": {
+    "tokens": "node scripts/build-tokens.ts",
     "storybook": "storybook dev -p 6006",
     "build": "storybook build",
     "lint": "eslint .",

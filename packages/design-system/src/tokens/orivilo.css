@@ -1,113 +1,16 @@
 /*
- * ORIVILO semantic tokens. The one source for every value in DESIGN.md §3 and §4.
- * Token path `group.role` is the custom property `--ds-group-role`; the @theme block below maps
- * each one to a Tailwind utility (`bg-surface-canvas`, `rounded-control`, `font-body`).
- * Components, recipes, and pages use these names only (and the §4 type scale below); no hex or raw value leaves this file.
+ * ORIVILO tokens, entry file. The values live in src/tokens/source/*.json (three layers, DESIGN.md §5)
+ * and are compiled into generated.css by `pnpm --filter @orivilo/design-system tokens`.
+ * Primitive `--op-*`, semantic `--ds-*`, component `--cmp-*`. Components, recipes, and pages use
+ * semantic and component names only; no hex or raw value is written anywhere else.
  */
 
 @import "tailwindcss";
+@import "./generated.css";
 
-/* DESIGN.md v1.1 §3.1 Colour, light mode (default) */
-:root,
-[data-mode="light"] {
-  color-scheme: light;
-  --ds-surface-canvas: #f4f4f0;
-  --ds-surface-card: #ffffff;
-  --ds-surface-selected: #f4eefd;
-  --ds-surface-inverse: #16151d;
-  --ds-text-primary: #16151d;
-  --ds-text-secondary: #5b5a66;
-  --ds-text-on-action: #ffffff;
-  --ds-action-primary: #16151d;
-  --ds-action-primary-hover: #2e2d38;
-  --ds-action-primary-press: #000000;
-  --ds-action-intent: #d9f66f;
-  --ds-action-intent-hover: #cfef5c;
-  --ds-action-intent-press: #bfe23f;
-  --ds-text-on-intent: #16151d;
-  --ds-text-link: #6b22b0;
-  --ds-selection-fg: #6b22b0;
-  --ds-focus-ring: #16151d;
-  --ds-border-control: #85838f;
-  --ds-border-subtle: #e3e2dc;
-  --ds-brand-signature: #d9f66f;
-  --ds-feedback-success: #0b6e4f;
-  --ds-feedback-warning: #b54708;
-  --ds-feedback-danger: #b42318;
-  --ds-feedback-info: #1d6fd6;
-}
-
-/* DESIGN.md v1.1 §3.2 Colour, dark mode. A remap by role, not an inversion.
- * Placeholders until E0-5 computes them: surface.selected and the four feedback values. */
-[data-mode="dark"] {
-  color-scheme: dark;
-  --ds-surface-canvas: #16151d;
-  --ds-surface-card: #1e1d26;
-  --ds-surface-selected: #2a2140; /* placeholder */
-  --ds-surface-inverse: #f4f4f0; /* placeholder */
-  --ds-text-primary: #f2f1ec;
-  --ds-text-secondary: #a9a7b3;
-  --ds-text-on-action: #16151d;
-  --ds-action-primary: #f2f1ec;
-  --ds-action-primary-hover: #ffffff;
-  --ds-action-primary-press: #d9d8d2;
-  --ds-action-intent: #d9f66f;
-  --ds-action-intent-hover: #cfef5c;
-  --ds-action-intent-press: #bfe23f;
-  --ds-text-on-intent: #16151d;
-  --ds-text-link: #c49af2;
-  --ds-selection-fg: #b07fee;
-  --ds-focus-ring: #f2f1ec;
-  --ds-border-control: #6f6d7a;
-  --ds-border-subtle: #2b2a36;
-  --ds-brand-signature: #d9f66f;
-  --ds-feedback-success: #5cc9a3; /* placeholder */
-  --ds-feedback-warning: #f0a060; /* placeholder */
-  --ds-feedback-danger: #f58a80; /* placeholder */
-  --ds-feedback-info: #7fb3f5; /* placeholder */
-}
-
-/* DESIGN.md §3.3 Shape, space, size, motion and §4 type (mode independent) */
-:root {
-  --ds-shape-control-radius: 999px; /* pill, DESIGN.md v1.1 mood E */
-  --ds-shape-media-radius: 12px;
-  --ds-shape-container-radius: 16px;
-  --ds-shape-overlay-radius: 24px;
-
-  --ds-space-1: 4px;
-  --ds-space-2: 8px;
-  --ds-space-3: 12px;
-  --ds-space-4: 16px;
-  --ds-space-6: 24px;
-  --ds-space-8: 32px;
-  --ds-space-12: 48px;
-
-  --ds-size-control-min-height: 40px;
-  --ds-size-control-min-height-sm: 32px;
-  --ds-size-control-min-height-lg: 48px;
-  --ds-size-touch: 44px;
-
-  --ds-motion-feedback-duration: 120ms;
-  --ds-motion-overlay-duration: 200ms;
-  --ds-motion-page-duration: 320ms;
-  --ds-motion-ease: cubic-bezier(0.2, 0, 0, 1);
-
-  --ds-font-display: "Anuphan", "IBM Plex Sans Thai", system-ui, sans-serif;
-  --ds-font-body: "IBM Plex Sans", "IBM Plex Sans Thai", system-ui, sans-serif;
-  --ds-font-mono: "IBM Plex Mono", ui-monospace, monospace;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  :root {
-    --ds-motion-feedback-duration: 0ms;
-    --ds-motion-overlay-duration: 0ms;
-    --ds-motion-page-duration: 0ms;
-  }
-}
-
-/* Tailwind utilities resolve to the semantic tokens and nothing else (DESIGN.md §5).
- * The default palette, radii, shadows, and font families are removed so a raw class such as
- * `bg-red-500` or `rounded-lg` produces no CSS; the lint rule reports it as well. */
+/* Tailwind's default palette, radii, shadows, font families, and text sizes are removed so a raw
+ * class such as `bg-red-500` or `rounded-lg` produces no CSS; the lint rule reports it as well.
+ * generated.css re-adds the semantic ones through its @theme inline block. */
 @theme {
   --color-*: initial;
   --radius-*: initial;
@@ -116,60 +19,16 @@
   --text-*: initial;
 }
 
-@theme inline {
-  --color-surface-canvas: var(--ds-surface-canvas);
-  --color-surface-card: var(--ds-surface-card);
-  --color-surface-selected: var(--ds-surface-selected);
-  --color-surface-inverse: var(--ds-surface-inverse);
-  --color-text-primary: var(--ds-text-primary);
-  --color-text-secondary: var(--ds-text-secondary);
-  --color-text-on-action: var(--ds-text-on-action);
-  --color-action-primary: var(--ds-action-primary);
-  --color-action-primary-hover: var(--ds-action-primary-hover);
-  --color-action-primary-press: var(--ds-action-primary-press);
-  --color-action-intent: var(--ds-action-intent);
-  --color-action-intent-hover: var(--ds-action-intent-hover);
-  --color-action-intent-press: var(--ds-action-intent-press);
-  --color-text-on-intent: var(--ds-text-on-intent);
-  --color-text-link: var(--ds-text-link);
-  --color-selection-fg: var(--ds-selection-fg);
-  --color-focus-ring: var(--ds-focus-ring);
-  --color-border-control: var(--ds-border-control);
-  --color-border-subtle: var(--ds-border-subtle);
-  --color-brand-signature: var(--ds-brand-signature);
-  --color-feedback-success: var(--ds-feedback-success);
-  --color-feedback-warning: var(--ds-feedback-warning);
-  --color-feedback-danger: var(--ds-feedback-danger);
-  --color-feedback-info: var(--ds-feedback-info);
-
-  --radius-control: var(--ds-shape-control-radius);
-  --radius-container: var(--ds-shape-container-radius);
-  --radius-media: var(--ds-shape-media-radius);
-  --radius-overlay: var(--ds-shape-overlay-radius);
-
-  --font-display: var(--ds-font-display);
-  --font-body: var(--ds-font-body);
-  --font-mono: var(--ds-font-mono);
-
-  --ease-ds: var(--ds-motion-ease);
-}
-
-/* DESIGN.md §4 type scale: `text-display-lg`, `text-body-md`, and so on, each with its line height. */
-@theme {
-  --text-display-lg: 3.5rem;
-  --text-display-lg--line-height: 1.2;
-  --text-display-md: 2rem;
-  --text-display-md--line-height: 1.25;
-  --text-body-lg: 1.25rem;
-  --text-body-lg--line-height: 1.5;
-  --text-body-md: 1rem;
-  --text-body-md--line-height: 1.7;
-  --text-body-sm: 0.875rem;
-  --text-body-sm--line-height: 1.6;
-}
-
 /* Focus is the same on every ground: a 2 px ring with a 2 px gap (DESIGN.md §3.1 focus.ring). */
 :focus-visible {
   outline: 2px solid var(--ds-focus-ring);
   outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --ds-motion-feedback-duration: 0ms;
+    --ds-motion-overlay-duration: 0ms;
+    --ds-motion-page-duration: 0ms;
+  }
 }

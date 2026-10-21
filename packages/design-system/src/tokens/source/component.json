@@ -1,0 +1,466 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "$description": "ORIVILO component tokens. Each references a semantic token only (DESIGN.md §5); they exist so a component's recipe reads one name per slot. No component code exists yet (E2-4); these are the contract the first components will consume.",
+  "button": {
+    "primary": {
+      "bg": {
+        "$type": "color",
+        "$value": "{action.primary}"
+      },
+      "bg-hover": {
+        "$type": "color",
+        "$value": "{action.primary-hover}"
+      },
+      "bg-press": {
+        "$type": "color",
+        "$value": "{action.primary-press}"
+      },
+      "bg-disabled": {
+        "$type": "color",
+        "$value": "{action.primary-disabled}"
+      },
+      "fg": {
+        "$type": "color",
+        "$value": "{text.on-action}"
+      },
+      "fg-disabled": {
+        "$type": "color",
+        "$value": "{text.disabled}"
+      }
+    },
+    "secondary": {
+      "bg": {
+        "$type": "color",
+        "$value": "{surface.card}"
+      },
+      "bg-hover": {
+        "$type": "color",
+        "$value": "{surface.hover}"
+      },
+      "border": {
+        "$type": "color",
+        "$value": "{border.control}"
+      },
+      "fg": {
+        "$type": "color",
+        "$value": "{text.primary}"
+      }
+    },
+    "ghost": {
+      "bg-hover": {
+        "$type": "color",
+        "$value": "{surface.hover}"
+      },
+      "fg": {
+        "$type": "color",
+        "$value": "{text.primary}"
+      }
+    },
+    "intent": {
+      "bg": {
+        "$type": "color",
+        "$value": "{action.intent}"
+      },
+      "bg-hover": {
+        "$type": "color",
+        "$value": "{action.intent-hover}"
+      },
+      "bg-press": {
+        "$type": "color",
+        "$value": "{action.intent-press}"
+      },
+      "fg": {
+        "$type": "color",
+        "$value": "{text.on-intent}"
+      }
+    },
+    "destructive": {
+      "bg": {
+        "$type": "color",
+        "$value": "{action.destructive}"
+      },
+      "bg-hover": {
+        "$type": "color",
+        "$value": "{action.destructive-hover}"
+      },
+      "bg-press": {
+        "$type": "color",
+        "$value": "{action.destructive-press}"
+      },
+      "fg": {
+        "$type": "color",
+        "$value": "{text.on-destructive}"
+      }
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.control.radius}"
+    },
+    "height": {
+      "sm": {
+        "$type": "dimension",
+        "$value": "{size.control.sm}"
+      },
+      "md": {
+        "$type": "dimension",
+        "$value": "{size.control.md}"
+      },
+      "lg": {
+        "$type": "dimension",
+        "$value": "{size.control.lg}"
+      }
+    },
+    "padding-x": {
+      "$type": "dimension",
+      "$value": "{space.inset.md}"
+    },
+    "gap": {
+      "$type": "dimension",
+      "$value": "{space.inline.md}"
+    },
+    "type": {
+      "$type": "typography",
+      "$value": "{type.label.md}"
+    }
+  },
+  "input": {
+    "bg": {
+      "$type": "color",
+      "$value": "{surface.card}"
+    },
+    "bg-disabled": {
+      "$type": "color",
+      "$value": "{surface.disabled}"
+    },
+    "border": {
+      "$type": "color",
+      "$value": "{border.control}"
+    },
+    "border-hover": {
+      "$type": "color",
+      "$value": "{border.control-hover}"
+    },
+    "border-focus": {
+      "$type": "color",
+      "$value": "{focus.ring}"
+    },
+    "border-error": {
+      "$type": "color",
+      "$value": "{border.error}"
+    },
+    "fg": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    },
+    "placeholder": {
+      "$type": "color",
+      "$value": "{text.placeholder}"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.control.radius}"
+    },
+    "height": {
+      "$type": "dimension",
+      "$value": "{size.control.md}"
+    },
+    "padding-x": {
+      "$type": "dimension",
+      "$value": "{space.inset.md}"
+    },
+    "type": {
+      "$type": "typography",
+      "$value": "{type.body.md}"
+    }
+  },
+  "card": {
+    "bg": {
+      "$type": "color",
+      "$value": "{surface.card}"
+    },
+    "border": {
+      "$type": "color",
+      "$value": "{border.card}"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.container.radius}"
+    },
+    "padding": {
+      "$type": "dimension",
+      "$value": "{space.inset.lg}"
+    },
+    "shadow": {
+      "$type": "shadow",
+      "$value": "{elevation.shell}"
+    }
+  },
+  "tile": {
+    "bg": {
+      "$type": "color",
+      "$value": "{surface.card}"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.container.radius}"
+    },
+    "padding": {
+      "$type": "dimension",
+      "$value": "{space.inset.lg}"
+    },
+    "numeral": {
+      "$type": "typography",
+      "$value": "{type.numeral.lg}"
+    },
+    "label": {
+      "$type": "color",
+      "$value": "{text.secondary}"
+    },
+    "glow": {
+      "$type": "color",
+      "$value": "{brand.signature}"
+    },
+    "glow-opacity": {
+      "$type": "number",
+      "$value": "{elevation.glow.opacity}"
+    }
+  },
+  "nav-item": {
+    "fg": {
+      "$type": "color",
+      "$value": "{text.secondary}"
+    },
+    "fg-hover": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    },
+    "fg-active": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    },
+    "bg-hover": {
+      "$type": "color",
+      "$value": "{surface.hover}"
+    },
+    "bg-active": {
+      "$type": "color",
+      "$value": "{surface.card}"
+    },
+    "bead": {
+      "$type": "color",
+      "$value": "{brand.signature}"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.control.radius}"
+    },
+    "height": {
+      "$type": "dimension",
+      "$value": "{size.control.md}"
+    }
+  },
+  "toolbar": {
+    "bg": {
+      "$type": "color",
+      "$value": "{surface.card}"
+    },
+    "border": {
+      "$type": "color",
+      "$value": "{border.subtle}"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.media.radius}"
+    },
+    "shadow": {
+      "$type": "shadow",
+      "$value": "{elevation.overlay}"
+    },
+    "blur": {
+      "$type": "dimension",
+      "$value": "{elevation.glass.blur}"
+    },
+    "padding": {
+      "$type": "dimension",
+      "$value": "{space.inset.sm}"
+    }
+  },
+  "dialog": {
+    "bg": {
+      "$type": "color",
+      "$value": "{surface.card}"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.overlay.radius}"
+    },
+    "shadow": {
+      "$type": "shadow",
+      "$value": "{elevation.overlay}"
+    },
+    "padding": {
+      "$type": "dimension",
+      "$value": "{space.inset.xl}"
+    },
+    "scrim": {
+      "$type": "color",
+      "$value": "{surface.scrim}"
+    },
+    "scrim-opacity": {
+      "$type": "number",
+      "$value": "{opacity.scrim}"
+    }
+  },
+  "toast": {
+    "bg": {
+      "$type": "color",
+      "$value": "{surface.inverse}"
+    },
+    "fg": {
+      "$type": "color",
+      "$value": "{text.on-inverse}"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.media.radius}"
+    },
+    "padding": {
+      "$type": "dimension",
+      "$value": "{space.inset.md}"
+    }
+  },
+  "tooltip": {
+    "bg": {
+      "$type": "color",
+      "$value": "{surface.inverse}"
+    },
+    "fg": {
+      "$type": "color",
+      "$value": "{text.on-inverse}"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.media.radius}"
+    },
+    "padding": {
+      "$type": "dimension",
+      "$value": "{space.inset.sm}"
+    },
+    "type": {
+      "$type": "typography",
+      "$value": "{type.label.sm}"
+    }
+  },
+  "badge": {
+    "neutral": {
+      "bg": {
+        "$type": "color",
+        "$value": "{surface.sunken}"
+      },
+      "fg": {
+        "$type": "color",
+        "$value": "{text.secondary}"
+      }
+    },
+    "success": {
+      "bg": {
+        "$type": "color",
+        "$value": "{feedback.success.surface}"
+      },
+      "fg": {
+        "$type": "color",
+        "$value": "{feedback.success.fg}"
+      }
+    },
+    "warning": {
+      "bg": {
+        "$type": "color",
+        "$value": "{feedback.warning.surface}"
+      },
+      "fg": {
+        "$type": "color",
+        "$value": "{feedback.warning.fg}"
+      }
+    },
+    "danger": {
+      "bg": {
+        "$type": "color",
+        "$value": "{feedback.danger.surface}"
+      },
+      "fg": {
+        "$type": "color",
+        "$value": "{feedback.danger.fg}"
+      }
+    },
+    "info": {
+      "bg": {
+        "$type": "color",
+        "$value": "{feedback.info.surface}"
+      },
+      "fg": {
+        "$type": "color",
+        "$value": "{feedback.info.fg}"
+      }
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.control.radius}"
+    },
+    "type": {
+      "$type": "typography",
+      "$value": "{type.label.sm}"
+    }
+  },
+  "table": {
+    "header-bg": {
+      "$type": "color",
+      "$value": "{surface.sunken}"
+    },
+    "header-fg": {
+      "$type": "color",
+      "$value": "{text.secondary}"
+    },
+    "row-border": {
+      "$type": "color",
+      "$value": "{border.subtle}"
+    },
+    "row-hover": {
+      "$type": "color",
+      "$value": "{surface.hover}"
+    },
+    "row-selected": {
+      "$type": "color",
+      "$value": "{surface.selected}"
+    },
+    "row-selected-fg": {
+      "$type": "color",
+      "$value": "{selection.fg}"
+    },
+    "row-block": {
+      "$type": "dimension",
+      "$value": "{space.row-block.comfortable}"
+    }
+  },
+  "checkbox": {
+    "border": {
+      "$type": "color",
+      "$value": "{border.control}"
+    },
+    "bg-checked": {
+      "$type": "color",
+      "$value": "{action.primary}"
+    },
+    "fg-checked": {
+      "$type": "color",
+      "$value": "{text.on-action}"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.check.radius}"
+    },
+    "ring": {
+      "$type": "color",
+      "$value": "{focus.ring}"
+    }
+  }
+}

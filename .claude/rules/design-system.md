@@ -16,6 +16,7 @@ Read `DESIGN.md` first; it is the contract these rules enforce. The catalog is `
 ## Tokens and layers
 
 - Layers: primitive → semantic → component tokens → recipes → components. Pages consume components and semantic tokens only.
+- Three layers in `packages/design-system/src/tokens/source/`: `primitives.json` (`--op-*`), `semantic.json` (`--ds-*`), `component.json` (`--cmp-*`). Semantic references primitives only; component references semantic only; pages and components use `--ds-*` and `--cmp-*` names only. Edit the JSON, run `pnpm --filter @orivilo/design-system tokens`, commit `generated.css`; the test fails on a stale file.
 - Token names are ours (`surface.canvas` ⇔ `--ds-surface-canvas`), never shadcn's. shadcn variables are an adapter target inside recipes only (ADR 0003).
 - No hex, rgb, raw radius, shadow, or raw font values in pages, components, or recipes. Add a token to the contract instead; a contract change is L lane with an impact list.
 - Tailwind is for layout and composition. Colour, radius, shadow, and font utilities are forbidden in components and pages; the lint rule (E2-0) fails the build on them.
