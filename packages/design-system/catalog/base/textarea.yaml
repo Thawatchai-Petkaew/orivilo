@@ -1,8 +1,8 @@
 name: Textarea
 tier: base
-status: planned
+status: stable
 since: E2-4
-import: none
+import: "@orivilo/design-system"
 story: base-textarea
 useWhen:
   - "Multi-line text: a prompt, a brief, a note on the canvas"
@@ -12,9 +12,10 @@ contract: TextareaProps
 variants: []
 sizes: [md, lg]
 states: [default, hover, focus-visible, disabled, read-only, invalid, auto-grow]
-recipes: []
-examples: []
+recipes: [neutral, professional, friendly]
+examples: [] # the reference screen (E2-8) is the first
 rules:
+  - "rows and maxRows bound the auto-grow; manual resize is off because the bound is the contract"
   - "Grows with content up to a bound, then scrolls"
   - "Thai and Latin on the same line without size parity loss"
 a11y:

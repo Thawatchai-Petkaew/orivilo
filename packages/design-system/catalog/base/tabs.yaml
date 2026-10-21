@@ -1,8 +1,8 @@
 name: Tabs
 tier: base
-status: planned
+status: stable
 since: E2-4
-import: none
+import: "@orivilo/design-system"
 story: base-tabs
 useWhen:
   - "Sections of one object the user switches between: the inspector's tabs"
@@ -13,9 +13,10 @@ contract: TabsProps
 variants: []
 sizes: [sm, md]
 states: [default, hover, focus-visible, selected, disabled]
-recipes: []
-examples: []
+recipes: [neutral, professional, friendly]
+examples: [] # the reference screen (E2-8) is the first
 rules:
+  - "Composed from Tabs, TabsList (size), TabsTrigger, TabsContent"
   - "Selected tab uses selection tokens; the indicator is an edge, not a tint only"
 a11y:
   - "Arrow keys move between tabs; the panel is labelled by its tab"

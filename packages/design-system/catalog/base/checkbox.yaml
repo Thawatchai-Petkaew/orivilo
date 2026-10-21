@@ -1,8 +1,8 @@
 name: Checkbox
 tier: base
-status: planned
+status: stable
 since: E2-4
-import: none
+import: "@orivilo/design-system"
 story: base-checkbox
 useWhen:
   - Zero or more of a short list, applied on submit
@@ -14,9 +14,10 @@ contract: CheckboxProps
 variants: [default]
 sizes: [md]
 states: [default, hover, focus-visible, checked, indeterminate, disabled, invalid]
-recipes: []
-examples: []
+recipes: [neutral, professional, friendly]
+examples: [] # the reference screen (E2-8) is the first
 rules:
+  - "Carries its own label, description and error; it is not wrapped in a Field"
   - Checked state is a glyph plus fill, never fill alone
   - Label is part of the hit area
 a11y:

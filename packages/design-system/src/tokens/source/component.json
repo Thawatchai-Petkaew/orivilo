@@ -1,6 +1,6 @@
 {
   "$schema": "https://design-tokens.github.io/community-group/format/",
-  "$description": "ORIVILO component tokens. Each references a semantic token only (DESIGN.md §5); they exist so a component's recipe reads one name per slot. No component code exists yet (E2-4); these are the contract the first components will consume.",
+  "$description": "ORIVILO component tokens. Each references a semantic token only (DESIGN.md §5); a recipe (src/recipes/recipes.css) reads one name per slot and a component consumes the recipe class. The first components land with E2-4.",
   "button": {
     "primary": {
       "bg": {
@@ -25,7 +25,7 @@
       },
       "fg-disabled": {
         "$type": "color",
-        "$value": "{text.disabled}"
+        "$value": "{text.secondary}"
       }
     },
     "secondary": {
@@ -44,6 +44,22 @@
       "fg": {
         "$type": "color",
         "$value": "{text.primary}"
+      },
+      "bg-press": {
+        "$type": "color",
+        "$value": "{surface.sunken}"
+      },
+      "border-hover": {
+        "$type": "color",
+        "$value": "{border.control-hover}"
+      },
+      "border-disabled": {
+        "$type": "color",
+        "$value": "{border.disabled}"
+      },
+      "fg-disabled": {
+        "$type": "color",
+        "$value": "{text.secondary}"
       }
     },
     "ghost": {
@@ -54,6 +70,18 @@
       "fg": {
         "$type": "color",
         "$value": "{text.primary}"
+      },
+      "bg-press": {
+        "$type": "color",
+        "$value": "{surface.sunken}"
+      },
+      "border-hover": {
+        "$type": "color",
+        "$value": "{border.subtle}"
+      },
+      "fg-disabled": {
+        "$type": "color",
+        "$value": "{text.secondary}"
       }
     },
     "intent": {
@@ -90,6 +118,14 @@
       "fg": {
         "$type": "color",
         "$value": "{text.on-destructive}"
+      },
+      "bg-disabled": {
+        "$type": "color",
+        "$value": "{action.primary-disabled}"
+      },
+      "fg-disabled": {
+        "$type": "color",
+        "$value": "{text.secondary}"
       }
     },
     "radius": {
@@ -111,16 +147,36 @@
       }
     },
     "padding-x": {
-      "$type": "dimension",
-      "$value": "{space.inset.md}"
+      "sm": {
+        "$type": "dimension",
+        "$value": "{space.inline.lg}"
+      },
+      "md": {
+        "$type": "dimension",
+        "$value": "{space.inset.md}"
+      },
+      "lg": {
+        "$type": "dimension",
+        "$value": "{space.inset.lg}"
+      }
     },
     "gap": {
       "$type": "dimension",
       "$value": "{space.inline.md}"
     },
     "type": {
-      "$type": "typography",
-      "$value": "{type.label.md}"
+      "sm": {
+        "$type": "typography",
+        "$value": "{type.label.sm}"
+      },
+      "md": {
+        "$type": "typography",
+        "$value": "{type.label.md}"
+      },
+      "lg": {
+        "$type": "typography",
+        "$value": "{type.label.md}"
+      }
     }
   },
   "input": {
@@ -161,16 +217,52 @@
       "$value": "{shape.control.radius}"
     },
     "height": {
-      "$type": "dimension",
-      "$value": "{size.control.md}"
+      "sm": {
+        "$type": "dimension",
+        "$value": "{size.control.sm}"
+      },
+      "md": {
+        "$type": "dimension",
+        "$value": "{size.control.md}"
+      },
+      "lg": {
+        "$type": "dimension",
+        "$value": "{size.control.lg}"
+      }
     },
     "padding-x": {
       "$type": "dimension",
       "$value": "{space.inset.md}"
     },
     "type": {
-      "$type": "typography",
-      "$value": "{type.body.md}"
+      "sm": {
+        "$type": "typography",
+        "$value": "{type.body.sm}"
+      },
+      "md": {
+        "$type": "typography",
+        "$value": "{type.body.md}"
+      },
+      "lg": {
+        "$type": "typography",
+        "$value": "{type.body.md}"
+      }
+    },
+    "padding-y": {
+      "$type": "dimension",
+      "$value": "{space.inset.sm}"
+    },
+    "fg-disabled": {
+      "$type": "color",
+      "$value": "{text.secondary}"
+    },
+    "border-disabled": {
+      "$type": "color",
+      "$value": "{border.disabled}"
+    },
+    "icon": {
+      "$type": "color",
+      "$value": "{text.secondary}"
     }
   },
   "card": {
@@ -349,6 +441,14 @@
     "type": {
       "$type": "typography",
       "$value": "{type.label.sm}"
+    },
+    "border": {
+      "$type": "color",
+      "$value": "{surface.inverse}"
+    },
+    "layer": {
+      "$type": "number",
+      "$value": "{layer.tooltip}"
     }
   },
   "badge": {
@@ -407,8 +507,44 @@
       "$value": "{shape.control.radius}"
     },
     "type": {
-      "$type": "typography",
-      "$value": "{type.label.sm}"
+      "sm": {
+        "$type": "typography",
+        "$value": "{type.label.sm}"
+      },
+      "md": {
+        "$type": "typography",
+        "$value": "{type.label.md}"
+      }
+    },
+    "brand": {
+      "bg": {
+        "$type": "color",
+        "$value": "{brand.signature}"
+      },
+      "fg": {
+        "$type": "color",
+        "$value": "{brand.ink}"
+      }
+    },
+    "padding-x": {
+      "sm": {
+        "$type": "dimension",
+        "$value": "{space.inline.md}"
+      },
+      "md": {
+        "$type": "dimension",
+        "$value": "{space.inline.lg}"
+      }
+    },
+    "height": {
+      "sm": {
+        "$type": "dimension",
+        "$value": "{size.icon.md}"
+      },
+      "md": {
+        "$type": "dimension",
+        "$value": "{size.icon.lg}"
+      }
     }
   },
   "table": {
@@ -461,6 +597,222 @@
     "ring": {
       "$type": "color",
       "$value": "{focus.ring}"
+    },
+    "bg": {
+      "$type": "color",
+      "$value": "{surface.card}"
+    },
+    "border-hover": {
+      "$type": "color",
+      "$value": "{border.control-hover}"
+    },
+    "border-error": {
+      "$type": "color",
+      "$value": "{border.error}"
+    },
+    "bg-disabled": {
+      "$type": "color",
+      "$value": "{surface.disabled}"
+    },
+    "border-disabled": {
+      "$type": "color",
+      "$value": "{border.disabled}"
+    },
+    "fg-disabled": {
+      "$type": "color",
+      "$value": "{text.secondary}"
+    },
+    "size": {
+      "$type": "dimension",
+      "$value": "{size.icon.md}"
+    },
+    "gap": {
+      "$type": "dimension",
+      "$value": "{space.inline.md}"
+    }
+  },
+  "menu": {
+    "bg": {
+      "$type": "color",
+      "$value": "{surface.raised}"
+    },
+    "border": {
+      "$type": "color",
+      "$value": "{border.subtle}"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.media.radius}"
+    },
+    "shadow": {
+      "$type": "shadow",
+      "$value": "{elevation.overlay}"
+    },
+    "padding": {
+      "$type": "dimension",
+      "$value": "{space.inset.sm}"
+    },
+    "option": {
+      "fg": {
+        "$type": "color",
+        "$value": "{text.primary}"
+      },
+      "bg-hover": {
+        "$type": "color",
+        "$value": "{surface.hover}"
+      },
+      "bg-selected": {
+        "$type": "color",
+        "$value": "{surface.selected}"
+      },
+      "fg-selected": {
+        "$type": "color",
+        "$value": "{selection.fg}"
+      },
+      "fg-disabled": {
+        "$type": "color",
+        "$value": "{text.disabled}"
+      },
+      "radius": {
+        "$type": "dimension",
+        "$value": "{shape.control.radius}"
+      },
+      "height": {
+        "$type": "dimension",
+        "$value": "{size.control.md}"
+      },
+      "padding-x": {
+        "$type": "dimension",
+        "$value": "{space.inset.sm}"
+      },
+      "type": {
+        "$type": "typography",
+        "$value": "{type.body.sm}"
+      }
+    },
+    "empty": {
+      "$type": "color",
+      "$value": "{text.secondary}"
+    },
+    "layer": {
+      "$type": "number",
+      "$value": "{layer.overlay}"
+    }
+  },
+  "popover": {
+    "bg": {
+      "$type": "color",
+      "$value": "{surface.raised}"
+    },
+    "fg": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    },
+    "border": {
+      "$type": "color",
+      "$value": "{border.subtle}"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.container.radius}"
+    },
+    "shadow": {
+      "$type": "shadow",
+      "$value": "{elevation.overlay}"
+    },
+    "padding": {
+      "$type": "dimension",
+      "$value": "{space.inset.md}"
+    },
+    "layer": {
+      "$type": "number",
+      "$value": "{layer.overlay}"
+    }
+  },
+  "tabs": {
+    "fg": {
+      "$type": "color",
+      "$value": "{text.secondary}"
+    },
+    "fg-hover": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    },
+    "fg-selected": {
+      "$type": "color",
+      "$value": "{selection.fg}"
+    },
+    "fg-disabled": {
+      "$type": "color",
+      "$value": "{text.disabled}"
+    },
+    "bg-hover": {
+      "$type": "color",
+      "$value": "{surface.hover}"
+    },
+    "indicator": {
+      "$type": "color",
+      "$value": "{selection.fg}"
+    },
+    "border": {
+      "$type": "color",
+      "$value": "{border.subtle}"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.control.radius}"
+    },
+    "height": {
+      "sm": {
+        "$type": "dimension",
+        "$value": "{size.control.sm}"
+      },
+      "md": {
+        "$type": "dimension",
+        "$value": "{size.control.md}"
+      }
+    },
+    "padding-x": {
+      "$type": "dimension",
+      "$value": "{space.inset.sm}"
+    },
+    "gap": {
+      "$type": "dimension",
+      "$value": "{space.inline.sm}"
+    },
+    "type": {
+      "$type": "typography",
+      "$value": "{type.label.md}"
+    }
+  },
+  "field": {
+    "label": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    },
+    "description": {
+      "$type": "color",
+      "$value": "{text.secondary}"
+    },
+    "error": {
+      "$type": "color",
+      "$value": "{feedback.danger.fg}"
+    },
+    "required": {
+      "$type": "color",
+      "$value": "{feedback.danger.fg}"
+    },
+    "gap": {
+      "$type": "dimension",
+      "$value": "{space.stack.sm}"
+    },
+    "label-type": {
+      "$type": "typography",
+      "$value": "{type.label.md}"
+    },
+    "text-type": {
+      "$type": "typography",
+      "$value": "{type.body.sm}"
     }
   }
 }

@@ -22,9 +22,9 @@
       "$type": "color",
       "$value": {
         "light": "{color.gray.25}",
-        "dark": "{color.gray.700}"
+        "dark": "{color.gray.800}"
       },
-      "$description": "A surface on a card: menus, nested panels"
+      "$description": "A surface on a card: menus, popovers, nested panels. Dark takes the card value so a control inside keeps 3.0 against its edge"
     },
     "sunken": {
       "$type": "color",
@@ -1050,6 +1050,18 @@
     "mono": {
       "$type": "fontFamily",
       "$value": "{font.family.plex-mono}"
+    }
+  },
+  "layer": {
+    "overlay": {
+      "$type": "number",
+      "$value": "{z.overlay}",
+      "$description": "Menus, popovers, dialogs: above everything in the page flow"
+    },
+    "tooltip": {
+      "$type": "number",
+      "$value": "{z.toast}",
+      "$description": "Tooltips sit above overlays so a tooltip inside a popover shows"
     }
   }
 }

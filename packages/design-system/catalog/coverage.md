@@ -2,26 +2,27 @@
 
 Adapted from the public component index of Untitled UI as a checklist of what a complete three-tier catalog holds (ADR 0003 item 5). Names are ours. Status is what exists in this repository today, nothing more. Update this file in the same PR as any catalog entry.
 
-Legend: `none` not started, `planned` entry exists, no code, `draft` code and story, `stable` gate passed.
+Legend: `none` not started, `planned` entry exists, no code, `draft` code and story, `stable` gate passed (the PR that lands the entry is the gate; the owner's pass approves it).
 
 ## Base
 
 | Component     | Status  | Story |
 | ------------- | ------- | ----- |
-| Button        | planned | E2-4  |
-| Input         | planned | E2-4  |
-| Select        | planned | E2-4  |
-| Checkbox      | planned | E2-4  |
+| Button        | stable  | E2-4  |
+| Input         | stable  | E2-4  |
+| Field         | stable  | E2-4  |
+| Select        | stable  | E2-4  |
+| Checkbox      | stable  | E2-4  |
 | RadioGroup    | none    |       |
 | Switch        | none    |       |
-| Textarea      | planned | E2-4  |
+| Textarea      | stable  | E2-4  |
 | Combobox      | none    |       |
-| Badge         | planned | E2-4  |
+| Badge         | stable  | E2-4  |
 | Tag           | planned | E4-5  |
 | Avatar        | none    |       |
-| Tooltip       | planned | E2-4  |
+| Tooltip       | stable  | E2-4  |
 | Dropdown menu | planned | E4-3  |
-| Tabs          | planned | E2-4  |
+| Tabs          | stable  | E2-4  |
 | Breadcrumb    | none    |       |
 | Pagination    | none    |       |
 | Progress      | planned | E4-5  |
@@ -29,7 +30,7 @@ Legend: `none` not started, `planned` entry exists, no code, `draft` code and st
 | Toast         | planned | E4-5  |
 | File upload   | none    |       |
 | Date picker   | none    |       |
-| Popover       | planned | E2-4  |
+| Popover       | stable  | E2-4  |
 | ContextMenu   | planned | E4-3  |
 | ToggleGroup   | planned | E4-3  |
 | ScrollArea    | planned | E4-4  |

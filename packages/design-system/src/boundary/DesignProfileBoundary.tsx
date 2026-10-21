@@ -1,4 +1,6 @@
-import type { ReactNode } from "react";
+"use client";
+
+import { createContext, useContext, type ReactNode } from "react";
 import { PROFILE_IDS, Profile } from "../profiles/index";
 
 /** A resolved mode. Token values exist for these two only. */
@@ -26,12 +28,26 @@ export interface DesignProfileBoundaryProps {
   children: ReactNode;
 }
 
+/** What the nearest boundary was asked for; read by `PortalScope` and `useDesignProfile`. */
+export interface DesignProfileContextValue {
+  mode: BoundaryMode;
+  profile: ProfileId | Profile;
+}
+
+const DesignProfileContext = createContext<DesignProfileContextValue | null>(null);
+
+/** The nearest boundary's mode and profile, or null outside any boundary. */
+export function useDesignProfile(): DesignProfileContextValue | null {
+  return useContext(DesignProfileContext);
+}
+
 /**
  * Scopes `data-mode` and `data-design-profile` so the token CSS (`src/tokens/orivilo.css`)
  * resolves underneath it. Both attributes are always set together: the profile CSS selects on the
  * pair, so a boundary that carried only one would resolve the wrong mode. A nested boundary resets
  * every semantic value to its own profile because a declaration on the element beats inheritance.
- * Portal scope (overlays rendered outside this subtree) is E2-5.
+ * The boundary also publishes its values through context so `PortalScope` can re-open it inside a
+ * portal (E2-4); the remaining portal work (overlays that trap focus) is E2-5.
  */
 export function DesignProfileBoundary({
   mode = "system",
@@ -41,9 +57,27 @@ export function DesignProfileBoundary({
   const runtime = profile instanceof Profile ? profile : undefined;
   const id = runtime ? runtime.id : profile;
   return (
-    <div data-mode={mode} data-design-profile={id}>
-      {runtime ? <style data-design-profile-css={runtime.id}>{runtime.emitCss()}</style> : null}
+    <DesignProfileContext.Provider value={{ mode, profile }}>
+      <div data-mode={mode} data-design-profile={id}>
+        {runtime ? <style data-design-profile-css={runtime.id}>{runtime.emitCss()}</style> : null}
+        {children}
+      </div>
+    </DesignProfileContext.Provider>
+  );
+}
+
+/**
+ * Re-opens the nearest boundary around content that React renders outside its subtree (a Radix
+ * portal). Without it a listbox, tooltip or popover opened inside a customer profile would paint
+ * with the shell's values (DESIGN.md §9 item 10). Outside any boundary it renders its children as
+ * they are.
+ */
+export function PortalScope({ children }: { children: ReactNode }) {
+  const scope = useContext(DesignProfileContext);
+  if (!scope) return <>{children}</>;
+  return (
+    <DesignProfileBoundary mode={scope.mode} profile={scope.profile}>
       {children}
-    </div>
+    </DesignProfileBoundary>
   );
 }

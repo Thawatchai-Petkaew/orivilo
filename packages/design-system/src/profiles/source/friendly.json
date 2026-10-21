@@ -5,7 +5,7 @@
     "th": "เป็นมิตร",
     "en": "Friendly"
   },
-  "$description": "Hand-made profile for a welcoming, touch-first product (handoff §19 and §18.4 Airbnb calibration). Warm cream neutrals, coral actions with ink text (white on a coral this bright cannot reach 4.5) that lighten on hover, teal links and selection, pill controls with soft containers, flat cards, Anuphan on headings, 44 px controls. Values are an interpretation, not a customer brand.",
+  "$description": "Hand-made profile for a welcoming, touch-first product (handoff §19 and §18.4 Airbnb calibration). Warm cream neutrals, coral actions with ink text (white on a coral this bright cannot reach 4.5) that lighten on hover and again on press, teal links and selection, pill controls with soft containers, flat cards, Anuphan on headings, 44 px controls. Values are an interpretation, not a customer brand.",
   "$decisions": {
     "shape": "soft",
     "surfaceTreatment": "flat",
@@ -184,7 +184,7 @@
       "raised": {
         "$value": {
           "light": "{color.cream.25}",
-          "dark": "{color.cream.700}"
+          "dark": "{color.cream.800}"
         }
       },
       "sunken": {
@@ -333,7 +333,7 @@
       },
       "primary-press": {
         "$value": {
-          "light": "{color.coral.600}",
+          "light": "{color.coral.300}",
           "dark": "{color.coral.400}"
         }
       },

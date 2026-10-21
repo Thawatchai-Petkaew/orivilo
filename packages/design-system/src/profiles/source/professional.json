@@ -134,7 +134,7 @@
       "raised": {
         "$value": {
           "light": "{color.slate.25}",
-          "dark": "{color.slate.700}"
+          "dark": "{color.slate.800}"
         }
       },
       "sunken": {

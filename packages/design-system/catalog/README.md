@@ -29,13 +29,15 @@ contract: ButtonProps # exported type name; props are read from the type, not re
 variants: [primary, secondary, ghost, destructive]
 sizes: [sm, md, lg]
 states: [default, hover, focus-visible, pressed, disabled, loading]
-recipes: [] # recipes it has been proven under; the gate needs two
+recipes: [] # profiles it has been proven under (neutral, professional, friendly); the gate needs two
 examples: [] # paths to example screens that use it
 rules:
   - Icon-only form carries an accessible name
 a11y:
   - Loading blocks repeat submission and announces status
 ```
+
+A recipe is a profile's resolution of the component tokens through `src/recipes/recipes.css` (ADR 0003 item 2); `neutral` resolves to the airy recipe of DESIGN.md §2. "Proven under" means the component's "Recipes and modes" story renders it in that profile in both modes and the Storybook test project passes.
 
 ## Statuses
 

@@ -44,7 +44,7 @@ export function SpecSheet({ scope }: { scope: string }) {
             color: "var(--cmp-input-fg)",
             border: "1px solid var(--cmp-input-border)",
             borderRadius: "var(--cmp-input-radius)",
-            height: "var(--cmp-input-height)",
+            height: "var(--cmp-input-height-md)",
             paddingInline: "var(--cmp-input-padding-x)",
             fontSize: "var(--cmp-input-type-font-size)",
           }}

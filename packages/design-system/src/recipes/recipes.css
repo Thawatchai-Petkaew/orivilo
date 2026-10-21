@@ -1,0 +1,553 @@
+/*
+ * ORIVILO recipes (ADR 0003 item 2, DESIGN.md §5). A recipe maps a component's slots and states to
+ * tokens: every value here is a `--cmp-*` or `--ds-*` custom property, so a profile restyles the
+ * whole set at once by overriding semantic values inside its boundary. Components consume these
+ * classes and use Tailwind for layout only. No hex, no raw radius, shadow or font value may appear
+ * in this file; `src/recipes/recipes.test.ts` fails on one, and on a `--cmp-*` name no token declares.
+ *
+ * Variants and sizes are data attributes (`data-variant`, `data-size`) so a component sets one
+ * attribute instead of composing class strings. Interaction states are pseudo-classes; Radix state
+ * is `data-state` and `data-disabled`. Focus comes from the global `:focus-visible` rule.
+ */
+
+/* Button ------------------------------------------------------------------------------------ */
+
+.ds-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--cmp-button-gap);
+  min-height: var(--cmp-button-height-md);
+  padding-inline: var(--cmp-button-padding-x-md);
+  border: 1px solid transparent;
+  border-radius: var(--cmp-button-radius);
+  background: transparent;
+  color: var(--cmp-button-ghost-fg);
+  font-family: var(--cmp-button-type-md-font-family);
+  font-size: var(--cmp-button-type-md-font-size);
+  line-height: var(--cmp-button-type-md-line-height);
+  font-weight: var(--cmp-button-type-md-font-weight);
+  letter-spacing: var(--cmp-button-type-md-letter-spacing);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background-color var(--ds-motion-feedback-duration) var(--ds-motion-easing),
+    border-color var(--ds-motion-feedback-duration) var(--ds-motion-easing),
+    color var(--ds-motion-feedback-duration) var(--ds-motion-easing);
+}
+
+.ds-button[data-size="sm"] {
+  min-height: var(--cmp-button-height-sm);
+  padding-inline: var(--cmp-button-padding-x-sm);
+  font-family: var(--cmp-button-type-sm-font-family);
+  font-size: var(--cmp-button-type-sm-font-size);
+  line-height: var(--cmp-button-type-sm-line-height);
+  font-weight: var(--cmp-button-type-sm-font-weight);
+  letter-spacing: var(--cmp-button-type-sm-letter-spacing);
+}
+
+.ds-button[data-size="lg"] {
+  min-height: var(--cmp-button-height-lg);
+  padding-inline: var(--cmp-button-padding-x-lg);
+  font-family: var(--cmp-button-type-lg-font-family);
+  font-size: var(--cmp-button-type-lg-font-size);
+  line-height: var(--cmp-button-type-lg-line-height);
+  font-weight: var(--cmp-button-type-lg-font-weight);
+  letter-spacing: var(--cmp-button-type-lg-letter-spacing);
+}
+
+/* Icon-only: a square the height of the control. */
+.ds-button[data-icon-only] {
+  padding-inline: 0;
+  width: var(--cmp-button-height-md);
+}
+.ds-button[data-icon-only][data-size="sm"] {
+  width: var(--cmp-button-height-sm);
+}
+.ds-button[data-icon-only][data-size="lg"] {
+  width: var(--cmp-button-height-lg);
+}
+
+.ds-button[data-variant="primary"] {
+  background: var(--cmp-button-primary-bg);
+  color: var(--cmp-button-primary-fg);
+}
+.ds-button[data-variant="primary"]:hover {
+  background: var(--cmp-button-primary-bg-hover);
+}
+.ds-button[data-variant="primary"]:active {
+  background: var(--cmp-button-primary-bg-press);
+}
+.ds-button[data-variant="primary"]:disabled {
+  background: var(--cmp-button-primary-bg-disabled);
+  color: var(--cmp-button-primary-fg-disabled);
+}
+
+.ds-button[data-variant="secondary"] {
+  background: var(--cmp-button-secondary-bg);
+  border-color: var(--cmp-button-secondary-border);
+  color: var(--cmp-button-secondary-fg);
+}
+.ds-button[data-variant="secondary"]:hover {
+  background: var(--cmp-button-secondary-bg-hover);
+  border-color: var(--cmp-button-secondary-border-hover);
+}
+.ds-button[data-variant="secondary"]:active {
+  background: var(--cmp-button-secondary-bg-press);
+}
+.ds-button[data-variant="secondary"]:disabled {
+  background: var(--cmp-button-secondary-bg);
+  border-color: var(--cmp-button-secondary-border-disabled);
+  color: var(--cmp-button-secondary-fg-disabled);
+}
+
+.ds-button[data-variant="ghost"] {
+  color: var(--cmp-button-ghost-fg);
+}
+.ds-button[data-variant="ghost"]:hover {
+  background: var(--cmp-button-ghost-bg-hover);
+  border-color: var(--cmp-button-ghost-border-hover);
+}
+.ds-button[data-variant="ghost"]:active {
+  background: var(--cmp-button-ghost-bg-press);
+}
+.ds-button[data-variant="ghost"]:disabled {
+  background: transparent;
+  border-color: transparent;
+  color: var(--cmp-button-ghost-fg-disabled);
+}
+
+.ds-button[data-variant="intent"] {
+  background: var(--cmp-button-intent-bg);
+  color: var(--cmp-button-intent-fg);
+}
+.ds-button[data-variant="intent"]:hover {
+  background: var(--cmp-button-intent-bg-hover);
+}
+.ds-button[data-variant="intent"]:active {
+  background: var(--cmp-button-intent-bg-press);
+}
+.ds-button[data-variant="intent"]:disabled {
+  background: var(--cmp-button-primary-bg-disabled);
+  color: var(--cmp-button-primary-fg-disabled);
+}
+
+.ds-button[data-variant="destructive"] {
+  background: var(--cmp-button-destructive-bg);
+  color: var(--cmp-button-destructive-fg);
+}
+.ds-button[data-variant="destructive"]:hover {
+  background: var(--cmp-button-destructive-bg-hover);
+}
+.ds-button[data-variant="destructive"]:active {
+  background: var(--cmp-button-destructive-bg-press);
+}
+.ds-button[data-variant="destructive"]:disabled {
+  background: var(--cmp-button-destructive-bg-disabled);
+  color: var(--cmp-button-destructive-fg-disabled);
+}
+
+.ds-button:disabled,
+.ds-button[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+/* Loading keeps its colours and label; only the pointer and the handler change (DESIGN.md §7). */
+.ds-button[data-loading] {
+  cursor: progress;
+}
+
+/* Text controls: Input, Textarea, Select trigger ------------------------------------------- */
+
+.ds-control {
+  display: flex;
+  align-items: center;
+  gap: var(--cmp-button-gap);
+  width: 100%;
+  min-height: var(--cmp-input-height-md);
+  padding-inline: var(--cmp-input-padding-x);
+  border: 1px solid var(--cmp-input-border);
+  border-radius: var(--cmp-input-radius);
+  background: var(--cmp-input-bg);
+  color: var(--cmp-input-fg);
+  font-family: var(--cmp-input-type-md-font-family);
+  font-size: var(--cmp-input-type-md-font-size);
+  line-height: var(--cmp-input-type-md-line-height);
+  font-weight: var(--cmp-input-type-md-font-weight);
+  letter-spacing: var(--cmp-input-type-md-letter-spacing);
+  transition: border-color var(--ds-motion-feedback-duration) var(--ds-motion-easing);
+}
+.ds-control[data-size="sm"] {
+  min-height: var(--cmp-input-height-sm);
+  font-family: var(--cmp-input-type-sm-font-family);
+  font-size: var(--cmp-input-type-sm-font-size);
+  line-height: var(--cmp-input-type-sm-line-height);
+  font-weight: var(--cmp-input-type-sm-font-weight);
+  letter-spacing: var(--cmp-input-type-sm-letter-spacing);
+}
+.ds-control[data-size="lg"] {
+  min-height: var(--cmp-input-height-lg);
+  font-family: var(--cmp-input-type-lg-font-family);
+  font-size: var(--cmp-input-type-lg-font-size);
+  line-height: var(--cmp-input-type-lg-line-height);
+  font-weight: var(--cmp-input-type-lg-font-weight);
+  letter-spacing: var(--cmp-input-type-lg-letter-spacing);
+}
+.ds-control::placeholder,
+.ds-control [data-placeholder] {
+  color: var(--cmp-input-placeholder);
+}
+.ds-control:hover:not(:disabled):not([data-disabled]):not([readonly]) {
+  border-color: var(--cmp-input-border-hover);
+}
+.ds-control:focus-visible,
+.ds-control:focus-within {
+  border-color: var(--cmp-input-border-focus);
+}
+.ds-control[aria-invalid="true"] {
+  border-color: var(--cmp-input-border-error);
+}
+.ds-control:disabled,
+.ds-control[data-disabled] {
+  background: var(--cmp-input-bg-disabled);
+  border-color: var(--cmp-input-border-disabled);
+  color: var(--cmp-input-fg-disabled);
+  cursor: not-allowed;
+}
+/* Read-only looks like text, not like a disabled control (DESIGN.md §7). */
+.ds-control[readonly] {
+  border-color: transparent;
+  background: transparent;
+  padding-inline: 0;
+}
+.ds-control[readonly]:focus-visible {
+  border-color: transparent;
+}
+.ds-control__icon {
+  flex: none;
+  color: var(--cmp-input-icon);
+}
+
+/* Textarea: a multi-line control with vertical padding; the component bounds its height. */
+.ds-control[data-multiline] {
+  align-items: flex-start;
+  padding-block: var(--cmp-input-padding-y);
+  resize: none;
+  overflow-y: auto;
+}
+
+/* Select trigger: a control that is a button. */
+.ds-control[data-trigger] {
+  justify-content: space-between;
+  text-align: start;
+  cursor: pointer;
+}
+.ds-control[data-trigger] > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Menu: the Select listbox ------------------------------------------------------------------ */
+
+.ds-menu {
+  min-width: var(--radix-select-trigger-width);
+  max-height: var(--radix-select-content-available-height);
+  padding: var(--cmp-menu-padding);
+  border: 1px solid var(--cmp-menu-border);
+  border-radius: var(--cmp-menu-radius);
+  background: var(--cmp-menu-bg);
+  box-shadow: var(--cmp-menu-shadow);
+  overflow: hidden;
+  z-index: var(--cmp-menu-layer);
+}
+.ds-menu__option {
+  display: flex;
+  align-items: center;
+  gap: var(--cmp-button-gap);
+  min-height: var(--cmp-menu-option-height);
+  padding-inline: var(--cmp-menu-option-padding-x);
+  border-radius: var(--cmp-menu-option-radius);
+  color: var(--cmp-menu-option-fg);
+  font-family: var(--cmp-menu-option-type-font-family);
+  font-size: var(--cmp-menu-option-type-font-size);
+  line-height: var(--cmp-menu-option-type-line-height);
+  font-weight: var(--cmp-menu-option-type-font-weight);
+  letter-spacing: var(--cmp-menu-option-type-letter-spacing);
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+}
+.ds-menu__option[data-highlighted] {
+  background: var(--cmp-menu-option-bg-hover);
+}
+.ds-menu__option[data-state="checked"] {
+  background: var(--cmp-menu-option-bg-selected);
+  color: var(--cmp-menu-option-fg-selected);
+}
+.ds-menu__option[data-disabled] {
+  color: var(--cmp-menu-option-fg-disabled);
+  cursor: not-allowed;
+}
+.ds-menu__option > span:first-child {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ds-menu__empty {
+  display: flex;
+  align-items: center;
+  min-height: var(--cmp-menu-option-height);
+  padding-inline: var(--cmp-menu-option-padding-x);
+  color: var(--cmp-menu-empty);
+  font-family: var(--cmp-menu-option-type-font-family);
+  font-size: var(--cmp-menu-option-type-font-size);
+  line-height: var(--cmp-menu-option-type-line-height);
+}
+
+/* Checkbox ---------------------------------------------------------------------------------- */
+
+.ds-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--cmp-checkbox-gap);
+}
+.ds-checkbox__box {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--cmp-checkbox-size);
+  height: var(--cmp-checkbox-size);
+  /* Centre the box on the first line of the label. */
+  margin-top: calc((var(--ds-type-body-md-line-height) - var(--cmp-checkbox-size)) / 2);
+  border: 1px solid var(--cmp-checkbox-border);
+  border-radius: var(--cmp-checkbox-radius);
+  background: var(--cmp-checkbox-bg);
+  color: var(--cmp-checkbox-fg-checked);
+  cursor: pointer;
+  transition:
+    background-color var(--ds-motion-feedback-duration) var(--ds-motion-easing),
+    border-color var(--ds-motion-feedback-duration) var(--ds-motion-easing);
+}
+.ds-checkbox:hover .ds-checkbox__box:not([data-disabled]) {
+  border-color: var(--cmp-checkbox-border-hover);
+}
+.ds-checkbox__box[data-state="checked"],
+.ds-checkbox__box[data-state="indeterminate"] {
+  background: var(--cmp-checkbox-bg-checked);
+  border-color: var(--cmp-checkbox-bg-checked);
+}
+.ds-checkbox__box[aria-invalid="true"] {
+  border-color: var(--cmp-checkbox-border-error);
+}
+.ds-checkbox__box[data-disabled] {
+  background: var(--cmp-checkbox-bg-disabled);
+  border-color: var(--cmp-checkbox-border-disabled);
+  color: var(--cmp-checkbox-fg-disabled);
+  cursor: not-allowed;
+}
+.ds-checkbox[data-disabled] .ds-checkbox__label {
+  color: var(--ds-text-disabled);
+  cursor: not-allowed;
+}
+.ds-checkbox__label {
+  cursor: pointer;
+  color: var(--cmp-field-label);
+  font-family: var(--ds-type-body-md-font-family);
+  font-size: var(--ds-type-body-md-font-size);
+  line-height: var(--ds-type-body-md-line-height);
+  font-weight: var(--ds-type-body-md-font-weight);
+  letter-spacing: var(--ds-type-body-md-letter-spacing);
+  overflow-wrap: anywhere;
+}
+
+/* Field: label, description, error around a control --------------------------------------- */
+
+.ds-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmp-field-gap);
+}
+.ds-field__label {
+  color: var(--cmp-field-label);
+  font-family: var(--cmp-field-label-type-font-family);
+  font-size: var(--cmp-field-label-type-font-size);
+  line-height: var(--cmp-field-label-type-line-height);
+  font-weight: var(--cmp-field-label-type-font-weight);
+  letter-spacing: var(--cmp-field-label-type-letter-spacing);
+  overflow-wrap: anywhere;
+}
+.ds-field__required {
+  color: var(--cmp-field-required);
+}
+.ds-field__description,
+.ds-field__error {
+  font-family: var(--cmp-field-text-type-font-family);
+  font-size: var(--cmp-field-text-type-font-size);
+  line-height: var(--cmp-field-text-type-line-height);
+  font-weight: var(--cmp-field-text-type-font-weight);
+  letter-spacing: var(--cmp-field-text-type-letter-spacing);
+  overflow-wrap: anywhere;
+}
+.ds-field__description {
+  color: var(--cmp-field-description);
+}
+.ds-field__error {
+  color: var(--cmp-field-error);
+}
+.ds-field[data-disabled] .ds-field__label,
+.ds-field[data-disabled] .ds-field__description {
+  color: var(--ds-text-disabled);
+}
+
+/* Tooltip ----------------------------------------------------------------------------------- */
+
+.ds-tooltip {
+  padding: var(--cmp-tooltip-padding) var(--cmp-input-padding-x);
+  border: 1px solid var(--cmp-tooltip-border);
+  border-radius: var(--cmp-tooltip-radius);
+  background: var(--cmp-tooltip-bg);
+  color: var(--cmp-tooltip-fg);
+  font-family: var(--cmp-tooltip-type-font-family);
+  font-size: var(--cmp-tooltip-type-font-size);
+  line-height: var(--cmp-tooltip-type-line-height);
+  font-weight: var(--cmp-tooltip-type-font-weight);
+  letter-spacing: var(--cmp-tooltip-type-letter-spacing);
+  overflow-wrap: anywhere;
+  z-index: var(--cmp-tooltip-layer);
+}
+
+/* Badge ------------------------------------------------------------------------------------- */
+
+.ds-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cmp-button-gap);
+  min-height: var(--cmp-badge-height-md);
+  padding-inline: var(--cmp-badge-padding-x-md);
+  border-radius: var(--cmp-badge-radius);
+  background: var(--cmp-badge-neutral-bg);
+  color: var(--cmp-badge-neutral-fg);
+  font-family: var(--cmp-badge-type-md-font-family);
+  font-size: var(--cmp-badge-type-md-font-size);
+  line-height: var(--cmp-badge-type-md-line-height);
+  font-weight: var(--cmp-badge-type-md-font-weight);
+  letter-spacing: var(--cmp-badge-type-md-letter-spacing);
+  white-space: nowrap;
+}
+.ds-badge[data-size="sm"] {
+  min-height: var(--cmp-badge-height-sm);
+  padding-inline: var(--cmp-badge-padding-x-sm);
+  font-family: var(--cmp-badge-type-sm-font-family);
+  font-size: var(--cmp-badge-type-sm-font-size);
+  line-height: var(--cmp-badge-type-sm-line-height);
+  font-weight: var(--cmp-badge-type-sm-font-weight);
+  letter-spacing: var(--cmp-badge-type-sm-letter-spacing);
+}
+.ds-badge[data-variant="success"] {
+  background: var(--cmp-badge-success-bg);
+  color: var(--cmp-badge-success-fg);
+}
+.ds-badge[data-variant="warning"] {
+  background: var(--cmp-badge-warning-bg);
+  color: var(--cmp-badge-warning-fg);
+}
+.ds-badge[data-variant="danger"] {
+  background: var(--cmp-badge-danger-bg);
+  color: var(--cmp-badge-danger-fg);
+}
+.ds-badge[data-variant="info"] {
+  background: var(--cmp-badge-info-bg);
+  color: var(--cmp-badge-info-fg);
+}
+.ds-badge[data-variant="brand"] {
+  background: var(--cmp-badge-brand-bg);
+  color: var(--cmp-badge-brand-fg);
+}
+
+/* Popover ----------------------------------------------------------------------------------- */
+
+.ds-popover {
+  max-width: calc(100vw - 2 * var(--ds-space-gutter));
+  padding: var(--cmp-popover-padding);
+  border: 1px solid var(--cmp-popover-border);
+  border-radius: var(--cmp-popover-radius);
+  background: var(--cmp-popover-bg);
+  color: var(--cmp-popover-fg);
+  box-shadow: var(--cmp-popover-shadow);
+  z-index: var(--cmp-popover-layer);
+}
+
+/* Tabs -------------------------------------------------------------------------------------- */
+
+.ds-tabs__list {
+  display: flex;
+  gap: var(--cmp-tabs-gap);
+  border-bottom: 1px solid var(--cmp-tabs-border);
+  overflow-x: auto;
+}
+.ds-tabs__trigger {
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--cmp-tabs-height-md);
+  padding-inline: var(--cmp-tabs-padding-x);
+  border: 0;
+  border-radius: var(--cmp-tabs-radius) var(--cmp-tabs-radius) 0 0;
+  background: transparent;
+  color: var(--cmp-tabs-fg);
+  font-family: var(--cmp-tabs-type-font-family);
+  font-size: var(--cmp-tabs-type-font-size);
+  line-height: var(--cmp-tabs-type-line-height);
+  font-weight: var(--cmp-tabs-type-font-weight);
+  letter-spacing: var(--cmp-tabs-type-letter-spacing);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--ds-motion-feedback-duration) var(--ds-motion-easing);
+}
+.ds-tabs__list[data-size="sm"] .ds-tabs__trigger {
+  min-height: var(--cmp-tabs-height-sm);
+}
+.ds-tabs__trigger:hover {
+  color: var(--cmp-tabs-fg-hover);
+  background: var(--cmp-tabs-bg-hover);
+}
+/* Selected: ink plus a 2 px edge under the tab, never a tint alone (catalog rule). */
+.ds-tabs__trigger[data-state="active"] {
+  color: var(--cmp-tabs-fg-selected);
+}
+.ds-tabs__trigger[data-state="active"]::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--cmp-tabs-indicator);
+}
+.ds-tabs__trigger:disabled {
+  color: var(--cmp-tabs-fg-disabled);
+  background: transparent;
+  cursor: not-allowed;
+}
+.ds-tabs__trigger:focus-visible {
+  outline-offset: -2px;
+}
+.ds-tabs__panel {
+  outline-offset: 2px;
+}
+
+/* Spinner: essential motion, so it keeps its duration under reduced motion. ----------------- */
+
+.ds-spin {
+  animation: ds-spin 1s linear infinite;
+}
+@keyframes ds-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
