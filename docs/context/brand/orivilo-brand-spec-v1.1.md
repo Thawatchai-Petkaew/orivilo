@@ -8,33 +8,33 @@ A loop that does not close, and the dot it stays connected to. A product keeps b
 
 ## 2. Mark
 
-File: `assets/orivilo-mark.svg` (135 × 135 grid).
+File: `assets/orivilo-mark.svg` (150 × 150 grid, ring outer diameter 135, 7.5 units of margin so the ring never touches the box edge).
 
-| Element | Value                                                             |
-| ------- | ----------------------------------------------------------------- |
-| Ring    | centre (67.5, 67.5), radius 52.5, stroke 30, round caps           |
-| Opening | 80°, centred 55° above the horizontal on the right                |
-| Dot     | radius 15 (half the stroke) on the ring centreline at the opening |
-| Colours | ring ink #16151D or paper #F2F1EC; dot lime #D9F66F               |
-| Small   | ≤ 24 px on light ground: dot becomes violet #7A22C7, stroke 32–34 |
-| Clear   | X = 30 units (the stroke) on every side                           |
-| Minimum | 16 px favicon · 24 px UI · 48 px app icon · 8 mm print            |
+| Element | Value                                                                    |
+| ------- | ------------------------------------------------------------------------ |
+| Ring    | centre (75, 77.5), radius 52.5, stroke 30, round caps; bottom at y = 145 |
+| Opening | 80°, centred 55° above the horizontal on the right                       |
+| Dot     | radius 15 (half the stroke) on the ring centreline at the opening        |
+| Colours | ring ink #16151D or paper #F2F1EC; dot lime #D9F66F                      |
+| Small   | ≤ 24 px on light ground: dot becomes violet #7A22C7, stroke 32–34        |
+| Clear   | X = 30 units (the stroke) on every side                                  |
+| Minimum | 16 px favicon · 24 px UI · 48 px app icon · 8 mm print                   |
 
-Why 55°, not 20°: with the opening on the right the ring read as a "c". Moving it to the upper right and filling it with the dot keeps it an "o".
+Why 55°, not 20°: with the opening on the right the ring read as a "c". Moving it to the upper right and filling it with the dot keeps it an "o". Why the margin: the first export had the outer edge exactly on the box, and the renderer clipped the right side into a straight line.
 
 ## 3. Wordmark
 
-File: `assets/orivilo-wordmark.svg` (466 × 150 grid, x-height 100, ascender 135, baseline at y = 100).
+File: `assets/orivilo-wordmark.svg` (479 × 150 grid, x-height 100, ascender 135, baseline at y = 100).
 
-Drawn, not typeset: lowercase geometric sans, monoline stroke 22, round terminals, round i-dots (radius 13), the o is a true circle (radius 39). Letters: o r i v i l o. The r has a quarter-circle shoulder; the v has a round apex. Never set the name in a font for a logo context; the drawn wordmark is the only form. The wordmark is not used below 20 px high.
+Drawn, not typeset, to the owner's reference: lowercase geometric sans, monoline stroke 25, flat (butt) terminals, round i-dots (radius 14), the o is a true circle (radius 37.5, counter 50). Letters: o r i v i l o. The r is a stem with a quarter-circle shoulder cut flat; the v is a pointed polygon with its apex on the baseline; the l is a plain ascender stem. Only the i-dots and the o are round. Never set the name in a font for a logo context; the drawn wordmark is the only form. The wordmark is not used below 20 px high.
 
 ## 4. Lockup and balance
 
 File: `assets/orivilo-lockup.svg`.
 
-- Mark height = wordmark ascender height (135 : 150 of the wordmark box). Both sit on the baseline.
-- Gap between mark and wordmark = 0.27 × mark height (36 units at full size).
-- Stroke-to-height ratio of the mark (30 / 135 = 0.22) equals the wordmark o (22 / 100 = 0.22), so neither reads heavier.
+- Mark box and wordmark box are both 150 high and bottom-aligned, so the ring bottom (y = 145) sits on the wordmark baseline and the ring's outer height (135) equals the ascender.
+- Gap between the boxes = 40 units (about 0.27 × ring height).
+- Stroke-to-height: mark 30 / 135 = 0.22, wordmark o 25 / 100 = 0.25. The wordmark is slightly heavier on purpose, matching the reference; the mark's round caps make it read a touch lighter than its measure.
 - Stacked: mark centred above the wordmark, gap = 0.5 × mark height. One-colour: dot takes the ring colour.
 
 ## 5. Colour (sRGB, WCAG 2 ratios computed 2026-10-21)
