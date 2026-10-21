@@ -1,23 +1,21 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -45 652 150">
-  <!-- mark: ascender-height ring (135) on the baseline; gap = 0.27 x mark height -->
-  <g transform="translate(0,-35)">
-    <path d="M 62.92 15.2 A 52.5 52.5 0 1 0 118.21 53.91" fill="none" stroke="#16151D" stroke-width="30" stroke-linecap="round"/>
-    <circle cx="97.61" cy="24.49" r="15" fill="#D9F66F"/>
-  </g>
-  <g transform="translate(171,0)">
-    <g fill="none" stroke="#16151D" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="50" cy="50" r="39"/>
-      <path d="M 121 89 L 121 11"/>
-      <path d="M 121 46 A 35 35 0 0 1 156 11"/>
-      <path d="M 186 89 L 186 11"/>
-      <path d="M 218 11 L 250 89 L 282 11"/>
-      <path d="M 314 89 L 314 11"/>
-      <path d="M 346 89 L 346 -24"/>
-      <circle cx="416" cy="50" r="39"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 669 150">
+  <!-- mark box 150 and wordmark box 150, bottom-aligned; ring bottom = baseline (y = 145); gap 40 -->
+  <path d="M 70.42 25.2 A 52.5 52.5 0 1 0 125.71 63.91" fill="none" stroke="#16151D" stroke-width="30" stroke-linecap="round"/>
+  <circle cx="105.11" cy="34.49" r="15" fill="#D9F66F"/>
+  <g transform="translate(190,45)">
+    <g fill="none" stroke="#16151D" stroke-width="25" stroke-linecap="butt">
+      <circle cx="50" cy="50" r="37.5"/>
+      <path d="M 124.5 100 L 124.5 0"/>
+      <path d="M 124.5 45 A 32.5 32.5 0 0 1 157 12.5"/>
+      <path d="M 183.5 100 L 183.5 0"/>
+      <path d="M 313.1 100 L 313.1 0"/>
+      <path d="M 352.1 100 L 352.1 -35"/>
+      <circle cx="428.6" cy="50" r="37.5"/>
     </g>
     <g fill="#16151D">
-      <circle cx="186" cy="-30" r="13"/>
-      <circle cx="314" cy="-30" r="13"/>
+      <polygon points="210,0 236.6,0 248.3,30.5 260,0 286.6,0 248.3,100"/>
+      <circle cx="183.5" cy="-30" r="14"/>
+      <circle cx="313.1" cy="-30" r="14"/>
     </g>
   </g>
 </svg>
