@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+/* Placeholder semantic tokens for the scaffold. The real token contract arrives with its own story. */
+@theme {
+  --color-surface: oklch(0.99 0 0);
+  --color-on-surface: oklch(0.2 0 0);
+  --color-muted: oklch(0.5 0 0);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-surface: oklch(0.18 0 0);
+    --color-on-surface: oklch(0.95 0 0);
+    --color-muted: oklch(0.7 0 0);
+  }
+}
