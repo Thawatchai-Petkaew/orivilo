@@ -178,7 +178,7 @@
       "secondary": {
         "$value": {
           "light": "{color.slate.600}",
-          "dark": "{color.slate.400}"
+          "dark": "{color.slate.300}"
         }
       },
       "tertiary": {

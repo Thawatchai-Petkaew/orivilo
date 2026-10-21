@@ -228,7 +228,7 @@
       "secondary": {
         "$value": {
           "light": "{color.cream.600}",
-          "dark": "{color.cream.400}"
+          "dark": "{color.cream.300}"
         }
       },
       "tertiary": {

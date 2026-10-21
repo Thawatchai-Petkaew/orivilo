@@ -115,7 +115,7 @@
   --ds-surface-disabled: var(--op-color-slate-700);
   --ds-surface-inverse: var(--op-color-slate-50);
   --ds-text-primary: var(--op-color-slate-100);
-  --ds-text-secondary: var(--op-color-slate-400);
+  --ds-text-secondary: var(--op-color-slate-300);
   --ds-text-tertiary: var(--op-color-slate-400);
   --ds-text-placeholder: var(--op-color-slate-400);
   --ds-text-disabled: var(--op-color-slate-600);
@@ -194,7 +194,7 @@
     --ds-surface-disabled: var(--op-color-slate-700);
     --ds-surface-inverse: var(--op-color-slate-50);
     --ds-text-primary: var(--op-color-slate-100);
-    --ds-text-secondary: var(--op-color-slate-400);
+    --ds-text-secondary: var(--op-color-slate-300);
     --ds-text-tertiary: var(--op-color-slate-400);
     --ds-text-placeholder: var(--op-color-slate-400);
     --ds-text-disabled: var(--op-color-slate-600);
@@ -378,7 +378,7 @@
   --ds-surface-disabled: var(--op-color-cream-700);
   --ds-surface-inverse: var(--op-color-cream-50);
   --ds-text-primary: var(--op-color-cream-100);
-  --ds-text-secondary: var(--op-color-cream-400);
+  --ds-text-secondary: var(--op-color-cream-300);
   --ds-text-tertiary: var(--op-color-cream-400);
   --ds-text-placeholder: var(--op-color-cream-400);
   --ds-text-disabled: var(--op-color-cream-600);
@@ -471,7 +471,7 @@
     --ds-surface-disabled: var(--op-color-cream-700);
     --ds-surface-inverse: var(--op-color-cream-50);
     --ds-text-primary: var(--op-color-cream-100);
-    --ds-text-secondary: var(--op-color-cream-400);
+    --ds-text-secondary: var(--op-color-cream-300);
     --ds-text-tertiary: var(--op-color-cream-400);
     --ds-text-placeholder: var(--op-color-cream-400);
     --ds-text-disabled: var(--op-color-cream-600);

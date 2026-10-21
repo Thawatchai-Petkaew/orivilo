@@ -73,6 +73,7 @@ pnpm dev          # apps/web on localhost:3000
 pnpm lint
 pnpm typecheck
 pnpm test
+pnpm contrast     # every semantic text and UI pair under every profile, both modes (also in test and CI)
 pnpm build
 ```
 

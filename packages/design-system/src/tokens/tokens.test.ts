@@ -1,13 +1,12 @@
 /**
  * The token contract (DESIGN.md §3, §5). Fails when a layer references the wrong layer, when a
- * semantic colour lacks a mode, when generated.css is stale, or when a declared contrast pair
- * falls under its floor in either mode.
+ * semantic colour lacks a mode, or when generated.css is stale. Contrast pairs are checked in
+ * contrast-pairs.test.ts and by `pnpm contrast` (E0-5).
  */
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { contrastRatio } from "../foundations/contrast";
-import { MODES, tokens } from "./index";
+import { tokens } from "./index";
 
 describe("token layers", () => {
   it("reference only the layer below and carry both modes", () => {
@@ -78,23 +77,8 @@ describe("token scope", () => {
 });
 
 describe("contrast pairs declared in semantic.json", () => {
-  const pairs = tokens.layer("semantic").filter((t) => t.contrast && t.contrast.floor !== null);
-
-  it("declares pairs for the text, action, and feedback roles", () => {
+  it("declares pairs for the text, action, and feedback roles (checked with every derived pair in contrast-pairs.test.ts)", () => {
+    const pairs = tokens.layer("semantic").filter((t) => t.contrast && t.contrast.floor !== null);
     expect(pairs.length).toBeGreaterThan(20);
   });
-
-  for (const token of pairs) {
-    for (const mode of MODES) {
-      it(`${token.path} on ${token.contrast?.against} meets ${token.contrast?.floor} in ${mode}`, () => {
-        const against = tokens.get("semantic", token.contrast?.against ?? "");
-        if (!against || !token.contrast?.floor) throw new Error("pair missing");
-        const fg = String(tokens.resolve(token, mode).value);
-        const bg = String(tokens.resolve(against, mode).value);
-        const ratio = contrastRatio(fg, bg);
-        expect(ratio, `${fg} on ${bg}`).not.toBeNull();
-        expect(ratio ?? 0).toBeGreaterThanOrEqual(token.contrast.floor);
-      });
-    }
-  }
 });
