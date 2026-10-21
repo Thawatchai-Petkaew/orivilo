@@ -4,9 +4,10 @@
  * every profile in both modes. `recipes.test.ts` resolves each pair from the token source; the
  * design gate reads this list as the "real pairs used" evidence.
  *
- * Not listed: `menu.border` and `tabs.border`, which are `border.subtle` dividers. A menu is
- * identified by its shadow and its options, a tab list by its tabs and the selected edge; the
- * divider is decoration and WCAG 1.4.11 does not apply to it.
+ * Not listed: `menu.border`, `tabs.border` and `dialog.border`, which are `border.subtle`
+ * dividers, and `card.border`, which is transparent on the light canvas. A menu is identified by
+ * its shadow and its options, a tab list by its tabs and the selected edge, a dialog by its scrim
+ * and shadow, a card by its ground; the edge is decoration and WCAG 1.4.11 does not apply to it.
  *
  * Paths are component-token paths (`button.primary.fg`) or semantic paths prefixed `ds:` where a
  * recipe sits on a page ground rather than its own (`ds:surface.canvas`).
@@ -313,4 +314,42 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     floor: TEXT,
   },
   { recipe: "tabs", slot: "indicator", fg: "tabs.indicator", bg: "ds:surface.canvas", floor: UI },
+  // Dialog
+  { recipe: "dialog", slot: "text", fg: "dialog.fg", bg: "dialog.bg", floor: TEXT },
+  { recipe: "dialog", slot: "description", fg: "dialog.description", bg: "dialog.bg", floor: TEXT },
+  { recipe: "dialog", slot: "error", fg: "dialog.error", bg: "dialog.bg", floor: TEXT },
+  {
+    recipe: "dialog",
+    slot: "destructive glyph",
+    fg: "dialog.destructive",
+    bg: "dialog.bg",
+    floor: UI,
+  },
+  {
+    recipe: "dialog",
+    slot: "control in dialog",
+    fg: "ds:border.control",
+    bg: "dialog.bg",
+    floor: UI,
+  },
+  // Card
+  { recipe: "card", slot: "text", fg: "card.fg", bg: "card.bg", floor: TEXT },
+  { recipe: "card", slot: "value", fg: "card.value-fg", bg: "card.bg", floor: TEXT },
+  { recipe: "card", slot: "secondary text", fg: "ds:text.secondary", bg: "card.bg", floor: TEXT },
+  { recipe: "card", slot: "hover edge", fg: "card.border-hover", bg: "card.bg", floor: UI },
+  { recipe: "card", slot: "selected text", fg: "card.fg", bg: "card.bg-selected", floor: TEXT },
+  {
+    recipe: "card",
+    slot: "selected edge",
+    fg: "card.border-selected",
+    bg: "card.bg-selected",
+    floor: UI,
+  },
+  {
+    recipe: "card",
+    slot: "selected secondary text",
+    fg: "ds:text.secondary",
+    bg: "card.bg-selected",
+    floor: TEXT,
+  },
 ];

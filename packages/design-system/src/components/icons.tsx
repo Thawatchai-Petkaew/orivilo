@@ -1,7 +1,7 @@
 import type { SVGProps } from "react";
 
 /**
- * The four glyphs the first components need, inline so no icon library ships before a story needs
+ * The glyphs the first components need, inline so no icon library ships before a story needs
  * one (AGENTS.md rule 6). All are decorative: `aria-hidden` and `currentColor`; the control that
  * shows one carries the accessible name.
  */
@@ -50,6 +50,23 @@ export function SpinnerIcon(props: IconProps) {
   return (
     <svg {...base(props)}>
       <path d="M10 3a7 7 0 1 1-7 7" />
+    </svg>
+  );
+}
+
+export function CloseIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="m5 5 10 10M15 5 5 15" />
+    </svg>
+  );
+}
+
+export function WarningIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M10 3.5 2.5 16.5h15L10 3.5Z" />
+      <path d="M10 8v4M10 14.5h.01" />
     </svg>
   );
 }

@@ -1,8 +1,8 @@
 name: Card
 tier: application
-status: planned
+status: stable
 since: E2-5
-import: none
+import: "@orivilo/design-system"
 story: application-card
 useWhen:
   - A self-contained unit the user acts on or compares with its siblings
@@ -12,10 +12,13 @@ contract: CardProps
 variants: [default, selected, interactive]
 sizes: [md]
 states: [default, hover, focus-visible, selected]
-recipes: []
+recipes: [neutral, professional, friendly]
 examples: []
 rules:
   - Elevation and edge come from the recipe (surface depth), not from the card
-  - Whole-card click and inner actions never compete; one is the target
+  - Whole-card click and inner actions never compete; one is the target. An interactive card contains no other control
+  - "`CardValue` takes digits only; Thai text never takes the numeral tracking (DESIGN.md §3.3)"
+  - Selected on a button card is `aria-pressed`, on a link card `aria-current`; a static selected card is labelled by its list
 a11y:
-  - Interactive card is a single focusable element with a name
+  - Interactive card is a single focusable element with a name (its text)
+  - "`CardTitle` is a heading in a static card and a span inside an interactive card"
