@@ -14,7 +14,8 @@ The owner wants ORIVILO's UI, and the UI it generates for customers, to have a s
 2. **Style lives in recipes, not in components.** A recipe (handoff §9.4) defines how surface, edge, elevation, motion, density, and imagery combine, and it restyles the whole component set at once. Components in `packages/design-system` consume semantic tokens and the active recipe through `DesignProfileBoundary`; pages never see shadcn.
 3. **Recipes are resolved, not preset.** The resolver chooses and tunes a recipe from intent, brand CI, and the knowledge base. Two brands using the same button component must not look alike.
 4. **Storybook is the catalog.** It is the component catalog agents read before composing UI (handoff §15), the visual fixture set for regression tests, and part of the developer handoff package. It is not what makes the UI ours; it is where the tokens and recipes are proven in every mode and state.
-5. **Reviewer gate.** Every generated or hand-built UI is checked against the "tells of generated design" list in `.claude/skills/frontend-design/SKILL.md` before G3.
+5. **Catalog structure follows Untitled UI, implementation does not.** The catalog and Storybook are organized in Untitled UI's three tiers (base components, application UI, marketing sections), each with page examples, and its component list is the coverage checklist. Its state-completeness and color-role conventions are review criteria. We do not install Untitled UI: it is built on React Aria, and mixing primitive bases is forbidden (handoff §7); its visual style is recognizable, and PRO licensing would need review before redistribution in handoff packages.
+6. **Reviewer gate.** Every generated or hand-built UI is checked against the "tells of generated design" list in `.claude/skills/frontend-design/SKILL.md` before G3.
 
 ## Enforcement
 
