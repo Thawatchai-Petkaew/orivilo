@@ -110,6 +110,14 @@ How it works in the product: intent + references + decision knowledge → output
 
 Collection must respect the licensing split noted above: principles and patterns summarized in our own words; third-party visuals kept as links and metadata, not copied assets.
 
+### The board is a presentation, entry is dynamic (owner, 2026-10-21)
+
+**Preview to present.** The canvas board must be previewable so its owner can present it. Who uses it: UX/UI designers and product managers bringing branding, brand positioning, or marketing in before a digital product exists; and dev teams with an existing product who want to revise it.
+
+**Starting assets vary and are incomplete.** Before entering the process, ORIGO inventories what already exists: a git repo to study, an existing website, an existing brand book, previous project documents, a previous TOR, and so on. Sources differ in shape and are rarely complete. The process is still designed end to end; whatever comes in, it works.
+
+**Sequential or not, the user chooses.** Work can run in order or jump straight to any node: UI patterns first, or illustration patterns, or the color system. The graph of nodes must therefore track what each node depends on and what is still missing, and ask for it when the user arrives there, instead of forcing an order.
+
 Implication for the Intent Studio MVP: input and interpretation must work as blocks on a canvas with a drill-down conversation per element, not as a single form.
 
 ## First milestone
