@@ -22,6 +22,8 @@ export default defineConfig({
       {
         // Every story is a test: it must render, and the a11y addon must find zero violations.
         plugins: [storybookTest({ configDir: storybookDir })],
+        // The play tests assert the Thai catalog; the preview reads this to start a test run in Thai.
+        define: { "import.meta.env.STORYBOOK_TEST_LOCALE": JSON.stringify("th") },
         test: {
           name: "storybook",
           browser: {

@@ -44,6 +44,16 @@ const withLocale: Decorator = (Story, context) => {
   );
 };
 
+/**
+ * Storybook opens in English by the owner's choice (2026-10-22); Thai stays one click away in the
+ * toolbar. The play tests assert the Thai catalog, which is the source every other locale is typed
+ * against, so a Vitest run starts in Thai.
+ */
+const TEST_LOCALE: unknown = (import.meta as { env?: Record<string, unknown> }).env?.[
+  "STORYBOOK_TEST_LOCALE"
+];
+const INITIAL_LOCALE: Locale = isLocale(TEST_LOCALE) ? TEST_LOCALE : "en";
+
 const preview: Preview = {
   decorators: [withDesignProfile, withLocale],
   globalTypes: {
@@ -81,7 +91,7 @@ const preview: Preview = {
       },
     },
   },
-  initialGlobals: { mode: "light", profile: "neutral", locale: DEFAULT_LOCALE },
+  initialGlobals: { mode: "light", profile: "neutral", locale: INITIAL_LOCALE },
   parameters: {
     layout: "fullscreen",
     a11y: { test: "error" },
