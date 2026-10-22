@@ -1068,12 +1068,17 @@
     "header-bg": {
       "$type": "color",
       "$value": "{surface.sunken}",
-      "$description": "The frame around the top row and title (owner, ORV-57): inset from the node edge, its radius the node's less the inset"
+      "$description": "The solid form of the glass header frame: shown under reduced transparency or without backdrop blur, and the ground the header text pairs are proven on (the glass tint over the card reads lighter than this in light mode and is the same step in dark)"
+    },
+    "glass-tint": {
+      "$type": "color",
+      "$value": "{text.primary}",
+      "$description": "The glass header frame (owner, ORV-59): a thin share of this over the card, a lighter top edge and a hairline ring, with a backdrop blur"
     },
     "frame-inset": {
       "$type": "dimension",
-      "$value": "{space.inset.sm}",
-      "$description": "Gap between the node edge and the header frame, and the frame's own padding, so text lines up with the body at node.padding"
+      "$value": "{space.inline.sm}",
+      "$description": "4 px between the node edge and the glass header frame (owner, ORV-59); the frame's radius is the node's less this, and it pads by node.padding less this, so its text lines up with the body"
     },
     "divider": {
       "$type": "color",
@@ -1146,8 +1151,8 @@
     },
     "radius": {
       "$type": "dimension",
-      "$value": "{shape.media.radius}",
-      "$description": "12, media level (mood E); a group is a container at 16"
+      "$value": "{shape.overlay.radius}",
+      "$description": "24, the overlay level (owner, ORV-59): soft like the dialogs and command palette, so the glass header frame inside stays concentric at 20"
     },
     "shadow": {
       "$type": "shadow",
@@ -1324,8 +1329,8 @@
     },
     "radius": {
       "$type": "dimension",
-      "$value": "{shape.container.radius}",
-      "$description": "16, container level: nodes at 12 sit inside"
+      "$value": "{shape.overlay.radius}",
+      "$description": "24, the same as a node (ORV-59); the group's padding keeps its nodes clear of its edge"
     },
     "padding": {
       "$type": "dimension",

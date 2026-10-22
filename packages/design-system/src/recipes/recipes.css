@@ -1143,16 +1143,42 @@
 /* One surface (ORV-57). The top row (kind icon, kind, status, run time) and the title sit in a
  * frame inset from the node edge by `frame-inset`, padded by the same, so its text lines up with
  * the body; its radius is the node's less the inset, so the two corners stay concentric. */
+/* The header is a glass frame (owner, ORV-59): 4 px in from the node edge, radius the node's less
+ * that inset so the corners stay concentric, padded by node.padding less the inset so its text
+ * lines up with the body. A thin share of the tint over the card, brighter at the top, a hairline
+ * ring and a lighter top edge, with a backdrop blur; solid `node.header-bg` when the user asks for
+ * less transparency or the browser cannot blur. */
 .ds-node__header {
   display: flex;
   flex-direction: column;
   gap: var(--ds-space-stack-sm);
   margin: var(--cmp-node-frame-inset) var(--cmp-node-frame-inset) 0;
-  padding: var(--cmp-node-frame-inset);
-  --_frame-radius: calc(var(--cmp-node-radius) - var(--cmp-node-frame-inset));
+  padding: calc(var(--cmp-node-padding) - var(--cmp-node-frame-inset));
+  --_frame-radius: max(0px, calc(var(--cmp-node-radius) - var(--cmp-node-frame-inset)));
+  --_glass: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--cmp-node-glass-tint) 10%, transparent),
+    color-mix(in oklab, var(--cmp-node-glass-tint) 4%, transparent)
+  );
+  --_glass-edge:
+    inset 0 1px 0 color-mix(in oklab, var(--cmp-node-glass-tint) 14%, transparent),
+    inset 0 0 0 1px color-mix(in oklab, var(--cmp-node-glass-tint) 7%, transparent);
   border-radius: var(--_frame-radius);
-  background: var(--cmp-node-header-bg);
+  background: var(--_glass);
+  box-shadow: var(--_glass-edge);
+  backdrop-filter: blur(var(--cmp-node-note-blur)) saturate(1.4);
   color: var(--cmp-node-header-fg);
+}
+@media (prefers-reduced-transparency: reduce) {
+  .ds-node__header {
+    --_glass: var(--cmp-node-header-bg);
+    backdrop-filter: none;
+  }
+}
+@supports not (backdrop-filter: blur(1px)) {
+  .ds-node__header {
+    --_glass: var(--cmp-node-header-bg);
+  }
 }
 .ds-node__meta {
   display: flex;
