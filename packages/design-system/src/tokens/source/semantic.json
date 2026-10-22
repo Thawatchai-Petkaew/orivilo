@@ -1090,7 +1090,7 @@
     "body": {
       "$type": "fontFamily",
       "$value": "{font.family.plex-sans}",
-      "$description": "Body and UI role, looped Thai"
+      "$description": "Body and UI role: Latin and digits in IBM Plex Sans, Thai in looped Sarabun (owner, ORV-58)"
     },
     "mono": {
       "$type": "fontFamily",

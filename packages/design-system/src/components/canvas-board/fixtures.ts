@@ -58,7 +58,7 @@ export const BOARD_NODES: BoardNode[] = [
     data: {
       title: "Type direction",
       kind: "direction",
-      summary: "Anuphan กับ IBM Plex Sans Thai, น้ำหนัก 400 และ 600",
+      summary: "Anuphan กับ Sarabun, น้ำหนัก 400 และ 600",
       inputs: [text()],
       outputs: [type()],
     },
