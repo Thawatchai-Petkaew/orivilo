@@ -16,6 +16,7 @@ const th = {
     tagline: "Brand-to-Product Platform ที่ทุกชิ้นงานสืบย้อนไปถึงเหตุผลของมันได้",
     openWorkspace: "เปิดหน้าอ้างอิง: เวิร์กสเปซของทีม",
     openDirections: "ลองเขียนบรีฟแล้วดูสองทิศทางบนหน้าจอเดียวกัน",
+    openAccount: "ลงชื่อเข้าใช้และดูเวิร์กสเปซของคุณ",
     realHeading: "สิ่งที่มีจริงตอนนี้",
     notYetHeading: "สิ่งที่ยังไม่มี",
     schemaLine: "Design Profile schema v{version}. แผนงานทั้งหมดอยู่ใน",
@@ -70,6 +71,17 @@ const th = {
       "การตีความ brief ตอนนี้เป็นแบบกฎเท่านั้น ยังไม่ใช้ AI และหน้าจอบอกไว้ตามจริง",
     ],
   },
+  account: {
+    title: "บัญชี, ORIVILO",
+    heading: "บัญชีและเวิร์กสเปซ",
+    signedOut: "ลงชื่อเข้าใช้ด้วยบัญชี Google แล้วระบบจะสร้างเวิร์กสเปซของคุณเองให้ในครั้งแรก",
+    signInWithGoogle: "ลงชื่อเข้าใช้ด้วย Google",
+    signedInAs: "ลงชื่อเข้าใช้อยู่ในชื่อ {email}",
+    workspace: "เวิร์กสเปซของคุณ: {name}",
+    signOut: "ออกจากระบบ",
+    notConfigured:
+      "ยังลงชื่อเข้าใช้ในสภาพแวดล้อมนี้ไม่ได้ เพราะยังไม่ได้ตั้งค่า Google และฐานข้อมูล",
+  },
   directions: {
     title: "สองทิศทาง, ORIVILO",
     heading: "สองทิศทางจากบรีฟเดียว",
@@ -94,6 +106,7 @@ const en: WebMessages = {
     tagline: "A Brand-to-Product Platform where every artifact traces back to its reasons",
     openWorkspace: "Open the reference screen: team workspace",
     openDirections: "Write a brief and see two directions on the same screen",
+    openAccount: "Sign in and see your workspace",
     realHeading: "What exists today",
     notYetHeading: "What does not exist yet",
     schemaLine: "Design Profile schema v{version}. The whole plan is in the",
@@ -150,6 +163,17 @@ const en: WebMessages = {
       "The example screen at /workspace is Thai fixture data only until the real shell replaces it: E4-0, E4-8",
       "Brief interpretation is rule-based only, with no AI yet, and the screen says so",
     ],
+  },
+  account: {
+    title: "Account, ORIVILO",
+    heading: "Account and workspace",
+    signedOut:
+      "Sign in with your Google account; the first time, your own workspace is created for you.",
+    signInWithGoogle: "Sign in with Google",
+    signedInAs: "Signed in as {email}",
+    workspace: "Your workspace: {name}",
+    signOut: "Sign out",
+    notConfigured: "Sign-in is not available here yet: Google and the database are not set up.",
   },
   directions: {
     title: "Two directions, ORIVILO",

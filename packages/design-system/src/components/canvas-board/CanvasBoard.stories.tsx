@@ -28,6 +28,8 @@ type Story = StoryObj<typeof meta>;
 const nodeEls = (root: HTMLElement) => root.querySelectorAll<HTMLElement>(".react-flow__node");
 const edgeEls = (root: HTMLElement) => root.querySelectorAll<HTMLElement>(".react-flow__edge");
 const status = (root: HTMLElement) => within(root).getByRole("status");
+// React Flow hides a node until it is measured, so a node's accessible name can lag its element;
+// stories look a node up inside waitFor the first time.
 const nodeByTitle = (root: HTMLElement, title: string) =>
   within(root).getByRole("group", { name: new RegExp(`^${title},`) });
 const handleOf = (root: HTMLElement, nodeId: string, handleId: string) =>
@@ -103,7 +105,7 @@ export const Present: Story = {
     await waitFor(() => expect(nodeEls(region)).toHaveLength(BOARD_NODES.length));
     await expect(canvas.getByText("ดูอย่างเดียว")).toBeVisible();
     await expect(canvas.getAllByRole("img", { name: /แก้ไขไม่ได้$/ }).length).toBeGreaterThan(5);
-    const logo = nodeByTitle(region, "โลโก้");
+    const logo = await waitFor(() => nodeByTitle(region, "โลโก้"));
     logo.focus();
     await userEvent.keyboard("{Enter}");
     await userEvent.keyboard("{Delete}");
@@ -128,7 +130,7 @@ export const KeyboardConnect: Story = {
     const region = canvas.getByRole("region");
     await waitFor(() => expect(nodeEls(region)).toHaveLength(BOARD_NODES.length));
     const before = edgeEls(region).length;
-    const brief = nodeByTitle(region, "บรีฟ");
+    const brief = await waitFor(() => nodeByTitle(region, "บรีฟ"));
     brief.focus();
     await userEvent.keyboard("c");
     // Text goes to the two unconnected text inputs: the note (nearest) and the palette.
@@ -162,7 +164,7 @@ export const KeyboardNudge: Story = {
   play: async ({ canvasElement }) => {
     const region = within(canvasElement).getByRole("region");
     await waitFor(() => expect(nodeEls(region)).toHaveLength(BOARD_NODES.length));
-    const brief = nodeByTitle(region, "บรีฟ");
+    const brief = await waitFor(() => nodeByTitle(region, "บรีฟ"));
     brief.focus();
     await userEvent.keyboard("{Enter}");
     await waitFor(() => expect(brief).toHaveClass("selected"));
@@ -185,7 +187,7 @@ export const KeyboardDelete: Story = {
     const canvas = within(canvasElement);
     const region = canvas.getByRole("region");
     await waitFor(() => expect(nodeEls(region)).toHaveLength(BOARD_NODES.length));
-    const logo = nodeByTitle(region, "โลโก้");
+    const logo = await waitFor(() => nodeByTitle(region, "โลโก้"));
     logo.focus();
     await userEvent.keyboard("{Enter}");
     await userEvent.keyboard("{Delete}");
@@ -250,7 +252,7 @@ export const BoxSelecting: Story = {
     const region = within(canvasElement).getByRole("region");
     await waitFor(() => expect(nodeEls(region)).toHaveLength(BOARD_NODES.length));
     const pane = region.querySelector<HTMLElement>(".react-flow__pane") as HTMLElement;
-    const brief = nodeByTitle(region, "บรีฟ");
+    const brief = await waitFor(() => nodeByTitle(region, "บรีฟ"));
     const b = brief.getBoundingClientRect();
     const start = { x: Math.round(b.left - 8), y: Math.round(b.top - 8) };
     const end = { x: Math.round(b.left + 40), y: Math.round(b.top + 40) };
@@ -276,7 +278,7 @@ export const RegistryCommands: Story = {
     const canvas = within(canvasElement);
     const region = canvas.getByRole("region");
     await waitFor(() => expect(nodeEls(region)).toHaveLength(BOARD_NODES.length));
-    const brief = nodeByTitle(region, "บรีฟ");
+    const brief = await waitFor(() => nodeByTitle(region, "บรีฟ"));
     brief.focus();
     await userEvent.keyboard("{Control>}a{/Control}");
     await waitFor(() =>
@@ -375,7 +377,7 @@ export const Clipboard: Story = {
     const canvas = within(canvasElement);
     const region = canvas.getByRole("region");
     await waitFor(() => expect(nodeEls(region)).toHaveLength(BOARD_NODES.length));
-    const brief = nodeByTitle(region, "บรีฟ");
+    const brief = await waitFor(() => nodeByTitle(region, "บรีฟ"));
     const x = translateX(brief);
     const y = translateY(brief);
     brief.focus();
@@ -398,7 +400,7 @@ export const Clipboard: Story = {
     await waitFor(() => expect(nodeEls(region)).toHaveLength(BOARD_NODES.length + 2));
     await expect(selectedCount(region)).toBe(1);
     // Mod+X on the logo removes it; its downstream palette turns stale.
-    const logo = nodeByTitle(region, "โลโก้");
+    const logo = await waitFor(() => nodeByTitle(region, "โลโก้"));
     logo.focus();
     await userEvent.keyboard("{Enter}");
     await userEvent.keyboard("{Control>}x{/Control}");
@@ -415,9 +417,9 @@ export const Arrange: Story = {
   play: async ({ canvasElement }) => {
     const region = within(canvasElement).getByRole("region");
     await waitFor(() => expect(nodeEls(region)).toHaveLength(BOARD_NODES.length));
-    const brief = nodeByTitle(region, "บรีฟ");
-    const note = nodeByTitle(region, "โน้ต");
-    const type = nodeByTitle(region, "Type direction");
+    const brief = await waitFor(() => nodeByTitle(region, "บรีฟ"));
+    const note = await waitFor(() => nodeByTitle(region, "โน้ต"));
+    const type = await waitFor(() => nodeByTitle(region, "Type direction"));
     brief.focus();
     await userEvent.keyboard("{Control>}a{/Control}");
     await waitFor(() => expect(selectedCount(region)).toBe(BOARD_NODES.length));
@@ -459,7 +461,7 @@ export const AddNote: Story = {
     const canvas = within(canvasElement);
     const region = canvas.getByRole("region");
     await waitFor(() => expect(nodeEls(region)).toHaveLength(BOARD_NODES.length));
-    const brief = nodeByTitle(region, "บรีฟ");
+    const brief = await waitFor(() => nodeByTitle(region, "บรีฟ"));
     brief.focus();
     await userEvent.keyboard("{Control>}{Shift>}n{/Shift}{/Control}");
     await waitFor(() => expect(nodeEls(region)).toHaveLength(BOARD_NODES.length + 1));
@@ -547,7 +549,7 @@ export const English: Story = {
       canvas.getByRole("group", { name: "input from บรีฟ to โลโก้" }),
     ).toBeInTheDocument();
     await expect(canvas.getByRole("toolbar", { name: "Board tools" })).toBeInTheDocument();
-    const brief = nodeByTitle(region, "บรีฟ");
+    const brief = await waitFor(() => nodeByTitle(region, "บรีฟ"));
     brief.focus();
     await userEvent.keyboard("{Control>}a{/Control}");
     await expect(status(region)).toHaveTextContent(`Selected all ${BOARD_NODES.length} nodes`);
