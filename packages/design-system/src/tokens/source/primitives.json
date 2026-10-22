@@ -538,6 +538,10 @@
       "$type": "dimension",
       "$value": "48px"
     },
+    "44": {
+      "$type": "dimension",
+      "$value": "176px"
+    },
     "60": {
       "$type": "dimension",
       "$value": "240px"

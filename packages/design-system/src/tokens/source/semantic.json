@@ -899,6 +899,11 @@
         "$value": "{size.container-sm}",
         "$description": "Sheet width lg, 640"
       }
+    },
+    "tile": {
+      "$type": "dimension",
+      "$value": "{size.44}",
+      "$description": "Block library tile width, 176; every tile is this wide"
     }
   },
   "type": {

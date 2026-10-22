@@ -257,22 +257,26 @@ export function BlockLibrary({ onPlace, className }: BlockLibraryProps) {
                         onKeyDown={(e) => onTileKey(e, tile)}
                         onDragStart={(e) => onDragStart(e, tile)}
                       >
-                        <span className="ds-shelf__name">{pick(tile.block.name, locale)}</span>
-                        <span className="ds-shelf__state">
-                          <Icon />
-                          {tile.word}
+                        <span className="ds-shelf__name" title={pick(tile.block.name, locale)}>
+                          {pick(tile.block.name, locale)}
                         </span>
-                        {tile.colours.length > 0 ? (
-                          <span className="ds-shelf__swatches" aria-hidden>
-                            {tile.colours.map((c) => (
-                              <span
-                                key={c}
-                                className="ds-node__swatch"
-                                style={{ backgroundColor: c }}
-                              />
-                            ))}
+                        <span className="ds-shelf__meta">
+                          <span className="ds-shelf__state">
+                            <Icon />
+                            {tile.word}
                           </span>
-                        ) : null}
+                          {tile.colours.length > 0 ? (
+                            <span className="ds-shelf__swatches" aria-hidden>
+                              {tile.colours.slice(0, 3).map((c) => (
+                                <span
+                                  key={c}
+                                  className="ds-node__swatch"
+                                  style={{ backgroundColor: c }}
+                                />
+                              ))}
+                            </span>
+                          ) : null}
+                        </span>
                       </button>
                     </li>
                   );

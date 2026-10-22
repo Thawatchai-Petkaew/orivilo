@@ -1391,7 +1391,7 @@
 .ds-node__swatches,
 .ds-shelf__swatches {
   display: flex;
-  flex-wrap: wrap;
+  flex: 0 0 auto;
   gap: var(--ds-space-inline-sm);
 }
 /* The swatch colour is the user's data, set inline; the hairline keeps a pale one visible. */
@@ -2595,12 +2595,12 @@
 .ds-shelf__tile {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: stretch;
+  justify-content: space-between;
   gap: var(--ds-space-stack-sm);
-  width: max-content;
-  max-width: var(--cmp-shelf-tile-width);
+  width: var(--cmp-shelf-tile-width);
   height: 100%;
-  padding: var(--ds-space-inset-sm) var(--ds-space-inset-md);
+  padding: var(--ds-space-inset-sm);
   border: 1px solid var(--cmp-shelf-tile-border);
   border-radius: var(--cmp-shelf-tile-radius);
   background: var(--cmp-shelf-tile-bg);
@@ -2612,6 +2612,28 @@
 .ds-shelf__tile[data-state="absent"] {
   border-style: dashed;
 }
+/* On the board: the edge is the AI gradient, a masked ring like a running node's, but still. */
+.ds-shelf__tile:not([data-state="absent"]) {
+  position: relative;
+  border-color: transparent;
+}
+.ds-shelf__tile:not([data-state="absent"])::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  padding: var(--cmp-shelf-tile-ring-width);
+  --_ring: linear-gradient(
+    135deg,
+    var(--cmp-shelf-tile-ring-start),
+    var(--cmp-shelf-tile-ring-end)
+  );
+  border-radius: var(--cmp-shelf-tile-radius);
+  background: var(--_ring);
+  mask:
+    linear-gradient(black 0 0) content-box exclude,
+    linear-gradient(black 0 0);
+  pointer-events: none;
+}
 .ds-shelf__tile:hover:not(:disabled) {
   background: var(--cmp-shelf-tile-bg-hover);
 }
@@ -2620,7 +2642,22 @@
 }
 .ds-shelf__name,
 .ds-shelf__state {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
+}
+/* State word and, for colour blocks, the swatches share one row, so every tile is the same height. */
+.ds-shelf__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ds-space-inline-sm);
+  min-width: 0;
+}
+.ds-shelf__meta .ds-node__swatch {
+  width: var(--ds-size-icon-sm);
+  height: var(--ds-size-icon-sm);
 }
 .ds-shelf__state {
   display: inline-flex;
