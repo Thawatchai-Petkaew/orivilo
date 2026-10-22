@@ -13,6 +13,7 @@
   "scripts": {
     "tokens": "node scripts/build-tokens.ts",
     "commands": "node scripts/build-commands.ts",
+    "blocks": "node scripts/build-blocks.ts",
     "contrast": "node scripts/check-contrast.ts",
     "storybook": "storybook dev -p 6006",
     "build": "storybook build",

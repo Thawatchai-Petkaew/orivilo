@@ -1,0 +1,386 @@
+# Block registry of the Intent Studio MVP path (spec ORV-44 part 2, research ORV-60). Every node the
+# shelf offers and every question a node asks lives here; no component lists a block by hand.
+# Kinds: source (the user brings it), synthesis (read from sources), decision (a choice the user can
+# change), output (what the path produces). An input with `from` is filled by an edge from a
+# summarized node of one of those blocks; its port takes the source block's output kind.
+# Answer types: text, long-text, url, colours (hex list), images (file list), choice (one option).
+# tests/check-blocks.test.ts enforces the rules. Copy: Thai and English, no middot and no em dash.
+version: 1
+modules:
+  brand: { th: แบรนด์, en: Brand }
+  design-system: { th: ระบบออกแบบ, en: Design system }
+blocks:
+  # Sources: colour
+  - id: reference-images
+    kind: source
+    module: design-system
+    name: { th: ภาพอ้างอิง, en: Reference images }
+    output: palette
+    inputs:
+      - id: images
+        required: true
+        answer: images
+        label: { th: ภาพ, en: Images }
+        question:
+          {
+            th: มีภาพที่ชอบหรืออยากให้ใกล้เคียงไหม,
+            en: Which images do you like or want to be close to?,
+          }
+    feeds: [starter-colours]
+  - id: screenshot
+    kind: source
+    module: design-system
+    name: { th: ภาพหน้าจอ, en: Screenshot }
+    output: palette
+    inputs:
+      - id: images
+        required: true
+        answer: images
+        label: { th: ภาพหน้าจอ, en: Screenshots }
+        question:
+          {
+            th: มีหน้าจอที่แคปมาจากแอปหรือเว็บไหนไหม,
+            en: Do you have screenshots from an app or a site?,
+          }
+    feeds: [starter-colours]
+  - id: sample-website
+    kind: source
+    module: design-system
+    name: { th: เว็บไซต์ตัวอย่าง, en: Sample website }
+    output: palette
+    inputs:
+      - id: screenshot
+        required: true
+        answer: images
+        label: { th: ภาพหน้าเว็บ, en: Page screenshot }
+        question:
+          { th: แคปหน้าเว็บตัวอย่างมาให้ดูหน่อย, en: Upload a screenshot of the sample site }
+      - id: link
+        required: false
+        answer: url
+        label: { th: ลิงก์, en: Link }
+        question:
+          {
+            th: ลิงก์ของเว็บนี้คืออะไร เก็บไว้เป็นที่มา,
+            en: What is the site's link? It is kept as the source,
+          }
+    feeds: [starter-colours]
+  - id: typed-colours
+    kind: source
+    module: design-system
+    name: { th: สีที่พิมพ์มา, en: Typed colours }
+    output: palette
+    inputs:
+      - id: colours
+        required: true
+        answer: colours
+        label: { th: สี, en: Colours }
+        question:
+          {
+            th: มีสีที่ใช้อยู่แล้วไหม พิมพ์รหัสสีมาได้เลย,
+            en: Any colours you already use? Type their hex codes,
+          }
+    feeds: [starter-colours]
+  - id: existing-logo
+    kind: source
+    module: brand
+    name: { th: โลโก้ที่มีอยู่, en: Existing logo }
+    output: palette
+    inputs:
+      - id: file
+        required: true
+        answer: images
+        label: { th: ไฟล์โลโก้, en: Logo file }
+        question: { th: มีไฟล์โลโก้ที่ใช้อยู่ไหม, en: Do you have the logo file you use now? }
+    feeds: [starter-colours]
+  # Sources: brand
+  - id: brief
+    kind: source
+    module: brand
+    name: { th: บรีฟ, en: Brief }
+    output: text
+    inputs:
+      - id: product
+        required: true
+        answer: text
+        label: { th: ผลิตภัณฑ์, en: Product }
+        question: { th: ผลิตภัณฑ์นี้คืออะไร, en: What is the product? }
+      - id: goal
+        required: true
+        answer: long-text
+        label: { th: เป้าหมาย, en: Goal }
+        question:
+          { th: อยากให้ผลิตภัณฑ์นี้ช่วยใครทำอะไรได้, en: Who should it help, and to do what? }
+      - id: industry
+        required: false
+        answer: text
+        label: { th: อุตสาหกรรม, en: Industry }
+        question: { th: อยู่ในอุตสาหกรรมไหน, en: Which industry is it in? }
+    feeds: [audience]
+  - id: brand-personality
+    kind: source
+    module: brand
+    name: { th: บุคลิกแบรนด์, en: Brand personality }
+    output: text
+    inputs:
+      - id: traits
+        required: true
+        answer: text
+        label: { th: บุคลิก, en: Traits }
+        question:
+          {
+            th: ถ้าแบรนด์เป็นคน จะเป็นคนแบบไหน บอกมาสามคำ,
+            en: If the brand were a person,
+            what would it be like? Give three words,
+          }
+      - id: avoid
+        required: false
+        answer: text
+        label: { th: ไม่อยากให้เป็น, en: Not this }
+        question:
+          { th: มีอะไรที่ไม่อยากให้แบรนด์เป็นไหม, en: Anything the brand should never feel like? }
+    feeds: [mood-theme]
+  - id: platform-languages
+    kind: source
+    module: design-system
+    name: { th: แพลตฟอร์มและภาษา, en: Platform and languages }
+    output: text
+    inputs:
+      - id: platform
+        required: true
+        answer: choice
+        label: { th: แพลตฟอร์ม, en: Platform }
+        question: { th: ใช้บนแพลตฟอร์มไหน, en: Which platform is it for? }
+        options:
+          - { id: web, th: เว็บ, en: Web }
+          - { id: mobile, th: แอปมือถือ, en: Mobile app }
+          - { id: both, th: ทั้งเว็บและแอป, en: Web and app }
+      - id: languages
+        required: true
+        answer: choice
+        label: { th: ภาษา, en: Languages }
+        question: { th: ต้องรองรับภาษาไหน, en: Which languages must it support? }
+        options:
+          - { id: th-en, th: ไทยและอังกฤษ, en: Thai and English }
+          - { id: th, th: ไทย, en: Thai }
+          - { id: en, th: อังกฤษ, en: English }
+    feeds: [font, token-set]
+  # Synthesis
+  - id: audience
+    kind: synthesis
+    module: brand
+    name: { th: กลุ่มผู้ใช้, en: Audience }
+    output: text
+    inputs:
+      - id: brief
+        required: true
+        answer: text
+        from: [brief]
+        label: { th: บรีฟ, en: Brief }
+        question:
+          {
+            th: ต่อสายจากบรีฟ หรือเล่าสั้นๆ ว่าผลิตภัณฑ์คืออะไร,
+            en: Connect the brief,
+            or say briefly what the product is,
+          }
+      - id: users
+        required: true
+        answer: text
+        label: { th: ผู้ใช้หลัก, en: Main users }
+        question: { th: ใครคือผู้ใช้หลัก, en: Who are the main users? }
+    feeds: [mood-theme]
+  - id: mood-theme
+    kind: synthesis
+    module: brand
+    name: { th: มู้ดและธีม, en: Mood and theme }
+    output: text
+    inputs:
+      - id: personality
+        required: true
+        answer: text
+        from: [brand-personality]
+        label: { th: บุคลิกแบรนด์, en: Brand personality }
+        question:
+          {
+            th: ต่อสายจากบุคลิกแบรนด์ หรือบอกบุคลิกสามคำ,
+            en: Connect the brand personality,
+            or give three traits,
+          }
+      - id: audience
+        required: false
+        answer: text
+        from: [audience]
+        label: { th: กลุ่มผู้ใช้, en: Audience }
+        question: { th: ต่อสายจากกลุ่มผู้ใช้ ถ้ามี, en: Connect the audience, if there is one }
+      - id: feeling
+        required: true
+        answer: text
+        label: { th: ความรู้สึก, en: Feeling }
+        question: { th: อยากให้คนใช้รู้สึกแบบไหน, en: How should people feel when they use it? }
+    feeds: [font, icon, shape-spacing]
+  # Decisions
+  - id: starter-colours
+    kind: decision
+    module: design-system
+    name: { th: สีตั้งต้น, en: Starter colours }
+    output: palette
+    inputs:
+      - id: primary
+        required: true
+        answer: colours
+        from: [typed-colours, reference-images, screenshot, sample-website, existing-logo]
+        label: { th: สีหลัก, en: Primary }
+        question:
+          {
+            th: สีหลักคือสีไหน หรือต่อสายจากแหล่งสี,
+            en: What is the primary colour? Or connect a colour source,
+          }
+      - id: secondary
+        required: false
+        answer: colours
+        label: { th: สีรอง, en: Secondary }
+        question: { th: มีสีรองไหม, en: Is there a secondary colour? }
+    feeds: [token-set]
+  - id: font
+    kind: decision
+    module: design-system
+    name: { th: ฟอนต์, en: Font }
+    output: type
+    inputs:
+      - id: mood
+        required: true
+        answer: text
+        from: [mood-theme]
+        label: { th: มู้ด, en: Mood }
+        question:
+          {
+            th: ต่อสายจากมู้ดและธีม หรือบอกมู้ดที่ต้องการ,
+            en: Connect the mood and theme,
+            or describe the mood,
+          }
+      - id: languages
+        required: true
+        answer: choice
+        from: [platform-languages]
+        label: { th: ภาษา, en: Languages }
+        question: { th: ฟอนต์ต้องรองรับภาษาไหน, en: Which languages must the font support? }
+        options:
+          - { id: th-en, th: ไทยและอังกฤษ, en: Thai and English }
+          - { id: th, th: ไทย, en: Thai }
+          - { id: en, th: อังกฤษ, en: English }
+      - id: wanted
+        required: false
+        answer: text
+        label: { th: ฟอนต์ที่อยากใช้, en: Wanted font }
+        question: { th: มีฟอนต์ที่อยากใช้อยู่แล้วไหม, en: Is there a font you already want? }
+    feeds: [token-set]
+  - id: icon
+    kind: decision
+    module: design-system
+    name: { th: ไอคอน, en: Icons }
+    output: image
+    inputs:
+      - id: mood
+        required: true
+        answer: text
+        from: [mood-theme]
+        label: { th: มู้ด, en: Mood }
+        question:
+          {
+            th: ต่อสายจากมู้ดและธีม หรือบอกมู้ดที่ต้องการ,
+            en: Connect the mood and theme,
+            or describe the mood,
+          }
+      - id: style
+        required: false
+        answer: choice
+        label: { th: สไตล์, en: Style }
+        question: { th: ชอบไอคอนแบบไหน, en: Which icon style do you like? }
+        options:
+          - { id: rounded-stroke, th: เส้นขอบมน, en: Rounded stroke }
+          - { id: square-stroke, th: เส้นขอบเหลี่ยม, en: Square stroke }
+          - { id: solid, th: ทึบ, en: Solid }
+    feeds: [token-set]
+  - id: shape-spacing
+    kind: decision
+    module: design-system
+    name: { th: รูปทรงและระยะห่าง, en: Shape and spacing }
+    output: profile
+    inputs:
+      - id: mood
+        required: true
+        answer: text
+        from: [mood-theme]
+        label: { th: มู้ด, en: Mood }
+        question:
+          {
+            th: ต่อสายจากมู้ดและธีม หรือบอกมู้ดที่ต้องการ,
+            en: Connect the mood and theme,
+            or describe the mood,
+          }
+      - id: density
+        required: false
+        answer: choice
+        label: { th: ความแน่น, en: Density }
+        question: { th: อยากให้หน้าจอแน่นแค่ไหน, en: How dense should screens be? }
+        options:
+          - { id: compact, th: แน่น, en: Compact }
+          - { id: comfortable, th: พอดี, en: Comfortable }
+          - { id: spacious, th: โปร่ง, en: Spacious }
+    feeds: [token-set]
+  # Outputs
+  - id: token-set
+    kind: output
+    module: design-system
+    name: { th: ชุด token และโปรไฟล์, en: Token set and profile }
+    output: profile
+    inputs:
+      - id: colours
+        required: true
+        answer: colours
+        from: [starter-colours]
+        label: { th: สี, en: Colours }
+        question: { th: ต่อสายจากสีตั้งต้น, en: Connect the starter colours }
+      - id: font
+        required: true
+        answer: text
+        from: [font]
+        label: { th: ฟอนต์, en: Font }
+        question: { th: ต่อสายจากฟอนต์, en: Connect the font }
+      - id: icon
+        required: true
+        answer: text
+        from: [icon]
+        label: { th: ไอคอน, en: Icons }
+        question: { th: ต่อสายจากไอคอน, en: Connect the icons }
+      - id: shape
+        required: true
+        answer: text
+        from: [shape-spacing]
+        label: { th: รูปทรง, en: Shape }
+        question: { th: ต่อสายจากรูปทรงและระยะห่าง, en: Connect the shape and spacing }
+      - id: platform
+        required: false
+        answer: text
+        from: [platform-languages]
+        label: { th: แพลตฟอร์ม, en: Platform }
+        question:
+          {
+            th: ต่อสายจากแพลตฟอร์มและภาษา ถ้ามี,
+            en: Connect the platform and languages,
+            if there is one,
+          }
+    feeds: [two-directions]
+  - id: two-directions
+    kind: output
+    module: design-system
+    name: { th: สองทิศทาง, en: Two directions }
+    output: profile
+    inputs:
+      - id: tokens
+        required: true
+        answer: text
+        from: [token-set]
+        label: { th: ชุด token, en: Token set }
+        question: { th: ต่อสายจากชุด token และโปรไฟล์, en: Connect the token set and profile }
+    feeds: []

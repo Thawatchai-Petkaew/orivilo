@@ -25,6 +25,10 @@ states:
     missing-inputs,
     collapsed,
     read-only,
+    fill-empty,
+    fill-partial,
+    fill-summarized,
+    fill-unlinked,
   ]
 recipes: [neutral, professional, friendly]
 examples: []
@@ -32,7 +36,8 @@ rules:
   - "One surface, no header band: a glass frame 4 px inside the edge (ORV-59) holds the kind icon, kind, status, run time and title; body is a slot per variant; a divider sits above the ports, which are words (ORV-57)"
   - "Running turns the AI gradient ring and colours the step icons with it; steps and run time show only when the run reports them; still under reduced motion"
   - "A new result is a new node linked to its source; a node is never overwritten in place"
-  - "Missing inputs are listed on the node (ขาดข้อมูล) and asked one at a time in the Inspector (E4-4)"
+  - "A node outside the block registry lists its missing inputs on the node (ขาดข้อมูล)"
+  - "A node made from a registry block derives its fill state from its answers and edges (ORV-44 part 2): empty has a dashed frame and asks its first question; partial counts what is left; summarized and unlinked show the rule-based summary (up to three lines, swatches for colours), labelled ตามกฎ"
   - "Stale means an upstream node changed after this one ran; shown with an edge and a word, not a tint"
   - "A note is glass, like the toolbar (owner's choice, ORV-56); every other kind is solid. Solid under reduced transparency"
 a11y:

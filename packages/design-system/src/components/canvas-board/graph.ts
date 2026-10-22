@@ -53,8 +53,12 @@ export type NodeContent = {
   steps?: NodeStep[];
   /** What went wrong and how to fix it. */
   error?: string;
-  /** Input words the node still needs; asked one at a time in the Inspector (E4-4). */
+  /** Input words a node outside the block registry still needs; a block node derives its own. */
   missing?: string[];
+  /** The registry block this node is made from (`catalog/blocks/mvp.yaml`, ORV-44 part 2). */
+  block?: string;
+  /** The user's answers by input id; a block node's fill state and summary come from these. */
+  answers?: Record<string, string | string[]>;
   collapsed?: boolean;
   /** A group's frame while expanded, kept so collapse and expand restore it (E4-3). */
   frame?: { width: number; height: number };

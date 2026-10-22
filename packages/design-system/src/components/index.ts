@@ -181,3 +181,8 @@ export {
 } from "./command-menu/CommandMenu";
 export { ShortcutSheet, type ShortcutSheetProps } from "./shortcut-sheet/ShortcutSheet";
 export { NodeGroup, type NodeGroupProps } from "./node-group/NodeGroup";
+export { BlockLibrary, type BlockLibraryProps, type TileState } from "./block-library/BlockLibrary";
+export {
+  MissingInputsPrompt,
+  type MissingInputsPromptProps,
+} from "./missing-inputs-prompt/MissingInputsPrompt";

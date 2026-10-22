@@ -608,4 +608,38 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     floor: TEXT,
   },
   { recipe: "side-sheet", slot: "error", fg: "side-sheet.error", bg: "side-sheet.bg", floor: TEXT },
+  // Block nodes, prompt and shelf (ORV-44 part 2). The shelf is glass, checked on its solid base
+  // as the toolbar is. The empty node's dashed frame and the absent tile's dashed edge are listed
+  // although the fill word carries the state, so the edge itself still reads.
+  { recipe: "node", slot: "question", fg: "node.kind-fg", bg: "node.bg", floor: TEXT },
+  { recipe: "node", slot: "fill word", fg: "node.kind-fg", bg: "node.header-bg", floor: TEXT },
+  { recipe: "node", slot: "empty frame", fg: "node.border-empty", bg: "board.bg", floor: UI },
+  { recipe: "prompt", slot: "question", fg: "prompt.fg", bg: "prompt.bg", floor: TEXT },
+  { recipe: "prompt", slot: "progress", fg: "prompt.progress-fg", bg: "prompt.bg", floor: TEXT },
+  { recipe: "prompt", slot: "done", fg: "prompt.done-fg", bg: "prompt.bg", floor: TEXT },
+  { recipe: "shelf", slot: "title", fg: "shelf.fg", bg: "shelf.bg", floor: TEXT },
+  { recipe: "shelf", slot: "module", fg: "shelf.module-fg", bg: "shelf.bg", floor: TEXT },
+  { recipe: "shelf", slot: "tile name", fg: "shelf.fg", bg: "shelf.tile-bg", floor: TEXT },
+  {
+    recipe: "shelf",
+    slot: "tile state",
+    fg: "shelf.tile-state-fg",
+    bg: "shelf.tile-bg",
+    floor: TEXT,
+  },
+  {
+    recipe: "shelf",
+    slot: "tile name hover",
+    fg: "shelf.fg",
+    bg: "shelf.tile-bg-hover",
+    floor: TEXT,
+  },
+  {
+    recipe: "shelf",
+    slot: "tile state hover",
+    fg: "shelf.tile-state-fg",
+    bg: "shelf.tile-bg-hover",
+    floor: TEXT,
+  },
+  { recipe: "shelf", slot: "tile edge", fg: "shelf.tile-border", bg: "shelf.bg", floor: UI },
 ];
