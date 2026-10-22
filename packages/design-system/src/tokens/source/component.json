@@ -409,6 +409,22 @@
     "padding": {
       "$type": "dimension",
       "$value": "{space.inset.sm}"
+    },
+    "gap": {
+      "$type": "dimension",
+      "$value": "{space.inline.sm}"
+    },
+    "layer": {
+      "$type": "number",
+      "$value": "{layer.overlay}"
+    },
+    "fg": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    },
+    "opacity": {
+      "$type": "number",
+      "$value": "{elevation.glass.opacity}"
     }
   },
   "dialog": {
@@ -821,6 +837,16 @@
       "type": {
         "$type": "typography",
         "$value": "{type.body.sm}"
+      },
+      "fg-destructive": {
+        "$type": "color",
+        "$value": "{feedback.danger.fg}",
+        "$description": "A destructive item, last in its menu"
+      },
+      "bg-hover-destructive": {
+        "$type": "color",
+        "$value": "{feedback.danger.surface}",
+        "$description": "The destructive item's ground while highlighted"
       }
     },
     "empty": {
@@ -830,6 +856,21 @@
     "layer": {
       "$type": "number",
       "$value": "{layer.overlay}"
+    },
+    "separator": {
+      "$type": "color",
+      "$value": "{border.subtle}",
+      "$description": "Line between item groups"
+    },
+    "label-fg": {
+      "$type": "color",
+      "$value": "{text.tertiary}",
+      "$description": "Group label inside a menu"
+    },
+    "shortcut-fg": {
+      "$type": "color",
+      "$value": "{text.tertiary}",
+      "$description": "Shortcut hint at the end of an item"
     }
   },
   "popover": {
@@ -1223,6 +1264,175 @@
     "padding": {
       "$type": "dimension",
       "$value": "{space.inset.lg}"
+    }
+  },
+  "kbd": {
+    "$description": "A key cap in a menu, tooltip or the shortcut sheet (E4-3)",
+    "bg": {
+      "$type": "color",
+      "$value": "{surface.sunken}"
+    },
+    "fg": {
+      "$type": "color",
+      "$value": "{text.secondary}"
+    },
+    "border": {
+      "$type": "color",
+      "$value": "{border.subtle}"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.control.radius}"
+    },
+    "type": {
+      "$type": "typography",
+      "$value": "{type.label.sm}"
+    },
+    "padding-x": {
+      "$type": "dimension",
+      "$value": "{space.inline.sm}"
+    }
+  },
+  "toggle": {
+    "$description": "ToggleGroup items: pressed uses the selection tokens and an edge change (E4-3)",
+    "bg": {
+      "$type": "color",
+      "$value": "{surface.card}"
+    },
+    "fg": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    },
+    "border": {
+      "$type": "color",
+      "$value": "{border.control}"
+    },
+    "bg-hover": {
+      "$type": "color",
+      "$value": "{surface.hover}"
+    },
+    "bg-pressed": {
+      "$type": "color",
+      "$value": "{selection.bg}"
+    },
+    "fg-pressed": {
+      "$type": "color",
+      "$value": "{selection.fg}"
+    },
+    "border-pressed": {
+      "$type": "color",
+      "$value": "{canvas.selection}"
+    },
+    "fg-disabled": {
+      "$type": "color",
+      "$value": "{text.secondary}"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.control.radius}"
+    }
+  },
+  "command": {
+    "$description": "The command menu (Mod+K): the one glass palette (ui-direction)",
+    "bg": {
+      "$type": "color",
+      "$value": "{surface.raised}"
+    },
+    "fg": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    },
+    "border": {
+      "$type": "color",
+      "$value": "{border.subtle}"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.overlay.radius}"
+    },
+    "shadow": {
+      "$type": "shadow",
+      "$value": "{elevation.overlay}"
+    },
+    "blur": {
+      "$type": "dimension",
+      "$value": "{elevation.glass.blur}"
+    },
+    "input-type": {
+      "$type": "typography",
+      "$value": "{type.body.md}"
+    },
+    "input-fg": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    },
+    "placeholder": {
+      "$type": "color",
+      "$value": "{text.placeholder}"
+    },
+    "group-fg": {
+      "$type": "color",
+      "$value": "{text.secondary}",
+      "$description": "Secondary, not tertiary: the heading sits on glass, which reads darker than its token"
+    },
+    "group-type": {
+      "$type": "typography",
+      "$value": "{type.label.sm}"
+    },
+    "empty": {
+      "$type": "color",
+      "$value": "{text.secondary}"
+    },
+    "divider": {
+      "$type": "color",
+      "$value": "{border.subtle}"
+    },
+    "layer": {
+      "$type": "number",
+      "$value": "{layer.overlay}"
+    },
+    "opacity": {
+      "$type": "number",
+      "$value": "{elevation.glass.opacity}"
+    }
+  },
+  "minimap": {
+    "$description": "Board overview, decorative (E4-3)",
+    "bg": {
+      "$type": "color",
+      "$value": "{surface.sunken}"
+    },
+    "border": {
+      "$type": "color",
+      "$value": "{border.subtle}"
+    },
+    "node": {
+      "$type": "color",
+      "$value": "{border.strong}"
+    },
+    "node-selected": {
+      "$type": "color",
+      "$value": "{canvas.selection}"
+    },
+    "group": {
+      "$type": "color",
+      "$value": "{text.tertiary}"
+    },
+    "mask": {
+      "$type": "color",
+      "$value": "{surface.scrim}"
+    },
+    "mask-opacity": {
+      "$type": "number",
+      "$value": "{opacity.selection}"
+    },
+    "viewport": {
+      "$type": "color",
+      "$value": "{canvas.selection}"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.media.radius}"
     }
   }
 }

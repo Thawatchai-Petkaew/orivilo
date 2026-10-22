@@ -70,6 +70,8 @@ export interface DialogContentProps extends Omit<
   container?: HTMLElement | null | undefined;
   /** Accessible name of the close control. */
   closeLabel?: string | undefined;
+  /** The body scrolls (a long list): it becomes a Tab stop so the keyboard can scroll it. */
+  scrollable?: boolean | undefined;
   children?: ReactNode;
 }
 
@@ -88,6 +90,7 @@ export function DialogContent({
   footer,
   container,
   closeLabel = "ปิด",
+  scrollable = false,
   className,
   children,
   onEscapeKeyDown,
@@ -130,7 +133,11 @@ export function DialogContent({
               {description}
             </DialogPrimitive.Description>
           ) : null}
-          {children ? <div className="ds-dialog__body">{children}</div> : null}
+          {children ? (
+            <div className="ds-dialog__body" tabIndex={scrollable ? 0 : undefined}>
+              {children}
+            </div>
+          ) : null}
           {error ? (
             <p className="ds-dialog__error" role="alert">
               {error}

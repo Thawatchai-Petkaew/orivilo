@@ -1,20 +1,23 @@
 name: CanvasContextMenu
 tier: application
-status: planned
+status: stable
 since: E4-3
-import: none
+import: "@orivilo/design-system"
 story: application-canvas-context-menu
 useWhen:
   - "Right-click or long-press on the board, a node, an edge or a selection"
 avoidWhen:
   - "As the only way to reach an action"
+  - "The present variant (off there)"
 contract: CanvasContextMenuProps
 variants: []
 sizes: []
-states: [closed, open]
-recipes: []
+states: [on-node, on-board, on-edge, shift-f10, present]
+recipes: [neutral, professional, friendly]
 examples: []
 rules:
-  - "Items come from the command registry filtered by scope"
+  - "Items are the registry's context-menu commands of the scopes that apply (board; node and selection; edge), available in this build, grouped by scope with the destructive item last"
+  - "Right-clicking an unselected node selects it first"
+  - "A command the board cannot run now is disabled, never hidden"
 a11y:
-  - "Shift+F10 opens at the focused element"
+  - "Shift+F10 (app.open-context-menu) opens at the focused element; the same keyboard model as ContextMenu"

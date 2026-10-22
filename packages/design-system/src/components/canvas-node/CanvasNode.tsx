@@ -5,6 +5,7 @@ import { useBoard } from "../canvas-board/context";
 import type { BoardNode } from "../canvas-board/graph";
 import { LockIcon, SpinnerIcon, StaleIcon, WarningIcon } from "../icons";
 import { NodePort } from "../node-port/NodePort";
+import { NodeToolbar } from "../node-toolbar/NodeToolbar";
 import { CANVAS_WORDS } from "../../tokens/canvas";
 
 export type CanvasNodeProps = NodeProps<BoardNode>;
@@ -40,6 +41,7 @@ export function CanvasNode({ id, data, selected, dragging }: CanvasNodeProps) {
       data-connect-candidate={candidate}
       aria-busy={data.status === "running" ? true : undefined}
     >
+      <NodeToolbar node={{ id, data, selected }} />
       <div className="ds-node__header">
         <span className="ds-node__title">{data.title}</span>
         <span className="ds-node__kind">{kind.th}</span>

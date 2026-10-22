@@ -1,46 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fn, userEvent, waitFor, within } from "storybook/test";
-import { useState } from "react";
-import { useDesignProfile } from "../../boundary/DesignProfileBoundary";
 import { Button } from "../button/Button";
 import { fixtures } from "../fixtures";
 import { Matrix, Narrow } from "../matrix";
-import { CanvasBoard, type CanvasBoardProps, GRID_UNIT } from "./CanvasBoard";
+import { GRID_UNIT } from "./CanvasBoard";
 import { BOARD, BOARD_NODES, LONG_NODE } from "./fixtures";
-import type { BoardNode, Graph } from "./graph";
-
-/**
- * The shell's side of the controlled board: the graph in state, `onChange` writing it back, and
- * `board.add-node` adding a note where the shell was asked to. Stories render through it.
- */
-function Stateful({
-  initial,
-  height = 520,
-  ...rest
-}: Omit<CanvasBoardProps, "graph" | "onChange"> & { initial: Graph; height?: number }) {
-  const [graph, setGraph] = useState(initial);
-  return (
-    <div style={{ height }} className="relative">
-      <CanvasBoard
-        {...rest}
-        graph={graph}
-        onChange={setGraph}
-        onCommand={(command, context) => {
-          rest.onCommand?.(command, context);
-          if (command === "board.add-node") {
-            const node: BoardNode = {
-              id: `note-${graph.nodes.length + 1}`,
-              type: "orivilo",
-              position: context.position ?? { x: 0, y: 0 },
-              data: { title: "โน้ตใหม่", kind: "note", inputs: [], outputs: [] },
-            };
-            setGraph({ ...graph, nodes: [...graph.nodes, node] });
-          }
-        }}
-      />
-    </div>
-  );
-}
+import { MatrixBoard, Stateful } from "./story-shell";
 
 const meta = {
   title: "Application/Canvas board",
@@ -129,7 +94,7 @@ export const Loading: Story = {
   },
 };
 
-/** Present: read-only, ports disabled, Delete and the editing shortcuts do nothing, Tab still moves (AC 11). */
+/** Present: read-only, ports disabled, Delete and the editing shortcuts do nothing, Tab still moves (E4-2 AC 11, E4-3 AC 17). */
 export const Present: Story = {
   args: { variant: "present" },
   play: async ({ canvasElement }) => {
@@ -147,6 +112,12 @@ export const Present: Story = {
     await expect(status(region)).toHaveTextContent("");
     await userEvent.keyboard("{Alt>}{ArrowLeft}{/Alt}");
     await expect(nodeByTitle(region, "บรีฟ")).toHaveFocus();
+    // E4-3: no node toolbar, no context menu, controls keep only the viewport commands.
+    await userEvent.click(nodeByTitle(region, "บรีฟ"));
+    await expect(canvas.queryByRole("toolbar", { name: /เครื่องมือของ/ })).toBeNull();
+    const bar = canvas.getByRole("toolbar", { name: "เครื่องมือกระดาน" });
+    await expect(bar.querySelector('[data-command="board.add-node"]')).toBeNull();
+    await expect(bar.querySelector('[data-command="board.zoom-to-fit"]')).not.toBeNull();
   },
 };
 
@@ -359,24 +330,11 @@ export const WithStatus: Story = {
   },
 };
 
-/** One board per matrix cell, each region named by its cell so the six landmarks stay distinct. */
-function CellBoard(args: Parameters<typeof Stateful>[0]) {
-  const scope = useDesignProfile();
-  const id = typeof scope?.profile === "string" ? scope.profile : scope?.profile.id;
-  return (
-    <Stateful
-      {...args}
-      height={360}
-      label={`${args.label}, ${id ?? "neutral"} ${scope?.mode ?? ""}`}
-    />
-  );
-}
-
 /** The same board under neutral, Professional and Friendly in both modes: the canvas groups are locked, only shared tokens change. */
 export const RecipesAndModes: Story = {
   render: (args) => (
     <Matrix>
-      <CellBoard {...args} />
+      <MatrixBoard {...args} height={360} />
     </Matrix>
   ),
   play: async ({ canvasElement }) => {
@@ -405,5 +363,171 @@ export const LongContentAt360: Story = {
       node.getBoundingClientRect().right + 1,
     );
     await expect(region.scrollWidth).toBeLessThanOrEqual(region.clientWidth);
+  },
+};
+
+const selectedCount = (root: HTMLElement) =>
+  root.querySelectorAll(".react-flow__node.selected").length;
+
+/** Mod+C then Mod+V adds a copy two grid units away and selects it; Mod+D duplicates; Mod+X removes the original and marks downstream stale (AC 12). */
+export const Clipboard: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const region = canvas.getByRole("region");
+    await waitFor(() => expect(nodeEls(region)).toHaveLength(BOARD_NODES.length));
+    const brief = nodeByTitle(region, "บรีฟ");
+    const x = translateX(brief);
+    const y = translateY(brief);
+    brief.focus();
+    await userEvent.keyboard("{Enter}");
+    await userEvent.keyboard("{Control>}c{/Control}");
+    await expect(status(region)).toHaveTextContent("คัดลอก 1 node ไว้บนกระดาน");
+    await userEvent.keyboard("{Control>}v{/Control}");
+    await waitFor(() => expect(nodeEls(region)).toHaveLength(BOARD_NODES.length + 1));
+    await expect(status(region)).toHaveTextContent("วาง 1 node แล้ว");
+    const copies = canvas.getAllByRole("group", { name: /^บรีฟ,/ });
+    await expect(copies).toHaveLength(2);
+    const copy = copies.find((c) => c !== brief) as HTMLElement;
+    await waitFor(() => expect(translateX(copy)).toBe(x + 2 * GRID_UNIT));
+    await expect(translateY(copy)).toBe(y + 2 * GRID_UNIT);
+    await expect(copy).toHaveClass("selected");
+    await expect(brief).not.toHaveClass("selected");
+    // Mod+D on the copy: a third brief, selected alone.
+    copy.focus();
+    await userEvent.keyboard("{Control>}d{/Control}");
+    await waitFor(() => expect(nodeEls(region)).toHaveLength(BOARD_NODES.length + 2));
+    await expect(selectedCount(region)).toBe(1);
+    // Mod+X on the logo removes it; its downstream palette turns stale.
+    const logo = nodeByTitle(region, "โลโก้");
+    logo.focus();
+    await userEvent.keyboard("{Enter}");
+    await userEvent.keyboard("{Control>}x{/Control}");
+    await waitFor(() => expect(canvas.queryByRole("group", { name: /^โลโก้,/ })).toBeNull());
+    await expect(status(region)).toHaveTextContent("ตัด 1 node ไว้บนกระดาน");
+    await expect(region.querySelector('.ds-node[data-status="stale"]')).not.toBeNull();
+    await userEvent.keyboard("{Control>}v{/Control}");
+    await waitFor(() => expect(canvas.getByRole("group", { name: /^โลโก้,/ })).toBeInTheDocument());
+  },
+};
+
+/** Align, distribute, order, lock and collapse on a selection (AC 13). */
+export const Arrange: Story = {
+  play: async ({ canvasElement }) => {
+    const region = within(canvasElement).getByRole("region");
+    await waitFor(() => expect(nodeEls(region)).toHaveLength(BOARD_NODES.length));
+    const brief = nodeByTitle(region, "บรีฟ");
+    const note = nodeByTitle(region, "โน้ต");
+    const type = nodeByTitle(region, "Type direction");
+    brief.focus();
+    await userEvent.keyboard("{Control>}a{/Control}");
+    await waitFor(() => expect(selectedCount(region)).toBe(BOARD_NODES.length));
+    // Alt+A: every node's left edge moves to the leftmost (brief and note at x 0).
+    await userEvent.keyboard("{Alt>}a{/Alt}");
+    await expect(status(region)).toHaveTextContent(`จัดแนวซ้าย ${BOARD_NODES.length} node`);
+    await waitFor(() => expect(translateX(type)).toBe(translateX(brief)));
+    // Alt+V: equal gaps top to bottom; the first and last stay where they were.
+    const topBefore = Math.min(...Array.from(nodeEls(region)).map(translateY));
+    await userEvent.keyboard("{Alt>}v{/Alt}");
+    await expect(status(region)).toHaveTextContent("กระจายแนวตั้ง");
+    await waitFor(() =>
+      expect(Math.min(...Array.from(nodeEls(region)).map(translateY))).toBe(topBefore),
+    );
+    // ] brings the selection to the front: a zIndex above every other node.
+    await userEvent.keyboard("]");
+    await expect(status(region)).toHaveTextContent("ย้ายมาหน้าสุด");
+    await waitFor(() => expect(Number(brief.style.zIndex)).toBeGreaterThan(0));
+    // Mod+Shift+L locks the selection; the status word appears on the note.
+    await userEvent.keyboard("{Control>}{Shift>}l{/Shift}{/Control}");
+    await expect(status(region)).toHaveTextContent(`ล็อก ${BOARD_NODES.length} node แล้ว`);
+    await waitFor(() =>
+      expect(note.querySelector(".ds-node")).toHaveAttribute("data-status", "locked"),
+    );
+    await userEvent.keyboard("{Control>}{Shift>}l{/Shift}{/Control}");
+    await expect(status(region)).toHaveTextContent(`ปลดล็อก ${BOARD_NODES.length} node แล้ว`);
+    // Mod+. collapses the selection.
+    await userEvent.keyboard("{Control>}.{/Control}");
+    await expect(status(region)).toHaveTextContent(`ย่อ ${BOARD_NODES.length} node แล้ว`);
+    await waitFor(() =>
+      expect(region.querySelectorAll(".ds-node[data-collapsed]")).toHaveLength(BOARD_NODES.length),
+    );
+  },
+};
+
+/** Mod+Shift+N on a node adds a note one grid unit to its right, selected alone (AC 14). */
+export const AddNote: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const region = canvas.getByRole("region");
+    await waitFor(() => expect(nodeEls(region)).toHaveLength(BOARD_NODES.length));
+    const brief = nodeByTitle(region, "บรีฟ");
+    brief.focus();
+    await userEvent.keyboard("{Control>}{Shift>}n{/Shift}{/Control}");
+    await waitFor(() => expect(nodeEls(region)).toHaveLength(BOARD_NODES.length + 1));
+    await expect(status(region)).toHaveTextContent("เพิ่มโน้ตข้าง บรีฟ");
+    const notes = canvas.getAllByRole("group", { name: /^โน้ต,/ });
+    const added = notes.find((n) => n.classList.contains("selected")) as HTMLElement;
+    await expect(added).toBeDefined();
+    await expect(selectedCount(region)).toBe(1);
+    const right = translateX(brief) + brief.getBoundingClientRect().width / zoomOf(region);
+    await waitFor(() => expect(translateX(added)).toBeCloseTo(right + GRID_UNIT, 0));
+    await expect(translateY(added)).toBe(translateY(brief));
+  },
+};
+
+const zoomOf = (root: HTMLElement) => {
+  const viewport = root.querySelector<HTMLElement>(".react-flow__viewport") as HTMLElement;
+  return Number(/scale\(([\d.]+)\)/.exec(viewport.style.transform)?.[1] ?? 1);
+};
+
+/** Zoom keys, 100 percent, fit, pan or select and snap, each said in the status line (AC 15). */
+export const Viewport: Story = {
+  play: async ({ canvasElement }) => {
+    const region = within(canvasElement).getByRole("region");
+    await waitFor(() => expect(nodeEls(region)).toHaveLength(BOARD_NODES.length));
+    region.focus();
+    const start = zoomOf(region);
+    await userEvent.keyboard("{Control>}={/Control}");
+    await expect(status(region)).toHaveTextContent("ซูมเข้า");
+    await waitFor(() => expect(zoomOf(region)).toBeGreaterThan(start));
+    await userEvent.keyboard("{Control>}0{/Control}");
+    await expect(status(region)).toHaveTextContent("ซูม 100%");
+    await waitFor(() => expect(zoomOf(region)).toBe(1));
+    await expect(within(region).getByRole("button", { name: /ซูม 100/ })).toHaveTextContent("100%");
+    await userEvent.keyboard("{Control>}-{/Control}");
+    await expect(status(region)).toHaveTextContent("ซูมออก");
+    await waitFor(() => expect(zoomOf(region)).toBeLessThan(1));
+    await userEvent.keyboard("{Shift>}1{/Shift}");
+    await expect(status(region)).toHaveTextContent(`พอดีจอ ${BOARD_NODES.length} node`);
+    nodeByTitle(region, "บรีฟ").focus();
+    await userEvent.keyboard("{Enter}");
+    await userEvent.keyboard("{Shift>}2{/Shift}");
+    await expect(status(region)).toHaveTextContent("พอดีจอกับ 1 node ที่เลือก");
+    await userEvent.keyboard("h");
+    await expect(status(region)).toHaveTextContent("โหมดเลื่อนกระดาน");
+    await expect(region.querySelector(".ds-board__flow")).toHaveAttribute("data-tool", "pan");
+    await expect(within(region).getByRole("radio", { name: /โหมดเลื่อนกระดาน/ })).toHaveAttribute(
+      "data-state",
+      "on",
+    );
+    await userEvent.keyboard("v");
+    await expect(region.querySelector(".ds-board__flow")).toHaveAttribute("data-tool", "select");
+    await userEvent.keyboard("{Shift>}g{/Shift}");
+    await expect(status(region)).toHaveTextContent("ปิดการดูดเข้ากริด");
+    await expect(region).not.toHaveAttribute("data-snap");
+  },
+};
+
+/** Without chrome: no controls, no menus, no sheet; the keyboard still works (shell-composed layouts). */
+export const WithoutChrome: Story = {
+  args: { chrome: false },
+  play: async ({ canvasElement }) => {
+    const region = within(canvasElement).getByRole("region");
+    await waitFor(() => expect(nodeEls(region)).toHaveLength(BOARD_NODES.length));
+    await expect(within(region).queryByRole("toolbar", { name: "เครื่องมือกระดาน" })).toBeNull();
+    region.focus();
+    await userEvent.keyboard("{Control>}k{/Control}");
+    await expect(within(document.body).queryByRole("dialog")).toBeNull();
+    await userEvent.keyboard("{Control>}={/Control}");
+    await expect(status(region)).toHaveTextContent("ซูมเข้า");
   },
 };

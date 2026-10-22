@@ -4,8 +4,9 @@
  * every profile in both modes. `recipes.test.ts` resolves each pair from the token source; the
  * design gate reads this list as the "real pairs used" evidence.
  *
- * Not listed: `menu.border`, `tabs.border`, `dialog.border` and `table.row-border`, which are
- * `border.subtle` dividers, and `card.border`, which is transparent on the light canvas. A menu is identified by
+ * Not listed: `menu.border`, `tabs.border`, `dialog.border`, `table.row-border` and `group.border`,
+ * which are `border.subtle` dividers (a group is identified by its ground and label; its
+ * selected edge is listed), and `card.border`, which is transparent on the light canvas. A menu is identified by
  * its shadow and its options, a tab list by its tabs and the selected edge, a dialog by its scrim
  * and shadow, a card by its ground; the edge is decoration and WCAG 1.4.11 does not apply to it.
  *
@@ -484,4 +485,81 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
   },
   { recipe: "board", slot: "status line", fg: "ds:text.secondary", bg: "toolbar.bg", floor: TEXT },
   { recipe: "board", slot: "overlay text", fg: "ds:text.secondary", bg: "board.bg", floor: TEXT },
+  // Kbd, menus, toggle, toolbar, command menu, minimap, group (E4-3)
+  { recipe: "kbd", slot: "key", fg: "kbd.fg", bg: "kbd.bg", floor: TEXT },
+  { recipe: "kbd", slot: "key on menu", fg: "kbd.fg", bg: "menu.bg", floor: TEXT },
+  { recipe: "menu", slot: "label", fg: "menu.label-fg", bg: "menu.bg", floor: TEXT },
+  { recipe: "menu", slot: "shortcut", fg: "menu.shortcut-fg", bg: "kbd.bg", floor: TEXT },
+  {
+    recipe: "menu",
+    slot: "destructive",
+    fg: "menu.option.fg-destructive",
+    bg: "menu.bg",
+    floor: TEXT,
+  },
+  {
+    recipe: "menu",
+    slot: "destructive highlighted",
+    fg: "menu.option.fg-destructive",
+    bg: "menu.option.bg-hover-destructive",
+    floor: TEXT,
+  },
+  { recipe: "toggle", slot: "item", fg: "toggle.fg", bg: "toggle.bg", floor: TEXT },
+  { recipe: "toggle", slot: "item hover", fg: "toggle.fg", bg: "toggle.bg-hover", floor: TEXT },
+  {
+    recipe: "toggle",
+    slot: "pressed",
+    fg: "toggle.fg-pressed",
+    bg: "toggle.bg-pressed",
+    floor: TEXT,
+  },
+  {
+    recipe: "toggle",
+    slot: "pressed edge",
+    fg: "toggle.border-pressed",
+    bg: "toggle.bg-pressed",
+    floor: UI,
+  },
+  { recipe: "toggle", slot: "edge", fg: "toggle.border", bg: "toggle.bg", floor: UI },
+  { recipe: "toggle", slot: "disabled", fg: "toggle.fg-disabled", bg: "toggle.bg", floor: UI },
+  { recipe: "toolbar", slot: "text", fg: "toolbar.fg", bg: "toolbar.bg", floor: TEXT },
+  { recipe: "toolbar", slot: "glyph", fg: "button.ghost.fg", bg: "toolbar.bg", floor: TEXT },
+  { recipe: "command", slot: "option", fg: "command.fg", bg: "command.bg", floor: TEXT },
+  {
+    recipe: "command",
+    slot: "option active",
+    fg: "command.fg",
+    bg: "menu.option.bg-hover",
+    floor: TEXT,
+  },
+  { recipe: "command", slot: "input", fg: "command.input-fg", bg: "command.bg", floor: TEXT },
+  {
+    recipe: "command",
+    slot: "placeholder",
+    fg: "command.placeholder",
+    bg: "command.bg",
+    floor: TEXT,
+  },
+  { recipe: "command", slot: "group", fg: "command.group-fg", bg: "command.bg", floor: TEXT },
+  { recipe: "command", slot: "empty", fg: "command.empty", bg: "command.bg", floor: TEXT },
+  { recipe: "minimap", slot: "node", fg: "minimap.node", bg: "minimap.bg", floor: UI },
+  {
+    recipe: "minimap",
+    slot: "selected node",
+    fg: "minimap.node-selected",
+    bg: "minimap.bg",
+    floor: UI,
+  },
+  { recipe: "minimap", slot: "group", fg: "minimap.group", bg: "minimap.bg", floor: UI },
+  { recipe: "minimap", slot: "viewport", fg: "minimap.viewport", bg: "minimap.bg", floor: UI },
+  { recipe: "group", slot: "label", fg: "group.label-fg", bg: "group.bg", floor: TEXT },
+  { recipe: "group", slot: "meta", fg: "ds:text.tertiary", bg: "group.bg", floor: TEXT },
+  {
+    recipe: "group",
+    slot: "selected edge",
+    fg: "group.border-selected",
+    bg: "ds:surface.board",
+    floor: UI,
+  },
+  { recipe: "sheet", slot: "later", fg: "ds:text.tertiary", bg: "dialog.bg", floor: TEXT },
 ];

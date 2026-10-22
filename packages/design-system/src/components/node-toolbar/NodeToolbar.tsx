@@ -1,0 +1,72 @@
+"use client";
+
+import { NodeToolbar as Primitive, Position } from "@xyflow/react";
+import { type CommandId, surfaceCommands } from "../../commands/index";
+import { useBoard } from "../canvas-board/context";
+import type { BoardNode } from "../canvas-board/graph";
+import { CommandButton } from "../command-button";
+import { CollapseIcon, CopyIcon, ExpandIcon, LockIcon, TrashIcon, UnlockIcon } from "../icons";
+
+export interface NodeToolbarProps {
+  node: Pick<BoardNode, "id" | "data" | "selected">;
+}
+
+const GLYPH: Partial<Record<CommandId, (node: NodeToolbarProps["node"]) => React.ReactNode>> = {
+  "selection.duplicate": () => <CopyIcon className="size-4" />,
+  "selection.lock": (n) =>
+    n.data.status === "locked" ? (
+      <UnlockIcon className="size-4" />
+    ) : (
+      <LockIcon className="size-4" />
+    ),
+  "selection.collapse": (n) =>
+    n.data.collapsed ? <ExpandIcon className="size-4" /> : <CollapseIcon className="size-4" />,
+  "selection.delete": () => <TrashIcon className="size-4" />,
+};
+
+const WORD: Partial<Record<CommandId, (node: NodeToolbarProps["node"]) => string>> = {
+  "selection.lock": (n) => (n.data.status === "locked" ? "ปลดล็อก" : "ล็อก"),
+  "selection.collapse": (n) => (n.data.collapsed ? "ขยาย" : "ย่อ"),
+};
+
+/**
+ * Actions for the one selected node (catalog NodeToolbar): the `node-toolbar` commands of the
+ * registry that this story implements, filtered by what the node can do. React Flow keeps it
+ * above the node without scaling with zoom. Hidden when several nodes are selected (their
+ * actions live in the context menu) and in the present variant; disabled while the node runs.
+ */
+export function NodeToolbar({ node }: NodeToolbarProps) {
+  const board = useBoard();
+  const visible = Boolean(node.selected) && board.selectedNodeIds.length === 1 && !board.readOnly;
+  const running = node.data.status === "running";
+  const listed = surfaceCommands("node-toolbar", ["node", "selection"]).filter((c) => GLYPH[c.id]);
+  // The destructive action sits last (catalog DropdownMenu rule, applied to every surface).
+  const items = [
+    ...listed.filter((c) => c.id !== "selection.delete"),
+    ...listed.filter((c) => c.id === "selection.delete"),
+  ];
+  return (
+    <Primitive
+      nodeId={node.id}
+      isVisible={visible}
+      position={Position.Top}
+      offset={8}
+      className="ds-toolbar ds-node-toolbar"
+      role="toolbar"
+      aria-label={`เครื่องมือของ ${node.data.title}`}
+      data-running={running ? "" : undefined}
+    >
+      {items.map((c) => (
+        <CommandButton
+          key={c.id}
+          id={c.id}
+          context={{ nodeId: node.id }}
+          label={WORD[c.id]?.(node)}
+          disabled={running}
+        >
+          {GLYPH[c.id]?.(node)}
+        </CommandButton>
+      ))}
+    </Primitive>
+  );
+}

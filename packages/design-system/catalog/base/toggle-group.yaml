@@ -1,20 +1,21 @@
 name: ToggleGroup
 tier: base
-status: planned
+status: stable
 since: E4-3
-import: none
+import: "@orivilo/design-system"
 story: base-toggle-group
 useWhen:
   - "One of a few modes: pan or select, light or dark, grid on or off"
 avoidWhen:
   - "More than five options (use Select)"
 contract: ToggleGroupProps
-variants: []
+variants: [single, multiple]
 sizes: [sm, md]
 states: [default, hover, focus-visible, pressed, disabled]
-recipes: []
+recipes: [neutral, professional, friendly]
 examples: []
 rules:
-  - "Pressed state uses selection tokens and an edge change, never a tint alone"
+  - "Pressed state uses selection tokens and a bottom edge in canvas.selection, never a tint alone"
+  - "`aria-label` is required because the items are usually icons"
 a11y:
-  - "Roving tabindex; aria-pressed or radio semantics by mode"
+  - "Roving tabindex; radio semantics in single mode, aria-pressed buttons in multiple mode"

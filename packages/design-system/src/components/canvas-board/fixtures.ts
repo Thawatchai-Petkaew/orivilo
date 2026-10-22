@@ -152,3 +152,66 @@ export const LONG_NODE: BoardNode = {
     outputs: [profile()],
   },
 };
+
+/** Twelve nodes in a row of pairs: enough for the minimap to show on its own (catalog MiniMap). */
+export const BIG_BOARD: Graph = (() => {
+  const nodes: BoardNode[] = Array.from({ length: 12 }, (_, i) => ({
+    id: `n${i + 1}`,
+    type: "orivilo",
+    position: { x: (i % 4) * 360, y: Math.floor(i / 4) * 260 },
+    data: {
+      title: `ขั้นที่ ${i + 1}`,
+      kind: i % 3 === 0 ? "input-block" : "artifact",
+      size: "sm",
+      summary: "ข้อมูลตัวอย่าง",
+      inputs: i % 3 === 0 ? [] : [text()],
+      outputs: [text()],
+    },
+  }));
+  const edges: BoardEdge[] = nodes.slice(1).map((n, i) => ({
+    id: `e-${nodes[i]?.id}-${n.id}`,
+    type: "orivilo",
+    source: nodes[i]?.id ?? "",
+    sourceHandle: "text",
+    target: n.id,
+    targetHandle: n.data.inputs[0] ? "text" : null,
+    data: { meaning: "input" },
+  }));
+  return { nodes, edges: edges.filter((e) => e.targetHandle !== null) };
+})();
+
+/** The brand board with the logo and palette nodes framed in a group (catalog NodeGroup). */
+export const GROUPED_BOARD: Graph = {
+  nodes: [
+    {
+      id: "group-visual",
+      type: "group",
+      position: { x: 312, y: -72 },
+      width: 400,
+      height: 700,
+      data: { title: "งานภาพ", kind: "group", inputs: [], outputs: [] },
+    },
+    ...BOARD_NODES.map((n) =>
+      n.id === "logo" || n.id === "palette"
+        ? { ...n, parentId: "group-visual", position: { x: 48, y: n.position.y + 72 } }
+        : n,
+    ),
+  ],
+  edges: BOARD_EDGES,
+};
+
+/** The same group collapsed: children hidden, the frame says what it holds. */
+export const COLLAPSED_BOARD: Graph = {
+  nodes: GROUPED_BOARD.nodes.map((n) =>
+    n.id === "group-visual"
+      ? {
+          ...n,
+          height: 48,
+          data: { ...n.data, collapsed: true, frame: { width: 400, height: 700 } },
+        }
+      : n.parentId === "group-visual"
+        ? { ...n, hidden: true }
+        : n,
+  ),
+  edges: BOARD_EDGES,
+};

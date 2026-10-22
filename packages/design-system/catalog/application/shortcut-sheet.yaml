@@ -1,0 +1,21 @@
+name: ShortcutSheet
+tier: application
+status: stable
+since: E4-3
+import: "@orivilo/design-system"
+story: application-shortcut-sheet
+useWhen:
+  - "Every keyboard shortcut in one place (Shift+/, or the control)"
+avoidWhen:
+  - "A hint next to one control (use Kbd in a tooltip)"
+contract: ShortcutSheetProps
+variants: []
+sizes: []
+states: [open, from-control]
+recipes: [neutral, professional, friendly]
+examples: []
+rules:
+  - "The list is the registry itself, grouped by scope; a command from a later story is listed with the story that brings it (มาใน E4-x), never as available"
+  - "Opens in the present variant too"
+a11y:
+  - "A Dialog with a scrollable, focusable body; keys render with Kbd so a screen reader hears the key names"

@@ -38,11 +38,14 @@ export type NodeContent = {
   /** Input words the node still needs; asked one at a time in the Inspector (E4-4). */
   missing?: string[];
   collapsed?: boolean;
+  /** A group's frame while expanded, kept so collapse and expand restore it (E4-3). */
+  frame?: { width: number; height: number };
   inputs: PortSpec[];
   outputs: PortSpec[];
 };
 
-export type BoardNode = Node<NodeContent, "orivilo">;
+/** A node on the board: `orivilo` for every kind with ports, `group` for a frame around children (E4-3). */
+export type BoardNode = Node<NodeContent, "orivilo" | "group">;
 
 export type EdgeContent = {
   meaning: EdgeMeaning;

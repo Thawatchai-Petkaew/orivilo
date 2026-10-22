@@ -1,8 +1,8 @@
 name: DropdownMenu
 tier: base
-status: planned
+status: stable
 since: E4-3
-import: none
+import: "@orivilo/design-system"
 story: base-dropdown-menu
 useWhen:
   - "A list of actions behind one trigger: the node's more menu, the project menu"
@@ -13,10 +13,11 @@ contract: DropdownMenuProps
 variants: []
 sizes: []
 states: [closed, open, item-hover, item-disabled, item-destructive]
-recipes: []
+recipes: [neutral, professional, friendly]
 examples: []
 rules:
-  - "Destructive items use feedback.danger and sit last"
-  - "Shortcut hints rendered with Kbd from the command registry"
+  - "Destructive items use feedback.danger and sit last; highlighted, they take the danger surface"
+  - "Shortcut hints rendered with Kbd from the command registry; a disabled item keeps its shortcut"
+  - "Items share the ds-menu recipe with Select, so a menu reads the same everywhere; the content re-opens the trigger's profile through PortalScope"
 a11y:
-  - "Arrow keys move, typeahead selects, Escape closes, focus returns to trigger"
+  - "Arrow keys move, typeahead selects, Escape closes, focus returns to trigger; the menu is named by its trigger"

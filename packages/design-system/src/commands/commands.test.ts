@@ -64,6 +64,24 @@ describe("eventMatches", () => {
   });
 });
 
+describe("eventMatches by physical key (E4-3)", () => {
+  it("reads a letter under a Thai layout through event.code", () => {
+    expect(eventMatches(key("อ", { code: "KeyV" }), "V", false)).toBe(true);
+    expect(eventMatches(key("อ", { code: "KeyV" }), "H", false)).toBe(false);
+    expect(eventMatches(key("อ", { code: "KeyV", shiftKey: true }), "V", false)).toBe(false);
+  });
+  it("reads Shift+1 and Shift+/ when the browser reports the shifted glyph", () => {
+    expect(eventMatches(key("!", { code: "Digit1", shiftKey: true }), "Shift+1", false)).toBe(true);
+    expect(eventMatches(key("?", { code: "Slash", shiftKey: true }), "Shift+/", false)).toBe(true);
+    expect(eventMatches(key("?", { code: "Slash" }), "Shift+/", false)).toBe(false);
+    expect(eventMatches(key("1", { code: "Digit1", shiftKey: true }), "1", false)).toBe(false);
+  });
+  it("still reads the key alone when no code is given", () => {
+    expect(eventMatches(key("/", { shiftKey: true }), "Shift+/", false)).toBe(true);
+    expect(eventMatches(key("=", { ctrlKey: true }), "Mod+=", false)).toBe(true);
+  });
+});
+
 describe("commandForKey", () => {
   it("resolves the active scope first", () => {
     // Delete is both selection.delete and edge.delete; the scopes given decide.

@@ -1348,3 +1348,551 @@
 .ds-edge__label[data-state="invalid"] {
   color: var(--cmp-edge-stroke-invalid);
 }
+
+/* Kbd: a key cap (catalog Kbd) ---------------------------------------------------------------- */
+
+.ds-kbd-group {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-space-inline-sm);
+  flex: none;
+}
+.ds-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5em;
+  padding-inline: var(--cmp-kbd-padding-x);
+  border: 1px solid var(--cmp-kbd-border);
+  border-bottom-width: 2px;
+  border-radius: var(--cmp-kbd-radius);
+  background: var(--cmp-kbd-bg);
+  color: var(--cmp-kbd-fg);
+  font-family: var(--cmp-kbd-type-font-family);
+  font-size: var(--cmp-kbd-type-font-size);
+  line-height: var(--cmp-kbd-type-line-height);
+  font-weight: var(--cmp-kbd-type-font-weight);
+  letter-spacing: var(--cmp-kbd-type-letter-spacing);
+  white-space: nowrap;
+}
+
+/* Menu items shared by DropdownMenu and ContextMenu (the listbox recipe above is Select's) ---- */
+
+.ds-menu[data-menu] {
+  min-width: max-content;
+  max-height: var(
+    --radix-dropdown-menu-content-available-height,
+    var(--radix-context-menu-content-available-height, none)
+  );
+  overflow-y: auto;
+}
+.ds-menu__item {
+  display: flex;
+  align-items: center;
+  gap: var(--cmp-button-gap);
+  min-height: var(--cmp-menu-option-height);
+  padding-inline: var(--cmp-menu-option-padding-x);
+  border-radius: var(--cmp-menu-option-radius);
+  color: var(--cmp-menu-option-fg);
+  font-family: var(--cmp-menu-option-type-font-family);
+  font-size: var(--cmp-menu-option-type-font-size);
+  line-height: var(--cmp-menu-option-type-line-height);
+  font-weight: var(--cmp-menu-option-type-font-weight);
+  letter-spacing: var(--cmp-menu-option-type-letter-spacing);
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+}
+.ds-menu__item > span:first-child {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ds-menu__item[data-highlighted] {
+  background: var(--cmp-menu-option-bg-hover);
+}
+.ds-menu__item[data-destructive] {
+  color: var(--cmp-menu-option-fg-destructive);
+}
+.ds-menu__item[data-destructive][data-highlighted] {
+  background: var(--cmp-menu-option-bg-hover-destructive);
+}
+.ds-menu__item[data-disabled] {
+  color: var(--cmp-menu-option-fg-disabled);
+  cursor: not-allowed;
+}
+.ds-menu__shortcut {
+  margin-left: auto;
+  padding-left: var(--cmp-menu-option-padding-x);
+}
+.ds-menu__shortcut .ds-kbd {
+  color: var(--cmp-menu-shortcut-fg);
+}
+.ds-menu__item[data-disabled] .ds-kbd {
+  color: var(--cmp-menu-option-fg-disabled);
+}
+.ds-menu__separator {
+  height: 1px;
+  margin-block: var(--cmp-menu-padding);
+  background: var(--cmp-menu-separator);
+}
+.ds-menu__label {
+  padding-inline: var(--cmp-menu-option-padding-x);
+  padding-block: var(--cmp-menu-padding);
+  color: var(--cmp-menu-label-fg);
+  font-family: var(--cmp-kbd-type-font-family);
+  font-size: var(--cmp-kbd-type-font-size);
+  line-height: var(--cmp-kbd-type-line-height);
+  font-weight: var(--cmp-kbd-type-font-weight);
+  letter-spacing: var(--cmp-kbd-type-letter-spacing);
+}
+
+/* ToggleGroup: pressed takes the selection tokens and an edge change (catalog ToggleGroup) ---- */
+
+.ds-toggle {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--cmp-toggle-border);
+  border-radius: var(--cmp-toggle-radius);
+  background: var(--cmp-toggle-bg);
+  overflow: hidden;
+}
+.ds-toggle__item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--cmp-button-gap);
+  min-height: var(--cmp-button-height-md);
+  min-width: var(--cmp-button-height-md);
+  padding-inline: var(--cmp-button-padding-x-sm);
+  border: 0;
+  border-right: 1px solid var(--cmp-toggle-border);
+  /* The pressed edge (catalog rule: selection tokens and an edge change, never a tint alone). */
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--cmp-toggle-fg);
+  font-family: var(--cmp-button-type-sm-font-family);
+  font-size: var(--cmp-button-type-sm-font-size);
+  line-height: var(--cmp-button-type-sm-line-height);
+  font-weight: var(--cmp-button-type-sm-font-weight);
+  letter-spacing: var(--cmp-button-type-sm-letter-spacing);
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background-color var(--ds-motion-feedback-duration) var(--ds-motion-easing),
+    color var(--ds-motion-feedback-duration) var(--ds-motion-easing);
+}
+.ds-toggle__item:last-child {
+  border-right: 0;
+}
+.ds-toggle[data-size="sm"] .ds-toggle__item {
+  min-height: var(--cmp-button-height-sm);
+  min-width: var(--cmp-button-height-sm);
+}
+.ds-toggle__item:hover {
+  background: var(--cmp-toggle-bg-hover);
+}
+.ds-toggle__item[data-state="on"] {
+  background: var(--cmp-toggle-bg-pressed);
+  color: var(--cmp-toggle-fg-pressed);
+  border-bottom-color: var(--cmp-toggle-border-pressed);
+}
+.ds-toggle__item:focus-visible {
+  outline: 2px solid var(--ds-focus-ring);
+  outline-offset: -2px;
+}
+.ds-toggle__item:disabled {
+  color: var(--cmp-toggle-fg-disabled);
+  cursor: not-allowed;
+}
+
+/* Floating toolbar surfaces: the node toolbar and the board controls (catalog NodeToolbar,
+ * CanvasControls). Glass by the direction: a share of `toolbar.bg` over the board with a blur;
+ * solid when the user asks for less transparency. ------------------------------------------- */
+
+.ds-toolbar {
+  --_glass: color-mix(
+    in srgb,
+    var(--cmp-toolbar-bg) calc(var(--cmp-toolbar-opacity) * 100%),
+    transparent
+  );
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cmp-toolbar-gap);
+  padding: var(--cmp-toolbar-padding);
+  border: 1px solid var(--cmp-toolbar-border);
+  border-radius: var(--cmp-toolbar-radius);
+  background: var(--_glass);
+  color: var(--cmp-toolbar-fg);
+  box-shadow: var(--cmp-toolbar-shadow);
+  backdrop-filter: blur(var(--cmp-toolbar-blur));
+  z-index: var(--cmp-toolbar-layer);
+}
+@media (prefers-reduced-transparency: reduce) {
+  .ds-toolbar {
+    --_glass: var(--cmp-toolbar-bg);
+    backdrop-filter: none;
+  }
+}
+.ds-board .react-flow__node-toolbar.ds-node-toolbar {
+  z-index: var(--cmp-toolbar-layer);
+}
+.ds-node-toolbar[data-running] {
+  opacity: var(--ds-opacity-disabled);
+}
+.ds-board .react-flow__panel.ds-controls {
+  margin: var(--ds-space-inset-md);
+  flex-wrap: wrap;
+  max-width: calc(100% - 2 * var(--ds-space-inset-md));
+}
+.ds-controls__divider {
+  width: 1px;
+  align-self: stretch;
+  margin-inline: var(--ds-space-inline-sm);
+  background: var(--cmp-toolbar-border);
+}
+.ds-controls__zoom {
+  min-width: 3.5em;
+  min-height: var(--cmp-button-height-sm);
+  padding-inline: var(--cmp-button-padding-x-sm);
+  border: 0;
+  border-radius: var(--cmp-button-radius);
+  background: transparent;
+  color: var(--cmp-toolbar-fg);
+  font-family: var(--cmp-kbd-type-font-family);
+  font-size: var(--cmp-kbd-type-font-size);
+  line-height: var(--cmp-kbd-type-line-height);
+  font-weight: var(--cmp-kbd-type-font-weight);
+  letter-spacing: var(--cmp-kbd-type-letter-spacing);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.ds-controls__zoom:hover {
+  background: var(--cmp-button-ghost-bg-hover);
+}
+.ds-controls__zoom:focus-visible {
+  outline: 2px solid var(--ds-focus-ring);
+  outline-offset: 2px;
+}
+.ds-controls__zoom:disabled {
+  color: var(--cmp-button-ghost-fg-disabled);
+  cursor: not-allowed;
+}
+/* The status line moves up when the controls sit in its corner. */
+.ds-board:has(.ds-controls) .ds-board__status {
+  bottom: calc(
+    var(--ds-space-inset-md) * 2 + var(--cmp-button-height-sm) + 2 * var(--cmp-toolbar-padding) +
+      2px
+  );
+}
+.ds-board__surface {
+  width: 100%;
+  height: 100%;
+}
+.ds-board__flow[data-tool="pan"] .react-flow__pane {
+  cursor: grab;
+}
+.ds-board__flow[data-tool="pan"] .react-flow__pane.dragging {
+  cursor: grabbing;
+}
+
+/* MiniMap (catalog MiniMap): React Flow draws it; every colour is set here from the minimap tokens. */
+
+.ds-board .react-flow__minimap.ds-minimap {
+  margin: var(--ds-space-inset-md);
+  border: 1px solid var(--cmp-minimap-border);
+  border-radius: var(--cmp-minimap-radius);
+  overflow: hidden;
+  --xy-minimap-background-color: var(--cmp-minimap-bg);
+  --xy-minimap-mask-background-color: color-mix(
+    in srgb,
+    var(--cmp-minimap-mask) calc(var(--cmp-minimap-mask-opacity) * 100%),
+    transparent
+  );
+  --xy-minimap-mask-stroke-color: var(--cmp-minimap-viewport);
+  --xy-minimap-mask-stroke-width: 2;
+  --xy-minimap-node-background-color: var(--cmp-minimap-node);
+  --xy-minimap-node-stroke-color: transparent;
+  --xy-minimap-node-stroke-width: 0;
+  --xy-minimap-node-background-color-selected: var(--cmp-minimap-node-selected);
+}
+.ds-board .react-flow__minimap.ds-minimap svg {
+  display: block;
+}
+.ds-minimap .ds-minimap__node {
+  fill: var(--cmp-minimap-node);
+}
+.ds-minimap .ds-minimap__node-selected {
+  fill: var(--cmp-minimap-node-selected);
+}
+.ds-minimap .ds-minimap__group {
+  fill: var(--cmp-minimap-group);
+}
+
+/* Command menu (catalog CommandMenu): the glass palette, a combobox over a grouped listbox. ---- */
+
+.ds-command {
+  --_glass: color-mix(
+    in srgb,
+    var(--cmp-command-bg) calc(var(--cmp-command-opacity) * 100%),
+    transparent
+  );
+  position: fixed;
+  top: 15%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  width: calc(100% - 2 * var(--ds-space-gutter));
+  max-width: 40rem;
+  max-height: 70%;
+  border: 1px solid var(--cmp-command-border);
+  border-radius: var(--cmp-command-radius);
+  background: var(--_glass);
+  color: var(--cmp-command-fg);
+  box-shadow: var(--cmp-command-shadow);
+  backdrop-filter: blur(var(--cmp-command-blur));
+  overflow: hidden;
+  z-index: var(--cmp-command-layer);
+  animation: ds-dialog-in var(--ds-motion-overlay-duration) var(--ds-motion-easing);
+}
+@media (prefers-reduced-transparency: reduce) {
+  .ds-command {
+    --_glass: var(--cmp-command-bg);
+    backdrop-filter: none;
+  }
+}
+.ds-command__field {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-inline-sm);
+  padding: var(--ds-space-inset-md);
+  border-bottom: 1px solid var(--cmp-command-divider);
+  color: var(--cmp-command-placeholder);
+}
+.ds-command__input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--cmp-command-input-fg);
+  font-family: var(--cmp-command-input-type-font-family);
+  font-size: var(--cmp-command-input-type-font-size);
+  line-height: var(--cmp-command-input-type-line-height);
+  font-weight: var(--cmp-command-input-type-font-weight);
+  letter-spacing: var(--cmp-command-input-type-letter-spacing);
+  outline: none;
+}
+.ds-command__input::placeholder {
+  color: var(--cmp-command-placeholder);
+}
+.ds-command__list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--cmp-menu-padding);
+}
+.ds-command__group + .ds-command__group {
+  margin-top: var(--cmp-menu-padding);
+  padding-top: var(--cmp-menu-padding);
+  border-top: 1px solid var(--cmp-command-divider);
+}
+.ds-command__heading {
+  padding: var(--cmp-menu-padding) var(--cmp-menu-option-padding-x);
+  color: var(--cmp-command-group-fg);
+  font-family: var(--cmp-command-group-type-font-family);
+  font-size: var(--cmp-command-group-type-font-size);
+  line-height: var(--cmp-command-group-type-line-height);
+  font-weight: var(--cmp-command-group-type-font-weight);
+  letter-spacing: var(--cmp-command-group-type-letter-spacing);
+}
+.ds-command__option {
+  display: flex;
+  align-items: center;
+  gap: var(--cmp-button-gap);
+  min-height: var(--cmp-menu-option-height);
+  padding-inline: var(--cmp-menu-option-padding-x);
+  border-radius: var(--cmp-menu-option-radius);
+  color: var(--cmp-command-fg);
+  font-family: var(--cmp-menu-option-type-font-family);
+  font-size: var(--cmp-menu-option-type-font-size);
+  line-height: var(--cmp-menu-option-type-line-height);
+  font-weight: var(--cmp-menu-option-type-font-weight);
+  letter-spacing: var(--cmp-menu-option-type-letter-spacing);
+  cursor: pointer;
+}
+.ds-command__option > span:first-child {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ds-command__option[data-active] {
+  background: var(--cmp-menu-option-bg-hover);
+}
+.ds-command__option[aria-disabled] {
+  color: var(--cmp-menu-option-fg-disabled);
+  cursor: not-allowed;
+}
+.ds-command__option[aria-disabled] .ds-kbd {
+  color: var(--cmp-menu-option-fg-disabled);
+}
+.ds-command__meta {
+  margin-left: var(--ds-space-inline-sm);
+  color: var(--cmp-command-group-fg);
+  font-family: var(--cmp-command-group-type-font-family);
+  font-size: var(--cmp-command-group-type-font-size);
+  line-height: var(--cmp-command-group-type-line-height);
+  font-weight: var(--cmp-command-group-type-font-weight);
+  letter-spacing: var(--cmp-command-group-type-letter-spacing);
+}
+.ds-command__kbd {
+  margin-left: auto;
+}
+.ds-command__empty {
+  margin: 0;
+  padding: var(--ds-space-inset-lg) var(--cmp-menu-option-padding-x);
+  color: var(--cmp-command-empty);
+  text-align: center;
+}
+
+/* Shortcut sheet (catalog ShortcutSheet): every command grouped by scope in a dialog. --------- */
+
+.ds-sheet__scroll {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmp-dialog-gap);
+}
+.ds-sheet__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-stack-sm);
+}
+.ds-sheet__heading {
+  margin: 0;
+  color: var(--cmp-dialog-description);
+  font-family: var(--cmp-command-group-type-font-family);
+  font-size: var(--cmp-command-group-type-font-size);
+  line-height: var(--cmp-command-group-type-line-height);
+  font-weight: var(--cmp-command-group-type-font-weight);
+  letter-spacing: var(--cmp-command-group-type-letter-spacing);
+  text-transform: uppercase;
+}
+.ds-sheet__list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+.ds-sheet__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ds-space-inline-md);
+  min-height: var(--cmp-menu-option-height);
+  padding-block: var(--ds-space-stack-sm);
+  border-bottom: 1px solid var(--cmp-dialog-border);
+}
+.ds-sheet__row:last-child {
+  border-bottom: 0;
+}
+.ds-sheet__row dt {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-inline-sm);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.ds-sheet__row dd {
+  display: flex;
+  gap: var(--ds-space-inline-sm);
+  flex: none;
+  margin: 0;
+}
+.ds-sheet__row:not([data-available]) dt {
+  color: var(--cmp-dialog-description);
+}
+.ds-sheet__later,
+.ds-sheet__none {
+  color: var(--ds-text-tertiary);
+  font-family: var(--cmp-kbd-type-font-family);
+  font-size: var(--cmp-kbd-type-font-size);
+  line-height: var(--cmp-kbd-type-line-height);
+  font-weight: var(--cmp-kbd-type-font-weight);
+  letter-spacing: var(--cmp-kbd-type-letter-spacing);
+}
+
+/* Node group (catalog NodeGroup): a frame around children; a React Flow parent node. ---------- */
+
+.ds-group {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border: 1px dashed var(--cmp-group-border);
+  border-radius: var(--cmp-group-radius);
+  background: var(--cmp-group-bg);
+  color: var(--cmp-group-label-fg);
+  font-family: var(--cmp-group-label-type-font-family);
+  font-size: var(--cmp-group-label-type-font-size);
+  line-height: var(--cmp-group-label-type-line-height);
+  font-weight: var(--cmp-group-label-type-font-weight);
+  letter-spacing: var(--cmp-group-label-type-letter-spacing);
+  transition: border-color var(--ds-motion-feedback-duration) var(--ds-motion-easing);
+}
+.ds-group[data-selected] {
+  border-style: solid;
+  border-color: var(--cmp-group-border-selected);
+}
+.ds-group[data-status="locked"] {
+  border-style: solid;
+}
+.ds-group[data-readonly] {
+  cursor: default;
+}
+.ds-group__header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--ds-space-inline-sm);
+  padding: var(--ds-space-inset-sm) var(--cmp-group-padding);
+  cursor: grab;
+}
+.ds-group[data-readonly] .ds-group__header,
+.ds-group[data-status="locked"] .ds-group__header {
+  cursor: default;
+}
+.ds-group__title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ds-group__kind,
+.ds-group__summary {
+  color: var(--ds-text-tertiary);
+  font-family: var(--cmp-kbd-type-font-family);
+  font-size: var(--cmp-kbd-type-font-size);
+  line-height: var(--cmp-kbd-type-line-height);
+  font-weight: var(--cmp-kbd-type-font-weight);
+  letter-spacing: var(--cmp-kbd-type-letter-spacing);
+  white-space: nowrap;
+}
+.ds-group__summary {
+  margin-left: auto;
+}
+.ds-board .react-flow__node-group {
+  padding: 0;
+  border: 0;
+  border-radius: var(--cmp-group-radius);
+  background: transparent;
+  color: var(--cmp-group-label-fg);
+  font: inherit;
+  width: auto;
+  height: auto;
+}
+.ds-board .react-flow__node-group.selected,
+.ds-board .react-flow__node-group:focus-visible {
+  outline: 2px solid var(--ds-focus-ring);
+  outline-offset: 2px;
+}

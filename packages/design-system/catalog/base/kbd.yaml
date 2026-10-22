@@ -1,8 +1,8 @@
 name: Kbd
 tier: base
-status: planned
-since: E4-5
-import: none
+status: stable
+since: E4-3
+import: "@orivilo/design-system"
 story: base-kbd
 useWhen:
   - "A keyboard shortcut hint in a menu, tooltip, or the shortcut sheet"
@@ -11,10 +11,11 @@ avoidWhen:
 contract: KbdProps
 variants: []
 sizes: [sm]
-states: [default]
-recipes: []
+states: [default, apple, arrows, named-keys]
+recipes: [neutral, professional, friendly]
 examples: []
 rules:
-  - "Keys come from the command registry; the modifier renders as Cmd on macOS and Ctrl elsewhere"
+  - "Keys come from the command registry; the modifier renders as Cmd on macOS and Ctrl elsewhere, Alt as Option on macOS"
+  - "Moved from E4-5 to E4-3 because the menus and the sheet need it"
 a11y:
-  - "Rendered as kbd elements; screen readers read the key names"
+  - "Rendered as kbd elements; arrows draw as glyphs with their Thai names for screen readers; `shortcutWords` gives the spoken form for a tooltip or description"

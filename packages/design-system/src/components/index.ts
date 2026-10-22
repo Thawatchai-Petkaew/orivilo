@@ -62,7 +62,42 @@ export {
   type CanvasBoardProps,
   type CommandContext,
   GRID_UNIT,
+  MINIMAP_FROM,
 } from "./canvas-board/CanvasBoard";
+export {
+  type BoardContextValue,
+  type BoardTool,
+  type KeyboardConnecting,
+  useBoard,
+} from "./canvas-board/context";
+export {
+  addNoteNext,
+  type AlignEdge,
+  alignSelected,
+  absolutePosition,
+  boundsOf,
+  childrenOf,
+  type Clipboard,
+  copySelection,
+  cutSelection,
+  detachIfOutside,
+  distributeSelected,
+  duplicateSelected,
+  GROUP_HEADER_HEIGHT,
+  groupSelected,
+  groupSummary,
+  isGroup,
+  pasteClipboard,
+  type Rect,
+  rectOf,
+  reorderSelected,
+  selectOnly,
+  sizeOf,
+  toggleCollapseSelected,
+  toggleLockSelected,
+  ungroup,
+  ungroupSelected,
+} from "./canvas-board/arrange";
 export {
   type BoardEdge,
   type BoardNode,
@@ -81,3 +116,51 @@ export {
 export { CanvasEdge, type CanvasEdgeProps } from "./canvas-edge/CanvasEdge";
 export { CanvasNode, type CanvasNodeProps } from "./canvas-node/CanvasNode";
 export { NodePort, type NodePortProps, type PortState } from "./node-port/NodePort";
+export { Kbd, type KbdProps, keyWord, shortcutWords } from "./kbd/Kbd";
+export {
+  DropdownMenu,
+  DropdownMenuContent,
+  type DropdownMenuContentProps,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  type DropdownMenuProps,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  type MenuItemProps,
+} from "./dropdown-menu/DropdownMenu";
+export {
+  ContextMenu,
+  ContextMenuContent,
+  type ContextMenuContentProps,
+  ContextMenuGroup,
+  ContextMenuItem,
+  ContextMenuLabel,
+  type ContextMenuProps,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+  openContextMenuAt,
+} from "./context-menu/ContextMenu";
+export {
+  ToggleGroup,
+  ToggleGroupItem,
+  type ToggleGroupItemProps,
+  type ToggleGroupProps,
+} from "./toggle-group/ToggleGroup";
+export { CommandButton, type CommandButtonProps, CommandHint } from "./command-button";
+export { NodeToolbar, type NodeToolbarProps } from "./node-toolbar/NodeToolbar";
+export { CanvasControls, type CanvasControlsProps } from "./canvas-controls/CanvasControls";
+export { MiniMap, type MiniMapProps } from "./mini-map/MiniMap";
+export {
+  CanvasContextMenu,
+  type CanvasContextMenuProps,
+  type ContextTarget,
+} from "./canvas-context-menu/CanvasContextMenu";
+export {
+  CommandMenu,
+  type CommandMenuMode,
+  type CommandMenuProps,
+  matches as commandMenuMatches,
+} from "./command-menu/CommandMenu";
+export { ShortcutSheet, type ShortcutSheetProps } from "./shortcut-sheet/ShortcutSheet";
+export { NodeGroup, type NodeGroupProps } from "./node-group/NodeGroup";

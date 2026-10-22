@@ -1,0 +1,154 @@
+import type { Meta, StoryObj } from "@storybook/react-vite";
+import { expect, fn, userEvent, within } from "storybook/test";
+import { CursorIcon, HandIcon } from "../icons";
+import { Matrix } from "../matrix";
+import { ToggleGroup, ToggleGroupItem } from "./ToggleGroup";
+
+interface ModesProps {
+  type?: "single" | "multiple" | undefined;
+  size?: "sm" | "md" | undefined;
+  disabled?: boolean | undefined;
+  onValueChange?: ((value: string) => void) | undefined;
+}
+
+function Modes({ type = "single", size, disabled, onValueChange }: ModesProps) {
+  if (type === "multiple") {
+    return (
+      <ToggleGroup
+        type="multiple"
+        aria-label="ตัวเลือกกระดาน"
+        defaultValue={["grid"]}
+        size={size}
+        disabled={disabled}
+      >
+        <ToggleGroupItem value="grid">กริด</ToggleGroupItem>
+        <ToggleGroupItem value="snap">ดูดเข้ากริด</ToggleGroupItem>
+        <ToggleGroupItem value="minimap">แผนที่ย่อ</ToggleGroupItem>
+      </ToggleGroup>
+    );
+  }
+  return (
+    <ToggleGroup
+      type="single"
+      aria-label="โหมดชี้"
+      defaultValue="select"
+      size={size}
+      disabled={disabled}
+      onValueChange={onValueChange}
+    >
+      <ToggleGroupItem value="select" aria-label="โหมดเลือก">
+        <CursorIcon className="size-4" />
+      </ToggleGroupItem>
+      <ToggleGroupItem value="pan" aria-label="โหมดเลื่อนกระดาน">
+        <HandIcon className="size-4" />
+      </ToggleGroupItem>
+    </ToggleGroup>
+  );
+}
+
+const meta = {
+  title: "Base/Toggle group",
+  component: Modes,
+  parameters: {
+    layout: "padded",
+    docs: {
+      description: {
+        component:
+          "One of a few modes (single) or any of a few switches (multiple), E4-3. Radix gives roving tabindex and the pressed semantics; the pressed item takes the selection tokens and a bottom edge in canvas.selection, never a tint alone.",
+      },
+    },
+  },
+  args: { type: "single" },
+} satisfies Meta<typeof Modes>;
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+/** Single: radio semantics, one pressed; clicking the other moves the pressed edge (AC 4). */
+export const Single: Story = {
+  args: { onValueChange: fn() },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    const select = canvas.getByRole("radio", { name: "โหมดเลือก" });
+    const pan = canvas.getByRole("radio", { name: "โหมดเลื่อนกระดาน" });
+    await expect(select).toHaveAttribute("data-state", "on");
+    await expect(getComputedStyle(select).borderBottomColor).not.toBe(
+      getComputedStyle(pan).borderBottomColor,
+    );
+    await userEvent.click(pan);
+    await expect(pan).toHaveAttribute("data-state", "on");
+    await expect(select).toHaveAttribute("data-state", "off");
+    await expect(args.onValueChange).toHaveBeenCalledWith("pan");
+  },
+};
+
+/** Multiple: each item is a pressed button; any number can be on (AC 4). */
+export const Multiple: Story = {
+  args: { type: "multiple" },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const grid = canvas.getByRole("button", { name: "กริด" });
+    const snap = canvas.getByRole("button", { name: "ดูดเข้ากริด" });
+    await expect(grid).toHaveAttribute("aria-pressed", "true");
+    await userEvent.click(snap);
+    await expect(snap).toHaveAttribute("aria-pressed", "true");
+    await expect(grid).toHaveAttribute("aria-pressed", "true");
+  },
+};
+
+/** Small and medium: the control heights from the button tokens. */
+export const Sizes: Story = {
+  render: () => (
+    <div className="flex items-center gap-4">
+      <Modes size="sm" />
+      <Modes size="md" />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const groups = canvasElement.querySelectorAll<HTMLElement>(".ds-toggle");
+    const [sm, md] = [groups[0], groups[1]] as [HTMLElement, HTMLElement];
+    await expect(sm.getBoundingClientRect().height).toBeLessThan(md.getBoundingClientRect().height);
+  },
+};
+
+/** Roving tabindex: one Tab stop, arrows move between items, Space presses (catalog a11y). */
+export const Keyboard: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.tab();
+    await expect(canvas.getByRole("radio", { name: "โหมดเลือก" })).toHaveFocus();
+    await userEvent.keyboard("{ArrowRight}");
+    const pan = canvas.getByRole("radio", { name: "โหมดเลื่อนกระดาน" });
+    await expect(pan).toHaveFocus();
+    await userEvent.keyboard(" ");
+    await expect(pan).toHaveAttribute("data-state", "on");
+    await userEvent.tab();
+    await expect(pan).not.toHaveFocus();
+  },
+};
+
+/** Disabled: no item can be pressed and the text takes the disabled colour. */
+export const Disabled: Story = {
+  args: { disabled: true },
+  play: async ({ canvasElement }) => {
+    const pan = within(canvasElement).getByRole("radio", { name: "โหมดเลื่อนกระดาน" });
+    await expect(pan).toBeDisabled();
+    await userEvent.click(pan);
+    await expect(pan).toHaveAttribute("data-state", "off");
+  },
+};
+
+/** Both types under every profile in both modes. */
+export const RecipesAndModes: Story = {
+  render: () => (
+    <Matrix>
+      <div className="flex flex-wrap items-center gap-4">
+        <Modes />
+        <Modes type="multiple" />
+      </div>
+    </Matrix>
+  ),
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelectorAll(".ds-toggle")).toHaveLength(12);
+  },
+};

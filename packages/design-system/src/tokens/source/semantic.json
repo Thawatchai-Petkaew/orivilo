@@ -1024,6 +1024,11 @@
       "blur": {
         "$type": "dimension",
         "$value": "{blur.glass}"
+      },
+      "opacity": {
+        "$type": "number",
+        "$value": "{opacity.glass}",
+        "$description": "Surface share of a glass layer; solid under reduced transparency"
       }
     },
     "glow": {

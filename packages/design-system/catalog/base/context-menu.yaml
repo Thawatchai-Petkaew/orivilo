@@ -1,8 +1,8 @@
 name: ContextMenu
 tier: base
-status: planned
+status: stable
 since: E4-3
-import: none
+import: "@orivilo/design-system"
 story: base-context-menu
 useWhen:
   - "Right-click or long-press on the canvas, a node, an edge, or a selection"
@@ -11,11 +11,11 @@ avoidWhen:
 contract: ContextMenuProps
 variants: []
 sizes: []
-states: [closed, open, item-disabled]
-recipes: []
+states: [closed, open, item-disabled, from-keyboard]
+recipes: [neutral, professional, friendly]
 examples: []
 rules:
   - "Items come from the command registry filtered by scope"
-  - "Opens at the pointer; on keyboard (Shift+F10) opens at the focused element"
+  - "Opens at the pointer; on keyboard (Shift+F10) the caller opens it at the focused element with `openContextMenuAt`"
 a11y:
-  - "Same keyboard model as DropdownMenu"
+  - "Same keyboard model as DropdownMenu; Escape closes and returns focus to the element it opened on"

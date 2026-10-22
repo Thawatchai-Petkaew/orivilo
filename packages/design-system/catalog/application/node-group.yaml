@@ -1,8 +1,8 @@
 name: NodeGroup
 tier: application
-status: planned
+status: stable
 since: E4-3
-import: none
+import: "@orivilo/design-system"
 story: application-node-group
 useWhen:
   - "A named frame around related nodes: a mood board, a storyboard, one direction"
@@ -11,11 +11,12 @@ avoidWhen:
 contract: NodeGroupProps
 variants: []
 sizes: []
-states: [default, hover, selected, collapsed, read-only]
-recipes: []
+states: [default, selected, collapsed, read-only]
+recipes: [neutral, professional, friendly]
 examples: []
 rules:
-  - "Children move with the group; a child can be dragged out"
-  - "Collapsing hides children and keeps their edges summarised on the group"
+  - "A group is a BoardNode with type group and kind group, placed before its children; children keep positions relative to it and move with it; a child dragged out leaves it"
+  - "Mod+G groups two or more selected nodes (named กลุ่ม N); Mod+Shift+G ungroups; deleting a group ungroups it and keeps every node"
+  - "Collapsing hides the children and shows how many nodes and crossing edges it holds; the frame is restored on expand"
 a11y:
-  - "Group is a focusable landmark with its name; children are reachable inside it"
+  - "A focusable node named by its title and the word กลุ่ม; its toolbar appears when it is the one selected node; children are reachable in the board's focus order"

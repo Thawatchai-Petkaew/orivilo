@@ -1,22 +1,23 @@
 name: NodeToolbar
 tier: application
-status: planned
+status: stable
 since: E4-3
-import: none
+import: "@orivilo/design-system"
 story: application-node-toolbar
 useWhen:
-  - "Actions for the selected node: generate, open, duplicate, lock, send to compare, more"
+  - "Actions for the one selected node: duplicate, lock or unlock, collapse or expand, delete now; generate, open, send to compare in their stories"
 avoidWhen:
   - "More than six actions (the rest go behind more)"
 contract: NodeToolbarProps
 variants: []
 sizes: []
-states: [hidden, visible, multi-select, disabled-while-running]
-recipes: []
+states: [visible, multi-select, disabled-while-running, locked]
+recipes: [neutral, professional, friendly]
 examples: []
 rules:
-  - "Does not scale with zoom"
-  - "Hidden when several nodes are selected; selection actions live in the ContextMenu"
-  - "Items come from the command registry filtered by node kind"
+  - "Does not scale with zoom (React Flow NodeToolbar)"
+  - "Hidden when several nodes are selected and in the present variant; selection actions live in the CanvasContextMenu"
+  - "Items are the registry's node-toolbar commands available in this build; the destructive one sits last; every button runs through the board's one runner"
+  - "Glass over the board (toolbar.opacity, toolbar.blur); solid under prefers-reduced-transparency"
 a11y:
-  - "Toolbar role with arrow-key movement; each button named"
+  - "Toolbar role named after the node; each button named by its command with the shortcut in the tooltip and aria-keyshortcuts"
