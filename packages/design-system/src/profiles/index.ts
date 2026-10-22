@@ -25,3 +25,5 @@ export function profileById(id: string): Profile | undefined {
 
 export { DECISIONS, LOCKED_GROUPS, STUDIO_REMAP, Profile, emitProfilesCss } from "./model.ts";
 export type { BaseSources, ProfileSource } from "./model.ts";
+export { REFINABLE, componentsReading, donorFor, isRefinable, refineProfile } from "./refine.ts";
+export type { RefinableKey, Refinements } from "./refine.ts";

@@ -16,7 +16,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Two directions on the same task (ORV-34 part 2, handoff §17.3): a brief or a sample brief, what the rules read from it (labelled as rules, not AI), the profile the engine chose and the one that differs most with the brief's words behind each decision, and one live preview of the reference screen under the direction being viewed. Switching keeps what the person typed or selected in the preview.",
+          "Two directions on the same task (ORV-34 part 2, handoff §17.3): a brief or a sample brief, what the rules read from it (labelled as rules, not AI), the profile the engine chose and the one that differs most with the brief's words behind each decision, and one live preview of the reference screen under the direction being viewed. Switching keeps what the person typed or selected in the preview. Part 3 adds Refine (shape, type and motion, borrowed from a hand-made profile) and Trace (brief, decisions, tokens, components).",
       },
     },
   },
@@ -186,5 +186,95 @@ export const EnglishDarkNarrow: Story = {
     await expect(
       a && b ? b.getBoundingClientRect().top > a.getBoundingClientRect().bottom : false,
     ).toBe(true);
+  },
+};
+
+const refineRegion = (root: HTMLElement) =>
+  within(within(root).getByRole("region", { name: th.refine }));
+const radiusOf = (root: HTMLElement) =>
+  getComputedStyle(previewScope(root) as HTMLElement)
+    .getPropertyValue("--ds-shape-control-radius")
+    .trim();
+const anyVisible = (els: HTMLElement[]) => els.some((el) => el.checkVisibility());
+
+/** Refining shape on สุขุม changes the preview at once and keeps the work; rounded has no tokens; reset returns the hand-made profile (part 3, AC 1 to 3 and 5). */
+export const Refine: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const preview = within(canvas.getByRole("region", { name: th.preview }));
+    const refine = refineRegion(canvasElement);
+    const row = PROJECTS[1]?.name ?? "";
+    await userEvent.click(preview.getByRole("checkbox", { name: `เลือก ${row}` }));
+
+    await expect(refine.getByRole("radio", { name: "เหลี่ยมคม" })).toBeChecked();
+    await expect(refine.getByRole("radio", { name: "แบบเดียว" })).toBeChecked();
+    await expect(refine.getByRole("radio", { name: "นิ่ง" })).toBeChecked();
+    await expect(refine.getByRole("radio", { name: "มนเล็กน้อย" })).toBeDisabled();
+    await expect(
+      refine.getByText("มนเล็กน้อย ยังไม่มีโปรไฟล์ไหนที่มีค่านี้ จึงยังเลือกไม่ได้"),
+    ).toBeVisible();
+    await expect(refine.getAllByText(/ยังปรับไม่ได้ เพราะเปลี่ยนสีด้วย/)).toHaveLength(2);
+    await expect(refine.getByRole("button", { name: th.reset })).toBeDisabled();
+
+    const handMade = radiusOf(canvasElement);
+    await userEvent.click(refine.getByRole("radio", { name: "มนนุ่ม" }));
+    await waitFor(() => expect(radiusOf(canvasElement)).not.toBe(handMade));
+    await expect(refine.getByRole("radio", { name: "มนนุ่ม" })).toBeChecked();
+    await expect(previewScope(canvasElement)?.dataset["designProfile"]).toBe(
+      "professional-refined",
+    );
+    await expect(preview.getByRole("checkbox", { name: `เลือก ${row}` })).toBeChecked();
+    await expect(
+      anyVisible(canvas.getAllByText("รูปทรง มนนุ่ม ปรับเอง: เลือกในส่วนปรับละเอียด")),
+    ).toBe(true);
+
+    await userEvent.click(refine.getByRole("button", { name: th.reset }));
+    await waitFor(() => expect(radiusOf(canvasElement)).toBe(handMade));
+    await expect(previewScope(canvasElement)?.dataset["designProfile"]).toBe("professional");
+    await expect(refine.getByRole("radio", { name: "เหลี่ยมคม" })).toBeChecked();
+    await expect(preview.getByRole("checkbox", { name: `เลือก ${row}` })).toBeChecked();
+  },
+};
+
+/** A brand lock on shape: the shape group cannot be changed and says why; the preview keeps its shape (part 3, AC 4). */
+export const RefineLocked: Story = {
+  args: { locked: { shape: "crisp" } },
+  play: async ({ canvasElement }) => {
+    const refine = refineRegion(canvasElement);
+    const before = radiusOf(canvasElement);
+    for (const name of ["เหลี่ยมคม", "มนเล็กน้อย", "มนนุ่ม"]) {
+      await expect(refine.getByRole("radio", { name })).toBeDisabled();
+    }
+    await expect(refine.getByText("รูปทรง เหลี่ยมคม ล็อกโดยแบรนด์")).toBeVisible();
+    await userEvent.click(refine.getByRole("radio", { name: "มนนุ่ม" }), {
+      pointerEventsCheck: 0,
+    });
+    await expect(radiusOf(canvasElement)).toBe(before);
+    // Other decisions stay refinable under a shape lock.
+    await expect(refine.getByRole("radio", { name: "ปกติ" })).toBeEnabled();
+  },
+};
+
+/** The trace opens in four steps, from the brief's words to the components (part 3, AC 6). */
+export const Trace: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const trace = canvas.getByRole("region", { name: th.trace });
+    const summaries = [...trace.querySelectorAll("summary")];
+    await expect(summaries.map((s) => s.textContent)).toEqual([
+      th.traceBrief,
+      th.traceDecisions,
+      th.traceTokens,
+      th.traceComponents,
+    ]);
+    for (const summary of summaries) await userEvent.click(summary);
+    const t = within(trace);
+    await expect(t.getByText("จากคำว่า หรูหรา")).toBeVisible();
+    await expect(t.getByText("รูปทรง เหลี่ยมคม เพราะ เป็นระเบียบ")).toBeVisible();
+    await expect(t.getByText("พื้นผิว มีเส้นขอบ: ค่าของ สุขุม บรีฟไม่ได้ขอ")).toBeVisible();
+    await expect(t.getByText("ค่าในโหมดสว่าง")).toBeVisible();
+    await expect(t.getByText(/^shape\.control\.radius: .+ เป็น .+$/)).toBeVisible();
+    await expect(t.getByText(/button/)).toBeVisible();
+    await expect(t.getByText(/input/)).toBeVisible();
   },
 };
