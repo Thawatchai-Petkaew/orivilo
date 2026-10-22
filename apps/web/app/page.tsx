@@ -26,6 +26,14 @@ export default async function Home() {
             {m.home.openWorkspace}
           </Link>
         </p>
+        <p className="text-body-md">
+          <Link
+            className="text-text-link underline-offset-4 hover:text-text-link-hover hover:underline"
+            href="/directions"
+          >
+            {m.home.openDirections}
+          </Link>
+        </p>
       </header>
 
       <section aria-labelledby="real" className="flex flex-col gap-3">

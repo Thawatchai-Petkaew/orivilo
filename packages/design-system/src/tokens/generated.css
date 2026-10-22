@@ -1105,6 +1105,21 @@
   --cmp-inspector-title-type-line-height: var(--ds-type-heading-sm-line-height);
   --cmp-inspector-title-type-font-weight: var(--ds-type-heading-sm-font-weight);
   --cmp-inspector-title-type-letter-spacing: var(--ds-type-heading-sm-letter-spacing);
+  --cmp-direction-gap: var(--ds-space-stack-lg);
+  --cmp-direction-section-gap: var(--ds-space-stack-md);
+  --cmp-direction-fg: var(--ds-text-primary);
+  --cmp-direction-muted-fg: var(--ds-text-secondary);
+  --cmp-direction-heading-type-font-family: var(--ds-type-heading-sm-font-family);
+  --cmp-direction-heading-type-font-size: var(--ds-type-heading-sm-font-size);
+  --cmp-direction-heading-type-line-height: var(--ds-type-heading-sm-line-height);
+  --cmp-direction-heading-type-font-weight: var(--ds-type-heading-sm-font-weight);
+  --cmp-direction-heading-type-letter-spacing: var(--ds-type-heading-sm-letter-spacing);
+  --cmp-direction-sample-bg: var(--ds-surface-canvas);
+  --cmp-direction-sample-border: var(--ds-border-subtle);
+  --cmp-direction-sample-radius: var(--ds-shape-container-radius);
+  --cmp-direction-sample-padding: var(--ds-space-inset-md);
+  --cmp-direction-preview-border: var(--ds-border-subtle);
+  --cmp-direction-preview-radius: var(--ds-shape-container-radius);
 }
 
 /* Tailwind utilities resolve to semantic tokens only (DESIGN.md §5). The defaults are removed first

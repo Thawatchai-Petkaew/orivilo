@@ -1,0 +1,28 @@
+name: DirectionStudio
+tier: application
+status: draft
+since: E2-11
+import: "@orivilo/design-system"
+story: application-direction-studio
+useWhen:
+  - "Turning a brief into two directions on the same task and content, with the reasons behind each (handoff §17.3)"
+avoidWhen:
+  - "Comparing directions on the canvas as nodes (CompareStrip, E4-6)"
+  - "One direction the person already chose"
+contract: DirectionStudioProps
+variants: []
+sizes: []
+states: [recommended-and-contrast, switched, tie, not-read, locked]
+recipes: [neutral, professional, friendly]
+examples:
+  - src/examples/workspace.tsx
+rules:
+  - "The reading is labelled as rules, not AI; nothing claims a model read the brief (AGENTS.md rule 4)"
+  - "Every reason quotes the brief's own words or says it was locked or set by hand; nothing is invented"
+  - "A tie or a lock conflict is shown in words, never settled silently"
+  - "When the rules read nothing, no direction is offered and the preview stays in the base set"
+  - "One live preview stays at one place in the tree, so switching changes the profile and keeps what the person typed or selected"
+  - "Each direction's small sample is inert and named as an image; the live preview is the one to use"
+a11y:
+  - "The reading, the directions and the preview are regions named by their headings"
+  - "Each view button names its direction and reports aria-pressed; the preview's line is announced politely when the direction changes"
