@@ -5,16 +5,19 @@
 import { describe, expect, it } from "vitest";
 import type { BoardEdge, BoardNode, Graph } from "../components/canvas-board/graph";
 import {
+  answerFor,
   type Block,
   blockById,
   blocksByModule,
   BLOCKS,
   fillState,
   missingInputs,
+  moodText,
   nodeForBlock,
   nodeOfBlock,
   normaliseColour,
   placeBlock,
+  suggestionsFor,
   summarize,
 } from "./index";
 
@@ -197,5 +200,52 @@ describe("placing", () => {
     const groups = blocksByModule();
     expect(groups.flatMap((g) => g.blocks)).toHaveLength(BLOCKS.length);
     expect(groups.map((g) => g.module)).toEqual(["brand", "design-system"]);
+  });
+});
+
+describe("mood suggestions (ORV-61 AC 4, 6)", () => {
+  const mood = node("m", "mood-theme", { personality: "อบอุ่น เป็นมิตร", feeling: "สนุก" });
+
+  it("reads the mood through an edge and names the top pick in the summary", () => {
+    const g: Graph = { nodes: [mood, node("f", "font")], edges: [edge("m", "f", "mood")] };
+    expect(moodText(g, "f")).toBe("อบอุ่น เป็นมิตร สนุก");
+    const s = suggestionsFor(g, "f");
+    expect(s?.reading.method).toBe("rule-based");
+    expect(s?.kinds.map((k) => [k.kind, k.ranked[0]?.candidate.id])).toEqual([["font", "mali"]]);
+    expect(summarize(g, "f", "th").lines).toEqual([
+      "มู้ด: จาก มู้ดและธีม",
+      "ฟอนต์ที่อยากใช้: แนะนำ Mali",
+    ]);
+  });
+
+  it("shows the pick instead of the suggestion once one is written", () => {
+    const g: Graph = {
+      nodes: [node("s", "shape-spacing", { mood: "เป็นระเบียบ", corners: "sharp" })],
+      edges: [],
+    };
+    const s = suggestionsFor(g, "s");
+    expect(s?.kinds.find((k) => k.kind === "corners")?.picked).toBe("sharp");
+    expect(summarize(g, "s", "th").lines).toEqual([
+      "มู้ด: เป็นระเบียบ",
+      "มุม: เหลี่ยม",
+      "ความแน่น: แนะนำ แน่น",
+    ]);
+    const font: Graph = { nodes: [node("f", "font", { mood: "สนุก", wanted: "Mitr" })], edges: [] };
+    expect(suggestionsFor(font, "f")?.kinds[0]?.picked).toBe("mitr");
+    const top = suggestionsFor(font, "f")?.kinds[0]?.ranked[0]?.candidate;
+    expect(top && answerFor(top)).toBe("Mali");
+    const icon: Graph = { nodes: [node("i", "icon", { mood: "อบอุ่น" })], edges: [] };
+    expect(summarize(icon, "i", "en").lines[1]).toBe("Style: suggested Rounded stroke (Lucide)");
+  });
+
+  it("says the mood is not readable instead of guessing", () => {
+    const g: Graph = { nodes: [node("f", "font", { mood: "ฟ้าใส" })], edges: [] };
+    expect(suggestionsFor(g, "f")?.kinds[0]?.ranked).toEqual([]);
+    expect(summarize(g, "f", "th").lines).toEqual(["มู้ด: ฟ้าใส", "ยังอ่านมู้ดไม่ออก"]);
+  });
+
+  it("gives nothing for a block that does not suggest or a mood not filled", () => {
+    expect(suggestionsFor({ nodes: [mood], edges: [] }, "m")).toBeUndefined();
+    expect(suggestionsFor({ nodes: [node("f", "font")], edges: [] }, "f")).toBeUndefined();
   });
 });

@@ -565,3 +565,33 @@ export const Unlinked: Story = {
     await expect(within(node).getByText("บุคลิก: อบอุ่น จริงใจ ชัดเจน")).toBeVisible();
   },
 };
+
+/**
+ * Suggested (ORV-61): a font node fed by a mood names its top suggestion by rules until something
+ * is picked; the node stays labelled as made by rules.
+ */
+export const Suggested: Story = {
+  render: () => (
+    <NodeBoard
+      height={320}
+      initial={{
+        nodes: [
+          blockNode(
+            "mood",
+            "mood-theme",
+            { x: 0, y: 0 },
+            { personality: "อบอุ่น เป็นมิตร", feeling: "สนุก" },
+          ),
+          blockNode("font", "font", { x: 400, y: 0 }, { languages: "th-en" }),
+        ],
+        edges: [feed("mood", "font", "mood")],
+      }}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    await ready(canvasElement, 2);
+    const font = nodeEls(canvasElement)[1] as HTMLElement;
+    await expect(within(font).getByText("ฟอนต์ที่อยากใช้: แนะนำ Mali")).toBeVisible();
+    await expect(within(font).getByText("ตามกฎ")).toBeVisible();
+  },
+};

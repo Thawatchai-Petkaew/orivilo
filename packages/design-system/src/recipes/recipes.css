@@ -2750,3 +2750,44 @@
 .ds-inspector__source dd {
   margin: 0;
 }
+/* Mood suggestions in the Inspector (ORV-61): one row per candidate, the name, its reason and
+   licence, and the action at the end; rows divide like the sources list. */
+.ds-inspector__suggest,
+.ds-inspector__suggest-kind {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-stack-sm);
+}
+.ds-inspector__suggest {
+  padding-block-start: var(--cmp-inspector-gap);
+  border-block-start: 1px solid var(--cmp-inspector-divider);
+}
+.ds-inspector__suggest-label {
+  margin: 0;
+  font: inherit;
+  color: var(--cmp-inspector-fg);
+}
+.ds-inspector__options {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ds-inspector__option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ds-space-inline-md);
+  padding-block: var(--ds-space-stack-sm);
+  border-block-end: 1px solid var(--cmp-inspector-divider);
+}
+.ds-inspector__option-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ds-inspector__option-name {
+  color: var(--cmp-inspector-fg);
+}

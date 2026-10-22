@@ -16,6 +16,11 @@ import {
   fillWord,
   fillsOf,
   missingInputs,
+  type NodeSuggestions,
+  SUGGESTIONS_SHOWN,
+  answerFor,
+  candidateName,
+  suggestionsFor,
   summarize,
 } from "../../blocks/index";
 import { commandForKey } from "../../commands/index";
@@ -218,6 +223,7 @@ function NodeDetails({
   }
 
   const summary = summarize(graph, node.id, locale);
+  const suggestions = suggestionsFor(graph, node.id);
   const fills = fillsOf(graph, node.id);
   const feeds = graph.edges
     .filter((e) => e.source === node.id)
@@ -264,6 +270,12 @@ function NodeDetails({
               </ul>
             </>
           )}
+          {suggestions ? (
+            <Suggestions
+              suggestions={suggestions}
+              onPick={(input, value) => onAnswer(node.id, input, value)}
+            />
+          ) : null}
         </TabsContent>
         <TabsContent value="missing" className="ds-inspector__body">
           <MissingInputsPrompt graph={graph} nodeId={node.id} onAnswer={onAnswer} />
@@ -316,5 +328,73 @@ function NodeDetails({
         </TabsContent>
       </Tabs>
     </>
+  );
+}
+
+/**
+ * The rule-based suggestions of a font, icon or shape node (spec ORV-61): per kind, up to three
+ * candidates the mood raises, each with the mood's own words as the reason and its licence; "Use
+ * this" writes the candidate as the node's answer. Names only: no face or set is loaded here.
+ */
+function Suggestions({
+  suggestions,
+  onPick,
+}: {
+  suggestions: NodeSuggestions;
+  onPick: (inputId: string, value: string) => void;
+}) {
+  const m = useMessages();
+  const locale = useLocale();
+  const read = Object.keys(suggestions.reading.axes).length > 0;
+  return (
+    <section className="ds-inspector__suggest" aria-label={m.suggest.title}>
+      <h3 className="ds-inspector__subtitle">{m.suggest.title}</h3>
+      {!read ? (
+        <p className="ds-inspector__muted">{m.suggest.unreadHint}</p>
+      ) : (
+        suggestions.kinds.map((k) => (
+          <div key={k.kind} className="ds-inspector__suggest-kind">
+            <h4 className="ds-inspector__suggest-label">{pick(k.input.label, locale)}</h4>
+            <ol className="ds-inspector__options">
+              {k.ranked.slice(0, SUGGESTIONS_SHOWN).map((r) => {
+                const name = candidateName(r.candidate, k.input, locale);
+                const words = r.because.flatMap((b) => b.words).map((w) => `"${w}"`);
+                const inUse = k.picked === r.candidate.id;
+                return (
+                  <li key={r.candidate.id} className="ds-inspector__option">
+                    <span className="ds-inspector__option-text">
+                      <span className="ds-inspector__option-name">{name}</span>
+                      <span className="ds-inspector__muted">
+                        {fill(m.suggest.because, { words: words.join(", ") })}
+                      </span>
+                      {r.candidate.licence ? (
+                        <span className="ds-inspector__muted">
+                          {fill(m.suggest.licence, { licence: r.candidate.licence })}
+                        </span>
+                      ) : null}
+                    </span>
+                    {inUse ? (
+                      <Badge size="sm">{m.suggest.inUse}</Badge>
+                    ) : (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        aria-label={fill(m.suggest.useLabel, { name })}
+                        onClick={() => onPick(k.input.id, answerFor(r.candidate))}
+                      >
+                        {m.suggest.use}
+                      </Button>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
+        ))
+      )}
+      {read && suggestions.kinds.some((k) => k.kind === "font" || k.kind === "icon") ? (
+        <p className="ds-inspector__muted">{m.suggest.noPreview}</p>
+      ) : null}
+    </section>
   );
 }
