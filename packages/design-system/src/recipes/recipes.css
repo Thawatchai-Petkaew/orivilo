@@ -2914,3 +2914,47 @@
   border: 1px solid var(--cmp-direction-preview-border);
   border-radius: var(--cmp-direction-preview-radius);
 }
+/* Refine (part 3): one row per colourless decision; the pressed item comes from the toggle recipe. */
+.ds-direction__refine {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-stack-sm);
+  min-width: 0;
+}
+.ds-direction__control {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ds-space-inline-sm);
+  min-width: 0;
+}
+.ds-direction__control-label {
+  min-width: 7rem;
+}
+/* Trace: four disclosures, each a sample-bordered panel; summaries take the global focus ring. */
+.ds-direction__trace {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-stack-sm);
+  min-width: 0;
+}
+.ds-direction__trace > details {
+  padding: var(--cmp-direction-sample-padding);
+  border: 1px solid var(--cmp-direction-sample-border);
+  border-radius: var(--cmp-direction-sample-radius);
+  overflow-wrap: anywhere;
+}
+.ds-direction__trace > details > summary {
+  cursor: pointer;
+}
+.ds-direction__trace > details[open] > summary {
+  margin-bottom: var(--ds-space-stack-sm);
+}
+.ds-direction__trace > details > p {
+  margin: 0;
+}
+.ds-direction__tokens {
+  font-family: var(--ds-type-code-md-font-family);
+  font-size: var(--ds-type-code-md-font-size);
+  line-height: var(--ds-type-code-md-line-height);
+}

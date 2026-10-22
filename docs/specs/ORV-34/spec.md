@@ -1,7 +1,7 @@
 ---
 issue: ORV-34 (draft key E2-11; https://tpetkaew.atlassian.net/browse/ORV-34)
 lane: M
-version: 2
+version: 3
 ---
 
 ## Why
@@ -27,8 +27,8 @@ Nothing joins them yet. This story joins them, and shows the reading and the rea
 | Part | Content                                                                                                        | Status    |
 | ---- | -------------------------------------------------------------------------------------------------------------- | --------- |
 | 1    | Engine: starter rules and `recommendDirections` (brief to interpretation, resolution, two directions, reasons) | Merged    |
-| 2    | Studio UI: brief with presets, the reading, two direction cards with mini previews, the shared live preview    | This spec |
-| 3    | Refinement controls (§17.4) and the trace inspector (§17.5)                                                    | Later     |
+| 2    | Studio UI: brief with presets, the reading, two direction cards with mini previews, the shared live preview    | Merged    |
+| 3    | Refinement controls (§17.4) and the trace inspector (§17.5)                                                    | This spec |
 
 ## Story (part 1)
 
@@ -89,7 +89,37 @@ As a person with a brief, I want to write it or pick a sample, see what the rule
 - Saving a chosen direction, which needs the database (E2-15).
 - An AI reading. That waits for the OpenRouter ADR the owner has not confirmed yet.
 
+## Story (part 3)
+
+As a person comparing directions, I want to change the shape, the type voice and the motion of the direction I am viewing and see the same screen change at once. I also want to open a trace that goes from my brief to the decisions, the tokens and the components, so I can see what changed, what is locked, and why.
+
+## Decisions (part 3)
+
+- **Only decisions without colour can be refined now.** `shape`, `typeVoice` and `motion` change radius, type and duration tokens only, so every contrast pair stays proven. `surfaceTreatment` and `emphasis` change colours. They are shown read-only, with the reason, until a refined profile can be contrast-checked at runtime.
+- **A refined value is borrowed from the hand-made profile that already expresses it.** For example, shape `soft` on สุขุม takes เป็นมิตร's shape tokens. A value no profile expresses yet, such as shape `rounded`, is offered disabled, and the page says why. No new token values are invented in the browser.
+- **A refinement is the expert layer of ADR 0007.** It is passed to the engine as an adjustment with the reason "เลือกในส่วนปรับละเอียด", so the reasons, the matches and the trace show it. A brand lock still wins: its group is disabled and says it is locked. Refining keeps the viewed direction in view, even when the adjustment changes which direction is recommended.
+- **Refinements belong to the person, not to a direction.** They apply to whichever direction is viewed, and "ล้างการปรับ" clears them.
+
+## Acceptance criteria (part 3)
+
+| #   | Given                                            | When                        | Then                                                                                                                                                                                                                                                                            | Evidence           |
+| --- | ------------------------------------------------ | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| 1   | สุขุม is viewed                                  | Choosing shape มนนุ่ม       | The preview's radius changes at once, a selected row stays selected, and the reason "รูปทรง มนนุ่ม ปรับเอง: เลือกในส่วนปรับละเอียด" appears                                                                                                                                     | Story Refine       |
+| 2   | Any direction                                    | Opening the refine controls | Shape, type and motion are toggle groups showing the current value; colour-bearing decisions are listed read-only with the reason                                                                                                                                               | Story Refine       |
+| 3   | A value no hand-made profile expresses (rounded) | Shown                       | The option is disabled, and a note says it has no tokens yet                                                                                                                                                                                                                    | Story Refine       |
+| 4   | A brand lock on shape                            | Trying another shape        | The shape options are disabled with "รูปทรง เหลี่ยมคม ล็อกโดยแบรนด์"; the preview does not change; type and motion stay refinable                                                                                                                                               | Story RefineLocked |
+| 5   | Refinements made                                 | Pressing "ล้างการปรับ"      | The preview returns to the hand-made profile                                                                                                                                                                                                                                    | Story Refine       |
+| 6   | A viewed direction                               | Opening "ดูที่มา"           | Four disclosures, in this order: the brief's words per axis, decisions with their source (brief words, lock, refinement, or the profile's own choice), tokens this direction changes from the base set with their values in the current mode, and the components that read them | Story Trace        |
+| 7   | Any refined profile                              | Built                       | It validates with no error, and its colour tokens equal the hand-made profile's                                                                                                                                                                                                 | `refine.test.ts`   |
+
+## Out of scope (part 3)
+
+- Refining colour-bearing decisions (`surfaceTreatment`, `emphasis`) and a new `rounded` shape. Both need new token values and a contrast check.
+- Saving refinements. That needs E2-12 and E2-15.
+
 ## Changelog
 
 - v1 (2026-10-22): parts split; part 1 written.
 - v2 (2026-10-22): part 2 written.
+- v3 (2026-10-22): part 3 written.
+- v3.1 (2026-10-22): AC 1 reason text and AC 4 match the build: a locked group is disabled rather than accepting a choice that would then conflict.

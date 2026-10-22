@@ -12,7 +12,7 @@ avoidWhen:
 contract: DirectionStudioProps
 variants: []
 sizes: []
-states: [recommended-and-contrast, switched, tie, not-read, locked]
+states: [recommended-and-contrast, switched, tie, not-read, locked, refined, refine-locked, traced]
 recipes: [neutral, professional, friendly]
 examples:
   - src/examples/workspace.tsx
@@ -23,6 +23,10 @@ rules:
   - "When the rules read nothing, no direction is offered and the preview stays in the base set"
   - "One live preview stays at one place in the tree, so switching changes the profile and keeps what the person typed or selected"
   - "Each direction's small sample is inert and named as an image; the live preview is the one to use"
+  - "Only shape, type and motion are refinable; a refined value is borrowed from a hand-made profile that has it, so colours and contrast never change"
+  - "A value no profile expresses is disabled with a note; a brand lock disables its group and says so"
+  - "A refinement reaches the engine as an adjustment with its reason, and the trace shows where each decision came from"
 a11y:
   - "The reading, the directions and the preview are regions named by their headings"
   - "Each view button names its direction and reports aria-pressed; the preview's line is announced politely when the direction changes"
+  - "Refine controls are toggle groups named by their decision, with radio semantics; the trace uses native details and summary"

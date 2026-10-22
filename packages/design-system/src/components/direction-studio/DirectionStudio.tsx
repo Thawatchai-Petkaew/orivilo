@@ -16,13 +16,25 @@ import {
 import { pick } from "../../i18n/locale";
 import { useLocale, useMessages } from "../../i18n/LocaleProvider";
 import { fill } from "../../i18n/messages/index";
-import { type Profile, profiles } from "../../profiles/index";
+import {
+  componentsReading,
+  DECISIONS,
+  donorFor,
+  isRefinable,
+  type Profile,
+  profiles,
+  REFINABLE,
+  type RefinableKey,
+  type Refinements,
+  refineProfile,
+} from "../../profiles/index";
 import { Badge } from "../badge/Badge";
 import { Button } from "../button/Button";
 import { Card, CardFooter, CardTitle } from "../card/Card";
 import { cx } from "../cx";
 import { Field } from "../field/Field";
 import { Textarea } from "../textarea/Textarea";
+import { ToggleGroup, ToggleGroupItem } from "../toggle-group/ToggleGroup";
 
 type Messages = ReturnType<typeof useMessages>["direction"];
 type Key = keyof Messages["keys"];
@@ -197,6 +209,94 @@ function DirectionCard({
 }
 
 /**
+ * Progressive disclosure from the brief to the components (handoff §17.5): what the rules read,
+ * each decision with where it came from, the tokens this direction changes from the base set, and
+ * the component groups that read those tokens.
+ */
+function Trace({
+  m,
+  result,
+  profile,
+  name,
+  axes,
+  mode,
+}: {
+  m: Messages;
+  result: DirectionsResult;
+  profile: Profile;
+  name: string;
+  axes: { axis: string; line: string; words: string[] }[];
+  mode: "light" | "dark";
+}) {
+  const decisions = Object.keys(DECISIONS).map((key) => {
+    const value = profile.decisions[key] ?? "";
+    const reason = result.reasons.find((r) => r.key === key);
+    if (!reason)
+      return fill(m.fromProfile, { key: keyWord(m, key), value: valueWord(m, value), name });
+    if (reason.value !== value)
+      return fill(m.wantedOther, {
+        key: keyWord(m, key),
+        value: valueWord(m, value),
+        wanted: valueWord(m, reason.value),
+      });
+    return reasonLines(m, result, [key])[0] ?? "";
+  });
+  const tokens = profile.overrides.map((path) => {
+    const d = profile.diff(path, mode);
+    return fill(m.tokenLine, {
+      path,
+      base: String(d?.base ?? ""),
+      value: String(d?.profile ?? ""),
+    });
+  });
+  const readers = componentsReading(profile.overrides);
+  return (
+    <div className="ds-direction__trace">
+      <details>
+        <summary>{m.traceBrief}</summary>
+        <ul className="ds-direction__list">
+          {axes.map((a) => (
+            <li key={a.axis}>
+              {a.line}{" "}
+              <span className="ds-direction__muted">
+                {fill(m.quoted, { words: a.words.join(", ") })}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </details>
+      <details>
+        <summary>{m.traceDecisions}</summary>
+        <ul className="ds-direction__list">
+          {decisions.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      </details>
+      <details>
+        <summary>{m.traceTokens}</summary>
+        <p className="ds-direction__muted">
+          {fill(m.modeNote, { mode: mode === "dark" ? m.modeDark : m.modeLight })}
+        </p>
+        {tokens.length > 0 ? (
+          <ul className="ds-direction__list ds-direction__tokens">
+            {tokens.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className="ds-direction__muted">{m.tokensNone}</p>
+        )}
+      </details>
+      <details>
+        <summary>{m.traceComponents}</summary>
+        <p>{readers.join(", ")}</p>
+      </details>
+    </div>
+  );
+}
+
+/**
  * Two directions on the same task (spec ORV-34 part 2, handoff §17.3). The person writes a brief or
  * picks a sample; the rules read it (labelled as rules, not AI); the engine offers the profile it
  * chose and the one that differs most, each with the brief's words behind it. One live preview
@@ -217,6 +317,16 @@ export function DirectionStudio({
   const briefId = useId();
   const [brief, setBrief] = useState(defaultBrief);
   const [picked, setPicked] = useState<string | null>(null);
+  const [refinements, setRefinements] = useState<Refinements>({});
+
+  // A refinement is the expert layer (ADR 0007): an adjustment with its reason, after the caller's.
+  const allAdjustments = useMemo(() => {
+    const refined = Object.keys(refinements);
+    return [
+      ...(adjustments ?? []).filter((a) => !refined.includes(a.set)),
+      ...Object.entries(refinements).map(([set, to]) => ({ set, to, reason: m.refineReason })),
+    ] as NonNullable<RecommendOptions["adjustments"]>;
+  }, [adjustments, refinements, m.refineReason]);
 
   const result = useMemo(
     () =>
@@ -225,14 +335,25 @@ export function DirectionStudio({
         : recommendDirections(brief, {
             profiles: CURATED,
             ...(locked ? { locked } : {}),
-            ...(adjustments ? { adjustments } : {}),
+            ...(allAdjustments.length > 0 ? { adjustments: allAdjustments } : {}),
           }),
-    [brief, locked, adjustments],
+    [brief, locked, allAdjustments],
   );
   const directions = result?.directions ?? [];
   const viewing =
     directions.find((d) => d.profileId === picked)?.profileId ?? directions[0]?.profileId ?? null;
   const viewingProfile = profiles.find((p) => p.id === viewing);
+  // A brand lock wins over a refinement: a locked key is never applied to the preview.
+  const refined = useMemo(() => {
+    if (!viewing) return undefined;
+    const applicable: Refinements = {};
+    for (const [key, value] of Object.entries(refinements) as [RefinableKey, string][]) {
+      if (locked?.[key] === undefined) applicable[key] = value;
+    }
+    return refineProfile(viewing, applicable)?.profile;
+  }, [viewing, refinements, locked]);
+  const shown: Profile | undefined = refined ?? viewingProfile;
+  const mode = scope?.mode === "dark" ? "dark" : "light";
 
   const personality = result?.interpretation.facts.personality ?? {};
   const axes = PERSONALITY_AXES.filter((a) => personality[a] !== undefined);
@@ -332,17 +453,115 @@ export function DirectionStudio({
         </section>
       ) : null}
 
+      {shown && result ? (
+        <section className="ds-direction__section" aria-labelledby={`${briefId}-refine`}>
+          <h3 id={`${briefId}-refine`} className="ds-direction__heading">
+            {m.refine}
+          </h3>
+          <p className="ds-direction__muted">{m.refineHint}</p>
+          <div className="ds-direction__refine">
+            {(Object.keys(REFINABLE) as RefinableKey[]).map((key) => {
+              const values = DECISIONS[key] ?? [];
+              const missing = values.filter((v) => !donorFor(key, v));
+              return (
+                <div key={key} className="ds-direction__control">
+                  <span className="ds-direction__control-label">{keyWord(m, key)}</span>
+                  <ToggleGroup
+                    type="single"
+                    size="sm"
+                    aria-label={keyWord(m, key)}
+                    disabled={locked?.[key] !== undefined}
+                    value={shown.decisions[key] ?? ""}
+                    onValueChange={(value) => {
+                      if (!value) return;
+                      // Refining is about the direction in view; keep it in view if the ranking moves.
+                      setPicked(viewing);
+                      setRefinements((r) => ({ ...r, [key]: value }));
+                    }}
+                  >
+                    {values.map((value) => (
+                      <ToggleGroupItem key={value} value={value} disabled={missing.includes(value)}>
+                        {valueWord(m, value)}
+                      </ToggleGroupItem>
+                    ))}
+                  </ToggleGroup>
+                  {locked?.[key] !== undefined ? (
+                    <span className="ds-direction__muted">
+                      {fill(m.lockedReason, {
+                        key: keyWord(m, key),
+                        value: valueWord(m, locked[key] ?? ""),
+                      })}
+                    </span>
+                  ) : null}
+                  {missing.map((value) => (
+                    <span key={value} className="ds-direction__muted">
+                      {fill(m.noTokens, { value: valueWord(m, value) })}
+                    </span>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+          <ul className="ds-direction__list">
+            {Object.keys(DECISIONS)
+              .filter((key) => !isRefinable(key))
+              .map((key) => (
+                <li key={key} className="ds-direction__muted">
+                  {fill(m.colourOnly, {
+                    key: keyWord(m, key),
+                    value: valueWord(m, shown.decisions[key] ?? ""),
+                  })}
+                </li>
+              ))}
+          </ul>
+          <div>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={Object.keys(refinements).length === 0}
+              onClick={() => setRefinements({})}
+            >
+              {m.reset}
+            </Button>
+          </div>
+        </section>
+      ) : null}
+
+      {shown && result ? (
+        <section className="ds-direction__section" aria-labelledby={`${briefId}-trace`}>
+          <h3 id={`${briefId}-trace`} className="ds-direction__heading">
+            {m.trace}
+          </h3>
+          <Trace
+            m={m}
+            result={result}
+            profile={shown}
+            name={pick(shown.name, locale)}
+            axes={axes.map((axis) => ({
+              axis,
+              line: fill(m.axisLine, {
+                axis: m.axes[axis],
+                level: m.levels[level(personality[axis] ?? 0)],
+              }),
+              words: wordsOf(axis),
+            }))}
+            mode={mode}
+          />
+        </section>
+      ) : null}
+
       <section className="ds-direction__section" aria-labelledby={`${briefId}-preview`}>
         <h3 id={`${briefId}-preview`} className="ds-direction__heading">
           {m.preview}
         </h3>
         <p className="ds-direction__muted" aria-live="polite">
-          {viewingProfile
-            ? fill(m.previewOf, { name: pick(viewingProfile.name, locale) })
-            : m.previewNeutral}
+          {shown ? fill(m.previewOf, { name: pick(shown.name, locale) }) : m.previewNeutral}
         </p>
         <div className="ds-direction__preview">
-          <DesignProfileBoundary mode={scope?.mode} profile={(viewing ?? "neutral") as ProfileId}>
+          <DesignProfileBoundary
+            mode={scope?.mode}
+            profile={refined ?? ((viewing ?? "neutral") as ProfileId)}
+          >
             {preview}
           </DesignProfileBoundary>
         </div>
