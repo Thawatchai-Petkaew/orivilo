@@ -321,6 +321,15 @@ export const RunningWithSteps: Story = {
     await expect(getComputedStyle(bare, "::before").animationName).toBe("ds-node-ring");
     await expect(getComputedStyle(rest, "::before").content).toBe("none");
     await expect(rest.querySelector(".ds-node__chip svg")).not.toBeNull();
+    // ORV-59: the header is a glass frame 4 px inside the edge, its corners concentric.
+    const header = rest.querySelector<HTMLElement>(".ds-node__header");
+    if (!header) throw new globalThis.Error("header expected");
+    const frame = getComputedStyle(header);
+    await expect(frame.marginLeft).toBe("4px");
+    const outer = Number.parseFloat(getComputedStyle(rest).borderTopLeftRadius);
+    await expect(Number.parseFloat(frame.borderTopLeftRadius)).toBe(outer - 4);
+    await expect(frame.backgroundImage).toMatch(/linear-gradient/);
+    await expect(frame.backdropFilter).toMatch(/blur/);
   },
 };
 

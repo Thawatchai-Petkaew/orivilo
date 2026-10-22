@@ -882,7 +882,8 @@
   --cmp-node-border-selected: var(--ds-canvas-selection);
   --cmp-node-border-error: var(--ds-border-error);
   --cmp-node-header-bg: var(--ds-surface-sunken);
-  --cmp-node-frame-inset: var(--ds-space-inset-sm);
+  --cmp-node-glass-tint: var(--ds-text-primary);
+  --cmp-node-frame-inset: var(--ds-space-inline-sm);
   --cmp-node-divider: var(--ds-border-subtle);
   --cmp-node-header-fg: var(--ds-text-primary);
   --cmp-node-kind-fg: var(--ds-text-secondary);
@@ -907,7 +908,7 @@
   --cmp-node-fg-missing: var(--ds-action-intent);
   --cmp-node-fg-on-missing: var(--ds-text-on-intent);
   --cmp-node-fg-error: var(--ds-feedback-danger-fg);
-  --cmp-node-radius: var(--ds-shape-media-radius);
+  --cmp-node-radius: var(--ds-shape-overlay-radius);
   --cmp-node-shadow: var(--ds-elevation-shell);
   --cmp-node-padding: var(--ds-space-inset-md);
   --cmp-node-gap: var(--ds-space-stack-sm);
@@ -956,7 +957,7 @@
   --cmp-group-label-type-line-height: var(--ds-type-label-md-line-height);
   --cmp-group-label-type-font-weight: var(--ds-type-label-md-font-weight);
   --cmp-group-label-type-letter-spacing: var(--ds-type-label-md-letter-spacing);
-  --cmp-group-radius: var(--ds-shape-container-radius);
+  --cmp-group-radius: var(--ds-shape-overlay-radius);
   --cmp-group-padding: var(--ds-space-inset-lg);
   --cmp-kbd-bg: var(--ds-surface-sunken);
   --cmp-kbd-fg: var(--ds-text-secondary);

@@ -439,6 +439,13 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
   { recipe: "node", slot: "running", fg: "node.fg-running", bg: "node.header-bg", floor: TEXT },
   { recipe: "node", slot: "stale", fg: "node.fg-stale", bg: "node.header-bg", floor: TEXT },
   { recipe: "node", slot: "locked", fg: "node.fg-locked", bg: "node.header-bg", floor: TEXT },
+  // The glass frame (ORV-59) is a 4 to 10 percent tint over the card, so its ground sits between
+  // the card and `node.header-bg`; the header words are proven on both ends.
+  { recipe: "node", slot: "header on glass", fg: "node.header-fg", bg: "node.bg", floor: TEXT },
+  { recipe: "node", slot: "kind on glass", fg: "node.kind-fg", bg: "node.bg", floor: TEXT },
+  { recipe: "node", slot: "running on glass", fg: "node.fg-running", bg: "node.bg", floor: TEXT },
+  { recipe: "node", slot: "stale on glass", fg: "node.fg-stale", bg: "node.bg", floor: TEXT },
+  { recipe: "node", slot: "locked on glass", fg: "node.fg-locked", bg: "node.bg", floor: TEXT },
   { recipe: "node", slot: "step", fg: "node.kind-fg", bg: "node.bg", floor: TEXT },
   { recipe: "node", slot: "missing", fg: "node.fg-on-missing", bg: "node.fg-missing", floor: TEXT },
   { recipe: "node", slot: "error", fg: "node.fg-error", bg: "node.bg", floor: TEXT },
