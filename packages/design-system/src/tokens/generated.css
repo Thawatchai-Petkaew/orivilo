@@ -1079,6 +1079,9 @@
   --cmp-shelf-tile-bg: var(--ds-surface-card);
   --cmp-shelf-tile-bg-hover: var(--ds-surface-hover);
   --cmp-shelf-tile-border: var(--ds-border-control);
+  --cmp-shelf-tile-ring-start: var(--ds-ai-gradient-start);
+  --cmp-shelf-tile-ring-end: var(--ds-ai-gradient-end);
+  --cmp-shelf-tile-ring-width: var(--ds-edge-width);
   --cmp-shelf-tile-state-fg: var(--ds-text-secondary);
   --cmp-shelf-tile-radius: var(--ds-shape-media-radius);
   --cmp-shelf-tile-width: var(--ds-size-tile);

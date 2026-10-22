@@ -2612,6 +2612,28 @@
 .ds-shelf__tile[data-state="absent"] {
   border-style: dashed;
 }
+/* On the board: the edge is the AI gradient, a masked ring like a running node's, but still. */
+.ds-shelf__tile:not([data-state="absent"]) {
+  position: relative;
+  border-color: transparent;
+}
+.ds-shelf__tile:not([data-state="absent"])::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  padding: var(--cmp-shelf-tile-ring-width);
+  --_ring: linear-gradient(
+    135deg,
+    var(--cmp-shelf-tile-ring-start),
+    var(--cmp-shelf-tile-ring-end)
+  );
+  border-radius: var(--cmp-shelf-tile-radius);
+  background: var(--_ring);
+  mask:
+    linear-gradient(black 0 0) content-box exclude,
+    linear-gradient(black 0 0);
+  pointer-events: none;
+}
 .ds-shelf__tile:hover:not(:disabled) {
   background: var(--cmp-shelf-tile-bg-hover);
 }

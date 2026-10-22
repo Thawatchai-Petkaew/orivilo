@@ -1726,6 +1726,20 @@
       "$value": "{border.control}",
       "$description": "A tile already on the board: solid edge; not on the board: dashed"
     },
+    "tile-ring-start": {
+      "$type": "color",
+      "$value": "{ai.gradient-start}",
+      "$description": "A tile already on the board: its edge is the AI gradient (owner, 2026-10-22); not on the board: dashed tile-border"
+    },
+    "tile-ring-end": {
+      "$type": "color",
+      "$value": "{ai.gradient-end}"
+    },
+    "tile-ring-width": {
+      "$type": "dimension",
+      "$value": "{edge.width}",
+      "$description": "2 px, one step lighter than a running node's ring"
+    },
     "tile-state-fg": {
       "$type": "color",
       "$value": "{text.secondary}",
