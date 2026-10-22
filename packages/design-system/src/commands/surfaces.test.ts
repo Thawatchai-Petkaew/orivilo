@@ -23,10 +23,10 @@ describe("storyOrder and commandAvailable", () => {
     expect(storyOrder("E2-9")).toBeLessThan(storyOrder("E4-1"));
     expect(storyOrder("nonsense")).toBe(Number.MAX_SAFE_INTEGER);
   });
-  it("marks E4-2 and E4-3 commands available and later ones not", () => {
-    expect(CURRENT_STORY).toBe("E4-3");
-    expect(available.every((c) => storyOrder(c.since) <= storyOrder("E4-3"))).toBe(true);
-    expect(COMMANDS.filter((c) => !commandAvailable(c)).map((c) => c.since)).not.toContain("E4-3");
+  it("marks E4-2 to E4-4 commands available and later ones not", () => {
+    expect(CURRENT_STORY).toBe("E4-4");
+    expect(available.every((c) => storyOrder(c.since) <= storyOrder("E4-4"))).toBe(true);
+    expect(COMMANDS.filter((c) => !commandAvailable(c)).map((c) => c.since)).not.toContain("E4-4");
     expect(COMMANDS.some((c) => !commandAvailable(c))).toBe(true);
   });
 });

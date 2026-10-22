@@ -1785,5 +1785,38 @@
       "$type": "typography",
       "$value": "{type.label.md}"
     }
+  },
+  "inspector": {
+    "$description": "The panel beside the board for the selected node (ORV-44 part 3)",
+    "bg": {
+      "$type": "color",
+      "$value": "{surface.card}"
+    },
+    "fg": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    },
+    "muted-fg": {
+      "$type": "color",
+      "$value": "{text.secondary}",
+      "$description": "Meta line, counts, the rule label and empty lines"
+    },
+    "divider": {
+      "$type": "color",
+      "$value": "{border.subtle}",
+      "$description": "The line under the header and between source rows"
+    },
+    "padding": {
+      "$type": "dimension",
+      "$value": "{space.inset.lg}"
+    },
+    "gap": {
+      "$type": "dimension",
+      "$value": "{space.stack.md}"
+    },
+    "title-type": {
+      "$type": "typography",
+      "$value": "{type.heading.sm}"
+    }
   }
 }

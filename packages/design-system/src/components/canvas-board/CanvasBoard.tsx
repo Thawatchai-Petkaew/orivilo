@@ -107,7 +107,8 @@ export interface CanvasBoardProps {
   onChange?: ((graph: Graph) => void) | undefined;
   /**
    * A registry command the board cannot complete itself: `board.add-node` (with the position),
-   * `node.rename` (with the node), `board.undo`, `board.redo`, `app.toggle-mode`.
+   * `node.rename` and `node.open` (with the node), `board.undo`, `board.redo`, `app.toggle-mode`,
+   * `panel.toggle-inspector`, `panel.toggle-library`.
    */
   onCommand?: ((command: CommandId, context: CommandContext) => void) | undefined;
   /** The shell's history: undo and redo are offered only when it says it can (spec E4-3). */
@@ -223,10 +224,13 @@ const PRESENT_ALLOWED = new Set<CommandId>([
   "app.toggle-mode",
 ]);
 
-/** Commands the shell completes (spec E4-3 rule "one runner"). */
+/** Commands the shell completes (spec E4-3 rule "one runner"; the panels of E4-4). */
 const SHELL_COMMANDS = new Set<CommandId>([
   "board.add-node",
   "node.rename",
+  "node.open",
+  "panel.toggle-inspector",
+  "panel.toggle-library",
   "board.undo",
   "board.redo",
   "app.toggle-mode",
@@ -868,9 +872,17 @@ function Board({
         if (!node) return false;
         onCommand?.("node.rename", { nodeId: node.id });
         return true;
+      case "node.open":
+        // Opening is also picking: the node is selected alone, then the shell shows it.
+        if (!node) return false;
+        if (!node.selected || picked.length !== 1) emit(selectOnly(g, [node.id]));
+        onCommand?.("node.open", { nodeId: node.id });
+        return true;
       case "board.undo":
       case "board.redo":
       case "app.toggle-mode":
+      case "panel.toggle-inspector":
+      case "panel.toggle-library":
         onCommand?.(id, {});
         return true;
       default:

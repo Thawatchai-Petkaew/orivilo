@@ -7,13 +7,22 @@ import { fill, type Messages } from "../../i18n/messages/index";
 import { useBoard } from "../canvas-board/context";
 import type { BoardNode } from "../canvas-board/graph";
 import { CommandButton } from "../command-button";
-import { CollapseIcon, CopyIcon, ExpandIcon, LockIcon, TrashIcon, UnlockIcon } from "../icons";
+import {
+  CollapseIcon,
+  CopyIcon,
+  ExpandIcon,
+  LockIcon,
+  PanelEndOpenIcon,
+  TrashIcon,
+  UnlockIcon,
+} from "../icons";
 
 export interface NodeToolbarProps {
   node: Pick<BoardNode, "id" | "data" | "selected">;
 }
 
 const GLYPH: Partial<Record<CommandId, (node: NodeToolbarProps["node"]) => React.ReactNode>> = {
+  "node.open": () => <PanelEndOpenIcon className="size-4" />,
   "selection.duplicate": () => <CopyIcon className="size-4" />,
   "selection.lock": (n) =>
     n.data.status === "locked" ? (

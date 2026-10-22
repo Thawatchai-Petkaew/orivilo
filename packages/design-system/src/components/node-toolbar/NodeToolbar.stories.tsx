@@ -34,7 +34,7 @@ const nodeByTitle = (root: HTMLElement, title: string) =>
 const toolbarOf = (root: HTMLElement, title: string) =>
   within(root).getByRole("toolbar", { name: `เครื่องมือของ ${title}` });
 
-/** One node selected: the toolbar floats above it with four named buttons and their shortcuts (AC 5). */
+/** One node selected: the toolbar floats above it with five named buttons and their shortcuts (AC 5). */
 export const Visible: Story = {
   play: async ({ canvasElement }) => {
     const region = within(canvasElement).getByRole("region");
@@ -45,6 +45,7 @@ export const Visible: Story = {
       commandById("selection.duplicate").label.th,
       "ล็อก",
       "ย่อ",
+      commandById("node.open").label.th,
       commandById("selection.delete").label.th,
     ]);
     await expect(buttons[0]).toHaveAttribute("aria-keyshortcuts", "Mod+D");

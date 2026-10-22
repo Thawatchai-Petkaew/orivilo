@@ -72,7 +72,7 @@ Legend: `none` not started, `planned` entry exists, no code, `draft` code and st
 | CanvasControls      | stable  | application-canvas-controls       |
 | CanvasContextMenu   | stable  | application-canvas-context-menu   |
 | BlockLibrary        | draft   | application-block-library         |
-| Inspector           | planned | E4-4                              |
+| Inspector           | draft   | application-inspector             |
 | MissingInputsPrompt | draft   | application-missing-inputs-prompt |
 | CanvasChat          | planned | E4-5                              |
 | TaskBar             | planned | E4-5                              |
