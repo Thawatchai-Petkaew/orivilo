@@ -1,7 +1,7 @@
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { inWorkspace } from "./client.ts";
-import { organization, project } from "./schema/index.ts";
+import { organization, project, TENANT_TABLES } from "./schema/index.ts";
 import { createTestDatabase, HAS_TEST_DATABASE, type TestDatabase } from "./testing/database.ts";
 
 // ORV-38 AC 5 and 6: the second wall. Even if code skipped the authorization helper, the app
@@ -70,5 +70,14 @@ describe.runIf(HAS_TEST_DATABASE)("orivilo_app and row security", () => {
           and relname <> '__drizzle_migrations'`,
     );
     expect([...rows].map((r) => r.relname)).toEqual([]);
+  });
+  it("limits every tenant table to the workspace set for the transaction", async () => {
+    const rows = await t.admin.execute<{ tablename: string }>(
+      sql`select tablename from pg_policies
+          where schemaname = 'public' and policyname = 'workspace_rows'
+            and roles = '{orivilo_app}'
+            and qual = '(workspace_id = current_setting(''app.workspace_id''::text, true))'`,
+    );
+    expect([...rows].map((r) => r.tablename).sort()).toEqual([...TENANT_TABLES].sort());
   });
 });

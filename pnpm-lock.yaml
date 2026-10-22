@@ -81,6 +81,9 @@ importers:
       '@orivilo/db':
         specifier: workspace:*
         version: link:../db
+      '@orivilo/intent-engine':
+        specifier: workspace:*
+        version: link:../intent-engine
       better-auth:
         specifier: 1.7.12
         version: 1.7.12(drizzle-kit@0.31.11)(drizzle-orm@0.45.4(kysely@0.29.7)(postgres@3.4.9))(next@16.4.0(@types/node@25.9.9)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(vitest@5.0.5)

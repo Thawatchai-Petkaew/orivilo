@@ -29,7 +29,7 @@ const fullDecisionsSchema = z
   .object(decisionValues((key) => z.enum(DECISION_VOCABULARY[key])))
   .strict();
 /** Some decisions, as a brand locks them. */
-const partialDecisionsSchema = z
+export const partialDecisionsSchema = z
   .object(decisionValues((key) => z.enum(DECISION_VOCABULARY[key]).optional()))
   .strict();
 
@@ -39,7 +39,7 @@ export const curatedProfileSchema = z
   .strict();
 
 /** The expert layer (brief, "Two adjustment layers"): a person sets one decision and says why. */
-const adjustmentSchema = z.discriminatedUnion(
+export const adjustmentSchema = z.discriminatedUnion(
   "set",
   DECISION_KEYS.map((key) =>
     z
