@@ -15,6 +15,7 @@ const th = {
     headline: "จากเจตนาทางธุรกิจ สู่ผลิตภัณฑ์ดิจิทัลที่มีชีวิต",
     tagline: "Brand-to-Product Platform ที่ทุกชิ้นงานสืบย้อนไปถึงเหตุผลของมันได้",
     openWorkspace: "เปิดหน้าอ้างอิง: เวิร์กสเปซของทีม",
+    openDirections: "ลองเขียนบรีฟแล้วดูสองทิศทางบนหน้าจอเดียวกัน",
     realHeading: "สิ่งที่มีจริงตอนนี้",
     notYetHeading: "สิ่งที่ยังไม่มี",
     schemaLine: "Design Profile schema v{version}. แผนงานทั้งหมดอยู่ใน",
@@ -50,6 +51,10 @@ const th = {
         what: "หน้าอ้างอิง (เวิร์กสเปซของทีม พร้อมสร้างโปรเจกต์และเก็บถาวร) ที่ /workspace ประกอบจาก component ที่มีอยู่ พิสูจน์แล้วกับข้อมูลยาว จอ 360 px ข้อผิดพลาด และ overlay ใน 2 profile",
       },
       {
+        story: "E2-11",
+        what: "หน้า /directions: เขียนบรีฟหรือเลือกตัวอย่าง ระบบอ่านตามกฎ (ยังไม่ใช้ AI) แล้วเสนอสองทิศทางพร้อมคำในบรีฟที่เป็นเหตุผล และดูหน้าจอเดียวกันในแต่ละทิศทาง",
+      },
+      {
         story: "E4-1 ถึง E4-3",
         what: "กระดาน Studio ใน Storybook: node, พอร์ต, สาย, toolbar, controls, เมนูคลิกขวา, command menu, คีย์ลัดทุกตัวจากทะเบียนคำสั่ง",
       },
@@ -62,8 +67,13 @@ const th = {
       "Shell ของ Studio พร้อม navigation ยังไม่มี หน้านี้เป็นรายการสถานะ: epic E4",
       "กระดาน Studio ยังไม่อยู่ในแอป มีใน Storybook เท่านั้น: E4-4 ถึง E4-8",
       "หน้าตัวอย่างที่ /workspace เป็นข้อมูลตัวอย่างภาษาไทยอย่างเดียว จนกว่า shell จริงจะมาแทน: E4-0, E4-8",
-      "การตีความ brief ยังไม่มี; เมื่อมาจะเป็นแบบกฎก่อนและบอกตามจริง: E2-10",
+      "การตีความ brief ตอนนี้เป็นแบบกฎเท่านั้น ยังไม่ใช้ AI และหน้าจอบอกไว้ตามจริง",
     ],
+  },
+  directions: {
+    title: "สองทิศทาง, ORIVILO",
+    heading: "สองทิศทางจากบรีฟเดียว",
+    description: "เขียนบรีฟแล้วดูสองทิศทางบนหน้าจอเดียวกัน (E2-11) อ่านตามกฎ ยังไม่ใช้ AI",
   },
   workspace: {
     title: "เวิร์กสเปซ, ORIVILO",
@@ -83,6 +93,7 @@ const en: WebMessages = {
     headline: "From business intent to living digital products",
     tagline: "A Brand-to-Product Platform where every artifact traces back to its reasons",
     openWorkspace: "Open the reference screen: team workspace",
+    openDirections: "Write a brief and see two directions on the same screen",
     realHeading: "What exists today",
     notYetHeading: "What does not exist yet",
     schemaLine: "Design Profile schema v{version}. The whole plan is in the",
@@ -121,6 +132,10 @@ const en: WebMessages = {
         what: "The reference screen (team workspace with project creation and archiving) at /workspace, composed from existing components, proven with long data, a 360 px screen, errors and overlays under 2 profiles",
       },
       {
+        story: "E2-11",
+        what: "The /directions page: write a brief or pick a sample, the rules read it (no AI yet), two directions come back with the brief's words as reasons, and the same screen shows under each",
+      },
+      {
         story: "E4-1 to E4-3",
         what: "The Studio board in Storybook: nodes, ports, edges, toolbar, controls, context menu, command menu, every shortcut from the command registry",
       },
@@ -133,8 +148,14 @@ const en: WebMessages = {
       "The Studio shell with navigation does not exist; this page is a status list: epic E4",
       "The Studio board is not in the app yet, only in Storybook: E4-4 to E4-8",
       "The example screen at /workspace is Thai fixture data only until the real shell replaces it: E4-0, E4-8",
-      "Brief interpretation does not exist; when it comes it is rule-based first and says so: E2-10",
+      "Brief interpretation is rule-based only, with no AI yet, and the screen says so",
     ],
+  },
+  directions: {
+    title: "Two directions, ORIVILO",
+    heading: "Two directions from one brief",
+    description:
+      "Write a brief and see two directions on the same screen (E2-11). Read by rules, no AI yet.",
   },
   workspace: {
     title: "Workspace, ORIVILO",

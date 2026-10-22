@@ -2791,3 +2791,89 @@
 .ds-inspector__option-name {
   color: var(--cmp-inspector-fg);
 }
+
+/* DirectionStudio (ORV-34 part 2): brief, reading, two directions, one shared preview. */
+.ds-direction {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmp-direction-gap);
+  min-width: 0;
+  color: var(--cmp-direction-fg);
+}
+.ds-direction__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmp-direction-section-gap);
+  min-width: 0;
+}
+.ds-direction__heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ds-space-inline-md);
+  margin: 0;
+  font-family: var(--cmp-direction-heading-type-font-family);
+  font-size: var(--cmp-direction-heading-type-font-size);
+  line-height: var(--cmp-direction-heading-type-line-height);
+  font-weight: var(--cmp-direction-heading-type-font-weight);
+  letter-spacing: var(--cmp-direction-heading-type-letter-spacing);
+  text-wrap: balance;
+}
+.ds-direction__muted {
+  margin: 0;
+  color: var(--cmp-direction-muted-fg);
+}
+.ds-direction__presets {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ds-space-inline-sm);
+}
+.ds-direction__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-stack-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ds-direction__cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: var(--ds-space-gutter);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ds-direction__card-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--ds-space-stack-sm);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ds-direction__sample {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-stack-sm);
+  padding: var(--cmp-direction-sample-padding);
+  border: 1px solid var(--cmp-direction-sample-border);
+  border-radius: var(--cmp-direction-sample-radius);
+  background: var(--cmp-direction-sample-bg);
+  color: var(--cmp-direction-fg);
+  pointer-events: none;
+  user-select: none;
+}
+.ds-direction__sample-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ds-space-inline-sm);
+}
+.ds-direction__preview {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--cmp-direction-preview-border);
+  border-radius: var(--cmp-direction-preview-radius);
+}

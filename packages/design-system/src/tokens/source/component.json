@@ -1818,5 +1818,54 @@
       "$type": "typography",
       "$value": "{type.heading.sm}"
     }
+  },
+  "direction": {
+    "$description": "DirectionStudio (ORV-34 part 2): a brief, what the rules read from it, two directions and one shared live preview",
+    "gap": {
+      "$type": "dimension",
+      "$value": "{space.stack.lg}"
+    },
+    "section-gap": {
+      "$type": "dimension",
+      "$value": "{space.stack.md}"
+    },
+    "fg": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    },
+    "muted-fg": {
+      "$type": "color",
+      "$value": "{text.secondary}",
+      "$description": "Hints, quoted words, what differs"
+    },
+    "heading-type": {
+      "$type": "typography",
+      "$value": "{type.heading.sm}"
+    },
+    "sample-bg": {
+      "$type": "color",
+      "$value": "{surface.canvas}",
+      "$description": "The ground of a direction's small sample, under that direction's profile"
+    },
+    "sample-border": {
+      "$type": "color",
+      "$value": "{border.subtle}"
+    },
+    "sample-radius": {
+      "$type": "dimension",
+      "$value": "{shape.container.radius}"
+    },
+    "sample-padding": {
+      "$type": "dimension",
+      "$value": "{space.inset.md}"
+    },
+    "preview-border": {
+      "$type": "color",
+      "$value": "{border.subtle}"
+    },
+    "preview-radius": {
+      "$type": "dimension",
+      "$value": "{shape.container.radius}"
+    }
   }
 }

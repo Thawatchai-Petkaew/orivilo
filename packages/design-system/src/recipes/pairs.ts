@@ -645,4 +645,27 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
   // Inspector (ORV-44 part 3)
   { recipe: "inspector", slot: "text", fg: "inspector.fg", bg: "inspector.bg", floor: TEXT },
   { recipe: "inspector", slot: "muted", fg: "inspector.muted-fg", bg: "inspector.bg", floor: TEXT },
+  // Direction studio (ORV-34 part 2): page text, and the reasons inside a direction card
+  { recipe: "direction", slot: "text", fg: "direction.fg", bg: "direction.sample-bg", floor: TEXT },
+  {
+    recipe: "direction",
+    slot: "muted",
+    fg: "direction.muted-fg",
+    bg: "direction.sample-bg",
+    floor: TEXT,
+  },
+  {
+    recipe: "direction",
+    slot: "muted on card",
+    fg: "direction.muted-fg",
+    bg: "card.bg",
+    floor: TEXT,
+  },
+  {
+    recipe: "direction",
+    slot: "muted on selected card",
+    fg: "direction.muted-fg",
+    bg: "card.bg-selected",
+    floor: TEXT,
+  },
 ];

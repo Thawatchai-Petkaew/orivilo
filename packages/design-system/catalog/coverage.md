@@ -74,6 +74,7 @@ Legend: `none` not started, `planned` entry exists, no code, `draft` code and st
 | BlockLibrary        | draft   | application-block-library         |
 | Inspector           | draft   | application-inspector             |
 | MissingInputsPrompt | draft   | application-missing-inputs-prompt |
+| DirectionStudio     | draft   | application-direction-studio      |
 | CanvasChat          | planned | E4-5                              |
 | TaskBar             | planned | E4-5                              |
 | CompareStrip        | planned | E4-6                              |
