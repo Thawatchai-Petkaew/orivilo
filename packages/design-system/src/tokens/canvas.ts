@@ -26,6 +26,7 @@ export const NODE_KINDS = [
   "reference",
   "direction",
   "note",
+  "group",
 ] as const;
 export type NodeKind = (typeof NODE_KINDS)[number];
 
@@ -73,6 +74,7 @@ export const CANVAS_WORDS = {
     reference: { th: "อ้างอิง", en: "reference" },
     direction: { th: "ทิศทาง", en: "direction" },
     note: { th: "โน้ต", en: "note" },
+    group: { th: "กลุ่ม", en: "group" },
   },
   direction: {
     input: { th: "พอร์ตรับ", en: "input port" },

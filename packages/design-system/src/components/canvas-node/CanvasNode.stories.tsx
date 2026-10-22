@@ -87,7 +87,8 @@ export const Variants: Story = {
     <NodeBoard
       height={360}
       initial={row(
-        NODE_KINDS.map((kind, i) => ({
+        // A group is its own component (NodeGroup, E4-3); the six kinds with ports render here.
+        NODE_KINDS.filter((kind) => kind !== "group").map((kind, i) => ({
           kind,
           size: "sm",
           title:

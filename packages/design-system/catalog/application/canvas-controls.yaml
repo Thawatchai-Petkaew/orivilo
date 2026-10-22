@@ -1,19 +1,22 @@
 name: CanvasControls
 tier: application
-status: planned
+status: stable
 since: E4-3
-import: none
+import: "@orivilo/design-system"
 story: application-canvas-controls
 useWhen:
-  - "Zoom in, zoom out, fit, 100 percent, pan or select mode, undo, redo"
+  - "Zoom in, zoom out, fit, 100 percent, pan or select mode, minimap, undo, redo, add node, find, shortcut sheet"
 avoidWhen: []
 contract: CanvasControlsProps
 variants: []
 sizes: []
-states: [default, disabled-undo, disabled-redo]
-recipes: []
+states: [default, with-history, disabled-undo, disabled-redo, present]
+recipes: [neutral, professional, friendly]
 examples: []
 rules:
-  - "Every control has a command and a shortcut in the registry"
+  - "Every control is a registry command with its shortcut in the tooltip; the registry's canvas-controls list is the source"
+  - "Undo and redo are enabled only when the shell passes canUndo or canRedo"
+  - "The present variant keeps what moves the viewport, the search and the sheet"
+  - "Bottom-left over the board, glass like the node toolbar"
 a11y:
-  - "Each button named with its shortcut in the tooltip"
+  - "Toolbar role; each button named with its shortcut in the tooltip; the zoom percentage is a button that reads its current value; pan or select is a ToggleGroup"

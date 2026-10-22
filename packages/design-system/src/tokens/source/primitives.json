@@ -744,6 +744,11 @@
       "$type": "number",
       "$value": 0.16,
       "$description": "Box-select fill on the board (E4-1)"
+    },
+    "glass": {
+      "$type": "number",
+      "$value": 0.72,
+      "$description": "Glass surface over the board (ui-direction): 72 percent of the surface, the rest blur"
     }
   },
   "duration": {

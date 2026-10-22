@@ -1,20 +1,21 @@
 name: CommandMenu
 tier: application
-status: planned
+status: stable
 since: E4-3
-import: none
+import: "@orivilo/design-system"
 story: application-command-menu
 useWhen:
-  - "Search and run any command, add a node by name, jump to a node (Mod+K)"
+  - "Search and run any command, jump to a node by title (Mod+K); the board search (Mod+F) opens it on the nodes"
 avoidWhen: []
 contract: CommandMenuProps
-variants: []
+variants: [commands, nodes]
 sizes: []
-states: [closed, open, empty-results]
-recipes: []
+states: [open, search, run, jump-to-node, empty-results, present]
+recipes: [neutral, professional, friendly]
 examples: []
 rules:
-  - "Every command in the registry is reachable here; shortcuts shown with Kbd"
-  - "Search covers node titles on the board"
+  - "Every available command-menu command of the registry is listed grouped by scope; a command the board cannot run now is shown disabled, never hidden"
+  - "Search covers Thai and English labels and node titles on the board, as substrings"
+  - "The one glass palette the direction allows; solid under prefers-reduced-transparency"
 a11y:
-  - "Combobox semantics; results announced"
+  - "A dialog with combobox semantics: the field controls the listbox, arrows move the active option, Enter runs, Escape closes; the result count is announced; after a jump the node keeps focus"

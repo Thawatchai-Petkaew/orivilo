@@ -1,20 +1,21 @@
 name: MiniMap
 tier: application
-status: planned
+status: stable
 since: E4-3
-import: none
+import: "@orivilo/design-system"
 story: application-mini-map
 useWhen:
   - "Boards larger than one viewport"
 avoidWhen:
-  - "Fewer than about ten nodes (hidden)"
+  - "Fewer than ten nodes (hidden unless toggled)"
 contract: MiniMapProps
 variants: []
 sizes: []
-states: [default, dragging, hidden]
-recipes: []
+states: [shown, hidden, selected-and-group]
+recipes: [neutral, professional, friendly]
 examples: []
 rules:
-  - "Node colours come from node kind tokens"
+  - "Fills come from the minimap tokens through the recipe (node, selected node, group); the viewport mask in canvas.selection"
+  - "The board shows it from ten nodes (MINIMAP_FROM); Shift+M and the control toggle it; `minimap` on the board forces it"
 a11y:
-  - "Decorative for screen readers; the same navigation exists in CanvasControls"
+  - "Named for screen readers (an image) but decorative: no keyboard path, the same navigation exists in CanvasControls"

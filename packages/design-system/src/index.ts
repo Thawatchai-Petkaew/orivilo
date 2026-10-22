@@ -29,10 +29,15 @@ export {
   type Command,
   type CommandId,
   type CommandScope,
+  type CommandSurface,
+  CURRENT_STORY,
+  commandAvailable,
   commandById,
   commandForKey,
   commandsInScope,
   shortcutsOf,
+  storyOrder,
+  surfaceCommands,
 } from "./commands/index";
 export {
   CANVAS_WORDS,

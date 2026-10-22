@@ -6,77 +6,78 @@ Legend: `none` not started, `planned` entry exists, no code, `draft` code and st
 
 ## Base
 
-| Component     | Status  | Story |
-| ------------- | ------- | ----- |
-| Button        | stable  | E2-4  |
-| Input         | stable  | E2-4  |
-| Field         | stable  | E2-4  |
-| Select        | stable  | E2-4  |
-| Checkbox      | stable  | E2-4  |
-| RadioGroup    | none    |       |
-| Switch        | none    |       |
-| Textarea      | stable  | E2-4  |
-| Combobox      | none    |       |
-| Badge         | stable  | E2-4  |
-| Tag           | planned | E4-5  |
-| Avatar        | none    |       |
-| Tooltip       | stable  | E2-4  |
-| Dropdown menu | planned | E4-3  |
-| Tabs          | stable  | E2-4  |
-| Breadcrumb    | none    |       |
-| Pagination    | none    |       |
-| Progress      | planned | E4-5  |
-| Slider        | planned | E4-4  |
-| Toast         | planned | E4-5  |
-| File upload   | none    |       |
-| Date picker   | none    |       |
-| Popover       | stable  | E2-4  |
-| ContextMenu   | planned | E4-3  |
-| ToggleGroup   | planned | E4-3  |
-| ScrollArea    | planned | E4-4  |
-| Kbd           | planned | E4-5  |
-| Resizable     | planned | E4-4  |
+| Component     | Status  | Story              |
+| ------------- | ------- | ------------------ |
+| Button        | stable  | E2-4               |
+| Input         | stable  | E2-4               |
+| Field         | stable  | E2-4               |
+| Select        | stable  | E2-4               |
+| Checkbox      | stable  | E2-4               |
+| RadioGroup    | none    |                    |
+| Switch        | none    |                    |
+| Textarea      | stable  | E2-4               |
+| Combobox      | none    |                    |
+| Badge         | stable  | E2-4               |
+| Tag           | planned | E4-5               |
+| Avatar        | none    |                    |
+| Tooltip       | stable  | E2-4               |
+| Dropdown menu | stable  | base-dropdown-menu |
+| Tabs          | stable  | E2-4               |
+| Breadcrumb    | none    |                    |
+| Pagination    | none    |                    |
+| Progress      | planned | E4-5               |
+| Slider        | planned | E4-4               |
+| Toast         | planned | E4-5               |
+| File upload   | none    |                    |
+| Date picker   | none    |                    |
+| Popover       | stable  | E2-4               |
+| ContextMenu   | stable  | base-context-menu  |
+| ToggleGroup   | stable  | base-toggle-group  |
+| ScrollArea    | planned | E4-4               |
+| Kbd           | stable  | base-kbd           |
+| Resizable     | planned | E4-4               |
 
 ## Application
 
-| Component               | Status  | Story              |
-| ----------------------- | ------- | ------------------ |
-| Dialog                  | stable  | application-dialog |
-| Card                    | stable  | application-card   |
-| Table                   | stable  | application-table  |
-| Sheet                   | planned | E4-4               |
-| Top navigation          | none    |                    |
-| Sidebar navigation      | none    |                    |
-| Page header             | none    |                    |
-| Section header          | none    |                    |
-| Empty state             | none    |                    |
-| Loading state           | none    |                    |
-| Command menu            | planned | E4-3               |
-| Metric                  | none    |                    |
-| Filters                 | none    |                    |
-| Settings layout         | none    |                    |
-| ConfirmDialog (pattern) | none    |                    |
+| Component               | Status  | Story                      |
+| ----------------------- | ------- | -------------------------- |
+| Dialog                  | stable  | application-dialog         |
+| Card                    | stable  | application-card           |
+| Table                   | stable  | application-table          |
+| Sheet                   | planned | E4-4                       |
+| Top navigation          | none    |                            |
+| Sidebar navigation      | none    |                            |
+| Page header             | none    |                            |
+| Section header          | none    |                            |
+| Empty state             | none    |                            |
+| Loading state           | none    |                            |
+| Command menu            | stable  | application-command-menu   |
+| Shortcut sheet          | stable  | application-shortcut-sheet |
+| Metric                  | none    |                            |
+| Filters                 | none    |                            |
+| Settings layout         | none    |                            |
+| ConfirmDialog (pattern) | none    |                            |
 
 ## Application, canvas set (ADR 0004)
 
-| Component           | Status  | Story                    |
-| ------------------- | ------- | ------------------------ |
-| CanvasBoard         | stable  | application-canvas-board |
-| CanvasNode          | stable  | application-canvas-node  |
-| NodePort            | stable  | application-node-port    |
-| CanvasEdge          | stable  | application-canvas-edge  |
-| NodeGroup           | planned | E4-3                     |
-| NodeToolbar         | planned | E4-3                     |
-| MiniMap             | planned | E4-3                     |
-| CanvasControls      | planned | E4-3                     |
-| CanvasContextMenu   | planned | E4-3                     |
-| BlockLibrary        | planned | E4-4                     |
-| Inspector           | planned | E4-4                     |
-| MissingInputsPrompt | planned | E4-4                     |
-| CanvasChat          | planned | E4-5                     |
-| TaskBar             | planned | E4-5                     |
-| CompareStrip        | planned | E4-6                     |
-| VersionBadge        | planned | E4-6                     |
+| Component           | Status  | Story                           |
+| ------------------- | ------- | ------------------------------- |
+| CanvasBoard         | stable  | application-canvas-board        |
+| CanvasNode          | stable  | application-canvas-node         |
+| NodePort            | stable  | application-node-port           |
+| CanvasEdge          | stable  | application-canvas-edge         |
+| NodeGroup           | stable  | application-node-group          |
+| NodeToolbar         | stable  | application-node-toolbar        |
+| MiniMap             | stable  | application-mini-map            |
+| CanvasControls      | stable  | application-canvas-controls     |
+| CanvasContextMenu   | stable  | application-canvas-context-menu |
+| BlockLibrary        | planned | E4-4                            |
+| Inspector           | planned | E4-4                            |
+| MissingInputsPrompt | planned | E4-4                            |
+| CanvasChat          | planned | E4-5                            |
+| TaskBar             | planned | E4-5                            |
+| CompareStrip        | planned | E4-6                            |
+| VersionBadge        | planned | E4-6                            |
 
 Commands and shortcuts for the set: `commands/canvas.yaml` (checked by `check-commands`).
 
