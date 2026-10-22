@@ -33,7 +33,20 @@ export {
   type PopoverProps,
   PopoverTrigger,
 } from "./popover/Popover";
+export { Resizable, type ResizableProps } from "./resizable/Resizable";
+export { ScrollArea, type ScrollAreaProps } from "./scroll-area/ScrollArea";
 export { Select, type SelectOption, type SelectProps } from "./select/Select";
+export {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  type SheetContentProps,
+  type SheetProps,
+  type SheetSide,
+  type SheetSize,
+  SheetTrigger,
+} from "./sheet/Sheet";
+export { Slider, type SliderProps } from "./slider/Slider";
 export {
   Tabs,
   TabsContent,

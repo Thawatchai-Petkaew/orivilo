@@ -579,4 +579,33 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     floor: UI,
   },
   { recipe: "sheet", slot: "later", fg: "ds:text.tertiary", bg: "dialog.bg", floor: TEXT },
+  // Slider (E4-4): the value text, and the range, thumb edge and track against the card.
+  { recipe: "slider", slot: "value", fg: "slider.value-fg", bg: "ds:surface.card", floor: TEXT },
+  { recipe: "slider", slot: "range", fg: "slider.range", bg: "ds:surface.card", floor: UI },
+  {
+    recipe: "slider",
+    slot: "thumb edge",
+    fg: "slider.thumb-border",
+    bg: "slider.thumb-bg",
+    floor: UI,
+  },
+  { recipe: "slider", slot: "track", fg: "slider.track", bg: "ds:surface.card", floor: UI },
+  // Resizable (E4-4): the handle while dragged or focused; at rest it is a border.subtle divider.
+  {
+    recipe: "resizable",
+    slot: "handle active",
+    fg: "resizable.handle-active",
+    bg: "ds:surface.card",
+    floor: UI,
+  },
+  // Sheet (E4-4)
+  { recipe: "side-sheet", slot: "body", fg: "side-sheet.fg", bg: "side-sheet.bg", floor: TEXT },
+  {
+    recipe: "side-sheet",
+    slot: "description",
+    fg: "side-sheet.description",
+    bg: "side-sheet.bg",
+    floor: TEXT,
+  },
+  { recipe: "side-sheet", slot: "error", fg: "side-sheet.error", bg: "side-sheet.bg", floor: TEXT },
 ];

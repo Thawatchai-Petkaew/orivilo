@@ -1,8 +1,8 @@
 name: Slider
 tier: base
-status: planned
+status: draft
 since: E4-4
-import: none
+import: "@orivilo/design-system"
 story: base-slider
 useWhen:
   - "A bounded numeric value with immediate visual effect: density, strength, zoom"
@@ -12,9 +12,10 @@ contract: SliderProps
 variants: []
 sizes: [md]
 states: [default, hover, focus-visible, dragging, disabled]
-recipes: []
+recipes: [neutral, professional, friendly]
 examples: []
 rules:
-  - "Shows the current value as text next to the thumb"
+  - "Shows the current value as text next to the track, formatted by `format`"
+  - "`onValueCommit` fires once on release, for work too costly to run on every step"
 a11y:
-  - "Arrow keys step; Page keys step by 10; value announced with aria-valuetext"
+  - "Arrow keys step; Page keys step by 10; Home and End jump to the bounds; the value is announced with aria-valuetext"

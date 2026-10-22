@@ -1505,5 +1505,158 @@
       "$type": "dimension",
       "$value": "{shape.media.radius}"
     }
+  },
+  "scroll-area": {
+    "$description": "A panel with its own scroll (E4-4): block library, inspector",
+    "thumb": {
+      "$type": "color",
+      "$value": "{border.strong}"
+    },
+    "thumb-hover": {
+      "$type": "color",
+      "$value": "{text.tertiary}"
+    },
+    "size": {
+      "$type": "dimension",
+      "$value": "{space.inline.sm}",
+      "$description": "Scrollbar thickness"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.check.radius}"
+    }
+  },
+  "slider": {
+    "$description": "A bounded number with an immediate effect (E4-4): density, strength, zoom",
+    "track": {
+      "$type": "color",
+      "$value": "{border.control}"
+    },
+    "range": {
+      "$type": "color",
+      "$value": "{action.primary}"
+    },
+    "thumb-bg": {
+      "$type": "color",
+      "$value": "{surface.card}"
+    },
+    "thumb-border": {
+      "$type": "color",
+      "$value": "{action.primary}"
+    },
+    "value-fg": {
+      "$type": "color",
+      "$value": "{text.secondary}"
+    },
+    "track-height": {
+      "$type": "dimension",
+      "$value": "{space.inline.sm}"
+    },
+    "thumb-size": {
+      "$type": "dimension",
+      "$value": "{size.port}"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.check.radius}"
+    },
+    "gap": {
+      "$type": "dimension",
+      "$value": "{space.inline.md}"
+    },
+    "value-type": {
+      "$type": "typography",
+      "$value": "{type.label.md}"
+    }
+  },
+  "resizable": {
+    "$description": "The handle between a side panel and the board (E4-4)",
+    "handle": {
+      "$type": "color",
+      "$value": "{border.subtle}"
+    },
+    "handle-hover": {
+      "$type": "color",
+      "$value": "{border.strong}"
+    },
+    "handle-active": {
+      "$type": "color",
+      "$value": "{action.primary}"
+    },
+    "min": {
+      "$type": "dimension",
+      "$value": "{size.panel.min}"
+    },
+    "default": {
+      "$type": "dimension",
+      "$value": "{size.panel.default}"
+    },
+    "max": {
+      "$type": "dimension",
+      "$value": "{size.panel.max}"
+    }
+  },
+  "side-sheet": {
+    "$description": "A side panel over the board for a longer task (E4-4): the inspector on small screens",
+    "bg": {
+      "$type": "color",
+      "$value": "{surface.raised}"
+    },
+    "fg": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    },
+    "description": {
+      "$type": "color",
+      "$value": "{text.secondary}"
+    },
+    "border": {
+      "$type": "color",
+      "$value": "{border.subtle}"
+    },
+    "scrim": {
+      "$type": "color",
+      "$value": "{surface.scrim}"
+    },
+    "scrim-opacity": {
+      "$type": "number",
+      "$value": "{opacity.scrim}"
+    },
+    "shadow": {
+      "$type": "shadow",
+      "$value": "{elevation.overlay}"
+    },
+    "padding": {
+      "$type": "dimension",
+      "$value": "{space.inset.lg}"
+    },
+    "gap": {
+      "$type": "dimension",
+      "$value": "{space.stack.md}"
+    },
+    "width-md": {
+      "$type": "dimension",
+      "$value": "{size.sheet.md}"
+    },
+    "width-lg": {
+      "$type": "dimension",
+      "$value": "{size.sheet.lg}"
+    },
+    "title-type": {
+      "$type": "typography",
+      "$value": "{type.heading.sm}"
+    },
+    "body-type": {
+      "$type": "typography",
+      "$value": "{type.body.md}"
+    },
+    "error": {
+      "$type": "color",
+      "$value": "{feedback.danger.fg}"
+    },
+    "layer": {
+      "$type": "number",
+      "$value": "{layer.overlay}"
+    }
   }
 }

@@ -28,6 +28,11 @@ export const en: Messages = {
     arrowLeft: "Arrow left",
     arrowRight: "Arrow right",
   },
+  resizable: {
+    handle: "Resize {panel}",
+    reopen: "Show {panel}",
+    width: "{px} pixels wide",
+  },
   sheet: {
     title: "All shortcuts",
     description:
