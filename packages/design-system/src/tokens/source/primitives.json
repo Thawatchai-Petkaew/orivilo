@@ -364,6 +364,49 @@
     "transparent": {
       "$type": "color",
       "$value": "transparent"
+    },
+    "graphic": {
+      "$description": "Graphic palette (handoff §10 group 6, E4-1): data kinds on the canvas only, never an action, a state or a feedback colour. Two steps per hue: 700 for light mode, 300 for dark mode. Not derived from the brand anchors; a lineup test may swap a hue.",
+      "teal": {
+        "300": {
+          "$type": "color",
+          "$value": "#5EEAD4"
+        },
+        "700": {
+          "$type": "color",
+          "$value": "#0F766E"
+        }
+      },
+      "magenta": {
+        "300": {
+          "$type": "color",
+          "$value": "#F0ABFC"
+        },
+        "700": {
+          "$type": "color",
+          "$value": "#A21CAF"
+        }
+      },
+      "indigo": {
+        "300": {
+          "$type": "color",
+          "$value": "#A5B4FC"
+        },
+        "700": {
+          "$type": "color",
+          "$value": "#4338CA"
+        }
+      },
+      "orange": {
+        "300": {
+          "$type": "color",
+          "$value": "#FDBA74"
+        },
+        "700": {
+          "$type": "color",
+          "$value": "#C2410C"
+        }
+      }
     }
   },
   "radius": {
@@ -417,17 +460,9 @@
       "$type": "dimension",
       "$value": "0px"
     },
-    "0-5": {
-      "$type": "dimension",
-      "$value": "2px"
-    },
     "1": {
       "$type": "dimension",
       "$value": "4px"
-    },
-    "1-5": {
-      "$type": "dimension",
-      "$value": "6px"
     },
     "2": {
       "$type": "dimension",
@@ -472,6 +507,14 @@
     "24": {
       "$type": "dimension",
       "$value": "96px"
+    },
+    "0-5": {
+      "$type": "dimension",
+      "$value": "2px"
+    },
+    "1-5": {
+      "$type": "dimension",
+      "$value": "6px"
     }
   },
   "size": {
@@ -494,6 +537,14 @@
     "12": {
       "$type": "dimension",
       "$value": "48px"
+    },
+    "60": {
+      "$type": "dimension",
+      "$value": "240px"
+    },
+    "80": {
+      "$type": "dimension",
+      "$value": "320px"
     },
     "icon-4": {
       "$type": "dimension",
@@ -526,6 +577,14 @@
     "container-xl": {
       "$type": "dimension",
       "$value": "1280px"
+    },
+    "0-5": {
+      "$type": "dimension",
+      "$value": "2px"
+    },
+    "0-75": {
+      "$type": "dimension",
+      "$value": "3px"
     }
   },
   "font": {
@@ -680,6 +739,11 @@
     "scrim": {
       "$type": "number",
       "$value": 0.48
+    },
+    "selection": {
+      "$type": "number",
+      "$value": 0.16,
+      "$description": "Box-select fill on the board (E4-1)"
     }
   },
   "duration": {
@@ -748,6 +812,21 @@
     "toast": {
       "$type": "number",
       "$value": 1100
+    }
+  },
+  "dash": {
+    "$description": "SVG stroke-dasharray patterns for canvas edges (E4-1)",
+    "solid": {
+      "$type": "strokeDasharray",
+      "$value": "none"
+    },
+    "dashed": {
+      "$type": "strokeDasharray",
+      "$value": "8 6"
+    },
+    "dotted": {
+      "$type": "strokeDasharray",
+      "$value": "2 5"
     }
   }
 }

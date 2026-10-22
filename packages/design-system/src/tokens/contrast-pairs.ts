@@ -32,6 +32,7 @@ const TEXT_SURFACES = [
   "surface.sunken",
   "surface.hover",
   "surface.selected",
+  "surface.board",
 ] as const;
 
 const FEEDBACK = ["success", "warning", "danger", "info"] as const;
@@ -100,6 +101,31 @@ export const PAIR_RULES: readonly PairRule[] = [
     floor: UI,
     where: "the focus ring against the page, a card and its own offset halo",
   },
+  {
+    fg: ["port.text", "port.image", "port.palette", "port.type", "port.profile"],
+    on: ["surface.card", "surface.board"],
+    floor: UI,
+    where: "a port on the node edge, over the node and over the board (E4-1)",
+  },
+  {
+    fg: [
+      "edge.stroke",
+      "edge.stroke-hover",
+      "edge.stroke-selected",
+      "edge.stroke-invalid",
+      "edge.stroke-stale",
+      "canvas.selection",
+    ],
+    on: ["surface.board", "surface.card"],
+    floor: UI,
+    where: "an edge or a selection outline over the board and over a node or group (E4-1)",
+  },
+  {
+    fg: ["status.running", "status.stale", "status.locked"],
+    on: ["surface.card", "surface.sunken", "surface.board"],
+    floor: TEXT,
+    where: "a status word in the node header, on the node and on the board (E4-1)",
+  },
 ];
 
 /**
@@ -115,6 +141,7 @@ export const EXEMPT: Readonly<Record<string, string>> = {
   "border.subtle": "a divider on a surface, not a control boundary; decorative",
   "border.card": "a card edge; the card is identified by its surface and content",
   "border.disabled": "the edge of a disabled control; exempt with it",
+  "canvas.grid": "the dot grid on the board; decorative, nothing is read on it or by it",
   ...Object.fromEntries(
     FEEDBACK.map((kind) => [
       `feedback.${kind}.border`,

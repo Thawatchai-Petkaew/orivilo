@@ -955,5 +955,274 @@
       "$value": "{shape.media.radius}",
       "$description": "A multi-line box takes the media radius, not the pill: a pill wrapping three lines reads as a capsule, not a field"
     }
+  },
+  "board": {
+    "bg": {
+      "$type": "color",
+      "$value": "{surface.board}"
+    },
+    "grid": {
+      "$type": "color",
+      "$value": "{canvas.grid}"
+    },
+    "grid-gap": {
+      "$type": "dimension",
+      "$value": "{space.grid-gap}"
+    },
+    "selection": {
+      "$type": "color",
+      "$value": "{canvas.selection}",
+      "$description": "Box-select stroke"
+    },
+    "selection-opacity": {
+      "$type": "number",
+      "$value": "{opacity.selection}",
+      "$description": "Box-select fill, selection at this opacity"
+    }
+  },
+  "node": {
+    "bg": {
+      "$type": "color",
+      "$value": "{surface.card}"
+    },
+    "fg": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    },
+    "border": {
+      "$type": "color",
+      "$value": "{border.card}",
+      "$description": "Transparent on the light board like a card; marks the edge in dark"
+    },
+    "border-hover": {
+      "$type": "color",
+      "$value": "{border.control-hover}"
+    },
+    "border-selected": {
+      "$type": "color",
+      "$value": "{canvas.selection}"
+    },
+    "border-error": {
+      "$type": "color",
+      "$value": "{border.error}"
+    },
+    "header-bg": {
+      "$type": "color",
+      "$value": "{surface.sunken}"
+    },
+    "header-fg": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    },
+    "kind-fg": {
+      "$type": "color",
+      "$value": "{text.secondary}",
+      "$description": "The kind word next to the title"
+    },
+    "header-type": {
+      "$type": "typography",
+      "$value": "{type.label.md}"
+    },
+    "body-type": {
+      "$type": "typography",
+      "$value": "{type.body.sm}"
+    },
+    "fg-locked": {
+      "$type": "color",
+      "$value": "{status.locked}"
+    },
+    "fg-running": {
+      "$type": "color",
+      "$value": "{status.running}"
+    },
+    "fg-stale": {
+      "$type": "color",
+      "$value": "{status.stale}"
+    },
+    "fg-missing": {
+      "$type": "color",
+      "$value": "{action.intent}",
+      "$description": "Missing inputs: the node asks the engine, so the intent colour"
+    },
+    "fg-on-missing": {
+      "$type": "color",
+      "$value": "{text.on-intent}"
+    },
+    "fg-error": {
+      "$type": "color",
+      "$value": "{feedback.danger.fg}"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.media.radius}",
+      "$description": "12, media level (mood E); a group is a container at 16"
+    },
+    "shadow": {
+      "$type": "shadow",
+      "$value": "{elevation.shell}"
+    },
+    "padding": {
+      "$type": "dimension",
+      "$value": "{space.inset.md}"
+    },
+    "gap": {
+      "$type": "dimension",
+      "$value": "{space.stack.sm}"
+    },
+    "width-sm": {
+      "$type": "dimension",
+      "$value": "{size.node.sm}"
+    },
+    "width-md": {
+      "$type": "dimension",
+      "$value": "{size.node.md}"
+    },
+    "width-lg": {
+      "$type": "dimension",
+      "$value": "{size.node.lg}"
+    }
+  },
+  "port": {
+    "size": {
+      "$type": "dimension",
+      "$value": "{size.port}"
+    },
+    "ring": {
+      "$type": "color",
+      "$value": "{surface.card}",
+      "$description": "A ring the colour of the node so the port reads on the node edge"
+    },
+    "ring-width": {
+      "$type": "dimension",
+      "$value": "{edge.width}"
+    },
+    "text": {
+      "$type": "color",
+      "$value": "{port.text}"
+    },
+    "image": {
+      "$type": "color",
+      "$value": "{port.image}"
+    },
+    "palette": {
+      "$type": "color",
+      "$value": "{port.palette}"
+    },
+    "type": {
+      "$type": "color",
+      "$value": "{port.type}"
+    },
+    "profile": {
+      "$type": "color",
+      "$value": "{port.profile}"
+    },
+    "fg-valid": {
+      "$type": "color",
+      "$value": "{feedback.success.fg}",
+      "$description": "A compatible drop target while connecting"
+    },
+    "fg-invalid": {
+      "$type": "color",
+      "$value": "{feedback.danger.fg}",
+      "$description": "An incompatible drop target, with the reason"
+    },
+    "fg-disabled": {
+      "$type": "color",
+      "$value": "{text.disabled}"
+    },
+    "opacity-disabled": {
+      "$type": "number",
+      "$value": "{opacity.disabled}"
+    }
+  },
+  "edge": {
+    "stroke": {
+      "$type": "color",
+      "$value": "{edge.stroke}"
+    },
+    "stroke-hover": {
+      "$type": "color",
+      "$value": "{edge.stroke-hover}"
+    },
+    "stroke-selected": {
+      "$type": "color",
+      "$value": "{edge.stroke-selected}"
+    },
+    "stroke-invalid": {
+      "$type": "color",
+      "$value": "{edge.stroke-invalid}"
+    },
+    "stroke-stale": {
+      "$type": "color",
+      "$value": "{edge.stroke-stale}"
+    },
+    "width": {
+      "$type": "dimension",
+      "$value": "{edge.width}"
+    },
+    "width-selected": {
+      "$type": "dimension",
+      "$value": "{edge.width-selected}"
+    },
+    "dash-input": {
+      "$type": "strokeDasharray",
+      "$value": "{edge.dash.input}"
+    },
+    "dash-reference": {
+      "$type": "strokeDasharray",
+      "$value": "{edge.dash.reference}"
+    },
+    "dash-derived": {
+      "$type": "strokeDasharray",
+      "$value": "{edge.dash.derived}"
+    },
+    "label-bg": {
+      "$type": "color",
+      "$value": "{surface.card}"
+    },
+    "label-fg": {
+      "$type": "color",
+      "$value": "{text.secondary}"
+    },
+    "label-type": {
+      "$type": "typography",
+      "$value": "{type.label.sm}"
+    },
+    "label-radius": {
+      "$type": "dimension",
+      "$value": "{shape.control.radius}"
+    }
+  },
+  "group": {
+    "bg": {
+      "$type": "color",
+      "$value": "{surface.raised}",
+      "$description": "A frame lighter than the board in light, the card value in dark"
+    },
+    "border": {
+      "$type": "color",
+      "$value": "{border.subtle}"
+    },
+    "border-selected": {
+      "$type": "color",
+      "$value": "{canvas.selection}"
+    },
+    "label-fg": {
+      "$type": "color",
+      "$value": "{text.secondary}"
+    },
+    "label-type": {
+      "$type": "typography",
+      "$value": "{type.label.md}"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.container.radius}",
+      "$description": "16, container level: nodes at 12 sit inside"
+    },
+    "padding": {
+      "$type": "dimension",
+      "$value": "{space.inset.lg}"
+    }
   }
 }

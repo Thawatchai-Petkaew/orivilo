@@ -78,6 +78,14 @@
         "dark": "{color.black}"
       },
       "$description": "Behind overlays, at opacity.scrim"
+    },
+    "board": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.gray.100}",
+        "dark": "{color.gray.950}"
+      },
+      "$description": "The Studio board, an infinite well the nodes sit on; Studio chrome, never inside a customer boundary (ADR 0004 item 6)"
     }
   },
   "text": {
@@ -800,6 +808,11 @@
         "$type": "dimension",
         "$value": "{space.2}"
       }
+    },
+    "grid-gap": {
+      "$type": "dimension",
+      "$value": "{space.6}",
+      "$description": "Dot grid pitch on the board, 24"
     }
   },
   "size": {
@@ -835,6 +848,28 @@
         "$type": "dimension",
         "$value": "{size.icon-6}"
       }
+    },
+    "node": {
+      "sm": {
+        "$type": "dimension",
+        "$value": "{size.60}",
+        "$description": "Node width sm, 240"
+      },
+      "md": {
+        "$type": "dimension",
+        "$value": "{size.80}",
+        "$description": "Node width md, 320"
+      },
+      "lg": {
+        "$type": "dimension",
+        "$value": "{size.container-xs}",
+        "$description": "Node width lg, 480; custom comes from the resizer"
+      }
+    },
+    "port": {
+      "$type": "dimension",
+      "$value": "{size.icon-4}",
+      "$description": "Port hit shape, 16; the ring adds 2 on each side"
     }
   },
   "type": {
@@ -1034,6 +1069,11 @@
     "scrim": {
       "$type": "number",
       "$value": "{opacity.scrim}"
+    },
+    "selection": {
+      "$type": "number",
+      "$value": "{opacity.selection}",
+      "$description": "The box-select fill, canvas.selection at this opacity"
     }
   },
   "font": {
@@ -1062,6 +1102,281 @@
       "$type": "number",
       "$value": "{z.toast}",
       "$description": "Tooltips sit above overlays so a tooltip inside a popover shows"
+    }
+  },
+  "canvas": {
+    "grid": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.gray.300}",
+        "dark": "{color.gray.700}"
+      },
+      "$description": "Dot grid on the board; decorative, no pair"
+    },
+    "selection": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.violet.600}",
+        "dark": "{color.violet.400}"
+      },
+      "$description": "Box-select stroke and the selected outline of a node, edge or group; violet like selection.fg, never the focus ring (DESIGN.md §8)",
+      "$extensions": {
+        "orivilo": {
+          "contrast": {
+            "against": "surface.board",
+            "floor": 3
+          }
+        }
+      }
+    }
+  },
+  "port": {
+    "$description": "One colour and one shape per data kind a port carries (ADR 0004 item 4). Shape and icon carry the kind; colour alone never does. Text is ink; the other four come from the graphic palette, never from a transaction colour.",
+    "text": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.gray.900}",
+        "dark": "{color.gray.100}"
+      },
+      "$description": "Text: a brief, copy, a value",
+      "$extensions": {
+        "orivilo": {
+          "contrast": {
+            "against": "surface.card",
+            "floor": 3
+          },
+          "shape": "circle"
+        }
+      }
+    },
+    "image": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.graphic.teal.700}",
+        "dark": "{color.graphic.teal.300}"
+      },
+      "$description": "Image: a photo, a render, a mood board tile",
+      "$extensions": {
+        "orivilo": {
+          "contrast": {
+            "against": "surface.card",
+            "floor": 3
+          },
+          "shape": "square"
+        }
+      }
+    },
+    "palette": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.graphic.magenta.700}",
+        "dark": "{color.graphic.magenta.300}"
+      },
+      "$description": "Palette: a colour set or a single colour",
+      "$extensions": {
+        "orivilo": {
+          "contrast": {
+            "against": "surface.card",
+            "floor": 3
+          },
+          "shape": "diamond"
+        }
+      }
+    },
+    "type": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.graphic.indigo.700}",
+        "dark": "{color.graphic.indigo.300}"
+      },
+      "$description": "Type: a typeface, a pairing, a scale",
+      "$extensions": {
+        "orivilo": {
+          "contrast": {
+            "against": "surface.card",
+            "floor": 3
+          },
+          "shape": "triangle"
+        }
+      }
+    },
+    "profile": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.graphic.orange.700}",
+        "dark": "{color.graphic.orange.300}"
+      },
+      "$description": "Profile: a resolved design profile",
+      "$extensions": {
+        "orivilo": {
+          "contrast": {
+            "against": "surface.card",
+            "floor": 3
+          },
+          "shape": "hexagon"
+        }
+      }
+    }
+  },
+  "edge": {
+    "$description": "Edges between nodes. The three meanings differ by dash pattern and label, never by colour alone (ADR 0004 item 4); colour carries state.",
+    "stroke": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.gray.600}",
+        "dark": "{color.gray.400}"
+      },
+      "$description": "An edge at rest, any meaning",
+      "$extensions": {
+        "orivilo": {
+          "contrast": {
+            "against": "surface.board",
+            "floor": 3
+          }
+        }
+      }
+    },
+    "stroke-hover": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.gray.900}",
+        "dark": "{color.gray.100}"
+      },
+      "$description": "Hovered edge, and the connection being dragged",
+      "$extensions": {
+        "orivilo": {
+          "contrast": {
+            "against": "surface.board",
+            "floor": 3
+          }
+        }
+      }
+    },
+    "stroke-selected": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.violet.600}",
+        "dark": "{color.violet.400}"
+      },
+      "$description": "Selected edge, same violet as canvas.selection",
+      "$extensions": {
+        "orivilo": {
+          "contrast": {
+            "against": "surface.board",
+            "floor": 3
+          }
+        }
+      }
+    },
+    "stroke-invalid": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.red.700}",
+        "dark": "{color.red.400}"
+      },
+      "$description": "A connection that cannot be made, with the reason as a label",
+      "$extensions": {
+        "orivilo": {
+          "contrast": {
+            "against": "surface.board",
+            "floor": 3
+          }
+        }
+      }
+    },
+    "stroke-stale": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.amber.700}",
+        "dark": "{color.amber.400}"
+      },
+      "$description": "An edge whose source changed after the target ran",
+      "$extensions": {
+        "orivilo": {
+          "contrast": {
+            "against": "surface.board",
+            "floor": 3
+          }
+        }
+      }
+    },
+    "width": {
+      "$type": "dimension",
+      "$value": "{size.0-5}",
+      "$description": "Stroke at rest"
+    },
+    "width-selected": {
+      "$type": "dimension",
+      "$value": "{size.0-75}",
+      "$description": "Stroke when selected or hovered"
+    },
+    "dash": {
+      "input": {
+        "$type": "strokeDasharray",
+        "$value": "{dash.solid}",
+        "$description": "Input: the source feeds the target"
+      },
+      "reference": {
+        "$type": "strokeDasharray",
+        "$value": "{dash.dashed}",
+        "$description": "Reference: the target looks at the source"
+      },
+      "derived": {
+        "$type": "strokeDasharray",
+        "$value": "{dash.dotted}",
+        "$description": "Derived from: the target was generated from the source"
+      }
+    }
+  },
+  "status": {
+    "$description": "Node status words and icons in the node header. Shown with a word, never a tint (catalog rule); error uses feedback.danger.fg and missing inputs use action.intent, so neither has a token here.",
+    "running": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.blue.700}",
+        "dark": "{color.blue.300}"
+      },
+      "$description": "The engine is working on this node; animated icon plus the word",
+      "$extensions": {
+        "orivilo": {
+          "contrast": {
+            "against": "surface.card",
+            "floor": 4.5
+          }
+        }
+      }
+    },
+    "stale": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.amber.700}",
+        "dark": "{color.amber.400}"
+      },
+      "$description": "An upstream node changed after this one ran",
+      "$extensions": {
+        "orivilo": {
+          "contrast": {
+            "against": "surface.card",
+            "floor": 4.5
+          }
+        }
+      }
+    },
+    "locked": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.gray.600}",
+        "dark": "{color.gray.400}"
+      },
+      "$description": "Approved or read-only; edits create a new node",
+      "$extensions": {
+        "orivilo": {
+          "contrast": {
+            "against": "surface.card",
+            "floor": 4.5
+          }
+        }
+      }
     }
   }
 }

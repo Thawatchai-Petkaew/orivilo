@@ -18,7 +18,18 @@ import {
 type Json = Record<string, unknown>;
 
 /** Groups a profile may not override. Their meaning belongs to the system, not to a brand. */
-export const LOCKED_GROUPS: readonly string[] = ["feedback", "focus"];
+/**
+ * Groups whose meaning never changes per profile: feedback and focus (DESIGN.md §8), and the canvas
+ * groups, which are Studio chrome and never render inside a customer boundary (ADR 0004 item 6).
+ */
+export const LOCKED_GROUPS: readonly string[] = [
+  "feedback",
+  "focus",
+  "canvas",
+  "port",
+  "edge",
+  "status",
+];
 
 /**
  * Where each Studio-scoped token points inside a profile boundary (E2-3). The Intent Engine action
