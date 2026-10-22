@@ -1,0 +1,40 @@
+name: Migrate staging
+
+# main is staging (AGENTS.md): apply new migrations to the Supabase project after they merge.
+# Runs as the owner role from the MIGRATION_DATABASE_URL secret; the app never sees it (ORV-38).
+on:
+  push:
+    branches: [main]
+    paths: ["packages/db/migrations/**"]
+  workflow_dispatch:
+
+concurrency:
+  group: migrate-staging
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
+    steps:
+      - name: Stop when the secret is not set yet
+        if: env.MIGRATION_DATABASE_URL == ''
+        run: echo "::notice::MIGRATION_DATABASE_URL is not set; nothing applied."
+      - uses: actions/checkout@v4
+        if: env.MIGRATION_DATABASE_URL != ''
+      - uses: pnpm/action-setup@v4
+        if: env.MIGRATION_DATABASE_URL != ''
+      - uses: actions/setup-node@v4
+        if: env.MIGRATION_DATABASE_URL != ''
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - if: env.MIGRATION_DATABASE_URL != ''
+        run: pnpm install --frozen-lockfile --filter @orivilo/db
+      - if: env.MIGRATION_DATABASE_URL != ''
+        run: pnpm --filter @orivilo/db migrate
