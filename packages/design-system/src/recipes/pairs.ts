@@ -642,4 +642,7 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     floor: TEXT,
   },
   { recipe: "shelf", slot: "tile edge", fg: "shelf.tile-border", bg: "shelf.bg", floor: UI },
+  // Inspector (ORV-44 part 3)
+  { recipe: "inspector", slot: "text", fg: "inspector.fg", bg: "inspector.bg", floor: TEXT },
+  { recipe: "inspector", slot: "muted", fg: "inspector.muted-fg", bg: "inspector.bg", floor: TEXT },
 ];

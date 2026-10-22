@@ -116,7 +116,7 @@ export function commandsInScope(scope: CommandScope): Command[] {
  * the registry (so the shortcut sheet can list it with the story that brings it) but no surface
  * offers it (AGENTS.md rule 4: never show what does not work).
  */
-export const CURRENT_STORY = "E4-3";
+export const CURRENT_STORY = "E4-4";
 
 /** Story keys compare by epic then number: E4-10 is after E4-3. */
 export function storyOrder(key: string): number {

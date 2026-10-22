@@ -75,6 +75,7 @@ export {
   blockById,
   blocksByModule,
   fillState,
+  fillWord,
   fillsOf,
   missingInputs,
   nodeForBlock,

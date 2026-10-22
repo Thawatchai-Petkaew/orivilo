@@ -1,22 +1,25 @@
 name: Inspector
 tier: application
-status: planned
+status: draft
 since: E4-4
-import: none
+import: "@orivilo/design-system"
 story: application-inspector
 useWhen:
-  - "The right panel for the selected node: conversation, missing inputs, knowledge sources, Intent to Decisions to Tokens to Recipes"
+  - "The panel beside the board for the selected node: what it knows, what it still needs, where each piece came from"
 avoidWhen:
-  - "Nothing selected (shows the board summary)"
+  - "Editing several nodes at once (it asks for one)"
 contract: InspectorProps
-variants: []
+variants: [block-node, plain-node]
 sizes: []
-states: [no-selection, loading, ready, rule-based-label]
-recipes: []
+states: [no-selection, several, summary, missing, sources, rule-based-label, in-sheet]
+recipes: [neutral, professional, friendly]
 examples: []
 rules:
-  - "Progressive disclosure in the handoff §17.5 order"
-  - "Rule-based behavior is labelled rule-based; mock data is labelled mock"
-  - "On small screens becomes a Sheet"
+  - "Reads the same derived rules as the node and the shelf (src/blocks); stores nothing"
+  - "Says it works by rules (ตามกฎ ยังไม่ใช้ AI) for every block node; nothing claims AI"
+  - "The handoff §17.5 trace (Intent, Decisions, Tokens, Recipes, Components) lands with E2-11; the sources tab is its first step, and no mock trace is shown"
+  - "The shell lays it out: a Resizable side panel on wide screens, a Sheet on narrow ones"
+  - "node.open (Enter on a node) selects the node and moves focus here; panel.toggle-inspector shows and hides it; Escape inside it runs panel.close"
 a11y:
-  - "Tabs for sections; the conversation log is a live region"
+  - "A named region, focusable so node.open can move focus to it; tabs for sections, the missing count is in the tab's name"
+  - "Fill states are words with a mark, never colour alone"

@@ -229,3 +229,13 @@ export function blocksByModule(): { module: BlockModule; blocks: Block[] }[] {
     blocks: BLOCKS.filter((b) => b.module === module),
   }));
 }
+
+/** The fill state in words for a locale ("ถามอีก 2 ข้อ"), or undefined for a node outside the registry. */
+export function fillWord(graph: Graph, nodeId: string, locale: Locale): string | undefined {
+  const state = fillState(graph, nodeId);
+  if (!state) return undefined;
+  const words = messagesFor(locale).node.fill;
+  return state === "partial"
+    ? fill(words.partial, { count: String(missingInputs(graph, nodeId).length) })
+    : words[state];
+}

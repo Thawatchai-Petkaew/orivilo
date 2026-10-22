@@ -1,7 +1,7 @@
 ---
 issue: ORV-44 (draft key E4-4; https://tpetkaew.atlassian.net/browse/ORV-44)
 lane: L (risk flag: UX architecture)
-version: 2
+version: 3
 ---
 
 ## Why
@@ -25,8 +25,8 @@ The owner's UX vision (brief, "Every node carries a knowledge base") says a node
 | Part | Content                                                                   | Status         |
 | ---- | ------------------------------------------------------------------------- | -------------- |
 | 1    | ScrollArea, Slider, Resizable, Sheet                                      | Merged, PR #30 |
-| 2    | Block registry, node fill states, MissingInputsPrompt, BlockLibrary shelf | This spec      |
-| 3    | Inspector (summary, missing, sources tabs; the handoff §17.5 trace)       | After part 2   |
+| 2    | Block registry, node fill states, MissingInputsPrompt, BlockLibrary shelf | Merged, PR #32 |
+| 3    | Inspector (summary, missing, sources tabs) and the E4-4 panel commands    | This spec      |
 
 ## Story (part 2)
 
@@ -52,6 +52,32 @@ As a Studio user, I want every node the board can hold listed on a shelf with wh
 | 14  | Any summary written by rules                           | Rendering it                       | Labelled "ตามกฎ"; nothing says AI                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Stories; `check-copy`                       |
 | 15  | Every new component and the registry                   | Catalog and Storybook              | Entries `draft` with stories in both modes under three profiles; `coverage.md`; DESIGN.md bump; a11y addon clean                                                                                                                                                                                                                                                                                                                                                                            | `check-catalog`, storybook project          |
 
+## Story (part 3)
+
+As a Studio user, I want one panel beside the board that shows the node I picked: what it knows, what it still needs, and where each piece came from, so that I can fill and check a node without reading it off the board.
+
+## Acceptance criteria (part 3)
+
+| #   | Given                        | When                                  | Result                                                                                                                                                                                                                                     | Evidence                       |
+| --- | ---------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------ |
+| 1   | Nothing selected             | Looking at the Inspector              | "เลือก node เพื่อดูรายละเอียด" and the board in numbers: how many block nodes are summarized, partial, empty and unlinked (words, never colour alone)                                                                                      | Inspector › NoSelection        |
+| 2   | Several nodes selected       | Looking at the Inspector              | "เลือกอยู่ N node" and a line asking to pick one; no tabs                                                                                                                                                                                  | Inspector › Several            |
+| 3   | One block node selected      | Looking at the Inspector              | Header: kind, title, fill word with its mark, and "ตามกฎ ยังไม่ใช้ AI"; tabs "สรุป", "ข้อมูลที่ขาด" (with the count when there is one) and "ที่มา"                                                                                         | Inspector › Selected           |
+| 4   | The summary tab              | Reading it                            | Every summary line (not cut to three), swatches when there are colours; an empty node says what to do next instead                                                                                                                         | Inspector › Selected, Empty    |
+| 5   | The missing tab              | Answering                             | The part 2 MissingInputsPrompt; each save updates the node, the header and the count at once                                                                                                                                               | Inspector › AnswerInPanel      |
+| 6   | The sources tab              | Reading it                            | Each input with how it is filled: "คุณตอบเอง", "จาก {node}" as a button that selects that node, so the Inspector shows it, "ยังไม่มี" for a required one, "ไม่บังคับ" for an optional one; then "ส่งต่อให้" with every node this one feeds | Inspector › Sources            |
+| 7   | A node outside the registry  | Selected                              | Header and its own summary and missing list; no tabs for what it does not have                                                                                                                                                             | Inspector › PlainNode          |
+| 8   | The board with the Inspector | Enter on a node, or Open in its menus | `node.open` selects the node and moves focus to the Inspector                                                                                                                                                                              | StudioLayout play test         |
+| 9   | The Studio                   | Mod+I, Mod+B                          | `panel.toggle-inspector` and `panel.toggle-library` show and hide the panel and the shelf; Escape inside the Inspector (`panel.close`) hides it and returns focus to the board                                                             | StudioLayout play test         |
+| 10  | A narrow screen              | Opening the Inspector                 | The same content in a Sheet                                                                                                                                                                                                                | Inspector › InSheet            |
+| 11  | The component                | Catalog and Storybook                 | Inspector `draft` with stories under three profiles in both modes; the build implements E4-4, so its commands appear on their surfaces; DESIGN.md bump                                                                                     | `check-catalog`, surfaces test |
+
+### Rules (part 3)
+
+- The Inspector reads the same derived rules as the node and the shelf (`src/blocks`); it stores nothing.
+- The handoff §17.5 trace (Intent, Decisions, Tokens, Recipes, Components) needs resolver output that block nodes do not produce yet. It lands with E2-11, where directions produce tokens; the sources tab is its first step (inputs and what they feed). No mock trace is shown.
+- The shell owns layout: a Resizable side panel on wide screens, a Sheet on narrow ones.
+
 ## Rules and bounds
 
 - **The registry is data.** Blocks live in `catalog/blocks/mvp.yaml`, compiled to a module like the command registry; nothing in a component lists a block by hand.
@@ -74,5 +100,6 @@ E4-2, E4-3, part 1 (#30), ORV-60. Unblocks part 3 and E2-11.
 
 ## Changelog
 
+- v3 (2026-10-22): part 3 written after part 2 merged; the owner said go ahead ("ดำเนินการเลย").
 - v2 (2026-10-22): parts split; part 2 written from the round 3 mock and the ORV-60 defaults the owner accepted.
 - v1: backlog row only (`docs/specs/backlog-draft.md`).

@@ -1094,6 +1094,17 @@
   --cmp-prompt-question-type-line-height: var(--ds-type-label-md-line-height);
   --cmp-prompt-question-type-font-weight: var(--ds-type-label-md-font-weight);
   --cmp-prompt-question-type-letter-spacing: var(--ds-type-label-md-letter-spacing);
+  --cmp-inspector-bg: var(--ds-surface-card);
+  --cmp-inspector-fg: var(--ds-text-primary);
+  --cmp-inspector-muted-fg: var(--ds-text-secondary);
+  --cmp-inspector-divider: var(--ds-border-subtle);
+  --cmp-inspector-padding: var(--ds-space-inset-lg);
+  --cmp-inspector-gap: var(--ds-space-stack-md);
+  --cmp-inspector-title-type-font-family: var(--ds-type-heading-sm-font-family);
+  --cmp-inspector-title-type-font-size: var(--ds-type-heading-sm-font-size);
+  --cmp-inspector-title-type-line-height: var(--ds-type-heading-sm-line-height);
+  --cmp-inspector-title-type-font-weight: var(--ds-type-heading-sm-font-weight);
+  --cmp-inspector-title-type-letter-spacing: var(--ds-type-heading-sm-letter-spacing);
 }
 
 /* Tailwind utilities resolve to semantic tokens only (DESIGN.md §5). The defaults are removed first
