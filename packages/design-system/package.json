@@ -12,6 +12,7 @@
   },
   "scripts": {
     "tokens": "node scripts/build-tokens.ts",
+    "commands": "node scripts/build-commands.ts",
     "contrast": "node scripts/check-contrast.ts",
     "storybook": "storybook dev -p 6006",
     "build": "storybook build",
@@ -20,6 +21,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@xyflow/react": "12.12.0",
     "radix-ui": "1.8.1",
     "react": "19.3.0",
     "react-dom": "19.3.0"

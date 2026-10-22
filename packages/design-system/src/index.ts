@@ -23,3 +23,28 @@ export {
   type ProfileSource,
 } from "./profiles/index";
 export * from "./components/index";
+export {
+  COMMANDS,
+  COMMAND_SCOPES,
+  type Command,
+  type CommandId,
+  type CommandScope,
+  commandById,
+  commandForKey,
+  commandsInScope,
+  shortcutsOf,
+} from "./commands/index";
+export {
+  CANVAS_WORDS,
+  EDGE_MEANINGS,
+  NODE_KINDS,
+  NODE_STATUSES,
+  PORT_KINDS,
+  type EdgeMeaning,
+  type NodeKind,
+  type NodeStatus,
+  type PortDirection,
+  type PortKind,
+  type PortShape,
+  portShape,
+} from "./tokens/canvas";

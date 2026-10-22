@@ -1,8 +1,8 @@
 name: CanvasEdge
 tier: application
-status: planned
+status: stable
 since: E4-2
-import: none
+import: "@orivilo/design-system"
 story: application-canvas-edge
 useWhen:
   - "A link between two nodes that means input, reference or derived-from"
@@ -12,11 +12,13 @@ contract: CanvasEdgeProps
 variants: [input, reference, derived]
 sizes: []
 states: [default, hover, selected, focus-visible, invalid, stale]
-recipes: []
+recipes: [neutral, professional, friendly]
 examples: []
 rules:
   - "The three meanings differ by stroke style and label, never by colour alone"
   - "Deleting an edge never deletes a node"
+  - "The label shows the meaning word, then ล้าสมัย or เชื่อมต่อไม่ได้; the arrow head takes the stroke colour"
+  - "1, 2, 3 on a focused edge set its meaning to input, reference, derived"
 a11y:
-  - "aria-label reads: <meaning> from <source> to <target>"
+  - "aria-label reads: <meaning> จาก <source> ไป <target>, then the state word"
   - "Selectable by keyboard with Tab; Delete removes it"

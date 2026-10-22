@@ -59,24 +59,24 @@ Legend: `none` not started, `planned` entry exists, no code, `draft` code and st
 
 ## Application, canvas set (ADR 0004)
 
-| Component           | Status  | Story |
-| ------------------- | ------- | ----- |
-| CanvasBoard         | planned | E4-2  |
-| CanvasNode          | planned | E4-2  |
-| NodePort            | planned | E4-2  |
-| CanvasEdge          | planned | E4-2  |
-| NodeGroup           | planned | E4-3  |
-| NodeToolbar         | planned | E4-3  |
-| MiniMap             | planned | E4-3  |
-| CanvasControls      | planned | E4-3  |
-| CanvasContextMenu   | planned | E4-3  |
-| BlockLibrary        | planned | E4-4  |
-| Inspector           | planned | E4-4  |
-| MissingInputsPrompt | planned | E4-4  |
-| CanvasChat          | planned | E4-5  |
-| TaskBar             | planned | E4-5  |
-| CompareStrip        | planned | E4-6  |
-| VersionBadge        | planned | E4-6  |
+| Component           | Status  | Story                    |
+| ------------------- | ------- | ------------------------ |
+| CanvasBoard         | stable  | application-canvas-board |
+| CanvasNode          | stable  | application-canvas-node  |
+| NodePort            | stable  | application-node-port    |
+| CanvasEdge          | stable  | application-canvas-edge  |
+| NodeGroup           | planned | E4-3                     |
+| NodeToolbar         | planned | E4-3                     |
+| MiniMap             | planned | E4-3                     |
+| CanvasControls      | planned | E4-3                     |
+| CanvasContextMenu   | planned | E4-3                     |
+| BlockLibrary        | planned | E4-4                     |
+| Inspector           | planned | E4-4                     |
+| MissingInputsPrompt | planned | E4-4                     |
+| CanvasChat          | planned | E4-5                     |
+| TaskBar             | planned | E4-5                     |
+| CompareStrip        | planned | E4-6                     |
+| VersionBadge        | planned | E4-6                     |
 
 Commands and shortcuts for the set: `commands/canvas.yaml` (checked by `check-commands`).
 

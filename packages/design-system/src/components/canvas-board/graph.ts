@@ -1,0 +1,281 @@
+/**
+ * The board's document model and the pure rules the components apply (ADR 0004 items 3 and 4,
+ * spec E4-2): typed ports that accept only their own kind, edges with a meaning, deletion that
+ * keeps downstream nodes and marks them stale, and the keyboard connect target list. No React,
+ * no React Flow runtime: the shell can run the same rules on a saved board.
+ */
+import type { Connection, Edge, Node } from "@xyflow/react";
+import {
+  CANVAS_WORDS,
+  type EdgeMeaning,
+  type NodeKind,
+  type NodeStatus,
+  type PortDirection,
+  type PortKind,
+} from "../../tokens/canvas";
+
+export type NodeSize = "sm" | "md" | "lg" | "custom";
+
+export interface PortSpec {
+  /** Unique within the node; the React Flow handle id. */
+  id: string;
+  kind: PortKind;
+  /** Shown next to the glyph, Thai first. */
+  label: string;
+}
+
+/** Plain data, so a board saves as JSON; rich content renders through the board's `renderBody`. */
+export type NodeContent = {
+  title: string;
+  kind: NodeKind;
+  /** `custom` takes the width from `node.width`; the resizer is a later story. */
+  size?: NodeSize;
+  /** Plain-text body when no `renderBody` is given. */
+  summary?: string;
+  status?: NodeStatus;
+  /** What went wrong and how to fix it. */
+  error?: string;
+  /** Input words the node still needs; asked one at a time in the Inspector (E4-4). */
+  missing?: string[];
+  collapsed?: boolean;
+  inputs: PortSpec[];
+  outputs: PortSpec[];
+};
+
+export type BoardNode = Node<NodeContent, "orivilo">;
+
+export type EdgeContent = {
+  meaning: EdgeMeaning;
+  /** The source changed after the target ran. */
+  stale?: boolean;
+  /** The kinds no longer match (an edit after the connection). */
+  invalid?: boolean;
+};
+
+export type BoardEdge = Edge<EdgeContent, "orivilo">;
+
+export interface Graph {
+  nodes: BoardNode[];
+  edges: BoardEdge[];
+}
+
+export interface PortRef {
+  nodeId: string;
+  handleId: string;
+}
+
+/** The node's accessible name: title, then kind (catalog CanvasNode a11y). */
+export function nodeLabel(content: NodeContent): string {
+  return `${content.title}, ${CANVAS_WORDS.node[content.kind].th}`;
+}
+
+function titleOf(nodes: readonly BoardNode[], id: string): string {
+  return nodes.find((n) => n.id === id)?.data.title ?? id;
+}
+
+/** The edge's accessible name: meaning from source to target, plus its state word (catalog CanvasEdge a11y). */
+export function edgeLabel(edge: BoardEdge, nodes: readonly BoardNode[]): string {
+  const meaning = CANVAS_WORDS.edge[edge.data?.meaning ?? "input"].th;
+  const base = `${meaning} จาก ${titleOf(nodes, edge.source)} ไป ${titleOf(nodes, edge.target)}`;
+  const state = edgeStateWord(edge);
+  return state ? `${base}, ${state}` : base;
+}
+
+/** "ล้าสมัย" or "เชื่อมต่อไม่ได้" when the edge carries that state; otherwise empty. */
+export function edgeStateWord(edge: BoardEdge): string {
+  if (edge.data?.invalid) return "เชื่อมต่อไม่ได้";
+  if (edge.data?.stale) return CANVAS_WORDS.status.stale.th;
+  return "";
+}
+
+export function portOf(
+  nodes: readonly BoardNode[],
+  ref: { nodeId: string; handleId: string | null | undefined },
+): { port: PortSpec; direction: PortDirection } | undefined {
+  const node = nodes.find((n) => n.id === ref.nodeId);
+  if (!node || !ref.handleId) return undefined;
+  const input = node.data.inputs.find((p) => p.id === ref.handleId);
+  if (input) return { port: input, direction: "input" };
+  const output = node.data.outputs.find((p) => p.id === ref.handleId);
+  return output ? { port: output, direction: "output" } : undefined;
+}
+
+/** True when an edge already joins these two handles. */
+export function hasEdge(edges: readonly BoardEdge[], c: Connection): boolean {
+  return edges.some(
+    (e) =>
+      e.source === c.source &&
+      e.target === c.target &&
+      (e.sourceHandle ?? null) === (c.sourceHandle ?? null) &&
+      (e.targetHandle ?? null) === (c.targetHandle ?? null),
+  );
+}
+
+/**
+ * Why a connection cannot be made, in the user's words, or null when it can: an output to an
+ * input, same kind, different nodes, not yet connected (spec E4-2 AC 9). React Flow's
+ * `isValidConnection` and the keyboard path both call it.
+ */
+export function connectionProblem(graph: Graph, c: Connection): string | null {
+  if (c.source === c.target) return "ต่อสายเข้า node ตัวเองไม่ได้";
+  const from = portOf(graph.nodes, { nodeId: c.source, handleId: c.sourceHandle });
+  const to = portOf(graph.nodes, { nodeId: c.target, handleId: c.targetHandle });
+  if (!from || !to) return "วางสายบนพอร์ตของ node อื่น";
+  if (from.direction !== "output" || to.direction !== "input") {
+    return "สายเริ่มจากพอร์ตส่งและจบที่พอร์ตรับ";
+  }
+  if (from.port.kind !== to.port.kind) {
+    const want = CANVAS_WORDS.port[to.port.kind].th;
+    const got = CANVAS_WORDS.port[from.port.kind].th;
+    return `พอร์ต${want}รับได้เฉพาะ${want} แต่สายนี้ส่ง${got}`;
+  }
+  if (hasEdge(graph.edges, c)) return "มีสายนี้อยู่แล้ว";
+  return null;
+}
+
+/** The id an added edge takes, stable for the same handles. */
+export function edgeId(c: Connection): string {
+  return `e:${c.source}:${c.sourceHandle ?? ""}:${c.target}:${c.targetHandle ?? ""}`;
+}
+
+/** A new input edge for a valid connection; the caller checked `connectionProblem` first. */
+export function edgeFor(c: Connection, meaning: EdgeMeaning = "input"): BoardEdge {
+  return {
+    id: edgeId(c),
+    type: "orivilo",
+    source: c.source,
+    target: c.target,
+    sourceHandle: c.sourceHandle ?? null,
+    targetHandle: c.targetHandle ?? null,
+    data: { meaning },
+  };
+}
+
+function distance(a: BoardNode, b: BoardNode): number {
+  return Math.hypot(a.position.x - b.position.x, a.position.y - b.position.y);
+}
+
+/**
+ * Where a keyboard connection from `from` may land: every input port of the same kind on another
+ * node that is not yet connected to it, nearest node first (catalog NodePort a11y).
+ */
+export function connectTargets(graph: Graph, from: PortRef): PortRef[] {
+  const source = graph.nodes.find((n) => n.id === from.nodeId);
+  const port = portOf(graph.nodes, from);
+  if (!source || !port || port.direction !== "output") return [];
+  const out: { ref: PortRef; d: number }[] = [];
+  for (const node of graph.nodes) {
+    if (node.id === source.id) continue;
+    for (const input of node.data.inputs) {
+      const c: Connection = {
+        source: source.id,
+        sourceHandle: from.handleId,
+        target: node.id,
+        targetHandle: input.id,
+      };
+      if (connectionProblem(graph, c) === null) {
+        out.push({ ref: { nodeId: node.id, handleId: input.id }, d: distance(source, node) });
+      }
+    }
+  }
+  return out.sort((a, b) => a.d - b.d).map((o) => o.ref);
+}
+
+/** Node ids reachable downstream of `ids` through edges (not including `ids`). */
+export function downstreamOf(edges: readonly BoardEdge[], ids: readonly string[]): Set<string> {
+  const seen = new Set<string>();
+  const queue = [...ids];
+  while (queue.length > 0) {
+    const id = queue.shift() as string;
+    for (const e of edges) {
+      if (e.source === id && !seen.has(e.target) && !ids.includes(e.target)) {
+        seen.add(e.target);
+        queue.push(e.target);
+      }
+    }
+  }
+  return seen;
+}
+
+/** The ids one step upstream or downstream of a node, in edge order. */
+export function neighbours(
+  edges: readonly BoardEdge[],
+  id: string,
+  side: "upstream" | "downstream",
+): string[] {
+  const out: string[] = [];
+  for (const e of edges) {
+    const other =
+      side === "upstream" ? (e.target === id ? e.source : null) : e.source === id ? e.target : null;
+    if (other && !out.includes(other)) out.push(other);
+  }
+  return out;
+}
+
+/**
+ * Removes nodes and edges. Edges touching a removed node go with it; a node downstream of a
+ * removed node stays and is marked stale, and so are the edges it feeds (ADR 0004 item 3).
+ * Removing an edge alone removes no node.
+ */
+export function removeFromGraph(
+  graph: Graph,
+  remove: { nodeIds?: readonly string[]; edgeIds?: readonly string[] },
+  /** The edges as they were before this deletion began, when the caller already dropped some. */
+  edgesBefore: readonly BoardEdge[] = graph.edges,
+): Graph {
+  const nodeIds = new Set(remove.nodeIds ?? []);
+  const edgeIds = new Set(remove.edgeIds ?? []);
+  const stale = downstreamOf(edgesBefore, [...nodeIds]);
+  const nodes = graph.nodes
+    .filter((n) => !nodeIds.has(n.id))
+    .map((n) => (stale.has(n.id) ? { ...n, data: { ...n.data, status: "stale" as const } } : n));
+  const edges = graph.edges
+    .filter((e) => !edgeIds.has(e.id) && !nodeIds.has(e.source) && !nodeIds.has(e.target))
+    .map((e) =>
+      stale.has(e.source)
+        ? { ...e, data: { ...(e.data ?? { meaning: "input" }), stale: true } }
+        : e,
+    );
+  return { nodes, edges };
+}
+
+/** Moves every selected node by the given offset. */
+export function nudgeSelected(graph: Graph, dx: number, dy: number): Graph {
+  return {
+    ...graph,
+    nodes: graph.nodes.map((n) =>
+      n.selected ? { ...n, position: { x: n.position.x + dx, y: n.position.y + dy } } : n,
+    ),
+  };
+}
+
+export function selectAll(graph: Graph, selected = true): Graph {
+  return {
+    nodes: graph.nodes.map((n) => ({ ...n, selected })),
+    edges: graph.edges.map((e) => ({ ...e, selected })),
+  };
+}
+
+/** Removes every edge that touches the node; the node stays. */
+export function disconnectNode(graph: Graph, id: string): Graph {
+  return { ...graph, edges: graph.edges.filter((e) => e.source !== id && e.target !== id) };
+}
+
+export function setEdgeMeaning(graph: Graph, id: string, meaning: EdgeMeaning): Graph {
+  return {
+    ...graph,
+    edges: graph.edges.map((e) =>
+      e.id === id ? { ...e, data: { ...(e.data ?? {}), meaning } } : e,
+    ),
+  };
+}
+
+/** Handles an edge touches, as `nodeId:handleId`, for the port's `connected` state. */
+export function connectedHandles(edges: readonly BoardEdge[]): Set<string> {
+  const out = new Set<string>();
+  for (const e of edges) {
+    out.add(`${e.source}:${e.sourceHandle ?? ""}`);
+    out.add(`${e.target}:${e.targetHandle ?? ""}`);
+  }
+  return out;
+}

@@ -1,8 +1,8 @@
 name: NodePort
 tier: application
-status: planned
+status: stable
 since: E4-2
-import: none
+import: "@orivilo/design-system"
 story: application-node-port
 useWhen:
   - "A connection point on a node, typed by the data it carries: text, image, palette, type, profile"
@@ -12,11 +12,12 @@ contract: NodePortProps
 variants: [input, output]
 sizes: [md]
 states: [idle, hover, connecting, valid-target, invalid-target, connected, disabled]
-recipes: []
+recipes: [neutral, professional, friendly]
 examples: []
 rules:
-  - "Type is shown by shape and icon as well as colour"
+  - "Kind is shown by shape (circle, square, diamond, triangle, hexagon) and label as well as colour"
+  - "States: connecting, valid-target and invalid-target follow the pointer drag and the keyboard connection; connected and disabled come from the graph"
   - "Dragging from a port lists only compatible nodes (Krea pattern); an invalid drop explains why"
 a11y:
-  - "Keyboard connect: C on a focused node starts a connection, arrow keys pick a target, Enter confirms"
-  - "Port carries an accessible name: direction plus type"
+  - "Keyboard connect: C on a focused node starts a connection, arrow keys pick a target, Enter confirms, Escape cancels"
+  - "The handle carries the accessible name: direction and kind (พอร์ตรับข้อความ), then เชื่อมอยู่ or แก้ไขไม่ได้"

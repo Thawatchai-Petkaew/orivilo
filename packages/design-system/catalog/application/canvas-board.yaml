@@ -1,8 +1,8 @@
 name: CanvasBoard
 tier: application
-status: planned
+status: stable
 since: E4-2
-import: none
+import: "@orivilo/design-system"
 story: application-canvas-board
 useWhen:
   - "The Intent Studio board: blocks, nodes, groups and edges on an infinite surface"
@@ -13,13 +13,17 @@ contract: CanvasBoardProps
 variants: [edit, present]
 sizes: []
 states: [empty, loading, ready, read-only, connecting, box-selecting]
-recipes: []
+recipes: [neutral, professional, friendly]
 examples: []
 rules:
   - "Behavior from React Flow (ADR 0004); every visual value from tokens, the React Flow theme CSS is not loaded"
   - "Wrapped in DesignProfileBoundary with the neutral profile; customer profiles appear only inside preview nodes"
   - "Never randomizes layout; positions are saved with the board"
+  - "Controlled: the graph comes in through `graph` and every change goes out through `onChange`; `onCommand` hands the shell what the board cannot finish (add node, rename, undo, redo)"
+  - "Deleting a node marks every downstream node and its outgoing edges stale, never deletes them"
+  - "The present variant shows the words ดูอย่างเดียว and allows only focus and jump"
 a11y:
-  - "Tab moves through nodes and edges; arrow keys move the selected node; Escape clears selection"
-  - "Pan and zoom reachable from CanvasControls without a pointer"
-  - "Generation status announced in one live region"
+  - "Tab moves through nodes and edges; arrow keys nudge the selection by one grid unit, Shift by ten; Escape clears selection; every key comes from the command registry through src/commands/generated.ts"
+  - "C on a focused node starts a keyboard connection; the live region reads the target, Enter connects, Escape cancels"
+  - "One live region (role status) reads what happened: connected, deleted, stale, nudged, or why a drop was refused"
+  - "Pan and zoom without a pointer arrive with CanvasControls (E4-3)"

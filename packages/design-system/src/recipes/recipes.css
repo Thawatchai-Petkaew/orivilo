@@ -942,3 +942,409 @@
     transform: rotate(360deg);
   }
 }
+
+/* Canvas (ADR 0004, E4-2): React Flow for behaviour, every value from the board, node, port and
+ * edge tokens (E4-1). The base stylesheet (imported in orivilo.css) reads `--xy-*` properties; each
+ * one it reads is set here from a component token, so no React Flow default colour reaches the
+ * screen. `.react-flow__*` rules below are token-only (ADR 0004 enforcement). ----------------- */
+
+.ds-board {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--cmp-board-bg);
+  color: var(--cmp-node-fg);
+  font: inherit;
+  --xy-background-color: var(--cmp-board-bg);
+  --xy-background-pattern-color: var(--cmp-board-grid);
+  --xy-edge-stroke: var(--cmp-edge-stroke);
+  --xy-edge-stroke-width: var(--cmp-edge-width);
+  --xy-edge-stroke-selected: var(--cmp-edge-stroke-selected);
+  --xy-connectionline-stroke: var(--cmp-edge-stroke-selected);
+  --xy-connectionline-stroke-width: var(--cmp-edge-width-selected);
+  --xy-handle-background-color: transparent;
+  --xy-selection-background-color: color-mix(
+    in srgb,
+    var(--cmp-board-selection) calc(var(--cmp-board-selection-opacity) * 100%),
+    transparent
+  );
+  --xy-selection-border: 1px solid var(--cmp-board-selection);
+  --xy-node-border: 1px solid var(--cmp-node-border);
+  --xy-node-border-selected: 1px solid var(--cmp-node-border-selected);
+  --xy-node-color: var(--cmp-node-fg);
+  --xy-attribution-background-color: var(--cmp-board-bg);
+  --xy-minimap-background-color: var(--cmp-board-bg);
+  --xy-resize-background-color: var(--cmp-board-selection);
+}
+.ds-board__flow {
+  width: 100%;
+  height: 100%;
+}
+/* React Flow strips the outline from its own node types; ours keep the ring (DESIGN.md §3.1). */
+.ds-board .react-flow__node:focus-visible {
+  outline: 2px solid var(--ds-focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--cmp-node-radius);
+}
+.ds-board .react-flow__edge:focus-visible {
+  outline: 2px solid var(--ds-focus-ring);
+  outline-offset: 2px;
+}
+.ds-board .react-flow__attribution {
+  color: var(--ds-text-secondary);
+  font-family: var(--cmp-edge-label-type-font-family);
+  font-size: var(--cmp-edge-label-type-font-size);
+}
+.ds-board .react-flow__attribution a {
+  color: var(--ds-text-link);
+}
+.ds-board__mode {
+  position: absolute;
+  top: var(--ds-space-inset-md);
+  right: var(--ds-space-inset-md);
+  z-index: 5;
+  padding: var(--ds-space-inset-sm) var(--ds-space-inset-md);
+  border: 1px solid var(--cmp-toolbar-border);
+  border-radius: var(--cmp-toolbar-radius);
+  background: var(--cmp-toolbar-bg);
+  color: var(--ds-text-secondary);
+  font-family: var(--cmp-node-header-type-font-family);
+  font-size: var(--cmp-node-header-type-font-size);
+  line-height: var(--cmp-node-header-type-line-height);
+  font-weight: var(--cmp-node-header-type-font-weight);
+}
+.ds-board__overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ds-space-stack-md);
+  padding: var(--ds-space-inset-lg);
+  color: var(--ds-text-secondary);
+  text-align: center;
+  pointer-events: none;
+}
+.ds-board__overlay > * {
+  pointer-events: auto;
+}
+.ds-board__overlay p {
+  margin: 0;
+}
+.ds-board__spinner {
+  width: var(--ds-size-icon-lg);
+  height: var(--ds-size-icon-lg);
+}
+.ds-board__status {
+  position: absolute;
+  bottom: var(--ds-space-inset-md);
+  left: var(--ds-space-inset-md);
+  z-index: 5;
+  max-width: calc(100% - 2 * var(--ds-space-inset-md));
+  margin: 0;
+  padding: var(--ds-space-inset-sm) var(--ds-space-inset-md);
+  border: 1px solid var(--cmp-toolbar-border);
+  border-radius: var(--cmp-toolbar-radius);
+  background: var(--cmp-toolbar-bg);
+  color: var(--ds-text-secondary);
+  font-family: var(--cmp-node-body-type-font-family);
+  font-size: var(--cmp-node-body-type-font-size);
+  line-height: var(--cmp-node-body-type-line-height);
+  font-weight: var(--cmp-node-body-type-font-weight);
+  overflow-wrap: anywhere;
+}
+/* Stays in the tree while empty so the live region exists before the first message. */
+.ds-board__status:empty {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+/* Node: header, body, missing-inputs row, error row, ports (catalog CanvasNode). --------------- */
+
+.ds-node {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: var(--cmp-node-width-md);
+  max-width: 100%;
+  border: 1px solid var(--cmp-node-border);
+  border-radius: var(--cmp-node-radius);
+  background: var(--cmp-node-bg);
+  color: var(--cmp-node-fg);
+  box-shadow: var(--cmp-node-shadow);
+  font-family: var(--cmp-node-body-type-font-family);
+  font-size: var(--cmp-node-body-type-font-size);
+  line-height: var(--cmp-node-body-type-line-height);
+  font-weight: var(--cmp-node-body-type-font-weight);
+  letter-spacing: var(--cmp-node-body-type-letter-spacing);
+  overflow-wrap: anywhere;
+  transition: border-color var(--ds-motion-feedback-duration) var(--ds-motion-easing);
+}
+.ds-node[data-size="sm"] {
+  width: var(--cmp-node-width-sm);
+}
+.ds-node[data-size="lg"] {
+  width: var(--cmp-node-width-lg);
+}
+.ds-node[data-size="custom"] {
+  width: 100%;
+}
+.ds-node:hover:not([data-readonly]) {
+  border-color: var(--cmp-node-border-hover);
+}
+/* Selected and the keyboard-connect candidate: a 2 px violet edge (border plus an inset outline),
+ * distinct from the ink focus ring the React Flow wrapper draws outside the node. */
+.ds-node[data-selected],
+.ds-node[data-connect-candidate] {
+  border-color: var(--cmp-node-border-selected);
+  outline: 1px solid var(--cmp-node-border-selected);
+  outline-offset: -2px;
+}
+.ds-node[data-error] {
+  border-color: var(--cmp-node-border-error);
+}
+.ds-node[data-dragging] {
+  box-shadow: var(--ds-elevation-overlay);
+}
+.ds-node[data-readonly] {
+  cursor: default;
+}
+.ds-node__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--ds-space-inline-sm) var(--ds-space-inline-md);
+  padding: var(--ds-space-inset-sm) var(--cmp-node-padding);
+  border-bottom: 1px solid var(--cmp-node-border);
+  border-radius: var(--cmp-node-radius) var(--cmp-node-radius) 0 0;
+  background: var(--cmp-node-header-bg);
+  color: var(--cmp-node-header-fg);
+  font-family: var(--cmp-node-header-type-font-family);
+  font-size: var(--cmp-node-header-type-font-size);
+  line-height: var(--cmp-node-header-type-line-height);
+  font-weight: var(--cmp-node-header-type-font-weight);
+  letter-spacing: var(--cmp-node-header-type-letter-spacing);
+}
+.ds-node[data-collapsed] .ds-node__header {
+  border-bottom: 0;
+}
+.ds-node__title {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.ds-node__kind {
+  color: var(--cmp-node-kind-fg);
+  font-weight: var(--cmp-node-body-type-font-weight);
+}
+.ds-node__status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-space-inline-sm);
+  margin-inline-start: auto;
+}
+.ds-node__status svg {
+  width: var(--ds-size-icon-sm);
+  height: var(--ds-size-icon-sm);
+}
+.ds-node__status[data-status="running"] {
+  color: var(--cmp-node-fg-running);
+}
+.ds-node__status[data-status="stale"] {
+  color: var(--cmp-node-fg-stale);
+}
+.ds-node__status[data-status="locked"] {
+  color: var(--cmp-node-fg-locked);
+}
+.ds-node__body {
+  padding: var(--ds-space-inset-sm) var(--cmp-node-padding);
+}
+.ds-node__empty {
+  color: var(--cmp-node-kind-fg);
+}
+.ds-node__missing {
+  margin: 0 var(--cmp-node-padding) var(--ds-space-inset-sm);
+  padding: var(--ds-space-inset-sm) var(--ds-space-inset-md);
+  border-radius: var(--ds-shape-control-radius);
+  background: var(--cmp-node-fg-missing);
+  color: var(--cmp-node-fg-on-missing);
+}
+.ds-node__error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ds-space-inline-sm);
+  margin: 0;
+  padding: var(--ds-space-inset-sm) var(--cmp-node-padding);
+  color: var(--cmp-node-fg-error);
+}
+.ds-node__error svg {
+  flex: 0 0 auto;
+  width: var(--ds-size-icon-sm);
+  height: var(--ds-size-icon-sm);
+  margin-top: var(--ds-space-inline-sm);
+}
+.ds-node__ports {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--ds-space-inline-md);
+  padding: var(--ds-space-inset-sm) var(--cmp-node-padding) var(--ds-space-inset-md);
+}
+.ds-node__port-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmp-node-gap);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ds-node__port-list[data-direction="output"] {
+  align-items: flex-end;
+  text-align: end;
+}
+
+/* Port: the kind's shape and colour on the node's edge (catalog NodePort). The handle overhangs
+ * the node border by half its size; the ring is the node ground so it reads on every edge. ---- */
+
+.ds-port {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-inline-md);
+  min-height: var(--cmp-port-size);
+  color: var(--cmp-node-kind-fg);
+}
+.ds-port__label {
+  min-width: 0;
+}
+.ds-board .ds-port__handle {
+  width: var(--cmp-port-size);
+  height: var(--cmp-port-size);
+  min-width: 0;
+  min-height: 0;
+  border: 0;
+  background: transparent;
+  pointer-events: all;
+  cursor: crosshair;
+  transition: transform var(--ds-motion-feedback-duration) var(--ds-motion-easing);
+}
+.ds-board .ds-port[data-direction="input"] .ds-port__handle {
+  left: calc(-1 * var(--cmp-node-padding));
+}
+.ds-board .ds-port[data-direction="output"] .ds-port__handle {
+  right: calc(-1 * var(--cmp-node-padding));
+}
+.ds-port__glyph {
+  display: block;
+  width: 100%;
+  height: 100%;
+  stroke: var(--cmp-port-ring);
+  stroke-width: var(--cmp-port-ring-width);
+  stroke-linejoin: round;
+}
+.ds-port[data-kind="text"] .ds-port__glyph {
+  fill: var(--cmp-port-text);
+}
+.ds-port[data-kind="image"] .ds-port__glyph {
+  fill: var(--cmp-port-image);
+}
+.ds-port[data-kind="palette"] .ds-port__glyph {
+  fill: var(--cmp-port-palette);
+}
+.ds-port[data-kind="type"] .ds-port__glyph {
+  fill: var(--cmp-port-type);
+}
+.ds-port[data-kind="profile"] .ds-port__glyph {
+  fill: var(--cmp-port-profile);
+}
+.ds-port:hover:not([data-state="disabled"]) .ds-port__handle,
+.ds-port[data-state="connecting"] .ds-port__handle {
+  transform: translate(-50%, -50%) scale(1.25);
+}
+.ds-port[data-direction="output"]:hover:not([data-state="disabled"]) .ds-port__handle,
+.ds-port[data-direction="output"][data-state="connecting"] .ds-port__handle {
+  transform: translate(50%, -50%) scale(1.25);
+}
+.ds-port[data-state="connecting"] .ds-port__glyph {
+  stroke: var(--cmp-edge-stroke-selected);
+}
+.ds-port[data-state="valid-target"] .ds-port__glyph {
+  stroke: var(--cmp-port-fg-valid);
+}
+.ds-port[data-state="valid-target"] {
+  color: var(--cmp-port-fg-valid);
+}
+/* A port that cannot take the connection keeps its readable label; the glyph fades. */
+.ds-port[data-state="invalid-target"] .ds-port__glyph {
+  opacity: var(--cmp-port-opacity-disabled);
+}
+.ds-board .ds-port__handle.valid .ds-port__glyph {
+  stroke: var(--cmp-port-fg-valid);
+  stroke-width: calc(var(--cmp-port-ring-width) * 2);
+}
+.ds-port[data-state="connected"] .ds-port__label {
+  color: var(--cmp-node-fg);
+}
+.ds-port[data-state="disabled"] .ds-port__handle {
+  cursor: default;
+  opacity: var(--cmp-port-opacity-disabled);
+}
+
+/* Edge: meaning by dash and label word, state by stroke colour (catalog CanvasEdge). -------- */
+
+.ds-board .ds-edge__path {
+  fill: none;
+  stroke: var(--cmp-edge-stroke);
+  stroke-width: var(--cmp-edge-width);
+  stroke-linecap: round;
+  transition: stroke var(--ds-motion-feedback-duration) var(--ds-motion-easing);
+}
+.ds-edge[data-meaning="input"] .ds-edge__path {
+  stroke-dasharray: var(--cmp-edge-dash-input);
+}
+.ds-edge[data-meaning="reference"] .ds-edge__path {
+  stroke-dasharray: var(--cmp-edge-dash-reference);
+}
+.ds-edge[data-meaning="derived"] .ds-edge__path {
+  stroke-dasharray: var(--cmp-edge-dash-derived);
+}
+.ds-board .react-flow__edge:hover .ds-edge__path {
+  stroke: var(--cmp-edge-stroke-hover);
+}
+.ds-board .react-flow__edge.selected .ds-edge__path,
+.ds-board .react-flow__edge:focus-visible .ds-edge__path,
+.ds-board .ds-edge[data-selected] .ds-edge__path {
+  stroke: var(--cmp-edge-stroke-selected);
+  stroke-width: var(--cmp-edge-width-selected);
+}
+.ds-board .ds-edge[data-stale] .ds-edge__path {
+  stroke: var(--cmp-edge-stroke-stale);
+}
+.ds-board .ds-edge[data-invalid] .ds-edge__path {
+  stroke: var(--cmp-edge-stroke-invalid);
+}
+.ds-edge__label {
+  position: absolute;
+  padding: 0 var(--ds-space-inline-md);
+  border-radius: var(--cmp-edge-label-radius);
+  background: var(--cmp-edge-label-bg);
+  color: var(--cmp-edge-label-fg);
+  font-family: var(--cmp-edge-label-type-font-family);
+  font-size: var(--cmp-edge-label-type-font-size);
+  line-height: var(--cmp-edge-label-type-line-height);
+  font-weight: var(--cmp-edge-label-type-font-weight);
+  letter-spacing: var(--cmp-edge-label-type-letter-spacing);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.ds-edge__label[data-state="stale"] {
+  color: var(--cmp-edge-stroke-stale);
+}
+.ds-edge__label[data-state="invalid"] {
+  color: var(--cmp-edge-stroke-invalid);
+}
