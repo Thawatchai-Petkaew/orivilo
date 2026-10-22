@@ -201,7 +201,10 @@ export const Pending: Story = {
     await expect(save).toHaveAttribute("aria-busy", "true");
     await expect(body().getByRole("dialog")).toHaveAttribute("aria-busy", "true");
     await userEvent.keyboard("{Escape}");
-    await expect(body().getByRole("dialog")).toBeVisible();
+    const dialog = body().getByRole("dialog");
+    // The panel scales and fades in; judge visibility once that has finished (the spinner loops).
+    await Promise.all(dialog.getAnimations().map((a) => a.finished));
+    await expect(dialog).toBeVisible();
     await expect(body().getByRole("button", { name: "ปิด" })).toBeDisabled();
   },
 };
