@@ -10,6 +10,8 @@ import {
   downstreamOf,
   edgeFor,
   edgeLabel,
+  elapsedSince,
+  feedsRunning,
   type Graph,
   neighbours,
   nodeLabel,
@@ -232,5 +234,37 @@ describe("edits", () => {
       "logo:t",
       "palette:i",
     ]);
+  });
+});
+
+describe("the engine at work (ORV-57)", () => {
+  const running: Graph = {
+    ...graph,
+    nodes: graph.nodes.map((n) =>
+      n.id === "logo" ? { ...n, data: { ...n.data, status: "running" as const } } : n,
+    ),
+  };
+  const [e1, e2] = running.edges as [BoardEdge, BoardEdge];
+
+  it("flows only on an edge into a running node", () => {
+    expect(feedsRunning(running, e1)).toBe(true);
+    expect(feedsRunning(running, e2)).toBe(false);
+    expect(feedsRunning(graph, e1)).toBe(false);
+  });
+
+  it("does not flow on a stale or invalid edge", () => {
+    expect(feedsRunning(running, { ...e1, data: { meaning: "input", stale: true } })).toBe(false);
+    expect(feedsRunning(running, { ...e1, data: { meaning: "input", invalid: true } })).toBe(false);
+  });
+
+  it("shows minutes and seconds since the run started, and nothing without a valid start", () => {
+    const start = "2026-10-22T08:00:00.000Z";
+    const at = (s: number) => Date.parse(start) + s * 1000;
+    expect(elapsedSince(start, at(0))).toBe("0:00");
+    expect(elapsedSince(start, at(9.9))).toBe("0:09");
+    expect(elapsedSince(start, at(75))).toBe("1:15");
+    expect(elapsedSince(start, at(-1))).toBeUndefined();
+    expect(elapsedSince(undefined, at(5))).toBeUndefined();
+    expect(elapsedSince("not a date", at(5))).toBeUndefined();
   });
 });

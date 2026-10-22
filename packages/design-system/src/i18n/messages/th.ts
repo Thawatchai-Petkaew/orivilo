@@ -93,6 +93,11 @@ export const th = {
     missing: "ขาดข้อมูล: {list}",
     inputs: "พอร์ตรับ",
     outputs: "พอร์ตส่ง",
+    steps: "ขั้นตอน",
+    stepDone: "เสร็จแล้ว",
+    stepCurrent: "กำลังทำ",
+    stepPending: "ยังไม่เริ่ม",
+    elapsed: "ใช้เวลา {time}",
   },
   port: {
     connected: "{port}, เชื่อมอยู่",

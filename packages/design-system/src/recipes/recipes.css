@@ -1096,7 +1096,7 @@
   width: 100%;
 }
 /* A note is glass, like the toolbar (owner's choice, ORV-56): a share of `node.note-bg` over the
- * board with a blur, header included, and an edge so it reads on the light board. Solid when the
+ * board with a blur, and an edge so it reads on the light board. Solid when the
  * user asks for less transparency or the browser cannot blur. Sits before the hover, selected and
  * error edges so those still win. Only notes: every other node stays solid. */
 .ds-node[data-kind="note"] {
@@ -1108,10 +1108,6 @@
   border-color: var(--cmp-node-note-border);
   background: var(--_glass);
   backdrop-filter: blur(var(--cmp-node-note-blur));
-}
-.ds-node[data-kind="note"] .ds-node__header {
-  background: transparent;
-  border-bottom: 1px solid var(--cmp-node-note-border);
 }
 @media (prefers-reduced-transparency: reduce) {
   .ds-node[data-kind="note"] {
@@ -1144,16 +1140,43 @@
 .ds-node[data-readonly] {
   cursor: default;
 }
+/* One surface (ORV-57). The top row (kind icon, kind, status, run time) and the title sit in a
+ * frame inset from the node edge by `frame-inset`, padded by the same, so its text lines up with
+ * the body; its radius is the node's less the inset, so the two corners stay concentric. */
 .ds-node__header {
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--ds-space-inline-sm) var(--ds-space-inline-md);
-  padding: var(--ds-space-inset-sm) var(--cmp-node-padding);
-  border-bottom: 1px solid var(--cmp-node-border);
-  border-radius: var(--cmp-node-radius) var(--cmp-node-radius) 0 0;
+  flex-direction: column;
+  gap: var(--ds-space-stack-sm);
+  margin: var(--cmp-node-frame-inset) var(--cmp-node-frame-inset) 0;
+  padding: var(--cmp-node-frame-inset);
+  --_frame-radius: calc(var(--cmp-node-radius) - var(--cmp-node-frame-inset));
+  border-radius: var(--_frame-radius);
   background: var(--cmp-node-header-bg);
   color: var(--cmp-node-header-fg);
+}
+.ds-node__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ds-space-inline-sm) var(--ds-space-inline-md);
+  color: var(--cmp-node-kind-fg);
+}
+.ds-node__chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--ds-size-icon-lg);
+  height: var(--ds-size-icon-lg);
+  border-radius: var(--ds-shape-control-radius);
+  background: var(--cmp-node-chip-bg);
+  color: var(--cmp-node-chip-fg);
+}
+.ds-node__chip svg {
+  width: var(--ds-size-icon-sm);
+  height: var(--ds-size-icon-sm);
+}
+.ds-node__title {
+  min-width: 0;
   font-family: var(--cmp-node-header-type-font-family);
   font-size: var(--cmp-node-header-type-font-size);
   line-height: var(--cmp-node-header-type-line-height);
@@ -1161,34 +1184,131 @@
   letter-spacing: var(--cmp-node-header-type-letter-spacing);
 }
 .ds-node[data-collapsed] .ds-node__header {
-  border-bottom: 0;
-}
-.ds-node__title {
-  flex: 1 1 auto;
-  min-width: 0;
+  margin-bottom: var(--cmp-node-frame-inset);
 }
 .ds-node__kind {
+  flex: 1 1 auto;
+  min-width: 0;
   color: var(--cmp-node-kind-fg);
-  font-weight: var(--cmp-node-body-type-font-weight);
 }
 .ds-node__status {
   display: inline-flex;
   align-items: center;
   gap: var(--ds-space-inline-sm);
-  margin-inline-start: auto;
 }
 .ds-node__status svg {
   width: var(--ds-size-icon-sm);
   height: var(--ds-size-icon-sm);
 }
-.ds-node__status[data-status="running"] {
+.ds-node__status[data-status="running"],
+.ds-node__elapsed {
   color: var(--cmp-node-fg-running);
+}
+.ds-node__elapsed {
+  font-variant-numeric: tabular-nums;
 }
 .ds-node__status[data-status="stale"] {
   color: var(--cmp-node-fg-stale);
 }
 .ds-node__status[data-status="locked"] {
   color: var(--cmp-node-fg-locked);
+}
+/* Running (ORV-57): the AI gradient turns around the node's edge. A masked ring on a pseudo
+ * element, so the ports that overhang the edge are never clipped; still under reduced motion. */
+@property --_ring-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+.ds-node[data-status="running"] {
+  border-color: transparent;
+}
+/* The mask's colours only carry alpha: the ring is the padding box minus the content box. */
+.ds-node[data-status="running"]::before {
+  --_ring-angle: 0deg;
+  --_ring: conic-gradient(
+    from var(--_ring-angle),
+    transparent 0deg,
+    var(--cmp-node-ring-start) 60deg,
+    var(--cmp-node-ring-end) 140deg,
+    transparent 220deg
+  );
+  content: "";
+  position: absolute;
+  inset: -1px;
+  padding: var(--cmp-node-ring-width);
+  border-radius: var(--cmp-node-radius);
+  background: var(--_ring);
+  mask:
+    linear-gradient(black 0 0) content-box exclude,
+    linear-gradient(black 0 0);
+  pointer-events: none;
+  animation: ds-node-ring 2.4s linear infinite;
+}
+@keyframes ds-node-ring {
+  to {
+    --_ring-angle: 360deg;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ds-node[data-status="running"]::before {
+    --_ring: linear-gradient(135deg, var(--cmp-node-ring-start), var(--cmp-node-ring-end));
+    animation: none;
+  }
+}
+.ds-node__steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-stack-sm);
+  margin: 0;
+  padding: var(--ds-space-inset-sm) var(--cmp-node-padding) 0;
+  list-style: none;
+}
+.ds-node__step {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-inline-md);
+  color: var(--cmp-node-kind-fg);
+}
+.ds-node__step svg {
+  flex: 0 0 auto;
+  width: var(--ds-size-icon-sm);
+  height: var(--ds-size-icon-sm);
+}
+/* Every icon of the engine at work takes the AI gradient (owner, ORV-57): the running status
+ * glyph and each step icon. The gradient is defined once on the board (`#ds-ai-gradient`, in
+ * icon units); a pending step fades so the order still reads. */
+.ds-node__status[data-status="running"] svg,
+.ds-node__step svg {
+  stroke: url(#ds-ai-gradient);
+}
+.ds-node__step[data-state="current"] {
+  color: var(--cmp-node-fg);
+}
+.ds-node__step[data-state="current"] svg {
+  animation: ds-node-step 1.2s ease-in-out infinite;
+}
+.ds-node__step[data-state="pending"] svg {
+  opacity: var(--cmp-port-opacity-disabled);
+}
+@keyframes ds-node-step {
+  50% {
+    opacity: 0.4;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ds-node__step[data-state="current"] svg {
+    animation: none;
+  }
+}
+/* The state word is for screen readers; the icon colour carries it on screen. */
+.ds-node__step-state {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 .ds-node__body {
   padding: var(--ds-space-inset-sm) var(--cmp-node-padding);
@@ -1221,7 +1341,9 @@
   display: flex;
   justify-content: space-between;
   gap: var(--ds-space-inline-md);
+  margin-top: var(--ds-space-inset-sm);
   padding: var(--ds-space-inset-sm) var(--cmp-node-padding) var(--ds-space-inset-md);
+  border-top: 1px solid var(--cmp-node-divider);
 }
 .ds-node__port-list {
   display: flex;
@@ -1308,6 +1430,22 @@
 .ds-port[data-state="valid-target"] {
   color: var(--cmp-port-fg-valid);
 }
+/* While connecting, a port that fits pulses so the line reads as pulled in (ORV-57). */
+.ds-board .ds-port[data-state="valid-target"] .ds-port__glyph,
+.ds-board .ds-port__handle.valid .ds-port__glyph {
+  animation: ds-port-pull 1.4s ease-in-out infinite;
+}
+@keyframes ds-port-pull {
+  50% {
+    filter: drop-shadow(0 0 6px var(--cmp-edge-flow-end));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ds-board .ds-port[data-state="valid-target"] .ds-port__glyph,
+  .ds-board .ds-port__handle.valid .ds-port__glyph {
+    animation: none;
+  }
+}
 /* A port that cannot take the connection keeps its readable label; the glyph fades. */
 .ds-port[data-state="invalid-target"] .ds-port__glyph {
   opacity: var(--cmp-port-opacity-disabled);
@@ -1356,6 +1494,52 @@
 }
 .ds-board .ds-edge[data-invalid] .ds-edge__path {
   stroke: var(--cmp-edge-stroke-invalid);
+}
+.ds-board__defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+/* Flowing (ORV-57): an edge feeding a running node, and the line being drawn, take the AI
+ * gradient with a light travelling to the target. At rest an edge stays plain. The meaning dash
+ * stays on the base path; selected, stale and invalid strokes still win. */
+.ds-edge__flow-start {
+  stop-color: var(--cmp-edge-flow-start);
+}
+.ds-edge__flow-end {
+  stop-color: var(--cmp-edge-flow-end);
+}
+.ds-board .ds-edge[data-flowing]:not([data-selected], [data-stale], [data-invalid]) .ds-edge__path {
+  stroke: transparent;
+}
+.ds-edge__flow,
+.ds-edge__light {
+  fill: none;
+  stroke-width: var(--cmp-edge-width-selected);
+  stroke-linecap: round;
+  pointer-events: none;
+}
+.ds-edge[data-selected] .ds-edge__flow {
+  display: none;
+}
+.ds-edge__light {
+  stroke: var(--cmp-edge-flow-light);
+  stroke-dasharray: 8 100;
+  animation: ds-edge-light 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+@keyframes ds-edge-light {
+  from {
+    stroke-dashoffset: 8;
+  }
+  to {
+    stroke-dashoffset: -100;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ds-edge__light {
+    display: none;
+  }
 }
 .ds-edge__label {
   position: absolute;

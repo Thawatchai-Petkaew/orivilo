@@ -1,22 +1,34 @@
 import type { SVGProps } from "react";
 import {
+  Book,
+  BookOpen,
   Check,
+  Compass,
   ChevronDown,
   ChevronUp,
   Copy,
+  Eye,
+  Group,
   Hand,
   History,
   Keyboard,
+  Link,
   LoaderCircle,
   Lock,
   LockOpen,
   Map as MapGlyph,
   Maximize,
   Minus,
+  PenLine,
   MousePointer2,
   Plus,
   Redo2,
+  Scale,
   Search,
+  Shapes,
+  Sparkles,
+  StickyNote,
+  TextCursorInput,
   Trash,
   TriangleAlert,
   Undo2,
@@ -31,7 +43,7 @@ import {
  * icons from this file only, never from `lucide-react` directly (lint), so the defaults below
  * hold everywhere and only the named glyphs reach the bundle.
  *
- * All 22 glyphs are Lucide today. A glyph Lucide lacks is drawn here as inline SVG on a 20 grid,
+ * All 36 glyphs are Lucide today. A glyph Lucide lacks is drawn here as inline SVG on a 20 grid,
  * stroke 2, round caps and joins, `currentColor`, `aria-hidden`.
  */
 type IconProps = Omit<SVGProps<SVGSVGElement>, "children">;
@@ -75,3 +87,19 @@ export const CopyIcon = lucide(Copy, "CopyIcon");
 export const TrashIcon = lucide(Trash, "TrashIcon");
 export const CollapseIcon = lucide(ChevronUp, "CollapseIcon");
 export const ExpandIcon = lucide(ChevronDown, "ExpandIcon");
+
+/* Node kinds: the icon in a node's top row (ORV-57). */
+export const InputBlockIcon = lucide(TextCursorInput, "InputBlockIcon");
+export const KnowledgeIcon = lucide(Book, "KnowledgeIcon");
+export const ArtifactIcon = lucide(Shapes, "ArtifactIcon");
+export const ReferenceIcon = lucide(Link, "ReferenceIcon");
+export const DirectionIcon = lucide(Compass, "DirectionIcon");
+export const NoteIcon = lucide(StickyNote, "NoteIcon");
+export const GroupIcon = lucide(Group, "GroupIcon");
+
+/* Run steps: what the engine is doing in each step of a running node (ORV-57). */
+export const ReadStepIcon = lucide(BookOpen, "ReadStepIcon");
+export const DraftStepIcon = lucide(PenLine, "DraftStepIcon");
+export const CompareStepIcon = lucide(Scale, "CompareStepIcon");
+export const GenerateStepIcon = lucide(Sparkles, "GenerateStepIcon");
+export const ReviewStepIcon = lucide(Eye, "ReviewStepIcon");

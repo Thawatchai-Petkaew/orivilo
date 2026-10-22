@@ -1067,7 +1067,18 @@
     },
     "header-bg": {
       "$type": "color",
-      "$value": "{surface.sunken}"
+      "$value": "{surface.sunken}",
+      "$description": "The frame around the top row and title (owner, ORV-57): inset from the node edge, its radius the node's less the inset"
+    },
+    "frame-inset": {
+      "$type": "dimension",
+      "$value": "{space.inset.sm}",
+      "$description": "Gap between the node edge and the header frame, and the frame's own padding, so text lines up with the body at node.padding"
+    },
+    "divider": {
+      "$type": "color",
+      "$value": "{border.subtle}",
+      "$description": "The line above the ports"
     },
     "header-fg": {
       "$type": "color",
@@ -1077,6 +1088,28 @@
       "$type": "color",
       "$value": "{text.secondary}",
       "$description": "The kind word next to the title"
+    },
+    "chip-bg": {
+      "$type": "color",
+      "$value": "{surface.card}",
+      "$description": "The square behind the kind icon, cut out of the header frame (ORV-57)"
+    },
+    "chip-fg": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    },
+    "ring-start": {
+      "$type": "color",
+      "$value": "{ai.gradient-start}",
+      "$description": "The ring that turns around a running node"
+    },
+    "ring-end": {
+      "$type": "color",
+      "$value": "{ai.gradient-end}"
+    },
+    "ring-width": {
+      "$type": "dimension",
+      "$value": "{edge.width-selected}"
     },
     "header-type": {
       "$type": "typography",
@@ -1214,6 +1247,21 @@
     "stroke-stale": {
       "$type": "color",
       "$value": "{edge.stroke-stale}"
+    },
+    "flow-start": {
+      "$type": "color",
+      "$value": "{ai.gradient-start}",
+      "$description": "An edge feeding a running node, and the line drawn while connecting: the source end"
+    },
+    "flow-end": {
+      "$type": "color",
+      "$value": "{ai.gradient-end}",
+      "$description": "The target end"
+    },
+    "flow-light": {
+      "$type": "color",
+      "$value": "{text.primary}",
+      "$description": "The light that travels along a feeding edge"
     },
     "width": {
       "$type": "dimension",

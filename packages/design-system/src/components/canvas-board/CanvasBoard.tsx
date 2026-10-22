@@ -42,7 +42,7 @@ import {
 } from "../../commands/index";
 import { CanvasContextMenu, type ContextTarget } from "../canvas-context-menu/CanvasContextMenu";
 import { CanvasControls } from "../canvas-controls/CanvasControls";
-import { CanvasEdge } from "../canvas-edge/CanvasEdge";
+import { CanvasConnectionLine, CanvasEdge } from "../canvas-edge/CanvasEdge";
 import { CanvasNode } from "../canvas-node/CanvasNode";
 import { CommandMenu, type CommandMenuMode } from "../command-menu/CommandMenu";
 import { openContextMenuAt } from "../context-menu/ContextMenu";
@@ -138,6 +138,8 @@ export interface CanvasBoardProps {
 
 const NODE_TYPES: NodeTypes = { orivilo: CanvasNode, group: NodeGroup };
 const EDGE_TYPES: EdgeTypes = { orivilo: CanvasEdge };
+/** How near a fitting port pulls the line being drawn (ORV-57), in screen pixels. */
+const CONNECTION_RADIUS = 40;
 
 /** One grid unit, from `space.grid-gap`; nudge, snap and the dot pitch share it. */
 export const GRID_UNIT = (() => {
@@ -1022,6 +1024,8 @@ function Board({
       edges={edges}
       nodeTypes={NODE_TYPES}
       edgeTypes={EDGE_TYPES}
+      connectionLineComponent={CanvasConnectionLine}
+      connectionRadius={CONNECTION_RADIUS}
       onNodesChange={onNodesChange}
       onEdgesChange={onEdgesChange}
       onConnect={connect}
@@ -1074,6 +1078,22 @@ function Board({
       onContextMenuCapture={chrome ? onContextMenuCapture : undefined}
       onDoubleClick={onDoubleClick}
     >
+      {/* The AI gradient for icons of the engine at work, in 24-unit icon space (ORV-57). */}
+      <svg className="ds-board__defs" aria-hidden="true" focusable={false}>
+        <defs>
+          <linearGradient
+            id="ds-ai-gradient"
+            gradientUnits="userSpaceOnUse"
+            x1="0"
+            y1="0"
+            x2="24"
+            y2="24"
+          >
+            <stop offset="0" className="ds-edge__flow-start" />
+            <stop offset="1" className="ds-edge__flow-end" />
+          </linearGradient>
+        </defs>
+      </svg>
       <BoardContext.Provider value={context}>
         {chrome ? (
           <CanvasContextMenu target={menuTarget} disabled={readOnly}>

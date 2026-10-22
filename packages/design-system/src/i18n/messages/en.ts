@@ -90,6 +90,11 @@ export const en: Messages = {
     missing: "Missing: {list}",
     inputs: "Input ports",
     outputs: "Output ports",
+    steps: "Steps",
+    stepDone: "done",
+    stepCurrent: "in progress",
+    stepPending: "not started",
+    elapsed: "{time} elapsed",
   },
   port: {
     connected: "{port}, connected",
