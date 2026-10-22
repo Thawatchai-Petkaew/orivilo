@@ -6,6 +6,7 @@
  */
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { DECISION_VOCABULARY } from "@orivilo/intent-engine";
 import { describe, expect, it } from "vitest";
 import component from "../tokens/source/component.json" with { type: "json" };
 import primitives from "../tokens/source/primitives.json" with { type: "json" };
@@ -335,5 +336,9 @@ describe("the decision vocabulary", () => {
   it("is small and each entry has at least two values", () => {
     expect(Object.keys(DECISIONS).length).toBeLessThanOrEqual(8);
     for (const values of Object.values(DECISIONS)) expect(values.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("matches the Intent Engine's list, so a rule can only set what a profile declares", () => {
+    expect(DECISIONS).toEqual(DECISION_VOCABULARY);
   });
 });
