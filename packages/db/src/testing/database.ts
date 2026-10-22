@@ -25,6 +25,9 @@ export interface TestDatabase {
   drop(): Promise<void>;
 }
 
+/** Any fixed key; it only has to be the same for every test run on the server. */
+const ROLE_LOCK = 380_380;
+
 const withDatabase = (url: string, name: string) => {
   const u = new URL(url);
   u.pathname = `/${name}`;
@@ -38,10 +41,14 @@ export async function createTestDatabase(): Promise<TestDatabase> {
   await root.unsafe(`create database ${name}`);
   const adminUrl = withDatabase(TEST_DATABASE_URL, name).toString();
   await runMigrations(adminUrl);
-  // The role is shared by every test database on the server, and packages test in parallel, so
-  // every run sets the same test-only password rather than racing to change it.
+  // The role is shared by every test database on the server, and test files run in parallel, so
+  // every run sets the same test-only password, one at a time: two concurrent ALTER ROLE
+  // statements on one role fail with "tuple concurrently updated".
   const password = "orivilo_app_test";
-  await root.unsafe(`alter role orivilo_app login password '${password}'`);
+  await root.begin(async (tx) => {
+    await tx`select pg_advisory_xact_lock(${ROLE_LOCK})`;
+    await tx.unsafe(`alter role orivilo_app login password '${password}'`);
+  });
   const app = withDatabase(TEST_DATABASE_URL, name);
   app.username = "orivilo_app";
   app.password = password;
