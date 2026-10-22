@@ -11,7 +11,20 @@ EXCEPTION WHEN duplicate_object THEN
 END
 $$;
 --> statement-breakpoint
-ALTER ROLE orivilo_app NOBYPASSRLS NOCREATEDB NOCREATEROLE NOSUPERUSER;
+-- Hosted owners (Supabase) are not superusers and may not name SUPERUSER, so that is checked
+-- rather than set. The role is shared by every database on a server; altering it only when it is
+-- wrong keeps parallel migration runs from colliding on the same row.
+DO $$
+BEGIN
+  IF EXISTS (SELECT FROM pg_roles WHERE rolname = 'orivilo_app'
+             AND (rolbypassrls OR rolcreatedb OR rolcreaterole)) THEN
+    ALTER ROLE orivilo_app NOBYPASSRLS NOCREATEDB NOCREATEROLE;
+  END IF;
+  IF EXISTS (SELECT FROM pg_roles WHERE rolname = 'orivilo_app' AND rolsuper) THEN
+    RAISE EXCEPTION 'orivilo_app must not be a superuser';
+  END IF;
+END
+$$;
 --> statement-breakpoint
 REVOKE CREATE ON SCHEMA public FROM PUBLIC;
 --> statement-breakpoint
