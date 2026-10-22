@@ -1737,8 +1737,8 @@
     },
     "tile-width": {
       "$type": "dimension",
-      "$value": "{size.panel.min}",
-      "$description": "The widest a tile grows; a short name keeps it narrower"
+      "$value": "{size.tile}",
+      "$description": "Every tile is this wide, so the shelf reads as one row of equal tiles; a long name is cut with an ellipsis and its full text is the tile's title"
     },
     "layer": {
       "$type": "number",

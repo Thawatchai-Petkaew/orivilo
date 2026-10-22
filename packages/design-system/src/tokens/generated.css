@@ -131,6 +131,7 @@
   --op-size-10: 40px;
   --op-size-11: 44px;
   --op-size-12: 48px;
+  --op-size-44: 176px;
   --op-size-60: 240px;
   --op-size-80: 320px;
   --op-size-icon-4: 16px;
@@ -290,6 +291,7 @@
   --ds-size-panel-max: var(--op-size-container-xs);
   --ds-size-sheet-md: var(--op-size-container-xs);
   --ds-size-sheet-lg: var(--op-size-container-sm);
+  --ds-size-tile: var(--op-size-44);
   --ds-type-display-lg-font-family: var(--op-font-family-anuphan);
   --ds-type-display-lg-font-size: var(--op-font-size-56);
   --ds-type-display-lg-line-height: var(--op-font-line-height-1-2);
@@ -1079,7 +1081,7 @@
   --cmp-shelf-tile-border: var(--ds-border-control);
   --cmp-shelf-tile-state-fg: var(--ds-text-secondary);
   --cmp-shelf-tile-radius: var(--ds-shape-media-radius);
-  --cmp-shelf-tile-width: var(--ds-size-panel-min);
+  --cmp-shelf-tile-width: var(--ds-size-tile);
   --cmp-shelf-layer: var(--ds-layer-overlay);
   --cmp-prompt-bg: var(--ds-surface-card);
   --cmp-prompt-fg: var(--ds-text-primary);
