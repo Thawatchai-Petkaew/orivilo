@@ -4,7 +4,7 @@ import { expect, userEvent, waitFor, within } from "storybook/test";
 import { useDesignProfile } from "../../boundary/DesignProfileBoundary";
 import { type Answer, placeBlock } from "../../blocks/index";
 import { BlockLibrary } from "../block-library/BlockLibrary";
-import { MIDWAY } from "../block-library/fixtures";
+import { blockNode, feed, MIDWAY } from "../block-library/fixtures";
 import { CanvasBoard } from "../canvas-board/CanvasBoard";
 import type { Graph } from "../canvas-board/graph";
 import { Matrix, Narrow } from "../matrix";
@@ -275,6 +275,62 @@ export const StudioLayout: Story = {
     (canvasElement.querySelector(".ds-board") as HTMLElement).focus();
     await userEvent.keyboard("{Control>}b{/Control}");
     await waitFor(() => expect(canvas.queryByRole("group", { name: "คลังบล็อก" })).toBeNull());
+  },
+};
+
+const MOODY: Graph = select(
+  {
+    nodes: [
+      blockNode(
+        "mood",
+        "mood-theme",
+        { x: 0, y: 0 },
+        { personality: "อบอุ่น เป็นมิตร", feeling: "สนุก" },
+      ),
+      blockNode("font", "font", { x: 400, y: 0 }, { languages: "th-en" }),
+      blockNode("shape", "shape-spacing", { x: 400, y: 260 }, { mood: "ฟ้าใส ทะเล" }),
+    ],
+    edges: [feed("mood", "font", "mood")],
+  },
+  ["font"],
+);
+
+/**
+ * Suggestions by rules (ORV-61): the top three per kind with the mood's own words as the reason
+ * and the licence; "Use this" writes the answer, and the pick shows on the node and here.
+ */
+export const Suggestions: Story = {
+  render: () => <Studio initial={MOODY} />,
+  play: async ({ canvasElement }) => {
+    const p = panelOf(canvasElement);
+    const list = within(p.getByRole("region", { name: "ข้อเสนอตามกฎ" }));
+    const rows = list.getAllByRole("listitem");
+    await expect(rows).toHaveLength(3);
+    await expect(within(rows[0] as HTMLElement).getByText("Mali")).toBeVisible();
+    await expect(
+      within(rows[0] as HTMLElement).getByText('เพราะ "สนุก", "อบอุ่น", "เป็นมิตร"'),
+    ).toBeVisible();
+    await expect(within(rows[0] as HTMLElement).getByText("สัญญาอนุญาต OFL-1.1")).toBeVisible();
+    await expect(list.getByText("ยังไม่มีตัวอย่างฟอนต์และไอคอน แสดงเฉพาะชื่อ")).toBeVisible();
+    await userEvent.click(list.getByRole("button", { name: "ใช้อันนี้ Mitr" }));
+    await expect(within(rows[1] as HTMLElement).getByText("ใช้อยู่")).toBeVisible();
+    await expect(p.getByText("ฟอนต์ที่อยากใช้: Mitr")).toBeVisible();
+    const node = canvasElement.querySelector<HTMLElement>('.react-flow__node[data-id="font"]');
+    await waitFor(() =>
+      expect(within(node as HTMLElement).getByText("ฟอนต์ที่อยากใช้: Mitr")).toBeVisible(),
+    );
+  },
+};
+
+/** A mood with no word the rules know: no suggestion, and the panel says which words work. */
+export const MoodNotRead: Story = {
+  render: () => <Panel initial={select(MOODY, ["shape"])} />,
+  play: async ({ canvasElement }) => {
+    const p = panelOf(canvasElement);
+    await expect(p.getByText("ยังอ่านมู้ดไม่ออก")).toBeVisible();
+    const section = within(p.getByRole("region", { name: "ข้อเสนอตามกฎ" }));
+    await expect(section.getByText(/ลองใช้คำอย่าง อบอุ่น/)).toBeVisible();
+    await expect(section.queryByRole("button")).toBeNull();
   },
 };
 

@@ -9,6 +9,7 @@ import { type Locale, pick } from "../i18n/locale";
 import { fill, messagesFor } from "../i18n/messages/index";
 import type { NodeKind, PortKind } from "../tokens/canvas";
 import { BLOCKS, BLOCK_MODULES } from "./generated";
+import { candidateName, suggestionsFor } from "./suggest";
 
 export { BLOCKS, BLOCK_MODULES, BLOCK_REGISTRY_VERSION } from "./generated";
 
@@ -219,6 +220,24 @@ export function summarize(graph: Graph, nodeId: string, locale: Locale): BlockSu
       colours.push(...summarize(graph, f.source.id, locale).colours);
     }
   }
+  // A suggesting node (ORV-61) names its top suggestion for every kind not picked yet.
+  const suggestions = suggestionsFor(graph, nodeId);
+  if (suggestions) {
+    const s = messagesFor(locale).suggest;
+    const node = graph.nodes.find((n) => n.id === nodeId);
+    const open = suggestions.kinds.filter((k) => !answered(node?.data.answers?.[k.input.id]));
+    if (open.length > 0 && Object.keys(suggestions.reading.axes).length === 0) {
+      lines.push(s.unread);
+    }
+    for (const k of open) {
+      const top = k.ranked[0];
+      if (!top) continue;
+      const name = candidateName(top.candidate, k.input, locale);
+      lines.push(
+        fill(m.line, { label: pick(k.input.label, locale), value: fill(s.line, { name }) }),
+      );
+    }
+  }
   return { lines, colours: [...new Set(colours)] };
 }
 
@@ -239,3 +258,13 @@ export function fillWord(graph: Graph, nodeId: string, locale: Locale): string |
     ? fill(words.partial, { count: String(missingInputs(graph, nodeId).length) })
     : words[state];
 }
+
+export {
+  answerFor,
+  candidateName,
+  type KindSuggestions,
+  moodText,
+  type NodeSuggestions,
+  SUGGESTIONS_SHOWN,
+  suggestionsFor,
+} from "./suggest";

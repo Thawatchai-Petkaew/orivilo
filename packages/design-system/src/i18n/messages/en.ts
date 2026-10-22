@@ -147,6 +147,19 @@ export const en: Messages = {
     feeds: "Feeds",
     feedsNone: "Feeds no node yet",
   },
+  suggest: {
+    title: "Suggestions by rules",
+    line: "suggested {name}",
+    unread: "The mood is not readable yet",
+    unreadHint:
+      "The rules do not know the words in this mood. Try words like warm, orderly, fun, bold or luxurious",
+    because: "Because of {words}",
+    use: "Use this",
+    useLabel: "Use this, {name}",
+    inUse: "In use",
+    licence: "Licence {licence}",
+    noPreview: "Font and icon previews are not here yet; names only",
+  },
   shelf: {
     label: "Block library",
     search: "Search blocks",

@@ -1,7 +1,7 @@
 // Generated from catalog/blocks/mvp.yaml by scripts/build-blocks.ts.
 // Do not edit: run `pnpm --filter @orivilo/design-system blocks`.
 
-export const BLOCK_REGISTRY_VERSION = 1;
+export const BLOCK_REGISTRY_VERSION = 2;
 
 export const BLOCK_MODULES = {
   "brand": { th: "แบรนด์", en: "Brand" },
@@ -429,6 +429,19 @@ export const BLOCKS = [
           { id: "compact", th: "แน่น", en: "Compact" },
           { id: "comfortable", th: "พอดี", en: "Comfortable" },
           { id: "spacious", th: "โปร่ง", en: "Spacious" },
+        ],
+      },
+      {
+        id: "corners",
+        required: false,
+        answer: "choice",
+        label: { th: "มุม", en: "Corners" },
+        question: { th: "อยากให้มุมของปุ่มและการ์ดเป็นแบบไหน", en: "How should buttons and cards be cornered?" },
+        from: [],
+        options: [
+          { id: "sharp", th: "เหลี่ยม", en: "Sharp" },
+          { id: "soft", th: "มนเล็กน้อย", en: "Soft" },
+          { id: "round", th: "มนมาก", en: "Round" },
         ],
       },
     ],
