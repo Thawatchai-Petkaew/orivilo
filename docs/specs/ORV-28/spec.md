@@ -1,5 +1,5 @@
 ---
-issue: E2-5 (placeholder; folder is renamed to the ORV key when the Jira issue is created)
+issue: ORV-28 (draft key E2-5; https://tpetkaew.atlassian.net/browse/ORV-28)
 lane: L (risk flag: component public API)
 version: 1
 ---
