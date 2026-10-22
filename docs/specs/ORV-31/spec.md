@@ -1,5 +1,5 @@
 ---
-issue: E2-8 (placeholder; folder is renamed to the ORV key when the Jira issue is created)
+issue: ORV-31 (draft key E2-8; https://tpetkaew.atlassian.net/browse/ORV-31)
 lane: M
 version: 1
 ---

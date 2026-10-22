@@ -1,5 +1,5 @@
 ---
-issue: E4-1 (placeholder; folder is renamed to the ORV key when the Jira issue is created)
+issue: ORV-41 (draft key E4-1; https://tpetkaew.atlassian.net/browse/ORV-41)
 lane: L (risk flag: semantic token contract)
 version: 1
 ---

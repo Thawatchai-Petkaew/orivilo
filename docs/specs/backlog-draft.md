@@ -1,6 +1,25 @@
-# Backlog draft for review (not yet in Jira)
+# Backlog draft (created in Jira 2026-10-22)
 
-Drafted 2026-10-21 for GOLF to review before anything is created in Jira (creation waits for the owner's go-ahead). Sources: handoff §19–§22, the brief's MVP implications, ADR 0001–0003, the brand spec v1.1. Keys are placeholders; Jira assigns the real ORV numbers. Lanes and gates follow `AGENTS.md`. Every story is one PR of roughly 400 lines or less.
+Drafted 2026-10-21; the owner approved creation on 2026-10-22 and every row below now exists in Jira project ORV. Jira holds live status; this file keeps the draft keys the code and older documents refer to. Added since the draft: E2-16 multi-language structure (ORV-39, owner's instruction 2026-10-22).
+
+| Draft | Jira   | Draft | Jira   | Draft | Jira   | Draft | Jira   |
+| ----- | ------ | ----- | ------ | ----- | ------ | ----- | ------ |
+| E0    | ORV-5  | E1-5  | ORV-20 | E2-10 | ORV-33 | E4-4  | ORV-44 |
+| E0-1  | ORV-10 | E1-6  | ORV-21 | E2-11 | ORV-34 | E4-5  | ORV-45 |
+| E0-2  | ORV-11 | E1-7  | ORV-22 | E2-12 | ORV-35 | E4-6  | ORV-46 |
+| E0-3  | ORV-12 | E2    | ORV-7  | E2-13 | ORV-36 | E4-7  | ORV-47 |
+| E0-4  | ORV-13 | E2-0  | ORV-23 | E2-14 | ORV-37 | E4-8  | ORV-48 |
+| E0-5  | ORV-14 | E2-1  | ORV-24 | E2-15 | ORV-38 | E3    | ORV-9  |
+| E0-6  | ORV-15 | E2-2  | ORV-25 | E2-16 | ORV-39 | E3-1  | ORV-49 |
+| E1    | ORV-6  | E2-3  | ORV-26 | E4    | ORV-8  | E3-2  | ORV-50 |
+| E1-1  | ORV-16 | E2-4  | ORV-27 | E4-0  | ORV-40 | E3-3  | ORV-51 |
+| E1-2  | ORV-17 | E2-5  | ORV-28 | E4-1  | ORV-41 | E3-4  | ORV-52 |
+| E1-3  | ORV-18 | E2-6  | ORV-29 | E4-2  | ORV-42 | E3-5  | ORV-53 |
+| E1-4  | ORV-19 | E2-7  | ORV-30 | E4-3  | ORV-43 |       |        |
+|       |        | E2-8  | ORV-31 |       |        |       |        |
+|       |        | E2-9  | ORV-32 |       |        |       |        |
+
+Original draft text follows. Sources: handoff §19–§22, the brief's MVP implications, ADR 0001–0003, the brand spec v1.1. Keys are placeholders; Jira assigns the real ORV numbers. Lanes and gates follow `AGENTS.md`. Every story is one PR of roughly 400 lines or less.
 
 Reading the table: **Lane** S/M/L sets the gates. **Risk flag** names why a story is L. **Depends on** is build order, not optional.
 
