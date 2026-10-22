@@ -1,7 +1,7 @@
 ---
 issue: ORV-38 (draft key E2-15; https://tpetkaew.atlassian.net/browse/ORV-38)
 lane: L
-version: 1
+version: 1.1
 ---
 
 ## Why
@@ -19,7 +19,7 @@ Everything the Studio makes today lives in the browser and is gone on reload. Sa
 | Part | Content                                                                                                                       | Status    |
 | ---- | ----------------------------------------------------------------------------------------------------------------------------- | --------- |
 | 1    | `packages/db`: Drizzle schema for Better Auth and workspaces, migrations, the restricted role's grants, row security policies | This spec |
-| 2    | `packages/auth`: Better Auth with the organization plugin; sign up, sign in, sign out; the first workspace on sign up         | This spec |
+| 2    | `packages/auth`: Better Auth with the organization plugin; Google sign-in, sign out; the first workspace on sign up           | This spec |
 | 3    | The authorization helper and its default-deny tests; one real read (the workspace's name) through it                          | This spec |
 
 ## Story
@@ -34,6 +34,8 @@ As a person on the Studio, I want to sign up, get my own workspace, and know tha
 | `MIGRATION_DATABASE_URL` | GitHub Actions secret, local only   | Session pooler (port 5432) as `postgres.<project-ref>`; runs migrations, never reaches the app |
 | `BETTER_AUTH_SECRET`     | Vercel (Preview, Production), local | 32 random bytes, base64 (`openssl rand -base64 32`)                                            |
 | `BETTER_AUTH_URL`        | Vercel (Production), local          | The app's own origin; on a Vercel preview the code derives it from `VERCEL_URL`                |
+| `GOOGLE_CLIENT_ID`       | Vercel (Preview, Production), local | From the Google Cloud OAuth client (Web application)                                           |
+| `GOOGLE_CLIENT_SECRET`   | Vercel (Preview, Production), local | The same client's secret                                                                       |
 
 `.env.example` lists the names with no values. The app refuses to start a request that needs the database when a variable is missing, and says which one, without printing any value.
 
@@ -42,13 +44,13 @@ As a person on the Studio, I want to sign up, get my own workspace, and know tha
 - **Two roles.** `orivilo_app` logs in, has `select, insert, update, delete` on app tables and nothing else: no `bypassrls`, no DDL, no ownership. Migrations run as `postgres` from CI or locally. The role is created once by the owner with a password they choose; the grants live in a migration.
 - **Row security.** Every tenant table has `workspace_id` and a policy `workspace_id = current_setting('app.workspace_id', true)::uuid`. The helper sets that value with `set_config(..., true)` inside the transaction it opens, so it never leaks across pooled connections. Better Auth's own tables (user, session, account, verification, organization, member, invitation) get a policy for `orivilo_app` only, since auth must read them before a workspace is known.
 - **The helper.** `withWorkspace(request, workspaceId, role, fn)` resolves the session, checks membership and the minimum role, opens a transaction, sets `app.workspace_id`, and passes `fn` a typed db handle. Anything else (no session, not a member, role too low, missing id) throws a typed denial that the route turns into 401 or 403. No other module imports the db client; a lint rule enforces it.
-- **Sign in.** Email and password first (see the open question). Passwords are hashed by Better Auth (scrypt). Sign-in is rate limited by Better Auth's limiter.
+- **Sign in with Google** (the owner's choice, 2026-10-22). No passwords are stored. Vercel previews have a new URL each time, which Google will not accept as a redirect, so the `oAuthProxy` plugin sends a preview's sign-in through the production URL and back. Sign-in is rate limited by Better Auth's limiter.
 
 ## Acceptance criteria
 
 | #   | Given                                     | When                                       | Then                                                                                     | Evidence                       |
 | --- | ----------------------------------------- | ------------------------------------------ | ---------------------------------------------------------------------------------------- | ------------------------------ |
-| 1   | A new email                               | Signing up                                 | An account and a workspace named after the person exist; they are its owner              | Integration test               |
+| 1   | A Google account new to ORIVILO           | Signing in the first time                  | An account and a workspace named after the person exist; they are its owner              | Integration test               |
 | 2   | A signed-in owner                         | Reading their workspace through the helper | The workspace name comes back                                                            | Integration test, the app page |
 | 3   | No session                                | Calling the helper                         | Denied (401); no query ran                                                               | Unit test                      |
 | 4   | A member of workspace A                   | Asking for workspace B                     | Denied (403); no query ran                                                               | Integration test               |
@@ -60,9 +62,9 @@ As a person on the Studio, I want to sign up, get my own workspace, and know tha
 
 Integration tests run against a throwaway Postgres in CI (a service container), with the same migrations and the same two roles; they never touch the owner's project.
 
-## Open question for the owner
+## Answered
 
-- **How do people sign in first?** Default: email and password, with email verification and password reset added when an email provider is chosen. Other options: Google sign-in (needs a Google OAuth client), or a magic link by email (needs an email provider now).
+- Sign-in method: Google sign-in (owner, decision card, 2026-10-22). Email and password and magic links are not built.
 
 ## Out of scope
 
@@ -74,3 +76,4 @@ Integration tests run against a throwaway Postgres in CI (a service container), 
 ## Changelog
 
 - v1 (2026-10-22): written after the owner created the Supabase project.
+- v1.1 (2026-10-22): sign-in is Google; two Google variables and the preview proxy added.
