@@ -5,7 +5,7 @@ ORV-___ · Spec: `docs/specs/ORV-___/spec.md` · Lane: S / M / L
 ## Previews
 
 - App: the Vercel bot comment on this PR (project `orivilo`, root `apps/web`)
-- Storybook: the Vercel bot comment on this PR (project `orivilo-storybook`, root `packages/design-system`)
+- Storybook: the Vercel bot comment on this PR (project `orivilo-design-system`, root `packages/design-system`)
 
 ## What changed
 
