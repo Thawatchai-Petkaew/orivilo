@@ -33,6 +33,7 @@ rules:
   - "A new result is a new node linked to its source; a node is never overwritten in place"
   - "Missing inputs are listed on the node (ขาดข้อมูล) and asked one at a time in the Inspector (E4-4)"
   - "Stale means an upstream node changed after this one ran; shown with an edge and a word, not a tint"
+  - "A note is glass, like the toolbar (owner's choice, ORV-56); every other kind is solid. Solid under reduced transparency"
 a11y:
   - "Accessible name is title, kind (Thai word); aria-busy while running"
   - "Every action on the node also exists in the command registry; NodeToolbar and the resizer arrive in E4-3"

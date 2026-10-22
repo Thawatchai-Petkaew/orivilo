@@ -71,6 +71,24 @@ describe("recipes.css", () => {
     expect(hits).toEqual([]);
   });
 
+  it("gives every glass surface a solid fallback under reduced transparency", () => {
+    const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
+    const rules = [...bare.matchAll(/([^{}]+)\{([^{}]*)\}/g)];
+    const glass = rules
+      .filter((m) => /backdrop-filter:\s*blur\(/.test(m[2] ?? ""))
+      .map((m) => (m[1] ?? "").trim());
+    const reduced = [
+      ...bare.matchAll(
+        /@media \(prefers-reduced-transparency: reduce\) \{((?:\s*[^{}]+\{[^{}]*\})*)\s*\}/g,
+      ),
+    ]
+      .flatMap((m) => [...(m[1] ?? "").matchAll(/([^{}]+)\{([^{}]*)\}/g)])
+      .filter((m) => /backdrop-filter:\s*none/.test(m[2] ?? ""))
+      .map((m) => (m[1] ?? "").trim());
+    expect(glass).toContain('.ds-node[data-kind="note"]');
+    for (const selector of glass) expect(reduced, selector).toContain(selector);
+  });
+
   it("every component token in pairs.ts is also read by a recipe", () => {
     const unread = RECIPE_PAIRS.flatMap((pair) => [pair.fg, pair.bg])
       .filter((ref) => !ref.startsWith("ds:"))
