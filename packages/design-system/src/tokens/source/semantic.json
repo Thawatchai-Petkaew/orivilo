@@ -1383,5 +1383,40 @@
         }
       }
     }
+  },
+  "ai": {
+    "$description": "The AI gradient, violet into blue (owner's choice 2026-10-22, ORV-57). Only for the engine at work: a running node's ring, an edge feeding it, and the line being drawn while connecting. Never for error, warning, selection or focus, and never at rest.",
+    "gradient-start": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.violet.600}",
+        "dark": "{color.violet.400}"
+      },
+      "$description": "Where the gradient begins: the source end of an edge, the leading arc of the ring",
+      "$extensions": {
+        "orivilo": {
+          "contrast": {
+            "against": "surface.card",
+            "floor": 3
+          }
+        }
+      }
+    },
+    "gradient-end": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.blue.600}",
+        "dark": "{color.blue.300}"
+      },
+      "$description": "Where the gradient ends: the target end of an edge, the trailing arc of the ring",
+      "$extensions": {
+        "orivilo": {
+          "contrast": {
+            "against": "surface.card",
+            "floor": 3
+          }
+        }
+      }
+    }
   }
 }

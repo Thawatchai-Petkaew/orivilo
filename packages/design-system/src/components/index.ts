@@ -105,13 +105,17 @@ export {
   connectTargets,
   type EdgeContent,
   edgeLabel,
+  elapsedSince,
+  feedsRunning,
   type Graph,
   type NodeContent,
   type NodeSize,
+  type NodeStep,
   nodeLabel,
   type PortRef,
   type PortSpec,
   removeFromGraph,
+  type StepTask,
 } from "./canvas-board/graph";
 export { CanvasEdge, type CanvasEdgeProps } from "./canvas-edge/CanvasEdge";
 export { CanvasNode, type CanvasNodeProps } from "./canvas-node/CanvasNode";

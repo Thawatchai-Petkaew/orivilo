@@ -18,6 +18,18 @@ import {
 
 export type NodeSize = "sm" | "md" | "lg" | "custom";
 
+/** What the engine does in a step; picks the step's icon (ORV-57). */
+export type StepTask = "read" | "draft" | "compare" | "generate" | "review";
+
+/** One step of a run, reported by the engine. A node shows steps only when the run sends them. */
+export interface NodeStep {
+  id: string;
+  /** What the step does, in the author's language. */
+  label: string;
+  task: StepTask;
+  state: "done" | "current" | "pending";
+}
+
 export interface PortSpec {
   /** Unique within the node; the React Flow handle id. */
   id: string;
@@ -35,6 +47,10 @@ export type NodeContent = {
   /** Plain-text body when no `renderBody` is given. */
   summary?: string;
   status?: NodeStatus;
+  /** When the current run started (ISO 8601); a running node shows the time since. */
+  startedAt?: string;
+  /** The run's steps, as the engine reports them. */
+  steps?: NodeStep[];
   /** What went wrong and how to fix it. */
   error?: string;
   /** Input words the node still needs; asked one at a time in the Inspector (E4-4). */
@@ -256,6 +272,21 @@ export function removeFromGraph(
         : e,
     );
   return { nodes, edges };
+}
+
+/** An edge feeds a node the engine is working on, so it shows data flowing (ORV-57). */
+export function feedsRunning(graph: Graph, edge: BoardEdge): boolean {
+  if (edge.data?.stale || edge.data?.invalid) return false;
+  return graph.nodes.find((n) => n.id === edge.target)?.data.status === "running";
+}
+
+/** Minutes and seconds since `startedAt`, or nothing when there is no start or it is in the future. */
+export function elapsedSince(startedAt: string | undefined, now: number): string | undefined {
+  if (!startedAt) return undefined;
+  const start = Date.parse(startedAt);
+  if (Number.isNaN(start) || start > now) return undefined;
+  const seconds = Math.floor((now - start) / 1000);
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 }
 
 /** Moves every selected node by the given offset. */

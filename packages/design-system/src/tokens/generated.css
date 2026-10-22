@@ -382,6 +382,8 @@
   --ds-status-running: var(--op-color-blue-700);
   --ds-status-stale: var(--op-color-amber-700);
   --ds-status-locked: var(--op-color-gray-600);
+  --ds-ai-gradient-start: var(--op-color-violet-600);
+  --ds-ai-gradient-end: var(--op-color-blue-600);
 }
 
 /* Semantic dark: a remap by role, not an inversion (DESIGN.md §3.2) */
@@ -461,6 +463,8 @@
   --ds-status-running: var(--op-color-blue-300);
   --ds-status-stale: var(--op-color-amber-400);
   --ds-status-locked: var(--op-color-gray-400);
+  --ds-ai-gradient-start: var(--op-color-violet-400);
+  --ds-ai-gradient-end: var(--op-color-blue-300);
 }
 
 /* The same dark values for a system boundary when the OS prefers dark; no script, no flash. */
@@ -541,6 +545,8 @@
     --ds-status-running: var(--op-color-blue-300);
     --ds-status-stale: var(--op-color-amber-400);
     --ds-status-locked: var(--op-color-gray-400);
+    --ds-ai-gradient-start: var(--op-color-violet-400);
+    --ds-ai-gradient-end: var(--op-color-blue-300);
   }
 }
 
@@ -876,8 +882,15 @@
   --cmp-node-border-selected: var(--ds-canvas-selection);
   --cmp-node-border-error: var(--ds-border-error);
   --cmp-node-header-bg: var(--ds-surface-sunken);
+  --cmp-node-frame-inset: var(--ds-space-inset-sm);
+  --cmp-node-divider: var(--ds-border-subtle);
   --cmp-node-header-fg: var(--ds-text-primary);
   --cmp-node-kind-fg: var(--ds-text-secondary);
+  --cmp-node-chip-bg: var(--ds-surface-card);
+  --cmp-node-chip-fg: var(--ds-text-primary);
+  --cmp-node-ring-start: var(--ds-ai-gradient-start);
+  --cmp-node-ring-end: var(--ds-ai-gradient-end);
+  --cmp-node-ring-width: var(--ds-edge-width-selected);
   --cmp-node-header-type-font-family: var(--ds-type-label-md-font-family);
   --cmp-node-header-type-font-size: var(--ds-type-label-md-font-size);
   --cmp-node-header-type-line-height: var(--ds-type-label-md-line-height);
@@ -918,6 +931,9 @@
   --cmp-edge-stroke-selected: var(--ds-edge-stroke-selected);
   --cmp-edge-stroke-invalid: var(--ds-edge-stroke-invalid);
   --cmp-edge-stroke-stale: var(--ds-edge-stroke-stale);
+  --cmp-edge-flow-start: var(--ds-ai-gradient-start);
+  --cmp-edge-flow-end: var(--ds-ai-gradient-end);
+  --cmp-edge-flow-light: var(--ds-text-primary);
   --cmp-edge-width: var(--ds-edge-width);
   --cmp-edge-width-selected: var(--ds-edge-width-selected);
   --cmp-edge-dash-input: var(--ds-edge-dash-input);
@@ -1134,4 +1150,6 @@
   --color-status-running: var(--ds-status-running);
   --color-status-stale: var(--ds-status-stale);
   --color-status-locked: var(--ds-status-locked);
+  --color-ai-gradient-start: var(--ds-ai-gradient-start);
+  --color-ai-gradient-end: var(--ds-ai-gradient-end);
 }

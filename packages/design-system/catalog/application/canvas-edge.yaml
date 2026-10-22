@@ -17,6 +17,7 @@ examples: []
 rules:
   - "The three meanings differ by stroke style and label, never by colour alone"
   - "Deleting an edge never deletes a node"
+  - "Plain at rest; only an edge feeding a running node and the line being drawn take the AI gradient with a travelling light; selected, stale and invalid strokes still win (ORV-57)"
   - "The label shows the meaning word, then ล้าสมัย or เชื่อมต่อไม่ได้; the arrow head takes the stroke colour"
   - "1, 2, 3 on a focused edge set its meaning to input, reference, derived"
 a11y:

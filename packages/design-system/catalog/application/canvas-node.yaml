@@ -29,7 +29,8 @@ states:
 recipes: [neutral, professional, friendly]
 examples: []
 rules:
-  - "Header shows title, kind and status; body is a slot per variant; footer shows ports"
+  - "One surface, no header band: an inset frame holds the kind icon, kind, status, run time and title; body is a slot per variant; a divider sits above the ports, which are words (ORV-57)"
+  - "Running turns the AI gradient ring and colours the step icons with it; steps and run time show only when the run reports them; still under reduced motion"
   - "A new result is a new node linked to its source; a node is never overwritten in place"
   - "Missing inputs are listed on the node (ขาดข้อมูล) and asked one at a time in the Inspector (E4-4)"
   - "Stale means an upstream node changed after this one ran; shown with an edge and a word, not a tint"

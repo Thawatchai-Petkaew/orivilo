@@ -61,7 +61,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Anything placed on the board (ADR 0004): header with title, kind and status, a body per variant, missing inputs, an error, and the ports in the footer. Renders only inside CanvasBoard, which gives it focus, selection and the accessible name. Every state here is a story (DESIGN.md §7).",
+          "Anything placed on the board (ADR 0004): an inset header frame with kind icon, kind, status, run time and title, a body per variant, run steps, missing inputs, an error, and the ports in the footer. Renders only inside CanvasBoard, which gives it focus, selection and the accessible name. Every state here is a story (DESIGN.md §7).",
       },
     },
   },
@@ -275,6 +275,52 @@ export const Statuses: Story = {
     const locked = canvas.getByRole("group", { name: "โปรไฟล์ที่อนุมัติ, ความรู้" });
     await expect(locked).not.toHaveClass("draggable");
     await expect(within(locked).getAllByRole("img", { name: /แก้ไขไม่ได้$/ })).toHaveLength(2);
+  },
+};
+
+/**
+ * Running (ORV-57): the AI gradient turns around the edge, the run time ticks, and the steps the
+ * engine reports show with their icons in the gradient. A running node without steps or a start
+ * time shows neither; a node at rest has no ring.
+ */
+export const RunningWithSteps: Story = {
+  render: () => (
+    <NodeBoard
+      height={380}
+      initial={row([
+        {
+          title: "โลโก้",
+          kind: "artifact",
+          status: "running",
+          startedAt: new Date(Date.now() - 12_000).toISOString(),
+          steps: [
+            { id: "s1", label: "อ่านชุดสีจากโปรไฟล์", task: "read", state: "done" },
+            { id: "s2", label: "ร่างโลโก้ 3 แบบ", task: "draft", state: "current" },
+            { id: "s3", label: "เทียบกับบรีฟ", task: "compare", state: "pending" },
+          ],
+        },
+        { title: "แคปชั่น", kind: "artifact", status: "running" },
+        { title: "โปรไฟล์ที่อนุมัติ", kind: "knowledge", status: "locked" },
+      ])}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    await ready(canvasElement, 3);
+    const [withSteps, bare, rest] = [...nodeEls(canvasElement)];
+    if (!withSteps || !bare || !rest) throw new globalThis.Error("three nodes expected");
+    const steps = within(withSteps).getByRole("list", { name: "ขั้นตอน" });
+    await expect(within(steps).getAllByRole("listitem")).toHaveLength(3);
+    await expect(within(steps).getByText("กำลังทำ")).toBeInTheDocument();
+    await expect(withSteps.querySelector(".ds-node__elapsed")?.textContent).toMatch(/^0:1\d$/);
+    for (const icon of withSteps.querySelectorAll(".ds-node__step svg")) {
+      await expect(getComputedStyle(icon).stroke).toMatch(/url\(/);
+    }
+    await expect(getComputedStyle(withSteps, "::before").animationName).toBe("ds-node-ring");
+    await expect(bare.querySelector(".ds-node__steps")).toBeNull();
+    await expect(bare.querySelector(".ds-node__elapsed")).toBeNull();
+    await expect(getComputedStyle(bare, "::before").animationName).toBe("ds-node-ring");
+    await expect(getComputedStyle(rest, "::before").content).toBe("none");
+    await expect(rest.querySelector(".ds-node__chip svg")).not.toBeNull();
   },
 };
 

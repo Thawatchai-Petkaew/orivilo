@@ -204,6 +204,51 @@ export const KeyboardDelete: Story = {
   },
 };
 
+/**
+ * Flowing (ORV-57): an edge into a running node takes the AI gradient and a travelling light; an
+ * edge at rest stays plain. Dragging from a port draws the line in the same gradient.
+ */
+export const Flowing: Story = {
+  render: () => {
+    const graph = pairs([{ meaning: "input" }, { meaning: "input" }]);
+    graph.nodes = graph.nodes.map((n) =>
+      n.id === "t0" ? { ...n, data: { ...n.data, status: "running" } } : n,
+    );
+    return <EdgeBoard initial={graph} height={340} />;
+  },
+  play: async ({ canvasElement }) => {
+    await waitFor(() => expect(edgeEls(canvasElement)).toHaveLength(2));
+    const flowing = canvasElement.querySelector<SVGGElement>('[data-id="e0"] .ds-edge');
+    const rest = canvasElement.querySelector<SVGGElement>('[data-id="e1"] .ds-edge');
+    await expect(flowing).toHaveAttribute("data-flowing", "");
+    await expect(flowing?.querySelector(".ds-edge__light")).not.toBeNull();
+    await expect(flowing?.querySelector(".ds-edge__flow")?.getAttribute("stroke")).toMatch(
+      /^url\(#/,
+    );
+    await expect(rest).not.toHaveAttribute("data-flowing");
+    await expect(rest?.querySelector(".ds-edge__flow")).toBeNull();
+
+    const handle = canvasElement.querySelector<HTMLElement>('[data-id="s1"] .react-flow__handle');
+    if (!handle) throw new Error("no source handle");
+    const box = handle.getBoundingClientRect();
+    const at = { clientX: box.x + box.width / 2, clientY: box.y + box.height / 2 };
+    handle.dispatchEvent(new MouseEvent("mousedown", { ...at, bubbles: true, button: 0 }));
+    document.dispatchEvent(
+      new MouseEvent("mousemove", {
+        clientX: at.clientX + 120,
+        clientY: at.clientY + 40,
+        bubbles: true,
+      }),
+    );
+    await waitFor(() =>
+      expect(
+        canvasElement.querySelector(".react-flow__connectionline .ds-edge[data-connecting]"),
+      ).not.toBeNull(),
+    );
+    document.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+  },
+};
+
 /** The three meanings under three profiles in both modes: edge tokens are locked, so dash and colour hold. */
 export const RecipesAndModes: Story = {
   render: () => (
