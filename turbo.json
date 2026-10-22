@@ -8,7 +8,7 @@
     "lint": {},
     "typecheck": {},
     "test": {
-      "passThroughEnv": ["PLAYWRIGHT_BROWSERS_PATH"]
+      "passThroughEnv": ["PLAYWRIGHT_BROWSERS_PATH", "TEST_DATABASE_URL", "REQUIRE_DB_TESTS"]
     },
     "dev": {
       "cache": false,
