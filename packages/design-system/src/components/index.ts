@@ -56,3 +56,28 @@ export {
 } from "./table/Table";
 export { Textarea, type TextareaProps } from "./textarea/Textarea";
 export { Tooltip, type TooltipProps, TooltipProvider } from "./tooltip/Tooltip";
+export {
+  type BoardVariant,
+  CanvasBoard,
+  type CanvasBoardProps,
+  type CommandContext,
+  GRID_UNIT,
+} from "./canvas-board/CanvasBoard";
+export {
+  type BoardEdge,
+  type BoardNode,
+  connectionProblem,
+  connectTargets,
+  type EdgeContent,
+  edgeLabel,
+  type Graph,
+  type NodeContent,
+  type NodeSize,
+  nodeLabel,
+  type PortRef,
+  type PortSpec,
+  removeFromGraph,
+} from "./canvas-board/graph";
+export { CanvasEdge, type CanvasEdgeProps } from "./canvas-edge/CanvasEdge";
+export { CanvasNode, type CanvasNodeProps } from "./canvas-node/CanvasNode";
+export { NodePort, type NodePortProps, type PortState } from "./node-port/NodePort";

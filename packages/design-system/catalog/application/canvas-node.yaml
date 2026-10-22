@@ -1,8 +1,8 @@
 name: CanvasNode
 tier: application
-status: planned
+status: stable
 since: E4-2
-import: none
+import: "@orivilo/design-system"
 story: application-canvas-node
 useWhen:
   - "Anything placed on the board: an input block, a knowledge node, an artifact, a reference, a direction, a note"
@@ -10,7 +10,7 @@ avoidWhen:
   - "Content that is not addressable by the engine (put it in a note)"
 contract: CanvasNodeProps
 variants: [input-block, knowledge, artifact, reference, direction, note]
-sizes: [sm, md, lg, custom]
+sizes: [sm, md, lg]
 states:
   [
     default,
@@ -26,14 +26,14 @@ states:
     collapsed,
     read-only,
   ]
-recipes: []
+recipes: [neutral, professional, friendly]
 examples: []
 rules:
   - "Header shows title, kind and status; body is a slot per variant; footer shows ports"
   - "A new result is a new node linked to its source; a node is never overwritten in place"
-  - "Missing inputs are listed on the node and asked one at a time in the Inspector"
+  - "Missing inputs are listed on the node (ขาดข้อมูล) and asked one at a time in the Inspector (E4-4)"
   - "Stale means an upstream node changed after this one ran; shown with an edge and a word, not a tint"
 a11y:
-  - "Accessible name is title plus kind"
-  - "Every action on the node also exists in NodeToolbar and the command registry"
-  - "Resize handles are focusable"
+  - "Accessible name is title, kind (Thai word); aria-busy while running"
+  - "Every action on the node also exists in the command registry; NodeToolbar and the resizer arrive in E4-3"
+  - "Ports are lists named พอร์ตรับ and พอร์ตส่ง; a locked or read-only node disables them"

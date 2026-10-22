@@ -70,3 +70,22 @@ export function WarningIcon(props: IconProps) {
     </svg>
   );
 }
+
+export function LockIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <rect x="4" y="9" width="12" height="8" rx="1.5" />
+      <path d="M7 9V6.5a3 3 0 0 1 6 0V9" />
+    </svg>
+  );
+}
+
+export function StaleIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M3.5 10a6.5 6.5 0 1 1 1.9 4.6" />
+      <path d="M3.5 15v-4h4" />
+      <path d="M10 6.5V10l2.5 1.5" />
+    </svg>
+  );
+}

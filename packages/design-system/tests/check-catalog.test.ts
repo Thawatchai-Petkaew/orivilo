@@ -98,7 +98,8 @@ function readStoryTitles(): { file: string; title: string }[] {
   const files = walk(path.join(root, "src"), (f) => /\.stories\.tsx?$/.test(f));
   return files.map((file) => {
     const source = readFileSync(file, "utf8");
-    const match = /title:\s*["'`]([^"'`]+)["'`]/.exec(source);
+    // The meta title is "<Tier>/<Name>"; a fixture inside the file may also have a title key.
+    const match = /title:\s*["'`]([A-Za-z]+\/[^"'`]+)["'`]/.exec(source);
     if (!match?.[1]) throw new Error(`${path.relative(root, file)}: story file has no title`);
     return { file: path.relative(root, file), title: match[1] };
   });

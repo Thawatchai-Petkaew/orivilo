@@ -18,6 +18,20 @@ export type EdgeMeaning = (typeof EDGE_MEANINGS)[number];
 export const NODE_STATUSES = ["running", "stale", "locked"] as const;
 export type NodeStatus = (typeof NODE_STATUSES)[number];
 
+/** What a node on the board is (ADR 0004 item 2, catalog CanvasNode variants). */
+export const NODE_KINDS = [
+  "input-block",
+  "knowledge",
+  "artifact",
+  "reference",
+  "direction",
+  "note",
+] as const;
+export type NodeKind = (typeof NODE_KINDS)[number];
+
+export const PORT_DIRECTIONS = ["input", "output"] as const;
+export type PortDirection = (typeof PORT_DIRECTIONS)[number];
+
 interface PortNode {
   $description?: string;
   $extensions?: { orivilo?: { shape?: string } };
@@ -51,5 +65,17 @@ export const CANVAS_WORDS = {
     running: { th: "กำลังทำงาน", en: "running" },
     stale: { th: "ล้าสมัย", en: "stale" },
     locked: { th: "ล็อกแล้ว", en: "locked" },
+  },
+  node: {
+    "input-block": { th: "บล็อกป้อนข้อมูล", en: "input block" },
+    knowledge: { th: "ความรู้", en: "knowledge" },
+    artifact: { th: "ชิ้นงาน", en: "artifact" },
+    reference: { th: "อ้างอิง", en: "reference" },
+    direction: { th: "ทิศทาง", en: "direction" },
+    note: { th: "โน้ต", en: "note" },
+  },
+  direction: {
+    input: { th: "พอร์ตรับ", en: "input port" },
+    output: { th: "พอร์ตส่ง", en: "output port" },
   },
 } as const;

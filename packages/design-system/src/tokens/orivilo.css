@@ -12,6 +12,9 @@
 @import "tailwindcss";
 @import "./generated.css";
 @import "../profiles/generated.css";
+/* React Flow's base layout rules only (ADR 0004); its theme stylesheet is never loaded. Every
+ * `--xy-*` property it reads is set from a component token in recipes.css (E4-2). */
+@import "@xyflow/react/dist/base.css";
 @import "../recipes/recipes.css";
 
 /* The app's Tailwind runs from apps/web and does not see this package's sources on its own, so the
