@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useDesignProfile } from "../../boundary/DesignProfileBoundary";
 import { NODE_KINDS } from "../../tokens/canvas";
 import { CanvasBoard, type CanvasBoardProps } from "../canvas-board/CanvasBoard";
+import { blockNode, feed } from "../block-library/fixtures";
 import { LONG_NODE } from "../canvas-board/fixtures";
 import type { BoardNode, Graph, NodeContent } from "../canvas-board/graph";
 import { fixtures } from "../fixtures";
@@ -450,5 +451,117 @@ export const LongContentAt360: Story = {
         node.getBoundingClientRect().right + 1,
       );
     }
+  },
+};
+
+/**
+ * Block nodes (ORV-44 part 2): a node made from a registry block derives its fill state from its
+ * answers and edges. Empty: dashed frame, "ยังว่าง", and its first question as the body.
+ */
+export const Empty: Story = {
+  render: () => (
+    <NodeBoard
+      height={320}
+      initial={{ nodes: [blockNode("mood", "mood-theme", { x: 0, y: 0 })], edges: [] }}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    await ready(canvasElement, 1);
+    const node = nodeEls(canvasElement)[0] as HTMLElement;
+    await expect(node).toHaveAttribute("data-fill", "empty");
+    await expect(within(node).getByText("ยังว่าง")).toBeVisible();
+    await expect(within(node).getByText("ต่อสายจากบุคลิกแบรนด์ หรือบอกบุคลิกสามคำ")).toBeVisible();
+    await expect(getComputedStyle(node).borderTopStyle).toBe("dashed");
+    await expect(within(node).queryByText("ตามกฎ")).toBeNull();
+  },
+};
+
+/** Partial: some required answers; the header counts what is left and the body shows the summary so far. */
+export const Partial: Story = {
+  render: () => (
+    <NodeBoard
+      height={320}
+      initial={{
+        nodes: [
+          blockNode("brief", "brief", { x: 0, y: 0 }, { product: "แอปออมเงินสำหรับคนทำงาน" }),
+          blockNode("audience", "audience", { x: 400, y: 0 }),
+        ],
+        edges: [feed("brief", "audience", "brief")],
+      }}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    await ready(canvasElement, 2);
+    const brief = nodeEls(canvasElement)[0] as HTMLElement;
+    await expect(brief).toHaveAttribute("data-fill", "partial");
+    await expect(within(brief).getByText("ถามอีก 1 ข้อ")).toBeVisible();
+    await expect(within(brief).getByText("ผลิตภัณฑ์: แอปออมเงินสำหรับคนทำงาน")).toBeVisible();
+    await expect(within(brief).getByText("ตามกฎ")).toBeVisible();
+    await expect(getComputedStyle(brief).borderTopStyle).toBe("solid");
+  },
+};
+
+/**
+ * Summarized: every required input, by answer or by an edge from a complete node. The summary
+ * names its source and shows a swatch row when it holds colours.
+ */
+export const Summarized: Story = {
+  render: () => (
+    <NodeBoard
+      height={320}
+      initial={{
+        nodes: [
+          blockNode(
+            "colours",
+            "typed-colours",
+            { x: 0, y: 0 },
+            { colours: ["#7a22c7", "#c6f432"] },
+          ),
+          blockNode("starter", "starter-colours", { x: 400, y: 0 }),
+        ],
+        edges: [feed("colours", "starter", "primary")],
+      }}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    await ready(canvasElement, 2);
+    const [colours, starter] = [...nodeEls(canvasElement)] as [HTMLElement, HTMLElement];
+    for (const node of [colours, starter]) {
+      await expect(node).toHaveAttribute("data-fill", "summarized");
+      await expect(within(node).getByText("สรุปแล้ว")).toBeVisible();
+      await expect(node.querySelectorAll(".ds-node__swatch")).toHaveLength(2);
+    }
+    await expect(within(colours).getByText("สี: #7a22c7, #c6f432")).toBeVisible();
+    await expect(within(starter).getByText("สีหลัก: จาก สีที่พิมพ์มา")).toBeVisible();
+  },
+};
+
+/** Unlinked: content but no edge on a board with other nodes; the summary stays. */
+export const Unlinked: Story = {
+  render: () => (
+    <NodeBoard
+      height={320}
+      initial={{
+        nodes: [
+          blockNode(
+            "personality",
+            "brand-personality",
+            { x: 0, y: 0 },
+            {
+              traits: "อบอุ่น จริงใจ ชัดเจน",
+            },
+          ),
+          blockNode("mood", "mood-theme", { x: 400, y: 0 }),
+        ],
+        edges: [],
+      }}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    await ready(canvasElement, 2);
+    const node = nodeEls(canvasElement)[0] as HTMLElement;
+    await expect(node).toHaveAttribute("data-fill", "unlinked");
+    await expect(within(node).getByText("ยังไม่เชื่อม")).toBeVisible();
+    await expect(within(node).getByText("บุคลิก: อบอุ่น จริงใจ ชัดเจน")).toBeVisible();
   },
 };

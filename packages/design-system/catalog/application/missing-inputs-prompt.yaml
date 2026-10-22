@@ -1,21 +1,24 @@
 name: MissingInputsPrompt
 tier: application
-status: planned
+status: draft
 since: E4-4
-import: none
+import: "@orivilo/design-system"
 story: application-missing-inputs-prompt
 useWhen:
-  - "A node that cannot run yet asks for its missing inputs one at a time"
+  - "A block node that still needs required inputs asks for them one at a time (the inspector holds it in part 3)"
 avoidWhen:
-  - "All inputs present"
+  - "A node outside the block registry (its missing list stays a line on the node)"
 contract: MissingInputsPromptProps
-variants: []
+variants: [text, long-text, url, colours, choice, images]
 sizes: []
-states: [0-of-n, k-of-n, complete, blocked]
-recipes: []
+states: [k-of-n, invalid, complete, images-later]
+recipes: [neutral, professional, friendly]
 examples: []
 rules:
-  - "Asks for one input at a time, like collecting items (brief)"
-  - "Each answer is saved to the node at once and the count updates on the node"
+  - "Asks for one input at a time, like collecting items (brief); the questions come from the registry"
+  - "Saving writes the answer to the node at once; the node's count and every downstream node update from the same derived rules"
+  - "Skip moves on without writing; an empty or malformed answer is not saved and the field says why"
+  - "Image inputs say uploads come later and offer skip only; nothing pretends to upload"
 a11y:
-  - "Progress announced; each question is a labelled field"
+  - "A group named for the node; each question is a labelled field; Enter saves"
+  - "Each save is announced in a status line; the k of n line is text, not a bar"

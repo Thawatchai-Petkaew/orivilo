@@ -1177,6 +1177,16 @@
     "width-lg": {
       "$type": "dimension",
       "$value": "{size.node.lg}"
+    },
+    "border-empty": {
+      "$type": "color",
+      "$value": "{border.control}",
+      "$description": "An empty block node (ORV-44 part 2): a dashed frame in this colour; the fill word carries the state"
+    },
+    "swatch-border": {
+      "$type": "color",
+      "$value": "{border.subtle}",
+      "$description": "The hairline around a colour swatch in a summary, so a colour near the card still has an edge"
     }
   },
   "port": {
@@ -1657,6 +1667,123 @@
     "layer": {
       "$type": "number",
       "$value": "{layer.overlay}"
+    }
+  },
+  "shelf": {
+    "$description": "The block library shelf at the bottom of the board (ORV-44 part 2): glass like the toolbar, tiles grouped by module",
+    "bg": {
+      "$type": "color",
+      "$value": "{surface.card}",
+      "$description": "Solid base of the glass; text pairs are proven on it"
+    },
+    "border": {
+      "$type": "color",
+      "$value": "{border.subtle}"
+    },
+    "opacity": {
+      "$type": "number",
+      "$value": "{elevation.glass.opacity}"
+    },
+    "blur": {
+      "$type": "dimension",
+      "$value": "{elevation.glass.blur}"
+    },
+    "shadow": {
+      "$type": "shadow",
+      "$value": "{elevation.overlay}"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.overlay.radius}"
+    },
+    "padding": {
+      "$type": "dimension",
+      "$value": "{space.inset.md}"
+    },
+    "gap": {
+      "$type": "dimension",
+      "$value": "{space.inline.md}"
+    },
+    "fg": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    },
+    "module-fg": {
+      "$type": "color",
+      "$value": "{text.secondary}",
+      "$description": "The module heading above a group of tiles"
+    },
+    "tile-bg": {
+      "$type": "color",
+      "$value": "{surface.card}"
+    },
+    "tile-bg-hover": {
+      "$type": "color",
+      "$value": "{surface.hover}"
+    },
+    "tile-border": {
+      "$type": "color",
+      "$value": "{border.control}",
+      "$description": "A tile already on the board: solid edge; not on the board: dashed"
+    },
+    "tile-state-fg": {
+      "$type": "color",
+      "$value": "{text.secondary}",
+      "$description": "The state word under the block name"
+    },
+    "tile-radius": {
+      "$type": "dimension",
+      "$value": "{shape.media.radius}"
+    },
+    "tile-width": {
+      "$type": "dimension",
+      "$value": "{size.panel.min}",
+      "$description": "The widest a tile grows; a short name keeps it narrower"
+    },
+    "layer": {
+      "$type": "number",
+      "$value": "{layer.overlay}"
+    }
+  },
+  "prompt": {
+    "$description": "MissingInputsPrompt (ORV-44 part 2): one question at a time for a node that still needs inputs",
+    "bg": {
+      "$type": "color",
+      "$value": "{surface.card}"
+    },
+    "fg": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    },
+    "border": {
+      "$type": "color",
+      "$value": "{border.subtle}"
+    },
+    "progress-fg": {
+      "$type": "color",
+      "$value": "{text.secondary}",
+      "$description": "The k of n line"
+    },
+    "done-fg": {
+      "$type": "color",
+      "$value": "{feedback.success.fg}",
+      "$description": "The line that says the node has what it needs"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.container.radius}"
+    },
+    "padding": {
+      "$type": "dimension",
+      "$value": "{space.inset.lg}"
+    },
+    "gap": {
+      "$type": "dimension",
+      "$value": "{space.stack.md}"
+    },
+    "question-type": {
+      "$type": "typography",
+      "$value": "{type.label.md}"
     }
   }
 }

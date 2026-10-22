@@ -60,26 +60,26 @@ Legend: `none` not started, `planned` entry exists, no code, `draft` code and st
 
 ## Application, canvas set (ADR 0004)
 
-| Component           | Status  | Story                           |
-| ------------------- | ------- | ------------------------------- |
-| CanvasBoard         | stable  | application-canvas-board        |
-| CanvasNode          | stable  | application-canvas-node         |
-| NodePort            | stable  | application-node-port           |
-| CanvasEdge          | stable  | application-canvas-edge         |
-| NodeGroup           | stable  | application-node-group          |
-| NodeToolbar         | stable  | application-node-toolbar        |
-| MiniMap             | stable  | application-mini-map            |
-| CanvasControls      | stable  | application-canvas-controls     |
-| CanvasContextMenu   | stable  | application-canvas-context-menu |
-| BlockLibrary        | planned | E4-4                            |
-| Inspector           | planned | E4-4                            |
-| MissingInputsPrompt | planned | E4-4                            |
-| CanvasChat          | planned | E4-5                            |
-| TaskBar             | planned | E4-5                            |
-| CompareStrip        | planned | E4-6                            |
-| VersionBadge        | planned | E4-6                            |
+| Component           | Status  | Story                             |
+| ------------------- | ------- | --------------------------------- |
+| CanvasBoard         | stable  | application-canvas-board          |
+| CanvasNode          | stable  | application-canvas-node           |
+| NodePort            | stable  | application-node-port             |
+| CanvasEdge          | stable  | application-canvas-edge           |
+| NodeGroup           | stable  | application-node-group            |
+| NodeToolbar         | stable  | application-node-toolbar          |
+| MiniMap             | stable  | application-mini-map              |
+| CanvasControls      | stable  | application-canvas-controls       |
+| CanvasContextMenu   | stable  | application-canvas-context-menu   |
+| BlockLibrary        | draft   | application-block-library         |
+| Inspector           | planned | E4-4                              |
+| MissingInputsPrompt | draft   | application-missing-inputs-prompt |
+| CanvasChat          | planned | E4-5                              |
+| TaskBar             | planned | E4-5                              |
+| CompareStrip        | planned | E4-6                              |
+| VersionBadge        | planned | E4-6                              |
 
-Commands and shortcuts for the set: `commands/canvas.yaml` (checked by `check-commands`).
+Commands and shortcuts for the set: `commands/canvas.yaml` (checked by `check-commands`). Blocks of the MVP path: `blocks/mvp.yaml` (checked by `check-blocks`).
 
 ## Marketing
 

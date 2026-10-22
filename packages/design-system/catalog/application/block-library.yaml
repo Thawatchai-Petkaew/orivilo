@@ -1,21 +1,25 @@
 name: BlockLibrary
 tier: application
-status: planned
+status: draft
 since: E4-4
-import: none
+import: "@orivilo/design-system"
 story: application-block-library
 useWhen:
-  - "The left panel of input blocks: search, drag to the board, see what is filled"
+  - "The shelf of every block the board can hold, at the bottom of the board: search, place, see what each block already knows"
 avoidWhen:
-  - "A board with no blocks (empty state invites the first block)"
+  - "Listing nodes already on the board for navigation (use the command menu's node search)"
 contract: BlockLibraryProps
 variants: []
 sizes: []
-states: [empty-search, default, filled, unfilled, collapsed]
-recipes: []
+states: [absent, empty, partial, summarized, unlinked, search-empty, read-only]
+recipes: [neutral, professional, friendly]
 examples: []
 rules:
-  - "Each block shows filled or not from the board's data, never a guess"
-  - "Drag to the board or press Enter to place at the viewport centre"
+  - "Blocks come from the registry (catalog/blocks/mvp.yaml); no tile is listed by hand"
+  - "Each tile shows its state from the board's data as a word and a mark, never a guess and never colour alone; a summarized colour block shows its swatches"
+  - "Drag to the board to place at the drop point; Enter or click places at the viewport centre; a block already on the board is selected and fitted, never added twice"
+  - "Glass like the toolbar, solid under reduced transparency; sits above the board controls"
+  - "Renders inside CanvasBoard (its children); the shell owns the graph and adds the node through onPlace (placeBlock builds it)"
 a11y:
-  - "List is searchable by keyboard; placing a block by keyboard is announced"
+  - "A group named by its heading; search is a labelled searchbox; tiles are one Tab stop with arrow keys, Home and End between them"
+  - "Placing is announced in a status line; Mod+Enter (panel.place-block) also places"

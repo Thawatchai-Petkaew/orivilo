@@ -1349,6 +1349,58 @@
   background: var(--cmp-node-fg-missing);
   color: var(--cmp-node-fg-on-missing);
 }
+/* Block nodes (ORV-44 part 2): the fill state is a word and a mark in the top row; an empty node
+ * has a dashed frame and asks its first question; a filled one shows its rule-based summary. */
+.ds-node[data-fill="empty"] {
+  border-style: dashed;
+  border-color: var(--cmp-node-border-empty);
+}
+.ds-node__fill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-space-inline-sm);
+  color: var(--cmp-node-kind-fg);
+}
+.ds-node__fill svg {
+  width: var(--ds-size-icon-sm);
+  height: var(--ds-size-icon-sm);
+}
+.ds-node__question {
+  margin: 0;
+  color: var(--cmp-node-kind-fg);
+}
+.ds-node__summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-stack-sm);
+}
+.ds-node__lines {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-stack-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ds-node__lines li {
+  overflow-wrap: anywhere;
+}
+.ds-node__rule {
+  color: var(--cmp-node-kind-fg);
+}
+.ds-node__swatches,
+.ds-shelf__swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ds-space-inline-sm);
+}
+/* The swatch colour is the user's data, set inline; the hairline keeps a pale one visible. */
+.ds-node__swatch {
+  width: var(--ds-size-icon-md);
+  height: var(--ds-size-icon-md);
+  border: 1px solid var(--cmp-node-swatch-border);
+  border-radius: var(--ds-shape-check-radius);
+}
 .ds-node__error {
   display: flex;
   align-items: flex-start;
@@ -2388,4 +2440,200 @@
   from {
     transform: translateX(-100%);
   }
+}
+
+/* MissingInputsPrompt (ORV-44 part 2): one question at a time, then a line that says it is done. */
+.ds-prompt {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmp-prompt-gap);
+  padding: var(--cmp-prompt-padding);
+  border: 1px solid var(--cmp-prompt-border);
+  border-radius: var(--cmp-prompt-radius);
+  background: var(--cmp-prompt-bg);
+  color: var(--cmp-prompt-fg);
+}
+.ds-prompt__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmp-prompt-gap);
+}
+.ds-prompt__progress {
+  margin: 0;
+  color: var(--cmp-prompt-progress-fg);
+  font-variant-numeric: tabular-nums;
+}
+.ds-prompt__question {
+  margin: 0;
+  font-family: var(--cmp-prompt-question-type-font-family);
+  font-size: var(--cmp-prompt-question-type-font-size);
+  line-height: var(--cmp-prompt-question-type-line-height);
+  font-weight: var(--cmp-prompt-question-type-font-weight);
+}
+.ds-prompt__upload {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-stack-sm);
+}
+.ds-prompt__note {
+  margin: 0;
+  color: var(--cmp-prompt-progress-fg);
+}
+.ds-prompt__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--ds-space-inline-md);
+}
+.ds-prompt__done {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-inline-md);
+  margin: 0;
+  color: var(--cmp-prompt-done-fg);
+}
+.ds-prompt__done svg {
+  flex: 0 0 auto;
+  width: var(--ds-size-icon-md);
+  height: var(--ds-size-icon-md);
+}
+.ds-prompt__status,
+.ds-shelf__status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* BlockLibrary (ORV-44 part 2): a glass shelf at the bottom of the board, above the controls.
+ * A tile not on the board has a dashed edge; on the board, solid, with its fill word and mark. */
+.ds-board .react-flow__panel.ds-shelf {
+  --_glass: color-mix(
+    in srgb,
+    var(--cmp-shelf-bg) calc(var(--cmp-shelf-opacity) * 100%),
+    transparent
+  );
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmp-shelf-gap);
+  width: max-content;
+  max-width: calc(100% - 2 * var(--ds-space-inset-md));
+  margin: 0 0 calc(var(--ds-size-control-md) + 3 * var(--ds-space-inset-md));
+  padding: var(--cmp-shelf-padding);
+  border: 1px solid var(--cmp-shelf-border);
+  border-radius: var(--cmp-shelf-radius);
+  background: var(--_glass);
+  color: var(--cmp-shelf-fg);
+  box-shadow: var(--cmp-shelf-shadow);
+  backdrop-filter: blur(var(--cmp-shelf-blur));
+  z-index: var(--cmp-shelf-layer);
+}
+@media (prefers-reduced-transparency: reduce) {
+  .ds-board .react-flow__panel.ds-shelf {
+    --_glass: var(--cmp-shelf-bg);
+    backdrop-filter: none;
+  }
+}
+@supports not (backdrop-filter: blur(1px)) {
+  .ds-board .react-flow__panel.ds-shelf {
+    --_glass: var(--cmp-shelf-bg);
+  }
+}
+.ds-shelf__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cmp-shelf-gap);
+}
+.ds-shelf__title,
+.ds-shelf__module {
+  margin: 0;
+  font: inherit;
+}
+.ds-shelf__module {
+  color: var(--cmp-shelf-module-fg);
+}
+.ds-shelf__search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.ds-shelf__search svg {
+  position: absolute;
+  inset-inline-start: var(--ds-space-inset-sm);
+  width: var(--ds-size-icon-sm);
+  height: var(--ds-size-icon-sm);
+  color: var(--cmp-shelf-module-fg);
+  pointer-events: none;
+}
+.ds-shelf__search input {
+  padding-inline-start: calc(var(--ds-space-inset-sm) * 2 + var(--ds-size-icon-sm));
+}
+.ds-shelf__groups {
+  display: flex;
+  gap: var(--ds-space-inline-lg);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+.ds-shelf__group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-stack-sm);
+}
+.ds-shelf__tiles {
+  display: flex;
+  flex: 1 1 auto;
+  gap: var(--cmp-shelf-gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ds-shelf__tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--ds-space-stack-sm);
+  width: max-content;
+  max-width: var(--cmp-shelf-tile-width);
+  height: 100%;
+  padding: var(--ds-space-inset-sm) var(--ds-space-inset-md);
+  border: 1px solid var(--cmp-shelf-tile-border);
+  border-radius: var(--cmp-shelf-tile-radius);
+  background: var(--cmp-shelf-tile-bg);
+  color: var(--cmp-shelf-fg);
+  font: inherit;
+  text-align: start;
+  cursor: grab;
+}
+.ds-shelf__tile[data-state="absent"] {
+  border-style: dashed;
+}
+.ds-shelf__tile:hover:not(:disabled) {
+  background: var(--cmp-shelf-tile-bg-hover);
+}
+.ds-shelf__tile:disabled {
+  cursor: default;
+}
+.ds-shelf__name,
+.ds-shelf__state {
+  white-space: nowrap;
+}
+.ds-shelf__state {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-space-inline-sm);
+  color: var(--cmp-shelf-tile-state-fg);
+}
+.ds-shelf__state svg {
+  flex: 0 0 auto;
+  width: var(--ds-size-icon-sm);
+  height: var(--ds-size-icon-sm);
+}
+.ds-shelf__empty {
+  margin: 0;
+  color: var(--cmp-shelf-module-fg);
 }

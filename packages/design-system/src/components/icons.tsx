@@ -6,6 +6,9 @@ import {
   Compass,
   ChevronDown,
   ChevronUp,
+  CircleCheck,
+  CircleDashed,
+  CircleDotDashed,
   Copy,
   Eye,
   Group,
@@ -34,6 +37,7 @@ import {
   Trash,
   TriangleAlert,
   Undo2,
+  Unlink,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -45,7 +49,7 @@ import {
  * icons from this file only, never from `lucide-react` directly (lint), so the defaults below
  * hold everywhere and only the named glyphs reach the bundle.
  *
- * All 38 glyphs are Lucide today. A glyph Lucide lacks is drawn here as inline SVG on a 20 grid,
+ * All 40 glyphs are Lucide today. A glyph Lucide lacks is drawn here as inline SVG on a 20 grid,
  * stroke 2, round caps and joins, `currentColor`, `aria-hidden`.
  */
 type IconProps = Omit<SVGProps<SVGSVGElement>, "children">;
@@ -109,3 +113,9 @@ export const ReviewStepIcon = lucide(Eye, "ReviewStepIcon");
 // Side panels (E4-4): the reopen control of a collapsed panel, pointing into the board.
 export const PanelStartOpenIcon = lucide(PanelLeftOpen, "PanelStartOpenIcon");
 export const PanelEndOpenIcon = lucide(PanelRightOpen, "PanelEndOpenIcon");
+
+// Fill states of a block node (ORV-44 part 2): a mark beside the word, never colour alone.
+export const FillEmptyIcon = lucide(CircleDashed, "FillEmptyIcon");
+export const FillPartialIcon = lucide(CircleDotDashed, "FillPartialIcon");
+export const FillSummarizedIcon = lucide(CircleCheck, "FillSummarizedIcon");
+export const FillUnlinkedIcon = lucide(Unlink, "FillUnlinkedIcon");

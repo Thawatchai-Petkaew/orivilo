@@ -1,7 +1,9 @@
 "use client";
 
 import type { NodeProps } from "@xyflow/react";
-import { type ComponentType, type SVGProps, useEffect, useState } from "react";
+import { type ComponentType, type SVGProps, useEffect, useMemo, useState } from "react";
+import { type FillState, blockById, fillState, missingInputs, summarize } from "../../blocks/index";
+import { pick } from "../../i18n/locale";
 import { useBoard } from "../canvas-board/context";
 import { type BoardNode, elapsedSince, type NodeStep, type StepTask } from "../canvas-board/graph";
 import {
@@ -9,6 +11,10 @@ import {
   CompareStepIcon,
   DirectionIcon,
   DraftStepIcon,
+  FillEmptyIcon,
+  FillPartialIcon,
+  FillSummarizedIcon,
+  FillUnlinkedIcon,
   GenerateStepIcon,
   GroupIcon,
   InputBlockIcon,
@@ -24,7 +30,7 @@ import {
 } from "../icons";
 import type { NodeKind } from "../../tokens/canvas";
 import { NodePort } from "../node-port/NodePort";
-import { useMessages, useWord } from "../../i18n/LocaleProvider";
+import { useLocale, useMessages, useWord } from "../../i18n/LocaleProvider";
 import { fill } from "../../i18n/messages/index";
 import { CANVAS_WORDS } from "../../tokens/canvas";
 import { NodeToolbar } from "../node-toolbar/NodeToolbar";
@@ -51,6 +57,16 @@ const STEP_ICON: Record<StepTask, Glyph> = {
   review: ReviewStepIcon,
 };
 
+const FILL_ICON: Record<FillState, Glyph> = {
+  empty: FillEmptyIcon,
+  partial: FillPartialIcon,
+  summarized: FillSummarizedIcon,
+  unlinked: FillUnlinkedIcon,
+};
+
+/** Summary lines a node shows before it says how many more there are. */
+const SUMMARY_LINES = 3;
+
 /** The time since a run started, ticking once a second while the node runs. */
 function useElapsed(startedAt: string | undefined, running: boolean): string | undefined {
   const [now, setNow] = useState(() => Date.now());
@@ -71,6 +87,11 @@ function useElapsed(startedAt: string | undefined, running: boolean): string | u
  * ("title, kind") and the selection; this component paints every state from the node tokens.
  * Status is a word and a glyph, never a tint (catalog rule); a running node also turns the AI
  * gradient ring. Steps and time show only when the run reports them.
+ *
+ * A node made from a registry block (ORV-44 part 2) also shows its fill state, derived from its
+ * answers and edges: empty (dashed frame, its first question as the body), partial ("N more to
+ * ask"), summarized, or unlinked; the body is then the rule-based summary, up to three lines,
+ * with a swatch row when it holds colours, labelled as made by rules.
  */
 export function CanvasNode({ id, data, selected, dragging }: CanvasNodeProps) {
   const board = useBoard();
@@ -86,6 +107,20 @@ export function CanvasNode({ id, data, selected, dragging }: CanvasNodeProps) {
   const elapsed = useElapsed(data.startedAt, running);
   const steps = running ? (data.steps ?? []) : [];
   const KindIcon = KIND_ICON[data.kind];
+  const locale = useLocale();
+  const graph = board.graph;
+  const block = useMemo(() => {
+    if (!data.block || !blockById(data.block)) return undefined;
+    const state = fillState(graph, id);
+    const missing = missingInputs(graph, id);
+    return { state, missing, summary: summarize(graph, id, locale) };
+  }, [graph, id, data.block, locale]);
+  const fillWord = block?.state
+    ? block.state === "partial"
+      ? fill(m.node.fill.partial, { count: String(block.missing.length) })
+      : m.node.fill[block.state]
+    : undefined;
+  const FillIcon = block?.state ? FILL_ICON[block.state] : undefined;
   const stepState: Record<NodeStep["state"], string> = {
     done: m.node.stepDone,
     current: m.node.stepCurrent,
@@ -104,6 +139,7 @@ export function CanvasNode({ id, data, selected, dragging }: CanvasNodeProps) {
       data-readonly={board.readOnly ? "" : undefined}
       data-error={data.error ? "" : undefined}
       data-missing={data.missing && data.missing.length > 0 ? "" : undefined}
+      data-fill={block?.state}
       data-connect-candidate={candidate}
       aria-busy={data.status === "running" ? true : undefined}
     >
@@ -122,6 +158,12 @@ export function CanvasNode({ id, data, selected, dragging }: CanvasNodeProps) {
               {status}
             </span>
           ) : null}
+          {fillWord && FillIcon ? (
+            <span className="ds-node__fill" data-fill={block?.state}>
+              <FillIcon />
+              {fillWord}
+            </span>
+          ) : null}
           {elapsed ? (
             <span className="ds-node__elapsed" aria-label={fill(m.node.elapsed, { time: elapsed })}>
               {elapsed}
@@ -132,7 +174,12 @@ export function CanvasNode({ id, data, selected, dragging }: CanvasNodeProps) {
       </div>
       {data.collapsed ? null : (
         <div className="ds-node__body">
-          {body ?? data.summary ?? <span className="ds-node__empty">{m.node.empty}</span>}
+          {body ??
+            (block ? (
+              <BlockBody {...block} />
+            ) : (
+              (data.summary ?? <span className="ds-node__empty">{m.node.empty}</span>)
+            ))}
         </div>
       )}
       {steps.length > 0 && !data.collapsed ? (
@@ -174,6 +221,46 @@ export function CanvasNode({ id, data, selected, dragging }: CanvasNodeProps) {
           </ul>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+/** The body of a block node: its first question while empty, else the rule-based summary. */
+function BlockBody({
+  state,
+  missing,
+  summary,
+}: {
+  state: FillState | undefined;
+  missing: ReturnType<typeof missingInputs>;
+  summary: ReturnType<typeof summarize>;
+}) {
+  const m = useMessages();
+  const locale = useLocale();
+  const first = missing[0];
+  if (state === "empty" && first) {
+    return <p className="ds-node__question">{pick(first.question, locale)}</p>;
+  }
+  const shown = summary.lines.slice(0, SUMMARY_LINES);
+  const more = summary.lines.length - shown.length;
+  return (
+    <div className="ds-node__summary">
+      {summary.colours.length > 0 ? (
+        <span className="ds-node__swatches" aria-hidden>
+          {summary.colours.map((colour) => (
+            <span key={colour} className="ds-node__swatch" style={{ backgroundColor: colour }} />
+          ))}
+        </span>
+      ) : null}
+      <ul className="ds-node__lines">
+        {shown.map((line) => (
+          <li key={line}>{line}</li>
+        ))}
+      </ul>
+      <span className="ds-node__rule">
+        {more > 0 ? `${fill(m.node.moreLines, { count: String(more) })}, ` : null}
+        {m.node.byRules}
+      </span>
     </div>
   );
 }

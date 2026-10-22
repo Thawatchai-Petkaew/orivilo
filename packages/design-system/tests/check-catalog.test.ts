@@ -3,9 +3,10 @@
  * A story in a component tier (base, application, marketing) needs a catalog entry whose `story`
  * field is its id; an entry with status draft or stable needs a story. Foundations stories are
  * documentation, not components, and are exempt. `catalog/commands/` is the command registry, checked
- * by check-commands. Page examples (E2-7): every `examples` path in an entry exists, every page
- * example row in coverage.md with status draft or stable names a story that resolves, and every
- * story under src/examples/ is titled `Examples/`. Runs on the file system; Storybook is not needed.
+ * by check-commands; `catalog/blocks/` is the block registry, checked by check-blocks. Page examples
+ * (E2-7): every `examples` path in an entry exists, every page example row in coverage.md with
+ * status draft or stable names a story that resolves, and every story under src/examples/ is
+ * titled `Examples/`. Runs on the file system; Storybook is not needed.
  */
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
@@ -36,7 +37,8 @@ function walk(dir: string, match: (file: string) => boolean): string[] {
   for (const dirent of readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, dirent.name);
     if (dirent.isDirectory()) {
-      if (["node_modules", "storybook-static", "commands"].includes(dirent.name)) continue;
+      if (["node_modules", "storybook-static", "commands", "blocks"].includes(dirent.name))
+        continue;
       out = out.concat(walk(full, match));
     } else if (match(dirent.name)) {
       out.push(full);
