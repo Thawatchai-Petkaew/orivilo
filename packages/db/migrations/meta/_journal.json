@@ -15,6 +15,20 @@
       "when": 1792686087527,
       "tag": "0001_access",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792690564528,
+      "tag": "0002_directions",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792690565570,
+      "tag": "0003_directions_access",
+      "breakpoints": true
     }
   ]
 }

@@ -21,4 +21,4 @@ export const project = pgTable(
 );
 
 /** Tables that hold one workspace's data; the policy test walks this list. */
-export const TENANT_TABLES = ["project"] as const;
+export const TENANT_TABLES = ["project", "direction", "direction_version"] as const;
