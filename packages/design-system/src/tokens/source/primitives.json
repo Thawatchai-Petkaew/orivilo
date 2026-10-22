@@ -595,7 +595,7 @@
       },
       "plex-sans": {
         "$type": "fontFamily",
-        "$value": ["IBM Plex Sans", "IBM Plex Sans Thai", "system-ui", "sans-serif"]
+        "$value": ["IBM Plex Sans", "Sarabun", "system-ui", "sans-serif"]
       },
       "plex-mono": {
         "$type": "fontFamily",

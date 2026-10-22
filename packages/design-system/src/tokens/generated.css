@@ -144,7 +144,7 @@
   --op-size-0-5: 2px;
   --op-size-0-75: 3px;
   --op-font-family-anuphan: Anuphan, "IBM Plex Sans Thai", system-ui, sans-serif;
-  --op-font-family-plex-sans: "IBM Plex Sans", "IBM Plex Sans Thai", system-ui, sans-serif;
+  --op-font-family-plex-sans: "IBM Plex Sans", Sarabun, system-ui, sans-serif;
   --op-font-family-plex-mono: "IBM Plex Mono", ui-monospace, monospace;
   --op-font-size-12: 12px;
   --op-font-size-13: 13px;

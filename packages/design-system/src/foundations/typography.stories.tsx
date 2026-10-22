@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { expect } from "storybook/test";
 
 interface Step {
   role: string;
@@ -33,8 +34,8 @@ function TypographyPage() {
       <h1 className="font-display text-display-md font-semibold">Typography</h1>
       <p className="mt-2 max-w-prose text-text-secondary">
         Thai and Latin on the same line at each step of the scale. Loopless Anuphan at 24 px and
-        above, looped IBM Plex Sans Thai below. Fonts are self-hosted from this package. No
-        letter-spacing and no text-transform on Thai.
+        above, looped Sarabun below with Latin and digits in IBM Plex Sans. Fonts are self-hosted
+        from this package. No letter-spacing and no text-transform on Thai.
       </p>
       <dl className="mt-8 space-y-8">
         {SCALE.map((step) => (
@@ -77,4 +78,18 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Scale: Story = {};
+/**
+ * The body role sets Thai in looped Sarabun and Latin in IBM Plex Sans (ORV-58): the stack names
+ * Plex first, and the self-hosted Sarabun face loads for a Thai character.
+ */
+export const Scale: Story = {
+  play: async ({ canvasElement }) => {
+    const body = canvasElement.querySelector<HTMLElement>(".font-body");
+    if (!body) throw new Error("no body sample");
+    await expect(getComputedStyle(body).fontFamily).toMatch(/^"IBM Plex Sans", Sarabun,/);
+    const thai = await document.fonts.load("400 16px Sarabun", "ก");
+    await expect(thai.map((f) => f.family.replaceAll('"', ""))).toContain("Sarabun");
+    const latin = await document.fonts.load("400 16px Sarabun", "A");
+    await expect(latin).toHaveLength(0);
+  },
+};
