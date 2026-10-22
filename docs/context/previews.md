@@ -7,6 +7,8 @@ Two Vercel projects deploy from this one repository (ORV-12, E0-3). Each pull re
 | `orivilo`               | `apps/web`               | The ORIVILO app                     | Next.js framework detection          |
 | `orivilo-design-system` | `packages/design-system` | Storybook: the catalog, every state | `packages/design-system/vercel.json` |
 
+Storybook on `main`: https://orivilo-design-system.vercel.app
+
 ## Set up the Storybook project (once, by the owner)
 
 1. In Vercel, Add New Project and pick the `orivilo` repository.
