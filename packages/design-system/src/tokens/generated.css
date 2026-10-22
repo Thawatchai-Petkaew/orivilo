@@ -92,6 +92,14 @@
   --op-color-white: #FFFFFF;
   --op-color-black: #000000;
   --op-color-transparent: transparent;
+  --op-color-graphic-teal-300: #5EEAD4;
+  --op-color-graphic-teal-700: #0F766E;
+  --op-color-graphic-magenta-300: #F0ABFC;
+  --op-color-graphic-magenta-700: #A21CAF;
+  --op-color-graphic-indigo-300: #A5B4FC;
+  --op-color-graphic-indigo-700: #4338CA;
+  --op-color-graphic-orange-300: #FDBA74;
+  --op-color-graphic-orange-700: #C2410C;
   --op-radius-0: 0px;
   --op-radius-2: 2px;
   --op-radius-4: 4px;
@@ -123,6 +131,8 @@
   --op-size-10: 40px;
   --op-size-11: 44px;
   --op-size-12: 48px;
+  --op-size-60: 240px;
+  --op-size-80: 320px;
   --op-size-icon-4: 16px;
   --op-size-icon-5: 20px;
   --op-size-icon-6: 24px;
@@ -131,6 +141,8 @@
   --op-size-container-md: 768px;
   --op-size-container-lg: 1024px;
   --op-size-container-xl: 1280px;
+  --op-size-0-5: 2px;
+  --op-size-0-75: 3px;
   --op-font-family-anuphan: Anuphan, "IBM Plex Sans Thai", system-ui, sans-serif;
   --op-font-family-plex-sans: "IBM Plex Sans", "IBM Plex Sans Thai", system-ui, sans-serif;
   --op-font-family-plex-mono: "IBM Plex Mono", ui-monospace, monospace;
@@ -165,6 +177,7 @@
   --op-opacity-glow-light: 0.35;
   --op-opacity-glow-dark: 0.14;
   --op-opacity-scrim: 0.48;
+  --op-opacity-selection: 0.16;
   --op-duration-0: 0ms;
   --op-duration-120: 120ms;
   --op-duration-200: 200ms;
@@ -180,6 +193,9 @@
   --op-z-sticky: 100;
   --op-z-overlay: 1000;
   --op-z-toast: 1100;
+  --op-dash-solid: none;
+  --op-dash-dashed: 8 6;
+  --op-dash-dotted: 2 5;
   --ds-surface-canvas: var(--op-color-gray-50);
   --ds-surface-card: var(--op-color-white);
   --ds-surface-raised: var(--op-color-gray-25);
@@ -189,6 +205,7 @@
   --ds-surface-disabled: var(--op-color-gray-200);
   --ds-surface-inverse: var(--op-color-gray-900);
   --ds-surface-scrim: var(--op-color-black);
+  --ds-surface-board: var(--op-color-gray-100);
   --ds-text-primary: var(--op-color-gray-900);
   --ds-text-secondary: var(--op-color-gray-600);
   --ds-text-tertiary: var(--op-color-gray-600);
@@ -255,6 +272,7 @@
   --ds-space-bento-gap: var(--op-space-4);
   --ds-space-row-block-comfortable: var(--op-space-3);
   --ds-space-row-block-compact: var(--op-space-2);
+  --ds-space-grid-gap: var(--op-space-6);
   --ds-size-control-sm: var(--op-size-8);
   --ds-size-control-md: var(--op-size-10);
   --ds-size-control-lg: var(--op-size-12);
@@ -262,6 +280,10 @@
   --ds-size-icon-sm: var(--op-size-icon-4);
   --ds-size-icon-md: var(--op-size-icon-5);
   --ds-size-icon-lg: var(--op-size-icon-6);
+  --ds-size-node-sm: var(--op-size-60);
+  --ds-size-node-md: var(--op-size-80);
+  --ds-size-node-lg: var(--op-size-container-xs);
+  --ds-size-port: var(--op-size-icon-4);
   --ds-type-display-lg-font-family: var(--op-font-family-anuphan);
   --ds-type-display-lg-font-size: var(--op-font-size-56);
   --ds-type-display-lg-line-height: var(--op-font-line-height-1-2);
@@ -332,11 +354,32 @@
   --ds-motion-easing: var(--op-easing-out);
   --ds-opacity-disabled: var(--op-opacity-disabled);
   --ds-opacity-scrim: var(--op-opacity-scrim);
+  --ds-opacity-selection: var(--op-opacity-selection);
   --ds-font-display: var(--op-font-family-anuphan);
   --ds-font-body: var(--op-font-family-plex-sans);
   --ds-font-mono: var(--op-font-family-plex-mono);
   --ds-layer-overlay: var(--op-z-overlay);
   --ds-layer-tooltip: var(--op-z-toast);
+  --ds-canvas-grid: var(--op-color-gray-300);
+  --ds-canvas-selection: var(--op-color-violet-600);
+  --ds-port-text: var(--op-color-gray-900);
+  --ds-port-image: var(--op-color-graphic-teal-700);
+  --ds-port-palette: var(--op-color-graphic-magenta-700);
+  --ds-port-type: var(--op-color-graphic-indigo-700);
+  --ds-port-profile: var(--op-color-graphic-orange-700);
+  --ds-edge-stroke: var(--op-color-gray-600);
+  --ds-edge-stroke-hover: var(--op-color-gray-900);
+  --ds-edge-stroke-selected: var(--op-color-violet-600);
+  --ds-edge-stroke-invalid: var(--op-color-red-700);
+  --ds-edge-stroke-stale: var(--op-color-amber-700);
+  --ds-edge-width: var(--op-size-0-5);
+  --ds-edge-width-selected: var(--op-size-0-75);
+  --ds-edge-dash-input: var(--op-dash-solid);
+  --ds-edge-dash-reference: var(--op-dash-dashed);
+  --ds-edge-dash-derived: var(--op-dash-dotted);
+  --ds-status-running: var(--op-color-blue-700);
+  --ds-status-stale: var(--op-color-amber-700);
+  --ds-status-locked: var(--op-color-gray-600);
 }
 
 /* Semantic dark: a remap by role, not an inversion (DESIGN.md §3.2) */
@@ -351,6 +394,7 @@
   --ds-surface-disabled: var(--op-color-gray-700);
   --ds-surface-inverse: var(--op-color-gray-50);
   --ds-surface-scrim: var(--op-color-black);
+  --ds-surface-board: var(--op-color-gray-950);
   --ds-text-primary: var(--op-color-gray-100);
   --ds-text-secondary: var(--op-color-gray-400);
   --ds-text-tertiary: var(--op-color-gray-400);
@@ -400,6 +444,21 @@
   --ds-feedback-info-border: var(--op-color-blue-700);
   --ds-elevation-overlay: var(--op-shadow-overlay-dark);
   --ds-elevation-glow-opacity: var(--op-opacity-glow-dark);
+  --ds-canvas-grid: var(--op-color-gray-700);
+  --ds-canvas-selection: var(--op-color-violet-400);
+  --ds-port-text: var(--op-color-gray-100);
+  --ds-port-image: var(--op-color-graphic-teal-300);
+  --ds-port-palette: var(--op-color-graphic-magenta-300);
+  --ds-port-type: var(--op-color-graphic-indigo-300);
+  --ds-port-profile: var(--op-color-graphic-orange-300);
+  --ds-edge-stroke: var(--op-color-gray-400);
+  --ds-edge-stroke-hover: var(--op-color-gray-100);
+  --ds-edge-stroke-selected: var(--op-color-violet-400);
+  --ds-edge-stroke-invalid: var(--op-color-red-400);
+  --ds-edge-stroke-stale: var(--op-color-amber-400);
+  --ds-status-running: var(--op-color-blue-300);
+  --ds-status-stale: var(--op-color-amber-400);
+  --ds-status-locked: var(--op-color-gray-400);
 }
 
 /* The same dark values for a system boundary when the OS prefers dark; no script, no flash. */
@@ -415,6 +474,7 @@
     --ds-surface-disabled: var(--op-color-gray-700);
     --ds-surface-inverse: var(--op-color-gray-50);
     --ds-surface-scrim: var(--op-color-black);
+    --ds-surface-board: var(--op-color-gray-950);
     --ds-text-primary: var(--op-color-gray-100);
     --ds-text-secondary: var(--op-color-gray-400);
     --ds-text-tertiary: var(--op-color-gray-400);
@@ -464,6 +524,21 @@
     --ds-feedback-info-border: var(--op-color-blue-700);
     --ds-elevation-overlay: var(--op-shadow-overlay-dark);
     --ds-elevation-glow-opacity: var(--op-opacity-glow-dark);
+    --ds-canvas-grid: var(--op-color-gray-700);
+    --ds-canvas-selection: var(--op-color-violet-400);
+    --ds-port-text: var(--op-color-gray-100);
+    --ds-port-image: var(--op-color-graphic-teal-300);
+    --ds-port-palette: var(--op-color-graphic-magenta-300);
+    --ds-port-type: var(--op-color-graphic-indigo-300);
+    --ds-port-profile: var(--op-color-graphic-orange-300);
+    --ds-edge-stroke: var(--op-color-gray-400);
+    --ds-edge-stroke-hover: var(--op-color-gray-100);
+    --ds-edge-stroke-selected: var(--op-color-violet-400);
+    --ds-edge-stroke-invalid: var(--op-color-red-400);
+    --ds-edge-stroke-stale: var(--op-color-amber-400);
+    --ds-status-running: var(--op-color-blue-300);
+    --ds-status-stale: var(--op-color-amber-400);
+    --ds-status-locked: var(--op-color-gray-400);
   }
 }
 
@@ -774,6 +849,84 @@
   --cmp-field-text-type-font-weight: var(--ds-type-body-sm-font-weight);
   --cmp-field-text-type-letter-spacing: var(--ds-type-body-sm-letter-spacing);
   --cmp-textarea-radius: var(--ds-shape-media-radius);
+  --cmp-board-bg: var(--ds-surface-board);
+  --cmp-board-grid: var(--ds-canvas-grid);
+  --cmp-board-grid-gap: var(--ds-space-grid-gap);
+  --cmp-board-selection: var(--ds-canvas-selection);
+  --cmp-board-selection-opacity: var(--ds-opacity-selection);
+  --cmp-node-bg: var(--ds-surface-card);
+  --cmp-node-fg: var(--ds-text-primary);
+  --cmp-node-border: var(--ds-border-card);
+  --cmp-node-border-hover: var(--ds-border-control-hover);
+  --cmp-node-border-selected: var(--ds-canvas-selection);
+  --cmp-node-border-error: var(--ds-border-error);
+  --cmp-node-header-bg: var(--ds-surface-sunken);
+  --cmp-node-header-fg: var(--ds-text-primary);
+  --cmp-node-kind-fg: var(--ds-text-secondary);
+  --cmp-node-header-type-font-family: var(--ds-type-label-md-font-family);
+  --cmp-node-header-type-font-size: var(--ds-type-label-md-font-size);
+  --cmp-node-header-type-line-height: var(--ds-type-label-md-line-height);
+  --cmp-node-header-type-font-weight: var(--ds-type-label-md-font-weight);
+  --cmp-node-header-type-letter-spacing: var(--ds-type-label-md-letter-spacing);
+  --cmp-node-body-type-font-family: var(--ds-type-body-sm-font-family);
+  --cmp-node-body-type-font-size: var(--ds-type-body-sm-font-size);
+  --cmp-node-body-type-line-height: var(--ds-type-body-sm-line-height);
+  --cmp-node-body-type-font-weight: var(--ds-type-body-sm-font-weight);
+  --cmp-node-body-type-letter-spacing: var(--ds-type-body-sm-letter-spacing);
+  --cmp-node-fg-locked: var(--ds-status-locked);
+  --cmp-node-fg-running: var(--ds-status-running);
+  --cmp-node-fg-stale: var(--ds-status-stale);
+  --cmp-node-fg-missing: var(--ds-action-intent);
+  --cmp-node-fg-on-missing: var(--ds-text-on-intent);
+  --cmp-node-fg-error: var(--ds-feedback-danger-fg);
+  --cmp-node-radius: var(--ds-shape-media-radius);
+  --cmp-node-shadow: var(--ds-elevation-shell);
+  --cmp-node-padding: var(--ds-space-inset-md);
+  --cmp-node-gap: var(--ds-space-stack-sm);
+  --cmp-node-width-sm: var(--ds-size-node-sm);
+  --cmp-node-width-md: var(--ds-size-node-md);
+  --cmp-node-width-lg: var(--ds-size-node-lg);
+  --cmp-port-size: var(--ds-size-port);
+  --cmp-port-ring: var(--ds-surface-card);
+  --cmp-port-ring-width: var(--ds-edge-width);
+  --cmp-port-text: var(--ds-port-text);
+  --cmp-port-image: var(--ds-port-image);
+  --cmp-port-palette: var(--ds-port-palette);
+  --cmp-port-type: var(--ds-port-type);
+  --cmp-port-profile: var(--ds-port-profile);
+  --cmp-port-fg-valid: var(--ds-feedback-success-fg);
+  --cmp-port-fg-invalid: var(--ds-feedback-danger-fg);
+  --cmp-port-fg-disabled: var(--ds-text-disabled);
+  --cmp-port-opacity-disabled: var(--ds-opacity-disabled);
+  --cmp-edge-stroke: var(--ds-edge-stroke);
+  --cmp-edge-stroke-hover: var(--ds-edge-stroke-hover);
+  --cmp-edge-stroke-selected: var(--ds-edge-stroke-selected);
+  --cmp-edge-stroke-invalid: var(--ds-edge-stroke-invalid);
+  --cmp-edge-stroke-stale: var(--ds-edge-stroke-stale);
+  --cmp-edge-width: var(--ds-edge-width);
+  --cmp-edge-width-selected: var(--ds-edge-width-selected);
+  --cmp-edge-dash-input: var(--ds-edge-dash-input);
+  --cmp-edge-dash-reference: var(--ds-edge-dash-reference);
+  --cmp-edge-dash-derived: var(--ds-edge-dash-derived);
+  --cmp-edge-label-bg: var(--ds-surface-card);
+  --cmp-edge-label-fg: var(--ds-text-secondary);
+  --cmp-edge-label-type-font-family: var(--ds-type-label-sm-font-family);
+  --cmp-edge-label-type-font-size: var(--ds-type-label-sm-font-size);
+  --cmp-edge-label-type-line-height: var(--ds-type-label-sm-line-height);
+  --cmp-edge-label-type-font-weight: var(--ds-type-label-sm-font-weight);
+  --cmp-edge-label-type-letter-spacing: var(--ds-type-label-sm-letter-spacing);
+  --cmp-edge-label-radius: var(--ds-shape-control-radius);
+  --cmp-group-bg: var(--ds-surface-raised);
+  --cmp-group-border: var(--ds-border-subtle);
+  --cmp-group-border-selected: var(--ds-canvas-selection);
+  --cmp-group-label-fg: var(--ds-text-secondary);
+  --cmp-group-label-type-font-family: var(--ds-type-label-md-font-family);
+  --cmp-group-label-type-font-size: var(--ds-type-label-md-font-size);
+  --cmp-group-label-type-line-height: var(--ds-type-label-md-line-height);
+  --cmp-group-label-type-font-weight: var(--ds-type-label-md-font-weight);
+  --cmp-group-label-type-letter-spacing: var(--ds-type-label-md-letter-spacing);
+  --cmp-group-radius: var(--ds-shape-container-radius);
+  --cmp-group-padding: var(--ds-space-inset-lg);
 }
 
 /* Tailwind utilities resolve to semantic tokens only (DESIGN.md §5). The defaults are removed first
@@ -793,6 +946,7 @@
   --color-surface-disabled: var(--ds-surface-disabled);
   --color-surface-inverse: var(--ds-surface-inverse);
   --color-surface-scrim: var(--ds-surface-scrim);
+  --color-surface-board: var(--ds-surface-board);
   --color-text-primary: var(--ds-text-primary);
   --color-text-secondary: var(--ds-text-secondary);
   --color-text-tertiary: var(--ds-text-tertiary);
@@ -899,4 +1053,19 @@
   --font-display: var(--ds-font-display);
   --font-body: var(--ds-font-body);
   --font-mono: var(--ds-font-mono);
+  --color-canvas-grid: var(--ds-canvas-grid);
+  --color-canvas-selection: var(--ds-canvas-selection);
+  --color-port-text: var(--ds-port-text);
+  --color-port-image: var(--ds-port-image);
+  --color-port-palette: var(--ds-port-palette);
+  --color-port-type: var(--ds-port-type);
+  --color-port-profile: var(--ds-port-profile);
+  --color-edge-stroke: var(--ds-edge-stroke);
+  --color-edge-stroke-hover: var(--ds-edge-stroke-hover);
+  --color-edge-stroke-selected: var(--ds-edge-stroke-selected);
+  --color-edge-stroke-invalid: var(--ds-edge-stroke-invalid);
+  --color-edge-stroke-stale: var(--ds-edge-stroke-stale);
+  --color-status-running: var(--ds-status-running);
+  --color-status-stale: var(--ds-status-stale);
+  --color-status-locked: var(--ds-status-locked);
 }
