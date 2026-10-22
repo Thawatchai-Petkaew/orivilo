@@ -1,7 +1,7 @@
 ---
 issue: ORV-35 (draft key E2-12; https://tpetkaew.atlassian.net/browse/ORV-35)
 lane: L
-version: 1.0
+version: 1.1
 ---
 
 ## Why
@@ -17,10 +17,10 @@ The Studio's two directions (ORV-34) are gone on reload. ORV-38 gave people, wor
 
 ## Parts
 
-| Part | Content                                                                                                                                      | Status    |
-| ---- | -------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
-| 1    | Snapshot and file format in `intent-engine`; tables, immutability and row security in `db`; draft, approve, list and read through the helper | This spec |
-| 2    | Studio wiring in `apps/web`: save, approve, version list, export and import buttons, signed-out state; Storybook story for the new props     | Next PR   |
+| Part | Content                                                                                                                                      | Status       |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| 1    | Snapshot and file format in `intent-engine`; tables, immutability and row security in `db`; draft, approve, list and read through the helper | Merged (#42) |
+| 2    | Studio wiring in `apps/web`: save, approve, version list, export and import buttons, signed-out state; Storybook story for the new props     | This PR      |
 
 ## Story
 
@@ -50,9 +50,22 @@ As a person shaping a direction in the Studio, I want to save it, approve the on
 | 9   | A snapshot whose client fingerprint was altered  | Saving                                    | The server stores its own recomputed fingerprint, or refuses when replay fails                      | Integration test             |
 | 10  | An exported file                                 | Importing it                              | A new draft whose replay matches the export; a malformed or altered file is refused with the reason | Engine and integration tests |
 
+### Part 2 (Studio)
+
+| #   | Given                                         | When                                       | Then                                                                                                                         | Evidence                               |
+| --- | --------------------------------------------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| 11  | The studio showing a direction                | It changes                                 | It reports the engine's inputs once per change (never the output), `null` while nothing is offered                           | Storybook `SaveAndReopen`, `NotRead`   |
+| 12  | A reported state                              | Reopening it with `studioPropsFrom`        | The same viewed direction, the same refinement, the same preview profile and an equal reported state                         | Storybook `SaveAndReopen`              |
+| 13  | Signed out on /directions                     | Opening the page                           | The studio works; the panel says nothing is saved and links to /account                                                      | Browser check                          |
+| 14  | Signed in as the owner                        | Save, approve, edit and save, open, export | Draft, then version 1 with its badge, then a new draft beside it; opening version 1 brings back its look; the file downloads | Browser check against a local database |
+| 15  | The exported file, a tampered one, a non-JSON | Importing each                             | A new draft that opens with the same look; the tampered and the non-JSON files are refused with the reason in words          | Browser check against a local database |
+
+## Changelog
+
+- 1.1: part 2 acceptance criteria (11 to 15).
+
 ## Out of scope
 
-- The Studio buttons, version list and file download (part 2 of this spec).
 - Deleting directions, comparing versions (E4-6 CompareStrip and VersionBadge), sharing outside the workspace.
 - Token and asset export beyond the direction file (E3-5 and later).
 

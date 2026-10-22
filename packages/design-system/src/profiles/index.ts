@@ -3,6 +3,7 @@ import primitives from "../tokens/source/primitives.json" with { type: "json" };
 import semantic from "../tokens/source/semantic.json" with { type: "json" };
 import friendly from "./source/friendly.json" with { type: "json" };
 import professional from "./source/professional.json" with { type: "json" };
+import type { CuratedProfile } from "@orivilo/intent-engine";
 import { type BaseSources, Profile, type ProfileSource } from "./model.ts";
 
 const base: BaseSources = { primitives, semantic, component };
@@ -16,6 +17,16 @@ export const profiles: readonly Profile[] = [
   new Profile(base, professional as ProfileSource),
   new Profile(base, friendly as ProfileSource),
 ];
+
+/**
+ * The hand-made profiles as the engine takes them; `profiles.test.ts` proves their decisions fit
+ * the vocabulary. The Studio and the server (ORV-35) read the same list, so a saved snapshot replays
+ * against exactly what the person saw.
+ */
+export const CURATED_PROFILES: readonly CuratedProfile[] = profiles.map((p) => ({
+  id: p.id,
+  decisions: p.decisions as CuratedProfile["decisions"],
+}));
 
 export const PROFILE_IDS = ["neutral", ...profiles.map((p) => p.id)] as const;
 

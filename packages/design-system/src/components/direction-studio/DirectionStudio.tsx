@@ -7,7 +7,7 @@ import {
   type RecommendOptions,
   recommendDirections,
 } from "@orivilo/intent-engine";
-import { type ReactNode, useId, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useEffectEvent, useId, useMemo, useState } from "react";
 import {
   DesignProfileBoundary,
   type ProfileId,
@@ -18,6 +18,7 @@ import { useLocale, useMessages } from "../../i18n/LocaleProvider";
 import { fill } from "../../i18n/messages/index";
 import {
   componentsReading,
+  CURATED_PROFILES,
   DECISIONS,
   donorFor,
   isRefinable,
@@ -39,6 +40,20 @@ import { ToggleGroup, ToggleGroupItem } from "../toggle-group/ToggleGroup";
 type Messages = ReturnType<typeof useMessages>["direction"];
 type Key = keyof Messages["keys"];
 type Value = keyof Messages["values"];
+type Adjustments = NonNullable<RecommendOptions["adjustments"]>;
+
+/**
+ * What the studio shows, as the engine's inputs (ORV-35): enough to save it and to open it again
+ * with the same look. `null` while no direction is offered.
+ */
+export interface DirectionStudioState {
+  brief: string;
+  /** The direction being viewed. */
+  profileId: string;
+  locked: NonNullable<RecommendOptions["locked"]>;
+  /** The caller's adjustments and the refinements, in the order the engine takes them. */
+  adjustments: Adjustments;
+}
 
 export interface DirectionStudioProps {
   /** The reference screen shown under the direction being viewed; the same element for every direction, so what the person typed stays. */
@@ -49,14 +64,39 @@ export interface DirectionStudioProps {
   locked?: RecommendOptions["locked"];
   /** Decisions a person set by hand, each with its reason. */
   adjustments?: RecommendOptions["adjustments"];
+  /** The direction to view first, when the brief offers it. */
+  defaultProfileId?: string | undefined;
+  /** Refinements the studio opens with (a saved direction). */
+  defaultRefinements?: Refinements | undefined;
+  /** Called with what the studio shows whenever it changes. */
+  onChange?: ((state: DirectionStudioState | null) => void) | undefined;
   className?: string | undefined;
 }
 
-/** The hand-made profiles as the engine takes them; `profiles.test.ts` proves their decisions fit the vocabulary. */
-const CURATED = profiles.map((p) => ({
-  id: p.id,
-  decisions: p.decisions as RecommendOptions["profiles"][number]["decisions"],
-}));
+/**
+ * The props that open a saved state with the same look: refinable adjustments come back as
+ * refinements, the rest stay adjustments. Remount the studio (a new `key`) to open another.
+ */
+export function studioPropsFrom(
+  state: DirectionStudioState,
+): Pick<
+  DirectionStudioProps,
+  "defaultBrief" | "defaultProfileId" | "defaultRefinements" | "locked" | "adjustments"
+> {
+  const defaultRefinements: Refinements = {};
+  const adjustments: Adjustments = [];
+  for (const a of state.adjustments) {
+    if (isRefinable(a.set)) defaultRefinements[a.set] = a.to;
+    else adjustments.push(a);
+  }
+  return {
+    defaultBrief: state.brief,
+    defaultProfileId: state.profileId,
+    defaultRefinements,
+    locked: state.locked,
+    adjustments,
+  };
+}
 
 const PRESETS = [
   ["preset1", "preset1Text"],
@@ -308,6 +348,9 @@ export function DirectionStudio({
   defaultBrief = "",
   locked,
   adjustments,
+  defaultProfileId,
+  defaultRefinements,
+  onChange,
   className,
 }: DirectionStudioProps) {
   const all = useMessages();
@@ -316,8 +359,8 @@ export function DirectionStudio({
   const scope = useDesignProfile();
   const briefId = useId();
   const [brief, setBrief] = useState(defaultBrief);
-  const [picked, setPicked] = useState<string | null>(null);
-  const [refinements, setRefinements] = useState<Refinements>({});
+  const [picked, setPicked] = useState<string | null>(defaultProfileId ?? null);
+  const [refinements, setRefinements] = useState<Refinements>(defaultRefinements ?? {});
 
   // A refinement is the expert layer (ADR 0007): an adjustment with its reason, after the caller's.
   const allAdjustments = useMemo(() => {
@@ -325,7 +368,7 @@ export function DirectionStudio({
     return [
       ...(adjustments ?? []).filter((a) => !refined.includes(a.set)),
       ...Object.entries(refinements).map(([set, to]) => ({ set, to, reason: m.refineReason })),
-    ] as NonNullable<RecommendOptions["adjustments"]>;
+    ] as Adjustments;
   }, [adjustments, refinements, m.refineReason]);
 
   const result = useMemo(
@@ -333,7 +376,7 @@ export function DirectionStudio({
       brief.trim() === ""
         ? null
         : recommendDirections(brief, {
-            profiles: CURATED,
+            profiles: CURATED_PROFILES,
             ...(locked ? { locked } : {}),
             ...(allAdjustments.length > 0 ? { adjustments: allAdjustments } : {}),
           }),
@@ -354,6 +397,21 @@ export function DirectionStudio({
   }, [viewing, refinements, locked]);
   const shown: Profile | undefined = refined ?? viewingProfile;
   const mode = scope?.mode === "dark" ? "dark" : "light";
+
+  // Reports the engine's inputs, not the output, so the caller can save and replay them.
+  // Compared by value, so a caller passing new but equal locks or adjustments does not report again.
+  const state: DirectionStudioState | null =
+    result && viewing
+      ? {
+          brief: brief.trim(),
+          profileId: viewing,
+          locked: locked ?? {},
+          adjustments: allAdjustments,
+        }
+      : null;
+  const stateKey = JSON.stringify(state);
+  const report = useEffectEvent(() => onChange?.(state));
+  useEffect(() => report(), [stateKey]);
 
   const personality = result?.interpretation.facts.personality ?? {};
   const axes = PERSONALITY_AXES.filter((a) => personality[a] !== undefined);

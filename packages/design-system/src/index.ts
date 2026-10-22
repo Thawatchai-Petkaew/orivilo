@@ -11,6 +11,7 @@ export {
   type ProfileId,
 } from "./boundary/DesignProfileBoundary";
 export {
+  CURATED_PROFILES,
   DECISIONS,
   LOCKED_GROUPS,
   PROFILE_IDS,

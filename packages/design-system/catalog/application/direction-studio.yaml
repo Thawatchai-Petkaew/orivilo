@@ -12,7 +12,18 @@ avoidWhen:
 contract: DirectionStudioProps
 variants: []
 sizes: []
-states: [recommended-and-contrast, switched, tie, not-read, locked, refined, refine-locked, traced]
+states:
+  [
+    recommended-and-contrast,
+    switched,
+    tie,
+    not-read,
+    locked,
+    refined,
+    refine-locked,
+    traced,
+    reopened,
+  ]
 recipes: [neutral, professional, friendly]
 examples:
   - src/examples/workspace.tsx
@@ -26,6 +37,8 @@ rules:
   - "Only shape, type and motion are refinable; a refined value is borrowed from a hand-made profile that has it, so colours and contrast never change"
   - "A value no profile expresses is disabled with a note; a brand lock disables its group and says so"
   - "A refinement reaches the engine as an adjustment with its reason, and the trace shows where each decision came from"
+  - "onChange reports the engine's inputs (brief, viewed direction, locks, adjustments), never the output, and null while no direction is offered; saving stores those inputs (ORV-35)"
+  - "studioPropsFrom opens a reported state with the same look: refinable adjustments return as refinements; open another state with a new key"
 a11y:
   - "The reading, the directions and the preview are regions named by their headings"
   - "Each view button names its direction and reports aria-pressed; the preview's line is announced politely when the direction changes"
