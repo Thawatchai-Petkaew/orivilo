@@ -26,37 +26,37 @@ Legend: `none` not started, `planned` entry exists, no code, `draft` code and st
 | Breadcrumb    | none    |                    |
 | Pagination    | none    |                    |
 | Progress      | planned | E4-5               |
-| Slider        | planned | E4-4               |
+| Slider        | draft   | base-slider        |
 | Toast         | planned | E4-5               |
 | File upload   | none    |                    |
 | Date picker   | none    |                    |
 | Popover       | stable  | E2-4               |
 | ContextMenu   | stable  | base-context-menu  |
 | ToggleGroup   | stable  | base-toggle-group  |
-| ScrollArea    | planned | E4-4               |
+| ScrollArea    | draft   | base-scroll-area   |
 | Kbd           | stable  | base-kbd           |
-| Resizable     | planned | E4-4               |
+| Resizable     | draft   | base-resizable     |
 
 ## Application
 
-| Component               | Status  | Story                      |
-| ----------------------- | ------- | -------------------------- |
-| Dialog                  | stable  | application-dialog         |
-| Card                    | stable  | application-card           |
-| Table                   | stable  | application-table          |
-| Sheet                   | planned | E4-4                       |
-| Top navigation          | none    |                            |
-| Sidebar navigation      | none    |                            |
-| Page header             | none    |                            |
-| Section header          | none    |                            |
-| Empty state             | none    |                            |
-| Loading state           | none    |                            |
-| Command menu            | stable  | application-command-menu   |
-| Shortcut sheet          | stable  | application-shortcut-sheet |
-| Metric                  | none    |                            |
-| Filters                 | none    |                            |
-| Settings layout         | none    |                            |
-| ConfirmDialog (pattern) | none    |                            |
+| Component               | Status | Story                      |
+| ----------------------- | ------ | -------------------------- |
+| Dialog                  | stable | application-dialog         |
+| Card                    | stable | application-card           |
+| Table                   | stable | application-table          |
+| Sheet                   | draft  | application-sheet          |
+| Top navigation          | none   |                            |
+| Sidebar navigation      | none   |                            |
+| Page header             | none   |                            |
+| Section header          | none   |                            |
+| Empty state             | none   |                            |
+| Loading state           | none   |                            |
+| Command menu            | stable | application-command-menu   |
+| Shortcut sheet          | stable | application-shortcut-sheet |
+| Metric                  | none   |                            |
+| Filters                 | none   |                            |
+| Settings layout         | none   |                            |
+| ConfirmDialog (pattern) | none   |                            |
 
 ## Application, canvas set (ADR 0004)
 

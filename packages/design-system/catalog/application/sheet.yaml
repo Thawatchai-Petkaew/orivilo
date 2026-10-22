@@ -1,20 +1,23 @@
 name: Sheet
 tier: application
-status: planned
+status: draft
 since: E4-4
-import: none
+import: "@orivilo/design-system"
 story: application-sheet
 useWhen:
   - "A side panel for a longer task that keeps the canvas visible: the inspector on small screens"
 avoidWhen:
   - "A short confirmation (use Dialog)"
-contract: SheetProps
-variants: []
+contract: SheetContentProps
+variants: [end, start]
 sizes: [md, lg]
-states: [closed, open, pending]
-recipes: []
+states: [closed, open, pending, error]
+recipes: [neutral, professional, friendly]
 examples: []
 rules:
-  - "Portal content receives the trigger's DesignProfileBoundary; a test proves it"
+  - "Portal content receives the trigger's DesignProfileBoundary; the InsideProfile story proves it"
+  - "Never wider than the viewport less the gutter"
+  - "The body scrolls on its own and is a Tab stop"
 a11y:
-  - "Focus trapped while open; Escape closes unless pending"
+  - "Focus trapped while open and returned to the trigger; Escape closes unless pending"
+  - "The title is the accessible name; the error has role alert"

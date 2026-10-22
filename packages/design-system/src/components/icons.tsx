@@ -21,6 +21,8 @@ import {
   Minus,
   PenLine,
   MousePointer2,
+  PanelLeftOpen,
+  PanelRightOpen,
   Plus,
   Redo2,
   Scale,
@@ -43,7 +45,7 @@ import {
  * icons from this file only, never from `lucide-react` directly (lint), so the defaults below
  * hold everywhere and only the named glyphs reach the bundle.
  *
- * All 36 glyphs are Lucide today. A glyph Lucide lacks is drawn here as inline SVG on a 20 grid,
+ * All 38 glyphs are Lucide today. A glyph Lucide lacks is drawn here as inline SVG on a 20 grid,
  * stroke 2, round caps and joins, `currentColor`, `aria-hidden`.
  */
 type IconProps = Omit<SVGProps<SVGSVGElement>, "children">;
@@ -103,3 +105,7 @@ export const DraftStepIcon = lucide(PenLine, "DraftStepIcon");
 export const CompareStepIcon = lucide(Scale, "CompareStepIcon");
 export const GenerateStepIcon = lucide(Sparkles, "GenerateStepIcon");
 export const ReviewStepIcon = lucide(Eye, "ReviewStepIcon");
+
+// Side panels (E4-4): the reopen control of a collapsed panel, pointing into the board.
+export const PanelStartOpenIcon = lucide(PanelLeftOpen, "PanelStartOpenIcon");
+export const PanelEndOpenIcon = lucide(PanelRightOpen, "PanelEndOpenIcon");

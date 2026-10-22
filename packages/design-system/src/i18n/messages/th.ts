@@ -32,6 +32,11 @@ export const th = {
     arrowLeft: "ลูกศรซ้าย",
     arrowRight: "ลูกศรขวา",
   },
+  resizable: {
+    handle: "ปรับความกว้างของ{panel}",
+    reopen: "เปิด{panel}",
+    width: "กว้าง {px} พิกเซล",
+  },
   sheet: {
     title: "คีย์ลัดทั้งหมด",
     description: "คีย์ทุกตัวมาจากทะเบียนคำสั่งของกระดาน คำสั่งที่ยังไม่มีบอกไว้ว่ามาในเรื่องไหน",

@@ -870,6 +870,35 @@
       "$type": "dimension",
       "$value": "{size.icon-4}",
       "$description": "Port hit shape, 16; the ring adds 2 on each side"
+    },
+    "panel": {
+      "min": {
+        "$type": "dimension",
+        "$value": "{size.60}",
+        "$description": "Narrowest a side panel (block library, inspector) resizes to, 240"
+      },
+      "default": {
+        "$type": "dimension",
+        "$value": "{size.80}",
+        "$description": "A side panel's first width, 320"
+      },
+      "max": {
+        "$type": "dimension",
+        "$value": "{size.container-xs}",
+        "$description": "Widest a side panel resizes to, 480"
+      }
+    },
+    "sheet": {
+      "md": {
+        "$type": "dimension",
+        "$value": "{size.container-xs}",
+        "$description": "Sheet width md, 480; never wider than the viewport less the gutter"
+      },
+      "lg": {
+        "$type": "dimension",
+        "$value": "{size.container-sm}",
+        "$description": "Sheet width lg, 640"
+      }
     }
   },
   "type": {
