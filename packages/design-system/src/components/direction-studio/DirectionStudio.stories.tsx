@@ -1,9 +1,18 @@
+import { replaySnapshot, takeSnapshot } from "@orivilo/intent-engine";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, userEvent, waitFor, within } from "storybook/test";
+import { useState } from "react";
+import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { PROJECTS, WorkspaceScreen } from "../../examples/workspace";
 import { messagesFor } from "../../i18n/messages/index";
+import { CURATED_PROFILES } from "../../profiles/index";
+import { Button } from "../button/Button";
 import { Under } from "../matrix";
-import { DirectionStudio } from "./DirectionStudio";
+import {
+  DirectionStudio,
+  type DirectionStudioProps,
+  type DirectionStudioState,
+  studioPropsFrom,
+} from "./DirectionStudio";
 
 const th = messagesFor("th").direction;
 const en = messagesFor("en").direction;
@@ -23,6 +32,7 @@ const meta = {
   args: {
     preview: <WorkspaceScreen latency={0} />,
     defaultBrief: th.preset1Text,
+    onChange: fn(),
   },
 } satisfies Meta<typeof DirectionStudio>;
 
@@ -147,13 +157,15 @@ export const Tie: Story = {
 /** Nothing read: no direction is invented, the clause is named and the preview stays in the base set (AC 7). */
 export const NotRead: Story = {
   args: { defaultBrief: "ฟ้าใส" },
-  play: async ({ canvasElement }) => {
+  play: async ({ args, canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText(th.unread)).toBeVisible();
     await expect(canvas.getByText("ยังไม่เข้าใจ: ฟ้าใส")).toBeVisible();
     await expect(canvas.queryByRole("region", { name: th.directions })).toBeNull();
     await expect(canvas.getByText(th.previewNeutral)).toBeVisible();
     await expect(previewScope(canvasElement)?.dataset["designProfile"]).toBe("neutral");
+    // Nothing to save while no direction is offered.
+    await expect(args.onChange).toHaveBeenLastCalledWith(null);
   },
 };
 
@@ -276,5 +288,82 @@ export const Trace: Story = {
     await expect(t.getByText(/^shape\.control\.radius: .+ เป็น .+$/)).toBeVisible();
     await expect(t.getByText(/button/)).toBeVisible();
     await expect(t.getByText(/input/)).toBeVisible();
+  },
+};
+
+const lastState = (spy: DirectionStudioProps["onChange"]) => {
+  const calls = (spy as ReturnType<typeof fn>).mock.calls;
+  return calls[calls.length - 1]?.[0] as DirectionStudioState | null;
+};
+
+/** Saving keeps the inputs: the harness reopens the last reported state in a fresh studio. */
+function Reopen(args: DirectionStudioProps) {
+  const [opened, setOpened] = useState<{ key: number; state: DirectionStudioState } | null>(null);
+  const [, setLast] = useState<DirectionStudioState | null>(null);
+  return (
+    <div className="flex flex-col gap-4">
+      <div>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => {
+            const state = lastState(args.onChange);
+            if (state) setOpened((o) => ({ key: (o?.key ?? 0) + 1, state }));
+          }}
+        >
+          Reopen the last state
+        </Button>
+      </div>
+      {/* New but equal props on every render, as a page that keeps the state would pass them. */}
+      <DirectionStudio
+        key={opened?.key ?? 0}
+        {...args}
+        {...(opened ? studioPropsFrom(opened.state) : {})}
+        onChange={(state) => {
+          args.onChange?.(state);
+          setLast(state);
+        }}
+      />
+    </div>
+  );
+}
+
+/** The state the studio reports replays to the same fingerprint, reopens with the same direction and refinement, and is reported once per change even when the caller re-renders with equal props (ORV-35 AC 1). */
+export const SaveAndReopen: Story = {
+  render: (args) => <Reopen {...args} />,
+  play: async ({ args, canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("button", { name: "ดูทิศทางนี้ เป็นมิตร" }));
+    await userEvent.click(refineRegion(canvasElement).getByRole("radio", { name: "เหลี่ยมคม" }));
+    await waitFor(() =>
+      expect(previewScope(canvasElement)?.dataset["designProfile"]).toBe("friendly-refined"),
+    );
+    const radius = radiusOf(canvasElement);
+
+    const saved = lastState(args.onChange);
+    await expect(saved?.profileId).toBe("friendly");
+    await expect(saved?.adjustments).toEqual([
+      { set: "shape", to: "crisp", reason: th.refineReason },
+    ]);
+    const snapshot = takeSnapshot(saved ?? { brief: "", profileId: "" }, CURATED_PROFILES);
+    const replay = replaySnapshot(snapshot, CURATED_PROFILES);
+    await expect(replay.ok && replay.result.resolution.fingerprint).toBe(snapshot.fingerprint);
+
+    await userEvent.click(canvas.getByRole("button", { name: "Reopen the last state" }));
+    await waitFor(() =>
+      expect(canvas.getByRole("button", { name: "ดูทิศทางนี้ เป็นมิตร" })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      ),
+    );
+    await expect(
+      refineRegion(canvasElement).getByRole("radio", { name: "เหลี่ยมคม" }),
+    ).toBeChecked();
+    await expect(previewScope(canvasElement)?.dataset["designProfile"]).toBe("friendly-refined");
+    await expect(radiusOf(canvasElement)).toBe(radius);
+    await expect(lastState(args.onChange)).toEqual(saved);
+    const calls = (args.onChange as ReturnType<typeof fn>).mock.calls.length;
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    await expect((args.onChange as ReturnType<typeof fn>).mock.calls.length).toBe(calls);
   },
 };

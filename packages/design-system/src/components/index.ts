@@ -187,4 +187,9 @@ export {
   type MissingInputsPromptProps,
 } from "./missing-inputs-prompt/MissingInputsPrompt";
 export { Inspector, type InspectorProps, type InspectorTab } from "./inspector/Inspector";
-export { DirectionStudio, type DirectionStudioProps } from "./direction-studio/DirectionStudio";
+export {
+  DirectionStudio,
+  type DirectionStudioProps,
+  type DirectionStudioState,
+  studioPropsFrom,
+} from "./direction-studio/DirectionStudio";
