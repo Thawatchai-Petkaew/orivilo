@@ -63,6 +63,28 @@ describe("labels", () => {
       "อ้างอิง จาก บรีฟ ไป โลโก้, ล้าสมัย",
     );
   });
+
+  it("speak English when asked, Thai by default (spec ORV-39 AC 10)", () => {
+    expect(nodeLabel(brief.data, "en")).toBe("บรีฟ, input block");
+    expect(edgeLabel(e1, graph.nodes, "en")).toBe("input from บรีฟ to โลโก้");
+    expect(
+      edgeLabel({ ...e1, data: { meaning: "reference", invalid: true } }, graph.nodes, "en"),
+    ).toBe("reference from บรีฟ to โลโก้, cannot connect");
+    expect(
+      connectionProblem(
+        graph,
+        { source: "brief", sourceHandle: "t", target: "palette", targetHandle: "i" },
+        "en",
+      ),
+    ).toBe("A image port accepts image only, but this edge carries text");
+    expect(
+      connectionProblem(
+        graph,
+        { source: "brief", sourceHandle: "t", target: "brief", targetHandle: "t" },
+        "en",
+      ),
+    ).toBe("A node cannot connect to itself");
+  });
 });
 
 describe("connectionProblem", () => {

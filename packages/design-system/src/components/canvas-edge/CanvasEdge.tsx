@@ -3,6 +3,7 @@
 import { EdgeLabelRenderer, type EdgeProps, getBezierPath } from "@xyflow/react";
 import type { BoardEdge } from "../canvas-board/graph";
 import { edgeStateWord } from "../canvas-board/graph";
+import { useLocale, useWord } from "../../i18n/LocaleProvider";
 import { CANVAS_WORDS } from "../../tokens/canvas";
 
 export type CanvasEdgeProps = EdgeProps<BoardEdge>;
@@ -11,7 +12,7 @@ export type CanvasEdgeProps = EdgeProps<BoardEdge>;
  * A link between two nodes that means input, reference or derived-from (ADR 0004 item 4). The
  * meaning is the dash pattern and the label word; the state (rest, hover, selected, invalid,
  * stale) is the stroke colour (E4-1 tokens). React Flow wraps it in the focusable edge group that
- * carries the accessible name the board computes ("<meaning> จาก <source> ไป <target>").
+ * carries the accessible name the board computes (`graph.edgeLabel`: meaning, source, target).
  */
 export function CanvasEdge({
   id,
@@ -33,8 +34,9 @@ export function CanvasEdge({
     targetY,
     targetPosition,
   });
+  const word = useWord();
   const meaning = data?.meaning ?? "input";
-  const state = edgeStateWord({ id, source: "", target: "", data } as BoardEdge);
+  const state = edgeStateWord({ id, source: "", target: "", data } as BoardEdge, useLocale());
   return (
     <>
       <g
@@ -61,7 +63,7 @@ export function CanvasEdge({
           aria-hidden="true"
           style={{ transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)` }}
         >
-          {CANVAS_WORDS.edge[meaning].th}
+          {word(CANVAS_WORDS.edge[meaning])}
           {state ? `, ${state}` : ""}
         </div>
       </EdgeLabelRenderer>

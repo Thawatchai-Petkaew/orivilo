@@ -2,6 +2,7 @@
 
 import { Select as SelectPrimitive } from "radix-ui";
 import { PortalScope } from "../../boundary/DesignProfileBoundary";
+import { useMessages } from "../../i18n/LocaleProvider";
 import type { ControlSize } from "../button/Button";
 import { cx } from "../cx";
 import { useFieldControl } from "../field/Field";
@@ -20,9 +21,9 @@ export interface SelectProps {
   value?: string | undefined;
   defaultValue?: string | undefined;
   onValueChange?: ((value: string) => void) | undefined;
-  /** Shown in the trigger before a choice; never the label (the Field carries that). */
+  /** Shown in the trigger before a choice; never the label (the Field carries that). `select.placeholder` by default. */
   placeholder?: string | undefined;
-  /** Line shown when `options` is empty. */
+  /** Line shown when `options` is empty; `select.empty` by default. */
   emptyText?: string | undefined;
   size?: ControlSize | undefined;
   disabled?: boolean | undefined;
@@ -47,8 +48,8 @@ export function Select({
   value,
   defaultValue,
   onValueChange,
-  placeholder = "เลือก",
-  emptyText = "ไม่มีตัวเลือก",
+  placeholder,
+  emptyText,
   size = "md",
   disabled,
   invalid,
@@ -58,6 +59,7 @@ export function Select({
   className,
   ...aria
 }: SelectProps) {
+  const m = useMessages();
   const field = useFieldControl(
     { id, disabled, "aria-describedby": aria["aria-describedby"] },
     invalid,
@@ -80,7 +82,7 @@ export function Select({
         aria-describedby={field.describedBy}
         aria-invalid={field.invalid || undefined}
       >
-        <SelectPrimitive.Value placeholder={placeholder} />
+        <SelectPrimitive.Value placeholder={placeholder ?? m.select.placeholder} />
         <SelectPrimitive.Icon asChild>
           <ChevronDownIcon className="ds-control__icon size-5" />
         </SelectPrimitive.Icon>
@@ -91,7 +93,7 @@ export function Select({
             <SelectPrimitive.Viewport>
               {options.length === 0 ? (
                 <div className="ds-menu__empty" role="presentation">
-                  {emptyText}
+                  {emptyText ?? m.select.empty}
                 </div>
               ) : null}
               {options.map((option) => (

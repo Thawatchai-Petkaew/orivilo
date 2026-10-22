@@ -239,7 +239,7 @@ describe("arrange", () => {
   });
 
   it("adds a note to the right of a node and selects it alone", () => {
-    const next = addNoteNext(three, "a", "n1");
+    const next = addNoteNext(three, "a", "n1", "โน้ต");
     const note = next.nodes.at(-1) as BoardNode;
     expect(note.data.kind).toBe("note");
     expect(note.position).toEqual({ x: 100 + 24, y: 0 });

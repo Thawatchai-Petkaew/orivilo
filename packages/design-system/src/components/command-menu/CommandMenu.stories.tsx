@@ -28,10 +28,10 @@ const nodeEls = (root: HTMLElement) => root.querySelectorAll<HTMLElement>(".reac
 const ready = async (root: HTMLElement) => {
   await waitFor(() => expect(nodeEls(root)).toHaveLength(BOARD_NODES.length));
 };
-const open = async (region: HTMLElement) => {
+const open = async (region: HTMLElement, title = "ค้นหาคำสั่ง") => {
   region.focus();
   await userEvent.keyboard("{Control>}k{/Control}");
-  const dialog = await body().findByRole("dialog", { name: "ค้นหาคำสั่ง" });
+  const dialog = await body().findByRole("dialog", { name: title });
   return dialog;
 };
 
@@ -153,5 +153,31 @@ export const RecipesAndModes: Story = {
       await userEvent.keyboard("{Escape}");
       await waitFor(() => expect(body().queryByRole("dialog")).toBeNull());
     }
+  },
+};
+
+/** Under the English locale the palette lists the registry's English labels and English headings (spec ORV-39 AC 8). */
+export const English: Story = {
+  globals: { locale: "en" },
+  play: async ({ canvasElement }) => {
+    const region = within(canvasElement).getByRole("region");
+    await ready(region);
+    const dialog = await open(region, "Find a command");
+    await expect(within(dialog).getByRole("combobox")).toHaveAttribute(
+      "placeholder",
+      "Type a command or a node name",
+    );
+    await expect(within(dialog).getByRole("group", { name: "Board" })).toBeInTheDocument();
+    await expect(within(dialog).getByRole("group", { name: "Jump to node" })).toBeInTheDocument();
+    await expect(
+      within(dialog.querySelector('[data-command="board.zoom-in"]') as HTMLElement).getByText(
+        commandById("board.zoom-in").label.en,
+      ),
+    ).toBeInTheDocument();
+    await userEvent.keyboard("nothing matches this");
+    await expect(within(dialog).getByText(/No command or node matches/)).toBeVisible();
+    await expect(within(dialog).getByRole("status")).toHaveTextContent("0 results");
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() => expect(body().queryByRole("dialog")).toBeNull());
   },
 };

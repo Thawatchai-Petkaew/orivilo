@@ -2,6 +2,7 @@
 
 import { Slot } from "radix-ui";
 import type { ComponentPropsWithoutRef, MouseEvent, ReactNode } from "react";
+import { useMessages } from "../../i18n/LocaleProvider";
 import { cx } from "../cx";
 import { SpinnerIcon } from "../icons";
 
@@ -17,7 +18,7 @@ interface ButtonBaseProps extends Omit<ComponentPropsWithoutRef<"button">, "chil
   size?: ControlSize | undefined;
   /** Keeps the label, adds a spinner and a status line, and blocks the click until it ends. */
   loading?: boolean | undefined;
-  /** What the status line announces while loading. */
+  /** What the status line announces while loading; the catalog's `button.working` by default. */
   loadingLabel?: string | undefined;
   /** Renders the child element with the button's recipe (a Link, a Radix trigger). */
   asChild?: boolean | undefined;
@@ -38,7 +39,7 @@ export function Button({
   variant = "secondary",
   size = "md",
   loading = false,
-  loadingLabel = "กำลังดำเนินการ",
+  loadingLabel,
   asChild = false,
   iconOnly = false,
   className,
@@ -47,6 +48,7 @@ export function Button({
   type = "button",
   ...rest
 }: ButtonProps) {
+  const m = useMessages();
   const Comp = asChild ? Slot.Root : "button";
   const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
     if (loading) {
@@ -58,7 +60,7 @@ export function Button({
   const spinner = loading ? <SpinnerIcon className="ds-spin size-4 shrink-0" /> : null;
   const status = loading ? (
     <span role="status" className="sr-only">
-      {loadingLabel}
+      {loadingLabel ?? m.button.working}
     </span>
   ) : null;
   return (

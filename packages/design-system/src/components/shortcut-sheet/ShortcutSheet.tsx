@@ -6,6 +6,8 @@ import {
   commandAvailable,
   COMMAND_SCOPES,
 } from "../../commands/index";
+import { useMessages, useWord } from "../../i18n/LocaleProvider";
+import { fill } from "../../i18n/messages/index";
 import { Dialog, DialogContent } from "../dialog/Dialog";
 import { Kbd } from "../kbd/Kbd";
 
@@ -14,27 +16,20 @@ export interface ShortcutSheetProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const SCOPE_WORD: Record<CommandScope, string> = {
-  board: "กระดาน",
-  selection: "สิ่งที่เลือก",
-  node: "node ที่เลือก",
-  edge: "สายที่เลือก",
-  panel: "ในแผง",
-  app: "ทุกที่ใน Studio",
-};
-
 /**
  * Every registry command with its keys, grouped by scope (Shift+/). A command from a later story
  * is listed with the story that brings it, never as something that works today (AGENTS.md rule
  * 4). The list is the registry itself, so a new command appears here without a code change.
  */
 export function ShortcutSheet({ open, onOpenChange }: ShortcutSheetProps) {
+  const m = useMessages();
+  const word = useWord();
   const scopes = Object.keys(COMMAND_SCOPES) as CommandScope[];
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        title="คีย์ลัดทั้งหมด"
-        description="คีย์ทุกตัวมาจากทะเบียนคำสั่งของกระดาน คำสั่งที่ยังไม่มีบอกไว้ว่ามาในเรื่องไหน"
+        title={m.sheet.title}
+        description={m.sheet.description}
         size="md"
         scrollable
         className="ds-sheet"
@@ -46,7 +41,7 @@ export function ShortcutSheet({ open, onOpenChange }: ShortcutSheetProps) {
             return (
               <section key={scope} className="ds-sheet__section" aria-labelledby={`sheet-${scope}`}>
                 <h3 id={`sheet-${scope}`} className="ds-sheet__heading">
-                  {SCOPE_WORD[scope]}
+                  {m.sheet.scope[scope]}
                 </h3>
                 <dl className="ds-sheet__list">
                   {items.map((c) => {
@@ -59,14 +54,16 @@ export function ShortcutSheet({ open, onOpenChange }: ShortcutSheetProps) {
                         data-available={available ? "" : undefined}
                       >
                         <dt>
-                          {c.label.th}
+                          {word(c.label)}
                           {available ? null : (
-                            <span className="ds-sheet__later">มาใน {c.since}</span>
+                            <span className="ds-sheet__later">
+                              {fill(m.sheet.since, { story: c.since })}
+                            </span>
                           )}
                         </dt>
                         <dd>
                           {c.shortcuts.length === 0 ? (
-                            <span className="ds-sheet__none">ไม่มีคีย์</span>
+                            <span className="ds-sheet__none">{m.sheet.noKey}</span>
                           ) : (
                             c.shortcuts.map((s) => <Kbd key={s} shortcut={s} />)
                           )}

@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { type CommandId, commandById, shortcutsOf } from "../commands/index";
+import { useWord } from "../i18n/LocaleProvider";
 import { Button } from "./button/Button";
 import { useBoard } from "./canvas-board/context";
 import type { CommandContext } from "./canvas-board/context";
@@ -12,9 +13,10 @@ import { Tooltip } from "./tooltip/Tooltip";
 export function CommandHint({ id }: { id: CommandId }) {
   const command = commandById(id);
   const key = shortcutsOf(id)[0];
+  const word = useWord();
   return (
     <span className="inline-flex items-center gap-2">
-      {command.label.th}
+      {word(command.label)}
       {key ? <Kbd shortcut={key} /> : null}
     </span>
   );
@@ -46,8 +48,9 @@ export function CommandButton({
   className,
 }: CommandButtonProps) {
   const board = useBoard();
+  const word = useWord();
   const command = commandById(id);
-  const name = label ?? command.label.th;
+  const name = label ?? word(command.label);
   const key = shortcutsOf(id)[0];
   const off = disabled || !board.enabled(id, context);
   return (

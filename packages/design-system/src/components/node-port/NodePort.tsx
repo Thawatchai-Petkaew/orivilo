@@ -3,6 +3,8 @@
 import { Handle, Position, useConnection, useNodeId } from "@xyflow/react";
 import { useBoard } from "../canvas-board/context";
 import type { PortSpec } from "../canvas-board/graph";
+import { useMessages, useWord } from "../../i18n/LocaleProvider";
+import { fill } from "../../i18n/messages/index";
 import { CANVAS_WORDS, type PortDirection, type PortShape, portShape } from "../../tokens/canvas";
 
 export type PortState =
@@ -41,6 +43,8 @@ export function PortGlyph({ shape }: { shape: PortShape }) {
 export function NodePort({ port, direction, disabled = false }: NodePortProps) {
   const nodeId = useNodeId() ?? "";
   const board = useBoard();
+  const m = useMessages();
+  const word = useWord();
   const shape = portShape(port.kind);
   const key = `${nodeId}:${port.id}`;
   const pointer = useConnection();
@@ -67,14 +71,13 @@ export function NodePort({ port, direction, disabled = false }: NodePortProps) {
     state = "connected";
   }
 
-  const words = CANVAS_WORDS.direction[direction].th;
-  const kindWord = CANVAS_WORDS.port[port.kind].th;
+  const portName = `${word(CANVAS_WORDS.direction[direction])}${word(CANVAS_WORDS.port[port.kind])}`;
   const name =
     state === "connected"
-      ? `${words}${kindWord}, เชื่อมอยู่`
+      ? fill(m.port.connected, { port: portName })
       : state === "disabled"
-        ? `${words}${kindWord}, แก้ไขไม่ได้`
-        : `${words}${kindWord}`;
+        ? fill(m.port.disabled, { port: portName })
+        : portName;
 
   return (
     <li className="ds-port" data-kind={port.kind} data-direction={direction} data-state={state}>

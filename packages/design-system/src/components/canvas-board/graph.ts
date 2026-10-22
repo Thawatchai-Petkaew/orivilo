@@ -5,6 +5,8 @@
  * no React Flow runtime: the shell can run the same rules on a saved board.
  */
 import type { Connection, Edge, Node } from "@xyflow/react";
+import { DEFAULT_LOCALE, type Locale, pick } from "../../i18n/locale";
+import { fill, messagesFor } from "../../i18n/messages/index";
 import {
   CANVAS_WORDS,
   type EdgeMeaning,
@@ -20,7 +22,7 @@ export interface PortSpec {
   /** Unique within the node; the React Flow handle id. */
   id: string;
   kind: PortKind;
-  /** Shown next to the glyph, Thai first. */
+  /** Shown next to the glyph; document content, so the author's language. */
   label: string;
 }
 
@@ -68,8 +70,11 @@ export interface PortRef {
 }
 
 /** The node's accessible name: title, then kind (catalog CanvasNode a11y). */
-export function nodeLabel(content: NodeContent): string {
-  return `${content.title}, ${CANVAS_WORDS.node[content.kind].th}`;
+export function nodeLabel(content: NodeContent, locale: Locale = DEFAULT_LOCALE): string {
+  return fill(messagesFor(locale).graph.nodeLabel, {
+    title: content.title,
+    kind: pick(CANVAS_WORDS.node[content.kind], locale),
+  });
 }
 
 function titleOf(nodes: readonly BoardNode[], id: string): string {
@@ -77,17 +82,24 @@ function titleOf(nodes: readonly BoardNode[], id: string): string {
 }
 
 /** The edge's accessible name: meaning from source to target, plus its state word (catalog CanvasEdge a11y). */
-export function edgeLabel(edge: BoardEdge, nodes: readonly BoardNode[]): string {
-  const meaning = CANVAS_WORDS.edge[edge.data?.meaning ?? "input"].th;
-  const base = `${meaning} จาก ${titleOf(nodes, edge.source)} ไป ${titleOf(nodes, edge.target)}`;
-  const state = edgeStateWord(edge);
+export function edgeLabel(
+  edge: BoardEdge,
+  nodes: readonly BoardNode[],
+  locale: Locale = DEFAULT_LOCALE,
+): string {
+  const base = fill(messagesFor(locale).graph.edgeLabel, {
+    meaning: pick(CANVAS_WORDS.edge[edge.data?.meaning ?? "input"], locale),
+    source: titleOf(nodes, edge.source),
+    target: titleOf(nodes, edge.target),
+  });
+  const state = edgeStateWord(edge, locale);
   return state ? `${base}, ${state}` : base;
 }
 
-/** "ล้าสมัย" or "เชื่อมต่อไม่ได้" when the edge carries that state; otherwise empty. */
-export function edgeStateWord(edge: BoardEdge): string {
-  if (edge.data?.invalid) return "เชื่อมต่อไม่ได้";
-  if (edge.data?.stale) return CANVAS_WORDS.status.stale.th;
+/** The stale word or the `graph.invalid` message when the edge carries that state; otherwise empty. */
+export function edgeStateWord(edge: BoardEdge, locale: Locale = DEFAULT_LOCALE): string {
+  if (edge.data?.invalid) return messagesFor(locale).graph.invalid;
+  if (edge.data?.stale) return pick(CANVAS_WORDS.status.stale, locale);
   return "";
 }
 
@@ -119,20 +131,24 @@ export function hasEdge(edges: readonly BoardEdge[], c: Connection): boolean {
  * input, same kind, different nodes, not yet connected (spec E4-2 AC 9). React Flow's
  * `isValidConnection` and the keyboard path both call it.
  */
-export function connectionProblem(graph: Graph, c: Connection): string | null {
-  if (c.source === c.target) return "ต่อสายเข้า node ตัวเองไม่ได้";
+export function connectionProblem(
+  graph: Graph,
+  c: Connection,
+  locale: Locale = DEFAULT_LOCALE,
+): string | null {
+  const m = messagesFor(locale).graph;
+  if (c.source === c.target) return m.selfLoop;
   const from = portOf(graph.nodes, { nodeId: c.source, handleId: c.sourceHandle });
   const to = portOf(graph.nodes, { nodeId: c.target, handleId: c.targetHandle });
-  if (!from || !to) return "วางสายบนพอร์ตของ node อื่น";
-  if (from.direction !== "output" || to.direction !== "input") {
-    return "สายเริ่มจากพอร์ตส่งและจบที่พอร์ตรับ";
-  }
+  if (!from || !to) return m.otherNode;
+  if (from.direction !== "output" || to.direction !== "input") return m.direction;
   if (from.port.kind !== to.port.kind) {
-    const want = CANVAS_WORDS.port[to.port.kind].th;
-    const got = CANVAS_WORDS.port[from.port.kind].th;
-    return `พอร์ต${want}รับได้เฉพาะ${want} แต่สายนี้ส่ง${got}`;
+    return fill(m.kindMismatch, {
+      want: pick(CANVAS_WORDS.port[to.port.kind], locale),
+      got: pick(CANVAS_WORDS.port[from.port.kind], locale),
+    });
   }
-  if (hasEdge(graph.edges, c)) return "มีสายนี้อยู่แล้ว";
+  if (hasEdge(graph.edges, c)) return m.exists;
   return null;
 }
 

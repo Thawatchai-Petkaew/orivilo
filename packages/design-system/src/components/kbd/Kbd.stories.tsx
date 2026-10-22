@@ -42,6 +42,7 @@ export const Apple: Story = {
     await expect(caps[0]).toHaveTextContent("Cmd");
     await expect(caps[1]).toHaveTextContent("Option");
     await expect(shortcutWords("Mod+Alt+ArrowLeft", true)).toBe("Cmd Option ลูกศรซ้าย");
+    await expect(shortcutWords("Mod+Alt+ArrowLeft", true, "en")).toBe("Cmd Option Arrow left");
   },
 };
 

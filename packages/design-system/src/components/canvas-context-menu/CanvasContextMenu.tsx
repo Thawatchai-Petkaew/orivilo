@@ -2,6 +2,8 @@
 
 import type { ReactNode } from "react";
 import { type Command, type CommandScope, surfaceCommands } from "../../commands/index";
+import { useMessages, useWord } from "../../i18n/LocaleProvider";
+import { fill } from "../../i18n/messages/index";
 import { type CommandContext, useBoard } from "../canvas-board/context";
 import {
   ContextMenu,
@@ -35,15 +37,6 @@ const SCOPES: Record<ContextTarget["kind"], CommandScope[]> = {
   edge: ["edge"],
 };
 
-const SCOPE_WORD: Record<CommandScope, string> = {
-  board: "กระดาน",
-  node: "node นี้",
-  selection: "สิ่งที่เลือก",
-  edge: "สายนี้",
-  app: "ทั่วไป",
-  panel: "แผง",
-};
-
 /** Destructive items go last (catalog DropdownMenu rule). */
 const DESTRUCTIVE = new Set<Command["id"]>(["selection.delete", "edge.delete"]);
 
@@ -59,6 +52,9 @@ export function CanvasContextMenu({
   children,
 }: CanvasContextMenuProps) {
   const board = useBoard();
+  const m = useMessages();
+  const word = useWord();
+  const SCOPE_WORD = m.contextMenu.scope;
   const scopes = SCOPES[target.kind];
   const ctx: CommandContext = {};
   if (target.kind === "node" && target.id) ctx.nodeId = target.id;
@@ -77,7 +73,9 @@ export function CanvasContextMenu({
   return (
     <ContextMenu onOpenChange={onOpenChange}>
       <ContextMenuTrigger disabled={disabled}>{children}</ContextMenuTrigger>
-      <ContextMenuContent aria-label={`เมนูของ${SCOPE_WORD[scopes[0] ?? "board"]}`}>
+      <ContextMenuContent
+        aria-label={fill(m.contextMenu.label, { scope: SCOPE_WORD[scopes[0] ?? "board"] })}
+      >
         {groups.map((g, i) => (
           <div key={g.scope} role="group" aria-label={SCOPE_WORD[g.scope]}>
             {i > 0 ? <ContextMenuSeparator /> : null}
@@ -89,7 +87,7 @@ export function CanvasContextMenu({
                 disabled={!board.enabled(c.id, ctx)}
                 onSelect={() => board.run(c.id, ctx)}
               >
-                {c.label.th}
+                {word(c.label)}
               </ContextMenuItem>
             ))}
           </div>
@@ -105,7 +103,7 @@ export function CanvasContextMenu({
                 disabled={!board.enabled(c.id, ctx)}
                 onSelect={() => board.run(c.id, ctx)}
               >
-                {c.label.th}
+                {word(c.label)}
               </ContextMenuItem>
             ))}
           </>
