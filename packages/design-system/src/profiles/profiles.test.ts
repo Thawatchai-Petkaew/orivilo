@@ -6,7 +6,7 @@
  */
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { DECISION_VOCABULARY } from "@orivilo/intent-engine";
+import { DECISION_VOCABULARY, curatedProfileSchema } from "@orivilo/intent-engine";
 import { describe, expect, it } from "vitest";
 import component from "../tokens/source/component.json" with { type: "json" };
 import primitives from "../tokens/source/primitives.json" with { type: "json" };
@@ -340,5 +340,13 @@ describe("the decision vocabulary", () => {
 
   it("matches the Intent Engine's list, so a rule can only set what a profile declares", () => {
     expect(DECISIONS).toEqual(DECISION_VOCABULARY);
+  });
+
+  it("gives the resolver a complete, valid decision set for every shipped profile", () => {
+    for (const p of profiles) {
+      expect(curatedProfileSchema.safeParse({ id: p.id, decisions: p.decisions }).success).toBe(
+        true,
+      );
+    }
   });
 });
