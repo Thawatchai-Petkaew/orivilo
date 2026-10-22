@@ -1,4 +1,9 @@
+"use client";
+
 import { isApplePlatform } from "../../commands/index";
+import { DEFAULT_LOCALE, type Locale } from "../../i18n/locale";
+import { useLocale } from "../../i18n/LocaleProvider";
+import { messagesFor, type Messages } from "../../i18n/messages/index";
 import { cx } from "../cx";
 
 export interface KbdProps {
@@ -9,12 +14,12 @@ export interface KbdProps {
   className?: string | undefined;
 }
 
-/** Keys whose glyph is shorter than their name; the name stays for screen readers. */
-const GLYPHS: Record<string, { glyph: string; name: string }> = {
-  ArrowUp: { glyph: "↑", name: "ลูกศรขึ้น" },
-  ArrowDown: { glyph: "↓", name: "ลูกศรลง" },
-  ArrowLeft: { glyph: "←", name: "ลูกศรซ้าย" },
-  ArrowRight: { glyph: "→", name: "ลูกศรขวา" },
+/** Keys whose glyph is shorter than their name; the name (from the catalog) stays for screen readers. */
+const GLYPHS: Record<string, { glyph: string; name: keyof Messages["kbd"] }> = {
+  ArrowUp: { glyph: "↑", name: "arrowUp" },
+  ArrowDown: { glyph: "↓", name: "arrowDown" },
+  ArrowLeft: { glyph: "←", name: "arrowLeft" },
+  ArrowRight: { glyph: "→", name: "arrowRight" },
 };
 
 /** The word a key cap shows, by platform (catalog Kbd rule). */
@@ -32,10 +37,18 @@ export function keyWord(key: string, apple: boolean): string {
 }
 
 /** The shortcut as words, for a tooltip or an accessible description: "Cmd Shift K". */
-export function shortcutWords(shortcut: string, apple = isApplePlatform()): string {
+export function shortcutWords(
+  shortcut: string,
+  apple = isApplePlatform(),
+  locale: Locale = DEFAULT_LOCALE,
+): string {
+  const names = messagesFor(locale).kbd;
   return shortcut
     .split("+")
-    .map((k) => GLYPHS[k]?.name ?? keyWord(k, apple))
+    .map((k) => {
+      const glyph = GLYPHS[k];
+      return glyph ? names[glyph.name] : keyWord(k, apple);
+    })
     .join(" ");
 }
 
@@ -44,6 +57,7 @@ export function shortcutWords(shortcut: string, apple = isApplePlatform()): stri
  * their names for screen readers. Keys come from the command registry (catalog Kbd rule).
  */
 export function Kbd({ shortcut, apple = isApplePlatform(), className }: KbdProps) {
+  const names = messagesFor(useLocale()).kbd;
   const keys = shortcut.split("+");
   return (
     <span className={cx("ds-kbd-group", className)} data-shortcut={shortcut}>
@@ -54,7 +68,7 @@ export function Kbd({ shortcut, apple = isApplePlatform(), className }: KbdProps
             {glyph ? (
               <>
                 <span aria-hidden>{glyph.glyph}</span>
-                <span className="sr-only">{glyph.name}</span>
+                <span className="sr-only">{names[glyph.name]}</span>
               </>
             ) : (
               keyWord(key, apple)

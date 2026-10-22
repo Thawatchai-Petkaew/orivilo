@@ -408,13 +408,14 @@ export function reorderSelected(graph: Graph, where: "front" | "back"): Graph {
   };
 }
 
-/** A note one grid unit to the right of the node, selected alone. */
+/** A note one grid unit to the right of the node, selected alone; the caller names it from the catalog (`board.noteTitle`). */
 export function addNoteNext(
   graph: Graph,
   nodeId: string,
-  id: string = makeId("note"),
-  title = "โน้ต",
+  id: string | undefined,
+  title: string,
 ): Graph {
+  id ??= makeId("note");
   const node = graph.nodes.find((n) => n.id === nodeId);
   if (!node) return graph;
   const r = rectOf(graph.nodes, node);

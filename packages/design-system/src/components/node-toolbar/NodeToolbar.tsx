@@ -2,6 +2,8 @@
 
 import { NodeToolbar as Primitive, Position } from "@xyflow/react";
 import { type CommandId, surfaceCommands } from "../../commands/index";
+import { useMessages } from "../../i18n/LocaleProvider";
+import { fill, type Messages } from "../../i18n/messages/index";
 import { useBoard } from "../canvas-board/context";
 import type { BoardNode } from "../canvas-board/graph";
 import { CommandButton } from "../command-button";
@@ -24,9 +26,12 @@ const GLYPH: Partial<Record<CommandId, (node: NodeToolbarProps["node"]) => React
   "selection.delete": () => <TrashIcon className="size-4" />,
 };
 
-const WORD: Partial<Record<CommandId, (node: NodeToolbarProps["node"]) => string>> = {
-  "selection.lock": (n) => (n.data.status === "locked" ? "ปลดล็อก" : "ล็อก"),
-  "selection.collapse": (n) => (n.data.collapsed ? "ขยาย" : "ย่อ"),
+/** The label of a toggling command names the state it moves to, from the catalog. */
+const WORD: Partial<
+  Record<CommandId, (node: NodeToolbarProps["node"], m: Messages["nodeToolbar"]) => string>
+> = {
+  "selection.lock": (n, m) => (n.data.status === "locked" ? m.unlock : m.lock),
+  "selection.collapse": (n, m) => (n.data.collapsed ? m.expand : m.collapse),
 };
 
 /**
@@ -37,6 +42,7 @@ const WORD: Partial<Record<CommandId, (node: NodeToolbarProps["node"]) => string
  */
 export function NodeToolbar({ node }: NodeToolbarProps) {
   const board = useBoard();
+  const m = useMessages();
   const visible = Boolean(node.selected) && board.selectedNodeIds.length === 1 && !board.readOnly;
   const running = node.data.status === "running";
   const listed = surfaceCommands("node-toolbar", ["node", "selection"]).filter((c) => GLYPH[c.id]);
@@ -53,7 +59,7 @@ export function NodeToolbar({ node }: NodeToolbarProps) {
       offset={8}
       className="ds-toolbar ds-node-toolbar"
       role="toolbar"
-      aria-label={`เครื่องมือของ ${node.data.title}`}
+      aria-label={fill(m.nodeToolbar.label, { title: node.data.title })}
       data-running={running ? "" : undefined}
     >
       {items.map((c) => (
@@ -61,7 +67,7 @@ export function NodeToolbar({ node }: NodeToolbarProps) {
           key={c.id}
           id={c.id}
           context={{ nodeId: node.id }}
-          label={WORD[c.id]?.(node)}
+          label={WORD[c.id]?.(node, m.nodeToolbar)}
           disabled={running}
         >
           {GLYPH[c.id]?.(node)}

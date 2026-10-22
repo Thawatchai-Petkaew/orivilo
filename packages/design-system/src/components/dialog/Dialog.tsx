@@ -3,6 +3,7 @@
 import { Dialog as DialogPrimitive } from "radix-ui";
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import { PortalScope } from "../../boundary/DesignProfileBoundary";
+import { useMessages } from "../../i18n/LocaleProvider";
 import { Button } from "../button/Button";
 import { cx } from "../cx";
 import { CloseIcon, WarningIcon } from "../icons";
@@ -68,7 +69,7 @@ export interface DialogContentProps extends Omit<
   footer?: ReactNode | undefined;
   /** Where the portal mounts (a preview frame, a matrix cell); the body by default. */
   container?: HTMLElement | null | undefined;
-  /** Accessible name of the close control. */
+  /** Accessible name of the close control; the catalog's `dialog.close` by default. */
   closeLabel?: string | undefined;
   /** The body scrolls (a long list): it becomes a Tab stop so the keyboard can scroll it. */
   scrollable?: boolean | undefined;
@@ -89,7 +90,7 @@ export function DialogContent({
   error,
   footer,
   container,
-  closeLabel = "ปิด",
+  closeLabel,
   scrollable = false,
   className,
   children,
@@ -98,6 +99,7 @@ export function DialogContent({
   onInteractOutside,
   ...rest
 }: DialogContentProps) {
+  const m = useMessages();
   return (
     <DialogPrimitive.Portal container={container ?? undefined}>
       <PortalScope>
@@ -149,7 +151,7 @@ export function DialogContent({
               variant="ghost"
               size="sm"
               iconOnly
-              aria-label={closeLabel}
+              aria-label={closeLabel ?? m.dialog.close}
               disabled={pending}
               className="ds-dialog__close"
             >

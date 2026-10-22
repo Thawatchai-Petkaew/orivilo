@@ -262,3 +262,18 @@ export const RecipesAndModes: Story = {
     </Matrix>
   ),
 };
+
+/** Under the English locale the announcement, the missing cell and the selection names are English (spec ORV-39 AC 9). */
+export const English: Story = {
+  globals: { locale: "en" },
+  args: { selectable: true },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const table = canvas.getByRole("table", { name: "โปรเจกต์ในเวิร์กสเปซ" });
+    await expect(within(table).getAllByText("No data")).toHaveLength(1);
+    await expect(canvas.getByRole("checkbox", { name: "Select every row" })).toBeInTheDocument();
+    const header = canvas.getByRole("columnheader", { name: "การตัดสินใจ" });
+    await userEvent.click(within(header).getByRole("button"));
+    await expect(canvas.getByText("Sorted by การตัดสินใจ, ascending")).toBeInTheDocument();
+  },
+};

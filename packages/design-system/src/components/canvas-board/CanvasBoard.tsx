@@ -27,6 +27,9 @@ import {
   useRef,
   useState,
 } from "react";
+import { type Locale, pick } from "../../i18n/locale";
+import { useLocale, useMessages } from "../../i18n/LocaleProvider";
+import { fill, type Messages } from "../../i18n/messages/index";
 import { CANVAS_WORDS, type EdgeMeaning } from "../../tokens/canvas";
 import { tokens } from "../../tokens/index";
 import {
@@ -146,31 +149,44 @@ export const GRID_UNIT = (() => {
 /** The minimap appears on its own from this many nodes (catalog MiniMap). */
 export const MINIMAP_FROM = 10;
 
-const keysOf = (id: CommandId) => shortcutsOf(id).join(" หรือ ");
+/** React Flow's hidden descriptions and live messages from the catalog, with keys from the registry. */
+function ariaFor(m: Messages, locale: Locale) {
+  const keysOf = (id: CommandId) => shortcutsOf(id).join(m.board.or);
+  const node = fill(m.board.aria.node, {
+    nudge: keysOf("selection.nudge").replaceAll("Arrow", ""),
+    connect: keysOf("node.connect"),
+    connectLabel: pick(commandById("node.connect").label, locale),
+    remove: keysOf("selection.delete"),
+    deselect: keysOf("selection.deselect"),
+  });
+  return {
+    "node.a11yDescription.default": node,
+    "node.a11yDescription.keyboardDisabled": node,
+    "node.a11yDescription.ariaLiveMessage": ({
+      direction,
+      x,
+      y,
+    }: {
+      direction: string;
+      x: number;
+      y: number;
+    }) => fill(m.board.aria.nodeMoved, { direction, x, y }),
+    "edge.a11yDescription.default": fill(m.board.aria.edge, {
+      remove: keysOf("edge.delete"),
+      kinds: ["edge.kind-input", "edge.kind-reference", "edge.kind-derived"]
+        .map((id) => shortcutsOf(id as CommandId)[0])
+        .join(" "),
+      deselect: keysOf("selection.deselect"),
+    }),
+    "handle.ariaLabel": m.board.aria.handle,
+  };
+}
 
-/** React Flow's hidden descriptions and live messages, in Thai, with keys from the registry. */
-const ARIA = {
-  "node.a11yDescription.default": `กด Enter หรือ Space เพื่อเลือก node, ${keysOf("selection.nudge").replaceAll("Arrow", "")} เพื่อขยับ, ${keysOf("node.connect")} เพื่อ${commandById("node.connect").label.th}, ${keysOf("selection.delete")} เพื่อลบ, ${keysOf("selection.deselect")} เพื่อยกเลิกการเลือก`,
-  "node.a11yDescription.keyboardDisabled": "",
-  "node.a11yDescription.ariaLiveMessage": ({
-    direction,
-    x,
-    y,
-  }: {
-    direction: string;
-    x: number;
-    y: number;
-  }) => `ขยับ node ไปทาง ${direction} ตำแหน่ง ${x}, ${y}`,
-  "edge.a11yDescription.default": `กด Enter หรือ Space เพื่อเลือกสาย, ${keysOf("edge.delete")} เพื่อลบ, ${shortcutsOf("edge.kind-input")[0]} ${shortcutsOf("edge.kind-reference")[0]} ${shortcutsOf("edge.kind-derived")[0]} เพื่อเปลี่ยนความหมาย, ${keysOf("selection.deselect")} เพื่อยกเลิก`,
-  "handle.ariaLabel": "พอร์ต",
-};
-ARIA["node.a11yDescription.keyboardDisabled"] = ARIA["node.a11yDescription.default"];
-
-const DIRECTION_WORD: Record<string, string> = {
-  ArrowUp: "ขึ้น",
-  ArrowDown: "ลง",
-  ArrowLeft: "ซ้าย",
-  ArrowRight: "ขวา",
+const DIRECTION_KEY: Record<string, keyof Messages["board"]["direction"]> = {
+  ArrowUp: "up",
+  ArrowDown: "down",
+  ArrowLeft: "left",
+  ArrowRight: "right",
 };
 const DIRECTION_DELTA: Record<string, [number, number]> = {
   ArrowUp: [0, -1],
@@ -184,12 +200,6 @@ const ALIGN_OF: Partial<Record<CommandId, AlignEdge>> = {
   "selection.align-right": "right",
   "selection.align-top": "top",
   "selection.align-bottom": "bottom",
-};
-const ALIGN_WORD: Record<AlignEdge, string> = {
-  left: "ซ้าย",
-  right: "ขวา",
-  top: "บน",
-  bottom: "ล่าง",
 };
 
 /** What the present variant may still run: viewing and finding, never editing (spec AC 17). */
@@ -262,7 +272,7 @@ function Board({
   loading = false,
   label,
   status,
-  emptyText = "กระดานยังว่าง",
+  emptyText,
   emptyAction,
   renderBody,
   fitView = true,
@@ -272,6 +282,9 @@ function Board({
   children,
 }: CanvasBoardProps) {
   const readOnly = variant === "present";
+  const locale = useLocale();
+  const m = useMessages();
+  const aria = useMemo(() => ariaFor(m, locale), [m, locale]);
   const flow = useReactFlow<BoardNode, BoardEdge>();
   const wrapper = useRef<HTMLElement>(null);
   // The working copy: React Flow fires edge and node changes for one deletion in two calls in one
@@ -323,13 +336,13 @@ function Board({
         return {
           ...n,
           type: group ? ("group" as const) : ("orivilo" as const),
-          ariaLabel: n.ariaLabel ?? nodeLabel(n.data),
+          ariaLabel: n.ariaLabel ?? nodeLabel(n.data, locale),
           draggable: !readOnly && !locked && (n.draggable ?? true),
           connectable: !readOnly && !locked && !group,
           deletable: !readOnly && !locked,
         };
       }),
-    [graph.nodes, readOnly],
+    [graph.nodes, readOnly, locale],
   );
 
   const edges = useMemo(
@@ -337,11 +350,11 @@ function Board({
       graph.edges.map((e) => ({
         ...e,
         type: "orivilo" as const,
-        ariaLabel: edgeLabel(e, graph.nodes),
+        ariaLabel: edgeLabel(e, graph.nodes, locale),
         deletable: !readOnly,
         markerEnd: { type: MarkerType.ArrowClosed, color: markerColour(e), width: 14, height: 14 },
       })),
-    [graph.edges, graph.nodes, readOnly],
+    [graph.edges, graph.nodes, readOnly, locale],
   );
 
   const onNodesChange = useCallback(
@@ -383,7 +396,7 @@ function Board({
       for (const g of groups) next = ungroup(next, g.id);
       emit(next);
       const names = groups.map((g) => g.data.title).join(", ");
-      setMessage(`แยกกลุ่ม ${names} แล้ว node ข้างในยังอยู่`);
+      setMessage(fill(m.board.ungrouped, { names }));
       const keep = n.filter(
         (x) => !groupIds.has(x.id) && !(x.parentId && groupIds.has(x.parentId) && !x.selected),
       );
@@ -400,13 +413,17 @@ function Board({
     ({ nodes: n, edges: e }: { nodes: BoardNode[]; edges: BoardEdge[] }) => {
       if (n.length === 0 && e.length === 0) return;
       const parts: string[] = [];
-      if (n.length > 0) parts.push(`ลบ ${n.length} node`);
-      if (e.length > 0) parts.push(`${n.length > 0 ? "และ " : "ลบ "}${e.length} สาย`);
+      if (n.length > 0) parts.push(fill(m.board.deletedNodes, { count: n.length }));
+      if (e.length > 0) {
+        parts.push(
+          fill(n.length > 0 ? m.board.andEdges : m.board.deletedEdges, { count: e.length }),
+        );
+      }
       const stale = graphRef.current.nodes.filter((x) => x.data.status === "stale").length;
-      if (n.length > 0 && stale > 0) parts.push(`, ${stale} node ปลายทางล้าสมัย`);
+      if (n.length > 0 && stale > 0) parts.push(fill(m.board.staleAfterDelete, { count: stale }));
       setMessage(parts.join(" "));
     },
-    [],
+    [m],
   );
 
   /** A child dragged out of its group's frame leaves the group (spec AC 11). */
@@ -417,19 +434,19 @@ function Board({
       const next = detachIfOutside(g, node.id);
       if (next !== g) {
         emit(next);
-        setMessage(`${node.data.title} ออกจากกลุ่มแล้ว`);
+        setMessage(fill(m.board.leftGroup, { title: node.data.title }));
       }
     },
-    [emit],
+    [emit, m],
   );
 
   const connect = useCallback(
     (c: Connection) => {
       const g = graphRef.current;
       emit({ ...g, edges: [...g.edges, edgeFor(c)] });
-      setMessage(`เชื่อม ${titleOf(c.source)} ไป ${titleOf(c.target)} แล้ว`);
+      setMessage(fill(m.board.connected, { source: titleOf(c.source), target: titleOf(c.target) }));
     },
-    [emit],
+    [emit, m],
   );
 
   const isValidConnection = useCallback(
@@ -452,25 +469,36 @@ function Board({
       if (state.toHandle) {
         const to = { nodeId: state.toHandle.nodeId, handleId: state.toHandle.id ?? null };
         const [src, dst] = state.fromHandle.type === "source" ? [from, to] : [to, from];
-        const why = connectionProblem(g, {
-          source: src.nodeId,
-          sourceHandle: src.handleId,
-          target: dst.nodeId,
-          targetHandle: dst.handleId,
-        });
+        const why = connectionProblem(
+          g,
+          {
+            source: src.nodeId,
+            sourceHandle: src.handleId,
+            target: dst.nodeId,
+            targetHandle: dst.handleId,
+          },
+          locale,
+        );
         setMessage(why ?? "");
         return;
       }
       setMessage(
-        kind ? `วางสายบนพอร์ตที่รับ${CANVAS_WORDS.port[kind].th}ได้` : "วางสายบนพอร์ตของ node อื่น",
+        kind
+          ? fill(m.board.dropOnKind, { kind: pick(CANVAS_WORDS.port[kind], locale) })
+          : m.graph.otherNode,
       );
     },
-    [],
+    [m, locale],
   );
 
   const pickMessage = (sourceId: string, targets: KeyboardConnecting["targets"], index: number) => {
     const t = targets[index];
-    return `ต่อสายจาก ${titleOf(sourceId)}: เป้าหมาย ${t ? titleOf(t.nodeId) : ""} (${index + 1} จาก ${targets.length}) กด Enter เพื่อเชื่อม, Escape เพื่อยกเลิก`;
+    return fill(m.board.pickTarget, {
+      source: titleOf(sourceId),
+      target: t ? titleOf(t.nodeId) : "",
+      index: index + 1,
+      count: targets.length,
+    });
   };
 
   /** Keyboard connect (catalog NodePort a11y, spec E4-2 AC 6). */
@@ -479,13 +507,13 @@ function Board({
     const node = g.nodes.find((n) => n.id === nodeId);
     const first = node?.data.outputs[0];
     if (!node || !first) {
-      setMessage(`${titleOf(nodeId)} ไม่มีพอร์ตส่ง`);
+      setMessage(fill(m.board.noOutputs, { title: titleOf(nodeId) }));
       return;
     }
     const from = { nodeId, handleId: first.id };
     const targets = connectTargets(g, from);
     if (targets.length === 0) {
-      setMessage(`ไม่มี node ที่รับ${CANVAS_WORDS.port[first.kind].th}ได้`);
+      setMessage(fill(m.board.noTargets, { kind: pick(CANVAS_WORDS.port[first.kind], locale) }));
       return;
     }
     setConnecting({ from, targets, index: 0 });
@@ -504,7 +532,7 @@ function Board({
     if (!node) return;
     void flow.fitView({ nodes: [{ id }], duration: 200, maxZoom: 1, padding: 0.5 });
     focusNode(id);
-    setMessage(`ไปที่ ${node.data.title}`);
+    setMessage(fill(m.board.jumped, { title: node.data.title }));
   };
 
   /** The centre of the board in flow coordinates, where a keyboard add puts a node. */
@@ -600,7 +628,7 @@ function Board({
     const node = targetNode(g, ctx);
     if (id === "node.connect" && ctx.key && node && node.data.outputs.length === 0 && !readOnly) {
       // From the keyboard the user hears why; a surface simply does not offer the command.
-      setMessage(`${node.data.title} ไม่มีพอร์ตส่ง`);
+      setMessage(fill(m.board.noOutputs, { title: node.data.title }));
       return true;
     }
     if (!enabled(id, ctx)) return false;
@@ -609,19 +637,19 @@ function Board({
     switch (id) {
       case "board.zoom-in":
         void flow.zoomIn({ duration: 150 });
-        setMessage("ซูมเข้า");
+        setMessage(m.board.zoomIn);
         return true;
       case "board.zoom-out":
         void flow.zoomOut({ duration: 150 });
-        setMessage("ซูมออก");
+        setMessage(m.board.zoomOut);
         return true;
       case "board.zoom-100":
         void flow.zoomTo(1, { duration: 150 });
-        setMessage("ซูม 100%");
+        setMessage(m.board.zoom100);
         return true;
       case "board.zoom-to-fit":
         void flow.fitView({ padding: 0.2, duration: 200 });
-        setMessage(`พอดีจอ ${g.nodes.length} node`);
+        setMessage(fill(m.board.fitAll, { count: g.nodes.length }));
         return true;
       case "board.zoom-to-selection":
         void flow.fitView({
@@ -629,23 +657,23 @@ function Board({
           padding: 0.3,
           duration: 200,
         });
-        setMessage(`พอดีจอกับ ${picked.length} node ที่เลือก`);
+        setMessage(fill(m.board.fitSelection, { count: picked.length }));
         return true;
       case "board.pan-mode":
         setTool("pan");
-        setMessage("โหมดเลื่อนกระดาน ลากเพื่อเลื่อน");
+        setMessage(m.board.panMode);
         return true;
       case "board.select-mode":
         setTool("select");
-        setMessage("โหมดเลือก ลากเพื่อเลือกหลาย node, กด Space ค้างเพื่อเลื่อน");
+        setMessage(m.board.selectMode);
         return true;
       case "board.toggle-minimap":
         setMinimapOverride(!minimapShown);
-        setMessage(minimapShown ? "ซ่อนแผนที่ย่อ" : "แสดงแผนที่ย่อ");
+        setMessage(minimapShown ? m.board.minimapHidden : m.board.minimapShown);
         return true;
       case "board.toggle-snap":
         setSnap(!snap);
-        setMessage(snap ? "ปิดการดูดเข้ากริด" : "เปิดการดูดเข้ากริด");
+        setMessage(snap ? m.board.snapOff : m.board.snapOn);
         return true;
       case "board.command-menu":
         setCommandMenu("commands");
@@ -670,25 +698,25 @@ function Board({
       }
       case "board.select-all":
         emit(selectAll(g));
-        setMessage(`เลือกทั้งหมด ${g.nodes.length} node, ${g.edges.length} สาย`);
+        setMessage(fill(m.board.selectedAll, { nodes: g.nodes.length, edges: g.edges.length }));
         return true;
       case "selection.duplicate": {
         const next = duplicateSelected(withTarget(g, ctx));
         emit(next);
-        setMessage(`ทำซ้ำ ${count(next)} node แล้ว`);
+        setMessage(fill(m.board.duplicated, { count: count(next) }));
         return true;
       }
       case "selection.copy": {
         const clip = copySelection(withTarget(g, ctx));
         setClipboard(clip);
-        setMessage(`คัดลอก ${clip.nodes.length} node ไว้บนกระดาน`);
+        setMessage(fill(m.board.copied, { count: clip.nodes.length }));
         return true;
       }
       case "selection.cut": {
         const cut = cutSelection(withTarget(g, ctx));
         setClipboard(cut.clipboard);
         emit(cut.graph);
-        setMessage(`ตัด ${cut.clipboard.nodes.length} node ไว้บนกระดาน`);
+        setMessage(fill(m.board.cut, { count: cut.clipboard.nodes.length }));
         // The focused node may be gone; the board keeps the keyboard so paste works at once.
         if (ctx.nodeId && cut.clipboard.nodes.some((n) => n.id === ctx.nodeId)) {
           wrapper.current?.focus();
@@ -699,21 +727,21 @@ function Board({
         if (!clipboard) return false;
         const next = pasteClipboard(g, clipboard);
         emit(next);
-        setMessage(`วาง ${clipboard.nodes.length} node แล้ว`);
+        setMessage(fill(m.board.pasted, { count: clipboard.nodes.length }));
         return true;
       }
       case "selection.group": {
         const n = g.nodes.filter(isGroup).length + 1;
-        const title = `กลุ่ม ${n}`;
+        const title = fill(m.board.groupTitle, { n });
         const next = groupSelected(g, title);
         emit(next);
-        setMessage(`จัดกลุ่ม ${picked.length} node เป็น ${title}`);
+        setMessage(fill(m.board.grouped, { count: picked.length, title }));
         return true;
       }
       case "selection.ungroup": {
         const next = ungroupSelected(withTarget(g, ctx));
         emit(next);
-        setMessage("แยกกลุ่มแล้ว node ข้างในยังอยู่");
+        setMessage(m.board.ungroupedOne);
         return true;
       }
       case "selection.lock": {
@@ -721,7 +749,7 @@ function Board({
         const next = toggleLockSelected(target);
         const locking = target.nodes.some((n) => n.selected && n.data.status !== "locked");
         emit(next);
-        setMessage(`${locking ? "ล็อก" : "ปลดล็อก"} ${count(next)} node แล้ว`);
+        setMessage(fill(locking ? m.board.locked : m.board.unlocked, { count: count(next) }));
         return true;
       }
       case "selection.collapse": {
@@ -729,7 +757,7 @@ function Board({
         const next = toggleCollapseSelected(target);
         const collapsing = target.nodes.some((n) => n.selected && !n.data.collapsed);
         emit(next);
-        setMessage(`${collapsing ? "ย่อ" : "ขยาย"} ${count(next)} node แล้ว`);
+        setMessage(fill(collapsing ? m.board.collapsed : m.board.expanded, { count: count(next) }));
         return true;
       }
       case "selection.align-left":
@@ -739,24 +767,24 @@ function Board({
         const edge = ALIGN_OF[id];
         if (!edge) return false;
         emit(alignSelected(g, edge));
-        setMessage(`จัดแนว${ALIGN_WORD[edge]} ${picked.length} node`);
+        setMessage(fill(m.board.aligned, { edge: m.board.align[edge], count: picked.length }));
         return true;
       }
       case "selection.distribute-horizontal":
         emit(distributeSelected(g, "horizontal"));
-        setMessage(`กระจายแนวนอน ${picked.length} node`);
+        setMessage(fill(m.board.distributedHorizontal, { count: picked.length }));
         return true;
       case "selection.distribute-vertical":
         emit(distributeSelected(g, "vertical"));
-        setMessage(`กระจายแนวตั้ง ${picked.length} node`);
+        setMessage(fill(m.board.distributedVertical, { count: picked.length }));
         return true;
       case "selection.bring-to-front":
         emit(reorderSelected(withTarget(g, ctx), "front"));
-        setMessage("ย้ายมาหน้าสุด");
+        setMessage(m.board.broughtToFront);
         return true;
       case "selection.send-to-back":
         emit(reorderSelected(withTarget(g, ctx), "back"));
-        setMessage("ย้ายไปหลังสุด");
+        setMessage(m.board.sentToBack);
         return true;
       case "selection.delete": {
         // From a key, React Flow deletes through `deleteKeyCode`; from a surface the board asks it.
@@ -777,8 +805,8 @@ function Board({
       }
       case "node.add-note": {
         if (!node) return false;
-        emit(addNoteNext(g, node.id));
-        setMessage(`เพิ่มโน้ตข้าง ${node.data.title}`);
+        emit(addNoteNext(g, node.id, undefined, m.board.noteTitle));
+        setMessage(fill(m.board.noteAdded, { title: node.data.title }));
         return true;
       }
       case "node.connect":
@@ -793,8 +821,13 @@ function Board({
         if (movable === 0 || !delta) return false;
         const units = id === "selection.nudge" ? 1 : 10;
         emit(nudgeSelected(g, delta[0] * units * GRID_UNIT, delta[1] * units * GRID_UNIT));
+        const key = DIRECTION_KEY[ctx.key ?? ""];
         setMessage(
-          `ขยับ ${movable} node ไป${DIRECTION_WORD[ctx.key ?? ""] ?? ""} ${units} หน่วยกริด`,
+          fill(m.board.nudged, {
+            count: movable,
+            direction: key ? m.board.direction[key] : "",
+            units,
+          }),
         );
         return true;
       }
@@ -802,7 +835,7 @@ function Board({
         if (!node) return false;
         const n = g.edges.filter((e) => e.source === node.id || e.target === node.id).length;
         emit(disconnectNode(g, node.id));
-        setMessage(`ตัดสาย ${n} เส้นของ ${node.data.title}`);
+        setMessage(fill(m.board.disconnected, { count: n, title: node.data.title }));
         return true;
       }
       case "edge.kind-input":
@@ -812,7 +845,9 @@ function Board({
         const edge = targetEdge(g, ctx);
         if (!edge || !meaning) return false;
         emit(setEdgeMeaning(g, edge.id, meaning));
-        setMessage(`ตั้งสายเป็น${CANVAS_WORDS.edge[meaning].th}`);
+        setMessage(
+          fill(m.board.edgeMeaningSet, { meaning: pick(CANVAS_WORDS.edge[meaning], locale) }),
+        );
         return true;
       }
       case "node.jump-upstream":
@@ -821,7 +856,7 @@ function Board({
         const side = id === "node.jump-upstream" ? "upstream" : "downstream";
         const next = neighbours(g.edges, node.id, side)[0];
         if (next) focusNode(next);
-        else setMessage(side === "upstream" ? "ไม่มี node ต้นทาง" : "ไม่มี node ปลายทาง");
+        else setMessage(side === "upstream" ? m.board.noUpstream : m.board.noDownstream);
         return true;
       }
       case "board.add-node":
@@ -928,7 +963,7 @@ function Board({
         setConnecting(null);
       } else if (event.key === "Escape") {
         setConnecting(null);
-        setMessage("ยกเลิกการต่อสาย");
+        setMessage(m.board.connectCancelled);
       } else {
         return;
       }
@@ -1012,7 +1047,7 @@ function Board({
       nodesFocusable
       edgesFocusable
       elementsSelectable
-      ariaLabelConfig={ARIA}
+      ariaLabelConfig={aria}
       className="ds-board__flow"
       data-tool={tool}
     >
@@ -1060,16 +1095,16 @@ function Board({
           </>
         ) : null}
       </BoardContext.Provider>
-      {readOnly ? <span className="ds-board__mode">ดูอย่างเดียว</span> : null}
+      {readOnly ? <span className="ds-board__mode">{m.board.readOnly}</span> : null}
       {loading ? (
         <div className="ds-board__overlay">
           <SpinnerIcon className="ds-spin ds-board__spinner" />
-          <p>กำลังโหลดกระดาน</p>
+          <p>{m.board.loading}</p>
         </div>
       ) : null}
       {empty ? (
         <div className="ds-board__overlay">
-          <p>{emptyText}</p>
+          <p>{emptyText ?? m.board.empty}</p>
           {emptyAction}
         </div>
       ) : null}

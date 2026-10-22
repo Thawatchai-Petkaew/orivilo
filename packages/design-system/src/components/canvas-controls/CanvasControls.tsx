@@ -2,6 +2,9 @@
 
 import { Panel, useViewport } from "@xyflow/react";
 import { type CommandId, commandById, shortcutsOf, surfaceCommands } from "../../commands/index";
+import { formatPercent } from "../../i18n/format";
+import { useLocale, useMessages, useWord } from "../../i18n/LocaleProvider";
+import { fill } from "../../i18n/messages/index";
 import { useBoard } from "../canvas-board/context";
 import { CommandButton } from "../command-button";
 import {
@@ -73,6 +76,9 @@ export interface CanvasControlsProps {
  */
 export function CanvasControls({ className }: CanvasControlsProps) {
   const board = useBoard();
+  const m = useMessages();
+  const word = useWord();
+  const locale = useLocale();
   const { zoom } = useViewport();
   const available = surfaceCommands("canvas-controls").map((c) => c.id);
   const ids = [
@@ -80,7 +86,7 @@ export function CanvasControls({ className }: CanvasControlsProps) {
     ...available.filter((id) => !ORDER.includes(id)),
   ];
   const shown = ids.filter((id) => board.enabled(id) || !board.readOnly);
-  const percent = `${Math.round(zoom * 100)}%`;
+  const percent = formatPercent(zoom, locale);
   const modeIds: CommandId[] = ["board.select-mode", "board.pan-mode"];
   const hasModes = modeIds.every((id) => shown.includes(id));
 
@@ -89,7 +95,7 @@ export function CanvasControls({ className }: CanvasControlsProps) {
       position="bottom-left"
       className={["ds-toolbar ds-controls", className].filter(Boolean).join(" ")}
       role="toolbar"
-      aria-label="เครื่องมือกระดาน"
+      aria-label={m.controls.label}
     >
       {shown.map((id) => {
         const divider = DIVIDE_BEFORE.has(id) ? <span className="ds-controls__divider" /> : null;
@@ -101,7 +107,7 @@ export function CanvasControls({ className }: CanvasControlsProps) {
               key={id}
               content={
                 <span className="inline-flex items-center gap-2">
-                  {command.label.th}
+                  {word(command.label)}
                   {key ? <Kbd shortcut={key} /> : null}
                 </span>
               }
@@ -109,7 +115,7 @@ export function CanvasControls({ className }: CanvasControlsProps) {
               <button
                 type="button"
                 className="ds-controls__zoom"
-                aria-label={`${command.label.th}, ตอนนี้ ${percent}`}
+                aria-label={fill(m.controls.zoomNow, { label: word(command.label), percent })}
                 aria-keyshortcuts={key}
                 data-command={id}
                 disabled={!board.enabled(id)}
@@ -128,7 +134,7 @@ export function CanvasControls({ className }: CanvasControlsProps) {
               <ToggleGroup
                 type="single"
                 size="sm"
-                aria-label="โหมดชี้"
+                aria-label={m.controls.pointerMode}
                 value={board.tool}
                 onValueChange={(value) => {
                   if (value === "pan") board.run("board.pan-mode");
@@ -137,13 +143,19 @@ export function CanvasControls({ className }: CanvasControlsProps) {
               >
                 <ToggleGroupItem
                   value="select"
-                  aria-label={`${commandById("board.select-mode").label.th} (${shortcutsOf("board.select-mode")[0]})`}
+                  aria-label={fill(m.controls.withKey, {
+                    label: word(commandById("board.select-mode").label),
+                    key: shortcutsOf("board.select-mode")[0] ?? "",
+                  })}
                 >
                   <CursorIcon className="size-4" />
                 </ToggleGroupItem>
                 <ToggleGroupItem
                   value="pan"
-                  aria-label={`${commandById("board.pan-mode").label.th} (${shortcutsOf("board.pan-mode")[0]})`}
+                  aria-label={fill(m.controls.withKey, {
+                    label: word(commandById("board.pan-mode").label),
+                    key: shortcutsOf("board.pan-mode")[0] ?? "",
+                  })}
                 >
                   <HandIcon className="size-4" />
                 </ToggleGroupItem>

@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, type CSSProperties, type ReactNode } from "react";
+import { collatorFor } from "../../i18n/format";
+import { useLocale, useMessages } from "../../i18n/LocaleProvider";
+import { fill } from "../../i18n/messages/index";
 import { Checkbox, type CheckedState } from "../checkbox/Checkbox";
 import { cx } from "../cx";
 import { ChevronDownIcon, SpinnerIcon } from "../icons";
@@ -32,7 +35,7 @@ export interface TableColumn<Row> {
 }
 
 export interface TableEmpty {
-  /** "ไม่มีรายการ" by default. */
+  /** The catalog's `table.empty` by default. */
   title?: ReactNode;
   description?: ReactNode;
   /** The action the empty state invites (DESIGN.md §7). */
@@ -75,8 +78,6 @@ export interface TableProps<Row> {
   className?: string | undefined;
 }
 
-const collator = new Intl.Collator("th", { numeric: true, sensitivity: "base" });
-
 function isMissing(value: unknown): boolean {
   return value === null || value === undefined || value === "";
 }
@@ -85,7 +86,7 @@ function fieldOf<Row>(row: Row, column: TableColumn<Row>): unknown {
   return (row as Record<string, unknown>)[column.key];
 }
 
-function compareValues(a: unknown, b: unknown): number {
+function compareValues(a: unknown, b: unknown, collator: Intl.Collator): number {
   if (typeof a === "number" && typeof b === "number") return a - b;
   return collator.compare(String(a), String(b));
 }
@@ -95,6 +96,7 @@ function sortRows<Row>(
   rows: readonly Row[],
   columns: readonly TableColumn<Row>[],
   sort: TableSort | null,
+  collator: Intl.Collator,
 ): readonly Row[] {
   if (!sort) return rows;
   const column = columns.find((c) => c.key === sort.key);
@@ -103,7 +105,9 @@ function sortRows<Row>(
   const present = rows.filter((row) => !isMissing(valueOf(row)));
   const missing = rows.filter((row) => isMissing(valueOf(row)));
   const sign = sort.direction === "ascending" ? 1 : -1;
-  const sorted = [...present].sort((a, b) => sign * compareValues(valueOf(a), valueOf(b)));
+  const sorted = [...present].sort(
+    (a, b) => sign * compareValues(valueOf(a), valueOf(b), collator),
+  );
   return [...sorted, ...missing];
 }
 
@@ -113,11 +117,6 @@ function nextSort(current: TableSort | null, key: string): TableSort {
   }
   return { key, direction: "ascending" };
 }
-
-const DIRECTION_LABEL: Record<SortDirection, string> = {
-  ascending: "จากน้อยไปมาก",
-  descending: "จากมากไปน้อย",
-};
 
 /**
  * Rows of the same shape that are scanned or compared (DESIGN.md §6). The frame is a card on the
@@ -142,12 +141,14 @@ export function Table<Row>({
   onSelectionChange,
   rowLabel,
   loading = false,
-  loadingLabel = "กำลังโหลด",
+  loadingLabel,
   empty,
   error,
-  missingLabel = "ไม่มีข้อมูล",
+  missingLabel,
   className,
 }: TableProps<Row>) {
+  const m = useMessages();
+  const collator = collatorFor(useLocale());
   const [ownSort, setOwnSort] = useState<TableSort | null>(defaultSort);
   const sort = sortProp === undefined ? ownSort : sortProp;
   const [ownSelected, setOwnSelected] = useState<ReadonlySet<string>>(
@@ -164,7 +165,7 @@ export function Table<Row>({
     onSelectionChange?.(next);
   };
 
-  const ordered = sortRows(rows, columns, sort);
+  const ordered = sortRows(rows, columns, sort, collator);
   const keys = ordered.map(rowKey);
   const selectedCount = keys.filter((key) => selected.has(key)).length;
   const headerState: CheckedState =
@@ -176,7 +177,7 @@ export function Table<Row>({
   const sortedColumn = sort ? columns.find((c) => c.key === sort.key) : undefined;
   const announcement =
     sort && sortedColumn
-      ? `เรียงตาม ${sortedColumn.header} ${DIRECTION_LABEL[sort.direction]}`
+      ? fill(m.table.sortedBy, { column: sortedColumn.header, direction: m.table[sort.direction] })
       : "";
   const span = columns.length + (selectable ? 1 : 0);
   const showEmpty = !loading && !error && rows.length === 0;
@@ -195,7 +196,7 @@ export function Table<Row>({
             {selectable ? (
               <th className="ds-table__th" role="columnheader" scope="col" data-select="">
                 <Checkbox
-                  label={<span className="sr-only">เลือกทุกแถว</span>}
+                  label={<span className="sr-only">{m.table.selectAll}</span>}
                   checked={headerState}
                   disabled={loading || keys.length === 0}
                   onCheckedChange={(state) =>
@@ -257,7 +258,12 @@ export function Table<Row>({
                 data-selected={isSelected ? "" : undefined}
               >
                 {selectable ? (
-                  <td className="ds-table__td" role="cell" data-select="" data-label="เลือก">
+                  <td
+                    className="ds-table__td"
+                    role="cell"
+                    data-select=""
+                    data-label={m.table.select}
+                  >
                     <Checkbox
                       label={<span className="sr-only">{rowLabel ? rowLabel(row) : key}</span>}
                       checked={isSelected}
@@ -275,7 +281,7 @@ export function Table<Row>({
                   const align = column.align ?? (column.numeric ? "end" : "start");
                   const value = column.cell ? column.cell(row) : fieldOf(row, column);
                   const content = isMissing(value) ? (
-                    <span className="ds-table__missing">{missingLabel}</span>
+                    <span className="ds-table__missing">{missingLabel ?? m.table.missing}</span>
                   ) : (
                     (value as ReactNode)
                   );
@@ -301,7 +307,7 @@ export function Table<Row>({
               <td className="ds-table__status" role="cell" colSpan={span}>
                 <div className="ds-table__status-inner" role="status">
                   <SpinnerIcon className="ds-spin size-5" />
-                  <p className="ds-table__status-text">{loadingLabel}</p>
+                  <p className="ds-table__status-text">{loadingLabel ?? m.table.loading}</p>
                 </div>
               </td>
             </tr>
@@ -320,7 +326,7 @@ export function Table<Row>({
             <tr role="row">
               <td className="ds-table__status" role="cell" colSpan={span}>
                 <div className="ds-table__status-inner">
-                  <p className="ds-table__status-title">{empty?.title ?? "ไม่มีรายการ"}</p>
+                  <p className="ds-table__status-title">{empty?.title ?? m.table.empty}</p>
                   {empty?.description ? (
                     <p className="ds-table__status-text">{empty.description}</p>
                   ) : null}

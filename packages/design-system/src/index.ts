@@ -23,6 +23,7 @@ export {
   type ProfileSource,
 } from "./profiles/index";
 export * from "./components/index";
+export * from "./i18n/index";
 export {
   COMMANDS,
   COMMAND_SCOPES,

@@ -4,8 +4,10 @@ import type { NodeProps } from "@xyflow/react";
 import { groupSummary } from "../canvas-board/arrange";
 import { useBoard } from "../canvas-board/context";
 import type { BoardNode } from "../canvas-board/graph";
-import { NodeToolbar } from "../node-toolbar/NodeToolbar";
+import { useMessages, useWord } from "../../i18n/LocaleProvider";
+import { fill } from "../../i18n/messages/index";
 import { CANVAS_WORDS } from "../../tokens/canvas";
+import { NodeToolbar } from "../node-toolbar/NodeToolbar";
 
 export type NodeGroupProps = NodeProps<BoardNode>;
 
@@ -17,6 +19,8 @@ export type NodeGroupProps = NodeProps<BoardNode>;
  */
 export function NodeGroup({ id, data, selected }: NodeGroupProps) {
   const board = useBoard();
+  const m = useMessages();
+  const word = useWord();
   const summary = data.collapsed ? groupSummary(board.graph, id) : null;
   return (
     <div
@@ -29,9 +33,11 @@ export function NodeGroup({ id, data, selected }: NodeGroupProps) {
       <NodeToolbar node={{ id, data, selected }} />
       <div className="ds-group__header">
         <span className="ds-group__title">{data.title}</span>
-        <span className="ds-group__kind">{CANVAS_WORDS.node.group.th}</span>
+        <span className="ds-group__kind">{word(CANVAS_WORDS.node.group)}</span>
         {summary ? (
-          <span className="ds-group__summary">{`${summary.children} node, ${summary.edges} สายเข้าออก`}</span>
+          <span className="ds-group__summary">
+            {fill(m.group.summary, { children: summary.children, edges: summary.edges })}
+          </span>
         ) : null}
       </div>
     </div>

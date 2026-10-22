@@ -39,7 +39,7 @@ export interface BoardContextValue {
   run: (id: CommandId, context?: CommandContext) => void;
   /** Whether a surface may offer the command right now (scope, selection, shell, variant). */
   enabled: (id: CommandId, context?: CommandContext) => boolean;
-  /** Scrolls a node into view and focuses it (the command menu's "ไปที่ node"). */
+  /** Scrolls a node into view and focuses it (the command menu's `commandMenu.jumpTo`). */
   jumpToNode: (id: string) => void;
   tool: BoardTool;
   snap: boolean;

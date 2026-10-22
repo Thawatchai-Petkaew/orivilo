@@ -1,4 +1,5 @@
 import type { Decorator, Preview } from "@storybook/react-vite";
+import { useEffect } from "react";
 import "../src/tokens/fonts.css";
 import "../src/tokens/orivilo.css";
 import {
@@ -8,6 +9,8 @@ import {
   PROFILES,
 } from "../src/boundary/DesignProfileBoundary";
 import { profileById } from "../src/profiles/index";
+import { DEFAULT_LOCALE, isLocale, LOCALE_NAMES, LOCALES, type Locale } from "../src/i18n/locale";
+import { LocaleProvider } from "../src/i18n/LocaleProvider";
 
 /**
  * Mode and profile come from the toolbar and reach the story only through the same boundary
@@ -24,9 +27,35 @@ const withDesignProfile: Decorator = (Story, context) => (
   </DesignProfileBoundary>
 );
 
+/**
+ * The locale comes from the toolbar and reaches the story through the same provider the app uses
+ * (spec ORV-39); the document's `lang` follows so screen readers switch voices.
+ */
+const withLocale: Decorator = (Story, context) => {
+  const raw = context.globals["locale"];
+  const locale: Locale = isLocale(raw) ? raw : DEFAULT_LOCALE;
+  useEffect(() => {
+    document.documentElement.lang = locale;
+  }, [locale]);
+  return (
+    <LocaleProvider locale={locale}>
+      <Story />
+    </LocaleProvider>
+  );
+};
+
 const preview: Preview = {
-  decorators: [withDesignProfile],
+  decorators: [withDesignProfile, withLocale],
   globalTypes: {
+    locale: {
+      description: "UI language: every string comes from the locale catalog (spec ORV-39)",
+      toolbar: {
+        title: "Language",
+        icon: "globe",
+        items: LOCALES.map((id) => ({ value: id, title: LOCALE_NAMES[id] })),
+        dynamicTitle: true,
+      },
+    },
     mode: {
       description: "Colour mode, DESIGN.md §3.1 and §3.2",
       toolbar: {
@@ -52,7 +81,7 @@ const preview: Preview = {
       },
     },
   },
-  initialGlobals: { mode: "light", profile: "neutral" },
+  initialGlobals: { mode: "light", profile: "neutral", locale: DEFAULT_LOCALE },
   parameters: {
     layout: "fullscreen",
     a11y: { test: "error" },

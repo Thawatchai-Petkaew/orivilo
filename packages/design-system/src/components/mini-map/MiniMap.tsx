@@ -1,6 +1,7 @@
 "use client";
 
 import { MiniMap as Primitive } from "@xyflow/react";
+import { useMessages } from "../../i18n/LocaleProvider";
 import type { BoardNode } from "../canvas-board/graph";
 
 export interface MiniMapProps {
@@ -20,6 +21,7 @@ function nodeClass(node: BoardNode): string {
  * The board hides it under ten nodes unless toggled on (`board.toggle-minimap`).
  */
 export function MiniMap({ className }: MiniMapProps) {
+  const m = useMessages();
   return (
     <Primitive<BoardNode>
       className={["ds-minimap", className].filter(Boolean).join(" ")}
@@ -29,7 +31,7 @@ export function MiniMap({ className }: MiniMapProps) {
       nodeClassName={nodeClass}
       nodeStrokeWidth={0}
       nodeBorderRadius={4}
-      ariaLabel="แผนที่ย่อของกระดาน"
+      ariaLabel={m.minimap.label}
     />
   );
 }

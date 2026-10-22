@@ -531,3 +531,30 @@ export const WithoutChrome: Story = {
     await expect(status(region)).toHaveTextContent("ซูมเข้า");
   },
 };
+
+/**
+ * The toolbar's English locale reaches the board through the provider (spec ORV-39 AC 6, 7):
+ * accessible names, the live region and the chrome speak English; node titles stay the author's.
+ */
+export const English: Story = {
+  globals: { locale: "en" },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const region = canvas.getByRole("region");
+    await waitFor(() => expect(nodeEls(region)).toHaveLength(BOARD_NODES.length));
+    await expect(nodeByTitle(region, "บรีฟ")).toHaveAttribute("aria-label", "บรีฟ, input block");
+    await expect(
+      canvas.getByRole("group", { name: "input from บรีฟ to โลโก้" }),
+    ).toBeInTheDocument();
+    await expect(canvas.getByRole("toolbar", { name: "Board tools" })).toBeInTheDocument();
+    const brief = nodeByTitle(region, "บรีฟ");
+    brief.focus();
+    await userEvent.keyboard("{Control>}a{/Control}");
+    await expect(status(region)).toHaveTextContent(`Selected all ${BOARD_NODES.length} nodes`);
+    await userEvent.keyboard("{Escape}");
+    brief.focus();
+    await userEvent.keyboard("{Alt>}{ArrowLeft}{/Alt}");
+    await expect(status(region)).toHaveTextContent("No upstream node");
+    await expect(region.querySelector(".ds-node__kind")).toHaveTextContent("input block");
+  },
+};

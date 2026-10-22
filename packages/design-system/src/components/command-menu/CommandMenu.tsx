@@ -3,7 +3,9 @@
 import { Dialog as DialogPrimitive } from "radix-ui";
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { PortalScope } from "../../boundary/DesignProfileBoundary";
-import { type Command, type CommandScope, surfaceCommands } from "../../commands/index";
+import { type Command, surfaceCommands } from "../../commands/index";
+import { useMessages, useWord } from "../../i18n/LocaleProvider";
+import { fill } from "../../i18n/messages/index";
 import { CANVAS_WORDS } from "../../tokens/canvas";
 import { useBoard } from "../canvas-board/context";
 import { Kbd } from "../kbd/Kbd";
@@ -17,15 +19,6 @@ export interface CommandMenuProps {
   /** `nodes` opens on the board search (Mod+F): node entries first and the field says so. */
   mode?: CommandMenuMode | undefined;
 }
-
-const SCOPE_WORD: Record<CommandScope, string> = {
-  board: "กระดาน",
-  selection: "สิ่งที่เลือก",
-  node: "node",
-  edge: "สาย",
-  app: "ทั่วไป",
-  panel: "แผง",
-};
 
 type Entry =
   | { kind: "command"; command: Command; enabled: boolean; text: string }
@@ -46,6 +39,8 @@ export function matches(text: string, query: string): boolean {
  */
 export function CommandMenu({ open, onOpenChange, mode = "commands" }: CommandMenuProps) {
   const board = useBoard();
+  const m = useMessages();
+  const word = useWord();
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const listId = useId();
@@ -80,10 +75,10 @@ export function CommandMenu({ open, onOpenChange, mode = "commands" }: CommandMe
         kind: "node",
         id: n.id,
         title: n.data.title,
-        word: CANVAS_WORDS.node[n.data.kind].th,
-        text: `${n.data.title} ${CANVAS_WORDS.node[n.data.kind].th}`,
+        word: word(CANVAS_WORDS.node[n.data.kind]),
+        text: `${n.data.title} ${CANVAS_WORDS.node[n.data.kind].th} ${CANVAS_WORDS.node[n.data.kind].en}`,
       })),
-    [board.graph.nodes],
+    [board.graph.nodes, word],
   );
 
   const results = useMemo(() => {
@@ -95,7 +90,8 @@ export function CommandMenu({ open, onOpenChange, mode = "commands" }: CommandMe
     const out: { key: string; label: string; entries: { entry: Entry; index: number }[] }[] = [];
     results.forEach((entry, index) => {
       const key = entry.kind === "node" ? "nodes" : entry.command.scope;
-      const label = entry.kind === "node" ? "ไปที่ node" : SCOPE_WORD[entry.command.scope];
+      const label =
+        entry.kind === "node" ? m.commandMenu.jumpGroup : m.commandMenu.scope[entry.command.scope];
       let group = out.find((g) => g.key === key);
       if (!group) {
         group = { key, label, entries: [] };
@@ -104,7 +100,7 @@ export function CommandMenu({ open, onOpenChange, mode = "commands" }: CommandMe
       group.entries.push({ entry, index });
     });
     return out;
-  }, [results]);
+  }, [results, m]);
 
   const choose = (entry: Entry | undefined) => {
     if (!entry) return;
@@ -133,7 +129,8 @@ export function CommandMenu({ open, onOpenChange, mode = "commands" }: CommandMe
   };
 
   const activeId = results.length > 0 ? `${listId}-${active}` : undefined;
-  const placeholder = mode === "nodes" ? "ค้นหา node บนกระดาน" : "พิมพ์คำสั่งหรือชื่อ node";
+  const placeholder =
+    mode === "nodes" ? m.commandMenu.placeholderNodes : m.commandMenu.placeholderCommands;
 
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
@@ -160,7 +157,7 @@ export function CommandMenu({ open, onOpenChange, mode = "commands" }: CommandMe
               }
             }}
           >
-            <DialogPrimitive.Title className="sr-only">ค้นหาคำสั่ง</DialogPrimitive.Title>
+            <DialogPrimitive.Title className="sr-only">{m.commandMenu.title}</DialogPrimitive.Title>
             <div className="ds-command__field">
               <SearchIcon className="size-5 shrink-0" />
               <input
@@ -184,9 +181,14 @@ export function CommandMenu({ open, onOpenChange, mode = "commands" }: CommandMe
               <Kbd shortcut="Escape" />
             </div>
             {results.length === 0 ? (
-              <p className="ds-command__empty">ไม่พบคำสั่งหรือ node ที่ตรงกับ "{query}"</p>
+              <p className="ds-command__empty">{fill(m.commandMenu.empty, { query })}</p>
             ) : (
-              <div id={listId} role="listbox" aria-label="ผลลัพธ์" className="ds-command__list">
+              <div
+                id={listId}
+                role="listbox"
+                aria-label={m.commandMenu.results}
+                className="ds-command__list"
+              >
                 {groups.map((g) => (
                   <div key={g.key} role="group" aria-label={g.label} className="ds-command__group">
                     <div className="ds-command__heading" aria-hidden>
@@ -205,7 +207,7 @@ export function CommandMenu({ open, onOpenChange, mode = "commands" }: CommandMe
                           onClick={() => choose(entry)}
                         >
                           <span>
-                            ไปที่ {entry.title}
+                            {fill(m.commandMenu.jumpTo, { title: entry.title })}
                             <span className="ds-command__meta">{entry.word}</span>
                           </span>
                         </div>
@@ -222,7 +224,7 @@ export function CommandMenu({ open, onOpenChange, mode = "commands" }: CommandMe
                           onMouseEnter={() => setActive(index)}
                           onClick={() => choose(entry)}
                         >
-                          <span>{entry.command.label.th}</span>
+                          <span>{word(entry.command.label)}</span>
                           {entry.command.shortcuts[0] ? (
                             <Kbd
                               shortcut={entry.command.shortcuts[0]}
@@ -237,7 +239,7 @@ export function CommandMenu({ open, onOpenChange, mode = "commands" }: CommandMe
               </div>
             )}
             <p className="sr-only" role="status" aria-live="polite">
-              {results.length} ผลลัพธ์
+              {fill(m.commandMenu.count, { count: results.length })}
             </p>
           </DialogPrimitive.Content>
         </PortalScope>

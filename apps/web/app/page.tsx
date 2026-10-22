@@ -1,78 +1,39 @@
-import { PROFILES } from "@orivilo/design-system";
+import { fill, PROFILES } from "@orivilo/design-system";
 import { designProfileSchema } from "@orivilo/intent-engine";
 import Link from "next/link";
+import { getWebMessages } from "../i18n/locale";
 
 const schemaVersion = designProfileSchema.shape.schemaVersion.value;
 
-/** What exists today, stated as it is (AGENTS.md rule 4). Each line names the story that made it real. */
-const real = [
-  {
-    what: "Token ชั้น primitive, semantic, component พร้อม CSS ที่ generate และ test",
-    story: "E2-1",
-  },
-  {
-    what: `Profile ${PROFILES.length} ชุด (${PROFILES.join(", ")}) สลับได้ใน Storybook และตรวจ contrast ทุกคู่`,
-    story: "E2-2",
-  },
-  { what: "Shell นี้ใช้ profile neutral และตามโหมดสีของเครื่อง", story: "E2-3" },
-  {
-    what: "Component ชุดแรก 10 ตัว (ปุ่ม, ช่องกรอก, select, checkbox, tooltip, popover, tabs) ใน Storybook ผ่าน 3 profile และ 2 โหมด",
-    story: "E2-4",
-  },
-  {
-    what: "Dialog (จับ focus, pending, error) และ Card (bento) ใน Storybook ผ่าน 3 profile และ 2 โหมด",
-    story: "E2-5",
-  },
-  {
-    what: "Table (เรียง, เลือกแถว, loading, ว่าง, ผิดพลาด, ยุบเป็นบล็อกที่ 360 px) ใน Storybook ผ่าน 3 profile และ 2 โหมด",
-    story: "E2-6",
-  },
-  {
-    what: "หน้าตัวอย่างเต็ม 3 หน้าใน Storybook (ฟอร์มตั้งค่า, บันทึกการตัดสินใจแบบ bento, หน้า landing) ประกอบจาก component ที่มีอยู่เท่านั้น",
-    story: "E2-7",
-  },
-  {
-    what: "หน้าอ้างอิง (เวิร์กสเปซของทีม พร้อมสร้างโปรเจกต์และเก็บถาวร) ที่ /workspace ประกอบจาก component ที่มีอยู่ พิสูจน์แล้วกับข้อมูลยาว จอ 360 px ข้อผิดพลาด และ overlay ใน 2 profile",
-    story: "E2-8",
-  },
-];
-
-const notYet = [
-  "Shell ของ Studio พร้อม navigation ยังไม่มี หน้านี้เป็นรายการสถานะ: epic E4",
-  "Canvas และ node ของ Studio ยังไม่มี: epic E4",
-  "การตีความ brief ยังไม่มี; เมื่อมาจะเป็นแบบกฎก่อนและบอกตามจริง: E2-10",
-];
-
-export default function Home() {
+/** What exists today, stated as it is (AGENTS.md rule 4); every line names the story that made it real. */
+export default async function Home() {
+  const { m } = await getWebMessages();
+  const params = { count: PROFILES.length, list: PROFILES.join(", "), version: schemaVersion };
   return (
     <main className="mx-auto flex min-h-dvh max-w-2xl flex-col justify-center gap-8 px-4 py-12">
       <header className="flex flex-col gap-3">
         <span className="flex items-center gap-2 text-label-md text-text-secondary">
           <span aria-hidden="true" className="size-2 rounded-control bg-brand-signature" />
-          ORIVILO
+          {m.app.title}
         </span>
-        <h1 className="font-display text-display-md">
-          จากเจตนาทางธุรกิจ สู่ผลิตภัณฑ์ดิจิทัลที่มีชีวิต
-        </h1>
-        <p className="max-w-prose text-body-lg text-text-secondary">
-          Brand-to-Product Platform ที่ทุกชิ้นงานสืบย้อนไปถึงเหตุผลของมันได้
-        </p>
+        <h1 className="font-display text-display-md">{m.home.headline}</h1>
+        <p className="max-w-prose text-body-lg text-text-secondary">{m.home.tagline}</p>
         <p className="text-body-md">
           <Link
             className="text-text-link underline-offset-4 hover:text-text-link-hover hover:underline"
             href="/workspace"
           >
-            เปิดหน้าอ้างอิง: เวิร์กสเปซของทีม
+            {m.home.openWorkspace}
           </Link>
         </p>
       </header>
 
       <section aria-labelledby="real" className="flex flex-col gap-3">
         <h2 id="real" className="text-heading-sm">
-          สิ่งที่มีจริงตอนนี้
+          {m.home.realHeading}
         </h2>
         <ul className="flex flex-col gap-2">
-          {real.map((item) => (
+          {m.home.real.map((item) => (
             <li
               key={item.story}
               className="flex gap-3 rounded-container border border-border-card bg-surface-card p-4"
@@ -80,7 +41,7 @@ export default function Home() {
               <span className="shrink-0 font-mono text-label-sm whitespace-nowrap text-text-secondary">
                 {item.story}
               </span>
-              <span>{item.what}</span>
+              <span>{fill(item.what, params)}</span>
             </li>
           ))}
         </ul>
@@ -88,20 +49,20 @@ export default function Home() {
 
       <section aria-labelledby="not-yet" className="flex flex-col gap-3">
         <h2 id="not-yet" className="text-heading-sm">
-          สิ่งที่ยังไม่มี
+          {m.home.notYetHeading}
         </h2>
         <ul className="flex list-disc flex-col gap-1 pl-5 text-text-secondary">
-          {notYet.map((line) => (
+          {m.home.notYet.map((line) => (
             <li key={line}>{line}</li>
           ))}
         </ul>
         <p className="text-body-sm text-text-secondary">
-          Design Profile schema v{schemaVersion}. แผนงานทั้งหมดอยู่ใน{" "}
+          {fill(m.home.schemaLine, params)}{" "}
           <a
             className="text-text-link underline-offset-4 hover:text-text-link-hover hover:underline"
-            href="https://github.com/Thawatchai-Petkaew/orivilo/blob/main/docs/specs/backlog-draft.md"
+            href="https://tpetkaew.atlassian.net/browse/ORV"
           >
-            backlog draft
+            {m.home.backlogLink}
           </a>
         </p>
       </section>
