@@ -442,6 +442,12 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
   { recipe: "node", slot: "missing", fg: "node.fg-on-missing", bg: "node.fg-missing", floor: TEXT },
   { recipe: "node", slot: "error", fg: "node.fg-error", bg: "node.bg", floor: TEXT },
   { recipe: "node", slot: "port label", fg: "node.kind-fg", bg: "node.bg", floor: TEXT },
+  // A note is glass (ORV-56). Checked against its solid base, as the toolbar is; the blur over the
+  // board is not computable, so that case rests on the 0.72 share and the reduced-transparency
+  // fallback.
+  { recipe: "node", slot: "note body", fg: "node.fg", bg: "node.note-bg", floor: TEXT },
+  { recipe: "node", slot: "note header", fg: "node.header-fg", bg: "node.note-bg", floor: TEXT },
+  { recipe: "node", slot: "note kind", fg: "node.kind-fg", bg: "node.note-bg", floor: TEXT },
   {
     recipe: "node",
     slot: "selected edge",

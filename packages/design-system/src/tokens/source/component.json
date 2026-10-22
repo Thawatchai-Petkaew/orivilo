@@ -1035,6 +1035,24 @@
       "$value": "{border.card}",
       "$description": "Transparent on the light board like a card; marks the edge in dark"
     },
+    "note-bg": {
+      "$type": "color",
+      "$value": "{surface.card}",
+      "$description": "A note is glass (owner, 2026-10-22, ORV-56): a share of this over the board with a blur, like the toolbar; solid under reduced transparency"
+    },
+    "note-border": {
+      "$type": "color",
+      "$value": "{border.subtle}",
+      "$description": "The glass needs an edge on the light board, as the toolbar has"
+    },
+    "note-opacity": {
+      "$type": "number",
+      "$value": "{elevation.glass.opacity}"
+    },
+    "note-blur": {
+      "$type": "dimension",
+      "$value": "{elevation.glass.blur}"
+    },
     "border-hover": {
       "$type": "color",
       "$value": "{border.control-hover}"

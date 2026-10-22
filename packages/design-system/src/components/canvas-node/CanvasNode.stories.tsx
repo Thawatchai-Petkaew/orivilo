@@ -109,6 +109,56 @@ export const Variants: Story = {
   },
 };
 
+/**
+ * A note is glass (owner's choice, ORV-56): it lies over a knowledge node here so the blur shows.
+ * Every other kind stays solid; under reduced transparency the note turns solid too.
+ */
+export const NoteGlass: Story = {
+  render: () => (
+    <NodeBoard
+      height={320}
+      initial={{
+        nodes: [
+          {
+            id: "under",
+            type: "orivilo",
+            position: { x: 0, y: 0 },
+            data: {
+              title: "โปรไฟล์ลูกค้า",
+              kind: "knowledge",
+              summary: fixtures.thai,
+              inputs: [text],
+              outputs: [image],
+            },
+          },
+          {
+            id: "note",
+            type: "orivilo",
+            position: { x: 160, y: 40 },
+            data: {
+              title: "โน้ต",
+              kind: "note",
+              size: "sm",
+              summary: "จดไว้ก่อน ยังไม่ส่งให้ระบบ",
+              inputs: [],
+              outputs: [],
+            },
+          },
+        ],
+        edges: [],
+      }}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    await ready(canvasElement, 2);
+    const [solid, note] = [...nodeEls(canvasElement)] as HTMLElement[];
+    const glass = getComputedStyle(note as HTMLElement);
+    await expect(glass.backdropFilter).toMatch(/blur\(\d+px\)/);
+    await expect(glass.backgroundColor).toMatch(/^(rgba|color)\(.*(0\.\d+)\)$/);
+    await expect(getComputedStyle(solid as HTMLElement).backdropFilter).toBe("none");
+  },
+};
+
 /** sm 240, md 320, lg 480 from the node tokens; custom takes `node.width`. */
 export const Sizes: Story = {
   render: () => (

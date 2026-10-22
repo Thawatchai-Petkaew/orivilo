@@ -1095,6 +1095,35 @@
 .ds-node[data-size="custom"] {
   width: 100%;
 }
+/* A note is glass, like the toolbar (owner's choice, ORV-56): a share of `node.note-bg` over the
+ * board with a blur, header included, and an edge so it reads on the light board. Solid when the
+ * user asks for less transparency or the browser cannot blur. Sits before the hover, selected and
+ * error edges so those still win. Only notes: every other node stays solid. */
+.ds-node[data-kind="note"] {
+  --_glass: color-mix(
+    in srgb,
+    var(--cmp-node-note-bg) calc(var(--cmp-node-note-opacity) * 100%),
+    transparent
+  );
+  border-color: var(--cmp-node-note-border);
+  background: var(--_glass);
+  backdrop-filter: blur(var(--cmp-node-note-blur));
+}
+.ds-node[data-kind="note"] .ds-node__header {
+  background: transparent;
+  border-bottom: 1px solid var(--cmp-node-note-border);
+}
+@media (prefers-reduced-transparency: reduce) {
+  .ds-node[data-kind="note"] {
+    --_glass: var(--cmp-node-note-bg);
+    backdrop-filter: none;
+  }
+}
+@supports not (backdrop-filter: blur(1px)) {
+  .ds-node[data-kind="note"] {
+    --_glass: var(--cmp-node-note-bg);
+  }
+}
 .ds-node:hover:not([data-readonly]) {
   border-color: var(--cmp-node-border-hover);
 }

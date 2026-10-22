@@ -868,6 +868,10 @@
   --cmp-node-bg: var(--ds-surface-card);
   --cmp-node-fg: var(--ds-text-primary);
   --cmp-node-border: var(--ds-border-card);
+  --cmp-node-note-bg: var(--ds-surface-card);
+  --cmp-node-note-border: var(--ds-border-subtle);
+  --cmp-node-note-opacity: var(--ds-elevation-glass-opacity);
+  --cmp-node-note-blur: var(--ds-elevation-glass-blur);
   --cmp-node-border-hover: var(--ds-border-control-hover);
   --cmp-node-border-selected: var(--ds-canvas-selection);
   --cmp-node-border-error: var(--ds-border-error);
