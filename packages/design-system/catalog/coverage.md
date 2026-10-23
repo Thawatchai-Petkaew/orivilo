@@ -14,10 +14,10 @@ Legend: `none` not started, `planned` entry exists, no code, `draft` code and st
 | PasswordInput | draft  | base-password-input |
 | Field         | stable | E2-4                |
 | Select        | stable | base-select         |
-| Checkbox      | stable | E2-4                |
+| Checkbox      | stable | base-checkbox       |
 | RadioGroup    | none   |                     |
 | Switch        | none   |                     |
-| Textarea      | stable | E2-4                |
+| Textarea      | stable | base-textarea       |
 | Combobox      | none   |                     |
 | Badge         | stable | base-badge          |
 | Tag           | draft  | base-tag            |
@@ -29,6 +29,7 @@ Legend: `none` not started, `planned` entry exists, no code, `draft` code and st
 | Pagination    | none   |                     |
 | Progress      | draft  | base-progress       |
 | Slider        | draft  | base-slider         |
+| RangeSlider   | draft  | base-range-slider   |
 | Toast         | draft  | base-toast          |
 | File upload   | none   |                     |
 | Date picker   | none   |                     |

@@ -292,6 +292,14 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     floor: TEXT,
   },
   { recipe: "menu", slot: "empty line", fg: "menu.empty", bg: "menu.bg", floor: TEXT },
+  // Checkable menu item (ORV-78): the focus ring on the selected fill when highlighted
+  {
+    recipe: "menu",
+    slot: "checked highlighted ring",
+    fg: "ds:focus.ring",
+    bg: "menu.option.bg-selected",
+    floor: UI,
+  },
   // Checkbox
   {
     recipe: "checkbox",
@@ -342,8 +350,44 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
   },
   { recipe: "field", slot: "error", fg: "field.error", bg: "ds:surface.canvas", floor: TEXT },
   { recipe: "field", slot: "error on card", fg: "field.error", bg: "ds:surface.card", floor: TEXT },
+  // Textarea counter (ORV-72): under the box, on the canvas or a card
+  {
+    recipe: "textarea",
+    slot: "counter",
+    fg: "textarea.counter-fg",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
+  {
+    recipe: "textarea",
+    slot: "counter on card",
+    fg: "textarea.counter-fg",
+    bg: "ds:surface.card",
+    floor: TEXT,
+  },
+  {
+    recipe: "textarea",
+    slot: "counter over",
+    fg: "textarea.counter-fg-over",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
+  {
+    recipe: "textarea",
+    slot: "counter over on card",
+    fg: "textarea.counter-fg-over",
+    bg: "ds:surface.card",
+    floor: TEXT,
+  },
   // Tooltip
   { recipe: "tooltip", slot: "text", fg: "tooltip.fg", bg: "tooltip.bg", floor: TEXT },
+  {
+    recipe: "tooltip",
+    slot: "description",
+    fg: "tooltip.description-fg",
+    bg: "tooltip.bg",
+    floor: TEXT,
+  },
   { recipe: "tooltip", slot: "on canvas", fg: "tooltip.bg", bg: "ds:surface.canvas", floor: UI },
   // Badge
   { recipe: "badge", slot: "neutral", fg: "badge.neutral.fg", bg: "badge.neutral.bg", floor: TEXT },

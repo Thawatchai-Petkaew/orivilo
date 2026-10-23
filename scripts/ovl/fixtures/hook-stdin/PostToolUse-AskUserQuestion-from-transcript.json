@@ -1,0 +1,59 @@
+{
+  "session_id": "placeholder-session-id",
+  "transcript_path": "/placeholder/transcript.jsonl",
+  "cwd": "/work/tree",
+  "prompt_id": "placeholder-prompt-id",
+  "permission_mode": "default",
+  "hook_event_name": "PostToolUse",
+  "tool_name": "AskUserQuestion",
+  "tool_input": {
+    "questions": [
+      {
+        "question": "ข้อมูลจริงจาก Claude Code: ข้อความที่เข้า chat ไม่มี field บอกว่าคุณพิมพ์เอง (แจ้งเตือนจาก agent ก็เข้ามาเหมือนกัน) การอนุญาต rework รอบเพิ่มจะให้นับจากอะไร?",
+        "header": "Grant",
+        "options": [
+          {
+            "label": "กดเลือกในแบบฟอร์มเท่านั้น (แนะนำ)",
+            "description": "นับเฉพาะคำตอบที่คุณกดในแบบฟอร์มคำถาม (แบบที่ผมถามอยู่นี้) ข้อความที่พิมพ์ใน chat ไม่นับ ปลอมยากกว่ามาก และคุณก็ตอบผ่านฟอร์มอยู่แล้ว"
+          },
+          {
+            "label": "พิมพ์ใน chat ก็นับ",
+            "description": "คงตามเดิม (ต้องมีรหัส issue) แต่ต้องทดสอบใน session จริงก่อนว่ามี source: user ไหม ถ้าไม่มี จะต้องกรองด้วยรูปแบบข้อความ ซึ่งปลอมได้ง่ายกว่า"
+          },
+          {
+            "label": "เขียนไฟล์จาก terminal",
+            "description": "เหมือน record อนุมัติ guard PR เข้มที่สุด แต่ต้องเปิด terminal ทุกครั้ง"
+          }
+        ],
+        "multiSelect": false
+      }
+    ]
+  },
+  "tool_response": {
+    "questions": [
+      {
+        "question": "ข้อมูลจริงจาก Claude Code: ข้อความที่เข้า chat ไม่มี field บอกว่าคุณพิมพ์เอง (แจ้งเตือนจาก agent ก็เข้ามาเหมือนกัน) การอนุญาต rework รอบเพิ่มจะให้นับจากอะไร?",
+        "header": "Grant",
+        "options": [
+          {
+            "label": "กดเลือกในแบบฟอร์มเท่านั้น (แนะนำ)",
+            "description": "นับเฉพาะคำตอบที่คุณกดในแบบฟอร์มคำถาม (แบบที่ผมถามอยู่นี้) ข้อความที่พิมพ์ใน chat ไม่นับ ปลอมยากกว่ามาก และคุณก็ตอบผ่านฟอร์มอยู่แล้ว"
+          },
+          {
+            "label": "พิมพ์ใน chat ก็นับ",
+            "description": "คงตามเดิม (ต้องมีรหัส issue) แต่ต้องทดสอบใน session จริงก่อนว่ามี source: user ไหม ถ้าไม่มี จะต้องกรองด้วยรูปแบบข้อความ ซึ่งปลอมได้ง่ายกว่า"
+          },
+          {
+            "label": "เขียนไฟล์จาก terminal",
+            "description": "เหมือน record อนุมัติ guard PR เข้มที่สุด แต่ต้องเปิด terminal ทุกครั้ง"
+          }
+        ],
+        "multiSelect": false
+      }
+    ],
+    "answers": {
+      "ข้อมูลจริงจาก Claude Code: ข้อความที่เข้า chat ไม่มี field บอกว่าคุณพิมพ์เอง (แจ้งเตือนจาก agent ก็เข้ามาเหมือนกัน) การอนุญาต rework รอบเพิ่มจะให้นับจากอะไร?": "กดเลือกในแบบฟอร์มเท่านั้น (แนะนำ)"
+    }
+  },
+  "tool_use_id": "placeholder-tool-use-id"
+}

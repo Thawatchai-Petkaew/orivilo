@@ -50,6 +50,7 @@ export {
   SheetTrigger,
 } from "./sheet/Sheet";
 export { Slider, type SliderProps } from "./slider/Slider";
+export { RangeSlider, type RangeSliderProps, type SliderRange } from "./slider/RangeSlider";
 export { Tag, type TagProps } from "./tag/Tag";
 export {
   Tabs,
@@ -147,12 +148,18 @@ export { NodePort, type NodePortProps, type PortState } from "./node-port/NodePo
 export { Kbd, type KbdProps, keyWord, shortcutWords } from "./kbd/Kbd";
 export {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
+  type DropdownMenuCheckboxItemProps,
   DropdownMenuContent,
   type DropdownMenuContentProps,
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   type DropdownMenuProps,
+  DropdownMenuRadioGroup,
+  type DropdownMenuRadioGroupProps,
+  DropdownMenuRadioItem,
+  type DropdownMenuRadioItemProps,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   type MenuItemProps,

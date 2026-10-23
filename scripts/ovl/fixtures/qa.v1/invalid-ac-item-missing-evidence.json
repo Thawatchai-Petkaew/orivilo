@@ -1,0 +1,36 @@
+{
+  "task_id": "t",
+  "issue": "ORV-81",
+  "pr": 1,
+  "verdict": "approve",
+  "head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "quality_gate": {
+    "report": ".quality-gate/report.json",
+    "ok": true,
+    "head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "ac": [
+    {
+      "row": 2,
+      "status": "pass",
+      "visual": true
+    }
+  ],
+  "screenshots": [
+    {
+      "story": "components-checkbox--default",
+      "mode": "light",
+      "path": ".orivilo/runs/ORV-81/t/screenshots/components-checkbox--default-light.png",
+      "looked_at": true,
+      "note": "glyph centred"
+    },
+    {
+      "story": "components-checkbox--default",
+      "mode": "dark",
+      "path": ".orivilo/runs/ORV-81/t/screenshots/components-checkbox--default-dark.png",
+      "looked_at": true,
+      "note": "glyph centred"
+    }
+  ],
+  "findings": []
+}

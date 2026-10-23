@@ -154,12 +154,15 @@ export const ControlledSortStory: Story = {
   render: () => <ControlledSort />,
 };
 
-/** The header box selects every row, one row unchecked turns it mixed (AC 4). */
+/** The header box selects every row, one row unchecked turns it mixed (AC 4); the boxes are `sm` (ORV-72). */
 export const Selectable: Story = {
   args: { selectable: true },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const all = canvas.getByRole("checkbox", { name: "เลือกทุกแถว" });
+    for (const box of canvas.getAllByRole("checkbox")) {
+      await expect(box.getBoundingClientRect().width).toBe(16);
+    }
     await userEvent.click(all);
     await expect(all).toHaveAttribute("aria-checked", "true");
     const rows = canvas.getAllByRole("row").slice(1);

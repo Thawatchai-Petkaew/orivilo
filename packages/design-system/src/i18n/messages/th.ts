@@ -44,9 +44,20 @@ export const th = {
   tag: {
     remove: "ลบ {label}",
   },
+  textarea: {
+    ratio: "{count}/{max}",
+    count: "ตัวอักษร {count}",
+    countOf: "ตัวอักษร {count} จาก {max}",
+    countOver: "ตัวอักษร {count} จาก {max} เกินมา {over} ตัวอักษร",
+  },
   passwordInput: {
     show: "แสดงรหัสผ่าน",
     hide: "ซ่อนรหัสผ่าน",
+  },
+  slider: {
+    range: "{min} ถึง {max}",
+    lower: "ค่าต่ำสุด",
+    upper: "ค่าสูงสุด",
   },
   resizable: {
     handle: "ปรับความกว้างของ{panel}",

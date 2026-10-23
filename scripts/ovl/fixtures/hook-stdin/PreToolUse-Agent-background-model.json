@@ -1,0 +1,21 @@
+{
+  "session_id": "d213edd6-16e1-4543-bdb4-0f8d1f8e85ab",
+  "transcript_path": "/Users/tawatchaipetkaew/.claude/projects/-private-tmp-claude-501--Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO-0baff5a3-4a6a-4d70-99db-b6b7a526f04f-scratchpad-stdin-probe/d213edd6-16e1-4543-bdb4-0f8d1f8e85ab.jsonl",
+  "cwd": "/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/0baff5a3-4a6a-4d70-99db-b6b7a526f04f/scratchpad/stdin-probe",
+  "scratchpad_dir": "/private/tmp/claude-501/-private-tmp-claude-501--Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO-0baff5a3-4a6a-4d70-99db-b6b7a526f04f-scratchpad-stdin-probe/d213edd6-16e1-4543-bdb4-0f8d1f8e85ab/scratchpad",
+  "prompt_id": "9311fede-fb94-4fad-a89a-8a4ccf2fadfa",
+  "permission_mode": "bypassPermissions",
+  "effort": {
+    "level": "medium"
+  },
+  "hook_event_name": "PreToolUse",
+  "tool_name": "Agent",
+  "tool_input": {
+    "description": "probe2",
+    "prompt": "reply ok",
+    "subagent_type": "general-purpose",
+    "model": "haiku",
+    "run_in_background": true
+  },
+  "tool_use_id": "toolu_014FmAzk1ZajCiv3RPXh9KJG"
+}

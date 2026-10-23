@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orivilo.dev/ovl/reviewer.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["task_id", "verdict", "head_sha", "checks_run", "findings"],
+  "properties": {
+    "task_id": { "type": "string" },
+    "verdict": { "enum": ["approve", "request_changes"] },
+    "head_sha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "checks_run": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["command", "exit_code", "summary"],
+        "properties": {
+          "command": { "type": "string" },
+          "exit_code": { "type": "integer" },
+          "summary": { "type": "string" }
+        }
+      }
+    },
+    "findings": { "type": "array", "items": { "$ref": "#/$defs/finding" } },
+    "dropped": { "type": "array", "items": { "$ref": "#/$defs/finding" } }
+  },
+  "$defs": {
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "severity", "claim", "expected", "evidence"],
+      "properties": {
+        "id": { "type": "string" },
+        "severity": { "enum": ["Critical", "Important", "Suggestion"] },
+        "file": { "type": "string" },
+        "line": { "type": "integer", "minimum": 1 },
+        "claim": { "type": "string", "minLength": 1 },
+        "expected": { "type": "string", "minLength": 1 },
+        "evidence": { "$ref": "#/$defs/evidence" }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "ref"],
+      "properties": {
+        "kind": { "enum": ["command", "screenshot", "computed_style", "code"] },
+        "ref": { "type": "string", "minLength": 1 },
+        "observed": { "type": "string" }
+      }
+    }
+  }
+}

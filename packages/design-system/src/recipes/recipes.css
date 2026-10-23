@@ -273,6 +273,27 @@
   overflow-y: auto;
 }
 
+/* Textarea counter (ORV-72): graphemes against the limit, under the box at the end edge. */
+.ds-textarea {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmp-textarea-counter-gap);
+  width: 100%;
+}
+.ds-textarea__counter {
+  align-self: flex-end;
+  color: var(--cmp-textarea-counter-fg);
+  font-family: var(--cmp-textarea-counter-type-font-family);
+  font-size: var(--cmp-textarea-counter-type-font-size);
+  line-height: var(--cmp-textarea-counter-type-line-height);
+  font-weight: var(--cmp-textarea-counter-type-font-weight);
+  letter-spacing: var(--cmp-textarea-counter-type-letter-spacing);
+  font-variant-numeric: tabular-nums;
+}
+.ds-textarea__counter[data-over] {
+  color: var(--cmp-textarea-counter-fg-over);
+}
+
 /* Select trigger: a control that is a button. */
 .ds-control[data-trigger] {
   justify-content: space-between;
@@ -520,8 +541,13 @@
   justify-content: center;
   width: var(--cmp-checkbox-size);
   height: var(--cmp-checkbox-size);
-  /* Centre the box on the first line of the label. */
-  margin-top: calc((var(--ds-type-body-md-line-height) - var(--cmp-checkbox-size)) / 2);
+  /* Centre the box on the first line of the label: the box takes the label's type so 1lh is that
+     line's height. The line-height token is unitless, so it cannot be subtracted from a length
+     directly (ORV-80: that calc was invalid and the box sat at the top of the line). 1lh needs lh unit
+     support (all evergreen browsers since 2023); without it the calc drops and the offset returns. */
+  font-size: var(--cmp-checkbox-label-type-font-size);
+  line-height: var(--cmp-checkbox-label-type-line-height);
+  margin-top: calc((1lh - var(--cmp-checkbox-size)) / 2);
   border: 1px solid var(--cmp-checkbox-border);
   border-radius: var(--cmp-checkbox-radius);
   background: var(--cmp-checkbox-bg);
@@ -555,12 +581,37 @@
 .ds-checkbox__label {
   cursor: pointer;
   color: var(--cmp-field-label);
-  font-family: var(--ds-type-body-md-font-family);
-  font-size: var(--ds-type-body-md-font-size);
-  line-height: var(--ds-type-body-md-line-height);
-  font-weight: var(--ds-type-body-md-font-weight);
-  letter-spacing: var(--ds-type-body-md-letter-spacing);
+  font-family: var(--cmp-checkbox-label-type-font-family);
+  font-size: var(--cmp-checkbox-label-type-font-size);
+  line-height: var(--cmp-checkbox-label-type-line-height);
+  font-weight: var(--cmp-checkbox-label-type-font-weight);
+  letter-spacing: var(--cmp-checkbox-label-type-letter-spacing);
   overflow-wrap: anywhere;
+}
+
+/* Checkbox sm: tables and dense lists (ORV-72). The box is 16 px with the same label gap as md;
+   a transparent extension keeps a 24 px target when the label is visually hidden. */
+.ds-checkbox[data-size="sm"] .ds-checkbox__box {
+  position: relative;
+  width: var(--cmp-checkbox-size-sm);
+  height: var(--cmp-checkbox-size-sm);
+  font-size: var(--cmp-checkbox-label-type-sm-font-size);
+  line-height: var(--cmp-checkbox-label-type-sm-line-height);
+  /* Needs lh unit support, as above: without it the calc drops and the offset returns. */
+  margin-top: calc((1lh - var(--cmp-checkbox-size-sm)) / 2);
+}
+/* Inset from the padding box, so the 1px border is added back. */
+.ds-checkbox[data-size="sm"] .ds-checkbox__box::after {
+  content: "";
+  position: absolute;
+  inset: calc((var(--cmp-checkbox-size-sm) - var(--cmp-checkbox-target-min)) / 2 - 1px);
+}
+.ds-checkbox[data-size="sm"] .ds-checkbox__label {
+  font-family: var(--cmp-checkbox-label-type-sm-font-family);
+  font-size: var(--cmp-checkbox-label-type-sm-font-size);
+  line-height: var(--cmp-checkbox-label-type-sm-line-height);
+  font-weight: var(--cmp-checkbox-label-type-sm-font-weight);
+  letter-spacing: var(--cmp-checkbox-label-type-sm-letter-spacing);
 }
 
 /* Field: label, description, error around a control --------------------------------------- */
@@ -617,6 +668,17 @@
   letter-spacing: var(--cmp-tooltip-type-letter-spacing);
   overflow-wrap: anywhere;
   z-index: var(--cmp-tooltip-layer);
+}
+/* A second line under the content: the same ink in body type, so it reads as the explanation. */
+.ds-tooltip__description {
+  display: block;
+  margin-top: var(--cmp-tooltip-line-gap);
+  color: var(--cmp-tooltip-description-fg);
+  font-family: var(--cmp-tooltip-description-type-font-family);
+  font-size: var(--cmp-tooltip-description-type-font-size);
+  line-height: var(--cmp-tooltip-description-type-line-height);
+  font-weight: var(--cmp-tooltip-description-type-font-weight);
+  letter-spacing: var(--cmp-tooltip-description-type-letter-spacing);
 }
 
 /* Badge ------------------------------------------------------------------------------------- */
@@ -1133,7 +1195,7 @@
 }
 .ds-table__th[data-select],
 .ds-table__td[data-select] {
-  width: var(--cmp-checkbox-size);
+  width: var(--cmp-checkbox-size-sm);
   padding-inline-end: 0;
 }
 /* Hover marks a row only where a row can be acted on (DESIGN.md §7). */
@@ -2004,7 +2066,8 @@
   user-select: none;
   outline: none;
 }
-.ds-menu__item > span:first-child {
+.ds-menu__item > span:first-child:not(.ds-menu__indicator),
+.ds-menu__item > .ds-menu__indicator + span {
   min-width: 0;
   flex: 1;
   overflow: hidden;
@@ -2023,6 +2086,26 @@
 .ds-menu__item[data-disabled] {
   color: var(--cmp-menu-option-fg-disabled);
   cursor: not-allowed;
+}
+/* Checkable items (ORV-78): a glyph column kept when unchecked, and glyph plus fill when checked,
+   the same selected pair as a Select option. */
+.ds-menu__indicator {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--cmp-menu-option-icon-size);
+  height: var(--cmp-menu-option-icon-size);
+}
+.ds-menu__item[data-checkable][data-state="checked"]:not([data-disabled]) {
+  background: var(--cmp-menu-option-bg-selected);
+  color: var(--cmp-menu-option-fg-selected);
+}
+/* Highlighted and checked: the selected fill stays and a focus ring shows where the pointer or
+   keyboard is, so the two never read the same (DESIGN.md §7). */
+.ds-menu__item[data-checkable][data-state="checked"][data-highlighted]:not([data-disabled]) {
+  outline: 2px solid var(--ds-focus-ring);
+  outline-offset: -2px;
 }
 .ds-menu__shortcut {
   margin-left: auto;

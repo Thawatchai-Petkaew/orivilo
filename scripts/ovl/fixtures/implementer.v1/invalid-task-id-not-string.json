@@ -1,0 +1,20 @@
+{
+  "task_id": 1,
+  "result": "done",
+  "changed": [
+    {
+      "file": "a.mjs",
+      "note": "added"
+    }
+  ],
+  "verified": [
+    {
+      "check": "node --test",
+      "evidence": "pass 5"
+    }
+  ],
+  "skills_used": [],
+  "deviations": [],
+  "needs_decision": [],
+  "blocked_on": null
+}

@@ -646,6 +646,20 @@
     "layer": {
       "$type": "number",
       "$value": "{layer.tooltip}"
+    },
+    "description-fg": {
+      "$type": "color",
+      "$value": "{text.on-inverse}",
+      "$description": "The second line; the inverse ground has no muted step that keeps 4.5, so it differs by type, not colour"
+    },
+    "description-type": {
+      "$type": "typography",
+      "$value": "{type.body.sm}"
+    },
+    "line-gap": {
+      "$type": "dimension",
+      "$value": "{space.inline.sm}",
+      "$description": "Between the content and the description"
     }
   },
   "badge": {
@@ -925,6 +939,24 @@
     "gap": {
       "$type": "dimension",
       "$value": "{space.inline.md}"
+    },
+    "size-sm": {
+      "$type": "dimension",
+      "$value": "{size.icon.sm}",
+      "$description": "The small box for tables and dense lists (ORV-72)"
+    },
+    "label-type": {
+      "$type": "typography",
+      "$value": "{type.body.md}"
+    },
+    "label-type-sm": {
+      "$type": "typography",
+      "$value": "{type.body.sm}"
+    },
+    "target-min": {
+      "$type": "dimension",
+      "$value": "{size.icon.lg}",
+      "$description": "WCAG 2.5.8: the small box keeps a 24 px target when its label is visually hidden. Borrows size.icon.lg (24) because no semantic target size exists; retuning icon sizes moves this floor"
     }
   },
   "menu": {
@@ -1188,6 +1220,24 @@
       "$type": "dimension",
       "$value": "{shape.media.radius}",
       "$description": "A multi-line box takes the media radius, not the pill: a pill wrapping three lines reads as a capsule, not a field"
+    },
+    "counter-fg": {
+      "$type": "color",
+      "$value": "{text.secondary}"
+    },
+    "counter-fg-over": {
+      "$type": "color",
+      "$value": "{feedback.danger.fg}",
+      "$description": "Past the limit: danger ink, the only over-limit colour (DESIGN.md §8)"
+    },
+    "counter-type": {
+      "$type": "typography",
+      "$value": "{type.body.sm}"
+    },
+    "counter-gap": {
+      "$type": "dimension",
+      "$value": "{space.inline.sm}",
+      "$description": "Between the textarea and its counter"
     }
   },
   "board": {

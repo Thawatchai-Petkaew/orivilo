@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orivilo.dev/ovl/implementer.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "task_id",
+    "result",
+    "changed",
+    "verified",
+    "skills_used",
+    "deviations",
+    "needs_decision",
+    "blocked_on"
+  ],
+  "properties": {
+    "task_id": { "type": "string" },
+    "result": { "enum": ["done", "blocked"] },
+    "changed": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["file", "note"],
+        "properties": {
+          "file": { "type": "string" },
+          "note": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "verified": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["check", "evidence"],
+        "properties": {
+          "check": { "type": "string", "minLength": 1 },
+          "evidence": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "skills_used": { "type": "array", "items": { "type": "string" } },
+    "deviations": { "type": "array", "items": { "type": "string" } },
+    "needs_decision": { "type": "array", "items": { "type": "string" } },
+    "blocked_on": { "type": ["string", "null"] }
+  },
+  "if": { "properties": { "result": { "const": "done" } } },
+  "then": {
+    "properties": {
+      "verified": { "type": "array", "minItems": 1 },
+      "blocked_on": { "const": null }
+    }
+  },
+  "else": { "properties": { "blocked_on": { "type": "string", "minLength": 1 } } }
+}

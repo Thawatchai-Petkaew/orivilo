@@ -26,3 +26,7 @@ Read `docs/context/intent-studio-handoff.md` §6, §9-§16, the current schemas 
 ## Output
 
 `docs/specs/<KEY>/tech.md` with the schema or contract change, the impact list, and the tests that prove determinism and conflicts.
+
+## Report contract
+
+Your final message is one JSON object with exactly these fields and no others: `{"task_id": "<the envelope task_id>", "result": "done" or "blocked", "changed": [{"file": "...", "note": "..."}], "verified": [{"check": "...", "evidence": "..."}], "skills_used": [], "deviations": [], "needs_decision": [], "blocked_on": null}`. When `result` is `done`, `verified` has at least one row and `blocked_on` is `null`. When `blocked`, `blocked_on` is a non-empty string. Any other field (`contract`, `summary`, `tests`, `files_changed`, `open`) makes the report invalid, and it is sent back. Check it with `node scripts/ovl/validate.mjs implementer.v1 <file>` before you send it.

@@ -1,0 +1,264 @@
+{
+  "invalid-blank-checked-by.json": {
+    "path": "/facts/0/checked_by",
+    "keyword": "pattern",
+    "params": {
+      "pattern": "\\S"
+    }
+  },
+  "invalid-blank-claim.json": {
+    "path": "/facts/0/claim",
+    "keyword": "pattern",
+    "params": {
+      "pattern": "\\S"
+    }
+  },
+  "invalid-boundaries-item-not-string.json": {
+    "path": "/boundaries/0",
+    "keyword": "type",
+    "params": {
+      "type": "string"
+    }
+  },
+  "invalid-context-pointers-item-not-string.json": {
+    "path": "/context_pointers/0",
+    "keyword": "type",
+    "params": {
+      "type": "string"
+    }
+  },
+  "invalid-decisions-already-made-item-not-string.json": {
+    "path": "/decisions_already_made/0",
+    "keyword": "type",
+    "params": {
+      "type": "string"
+    }
+  },
+  "invalid-done-when-item-not-string.json": {
+    "path": "/done_when/0",
+    "keyword": "type",
+    "params": {
+      "type": "string"
+    }
+  },
+  "invalid-duplicate-skills.json": {
+    "path": "/skills",
+    "keyword": "uniqueItems",
+    "params": {
+      "i": 0,
+      "j": 1
+    }
+  },
+  "invalid-duplicate-write-set.json": {
+    "path": "/write_set",
+    "keyword": "uniqueItems",
+    "params": {
+      "i": 0,
+      "j": 1
+    }
+  },
+  "invalid-empty-done-when.json": {
+    "path": "/done_when",
+    "keyword": "minItems",
+    "params": {
+      "limit": 1
+    }
+  },
+  "invalid-empty-objective.json": {
+    "path": "/objective",
+    "keyword": "minLength",
+    "params": {
+      "limit": 1
+    }
+  },
+  "invalid-extra-field.json": {
+    "path": "",
+    "keyword": "additionalProperties",
+    "params": {
+      "additionalProperty": "model"
+    }
+  },
+  "invalid-fact-extra-field.json": {
+    "path": "/facts/0",
+    "keyword": "additionalProperties",
+    "params": {
+      "additionalProperty": "why"
+    }
+  },
+  "invalid-facts-item-missing-checked-by.json": {
+    "path": "/facts/0",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "checked_by"
+    }
+  },
+  "invalid-facts-item-missing-claim.json": {
+    "path": "/facts/0",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "claim"
+    }
+  },
+  "invalid-facts-item-not-object.json": {
+    "path": "/facts/0",
+    "keyword": "type",
+    "params": {
+      "type": "object"
+    }
+  },
+  "invalid-issue-pattern.json": {
+    "path": "/issue",
+    "keyword": "pattern",
+    "params": {
+      "pattern": "^ORV-[0-9]+$"
+    }
+  },
+  "invalid-missing-boundaries.json": {
+    "path": "",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "boundaries"
+    }
+  },
+  "invalid-missing-context-pointers.json": {
+    "path": "",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "context_pointers"
+    }
+  },
+  "invalid-missing-done-when.json": {
+    "path": "",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "done_when"
+    }
+  },
+  "invalid-missing-envelope-version.json": {
+    "path": "",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "envelope_version"
+    }
+  },
+  "invalid-missing-facts.json": {
+    "path": "",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "facts"
+    }
+  },
+  "invalid-missing-issue.json": {
+    "path": "",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "issue"
+    }
+  },
+  "invalid-missing-objective.json": {
+    "path": "",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "objective"
+    }
+  },
+  "invalid-missing-role.json": {
+    "path": "",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "role"
+    }
+  },
+  "invalid-missing-skills.json": {
+    "path": "",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "skills"
+    }
+  },
+  "invalid-missing-task-id.json": {
+    "path": "",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "task_id"
+    }
+  },
+  "invalid-missing-worktree.json": {
+    "path": "",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "worktree"
+    }
+  },
+  "invalid-missing-write-set.json": {
+    "path": "",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "write_set"
+    }
+  },
+  "invalid-relative-worktree.json": {
+    "path": "/worktree",
+    "keyword": "pattern",
+    "params": {
+      "pattern": "^/"
+    }
+  },
+  "invalid-report-contract-enum.json": {
+    "path": "/report_contract",
+    "keyword": "enum",
+    "params": {
+      "allowedValues": ["implementer.v1", "reviewer.v1", "qa.v1"]
+    }
+  },
+  "invalid-rework-of-pattern.json": {
+    "path": "/rework_of",
+    "keyword": "pattern",
+    "params": {
+      "pattern": "^ORV-[0-9]+-[a-z0-9-]+$"
+    }
+  },
+  "invalid-role-enum.json": {
+    "path": "/role",
+    "keyword": "enum",
+    "params": {
+      "allowedValues": [
+        "product",
+        "ds-architect",
+        "designer",
+        "builder",
+        "qa",
+        "reviewer",
+        "release"
+      ]
+    }
+  },
+  "invalid-skills-item-not-string.json": {
+    "path": "/skills/0",
+    "keyword": "type",
+    "params": {
+      "type": "string"
+    }
+  },
+  "invalid-task-id-pattern.json": {
+    "path": "/task_id",
+    "keyword": "pattern",
+    "params": {
+      "pattern": "^ORV-[0-9]+-[a-z0-9-]+$"
+    }
+  },
+  "invalid-version-2.json": {
+    "path": "/envelope_version",
+    "keyword": "const",
+    "params": {
+      "allowedValue": 1
+    }
+  },
+  "invalid-write-set-item-not-string.json": {
+    "path": "/write_set/0",
+    "keyword": "type",
+    "params": {
+      "type": "string"
+    }
+  }
+}

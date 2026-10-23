@@ -12,7 +12,7 @@ avoidWhen:
   - Exactly one of a list (RadioGroup)
 contract: CheckboxProps
 variants: [default]
-sizes: [md]
+sizes: [sm, md]
 states: [default, hover, focus-visible, checked, indeterminate, disabled, invalid]
 recipes: [neutral, professional, friendly]
 examples:
@@ -22,5 +22,7 @@ rules:
   - "Carries its own label, description and error; it is not wrapped in a Field"
   - Checked state is a glyph plus fill, never fill alone
   - Label is part of the hit area
+  - "sm for tables and dense lists (ORV-72); a table's selection column uses sm"
 a11y:
   - Indeterminate exposed with aria-checked="mixed"
+  - "sm keeps a 24 px target around its 16 px box when the label is visually hidden (WCAG 2.5.8)"

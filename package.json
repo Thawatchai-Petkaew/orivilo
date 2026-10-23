@@ -12,10 +12,14 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "contrast": "pnpm --filter @orivilo/design-system contrast",
+    "check:knowledge": "node scripts/check-knowledge.mjs",
+    "test:scripts": "node --test scripts/*.test.mjs scripts/ovl/*.test.mjs",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "quality-gate": "node scripts/quality-gate.mjs"
   },
   "devDependencies": {
+    "ajv": "8.20.0",
     "prettier": "3.9.9",
     "turbo": "2.11.7",
     "typescript": "6.0.3"

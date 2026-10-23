@@ -26,19 +26,19 @@ Turborepo + pnpm, Next.js App Router, TypeScript strict, Tailwind CSS v4 + shadc
 2. **Trace everything.** Every PR names its Jira key in the title (`ORV-123: ...`), links its spec, and lists the decisions it relies on. A change to a contract (schema, token, component API, resolver) includes an impact list.
 3. **Verify before handoff.** Run `pnpm lint && pnpm typecheck && pnpm test && pnpm build` and report real output. Never claim a check passed that you did not run.
 4. **Be honest about what is real.** Label mocks and rule-based behavior as such in UI and reports. Never claim AI interpretation, Figma sync, accessibility, or export works without an implementation and a test.
-5. **Humans own the gates.** Agents never approve their own gate, merge to `main`, or deploy to production.
+5. **The owner owns the decisions.** The owner decides G1, G2 and G5 (during the POC Claude passes G1 and G2 under the owner's delegation, ADR 0012 decision 4). Agents pass G3 and G4 only with evidence (full gate, two reviewer passes, CI; ADR 0012), never merge into `main` without the owner's yes, and never tag or deploy to production.
 6. **Lean.** Add a file, dependency, or abstraction only when the current story needs it.
 7. **Read your rules first.** Before working, read the `.claude/rules/*.md` that match the files you touch.
 
 ## Lanes and gates (status lives in Jira)
 
-| Lane | When                                                                                                                                           | Gates the owner approves                                     |
-| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| L    | Epic, or any risk flag: profile/token schema, semantic token contract, component public API, resolver logic, auth/data access, asset licensing | G1 Scope, G2 Design, G3 PR / G4 Staging sign-off, G5 Release |
-| M    | Normal story                                                                                                                                   | G2 Plan (scope + design together), G3 PR / G5 Release        |
-| S    | Small fix or chore, no risk flag                                                                                                               | G3 PR / G5 Release                                           |
+| Lane | When                                                                                                                                           | Owner decides                                 | Claude passes with evidence |
+| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- | --------------------------- |
+| L    | Epic, or any risk flag: profile/token schema, semantic token contract, component public API, resolver logic, auth/data access, asset licensing | G1 Scope, G2 Design, G5 Release               | G3 PR, G4 Staging           |
+| M    | Normal story                                                                                                                                   | G2 Plan (scope + design together), G5 Release | G3 PR                       |
+| S    | Small fix or chore, no risk flag                                                                                                               | G5 Release                                    | G3 PR                       |
 
-Gate review packets use the `gate-packet` skill. Request changes → rework → re-raise the same gate.
+Each Jira status means where the work is (ADR 0012): G3 PR review = merged into `develop`, Staging = on `main`, Done = the owner signed G5 (on staging until ORV-63). Gate packets use the `gate-packet` skill. Request changes → rework → re-raise the same gate.
 
 ## Design-system rules (from the handoff §23)
 

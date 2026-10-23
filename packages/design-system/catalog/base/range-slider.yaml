@@ -1,0 +1,24 @@
+name: RangeSlider
+tier: base
+status: draft
+since: ORV-77
+import: "@orivilo/design-system"
+story: base-range-slider
+useWhen:
+  - "A lower and an upper bound on one scale with immediate visual effect: a spacing or size range"
+avoidWhen:
+  - "A single value (Slider)"
+  - "Exact bounds typed by the user (two Inputs in a Field)"
+contract: RangeSliderProps
+variants: []
+sizes: [md]
+states: [default, hover, focus-visible, dragging, disabled, thumbs-met]
+recipes: [neutral, professional, friendly]
+examples: []
+rules:
+  - "Both values show as text beside the label, from the locale catalog (`slider.range`), never only as thumb positions"
+  - "The thumbs meet but never cross; `minGap` keeps them apart"
+  - "Shares the `ds-slider` recipe with Slider"
+a11y:
+  - "Each thumb is named from the label with `slider.lower` or `slider.upper` and reads its own value as aria-valuetext"
+  - "Each thumb takes its own keys: arrows step, Shift or Page step by ten, Home and End go as far as that thumb may"

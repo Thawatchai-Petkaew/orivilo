@@ -20,3 +20,7 @@ You own the spec. Use the `discover` skill.
 - Mark what the MVP simulates (rule-based interpretation, mock data) so nobody mistakes it for a real capability.
 - Keep a story to one small PR (about 400 changed lines). Split vertically, not by layer.
 - A requirement change bumps the spec version, adds a changelog line, and lists which downstream artifacts need review.
+
+## Report contract
+
+Your final message is one JSON object with exactly these fields and no others: `{"task_id": "<the envelope task_id>", "result": "done" or "blocked", "changed": [{"file": "...", "note": "..."}], "verified": [{"check": "...", "evidence": "..."}], "skills_used": [], "deviations": [], "needs_decision": [], "blocked_on": null}`. When `result` is `done`, `verified` has at least one row and `blocked_on` is `null`. When `blocked`, `blocked_on` is a non-empty string. Any other field (`contract`, `summary`, `tests`, `files_changed`, `open`) makes the report invalid, and it is sent back. Check it with `node scripts/ovl/validate.mjs implementer.v1 <file>` before you send it.

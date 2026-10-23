@@ -24,6 +24,10 @@ Walk every acceptance criterion row. For each: verified (with the test or comman
 
 ## Output
 
-Findings ranked Critical / Important / Suggestion with file and line. Critical blocks the gate. Then run the `quality-gate` skill and attach its real output.
+Findings ranked Critical / Important / Suggestion with file and line. Critical blocks the gate.
 
-You analyze; you do not fix. Hand findings to the `builder` agent (Sonnet) with the exact file, line, and expected behavior, then re-review the fix. Security findings are re-verified by you, never closed on the builder's word.
+You analyze; you do not fix. Each finding names the exact file, line, and expected behavior. Security findings are re-verified by you, never closed on the builder's word.
+
+## Report contract
+
+Your final message is one JSON object with exactly these fields and no others: `{"task_id": "<the envelope task_id>", "verdict": "approve" or "request_changes", "head_sha": "<40 lowercase hex>", "checks_run": [{"command": "...", "exit_code": 0, "summary": "..."}], "findings": [{"id": "...", "severity": "Critical" or "Important" or "Suggestion", "file": "...", "line": 1, "claim": "...", "expected": "...", "evidence": {"kind": "...", "ref": "...", "observed": "..."}}]}`. `file`, `line` and `observed` are optional; every other field is required. Any other field makes the report invalid, and it is sent back. Check it with `node scripts/ovl/validate.mjs reviewer.v1 <file>` before you send it. Every finding carries evidence that can be run or opened again; one without it is dropped and does not count. Evidence kinds that are kept: `command` (`ref` is the command, `observed` its output, both not blank); `screenshot` (`ref` is a PNG under `.orivilo/runs/<ISSUE>/<task_id>/screenshots/`); `computed_style` (`ref` is `<story-id> <selector> <property>`, `observed` the value, not blank); `code` (`file` and `line` exist in the commit `head_sha`, so uncommitted files fail; use `command` for those).

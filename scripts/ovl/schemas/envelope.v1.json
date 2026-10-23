@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orivilo.dev/ovl/envelope.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "envelope_version",
+    "task_id",
+    "issue",
+    "role",
+    "objective",
+    "worktree",
+    "write_set",
+    "context_pointers",
+    "facts",
+    "boundaries",
+    "done_when",
+    "skills"
+  ],
+  "properties": {
+    "envelope_version": { "const": 1 },
+    "task_id": { "type": "string", "pattern": "^ORV-[0-9]+-[a-z0-9-]+$" },
+    "issue": { "type": "string", "pattern": "^ORV-[0-9]+$" },
+    "role": {
+      "enum": ["product", "ds-architect", "designer", "builder", "qa", "reviewer", "release"]
+    },
+    "report_contract": { "enum": ["implementer.v1", "reviewer.v1", "qa.v1"] },
+    "objective": { "type": "string", "minLength": 1 },
+    "worktree": { "type": "string", "pattern": "^/" },
+    "write_set": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "context_pointers": { "type": "array", "items": { "type": "string" } },
+    "facts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["claim", "checked_by"],
+        "properties": {
+          "claim": { "type": "string", "minLength": 1, "pattern": "\\S" },
+          "checked_by": { "type": "string", "minLength": 1, "pattern": "\\S" }
+        }
+      }
+    },
+    "decisions_already_made": { "type": "array", "items": { "type": "string" } },
+    "boundaries": { "type": "array", "items": { "type": "string" } },
+    "done_when": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+    "skills": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "rework_of": { "type": "string", "pattern": "^ORV-[0-9]+-[a-z0-9-]+$" }
+  }
+}

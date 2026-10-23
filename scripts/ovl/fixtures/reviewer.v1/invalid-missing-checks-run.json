@@ -1,0 +1,20 @@
+{
+  "task_id": "t",
+  "verdict": "request_changes",
+  "head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "Important",
+      "file": "a.mjs",
+      "line": 3,
+      "claim": "bug",
+      "expected": "no bug",
+      "evidence": {
+        "kind": "command",
+        "ref": "pnpm test",
+        "observed": "fail"
+      }
+    }
+  ]
+}

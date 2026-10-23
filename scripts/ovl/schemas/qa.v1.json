@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orivilo.dev/ovl/qa.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "task_id",
+    "issue",
+    "pr",
+    "verdict",
+    "head_sha",
+    "quality_gate",
+    "ac",
+    "screenshots",
+    "findings"
+  ],
+  "properties": {
+    "task_id": { "type": "string" },
+    "issue": { "type": "string", "pattern": "^ORV-[0-9]+$" },
+    "pr": { "type": "integer", "minimum": 1 },
+    "verdict": { "enum": ["approve", "request_changes"] },
+    "head_sha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "quality_gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["report", "ok", "head_sha"],
+      "properties": {
+        "report": { "const": ".quality-gate/report.json" },
+        "ok": { "type": "boolean" },
+        "head_sha": { "type": "string", "pattern": "^[0-9a-f]{40}$" }
+      }
+    },
+    "ac": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["row", "status", "visual", "evidence"],
+        "properties": {
+          "row": { "type": "integer", "minimum": 1 },
+          "status": { "enum": ["pass", "fail", "owner_verify"] },
+          "visual": { "type": "boolean" },
+          "evidence": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "$ref": "reviewer.v1#/$defs/evidence" }
+          }
+        },
+        "if": { "properties": { "visual": { "const": true } } },
+        "then": {
+          "properties": {
+            "evidence": {
+              "type": "array",
+              "contains": {
+                "type": "object",
+                "properties": { "kind": { "enum": ["screenshot", "computed_style"] } }
+              }
+            }
+          }
+        }
+      }
+    },
+    "screenshots": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["story", "mode", "path", "looked_at", "note"],
+        "properties": {
+          "story": { "type": "string", "pattern": "^[a-z0-9-]+--[a-z0-9-]+$" },
+          "mode": { "enum": ["light", "dark"] },
+          "path": { "type": "string", "pattern": "^\\.orivilo/runs/ORV-[0-9]+/" },
+          "looked_at": { "const": true },
+          "note": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": { "$ref": "reviewer.v1#/$defs/finding" }
+    }
+  },
+  "if": { "properties": { "verdict": { "const": "approve" } } },
+  "then": {
+    "properties": {
+      "quality_gate": { "type": "object", "properties": { "ok": { "const": true } } }
+    }
+  }
+}
