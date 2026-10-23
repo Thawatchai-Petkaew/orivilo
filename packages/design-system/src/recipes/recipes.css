@@ -541,8 +541,13 @@
   justify-content: center;
   width: var(--cmp-checkbox-size);
   height: var(--cmp-checkbox-size);
-  /* Centre the box on the first line of the label. */
-  margin-top: calc((var(--cmp-checkbox-label-type-line-height) - var(--cmp-checkbox-size)) / 2);
+  /* Centre the box on the first line of the label: the box takes the label's type so 1lh is that
+     line's height. The line-height token is unitless, so it cannot be subtracted from a length
+     directly (ORV-80: that calc was invalid and the box sat at the top of the line). 1lh needs lh unit
+     support (all evergreen browsers since 2023); without it the calc drops and the offset returns. */
+  font-size: var(--cmp-checkbox-label-type-font-size);
+  line-height: var(--cmp-checkbox-label-type-line-height);
+  margin-top: calc((1lh - var(--cmp-checkbox-size)) / 2);
   border: 1px solid var(--cmp-checkbox-border);
   border-radius: var(--cmp-checkbox-radius);
   background: var(--cmp-checkbox-bg);
@@ -584,18 +589,16 @@
   overflow-wrap: anywhere;
 }
 
-/* Checkbox sm: tables and dense lists (ORV-72). The box is 16 px; a transparent extension keeps
-   a 24 px target when the label is visually hidden, as in a table's selection column. */
-.ds-checkbox[data-size="sm"] {
-  gap: var(--cmp-checkbox-gap-sm);
-}
+/* Checkbox sm: tables and dense lists (ORV-72). The box is 16 px with the same label gap as md;
+   a transparent extension keeps a 24 px target when the label is visually hidden. */
 .ds-checkbox[data-size="sm"] .ds-checkbox__box {
   position: relative;
   width: var(--cmp-checkbox-size-sm);
   height: var(--cmp-checkbox-size-sm);
-  margin-top: calc(
-    (var(--cmp-checkbox-label-type-sm-line-height) - var(--cmp-checkbox-size-sm)) / 2
-  );
+  font-size: var(--cmp-checkbox-label-type-sm-font-size);
+  line-height: var(--cmp-checkbox-label-type-sm-line-height);
+  /* Needs lh unit support, as above: without it the calc drops and the offset returns. */
+  margin-top: calc((1lh - var(--cmp-checkbox-size-sm)) / 2);
 }
 /* Inset from the padding box, so the 1px border is added back. */
 .ds-checkbox[data-size="sm"] .ds-checkbox__box::after {

@@ -45,6 +45,8 @@ export const Sizes: Story = {
     <div className="flex flex-col gap-3 p-4">
       <Checkbox {...args} size="sm" label="เล็ก" />
       <Checkbox {...args} size="md" label="กลาง" />
+      <Checkbox {...args} size="sm" label="Small" />
+      <Checkbox {...args} size="md" label={fixtures.longThai} />
       <Checkbox {...args} size="sm" label={<span className="sr-only">ซ่อนป้าย</span>} />
     </div>
   ),
@@ -60,6 +62,23 @@ export const Sizes: Story = {
       .getPropertyValue("--ds-type-body-sm-font-size")
       .trim();
     await expect(label.fontSize).toBe(bodySm);
+    // ORV-80: the box sits on the centre of the label's first line, Thai or Latin, one line or many.
+    for (const name of ["เล็ก", "กลาง", "Small", fixtures.longThai]) {
+      const box = canvas.getByRole("checkbox", { name }).getBoundingClientRect();
+      const label = canvasElement.querySelector(
+        `label[for="${canvas.getByRole("checkbox", { name }).id}"]`,
+      ) as HTMLElement;
+      const line = parseFloat(getComputedStyle(label).lineHeight);
+      const lineCentre = label.getBoundingClientRect().top + line / 2;
+      await expect(Math.abs(box.top + box.height / 2 - lineCentre)).toBeLessThanOrEqual(1);
+    }
+    // ORV-80: sm keeps the md label gap.
+    const gap = (name: string) => {
+      const el = canvas.getByRole("checkbox", { name });
+      const label = canvasElement.querySelector(`label[for="${el.id}"]`) as HTMLElement;
+      return label.getBoundingClientRect().left - el.getBoundingClientRect().right;
+    };
+    await expect(gap("เล็ก")).toBe(gap("กลาง"));
     const hidden = canvas.getByRole("checkbox", { name: "ซ่อนป้าย" });
     await userEvent.click(hidden);
     await expect(hidden.querySelector("svg")?.getBoundingClientRect().width).toBe(12);

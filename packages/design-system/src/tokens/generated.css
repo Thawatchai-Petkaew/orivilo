@@ -859,7 +859,6 @@
   --cmp-checkbox-size: var(--ds-size-icon-md);
   --cmp-checkbox-gap: var(--ds-space-inline-md);
   --cmp-checkbox-size-sm: var(--ds-size-icon-sm);
-  --cmp-checkbox-gap-sm: var(--ds-space-inline-sm);
   --cmp-checkbox-label-type-font-family: var(--ds-type-body-md-font-family);
   --cmp-checkbox-label-type-font-size: var(--ds-type-body-md-font-size);
   --cmp-checkbox-label-type-line-height: var(--ds-type-body-md-line-height);
