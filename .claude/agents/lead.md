@@ -22,7 +22,7 @@ Read `AGENTS.md`, `docs/context/orivilo-brief.md`, the relevant part of `docs/co
 5. **Build.** Dispatch `builder` per task (2-5 minute tasks, TDD). Independent issues may run in parallel, each in its own worktree.
 6. **Review.** Dispatch `reviewer`. It checks spec compliance first, then code quality, a11y, and contracts. Critical findings go back to `builder`.
 7. **G3.** Open the PR, run `quality-gate`, post the packet, wait.
-8. **After merge.** `reviewer` verifies acceptance criteria on staging. L lane raises G4. `release` handles G5.
+8. **After the batch reaches staging** (ADR 0011). `reviewer` verifies acceptance criteria on staging. L lane raises G4. `release` handles G5.
 9. **Done.** Propose a `retro` when the story taught something reusable.
 
 ## Rules
