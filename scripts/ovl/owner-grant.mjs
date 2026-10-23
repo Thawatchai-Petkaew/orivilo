@@ -31,7 +31,7 @@ function writeGrant(root, issue, record) {
 }
 
 /** The reasons no grant was written ([] when nothing needed one). Throws when a field it reads is missing. */
-export function checkOwnerGrant(input, { root }) {
+export function checkOwnerGrant(input, { store }) {
   if (input.hook_event_name !== "PostToolUse" || input.tool_name !== "AskUserQuestion") {
     throw new Error("owner-grant reads only PostToolUse AskUserQuestion input");
   }
@@ -67,13 +67,13 @@ export function checkOwnerGrant(input, { root }) {
       reasons.push(
         `"${answer}" is not a grant option: its whole label must be "อนุญาตรอบ ORV-<n>" or "Grant round ORV-<n>"`,
       );
-    } else if (!(escalated ??= escalatedIssues(root)).includes(key)) {
+    } else if (!(escalated ??= escalatedIssues(store)).includes(key)) {
       reasons.push(`${key} is not escalated, so there is nothing to grant`);
     } else if (granted.has(key)) {
       reasons.push(`${key} already has a grant from this form; one form grants one round`);
     } else {
       granted.add(key);
-      writeGrant(root, key, {
+      writeGrant(store, key, {
         by: "owner",
         source: "question_form",
         question,

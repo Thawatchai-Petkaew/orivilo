@@ -10,7 +10,15 @@ import {
   writeFileSync,
 } from "node:fs";
 import { isAbsolute, join, relative, resolve } from "node:path";
-import { allTasks, branchOf, isOpen, readIssue, reworkState, writeClosed } from "./records.mjs";
+import {
+  allTasks,
+  branchOf,
+  isOpen,
+  readIssue,
+  reworkState,
+  runsDir,
+  writeClosed,
+} from "./records.mjs";
 import { validate } from "./validate.mjs";
 
 const REQUIRED_SKILLS = {
@@ -152,8 +160,8 @@ function branchProblems(env, root) {
 }
 
 /** One open envelope per role in the checkout, all issues together (spec, Envelope guard). */
-function openProblems(env, root) {
-  const open = allTasks(root).find((t) => isOpen(t) && t.envelope.role === env.role);
+function openProblems(env, store) {
+  const open = allTasks(store).find((t) => isOpen(t) && t.envelope.role === env.role);
   return open
     ? [
         `${env.role} envelope ${open.id} is still open; wait for its report, or close it with: node scripts/ovl/close-envelope.mjs ${open.id}`,
@@ -161,8 +169,8 @@ function openProblems(env, root) {
     : [];
 }
 
-function reworkProblems(env, root) {
-  const data = readIssue(root, env.issue);
+function reworkProblems(env, store) {
+  const data = readIssue(store, env.issue);
   const state = reworkState(data);
   const out = [];
   if (state.hasVerdict && !env.rework_of) {
@@ -188,7 +196,7 @@ function reworkProblems(env, root) {
 }
 
 /** The reasons to block this Agent call, or [] after saving its envelope.json. */
-export function checkEnvelope(input, { root }) {
+export function checkEnvelope(input, { root, store }) {
   const toolInput = input.tool_input;
   if (input.tool_name !== "Agent" || toolInput === null || typeof toolInput !== "object") {
     throw new Error("input is not an Agent tool call");
@@ -242,16 +250,16 @@ export function checkEnvelope(input, { root }) {
   }
   if (worktree !== root) reasons.push(`worktree "${env.worktree}" must be this checkout (${root})`);
   if (ISSUE_ROLES.has(env.role)) reasons.push(...branchProblems(env, root));
-  reasons.push(...openProblems(env, root));
-  if (env.role === "builder") reasons.push(...reworkProblems(env, root));
+  reasons.push(...openProblems(env, store));
+  if (env.role === "builder") reasons.push(...reworkProblems(env, store));
 
-  const dir = join(root, ".orivilo", "runs", env.issue, env.task_id);
+  const dir = join(runsDir(store), env.issue, env.task_id);
   if (existsSync(join(dir, "envelope.json"))) {
     reasons.push(`task_id "${env.task_id}" already has an envelope; use a new task_id`);
   }
   if (reasons.length > 0) return reasons;
 
-  return saveEnvelope(root, env, dir);
+  return saveEnvelope(store, env, dir);
 }
 
 /**
@@ -261,7 +269,7 @@ export function checkEnvelope(input, { root }) {
  * so neither runs. A call that saved and looked before the other saved is the one that runs.
  * Returns the reasons to block, [] when this envelope is the only open one of its role.
  */
-function saveEnvelope(root, env, dir) {
+function saveEnvelope(store, env, dir) {
   mkdirSync(dir, { recursive: true });
   const aside = join(dir, `envelope.json.${process.pid}.tmp`);
   writeFileSync(aside, `${JSON.stringify(env, null, 2)}\n`, { flag: "wx" });
@@ -273,15 +281,15 @@ function saveEnvelope(root, env, dir) {
   const task = { issue: env.issue, id: env.task_id };
   let rival;
   try {
-    rival = allTasks(root).find(
+    rival = allTasks(store).find(
       (t) => t.id !== env.task_id && isOpen(t) && t.envelope.role === env.role,
     );
   } catch (error) {
-    writeClosed(root, task, "denied");
+    writeClosed(store, task, "denied");
     throw error;
   }
   if (rival === undefined) return [];
-  writeClosed(root, task, "denied");
+  writeClosed(store, task, "denied");
   return [
     `${env.role} envelope ${rival.id} was dispatched at the same moment; ${env.task_id} is closed as denied, dispatch it again after ${rival.id} reports`,
   ];

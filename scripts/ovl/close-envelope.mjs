@@ -8,7 +8,7 @@
 import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { gitTop } from "./hook.mjs";
+import { recordsRoot } from "./hook.mjs";
 import { allTasks, isOpen, writeClosed } from "./records.mjs";
 
 /** True when the recorder let this agent's SubagentStop through (decision allow): the subagent has ended. */
@@ -35,7 +35,7 @@ function main(argv) {
     console.error("usage: close-envelope.mjs <task_id> [--owner]");
     return 2;
   }
-  const root = gitTop(process.cwd());
+  const root = recordsRoot(process.cwd());
   const task = allTasks(root).find((t) => t.id === rest[0]);
   if (!task) {
     console.error(`close-envelope: no envelope for task "${rest[0]}" in ${root}`);

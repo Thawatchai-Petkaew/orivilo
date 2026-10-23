@@ -5,6 +5,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { validate } from "./validate.mjs";
 import {
+  fixture,
   heartbeatLines,
   hook,
   makeRepo,
@@ -1091,4 +1092,96 @@ test("the recorder is registered on SubagentStart, SubagentStop, PostToolUse and
   const stop = mine.find((c) => c.event === "SubagentStop");
   assert.match(stop.command, /result-recorder\.sh/);
   for (const c of mine) assert.match(c.command, /\|\| exit 2$/);
+});
+
+// ---- ORV-89: a background Agent call is recorded at SubagentStop -----------------------------
+
+/** The recorded background launch, pointed at `root`, for a launch whose agent id is `agentId`. */
+const backgroundLaunch = (root, agentId, subagentType) => {
+  const base = fixture("PostToolUse-Agent-background");
+  return {
+    ...base,
+    cwd: root,
+    tool_input: { ...base.tool_input, subagent_type: subagentType },
+    tool_response: { ...base.tool_response, agentId },
+  };
+};
+
+/** The recorded background SubagentStop: the agent still lists itself as a running background task. */
+const backgroundStop = (root, agentId, agentType, message, extra = {}) => ({
+  ...fixture("SubagentStop-background"),
+  cwd: root,
+  agent_id: agentId,
+  agent_type: agentType,
+  last_assistant_message: typeof message === "string" ? message : JSON.stringify(message),
+  background_tasks: [
+    { id: agentId, type: "subagent", status: "running", description: "x", agent_type: agentType },
+  ],
+  ...extra,
+});
+
+test("ORV-89: a background launch (async_launched) before the bind exits 0 and records nothing", () => {
+  const root = makeRepo();
+  seedTask(root, "ORV-1", "ORV-1-a", { envelope: validEnvelope(root) });
+  const launch = run(backgroundLaunch(root, "agent-bg", "builder"));
+  assert.equal(launch.code, 0, launch.stderr);
+  assert.equal(has(root, "result.json"), false);
+  assert.equal(has(root, "closed.json"), false);
+  assert.equal(run(startInput(root, "agent-bg", "builder")).code, 0);
+});
+
+test("ORV-89: launch and start at the same moment, then a valid report at SubagentStop gives one result.json", () => {
+  const root = makeRepo();
+  seedTask(root, "ORV-1", "ORV-1-a", { envelope: validEnvelope(root) });
+  assert.equal(run(backgroundLaunch(root, "agent-bg", "builder")).code, 0);
+  assert.equal(run(startInput(root, "agent-bg", "builder")).code, 0);
+  assert.equal(has(root, "result.json"), false);
+  const stop = run(backgroundStop(root, "agent-bg", "builder", implementer("ORV-1-a")));
+  assert.equal(stop.code, 0, stop.stderr);
+  const result = read(root, "result.json");
+  assert.equal(result.contract, "implementer.v1");
+  assert.equal(result.agent_id, "agent-bg");
+  assert.equal(result.report.task_id, "ORV-1-a");
+  assert.equal(validate("implementer.v1", result.report).ok, true);
+  assert.equal(has(root, "closed.json"), false);
+  // A second stop for the same agent records nothing more and is not a second result.
+  const again = run(backgroundStop(root, "agent-bg", "builder", implementer("ORV-1-a")));
+  assert.equal(again.code, 2);
+  assert.match(again.stderr, /already closed/);
+});
+
+test("ORV-89: the start may come before the launch hook; the result is still recorded once", () => {
+  const root = makeRepo();
+  seedTask(root, "ORV-1", "ORV-1-a", { envelope: validEnvelope(root) });
+  assert.equal(run(startInput(root, "agent-bg", "builder")).code, 0);
+  assert.equal(run(backgroundLaunch(root, "agent-bg", "builder")).code, 0);
+  assert.equal(run(backgroundStop(root, "agent-bg", "builder", implementer("ORV-1-a"))).code, 0);
+  assert.equal(read(root, "result.json").agent_id, "agent-bg");
+});
+
+test("ORV-89: a background report that fails its contract is sent back; with stop_hook_active it is closed as no_report", () => {
+  const root = makeRepo();
+  const agent = bind(root, "builder", "ORV-1-a");
+  const sent = run(backgroundStop(root, agent, "builder", "prose"));
+  assert.equal(sent.code, 2);
+  assert.match(sent.stderr, /implementer\.v1/);
+  assert.equal(has(root, "result.json"), false);
+  assert.equal(has(root, "closed.json"), false);
+  const last = run(backgroundStop(root, agent, "builder", "prose", { stop_hook_active: true }));
+  assert.equal(last.code, 0, last.stderr);
+  assert.equal(has(root, "result.json"), false);
+  assert.equal(read(root, "closed.json").reason, "no_report");
+});
+
+test("ORV-89: a foreground call still records once, at PostToolUse, and not at SubagentStop", () => {
+  const root = makeRepo();
+  const agent = bind(root, "builder", "ORV-1-a");
+  assert.equal(
+    run(stopInput(root, agent, "builder", JSON.stringify(implementer("ORV-1-a")))).code,
+    0,
+  );
+  assert.equal(has(root, "result.json"), false);
+  const post = run(postAgentInput(root, agent, "builder", JSON.stringify(implementer("ORV-1-a"))));
+  assert.equal(post.code, 0, post.stderr);
+  assert.equal(read(root, "result.json").agent_id, agent);
 });

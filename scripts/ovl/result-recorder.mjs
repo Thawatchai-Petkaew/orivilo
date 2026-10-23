@@ -1,8 +1,11 @@
 // The result-recorder checks (ORV-81 spec, Hooks and "The recorder applies these rules"). The hook in
 // .claude/hooks/result-recorder.mjs feeds it every event and turns the returned reasons into exit 2.
 //   SubagentStart      binds the subagent to its open envelope (agent.json)
-//   SubagentStop       sends a bad report back to the subagent (exit 2); writes no record
-//   PostToolUse Agent  records result.json (and qa.json), or closes the envelope as no_report
+//   SubagentStop       sends a bad report back to the subagent (exit 2); for a background call (the agent
+//                      still lists itself in background_tasks) it records result.json, since no
+//                      PostToolUse carries the report
+//   PostToolUse Agent  records result.json (and qa.json), or closes the envelope as no_report; a
+//                      background launch (async_launched) records nothing
 //   PostToolUse Bash   records a gate record when the main session ran the quality gate
 //   PostToolUseFailure Bash   the same for a gate run that exited non-zero (a failed gate is a verdict)
 //   PostToolUseFailure Agent  closes a bound open envelope as no_report when its Agent call failed
@@ -286,17 +289,17 @@ function judge(root, task, text) {
   return judged;
 }
 
-function onStart(input, { root }) {
+function onStart(input, { store }) {
   const agentId = field(input, "agent_id");
   const agentType = field(input, "agent_type");
   if (agentType === "Explore") return [];
-  const open = allTasks(root).filter(
+  const open = allTasks(store).filter(
     (t) => isOpen(t) && t.agent === undefined && t.envelope.role === agentType,
   );
   if (open.length !== 1) {
     return [`${open.length} open unbound ${agentType} envelopes; binding needs exactly one`];
   }
-  writeJson(join(taskDir(root, open[0].issue, open[0].id), "agent.json"), {
+  writeJson(join(taskDir(store, open[0].issue, open[0].id), "agent.json"), {
     agent_id: agentId,
     agent_type: agentType,
     started_at: new Date().toISOString(),
@@ -305,33 +308,66 @@ function onStart(input, { root }) {
 }
 
 /** The open, bound envelope of `agentId`, or the reason there is none. */
-function boundTask(root, agentId) {
-  const task = allTasks(root).find((t) => t.agent?.agent_id === agentId);
+function boundTask(store, agentId) {
+  const task = allTasks(store).find((t) => t.agent?.agent_id === agentId);
   if (!task) return { reason: `no envelope is bound to agent ${agentId}` };
   return isOpen(task) ? { task } : { reason: `envelope ${task.id} is already closed` };
 }
 
-function onStop(input, { root }) {
+/** True when a SubagentStop is a background agent's: the agent still lists itself as a running task. */
+const isBackgroundStop = (input) =>
+  Array.isArray(input.background_tasks) &&
+  input.background_tasks.some((t) => t?.id === input.agent_id);
+
+function onStop(input, { root, store }) {
   const active = input.stop_hook_active === true;
   try {
     const agentId = field(input, "agent_id");
     if (field(input, "agent_type") === "Explore") return [];
-    const { task, reason } = boundTask(root, agentId);
-    const problems = task
-      ? judge(root, task, field(input, "last_assistant_message", "the final message")).problems
-      : [reason];
-    // A subagent sent back once cannot be sent back again: it stops, and nothing is recorded.
-    return active ? [] : problems;
+    const { task, reason } = boundTask(store, agentId);
+    if (!task) return active ? [] : [reason];
+    const judged = judge(root, task, field(input, "last_assistant_message", "the final message"));
+    const background = isBackgroundStop(input);
+    if (judged.problems.length === 0) {
+      if (background) record(store, task, judged);
+      return [];
+    }
+    // A subagent sent back once cannot be sent back again: it stops, and nothing is recorded. A
+    // background call has no PostToolUse to close it, so it is closed here.
+    if (active) {
+      if (background) writeClosed(store, task, "no_report");
+      return [];
+    }
+    return judged.problems;
   } catch (error) {
     if (active) return [];
     throw error;
   }
 }
 
-function onAgent(input, { root }) {
+/** Records result.json (and qa.json) for a judged report. */
+function record(store, task, judged) {
+  const contract = contractOf(task.envelope);
+  const result = {
+    contract,
+    agent_id: task.agent.agent_id,
+    agent_type: task.agent.agent_type,
+    round: reworkState(readIssue(store, task.issue)).rounds,
+    recorded_at: new Date().toISOString(),
+    report: judged.report,
+    dropped: judged.dropped,
+  };
+  const dir = taskDir(store, task.issue, task.id);
+  writeJson(join(dir, "result.json"), result);
+  if (contract === "qa.v1") writeJson(join(dir, "qa.json"), result);
+}
+
+function onAgent(input, { root, store }) {
   if (input.tool_input?.subagent_type === "Explore") return [];
   const response = input.tool_response;
-  const { task, reason } = boundTask(root, response?.agentId);
+  // The report of a background call arrives at SubagentStop; this launch hook records nothing.
+  if (response?.status === "async_launched") return [];
+  const { task, reason } = boundTask(store, response?.agentId);
   if (!task) return [reason];
   const text = (response.content ?? [])
     .filter((c) => c?.type === "text")
@@ -339,22 +375,10 @@ function onAgent(input, { root }) {
     .join("\n");
   const judged = judge(root, task, text);
   if (judged.problems.length > 0) {
-    writeClosed(root, task, "no_report");
+    writeClosed(store, task, "no_report");
     return [...judged.problems, `${task.id} closed as no_report`];
   }
-  const contract = contractOf(task.envelope);
-  const result = {
-    contract,
-    agent_id: task.agent.agent_id,
-    agent_type: task.agent.agent_type,
-    round: reworkState(readIssue(root, task.issue)).rounds,
-    recorded_at: new Date().toISOString(),
-    report: judged.report,
-    dropped: judged.dropped,
-  };
-  const dir = taskDir(root, task.issue, task.id);
-  writeJson(join(dir, "result.json"), result);
-  if (contract === "qa.v1") writeJson(join(dir, "qa.json"), result);
+  record(store, task, judged);
   return [];
 }
 
@@ -371,7 +395,7 @@ const runsGate = (command) =>
  * Records the main session's gate run. `input` is a PostToolUse, or a PostToolUseFailure: a failing
  * gate exits 1, so Claude Code reports it as a tool failure and a failed run is a verdict.
  */
-function onBash(input, { root }) {
+function onBash(input, { root, store }) {
   // A gate run inside a subagent is a builder's own TDD run: no record, no verdict (AC 55).
   if (input.agent_id !== undefined || !runsGate(String(input.tool_input?.command ?? ""))) return [];
   if (input.hook_event_name === "PostToolUseFailure" && input.is_interrupt === true) return [];
@@ -390,7 +414,7 @@ function onBash(input, { root }) {
   if (issue === undefined)
     throw new Error("the branch names no issue key, so the gate record has no issue");
   const recordedAt = new Date().toISOString();
-  writeJson(join(runsDir(root), issue, "gates", `${recordedAt}.json`), {
+  writeJson(join(runsDir(store), issue, "gates", `${recordedAt}.json`), {
     ok: report.ok,
     sha: report.git.sha,
     dirty: report.git.dirty,
@@ -401,7 +425,7 @@ function onBash(input, { root }) {
 }
 
 /** A failed or interrupted Agent call never reaches PostToolUse: its bound open envelope is closed here. */
-function onAgentFailure(input, { root }) {
+function onAgentFailure(input, { store }) {
   if (input.tool_input?.subagent_type === "Explore") return [];
   let env;
   try {
@@ -409,11 +433,11 @@ function onAgentFailure(input, { root }) {
   } catch {
     return [];
   }
-  const task = allTasks(root).find(
+  const task = allTasks(store).find(
     (t) => t.issue === env?.issue && t.id === env?.task_id && t.envelope.role === env?.role,
   );
   if (task === undefined || task.agent === undefined || !isOpen(task)) return [];
-  writeClosed(root, task, "no_report");
+  writeClosed(store, task, "no_report");
   return [`the Agent call for ${task.id} failed; ${task.id} closed as no_report`];
 }
 

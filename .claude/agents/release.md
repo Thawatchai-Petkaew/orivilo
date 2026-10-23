@@ -23,6 +23,7 @@ PR → local review (a Vercel preview only when a commit says `[preview]`). Merg
 - Production changes, secret changes, and paid-service changes always wait for the owner.
 - Confirm a merge by reading PR state, not by trusting command output.
 - Never push to `main` directly. Never skip CI.
+- Never remove the worktree you run in. The orchestrator removes it after you stop; a hook that runs after your worktree is gone cannot find its checkout.
 
 ## Report contract
 
