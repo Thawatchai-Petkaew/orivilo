@@ -273,6 +273,27 @@
   overflow-y: auto;
 }
 
+/* Textarea counter (ORV-72): graphemes against the limit, under the box at the end edge. */
+.ds-textarea {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmp-textarea-counter-gap);
+  width: 100%;
+}
+.ds-textarea__counter {
+  align-self: flex-end;
+  color: var(--cmp-textarea-counter-fg);
+  font-family: var(--cmp-textarea-counter-type-font-family);
+  font-size: var(--cmp-textarea-counter-type-font-size);
+  line-height: var(--cmp-textarea-counter-type-line-height);
+  font-weight: var(--cmp-textarea-counter-type-font-weight);
+  letter-spacing: var(--cmp-textarea-counter-type-letter-spacing);
+  font-variant-numeric: tabular-nums;
+}
+.ds-textarea__counter[data-over] {
+  color: var(--cmp-textarea-counter-fg-over);
+}
+
 /* Select trigger: a control that is a button. */
 .ds-control[data-trigger] {
   justify-content: space-between;
@@ -521,7 +542,7 @@
   width: var(--cmp-checkbox-size);
   height: var(--cmp-checkbox-size);
   /* Centre the box on the first line of the label. */
-  margin-top: calc((var(--ds-type-body-md-line-height) - var(--cmp-checkbox-size)) / 2);
+  margin-top: calc((var(--cmp-checkbox-label-type-line-height) - var(--cmp-checkbox-size)) / 2);
   border: 1px solid var(--cmp-checkbox-border);
   border-radius: var(--cmp-checkbox-radius);
   background: var(--cmp-checkbox-bg);
@@ -555,12 +576,39 @@
 .ds-checkbox__label {
   cursor: pointer;
   color: var(--cmp-field-label);
-  font-family: var(--ds-type-body-md-font-family);
-  font-size: var(--ds-type-body-md-font-size);
-  line-height: var(--ds-type-body-md-line-height);
-  font-weight: var(--ds-type-body-md-font-weight);
-  letter-spacing: var(--ds-type-body-md-letter-spacing);
+  font-family: var(--cmp-checkbox-label-type-font-family);
+  font-size: var(--cmp-checkbox-label-type-font-size);
+  line-height: var(--cmp-checkbox-label-type-line-height);
+  font-weight: var(--cmp-checkbox-label-type-font-weight);
+  letter-spacing: var(--cmp-checkbox-label-type-letter-spacing);
   overflow-wrap: anywhere;
+}
+
+/* Checkbox sm: tables and dense lists (ORV-72). The box is 16 px; a transparent extension keeps
+   a 24 px target when the label is visually hidden, as in a table's selection column. */
+.ds-checkbox[data-size="sm"] {
+  gap: var(--cmp-checkbox-gap-sm);
+}
+.ds-checkbox[data-size="sm"] .ds-checkbox__box {
+  position: relative;
+  width: var(--cmp-checkbox-size-sm);
+  height: var(--cmp-checkbox-size-sm);
+  margin-top: calc(
+    (var(--cmp-checkbox-label-type-sm-line-height) - var(--cmp-checkbox-size-sm)) / 2
+  );
+}
+/* Inset from the padding box, so the 1px border is added back. */
+.ds-checkbox[data-size="sm"] .ds-checkbox__box::after {
+  content: "";
+  position: absolute;
+  inset: calc((var(--cmp-checkbox-size-sm) - var(--cmp-checkbox-target-min)) / 2 - 1px);
+}
+.ds-checkbox[data-size="sm"] .ds-checkbox__label {
+  font-family: var(--cmp-checkbox-label-type-sm-font-family);
+  font-size: var(--cmp-checkbox-label-type-sm-font-size);
+  line-height: var(--cmp-checkbox-label-type-sm-line-height);
+  font-weight: var(--cmp-checkbox-label-type-sm-font-weight);
+  letter-spacing: var(--cmp-checkbox-label-type-sm-letter-spacing);
 }
 
 /* Field: label, description, error around a control --------------------------------------- */
@@ -1144,7 +1192,7 @@
 }
 .ds-table__th[data-select],
 .ds-table__td[data-select] {
-  width: var(--cmp-checkbox-size);
+  width: var(--cmp-checkbox-size-sm);
   padding-inline-end: 0;
 }
 /* Hover marks a row only where a row can be acted on (DESIGN.md §7). */

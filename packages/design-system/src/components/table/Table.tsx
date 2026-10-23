@@ -196,6 +196,7 @@ export function Table<Row>({
             {selectable ? (
               <th className="ds-table__th" role="columnheader" scope="col" data-select="">
                 <Checkbox
+                  size="sm"
                   label={<span className="sr-only">{m.table.selectAll}</span>}
                   checked={headerState}
                   disabled={loading || keys.length === 0}
@@ -265,6 +266,7 @@ export function Table<Row>({
                     data-label={m.table.select}
                   >
                     <Checkbox
+                      size="sm"
                       label={<span className="sr-only">{rowLabel ? rowLabel(row) : key}</span>}
                       checked={isSelected}
                       disabled={loading}

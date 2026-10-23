@@ -1,6 +1,6 @@
 # Master plan: where ORIVILO stands
 
-The plan in one place, kept in git so every session and account reads the same thing. Jira holds live status; this file holds the shape of the plan and why the order is what it is. Update it when an epic moves, when the owner changes the order, or before you hand the work to another session. Last updated 2026-10-23, after ORV-70.
+The plan in one place, kept in git so every session and account reads the same thing. Jira holds live status; this file holds the shape of the plan and why the order is what it is. Update it when an epic moves, when the owner changes the order, or before you hand the work to another session. Last updated 2026-10-23, after ORV-72.
 
 Sources: the roadmap (https://claude.ai/artifact/H6YU5RrKniVMS1azGdG1oa, 2026-10-21), the progress report (https://claude.ai/artifact/WiTsC13it9yESkFiRU7wL7, 2026-10-22), `docs/specs/backlog-draft.md` (draft keys to Jira keys) and Jira project ORV on 2026-10-23. Where they differ, Jira and this file win.
 
@@ -34,7 +34,7 @@ Owner requests outside the epics (ORV-54 to ORV-70) are listed in Jira; the rece
 
 ## Order from here
 
-1. Base component depth, audit D.2 stories 15 to 17 (`docs/specs/ORV-64/audit.md`). Story 14 is ORV-70.
+1. Base component depth, audit D.2 stories 16 and 17 (`docs/specs/ORV-64/audit.md`). Story 14 is ORV-70, story 15 is ORV-72.
 2. E4-5 (ORV-45) parts 2 and 3: TaskBar, then CanvasChat with the chat parts (audit D.1).
 3. Audit D.3: missing components by Studio need (RadioGroup, Switch, Alert, empty states, Avatar, navigation, confirm dialog, file upload, combobox).
 4. E4-6 CompareStrip and VersionBadge, E4-7 present mode, E4-8 canvas example page.
@@ -47,7 +47,7 @@ Each step is a batch: when it is finished in `develop`, propose a release to sta
 ## Waiting on the owner
 
 - G5 sign-off for what is on staging, or the list of what to fix. Nothing is Done until then.
-- When to move the next batch from `develop` to staging (ORV-70 is parked there).
+- When to move the next batch from `develop` to staging (ORV-70, ORV-71 and ORV-72 are parked there).
 - ORV-63: when the POC ends, the second database, domain and keys for production.
 
 ## Not in the MVP (handoff section 19)

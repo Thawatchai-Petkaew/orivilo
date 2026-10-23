@@ -10,8 +10,9 @@ avoidWhen:
   - "A single value (use Input)"
 contract: TextareaProps
 variants: []
-sizes: [md, lg]
-states: [default, hover, focus-visible, disabled, read-only, invalid, auto-grow]
+sizes: [sm, md, lg]
+states:
+  [default, hover, focus-visible, disabled, read-only, invalid, auto-grow, counter, over-limit]
 recipes: [neutral, professional, friendly]
 examples:
   - src/examples/settings-form.tsx
@@ -20,5 +21,8 @@ rules:
   - "rows and maxRows bound the auto-grow; manual resize is off because the bound is the contract"
   - "Grows with content up to a bound, then scrolls"
   - "Thai and Latin on the same line without size parity loss"
+  - "maxLength is a soft limit counted in graphemes, never the native attribute: past it the counter turns danger ink and the box is invalid (ORV-72)"
+  - "showCount shows the counter without a limit"
 a11y:
   - "Label always present; error message linked with aria-describedby"
+  - "The counter is in the box's description, read as a sentence; no live region per keystroke"
