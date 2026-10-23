@@ -106,7 +106,7 @@ export const RecipesAndModes: Story = {
   render: (args) => (
     <Matrix>
       <div className="flex min-h-24 items-end gap-3">
-        <Tooltip {...args} open side="top" content={fixtures.mixed}>
+        <Tooltip {...args} open side="top" content={fixtures.mixed} description={fixtures.thai}>
           <Button variant="secondary" size="sm">
             {fixtures.latin}
           </Button>
@@ -114,4 +114,62 @@ export const RecipesAndModes: Story = {
       </div>
     </Matrix>
   ),
+};
+
+/** A name and one line that explains it; both are read with the trigger, nothing inside can take focus (AC 1, 3). */
+export const WithDescription: Story = {
+  args: {
+    content: "ปิดแผงนี้",
+    description: "แผงจะกลับมาเมื่อเลือกโหนดอีกครั้ง",
+  },
+  play: async ({ canvasElement }) => {
+    const trigger = within(canvasElement).getByRole("button", { name: "ปิด" });
+    await userEvent.tab();
+    await expect(trigger).toHaveFocus();
+    const tooltip = await body().findByRole("tooltip");
+    await expect(tooltip).toHaveTextContent("ปิดแผงนี้ แผงจะกลับมาเมื่อเลือกโหนดอีกครั้ง");
+    await expect(trigger).toHaveAttribute("aria-describedby", tooltip.id);
+    const visible = document.querySelector(".ds-tooltip");
+    await expect(visible?.querySelector(".ds-tooltip__description")).toHaveTextContent(
+      "แผงจะกลับมาเมื่อเลือกโหนดอีกครั้ง",
+    );
+    await expect(
+      visible?.querySelectorAll("a, button, input, select, textarea, [tabindex]"),
+    ).toHaveLength(0);
+  },
+};
+
+/** `start` and `end` line the tooltip up with the trigger's edge, so it stays inside a panel (AC 2). */
+export const Align: Story = {
+  render: (args) => (
+    <div className="flex flex-wrap gap-24 p-12">
+      {(["start", "center", "end"] as const).map((align) => (
+        <Tooltip
+          key={align}
+          {...args}
+          open
+          side="bottom"
+          align={align}
+          content={align}
+          description={fixtures.thai}
+        >
+          <Button variant="secondary">{align}</Button>
+        </Tooltip>
+      ))}
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const edge = (name: string) => {
+      const trigger = within(canvasElement).getByRole("button", { name }).getBoundingClientRect();
+      const tip = [...document.querySelectorAll<HTMLElement>(".ds-tooltip")].find((el) =>
+        el.textContent?.startsWith(name),
+      );
+      return { trigger, tip: tip?.getBoundingClientRect() };
+    };
+    await waitFor(() => expect(document.querySelectorAll(".ds-tooltip")).toHaveLength(3));
+    const start = edge("start");
+    await expect(Math.abs((start.tip?.left ?? -99) - start.trigger.left)).toBeLessThan(1);
+    const end = edge("end");
+    await expect(Math.abs((end.tip?.right ?? -99) - end.trigger.right)).toBeLessThan(1);
+  },
 };

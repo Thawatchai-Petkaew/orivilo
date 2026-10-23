@@ -6,20 +6,22 @@ import: "@orivilo/design-system"
 story: base-tooltip
 useWhen:
   - "A short label for an icon-only control or a truncated value"
+  - "A control's name plus one line on its effect (`description`, ORV-70)"
 avoidWhen:
   - "Content the user must act on (use Popover)"
   - "Text that is already visible"
 contract: TooltipProps
 variants: []
 sizes: []
-states: [closed, open, delayed]
+states: [closed, open, delayed, with-description]
 recipes: [neutral, professional, friendly]
 examples:
   - src/examples/settings-form.tsx
 rules:
   - "Content re-opens the trigger's profile through PortalScope (E2-4)"
   - "Never the only way to learn a control's name; the control carries an accessible name itself"
-  - "No interactive content inside"
+  - "No interactive content inside, the description included"
+  - "`align` start or end for a trigger near a panel edge; center otherwise"
 a11y:
   - "Opens on focus as well as hover; Escape closes"
   - "Linked to its trigger with aria-describedby"

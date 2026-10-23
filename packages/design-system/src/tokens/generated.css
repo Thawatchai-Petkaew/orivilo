@@ -770,6 +770,13 @@
   --cmp-tooltip-type-letter-spacing: var(--ds-type-label-sm-letter-spacing);
   --cmp-tooltip-border: var(--ds-surface-inverse);
   --cmp-tooltip-layer: var(--ds-layer-tooltip);
+  --cmp-tooltip-description-fg: var(--ds-text-on-inverse);
+  --cmp-tooltip-description-type-font-family: var(--ds-type-body-sm-font-family);
+  --cmp-tooltip-description-type-font-size: var(--ds-type-body-sm-font-size);
+  --cmp-tooltip-description-type-line-height: var(--ds-type-body-sm-line-height);
+  --cmp-tooltip-description-type-font-weight: var(--ds-type-body-sm-font-weight);
+  --cmp-tooltip-description-type-letter-spacing: var(--ds-type-body-sm-letter-spacing);
+  --cmp-tooltip-line-gap: var(--ds-space-inline-sm);
   --cmp-badge-neutral-bg: var(--ds-surface-sunken);
   --cmp-badge-neutral-fg: var(--ds-text-secondary);
   --cmp-badge-success-bg: var(--ds-feedback-success-surface);

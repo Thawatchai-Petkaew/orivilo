@@ -344,6 +344,13 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
   { recipe: "field", slot: "error on card", fg: "field.error", bg: "ds:surface.card", floor: TEXT },
   // Tooltip
   { recipe: "tooltip", slot: "text", fg: "tooltip.fg", bg: "tooltip.bg", floor: TEXT },
+  {
+    recipe: "tooltip",
+    slot: "description",
+    fg: "tooltip.description-fg",
+    bg: "tooltip.bg",
+    floor: TEXT,
+  },
   { recipe: "tooltip", slot: "on canvas", fg: "tooltip.bg", bg: "ds:surface.canvas", floor: UI },
   // Badge
   { recipe: "badge", slot: "neutral", fg: "badge.neutral.fg", bg: "badge.neutral.bg", floor: TEXT },
