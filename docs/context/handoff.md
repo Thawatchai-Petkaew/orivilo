@@ -2,7 +2,7 @@
 
 Read this first when you pick the work up in a new session or on another account. Update it before you stop, so the next session can start without asking. Last updated 2026-10-23, after ORV-79 (audit D.2 done).
 
-The plan and its order live in `docs/context/master-plan.md`; pages published in the Claude project thread are listed in `docs/context/artifacts.md`.
+The plan and its order live in `docs/plans/master-plan.md`; pages published in the Claude project thread are listed in `docs/context/artifacts.md`.
 
 ## How we work (the owner's standing decisions)
 

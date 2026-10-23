@@ -12,6 +12,8 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "contrast": "pnpm --filter @orivilo/design-system contrast",
+    "check:knowledge": "node scripts/check-knowledge.mjs",
+    "test:scripts": "node --test scripts/*.test.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
