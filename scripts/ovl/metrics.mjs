@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // The ORV-87 collector: turns the /ovl run records and the Claude Code transcripts into numbers per task.
-// Usage: node scripts/ovl/metrics.mjs collect <ISSUE> [--root <checkout>] [--projects <folder>]
+// Usage: node scripts/ovl/metrics.mjs collect <ISSUE> [--root <checkout holding .orivilo>] [--projects <folder>]
 // Writes `.orivilo/metrics/<ISSUE>.json` (metrics.v1) and nothing else. It keeps numbers, ids, enums,
 // times and model ids only: no prompt, message, description, file path or transcript path is ever
 // copied into a file, stdout or stderr. Exit 0 on success (gaps are warned about on stderr),
@@ -10,7 +10,7 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import Ajv2020 from "ajv/dist/2020.js";
-import { gitTop } from "./hook.mjs";
+import { recordsRoot } from "./hook.mjs";
 import { readIssue, taskDir } from "./records.mjs";
 
 /** Claude Code versions the transcript reading was recorded on (docs/specs/ORV-87/samples.md). */
@@ -324,7 +324,7 @@ function table(metrics) {
 
 function usage(message) {
   process.stderr.write(
-    `metrics: ${message}\nusage: metrics.mjs collect <ISSUE> [--root <checkout>] [--projects <folder>]\n`,
+    `metrics: ${message}\nusage: metrics.mjs collect <ISSUE> [--root <checkout holding .orivilo>] [--projects <folder>]\n`,
   );
   process.exit(2);
 }
@@ -340,7 +340,7 @@ function main(argv) {
     flags[name] = rest[i + 1];
   }
   if (flags.root !== undefined && !existsSync(flags.root)) usage("--root is not a folder");
-  const root = flags.root ?? gitTop(process.cwd());
+  const root = flags.root ?? recordsRoot(process.cwd());
   const metrics = collect({ root, projects: flags.projects, issue });
   const out = join(root, ".orivilo", "metrics");
   mkdirSync(out, { recursive: true });
