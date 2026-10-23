@@ -1,6 +1,6 @@
 # Handoff: where the work stands
 
-Read this first when you pick the work up in a new session or on another account. Update it before you stop, so the next session can start without asking. Last updated 2026-10-23, after ORV-69.
+Read this first when you pick the work up in a new session or on another account. Update it before you stop, so the next session can start without asking. Last updated 2026-10-23, after ORV-70.
 
 ## How we work (the owner's standing decisions)
 
@@ -25,10 +25,12 @@ Read this first when you pick the work up in a new session or on another account
 | ORV-66 | Vercel Ignored Build Step, ADR 0010, test role race fix                       | #54 |
 | ORV-67 | Button icons and link, InputGroup, PasswordInput                              | #55 |
 | ORV-68 | Select option icons and groups, Badge dot and icon, vertical Tabs with counts | #56 |
+| ORV-69 | `develop` parks merged work, staging moves in batches (ADR 0011)              | #57 |
+| ORV-70 | Tooltip description line and align (in `develop`, not yet on staging)         | #58 |
 
 ## Next, in order
 
-1. Audit D.2 stories 14 to 17: Tooltip description line, Checkbox and Textarea sm with a Thai grapheme counter, Slider range, DropdownMenu checkbox and radio items. One story of about 400 lines each; spec in `docs/specs/<KEY>/spec.md` first.
+1. Audit D.2 stories 15 to 17: Checkbox and Textarea sm with a Thai grapheme counter, Slider range, DropdownMenu checkbox and radio items (story 14 is ORV-70). One story of about 400 lines each; spec in `docs/specs/<KEY>/spec.md` first.
 2. ORV-45 part 2, TaskBar, then part 3, CanvasChat (audit D.1 stories 1 to 8: Spinner, Skeleton, Collapsible, chat parts). When all parts are merged, move ORV-45 to "Staging".
 3. Audit D.3: missing components by Studio need.
 4. CI/CD plan (https://claude.ai/artifact/S49r4bs4x5cn7g33HbT7rx) steps 4 to 7: turbo cache and affected-only runs in CI, the flaky `BlockLibrary > Place By Keyboard` test, branch protection on `main` (the owner turns it on), ORV-63 after the POC.
