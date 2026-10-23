@@ -104,6 +104,75 @@ function latestDate(now) {
 // Hyphen-like characters: ASCII "-" plus U+2010 to U+2013.
 const K_CITATION = /\bk[-\u2010-\u2013]\d{4}\b/gi;
 
+const SAVING_LINES = [
+  "Metric",
+  "Baseline",
+  "Target",
+  "Guard metric",
+  "Evidence removed",
+  "Check",
+  "Check after",
+];
+// One collector command: issue keys, --flags, values and plain names only; no shell syntax.
+const COLLECTOR_CHECK =
+  /^`node scripts\/ovl\/metrics\.mjs (?:collect|report|session|due)(?: -{0,2}[A-Za-z0-9_][\w.\/:=-]*)*`$/;
+// A saving counts tokens.total or one of the four kinds, never the notice figure (ORV-87 finding F6).
+const NOT_A_TOTAL = /\b(?:reported_total|notice figure|subagent_tokens)\b/i;
+
+/** The `- Name: value` lines under `## Expected saving`, up to the next `## ` heading, and the names written twice. Null without it. */
+function savingLines(text) {
+  const lines = text.replace(/\r\n/g, "\n").split("\n");
+  const start = lines.findIndex((line) => /^## Expected saving\s*$/.test(line));
+  if (start === -1) return null;
+  const found = new Map();
+  const repeated = new Set();
+  for (const line of lines.slice(start + 1)) {
+    if (/^## /.test(line)) break;
+    const pair = line.match(/^- ([A-Za-z ]+):\s*(.*)$/);
+    if (!pair) continue;
+    if (found.has(pair[1])) repeated.add(pair[1]);
+    else found.set(pair[1], pair[2].trim());
+  }
+  return { found, repeated };
+}
+
+/** Problems with a lesson's `## Expected saving` section (docs/specs/ORV-87/spec.md, rows 20 to 22). */
+function checkSaving(text) {
+  const lines = savingLines(text);
+  if (!lines) return [];
+  const { found, repeated } = lines;
+  const problems = [];
+  for (const name of repeated) problems.push(`## Expected saving: line "${name}:" appears twice`);
+  for (const name of SAVING_LINES) {
+    if (!found.get(name)) problems.push(`## Expected saving: missing line "${name}:"`);
+  }
+  const baseline = found.get("Baseline");
+  if (baseline) {
+    const n = baseline.match(/\bn=(\d+)/);
+    if (!n || Number(n[1]) < 3) {
+      problems.push('## Expected saving: "Baseline:" needs n of 3 or more, written n=3');
+    }
+  }
+  for (const name of ["Metric", "Baseline", "Target"]) {
+    if (NOT_A_TOTAL.test(found.get(name) ?? "")) {
+      problems.push(
+        `## Expected saving: "${name}:" must count tokens.total or a kind, not reported_total or a notice figure`,
+      );
+    }
+  }
+  const check = found.get("Check");
+  if (check && !COLLECTOR_CHECK.test(check)) {
+    problems.push(
+      '## Expected saving: "Check:" must be a collector command in backticks, node scripts/ovl/metrics.mjs ...',
+    );
+  }
+  const after = found.get("Check after");
+  if (after && !isRealDate(after)) {
+    problems.push(`## Expected saving: "Check after:" ${after} is not a valid YYYY-MM-DD date`);
+  }
+  return problems;
+}
+
 /** Returns a list of `path: message` problems for the repo at `root`. */
 export function checkKnowledge(root, now = new Date()) {
   const problems = [];
@@ -141,6 +210,9 @@ export function checkKnowledge(root, now = new Date()) {
         if (entries.has(data.id)) {
           report(path, `duplicate id ${data.id} (also in ${rel(entries.get(data.id).path)})`);
         } else entries.set(data.id, { path, data, raw: parseFrontmatter(text, true) });
+      }
+      if (prefix === "L") {
+        for (const message of checkSaving(text)) report(path, message);
       }
       if (prefix === "L" && isPresent(data.date)) {
         if (!isRealDate(data.date)) {

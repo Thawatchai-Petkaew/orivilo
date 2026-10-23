@@ -948,9 +948,13 @@ test("AC12b: a canary in every text field reaches no output of report or session
     run(w, "report", "ORV-1", "--out", "canary"),
     run(w, "session", SESSION),
   ];
+  // The one line `report --out` prints is the report's own absolute path, by design (R1-2).
+  const wrote = `wrote ${join(w.root, ".orivilo", "metrics", "canary.md")}\n`;
   const seen =
-    results.map((r) => r.stdout + r.stderr).join("") +
-    readFileSync(join(w.root, ".orivilo", "metrics", "canary.md"), "utf8");
+    results
+      .map((r) => r.stdout + r.stderr)
+      .join("")
+      .replace(wrote, "") + readFileSync(join(w.root, ".orivilo", "metrics", "canary.md"), "utf8");
   for (const r of results) assert.equal(r.status, 0, r.stderr);
   for (const forbidden of ["CANARY", w.base, w.projects, homedir(), ".jsonl", "/Users/"]) {
     assert.equal(seen.includes(forbidden), false, `output holds ${forbidden}`);
@@ -964,4 +968,195 @@ test("report and session change no record and no transcript", () => {
   run(w, "session", "22222222-2222-4222-8222-222222222222");
   const after = { ...hashes(w.projects), ...hashes(w.root) };
   assert.deepEqual(after, before);
+});
+
+// Slice 3: the skipped-lines cell and the due command.
+
+test("report: the skipped lines cell shows the count collect made, not a constant", () => {
+  const w = world();
+  seed(w, "ORV-1-a");
+  writeAgentTranscript(w, "aaaa1111", [assistant({ id: "m1", usage: [1, 1, 1, 1], ts: at(1) })], {
+    raw: ["not json", "{broken"],
+  });
+  collectIssue(w, "ORV-1");
+  const r = run(w, "report", "ORV-1");
+  assert.equal(r.status, 0, r.stderr);
+  const notes = r.stdout.split("## Reading notes")[1];
+  const line = notes.split("\n").find((l) => l.startsWith("| ORV-1 |"));
+  assert.deepEqual(
+    line
+      .slice(1, -1)
+      .split("|")
+      .map((c) => c.trim())
+      .slice(0, 2),
+    ["ORV-1", "2"],
+  );
+});
+
+const LESSON_SAVING = (after) =>
+  [
+    "## Expected saving",
+    "",
+    "- Metric: median `tokens.total` per reviewer run",
+    "- Baseline: median 100, n=3, from ORV-1 (`node scripts/ovl/metrics.mjs report ORV-1`)",
+    "- Target: median 50 or less",
+    "- Guard metric: kept findings do not fall",
+    "- Evidence removed: none",
+    "- Check: `node scripts/ovl/metrics.mjs report ORV-2`",
+    `- Check after: ${after}`,
+  ].join("\n");
+
+/** A folder of lesson files: [id, status line, check after, extra text]. */
+function lessons(w, specs) {
+  const dir = join(w.base, "lessons");
+  mkdirSync(dir, { recursive: true });
+  for (const [id, status, after, extra = ""] of specs) {
+    const body = [
+      `---\nid: ${id}\n---`,
+      "## Rule",
+      CANARY,
+      after ? LESSON_SAVING(after) : "",
+      extra,
+      `Status: ${status}`,
+      "",
+    ].join("\n\n");
+    writeFileSync(join(dir, `${id}-some-rule.md`), body);
+  }
+  writeFileSync(join(dir, "README.md"), `${CANARY}\n`);
+  return dir;
+}
+
+const due = (w, dir, today = "2026-11-10") =>
+  spawnSync(process.execPath, [script, "due", "--lessons", dir, "--today", today], {
+    encoding: "utf8",
+  });
+
+test("AC23: a promoted saving past Check after, not measured, is listed as due", () => {
+  const w = world();
+  const dir = lessons(w, [
+    ["L-0008", "promoted", "2026-11-06"],
+    ["L-0009", "promoted", "2026-11-10"],
+  ]);
+  const r = due(w, dir);
+  assert.equal(r.status, 0, r.stderr);
+  const lines = r.stdout.trim().split("\n");
+  assert.equal(lines.length, 2);
+  assert.match(lines[0], /^L-0008\t2026-11-06\t4\tL-0008-some-rule\.md$/);
+  assert.match(lines[1], /^L-0009\t2026-11-10\t0\tL-0009-some-rule\.md$/);
+});
+
+test("due: skips a lesson that is proposed, not yet due, measured, or has no saving", () => {
+  const w = world();
+  const dir = lessons(w, [
+    ["L-0001", "proposed", "2026-11-06"],
+    ["L-0002", "promoted", "2026-11-11"],
+    ["L-0003", "promoted", "2026-11-06", "## Measured after\n\n- Verdict: met"],
+    ["L-0004", "promoted", ""],
+  ]);
+  const r = due(w, dir);
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout.trim(), "no checks due");
+});
+
+test("due: output holds ids, dates, numbers and file names, never lesson text", () => {
+  const w = world();
+  const dir = lessons(w, [["L-0008", "promoted", "2026-11-06"]]);
+  const r = due(w, dir);
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /L-0008/);
+  for (const forbidden of ["CANARY", "tokens", "median", w.base, homedir(), "/Users/"]) {
+    assert.equal((r.stdout + r.stderr).includes(forbidden), false, forbidden);
+  }
+});
+
+test("due: a bad date or an unreadable folder is a usage error, and no file changes", () => {
+  const w = world();
+  const dir = lessons(w, [["L-0008", "promoted", "2026-11-06"]]);
+  const before = hashes(w.base);
+  assert.equal(due(w, dir, "tomorrow").status, 2);
+  assert.equal(due(w, join(w.base, "nope")).status, 2);
+  assert.deepEqual(hashes(w.base), before);
+});
+
+test("due: a Check after outside ## Expected saving does not count", () => {
+  const w = world();
+  const dir = join(w.base, "lessons");
+  mkdirSync(dir, { recursive: true });
+  const saving = LESSON_SAVING("2026-11-06").replace(/\n- Check after:.*$/, "");
+  writeFileSync(
+    join(dir, "L-0005-some-rule.md"),
+    `---\nid: L-0005\n---\n\n${saving}\n\n## Notes\n\n- Check after: 2026-11-06\n\nStatus: promoted\n`,
+  );
+  const r = due(w, dir);
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout.trim(), "no checks due");
+});
+
+test("due: Status promoted counts at the start of a line only", () => {
+  const w = world();
+  const dir = lessons(w, [["L-0007", "proposed", "2026-11-06", "It was once Status: promoted."]]);
+  const r = due(w, dir);
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout.trim(), "no checks due");
+});
+
+test("due: without --today the date is the local date, not the UTC date", () => {
+  // Two fixed zones, 26 hours apart: at any hour at least one differs from the UTC date.
+  for (const tz of ["Pacific/Kiritimati", "Etc/GMT+12"]) {
+    const w = world();
+    const local = (offset) => {
+      const parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: tz,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).formatToParts(new Date(Date.now() + offset * 86400000));
+      const get = (type) => parts.find((p) => p.type === type).value;
+      return `${get("year")}-${get("month")}-${get("day")}`;
+    };
+    const dir = lessons(w, [
+      ["L-0001", "promoted", local(0)],
+      ["L-0002", "promoted", local(1)],
+    ]);
+    const r = spawnSync(process.execPath, [script, "due", "--lessons", dir], {
+      encoding: "utf8",
+      env: { ...process.env, TZ: tz },
+    });
+    assert.equal(r.status, 0, r.stderr);
+    const lines = r.stdout.trim().split("\n");
+    assert.equal(lines.length, 1, `${tz}: ${r.stdout}`);
+    assert.match(lines[0], new RegExp(`^L-0001\\t${local(0)}\\t0\\t`), tz);
+  }
+});
+
+test("due: Measured after in prose does not mark a lesson as measured", () => {
+  const w = world();
+  const dir = lessons(w, [
+    ["L-0006", "promoted", "2026-11-06", "Not yet: ## Measured after later."],
+  ]);
+  const r = due(w, dir);
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /^L-0006\t/);
+});
+
+test("due: a file that is not L-NNNN-slug.md is ignored", () => {
+  const w = world();
+  const dir = lessons(w, [["L-0008", "promoted", "2026-11-06"]]);
+  const text = readFileSync(join(dir, "L-0008-some-rule.md"), "utf8");
+  writeFileSync(join(dir, "L-0001.md.bak"), text);
+  writeFileSync(join(dir, "L-0002-some-rule.md.bak"), text);
+  const r = due(w, dir);
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout.trim().split("\n").length, 1, r.stdout);
+});
+
+test("report --out prints the absolute path of the file it wrote", () => {
+  const w = world();
+  seed(w, "ORV-1-a");
+  collectIssue(w, "ORV-1");
+  const r = run(w, "report", "ORV-1", "--out", "batch");
+  assert.equal(r.status, 0, r.stderr);
+  const file = join(w.root, ".orivilo", "metrics", "batch.md");
+  assert.equal(r.stdout.trim(), `wrote ${file}`);
+  assert.ok(existsSync(file));
 });
