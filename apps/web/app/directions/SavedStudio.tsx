@@ -127,7 +127,12 @@ export function SavedStudio({
 
   const readWithAi = async (brief: string) => {
     const result = await readBriefWithAi(brief);
-    if (!result.ok) return null;
+    if (!result.ok) {
+      // The studio says AI could not read; a setup problem also gets its own words here.
+      if (result.error !== "ai-failed")
+        setNotice({ tone: "warning", lines: [m.errors[result.error]] });
+      return null;
+    }
     seals.current.set(result.value.reading, result.value.seal);
     return result.value.reading;
   };

@@ -71,7 +71,15 @@ export function openRouterComplete(options: OpenRouterOptions): Complete {
       body: JSON.stringify(openRouterBody(options.model, request, options.maxTokens ?? 2000)),
       ...(options.signal ? { signal: options.signal() } : {}),
     });
-    if (!response.ok) throw new Error(`OpenRouter answered ${response.status}.`);
+    if (!response.ok) {
+      // OpenRouter's own message says why (no endpoint, bad schema, no credit); kept short.
+      const error = (await response.json().catch(() => null)) as {
+        error?: { message?: unknown };
+      } | null;
+      const why =
+        typeof error?.error?.message === "string" ? error.error.message.slice(0, 200) : "";
+      throw new Error(`OpenRouter answered ${response.status}. ${why}`.trim());
+    }
     const body = (await response.json()) as {
       model?: unknown;
       choices?: { message?: { content?: unknown } }[];

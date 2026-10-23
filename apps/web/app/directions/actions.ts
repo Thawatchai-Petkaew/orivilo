@@ -32,7 +32,13 @@ import { accessDeps, auth } from "../../server/auth";
  */
 
 export type ActionError =
-  "signed-out" | "forbidden" | "not-configured" | "failed" | "ai-failed" | DirectionError["reason"];
+  | "signed-out"
+  | "forbidden"
+  | "not-configured"
+  | "failed"
+  | "ai-failed"
+  | "ai-not-configured"
+  | DirectionError["reason"];
 
 export type Outcome<T> = { ok: true; value: T } | { ok: false; error: ActionError };
 
@@ -59,7 +65,11 @@ export interface SealedReading {
   seal: string;
 }
 
-class AiFailed extends Error {}
+class AiFailed extends Error {
+  constructor(readonly reason: "ai-failed" | "ai-not-configured" = "ai-failed") {
+    super(reason);
+  }
+}
 
 async function run<T>(
   fn: (
@@ -82,7 +92,7 @@ async function run<T>(
     }
     if (error instanceof DirectionError) return { ok: false, error: error.reason };
     if (error instanceof MissingEnvError) return { ok: false, error: "not-configured" };
-    if (error instanceof AiFailed) return { ok: false, error: "ai-failed" };
+    if (error instanceof AiFailed) return { ok: false, error: error.reason };
     console.error("direction action failed", error instanceof Error ? error.name : "unknown");
     return { ok: false, error: "failed" };
   }
@@ -154,7 +164,7 @@ const AI_TIMEOUT_MS = 20_000;
 export async function readBriefWithAi(brief: unknown): Promise<Outcome<SealedReading>> {
   return run(async () => {
     const apiKey = process.env.OPENROUTER_API_KEY;
-    if (!apiKey) throw new MissingEnvError("OPENROUTER_API_KEY");
+    if (!apiKey) throw new AiFailed("ai-not-configured");
     const model = AI_MODELS.interpret;
     const adapter = llmInterpreter(
       model,
@@ -168,7 +178,12 @@ export async function readBriefWithAi(brief: unknown): Promise<Outcome<SealedRea
     const outcome = await interpretBrief(adapter, { text: brief });
     if (!outcome.ok) {
       if (outcome.error === "invalid-brief") throw new DirectionError("invalid-input");
-      console.error("ai reading failed", outcome.error);
+      // The adapter's reason is ours or OpenRouter's and never quotes the brief; the others can.
+      console.error(
+        "ai reading failed",
+        outcome.error,
+        outcome.error === "adapter-failed" ? outcome.detail : "",
+      );
       throw new AiFailed();
     }
     const text = typeof brief === "string" ? brief : "";
