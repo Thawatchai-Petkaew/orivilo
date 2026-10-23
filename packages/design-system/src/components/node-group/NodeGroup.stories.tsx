@@ -4,6 +4,7 @@ import { BOARD, BOARD_NODES, COLLAPSED_BOARD, GROUPED_BOARD } from "../canvas-bo
 import { MatrixBoard, Stateful } from "../canvas-board/story-shell";
 import type { Graph } from "../canvas-board/graph";
 import { Matrix } from "../matrix";
+import { MOD } from "../story-keys";
 
 const meta = {
   title: "Application/Node group",
@@ -72,7 +73,7 @@ export const GroupAndUngroup: Story = {
     const region = within(canvasElement).getByRole("region");
     await waitFor(() => expect(nodeEls(region)).toHaveLength(BOARD_NODES.length));
     nodeByTitle(region, "บรีฟ").focus();
-    await userEvent.keyboard("{Control>}g{/Control}");
+    await userEvent.keyboard(`{${MOD}>}g{/${MOD}}`);
     await waitFor(() => expect(groupEl(region)).not.toBeNull());
     await expect(within(region).getByRole("status")).toHaveTextContent(
       "จัดกลุ่ม 2 node เป็น กลุ่ม 1",
@@ -81,7 +82,7 @@ export const GroupAndUngroup: Story = {
     const group = nodeByTitle(region, "กลุ่ม 1");
     await expect(group).toHaveClass("selected");
     group.focus();
-    await userEvent.keyboard("{Control>}{Shift>}g{/Shift}{/Control}");
+    await userEvent.keyboard(`{${MOD}>}{Shift>}g{/Shift}{/${MOD}}`);
     await waitFor(() => expect(groupEl(region)).toBeNull());
     await expect(nodeEls(region)).toHaveLength(BOARD_NODES.length);
     await expect(within(region).getByRole("status")).toHaveTextContent("แยกกลุ่มแล้ว");

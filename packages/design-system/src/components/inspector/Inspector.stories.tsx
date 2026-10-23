@@ -11,6 +11,7 @@ import { Matrix, Narrow } from "../matrix";
 import { Resizable } from "../resizable/Resizable";
 import { Sheet, SheetContent } from "../sheet/Sheet";
 import { Inspector } from "./Inspector";
+import { MOD } from "../story-keys";
 
 function select(graph: Graph, ids: readonly string[]): Graph {
   return {
@@ -268,12 +269,12 @@ export const StudioLayout: Story = {
     await userEvent.keyboard("{Escape}");
     await waitFor(() => expect(canvas.queryByRole("region", { name: "แผงรายละเอียด" })).toBeNull());
     await expect(canvasElement.querySelector(".ds-board")).toHaveFocus();
-    await userEvent.keyboard("{Control>}i{/Control}");
+    await userEvent.keyboard(`{${MOD}>}i{/${MOD}}`);
     await waitFor(() =>
       expect(canvas.getByRole("region", { name: "แผงรายละเอียด" })).toBeVisible(),
     );
     (canvasElement.querySelector(".ds-board") as HTMLElement).focus();
-    await userEvent.keyboard("{Control>}b{/Control}");
+    await userEvent.keyboard(`{${MOD}>}b{/${MOD}}`);
     await waitFor(() => expect(canvas.queryByRole("group", { name: "คลังบล็อก" })).toBeNull());
   },
 };

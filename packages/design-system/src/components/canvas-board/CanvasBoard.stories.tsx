@@ -6,6 +6,7 @@ import { Matrix, Narrow } from "../matrix";
 import { GRID_UNIT } from "./CanvasBoard";
 import { BOARD, BOARD_NODES, LONG_NODE } from "./fixtures";
 import { MatrixBoard, Stateful } from "./story-shell";
+import { MOD } from "../story-keys";
 
 const meta = {
   title: "Application/Canvas board",
@@ -52,9 +53,8 @@ export const Default: Story = {
     const region = canvas.getByRole("region", { name: "กระดานแบรนด์ (ข้อมูลตัวอย่าง)" });
     await waitFor(() => expect(nodeEls(region)).toHaveLength(BOARD_NODES.length));
     await expect(edgeEls(region)).toHaveLength(BOARD.edges.length);
-    await expect(nodeByTitle(region, "บรีฟ")).toHaveAttribute(
-      "aria-label",
-      "บรีฟ, บล็อกป้อนข้อมูล",
+    await waitFor(() =>
+      expect(nodeByTitle(region, "บรีฟ")).toHaveAttribute("aria-label", "บรีฟ, บล็อกป้อนข้อมูล"),
     );
     await expect(
       canvas.getByRole("group", { name: "ป้อนเข้า จาก บรีฟ ไป โลโก้" }),
@@ -111,9 +111,9 @@ export const Present: Story = {
     await userEvent.keyboard("{Delete}");
     await userEvent.keyboard("c");
     await expect(nodeEls(region)).toHaveLength(BOARD_NODES.length);
-    await expect(status(region)).toHaveTextContent("");
+    await waitFor(() => expect(status(region)).toHaveTextContent(""));
     await userEvent.keyboard("{Alt>}{ArrowLeft}{/Alt}");
-    await expect(nodeByTitle(region, "บรีฟ")).toHaveFocus();
+    await waitFor(() => expect(nodeByTitle(region, "บรีฟ")).toHaveFocus());
     // E4-3: no node toolbar, no context menu, controls keep only the viewport commands.
     await userEvent.click(nodeByTitle(region, "บรีฟ"));
     await expect(canvas.queryByRole("toolbar", { name: /เครื่องมือของ/ })).toBeNull();
@@ -134,20 +134,24 @@ export const KeyboardConnect: Story = {
     brief.focus();
     await userEvent.keyboard("c");
     // Text goes to the two unconnected text inputs: the note (nearest) and the palette.
-    await expect(status(region)).toHaveTextContent("ต่อสายจาก บรีฟ: เป้าหมาย โน้ต (1 จาก 2)");
+    await waitFor(() =>
+      expect(status(region)).toHaveTextContent("ต่อสายจาก บรีฟ: เป้าหมาย โน้ต (1 จาก 2)"),
+    );
     await expect(region.querySelectorAll('.ds-port[data-state="connecting"]')).toHaveLength(1);
     await expect(region.querySelectorAll('.ds-port[data-state="valid-target"]')).toHaveLength(1);
     await userEvent.keyboard("{ArrowRight}");
-    await expect(status(region)).toHaveTextContent(`เป้าหมาย ${fixtures.mixed} (2 จาก 2)`);
+    await waitFor(() =>
+      expect(status(region)).toHaveTextContent(`เป้าหมาย ${fixtures.mixed} (2 จาก 2)`),
+    );
     await userEvent.keyboard("{ArrowLeft}");
-    await expect(status(region)).toHaveTextContent("เป้าหมาย โน้ต (1 จาก 2)");
+    await waitFor(() => expect(status(region)).toHaveTextContent("เป้าหมาย โน้ต (1 จาก 2)"));
     await userEvent.keyboard("{Escape}");
-    await expect(status(region)).toHaveTextContent("ยกเลิกการต่อสาย");
+    await waitFor(() => expect(status(region)).toHaveTextContent("ยกเลิกการต่อสาย"));
     await expect(edgeEls(region)).toHaveLength(before);
     await userEvent.keyboard("c");
     await userEvent.keyboard("{Enter}");
     await waitFor(() => expect(edgeEls(region)).toHaveLength(before + 1));
-    await expect(status(region)).toHaveTextContent("เชื่อม บรีฟ ไป โน้ต แล้ว");
+    await waitFor(() => expect(status(region)).toHaveTextContent("เชื่อม บรีฟ ไป โน้ต แล้ว"));
     await expect(
       canvas.getByRole("group", { name: "ป้อนเข้า จาก บรีฟ ไป โน้ต" }),
     ).toBeInTheDocument();
@@ -155,7 +159,7 @@ export const KeyboardConnect: Story = {
     // A node without an output port says so.
     nodeByTitle(region, "โน้ต").focus();
     await userEvent.keyboard("c");
-    await expect(status(region)).toHaveTextContent("โน้ต ไม่มีพอร์ตส่ง");
+    await waitFor(() => expect(status(region)).toHaveTextContent("โน้ต ไม่มีพอร์ตส่ง"));
   },
 };
 
@@ -172,10 +176,10 @@ export const KeyboardNudge: Story = {
     const y = translateY(brief);
     await userEvent.keyboard("{ArrowRight}");
     await waitFor(() => expect(translateX(brief)).toBe(x + GRID_UNIT));
-    await expect(status(region)).toHaveTextContent("ขยับ 1 node ไปขวา 1 หน่วยกริด");
+    await waitFor(() => expect(status(region)).toHaveTextContent("ขยับ 1 node ไปขวา 1 หน่วยกริด"));
     await userEvent.keyboard("{Shift>}{ArrowDown}{/Shift}");
     await waitFor(() => expect(translateY(brief)).toBe(y + 10 * GRID_UNIT));
-    await expect(status(region)).toHaveTextContent("ขยับ 1 node ไปลง 10 หน่วยกริด");
+    await waitFor(() => expect(status(region)).toHaveTextContent("ขยับ 1 node ไปลง 10 หน่วยกริด"));
     await userEvent.keyboard("{ArrowUp}");
     await waitFor(() => expect(translateY(brief)).toBe(y + 9 * GRID_UNIT));
   },
@@ -194,12 +198,14 @@ export const KeyboardDelete: Story = {
     await waitFor(() => expect(nodeEls(region)).toHaveLength(BOARD_NODES.length - 1));
     await expect(canvas.queryByRole("group", { name: /^โลโก้,/ })).toBeNull();
     // The palette and the profile are downstream of the logo: both read stale now.
-    await expect(nodeByTitle(region, fixtures.mixed)).toHaveTextContent("ล้าสมัย");
-    await expect(nodeByTitle(region, "โปรไฟล์ว่าที่ลูกค้า")).toHaveTextContent("ล้าสมัย");
-    await expect(nodeByTitle(region, "บรีฟ")).not.toHaveTextContent("ล้าสมัย");
+    await waitFor(() => expect(nodeByTitle(region, fixtures.mixed)).toHaveTextContent("ล้าสมัย"));
+    await waitFor(() =>
+      expect(nodeByTitle(region, "โปรไฟล์ว่าที่ลูกค้า")).toHaveTextContent("ล้าสมัย"),
+    );
+    await waitFor(() => expect(nodeByTitle(region, "บรีฟ")).not.toHaveTextContent("ล้าสมัย"));
     await expect(edgeEls(region)).toHaveLength(BOARD.edges.length - 2);
-    await expect(status(region)).toHaveTextContent("ลบ 1 node และ 2 สาย");
-    await expect(status(region)).toHaveTextContent("node ปลายทางล้าสมัย");
+    await waitFor(() => expect(status(region)).toHaveTextContent("ลบ 1 node และ 2 สาย"));
+    await waitFor(() => expect(status(region)).toHaveTextContent("node ปลายทางล้าสมัย"));
     // An edge alone: Tab to it, Delete, the nodes stay.
     const edge = canvas.getByRole("group", { name: "อ้างอิง จาก บรีฟ ไป Type direction" });
     edge.focus();
@@ -233,7 +239,9 @@ export const PointerConnect: Story = {
     await expect(wrong.closest(".ds-port")).toHaveAttribute("data-state", "invalid-target");
     await user.pointer([{ keys: "[/MouseLeft]", target: wrong, coords: center(wrong) }]);
     await expect(edgeEls(region)).toHaveLength(before);
-    await expect(status(region)).toHaveTextContent("พอร์ตภาพรับได้เฉพาะภาพ แต่สายนี้ส่งข้อความ");
+    await waitFor(() =>
+      expect(status(region)).toHaveTextContent("พอร์ตภาพรับได้เฉพาะภาพ แต่สายนี้ส่งข้อความ"),
+    );
     await user.pointer([
       { keys: "[MouseLeft>]", target: from, coords: center(from) },
       { target: region, coords: { x: center(from).x + 40, y: center(from).y + 10 } },
@@ -241,7 +249,9 @@ export const PointerConnect: Story = {
       { keys: "[/MouseLeft]", target: right, coords: center(right) },
     ]);
     await waitFor(() => expect(edgeEls(region)).toHaveLength(before + 1));
-    await expect(status(region)).toHaveTextContent(`เชื่อม บรีฟ ไป ${fixtures.mixed} แล้ว`);
+    await waitFor(() =>
+      expect(status(region)).toHaveTextContent(`เชื่อม บรีฟ ไป ${fixtures.mixed} แล้ว`),
+    );
     await expect(from.closest(".ds-port")).toHaveAttribute("data-state", "connected");
   },
 };
@@ -280,22 +290,24 @@ export const RegistryCommands: Story = {
     await waitFor(() => expect(nodeEls(region)).toHaveLength(BOARD_NODES.length));
     const brief = await waitFor(() => nodeByTitle(region, "บรีฟ"));
     brief.focus();
-    await userEvent.keyboard("{Control>}a{/Control}");
+    await userEvent.keyboard(`{${MOD}>}a{/${MOD}}`);
     await waitFor(() =>
       expect(region.querySelectorAll(".react-flow__node.selected")).toHaveLength(
         BOARD_NODES.length,
       ),
     );
-    await expect(status(region)).toHaveTextContent(`เลือกทั้งหมด ${BOARD_NODES.length} node`);
+    await waitFor(() =>
+      expect(status(region)).toHaveTextContent(`เลือกทั้งหมด ${BOARD_NODES.length} node`),
+    );
     await userEvent.keyboard("{Escape}");
     // Alt+ArrowRight goes downstream, Alt+ArrowLeft back.
     brief.focus();
     await userEvent.keyboard("{Alt>}{ArrowRight}{/Alt}");
-    await expect(nodeByTitle(region, "โลโก้")).toHaveFocus();
+    await waitFor(() => expect(nodeByTitle(region, "โลโก้")).toHaveFocus());
     await userEvent.keyboard("{Alt>}{ArrowLeft}{/Alt}");
     await expect(brief).toHaveFocus();
     await userEvent.keyboard("{Alt>}{ArrowLeft}{/Alt}");
-    await expect(status(region)).toHaveTextContent("ไม่มี node ต้นทาง");
+    await waitFor(() => expect(status(region)).toHaveTextContent("ไม่มี node ต้นทาง"));
     // 2 on a focused edge sets it to reference.
     const edge = canvas.getByRole("group", { name: "ป้อนเข้า จาก บรีฟ ไป โลโก้" });
     edge.focus();
@@ -303,7 +315,7 @@ export const RegistryCommands: Story = {
     await waitFor(() =>
       expect(canvas.getByRole("group", { name: "อ้างอิง จาก บรีฟ ไป โลโก้" })).toBeInTheDocument(),
     );
-    await expect(status(region)).toHaveTextContent("ตั้งสายเป็นอ้างอิง");
+    await waitFor(() => expect(status(region)).toHaveTextContent("ตั้งสายเป็นอ้างอิง"));
     // F2 asks the shell to rename; N asks it to add a node, which the story's shell does.
     brief.focus();
     await userEvent.keyboard("{F2}");
@@ -317,9 +329,9 @@ export const RegistryCommands: Story = {
     );
     // Mod+Shift+X cuts every edge of the focused node.
     nodeByTitle(region, "โลโก้").focus();
-    await userEvent.keyboard("{Control>}{Shift>}x{/Shift}{/Control}");
+    await userEvent.keyboard(`{${MOD}>}{Shift>}x{/Shift}{/${MOD}}`);
     await waitFor(() => expect(edgeEls(region)).toHaveLength(BOARD.edges.length - 2));
-    await expect(status(region)).toHaveTextContent("ตัดสาย 2 เส้นของ โลโก้");
+    await waitFor(() => expect(status(region)).toHaveTextContent("ตัดสาย 2 เส้นของ โลโก้"));
   },
 };
 
@@ -328,7 +340,9 @@ export const WithStatus: Story = {
   args: { status: "กำลังสร้างโลโก้ รอบที่ 2 (จำลอง)" },
   play: async ({ canvasElement }) => {
     const region = within(canvasElement).getByRole("region");
-    await expect(status(region)).toHaveTextContent("กำลังสร้างโลโก้ รอบที่ 2 (จำลอง)");
+    await waitFor(() =>
+      expect(status(region)).toHaveTextContent("กำลังสร้างโลโก้ รอบที่ 2 (จำลอง)"),
+    );
   },
 };
 
@@ -382,11 +396,11 @@ export const Clipboard: Story = {
     const y = translateY(brief);
     brief.focus();
     await userEvent.keyboard("{Enter}");
-    await userEvent.keyboard("{Control>}c{/Control}");
-    await expect(status(region)).toHaveTextContent("คัดลอก 1 node ไว้บนกระดาน");
-    await userEvent.keyboard("{Control>}v{/Control}");
+    await userEvent.keyboard(`{${MOD}>}c{/${MOD}}`);
+    await waitFor(() => expect(status(region)).toHaveTextContent("คัดลอก 1 node ไว้บนกระดาน"));
+    await userEvent.keyboard(`{${MOD}>}v{/${MOD}}`);
     await waitFor(() => expect(nodeEls(region)).toHaveLength(BOARD_NODES.length + 1));
-    await expect(status(region)).toHaveTextContent("วาง 1 node แล้ว");
+    await waitFor(() => expect(status(region)).toHaveTextContent("วาง 1 node แล้ว"));
     const copies = canvas.getAllByRole("group", { name: /^บรีฟ,/ });
     await expect(copies).toHaveLength(2);
     const copy = copies.find((c) => c !== brief) as HTMLElement;
@@ -396,18 +410,18 @@ export const Clipboard: Story = {
     await expect(brief).not.toHaveClass("selected");
     // Mod+D on the copy: a third brief, selected alone.
     copy.focus();
-    await userEvent.keyboard("{Control>}d{/Control}");
+    await userEvent.keyboard(`{${MOD}>}d{/${MOD}}`);
     await waitFor(() => expect(nodeEls(region)).toHaveLength(BOARD_NODES.length + 2));
     await expect(selectedCount(region)).toBe(1);
     // Mod+X on the logo removes it; its downstream palette turns stale.
     const logo = await waitFor(() => nodeByTitle(region, "โลโก้"));
     logo.focus();
     await userEvent.keyboard("{Enter}");
-    await userEvent.keyboard("{Control>}x{/Control}");
+    await userEvent.keyboard(`{${MOD}>}x{/${MOD}}`);
     await waitFor(() => expect(canvas.queryByRole("group", { name: /^โลโก้,/ })).toBeNull());
-    await expect(status(region)).toHaveTextContent("ตัด 1 node ไว้บนกระดาน");
+    await waitFor(() => expect(status(region)).toHaveTextContent("ตัด 1 node ไว้บนกระดาน"));
     await expect(region.querySelector('.ds-node[data-status="stale"]')).not.toBeNull();
-    await userEvent.keyboard("{Control>}v{/Control}");
+    await userEvent.keyboard(`{${MOD}>}v{/${MOD}}`);
     await waitFor(() => expect(canvas.getByRole("group", { name: /^โลโก้,/ })).toBeInTheDocument());
   },
 };
@@ -421,34 +435,42 @@ export const Arrange: Story = {
     const note = await waitFor(() => nodeByTitle(region, "โน้ต"));
     const type = await waitFor(() => nodeByTitle(region, "Type direction"));
     brief.focus();
-    await userEvent.keyboard("{Control>}a{/Control}");
+    await userEvent.keyboard(`{${MOD}>}a{/${MOD}}`);
     await waitFor(() => expect(selectedCount(region)).toBe(BOARD_NODES.length));
     // Alt+A: every node's left edge moves to the leftmost (brief and note at x 0).
     await userEvent.keyboard("{Alt>}a{/Alt}");
-    await expect(status(region)).toHaveTextContent(`จัดแนวซ้าย ${BOARD_NODES.length} node`);
+    await waitFor(() =>
+      expect(status(region)).toHaveTextContent(`จัดแนวซ้าย ${BOARD_NODES.length} node`),
+    );
     await waitFor(() => expect(translateX(type)).toBe(translateX(brief)));
     // Alt+V: equal gaps top to bottom; the first and last stay where they were.
     const topBefore = Math.min(...Array.from(nodeEls(region)).map(translateY));
     await userEvent.keyboard("{Alt>}v{/Alt}");
-    await expect(status(region)).toHaveTextContent("กระจายแนวตั้ง");
+    await waitFor(() => expect(status(region)).toHaveTextContent("กระจายแนวตั้ง"));
     await waitFor(() =>
       expect(Math.min(...Array.from(nodeEls(region)).map(translateY))).toBe(topBefore),
     );
     // ] brings the selection to the front: a zIndex above every other node.
     await userEvent.keyboard("]");
-    await expect(status(region)).toHaveTextContent("ย้ายมาหน้าสุด");
+    await waitFor(() => expect(status(region)).toHaveTextContent("ย้ายมาหน้าสุด"));
     await waitFor(() => expect(Number(brief.style.zIndex)).toBeGreaterThan(0));
     // Mod+Shift+L locks the selection; the status word appears on the note.
-    await userEvent.keyboard("{Control>}{Shift>}l{/Shift}{/Control}");
-    await expect(status(region)).toHaveTextContent(`ล็อก ${BOARD_NODES.length} node แล้ว`);
+    await userEvent.keyboard(`{${MOD}>}{Shift>}l{/Shift}{/${MOD}}`);
+    await waitFor(() =>
+      expect(status(region)).toHaveTextContent(`ล็อก ${BOARD_NODES.length} node แล้ว`),
+    );
     await waitFor(() =>
       expect(note.querySelector(".ds-node")).toHaveAttribute("data-status", "locked"),
     );
-    await userEvent.keyboard("{Control>}{Shift>}l{/Shift}{/Control}");
-    await expect(status(region)).toHaveTextContent(`ปลดล็อก ${BOARD_NODES.length} node แล้ว`);
+    await userEvent.keyboard(`{${MOD}>}{Shift>}l{/Shift}{/${MOD}}`);
+    await waitFor(() =>
+      expect(status(region)).toHaveTextContent(`ปลดล็อก ${BOARD_NODES.length} node แล้ว`),
+    );
     // Mod+. collapses the selection.
-    await userEvent.keyboard("{Control>}.{/Control}");
-    await expect(status(region)).toHaveTextContent(`ย่อ ${BOARD_NODES.length} node แล้ว`);
+    await userEvent.keyboard(`{${MOD}>}.{/${MOD}}`);
+    await waitFor(() =>
+      expect(status(region)).toHaveTextContent(`ย่อ ${BOARD_NODES.length} node แล้ว`),
+    );
     await waitFor(() =>
       expect(region.querySelectorAll(".ds-node[data-collapsed]")).toHaveLength(BOARD_NODES.length),
     );
@@ -463,9 +485,9 @@ export const AddNote: Story = {
     await waitFor(() => expect(nodeEls(region)).toHaveLength(BOARD_NODES.length));
     const brief = await waitFor(() => nodeByTitle(region, "บรีฟ"));
     brief.focus();
-    await userEvent.keyboard("{Control>}{Shift>}n{/Shift}{/Control}");
+    await userEvent.keyboard(`{${MOD}>}{Shift>}n{/Shift}{/${MOD}}`);
     await waitFor(() => expect(nodeEls(region)).toHaveLength(BOARD_NODES.length + 1));
-    await expect(status(region)).toHaveTextContent("เพิ่มโน้ตข้าง บรีฟ");
+    await waitFor(() => expect(status(region)).toHaveTextContent("เพิ่มโน้ตข้าง บรีฟ"));
     const notes = canvas.getAllByRole("group", { name: /^โน้ต,/ });
     const added = notes.find((n) => n.classList.contains("selected")) as HTMLElement;
     await expect(added).toBeDefined();
@@ -488,24 +510,26 @@ export const Viewport: Story = {
     await waitFor(() => expect(nodeEls(region)).toHaveLength(BOARD_NODES.length));
     region.focus();
     const start = zoomOf(region);
-    await userEvent.keyboard("{Control>}={/Control}");
-    await expect(status(region)).toHaveTextContent("ซูมเข้า");
+    await userEvent.keyboard(`{${MOD}>}={/${MOD}}`);
+    await waitFor(() => expect(status(region)).toHaveTextContent("ซูมเข้า"));
     await waitFor(() => expect(zoomOf(region)).toBeGreaterThan(start));
-    await userEvent.keyboard("{Control>}0{/Control}");
-    await expect(status(region)).toHaveTextContent("ซูม 100%");
+    await userEvent.keyboard(`{${MOD}>}0{/${MOD}}`);
+    await waitFor(() => expect(status(region)).toHaveTextContent("ซูม 100%"));
     await waitFor(() => expect(zoomOf(region)).toBe(1));
     await expect(within(region).getByRole("button", { name: /ซูม 100/ })).toHaveTextContent("100%");
-    await userEvent.keyboard("{Control>}-{/Control}");
-    await expect(status(region)).toHaveTextContent("ซูมออก");
+    await userEvent.keyboard(`{${MOD}>}-{/${MOD}}`);
+    await waitFor(() => expect(status(region)).toHaveTextContent("ซูมออก"));
     await waitFor(() => expect(zoomOf(region)).toBeLessThan(1));
     await userEvent.keyboard("{Shift>}1{/Shift}");
-    await expect(status(region)).toHaveTextContent(`พอดีจอ ${BOARD_NODES.length} node`);
+    await waitFor(() =>
+      expect(status(region)).toHaveTextContent(`พอดีจอ ${BOARD_NODES.length} node`),
+    );
     nodeByTitle(region, "บรีฟ").focus();
     await userEvent.keyboard("{Enter}");
     await userEvent.keyboard("{Shift>}2{/Shift}");
-    await expect(status(region)).toHaveTextContent("พอดีจอกับ 1 node ที่เลือก");
+    await waitFor(() => expect(status(region)).toHaveTextContent("พอดีจอกับ 1 node ที่เลือก"));
     await userEvent.keyboard("h");
-    await expect(status(region)).toHaveTextContent("โหมดเลื่อนกระดาน");
+    await waitFor(() => expect(status(region)).toHaveTextContent("โหมดเลื่อนกระดาน"));
     await expect(region.querySelector(".ds-board__flow")).toHaveAttribute("data-tool", "pan");
     await expect(within(region).getByRole("radio", { name: /โหมดเลื่อนกระดาน/ })).toHaveAttribute(
       "data-state",
@@ -514,7 +538,7 @@ export const Viewport: Story = {
     await userEvent.keyboard("v");
     await expect(region.querySelector(".ds-board__flow")).toHaveAttribute("data-tool", "select");
     await userEvent.keyboard("{Shift>}g{/Shift}");
-    await expect(status(region)).toHaveTextContent("ปิดการดูดเข้ากริด");
+    await waitFor(() => expect(status(region)).toHaveTextContent("ปิดการดูดเข้ากริด"));
     await expect(region).not.toHaveAttribute("data-snap");
   },
 };
@@ -527,10 +551,10 @@ export const WithoutChrome: Story = {
     await waitFor(() => expect(nodeEls(region)).toHaveLength(BOARD_NODES.length));
     await expect(within(region).queryByRole("toolbar", { name: "เครื่องมือกระดาน" })).toBeNull();
     region.focus();
-    await userEvent.keyboard("{Control>}k{/Control}");
+    await userEvent.keyboard(`{${MOD}>}k{/${MOD}}`);
     await expect(within(document.body).queryByRole("dialog")).toBeNull();
-    await userEvent.keyboard("{Control>}={/Control}");
-    await expect(status(region)).toHaveTextContent("ซูมเข้า");
+    await userEvent.keyboard(`{${MOD}>}={/${MOD}}`);
+    await waitFor(() => expect(status(region)).toHaveTextContent("ซูมเข้า"));
   },
 };
 
@@ -544,19 +568,23 @@ export const English: Story = {
     const canvas = within(canvasElement);
     const region = canvas.getByRole("region");
     await waitFor(() => expect(nodeEls(region)).toHaveLength(BOARD_NODES.length));
-    await expect(nodeByTitle(region, "บรีฟ")).toHaveAttribute("aria-label", "บรีฟ, input block");
+    await waitFor(() =>
+      expect(nodeByTitle(region, "บรีฟ")).toHaveAttribute("aria-label", "บรีฟ, input block"),
+    );
     await expect(
       canvas.getByRole("group", { name: "input from บรีฟ to โลโก้" }),
     ).toBeInTheDocument();
     await expect(canvas.getByRole("toolbar", { name: "Board tools" })).toBeInTheDocument();
     const brief = await waitFor(() => nodeByTitle(region, "บรีฟ"));
     brief.focus();
-    await userEvent.keyboard("{Control>}a{/Control}");
-    await expect(status(region)).toHaveTextContent(`Selected all ${BOARD_NODES.length} nodes`);
+    await userEvent.keyboard(`{${MOD}>}a{/${MOD}}`);
+    await waitFor(() =>
+      expect(status(region)).toHaveTextContent(`Selected all ${BOARD_NODES.length} nodes`),
+    );
     await userEvent.keyboard("{Escape}");
     brief.focus();
     await userEvent.keyboard("{Alt>}{ArrowLeft}{/Alt}");
-    await expect(status(region)).toHaveTextContent("No upstream node");
+    await waitFor(() => expect(status(region)).toHaveTextContent("No upstream node"));
     await expect(region.querySelector(".ds-node__kind")).toHaveTextContent("input block");
   },
 };

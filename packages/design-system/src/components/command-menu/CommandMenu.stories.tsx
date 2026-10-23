@@ -4,6 +4,7 @@ import { commandById, surfaceCommands } from "../../commands/index";
 import { BOARD, BOARD_NODES } from "../canvas-board/fixtures";
 import { MatrixBoard, Stateful } from "../canvas-board/story-shell";
 import { Matrix } from "../matrix";
+import { MOD } from "../story-keys";
 
 const meta = {
   title: "Application/Command menu",
@@ -30,7 +31,7 @@ const ready = async (root: HTMLElement) => {
 };
 const open = async (region: HTMLElement, title = "ค้นหาคำสั่ง") => {
   region.focus();
-  await userEvent.keyboard("{Control>}k{/Control}");
+  await userEvent.keyboard(`{${MOD}>}k{/${MOD}}`);
   const dialog = await body().findByRole("dialog", { name: title });
   return dialog;
 };
@@ -103,7 +104,7 @@ export const JumpToNode: Story = {
     const region = within(canvasElement).getByRole("region");
     await ready(region);
     region.focus();
-    await userEvent.keyboard("{Control>}f{/Control}");
+    await userEvent.keyboard(`{${MOD}>}f{/${MOD}}`);
     const dialog = await body().findByRole("dialog", { name: "ค้นหาคำสั่ง" });
     await expect(within(dialog).getByRole("combobox")).toHaveAttribute(
       "placeholder",
