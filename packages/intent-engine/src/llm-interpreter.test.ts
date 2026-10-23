@@ -201,6 +201,14 @@ describe("openRouterComplete", () => {
     expect(call?.init.headers.Authorization).toBe("Bearer test-key");
     const sent = JSON.parse(String(call?.init.body));
     expect(sent.model).toBe(MODEL);
+    // Only parameters every endpoint of the pinned model lists; anything else leaves no endpoint.
+    expect(Object.keys(sent).sort()).toEqual([
+      "max_tokens",
+      "messages",
+      "model",
+      "provider",
+      "response_format",
+    ]);
     expect(sent.provider).toEqual({
       zdr: true,
       data_collection: "deny",

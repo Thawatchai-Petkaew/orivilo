@@ -46,7 +46,8 @@ export function openRouterBody(model: string, request: Parameters<Complete>[0], 
       type: "json_schema",
       json_schema: { name: request.schemaName, strict: true, schema: request.schema },
     },
-    temperature: 0,
+    // No `temperature`: the interpret model's endpoints do not list it, and with
+    // `require_parameters` an unsupported parameter leaves no endpoint, so the call fails.
     max_tokens: maxTokens,
     // No fallback to another model or to an endpoint that keeps data (ADR 0009 points 3 and 4).
     provider: {
