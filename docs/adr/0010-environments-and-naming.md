@@ -13,12 +13,12 @@ Today one Vercel project builds `main` to orivilo.vercel.app, and Vercel labels 
 
 1. **Four environments, named the same in Vercel, Supabase, GitHub, Jira, docs and code:**
 
-   | Name          | Job                                   | Built from     | Database             |
-   | ------------- | ------------------------------------- | -------------- | -------------------- |
-   | `development` | One person's machine                  | Local tree     | Local Postgres       |
-   | `preview`     | Review one PR                         | The PR branch  | The staging database |
-   | `staging`     | Hold merged work until it is released | `main`         | `orivilo-staging`    |
-   | `production`  | Real users                            | A `v*` git tag | `orivilo-production` |
+   | Name          | Job                                   | Built from     | Database                |
+   | ------------- | ------------------------------------- | -------------- | ----------------------- |
+   | `development` | One person's machine                  | Local tree     | Local Postgres          |
+   | `preview`     | Review one PR                         | The PR branch  | The staging database    |
+   | `staging`     | Hold merged work until it is released | `main`         | `orivilo-db-staging`    |
+   | `production`  | Real users                            | A `v*` git tag | `orivilo-db-production` |
 
 2. **Who moves work between them.**
    - A PR gets a preview whenever it changes files a project deploys (`scripts/vercel-ignore.sh`). Its body links the app and Storybook previews.
