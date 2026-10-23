@@ -618,6 +618,17 @@
   overflow-wrap: anywhere;
   z-index: var(--cmp-tooltip-layer);
 }
+/* A second line under the content: the same ink in body type, so it reads as the explanation. */
+.ds-tooltip__description {
+  display: block;
+  margin-top: var(--cmp-tooltip-line-gap);
+  color: var(--cmp-tooltip-description-fg);
+  font-family: var(--cmp-tooltip-description-type-font-family);
+  font-size: var(--cmp-tooltip-description-type-font-size);
+  line-height: var(--cmp-tooltip-description-type-line-height);
+  font-weight: var(--cmp-tooltip-description-type-font-weight);
+  letter-spacing: var(--cmp-tooltip-description-type-letter-spacing);
+}
 
 /* Badge ------------------------------------------------------------------------------------- */
 

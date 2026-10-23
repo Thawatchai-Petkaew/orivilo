@@ -646,6 +646,20 @@
     "layer": {
       "$type": "number",
       "$value": "{layer.tooltip}"
+    },
+    "description-fg": {
+      "$type": "color",
+      "$value": "{text.on-inverse}",
+      "$description": "The second line; the inverse ground has no muted step that keeps 4.5, so it differs by type, not colour"
+    },
+    "description-type": {
+      "$type": "typography",
+      "$value": "{type.body.sm}"
+    },
+    "line-gap": {
+      "$type": "dimension",
+      "$value": "{space.inline.sm}",
+      "$description": "Between the content and the description"
     }
   },
   "badge": {

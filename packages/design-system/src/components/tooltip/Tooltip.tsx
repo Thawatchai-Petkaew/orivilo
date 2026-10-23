@@ -7,9 +7,13 @@ import { PortalScope } from "../../boundary/DesignProfileBoundary";
 export interface TooltipProps {
   /** Plain text or inline content only; nothing interactive (catalog rule). */
   content: ReactNode;
+  /** An optional second line that explains the effect; plain text only, like `content`. */
+  description?: ReactNode | undefined;
   /** One focusable element that already carries its own accessible name. */
   children: ReactNode;
   side?: "top" | "right" | "bottom" | "left" | undefined;
+  /** Which edge of the trigger the tooltip lines up with; `start` or `end` keeps it inside a panel edge. */
+  align?: "start" | "center" | "end" | undefined;
   /** Milliseconds before it opens on hover; focus opens it at once. */
   delay?: number | undefined;
   open?: boolean | undefined;
@@ -27,8 +31,10 @@ export const TooltipProvider = TooltipPrimitive.Provider;
  */
 export function Tooltip({
   content,
+  description,
   children,
   side = "top",
+  align = "center",
   delay = 300,
   open,
   defaultOpen,
@@ -40,8 +46,19 @@ export function Tooltip({
         <TooltipPrimitive.Trigger asChild>{children}</TooltipPrimitive.Trigger>
         <TooltipPrimitive.Portal>
           <PortalScope>
-            <TooltipPrimitive.Content className="ds-tooltip max-w-xs" side={side} sideOffset={6}>
+            <TooltipPrimitive.Content
+              className="ds-tooltip max-w-xs"
+              side={side}
+              align={align}
+              sideOffset={6}
+            >
               {content}
+              {description === undefined ? null : (
+                <>
+                  {/* The space keeps the two lines apart in the description the trigger reads. */}{" "}
+                  <span className="ds-tooltip__description">{description}</span>
+                </>
+              )}
             </TooltipPrimitive.Content>
           </PortalScope>
         </TooltipPrimitive.Portal>
