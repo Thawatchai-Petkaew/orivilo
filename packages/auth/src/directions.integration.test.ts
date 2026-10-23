@@ -1,11 +1,11 @@
 import { directionVersion, eq, member, sql } from "@orivilo/db";
 import { inWorkspace } from "@orivilo/db/client";
 import { createTestDatabase, HAS_TEST_DATABASE, type TestDatabase } from "@orivilo/db/testing";
-import type { CuratedProfile } from "@orivilo/intent-engine";
+import { type CuratedProfile, interpretWithRules } from "@orivilo/intent-engine";
 import { testUtils } from "better-auth/plugins";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createAuth } from "./config.ts";
-import { directionService } from "./directions.ts";
+import { directionService, sealReading } from "./directions.ts";
 
 // ORV-35 AC 3 to 10, against a throwaway database as orivilo_app.
 const profiles: CuratedProfile[] = [
@@ -36,6 +36,16 @@ const studio = {
   brief: "เป็นระเบียบ หรูหรา",
   profileId: "professional",
   adjustments: [{ set: "shape", to: "rounded", reason: "chosen in Refine" }],
+};
+
+const SEAL_KEY = "test-seal-key";
+
+// A reading as the AI action hands it back: here the rules' reading relabelled, which is enough to
+// prove the seal; the model adapter itself is tested in the engine.
+const reading = {
+  ...interpretWithRules({ text: studio.brief }),
+  method: "llm" as const,
+  adapter: { id: "openrouter", version: "prompt-1+anthropic/claude-sonnet-5.5" },
 };
 
 describe.runIf(HAS_TEST_DATABASE)("saved directions", () => {
@@ -75,6 +85,7 @@ describe.runIf(HAS_TEST_DATABASE)("saved directions", () => {
     service = directionService(
       { db: t.app, getSession: (headers) => auth.api.getSession({ headers }) },
       profiles,
+      { sealKey: SEAL_KEY },
     );
   }, 60_000);
   afterAll(async () => {
@@ -217,5 +228,25 @@ describe.runIf(HAS_TEST_DATABASE)("saved directions", () => {
     await expect(
       service.importFile(h.headers, h.workspaceId, { ...file, format: "other" }),
     ).rejects.toMatchObject({ reason: "invalid-file" });
+  });
+
+  it("keeps a sealed AI reading and refuses one the client wrote (ORV-62)", async () => {
+    const r = await signIn("r@example.com", "Ratana");
+    const seal = sealReading(SEAL_KEY, studio.brief, reading);
+    const saved = await service.saveDraft(r.headers, r.workspaceId, { ...studio, reading, seal });
+    const back = await service.read(r.headers, r.workspaceId, saved.versionId);
+    expect(back.snapshot.reading).toEqual(reading);
+
+    const forged = { ...reading, facts: { ...reading.facts, industry: "finance" } };
+    for (const input of [
+      { ...studio, reading },
+      { ...studio, reading: forged, seal },
+      { ...studio, reading, seal: sealReading("another-key", studio.brief, reading) },
+      { ...studio, seal },
+    ]) {
+      await expect(service.saveDraft(r.headers, r.workspaceId, input)).rejects.toMatchObject({
+        reason: "invalid-input",
+      });
+    }
   });
 });

@@ -97,6 +97,14 @@ export type InterpretOutcome =
       detail: string;
     };
 
+/** The first evidence span that is not the brief's own words at that place, if any. */
+export function misquoted(text: string, interpretation: Interpretation) {
+  return [
+    ...interpretation.findings.map((f) => f.evidence),
+    ...interpretation.uncertain.flatMap((u) => u.evidence),
+  ].find((span) => text.slice(span.start, span.end) !== span.text);
+}
+
 /**
  * Runs an adapter and trusts nothing it returns: the output must parse, must name the adapter and
  * method that produced it, and every quoted span must be the brief's own words.
@@ -140,12 +148,7 @@ export async function interpretBrief(
       detail: "The output names another adapter or method.",
     };
   }
-  const spans = [
-    ...interpretation.findings.map((f) => f.evidence),
-    ...interpretation.uncertain.flatMap((u) => u.evidence),
-  ];
-  const text = brief.data.text;
-  const bad = spans.find((span) => text.slice(span.start, span.end) !== span.text);
+  const bad = misquoted(brief.data.text, interpretation);
   if (bad) {
     return {
       ok: false,

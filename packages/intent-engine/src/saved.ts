@@ -5,6 +5,7 @@ import {
   recommendDirections,
   type RecommendOptions,
 } from "./directions";
+import { interpretationSchema, misquoted, type Interpretation } from "./interpreter";
 import { slugSchema } from "./knowledge";
 import { adjustmentSchema, partialDecisionsSchema, RESOLVER_VERSION } from "./resolver";
 
@@ -27,8 +28,18 @@ export const snapshotSchema = z
     resolverVersion: z.string().min(1),
     catalogVersion: z.string().min(1),
     fingerprint: z.string().regex(/^[0-9a-f]{8}$/),
+    /**
+     * A model's reading of the brief (ORV-62). A model does not read the same brief the same way
+     * twice, so the reading is kept as an input and replayed instead of reading again. Without it,
+     * the rules read the brief.
+     */
+    reading: interpretationSchema.optional(),
   })
-  .strict();
+  .strict()
+  .refine((s) => !s.reading || !misquoted(s.brief, s.reading), {
+    message: "The reading quotes words that are not in the brief.",
+    path: ["reading"],
+  });
 
 export type Snapshot = z.infer<typeof snapshotSchema>;
 
@@ -57,16 +68,18 @@ export interface SnapshotInput {
   profileId: string;
   locked?: RecommendOptions["locked"];
   adjustments?: RecommendOptions["adjustments"];
+  reading?: Interpretation | undefined;
 }
 
 const optionsFor = (
   profiles: readonly CuratedProfile[],
-  s: Pick<Snapshot, "locked" | "adjustments" | "catalogVersion">,
+  s: Pick<Snapshot, "locked" | "adjustments" | "catalogVersion" | "reading">,
 ): RecommendOptions => ({
   profiles,
   locked: s.locked,
   adjustments: s.adjustments,
   catalogVersion: s.catalogVersion,
+  ...(s.reading ? { interpretation: s.reading } : {}),
 });
 
 /** Takes a snapshot of what the Studio shows, with the fingerprint the resolver gives it now. */
@@ -76,6 +89,7 @@ export function takeSnapshot(input: SnapshotInput, profiles: readonly CuratedPro
     locked: input.locked ?? {},
     adjustments: input.adjustments ?? [],
     catalogVersion: DEFAULT_CATALOG_VERSION,
+    ...(input.reading ? { reading: input.reading } : {}),
   };
   const result = recommendDirections(base.brief, optionsFor(profiles, base));
   return snapshotSchema.parse({

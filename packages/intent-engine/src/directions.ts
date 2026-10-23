@@ -86,7 +86,7 @@ export interface Direction {
 }
 
 export interface DirectionsResult {
-  method: "rule-based";
+  method: Interpretation["method"];
   interpretation: Interpretation;
   resolution: Resolution;
   reasons: DecisionReason[];
@@ -101,6 +101,11 @@ export interface RecommendOptions {
   rules?: readonly DecisionRule[];
   knowledgeIds?: readonly string[];
   catalogVersion?: string;
+  /**
+   * A reading already made and checked for this brief, such as a model's (ORV-62). Without one the
+   * rules read the brief.
+   */
+  interpretation?: Interpretation;
 }
 
 function axesOf(condition: Condition): PersonalityAxis[] {
@@ -132,7 +137,7 @@ function direction(
 /** Reads a brief and returns the reading, the resolution, the reasons and two directions. */
 export function recommendDirections(brief: string, options: RecommendOptions): DirectionsResult {
   const rules = options.rules ?? STARTER_RULES;
-  const interpretation = interpretWithRules({ text: brief });
+  const interpretation = options.interpretation ?? interpretWithRules({ text: brief });
   const resolution = resolveProfile({
     catalogVersion: options.catalogVersion ?? "catalog-1",
     facts: interpretation.facts,
@@ -181,5 +186,5 @@ export function recommendDirections(brief: string, options: RecommendOptions): D
     if (contrast) directions.push(direction(contrast, "contrast", decided));
   }
 
-  return { method: "rule-based", interpretation, resolution, reasons, directions };
+  return { method: interpretation.method, interpretation, resolution, reasons, directions };
 }

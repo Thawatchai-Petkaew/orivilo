@@ -12,6 +12,7 @@ import {
   Input,
   studioPropsFrom,
 } from "@orivilo/design-system";
+import type { Interpretation } from "@orivilo/intent-engine";
 import { type ReactNode, useId, useMemo, useRef, useState, useTransition } from "react";
 import type { WebMessages } from "../../i18n/messages";
 import {
@@ -22,6 +23,7 @@ import {
   type Listing,
   listDirections,
   openVersion,
+  readBriefWithAi,
   type Outcome,
   saveDirection,
 } from "./actions";
@@ -59,6 +61,7 @@ function sameState(a: DirectionStudioState | null, b: DirectionStudioState | nul
       s.profileId,
       Object.entries(s.locked).sort(([x], [y]) => x.localeCompare(y)),
       s.adjustments.map((x) => [x.set, x.to, x.reason]),
+      s.reading ? JSON.stringify(s.reading) : null,
     ]);
   return norm(a) === norm(b);
 }
@@ -119,6 +122,15 @@ export function SavedStudio({
   );
   const [busy, setBusy] = useState<"save" | "approve" | "import" | null>(null);
   const [, startTransition] = useTransition();
+  // Seals for AI readings, by the reading object the studio reports back (ORV-62).
+  const seals = useRef(new WeakMap<Interpretation, string>());
+
+  const readWithAi = async (brief: string) => {
+    const result = await readBriefWithAi(brief);
+    if (!result.ok) return null;
+    seals.current.set(result.value.reading, result.value.seal);
+    return result.value.reading;
+  };
 
   const openedProps = useMemo(
     () => (current.opened ? studioPropsFrom(current.opened) : {}),
@@ -156,6 +168,7 @@ export function SavedStudio({
       null,
       () => openVersion(versionId),
       (v) => {
+        if (v.state.reading && v.seal) seals.current.set(v.state.reading, v.seal);
         const version = versionWord(m, v.number);
         setName(v.name);
         setCurrent((c) => ({
@@ -182,6 +195,7 @@ export function SavedStudio({
     if (!state) return;
     const savedState = state;
     const savedName = name.trim();
+    const seal = state.reading ? seals.current.get(state.reading) : undefined;
     act(
       "save",
       () =>
@@ -189,6 +203,7 @@ export function SavedStudio({
           ...(current.directionId ? { directionId: current.directionId } : {}),
           name: savedName,
           ...savedState,
+          ...(seal ? { seal } : {}),
         }),
       async (r) => {
         setCurrent((c) => ({ ...c, directionId: r.directionId, savedState, savedName }));
@@ -439,6 +454,7 @@ export function SavedStudio({
         defaultBrief={defaultBrief}
         preview={preview}
         onChange={setState}
+        readWithAi={ready ? readWithAi : undefined}
         {...openedProps}
       />
     </div>

@@ -140,6 +140,7 @@ const th = {
       "not-found": "ไม่พบทิศทางนี้ในเวิร์กสเปซของคุณ",
       "no-draft": "ไม่มีฉบับร่างให้อนุมัติ บันทึกฉบับร่างก่อน",
       "invalid-input": "ข้อมูลไม่ครบ ตรวจชื่อทิศทางแล้วลองใหม่",
+      "ai-failed": "AI อ่านบรีฟไม่สำเร็จ จึงใช้การอ่านตามกฎแทน",
       "invalid-file": "ไฟล์นี้ไม่ใช่ไฟล์ทิศทางของ ORIVILO หรือถูกแก้ไข ลองส่งออกใหม่อีกครั้ง",
       "resolver-changed": "ไฟล์นี้สร้างด้วยกฎรุ่นอื่น ผลจะไม่เหมือนเดิม จึงไม่นำเข้า",
       "profile-missing": "ทิศทางที่เลือกไม่มีในชุดโปรไฟล์ปัจจุบัน",
@@ -303,6 +304,7 @@ const en: WebMessages = {
       "not-found": "This direction was not found in your workspace.",
       "no-draft": "There is no draft to approve. Save a draft first.",
       "invalid-input": "Something is missing. Check the direction name and retry.",
+      "ai-failed": "AI could not read the brief, so the rules' reading is used.",
       "invalid-file":
         "This is not an ORIVILO direction file, or it was edited. Export it again and retry.",
       "resolver-changed":
