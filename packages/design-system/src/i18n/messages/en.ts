@@ -40,6 +40,10 @@ export const en: Messages = {
   tag: {
     remove: "Remove {label}",
   },
+  passwordInput: {
+    show: "Show password",
+    hide: "Hide password",
+  },
   resizable: {
     handle: "Resize {panel}",
     reopen: "Show {panel}",

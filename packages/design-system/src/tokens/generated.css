@@ -592,6 +592,12 @@
   --cmp-button-destructive-fg: var(--ds-text-on-destructive);
   --cmp-button-destructive-bg-disabled: var(--ds-action-primary-disabled);
   --cmp-button-destructive-fg-disabled: var(--ds-text-secondary);
+  --cmp-button-link-fg: var(--ds-text-link);
+  --cmp-button-link-fg-hover: var(--ds-text-link-hover);
+  --cmp-button-link-fg-disabled: var(--ds-text-secondary);
+  --cmp-button-icon-size-sm: var(--ds-size-icon-sm);
+  --cmp-button-icon-size-md: var(--ds-size-icon-sm);
+  --cmp-button-icon-size-lg: var(--ds-size-icon-md);
   --cmp-button-radius: var(--ds-shape-control-radius);
   --cmp-button-height-sm: var(--ds-size-control-sm);
   --cmp-button-height-md: var(--ds-size-control-md);
@@ -647,6 +653,9 @@
   --cmp-input-fg-disabled: var(--ds-text-secondary);
   --cmp-input-border-disabled: var(--ds-border-disabled);
   --cmp-input-icon: var(--ds-text-secondary);
+  --cmp-input-group-addon-fg: var(--ds-text-secondary);
+  --cmp-input-group-icon-size: var(--ds-size-icon-sm);
+  --cmp-input-group-inset: var(--ds-space-inline-sm);
   --cmp-card-bg: var(--ds-surface-card);
   --cmp-card-fg: var(--ds-text-primary);
   --cmp-card-border: var(--ds-border-card);

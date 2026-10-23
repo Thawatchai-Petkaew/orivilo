@@ -11,6 +11,7 @@ import {
   CircleDotDashed,
   Copy,
   Eye,
+  EyeOff,
   Group,
   Hand,
   History,
@@ -49,7 +50,7 @@ import {
  * icons from this file only, never from `lucide-react` directly (lint), so the defaults below
  * hold everywhere and only the named glyphs reach the bundle.
  *
- * All 40 glyphs are Lucide today. A glyph Lucide lacks is drawn here as inline SVG on a 20 grid,
+ * All 42 glyphs are Lucide today. A glyph Lucide lacks is drawn here as inline SVG on a 20 grid,
  * stroke 2, round caps and joins, `currentColor`, `aria-hidden`.
  */
 type IconProps = Omit<SVGProps<SVGSVGElement>, "children">;
@@ -88,6 +89,10 @@ export const MapIcon = lucide(MapGlyph, "MapIcon");
 export const UndoIcon = lucide(Undo2, "UndoIcon");
 export const RedoIcon = lucide(Redo2, "RedoIcon");
 export const SearchIcon = lucide(Search, "SearchIcon");
+/** The password is hidden; pressing reveals it. */
+export const EyeIcon = lucide(Eye, "EyeIcon");
+/** The password is shown; pressing hides it. */
+export const EyeOffIcon = lucide(EyeOff, "EyeOffIcon");
 export const KeyboardIcon = lucide(Keyboard, "KeyboardIcon");
 export const CopyIcon = lucide(Copy, "CopyIcon");
 export const TrashIcon = lucide(Trash, "TrashIcon");

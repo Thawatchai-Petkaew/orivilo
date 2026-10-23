@@ -148,6 +148,42 @@
   color: var(--cmp-button-destructive-fg-disabled);
 }
 
+/* Link: text that goes somewhere (DESIGN.md §8). No fill, no border; the underline marks hover. */
+.ds-button[data-variant="link"] {
+  padding-inline: 0;
+  color: var(--cmp-button-link-fg);
+  text-underline-offset: 0.2em;
+}
+.ds-button[data-variant="link"]:hover,
+.ds-button[data-variant="link"]:active {
+  color: var(--cmp-button-link-fg-hover);
+  text-decoration: underline;
+}
+.ds-button[data-variant="link"]:disabled {
+  color: var(--cmp-button-link-fg-disabled);
+  text-decoration: none;
+}
+
+/* Icon slot: before or after the label, at the icon size of the button's size. */
+.ds-button__icon {
+  display: inline-flex;
+  flex: none;
+  inline-size: var(--cmp-button-icon-size-md);
+  block-size: var(--cmp-button-icon-size-md);
+}
+.ds-button[data-size="sm"] .ds-button__icon {
+  inline-size: var(--cmp-button-icon-size-sm);
+  block-size: var(--cmp-button-icon-size-sm);
+}
+.ds-button[data-size="lg"] .ds-button__icon {
+  inline-size: var(--cmp-button-icon-size-lg);
+  block-size: var(--cmp-button-icon-size-lg);
+}
+.ds-button__icon > svg {
+  inline-size: 100%;
+  block-size: 100%;
+}
+
 .ds-button:disabled,
 .ds-button[aria-disabled="true"] {
   cursor: not-allowed;
@@ -248,6 +284,110 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* InputGroup: one outline around an input and its start and end slots (ORV-67) ---------------- */
+
+.ds-input-group {
+  --_h: var(--cmp-input-height-md);
+  display: flex;
+  align-items: center;
+  gap: var(--cmp-button-gap);
+  width: 100%;
+  min-height: var(--_h);
+  padding-inline: var(--cmp-input-padding-x);
+  border: 1px solid var(--cmp-input-border);
+  border-radius: var(--cmp-input-radius);
+  background: var(--cmp-input-bg);
+  color: var(--cmp-input-fg);
+  font-family: var(--cmp-input-type-md-font-family);
+  font-size: var(--cmp-input-type-md-font-size);
+  line-height: var(--cmp-input-type-md-line-height);
+  font-weight: var(--cmp-input-type-md-font-weight);
+  letter-spacing: var(--cmp-input-type-md-letter-spacing);
+  transition: border-color var(--ds-motion-feedback-duration) var(--ds-motion-easing);
+}
+.ds-input-group[data-size="sm"] {
+  --_h: var(--cmp-input-height-sm);
+  font-family: var(--cmp-input-type-sm-font-family);
+  font-size: var(--cmp-input-type-sm-font-size);
+  line-height: var(--cmp-input-type-sm-line-height);
+  font-weight: var(--cmp-input-type-sm-font-weight);
+  letter-spacing: var(--cmp-input-type-sm-letter-spacing);
+}
+.ds-input-group[data-size="lg"] {
+  --_h: var(--cmp-input-height-lg);
+  font-family: var(--cmp-input-type-lg-font-family);
+  font-size: var(--cmp-input-type-lg-font-size);
+  line-height: var(--cmp-input-type-lg-line-height);
+  font-weight: var(--cmp-input-type-lg-font-weight);
+  letter-spacing: var(--cmp-input-type-lg-letter-spacing);
+}
+.ds-input-group:hover:not([data-disabled]) {
+  border-color: var(--cmp-input-border-hover);
+}
+/* The ring goes around the whole group, drawn when the input has keyboard focus; a Button in a slot keeps its own ring. */
+.ds-input-group:has(.ds-input-group__input:focus-visible) {
+  border-color: var(--cmp-input-border-focus);
+  outline: 2px solid var(--ds-focus-ring);
+  outline-offset: 2px;
+}
+.ds-input-group[data-invalid] {
+  border-color: var(--cmp-input-border-error);
+}
+.ds-input-group[data-disabled] {
+  background: var(--cmp-input-bg-disabled);
+  border-color: var(--cmp-input-border-disabled);
+  color: var(--cmp-input-fg-disabled);
+  cursor: not-allowed;
+}
+.ds-input-group__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  align-self: stretch;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: currentColor;
+  font: inherit;
+  letter-spacing: inherit;
+  text-overflow: ellipsis;
+}
+/* The group draws the ring; the global :focus-visible ring would only surround the input. */
+.ds-input-group__input:focus-visible {
+  outline: none;
+}
+.ds-input-group__input::placeholder {
+  color: var(--cmp-input-placeholder);
+}
+.ds-input-group__input:disabled {
+  cursor: not-allowed;
+}
+.ds-input-group__slot {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--cmp-button-gap);
+  color: var(--cmp-input-group-addon-fg);
+  white-space: nowrap;
+}
+.ds-input-group[data-disabled] .ds-input-group__slot {
+  color: var(--cmp-input-fg-disabled);
+}
+.ds-input-group__slot > svg {
+  inline-size: var(--cmp-input-group-icon-size);
+  block-size: var(--cmp-input-group-icon-size);
+}
+/* A Button in a slot sits inside the outline with a small inset, and shares the group's height. */
+.ds-input-group__slot > .ds-button {
+  min-height: calc(var(--_h) - 2px - 2 * var(--cmp-input-group-inset));
+}
+.ds-input-group__slot[data-slot="start"] > .ds-button {
+  margin-inline-start: calc(var(--cmp-input-group-inset) - var(--cmp-input-padding-x));
+}
+.ds-input-group__slot[data-slot="end"] > .ds-button {
+  margin-inline-end: calc(var(--cmp-input-group-inset) - var(--cmp-input-padding-x));
 }
 
 /* Menu: the Select listbox ------------------------------------------------------------------ */

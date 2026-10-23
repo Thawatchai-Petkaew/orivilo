@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fn, userEvent, within } from "storybook/test";
 import { fixtures } from "../fixtures";
+import { ChevronDownIcon, PlusIcon } from "../icons";
 import { Matrix, Narrow } from "../matrix";
 import { Button, type ButtonVariant } from "./Button";
 
@@ -10,6 +11,7 @@ const VARIANTS: readonly ButtonVariant[] = [
   "ghost",
   "destructive",
   "intent",
+  "link",
 ];
 
 const meta = {
@@ -136,6 +138,134 @@ export const IconOnly: Story = {
   },
 };
 
+/** The icon sits before or after the label at the button's icon size, hidden from assistive tech (AC 1). */
+export const WithIcons: Story = {
+  render: (args) => (
+    <div className="flex flex-wrap items-center gap-3">
+      <Button {...args} variant="primary" size="sm" iconLeading={<PlusIcon />}>
+        {fixtures.latin}
+      </Button>
+      <Button {...args} variant="secondary" iconLeading={<PlusIcon />}>
+        {fixtures.thai}
+      </Button>
+      <Button {...args} variant="secondary" size="lg" iconTrailing={<ChevronDownIcon />}>
+        {fixtures.mixed}
+      </Button>
+      <Button
+        {...args}
+        variant="ghost"
+        iconLeading={<PlusIcon />}
+        iconTrailing={<ChevronDownIcon />}
+      >
+        {fixtures.latin}
+      </Button>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const leading = canvas.getByRole("button", { name: fixtures.thai });
+    // The name is the label alone; the icon is hidden.
+    const icon = leading.querySelector(".ds-button__icon");
+    await expect(icon).toHaveAttribute("aria-hidden", "true");
+    await expect(leading.firstElementChild).toBe(icon);
+    const trailing = canvas.getByRole("button", { name: fixtures.mixed });
+    await expect(trailing.lastElementChild).toHaveClass("ds-button__icon");
+    await expect(trailing.firstChild?.nodeType).toBe(Node.TEXT_NODE);
+    // 16 px for sm and md, 20 px for lg.
+    await expect(getComputedStyle(icon as Element).width).toBe("16px");
+    await expect(getComputedStyle(trailing.lastElementChild as Element).width).toBe("20px");
+  },
+};
+
+/** While loading, the spinner replaces the leading icon and the trailing one stays (AC 1). */
+export const LoadingWithIcons: Story = {
+  args: { variant: "secondary", loading: true },
+  render: (args) => (
+    <Button
+      {...args}
+      iconLeading={<PlusIcon data-testid="lead" />}
+      iconTrailing={<ChevronDownIcon data-testid="trail" />}
+    >
+      {fixtures.latin}
+    </Button>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.queryByTestId("lead")).toBeNull();
+    await expect(canvas.getByTestId("trail")).toBeInTheDocument();
+    const button = canvas.getByRole("button", { name: /Save changes/ });
+    await expect(button.querySelectorAll(".ds-button__icon")).toHaveLength(2);
+    await expect(button.querySelector(".ds-spin")).not.toBeNull();
+  },
+};
+
+/** `iconOnly` keeps its required name and ignores the icon slots. */
+export const IconOnlyIgnoresSlots: Story = {
+  render: (args) => (
+    <Button
+      {...args}
+      iconOnly
+      aria-label="เพิ่ม"
+      iconLeading={<PlusIcon />}
+      iconTrailing={<PlusIcon />}
+    >
+      <PlusIcon className="size-4" />
+    </Button>
+  ),
+  play: async ({ canvasElement }) => {
+    const button = within(canvasElement).getByRole("button", { name: "เพิ่ม" });
+    await expect(button.querySelectorAll(".ds-button__icon")).toHaveLength(0);
+    await expect(button.querySelectorAll("svg")).toHaveLength(1);
+  },
+};
+
+/**
+ * The link variant: `text.link`, no fill, no border, an underline on hover (AC 2). It keeps the
+ * height of other buttons so a row lines up.
+ */
+export const Link: Story = {
+  render: (args) => (
+    <div className="flex flex-wrap items-center gap-3">
+      <Button {...args} variant="secondary" data-testid="secondary">
+        {fixtures.latin}
+      </Button>
+      <Button {...args} variant="link" data-testid="link">
+        {fixtures.thai}
+      </Button>
+      <Button {...args} variant="link" iconTrailing={<ChevronDownIcon />}>
+        {fixtures.latin}
+      </Button>
+      <Button {...args} variant="link" disabled>
+        {fixtures.latin}
+      </Button>
+      <Button {...args} asChild variant="link">
+        <a href="#link">ไปที่ backlog</a>
+      </Button>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const link = canvas.getByTestId("link");
+    const style = getComputedStyle(link);
+    await expect(style.backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    await expect(style.borderTopColor).toBe("rgba(0, 0, 0, 0)");
+    await expect(style.textDecorationLine).toBe("none");
+    // The test runner has no real pointer, so :hover cannot be computed; read the recipe rule.
+    const hover = [...document.styleSheets]
+      .flatMap((sheet) => [...sheet.cssRules])
+      .find(
+        (rule): rule is CSSStyleRule =>
+          rule instanceof CSSStyleRule && rule.selectorText.includes('[data-variant="link"]:hover'),
+      );
+    await expect(hover?.style.textDecorationLine).toBe("underline");
+    await expect(link.getBoundingClientRect().height).toBe(
+      canvas.getByTestId("secondary").getBoundingClientRect().height,
+    );
+    link.focus();
+    await expect(link).toHaveFocus();
+  },
+};
+
 /** The recipe on another element: a link that looks like a secondary button. */
 export const AsChild: Story = {
   render: (args) => (
@@ -159,6 +289,17 @@ export const LongLabelAt360: Story = {
         <Button {...args} variant="secondary">
           {fixtures.mixed}
         </Button>
+        <Button
+          {...args}
+          variant="primary"
+          iconLeading={<PlusIcon />}
+          iconTrailing={<ChevronDownIcon />}
+        >
+          {fixtures.thai}
+        </Button>
+        <Button {...args} variant="link" iconTrailing={<ChevronDownIcon />}>
+          {fixtures.thai}
+        </Button>
       </div>
     </Narrow>
   ),
@@ -178,6 +319,18 @@ export const RecipesAndModes: Story = {
         </Button>
         <Button {...args} variant="secondary" size="sm" disabled>
           {fixtures.thai}
+        </Button>
+        <Button
+          {...args}
+          variant="secondary"
+          size="sm"
+          iconLeading={<PlusIcon />}
+          iconTrailing={<ChevronDownIcon />}
+        >
+          {fixtures.latin}
+        </Button>
+        <Button {...args} variant="link" size="sm" iconTrailing={<ChevronDownIcon />}>
+          {fixtures.latin}
         </Button>
       </div>
     </Matrix>

@@ -128,6 +128,34 @@
         "$value": "{text.secondary}"
       }
     },
+    "link": {
+      "fg": {
+        "$type": "color",
+        "$value": "{text.link}"
+      },
+      "fg-hover": {
+        "$type": "color",
+        "$value": "{text.link-hover}"
+      },
+      "fg-disabled": {
+        "$type": "color",
+        "$value": "{text.secondary}"
+      }
+    },
+    "icon-size": {
+      "sm": {
+        "$type": "dimension",
+        "$value": "{size.icon.sm}"
+      },
+      "md": {
+        "$type": "dimension",
+        "$value": "{size.icon.sm}"
+      },
+      "lg": {
+        "$type": "dimension",
+        "$value": "{size.icon.md}"
+      }
+    },
     "radius": {
       "$type": "dimension",
       "$value": "{shape.control.radius}"
@@ -263,6 +291,22 @@
     "icon": {
       "$type": "color",
       "$value": "{text.secondary}"
+    }
+  },
+  "input-group": {
+    "$description": "InputGroup: one outline around an input and its start and end slots (ORV-67). Edge, ground, height and type come from the input group; these are the slot-only values",
+    "addon-fg": {
+      "$type": "color",
+      "$value": "{text.secondary}"
+    },
+    "icon-size": {
+      "$type": "dimension",
+      "$value": "{size.icon.sm}"
+    },
+    "inset": {
+      "$type": "dimension",
+      "$value": "{space.inline.sm}",
+      "$description": "Gap between the outline and a Button inside a slot"
     }
   },
   "card": {

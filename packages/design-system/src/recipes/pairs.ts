@@ -181,6 +181,50 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     bg: "button.destructive.bg-disabled",
     floor: UI,
   },
+  // Button link variant (ORV-67)
+  {
+    recipe: "button",
+    slot: "link on canvas",
+    fg: "button.link.fg",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
+  {
+    recipe: "button",
+    slot: "link on card",
+    fg: "button.link.fg",
+    bg: "ds:surface.card",
+    floor: TEXT,
+  },
+  {
+    recipe: "button",
+    slot: "link hover on canvas",
+    fg: "button.link.fg-hover",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
+  {
+    recipe: "button",
+    slot: "link hover on card",
+    fg: "button.link.fg-hover",
+    bg: "ds:surface.card",
+    floor: TEXT,
+  },
+  {
+    recipe: "button",
+    slot: "link disabled",
+    fg: "button.link.fg-disabled",
+    bg: "ds:surface.canvas",
+    floor: UI,
+  },
+  // InputGroup slots (ORV-67): a text addon or an icon on the input ground
+  {
+    recipe: "input-group",
+    slot: "addon text",
+    fg: "input-group.addon-fg",
+    bg: "input.bg",
+    floor: TEXT,
+  },
   // Text controls (Input, Textarea, Select trigger)
   { recipe: "control", slot: "text", fg: "input.fg", bg: "input.bg", floor: TEXT },
   { recipe: "control", slot: "placeholder", fg: "input.placeholder", bg: "input.bg", floor: TEXT },

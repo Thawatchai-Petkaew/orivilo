@@ -8,10 +8,10 @@ useWhen:
   - One primary action per view; secondary and ghost for the rest
   - Destructive action that is confirmed by a ConfirmDialog
 avoidWhen:
-  - Navigation that changes the URL (use a Link styled by the link recipe)
+  - Navigation that changes the URL as a filled button (use variant link, with asChild on a real anchor)
   - Toggling a setting that applies immediately (use Switch)
 contract: ButtonProps
-variants: [primary, secondary, ghost, destructive, intent]
+variants: [primary, secondary, ghost, destructive, intent, link]
 sizes: [sm, md, lg]
 states: [default, hover, focus-visible, pressed, disabled, loading]
 recipes: [neutral, professional, friendly]
@@ -22,6 +22,8 @@ examples:
   - src/examples/workspace.tsx
 rules:
   - "intent is the one Intent Engine button per Studio screen; inside a profile boundary it renders as that profile's primary action (E2-3 remap)"
+  - "iconLeading and iconTrailing take an icon element from the icon module, 16 px for sm and md, 20 px for lg, hidden from assistive tech; the name stays the label. While loading the spinner replaces the leading icon only; both are ignored with iconOnly"
+  - "link is text in text.link with an underline on hover, no fill, no border, at the height of other sizes; it goes somewhere (navigation or a quiet action), has no destructive or intent form, and never takes a brand colour"
   - "asChild renders the recipe on a child element such as a link"
   - Label says what happens and keeps its name through the flow
   - Icon-only form requires an accessible name
