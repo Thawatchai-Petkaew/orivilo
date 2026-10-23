@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -179,10 +180,8 @@ test("AC 10: write_set entries that are too broad are blocked", () => {
     assert.ok(r.stderr.includes(entry), entry);
   }
   for (const entry of ["package.json", ".claude/hooks/**", "scripts/ovl/*.mjs"]) {
-    const r = dispatch(
-      root,
-      validEnvelope(root, { task_id: `ORV-1-${entry.length}`, write_set: [entry] }),
-    );
+    const fresh = makeRepo();
+    const r = dispatch(fresh, validEnvelope(fresh, { write_set: [entry] }));
     assert.equal(r.code, 0, `${entry}: ${r.stderr}`);
   }
 });
@@ -323,6 +322,7 @@ test("an envelope never bound is not a round", () => {
   seedBoundBuilder(root, "ORV-1", "ORV-1-r1", "2026-10-23T10:05:00.000Z");
   seedTask(root, "ORV-1", "ORV-1-denied", {
     envelope: validEnvelope(root, { task_id: "ORV-1-denied" }),
+    closed: { reason: "denied", closed_at: "2026-10-23T10:06:00.000Z" },
   });
   const r = dispatch(root, validEnvelope(root, { task_id: "ORV-1-r2", rework_of: "ORV-1-r1" }));
   assert.equal(r.code, 0, r.stderr);
@@ -517,4 +517,86 @@ test("S-6: with the last round unreviewed the guard asks for a verdict, not for 
   };
   assert.equal(runNode(hook("owner-grant.mjs"), grantForm).code, 2);
   assert.equal(existsSync(join(root, ".orivilo/runs/ORV-1/owner-grant-1.json")), false);
+});
+
+test("AC 52: a second builder envelope is blocked while one is open in this checkout, any issue", () => {
+  const root = makeRepo();
+  seedTask(root, "ORV-9", "ORV-9-other", {
+    envelope: validEnvelope(root, { task_id: "ORV-9-other", issue: "ORV-9" }),
+  });
+  const r = dispatch(root, validEnvelope(root));
+  assert.equal(r.code, 2);
+  assert.match(r.stderr, /ORV-9-other/);
+  assert.match(r.stderr, /close-envelope\.mjs ORV-9-other/);
+});
+
+test("AC 52: another role's open envelope does not block, and a closed one does not either", () => {
+  const root = makeRepo();
+  seedTask(root, "ORV-1", "ORV-1-rev", {
+    envelope: validEnvelope(root, {
+      task_id: "ORV-1-rev",
+      role: "reviewer",
+      write_set: [],
+      skills: [],
+    }),
+  });
+  seedTask(root, "ORV-1", "ORV-1-old", {
+    envelope: validEnvelope(root, { task_id: "ORV-1-old" }),
+    closed: { reason: "pre_a3", closed_at: "2026-10-23T09:00:00.000Z" },
+  });
+  const r = dispatch(root, validEnvelope(root));
+  assert.equal(r.code, 0, r.stderr);
+  const second = dispatch(root, validEnvelope(root, { task_id: "ORV-1-b" }));
+  assert.equal(second.code, 2);
+  assert.match(second.stderr, /ORV-1-a/);
+});
+
+test("AC 67: a bound builder that ended no_report after a verdict is a round; a denied one is not", () => {
+  const root = makeRepo();
+  seedVerdict(root, "ORV-1", "ORV-1-rev", "request_changes", "2026-10-23T10:00:00.000Z");
+  seedBoundBuilder(root, "ORV-1", "ORV-1-r1", "2026-10-23T10:05:00.000Z");
+  seedTask(root, "ORV-1", "ORV-1-r2", {
+    envelope: validEnvelope(root, { task_id: "ORV-1-r2" }),
+    agent: { agent_id: "a-r2", agent_type: "builder", started_at: "2026-10-23T10:15:00.000Z" },
+    closed: { reason: "no_report", closed_at: "2026-10-23T10:16:00.000Z" },
+  });
+  seedTask(root, "ORV-1", "ORV-1-r3", {
+    envelope: validEnvelope(root, { task_id: "ORV-1-r3" }),
+    closed: { reason: "denied", closed_at: "2026-10-23T10:17:00.000Z" },
+  });
+  const r = dispatch(root, validEnvelope(root, { task_id: "ORV-1-r4", rework_of: "ORV-1-r2" }));
+  assert.equal(r.code, 2);
+  assert.match(r.stderr, /rework rounds used/);
+});
+
+/** Runs the guard as a child that starts now; resolves with its exit code. */
+const dispatchAsync = (input) =>
+  new Promise((resolve) => {
+    const child = spawn(process.execPath, [guard]);
+    let stderr = "";
+    child.stderr.on("data", (d) => (stderr += d));
+    child.on("close", (code) => resolve({ code, stderr }));
+    child.stdin.end(JSON.stringify(input));
+  });
+
+test("C-2: two builder envelopes dispatched at the same moment never both run", async () => {
+  for (let trial = 0; trial < 8; trial++) {
+    const root = makeRepo();
+    const tasks = ["ORV-1-a", "ORV-1-b"];
+    const runs = await Promise.all(
+      tasks.map((task_id) => dispatchAsync(agentInput(root, validEnvelope(root, { task_id })))),
+    );
+    const why = `trial ${trial}: ${runs.map((r) => `${r.code} ${r.stderr}`).join(" | ")}`;
+    const allowed = runs.filter((r) => r.code === 0).length;
+    assert.ok(allowed <= 1, why);
+    const dir = (t) => join(root, ".orivilo", "runs", "ORV-1", t);
+    // An envelope still open is one that runs; any other that was saved is closed as denied.
+    const open = tasks.filter(
+      (t) => existsSync(join(dir(t), "envelope.json")) && !existsSync(join(dir(t), "closed.json")),
+    );
+    assert.equal(open.length, allowed, why);
+    for (const t of tasks.filter((t) => existsSync(join(dir(t), "closed.json")))) {
+      assert.equal(JSON.parse(readFileSync(join(dir(t), "closed.json"), "utf8")).reason, "denied");
+    }
+  }
 });

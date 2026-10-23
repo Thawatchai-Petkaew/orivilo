@@ -23,3 +23,7 @@ PR → local review (a Vercel preview only when a commit says `[preview]`). Merg
 - Production changes, secret changes, and paid-service changes always wait for the owner.
 - Confirm a merge by reading PR state, not by trusting command output.
 - Never push to `main` directly. Never skip CI.
+
+## Report contract
+
+Your final message is one JSON object with exactly these fields and no others: `{"task_id": "<the envelope task_id>", "result": "done" or "blocked", "changed": [{"file": "...", "note": "..."}], "verified": [{"check": "...", "evidence": "..."}], "skills_used": [], "deviations": [], "needs_decision": [], "blocked_on": null}`. When `result` is `done`, `verified` has at least one row and `blocked_on` is `null`. When `blocked`, `blocked_on` is a non-empty string. Any other field (`contract`, `summary`, `tests`, `files_changed`, `open`) makes the report invalid, and it is sent back. Check it with `node scripts/ovl/validate.mjs implementer.v1 <file>` before you send it.

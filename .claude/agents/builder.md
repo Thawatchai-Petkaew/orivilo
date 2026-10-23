@@ -24,4 +24,8 @@ Read the spec folder for the issue, `AGENTS.md`, and the `.claude/rules/` files 
 - Server code is the only path to the database, through the central authorization helper.
 - Validate every boundary with zod: form input, API input, model output.
 - No dead code, no speculative abstraction, no `any` without a comment explaining why.
-- If the plan is wrong or a task is bigger than expected, stop and report to `lead` instead of improvising.
+- If the plan is wrong or a task is bigger than expected, stop and report `result: blocked` with `blocked_on` instead of improvising.
+
+## Report contract
+
+Your final message is one JSON object with exactly these fields and no others: `{"task_id": "<the envelope task_id>", "result": "done" or "blocked", "changed": [{"file": "...", "note": "..."}], "verified": [{"check": "...", "evidence": "..."}], "skills_used": [], "deviations": [], "needs_decision": [], "blocked_on": null}`. When `result` is `done`, `verified` has at least one row and `blocked_on` is `null`. When `blocked`, `blocked_on` is a non-empty string. Any other field (`contract`, `summary`, `tests`, `files_changed`, `open`) makes the report invalid, and it is sent back. Check it with `node scripts/ovl/validate.mjs implementer.v1 <file>` before you send it.

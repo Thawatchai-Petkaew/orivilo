@@ -1,9 +1,16 @@
 // The envelope-guard checks (ORV-81 spec, "The envelope guard adds"). Pure of stdin: the hook in
 // .claude/hooks/envelope-guard.mjs feeds it and turns the returned reasons into exit 2.
-import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, realpathSync, statSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  linkSync,
+  mkdirSync,
+  realpathSync,
+  statSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { isAbsolute, join, relative, resolve } from "node:path";
-import { readIssue, reworkState } from "./records.mjs";
+import { allTasks, branchOf, isOpen, readIssue, reworkState, writeClosed } from "./records.mjs";
 import { validate } from "./validate.mjs";
 
 const REQUIRED_SKILLS = {
@@ -16,7 +23,7 @@ const REQUIRED_SKILLS = {
   release: ["gate-packet"],
 };
 
-const ROLE_CONTRACTS = {
+export const ROLE_CONTRACTS = {
   product: ["implementer.v1"],
   "ds-architect": ["implementer.v1"],
   designer: ["implementer.v1", "reviewer.v1"],
@@ -132,10 +139,7 @@ function semanticProblems(env, toolInput, root) {
 
 /** The envelope's issue must be the one the checkout's branch names (<type>/ORV-<n>-<slug>), so a relabelled issue cannot dodge a rework count. */
 function branchProblems(env, root) {
-  const branch = execFileSync("git", ["branch", "--show-current"], {
-    cwd: root,
-    encoding: "utf8",
-  }).trim();
+  const branch = branchOf(root);
   const key = /^[a-z]+\/(ORV-\d+)-/.exec(branch)?.[1];
   if (key === undefined) {
     return [
@@ -145,6 +149,16 @@ function branchProblems(env, root) {
   return key === env.issue
     ? []
     : [`envelope issue ${env.issue} differs from the issue ${key} in branch "${branch}"`];
+}
+
+/** One open envelope per role in the checkout, all issues together (spec, Envelope guard). */
+function openProblems(env, root) {
+  const open = allTasks(root).find((t) => isOpen(t) && t.envelope.role === env.role);
+  return open
+    ? [
+        `${env.role} envelope ${open.id} is still open; wait for its report, or close it with: node scripts/ovl/close-envelope.mjs ${open.id}`,
+      ]
+    : [];
 }
 
 function reworkProblems(env, root) {
@@ -167,7 +181,7 @@ function reworkProblems(env, root) {
         ? state.allowance === 2
           ? "Two rework rounds used. Escalate to the owner."
           : `${state.allowance} rework rounds used (two plus the owner's grants). Escalate to the owner.`
-        : `${state.allowance} rework rounds used and the last one has no verdict yet. Get a verdict on the last builder round first (qa, reviewer or the gate); the owner is asked only if it requests changes.`,
+        : `${state.allowance} rework rounds used and no verdict has rejected the last one. Get a verdict on the last builder round first (qa, reviewer or the gate); the owner is asked only if it requests changes.`,
     );
   }
   return out;
@@ -228,6 +242,7 @@ export function checkEnvelope(input, { root }) {
   }
   if (worktree !== root) reasons.push(`worktree "${env.worktree}" must be this checkout (${root})`);
   if (ISSUE_ROLES.has(env.role)) reasons.push(...branchProblems(env, root));
+  reasons.push(...openProblems(env, root));
   if (env.role === "builder") reasons.push(...reworkProblems(env, root));
 
   const dir = join(root, ".orivilo", "runs", env.issue, env.task_id);
@@ -236,7 +251,38 @@ export function checkEnvelope(input, { root }) {
   }
   if (reasons.length > 0) return reasons;
 
+  return saveEnvelope(root, env, dir);
+}
+
+/**
+ * Saves envelope.json whole (written aside, then linked into place, so no reader sees half of it),
+ * then looks again for another open envelope of the role. Two calls made at the same moment both
+ * pass the first check; after both have saved, each sees the other and closes its own as denied,
+ * so neither runs. A call that saved and looked before the other saved is the one that runs.
+ * Returns the reasons to block, [] when this envelope is the only open one of its role.
+ */
+function saveEnvelope(root, env, dir) {
   mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, "envelope.json"), `${JSON.stringify(env, null, 2)}\n`, { flag: "wx" });
-  return [];
+  const aside = join(dir, `envelope.json.${process.pid}.tmp`);
+  writeFileSync(aside, `${JSON.stringify(env, null, 2)}\n`, { flag: "wx" });
+  try {
+    linkSync(aside, join(dir, "envelope.json"));
+  } finally {
+    unlinkSync(aside);
+  }
+  const task = { issue: env.issue, id: env.task_id };
+  let rival;
+  try {
+    rival = allTasks(root).find(
+      (t) => t.id !== env.task_id && isOpen(t) && t.envelope.role === env.role,
+    );
+  } catch (error) {
+    writeClosed(root, task, "denied");
+    throw error;
+  }
+  if (rival === undefined) return [];
+  writeClosed(root, task, "denied");
+  return [
+    `${env.role} envelope ${rival.id} was dispatched at the same moment; ${env.task_id} is closed as denied, dispatch it again after ${rival.id} reports`,
+  ];
 }
