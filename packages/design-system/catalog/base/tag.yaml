@@ -1,8 +1,8 @@
 name: Tag
 tier: base
-status: planned
+status: draft
 since: E4-5
-import: none
+import: "@orivilo/design-system"
 story: base-tag
 useWhen:
   - "A removable label chosen by the user: a reference, a filter, a mention"
@@ -12,9 +12,12 @@ contract: TagProps
 variants: []
 sizes: [sm, md]
 states: [default, hover, focus-visible, selected, disabled]
-recipes: []
+recipes: [neutral, professional, friendly]
 examples: []
 rules:
-  - "Remove is a real button inside the tag with its own accessible name"
+  - "Remove is a real button beside the label with its own accessible name, never nested in the toggle"
+  - "A selectable tag (`selected`, `defaultSelected` or `onSelectedChange`) is a toggle button; selected adds a check and a heavier edge, not colour alone"
+  - "A long label truncates with the full text in `title`"
 a11y:
-  - "Remove button reachable by keyboard; removal announced"
+  - 'Remove button reachable by keyboard and named "Remove {label}" from the locale catalog'
+  - "Selectable tag exposes aria-pressed; Space and Enter toggle"

@@ -1,8 +1,8 @@
 name: Progress
 tier: base
-status: planned
+status: draft
 since: E4-5
-import: none
+import: "@orivilo/design-system"
 story: base-progress
 useWhen:
   - "A generation job with known or unknown length"
@@ -12,9 +12,12 @@ contract: ProgressProps
 variants: [determinate, indeterminate]
 sizes: [sm, md]
 states: [running, done, failed]
-recipes: []
+recipes: [neutral, professional, friendly]
 examples: []
 rules:
   - "Indeterminate shows motion only when reduced motion is off; otherwise a static bar with text"
+  - "Value is clamped to 0 to `max`; omit `value` for an unknown length"
+  - 'Shows the value as text ("40%") or the word Working; done and failed say so in words with an icon, never by colour alone'
 a11y:
-  - "role progressbar with aria-valuenow or aria-busy; status announced in a live region"
+  - "role progressbar with aria-valuenow, aria-valuemin and aria-valuemax, or aria-busy and no aria-valuenow when the length is unknown"
+  - "The visible label names the bar; done and failed are announced in a status region"

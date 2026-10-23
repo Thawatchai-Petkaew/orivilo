@@ -32,6 +32,18 @@ export const th = {
     arrowLeft: "ลูกศรซ้าย",
     arrowRight: "ลูกศรขวา",
   },
+  toast: {
+    region: "การแจ้งเตือน",
+    dismiss: "ปิดการแจ้งเตือน",
+  },
+  progress: {
+    working: "กำลังทำงาน",
+    done: "เสร็จแล้ว",
+    failed: "ไม่สำเร็จ",
+  },
+  tag: {
+    remove: "ลบ {label}",
+  },
   resizable: {
     handle: "ปรับความกว้างของ{panel}",
     reopen: "เปิด{panel}",

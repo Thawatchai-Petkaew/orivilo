@@ -28,6 +28,18 @@ export const en: Messages = {
     arrowLeft: "Arrow left",
     arrowRight: "Arrow right",
   },
+  toast: {
+    region: "Notifications",
+    dismiss: "Dismiss",
+  },
+  progress: {
+    working: "Working",
+    done: "Done",
+    failed: "Failed",
+  },
+  tag: {
+    remove: "Remove {label}",
+  },
   resizable: {
     handle: "Resize {panel}",
     reopen: "Show {panel}",
