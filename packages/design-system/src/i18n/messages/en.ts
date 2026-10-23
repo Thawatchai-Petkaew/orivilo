@@ -50,6 +50,11 @@ export const en: Messages = {
     show: "Show password",
     hide: "Hide password",
   },
+  slider: {
+    range: "{min} to {max}",
+    lower: "Minimum",
+    upper: "Maximum",
+  },
   resizable: {
     handle: "Resize {panel}",
     reopen: "Show {panel}",

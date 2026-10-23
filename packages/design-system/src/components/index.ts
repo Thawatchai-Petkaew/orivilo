@@ -50,6 +50,7 @@ export {
   SheetTrigger,
 } from "./sheet/Sheet";
 export { Slider, type SliderProps } from "./slider/Slider";
+export { RangeSlider, type RangeSliderProps, type SliderRange } from "./slider/RangeSlider";
 export { Tag, type TagProps } from "./tag/Tag";
 export {
   Tabs,
