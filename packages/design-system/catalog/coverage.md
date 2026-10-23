@@ -29,6 +29,7 @@ Legend: `none` not started, `planned` entry exists, no code, `draft` code and st
 | Pagination    | none   |                     |
 | Progress      | draft  | base-progress       |
 | Slider        | draft  | base-slider         |
+| RangeSlider   | draft  | base-range-slider   |
 | Toast         | draft  | base-toast          |
 | File upload   | none   |                     |
 | Date picker   | none   |                     |

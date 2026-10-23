@@ -54,6 +54,11 @@ export const th = {
     show: "แสดงรหัสผ่าน",
     hide: "ซ่อนรหัสผ่าน",
   },
+  slider: {
+    range: "{min} ถึง {max}",
+    lower: "ค่าต่ำสุด",
+    upper: "ค่าสูงสุด",
+  },
   resizable: {
     handle: "ปรับความกว้างของ{panel}",
     reopen: "เปิด{panel}",
