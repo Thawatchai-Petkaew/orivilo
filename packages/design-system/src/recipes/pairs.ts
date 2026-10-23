@@ -292,6 +292,14 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     floor: TEXT,
   },
   { recipe: "menu", slot: "empty line", fg: "menu.empty", bg: "menu.bg", floor: TEXT },
+  // Checkable menu item (ORV-78): the focus ring on the selected fill when highlighted
+  {
+    recipe: "menu",
+    slot: "checked highlighted ring",
+    fg: "ds:focus.ring",
+    bg: "menu.option.bg-selected",
+    floor: UI,
+  },
   // Checkbox
   {
     recipe: "checkbox",

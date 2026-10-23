@@ -2063,7 +2063,8 @@
   user-select: none;
   outline: none;
 }
-.ds-menu__item > span:first-child {
+.ds-menu__item > span:first-child:not(.ds-menu__indicator),
+.ds-menu__item > .ds-menu__indicator + span {
   min-width: 0;
   flex: 1;
   overflow: hidden;
@@ -2082,6 +2083,26 @@
 .ds-menu__item[data-disabled] {
   color: var(--cmp-menu-option-fg-disabled);
   cursor: not-allowed;
+}
+/* Checkable items (ORV-78): a glyph column kept when unchecked, and glyph plus fill when checked,
+   the same selected pair as a Select option. */
+.ds-menu__indicator {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--cmp-menu-option-icon-size);
+  height: var(--cmp-menu-option-icon-size);
+}
+.ds-menu__item[data-checkable][data-state="checked"]:not([data-disabled]) {
+  background: var(--cmp-menu-option-bg-selected);
+  color: var(--cmp-menu-option-fg-selected);
+}
+/* Highlighted and checked: the selected fill stays and a focus ring shows where the pointer or
+   keyboard is, so the two never read the same (DESIGN.md §7). */
+.ds-menu__item[data-checkable][data-state="checked"][data-highlighted]:not([data-disabled]) {
+  outline: 2px solid var(--ds-focus-ring);
+  outline-offset: -2px;
 }
 .ds-menu__shortcut {
   margin-left: auto;
