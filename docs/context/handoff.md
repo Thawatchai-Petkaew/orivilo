@@ -2,6 +2,8 @@
 
 Read this first when you pick the work up in a new session or on another account. Update it before you stop, so the next session can start without asking. Last updated 2026-10-23, after ORV-70.
 
+The plan and its order live in `docs/context/master-plan.md`; pages published in the Claude project thread are listed in `docs/context/artifacts.md`.
+
 ## How we work (the owner's standing decisions)
 
 - **Flow:** review on local, story PRs merge into `develop` (parks work, deploys nothing), a release PR moves a batch from `develop` to staging (`main`), the owner approves production (G5, a `v*` tag). ADR 0011, names in ADR 0010.
@@ -27,6 +29,7 @@ Read this first when you pick the work up in a new session or on another account
 | ORV-68 | Select option icons and groups, Badge dot and icon, vertical Tabs with counts | #56 |
 | ORV-69 | `develop` parks merged work, staging moves in batches (ADR 0011)              | #57 |
 | ORV-70 | Tooltip description line and align (in `develop`, not yet on staging)         | #58 |
+| ORV-71 | Master plan and artifact list in the repo                                     | #59 |
 
 ## Next, in order
 
