@@ -1,4 +1,10 @@
-import { replaySnapshot, takeSnapshot } from "@orivilo/intent-engine";
+import {
+  AI_MODELS,
+  interpretBrief,
+  llmInterpreter,
+  replaySnapshot,
+  takeSnapshot,
+} from "@orivilo/intent-engine";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { expect, fn, userEvent, waitFor, within } from "storybook/test";
@@ -365,5 +371,60 @@ export const SaveAndReopen: Story = {
     const calls = (args.onChange as ReturnType<typeof fn>).mock.calls.length;
     await new Promise((resolve) => requestAnimationFrame(resolve));
     await expect((args.onChange as ReturnType<typeof fn>).mock.calls.length).toBe(calls);
+  },
+};
+
+// A fake model for the stories: it answers one fixed reading, so no story calls a real model.
+const FRIENDLY_BRIEF = "อยากให้ดูน่าไว้ใจ เป็นกันเอง และมีชีวิตชีวา";
+const fakeAi = llmInterpreter(AI_MODELS.interpret, () =>
+  Promise.resolve(
+    JSON.stringify({
+      findings: [
+        { field: "personality", axis: "warm", level: "desired", quote: "เป็นกันเอง" },
+        { field: "personality", axis: "playful", level: "desired", quote: "มีชีวิตชีวา" },
+      ],
+      notUnderstood: ["น่าไว้ใจ"],
+    }),
+  ),
+);
+const readWithFakeAi = async (brief: string) => {
+  const outcome = await interpretBrief(fakeAi, { text: brief });
+  return outcome.ok ? outcome.interpretation : null;
+};
+
+/** AI reads a brief the rules cannot, labelled with its model; editing the brief returns to the rules' reading (ORV-62 part 3, a fake model). */
+export const ReadWithAi: Story = {
+  args: { defaultBrief: FRIENDLY_BRIEF, readWithAi: readWithFakeAi },
+  play: async ({ args, canvasElement }) => {
+    const canvas = within(canvasElement);
+    const reading = () => within(canvas.getByRole("region", { name: new RegExp(th.reading) }));
+    await expect(reading().getByText(th.byRulesOnly)).toBeVisible();
+    await expect(reading().getByText(th.unread)).toBeVisible();
+
+    await userEvent.click(reading().getByRole("button", { name: th.readWithAi }));
+    const byAi = th.byAi.replace("{model}", AI_MODELS.interpret);
+    await waitFor(() => expect(reading().getByText(byAi)).toBeVisible());
+    await expect(reading().getByText("อบอุ่น: ต้องการ")).toBeVisible();
+    await expect(reading().queryByRole("button", { name: th.readWithAi })).toBeNull();
+    await expect(canvas.getByRole("heading", { name: th.directions })).toBeVisible();
+    await waitFor(() => expect(lastState(args.onChange)?.reading?.method).toBe("llm"));
+
+    await userEvent.type(canvas.getByRole("textbox", { name: th.brief }), " มาก");
+    await expect(reading().getByText(th.byRulesOnly)).toBeVisible();
+    await expect(reading().getByRole("button", { name: th.readWithAi })).toBeEnabled();
+    await waitFor(() => expect(lastState(args.onChange)?.reading).toBeUndefined());
+  },
+};
+
+/** When AI cannot read, the studio says so and keeps the rules' reading (ORV-62 part 3). */
+export const AiFails: Story = {
+  args: { defaultBrief: FRIENDLY_BRIEF, readWithAi: () => Promise.resolve(null) },
+  play: async ({ canvasElement }) => {
+    const reading = within(
+      within(canvasElement).getByRole("region", { name: new RegExp(th.reading) }),
+    );
+    await userEvent.click(reading.getByRole("button", { name: th.readWithAi }));
+    await waitFor(() => expect(reading.getByRole("status")).toHaveTextContent(th.aiFailed));
+    await expect(reading.getByText(th.byRulesOnly)).toBeVisible();
   },
 };

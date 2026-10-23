@@ -23,12 +23,16 @@ states:
     refine-locked,
     traced,
     reopened,
+    read-by-ai,
+    ai-failed,
   ]
 recipes: [neutral, professional, friendly]
 examples:
   - src/examples/workspace.tsx
 rules:
-  - "The reading is labelled as rules, not AI; nothing claims a model read the brief (AGENTS.md rule 4)"
+  - "The reading always says what read it: the rules, or AI with its model id; without readWithAi it says AI is not used yet (AGENTS.md rule 4)"
+  - "An AI reading is offered only through readWithAi, on a click, never on typing; it belongs to the brief it read, and editing the brief returns to the rules' reading (ORV-62)"
+  - "When AI cannot read, a status line says so and the rules' reading stays; nothing falls back to another model"
   - "Every reason quotes the brief's own words or says it was locked or set by hand; nothing is invented"
   - "A tie or a lock conflict is shown in words, never settled silently"
   - "When the rules read nothing, no direction is offered and the preview stays in the base set"
@@ -37,7 +41,7 @@ rules:
   - "Only shape, type and motion are refinable; a refined value is borrowed from a hand-made profile that has it, so colours and contrast never change"
   - "A value no profile expresses is disabled with a note; a brand lock disables its group and says so"
   - "A refinement reaches the engine as an adjustment with its reason, and the trace shows where each decision came from"
-  - "onChange reports the engine's inputs (brief, viewed direction, locks, adjustments), never the output, and null while no direction is offered; saving stores those inputs (ORV-35)"
+  - "onChange reports the engine's inputs (brief, viewed direction, locks, adjustments, and the AI reading when one holds), never the output, and null while no direction is offered; saving stores those inputs (ORV-35)"
   - "studioPropsFrom opens a reported state with the same look: refinable adjustments return as refinements; open another state with a new key"
 a11y:
   - "The reading, the directions and the preview are regions named by their headings"

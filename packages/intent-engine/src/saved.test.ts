@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { type CuratedProfile } from "./directions";
+import { type Interpretation } from "./interpreter";
 import {
   DIRECTION_FILE_FORMAT,
   directionFileSchema,
@@ -106,5 +107,45 @@ describe("snapshots (ORV-35)", () => {
         adjustments: [{ set: "shape", to: "square", reason: "x" }],
       }).success,
     ).toBe(false);
+  });
+});
+
+describe("a snapshot with a model's reading (ORV-62)", () => {
+  // A reading as a model adapter returns it: the brief says "fun", the model read it as playful.
+  const brief = "fun";
+  const reading: Interpretation = {
+    method: "llm",
+    adapter: { id: "openrouter", version: "prompt-1+anthropic/claude-sonnet-5.5" },
+    facts: { personality: { playful: 90 }, industry: null, audiences: [], avoid: [] },
+    findings: [
+      {
+        field: "personality",
+        axis: "playful",
+        value: 90,
+        polarity: "desired",
+        evidence: { start: 0, end: 3, text: "fun" },
+      },
+    ],
+    uncertain: [],
+    missing: ["expressive", "structured", "warm", "premium"],
+  };
+
+  it("replays from the kept reading, not a new one, and says AI read it", () => {
+    const snapshot = takeSnapshot({ brief, profileId: "friendly", reading }, profiles);
+    expect(snapshot.reading).toEqual(reading);
+    const replay = replaySnapshot(snapshot, profiles);
+    if (!replay.ok) throw new Error(replay.reason);
+    expect(replay.result.method).toBe("llm");
+    expect(replay.result.interpretation).toEqual(reading);
+    // The rules read "fun" as 75, the model as 90: the fingerprint is the reading's, not the rules'.
+    const byRules = takeSnapshot({ brief, profileId: "friendly" }, profiles);
+    expect(byRules.reading).toBeUndefined();
+    expect(replaySnapshot(byRules, profiles)).toMatchObject({ ok: true });
+  });
+
+  it("refuses a reading that quotes words the brief does not have", () => {
+    const snapshot = takeSnapshot({ brief, profileId: "friendly", reading }, profiles);
+    expect(snapshotSchema.safeParse({ ...snapshot, brief: "fan" }).success).toBe(false);
+    expect(snapshotSchema.safeParse(snapshot).success).toBe(true);
   });
 });

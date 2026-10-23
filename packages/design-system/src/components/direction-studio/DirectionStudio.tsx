@@ -3,6 +3,7 @@
 import {
   type Direction,
   type DirectionsResult,
+  type Interpretation,
   PERSONALITY_AXES,
   type RecommendOptions,
   recommendDirections,
@@ -53,6 +54,8 @@ export interface DirectionStudioState {
   locked: NonNullable<RecommendOptions["locked"]>;
   /** The caller's adjustments and the refinements, in the order the engine takes them. */
   adjustments: Adjustments;
+  /** The model's reading of this brief, when AI read it (ORV-62); otherwise the rules read it. */
+  reading?: Interpretation | undefined;
 }
 
 export interface DirectionStudioProps {
@@ -68,6 +71,13 @@ export interface DirectionStudioProps {
   defaultProfileId?: string | undefined;
   /** Refinements the studio opens with (a saved direction). */
   defaultRefinements?: Refinements | undefined;
+  /**
+   * Reads the brief with AI (ORV-62). Without it the studio offers no AI reading. It resolves to
+   * the checked reading, or `null` when AI could not read, and the rules' reading stays.
+   */
+  readWithAi?: ((brief: string) => Promise<Interpretation | null>) | undefined;
+  /** The AI reading the studio opens with (a saved direction); it holds while the brief is unchanged. */
+  defaultReading?: Interpretation | undefined;
   /** Called with what the studio shows whenever it changes. */
   onChange?: ((state: DirectionStudioState | null) => void) | undefined;
   className?: string | undefined;
@@ -81,7 +91,12 @@ export function studioPropsFrom(
   state: DirectionStudioState,
 ): Pick<
   DirectionStudioProps,
-  "defaultBrief" | "defaultProfileId" | "defaultRefinements" | "locked" | "adjustments"
+  | "defaultBrief"
+  | "defaultProfileId"
+  | "defaultRefinements"
+  | "locked"
+  | "adjustments"
+  | "defaultReading"
 > {
   const defaultRefinements: Refinements = {};
   const adjustments: Adjustments = [];
@@ -95,6 +110,7 @@ export function studioPropsFrom(
     defaultRefinements,
     locked: state.locked,
     adjustments,
+    defaultReading: state.reading,
   };
 }
 
@@ -350,6 +366,8 @@ export function DirectionStudio({
   adjustments,
   defaultProfileId,
   defaultRefinements,
+  readWithAi,
+  defaultReading,
   onChange,
   className,
 }: DirectionStudioProps) {
@@ -361,6 +379,26 @@ export function DirectionStudio({
   const [brief, setBrief] = useState(defaultBrief);
   const [picked, setPicked] = useState<string | null>(defaultProfileId ?? null);
   const [refinements, setRefinements] = useState<Refinements>(defaultRefinements ?? {});
+  // An AI reading belongs to the brief it read; once the brief changes, the rules read it again.
+  const [ai, setAi] = useState<{ brief: string; reading: Interpretation } | null>(
+    defaultReading ? { brief: defaultBrief.trim(), reading: defaultReading } : null,
+  );
+  const [aiStatus, setAiStatus] = useState<{ brief: string; kind: "reading" | "failed" } | null>(
+    null,
+  );
+  const reading = ai && ai.brief === brief.trim() ? ai.reading : undefined;
+  const status = aiStatus?.brief === brief.trim() ? aiStatus.kind : null;
+  const askAi = () => {
+    const text = brief.trim();
+    if (!readWithAi || text === "") return;
+    setAiStatus({ brief: text, kind: "reading" });
+    readWithAi(text)
+      .then((r) => {
+        if (r) setAi({ brief: text, reading: r });
+        setAiStatus(r ? null : { brief: text, kind: "failed" });
+      })
+      .catch(() => setAiStatus({ brief: text, kind: "failed" }));
+  };
 
   // A refinement is the expert layer (ADR 0007): an adjustment with its reason, after the caller's.
   const allAdjustments = useMemo(() => {
@@ -379,8 +417,9 @@ export function DirectionStudio({
             profiles: CURATED_PROFILES,
             ...(locked ? { locked } : {}),
             ...(allAdjustments.length > 0 ? { adjustments: allAdjustments } : {}),
+            ...(reading ? { interpretation: reading } : {}),
           }),
-    [brief, locked, allAdjustments],
+    [brief, locked, allAdjustments, reading],
   );
   const directions = result?.directions ?? [];
   const viewing =
@@ -407,6 +446,7 @@ export function DirectionStudio({
           profileId: viewing,
           locked: locked ?? {},
           adjustments: allAdjustments,
+          ...(reading ? { reading } : {}),
         }
       : null;
   const stateKey = JSON.stringify(state);
@@ -459,8 +499,32 @@ export function DirectionStudio({
       <section className="ds-direction__section" aria-labelledby={`${briefId}-reading`}>
         <h3 id={`${briefId}-reading`} className="ds-direction__heading">
           {m.reading}
-          <Badge size="sm">{m.byRules}</Badge>
+          <Badge size="sm">
+            {reading
+              ? fill(m.byAi, { model: reading.adapter.version.split("+").at(-1) ?? "" })
+              : readWithAi
+                ? m.byRulesOnly
+                : m.byRules}
+          </Badge>
         </h3>
+        {readWithAi && result && !reading ? (
+          <div className="ds-direction__presets">
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={status === "reading"}
+              aria-busy={status === "reading"}
+              onClick={askAi}
+            >
+              {status === "reading" ? m.aiReading : m.readWithAi}
+            </Button>
+            {status === "failed" ? (
+              <p className="ds-direction__muted" role="status">
+                {m.aiFailed}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
         {axes.length > 0 ? (
           <ul className="ds-direction__list">
             {axes.map((axis) => (

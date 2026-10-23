@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 import { and, asc, desc, direction, directionVersion, eq, sql } from "@orivilo/db";
 import type { Tx } from "@orivilo/db/client";
 import {
@@ -7,6 +7,8 @@ import {
   DIRECTION_FILE_FORMAT,
   type DirectionFile,
   directionFileSchema,
+  type Interpretation,
+  interpretationSchema,
   partialDecisionsSchema,
   type ReplayRefusal,
   replaySnapshot,
@@ -43,6 +45,9 @@ export const saveInputSchema = z
     profileId: z.string().min(1),
     locked: partialDecisionsSchema.optional(),
     adjustments: z.array(adjustmentSchema).optional(),
+    /** A model's reading of the brief, with the seal the server gave it when it read (ORV-62). */
+    reading: interpretationSchema.optional(),
+    seal: z.string().max(100).optional(),
   })
   .strict();
 
@@ -127,9 +132,38 @@ const summary = (row: typeof directionVersion.$inferSelect): VersionSummary => (
   approvedAt: row.approvedAt,
 });
 
-export function directionService(deps: AccessDeps, profiles: readonly CuratedProfile[]) {
+/**
+ * Seals a reading the server made for a brief. A save that carries a reading must carry its seal,
+ * so a client cannot save a reading it wrote itself and have it shown as read by AI. Both sides
+ * seal the schema-parsed reading, so key order is the schema's.
+ */
+export function sealReading(key: string, brief: string, reading: Interpretation): string {
+  return createHmac("sha256", key)
+    .update(JSON.stringify([brief.trim(), reading]))
+    .digest("base64url");
+}
+
+function sealMatches(key: string | undefined, input: z.output<typeof saveInputSchema>) {
+  if (!input.reading) return input.seal === undefined;
+  if (!key || !input.seal) return false;
+  const expected = Buffer.from(sealReading(key, input.brief, input.reading));
+  const given = Buffer.from(input.seal);
+  return expected.length === given.length && timingSafeEqual(expected, given);
+}
+
+export interface DirectionServiceOptions {
+  /** The key that seals model readings; without one, a save with a reading is refused. */
+  sealKey?: string;
+}
+
+export function directionService(
+  deps: AccessDeps,
+  profiles: readonly CuratedProfile[],
+  options: DirectionServiceOptions = {},
+) {
   /** The snapshot the server stands behind, or the reason it cannot. */
   const snapshotOf = (input: z.output<typeof saveInputSchema>) => {
+    if (!sealMatches(options.sealKey, input)) throw new DirectionError("invalid-input");
     const snapshot = takeSnapshot(input, profiles);
     const replay = replaySnapshot(snapshot, profiles);
     if (!replay.ok) throw new DirectionError(replay.reason);
