@@ -1,0 +1,25 @@
+# ORV-87 slice 1: what the samples proved
+
+Recorded on 2026-10-24 from session `0baff5a3-4a6a-4d70-99db-b6b7a526f04f` (Claude Code 2.1.308) by reading ids, times, enums and token numbers only. No message, prompt or answer was read into this file or into a fixture. The fixture `scripts/ovl/fixtures/metrics/projects/` is a rebuilt copy of agent `a4749f50857d699e3` (one fresh run, one resume) in which every text field is the word `CANARY`.
+
+## Proved
+
+- **A resumed agent appends to the same transcript file.** `subagents/agent-a4749f50857d699e3.jsonl` holds both runs. The resume starts at the `SendMessage` tool result's `timestamp` (10:52:24.465), five milliseconds after the resume's own user line (10:52:24.460). Assistant lines, which carry usage, all fall on the right side of that time, so the collector splits runs at the `SendMessage` result time.
+- **`resumedAgentId` is on the `toolUseResult` of the `SendMessage` result** (keys `success`, `message`, `resumedAgentId`, `revivedAgentId`), as the spec said. Verified at line 1735.
+- **Usage repeats per content block.** In that file one `message.id` sits on up to three lines. Deduped by id: run 1 has 5 calls, run 2 has 2. Identical usage on every line of an id holds on Claude Code 2.1.308 only (0 of 2,233 ids differ). On versions 2.1.195 to 2.1.301 the first line holds a placeholder `output_tokens` and the last line the real count (136,784 of 222,094 ids differ, in `output_tokens` only). The collector therefore keeps the last line's usage per id.
+- **Sums by kind** (deduped): run 1 input 10, cache write 21,511, cache read 66,748, output 2,925; run 2 input 4, cache write 4,732, cache read 44,722, output 601. Tool uses by distinct `tool_use` id: 6 and 1, equal to the notices' `tool_uses`.
+- **Duration.** A notice's `duration_ms` equals the span of the run's own lines (49,037 ms and 10,809 ms), so the fallback of last line minus first is consistent with the reported value.
+- **The completion notice** is a `queue-operation` line (`content` string) and again a `user` line, each carrying `<task-id>`, `<subagent_tokens>`, `<tool_uses>` and `<duration_ms>`. Each notice repeats as a `queue-operation` line and again as a `user` line (the fixture repeats both runs' notices), so the collector counts each distinct notice once per agent. A resume has its own, second notice.
+- **The decision of a send-back is `block`.** `scripts/ovl/hook.mjs` writes `decision` as `block` when a hook exits 2, `allow` when it exits 0 and `error` on a failure. `result-recorder` sends a bad report back by exiting 2 on `SubagentStop`, so a send-back is a `SubagentStop` line with `decision: "block"`. When `result-recorder` fails closed, `hook.mjs` writes `decision: "error"` and also exits 2, so the collector counts `block` and `error` both as sent back. `close-envelope.mjs` reads the final stop as `decision: "allow"`.
+
+## A finding that changes how to read the numbers
+
+**The notice's `subagent_tokens` is not the sum over the run's calls.** For run 1 it is 22,745, which is exactly the last call's `input + cache write + cache read + output` (2 + 557 + 20,954 + 1,232). The collector's sum over the five calls is 91,194. For run 2 the notice says 26,735 and the last call adds up to 26,704 (a gap of 31, about 0.1%, unexplained). Across the 15 agents resumed in the session (40 runs), the final notice equals the final call's context exactly in 9 and is 3 to 430 tokens above it in 6, never below: approximately the last call's context, not an exact rule. So `reported_total` is the size of the last call's context, while `tokens.total` is the tokens processed over all calls. They agree only for a one-call run (the recorded `PostToolUse-Agent.json`). The spec kept both for this reason. `total_mismatch` is therefore expected on multi-call runs (true in 40 of 40 runs there, so it tells nothing about them; resumed reviewer passes summed about 1.6M to 2.8M tokens each against notices of about 150k to 210k), and the baseline's "tokens per run" figures (taken from notices) measure the last context, not the work done. Slice 3 should compare lessons against `tokens.total` or the four kinds, never against `reported_total`.
+
+## Still unverified
+
+- **A foreground `Agent` call's `toolUseResult` in a 2.1.308 transcript.** All 60 `Agent` results in that session have `status: async_launched` and carry no `totalTokens`. The collector reads `totalTokens`, `totalDurationMs` and `totalToolUseCount` when `agentId` and `totalTokens` are present (the 2.1.282 hook stdin shape); a test covers it with a synthetic line only.
+- **Whether `SubagentStart` fires on a resume.** The checkout's `.orivilo/heartbeat.jsonl` held one line (an `envelope-guard` block) and nothing about this agent, so the question has no data. The collector does not depend on it.
+- **Real `agent.json`, `result.json`, `closed.json` and gate records in a collected run.** The tests use records seeded to the ORV-81 shapes.
+- **How long Claude Code keeps transcripts.**
+- **The rule that names the project folder.** The collector never builds it; it globs `~/.claude/projects/*/<session>/subagents/` for the agent id.
