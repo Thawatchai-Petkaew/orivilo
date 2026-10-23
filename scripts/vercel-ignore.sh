@@ -4,12 +4,12 @@
 # It compares this commit with the last deployed one of the branch (Vercel's
 # VERCEL_GIT_PREVIOUS_SHA), so a docs-only change, or a branch reset onto a main
 # that holds the same tree, builds nothing. When the base cannot be found it builds.
-# Previews are off by default: the work is checked locally and in CI, and the owner
-# tests on staging after the merge. Put "[preview]" in a commit message to build one.
+# Previews follow the same rule, so a PR gets a preview to review whenever it changes
+# what this project deploys. The owner reviews there, then on staging (main).
+# Put "[skip preview]" in a commit message to skip one preview build on purpose.
 if [ "${VERCEL_ENV:-}" = "preview" ]; then
   case "${VERCEL_GIT_COMMIT_MESSAGE:-}" in
-    *"[preview]"*) echo "vercel-ignore: preview asked for in the commit message" ;;
-    *) echo "vercel-ignore: previews are off unless a commit asks with [preview], skipping"; exit 0 ;;
+    *"[skip preview]"*) echo "vercel-ignore: the commit asks to skip this preview"; exit 0 ;;
   esac
 fi
 base="${VERCEL_GIT_PREVIOUS_SHA:-}"
