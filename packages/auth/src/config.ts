@@ -35,7 +35,13 @@ export function createAuth(settings: AuthSettings) {
     rateLimit: { enabled: true },
     plugins: [
       organizationPlugin(),
-      oAuthProxy(settings.productionURL ? { productionURL: settings.productionURL } : {}),
+      // `currentURL` is this app's own origin. Without it the proxy takes Vercel's per-deployment
+      // URL (sign-in runs in a server action, so there is no request to read the origin from),
+      // and production sends the person back to orivilo-<hash>.vercel.app after signing in.
+      oAuthProxy({
+        currentURL: settings.baseURL,
+        ...(settings.productionURL ? { productionURL: settings.productionURL } : {}),
+      }),
       ...(settings.plugins ?? []),
     ],
     databaseHooks: {
