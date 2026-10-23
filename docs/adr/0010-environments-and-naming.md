@@ -30,7 +30,7 @@ Today one Vercel project builds `main` to orivilo.vercel.app, and Vercel labels 
 
    | Environment   | App, on vercel.app                       | Storybook, on vercel.app                       | With our own domain (later)                            |
    | ------------- | ---------------------------------------- | ---------------------------------------------- | ------------------------------------------------------ |
-   | `development` | `localhost:3000`                         | `localhost:6006`                               | Same                                                   |
+   | `development` | `localhost:3000`                         | `localhost:6100`                               | Same                                                   |
    | `preview`     | `orivilo-web-git-<branch>-...vercel.app` | `orivilo-storybook-git-<branch>-...vercel.app` | Same                                                   |
    | `staging`     | `orivilo-staging.vercel.app`             | `orivilo-storybook-staging.vercel.app`         | `staging.orivilo.com`, `storybook.staging.orivilo.com` |
    | `production`  | `orivilo.vercel.app`                     | `orivilo-storybook.vercel.app`                 | `app.orivilo.com`, `storybook.orivilo.com`             |
