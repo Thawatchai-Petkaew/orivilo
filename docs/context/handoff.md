@@ -6,9 +6,9 @@ The plan and its order live in `docs/context/master-plan.md`; pages published in
 
 ## How we work (the owner's standing decisions)
 
-- **Flow:** review on local, story PRs merge into `develop` (parks work, deploys nothing), a release PR moves a batch from `develop` to staging (`main`), the owner approves production (G5, a `v*` tag). ADR 0011, names in ADR 0010.
-- **Who merges:** Claude merges a story PR into `develop` once the full gate and CI are green. A release PR into `main` opens when the owner says so, or when Claude proposes a finished batch (an epic or related stories) with its list and the owner agrees. Claude runs gates G1 to G4. Only the owner passes G5; never tag or deploy production.
-- **Jira:** a story moves with the transition named "Staging" when its batch reaches `main`, never "Done".
+- **Flow:** review on local, story PRs merge into `develop` (parks work, deploys nothing), a release PR moves a batch from `develop` to staging (`main`), the owner signs G5: on staging during the POC, a `v*` tag for production after ORV-63. ADR 0011, statuses in ADR 0012, names in ADR 0010.
+- **Who merges:** Claude merges a story PR into `develop` once the full gate and CI are green. A release PR into `main` opens when the owner says so, or when Claude proposes a finished batch (an epic or related stories) with its list and the owner agrees. The owner decides G1, G2 and G5; Claude passes G3 and G4 with evidence (ADR 0012). Never tag or deploy production.
+- **Jira (ADR 0012):** each status means where the work is. Lane L and M issues pass Discovery, G1 (L), Design and G2 in Jira before Build. A merged PR moves to "G3 PR review"; its batch reaching `main` moves it to "Staging"; only the owner moves it to "Done" after G5.
 - **Vercel:** the free plan (100 deploys a day, counted over the last 24 hours). Finish commits locally and push once per PR. Previews are off unless a commit says `[preview]`; `develop` never deploys; a release costs about 2 deploys. `scripts/vercel-ignore.sh` skips builds that change nothing they deploy.
 - **Review without a deploy:** run Storybook locally, `pnpm --filter @orivilo/design-system storybook`, on http://localhost:6100.
 - **Environments:** `development`, `preview`, `staging`, `production` (ADR 0010). The real staging and production split is ORV-63, parked until the POC ends. Until then orivilo.vercel.app is staging.

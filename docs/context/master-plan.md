@@ -42,7 +42,7 @@ Owner requests outside the epics (ORV-54 to ORV-70) are listed in Jira; the rece
 6. E1-3 to E1-7 knowledge content, then E3 the ORIVILO brand run through the product.
 7. ORV-63 separate staging and production after the POC; E0 scripts when the loop needs them.
 
-Each step is a batch: when it is finished in `develop`, propose a release to staging (ADR 0011).
+Each step is a batch: when it is finished in `develop`, propose a release to staging (ADR 0011). Jira statuses follow ADR 0012.
 
 ## Waiting on the owner
 

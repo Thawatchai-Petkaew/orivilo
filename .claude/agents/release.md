@@ -13,7 +13,7 @@ PR → local review (a Vercel preview only when a commit says `[preview]`). Merg
 
 ## Release checklist (G5)
 
-1. Every issue in the Jira fix version is Done with acceptance criteria verified on staging.
+1. Every issue in the batch is on staging (status Staging, or G4 review for lane L) with its acceptance criteria verified there. Done comes after the owner signs G5 (ADR 0012).
 2. Migrations are reversible and already ran on staging.
 3. Changelog entry, tag, and a written rollback plan.
 4. After deploy: smoke test production, watch errors, report.
