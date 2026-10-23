@@ -10,7 +10,7 @@ First milestone: the MVP of the **Design System module** (Intent Studio), scoped
 
 ## Stack (decided, see `docs/adr/`)
 
-Turborepo + pnpm, Next.js App Router, TypeScript strict, Tailwind CSS v4 + shadcn/ui, zod, Vitest + Playwright, Supabase (Postgres + Storage), Drizzle, Better Auth (organization plugin), Claude API server-side, Vercel.
+Turborepo + pnpm, Next.js App Router, TypeScript strict, Tailwind CSS v4 + shadcn/ui, zod, Vitest + Playwright, Supabase (Postgres + Storage), Drizzle, Better Auth (organization plugin), AI through OpenRouter server-side (one pinned model per job, ADR 0009), Vercel.
 
 | Path                      | Purpose                                                                              |
 | ------------------------- | ------------------------------------------------------------------------------------ |

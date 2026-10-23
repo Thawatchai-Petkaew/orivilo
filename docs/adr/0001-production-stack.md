@@ -1,6 +1,6 @@
 # ADR 0001: Production stack
 
-- Status: accepted
+- Status: accepted; the AI row is superseded by ADR 0009 (OpenRouter)
 - Date: 2026-10-21
 - Decided by: GOLF (owner), on the recommendation in the project thread
 
