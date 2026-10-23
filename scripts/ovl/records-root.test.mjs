@@ -439,7 +439,11 @@ const subagentBash = (cwd, command) => ({
 });
 const guard = (input, projectDir = repoRoot) => {
   assert.ok(guardCommand, "worktree-guard is registered");
-  return runCommand(guardCommand.command, input, { CLAUDE_PROJECT_DIR: projectDir });
+  // The registered command finds the script under the project dir, so a project other than this
+  // repo runs the same script directly.
+  return projectDir === repoRoot
+    ? runCommand(guardCommand.command, input, { CLAUDE_PROJECT_DIR: projectDir })
+    : runNode(hook("worktree-guard.mjs"), input, { CLAUDE_PROJECT_DIR: projectDir });
 };
 
 test("worktree-guard is registered on PreToolUse Bash", () => {
@@ -521,13 +525,27 @@ test("worktree-guard never locks Bash out, whatever the working directory is", (
 
 test("worktree-guard records a heartbeat when it can find the store", () => {
   const { main, wt } = twoCheckouts();
-  assert.equal(guard(subagentBash(wt, "ls")).code, 0);
-  assert.equal(guard(subagentBash(wt, `git worktree remove ${wt}`)).code, 2);
+  assert.equal(guard(subagentBash(wt, "ls"), main).code, 0);
+  assert.equal(guard(subagentBash(wt, `git worktree remove ${wt}`), main).code, 2);
   const beats = heartbeatLines(main).filter((b) => b.hook === "worktree-guard");
   assert.deepEqual(
     beats.map((b) => b.decision),
     ["allow", "block"],
   );
+});
+
+test("worktree-guard writes no heartbeat into a repo that is not this project's", () => {
+  const project = makeRepo();
+  const other = makeRepo();
+  for (const [command, code] of [
+    ["ls", 0],
+    [`git worktree remove ${other}`, 2],
+  ]) {
+    assert.equal(guard(subagentBash(other, command), project).code, code, command);
+    assert.equal(guard(asMainSession(subagentBash(other, command)), project).code, 0, command);
+  }
+  assert.equal(existsSync(join(other, ".orivilo")), false);
+  assert.equal(existsSync(join(project, ".orivilo")), false);
 });
 
 test("worktree-guard fails closed on input that is not a Bash tool call", () => {
