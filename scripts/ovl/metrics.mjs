@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 // The ORV-87 collector: turns the /ovl run records and the Claude Code transcripts into numbers per task.
 // Usage: node scripts/ovl/metrics.mjs collect <ISSUE> [--root <checkout holding .orivilo>] [--projects <folder>]
+//        node scripts/ovl/metrics.mjs report <ISSUE...> [--root <folder>] [--out <name>]
+//        node scripts/ovl/metrics.mjs session <session id> [--projects <folder>]
 // Writes `.orivilo/metrics/<ISSUE>.json` (metrics.v1) and nothing else. It keeps numbers, ids, enums,
 // times and model ids only: no prompt, message, description, file path or transcript path is ever
 // copied into a file, stdout or stderr. Exit 0 on success (gaps are warned about on stderr),
@@ -22,6 +24,19 @@ const KINDS = [
   ["cache_creation", "cache_creation_input_tokens"],
   ["cache_read", "cache_read_input_tokens"],
   ["output", "output_tokens"],
+];
+/** Agent types kept from a meta file: the envelope roles and Claude Code's own. Any other text is dropped. */
+const AGENT_TYPES = [
+  "product",
+  "ds-architect",
+  "designer",
+  "builder",
+  "qa",
+  "reviewer",
+  "release",
+  "Explore",
+  "Plan",
+  "general-purpose",
 ];
 const ID = /^[A-Za-z0-9]+$/;
 const SAFE_ID = /^[A-Za-z0-9-]+$/;
@@ -308,6 +323,20 @@ export function collect({ root, projects, issue }) {
 
 const cell = (x) => (x === null || x === undefined ? "-" : String(x));
 
+const md = (head, rows) =>
+  [
+    `| ${head.join(" | ")} |`,
+    `|${head.map(() => " --- ").join("|")}|`,
+    ...rows.map((r) => `| ${r.map(cell).join(" | ")} |`),
+  ].join("\n");
+
+function median(values) {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = sorted.length >> 1;
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
 function table(metrics) {
   const rows = metrics.tasks.map((t) => {
     const sum = (key) =>
@@ -322,35 +351,279 @@ function table(metrics) {
   return ["task\trole\tround\toutcome\ttokens\ttool_uses\tduration_ms", ...rows].join("\n");
 }
 
+const SUM_HEAD = [
+  "tasks",
+  "runs",
+  "runs_without_tokens",
+  "api_calls",
+  ...KINDS.map(([name]) => name),
+  "total",
+  "tool_uses",
+  "duration_ms",
+  "critical",
+  "important",
+  "suggestion",
+  "dropped",
+  "sent_back",
+];
+
+/** One row of sums over tasks; a run without a number adds nothing to that sum, and is counted apart. */
+function sums(tasks) {
+  const runs = tasks.flatMap((t) => t.runs);
+  const add = (values) => values.reduce((a, v) => a + (v ?? 0), 0);
+  const findings = (key) => add(tasks.map((t) => t.findings?.[key]));
+  return [
+    tasks.length,
+    runs.length,
+    runs.filter((r) => r.tokens === null).length,
+    add(runs.map((r) => r.api_calls)),
+    ...KINDS.map(([name]) => add(runs.map((r) => r.tokens?.[name]))),
+    add(runs.map((r) => r.tokens?.total)),
+    add(runs.map((r) => r.tool_uses)),
+    add(runs.map((r) => r.duration_ms)),
+    findings("critical"),
+    findings("important"),
+    findings("suggestion"),
+    findings("dropped"),
+    add(tasks.map((t) => t.sent_back)),
+  ];
+}
+
+function readMetrics(root, issue) {
+  const file = join(root, ".orivilo", "metrics", `${issue}.json`);
+  if (!existsSync(file)) {
+    usage(`no metrics for ${issue}, run collect ${issue} first`);
+  }
+  const metrics = JSON.parse(readFileSync(file, "utf8"));
+  const check = new Ajv2020({ strict: true, allErrors: true }).compile(schema);
+  if (!check(metrics)) throw new Error("the metrics did not match metrics.v1");
+  return metrics;
+}
+
+/** One short line per honest limit of docs/specs/ORV-87/spec.md; report and session both end with it. */
+const FOOTER = [
+  "The orchestrator's own tokens are not split per task here; the session command shows them per session.",
+  "tokens.total is a count of tokens, not a cost: a cache read is not priced like an output token, and the owner's plan is in no source.",
+  "Cache write and cache read are counts as the API reported them; why a cache missed is not shown.",
+  "Waiting is not measured: CI, the owner's answers and permission prompts are not in duration_ms.",
+  "Tokens, rounds and finding counts do not show whether a review was good; defects found after G3 are not counted.",
+  "Runs outside the records (Explore, sessions without /ovl) have no task, role or round; the session command lists them.",
+  "A resume sent with SendMessage runs without an envelope check; it is attached to its task by agent_id only.",
+  "Medians show n; a small batch is a sign, not proof.",
+  "Transcripts live outside the repo and can be edited; metrics are never evidence for a gate.",
+  "The transcript shape is Claude Code's; a missing field shows as -, never a guessed 0, and an unrecorded version is warned about.",
+  "If Claude Code cleans up a transcript before collect runs, that task's numbers are -.",
+].join("\n");
+
+export function report(all) {
+  const tasks = all.flatMap((m) => m.tasks);
+  const byRole = [...new Set(tasks.map((t) => t.role))]
+    .sort()
+    .map((role) => [role, ...sums(tasks.filter((t) => t.role === role))]);
+  const byIssue = all.map((m) => [m.issue, ...sums(m.tasks), m.gates.passed, m.gates.failed]);
+  const split = [];
+  for (const role of [...new Set(tasks.map((t) => t.role))].sort()) {
+    for (const start of ["fresh", "resumed"]) {
+      const runs = tasks
+        .filter((t) => t.role === role)
+        .flatMap((t) => t.runs)
+        .filter((r) => r.start === start);
+      if (runs.length === 0) continue;
+      // The medians use the runs that have both numbers; n says how many that is.
+      const counted = runs.filter((r) => r.tokens && r.tool_uses !== null);
+      split.push([
+        role,
+        start,
+        runs.length,
+        counted.length,
+        median(counted.map((r) => r.tokens.total)),
+        median(counted.map((r) => r.tool_uses)),
+      ]);
+    }
+  }
+  return [
+    `# Metrics report: ${all.map((m) => m.issue).join(", ")}`,
+    "## By role",
+    md(["role", ...SUM_HEAD], byRole),
+    "## By issue",
+    md(["issue", ...SUM_HEAD, "gates_passed", "gates_failed"], byIssue),
+    "## Fresh and resumed runs",
+    md(["role", "start", "runs", "n", "median_tokens_total", "median_tool_uses"], split),
+    "## Reading notes",
+    md(
+      ["issue", "skipped_lines", "cc_versions"],
+      all.map((m) => [m.issue, m.skipped_lines, m.cc_versions.join(" ")]),
+    ),
+    FOOTER,
+    "",
+  ].join("\n\n");
+}
+
+/** The agent ids, type and runs of one session, found by glob, with or without run records. */
+export function session({ projects, id }) {
+  const found = { main: null, dir: null };
+  if (existsSync(projects)) {
+    for (const folder of readdirSync(projects)) {
+      const base = join(projects, folder);
+      if (!statSync(base).isDirectory()) continue;
+      if (existsSync(join(base, `${id}.jsonl`))) found.main = join(base, `${id}.jsonl`);
+      if (existsSync(join(base, id, "subagents"))) found.dir = join(base, id, "subagents");
+    }
+  }
+  if (found.main === null && found.dir === null) return null;
+  const lines = new Lines();
+  const note = (l) => lines.note(l);
+  const mainLines = found.main ? lines.read(found.main) : [];
+  const rows = [];
+  for (const file of found.dir ? readdirSync(found.dir).sort() : []) {
+    const agentId = /^agent-([A-Za-z0-9]+)\.jsonl$/.exec(file)?.[1];
+    if (!agentId) continue;
+    const facts = mainFacts(mainLines, agentId, note);
+    const parsed = readRuns(lines.read(join(found.dir, file)), facts.resumes, note);
+    const metaFile = join(found.dir, `agent-${agentId}.meta.json`);
+    let type = null;
+    try {
+      const meta = existsSync(metaFile) ? JSON.parse(readFileSync(metaFile, "utf8")) : null;
+      if (AGENT_TYPES.includes(meta?.agentType)) type = meta.agentType;
+    } catch {
+      lines.skipped += 1;
+    }
+    parsed.forEach((run, i) => {
+      rows.push({
+        agentId,
+        type,
+        ...buildRun(i, run, facts.resumes, facts.reported[i], id),
+      });
+    });
+  }
+  rows.sort(
+    (a, b) =>
+      (a.started_at ?? "").localeCompare(b.started_at ?? "") || a.agentId.localeCompare(b.agentId),
+  );
+  const mainRun = readRuns(mainLines, [], note)[0];
+  return {
+    rows,
+    main: { calls: mainRun.messages.size, tokens: sumTokens(mainRun.messages) },
+    versions: [...lines.versions].sort(),
+    skipped: lines.skipped,
+  };
+}
+
+export function sessionText(id, data) {
+  const head = [
+    "agent_id",
+    "agent_type",
+    "start",
+    "api_calls",
+    ...KINDS.map(([name]) => name),
+    "total",
+    "notice",
+    "tool_uses",
+    "duration_ms",
+    "started_at",
+  ];
+  const body = data.rows.map((r) => [
+    r.agentId,
+    r.type,
+    r.start,
+    r.api_calls,
+    ...KINDS.map(([name]) => r.tokens?.[name]),
+    r.tokens?.total,
+    r.reported_total,
+    r.tool_uses,
+    r.duration_ms,
+    r.started_at,
+  ]);
+  const one = data.rows.filter((r) => r.api_calls === 1 && r.tokens && r.reported_total !== null);
+  const agree = one.filter((r) => !r.total_mismatch).length;
+  const main = data.main.tokens;
+  return [
+    `# Session ${id}`,
+    md(head, body),
+    `runs ${data.rows.length}, with a notice ${data.rows.filter((r) => r.reported_total !== null).length}, without tokens ${data.rows.filter((r) => r.tokens === null).length}`,
+    `one-call runs ${one.length}, notice within 1% of tokens.total ${agree}`,
+    main
+      ? `main session, not per task: calls ${data.main.calls}, ${KINDS.map(([name]) => `${name} ${main[name]}`).join(", ")}, total ${main.total}`
+      : "main session, not per task: no usage found",
+    `skipped lines ${data.skipped}, Claude Code versions ${data.versions.join(" ") || "-"}`,
+    "notice is the size of a run's last call, so it differs from tokens.total on every run of more than one call.",
+    FOOTER,
+    "",
+  ].join("\n\n");
+}
+
 function usage(message) {
   process.stderr.write(
-    `metrics: ${message}\nusage: metrics.mjs collect <ISSUE> [--root <checkout holding .orivilo>] [--projects <folder>]\n`,
+    `metrics: ${message}\nusage: metrics.mjs collect <ISSUE> [--root <checkout holding .orivilo>] [--projects <folder>]\n       metrics.mjs report <ISSUE...> [--root <folder>] [--out <name>]\n       metrics.mjs session <session id> [--projects <folder>]\n`,
   );
   process.exit(2);
 }
 
-function main(argv) {
-  const [command, issue, ...rest] = argv;
-  if (command !== "collect") usage("the only command is collect");
-  if (!/^ORV-\d+$/.test(issue ?? "")) usage("collect needs an issue key such as ORV-87");
-  const flags = { root: undefined, projects: join(homedir(), ".claude", "projects") };
-  for (let i = 0; i < rest.length; i += 2) {
-    const name = rest[i]?.replace(/^--/, "");
+/** Splits positionals from `--name value` pairs; only the names in `flags` are allowed. */
+function parse(rest, flags) {
+  const positional = [];
+  let i = 0;
+  while (i < rest.length && !rest[i].startsWith("--")) positional.push(rest[i++]);
+  for (; i < rest.length; i += 2) {
+    const name = rest[i].replace(/^--/, "");
     if (!(name in flags) || rest[i + 1] === undefined) usage("unknown or incomplete option");
     flags[name] = rest[i + 1];
   }
   if (flags.root !== undefined && !existsSync(flags.root)) usage("--root is not a folder");
-  const root = flags.root ?? recordsRoot(process.cwd());
-  const metrics = collect({ root, projects: flags.projects, issue });
-  const out = join(root, ".orivilo", "metrics");
-  mkdirSync(out, { recursive: true });
-  writeFileSync(join(out, `${issue}.json`), `${JSON.stringify(metrics, null, 2)}\n`);
-  for (const version of metrics.cc_versions.filter((v) => !KNOWN_VERSIONS.includes(v))) {
-    process.stderr.write(
-      `metrics: transcript version ${version} was not recorded on, check the numbers\n`,
-    );
+  return positional;
+}
+
+function main(argv) {
+  const [command, ...rest] = argv;
+  const projects = join(homedir(), ".claude", "projects");
+  if (command === "collect") {
+    const flags = { root: undefined, projects };
+    const [issue, ...extra] = parse(rest, flags);
+    if (extra.length > 0 || !/^ORV-\d+$/.test(issue ?? ""))
+      usage("collect needs an issue key such as ORV-87");
+    const root = flags.root ?? recordsRoot(process.cwd());
+    const metrics = collect({ root, projects: flags.projects, issue });
+    const out = join(root, ".orivilo", "metrics");
+    mkdirSync(out, { recursive: true });
+    writeFileSync(join(out, `${issue}.json`), `${JSON.stringify(metrics, null, 2)}\n`);
+    for (const version of metrics.cc_versions.filter((v) => !KNOWN_VERSIONS.includes(v))) {
+      process.stderr.write(
+        `metrics: transcript version ${version} was not recorded on, check the numbers\n`,
+      );
+    }
+    process.stdout.write(`${table(metrics)}\nwrote .orivilo/metrics/${issue}.json\n`);
+  } else if (command === "report") {
+    const flags = { root: undefined, out: undefined };
+    const issues = parse(rest, flags);
+    if (issues.length === 0 || !issues.every((i) => /^ORV-\d+$/.test(i)))
+      usage("report needs issue keys such as ORV-87");
+    if (flags.out !== undefined && !/^[A-Za-z0-9_-]+$/.test(flags.out))
+      usage("--out is a plain name, not a path");
+    const root = flags.root ?? recordsRoot(process.cwd());
+    const text = report(issues.map((i) => readMetrics(root, i)));
+    if (flags.out === undefined) {
+      process.stdout.write(text);
+    } else {
+      const dir = join(root, ".orivilo", "metrics");
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(join(dir, `${flags.out}.md`), text);
+      process.stdout.write(`wrote .orivilo/metrics/${flags.out}.md\n`);
+    }
+  } else if (command === "session") {
+    const flags = { projects };
+    const [id, ...extra] = parse(rest, flags);
+    if (extra.length > 0 || !SAFE_ID.test(id ?? "")) usage("session needs a session id");
+    const data = session({ projects: flags.projects, id });
+    if (data === null) usage("no transcript found for that session id");
+    for (const version of data.versions.filter((v) => !KNOWN_VERSIONS.includes(v))) {
+      process.stderr.write(
+        `metrics: transcript version ${version} was not recorded on, check the numbers\n`,
+      );
+    }
+    process.stdout.write(sessionText(id, data));
+  } else {
+    usage("the commands are collect, report and session");
   }
-  process.stdout.write(`${table(metrics)}\nwrote .orivilo/metrics/${issue}.json\n`);
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
