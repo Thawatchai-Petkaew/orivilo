@@ -54,7 +54,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "One of a few modes (single) or any of a few switches (multiple), E4-3. Radix gives roving tabindex and the pressed semantics; the pressed item takes the selection tokens and a bottom edge in canvas.selection, never a tint alone.",
+          "One of a few modes (single) or any of a few switches (multiple), E4-3. Radix gives roving tabindex and the pressed semantics. Segmented (ORV-65): a sunken track, and the pressed item is a raised card chip with a ring and heavier text, the same under every profile; never a tint alone.",
       },
     },
   },
@@ -64,7 +64,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** Single: radio semantics, one pressed; clicking the other moves the pressed edge (AC 4). */
+/** Single: radio semantics, one pressed; clicking the other moves the chip (AC 4). */
 export const Single: Story = {
   args: { onValueChange: fn() },
   play: async ({ canvasElement, args }) => {
@@ -72,8 +72,10 @@ export const Single: Story = {
     const select = canvas.getByRole("radio", { name: "โหมดเลือก" });
     const pan = canvas.getByRole("radio", { name: "โหมดเลื่อนกระดาน" });
     await expect(select).toHaveAttribute("data-state", "on");
-    await expect(getComputedStyle(select).borderBottomColor).not.toBe(
-      getComputedStyle(pan).borderBottomColor,
+    // More than colour: the pressed chip has a ring and a heavier weight (ORV-65 AC 2).
+    await expect(getComputedStyle(select).boxShadow).not.toBe(getComputedStyle(pan).boxShadow);
+    await expect(Number(getComputedStyle(select).fontWeight)).toBeGreaterThan(
+      Number(getComputedStyle(pan).fontWeight),
     );
     await userEvent.click(pan);
     await expect(pan).toHaveAttribute("data-state", "on");
@@ -93,6 +95,18 @@ export const Multiple: Story = {
     await userEvent.click(snap);
     await expect(snap).toHaveAttribute("aria-pressed", "true");
     await expect(grid).toHaveAttribute("aria-pressed", "true");
+  },
+};
+
+/** Thai labels sit on the centre line: no bottom edge and even block padding (ORV-65 AC 4). */
+export const ThaiCentred: Story = {
+  args: { type: "multiple" },
+  play: async ({ canvasElement }) => {
+    const item = within(canvasElement).getByRole("button", { name: "กริด" });
+    const style = getComputedStyle(item);
+    await expect(style.borderBottomWidth).toBe("0px");
+    await expect(style.paddingTop).toBe(style.paddingBottom);
+    await expect(style.alignItems).toBe("center");
   },
 };
 
