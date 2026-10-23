@@ -3,5 +3,6 @@
   "framework": null,
   "installCommand": "pnpm install --frozen-lockfile",
   "buildCommand": "pnpm build",
-  "outputDirectory": "storybook-static"
+  "outputDirectory": "storybook-static",
+  "ignoreCommand": "sh ../../scripts/vercel-ignore.sh . ../intent-engine ../../package.json ../../pnpm-lock.yaml ../../pnpm-workspace.yaml ../../turbo.json ../../scripts/vercel-ignore.sh"
 }
