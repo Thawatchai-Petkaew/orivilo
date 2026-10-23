@@ -10,6 +10,8 @@ export type CheckedState = boolean | "indeterminate";
 export interface CheckboxProps {
   /** Part of the hit area (catalog rule); the box alone is never the control. */
   label: ReactNode;
+  /** `sm` for tables and dense lists: a 16 px box that keeps a 24 px target (ORV-72). */
+  size?: "sm" | "md" | undefined;
   description?: ReactNode | undefined;
   /** Says what went wrong and how to fix it; sets `aria-invalid`. */
   error?: ReactNode | undefined;
@@ -31,6 +33,7 @@ export interface CheckboxProps {
  */
 export function Checkbox({
   label,
+  size = "md",
   description,
   error,
   checked,
@@ -48,8 +51,13 @@ export function Checkbox({
   const descriptionId = description ? `${id}-description` : undefined;
   const errorId = error ? `${id}-error` : undefined;
   const describedBy = [errorId, descriptionId].filter(Boolean).join(" ") || undefined;
+  const glyph = size === "sm" ? "size-3" : "size-4";
   return (
-    <div className={cx("ds-checkbox", className)} data-disabled={disabled ? "" : undefined}>
+    <div
+      className={cx("ds-checkbox", className)}
+      data-size={size}
+      data-disabled={disabled ? "" : undefined}
+    >
       <CheckboxPrimitive.Root
         id={id}
         className="ds-checkbox__box"
@@ -66,9 +74,9 @@ export function Checkbox({
         <CheckboxPrimitive.Indicator asChild>
           <span className="inline-flex">
             {checked === "indeterminate" || defaultChecked === "indeterminate" ? (
-              <MinusIcon className="size-4" />
+              <MinusIcon className={glyph} />
             ) : (
-              <CheckIcon className="size-4" />
+              <CheckIcon className={glyph} />
             )}
           </span>
         </CheckboxPrimitive.Indicator>

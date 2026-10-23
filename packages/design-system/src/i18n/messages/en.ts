@@ -40,6 +40,12 @@ export const en: Messages = {
   tag: {
     remove: "Remove {label}",
   },
+  textarea: {
+    ratio: "{count}/{max}",
+    count: "Characters: {count}",
+    countOf: "Characters: {count} of {max}",
+    countOver: "Characters: {count} of {max}, {over} over the limit",
+  },
   passwordInput: {
     show: "Show password",
     hide: "Hide password",

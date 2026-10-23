@@ -30,6 +30,9 @@ export const Sizes: Story = {
   decorators: [],
   render: (args) => (
     <div className="flex max-w-md flex-col gap-4">
+      <Field label="เล็ก">
+        <Textarea {...args} size="sm" />
+      </Field>
       <Field label="กลาง">
         <Textarea {...args} size="md" />
       </Field>
@@ -79,6 +82,51 @@ export const AutoGrow: Story = {
   },
 };
 
+/** The counter counts graphemes, not UTF-16 units (ORV-72, AC 4): `น้ำใจ` is 3, not 5. */
+export const Counter: Story = {
+  args: { maxLength: 10, rows: 2 },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const textarea = canvas.getByLabelText("บรีฟ");
+    await expect(canvas.getByText("0/10")).toBeVisible();
+    await userEvent.click(textarea);
+    await userEvent.keyboard("น้ำใจ");
+    await expect(textarea).toHaveValue("น้ำใจ");
+    await expect(canvas.getByText("3/10")).toBeVisible();
+    await expect(textarea).toHaveAccessibleDescription("ตัวอักษร 3 จาก 10");
+    await expect(textarea).not.toHaveAttribute("aria-invalid");
+    await expect(textarea).not.toHaveAttribute("maxlength");
+  },
+};
+
+/** `showCount` without a limit: the count alone (AC 6). */
+export const CountWithoutLimit: Story = {
+  args: { showCount: true, rows: 2, defaultValue: "แบรนด์ ORIVILO" },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("13")).toBeVisible();
+    await expect(canvas.getByLabelText("บรีฟ")).toHaveAccessibleDescription("ตัวอักษร 13");
+  },
+};
+
+/**
+ * Past the limit typing is not cut (AC 5): the counter turns danger ink, the box is invalid and
+ * its description says how many over.
+ */
+export const OverLimit: Story = {
+  args: { maxLength: 5, rows: 2, defaultValue: "น้ำใจ" },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const textarea = canvas.getByLabelText("บรีฟ");
+    await userEvent.click(textarea);
+    await userEvent.keyboard("ไมตรี");
+    await expect(textarea).toHaveValue("น้ำใจไมตรี");
+    await expect(canvas.getByText("7/5")).toBeVisible();
+    await expect(textarea).toHaveAttribute("aria-invalid", "true");
+    await expect(textarea).toHaveAccessibleDescription("ตัวอักษร 7 จาก 5 เกินมา 2 ตัวอักษร");
+  },
+};
+
 export const Invalid: Story = {
   decorators: [],
   render: (args) => (
@@ -117,6 +165,12 @@ export const RecipesAndModes: Story = {
       </Field>
       <Field label="ผิดพลาด" error="บรีฟสั้นเกินไป เขียนอย่างน้อยสองประโยค">
         <Textarea {...args} defaultValue="ขายของ" rows={2} />
+      </Field>
+      <Field label="นับตัวอักษร">
+        <Textarea {...args} defaultValue="น้ำใจ" maxLength={20} rows={2} size="sm" />
+      </Field>
+      <Field label="เกินจำนวน">
+        <Textarea {...args} defaultValue="น้ำใจไมตรี" maxLength={5} rows={2} size="sm" />
       </Field>
     </Matrix>
   ),

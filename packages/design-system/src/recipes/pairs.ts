@@ -342,6 +342,35 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
   },
   { recipe: "field", slot: "error", fg: "field.error", bg: "ds:surface.canvas", floor: TEXT },
   { recipe: "field", slot: "error on card", fg: "field.error", bg: "ds:surface.card", floor: TEXT },
+  // Textarea counter (ORV-72): under the box, on the canvas or a card
+  {
+    recipe: "textarea",
+    slot: "counter",
+    fg: "textarea.counter-fg",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
+  {
+    recipe: "textarea",
+    slot: "counter on card",
+    fg: "textarea.counter-fg",
+    bg: "ds:surface.card",
+    floor: TEXT,
+  },
+  {
+    recipe: "textarea",
+    slot: "counter over",
+    fg: "textarea.counter-fg-over",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
+  {
+    recipe: "textarea",
+    slot: "counter over on card",
+    fg: "textarea.counter-fg-over",
+    bg: "ds:surface.card",
+    floor: TEXT,
+  },
   // Tooltip
   { recipe: "tooltip", slot: "text", fg: "tooltip.fg", bg: "tooltip.bg", floor: TEXT },
   {

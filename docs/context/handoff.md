@@ -1,6 +1,6 @@
 # Handoff: where the work stands
 
-Read this first when you pick the work up in a new session or on another account. Update it before you stop, so the next session can start without asking. Last updated 2026-10-23, after ORV-70.
+Read this first when you pick the work up in a new session or on another account. Update it before you stop, so the next session can start without asking. Last updated 2026-10-23, after ORV-72.
 
 The plan and its order live in `docs/context/master-plan.md`; pages published in the Claude project thread are listed in `docs/context/artifacts.md`.
 
@@ -29,11 +29,13 @@ The plan and its order live in `docs/context/master-plan.md`; pages published in
 | ORV-68 | Select option icons and groups, Badge dot and icon, vertical Tabs with counts | #56 |
 | ORV-69 | `develop` parks merged work, staging moves in batches (ADR 0011)              | #57 |
 | ORV-70 | Tooltip description line and align (in `develop`, not yet on staging)         | #58 |
+| ORV-71 | Master plan and project artifact list in the repo (in `develop`)              | #59 |
+| ORV-72 | Checkbox sm, Textarea sm and Thai grapheme counter (in `develop`)             | PR  |
 | ORV-71 | Master plan and artifact list in the repo                                     | #59 |
 
 ## Next, in order
 
-1. Audit D.2 stories 15 to 17: Checkbox and Textarea sm with a Thai grapheme counter, Slider range, DropdownMenu checkbox and radio items (story 14 is ORV-70). One story of about 400 lines each; spec in `docs/specs/<KEY>/spec.md` first.
+1. Audit D.2 stories 16 and 17: Slider range, DropdownMenu checkbox and radio items (story 14 is ORV-70, story 15 is ORV-72). One story of about 400 lines each; spec in `docs/specs/<KEY>/spec.md` first. When both are in `develop`, propose the batch ORV-70 to story 17 as a release to staging.
 2. ORV-45 part 2, TaskBar, then part 3, CanvasChat (audit D.1 stories 1 to 8: Spinner, Skeleton, Collapsible, chat parts). When all parts are merged, move ORV-45 to "Staging".
 3. Audit D.3: missing components by Studio need.
 4. CI/CD plan (https://claude.ai/artifact/S49r4bs4x5cn7g33HbT7rx) steps 4 to 7: turbo cache and affected-only runs in CI, the flaky `BlockLibrary > Place By Keyboard` test, branch protection on `main` (the owner turns it on), ORV-63 after the POC.
@@ -44,6 +46,7 @@ The plan and its order live in `docs/context/master-plan.md`; pages published in
 - Postgres 16 for the database tests. CI uses `postgres://postgres:postgres@localhost:5432/postgres`; set `TEST_DATABASE_URL` to your own and `REQUIRE_DB_TESTS=1` to make the tests fail instead of skip without it.
 - `apps/web/.env.local` from `apps/web/.env.example` with real values, for `pnpm dev`.
 - Playwright's Chromium for the Storybook tests (`pnpm exec playwright install chromium`).
+- On macOS, 18 Storybook tests fail locally and pass in CI (ubuntu): canvas-board, command-menu, canvas-context-menu, dropdown-menu `Open`, inspector `Studio Layout`, node-group `Group And Ungroup`. The stories press `Control` for `Mod`, which is `Meta` on a Mac (`src/commands/index.ts`). Compare against `develop` before blaming a change; fixing the stories to press the platform key is a small chore not yet filed.
 - Jira through the Atlassian MCP server in `.mcp.json`; sign in once per account. GitHub through `gh auth login` or the IDE.
 
 ## The full gate

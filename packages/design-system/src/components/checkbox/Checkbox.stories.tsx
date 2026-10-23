@@ -36,6 +36,50 @@ export const Indeterminate: Story = {
   },
 };
 
+/**
+ * `sm` for tables and dense lists (ORV-72, AC 1): a 16 px box in small type, and a point 3 px
+ * outside the box still hits it, so the target stays at least 24 px with the label hidden.
+ */
+export const Sizes: Story = {
+  render: (args) => (
+    <div className="flex flex-col gap-3 p-4">
+      <Checkbox {...args} size="sm" label="เล็ก" />
+      <Checkbox {...args} size="md" label="กลาง" />
+      <Checkbox {...args} size="sm" label={<span className="sr-only">ซ่อนป้าย</span>} />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const small = canvas.getByRole("checkbox", { name: "เล็ก" });
+    const sm = small.getBoundingClientRect();
+    const md = canvas.getByRole("checkbox", { name: "กลาง" }).getBoundingClientRect();
+    await expect(sm.width).toBe(16);
+    await expect(sm.width).toBeLessThan(md.width);
+    const label = getComputedStyle(canvas.getByText("เล็ก"));
+    const bodySm = getComputedStyle(document.documentElement)
+      .getPropertyValue("--ds-type-body-sm-font-size")
+      .trim();
+    await expect(label.fontSize).toBe(bodySm);
+    const hidden = canvas.getByRole("checkbox", { name: "ซ่อนป้าย" });
+    await userEvent.click(hidden);
+    await expect(hidden.querySelector("svg")?.getBoundingClientRect().width).toBe(12);
+    const box = hidden.getBoundingClientRect();
+    const cx = box.left + box.width / 2;
+    const cy = box.top + box.height / 2;
+    const probes: [number, number][] = [
+      [box.left - 3.5, cy],
+      [box.right + 3.5, cy],
+      [cx, box.top - 3.5],
+      [cx, box.bottom + 3.5],
+    ];
+    for (const [x, y] of probes) {
+      const hit = document.elementFromPoint(x, y);
+      await expect(hit === hidden || hidden.contains(hit)).toBe(true);
+    }
+    await expect(hidden).toHaveAttribute("aria-checked", "true");
+  },
+};
+
 export const InteractionStates: Story = {
   render: (args) => (
     <div className="flex flex-col gap-3">
@@ -93,6 +137,7 @@ export const RecipesAndModes: Story = {
       <Checkbox {...args} checked="indeterminate" label="บางส่วน" />
       <Checkbox {...args} error="ติ๊กยอมรับเงื่อนไขก่อน" label="ผิดพลาด" />
       <Checkbox {...args} disabled label="ปิดใช้งาน" />
+      <Checkbox {...args} size="sm" defaultChecked label="เล็ก เลือกไว้" />
     </Matrix>
   ),
 };
