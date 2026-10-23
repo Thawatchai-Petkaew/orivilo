@@ -1,13 +1,13 @@
 # Handoff: where the work stands
 
-Read this first when you pick the work up in a new session or on another account. Update it before you stop, so the next session can start without asking. Last updated 2026-10-23, after ORV-68.
+Read this first when you pick the work up in a new session or on another account. Update it before you stop, so the next session can start without asking. Last updated 2026-10-23, after ORV-69.
 
 ## How we work (the owner's standing decisions)
 
-- **Flow:** review on the PR preview, the work parks on staging (`main`), the owner approves production (G5, a `v*` tag). ADR 0010.
-- **Who merges:** Claude merges a PR into `main` once the full gate and CI are green. Claude runs gates G1 to G4. Only the owner passes G5; never tag or deploy production.
-- **Jira:** a finished story moves with the transition named "Staging", never "Done".
-- **Vercel:** the free plan (100 deploys a day, counted over the last 24 hours). Finish commits locally and push once per PR. A UI PR costs about 4 deploys. `scripts/vercel-ignore.sh` skips builds that change nothing they deploy.
+- **Flow:** review on local, story PRs merge into `develop` (parks work, deploys nothing), a release PR moves a batch from `develop` to staging (`main`), the owner approves production (G5, a `v*` tag). ADR 0011, names in ADR 0010.
+- **Who merges:** Claude merges a story PR into `develop` once the full gate and CI are green. A release PR into `main` opens when the owner says so, or when Claude proposes a finished batch (an epic or related stories) with its list and the owner agrees. Claude runs gates G1 to G4. Only the owner passes G5; never tag or deploy production.
+- **Jira:** a story moves with the transition named "Staging" when its batch reaches `main`, never "Done".
+- **Vercel:** the free plan (100 deploys a day, counted over the last 24 hours). Finish commits locally and push once per PR. Previews are off unless a commit says `[preview]`; `develop` never deploys; a release costs about 2 deploys. `scripts/vercel-ignore.sh` skips builds that change nothing they deploy.
 - **Review without a deploy:** run Storybook locally, `pnpm --filter @orivilo/design-system storybook`, on http://localhost:6100.
 - **Environments:** `development`, `preview`, `staging`, `production` (ADR 0010). The real staging and production split is ORV-63, parked until the POC ends. Until then orivilo.vercel.app is staging.
 - **Base first:** base components get variant depth where a variant has a functional meaning, following the build order in `docs/specs/ORV-64/audit.md` section D.

@@ -64,7 +64,7 @@ Gate review packets use the `gate-packet` skill. Request changes → rework → 
 
 - Branch `<type>/<ISSUE-KEY>-<slug>` (`feature/`, `fix/`, `chore/`, `docs/`). Conventional Commits.
 - One issue per branch and per git worktree. Stage explicit paths; never `git add -A` in a shared tree.
-- PR into `main`. `main` deploys to staging; a git tag deploys to production.
+- PR into `develop`, which parks merged work and deploys nothing. A release PR from `develop` into `main` moves a batch to staging when the owner says so (ADR 0011); a git tag deploys to production.
 
 ## Commands
 
