@@ -26,7 +26,16 @@ Today one Vercel project builds `main` to orivilo.vercel.app, and Vercel labels 
    - Only the owner releases to production, by approving G5. Agents never tag a release or deploy production (AGENTS.md rule 5).
 3. **Service names** follow `orivilo-<part>` for a part that serves every environment (`orivilo-web`, `orivilo-storybook`) and `orivilo-<part>-<environment>` for one that exists per environment (`orivilo-db-staging`, `orivilo-db-production`).
 4. **Variables keep one name in every environment** and only the value changes (`DATABASE_URL`, `BETTER_AUTH_SECRET`, `OPENROUTER_API_KEY`). The code reads its environment from one variable, `APP_ENV`, with one of the four names above, added by ORV-63. Vercel's own `VERCEL_ENV` says only `preview` or `production` and is not used to tell staging from production.
-5. **Domains** are decided in ORV-63: production keeps the public domain and staging gets a `staging.` name. Whether staging is a Vercel custom environment or a second project depends on the plan decision in the CI/CD plan.
+5. **URLs.** Production keeps the public name, staging gets a `staging` name, a preview keeps the URL Vercel makes for its branch.
+
+   | Environment   | App, on vercel.app                       | Storybook, on vercel.app                       | With our own domain (later)                            |
+   | ------------- | ---------------------------------------- | ---------------------------------------------- | ------------------------------------------------------ |
+   | `development` | `localhost:3000`                         | `localhost:6006`                               | Same                                                   |
+   | `preview`     | `orivilo-web-git-<branch>-...vercel.app` | `orivilo-storybook-git-<branch>-...vercel.app` | Same                                                   |
+   | `staging`     | `orivilo-staging.vercel.app`             | `orivilo-storybook-staging.vercel.app`         | `staging.orivilo.com`, `storybook.staging.orivilo.com` |
+   | `production`  | `orivilo.vercel.app`                     | `orivilo-storybook.vercel.app`                 | `app.orivilo.com`, `storybook.orivilo.com`             |
+
+   Buying a domain is the owner's decision; `orivilo.com` is an example. Whether staging is a Vercel custom environment or a second project depends on the plan decision in the CI/CD plan.
 
 ## What changes now, and what waits
 
