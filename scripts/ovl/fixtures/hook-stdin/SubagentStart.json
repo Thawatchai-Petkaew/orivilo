@@ -1,0 +1,10 @@
+{
+  "session_id": "f07dac3e-9e6e-4bc1-bd68-a408d9e08f0b",
+  "transcript_path": "/Users/tawatchaipetkaew/.claude/projects/-private-tmp-claude-501--Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO-0baff5a3-4a6a-4d70-99db-b6b7a526f04f-scratchpad-stdin-probe/f07dac3e-9e6e-4bc1-bd68-a408d9e08f0b.jsonl",
+  "cwd": "/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/0baff5a3-4a6a-4d70-99db-b6b7a526f04f/scratchpad/stdin-probe",
+  "scratchpad_dir": "/private/tmp/claude-501/-private-tmp-claude-501--Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO-0baff5a3-4a6a-4d70-99db-b6b7a526f04f-scratchpad-stdin-probe/f07dac3e-9e6e-4bc1-bd68-a408d9e08f0b/scratchpad",
+  "prompt_id": "bfbc31e1-4343-4ba8-af6d-b5336cd3124a",
+  "agent_id": "a9676f924989bd70c",
+  "agent_type": "general-purpose",
+  "hook_event_name": "SubagentStart"
+}

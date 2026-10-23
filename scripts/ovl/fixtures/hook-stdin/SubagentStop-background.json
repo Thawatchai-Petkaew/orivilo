@@ -1,0 +1,24 @@
+{
+  "session_id": "d213edd6-16e1-4543-bdb4-0f8d1f8e85ab",
+  "transcript_path": "/Users/tawatchaipetkaew/.claude/projects/-private-tmp-claude-501--Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO-0baff5a3-4a6a-4d70-99db-b6b7a526f04f-scratchpad-stdin-probe/d213edd6-16e1-4543-bdb4-0f8d1f8e85ab.jsonl",
+  "cwd": "/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/0baff5a3-4a6a-4d70-99db-b6b7a526f04f/scratchpad/stdin-probe",
+  "scratchpad_dir": "/private/tmp/claude-501/-private-tmp-claude-501--Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO-0baff5a3-4a6a-4d70-99db-b6b7a526f04f-scratchpad-stdin-probe/d213edd6-16e1-4543-bdb4-0f8d1f8e85ab/scratchpad",
+  "prompt_id": "9311fede-fb94-4fad-a89a-8a4ccf2fadfa",
+  "permission_mode": "bypassPermissions",
+  "agent_id": "ae88ca239bbce9389",
+  "agent_type": "general-purpose",
+  "hook_event_name": "SubagentStop",
+  "stop_hook_active": false,
+  "agent_transcript_path": "/Users/tawatchaipetkaew/.claude/projects/-private-tmp-claude-501--Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO-0baff5a3-4a6a-4d70-99db-b6b7a526f04f-scratchpad-stdin-probe/d213edd6-16e1-4543-bdb4-0f8d1f8e85ab/subagents/agent-ae88ca239bbce9389.jsonl",
+  "last_assistant_message": "Ok, I'm ready to help. What would you like me to do?",
+  "background_tasks": [
+    {
+      "id": "ae88ca239bbce9389",
+      "type": "subagent",
+      "status": "running",
+      "description": "probe2",
+      "agent_type": "general-purpose"
+    }
+  ],
+  "session_crons": []
+}
