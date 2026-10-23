@@ -156,6 +156,68 @@ export async function interpretBrief(
   return { ok: true, interpretation };
 }
 
+/**
+ * Turns findings into facts the same way for every adapter: one value per axis or the axis is a
+ * conflict, one desired industry or it is a conflict, and avoided traits only where the brief negated
+ * them. Conflicts join `uncertain`, so no adapter picks between two readings.
+ */
+export function assembleInterpretation(
+  findings: Finding[],
+  notUnderstood: Uncertainty[],
+  source: Pick<Interpretation, "method" | "adapter">,
+): Interpretation {
+  const uncertain = [...notUnderstood];
+  const facts: BriefFacts = { personality: {}, industry: null, audiences: [], avoid: [] };
+
+  for (const axis of PERSONALITY_AXES) {
+    const about = findings.filter(
+      (f): f is Extract<Finding, { field: "personality" }> =>
+        f.field === "personality" && f.axis === axis,
+    );
+    const values = [...new Set(about.map((f) => f.value))];
+    if (values.length === 1) facts.personality[axis] = values[0] as number;
+    else if (values.length > 1) {
+      uncertain.push({
+        reason: "conflicting",
+        subject: `personality.${axis}`,
+        evidence: about.map((f) => f.evidence),
+      });
+    }
+  }
+
+  const industries = findings.filter((f) => f.field === "industry" && f.polarity === "desired");
+  const industryIds = [...new Set(industries.map((f) => f.value as string))];
+  if (industryIds.length === 1) facts.industry = industryIds[0] as string;
+  else if (industryIds.length > 1) {
+    uncertain.push({
+      reason: "conflicting",
+      subject: "industry",
+      evidence: industries.map((f) => f.evidence),
+    });
+  }
+
+  const pick = (field: "audience" | "avoid", polarity: "desired" | "avoided") =>
+    [
+      ...new Set(
+        findings
+          .filter((f) => f.field === field && f.polarity === polarity)
+          .map((f) => f.value as string),
+      ),
+    ].sort();
+  facts.audiences = pick("audience", "desired");
+  facts.avoid = pick("avoid", "avoided");
+
+  uncertain.sort((a, b) => (a.evidence[0]?.start ?? 0) - (b.evidence[0]?.start ?? 0));
+
+  return {
+    ...source,
+    facts,
+    findings,
+    uncertain,
+    missing: PERSONALITY_AXES.filter((axis) => facts.personality[axis] === undefined),
+  };
+}
+
 // The rule-based adapter.
 
 /** Words the rule-based adapter knows. A term is matched as written: Thai as a substring, Latin as a whole word. */
@@ -347,56 +409,10 @@ export function interpretWithRules(brief: Brief, lexicon: Lexicon = RULE_LEXICON
     }
   }
 
-  const facts: BriefFacts = { personality: {}, industry: null, audiences: [], avoid: [] };
-
-  for (const axis of PERSONALITY_AXES) {
-    const about = findings.filter(
-      (f): f is Extract<Finding, { field: "personality" }> =>
-        f.field === "personality" && f.axis === axis,
-    );
-    const values = [...new Set(about.map((f) => f.value))];
-    if (values.length === 1) facts.personality[axis] = values[0] as number;
-    else if (values.length > 1) {
-      uncertain.push({
-        reason: "conflicting",
-        subject: `personality.${axis}`,
-        evidence: about.map((f) => f.evidence),
-      });
-    }
-  }
-
-  const industries = findings.filter((f) => f.field === "industry" && f.polarity === "desired");
-  const industryIds = [...new Set(industries.map((f) => f.value as string))];
-  if (industryIds.length === 1) facts.industry = industryIds[0] as string;
-  else if (industryIds.length > 1) {
-    uncertain.push({
-      reason: "conflicting",
-      subject: "industry",
-      evidence: industries.map((f) => f.evidence),
-    });
-  }
-
-  const pick = (field: "audience" | "avoid", polarity: "desired" | "avoided") =>
-    [
-      ...new Set(
-        findings
-          .filter((f) => f.field === field && f.polarity === polarity)
-          .map((f) => f.value as string),
-      ),
-    ].sort();
-  facts.audiences = pick("audience", "desired");
-  facts.avoid = pick("avoid", "avoided");
-
-  uncertain.sort((a, b) => (a.evidence[0]?.start ?? 0) - (b.evidence[0]?.start ?? 0));
-
-  return {
+  return assembleInterpretation(findings, uncertain, {
     method: "rule-based",
     adapter: { id: "rules", version: RULE_ADAPTER_VERSION },
-    facts,
-    findings,
-    uncertain,
-    missing: PERSONALITY_AXES.filter((axis) => facts.personality[axis] === undefined),
-  };
+  });
 }
 
 /** The rule-based interpreter as an adapter. Its method is "rule-based", and the UI must say so. */

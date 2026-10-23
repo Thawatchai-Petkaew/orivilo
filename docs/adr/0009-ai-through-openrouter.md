@@ -107,3 +107,12 @@ The Claude Max plan the owner uses for development covers the Claude apps and Cl
 - **Automatic fallback across models.** Same reason.
 - **Using the Claude Max plan for the app.** It is a subscription for people using Claude, not an API for a server, and using it that way breaks its terms.
 - **A raster image as the delivered logo.** It does not scale, cannot be edited as shapes and is harder to check; raster stays for concepts.
+
+## Addition, 2026-10-23: safety retention for Google models
+
+OpenRouter's privacy settings show that from 2026-10-18 Google models are served only by endpoints that keep prompts for a short time for abuse monitoring ("safety retention"). With zero retention only, `see` and `logo-image` could not run at all. The owner set the account to allow safety retention for Google and for other models, and kept training off everywhere.
+
+- **`interpret` and `chat` stay zero retention.** Their requests keep `zdr: true`, and they are where customer text is longest.
+- **`see` and `logo-image` (Google) allow safety retention only.** Their requests deny data collection, so no training, but do not require zero retention. The story that adds each job sets this in its request and tests it.
+- **The privacy notice says so:** images and logo prompts may be kept by Google for a short time for safety monitoring and are never used for training.
+- `instant` and `logo-vector` keep zero retention unless their exit tests show no zero-retention endpoint, which is then recorded here.
