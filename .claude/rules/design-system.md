@@ -63,4 +63,4 @@ Read `DESIGN.md` first; it is the contract these rules enforce. The catalog is `
 
 ## Gate
 
-Before G3 on any PR that touches UI, the reviewer walks `DESIGN.md` §11 line by line and records pass, fail, or not applicable with evidence. Any fail blocks. Agents never approve their own gate.
+Before G3 on any PR that touches UI, the reviewer walks `DESIGN.md` §11 line by line and records pass, fail, or not applicable with evidence. Any fail blocks. The reviewer agent records the walk; the builder never passes its own G3 (ADR 0012).
