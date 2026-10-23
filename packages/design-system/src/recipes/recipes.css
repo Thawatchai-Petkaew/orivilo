@@ -438,6 +438,63 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* Select option with an icon and a description (ORV-68). The icon rides inside the option text so the
+ * trigger shows it after a choice; the description sits outside it and never reaches the trigger. */
+.ds-menu__option-line {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cmp-button-gap);
+  max-inline-size: 100%;
+  vertical-align: middle;
+}
+.ds-menu__option-icon {
+  display: inline-flex;
+  flex: none;
+  inline-size: var(--cmp-menu-option-icon-size);
+  block-size: var(--cmp-menu-option-icon-size);
+}
+.ds-menu__option-icon > svg {
+  inline-size: 100%;
+  block-size: 100%;
+}
+.ds-menu__option-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ds-menu__option[data-described] {
+  padding-block: var(--cmp-menu-padding);
+}
+.ds-menu__option-body {
+  display: flex;
+  flex-direction: column;
+  white-space: normal;
+}
+.ds-menu__option-body > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ds-menu__option-description {
+  --_indent: 0px;
+  padding-inline-start: var(--_indent);
+  color: var(--cmp-menu-option-description-fg);
+  font-family: var(--cmp-menu-option-description-type-font-family);
+  font-size: var(--cmp-menu-option-description-type-font-size);
+  line-height: var(--cmp-menu-option-description-type-line-height);
+  font-weight: var(--cmp-menu-option-description-type-font-weight);
+  letter-spacing: var(--cmp-menu-option-description-type-letter-spacing);
+  overflow-wrap: anywhere;
+}
+/* With an icon the description lines up under the label, not under the icon. */
+.ds-menu__option[data-icon] .ds-menu__option-description {
+  --_indent: calc(var(--cmp-menu-option-icon-size) + var(--cmp-button-gap));
+}
+.ds-menu__option[data-disabled] .ds-menu__option-description {
+  color: var(--cmp-menu-option-fg-disabled);
+}
 .ds-menu__empty {
   display: flex;
   align-items: center;
@@ -609,6 +666,44 @@
   background: var(--cmp-badge-brand-bg);
   color: var(--cmp-badge-brand-fg);
 }
+/* Dot or icon before the word (ORV-68). The dot reads the variant's feedback ink from component tokens. */
+.ds-badge__dot {
+  --_dot: var(--cmp-badge-dot-neutral);
+  flex: none;
+  inline-size: var(--cmp-badge-dot-size);
+  block-size: var(--cmp-badge-dot-size);
+  border-radius: var(--cmp-badge-radius);
+  background: var(--_dot);
+}
+.ds-badge[data-variant="success"] .ds-badge__dot {
+  --_dot: var(--cmp-badge-dot-success);
+}
+.ds-badge[data-variant="warning"] .ds-badge__dot {
+  --_dot: var(--cmp-badge-dot-warning);
+}
+.ds-badge[data-variant="danger"] .ds-badge__dot {
+  --_dot: var(--cmp-badge-dot-danger);
+}
+.ds-badge[data-variant="info"] .ds-badge__dot {
+  --_dot: var(--cmp-badge-dot-info);
+}
+.ds-badge[data-variant="brand"] .ds-badge__dot {
+  --_dot: var(--cmp-badge-dot-brand);
+}
+.ds-badge__icon {
+  display: inline-flex;
+  flex: none;
+  inline-size: var(--cmp-badge-icon-size-md);
+  block-size: var(--cmp-badge-icon-size-md);
+}
+.ds-badge[data-size="sm"] .ds-badge__icon {
+  inline-size: var(--cmp-badge-icon-size-sm);
+  block-size: var(--cmp-badge-icon-size-sm);
+}
+.ds-badge__icon > svg {
+  inline-size: 100%;
+  block-size: 100%;
+}
 
 /* Popover ----------------------------------------------------------------------------------- */
 
@@ -625,6 +720,14 @@
 
 /* Tabs -------------------------------------------------------------------------------------- */
 
+.ds-tabs {
+  display: flex;
+  flex-direction: column;
+}
+.ds-tabs[data-orientation="vertical"] {
+  flex-direction: row;
+  align-items: flex-start;
+}
 .ds-tabs__list {
   display: flex;
   gap: var(--cmp-tabs-gap);
@@ -636,6 +739,7 @@
   flex: none;
   display: inline-flex;
   align-items: center;
+  gap: var(--cmp-tabs-item-gap);
   min-height: var(--cmp-tabs-height-md);
   padding-inline: var(--cmp-tabs-padding-x);
   border: 0;
@@ -680,6 +784,67 @@
 }
 .ds-tabs__panel {
   outline-offset: 2px;
+}
+.ds-tabs[data-orientation="vertical"] .ds-tabs__panel {
+  flex: 1;
+  min-width: 0;
+}
+.ds-tabs__icon {
+  display: inline-flex;
+  flex: none;
+  inline-size: var(--cmp-tabs-icon-size-md);
+  block-size: var(--cmp-tabs-icon-size-md);
+}
+.ds-tabs__list[data-size="sm"] .ds-tabs__icon {
+  inline-size: var(--cmp-tabs-icon-size-sm);
+  block-size: var(--cmp-tabs-icon-size-sm);
+}
+.ds-tabs__icon > svg {
+  inline-size: 100%;
+  block-size: 100%;
+}
+.ds-tabs__count {
+  flex: none;
+  padding-inline: var(--cmp-badge-padding-x-sm);
+  border-radius: var(--cmp-badge-radius);
+  background: var(--cmp-tabs-count-bg);
+  color: var(--cmp-tabs-count-fg);
+  font-family: var(--cmp-tabs-count-type-font-family);
+  font-size: var(--cmp-tabs-count-type-font-size);
+  line-height: var(--cmp-tabs-count-type-line-height);
+  font-weight: var(--cmp-tabs-count-type-font-weight);
+  letter-spacing: var(--cmp-tabs-count-type-letter-spacing);
+  font-variant-numeric: tabular-nums;
+}
+.ds-tabs__trigger:disabled .ds-tabs__count {
+  background: transparent;
+  color: var(--cmp-tabs-count-fg-disabled);
+}
+
+/* Vertical list (ORV-68): the tabs stack, the 2 px edge sits on the side facing the panel. */
+.ds-tabs__list[data-orientation="vertical"] {
+  flex-direction: column;
+  flex: none;
+  gap: 0;
+  border-bottom: 0;
+  border-inline-end: 1px solid var(--cmp-tabs-border);
+  overflow-x: visible;
+  overflow-y: auto;
+}
+.ds-tabs__list[data-orientation="vertical"] .ds-tabs__trigger {
+  justify-content: flex-start;
+  text-align: start;
+}
+.ds-tabs__list[data-orientation="vertical"] .ds-tabs__count {
+  margin-inline-start: auto;
+}
+.ds-tabs__list[data-orientation="vertical"] .ds-tabs__trigger[data-state="active"]::after {
+  inset-inline: auto;
+  inset-inline-end: -1px;
+  inset-block: 0;
+  bottom: auto;
+  width: 2px;
+  height: auto;
 }
 
 /* Dialog ----------------------------------------------------------------------------------- */

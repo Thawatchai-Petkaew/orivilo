@@ -2,9 +2,62 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { DesignProfileBoundary } from "../../boundary/DesignProfileBoundary";
 import { Field } from "../field/Field";
-import { fixtureOptions } from "../fixtures";
+import { fixtureOptions, fixtures } from "../fixtures";
+import { ArtifactIcon, DirectionIcon, KnowledgeIcon, NoteIcon, ReferenceIcon } from "../icons";
 import { Matrix, Narrow } from "../matrix";
-import { Select } from "./Select";
+import { Select, type SelectGroup, type SelectOption, type SelectProps } from "./Select";
+
+/** The flat form; the grouped form is told by its own stories. */
+type FlatSelectProps = Extract<SelectProps, { options: readonly SelectOption[] }>;
+
+/** Options that say more than one word: an icon, a second line, a long Thai line, a disabled one. */
+const richOptions: readonly SelectOption[] = [
+  {
+    value: "canvas",
+    label: "Brand Canvas",
+    icon: <ArtifactIcon />,
+    description: "พื้นที่รวมแหล่งข้อมูล การสังเคราะห์ และการตัดสินใจของแบรนด์",
+  },
+  {
+    value: "design-system",
+    label: "Design System",
+    icon: <DirectionIcon />,
+    description: "Tokens, recipes and components in one place",
+  },
+  { value: "product", label: "ผลิตภัณฑ์", icon: <KnowledgeIcon /> },
+  {
+    value: "long",
+    label: fixtures.longThai,
+    icon: <NoteIcon />,
+    description: fixtures.longThai,
+  },
+  {
+    value: "archived",
+    label: "เก็บถาวรแล้ว",
+    icon: <ReferenceIcon />,
+    description: "ไม่รับการเปลี่ยนแปลงอีก",
+    disabled: true,
+  },
+];
+
+const groups: readonly SelectGroup[] = [
+  {
+    label: "ออกแบบ",
+    options: [
+      { value: "canvas", label: "Brand Canvas", icon: <ArtifactIcon /> },
+      { value: "design-system", label: "Design System", description: "Tokens and recipes" },
+    ],
+  },
+  { label: "ไม่มีรายการ", options: [] },
+  {
+    label: "ส่งมอบ",
+    options: [
+      { value: "review", label: "Review", icon: <ReferenceIcon /> },
+      { value: "product", label: "ผลิตภัณฑ์", icon: <KnowledgeIcon /> },
+      { value: "archived", label: "เก็บถาวรแล้ว", disabled: true },
+    ],
+  },
+];
 
 const meta = {
   title: "Base/Select",
@@ -20,7 +73,7 @@ const meta = {
       </div>
     ),
   ],
-} satisfies Meta<typeof Select>;
+} satisfies Meta<FlatSelectProps>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -95,6 +148,93 @@ export const InsideProfile: Story = {
   },
 };
 
+/** AC 1 and 2: icon before the label, description as a second line, trigger keeps one line. */
+export const IconsAndDescriptions: Story = {
+  args: { options: richOptions },
+  play: async ({ canvasElement }) => {
+    const trigger = within(canvasElement).getByRole("combobox", { name: "โมดูล" });
+    await userEvent.click(trigger);
+    const listbox = await body().findByRole("listbox");
+    const option = within(listbox).getByRole("option", { name: "Brand Canvas" });
+    // The accessible name is the label only; the description is the option's description.
+    await expect(option).toHaveAccessibleName("Brand Canvas");
+    await expect(option).toHaveAccessibleDescription(
+      "พื้นที่รวมแหล่งข้อมูล การสังเคราะห์ และการตัดสินใจของแบรนด์",
+    );
+    const icon = option.querySelector("svg");
+    await expect(icon).not.toBeNull();
+    await expect(icon?.closest("[aria-hidden='true']")).not.toBeNull();
+    const description = option.querySelector(".ds-menu__option-description");
+    await expect(description).not.toBeNull();
+    // The icon comes before the label in the DOM, the description after it.
+    const text = option.textContent ?? "";
+    await expect(text.indexOf("Brand Canvas")).toBeLessThan(text.indexOf("พื้นที่รวม"));
+    // An option without a description carries no description and no empty line.
+    const plain = within(listbox).getByRole("option", { name: "ผลิตภัณฑ์" });
+    await expect(plain).not.toHaveAttribute("aria-describedby");
+    await expect(plain.querySelector(".ds-menu__option-description")).toBeNull();
+    await userEvent.click(option);
+    await waitFor(() => expect(body().queryByRole("listbox")).toBeNull());
+    // AC 2: the trigger shows the icon and the label, never the description.
+    await expect(trigger).toHaveTextContent("Brand Canvas");
+    await expect(trigger).not.toHaveTextContent("พื้นที่รวม");
+    await expect(trigger.querySelector("svg")).not.toBeNull();
+    await expect(trigger.querySelector(".ds-menu__option-description")).toBeNull();
+  },
+};
+
+/** AC 3: groups with headings; arrow keys and type-ahead cross groups; an empty group is not rendered. */
+export const Grouped: Story = {
+  render: () => <Select groups={groups} />,
+  play: async ({ canvasElement }) => {
+    const trigger = within(canvasElement).getByRole("combobox", { name: "โมดูล" });
+    await userEvent.click(trigger);
+    const listbox = await body().findByRole("listbox");
+    const found = within(listbox).getAllByRole("group");
+    await expect(found).toHaveLength(2);
+    await expect(within(listbox).getByRole("group", { name: "ออกแบบ" })).toBeVisible();
+    await expect(within(listbox).getByRole("group", { name: "ส่งมอบ" })).toBeVisible();
+    await expect(within(listbox).queryByText("ไม่มีรายการ")).toBeNull();
+    const highlighted = () => listbox.querySelector("[data-highlighted]")?.textContent ?? "";
+    // The first option is highlighted on open; ArrowDown walks into the next group.
+    await userEvent.keyboard("{ArrowDown}{ArrowDown}");
+    await waitFor(() => expect(highlighted()).toContain("Review"));
+    // Type-ahead runs across groups: "B" goes back to Brand Canvas in the first group.
+    await userEvent.keyboard("b");
+    await waitFor(() => expect(highlighted()).toContain("Brand Canvas"));
+    await userEvent.keyboard("{Enter}");
+    await waitFor(() => expect(body().queryByRole("listbox")).toBeNull());
+    await expect(trigger).toHaveTextContent("Brand Canvas");
+  },
+};
+
+/** Groups with nothing in them show the empty line, not a blank listbox. */
+export const GroupedEmpty: Story = {
+  render: () => <Select groups={[{ label: "ออกแบบ", options: [] }]} />,
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole("combobox", { name: "โมดูล" }));
+    await expect(await body().findByText("ไม่มีตัวเลือก")).toBeVisible();
+    await userEvent.keyboard("{Escape}");
+  },
+};
+
+export const RichAt360: Story = {
+  decorators: [],
+  args: { options: richOptions },
+  render: (args) => (
+    <Narrow>
+      <Field label="โมดูล">
+        <Select {...args} defaultValue="long" />
+      </Field>
+    </Narrow>
+  ),
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole("combobox", { name: "โมดูล" }));
+    await expect(await body().findByRole("listbox")).toBeVisible();
+    await userEvent.keyboard("{Escape}");
+  },
+};
+
 export const Invalid: Story = {
   decorators: [],
   render: (args) => (
@@ -138,6 +278,12 @@ export const RecipesAndModes: Story = {
       </Field>
       <Field label="ผิดพลาด" error="เลือกโมดูลที่งานนี้สังกัด">
         <Select {...args} />
+      </Field>
+      <Field label="รายละเอียด">
+        <Select {...args} options={richOptions} defaultValue="canvas" />
+      </Field>
+      <Field label="กลุ่ม">
+        <Select groups={groups} defaultValue="review" />
       </Field>
     </Matrix>
   ),

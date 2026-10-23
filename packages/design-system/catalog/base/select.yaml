@@ -21,5 +21,9 @@ rules:
   - "options is an array; an empty array shows emptyText instead of a blank listbox"
   - "The listbox re-opens the trigger's profile through PortalScope (E2-4); the InsideProfile story proves it"
   - Selected option uses surface.selected and selection.fg, distinct from focus
+  - "SelectOption takes an optional icon (16 px, hidden from assistive tech) and description (a second line in text.secondary, read through aria-describedby; the option's name stays the label). The trigger shows the icon and the label after a choice, never the description"
+  - "groups ({ label, options }[]) replaces options, never both; each group is role=group named by its heading, type-ahead and arrow keys run across groups, an empty group is not rendered, and no group left shows emptyText"
+  - "Single value only: no multi-select and no search here (Combobox, later)"
 a11y:
   - Keyboard: arrows, type-ahead, Escape closes and returns focus
+  - "An icon is decoration; a group heading names its group; a description is the option's description"

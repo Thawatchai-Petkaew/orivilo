@@ -270,6 +270,27 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     bg: "menu.option.bg-selected",
     floor: TEXT,
   },
+  {
+    recipe: "menu",
+    slot: "option description",
+    fg: "menu.option.description-fg",
+    bg: "menu.bg",
+    floor: TEXT,
+  },
+  {
+    recipe: "menu",
+    slot: "option description hover",
+    fg: "menu.option.description-fg",
+    bg: "menu.option.bg-hover",
+    floor: TEXT,
+  },
+  {
+    recipe: "menu",
+    slot: "option description selected",
+    fg: "menu.option.description-fg",
+    bg: "menu.option.bg-selected",
+    floor: TEXT,
+  },
   { recipe: "menu", slot: "empty line", fg: "menu.empty", bg: "menu.bg", floor: TEXT },
   // Checkbox
   {
@@ -331,6 +352,48 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
   { recipe: "badge", slot: "danger", fg: "badge.danger.fg", bg: "badge.danger.bg", floor: TEXT },
   { recipe: "badge", slot: "info", fg: "badge.info.fg", bg: "badge.info.bg", floor: TEXT },
   { recipe: "badge", slot: "brand", fg: "badge.brand.fg", bg: "badge.brand.bg", floor: TEXT },
+  {
+    recipe: "badge",
+    slot: "neutral dot",
+    fg: "badge.dot.neutral",
+    bg: "badge.neutral.bg",
+    floor: UI,
+  },
+  {
+    recipe: "badge",
+    slot: "success dot",
+    fg: "badge.dot.success",
+    bg: "badge.success.bg",
+    floor: UI,
+  },
+  {
+    recipe: "badge",
+    slot: "warning dot",
+    fg: "badge.dot.warning",
+    bg: "badge.warning.bg",
+    floor: UI,
+  },
+  {
+    recipe: "badge",
+    slot: "danger dot",
+    fg: "badge.dot.danger",
+    bg: "badge.danger.bg",
+    floor: UI,
+  },
+  {
+    recipe: "badge",
+    slot: "info dot",
+    fg: "badge.dot.info",
+    bg: "badge.info.bg",
+    floor: UI,
+  },
+  {
+    recipe: "badge",
+    slot: "brand dot",
+    fg: "badge.dot.brand",
+    bg: "badge.brand.bg",
+    floor: UI,
+  },
   // Popover
   { recipe: "popover", slot: "text", fg: "popover.fg", bg: "popover.bg", floor: TEXT },
   {
@@ -358,6 +421,7 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     bg: "ds:surface.card",
     floor: TEXT,
   },
+  { recipe: "tabs", slot: "count", fg: "tabs.count-fg", bg: "tabs.count-bg", floor: TEXT },
   { recipe: "tabs", slot: "indicator", fg: "tabs.indicator", bg: "ds:surface.canvas", floor: UI },
   // Dialog
   { recipe: "dialog", slot: "text", fg: "dialog.fg", bg: "dialog.bg", floor: TEXT },

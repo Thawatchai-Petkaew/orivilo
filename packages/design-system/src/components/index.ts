@@ -38,7 +38,7 @@ export {
 export { Progress, type ProgressProps, type ProgressStatus } from "./progress/Progress";
 export { Resizable, type ResizableProps } from "./resizable/Resizable";
 export { ScrollArea, type ScrollAreaProps } from "./scroll-area/ScrollArea";
-export { Select, type SelectOption, type SelectProps } from "./select/Select";
+export { Select, type SelectGroup, type SelectOption, type SelectProps } from "./select/Select";
 export {
   Sheet,
   SheetClose,

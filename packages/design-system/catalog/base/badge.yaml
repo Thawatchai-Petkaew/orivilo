@@ -21,5 +21,6 @@ examples:
 rules:
   - "Status colours come from feedback tokens, never the brand accent"
   - "Never rendered without backing data (AGENTS.md)"
+  - "dot puts a dot before the word in the variant's own colour (success, warning, danger and info read feedback tokens through badge.dot.*; neutral and brand are allowed); icon puts an icon before the word, 14 px in sm and 16 px in md; one or the other, a type error together; both are hidden from assistive tech"
 a11y:
-  - "Colour never carries the meaning alone; the word does"
+  - "Colour never carries the meaning alone; the word does, so a dot or an icon is hidden from assistive tech"

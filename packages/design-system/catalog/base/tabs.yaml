@@ -19,5 +19,8 @@ examples:
 rules:
   - "Composed from Tabs, TabsList (size), TabsTrigger, TabsContent"
   - "Selected tab uses selection tokens; the indicator is an edge, not a tint only"
+  - 'orientation="vertical" lays the list beside the panel; Up and Down move between tabs, Left and Right do nothing; the selected tab shows a 2 px edge on its inner side in the selection colour, distinct from the focus ring'
+  - "TabsTrigger takes an optional icon (hidden from assistive tech) and count (a number the caller passes, never computed here): shown after the label as text, read with the tab, 0 still shows, no prop shows none, above 999 it shows 999+ with the full number in title"
 a11y:
-  - "Arrow keys move between tabs; the panel is labelled by its tab"
+  - "Arrow keys move between tabs along the list's orientation; the panel is labelled by its tab"
+  - 'A count is part of the tab''s name ("Decisions 12")'
