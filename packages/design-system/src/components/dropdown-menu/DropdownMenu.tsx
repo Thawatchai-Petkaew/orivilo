@@ -4,6 +4,7 @@ import { DropdownMenu as Primitive } from "radix-ui";
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import { PortalScope } from "../../boundary/DesignProfileBoundary";
 import { cx } from "../cx";
+import { CheckIcon, RadioDotIcon } from "../icons";
 import { MenuItemBody } from "../menu-item";
 
 export interface DropdownMenuProps {
@@ -86,6 +87,82 @@ export function DropdownMenuItem({
     >
       <MenuItemBody shortcut={shortcut}>{children}</MenuItemBody>
     </Primitive.Item>
+  );
+}
+
+export interface DropdownMenuCheckboxItemProps {
+  checked?: boolean | undefined;
+  onCheckedChange?: ((checked: boolean) => void) | undefined;
+  shortcut?: string | undefined;
+  disabled?: boolean | undefined;
+  /** Close the menu on toggle; off by default so several options can be set in a row. */
+  closeOnSelect?: boolean | undefined;
+  className?: string | undefined;
+  children: ReactNode;
+}
+
+/**
+ * An on/off choice inside a menu (ORV-78). Checked shows a check glyph plus the selected fill, never
+ * fill alone; the glyph column is kept when unchecked so labels line up with radio items.
+ */
+export function DropdownMenuCheckboxItem({
+  shortcut,
+  closeOnSelect = false,
+  className,
+  children,
+  ...rest
+}: DropdownMenuCheckboxItemProps) {
+  return (
+    <Primitive.CheckboxItem
+      {...rest}
+      className={cx("ds-menu__item", className)}
+      data-checkable=""
+      onSelect={closeOnSelect ? undefined : (event) => event.preventDefault()}
+    >
+      <span className="ds-menu__indicator" aria-hidden>
+        <Primitive.ItemIndicator>
+          <CheckIcon className="size-4" />
+        </Primitive.ItemIndicator>
+      </span>
+      <MenuItemBody shortcut={shortcut}>{children}</MenuItemBody>
+    </Primitive.CheckboxItem>
+  );
+}
+
+export interface DropdownMenuRadioGroupProps {
+  value?: string | undefined;
+  onValueChange?: ((value: string) => void) | undefined;
+  children: ReactNode;
+}
+
+/** One of a few choices inside a menu (ORV-78); a choice closes the menu like an action. */
+export function DropdownMenuRadioGroup(props: DropdownMenuRadioGroupProps) {
+  return <Primitive.RadioGroup {...props} />;
+}
+
+export interface DropdownMenuRadioItemProps {
+  value: string;
+  shortcut?: string | undefined;
+  disabled?: boolean | undefined;
+  className?: string | undefined;
+  children: ReactNode;
+}
+
+export function DropdownMenuRadioItem({
+  shortcut,
+  className,
+  children,
+  ...rest
+}: DropdownMenuRadioItemProps) {
+  return (
+    <Primitive.RadioItem {...rest} className={cx("ds-menu__item", className)} data-checkable="">
+      <span className="ds-menu__indicator" aria-hidden>
+        <Primitive.ItemIndicator>
+          <RadioDotIcon className="size-4" fill="currentColor" />
+        </Primitive.ItemIndicator>
+      </span>
+      <MenuItemBody shortcut={shortcut}>{children}</MenuItemBody>
+    </Primitive.RadioItem>
   );
 }
 

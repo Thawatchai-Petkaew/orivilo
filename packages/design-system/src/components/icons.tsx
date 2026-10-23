@@ -7,6 +7,7 @@ import {
   ChevronDown,
   ChevronUp,
   CircleCheck,
+  CircleSmall,
   CircleDashed,
   CircleDotDashed,
   Copy,
@@ -71,6 +72,8 @@ function lucide(Glyph: LucideIcon, name: string) {
 
 export const CheckIcon = lucide(Check, "CheckIcon");
 export const MinusIcon = lucide(Minus, "MinusIcon");
+/** The chosen radio item in a menu (ORV-78): a small disc in the current ink. */
+export const RadioDotIcon = lucide(CircleSmall, "RadioDotIcon");
 export const ChevronDownIcon = lucide(ChevronDown, "ChevronDownIcon");
 /** A three-quarter ring; the `ds-spin` recipe class turns it. */
 export const SpinnerIcon = lucide(LoaderCircle, "SpinnerIcon");

@@ -12,12 +12,15 @@ avoidWhen:
 contract: DropdownMenuProps
 variants: []
 sizes: []
-states: [closed, open, item-hover, item-disabled, item-destructive]
+states: [closed, open, item-hover, item-disabled, item-destructive, item-checked]
 recipes: [neutral, professional, friendly]
 examples: []
 rules:
   - "Destructive items use feedback.danger and sit last; highlighted, they take the danger surface"
   - "Shortcut hints rendered with Kbd from the command registry; a disabled item keeps its shortcut"
   - "Items share the ds-menu recipe with Select, so a menu reads the same everywhere; the content re-opens the trigger's profile through PortalScope"
+  - "Checkbox and radio items (ORV-78): checked shows a glyph plus the selected fill, never fill alone; checkable items keep a glyph column when unchecked; no switch indicator in a menu"
+  - "A checkbox item keeps the menu open (closeOnSelect to change it); a radio choice closes it"
 a11y:
   - "Arrow keys move, typeahead selects, Escape closes, focus returns to trigger; the menu is named by its trigger"
+  - "Checkable items are menuitemcheckbox or menuitemradio with aria-checked; Space toggles a checkbox item"
