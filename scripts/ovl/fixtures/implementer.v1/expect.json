@@ -1,0 +1,205 @@
+{
+  "invalid-blocked-empty-reason.json": {
+    "path": "/blocked_on",
+    "keyword": "minLength",
+    "params": {
+      "limit": 1
+    }
+  },
+  "invalid-blocked-on-number.json": {
+    "path": "/blocked_on",
+    "keyword": "type",
+    "params": {
+      "type": ["string", "null"]
+    }
+  },
+  "invalid-blocked-without-reason.json": {
+    "path": "/blocked_on",
+    "keyword": "type",
+    "params": {
+      "type": "string"
+    }
+  },
+  "invalid-changed-item-extra-field.json": {
+    "path": "/changed/0",
+    "keyword": "additionalProperties",
+    "params": {
+      "additionalProperty": "why"
+    }
+  },
+  "invalid-changed-item-file-not-string.json": {
+    "path": "/changed/0/file",
+    "keyword": "type",
+    "params": {
+      "type": "string"
+    }
+  },
+  "invalid-changed-item-missing-file.json": {
+    "path": "/changed/0",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "file"
+    }
+  },
+  "invalid-changed-item-missing-note.json": {
+    "path": "/changed/0",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "note"
+    }
+  },
+  "invalid-deviations-item-not-string.json": {
+    "path": "/deviations/0",
+    "keyword": "type",
+    "params": {
+      "type": "string"
+    }
+  },
+  "invalid-done-with-blocked-on.json": {
+    "path": "/blocked_on",
+    "keyword": "const",
+    "params": {
+      "allowedValue": null
+    }
+  },
+  "invalid-done-without-verified.json": {
+    "path": "/verified",
+    "keyword": "minItems",
+    "params": {
+      "limit": 1
+    }
+  },
+  "invalid-empty-evidence.json": {
+    "path": "/verified/0/evidence",
+    "keyword": "minLength",
+    "params": {
+      "limit": 1
+    }
+  },
+  "invalid-empty-note.json": {
+    "path": "/changed/0/note",
+    "keyword": "minLength",
+    "params": {
+      "limit": 1
+    }
+  },
+  "invalid-extra-field.json": {
+    "path": "",
+    "keyword": "additionalProperties",
+    "params": {
+      "additionalProperty": "extra"
+    }
+  },
+  "invalid-missing-blocked-on.json": {
+    "path": "",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "blocked_on"
+    }
+  },
+  "invalid-missing-changed.json": {
+    "path": "",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "changed"
+    }
+  },
+  "invalid-missing-deviations.json": {
+    "path": "",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "deviations"
+    }
+  },
+  "invalid-missing-needs-decision.json": {
+    "path": "",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "needs_decision"
+    }
+  },
+  "invalid-missing-result.json": {
+    "path": "",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "result"
+    }
+  },
+  "invalid-missing-skills-used.json": {
+    "path": "",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "skills_used"
+    }
+  },
+  "invalid-missing-task-id.json": {
+    "path": "",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "task_id"
+    }
+  },
+  "invalid-missing-verified.json": {
+    "path": "",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "verified"
+    }
+  },
+  "invalid-needs-decision-item-not-string.json": {
+    "path": "/needs_decision/0",
+    "keyword": "type",
+    "params": {
+      "type": "string"
+    }
+  },
+  "invalid-result-enum.json": {
+    "path": "/result",
+    "keyword": "enum",
+    "params": {
+      "allowedValues": ["done", "blocked"]
+    }
+  },
+  "invalid-skills-used-item-not-string.json": {
+    "path": "/skills_used/0",
+    "keyword": "type",
+    "params": {
+      "type": "string"
+    }
+  },
+  "invalid-task-id-not-string.json": {
+    "path": "/task_id",
+    "keyword": "type",
+    "params": {
+      "type": "string"
+    }
+  },
+  "invalid-verified-item-empty-check.json": {
+    "path": "/verified/0/check",
+    "keyword": "minLength",
+    "params": {
+      "limit": 1
+    }
+  },
+  "invalid-verified-item-extra-field.json": {
+    "path": "/verified/0",
+    "keyword": "additionalProperties",
+    "params": {
+      "additionalProperty": "why"
+    }
+  },
+  "invalid-verified-item-missing-check.json": {
+    "path": "/verified/0",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "check"
+    }
+  },
+  "invalid-verified-item-missing-evidence.json": {
+    "path": "/verified/0",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "evidence"
+    }
+  }
+}

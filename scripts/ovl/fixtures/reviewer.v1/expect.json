@@ -1,0 +1,269 @@
+{
+  "invalid-checks-run-command-not-string.json": {
+    "path": "/checks_run/0/command",
+    "keyword": "type",
+    "params": {
+      "type": "string"
+    }
+  },
+  "invalid-checks-run-item-extra-field.json": {
+    "path": "/checks_run/0",
+    "keyword": "additionalProperties",
+    "params": {
+      "additionalProperty": "why"
+    }
+  },
+  "invalid-checks-run-item-missing-command.json": {
+    "path": "/checks_run/0",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "command"
+    }
+  },
+  "invalid-checks-run-item-missing-exit-code.json": {
+    "path": "/checks_run/0",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "exit_code"
+    }
+  },
+  "invalid-checks-run-item-missing-summary.json": {
+    "path": "/checks_run/0",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "summary"
+    }
+  },
+  "invalid-checks-run-summary-not-string.json": {
+    "path": "/checks_run/0/summary",
+    "keyword": "type",
+    "params": {
+      "type": "string"
+    }
+  },
+  "invalid-dropped-bad-finding.json": {
+    "path": "/dropped/0",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "severity"
+    }
+  },
+  "invalid-dropped-evidence-extra-field.json": {
+    "path": "/dropped/0/evidence",
+    "keyword": "additionalProperties",
+    "params": {
+      "additionalProperty": "why"
+    }
+  },
+  "invalid-empty-claim.json": {
+    "path": "/findings/0/claim",
+    "keyword": "minLength",
+    "params": {
+      "limit": 1
+    }
+  },
+  "invalid-empty-evidence-ref.json": {
+    "path": "/findings/0/evidence/ref",
+    "keyword": "minLength",
+    "params": {
+      "limit": 1
+    }
+  },
+  "invalid-empty-expected.json": {
+    "path": "/findings/0/expected",
+    "keyword": "minLength",
+    "params": {
+      "limit": 1
+    }
+  },
+  "invalid-evidence-extra-field.json": {
+    "path": "/findings/0/evidence",
+    "keyword": "additionalProperties",
+    "params": {
+      "additionalProperty": "why"
+    }
+  },
+  "invalid-evidence-kind-enum.json": {
+    "path": "/findings/0/evidence/kind",
+    "keyword": "enum",
+    "params": {
+      "allowedValues": ["command", "screenshot", "computed_style", "code"]
+    }
+  },
+  "invalid-evidence-missing-kind.json": {
+    "path": "/findings/0/evidence",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "kind"
+    }
+  },
+  "invalid-evidence-missing-ref.json": {
+    "path": "/findings/0/evidence",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "ref"
+    }
+  },
+  "invalid-evidence-observed-not-string.json": {
+    "path": "/dropped/0/evidence/observed",
+    "keyword": "type",
+    "params": {
+      "type": "string"
+    }
+  },
+  "invalid-exit-code-string.json": {
+    "path": "/checks_run/0/exit_code",
+    "keyword": "type",
+    "params": {
+      "type": "integer"
+    }
+  },
+  "invalid-extra-field.json": {
+    "path": "",
+    "keyword": "additionalProperties",
+    "params": {
+      "additionalProperty": "extra"
+    }
+  },
+  "invalid-finding-extra-field.json": {
+    "path": "/findings/0",
+    "keyword": "additionalProperties",
+    "params": {
+      "additionalProperty": "why"
+    }
+  },
+  "invalid-finding-file-not-string.json": {
+    "path": "/dropped/0/file",
+    "keyword": "type",
+    "params": {
+      "type": "string"
+    }
+  },
+  "invalid-finding-id-not-string.json": {
+    "path": "/dropped/0/id",
+    "keyword": "type",
+    "params": {
+      "type": "string"
+    }
+  },
+  "invalid-finding-line-not-integer.json": {
+    "path": "/findings/0/line",
+    "keyword": "type",
+    "params": {
+      "type": "integer"
+    }
+  },
+  "invalid-finding-missing-claim.json": {
+    "path": "/findings/0",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "claim"
+    }
+  },
+  "invalid-finding-missing-evidence.json": {
+    "path": "/findings/0",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "evidence"
+    }
+  },
+  "invalid-finding-missing-expected.json": {
+    "path": "/findings/0",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "expected"
+    }
+  },
+  "invalid-finding-missing-id.json": {
+    "path": "/findings/0",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "id"
+    }
+  },
+  "invalid-finding-missing-severity.json": {
+    "path": "/findings/0",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "severity"
+    }
+  },
+  "invalid-line-zero.json": {
+    "path": "/findings/0/line",
+    "keyword": "minimum",
+    "params": {
+      "comparison": ">=",
+      "limit": 1
+    }
+  },
+  "invalid-missing-checks-run.json": {
+    "path": "",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "checks_run"
+    }
+  },
+  "invalid-missing-findings.json": {
+    "path": "",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "findings"
+    }
+  },
+  "invalid-missing-head-sha.json": {
+    "path": "",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "head_sha"
+    }
+  },
+  "invalid-missing-task-id.json": {
+    "path": "",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "task_id"
+    }
+  },
+  "invalid-missing-verdict.json": {
+    "path": "",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "verdict"
+    }
+  },
+  "invalid-severity-enum.json": {
+    "path": "/findings/0/severity",
+    "keyword": "enum",
+    "params": {
+      "allowedValues": ["Critical", "Important", "Suggestion"]
+    }
+  },
+  "invalid-short-head-sha.json": {
+    "path": "/head_sha",
+    "keyword": "pattern",
+    "params": {
+      "pattern": "^[0-9a-f]{40}$"
+    }
+  },
+  "invalid-task-id-not-string.json": {
+    "path": "/task_id",
+    "keyword": "type",
+    "params": {
+      "type": "string"
+    }
+  },
+  "invalid-uppercase-head-sha.json": {
+    "path": "/head_sha",
+    "keyword": "pattern",
+    "params": {
+      "pattern": "^[0-9a-f]{40}$"
+    }
+  },
+  "invalid-verdict-enum.json": {
+    "path": "/verdict",
+    "keyword": "enum",
+    "params": {
+      "allowedValues": ["approve", "request_changes"]
+    }
+  }
+}

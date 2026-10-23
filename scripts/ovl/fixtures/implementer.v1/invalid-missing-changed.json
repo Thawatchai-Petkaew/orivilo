@@ -1,0 +1,14 @@
+{
+  "task_id": "t",
+  "result": "done",
+  "verified": [
+    {
+      "check": "node --test",
+      "evidence": "pass 5"
+    }
+  ],
+  "skills_used": [],
+  "deviations": [],
+  "needs_decision": [],
+  "blocked_on": null
+}

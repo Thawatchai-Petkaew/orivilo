@@ -1,0 +1,43 @@
+{
+  "task_id": "t",
+  "issue": "ORV-81",
+  "pr": 1,
+  "verdict": "request_changes",
+  "head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "quality_gate": {
+    "report": ".quality-gate/report.json",
+    "ok": false,
+    "head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "ac": [
+    {
+      "row": 1,
+      "status": "fail",
+      "visual": "yes",
+      "evidence": [
+        {
+          "kind": "command",
+          "ref": "pnpm test",
+          "observed": "ok"
+        }
+      ]
+    }
+  ],
+  "screenshots": [
+    {
+      "story": "components-checkbox--default",
+      "mode": "light",
+      "path": ".orivilo/runs/ORV-81/t/screenshots/components-checkbox--default-light.png",
+      "looked_at": true,
+      "note": "glyph centred"
+    },
+    {
+      "story": "components-checkbox--default",
+      "mode": "dark",
+      "path": ".orivilo/runs/ORV-81/t/screenshots/components-checkbox--default-dark.png",
+      "looked_at": true,
+      "note": "glyph centred"
+    }
+  ],
+  "findings": []
+}

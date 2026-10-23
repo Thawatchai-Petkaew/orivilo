@@ -1,0 +1,12 @@
+{
+  "task_id": "t",
+  "verdict": "request_changes",
+  "head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "checks_run": [
+    {
+      "command": "pnpm test",
+      "exit_code": 1,
+      "summary": "fail"
+    }
+  ]
+}
