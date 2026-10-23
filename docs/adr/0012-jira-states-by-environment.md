@@ -48,6 +48,8 @@ Three problems followed:
 
 3. **During the POC, G5 happens on staging.** The owner tests on staging or on `localhost` and moves an issue from Staging (or G4 review for lane L) to Done. Release, G5 review and a production Done start with ORV-63.
 
+4. **During the POC, Claude passes G1 and G2.** On 2026-10-23 the owner wrote in the working thread: "ในช่วง POC คุณตรวจสอบและผ่าน G1, G2, ได้เลย ไม่ต้องรอผม" (during the POC, Claude reviews and passes G1 and G2 without waiting). Claude still posts each packet with its review, quotes this delegation, and moves the issue on to Design or Build. The owner can take a gate back at any time by saying so. G5 stays the owner's. The delegation ends with the POC (ORV-63).
+
 ## Consequences
 
 - Each issue's status shows where its code is. "G3 PR review" reads oddly for merged work. Option B, a status "In develop", is deferred to ORV-63, when the workflow changes anyway.

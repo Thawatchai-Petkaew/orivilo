@@ -1,6 +1,6 @@
 # Handoff: where the work stands
 
-Read this first when you pick the work up in a new session or on another account. Update it before you stop, so the next session can start without asking. Last updated 2026-10-23, after ORV-72.
+Read this first when you pick the work up in a new session or on another account. Update it before you stop, so the next session can start without asking. Last updated 2026-10-23, after ORV-79 (audit D.2 done).
 
 The plan and its order live in `docs/context/master-plan.md`; pages published in the Claude project thread are listed in `docs/context/artifacts.md`.
 
@@ -32,13 +32,20 @@ The plan and its order live in `docs/context/master-plan.md`; pages published in
 | ORV-70 | Tooltip description line and align (in `develop`, not yet on staging)         | #58 |
 | ORV-71 | Master plan and project artifact list in the repo (in `develop`)              | #59 |
 | ORV-72 | Checkbox sm, Textarea sm and Thai grapheme counter (in `develop`)             | #60 |
+| ORV-73 | Migrate runs from a path with spaces; local setup steps (in `develop`)        | #61 |
+| ORV-74 | Stories press the platform Mod key; `pnpm test` runs on macOS (in `develop`)  | #62 |
+| ORV-75 | Jira states by environment, ADR 0012 option A (in `develop`)                  | #63 |
+| ORV-77 | RangeSlider on Radix `preserveThumbOrder` (in `develop`)                      | #64 |
+| ORV-78 | DropdownMenu checkbox and radio items (in `develop`)                          | #65 |
 
 ## Next, in order
 
-1. Audit D.2 stories 16 and 17: Slider range, DropdownMenu checkbox and radio items (story 14 is ORV-70, story 15 is ORV-72). One story of about 400 lines each; spec in `docs/specs/<KEY>/spec.md` first. When both are in `develop`, propose the batch ORV-70 to story 17 as a release to staging.
-2. ORV-45 part 2, TaskBar, then part 3, CanvasChat (audit D.1 stories 1 to 8: Spinner, Skeleton, Collapsible, chat parts). When all parts are merged, move ORV-45 to "Staging".
-3. Audit D.3: missing components by Studio need.
-4. CI/CD plan (https://claude.ai/artifact/S49r4bs4x5cn7g33HbT7rx) steps 4 to 7: turbo cache and affected-only runs in CI, the flaky `BlockLibrary > Place By Keyboard` test, branch protection on `main` (the owner turns it on), ORV-63 after the POC.
+1. Release the batch in `develop` to staging when the owner says yes: ORV-70 to ORV-75, ORV-77, ORV-78 and ORV-79 once their PRs are merged. Audit D.2 is complete.
+2. AI team Phase 3 (the AI Team Loop plan, https://claude.ai/artifact/G7gBVvVk5fgsxZPYWbw4XC): E0-4 quality-gate script with real exit codes, E0-1 Jira field check, then an orchestrated dispatch where tasks go out and come back as JSON with a verify step before anything counts as done. Jira Automation and GitHub secrets need the owner (see master-plan.md).
+3. ORV-45 part 2, TaskBar, then part 3, CanvasChat (audit D.1 stories 1 to 8: Spinner, Skeleton, Collapsible, chat parts). When all parts are merged, move ORV-45 to "Staging".
+4. Audit D.3: missing components by Studio need.
+5. ORV-76: CanvasBoard, CanvasContextMenu and BlockLibrary stories flaky on macOS (pass in CI).
+6. CI/CD plan (https://claude.ai/artifact/S49r4bs4x5cn7g33HbT7rx) steps 4 to 7: turbo cache and affected-only runs in CI, the flaky `BlockLibrary > Place By Keyboard` test, branch protection on `main` (the owner turns it on), ORV-63 after the POC.
 
 ## Set up a machine
 
