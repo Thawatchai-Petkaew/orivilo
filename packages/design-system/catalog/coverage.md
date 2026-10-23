@@ -6,36 +6,36 @@ Legend: `none` not started, `planned` entry exists, no code, `draft` code and st
 
 ## Base
 
-| Component     | Status  | Story              |
-| ------------- | ------- | ------------------ |
-| Button        | stable  | E2-4               |
-| Input         | stable  | E2-4               |
-| Field         | stable  | E2-4               |
-| Select        | stable  | E2-4               |
-| Checkbox      | stable  | E2-4               |
-| RadioGroup    | none    |                    |
-| Switch        | none    |                    |
-| Textarea      | stable  | E2-4               |
-| Combobox      | none    |                    |
-| Badge         | stable  | E2-4               |
-| Tag           | planned | E4-5               |
-| Avatar        | none    |                    |
-| Tooltip       | stable  | E2-4               |
-| Dropdown menu | stable  | base-dropdown-menu |
-| Tabs          | stable  | E2-4               |
-| Breadcrumb    | none    |                    |
-| Pagination    | none    |                    |
-| Progress      | planned | E4-5               |
-| Slider        | draft   | base-slider        |
-| Toast         | planned | E4-5               |
-| File upload   | none    |                    |
-| Date picker   | none    |                    |
-| Popover       | stable  | E2-4               |
-| ContextMenu   | stable  | base-context-menu  |
-| ToggleGroup   | stable  | base-toggle-group  |
-| ScrollArea    | draft   | base-scroll-area   |
-| Kbd           | stable  | base-kbd           |
-| Resizable     | draft   | base-resizable     |
+| Component     | Status | Story              |
+| ------------- | ------ | ------------------ |
+| Button        | stable | E2-4               |
+| Input         | stable | E2-4               |
+| Field         | stable | E2-4               |
+| Select        | stable | E2-4               |
+| Checkbox      | stable | E2-4               |
+| RadioGroup    | none   |                    |
+| Switch        | none   |                    |
+| Textarea      | stable | E2-4               |
+| Combobox      | none   |                    |
+| Badge         | stable | E2-4               |
+| Tag           | draft  | base-tag           |
+| Avatar        | none   |                    |
+| Tooltip       | stable | E2-4               |
+| Dropdown menu | stable | base-dropdown-menu |
+| Tabs          | stable | E2-4               |
+| Breadcrumb    | none   |                    |
+| Pagination    | none   |                    |
+| Progress      | draft  | base-progress      |
+| Slider        | draft  | base-slider        |
+| Toast         | draft  | base-toast         |
+| File upload   | none   |                    |
+| Date picker   | none   |                    |
+| Popover       | stable | E2-4               |
+| ContextMenu   | stable | base-context-menu  |
+| ToggleGroup   | stable | base-toggle-group  |
+| ScrollArea    | draft  | base-scroll-area   |
+| Kbd           | stable | base-kbd           |
+| Resizable     | draft  | base-resizable     |
 
 ## Application
 

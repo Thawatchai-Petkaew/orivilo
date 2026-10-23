@@ -646,6 +646,11 @@
     opacity: 0;
   }
 }
+@keyframes ds-fade-out {
+  to {
+    opacity: 0;
+  }
+}
 @keyframes ds-dialog-in {
   from {
     opacity: 0;
@@ -2957,4 +2962,302 @@
   font-family: var(--ds-type-code-md-font-family);
   font-size: var(--ds-type-code-md-font-size);
   line-height: var(--ds-type-code-md-line-height);
+}
+
+/* Toast (E4-5) ------------------------------------------------------------------------------- */
+
+/* The region sits at the bottom end corner and clears the safe-area insets on every side. */
+.ds-toast-viewport {
+  position: fixed;
+  bottom: 0;
+  inset-inline-end: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmp-toast-stack-gap);
+  box-sizing: border-box;
+  width: min(calc(var(--cmp-toast-width) + 2 * var(--cmp-toast-offset)), 100%);
+  margin: 0;
+  padding-block-end: max(var(--cmp-toast-offset), env(safe-area-inset-bottom));
+  padding-inline: max(var(--cmp-toast-offset), env(safe-area-inset-left))
+    max(var(--cmp-toast-offset), env(safe-area-inset-right));
+  list-style: none;
+  z-index: var(--cmp-toast-layer);
+}
+.ds-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--cmp-toast-gap);
+  padding: var(--cmp-toast-padding);
+  border-inline-start: var(--cmp-toast-edge-width) solid var(--cmp-toast-neutral-edge);
+  border-radius: var(--cmp-toast-radius);
+  background: var(--cmp-toast-bg);
+  color: var(--cmp-toast-fg);
+  box-shadow: var(--cmp-toast-shadow);
+  font-family: var(--cmp-toast-body-type-font-family);
+  font-size: var(--cmp-toast-body-type-font-size);
+  line-height: var(--cmp-toast-body-type-line-height);
+  font-weight: var(--cmp-toast-body-type-font-weight);
+  letter-spacing: var(--cmp-toast-body-type-letter-spacing);
+  overflow-wrap: anywhere;
+  list-style: none;
+  user-select: none;
+}
+.ds-toast[data-variant="success"] {
+  border-inline-start-color: var(--cmp-toast-success-edge);
+}
+.ds-toast[data-variant="danger"] {
+  border-inline-start-color: var(--cmp-toast-danger-edge);
+}
+.ds-toast[data-state="open"] {
+  animation: ds-toast-in var(--ds-motion-overlay-duration) var(--ds-motion-easing);
+}
+.ds-toast[data-state="closed"] {
+  animation: ds-fade-out var(--ds-motion-feedback-duration) var(--ds-motion-easing) forwards;
+}
+.ds-toast[data-swipe="move"] {
+  transform: translateX(var(--radix-toast-swipe-move-x));
+}
+.ds-toast__icon {
+  flex: none;
+  color: var(--cmp-toast-success-icon);
+}
+.ds-toast[data-variant="danger"] .ds-toast__icon {
+  color: var(--cmp-toast-danger-icon);
+}
+.ds-toast__content {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--ds-space-stack-sm);
+}
+.ds-toast__title {
+  font-family: var(--cmp-toast-title-type-font-family);
+  font-size: var(--cmp-toast-title-type-font-size);
+  line-height: var(--cmp-toast-title-type-line-height);
+  font-weight: var(--cmp-toast-title-type-font-weight);
+  letter-spacing: var(--cmp-toast-title-type-letter-spacing);
+}
+.ds-toast__description {
+  color: var(--cmp-toast-description);
+}
+/* The action and the close control sit on the inverse ground, so they take the toast's own text. */
+.ds-toast__action,
+.ds-toast__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--cmp-button-height-sm);
+  border: 1px solid currentColor;
+  border-radius: var(--ds-shape-control-radius);
+  background: transparent;
+  color: var(--cmp-toast-fg);
+  font: inherit;
+  cursor: pointer;
+}
+.ds-toast__action {
+  padding-inline: var(--cmp-button-padding-x-sm);
+}
+.ds-toast__close {
+  flex: none;
+  min-width: var(--cmp-button-height-sm);
+  border-color: transparent;
+}
+.ds-toast__close:hover {
+  border-color: currentColor;
+}
+/* The global ring is not readable on the inverse ground, so the outline takes the toast's text. */
+.ds-toast__action:focus-visible,
+.ds-toast__close:focus-visible {
+  outline: 2px solid var(--cmp-toast-fg);
+  outline-offset: 2px;
+}
+@keyframes ds-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+}
+
+/* Progress (E4-5) ---------------------------------------------------------------------------- */
+
+.ds-progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmp-progress-gap);
+}
+.ds-progress__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--cmp-progress-gap);
+  font-family: var(--cmp-field-label-type-font-family);
+  font-size: var(--cmp-field-label-type-font-size);
+  line-height: var(--cmp-field-label-type-line-height);
+  font-weight: var(--cmp-field-label-type-font-weight);
+  letter-spacing: var(--cmp-field-label-type-letter-spacing);
+  color: var(--cmp-field-label);
+}
+.ds-progress__label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ds-progress__value {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cmp-progress-gap);
+  color: var(--cmp-progress-value-fg);
+  font-family: var(--cmp-progress-value-type-font-family);
+  font-size: var(--cmp-progress-value-type-font-size);
+  line-height: var(--cmp-progress-value-type-line-height);
+  font-weight: var(--cmp-progress-value-type-font-weight);
+  letter-spacing: var(--cmp-progress-value-type-letter-spacing);
+  font-variant-numeric: tabular-nums;
+}
+.ds-progress__status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-space-inline-sm);
+}
+.ds-progress[data-status="done"] .ds-progress__status {
+  color: var(--cmp-progress-done);
+}
+.ds-progress[data-status="failed"] .ds-progress__status {
+  color: var(--cmp-progress-failed);
+}
+.ds-progress__bar {
+  position: relative;
+  overflow: hidden;
+  height: var(--cmp-progress-height-md);
+  border: 1px solid var(--cmp-progress-track-border);
+  border-radius: var(--cmp-progress-radius);
+  background: var(--cmp-progress-track);
+}
+.ds-progress[data-size="sm"] .ds-progress__bar {
+  height: var(--cmp-progress-height-sm);
+}
+.ds-progress__fill {
+  display: block;
+  height: 100%;
+  background: var(--cmp-progress-fill);
+  transition: inline-size var(--ds-motion-feedback-duration) var(--ds-motion-easing);
+}
+.ds-progress[data-status="done"] .ds-progress__fill {
+  background: var(--cmp-progress-done);
+}
+.ds-progress[data-status="failed"] .ds-progress__fill {
+  background: var(--cmp-progress-failed);
+}
+/* Unknown length: a segment sweeps along the track. Static under reduced motion. */
+.ds-progress[data-indeterminate] .ds-progress__fill {
+  inline-size: 40%;
+  animation: ds-progress-sweep 1.4s var(--ds-motion-easing) infinite;
+}
+@keyframes ds-progress-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ds-progress[data-indeterminate] .ds-progress__fill {
+    animation: none;
+  }
+}
+
+/* Tag (E4-5) --------------------------------------------------------------------------------- */
+
+.ds-tag {
+  display: inline-flex;
+  align-items: stretch;
+  max-width: min(var(--cmp-tag-max-width), 100%);
+  min-height: var(--cmp-tag-height-md);
+  border: 1px solid var(--cmp-tag-border);
+  border-radius: var(--cmp-tag-radius);
+  background: var(--cmp-tag-bg);
+  color: var(--cmp-tag-fg);
+  font-family: var(--cmp-tag-type-md-font-family);
+  font-size: var(--cmp-tag-type-md-font-size);
+  line-height: var(--cmp-tag-type-md-line-height);
+  font-weight: var(--cmp-tag-type-md-font-weight);
+  letter-spacing: var(--cmp-tag-type-md-letter-spacing);
+  overflow: hidden;
+}
+.ds-tag[data-size="sm"] {
+  min-height: var(--cmp-tag-height-sm);
+  font-family: var(--cmp-tag-type-sm-font-family);
+  font-size: var(--cmp-tag-type-sm-font-size);
+  line-height: var(--cmp-tag-type-sm-line-height);
+  font-weight: var(--cmp-tag-type-sm-font-weight);
+  letter-spacing: var(--cmp-tag-type-sm-letter-spacing);
+}
+.ds-tag__main {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cmp-tag-gap);
+  min-width: 0;
+  padding-inline: var(--cmp-tag-padding-x-md);
+  border: 0;
+  background: transparent;
+  color: currentColor;
+  font: inherit;
+  text-align: start;
+}
+.ds-tag[data-size="sm"] .ds-tag__main {
+  padding-inline: var(--cmp-tag-padding-x-sm);
+}
+button.ds-tag__main {
+  cursor: pointer;
+}
+.ds-tag__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ds-tag__check {
+  flex: none;
+}
+.ds-tag:hover {
+  background: var(--cmp-tag-bg-hover);
+}
+/* Selected: the selection ground and a heavier edge, plus the check; never colour alone. */
+.ds-tag[data-selected] {
+  border-color: var(--cmp-tag-border-selected);
+  border-width: 2px;
+  background: var(--cmp-tag-bg-selected);
+}
+.ds-tag__remove {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--cmp-tag-height-sm);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--cmp-tag-remove-fg);
+  cursor: pointer;
+}
+.ds-tag__remove:hover {
+  background: var(--cmp-tag-remove-bg-hover);
+}
+.ds-tag__main:focus-visible,
+.ds-tag__remove:focus-visible {
+  outline: 2px solid var(--ds-focus-ring);
+  outline-offset: -2px;
+}
+.ds-tag[data-disabled] {
+  border-color: var(--cmp-tag-bg-disabled);
+  background: var(--cmp-tag-bg-disabled);
+  color: var(--cmp-tag-fg-disabled);
+}
+.ds-tag[data-disabled] .ds-tag__main,
+.ds-tag[data-disabled] .ds-tag__remove {
+  color: var(--cmp-tag-fg-disabled);
+  cursor: not-allowed;
 }

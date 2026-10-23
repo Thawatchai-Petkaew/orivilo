@@ -511,6 +511,67 @@
     "padding": {
       "$type": "dimension",
       "$value": "{space.inset.md}"
+    },
+    "$description": "A short notice that does not block (E4-5): saved, generation failed",
+    "description": {
+      "$type": "color",
+      "$value": "{text.on-inverse}"
+    },
+    "shadow": {
+      "$type": "shadow",
+      "$value": "{elevation.overlay}"
+    },
+    "gap": {
+      "$type": "dimension",
+      "$value": "{space.inline.md}"
+    },
+    "stack-gap": {
+      "$type": "dimension",
+      "$value": "{space.stack.sm}"
+    },
+    "offset": {
+      "$type": "dimension",
+      "$value": "{space.gutter}"
+    },
+    "width": {
+      "$type": "dimension",
+      "$value": "{size.panel.default}"
+    },
+    "edge-width": {
+      "$type": "dimension",
+      "$value": "{space.inline.sm}"
+    },
+    "neutral-edge": {
+      "$type": "color",
+      "$value": "{border.strong}"
+    },
+    "success-edge": {
+      "$type": "color",
+      "$value": "{feedback.success.border}"
+    },
+    "success-icon": {
+      "$type": "color",
+      "$value": "{text.on-inverse}"
+    },
+    "danger-edge": {
+      "$type": "color",
+      "$value": "{feedback.danger.border}"
+    },
+    "danger-icon": {
+      "$type": "color",
+      "$value": "{text.on-inverse}"
+    },
+    "title-type": {
+      "$type": "typography",
+      "$value": "{type.label.md}"
+    },
+    "body-type": {
+      "$type": "typography",
+      "$value": "{type.body.sm}"
+    },
+    "layer": {
+      "$type": "number",
+      "$value": "{layer.tooltip}"
     }
   },
   "tooltip": {
@@ -1880,6 +1941,140 @@
     "preview-radius": {
       "$type": "dimension",
       "$value": "{shape.container.radius}"
+    }
+  },
+  "progress": {
+    "$description": "How far a job has got (E4-5): a bar, a label and the value as text",
+    "track": {
+      "$type": "color",
+      "$value": "{surface.sunken}"
+    },
+    "fill": {
+      "$type": "color",
+      "$value": "{action.primary}"
+    },
+    "done": {
+      "$type": "color",
+      "$value": "{feedback.success.fg}"
+    },
+    "failed": {
+      "$type": "color",
+      "$value": "{feedback.danger.fg}"
+    },
+    "value-fg": {
+      "$type": "color",
+      "$value": "{text.secondary}"
+    },
+    "height": {
+      "sm": {
+        "$type": "dimension",
+        "$value": "{space.inline.sm}"
+      },
+      "md": {
+        "$type": "dimension",
+        "$value": "{space.inline.md}"
+      }
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.check.radius}"
+    },
+    "gap": {
+      "$type": "dimension",
+      "$value": "{space.inline.md}"
+    },
+    "value-type": {
+      "$type": "typography",
+      "$value": "{type.label.md}"
+    },
+    "track-border": {
+      "$type": "color",
+      "$value": "{border.control}"
+    }
+  },
+  "tag": {
+    "$description": "A removable or selectable label the user chose (E4-5): a reference, a filter, a mention",
+    "bg": {
+      "$type": "color",
+      "$value": "{surface.sunken}"
+    },
+    "bg-hover": {
+      "$type": "color",
+      "$value": "{surface.hover}"
+    },
+    "fg": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    },
+    "border": {
+      "$type": "color",
+      "$value": "{border.control}"
+    },
+    "bg-selected": {
+      "$type": "color",
+      "$value": "{surface.selected}"
+    },
+    "border-selected": {
+      "$type": "color",
+      "$value": "{selection.fg}"
+    },
+    "fg-disabled": {
+      "$type": "color",
+      "$value": "{text.disabled}"
+    },
+    "bg-disabled": {
+      "$type": "color",
+      "$value": "{surface.disabled}"
+    },
+    "remove-fg": {
+      "$type": "color",
+      "$value": "{text.secondary}"
+    },
+    "remove-bg-hover": {
+      "$type": "color",
+      "$value": "{surface.hover}"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.control.radius}"
+    },
+    "height": {
+      "sm": {
+        "$type": "dimension",
+        "$value": "{size.icon.lg}"
+      },
+      "md": {
+        "$type": "dimension",
+        "$value": "{size.control.sm}"
+      }
+    },
+    "padding-x": {
+      "sm": {
+        "$type": "dimension",
+        "$value": "{space.inline.md}"
+      },
+      "md": {
+        "$type": "dimension",
+        "$value": "{space.inline.lg}"
+      }
+    },
+    "gap": {
+      "$type": "dimension",
+      "$value": "{space.inline.sm}"
+    },
+    "max-width": {
+      "$type": "dimension",
+      "$value": "{size.panel.min}"
+    },
+    "type": {
+      "sm": {
+        "$type": "typography",
+        "$value": "{type.label.sm}"
+      },
+      "md": {
+        "$type": "typography",
+        "$value": "{type.label.md}"
+      }
     }
   }
 }

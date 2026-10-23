@@ -1,22 +1,28 @@
 name: Toast
 tier: base
-status: planned
+status: draft
 since: E4-5
-import: none
+import: "@orivilo/design-system"
 story: base-toast
 useWhen:
   - "A short confirmation or failure that does not block: saved, generation failed"
 avoidWhen:
   - "Anything needing a decision (use Dialog)"
   - "Errors tied to a field (inline)"
-contract: ToastProps
+contract: ToastOptions
 variants: [neutral, success, danger]
 sizes: []
 states: [entering, visible, leaving]
-recipes: []
+recipes: [neutral, professional, friendly]
 examples: []
 rules:
   - "Says what happened and, on failure, how to fix it"
   - "Never a success toast without backing data"
+  - "Called with `toast({ title, description?, action?, variant?, duration? })`; mount one `Toaster` inside the shell's profile boundary"
+  - "At most three on screen, the oldest leaves first; 5 seconds for neutral and success, a danger toast stays until dismissed and ignores `duration`"
+  - "The region sits at the bottom end corner inside the profile portal scope and clears the safe-area insets"
+  - "Status is shown by an icon as well as the edge colour; the toast keeps the inverse ground"
 a11y:
   - "Polite live region; failure uses assertive; dismissable by keyboard"
+  - "The close button is named from the locale catalog; Escape dismisses; focus does not move to a toast when it appears; F8 moves focus into the region"
+  - "A toast stays while hovered or focused"

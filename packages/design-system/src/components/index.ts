@@ -33,6 +33,7 @@ export {
   type PopoverProps,
   PopoverTrigger,
 } from "./popover/Popover";
+export { Progress, type ProgressProps, type ProgressStatus } from "./progress/Progress";
 export { Resizable, type ResizableProps } from "./resizable/Resizable";
 export { ScrollArea, type ScrollAreaProps } from "./scroll-area/ScrollArea";
 export { Select, type SelectOption, type SelectProps } from "./select/Select";
@@ -47,6 +48,7 @@ export {
   SheetTrigger,
 } from "./sheet/Sheet";
 export { Slider, type SliderProps } from "./slider/Slider";
+export { Tag, type TagProps } from "./tag/Tag";
 export {
   Tabs,
   TabsContent,
@@ -57,6 +59,13 @@ export {
   TabsTrigger,
   type TabsTriggerProps,
 } from "./tabs/Tabs";
+export {
+  Toaster,
+  toast,
+  type ToastAction,
+  type ToastOptions,
+  type ToastVariant,
+} from "./toast/Toast";
 export {
   type SortDirection,
   Table,
