@@ -1,5 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { ReactNode } from "react";
+import { expect, within } from "storybook/test";
 import { fixtures } from "../fixtures";
+import { CheckIcon, LockIcon, StaleIcon, WarningIcon } from "../icons";
 import { Matrix, Narrow } from "../matrix";
 import { Badge, type BadgeVariant } from "./Badge";
 
@@ -54,6 +57,84 @@ export const Sizes: Story = {
   ),
 };
 
+const ICONS: Record<BadgeVariant, ReactNode> = {
+  neutral: <LockIcon />,
+  success: <CheckIcon />,
+  warning: <StaleIcon />,
+  danger: <WarningIcon />,
+  info: <CheckIcon />,
+  brand: <CheckIcon />,
+};
+
+/** AC 4: a dot in the variant's feedback ink before the word; the word carries the meaning. */
+export const WithDot: Story = {
+  render: () => (
+    <div className="flex flex-wrap items-center gap-2">
+      {STATUS.map(({ variant, word }) => (
+        <Badge key={variant} variant={variant} dot>
+          {word}
+        </Badge>
+      ))}
+      <Badge variant="success" size="sm" dot>
+        อนุมัติแล้ว
+      </Badge>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const badge = within(canvasElement).getByText("อนุมัติแล้ว", {
+      selector: "span[data-size='md']",
+    });
+    const dot = badge.querySelector(".ds-badge__dot");
+    await expect(dot).not.toBeNull();
+    await expect(dot).toHaveAttribute("aria-hidden", "true");
+    // The dot is decoration: the badge's text is the word alone.
+    await expect(badge).toHaveTextContent(/^อนุมัติแล้ว$/);
+    // The dot reads the variant's token, never a literal (the token test covers the source).
+    await expect(getComputedStyle(dot as Element).backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+    // Dot before the word.
+    await expect(badge.firstElementChild).toBe(dot);
+    await expect(badge.querySelector(".ds-badge__icon")).toBeNull();
+  },
+};
+
+/** AC 5: an icon before the word, sized for the badge size. */
+export const WithIcon: Story = {
+  render: () => (
+    <div className="flex flex-wrap items-center gap-2">
+      {STATUS.map(({ variant, word }) => (
+        <Badge key={variant} variant={variant} icon={ICONS[variant]}>
+          {word}
+        </Badge>
+      ))}
+      <Badge variant="warning" size="sm" icon={ICONS.warning}>
+        ล้าสมัย
+      </Badge>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const md = canvas.getByText("ล้มเหลว").closest<HTMLElement>(".ds-badge");
+    const sm = canvasElement.querySelector<HTMLElement>(".ds-badge[data-size='sm']");
+    const iconOf = (el: HTMLElement | null) => el?.querySelector<HTMLElement>(".ds-badge__icon");
+    await expect(iconOf(md)).toHaveAttribute("aria-hidden", "true");
+    await expect(md).toHaveTextContent(/^ล้มเหลว$/);
+    const size = (el: HTMLElement | null | undefined) =>
+      Math.round(el?.getBoundingClientRect().width ?? 0);
+    await expect(size(iconOf(md))).toBe(16);
+    await expect(size(iconOf(sm))).toBe(14);
+  },
+};
+
+/** `dot` and `icon` together do not compile; the type keeps the badge to one mark. */
+export const OneMarkOnly: Story = {
+  render: () => (
+    // @ts-expect-error a dot and an icon in one badge is a type error (AC 5)
+    <Badge dot icon={<CheckIcon />}>
+      {fixtures.latin}
+    </Badge>
+  ),
+};
+
 /** Next to a title, the way the canvas and the version list use it. */
 export const NextToATitle: Story = {
   render: (args) => (
@@ -84,14 +165,15 @@ export const MissingValue: Story = {
 };
 
 export const At360: Story = {
-  render: (args) => (
+  render: () => (
     <Narrow>
       <div className="flex flex-wrap items-center gap-2">
         {STATUS.map(({ variant, word }) => (
-          <Badge key={variant} {...args} variant={variant}>
+          <Badge key={variant} variant={variant} dot>
             {word}
           </Badge>
         ))}
+        <Badge icon={ICONS.neutral}>{fixtures.longThai}</Badge>
       </div>
     </Narrow>
   ),
@@ -100,6 +182,20 @@ export const At360: Story = {
 export const RecipesAndModes: Story = {
   render: (args) => (
     <Matrix>
+      <div className="flex flex-wrap items-center gap-2">
+        {STATUS.map(({ variant, word }) => (
+          <Badge key={variant} variant={variant} size="sm" dot>
+            {word}
+          </Badge>
+        ))}
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        {STATUS.map(({ variant, word }) => (
+          <Badge key={variant} variant={variant} icon={ICONS[variant]}>
+            {word}
+          </Badge>
+        ))}
+      </div>
       <div className="flex flex-wrap items-center gap-2">
         {STATUS.map(({ variant, word }) => (
           <Badge key={variant} {...args} variant={variant} size="sm">

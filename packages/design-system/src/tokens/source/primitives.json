@@ -550,6 +550,10 @@
       "$type": "dimension",
       "$value": "320px"
     },
+    "icon-3-5": {
+      "$type": "dimension",
+      "$value": "14px"
+    },
     "icon-4": {
       "$type": "dimension",
       "$value": "16px"

@@ -13,18 +13,18 @@ Legend: `none` not started, `planned` entry exists, no code, `draft` code and st
 | InputGroup    | draft  | base-input-group    |
 | PasswordInput | draft  | base-password-input |
 | Field         | stable | E2-4                |
-| Select        | stable | E2-4                |
+| Select        | stable | base-select         |
 | Checkbox      | stable | E2-4                |
 | RadioGroup    | none   |                     |
 | Switch        | none   |                     |
 | Textarea      | stable | E2-4                |
 | Combobox      | none   |                     |
-| Badge         | stable | E2-4                |
+| Badge         | stable | base-badge          |
 | Tag           | draft  | base-tag            |
 | Avatar        | none   |                     |
 | Tooltip       | stable | E2-4                |
 | Dropdown menu | stable | base-dropdown-menu  |
-| Tabs          | stable | E2-4                |
+| Tabs          | stable | base-tabs           |
 | Breadcrumb    | none   |                     |
 | Pagination    | none   |                     |
 | Progress      | draft  | base-progress       |

@@ -742,6 +742,48 @@
         "$type": "dimension",
         "$value": "{size.icon.lg}"
       }
+    },
+    "dot": {
+      "$description": "The dot before the word: the variant's own feedback ink, never the brand accent for a status (ORV-68)",
+      "neutral": {
+        "$type": "color",
+        "$value": "{text.secondary}"
+      },
+      "success": {
+        "$type": "color",
+        "$value": "{feedback.success.fg}"
+      },
+      "warning": {
+        "$type": "color",
+        "$value": "{feedback.warning.fg}"
+      },
+      "danger": {
+        "$type": "color",
+        "$value": "{feedback.danger.fg}"
+      },
+      "info": {
+        "$type": "color",
+        "$value": "{feedback.info.fg}"
+      },
+      "brand": {
+        "$type": "color",
+        "$value": "{brand.ink}"
+      }
+    },
+    "dot-size": {
+      "$type": "dimension",
+      "$value": "{space.inline.md}",
+      "$description": "Dot diameter, 8"
+    },
+    "icon-size": {
+      "sm": {
+        "$type": "dimension",
+        "$value": "{size.icon.xs}"
+      },
+      "md": {
+        "$type": "dimension",
+        "$value": "{size.icon.sm}"
+      }
     }
   },
   "table": {
@@ -952,6 +994,20 @@
         "$type": "color",
         "$value": "{feedback.danger.surface}",
         "$description": "The destructive item's ground while highlighted"
+      },
+      "description-fg": {
+        "$type": "color",
+        "$value": "{text.secondary}",
+        "$description": "Second line of a Select option"
+      },
+      "description-type": {
+        "$type": "typography",
+        "$value": "{type.label.sm}"
+      },
+      "icon-size": {
+        "$type": "dimension",
+        "$value": "{size.icon.sm}",
+        "$description": "Icon before a Select option label, 16"
       }
     },
     "empty": {
@@ -1063,6 +1119,38 @@
     "type": {
       "$type": "typography",
       "$value": "{type.label.md}"
+    },
+    "icon-size": {
+      "sm": {
+        "$type": "dimension",
+        "$value": "{size.icon.xs}"
+      },
+      "md": {
+        "$type": "dimension",
+        "$value": "{size.icon.sm}"
+      }
+    },
+    "item-gap": {
+      "$type": "dimension",
+      "$value": "{space.inline.md}",
+      "$description": "Gap between the icon, the label and the count"
+    },
+    "count-fg": {
+      "$type": "color",
+      "$value": "{text.secondary}",
+      "$description": "A number the caller passes; never computed here"
+    },
+    "count-bg": {
+      "$type": "color",
+      "$value": "{surface.sunken}"
+    },
+    "count-fg-disabled": {
+      "$type": "color",
+      "$value": "{text.disabled}"
+    },
+    "count-type": {
+      "$type": "typography",
+      "$value": "{type.label.sm}"
     }
   },
   "field": {

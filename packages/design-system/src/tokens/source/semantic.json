@@ -836,6 +836,11 @@
       "$description": "Minimum hit area on touch surfaces"
     },
     "icon": {
+      "xs": {
+        "$type": "dimension",
+        "$value": "{size.icon-3-5}",
+        "$description": "Icon in a small badge or tab, 14"
+      },
       "sm": {
         "$type": "dimension",
         "$value": "{size.icon-4}"
