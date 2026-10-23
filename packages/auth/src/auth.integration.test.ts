@@ -1,4 +1,4 @@
-import { eq, member, organization, project } from "@orivilo/db";
+import { eq, member, organization, project, verification } from "@orivilo/db";
 import { createTestDatabase, HAS_TEST_DATABASE, type TestDatabase } from "@orivilo/db/testing";
 import { testUtils } from "better-auth/plugins";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -48,6 +48,33 @@ describe.runIf(HAS_TEST_DATABASE)("Better Auth and the authorization helper", ()
   }, 60_000);
   afterAll(async () => {
     await t?.drop();
+  });
+
+  it("brings a production sign-in back to the project's domain, not the deployment's URL", async () => {
+    const before = process.env["VERCEL_URL"];
+    process.env["VERCEL_URL"] = "orivilo-abc123-team.vercel.app";
+    try {
+      const prod = createAuth({
+        db: t.app,
+        secret: "test-secret-that-is-long-enough-0123456789",
+        baseURL: "https://orivilo.vercel.app",
+        productionURL: "https://orivilo.vercel.app",
+        google: { clientId: "test", clientSecret: "test" },
+      });
+      const { url } = await prod.api.signInSocial({
+        body: { provider: "google", callbackURL: "/account" },
+      });
+      expect(new URL(url ?? "").searchParams.get("redirect_uri")).toBe(
+        "https://orivilo.vercel.app/api/auth/callback/google",
+      );
+      const states = await t.admin.select({ value: verification.value }).from(verification);
+      const saved = states.map((s) => s.value).join("\n");
+      expect(saved).toContain("/account");
+      expect(saved).not.toContain("orivilo-abc123-team");
+    } finally {
+      if (before === undefined) delete process.env["VERCEL_URL"];
+      else process.env["VERCEL_URL"] = before;
+    }
   });
 
   it("gives a new person their own workspace, as owner (AC 1)", async () => {
