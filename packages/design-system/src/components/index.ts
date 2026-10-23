@@ -25,6 +25,8 @@ export {
 } from "./dialog/Dialog";
 export { Field, type FieldProps, useFieldControl } from "./field/Field";
 export { Input, type InputProps } from "./input/Input";
+export { InputGroup, type InputGroupProps } from "./input-group/InputGroup";
+export { PasswordInput, type PasswordInputProps } from "./password-input/PasswordInput";
 export {
   Popover,
   PopoverClose,

@@ -6,13 +6,14 @@ import { useMessages } from "../../i18n/LocaleProvider";
 import { cx } from "../cx";
 import { SpinnerIcon } from "../icons";
 
-export type ButtonVariant = "primary" | "secondary" | "ghost" | "destructive" | "intent";
+export type ButtonVariant = "primary" | "secondary" | "ghost" | "destructive" | "intent" | "link";
 export type ControlSize = "sm" | "md" | "lg";
 
 interface ButtonBaseProps extends Omit<ComponentPropsWithoutRef<"button">, "children"> {
   /**
    * `primary` is the one action per view; `intent` is the one Intent Engine button per screen
    * (Studio only; inside a profile boundary it renders as that profile's primary action).
+   * `link` is text in `text.link` that goes somewhere, with no fill and no border (DESIGN.md §8).
    */
   variant?: ButtonVariant | undefined;
   size?: ControlSize | undefined;
@@ -20,6 +21,10 @@ interface ButtonBaseProps extends Omit<ComponentPropsWithoutRef<"button">, "chil
   loading?: boolean | undefined;
   /** What the status line announces while loading; the catalog's `button.working` by default. */
   loadingLabel?: string | undefined;
+  /** An icon before the label, at the icon size of `size`. Ignored with `iconOnly`; `loading` replaces it. */
+  iconLeading?: ReactNode | undefined;
+  /** An icon after the label, at the icon size of `size`. Ignored with `iconOnly`. */
+  iconTrailing?: ReactNode | undefined;
   /** Renders the child element with the button's recipe (a Link, a Radix trigger). */
   asChild?: boolean | undefined;
 }
@@ -42,6 +47,8 @@ export function Button({
   loadingLabel,
   asChild = false,
   iconOnly = false,
+  iconLeading,
+  iconTrailing,
   className,
   children,
   onClick,
@@ -57,7 +64,18 @@ export function Button({
     }
     onClick?.(event);
   };
-  const spinner = loading ? <SpinnerIcon className="ds-spin size-4 shrink-0" /> : null;
+  const icon = (node: ReactNode) => (
+    <span className="ds-button__icon" aria-hidden="true">
+      {node}
+    </span>
+  );
+  // The spinner takes the leading slot (or opens it); the trailing icon stays.
+  const leading = loading
+    ? icon(<SpinnerIcon className="ds-spin" />)
+    : iconLeading && !iconOnly
+      ? icon(iconLeading)
+      : null;
+  const trailing = iconTrailing && !iconOnly ? icon(iconTrailing) : null;
   const status = loading ? (
     <span role="status" className="sr-only">
       {loadingLabel ?? m.button.working}
@@ -76,8 +94,9 @@ export function Button({
       aria-disabled={loading || undefined}
       onClick={handleClick}
     >
-      {spinner}
+      {leading}
       {asChild ? <Slot.Slottable>{children}</Slot.Slottable> : children}
+      {trailing}
       {status}
     </Comp>
   );

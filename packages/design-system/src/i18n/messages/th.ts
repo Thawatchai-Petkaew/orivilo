@@ -44,6 +44,10 @@ export const th = {
   tag: {
     remove: "ลบ {label}",
   },
+  passwordInput: {
+    show: "แสดงรหัสผ่าน",
+    hide: "ซ่อนรหัสผ่าน",
+  },
   resizable: {
     handle: "ปรับความกว้างของ{panel}",
     reopen: "เปิด{panel}",

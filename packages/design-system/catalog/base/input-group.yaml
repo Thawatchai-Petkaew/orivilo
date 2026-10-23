@@ -1,0 +1,29 @@
+name: InputGroup
+tier: base
+status: draft
+since: ORV-67
+import: "@orivilo/design-system"
+story: base-input-group
+useWhen:
+  - "A single-line field that needs an icon, a unit or protocol addon, an inline action Button, or a shortcut hint"
+  - "A search field with a Kbd hint"
+avoidWhen:
+  - "A plain field with no slot (Input)"
+  - "Choosing from known values (Select)"
+  - "A password (PasswordInput)"
+contract: InputGroupProps
+variants: [default]
+sizes: [sm, md, lg]
+states: [default, hover, focus-visible, disabled, invalid]
+recipes: [neutral, professional, friendly]
+examples: []
+rules:
+  - "start and end hold an icon element, a Button, or a string; a string is a text addon that the input reads through aria-describedby"
+  - "One outline around the whole group: the input draws no edge, the focus ring surrounds the group, and invalid and disabled cover the group"
+  - "Inside a Field it takes the label, description, error and required wiring from context exactly as Input does"
+  - "An addon never carries the error message; the Field does"
+  - "shortcut takes a registry shortcut, shows a Kbd at the very end and sets aria-keyshortcuts; the Kbd is hidden from assistive tech"
+  - "Use a sm or md Button in a slot; it shares the height of the group"
+a11y:
+  - "The focus ring is drawn around the group when the input has keyboard focus; a Button in a slot keeps its own ring"
+  - "An icon is hidden from assistive tech; the Field label is the name"
