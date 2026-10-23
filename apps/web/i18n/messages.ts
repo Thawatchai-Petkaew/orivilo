@@ -10,6 +10,10 @@ const th = {
     title: "ORIVILO",
     description: "จากเจตนาทางธุรกิจ สู่ผลิตภัณฑ์ดิจิทัลที่มีชีวิต",
     languageSwitch: "ภาษา",
+    nav: "เมนูหลัก",
+    home: "ORIVILO หน้าแรก",
+    studio: "สตูดิโอ",
+    account: "บัญชี",
   },
   home: {
     headline: "จากเจตนาทางธุรกิจ สู่ผลิตภัณฑ์ดิจิทัลที่มีชีวิต",
@@ -168,6 +172,10 @@ const en: WebMessages = {
     title: "ORIVILO",
     description: "From business intent to living digital products.",
     languageSwitch: "Language",
+    nav: "Main",
+    home: "ORIVILO home",
+    studio: "Studio",
+    account: "Account",
   },
   home: {
     headline: "From business intent to living digital products",

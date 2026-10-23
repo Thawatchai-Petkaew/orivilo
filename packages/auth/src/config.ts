@@ -80,15 +80,22 @@ export type Auth = ReturnType<typeof createAuth>;
 
 /** Settings from the environment; names a missing variable, never prints a value. */
 export function settingsFromEnv(db: Db, env: Record<string, string | undefined> = process.env) {
-  const vercel = env["VERCEL_URL"];
+  const vercel = env["VERCEL_URL"] && `https://${env["VERCEL_URL"]}`;
+  const production =
+    env["VERCEL_PROJECT_PRODUCTION_URL"] && `https://${env["VERCEL_PROJECT_PRODUCTION_URL"]}`;
+  // A preview signs in on its own origin. Production signs in on the project's domain, never on
+  // the deployment's own URL (`VERCEL_URL`), or the person lands on that URL after signing in.
   const baseURL =
-    env["BETTER_AUTH_URL"] ?? (vercel ? `https://${vercel}` : requireEnv("BETTER_AUTH_URL", env));
-  const production = env["VERCEL_PROJECT_PRODUCTION_URL"];
+    (env["VERCEL_ENV"] === "preview" && vercel) ||
+    env["BETTER_AUTH_URL"] ||
+    (env["VERCEL_ENV"] === "production" && production) ||
+    vercel ||
+    requireEnv("BETTER_AUTH_URL", env);
   return {
     db,
     secret: requireEnv("BETTER_AUTH_SECRET", env),
-    baseURL: env["VERCEL_ENV"] === "preview" && vercel ? `https://${vercel}` : baseURL,
-    productionURL: production ? `https://${production}` : env["BETTER_AUTH_URL"],
+    baseURL,
+    productionURL: production || env["BETTER_AUTH_URL"],
     google: {
       clientId: requireEnv("GOOGLE_CLIENT_ID", env),
       clientSecret: requireEnv("GOOGLE_CLIENT_SECRET", env),
