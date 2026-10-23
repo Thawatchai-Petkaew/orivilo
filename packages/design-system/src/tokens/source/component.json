@@ -945,10 +945,6 @@
       "$value": "{size.icon.sm}",
       "$description": "The small box for tables and dense lists (ORV-72)"
     },
-    "gap-sm": {
-      "$type": "dimension",
-      "$value": "{space.inline.sm}"
-    },
     "label-type": {
       "$type": "typography",
       "$value": "{type.body.md}"

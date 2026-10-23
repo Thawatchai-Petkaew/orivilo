@@ -1,33 +1,34 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { ComponentType } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { Field } from "../field/Field";
 import { fixtures } from "../fixtures";
 import { Matrix, Narrow } from "../matrix";
 import { Textarea } from "./Textarea";
 
+/** A Field around the story, for stories of one textarea. Storybook adds a meta decorator to every
+ * story (a story's `decorators: []` does not remove it), so each story that wants it names it. */
+const inField = (Story: ComponentType) => (
+  <div className="max-w-md">
+    <Field label="บรีฟ">
+      <Story />
+    </Field>
+  </div>
+);
+
 const meta = {
   title: "Base/Textarea",
   component: Textarea,
   args: { placeholder: "เล่าสั้น ๆ ว่าแบรนด์นี้ทำอะไรและเพื่อใคร" },
   parameters: { layout: "padded" },
-  decorators: [
-    (Story) => (
-      <div className="max-w-md">
-        <Field label="บรีฟ">
-          <Story />
-        </Field>
-      </div>
-    ),
-  ],
 } satisfies Meta<typeof Textarea>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Default: Story = {};
+export const Default: Story = { decorators: [inField] };
 
 export const Sizes: Story = {
-  decorators: [],
   render: (args) => (
     <div className="flex max-w-md flex-col gap-4">
       <Field label="เล็ก">
@@ -41,10 +42,13 @@ export const Sizes: Story = {
       </Field>
     </div>
   ),
+  play: ({ canvasElement }) => {
+    // No Field nested in a Field: a meta decorator wrapping these stories would break labels.
+    expect(canvasElement.querySelectorAll(".ds-field .ds-field")).toHaveLength(0);
+  },
 };
 
 export const InteractionStates: Story = {
-  decorators: [],
   render: (args) => (
     <div className="flex max-w-md flex-col gap-4">
       <Field label="Hover">
@@ -65,6 +69,7 @@ export const InteractionStates: Story = {
 
 /** Grows from `rows` to `maxRows`, then scrolls (AC 9). */
 export const AutoGrow: Story = {
+  decorators: [inField],
   args: { rows: 2, maxRows: 4 },
   play: async ({ canvasElement }) => {
     const textarea = within(canvasElement).getByLabelText("บรีฟ") as HTMLTextAreaElement;
@@ -84,6 +89,7 @@ export const AutoGrow: Story = {
 
 /** The counter counts graphemes, not UTF-16 units (ORV-72, AC 4): `น้ำใจ` is 3, not 5. */
 export const Counter: Story = {
+  decorators: [inField],
   args: { maxLength: 10, rows: 2 },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -101,6 +107,7 @@ export const Counter: Story = {
 
 /** `showCount` without a limit: the count alone (AC 6). */
 export const CountWithoutLimit: Story = {
+  decorators: [inField],
   args: { showCount: true, rows: 2, defaultValue: "แบรนด์ ORIVILO" },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -114,6 +121,7 @@ export const CountWithoutLimit: Story = {
  * its description says how many over.
  */
 export const OverLimit: Story = {
+  decorators: [inField],
   args: { maxLength: 5, rows: 2, defaultValue: "น้ำใจ" },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -128,7 +136,6 @@ export const OverLimit: Story = {
 };
 
 export const Invalid: Story = {
-  decorators: [],
   render: (args) => (
     <div className="max-w-md">
       <Field label="บรีฟ" error="บรีฟสั้นเกินไป เขียนอย่างน้อยสองประโยคว่าแบรนด์ทำอะไรและเพื่อใคร">
@@ -138,12 +145,17 @@ export const Invalid: Story = {
   ),
 };
 
-export const Disabled: Story = { args: { disabled: true, defaultValue: fixtures.mixed } };
+export const Disabled: Story = {
+  decorators: [inField],
+  args: { disabled: true, defaultValue: fixtures.mixed },
+};
 
-export const ReadOnly: Story = { args: { readOnly: true, defaultValue: fixtures.mixed } };
+export const ReadOnly: Story = {
+  decorators: [inField],
+  args: { readOnly: true, defaultValue: fixtures.mixed },
+};
 
 export const LongContentAt360: Story = {
-  decorators: [],
   render: (args) => (
     <Narrow>
       <Field label="บรีฟ">
@@ -157,7 +169,6 @@ export const LongContentAt360: Story = {
 };
 
 export const RecipesAndModes: Story = {
-  decorators: [],
   render: (args) => (
     <Matrix>
       <Field label="บรีฟ">
@@ -174,4 +185,8 @@ export const RecipesAndModes: Story = {
       </Field>
     </Matrix>
   ),
+  play: ({ canvasElement }) => {
+    // No Field nested in a Field: a meta decorator wrapping these stories would break labels.
+    expect(canvasElement.querySelectorAll(".ds-field .ds-field")).toHaveLength(0);
+  },
 };

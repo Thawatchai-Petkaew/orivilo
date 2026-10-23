@@ -25,10 +25,13 @@ function NodeMenu({
   onSelect = () => undefined,
   open,
   modal = true,
+  pinned = false,
 }: {
   onSelect?: (id: string) => void;
   open?: boolean | undefined;
   modal?: boolean | undefined;
+  /** Keep the menu under its trigger instead of flipping or shifting to fit the viewport (matrix cells). */
+  pinned?: boolean | undefined;
 }) {
   return (
     <DropdownMenu open={open} modal={modal}>
@@ -37,7 +40,11 @@ function NodeMenu({
           เพิ่มเติม
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent aria-label="เมนูของ node">
+      <DropdownMenuContent
+        aria-label="เมนูของ node"
+        avoidCollisions={!pinned}
+        style={pinned ? { maxHeight: "none" } : undefined}
+      >
         <DropdownMenuLabel>{fixtures.mixed}</DropdownMenuLabel>
         <DropdownMenuItem
           shortcut={key("selection.duplicate")}
@@ -83,6 +90,25 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 const body = () => within(document.body);
+
+/** Each open menu sits inside its own matrix cell, so no menu covers a neighbour (ORV-80). */
+async function expectMenusInTheirCells() {
+  await waitFor(() => expect(body().getAllByRole("menu")).toHaveLength(6));
+  const cells = Array.from(document.querySelectorAll("[data-matrix-cell]"));
+  const menus = body().getAllByRole("menu");
+  for (const menu of menus) {
+    const trigger = document.getElementById(menu.getAttribute("aria-labelledby") ?? "");
+    const cell = trigger?.closest("[data-matrix-cell]");
+    await expect(cell).toBeTruthy();
+    const m = menu.getBoundingClientRect();
+    const c = (cell as Element).getBoundingClientRect();
+    await expect(m.top).toBeGreaterThanOrEqual(c.top);
+    await expect(m.bottom).toBeLessThanOrEqual(c.bottom);
+    await expect(m.left).toBeGreaterThanOrEqual(c.left);
+    await expect(m.right).toBeLessThanOrEqual(c.right);
+  }
+  await expect(cells).toHaveLength(6);
+}
 
 /** Closed: only the trigger is in the page; nothing claims a menu (catalog state closed). */
 export const Closed: Story = {
@@ -146,23 +172,24 @@ export const Keyboard: Story = {
 export const RecipesAndModes: Story = {
   render: (args) => (
     <Matrix>
-      <div className="min-h-64">
-        <NodeMenu {...args} open modal={false} />
+      <div className="min-h-80">
+        <NodeMenu {...args} open modal={false} pinned />
       </div>
     </Matrix>
   ),
-  play: async () => {
-    await waitFor(() => expect(body().getAllByRole("menu")).toHaveLength(6));
-  },
+  play: expectMenusInTheirCells,
 };
 
 /** The board's view menu: on/off options that keep the menu open, and one sort order (ORV-78). */
 function ViewMenu({
   open,
   modal = true,
+  pinned = false,
 }: {
   open?: boolean | undefined;
   modal?: boolean | undefined;
+  /** Keep the menu under its trigger instead of flipping or shifting to fit the viewport (matrix cells). */
+  pinned?: boolean | undefined;
 }) {
   const [grid, setGrid] = useState(true);
   const [minimap, setMinimap] = useState(false);
@@ -174,7 +201,10 @@ function ViewMenu({
           มุมมอง
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent>
+      <DropdownMenuContent
+        avoidCollisions={!pinned}
+        style={pinned ? { maxHeight: "none" } : undefined}
+      >
         <DropdownMenuLabel>แสดง</DropdownMenuLabel>
         <DropdownMenuCheckboxItem checked={grid} onCheckedChange={setGrid}>
           เส้นตาราง
@@ -284,12 +314,10 @@ export const Checkable: Story = {
 export const CheckableRecipesAndModes: Story = {
   render: () => (
     <Matrix>
-      <div className="min-h-80">
-        <ViewMenu open modal={false} />
+      <div className="min-h-136">
+        <ViewMenu open modal={false} pinned />
       </div>
     </Matrix>
   ),
-  play: async () => {
-    await waitFor(() => expect(body().getAllByRole("menu")).toHaveLength(6));
-  },
+  play: expectMenusInTheirCells,
 };
