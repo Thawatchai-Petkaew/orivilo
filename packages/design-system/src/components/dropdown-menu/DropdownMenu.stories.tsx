@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fn, userEvent, waitFor, within } from "storybook/test";
-import { commandById, shortcutsOf } from "../../commands/index";
+import { commandById, isApplePlatform, shortcutsOf } from "../../commands/index";
 import { Button } from "../button/Button";
 import { fixtures } from "../fixtures";
 import { Matrix } from "../matrix";
@@ -104,7 +104,9 @@ export const Open: Story = {
       `${label("selection.delete")}`,
     ]);
     await expect(items[2]).toHaveAttribute("data-disabled");
-    await expect(within(items[2] as HTMLElement).getAllByText(/Ctrl|Shift|L/).length).toBe(3);
+    await expect(
+      Array.from((items[2] as HTMLElement).querySelectorAll(".ds-kbd"), (k) => k.textContent),
+    ).toEqual([isApplePlatform() ? "Cmd" : "Ctrl", "Shift", "L"]);
     const last = items[3] as HTMLElement;
     await expect(last).toHaveAttribute("data-destructive");
     await expect(getComputedStyle(last).color).not.toBe(
