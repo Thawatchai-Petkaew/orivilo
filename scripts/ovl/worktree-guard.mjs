@@ -3,8 +3,12 @@
 // that cannot be found exits 2 even with stop_hook_active true).
 // Reads PreToolUse(Bash) input. The rule is a fail-closed text rule, not a parser: a call from a
 // subagent whose command text, with quote and backslash characters removed and lowercased, holds
-// both "worktree" and "remove" (or "prune") is blocked. Every other call is allowed before any
-// checkout is looked up, so the guard can never lock a session out of Bash.
+// both "worktree" and "remove" (or "prune") is blocked. The verdict is fixed before any checkout
+// is looked up and never depends on one, so the guard can never lock a session out of Bash; only
+// the heartbeat resolves the records folder.
+// The heartbeat is written only when the call's cwd belongs to this project's repo (the same main
+// checkout as CLAUDE_PROJECT_DIR); a cwd in any other repo gets no .orivilo, and the verdict is
+// the same either way.
 import { readFileSync, writeSync } from "node:fs";
 import { beat, recordsRoot } from "./hook.mjs";
 
@@ -36,7 +40,10 @@ export function judge(raw) {
   }
   const block = input.agent_id !== undefined && removesWorktree(input.tool_input.command);
   try {
-    beat(recordsRoot(input.cwd), "worktree-guard", input, block ? "block" : "allow");
+    const store = recordsRoot(input.cwd);
+    if (store === recordsRoot(process.env.CLAUDE_PROJECT_DIR)) {
+      beat(store, "worktree-guard", input, block ? "block" : "allow");
+    }
   } catch {
     // No store to write to (cwd outside a checkout, or its worktree is gone): the verdict stands.
   }
