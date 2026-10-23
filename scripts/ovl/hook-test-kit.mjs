@@ -98,10 +98,19 @@ export function seedTask(root, issue, taskId, files) {
   }
 }
 
-export const seedBoundBuilder = (root, issue, taskId, startedAt) =>
+/** A bound builder round. It is closed by a result unless `open` is true (one open builder per checkout). */
+export const seedBoundBuilder = (root, issue, taskId, startedAt, open = false) =>
   seedTask(root, issue, taskId, {
     envelope: validEnvelope(root, { task_id: taskId, issue }),
     agent: { agent_id: `a-${taskId}`, agent_type: "builder", started_at: startedAt },
+    ...(open
+      ? {}
+      : {
+          closed: {
+            reason: "no_report",
+            closed_at: new Date(Date.parse(startedAt) + 1).toISOString(),
+          },
+        }),
   });
 
 export const seedVerdict = (root, issue, taskId, verdict, recordedAt, contract = "reviewer.v1") =>
@@ -140,3 +149,64 @@ export function heartbeatLines(root) {
         .map((l) => JSON.parse(l))
     : [];
 }
+
+/** SubagentStart input from the recorded sample, for `agentType` with `agentId`, in `root`. */
+export const startInput = (root, agentId, agentType) => ({
+  ...fixture("SubagentStart"),
+  cwd: root,
+  agent_id: agentId,
+  agent_type: agentType,
+});
+
+/** SubagentStop input from the recorded sample. */
+export const stopInput = (root, agentId, agentType, message, extra = {}) => ({
+  ...fixture("SubagentStop"),
+  cwd: root,
+  agent_id: agentId,
+  agent_type: agentType,
+  last_assistant_message: message,
+  ...extra,
+});
+
+/** PostToolUse(Agent) input from the recorded sample, carrying `message` as the subagent's report. */
+export function postAgentInput(root, agentId, subagentType, message) {
+  const base = fixture("PostToolUse-Agent");
+  return {
+    ...base,
+    cwd: root,
+    tool_input: { ...base.tool_input, subagent_type: subagentType },
+    tool_response: {
+      ...base.tool_response,
+      agentId,
+      agentType: subagentType,
+      content: [{ type: "text", text: message }],
+    },
+  };
+}
+
+/** PostToolUse(Bash) input from the PreToolUse sample's shape, for the main session unless `agentId` is set. */
+export function postBashInput(root, command, agentId) {
+  const base = fixture(agentId ? "PreToolUse-Bash-subagent" : "PreToolUse-Bash-main");
+  return {
+    ...base,
+    hook_event_name: "PostToolUse",
+    cwd: root,
+    tool_input: { ...base.tool_input, command },
+    duration_ms: 1000,
+    ...(agentId ? { agent_id: agentId } : {}),
+  };
+}
+
+/** PostToolUseFailure(Bash) input; the fixture is derived from the binary's field set, not recorded. */
+export const postBashFailureInput = (root, command, extra = {}) => ({
+  ...fixture("PostToolUseFailure-Bash-derived-from-binary"),
+  cwd: root,
+  tool_input: { command },
+  ...extra,
+});
+
+/** PostToolUseFailure(Agent) input carrying `prompt`; the fixture is derived from the binary, not recorded. */
+export const postAgentFailureInput = (root, prompt, extra = {}) => {
+  const base = fixture("PostToolUseFailure-Agent-derived-from-binary");
+  return { ...base, cwd: root, tool_input: { ...base.tool_input, prompt }, ...extra };
+};

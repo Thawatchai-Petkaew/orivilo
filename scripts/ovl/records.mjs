@@ -1,7 +1,18 @@
 // Reads the run records under `.orivilo/runs/` and derives the rework state (ORV-81 spec, Records
-// and Rework loop step 8). Read-only: only hooks and the close scripts write records.
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+// and Rework loop step 8). Reads everywhere; the one writer, writeJson, creates a file exclusively and
+// is called only by hooks, close-envelope.mjs and doctor.mjs.
+import {
+  existsSync,
+  linkSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
+import { execFileSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
+import { dirname, join } from "node:path";
 
 export const runsDir = (root) => join(root, ".orivilo", "runs");
 
@@ -99,3 +110,47 @@ export function escalatedIssues(root) {
     .filter((name) => /^ORV-\d+$/.test(name))
     .filter((issue) => reworkState(readIssue(root, issue)).escalated);
 }
+
+/**
+ * Creates `file` with `value` as JSON, exclusively: a record that exists is never rewritten. The JSON
+ * is written aside under a unique name, then linked into place, so a reader never sees half a record
+ * (the aside name does not end in `.json`, so a gate listing skips it).
+ */
+export function writeJson(file, value) {
+  mkdirSync(dirname(file), { recursive: true });
+  const aside = `${file}.${process.pid}.${randomUUID()}.tmp`;
+  writeFileSync(aside, `${JSON.stringify(value, null, 2)}\n`, { flag: "wx" });
+  try {
+    linkSync(aside, file);
+  } finally {
+    unlinkSync(aside);
+  }
+}
+
+export const taskDir = (root, issue, taskId) => join(runsDir(root), issue, taskId);
+
+/** Every task of every issue in the checkout, each with its `issue`. */
+export function allTasks(root) {
+  const dir = runsDir(root);
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir)
+    .filter((name) => /^ORV-\d+$/.test(name))
+    .flatMap((issue) => readIssue(root, issue).tasks.map((t) => ({ ...t, issue })))
+    .filter((t) => t.envelope !== undefined);
+}
+
+/** Open: an envelope with neither a result nor a closed record. */
+export const isOpen = (t) => t.result === undefined && t.closed === undefined;
+
+/** Closes an envelope with `closed.json` (the reason is denied, no_report, abandoned or pre_a3). */
+export function writeClosed(root, task, reason, extra = {}) {
+  writeJson(join(taskDir(root, task.issue, task.id), "closed.json"), {
+    reason,
+    closed_at: new Date().toISOString(),
+    ...extra,
+  });
+}
+
+/** The checkout's current branch name ("" when detached). */
+export const branchOf = (root) =>
+  execFileSync("git", ["branch", "--show-current"], { cwd: root, encoding: "utf8" }).trim();
