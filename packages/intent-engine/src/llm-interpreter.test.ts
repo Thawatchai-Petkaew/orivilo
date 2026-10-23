@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { RULE_VALUES, interpretBrief, interpretWithRules } from "./interpreter";
-import { LLM_SYSTEM_PROMPT, llmInterpreter, type Complete } from "./llm-interpreter";
+import {
+  LLM_ANSWER_JSON_SCHEMA,
+  LLM_SYSTEM_PROMPT,
+  llmInterpreter,
+  type Complete,
+} from "./llm-interpreter";
 import { AI_MODELS, OPENROUTER_URL, openRouterComplete, type FetchLike } from "./openrouter";
 
 /*
@@ -34,6 +39,17 @@ function fake(answer: unknown) {
   };
   return { seen, adapter: llmInterpreter(MODEL, complete) };
 }
+
+describe("LLM_ANSWER_JSON_SCHEMA", () => {
+  it("uses only what strict structured output accepts", () => {
+    const text = JSON.stringify(LLM_ANSWER_JSON_SCHEMA);
+    for (const word of ["$schema", "oneOf", "const", "minLength", "maxLength", "maxItems"]) {
+      expect(text).not.toContain(`"${word}"`);
+    }
+    expect(text).toContain('"anyOf"');
+    expect(text).toContain('"additionalProperties":false');
+  });
+});
 
 describe("llmInterpreter", () => {
   it("reads the stay brief into the same facts the rules give, labelled as AI with its model", async () => {
@@ -167,6 +183,12 @@ function fakeFetch(status: number, body: unknown) {
 const REQUEST = { system: "s", user: "u", schemaName: "brief_reading", schema: { type: "object" } };
 
 describe("openRouterComplete", () => {
+  it("keeps OpenRouter's reason when it refuses", async () => {
+    const { doFetch } = fakeFetch(400, { error: { message: "No endpoints found" } });
+    const complete = openRouterComplete({ apiKey: "k", model: MODEL, fetch: doFetch });
+    await expect(complete(REQUEST)).rejects.toThrow("OpenRouter answered 400. No endpoints found");
+  });
+
   it("asks the pinned model for zero retention, no training and no fallback", async () => {
     const { calls, doFetch } = fakeFetch(200, {
       model: MODEL,

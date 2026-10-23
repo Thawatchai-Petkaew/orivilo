@@ -75,8 +75,27 @@ export const llmAnswerSchema = z
   .strict();
 export type LlmAnswer = z.infer<typeof llmAnswerSchema>;
 
+/**
+ * Rewrites a JSON Schema into the subset that providers' strict structured output accepts: no
+ * `$schema`, `anyOf` instead of `oneOf`, `enum` instead of `const`, and no length or count bounds.
+ * The bounds still hold, because the answer is parsed with `llmAnswerSchema` afterwards.
+ */
+export function strictJsonSchema(node: unknown): unknown {
+  if (Array.isArray(node)) return node.map(strictJsonSchema);
+  if (node === null || typeof node !== "object") return node;
+  const DROP = new Set(["$schema", "minLength", "maxLength", "minItems", "maxItems"]);
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(node)) {
+    if (DROP.has(key)) continue;
+    if (key === "oneOf") out["anyOf"] = strictJsonSchema(value);
+    else if (key === "const") out["enum"] = [value];
+    else out[key] = strictJsonSchema(value);
+  }
+  return out;
+}
+
 /** The answer schema as JSON Schema, for the provider's structured output mode. */
-export const LLM_ANSWER_JSON_SCHEMA = z.toJSONSchema(llmAnswerSchema);
+export const LLM_ANSWER_JSON_SCHEMA = strictJsonSchema(z.toJSONSchema(llmAnswerSchema));
 
 export const LLM_SYSTEM_PROMPT = [
   "You read a design brief for a digital product, written in Thai, English or both.",
