@@ -1,0 +1,354 @@
+{
+  "invalid-ac-empty-evidence.json": {
+    "path": "/ac/0/evidence",
+    "keyword": "minItems",
+    "params": {
+      "limit": 1
+    }
+  },
+  "invalid-ac-evidence-extra-field.json": {
+    "path": "/ac/0/evidence/0",
+    "keyword": "additionalProperties",
+    "params": {
+      "additionalProperty": "why"
+    }
+  },
+  "invalid-ac-evidence-kind-enum.json": {
+    "path": "/ac/0/evidence/0/kind",
+    "keyword": "enum",
+    "params": {
+      "allowedValues": ["command", "screenshot", "computed_style", "code"]
+    }
+  },
+  "invalid-ac-evidence-missing-ref.json": {
+    "path": "/ac/0/evidence/0",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "ref"
+    }
+  },
+  "invalid-ac-item-extra-field.json": {
+    "path": "/ac/0",
+    "keyword": "additionalProperties",
+    "params": {
+      "additionalProperty": "why"
+    }
+  },
+  "invalid-ac-item-missing-evidence.json": {
+    "path": "/ac/0",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "evidence"
+    }
+  },
+  "invalid-ac-item-missing-row.json": {
+    "path": "/ac/0",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "row"
+    }
+  },
+  "invalid-ac-item-missing-status.json": {
+    "path": "/ac/0",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "status"
+    }
+  },
+  "invalid-ac-item-missing-visual.json": {
+    "path": "/ac/0",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "visual"
+    }
+  },
+  "invalid-ac-row-zero.json": {
+    "path": "/ac/0/row",
+    "keyword": "minimum",
+    "params": {
+      "comparison": ">=",
+      "limit": 1
+    }
+  },
+  "invalid-ac-status-enum.json": {
+    "path": "/ac/0/status",
+    "keyword": "enum",
+    "params": {
+      "allowedValues": ["pass", "fail", "owner_verify"]
+    }
+  },
+  "invalid-ac-visual-not-boolean.json": {
+    "path": "/ac/0/visual",
+    "keyword": "type",
+    "params": {
+      "type": "boolean"
+    }
+  },
+  "invalid-approve-with-gate-not-ok.json": {
+    "path": "/quality_gate/ok",
+    "keyword": "const",
+    "params": {
+      "allowedValue": true
+    }
+  },
+  "invalid-empty-ac.json": {
+    "path": "/ac",
+    "keyword": "minItems",
+    "params": {
+      "limit": 1
+    }
+  },
+  "invalid-extra-field.json": {
+    "path": "",
+    "keyword": "additionalProperties",
+    "params": {
+      "additionalProperty": "extra"
+    }
+  },
+  "invalid-finding-extra-field.json": {
+    "path": "/findings/0",
+    "keyword": "additionalProperties",
+    "params": {
+      "additionalProperty": "why"
+    }
+  },
+  "invalid-finding-severity-enum.json": {
+    "path": "/findings/0/severity",
+    "keyword": "enum",
+    "params": {
+      "allowedValues": ["Critical", "Important", "Suggestion"]
+    }
+  },
+  "invalid-head-sha-pattern.json": {
+    "path": "/head_sha",
+    "keyword": "pattern",
+    "params": {
+      "pattern": "^[0-9a-f]{40}$"
+    }
+  },
+  "invalid-issue-pattern.json": {
+    "path": "/issue",
+    "keyword": "pattern",
+    "params": {
+      "pattern": "^ORV-[0-9]+$"
+    }
+  },
+  "invalid-missing-ac.json": {
+    "path": "",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "ac"
+    }
+  },
+  "invalid-missing-findings.json": {
+    "path": "",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "findings"
+    }
+  },
+  "invalid-missing-head-sha.json": {
+    "path": "",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "head_sha"
+    }
+  },
+  "invalid-missing-issue.json": {
+    "path": "",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "issue"
+    }
+  },
+  "invalid-missing-pr.json": {
+    "path": "",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "pr"
+    }
+  },
+  "invalid-missing-quality-gate.json": {
+    "path": "",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "quality_gate"
+    }
+  },
+  "invalid-missing-screenshots.json": {
+    "path": "",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "screenshots"
+    }
+  },
+  "invalid-missing-task-id.json": {
+    "path": "",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "task_id"
+    }
+  },
+  "invalid-missing-verdict.json": {
+    "path": "",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "verdict"
+    }
+  },
+  "invalid-pr-zero.json": {
+    "path": "/pr",
+    "keyword": "minimum",
+    "params": {
+      "comparison": ">=",
+      "limit": 1
+    }
+  },
+  "invalid-quality-gate-extra-field.json": {
+    "path": "/quality_gate",
+    "keyword": "additionalProperties",
+    "params": {
+      "additionalProperty": "why"
+    }
+  },
+  "invalid-quality-gate-missing-head-sha.json": {
+    "path": "/quality_gate",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "head_sha"
+    }
+  },
+  "invalid-quality-gate-missing-ok.json": {
+    "path": "/quality_gate",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "ok"
+    }
+  },
+  "invalid-quality-gate-missing-report.json": {
+    "path": "/quality_gate",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "report"
+    }
+  },
+  "invalid-quality-gate-ok-not-boolean.json": {
+    "path": "/quality_gate/ok",
+    "keyword": "type",
+    "params": {
+      "type": "boolean"
+    }
+  },
+  "invalid-quality-gate-report-path.json": {
+    "path": "/quality_gate/report",
+    "keyword": "const",
+    "params": {
+      "allowedValue": ".quality-gate/report.json"
+    }
+  },
+  "invalid-quality-gate-short-sha.json": {
+    "path": "/quality_gate/head_sha",
+    "keyword": "pattern",
+    "params": {
+      "pattern": "^[0-9a-f]{40}$"
+    }
+  },
+  "invalid-screenshot-blank-note.json": {
+    "path": "/screenshots/0/note",
+    "keyword": "minLength",
+    "params": {
+      "limit": 1
+    }
+  },
+  "invalid-screenshot-extra-field.json": {
+    "path": "/screenshots/0",
+    "keyword": "additionalProperties",
+    "params": {
+      "additionalProperty": "why"
+    }
+  },
+  "invalid-screenshot-looked-at-false.json": {
+    "path": "/screenshots/0/looked_at",
+    "keyword": "const",
+    "params": {
+      "allowedValue": true
+    }
+  },
+  "invalid-screenshot-missing-looked-at.json": {
+    "path": "/screenshots/0",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "looked_at"
+    }
+  },
+  "invalid-screenshot-missing-mode.json": {
+    "path": "/screenshots/0",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "mode"
+    }
+  },
+  "invalid-screenshot-missing-note.json": {
+    "path": "/screenshots/0",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "note"
+    }
+  },
+  "invalid-screenshot-missing-path.json": {
+    "path": "/screenshots/0",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "path"
+    }
+  },
+  "invalid-screenshot-missing-story.json": {
+    "path": "/screenshots/0",
+    "keyword": "required",
+    "params": {
+      "missingProperty": "story"
+    }
+  },
+  "invalid-screenshot-mode-enum.json": {
+    "path": "/screenshots/0/mode",
+    "keyword": "enum",
+    "params": {
+      "allowedValues": ["light", "dark"]
+    }
+  },
+  "invalid-screenshot-path-outside-runs.json": {
+    "path": "/screenshots/0/path",
+    "keyword": "pattern",
+    "params": {
+      "pattern": "^\\.orivilo/runs/ORV-[0-9]+/"
+    }
+  },
+  "invalid-screenshot-story-id.json": {
+    "path": "/screenshots/0/story",
+    "keyword": "pattern",
+    "params": {
+      "pattern": "^[a-z0-9-]+--[a-z0-9-]+$"
+    }
+  },
+  "invalid-task-id-not-string.json": {
+    "path": "/task_id",
+    "keyword": "type",
+    "params": {
+      "type": "string"
+    }
+  },
+  "invalid-verdict-enum.json": {
+    "path": "/verdict",
+    "keyword": "enum",
+    "params": {
+      "allowedValues": ["approve", "request_changes"]
+    }
+  },
+  "invalid-visual-row-with-only-command.json": {
+    "path": "/ac/0/evidence",
+    "keyword": "contains",
+    "params": {
+      "minContains": 1
+    }
+  }
+}

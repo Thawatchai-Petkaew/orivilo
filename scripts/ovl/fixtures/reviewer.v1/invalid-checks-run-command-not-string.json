@@ -1,0 +1,28 @@
+{
+  "task_id": "t",
+  "verdict": "approve",
+  "head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "checks_run": [
+    {
+      "command": 1,
+      "exit_code": 1,
+      "summary": "fail"
+    }
+  ],
+  "findings": [],
+  "dropped": [
+    {
+      "id": "F1",
+      "severity": "Important",
+      "file": "a.mjs",
+      "line": 3,
+      "claim": "bug",
+      "expected": "no bug",
+      "evidence": {
+        "kind": "command",
+        "ref": "pnpm test",
+        "observed": "fail"
+      }
+    }
+  ]
+}

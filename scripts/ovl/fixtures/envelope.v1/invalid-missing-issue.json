@@ -1,0 +1,18 @@
+{
+  "envelope_version": 1,
+  "task_id": "ORV-81-a1",
+  "role": "builder",
+  "objective": "Build slice A1",
+  "worktree": "/work/tree",
+  "write_set": ["scripts/ovl/**"],
+  "context_pointers": ["docs/specs/ORV-81/spec.md"],
+  "facts": [
+    {
+      "claim": "ajv 8 is installed",
+      "checked_by": "pnpm ls ajv"
+    }
+  ],
+  "boundaries": [],
+  "done_when": ["pnpm test"],
+  "skills": ["quality-gate"]
+}
