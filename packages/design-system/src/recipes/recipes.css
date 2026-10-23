@@ -1745,28 +1745,36 @@
   letter-spacing: var(--cmp-kbd-type-letter-spacing);
 }
 
-/* ToggleGroup: pressed takes the selection tokens and an edge change (catalog ToggleGroup) ---- */
+/* ToggleGroup, segmented (ORV-65): a sunken track; the pressed item is a raised card chip with a
+ * ring and heavier text. No selection tint and no canvas violet, so the pressed item reads the same
+ * under every profile. No bottom edge either: a transparent 2px edge lifted Thai labels off centre.
+ * Inner items take the track's radius minus its padding, so pill and square profiles both nest. */
 
 .ds-toggle {
+  --_pad: 3px;
+  /* Inner radius, the hover wash and the pressed ring, each built only from tokens. */
+  --_item-radius: max(0px, calc(var(--cmp-toggle-radius) - var(--_pad)));
+  --_hover: color-mix(in srgb, var(--cmp-toggle-bg-hover) 55%, transparent);
+  --_ring: 0 0 0 1px var(--cmp-toggle-border-pressed);
   display: inline-flex;
   align-items: center;
+  gap: 2px;
+  padding: var(--_pad);
   border: 1px solid var(--cmp-toggle-border);
   border-radius: var(--cmp-toggle-radius);
   background: var(--cmp-toggle-bg);
-  overflow: hidden;
 }
 .ds-toggle__item {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--cmp-button-gap);
-  min-height: var(--cmp-button-height-md);
-  min-width: var(--cmp-button-height-md);
+  /* The track adds its padding and border back, so the group keeps the control height. */
+  min-height: calc(var(--cmp-button-height-md) - 2 * var(--_pad) - 2px);
+  min-width: calc(var(--cmp-button-height-md) - 2 * var(--_pad) - 2px);
   padding-inline: var(--cmp-button-padding-x-sm);
   border: 0;
-  border-right: 1px solid var(--cmp-toggle-border);
-  /* The pressed edge (catalog rule: selection tokens and an edge change, never a tint alone). */
-  border-bottom: 2px solid transparent;
+  border-radius: var(--_item-radius);
   background: transparent;
   color: var(--cmp-toggle-fg);
   font-family: var(--cmp-button-type-sm-font-family);
@@ -1778,30 +1786,35 @@
   user-select: none;
   transition:
     background-color var(--ds-motion-feedback-duration) var(--ds-motion-easing),
-    color var(--ds-motion-feedback-duration) var(--ds-motion-easing);
-}
-.ds-toggle__item:last-child {
-  border-right: 0;
+    color var(--ds-motion-feedback-duration) var(--ds-motion-easing),
+    box-shadow var(--ds-motion-feedback-duration) var(--ds-motion-easing);
 }
 .ds-toggle[data-size="sm"] .ds-toggle__item {
-  min-height: var(--cmp-button-height-sm);
-  min-width: var(--cmp-button-height-sm);
+  min-height: calc(var(--cmp-button-height-sm) - 2 * var(--_pad) - 2px);
+  min-width: calc(var(--cmp-button-height-sm) - 2 * var(--_pad) - 2px);
 }
-.ds-toggle__item:hover {
-  background: var(--cmp-toggle-bg-hover);
+.ds-toggle__item:hover:not(:disabled) {
+  background: var(--_hover);
+  color: var(--cmp-toggle-fg-hover);
 }
+/* Pressed: the chip, its ring and a heavier weight (catalog rule: never a tint alone). */
 .ds-toggle__item[data-state="on"] {
   background: var(--cmp-toggle-bg-pressed);
   color: var(--cmp-toggle-fg-pressed);
-  border-bottom-color: var(--cmp-toggle-border-pressed);
+  font-weight: var(--ds-type-heading-sm-font-weight);
+  box-shadow: var(--_ring);
 }
 .ds-toggle__item:focus-visible {
   outline: 2px solid var(--ds-focus-ring);
-  outline-offset: -2px;
+  outline-offset: 1px;
 }
 .ds-toggle__item:disabled {
   color: var(--cmp-toggle-fg-disabled);
   cursor: not-allowed;
+}
+/* A disabled pressed item keeps its chip but drops the ring, so it does not read as live. */
+.ds-toggle__item[data-state="on"]:disabled {
+  box-shadow: var(--ds-elevation-shell);
 }
 
 /* Floating toolbar surfaces: the node toolbar and the board controls (catalog NodeToolbar,

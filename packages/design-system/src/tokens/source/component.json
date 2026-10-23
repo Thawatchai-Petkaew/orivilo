@@ -1436,34 +1436,38 @@
     }
   },
   "toggle": {
-    "$description": "ToggleGroup items: pressed uses the selection tokens and an edge change (E4-3)",
+    "$description": "ToggleGroup, segmented: a sunken track; the pressed item is a raised card chip with a ring and heavier text, never a selection tint or the canvas violet, so it reads the same under every profile (ORV-65)",
     "bg": {
       "$type": "color",
-      "$value": "{surface.card}"
+      "$value": "{surface.sunken}"
     },
     "fg": {
       "$type": "color",
-      "$value": "{text.primary}"
+      "$value": "{text.secondary}"
     },
     "border": {
       "$type": "color",
-      "$value": "{border.control}"
+      "$value": "{border.subtle}"
     },
     "bg-hover": {
       "$type": "color",
-      "$value": "{surface.hover}"
+      "$value": "{surface.card}"
+    },
+    "fg-hover": {
+      "$type": "color",
+      "$value": "{text.primary}"
     },
     "bg-pressed": {
       "$type": "color",
-      "$value": "{selection.bg}"
+      "$value": "{surface.card}"
     },
     "fg-pressed": {
       "$type": "color",
-      "$value": "{selection.fg}"
+      "$value": "{text.primary}"
     },
     "border-pressed": {
       "$type": "color",
-      "$value": "{canvas.selection}"
+      "$value": "{border.subtle}"
     },
     "fg-disabled": {
       "$type": "color",

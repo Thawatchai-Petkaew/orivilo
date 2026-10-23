@@ -522,7 +522,21 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     floor: TEXT,
   },
   { recipe: "toggle", slot: "item", fg: "toggle.fg", bg: "toggle.bg", floor: TEXT },
-  { recipe: "toggle", slot: "item hover", fg: "toggle.fg", bg: "toggle.bg-hover", floor: TEXT },
+  // Hover mixes the card colour into the track, so the text must hold on both ends.
+  {
+    recipe: "toggle",
+    slot: "item hover",
+    fg: "toggle.fg-hover",
+    bg: "toggle.bg-hover",
+    floor: TEXT,
+  },
+  {
+    recipe: "toggle",
+    slot: "item hover (track)",
+    fg: "toggle.fg-hover",
+    bg: "toggle.bg",
+    floor: TEXT,
+  },
   {
     recipe: "toggle",
     slot: "pressed",
@@ -530,14 +544,6 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     bg: "toggle.bg-pressed",
     floor: TEXT,
   },
-  {
-    recipe: "toggle",
-    slot: "pressed edge",
-    fg: "toggle.border-pressed",
-    bg: "toggle.bg-pressed",
-    floor: UI,
-  },
-  { recipe: "toggle", slot: "edge", fg: "toggle.border", bg: "toggle.bg", floor: UI },
   { recipe: "toggle", slot: "disabled", fg: "toggle.fg-disabled", bg: "toggle.bg", floor: UI },
   { recipe: "toolbar", slot: "text", fg: "toolbar.fg", bg: "toolbar.bg", floor: TEXT },
   { recipe: "toolbar", slot: "glyph", fg: "button.ghost.fg", bg: "toolbar.bg", floor: TEXT },
