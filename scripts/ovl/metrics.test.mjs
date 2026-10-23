@@ -17,7 +17,7 @@ import { homedir, tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import Ajv2020 from "ajv/dist/2020.js";
-import { seedTask, validEnvelope } from "./hook-test-kit.mjs";
+import { seedGate, seedTask, validEnvelope } from "./hook-test-kit.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const script = join(here, "metrics.mjs");
@@ -593,4 +593,375 @@ test("usage errors exit 2", () => {
     const r = spawnSync(process.execPath, [script, ...args], { encoding: "utf8" });
     assert.equal(r.status, 2, args.join(" "));
   }
+});
+
+// Slice 2: report and session.
+
+const run = (w, command, ...args) =>
+  spawnSync(
+    process.execPath,
+    [
+      script,
+      command,
+      ...args,
+      ...(command === "session" ? ["--projects", w.projects] : ["--root", w.root]),
+    ],
+    { encoding: "utf8" },
+  );
+
+/** The cells of the table row whose first cell is `label`, in the first table that has it. */
+function row(stdout, label) {
+  const line = stdout.split("\n").find((l) => l.startsWith(`| ${label} |`));
+  assert.ok(line, `no row for ${label}`);
+  return line
+    .slice(1, -1)
+    .split("|")
+    .map((c) => c.trim());
+}
+
+/** Rows whose first two cells are `label` and `second`. */
+function row2(stdout, label, second) {
+  const line = stdout.split("\n").find((l) => l.startsWith(`| ${label} | ${second} |`));
+  assert.ok(line, `no row for ${label} ${second}`);
+  return line
+    .slice(1, -1)
+    .split("|")
+    .map((c) => c.trim());
+}
+
+function collectIssue(w, issue) {
+  const r = spawnSync(
+    process.execPath,
+    [script, "collect", issue, "--root", w.root, "--projects", w.projects],
+    { encoding: "utf8" },
+  );
+  assert.equal(r.status, 0, r.stderr);
+}
+
+function reportWorld() {
+  const w = world();
+  cpSync(sampleProjects, w.projects, { recursive: true });
+  seed(w, "ORV-1-build");
+  seed(w, "ORV-1-review", {
+    role: "reviewer",
+    agentId: "a4749f50857d699e3",
+    files: {
+      result: reviewerResult({ verdict: "request_changes", findings: [finding("Critical")] }, [
+        finding("Suggestion"),
+      ]),
+    },
+  });
+  writeAgentTranscript(w, "aaaa1111", [
+    assistant({ id: "m1", usage: [2, 3643, 28976, 116], tools: ["t1"], ts: at(1) }),
+  ]);
+  seedTask(w.root, "ORV-2", "ORV-2-build", {
+    envelope: validEnvelope(w.root, { task_id: "ORV-2-build", issue: "ORV-2" }),
+    agent: { agent_id: "bbbb2222", agent_type: "builder", started_at: at(0) },
+  });
+  writeAgentTranscript(w, "bbbb2222", [assistant({ id: "m9", usage: [1, 2, 3, 4], ts: at(1) })]);
+  // two send-backs for the builder aaaa1111, one for the reviewer
+  const beat = (agent, decision) =>
+    JSON.stringify({
+      hook: "result-recorder",
+      event: "SubagentStop",
+      at: at(5),
+      tool: null,
+      agent_id: agent,
+      decision,
+    });
+  mkdirSync(join(w.root, ".orivilo"), { recursive: true });
+  writeFileSync(
+    join(w.root, ".orivilo", "heartbeat.jsonl"),
+    [
+      beat("aaaa1111", "block"),
+      beat("aaaa1111", "error"),
+      beat("aaaa1111", "allow"),
+      beat("a4749f50857d699e3", "block"),
+    ].join("\n") + "\n",
+  );
+  // two gate passes and one failure for ORV-1, none for ORV-2
+  [true, true, false].forEach((ok, i) =>
+    seedGate(w.root, "ORV-1", `g${i}`, { ok, steps_source: "gate" }),
+  );
+  collectIssue(w, "ORV-1");
+  collectIssue(w, "ORV-2");
+  return w;
+}
+
+test("AC16: report prints tables by role and by issue with every metrics.v1 sum", () => {
+  const w = reportWorld();
+  const r = run(w, "report", "ORV-1", "ORV-2");
+  assert.equal(r.status, 0, r.stderr);
+  // label, tasks, runs, runs without tokens, calls, 4 kinds, total, tool uses, duration, findings, sent back
+  assert.deepEqual(row(r.stdout, "builder"), [
+    ...["builder", "2", "2", "0", "2", "3", "3645", "28979", "120", "32747", "1", "0"],
+    ...["0", "0", "0", "0", "2"],
+  ]);
+  assert.deepEqual(row(r.stdout, "reviewer"), [
+    ...["reviewer", "1", "2", "0", "7", "14", "26243", "111470", "3526", "141253", "7", "59846"],
+    ...["1", "0", "0", "1", "1"],
+  ]);
+  // by issue: the same columns, then gates passed and failed
+  assert.deepEqual(row(r.stdout, "ORV-1"), [
+    ...["ORV-1", "2", "3", "0", "8", "16", "29886", "140446", "3642", "173990", "8", "59846"],
+    ...["1", "0", "0", "1", "3", "2", "1"],
+  ]);
+  assert.deepEqual(row(r.stdout, "ORV-2"), [
+    ...["ORV-2", "1", "1", "0", "1", "1", "2", "3", "4", "10", "0", "0"],
+    ...["0", "0", "0", "0", "0", "0", "0"],
+  ]);
+  assert.match(r.stdout, /not a cost/);
+  assert.match(r.stdout, /orchestrator/);
+
+  const out = run(w, "report", "ORV-1", "ORV-2", "--out", "batch-1");
+  assert.equal(out.status, 0, out.stderr);
+  assert.equal(readFileSync(join(w.root, ".orivilo", "metrics", "batch-1.md"), "utf8"), r.stdout);
+  assert.match(out.stdout, /batch-1\.md/);
+});
+
+test("AC17: fresh and resumed runs are apart, with runs, median tokens and median tool uses", () => {
+  const w = reportWorld();
+  const r = run(w, "report", "ORV-1", "ORV-2");
+  assert.deepEqual(row2(r.stdout, "reviewer", "fresh"), [
+    "reviewer",
+    "fresh",
+    "1",
+    "1",
+    "91194",
+    "6",
+  ]);
+  assert.deepEqual(row2(r.stdout, "reviewer", "resumed"), [
+    "reviewer",
+    "resumed",
+    "1",
+    "1",
+    "50059",
+    "1",
+  ]);
+  // two builders: 32737 and 10, tool uses 1 and 0, medians of an even count are halved
+  assert.deepEqual(row2(r.stdout, "builder", "fresh"), [
+    "builder",
+    "fresh",
+    "2",
+    "2",
+    "16373.5",
+    "0.5",
+  ]);
+});
+
+test("AC17b: a median takes the middle run and leaves out a run without tokens", () => {
+  const w = world();
+  for (const [i, total] of [10, 30, 20].entries()) {
+    const id = `cccc${i}`;
+    seed(w, `ORV-1-t${i}`, { agentId: id });
+    writeAgentTranscript(w, id, [assistant({ id: `m${i}`, usage: [total, 0, 0, 0], ts: at(1) })]);
+  }
+  seed(w, "ORV-1-t9", { agentId: "cccc9" });
+  collectIssue(w, "ORV-1");
+  const r = run(w, "report", "ORV-1");
+  assert.deepEqual(row2(r.stdout, "builder", "fresh"), ["builder", "fresh", "4", "3", "20", "0"]);
+  assert.equal(row(r.stdout, "builder")[3], "1");
+});
+
+test("AC17c: a median is the middle value, not the mean, of a skewed set", () => {
+  const w = world();
+  for (const [i, total] of [10, 900, 20].entries()) {
+    const id = `dddd${i}`;
+    seed(w, `ORV-1-t${i}`, { agentId: id });
+    writeAgentTranscript(w, id, [assistant({ id: `m${i}`, usage: [total, 0, 0, 0], ts: at(1) })]);
+  }
+  collectIssue(w, "ORV-1");
+  const r = run(w, "report", "ORV-1");
+  assert.deepEqual(row2(r.stdout, "builder", "fresh"), ["builder", "fresh", "3", "3", "20", "0"]);
+});
+
+test("report: a missing metrics file or a bad issue key exits 2 with no path", () => {
+  const w = world();
+  const missing = run(w, "report", "ORV-9");
+  assert.equal(missing.status, 2);
+  assert.match(missing.stderr, /ORV-9/);
+  assert.equal((missing.stdout + missing.stderr).includes(w.base), false);
+  assert.equal(run(w, "report").status, 2);
+  assert.equal(run(w, "report", "nope").status, 2);
+});
+
+test("report: --out takes a plain name and writes nothing outside .orivilo/metrics", () => {
+  const w = reportWorld();
+  const before = hashes(w.base);
+  for (const out of ["../x", "../../escaped", "a/b", "x.md", ""]) {
+    const r = run(w, "report", "ORV-1", "--out", out);
+    assert.equal(r.status, 2, `--out ${out}`);
+    assert.match(r.stderr, /--out/);
+  }
+  assert.deepEqual(hashes(w.base), before);
+});
+
+test("report: a metrics file that breaks metrics.v1 exits 1 and its text is not printed", () => {
+  const w = reportWorld();
+  const file = join(w.root, ".orivilo", "metrics", "ORV-1.json");
+  const bad = { ...JSON.parse(readFileSync(file, "utf8")), note: CANARY };
+  writeFileSync(file, JSON.stringify(bad));
+  const r = run(w, "report", "ORV-1");
+  assert.equal(r.status, 1);
+  assert.equal((r.stdout + r.stderr).includes("CANARY"), false);
+});
+
+test("report: each issue shows its skipped lines and Claude Code versions", () => {
+  const w = reportWorld();
+  const r = run(w, "report", "ORV-1", "ORV-2");
+  assert.match(r.stdout, /## Reading notes/);
+  assert.deepEqual(row2(r.stdout, "ORV-1", "0").slice(0, 3), ["ORV-1", "0", "2.1.308"]);
+  assert.deepEqual(row2(r.stdout, "ORV-2", "0").slice(0, 3), ["ORV-2", "0", "2.1.308"]);
+});
+
+/** One key phrase per honest limit of the spec; every report and session footer must say each. */
+const LIMITS = [
+  /orchestrator's own tokens/,
+  /not a cost/,
+  /Cache write and cache read/,
+  /Waiting is not measured/,
+  /do not show whether a review was good/,
+  /Runs outside the records/,
+  /without an envelope check/,
+  /a sign, not proof/,
+  /can be edited/,
+  /never a guessed 0/,
+  /before collect runs/,
+];
+
+test("report and session footers state every honest limit", () => {
+  const w = reportWorld();
+  cpSync(sampleProjects, w.projects, { recursive: true });
+  const outputs = [
+    run(w, "report", "ORV-1").stdout,
+    run(w, "session", "22222222-2222-4222-8222-222222222222").stdout,
+  ];
+  for (const out of outputs) {
+    for (const limit of LIMITS) assert.match(out, limit);
+  }
+});
+
+test("session: skipped lines and versions are printed", () => {
+  const w = world();
+  seed(w, "ORV-1-a");
+  writeAgentTranscript(w, "aaaa1111", [assistant({ id: "m1", usage: [1, 1, 1, 1], ts: at(1) })], {
+    raw: ["not json", "also not json"],
+  });
+  const r = run(w, "session", SESSION);
+  assert.match(r.stdout, /skipped lines 2, Claude Code versions 2\.1\.308/);
+});
+
+test("AC18: session counts each completion notice once and sums the main session apart", () => {
+  const w = world();
+  seed(w, "ORV-1-a");
+  writeAgentTranscript(w, "aaaa1111", [
+    assistant({ id: "m1", usage: [1, 10, 100, 4], tools: ["t1"], ts: at(1) }),
+  ]);
+  const notice = (ts, type) => ({
+    type,
+    timestamp: ts,
+    version: "2.1.308",
+    content: `<task-notification><task-id>aaaa1111</task-id><usage><subagent_tokens>115</subagent_tokens><tool_uses>1</tool_uses><duration_ms>900</duration_ms></usage></task-notification>`,
+  });
+  const mainCall = { id: "main1", usage: [5, 20, 200, 10] };
+  writeMainTranscript(w, [
+    assistant({ ...mainCall, ts: at(0) }),
+    assistant({ ...mainCall, ts: at(0) }),
+    notice(at(2), "queue-operation"),
+    notice(at(3), "user"),
+  ]);
+  const r = run(w, "session", SESSION);
+  assert.equal(r.status, 0, r.stderr);
+  const lines = r.stdout.split("\n").filter((l) => l.startsWith("| aaaa1111 |"));
+  assert.equal(lines.length, 1);
+  const cells = row(r.stdout, "aaaa1111");
+  // agent, type, start, calls, 4 kinds, total, notice, tool uses, duration, started
+  assert.deepEqual(cells.slice(0, 11), [
+    ...["aaaa1111", "-", "fresh", "1", "1", "10", "100", "4", "115", "115", "1"],
+  ]);
+  assert.match(
+    r.stdout,
+    /main session, not per task: calls 1, input 5, cache_creation 20, cache_read 200, output 10, total 235/,
+  );
+  assert.match(r.stdout, /runs 1, with a notice 1/);
+});
+
+test("AC18b: session splits resumed runs and lists the notice figure beside tokens.total", () => {
+  const w = world();
+  cpSync(sampleProjects, w.projects, { recursive: true });
+  const r = run(w, "session", "22222222-2222-4222-8222-222222222222");
+  assert.equal(r.status, 0, r.stderr);
+  const fresh = row2(r.stdout, "a4749f50857d699e3", "-");
+  assert.equal(fresh[2], "fresh");
+  assert.equal(fresh[8], "91194");
+  assert.equal(fresh[9], "22745");
+  const resumed = r.stdout.split("\n").find((l) => l.includes("| resumed |"));
+  assert.match(resumed, /\| 50059 \| 26735 \|/);
+  assert.match(r.stdout, /runs 2, with a notice 2/);
+  assert.match(r.stdout, /one-call runs 0/);
+});
+
+test("session: a one-call run is checked against its notice and an unknown session exits 2", () => {
+  const w = world();
+  seed(w, "ORV-1-a");
+  writeAgentTranscript(w, "aaaa1111", [assistant({ id: "m1", usage: [1, 10, 100, 4], ts: at(1) })]);
+  writeMainTranscript(w, [
+    {
+      type: "queue-operation",
+      timestamp: at(2),
+      version: "2.1.308",
+      content: `<task-id>aaaa1111</task-id><usage><subagent_tokens>115</subagent_tokens><tool_uses>0</tool_uses><duration_ms>5</duration_ms></usage>`,
+    },
+  ]);
+  const r = run(w, "session", SESSION);
+  assert.match(r.stdout, /one-call runs 1, notice within 1% of tokens.total 1/);
+  const none = run(w, "session", "44444444-4444-4444-8444-444444444444");
+  assert.equal(none.status, 2);
+  assert.equal(run(w, "session", "../x").status, 2);
+});
+
+test("AC12b: a canary in every text field reaches no output of report or session", () => {
+  const w = world();
+  seed(w, "ORV-1-a", {
+    files: { result: reviewerResult({ verdict: "approve", findings: [], summary: CANARY }) },
+  });
+  writeAgentTranscript(w, "aaaa1111", [
+    { type: "user", timestamp: at(0), message: { role: "user", content: CANARY } },
+    assistant({ id: "m1", usage: [1, 1, 1, 1], tools: ["t1"], ts: at(1) }),
+  ]);
+  writeFileSync(
+    join(w.projects, "-proj", SESSION, "subagents", "agent-aaaa1111.meta.json"),
+    JSON.stringify({ agentType: CANARY, description: CANARY, requestShape: CANARY }),
+  );
+  writeMainTranscript(w, [
+    assistant({ id: "main1", usage: [1, 1, 1, 1], ts: at(0) }),
+    {
+      type: "queue-operation",
+      timestamp: at(2),
+      version: "2.1.308",
+      content: `<task-id>aaaa1111</task-id><summary>${CANARY}</summary><usage><subagent_tokens>4</subagent_tokens><tool_uses>1</tool_uses><duration_ms>9</duration_ms></usage>`,
+    },
+  ]);
+  collectIssue(w, "ORV-1");
+  const results = [
+    run(w, "report", "ORV-1"),
+    run(w, "report", "ORV-1", "--out", "canary"),
+    run(w, "session", SESSION),
+  ];
+  const seen =
+    results.map((r) => r.stdout + r.stderr).join("") +
+    readFileSync(join(w.root, ".orivilo", "metrics", "canary.md"), "utf8");
+  for (const r of results) assert.equal(r.status, 0, r.stderr);
+  for (const forbidden of ["CANARY", w.base, w.projects, homedir(), ".jsonl", "/Users/"]) {
+    assert.equal(seen.includes(forbidden), false, `output holds ${forbidden}`);
+  }
+});
+
+test("report and session change no record and no transcript", () => {
+  const w = reportWorld();
+  const before = { ...hashes(w.projects), ...hashes(w.root) };
+  run(w, "report", "ORV-1", "ORV-2");
+  run(w, "session", "22222222-2222-4222-8222-222222222222");
+  const after = { ...hashes(w.projects), ...hashes(w.root) };
+  assert.deepEqual(after, before);
 });
