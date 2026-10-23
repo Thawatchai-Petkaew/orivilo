@@ -37,6 +37,7 @@ The plan and its order live in `docs/plans/master-plan.md`; pages published in t
 | ORV-75 | Jira states by environment, ADR 0012 option A (in `develop`)                  | #63 |
 | ORV-77 | RangeSlider on Radix `preserveThumbOrder` (in `develop`)                      | #64 |
 | ORV-78 | DropdownMenu checkbox and radio items (in `develop`)                          | #65 |
+| ORV-82 | Knowledge, lessons and plans folders with a checker (in `develop`)            | #68 |
 
 ## Next, in order
 

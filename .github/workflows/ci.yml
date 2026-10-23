@@ -50,6 +50,6 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
       - run: pnpm --filter @orivilo/design-system exec playwright install chromium
-      - run: pnpm test
+      - run: pnpm test --continue
       - run: pnpm build
       - run: pnpm audit --prod --audit-level high

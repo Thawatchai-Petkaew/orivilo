@@ -15,7 +15,8 @@
     "check:knowledge": "node scripts/check-knowledge.mjs",
     "test:scripts": "node --test scripts/*.test.mjs",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "quality-gate": "node scripts/quality-gate.mjs"
   },
   "devDependencies": {
     "prettier": "3.9.9",
