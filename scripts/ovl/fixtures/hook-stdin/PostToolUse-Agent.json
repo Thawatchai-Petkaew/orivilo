@@ -1,0 +1,82 @@
+{
+  "session_id": "f07dac3e-9e6e-4bc1-bd68-a408d9e08f0b",
+  "transcript_path": "/Users/tawatchaipetkaew/.claude/projects/-private-tmp-claude-501--Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO-0baff5a3-4a6a-4d70-99db-b6b7a526f04f-scratchpad-stdin-probe/f07dac3e-9e6e-4bc1-bd68-a408d9e08f0b.jsonl",
+  "cwd": "/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/0baff5a3-4a6a-4d70-99db-b6b7a526f04f/scratchpad/stdin-probe",
+  "scratchpad_dir": "/private/tmp/claude-501/-private-tmp-claude-501--Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO-0baff5a3-4a6a-4d70-99db-b6b7a526f04f-scratchpad-stdin-probe/f07dac3e-9e6e-4bc1-bd68-a408d9e08f0b/scratchpad",
+  "prompt_id": "bfbc31e1-4343-4ba8-af6d-b5336cd3124a",
+  "permission_mode": "bypassPermissions",
+  "effort": {
+    "level": "medium"
+  },
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Agent",
+  "tool_input": {
+    "description": "probe",
+    "prompt": "Run the Bash command: echo hi, then reply done",
+    "subagent_type": "general-purpose",
+    "run_in_background": false
+  },
+  "tool_response": {
+    "status": "completed",
+    "prompt": "Run the Bash command: echo hi, then reply done",
+    "agentId": "a9676f924989bd70c",
+    "agentType": "general-purpose",
+    "harnessNoteCount": 0,
+    "harnessTailCount": 0,
+    "harnessSectionHash": "061ccae5c6af90a3",
+    "content": [
+      {
+        "type": "text",
+        "text": "done. `echo hi` printed `hi`.\n\nTwo connectors, Atlassian and claude.ai Gmail, need you to sign in before Claude can use them. You can do that in your claude.ai connector settings. Until then, those tools won't work."
+      }
+    ],
+    "resolvedModel": "claude-opus-5-5",
+    "totalDurationMs": 3579,
+    "totalTokens": 32737,
+    "totalToolUseCount": 1,
+    "usage": {
+      "output_tokens_details": {
+        "thinking_tokens": 35
+      },
+      "input_tokens": 2,
+      "cache_creation_input_tokens": 3643,
+      "cache_read_input_tokens": 28976,
+      "output_tokens": 116,
+      "server_tool_use": {
+        "web_search_requests": 0,
+        "web_fetch_requests": 0
+      },
+      "service_tier": "standard",
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 0,
+        "ephemeral_5m_input_tokens": 3643
+      },
+      "inference_geo": "global",
+      "iterations": [
+        {
+          "input_tokens": 2,
+          "output_tokens": 116,
+          "cache_read_input_tokens": 28976,
+          "cache_creation_input_tokens": 3643,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 3643,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "type": "message"
+        }
+      ],
+      "speed": "standard"
+    },
+    "toolStats": {
+      "readCount": 0,
+      "searchCount": 0,
+      "bashCount": 1,
+      "editFileCount": 0,
+      "linesAdded": 0,
+      "linesRemoved": 0,
+      "otherToolCount": 0
+    }
+  },
+  "tool_use_id": "toolu_01DggUqFNAdEJNK2CE3Hkxpw",
+  "duration_ms": 3579
+}
