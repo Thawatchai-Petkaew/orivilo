@@ -40,6 +40,18 @@ export async function createTestDatabase(): Promise<TestDatabase> {
   const root = postgres(TEST_DATABASE_URL, { max: 1, onnotice: () => {} });
   await root.unsafe(`create database ${name}`);
   const adminUrl = withDatabase(TEST_DATABASE_URL, name).toString();
+  // Roles live on the server, not in a database. Two fresh migrations racing to create
+  // `orivilo_app` can both pass the migration's "if not exists" check, and the loser fails on
+  // pg_authid's unique index (not `duplicate_object`). Create it here first, one run at a time,
+  // so the migration always finds it.
+  await root.begin(async (tx) => {
+    await tx`select pg_advisory_xact_lock(${ROLE_LOCK})`;
+    await tx.unsafe(`do $$ begin
+      if not exists (select from pg_roles where rolname = 'orivilo_app') then
+        create role orivilo_app nologin nobypassrls nocreatedb nocreaterole;
+      end if;
+    end $$`);
+  });
   await runMigrations(adminUrl);
   // The role is shared by every test database on the server, and test files run in parallel, so
   // every run sets the same test-only password, one at a time: two concurrent ALTER ROLE
