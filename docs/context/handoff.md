@@ -15,6 +15,7 @@ The plan and its order live in `docs/context/master-plan.md`; pages published in
 - **Base first:** base components get variant depth where a variant has a functional meaning, following the build order in `docs/specs/ORV-64/audit.md` section D.
 - **Branches:** delete a branch, its local copy and its worktree once its PR is merged or closed; only `main` and `develop` live on (AGENTS.md).
 - **Copy:** every UI string in Thai and English from the locale catalog; no middot and no em dash anywhere.
+- **Progress doc:** the owner follows the work in the Claude Doc "ORIVILO ความคืบหน้าแผนหลัก" (https://claude.ai/artifact/WiTsC13it9yESkFiRU7wL7). Update it after every story and every release batch: status counts from Jira, the core component plan table, and the owner's checklist. Jira and `master-plan.md` stay the sources; the doc is their view.
 - **Secrets:** environment variables only. Never commit `.env*`, never paste keys in chat.
 
 ## Done today
@@ -30,8 +31,7 @@ The plan and its order live in `docs/context/master-plan.md`; pages published in
 | ORV-69 | `develop` parks merged work, staging moves in batches (ADR 0011)              | #57 |
 | ORV-70 | Tooltip description line and align (in `develop`, not yet on staging)         | #58 |
 | ORV-71 | Master plan and project artifact list in the repo (in `develop`)              | #59 |
-| ORV-72 | Checkbox sm, Textarea sm and Thai grapheme counter (in `develop`)             | PR  |
-| ORV-71 | Master plan and artifact list in the repo                                     | #59 |
+| ORV-72 | Checkbox sm, Textarea sm and Thai grapheme counter (in `develop`)             | #60 |
 
 ## Next, in order
 
@@ -44,7 +44,13 @@ The plan and its order live in `docs/context/master-plan.md`; pages published in
 
 - Node and pnpm as in `package.json`, then `pnpm install`. If pnpm asks, approve the esbuild build script with `pnpm approve-builds`.
 - Postgres 16 for the database tests. CI uses `postgres://postgres:postgres@localhost:5432/postgres`; set `TEST_DATABASE_URL` to your own and `REQUIRE_DB_TESTS=1` to make the tests fail instead of skip without it.
-- `apps/web/.env.local` from `apps/web/.env.example` with real values, for `pnpm dev`.
+- `apps/web/.env.local` from `apps/web/.env.example` with real values, for `pnpm dev`. `vercel env pull` leaves secrets empty (`""`); fill them by hand. Development uses local Postgres (ADR 0010), never the staging database:
+  - `createdb orivilo_dev`, then `MIGRATION_DATABASE_URL=postgres://<you>@localhost:5432/orivilo_dev pnpm --filter @orivilo/db migrate` (prints "migrations applied").
+  - `psql -d orivilo_dev -c "alter role orivilo_app login password 'orivilo_app_test'"`: migrations create `orivilo_app` without a login; the database tests set this same password on every run, so a password of your own does not survive.
+  - `DATABASE_URL=postgres://orivilo_app:orivilo_app_test@localhost:5432/orivilo_dev`.
+  - `BETTER_AUTH_SECRET`: a new one per machine (`openssl rand -base64 32`), not staging's.
+  - `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`: the staging OAuth client, with `http://localhost:3000` as a JavaScript origin and `http://localhost:3000/api/auth/callback/google` as a redirect URI. Production gets its own client (ORV-63).
+  - `OPENROUTER_API_KEY`: the same key works locally; its spend joins staging's.
 - Playwright's Chromium for the Storybook tests (`pnpm exec playwright install chromium`).
 - On macOS, 18 Storybook tests fail locally and pass in CI (ubuntu): canvas-board, command-menu, canvas-context-menu, dropdown-menu `Open`, inspector `Studio Layout`, node-group `Group And Ungroup`. The stories press `Control` for `Mod`, which is `Meta` on a Mac (`src/commands/index.ts`). Compare against `develop` before blaming a change; fixing the stories to press the platform key is a small chore not yet filed.
 - Jira through the Atlassian MCP server in `.mcp.json`; sign in once per account. GitHub through `gh auth login` or the IDE.
