@@ -11,6 +11,7 @@ Read this first when you pick the work up in a new session or on another account
 - **Review without a deploy:** run Storybook locally, `pnpm --filter @orivilo/design-system storybook`, on http://localhost:6100.
 - **Environments:** `development`, `preview`, `staging`, `production` (ADR 0010). The real staging and production split is ORV-63, parked until the POC ends. Until then orivilo.vercel.app is staging.
 - **Base first:** base components get variant depth where a variant has a functional meaning, following the build order in `docs/specs/ORV-64/audit.md` section D.
+- **Branches:** delete a branch, its local copy and its worktree once its PR is merged or closed; only `main` and `develop` live on (AGENTS.md).
 - **Copy:** every UI string in Thai and English from the locale catalog; no middot and no em dash anywhere.
 - **Secrets:** environment variables only. Never commit `.env*`, never paste keys in chat.
 

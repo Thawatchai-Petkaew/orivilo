@@ -64,6 +64,7 @@ Gate review packets use the `gate-packet` skill. Request changes → rework → 
 
 - Branch `<type>/<ISSUE-KEY>-<slug>` (`feature/`, `fix/`, `chore/`, `docs/`). Conventional Commits.
 - One issue per branch and per git worktree. Stage explicit paths; never `git add -A` in a shared tree.
+- Delete a branch once its PR is merged or closed: the remote branch, the local branch and its worktree. Only `main` and `develop` live on. Check `git branch -a` before you finish a story.
 - PR into `develop`, which parks merged work and deploys nothing. A release PR from `develop` into `main` moves a batch to staging when the owner says so (ADR 0011); a git tag deploys to production.
 
 ## Commands
