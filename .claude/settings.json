@@ -62,6 +62,16 @@
             "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/resume-guard.mjs\" || exit 2"
           }
         ]
+      },
+      {
+        "matcher": "^mcp__.*[Aa]tlassian.*__(transitionJiraIssue|executeWrite|executeDestructive)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/g3-check.mjs\" || exit 2",
+            "timeout": 300
+          }
+        ]
       }
     ],
     "PostToolUse": [

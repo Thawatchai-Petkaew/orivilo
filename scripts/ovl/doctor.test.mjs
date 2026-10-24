@@ -321,3 +321,32 @@ test("ORV-95 row 41: check names merge-guard without a block heartbeat, then pas
   writeBeat(root, "block", new Date(Date.now() + 1000).toISOString(), "merge-guard", "Bash");
   assert.equal(run(root, "check", since).code, 0);
 });
+
+const G3_TOOL = "mcp__claude_ai_Atlassian_MCP__transitionJiraIssue";
+
+test("ORV-98 row 22: plan lists g3-check with the ORV-0 transition probe", () => {
+  const root = makeRepo();
+  registerGuards(root, ["g3-check"]);
+  const plan = JSON.parse(run(root, "plan").stdout);
+  assert.equal(plan.guards[0].name, "g3-check");
+  assert.deepEqual(plan.guards[0].probe, {
+    hook_event_name: "PreToolUse",
+    tool_name: G3_TOOL,
+    tool_input: {
+      cloudId: "tpetkaew.atlassian.net",
+      issueIdOrKey: "ORV-0",
+      transitionId: "4",
+    },
+  });
+});
+
+test("ORV-98 row 22: check names g3-check without a block heartbeat, then passes with one", () => {
+  const root = makeRepo();
+  registerGuards(root, ["g3-check"]);
+  const since = new Date().toISOString();
+  const silent = run(root, "check", since);
+  assert.equal(silent.code, 2);
+  assert.match(silent.stderr, /g3-check/);
+  writeBeat(root, "block", new Date(Date.now() + 1000).toISOString(), "g3-check", G3_TOOL);
+  assert.equal(run(root, "check", since).code, 0);
+});

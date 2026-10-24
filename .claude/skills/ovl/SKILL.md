@@ -3,7 +3,7 @@ name: ovl
 description: Run work as the orchestrator. Write a checked JSON envelope for each task, dispatch it to one role, and ask the owner for a rework round through a question form. Use to dispatch any subagent in this repo. This is the minimal skill (slices A2 and A3 of ORV-81); the full loop arrives in slice D.
 ---
 
-# ovl (slices A2, A3 and C1, minimal)
+# ovl (slices A2, A3, C1 and C2, minimal)
 
 Hooks now check every Agent call in this repo, in every session. The main session plans and dispatches; it does not write the deliverable. Spec: `docs/specs/ORV-81/spec.md`. Decisions: ADR 0013 and ADR 0014.
 
@@ -13,7 +13,7 @@ Hooks now check every Agent call in this repo, in every session. The main sessio
 node scripts/ovl/doctor.mjs plan
 ```
 
-Make the one probe call it prints for each guard (each is built to be blocked, so it changes nothing). The `write-guard` probe is a `Write` of `packages/.ovl-probe`; `write-guard` blocks it, so no file appears, and `check` also exits 2 if that file exists. The `merge-guard` probe is a Bash call of `gh pr merge 0`; the text stage blocks it with no network call, so nothing merges. The `resume-guard` probe is a `SendMessage` call; that tool may be deferred, so load it first (ToolSearch, query `select:SendMessage`), and if the session offers no `SendMessage` at all, stop and tell the owner: the doctor cannot tell a missing tool from a silent guard. Then run `node scripts/ovl/doctor.mjs check <since>` with the `since` value from the plan. If it exits 2, stop and name the silent guard to the owner.
+Make the one probe call it prints for each guard (each is built to be blocked, so it changes nothing). The `write-guard` probe is a `Write` of `packages/.ovl-probe`; `write-guard` blocks it, so no file appears, and `check` also exits 2 if that file exists. The `merge-guard` probe is a Bash call of `gh pr merge 0`; the text stage blocks it with no network call, so nothing merges. The `g3-check` probe is an Atlassian MCP `transitionJiraIssue` call (`mcp__claude_ai_Atlassian_MCP__transitionJiraIssue`) with `cloudId` `tpetkaew.atlassian.net`, `issueIdOrKey` `ORV-0` and `transitionId` `4`; the call stage blocks it as the ovl-doctor probe with no network call and no export, and ORV-0 does not exist, so nothing reaches Jira. The `resume-guard` probe is a `SendMessage` call; that tool may be deferred, so load it first (ToolSearch, query `select:SendMessage`), and if the session offers no `SendMessage` at all, stop and tell the owner: the doctor cannot tell a missing tool from a silent guard. Then run `node scripts/ovl/doctor.mjs check <since>` with the `since` value from the plan. If it exits 2, stop and name the silent guard to the owner.
 
 If the doctor says a dependency is missing, run `pnpm install` and start again. `plan` stops (exit 2, naming each path) when any other worktree still holds records in its own `.orivilo/runs/` from before the shared root (the hooks no longer read them, so a `request_changes` verdict or used rework rounds recorded there would be forgotten); run `node scripts/ovl/doctor.mjs migrate` to move them into the main checkout's `.orivilo/runs/`, then plan again. Migrate moves each task folder whole and appends the worktree's heartbeat lines to main's `heartbeat.jsonl`. A task folder main already has is left whole in the worktree and listed, and migrate exits 2. A link under a worktree's `.orivilo/runs/` stops it before any move: it lists the links and exits 2. `plan` also closes envelopes left open by slice A2 (`closed_pre_a3`); it lists them, and none counts as a round. `result-recorder` cannot be probed: after the first Agent call returns, run `node scripts/ovl/doctor.mjs recorder <since>` and stop if it exits 2.
 
@@ -177,6 +177,23 @@ A PR comment, from anyone, is not a waiver; the guard reads no comment. A waiver
 
 When the guard blocks, stderr names the rule, the issue key, SHAs, file paths and check names. Fix the missing record or ask the owner for the approval or waiver line; do not look for another way to merge. While develop has no `scripts/ovl/merge-check.mjs` (the bootstrap), the guard blocks and the owner merges that PR in the GitHub web UI.
 
+## 7. Move the issue to G3 PR review
+
+Spec: `docs/specs/ORV-98/spec.md`. G3 PR review means merged into `develop` (ADR 0012), so the move comes after the merge, never before. The move is a Jira transition on the issue key (`ORV-<n>`, not a numeric id or a lowercase key) with `transitionId` `4`, or `transitionName` `G3 PR review` (exact case). Send one of them, or both only when they name the same transition.
+
+`g3-check` (PreToolUse on the Atlassian MCP `transitionJiraIssue`, and `executeWrite` or `executeDestructive` whose `name` is `transitionJiraIssue` or whose `inputs` hold `transitionId` or `transitionName`, whatever the `name`) judges every transition in two stages. An execute call named `transitionJiraIssue` with `inputs` `null` or missing blocks, since it names no transition.
+
+- **Call stage**, from the session's checkout, with no network call. The `transitionId` or `transitionName` must be in `scripts/ovl/jira-transitions.json`; a name is matched exactly against transition names, never against target statuses (`Backlog`, `Discovery`). An unknown id or name, an id and a name that disagree, or a call with neither blocks. A move to any status other than G3 PR review is allowed here.
+- **Records stage**, for a move to G3 PR review only, from develop's export (as for `merge-guard`). The issue's latest merged PR into `develop` (head branch key and title key both the issue) must pass `merge-check` on its merged head: qa, reviewer, gate record, checks and the rest of step 6. An open PR of the issue into `develop`, or no merged PR, blocks. Open PRs are read from an open list (`gh pr list --state open`, no `--search`), so a PR opened moments before the move is seen; the merged PRs come from a search list. Each `gh pr list` is bounded at 30 seconds and the records stage at 120, under the hook's `"timeout": 300`.
+
+Pre-check from your own checkout; only the hook's run counts, but the output names what is missing:
+
+```bash
+node scripts/ovl/g3-check.mjs <ISSUE>
+```
+
+When the guard blocks, fix the missing record or the PR, or ask the owner. A PR the owner merged by hand without the records cannot pass; the owner moves that issue in the Jira web UI. While develop has no `scripts/ovl/g3-check.mjs`, the move blocks and the owner moves the issue in the Jira web UI. The G3 packet quotes the `g3-check` heartbeat line of the move.
+
 ## Honest limits of this slice
 
 - `SubagentStart` cannot block (exit 2 only shows stderr). If a subagent starts with no single open envelope to bind to, it runs unbound: no `agent.json`, no round counted, no `result.json`. The guard at dispatch time (one open envelope per role, checked again after the envelope is saved, so two same-role calls made at once never both run: at most one is allowed and the others close as denied) is what prevents this, not the start hook. Every record is written whole (aside, then linked into place), so a start hook running at the same moment as another never reads half a record. One residual window remains: a losing envelope of a same-role race stays visible as open and unbound until its `closed.json` is written, and on a very slow filesystem the winner's start hook could scan inside that span, see two candidates and run unbound. It was not reproduced in 31 trials.
@@ -195,7 +212,21 @@ When the guard blocks, stderr names the rule, the issue key, SHAs, file paths an
 - Docs-only PRs skip the qa and the gate record: CI is the only check that runs, and a rule, agent or skill file merges on a reviewer's or the owner's approve.
 - A merge needs the network (`gh` and `git ls-remote`); offline, every `gh pr merge` is blocked. A PR whose file list GitHub cut is blocked, not judged.
 - The records stage checks that the qa's screenshots exist for each story title, not what they show.
+- `g3-check` is a guard rail for agents that follow the rules, not a boundary. It stops a session that moves an issue to G3 PR review by habit or by mistake before the merge and the records exist, and names the missing record. It does not hold against a session that sets out to defeat it. An agent never uses any form below to move an issue around it.
+- `g3-check` does not see other ways to move Jira: the Jira web UI, the Jira REST API through `curl` or a script, a Jira automation rule, or an Atlassian MCP tool whose name its matcher does not hold. The `.mcp.json` server `atlassian` was not reachable headless, so its tool names (`mcp__atlassian__<tool>`) are expected, not recorded.
+- `g3-check`'s call stage and its id list run from the session's checkout. A builder whose `write_set` lists `scripts/ovl/g3-check.mjs`, `scripts/ovl/jira-transitions.json`, `.claude/hooks/g3-check.mjs` or `.claude/settings.json` can weaken it (remap id `4`, for example) for its own worktree until the merge; the merge of such a PR needs the owner approval record. The records stage always runs from develop's export, never from the branch.
+- Only the G3 move is guarded. Moves to Staging, G4, Release, G5 and Done pass with any known id or name.
+- Only the issue's latest merged PR is judged; an earlier one was judged by `merge-guard` at its own merge, or merged by hand before slice C1.
+- Records forged by a Bash call that hides `.orivilo` (ORV-96) pass the G3 move as they would pass a merge.
+- The transition ids and names are this project's, recorded once (`listJiraIssueTransitions` on ORV-98, ORV-97 and ORV-93). A Jira workflow change makes a new id or name block, and a reused id or a renamed transition maps to its old status, until `jira-transitions.json` is recorded again.
+- A name is matched exactly. If Jira accepts a case variant or a trimmed name, `g3-check` blocks it as unknown; retry with the exact name or the id. When a call holds both an id and a name, which one Jira uses is not recorded, so both must name the same transition.
+- The `executeWrite` and `executeDestructive` routes are judged as the model sent them; the Jira server may refuse a transition through them.
+- A G3 move needs the network (`gh` and `git ls-remote`), as a merge does. The samples come from the `claude` on PATH; a newer Claude Code that drops a field fails closed.
+- A hook past its timeout lets the call through: per Claude Code's hooks docs, a cancelled hook is not an exit 2. `g3-check` bounds its own spawns under its 300-second `timeout`, but the develop export's `git` steps carry no bound, so an export that hangs past the remaining time lets the move through. `merge-guard` has the same gap: its entry sets no `timeout`, so the 60-second default applies while its records stage waits up to 120 seconds (ORV-94).
+- The merged PR still comes from the search index. The open list does not use search, but the search list does, so a PR merged moments before the move may be missing: an earlier merged PR of the issue is judged instead, or no merged PR is found and the move blocks.
+- The `g3-check` tests run a stub `merge-check.mjs` on the fixture origin's `develop`; no `g3-check` test runs the real `runMergeCheck` on a merged PR. The relay is pinned by its argv (`<n> --head <sha>`); the other `merge-check` reasons rest on the ORV-95 `merge-check` tests.
+- An execute call with a variant `name` (`TransitionJiraIssue`, for example) whose `inputs` hold neither `transitionId` nor `transitionName` names no target, so it is allowed; Jira cannot move an issue from it without a transition.
 
 ## Not in this slice
 
-`write-guard` guards writes (slice B) and `merge-guard` guards merges (slice C1). Nothing yet checks the G3 move (`g3-check`, slice C2). Until then, do not claim a role's work as evidence on its own say-so: a gate needs the recorded `qa.v1` and `reviewer.v1` results and the checks you ran yourself.
+`write-guard` guards writes (slice B), `merge-guard` guards merges (slice C1) and `g3-check` guards the move to G3 PR review (slice C2). Moves to Staging, G4, Release, G5 and Done are not checked. Do not claim a role's work as evidence on its own say-so: a gate needs the recorded `qa.v1` and `reviewer.v1` results and the checks you ran yourself.
