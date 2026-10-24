@@ -1256,6 +1256,47 @@
   --cmp-tag-type-md-line-height: var(--ds-type-label-md-line-height);
   --cmp-tag-type-md-font-weight: var(--ds-type-label-md-font-weight);
   --cmp-tag-type-md-letter-spacing: var(--ds-type-label-md-letter-spacing);
+  --cmp-taskbar-bg: var(--ds-surface-card);
+  --cmp-taskbar-fg: var(--ds-text-primary);
+  --cmp-taskbar-muted-fg: var(--ds-text-secondary);
+  --cmp-taskbar-border: var(--ds-border-subtle);
+  --cmp-taskbar-divider: var(--ds-border-subtle);
+  --cmp-taskbar-shadow: var(--ds-elevation-overlay);
+  --cmp-taskbar-radius: var(--ds-shape-container-radius);
+  --cmp-taskbar-padding-x: var(--ds-space-inset-md);
+  --cmp-taskbar-padding-y: var(--ds-space-inset-sm);
+  --cmp-taskbar-row-block: var(--ds-space-row-block-comfortable);
+  --cmp-taskbar-gap: var(--ds-space-inline-md);
+  --cmp-taskbar-line-gap: var(--ds-space-inline-sm);
+  --cmp-taskbar-header-height: var(--ds-size-control-md);
+  --cmp-taskbar-list-max-height: var(--ds-size-panel-default);
+  --cmp-taskbar-icon-size: var(--ds-size-icon-sm);
+  --cmp-taskbar-label-type-font-family: var(--ds-type-label-md-font-family);
+  --cmp-taskbar-label-type-font-size: var(--ds-type-label-md-font-size);
+  --cmp-taskbar-label-type-line-height: var(--ds-type-label-md-line-height);
+  --cmp-taskbar-label-type-font-weight: var(--ds-type-label-md-font-weight);
+  --cmp-taskbar-label-type-letter-spacing: var(--ds-type-label-md-letter-spacing);
+  --cmp-taskbar-name-type-font-family: var(--ds-type-label-md-font-family);
+  --cmp-taskbar-name-type-font-size: var(--ds-type-label-md-font-size);
+  --cmp-taskbar-name-type-line-height: var(--ds-type-label-md-line-height);
+  --cmp-taskbar-name-type-font-weight: var(--ds-type-label-md-font-weight);
+  --cmp-taskbar-name-type-letter-spacing: var(--ds-type-label-md-letter-spacing);
+  --cmp-taskbar-meta-type-font-family: var(--ds-type-label-sm-font-family);
+  --cmp-taskbar-meta-type-font-size: var(--ds-type-label-sm-font-size);
+  --cmp-taskbar-meta-type-line-height: var(--ds-type-label-sm-line-height);
+  --cmp-taskbar-meta-type-font-weight: var(--ds-type-label-sm-font-weight);
+  --cmp-taskbar-meta-type-letter-spacing: var(--ds-type-label-sm-letter-spacing);
+  --cmp-taskbar-body-type-font-family: var(--ds-type-body-sm-font-family);
+  --cmp-taskbar-body-type-font-size: var(--ds-type-body-sm-font-size);
+  --cmp-taskbar-body-type-line-height: var(--ds-type-body-sm-line-height);
+  --cmp-taskbar-body-type-font-weight: var(--ds-type-body-sm-font-weight);
+  --cmp-taskbar-body-type-letter-spacing: var(--ds-type-body-sm-letter-spacing);
+  --cmp-taskbar-queued-fg: var(--ds-text-secondary);
+  --cmp-taskbar-running-fg: var(--ds-status-running);
+  --cmp-taskbar-done-fg: var(--ds-feedback-success-fg);
+  --cmp-taskbar-failed-fg: var(--ds-feedback-danger-fg);
+  --cmp-taskbar-reason-fg: var(--ds-text-primary);
+  --cmp-taskbar-layer: var(--ds-layer-overlay);
 }
 
 /* Tailwind utilities resolve to semantic tokens only (DESIGN.md §5). The defaults are removed first

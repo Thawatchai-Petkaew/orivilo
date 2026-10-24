@@ -3662,3 +3662,228 @@ button.ds-tag__main {
   color: var(--cmp-tag-fg-disabled);
   cursor: not-allowed;
 }
+
+/* TaskBar (ORV-100, E4-5 part 2): a docked strip of job rows. The header sits on the bottom line
+ * in both states (column-reverse), so the toggle does not move when the list opens. Every value
+ * is a `taskbar.*` token; the state colours read `status.running` and `feedback.*`, which no
+ * profile overrides. If `taskbar.bg` stops reading `surface.card`, repeat the Progress and Button
+ * pairs on it (pairs.ts). ---------------------------------------------------------------------- */
+
+.ds-taskbar {
+  display: flex;
+  flex-direction: column-reverse;
+  container-type: inline-size;
+  min-inline-size: 0;
+  overflow: hidden;
+  border: 1px solid var(--cmp-taskbar-border);
+  border-radius: var(--cmp-taskbar-radius);
+  background: var(--cmp-taskbar-bg);
+  color: var(--cmp-taskbar-fg);
+}
+.ds-taskbar__header {
+  display: flex;
+  align-items: center;
+  gap: var(--cmp-taskbar-gap);
+  min-block-size: calc(var(--cmp-taskbar-header-height) + 2 * var(--cmp-taskbar-padding-y));
+  padding: var(--cmp-taskbar-padding-y) var(--cmp-taskbar-padding-x);
+}
+.ds-taskbar__label {
+  flex: none;
+  font-family: var(--cmp-taskbar-label-type-font-family);
+  font-size: var(--cmp-taskbar-label-type-font-size);
+  line-height: var(--cmp-taskbar-label-type-line-height);
+  font-weight: var(--cmp-taskbar-label-type-font-weight);
+  letter-spacing: var(--cmp-taskbar-label-type-letter-spacing);
+}
+.ds-taskbar__summary,
+.ds-taskbar__name {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ds-taskbar__summary {
+  flex: 1;
+  color: var(--cmp-taskbar-muted-fg);
+  font-family: var(--cmp-taskbar-meta-type-font-family);
+  font-size: var(--cmp-taskbar-meta-type-font-size);
+  line-height: var(--cmp-taskbar-meta-type-line-height);
+  font-weight: var(--cmp-taskbar-meta-type-font-weight);
+  letter-spacing: var(--cmp-taskbar-meta-type-letter-spacing);
+}
+.ds-taskbar__header .ds-button {
+  flex: none;
+}
+.ds-taskbar__panel {
+  min-inline-size: 0;
+  border-block-end: 1px solid var(--cmp-taskbar-divider);
+}
+.ds-taskbar__panel[data-animate] {
+  animation: ds-taskbar-in var(--ds-motion-feedback-duration) var(--ds-motion-easing);
+}
+@keyframes ds-taskbar-in {
+  from {
+    opacity: 0;
+  }
+}
+/* The list scrolls inside the bar after about five rows. Radix wraps the content in a table-display
+ * div that grows to the widest line; a block keeps long names truncating and reasons wrapping. */
+.ds-taskbar__scroll .ds-scroll__viewport {
+  max-block-size: var(--cmp-taskbar-list-max-height);
+}
+.ds-taskbar__scroll .ds-scroll__viewport > div {
+  display: block !important;
+}
+.ds-taskbar__list {
+  margin: 0;
+  padding: 0 var(--ds-space-inline-sm);
+  list-style: none;
+}
+.ds-taskbar__row {
+  display: grid;
+  grid-template-columns: var(--cmp-taskbar-icon-size) minmax(0, 1fr);
+  grid-template-areas:
+    "mark name"
+    ". status"
+    ". reason"
+    ". actions";
+  column-gap: var(--cmp-taskbar-gap);
+  padding: var(--cmp-taskbar-row-block)
+    calc(var(--cmp-taskbar-padding-x) - var(--ds-space-inline-sm));
+  font-family: var(--cmp-taskbar-name-type-font-family);
+  font-size: var(--cmp-taskbar-name-type-font-size);
+  line-height: var(--cmp-taskbar-name-type-line-height);
+  font-weight: var(--cmp-taskbar-name-type-font-weight);
+  letter-spacing: var(--cmp-taskbar-name-type-letter-spacing);
+}
+.ds-taskbar__row + .ds-taskbar__row {
+  border-block-start: 1px solid var(--cmp-taskbar-divider);
+}
+/* Programmatic focus after Retry unmounts: inset so the scroll viewport does not clip it. */
+.ds-taskbar__row:focus-visible {
+  outline: 2px solid var(--ds-focus-ring);
+  outline-offset: -2px;
+}
+.ds-taskbar__mark {
+  grid-area: mark;
+  display: flex;
+  align-items: center;
+  block-size: 1lh;
+}
+.ds-taskbar__mark svg {
+  inline-size: var(--cmp-taskbar-icon-size);
+  block-size: var(--cmp-taskbar-icon-size);
+}
+.ds-taskbar__row[data-state="queued"] .ds-taskbar__mark,
+.ds-taskbar__row[data-state="queued"] .ds-taskbar__word {
+  color: var(--cmp-taskbar-queued-fg);
+}
+.ds-taskbar__row[data-state="running"] .ds-taskbar__mark {
+  color: var(--cmp-taskbar-running-fg);
+}
+.ds-taskbar__row[data-state="done"] .ds-taskbar__mark,
+.ds-taskbar__row[data-state="done"] .ds-taskbar__word {
+  color: var(--cmp-taskbar-done-fg);
+}
+.ds-taskbar__row[data-state="failed"] .ds-taskbar__mark,
+.ds-taskbar__row[data-state="failed"] .ds-taskbar__word {
+  color: var(--cmp-taskbar-failed-fg);
+}
+.ds-taskbar__row > .ds-taskbar__name,
+.ds-taskbar__progress {
+  grid-area: name;
+  min-inline-size: 0;
+}
+.ds-taskbar__progress .ds-progress__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ds-taskbar__status {
+  grid-area: status;
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--cmp-taskbar-gap);
+  margin-block-start: var(--cmp-taskbar-line-gap);
+  color: var(--cmp-taskbar-muted-fg);
+  font-family: var(--cmp-taskbar-meta-type-font-family);
+  font-size: var(--cmp-taskbar-meta-type-font-size);
+  line-height: var(--cmp-taskbar-meta-type-line-height);
+  font-weight: var(--cmp-taskbar-meta-type-font-weight);
+  letter-spacing: var(--cmp-taskbar-meta-type-letter-spacing);
+}
+.ds-taskbar__reason,
+.ds-taskbar__empty {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-family: var(--cmp-taskbar-body-type-font-family);
+  font-size: var(--cmp-taskbar-body-type-font-size);
+  line-height: var(--cmp-taskbar-body-type-line-height);
+  font-weight: var(--cmp-taskbar-body-type-font-weight);
+  letter-spacing: var(--cmp-taskbar-body-type-letter-spacing);
+}
+.ds-taskbar__reason {
+  grid-area: reason;
+  margin-block-start: var(--cmp-taskbar-line-gap);
+  color: var(--cmp-taskbar-reason-fg);
+}
+.ds-taskbar__empty {
+  padding: var(--cmp-taskbar-row-block) var(--cmp-taskbar-padding-x);
+  color: var(--cmp-taskbar-muted-fg);
+}
+.ds-taskbar__actions {
+  grid-area: actions;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cmp-taskbar-gap);
+  margin-block-start: var(--cmp-taskbar-line-gap);
+}
+@container (min-width: 480px) {
+  .ds-taskbar__row {
+    grid-template-columns: var(--cmp-taskbar-icon-size) minmax(0, 1fr) auto;
+    grid-template-areas:
+      "mark name actions"
+      ". status ."
+      ". reason .";
+  }
+  .ds-taskbar__actions {
+    margin-block-start: 0;
+    justify-self: end;
+    align-self: start;
+  }
+}
+/* A retry spinner stops under reduced motion (the shared .ds-spin keeps turning). */
+@media (prefers-reduced-motion: reduce) {
+  .ds-taskbar .ds-spin,
+  .ds-taskbar__panel {
+    animation: none;
+  }
+}
+/* On the board (slice B renders the bar as a child): docked along the bottom, with a shadow, and
+ * the other bottom panels lift above the collapsed bar. No effect on a board without a bar. */
+.ds-board .ds-taskbar {
+  position: absolute;
+  inset-inline: var(--ds-space-inset-md);
+  inset-block-end: var(--ds-space-inset-md);
+  z-index: var(--cmp-taskbar-layer);
+  box-shadow: var(--cmp-taskbar-shadow);
+}
+.ds-board:has(.ds-taskbar) {
+  --_lift: calc(
+    var(--cmp-taskbar-header-height) + 2 * var(--cmp-taskbar-padding-y) + 2px +
+      var(--ds-space-inset-md)
+  );
+}
+.ds-board:has(.ds-taskbar) .react-flow__panel.ds-controls,
+.ds-board:has(.ds-taskbar) .react-flow__minimap.ds-minimap {
+  margin-block-end: calc(var(--ds-space-inset-md) + var(--_lift));
+}
+.ds-board:has(.ds-taskbar) .react-flow__panel.ds-shelf {
+  margin-block-end: calc(var(--ds-size-control-md) + 3 * var(--ds-space-inset-md) + var(--_lift));
+}
+.ds-board:has(.ds-taskbar) .ds-board__status {
+  bottom: calc(
+    var(--ds-space-inset-md) * 2 + var(--cmp-button-height-sm) + 2 * var(--cmp-toolbar-padding) +
+      2px + var(--_lift)
+  );
+}

@@ -2262,5 +2262,113 @@
         "$value": "{type.label.md}"
       }
     }
+  },
+  "taskbar": {
+    "$description": "The jobs strip at the foot of the board (ORV-100, E4-5 part 2): a header, a list of job rows, state marks and words",
+    "bg": {
+      "$type": "color",
+      "$value": "{surface.card}"
+    },
+    "fg": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    },
+    "muted-fg": {
+      "$type": "color",
+      "$value": "{text.secondary}",
+      "$description": "Summary, basis label and empty text"
+    },
+    "border": {
+      "$type": "color",
+      "$value": "{border.subtle}"
+    },
+    "divider": {
+      "$type": "color",
+      "$value": "{border.subtle}",
+      "$description": "Hairline between rows and above the header"
+    },
+    "shadow": {
+      "$type": "shadow",
+      "$value": "{elevation.overlay}",
+      "$description": "On the board only"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.container.radius}"
+    },
+    "padding-x": {
+      "$type": "dimension",
+      "$value": "{space.inset.md}"
+    },
+    "padding-y": {
+      "$type": "dimension",
+      "$value": "{space.inset.sm}"
+    },
+    "row-block": {
+      "$type": "dimension",
+      "$value": "{space.row-block.comfortable}"
+    },
+    "gap": {
+      "$type": "dimension",
+      "$value": "{space.inline.md}"
+    },
+    "line-gap": {
+      "$type": "dimension",
+      "$value": "{space.inline.sm}"
+    },
+    "header-height": {
+      "$type": "dimension",
+      "$value": "{size.control.md}"
+    },
+    "list-max-height": {
+      "$type": "dimension",
+      "$value": "{size.panel.default}",
+      "$description": "About five rows, then the list scrolls"
+    },
+    "icon-size": {
+      "$type": "dimension",
+      "$value": "{size.icon.sm}"
+    },
+    "label-type": {
+      "$type": "typography",
+      "$value": "{type.label.md}"
+    },
+    "name-type": {
+      "$type": "typography",
+      "$value": "{type.label.md}"
+    },
+    "meta-type": {
+      "$type": "typography",
+      "$value": "{type.label.sm}"
+    },
+    "body-type": {
+      "$type": "typography",
+      "$value": "{type.body.sm}"
+    },
+    "queued-fg": {
+      "$type": "color",
+      "$value": "{text.secondary}"
+    },
+    "running-fg": {
+      "$type": "color",
+      "$value": "{status.running}"
+    },
+    "done-fg": {
+      "$type": "color",
+      "$value": "{feedback.success.fg}"
+    },
+    "failed-fg": {
+      "$type": "color",
+      "$value": "{feedback.danger.fg}"
+    },
+    "reason-fg": {
+      "$type": "color",
+      "$value": "{text.primary}",
+      "$description": "The failure reason: full contrast, it is the text people act on"
+    },
+    "layer": {
+      "$type": "number",
+      "$value": "{layer.overlay}"
+    }
   }
 }
