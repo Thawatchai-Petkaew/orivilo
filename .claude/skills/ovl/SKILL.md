@@ -40,6 +40,13 @@ Do not set `model`, `isolation` or `run_in_background` on the call. `cwd`, if gi
 }
 ```
 
+- **Re-check envelope** (reviewer, round 1 or more). `context_pointers` name the absolute paths of the
+  previous review's `result.json` and the rework task's `result.json`, both under the main checkout's
+  `.orivilo/runs/<ISSUE>/<task_id>/` (found through `git rev-parse --git-common-dir`; a relative
+  `.orivilo/` path does not exist in the reviewer's worktree), and the spec, not the full pointer list
+  of the first review. One fact is the sha the previous review judged, read from its record
+  (`checked_by`: `jq -r .report.head_sha "<absolute path of the previous review's result.json>"`).
+
 The guard blocks, with exit 2 and a reason on stderr, when:
 
 - **`task_id`** is used already for this issue. Every dispatch, including a retry after a refused call, needs a new `task_id` (`ORV-<n>-<lowercase-words>`).

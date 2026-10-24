@@ -22,6 +22,15 @@ Walk every acceptance criterion row. For each: verified (with the test or comman
 - Honesty: mocks and rule-based features are labelled as such.
 - Tests fail on the real defect. Remove the fix mentally: would the test go red?
 
+## Re-check (round 1 or more)
+
+Start from the previous review's findings and `git diff <reviewed sha>..HEAD`, and list that diff
+command in `checks_run`. For each previous finding, add a `checks_run` row whose `command` shows its
+state and whose `summary` starts with the finding id and `fixed` or `still open`; a finding still open
+is listed again in `findings`. Review the new diff in full by passes 1 and 2. Run the same gate
+commands as the first review. Open a file the diff did not touch only when a finding or the diff leads
+there. The verdict covers the whole PR at `head_sha`.
+
 ## Output
 
 Findings ranked Critical / Important / Suggestion with file and line. Critical blocks the gate.
