@@ -3889,10 +3889,14 @@ button.ds-tag__main {
       2px + var(--_lift)
   );
 }
-/* An open list adds up to its capped height to the bar, so the status line clears it too. */
-.ds-board:has(.ds-taskbar__panel:not([hidden])) {
-  --_lift: calc(
-    var(--cmp-taskbar-header-height) + 2 * var(--cmp-taskbar-padding-y) + 2px +
-      var(--ds-space-inset-md) + var(--cmp-taskbar-list-max-height) + 1px
+/* An open list adds up to its capped height to the bar. Only the status line clears it, and never
+ * past the board's top edge; the toolbar, minimap and shelf keep their closed-bar places. */
+.ds-board:has(.ds-taskbar__panel:not([hidden])) .ds-board__status {
+  bottom: min(
+    calc(
+      var(--ds-space-inset-md) * 2 + var(--cmp-button-height-sm) + 2 * var(--cmp-toolbar-padding) +
+        2px + var(--_lift) + var(--cmp-taskbar-list-max-height) + 1px
+    ),
+    calc(100% - var(--ds-size-control-md) - var(--ds-space-inset-md))
   );
 }

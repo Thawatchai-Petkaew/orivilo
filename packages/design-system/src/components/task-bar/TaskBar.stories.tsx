@@ -27,6 +27,8 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+const intersects = (a: DOMRect, b: DOMRect) =>
+  a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
 const bar = (root: HTMLElement) => root.querySelector<HTMLElement>(".ds-taskbar") as HTMLElement;
 /** The bar's own announcer; Progress and Button keep status regions of their own. */
 const announcer = (root: HTMLElement) =>
@@ -463,6 +465,45 @@ export const OnBoard: Story = {
     await expect(pillBox.bottom).toBeLessThanOrEqual(
       bar(canvasElement).getBoundingClientRect().top + 1,
     );
+    // The node is clear of the toolbar, the status line and the bar.
+    const nodeBox = logo?.getBoundingClientRect() as DOMRect;
+    const controls = canvasElement.querySelector(".react-flow__panel.ds-controls") as HTMLElement;
+    await expect(intersects(nodeBox, controls.getBoundingClientRect())).toBe(false);
+    await expect(intersects(nodeBox, pillBox)).toBe(false);
+    await expect(intersects(nodeBox, bar(canvasElement).getBoundingClientRect())).toBe(false);
+  },
+};
+
+/**
+ * The jump on a 420 px board with the list open: the status line and the toolbar stay inside the
+ * board and the node is visible in it. Mock jobs.
+ */
+export const OnShortBoard: Story = {
+  args: { jobs: boardJobs },
+  render: (args) => (
+    <Stateful initial={BOARD} height={420} label="กระดานแบรนด์ (ข้อมูลตัวอย่าง)" minimap={false}>
+      <TaskBar {...args} />
+    </Stateful>
+  ),
+  play: async ({ canvasElement }) => {
+    await waitFor(() =>
+      expect(canvasElement.querySelectorAll(".react-flow__node").length).toBeGreaterThan(0),
+    );
+    await userEvent.click(within(canvasElement).getByRole("button", { name: /^ไปที่โหนดของ/ }));
+    const logo = canvasElement.querySelector<HTMLElement>('.react-flow__node[data-id="logo"]');
+    await waitFor(() => expect(logo).toHaveClass("selected"));
+    const boardBox = (
+      canvasElement.querySelector(".ds-board") as HTMLElement
+    ).getBoundingClientRect();
+    const inside = (box: DOMRect) => box.top >= boardBox.top && box.bottom <= boardBox.bottom;
+    await waitFor(() => {
+      const node = logo?.getBoundingClientRect() as DOMRect;
+      expect(inside(node)).toBe(true);
+    });
+    const pill = canvasElement.querySelector(".ds-board__status") as HTMLElement;
+    const controls = canvasElement.querySelector(".react-flow__panel.ds-controls") as HTMLElement;
+    await expect(inside(pill.getBoundingClientRect())).toBe(true);
+    await expect(inside(controls.getBoundingClientRect())).toBe(true);
   },
 };
 
