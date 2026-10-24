@@ -191,6 +191,10 @@ test("row 5: a redirect, an append and a cp into a record are blocked for the ma
     "echo {} > .orivilo/runs/ORV-1/t/qa.json",
     "echo x >> .orivilo/heartbeat.jsonl",
     "cp r.json .quality-gate/report.json",
+    "echo {} > .orivilo//runs/ORV-1/t/qa.json",
+    "cp r.json ./.quality-gate/./report.json",
+    "rm -rf .orivilo",
+    "rm -rf .quality-gate",
   ];
   for (const command of commands) {
     blocked(call(main, bash(main, command)));
@@ -245,6 +249,27 @@ test("row 7: a bound builder writes only the guard path its open envelope lists"
   );
 });
 
+test("row 7: the builder grant holds only in the checkout equal to the envelope worktree", () => {
+  const { main, wt } = world();
+  const other = join(main, ".claude", "worktrees", "other");
+  execFileSync("git", ["worktree", "add", "-q", "-b", "feature/ORV-1-o", other], {
+    cwd: main,
+    stdio: "ignore",
+  });
+  seedTask(main, "ORV-1", "ORV-1-wt", {
+    envelope: validEnvelope(main, {
+      task_id: "ORV-1-wt",
+      worktree: wt,
+      write_set: ["scripts/ovl/write-guard.mjs"],
+    }),
+    agent: { agent_id: SUB, agent_type: "builder", started_at: "2026-10-24T09:00:00.000Z" },
+  });
+  const path = "scripts/ovl/write-guard.mjs";
+  allowed(call(main, tool("Write", wt, path, { agentId: SUB })));
+  blocked(call(main, tool("Write", main, path, { agentId: SUB })), /guard file/);
+  blocked(call(main, tool("Write", realpathSync(other), path, { agentId: SUB })), /guard file/);
+});
+
 test("row 7: a glob grants nothing, and a closed envelope grants nothing", () => {
   const { main } = world();
   bindBuilder(main, "ORV-1-g", "aglob", ["scripts/ovl/*.mjs"]);
@@ -267,6 +292,7 @@ test("row 8: a guard file changes only by Write or Edit, even for the builder th
     "tee .claude/settings.json",
     "git checkout -- scripts/ovl/a.mjs",
     "git restore .gitignore",
+    "git restore --source=HEAD .claude/settings.json",
     "rm .claude/hooks/a.mjs",
     "ln scripts/ovl/a.mjs docs/a.mjs",
     "touch scripts/ovl/new.mjs",
@@ -364,6 +390,8 @@ test("row 13: a command that names a protected path and is not one whole plain f
     "ls .orivilo && touch .orivilo/x",
     "echo $(cat .orivilo/a)",
     "pnpm exec prettier --write scripts/ovl/a.mjs",
+    "sed -n --in-place 1p scripts/ovl/a.mjs",
+    'sed -n "1w packages/a.ts" scripts/ovl/a.mjs',
     "cat > packages/a.ts",
     "git add x && rm scripts/ovl/a.mjs",
     'git commit -m "x"; rm .orivilo/x',
@@ -418,6 +446,7 @@ test("row 15: an allowed script run is one line; a second line is a second comma
   const commands = [
     "node scripts/ovl/doctor.mjs plan\ncp /tmp/e.mjs scripts/ovl/write-guard.mjs",
     "node scripts/ovl/doctor.mjs plan\r\nrm -rf .orivilo",
+    "node scripts/ovl/doctor.mjs plan\rrm -rf .orivilo",
     "pnpm quality-gate\nrm -rf .orivilo",
     "pnpm quality-gate\ncp /tmp/e.mjs scripts/ovl/write-guard.mjs",
   ];
