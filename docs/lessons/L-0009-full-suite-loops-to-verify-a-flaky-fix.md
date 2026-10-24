@@ -32,6 +32,16 @@ In `.claude/rules/testing.md`, add `**/*.stories.tsx` to the `paths` front matte
 +- The full suite always runs where it decides: the G3 gate (`pnpm quality-gate`) and CI. A change to a config file, a `package.json`, a shared setup file or a Storybook preview file runs the full suite while you build too, because the affected tests cannot be worked out from it.
 ```
 
+The testing rule loads only when a test or stories file is touched (`.claude/rules/testing.md` front matter), and `.claude/agents/builder.md` step 3 ran the full `pnpm lint && pnpm typecheck && pnpm test` after every refactor. The owner confirmed adding the rule to the builder too on 2026-10-24 (ORV-76 comment 10094), so it loads on every builder task. In `.claude/agents/builder.md`, the loop per task becomes:
+
+```diff
+-3. Refactor, then run `pnpm lint && pnpm typecheck && pnpm test`.
+-4. Commit with a Conventional Commit message that names the issue key.
++3. Refactor, then run the affected tests only: `vitest related --run <changed files>` or `vitest run --changed origin/develop`. A fix for a flaky test repeats each affected file with `--repeats 4`. A change to a config file, a `package.json`, a shared setup file or a Storybook preview file runs the full suite instead. Never loop the full suite to prove a flake is gone (L-0009).
++4. Before handoff, run `pnpm lint && pnpm typecheck && pnpm test` once and report its real output.
++5. Commit with a Conventional Commit message that names the issue key.
+```
+
 What proves it was done: a builder report for a test fix lists, in `verified`, the `--repeats 4` run of each affected file and one full-suite run, and no more than one full-suite run per verify round; the G3 packet shows the full gate run.
 
 The `Check:` line names ORV-76 only: at promotion it is the one test-fix issue under the rule. Before the measurement after `Check after:`, the list is replaced by every issue with a builder test-fix task after promotion, each collected first with `collect <ISSUE>`, so the median covers at least 5 comparable tasks, else the verdict is `not enough data`.
@@ -46,4 +56,4 @@ The `Check:` line names ORV-76 only: at promotion it is the one test-fix issue u
 - Check: `node scripts/ovl/metrics.mjs report ORV-76`
 - Check after: 2026-11-07
 
-Status: promoted 2026-10-24, into `.claude/rules/testing.md` (paths front matter and the two verify bullets)
+Status: promoted 2026-10-24, into `.claude/rules/testing.md` (paths front matter and the two verify bullets) and `.claude/agents/builder.md` (loop per task, steps 3 and 4)
