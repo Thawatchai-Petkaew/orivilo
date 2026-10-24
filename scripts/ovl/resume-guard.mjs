@@ -25,7 +25,12 @@ function taskOfAgent(store, agentId) {
 export function judge(raw, lookup = taskOfAgent) {
   let input;
   try {
-    input = JSON.parse(raw);
+    try {
+      input = JSON.parse(raw);
+    } catch {
+      // The parse message quotes the stdin text, which is untrusted: print a fixed one.
+      throw new Error("stdin is not JSON");
+    }
     if (
       input === null ||
       typeof input !== "object" ||

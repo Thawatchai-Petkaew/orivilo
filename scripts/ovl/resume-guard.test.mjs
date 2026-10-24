@@ -7,6 +7,7 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   realpathSync,
   writeFileSync,
@@ -37,6 +38,21 @@ const subagentCall = (cwd, toolInput = {}) => {
 };
 const run = (root, input) => runNode(guard, input, { CLAUDE_PROJECT_DIR: root });
 
+/** Every file under .orivilo/runs with its contents, to prove a call changed nothing. */
+function runsSnapshot(root) {
+  const out = {};
+  const walk = (dir) => {
+    if (!existsSync(dir)) return;
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const path = join(dir, e.name);
+      if (e.isDirectory()) walk(path);
+      else out[path] = readFileSync(path, "utf8");
+    }
+  };
+  walk(join(root, ".orivilo", "runs"));
+  return out;
+}
+
 const AGENT = "a1b2c3d4e5f607182";
 const seedBound = (root, issue, taskId, agentId = AGENT) =>
   seedTask(root, issue, taskId, {
@@ -54,7 +70,10 @@ test("recorded samples are SendMessage calls, one from a subagent", () => {
 test("row 1: a resume of a recorded agent is blocked and names its task", () => {
   const root = makeRepo();
   seedBound(root, "ORV-1", "ORV-1-review-1");
+  const before = runsSnapshot(root);
+  assert.ok(Object.keys(before).length > 0);
   const r = run(root, mainCall(root, { to: AGENT }));
+  assert.deepEqual(runsSnapshot(root), before);
   assert.equal(r.code, 2);
   assert.match(r.stderr, /^resume-guard blocked:/);
   assert.match(r.stderr, /no envelope/);
@@ -81,7 +100,9 @@ test("row 1: a resume of a recorded agent is blocked and names its task", () => 
 test("row 2: an agent id in no record is blocked with the no-record reason", () => {
   const root = makeRepo();
   seedBound(root, "ORV-1", "ORV-1-review-1");
+  const before = runsSnapshot(root);
   const r = run(root, mainCall(root, { to: "affffffffffffffff" }));
+  assert.deepEqual(runsSnapshot(root), before);
   assert.equal(r.code, 2);
   assert.match(r.stderr, /^resume-guard blocked:/);
   assert.match(r.stderr, /names no recorded agent/);
@@ -143,9 +164,20 @@ test("row 6: an agent.json that is not JSON, or a lookup that throws, still bloc
   assert.match(r.stderr, /^resume-guard blocked:/);
   assert.equal(heartbeatLines(root)[0].decision, "block");
 
-  const thrown = judge(JSON.stringify(mainCall(root, { to: AGENT })), () => {
-    throw new Error("boom");
-  });
+  const saved = process.env.CLAUDE_PROJECT_DIR;
+  process.env.CLAUDE_PROJECT_DIR = root;
+  let calls = 0;
+  let thrown;
+  try {
+    thrown = judge(JSON.stringify(mainCall(root, { to: AGENT })), () => {
+      calls += 1;
+      throw new Error("boom");
+    });
+  } finally {
+    if (saved === undefined) delete process.env.CLAUDE_PROJECT_DIR;
+    else process.env.CLAUDE_PROJECT_DIR = saved;
+  }
+  assert.ok(calls >= 1, "the throwing lookup must be called");
   assert.equal(thrown.code, 2);
   assert.match(thrown.stderr, /^resume-guard blocked:/);
   assert.doesNotMatch(thrown.stderr, /boom/);
@@ -173,6 +205,10 @@ test("row 8: message, summary and to are never echoed or logged", () => {
   const file = join(root, ".orivilo", "heartbeat.jsonl");
   assert.doesNotMatch(readFileSync(file, "utf8"), /CANARY/);
   assert.equal(heartbeatLines(root)[0].decision, "block");
+  const bad = run(root, "CANARY not json");
+  assert.equal(bad.code, 2);
+  assert.match(bad.stderr, /^resume-guard failed closed:/);
+  assert.doesNotMatch(bad.stderr, /CANARY/);
 });
 
 test("row 8: a recorded id equal to a canary to is not echoed either", () => {
