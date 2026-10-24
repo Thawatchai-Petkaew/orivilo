@@ -115,7 +115,7 @@ Nothing automatic decides: no hook runs the collector and no guard reads its out
 
 ## 6. Merge a PR
 
-Spec: `docs/specs/ORV-95/spec.md`. `merge-guard` (PreToolUse `Bash`) judges every Bash call in three stages. The text stage reads the command text only and blocks the always-blocked forms. The export stage builds develop's `scripts/ovl` under the main checkout's `.orivilo/exports/<sha>/`, from the SHA that `git ls-remote origin refs/heads/develop` gives. The records stage runs `merge-check.mjs` from that export, never from the branch.
+Spec: `docs/specs/ORV-95/spec.md`. `merge-guard` (PreToolUse `Bash`) judges every Bash call in three stages. The text stage reads the command text only and blocks the always-blocked forms. The export stage first checks that `git ls-remote --get-url origin` (after every `insteadOf` rewrite and included config file) is this repo's GitHub URL, and fails closed without printing the URL when it is not. Then it builds develop's `scripts/ovl` under the main checkout's `.orivilo/exports/<sha>/`, from the SHA that `git ls-remote origin refs/heads/develop` gives, and before every run checks that folder's tree against `git ls-tree` for that SHA: a changed, added, removed or planted file means a fresh extract, and a `package.json` or `node_modules` under `.orivilo/` or `.orivilo/exports/` fails closed. The records stage runs `merge-check.mjs` from that export, never from the branch.
 
 **A merge is one whole command**, with nothing before, after or around it:
 
@@ -123,7 +123,22 @@ Spec: `docs/specs/ORV-95/spec.md`. `merge-guard` (PreToolUse `Bash`) judges ever
 gh pr merge <n> --squash --delete-branch --match-head-commit <40-hex sha>
 ```
 
-Use `--squash`, `--merge` or `--rebase` (or `-s`, `-m`, `-r`); `--delete-branch` (or `-d`) is optional; `--match-head-commit` with the head SHA is required. `--auto`, `--admin`, `-R`, `--body`, a missing number, a chain, a pipe or a `$(...)` is blocked. `gh api` merges, GraphQL merge and ref mutations, a `git push` that targets `develop` or `main` (`HEAD`, `@` and a bare push count as the current branch), `git update-ref refs/remotes/origin/...`, `git remote add|set-url` and any `git config` that reads or writes `remote.` are blocked for every session. Merge only through the one command above.
+Use `--squash`, `--merge` or `--rebase` (or `-s`, `-m`, `-r`); `--delete-branch` (or `-d`) is optional; `--match-head-commit` with the head SHA is required. `--auto`, `--admin`, `-R`, `--body`, a missing strategy flag, a missing number, a chain, a pipe or a `$(...)` is blocked. Merge only through the one command above.
+
+**A push** is one of these two forms, and nothing else:
+
+```bash
+git -C <worktree> push -u origin HEAD
+git push -u origin <type>/ORV-<n>-<slug>
+```
+
+`<type>` is `feature`, `fix`, `chore` or `docs`. The text stage is an allow list for pushes: the remote is `origin`; every refspec is `HEAD`, `@` or such a branch (also as `<src>:<branch>`, `:<branch>` or `refs/heads/<branch>`), and `HEAD` or `@` must resolve to such a branch in the checkout `-C` names (else `cwd`); the only git option is `-C`; the push options are `-u`, `--force-with-lease`, `--delete` and their plain kin. So a push with no refspec, a push of `develop`, `main` or a tag, `--tags`, `--follow-tags`, `--all`, `--mirror`, `--no-verify`, `--receive-pack`, `-c`, `--git-dir`, `--work-tree`, `GIT_DIR=` or `env` before `git`, a `cd` or `pushd` in a command that pushes `HEAD`, an unexpanded `$B`, a glob, `git-push`, `git send-pack` and `git subtree push` all block. Develop, main and tags never move by a push; a git tag deploys to production, so `gh release create` blocks too.
+
+**Other blocked forms**, for every session:
+
+- `gh api` is read only: a GET with no field (`-f`, `-F`, `--field`, `--raw-field`), no `--input`, no method header, and no path with `/merge` or `/git/refs`. `gh api graphql` is allowed only with an inline `-f query=` that holds no `mutation`. `gh repo sync` blocks.
+- A command that names the GitHub token blocks, whatever it does with it: `gh auth token`, `GH_TOKEN` or `GITHUB_TOKEN` (a read, an assignment or a word in a message alike; reword a commit message that names one). A command that names `api.github.com` or `uploads.github.com` blocks when it also holds a write method, a body option or a method header (`curl -X PUT`, `-d`, `--json`, `wget --method=DELETE`); a plain GET is allowed. The text is lowercased, so `curl -x <proxy>` and `curl -f` against those hosts block too.
+- Config that could repoint origin or change a push: `git update-ref refs/remotes/origin/...`, `git remote add|set-url`, and any `git config` (reads included, any scope) or git `-c` or `--config-env` naming `remote.`, `url.`, `include.`, `includeIf.`, `push.` or `alias.`. Read the remote with `git remote -v`.
 
 Pre-check from your own checkout; only the hook's run from the export counts, but the output tells you what is missing:
 
@@ -171,8 +186,10 @@ When the guard blocks, stderr names the rule, the issue key, SHAs, file paths an
 - The main session can still edit a spec, an ADR, an agent or a skill file: `docs/`, `.claude/agents/`, `.claude/skills/` and `.claude/rules/` are outside every protected set.
 - `merge-guard` is the only merge barrier. GitHub branch protection is not available on this repo's plan, so a merge in the GitHub web UI or from another client is not guarded, and the owner's hand merge of the bootstrap PR is one.
 - `merge-guard` text rules and its launcher run from the session's own checkout. A builder whose `write_set` lists `scripts/ovl/merge-guard.mjs`, `scripts/ovl/develop-export.mjs`, `.claude/hooks/merge-guard.mjs` or `.claude/settings.json` can weaken them for its own worktree until the merge; the merge of such a PR needs the owner approval record. The records stage always runs from develop's export, never from the branch.
-- The text rules are text, not a parser. A target built by expansion (`git push origin HEAD:$B`), a `cd` before a push, an alias, an encoded command piped to a shell, or a GraphQL mutation the list does not name is not seen.
-- The owner approval and waiver are files. `write-guard` blocks every tool write to them, but a script a session runs can write the same files. The waiver covers only a rate-limited Vercel check on one head.
+- The text rules are text, not a parser. They block an unexpanded push target (`git push origin HEAD:$B`) and a `cd` before a push of `HEAD`, but not a `git` or `gh` word the shell builds (`$G push`), an encoded command piped to a shell, a script file a session wrote and then runs, or an alias a Write puts in a config file. A config file written by a tool (`~/.gitconfig`, `.git/config`) is not seen either; the origin URL check catches a rewrite of origin's URL, not `http.proxy`, `core.sshCommand` or `credential.helper`.
+- Only `gh api`, `gh pr merge`, `gh repo sync` and `gh release create` have rules; `gh pr edit --base`, `gh workflow run`, `gh secret set` and `gh repo edit` are allowed. The token rule sees only the names `gh auth token`, `GH_TOKEN` and `GITHUB_TOKEN`: it does not see the token read another way (`gh auth status --show-token`, `git credential fill`, the `gh` config file, the keychain), a host or token name the shell builds (`api.$H`, `${P}_TOKEN`), or a program that sends a method or body without the named options.
+- The export tree is checked right before `merge-check.mjs` starts, so a change in the short window between the two is not caught. The expected origin URL is a constant: a rename or move of the GitHub repo blocks every guarded merge until `develop-export.mjs` changes.
+- The owner approval and waiver are files. `write-guard` blocks a tool write that names `.orivilo`, but until ORV-96 lands a Bash call that hides the folder name (`cd .oriv?lo/owner-approvals && printf ... > 7.json`), or a script a session runs, writes a valid approval or waiver and so can forge the owner's approval for a guard-file PR or a release into `main`. The waiver covers only a rate-limited Vercel check on one head, never a failed build or a failed Actions check.
 - Docs-only PRs skip the qa and the gate record: CI is the only check that runs, and a rule, agent or skill file merges on a reviewer's or the owner's approve.
 - A merge needs the network (`gh` and `git ls-remote`); offline, every `gh pr merge` is blocked. A PR whose file list GitHub cut is blocked, not judged.
 - The records stage checks that the qa's screenshots exist for each story title, not what they show.
