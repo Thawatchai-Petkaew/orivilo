@@ -905,4 +905,23 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     bg: "tag.remove-bg-hover",
     floor: TEXT,
   },
+  // TaskBar (ORV-100): text and marks on the bar's ground, the row focus ring against it. Not listed:
+  // `taskbar.border` and `taskbar.divider` are `border.subtle` dividers (the bar is identified by its
+  // ground and, on the board, its shadow). Progress and Button inside the bar sit on `taskbar.bg`,
+  // which reads `surface.card`; their pairs exist on `ds:surface.card`. If `taskbar.bg` stops
+  // reading `surface.card`, repeat those pairs on `taskbar.bg`.
+  { recipe: "taskbar", slot: "label and name", fg: "taskbar.fg", bg: "taskbar.bg", floor: TEXT },
+  { recipe: "taskbar", slot: "muted", fg: "taskbar.muted-fg", bg: "taskbar.bg", floor: TEXT },
+  { recipe: "taskbar", slot: "queued", fg: "taskbar.queued-fg", bg: "taskbar.bg", floor: TEXT },
+  {
+    recipe: "taskbar",
+    slot: "running mark",
+    fg: "taskbar.running-fg",
+    bg: "taskbar.bg",
+    floor: TEXT,
+  },
+  { recipe: "taskbar", slot: "done", fg: "taskbar.done-fg", bg: "taskbar.bg", floor: TEXT },
+  { recipe: "taskbar", slot: "failed", fg: "taskbar.failed-fg", bg: "taskbar.bg", floor: TEXT },
+  { recipe: "taskbar", slot: "reason", fg: "taskbar.reason-fg", bg: "taskbar.bg", floor: TEXT },
+  { recipe: "taskbar", slot: "row focus", fg: "ds:focus.ring", bg: "taskbar.bg", floor: UI },
 ];

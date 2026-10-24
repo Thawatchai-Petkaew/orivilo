@@ -211,3 +211,10 @@ export {
   type DirectionStudioState,
   studioPropsFrom,
 } from "./direction-studio/DirectionStudio";
+export {
+  TaskBar,
+  type TaskBarProps,
+  type TaskJob,
+  type TaskJobBasis,
+  type TaskJobState,
+} from "./task-bar/TaskBar";
