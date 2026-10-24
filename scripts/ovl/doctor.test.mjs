@@ -246,3 +246,52 @@ test("ORV-88 row 11: check names a silent resume-guard and passes after its prob
   assert.equal(runNode(hook("resume-guard.mjs"), probe, { CLAUDE_PROJECT_DIR: root }).code, 2);
   assert.equal(run(root, "check", plan.since).code, 0);
 });
+
+// ORV-93 rows 28 and 29: the write-guard probe and the probe file.
+
+const writeBeat = (root, decision, at) => {
+  mkdirSync(join(root, ".orivilo"), { recursive: true });
+  writeFileSync(
+    join(root, ".orivilo", "heartbeat.jsonl"),
+    `${JSON.stringify({ hook: "write-guard", event: "PreToolUse", at, tool: "Write", agent_id: null, decision })}\n`,
+  );
+};
+
+test("ORV-93 row 28: plan lists write-guard with the Write probe into packages/", () => {
+  const root = makeRepo();
+  registerGuards(root, ["write-guard"]);
+  const plan = JSON.parse(run(root, "plan").stdout);
+  assert.equal(plan.guards[0].name, "write-guard");
+  assert.deepEqual(plan.guards[0].probe, {
+    hook_event_name: "PreToolUse",
+    tool_name: "Write",
+    tool_input: {
+      file_path: "packages/.ovl-probe",
+      content: "ovl-doctor probe: write-guard must block this",
+    },
+  });
+});
+
+test("ORV-93 row 29: check names write-guard when it logged no block, and passes with a block line", () => {
+  const root = makeRepo();
+  registerGuards(root, ["write-guard"]);
+  const since = new Date().toISOString();
+  const silent = run(root, "check", since);
+  assert.equal(silent.code, 2);
+  assert.match(silent.stderr, /write-guard/);
+  writeBeat(root, "block", new Date(Date.now() + 1000).toISOString());
+  assert.equal(run(root, "check", since).code, 0);
+});
+
+test("ORV-93 row 29: a probe file in packages/ means the guard let the probe write", () => {
+  const root = makeRepo();
+  registerGuards(root, ["write-guard"]);
+  const since = new Date().toISOString();
+  writeBeat(root, "block", new Date(Date.now() + 1000).toISOString());
+  mkdirSync(join(root, "packages"), { recursive: true });
+  writeFileSync(join(root, "packages", ".ovl-probe"), "x");
+  const r = run(root, "check", since);
+  assert.equal(r.code, 2);
+  assert.match(r.stderr, /packages\/\.ovl-probe/);
+  assert.match(r.stderr, /let the probe write/);
+});

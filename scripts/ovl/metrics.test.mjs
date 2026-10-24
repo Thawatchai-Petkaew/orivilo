@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   cpSync,
@@ -1159,4 +1159,56 @@ test("report --out prints the absolute path of the file it wrote", () => {
   const file = join(w.root, ".orivilo", "metrics", "batch.md");
   assert.equal(r.stdout.trim(), `wrote ${file}`);
   assert.ok(existsSync(file));
+});
+
+// ORV-93 row 21: session --out.
+
+/** --root of session must be a checkout of this project, so the world's root becomes a repo. */
+const sessionOut = (w, ...args) => {
+  if (!existsSync(join(w.root, ".git"))) execFileSync("git", ["init", "-q", w.root]);
+  return spawnSync(
+    process.execPath,
+    [script, "session", SESSION, "--projects", w.projects, "--root", w.root, ...args],
+    { encoding: "utf8" },
+  );
+};
+
+test("ORV-93 F8: session --out refuses a --root that is not a checkout root", () => {
+  const w = world();
+  seed(w, "ORV-1-a");
+  writeAgentTranscript(w, "aaaa1111", [assistant({ id: "m1", usage: [1, 1, 1, 1], ts: at(1) })]);
+  execFileSync("git", ["init", "-q", w.root]);
+  mkdirSync(join(w.root, "packages"));
+  const folders = [join(w.root, "packages"), w.base, w.projects];
+  for (const folder of folders) {
+    const r = spawnSync(
+      process.execPath,
+      [script, "session", SESSION, "--projects", w.projects, "--root", folder, "--out", "x"],
+      { encoding: "utf8" },
+    );
+    assert.equal(r.status, 2, folder);
+    assert.match(r.stderr, /--root is not the root of a checkout/);
+    assert.ok(!existsSync(join(folder, ".orivilo", "metrics", "x.md")));
+  }
+});
+
+test("ORV-93 row 21: session --out writes the text session prints and prints the path", () => {
+  const w = world();
+  seed(w, "ORV-1-a");
+  writeAgentTranscript(w, "aaaa1111", [assistant({ id: "m1", usage: [1, 1, 1, 1], ts: at(1) })]);
+  const plain = sessionOut(w);
+  const r = sessionOut(w, "--out", "s-1");
+  assert.equal(r.status, 0, r.stderr);
+  const file = join(w.root, ".orivilo", "metrics", "s-1.md");
+  assert.equal(r.stdout.trim(), `wrote ${file}`);
+  assert.equal(readFileSync(file, "utf8"), plain.stdout);
+});
+
+test("ORV-93 row 21: session --out rejects a path", () => {
+  const w = world();
+  seed(w, "ORV-1-a");
+  const r = sessionOut(w, "--out", "../x");
+  assert.equal(r.status, 2);
+  assert.match(r.stderr, /--out is a plain name, not a path/);
+  assert.ok(!existsSync(join(w.root, ".orivilo", "x.md")));
 });

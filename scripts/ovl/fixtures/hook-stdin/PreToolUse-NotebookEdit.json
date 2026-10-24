@@ -1,0 +1,19 @@
+{
+  "session_id": "ac10ab25-b7a5-4528-9330-e3661f6440ee",
+  "transcript_path": "/Users/tawatchaipetkaew/.claude/projects/-private-tmp-claude-501--Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO-6ac3845e-0f40-41f1-b299-4c8f7bcb1eee-scratchpad-probe/ac10ab25-b7a5-4528-9330-e3661f6440ee.jsonl",
+  "cwd": "/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/6ac3845e-0f40-41f1-b299-4c8f7bcb1eee/scratchpad/probe",
+  "scratchpad_dir": "/private/tmp/claude-501/-private-tmp-claude-501--Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO-6ac3845e-0f40-41f1-b299-4c8f7bcb1eee-scratchpad-probe/ac10ab25-b7a5-4528-9330-e3661f6440ee/scratchpad",
+  "prompt_id": "030e6380-e9c8-4119-833b-4d555260af8a",
+  "permission_mode": "bypassPermissions",
+  "effort": {
+    "level": "medium"
+  },
+  "hook_event_name": "PreToolUse",
+  "tool_name": "NotebookEdit",
+  "tool_input": {
+    "notebook_path": "/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/6ac3845e-0f40-41f1-b299-4c8f7bcb1eee/scratchpad/probe/nb.ipynb",
+    "cell_id": "c1",
+    "new_source": "print(2)"
+  },
+  "tool_use_id": "toolu_01MphWfJq12P9LzKQftuH2L8"
+}
