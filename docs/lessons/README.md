@@ -36,6 +36,30 @@ Status: proposed
 - `issue` lists the Jira keys the lesson came from.
 - `rule` must change the process: a check, a step, a gate item or a command. "Be more careful" is not a rule.
 - Status is `proposed` until the owner approves the change in the rule file it targets (`.claude/rules/`, an agent file, a skill or AGENTS.md); then it becomes `promoted`, with the file named. This is the same flow as the `retro` skill.
+- A lesson that proposes a change for cost or flow adds two sections. `## Expected saving` goes after `## Rule` and is checked by `pnpm check:knowledge`; `## Measured after` is added later, by the improvement run that re-checks it. Spec: `docs/specs/ORV-87/spec.md`, "Improvement loop".
+
+```markdown
+## Expected saving
+
+- Metric: median `tokens.total` per reviewer run with round 1 or more
+- Baseline: median 2,660,391, n=3, from ORV-81, ORV-85 (`node scripts/ovl/metrics.mjs report ORV-81 ORV-85`)
+- Target: median 1,000,000 or less, about 60% less per re-check
+- Guard metric: kept Critical and Important findings per review do not fall
+- Evidence removed: none
+- Check: `node scripts/ovl/metrics.mjs report ORV-90 ORV-91`
+- Check after: 2026-11-06
+
+## Measured after
+
+- Measured: median 900,000, n=5, from ORV-90, ORV-91 (the Check command), 2026-11-07
+- Guard metric: kept Critical and Important findings per review, 2.1 before and 2.2 after
+- Verdict: met
+```
+
+- The example shows the format only; it is not a measured proposal.
+- Seven lines are required in `## Expected saving`, each as `- Name: value`. `Baseline:` has `n=` of 3 or more and cites the command that produced it. `Metric:`, `Baseline:` and `Target:` count `tokens.total` or one of the four kinds, never `reported_total` or a notice figure. `Check:` is one `node scripts/ovl/metrics.mjs <collect|report|session|due> <args>` command in backticks; args are issue keys, `--flag` values and plain names, with no `; & | $` backtick, `<`, `>` or newline. `Check after:` is a date: provisional at the proposal, and the promotion envelope sets it to the promotion date plus 14 days. `Evidence removed:` is `none`, or names the check, review or record the change removes; anything else touches a gate (ADR 0012, ADR 0013), so the proposal says so in its first line and needs an ADR amendment as well as the owner's approval.
+- `## Measured after` holds `Measured:` (median, `n=`, issues, the command, the date), `Guard metric:` (its value) and `Verdict:` (`met`, `not met` or `not enough data`). A `not met` verdict comes with a new proposal to revert or change the rule. `node scripts/ovl/metrics.mjs due` lists the promoted lessons past `Check after` that have no `## Measured after`.
+- A lesson quotes numbers and task ids, never an excerpt of a transcript.
 - Link related knowledge or lessons with wikilinks, such as `[[K-0005-proof-must-match-the-claim]]`. No Dataview queries (see `docs/knowledge/README.md`, Reading in Obsidian).
 
 ## Relation to `docs/LESSONS.md`

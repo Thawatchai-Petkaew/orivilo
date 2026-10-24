@@ -1,6 +1,6 @@
 # Handoff: where the work stands
 
-Read this first when you pick the work up in a new session or on another account. Update it before you stop, so the next session can start without asking. Last updated 2026-10-23, after ORV-79 (audit D.2 done).
+Read this first when you pick the work up in a new session or on another account. Update it before you stop, so the next session can start without asking. Last updated 2026-10-24, after ORV-87 slice 3 (the improvement loop).
 
 The plan and its order live in `docs/plans/master-plan.md`; pages published in the Claude project thread are listed in `docs/context/artifacts.md`.
 
@@ -38,6 +38,17 @@ The plan and its order live in `docs/plans/master-plan.md`; pages published in t
 | ORV-77 | RangeSlider on Radix `preserveThumbOrder` (in `develop`)                      | #64 |
 | ORV-78 | DropdownMenu checkbox and radio items (in `develop`)                          | #65 |
 | ORV-82 | Knowledge, lessons and plans folders with a checker (in `develop`)            | #68 |
+| ORV-81 | /ovl slice A1: contract schemas and validator (in `develop`)                  | #71 |
+| ORV-85 | /ovl slice A2: envelope-guard, owner-grant, doctor, minimal skill (`develop`) | #72 |
+| ORV-86 | /ovl slice A3: result-recorder, gate record, close-envelope (in `develop`)    | #73 |
+| ORV-87 | Run metrics: spec and collector, slice 1 (in `develop`)                       | #74 |
+| ORV-89 | Background runs recorded at SubagentStop, shared run records (in `develop`)   | #75 |
+| ORV-90 | worktree-guard heartbeat only into this project (in `develop`)                | #76 |
+| ORV-87 | Run metrics: report and session commands, slice 2 (in `develop`)              | #77 |
+
+## The AI team loop (ORV-81, ORV-87)
+
+Hooks check every Agent call in this repo (envelope-guard, result-recorder, owner-grant, worktree-guard); start a run with the `ovl` skill and `node scripts/ovl/doctor.mjs plan`. `write-guard` and `merge-guard` (ORV-81 slices B and C1) are not built yet, so nothing blocks an unwanted write or merge. Metrics: `node scripts/ovl/metrics.mjs collect|report|session|due` (spec `docs/specs/ORV-87/spec.md`); the `ovl` skill step 5 runs the improvement loop after each merge. Slice 3 of ORV-87 is ORV-91.
 
 ## Next, in order
 
