@@ -36,7 +36,7 @@ const TEXT_PREFIXES = {
   record: [".orivilo", ".quality-gate"],
 };
 
-const GUARD_PATH =
+export const GUARD_PATH =
   /^(?:\.claude\/hooks\/|\.claude\/settings[^/]*\.json$|scripts\/ovl\/|scripts\/quality-gate\.mjs$|\.github\/workflows\/|\.gitignore$)/;
 
 const HANDOFF = ".orivilo/handoff.md";
