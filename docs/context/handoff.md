@@ -20,7 +20,7 @@ The plan and its order live in `docs/plans/master-plan.md`; pages published in t
 
 ## Done recently
 
-Rows marked "on staging" reached `main` with release PR #67 or release PR #82 (the owner's go in ORV-88 comment 10084); Jira shows them in "Staging". Rows marked "in `develop`" wait for the next release.
+Rows marked "on staging" reached `main` with release PR #67 or release PR #82 (the owner's go in ORV-88 comment 10084); Jira shows them in "Staging". Nothing waits in `develop` after release PR #82.
 
 | Issue  | What                                                                          | PR  |
 | ------ | ----------------------------------------------------------------------------- | --- |
@@ -47,7 +47,7 @@ Rows marked "on staging" reached `main` with release PR #67 or release PR #82 (t
 | ORV-89 | Background runs recorded at SubagentStop, shared run records (on staging)     | #75 |
 | ORV-90 | worktree-guard heartbeat only into this project (on staging)                  | #76 |
 | ORV-87 | Run metrics: report and session commands, slice 2 (on staging)                | #77 |
-| ORV-91 | Improvement loop, Expected saving lessons, metrics due, slice 3 (staging)     | #78 |
+| ORV-91 | Improvement loop, lessons with Expected saving, metrics due (on staging)      | #78 |
 | ORV-92 | zod 4.6.5 to 4.6.6, GHSA-mrhx-c7xc-m3w5 (on staging)                          | #79 |
 | ORV-91 | First improvement run, L-0008 re-check rule, plan update (on staging)         | #80 |
 | ORV-88 | resume-guard blocks every SendMessage; re-checks are fresh (on staging)       | #81 |
