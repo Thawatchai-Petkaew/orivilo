@@ -32,7 +32,7 @@ Qa tokens over tasks with round 1 or more, per issue:
 | ORV-95 | qa-2 2,025,932, qa-3 2,192,605       | 4,218,537 |
 | ORV-98 | qa-2 1,695,795, qa-3 1,168,778       | 2,864,573 |
 
-Median 2,864,573, n=3. Two of the six walks (ORV-95-qa-3 and ORV-98-qa-2, 3,888,400 tokens together) judged a head that a parallel reviewer re-check rejected. Reviewer re-checks with round 1 or more in ORV-98 cost 1,151,726 and 127,084 (L-0008 envelope), against a qa median of 1,695,795 (qa fresh, n=3, this batch).
+Median 2,864,573, n=3. Two of the six walks (ORV-95-qa-3 and ORV-98-qa-2, 3,888,400 tokens together) approved a head that a parallel reviewer re-check rejected. Reviewer re-checks with round 1 or more in ORV-98 cost 1,151,726 and 127,084 (L-0008 envelope), against a qa median of 1,695,795 (qa fresh, n=3, this batch).
 
 The qa walks found things in those rounds: ORV-95-qa-2 kept 3 Important findings on a head the reviewer also rejected, and ORV-93-pr2-qa-1 kept 1. Running qa after the reviewer moves those findings later; it must not lose them, which is why the guard metric counts them and the rework rounds.
 

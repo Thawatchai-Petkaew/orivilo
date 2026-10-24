@@ -51,7 +51,7 @@ Each step is a batch: when it is finished in `develop`, propose a release to sta
 ## Waiting on the owner
 
 - G5 sign-off for what is on staging, or the list of what to fix. Nothing is Done until then.
-- When to move the next batch from `develop` to staging. Release PR #92 moved ORV-76, ORV-93, ORV-95, ORV-98, ORV-99 and the docs PRs #83 to #91 there on 2026-10-24 (ORV-99 comment 10123); `develop` holds nothing new.
+- When to move the next batch from `develop` to staging. Release PR #92 moved ORV-76, ORV-93, ORV-95, ORV-98, ORV-99 (PRs #83 to #91) there on 2026-10-24 (ORV-99 comment 10123); `develop` holds nothing new.
 - ORV-97: GitHub rulesets on `develop` and `main` return HTTP 403 on this private free-plan repo (ORV-97 comment 10110). Only the owner can unblock it: GitHub Pro or a public repo.
 - ORV-63: when the POC ends, the second database, domain and keys for production.
 
