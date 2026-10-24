@@ -1,9 +1,9 @@
 ---
 name: ovl
-description: Run work as the orchestrator. Write a checked JSON envelope for each task, dispatch it to one role, and ask the owner for a rework round through a question form. Use to dispatch any subagent in this repo. This is the minimal skill (slices A2 and A3 of ORV-81); the full loop arrives in slice D.
+description: Run work as the orchestrator. Write a checked JSON envelope for each task, dispatch it to one role, and ask the owner for a rework round through a question form. Use to dispatch any subagent in this repo.
 ---
 
-# ovl (slices A2, A3, C1 and C2, minimal)
+# ovl
 
 Hooks now check every Agent call in this repo, in every session. The main session plans and dispatches; it does not write the deliverable. Spec: `docs/specs/ORV-81/spec.md`. Decisions: ADR 0013 and ADR 0014.
 
