@@ -12,7 +12,7 @@ Hooks now check every Agent call in this repo, in every session. The main sessio
 Before planning, read `AGENTS.md`, `docs/context/orivilo-brief.md`, the relevant part of `docs/context/intent-studio-handoff.md`, the Jira issue and `docs/LESSONS.md`. Every dispatch below is one envelope (section 2) to one role.
 
 1. **Lane.** Pick S, M or L from `AGENTS.md`; any risk flag forces L. Write the lane on the issue.
-2. **Discover** (M, L). Dispatch `product` with the `discover` skill; it writes `docs/specs/<KEY>/spec.md` with acceptance criteria and open questions.
+2. **Discover** (M, L). Dispatch `product` with the `discover` skill; it writes `docs/specs/<KEY>/spec.md` with acceptance criteria and open questions. When a slice becomes its own Jira issue, the same `product` task writes `docs/specs/<slice key>/spec.md` (why, the parent spec and its G1 and G2 comments, the slice's acceptance rows copied with their numbers and no new requirement), and the slice's first builder envelope carries the fact `test -f docs/specs/<slice key>/spec.md` (L-0016).
 3. **Design** (M, L). Dispatch `ds-architect` for schema, token, recipe or resolver changes and `designer` for flows, states and visual direction. They extend the spec folder.
 4. **G1 and G2.** Raise each with the `gate-packet` skill, move the issue, and stop. The owner decides; during the POC Claude passes G1 and G2 under the owner's delegation (ADR 0012 decision 4), and the packet says so.
 5. **Build.** Dispatch `builder` per task, each in its own worktree. A blocker comes back in `blocked_on`.
