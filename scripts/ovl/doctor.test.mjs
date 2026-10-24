@@ -249,11 +249,11 @@ test("ORV-88 row 11: check names a silent resume-guard and passes after its prob
 
 // ORV-93 rows 28 and 29: the write-guard probe and the probe file.
 
-const writeBeat = (root, decision, at) => {
+const writeBeat = (root, decision, at, hook = "write-guard", tool = "Write") => {
   mkdirSync(join(root, ".orivilo"), { recursive: true });
   writeFileSync(
     join(root, ".orivilo", "heartbeat.jsonl"),
-    `${JSON.stringify({ hook: "write-guard", event: "PreToolUse", at, tool: "Write", agent_id: null, decision })}\n`,
+    `${JSON.stringify({ hook, event: "PreToolUse", at, tool, agent_id: null, decision })}\n`,
   );
 };
 
@@ -294,4 +294,30 @@ test("ORV-93 row 29: a probe file in packages/ means the guard let the probe wri
   assert.equal(r.code, 2);
   assert.match(r.stderr, /packages\/\.ovl-probe/);
   assert.match(r.stderr, /let the probe write/);
+});
+
+test("ORV-95 row 40: plan lists merge-guard with the gh pr merge 0 probe", () => {
+  const root = makeRepo();
+  registerGuards(root, ["merge-guard"]);
+  const plan = JSON.parse(run(root, "plan").stdout);
+  assert.equal(plan.guards[0].name, "merge-guard");
+  assert.deepEqual(plan.guards[0].probe, {
+    hook_event_name: "PreToolUse",
+    tool_name: "Bash",
+    tool_input: {
+      command: "gh pr merge 0",
+      description: "ovl-doctor probe: merge-guard must block this",
+    },
+  });
+});
+
+test("ORV-95 row 41: check names merge-guard without a block heartbeat, then passes with one", () => {
+  const root = makeRepo();
+  registerGuards(root, ["merge-guard"]);
+  const since = new Date().toISOString();
+  const silent = run(root, "check", since);
+  assert.equal(silent.code, 2);
+  assert.match(silent.stderr, /merge-guard/);
+  writeBeat(root, "block", new Date(Date.now() + 1000).toISOString(), "merge-guard", "Bash");
+  assert.equal(run(root, "check", since).code, 0);
 });
