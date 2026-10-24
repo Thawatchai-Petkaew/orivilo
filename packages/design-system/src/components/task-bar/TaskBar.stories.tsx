@@ -31,6 +31,13 @@ const bar = (root: HTMLElement) => root.querySelector<HTMLElement>(".ds-taskbar"
 /** The bar's own announcer; Progress and Button keep status regions of their own. */
 const announcer = (root: HTMLElement) =>
   bar(root).querySelector<HTMLElement>(":scope > [role='status']") as HTMLElement;
+/** The board's zoom, read from the viewport transform. */
+const viewportScale = (root: HTMLElement) => {
+  const el = root.querySelector<HTMLElement>(".react-flow__viewport") as HTMLElement;
+  return new DOMMatrixReadOnly(getComputedStyle(el).transform).a;
+};
+const viewportTransform = (root: HTMLElement) =>
+  getComputedStyle(root.querySelector(".react-flow__viewport") as HTMLElement).transform;
 const rowOf = (root: HTMLElement, id: string) =>
   root.querySelector<HTMLElement>(`[data-job-id="${id}"]`) as HTMLElement;
 
@@ -442,11 +449,54 @@ export const OnBoard: Story = {
     await expect(canvasElement.querySelector(".ds-board__status")).toHaveTextContent("ไปที่ โลโก้");
     // The bar's own live region says nothing about the jump.
     await expect(announcer(canvasElement)).toHaveTextContent("");
-    // The node settles above the open list.
-    await waitFor(() =>
-      expect(logo?.getBoundingClientRect().bottom).toBeLessThanOrEqual(
-        bar(canvasElement).getBoundingClientRect().top + 1,
-      ),
+    // The node settles inside the board, above the open list, at a zoom above the minimum.
+    const boardEl = canvasElement.querySelector<HTMLElement>(".ds-board") as HTMLElement;
+    await waitFor(() => {
+      const node = logo?.getBoundingClientRect() as DOMRect;
+      expect(node.top).toBeGreaterThanOrEqual(boardEl.getBoundingClientRect().top);
+      expect(node.bottom).toBeLessThanOrEqual(bar(canvasElement).getBoundingClientRect().top + 1);
+      expect(viewportScale(canvasElement)).toBeGreaterThan(0.25);
+    });
+    // The status line sits clear of the open bar.
+    const pill = canvasElement.querySelector(".ds-board__status") as HTMLElement;
+    const pillBox = pill.getBoundingClientRect();
+    await expect(pillBox.bottom).toBeLessThanOrEqual(
+      bar(canvasElement).getBoundingClientRect().top + 1,
     );
+  },
+};
+
+/**
+ * Under reduced motion the jump lands at once: the viewport is final on the next frame, where the
+ * 200 ms glide would still be on its way. The preference is stubbed for this story. Mock jobs.
+ */
+export const OnBoardReducedMotion: Story = {
+  args: { jobs: boardJobs },
+  render: (args) => (
+    <Stateful initial={BOARD} height={560} label="กระดานแบรนด์ (ข้อมูลตัวอย่าง)" minimap={false}>
+      <TaskBar {...args} />
+    </Stateful>
+  ),
+  play: async ({ canvasElement }) => {
+    const original = window.matchMedia.bind(window);
+    window.matchMedia = (query: string) =>
+      query.includes("prefers-reduced-motion")
+        ? ({ ...original(query), matches: true } as MediaQueryList)
+        : original(query);
+    try {
+      await waitFor(() =>
+        expect(canvasElement.querySelectorAll(".react-flow__node").length).toBeGreaterThan(0),
+      );
+      const before = viewportTransform(canvasElement);
+      const jump = within(canvasElement).getByRole("button", { name: /^ไปที่โหนดของ/ });
+      await userEvent.click(jump);
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      const next = viewportTransform(canvasElement);
+      await expect(next).not.toBe(before);
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      await expect(viewportTransform(canvasElement)).toBe(next);
+    } finally {
+      window.matchMedia = original;
+    }
   },
 };

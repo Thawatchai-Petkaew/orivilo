@@ -542,23 +542,20 @@ function Board({
       const only = node.selected && selectedNodes(g).length === 1;
       if (!only) emit(selectOnly(g, [id]));
     }
-    // A task bar on the board covers the foot of it; its current height joins the bottom padding
-    // so the node lands clear of an open list. Padding in pixels, 0.5 of the board on every side.
+    // xyflow reads a number padding p as floor((H - H / (1 + p)) / 2) per side, so 0.5 is H / 6.
+    // A task bar on the board covers the foot of it: the bar's height above the board's bottom
+    // edge joins the bottom side, in pixels, so the node lands inside the board above the bar.
     const rect = wrapper.current?.getBoundingClientRect();
     const bar = wrapper.current?.querySelector<HTMLElement>(".ds-taskbar");
-    const half = (rect?.height ?? 0) / 2;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const side = rect ? Math.floor((rect.height - rect.height / 1.5) / 2) : 0;
+    const cover = rect && bar ? Math.max(0, rect.bottom - bar.getBoundingClientRect().top) : 0;
     void flow.fitView({
       nodes: [{ id }],
       duration: reduced ? 0 : 200,
       maxZoom: 1,
       padding: bar
-        ? {
-            top: 0.5,
-            left: 0.5,
-            right: 0.5,
-            bottom: `${Math.round(half + bar.getBoundingClientRect().height)}px`,
-          }
+        ? { top: `${side}px`, left: `${side}px`, right: `${side}px`, bottom: `${side + cover}px` }
         : 0.5,
     });
     focusNode(id);

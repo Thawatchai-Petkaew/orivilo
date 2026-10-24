@@ -3889,3 +3889,10 @@ button.ds-tag__main {
       2px + var(--_lift)
   );
 }
+/* An open list adds up to its capped height to the bar, so the status line clears it too. */
+.ds-board:has(.ds-taskbar__panel:not([hidden])) {
+  --_lift: calc(
+    var(--cmp-taskbar-header-height) + 2 * var(--cmp-taskbar-padding-y) + 2px +
+      var(--ds-space-inset-md) + var(--cmp-taskbar-list-max-height) + 1px
+  );
+}
