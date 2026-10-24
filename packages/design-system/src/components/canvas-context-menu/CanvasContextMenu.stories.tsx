@@ -28,8 +28,17 @@ const body = () => within(document.body);
 const nodeEls = (root: HTMLElement) => root.querySelectorAll<HTMLElement>(".react-flow__node");
 const nodeByTitle = (root: HTMLElement, title: string) =>
   within(root).getByRole("group", { name: new RegExp(`^${title},`) });
+/**
+ * The board is usable once React Flow has measured every node (it hides a node until then) and has
+ * drawn every edge; nodes in the DOM alone are not enough, so a fast machine passed and a loaded
+ * one looked for an edge or a role that was not there yet.
+ */
 const ready = async (root: HTMLElement) => {
   await waitFor(() => expect(nodeEls(root)).toHaveLength(BOARD_NODES.length));
+  await waitFor(() => {
+    expect(root.querySelectorAll(".react-flow__edge")).toHaveLength(BOARD.edges.length);
+    for (const n of nodeEls(root)) expect(n.style.visibility).not.toBe("hidden");
+  });
 };
 
 /** On an unselected node: it becomes the selection; node and selection items, delete last (AC 8). */
