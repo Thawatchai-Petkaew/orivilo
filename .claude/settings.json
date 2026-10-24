@@ -36,6 +36,15 @@
             "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/envelope-guard.mjs\" || exit 2"
           }
         ]
+      },
+      {
+        "matcher": "SendMessage",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/resume-guard.mjs\" || exit 2"
+          }
+        ]
       }
     ],
     "PostToolUse": [

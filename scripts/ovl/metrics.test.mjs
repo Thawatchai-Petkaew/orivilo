@@ -822,7 +822,7 @@ const LIMITS = [
   /Waiting is not measured/,
   /do not show whether a review was good/,
   /Runs outside the records/,
-  /without an envelope check/,
+  /resume-guard blocks every SendMessage from ORV-88 on/,
   /a sign, not proof/,
   /can be edited/,
   /never a guessed 0/,

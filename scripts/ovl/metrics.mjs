@@ -410,7 +410,7 @@ const FOOTER = [
   "Waiting is not measured: CI, the owner's answers and permission prompts are not in duration_ms.",
   "Tokens, rounds and finding counts do not show whether a review was good; defects found after G3 are not counted.",
   "Runs outside the records (Explore, sessions without /ovl) have no task, role or round; the session command lists them.",
-  "A resume sent with SendMessage runs without an envelope check; it is attached to its task by agent_id only.",
+  "resume-guard blocks every SendMessage from ORV-88 on, so a resumed run in this report predates it or ran in a session without the hooks; it is attached to its task by agent_id only.",
   "Medians show n; a small batch is a sign, not proof.",
   "Transcripts live outside the repo and can be edited; metrics are never evidence for a gate.",
   "The transcript shape is Claude Code's; a missing field shows as -, never a guessed 0, and an unrecorded version is warned about.",

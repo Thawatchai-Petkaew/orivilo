@@ -40,6 +40,15 @@ const PROBES = {
       prompt: "ovl-doctor probe: this is not an envelope, so envelope-guard must block it",
     },
   },
+  "resume-guard": {
+    hook_event_name: "PreToolUse",
+    tool_name: "SendMessage",
+    tool_input: {
+      to: "ovl-doctor-probe",
+      summary: "ovl-doctor probe",
+      message: "ovl-doctor probe: resume-guard must block this",
+    },
+  },
 };
 
 /** Guards that write heartbeats but need a person or a dispatch, so no probe exists. */

@@ -222,3 +222,27 @@ test("a missing dependency stops the run and names `pnpm install`", () => {
   assert.match(r.stderr, /ajv/);
   assert.match(r.stderr, /pnpm install/);
 });
+
+test("ORV-88 row 10: plan lists the resume-guard probe, a SendMessage call", () => {
+  const root = makeRepo();
+  registerGuards(root, ["resume-guard"]);
+  const entry = JSON.parse(run(root, "plan").stdout).guards.find((g) => g.name === "resume-guard");
+  assert.equal(entry.probe.tool_name, "SendMessage");
+  assert.deepEqual(entry.probe.tool_input, {
+    to: "ovl-doctor-probe",
+    summary: "ovl-doctor probe",
+    message: "ovl-doctor probe: resume-guard must block this",
+  });
+});
+
+test("ORV-88 row 11: check names a silent resume-guard and passes after its probe is blocked", () => {
+  const root = makeRepo();
+  registerGuards(root, ["resume-guard"]);
+  const plan = JSON.parse(run(root, "plan").stdout);
+  const silent = run(root, "check", plan.since);
+  assert.equal(silent.code, 2);
+  assert.match(silent.stderr, /resume-guard/);
+  const probe = { ...plan.guards[0].probe, cwd: root };
+  assert.equal(runNode(hook("resume-guard.mjs"), probe, { CLAUDE_PROJECT_DIR: root }).code, 2);
+  assert.equal(run(root, "check", plan.since).code, 0);
+});
