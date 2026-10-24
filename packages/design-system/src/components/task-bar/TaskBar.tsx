@@ -277,7 +277,9 @@ export function TaskBar({
                           size="sm"
                           iconLeading={<JumpIcon />}
                           aria-label={fill(m.taskBar.jumpLabel, { name: job.name })}
-                          onClick={() => board.jumpToNode(jumpTarget(job) as string, { select: true })}
+                          onClick={() =>
+                            board.jumpToNode(jumpTarget(job) as string, { select: true })
+                          }
                         >
                           {m.taskBar.jump}
                         </Button>
