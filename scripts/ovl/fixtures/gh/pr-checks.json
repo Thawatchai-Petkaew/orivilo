@@ -1,0 +1,26 @@
+[
+  {
+    "bucket": "pass",
+    "description": "",
+    "link": "https://github.com/Thawatchai-Petkaew/orivilo/actions/runs/40094118817/job/120872851859",
+    "name": "check",
+    "state": "SUCCESS",
+    "workflow": "CI"
+  },
+  {
+    "bucket": "fail",
+    "description": "Deployment rate limited — retry in 24 hours.",
+    "link": "https://vercel.com/tawatchai-petkaews-projects?upgradeToPro=build-rate-limit",
+    "name": "Vercel – orivilo",
+    "state": "FAILURE",
+    "workflow": ""
+  },
+  {
+    "bucket": "fail",
+    "description": "Deployment rate limited — retry in 24 hours.",
+    "link": "https://vercel.com/tawatchai-petkaews-projects?upgradeToPro=build-rate-limit",
+    "name": "Vercel – orivilo-design-system",
+    "state": "FAILURE",
+    "workflow": ""
+  }
+]

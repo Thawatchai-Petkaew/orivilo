@@ -132,7 +132,7 @@ function gateReport(root) {
 }
 
 /** Storybook's title for a changed stories file: the default export's `title`, else its path under src/. */
-function storyTitle(root, head, file) {
+export function storyTitle(root, head, file) {
   const source = git(root, ["show", `${head}:${file}`]);
   const explicit = /export default[\s\S]*?\btitle:\s*(["'`])(.+?)\1/.exec(source)?.[2];
   if (explicit) return explicit;
@@ -144,7 +144,7 @@ function storyTitle(root, head, file) {
   return parts.join("/");
 }
 
-const storyPrefix = (title) =>
+export const storyPrefix = (title) =>
   `${title
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")

@@ -60,6 +60,15 @@ const PROBES = {
       message: "ovl-doctor probe: resume-guard must block this",
     },
   },
+  // `gh pr merge 0` is blocked in the text stage (no network call), so the probe changes nothing.
+  "merge-guard": {
+    hook_event_name: "PreToolUse",
+    tool_name: "Bash",
+    tool_input: {
+      command: "gh pr merge 0",
+      description: "ovl-doctor probe: merge-guard must block this",
+    },
+  },
 };
 
 /** Guards that write heartbeats but need a person or a dispatch, so no probe exists. */

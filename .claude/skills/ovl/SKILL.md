@@ -3,7 +3,7 @@ name: ovl
 description: Run work as the orchestrator. Write a checked JSON envelope for each task, dispatch it to one role, and ask the owner for a rework round through a question form. Use to dispatch any subagent in this repo. This is the minimal skill (slices A2 and A3 of ORV-81); the full loop arrives in slice D.
 ---
 
-# ovl (slices A2 and A3, minimal)
+# ovl (slices A2, A3 and C1, minimal)
 
 Hooks now check every Agent call in this repo, in every session. The main session plans and dispatches; it does not write the deliverable. Spec: `docs/specs/ORV-81/spec.md`. Decisions: ADR 0013 and ADR 0014.
 
@@ -13,7 +13,7 @@ Hooks now check every Agent call in this repo, in every session. The main sessio
 node scripts/ovl/doctor.mjs plan
 ```
 
-Make the one probe call it prints for each guard (each is built to be blocked, so it changes nothing). The `write-guard` probe is a `Write` of `packages/.ovl-probe`; `write-guard` blocks it, so no file appears, and `check` also exits 2 if that file exists. The `resume-guard` probe is a `SendMessage` call; that tool may be deferred, so load it first (ToolSearch, query `select:SendMessage`), and if the session offers no `SendMessage` at all, stop and tell the owner: the doctor cannot tell a missing tool from a silent guard. Then run `node scripts/ovl/doctor.mjs check <since>` with the `since` value from the plan. If it exits 2, stop and name the silent guard to the owner.
+Make the one probe call it prints for each guard (each is built to be blocked, so it changes nothing). The `write-guard` probe is a `Write` of `packages/.ovl-probe`; `write-guard` blocks it, so no file appears, and `check` also exits 2 if that file exists. The `merge-guard` probe is a Bash call of `gh pr merge 0`; the text stage blocks it with no network call, so nothing merges. The `resume-guard` probe is a `SendMessage` call; that tool may be deferred, so load it first (ToolSearch, query `select:SendMessage`), and if the session offers no `SendMessage` at all, stop and tell the owner: the doctor cannot tell a missing tool from a silent guard. Then run `node scripts/ovl/doctor.mjs check <since>` with the `since` value from the plan. If it exits 2, stop and name the silent guard to the owner.
 
 If the doctor says a dependency is missing, run `pnpm install` and start again. `plan` stops (exit 2, naming each path) when any other worktree still holds records in its own `.orivilo/runs/` from before the shared root (the hooks no longer read them, so a `request_changes` verdict or used rework rounds recorded there would be forgotten); run `node scripts/ovl/doctor.mjs migrate` to move them into the main checkout's `.orivilo/runs/`, then plan again. Migrate moves each task folder whole and appends the worktree's heartbeat lines to main's `heartbeat.jsonl`. A task folder main already has is left whole in the worktree and listed, and migrate exits 2. A link under a worktree's `.orivilo/runs/` stops it before any move: it lists the links and exits 2. `plan` also closes envelopes left open by slice A2 (`closed_pre_a3`); it lists them, and none counts as a round. `result-recorder` cannot be probed: after the first Agent call returns, run `node scripts/ovl/doctor.mjs recorder <since>` and stop if it exits 2.
 
@@ -113,16 +113,89 @@ After a slice merges into `develop` (its G3), and after a release batch reaches 
 
 Nothing automatic decides: no hook runs the collector and no guard reads its output. Metrics are never evidence for a gate.
 
+## 6. Merge a PR
+
+Spec: `docs/specs/ORV-95/spec.md`. `merge-guard` (PreToolUse `Bash`) judges every Bash call in three stages. The text stage reads the command text only and blocks the always-blocked forms. The export stage first checks that `git ls-remote --get-url origin` (after every `insteadOf` rewrite and included config file) is this repo's GitHub URL, and fails closed without printing the URL when it is not. Then it builds develop's `scripts/ovl` under the main checkout's `.orivilo/exports/<sha>/`, from the SHA that `git ls-remote origin refs/heads/develop` gives, and before every run checks that folder's tree against `git ls-tree` for that SHA: a changed, added, removed or planted file means a fresh extract, and a `package.json` or `node_modules` under `.orivilo/` or `.orivilo/exports/` fails closed. The records stage runs `merge-check.mjs` from that export, never from the branch.
+
+**A merge is one whole command**, with nothing before, after or around it:
+
+```bash
+gh pr merge <n> --squash --delete-branch --match-head-commit <40-hex sha>
+```
+
+Use `--squash`, `--merge` or `--rebase` (or `-s`, `-m`, `-r`); `--delete-branch` (or `-d`) is optional; `--match-head-commit` with the head SHA is required. `--auto`, `--admin`, `-R`, `--body`, a missing strategy flag, a missing number, a chain, a pipe or a `$(...)` is blocked. Merge only through the one command above.
+
+**A push** is one of these two forms, and nothing else:
+
+```bash
+git -C <worktree> push -u origin HEAD
+git push -u origin <type>/ORV-<n>-<slug>
+```
+
+`<type>` is `feature`, `fix`, `chore` or `docs`. The text stage is an allow list for pushes: the remote is `origin`; every refspec is `HEAD`, `@` or such a branch (also as `<src>:<branch>`, `:<branch>` or `refs/heads/<branch>`), and `HEAD` or `@` must resolve to such a branch in the checkout `-C` names (else `cwd`); the only git option is `-C`; the push options are `-u`, `--force-with-lease`, `--delete` and their plain kin. So a push with no refspec, a push of `develop`, `main` or a tag, `--tags`, `--follow-tags`, `--all`, `--mirror`, `--no-verify`, `--receive-pack`, `-c`, `--git-dir`, `--work-tree`, `GIT_DIR=` or `env` before `git`, a `cd` or `pushd` in a command that pushes `HEAD`, an unexpanded `$B`, a glob, `git-push`, `git send-pack` and `git subtree push` all block. Develop, main and tags never move by a push; a git tag deploys to production, so `gh release create` blocks too.
+
+**Other blocked forms**, for every session:
+
+- `gh api` is read only: a GET with no field (`-f`, `-F`, `--field`, `--raw-field`), no `--input`, no method header, and no path with `/merge` or `/git/refs`. `gh api graphql` is allowed only with an inline `-f query=` that holds no `mutation`. `gh repo sync` blocks.
+- A command that names the GitHub token blocks, whatever it does with it: `gh auth token`, `GH_TOKEN` or `GITHUB_TOKEN` (a read, an assignment or a word in a message alike; reword a commit message that names one). A command that names `api.github.com` or `uploads.github.com` blocks when it also holds a write method, a body option or a method header (`curl -X PUT`, `-d`, `--json`, `wget --method=DELETE`); a plain GET is allowed. The text is lowercased, so `curl -x <proxy>` and `curl -f` against those hosts block too.
+- Config that could repoint origin or change a push: `git update-ref refs/remotes/origin/...`, `git remote add|set-url`, and any `git config` (reads included, any scope) or git `-c` or `--config-env` naming `remote.`, `url.`, `include.`, `includeIf.`, `push.` or `alias.`. Read the remote with `git remote -v`.
+
+Pre-check from your own checkout; only the hook's run from the export counts, but the output tells you what is missing:
+
+```bash
+node scripts/ovl/merge-check.mjs <n> --head <sha>
+```
+
+**Records a merge into `develop` needs** (all for the PR's head SHA, as GitHub reports it):
+
+- the latest `qa.json` of the issue is an approve for that head and PR, with a light and a dark screenshot for each changed `*.stories.tsx` title;
+- the latest `reviewer.v1` result from a `reviewer` envelope for that head is an approve;
+- the latest gate record for that head has `ok: true`, `dirty: false` and `steps_source: "gate"`, so run `pnpm quality-gate` in the main session on the pushed head;
+- every check from `gh pr checks` has bucket `pass`;
+- the head branch key and the PR title key name the same issue, and every changed file is in the `write_set` union of the issue's bound envelopes (plus `docs/context/handoff.md`, `docs/plans/*.md` and the issue's `jira-issue.md`);
+- a guard file in the PR also needs the owner approval record (below).
+
+A push after the checks changes the head: run the gate again and get new records for the new SHA.
+
+**Docs-only PRs.** When every changed file ends in `.md` and is in no protected set (so an improvement run, a handoff or plan update, a spec revision, or a rule, agent or skill file), the PR needs no `qa.json`, no gate record and no screenshots. It needs a `reviewer.v1` approve on the head or the owner approval record, and every other check above. One file outside that definition, a `.md` under `packages/` included, needs the full set.
+
+**A merge into `main`** is allowed only for the release PR (head branch `develop`), with every check green and the owner approval record for its head.
+
+**Owner approval.** The G3 packet prints this line for a guard-file PR or a release PR. The owner runs it from a terminal outside Claude Code, in the main checkout, with `<n>` and `<sha>` filled in. Every Claude Code session is blocked from writing it. A new push needs a new approval; the same line writes over the old file.
+
+```bash
+mkdir -p .orivilo/owner-approvals && printf '{"by":"owner","pr":%s,"head_sha":"%s","at":"%s"}\n' <n> <sha> "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > .orivilo/owner-approvals/<n>.json
+```
+
+**Owner waiver (Vercel rate limit only).** A check whose name starts with `Vercel`, with bucket `fail` and a description that starts with `Deployment rate limited`, is waived only when the owner's waiver file names it for that head. The pre-check prints the rate-limited check names as a JSON list. The owner runs this line from a terminal outside Claude Code, in the main checkout, with `<checks>` such as `["Vercel"]`:
+
+```bash
+mkdir -p .orivilo/owner-waivers && printf '{"by":"owner","pr":%s,"head_sha":"%s","checks":%s,"at":"%s"}\n' <n> <sha> '<checks>' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > .orivilo/owner-waivers/<n>.json
+```
+
+A PR comment, from anyone, is not a waiver; the guard reads no comment. A waiver never covers a failed build, a failed Actions check or a check that waits.
+
+When the guard blocks, stderr names the rule, the issue key, SHAs, file paths and check names. Fix the missing record or ask the owner for the approval or waiver line; do not look for another way to merge. While develop has no `scripts/ovl/merge-check.mjs` (the bootstrap), the guard blocks and the owner merges that PR in the GitHub web UI.
+
 ## Honest limits of this slice
 
-- Nothing blocks an improvement task that edits a rule, agent or skill file yet: its `write_set` is lesson paths only, but the check that refuses such a merge is `merge-guard` (ORV-81 slice C1), which has not shipped. Until it does, the G3 packet of an improvement PR lists its changed files for the owner, and you check them yourself.
 - `SubagentStart` cannot block (exit 2 only shows stderr). If a subagent starts with no single open envelope to bind to, it runs unbound: no `agent.json`, no round counted, no `result.json`. The guard at dispatch time (one open envelope per role, checked again after the envelope is saved, so two same-role calls made at once never both run: at most one is allowed and the others close as denied) is what prevents this, not the start hook. Every record is written whole (aside, then linked into place), so a start hook running at the same moment as another never reads half a record. One residual window remains: a losing envelope of a same-role race stays visible as open and unbound until its `closed.json` is written, and on a very slow filesystem the winner's start hook could scan inside that span, see two candidates and run unbound. It was not reproduced in 31 trials.
 - Hooks cannot run once the session's own worktree is removed. When `CLAUDE_PROJECT_DIR` is a removed worktree (`claude --worktree`), the hook files are gone with it: `/bin/sh` cannot find `result-recorder.sh`, `|| exit 2` fires even when `stop_hook_active` is true, and nothing is recorded. `worktree-guard` blocks a subagent Bash command whose text, with quotes and backslashes stripped, holds the word `worktree` together with `remove` or `prune`. It misses a word built by shell expansion (an empty `$()` or `${VAR}` inside it) and an encoded command piped to a shell. The main session, `rm -rf`, a shell script or a tool outside Bash can still delete the worktree. Remove a worktree only after the run, from outside it.
 - `resume-guard` sees the `SendMessage` tool only. A Claude Code version that adds a resume field to the Agent tool would pass `envelope-guard` with a valid envelope, and a session without these hooks escapes it. It blocks all messaging: a subagent cannot ask the main session anything through `SendMessage`, and a stale task hint (an agent recorded in a stray worktree folder before `doctor.mjs migrate`) still gets the same block.
 - `write-guard` is a path and text rule, not a sandbox. A script written to a scratchpad and run with `node /tmp/x.mjs` names no protected path and can still write a record; a path built by `cd`, expansion or a glob is not seen; and a harmless command that names a protected path in a message is blocked too. A whole `git commit` still moves a protected change, so the reviewer and the qa check what gets committed. A builder whose `write_set` lists `scripts/ovl/write-guard.mjs` can weaken the guard for its own worktree until the merge. A session without these hooks escapes it.
 - The main session can still edit a spec, an ADR, an agent or a skill file: `docs/`, `.claude/agents/`, `.claude/skills/` and `.claude/rules/` are outside every protected set.
-- The stories-file check on a `qa.v1` approve reads the local `origin/develop` ref, which any session can move. Treat a recorded approve as evidence only after you check the changed stories files yourself, until develop is resolved the way `merge-guard` will.
+- `merge-guard` is a guard rail for agents that follow the rules, not a boundary (ORV-95 comment 10109). It stops a session that merges or pushes by habit or by mistake from moving `develop` or `main` without the records, and names the missing record. It does not hold against a session that sets out to defeat it, and more ways around it exist than the ones named here. An agent never uses any form below or any other way around the guard; when the guard blocks, fix the record or ask the owner.
+- The planned boundary is GitHub rulesets on `develop` and `main` (ORV-97). They are not available today: on this private repo's plan, rulesets and branch protection return HTTP 403 (ORV-97 comment 10110), so the hooks are the only merge barrier. A merge in the GitHub web UI or from another client is not guarded, and the owner's hand merge of the bootstrap PR is one. Once on, a ruleset holds only against a credential that cannot administer the repo and that no bypass actor matches; a session's `gh` signs in today with the owner's admin token, which can disable the ruleset or merge past it. Even then a ruleset rejects a push or API write that moves `develop` or `main`, but not a PR merge with green checks, which skips the records stage.
+- Second-round limits (review N1 to N5, qa QA2-F1 to QA2-F5), named as this class with no code change: a `gh` alias that stands for `pr` or `api`; `gh api` short flags in a group that hide a write method or a field; a refspec fed to a push by `xargs` or a backtick substitution; an exported `GIT_` variable (a git dir or a config key) in an earlier segment; a push refspec under the origin remote in `.git/config`, which git maps a colon-less refspec through, so an allowed feature-branch push can move `develop`; git replace refs, which make the export of develop's SHA hold the session's own `merge-check.mjs`; a GraphQL query the shell builds, which hides a mutation; and curl's method option in a group of short flags (`-sX`). The export's symlink check has no test, so a change that drops it would not be caught.
+- `merge-guard` text rules and its launcher run from the session's own checkout. A builder whose `write_set` lists `scripts/ovl/merge-guard.mjs`, `scripts/ovl/develop-export.mjs`, `.claude/hooks/merge-guard.mjs` or `.claude/settings.json` can weaken them for its own worktree until the merge; the merge of such a PR needs the owner approval record. The records stage always runs from develop's export, never from the branch.
+- The text rules are text, not a parser. They block an unexpanded push target (`git push origin HEAD:$B`) and a `cd` before a push of `HEAD`, but not a `git` or `gh` word the shell builds (`$G push`), an encoded command piped to a shell, a script file a session wrote and then runs, or an alias a Write puts in a config file. A config file written by a tool (`~/.gitconfig`, `.git/config`) is not seen either; the origin URL check catches a rewrite of origin's URL, not `http.proxy`, `core.sshCommand` or `credential.helper`.
+- Only `gh api`, `gh pr merge`, `gh repo sync` and `gh release create` have rules; `gh pr edit --base`, `gh workflow run`, `gh secret set` and `gh repo edit` are allowed. The token rule sees only the names `gh auth token`, `GH_TOKEN` and `GITHUB_TOKEN`: it does not see the token read another way (`gh auth status --show-token`, `git credential fill`, the `gh` config file, the keychain), a host or token name the shell builds (`api.$H`, `${P}_TOKEN`), or a program that sends a method or body without the named options.
+- The export tree is checked right before `merge-check.mjs` starts, so a change in the short window between the two is not caught. The expected origin URL is a constant: a rename or move of the GitHub repo blocks every guarded merge until `develop-export.mjs` changes.
+- The owner approval and waiver are files. `write-guard` blocks a tool write that names `.orivilo`, but until ORV-96 lands a Bash call that hides the folder name (`cd .oriv?lo/owner-approvals && printf ... > 7.json`), or a script a session runs, writes a valid approval or waiver and so can forge the owner's approval for a guard-file PR or a release into `main`. The waiver covers only a rate-limited Vercel check on one head, never a failed build or a failed Actions check.
+- Docs-only PRs skip the qa and the gate record: CI is the only check that runs, and a rule, agent or skill file merges on a reviewer's or the owner's approve.
+- A merge needs the network (`gh` and `git ls-remote`); offline, every `gh pr merge` is blocked. A PR whose file list GitHub cut is blocked, not judged.
+- The records stage checks that the qa's screenshots exist for each story title, not what they show.
 
 ## Not in this slice
 
-`write-guard` guards writes (slice B). Nothing yet guards merges or checks the G3 move. Those arrive in slices C1 and C2. Until then, do not claim a role's work as evidence on its own say-so: a gate needs the recorded `qa.v1` and `reviewer.v1` results and the checks you ran yourself.
+`write-guard` guards writes (slice B) and `merge-guard` guards merges (slice C1). Nothing yet checks the G3 move (`g3-check`, slice C2). Until then, do not claim a role's work as evidence on its own say-so: a gate needs the recorded `qa.v1` and `reviewer.v1` results and the checks you ran yourself.
