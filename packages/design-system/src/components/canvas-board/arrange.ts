@@ -27,7 +27,7 @@ const WIDTH: Record<string, number> = {
   md: dimension("size.node.md"),
   lg: dimension("size.node.lg"),
 };
-const GRID = dimension("space.grid-gap");
+export const GRID = dimension("space.grid-gap");
 const DEFAULT_HEIGHT = GRID * 5;
 /** The group header and its padding, used when a group collapses. */
 export const GROUP_HEADER_HEIGHT = GRID * 2;

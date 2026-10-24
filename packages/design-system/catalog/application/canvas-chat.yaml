@@ -15,8 +15,8 @@ states: [idle, streaming, error, mock]
 recipes: [neutral, professional, friendly]
 examples: []
 rules:
-  - "Built so far (slice A): the sidebar chat, streaming replies with Stop, Send again after a failure, a basis notice and a basis word on every reply. Not built yet: replies placed as nodes (slice B), @ mentions (slice C), the at-cursor variant (slice D)"
-  - "Replies are placed as nodes linked to the node they came from (slice B; today a finished reply goes to onReply)"
+  - "Built so far (slices A and B): the sidebar chat, streaming replies with Stop, Send again after a failure, a basis notice and a basis word on every reply, and a reply placed as a node. Not built yet: @ mentions (slice C), the at-cursor variant (slice D)"
+  - "Replies are placed as nodes linked to the node they came from: the host returns the placed node id from onReply (placeReply builds the note with a derived edge from the node selected alone, ChatRequest.contextNodeId), the chat offers a jump to it and says when it is not linked to any node. The note's header says by rules or mock data"
   - "Labelled rule-based or mock until a real adapter exists (AGENTS.md rule 4)"
   - "@ mentions reference nodes on the board (slice C)"
 a11y:

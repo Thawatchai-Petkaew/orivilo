@@ -1595,6 +1595,9 @@
   min-width: 0;
   color: var(--cmp-node-kind-fg);
 }
+.ds-node__basis {
+  margin-inline-start: var(--ds-space-inline-md);
+}
 .ds-node__status {
   display: inline-flex;
   align-items: center;
@@ -4048,6 +4051,11 @@ button.ds-tag__main {
   align-items: center;
   gap: var(--cmp-chat-inline-gap);
   color: var(--cmp-chat-streaming-fg);
+}
+.ds-chat__unlinked {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cmp-chat-inline-gap);
 }
 .ds-chat__mark {
   display: flex;

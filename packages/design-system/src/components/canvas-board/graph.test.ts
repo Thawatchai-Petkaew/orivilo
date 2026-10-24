@@ -268,3 +268,14 @@ describe("the engine at work (ORV-57)", () => {
     expect(elapsedSince("not a date", at(5))).toBeUndefined();
   });
 });
+
+describe("NodeContent.basis (ORV-106)", () => {
+  it("round-trips through JSON with and without a basis", () => {
+    const withBasis = node("r", 0, { kind: "note", basis: "rules" });
+    const without = node("s", 0, { kind: "note" });
+    const saved = JSON.parse(JSON.stringify({ nodes: [withBasis, without], edges: [] })) as Graph;
+    expect(saved).toEqual({ nodes: [withBasis, without], edges: [] });
+    expect(saved.nodes[0]?.data.basis).toBe("rules");
+    expect("basis" in (saved.nodes[1]?.data ?? {})).toBe(false);
+  });
+});

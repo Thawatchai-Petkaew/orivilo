@@ -1,5 +1,6 @@
 "use client";
 
+import { flushSync } from "react-dom";
 import {
   useEffect,
   useId,
@@ -11,21 +12,33 @@ import {
 } from "react";
 import { LOCALE_TAGS } from "../../i18n/locale";
 import { useLocale, useMessages } from "../../i18n/LocaleProvider";
+import { fill } from "../../i18n/messages/index";
 import { Button } from "../button/Button";
+import type { ChatBasis } from "../canvas-board/graph";
+import { useBoard } from "../canvas-board/context";
 import { cx } from "../cx";
-import { CloseIcon, RetryIcon, SpinnerIcon, WarningIcon } from "../icons";
+import {
+  CloseIcon,
+  FillUnlinkedIcon,
+  JumpIcon,
+  RetryIcon,
+  SpinnerIcon,
+  WarningIcon,
+} from "../icons";
 import { ScrollArea } from "../scroll-area/ScrollArea";
 import { Textarea } from "../textarea/Textarea";
 import { countGraphemes } from "../textarea/graphemes";
+import { replyTopic } from "./place-reply";
 
-/** Where a reply comes from today. A later story adds a real source with its adapter (ADR 0009). */
-export type ChatBasis = "rules" | "mock";
+export type { ChatBasis };
 
 export interface ChatRequest {
   /** What the person typed, trimmed. */
   text: string;
   /** Mentioned node ids still on the board, in the order picked. Always empty until slice C. */
   mentions: readonly string[];
+  /** The node selected alone on the board when the message was sent, if any (ORV-106). */
+  contextNodeId?: string | undefined;
 }
 
 /** One snapshot of the reply: the whole text so far. The last snapshot is the reply. */
@@ -44,8 +57,12 @@ export interface CanvasChatProps {
    * The signal aborts when the person presses Stop, closes the chat, or the chat unmounts.
    */
   onAsk: (request: ChatRequest, signal: AbortSignal) => AsyncIterable<ChatReply>;
-  /** A finished reply: only one whose iterable ended, never a stopped or failed one. */
-  onReply?: ((reply: ChatReply, request: ChatRequest) => void) | undefined;
+  /**
+   * A finished reply: only one whose iterable ended, never a stopped or failed one. Returns the id
+   * of the node the host placed it as, or nothing when it declines; with an id the chat offers a
+   * jump to the node and announces it.
+   */
+  onReply?: ((reply: ChatReply, request: ChatRequest) => string | undefined) | undefined;
   /** Shows the close button; a streaming reply is aborted before this runs. */
   onClose?: (() => void) | undefined;
   className?: string | undefined;
@@ -59,6 +76,10 @@ interface Exchange {
   status: ExchangeStatus;
   /** The latest snapshot; dropped on failure. */
   reply: ChatReply | undefined;
+  /** The board node the host placed the reply as. */
+  placedId?: string | undefined;
+  /** The placement was announced. */
+  announced?: boolean | undefined;
 }
 
 /** The soft limit of the message box, in graphemes (spec: Textarea's counter). */
@@ -71,7 +92,8 @@ const FOLLOW_SLACK = 32;
  * host through `onAsk`, shows the reply as it streams, and says on every reply where it came from
  * (rules or mock data). It never makes text up and never calls a network or a model; nothing here
  * claims AI. One request at a time. Question and reply render as plain text. The transcript lives
- * in component state and is gone on unmount.
+ * in component state and is gone on unmount. Inside a `CanvasBoard` it sends the node selected
+ * alone as `contextNodeId`, and a reply the host placed as a node gets a jump to it (slice B).
  */
 export function CanvasChat({
   variant,
@@ -83,6 +105,7 @@ export function CanvasChat({
 }: CanvasChatProps) {
   const m = useMessages();
   const locale = useLocale();
+  const board = useBoard();
   const titleId = useId();
   const [draft, setDraft] = useState("");
   const [exchanges, setExchanges] = useState<readonly Exchange[]>([]);
@@ -120,6 +143,17 @@ export function CanvasChat({
     const el = viewport();
     if (el && follow.current) el.scrollTop = el.scrollHeight;
   }, [exchanges]);
+
+  // A placed reply is announced once its node shows up in the board's graph, by the title it has there.
+  useEffect(() => {
+    const pending = exchanges.find(
+      (e) => e.placedId && !e.announced && board.graph.nodes.some((n) => n.id === e.placedId),
+    );
+    const node = pending && board.graph.nodes.find((n) => n.id === pending.placedId);
+    if (!pending || !node) return;
+    setAnnouncement(fill(m.chat.placed, { title: node.data.title }));
+    setExchanges((list) => list.map((e) => (e.id === pending.id ? { ...e, announced: true } : e)));
+  }, [exchanges, board.graph, m]);
 
   const patch = (id: number, change: Partial<Exchange>) =>
     setExchanges((list) => list.map((e) => (e.id === id ? { ...e, ...change } : e)));
@@ -160,8 +194,8 @@ export function CanvasChat({
       setAnnouncement(m.chat.failed);
       return;
     }
-    patch(id, { status: "done", reply: last });
-    onReply?.(last, request);
+    const placedId = onReply?.(last, request);
+    patch(id, { status: "done", reply: last, placedId });
   };
 
   const start = (request: ChatRequest, retryId?: number) => {
@@ -176,7 +210,12 @@ export function CanvasChat({
 
   const submit = () => {
     if (blocked || streaming) return;
-    start({ text: trimmed, mentions: [] });
+    const [only, ...more] = board.selectedNodeIds;
+    start({
+      text: trimmed,
+      mentions: [],
+      ...(only !== undefined && more.length === 0 ? { contextNodeId: only } : {}),
+    });
     setDraft("");
     textarea()?.focus();
   };
@@ -196,8 +235,14 @@ export function CanvasChat({
 
   const close = () => {
     abortRef.current?.abort();
-    // A host that keeps the chat mounted must not see a reply stuck in "streaming".
-    if (latest && streaming) patch(latest.id, { status: "stopped" });
+    // A host that keeps the chat mounted must not see a reply stuck in "streaming": mark it and
+    // say so before the host closes the chat.
+    if (latest && streaming) {
+      flushSync(() => {
+        patch(latest.id, { status: "stopped" });
+        setAnnouncement(m.chat.stopped);
+      });
+    }
     onClose?.();
   };
 
@@ -242,6 +287,13 @@ export function CanvasChat({
             {exchanges.map((exchange) => {
               const isLatest = exchange === latest;
               const { status, reply } = exchange;
+              // The placed node, while it is still on the board; linked when an edge touches it.
+              const placed = exchange.placedId
+                ? board.graph.nodes.find((n) => n.id === exchange.placedId)
+                : undefined;
+              const linked = placed
+                ? board.graph.edges.some((e) => e.source === placed.id || e.target === placed.id)
+                : false;
               return (
                 <li key={exchange.id} className="ds-chat__exchange" data-state={status}>
                   <div className="ds-chat__question">
@@ -289,6 +341,27 @@ export function CanvasChat({
                           ) : null}
                           {status === "stopped" ? (
                             <span className="ds-chat__stopped">{m.chat.stopped}</span>
+                          ) : null}
+                          {placed ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              iconLeading={<JumpIcon />}
+                              aria-label={fill(m.chat.jumpLabel, {
+                                topic: replyTopic(exchange.request.text, locale),
+                              })}
+                              onClick={() => board.jumpToNode(placed.id, { select: true })}
+                            >
+                              {m.chat.jump}
+                            </Button>
+                          ) : null}
+                          {placed && !linked ? (
+                            <span className="ds-chat__unlinked">
+                              <span className="ds-chat__mark" aria-hidden="true">
+                                <FillUnlinkedIcon />
+                              </span>
+                              {m.chat.unlinked}
+                            </span>
                           ) : null}
                         </div>
                       </>

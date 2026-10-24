@@ -77,6 +77,11 @@ export const th = {
     streaming: "กำลังตอบ",
     stopped: "หยุดแล้ว",
     failed: "ยังไม่ได้คำตอบ ข้อความของคุณยังอยู่ กดส่งอีกครั้งได้เลย",
+    replyTitle: "คำตอบเรื่อง {topic}",
+    jump: "ไปที่โหนดคำตอบ",
+    jumpLabel: "ไปที่โหนดคำตอบ เรื่อง {topic}",
+    placed: "วางคำตอบเป็นโหนด {title} แล้ว",
+    unlinked: "ไม่ได้ผูกกับโหนดใด",
   },
   tag: {
     remove: "ลบ {label}",

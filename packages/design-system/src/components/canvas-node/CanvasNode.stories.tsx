@@ -595,3 +595,39 @@ export const Suggested: Story = {
     await expect(within(font).getByText("ตามกฎ")).toBeVisible();
   },
 };
+
+/**
+ * Basis (ORV-106): a node made from a chat reply names how it was made after the kind word, by
+ * rules or from mock data. A node without a basis shows no word. Checked in every cell, both modes.
+ */
+export const Basis: Story = {
+  render: () => (
+    <Matrix>
+      <NodeBoard
+        height={240}
+        initial={row([
+          { title: "ตามกฎ node", kind: "artifact", size: "sm", basis: "rules" },
+          { title: "จำลอง node", kind: "artifact", size: "sm", basis: "mock" },
+          { title: "ไม่มี basis node", kind: "artifact", size: "sm" },
+        ])}
+      />
+    </Matrix>
+  ),
+  play: async ({ canvasElement }) => {
+    await ready(canvasElement, 18);
+    const cells = canvasElement.querySelectorAll<HTMLElement>("[data-matrix-cell]");
+    await expect(cells).toHaveLength(6);
+    for (const cell of cells) {
+      const canvas = within(cell);
+      const nodeOf = (title: string) =>
+        canvas.getByText(title).closest<HTMLElement>(".ds-node") as HTMLElement;
+      const basisOf = (title: string) => nodeOf(title).querySelector(".ds-node__basis");
+      await expect(basisOf("ตามกฎ node")).toHaveTextContent("ตามกฎ");
+      await expect(basisOf("จำลอง node")).toHaveTextContent("ข้อมูลจำลอง");
+      await expect(basisOf("ไม่มี basis node")).toBeNull();
+      await expect(basisOf("ตามกฎ node")).toBeVisible();
+      const kind = nodeOf("ตามกฎ node").querySelector(".ds-node__kind") as HTMLElement;
+      await expect(kind.textContent).toBe("ชิ้นงาน ตามกฎ");
+    }
+  },
+};

@@ -1,7 +1,7 @@
 ---
 issue: ORV-105 (ORV-45 part 3, draft key E4-5; https://tpetkaew.atlassian.net/browse/ORV-105)
 lane: L (risk flags: component public API, board document schema `NodeContent`)
-version: 1.3
+version: 1.4
 ---
 
 ## Why
@@ -98,17 +98,17 @@ export function placeReply(
 
 ## States
 
-| State     | What the chat shows                                                                             | Story                      |
-| --------- | ----------------------------------------------------------------------------------------------- | -------------------------- |
-| idle      | Empty transcript with the invite text, the basis notice, the labelled textarea, Send            | `Idle`                     |
-| streaming | The reply growing under the question, "กำลังตอบ" / "Replying" with a mark, Stop instead of Send | `Streaming`                |
-| done      | The reply with its basis tag; on a board, "ไปที่โหนดคำตอบ" / "Go to reply node"                 | `Replied`, `OnBoard`       |
-| stopped   | The partial reply marked "หยุดแล้ว" / "Stopped"; not placed                                     | `Stopped`                  |
-| error     | The question kept, the failure text, "ส่งอีกครั้ง" / "Send again"                               | `Failed`                   |
-| mock      | The basis notice and every reply tag say mock data                                              | `Mock`                     |
-| mentions  | The @ picker open over the textarea; chips for picked nodes                                     | `Mentions`, `MentionGone`  |
-| at-cursor | The compact form at a point on the board, Escape closes                                         | `AtCursor`, `AtCursorEdge` |
-| matrix    | Every state, long Thai text without spaces, 360 px, three profiles, two modes                   | `Matrix`, `Narrow`         |
+| State     | What the chat shows                                                                             | Story                       |
+| --------- | ----------------------------------------------------------------------------------------------- | --------------------------- |
+| idle      | Empty transcript with the invite text, the basis notice, the labelled textarea, Send            | `Idle`                      |
+| streaming | The reply growing under the question, "กำลังตอบ" / "Replying" with a mark, Stop instead of Send | `Streaming`                 |
+| done      | The reply with its basis tag; on a board, "ไปที่โหนดคำตอบ" / "Go to reply node"                 | `Replied`, `OnBoard`        |
+| stopped   | The partial reply marked "หยุดแล้ว" / "Stopped"; not placed                                     | `Stopped`                   |
+| error     | The question kept, the failure text, "ส่งอีกครั้ง" / "Send again"                               | `Failed`                    |
+| mock      | The basis notice and every reply tag say mock data                                              | `Mock`                      |
+| mentions  | The @ picker open over the textarea; chips for picked nodes                                     | `Mentions`, `MentionGone`   |
+| at-cursor | The compact form at a point on the board, Escape closes                                         | `AtCursor`, `AtCursorEdge`  |
+| matrix    | Every state, long Thai text without spaces, 360 px, three profiles, two modes                   | `RecipesAndModes`, `Narrow` |
 
 ## Acceptance criteria
 
@@ -142,7 +142,7 @@ The work is about 1,300 changed lines with stories, tokens and the helper, so it
 | 24  | D      | The at-cursor form open near a board edge                                                                    | Rendering                                                                                                            | The form stays inside the board; it is compact (textarea, Send or Stop, close, the latest exchange only) and the same states as rows 2 to 9 apply                                                                                                                                                                                                                                                                                                | None                                                                              |
 | 25  | D      | The at-cursor form open                                                                                      | Pressing Escape (picker closed) or the close button                                                                  | A streaming reply aborts; `onClose` fires; focus returns to the node that was selected, else to the board                                                                                                                                                                                                                                                                                                                                        | None                                                                              |
 | 26  | D      | An at-cursor reply finishes with no source node                                                              | The host places it                                                                                                   | The node lands at the form's `position`, not the viewport centre                                                                                                                                                                                                                                                                                                                                                                                 | As row 14                                                                         |
-| 27  | A to D | Every story                                                                                                  | Storybook                                                                                                            | Stories cover every state in the table above with play tests, light and dark, under neutral, Professional and Friendly (`Matrix`), Thai and English; every story's description says its replies are mock data or worked out by rules by a fixture host                                                                                                                                                                                           | None                                                                              |
+| 27  | A to D | Every story                                                                                                  | Storybook                                                                                                            | Stories cover every state in the table above with play tests, light and dark, under neutral, Professional and Friendly (`RecipesAndModes`), Thai and English; every story's description says its replies are mock data or worked out by rules by a fixture host                                                                                                                                                                                  | None                                                                              |
 | 28  | A      | The catalog and contract                                                                                     | `check-catalog`, `check-i18n`, the copy check, `pnpm contrast`, a11y addon                                           | `canvas-chat.yaml` moves from `planned` to `draft` with `import: "@orivilo/design-system"`, `contract: CanvasChatProps`, recipes listed, and says which variants and rules are not built yet until slices B to D land; a `chat` component token group and a `ds-chat` recipe; new pairs in `src/recipes/pairs.ts` pass in every profile and mode; `coverage.md` row; `DESIGN.md` §12 row; zero a11y violations; all copy from the locale catalog | Contract: new component tokens and recipe; no semantic token change               |
 
 ## i18n keys (new namespace `chat` in `th.ts` and `en.ts`)
@@ -241,3 +241,4 @@ Reused, not repeated: `taskBar.basisRules`, `taskBar.basisMock` (the per-reply t
 - v1.1 (2026-10-25): G1 by Claude under the owner's POC delegation (ADR 0012 decision 4). All twelve open questions take their proposed defaults: four slices (A sidebar core is ORV-105; B, C and D each get their own Jira key and slice spec before their first build, L-0016), an explicit early command set instead of raising CURRENT_STORY, reply nodes as notes with one input port per source, and optional `NodeContent.basis` as a board document schema change listed in Impact.
 - v1.2 (2026-10-25): G2 by Claude under the owner's POC delegation, from `docs/specs/ORV-105/design.md` (task ORV-105-design-1). Deltas D1 to D6 take their defaults: Button honours a caller `aria-disabled` with a disabled look when not loading (every Button story re-run, added to Impact); focus moves to the textarea when Stop or Send again unmounts; an iterable that yields no snapshot is a failure; Send again acts on the latest exchange only; a second polite status region sits beside the reply live region; the textarea is named by `aria-label`. Finding F3 (slice D) takes its default: the sidebar Send renders primary while the at-cursor form is open.
 - v1.3 (2026-10-25): review ORV-105-review-1 findings F2 and F3. Impact gains the Button `aria-disabled` line (D1). The slice A contract as shipped is stated as the A subset of the A to D sketch (`ChatRequest` text and mentions, sidebar-only props, `onReply` returns void). Also: `close()` marks a streaming reply as stopped before `onClose`. The composer's actions wrap under a 320 px chat width, and the stories' frames add the 2 px border to the panel widths.
+- v1.4 (2026-10-25): ORV-106 row 32 (ORV-105 QA-3). The States table and row 27 name the story `RecipesAndModes`, not `Matrix`; `Matrix` stays the name of the wrapper. No requirement change.
