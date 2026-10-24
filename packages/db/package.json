@@ -19,7 +19,7 @@
   "dependencies": {
     "drizzle-orm": "0.45.4",
     "postgres": "3.4.9",
-    "zod": "4.6.5"
+    "zod": "4.6.6"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",
