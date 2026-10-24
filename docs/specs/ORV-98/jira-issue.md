@@ -20,17 +20,17 @@ L. G1 and G2 by Claude under the owner's delegation (ORV-95 comment 10102). Foll
 
 ## Transition ids (read 2026-10-24 with listJiraIssueTransitions on ORV-93)
 
-| id  | name           | to              |
-| --- | -------------- | --------------- |
-| 2   | G2 review      | G2 review       |
-| 3   | Build          | Build           |
-| 4   | G3 PR review   | G3 PR review    |
-| 5   | Staging        | Staging         |
-| 6   | G4 review      | G4 review       |
-| 7   | Release        | Release         |
-| 8   | G5 review      | G5 review       |
-| 9   | Done           | Done            |
-| 10  | Design         | Design          |
-| 11  | To Do          | Backlog         |
-| 21  | In Progress    | Discovery       |
-| 31  | In Review      | G1 Scope review |
+| id  | name         | to              |
+| --- | ------------ | --------------- |
+| 2   | G2 review    | G2 review       |
+| 3   | Build        | Build           |
+| 4   | G3 PR review | G3 PR review    |
+| 5   | Staging      | Staging         |
+| 6   | G4 review    | G4 review       |
+| 7   | Release      | Release         |
+| 8   | G5 review    | G5 review       |
+| 9   | Done         | Done            |
+| 10  | Design       | Design          |
+| 11  | To Do        | Backlog         |
+| 21  | In Progress  | Discovery       |
+| 31  | In Review    | G1 Scope review |
