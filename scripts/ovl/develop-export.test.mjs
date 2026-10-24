@@ -11,14 +11,28 @@ import {
   readFileSync,
   readdirSync,
   realpathSync,
+  rmSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ExportError, ensureDevelopExport } from "./develop-export.mjs";
+import { ExportError, ensureDevelopExport as ensureRaw } from "./develop-export.mjs";
 
 const git = (cwd, ...args) =>
   execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+
+// The fixture origin is a local path, so the tests pass it as the expected URL (the function
+// parameter of the spec); `expectedUrl: null` keeps the real constant.
+const ensureDevelopExport = (o) => {
+  let expectedUrl = "none";
+  try {
+    expectedUrl = git(o.cwd, "config", "--get", "remote.origin.url");
+  } catch {
+    // no origin: the run must fail at its first step
+  }
+  return ensureRaw({ expectedUrl, ...o });
+};
 
 /** A bare origin whose develop holds scripts/ovl files, and a clone of it. */
 function setup({ withMergeCheck = true } = {}) {
@@ -122,6 +136,139 @@ test("row 13: ls-remote, fetch and archive failures fail closed and name the ste
       step,
     );
     assert.deepEqual(finished(clone), [], step);
+  }
+});
+
+const MARKER_STUB = (marker) =>
+  `import { writeFileSync } from "node:fs"; writeFileSync(${JSON.stringify(marker)}, "ran");\n`;
+const exportDir = (clone, sha) => join(clone, ".orivilo", "exports", sha);
+const mcPath = (dir) => join(dir, "scripts", "ovl", "merge-check.mjs");
+const asides = (clone) =>
+  readdirSync(join(clone, ".orivilo", "exports")).filter((n) => n.startsWith(".aside-"));
+
+test("row 14 (F5): a changed, added, removed or planted export is extracted again", () => {
+  const cases = {
+    changed: (d) => writeFileSync(join(d, "scripts", "ovl", "hook.mjs"), "// evil\n"),
+    "added file": (d) => writeFileSync(join(d, "scripts", "ovl", "x.mjs"), "// x\n"),
+    "added package.json": (d) => writeFileSync(join(d, "package.json"), "{}\n"),
+    "added node_modules": (d) => {
+      mkdirSync(join(d, "node_modules"));
+      writeFileSync(join(d, "node_modules", "a.js"), "// a\n");
+    },
+    removed: (d) => rmSync(join(d, "scripts", "ovl", "hook.mjs")),
+    symlink: (d) => {
+      rmSync(join(d, "scripts", "ovl", "hook.mjs"));
+      symlinkSync(mcPath(d), join(d, "scripts", "ovl", "hook.mjs"));
+    },
+  };
+  for (const [name, tamper] of Object.entries(cases)) {
+    const { base, clone, sha } = setup();
+    ensureDevelopExport({ cwd: clone });
+    tamper(exportDir(clone, sha));
+    const shim = gitShim(base);
+    const out = ensureDevelopExport({ cwd: clone, env: shim.env });
+    assert.equal(shim.calls("archive"), 1, name);
+    assert.deepEqual(readdirSync(out.dir), ["scripts"], name);
+    assert.deepEqual(readdirSync(join(out.dir, "scripts", "ovl")).sort(), [
+      "hook.mjs",
+      "merge-check.mjs",
+    ]);
+    assert.equal(readFileSync(join(out.dir, "scripts", "ovl", "hook.mjs"), "utf8"), "// hook\n");
+  }
+});
+
+test("row 14 (F5): a pre-planted export folder is replaced and its code never runs", () => {
+  const { clone, sha, base } = setup();
+  const marker = join(base, "MARKER");
+  mkdirSync(join(exportDir(clone, sha), "scripts", "ovl"), { recursive: true });
+  writeFileSync(mcPath(exportDir(clone, sha)), MARKER_STUB(marker));
+  const out = ensureDevelopExport({ cwd: clone });
+  assert.equal(readFileSync(mcPath(out.dir), "utf8"), "// mc\n");
+  assert.equal(existsSync(marker), false);
+});
+
+test("row 14 (F5): node_modules or package.json under .orivilo or .orivilo/exports fails closed", () => {
+  for (const planted of [
+    [".orivilo", "node_modules"],
+    [".orivilo", "package.json"],
+    [".orivilo", "exports", "node_modules"],
+    [".orivilo", "exports", "package.json"],
+  ]) {
+    const { clone } = setup();
+    mkdirSync(join(clone, ".orivilo", "exports"), { recursive: true });
+    const path = join(clone, ...planted);
+    if (planted.at(-1) === "node_modules") mkdirSync(path);
+    else writeFileSync(path, "{}\n");
+    assert.throws(
+      () => ensureDevelopExport({ cwd: clone }),
+      (e) => e instanceof ExportError && !e.bootstrap && e.message.includes(path),
+      planted.join("/"),
+    );
+    assert.deepEqual(
+      finished(clone).filter((n) => n.length === 40),
+      [],
+      planted.join("/"),
+    );
+  }
+});
+
+test("row 14 (QA-F5 c): a run stopped before the rename leaves only an aside folder", () => {
+  const { base, clone, sha } = setup();
+  const shim = gitShim(base);
+  assert.throws(
+    () => ensureDevelopExport({ cwd: clone, env: shim.env, stopBeforeRename: true }),
+    (e) => e instanceof ExportError && !e.bootstrap,
+  );
+  assert.equal(shim.calls("archive"), 1);
+  assert.equal(existsSync(exportDir(clone, sha)), false);
+  assert.equal(asides(clone).length, 1);
+  assert.ok(existsSync(mcPath(join(clone, ".orivilo", "exports", asides(clone)[0]))));
+  const out = ensureDevelopExport({ cwd: clone, env: shim.env });
+  assert.equal(shim.calls("archive"), 2);
+  assert.equal(out.dir, exportDir(clone, sha));
+  assert.equal(readFileSync(mcPath(out.dir), "utf8"), "// mc\n");
+  assert.deepEqual(asides(clone), []);
+});
+
+test("row 13 (F3): an origin URL other than the expected one stops before any other step", () => {
+  const { base, clone } = setup();
+  const shim = gitShim(base);
+  assert.throws(
+    () => ensureRaw({ cwd: clone, env: shim.env }),
+    (e) =>
+      e instanceof ExportError &&
+      !e.bootstrap &&
+      e.message.includes("origin URL check") &&
+      !e.message.includes(base),
+  );
+  assert.equal(shim.calls("fetch"), 0);
+  assert.equal(shim.calls("archive"), 0);
+  assert.equal(existsSync(join(clone, ".orivilo")), false);
+});
+
+test("row 13 (F3): the three expected spellings pass the URL check, an insteadOf rewrite does not", () => {
+  const { base, clone } = setup();
+  const evil = join(base, "origin.git");
+  for (const url of [
+    "https://github.com/Thawatchai-Petkaew/orivilo.git",
+    "https://github.com/thawatchai-petkaew/orivilo/",
+    "git@github.com:Thawatchai-Petkaew/orivilo.git",
+    "ssh://git@github.com/Thawatchai-Petkaew/orivilo",
+  ]) {
+    git(clone, "remote", "set-url", "origin", url);
+    git(clone, "config", `url.${evil}.insteadOf`, url);
+    assert.throws(
+      () => ensureRaw({ cwd: clone }),
+      (e) => e instanceof ExportError && e.message.includes("origin URL check"),
+      url,
+    );
+    git(clone, "config", "--unset", `url.${evil}.insteadOf`);
+    // The spelling is accepted: the run goes on and then fails at ls-remote of the unreachable URL.
+    assert.throws(
+      () => ensureRaw({ cwd: clone, env: { ...process.env, GIT_ALLOW_PROTOCOL: "none" } }),
+      (e) => e instanceof ExportError && !e.message.includes("origin URL check"),
+      url,
+    );
   }
 });
 

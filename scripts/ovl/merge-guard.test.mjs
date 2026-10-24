@@ -33,11 +33,31 @@ function call(command, { cwd, project = cwd, agent, env = {} } = {}) {
     ...(agent ? { agent_id: agent } : {}),
   };
   return judge(JSON.stringify(input), {
-    env: { ...process.env, CLAUDE_PROJECT_DIR: project, ...env },
+    env: {
+      ...process.env,
+      PATH: `${urlShim()}:${process.env.PATH}`,
+      CLAUDE_PROJECT_DIR: project,
+      ...env,
+    },
   });
 }
 
 const scratch = () => realpathSync(mkdtempSync(join(tmpdir(), "mguard-")));
+
+// The fixture origins are local paths, so a `git` on PATH answers `ls-remote --get-url origin` with the
+// repo's URL and passes every other call to the real git. The row 13 probe runs without it.
+const SHIM_URL = "https://github.com/Thawatchai-Petkaew/orivilo.git";
+const URL_ANSWER = `if [ "$1" = ls-remote ] && [ "$2" = --get-url ]; then echo '${SHIM_URL}'; exit 0; fi`;
+let urlShimDir;
+function urlShim() {
+  if (urlShimDir) return urlShimDir;
+  urlShimDir = join(scratch(), "url-shim");
+  mkdirSync(urlShimDir);
+  const real = execFileSync("which", ["git"], { encoding: "utf8" }).trim();
+  writeFileSync(join(urlShimDir, "git"), `#!/bin/sh\n${URL_ANSWER}\nexec '${real}' "$@"\n`);
+  chmodSync(join(urlShimDir, "git"), 0o755);
+  return urlShimDir;
+}
 
 /** `gh` and `git` shims on PATH that log their calls; `git` fails for `failOn`. */
 function shims(failOn = "") {
@@ -54,6 +74,7 @@ function shims(failOn = "") {
     `#!/bin/sh
 echo "$1" >> '${dir}/git-calls'
 if [ "$1" = '${failOn}' ]; then echo boom >&2; exit 1; fi
+${URL_ANSWER}
 exec '${real}' "$@"
 `,
   );
@@ -562,6 +583,23 @@ test("row 13: a failed export step fails closed, naming the step", () => {
     assert.match(r.stderr, new RegExp(`^merge-guard failed closed: git ${step} exited 1`), step);
     assert.equal(last(clone).decision, "error");
   }
+});
+
+test("row 13 (F3 probe): an insteadOf rewrite of the expected URL to an evil repo runs nothing", () => {
+  const { clone } = fixtureOrigin(OK_STUB);
+  const marker = join(clone, "MARKER");
+  const evil = fixtureOrigin(
+    `import { writeFileSync } from "node:fs"; writeFileSync(${JSON.stringify(marker)}, "ran");\n`,
+  );
+  git(clone, "remote", "set-url", "origin", SHIM_URL);
+  git(clone, "config", `url.${join(evil.base, "origin.git")}.insteadOf`, SHIM_URL);
+  const r = call(MERGE, { cwd: clone, env: { PATH: process.env.PATH } });
+  assert.equal(r.code, 2);
+  assert.match(r.stderr, /^merge-guard failed closed: git ls-remote origin URL check failed/);
+  assert.ok(!r.stderr.includes(evil.base));
+  assert.equal(existsSync(marker), false);
+  assert.equal(exportsOf(clone), false);
+  assert.equal(last(clone).decision, "error");
 });
 
 // ---- fail closed and scope ----
