@@ -55,19 +55,11 @@ Do not set `model`, `isolation` or `run_in_background` on the call. `cwd`, if gi
   full gate, two reviewer passes and the qa walk (L-0010).
 - **Contract change from a review.** When a review's findings or the owner's answers change the
   spec's contract, dispatch the `product` revision first and the builder fix only after it returns;
-  never both from one review at once. When a reviewer and a qa judged the same head in parallel, the
-  revision waits for both reports and the owner gets one question form for both. The revision envelope
-  names every finding id of each report, and the revision records each as a contract change, as no
-  contract change, or as the review id it repeats (L-0013). The fix envelope carries the
+  never both from one review at once. The revision envelope names every finding id of the review, and
+  the revision records each as a contract change or as no contract change. The fix envelope carries the
   new spec version as a fact (`checked_by` `grep -n "^- v<version>" docs/specs/<KEY>/spec.md`) and the
   spec in `context_pointers`. A point where the fix must differ from the spec goes in its `deviations`,
   and the next revision starts from those lines and the fix diff only (L-0011).
-- **Review of a guard-rail spec.** When the spec frames a guard as a guard rail, the reviewer
-  envelope's objective names the frame and asks for (a) forms a rule-following agent uses that pass
-  the guard and (b) bypass classes, each reported once with one probe. A finding of kind (a) goes to
-  rework as usual. A finding of kind (b) goes to the spec's Honest limits in the next revision, with no
-  builder round, unless the owner decides otherwise in the question form. A re-check envelope says
-  that a bypass of a class already named in Honest limits is not a new finding (L-0012).
 - **Never resume.** A re-check, a follow-up question or a fix is a new envelope with a new `task_id`, never a `SendMessage`. A builder rework names `rework_of`; a reviewer re-check does not (`rework_of` is read on builder envelopes only) and puts the earlier `result.json` absolute paths in `context_pointers`. `resume-guard` (PreToolUse `SendMessage`) blocks every `SendMessage`, from the main session and from a subagent, whatever `to` names; it never echoes `to` or the message. When `to` is a recorded agent's id, the stderr names that task, as a hint for the fresh envelope. A subagent that needs a decision reports `blocked` with `needs_decision`, and the answer goes out in a fresh envelope.
 
 The guard blocks, with exit 2 and a reason on stderr, when:

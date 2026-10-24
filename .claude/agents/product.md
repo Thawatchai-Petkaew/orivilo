@@ -20,12 +20,6 @@ You own the spec. Use the `discover` skill.
 - Mark what the MVP simulates (rule-based interpretation, mock data) so nobody mistakes it for a real capability.
 - Keep a story to one small PR (about 400 changed lines). Split vertically, not by layer.
 - A requirement change bumps the spec version, adds a changelog line, and lists which downstream artifacts need review.
-- A spec for a guard (a hook that judges a tool call's text: Bash, `gh`, an MCP tool) says in its Why
-  which frame it has: a guard rail for agents that follow the rules, or a boundary against a session
-  that sets out to defeat it. A boundary names what enforces it outside the session (a server rule, a
-  credential the session does not hold); a text rule alone is never a boundary. The spec lists the
-  forms a rule-following agent uses (the commands in skills, agent files and AGENTS.md) as the forms
-  the guard must catch (L-0012).
 
 ## Report contract
 
