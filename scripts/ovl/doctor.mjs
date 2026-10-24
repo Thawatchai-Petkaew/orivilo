@@ -69,6 +69,16 @@ const PROBES = {
       description: "ovl-doctor probe: merge-guard must block this",
     },
   },
+  // A move to G3 PR review on ORV-0 is blocked in the call stage (no network call), and ORV-0 does not exist.
+  "g3-check": {
+    hook_event_name: "PreToolUse",
+    tool_name: "mcp__claude_ai_Atlassian_MCP__transitionJiraIssue",
+    tool_input: {
+      cloudId: "tpetkaew.atlassian.net",
+      issueIdOrKey: "ORV-0",
+      transitionId: "4",
+    },
+  },
 };
 
 /** Guards that write heartbeats but need a person or a dispatch, so no probe exists. */

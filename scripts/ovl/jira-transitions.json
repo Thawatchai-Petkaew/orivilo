@@ -1,0 +1,19 @@
+{
+  "project": "ORV",
+  "recorded": "2026-10-24",
+  "source": "listJiraIssueTransitions on ORV-98, ORV-97 and ORV-93",
+  "transitions": {
+    "2": { "name": "G2 review", "to": "G2 review" },
+    "3": { "name": "Build", "to": "Build" },
+    "4": { "name": "G3 PR review", "to": "G3 PR review" },
+    "5": { "name": "Staging", "to": "Staging" },
+    "6": { "name": "G4 review", "to": "G4 review" },
+    "7": { "name": "Release", "to": "Release" },
+    "8": { "name": "G5 review", "to": "G5 review" },
+    "9": { "name": "Done", "to": "Done" },
+    "10": { "name": "Design", "to": "Design" },
+    "11": { "name": "To Do", "to": "Backlog" },
+    "21": { "name": "In Progress", "to": "Discovery" },
+    "31": { "name": "In Review", "to": "G1 Scope review" }
+  }
+}
