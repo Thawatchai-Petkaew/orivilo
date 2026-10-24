@@ -1,3 +1,4 @@
+import type { ChatBasis, ChatReply, ChatRequest } from "./canvas-chat/CanvasChat";
 import type { TaskJob } from "./task-bar/TaskBar";
 
 /**
@@ -115,3 +116,75 @@ export const fixtureManyJobs: readonly TaskJob[] = Array.from({ length: 12 }, (_
   basis: "mock",
   state: "done",
 }));
+
+/** Cumulative snapshots of `text`, split at grapheme boundaries so Thai never breaks mid-cluster. */
+function snapshotsOf(text: string, steps: number): string[] {
+  const parts = Array.from(
+    new Intl.Segmenter("th", { granularity: "grapheme" }).segment(text),
+    (p) => p.segment,
+  );
+  const size = Math.max(1, Math.ceil(parts.length / steps));
+  const out: string[] = [];
+  for (let i = size; i < parts.length + size; i += size) out.push(parts.slice(0, i).join(""));
+  return out;
+}
+
+function wait(ms: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve) => {
+    if (signal.aborted) return resolve();
+    const timer = setTimeout(resolve, ms);
+    signal.addEventListener("abort", () => (clearTimeout(timer), resolve()), { once: true });
+  });
+}
+
+/**
+ * CanvasChat (ORV-105): mock questions and replies, and fixture hosts for `onAsk`. A host streams
+ * canned text in cumulative snapshots with a delay; nothing here interprets language or calls a
+ * model, and no reply says that AI wrote it. Hosts stop quietly when the signal aborts.
+ */
+export type ChatHost = (request: ChatRequest, signal: AbortSignal) => AsyncGenerator<ChatReply>;
+
+export const chatFixtures = {
+  question: "สรุปโหนดแบรนด์ให้หน่อย",
+  questionEn: "Summarise the brand node",
+  /** No spaces: the transcript wraps it by word break or overflow-wrap, never clips it. */
+  longQuestion: `${fixtures.longThai}${fixtures.longThai}`,
+  /** Latin node names inside a Thai sentence. */
+  reply: "โหนดแบรนด์มีสีหลักสองสี ฟอนต์หัวข้อคือ Anuphan และยังไม่มีเสียงของแบรนด์",
+  replyEn:
+    "The brand node has two main colours and Anuphan as the heading font. It has no brand voice yet",
+  /** Line breaks from the person or the host are kept. */
+  replyLines: "สรุปโหนดแบรนด์\nสีหลักสองสี\nฟอนต์หัวข้อ Anuphan\nยังไม่มีเสียงของแบรนด์",
+  longReply: `${fixtures.longThai}${fixtures.longThai}${fixtures.longThai}`,
+
+  /** Streams `text` in `steps` snapshots, `ms` apart, then ends. */
+  host: (text: string, basis: ChatBasis = "rules", { steps = 4, ms = 60 } = {}): ChatHost =>
+    async function* (_request: ChatRequest, signal: AbortSignal): AsyncGenerator<ChatReply> {
+      for (const snapshot of snapshotsOf(text, steps)) {
+        await wait(ms, signal);
+        if (signal.aborted) return;
+        yield { text: snapshot, basis };
+      }
+    },
+  /** Yields the first snapshot of `text`, then holds until the signal aborts. */
+  hostHold: (text: string, basis: ChatBasis = "rules"): ChatHost =>
+    async function* (_request: ChatRequest, signal: AbortSignal): AsyncGenerator<ChatReply> {
+      const [first] = snapshotsOf(text, 4);
+      yield { text: first ?? "", basis };
+      await wait(60_000, signal);
+    },
+  /** Throws before any snapshot. */
+  hostFail: (message = "upstream timeout 504"): ChatHost =>
+    // eslint-disable-next-line require-yield -- a host that fails at once has nothing to yield
+    async function* (): AsyncGenerator<ChatReply> {
+      throw new Error(message);
+    },
+  /** Yields one snapshot, then throws. */
+  hostFailMidStream: (text: string, message = "stream reset"): ChatHost =>
+    async function* (): AsyncGenerator<ChatReply> {
+      yield { text: snapshotsOf(text, 4)[0] ?? "", basis: "rules" };
+      throw new Error(message);
+    },
+  /** Ends without a snapshot. */
+  hostEmpty: async function* (): AsyncGenerator<ChatReply> {} as ChatHost,
+} as const;

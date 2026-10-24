@@ -2370,5 +2370,107 @@
       "$type": "number",
       "$value": "{layer.overlay}"
     }
+  },
+  "chat": {
+    "$description": "The board chat (ORV-105, E4-5 part 3), slice A: the sidebar panel, its transcript, the question well, the composer and the state words",
+    "bg": {
+      "$type": "color",
+      "$value": "{surface.card}"
+    },
+    "fg": {
+      "$type": "color",
+      "$value": "{text.primary}",
+      "$description": "Title and reply text"
+    },
+    "muted-fg": {
+      "$type": "color",
+      "$value": "{text.secondary}",
+      "$description": "Notice, speaker, empty text, basis word and stopped word"
+    },
+    "divider": {
+      "$type": "color",
+      "$value": "{border.subtle}",
+      "$description": "Hairline under the notice and above the composer"
+    },
+    "question-bg": {
+      "$type": "color",
+      "$value": "{surface.sunken}",
+      "$description": "The well the question sits in"
+    },
+    "question-fg": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    },
+    "question-radius": {
+      "$type": "dimension",
+      "$value": "{shape.media.radius}",
+      "$description": "The smallest level: a well inside a panel"
+    },
+    "streaming-fg": {
+      "$type": "color",
+      "$value": "{status.running}",
+      "$description": "Streaming mark and word"
+    },
+    "failed-fg": {
+      "$type": "color",
+      "$value": "{feedback.danger.fg}",
+      "$description": "Failure mark and text"
+    },
+    "padding-x": {
+      "$type": "dimension",
+      "$value": "{space.inset.md}"
+    },
+    "padding-y": {
+      "$type": "dimension",
+      "$value": "{space.inset.sm}"
+    },
+    "question-pad": {
+      "$type": "dimension",
+      "$value": "{space.inset.sm}"
+    },
+    "exchange-gap": {
+      "$type": "dimension",
+      "$value": "{space.stack.lg}",
+      "$description": "Between exchanges: space, not rules, separates them"
+    },
+    "turn-gap": {
+      "$type": "dimension",
+      "$value": "{space.stack.sm}",
+      "$description": "From the question to its reply"
+    },
+    "line-gap": {
+      "$type": "dimension",
+      "$value": "{space.inline.sm}",
+      "$description": "Between the lines of one block"
+    },
+    "inline-gap": {
+      "$type": "dimension",
+      "$value": "{space.inline.md}",
+      "$description": "Between a mark and its word, between meta items, between buttons"
+    },
+    "header-height": {
+      "$type": "dimension",
+      "$value": "{size.control.md}"
+    },
+    "icon-size": {
+      "$type": "dimension",
+      "$value": "{size.icon.sm}"
+    },
+    "title-type": {
+      "$type": "typography",
+      "$value": "{type.label.md}"
+    },
+    "text-type": {
+      "$type": "typography",
+      "$value": "{type.body.md}"
+    },
+    "meta-type": {
+      "$type": "typography",
+      "$value": "{type.label.sm}"
+    },
+    "body-sm-type": {
+      "$type": "typography",
+      "$value": "{type.body.sm}"
+    }
   }
 }

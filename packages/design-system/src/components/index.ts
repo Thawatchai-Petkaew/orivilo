@@ -219,3 +219,10 @@ export {
   type TaskJobBasis,
   type TaskJobState,
 } from "./task-bar/TaskBar";
+export {
+  CanvasChat,
+  type CanvasChatProps,
+  type ChatBasis,
+  type ChatReply,
+  type ChatRequest,
+} from "./canvas-chat/CanvasChat";

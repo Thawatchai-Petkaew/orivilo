@@ -924,4 +924,24 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
   { recipe: "taskbar", slot: "failed", fg: "taskbar.failed-fg", bg: "taskbar.bg", floor: TEXT },
   { recipe: "taskbar", slot: "reason", fg: "taskbar.reason-fg", bg: "taskbar.bg", floor: TEXT },
   { recipe: "taskbar", slot: "row focus", fg: "ds:focus.ring", bg: "taskbar.bg", floor: UI },
+  // CanvasChat (ORV-105): text and marks on the panel ground and on the question well, the
+  // transcript focus ring against the panel. Not listed: `chat.divider` is a `border.subtle`
+  // hairline (decorative, WCAG 1.4.11 does not apply), and the question well's edge is not a
+  // boundary anyone must perceive to operate anything. Textarea, Button and ScrollArea inside sit
+  // on `chat.bg`, which reads `surface.card`, where their pairs exist. If `chat.bg` stops reading
+  // `surface.card`, repeat those pairs on `chat.bg`. The lime Send has no floor against the card,
+  // as `action.intent` has none in DESIGN.md §3.1: its label pair (`button intent`) is 4.5.
+  { recipe: "chat", slot: "title and reply", fg: "chat.fg", bg: "chat.bg", floor: TEXT },
+  { recipe: "chat", slot: "muted", fg: "chat.muted-fg", bg: "chat.bg", floor: TEXT },
+  { recipe: "chat", slot: "question", fg: "chat.question-fg", bg: "chat.question-bg", floor: TEXT },
+  {
+    recipe: "chat",
+    slot: "speaker on well",
+    fg: "chat.muted-fg",
+    bg: "chat.question-bg",
+    floor: TEXT,
+  },
+  { recipe: "chat", slot: "streaming", fg: "chat.streaming-fg", bg: "chat.bg", floor: TEXT },
+  { recipe: "chat", slot: "failed", fg: "chat.failed-fg", bg: "chat.bg", floor: TEXT },
+  { recipe: "chat", slot: "transcript focus", fg: "ds:focus.ring", bg: "chat.bg", floor: UI },
 ];
