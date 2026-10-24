@@ -24,7 +24,11 @@ L, because it changes a guard file. G1 and G2 are covered by the owner's decisio
 ## Observed SendMessage tool_input (session transcripts, 2026-10-23)
 
 ```json
-{ "to": "a4749f50857d699e3", "summary": "Re-review ORV-73 fixes", "message": "Please re-review ..." }
+{
+  "to": "a4749f50857d699e3",
+  "summary": "Re-review ORV-73 fixes",
+  "message": "Please re-review ..."
+}
 ```
 
 `to` is the subagent's agent_id, the same id the result-recorder writes to `.orivilo/runs/<ISSUE>/<task_id>/agent.json` (main checkout).

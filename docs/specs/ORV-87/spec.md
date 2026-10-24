@@ -1,7 +1,7 @@
 ---
 issue: ORV-87 (https://tpetkaew.atlassian.net/browse/ORV-87)
 lane: L (it reads the owner's session transcripts, which hold personal data, and adds a contract under scripts/ovl; three slices)
-version: 1.1
+version: 1.2
 ---
 
 ## Why
@@ -239,7 +239,7 @@ What the metrics cannot show, said in every report footer and every G3 packet of
 - **Waiting.** CI, the owner's answers and permission prompts are not in agent duration. The baseline's point that shipping is mostly CI waiting is not measured here (out of scope).
 - **Quality.** Tokens, rounds and finding counts do not show whether a review was good. Defects the owner finds after G3 are counted only when they are filed as a Jira issue; the collector does not count them.
 - **Runs outside records.** `Explore` runs and sessions without `/ovl` have no envelope, so they have no task, role or round. `session` mode shows them as runs without a task.
-- **Resumes are not guarded.** `envelope-guard` matches `Agent` calls only, so a `SendMessage` resume runs with no envelope. The collector attaches it to the task by `agent_id`, but nothing checked what it was asked (open question 7).
+- **Resumes.** `envelope-guard` matches `Agent` calls only, so before ORV-88 a `SendMessage` resume ran with no envelope. Open question 7 is answered: with the ORV-88 PR, `resume-guard` blocks every `SendMessage` call. A resumed run in the data predates that PR or ran in a session without the hooks; the collector still attaches it to the task by `agent_id`, but nothing checked what it was asked.
 - **Small samples.** A batch holds a handful of tasks, and story size varies a lot. A met target is a sign, not proof; nothing here claims statistical significance.
 - **Integrity.** Transcripts live outside the repo and can be edited by any process; `.orivilo/` is protected only from tool writes. That is acceptable because metrics are never evidence for a gate.
 - **Format drift.** The transcript shape is Claude Code's, not ours. A version the tests were not recorded on is warned about (row 15), and a missing field gives `null`, never a guessed 0.
@@ -260,7 +260,7 @@ How a saving is checked after it is adopted: the lesson names its metric, its ba
 - New: `scripts/ovl/metrics.mjs`, `scripts/ovl/schemas/metrics.v1.json`, their tests and fixtures under `scripts/ovl/`, and the local folder `.orivilo/metrics/` (already ignored with `.orivilo/`).
 - Changed: `.claude/skills/ovl/SKILL.md` (the after-merge step), `.claude/skills/retro/SKILL.md` (a cost and flow step that reads the metrics report and writes `## Expected saving`), `docs/lessons/README.md` (the two new sections in the format), `scripts/check-knowledge.mjs` and its test (the line rules for `## Expected saving`).
 - New contract: `metrics.v1`. No change to `envelope.v1`, `implementer.v1`, `reviewer.v1`, `qa.v1`, any hook, or `.claude/settings.json`.
-- Other issues: ORV-81 slice D keeps the after-merge step in the full `ovl` skill. ORV-86 (slice A3) must merge before the collector sees real `agent.json` and `result.json` files. Open question 7 may become a follow-up to ORV-81.
+- Other issues: ORV-81 slice D keeps the after-merge step in the full `ovl` skill. ORV-86 (slice A3) must merge before the collector sees real `agent.json` and `result.json` files. Open question 7 is answered and built by ORV-88 (`resume-guard`).
 - No product code, token, component API or schema in `packages/` or `apps/` changes.
 
 ## Out of scope
@@ -268,7 +268,7 @@ How a saving is checked after it is adopted: the lesson names its metric, its ba
 - CI and other waiting time (open question 10).
 - Prices and money (open question 6).
 - Any hook that collects automatically, and any guard that reads metrics.
-- Blocking or enveloping `SendMessage` resumes; that is an ORV-81 contract change (open question 7).
+- Blocking or enveloping `SendMessage` resumes; ORV-88 blocks them (open question 7).
 - Headless runs and dashboards.
 - Measuring sessions on other machines; the collector reads this machine's `~/.claude/projects/`.
 
@@ -288,7 +288,7 @@ Each slice is one PR of about 400 changed lines, with its own Jira issue linked 
 4. **How the owner approves a proposal.** Options: a question form with `Approve L-NNNN` and `Decline` per proposal; chat, as lessons are approved today. Impact: a click is unambiguous and sits in the transcript, but no hook writes a record of it in this story. Default: the question form.
 5. **Check window.** Options: a date 14 days after promotion and at least 5 comparable tasks; the next batch; a fixed task count. Default: 14 days and at least 5 tasks, else `not enough data`.
 6. **Money.** Options: tokens by kind only; a pinned price table per model in the report. Impact: a price table must be kept current and may not match the owner's plan. Default: tokens by kind only.
-7. **Resumes run without an envelope.** Options: measure only, and raise a follow-up on ORV-81; block `SendMessage` in `envelope-guard` now; require an envelope for a resume. Impact: the baseline's costliest re-checks were resumes, and today nothing checks what a resumed agent is asked. Default: measure only here, and raise the ORV-81 follow-up with the first report's numbers.
+7. **Resumes run without an envelope.** Options: measure only, and raise a follow-up on ORV-81; block `SendMessage` in `envelope-guard` now; require an envelope for a resume. Impact: the baseline's costliest re-checks were resumes, and today nothing checks what a resumed agent is asked. Default: measure only here, and raise the ORV-81 follow-up with the first report's numbers. Answered by the owner on 2026-10-23 in the question form: "ห้าม resume ส่งงานใหม่ทุกครั้ง" (no resume; dispatch new work every time). This replaces the default. ORV-88 builds it as `resume-guard`, which blocks every `SendMessage` call, and the collector keeps the fresh and resumed split so it can still read past sessions (`docs/specs/ORV-88/spec.md`).
 8. **Main-session tokens.** Options: one line per session in `session` mode; leave them out; split them by time between dispatches. Impact: a time split would look precise and would not be. Default: one line per session, marked not per task.
 9. **Lane.** Options: L or M. Impact: L adds G1 and the owner's G2 on the reading of personal transcripts. Default: L.
 10. **CI and waiting time.** Options: out of scope; add `gh run view` timings to `report` in slice 2. Impact: the baseline says shipping time is mostly CI, so it is worth measuring, but it is a different source and about 100 more lines. Default: out of scope, a follow-up issue if the owner wants it.
@@ -298,3 +298,4 @@ Each slice is one PR of about 400 changed lines, with its own Jira issue linked 
 
 - v1 (2026-10-23): spec.
 - v1.1 (2026-10-24): finding F6 of reviewer task ORV-87-collector-review-1. `reported_total` (a notice's `subagent_tokens`) is the last call's context size, not the run total; `total_mismatch` is expected on multi-call runs; lessons and proposals compare `tokens.total` or the four kinds. The Why baseline and the `## Expected saving` example are corrected. Review: `docs/specs/ORV-87/samples.md` (say "exact in 9 of 15", not an exact rule), `scripts/ovl/metrics.mjs` and `scripts/ovl/schemas/metrics.v1.json` (descriptions of `reported_total` and `total_mismatch`, no shape change), `scripts/ovl/metrics.test.mjs` (row 4), and slice 3's `docs/lessons/README.md`, `.claude/skills/retro/SKILL.md` and `scripts/check-knowledge.mjs` (the metric rule for `## Expected saving`).
+- v1.2 (2026-10-24): ORV-88. Open question 7 is answered by the owner (no resume) and replaces its default; Honest limits "Resumes are not guarded" becomes "Resumes", saying that `resume-guard` blocks every `SendMessage` call with the ORV-88 PR; Impact and Out of scope point to ORV-88. No metric, row or schema changes. Review: `scripts/ovl/metrics.mjs` and `scripts/ovl/metrics.test.mjs` (the notes line, ORV-88 row 16), `docs/specs/ORV-81/spec.md` v1.4.
