@@ -40,6 +40,11 @@ Do not set `model`, `isolation` or `run_in_background` on the call. `cwd`, if gi
 }
 ```
 
+- **Re-check envelope** (reviewer, round 1 or more). `context_pointers` name the previous review's
+  `.orivilo/runs/<ISSUE>/<previous review task_id>/result.json`, the rework task's report and the spec,
+  not the full pointer list of the first review. One fact is the sha the previous review judged
+  (`checked_by`: `git rev-parse <sha>`).
+
 The guard blocks, with exit 2 and a reason on stderr, when:
 
 - **`task_id`** is used already for this issue. Every dispatch, including a retry after a refused call, needs a new `task_id` (`ORV-<n>-<lowercase-words>`).
