@@ -5,6 +5,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { validate } from "./validate.mjs";
 import {
+  agentInput,
   fixture,
   heartbeatLines,
   hook,
@@ -1184,4 +1185,56 @@ test("ORV-89: a foreground call still records once, at PostToolUse, and not at S
   const post = run(postAgentInput(root, agent, "builder", JSON.stringify(implementer("ORV-1-a"))));
   assert.equal(post.code, 0, post.stderr);
   assert.equal(read(root, "result.json").agent_id, agent);
+});
+
+// ---- ORV-93 PR 1: a qa works in the PR checkout, its records live in the main checkout --------
+
+test("ORV-93 row 31: a qa envelope is dispatched, bound at start and recorded with qa.json at stop", () => {
+  const { root, head } = makePrRepo();
+  writeGate(root, head);
+  const envelope = validEnvelope(root, {
+    task_id: "ORV-1-qa-1",
+    role: "qa",
+    write_set: [],
+    facts: [{ claim: "The PR exists", checked_by: "gh pr view 7" }],
+    skills: ["quality-gate", "webapp-testing"],
+  });
+  const guard = runNode(hook("envelope-guard.mjs"), agentInput(root, envelope));
+  assert.equal(guard.code, 0, guard.stderr);
+  assert.equal(run(startInput(root, "agent-qa-1", "qa")).code, 0);
+  assert.equal(read(root, "agent.json", "ORV-1-qa-1").agent_type, "qa");
+  const report = qaReport(root, head, "ORV-1-qa-1");
+  assert.equal(stopWith(root, "agent-qa-1", "qa", report).code, 0);
+  const r = run(postAgentInput(root, "agent-qa-1", "qa", JSON.stringify(report)));
+  assert.equal(r.code, 0, r.stderr);
+  for (const name of ["envelope.json", "agent.json", "result.json", "qa.json"]) {
+    assert.ok(has(root, name, "ORV-1-qa-1"), name);
+  }
+  assert.equal(read(root, "qa.json", "ORV-1-qa-1").report.verdict, "approve");
+});
+
+test("ORV-93 row 32: screenshots are found in the main checkout's records, not the qa's own worktree", () => {
+  const { root, head } = makePrRepo();
+  const wt = join(root, ".claude", "worktrees", "w");
+  git(root, "worktree", "add", "-q", "-b", "feature/ORV-1-wt", wt);
+  writeGate(wt, head);
+  const agent = bind(root, "qa", "ORV-1-qa-1", { worktree: wt });
+  const report = qaReport(root, head, "ORV-1-qa-1");
+  const ok = run(stopInput(wt, agent, "qa", JSON.stringify(report)));
+  assert.equal(ok.code, 0, ok.stderr);
+  const done = run(postAgentInput(wt, agent, "qa", JSON.stringify(report)));
+  assert.equal(done.code, 0, done.stderr);
+  assert.ok(has(root, "result.json", "ORV-1-qa-1"));
+
+  const other = makePrRepo();
+  const wt2 = join(other.root, ".claude", "worktrees", "w");
+  git(other.root, "worktree", "add", "-q", "-b", "feature/ORV-1-wt", wt2);
+  writeGate(wt2, other.head);
+  const agent2 = bind(other.root, "qa", "ORV-1-qa-1", { worktree: wt2 });
+  const inWt = qaReport(wt2, other.head, "ORV-1-qa-1");
+  const bad = run(stopInput(wt2, agent2, "qa", JSON.stringify(inWt)));
+  assert.equal(bad.code, 2);
+  assert.match(bad.stderr, /screenshots\/components-checkbox--basic-light\.png/);
+  assert.match(bad.stderr, /main checkout/);
+  assert.equal(has(other.root, "result.json", "ORV-1-qa-1"), false);
 });
