@@ -20,7 +20,7 @@ The plan and its order live in `docs/plans/master-plan.md`; pages published in t
 
 ## Done recently
 
-Rows marked "on staging" reached `main` with release PR #67; Jira shows its 16 issues in "Staging". Rows marked "in `develop`" wait for the next release.
+Rows marked "on staging" reached `main` with release PR #67 or release PR #82 (the owner's go in ORV-88 comment 10084); Jira shows them in "Staging". Nothing waits in `develop` after release PR #82.
 
 | Issue  | What                                                                          | PR  |
 | ------ | ----------------------------------------------------------------------------- | --- |
@@ -47,14 +47,16 @@ Rows marked "on staging" reached `main` with release PR #67; Jira shows its 16 i
 | ORV-89 | Background runs recorded at SubagentStop, shared run records (on staging)     | #75 |
 | ORV-90 | worktree-guard heartbeat only into this project (on staging)                  | #76 |
 | ORV-87 | Run metrics: report and session commands, slice 2 (on staging)                | #77 |
-| ORV-91 | Improvement loop, Expected saving lessons, metrics due, slice 3 (`develop`)   | #78 |
-| ORV-92 | zod 4.6.5 to 4.6.6, GHSA-mrhx-c7xc-m3w5 (in `develop`)                        | #79 |
+| ORV-91 | Improvement loop, lessons with Expected saving, metrics due (on staging)      | #78 |
+| ORV-92 | zod 4.6.5 to 4.6.6, GHSA-mrhx-c7xc-m3w5 (on staging)                          | #79 |
+| ORV-91 | First improvement run, L-0008 re-check rule, plan update (on staging)         | #80 |
+| ORV-88 | resume-guard blocks every SendMessage; re-checks are fresh (on staging)       | #81 |
 
-`main`'s CI run after release #67 failed, probably at the zod audit; ORV-92 fixes that and reaches `main` with the next release.
+`main`'s CI run after release #67 failed at the zod audit; ORV-92 fixed it, and `main`'s CI after release #82 is green.
 
 ## The AI team loop (ORV-81, ORV-87)
 
-Hooks check every Agent call in this repo (envelope-guard, result-recorder, owner-grant, worktree-guard); start a run with the `ovl` skill and `node scripts/ovl/doctor.mjs plan`. `pnpm quality-gate` in the main session writes a gate record. `write-guard` and `merge-guard` (ORV-81 slices B and C1) are not built yet, so nothing blocks an unwanted write or merge, and nothing blocks a SendMessage resume yet (ORV-88). Metrics: `node scripts/ovl/metrics.mjs collect|report|session|due` (spec `docs/specs/ORV-87/spec.md`); the `ovl` skill step 5 runs the improvement loop after each merge.
+Hooks check every Agent call in this repo (envelope-guard, result-recorder, owner-grant, worktree-guard), and resume-guard blocks every SendMessage (ORV-88); start a run with the `ovl` skill and `node scripts/ovl/doctor.mjs plan`. `pnpm quality-gate` in the main session writes a gate record. `write-guard` and `merge-guard` (ORV-81 slices B and C1) are not built yet, so nothing blocks an unwanted write or merge. Metrics: `node scripts/ovl/metrics.mjs collect|report|session|due` (spec `docs/specs/ORV-87/spec.md`); the `ovl` skill step 5 runs the improvement loop after each merge.
 
 The first improvement run (2026-10-24, ORV-91) produced `docs/lessons/L-0008-recheck-costs-like-a-first-review.md`: a reviewer re-check starts from the previous findings and the rework diff. The owner approved it (ORV-91 comment 10081); it is applied to the `ovl` skill and the reviewer agent and is checked after 2026-11-07. The run also showed the orchestrator main session at 388,875,503 tokens in session 0baff5a3, about 4.3 times all its subagents together.
 
