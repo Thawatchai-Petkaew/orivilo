@@ -1160,3 +1160,33 @@ test("report --out prints the absolute path of the file it wrote", () => {
   assert.equal(r.stdout.trim(), `wrote ${file}`);
   assert.ok(existsSync(file));
 });
+
+// ORV-93 row 21: session --out.
+
+const sessionOut = (w, ...args) =>
+  spawnSync(
+    process.execPath,
+    [script, "session", SESSION, "--projects", w.projects, "--root", w.root, ...args],
+    { encoding: "utf8" },
+  );
+
+test("ORV-93 row 21: session --out writes the text session prints and prints the path", () => {
+  const w = world();
+  seed(w, "ORV-1-a");
+  writeAgentTranscript(w, "aaaa1111", [assistant({ id: "m1", usage: [1, 1, 1, 1], ts: at(1) })]);
+  const plain = sessionOut(w);
+  const r = sessionOut(w, "--out", "s-1");
+  assert.equal(r.status, 0, r.stderr);
+  const file = join(w.root, ".orivilo", "metrics", "s-1.md");
+  assert.equal(r.stdout.trim(), `wrote ${file}`);
+  assert.equal(readFileSync(file, "utf8"), plain.stdout);
+});
+
+test("ORV-93 row 21: session --out rejects a path", () => {
+  const w = world();
+  seed(w, "ORV-1-a");
+  const r = sessionOut(w, "--out", "../x");
+  assert.equal(r.status, 2);
+  assert.match(r.stderr, /--out is a plain name, not a path/);
+  assert.ok(!existsSync(join(w.root, ".orivilo", "x.md")));
+});
