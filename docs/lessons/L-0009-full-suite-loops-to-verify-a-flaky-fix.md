@@ -28,16 +28,16 @@ The owner approved the rule and the new ORV-76 acceptance criterion (the affecte
 In `.claude/rules/testing.md`, add `**/*.stories.tsx` to the `paths` front matter so the rule loads for story tests, and add:
 
 ```diff
-+- Verify a fix with the affected tests first, the full suite once. While you build and verify, run only the affected tests: `vitest related --run <changed files>` or `vitest run --changed origin/develop`. A fix for a flaky test repeats each affected file with `--repeats 4`, such as `pnpm --filter @orivilo/design-system exec vitest run --repeats 4 <file>`. Then run the full suite once before handoff. Never loop the full suite to prove a flake is gone (L-0009).
++- Verify a fix with the affected tests first, the full suite once. While you build and verify, run only the affected tests: `pnpm --filter <package> exec vitest related --run <changed files>` or `pnpm --filter <package> exec vitest run --changed origin/develop`. A fix for a flaky test repeats each affected file with `--repeats 4`, such as `pnpm --filter @orivilo/design-system exec vitest run --repeats 4 <file>`. Then run the full suite once before handoff. Never loop the full suite to prove a flake is gone (L-0009).
 +- The full suite always runs where it decides: the G3 gate (`pnpm quality-gate`) and CI. A change to a config file, a `package.json`, a shared setup file or a Storybook preview file runs the full suite while you build too, because the affected tests cannot be worked out from it.
 ```
 
-The testing rule loads only when a test or stories file is touched (`.claude/rules/testing.md` front matter), and `.claude/agents/builder.md` step 3 ran the full `pnpm lint && pnpm typecheck && pnpm test` after every refactor. The owner confirmed adding the rule to the builder too on 2026-10-24 (ORV-76 comment 10094), so it loads on every builder task. In `.claude/agents/builder.md`, the loop per task becomes:
+The testing rule loads only when a test or stories file is touched (`.claude/rules/testing.md` front matter), and `.claude/agents/builder.md` step 3 ran the full `pnpm lint && pnpm typecheck && pnpm test` after every refactor. The owner confirmed adding the rule to the builder too on 2026-10-24 (ORV-76 comment 10095), so it loads on every builder task. In `.claude/agents/builder.md`, the loop per task becomes:
 
 ```diff
 -3. Refactor, then run `pnpm lint && pnpm typecheck && pnpm test`.
 -4. Commit with a Conventional Commit message that names the issue key.
-+3. Refactor, then run the affected tests only: `vitest related --run <changed files>` or `vitest run --changed origin/develop`. A fix for a flaky test repeats each affected file with `--repeats 4`. A change to a config file, a `package.json`, a shared setup file or a Storybook preview file runs the full suite instead. Never loop the full suite to prove a flake is gone (L-0009).
++3. Refactor, then run the affected tests only: `pnpm --filter <package> exec vitest related --run <changed files>` or `pnpm --filter <package> exec vitest run --changed origin/develop`. A fix for a flaky test repeats each affected file with `--repeats 4`. A change to a config file, a `package.json`, a shared setup file or a Storybook preview file runs the full suite instead. Never loop the full suite to prove a flake is gone (L-0009).
 +4. Before handoff, run `pnpm lint && pnpm typecheck && pnpm test` once and report its real output.
 +5. Commit with a Conventional Commit message that names the issue key.
 ```

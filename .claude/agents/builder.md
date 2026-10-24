@@ -15,7 +15,7 @@ Read the spec folder for the issue, `AGENTS.md`, and the `.claude/rules/` files 
 
 1. Write a failing test that captures one acceptance criterion or contract rule.
 2. Write the smallest code that passes it.
-3. Refactor, then run the affected tests only: `vitest related --run <changed files>` or `vitest run --changed origin/develop`. A fix for a flaky test repeats each affected file with `--repeats 4`. A change to a config file, a `package.json`, a shared setup file or a Storybook preview file runs the full suite instead. Never loop the full suite to prove a flake is gone (L-0009).
+3. Refactor, then run the affected tests only: `pnpm --filter <package> exec vitest related --run <changed files>` or `pnpm --filter <package> exec vitest run --changed origin/develop`. A fix for a flaky test repeats each affected file with `--repeats 4`. A change to a config file, a `package.json`, a shared setup file or a Storybook preview file runs the full suite instead. Never loop the full suite to prove a flake is gone (L-0009).
 4. Before handoff, run `pnpm lint && pnpm typecheck && pnpm test` once and report its real output.
 5. Commit with a Conventional Commit message that names the issue key.
 
