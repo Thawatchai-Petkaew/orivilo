@@ -185,6 +185,22 @@ export const chatFixtures = {
       yield { text: snapshotsOf(text, 4)[0] ?? "", basis: "rules" };
       throw new Error(message);
     },
+  /**
+   * Yields one snapshot, then waits until `release()` is called, then ends or, with `fail`, throws.
+   * For tests that need the reply to end at a moment of their choosing.
+   */
+  hostLatch: (text: string, { fail = false } = {}): { host: ChatHost; release: () => void } => {
+    let release = () => {};
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    return {
+      release: () => release(),
+      host: async function* (_request, signal): AsyncGenerator<ChatReply> {
+        yield { text: snapshotsOf(text, 4)[0] ?? "", basis: "rules" };
+        await Promise.race([gate, wait(60_000, signal)]);
+        if (fail) throw new Error("upstream timeout 504");
+      },
+    };
+  },
   /** Ends without a snapshot. */
   hostEmpty: async function* (): AsyncGenerator<ChatReply> {} as ChatHost,
 } as const;

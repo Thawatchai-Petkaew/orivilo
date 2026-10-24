@@ -287,8 +287,71 @@ export const Replied: Story = {
       { text: chatFixtures.reply, basis: "rules" },
       { text: chatFixtures.question, mentions: [] },
     );
-    // A reply with line breaks keeps them.
-    await ask(canvas, "ขอแบบเป็นข้อ");
+  },
+};
+
+/** A reply with line breaks keeps them: the newlines are in the text and the lines render apart. */
+export const RepliedLines: Story = {
+  args: { onAsk: fn(chatFixtures.host(chatFixtures.replyLines)) },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await ask(canvas, chatFixtures.question);
+    await waitFor(() =>
+      expect(canvas.getByText("ตามกฎ", { selector: ".ds-chat__basis" })).toBeVisible(),
+    );
+    const reply = canvasElement.querySelector(".ds-chat__reply .ds-chat__text") as HTMLElement;
+    await expect(reply.textContent).toBe(chatFixtures.replyLines);
+    await expect(getComputedStyle(reply).whiteSpace).toMatch(/^pre-(wrap|line)$/);
+    const lineHeight = parseFloat(getComputedStyle(reply).lineHeight);
+    await expect(box(reply).height).toBeGreaterThanOrEqual(lineHeight * 4 - 1);
+  },
+};
+
+/** Stop has focus when the reply ends: focus moves to the textarea instead of falling to the page. */
+export const FocusKeptOnEnd: Story = {
+  render: (args) => {
+    const latch = chatFixtures.hostLatch(chatFixtures.reply);
+    (window as unknown as { __latch: () => void }).__latch = latch.release;
+    return (
+      <Frame size="panel">
+        <CanvasChat {...args} onAsk={latch.host} />
+      </Frame>
+    );
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await ask(canvas, chatFixtures.question);
+    const stop = await canvas.findByRole("button", { name: "หยุด" });
+    stop.focus();
+    await expect(stop).toHaveFocus();
+    (window as unknown as { __latch: () => void }).__latch();
+    await waitFor(() =>
+      expect(canvas.getByText("ตามกฎ", { selector: ".ds-chat__basis" })).toBeVisible(),
+    );
+    await expect(input(canvas)).toHaveFocus();
+  },
+};
+
+/** Stop has focus when the host throws: focus moves to the textarea. */
+export const FocusKeptOnFail: Story = {
+  render: (args) => {
+    const latch = chatFixtures.hostLatch(chatFixtures.reply, { fail: true });
+    (window as unknown as { __latch: () => void }).__latch = latch.release;
+    return (
+      <Frame size="panel">
+        <CanvasChat {...args} onAsk={latch.host} />
+      </Frame>
+    );
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await ask(canvas, chatFixtures.question);
+    const stop = await canvas.findByRole("button", { name: "หยุด" });
+    stop.focus();
+    await expect(stop).toHaveFocus();
+    (window as unknown as { __latch: () => void }).__latch();
+    await expect(await failure(canvas)).toBeVisible();
+    await expect(input(canvas)).toHaveFocus();
   },
 };
 
@@ -379,6 +442,10 @@ export const Close: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "ปิดแชท" }));
     await expect(args.onClose).toHaveBeenCalledTimes(1);
     await expect(order).toEqual(["abort", "close"]);
+    // The host keeps the chat mounted: the reply is stopped, not stuck replying.
+    await expect(canvas.getByText("หยุดแล้ว", { selector: ".ds-chat__stopped" })).toBeVisible();
+    await expect(canvas.queryByRole("button", { name: "หยุด" })).toBeNull();
+    await expect(chatOf(canvasElement)).toHaveAttribute("data-state", "stopped");
   },
 };
 

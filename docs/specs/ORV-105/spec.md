@@ -1,7 +1,7 @@
 ---
 issue: ORV-105 (ORV-45 part 3, draft key E4-5; https://tpetkaew.atlassian.net/browse/ORV-105)
 lane: L (risk flags: component public API, board document schema `NodeContent`)
-version: 1.2
+version: 1.3
 ---
 
 ## Why
@@ -93,6 +93,8 @@ export function placeReply(
 ```
 
 `NodeContent` gains `basis?: ChatBasis` (slice B): a node that carries it shows the basis tag in its header. The component stores only the session's transcript, the draft text, the pending request and local mentions; the board graph is the shell's. An at-cursor chat without `position` or `onClose`, or a reply without `basis`, does not type-check. Exact names may change in G2 design; a change after G2 bumps this spec.
+
+**Slice A as shipped (v1.3).** The sketch above is the A to D target. Slice A ships this subset, and slices B to D extend it with their own specs: `ChatRequest` is `{ text: string; mentions: readonly string[] }` (`mentions` is always empty until slice C; `contextNodeId` and `position` join in B and D); `CanvasChatProps` is the sidebar form only (`variant: "sidebar"`, `basis`, `onAsk`, `onReply?`, `onClose?`, `className?`), with no at-cursor union member yet; `onReply` returns nothing (`void`), and the `string | undefined` node id comes with `placeReply` in slice B.
 
 ## States
 
@@ -197,6 +199,7 @@ Reused, not repeated: `taskBar.basisRules`, `taskBar.basisMock` (the per-reply t
 - Board document schema (slice B): `NodeContent.basis?: ChatBasis`, optional, so saved boards stay valid; CanvasNode shows the basis tag in the header when present. Every CanvasNode and CanvasBoard story is re-run in that PR as the check.
 - Command availability (slices C and D): `board.open-chat-here` and `node.mention` become offered while `CURRENT_STORY` stays `E4-4` (open question 3); `surfaces.test.ts` stops skipping the `chat` surface; the shortcut sheet stops saying "arrives in E4-5" for those two only. `CanvasBoard` adds `board.open-chat-here` and `node.mention` to `SHELL_COMMANDS`, passing the pointer position or the node id. Command menu, context menu and sheet stories re-run as the check.
 - Catalog: `canvas-chat.yaml` to `draft`; `DESIGN.md` §12 row; `coverage.md` row.
+- `Button` honours a caller's `aria-disabled` (D1): it looks disabled in every variant when not loading, stays in the Tab order and ignores the click. Every Button story and every story that renders a Button is re-run, and the `AriaDisabled` story is added.
 - No change to `TaskBar`, `Textarea`, `Tag`, `Progress`, `jumpToNode` or any semantic token.
 
 ## Out of scope
@@ -237,4 +240,4 @@ Reused, not repeated: `taskBar.basisRules`, `taskBar.basisMock` (the per-reply t
 - v1 (2026-10-25): first spec for ORV-45 part 3, CanvasChat, with four proposed slices and twelve open questions. Downstream to write after G1: slice specs for B, C and D (L-0016); `docs/specs/ORV-105/design.md` for G2.
 - v1.1 (2026-10-25): G1 by Claude under the owner's POC delegation (ADR 0012 decision 4). All twelve open questions take their proposed defaults: four slices (A sidebar core is ORV-105; B, C and D each get their own Jira key and slice spec before their first build, L-0016), an explicit early command set instead of raising CURRENT_STORY, reply nodes as notes with one input port per source, and optional `NodeContent.basis` as a board document schema change listed in Impact.
 - v1.2 (2026-10-25): G2 by Claude under the owner's POC delegation, from `docs/specs/ORV-105/design.md` (task ORV-105-design-1). Deltas D1 to D6 take their defaults: Button honours a caller `aria-disabled` with a disabled look when not loading (every Button story re-run, added to Impact); focus moves to the textarea when Stop or Send again unmounts; an iterable that yields no snapshot is a failure; Send again acts on the latest exchange only; a second polite status region sits beside the reply live region; the textarea is named by `aria-label`. Finding F3 (slice D) takes its default: the sidebar Send renders primary while the at-cursor form is open.
-- Slice A build note (task ORV-105-build-1, no version bump): `ChatRequest` carries `text` and `mentions` only, and `CanvasChatProps` has `variant: "sidebar"` and an `onReply` that returns nothing, because `contextNodeId`, `position`, the at-cursor variant and the returned node id are first used by slices B to D, which add them with their own specs. Button honours a caller's `aria-disabled` (D1), so Impact also lists "Button" with every Button story re-run. The composer's actions wrap under a 320 px chat width, and the stories' frames add the 2 px border to the panel widths.
+- v1.3 (2026-10-25): review ORV-105-review-1 findings F2 and F3. Impact gains the Button `aria-disabled` line (D1). The slice A contract as shipped is stated as the A subset of the A to D sketch (`ChatRequest` text and mentions, sidebar-only props, `onReply` returns void). Also: `close()` marks a streaming reply as stopped before `onClose`. The composer's actions wrap under a 320 px chat width, and the stories' frames add the 2 px border to the panel widths.

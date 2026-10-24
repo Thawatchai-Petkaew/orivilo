@@ -196,6 +196,8 @@ export function CanvasChat({
 
   const close = () => {
     abortRef.current?.abort();
+    // A host that keeps the chat mounted must not see a reply stuck in "streaming".
+    if (latest && streaming) patch(latest.id, { status: "stopped" });
     onClose?.();
   };
 
