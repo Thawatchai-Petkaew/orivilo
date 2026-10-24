@@ -127,6 +127,18 @@ export function TaskBar({
       return before !== undefined && before !== j.state;
     });
     setSeen({ jobs, states: new Map(jobs.map((j) => [j.id, j.state])) });
+    // A pending retry ends when the job moved on (another signature) or left the list.
+    const stale = [...pending].filter(([id, sig]) => {
+      const job = jobs.find((j) => j.id === id);
+      return job === undefined || signature(job) !== sig;
+    });
+    if (stale.length > 0) {
+      setPending((p) => {
+        const next = new Map(p);
+        for (const [id] of stale) next.delete(id);
+        return next;
+      });
+    }
     setMessage(
       changed
         .map((j) => fill(m.taskBar.announce, { name: j.name, state: stateWord(m, j.state) }))

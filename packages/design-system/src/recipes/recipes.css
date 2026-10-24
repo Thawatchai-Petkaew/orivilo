@@ -3726,8 +3726,10 @@ button.ds-tag__main {
     opacity: 0;
   }
 }
-/* The list scrolls inside the bar after about five rows. Radix wraps the content in a table-display
- * div that grows to the widest line; a block keeps long names truncating and reasons wrapping. */
+/* The list scrolls inside the bar after about five rows. Radix ScrollArea wraps the content in an
+ * internal div with inline `display: table` that grows to the widest line; a block keeps long names
+ * truncating and reasons wrapping. This depends on that Radix wrapper: if Radix changes it, the
+ * Narrow story is the check that goes red. */
 .ds-taskbar__scroll .ds-scroll__viewport {
   max-block-size: var(--cmp-taskbar-list-max-height);
 }
@@ -3852,9 +3854,9 @@ button.ds-tag__main {
     align-self: start;
   }
 }
-/* A retry spinner stops under reduced motion (the shared .ds-spin keeps turning). */
+/* The panel fade stops under reduced motion; the retry spinner is essential motion and keeps
+ * turning through the shared .ds-spin rule. */
 @media (prefers-reduced-motion: reduce) {
-  .ds-taskbar .ds-spin,
   .ds-taskbar__panel {
     animation: none;
   }

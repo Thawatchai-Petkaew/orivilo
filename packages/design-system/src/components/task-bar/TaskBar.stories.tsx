@@ -138,7 +138,8 @@ export const RunningReducedMotion: Story = {
       return false;
     };
     await expect(noneFor(".ds-progress")).toBe(true);
-    await expect(noneFor(".ds-taskbar .ds-spin")).toBe(true);
+    // The retry spinner is essential motion: no reduced-motion rule stops it.
+    await expect(noneFor(".ds-spin")).toBe(false);
   },
 };
 
@@ -212,6 +213,38 @@ export const RetryPending: Story = {
     await expect(retry).toHaveAttribute("aria-disabled", "true");
     await waitFor(() => expect(canvas.queryByRole("button", { name: /ลองอีกครั้ง/ })).toBeNull());
     await waitFor(() => expect(rowOf(canvasElement, fixtureJobs.failed.id)).toHaveFocus());
+  },
+};
+
+function AgainHost({ onRetry }: { onRetry: (id: string) => void }) {
+  const [state, setState] = useState<"failed" | "queued">("failed");
+  const job = { ...fixtureJobs.failed, state } as TaskJob;
+  return (
+    <div className="flex flex-col gap-3">
+      <TaskBar jobs={[job]} defaultExpanded onRetry={onRetry} />
+      <button type="button" onClick={() => setState((s) => (s === "failed" ? "queued" : "failed"))}>
+        สลับสถานะ
+      </button>
+    </div>
+  );
+}
+
+/** The job fails again with the same reason after a retry: Retry is enabled and works again. Mock job. */
+export const RetryAgain: Story = {
+  args: { onRetry: fn() },
+  render: (args) => <AgainHost onRetry={args.onRetry as (id: string) => void} />,
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    const name = `ลองอีกครั้ง ${fixtureJobs.failed.name}`;
+    await userEvent.click(canvas.getByRole("button", { name }));
+    await expect(args.onRetry).toHaveBeenCalledTimes(1);
+    await userEvent.click(canvas.getByRole("button", { name: "สลับสถานะ" }));
+    await waitFor(() => expect(canvas.queryByRole("button", { name })).toBeNull());
+    await userEvent.click(canvas.getByRole("button", { name: "สลับสถานะ" }));
+    const again = await canvas.findByRole("button", { name });
+    await expect(again).not.toHaveAttribute("aria-disabled", "true");
+    await userEvent.click(again);
+    await expect(args.onRetry).toHaveBeenCalledTimes(2);
   },
 };
 
