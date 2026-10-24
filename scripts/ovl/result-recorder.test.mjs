@@ -1238,3 +1238,27 @@ test("ORV-93 row 32: screenshots are found in the main checkout's records, not t
   assert.match(bad.stderr, /main checkout/);
   assert.equal(has(other.root, "result.json", "ORV-1-qa-1"), false);
 });
+
+test("ORV-93: a reviewer in a worktree keeps a finding whose screenshot lives in the main checkout's records", () => {
+  const { root, head } = makePrRepo();
+  const wt = join(root, ".claude", "worktrees", "w");
+  git(root, "worktree", "add", "-q", "-b", "feature/ORV-1-wt", wt);
+  const agent = bind(root, "reviewer", "ORV-1-rev", { worktree: wt });
+  const shot = writeShot(root, "ORV-1-rev", "x--y-light.png");
+  assert.equal(existsSync(join(wt, shot)), false);
+  const report = reviewer("ORV-1-rev", {
+    verdict: "request_changes",
+    head_sha: head,
+    findings: [finding({ id: "S1", evidence: { kind: "screenshot", ref: shot } })],
+  });
+  const stop = run(stopInput(wt, agent, "reviewer", JSON.stringify(report)));
+  assert.equal(stop.code, 0, stop.stderr);
+  const r = run(postAgentInput(wt, agent, "reviewer", JSON.stringify(report)));
+  assert.equal(r.code, 0, r.stderr);
+  const result = read(root, "result.json", "ORV-1-rev");
+  assert.deepEqual(
+    result.report.findings.map((f) => f.id),
+    ["S1"],
+  );
+  assert.deepEqual(result.dropped, []);
+});
