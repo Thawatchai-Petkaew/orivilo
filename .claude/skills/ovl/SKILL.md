@@ -181,10 +181,10 @@ When the guard blocks, stderr names the rule, the issue key, SHAs, file paths an
 
 Spec: `docs/specs/ORV-98/spec.md`. G3 PR review means merged into `develop` (ADR 0012), so the move comes after the merge, never before. The move is a Jira transition on the issue key (`ORV-<n>`, not a numeric id or a lowercase key) with `transitionId` `4`, or `transitionName` `G3 PR review` (exact case). Send one of them, or both only when they name the same transition.
 
-`g3-check` (PreToolUse on the Atlassian MCP `transitionJiraIssue`, and `executeWrite` or `executeDestructive` whose `name` is `transitionJiraIssue`) judges every transition in two stages:
+`g3-check` (PreToolUse on the Atlassian MCP `transitionJiraIssue`, and `executeWrite` or `executeDestructive` whose `name` is `transitionJiraIssue` or whose `inputs` hold `transitionId` or `transitionName`, whatever the `name`) judges every transition in two stages. An execute call named `transitionJiraIssue` with `inputs` `null` or missing blocks, since it names no transition.
 
 - **Call stage**, from the session's checkout, with no network call. The `transitionId` or `transitionName` must be in `scripts/ovl/jira-transitions.json`; a name is matched exactly against transition names, never against target statuses (`Backlog`, `Discovery`). An unknown id or name, an id and a name that disagree, or a call with neither blocks. A move to any status other than G3 PR review is allowed here.
-- **Records stage**, for a move to G3 PR review only, from develop's export (as for `merge-guard`). The issue's latest merged PR into `develop` (head branch key and title key both the issue) must pass `merge-check` on its merged head: qa, reviewer, gate record, checks and the rest of step 6. An open PR of the issue into `develop`, or no merged PR, blocks.
+- **Records stage**, for a move to G3 PR review only, from develop's export (as for `merge-guard`). The issue's latest merged PR into `develop` (head branch key and title key both the issue) must pass `merge-check` on its merged head: qa, reviewer, gate record, checks and the rest of step 6. An open PR of the issue into `develop`, or no merged PR, blocks. Open PRs are read from an open list (`gh pr list --state open`, no `--search`), so a PR opened moments before the move is seen; the merged PRs come from a search list. Each `gh pr list` is bounded at 30 seconds and the records stage at 120, under the hook's `"timeout": 300`.
 
 Pre-check from your own checkout; only the hook's run counts, but the output names what is missing:
 
@@ -222,6 +222,10 @@ When the guard blocks, fix the missing record or the PR, or ask the owner. A PR 
 - A name is matched exactly. If Jira accepts a case variant or a trimmed name, `g3-check` blocks it as unknown; retry with the exact name or the id. When a call holds both an id and a name, which one Jira uses is not recorded, so both must name the same transition.
 - The `executeWrite` and `executeDestructive` routes are judged as the model sent them; the Jira server may refuse a transition through them.
 - A G3 move needs the network (`gh` and `git ls-remote`), as a merge does. The samples come from the `claude` on PATH; a newer Claude Code that drops a field fails closed.
+- A hook past its timeout lets the call through: per Claude Code's hooks docs, a cancelled hook is not an exit 2. `g3-check` bounds its own spawns under its 300-second `timeout`, but the develop export's `git` steps carry no bound, so an export that hangs past the remaining time lets the move through. `merge-guard` has the same gap: its entry sets no `timeout`, so the 60-second default applies while its records stage waits up to 120 seconds (ORV-94).
+- The merged PR still comes from the search index. The open list does not use search, but the search list does, so a PR merged moments before the move may be missing: an earlier merged PR of the issue is judged instead, or no merged PR is found and the move blocks.
+- The `g3-check` tests run a stub `merge-check.mjs` on the fixture origin's `develop`; no `g3-check` test runs the real `runMergeCheck` on a merged PR. The relay is pinned by its argv (`<n> --head <sha>`); the other `merge-check` reasons rest on the ORV-95 `merge-check` tests.
+- An execute call with a variant `name` (`TransitionJiraIssue`, for example) whose `inputs` hold neither `transitionId` nor `transitionName` names no target, so it is allowed; Jira cannot move an issue from it without a transition.
 
 ## Not in this slice
 
