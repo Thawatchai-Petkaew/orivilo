@@ -1,8 +1,9 @@
-// ORV-95: merge-guard, the text stage and its composition (spec ORV-95 v1.1). Reads PreToolUse(Bash)
+// ORV-95: merge-guard, the text stage and its composition (spec ORV-95 v1.3). Reads PreToolUse(Bash)
 // input and blocks the calls that move develop or main outside a guarded PR merge:
 //   text stage     this file, from the session's own checkout: reads the command text and, for a
-//                  `git push`, the current branch. No network call, no record. Decides every call
-//                  except one whole `gh pr merge <n> ... --match-head-commit <sha>`.
+//                  `git push` of HEAD, the current branch. No network call, no record. Decides every
+//                  call except one whole `gh pr merge <n> ... --match-head-commit <sha>`. A push and
+//                  a `gh api` call are an allow list; config, remote, token and host forms are named.
 //   export stage   develop-export.mjs builds develop's copy of scripts/ovl (a whole merge only).
 //   records stage  develop's merge-check.mjs, run as a process from the export, never the branch's.
 // The rule is a text rule, not a parser: quotes and backslashes are removed, runs of blanks collapse
@@ -14,16 +15,21 @@ import { join, resolve } from "node:path";
 import { ExportError, ensureDevelopExport } from "./develop-export.mjs";
 import { beat, recordsRoot } from "./hook.mjs";
 
-const PROTECTED = new Set(["develop", "main"]);
 const SHA = /^[0-9a-f]{40}$/;
+/** A branch a push may name: `<type>/orv-<n>-<slug>`, lowercased, with an optional refs/heads/. */
+const BRANCH = /^(?:refs\/heads\/)?(?:feature|fix|chore|docs)\/orv-[0-9]+-[a-z0-9._-]+$/;
+const SOURCE = /^[a-z0-9_./@^~{}-]+$/;
+const CONFIG_KEY = /^(?:remote|url|include|includeif|push|alias)\./;
+const CONFIG_TEXT = ["remote.", "url.", "include.", "includeif.", "push.", "alias."];
 
 const MESSAGES = {
-  push: "develop and main move only by a guarded PR merge (gh pr merge), never by git push",
-  api: "merges go through gh pr merge, not gh api",
+  push: "a push names origin and only <type>/ORV-<n>-<slug> branches, and develop, main and tags never move by a push",
+  api: "gh api is read only here (a GET with no fields), and merges go through gh pr merge",
   graphql:
-    "merge and ref mutations are blocked on GraphQL too, and a query the guard cannot read is blocked",
+    "a GraphQL call is allowed only as a query the guard can read in the command text, so any mutation is blocked",
   remote:
-    "no session may point the merge checks at another develop; git remote -v reads the remote instead",
+    "no session may point the merge checks at another develop or change how a push or a remote resolves; git remote -v reads the remote instead",
+  token: "no session reads the GitHub token, and no other program writes to the GitHub API",
   merge:
     "gh pr merge must be one whole command, gh pr merge <n> with --squash, --merge or --rebase, " +
     "optional --delete-branch, and --match-head-commit <40-hex sha>",
@@ -31,14 +37,33 @@ const MESSAGES = {
 
 const GRAPHQL_NAMES =
   /mergepullrequest|enablepullrequestautomerge|mergebranch|updateref|createref|deleteref/;
-const PUSH_OPTIONS_WITH_VALUE = new Set([
-  "-o",
-  "--push-option",
-  "--repo",
-  "--receive-pack",
-  "--exec",
+const PUSH_OPTIONS = new Set([
+  "-u",
+  "--set-upstream",
+  "-f",
+  "--force",
+  "--force-with-lease",
+  "--force-if-includes",
+  "-d",
+  "--delete",
+  "-q",
+  "--quiet",
+  "-v",
+  "--verbose",
+  "-n",
+  "--dry-run",
 ]);
-const GIT_OPTIONS_WITH_VALUE = new Set(["-c", "--git-dir", "--work-tree", "--namespace"]);
+const GIT_OPTIONS_WITH_VALUE = new Set(["--git-dir", "--work-tree", "--namespace"]);
+const BODY_OPTIONS = [
+  "--data",
+  "--json",
+  "--form",
+  "--upload-file",
+  "--post-data",
+  "--post-file",
+  "--body-data",
+  "--body-file",
+];
 const STRATEGIES = new Set(["--squash", "-s", "--merge", "-m", "--rebase", "-r"]);
 
 /** The command with quotes and backslashes removed and blanks collapsed (newlines stay). */
@@ -84,74 +109,160 @@ function currentBranch(dir, env) {
   }
 }
 
-/** The words of a push segment without redirects: `{always, targets, needsCurrent}`. */
-function pushTargets(args) {
-  let tags = false;
-  const positional = [];
+/** Whether the arguments of one `git push` are on the allow list. May throw (checkout unreadable). */
+function pushAllowed(args, dirs, { cwd, env, hasCd }) {
   const words = [];
   for (let i = 0; i < args.length; i++) {
     if (/^\d*>>?$|^\d*<$|^&>$/.test(args[i])) i += 1;
-    else if (!/^\d*[<>]/.test(args[i])) words.push(args[i]);
+    else if (!/^\d*[<>]/.test(args[i])) words.push(args[i].toLowerCase());
   }
+  const positional = [];
+  let deleting = false;
   for (let i = 0; i < words.length; i++) {
-    const word = words[i].toLowerCase();
+    const word = words[i];
     if (word === "--") {
       positional.push(...words.slice(i + 1));
       break;
     }
-    if (word === "--all" || word === "--mirror") return { always: true };
-    if (word === "--tags") tags = true;
-    else if (PUSH_OPTIONS_WITH_VALUE.has(word)) i += 1;
-    else if (!word.startsWith("-")) positional.push(word);
+    if (!word.startsWith("-")) positional.push(word);
+    else if (word === "-d" || word === "--delete") deleting = true;
+    else if (!PUSH_OPTIONS.has(word) && !word.startsWith("--force-with-lease=")) return false;
   }
-  const refs = positional.slice(1);
-  const targets = [];
-  let needsCurrent = refs.length === 0 && !tags;
-  for (const ref of refs) {
-    const dst = ref
-      .replace(/^\+/, "")
-      .replace(/^.*:/, "")
-      .replace(/^refs\/heads\//, "");
-    if (dst === "head" || dst === "@") needsCurrent = true;
-    else if (dst !== "") targets.push(dst);
+  const [remote, ...refs] = positional;
+  if (remote !== "origin" || refs.length === 0) return false;
+  let needsCurrent = false;
+  for (const raw of refs) {
+    const ref = raw.replace(/^\+/, "");
+    if (deleting) {
+      if (!BRANCH.test(ref)) return false;
+    } else if (ref === "head" || ref === "@") {
+      needsCurrent = true;
+    } else if (!ref.includes(":")) {
+      if (!BRANCH.test(ref)) return false;
+    } else {
+      const src = ref.slice(0, ref.indexOf(":"));
+      if (!BRANCH.test(ref.slice(src.length + 1)) || (src !== "" && !SOURCE.test(src))) {
+        return false;
+      }
+    }
   }
-  return { always: false, targets, needsCurrent };
+  if (!needsCurrent) return true;
+  if (hasCd) return false;
+  if (typeof cwd !== "string" || cwd === "") throw new Error("hook input has no cwd");
+  return BRANCH.test(
+    currentBranch(
+      dirs.reduce((dir, d) => resolve(dir, d), cwd),
+      env,
+    ),
+  );
 }
 
 /** The reasons one git segment is blocked, or `[]`. `tokens` are the segment's words, case kept. */
-function judgeGit(tokens, at, cwd, env) {
+function judgeGit(tokens, at, ctx) {
   let j = at + 1;
   const dirs = [];
+  const options = [];
+  let repoints = false;
   while (j < tokens.length && tokens[j].startsWith("-")) {
     const token = tokens[j];
     if (token === "-C") {
       dirs.push(tokens[j + 1] ?? ".");
       j += 2;
+      continue;
+    }
+    options.push(token);
+    if (token === "-c" || token === "--config-env") {
+      repoints ||= CONFIG_KEY.test((tokens[j + 1] ?? "").toLowerCase());
+      j += 2;
+    } else if (token.startsWith("--config-env=")) {
+      repoints ||= CONFIG_KEY.test(token.slice("--config-env=".length).toLowerCase());
+      j += 1;
     } else {
-      j += GIT_OPTIONS_WITH_VALUE.has(token) ? 2 : 1;
+      j += GIT_OPTIONS_WITH_VALUE.has(token.toLowerCase()) ? 2 : 1;
     }
   }
   const sub = (tokens[j] ?? "").toLowerCase();
   const rest = tokens.slice(j + 1);
   const segment = tokens.slice(at).join(" ").toLowerCase();
+  if (repoints && sub !== "push") return [MESSAGES.remote];
   if (sub === "update-ref")
     return segment.includes("refs/remotes/origin/") ? [MESSAGES.remote] : [];
-  if (sub === "config") return segment.includes("remote.") ? [MESSAGES.remote] : [];
+  if (sub === "config") {
+    return CONFIG_TEXT.some((key) => segment.includes(key)) ? [MESSAGES.remote] : [];
+  }
   if (sub === "remote") {
     return ["add", "set-url"].includes((rest[0] ?? "").toLowerCase()) ? [MESSAGES.remote] : [];
   }
-  if (sub !== "push") return [];
-  const { always, targets, needsCurrent } = pushTargets(rest);
-  if (always || targets.some((t) => PROTECTED.has(t))) return [MESSAGES.push];
-  if (needsCurrent) {
-    if (typeof cwd !== "string" || cwd === "") throw new Error("hook input has no cwd");
-    const branch = currentBranch(
-      dirs.reduce((dir, d) => resolve(dir, d), cwd),
-      env,
-    );
-    if (PROTECTED.has(branch)) return [MESSAGES.push];
+  if (sub === "send-pack" || (sub === "subtree" && (rest[0] ?? "").toLowerCase() === "push")) {
+    return [MESSAGES.push];
   }
-  return [];
+  if (sub !== "push") return [];
+  const prefixed = tokens
+    .slice(0, at)
+    .some((word) => /^[a-z_][a-z0-9_]*=/i.test(word) || word.toLowerCase() === "env");
+  return options.length === 0 && !prefixed && pushAllowed(rest, dirs, ctx) ? [] : [MESSAGES.push];
+}
+
+/** Whether a header option names a method override (words lowercased). */
+const hasHeaderMethod = (words) =>
+  words.some((word, i) => {
+    if (word === "-h" || word === "--header") return (words[i + 1] ?? "").includes("method");
+    const attached =
+      word.startsWith("--header=") || (word.startsWith("-h") && !word.startsWith("--"));
+    return attached && word.includes("method");
+  });
+
+/** The values given to `-x` or one of `longs`, with or without a space or `=` (words lowercased). */
+function methodsIn(words, longs) {
+  const found = [];
+  words.forEach((word, i) => {
+    const long = longs.find((l) => word.startsWith(`${l}=`));
+    if (word === "-x" || longs.includes(word)) found.push(words[i + 1] ?? "");
+    else if (word.startsWith("-x")) found.push(word.slice(2).replace(/^=/, ""));
+    else if (long) found.push(word.slice(long.length + 1));
+  });
+  return found;
+}
+
+/** Whether one `gh api` call (words after `api`, lowercased) is a write. */
+function apiWrites(args) {
+  return (
+    methodsIn(args, ["--method"]).some((m) => m !== "get") ||
+    hasHeaderMethod(args) ||
+    args.some(
+      (word) =>
+        word.startsWith("-f") ||
+        word.startsWith("--field") ||
+        word.startsWith("--raw-field") ||
+        word === "--input" ||
+        word.startsWith("--input="),
+    )
+  );
+}
+
+/** Whether a command that names a GitHub API host also writes (curl, wget; words lowercased). */
+function hostWrites(words) {
+  return (
+    methodsIn(words, ["--request", "--method"]).some((m) => m !== "get" && m !== "head") ||
+    hasHeaderMethod(words) ||
+    words.some(
+      (word) => BODY_OPTIONS.some((o) => word.startsWith(o)) || /^-(?!x)[a-z]*[dft]/.test(word),
+    )
+  );
+}
+
+/** The reasons one `gh api` call is blocked. `segment` is its lowercased text, `whole` the command's. */
+function judgeApi(args, segment, whole) {
+  if (!args.includes("graphql")) {
+    return /\/merge|\/git\/refs/.test(segment) || apiWrites(args) ? [MESSAGES.api] : [];
+  }
+  const inline = /(?:^| )(?:-f|--raw-field)[ =]?query=[^@$`]/.test(segment);
+  const unreadable =
+    GRAPHQL_NAMES.test(whole) ||
+    whole.includes("mutation") ||
+    whole.includes("=@") ||
+    args.some((word) => word === "--input" || word.startsWith("--input="));
+  return inline && !unreadable ? [] : [MESSAGES.graphql];
 }
 
 /**
@@ -161,7 +272,9 @@ function judgeGit(tokens, at, cwd, env) {
 export function textStage(command, cwd, env = process.env) {
   const text = normalize(command);
   const low = text.toLowerCase();
-  if (!/\bgit\b|\bgh\b/.test(low)) return { reasons: [], merge: null };
+  if (!/\bgit\b|\bgh\b|gh_token|github_token|api\.github\.com|uploads\.github\.com/.test(low)) {
+    return { reasons: [], merge: null };
+  }
 
   if (/\bgh\b[^;&|\n]*\bpr merge\b/.test(low)) {
     const merge = wholeMerge(low);
@@ -169,20 +282,26 @@ export function textStage(command, cwd, env = process.env) {
   }
 
   const reasons = new Set();
-  if (/\bgh api\b/.test(low)) {
-    if (/\/merge|\/git\/refs/.test(low)) reasons.add(MESSAGES.api);
-    if (
-      low.includes("graphql") &&
-      (GRAPHQL_NAMES.test(low) || low.includes("=@") || low.includes("--input"))
-    ) {
-      reasons.add(MESSAGES.graphql);
-    }
+  if (/gh auth token|gh_token|github_token/.test(low)) reasons.add(MESSAGES.token);
+  if (/api\.github\.com|uploads\.github\.com/.test(low) && hostWrites(low.split(/\s+/))) {
+    reasons.add(MESSAGES.token);
   }
+  if (/\bgh release create\b/.test(low)) reasons.add(MESSAGES.push);
+  if (/\bgh repo sync\b/.test(low)) reasons.add(MESSAGES.api);
+
+  const ctx = { cwd, env, hasCd: /(?:^|[\s;&|(`])(?:cd|pushd)(?:\s|$)/.test(low) };
   for (const segment of text.split(/[;&|\n\r`()]+/)) {
     const tokens = segment.split(" ").filter(Boolean);
+    const words = tokens.map((token) => token.toLowerCase());
     tokens.forEach((token, at) => {
       if (/(?:^|\/)git$/i.test(token)) {
-        for (const reason of judgeGit(tokens, at, cwd, env)) reasons.add(reason);
+        for (const reason of judgeGit(tokens, at, ctx)) reasons.add(reason);
+      } else if (/git-(?:push|send-pack|subtree)$/.test(words[at])) {
+        reasons.add(MESSAGES.push);
+      } else if (/(?:^|\/)gh$/.test(words[at]) && words[at + 1] === "api") {
+        for (const reason of judgeApi(words.slice(at + 2), segment.toLowerCase(), low)) {
+          reasons.add(reason);
+        }
       }
     });
   }
