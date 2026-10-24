@@ -79,7 +79,8 @@
 .ds-button[data-variant="primary"]:active {
   background: var(--cmp-button-primary-bg-press);
 }
-.ds-button[data-variant="primary"]:disabled {
+.ds-button[data-variant="primary"]:disabled,
+.ds-button[data-variant="primary"][aria-disabled="true"]:not([data-loading]) {
   background: var(--cmp-button-primary-bg-disabled);
   color: var(--cmp-button-primary-fg-disabled);
 }
@@ -96,7 +97,8 @@
 .ds-button[data-variant="secondary"]:active {
   background: var(--cmp-button-secondary-bg-press);
 }
-.ds-button[data-variant="secondary"]:disabled {
+.ds-button[data-variant="secondary"]:disabled,
+.ds-button[data-variant="secondary"][aria-disabled="true"]:not([data-loading]) {
   background: var(--cmp-button-secondary-bg);
   border-color: var(--cmp-button-secondary-border-disabled);
   color: var(--cmp-button-secondary-fg-disabled);
@@ -112,7 +114,8 @@
 .ds-button[data-variant="ghost"]:active {
   background: var(--cmp-button-ghost-bg-press);
 }
-.ds-button[data-variant="ghost"]:disabled {
+.ds-button[data-variant="ghost"]:disabled,
+.ds-button[data-variant="ghost"][aria-disabled="true"]:not([data-loading]) {
   background: transparent;
   border-color: transparent;
   color: var(--cmp-button-ghost-fg-disabled);
@@ -128,7 +131,8 @@
 .ds-button[data-variant="intent"]:active {
   background: var(--cmp-button-intent-bg-press);
 }
-.ds-button[data-variant="intent"]:disabled {
+.ds-button[data-variant="intent"]:disabled,
+.ds-button[data-variant="intent"][aria-disabled="true"]:not([data-loading]) {
   background: var(--cmp-button-primary-bg-disabled);
   color: var(--cmp-button-primary-fg-disabled);
 }
@@ -143,7 +147,8 @@
 .ds-button[data-variant="destructive"]:active {
   background: var(--cmp-button-destructive-bg-press);
 }
-.ds-button[data-variant="destructive"]:disabled {
+.ds-button[data-variant="destructive"]:disabled,
+.ds-button[data-variant="destructive"][aria-disabled="true"]:not([data-loading]) {
   background: var(--cmp-button-destructive-bg-disabled);
   color: var(--cmp-button-destructive-fg-disabled);
 }
@@ -159,7 +164,8 @@
   color: var(--cmp-button-link-fg-hover);
   text-decoration: underline;
 }
-.ds-button[data-variant="link"]:disabled {
+.ds-button[data-variant="link"]:disabled,
+.ds-button[data-variant="link"][aria-disabled="true"]:not([data-loading]) {
   color: var(--cmp-button-link-fg-disabled);
   text-decoration: none;
 }
@@ -3899,4 +3905,228 @@ button.ds-tag__main {
     ),
     calc(100% - var(--ds-size-control-md) - var(--ds-space-inset-md))
   );
+}
+
+/* CanvasChat (ORV-105, E4-5 part 3), slice A: the sidebar chat. A working log, not bubbles: the
+ * question sits in a sunken well, the reply is plain text on the panel ground with a meta line
+ * under it, and a hairline docks the composer. Every value is a `chat.*` token. Streaming and
+ * failure read `status.running` and `feedback.danger.fg`, which no profile overrides. The Textarea,
+ * Button and ScrollArea inside sit on `chat.bg`, which reads `surface.card`; if that changes,
+ * repeat their pairs on it (pairs.ts). No letter-spacing or text-transform on any class: Thai. -- */
+
+.ds-chat {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "title close"
+    "notice notice"
+    "log log"
+    "composer composer";
+  container-type: inline-size;
+  block-size: 100%;
+  min-inline-size: 0;
+  min-block-size: 0;
+  background: var(--cmp-chat-bg);
+  color: var(--cmp-chat-fg);
+}
+.ds-chat__header {
+  grid-area: title;
+  display: flex;
+  align-items: center;
+  min-inline-size: 0;
+  min-block-size: calc(var(--cmp-chat-header-height) + 2 * var(--cmp-chat-padding-y));
+  padding: var(--cmp-chat-padding-y) var(--cmp-chat-padding-x);
+}
+.ds-chat__title {
+  font-family: var(--cmp-chat-title-type-font-family);
+  font-size: var(--cmp-chat-title-type-font-size);
+  line-height: var(--cmp-chat-title-type-line-height);
+  font-weight: var(--cmp-chat-title-type-font-weight);
+  letter-spacing: var(--cmp-chat-title-type-letter-spacing);
+}
+.ds-chat__close {
+  grid-area: close;
+  align-self: center;
+  margin-inline-end: var(--cmp-chat-padding-x);
+}
+.ds-chat__notice {
+  grid-area: notice;
+  margin: 0;
+  padding: 0 var(--cmp-chat-padding-x) var(--cmp-chat-padding-y);
+  border-block-end: 1px solid var(--cmp-chat-divider);
+  color: var(--cmp-chat-muted-fg);
+  overflow-wrap: anywhere;
+  font-family: var(--cmp-chat-meta-type-font-family);
+  font-size: var(--cmp-chat-meta-type-font-size);
+  line-height: var(--cmp-chat-meta-type-line-height);
+  font-weight: var(--cmp-chat-meta-type-font-weight);
+  letter-spacing: var(--cmp-chat-meta-type-letter-spacing);
+}
+.ds-chat__scroll {
+  grid-area: log;
+  min-block-size: 0;
+}
+/* Radix wraps the content in an inline `display: table` div that grows to the widest line; a block
+ * keeps long Thai text wrapping. The Narrow story is the check that goes red if Radix changes it. */
+.ds-chat__scroll .ds-scroll__viewport > div {
+  display: block !important;
+}
+.ds-chat__empty {
+  margin: 0;
+  padding: var(--cmp-chat-padding-y) var(--cmp-chat-padding-x);
+  color: var(--cmp-chat-muted-fg);
+  overflow-wrap: anywhere;
+  font-family: var(--cmp-chat-body-sm-type-font-family);
+  font-size: var(--cmp-chat-body-sm-type-font-size);
+  line-height: var(--cmp-chat-body-sm-type-line-height);
+  font-weight: var(--cmp-chat-body-sm-type-font-weight);
+  letter-spacing: var(--cmp-chat-body-sm-type-letter-spacing);
+}
+.ds-chat__log {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmp-chat-exchange-gap);
+  margin: 0;
+  padding: var(--cmp-chat-padding-y) var(--cmp-chat-padding-x);
+  list-style: none;
+}
+.ds-chat__exchange {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmp-chat-turn-gap);
+  min-inline-size: 0;
+}
+.ds-chat__question {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmp-chat-line-gap);
+  padding: var(--cmp-chat-question-pad);
+  border-radius: var(--cmp-chat-question-radius);
+  background: var(--cmp-chat-question-bg);
+  color: var(--cmp-chat-question-fg);
+}
+.ds-chat__speaker {
+  color: var(--cmp-chat-muted-fg);
+  font-family: var(--cmp-chat-meta-type-font-family);
+  font-size: var(--cmp-chat-meta-type-font-size);
+  line-height: var(--cmp-chat-meta-type-line-height);
+  font-weight: var(--cmp-chat-meta-type-font-weight);
+  letter-spacing: var(--cmp-chat-meta-type-letter-spacing);
+}
+.ds-chat__text {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  font-family: var(--cmp-chat-text-type-font-family);
+  font-size: var(--cmp-chat-text-type-font-size);
+  line-height: var(--cmp-chat-text-type-line-height);
+  font-weight: var(--cmp-chat-text-type-font-weight);
+  letter-spacing: var(--cmp-chat-text-type-letter-spacing);
+}
+.ds-chat__reply {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmp-chat-line-gap);
+  min-inline-size: 0;
+}
+.ds-chat__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--cmp-chat-inline-gap);
+  color: var(--cmp-chat-muted-fg);
+  font-family: var(--cmp-chat-meta-type-font-family);
+  font-size: var(--cmp-chat-meta-type-font-size);
+  line-height: var(--cmp-chat-meta-type-line-height);
+  font-weight: var(--cmp-chat-meta-type-font-weight);
+  letter-spacing: var(--cmp-chat-meta-type-letter-spacing);
+}
+.ds-chat__progress {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cmp-chat-inline-gap);
+  color: var(--cmp-chat-streaming-fg);
+}
+.ds-chat__mark {
+  display: flex;
+  flex: none;
+  align-items: center;
+  block-size: 1lh;
+}
+.ds-chat__mark svg {
+  inline-size: var(--cmp-chat-icon-size);
+  block-size: var(--cmp-chat-icon-size);
+}
+.ds-chat__failure {
+  display: grid;
+  grid-template-columns: var(--cmp-chat-icon-size) minmax(0, 1fr);
+  column-gap: var(--cmp-chat-inline-gap);
+  row-gap: var(--cmp-chat-turn-gap);
+  color: var(--cmp-chat-failed-fg);
+}
+.ds-chat__failure p {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: var(--cmp-chat-body-sm-type-font-family);
+  font-size: var(--cmp-chat-body-sm-type-font-size);
+  line-height: var(--cmp-chat-body-sm-type-line-height);
+  font-weight: var(--cmp-chat-body-sm-type-font-weight);
+  letter-spacing: var(--cmp-chat-body-sm-type-letter-spacing);
+}
+.ds-chat__failure .ds-button {
+  grid-column: 2;
+  justify-self: start;
+}
+.ds-chat__composer {
+  grid-area: composer;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "input input"
+    "count actions";
+  align-items: center;
+  column-gap: var(--cmp-chat-inline-gap);
+  row-gap: var(--cmp-chat-line-gap);
+  min-inline-size: 0;
+  padding: var(--cmp-chat-padding-y) var(--cmp-chat-padding-x);
+  border-block-start: 1px solid var(--cmp-chat-divider);
+}
+/* The Textarea wraps its box and counter; the composer lays them out in its own grid. */
+.ds-chat__composer .ds-textarea {
+  display: contents;
+}
+.ds-chat__composer .ds-control {
+  grid-area: input;
+  min-inline-size: 0;
+}
+.ds-chat__composer .ds-textarea__counter {
+  grid-area: count;
+  align-self: center;
+  justify-self: start;
+}
+.ds-chat__actions {
+  grid-area: actions;
+  display: flex;
+  gap: var(--cmp-chat-inline-gap);
+}
+@container (inline-size < 320px) {
+  .ds-chat__composer {
+    grid-template-areas:
+      "input input"
+      "count count"
+      "actions actions";
+  }
+  .ds-chat__actions {
+    justify-self: end;
+  }
+}
+/* The mark is static under reduced motion: the word "Replying" carries the state. Written on the
+ * mark's svg, not on `.ds-spin`: the shared spinner stays essential motion everywhere else. */
+@media (prefers-reduced-motion: reduce) {
+  .ds-chat__mark svg {
+    animation: none;
+  }
 }

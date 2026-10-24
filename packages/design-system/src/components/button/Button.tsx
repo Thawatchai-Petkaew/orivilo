@@ -57,8 +57,10 @@ export function Button({
 }: ButtonProps) {
   const m = useMessages();
   const Comp = asChild ? Slot.Root : "button";
+  // A caller's `aria-disabled` keeps the button focusable but inert, like loading (DESIGN.md §7).
+  const ariaDisabled = rest["aria-disabled"] === true || rest["aria-disabled"] === "true";
   const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
-    if (loading) {
+    if (loading || ariaDisabled) {
       event.preventDefault();
       return;
     }
@@ -91,7 +93,7 @@ export function Button({
       data-icon-only={iconOnly ? "" : undefined}
       data-loading={loading ? "" : undefined}
       aria-busy={loading || undefined}
-      aria-disabled={loading || undefined}
+      aria-disabled={loading || ariaDisabled || undefined}
       onClick={handleClick}
     >
       {leading}

@@ -1,22 +1,24 @@
 name: CanvasChat
 tier: application
-status: planned
+status: draft
 since: E4-5
-import: none
+import: "@orivilo/design-system"
 story: application-canvas-chat
 useWhen:
-  - "Talking to the engine at a point on the board (press /) or in the sidebar; answers land as nodes"
+  - "Talking to the engine from a side panel next to the board (slice A, ORV-105); at a point on the board (press /) arrives in slice D"
 avoidWhen:
   - "Editing a value that has a field"
 contract: CanvasChatProps
-variants: [at-cursor, sidebar]
+variants: [sidebar]
 sizes: []
 states: [idle, streaming, error, mock]
-recipes: []
+recipes: [neutral, professional, friendly]
 examples: []
 rules:
-  - "Replies are placed as nodes linked to the node they came from"
+  - "Built so far (slice A): the sidebar chat, streaming replies with Stop, Send again after a failure, a basis notice and a basis word on every reply. Not built yet: replies placed as nodes (slice B), @ mentions (slice C), the at-cursor variant (slice D)"
+  - "Replies are placed as nodes linked to the node they came from (slice B; today a finished reply goes to onReply)"
   - "Labelled rule-based or mock until a real adapter exists (AGENTS.md rule 4)"
-  - "@ mentions reference nodes on the board"
+  - "@ mentions reference nodes on the board (slice C)"
 a11y:
-  - "Textarea labelled; streaming output in a polite live region; Escape closes the at-cursor form"
+  - "Textarea labelled; streaming output in a polite live region with aria-busy; a second status region says started, stopped and failed"
+  - "Escape closes the at-cursor form (slice D)"

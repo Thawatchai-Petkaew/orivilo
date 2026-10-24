@@ -88,6 +88,45 @@ export const Disabled: Story = {
   ),
 };
 
+/**
+ * A caller's `aria-disabled` (ORV-105 D1): the button looks disabled in every variant, stays in the
+ * Tab order and ignores the press. Native `disabled` is the other way and leaves the Tab order.
+ */
+export const AriaDisabled: Story = {
+  render: (args) => (
+    <div className="flex flex-wrap items-center gap-3">
+      {VARIANTS.map((variant) => (
+        <Button key={variant} {...args} variant={variant} aria-disabled="true">
+          {fixtures.thai}
+        </Button>
+      ))}
+    </div>
+  ),
+  play: async ({ canvasElement, args }) => {
+    const buttons = within(canvasElement).getAllByRole("button");
+    await expect(buttons).toHaveLength(VARIANTS.length);
+    for (const button of buttons) {
+      await expect(button).toHaveAttribute("aria-disabled", "true");
+      await expect(button).toBeEnabled();
+      await userEvent.click(button);
+    }
+    await expect(args.onClick).not.toHaveBeenCalled();
+    // Focusable: Tab from the top of the page lands on the first one.
+    (document.activeElement as HTMLElement).blur();
+    await userEvent.tab();
+    await expect(buttons[0]).toHaveFocus();
+    // The primary variant wears its disabled ground, not the live one.
+    const live = document.createElement("button");
+    live.className = "ds-button";
+    live.dataset.variant = "primary";
+    canvasElement.append(live);
+    await expect(getComputedStyle(buttons[0] as HTMLElement).backgroundColor).not.toBe(
+      getComputedStyle(live).backgroundColor,
+    );
+    live.remove();
+  },
+};
+
 /** The label stays, a status line announces, and the click does not fire (AC 4). */
 export const Loading: Story = {
   args: { variant: "primary", loading: true },
