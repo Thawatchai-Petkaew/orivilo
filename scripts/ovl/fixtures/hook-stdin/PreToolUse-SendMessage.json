@@ -1,0 +1,22 @@
+{
+  "session_id": "86c800a3-ec8b-4dbb-b9ad-0aaecc729c5c",
+  "transcript_path": "/Users/tawatchaipetkaew/.claude/projects/-private-tmp-orv88-scratch/86c800a3-ec8b-4dbb-b9ad-0aaecc729c5c.jsonl",
+  "cwd": "/private/tmp/orv88-scratch",
+  "scratchpad_dir": "/private/tmp/claude-501/-private-tmp-orv88-scratch/86c800a3-ec8b-4dbb-b9ad-0aaecc729c5c/scratchpad",
+  "prompt_id": "9f1a35eb-3898-481c-824c-0914eae1ddfe",
+  "permission_mode": "bypassPermissions",
+  "effort": {
+    "level": "medium"
+  },
+  "hook_event_name": "PreToolUse",
+  "tool_name": "SendMessage",
+  "tool_input": {
+    "to": "reviewer",
+    "summary": "probe",
+    "message": "probe message",
+    "type": "message",
+    "recipient": "reviewer",
+    "content": "probe message"
+  },
+  "tool_use_id": "toolu_016XsG23wk5auZEv3yNVoLSE"
+}

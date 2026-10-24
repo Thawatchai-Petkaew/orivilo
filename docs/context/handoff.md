@@ -1,6 +1,6 @@
 # Handoff: where the work stands
 
-Read this first when you pick the work up in a new session or on another account. Update it before you stop, so the next session can start without asking. Last updated 2026-10-23, after ORV-79 (audit D.2 done).
+Read this first when you pick the work up in a new session or on another account. Update it before you stop, so the next session can start without asking. Last updated 2026-10-24, after the first improvement run (ORV-91, lesson L-0008).
 
 The plan and its order live in `docs/plans/master-plan.md`; pages published in the Claude project thread are listed in `docs/context/artifacts.md`.
 
@@ -18,7 +18,9 @@ The plan and its order live in `docs/plans/master-plan.md`; pages published in t
 - **Progress doc:** the owner follows the work in the Claude Doc "ORIVILO ความคืบหน้าแผนหลัก" (https://claude.ai/artifact/WiTsC13it9yESkFiRU7wL7). Update it after every story and every release batch: status counts from Jira, the core component plan table, and the owner's checklist. Jira and `master-plan.md` stay the sources; the doc is their view.
 - **Secrets:** environment variables only. Never commit `.env*`, never paste keys in chat.
 
-## Done today
+## Done recently
+
+Rows marked "on staging" reached `main` with release PR #67; Jira shows its 16 issues in "Staging". Rows marked "in `develop`" wait for the next release.
 
 | Issue  | What                                                                          | PR  |
 | ------ | ----------------------------------------------------------------------------- | --- |
@@ -29,24 +31,42 @@ The plan and its order live in `docs/plans/master-plan.md`; pages published in t
 | ORV-67 | Button icons and link, InputGroup, PasswordInput                              | #55 |
 | ORV-68 | Select option icons and groups, Badge dot and icon, vertical Tabs with counts | #56 |
 | ORV-69 | `develop` parks merged work, staging moves in batches (ADR 0011)              | #57 |
-| ORV-70 | Tooltip description line and align (in `develop`, not yet on staging)         | #58 |
-| ORV-71 | Master plan and project artifact list in the repo (in `develop`)              | #59 |
-| ORV-72 | Checkbox sm, Textarea sm and Thai grapheme counter (in `develop`)             | #60 |
-| ORV-73 | Migrate runs from a path with spaces; local setup steps (in `develop`)        | #61 |
-| ORV-74 | Stories press the platform Mod key; `pnpm test` runs on macOS (in `develop`)  | #62 |
-| ORV-75 | Jira states by environment, ADR 0012 option A (in `develop`)                  | #63 |
-| ORV-77 | RangeSlider on Radix `preserveThumbOrder` (in `develop`)                      | #64 |
-| ORV-78 | DropdownMenu checkbox and radio items (in `develop`)                          | #65 |
-| ORV-82 | Knowledge, lessons and plans folders with a checker (in `develop`)            | #68 |
+| ORV-70 | Tooltip description line and align (on staging)                               | #58 |
+| ORV-71 | Master plan and project artifact list in the repo (on staging)                | #59 |
+| ORV-72 | Checkbox sm, Textarea sm and Thai grapheme counter (on staging)               | #60 |
+| ORV-73 | Migrate runs from a path with spaces; local setup steps (on staging)          | #61 |
+| ORV-74 | Stories press the platform Mod key; `pnpm test` runs on macOS (on staging)    | #62 |
+| ORV-75 | Jira states by environment, ADR 0012 option A (on staging)                    | #63 |
+| ORV-77 | RangeSlider on Radix `preserveThumbOrder` (on staging)                        | #64 |
+| ORV-78 | DropdownMenu checkbox and radio items (on staging)                            | #65 |
+| ORV-82 | Knowledge, lessons and plans folders with a checker (on staging)              | #68 |
+| ORV-81 | /ovl slice A1: contract schemas and validator (on staging)                    | #71 |
+| ORV-85 | /ovl slice A2: envelope-guard, owner-grant, doctor, minimal skill (staging)   | #72 |
+| ORV-86 | /ovl slice A3: result-recorder, gate record, close-envelope (on staging)      | #73 |
+| ORV-87 | Run metrics: spec and collector, slice 1 (on staging)                         | #74 |
+| ORV-89 | Background runs recorded at SubagentStop, shared run records (on staging)     | #75 |
+| ORV-90 | worktree-guard heartbeat only into this project (on staging)                  | #76 |
+| ORV-87 | Run metrics: report and session commands, slice 2 (on staging)                | #77 |
+| ORV-91 | Improvement loop, Expected saving lessons, metrics due, slice 3 (`develop`)   | #78 |
+| ORV-92 | zod 4.6.5 to 4.6.6, GHSA-mrhx-c7xc-m3w5 (in `develop`)                        | #79 |
+
+`main`'s CI run after release #67 failed, probably at the zod audit; ORV-92 fixes that and reaches `main` with the next release.
+
+## The AI team loop (ORV-81, ORV-87)
+
+Hooks check every Agent call in this repo (envelope-guard, result-recorder, owner-grant, worktree-guard); start a run with the `ovl` skill and `node scripts/ovl/doctor.mjs plan`. `pnpm quality-gate` in the main session writes a gate record. `write-guard` and `merge-guard` (ORV-81 slices B and C1) are not built yet, so nothing blocks an unwanted write or merge, and nothing blocks a SendMessage resume yet (ORV-88). Metrics: `node scripts/ovl/metrics.mjs collect|report|session|due` (spec `docs/specs/ORV-87/spec.md`); the `ovl` skill step 5 runs the improvement loop after each merge.
+
+The first improvement run (2026-10-24, ORV-91) produced `docs/lessons/L-0008-recheck-costs-like-a-first-review.md`: a reviewer re-check starts from the previous findings and the rework diff. The owner approved it (ORV-91 comment 10081); it is applied to the `ovl` skill and the reviewer agent and is checked after 2026-11-07. The run also showed the orchestrator main session at 388,875,503 tokens in session 0baff5a3, about 4.3 times all its subagents together.
 
 ## Next, in order
 
-1. Release the batch in `develop` to staging when the owner says yes: ORV-70 to ORV-75, ORV-77, ORV-78 and ORV-79 once their PRs are merged. Audit D.2 is complete.
-2. AI team Phase 3 (the AI Team Loop plan, https://claude.ai/artifact/G7gBVvVk5fgsxZPYWbw4XC): E0-4 quality-gate script with real exit codes, E0-1 Jira field check, then an orchestrated dispatch where tasks go out and come back as JSON with a verify step before anything counts as done. Jira Automation and GitHub secrets need the owner (see master-plan.md).
-3. ORV-45 part 2, TaskBar, then part 3, CanvasChat (audit D.1 stories 1 to 8: Spinner, Skeleton, Collapsible, chat parts). When all parts are merged, move ORV-45 to "Staging".
-4. Audit D.3: missing components by Studio need.
-5. ORV-76: CanvasBoard, CanvasContextMenu and BlockLibrary stories flaky on macOS (pass in CI).
-6. CI/CD plan (https://claude.ai/artifact/S49r4bs4x5cn7g33HbT7rx) steps 4 to 7: turbo cache and affected-only runs in CI, the flaky `BlockLibrary > Place By Keyboard` test, branch protection on `main` (the owner turns it on), ORV-63 after the POC.
+1. **ORV-88:** block SendMessage resumes in a guard.
+2. **ORV-81 slice B:** `write-guard` and the qa agent (spec AC 25 to 32, 53, 65); QA screenshots move to the shared records root.
+3. **ORV-81 slice C1** `merge-guard` (also closes ORV-87 row 25; the owner merges it by hand), then slices C2 and D.
+4. Story fixes: ORV-83, ORV-84, ORV-76 (CanvasBoard, CanvasContextMenu and BlockLibrary stories flaky on macOS, pass in CI).
+5. Release the batch in `develop` (ORV-91, ORV-92 and what follows) to staging when the owner says yes.
+6. On or after 2026-11-07: `node scripts/ovl/metrics.mjs due` and measure L-0008.
+7. Then the product work in `docs/plans/master-plan.md` "Order from here": ORV-45 parts 2 and 3, audit D.3, and the CI/CD plan (https://claude.ai/artifact/S49r4bs4x5cn7g33HbT7rx) steps 4 to 7.
 
 ## Set up a machine
 

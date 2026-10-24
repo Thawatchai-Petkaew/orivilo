@@ -13,7 +13,7 @@ Hooks now check every Agent call in this repo, in every session. The main sessio
 node scripts/ovl/doctor.mjs plan
 ```
 
-Make the one probe call it prints for each guard (each is built to be blocked, so it changes nothing). Then run `node scripts/ovl/doctor.mjs check <since>` with the `since` value from the plan. If it exits 2, stop and name the silent guard to the owner.
+Make the one probe call it prints for each guard (each is built to be blocked, so it changes nothing). The `resume-guard` probe is a `SendMessage` call; that tool may be deferred, so load it first (ToolSearch, query `select:SendMessage`), and if the session offers no `SendMessage` at all, stop and tell the owner: the doctor cannot tell a missing tool from a silent guard. Then run `node scripts/ovl/doctor.mjs check <since>` with the `since` value from the plan. If it exits 2, stop and name the silent guard to the owner.
 
 If the doctor says a dependency is missing, run `pnpm install` and start again. `plan` stops (exit 2, naming each path) when any other worktree still holds records in its own `.orivilo/runs/` from before the shared root (the hooks no longer read them, so a `request_changes` verdict or used rework rounds recorded there would be forgotten); run `node scripts/ovl/doctor.mjs migrate` to move them into the main checkout's `.orivilo/runs/`, then plan again. Migrate moves each task folder whole and appends the worktree's heartbeat lines to main's `heartbeat.jsonl`. A task folder main already has is left whole in the worktree and listed, and migrate exits 2. A link under a worktree's `.orivilo/runs/` stops it before any move: it lists the links and exits 2. `plan` also closes envelopes left open by slice A2 (`closed_pre_a3`); it lists them, and none counts as a round. `result-recorder` cannot be probed: after the first Agent call returns, run `node scripts/ovl/doctor.mjs recorder <since>` and stop if it exits 2.
 
@@ -40,6 +40,14 @@ Do not set `model`, `isolation` or `run_in_background` on the call. `cwd`, if gi
 }
 ```
 
+- **Re-check envelope** (reviewer, round 1 or more). `context_pointers` name the absolute paths of the
+  previous review's `result.json` and the rework task's `result.json`, both under the main checkout's
+  `.orivilo/runs/<ISSUE>/<task_id>/` (found through `git rev-parse --git-common-dir`; a relative
+  `.orivilo/` path does not exist in the reviewer's worktree), and the spec, not the full pointer list
+  of the first review. One fact is the sha the previous review judged, read from its record
+  (`checked_by`: `jq -r .report.head_sha "<absolute path of the previous review's result.json>"`).
+- **Never resume.** A re-check, a follow-up question or a fix is a new envelope with a new `task_id`, never a `SendMessage`. A builder rework names `rework_of`; a reviewer re-check does not (`rework_of` is read on builder envelopes only) and puts the earlier `result.json` absolute paths in `context_pointers`. `resume-guard` (PreToolUse `SendMessage`) blocks every `SendMessage`, from the main session and from a subagent, whatever `to` names; it never echoes `to` or the message. When `to` is a recorded agent's id, the stderr names that task, as a hint for the fresh envelope. A subagent that needs a decision reports `blocked` with `needs_decision`, and the answer goes out in a fresh envelope.
+
 The guard blocks, with exit 2 and a reason on stderr, when:
 
 - **`task_id`** is used already for this issue. Every dispatch, including a retry after a refused call, needs a new `task_id` (`ORV-<n>-<lowercase-words>`).
@@ -48,6 +56,7 @@ The guard blocks, with exit 2 and a reason on stderr, when:
 - **`write_set`** is too broad. Each entry is an exact file or a glob under at least two fixed folders (`scripts/ovl/*.mjs` passes; `packages/`, `apps/**` and `**` do not). No `.` or `..` segment, no leading `./`, no empty segment, and no brace or extglob character (`{ ( ! + @ [`) before the second folder. It is empty for `reviewer`, `qa` and `release`, and not empty for the other roles.
 - **`skills`** misses a required one: `product` needs `discover`; `designer` needs `frontend-design` and `webapp-testing`; `builder` needs `quality-gate`; `qa` needs `quality-gate` and `webapp-testing`; `release` needs `gate-packet`; `ds-architect` and `reviewer` need none.
 - **Issue.** For builder, reviewer, qa and designer, the envelope `issue` must equal the key in the checkout's branch name (`<type>/ORV-<n>-<slug>`); a branch without a key blocks.
+- **Resume.** Not an Agent call: `resume-guard` blocks every `SendMessage` (see "Never resume" above).
 - **Background, model, isolation.** Blocked for every agent, Explore included.
 - **Open envelope.** One envelope per role is open across the whole repo, all issues and worktrees included. A second one is blocked until the first has a report or is closed (see step 4).
 - **Rework rules** (builder only). After a `request_changes` verdict or a failed gate record for the issue, the envelope must name `rework_of`, a task of the same issue that started. After two rework rounds, a builder envelope is blocked: first get a verdict on the last builder round (qa, reviewer or the gate); only if that verdict requests changes, the owner must grant another (step 3).
@@ -79,10 +88,23 @@ A builder envelope that was bound counts as a rework round after the first verdi
 
 Running `pnpm quality-gate` in the main session writes a gate record from `.quality-gate/report.json`, whether the run passes (`PostToolUse`) or fails (`PostToolUseFailure`; a failing gate exits 1). A record is written only when the report started after the command started, finished no later than now, and is for the commit now checked out. The same run inside a subagent writes none, an interrupted run writes none, and a partial run (`--only`) writes none.
 
+## 5. After a merge: measure and improve
+
+After a slice merges into `develop` (its G3), and after a release batch reaches staging, run the improvement loop. Spec: `docs/specs/ORV-87/spec.md`, "Improvement loop". These are plain script runs; `write-guard` allows them.
+
+1. For each issue in scope: `node scripts/ovl/metrics.mjs collect <ISSUE>`. Then `node scripts/ovl/metrics.mjs report <ISSUE...> --out <batch>` (it prints `wrote <absolute path>`, under the main checkout's `.orivilo`; keep that path) and `node scripts/ovl/metrics.mjs due`. Run `collect` soon after the merge: if Claude Code cleans up a transcript first, that task's numbers are `null`.
+2. Dispatch one envelope: `role` `ds-architect`, `skills` `["retro"]`, `issue` the key of the slice's own Jira issue (each slice has one), `context_pointers` the absolute path that `report --out` printed (the role works in its own worktree, where a relative `.orivilo/` path does not exist), `docs/LESSONS.md`, `docs/lessons/README.md` and `docs/specs/ORV-87/spec.md`, and `write_set` `["docs/lessons/L-*.md", "docs/LESSONS.md", "docs/lessons/README.md"]`: lesson paths only, never a rule, agent or skill file. A fact's `checked_by` is a command that reads that report, for example `grep -n "## By role" "<absolute path>"` (the report is markdown, so `jq` fails on it; the guard refuses a bare absolute path as `checked_by` but accepts a `grep ` command). The task follows the retro skill's cost and flow step. A kind with fewer than 3 tasks gets no proposal, and its report says why.
+3. Post a Jira comment on the slice's issue that lists each proposal (lesson id, the rule in short, expected saving, guard metric) and each measured result. Then ask the owner a question form with `Approve L-NNNN` and `Decline` per proposal. Only the clicked option counts.
+4. On approval, dispatch a second envelope to the same role whose `write_set` is the target rule file (named exactly), the exact lesson file `docs/lessons/L-NNNN-<slug>.md` and `docs/LESSONS.md`. That envelope applies the rule and sets `Status: promoted` and `Check after:` (promotion date plus 14 days) in the lesson file and the ledger row. A declined proposal stays `proposed`.
+
+Nothing automatic decides: no hook runs the collector and no guard reads its output. Metrics are never evidence for a gate.
+
 ## Honest limits of this slice
 
+- Nothing blocks an improvement task that edits a rule, agent or skill file yet: its `write_set` is lesson paths only, but the check that refuses such a merge is `merge-guard` (ORV-81 slice C1), which has not shipped. Until it does, the G3 packet of an improvement PR lists its changed files for the owner, and you check them yourself.
 - `SubagentStart` cannot block (exit 2 only shows stderr). If a subagent starts with no single open envelope to bind to, it runs unbound: no `agent.json`, no round counted, no `result.json`. The guard at dispatch time (one open envelope per role, checked again after the envelope is saved, so two same-role calls made at once never both run: at most one is allowed and the others close as denied) is what prevents this, not the start hook. Every record is written whole (aside, then linked into place), so a start hook running at the same moment as another never reads half a record. One residual window remains: a losing envelope of a same-role race stays visible as open and unbound until its `closed.json` is written, and on a very slow filesystem the winner's start hook could scan inside that span, see two candidates and run unbound. It was not reproduced in 31 trials.
 - Hooks cannot run once the session's own worktree is removed. When `CLAUDE_PROJECT_DIR` is a removed worktree (`claude --worktree`), the hook files are gone with it: `/bin/sh` cannot find `result-recorder.sh`, `|| exit 2` fires even when `stop_hook_active` is true, and nothing is recorded. `worktree-guard` blocks a subagent Bash command whose text, with quotes and backslashes stripped, holds the word `worktree` together with `remove` or `prune`. It misses a word built by shell expansion (an empty `$()` or `${VAR}` inside it) and an encoded command piped to a shell. The main session, `rm -rf`, a shell script or a tool outside Bash can still delete the worktree. Remove a worktree only after the run, from outside it.
+- `resume-guard` sees the `SendMessage` tool only. A Claude Code version that adds a resume field to the Agent tool would pass `envelope-guard` with a valid envelope, and a session without these hooks escapes it. It blocks all messaging: a subagent cannot ask the main session anything through `SendMessage`, and a stale task hint (an agent recorded in a stray worktree folder before `doctor.mjs migrate`) still gets the same block.
 - Until slice B ships `write-guard`, any session or subagent can run `close-envelope --owner`, or append an `allow` line to `.orivilo/heartbeat.jsonl`, and so close a bound envelope as `abandoned` while its subagent may still run.
 - The stories-file check on a `qa.v1` approve reads the local `origin/develop` ref, which any session can move. Treat a recorded approve as evidence only after you check the changed stories files yourself, until develop is resolved the way `merge-guard` will.
 

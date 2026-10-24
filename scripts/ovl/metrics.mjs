@@ -3,9 +3,11 @@
 // Usage: node scripts/ovl/metrics.mjs collect <ISSUE> [--root <checkout holding .orivilo>] [--projects <folder>]
 //        node scripts/ovl/metrics.mjs report <ISSUE...> [--root <folder>] [--out <name>]
 //        node scripts/ovl/metrics.mjs session <session id> [--projects <folder>]
+//        node scripts/ovl/metrics.mjs due [--lessons <folder>] [--today YYYY-MM-DD]
 // Writes `.orivilo/metrics/<ISSUE>.json` (metrics.v1) and nothing else. It keeps numbers, ids, enums,
 // times and model ids only: no prompt, message, description, file path or transcript path is ever
-// copied into a file, stdout or stderr. Exit 0 on success (gaps are warned about on stderr),
+// copied into a file, stdout or stderr. The one exception: `report --out` prints `wrote <absolute path>`
+// of the file it wrote, and nothing else holds a path. Exit 0 on success (gaps are warned about on stderr),
 // 1 on an unexpected failure, 2 on a usage error.
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
@@ -408,7 +410,7 @@ const FOOTER = [
   "Waiting is not measured: CI, the owner's answers and permission prompts are not in duration_ms.",
   "Tokens, rounds and finding counts do not show whether a review was good; defects found after G3 are not counted.",
   "Runs outside the records (Explore, sessions without /ovl) have no task, role or round; the session command lists them.",
-  "A resume sent with SendMessage runs without an envelope check; it is attached to its task by agent_id only.",
+  "resume-guard blocks every SendMessage from ORV-88 on, so a resumed run in this report predates it or ran in a session without the hooks; it is attached to its task by agent_id only.",
   "Medians show n; a small batch is a sign, not proof.",
   "Transcripts live outside the repo and can be edited; metrics are never evidence for a gate.",
   "The transcript shape is Claude Code's; a missing field shows as -, never a guessed 0, and an unrecorded version is warned about.",
@@ -552,9 +554,36 @@ export function sessionText(id, data) {
   ].join("\n\n");
 }
 
+/** The calendar date on this machine, YYYY-MM-DD: the owner's day, not the UTC day. */
+function localDate(now) {
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
+
+/**
+ * The promoted lessons whose `Check after` date has come and that have no `## Measured after`.
+ * Returns {id, checkAfter, daysOver, file} only: no text of a lesson leaves this function.
+ */
+export function due({ lessons, today }) {
+  const out = [];
+  for (const file of readdirSync(lessons).sort()) {
+    const name = file.match(/^(L-\d{4})-[a-z0-9-]+\.md$/);
+    if (!name) continue;
+    const text = readFileSync(join(lessons, file), "utf8");
+    if (!/^Status:\s*promoted/m.test(text) || /^## Measured after\s*$/m.test(text)) continue;
+    const after = text.match(
+      /^## Expected saving\s*$(?:(?!^## )[\s\S])*?^- Check after:\s*(\d{4}-\d{2}-\d{2})\s*$/m,
+    )?.[1];
+    if (after === undefined || Number.isNaN(Date.parse(after)) || after > today) continue;
+    const daysOver = Math.round((Date.parse(today) - Date.parse(after)) / 86400000);
+    out.push({ id: name[1], checkAfter: after, daysOver, file });
+  }
+  return out;
+}
+
 function usage(message) {
   process.stderr.write(
-    `metrics: ${message}\nusage: metrics.mjs collect <ISSUE> [--root <checkout holding .orivilo>] [--projects <folder>]\n       metrics.mjs report <ISSUE...> [--root <folder>] [--out <name>]\n       metrics.mjs session <session id> [--projects <folder>]\n`,
+    `metrics: ${message}\nusage: metrics.mjs collect <ISSUE> [--root <checkout holding .orivilo>] [--projects <folder>]\n       metrics.mjs report <ISSUE...> [--root <folder>] [--out <name>]\n       metrics.mjs session <session id> [--projects <folder>]\n       metrics.mjs due [--lessons <folder>] [--today YYYY-MM-DD]\n`,
   );
   process.exit(2);
 }
@@ -607,7 +636,7 @@ function main(argv) {
       const dir = join(root, ".orivilo", "metrics");
       mkdirSync(dir, { recursive: true });
       writeFileSync(join(dir, `${flags.out}.md`), text);
-      process.stdout.write(`wrote .orivilo/metrics/${flags.out}.md\n`);
+      process.stdout.write(`wrote ${join(dir, `${flags.out}.md`)}\n`);
     }
   } else if (command === "session") {
     const flags = { projects };
@@ -621,8 +650,21 @@ function main(argv) {
       );
     }
     process.stdout.write(sessionText(id, data));
+  } else if (command === "due") {
+    const flags = { lessons: join(process.cwd(), "docs", "lessons"), today: undefined };
+    if (parse(rest, flags).length > 0) usage("due takes no positional argument");
+    const today = flags.today ?? localDate(new Date());
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(today) || Number.isNaN(Date.parse(today)))
+      usage("--today is a date such as 2026-11-06");
+    if (!existsSync(flags.lessons)) usage("--lessons is not a folder");
+    const list = due({ lessons: flags.lessons, today });
+    process.stdout.write(
+      list.length === 0
+        ? "no checks due\n"
+        : `${list.map((d) => [d.id, d.checkAfter, d.daysOver, d.file].join("\t")).join("\n")}\n`,
+    );
   } else {
-    usage("the commands are collect, report and session");
+    usage("the commands are collect, report, session and due");
   }
 }
 
