@@ -9,7 +9,15 @@
 // copied into a file, stdout or stderr. The one exception: `report --out` and `session --out` print `wrote <absolute path>`
 // of the file it wrote, and nothing else holds a path. Exit 0 on success (gaps are warned about on stderr),
 // 1 on an unexpected failure, 2 on a usage error.
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -602,6 +610,15 @@ function parse(rest, flags) {
   return positional;
 }
 
+/** True when the folder is the main checkout of this project's repo (its records root is itself). */
+function isCheckoutRoot(folder) {
+  try {
+    return recordsRoot(folder) === realpathSync(folder);
+  } catch {
+    return false;
+  }
+}
+
 function main(argv) {
   const [command, ...rest] = argv;
   const projects = join(homedir(), ".claude", "projects");
@@ -655,7 +672,11 @@ function main(argv) {
     if (flags.out === undefined) {
       process.stdout.write(text);
     } else {
-      const dir = join(flags.root ?? recordsRoot(process.cwd()), ".orivilo", "metrics");
+      const root = flags.root ?? recordsRoot(process.cwd());
+      if (flags.root !== undefined && !isCheckoutRoot(flags.root)) {
+        usage("--root is not the root of a checkout");
+      }
+      const dir = join(root, ".orivilo", "metrics");
       mkdirSync(dir, { recursive: true });
       writeFileSync(join(dir, `${flags.out}.md`), text);
       process.stdout.write(`wrote ${join(dir, `${flags.out}.md`)}\n`);

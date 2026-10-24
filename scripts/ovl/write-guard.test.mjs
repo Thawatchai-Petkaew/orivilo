@@ -413,6 +413,132 @@ test("row 15: a script run with anything appended, or from outside, is a normal 
   for (const command of commands) blocked(call(main, bash(main, command)));
 });
 
+test("row 15: an allowed script run is one line; a second line is a second command", () => {
+  const { main } = world();
+  const commands = [
+    "node scripts/ovl/doctor.mjs plan\ncp /tmp/e.mjs scripts/ovl/write-guard.mjs",
+    "node scripts/ovl/doctor.mjs plan\r\nrm -rf .orivilo",
+    "pnpm quality-gate\nrm -rf .orivilo",
+    "pnpm quality-gate\ncp /tmp/e.mjs scripts/ovl/write-guard.mjs",
+  ];
+  for (const command of commands) blocked(call(main, bash(main, command)));
+});
+
+test("row 13: a plain read has no process substitution", () => {
+  const { main } = world();
+  const commands = [
+    "cat <(cp /tmp/qa.json .orivilo/runs/ORV-1/t/qa.json)",
+    "cat <(touch packages/a.ts)",
+    "cat .orivilo/a >(tee scripts/ovl/a.mjs)",
+    "cat < .orivilo/a",
+  ];
+  for (const command of commands) blocked(call(main, bash(main, command)));
+});
+
+test("rows 5, 8 and 13: a doubled slash, a ./ segment or a folder without its slash still names it", () => {
+  const { main } = world();
+  const both = [
+    "cp /tmp/e.mjs scripts//ovl/write-guard.mjs",
+    "cp /tmp/e.mjs scripts/./ovl/write-guard.mjs",
+    "cp /tmp/e.mjs scripts/.//./ovl/write-guard.mjs",
+    "rm -rf scripts/ovl",
+    "rm -rf .claude/hooks",
+    "rm -rf .github/workflows",
+    "rm -rf .claude//hooks/a.mjs",
+    "cp -r /tmp/x .orivilo//runs",
+  ];
+  for (const command of both) {
+    blocked(call(main, bash(main, command)));
+    blocked(call(main, bash(main, command, SUB)));
+  }
+  for (const command of ["cp -r /tmp/x packages", "rm -rf apps", "cp /tmp/x packages//a.ts"]) {
+    blocked(call(main, bash(main, command)));
+  }
+  allowed(call(main, bash(main, 'git commit -m "bump packages"')));
+  allowed(call(main, bash(main, "cp /tmp/x packages-notes.txt", SUB)));
+});
+
+test("row 12: a pipe or a backslash inside a quoted pattern is not a pipe between reads", () => {
+  const { main } = world();
+  const commands = [
+    'grep -n "a|b" scripts/ovl/x.mjs',
+    'grep -n "a\\|b" scripts/ovl/x.mjs',
+    "grep -n 'a|b' scripts/ovl/x.mjs",
+    'grep -n "a|b" scripts/ovl/x.mjs | head -3',
+    'grep -n "a;b" .orivilo/x',
+  ];
+  for (const command of commands) allowed(call(main, bash(main, command)));
+  blocked(call(main, bash(main, 'grep -n "a|b" scripts/ovl/x.mjs | tee scripts/ovl/y.mjs')));
+  blocked(call(main, bash(main, 'grep -n "a" scripts/ovl/x.mjs ; rm .orivilo/x')));
+});
+
+test("row 12: a null device or fd redirect is not a write, and a quoted > is not a redirect", () => {
+  const { main } = world();
+  const reads = [
+    "ls .orivilo 2>/dev/null",
+    "cat .orivilo/a 2>&1 | head -3",
+    "grep -n verdict .orivilo/a &>/dev/null",
+    'grep -n "=>" scripts/ovl/x.mjs',
+  ];
+  for (const command of reads) allowed(call(main, bash(main, command)));
+  allowed(call(main, bash(main, 'grep -n "=>" scripts/ovl/write-guard.mjs', SUB)));
+  allowed(call(main, bash(main, "grep -n '=>' scripts/ovl/write-guard.mjs 2>/dev/null", SUB)));
+  const writes = [
+    'echo "x" > scripts/ovl/a.mjs',
+    'echo \\" > scripts/ovl/a.mjs \\"',
+    'echo "$(echo "y" > scripts/ovl/a.mjs)"',
+    "echo `echo y > scripts/ovl/a.mjs`",
+    'echo "x" >> .orivilo/heartbeat.jsonl',
+  ];
+  for (const command of writes) blocked(call(main, bash(main, command, SUB)));
+  blocked(call(main, bash(main, 'cat .orivilo/a "=>" > b')));
+});
+
+test("row 12: sed -n, tail and wc are plain reads; sed that writes is not", () => {
+  const { main } = world();
+  const reads = [
+    "sed -n 1,5p scripts/ovl/x.mjs",
+    "sed -n 7p scripts/ovl/x.mjs",
+    "sed -n '3,$p' scripts/ovl/x.mjs",
+    "sed -n /verdict/p .orivilo/runs/ORV-1/t/result.json",
+    "tail -n 5 .orivilo/heartbeat.jsonl",
+    "wc -l scripts/ovl/x.mjs",
+    "cat scripts/ovl/x.mjs | sed -n 1,5p | wc -l",
+  ];
+  for (const command of reads) allowed(call(main, bash(main, command)));
+  const writes = [
+    "sed -i s/a/b/ scripts/ovl/x.mjs",
+    "sed -n -i 1p scripts/ovl/x.mjs",
+    "sed -n 1p -i scripts/ovl/x.mjs",
+    "sed -n 1p --in-place scripts/ovl/x.mjs",
+    "sed -n 1w.orivilo/x scripts/ovl/x.mjs",
+    "sed -n '1w .orivilo/x' scripts/ovl/x.mjs",
+    "sed -n -e 1p scripts/ovl/x.mjs",
+    "sed 1p scripts/ovl/x.mjs",
+    "sed -n 1p scripts/ovl/x.mjs > .orivilo/x",
+  ];
+  for (const command of writes) blocked(call(main, bash(main, command)));
+});
+
+test("row 8: a subagent cannot restore a guard file by checkout, switch, stash or reset", () => {
+  const { main } = world();
+  bindBuilder(main, "ORV-1-b", SUB, ["scripts/ovl/write-guard.mjs"]);
+  const commands = [
+    "git checkout HEAD scripts/ovl/write-guard.mjs",
+    "git checkout HEAD~1 -- scripts/ovl/write-guard.mjs",
+    "git checkout main -f .claude/hooks/a.mjs",
+    "git switch -f scripts/ovl/write-guard.mjs",
+    "git stash push scripts/ovl/write-guard.mjs",
+    "git reset --hard HEAD scripts/ovl/write-guard.mjs",
+    "git checkout HEAD .orivilo/runs/ORV-1",
+  ];
+  for (const command of commands) {
+    blocked(call(main, bash(main, command, SUB)));
+    blocked(call(main, bash(main, command, "unbound")));
+  }
+  allowed(call(main, bash(main, "git checkout feature/ORV-1-x", SUB)));
+});
+
 test("row 16: close-envelope --owner is blocked in any Claude Code session", () => {
   const { main } = world();
   const command = "node scripts/ovl/close-envelope.mjs ORV-1-x --owner";

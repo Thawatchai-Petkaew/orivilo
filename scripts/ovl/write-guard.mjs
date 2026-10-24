@@ -22,15 +22,15 @@ const PATH_FIELD = {
   NotebookEdit: "notebook_path",
 };
 
-/** How Bash names each set: a substring of the lowercased command text. */
+/** How Bash names each set: a folder or file name in the lowercased command text, see named(). */
 const TEXT_PREFIXES = {
-  deliverable: ["packages/", "apps/"],
+  deliverable: ["packages", "apps"],
   "guard file": [
-    ".claude/hooks/",
+    ".claude/hooks",
     ".claude/settings",
-    "scripts/ovl/",
+    "scripts/ovl",
     "scripts/quality-gate.mjs",
-    ".github/workflows/",
+    ".github/workflows",
     ".gitignore",
   ],
   record: [".orivilo", ".quality-gate"],
@@ -49,10 +49,28 @@ const MESSAGES = {
   record: (where) => `record ${where}: only hooks and the scripts in scripts/ovl/ write records`,
 };
 
-/** [[set, prefix]] for every prefix of `sets` that the text holds. */
+/** Prefixes that name a folder: matched as a whole name, with or without the closing slash. */
+const FOLDERS = new Set(["packages", "apps", ".claude/hooks", "scripts/ovl", ".github/workflows"]);
+
+/** The text with repeated slashes collapsed and `./` segments dropped, so `a//b` and `a/./b` read as `a/b`. */
+const collapsePath = (text) => {
+  let out = text.replace(/\/+/g, "/");
+  for (let prev = ""; prev !== out;) {
+    prev = out;
+    out = out.replace(/\/\.\//g, "/");
+  }
+  return out;
+};
+
+/** [[set, prefix]] for every name of `sets` that the text holds, as a whole name (not followed by a name character). */
 function named(text, sets = Object.keys(TEXT_PREFIXES)) {
+  const flat = collapsePath(text);
   return sets.flatMap((set) =>
-    TEXT_PREFIXES[set].filter((p) => text.includes(p)).map((p) => [set, p]),
+    TEXT_PREFIXES[set]
+      .filter((p) =>
+        FOLDERS.has(p) ? new RegExp(`${escapeRegExp(p)}(?![\\w.-])`).test(flat) : flat.includes(p),
+      )
+      .map((p) => [set, p]),
   );
 }
 
@@ -176,16 +194,57 @@ const WRITE_FORMS = [
   new RegExp(`${BEFORE}(?:tee|cp|mv|rm|ln|touch)(?:\\s|$)`),
   new RegExp(`${BEFORE}sed(?=\\s)[^;&|]*\\s-(?:[a-z]*i|-in-place)`),
   new RegExp(`${BEFORE}git\\s[^;&|]*\\b(?:apply|restore)\\b`),
-  new RegExp(`${BEFORE}git\\s[^;&|]*\\bcheckout\\b[^;&|]*\\s--(?:\\s|$)`),
+  new RegExp(`${BEFORE}git\\s[^;&|]*\\b(?:checkout|switch|stash|reset)\\b`),
 ];
 
-/** True when the text holds a subagent write form: a redirect to a file, or one of the write commands. */
-function hasWriteForm(text) {
-  const withoutFds = text
+/** The text without the redirects that write no file: fd copies and the null device. */
+const withoutFds = (text) =>
+  text
     .replace(/\d*>&(?:\d+|-)/g, "")
-    .replace(/&>\s*\/dev\/null/g, "")
-    .replace(/\d*>>?\s*\/dev\/null/g, "");
-  return withoutFds.includes(">") || WRITE_FORMS.some((re) => re.test(text));
+    .replace(/&>\s*\/dev\/null(?![\w./-])/g, "")
+    .replace(/\d*>>?\s*\/dev\/null(?![\w./-])/g, "");
+
+/**
+ * The command with the inside of quotes and backslash escapes blanked to `_` (same length), so a
+ * `>` or `|` left in it is a real shell character. From the first `$(` or backtick that can run,
+ * nothing is blanked: a command inside it is read as it is.
+ */
+function blankQuoted(command) {
+  let out = "";
+  for (let i = 0; i < command.length; i++) {
+    const ch = command[i];
+    if (ch === "$" ? command[i + 1] === "(" : ch === "`") {
+      return out + command.slice(i);
+    }
+    if (ch === "\\") {
+      out += command[i + 1] === "\n" ? "_\n" : "_".repeat(Math.min(2, command.length - i));
+      i += 1;
+    } else if (ch === "'") {
+      const end = command.indexOf("'", i + 1);
+      const stop = end < 0 ? command.length : end;
+      out += `'${"_".repeat(stop - i - 1)}${end < 0 ? "" : "'"}`;
+      i = stop;
+    } else if (ch === '"') {
+      let j = i + 1;
+      while (j < command.length && command[j] !== '"') j += command[j] === "\\" ? 2 : 1;
+      j = Math.min(j, command.length);
+      const inside = command.slice(i + 1, j);
+      if (/\$\(|`/.test(inside)) return out + command.slice(i);
+      out += `"${"_".repeat(inside.length)}${j < command.length ? '"' : ""}`;
+      i = j;
+    } else {
+      out += ch;
+    }
+  }
+  return out;
+}
+
+/**
+ * True when the text holds a subagent write form: a redirect to a file, or one of the write
+ * commands. `shape` is the same command through blankQuoted, where a quoted `>` is not a redirect.
+ */
+function hasWriteForm(text, shape = text) {
+  return withoutFds(shape).includes(">") || WRITE_FORMS.some((re) => re.test(text));
 }
 
 /** Splits a command into words, honouring quotes. Null when a newline or backslash is outside them. */
@@ -217,22 +276,38 @@ function words(command) {
   return out;
 }
 
-const READERS = new Set(["cat", "ls", "head", "jq", "grep"]);
+const READERS = new Set(["cat", "ls", "head", "tail", "wc", "jq", "grep"]);
 const GIT_READS = new Set(["diff", "log", "show", "status"]);
 
-/** Form (a): plain reads joined only by pipes into one another. */
+/** `sed -n` with a line range or one /pattern/ and the p command, then only files: it prints and writes nothing. */
+const isSedPrint = (w) =>
+  w[1] === "-n" &&
+  /^(?:(?:\d+|\$)(?:,(?:\d+|\$))?|\/[^/]*\/)p$/.test(w[2] ?? "") &&
+  w.slice(3).every((arg) => !arg.startsWith("-"));
+
+/** Form (a): plain reads joined only by pipes into one another (a pipe or `>` inside quotes is no pipe or redirect). */
 function isPlainRead(command) {
   const cmd = command.trim();
-  if (/[;&`]|\$\(|>|--output|\n/.test(cmd)) return false;
-  return cmd.split("|").every((segment) => {
+  const shape = blankQuoted(cmd);
+  if (/[;&`<>\r\n]|\$\(/.test(withoutFds(shape)) || cmd.includes("--output")) return false;
+  const segments = [];
+  let from = 0;
+  for (let i = 0; i <= shape.length; i++) {
+    if (i === shape.length || shape[i] === "|") {
+      segments.push(cmd.slice(from, i));
+      from = i + 1;
+    }
+  }
+  return segments.every((segment) => {
     const w = words(segment.trim());
     if (!w || w.length === 0) return false;
     if (w[0] === "git") return GIT_READS.has(w[w[1] === "-C" ? 3 : 1]);
+    if (w[0] === "sed") return isSedPrint(w);
     return READERS.has(w[0]);
   });
 }
 
-const ARGS = String.raw`(?:\s+[A-Za-z0-9_@%+=:,./~-]+)*`;
+const ARGS = String.raw`(?:[ \t]+[A-Za-z0-9_@%+=:,./~-]+)*`;
 const TARGET = String.raw`scripts/(?:ovl/[a-z-]+|quality-gate)\.mjs`;
 const NODE_RUNS = [
   new RegExp(String.raw`^node\s+"([^"]*?)${TARGET}"${ARGS}$`),
@@ -244,6 +319,7 @@ const PNPM_RUN = new RegExp(String.raw`^pnpm(?:\s+run)?\s+quality-gate${ARGS}$`)
 /** Form (b): a whole script run from a checkout of this project. */
 function isAllowedRun(command, ctx) {
   const cmd = command.trim();
+  if (/[\r\n]/.test(cmd)) return false;
   if (PNPM_RUN.test(cmd)) return true;
   for (const re of NODE_RUNS) {
     const match = re.exec(cmd);
@@ -311,7 +387,7 @@ function judgeBash(input, command) {
   if (names.length === 0) return [];
   const list = names.map(([set, prefix]) => `${set} ${prefix}`).join(", ");
   if (subagent) {
-    if (!hasWriteForm(text)) return [];
+    if (!hasWriteForm(text, blankQuoted(command).toLowerCase())) return [];
     const ctx = context(input);
     const folder = ownScreenshots(input, ctx);
     if (folder && isOwnScreenshotWrite(text, folder)) return [];
