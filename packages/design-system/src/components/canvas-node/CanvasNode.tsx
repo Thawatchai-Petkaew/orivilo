@@ -98,6 +98,11 @@ export function CanvasNode({ id, data, selected, dragging }: CanvasNodeProps) {
   const m = useMessages();
   const word = useWord();
   const kind = word(CANVAS_WORDS.node[data.kind]);
+  const basis = data.basis
+    ? data.basis === "rules"
+      ? m.taskBar.basisRules
+      : m.taskBar.basisMock
+    : undefined;
   const status = data.status ? word(CANVAS_WORDS.status[data.status]) : undefined;
   const candidate =
     board.connecting?.targets[board.connecting.index]?.nodeId === id ? "" : undefined;
@@ -149,7 +154,10 @@ export function CanvasNode({ id, data, selected, dragging }: CanvasNodeProps) {
           <span className="ds-node__chip">
             <KindIcon />
           </span>
-          <span className="ds-node__kind">{kind}</span>
+          <span className="ds-node__kind">
+            {kind}
+            {basis ? <span className="ds-node__basis">{basis}</span> : null}
+          </span>
           {status ? (
             <span className="ds-node__status" data-status={data.status}>
               {running ? <SpinnerIcon className="ds-spin" /> : null}

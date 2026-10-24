@@ -73,6 +73,11 @@ export const en: Messages = {
     streaming: "Replying",
     stopped: "Stopped",
     failed: "No reply came back. Your message is kept, so you can send it again",
+    replyTitle: "Reply on {topic}",
+    jump: "Go to reply node",
+    jumpLabel: "Go to reply node on {topic}",
+    placed: "Placed the reply as node {title}",
+    unlinked: "Not linked to any node",
   },
   tag: {
     remove: "Remove {label}",

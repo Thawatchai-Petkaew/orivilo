@@ -38,6 +38,7 @@ rules:
   - "A new result is a new node linked to its source; a node is never overwritten in place"
   - "A node outside the block registry lists its missing inputs on the node (ขาดข้อมูล)"
   - "A node made from a registry block derives its fill state from its answers and edges (ORV-44 part 2): empty has a dashed frame and asks its first question; partial counts what is left; summarized and unlinked show the rule-based summary (up to three lines, swatches for colours), labelled ตามกฎ"
+  - "A note a chat reply placed (ORV-106) carries NodeContent.basis: its header says ตามกฎ or ข้อมูลจำลอง after the kind word, plain text in the kind ink, never a chip; it is never marked done or approved"
   - "Stale means an upstream node changed after this one ran; shown with an edge and a word, not a tint"
   - "A note is glass, like the toolbar (owner's choice, ORV-56); every other kind is solid. Solid under reduced transparency"
 a11y:

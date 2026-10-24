@@ -226,3 +226,4 @@ export {
   type ChatReply,
   type ChatRequest,
 } from "./canvas-chat/CanvasChat";
+export { placeReply, replyTitle, type PlacedReply } from "./canvas-chat/place-reply";

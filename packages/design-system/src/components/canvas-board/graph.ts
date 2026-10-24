@@ -5,6 +5,7 @@
  * no React Flow runtime: the shell can run the same rules on a saved board.
  */
 import type { Connection, Edge, Node } from "@xyflow/react";
+import type { ChatBasis } from "../canvas-chat/CanvasChat";
 import { DEFAULT_LOCALE, type Locale, pick } from "../../i18n/locale";
 import { fill, messagesFor } from "../../i18n/messages/index";
 import {
@@ -59,6 +60,8 @@ export type NodeContent = {
   block?: string;
   /** The user's answers by input id; a block node's fill state and summary come from these. */
   answers?: Record<string, string | string[]>;
+  /** Where a reply on this node came from; set only on a node a chat reply placed (ORV-106). */
+  basis?: ChatBasis;
   collapsed?: boolean;
   /** A group's frame while expanded, kept so collapse and expand restore it (E4-3). */
   frame?: { width: number; height: number };
