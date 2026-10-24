@@ -3,6 +3,8 @@ import { useState } from "react";
 import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { LocaleProvider } from "../../i18n/LocaleProvider";
 import { fixtureJobs, fixtureManyJobs, fixtureTaskJobs, fixtureTaskJobsEn } from "../fixtures";
+import { BOARD } from "../canvas-board/fixtures";
+import { Stateful } from "../canvas-board/story-shell";
 import { Matrix, Narrow as NarrowFrame } from "../matrix";
 import { TaskBar, type TaskJob } from "./TaskBar";
 
@@ -14,7 +16,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "The jobs strip at the foot of the board (E4-5 part 2): a one-line summary, a toggle and a list of job rows with progress, the reason a job failed and a retry. Every job says where its result comes from, by rules or mock data; nothing here claims AI. Every story's jobs are mock data or worked out by rules, not live generation. The jump to a node arrives in slice B.",
+          "The jobs strip at the foot of the board (E4-5 part 2): a one-line summary, a toggle and a list of job rows with progress, the reason a job failed and a retry. Every job says where its result comes from, by rules or mock data; nothing here claims AI. Every story's jobs are mock data or worked out by rules, not live generation. Inside a board, a job whose node is on the board has a Go to node button.",
       },
     },
   },
@@ -25,10 +27,19 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+const intersects = (a: DOMRect, b: DOMRect) =>
+  a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
 const bar = (root: HTMLElement) => root.querySelector<HTMLElement>(".ds-taskbar") as HTMLElement;
 /** The bar's own announcer; Progress and Button keep status regions of their own. */
 const announcer = (root: HTMLElement) =>
   bar(root).querySelector<HTMLElement>(":scope > [role='status']") as HTMLElement;
+/** The board's zoom, read from the viewport transform. */
+const viewportScale = (root: HTMLElement) => {
+  const el = root.querySelector<HTMLElement>(".react-flow__viewport") as HTMLElement;
+  return new DOMMatrixReadOnly(getComputedStyle(el).transform).a;
+};
+const viewportTransform = (root: HTMLElement) =>
+  getComputedStyle(root.querySelector(".react-flow__viewport") as HTMLElement).transform;
 const rowOf = (root: HTMLElement, id: string) =>
   root.querySelector<HTMLElement>(`[data-job-id="${id}"]`) as HTMLElement;
 
@@ -108,7 +119,7 @@ export const Running: Story = {
   },
 };
 
-/** Under reduced motion the sweep and the retry spinner are switched off by the recipe. */
+/** Under reduced motion the sweep and the retry spinner are switched off by the recipe. Mock jobs. */
 export const RunningReducedMotion: Story = {
   args: { jobs: [fixtureJobs.runningUnknown] },
   play: async ({ canvasElement }) => {
@@ -264,7 +275,7 @@ function AnnounceHost() {
   );
 }
 
-/** The live region is empty at first; a state change is announced, a percent change is not. */
+/** The live region is empty at first; a state change is announced, a percent change is not. Mock jobs. */
 export const Announce: Story = {
   render: () => <AnnounceHost />,
   play: async ({ canvasElement }) => {
@@ -278,7 +289,7 @@ export const Announce: Story = {
   },
 };
 
-/** A controlled `expanded` wins over a press; the change is reported. */
+/** A controlled `expanded` wins over a press; the change is reported. Mock jobs. */
 export const Controlled: Story = {
   args: { expanded: false, onExpandedChange: fn() },
   play: async ({ canvasElement, args }) => {
@@ -290,7 +301,7 @@ export const Controlled: Story = {
   },
 };
 
-/** Tab reaches the toggle, then the list region, then each row's buttons in order. */
+/** Tab reaches the toggle, then the list region, then each row's buttons in order. Mock jobs. */
 export const Keyboard: Story = {
   args: {
     jobs: [fixtureJobs.failed, fixtureJobs.done, fixtureJobs.longReason],
@@ -353,7 +364,7 @@ export const Mixed: Story = {
   },
 };
 
-/** The mixed list at 360 px: names truncate with a title, nothing overflows sideways. */
+/** The mixed list at 360 px: names truncate with a title, nothing overflows sideways. Mock jobs. */
 export const Narrow: Story = {
   args: { jobs: mixedJobs, onRetry: fn() },
   decorators: [(Story) => <NarrowFrame>{Story()}</NarrowFrame>],
@@ -390,7 +401,7 @@ export const English: Story = {
 /**
  * Six bars in one document: the region names come from the catalog ("งาน", "รายการงาน") and the
  * public API has no label prop, so axe's landmark-unique rule is off for this story only. Each
- * bar sits inside a matrix cell that is named by its profile and mode.
+ * bar sits inside a matrix cell that is named by its profile and mode. Mock jobs.
  */
 export const RecipesAndModes: Story = {
   parameters: { a11y: { config: { rules: [{ id: "landmark-unique", enabled: false }] } } },
@@ -401,4 +412,132 @@ export const RecipesAndModes: Story = {
     </Matrix>
   ),
   decorators: [],
+};
+
+/** Three done jobs: one with a node on the board, one with no node, one whose node is not there. */
+const boardJobs: readonly TaskJob[] = [
+  { ...fixtureJobs.done, id: "job-on-board", nodeId: "logo" },
+  { ...fixtureJobs.done, id: "job-no-node", name: "สรุปแนวทางสี", nodeId: undefined },
+  { ...fixtureJobs.done, id: "job-missing", name: "ร่างหน้าแรก", nodeId: "ghost" },
+];
+
+/**
+ * The bar as a child of the board with its controls and shelf: Go to node shows only on the row
+ * whose node is on the board, selects that node alone, pans and zooms to it, focuses it and the
+ * board announces it. The node is not under the open list. Mock jobs on the fixture board.
+ */
+export const OnBoard: Story = {
+  args: { jobs: boardJobs },
+  render: (args) => (
+    <Stateful initial={BOARD} height={560} label="กระดานแบรนด์ (ข้อมูลตัวอย่าง)" minimap={false}>
+      <TaskBar {...args} />
+    </Stateful>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await waitFor(() =>
+      expect(canvasElement.querySelectorAll(".react-flow__node").length).toBeGreaterThan(0),
+    );
+    const jumps = canvas.getAllByRole("button", { name: /^ไปที่โหนดของ/ });
+    await expect(jumps).toHaveLength(1);
+    await expect(jumps[0]).toHaveAccessibleName(`ไปที่โหนดของ ${boardJobs[0]?.name}`);
+    await expect(within(rowOf(canvasElement, "job-no-node")).queryByRole("button")).toBeNull();
+    await expect(within(rowOf(canvasElement, "job-missing")).queryByRole("button")).toBeNull();
+    await userEvent.click(jumps[0] as HTMLElement);
+    const logo = canvasElement.querySelector<HTMLElement>('.react-flow__node[data-id="logo"]');
+    await waitFor(() => expect(logo).toHaveClass("selected"));
+    await expect(canvasElement.querySelectorAll(".react-flow__node.selected")).toHaveLength(1);
+    await waitFor(() => expect(logo).toHaveFocus());
+    await expect(canvasElement.querySelector(".ds-board__status")).toHaveTextContent("ไปที่ โลโก้");
+    // The bar's own live region says nothing about the jump.
+    await expect(announcer(canvasElement)).toHaveTextContent("");
+    // The node settles inside the board, above the open list, at a zoom above the minimum.
+    const boardEl = canvasElement.querySelector<HTMLElement>(".ds-board") as HTMLElement;
+    await waitFor(() => {
+      const node = logo?.getBoundingClientRect() as DOMRect;
+      expect(node.top).toBeGreaterThanOrEqual(boardEl.getBoundingClientRect().top);
+      expect(node.bottom).toBeLessThanOrEqual(bar(canvasElement).getBoundingClientRect().top + 1);
+      expect(viewportScale(canvasElement)).toBeGreaterThan(0.25);
+    });
+    // The status line sits clear of the open bar.
+    const pill = canvasElement.querySelector(".ds-board__status") as HTMLElement;
+    const pillBox = pill.getBoundingClientRect();
+    await expect(pillBox.bottom).toBeLessThanOrEqual(
+      bar(canvasElement).getBoundingClientRect().top + 1,
+    );
+    // The node is clear of the toolbar, the status line and the bar.
+    const nodeBox = logo?.getBoundingClientRect() as DOMRect;
+    const controls = canvasElement.querySelector(".react-flow__panel.ds-controls") as HTMLElement;
+    await expect(intersects(nodeBox, controls.getBoundingClientRect())).toBe(false);
+    await expect(intersects(nodeBox, pillBox)).toBe(false);
+    await expect(intersects(nodeBox, bar(canvasElement).getBoundingClientRect())).toBe(false);
+  },
+};
+
+/**
+ * The jump on a 420 px board with the list open: the status line and the toolbar stay inside the
+ * board and the node is visible in it. Mock jobs.
+ */
+export const OnShortBoard: Story = {
+  args: { jobs: boardJobs },
+  render: (args) => (
+    <Stateful initial={BOARD} height={420} label="กระดานแบรนด์ (ข้อมูลตัวอย่าง)" minimap={false}>
+      <TaskBar {...args} />
+    </Stateful>
+  ),
+  play: async ({ canvasElement }) => {
+    await waitFor(() =>
+      expect(canvasElement.querySelectorAll(".react-flow__node").length).toBeGreaterThan(0),
+    );
+    await userEvent.click(within(canvasElement).getByRole("button", { name: /^ไปที่โหนดของ/ }));
+    const logo = canvasElement.querySelector<HTMLElement>('.react-flow__node[data-id="logo"]');
+    await waitFor(() => expect(logo).toHaveClass("selected"));
+    const boardBox = (
+      canvasElement.querySelector(".ds-board") as HTMLElement
+    ).getBoundingClientRect();
+    const inside = (box: DOMRect) => box.top >= boardBox.top && box.bottom <= boardBox.bottom;
+    await waitFor(() => {
+      const node = logo?.getBoundingClientRect() as DOMRect;
+      expect(inside(node)).toBe(true);
+    });
+    const pill = canvasElement.querySelector(".ds-board__status") as HTMLElement;
+    const controls = canvasElement.querySelector(".react-flow__panel.ds-controls") as HTMLElement;
+    await expect(inside(pill.getBoundingClientRect())).toBe(true);
+    await expect(inside(controls.getBoundingClientRect())).toBe(true);
+  },
+};
+
+/**
+ * Under reduced motion the jump lands at once: the viewport is final on the next frame, where the
+ * 200 ms glide would still be on its way. The preference is stubbed for this story. Mock jobs.
+ */
+export const OnBoardReducedMotion: Story = {
+  args: { jobs: boardJobs },
+  render: (args) => (
+    <Stateful initial={BOARD} height={560} label="กระดานแบรนด์ (ข้อมูลตัวอย่าง)" minimap={false}>
+      <TaskBar {...args} />
+    </Stateful>
+  ),
+  play: async ({ canvasElement }) => {
+    const original = window.matchMedia.bind(window);
+    window.matchMedia = (query: string) =>
+      query.includes("prefers-reduced-motion")
+        ? ({ ...original(query), matches: true } as MediaQueryList)
+        : original(query);
+    try {
+      await waitFor(() =>
+        expect(canvasElement.querySelectorAll(".react-flow__node").length).toBeGreaterThan(0),
+      );
+      const before = viewportTransform(canvasElement);
+      const jump = within(canvasElement).getByRole("button", { name: /^ไปที่โหนดของ/ });
+      await userEvent.click(jump);
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      const next = viewportTransform(canvasElement);
+      await expect(next).not.toBe(before);
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      await expect(viewportTransform(canvasElement)).toBe(next);
+    } finally {
+      window.matchMedia = original;
+    }
+  },
 };

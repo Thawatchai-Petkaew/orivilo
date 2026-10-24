@@ -3726,7 +3726,7 @@ button.ds-tag__main {
     opacity: 0;
   }
 }
-/* The list scrolls inside the bar after about five rows. Radix ScrollArea wraps the content in an
+/* The list scrolls inside the bar after about four rows. Radix ScrollArea wraps the content in an
  * internal div with inline `display: table` that grows to the widest line; a block keeps long names
  * truncating and reasons wrapping. This depends on that Radix wrapper: if Radix changes it, the
  * Narrow story is the check that goes red. */
@@ -3887,5 +3887,16 @@ button.ds-tag__main {
   bottom: calc(
     var(--ds-space-inset-md) * 2 + var(--cmp-button-height-sm) + 2 * var(--cmp-toolbar-padding) +
       2px + var(--_lift)
+  );
+}
+/* An open list adds up to its capped height to the bar. Only the status line clears it, and never
+ * past the board's top edge; the toolbar, minimap and shelf keep their closed-bar places. */
+.ds-board:has(.ds-taskbar__panel:not([hidden])) .ds-board__status {
+  bottom: min(
+    calc(
+      var(--ds-space-inset-md) * 2 + var(--cmp-button-height-sm) + 2 * var(--cmp-toolbar-padding) +
+        2px + var(--_lift) + var(--cmp-taskbar-list-max-height) + 1px
+    ),
+    calc(100% - var(--ds-size-control-md) - var(--ds-space-inset-md))
   );
 }

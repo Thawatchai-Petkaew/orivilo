@@ -76,6 +76,7 @@ import {
   type BoardContextValue,
   type BoardTool,
   type CommandContext,
+  type JumpOptions,
   type KeyboardConnecting,
 } from "./context";
 import {
@@ -97,7 +98,7 @@ import {
   setEdgeMeaning,
 } from "./graph";
 
-export type { CommandContext } from "./context";
+export type { CommandContext, JumpOptions } from "./context";
 
 export type BoardVariant = "edit" | "present";
 
@@ -533,10 +534,30 @@ function Board({
     nodeElement(id)?.focus();
   };
 
-  const jumpToNode = (id: string) => {
-    const node = graphRef.current.nodes.find((n) => n.id === id);
+  const jumpToNode = (id: string, options?: JumpOptions) => {
+    const g = graphRef.current;
+    const node = g.nodes.find((n) => n.id === id);
     if (!node) return;
-    void flow.fitView({ nodes: [{ id }], duration: 200, maxZoom: 1, padding: 0.5 });
+    if (options?.select) {
+      const only = node.selected && selectedNodes(g).length === 1;
+      if (!only) emit(selectOnly(g, [id]));
+    }
+    // xyflow reads a number padding p as floor((H - H / (1 + p)) / 2) per side, so 0.5 is H / 6.
+    // A task bar on the board covers the foot of it: the bar's height above the board's bottom
+    // edge joins the bottom side, in pixels, so the node lands inside the board above the bar.
+    const rect = wrapper.current?.getBoundingClientRect();
+    const bar = wrapper.current?.querySelector<HTMLElement>(".ds-taskbar");
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const side = rect ? Math.floor((rect.height - rect.height / 1.5) / 2) : 0;
+    const cover = rect && bar ? Math.max(0, rect.bottom - bar.getBoundingClientRect().top) : 0;
+    void flow.fitView({
+      nodes: [{ id }],
+      duration: reduced ? 0 : 200,
+      maxZoom: 1,
+      padding: bar
+        ? { top: `${side}px`, left: `${side}px`, right: `${side}px`, bottom: `${side + cover}px` }
+        : 0.5,
+    });
     focusNode(id);
     setMessage(fill(m.board.jumped, { title: node.data.title }));
   };
@@ -901,7 +922,7 @@ function Board({
     runRef.current(id, ctx);
   }, []);
   const can = useCallback((id: CommandId, ctx?: CommandContext) => enabledRef.current(id, ctx), []);
-  const jump = useCallback((id: string) => jumpRef.current(id), []);
+  const jump = useCallback((id: string, options?: JumpOptions) => jumpRef.current(id, options), []);
 
   const selectedNodeIds = useMemo(
     () => graph.nodes.filter((n) => n.selected).map((n) => n.id),

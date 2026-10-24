@@ -5,11 +5,13 @@ import { useMessages } from "../../i18n/LocaleProvider";
 import { fill } from "../../i18n/messages/index";
 import type { Messages } from "../../i18n/messages/index";
 import { Button } from "../button/Button";
+import { useBoard } from "../canvas-board/context";
 import { cx } from "../cx";
 import {
   CheckIcon,
   CollapseIcon,
   ExpandIcon,
+  JumpIcon,
   QueuedIcon,
   RetryIcon,
   RunningIcon,
@@ -83,7 +85,9 @@ const MARK: Record<TaskJobState, ReactNode> = {
  * summary and a toggle, and an upward list of job rows. It stores no job data, only the expanded
  * flag and which retries are pending. Every job says where its result comes from (rules or mock);
  * nothing here claims AI. One polite live region announces state changes; a running job's percent
- * is silent. The jump to a node arrives in slice B.
+ * is silent. Inside a `CanvasBoard` a job whose node is on the board gets a Go to node button that
+ * selects, shows and focuses the node; elsewhere the board context is empty and the button never
+ * shows.
  */
 export function TaskBar({
   jobs,
@@ -94,6 +98,10 @@ export function TaskBar({
   className,
 }: TaskBarProps) {
   const m = useMessages();
+  const board = useBoard();
+  /** The job's node when the board has it; the context default has no nodes, so off a board never. */
+  const jumpTarget = (job: TaskJob): string | undefined =>
+    board.graph.nodes.find((n) => n.id === job.nodeId)?.id;
   const labelId = useId();
   const panelId = useId();
   const [expandedState, setExpandedState] = useState(defaultExpanded);
@@ -261,18 +269,33 @@ export function TaskBar({
                   {job.state === "failed" ? (
                     <p className="ds-taskbar__reason">{job.reason}</p>
                   ) : null}
-                  {job.state === "failed" && onRetry ? (
+                  {jumpTarget(job) !== undefined || (job.state === "failed" && onRetry) ? (
                     <div className="ds-taskbar__actions">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        iconLeading={<RetryIcon />}
-                        loading={pending.get(job.id) === signature(job)}
-                        aria-label={fill(m.taskBar.retryLabel, { name: job.name })}
-                        onClick={() => retry(job)}
-                      >
-                        {m.taskBar.retry}
-                      </Button>
+                      {jumpTarget(job) !== undefined ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          iconLeading={<JumpIcon />}
+                          aria-label={fill(m.taskBar.jumpLabel, { name: job.name })}
+                          onClick={() =>
+                            board.jumpToNode(jumpTarget(job) as string, { select: true })
+                          }
+                        >
+                          {m.taskBar.jump}
+                        </Button>
+                      ) : null}
+                      {job.state === "failed" && onRetry ? (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          iconLeading={<RetryIcon />}
+                          loading={pending.get(job.id) === signature(job)}
+                          aria-label={fill(m.taskBar.retryLabel, { name: job.name })}
+                          onClick={() => retry(job)}
+                        >
+                          {m.taskBar.retry}
+                        </Button>
+                      ) : null}
                     </div>
                   ) : null}
                 </li>
