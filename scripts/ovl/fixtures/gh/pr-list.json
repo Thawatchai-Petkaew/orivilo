@@ -1,0 +1,26 @@
+[
+  {
+    "headRefName": "docs/ORV-93-improvement-and-docs",
+    "headRefOid": "59c1ed7d5079ed9f5e992bf02c9ef9af95f0e387",
+    "mergedAt": "2026-10-24T12:38:13Z",
+    "number": 87,
+    "state": "MERGED",
+    "title": "ORV-93: improvement run (L-0010, L-0011), downstream specs, handoff and plan"
+  },
+  {
+    "headRefName": "feature/ORV-93-write-guard",
+    "headRefOid": "15b345de66472e80df777dfcc282eac6c80cd3a7",
+    "mergedAt": "2026-10-24T12:10:34Z",
+    "number": 85,
+    "state": "MERGED",
+    "title": "ORV-93: write-guard, doctor probe, metrics session --out (slice B, PR 2)"
+  },
+  {
+    "headRefName": "feature/ORV-93-qa-agent",
+    "headRefOid": "90a019a830427c5cc8eed5a4b7fefdaab6be5954",
+    "mergedAt": "2026-10-24T09:49:32Z",
+    "number": 84,
+    "state": "MERGED",
+    "title": "ORV-93: qa agent; screenshots resolve in the main checkout records (slice B, PR 1)"
+  }
+]

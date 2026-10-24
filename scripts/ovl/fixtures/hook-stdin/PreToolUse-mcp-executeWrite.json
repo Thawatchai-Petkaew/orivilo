@@ -1,0 +1,26 @@
+{
+  "session_id": "ee4789f3-d2ba-4148-9254-0b7fad8e4b25",
+  "transcript_path": "/Users/tawatchaipetkaew/.claude/projects/-private-tmp-orv98-scratch/ee4789f3-d2ba-4148-9254-0b7fad8e4b25.jsonl",
+  "cwd": "/private/tmp/orv98-scratch",
+  "scratchpad_dir": "/private/tmp/claude-501/-private-tmp-orv98-scratch/ee4789f3-d2ba-4148-9254-0b7fad8e4b25/scratchpad",
+  "prompt_id": "88a7c432-ee5e-4069-acf4-f5c1a98da8ae",
+  "permission_mode": "bypassPermissions",
+  "effort": {
+    "level": "medium"
+  },
+  "hook_event_name": "PreToolUse",
+  "tool_name": "mcp__claude_ai_Atlassian_MCP__executeWrite",
+  "tool_input": {
+    "cloudId": "tpetkaew.atlassian.net",
+    "name": "transitionJiraIssue",
+    "inputs": {
+      "issueIdOrKey": "ORV-0",
+      "transitionId": "4"
+    }
+  },
+  "tool_use_id": "toolu_01JSxmxwddhcmffc9tC3HvBF",
+  "mcp_server": {
+    "name": "claude.ai Atlassian MCP",
+    "source": "claudeai"
+  }
+}
