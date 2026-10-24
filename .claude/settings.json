@@ -25,6 +25,23 @@
           {
             "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/worktree-guard.mjs\" || exit 2"
+          },
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/write-guard.mjs\" || exit 2"
+          },
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/merge-guard.mjs\" || exit 2"
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/write-guard.mjs\" || exit 2"
           }
         ]
       },
@@ -43,6 +60,16 @@
           {
             "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/resume-guard.mjs\" || exit 2"
+          }
+        ]
+      },
+      {
+        "matcher": "^mcp__.*[Aa]tlassian.*__(transitionJiraIssue|executeWrite|executeDestructive)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/g3-check.mjs\" || exit 2",
+            "timeout": 300
           }
         ]
       }

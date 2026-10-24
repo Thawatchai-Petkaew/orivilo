@@ -1,0 +1,70 @@
+{
+  "baseRefName": "develop",
+  "changedFiles": 10,
+  "files": [
+    {
+      "path": ".claude/skills/ovl/SKILL.md",
+      "additions": 13,
+      "deletions": 0,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "docs/LESSONS.md",
+      "additions": 14,
+      "deletions": 12,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "docs/context/handoff.md",
+      "additions": 13,
+      "deletions": 11,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "docs/lessons/L-0010-one-builder-task-built-six-deliverables.md",
+      "additions": 65,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "docs/lessons/L-0011-spec-revision-and-fix-ran-in-parallel.md",
+      "additions": 61,
+      "deletions": 0,
+      "changeType": "ADDED"
+    },
+    {
+      "path": "docs/lessons/README.md",
+      "additions": 13,
+      "deletions": 11,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "docs/plans/master-plan.md",
+      "additions": 9,
+      "deletions": 8,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "docs/specs/ORV-81/spec.md",
+      "additions": 20,
+      "deletions": 9,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "docs/specs/ORV-87/spec.md",
+      "additions": 1,
+      "deletions": 0,
+      "changeType": "MODIFIED"
+    },
+    {
+      "path": "docs/specs/ORV-93/spec.md",
+      "additions": 5,
+      "deletions": 3,
+      "changeType": "MODIFIED"
+    }
+  ],
+  "headRefName": "docs/ORV-93-improvement-and-docs",
+  "headRefOid": "59c1ed7d5079ed9f5e992bf02c9ef9af95f0e387",
+  "number": 87,
+  "title": "ORV-93: improvement run (L-0010, L-0011), downstream specs, handoff and plan"
+}

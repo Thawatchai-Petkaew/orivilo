@@ -15,9 +15,9 @@ The ORV-81 Jira description records the result: "On 2026-10-23 the owner said th
 
 ## Rule
 
-- The main session acts as the lead: it writes envelopes, dispatches role agents and reports. It does not edit production code.
+- The main session runs the `ovl` skill: it writes envelopes, dispatches role agents and reports. It does not edit production code.
 - Each story has a builder agent and a separate QA agent. The QA agent gets the spec and the sources as paths, not the builder's summary, and returns findings with evidence that can be re-run ([[K-0006-finding-without-evidence-is-dropped]]).
 - The G3 packet names which agent did each step and attaches the QA report. No QA report, no G3 ([[K-0010-campvibe-done-needs-a-verify-role]]).
 - Model review stops at 2 rounds; what is left goes to the owner ([[K-0007-model-review-capped-at-two-rounds]]).
 
-Status: proposed (targets AGENTS.md, the lead agent and the `gate-packet` skill; ORV-81)
+Status: proposed (targets AGENTS.md, the `ovl` skill and the `gate-packet` skill; ORV-81)

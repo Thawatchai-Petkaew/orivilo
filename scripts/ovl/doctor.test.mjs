@@ -246,3 +246,107 @@ test("ORV-88 row 11: check names a silent resume-guard and passes after its prob
   assert.equal(runNode(hook("resume-guard.mjs"), probe, { CLAUDE_PROJECT_DIR: root }).code, 2);
   assert.equal(run(root, "check", plan.since).code, 0);
 });
+
+// ORV-93 rows 28 and 29: the write-guard probe and the probe file.
+
+const writeBeat = (root, decision, at, hook = "write-guard", tool = "Write") => {
+  mkdirSync(join(root, ".orivilo"), { recursive: true });
+  writeFileSync(
+    join(root, ".orivilo", "heartbeat.jsonl"),
+    `${JSON.stringify({ hook, event: "PreToolUse", at, tool, agent_id: null, decision })}\n`,
+  );
+};
+
+test("ORV-93 row 28: plan lists write-guard with the Write probe into packages/", () => {
+  const root = makeRepo();
+  registerGuards(root, ["write-guard"]);
+  const plan = JSON.parse(run(root, "plan").stdout);
+  assert.equal(plan.guards[0].name, "write-guard");
+  assert.deepEqual(plan.guards[0].probe, {
+    hook_event_name: "PreToolUse",
+    tool_name: "Write",
+    tool_input: {
+      file_path: "packages/.ovl-probe",
+      content: "ovl-doctor probe: write-guard must block this",
+    },
+  });
+});
+
+test("ORV-93 row 29: check names write-guard when it logged no block, and passes with a block line", () => {
+  const root = makeRepo();
+  registerGuards(root, ["write-guard"]);
+  const since = new Date().toISOString();
+  const silent = run(root, "check", since);
+  assert.equal(silent.code, 2);
+  assert.match(silent.stderr, /write-guard/);
+  writeBeat(root, "block", new Date(Date.now() + 1000).toISOString());
+  assert.equal(run(root, "check", since).code, 0);
+});
+
+test("ORV-93 row 29: a probe file in packages/ means the guard let the probe write", () => {
+  const root = makeRepo();
+  registerGuards(root, ["write-guard"]);
+  const since = new Date().toISOString();
+  writeBeat(root, "block", new Date(Date.now() + 1000).toISOString());
+  mkdirSync(join(root, "packages"), { recursive: true });
+  writeFileSync(join(root, "packages", ".ovl-probe"), "x");
+  const r = run(root, "check", since);
+  assert.equal(r.code, 2);
+  assert.match(r.stderr, /packages\/\.ovl-probe/);
+  assert.match(r.stderr, /let the probe write/);
+});
+
+test("ORV-95 row 40: plan lists merge-guard with the gh pr merge 0 probe", () => {
+  const root = makeRepo();
+  registerGuards(root, ["merge-guard"]);
+  const plan = JSON.parse(run(root, "plan").stdout);
+  assert.equal(plan.guards[0].name, "merge-guard");
+  assert.deepEqual(plan.guards[0].probe, {
+    hook_event_name: "PreToolUse",
+    tool_name: "Bash",
+    tool_input: {
+      command: "gh pr merge 0",
+      description: "ovl-doctor probe: merge-guard must block this",
+    },
+  });
+});
+
+test("ORV-95 row 41: check names merge-guard without a block heartbeat, then passes with one", () => {
+  const root = makeRepo();
+  registerGuards(root, ["merge-guard"]);
+  const since = new Date().toISOString();
+  const silent = run(root, "check", since);
+  assert.equal(silent.code, 2);
+  assert.match(silent.stderr, /merge-guard/);
+  writeBeat(root, "block", new Date(Date.now() + 1000).toISOString(), "merge-guard", "Bash");
+  assert.equal(run(root, "check", since).code, 0);
+});
+
+const G3_TOOL = "mcp__claude_ai_Atlassian_MCP__transitionJiraIssue";
+
+test("ORV-98 row 22: plan lists g3-check with the ORV-0 transition probe", () => {
+  const root = makeRepo();
+  registerGuards(root, ["g3-check"]);
+  const plan = JSON.parse(run(root, "plan").stdout);
+  assert.equal(plan.guards[0].name, "g3-check");
+  assert.deepEqual(plan.guards[0].probe, {
+    hook_event_name: "PreToolUse",
+    tool_name: G3_TOOL,
+    tool_input: {
+      cloudId: "tpetkaew.atlassian.net",
+      issueIdOrKey: "ORV-0",
+      transitionId: "4",
+    },
+  });
+});
+
+test("ORV-98 row 22: check names g3-check without a block heartbeat, then passes with one", () => {
+  const root = makeRepo();
+  registerGuards(root, ["g3-check"]);
+  const since = new Date().toISOString();
+  const silent = run(root, "check", since);
+  assert.equal(silent.code, 2);
+  assert.match(silent.stderr, /g3-check/);
+  writeBeat(root, "block", new Date(Date.now() + 1000).toISOString(), "g3-check", G3_TOOL);
+  assert.equal(run(root, "check", since).code, 0);
+});

@@ -29,6 +29,9 @@ import { fileURLToPath } from "node:url";
 import { gitTop, recordsRoot } from "./hook.mjs";
 import { allTasks, isOpen, runsDir, taskDir, writeClosed } from "./records.mjs";
 
+/** The file the write-guard probe tries to create; it exists only if the guard let the probe write. */
+const PROBE_FILE = "packages/.ovl-probe";
+
 /** The probe call for each guard that can be probed without a person. A slice adds its guard here. */
 const PROBES = {
   "envelope-guard": {
@@ -40,6 +43,14 @@ const PROBES = {
       prompt: "ovl-doctor probe: this is not an envelope, so envelope-guard must block it",
     },
   },
+  "write-guard": {
+    hook_event_name: "PreToolUse",
+    tool_name: "Write",
+    tool_input: {
+      file_path: PROBE_FILE,
+      content: "ovl-doctor probe: write-guard must block this",
+    },
+  },
   "resume-guard": {
     hook_event_name: "PreToolUse",
     tool_name: "SendMessage",
@@ -47,6 +58,25 @@ const PROBES = {
       to: "ovl-doctor-probe",
       summary: "ovl-doctor probe",
       message: "ovl-doctor probe: resume-guard must block this",
+    },
+  },
+  // `gh pr merge 0` is blocked in the text stage (no network call), so the probe changes nothing.
+  "merge-guard": {
+    hook_event_name: "PreToolUse",
+    tool_name: "Bash",
+    tool_input: {
+      command: "gh pr merge 0",
+      description: "ovl-doctor probe: merge-guard must block this",
+    },
+  },
+  // A move to G3 PR review on ORV-0 is blocked in the call stage (no network call), and ORV-0 does not exist.
+  "g3-check": {
+    hook_event_name: "PreToolUse",
+    tool_name: "mcp__claude_ai_Atlassian_MCP__transitionJiraIssue",
+    tool_input: {
+      cloudId: "tpetkaew.atlassian.net",
+      issueIdOrKey: "ORV-0",
+      transitionId: "4",
     },
   },
 };
@@ -276,6 +306,13 @@ function main(argv) {
   }
   if (command === "check" && argv.length === 2) {
     const silent = check(root, store, since);
+    const probeFile = join(store, PROBE_FILE);
+    if (existsSync(probeFile)) {
+      console.error(
+        `ovl-doctor: ${probeFile} exists, so write-guard let the probe write. Remove it and stop the run.`,
+      );
+      return 2;
+    }
     if (silent.length === 0) return 0;
     console.error(
       `ovl-doctor: no heartbeat since ${since} from: ${silent.join(", ")}. Stop the run.`,

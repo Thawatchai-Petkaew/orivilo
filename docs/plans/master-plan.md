@@ -1,6 +1,6 @@
 # Master plan: where ORIVILO stands
 
-The plan in one place, kept in git so every session and account reads the same thing. Jira holds live status; this file holds the shape of the plan and why the order is what it is. Update it when an epic moves, when the owner changes the order, or before you hand the work to another session. Last updated 2026-10-24, after ORV-81 to ORV-92 (the AI team loop, its metrics and the first improvement run). The epic table below is still the 2026-10-23 count.
+The plan in one place, kept in git so every session and account reads the same thing. Jira holds live status; this file holds the shape of the plan and why the order is what it is. Update it when an epic moves, when the owner changes the order, or before you hand the work to another session. Last updated 2026-10-24, after ORV-81 to ORV-92 (the AI team loop, its metrics and the first improvement run) and release PR #82; ORV-93 (slice B) and ORV-76 merged into `develop` the same day. The epic table below is still the 2026-10-23 count.
 
 Sources: the roadmap (https://claude.ai/artifact/H6YU5RrKniVMS1azGdG1oa, 2026-10-21), the progress report (https://claude.ai/artifact/WiTsC13it9yESkFiRU7wL7, 2026-10-22), `docs/specs/backlog-draft.md` (draft keys to Jira keys) and Jira project ORV on 2026-10-23. Where they differ, Jira and this file win.
 
@@ -34,8 +34,8 @@ Owner requests outside the epics (ORV-54 to ORV-70) are listed in Jira; the rece
 
 ## Order from here
 
-1. Finish the AI team loop (see the AI team section below): ORV-88 SendMessage resume guard, ORV-81 slice B (`write-guard` and the qa agent), then slice C1 (`merge-guard`, which the owner merges by hand), C2 and D. Audit D.2 base depth is done: ORV-67, 68, 70, 72, 77, 78.
-2. Story fixes: ORV-83, ORV-84, ORV-76 (canvas stories flaky on macOS).
+1. Finish the AI team loop (see the AI team section below): slice B is done (ORV-93); next slice C1 (`merge-guard`, which the owner merges by hand), C2 and D. Audit D.2 base depth is done: ORV-67, 68, 70, 72, 77, 78.
+2. Story fixes: ORV-83, ORV-84. ORV-76 (canvas stories flaky on macOS) is done.
 3. E4-5 (ORV-45) parts 2 and 3: TaskBar, then CanvasChat with the chat parts (audit D.1).
 4. Audit D.3: missing components by Studio need (RadioGroup, Switch, Alert, empty states, Avatar, navigation, confirm dialog, file upload, combobox).
 5. E4-6 CompareStrip and VersionBadge, E4-7 present mode, E4-8 canvas example page.
@@ -48,7 +48,7 @@ Each step is a batch: when it is finished in `develop`, propose a release to sta
 ## Waiting on the owner
 
 - G5 sign-off for what is on staging, or the list of what to fix. Nothing is Done until then.
-- When to move the next batch from `develop` to staging (ORV-91 and ORV-92 so far; ORV-92 fixes the zod audit, the likely cause of `main`'s failed CI run after release PR #67).
+- When to move the next batch from `develop` to staging: ORV-76, ORV-93 and the ORV-88 improvement run docs (PRs #83 to #86). Release PR #82 moved ORV-88, ORV-91 and ORV-92 there on 2026-10-24.
 - ORV-63: when the POC ends, the second database, domain and keys for production.
 
 ## AI team setup (the AI Team Loop plan, 2026-10-21)
@@ -65,19 +65,19 @@ Source: https://claude.ai/artifact/G7gBVvVk5fgsxZPYWbw4XC. Where it differs from
 
 Phase 1: lanes are labels (`lane-L`), not a custom field; GitHub for Jira is not checked.
 
-Built (ORV-81 and its slices ORV-85, ORV-86, ORV-89, ORV-90; metrics ORV-87 and ORV-91):
+Built (ORV-81 and its slices ORV-85, ORV-86, ORV-89, ORV-90; ORV-88; ORV-93 slice B; metrics ORV-87 and ORV-91):
 
-- Hooks on every Agent call: `envelope-guard`, `result-recorder`, `owner-grant`, `worktree-guard`. The main session dispatches role agents with one envelope.v1 JSON prompt each, through the `ovl` skill and `node scripts/ovl/doctor.mjs`.
+- Hooks on every Agent call: `envelope-guard`, `result-recorder`, `owner-grant`, `worktree-guard`; `resume-guard` blocks every SendMessage (ORV-88). The main session dispatches role agents with one envelope.v1 JSON prompt each, through the `ovl` skill and `node scripts/ovl/doctor.mjs`.
 - `pnpm quality-gate` (E0-4): the full gate with real exit codes and a JSON report; run in the main session, it writes a gate record.
 - Metrics: `node scripts/ovl/metrics.mjs collect|report|session|due` (spec `docs/specs/ORV-87/spec.md`).
 - The improvement loop (`ovl` skill step 5) with Expected saving lessons. The first run, 2026-10-24, produced L-0008 (a reviewer re-check starts from the previous findings and the rework diff); the owner approved it, it is applied, and it is checked after 2026-11-07. The same run measured the orchestrator main session at 388,875,503 tokens in session 0baff5a3, about 4.3 times all its subagents.
-- 7 role agents and 7 skills (`ovl` is new), plus the pre-commit hook.
+- `write-guard` (ORV-93): the main session cannot write deliverables, guard files or records. The `qa` agent walks every AC with the full gate; its first walk found an untested clause by mutation.
+- L-0009 (ORV-76): verify a fix with the affected tests, then the full suite once; in `.claude/rules/testing.md` and `.claude/agents/builder.md`.
+- 8 role agents (`qa` is new) and 7 skills, plus the pre-commit hook.
 
 Not built:
 
-- `write-guard` and the qa agent (ORV-81 slice B), so nothing blocks an unwanted write and no qa agent verifies UI.
 - `merge-guard` (ORV-81 slice C1, which the owner merges by hand), then slices C2 and D.
-- A guard against SendMessage resumes (ORV-88).
 - The superpowers skills (plan in small tasks, TDD, verification before completion).
 - Phase 3 automation: E0-1, the workflows and Jira Automation below.
 
@@ -85,7 +85,7 @@ Phase 3 plan, in order:
 
 1. E0-4: a quality-gate script that runs the full gate, writes a JSON report and exits non-zero on failure. Done: `pnpm quality-gate`.
 2. E0-1: a Jira field and transition check. Not built.
-3. A task schema (JSON). Done as the envelope and report contracts of ORV-81, checked by the hooks. The verify step is the reviewer and the gate record today; the qa agent comes with slice B.
+3. A task schema (JSON). Done as the envelope and report contracts of ORV-81, checked by the hooks. The verify step is the reviewer, the qa agent (ORV-93) and the gate record.
 4. `agent-stage.yml` and `agent-review.yml` with max-turns, allowed tools and concurrency. Not built.
 5. Jira Automation, which the owner sets up: an approve wakes the next stage. Not built.
 

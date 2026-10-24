@@ -55,10 +55,24 @@ const shelf = (root: HTMLElement) => within(root).getByRole("group", { name: "�
 const tile = (root: HTMLElement, name: string) =>
   within(shelf(root)).getByRole("button", { name: new RegExp(`^${name}`) });
 
+/**
+ * The board is usable once React Flow has measured every node (it hides a node until then). Tile
+ * states, drops and the viewport centre all read the measured board, so a loaded machine looked
+ * too early; each story that touches the board waits for it first.
+ */
+const ready = async (root: HTMLElement) => {
+  await waitFor(() => {
+    const nodes = root.querySelectorAll<HTMLElement>(".react-flow__node");
+    expect(nodes).toHaveLength(MIDWAY.nodes.length);
+    for (const n of nodes) expect(n.style.visibility).not.toBe("hidden");
+  });
+};
+
 /** Every block by module, each with its state as a word and a mark: not on the board, empty, partial, summarized, unlinked. */
 export const Default: Story = {
   render: () => <ShelfBoard />,
   play: async ({ canvasElement }) => {
+    await ready(canvasElement);
     const s = within(shelf(canvasElement));
     await expect(s.getByRole("heading", { name: "แบรนด์" })).toBeVisible();
     await expect(s.getByRole("heading", { name: "ระบบออกแบบ" })).toBeVisible();
@@ -86,15 +100,19 @@ export const Default: Story = {
 export const PlaceByKeyboard: Story = {
   render: () => <ShelfBoard />,
   play: async ({ canvasElement }) => {
+    await ready(canvasElement);
     const font = tile(canvasElement, "ฟอนต์");
-    font.focus();
+    await waitFor(() => {
+      font.focus();
+      expect(font).toHaveFocus();
+    });
     await userEvent.keyboard("{Enter}");
     await waitFor(() => expect(canvasElement.querySelectorAll(".ds-node")).toHaveLength(7));
     const placed = [...canvasElement.querySelectorAll<HTMLElement>(".ds-node")].at(
       -1,
     ) as HTMLElement;
     await expect(placed).toHaveAttribute("data-selected", "");
-    await expect(within(placed).getByText("ยังว่าง")).toBeVisible();
+    await waitFor(() => expect(within(placed).getByText("ยังว่าง")).toBeVisible());
     await expect(within(shelf(canvasElement)).getByRole("status")).toHaveTextContent(
       "วาง ฟอนต์ บนกระดานแล้ว",
     );
@@ -108,6 +126,7 @@ export const PlaceByKeyboard: Story = {
 export const SelectExisting: Story = {
   render: () => <ShelfBoard />,
   play: async ({ canvasElement }) => {
+    await ready(canvasElement);
     await userEvent.click(tile(canvasElement, "บรีฟ"));
     await expect(canvasElement.querySelectorAll(".ds-node")).toHaveLength(6);
     await waitFor(() =>
@@ -123,6 +142,7 @@ export const SelectExisting: Story = {
 export const PlaceByDrag: Story = {
   render: () => <ShelfBoard />,
   play: async ({ canvasElement }) => {
+    await ready(canvasElement);
     const icon = tile(canvasElement, "ไอคอน");
     const pane = canvasElement.querySelector(".react-flow__pane") as HTMLElement;
     const data = new DataTransfer();

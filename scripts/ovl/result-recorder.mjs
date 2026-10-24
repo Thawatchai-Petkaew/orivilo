@@ -45,15 +45,17 @@ function field(input, name, what = "a string") {
   return input[name];
 }
 
-/** The screenshot problem for `path`, or null when it is a PNG under the task's own screenshots folder. */
-function pngProblem(root, env, path) {
+/** The screenshot problem for `path`, or null when it is a PNG under the task's own screenshots folder in the records root `store`. */
+function pngProblem(store, env, path) {
   const dir = screenshotsDir(env);
   if (!path.startsWith(dir) || !/^[A-Za-z0-9._-]+$/.test(path.slice(dir.length))) {
     return `screenshot ${path} is outside ${dir}`;
   }
   if (!path.endsWith(".png")) return `screenshot ${path} is not a PNG file`;
-  const full = join(root, path);
-  if (!existsSync(full)) return `screenshot ${path} does not exist`;
+  const full = join(store, path);
+  if (!existsSync(full)) {
+    return `screenshot ${path} does not exist; screenshots live in the main checkout's records (${store})`;
+  }
   return readFileSync(full).subarray(0, 8).equals(PNG_SIGNATURE)
     ? null
     : `screenshot ${path} is not a PNG file`;
@@ -73,17 +75,17 @@ function codeExists(root, head, file, line) {
 const styleOk = (e) => STYLE_REF.test(e.ref) && nonblank(e.observed);
 
 /** True when the finding's evidence can be run or opened again (spec, reviewer.v1 rules). */
-function runnable(root, env, head, f) {
+function runnable(root, store, env, head, f) {
   const e = f.evidence;
   if (e.kind === "command") return nonblank(e.ref) && nonblank(e.observed);
-  if (e.kind === "screenshot") return pngProblem(root, env, e.ref) === null;
+  if (e.kind === "screenshot") return pngProblem(store, env, e.ref) === null;
   if (e.kind === "computed_style") return styleOk(e);
   return e.kind === "code" && codeExists(root, head, f.file, f.line);
 }
 
 /** The reviewer.v1 rules, shared by qa.v1: unprovable findings move to dropped, then the verdict is checked. */
-function findingProblems(root, env, report) {
-  const kept = report.findings.filter((f) => runnable(root, env, report.head_sha, f));
+function findingProblems(root, store, env, report) {
+  const kept = report.findings.filter((f) => runnable(root, store, env, report.head_sha, f));
   const moved = report.findings.filter((f) => !kept.includes(f));
   const problems = [];
   const heavy = kept.filter((f) => f.severity !== "Suggestion");
@@ -130,7 +132,7 @@ function gateReport(root) {
 }
 
 /** Storybook's title for a changed stories file: the default export's `title`, else its path under src/. */
-function storyTitle(root, head, file) {
+export function storyTitle(root, head, file) {
   const source = git(root, ["show", `${head}:${file}`]);
   const explicit = /export default[\s\S]*?\btitle:\s*(["'`])(.+?)\1/.exec(source)?.[2];
   if (explicit) return explicit;
@@ -142,17 +144,17 @@ function storyTitle(root, head, file) {
   return parts.join("/");
 }
 
-const storyPrefix = (title) =>
+export const storyPrefix = (title) =>
   `${title
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")}--`;
 
-function screenshotProblems(root, env, report) {
+function screenshotProblems(store, env, report) {
   const out = [];
   const dir = screenshotsDir(env);
   for (const s of report.screenshots) {
-    const problem = pngProblem(root, env, s.path);
+    const problem = pngProblem(store, env, s.path);
     if (problem) out.push(problem);
     else if (s.path !== `${dir}${s.story}-${s.mode}.png`) {
       out.push(`screenshot ${s.path} must be named ${dir}${s.story}-${s.mode}.png`);
@@ -208,15 +210,15 @@ function approveProblems(root, report) {
 }
 
 /** The problem with one ac evidence item, or null. Screenshots and computed styles are checked like a finding's. */
-function acEvidenceProblem(root, env, e) {
-  if (e.kind === "screenshot") return pngProblem(root, env, e.ref);
+function acEvidenceProblem(store, env, e) {
+  if (e.kind === "screenshot") return pngProblem(store, env, e.ref);
   if (e.kind === "computed_style" && !styleOk(e)) {
     return `computed_style evidence needs a ref "<story-id> <selector> <property>" and an observed value`;
   }
   return null;
 }
 
-function qaProblems(root, env, report) {
+function qaProblems(root, store, env, report) {
   const out = [];
   const specRowList = specRows(root, env.issue);
   const seen = new Set();
@@ -243,17 +245,17 @@ function qaProblems(root, env, report) {
       out.push(`ac row ${row} is owner_verify; its evidence needs a screenshot`);
     }
     for (const e of ac.evidence) {
-      const problem = acEvidenceProblem(root, env, e);
+      const problem = acEvidenceProblem(store, env, e);
       if (problem) out.push(`ac row ${row}: ${problem}`);
     }
   }
-  out.push(...screenshotProblems(root, env, report));
+  out.push(...screenshotProblems(store, env, report));
   if (report.verdict === "approve") out.push(...approveProblems(root, report));
   return out;
 }
 
 /** Judges one final message for one envelope: {problems, report, dropped}. Problems are what to send back. */
-function judge(root, task, text) {
+function judge(root, store, task, text) {
   const env = task.envelope;
   const contract = contractOf(env);
   let report;
@@ -284,8 +286,8 @@ function judge(root, task, text) {
     return { problems: [`report task_id "${report.task_id}" must be "${env.task_id}"`] };
   }
   if (contract === "implementer.v1") return { problems: [], report, dropped: [] };
-  const judged = findingProblems(root, env, report);
-  if (contract === "qa.v1") judged.problems.push(...qaProblems(root, env, report));
+  const judged = findingProblems(root, store, env, report);
+  if (contract === "qa.v1") judged.problems.push(...qaProblems(root, store, env, report));
   return judged;
 }
 
@@ -326,7 +328,12 @@ function onStop(input, { root, store }) {
     if (field(input, "agent_type") === "Explore") return [];
     const { task, reason } = boundTask(store, agentId);
     if (!task) return active ? [] : [reason];
-    const judged = judge(root, task, field(input, "last_assistant_message", "the final message"));
+    const judged = judge(
+      root,
+      store,
+      task,
+      field(input, "last_assistant_message", "the final message"),
+    );
     const background = isBackgroundStop(input);
     if (judged.problems.length === 0) {
       if (background) record(store, task, judged);
@@ -373,7 +380,7 @@ function onAgent(input, { root, store }) {
     .filter((c) => c?.type === "text")
     .map((c) => c.text)
     .join("\n");
-  const judged = judge(root, task, text);
+  const judged = judge(root, store, task, text);
   if (judged.problems.length > 0) {
     writeClosed(store, task, "no_report");
     return [...judged.problems, `${task.id} closed as no_report`];

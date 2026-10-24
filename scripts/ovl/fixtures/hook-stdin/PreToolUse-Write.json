@@ -1,0 +1,18 @@
+{
+  "session_id": "e53f81d0-39a6-4345-8017-7c1f3c2868eb",
+  "transcript_path": "/Users/tawatchaipetkaew/.claude/projects/-private-tmp-claude-501--Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO-6ac3845e-0f40-41f1-b299-4c8f7bcb1eee-scratchpad-probe/e53f81d0-39a6-4345-8017-7c1f3c2868eb.jsonl",
+  "cwd": "/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/6ac3845e-0f40-41f1-b299-4c8f7bcb1eee/scratchpad/probe",
+  "scratchpad_dir": "/private/tmp/claude-501/-private-tmp-claude-501--Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO-6ac3845e-0f40-41f1-b299-4c8f7bcb1eee-scratchpad-probe/e53f81d0-39a6-4345-8017-7c1f3c2868eb/scratchpad",
+  "prompt_id": "e7d49b62-f4f3-4616-91c5-ebe2f3eb7fe7",
+  "permission_mode": "bypassPermissions",
+  "effort": {
+    "level": "medium"
+  },
+  "hook_event_name": "PreToolUse",
+  "tool_name": "Write",
+  "tool_input": {
+    "file_path": "/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/6ac3845e-0f40-41f1-b299-4c8f7bcb1eee/scratchpad/probe/a.txt",
+    "content": "hello"
+  },
+  "tool_use_id": "toolu_01Wa3sGeX9WWWTvCt8X9tBb1"
+}

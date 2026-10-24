@@ -75,7 +75,12 @@ export const SelectedAndGroup: Story = {
   play: async ({ canvasElement }) => {
     const region = within(canvasElement).getByRole("region");
     const mini = await waitFor(() => map(region) as HTMLElement);
-    await waitFor(() => expect(mini.querySelector(".ds-minimap__group")).not.toBeNull());
+    // The minimap draws groups, selected and plain nodes in separate passes; wait for all three.
+    await waitFor(() => {
+      expect(mini.querySelector(".ds-minimap__group")).not.toBeNull();
+      expect(mini.querySelector(".ds-minimap__node-selected")).not.toBeNull();
+      expect(mini.querySelector(".ds-minimap__node")).not.toBeNull();
+    });
     const group = mini.querySelector(".ds-minimap__group") as SVGElement;
     const selected = mini.querySelector(".ds-minimap__node-selected") as SVGElement;
     const plain = mini.querySelector(".ds-minimap__node") as SVGElement;

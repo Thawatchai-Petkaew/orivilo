@@ -2,14 +2,22 @@
 // The ORV-87 collector: turns the /ovl run records and the Claude Code transcripts into numbers per task.
 // Usage: node scripts/ovl/metrics.mjs collect <ISSUE> [--root <checkout holding .orivilo>] [--projects <folder>]
 //        node scripts/ovl/metrics.mjs report <ISSUE...> [--root <folder>] [--out <name>]
-//        node scripts/ovl/metrics.mjs session <session id> [--projects <folder>]
+//        node scripts/ovl/metrics.mjs session <session id> [--projects <folder>] [--root <folder>] [--out <name>]
 //        node scripts/ovl/metrics.mjs due [--lessons <folder>] [--today YYYY-MM-DD]
 // Writes `.orivilo/metrics/<ISSUE>.json` (metrics.v1) and nothing else. It keeps numbers, ids, enums,
 // times and model ids only: no prompt, message, description, file path or transcript path is ever
-// copied into a file, stdout or stderr. The one exception: `report --out` prints `wrote <absolute path>`
+// copied into a file, stdout or stderr. The one exception: `report --out` and `session --out` print `wrote <absolute path>`
 // of the file it wrote, and nothing else holds a path. Exit 0 on success (gaps are warned about on stderr),
 // 1 on an unexpected failure, 2 on a usage error.
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -583,7 +591,7 @@ export function due({ lessons, today }) {
 
 function usage(message) {
   process.stderr.write(
-    `metrics: ${message}\nusage: metrics.mjs collect <ISSUE> [--root <checkout holding .orivilo>] [--projects <folder>]\n       metrics.mjs report <ISSUE...> [--root <folder>] [--out <name>]\n       metrics.mjs session <session id> [--projects <folder>]\n       metrics.mjs due [--lessons <folder>] [--today YYYY-MM-DD]\n`,
+    `metrics: ${message}\nusage: metrics.mjs collect <ISSUE> [--root <checkout holding .orivilo>] [--projects <folder>]\n       metrics.mjs report <ISSUE...> [--root <folder>] [--out <name>]\n       metrics.mjs session <session id> [--projects <folder>] [--root <folder>] [--out <name>]\n       metrics.mjs due [--lessons <folder>] [--today YYYY-MM-DD]\n`,
   );
   process.exit(2);
 }
@@ -600,6 +608,15 @@ function parse(rest, flags) {
   }
   if (flags.root !== undefined && !existsSync(flags.root)) usage("--root is not a folder");
   return positional;
+}
+
+/** True when the folder is the main checkout of this project's repo (its records root is itself). */
+function isCheckoutRoot(folder) {
+  try {
+    return recordsRoot(folder) === realpathSync(folder);
+  } catch {
+    return false;
+  }
 }
 
 function main(argv) {
@@ -639,9 +656,11 @@ function main(argv) {
       process.stdout.write(`wrote ${join(dir, `${flags.out}.md`)}\n`);
     }
   } else if (command === "session") {
-    const flags = { projects };
+    const flags = { projects, root: undefined, out: undefined };
     const [id, ...extra] = parse(rest, flags);
     if (extra.length > 0 || !SAFE_ID.test(id ?? "")) usage("session needs a session id");
+    if (flags.out !== undefined && !/^[A-Za-z0-9_-]+$/.test(flags.out))
+      usage("--out is a plain name, not a path");
     const data = session({ projects: flags.projects, id });
     if (data === null) usage("no transcript found for that session id");
     for (const version of data.versions.filter((v) => !KNOWN_VERSIONS.includes(v))) {
@@ -649,7 +668,19 @@ function main(argv) {
         `metrics: transcript version ${version} was not recorded on, check the numbers\n`,
       );
     }
-    process.stdout.write(sessionText(id, data));
+    const text = sessionText(id, data);
+    if (flags.out === undefined) {
+      process.stdout.write(text);
+    } else {
+      const root = flags.root ?? recordsRoot(process.cwd());
+      if (flags.root !== undefined && !isCheckoutRoot(flags.root)) {
+        usage("--root is not the root of a checkout");
+      }
+      const dir = join(root, ".orivilo", "metrics");
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(join(dir, `${flags.out}.md`), text);
+      process.stdout.write(`wrote ${join(dir, `${flags.out}.md`)}\n`);
+    }
   } else if (command === "due") {
     const flags = { lessons: join(process.cwd(), "docs", "lessons"), today: undefined };
     if (parse(rest, flags).length > 0) usage("due takes no positional argument");
