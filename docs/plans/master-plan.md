@@ -1,6 +1,6 @@
 # Master plan: where ORIVILO stands
 
-The plan in one place, kept in git so every session and account reads the same thing. Jira holds live status; this file holds the shape of the plan and why the order is what it is. Update it when an epic moves, when the owner changes the order, or before you hand the work to another session. Last updated 2026-10-24, after ORV-81 to ORV-92 (the AI team loop, its metrics and the first improvement run) and release PR #82; ORV-93 (slice B) and ORV-76 merged into `develop` the same day. The epic table below is still the 2026-10-23 count.
+The plan in one place, kept in git so every session and account reads the same thing. Jira holds live status; this file holds the shape of the plan and why the order is what it is. Update it when an epic moves, when the owner changes the order, or before you hand the work to another session. Last updated 2026-10-24, after release PR #92 (merged into `main` as fcad4c8): the AI team loop is complete and on staging (slices B ORV-93, C1 ORV-95, C2 ORV-98 and D ORV-99), with ORV-76. The epic table below is still the 2026-10-23 count.
 
 Sources: the roadmap (https://claude.ai/artifact/H6YU5RrKniVMS1azGdG1oa, 2026-10-21), the progress report (https://claude.ai/artifact/WiTsC13it9yESkFiRU7wL7, 2026-10-22), `docs/specs/backlog-draft.md` (draft keys to Jira keys) and Jira project ORV on 2026-10-23. Where they differ, Jira and this file win.
 
@@ -34,21 +34,25 @@ Owner requests outside the epics (ORV-54 to ORV-70) are listed in Jira; the rece
 
 ## Order from here
 
-1. Finish the AI team loop (see the AI team section below): slice B is done (ORV-93); next slice C1 (`merge-guard`, which the owner merges by hand), C2 and D. Audit D.2 base depth is done: ORV-67, 68, 70, 72, 77, 78.
-2. Story fixes: ORV-83, ORV-84. ORV-76 (canvas stories flaky on macOS) is done.
-3. E4-5 (ORV-45) parts 2 and 3: TaskBar, then CanvasChat with the chat parts (audit D.1).
-4. Audit D.3: missing components by Studio need (RadioGroup, Switch, Alert, empty states, Avatar, navigation, confirm dialog, file upload, combobox).
-5. E4-6 CompareStrip and VersionBadge, E4-7 present mode, E4-8 canvas example page.
-6. E2-14 agent catalog exercise.
-7. E1-3 to E1-7 knowledge content, then E3 the ORIVILO brand run through the product.
-8. ORV-63 separate staging and production after the POC; Phase 3 automation and the E0 scripts still open when the loop needs them.
+The AI team loop is finished (see the AI team section below) and on staging since release PR #92. Audit D.2 base depth is done: ORV-67, 68, 70, 72, 77, 78. ORV-76 (canvas stories flaky on macOS) is done.
+
+1. E4-5 (ORV-45) part 2: TaskBar.
+2. Story fixes: ORV-83, ORV-84.
+3. Guard follow-ups: ORV-94 (the `merge-guard` hook-timeout gap and ORV-95 rework R3), then ORV-96 (a Bash call that writes a record without naming `.orivilo`).
+4. E4-5 (ORV-45) part 3: CanvasChat with the chat parts (audit D.1).
+5. Audit D.3: missing components by Studio need (RadioGroup, Switch, Alert, empty states, Avatar, navigation, confirm dialog, file upload, combobox).
+6. E4-6 CompareStrip and VersionBadge, E4-7 present mode, E4-8 canvas example page.
+7. E2-14 agent catalog exercise.
+8. E1-3 to E1-7 knowledge content, then E3 the ORIVILO brand run through the product.
+9. ORV-63 separate staging and production after the POC; Phase 3 automation and the E0 scripts still open when the loop needs them.
 
 Each step is a batch: when it is finished in `develop`, propose a release to staging (ADR 0011). Jira statuses follow ADR 0012.
 
 ## Waiting on the owner
 
 - G5 sign-off for what is on staging, or the list of what to fix. Nothing is Done until then.
-- When to move the next batch from `develop` to staging: ORV-76, ORV-93 and the ORV-88 improvement run docs (PRs #83 to #86). Release PR #82 moved ORV-88, ORV-91 and ORV-92 there on 2026-10-24.
+- When to move the next batch from `develop` to staging. Release PR #92 moved ORV-76, ORV-93, ORV-95, ORV-98, ORV-99 and the docs PRs #83 to #91 there on 2026-10-24 (ORV-99 comment 10123); `develop` holds nothing new.
+- ORV-97: GitHub rulesets on `develop` and `main` return HTTP 403 on this private free-plan repo (ORV-97 comment 10110). Only the owner can unblock it: GitHub Pro or a public repo.
 - ORV-63: when the POC ends, the second database, domain and keys for production.
 
 ## AI team setup (the AI Team Loop plan, 2026-10-21)
@@ -59,25 +63,35 @@ Source: https://claude.ai/artifact/G7gBVvVk5fgsxZPYWbw4XC. Where it differs from
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
 | 0 Decide and grant access | Jira site, connector                                                                                                            | Done                                                        |
 | 1 Foundation              | Project ORV and its workflow, AGENTS.md, CLAUDE.md, settings, `.mcp.json`                                                       | Mostly done; the Jira fields are not set (Needs the owner)  |
-| 2 AI team                 | Role agents, skills, gate packet, quality-gate script, hooks                                                                    | Partly built; see Built and Not built below                 |
+| 2 AI team                 | Role agents, skills, gate packet, quality-gate script, hooks                                                                    | Loop complete (ORV-81 slices A to D); see Built below       |
 | 3 Automation              | Jira Automation rules, `agent-stage.yml` and `agent-review.yml` on claude-code-action, an approve in Jira waking the next stage | Not started; the main session dispatches by hand            |
 | 4 Pilot                   | One lane S and one lane M story through the automated loop, then a retro                                                        | Done by hand (ORV-72 to ORV-78); improvement run 2026-10-24 |
 
 Phase 1: lanes are labels (`lane-L`), not a custom field; GitHub for Jira is not checked.
 
-Built (ORV-81 and its slices ORV-85, ORV-86, ORV-89, ORV-90; ORV-88; ORV-93 slice B; metrics ORV-87 and ORV-91):
+Built (ORV-81 and its slices ORV-85, ORV-86, ORV-89, ORV-90; ORV-88; ORV-93 slice B; ORV-95 slice C1; ORV-98 slice C2; ORV-99 slice D; metrics ORV-87 and ORV-91):
 
 - Hooks on every Agent call: `envelope-guard`, `result-recorder`, `owner-grant`, `worktree-guard`; `resume-guard` blocks every SendMessage (ORV-88). The main session dispatches role agents with one envelope.v1 JSON prompt each, through the `ovl` skill and `node scripts/ovl/doctor.mjs`.
 - `pnpm quality-gate` (E0-4): the full gate with real exit codes and a JSON report; run in the main session, it writes a gate record.
 - Metrics: `node scripts/ovl/metrics.mjs collect|report|session|due` (spec `docs/specs/ORV-87/spec.md`).
 - The improvement loop (`ovl` skill step 5) with Expected saving lessons. The first run, 2026-10-24, produced L-0008 (a reviewer re-check starts from the previous findings and the rework diff); the owner approved it, it is applied, and it is checked after 2026-11-07. The same run measured the orchestrator main session at 388,875,503 tokens in session 0baff5a3, about 4.3 times all its subagents.
 - `write-guard` (ORV-93): the main session cannot write deliverables, guard files or records. The `qa` agent walks every AC with the full gate; its first walk found an untested clause by mutation.
-- L-0009 (ORV-76): verify a fix with the affected tests, then the full suite once; in `.claude/rules/testing.md` and `.claude/agents/builder.md`.
-- 8 role agents (`qa` is new) and 7 skills, plus the pre-commit hook.
+- Guard rails that read the records: `merge-guard` (ORV-95, slice C1) blocks a merge or a push into `develop` or `main` without a qa approve, a reviewer approve, a passing gate and green checks for the head; `g3-check` (ORV-98, slice C2) blocks a Jira move to "G3 PR review" until the PR is merged into `develop` and its records hold. Both stop an agent that follows the rules and errs; neither is a boundary against a session that sets out to defeat it (L-0012, Honest limits in each spec).
+- Slice D (ORV-99): the AC walk moves to the `qa` agent, and the `ovl` skill runs the full loop in the main session.
+- Lessons L-0009 (ORV-76: verify a fix with the affected tests, then the full suite once), L-0010 and L-0011 (ORV-93), L-0012 and L-0013 (ORV-95); each is checked after 2026-11-07.
+- 7 role agents and 7 skills, plus the pre-commit hook.
+
+Owner only:
+
+- ORV-97: GitHub rulesets on `develop` and `main`, the planned server-side boundary. They return HTTP 403 on this private free-plan repo (ORV-97 comment 10110), and hold only against a session credential that cannot administer the repo, with no bypass actor that matches it.
+
+Follow-ups:
+
+- ORV-94: the `merge-guard` hook-timeout gap (ORV-98 review F1) and ORV-95 rework R3 (the stories file path in row 24's stderr, the 300-character cut case in row 35).
+- ORV-96: a Bash call that writes a record without naming `.orivilo` in its text (ORV-95 review finding F5).
 
 Not built:
 
-- `merge-guard` (ORV-81 slice C1, which the owner merges by hand), then slices C2 and D.
 - The superpowers skills (plan in small tasks, TDD, verification before completion).
 - Phase 3 automation: E0-1, the workflows and Jira Automation below.
 
