@@ -18,7 +18,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { handle } from "./hook.mjs";
-import { g3Check } from "./g3-check.mjs";
+import { GH_LIST_TIMEOUT_MS, RECORDS_TIMEOUT_MS, g3Check, runG3Check } from "./g3-check.mjs";
 import {
   fixture,
   heartbeatLines,
@@ -58,7 +58,15 @@ const run = (input, env) => runNode(hook("g3-check.mjs"), input, env);
 
 // ---- fixture shims: git answers the repo URL, gh prints a file and logs its calls ----
 const SHIM_URL = "https://github.com/Thawatchai-Petkaew/orivilo.git";
-function shims({ list = [], text = null, exit = 0, withGh = true, failGit = "" } = {}) {
+function shims({
+  list = [],
+  open = [],
+  text = null,
+  exit = 0,
+  withGh = true,
+  failGit = "",
+  sleepOn = "",
+} = {}) {
   const dir = join(scratch(), "shim");
   mkdirSync(dir);
   const real = execFileSync("which", ["git"], { encoding: "utf8" }).trim();
@@ -75,8 +83,19 @@ exec '${real}' "$@"
 `,
   );
   writeFileSync(join(dir, "out.txt"), text ?? JSON.stringify(list));
+  writeFileSync(join(dir, "open.txt"), text ?? JSON.stringify(open));
   if (withGh) {
-    put("gh", `#!/bin/sh\necho "$@" >> '${dir}/gh-calls'\ncat '${dir}/out.txt'\nexit ${exit}\n`);
+    // The search list (called with --search) prints out.txt, the open list prints open.txt.
+    put(
+      "gh",
+      `#!/bin/sh
+echo "$@" >> '${dir}/gh-calls'
+case "$*" in *--search*) kind=search; file='${dir}/out.txt';; *) kind=open; file='${dir}/open.txt';; esac
+if [ "$kind" = '${sleepOn}' ]; then sleep 5; fi
+cat "$file"
+exit ${exit}
+`,
+    );
   }
   const path = withGh ? `${dir}:${process.env.PATH}` : `${dir}:/usr/bin:/bin`;
   return {
@@ -183,6 +202,11 @@ test("row 3: an execute call that is not a transition is allowed without reading
     g3Check({ transitionsPath: join(scratch(), "missing.json") }),
   );
   assert.equal(noList.code, 0);
+  for (const kind of ["write", "destructive"]) {
+    const input = build(kind, {}, repo, "addCommentToJiraIssue");
+    input.tool_input.inputs = null;
+    assert.equal(run(input, shim.env).code, 0, `${kind} null inputs`);
+  }
   assert.equal(shim.ghCalls().length, 0);
 });
 
@@ -213,6 +237,44 @@ test("row 4: an unknown id or name, a mismatch or neither blocks, with no gh cal
     }
   }
   assert.equal(heartbeatLines(repo).length, count);
+  assert.equal(shim.ghCalls().length, 0);
+});
+
+test("row 4 (qa F2): name transitionJiraIssue with inputs null or missing names no transition", () => {
+  const repo = makeRepo();
+  const shim = shims();
+  for (const kind of ["write", "destructive"]) {
+    for (const mode of ["null", "missing"]) {
+      const input = build(kind, {}, repo);
+      if (mode === "null") input.tool_input.inputs = null;
+      else delete input.tool_input.inputs;
+      const r = run(input, shim.env);
+      assert.equal(r.code, 2, `${kind} ${mode}`);
+      assert.match(r.stderr, /^g3-check blocked:/);
+      assert.match(r.stderr, /names no transition/);
+      assert.equal(last(repo).decision, "block");
+    }
+  }
+  assert.equal(shim.ghCalls().length, 0);
+});
+
+test("row 2 and 4 (review F2): inputs holding a transition field are judged whatever the name", () => {
+  const repo = makeRepo();
+  const shim = shims();
+  const names = [" transitionJiraIssue", "TransitionJiraIssue", "addCommentToJiraIssue", undefined];
+  const judge = (name, move) => {
+    const input = build("write", move, repo, name);
+    if (name === undefined) delete input.tool_input.name;
+    return run(input, shim.env);
+  };
+  for (const name of names) {
+    const blocked = judge(name, { id: "99" });
+    assert.equal(blocked.code, 2, `${name} 99`);
+    assert.match(blocked.stderr, /transition id is not in/);
+  }
+  for (const name of ["TransitionJiraIssue", undefined]) {
+    assert.equal(judge(name, { id: "3" }).code, 0, `${name} 3`);
+  }
   assert.equal(shim.ghCalls().length, 0);
 });
 
@@ -288,6 +350,11 @@ test("row 7: a merged PR whose records pass allows the move by id, by name and t
     build("direct", G3, clone),
     build("direct", { name: "G3 PR review" }, clone),
     build("write", G3, clone),
+    (() => {
+      const input = build("write", G3, clone, "anything");
+      delete input.tool_input.name;
+      return input;
+    })(),
   ]) {
     const r = run(input, env);
     assert.deepEqual([r.code, r.stderr], [0, ""]);
@@ -324,6 +391,22 @@ test("row 9: an open PR of the issue blocks even when another is merged", () => 
   const r = run(build("direct", G3, clone), shim.env);
   assert.equal(r.code, 2);
   assert.match(r.stderr, /PR 9 of ORV-1 is open, so its work is not all merged/);
+});
+
+test("row 9 (review F3): an open PR only in the open list, read without --search, blocks", () => {
+  const { clone } = fixtureOrigin();
+  const shim = shims({ list: [pr(7)], open: [pr(9, { state: "OPEN", mergedAt: null })] });
+  const r = run(build("direct", G3, clone), shim.env);
+  assert.equal(r.code, 2);
+  assert.match(r.stderr, /PR 9 of ORV-1 is open, so its work is not all merged/);
+  const calls = shim.ghCalls();
+  assert.equal(calls.length, 2);
+  assert.ok(calls.some((c) => c.includes("--search")));
+  assert.ok(
+    calls.some(
+      (c) => c.startsWith("pr list --base develop --state open") && !c.includes("--search"),
+    ),
+  );
 });
 
 test("row 10: a merge-check reason becomes the reason of the move", () => {
@@ -370,6 +453,7 @@ test("row 13: a gh list that is cut, not JSON, failing or missing never allows",
   const hundred = Array.from({ length: 100 }, (_, i) => pr(i + 1));
   const cases = [
     [shims({ list: hundred }), /may be cut/, "block"],
+    [shims({ open: hundred }), /may be cut/, "block"],
     [shims({ text: "not json" }), /^g3-check failed closed:/, "error"],
     [shims({ exit: 1 }), /^g3-check failed closed:/, "error"],
     [shims({ withGh: false }), /^g3-check failed closed:/, "error"],
@@ -530,10 +614,40 @@ test("row 20: tool input text never reaches stderr or the heartbeat", () => {
   }
 });
 
+test("row 13 (review F1): a gh pr list past its spawn bound fails closed and names the list", () => {
+  const { clone } = fixtureOrigin();
+  assert.ok(Number.isInteger(GH_LIST_TIMEOUT_MS) && GH_LIST_TIMEOUT_MS > 0);
+  for (const [sleepOn, label] of [
+    ["open", "open"],
+    ["search", "search"],
+  ]) {
+    const shim = shims({ list: [pr(7)], sleepOn });
+    const r = runG3Check(["ORV-1"], {
+      cwd: clone,
+      env: { ...process.env, ...shim.env },
+      ghTimeoutMs: 1500,
+    });
+    assert.equal(r.code, 2, label);
+    assert.match(
+      r.stderr,
+      new RegExp(`^g3-check failed closed: gh pr list \\(${label}\\) timed out`),
+    );
+  }
+});
+
 // ---- row 21: registration ----
 
 test("row 21: g3-check is registered once, on PreToolUse, with the Atlassian matcher", () => {
   const entries = registeredCommands().filter((c) => c.command.includes("g3-check.mjs"));
+  const settings = JSON.parse(
+    readFileSync(join(here, "..", "..", ".claude", "settings.json"), "utf8"),
+  );
+  const g3 = settings.hooks.PreToolUse.filter((e) =>
+    e.hooks.some((h) => h.command.includes("g3-check.mjs")),
+  );
+  assert.equal(g3.length, 1);
+  assert.equal(g3[0].hooks[0].timeout, 300);
+  assert.ok(300_000 > 2 * GH_LIST_TIMEOUT_MS + RECORDS_TIMEOUT_MS);
   assert.deepEqual(entries, [
     {
       event: "PreToolUse",

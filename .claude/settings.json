@@ -68,7 +68,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/g3-check.mjs\" || exit 2"
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/g3-check.mjs\" || exit 2",
+            "timeout": 300
           }
         ]
       }

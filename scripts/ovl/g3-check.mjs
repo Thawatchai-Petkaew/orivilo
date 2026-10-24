@@ -23,6 +23,9 @@ const KEY = /^ORV-[0-9]+$/;
 const SHA = /^[0-9a-f]{40}$/;
 const PROBE_KEY = "ORV-0";
 const LIST_LIMIT = 100;
+/** Spawn bounds in ms; the hook timeout in .claude/settings.json (300 s) stays above their sum. */
+export const GH_LIST_TIMEOUT_MS = 30_000;
+export const RECORDS_TIMEOUT_MS = 120_000;
 const USAGE = "usage: g3-check.mjs <ISSUE> (a key like ORV-123)";
 
 /** Untrusted text made safe to print: control characters removed, cut at 200 characters. */
@@ -108,17 +111,13 @@ function transitionOf(input) {
   if (!isObject(toolInput)) throw new Error("tool_input is missing");
   const tool = TOOL.exec(input.tool_name ?? "")?.[1];
   if (tool === undefined) throw new Error("tool_name is not an Atlassian transition tool");
-  const fields =
-    tool === "transitionJiraIssue"
-      ? toolInput
-      : toolInput.name === "transitionJiraIssue"
-        ? toolInput.inputs
-        : null;
-  if (fields === null) return null;
-  return {
-    key: isObject(fields) ? fields.issueIdOrKey : undefined,
-    fields: isObject(fields) ? fields : {},
-  };
+  const inputs = tool === "transitionJiraIssue" ? toolInput : toolInput.inputs;
+  const named = tool === "transitionJiraIssue" || toolInput.name === "transitionJiraIssue";
+  const holdsMove =
+    isObject(inputs) && (inputs.transitionId !== undefined || inputs.transitionName !== undefined);
+  if (!named && !holdsMove) return null;
+  const fields = isObject(inputs) ? inputs : {};
+  return { key: fields.issueIdOrKey, fields };
 }
 
 /** The reasons from the records stage (a process run from the develop export), or throws. */
@@ -144,7 +143,7 @@ function recordsStage(input, issue, env) {
     cwd: input.cwd,
     env,
     encoding: "utf8",
-    timeout: 120_000,
+    timeout: RECORDS_TIMEOUT_MS,
   });
   if (r.error) throw new Error(`the records stage could not run (${r.error.code ?? "error"})`);
   if (r.status === 0) return [];
@@ -176,8 +175,13 @@ export function g3Check({ transitionsPath = TRANSITIONS, env = process.env } = {
   };
 }
 
-/** `gh pr list` for the issue: the entries as gh reports them. Throws when gh fails or prints another shape. */
-function listPrs(issue, { cwd, env }) {
+/**
+ * `gh pr list` for the issue: the entries as gh reports them. The search list (all states, found through
+ * GitHub's search index) or, without a search, the open list. Throws when gh fails, is too slow or prints
+ * another shape.
+ */
+function listPrs(issue, { cwd, env, search, timeoutMs }) {
+  const label = search ? "search" : "open";
   const r = spawnSync(
     "gh",
     [
@@ -185,17 +189,15 @@ function listPrs(issue, { cwd, env }) {
       "list",
       "--base",
       "develop",
-      "--state",
-      "all",
-      "--search",
-      `${issue} in:title`,
+      ...(search ? ["--state", "all", "--search", `${issue} in:title`] : ["--state", "open"]),
       "--limit",
       String(LIST_LIMIT),
       "--json",
       "number,state,title,headRefName,headRefOid,mergedAt",
     ],
-    { cwd, env, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
+    { cwd, env, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: timeoutMs },
   );
+  if (r.error?.code === "ETIMEDOUT") throw new Error(`gh pr list (${label}) timed out`);
   if (r.error) throw new Error(`gh could not run (${r.error.code ?? "error"})`);
   if (r.status !== 0) throw new Error(`gh pr list exited ${r.status}`);
   let list;
@@ -221,23 +223,33 @@ function listPrs(issue, { cwd, env }) {
 }
 
 /** The records stage: `{code, stderr}` for `argv` (the issue key). */
-export function runG3Check(argv, { cwd = process.cwd(), env = process.env } = {}) {
+export function runG3Check(
+  argv,
+  { cwd = process.cwd(), env = process.env, ghTimeoutMs = GH_LIST_TIMEOUT_MS } = {},
+) {
   try {
     if (argv.length !== 1 || !KEY.test(argv[0])) throw new Error(USAGE);
     const issue = argv[0];
-    const list = listPrs(issue, { cwd, env });
-    if (list.length >= LIST_LIMIT) {
-      return block([`the PR list of ${issue} may be cut at ${LIST_LIMIT} entries`]);
+    const searched = listPrs(issue, { cwd, env, search: true, timeoutMs: ghTimeoutMs });
+    const openList = listPrs(issue, { cwd, env, search: false, timeoutMs: ghTimeoutMs });
+    for (const list of [searched, openList]) {
+      if (list.length >= LIST_LIMIT) {
+        return block([`the PR list of ${issue} may be cut at ${LIST_LIMIT} entries`]);
+      }
     }
-    const mine = list.filter(
-      (p) =>
-        /^[a-z]+\/(ORV-\d+)-/.exec(p.headRefName)?.[1] === issue &&
-        /^(ORV-\d+):/.exec(p.title)?.[1] === issue,
-    );
-    const open = mine.filter((p) => p.state === "OPEN");
-    if (open.length > 0) {
+    const isMine = (p) =>
+      /^[a-z]+\/(ORV-\d+)-/.exec(p.headRefName)?.[1] === issue &&
+      /^(ORV-\d+):/.exec(p.title)?.[1] === issue;
+    const mine = searched.filter(isMine);
+    const open = new Map();
+    for (const p of [...mine, ...openList.filter(isMine)]) {
+      if (p.state === "OPEN") open.set(p.number, p);
+    }
+    if (open.size > 0) {
       return block(
-        open.map((p) => `PR ${p.number} of ${issue} is open, so its work is not all merged`),
+        [...open.values()].map(
+          (p) => `PR ${p.number} of ${issue} is open, so its work is not all merged`,
+        ),
       );
     }
     let merged;
