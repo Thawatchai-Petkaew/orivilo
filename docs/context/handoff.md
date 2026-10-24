@@ -62,17 +62,15 @@ Rows marked "on staging" reached `main` with release PR #67 or release PR #82 (t
 
 Hooks check every Agent call in this repo (envelope-guard, result-recorder, owner-grant, worktree-guard), resume-guard blocks every SendMessage (ORV-88), and write-guard blocks the main session from writing deliverables, guard files and records (ORV-93); start a run with the `ovl` skill and `node scripts/ovl/doctor.mjs plan`. `pnpm quality-gate` in the main session writes a gate record, and the qa agent walks every AC at G3 with the full gate. `merge-guard` (ORV-81 slice C1) is not built yet, so nothing blocks an unwanted merge. Metrics: `node scripts/ovl/metrics.mjs collect|report|session|due` (spec `docs/specs/ORV-87/spec.md`); the `ovl` skill step 5 runs the improvement loop after each merge.
 
-The first improvement run (2026-10-24, ORV-91) produced `docs/lessons/L-0008-recheck-costs-like-a-first-review.md`: a reviewer re-check starts from the previous findings and the rework diff. The owner approved it (ORV-91 comment 10081); it is applied to the `ovl` skill and the reviewer agent and is checked after 2026-11-07. The run also showed the orchestrator main session at 388,875,503 tokens in session 0baff5a3, about 4.3 times all its subagents together.
+The first improvement run (2026-10-24, ORV-91) produced `docs/lessons/L-0008-recheck-costs-like-a-first-review.md`: a reviewer re-check starts from the previous findings and the rework diff. The owner approved it (ORV-91 comment 10081); it is applied to the `ovl` skill and the reviewer agent and is checked after 2026-11-07. The run also showed the orchestrator main session at 388,875,503 tokens in session 0baff5a3, about 4.3 times all its subagents together. Later runs promoted L-0009 (verify a fix with the affected tests, then the full suite once; ORV-76), L-0010 (one deliverable per builder task) and L-0011 (spec revision before the fix; both ORV-93). All four are checked after 2026-11-07.
 
 ## Next, in order
 
-1. **ORV-88:** block SendMessage resumes in a guard.
-2. **ORV-81 slice B:** `write-guard` and the qa agent (spec AC 25 to 32, 53, 65); QA screenshots move to the shared records root.
-3. **ORV-81 slice C1** `merge-guard` (also closes ORV-87 row 25; the owner merges it by hand), then slices C2 and D.
-4. Story fixes: ORV-83, ORV-84, ORV-76 (CanvasBoard, CanvasContextMenu and BlockLibrary stories flaky on macOS, pass in CI).
-5. Release the batch in `develop` (ORV-91, ORV-92 and what follows) to staging when the owner says yes.
-6. On or after 2026-11-07: `node scripts/ovl/metrics.mjs due` and measure L-0008.
-7. Then the product work in `docs/plans/master-plan.md` "Order from here": ORV-45 parts 2 and 3, audit D.3, and the CI/CD plan (https://claude.ai/artifact/S49r4bs4x5cn7g33HbT7rx) steps 4 to 7.
+1. **ORV-81 slice C1** `merge-guard` (also closes ORV-87 row 25; the owner merges it by hand), then slices C2 and D.
+2. Story fixes: ORV-83, ORV-84.
+3. Release the batch in `develop` (ORV-76, ORV-93 and the docs PRs #83 to #87) to staging when the owner says yes.
+4. On or after 2026-11-07: `node scripts/ovl/metrics.mjs due` and measure L-0008, L-0009, L-0010 and L-0011.
+5. Then the product work in `docs/plans/master-plan.md` "Order from here": ORV-45 parts 2 and 3, audit D.3, and the CI/CD plan (https://claude.ai/artifact/S49r4bs4x5cn7g33HbT7rx) steps 4 to 7.
 
 ## Set up a machine
 
@@ -86,7 +84,7 @@ The first improvement run (2026-10-24, ORV-91) produced `docs/lessons/L-0008-rec
   - `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`: the staging OAuth client, with `http://localhost:3000` as a JavaScript origin and `http://localhost:3000/api/auth/callback/google` as a redirect URI. Production gets its own client (ORV-63).
   - `OPENROUTER_API_KEY`: the same key works locally; its spend joins staging's.
 - Playwright's Chromium for the Storybook tests (`pnpm exec playwright install chromium`).
-- On macOS, 18 Storybook tests fail locally and pass in CI (ubuntu): canvas-board, command-menu, canvas-context-menu, dropdown-menu `Open`, inspector `Studio Layout`, node-group `Group And Ungroup`. The stories press `Control` for `Mod`, which is `Meta` on a Mac (`src/commands/index.ts`). Compare against `develop` before blaming a change; fixing the stories to press the platform key is a small chore not yet filed.
+- On macOS the full Storybook suite passes since ORV-74 (stories press the platform Mod key) and ORV-76 (canvas stories wait for React Flow to measure and draw). If a story flakes, verify the fix the L-0009 way: `--repeats 4` on the affected file, then the full suite once.
 - Jira through the Atlassian MCP server in `.mcp.json`; sign in once per account. GitHub through `gh auth login` or the IDE.
 
 ## The full gate
