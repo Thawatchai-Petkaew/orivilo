@@ -1,7 +1,7 @@
 ---
 issue: ORV-100 (ORV-45 part 2, draft key E4-5; https://tpetkaew.atlassian.net/browse/ORV-100)
 lane: L (risk flag: component public API)
-version: 1.5
+version: 1.6
 ---
 
 ## Why
