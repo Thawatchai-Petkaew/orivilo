@@ -37,10 +37,12 @@ Two edits. The owner approved both through the question form on 2026-10-24 (ORV-
 In `.claude/skills/ovl/SKILL.md` (how the main session writes a reviewer envelope), add:
 
 ```diff
-+- **Re-check envelope** (reviewer, round 1 or more). `context_pointers` name the previous review's
-+  `.orivilo/runs/<ISSUE>/<previous review task_id>/result.json`, the rework task's report and the spec;
-+  not the full pointer list of the first review. One fact is the sha the previous review judged
-+  (`checked_by`: `git rev-parse <sha>`).
++- **Re-check envelope** (reviewer, round 1 or more). `context_pointers` name the absolute paths of the
++  previous review's `result.json` and the rework task's `result.json`, both under the main checkout's
++  `.orivilo/runs/<ISSUE>/<task_id>/` (found through `git rev-parse --git-common-dir`; a relative
++  `.orivilo/` path does not exist in the reviewer's worktree), and the spec, not the full pointer list
++  of the first review. One fact is the sha the previous review judged, read from its record
++  (`checked_by`: `jq -r .report.head_sha "<absolute path of the previous review's result.json>"`).
 ```
 
 In `.claude/agents/reviewer.md`, add after "Pass 2: quality":
@@ -48,15 +50,19 @@ In `.claude/agents/reviewer.md`, add after "Pass 2: quality":
 ```diff
 +## Re-check (round 1 or more)
 +
-+Start from the previous review's findings and `git diff <reviewed sha>..HEAD`. For each finding, say
-+fixed (with the command or line) or still open. Review the new diff in full by passes 1 and 2. Run the
-+same gate commands as the first review. Open a file the diff did not touch only when a finding or the
-+diff leads there. The verdict covers the whole PR at `head_sha`.
++Start from the previous review's findings and `git diff <reviewed sha>..HEAD`, and list that diff
++command in `checks_run`. For each previous finding, add a `checks_run` row whose `command` shows its
++state and whose `summary` starts with the finding id and `fixed` or `still open`; a finding still open
++is listed again in `findings`. Review the new diff in full by passes 1 and 2. Run the same gate
++commands as the first review. Open a file the diff did not touch only when a finding or the diff leads
++there. The verdict covers the whole PR at `head_sha`.
 ```
 
-What proves it was done: each reviewer envelope with round 1 or more in `.orivilo/runs/` lists the previous review's `result.json`, and its report's `checks_run` holds the `git diff <sha>..HEAD` command.
+Wording corrected on 2026-10-24 after review ORV-91-improvement-review-1 (findings R1 to R5), with the rule's intent, metric, target and guard unchanged: absolute record paths in the re-check envelope (R1), the reviewer records the diff command and each previous finding's state in `checks_run` (R2), a `Check:` command over all re-check issues (R3), the diff blocks above identical to the applied text (R4), and the reviewed sha read from the previous record (R5). Status stays promoted.
 
-The `Check:` line below still names ORV-93 as a provisional key: at promotion no issue has had a re-check under the rule yet. The first issue with re-checks under the rule replaces ORV-93 in the `Check:` line once it is known, before the measurement after `Check after:`.
+What proves it was done: each reviewer envelope with round 1 or more in `.orivilo/runs/` lists the absolute path of the previous review's `result.json`, and its report's `checks_run` holds the `git diff <sha>..HEAD` command and one row per previous finding.
+
+The `Check:` line below names ORV-93, ORV-94 and ORV-95 as provisional keys (`pnpm check:knowledge` accepts no placeholder there): at promotion no issue has had a re-check under the rule yet. Before the measurement after `Check after:`, the list is replaced by every issue with reviewer re-checks after promotion, each collected first with `collect <ISSUE>`, so the median covers at least 5 comparable tasks.
 
 ## Expected saving
 
@@ -65,7 +71,7 @@ The `Check:` line below still names ORV-93 as a provisional key: at promotion no
 - Target: median 300,000 or less, about 40% less per re-check, about 1.2M tokens on a batch with 6 re-checks
 - Guard metric: kept Critical and Important findings per re-check do not fall below the baseline 0.67 (4 over 6), and no finding a re-check missed is raised by a later round on unchanged lines
 - Evidence removed: none
-- Check: `node scripts/ovl/metrics.mjs collect ORV-93`
+- Check: `node scripts/ovl/metrics.mjs report ORV-93 ORV-94 ORV-95`
 - Check after: 2026-11-07
 
 Status: promoted 2026-10-24, into `.claude/skills/ovl/SKILL.md` (Re-check envelope, step 2) and `.claude/agents/reviewer.md` (Re-check, after Pass 2)

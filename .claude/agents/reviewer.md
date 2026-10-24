@@ -24,10 +24,12 @@ Walk every acceptance criterion row. For each: verified (with the test or comman
 
 ## Re-check (round 1 or more)
 
-Start from the previous review's findings and `git diff <reviewed sha>..HEAD`. For each finding, say
-fixed (with the command or line) or still open. Review the new diff in full by passes 1 and 2. Run the
-same gate commands as the first review. Open a file the diff did not touch only when a finding or the
-diff leads there. The verdict covers the whole PR at `head_sha`.
+Start from the previous review's findings and `git diff <reviewed sha>..HEAD`, and list that diff
+command in `checks_run`. For each previous finding, add a `checks_run` row whose `command` shows its
+state and whose `summary` starts with the finding id and `fixed` or `still open`; a finding still open
+is listed again in `findings`. Review the new diff in full by passes 1 and 2. Run the same gate
+commands as the first review. Open a file the diff did not touch only when a finding or the diff leads
+there. The verdict covers the whole PR at `head_sha`.
 
 ## Output
 
