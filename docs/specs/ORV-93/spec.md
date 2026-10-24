@@ -189,6 +189,7 @@ Downstream artifacts to review when this spec is accepted:
 - **The handoff is context, not evidence.** The owner's local SessionStart hook injects `.orivilo/handoff.md` into each new session. The main session writes it, so a later session reads the earlier session's words; no hook treats it as a record.
 - **Version gap.** Samples come from the `claude` on PATH; the owner's IDE session may run a newer build. A missing path field fails closed (row 22), and the doctor probe turns a silent guard into a stopped run (rows 29, 30).
 - **A session without these hooks** escapes the guard, as it escapes every other guard.
+- **A branch without the guard fails closed until settings reload.** Observed after the merge (ORV-93 comment 10097): when the main checkout is switched to a branch that has no `.claude/hooks/write-guard.mjs` while the session's settings still register it, the launcher is missing, the registration's `|| exit 2` turns that into a block, and the next Bash call fails closed until the session reloads its settings. That is the fail-closed rule working as ORV-81 AC 48 asks, not a hole, but it stops the session's Bash.
 
 ## Out of scope
 

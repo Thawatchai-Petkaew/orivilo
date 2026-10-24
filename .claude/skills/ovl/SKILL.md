@@ -47,6 +47,19 @@ Do not set `model`, `isolation` or `run_in_background` on the call. `cwd`, if gi
   `.orivilo/` path does not exist in the reviewer's worktree), and the spec, not the full pointer list
   of the first review. One fact is the sha the previous review judged, read from its record
   (`checked_by`: `jq -r .report.head_sha "<absolute path of the previous review's result.json>"`).
+- **Builder envelope: one deliverable.** A builder task builds one deliverable: one module with its
+  tests, one hook with its launcher and settings entry, or one doc change. A slice with more gets one
+  builder task per deliverable, dispatched in build order, each with only the `context_pointers` and
+  `write_set` that deliverable needs. A builder envelope with more than 8 `context_pointers` is split
+  before dispatch, unless one fact says why its parts cannot be built apart. The PR still gets one
+  full gate, two reviewer passes and the qa walk (L-0010).
+- **Contract change from a review.** When a review's findings or the owner's answers change the
+  spec's contract, dispatch the `product` revision first and the builder fix only after it returns;
+  never both from one review at once. The revision envelope names every finding id of the review, and
+  the revision records each as a contract change or as no contract change. The fix envelope carries the
+  new spec version as a fact (`checked_by` `grep -n "^- v<version>" docs/specs/<KEY>/spec.md`) and the
+  spec in `context_pointers`. A point where the fix must differ from the spec goes in its `deviations`,
+  and the next revision starts from those lines and the fix diff only (L-0011).
 - **Never resume.** A re-check, a follow-up question or a fix is a new envelope with a new `task_id`, never a `SendMessage`. A builder rework names `rework_of`; a reviewer re-check does not (`rework_of` is read on builder envelopes only) and puts the earlier `result.json` absolute paths in `context_pointers`. `resume-guard` (PreToolUse `SendMessage`) blocks every `SendMessage`, from the main session and from a subagent, whatever `to` names; it never echoes `to` or the message. When `to` is a recorded agent's id, the stderr names that task, as a hint for the fresh envelope. A subagent that needs a decision reports `blocked` with `needs_decision`, and the answer goes out in a fresh envelope.
 
 The guard blocks, with exit 2 and a reason on stderr, when:
