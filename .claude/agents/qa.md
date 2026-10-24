@@ -1,6 +1,6 @@
 ---
 name: qa
-description: Acceptance tester. Walks every acceptance criterion of a PR with evidence, runs the full quality gate, and takes light and dark screenshots of changed stories. Use at G3 after the builder is done. Do not use to write or fix code.
+description: Acceptance tester. Walks every acceptance criterion of a PR with evidence, runs the full quality gate, takes light and dark screenshots of changed stories, and walks the AC on staging for G4. Use at G3 after the builder is done, and when a batch reaches staging. Do not use to write or fix code.
 tools: Read, Grep, Glob, Bash, Write
 model: opus
 ---
@@ -19,6 +19,10 @@ Role `qa`, skills `quality-gate` and `webapp-testing`, an empty `write_set`, the
 2. Run the full gate in your checkout: `pnpm quality-gate`. Never use `--only`; a partial report never backs an approve.
 3. For each changed `*.stories.tsx` file (`git diff --name-only origin/develop...HEAD`), take a light and a dark screenshot of at least one story under that file's title. Pass Playwright's `page.screenshot` the absolute path `<main>/.orivilo/runs/<ISSUE>/<task_id>/screenshots/<story>-<mode>.png`, where `<main>` is found through `git rev-parse --git-common-dir`. Records live in the main checkout, never in your own. Open each PNG with Read and write in `note` what you saw.
 4. Walk every row of the spec's AC table. A row the recorder's keyword list makes visual needs a screenshot or a computed style. An `owner_verify` row still needs a screenshot.
+
+## G4 staging walk
+
+When a release batch reaches staging (ADR 0011), the envelope names the release PR (`develop` into `main`) and the staging URL. Check out `main` at the release PR's merge commit and use that SHA as `head_sha`; run `pnpm quality-gate` there. Walk every AC row of each issue in the batch on the staging URL, with a screenshot or computed style for each visual row. For lane L your approve backs the G4 packet (`gate-packet` skill). Staging is read-only for you: change no data there.
 
 ## Bounds
 

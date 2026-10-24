@@ -7,6 +7,28 @@ description: Run work as the orchestrator. Write a checked JSON envelope for eac
 
 Hooks now check every Agent call in this repo, in every session. The main session plans and dispatches; it does not write the deliverable. Spec: `docs/specs/ORV-81/spec.md`. Decisions: ADR 0013 and ADR 0014.
 
+## The loop
+
+Before planning, read `AGENTS.md`, `docs/context/orivilo-brief.md`, the relevant part of `docs/context/intent-studio-handoff.md`, the Jira issue and `docs/LESSONS.md`. Every dispatch below is one envelope (section 2) to one role.
+
+1. **Lane.** Pick S, M or L from `AGENTS.md`; any risk flag forces L. Write the lane on the issue.
+2. **Discover** (M, L). Dispatch `product` with the `discover` skill; it writes `docs/specs/<KEY>/spec.md` with acceptance criteria and open questions.
+3. **Design** (M, L). Dispatch `ds-architect` for schema, token, recipe or resolver changes and `designer` for flows, states and visual direction. They extend the spec folder.
+4. **G1 and G2.** Raise each with the `gate-packet` skill, move the issue, and stop. The owner decides; during the POC Claude passes G1 and G2 under the owner's delegation (ADR 0012 decision 4), and the packet says so.
+5. **Build.** Dispatch `builder` per task, each in its own worktree. A blocker comes back in `blocked_on`.
+6. **Review and qa.** Dispatch `qa` (`qa.v1`) and `reviewer` (`reviewer.v1`) on the same head SHA. Findings go back to `builder` as a new envelope; after round 2, ask the form (section 3). A docs-only PR has no qa; the reviewer walks its AC rows.
+7. **G3.** Merge into `develop` through `merge-guard` (section 6), move the issue through `g3-check` (section 7), and post the G3 packet.
+8. **Staging and G4.** When the owner sends a batch to staging (ADR 0011), dispatch `qa` to walk the AC on staging; for lane L its approve backs the G4 packet.
+9. **G5.** Dispatch `release` to prepare the G5 packet. Only the owner decides G5.
+10. **Retro.** Run section 5 after each merge and each staging batch; propose a `retro` when the story taught something reusable.
+
+Rules:
+
+- Bundle questions for the owner into one round, each with options and a default.
+- If the owner requests changes, read the comment, dispatch the right role, and re-raise the same gate.
+- Any action that costs money, touches production or deletes data: stop and ask.
+- Report in the handoff shape: `{ issue, lane, gate, artifacts, checks, summary, next }`.
+
 ## 1. Start of a run: doctor
 
 ```bash
@@ -202,7 +224,7 @@ node scripts/ovl/g3-check.mjs <ISSUE>
 
 When the guard blocks, fix the missing record or the PR, or ask the owner. A PR the owner merged by hand without the records cannot pass; the owner moves that issue in the Jira web UI. While develop has no `scripts/ovl/g3-check.mjs`, the move blocks and the owner moves the issue in the Jira web UI. The G3 packet quotes the `g3-check` heartbeat line of the move.
 
-## Honest limits of this slice
+## Honest limits
 
 - `SubagentStart` cannot block (exit 2 only shows stderr). If a subagent starts with no single open envelope to bind to, it runs unbound: no `agent.json`, no round counted, no `result.json`. The guard at dispatch time (one open envelope per role, checked again after the envelope is saved, so two same-role calls made at once never both run: at most one is allowed and the others close as denied) is what prevents this, not the start hook. Every record is written whole (aside, then linked into place), so a start hook running at the same moment as another never reads half a record. One residual window remains: a losing envelope of a same-role race stays visible as open and unbound until its `closed.json` is written, and on a very slow filesystem the winner's start hook could scan inside that span, see two candidates and run unbound. It was not reproduced in 31 trials.
 - Hooks cannot run once the session's own worktree is removed. When `CLAUDE_PROJECT_DIR` is a removed worktree (`claude --worktree`), the hook files are gone with it: `/bin/sh` cannot find `result-recorder.sh`, `|| exit 2` fires even when `stop_hook_active` is true, and nothing is recorded. `worktree-guard` blocks a subagent Bash command whose text, with quotes and backslashes stripped, holds the word `worktree` together with `remove` or `prune`. It misses a word built by shell expansion (an empty `$()` or `${VAR}` inside it) and an encoded command piped to a shell. The main session, `rm -rf`, a shell script or a tool outside Bash can still delete the worktree. Remove a worktree only after the run, from outside it.
@@ -235,6 +257,6 @@ When the guard blocks, fix the missing record or the PR, or ask the owner. A PR 
 - The `g3-check` tests run a stub `merge-check.mjs` on the fixture origin's `develop`; no `g3-check` test runs the real `runMergeCheck` on a merged PR. The relay is pinned by its argv (`<n> --head <sha>`); the other `merge-check` reasons rest on the ORV-95 `merge-check` tests.
 - An execute call with a variant `name` (`TransitionJiraIssue`, for example) whose `inputs` hold neither `transitionId` nor `transitionName` names no target, so it is allowed; Jira cannot move an issue from it without a transition.
 
-## Not in this slice
+## Not guarded
 
 `write-guard` guards writes (slice B), `merge-guard` guards merges (slice C1) and `g3-check` guards the move to G3 PR review (slice C2). Moves to Staging, G4, Release, G5 and Done are not checked. Do not claim a role's work as evidence on its own say-so: a gate needs the recorded `qa.v1` and `reviewer.v1` results and the checks you ran yourself.

@@ -1,6 +1,6 @@
 ---
 name: reviewer
-description: Code, accessibility, and security reviewer. Reviews a diff in two passes (spec compliance, then quality), runs the quality gate, and reads the qa report. Use before every PR gate. Do not use to write features or to walk acceptance criteria (qa does that).
+description: Code, accessibility, and security reviewer. Reviews a diff in two passes (spec compliance, then quality) with targeted checks, and reads the qa report. Use before every PR gate. Do not use to write features or to walk acceptance criteria (qa does that).
 tools: Read, Grep, Glob, Bash
 model: opus
 ---
@@ -12,6 +12,8 @@ You did not write this code. Assume it is wrong until the evidence says otherwis
 ## Pass 1: spec compliance
 
 `qa` walks every acceptance criterion row; you do not repeat that walk. Read the qa report for this `head_sha`: a row it marks missing, or a row whose evidence does not hold up when you open it, is a finding. Then check that the diff does what the spec asks and nothing it rules out: scope, contracts named in the spec, and the Impact list.
+
+A docs-only PR has no qa report. Then you walk every AC row the PR claims yourself, each with a `checks_run` row or a finding.
 
 ## Pass 2: quality
 
