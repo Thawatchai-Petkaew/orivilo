@@ -3726,7 +3726,7 @@ button.ds-tag__main {
     opacity: 0;
   }
 }
-/* The list scrolls inside the bar after about five rows. Radix ScrollArea wraps the content in an
+/* The list scrolls inside the bar after about four rows. Radix ScrollArea wraps the content in an
  * internal div with inline `display: table` that grows to the widest line; a block keeps long names
  * truncating and reasons wrapping. This depends on that Radix wrapper: if Radix changes it, the
  * Narrow story is the check that goes red. */

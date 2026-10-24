@@ -76,6 +76,7 @@ import {
   type BoardContextValue,
   type BoardTool,
   type CommandContext,
+  type JumpOptions,
   type KeyboardConnecting,
 } from "./context";
 import {
@@ -97,7 +98,7 @@ import {
   setEdgeMeaning,
 } from "./graph";
 
-export type { CommandContext } from "./context";
+export type { CommandContext, JumpOptions } from "./context";
 
 export type BoardVariant = "edit" | "present";
 
@@ -533,10 +534,33 @@ function Board({
     nodeElement(id)?.focus();
   };
 
-  const jumpToNode = (id: string) => {
-    const node = graphRef.current.nodes.find((n) => n.id === id);
+  const jumpToNode = (id: string, options?: JumpOptions) => {
+    const g = graphRef.current;
+    const node = g.nodes.find((n) => n.id === id);
     if (!node) return;
-    void flow.fitView({ nodes: [{ id }], duration: 200, maxZoom: 1, padding: 0.5 });
+    if (options?.select) {
+      const only = node.selected && selectedNodes(g).length === 1;
+      if (!only) emit(selectOnly(g, [id]));
+    }
+    // A task bar on the board covers the foot of it; its current height joins the bottom padding
+    // so the node lands clear of an open list. Padding in pixels, 0.5 of the board on every side.
+    const rect = wrapper.current?.getBoundingClientRect();
+    const bar = wrapper.current?.querySelector<HTMLElement>(".ds-taskbar");
+    const half = (rect?.height ?? 0) / 2;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    void flow.fitView({
+      nodes: [{ id }],
+      duration: reduced ? 0 : 200,
+      maxZoom: 1,
+      padding: bar
+        ? {
+            top: 0.5,
+            left: 0.5,
+            right: 0.5,
+            bottom: `${Math.round(half + bar.getBoundingClientRect().height)}px`,
+          }
+        : 0.5,
+    });
     focusNode(id);
     setMessage(fill(m.board.jumped, { title: node.data.title }));
   };
@@ -901,7 +925,7 @@ function Board({
     runRef.current(id, ctx);
   }, []);
   const can = useCallback((id: CommandId, ctx?: CommandContext) => enabledRef.current(id, ctx), []);
-  const jump = useCallback((id: string) => jumpRef.current(id), []);
+  const jump = useCallback((id: string, options?: JumpOptions) => jumpRef.current(id, options), []);
 
   const selectedNodeIds = useMemo(
     () => graph.nodes.filter((n) => n.selected).map((n) => n.id),

@@ -92,6 +92,7 @@ export {
 export {
   type BoardContextValue,
   type BoardTool,
+  type JumpOptions,
   type KeyboardConnecting,
   useBoard,
 } from "./canvas-board/context";

@@ -1,7 +1,7 @@
 ---
 issue: ORV-100 (ORV-45 part 2, draft key E4-5; https://tpetkaew.atlassian.net/browse/ORV-100)
 lane: L (risk flag: component public API)
-version: 1.2
+version: 1.4
 ---
 
 ## Why
@@ -130,7 +130,7 @@ Reused, not repeated: `progress.working`, `progress.done`, `progress.failed`, `b
 - Colour roles per `DESIGN.md` §8: failed uses `feedback.danger`, done uses `feedback.success`, running uses `status.running`; brand and intent colours never mark a state. No new semantic token. If the design needs one, that is a contract change and bumps this spec.
 - A failed job always shows a reason (type-enforced); the reason says what went wrong and how to fix it (fixtures follow this).
 - Never a done state without a job in the prop that says so; never a success toast from the bar (the host decides toasts).
-- No cap on job count; the list scrolls inside the bar after about five rows. Large lists (hundreds) are not optimised in this story.
+- No cap on job count; the list scrolls inside the bar after about four rows. Large lists (hundreds) are not optimised in this story.
 - Placement is the host's: the stories place the bar at the bottom of the board; slice B renders it as a `CanvasBoard` child, like `BlockLibrary`.
 - No middot and no em dash in any copy, story or fixture.
 
@@ -179,3 +179,4 @@ Reused, not repeated: `progress.working`, `progress.done`, `progress.failed`, `b
 - v1.1 (2026-10-24): G1 decisions by Claude under the owner's POC delegation (ADR 0012 decision 4). Open questions 1, 2 and 4 to 8 take their proposed defaults. Question 3 is decided differently: slice B reads `useBoard()` and selects the node through an opt-in (`jumpToNode(id, { select: true })` or a separate select step, named in G2), so the command menu's jump keeps today's behaviour and its stories need no change. The Impact item for slice B is narrowed to match.
 - v1.2 (2026-10-24): G2 decisions by Claude under the owner's POC delegation, from `docs/specs/ORV-100/design.md` (task ORV-100-design-1). Deltas D1 to D5 accepted: retry pending uses `Button loading` (AC 9); the list is a named `ScrollArea` region with key `taskBar.list` (AC 12); pending clears on a change of `state` or `reason` (AC 9); slice B names `JumpOptions`; four icons and a board recipe rule join Impact. Finding F2 (reduced motion on jump) is fixed in slice B. F1 is recorded only; F3 is a check in slice A.
 - v1.3 (2026-10-25): review ORV-100-review-1 fixes. R1: a pending retry now ends as soon as the job's `state` or `reason` differs from the stored one, or the job leaves `jobs`, so a job that fails again with the same reason shows an enabled Retry (AC 9; story RetryAgain). R3 decided: the retry spinner is essential motion and keeps turning under reduced motion, as the shared `.ds-spin` rule says; the scoped task bar override is dropped. R4: the recipe comment names the Radix ScrollArea wrapper it depends on.
+- v1.4 (2026-10-25): slice B, ORV-101. `jumpToNode(id, options?: JumpOptions)` with exported `JumpOptions { select?: boolean }` selects and focuses the node when `select` is true; the jump keeps the node clear of a task bar on the board and uses duration 0 under `prefers-reduced-motion` for every caller (finding F2); the bar shows Go to node for a job whose `nodeId` is on the board (AC 14, 15); story `OnBoard` (AC 16). Slice A suggestions: front matter version matches the changelog (QA-1); the list cap is described as about four rows in the token and this spec (QA-2); every story comment says its jobs are mock data (QA-3).

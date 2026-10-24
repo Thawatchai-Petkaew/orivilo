@@ -32,6 +32,12 @@ describe("TaskBar", () => {
     expect(html).toMatch(/class="ds-taskbar__panel" hidden/);
   });
 
+  it("shows no Go to node button off a board, even for a job with a node (AC 15)", () => {
+    const html = render({ jobs: [fixtureJobs.done], defaultExpanded: true });
+    expect(html).toContain(fixtureJobs.done.name);
+    expect(html).not.toContain("ไปที่โหนด");
+  });
+
   it("reads the English catalog", () => {
     const html = render({ jobs: fixtureTaskJobsEn, defaultExpanded: true }, "en");
     expect(html).toContain("1 queued, 1 running, 1 failed, 1 done");

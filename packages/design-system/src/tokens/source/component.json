@@ -2323,7 +2323,7 @@
     "list-max-height": {
       "$type": "dimension",
       "$value": "{size.panel.default}",
-      "$description": "About five rows, then the list scrolls"
+      "$description": "About four rows, then the list scrolls"
     },
     "icon-size": {
       "$type": "dimension",

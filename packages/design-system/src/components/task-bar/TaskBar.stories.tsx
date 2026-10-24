@@ -3,6 +3,8 @@ import { useState } from "react";
 import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { LocaleProvider } from "../../i18n/LocaleProvider";
 import { fixtureJobs, fixtureManyJobs, fixtureTaskJobs, fixtureTaskJobsEn } from "../fixtures";
+import { BOARD } from "../canvas-board/fixtures";
+import { Stateful } from "../canvas-board/story-shell";
 import { Matrix, Narrow as NarrowFrame } from "../matrix";
 import { TaskBar, type TaskJob } from "./TaskBar";
 
@@ -14,7 +16,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "The jobs strip at the foot of the board (E4-5 part 2): a one-line summary, a toggle and a list of job rows with progress, the reason a job failed and a retry. Every job says where its result comes from, by rules or mock data; nothing here claims AI. Every story's jobs are mock data or worked out by rules, not live generation. The jump to a node arrives in slice B.",
+          "The jobs strip at the foot of the board (E4-5 part 2): a one-line summary, a toggle and a list of job rows with progress, the reason a job failed and a retry. Every job says where its result comes from, by rules or mock data; nothing here claims AI. Every story's jobs are mock data or worked out by rules, not live generation. Inside a board, a job whose node is on the board has a Go to node button.",
       },
     },
   },
@@ -108,7 +110,7 @@ export const Running: Story = {
   },
 };
 
-/** Under reduced motion the sweep and the retry spinner are switched off by the recipe. */
+/** Under reduced motion the sweep and the retry spinner are switched off by the recipe. Mock jobs. */
 export const RunningReducedMotion: Story = {
   args: { jobs: [fixtureJobs.runningUnknown] },
   play: async ({ canvasElement }) => {
@@ -264,7 +266,7 @@ function AnnounceHost() {
   );
 }
 
-/** The live region is empty at first; a state change is announced, a percent change is not. */
+/** The live region is empty at first; a state change is announced, a percent change is not. Mock jobs. */
 export const Announce: Story = {
   render: () => <AnnounceHost />,
   play: async ({ canvasElement }) => {
@@ -278,7 +280,7 @@ export const Announce: Story = {
   },
 };
 
-/** A controlled `expanded` wins over a press; the change is reported. */
+/** A controlled `expanded` wins over a press; the change is reported. Mock jobs. */
 export const Controlled: Story = {
   args: { expanded: false, onExpandedChange: fn() },
   play: async ({ canvasElement, args }) => {
@@ -290,7 +292,7 @@ export const Controlled: Story = {
   },
 };
 
-/** Tab reaches the toggle, then the list region, then each row's buttons in order. */
+/** Tab reaches the toggle, then the list region, then each row's buttons in order. Mock jobs. */
 export const Keyboard: Story = {
   args: {
     jobs: [fixtureJobs.failed, fixtureJobs.done, fixtureJobs.longReason],
@@ -353,7 +355,7 @@ export const Mixed: Story = {
   },
 };
 
-/** The mixed list at 360 px: names truncate with a title, nothing overflows sideways. */
+/** The mixed list at 360 px: names truncate with a title, nothing overflows sideways. Mock jobs. */
 export const Narrow: Story = {
   args: { jobs: mixedJobs, onRetry: fn() },
   decorators: [(Story) => <NarrowFrame>{Story()}</NarrowFrame>],
@@ -390,7 +392,7 @@ export const English: Story = {
 /**
  * Six bars in one document: the region names come from the catalog ("งาน", "รายการงาน") and the
  * public API has no label prop, so axe's landmark-unique rule is off for this story only. Each
- * bar sits inside a matrix cell that is named by its profile and mode.
+ * bar sits inside a matrix cell that is named by its profile and mode. Mock jobs.
  */
 export const RecipesAndModes: Story = {
   parameters: { a11y: { config: { rules: [{ id: "landmark-unique", enabled: false }] } } },
@@ -401,4 +403,50 @@ export const RecipesAndModes: Story = {
     </Matrix>
   ),
   decorators: [],
+};
+
+/** Three done jobs: one with a node on the board, one with no node, one whose node is not there. */
+const boardJobs: readonly TaskJob[] = [
+  { ...fixtureJobs.done, id: "job-on-board", nodeId: "logo" },
+  { ...fixtureJobs.done, id: "job-no-node", name: "สรุปแนวทางสี", nodeId: undefined },
+  { ...fixtureJobs.done, id: "job-missing", name: "ร่างหน้าแรก", nodeId: "ghost" },
+];
+
+/**
+ * The bar as a child of the board with its controls and shelf: Go to node shows only on the row
+ * whose node is on the board, selects that node alone, pans and zooms to it, focuses it and the
+ * board announces it. The node is not under the open list. Mock jobs on the fixture board.
+ */
+export const OnBoard: Story = {
+  args: { jobs: boardJobs },
+  render: (args) => (
+    <Stateful initial={BOARD} height={560} label="กระดานแบรนด์ (ข้อมูลตัวอย่าง)" minimap={false}>
+      <TaskBar {...args} />
+    </Stateful>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await waitFor(() =>
+      expect(canvasElement.querySelectorAll(".react-flow__node").length).toBeGreaterThan(0),
+    );
+    const jumps = canvas.getAllByRole("button", { name: /^ไปที่โหนดของ/ });
+    await expect(jumps).toHaveLength(1);
+    await expect(jumps[0]).toHaveAccessibleName(`ไปที่โหนดของ ${boardJobs[0]?.name}`);
+    await expect(within(rowOf(canvasElement, "job-no-node")).queryByRole("button")).toBeNull();
+    await expect(within(rowOf(canvasElement, "job-missing")).queryByRole("button")).toBeNull();
+    await userEvent.click(jumps[0] as HTMLElement);
+    const logo = canvasElement.querySelector<HTMLElement>('.react-flow__node[data-id="logo"]');
+    await waitFor(() => expect(logo).toHaveClass("selected"));
+    await expect(canvasElement.querySelectorAll(".react-flow__node.selected")).toHaveLength(1);
+    await waitFor(() => expect(logo).toHaveFocus());
+    await expect(canvasElement.querySelector(".ds-board__status")).toHaveTextContent("ไปที่ โลโก้");
+    // The bar's own live region says nothing about the jump.
+    await expect(announcer(canvasElement)).toHaveTextContent("");
+    // The node settles above the open list.
+    await waitFor(() =>
+      expect(logo?.getBoundingClientRect().bottom).toBeLessThanOrEqual(
+        bar(canvasElement).getBoundingClientRect().top + 1,
+      ),
+    );
+  },
 };
