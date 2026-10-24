@@ -83,3 +83,4 @@ Status: proposed
 | [[L-0011-spec-revision-and-fix-ran-in-parallel]]         | ORV-93                 | After a contract-changing review, the spec revision runs before the fix  |
 | [[L-0012-guard-reviewed-as-a-boundary-before-its-frame]] | ORV-95                 | A guard spec states guard rail or boundary; bypass classes become limits |
 | [[L-0013-qa-findings-took-a-second-revision]]            | ORV-95                 | One spec revision waits for both review and qa on one head               |
+| [[L-0014-qa-walked-a-head-the-recheck-rejected]]         | ORV-98, ORV-95, ORV-93 | From round 1, qa walks only a head the reviewer re-check approved        |

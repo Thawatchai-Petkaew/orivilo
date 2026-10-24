@@ -16,7 +16,7 @@ Before planning, read `AGENTS.md`, `docs/context/orivilo-brief.md`, the relevant
 3. **Design** (M, L). Dispatch `ds-architect` for schema, token, recipe or resolver changes and `designer` for flows, states and visual direction. They extend the spec folder.
 4. **G1 and G2.** Raise each with the `gate-packet` skill, move the issue, and stop. The owner decides; during the POC Claude passes G1 and G2 under the owner's delegation (ADR 0012 decision 4), and the packet says so.
 5. **Build.** Dispatch `builder` per task, each in its own worktree. A blocker comes back in `blocked_on`.
-6. **Review and qa.** Dispatch `qa` (`qa.v1`) and `reviewer` (`reviewer.v1`) on the same head SHA. Findings go back to `builder` as a new envelope; after round 2, ask the form (section 3). A docs-only PR has no qa; the reviewer walks its AC rows.
+6. **Review and qa.** Round 0: dispatch `qa` (`qa.v1`) and `reviewer` (`reviewer.v1`) on the same head SHA. Round 1 or more: dispatch the reviewer re-check first, and `qa` only on a head that re-check approved; a re-check that requests changes sends the head back with no qa walk on it (L-0014). Findings go back to `builder` as a new envelope; after round 2, ask the form (section 3). A docs-only PR has no qa; the reviewer walks its AC rows.
 7. **G3.** Merge into `develop` through `merge-guard` (section 6), move the issue through `g3-check` (section 7), and post the G3 packet.
 8. **Staging and G4.** When the owner sends a batch to staging (ADR 0011), dispatch `qa` to walk the AC on staging; for lane L its approve backs the G4 packet.
 9. **G5.** Dispatch `release` to prepare the G5 packet. Only the owner decides G5.
