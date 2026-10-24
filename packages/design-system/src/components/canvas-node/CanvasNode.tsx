@@ -156,7 +156,12 @@ export function CanvasNode({ id, data, selected, dragging }: CanvasNodeProps) {
           </span>
           <span className="ds-node__kind">
             {kind}
-            {basis ? <span className="ds-node__basis">{basis}</span> : null}
+            {basis ? (
+              <>
+                {" "}
+                <span className="ds-node__basis">{basis}</span>
+              </>
+            ) : null}
           </span>
           {status ? (
             <span className="ds-node__status" data-status={data.status}>

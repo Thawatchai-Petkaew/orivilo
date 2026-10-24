@@ -13,7 +13,7 @@ import {
   type Graph,
   type PortSpec,
 } from "../canvas-board/graph";
-import type { ChatBasis } from "./CanvasChat";
+import type { ChatBasis } from "../canvas-board/graph";
 
 /** How many graphemes of the question the reply title keeps. */
 const TOPIC_LENGTH = 40;

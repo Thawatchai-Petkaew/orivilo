@@ -627,7 +627,7 @@ export const Basis: Story = {
       await expect(basisOf("ไม่มี basis node")).toBeNull();
       await expect(basisOf("ตามกฎ node")).toBeVisible();
       const kind = nodeOf("ตามกฎ node").querySelector(".ds-node__kind") as HTMLElement;
-      await expect(kind.textContent).toBe("ชิ้นงานตามกฎ");
+      await expect(kind.textContent).toBe("ชิ้นงาน ตามกฎ");
     }
   },
 };

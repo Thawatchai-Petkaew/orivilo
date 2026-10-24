@@ -14,6 +14,7 @@ import { LOCALE_TAGS } from "../../i18n/locale";
 import { useLocale, useMessages } from "../../i18n/LocaleProvider";
 import { fill } from "../../i18n/messages/index";
 import { Button } from "../button/Button";
+import type { ChatBasis } from "../canvas-board/graph";
 import { useBoard } from "../canvas-board/context";
 import { cx } from "../cx";
 import {
@@ -29,8 +30,7 @@ import { Textarea } from "../textarea/Textarea";
 import { countGraphemes } from "../textarea/graphemes";
 import { replyTopic } from "./place-reply";
 
-/** Where a reply comes from today. A later story adds a real source with its adapter (ADR 0009). */
-export type ChatBasis = "rules" | "mock";
+export type { ChatBasis };
 
 export interface ChatRequest {
   /** What the person typed, trimmed. */
@@ -146,7 +146,9 @@ export function CanvasChat({
 
   // A placed reply is announced once its node shows up in the board's graph, by the title it has there.
   useEffect(() => {
-    const pending = exchanges.find((e) => e.placedId && !e.announced);
+    const pending = exchanges.find(
+      (e) => e.placedId && !e.announced && board.graph.nodes.some((n) => n.id === e.placedId),
+    );
     const node = pending && board.graph.nodes.find((n) => n.id === pending.placedId);
     if (!pending || !node) return;
     setAnnouncement(fill(m.chat.placed, { title: node.data.title }));

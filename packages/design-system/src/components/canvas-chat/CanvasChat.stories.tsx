@@ -834,7 +834,8 @@ export const OnBoard: Story = {
     await waitFor(() => expect(nodeEl(canvasElement, "reply-1")).toBeTruthy());
     const reply = nodeEl(canvasElement, "reply-1");
     const brief = nodeEl(canvasElement, "brief");
-    await expect(within(reply).getByText(title)).toBeVisible();
+    // React Flow keeps a new node hidden until it is measured: wait for it to show.
+    await waitFor(() => expect(within(reply).getByText(title)).toBeVisible());
     await expect(reply).toHaveTextContent(chatFixtures.reply);
     await expect(within(reply).getByText("ตามกฎ", { selector: ".ds-node__basis" })).toBeVisible();
     // The derived edge from the brief; the chat keeps focus and the brief stays the one selection.
@@ -875,6 +876,12 @@ export const OnBoard: Story = {
       expect(inside(node, box(boardEl(canvasElement)))).toBe(true);
       expect(overlap(node, chat)).toBe(false);
     });
+    // Deleting the node removes the jump button: it is only offered while the node is on the board.
+    await userEvent.keyboard("{Delete}");
+    await waitFor(() => expect(nodeEl(canvasElement, "reply-1")).toBeNull());
+    await waitFor(() =>
+      expect(canvas.queryByRole("button", { name: /^ไปที่โหนดคำตอบ/ })).toBeNull(),
+    );
   },
 };
 
@@ -888,10 +895,16 @@ export const Unlinked: Story = {
     const canvas = within(canvasElement);
     await waitFor(() => expect(nodeEl(canvasElement, "brief")).toBeTruthy());
     await expect(canvasElement.querySelectorAll(".react-flow__node.selected")).toHaveLength(0);
-    const edges = canvasElement.querySelectorAll(".react-flow__edge").length;
+    // React Flow draws edges only once the nodes are measured: wait for the fixture's edges.
+    const edges = BOARD.edges.length;
+    await waitFor(() =>
+      expect(canvasElement.querySelectorAll(".react-flow__edge")).toHaveLength(edges),
+    );
+    const title = `คำตอบเรื่อง ${chatFixtures.question}`;
     await ask(canvas, chatFixtures.question);
     await waitFor(() => expect(nodeEl(canvasElement, "reply-1")).toBeTruthy());
     const reply = nodeEl(canvasElement, "reply-1");
+    await waitFor(() => expect(within(reply).getByText(title)).toBeVisible());
     await expect(canvasElement.querySelectorAll(".react-flow__edge")).toHaveLength(edges);
     await expect(canvas.getByText("ไม่ได้ผูกกับโหนดใด")).toBeVisible();
     // Its top-left corner is the board's centre, snapped to the grid: within half a grid unit.

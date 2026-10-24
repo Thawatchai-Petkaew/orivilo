@@ -5,7 +5,6 @@
  * no React Flow runtime: the shell can run the same rules on a saved board.
  */
 import type { Connection, Edge, Node } from "@xyflow/react";
-import type { ChatBasis } from "../canvas-chat/CanvasChat";
 import { DEFAULT_LOCALE, type Locale, pick } from "../../i18n/locale";
 import { fill, messagesFor } from "../../i18n/messages/index";
 import {
@@ -16,6 +15,9 @@ import {
   type PortDirection,
   type PortKind,
 } from "../../tokens/canvas";
+
+/** Where a reply comes from today. A later story adds a real source with its adapter (ADR 0009). */
+export type ChatBasis = "rules" | "mock";
 
 export type NodeSize = "sm" | "md" | "lg" | "custom";
 
