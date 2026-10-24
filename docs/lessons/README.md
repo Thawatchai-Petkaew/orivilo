@@ -68,16 +68,18 @@ Status: proposed
 
 ## Index
 
-| Lesson                                             | Issue                  | Rule in short                                                           |
-| -------------------------------------------------- | ---------------------- | ----------------------------------------------------------------------- |
-| [[L-0001-g3-passed-visual-defects]]                | ORV-72, ORV-80         | A UI PR shows the render; the reviewer looks at it before G3            |
-| [[L-0002-a-test-that-cannot-fail]]                 | ORV-78                 | A new guard test is seen to fail once before it counts                  |
-| [[L-0003-squash-reset-reverted-a-merged-pr]]       | ORV-77                 | No `reset --soft` onto a moved base; the diff lists only our files      |
-| [[L-0004-delete-branch-left-remotes]]              | ORV-79                 | Delete the remote branch by hand and check `ls-remote`                  |
-| [[L-0005-issues-missing-from-the-sprint]]          | ORV-79                 | A new issue joins the active sprint in the same step                    |
-| [[L-0006-main-session-worked-solo]]                | ORV-81                 | Role agents build; a QA agent that did not build accepts                |
-| [[L-0007-turbo-cache-hid-skipped-tests]]           | ORV-13                 | Test runs for a handoff use `--force`                                   |
-| [[L-0008-recheck-costs-like-a-first-review]]       | ORV-87, ORV-90, ORV-91 | A re-check starts from the previous findings and the rework diff        |
-| [[L-0009-full-suite-loops-to-verify-a-flaky-fix]]  | ORV-76                 | Verify a fix with affected tests, the full suite once                   |
-| [[L-0010-one-builder-task-built-six-deliverables]] | ORV-93                 | One builder task per deliverable; split an envelope over 8 pointers     |
-| [[L-0011-spec-revision-and-fix-ran-in-parallel]]   | ORV-93                 | After a contract-changing review, the spec revision runs before the fix |
+| Lesson                                                   | Issue                  | Rule in short                                                            |
+| -------------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------ |
+| [[L-0001-g3-passed-visual-defects]]                      | ORV-72, ORV-80         | A UI PR shows the render; the reviewer looks at it before G3             |
+| [[L-0002-a-test-that-cannot-fail]]                       | ORV-78                 | A new guard test is seen to fail once before it counts                   |
+| [[L-0003-squash-reset-reverted-a-merged-pr]]             | ORV-77                 | No `reset --soft` onto a moved base; the diff lists only our files       |
+| [[L-0004-delete-branch-left-remotes]]                    | ORV-79                 | Delete the remote branch by hand and check `ls-remote`                   |
+| [[L-0005-issues-missing-from-the-sprint]]                | ORV-79                 | A new issue joins the active sprint in the same step                     |
+| [[L-0006-main-session-worked-solo]]                      | ORV-81                 | Role agents build; a QA agent that did not build accepts                 |
+| [[L-0007-turbo-cache-hid-skipped-tests]]                 | ORV-13                 | Test runs for a handoff use `--force`                                    |
+| [[L-0008-recheck-costs-like-a-first-review]]             | ORV-87, ORV-90, ORV-91 | A re-check starts from the previous findings and the rework diff         |
+| [[L-0009-full-suite-loops-to-verify-a-flaky-fix]]        | ORV-76                 | Verify a fix with affected tests, the full suite once                    |
+| [[L-0010-one-builder-task-built-six-deliverables]]       | ORV-93                 | One builder task per deliverable; split an envelope over 8 pointers      |
+| [[L-0011-spec-revision-and-fix-ran-in-parallel]]         | ORV-93                 | After a contract-changing review, the spec revision runs before the fix  |
+| [[L-0012-guard-reviewed-as-a-boundary-before-its-frame]] | ORV-95                 | A guard spec states guard rail or boundary; bypass classes become limits |
+| [[L-0013-qa-findings-took-a-second-revision]]            | ORV-95                 | One spec revision waits for both review and qa on one head               |
