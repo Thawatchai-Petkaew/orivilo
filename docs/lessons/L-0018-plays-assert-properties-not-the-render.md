@@ -60,4 +60,4 @@ The `Check:` line names ORV-110 as a provisional key. Before the measurement it 
 - Check: `node scripts/ovl/metrics.mjs report ORV-110`
 - Check after: 2026-11-08
 
-Status: proposed
+Status: promoted 2026-10-25, into `packages/design-system/src/testing/visual-asserts.ts`, `.claude/rules/testing.md` and `.claude/agents/builder.md`; Check after: 2026-11-08

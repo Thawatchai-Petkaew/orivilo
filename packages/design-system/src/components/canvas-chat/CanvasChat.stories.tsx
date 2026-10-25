@@ -11,6 +11,7 @@ import { DesignProfileBoundary } from "../../boundary/DesignProfileBoundary";
 import { Matrix } from "../matrix";
 import { CanvasChat, type ChatReply, type ChatRequest } from "./CanvasChat";
 import { placeReply, replyTitle } from "./place-reply";
+import { expectEdgeInk, expectNoGlyphClip, expectSameHeight } from "../../testing/visual-asserts";
 
 const meta = {
   title: "Application/Canvas chat",
@@ -95,8 +96,9 @@ async function expectGoneChip(root: HTMLElement, words: string, title: string) {
   const label = q(tag, ".ds-tag__label");
   const message = q(root, ".ds-chat__gone-message");
   const chat = chatOf(root);
-  await expect(box(tag).height).toBeCloseTo(box(normal).height, 0);
-  await expect(label.scrollHeight).toBe(label.clientHeight);
+  expectSameHeight(tag, normal);
+  expectNoGlyphClip(tag);
+  expectNoGlyphClip(normal);
   await expect(label).toHaveTextContent(title);
   await expect(inside(box(q(tag, ".ds-chat__gone-mark svg")), box(tag))).toBe(true);
   await expect(inside(box(tag), box(chat))).toBe(true);
@@ -338,6 +340,8 @@ export const Send: Story = {
     const boxStyle = getComputedStyle(q(canvasElement, ".ds-chat__box"));
     const focusEdge = resolved(chatOf(canvasElement), "--cmp-input-border-focus");
     await waitFor(() => expect(boxStyle.borderTopColor).toBe(focusEdge));
+    // The rendered edge is 1 px of ink on every side, not a border and an outline drawn side by side (L-0018).
+    await expectEdgeInk(q(canvasElement, ".ds-chat__box"), ["top", "right", "bottom", "left"], 1);
     await expect(boxStyle.outlineStyle).toBe("none");
     await expect(boxStyle.borderTopWidth).toBe("1px");
     await expect(boxStyle.boxShadow).toBe("none");
