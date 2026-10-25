@@ -27,13 +27,17 @@ describe("next config", () => {
 });
 
 const PRODUCTION_CSP =
-  "default-src 'self'; script-src 'self' 'nonce-abc' 'strict-dynamic'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self' https://accounts.google.com; frame-ancestors 'self'; upgrade-insecure-requests";
+  "default-src 'self'; script-src 'self' 'nonce-abc' 'strict-dynamic'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self' https://accounts.google.com; frame-ancestors 'self'";
 
 describe("csp", () => {
   const directives = (csp: string) => csp.split("; ");
 
   it("is exactly the production policy of the spec", () => {
     expect(buildCsp("abc", false)).toBe(PRODUCTION_CSP);
+  });
+
+  it("leaves out upgrade-insecure-requests, which a Report-Only policy ignores and reports (ORV-116)", () => {
+    expect(directives(buildCsp("abc", false))).not.toContain("upgrade-insecure-requests");
   });
 
   it("adds only unsafe-eval to script-src in development", () => {

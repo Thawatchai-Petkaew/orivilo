@@ -108,11 +108,15 @@ async function pixelsOf(
 const label = (el: Element) =>
   `<${el.localName}${el.className && typeof el.className === "string" ? `.${el.className.split(" ").join(".")}` : ""}>`;
 
+/** True under Vitest browser mode; false on the static Storybook, where `vitest/browser` is missing. */
+export const inVitest = Boolean((import.meta as { env?: Record<string, unknown> }).env?.["VITEST"]);
+
 /**
  * Asserts the ink drawn at one edge of `el` (or at each of several, from one screenshot) is `px` CSS px wide, read from a screenshot (a pixel
  * line through the middle of the edge, 4 CSS px outside to 4 inside). Computed style does not
  * decide the result, so a border and an outline drawn side by side count as the two they are.
- * It runs where Vitest browser mode runs (the Storybook test project).
+ * It runs where Vitest browser mode runs (the Storybook test project); `vitest/browser` does not
+ * exist on the static Storybook, so a play guards the call with `inVitest` and skips it there.
  */
 export async function expectEdgeInk(
   el: Element,

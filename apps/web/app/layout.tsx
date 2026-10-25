@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { getWebMessages } from "../i18n/locale";
 import { LocaleSwitch } from "../i18n/LocaleSwitch";
 import "./globals.css";
+import { ZodJitless } from "./ZodJitless";
 
 const NAV_LINK = "text-text-link underline-offset-4 hover:text-text-link-hover hover:underline";
 
@@ -24,6 +25,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   return (
     <html lang={locale}>
       <body className="antialiased">
+        <ZodJitless />
         <LocaleProvider locale={locale}>
           <DesignProfileBoundary profile="neutral" mode="system">
             <div className="min-h-dvh bg-surface-canvas font-body text-body-md text-text-primary">
