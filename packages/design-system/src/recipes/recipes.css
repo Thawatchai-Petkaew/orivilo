@@ -4156,11 +4156,11 @@ button.ds-tag__main {
 .ds-chat__box:hover {
   border-color: var(--cmp-input-border-hover);
 }
-/* The ring goes around the whole box, drawn when the textarea has keyboard focus (the InputGroup rule). */
-.ds-chat__box:has(textarea:focus-visible) {
+/* One ring, on the box, whenever focus is inside it (ORV-107 comment 10146). The field draws none. */
+.ds-chat__box:focus-within {
   border-color: var(--cmp-input-border-focus);
   outline: 2px solid var(--ds-focus-ring);
-  outline-offset: 2px;
+  outline-offset: 0;
 }
 .ds-chat__box:has(textarea[aria-invalid="true"]) {
   border-color: var(--cmp-input-border-error);
@@ -4185,6 +4185,10 @@ button.ds-tag__main {
   margin: 0;
   align-self: center;
   justify-self: end;
+}
+/* The counter shows from 1,800 of 2,000 characters; the box carries data-counter from there. */
+.ds-chat__box:not([data-counter]) .ds-textarea__counter {
+  display: none;
 }
 .ds-chat__actions {
   display: contents;

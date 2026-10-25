@@ -1,9 +1,9 @@
 ---
 issue: ORV-107 (CanvasChat visual refresh, from ORV-107 comments 10138, 10140, 10142 and 10144; ORV-110 comments 10141 and 10143)
-spec: docs/specs/ORV-107/spec.md v1.3
+spec: docs/specs/ORV-107/spec.md v1.4
 base design: docs/specs/ORV-105/design.md v1
 gate: G2 Design (lane L, component public API unchanged; component tokens, recipe and locale keys change)
-version: 2
+version: 2.2
 ---
 
 # CanvasChat sidebar: visual refresh
@@ -247,3 +247,4 @@ Under `.orivilo/runs/ORV-107/<task_id>/screenshots/`, light and dark each, Thai 
 - v1 (2026-10-25): first refresh design for the CanvasChat sidebar, from the owner's ORV-107 comment 10138, with browser measurements of the current layout and five references.
 - v2 (2026-10-25): revised to the owner's chosen language and decisions (ORV-107 comments 10140, 10142, 10144; ORV-110 10141, 10143): floating card panel with radius 24 and the overlay shadow, quiet header row with an icon, pill bubble, Jump keeps its text (R5 not taken), honesty line moved under the composer and always visible (R7 reversed), starter prompts in the empty state (R8), tooltips on Send, Stop and Mention; the owner's reference images were looked at directly. Light and dark table added. Downstream: spec v1.3.
 - v2.1 (2026-10-25): build notes, no requirement change. Measured in a browser at 240, 320, 360 and 480: icon-only buttons draw the chat's 16 px icon (recipe rule `.ds-chat .ds-button[data-icon-only] > svg`), so the close icon ends at x 304 and the Mention icon starts at x 33; the chip label starts at x 34, one border width after the text (change 9 said 33); `.ds-chat__actions` is `display: contents` so the Mention, counter and Send share one grid row with the textarea inside the box; at 240 in English the mock honesty line is one line (19.5) and the rules line is two (39); Jump fits beside "By rules" at 240 in English and wraps only with a longer basis word. The tooltip names the same word as `aria-label`; Radix links it with `aria-describedby` only while it is open.
+- v2.2 (2026-10-25): from ORV-107 comment 10146. Change 8: the box shows one 2 px `focus.ring` outline on `:focus-within`, offset 0, with the border at `input.border-focus`; the field draws none. Change 10: the counter is hidden (`display: none`, still named by `aria-describedby`) until the text reaches 1,800 of 2,000 graphemes, then shown in its grid slot; the over-limit state is unchanged. Downstream: spec v1.4.

@@ -105,6 +105,8 @@ const STARTERS = ["starterMissing", "starterColours", "starterNext"] as const;
 
 /** The soft limit of the message box, in graphemes (spec: Textarea's counter). */
 const MAX_LENGTH = 2000;
+/** The counter shows from here on, so a short message carries no number (ORV-107 comment 10146). */
+const COUNTER_FROM = 1800;
 /** Within this many pixels of the end, the transcript keeps following the newest reply. */
 const FOLLOW_SLACK = 32;
 
@@ -166,7 +168,8 @@ export function CanvasChat({
   const latest = exchanges[exchanges.length - 1];
   const streaming = latest?.status === "streaming";
   const trimmed = draft.trim();
-  const blocked = trimmed === "" || countGraphemes(draft, LOCALE_TAGS[locale]) > MAX_LENGTH;
+  const length = countGraphemes(draft, LOCALE_TAGS[locale]);
+  const blocked = trimmed === "" || length > MAX_LENGTH;
 
   const token = pickerOpen ? mentionToken(draft, caret) : null;
   const canMention =
@@ -605,7 +608,7 @@ export function CanvasChat({
             )}
           </div>
         ) : null}
-        <div className="ds-chat__box">
+        <div className="ds-chat__box" data-counter={length >= COUNTER_FROM ? "" : undefined}>
           {ids.length > 0 ? (
             <ul className="ds-chat__chips" aria-label={m.chat.mentioned}>
               {ids.map((id) => (

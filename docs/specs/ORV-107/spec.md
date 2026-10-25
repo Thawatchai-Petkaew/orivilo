@@ -1,7 +1,7 @@
 ---
 issue: ORV-107 (ORV-105 slice C, ORV-45 part 3; https://tpetkaew.atlassian.net/browse/ORV-107)
 lane: L (risk flag: component public API; command availability; component tokens)
-version: 1.3
+version: 1.4
 ---
 
 ## Why
@@ -150,3 +150,4 @@ The four starter keys are new in v1.3 (row 34); the honesty line reuses `noticeR
 - v1.2 (2026-10-25): row 19 keeps the node title in the text: a pick replaces the "@query" with the title and one space instead of removing it, and removing a chip leaves the text alone (ORV-107 comment 10137). The `Mentions` play asserts the textarea value after picks in Thai, `MentionsEnglish` in English.
 - v1.3 (2026-10-25): the visual refresh (design.md v2) from ORV-107 comments 10140, 10142 and 10144: carries ORV-105 row 4 with the speaker word visually hidden; row 18 puts the picker at the composer box's width; row 20 makes Mention a round icon-only button with a tooltip; new row 34 (starter prompts, four new keys) and row 35 (the honesty line under the composer, always visible, announced with the textarea; moves ORV-105 row 2's notice). Impact gains the token, icon, recipe and story changes. Downstream: ORV-105 spec rows 2 and 4 wording.
 - v1.3.1 (2026-10-25): build 4 of the visual refresh landed (design.md v2.1 build notes). Story plays assert the geometry of rows 4, 18, 20, 34 and 35; no requirement change.
+- v1.4 (2026-10-25): the composer box shows one focus ring on `:focus-within` (the `focus.ring` token, 2 px, drawn on the box only; the textarea draws none) and the character counter is hidden until the text reaches 1,800 of 2,000 characters, shown from there with the over-limit error state unchanged (ORV-107 comment 10146). Changes the counter wording of row 4's composer and design change 10 and the ring wording of design change 8. Checked by the `Send` play (single ring), the new `CounterThreshold` play and `OverLimit`. New contrast pair "composer focus" in `pairs.ts`. Downstream: none.

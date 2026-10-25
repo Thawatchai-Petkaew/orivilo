@@ -112,9 +112,8 @@ async function expectActions(root: HTMLElement) {
   const send = box(q(root, ".ds-chat__send"));
   const mention = root.querySelector(".ds-chat__mention");
   if (mention) near(box(mention).top, send.top);
-  const counter = box(q(root, ".ds-textarea__counter"));
-  await expect(counter.right).toBeLessThanOrEqual(send.left - 8 + 0.5);
-  await expect(overlap(counter, send)).toBe(false);
+  // Under 1,800 characters the counter is hidden (ORV-107 comment 10146).
+  await expect(getComputedStyle(q(root, ".ds-textarea__counter")).display).toBe("none");
 }
 
 const input = (canvas: ReturnType<typeof within>, name = "ข้อความถึงเอนจิน") =>
@@ -275,6 +274,20 @@ export const OverLimit: Story = {
   },
 };
 
+/** The counter stays hidden below 1,800 graphemes and shows from 1,800. The fixture host answers by rules. */
+export const CounterThreshold: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const counter = q(canvasElement, ".ds-textarea__counter");
+    await userEvent.click(input(canvas));
+    await userEvent.paste("ก".repeat(1799));
+    await expect(getComputedStyle(counter).display).toBe("none");
+    await userEvent.paste("ก");
+    await expect(getComputedStyle(counter).display).not.toBe("none");
+    await expect(canvas.getByText("ตัวอักษร 1,800 จาก 2,000")).toBeInTheDocument();
+  },
+};
+
 /** Enter and Send both ask once with the trimmed text and a signal; Shift+Enter adds a line. The fixture host answers by rules. */
 export const Send: Story = {
   play: async ({ canvasElement, args }) => {
@@ -283,10 +296,12 @@ export const Send: Story = {
     await userEvent.type(field, "บรรทัดแรก{Shift>}{Enter}{/Shift}บรรทัดสอง");
     await expect(field.value).toBe("บรรทัดแรก\nบรรทัดสอง");
     await expect(args.onAsk).not.toHaveBeenCalled();
-    // With keyboard focus in the textarea the ring goes around the whole box, not the field.
+    // With focus in the textarea one ring goes around the whole box, not the field.
     const boxStyle = getComputedStyle(q(canvasElement, ".ds-chat__box"));
+    await expect(boxStyle.outlineStyle).toBe("solid");
     await expect(boxStyle.outlineWidth).toBe("2px");
-    await expect(boxStyle.outlineOffset).toBe("2px");
+    await expect(boxStyle.outlineColor).toBe(resolved(canvasElement, "--ds-focus-ring"));
+    await expect(boxStyle.boxShadow).toBe("none");
     const focusEdge = resolved(canvasElement, "--cmp-input-border-focus");
     await waitFor(() => expect(boxStyle.borderTopColor).toBe(focusEdge));
     await expect(getComputedStyle(field).outlineStyle).toBe("none");
@@ -820,10 +835,11 @@ export const NarrowestPanel: Story = {
       expect(canvas.getByText("ตามกฎ", { selector: ".ds-chat__basis" })).toBeVisible(),
     );
     await expectFits(canvasElement);
-    // At 240 the row still fits: the counter and Send share one line, Send at the end edge.
-    const send = box(action(canvas, "ส่ง"));
-    const counter = box(canvasElement.querySelector(".ds-textarea__counter") as HTMLElement);
-    near(send.top + send.height / 2, counter.top + counter.height / 2, 2);
+    // At 240 the row still fits: Send sits inside the box, and the counter is hidden under 1,800.
+    await expect(inside(box(action(canvas, "ส่ง")), box(q(canvasElement, ".ds-chat__box")))).toBe(
+      true,
+    );
+    await expect(getComputedStyle(q(canvasElement, ".ds-textarea__counter")).display).toBe("none");
     // The long Thai question keeps 32 px free at the start and wraps by word.
     const question = box(q(canvasElement, ".ds-chat__question"));
     await expect(question.left).toBeGreaterThanOrEqual(
@@ -832,7 +848,7 @@ export const NarrowestPanel: Story = {
   },
 };
 
-/** The widest panel, 480 px, with the counter and Send on one line. The fixture host answers by rules. */
+/** The widest panel, 480 px, with Send inside the box and the counter hidden. The fixture host answers by rules. */
 export const WidestPanel: Story = {
   render: (args) => (
     <Frame size="max">
@@ -847,11 +863,10 @@ export const WidestPanel: Story = {
     );
     await expectFits(canvasElement);
     near(box(chatOf(canvasElement)).width, 480);
-    const send = box(action(canvas, "ส่ง"));
-    const counter = box(canvasElement.querySelector(".ds-textarea__counter") as HTMLElement);
-    await expect(
-      Math.abs(send.top + send.height / 2 - (counter.top + counter.height / 2)),
-    ).toBeLessThan(2);
+    await expect(inside(box(action(canvas, "ส่ง")), box(q(canvasElement, ".ds-chat__box")))).toBe(
+      true,
+    );
+    await expect(getComputedStyle(q(canvasElement, ".ds-textarea__counter")).display).toBe("none");
   },
 };
 
