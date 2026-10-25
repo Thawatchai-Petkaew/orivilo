@@ -309,3 +309,11 @@ test("AC 37: the ovl skill section 4 gives the close form", () => {
   assert.match(section, /`ยังไม่ปิด`/);
   assert.match(section, /Text typed in chat never closes/);
 });
+
+test("SEC-1: an answer the dialog picked after an idle timeout closes nothing", () => {
+  const root = makeRepo();
+  stuck(root);
+  const input = form(root);
+  input.tool_response.afkTimeoutMs = 60000;
+  refused(root, input, /afkTimeoutMs/);
+});

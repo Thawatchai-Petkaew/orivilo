@@ -3,6 +3,9 @@ import type { CSSProperties } from "react";
 import { expect } from "storybook/test";
 import { DesignProfileBoundary } from "../boundary/DesignProfileBoundary";
 import { fixtures } from "../components/fixtures";
+import { LocaleProvider } from "../i18n/LocaleProvider";
+import { Tag } from "../components/tag/Tag";
+import { CloseIcon, WarningIcon } from "../components/icons";
 import { expectEdgeInk, expectNoGlyphClip, expectSameHeight } from "./visual-asserts";
 
 const meta = {
@@ -12,7 +15,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Proof that the shared play helpers (L-0018) go red on the three ORV-107 defects and green on the fixed render. Each story renders the defect's CSS and the fixed CSS side by side and asserts both outcomes. These are test fixtures, not components.",
+          "Proof that the shared play helpers (L-0018) go red on the three ORV-107 defects and green on the fixed render. The edge story renders the defect's CSS beside the fixed CSS. The gone chip stories render the real chip markup and recipe classes with the verbatim ORV-107 c1c9fad gone chip rules, then the shipped chip. These are test fixtures, not components.",
       },
     },
   },
@@ -74,81 +77,106 @@ function edgeInkStory(mode: "light" | "dark"): Story {
 export const EdgeInkLight: Story = edgeInkStory("light");
 export const EdgeInkDark: Story = edgeInkStory("dark");
 
-const chip: CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  boxSizing: "border-box",
-  padding: "0 12px",
-  fontSize: 14,
-  lineHeight: "20px",
-  border: "1px solid var(--cmp-input-border, currentColor)",
-  borderRadius: 9999,
-};
+/**
+ * The gone chip rules of ORV-107 `c1c9fad`, verbatim from `recipes.css` at that commit. The shipped
+ * recipe no longer has them (v1.6 moved the gone words under the chip row), so the fixture carries them.
+ */
+const C1C9FAD_CSS = `
+.c1c9fad .ds-chat__gone-label { display: flex; flex-wrap: wrap; column-gap: var(--cmp-tag-gap); white-space: normal; }
+.c1c9fad .ds-chat__gone-title { min-width: 0; max-inline-size: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.c1c9fad .ds-chat__gone-words { min-width: 0; }
+`;
 
-/** `c1c9fad`: the gone chip wraps to three lines at 240 px, an oval beside one-line chips. */
+/** The `c1c9fad` gone chip markup, with the real `.ds-tag` and `.ds-chat__*` recipe classes. */
+function GoneChipC1c9fad({ title, words }: { title: string; words: string }) {
+  return (
+    <li className="ds-chat__chip" data-gone="" data-case="gone">
+      <span className="ds-chat__mark ds-chat__gone-mark" aria-hidden="true">
+        <WarningIcon />
+      </span>
+      <span className="ds-tag" data-size="sm">
+        <span className="ds-tag__main">
+          <span className="ds-tag__label ds-chat__gone-label">
+            <span className="ds-chat__gone-title">{title}</span>{" "}
+            <span className="ds-chat__gone-words">{words}</span>
+          </span>
+        </span>
+        <button type="button" className="ds-tag__remove" aria-label="Remove">
+          <CloseIcon className="size-4" />
+        </button>
+      </span>
+    </li>
+  );
+}
+
+function goneFixture(locale: "th" | "en", title: string, words: string, width: number): Story {
+  return {
+    render: () => (
+      <DesignProfileBoundary mode="light" profile="neutral">
+        <LocaleProvider locale={locale}>
+          <style>{C1C9FAD_CSS}</style>
+          <ul className="ds-chat__chips c1c9fad" style={{ width }}>
+            <li className="ds-chat__chip" data-case="normal">
+              <Tag size="sm" label="Brand" onRemove={() => undefined} />
+            </li>
+            <GoneChipC1c9fad title={title} words={words} />
+          </ul>
+        </LocaleProvider>
+      </DesignProfileBoundary>
+    ),
+  };
+}
+
+/** `c1c9fad`, English at 240 px: the gone chip wraps to two lines, taller than the one-line chip beside it. */
 export const SameHeight: Story = {
-  render: () => (
-    <div style={{ display: "flex", gap: 8, width: 240, padding: 16 }}>
-      <span data-case="normal" style={{ ...chip, height: 28, whiteSpace: "nowrap" }}>
-        Brand
-      </span>
-      <span data-case="wrapped" style={{ ...chip, width: 90, padding: "4px 12px", height: "auto" }}>
-        Gone from the board
-      </span>
-      <span data-case="whole" style={{ ...chip, height: 28, whiteSpace: "nowrap" }}>
-        Gone
-      </span>
-    </div>
-  ),
+  ...goneFixture("en", "Brand Canvas project of the team", "is no longer on the board", 240),
   play: async ({ canvasElement }) => {
-    const normal = q(canvasElement, "[data-case='normal']");
-    const wrapped = q(canvasElement, "[data-case='wrapped']");
-    const whole = q(canvasElement, "[data-case='whole']");
-    await expect(() => expectSameHeight(wrapped, normal)).toThrow(/px tall but/);
-    expectSameHeight(whole, normal);
+    const gone = q(canvasElement, "[data-case='gone'] .ds-tag");
+    const normal = q(canvasElement, "[data-case='normal'] .ds-tag");
+    await expect(() => expectSameHeight(gone, normal)).toThrow(
+      /is \d+(\.\d+)? px tall but .* is \d+(\.\d+)? px/,
+    );
+    // Two chips of one height pass.
+    expectSameHeight(normal, normal);
   },
 };
 
-const label: CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  boxSizing: "border-box",
-  width: 140,
-  height: 40,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  borderRadius: 20,
-  border: "1px solid var(--cmp-input-border, currentColor)",
-  fontSize: 14,
+/** `c1c9fad` with the Thai title `ปิ่นโต้` at 120 px (the title and the gone words no longer fit one line, so the chip wraps): a glyph box of the title falls outside the pill's clip. */
+export const GlyphClip: Story = {
+  ...goneFixture("th", fixtures.thaiMarks, "ไม่อยู่บนบอร์ดแล้ว", 120),
+  play: async ({ canvasElement }) => {
+    const gone = q(canvasElement, "[data-case='gone'] .ds-tag");
+    await expect(() => expectNoGlyphClip(gone)).toThrow(/ปิ่นโต้.*outside the clip.*corner/);
+  },
 };
 
-/** `c1c9fad`: a Thai title with stacked marks at the start of a pill label that has no padding to clear the curve. */
-export const GlyphClip: Story = {
+/** The shipped chip (one line, same height as a normal chip, text clear of the pill's curve) passes both helpers. */
+export const ShippedChipPasses: Story = {
   render: () => (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: 16 }}>
-      <div data-case="clipped" style={{ ...label, paddingInline: 0 }}>
-        <span>{fixtures.thaiMarks}</span>
-      </div>
-      <div data-case="clear" style={{ ...label, paddingInline: 22 }}>
-        <span>{fixtures.thaiMarks}</span>
-      </div>
-      <div data-case="clear-2" style={{ ...label, paddingInline: 22 }}>
-        <span>{fixtures.thaiMarks2}</span>
-      </div>
-      <div data-case="truncated" style={{ ...label, paddingInline: 22 }}>
-        <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
-          {fixtures.thaiMarks} {fixtures.longThai}
-        </span>
-      </div>
-    </div>
+    <DesignProfileBoundary mode="light" profile="neutral">
+      <ul className="ds-chat__chips" style={{ width: 240 }}>
+        <li className="ds-chat__chip" data-case="normal">
+          <Tag size="sm" label="Brand" onRemove={() => undefined} />
+        </li>
+        <li className="ds-chat__chip" data-case="thai">
+          <Tag size="sm" label={fixtures.thaiMarks} onRemove={() => undefined} />
+        </li>
+        <li className="ds-chat__chip" data-case="long">
+          <Tag
+            size="sm"
+            label={`${fixtures.thaiMarks} ${fixtures.longThai}`}
+            onRemove={() => undefined}
+          />
+        </li>
+      </ul>
+    </DesignProfileBoundary>
   ),
   play: async ({ canvasElement }) => {
-    await expect(() => expectNoGlyphClip(q(canvasElement, "[data-case='clipped']"))).toThrow(
-      /ปิ่นโต้.*outside the clip.*corner/,
-    );
-    expectNoGlyphClip(q(canvasElement, "[data-case='clear']"));
-    expectNoGlyphClip(q(canvasElement, "[data-case='clear-2']"));
-    expectNoGlyphClip(q(canvasElement, "[data-case='truncated']"));
+    const normal = q(canvasElement, "[data-case='normal'] .ds-tag");
+    for (const name of ["thai", "long"]) {
+      const tag = q(canvasElement, `[data-case='${name}'] .ds-tag`);
+      expectSameHeight(tag, normal);
+      expectNoGlyphClip(tag);
+    }
   },
 };

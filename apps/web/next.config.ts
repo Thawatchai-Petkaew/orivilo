@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 import { staticSecurityHeaders } from "./security-headers";
 
 const nextConfig: NextConfig = {
+  poweredByHeader: false,
   transpilePackages: [
     "@orivilo/intent-engine",
     "@orivilo/design-system",
@@ -9,7 +10,7 @@ const nextConfig: NextConfig = {
     "@orivilo/db",
   ],
   async headers() {
-    return [{ source: "/:path*", headers: [...staticSecurityHeaders] }];
+    return [{ source: "/(.*)", headers: [...staticSecurityHeaders] }];
   },
 };
 

@@ -340,3 +340,14 @@ test("ORV-108 row 33: one form with a grant and a close option, each clicked in 
   assert.equal(existsSync(closedFile), true);
   assert.deepEqual(grants(root), ["owner-grant-1.json"]);
 });
+
+test("SEC-1: an answer the dialog picked after an idle timeout grants nothing", () => {
+  const root = makeRepo();
+  seedEscalated(root);
+  const input = form(root);
+  input.tool_response.afkTimeoutMs = 60000;
+  const r = runNode(grantHook, input);
+  assert.equal(r.code, 2);
+  assert.match(r.stderr, /afkTimeoutMs/);
+  assert.deepEqual(grants(root), []);
+});

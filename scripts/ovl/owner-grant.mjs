@@ -9,6 +9,9 @@ const GRANT_LABEL = /^(?:อนุญาตรอบ|grant round) (ORV-\d+)$/i;
 // Looks like an attempt to grant, so a refusal is reported. A plain decline ("Decline", "ไม่อนุญาต") stays silent.
 const grantLike = (answer) => /อนุญาต|grant/i.test(answer.replaceAll("ไม่อนุญาต", ""));
 
+const AFK_REASON =
+  "the form closed by itself while the owner was idle (tool_response.afkTimeoutMs is set), so its answer is not a click";
+
 const need = (value, what) => {
   if (typeof value !== "string" || value === "") throw new Error(`hook input has no ${what}`);
   return value;
@@ -51,6 +54,8 @@ export function checkOwnerGrant(input, { store }) {
     return { question, labels, answer: need(answers[question], `answer for "${question}"`) };
   });
 
+  // An idle dialog resolves by itself and picks the highlighted option; that is not the owner's click.
+  const afk = input.tool_response?.afkTimeoutMs !== undefined;
   const reasons = [];
   const granted = new Set();
   let escalated;
@@ -59,6 +64,8 @@ export function checkOwnerGrant(input, { store }) {
     const key = GRANT_LABEL.exec(answer.trim())?.[1].toUpperCase();
     if (input.agent_id !== undefined) {
       reasons.push("a subagent asked this form; only the main session's form can grant a round");
+    } else if (afk) {
+      reasons.push(AFK_REASON);
     } else if (!labels.includes(answer)) {
       reasons.push(
         `the answer is not an option label the form offered (text typed under Other grants nothing)`,

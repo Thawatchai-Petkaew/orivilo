@@ -22,11 +22,45 @@ test("row 50: deny keeps the four Read entries and adds the .env* glob", () => {
   for (const entry of READS) assert.ok(deny.includes(entry), `deny lacks ${entry}`);
 });
 
-test("row 50: deny names each reading command with a .env or .env.* file", () => {
+// A Bash permission pattern: `*` matches any run of characters, the rest is literal, the whole command must match.
+const matches = (pattern, command) => {
+  const body = /^Bash\((.*)\)$/.exec(pattern)?.[1];
+  if (body === undefined) return false;
+  const regex = body
+    .split("*")
+    .map((part) => part.replace(/[.+?^${}()|[\]\\]/g, "\\$&"))
+    .join(".*");
+  return new RegExp(`^${regex}$`).test(command);
+};
+const denied = (command) => deny.some((entry) => matches(entry, command));
+
+test("row 50: deny reads of a dotenv path by each reading command, piped forms included", () => {
   for (const command of COMMANDS) {
-    for (const entry of [`Bash(${command} *.env)`, `Bash(${command} *.env.*)`]) {
-      assert.ok(deny.includes(entry), `deny lacks ${entry}`);
+    for (const path of [
+      ".env",
+      ".env.local",
+      "./.env",
+      "apps/web/.env.production",
+      "/abs/dir/.env",
+    ]) {
+      assert.ok(denied(`${command} ${path}`), `${command} ${path} is not denied`);
+      assert.ok(denied(`${command} -n KEY ${path}`), `${command} -n KEY ${path} is not denied`);
     }
+  }
+  assert.ok(denied("cat .env | head"), "cat .env | head");
+  assert.ok(denied("grep KEY .env | cat"), "grep KEY .env | cat");
+  assert.ok(denied("grep -rn KEY apps/web/.env.local | head -3"), "grep on a nested dotenv, piped");
+});
+
+test("row 50: a process.env read in a .ts file, or a command that only quotes it, is not denied", () => {
+  for (const command of [
+    "grep -n 'process.env.NODE_ENV' apps/web/proxy.ts",
+    "grep -rn process.env.DATABASE_URL packages/db/src",
+    "cat apps/web/proxy.ts | grep process.env.NODE_ENV",
+    "head -5 apps/web/next.config.ts",
+    "git grep -n 'process.env.X'",
+  ]) {
+    assert.equal(denied(command), false, command);
   }
 });
 

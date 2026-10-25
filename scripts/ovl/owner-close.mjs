@@ -9,6 +9,9 @@ const CLOSE_LABEL = /^(?:ปิดงาน|close envelope) (ORV-\d+-[a-z0-9-]+)
 // Looks like an attempt to close, so a refusal is reported. A plain decline ("Keep open", "ยังไม่ปิด") stays silent.
 const closeLike = (answer) => /ปิดงาน|close envelope/i.test(answer);
 
+const AFK_REASON =
+  "the form closed by itself while the owner was idle (tool_response.afkTimeoutMs is set), so its answer is not a click";
+
 const need = (value, what) => {
   if (typeof value !== "string" || value === "") throw new Error(`hook input has no ${what}`);
   return value;
@@ -42,6 +45,8 @@ export function checkOwnerClose(input, { store }) {
     return { question, labels, answer: need(answers[question], `answer for "${question}"`) };
   });
 
+  // An idle dialog resolves by itself and picks the highlighted option; that is not the owner's click.
+  const afk = input.tool_response?.afkTimeoutMs !== undefined;
   const reasons = [];
   for (const { question, labels, answer } of parsed) {
     if (!closeLike(answer)) continue;
@@ -50,6 +55,10 @@ export function checkOwnerClose(input, { store }) {
       reasons.push(
         "a subagent asked this form; only the main session's form can close an envelope",
       );
+      continue;
+    }
+    if (afk) {
+      reasons.push(AFK_REASON);
       continue;
     }
     if (!labels.includes(answer)) {

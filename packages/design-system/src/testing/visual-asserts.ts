@@ -245,29 +245,34 @@ export function expectNoGlyphClip(el: Element) {
   for (let node = walker.nextNode(); node; node = walker.nextNode()) {
     const text = node.textContent?.trim() ?? "";
     if (!text) continue;
-    let clip: Element | null = node.parentElement;
-    while (clip && !clips(getComputedStyle(clip))) clip = clip.parentElement;
-    if (!clip) continue;
-    const { box, radii } = paddingBoxOf(clip);
-    const truncates = getComputedStyle(clip).textOverflow === "ellipsis";
+    // Ink shows only inside every clipping ancestor, so each one is checked, innermost first.
+    const clipsOf: Element[] = [];
+    for (let up = node.parentElement; up && up !== el.parentElement; up = up.parentElement) {
+      if (clips(getComputedStyle(up))) clipsOf.push(up);
+    }
     const range = document.createRange();
     range.selectNodeContents(node);
     for (const rect of range.getClientRects()) {
       if (rect.width === 0 || rect.height === 0) continue;
-      checked++;
-      const right = truncates ? Math.min(rect.right, box.right) : rect.right;
-      const corners = [
-        { x: rect.left, y: rect.top },
-        { x: right, y: rect.top },
-        { x: right, y: rect.bottom },
-        { x: rect.left, y: rect.bottom },
-      ];
-      for (const point of corners) {
-        const out = outsideCorner(point, box, radii);
-        expect(
-          out,
-          `"${text}" in ${label(clip)}: the glyph box corner (${Math.round(point.x)}, ${Math.round(point.y)}) is outside the clip${out ? ` at the ${out} corner` : ""}`,
-        ).toBeNull();
+      let right = rect.right;
+      for (const clip of clipsOf) {
+        checked++;
+        const { box, radii } = paddingBoxOf(clip);
+        // Text that an ellipsis truncates is judged on the part that shows.
+        if (getComputedStyle(clip).textOverflow === "ellipsis") right = Math.min(right, box.right);
+        const corners = [
+          { x: rect.left, y: rect.top },
+          { x: right, y: rect.top },
+          { x: right, y: rect.bottom },
+          { x: rect.left, y: rect.bottom },
+        ];
+        for (const point of corners) {
+          const out = outsideCorner(point, box, radii);
+          expect(
+            out,
+            `"${text}" in ${label(clip)}: the glyph box corner (${Math.round(point.x)}, ${Math.round(point.y)}) is outside the clip${out ? ` at the ${out} corner` : ""}`,
+          ).toBeNull();
+        }
       }
     }
   }
