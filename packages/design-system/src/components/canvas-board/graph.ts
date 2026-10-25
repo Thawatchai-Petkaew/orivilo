@@ -16,6 +16,9 @@ import {
   type PortKind,
 } from "../../tokens/canvas";
 
+/** Where a reply comes from today. A later story adds a real source with its adapter (ADR 0009). */
+export type ChatBasis = "rules" | "mock";
+
 export type NodeSize = "sm" | "md" | "lg" | "custom";
 
 /** What the engine does in a step; picks the step's icon (ORV-57). */
@@ -59,6 +62,8 @@ export type NodeContent = {
   block?: string;
   /** The user's answers by input id; a block node's fill state and summary come from these. */
   answers?: Record<string, string | string[]>;
+  /** Where a reply on this node came from; set only on a node a chat reply placed (ORV-106). */
+  basis?: ChatBasis;
   collapsed?: boolean;
   /** A group's frame while expanded, kept so collapse and expand restore it (E4-3). */
   frame?: { width: number; height: number };

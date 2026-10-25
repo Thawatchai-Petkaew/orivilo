@@ -178,14 +178,19 @@ function reviewerApproves(tasks, head) {
   return r?.report.verdict === "approve";
 }
 
+/**
+ * ORV-115: a release PR (develop into main) needs no owner record. Its gate evidence is the green CI
+ * checks, and each guard file in it was judged when its own PR merged into develop.
+ */
 function releaseProblems(pr, checks, root) {
   const out = [];
-  if (pr.headRefName !== "develop") out.push("only the release PR from develop goes into main");
+  // A fork head is not this repository's develop; a missing isCrossRepository was refused when read.
+  if (pr.headRefName !== "develop" || pr.isCrossRepository !== false) {
+    out.push("only the release PR from this repository's develop goes into main");
+  }
   out.push(...checkProblems(checks, root, pr.number, pr.headRefOid));
-  if (approvalFor(root, pr.number, pr.headRefOid) === null) {
-    out.push(
-      `a merge into main needs .orivilo/owner-approvals/${pr.number}.json for ${pr.headRefOid}`,
-    );
+  if (checks.length > 0 && !checks.some((c) => c.workflow === "CI" && c.bucket === "pass")) {
+    out.push("a release into main needs a passing CI check");
   }
   return out;
 }
@@ -217,7 +222,7 @@ export function decide({ pr, checks, head, root, storyTitleOf }) {
   const approval = approvalFor(root, n, sha);
   const approvalFile = `.orivilo/owner-approvals/${n}.json`;
 
-  const guarded = pr.files.filter((f) => GUARD_PATH.test(f));
+  const guarded = [...pr.files, ...(pr.previousFiles ?? [])].filter((f) => GUARD_PATH.test(f));
   if (guarded.length > 0 && approval === null) {
     out.push(
       `the PR changes guard files (${guarded.map(clean).join(", ")}): it needs ${approvalFile} for ${sha}`,

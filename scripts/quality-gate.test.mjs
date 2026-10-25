@@ -8,6 +8,7 @@ import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import {
   STEPS,
+  USAGE,
   buildReport,
   parseArgs,
   readGit,
@@ -207,8 +208,8 @@ test("unreadable git fails the report with a reason", () => {
   assert.match(report.problems.join("\n"), /git/);
 });
 
-test("the gate runs pnpm test:scripts after format, and the test step requires the database", () => {
-  assert.deepEqual(STEPS.map((s) => s.name).slice(0, 2), ["format", "scripts"]);
+test("the gate runs pnpm test:scripts after format and commits, and the test step requires the database", () => {
+  assert.deepEqual(STEPS.map((s) => s.name).slice(0, 3), ["format", "commits", "scripts"]);
   assert.deepEqual(STEPS.find((s) => s.name === "scripts").command, ["pnpm", "test:scripts"]);
   assert.equal(STEPS.find((s) => s.name === "test").env.REQUIRE_DB_TESTS, "1");
 });
@@ -225,7 +226,7 @@ test("reportEnv records the database URL as set or unset, never the value", () =
     startedAt: "t0",
     finishedAt: "t1",
   });
-  assert.ok(!JSON.stringify(report).includes("secret"));
+  assert.ok(!JSON.stringify(report).includes("u:secret@h"));
 });
 
 test("an unset TEST_DATABASE_URL is a named problem when the test step ran", () => {
@@ -275,7 +276,7 @@ test("main: a stub run is never ok, says so, and the report never holds the data
   );
   assert.equal(r.json.steps[0].status, "pass");
   assert.equal(r.json.env.TEST_DATABASE_URL, "set");
-  assert.ok(!r.raw.includes("secret"));
+  assert.ok(!r.raw.includes("u:secret@h"));
 });
 
 test("main: a HEAD that moves during the run fails the report (end-of-run git read)", () => {
@@ -311,4 +312,61 @@ test("markdown flags a partial run and lists problems", () => {
     }),
   );
   assert.match(md, /partial run/i);
+});
+
+/** The `pnpm ...` commands of the CI `run:` lines, in order. */
+function ciCommands() {
+  const yml = readFileSync(
+    path.join(path.dirname(script), "..", ".github/workflows/ci.yml"),
+    "utf8",
+  );
+  return [...yml.matchAll(/^\s*- run: (pnpm .+)$/gm)].map((m) => m[1]);
+}
+
+test("ORV-108 row 20: the gate and CI run commits, secrets and codescan in the same order, with --report on the scans", () => {
+  const gate = Object.fromEntries(STEPS.map((s) => [s.name, s.command.join(" ")]));
+  assert.equal(gate.commits, "pnpm lint:commits");
+  assert.equal(gate.secrets, "pnpm scan:secrets --report");
+  assert.equal(gate.codescan, "pnpm scan:code --report");
+  assert.equal(gate.audit, "pnpm audit --prod --audit-level high");
+  const names = STEPS.map((s) => s.name);
+  assert.equal(names[names.indexOf("format") + 1], "commits");
+  const shared = ["format", "commits", "lint", "secrets", "codescan", "typecheck", "audit"];
+  const ci = ciCommands();
+  const inCi = shared.map((n) => ci.indexOf(gate[n]));
+  assert.ok(
+    inCi.every((i) => i >= 0),
+    "every shared step is a CI run line",
+  );
+  assert.deepEqual(
+    inCi,
+    [...inCi].sort((x, y) => x - y),
+    "CI runs them in the gate order",
+  );
+  const inGate = shared.map((n) => names.indexOf(n));
+  assert.deepEqual(
+    inGate,
+    [...inGate].sort((x, y) => x - y),
+  );
+});
+
+test("ORV-108 row 20: USAGE lists the three new steps", () => {
+  for (const name of ["commits", "secrets", "codescan"])
+    assert.match(USAGE, new RegExp(`\\b${name}\\b`));
+});
+
+test("ORV-108 row 21: CI checks out the full history and adds no action, secret or permission", () => {
+  const yml = readFileSync(
+    path.join(path.dirname(script), "..", ".github/workflows/ci.yml"),
+    "utf8",
+  );
+  assert.match(yml, /actions\/checkout@v4\n\s+with:\n\s+fetch-depth: 0/);
+  assert.deepEqual([...new Set([...yml.matchAll(/uses: (\S+)/g)].map((m) => m[1]))].sort(), [
+    "actions/cache@v4",
+    "actions/checkout@v4",
+    "actions/setup-node@v4",
+    "pnpm/action-setup@v4",
+  ]);
+  assert.doesNotMatch(yml, /secrets\./);
+  assert.match(yml, /permissions:\n\s+contents: read/);
 });

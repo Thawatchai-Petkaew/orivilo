@@ -1,8 +1,12 @@
 import type { SVGProps } from "react";
 import {
+  Activity,
+  ArrowUp,
+  AtSign,
   Book,
   BookOpen,
   Check,
+  Clock,
   Compass,
   ChevronDown,
   ChevronUp,
@@ -20,9 +24,11 @@ import {
   Link,
   LoaderCircle,
   Lock,
+  LocateFixed,
   LockOpen,
   Map as MapGlyph,
   Maximize,
+  MessageSquare,
   Minus,
   PenLine,
   MousePointer2,
@@ -30,10 +36,12 @@ import {
   PanelRightOpen,
   Plus,
   Redo2,
+  RotateCcw,
   Scale,
   Search,
   Shapes,
   Sparkles,
+  Square,
   StickyNote,
   TextCursorInput,
   Trash,
@@ -51,7 +59,7 @@ import {
  * icons from this file only, never from `lucide-react` directly (lint), so the defaults below
  * hold everywhere and only the named glyphs reach the bundle.
  *
- * All 42 glyphs are Lucide today. A glyph Lucide lacks is drawn here as inline SVG on a 20 grid,
+ * All 46 glyphs are Lucide today. A glyph Lucide lacks is drawn here as inline SVG on a 20 grid,
  * stroke 2, round caps and joins, `currentColor`, `aria-hidden`.
  */
 type IconProps = Omit<SVGProps<SVGSVGElement>, "children">;
@@ -101,6 +109,18 @@ export const CopyIcon = lucide(Copy, "CopyIcon");
 export const TrashIcon = lucide(Trash, "TrashIcon");
 export const CollapseIcon = lucide(ChevronUp, "CollapseIcon");
 export const ExpandIcon = lucide(ChevronDown, "ExpandIcon");
+
+// Task bar (ORV-100)
+export const QueuedIcon = lucide(Clock, "QueuedIcon");
+export const RunningIcon = lucide(Activity, "RunningIcon");
+export const RetryIcon = lucide(RotateCcw, "RetryIcon");
+export const JumpIcon = lucide(LocateFixed, "JumpIcon");
+
+// Board chat (ORV-105 slice C): the button that opens the node picker.
+export const MentionIcon = lucide(AtSign, "MentionIcon");
+export const SendIcon = lucide(ArrowUp, "SendIcon");
+export const StopIcon = lucide(Square, "StopIcon");
+export const ChatIcon = lucide(MessageSquare, "ChatIcon");
 
 /* Node kinds: the icon in a node's top row (ORV-57). */
 export const InputBlockIcon = lucide(TextCursorInput, "InputBlockIcon");

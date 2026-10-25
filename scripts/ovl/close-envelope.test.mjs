@@ -85,6 +85,19 @@ test("a final SubagentStop (allow) lets a bound envelope close as abandoned", ()
   assert.equal(closedOf(root).by, undefined);
 });
 
+test("ORV-108 row 36: the refusal names the close form and --owner, and --owner still closes", () => {
+  const root = makeRepo();
+  boundEnvelope(root);
+  const r = close(root, "ORV-1-a");
+  assert.equal(r.code, 2);
+  assert.match(
+    r.stderr,
+    /ask the owner the close form in the main session, or the owner runs --owner from a terminal/,
+  );
+  assert.equal(existsSync(join(root, ".orivilo/runs/ORV-1/ORV-1-a/closed.json")), false);
+  assert.equal(close(root, "ORV-1-a", "--owner").code, 0);
+});
+
 test("--owner closes a bound envelope with no heartbeat as abandoned by the owner", () => {
   const root = makeRepo();
   boundEnvelope(root);

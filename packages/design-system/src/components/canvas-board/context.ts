@@ -23,6 +23,12 @@ export interface CommandContext {
 
 export type BoardTool = "select" | "pan";
 
+/** What a jump does besides moving the view. */
+export interface JumpOptions {
+  /** Select the node alone before the jump, the way `node.open` does. Off by default. */
+  select?: boolean | undefined;
+}
+
 export interface BoardContextValue {
   /** `present` variant: nothing moves, connects or deletes. */
   readOnly: boolean;
@@ -39,8 +45,11 @@ export interface BoardContextValue {
   run: (id: CommandId, context?: CommandContext) => void;
   /** Whether a surface may offer the command right now (scope, selection, shell, variant). */
   enabled: (id: CommandId, context?: CommandContext) => boolean;
-  /** Scrolls a node into view and focuses it (the command menu's `commandMenu.jumpTo`). */
-  jumpToNode: (id: string) => void;
+  /**
+   * Pans and zooms to a node, focuses it and announces it (the command menu's `commandMenu.jumpTo`).
+   * With `{ select: true }` it selects the node alone first. Duration is 0 under reduced motion.
+   */
+  jumpToNode: (id: string, options?: JumpOptions) => void;
   tool: BoardTool;
   snap: boolean;
   minimapShown: boolean;

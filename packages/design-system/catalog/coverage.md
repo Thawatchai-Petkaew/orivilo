@@ -78,8 +78,8 @@ Legend: `none` not started, `planned` entry exists, no code, `draft` code and st
 | Inspector           | draft   | application-inspector             |
 | MissingInputsPrompt | draft   | application-missing-inputs-prompt |
 | DirectionStudio     | draft   | application-direction-studio      |
-| CanvasChat          | planned | E4-5                              |
-| TaskBar             | planned | E4-5                              |
+| CanvasChat          | draft   | application-canvas-chat           |
+| TaskBar             | draft   | application-task-bar              |
 | CompareStrip        | planned | E4-6                              |
 | VersionBadge        | planned | E4-6                              |
 

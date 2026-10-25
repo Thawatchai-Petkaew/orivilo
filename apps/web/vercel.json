@@ -1,4 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "git": { "deploymentEnabled": { "**": false, "main": true } },
   "ignoreCommand": "sh ../../scripts/vercel-ignore.sh . ../../packages ../../package.json ../../pnpm-lock.yaml ../../pnpm-workspace.yaml ../../turbo.json ../../scripts/vercel-ignore.sh"
 }

@@ -19,9 +19,14 @@ import { fileURLToPath } from "node:url";
 /** The gate, in the order CI runs it (.github/workflows/ci.yml). */
 const GATE_STEPS = [
   { name: "format", command: ["pnpm", "format:check"] },
+  // Blocking from the start (ORV-108): each commit of origin/develop..HEAD passes commitlint.
+  { name: "commits", command: ["pnpm", "lint:commits"] },
   // The script tests CI runs right after format:check (.github/workflows/ci.yml).
   { name: "scripts", command: ["pnpm", "test:scripts"] },
   { name: "lint", command: ["pnpm", "lint"] },
+  // Report mode (ORV-108): findings print and block nothing until a guard-file PR removes --report here and in CI.
+  { name: "secrets", command: ["pnpm", "scan:secrets", "--report"] },
+  { name: "codescan", command: ["pnpm", "scan:code", "--report"] },
   { name: "typecheck", command: ["pnpm", "typecheck"] },
   { name: "contrast", command: ["pnpm", "contrast"] },
   // --force: turbo keys its test cache without TEST_DATABASE_URL (passThroughEnv), so a cached run

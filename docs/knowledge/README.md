@@ -107,3 +107,5 @@ Keep this table in step with the folder when you add an entry.
 | [[K-0010-campvibe-done-needs-a-verify-role]]           | 0.8        | No Done without a QA or Security role in the history                  |
 | [[K-0011-campvibe-circuit-breaker-and-stall-watchdog]] | 0.8        | Back to Discovery after 2 rejections; stall after about 15 minutes    |
 | [[K-0012-skill-use-per-role-is-prose-only]]            | 0.75       | Skill use per role is enforced in prose only                          |
+| [[K-0013-pinned-standards-versions-and-sources]]       | 0.75       | ASVS 5.0.0, LLM Top 10 2025, WCAG 2.2, CWV, PDPA: versions and URLs   |
+| [[K-0014-owasp-llm-top-10-2026-items-and-changes]]     | 0.8        | LLM Top 10 2026: same ten risks, one renamed, list reordered          |

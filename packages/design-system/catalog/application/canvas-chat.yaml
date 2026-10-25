@@ -1,22 +1,28 @@
 name: CanvasChat
 tier: application
-status: planned
+status: draft
 since: E4-5
-import: none
+import: "@orivilo/design-system"
 story: application-canvas-chat
 useWhen:
-  - "Talking to the engine at a point on the board (press /) or in the sidebar; answers land as nodes"
+  - "Talking to the engine from a side panel next to the board (slices A to C, ORV-105 to ORV-107); at a point on the board (press /) arrives in slice D"
 avoidWhen:
   - "Editing a value that has a field"
 contract: CanvasChatProps
-variants: [at-cursor, sidebar]
+variants: [sidebar]
 sizes: []
 states: [idle, streaming, error, mock]
-recipes: []
+recipes: [neutral, professional, friendly]
 examples: []
 rules:
-  - "Replies are placed as nodes linked to the node they came from"
+  - "Built so far (slices A to C): the sidebar chat, streaming replies with Stop, Send again after a failure, a basis notice and a basis word on every reply, a reply placed as a node, and @ mentions. Not built yet: the at-cursor variant (slice D)"
+  - "Replies are placed as nodes linked to the node they came from: the host returns the placed node id from onReply (placeReply builds the note with a derived edge from the node selected alone, ChatRequest.contextNodeId), the chat offers a jump to it and says when it is not linked to any node. The note's header says by rules or mock data"
   - "Labelled rule-based or mock until a real adapter exists (AGENTS.md rule 4)"
-  - "@ mentions reference nodes on the board"
+  - "@ mentions reference nodes on the board: typing @ at the start or after a space, or the Mention button, opens a picker of the board's nodes (title and kind word, filtered by text); a pick becomes a neutral chip, sent as an id in ChatRequest.mentions in pick order and linked once with the node selected alone. A deleted node keeps its one-line chip with a caution mark and its truncated title, a warning message under the chip row says the node is no longer on the board (it describes the textarea), and its id is left out of the next request; nothing about a mentioned node but its id is sent. Absent outside a board"
+  - "Visual refresh (ORV-107 v1.3): the chat is a floating card with one quiet header row; the question is a pill bubble at the end edge, the reply plain text with a 32 px meta row (basis word, Jump with its text); one rounded composer box holds the chips, the text and the Mention, counter and Send or Stop row; the honesty line is always visible under the box; with no exchange and a blank textarea three starter prompts fill the textarea"
+  - "A reply placed on the board never covers a node: placeReply steps down by the grid gap until its spot is free"
 a11y:
-  - "Textarea labelled; streaming output in a polite live region; Escape closes the at-cursor form"
+  - "Send, Stop and Mention are icon-only buttons named from the locale catalog, each with a tooltip showing the name; the honesty line sits under the composer and is announced with the textarea (aria-describedby); the starter prompts are a named list of buttons that fill the textarea and never send"
+  - "The picker is a listbox named by the locale catalog; the textarea is a combobox (role, aria-expanded, aria-controls, aria-activedescendant, as CommandMenu), its description leaves out the counter until it shows at 1,800 characters, arrows move, Enter picks, Escape closes the list only, Enter during IME composition never picks or sends"
+  - "Textarea labelled; streaming output in a polite live region with aria-busy; a second status region says started, stopped and failed"
+  - "Escape closes the at-cursor form (slice D)"

@@ -18,6 +18,6 @@ examples: []
 rules:
   - "Items are the registry's context-menu commands of the scopes that apply (board; node and selection; edge), available in this build, grouped by scope with the destructive item last"
   - "Right-clicking an unselected node selects it first"
-  - "A command the board cannot run now is disabled, never hidden"
+  - "A command the board cannot run now is disabled, never hidden; a shell-only command (node.mention) is offered only when the board has an onCommand to hand it to"
 a11y:
   - "Shift+F10 (app.open-context-menu) opens at the focused element; the same keyboard model as ContextMenu"

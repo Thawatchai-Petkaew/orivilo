@@ -79,7 +79,8 @@
 .ds-button[data-variant="primary"]:active {
   background: var(--cmp-button-primary-bg-press);
 }
-.ds-button[data-variant="primary"]:disabled {
+.ds-button[data-variant="primary"]:disabled,
+.ds-button[data-variant="primary"][aria-disabled="true"]:not([data-loading]) {
   background: var(--cmp-button-primary-bg-disabled);
   color: var(--cmp-button-primary-fg-disabled);
 }
@@ -96,7 +97,8 @@
 .ds-button[data-variant="secondary"]:active {
   background: var(--cmp-button-secondary-bg-press);
 }
-.ds-button[data-variant="secondary"]:disabled {
+.ds-button[data-variant="secondary"]:disabled,
+.ds-button[data-variant="secondary"][aria-disabled="true"]:not([data-loading]) {
   background: var(--cmp-button-secondary-bg);
   border-color: var(--cmp-button-secondary-border-disabled);
   color: var(--cmp-button-secondary-fg-disabled);
@@ -112,7 +114,8 @@
 .ds-button[data-variant="ghost"]:active {
   background: var(--cmp-button-ghost-bg-press);
 }
-.ds-button[data-variant="ghost"]:disabled {
+.ds-button[data-variant="ghost"]:disabled,
+.ds-button[data-variant="ghost"][aria-disabled="true"]:not([data-loading]) {
   background: transparent;
   border-color: transparent;
   color: var(--cmp-button-ghost-fg-disabled);
@@ -128,7 +131,8 @@
 .ds-button[data-variant="intent"]:active {
   background: var(--cmp-button-intent-bg-press);
 }
-.ds-button[data-variant="intent"]:disabled {
+.ds-button[data-variant="intent"]:disabled,
+.ds-button[data-variant="intent"][aria-disabled="true"]:not([data-loading]) {
   background: var(--cmp-button-primary-bg-disabled);
   color: var(--cmp-button-primary-fg-disabled);
 }
@@ -143,7 +147,8 @@
 .ds-button[data-variant="destructive"]:active {
   background: var(--cmp-button-destructive-bg-press);
 }
-.ds-button[data-variant="destructive"]:disabled {
+.ds-button[data-variant="destructive"]:disabled,
+.ds-button[data-variant="destructive"][aria-disabled="true"]:not([data-loading]) {
   background: var(--cmp-button-destructive-bg-disabled);
   color: var(--cmp-button-destructive-fg-disabled);
 }
@@ -159,7 +164,8 @@
   color: var(--cmp-button-link-fg-hover);
   text-decoration: underline;
 }
-.ds-button[data-variant="link"]:disabled {
+.ds-button[data-variant="link"]:disabled,
+.ds-button[data-variant="link"][aria-disabled="true"]:not([data-loading]) {
   color: var(--cmp-button-link-fg-disabled);
   text-decoration: none;
 }
@@ -3661,4 +3667,659 @@ button.ds-tag__main {
 .ds-tag[data-disabled] .ds-tag__remove {
   color: var(--cmp-tag-fg-disabled);
   cursor: not-allowed;
+}
+
+/* TaskBar (ORV-100, E4-5 part 2): a docked strip of job rows. The header sits on the bottom line
+ * in both states (column-reverse), so the toggle does not move when the list opens. Every value
+ * is a `taskbar.*` token; the state colours read `status.running` and `feedback.*`, which no
+ * profile overrides. If `taskbar.bg` stops reading `surface.card`, repeat the Progress and Button
+ * pairs on it (pairs.ts). ---------------------------------------------------------------------- */
+
+.ds-taskbar {
+  display: flex;
+  flex-direction: column-reverse;
+  container-type: inline-size;
+  min-inline-size: 0;
+  overflow: hidden;
+  border: 1px solid var(--cmp-taskbar-border);
+  border-radius: var(--cmp-taskbar-radius);
+  background: var(--cmp-taskbar-bg);
+  color: var(--cmp-taskbar-fg);
+}
+.ds-taskbar__header {
+  display: flex;
+  align-items: center;
+  gap: var(--cmp-taskbar-gap);
+  min-block-size: calc(var(--cmp-taskbar-header-height) + 2 * var(--cmp-taskbar-padding-y));
+  padding: var(--cmp-taskbar-padding-y) var(--cmp-taskbar-padding-x);
+}
+.ds-taskbar__label {
+  flex: none;
+  font-family: var(--cmp-taskbar-label-type-font-family);
+  font-size: var(--cmp-taskbar-label-type-font-size);
+  line-height: var(--cmp-taskbar-label-type-line-height);
+  font-weight: var(--cmp-taskbar-label-type-font-weight);
+  letter-spacing: var(--cmp-taskbar-label-type-letter-spacing);
+}
+.ds-taskbar__summary,
+.ds-taskbar__name {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ds-taskbar__summary {
+  flex: 1;
+  color: var(--cmp-taskbar-muted-fg);
+  font-family: var(--cmp-taskbar-meta-type-font-family);
+  font-size: var(--cmp-taskbar-meta-type-font-size);
+  line-height: var(--cmp-taskbar-meta-type-line-height);
+  font-weight: var(--cmp-taskbar-meta-type-font-weight);
+  letter-spacing: var(--cmp-taskbar-meta-type-letter-spacing);
+}
+.ds-taskbar__header .ds-button {
+  flex: none;
+}
+.ds-taskbar__panel {
+  min-inline-size: 0;
+  border-block-end: 1px solid var(--cmp-taskbar-divider);
+}
+.ds-taskbar__panel[data-animate] {
+  animation: ds-taskbar-in var(--ds-motion-feedback-duration) var(--ds-motion-easing);
+}
+@keyframes ds-taskbar-in {
+  from {
+    opacity: 0;
+  }
+}
+/* The list scrolls inside the bar after about four rows. Radix ScrollArea wraps the content in an
+ * internal div with inline `display: table` that grows to the widest line; a block keeps long names
+ * truncating and reasons wrapping. This depends on that Radix wrapper: if Radix changes it, the
+ * Narrow story is the check that goes red. */
+.ds-taskbar__scroll .ds-scroll__viewport {
+  max-block-size: var(--cmp-taskbar-list-max-height);
+}
+.ds-taskbar__scroll .ds-scroll__viewport > div {
+  display: block !important;
+}
+.ds-taskbar__list {
+  margin: 0;
+  padding: 0 var(--ds-space-inline-sm);
+  list-style: none;
+}
+.ds-taskbar__row {
+  display: grid;
+  grid-template-columns: var(--cmp-taskbar-icon-size) minmax(0, 1fr);
+  grid-template-areas:
+    "mark name"
+    ". status"
+    ". reason"
+    ". actions";
+  column-gap: var(--cmp-taskbar-gap);
+  padding: var(--cmp-taskbar-row-block)
+    calc(var(--cmp-taskbar-padding-x) - var(--ds-space-inline-sm));
+  font-family: var(--cmp-taskbar-name-type-font-family);
+  font-size: var(--cmp-taskbar-name-type-font-size);
+  line-height: var(--cmp-taskbar-name-type-line-height);
+  font-weight: var(--cmp-taskbar-name-type-font-weight);
+  letter-spacing: var(--cmp-taskbar-name-type-letter-spacing);
+}
+.ds-taskbar__row + .ds-taskbar__row {
+  border-block-start: 1px solid var(--cmp-taskbar-divider);
+}
+/* Programmatic focus after Retry unmounts: inset so the scroll viewport does not clip it. */
+.ds-taskbar__row:focus-visible {
+  outline: 2px solid var(--ds-focus-ring);
+  outline-offset: -2px;
+}
+.ds-taskbar__mark {
+  grid-area: mark;
+  display: flex;
+  align-items: center;
+  block-size: 1lh;
+}
+.ds-taskbar__mark svg {
+  inline-size: var(--cmp-taskbar-icon-size);
+  block-size: var(--cmp-taskbar-icon-size);
+}
+.ds-taskbar__row[data-state="queued"] .ds-taskbar__mark,
+.ds-taskbar__row[data-state="queued"] .ds-taskbar__word {
+  color: var(--cmp-taskbar-queued-fg);
+}
+.ds-taskbar__row[data-state="running"] .ds-taskbar__mark {
+  color: var(--cmp-taskbar-running-fg);
+}
+.ds-taskbar__row[data-state="done"] .ds-taskbar__mark,
+.ds-taskbar__row[data-state="done"] .ds-taskbar__word {
+  color: var(--cmp-taskbar-done-fg);
+}
+.ds-taskbar__row[data-state="failed"] .ds-taskbar__mark,
+.ds-taskbar__row[data-state="failed"] .ds-taskbar__word {
+  color: var(--cmp-taskbar-failed-fg);
+}
+.ds-taskbar__row > .ds-taskbar__name,
+.ds-taskbar__progress {
+  grid-area: name;
+  min-inline-size: 0;
+}
+.ds-taskbar__progress .ds-progress__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ds-taskbar__status {
+  grid-area: status;
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--cmp-taskbar-gap);
+  margin-block-start: var(--cmp-taskbar-line-gap);
+  color: var(--cmp-taskbar-muted-fg);
+  font-family: var(--cmp-taskbar-meta-type-font-family);
+  font-size: var(--cmp-taskbar-meta-type-font-size);
+  line-height: var(--cmp-taskbar-meta-type-line-height);
+  font-weight: var(--cmp-taskbar-meta-type-font-weight);
+  letter-spacing: var(--cmp-taskbar-meta-type-letter-spacing);
+}
+.ds-taskbar__reason,
+.ds-taskbar__empty {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-family: var(--cmp-taskbar-body-type-font-family);
+  font-size: var(--cmp-taskbar-body-type-font-size);
+  line-height: var(--cmp-taskbar-body-type-line-height);
+  font-weight: var(--cmp-taskbar-body-type-font-weight);
+  letter-spacing: var(--cmp-taskbar-body-type-letter-spacing);
+}
+.ds-taskbar__reason {
+  grid-area: reason;
+  margin-block-start: var(--cmp-taskbar-line-gap);
+  color: var(--cmp-taskbar-reason-fg);
+}
+.ds-taskbar__empty {
+  padding: var(--cmp-taskbar-row-block) var(--cmp-taskbar-padding-x);
+  color: var(--cmp-taskbar-muted-fg);
+}
+.ds-taskbar__actions {
+  grid-area: actions;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cmp-taskbar-gap);
+  margin-block-start: var(--cmp-taskbar-line-gap);
+}
+@container (min-width: 480px) {
+  .ds-taskbar__row {
+    grid-template-columns: var(--cmp-taskbar-icon-size) minmax(0, 1fr) auto;
+    grid-template-areas:
+      "mark name actions"
+      ". status ."
+      ". reason .";
+  }
+  .ds-taskbar__actions {
+    margin-block-start: 0;
+    justify-self: end;
+    align-self: start;
+  }
+}
+/* The panel fade stops under reduced motion; the retry spinner is essential motion and keeps
+ * turning through the shared .ds-spin rule. */
+@media (prefers-reduced-motion: reduce) {
+  .ds-taskbar__panel {
+    animation: none;
+  }
+}
+/* On the board (slice B renders the bar as a child): docked along the bottom, with a shadow, and
+ * the other bottom panels lift above the collapsed bar. No effect on a board without a bar. */
+.ds-board .ds-taskbar {
+  position: absolute;
+  inset-inline: var(--ds-space-inset-md);
+  inset-block-end: var(--ds-space-inset-md);
+  z-index: var(--cmp-taskbar-layer);
+  box-shadow: var(--cmp-taskbar-shadow);
+}
+.ds-board:has(.ds-taskbar) {
+  --_lift: calc(
+    var(--cmp-taskbar-header-height) + 2 * var(--cmp-taskbar-padding-y) + 2px +
+      var(--ds-space-inset-md)
+  );
+}
+.ds-board:has(.ds-taskbar) .react-flow__panel.ds-controls,
+.ds-board:has(.ds-taskbar) .react-flow__minimap.ds-minimap {
+  margin-block-end: calc(var(--ds-space-inset-md) + var(--_lift));
+}
+.ds-board:has(.ds-taskbar) .react-flow__panel.ds-shelf {
+  margin-block-end: calc(var(--ds-size-control-md) + 3 * var(--ds-space-inset-md) + var(--_lift));
+}
+.ds-board:has(.ds-taskbar) .ds-board__status {
+  bottom: calc(
+    var(--ds-space-inset-md) * 2 + var(--cmp-button-height-sm) + 2 * var(--cmp-toolbar-padding) +
+      2px + var(--_lift)
+  );
+}
+/* An open list adds up to its capped height to the bar. Only the status line clears it, and never
+ * past the board's top edge; the toolbar, minimap and shelf keep their closed-bar places. */
+.ds-board:has(.ds-taskbar__panel:not([hidden])) .ds-board__status {
+  bottom: min(
+    calc(
+      var(--ds-space-inset-md) * 2 + var(--cmp-button-height-sm) + 2 * var(--cmp-toolbar-padding) +
+        2px + var(--_lift) + var(--cmp-taskbar-list-max-height) + 1px
+    ),
+    calc(100% - var(--ds-size-control-md) - var(--ds-space-inset-md))
+  );
+}
+
+/* CanvasChat (ORV-105, E4-5 part 3): the board chat. From ORV-107 v1.3 it floats as a card: radius
+ * and shadow, a quiet header row, the question as a pill bubble at the end edge, the reply as plain
+ * text with a 32 px meta row, and one rounded composer box with the honesty line under it. No
+ * hairline is left in the panel. Every value is a `chat.*` token. Streaming and failure read
+ * `status.running` and `feedback.danger.fg`, which no profile overrides. The Textarea, Button and
+ * ScrollArea inside sit on `chat.bg`, which reads `surface.card`; if that changes, repeat their
+ * pairs on it (pairs.ts). No letter-spacing or text-transform on any class: Thai. -- */
+
+.ds-chat {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "title close"
+    "log log"
+    "composer composer";
+  container-type: inline-size;
+  block-size: 100%;
+  min-inline-size: 0;
+  min-block-size: 0;
+  border-radius: var(--cmp-chat-radius);
+  box-shadow: var(--cmp-chat-shadow);
+  /* The dark edge is an inset outline so no content moves; clip keeps the scroll area inside the corners. */
+  outline: 1px solid var(--cmp-chat-border);
+  outline-offset: -1px;
+  overflow: clip;
+  background: var(--cmp-chat-bg);
+  color: var(--cmp-chat-fg);
+}
+.ds-chat__header {
+  grid-area: title;
+  display: flex;
+  align-items: center;
+  gap: var(--cmp-chat-inline-gap);
+  min-inline-size: 0;
+  min-block-size: calc(var(--cmp-chat-header-height) + 2 * var(--cmp-chat-padding-y));
+  padding: var(--cmp-chat-padding-y) var(--cmp-chat-padding-x);
+}
+.ds-chat__header > svg {
+  flex: none;
+  inline-size: var(--cmp-chat-icon-size);
+  block-size: var(--cmp-chat-icon-size);
+}
+.ds-chat__title {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+  font-family: var(--cmp-chat-title-type-font-family);
+  font-size: var(--cmp-chat-title-type-font-size);
+  line-height: var(--cmp-chat-title-type-line-height);
+  font-weight: var(--cmp-chat-title-type-font-weight);
+  letter-spacing: var(--cmp-chat-title-type-letter-spacing);
+}
+/* Icon-only buttons draw the chat's 16 px icon in their 32 px square. */
+.ds-chat .ds-button[data-icon-only] > svg {
+  inline-size: var(--cmp-chat-icon-size);
+  block-size: var(--cmp-chat-icon-size);
+}
+.ds-chat__close {
+  grid-area: close;
+  align-self: center;
+  margin-inline-end: var(--cmp-chat-padding-y);
+}
+.ds-chat__scroll {
+  grid-area: log;
+  min-block-size: 0;
+}
+/* Radix wraps the content in an inline `display: table` div that grows to the widest line; a block
+ * keeps long Thai text wrapping, and a full-height column lets the empty state sit at the foot.
+ * The Narrow story is the check that goes red if Radix changes it. */
+.ds-chat__scroll .ds-scroll__viewport > div {
+  display: flex !important;
+  flex-direction: column;
+  min-block-size: 100%;
+}
+.ds-chat__empty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmp-chat-turn-gap);
+  margin-block-start: auto;
+  padding: var(--cmp-chat-padding-y) var(--cmp-chat-padding-x) var(--cmp-chat-padding-x);
+}
+.ds-chat__empty p {
+  margin: 0;
+  color: var(--cmp-chat-muted-fg);
+  overflow-wrap: anywhere;
+  font-family: var(--cmp-chat-body-sm-type-font-family);
+  font-size: var(--cmp-chat-body-sm-type-font-size);
+  line-height: var(--cmp-chat-body-sm-type-line-height);
+  font-weight: var(--cmp-chat-body-sm-type-font-weight);
+  letter-spacing: var(--cmp-chat-body-sm-type-letter-spacing);
+}
+.ds-chat__starters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cmp-chat-inline-gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ds-chat__starters li {
+  display: flex;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+.ds-chat__starters .ds-button {
+  max-inline-size: 100%;
+}
+.ds-chat__log {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmp-chat-exchange-gap);
+  margin: 0;
+  padding: var(--cmp-chat-padding-y) var(--cmp-chat-padding-x) var(--cmp-chat-padding-x);
+  list-style: none;
+}
+.ds-chat__exchange {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmp-chat-turn-gap);
+  min-inline-size: 0;
+}
+/* The question: a pill bubble at the end edge, shrink-wrapped, keeping 32 px free at the start. */
+.ds-chat__question {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmp-chat-line-gap);
+  align-self: flex-end;
+  min-inline-size: 0;
+  max-inline-size: calc(100% - var(--cmp-chat-question-indent));
+  padding: var(--cmp-chat-question-pad) var(--cmp-chat-question-pad-x);
+  border-radius: var(--cmp-chat-question-radius);
+  background: var(--cmp-chat-question-bg);
+  color: var(--cmp-chat-question-fg);
+}
+.ds-chat__text {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  font-family: var(--cmp-chat-text-type-font-family);
+  font-size: var(--cmp-chat-text-type-font-size);
+  line-height: var(--cmp-chat-text-type-line-height);
+  font-weight: var(--cmp-chat-text-type-font-weight);
+  letter-spacing: var(--cmp-chat-text-type-letter-spacing);
+}
+.ds-chat__reply {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmp-chat-line-gap);
+  min-inline-size: 0;
+}
+/* Lines of 32 px, items centred; a wrap keeps the first line where it was (the basis word never moves). */
+.ds-chat__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--cmp-chat-line-gap);
+  min-block-size: var(--cmp-chat-meta-height);
+  color: var(--cmp-chat-muted-fg);
+  font-family: var(--cmp-chat-meta-type-font-family);
+  font-size: var(--cmp-chat-meta-type-font-size);
+  line-height: var(--cmp-chat-meta-type-line-height);
+  font-weight: var(--cmp-chat-meta-type-font-weight);
+  letter-spacing: var(--cmp-chat-meta-type-letter-spacing);
+}
+.ds-chat__meta .ds-button {
+  padding-inline: var(--cmp-chat-inline-gap);
+}
+.ds-chat__progress {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cmp-chat-inline-gap);
+  color: var(--cmp-chat-streaming-fg);
+}
+.ds-chat__unlinked {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cmp-chat-inline-gap);
+}
+.ds-chat__mark {
+  display: flex;
+  flex: none;
+  align-items: center;
+  block-size: 1lh;
+}
+.ds-chat__mark svg {
+  inline-size: var(--cmp-chat-icon-size);
+  block-size: var(--cmp-chat-icon-size);
+}
+.ds-chat__failure {
+  display: grid;
+  grid-template-columns: var(--cmp-chat-icon-size) minmax(0, 1fr);
+  column-gap: var(--cmp-chat-inline-gap);
+  row-gap: var(--cmp-chat-turn-gap);
+  color: var(--cmp-chat-failed-fg);
+}
+.ds-chat__failure p {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: var(--cmp-chat-body-sm-type-font-family);
+  font-size: var(--cmp-chat-body-sm-type-font-size);
+  line-height: var(--cmp-chat-body-sm-type-line-height);
+  font-weight: var(--cmp-chat-body-sm-type-font-weight);
+  letter-spacing: var(--cmp-chat-body-sm-type-letter-spacing);
+}
+.ds-chat__failure .ds-button {
+  grid-column: 2;
+  justify-self: start;
+}
+/* The composer: no rule above it. The box, then the honesty line 8 below it. */
+.ds-chat__composer {
+  grid-area: composer;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmp-chat-composer-pad);
+  min-inline-size: 0;
+  padding: var(--cmp-chat-padding-y) var(--cmp-chat-padding-x) var(--cmp-chat-foot-pad);
+}
+/* One rounded box holds the chips, the text and the inner row (Mention, counter, Send or Stop).
+ * The Textarea wraps its field and counter and the actions div wraps the buttons; both dissolve
+ * into this grid so the three sit on one row. */
+.ds-chat__box {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-areas:
+    "input input input input"
+    "mention . count send";
+  align-items: center;
+  column-gap: var(--cmp-chat-inline-gap);
+  row-gap: var(--cmp-chat-line-gap);
+  min-inline-size: 0;
+  padding: var(--cmp-chat-composer-pad);
+  border: 1px solid var(--cmp-input-border);
+  border-radius: var(--cmp-chat-composer-radius);
+  background: var(--cmp-input-bg);
+  color: var(--cmp-input-fg);
+  transition: border-color var(--ds-motion-feedback-duration) var(--ds-motion-easing);
+}
+.ds-chat__box:has(.ds-chat__chips) {
+  grid-template-areas:
+    "chips chips chips chips"
+    "input input input input"
+    "mention . count send";
+}
+.ds-chat__box:hover {
+  border-color: var(--cmp-input-border-hover);
+}
+/* Chat composer only: while the textarea has focus the box's own 1 px border in the focus ink is the single focus line
+ * (ORV-107 comments 10153, 10154), with no outline on top of it; a focused Send, Stop, Mention or chip button draws its
+ * own 2 px ring and the box none. The field draws none. */
+.ds-chat__box:has(textarea:focus) {
+  border-color: var(--cmp-input-border-focus);
+  outline: none;
+}
+.ds-chat__box:has(textarea[aria-invalid="true"]) {
+  border-color: var(--cmp-input-border-error);
+}
+.ds-chat__box .ds-textarea {
+  display: contents;
+}
+.ds-chat__box .ds-control {
+  grid-area: input;
+  min-inline-size: 0;
+  min-block-size: 0;
+  padding: var(--cmp-chat-line-gap) var(--cmp-chat-inline-gap);
+  border: 0;
+  background: transparent;
+  outline: none;
+}
+.ds-chat__box .ds-control:focus-visible {
+  outline: none;
+}
+.ds-chat__box .ds-textarea__counter {
+  grid-area: count;
+  margin: 0;
+  align-self: center;
+  justify-self: end;
+}
+/* The counter shows from 1,800 of 2,000 characters; the box carries data-counter from there. */
+.ds-chat__box:not([data-counter]) .ds-textarea__counter {
+  display: none;
+}
+.ds-chat__actions {
+  display: contents;
+}
+.ds-chat__mention {
+  grid-area: mention;
+}
+.ds-chat__send {
+  grid-area: send;
+}
+.ds-chat__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cmp-chat-line-gap);
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ds-chat__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cmp-chat-line-gap);
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+/* The gone words sit under the chip row, in the warning ink, and wrap; the chip itself stays one line. */
+.ds-chat__mentions {
+  grid-area: chips;
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmp-chat-line-gap);
+  min-inline-size: 0;
+}
+.ds-chat__gone-message {
+  margin: 0;
+  color: var(--ds-feedback-warning-fg);
+  font-family: var(--cmp-field-text-type-font-family);
+  font-size: var(--cmp-field-text-type-font-size);
+  line-height: var(--cmp-field-text-type-line-height);
+  font-weight: var(--cmp-field-text-type-font-weight);
+  letter-spacing: var(--cmp-field-text-type-letter-spacing);
+  overflow-wrap: anywhere;
+}
+.ds-chat__gone-mark {
+  color: var(--ds-feedback-warning-fg);
+}
+.ds-chat__refs {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--cmp-chat-muted-fg);
+  font-family: var(--cmp-chat-meta-type-font-family);
+  font-size: var(--cmp-chat-meta-type-font-size);
+  line-height: var(--cmp-chat-meta-type-line-height);
+  font-weight: var(--cmp-chat-meta-type-font-weight);
+  letter-spacing: var(--cmp-chat-meta-type-letter-spacing);
+}
+/* The honesty line: quiet, centred, always rendered, wraps rather than truncates. */
+.ds-chat__notice {
+  margin: 0;
+  color: var(--cmp-chat-muted-fg);
+  text-align: center;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+  font-family: var(--cmp-chat-meta-type-font-family);
+  font-size: var(--cmp-chat-meta-type-font-size);
+  line-height: var(--cmp-chat-meta-type-line-height);
+  font-weight: var(--cmp-chat-meta-type-font-weight);
+  letter-spacing: var(--cmp-chat-meta-type-letter-spacing);
+}
+/* The node picker: over the transcript, exactly the box's width, 8 px above it. */
+.ds-chat__picker {
+  position: absolute;
+  inset-inline: var(--cmp-chat-padding-x);
+  inset-block-end: 100%;
+  max-block-size: var(--cmp-chat-picker-max-block-size);
+  overflow-y: auto;
+  padding: var(--cmp-menu-padding);
+  border: 1px solid var(--cmp-menu-border);
+  border-radius: var(--cmp-menu-radius);
+  background: var(--cmp-menu-bg);
+  box-shadow: var(--cmp-menu-shadow);
+  z-index: var(--cmp-menu-layer);
+}
+.ds-chat__option {
+  display: flex;
+  align-items: center;
+  min-block-size: var(--cmp-menu-option-height);
+  padding-inline: var(--cmp-menu-option-padding-x);
+  border-radius: var(--cmp-menu-option-radius);
+  color: var(--cmp-menu-option-fg);
+  font-family: var(--cmp-menu-option-type-font-family);
+  font-size: var(--cmp-menu-option-type-font-size);
+  line-height: var(--cmp-menu-option-type-line-height);
+  font-weight: var(--cmp-menu-option-type-font-weight);
+  letter-spacing: var(--cmp-menu-option-type-letter-spacing);
+  cursor: pointer;
+}
+.ds-chat__option > span:first-child {
+  flex: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ds-chat__option[data-active] {
+  background: var(--cmp-menu-option-bg-hover);
+}
+.ds-chat__option-meta {
+  margin-inline-start: var(--cmp-chat-inline-gap);
+  color: var(--cmp-menu-option-description-fg);
+  font-family: var(--cmp-menu-option-description-type-font-family);
+  font-size: var(--cmp-menu-option-description-type-font-size);
+  line-height: var(--cmp-menu-option-description-type-line-height);
+  font-weight: var(--cmp-menu-option-description-type-font-weight);
+  letter-spacing: var(--cmp-menu-option-description-type-letter-spacing);
+}
+.ds-chat__picker-empty {
+  margin: 0;
+  padding: var(--cmp-menu-padding) var(--cmp-menu-option-padding-x);
+  color: var(--cmp-menu-empty);
+  overflow-wrap: anywhere;
+}
+/* The mark is static under reduced motion: the word "Replying" carries the state. Written on the
+ * mark's svg, not on `.ds-spin`: the shared spinner stays essential motion everywhere else. */
+@media (prefers-reduced-motion: reduce) {
+  .ds-chat__mark svg {
+    animation: none;
+  }
+  .ds-chat__box {
+    transition: none;
+  }
 }

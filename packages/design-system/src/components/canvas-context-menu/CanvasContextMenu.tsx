@@ -37,6 +37,9 @@ const SCOPES: Record<ContextTarget["kind"], CommandScope[]> = {
   edge: ["edge"],
 };
 
+/** Offered only when the shell can complete them; a missing shell hides them, it does not grey them. */
+const SHELL_ONLY = new Set<Command["id"]>(["node.mention"]);
+
 /** Destructive items go last (catalog DropdownMenu rule). */
 const DESTRUCTIVE = new Set<Command["id"]>(["selection.delete", "edge.delete"]);
 
@@ -63,7 +66,9 @@ export function CanvasContextMenu({
   const groups = scopes
     .map((scope) => ({
       scope,
-      items: surfaceCommands("context-menu", [scope]).filter((c) => !DESTRUCTIVE.has(c.id)),
+      items: surfaceCommands("context-menu", [scope]).filter(
+        (c) => !DESTRUCTIVE.has(c.id) && (!SHELL_ONLY.has(c.id) || board.enabled(c.id, ctx)),
+      ),
     }))
     .filter((g) => g.items.length > 0);
   const destructive = scopes.flatMap((scope) =>

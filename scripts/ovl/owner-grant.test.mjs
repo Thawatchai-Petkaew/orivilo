@@ -312,3 +312,42 @@ test("the transcript-derived real form, answered without a grant, is ignored", (
   assert.equal(runNode(grantHook, real).code, 0);
   assert.deepEqual(grants(root), []);
 });
+
+test("ORV-108 row 33: one form with a grant and a close option, each clicked in turn, writes only its own record", () => {
+  const closeHook = hook("owner-close.mjs");
+  const root = makeRepo();
+  seedEscalated(root);
+  seedTask(root, "ORV-1", "ORV-1-s", {
+    envelope: validEnvelope(root, { task_id: "ORV-1-s", role: "qa", write_set: [] }),
+    agent: { agent_id: "a-s", agent_type: "qa", started_at: "2026-10-23T11:00:00.000Z" },
+  });
+  const options = ["Grant round ORV-1", "Close envelope ORV-1-s", "Decline"];
+  const closedFile = join(root, ".orivilo/runs/ORV-1/ORV-1-s/closed.json");
+  const closeClick = form(root, { answer: "Close envelope ORV-1-s", options });
+  const grantClick = form(root, { answer: "Grant round ORV-1", options });
+
+  // A close label fed to owner-grant grants nothing.
+  assert.equal(runNode(grantHook, closeClick).code, 0);
+  assert.deepEqual(grants(root), []);
+  // A grant label fed to owner-close closes nothing.
+  assert.equal(runNode(closeHook, grantClick).code, 0);
+  assert.equal(existsSync(closedFile), false);
+  // Each hook writes its own record from its own click.
+  assert.equal(runNode(grantHook, grantClick).code, 0);
+  assert.deepEqual(grants(root), ["owner-grant-1.json"]);
+  assert.equal(existsSync(closedFile), false);
+  assert.equal(runNode(closeHook, closeClick).code, 0);
+  assert.equal(existsSync(closedFile), true);
+  assert.deepEqual(grants(root), ["owner-grant-1.json"]);
+});
+
+test("SEC-1: an answer the dialog picked after an idle timeout grants nothing", () => {
+  const root = makeRepo();
+  seedEscalated(root);
+  const input = form(root);
+  input.tool_response.afkTimeoutMs = 60000;
+  const r = runNode(grantHook, input);
+  assert.equal(r.code, 2);
+  assert.match(r.stderr, /afkTimeoutMs/);
+  assert.deepEqual(grants(root), []);
+});

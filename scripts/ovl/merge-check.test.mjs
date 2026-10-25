@@ -39,6 +39,7 @@ const basePr = (over = {}) => ({
   headRefName: "feature/ORV-1-x",
   headRefOid: H,
   changedFiles: 1,
+  isCrossRepository: false,
   files: ["scripts/x.mjs"],
   ...over,
 });
@@ -159,6 +160,13 @@ test("row 18: reviewer.v1 must be the latest on the head, from a reviewer", () =
   const designer = goodRoot();
   put(designer, `${RUN}/r/envelope.json`, { task_id: "r", role: "designer", write_set: [] });
   blocked(decide(facts(designer)), /reviewer\.v1/);
+  const security = goodRoot();
+  put(security, `${RUN}/r/envelope.json`, {
+    task_id: "r",
+    role: "security",
+    write_set: [],
+  });
+  blocked(decide(facts(security)), /reviewer\.v1/, new RegExp(H));
 });
 
 test("row 19: failed, pending, skipping, cancel and no checks block", () => {
@@ -310,27 +318,72 @@ test("row 29 and 30: docs-only PRs need a reviewer or the owner, not a qa", () =
   blocked(decide(facts(notDocs, { pr: basePr({ files: mixed }) })), /qa\.json/);
 });
 
-test("row 31 to 33: the release PR and other bases", () => {
+const ci = (over = {}) => ({ ...pass("check"), workflow: "CI", ...over });
+const release = (over) =>
+  basePr({ number: 8, baseRefName: "main", headRefName: "develop", ...over });
+
+test("ORV-115 rows 1 and 2: a release PR with green CI needs no record, guard files or not", () => {
   const root = mkdtempSync(join(tmpdir(), "mc-"));
-  const release = (over) =>
-    basePr({ number: 8, baseRefName: "main", headRefName: "develop", ...over });
-  const a8 = (over) =>
-    put(root, ".orivilo/owner-approvals/8.json", {
-      by: "owner",
-      pr: 8,
-      head_sha: H,
-      at: at(1),
-      ...over,
-    });
-  const f = (pr, checks = [pass("check")]) => decide(facts(root, { pr, checks }));
-  a8();
+  const f = (pr, checks = [ci()]) => decide(facts(root, { pr, checks }));
   assert.deepEqual(f(release()), []);
-  blocked(f(release({ headRefName: "feature/ORV-1-x" })), /release PR from develop/);
-  a8({ head_sha: H2 });
-  blocked(f(release()), /owner-approvals\/8\.json/);
-  a8();
-  blocked(f(release(), [{ ...pass("ci"), bucket: "fail" }]), /"ci"/);
-  blocked(f(basePr({ baseRefName: "release/x" })), /only into develop or main/);
+  const guards = ["scripts/ovl/x.mjs", ".claude/hooks/x.mjs", ".claude/settings.json"];
+  assert.deepEqual(f(release({ files: [...guards, ".github/workflows/ci.yml"] })), []);
+  assert.deepEqual(f(release(), [ci(), pass("other")]), []);
+});
+
+test("ORV-115 row 3: a failing or pending check blocks the release, a Vercel waiver is the owner's", () => {
+  const root = mkdtempSync(join(tmpdir(), "mc-"));
+  const f = (checks) => decide(facts(root, { pr: release(), checks }));
+  blocked(f([ci(), { ...pass("lint"), bucket: "fail" }]), /check "lint" is fail/);
+  blocked(f([ci(), { ...pass("build"), bucket: "pending" }]), /check "build" is pending/);
+  blocked(f([ci(), vercel()]), /Vercel/, /owner-waivers\/8\.json/);
+  put(root, ".orivilo/owner-waivers/8.json", {
+    by: "owner",
+    pr: 8,
+    head_sha: H,
+    checks: ["Vercel – orivilo"],
+    at: at(1),
+  });
+  assert.deepEqual(f([ci(), vercel()]), []);
+});
+
+test("ORV-115 row 4: no checks, or no passing CI check, blocks the release", () => {
+  const root = mkdtempSync(join(tmpdir(), "mc-"));
+  const f = (checks) => decide(facts(root, { pr: release(), checks }));
+  blocked(f([]), /the PR has no checks/);
+  blocked(f([pass("lint")]), /a release into main needs a passing CI check/);
+  blocked(f([ci({ bucket: "fail" })]), /check "check" is fail/, /passing CI check/);
+});
+
+test("ORV-115 row 5: only develop goes into main, an approval record does not change it", () => {
+  const root = mkdtempSync(join(tmpdir(), "mc-"));
+  put(root, ".orivilo/owner-approvals/8.json", {
+    by: "owner",
+    pr: 8,
+    head_sha: H,
+    at: at(1),
+  });
+  const pr = release({ headRefName: "feature/ORV-1-x" });
+  blocked(
+    decide(facts(root, { pr, checks: [ci()] })),
+    /only the release PR from this repository's develop/,
+  );
+  blocked(
+    decide(facts(root, { pr: basePr({ baseRefName: "release/x" }) })),
+    /only into develop or main/,
+  );
+});
+
+test("ORV-115 SEC-1: a head named develop from a fork, or with no repository field, is refused", () => {
+  const root = mkdtempSync(join(tmpdir(), "mc-"));
+  const f = (pr) => decide(facts(root, { pr, checks: [ci()] }));
+  blocked(f(release({ isCrossRepository: true })), /this repository's develop/);
+  blocked(f(release({ isCrossRepository: undefined })), /this repository's develop/);
+});
+
+test("ORV-115 SEC-3: a guard file renamed out of its path is judged by its previous path", () => {
+  const pr = basePr({ files: ["scripts/x.mjs"], previousFiles: [".github/workflows/ci.yml"] });
+  blocked(decide(facts(goodRoot(), { pr })), /guard files \(\.github\/workflows\/ci\.yml\)/);
 });
 
 // CLI: a fixture gh on PATH and a throwaway git repo that holds the records.
@@ -341,13 +394,15 @@ function cli(over = {}, { head = H, noGh = false, badQa = false, canary = false 
   if (badQa) put(repo, `${RUN}/q/qa.json`, "not json");
   const bin = mkdtempSync(join(tmpdir(), "mcbin-"));
   const title = canary ? "ORV-1: CANARY" : "ORV-1: x";
-  put(bin, "view.json", { ...basePr(), title, files: [{ path: "scripts/x.mjs" }] });
+  const { files: _files, ...view } = { ...basePr(), title };
+  put(bin, "view.json", view);
+  put(bin, "files.json", [[{ filename: "scripts/x.mjs" }]]);
   const checks = over.checks ?? [{ ...pass("check"), description: canary ? "CANARY" : "" }];
   put(bin, "checks.json", checks);
   const gh = join(bin, "gh");
   writeFileSync(
     gh,
-    `#!/bin/sh\ncase "$2" in view) cat '${bin}/view.json' ;; checks) cat '${bin}/checks.json' ;; esac\nexit ${over.exit ?? 0}\n`,
+    `#!/bin/sh\ncase "$2" in view) cat '${bin}/view.json' ;; checks) cat '${bin}/checks.json' ;; repos/*) cat '${bin}/files.json' ;; esac\nexit ${over.exit ?? 0}\n`,
   );
   chmodSync(gh, 0o755);
   const path = noGh ? "/usr/bin:/bin" : `${bin}:${process.env.PATH}`;

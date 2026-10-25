@@ -2262,5 +2262,258 @@
         "$value": "{type.label.md}"
       }
     }
+  },
+  "taskbar": {
+    "$description": "The jobs strip at the foot of the board (ORV-100, E4-5 part 2): a header, a list of job rows, state marks and words",
+    "bg": {
+      "$type": "color",
+      "$value": "{surface.card}"
+    },
+    "fg": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    },
+    "muted-fg": {
+      "$type": "color",
+      "$value": "{text.secondary}",
+      "$description": "Summary, basis label and empty text"
+    },
+    "border": {
+      "$type": "color",
+      "$value": "{border.subtle}"
+    },
+    "divider": {
+      "$type": "color",
+      "$value": "{border.subtle}",
+      "$description": "Hairline between rows and above the header"
+    },
+    "shadow": {
+      "$type": "shadow",
+      "$value": "{elevation.overlay}",
+      "$description": "On the board only"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.container.radius}"
+    },
+    "padding-x": {
+      "$type": "dimension",
+      "$value": "{space.inset.md}"
+    },
+    "padding-y": {
+      "$type": "dimension",
+      "$value": "{space.inset.sm}"
+    },
+    "row-block": {
+      "$type": "dimension",
+      "$value": "{space.row-block.comfortable}"
+    },
+    "gap": {
+      "$type": "dimension",
+      "$value": "{space.inline.md}"
+    },
+    "line-gap": {
+      "$type": "dimension",
+      "$value": "{space.inline.sm}"
+    },
+    "header-height": {
+      "$type": "dimension",
+      "$value": "{size.control.md}"
+    },
+    "list-max-height": {
+      "$type": "dimension",
+      "$value": "{size.panel.default}",
+      "$description": "About four rows, then the list scrolls"
+    },
+    "icon-size": {
+      "$type": "dimension",
+      "$value": "{size.icon.sm}"
+    },
+    "label-type": {
+      "$type": "typography",
+      "$value": "{type.label.md}"
+    },
+    "name-type": {
+      "$type": "typography",
+      "$value": "{type.label.md}"
+    },
+    "meta-type": {
+      "$type": "typography",
+      "$value": "{type.label.sm}"
+    },
+    "body-type": {
+      "$type": "typography",
+      "$value": "{type.body.sm}"
+    },
+    "queued-fg": {
+      "$type": "color",
+      "$value": "{text.secondary}"
+    },
+    "running-fg": {
+      "$type": "color",
+      "$value": "{status.running}"
+    },
+    "done-fg": {
+      "$type": "color",
+      "$value": "{feedback.success.fg}"
+    },
+    "failed-fg": {
+      "$type": "color",
+      "$value": "{feedback.danger.fg}"
+    },
+    "reason-fg": {
+      "$type": "color",
+      "$value": "{text.primary}",
+      "$description": "The failure reason: full contrast, it is the text people act on"
+    },
+    "layer": {
+      "$type": "number",
+      "$value": "{layer.overlay}"
+    }
+  },
+  "chat": {
+    "$description": "The board chat (ORV-105, E4-5 part 3), slice A: the sidebar panel, its transcript, the question well, the composer and the state words",
+    "bg": {
+      "$type": "color",
+      "$value": "{surface.card}"
+    },
+    "fg": {
+      "$type": "color",
+      "$value": "{text.primary}",
+      "$description": "Title and reply text"
+    },
+    "muted-fg": {
+      "$type": "color",
+      "$value": "{text.secondary}",
+      "$description": "Notice, speaker, empty text, basis word and stopped word"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.overlay.radius}",
+      "$description": "The floating panel's corners (ORV-107 v1.3)"
+    },
+    "shadow": {
+      "$type": "shadow",
+      "$value": "{elevation.overlay}",
+      "$description": "The floating panel lifts off the board"
+    },
+    "border": {
+      "$type": "color",
+      "$value": "{border.card}",
+      "$description": "Inset 1 px edge of the panel: transparent in light, visible in dark"
+    },
+    "question-bg": {
+      "$type": "color",
+      "$value": "{surface.sunken}",
+      "$description": "The well the question sits in"
+    },
+    "question-fg": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    },
+    "question-radius": {
+      "$type": "dimension",
+      "$value": "{shape.overlay.radius}",
+      "$description": "A pill bubble at the end edge (ORV-107 v1.3)"
+    },
+    "question-pad-x": {
+      "$type": "dimension",
+      "$value": "{space.inset.md}"
+    },
+    "question-indent": {
+      "$type": "dimension",
+      "$value": "{space.inset.xl}",
+      "$description": "Space kept free at the start of a question bubble"
+    },
+    "composer-radius": {
+      "$type": "dimension",
+      "$value": "{shape.container.radius}"
+    },
+    "composer-pad": {
+      "$type": "dimension",
+      "$value": "{space.inset.sm}",
+      "$description": "Inside the composer box, and from the box to the honesty line"
+    },
+    "meta-height": {
+      "$type": "dimension",
+      "$value": "{size.control.sm}",
+      "$description": "One line of the reply's meta row"
+    },
+    "foot-pad": {
+      "$type": "dimension",
+      "$value": "{space.inline.lg}",
+      "$description": "Under the honesty line"
+    },
+    "streaming-fg": {
+      "$type": "color",
+      "$value": "{status.running}",
+      "$description": "Streaming mark and word"
+    },
+    "failed-fg": {
+      "$type": "color",
+      "$value": "{feedback.danger.fg}",
+      "$description": "Failure mark and text"
+    },
+    "padding-x": {
+      "$type": "dimension",
+      "$value": "{space.inset.md}"
+    },
+    "padding-y": {
+      "$type": "dimension",
+      "$value": "{space.inset.sm}"
+    },
+    "question-pad": {
+      "$type": "dimension",
+      "$value": "{space.inset.sm}"
+    },
+    "exchange-gap": {
+      "$type": "dimension",
+      "$value": "{space.stack.lg}",
+      "$description": "Between exchanges: space, not rules, separates them"
+    },
+    "turn-gap": {
+      "$type": "dimension",
+      "$value": "{space.inline.lg}",
+      "$description": "From the question to its reply, and empty text to the starters"
+    },
+    "line-gap": {
+      "$type": "dimension",
+      "$value": "{space.inline.sm}",
+      "$description": "Between the lines of one block"
+    },
+    "inline-gap": {
+      "$type": "dimension",
+      "$value": "{space.inline.md}",
+      "$description": "Between a mark and its word, between meta items, between buttons"
+    },
+    "header-height": {
+      "$type": "dimension",
+      "$value": "{size.control.sm}"
+    },
+    "icon-size": {
+      "$type": "dimension",
+      "$value": "{size.icon.sm}"
+    },
+    "title-type": {
+      "$type": "typography",
+      "$value": "{type.label.md}"
+    },
+    "text-type": {
+      "$type": "typography",
+      "$value": "{type.body.md}"
+    },
+    "meta-type": {
+      "$type": "typography",
+      "$value": "{type.label.sm}"
+    },
+    "body-sm-type": {
+      "$type": "typography",
+      "$value": "{type.body.sm}"
+    },
+    "picker-max-block-size": {
+      "$type": "dimension",
+      "$value": "{size.panel.min}",
+      "$description": "Tallest the mention picker grows before it scrolls, 240 (slice C)"
+    }
   }
 }

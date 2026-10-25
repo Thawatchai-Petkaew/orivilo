@@ -493,3 +493,12 @@ test("Check after must be a real date", () => {
     );
   }
 });
+
+test("ORV-108 row 56: an ADR numbered 0015 or later needs a Confirmation: line; 0001 to 0014 are not checked", () => {
+  const files = {
+    "docs/adr/0014-old.md": "# Old\n\nNo confirmation here.\n",
+    "docs/adr/0015-new.md": "# New\n\nDecision.\n",
+    "docs/adr/0016-ok.md": "# Ok\n\nDecision.\n\nConfirmation: pnpm test covers it.\n",
+  };
+  assert.deepEqual(run(files), ["docs/adr/0015-new.md: has no Confirmation: line"]);
+});

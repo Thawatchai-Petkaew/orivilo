@@ -11,7 +11,34 @@
       "Bash(git log*)"
     ],
     "ask": ["Bash(git push*)", "Bash(vercel *)", "Bash(pnpm add*)"],
-    "deny": ["Read(./.env)", "Read(./.env.*)", "Read(./**/.env)", "Read(./**/.env.*)"]
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./**/.env)",
+      "Read(./**/.env.*)",
+      "Read(./**/.env*)",
+      "Bash(cat .env*)",
+      "Bash(cat * .env*)",
+      "Bash(cat */.env*)",
+      "Bash(head .env*)",
+      "Bash(head * .env*)",
+      "Bash(head */.env*)",
+      "Bash(tail .env*)",
+      "Bash(tail * .env*)",
+      "Bash(tail */.env*)",
+      "Bash(less .env*)",
+      "Bash(less * .env*)",
+      "Bash(less */.env*)",
+      "Bash(more .env*)",
+      "Bash(more * .env*)",
+      "Bash(more */.env*)",
+      "Bash(grep .env*)",
+      "Bash(grep * .env*)",
+      "Bash(grep */.env*)",
+      "Bash(source .env*)",
+      "Bash(source * .env*)",
+      "Bash(source */.env*)"
+    ]
   },
   "hooks": {
     "PreToolUse": [
@@ -81,6 +108,10 @@
           {
             "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/owner-grant.mjs\" || exit 2"
+          },
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/owner-close.mjs\" || exit 2"
           }
         ]
       },

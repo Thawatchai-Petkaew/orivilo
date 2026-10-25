@@ -1,8 +1,8 @@
 name: TaskBar
 tier: application
-status: planned
+status: draft
 since: E4-5
-import: none
+import: "@orivilo/design-system"
 story: application-task-bar
 useWhen:
   - "Running and finished generation jobs with a jump to their node"
@@ -11,11 +11,13 @@ avoidWhen:
 contract: TaskBarProps
 variants: []
 sizes: []
-states: [empty, running, failed, done, collapsed]
-recipes: []
+states: [empty, collapsed, queued, running, failed, done]
+recipes: [neutral, professional, friendly]
 examples: []
 rules:
   - "A failed job says why and offers retry"
-  - "Jump pans and zooms to the node and selects it"
+  - "Jump pans and zooms to the node and selects it (inside a CanvasBoard, for a job whose node is on the board; ORV-101)"
+  - "Every job shows its basis, by rules or mock data; nothing claims AI"
+  - "Retry waits for the host: the button is loading until the job's state or reason changes"
 a11y:
   - "Job status in a live region; the list is keyboard navigable"

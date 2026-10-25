@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { storyTitle } from "./result-recorder.mjs";
 import { validate } from "./validate.mjs";
 import {
   agentInput,
@@ -224,7 +225,18 @@ const runAsync = (input) =>
   });
 
 test("I-6: SubagentStart hooks for different roles started at once all bind", async () => {
-  const roles = ["builder", "reviewer", "qa", "designer", "ds-architect", "product", "release"];
+  const roles = [
+    "builder",
+    "reviewer",
+    "qa",
+    "designer",
+    "ds-architect",
+    "product",
+    "release",
+    "architect",
+    "security",
+    "research",
+  ];
   for (let trial = 0; trial < 60; trial++) {
     const root = makeRepo();
     for (const role of roles) {
@@ -309,6 +321,20 @@ test("a reviewer.v1 report from a builder is refused; a designer may send one wh
     write_set: ["docs/specs/ORV-1/design.md"],
   });
   assert.equal(stopWith(root, designer, "designer", reviewer("ORV-1-d")).code, 0);
+});
+
+test("a security subagent may send a reviewer.v1 report", () => {
+  const root = makeRepo();
+  const agent = bind(root, "security", "ORV-1-s", {
+    report_contract: "reviewer.v1",
+    skills: ["quality-gate"],
+  });
+  const message = JSON.stringify(reviewer("ORV-1-s"));
+  const r = run(postAgentInput(root, agent, "security", message));
+  assert.equal(r.code, 0, r.stderr);
+  const result = read(root, "result.json", "ORV-1-s");
+  assert.equal(result.contract, "reviewer.v1");
+  assert.equal(result.report.verdict, "approve");
 });
 
 test("AC 54: an Explore subagent ends with exit 0 and nothing is recorded", () => {
@@ -722,6 +748,40 @@ test("a screenshot named for another story or mode exits 2", () => {
   const r = stopWith(root, agent, "qa", report);
   assert.equal(r.code, 2);
   assert.match(r.stderr, /must be named/);
+});
+
+test("storyTitle reads a named meta object, with satisfies or a type annotation, and the inline form", () => {
+  const { root } = makePrRepo();
+  const dir = join(root, "packages", "ds", "src", "forms");
+  mkdirSync(dir, { recursive: true });
+  const cases = {
+    "named.stories.tsx":
+      'const meta = {\n  title: "A/Named",\n  args: { title: "x" },\n} satisfies Meta<typeof X>;\nexport default meta;\n',
+    "typed.stories.tsx":
+      'const meta: Meta<typeof X> = {\n  title: "A/Typed",\n};\nexport default meta;\n',
+    "inline.stories.tsx": 'export default {\n  title: "A/Inline",\n};\n',
+  };
+  for (const [name, body] of Object.entries(cases)) writeFileSync(join(dir, name), body);
+  git(root, "add", "-A");
+  git(root, "commit", "-q", "-m", "titles");
+  const head = git(root, "rev-parse", "HEAD");
+  const at = (n) => storyTitle(root, head, `packages/ds/src/forms/${n}`);
+  assert.equal(at("named.stories.tsx"), "A/Named");
+  assert.equal(at("typed.stories.tsx"), "A/Typed");
+  assert.equal(at("inline.stories.tsx"), "A/Inline");
+});
+
+test("storyTitle resolves the real CanvasChat and visual-asserts stories at HEAD", () => {
+  const head = git(repoRoot, "rev-parse", "HEAD");
+  const ds = "packages/design-system/src";
+  assert.equal(
+    storyTitle(repoRoot, head, `${ds}/components/canvas-chat/CanvasChat.stories.tsx`),
+    "Application/Canvas chat",
+  );
+  assert.equal(
+    storyTitle(repoRoot, head, `${ds}/testing/visual-asserts.stories.tsx`),
+    "Foundations/Visual asserts",
+  );
 });
 
 test("a title-less stories file takes Storybook's auto title from its path", () => {

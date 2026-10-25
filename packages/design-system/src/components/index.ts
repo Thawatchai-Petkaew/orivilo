@@ -92,6 +92,7 @@ export {
 export {
   type BoardContextValue,
   type BoardTool,
+  type JumpOptions,
   type KeyboardConnecting,
   useBoard,
 } from "./canvas-board/context";
@@ -211,3 +212,18 @@ export {
   type DirectionStudioState,
   studioPropsFrom,
 } from "./direction-studio/DirectionStudio";
+export {
+  TaskBar,
+  type TaskBarProps,
+  type TaskJob,
+  type TaskJobBasis,
+  type TaskJobState,
+} from "./task-bar/TaskBar";
+export {
+  CanvasChat,
+  type CanvasChatProps,
+  type ChatBasis,
+  type ChatReply,
+  type ChatRequest,
+} from "./canvas-chat/CanvasChat";
+export { placeReply, replyTitle, type PlacedReply } from "./canvas-chat/place-reply";

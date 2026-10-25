@@ -21,6 +21,7 @@ const K_FIELDS = [
 ];
 const L_FIELDS = ["id", "date", "issue", "what_happened", "cause", "rule"];
 const ADR_MIN_CONFIDENCE = 0.7;
+const FIRST_CONFIRMED_ADR = 15;
 const CONFIDENCE_FORMAT = /^(0(\.\d+)?|1(\.0+)?)$/;
 // Used only when docs/knowledge/README.md has no readable license row. Mirrors that README's list.
 const FALLBACK_LICENSES = ["internal", "own-words", "link-only", "MIT", "CC-BY-4.0", "CC0-1.0"];
@@ -295,6 +296,15 @@ export function checkKnowledge(root, now = new Date()) {
           `cites ${id} with confidence ${entry.raw.confidence}, below ${ADR_MIN_CONFIDENCE}; it may not ground a decision`,
         );
       }
+    }
+  }
+
+  // ADR 0015 and later carry a `Confirmation:` line (ORV-108). ADRs 0001 to 0014 are decided and never rewritten.
+  for (const path of walk(join(root, "docs/adr"))) {
+    const number = path.slice(path.lastIndexOf("/") + 1).match(/^(\d{4})-.*\.md$/)?.[1];
+    if (number === undefined || Number(number) < FIRST_CONFIRMED_ADR) continue;
+    if (!/^Confirmation:/m.test(readFileSync(path, "utf8"))) {
+      report(path, "has no Confirmation: line");
     }
   }
 

@@ -29,6 +29,9 @@ const REQUIRED_SKILLS = {
   qa: ["quality-gate", "webapp-testing"],
   reviewer: [],
   release: ["gate-packet"],
+  architect: [],
+  security: ["quality-gate"],
+  research: [],
 };
 
 export const ROLE_CONTRACTS = {
@@ -39,10 +42,18 @@ export const ROLE_CONTRACTS = {
   qa: ["qa.v1"],
   reviewer: ["reviewer.v1"],
   release: ["implementer.v1"],
+  architect: ["implementer.v1"],
+  security: ["reviewer.v1"],
+  research: ["implementer.v1"],
 };
 
-const ISSUE_ROLES = new Set(["builder", "reviewer", "qa", "designer"]);
-const EMPTY_WRITE_SET = new Set(["reviewer", "qa", "release"]);
+const ISSUE_ROLES = new Set(["builder", "reviewer", "qa", "designer", "security"]);
+const EMPTY_WRITE_SET = new Set(["reviewer", "qa", "release", "security"]);
+
+/** A designer judges a head (reviewer.v1) and edits no file; any other designer shape writes design files. */
+const writesNothing = (env) =>
+  EMPTY_WRITE_SET.has(env.role) ||
+  (env.role === "designer" && env.report_contract === "reviewer.v1");
 const COMMAND = /^(pnpm|node|git|gh|test|grep|jq) \S/;
 const COMMAND_FORM = "a command starting with pnpm, node, git, gh, test, grep or jq";
 const PATH_FORM = "a path or path:line that exists in the worktree";
@@ -118,10 +129,10 @@ function semanticProblems(env, toolInput, root) {
       `report_contract "${env.report_contract}" is not allowed for role ${role} (allowed: ${contracts.join(", ")})`,
     );
   }
-  if (EMPTY_WRITE_SET.has(role) && env.write_set.length > 0) {
+  if (writesNothing(env) && env.write_set.length > 0) {
     out.push(`write_set must be empty for role ${role}`);
   }
-  if (!EMPTY_WRITE_SET.has(role) && env.write_set.length === 0) {
+  if (!writesNothing(env) && env.write_set.length === 0) {
     out.push(`write_set must not be empty for role ${role}`);
   }
   for (const entry of env.write_set) {

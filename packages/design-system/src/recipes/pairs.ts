@@ -905,4 +905,73 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     bg: "tag.remove-bg-hover",
     floor: TEXT,
   },
+  // TaskBar (ORV-100): text and marks on the bar's ground, the row focus ring against it. Not listed:
+  // `taskbar.border` and `taskbar.divider` are `border.subtle` dividers (the bar is identified by its
+  // ground and, on the board, its shadow). Progress and Button inside the bar sit on `taskbar.bg`,
+  // which reads `surface.card`; their pairs exist on `ds:surface.card`. If `taskbar.bg` stops
+  // reading `surface.card`, repeat those pairs on `taskbar.bg`.
+  { recipe: "taskbar", slot: "label and name", fg: "taskbar.fg", bg: "taskbar.bg", floor: TEXT },
+  { recipe: "taskbar", slot: "muted", fg: "taskbar.muted-fg", bg: "taskbar.bg", floor: TEXT },
+  { recipe: "taskbar", slot: "queued", fg: "taskbar.queued-fg", bg: "taskbar.bg", floor: TEXT },
+  {
+    recipe: "taskbar",
+    slot: "running mark",
+    fg: "taskbar.running-fg",
+    bg: "taskbar.bg",
+    floor: TEXT,
+  },
+  { recipe: "taskbar", slot: "done", fg: "taskbar.done-fg", bg: "taskbar.bg", floor: TEXT },
+  { recipe: "taskbar", slot: "failed", fg: "taskbar.failed-fg", bg: "taskbar.bg", floor: TEXT },
+  { recipe: "taskbar", slot: "reason", fg: "taskbar.reason-fg", bg: "taskbar.bg", floor: TEXT },
+  { recipe: "taskbar", slot: "row focus", fg: "ds:focus.ring", bg: "taskbar.bg", floor: UI },
+  // CanvasChat (ORV-105): text and marks on the panel ground and on the question well, the
+  // transcript focus ring against the panel. Not listed: the panel edge (`chat.border`) and
+  // shadow, which the content does not depend on (WCAG 1.4.11 does not apply), and the question well's edge is not a
+  // boundary anyone must perceive to operate anything. Textarea, Button and ScrollArea inside sit
+  // on `chat.bg`, which reads `surface.card`, where their pairs exist. If `chat.bg` stops reading
+  // `surface.card`, repeat those pairs on `chat.bg`. The lime Send has no floor against the card,
+  // as `action.intent` has none in DESIGN.md §3.1: its label pair (`button intent`) is 4.5.
+  { recipe: "chat", slot: "title and reply", fg: "chat.fg", bg: "chat.bg", floor: TEXT },
+  { recipe: "chat", slot: "muted", fg: "chat.muted-fg", bg: "chat.bg", floor: TEXT },
+  { recipe: "chat", slot: "question", fg: "chat.question-fg", bg: "chat.question-bg", floor: TEXT },
+  {
+    recipe: "chat",
+    slot: "speaker on well",
+    fg: "chat.muted-fg",
+    bg: "chat.question-bg",
+    floor: TEXT,
+  },
+  { recipe: "chat", slot: "streaming", fg: "chat.streaming-fg", bg: "chat.bg", floor: TEXT },
+  { recipe: "chat", slot: "failed", fg: "chat.failed-fg", bg: "chat.bg", floor: TEXT },
+  { recipe: "chat", slot: "transcript focus", fg: "ds:focus.ring", bg: "chat.bg", floor: UI },
+  // The composer box's focus line is its 1 px border in the focus ink (ORV-107 comment 10154), on the chat ground and on the box fill.
+  { recipe: "chat", slot: "composer focus", fg: "input.border-focus", bg: "chat.bg", floor: UI },
+  {
+    recipe: "chat",
+    slot: "composer focus on field",
+    fg: "input.border-focus",
+    bg: "input.bg",
+    floor: UI,
+  },
+  // Slice C: the gone chip's caution mark. The picker's text pairs are the `menu` ones (it reads
+  // `menu.*`); the question line is `muted` on the question well, listed above as "speaker on well".
+  { recipe: "chat", slot: "gone mark", fg: "ds:feedback.warning.fg", bg: "chat.bg", floor: UI },
+  // v1.6: the gone message under the chip row reads in the warning ink on the composer box.
+  {
+    recipe: "chat",
+    slot: "gone message",
+    fg: "ds:feedback.warning.fg",
+    bg: "input.bg",
+    floor: TEXT,
+  },
+  // v1.3 (ORV-107): the composer box draws its own edge on the panel, so the field is findable
+  // without its placeholder (UI 3.0); over the limit the edge turns to the error colour.
+  { recipe: "chat", slot: "composer edge", fg: "input.border", bg: "chat.bg", floor: UI },
+  {
+    recipe: "chat",
+    slot: "composer error edge",
+    fg: "input.border-error",
+    bg: "chat.bg",
+    floor: UI,
+  },
 ];
