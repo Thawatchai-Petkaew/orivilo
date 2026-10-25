@@ -86,3 +86,6 @@ Status: proposed
 | [[L-0014-qa-walked-a-head-the-recheck-rejected]]         | ORV-98, ORV-95, ORV-93 | From round 1, qa walks only a head the reviewer re-check approved          |
 | [[L-0015-geometry-defects-found-by-the-reviewer-probe]]  | ORV-101, ORV-100       | The builder measures placement AC in a browser at two sizes before handoff |
 | [[L-0016-slice-issue-had-no-spec-of-its-own]]            | ORV-101, ORV-100       | A slice issue gets its own spec file before its first build                |
+| [[L-0017-rework-look-decided-in-text]]                   | ORV-107                | A visual fix in rework is mocked by the designer before the build          |
+| [[L-0018-plays-assert-properties-not-the-render]]        | ORV-107                | Visual plays measure edge ink, sibling height and glyph clip               |
+| [[L-0019-no-designer-looked-at-the-built-head]]          | ORV-107                | A designer signs off screenshots of each approved UI head before qa        |
