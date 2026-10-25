@@ -139,13 +139,14 @@ export function createRateLimiter(deps: RateLimitDeps): RateLimiter {
     };
     const run = async (): Promise<Consumed> => {
       try {
-        if (spans.length === 1) {
-          for (const s of spans) await attempt(db, s);
-        } else {
-          await db.transaction(async (tx) => {
-            for (const s of spans) await attempt(tx, s);
-          });
-        }
+        // One transaction, so SET LOCAL below lets the database stop the work at the same bound
+        // as the timer: a timed-out call does not keep a pool connection or wait on a lock.
+        await db.transaction(async (tx) => {
+          await tx.execute(
+            sql`SELECT set_config('statement_timeout', ${String(timeoutMs)}, true), set_config('lock_timeout', ${String(timeoutMs)}, true)`,
+          );
+          for (const s of spans) await attempt(tx, s);
+        });
         return { ok: true };
       } catch (error) {
         if (error instanceof Refused) {
@@ -172,16 +173,22 @@ export function createRateLimiter(deps: RateLimitDeps): RateLimiter {
     }
   }
 
-  async function prune(nowMs: number) {
+  /** Fire and forget: the result never waits on it, and a failure or a hang is not the caller's. */
+  function prune(nowMs: number) {
     if (nowMs - lastPrune < pruneEveryMs) return;
     lastPrune = nowMs;
-    try {
-      await db.execute(
-        sql`DELETE FROM rate_limit_counter WHERE window_end < ${Math.floor(nowMs / 1000)}::bigint - 86400`,
-      );
-    } catch {
-      // A failed prune never changes the call's result.
-    }
+    void Promise.resolve()
+      .then(() =>
+        db.transaction(async (tx) => {
+          await tx.execute(
+            sql`SELECT set_config('statement_timeout', ${String(timeoutMs)}, true), set_config('lock_timeout', ${String(timeoutMs)}, true)`,
+          );
+          await tx.execute(
+            sql`DELETE FROM rate_limit_counter WHERE window_end < ${Math.floor(nowMs / 1000)}::bigint - 86400`,
+          );
+        }),
+      )
+      .catch(() => {});
   }
 
   return {
@@ -194,7 +201,7 @@ export function createRateLimiter(deps: RateLimitDeps): RateLimiter {
         outcome: result.ok ? "allowed" : result.reason,
         durationMs: performance.now() - started,
       });
-      await prune(nowMs);
+      prune(nowMs);
       return result;
     },
   };

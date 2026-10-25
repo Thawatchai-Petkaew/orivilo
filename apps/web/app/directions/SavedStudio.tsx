@@ -15,7 +15,8 @@ import {
 import type { Interpretation } from "@orivilo/intent-engine";
 import { type ReactNode, useId, useMemo, useRef, useState, useTransition } from "react";
 import type { WebMessages } from "../../i18n/messages";
-import { formatWait } from "../../i18n/wait";
+import { errorLine as errorLineOf } from "../../i18n/wait";
+import { readingResult } from "./read-outcome";
 import {
   type ActionError,
   approveDirection,
@@ -31,17 +32,8 @@ import {
 
 type M = WebMessages["saved"];
 
-/**
- * The line for a failed call. A refusal by a rate limit carries the wait and says it in words;
- * without a usable wait it falls back to the plain failure text rather than print an empty one.
- */
-function errorLine(m: M, wait: WebMessages["wait"], error: ActionError, retryAfter?: number) {
-  if (error !== "rate-limited" && error !== "ai-rate-limited") return m.errors[error];
-  if (typeof retryAfter !== "number" || !Number.isFinite(retryAfter) || retryAfter <= 0) {
-    return m.errors.failed;
-  }
-  return fill(m.errors[error], { wait: formatWait(wait, retryAfter) });
-}
+const errorLine = (m: M, wait: WebMessages["wait"], error: ActionError, retryAfter?: number) =>
+  errorLineOf(m.errors, wait, error, retryAfter);
 
 export type SavedView =
   | { kind: "signed-out" }
@@ -141,19 +133,14 @@ export function SavedStudio({
   const seals = useRef(new WeakMap<Interpretation, string>());
 
   const readWithAi = async (brief: string) => {
-    const result = await readBriefWithAi(brief);
-    if (!result.ok) {
-      // A refused reading is said in the studio, under the button, and not also in the card.
-      if (result.error === "ai-rate-limited" || result.error === "rate-limited") {
-        return { notice: errorLine(m, wait, result.error, result.retryAfter) };
-      }
-      // The studio says AI could not read; a setup problem also gets its own words here.
-      if (result.error !== "ai-failed")
-        setNotice({ tone: "warning", lines: [m.errors[result.error]] });
+    const result = readingResult(await readBriefWithAi(brief), m.errors, wait);
+    if ("notice" in result) return result;
+    if (result.reading === null) {
+      if (result.cardNotice) setNotice({ tone: "warning", lines: [result.cardNotice] });
       return null;
     }
-    seals.current.set(result.value.reading, result.value.seal);
-    return result.value.reading;
+    seals.current.set(result.reading, result.seal);
+    return result.reading;
   };
 
   const openedProps = useMemo(

@@ -185,13 +185,13 @@ export const Locked: Story = {
   },
 };
 
-/** English, dark, at 360 wide: the cards stack and the copy comes from the catalog. */
+/** English, dark, on a 360 screen: the cards stack and the copy comes from the catalog. */
 export const EnglishDarkNarrow: Story = {
   globals: { locale: "en" },
   args: { defaultBrief: en.preset1Text },
   render: (args) => (
     <Under profile="neutral" mode="dark">
-      <div style={{ width: 360 }}>
+      <div style={{ maxWidth: 360, width: "100%" }}>
         <DirectionStudio {...args} />
       </div>
     </Under>
@@ -453,42 +453,53 @@ const limited = {
   en: "You have reached the limit for AI readings, so the rules' reading is used. AI can read again in 12 minutes.",
 };
 
+/** The refusal line in the story's locale. */
+const limitedFor = (locale: unknown) => (locale === "en" ? limited.en : limited.th);
+
 /** A refused AI reading (a rate limit, ORV-112): the caller's line and the word "Check this" in the note row; the rules' reading stays and the button is offered again. */
 export const AiLimited: Story = {
-  args: {
-    defaultBrief: FRIENDLY_BRIEF,
-    readWithAi: () => Promise.resolve({ notice: limited.th }),
-  },
-  play: async ({ canvasElement }) => {
-    const region = within(canvasElement).getByRole("region", { name: new RegExp(th.reading) });
+  args: { defaultBrief: FRIENDLY_BRIEF },
+  render: (args, { globals }) => (
+    <DirectionStudio
+      {...args}
+      readWithAi={() => Promise.resolve({ notice: limitedFor(globals.locale) })}
+    />
+  ),
+  play: async ({ canvasElement, globals }) => {
+    const c = globals.locale === "en" ? en : th;
+    const line = limitedFor(globals.locale);
+    const region = within(canvasElement).getByRole("region", { name: new RegExp(c.reading) });
     const reading = within(region);
-    const button = reading.getByRole("button", { name: th.readWithAi });
+    const button = reading.getByRole("button", { name: c.readWithAi });
+    // The polite live region is mounted before the text arrives.
+    const live = reading.getByRole("status");
     await userEvent.click(button);
-    await waitFor(() => expect(reading.getByRole("status")).toHaveTextContent(limited.th));
+    await waitFor(() => expect(live).toHaveTextContent(line));
     const note = reading.getByRole("status");
-    await expect(within(note).getByText(th.aiNotice)).toBeVisible();
-    await expect(reading.getByText(th.byRulesOnly)).toBeVisible();
+    await expect(note).toBe(live);
+    await expect(within(note).getByText(c.aiNotice)).toBeVisible();
+    await expect(reading.getByText(c.byRulesOnly)).toBeVisible();
     await expect(button).toBeEnabled();
     await expect(button).toHaveFocus();
     await expectNoteUnderButton(region, note, button);
 
     // Editing the brief clears the note, as it clears the failed line.
-    await userEvent.type(within(canvasElement).getByRole("textbox", { name: th.brief }), " มาก");
-    await expect(reading.queryByRole("status")).toBeNull();
+    await userEvent.type(within(canvasElement).getByRole("textbox", { name: c.brief }), " x");
+    await waitFor(() => expect(live).toBeEmptyDOMElement());
   },
 };
 
-/** The same refusal in English, dark, at 360 wide, where the line wraps to three lines. */
+/** The same refusal in English, dark, on a 360 screen, where the line wraps to three lines. */
 export const AiLimitedEnglishNarrow: Story = {
   globals: { locale: "en" },
-  args: {
-    defaultBrief: FRIENDLY_BRIEF,
-    readWithAi: () => Promise.resolve({ notice: limited.en }),
-  },
-  render: (args) => (
+  args: { defaultBrief: FRIENDLY_BRIEF },
+  render: (args, { globals }) => (
     <Under profile="neutral" mode="dark">
-      <div style={{ width: 360 }}>
-        <DirectionStudio {...args} />
+      <div style={{ maxWidth: 360, width: "100%" }}>
+        <DirectionStudio
+          {...args}
+          readWithAi={() => Promise.resolve({ notice: limitedFor(globals.locale) })}
+        />
       </div>
     </Under>
   ),

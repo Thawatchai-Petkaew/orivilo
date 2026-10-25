@@ -1,8 +1,11 @@
+import type { Db } from "@orivilo/db/client";
 import { describe, expect, it } from "vitest";
 import {
   assertNested,
   BANGKOK_OFFSET_SECONDS,
+  createRateLimiter,
   keyOf,
+  LIMITS,
   type Limit,
   retryAfterOf,
   windowOf,
@@ -78,5 +81,17 @@ describe("keyOf", () => {
   it("keys a person by user id and a network by its subject", () => {
     expect(keyOf(limit, { user: "u1" })).toBe("ai-read:u:u1");
     expect(keyOf(limit, { ip: "abc" })).toBe("ai-read:ip:abc");
+  });
+});
+
+describe("a store that never settles", () => {
+  it("returns unavailable within the timeout, with pruning on", async () => {
+    const never = () => new Promise<never>(() => {});
+    const db = { execute: never, transaction: never } as unknown as Db;
+    const limiter = createRateLimiter({ db, timeoutMs: 50, pruneEveryMs: 0 });
+    const started = performance.now();
+    const result = await limiter.consume(LIMITS.write, { user: "u" });
+    expect(result).toEqual({ ok: false, reason: "unavailable" });
+    expect(performance.now() - started).toBeLessThan(50 + 200);
   });
 });

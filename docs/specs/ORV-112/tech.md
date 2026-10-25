@@ -266,11 +266,14 @@ RETURNING c.count;
 
 ### Every window or none
 
-- **One window** (every limit except `ai-read`, and every Better Auth rule): one statement, no transaction, one round trip.
-- **More than one window** (`ai-read`): one transaction, windows in `Limit.windows` order (longest first):
+- **Every limit runs in one transaction**, so `SET LOCAL` can bound it (see the timeout below). The first statement sets the timeouts; then the windows run in `Limit.windows` order (longest first). A one-window limit costs BEGIN, the timeouts, one upsert and COMMIT.
+- Sketch:
 
 ```ts
 await db.transaction(async (tx) => {
+  await tx.execute(
+    sql`SELECT set_config('statement_timeout', ${ms}, true), set_config('lock_timeout', ${ms}, true)`,
+  );
   for (const w of windows) {
     const rows = await tx.execute(upsert(key, w));
     if (rows.length === 0) throw new Refused(w.end); // rolls back the windows already raised
@@ -280,13 +283,13 @@ await db.transaction(async (tx) => {
 
 - **`Refused`** is a private error. It is caught right outside the transaction and turned into `{ ok: false, reason: "limited", retryAfter }`. The rollback undoes any window already raised in this call, so a refused call raises no count (AC 3, AC 4).
 - **No deadlock.** Every transaction for a key locks its rows in the same order (longest first), so two transactions cannot wait on each other.
-- **Round trips:** BEGIN, two upserts, COMMIT, four in all. This runs only on `ai-read`, ahead of a model call that takes seconds, so the cost does not matter there.
+- **Round trips:** BEGIN, the timeouts, one upsert per window, COMMIT. The extra trips are accepted: they buy a database-side bound on every call.
 - **Not chosen:** a single statement with a compensating decrement. It would cost one round trip, but other callers could briefly see a count that was over-raised, and a crash between the two statements would leave it raised. The spec's "every window or none" is meant as a real guarantee, so the transaction stays.
 
 ### Fail closed and the timeout
 
 - Any error from the database (connection, timeout, constraint) gives `{ ok: false, reason: "unavailable" }`, and nothing is let through.
-- The statement races a `timeoutMs` timer, 2 s by default. If the timer wins, the result is also `unavailable`. The query may still finish later, which can only count a call that was not served, so it errs toward refusing.
+- The statement races a `timeoutMs` timer, 2 s by default. If the timer wins, the result is also `unavailable`. The same `timeoutMs` is set in the transaction as `statement_timeout` and `lock_timeout` (`SET LOCAL`, through `set_config(..., true)`), so the database cancels the work at the bound: a timed-out call does not keep a pool connection, wait on a lock, or commit a count after it was answered `unavailable`. The integration test holds `ACCESS EXCLUSIVE` on the table to prove it.
 - The error is logged once, at the action or route boundary, with its `name` only (security rules 8 and 15), never its message, query or key.
 
 ### Pruning
@@ -297,7 +300,7 @@ After a call, if `now - lastPrune >= pruneEveryMs`, set `lastPrune = now` and ru
 DELETE FROM rate_limit_counter WHERE window_end < $t - 86400;
 ```
 
-- It is awaited inside `consume`, after the counting statement. If it fails, the error is swallowed (`onResult` is not affected) and the call's result stands.
+- It is never awaited: `consume` returns without waiting for it, so a hung or slow store cannot hold the result or break the 2 s bound. It runs in a transaction with the same `statement_timeout` and `lock_timeout`, and a rejection is caught and dropped (`onResult` is not affected, the call's result stands). A test with a store that never settles proves `consume` returns `unavailable` within the timeout with pruning on.
 - At the default it runs at most once a minute per instance, one extra round trip.
 - `window_end` is indexed, so the delete is a range scan.
 - Rows never need a `count` reset: a new window is a new row.

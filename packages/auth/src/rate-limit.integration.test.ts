@@ -1,7 +1,7 @@
-import { eq, rateLimitCounter } from "@orivilo/db";
+import { eq, rateLimitCounter, sql } from "@orivilo/db";
 import { createDb, type Db } from "@orivilo/db/client";
 import { createTestDatabase, HAS_TEST_DATABASE, type TestDatabase } from "@orivilo/db/testing";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { clientIp } from "./client-ip.ts";
 import {
   BANGKOK_OFFSET_SECONDS,
@@ -180,7 +180,8 @@ describe.runIf(HAS_TEST_DATABASE)("the shared rate limit store", () => {
     ]);
     const pruning = createRateLimiter({ db: t.app, now, pruneEveryMs: 0 });
     await pruning.consume(per(60, 5, "prune"), { user: "p" });
-    expect(await rows("old:u:x")).toHaveLength(0);
+    // The prune runs behind the call, so wait for it.
+    await vi.waitFor(async () => expect(await rows("old:u:x")).toHaveLength(0));
     expect(await rows("open:u:x")).toHaveLength(1);
   });
 
@@ -204,22 +205,28 @@ describe.runIf(HAS_TEST_DATABASE)("the shared rate limit store", () => {
     expect(events).toEqual(["unavailable", "unavailable"]);
   });
 
-  it("a query slower than the timeout is unavailable", async () => {
-    const slow = new Proxy(t.app, {
-      get(target, prop, receiver) {
-        if (prop === "execute") {
-          return async () => {
-            await new Promise((r) => setTimeout(r, 300));
-            return [{ count: 1 }];
-          };
-        }
-        return Reflect.get(target, prop, receiver);
-      },
+  it("a locked table is unavailable within the bound, and the database drops the work", async () => {
+    const limiter = createRateLimiter({ db: t.app, now, timeoutMs: 200, pruneEveryMs: 0 });
+    let release!: () => void;
+    const held = new Promise<void>((r) => (release = r));
+    let locked!: () => void;
+    const lockTaken = new Promise<void>((r) => (locked = r));
+    const holder = t.admin.transaction(async (tx) => {
+      await tx.execute(sql`LOCK TABLE rate_limit_counter IN ACCESS EXCLUSIVE MODE`);
+      locked();
+      await held;
     });
-    const limiter = createRateLimiter({ db: slow, now, timeoutMs: 20 });
-    expect(await limiter.consume(per(60, 5, "slow"), { user: "s" })).toEqual({
-      ok: false,
-      reason: "unavailable",
-    });
+    await lockTaken;
+    const started = Date.now();
+    const result = await limiter.consume(per(60, 5, "locked"), { user: "l" });
+    expect(result).toEqual({ ok: false, reason: "unavailable" });
+    expect(Date.now() - started).toBeLessThan(1_000);
+    // Past the lock timeout the database has cancelled the upsert, so releasing the lock
+    // does not let a late commit count the refused call.
+    await new Promise((r) => setTimeout(r, 400));
+    release();
+    await holder;
+    await new Promise((r) => setTimeout(r, 300));
+    expect(await rows("locked:u:l")).toEqual([]);
   });
 });
