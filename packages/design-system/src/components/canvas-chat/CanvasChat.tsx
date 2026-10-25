@@ -211,7 +211,13 @@ export function CanvasChat({
     if (!field || !counter) return;
     field.setAttribute(
       "aria-describedby",
-      length >= COUNTER_FROM ? `${noticeId} ${counter.id}` : noticeId,
+      [
+        noticeId,
+        ...goneIds.map((_, index) => `${noticeId}-gone-${index}`),
+        length >= COUNTER_FROM ? counter.id : "",
+      ]
+        .filter(Boolean)
+        .join(" "),
     );
   });
   useLayoutEffect(() => {
@@ -254,6 +260,7 @@ export function CanvasChat({
   }, [exchanges, board.graph, m]);
 
   const onBoard = (id: string) => board.graph.nodes.some((n) => n.id === id);
+  const goneIds = ids.filter((id) => !onBoard(id));
   const titleOf = (id: string) =>
     board.graph.nodes.find((n) => n.id === id)?.data.title ?? titles.current.get(id) ?? id;
 
@@ -624,50 +631,46 @@ export function CanvasChat({
         ) : null}
         <div className="ds-chat__box" data-counter={length >= COUNTER_FROM ? "" : undefined}>
           {ids.length > 0 ? (
-            <ul className="ds-chat__chips" aria-label={m.chat.mentioned}>
-              {ids.map((id) => (
-                <li key={id} className="ds-chat__chip" data-gone={onBoard(id) ? undefined : ""}>
-                  {onBoard(id) ? null : (
-                    <span className="ds-chat__mark ds-chat__gone-mark" aria-hidden="true">
-                      <WarningIcon />
-                    </span>
-                  )}
-                  {onBoard(id) ? (
-                    <Tag
-                      size="sm"
-                      label={titleOf(id)}
-                      onRemove={() => changeMentions(ids.filter((other) => other !== id))}
-                    />
-                  ) : (
-                    // Tag takes a string label, so the gone chip reuses its markup to truncate only the title.
-                    <span
-                      className="ds-tag"
-                      data-size="sm"
-                      title={fill(m.chat.mentionGone, { title: titleOf(id) })}
-                    >
-                      <span className="ds-tag__main">
-                        <span className="ds-tag__label ds-chat__gone-label">
-                          <span className="ds-chat__gone-title">{titleOf(id)}</span>{" "}
-                          <span className="ds-chat__gone-words">
-                            {fill(m.chat.mentionGone, { title: "" }).trim()}
+            <div className="ds-chat__mentions">
+              <ul className="ds-chat__chips" aria-label={m.chat.mentioned}>
+                {ids.map((id) => (
+                  <li key={id} className="ds-chat__chip" data-gone={onBoard(id) ? undefined : ""}>
+                    {onBoard(id) ? (
+                      <Tag
+                        size="sm"
+                        label={titleOf(id)}
+                        onRemove={() => changeMentions(ids.filter((other) => other !== id))}
+                      />
+                    ) : (
+                      // Tag takes a string label, so the gone chip reuses its markup to hold the caution mark.
+                      <span className="ds-tag" data-size="sm" title={titleOf(id)}>
+                        <span className="ds-tag__main">
+                          <span className="ds-chat__mark ds-chat__gone-mark" aria-hidden="true">
+                            <WarningIcon />
                           </span>
+                          <span className="ds-tag__label">{titleOf(id)}</span>
                         </span>
+                        <button
+                          type="button"
+                          className="ds-tag__remove"
+                          aria-label={fill(m.tag.remove, {
+                            label: fill(m.chat.mentionGone, { title: titleOf(id) }),
+                          })}
+                          onClick={() => changeMentions(ids.filter((other) => other !== id))}
+                        >
+                          <CloseIcon className="size-4" />
+                        </button>
                       </span>
-                      <button
-                        type="button"
-                        className="ds-tag__remove"
-                        aria-label={fill(m.tag.remove, {
-                          label: fill(m.chat.mentionGone, { title: titleOf(id) }),
-                        })}
-                        onClick={() => changeMentions(ids.filter((other) => other !== id))}
-                      >
-                        <CloseIcon className="size-4" />
-                      </button>
-                    </span>
-                  )}
-                </li>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              {goneIds.map((id, index) => (
+                <p key={id} className="ds-chat__gone-message" id={`${noticeId}-gone-${index}`}>
+                  {fill(m.chat.mentionGone, { title: titleOf(id) })}
+                </p>
               ))}
-            </ul>
+            </div>
           ) : null}
           <Textarea
             aria-label={m.chat.input}

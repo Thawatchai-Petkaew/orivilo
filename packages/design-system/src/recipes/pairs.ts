@@ -949,6 +949,14 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
   // Slice C: the gone chip's caution mark. The picker's text pairs are the `menu` ones (it reads
   // `menu.*`); the question line is `muted` on the question well, listed above as "speaker on well".
   { recipe: "chat", slot: "gone mark", fg: "ds:feedback.warning.fg", bg: "chat.bg", floor: UI },
+  // v1.6: the gone message under the chip row reads in the warning ink on the composer box.
+  {
+    recipe: "chat",
+    slot: "gone message",
+    fg: "ds:feedback.warning.fg",
+    bg: "input.bg",
+    floor: TEXT,
+  },
   // v1.3 (ORV-107): the composer box draws its own edge on the panel, so the field is findable
   // without its placeholder (UI 3.0); over the limit the edge turns to the error colour.
   { recipe: "chat", slot: "composer edge", fg: "input.border", bg: "chat.bg", floor: UI },

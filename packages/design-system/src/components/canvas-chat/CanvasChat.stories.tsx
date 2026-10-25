@@ -7,6 +7,7 @@ import { CanvasBoard } from "../canvas-board/CanvasBoard";
 import { BOARD } from "../canvas-board/fixtures";
 import type { Graph } from "../canvas-board/graph";
 import { chatFixtures, fixtures, type ChatHost } from "../fixtures";
+import { DesignProfileBoundary } from "../../boundary/DesignProfileBoundary";
 import { Matrix } from "../matrix";
 import { CanvasChat, type ChatReply, type ChatRequest } from "./CanvasChat";
 import { placeReply, replyTitle } from "./place-reply";
@@ -82,21 +83,35 @@ function resolved(el: Element, property: string, prop: "color" | "borderTopColor
   probe.remove();
   return value;
 }
-/** A gone chip at the narrowest width: the title truncates on the first line, the gone words stay whole inside the label and the chat. */
-async function expectGoneWordsWhole(root: HTMLElement, words: string) {
+/**
+ * A gone chip (ORV-107 v1.6): it stays one line, as tall as a normal chip, with the caution mark
+ * inside it and the title truncated; the explanation sits whole under the chip row in the warning
+ * ink and the textarea is described by it. Measured in the browser; the request leaves the id out.
+ */
+async function expectGoneChip(root: HTMLElement, words: string, title: string) {
   const gone = q(root, ".ds-chat__chip[data-gone]");
-  const label = q(gone, ".ds-tag__label");
-  const title = q(gone, ".ds-chat__gone-title");
-  const tail = q(gone, ".ds-chat__gone-words");
-  await expect(title.clientWidth).toBeGreaterThan(0);
-  await expect(title.scrollWidth).toBeGreaterThan(title.clientWidth);
-  await expect(tail).toHaveTextContent(words);
-  await expect(tail).toBeVisible();
-  await expect(tail.scrollWidth).toBeLessThanOrEqual(tail.clientWidth);
-  await expect(box(tail).right).toBeLessThanOrEqual(box(label).right + 0.5);
-  await expect(inside(box(tail), box(label))).toBe(true);
-  await expect(inside(box(gone), box(chatOf(root)))).toBe(true);
-  await expect(overlap(box(title), box(tail))).toBe(false);
+  const tag = q(gone, ".ds-tag");
+  const normal = q(root, ".ds-chat__chip:not([data-gone]) .ds-tag");
+  const label = q(tag, ".ds-tag__label");
+  const message = q(root, ".ds-chat__gone-message");
+  const chat = chatOf(root);
+  await expect(box(tag).height).toBeCloseTo(box(normal).height, 0);
+  await expect(label.scrollHeight).toBe(label.clientHeight);
+  await expect(label).toHaveTextContent(title);
+  await expect(inside(box(q(tag, ".ds-chat__gone-mark svg")), box(tag))).toBe(true);
+  await expect(inside(box(tag), box(chat))).toBe(true);
+  await expect(message).toBeVisible();
+  await expect(message).toHaveTextContent(`${title} ${words}`);
+  await expect(message.scrollHeight).toBeLessThanOrEqual(message.clientHeight);
+  await expect(message.scrollWidth).toBeLessThanOrEqual(message.clientWidth);
+  await expect(inside(box(message), box(chat))).toBe(true);
+  await expect(box(message).top).toBeGreaterThanOrEqual(box(q(root, ".ds-chat__chips")).bottom);
+  await expect(inside(box(message), box(q(root, ".ds-chat__box")))).toBe(true);
+  await expect(getComputedStyle(message).color).toBe(resolved(message, "--ds-feedback-warning-fg"));
+  await expect(q(root, "form textarea")).toHaveAttribute(
+    "aria-describedby",
+    expect.stringContaining(message.id),
+  );
 }
 const near = (actual: number, expected: number, tolerance = 0.5) =>
   expect(Math.abs(actual - expected)).toBeLessThanOrEqual(tolerance);
@@ -1494,7 +1509,7 @@ export const MentionFromMenu: Story = {
 };
 
 /**
- * A mentioned node deleted from the board (ORV-105 row 22): its chip says "{title} ไม่อยู่บนบอร์ดแล้ว"
+ * A mentioned node deleted from the board (ORV-105 row 22): its chip keeps the title on one line and "{title} ไม่อยู่บนบอร์ดแล้ว" shows under the chip row
  * beside a caution mark, keeps its ink and has no strikethrough, the callback is not fired, and
  * the next request leaves its id out. The chip stays until the person removes it. Fixture host,
  * replies by rules.
@@ -1510,9 +1525,7 @@ export const MentionGone: Story = {
     await waitFor(() => expect(nodeEl(canvasElement, "logo")).toHaveClass("selected"));
     await userEvent.keyboard("{Delete}");
     await waitFor(() => expect(nodeEl(canvasElement, "logo")).toBeNull());
-    await waitFor(() =>
-      expect(chipsOf(canvasElement)).toEqual(["โลโก้ ไม่อยู่บนบอร์ดแล้ว", fixtures.mixed]),
-    );
+    await waitFor(() => expect(chipsOf(canvasElement)).toEqual(["โลโก้", fixtures.mixed]));
     const gone = canvasElement.querySelector<HTMLElement>(
       ".ds-chat__chip[data-gone]",
     ) as HTMLElement;
@@ -1540,36 +1553,60 @@ export const MentionGone: Story = {
   },
 };
 
-/** At 240 px a long gone title truncates and "ไม่อยู่บนบอร์ดแล้ว" stays whole (QA ORV-107-qa-1). Fixture host, replies by rules. */
-export const MentionGoneNarrow: Story = {
-  args: { defaultMentions: ["palette"] },
-  render: (args) => <BoardChat args={args} size="min" />,
-  play: async ({ canvasElement }) => {
-    await waitFor(() => expect(nodeEl(canvasElement, "palette")).toBeTruthy());
-    await userEvent.click(nodeEl(canvasElement, "palette"));
-    await userEvent.keyboard("{Delete}");
-    await waitFor(() =>
-      expect(canvasElement.querySelector(".ds-chat__chip[data-gone]")).not.toBeNull(),
-    );
-    await expectGoneWordsWhole(canvasElement, "ไม่อยู่บนบอร์ดแล้ว");
-  },
-};
+/**
+ * A gone chip at one width, locale and mode: one line like every chip, the title truncated with an
+ * ellipsis, the explanation whole under the chip row (ORV-107 v1.6). Fixture host, replies by rules.
+ */
+function goneStory(
+  size: "min" | "panel",
+  locale: "th" | "en",
+  mode: "light" | "dark",
+  words: string,
+): Story {
+  return {
+    args: { defaultMentions: ["palette", "logo"] },
+    decorators: [
+      (Story) => (
+        <DesignProfileBoundary mode={mode}>
+          <LocaleProvider locale={locale}>{Story()}</LocaleProvider>
+        </DesignProfileBoundary>
+      ),
+    ],
+    render: (args) => <BoardChat args={args} size={size} />,
+    play: async ({ canvasElement, args }) => {
+      await waitFor(() => expect(nodeEl(canvasElement, "palette")).toBeTruthy());
+      await userEvent.click(nodeEl(canvasElement, "palette"));
+      await userEvent.keyboard("{Delete}");
+      await waitFor(() =>
+        expect(canvasElement.querySelector(".ds-chat__chip[data-gone]")).not.toBeNull(),
+      );
+      await expectGoneChip(canvasElement, words, fixtures.mixed);
+      if (size === "min") {
+        const label = q(canvasElement, ".ds-chat__chip[data-gone] .ds-tag__label");
+        await expect(label.scrollWidth).toBeGreaterThan(label.clientWidth);
+      }
+      const canvas = within(canvasElement);
+      await userEvent.type(
+        input(canvas, locale === "th" ? undefined : "Message to the engine"),
+        `${chatFixtures.question}{Enter}`,
+      );
+      await expect((args.onAsk as ReturnType<typeof fn>).mock.calls[0]?.[0]).toMatchObject({
+        mentions: ["logo"],
+      });
+    },
+  };
+}
+const GONE_TH = "ไม่อยู่บนบอร์ดแล้ว";
+const GONE_EN = "is no longer on the board";
 
-/** The same in English: "is no longer on the board" stays whole at 240 px. */
-export const MentionGoneNarrowEnglish: Story = {
-  args: { defaultMentions: ["palette"] },
-  decorators: [(Story) => <LocaleProvider locale="en">{Story()}</LocaleProvider>],
-  render: (args) => <BoardChat args={args} size="min" />,
-  play: async ({ canvasElement }) => {
-    await waitFor(() => expect(nodeEl(canvasElement, "palette")).toBeTruthy());
-    await userEvent.click(nodeEl(canvasElement, "palette"));
-    await userEvent.keyboard("{Delete}");
-    await waitFor(() =>
-      expect(canvasElement.querySelector(".ds-chat__chip[data-gone]")).not.toBeNull(),
-    );
-    await expectGoneWordsWhole(canvasElement, "is no longer on the board");
-  },
-};
+export const MentionGoneNarrow: Story = goneStory("min", "th", "light", GONE_TH);
+export const MentionGoneNarrowDark: Story = goneStory("min", "th", "dark", GONE_TH);
+export const MentionGoneNarrowEnglish: Story = goneStory("min", "en", "light", GONE_EN);
+export const MentionGoneNarrowEnglishDark: Story = goneStory("min", "en", "dark", GONE_EN);
+export const MentionGonePanel: Story = goneStory("panel", "th", "light", GONE_TH);
+export const MentionGonePanelDark: Story = goneStory("panel", "th", "dark", GONE_TH);
+export const MentionGonePanelEnglish: Story = goneStory("panel", "en", "light", GONE_EN);
+export const MentionGonePanelEnglishDark: Story = goneStory("panel", "en", "dark", GONE_EN);
 
 /**
  * Outside a board there is no node to pick: no Mention button, and "@" is a plain character.
@@ -1608,9 +1645,7 @@ export const MentionsEnglish: Story = {
     await userEvent.clear(field);
     await userEvent.click(nodeEl(canvasElement, "logo"));
     await userEvent.keyboard("{Delete}");
-    await waitFor(() =>
-      expect(chipsOf(canvasElement)).toEqual(["โลโก้ is no longer on the board"]),
-    );
+    await waitFor(() => expect(chipsOf(canvasElement)).toEqual(["โลโก้"]));
     await expect(
       canvas.getByRole("button", { name: "Remove โลโก้ is no longer on the board" }),
     ).toBeVisible();

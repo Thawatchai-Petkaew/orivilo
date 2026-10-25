@@ -4201,7 +4201,6 @@ button.ds-tag__main {
   grid-area: send;
 }
 .ds-chat__chips {
-  grid-area: chips;
   display: flex;
   flex-wrap: wrap;
   gap: var(--cmp-chat-line-gap);
@@ -4217,22 +4216,23 @@ button.ds-tag__main {
   min-inline-size: 0;
   max-inline-size: 100%;
 }
-/* A gone chip wraps: the title truncates on the first line, the gone words sit whole on the next. */
-.ds-chat__gone-label {
+/* The gone words sit under the chip row, in the warning ink, and wrap; the chip itself stays one line. */
+.ds-chat__mentions {
+  grid-area: chips;
   display: flex;
-  flex-wrap: wrap;
-  column-gap: var(--cmp-tag-gap);
-  white-space: normal;
+  flex-direction: column;
+  gap: var(--cmp-chat-line-gap);
+  min-inline-size: 0;
 }
-.ds-chat__gone-title {
-  min-width: 0;
-  max-inline-size: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.ds-chat__gone-words {
-  min-width: 0;
+.ds-chat__gone-message {
+  margin: 0;
+  color: var(--ds-feedback-warning-fg);
+  font-family: var(--cmp-field-text-type-font-family);
+  font-size: var(--cmp-field-text-type-font-size);
+  line-height: var(--cmp-field-text-type-line-height);
+  font-weight: var(--cmp-field-text-type-font-weight);
+  letter-spacing: var(--cmp-field-text-type-letter-spacing);
+  overflow-wrap: anywhere;
 }
 .ds-chat__gone-mark {
   color: var(--ds-feedback-warning-fg);
