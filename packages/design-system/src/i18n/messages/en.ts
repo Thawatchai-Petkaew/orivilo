@@ -83,6 +83,10 @@ export const en: Messages = {
     mentionNone: 'No node named "{query}"',
     mentioned: "Mentioned nodes",
     mentionGone: "{title} is no longer on the board",
+    starters: "Ways to start",
+    starterMissing: "What is missing here?",
+    starterColours: "Suggest brand colours",
+    starterNext: "What should I do next?",
   },
   tag: {
     remove: "Remove {label}",

@@ -423,3 +423,4 @@ Screenshots go under `.orivilo/runs/ORV-105/<task_id>/screenshots/`, light and d
 ## Changelog
 
 - v1 (2026-10-25): first design for CanvasChat, slice A in full and slices B, C and D in outline, for G2.
+- v1.1 (2026-10-25): superseded in part by `docs/specs/ORV-107/design.md` v2 (spec v1.3): the chat floats as a card, the question is a pill bubble with the speaker word hidden, Send, Stop and Mention are icon-only with tooltips, Jump keeps its text, the notice sits under the composer, starters are added and the composer is one box. Sections 2, 6, 9, 15 and 16 read with those deltas; the rest holds.

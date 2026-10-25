@@ -22,17 +22,21 @@ import { useBoard } from "../canvas-board/context";
 import { matches } from "../command-menu/CommandMenu";
 import { cx } from "../cx";
 import {
+  ChatIcon,
   CloseIcon,
   FillUnlinkedIcon,
   JumpIcon,
   MentionIcon,
   RetryIcon,
+  SendIcon,
   SpinnerIcon,
+  StopIcon,
   WarningIcon,
 } from "../icons";
 import { ScrollArea } from "../scroll-area/ScrollArea";
 import { Tag } from "../tag/Tag";
 import { Textarea } from "../textarea/Textarea";
+import { Tooltip } from "../tooltip/Tooltip";
 import { countGraphemes } from "../textarea/graphemes";
 import { replyTopic } from "./place-reply";
 
@@ -56,7 +60,7 @@ export interface ChatReply {
 export interface CanvasChatProps {
   /** The sidebar chat; the at-cursor form joins in slice D. */
   variant: "sidebar";
-  /** What answers today; shown as a notice before the first message. */
+  /** What answers today; shown as the honesty line under the composer. */
   basis: ChatBasis;
   /**
    * The host's answer. Yields snapshots while it streams; ends to finish; throws to fail.
@@ -95,6 +99,9 @@ interface Exchange {
   /** The placement was announced. */
   announced?: boolean | undefined;
 }
+
+/** The starter prompts, in the order shown (spec row 34). */
+const STARTERS = ["starterMissing", "starterColours", "starterNext"] as const;
 
 /** The soft limit of the message box, in graphemes (spec: Textarea's counter). */
 const MAX_LENGTH = 2000;
@@ -135,6 +142,7 @@ export function CanvasChat({
   const word = useWord();
   const board = useBoard();
   const titleId = useId();
+  const noticeId = useId();
   const [draft, setDraft] = useState("");
   const [exchanges, setExchanges] = useState<readonly Exchange[]>([]);
   const [announcement, setAnnouncement] = useState("");
@@ -384,6 +392,14 @@ export function CanvasChat({
     onClose?.();
   };
 
+  /** A starter fills the textarea and focuses it, caret at the end; it never sends. */
+  const fillStarter = (text: string) => {
+    setDraft(text);
+    setCaret(text.length);
+    nextCaret.current = text.length;
+    textarea()?.focus();
+  };
+
   const onFormSubmit = (event: FormEvent) => {
     event.preventDefault();
     submit();
@@ -436,16 +452,27 @@ export function CanvasChat({
       aria-labelledby={titleId}
     >
       <header className="ds-chat__header">
+        <ChatIcon aria-hidden="true" />
         <span className="ds-chat__title" id={titleId}>
           {m.chat.label}
         </span>
       </header>
-      <p className="ds-chat__notice">
-        {basis === "rules" ? m.chat.noticeRules : m.chat.noticeMock}
-      </p>
       <ScrollArea label={m.chat.transcript} className="ds-chat__scroll">
         {exchanges.length === 0 ? (
-          <p className="ds-chat__empty">{m.chat.empty}</p>
+          <div className="ds-chat__empty">
+            <p>{m.chat.empty}</p>
+            {draft === "" ? (
+              <ul className="ds-chat__starters" aria-label={m.chat.starters}>
+                {STARTERS.map((key) => (
+                  <li key={key}>
+                    <Button variant="secondary" size="sm" onClick={() => fillStarter(m.chat[key])}>
+                      {m.chat[key]}
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
         ) : (
           <ol className="ds-chat__log">
             {exchanges.map((exchange) => {
@@ -461,7 +488,7 @@ export function CanvasChat({
               return (
                 <li key={exchange.id} className="ds-chat__exchange" data-state={status}>
                   <div className="ds-chat__question">
-                    <span className="ds-chat__speaker">{m.chat.you}</span>
+                    <span className="ds-chat__speaker sr-only">{m.chat.you}</span>
                     <p className="ds-chat__text">{exchange.request.text}</p>
                     {exchange.mentionTitles.length > 0 ? (
                       <p className="ds-chat__refs">
@@ -578,70 +605,99 @@ export function CanvasChat({
             )}
           </div>
         ) : null}
-        {ids.length > 0 ? (
-          <ul className="ds-chat__chips" aria-label={m.chat.mentioned}>
-            {ids.map((id) => (
-              <li key={id} className="ds-chat__chip" data-gone={onBoard(id) ? undefined : ""}>
-                {onBoard(id) ? null : (
-                  <span className="ds-chat__mark ds-chat__gone-mark" aria-hidden="true">
-                    <WarningIcon />
-                  </span>
-                )}
-                <Tag
-                  size="sm"
-                  label={
-                    onBoard(id) ? titleOf(id) : fill(m.chat.mentionGone, { title: titleOf(id) })
-                  }
-                  onRemove={() => changeMentions(ids.filter((other) => other !== id))}
-                />
-              </li>
-            ))}
-          </ul>
-        ) : null}
-        <Textarea
-          aria-label={m.chat.input}
-          placeholder={m.chat.placeholder}
-          maxLength={MAX_LENGTH}
-          rows={3}
-          value={draft}
-          onChange={onDraftChange}
-          onSelect={(event) => setCaret(event.currentTarget.selectionStart)}
-          onKeyDown={onKeyDown}
-          aria-controls={activeId ? listId : undefined}
-          aria-activedescendant={activeId}
-          aria-autocomplete={token ? "list" : undefined}
-          onCompositionStart={() => {
-            composing.current = true;
-          }}
-          onCompositionEnd={() => {
-            setTimeout(() => {
-              composing.current = false;
-            }, 0);
-          }}
-        />
-        <div className="ds-chat__actions">
-          {canMention ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              iconLeading={<MentionIcon />}
-              aria-haspopup="listbox"
-              aria-expanded={token !== null}
-              onClick={openPicker}
-            >
-              {m.chat.mention}
-            </Button>
+        <div className="ds-chat__box">
+          {ids.length > 0 ? (
+            <ul className="ds-chat__chips" aria-label={m.chat.mentioned}>
+              {ids.map((id) => (
+                <li key={id} className="ds-chat__chip" data-gone={onBoard(id) ? undefined : ""}>
+                  {onBoard(id) ? null : (
+                    <span className="ds-chat__mark ds-chat__gone-mark" aria-hidden="true">
+                      <WarningIcon />
+                    </span>
+                  )}
+                  <Tag
+                    size="sm"
+                    label={
+                      onBoard(id) ? titleOf(id) : fill(m.chat.mentionGone, { title: titleOf(id) })
+                    }
+                    onRemove={() => changeMentions(ids.filter((other) => other !== id))}
+                  />
+                </li>
+              ))}
+            </ul>
           ) : null}
-          {streaming ? (
-            <Button variant="secondary" onClick={stop}>
-              {m.chat.stop}
-            </Button>
-          ) : (
-            <Button type="submit" variant="intent" aria-disabled={blocked}>
-              {m.chat.send}
-            </Button>
-          )}
+          <Textarea
+            aria-label={m.chat.input}
+            aria-describedby={noticeId}
+            placeholder={m.chat.placeholder}
+            maxLength={MAX_LENGTH}
+            rows={1}
+            value={draft}
+            onChange={onDraftChange}
+            onSelect={(event) => setCaret(event.currentTarget.selectionStart)}
+            onKeyDown={onKeyDown}
+            aria-controls={activeId ? listId : undefined}
+            aria-activedescendant={activeId}
+            aria-autocomplete={token ? "list" : undefined}
+            onCompositionStart={() => {
+              composing.current = true;
+            }}
+            onCompositionEnd={() => {
+              setTimeout(() => {
+                composing.current = false;
+              }, 0);
+            }}
+          />
+          <div className="ds-chat__actions">
+            {canMention ? (
+              <Tooltip content={m.chat.mention}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  iconOnly
+                  aria-label={m.chat.mention}
+                  className="ds-chat__mention"
+                  aria-haspopup="listbox"
+                  aria-expanded={token !== null}
+                  onClick={openPicker}
+                >
+                  <MentionIcon />
+                </Button>
+              </Tooltip>
+            ) : null}
+            {streaming ? (
+              <Tooltip content={m.chat.stop}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  iconOnly
+                  aria-label={m.chat.stop}
+                  className="ds-chat__send"
+                  onClick={stop}
+                >
+                  <StopIcon />
+                </Button>
+              </Tooltip>
+            ) : (
+              <Tooltip content={m.chat.send}>
+                <Button
+                  type="submit"
+                  variant="intent"
+                  size="sm"
+                  iconOnly
+                  aria-label={m.chat.send}
+                  className="ds-chat__send"
+                  aria-disabled={blocked}
+                >
+                  <SendIcon />
+                </Button>
+              </Tooltip>
+            )}
+          </div>
         </div>
+        <p className="ds-chat__notice" id={noticeId}>
+          {basis === "rules" ? m.chat.noticeRules : m.chat.noticeMock}
+        </p>
       </form>
       {onClose ? (
         <Button

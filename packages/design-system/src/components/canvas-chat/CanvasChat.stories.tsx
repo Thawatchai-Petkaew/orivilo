@@ -40,20 +40,16 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** The widths a host gives the chat, 2 px more than the panel range for the frame's border. */
+/** The widths a host gives the chat: the panel range, 240 to 480. The chat is a card, so the frame draws nothing. */
 const WIDTH = {
-  min: "w-[242px]",
-  panel: "w-[322px]",
+  min: "w-[240px]",
+  panel: "w-[320px]",
   sheet: "w-[360px]",
-  max: "w-[482px]",
+  max: "w-[480px]",
 } as const;
 
 function Frame({ size, children }: { size: keyof typeof WIDTH; children: ReactNode }) {
-  return (
-    <div className={`h-[560px] max-w-full border border-border-card ${WIDTH[size]}`}>
-      {children}
-    </div>
-  );
+  return <div className={`h-[560px] max-w-full ${WIDTH[size]}`}>{children}</div>;
 }
 
 const chatOf = (root: HTMLElement) => root.querySelector<HTMLElement>(".ds-chat") as HTMLElement;
@@ -70,6 +66,56 @@ const inside = (inner: DOMRect, outer: DOMRect) =>
   inner.bottom <= outer.bottom + 0.5;
 const overlap = (a: DOMRect, b: DOMRect) =>
   a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+
+const q = <T extends Element = HTMLElement>(root: ParentNode, selector: string) =>
+  root.querySelector(selector) as T;
+/** A semantic or component custom property as the browser resolves it, in the cascade of `el`. */
+function resolved(el: Element, property: string, prop: "color" | "borderTopColor" = "color") {
+  const probe = document.createElement("span");
+  probe.style.setProperty(prop === "color" ? "color" : "border-top-color", `var(${property})`);
+  if (prop !== "color") probe.style.borderTopStyle = "solid";
+  el.appendChild(probe);
+  const value = getComputedStyle(probe)[prop];
+  probe.remove();
+  return value;
+}
+const near = (actual: number, expected: number, tolerance = 0.5) =>
+  expect(Math.abs(actual - expected)).toBeLessThanOrEqual(tolerance);
+
+/** The honesty line sits under the composer box, centred, in the chat, and wraps instead of clipping (spec row 35). */
+async function expectNotice(root: HTMLElement, text: string) {
+  const notice = q(root, ".ds-chat__notice");
+  await expect(notice).toBeVisible();
+  await expect(notice).toHaveTextContent(text);
+  await expect(getComputedStyle(notice).textAlign).toBe("center");
+  await expect(notice.scrollWidth).toBeLessThanOrEqual(notice.clientWidth);
+  await expect(inside(box(notice), box(chatOf(root)))).toBe(true);
+  await expect(box(notice).top).toBeGreaterThanOrEqual(box(q(root, ".ds-chat__box")).bottom);
+  await expect(q(root, "form textarea")).toHaveAttribute(
+    "aria-describedby",
+    expect.stringContaining(notice.id),
+  );
+}
+
+/** Every inner-row control is a round 32 px button, on one row, with the counter clear of Send (design change 10). */
+async function expectActions(root: HTMLElement) {
+  const buttons = [...root.querySelectorAll<HTMLElement>(".ds-chat__actions .ds-button")];
+  await expect(buttons.length).toBeGreaterThan(0);
+  for (const button of buttons) {
+    near(box(button).width, 32);
+    near(box(button).height, 32);
+    await expect(parseFloat(getComputedStyle(button).borderTopLeftRadius)).toBeGreaterThanOrEqual(
+      16,
+    );
+    await expect(inside(box(button), box(q(root, ".ds-chat__box")))).toBe(true);
+  }
+  const send = box(q(root, ".ds-chat__send"));
+  const mention = root.querySelector(".ds-chat__mention");
+  if (mention) near(box(mention).top, send.top);
+  const counter = box(q(root, ".ds-textarea__counter"));
+  await expect(counter.right).toBeLessThanOrEqual(send.left - 8 + 0.5);
+  await expect(overlap(counter, send)).toBe(false);
+}
 
 const input = (canvas: ReturnType<typeof within>, name = "ข้อความถึงเอนจิน") =>
   canvas.getByRole("textbox", { name });
@@ -88,17 +134,85 @@ function signalOf(onAsk: { mock: { calls: unknown[][] } }, n = 0): AbortSignal {
   return onAsk.mock.calls[n]?.[1] as AbortSignal;
 }
 
-/** Empty transcript: invite text, basis notice, labelled textarea with its placeholder, Send. The notice says the replies are worked out by rules. */
+/**
+ * Empty transcript at 320: the floating card (radius 24, shadow, inset edge), the quiet 48 px header
+ * row, the invite text and three starters at the foot of the log, one rounded box with a round
+ * grey Send, and the honesty line (rules) centred under it. A starter fills the textarea and
+ * sends nothing. The notice says the replies are worked out by rules.
+ */
 export const Idle: Story = {
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
+    const chatEl = chatOf(canvasElement);
+    const chat = box(chatEl);
     await expect(canvas.getByRole("region", { name: "แชทบนบอร์ด" })).toBeVisible();
     await expect(canvas.getByText("ยังไม่มีข้อความ ถามเรื่องบนบอร์ดได้เลย")).toBeVisible();
-    await expect(canvas.getByText("คำตอบมาจากกฎที่เขียนไว้ ยังไม่มี AI")).toBeVisible();
+    await expectNotice(canvasElement, "คำตอบมาจากกฎที่เขียนไว้ ยังไม่มี AI");
     await expect(input(canvas)).toHaveAttribute("placeholder", "ถามหรือสั่งงาน");
     await expect(action(canvas, "ส่ง")).toBeVisible();
     await expect(canvas.getByRole("button", { name: "ปิดแชท" })).toBeVisible();
     await expect(canvas.getByRole("region", { name: "บทสนทนา" })).toBeVisible();
+    // Change 1: the floating card.
+    const style = getComputedStyle(chatEl);
+    await expect(style.borderTopLeftRadius).toBe("24px");
+    await expect(style.borderBottomRightRadius).toBe("24px");
+    await expect(style.boxShadow).not.toBe("none");
+    await expect(style.outlineOffset).toBe("-1px");
+    // Change 2: one 48 px row, an icon before the title, the close ending on the content edge, no rule.
+    const header = q(canvasElement, ".ds-chat__header");
+    const close = canvas.getByRole("button", { name: "ปิดแชท" });
+    near(box(header).height, 48);
+    await expect(header.querySelectorAll("svg[aria-hidden]")).toHaveLength(1);
+    await expect(header.firstElementChild?.tagName.toLowerCase()).toBe("svg");
+    near(
+      box(q(header, ".ds-chat__title")).top + box(q(header, ".ds-chat__title")).height / 2,
+      box(close).top + box(close).height / 2,
+      1,
+    );
+    near(box(q(close, "svg")).right, chat.right - 16);
+    await expect(getComputedStyle(header).borderBottomWidth).toBe("0px");
+    await expect(header.nextElementSibling).toBe(q(canvasElement, ".ds-chat__scroll"));
+    // Change 7: no rule above the composer; the box 8 below its top, edge to edge on the content
+    // width, the honesty line 8 under the box and 12 above the chat's end.
+    const composer = q(canvasElement, ".ds-chat__composer");
+    const boxEl = q(canvasElement, ".ds-chat__box");
+    const notice = q(canvasElement, ".ds-chat__notice");
+    await expect(getComputedStyle(composer).borderTopWidth).toBe("0px");
+    near(box(boxEl).top - box(composer).top, 8);
+    near(box(boxEl).left, chat.left + 16);
+    near(box(boxEl).right, chat.right - 16);
+    near(box(notice).top - box(boxEl).bottom, 8);
+    near(chat.bottom - box(notice).bottom, 12);
+    // Change 8: one box, 89.2 tall with no chips, one edge, radius 16.
+    near(box(boxEl).height, 89.2, 1);
+    await expect(getComputedStyle(boxEl).borderTopWidth).toBe("1px");
+    await expect(getComputedStyle(boxEl).borderTopLeftRadius).toBe("16px");
+    await expectActions(canvasElement);
+    // Change 12: three starters at the foot of the log, inside the content width.
+    const starters = canvas.getByRole("list", { name: "เริ่มจากคำถามเหล่านี้" });
+    const pills = within(starters).getAllByRole("button");
+    await expect(pills.map((b) => b.textContent)).toEqual([
+      "บอร์ดนี้ยังขาดอะไรบ้าง",
+      "เสนอโทนสีให้แบรนด์หน่อย",
+      "ควรทำอะไรต่อดี",
+    ]);
+    for (const pill of pills)
+      await expect(box(pill).right).toBeLessThanOrEqual(chat.right - 16 + 0.5);
+    const viewport = box(viewportOf(canvasElement));
+    near(viewport.bottom - box(starters).bottom, 16, 1);
+    // Pressing one fills the textarea, focuses it with the caret at the end and sends nothing.
+    await userEvent.click(within(starters).getByRole("button", { name: "ควรทำอะไรต่อดี" }));
+    const field = input(canvas) as HTMLTextAreaElement;
+    await expect(field.value).toBe("ควรทำอะไรต่อดี");
+    await expect(field).toHaveFocus();
+    await expect(field.selectionStart).toBe(field.value.length);
+    await expect(args.onAsk).not.toHaveBeenCalled();
+    await expect(canvas.queryByRole("list", { name: "เริ่มจากคำถามเหล่านี้" })).toBeNull();
+    // Clearing the text brings them back; one letter takes them away.
+    await userEvent.clear(field);
+    await expect(canvas.getByRole("list", { name: "เริ่มจากคำถามเหล่านี้" })).toBeVisible();
+    await userEvent.type(field, "ก");
+    await expect(canvas.queryByRole("list", { name: "เริ่มจากคำถามเหล่านี้" })).toBeNull();
   },
 };
 
@@ -107,7 +221,7 @@ export const Mock: Story = {
   args: { basis: "mock", onAsk: fn(chatFixtures.host(chatFixtures.reply, "mock")) },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText("คำตอบเป็นข้อมูลจำลอง ยังไม่มี AI")).toBeVisible();
+    await expectNotice(canvasElement, "คำตอบเป็นข้อมูลจำลอง ยังไม่มี AI");
     await ask(canvas, chatFixtures.question);
     await waitFor(() =>
       expect(canvas.getByText("ข้อมูลจำลอง", { selector: ".ds-chat__basis" })).toBeVisible(),
@@ -125,6 +239,10 @@ export const BlankSend: Story = {
     const send = action(canvas, "ส่ง");
     await expect(send).toHaveAttribute("aria-disabled", "true");
     await expect(send).toBeEnabled();
+    // The lime appears only once there is something to send.
+    await expect(getComputedStyle(send).backgroundColor).toBe(
+      resolved(send, "--cmp-button-primary-bg-disabled"),
+    );
     await userEvent.click(send);
     await userEvent.type(input(canvas), "   {Enter}");
     await expect(send).toHaveAttribute("aria-disabled", "true");
@@ -144,6 +262,13 @@ export const OverLimit: Story = {
       canvas.getByText("ตัวอักษร 2,010 จาก 2,000 เกินมา 10 ตัวอักษร"),
     ).toBeInTheDocument();
     await expect(action(canvas, "ส่ง")).toHaveAttribute("aria-disabled", "true");
+    await expect(input(canvas)).toHaveAttribute("aria-invalid", "true");
+    // The edge eases to the error colour (feedback motion), so wait for it to land.
+    // `resolved` adds a node, so it runs outside `waitFor`, whose observer would see it and loop.
+    const errorEdge = resolved(canvasElement, "--cmp-input-border-error");
+    await waitFor(() =>
+      expect(getComputedStyle(q(canvasElement, ".ds-chat__box")).borderTopColor).toBe(errorEdge),
+    );
     await userEvent.keyboard("{Enter}");
     await userEvent.click(action(canvas, "ส่ง"));
     await expect(args.onAsk).not.toHaveBeenCalled();
@@ -158,6 +283,16 @@ export const Send: Story = {
     await userEvent.type(field, "บรรทัดแรก{Shift>}{Enter}{/Shift}บรรทัดสอง");
     await expect(field.value).toBe("บรรทัดแรก\nบรรทัดสอง");
     await expect(args.onAsk).not.toHaveBeenCalled();
+    // With keyboard focus in the textarea the ring goes around the whole box, not the field.
+    const boxStyle = getComputedStyle(q(canvasElement, ".ds-chat__box"));
+    await expect(boxStyle.outlineWidth).toBe("2px");
+    await expect(boxStyle.outlineOffset).toBe("2px");
+    const focusEdge = resolved(canvasElement, "--cmp-input-border-focus");
+    await waitFor(() => expect(boxStyle.borderTopColor).toBe(focusEdge));
+    await expect(getComputedStyle(field).outlineStyle).toBe("none");
+    await expect(getComputedStyle(action(canvas, "ส่ง")).backgroundColor).toBe(
+      resolved(canvasElement, "--cmp-button-intent-bg"),
+    );
     await userEvent.clear(field);
 
     await userEvent.type(field, `  ${chatFixtures.question}  {Enter}`);
@@ -219,11 +354,18 @@ export const Streaming: Story = {
   args: { onAsk: fn(chatFixtures.hostHold(chatFixtures.reply)) },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
+    const sendBox = box(action(canvas, "ส่ง"));
     await ask(canvas, chatFixtures.question);
     await waitFor(() =>
       expect(canvas.getByText("กำลังตอบ", { selector: ".ds-chat__progress" })).toBeVisible(),
     );
     await expect(action(canvas, "หยุด")).toBeVisible();
+    // Stop is a round 32 px button in Send's place; the meta row is one 32 px line; the honesty line stays.
+    near(box(action(canvas, "หยุด")).width, 32);
+    near(box(action(canvas, "หยุด")).left, sendBox.left);
+    near(box(action(canvas, "หยุด")).top, sendBox.top);
+    near(box(q(canvasElement, ".ds-chat__meta")).height, 32);
+    await expectNotice(canvasElement, "คำตอบมาจากกฎที่เขียนไว้ ยังไม่มี AI");
     await expect(canvas.queryByRole("button", { name: "ส่ง" })).toBeNull();
     const reply = canvasElement.querySelector(".ds-chat__reply .ds-chat__text") as HTMLElement;
     await waitFor(() => expect(reply.textContent).not.toBe(""));
@@ -288,6 +430,23 @@ export const Replied: Story = {
     await expect(reply).toHaveAttribute("aria-busy", "false");
     await expect(action(canvas, "ส่ง")).toBeVisible();
     await expect(canvas.queryByRole("button", { name: "หยุด" })).toBeNull();
+    // Changes 4 and 5: a pill bubble at the end edge; "คุณ" is read first but not drawn; 12 px to the reply.
+    const exchange = q(canvasElement, ".ds-chat__exchange");
+    const question = q(canvasElement, ".ds-chat__question");
+    const log = box(q(canvasElement, ".ds-chat__log"));
+    near(box(question).right, log.right - 16);
+    await expect(box(question).width).toBeLessThanOrEqual(log.width - 32 - 32 + 0.5);
+    await expect(getComputedStyle(question).borderTopLeftRadius).toBe("24px");
+    await expect(getComputedStyle(question).paddingInlineStart).toBe("16px");
+    const speaker = q(canvasElement, ".ds-chat__speaker");
+    near(box(speaker).width, 1, 0.1);
+    near(box(speaker).height, 1, 0.1);
+    await expect(exchange.textContent?.startsWith("คุณ")).toBe(true);
+    near(box(q(canvasElement, ".ds-chat__reply")).top - box(question).bottom, 12);
+    // Change 6: the meta row is one 32 px line and the reply is plain text at the start edge.
+    near(box(q(canvasElement, ".ds-chat__meta")).height, 32);
+    near(box(reply).left, log.left + 16);
+    await expect(canvas.queryByRole("list", { name: "เริ่มจากคำถามเหล่านี้" })).toBeNull();
     // The host placed nothing (onReply returns nothing): no jump, no unlinked note, as in slice A.
     await expect(canvas.queryByRole("button", { name: /^ไปที่โหนดคำตอบ/ })).toBeNull();
     await expect(canvas.queryByText("ไม่ได้ผูกกับโหนดใด")).toBeNull();
@@ -402,6 +561,7 @@ export const Failed: Story = {
     await expect(canvas.queryByText(/504/)).toBeNull();
     await expect(args.onReply).not.toHaveBeenCalled();
     await expect(statusOf(canvasElement)).toHaveTextContent(FAILED);
+    await expectNotice(canvasElement, "คำตอบมาจากกฎที่เขียนไว้ ยังไม่มี AI");
     await userEvent.click(canvas.getByRole("button", { name: "ส่งอีกครั้ง" }));
     await expect(args.onAsk).toHaveBeenCalledTimes(2);
     await expect((args.onAsk as ReturnType<typeof fn>).mock.calls[1]?.[0]).toBe(
@@ -531,6 +691,18 @@ export const Conversation: Story = {
         transcript.scrollHeight - 2,
       ),
     );
+    // Changes 3 and 5: 8 above the first exchange, 16 at the sides and the end, 24 between exchanges.
+    const log = q(canvasElement, ".ds-chat__log");
+    const exchanges = [...canvasElement.querySelectorAll<HTMLElement>(".ds-chat__exchange")];
+    near(box(exchanges[0] as Element).top - box(log).top, 8);
+    await expect(getComputedStyle(log).paddingBlockEnd).toBe("16px");
+    await expect(getComputedStyle(log).paddingInlineStart).toBe("16px");
+    near(
+      box(q(exchanges[1] as HTMLElement, ".ds-chat__question")).top -
+        box(q(exchanges[0] as HTMLElement, ".ds-chat__meta")).bottom,
+      24,
+    );
+    await expectNotice(canvasElement, "คำตอบมาจากกฎที่เขียนไว้ ยังไม่มี AI");
     // The transcript sits above the composer, and the composer stays inside the chat.
     const chat = box(chatOf(canvasElement));
     const composer = box(canvasElement.querySelector(".ds-chat__composer") as HTMLElement);
@@ -552,7 +724,9 @@ export const Conversation: Story = {
     for (const [i, target] of order.entries()) {
       if (i > 0) await userEvent.tab();
       await expect(target).toHaveFocus();
-      await waitFor(() => expect(getComputedStyle(target).outlineStyle).toBe("solid"));
+      // The textarea's ring is drawn around its whole box.
+      const ringed = target === input(canvas) ? q(canvasElement, ".ds-chat__box") : target;
+      await waitFor(() => expect(getComputedStyle(ringed).outlineStyle).toBe("solid"));
     }
     // The older failure keeps its text and has no retry: only the newest exchange can resend.
     await expect(canvas.getAllByText(FAILED, { selector: ".ds-chat__failure p" })).toHaveLength(1);
@@ -576,7 +750,6 @@ export const BasisMismatch: Story = {
 
 /** What every long-text story proves: nothing overflows or clips and the controls stay reachable. */
 async function expectFits(canvasElement: HTMLElement) {
-  const canvas = within(canvasElement);
   const chatEl = chatOf(canvasElement);
   const chat = box(chatEl);
   await expect(chatEl.scrollWidth).toBeLessThanOrEqual(chatEl.clientWidth);
@@ -589,11 +762,19 @@ async function expectFits(canvasElement: HTMLElement) {
     await expect(box(text).left).toBeGreaterThanOrEqual(chat.left - 0.5);
     await expect(box(text).right).toBeLessThanOrEqual(chat.right + 0.5);
   }
+  for (const question of canvasElement.querySelectorAll<HTMLElement>(".ds-chat__question")) {
+    // The bubble keeps 32 px free at the start and sits at the end edge.
+    await expect(box(question).left).toBeGreaterThanOrEqual(box(viewport).left + 16 + 32 - 0.5);
+    await expect(box(question).right).toBeLessThanOrEqual(box(viewport).right - 16 + 0.5);
+    await expect(question.scrollWidth).toBeLessThanOrEqual(question.clientWidth);
+  }
   const field = box(canvasElement.querySelector(".ds-chat__composer textarea") as HTMLElement);
-  const send = box(action(canvas, "ส่ง"));
-  const close = box(canvas.getByRole("button", { name: "ปิดแชท" }));
+  const send = box(q(canvasElement, ".ds-chat__send"));
+  const close = box(q(canvasElement, ".ds-chat__close"));
   const header = box(canvasElement.querySelector(".ds-chat__header") as HTMLElement);
   for (const part of [field, send, close]) await expect(inside(part, chat)).toBe(true);
+  await expect(inside(field, box(q(canvasElement, ".ds-chat__box")))).toBe(true);
+  await expectActions(canvasElement);
   await expect(overlap(send, field)).toBe(false);
   await expect(overlap(close, header)).toBe(false);
   await expect(overlap(close, box(viewport))).toBe(false);
@@ -624,7 +805,7 @@ export const Narrow: Story = {
   },
 };
 
-/** The smallest panel the shell gives it, 240 px: the composer's actions wrap under the counter. The fixture host answers by rules. */
+/** The smallest panel the shell gives it, 240 px: the inner row still fits on one line. The fixture host answers by rules. */
 export const NarrowestPanel: Story = {
   args: { onAsk: fn(chatFixtures.host(chatFixtures.longReply, "rules", { steps: 2, ms: 10 })) },
   render: (args) => (
@@ -639,10 +820,15 @@ export const NarrowestPanel: Story = {
       expect(canvas.getByText("ตามกฎ", { selector: ".ds-chat__basis" })).toBeVisible(),
     );
     await expectFits(canvasElement);
-    // Below 320 px the Send button drops under the counter, at the end edge.
+    // At 240 the row still fits: the counter and Send share one line, Send at the end edge.
     const send = box(action(canvas, "ส่ง"));
     const counter = box(canvasElement.querySelector(".ds-textarea__counter") as HTMLElement);
-    await expect(send.top).toBeGreaterThanOrEqual(counter.bottom - 0.5);
+    near(send.top + send.height / 2, counter.top + counter.height / 2, 2);
+    // The long Thai question keeps 32 px free at the start and wraps by word.
+    const question = box(q(canvasElement, ".ds-chat__question"));
+    await expect(question.left).toBeGreaterThanOrEqual(
+      box(chatOf(canvasElement)).left + 16 + 32 - 0.5,
+    );
   },
 };
 
@@ -660,6 +846,7 @@ export const WidestPanel: Story = {
       expect(canvas.getByText("ตามกฎ", { selector: ".ds-chat__basis" })).toBeVisible(),
     );
     await expectFits(canvasElement);
+    near(box(chatOf(canvasElement)).width, 480);
     const send = box(action(canvas, "ส่ง"));
     const counter = box(canvasElement.querySelector(".ds-textarea__counter") as HTMLElement);
     await expect(
@@ -668,33 +855,98 @@ export const WidestPanel: Story = {
   },
 };
 
-/** The same chat in English; every string comes from the English catalog. Replies are mock data. */
+/**
+ * The same chat in English at 240 px; every string comes from the English catalog. The starters fit,
+ * the honesty line wraps instead of clipping, the inner row stays on one line. Replies are mock data.
+ */
 export const English: Story = {
   args: {
     basis: "mock",
     onAsk: fn(chatFixtures.host(chatFixtures.replyEn, "mock", { steps: 2, ms: 10 })),
   },
   decorators: [(Story) => <LocaleProvider locale="en">{Story()}</LocaleProvider>],
-  play: async ({ canvasElement }) => {
+  render: (args) => (
+    <Frame size="min">
+      <CanvasChat {...args} />
+    </Frame>
+  ),
+  play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole("region", { name: "Board chat" })).toBeVisible();
     await expect(canvas.getByText("No messages yet. Ask anything about the board")).toBeVisible();
-    await expect(canvas.getByText("Replies are mock data. No AI yet")).toBeVisible();
+    await expectNotice(canvasElement, "Replies are mock data. No AI yet");
     await expect(input(canvas, "Message to the engine")).toHaveAttribute(
       "placeholder",
       "Ask or give a task",
     );
+    const chat = box(chatOf(canvasElement));
+    const starters = canvas.getByRole("list", { name: "Ways to start" });
+    const pills = within(starters).getAllByRole("button");
+    await expect(pills.map((b) => b.textContent)).toEqual([
+      "What is missing here?",
+      "Suggest brand colours",
+      "What should I do next?",
+    ]);
+    for (const pill of pills) {
+      await expect(box(pill).right).toBeLessThanOrEqual(chat.right - 16 + 0.5);
+      near(box(pill).height, 32);
+    }
+    await expectActions(canvasElement);
+    await userEvent.click(pills[0] as HTMLElement);
+    await expect(input(canvas, "Message to the engine")).toHaveValue("What is missing here?");
+    await expect(args.onAsk).not.toHaveBeenCalled();
+    await userEvent.clear(input(canvas, "Message to the engine"));
     await userEvent.type(
       input(canvas, "Message to the engine"),
       `${chatFixtures.questionEn}{Enter}`,
     );
-    await expect(canvas.getByText("You")).toBeVisible();
+    await expect(canvas.getByText("You")).toBeInTheDocument();
     await waitFor(() =>
       expect(canvas.getByText("Mock data", { selector: ".ds-chat__basis" })).toBeVisible(),
     );
     await expect(canvas.getByRole("button", { name: "Send" })).toBeVisible();
     await expect(canvas.getByRole("button", { name: "Close chat" })).toBeVisible();
     await expect(canvas.getByRole("region", { name: "Conversation" })).toBeVisible();
+    await expectFits(canvasElement);
+  },
+};
+
+/**
+ * Starter prompts at the three widths the shell gives the chat, 240, 320 and 480, in Thai and in
+ * English: each list holds three buttons that fit the content width. Six chats in one document, so
+ * axe's landmark-unique rule is off here, as in the matrix story. Fixture host, replies by rules.
+ */
+export const StartersAtWidths: Story = {
+  parameters: { a11y: { config: { rules: [{ id: "landmark-unique", enabled: false }] } } },
+  render: (args) => (
+    <div className="flex flex-wrap gap-4">
+      {(["th", "en"] as const).flatMap((locale) =>
+        (["min", "panel", "max"] as const).map((size) => (
+          <LocaleProvider key={`${locale}-${size}`} locale={locale}>
+            <div data-case={`${locale}-${size}`}>
+              <Frame size={size}>
+                <CanvasChat {...args} />
+              </Frame>
+            </div>
+          </LocaleProvider>
+        )),
+      )}
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const cases = [...canvasElement.querySelectorAll<HTMLElement>("[data-case]")];
+    await expect(cases).toHaveLength(6);
+    for (const item of cases) {
+      const chat = box(chatOf(item));
+      const list = q(item, ".ds-chat__starters");
+      const pills = [...list.querySelectorAll<HTMLElement>(".ds-button")];
+      await expect(pills).toHaveLength(3);
+      for (const pill of pills) {
+        await expect(box(pill).left).toBeGreaterThanOrEqual(chat.left + 16 - 0.5);
+        await expect(box(pill).right).toBeLessThanOrEqual(chat.right - 16 + 0.5);
+        await expect(pill.scrollWidth).toBeLessThanOrEqual(pill.clientWidth);
+      }
+    }
   },
 };
 
@@ -725,6 +977,12 @@ export const RecipesAndModes: Story = {
     for (const cell of cells) {
       await expect(box(chatOf(cell)).width).toBeCloseTo(320, 0);
       await expect(within(cell).getByText("ตามกฎ", { selector: ".ds-chat__basis" })).toBeVisible();
+      // In dark the panel's edge is the card border; in light it is transparent.
+      if (cell.dataset.matrixMode === "dark") {
+        await expect(getComputedStyle(chatOf(cell)).outlineColor).toBe(
+          resolved(cell, "--ds-border-card", "borderTopColor"),
+        );
+      }
     }
   },
 };
@@ -836,7 +1094,7 @@ function ChatSlot({
   return (
     <div
       ref={slot}
-      className={`nodrag nopan nowheel absolute z-10 h-[calc(100%-24px)] ${WIDTH[size]} end-3 top-3 border border-border-card`}
+      className={`nodrag nopan nowheel absolute z-10 h-[calc(100%-24px)] ${WIDTH[size]} end-3 top-3`}
     >
       <CanvasChat {...args} onReply={onReply} />
     </div>
@@ -864,6 +1122,13 @@ export const OnBoard: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await waitFor(() => expect(nodeEl(canvasElement, "brief")).toHaveClass("selected"));
+    // Change 1: the chat floats 12 px from the board's top and end edges and keeps its height (536).
+    const floating = box(chatOf(canvasElement));
+    near(box(boardEl(canvasElement)).right - floating.right, 12);
+    near(floating.top - box(boardEl(canvasElement)).top, 12);
+    near(floating.height, 536);
+    // Change 13: the quiet header and the one-row box leave the transcript room for the answer.
+    await expect(box(viewportOf(canvasElement)).height).toBeGreaterThanOrEqual(349);
     await ask(canvas, chatFixtures.question);
     const title = `คำตอบเรื่อง ${chatFixtures.question}`;
     await waitFor(() => expect(nodeEl(canvasElement, "reply-1")).toBeTruthy());
@@ -897,6 +1162,15 @@ export const OnBoard: Story = {
       name: `ไปที่โหนดคำตอบ เรื่อง ${chatFixtures.question}`,
     });
     await expect(jump).toHaveTextContent("ไปที่โหนดคำตอบ");
+    // Change 6: the meta row stays one 32 px line with the Jump beside the basis word.
+    const meta = box(q(canvasElement, ".ds-chat__meta"));
+    near(meta.height, 32);
+    near(
+      box(q(canvasElement, ".ds-chat__basis")).top +
+        box(q(canvasElement, ".ds-chat__basis")).height / 2,
+      meta.top + 16,
+      1,
+    );
     const chat = box(chatOf(canvasElement));
     await expect(inside(box(jump), chat)).toBe(true);
     await expect(
@@ -997,16 +1271,24 @@ export const Mentions: Story = {
     await waitFor(() => expect(nodeEl(canvasElement, "brief")).toHaveClass("selected"));
     const field = input(canvas);
     const chat = box(chatOf(canvasElement));
-    // Row 18: "@" at the start opens the list above the box, the composer's full width.
+    // Row 20: the Mention button is round, icon-only and leads the inner row; focus shows its name in a tooltip.
+    const mention = canvas.getByRole("button", { name: "อ้างถึงโหนด" });
+    await expect(mention.textContent).toBe("");
+    mention.focus();
+    await waitFor(() =>
+      expect(document.body.querySelector(".ds-tooltip")).toHaveTextContent("อ้างถึงโหนด"),
+    );
+    // Row 18: "@" at the start opens the list above the box, exactly the box's width.
     await expect(canvas.queryByRole("listbox")).toBeNull();
+    await userEvent.click(field);
     await userEvent.type(field, "@");
     const list = canvas.getByRole("listbox", { name: "โหนดบนบอร์ด" });
     await expect(optionsOf(canvas)).toHaveLength(BOARD.nodes.length);
     await expect(optionsOf(canvas)[0]).toHaveTextContent("บรีฟ");
     await expect(optionsOf(canvas)[0]).toHaveTextContent("บล็อกป้อนข้อมูล");
     const picker = list.parentElement as HTMLElement;
-    const composer = box(field.closest("form") as Element);
-    await expect(box(picker).bottom).toBeLessThanOrEqual(box(field).top + 0.5);
+    const composer = box(q(canvasElement, ".ds-chat__box"));
+    near(composer.top - box(picker).bottom, 8);
     await expect(box(picker).left).toBeCloseTo(composer.left, 0);
     await expect(box(picker).width).toBeCloseTo(composer.width, 0);
     await expect(box(picker).height).toBeLessThanOrEqual(240 + 1);
@@ -1055,8 +1337,14 @@ export const Mentions: Story = {
     await expect(args.onMentionsChange).toHaveBeenLastCalledWith(["logo"]);
     await expect(chipsOf(canvasElement)).toEqual(["โลโก้"]);
     const chips = canvas.getByRole("list", { name: "โหนดที่อ้างถึง" });
-    await expect(inside(box(chips), chat)).toBe(true);
-    await expect(box(chips).bottom).toBeLessThanOrEqual(box(field).top + 0.5);
+    const boxEl = box(q(canvasElement, ".ds-chat__box"));
+    await expect(inside(box(chips), boxEl)).toBe(true);
+    // Change 9: chips are the box's first row; the text sits 4 below them; the chip label starts one border width (1 px) after the text and the Mention icon.
+    near(box(chips).top - boxEl.top, 9);
+    near(box(field).top - box(chips).bottom, 4);
+    const fieldPad = parseFloat(getComputedStyle(field).paddingLeft);
+    near(box(q(chips, ".ds-tag__label")).left, box(field).left + fieldPad, 1.5);
+    near(box(q(canvasElement, ".ds-chat__mention svg")).left, box(field).left + fieldPad, 1);
     await expect(canvas.getByRole("button", { name: "ลบ โลโก้" })).toBeVisible();
     // Row 20: the Mention button opens the same list; a click picks.
     await userEvent.click(canvas.getByRole("button", { name: "อ้างถึงโหนด" }));
@@ -1221,7 +1509,7 @@ export const NoBoardNoMention: Story = {
 export const MentionsEnglish: Story = {
   args: { defaultMentions: ["logo"] },
   decorators: [(Story) => <LocaleProvider locale="en">{Story()}</LocaleProvider>],
-  render: (args) => <BoardChat args={args} />,
+  render: (args) => <BoardChat args={args} size="min" />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await waitFor(() => expect(nodeEl(canvasElement, "logo")).toBeTruthy());
@@ -1244,6 +1532,17 @@ export const MentionsEnglish: Story = {
     // A pick puts the node title and a space in the text, in English too.
     await userEvent.type(field, "@บรี{Enter}");
     await expect(field).toHaveValue("บรีฟ ");
+    // Change 6 at 240: after a reply the Jump may take a second meta line, but the basis word stays
+    // on the first one and nothing in the meta row overflows.
+    await userEvent.clear(field);
+    await userEvent.type(field, `${chatFixtures.questionEn}{Enter}`);
+    const jump = await canvas.findByRole("button", { name: /^Go to reply node/ });
+    const meta = q(canvasElement, ".ds-chat__meta");
+    const basis = q(canvasElement, ".ds-chat__basis");
+    await expect(meta.scrollWidth).toBeLessThanOrEqual(meta.clientWidth);
+    near(box(basis).top + box(basis).height / 2, box(meta).top + 16, 1);
+    await expect(inside(box(jump), box(chatOf(canvasElement)))).toBe(true);
+    await expect([32, 68]).toContain(Math.round(box(meta).height));
   },
 };
 
@@ -1263,17 +1562,23 @@ export const MentionsSmallest: Story = {
     await userEvent.type(field, "@");
     const picker = canvasElement.querySelector(".ds-chat__picker") as HTMLElement;
     const chat = box(chatOf(canvasElement));
-    const composer = box(field.closest("form") as Element);
+    const composer = box(q(canvasElement, ".ds-chat__box"));
     await expect(inside(box(picker), chat)).toBe(true);
     await expect(box(picker).width).toBeCloseTo(composer.width, 0);
-    await expect(box(picker).bottom).toBeLessThanOrEqual(box(field).top + 0.5);
+    await expect(box(picker).left).toBeCloseTo(composer.left, 0);
+    near(composer.top - box(picker).bottom, 8);
     await expect(picker.scrollHeight).toBeGreaterThan(picker.clientHeight);
-    for (const part of [".ds-chat__chips", ".ds-chat__actions", "textarea"]) {
+    for (const part of [".ds-chat__chips", "textarea"]) {
       await expect(inside(box(canvasElement.querySelector(part) as Element), composer)).toBe(true);
     }
     for (const button of canvasElement.querySelectorAll(".ds-chat__actions .ds-button")) {
       await expect(inside(box(button), composer)).toBe(true);
+      await expect(overlap(box(button), box(field))).toBe(false);
+      await expect(
+        overlap(box(button), box(canvasElement.querySelector(".ds-chat__chips") as Element)),
+      ).toBe(false);
     }
+    await expectActions(canvasElement);
     // The chips never overlap the box or the buttons.
     await expect(
       overlap(box(canvasElement.querySelector(".ds-chat__chips") as Element), box(field)),

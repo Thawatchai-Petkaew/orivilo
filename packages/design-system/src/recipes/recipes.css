@@ -3907,26 +3907,32 @@ button.ds-tag__main {
   );
 }
 
-/* CanvasChat (ORV-105, E4-5 part 3), slice A: the sidebar chat. A working log, not bubbles: the
- * question sits in a sunken well, the reply is plain text on the panel ground with a meta line
- * under it, and a hairline docks the composer. Every value is a `chat.*` token. Streaming and
- * failure read `status.running` and `feedback.danger.fg`, which no profile overrides. The Textarea,
- * Button and ScrollArea inside sit on `chat.bg`, which reads `surface.card`; if that changes,
- * repeat their pairs on it (pairs.ts). No letter-spacing or text-transform on any class: Thai. -- */
+/* CanvasChat (ORV-105, E4-5 part 3): the board chat. From ORV-107 v1.3 it floats as a card: radius
+ * and shadow, a quiet header row, the question as a pill bubble at the end edge, the reply as plain
+ * text with a 32 px meta row, and one rounded composer box with the honesty line under it. No
+ * hairline is left in the panel. Every value is a `chat.*` token. Streaming and failure read
+ * `status.running` and `feedback.danger.fg`, which no profile overrides. The Textarea, Button and
+ * ScrollArea inside sit on `chat.bg`, which reads `surface.card`; if that changes, repeat their
+ * pairs on it (pairs.ts). No letter-spacing or text-transform on any class: Thai. -- */
 
 .ds-chat {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   grid-template-areas:
     "title close"
-    "notice notice"
     "log log"
     "composer composer";
   container-type: inline-size;
   block-size: 100%;
   min-inline-size: 0;
   min-block-size: 0;
+  border-radius: var(--cmp-chat-radius);
+  box-shadow: var(--cmp-chat-shadow);
+  /* The dark edge is an inset outline so no content moves; clip keeps the scroll area inside the corners. */
+  outline: 1px solid var(--cmp-chat-border);
+  outline-offset: -1px;
+  overflow: clip;
   background: var(--cmp-chat-bg);
   color: var(--cmp-chat-fg);
 }
@@ -3934,47 +3940,56 @@ button.ds-tag__main {
   grid-area: title;
   display: flex;
   align-items: center;
+  gap: var(--cmp-chat-inline-gap);
   min-inline-size: 0;
   min-block-size: calc(var(--cmp-chat-header-height) + 2 * var(--cmp-chat-padding-y));
   padding: var(--cmp-chat-padding-y) var(--cmp-chat-padding-x);
 }
+.ds-chat__header > svg {
+  flex: none;
+  inline-size: var(--cmp-chat-icon-size);
+  block-size: var(--cmp-chat-icon-size);
+}
 .ds-chat__title {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
   font-family: var(--cmp-chat-title-type-font-family);
   font-size: var(--cmp-chat-title-type-font-size);
   line-height: var(--cmp-chat-title-type-line-height);
   font-weight: var(--cmp-chat-title-type-font-weight);
   letter-spacing: var(--cmp-chat-title-type-letter-spacing);
 }
+/* Icon-only buttons draw the chat's 16 px icon in their 32 px square. */
+.ds-chat .ds-button[data-icon-only] > svg {
+  inline-size: var(--cmp-chat-icon-size);
+  block-size: var(--cmp-chat-icon-size);
+}
 .ds-chat__close {
   grid-area: close;
   align-self: center;
-  margin-inline-end: var(--cmp-chat-padding-x);
-}
-.ds-chat__notice {
-  grid-area: notice;
-  margin: 0;
-  padding: 0 var(--cmp-chat-padding-x) var(--cmp-chat-padding-y);
-  border-block-end: 1px solid var(--cmp-chat-divider);
-  color: var(--cmp-chat-muted-fg);
-  overflow-wrap: anywhere;
-  font-family: var(--cmp-chat-meta-type-font-family);
-  font-size: var(--cmp-chat-meta-type-font-size);
-  line-height: var(--cmp-chat-meta-type-line-height);
-  font-weight: var(--cmp-chat-meta-type-font-weight);
-  letter-spacing: var(--cmp-chat-meta-type-letter-spacing);
+  margin-inline-end: var(--cmp-chat-padding-y);
 }
 .ds-chat__scroll {
   grid-area: log;
   min-block-size: 0;
 }
 /* Radix wraps the content in an inline `display: table` div that grows to the widest line; a block
- * keeps long Thai text wrapping. The Narrow story is the check that goes red if Radix changes it. */
+ * keeps long Thai text wrapping, and a full-height column lets the empty state sit at the foot.
+ * The Narrow story is the check that goes red if Radix changes it. */
 .ds-chat__scroll .ds-scroll__viewport > div {
-  display: block !important;
+  display: flex !important;
+  flex-direction: column;
+  min-block-size: 100%;
 }
 .ds-chat__empty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmp-chat-turn-gap);
+  margin-block-start: auto;
+  padding: var(--cmp-chat-padding-y) var(--cmp-chat-padding-x) var(--cmp-chat-padding-x);
+}
+.ds-chat__empty p {
   margin: 0;
-  padding: var(--cmp-chat-padding-y) var(--cmp-chat-padding-x);
   color: var(--cmp-chat-muted-fg);
   overflow-wrap: anywhere;
   font-family: var(--cmp-chat-body-sm-type-font-family);
@@ -3983,12 +3998,28 @@ button.ds-tag__main {
   font-weight: var(--cmp-chat-body-sm-type-font-weight);
   letter-spacing: var(--cmp-chat-body-sm-type-letter-spacing);
 }
+.ds-chat__starters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cmp-chat-inline-gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ds-chat__starters li {
+  display: flex;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+.ds-chat__starters .ds-button {
+  max-inline-size: 100%;
+}
 .ds-chat__log {
   display: flex;
   flex-direction: column;
   gap: var(--cmp-chat-exchange-gap);
   margin: 0;
-  padding: var(--cmp-chat-padding-y) var(--cmp-chat-padding-x);
+  padding: var(--cmp-chat-padding-y) var(--cmp-chat-padding-x) var(--cmp-chat-padding-x);
   list-style: none;
 }
 .ds-chat__exchange {
@@ -3997,22 +4028,18 @@ button.ds-tag__main {
   gap: var(--cmp-chat-turn-gap);
   min-inline-size: 0;
 }
+/* The question: a pill bubble at the end edge, shrink-wrapped, keeping 32 px free at the start. */
 .ds-chat__question {
   display: flex;
   flex-direction: column;
   gap: var(--cmp-chat-line-gap);
-  padding: var(--cmp-chat-question-pad);
+  align-self: flex-end;
+  min-inline-size: 0;
+  max-inline-size: calc(100% - var(--cmp-chat-question-indent));
+  padding: var(--cmp-chat-question-pad) var(--cmp-chat-question-pad-x);
   border-radius: var(--cmp-chat-question-radius);
   background: var(--cmp-chat-question-bg);
   color: var(--cmp-chat-question-fg);
-}
-.ds-chat__speaker {
-  color: var(--cmp-chat-muted-fg);
-  font-family: var(--cmp-chat-meta-type-font-family);
-  font-size: var(--cmp-chat-meta-type-font-size);
-  line-height: var(--cmp-chat-meta-type-line-height);
-  font-weight: var(--cmp-chat-meta-type-font-weight);
-  letter-spacing: var(--cmp-chat-meta-type-letter-spacing);
 }
 .ds-chat__text {
   margin: 0;
@@ -4031,17 +4058,22 @@ button.ds-tag__main {
   gap: var(--cmp-chat-line-gap);
   min-inline-size: 0;
 }
+/* Lines of 32 px, items centred; a wrap keeps the first line where it was (the basis word never moves). */
 .ds-chat__meta {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  column-gap: var(--cmp-chat-inline-gap);
+  gap: var(--cmp-chat-line-gap);
+  min-block-size: var(--cmp-chat-meta-height);
   color: var(--cmp-chat-muted-fg);
   font-family: var(--cmp-chat-meta-type-font-family);
   font-size: var(--cmp-chat-meta-type-font-size);
   line-height: var(--cmp-chat-meta-type-line-height);
   font-weight: var(--cmp-chat-meta-type-font-weight);
   letter-spacing: var(--cmp-chat-meta-type-letter-spacing);
+}
+.ds-chat__meta .ds-button {
+  padding-inline: var(--cmp-chat-inline-gap);
 }
 .ds-chat__progress {
   display: inline-flex;
@@ -4085,30 +4117,83 @@ button.ds-tag__main {
   grid-column: 2;
   justify-self: start;
 }
+/* The composer: no rule above it. The box, then the honesty line 8 below it. */
 .ds-chat__composer {
   grid-area: composer;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmp-chat-composer-pad);
+  min-inline-size: 0;
+  padding: var(--cmp-chat-padding-y) var(--cmp-chat-padding-x) var(--cmp-chat-foot-pad);
+}
+/* One rounded box holds the chips, the text and the inner row (Mention, counter, Send or Stop).
+ * The Textarea wraps its field and counter and the actions div wraps the buttons; both dissolve
+ * into this grid so the three sit on one row. */
+.ds-chat__box {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
   grid-template-areas:
-    "input input"
-    "count actions";
+    "input input input input"
+    "mention . count send";
   align-items: center;
   column-gap: var(--cmp-chat-inline-gap);
   row-gap: var(--cmp-chat-line-gap);
   min-inline-size: 0;
-  padding: var(--cmp-chat-padding-y) var(--cmp-chat-padding-x);
-  border-block-start: 1px solid var(--cmp-chat-divider);
+  padding: var(--cmp-chat-composer-pad);
+  border: 1px solid var(--cmp-input-border);
+  border-radius: var(--cmp-chat-composer-radius);
+  background: var(--cmp-input-bg);
+  color: var(--cmp-input-fg);
+  transition: border-color var(--ds-motion-feedback-duration) var(--ds-motion-easing);
 }
-/* The Textarea wraps its box and counter; the composer lays them out in its own grid. */
-.ds-chat__composer .ds-textarea {
+.ds-chat__box:has(.ds-chat__chips) {
+  grid-template-areas:
+    "chips chips chips chips"
+    "input input input input"
+    "mention . count send";
+}
+.ds-chat__box:hover {
+  border-color: var(--cmp-input-border-hover);
+}
+/* The ring goes around the whole box, drawn when the textarea has keyboard focus (the InputGroup rule). */
+.ds-chat__box:has(textarea:focus-visible) {
+  border-color: var(--cmp-input-border-focus);
+  outline: 2px solid var(--ds-focus-ring);
+  outline-offset: 2px;
+}
+.ds-chat__box:has(textarea[aria-invalid="true"]) {
+  border-color: var(--cmp-input-border-error);
+}
+.ds-chat__box .ds-textarea {
   display: contents;
 }
-.ds-chat__composer:has(.ds-chat__chips) {
-  grid-template-areas:
-    "chips chips"
-    "input input"
-    "count actions";
+.ds-chat__box .ds-control {
+  grid-area: input;
+  min-inline-size: 0;
+  min-block-size: 0;
+  padding: var(--cmp-chat-line-gap) var(--cmp-chat-inline-gap);
+  border: 0;
+  background: transparent;
+  outline: none;
+}
+.ds-chat__box .ds-control:focus-visible {
+  outline: none;
+}
+.ds-chat__box .ds-textarea__counter {
+  grid-area: count;
+  margin: 0;
+  align-self: center;
+  justify-self: end;
+}
+.ds-chat__actions {
+  display: contents;
+}
+.ds-chat__mention {
+  grid-area: mention;
+}
+.ds-chat__send {
+  grid-area: send;
 }
 .ds-chat__chips {
   grid-area: chips;
@@ -4140,10 +4225,23 @@ button.ds-tag__main {
   font-weight: var(--cmp-chat-meta-type-font-weight);
   letter-spacing: var(--cmp-chat-meta-type-letter-spacing);
 }
-/* The node picker: inside the chat, over the transcript, right above the composer, full width. */
+/* The honesty line: quiet, centred, always rendered, wraps rather than truncates. */
+.ds-chat__notice {
+  margin: 0;
+  color: var(--cmp-chat-muted-fg);
+  text-align: center;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+  font-family: var(--cmp-chat-meta-type-font-family);
+  font-size: var(--cmp-chat-meta-type-font-size);
+  line-height: var(--cmp-chat-meta-type-line-height);
+  font-weight: var(--cmp-chat-meta-type-font-weight);
+  letter-spacing: var(--cmp-chat-meta-type-letter-spacing);
+}
+/* The node picker: over the transcript, exactly the box's width, 8 px above it. */
 .ds-chat__picker {
   position: absolute;
-  inset-inline: 0;
+  inset-inline: var(--cmp-chat-padding-x);
   inset-block-end: 100%;
   max-block-size: var(--cmp-chat-picker-max-block-size);
   overflow-y: auto;
@@ -4193,45 +4291,13 @@ button.ds-tag__main {
   color: var(--cmp-menu-empty);
   overflow-wrap: anywhere;
 }
-.ds-chat__composer .ds-control {
-  grid-area: input;
-  min-inline-size: 0;
-}
-.ds-chat__composer .ds-textarea__counter {
-  grid-area: count;
-  align-self: center;
-  justify-self: start;
-}
-.ds-chat__actions {
-  grid-area: actions;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  min-inline-size: 0;
-  gap: var(--cmp-chat-inline-gap);
-}
-@container (inline-size < 320px) {
-  .ds-chat__composer {
-    grid-template-areas:
-      "input input"
-      "count count"
-      "actions actions";
-  }
-  .ds-chat__composer:has(.ds-chat__chips) {
-    grid-template-areas:
-      "chips chips"
-      "input input"
-      "count count"
-      "actions actions";
-  }
-  .ds-chat__actions {
-    justify-self: end;
-  }
-}
 /* The mark is static under reduced motion: the word "Replying" carries the state. Written on the
  * mark's svg, not on `.ds-spin`: the shared spinner stays essential motion everywhere else. */
 @media (prefers-reduced-motion: reduce) {
   .ds-chat__mark svg {
     animation: none;
+  }
+  .ds-chat__box {
+    transition: none;
   }
 }
