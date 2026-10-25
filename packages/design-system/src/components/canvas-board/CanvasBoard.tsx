@@ -30,6 +30,7 @@ import {
 import { type Locale, pick } from "../../i18n/locale";
 import { useLocale, useMessages } from "../../i18n/LocaleProvider";
 import { fill, type Messages } from "../../i18n/messages/index";
+import { deleteMessage } from "./delete-message";
 import { CANVAS_WORDS, type EdgeMeaning } from "../../tokens/canvas";
 import { tokens } from "../../tokens/index";
 import {
@@ -420,16 +421,8 @@ function Board({
   const onDelete = useCallback(
     ({ nodes: n, edges: e }: { nodes: BoardNode[]; edges: BoardEdge[] }) => {
       if (n.length === 0 && e.length === 0) return;
-      const parts: string[] = [];
-      if (n.length > 0) parts.push(fill(m.board.deletedNodes, { count: n.length }));
-      if (e.length > 0) {
-        parts.push(
-          fill(n.length > 0 ? m.board.andEdges : m.board.deletedEdges, { count: e.length }),
-        );
-      }
       const stale = graphRef.current.nodes.filter((x) => x.data.status === "stale").length;
-      if (n.length > 0 && stale > 0) parts.push(fill(m.board.staleAfterDelete, { count: stale }));
-      setMessage(parts.join(" "));
+      setMessage(deleteMessage(m, { nodes: n.length, edges: e.length, stale }));
     },
     [m],
   );

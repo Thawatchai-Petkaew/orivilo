@@ -32,6 +32,5 @@ export function buildCsp(nonce: string, isDev: boolean): string {
     // Google sign-in posts a form that redirects to accounts.google.com; form-action also checks redirect targets.
     "form-action 'self' https://accounts.google.com",
     "frame-ancestors 'self'",
-    "upgrade-insecure-requests",
   ].join("; ");
 }

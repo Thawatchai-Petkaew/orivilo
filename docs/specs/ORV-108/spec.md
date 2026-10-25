@@ -157,7 +157,7 @@ ADR 0015 is renamed `docs/adr/0015-standards-and-required-controls.md`, since it
 
 `apps/web/proxy.ts` (Next.js 16 calls request middleware a proxy; slice D checks the file name and the nonce handling against the installed `next` package's docs before building) makes a fresh nonce per request, at least 128 random bits in base64, and sets `Content-Security-Policy-Report-Only` on the response, and on the forwarded request headers so Next.js puts the nonce on its scripts. The policy, in production:
 
-`default-src 'self'; script-src 'self' 'nonce-<n>' 'strict-dynamic'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self' https://accounts.google.com; frame-ancestors 'self'; upgrade-insecure-requests`
+`default-src 'self'; script-src 'self' 'nonce-<n>' 'strict-dynamic'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self' https://accounts.google.com; frame-ancestors 'self'`
 
 `form-action` also names `https://accounts.google.com` because Google sign-in is a form post whose server action redirects there, and Chromium checks the redirect target against `form-action` (security review SEC-6). The nonce is 16 bytes from `crypto.getRandomValues`, base64 encoded.
 

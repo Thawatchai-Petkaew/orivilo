@@ -1,7 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { expect, fn, userEvent, waitFor, within } from "storybook/test";
+import { DEFAULT_LOCALE, isLocale } from "../../i18n/locale";
 import { LocaleProvider } from "../../i18n/LocaleProvider";
+import { messagesFor } from "../../i18n/messages/index";
 import { fixtureJobs, fixtureManyJobs, fixtureTaskJobs, fixtureTaskJobsEn } from "../fixtures";
 import { BOARD } from "../canvas-board/fixtures";
 import { Stateful } from "../canvas-board/story-shell";
@@ -356,10 +358,14 @@ const mixedJobs: readonly TaskJob[] = [
 /** Every state at once with a long Thai name and a long reason. Mock jobs. */
 export const Mixed: Story = {
   args: { jobs: mixedJobs, onRetry: fn() },
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, globals }) => {
+    // The words come from the catalog of the locale the toolbar set, not from Thai literals.
+    const m = messagesFor(isLocale(globals["locale"]) ? globals["locale"] : DEFAULT_LOCALE);
     const canvas = within(canvasElement);
-    await expect(canvas.getAllByText("ไม่สำเร็จ").length).toBeGreaterThan(0);
-    await expect(canvas.getByText("รอคิว", { selector: ".ds-taskbar__word" })).toBeVisible();
+    await expect(canvas.getAllByText(m.progress.failed).length).toBeGreaterThan(0);
+    await expect(
+      canvas.getByText(m.taskBar.queued, { selector: ".ds-taskbar__word" }),
+    ).toBeVisible();
     await expect(canvas.getAllByRole("progressbar")).toHaveLength(2);
   },
 };
