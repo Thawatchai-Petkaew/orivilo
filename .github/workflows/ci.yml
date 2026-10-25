@@ -31,6 +31,8 @@ jobs:
       REQUIRE_DB_TESTS: "1"
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
@@ -38,7 +40,10 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm format:check
+      - run: pnpm lint:commits
       - run: pnpm lint
+      - run: pnpm scan:secrets --report
+      - run: pnpm scan:code --report
       - run: pnpm typecheck
       - run: pnpm contrast
       - run: pnpm test:scripts
