@@ -131,10 +131,30 @@ function gateReport(root) {
   return r;
 }
 
-/** Storybook's title for a changed stories file: the default export's `title`, else its path under src/. */
+/** The top-level `title` of the meta object: inline in `export default {...}`, or the object a named `export default <name>` points to. */
+function metaTitle(source) {
+  const named = /export default\s+([A-Za-z_$][\w$]*)\s*(?:;|$)/m.exec(source)?.[1];
+  const start = named
+    ? new RegExp(`\\b(?:const|let|var)\\s+${named}\\b[^=]*=\\s*\\{`).exec(source)
+    : /export default\s*\{/.exec(source);
+  if (!start) return null;
+  let depth = 1;
+  for (let i = start.index + start[0].length; i < source.length && depth > 0; i++) {
+    const c = source[i];
+    if (c === "{" || c === "[" || c === "(") depth++;
+    else if (c === "}" || c === "]" || c === ")") depth--;
+    else if (depth === 1 && /[\s,{]/.test(source[i - 1])) {
+      const m = /^title:\s*(["'`])(.+?)\1/.exec(source.slice(i, i + 200));
+      if (m) return m[2];
+    }
+  }
+  return null;
+}
+
+/** Storybook's title for a changed stories file: the meta object's `title`, else its path under src/. */
 export function storyTitle(root, head, file) {
   const source = git(root, ["show", `${head}:${file}`]);
-  const explicit = /export default[\s\S]*?\btitle:\s*(["'`])(.+?)\1/.exec(source)?.[2];
+  const explicit = metaTitle(source);
   if (explicit) return explicit;
   const parts = file
     .slice(file.indexOf("/src/") + 5)

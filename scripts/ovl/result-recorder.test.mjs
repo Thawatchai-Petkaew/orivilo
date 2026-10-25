@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { storyTitle } from "./result-recorder.mjs";
 import { validate } from "./validate.mjs";
 import {
   agentInput,
@@ -747,6 +748,40 @@ test("a screenshot named for another story or mode exits 2", () => {
   const r = stopWith(root, agent, "qa", report);
   assert.equal(r.code, 2);
   assert.match(r.stderr, /must be named/);
+});
+
+test("storyTitle reads a named meta object, with satisfies or a type annotation, and the inline form", () => {
+  const { root } = makePrRepo();
+  const dir = join(root, "packages", "ds", "src", "forms");
+  mkdirSync(dir, { recursive: true });
+  const cases = {
+    "named.stories.tsx":
+      'const meta = {\n  title: "A/Named",\n  args: { title: "x" },\n} satisfies Meta<typeof X>;\nexport default meta;\n',
+    "typed.stories.tsx":
+      'const meta: Meta<typeof X> = {\n  title: "A/Typed",\n};\nexport default meta;\n',
+    "inline.stories.tsx": 'export default {\n  title: "A/Inline",\n};\n',
+  };
+  for (const [name, body] of Object.entries(cases)) writeFileSync(join(dir, name), body);
+  git(root, "add", "-A");
+  git(root, "commit", "-q", "-m", "titles");
+  const head = git(root, "rev-parse", "HEAD");
+  const at = (n) => storyTitle(root, head, `packages/ds/src/forms/${n}`);
+  assert.equal(at("named.stories.tsx"), "A/Named");
+  assert.equal(at("typed.stories.tsx"), "A/Typed");
+  assert.equal(at("inline.stories.tsx"), "A/Inline");
+});
+
+test("storyTitle resolves the real CanvasChat and visual-asserts stories at HEAD", () => {
+  const head = git(repoRoot, "rev-parse", "HEAD");
+  const ds = "packages/design-system/src";
+  assert.equal(
+    storyTitle(repoRoot, head, `${ds}/components/canvas-chat/CanvasChat.stories.tsx`),
+    "Application/Canvas chat",
+  );
+  assert.equal(
+    storyTitle(repoRoot, head, `${ds}/testing/visual-asserts.stories.tsx`),
+    "Foundations/Visual asserts",
+  );
 });
 
 test("a title-less stories file takes Storybook's auto title from its path", () => {
