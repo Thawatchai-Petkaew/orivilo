@@ -234,9 +234,9 @@ describe.runIf(HAS_TEST_DATABASE)("the shared rate limit store", () => {
     const limiter = createRateLimiter({ db: t.app, now, timeoutMs: 400, pruneEveryMs: 0 });
     const key = "ai-read:u:turn";
     const spans = LIMITS["ai-read"].windows.map((w) => windowOf(w, clock));
-    await t.admin.insert(rateLimitCounter).values(
-      spans.map((s) => ({ key, windowStart: s.start, windowEnd: s.end, count: 1 })),
-    );
+    await t.admin
+      .insert(rateLimitCounter)
+      .values(spans.map((s) => ({ key, windowStart: s.start, windowEnd: s.end, count: 1 })));
     // Hold one row lock per window; the day frees at 250 ms, the hour at 600 ms, past the 400 ms bound.
     const hold = async (span: (typeof spans)[number], afterMs: number) => {
       let taken!: () => void;

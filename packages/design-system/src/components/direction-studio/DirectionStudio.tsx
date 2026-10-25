@@ -532,10 +532,7 @@ export function DirectionStudio({
             </div>
             {/* One polite live region stays mounted while the button is offered, so the text
                 that arrives in it is announced. Empty, it leaves the flow so it adds no gap. */}
-            <div
-              className="ds-direction__note"
-              role="status"
-            >
+            <div className="ds-direction__note" role="status">
               {current?.kind === "failed" ? (
                 <p className="ds-direction__muted">{m.aiFailed}</p>
               ) : null}
