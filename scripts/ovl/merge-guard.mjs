@@ -6,6 +6,8 @@
 //                  a `gh api` call are an allow list; config, remote, token and host forms are named.
 //   export stage   develop-export.mjs builds develop's copy of scripts/ovl (a whole merge only).
 //   records stage  develop's merge-check.mjs, run as a process from the export, never the branch's.
+//                  ORV-115: before it, a merge that is not a plain --merge reads the PR base with one
+//                  `gh pr view` and is refused when the base is main.
 // The rule is a text rule, not a parser: quotes and backslashes are removed, runs of blanks collapse
 // and the text is lowercased for comparison. It blocks toward safety. Every non-zero exit is 2.
 // stderr and the heartbeat never hold the command: reasons are fixed sentences.
@@ -30,6 +32,8 @@ const MESSAGES = {
   remote:
     "no session may point the merge checks at another develop or change how a push or a remote resolves; git remote -v reads the remote instead",
   token: "no session reads the GitHub token, and no other program writes to the GitHub API",
+  release:
+    "a merge into main is gh pr merge <n> --merge --match-head-commit <sha>: no --squash or --rebase, which would let develop and main drift, and no --delete-branch, which would delete develop",
   merge:
     "gh pr merge must be one whole command, gh pr merge <n> with --squash, --merge or --rebase, " +
     "optional --delete-branch, and --match-head-commit <40-hex sha>",
@@ -78,19 +82,24 @@ function wholeMerge(text) {
   const match = /^gh pr merge ([1-9][0-9]*)((?: [^ ]+)+)$/.exec(text.trim());
   if (match === null) return null;
   let strategy = 0;
+  let mergeCommit = false;
   let del = 0;
   let sha = null;
   const flags = match[2].trim().split(" ");
   for (let i = 0; i < flags.length; i++) {
     const flag = flags[i];
-    if (STRATEGIES.has(flag)) strategy += 1;
-    else if (flag === "--delete-branch" || flag === "-d") del += 1;
+    if (STRATEGIES.has(flag)) {
+      strategy += 1;
+      mergeCommit = flag === "--merge" || flag === "-m";
+    } else if (flag === "--delete-branch" || flag === "-d") del += 1;
     else if (flag === "--match-head-commit" && sha === null && SHA.test(flags[i + 1] ?? "")) {
       sha = flags[i + 1];
       i += 1;
     } else return null;
   }
-  return strategy === 1 && del <= 1 && sha !== null ? { n: Number(match[1]), sha } : null;
+  return strategy === 1 && del <= 1 && sha !== null
+    ? { n: Number(match[1]), sha, mergeCommit, deleteBranch: del === 1 }
+    : null;
 }
 
 /** The branch HEAD names in `dir`; throws when it cannot be read (detached, no repo, no folder). */
@@ -308,8 +317,35 @@ export function textStage(command, cwd, env = process.env) {
   return { reasons: [...reasons], merge: null };
 }
 
+/**
+ * ORV-115: a merge into main must be a merge commit that keeps develop, so every strategy
+ * but --merge, and --delete-branch, are refused there. The base is read with one `gh pr view`, for
+ * any merge that is not a plain --merge; a base that cannot be read throws, which fails closed.
+ */
+function releaseFlagProblems({ n, mergeCommit, deleteBranch }, input, env) {
+  if (mergeCommit && !deleteBranch) return [];
+  const r = spawnSync("gh", ["pr", "view", String(n), "--json", "baseRefName"], {
+    cwd: input.cwd,
+    env,
+    encoding: "utf8",
+    timeout: 30_000,
+  });
+  if (r.error) throw new Error(`gh could not run (${r.error.code ?? "error"})`);
+  let base;
+  try {
+    base = JSON.parse(r.stdout).baseRefName;
+  } catch {
+    base = undefined;
+  }
+  if (r.status !== 0 || typeof base !== "string") {
+    throw new Error(`the base branch of PR ${n} could not be read`);
+  }
+  return base === "main" ? [MESSAGES.release] : [];
+}
+
 /** The records stage: develop's merge-check from the export, as a process. Returns the reasons. */
-function recordsStage(input, { n, sha }, env) {
+function recordsStage(input, merge, env) {
+  const { n, sha } = merge;
   let exported;
   try {
     exported = ensureDevelopExport({ cwd: input.cwd, env });
@@ -317,6 +353,8 @@ function recordsStage(input, { n, sha }, env) {
     if (error instanceof ExportError && error.bootstrap) return [error.message];
     throw error;
   }
+  const flagReasons = releaseFlagProblems(merge, input, env);
+  if (flagReasons.length > 0) return flagReasons;
   const script = join(exported.dir, "scripts", "ovl", "merge-check.mjs");
   const r = spawnSync(process.execPath, [script, String(n), "--head", sha], {
     cwd: input.cwd,
