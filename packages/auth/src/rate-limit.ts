@@ -137,15 +137,26 @@ export function createRateLimiter(deps: RateLimitDeps): RateLimiter {
       const rows = await upsert(exec, key, s.start, s.end, s.max);
       if (rows.length === 0) throw new Refused(s.end);
     };
+    // Set when the timer fires. The transaction checks it before its first statement and after
+    // each upsert, so a call already answered `unavailable` rolls back instead of committing.
+    let timedOut = false;
+    const abortIfTimedOut = () => {
+      if (timedOut) throw new Error("rate limit call timed out");
+    };
     const run = async (): Promise<Consumed> => {
       try {
         // One transaction, so SET LOCAL below lets the database stop the work at the same bound
         // as the timer: a timed-out call does not keep a pool connection or wait on a lock.
         await db.transaction(async (tx) => {
+          abortIfTimedOut();
           await tx.execute(
             sql`SELECT set_config('statement_timeout', ${String(timeoutMs)}, true), set_config('lock_timeout', ${String(timeoutMs)}, true)`,
           );
-          for (const s of spans) await attempt(tx, s);
+          for (const s of spans) {
+            abortIfTimedOut();
+            await attempt(tx, s);
+          }
+          abortIfTimedOut();
         });
         return { ok: true };
       } catch (error) {
@@ -161,7 +172,10 @@ export function createRateLimiter(deps: RateLimitDeps): RateLimiter {
     };
     let timer: ReturnType<typeof setTimeout> | undefined;
     const timeout = new Promise<Consumed>((resolve) => {
-      timer = setTimeout(() => resolve({ ok: false, reason: "unavailable" }), timeoutMs);
+      timer = setTimeout(() => {
+        timedOut = true;
+        resolve({ ok: false, reason: "unavailable" });
+      }, timeoutMs);
     });
     try {
       return await Promise.race([

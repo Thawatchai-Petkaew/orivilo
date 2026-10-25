@@ -7,6 +7,7 @@ import {
   BANGKOK_OFFSET_SECONDS,
   createRateLimiter,
   LIMITS,
+  windowOf,
   type Limit,
   type RateLimiter,
 } from "./rate-limit.ts";
@@ -228,5 +229,54 @@ describe.runIf(HAS_TEST_DATABASE)("the shared rate limit store", () => {
     await holder;
     await new Promise((r) => setTimeout(r, 300));
     expect(await rows("locked:u:l")).toEqual([]);
+  });
+  it("ai-read answered unavailable after its windows were locked in turn commits nothing", async () => {
+    const limiter = createRateLimiter({ db: t.app, now, timeoutMs: 400, pruneEveryMs: 0 });
+    const key = "ai-read:u:turn";
+    const spans = LIMITS["ai-read"].windows.map((w) => windowOf(w, clock));
+    await t.admin.insert(rateLimitCounter).values(
+      spans.map((s) => ({ key, windowStart: s.start, windowEnd: s.end, count: 1 })),
+    );
+    // Hold one row lock per window; the day frees at 250 ms, the hour at 600 ms, past the 400 ms bound.
+    const hold = async (span: (typeof spans)[number], afterMs: number) => {
+      let taken!: () => void;
+      const ready = new Promise<void>((r) => (taken = r));
+      const done = t.admin.transaction(async (tx) => {
+        await tx.execute(
+          sql`UPDATE rate_limit_counter SET count = count WHERE key = ${key} AND window_start = ${span.start}::bigint AND window_end = ${span.end}::bigint`,
+        );
+        taken();
+        await new Promise((r) => setTimeout(r, afterMs));
+      });
+      await ready;
+      return { done };
+    };
+    const [day, hour] = spans as [(typeof spans)[number], (typeof spans)[number]];
+    const holders = [await hold(day, 250), await hold(hour, 600)];
+    const result = await limiter.consume(LIMITS["ai-read"], { user: "turn" });
+    expect(result).toEqual({ ok: false, reason: "unavailable" });
+    await Promise.all(holders.map((h) => h.done));
+    await new Promise((r) => setTimeout(r, 300));
+    expect((await rows(key)).map((r) => r.count)).toEqual([1, 1]);
+  });
+
+  it("a call that waited for a busy pool and was answered unavailable commits nothing", async () => {
+    const small = createDb(t.appUrl);
+    try {
+      const limiter = createRateLimiter({ db: small, now, timeoutMs: 300, pruneEveryMs: 0 });
+      const busy = Array.from({ length: 5 }, () =>
+        small.transaction(async (tx) => {
+          await tx.execute(sql`SELECT pg_sleep(0.8)`);
+        }),
+      );
+      await new Promise((r) => setTimeout(r, 100));
+      const result = await limiter.consume(per(60, 5, "queued"), { user: "q" });
+      expect(result).toEqual({ ok: false, reason: "unavailable" });
+      await Promise.all(busy);
+      await new Promise((r) => setTimeout(r, 300));
+      expect(await rows("queued:u:q")).toEqual([]);
+    } finally {
+      await small.$client.end();
+    }
   });
 });

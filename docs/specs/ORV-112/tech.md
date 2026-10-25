@@ -289,7 +289,7 @@ await db.transaction(async (tx) => {
 ### Fail closed and the timeout
 
 - Any error from the database (connection, timeout, constraint) gives `{ ok: false, reason: "unavailable" }`, and nothing is let through.
-- The statement races a `timeoutMs` timer, 2 s by default. If the timer wins, the result is also `unavailable`. The same `timeoutMs` is set in the transaction as `statement_timeout` and `lock_timeout` (`SET LOCAL`, through `set_config(..., true)`), so the database cancels the work at the bound: a timed-out call does not keep a pool connection, wait on a lock, or commit a count after it was answered `unavailable`. The integration test holds `ACCESS EXCLUSIVE` on the table to prove it.
+- The statement races a `timeoutMs` timer, 2 s by default. If the timer wins, the result is also `unavailable`. The same `timeoutMs` is set in the transaction as `statement_timeout` and `lock_timeout` (`SET LOCAL`, through `set_config(..., true)`), so the database cancels a statement at the bound and a lock wait does not outlast it. The timer also sets a `timedOut` flag that the transaction reads before its first statement and after each upsert, and it throws then, so the transaction rolls back: a call answered `unavailable` never commits a count later, whether it waited in the pool queue or across `ai-read`'s two windows. Integration tests hold `ACCESS EXCLUSIVE` on the table, lock each `ai-read` window in turn, and fill the pool with five busy connections to prove it.
 - The error is logged once, at the action or route boundary, with its `name` only (security rules 8 and 15), never its message, query or key.
 
 ### Pruning

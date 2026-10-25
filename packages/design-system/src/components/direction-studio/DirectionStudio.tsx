@@ -354,9 +354,6 @@ function Trace({
   );
 }
 
-/** The empty live region sits out of the flow, so the section gap does not count it. */
-const EMPTY_NOTE = { position: "absolute" } as const;
-
 /**
  * Two directions on the same task (spec ORV-34 part 2, handoff §17.3). The person writes a brief or
  * picks a sample; the rules read it (labelled as rules, not AI); the engine offers the profile it
@@ -538,9 +535,6 @@ export function DirectionStudio({
             <div
               className="ds-direction__note"
               role="status"
-              style={
-                current?.kind === "failed" || current?.kind === "notice" ? undefined : EMPTY_NOTE
-              }
             >
               {current?.kind === "failed" ? (
                 <p className="ds-direction__muted">{m.aiFailed}</p>

@@ -3285,6 +3285,10 @@
   gap: var(--cmp-direction-note-gap);
   min-width: 0;
 }
+/* Empty, the live region leaves the flow so the section gap does not count it. */
+.ds-direction__note:empty {
+  position: absolute;
+}
 .ds-direction__note > p {
   margin: 0;
   text-wrap: pretty;
