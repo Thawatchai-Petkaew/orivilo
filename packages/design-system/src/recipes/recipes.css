@@ -3278,6 +3278,17 @@
   align-items: center;
   gap: var(--ds-space-inline-sm);
 }
+.ds-direction__note {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--cmp-direction-note-gap);
+  min-width: 0;
+}
+.ds-direction__note > p {
+  margin: 0;
+  text-wrap: pretty;
+}
 .ds-direction__list {
   display: flex;
   flex-direction: column;

@@ -25,6 +25,7 @@ states:
     reopened,
     read-by-ai,
     ai-failed,
+    ai-limited,
   ]
 recipes: [neutral, professional, friendly]
 examples:
@@ -32,7 +33,8 @@ examples:
 rules:
   - "The reading always says what read it: the rules, or AI with its model id; without readWithAi it says AI is not used yet (AGENTS.md rule 4)"
   - "An AI reading is offered only through readWithAi, on a click, never on typing; it belongs to the brief it read, and editing the brief returns to the rules' reading (ORV-62)"
-  - "When AI cannot read, a status line says so and the rules' reading stays; nothing falls back to another model"
+  - "When AI cannot read, a status line says so, or says why and when, from the caller; it sits in a note row under the Read with AI button, and the rules' reading stays; nothing falls back to another model"
+  - "readWithAi resolves the checked reading, null (AI could not read) or { notice } (the caller's line, already in the person's language, with a Check this word); editing the brief clears the note"
   - "Every reason quotes the brief's own words or says it was locked or set by hand; nothing is invented"
   - "A tie or a lock conflict is shown in words, never settled silently"
   - "When the rules read nothing, no direction is offered and the preview stays in the base set"

@@ -1,7 +1,7 @@
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { inWorkspace } from "./client.ts";
-import { organization, project, TENANT_TABLES } from "./schema/index.ts";
+import { organization, project, rateLimitCounter, TENANT_TABLES } from "./schema/index.ts";
 import { createTestDatabase, HAS_TEST_DATABASE, type TestDatabase } from "./testing/database.ts";
 
 // ORV-38 AC 5 and 6: the second wall. Even if code skipped the authorization helper, the app
@@ -79,5 +79,44 @@ describe.runIf(HAS_TEST_DATABASE)("orivilo_app and row security", () => {
             and qual = '(workspace_id = current_setting(''app.workspace_id''::text, true))'`,
     );
     expect([...rows].map((r) => r.tablename).sort()).toEqual([...TENANT_TABLES].sort());
+  });
+  // ORV-112 AC 18: the counter table is the app role's to use and nobody else's.
+  describe("rate_limit_counter", () => {
+    it("lets the app role select, insert, update and delete", async () => {
+      const row = { key: "t:u:x", windowStart: 0, windowEnd: 60, count: 1 };
+      await t.app.insert(rateLimitCounter).values(row);
+      await t.app
+        .update(rateLimitCounter)
+        .set({ count: 2 })
+        .where(eq(rateLimitCounter.key, "t:u:x"));
+      const rows = await t.app
+        .select()
+        .from(rateLimitCounter)
+        .where(eq(rateLimitCounter.key, "t:u:x"));
+      expect(rows.map((r) => r.count)).toEqual([2]);
+      await t.app.delete(rateLimitCounter).where(eq(rateLimitCounter.key, "t:u:x"));
+      expect(await t.app.select().from(rateLimitCounter)).toEqual([]);
+    });
+
+    it("cannot be altered by the app role", async () => {
+      await expect(
+        t.app.execute(sql`alter table rate_limit_counter add column x int`),
+      ).rejects.toThrow();
+    });
+
+    it("has row security on and only the owner and the app role as grantees", async () => {
+      const on = await t.admin.execute<{ relrowsecurity: boolean }>(
+        sql`select relrowsecurity from pg_class where relname = 'rate_limit_counter'`,
+      );
+      expect([...on].map((r) => r.relrowsecurity)).toEqual([true]);
+      const grantees = await t.admin.execute<{ grantee: string }>(
+        sql`select distinct grantee from information_schema.role_table_grants
+            where table_name = 'rate_limit_counter' and table_schema = 'public'`,
+      );
+      const names = [...grantees].map((r) => r.grantee).sort();
+      expect(names).toHaveLength(2);
+      expect(names).toContain("orivilo_app");
+      expect(names).not.toContain("PUBLIC");
+    });
   });
 });

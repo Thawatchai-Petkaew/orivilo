@@ -1201,6 +1201,7 @@
   --cmp-inspector-title-type-letter-spacing: var(--ds-type-heading-sm-letter-spacing);
   --cmp-direction-gap: var(--ds-space-stack-lg);
   --cmp-direction-section-gap: var(--ds-space-stack-md);
+  --cmp-direction-note-gap: var(--ds-space-stack-sm);
   --cmp-direction-fg: var(--ds-text-primary);
   --cmp-direction-muted-fg: var(--ds-text-secondary);
   --cmp-direction-heading-type-font-family: var(--ds-type-heading-sm-font-family);

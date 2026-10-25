@@ -15,6 +15,7 @@ import {
 import type { Interpretation } from "@orivilo/intent-engine";
 import { type ReactNode, useId, useMemo, useRef, useState, useTransition } from "react";
 import type { WebMessages } from "../../i18n/messages";
+import { formatWait } from "../../i18n/wait";
 import {
   type ActionError,
   approveDirection,
@@ -29,6 +30,18 @@ import {
 } from "./actions";
 
 type M = WebMessages["saved"];
+
+/**
+ * The line for a failed call. A refusal by a rate limit carries the wait and says it in words;
+ * without a usable wait it falls back to the plain failure text rather than print an empty one.
+ */
+function errorLine(m: M, wait: WebMessages["wait"], error: ActionError, retryAfter?: number) {
+  if (error !== "rate-limited" && error !== "ai-rate-limited") return m.errors[error];
+  if (typeof retryAfter !== "number" || !Number.isFinite(retryAfter) || retryAfter <= 0) {
+    return m.errors.failed;
+  }
+  return fill(m.errors[error], { wait: formatWait(wait, retryAfter) });
+}
 
 export type SavedView =
   | { kind: "signed-out" }
@@ -97,11 +110,13 @@ function download(name: string, content: unknown) {
 export function SavedStudio({
   view,
   m,
+  wait,
   defaultBrief,
   preview,
 }: {
   view: SavedView;
   m: M;
+  wait: WebMessages["wait"];
   defaultBrief: string;
   preview: ReactNode;
 }) {
@@ -118,7 +133,7 @@ export function SavedStudio({
     savedName: m.defaultName,
   });
   const [notice, setNotice] = useState<Notice | null>(
-    view.kind === "error" ? { tone: "danger", lines: [m.errors[view.error]] } : null,
+    view.kind === "error" ? { tone: "danger", lines: [errorLine(m, wait, view.error)] } : null,
   );
   const [busy, setBusy] = useState<"save" | "approve" | "import" | null>(null);
   const [, startTransition] = useTransition();
@@ -128,6 +143,10 @@ export function SavedStudio({
   const readWithAi = async (brief: string) => {
     const result = await readBriefWithAi(brief);
     if (!result.ok) {
+      // A refused reading is said in the studio, under the button, and not also in the card.
+      if (result.error === "ai-rate-limited" || result.error === "rate-limited") {
+        return { notice: errorLine(m, wait, result.error, result.retryAfter) };
+      }
       // The studio says AI could not read; a setup problem also gets its own words here.
       if (result.error !== "ai-failed")
         setNotice({ tone: "warning", lines: [m.errors[result.error]] });
@@ -159,7 +178,10 @@ export function SavedStudio({
       setBusy(kind);
       const result = await call();
       if (result.ok) await done(result.value);
-      else setNotice({ tone: "danger", lines: [m.errors[result.error]] });
+      else {
+        const retryAfter = result.error === "rate-limited" ? result.retryAfter : undefined;
+        setNotice({ tone: "danger", lines: [errorLine(m, wait, result.error, retryAfter)] });
+      }
       setBusy(null);
     });
 

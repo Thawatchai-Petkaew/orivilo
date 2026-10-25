@@ -73,9 +73,11 @@ export interface DirectionStudioProps {
   defaultRefinements?: Refinements | undefined;
   /**
    * Reads the brief with AI (ORV-62). Without it the studio offers no AI reading. It resolves to
-   * the checked reading, or `null` when AI could not read, and the rules' reading stays.
+   * the checked reading, `null` when AI could not read, or `{ notice }` when the caller says why
+   * and when AI can read again (a rate limit, ORV-112), already in the person's language. In
+   * the last two the rules' reading stays.
    */
-  readWithAi?: ((brief: string) => Promise<Interpretation | null>) | undefined;
+  readWithAi?: ((brief: string) => Promise<Interpretation | null | { notice: string }>) | undefined;
   /** The AI reading the studio opens with (a saved direction); it holds while the brief is unchanged. */
   defaultReading?: Interpretation | undefined;
   /** Called with what the studio shows whenever it changes. */
@@ -383,17 +385,24 @@ export function DirectionStudio({
   const [ai, setAi] = useState<{ brief: string; reading: Interpretation } | null>(
     defaultReading ? { brief: defaultBrief.trim(), reading: defaultReading } : null,
   );
-  const [aiStatus, setAiStatus] = useState<{ brief: string; kind: "reading" | "failed" } | null>(
-    null,
-  );
+  const [aiStatus, setAiStatus] = useState<
+    | { brief: string; kind: "reading" | "failed" }
+    | { brief: string; kind: "notice"; notice: string }
+    | null
+  >(null);
   const reading = ai && ai.brief === brief.trim() ? ai.reading : undefined;
-  const status = aiStatus?.brief === brief.trim() ? aiStatus.kind : null;
+  const current = aiStatus?.brief === brief.trim() ? aiStatus : null;
+  const status = current?.kind ?? null;
   const askAi = () => {
     const text = brief.trim();
     if (!readWithAi || text === "") return;
     setAiStatus({ brief: text, kind: "reading" });
     readWithAi(text)
       .then((r) => {
+        if (r && "notice" in r) {
+          setAiStatus({ brief: text, kind: "notice", notice: r.notice });
+          return;
+        }
         if (r) setAi({ brief: text, reading: r });
         setAiStatus(r ? null : { brief: text, kind: "failed" });
       })
@@ -508,22 +517,33 @@ export function DirectionStudio({
           </Badge>
         </h3>
         {readWithAi && result && !reading ? (
-          <div className="ds-direction__presets">
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={status === "reading"}
-              aria-busy={status === "reading"}
-              onClick={askAi}
-            >
-              {status === "reading" ? m.aiReading : m.readWithAi}
-            </Button>
-            {status === "failed" ? (
-              <p className="ds-direction__muted" role="status">
-                {m.aiFailed}
-              </p>
+          <>
+            <div className="ds-direction__presets">
+              <Button
+                variant="secondary"
+                size="sm"
+                // Inert but focusable while reading, so focus stays on the button it was pressed on.
+                aria-disabled={status === "reading"}
+                aria-busy={status === "reading"}
+                onClick={askAi}
+              >
+                {status === "reading" ? m.aiReading : m.readWithAi}
+              </Button>
+            </div>
+            {current?.kind === "failed" ? (
+              <div className="ds-direction__note" role="status">
+                <p className="ds-direction__muted">{m.aiFailed}</p>
+              </div>
             ) : null}
-          </div>
+            {current?.kind === "notice" ? (
+              <div className="ds-direction__note" role="status">
+                <Badge variant="warning" size="sm">
+                  {m.aiNotice}
+                </Badge>
+                <p>{current.notice}</p>
+              </div>
+            ) : null}
+          </>
         ) : null}
         {axes.length > 0 ? (
           <ul className="ds-direction__list">

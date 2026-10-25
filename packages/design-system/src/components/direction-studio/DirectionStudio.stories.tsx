@@ -416,15 +416,91 @@ export const ReadWithAi: Story = {
   },
 };
 
-/** When AI cannot read, the studio says so and keeps the rules' reading (ORV-62 part 3). */
+/**
+ * The note row sits in the reading section, clear of the button that was pressed and on the same
+ * start edge, at every width (ORV-112 design D1): the section gap (16) below the button, and the
+ * badge, when there is one, starts where the button starts.
+ */
+async function expectNoteUnderButton(reading: HTMLElement, note: HTMLElement, button: HTMLElement) {
+  const region = reading.getBoundingClientRect();
+  const n = note.getBoundingClientRect();
+  const b = button.getBoundingClientRect();
+  await expect(n.top - b.bottom).toBeGreaterThanOrEqual(16);
+  await expect(n.top - b.bottom).toBeLessThan(24);
+  await expect(n.left).toBeGreaterThanOrEqual(region.left);
+  await expect(n.right).toBeLessThanOrEqual(region.right + 0.5);
+  await expect(n.bottom).toBeLessThanOrEqual(region.bottom + 0.5);
+  const first = note.firstElementChild as HTMLElement;
+  await expect(Math.abs(first.getBoundingClientRect().left - b.left)).toBeLessThan(1);
+}
+
+/** When AI cannot read, the studio says so, muted, in the note row under the button, and keeps the rules' reading (ORV-62 part 3, ORV-112 X2). */
 export const AiFails: Story = {
   args: { defaultBrief: FRIENDLY_BRIEF, readWithAi: () => Promise.resolve(null) },
   play: async ({ canvasElement }) => {
-    const reading = within(
-      within(canvasElement).getByRole("region", { name: new RegExp(th.reading) }),
-    );
-    await userEvent.click(reading.getByRole("button", { name: th.readWithAi }));
+    const region = within(canvasElement).getByRole("region", { name: new RegExp(th.reading) });
+    const reading = within(region);
+    const button = reading.getByRole("button", { name: th.readWithAi });
+    await userEvent.click(button);
     await waitFor(() => expect(reading.getByRole("status")).toHaveTextContent(th.aiFailed));
     await expect(reading.getByText(th.byRulesOnly)).toBeVisible();
+    await expectNoteUnderButton(region, reading.getByRole("status"), button);
+  },
+};
+
+const limited = {
+  th: "ใช้ AI อ่านบรีฟครบจำนวนที่กำหนดแล้ว จึงใช้การอ่านตามกฎแทน อ่านด้วย AI ได้อีกครั้งในอีก 12 นาที",
+  en: "You have reached the limit for AI readings, so the rules' reading is used. AI can read again in 12 minutes.",
+};
+
+/** A refused AI reading (a rate limit, ORV-112): the caller's line and the word "Check this" in the note row; the rules' reading stays and the button is offered again. */
+export const AiLimited: Story = {
+  args: {
+    defaultBrief: FRIENDLY_BRIEF,
+    readWithAi: () => Promise.resolve({ notice: limited.th }),
+  },
+  play: async ({ canvasElement }) => {
+    const region = within(canvasElement).getByRole("region", { name: new RegExp(th.reading) });
+    const reading = within(region);
+    const button = reading.getByRole("button", { name: th.readWithAi });
+    await userEvent.click(button);
+    await waitFor(() => expect(reading.getByRole("status")).toHaveTextContent(limited.th));
+    const note = reading.getByRole("status");
+    await expect(within(note).getByText(th.aiNotice)).toBeVisible();
+    await expect(reading.getByText(th.byRulesOnly)).toBeVisible();
+    await expect(button).toBeEnabled();
+    await expect(button).toHaveFocus();
+    await expectNoteUnderButton(region, note, button);
+
+    // Editing the brief clears the note, as it clears the failed line.
+    await userEvent.type(within(canvasElement).getByRole("textbox", { name: th.brief }), " มาก");
+    await expect(reading.queryByRole("status")).toBeNull();
+  },
+};
+
+/** The same refusal in English, dark, at 360 wide, where the line wraps to three lines. */
+export const AiLimitedEnglishNarrow: Story = {
+  globals: { locale: "en" },
+  args: {
+    defaultBrief: FRIENDLY_BRIEF,
+    readWithAi: () => Promise.resolve({ notice: limited.en }),
+  },
+  render: (args) => (
+    <Under profile="neutral" mode="dark">
+      <div style={{ width: 360 }}>
+        <DirectionStudio {...args} />
+      </div>
+    </Under>
+  ),
+  play: async ({ canvasElement }) => {
+    const region = within(canvasElement).getByRole("region", { name: new RegExp(en.reading) });
+    const reading = within(region);
+    const button = reading.getByRole("button", { name: en.readWithAi });
+    await userEvent.click(button);
+    await waitFor(() => expect(reading.getByRole("status")).toHaveTextContent(limited.en));
+    const note = reading.getByRole("status");
+    await expect(within(note).getByText(en.aiNotice)).toBeVisible();
+    await expect(reading.getByText(en.byRulesOnly)).toBeVisible();
+    await expectNoteUnderButton(region, note, button);
   },
 };
