@@ -240,13 +240,15 @@ export function CanvasChat({
     onMentionsChange?.(next);
   };
 
-  /** Picks a node: its "@query" leaves the text and it joins the chips once. */
+  /** Picks a node: its "@query" becomes the title and a space, and it joins the chips once. */
   const pick = (id: string) => {
     if (!token) return;
-    const text = `${draft.slice(0, token.start)}${draft.slice(caret)}`;
+    const label = `${titleOf(id)} `;
+    const text = `${draft.slice(0, token.start)}${label}${draft.slice(caret)}`;
+    const next = token.start + label.length;
     setDraft(text);
-    setCaret(token.start);
-    nextCaret.current = token.start;
+    setCaret(next);
+    nextCaret.current = next;
     setPickerOpen(false);
     if (!ids.includes(id)) changeMentions([...ids, id]);
     textarea()?.focus();

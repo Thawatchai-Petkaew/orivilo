@@ -984,7 +984,7 @@ const edgesTo = (root: HTMLElement, id: string) =>
 /**
  * Mentions (ORV-105 rows 18 to 21, ORV-107): typing "@" opens "โหนดบนบอร์ด" above the box, full
  * width, with every node by title and kind word; more text narrows it, arrows move, Enter picks
- * and takes the "@query" out of the text, Escape closes the list only. The Mention button opens
+ * and turns the "@query" into the node title and a space, Escape closes the list only. The Mention button opens
  * the same list. Chips are neutral tags with a remove; a repeat adds nothing. Sending passes the
  * ids in pick order and the transcript lists them; the reply (rules) is linked once to each
  * mentioned node and to the node selected alone. Nothing is read from the nodes.
@@ -1032,7 +1032,7 @@ export const Mentions: Story = {
     await expect(field).toHaveValue("@zz");
     await expect(args.onClose).not.toHaveBeenCalled();
     await userEvent.clear(field);
-    // Row 19: picking removes "@query" and adds a chip; Enter during IME composition never picks.
+    // Row 19: picking turns "@query" into the title and a space and adds a chip; Enter during IME composition never picks.
     await userEvent.type(field, "@โล");
     await expect(optionsOf(canvas)).toHaveLength(1);
     field.dispatchEvent(new CompositionEvent("compositionstart", { bubbles: true }));
@@ -1049,7 +1049,7 @@ export const Mentions: Story = {
     field.dispatchEvent(new CompositionEvent("compositionend", { bubbles: true }));
     await new Promise((resolve) => setTimeout(resolve, 20));
     await userEvent.keyboard("{Enter}");
-    await expect(field).toHaveValue("");
+    await expect(field).toHaveValue("โลโก้ ");
     await expect(canvas.queryByRole("listbox")).toBeNull();
     await expect(args.onAsk).not.toHaveBeenCalled();
     await expect(args.onMentionsChange).toHaveBeenLastCalledWith(["logo"]);
@@ -1063,7 +1063,7 @@ export const Mentions: Story = {
     await expect(field).toHaveFocus();
     await expect(optionsOf(canvas)).toHaveLength(BOARD.nodes.length);
     await userEvent.click(canvas.getByRole("option", { name: /โปรไฟล์ว่าที่ลูกค้า/ }));
-    await expect(field).toHaveValue("");
+    await expect(field).toHaveValue("โลโก้ โปรไฟล์ว่าที่ลูกค้า ");
     await expect(chipsOf(canvasElement)).toEqual(["โลโก้", "โปรไฟล์ว่าที่ลูกค้า"]);
     // The same node again adds nothing and does not fire the callback; picking the node that is
     // selected alone is a chip like any other.
@@ -1073,7 +1073,16 @@ export const Mentions: Story = {
     await expect((args.onMentionsChange as ReturnType<typeof fn>).mock.calls).toHaveLength(calls);
     await userEvent.type(field, "@บรี{Enter}");
     await expect(chipsOf(canvasElement)).toEqual(["โลโก้", "โปรไฟล์ว่าที่ลูกค้า", "บรีฟ"]);
+    const valueAfterPicks = (field as HTMLTextAreaElement).value;
+    await expect(valueAfterPicks).toBe("โลโก้ โปรไฟล์ว่าที่ลูกค้า โลโก้ บรีฟ ");
+    // Removing a chip does not edit the text.
+    await userEvent.click(canvas.getByRole("button", { name: "ลบ บรีฟ" }));
+    await expect(chipsOf(canvasElement)).toEqual(["โลโก้", "โปรไฟล์ว่าที่ลูกค้า"]);
+    await expect(field).toHaveValue(valueAfterPicks);
+    await userEvent.type(field, "@บรี{Enter}");
+    await expect(chipsOf(canvasElement)).toEqual(["โลโก้", "โปรไฟล์ว่าที่ลูกค้า", "บรีฟ"]);
     // Row 21: sending passes the ids in pick order; the question lists them; one edge per source.
+    await userEvent.clear(field);
     await userEvent.type(field, `${chatFixtures.question}{Enter}`);
     await expect(args.onAsk).toHaveBeenCalledTimes(1);
     await expect((args.onAsk as ReturnType<typeof fn>).mock.calls[0]?.[0]).toEqual({
@@ -1232,6 +1241,9 @@ export const MentionsEnglish: Story = {
     await expect(
       canvas.getByRole("button", { name: "Remove โลโก้ is no longer on the board" }),
     ).toBeVisible();
+    // A pick puts the node title and a space in the text, in English too.
+    await userEvent.type(field, "@บรี{Enter}");
+    await expect(field).toHaveValue("บรีฟ ");
   },
 };
 
