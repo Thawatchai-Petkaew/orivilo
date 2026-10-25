@@ -29,6 +29,20 @@
       "when": 1792690565570,
       "tag": "0003_directions_access",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792966111312,
+      "tag": "0004_rate_limits",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792966111719,
+      "tag": "0005_rate_limits_access",
+      "breakpoints": true
     }
   ]
 }

@@ -89,6 +89,13 @@ const th = {
     signOut: "ออกจากระบบ",
     notConfigured:
       "ยังลงชื่อเข้าใช้ในสภาพแวดล้อมนี้ไม่ได้ เพราะยังไม่ได้ตั้งค่า Google และฐานข้อมูล",
+    problem: "ทำไม่สำเร็จ",
+    rateLimited: "มีการลงชื่อเข้าใช้จากเครือข่ายนี้ถี่เกินไป ลองใหม่ได้ในอีก {wait}",
+  },
+  wait: {
+    seconds: { one: "{n} วินาที", other: "{n} วินาที" },
+    minutes: { one: "{n} นาที", other: "{n} นาที" },
+    hours: { one: "{n} ชั่วโมง", other: "{n} ชั่วโมง" },
   },
   directions: {
     title: "สองทิศทาง, ORIVILO",
@@ -151,6 +158,9 @@ const th = {
       "profile-missing": "ทิศทางที่เลือกไม่มีในชุดโปรไฟล์ปัจจุบัน",
       "fingerprint-mismatch":
         "ผลที่ได้ไม่ตรงกับลายนิ้วมือที่บันทึกไว้ ไฟล์อาจถูกแก้ไข จึงไม่นำเข้า",
+      "rate-limited": "ส่งคำขอถี่เกินไป จึงยังไม่ได้ทำรายการนี้ ลองใหม่ได้ในอีก {wait}",
+      "ai-rate-limited":
+        "ใช้ AI อ่านบรีฟครบจำนวนที่กำหนดแล้ว จึงใช้การอ่านตามกฎแทน อ่านด้วย AI ได้อีกครั้งในอีก {wait}",
       failed: "ทำไม่สำเร็จ ลองอีกครั้ง",
     },
     replayReasons: {
@@ -254,6 +264,13 @@ const en: WebMessages = {
     workspace: "Your workspace: {name}",
     signOut: "Sign out",
     notConfigured: "Sign-in is not available here yet: Google and the database are not set up.",
+    problem: "Not done",
+    rateLimited: "Too many sign-in attempts from this network. Try again in {wait}.",
+  },
+  wait: {
+    seconds: { one: "{n} second", other: "{n} seconds" },
+    minutes: { one: "{n} minute", other: "{n} minutes" },
+    hours: { one: "{n} hour", other: "{n} hours" },
   },
   directions: {
     title: "Two directions, ORIVILO",
@@ -322,6 +339,10 @@ const en: WebMessages = {
       "profile-missing": "The chosen direction is not in the current set of profiles.",
       "fingerprint-mismatch":
         "The result does not match the saved fingerprint. The file may have been edited, so it was not imported.",
+      "rate-limited":
+        "Too many requests in a short time, so this was not done. Try again in {wait}.",
+      "ai-rate-limited":
+        "You have reached the limit for AI readings, so the rules' reading is used. AI can read again in {wait}.",
       failed: "That did not work. Try again.",
     },
     replayReasons: {

@@ -15,6 +15,8 @@ import {
 import type { Interpretation } from "@orivilo/intent-engine";
 import { type ReactNode, useId, useMemo, useRef, useState, useTransition } from "react";
 import type { WebMessages } from "../../i18n/messages";
+import { errorLine as errorLineOf } from "../../i18n/wait";
+import { readingResult } from "./read-outcome";
 import {
   type ActionError,
   approveDirection,
@@ -29,6 +31,9 @@ import {
 } from "./actions";
 
 type M = WebMessages["saved"];
+
+const errorLine = (m: M, wait: WebMessages["wait"], error: ActionError, retryAfter?: number) =>
+  errorLineOf(m.errors, wait, error, retryAfter);
 
 export type SavedView =
   | { kind: "signed-out" }
@@ -97,11 +102,13 @@ function download(name: string, content: unknown) {
 export function SavedStudio({
   view,
   m,
+  wait,
   defaultBrief,
   preview,
 }: {
   view: SavedView;
   m: M;
+  wait: WebMessages["wait"];
   defaultBrief: string;
   preview: ReactNode;
 }) {
@@ -118,7 +125,7 @@ export function SavedStudio({
     savedName: m.defaultName,
   });
   const [notice, setNotice] = useState<Notice | null>(
-    view.kind === "error" ? { tone: "danger", lines: [m.errors[view.error]] } : null,
+    view.kind === "error" ? { tone: "danger", lines: [errorLine(m, wait, view.error)] } : null,
   );
   const [busy, setBusy] = useState<"save" | "approve" | "import" | null>(null);
   const [, startTransition] = useTransition();
@@ -126,15 +133,14 @@ export function SavedStudio({
   const seals = useRef(new WeakMap<Interpretation, string>());
 
   const readWithAi = async (brief: string) => {
-    const result = await readBriefWithAi(brief);
-    if (!result.ok) {
-      // The studio says AI could not read; a setup problem also gets its own words here.
-      if (result.error !== "ai-failed")
-        setNotice({ tone: "warning", lines: [m.errors[result.error]] });
+    const result = readingResult(await readBriefWithAi(brief), m.errors, wait);
+    if ("notice" in result) return result;
+    if (result.reading === null) {
+      if (result.cardNotice) setNotice({ tone: "warning", lines: [result.cardNotice] });
       return null;
     }
-    seals.current.set(result.value.reading, result.value.seal);
-    return result.value.reading;
+    seals.current.set(result.reading, result.seal);
+    return result.reading;
   };
 
   const openedProps = useMemo(
@@ -159,7 +165,10 @@ export function SavedStudio({
       setBusy(kind);
       const result = await call();
       if (result.ok) await done(result.value);
-      else setNotice({ tone: "danger", lines: [m.errors[result.error]] });
+      else {
+        const retryAfter = result.error === "rate-limited" ? result.retryAfter : undefined;
+        setNotice({ tone: "danger", lines: [errorLine(m, wait, result.error, retryAfter)] });
+      }
       setBusy(null);
     });
 

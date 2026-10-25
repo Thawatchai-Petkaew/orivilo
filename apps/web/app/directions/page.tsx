@@ -34,6 +34,7 @@ export default async function DirectionsPage() {
       <SavedStudio
         view={await load()}
         m={m.saved}
+        wait={m.wait}
         defaultBrief={messagesFor(locale).direction.preset1Text}
         preview={<WorkspaceScreen />}
       />

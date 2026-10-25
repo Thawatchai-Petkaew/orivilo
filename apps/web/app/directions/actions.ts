@@ -5,6 +5,8 @@ import {
   DirectionError,
   type DirectionSummary,
   directionService,
+  LIMITS,
+  type LimitName,
   type Role,
   sealReading,
   withWorkspace,
@@ -23,6 +25,7 @@ import {
 } from "@orivilo/intent-engine";
 import { headers } from "next/headers";
 import { accessDeps, auth } from "../../server/auth";
+import { limiter, subjectFromHeaders } from "../../server/rate-limit";
 
 /**
  * Saved directions for the Studio (ORV-35 part 2). Every call goes through `directionService`, so
@@ -38,9 +41,23 @@ export type ActionError =
   | "failed"
   | "ai-failed"
   | "ai-not-configured"
+  | "rate-limited"
+  | "ai-rate-limited"
   | DirectionError["reason"];
 
-export type Outcome<T> = { ok: true; value: T } | { ok: false; error: ActionError };
+/** A refused call says how long to wait; the caller says it in the person's language (ORV-112). */
+export type RateLimited = {
+  ok: false;
+  error: "rate-limited" | "ai-rate-limited";
+  code: "RATE_LIMITED";
+  retryAfter: number;
+  retryable: true;
+};
+
+export type Outcome<T> =
+  | { ok: true; value: T }
+  | { ok: false; error: Exclude<ActionError, RateLimited["error"]> }
+  | RateLimited;
 
 export interface Listing {
   role: Role;
@@ -71,16 +88,40 @@ class AiFailed extends Error {
   }
 }
 
+/**
+ * The one door for the actions. The order is fixed: the session, then the rate limit (per person,
+ * or per trusted network without a session), then the work (ORV-112). A store that cannot count
+ * fails closed: the call is refused as a failure and nothing runs.
+ */
 async function run<T>(
   fn: (
     service: ReturnType<typeof directionService>,
     h: Headers,
     workspaceId: string | null | undefined,
   ) => Promise<T>,
+  limit?: LimitName,
 ): Promise<Outcome<T>> {
   try {
     const h = await headers();
     const session = await auth().api.getSession({ headers: h });
+    if (limit) {
+      const counted = session
+        ? await limiter().consume(LIMITS[limit], { user: session.user.id })
+        : await limiter().consume(LIMITS["signed-out"], { ip: subjectFromHeaders(h) });
+      if (!counted.ok) {
+        if (counted.reason === "unavailable") {
+          console.error("rate limit unavailable", limit);
+          return { ok: false, error: limit === "ai-read" ? "ai-failed" : "failed" };
+        }
+        return {
+          ok: false,
+          error: session && limit === "ai-read" ? "ai-rate-limited" : "rate-limited",
+          code: "RATE_LIMITED",
+          retryAfter: counted.retryAfter,
+          retryable: true,
+        };
+      }
+    }
     if (!session) return { ok: false, error: "signed-out" };
     const service = directionService(accessDeps(), CURATED_PROFILES, {
       sealKey: requireEnv("BETTER_AUTH_SECRET"),
@@ -116,12 +157,15 @@ export async function listDirections(): Promise<Outcome<Listing>> {
 
 /** Saves the studio as the direction's draft; without an id it starts a new direction. */
 export async function saveDirection(input: unknown) {
-  return run((service, h, workspaceId) => service.saveDraft(h, workspaceId ?? "", input));
+  return run((service, h, workspaceId) => service.saveDraft(h, workspaceId ?? "", input), "write");
 }
 
 /** Approves the direction's draft into the next version. The service requires an admin. */
 export async function approveDirection(directionId: unknown) {
-  return run((service, h, workspaceId) => service.approve(h, workspaceId ?? "", id(directionId)));
+  return run(
+    (service, h, workspaceId) => service.approve(h, workspaceId ?? "", id(directionId)),
+    "write",
+  );
 }
 
 /** One version as the studio opens it, with whether it still replays to what was saved. */
@@ -150,7 +194,7 @@ export async function exportVersion(versionId: unknown): Promise<Outcome<Directi
 
 /** Imports a file as a new direction with one draft; refused unless it replays to its fingerprint. */
 export async function importDirection(file: unknown) {
-  return run((service, h, workspaceId) => service.importFile(h, workspaceId ?? "", file));
+  return run((service, h, workspaceId) => service.importFile(h, workspaceId ?? "", file), "import");
 }
 
 /** How long a reading may take before the Studio keeps the rules' reading (ADR 0009 point 3). */
@@ -191,5 +235,5 @@ export async function readBriefWithAi(brief: unknown): Promise<Outcome<SealedRea
       reading: outcome.interpretation,
       seal: sealReading(requireEnv("BETTER_AUTH_SECRET"), text, outcome.interpretation),
     };
-  });
+  }, "ai-read");
 }

@@ -2090,6 +2090,11 @@
       "$type": "dimension",
       "$value": "{space.stack.md}"
     },
+    "note-gap": {
+      "$type": "dimension",
+      "$value": "{space.stack.sm}",
+      "$description": "Between the badge and the line of the note under Read with AI"
+    },
     "fg": {
       "$type": "color",
       "$value": "{text.primary}"
