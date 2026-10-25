@@ -131,7 +131,15 @@ If the Agent call was refused at the permission prompt, the envelope never start
 node scripts/ovl/close-envelope.mjs <task_id>
 ```
 
-For an envelope whose subagent has already stopped, the same command closes it as `abandoned`. It refuses (exit 2) while the subagent may still run. If a session ended while its subagent ran, only the owner closes the envelope, from a terminal outside Claude Code, with `--owner`. Never run `--owner` yourself.
+For an envelope whose subagent has already stopped, the same command closes it as `abandoned`. It refuses (exit 2) while the subagent may still run. If a session ended while its subagent ran, the envelope is stuck: it is bound and has no final `SubagentStop`. Only the owner closes it, in one of two ways. Never run `--owner` yourself.
+
+1. The close form (first choice, works from the phone). Ask one `AskUserQuestion` that names the task id, its role, its `agent_id` and its `started_at`, and warns that a builder envelope closed this way still counts as a rework round. The options are:
+   - the close option, whose whole label is exactly `ปิดงาน <task_id>` or `Close envelope <task_id>`, with nothing before or after it
+   - a decline option, worded without the close phrase (`Keep open`, `ยังไม่ปิด`)
+
+   Only the close option the owner clicks counts. Text typed in chat never closes an envelope, and neither does text typed under Other. If the owner types it in chat, say it does not count and ask the form. The `owner-close` hook writes `closed.json` (`reason` `abandoned`, `by` `owner`, `source` `question_form`, with the question, options, answer and ids). It refuses a never-bound envelope, one that has stopped, one that is already closed, and one the session still lists as running.
+
+2. From a terminal outside Claude Code: `node scripts/ovl/close-envelope.mjs <task_id> --owner`.
 
 A builder envelope that was bound counts as a rework round after the first verdict, however it ended. Only `denied` and `pre_a3` do not.
 

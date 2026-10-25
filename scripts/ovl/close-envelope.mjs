@@ -12,7 +12,7 @@ import { recordsRoot } from "./hook.mjs";
 import { allTasks, isOpen, writeClosed } from "./records.mjs";
 
 /** True when the recorder let this agent's SubagentStop through (decision allow): the subagent has ended. */
-function hasFinalStop(root, agentId) {
+export function hasFinalStop(root, agentId) {
   const file = join(root, ".orivilo", "heartbeat.jsonl");
   if (!existsSync(file)) return false;
   return readFileSync(file, "utf8")
@@ -53,7 +53,7 @@ function main(argv) {
   }
   if (!owner && !hasFinalStop(root, task.agent.agent_id)) {
     console.error(
-      `close-envelope: ${task.id} is bound to agent ${task.agent.agent_id} and no final SubagentStop was recorded, so the subagent may still run. If the session ended, the owner closes it from a terminal with --owner.`,
+      `close-envelope: ${task.id} is bound to agent ${task.agent.agent_id} and no final SubagentStop was recorded, so the subagent may still run. If the session ended, ask the owner the close form in the main session, or the owner runs --owner from a terminal.`,
     );
     return 2;
   }
