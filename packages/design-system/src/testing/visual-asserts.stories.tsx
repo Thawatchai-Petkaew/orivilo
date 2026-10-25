@@ -6,7 +6,7 @@ import { fixtures } from "../components/fixtures";
 import { LocaleProvider } from "../i18n/LocaleProvider";
 import { Tag } from "../components/tag/Tag";
 import { CloseIcon, WarningIcon } from "../components/icons";
-import { expectEdgeInk, expectNoGlyphClip, expectSameHeight } from "./visual-asserts";
+import { expectEdgeInk, expectNoGlyphClip, expectSameHeight, inVitest } from "./visual-asserts";
 
 const meta = {
   title: "Foundations/Visual asserts",
@@ -61,6 +61,7 @@ function edgeInkStory(mode: "light" | "dark"): Story {
       </DesignProfileBoundary>
     ),
     play: async ({ canvasElement }) => {
+      if (!inVitest) return; // the screenshot needs Vitest browser mode
       // Red: the border and the outline read as the 2 px the user sees, on the top and the left edge.
       await expect(
         expectEdgeInk(q(canvasElement, "[data-case='double']"), ["top", "left"], 1),
