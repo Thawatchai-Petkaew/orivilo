@@ -123,7 +123,9 @@ describe("placeReply", () => {
     const g: Graph = { ...base(), nodes: [...base().nodes, below] };
     const long = "word ".repeat(40);
     expect(estimateReplyHeight(long)).toBeGreaterThan(200);
-    const landed = placeReply(g, { ...reply, text: long, sources: ["a"] }).nodes.at(-1) as BoardNode;
+    const landed = placeReply(g, { ...reply, text: long, sources: ["a"] }).nodes.at(
+      -1,
+    ) as BoardNode;
     const bottom = 240 + rectOf(g.nodes, below).height;
     expect(landed.position.x).toBe(264);
     expect(landed.position.y).toBeGreaterThanOrEqual(bottom);
