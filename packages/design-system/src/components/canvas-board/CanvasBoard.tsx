@@ -108,7 +108,7 @@ export interface CanvasBoardProps {
   onChange?: ((graph: Graph) => void) | undefined;
   /**
    * A registry command the board cannot complete itself: `board.add-node` (with the position),
-   * `node.rename` and `node.open` (with the node), `board.undo`, `board.redo`, `app.toggle-mode`,
+   * `node.rename`, `node.open` and `node.mention` (with the node), `board.undo`, `board.redo`, `app.toggle-mode`,
    * `panel.toggle-inspector`, `panel.toggle-library`.
    */
   onCommand?: ((command: CommandId, context: CommandContext) => void) | undefined;
@@ -230,6 +230,7 @@ const SHELL_COMMANDS = new Set<CommandId>([
   "board.add-node",
   "node.rename",
   "node.open",
+  "node.mention",
   "panel.toggle-inspector",
   "panel.toggle-library",
   "board.undo",
@@ -892,6 +893,11 @@ function Board({
       case "node.rename":
         if (!node) return false;
         onCommand?.("node.rename", { nodeId: node.id });
+        return true;
+      case "node.mention":
+        // The shell adds the id to the chat's controlled `mentions` (ORV-107).
+        if (!node) return false;
+        onCommand?.("node.mention", { nodeId: node.id });
         return true;
       case "node.open":
         // Opening is also picking: the node is selected alone, then the shell shows it.

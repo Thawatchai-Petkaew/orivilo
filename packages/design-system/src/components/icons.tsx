@@ -1,6 +1,7 @@
 import type { SVGProps } from "react";
 import {
   Activity,
+  AtSign,
   Book,
   BookOpen,
   Check,
@@ -111,6 +112,9 @@ export const QueuedIcon = lucide(Clock, "QueuedIcon");
 export const RunningIcon = lucide(Activity, "RunningIcon");
 export const RetryIcon = lucide(RotateCcw, "RetryIcon");
 export const JumpIcon = lucide(LocateFixed, "JumpIcon");
+
+// Board chat (ORV-105 slice C): the button that opens the node picker.
+export const MentionIcon = lucide(AtSign, "MentionIcon");
 
 /* Node kinds: the icon in a node's top row (ORV-57). */
 export const InputBlockIcon = lucide(TextCursorInput, "InputBlockIcon");

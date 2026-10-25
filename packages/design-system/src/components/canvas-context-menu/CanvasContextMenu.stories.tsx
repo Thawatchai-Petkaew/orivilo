@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, userEvent, waitFor, within } from "storybook/test";
+import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { commandById, surfaceCommands } from "../../commands/index";
+import { CanvasBoard } from "../canvas-board/CanvasBoard";
 import { BOARD, BOARD_NODES } from "../canvas-board/fixtures";
 import { MatrixBoard, Stateful } from "../canvas-board/story-shell";
 import { Matrix } from "../matrix";
@@ -143,6 +144,54 @@ export const ShiftF10: Story = {
     ).toBeInTheDocument();
     await userEvent.keyboard("{Escape}");
     await waitFor(() => expect(body().queryByRole("menu")).toBeNull());
+  },
+};
+
+/**
+ * "อ้างถึง node นี้ใน prompt" (node.mention, ORV-107): on a node it reaches the shell through
+ * onCommand with the node's id; the board adds nothing and changes nothing itself.
+ */
+export const MentionItem: Story = {
+  args: { onCommand: fn() },
+  play: async ({ canvasElement, args }) => {
+    const region = within(canvasElement).getByRole("region");
+    await ready(region);
+    await userEvent.pointer({ keys: "[MouseRight]", target: nodeByTitle(region, "โลโก้") });
+    const menu = await body().findByRole("menu");
+    const item = within(menu).getByRole("menuitem", { name: "อ้างถึง node นี้ใน prompt" });
+    await expect(item).not.toHaveAttribute("data-disabled");
+    await userEvent.click(item);
+    await expect(args.onCommand).toHaveBeenCalledWith("node.mention", { nodeId: "logo" });
+    // Not on the board's own menu or an edge menu: it names a node.
+    const pane = region.querySelector(".react-flow__pane") as HTMLElement;
+    await userEvent.pointer({ keys: "[MouseRight]", target: pane, coords: { x: 20, y: 20 } });
+    const boardMenu = await body().findByRole("menu");
+    await expect(
+      within(boardMenu).queryByRole("menuitem", { name: "อ้างถึง node นี้ใน prompt" }),
+    ).toBeNull();
+    await userEvent.keyboard("{Escape}");
+  },
+};
+
+/** A board with no shell (no onCommand) cannot hand the mention on, so the item is not offered. */
+export const MentionItemNoShell: Story = {
+  render: () => (
+    <div style={{ height: 520 }} className="relative">
+      <CanvasBoard graph={BOARD} label="กระดานแบรนด์ (ข้อมูลตัวอย่าง)" minimap={false} />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const region = within(canvasElement).getByRole("region");
+    await ready(region);
+    await userEvent.pointer({ keys: "[MouseRight]", target: nodeByTitle(region, "โลโก้") });
+    const menu = await body().findByRole("menu");
+    await expect(
+      within(menu).queryByRole("menuitem", { name: "อ้างถึง node นี้ใน prompt" }),
+    ).toBeNull();
+    await expect(
+      within(menu).getByRole("menuitem", { name: new RegExp(commandById("node.rename").label.th) }),
+    ).toBeInTheDocument();
+    await userEvent.keyboard("{Escape}");
   },
 };
 

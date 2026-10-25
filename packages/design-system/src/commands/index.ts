@@ -125,8 +125,14 @@ export function storyOrder(key: string): number {
   return Number(m[1]) * 1000 + Number(m[2]);
 }
 
+/**
+ * Commands a slice of a later story ships before that story's number is reached (ORV-105 open
+ * question 3): available now, whatever their `since`. Slice D adds `board.open-chat-here`.
+ */
+const EARLY: ReadonlySet<CommandId> = new Set<CommandId>(["node.mention"]);
+
 export function commandAvailable(command: Command, current: string = CURRENT_STORY): boolean {
-  return storyOrder(command.since) <= storyOrder(current);
+  return EARLY.has(command.id) || storyOrder(command.since) <= storyOrder(current);
 }
 
 export type CommandSurface = Command["surfaces"][number];

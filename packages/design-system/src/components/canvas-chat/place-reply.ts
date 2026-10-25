@@ -49,7 +49,8 @@ export interface PlacedReply {
 /**
  * The graph with the reply added as a `note`, one input port per source that has an output, and a
  * `derived` edge from each. Existing nodes and edges keep their `selected` state (unlike
- * `placeBlock`), so selection and focus do not move.
+ * `placeBlock`), so selection and focus do not move. The note lands at the first spot, stepping
+ * down by the grid gap, where it covers no node.
  */
 export function placeReply(graph: Graph, reply: PlacedReply): Graph {
   const sources = [...new Set(reply.sources)]
@@ -106,5 +107,16 @@ export function placeReply(graph: Graph, reply: PlacedReply): Graph {
       outputs: [],
     },
   };
+  // Never cover a node: step down by the grid gap until the note's rect meets none (ORV-107 row 30).
+  // Each step clears a little more, and past the lowest node nothing is left to meet.
+  const others = graph.nodes.filter((n) => !n.hidden).map((n) => rectOf(graph.nodes, n));
+  const meets = () => {
+    const r = rectOf([node], node);
+    return others.some(
+      (o) =>
+        r.x < o.x + o.width && r.x + r.width > o.x && r.y < o.y + o.height && r.y + r.height > o.y,
+    );
+  };
+  while (meets()) node.position = { x: node.position.x, y: node.position.y + GRID };
   return { nodes: [...graph.nodes, node], edges: [...graph.edges, ...edges] };
 }

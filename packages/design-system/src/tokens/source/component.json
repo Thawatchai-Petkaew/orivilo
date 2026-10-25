@@ -2471,6 +2471,11 @@
     "body-sm-type": {
       "$type": "typography",
       "$value": "{type.body.sm}"
+    },
+    "picker-max-block-size": {
+      "$type": "dimension",
+      "$value": "{size.panel.min}",
+      "$description": "Tallest the mention picker grows before it scrolls, 240 (slice C)"
     }
   }
 }

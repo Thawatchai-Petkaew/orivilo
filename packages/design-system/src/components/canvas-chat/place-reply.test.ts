@@ -1,6 +1,6 @@
 /** placeReply and replyTitle (ORV-106 rows 13, 14, 17). */
 import { describe, expect, it } from "vitest";
-import { GRID } from "../canvas-board/arrange";
+import { GRID, rectOf } from "../canvas-board/arrange";
 import { type BoardNode, connectionProblem, type Graph } from "../canvas-board/graph";
 import { placeReply, replyTitle } from "./place-reply";
 
@@ -16,8 +16,8 @@ const imageOut = [{ id: "image", kind: "image" as const, label: "i" }];
 const base = (): Graph => ({
   nodes: [
     { ...node("a", 0, { outputs: textOut }), selected: true },
-    { ...node("b", 400, { outputs: imageOut }), selected: true },
-    node("note", 800),
+    { ...node("b", 600, { outputs: imageOut }), selected: true },
+    node("note", 1000),
   ],
   edges: [],
 });
@@ -59,7 +59,7 @@ describe("placeReply", () => {
     const g = placeReply(base(), { ...reply, sources: ["note"] });
     expect(g.edges).toHaveLength(0);
     expect((g.nodes.at(-1) as BoardNode).data.inputs).toHaveLength(0);
-    expect((g.nodes.at(-1) as BoardNode).position.x).toBeGreaterThan(800);
+    expect((g.nodes.at(-1) as BoardNode).position.x).toBeGreaterThan(1000);
   });
 
   it("skips gone sources and counts a repeated source once", () => {
@@ -71,14 +71,18 @@ describe("placeReply", () => {
   it("uses the position with no source, and the origin without one", () => {
     expect(
       (
-        placeReply(base(), { ...reply, sources: [], position: { x: 7, y: 9 } }).nodes.at(
+        placeReply(base(), { ...reply, sources: [], position: { x: 7, y: -400 } }).nodes.at(
           -1,
         ) as BoardNode
       ).position,
-    ).toEqual({ x: 7, y: 9 });
+    ).toEqual({ x: 7, y: -400 });
+    const empty: Graph = { nodes: [], edges: [] };
     expect(
-      (placeReply(base(), { ...reply, sources: [] }).nodes.at(-1) as BoardNode).position,
-    ).toEqual({ x: 0, y: 0 });
+      (placeReply(empty, { ...reply, sources: [] }).nodes.at(-1) as BoardNode).position,
+    ).toEqual({
+      x: 0,
+      y: 0,
+    });
     expect(placeReply(base(), { ...reply, sources: [] }).edges).toHaveLength(0);
   });
 
@@ -91,6 +95,51 @@ describe("placeReply", () => {
     expect(second.position.y).toBeGreaterThanOrEqual(first.position.y + GRID);
     const three = placeReply(two, { ...reply, id: "r3", sources: ["a"] });
     expect((three.nodes.at(-1) as BoardNode).position.y).toBeGreaterThan(second.position.y);
+  });
+
+  it("steps a covered spot down past one and past two stacked nodes, x unchanged", () => {
+    // The spot right of "a" is x 264, y 40: a blocker sits on it.
+    const blocker = (id: string, y: number): BoardNode => ({
+      ...node(id, 264),
+      position: { x: 264, y },
+    });
+    const one: Graph = { ...base(), nodes: [...base().nodes, blocker("c1", 40)] };
+    const landed = placeReply(one, { ...reply, sources: ["a"] }).nodes.at(-1) as BoardNode;
+    const c1 = rectOf(one.nodes, blocker("c1", 40));
+    expect(landed.position.x).toBe(264);
+    expect(landed.position.y).toBe(40 + GRID * Math.ceil(c1.height / GRID));
+    expect((landed.position.y - 40) % GRID).toBe(0);
+    const two: Graph = { ...one, nodes: [...one.nodes, blocker("c2", 40 + c1.height)] };
+    const lower = placeReply(two, { ...reply, sources: ["a"] }).nodes.at(-1) as BoardNode;
+    expect(lower.position.x).toBe(264);
+    expect(lower.position.y).toBeGreaterThanOrEqual(40 + 2 * c1.height);
+    expect(lower.position.y).toBeGreaterThan(landed.position.y);
+  });
+
+  it("leaves a free spot as it is", () => {
+    const landed = placeReply(base(), { ...reply, sources: ["a"] }).nodes.at(-1) as BoardNode;
+    expect(landed.position).toEqual({ x: 264, y: 40 });
+  });
+
+  it("steps an unlinked position down when a node covers it, and never meets any node", () => {
+    const g = base();
+    const at = g.nodes[0] as BoardNode;
+    const landed = placeReply(g, {
+      ...reply,
+      sources: [],
+      position: { x: at.position.x + 10, y: at.position.y + 10 },
+    }).nodes.at(-1) as BoardNode;
+    expect(landed.position.x).toBe(10);
+    expect(landed.position.y).toBeGreaterThan(50);
+    expect((landed.position.y - 50) % GRID).toBe(0);
+    const all = [...g.nodes, landed];
+    const r = rectOf(all, landed);
+    for (const n of g.nodes) {
+      const o = rectOf(all, n);
+      const meet =
+        r.x < o.x + o.width && r.x + r.width > o.x && r.y < o.y + o.height && r.y + r.height > o.y;
+      expect(meet).toBe(false);
+    }
   });
 
   it("is deterministic and does not change its input", () => {

@@ -78,6 +78,11 @@ export const en: Messages = {
     jumpLabel: "Go to reply node on {topic}",
     placed: "Placed the reply as node {title}",
     unlinked: "Not linked to any node",
+    mention: "Mention a node",
+    mentionList: "Nodes on the board",
+    mentionNone: 'No node named "{query}"',
+    mentioned: "Mentioned nodes",
+    mentionGone: "{title} is no longer on the board",
   },
   tag: {
     remove: "Remove {label}",

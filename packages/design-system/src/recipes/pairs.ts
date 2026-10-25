@@ -944,4 +944,7 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
   { recipe: "chat", slot: "streaming", fg: "chat.streaming-fg", bg: "chat.bg", floor: TEXT },
   { recipe: "chat", slot: "failed", fg: "chat.failed-fg", bg: "chat.bg", floor: TEXT },
   { recipe: "chat", slot: "transcript focus", fg: "ds:focus.ring", bg: "chat.bg", floor: UI },
+  // Slice C: the gone chip's caution mark. The picker's text pairs are the `menu` ones (it reads
+  // `menu.*`); the question line is `muted` on the question well, listed above as "speaker on well".
+  { recipe: "chat", slot: "gone mark", fg: "ds:feedback.warning.fg", bg: "chat.bg", floor: UI },
 ];

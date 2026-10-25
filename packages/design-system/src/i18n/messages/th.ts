@@ -82,6 +82,11 @@ export const th = {
     jumpLabel: "ไปที่โหนดคำตอบ เรื่อง {topic}",
     placed: "วางคำตอบเป็นโหนด {title} แล้ว",
     unlinked: "ไม่ได้ผูกกับโหนดใด",
+    mention: "อ้างถึงโหนด",
+    mentionList: "โหนดบนบอร์ด",
+    mentionNone: 'ไม่มีโหนดชื่อ "{query}"',
+    mentioned: "โหนดที่อ้างถึง",
+    mentionGone: "{title} ไม่อยู่บนบอร์ดแล้ว",
   },
   tag: {
     remove: "ลบ {label}",

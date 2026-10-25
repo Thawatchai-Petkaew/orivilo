@@ -6,7 +6,7 @@ import { LocaleProvider, useLocale } from "../../i18n/LocaleProvider";
 import { CanvasBoard } from "../canvas-board/CanvasBoard";
 import { BOARD } from "../canvas-board/fixtures";
 import type { Graph } from "../canvas-board/graph";
-import { chatFixtures, type ChatHost } from "../fixtures";
+import { chatFixtures, fixtures, type ChatHost } from "../fixtures";
 import { Matrix } from "../matrix";
 import { CanvasChat, type ChatReply, type ChatRequest } from "./CanvasChat";
 import { placeReply, replyTitle } from "./place-reply";
@@ -734,12 +734,19 @@ function BoardChat({
   selected,
   args,
   height = 560,
+  controlled = false,
+  size = "panel",
 }: {
   /** The node selected alone at the start, if any. */
   selected?: string;
   args: Parameters<typeof CanvasChat>[0];
   height?: number;
+  /** The shell owns the mentions: `node.mention` from the context menu adds the node (ORV-107). */
+  controlled?: boolean;
+  /** The chat's width, from the panel range. */
+  size?: keyof typeof WIDTH;
 }) {
+  const [mentions, setMentions] = useState<readonly string[]>(args.defaultMentions ?? []);
   const [graph, setGraph] = useState<Graph>(() => ({
     ...BOARD,
     nodes: BOARD.nodes.map((n) => ({ ...n, selected: n.id === selected })),
@@ -773,8 +780,29 @@ function BoardChat({
         onChange={setGraph}
         label="กระดานแบรนด์ (ข้อมูลตัวอย่าง)"
         minimap={false}
+        onCommand={(command, context) => {
+          if (command !== "node.mention" || !context.nodeId) return;
+          const id = context.nodeId;
+          setMentions((list) => (list.includes(id) ? list : [...list, id]));
+        }}
       >
-        <ChatSlot args={args} place={place} />
+        <ChatSlot
+          args={
+            controlled
+              ? {
+                  ...args,
+                  defaultMentions: undefined,
+                  mentions,
+                  onMentionsChange: (ids) => {
+                    setMentions(ids);
+                    args.onMentionsChange?.(ids);
+                  },
+                }
+              : args
+          }
+          place={place}
+          size={size}
+        />
       </CanvasBoard>
     </div>
   );
@@ -784,8 +812,10 @@ function BoardChat({
 function ChatSlot({
   args,
   place,
+  size,
 }: {
   args: Parameters<typeof CanvasChat>[0];
+  size: keyof typeof WIDTH;
   place: (
     reply: ChatReply,
     request: ChatRequest,
@@ -806,7 +836,7 @@ function ChatSlot({
   return (
     <div
       ref={slot}
-      className={`nodrag nopan nowheel absolute z-10 h-[calc(100%-24px)] ${WIDTH.panel} end-3 top-3 border border-border-card`}
+      className={`nodrag nopan nowheel absolute z-10 h-[calc(100%-24px)] ${WIDTH[size]} end-3 top-3 border border-border-card`}
     >
       <CanvasChat {...args} onReply={onReply} />
     </div>
@@ -817,6 +847,11 @@ function ChatSlot({
 const nodeEl = (root: HTMLElement, id: string) =>
   root.querySelector<HTMLElement>(`.react-flow__node[data-id="${id}"]`) as HTMLElement;
 const boardEl = (root: HTMLElement) => root.querySelector<HTMLElement>(".ds-board") as HTMLElement;
+/** Every other node on the board that the given node's box meets (ORV-107 row 30). */
+const nodesMet = (root: HTMLElement, el: HTMLElement) =>
+  [...root.querySelectorAll<HTMLElement>(".react-flow__node")]
+    .filter((n) => n !== el && overlap(box(n), box(el)))
+    .map((n) => n.dataset.id);
 
 /**
  * The chat on a board with the brief node selected alone. A finished reply (worked out by rules)
@@ -846,10 +881,14 @@ export const OnBoard: Story = {
     await expect(reply).not.toHaveClass("selected");
     await expect(canvasElement.querySelectorAll(".react-flow__node.selected")).toHaveLength(1);
     await expect(input(canvas)).toHaveFocus();
-    // One grid unit (24 flow px) right of the brief, level with its top.
+    // One grid unit (24 flow px) right of the brief; the spot beside it is covered by the logo, so
+    // the note steps down in whole grid units until it covers no node (ORV-107 row 30).
     const scale = box(brief).width / brief.offsetWidth;
     await expect(box(reply).left - box(brief).right).toBeCloseTo(24 * scale, 0);
-    await expect(box(reply).top).toBeCloseTo(box(brief).top, 0);
+    const steps = (box(reply).top - box(brief).top) / scale / 24;
+    await expect(steps).toBeGreaterThan(0);
+    await expect(Math.abs(steps - Math.round(steps))).toBeLessThan(0.02);
+    await expect(nodesMet(canvasElement, reply)).toEqual([]);
     await waitFor(() =>
       expect(statusOf(canvasElement)).toHaveTextContent(`วางคำตอบเป็นโหนด ${title} แล้ว`),
     );
@@ -907,17 +946,18 @@ export const Unlinked: Story = {
     await waitFor(() => expect(within(reply).getByText(title)).toBeVisible());
     await expect(canvasElement.querySelectorAll(".react-flow__edge")).toHaveLength(edges);
     await expect(canvas.getByText("ไม่ได้ผูกกับโหนดใด")).toBeVisible();
-    // Its top-left corner is the board's centre, snapped to the grid: within half a grid unit.
+    // Its left edge is the board's centre, snapped to the grid: within half a grid unit. The
+    // centre is covered by a node, so the note steps down by whole grid units, never up.
     const board = box(boardEl(canvasElement));
-    const half = 12 * (box(reply).width / reply.offsetWidth) + 0.5;
+    const scale = box(reply).width / reply.offsetWidth;
+    const half = 12 * scale + 0.5;
     await expect(Math.abs(box(reply).left - (board.left + board.width / 2))).toBeLessThanOrEqual(
       half,
     );
-    await expect(Math.abs(box(reply).top - (board.top + board.height / 2))).toBeLessThanOrEqual(
-      half,
-    );
+    await expect(box(reply).top).toBeGreaterThanOrEqual(board.top + board.height / 2 - half);
     // The node and the chat's controls are clear of each other and inside their parents.
-    await expect(inside(box(reply), board)).toBe(true);
+    // It may sit below the visible part of the board; the jump below brings it into view.
+    await expect(nodesMet(canvasElement, reply)).toEqual([]);
     await expect(overlap(box(reply), box(chatOf(canvasElement)))).toBe(false);
     for (const part of [".ds-chat__meta .ds-button", ".ds-chat__unlinked"]) {
       await expect(
@@ -927,5 +967,306 @@ export const Unlinked: Story = {
     await userEvent.click(canvas.getByRole("button", { name: /^ไปที่โหนดคำตอบ เรื่อง/ }));
     await waitFor(() => expect(reply).toHaveClass("selected"));
     await waitFor(() => expect(reply).toHaveFocus());
+  },
+};
+
+const optionsOf = (canvas: ReturnType<typeof within>) =>
+  within(canvas.getByRole("listbox", { name: "โหนดบนบอร์ด" })).getAllByRole("option");
+const chipsOf = (root: HTMLElement) =>
+  [...root.querySelectorAll<HTMLElement>(".ds-chat__chip .ds-tag__label")].map(
+    (el) => el.textContent,
+  );
+const edgesTo = (root: HTMLElement, id: string) =>
+  [...root.querySelectorAll<HTMLElement>(".react-flow__edge")].filter((e) =>
+    (e.dataset.id ?? "").includes(`:${id}:`),
+  );
+
+/**
+ * Mentions (ORV-105 rows 18 to 21, ORV-107): typing "@" opens "โหนดบนบอร์ด" above the box, full
+ * width, with every node by title and kind word; more text narrows it, arrows move, Enter picks
+ * and takes the "@query" out of the text, Escape closes the list only. The Mention button opens
+ * the same list. Chips are neutral tags with a remove; a repeat adds nothing. Sending passes the
+ * ids in pick order and the transcript lists them; the reply (rules) is linked once to each
+ * mentioned node and to the node selected alone. Nothing is read from the nodes.
+ */
+export const Mentions: Story = {
+  args: { onMentionsChange: fn() },
+  render: (args) => <BoardChat selected="brief" args={args} />,
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    await waitFor(() => expect(nodeEl(canvasElement, "brief")).toHaveClass("selected"));
+    const field = input(canvas);
+    const chat = box(chatOf(canvasElement));
+    // Row 18: "@" at the start opens the list above the box, the composer's full width.
+    await expect(canvas.queryByRole("listbox")).toBeNull();
+    await userEvent.type(field, "@");
+    const list = canvas.getByRole("listbox", { name: "โหนดบนบอร์ด" });
+    await expect(optionsOf(canvas)).toHaveLength(BOARD.nodes.length);
+    await expect(optionsOf(canvas)[0]).toHaveTextContent("บรีฟ");
+    await expect(optionsOf(canvas)[0]).toHaveTextContent("บล็อกป้อนข้อมูล");
+    const picker = list.parentElement as HTMLElement;
+    const composer = box(field.closest("form") as Element);
+    await expect(box(picker).bottom).toBeLessThanOrEqual(box(field).top + 0.5);
+    await expect(box(picker).left).toBeCloseTo(composer.left, 0);
+    await expect(box(picker).width).toBeCloseTo(composer.width, 0);
+    await expect(box(picker).height).toBeLessThanOrEqual(240 + 1);
+    await expect(inside(box(picker), chat)).toBe(true);
+    await expect(field).toHaveAttribute("aria-controls", list.id);
+    await expect(field).toHaveAttribute("aria-activedescendant", optionsOf(canvas)[0]?.id);
+    await userEvent.keyboard("{ArrowDown}");
+    await expect(field).toHaveAttribute("aria-activedescendant", optionsOf(canvas)[1]?.id);
+    await userEvent.keyboard("{ArrowUp}{ArrowUp}");
+    await expect(field).toHaveAttribute(
+      "aria-activedescendant",
+      optionsOf(canvas).at(-1)?.id as string,
+    );
+    // The list narrows by text; a miss says so.
+    await userEvent.keyboard("{Backspace}");
+    await userEvent.type(field, "@");
+    await userEvent.type(field, "zz");
+    await expect(canvas.getByText('ไม่มีโหนดชื่อ "zz"')).toBeVisible();
+    await expect(canvas.queryByRole("listbox")).toBeNull();
+    // Escape closes the list only: the text stays, nothing is sent, the chat stays.
+    await userEvent.keyboard("{Escape}");
+    await expect(canvas.queryByText('ไม่มีโหนดชื่อ "zz"')).toBeNull();
+    await expect(field).toHaveValue("@zz");
+    await expect(args.onClose).not.toHaveBeenCalled();
+    await userEvent.clear(field);
+    // Row 19: picking removes "@query" and adds a chip; Enter during IME composition never picks.
+    await userEvent.type(field, "@โล");
+    await expect(optionsOf(canvas)).toHaveLength(1);
+    field.dispatchEvent(new CompositionEvent("compositionstart", { bubbles: true }));
+    field.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "Enter",
+        isComposing: true,
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+    await expect(chipsOf(canvasElement)).toEqual([]);
+    await expect(canvas.getByRole("listbox")).toBeVisible();
+    field.dispatchEvent(new CompositionEvent("compositionend", { bubbles: true }));
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    await userEvent.keyboard("{Enter}");
+    await expect(field).toHaveValue("");
+    await expect(canvas.queryByRole("listbox")).toBeNull();
+    await expect(args.onAsk).not.toHaveBeenCalled();
+    await expect(args.onMentionsChange).toHaveBeenLastCalledWith(["logo"]);
+    await expect(chipsOf(canvasElement)).toEqual(["โลโก้"]);
+    const chips = canvas.getByRole("list", { name: "โหนดที่อ้างถึง" });
+    await expect(inside(box(chips), chat)).toBe(true);
+    await expect(box(chips).bottom).toBeLessThanOrEqual(box(field).top + 0.5);
+    await expect(canvas.getByRole("button", { name: "ลบ โลโก้" })).toBeVisible();
+    // Row 20: the Mention button opens the same list; a click picks.
+    await userEvent.click(canvas.getByRole("button", { name: "อ้างถึงโหนด" }));
+    await expect(field).toHaveFocus();
+    await expect(optionsOf(canvas)).toHaveLength(BOARD.nodes.length);
+    await userEvent.click(canvas.getByRole("option", { name: /โปรไฟล์ว่าที่ลูกค้า/ }));
+    await expect(field).toHaveValue("");
+    await expect(chipsOf(canvasElement)).toEqual(["โลโก้", "โปรไฟล์ว่าที่ลูกค้า"]);
+    // The same node again adds nothing and does not fire the callback; picking the node that is
+    // selected alone is a chip like any other.
+    const calls = (args.onMentionsChange as ReturnType<typeof fn>).mock.calls.length;
+    await userEvent.type(field, "@โล{Enter}");
+    await expect(chipsOf(canvasElement)).toEqual(["โลโก้", "โปรไฟล์ว่าที่ลูกค้า"]);
+    await expect((args.onMentionsChange as ReturnType<typeof fn>).mock.calls).toHaveLength(calls);
+    await userEvent.type(field, "@บรี{Enter}");
+    await expect(chipsOf(canvasElement)).toEqual(["โลโก้", "โปรไฟล์ว่าที่ลูกค้า", "บรีฟ"]);
+    // Row 21: sending passes the ids in pick order; the question lists them; one edge per source.
+    await userEvent.type(field, `${chatFixtures.question}{Enter}`);
+    await expect(args.onAsk).toHaveBeenCalledTimes(1);
+    await expect((args.onAsk as ReturnType<typeof fn>).mock.calls[0]?.[0]).toEqual({
+      text: chatFixtures.question,
+      mentions: ["logo", "profile", "brief"],
+      contextNodeId: "brief",
+    });
+    await expect(canvasElement.querySelector(".ds-chat__refs")).toHaveTextContent(
+      "โหนดที่อ้างถึง: โลโก้, โปรไฟล์ว่าที่ลูกค้า, บรีฟ",
+    );
+    await waitFor(() => expect(nodeEl(canvasElement, "reply-1")).toBeTruthy());
+    await waitFor(() => expect(edgesTo(canvasElement, "reply-1")).toHaveLength(3));
+    for (const source of ["brief", "logo", "profile"]) {
+      await expect(
+        edgesTo(canvasElement, "reply-1").filter((e) => e.dataset.id?.startsWith(`e:${source}:`)),
+      ).toHaveLength(1);
+    }
+    await expect(nodesMet(canvasElement, nodeEl(canvasElement, "reply-1"))).toEqual([]);
+    // The chips stay for the next question; removing one drops it from the row.
+    await userEvent.click(canvas.getByRole("button", { name: "ลบ โลโก้" }));
+    await expect(chipsOf(canvasElement)).toEqual(["โปรไฟล์ว่าที่ลูกค้า", "บรีฟ"]);
+    await expect(args.onMentionsChange).toHaveBeenLastCalledWith(["profile", "brief"]);
+  },
+};
+
+/**
+ * The shell side of the context menu (ORV-105 row 20): "อ้างถึง node นี้ใน prompt" on a node
+ * reaches the board's shell through onCommand("node.mention", { nodeId }) and the shell adds the
+ * id to the controlled mentions, so the chip appears. Fixture host, replies by rules.
+ */
+export const MentionFromMenu: Story = {
+  args: { onMentionsChange: fn() },
+  render: (args) => <BoardChat args={args} controlled />,
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    await waitFor(() => expect(nodeEl(canvasElement, "logo")).toBeTruthy());
+    await waitFor(() =>
+      expect(canvasElement.querySelectorAll(".react-flow__edge")).toHaveLength(BOARD.edges.length),
+    );
+    await userEvent.pointer({ keys: "[MouseRight]", target: nodeEl(canvasElement, "logo") });
+    const menu = await within(document.body).findByRole("menu");
+    await userEvent.click(
+      within(menu).getByRole("menuitem", { name: "อ้างถึง node นี้ใน prompt" }),
+    );
+    await waitFor(() => expect(chipsOf(canvasElement)).toEqual(["โลโก้"]));
+    // A second use adds a second chip; the same node twice adds none. The shell owns the list.
+    await userEvent.pointer({ keys: "[MouseRight]", target: nodeEl(canvasElement, "palette") });
+    await userEvent.click(
+      within(await within(document.body).findByRole("menu")).getByRole("menuitem", {
+        name: "อ้างถึง node นี้ใน prompt",
+      }),
+    );
+    await waitFor(() => expect(chipsOf(canvasElement)).toHaveLength(2));
+    await userEvent.pointer({ keys: "[MouseRight]", target: nodeEl(canvasElement, "logo") });
+    await userEvent.click(
+      within(await within(document.body).findByRole("menu")).getByRole("menuitem", {
+        name: "อ้างถึง node นี้ใน prompt",
+      }),
+    );
+    await expect(chipsOf(canvasElement)).toHaveLength(2);
+    // A pick through the chat's own picker calls the callback; a shell add does not.
+    await expect(args.onMentionsChange).not.toHaveBeenCalled();
+    await userEvent.click(canvas.getAllByRole("button", { name: /^ลบ / })[0] as HTMLElement);
+    await expect(args.onMentionsChange).toHaveBeenCalledTimes(1);
+    await expect(chipsOf(canvasElement)).toHaveLength(1);
+  },
+};
+
+/**
+ * A mentioned node deleted from the board (ORV-105 row 22): its chip says "{title} ไม่อยู่บนบอร์ดแล้ว"
+ * beside a caution mark, keeps its ink and has no strikethrough, the callback is not fired, and
+ * the next request leaves its id out. The chip stays until the person removes it. Fixture host,
+ * replies by rules.
+ */
+export const MentionGone: Story = {
+  args: { defaultMentions: ["logo", "palette"], onMentionsChange: fn() },
+  render: (args) => <BoardChat args={args} />,
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    await waitFor(() => expect(nodeEl(canvasElement, "logo")).toBeTruthy());
+    await expect(chipsOf(canvasElement)).toEqual(["โลโก้", fixtures.mixed]);
+    await userEvent.click(nodeEl(canvasElement, "logo"));
+    await waitFor(() => expect(nodeEl(canvasElement, "logo")).toHaveClass("selected"));
+    await userEvent.keyboard("{Delete}");
+    await waitFor(() => expect(nodeEl(canvasElement, "logo")).toBeNull());
+    await waitFor(() =>
+      expect(chipsOf(canvasElement)).toEqual(["โลโก้ ไม่อยู่บนบอร์ดแล้ว", fixtures.mixed]),
+    );
+    const gone = canvasElement.querySelector<HTMLElement>(
+      ".ds-chat__chip[data-gone]",
+    ) as HTMLElement;
+    await expect(gone.querySelector(".ds-chat__gone-mark svg")).not.toBeNull();
+    await expect(inside(box(gone), box(chatOf(canvasElement)))).toBe(true);
+    const label = gone.querySelector(".ds-tag__label") as HTMLElement;
+    await expect(getComputedStyle(label).textDecorationLine).toBe("none");
+    await expect(getComputedStyle(label).color).toBe(
+      getComputedStyle(
+        canvasElement.querySelector(".ds-chat__chip:not([data-gone]) .ds-tag__label") as Element,
+      ).color,
+    );
+    await expect(args.onMentionsChange).not.toHaveBeenCalled();
+    await userEvent.type(input(canvas), `${chatFixtures.question}{Enter}`);
+    await expect((args.onAsk as ReturnType<typeof fn>).mock.calls[0]?.[0]).toMatchObject({
+      mentions: ["palette"],
+    });
+    await expect(canvasElement.querySelector(".ds-chat__refs")).toHaveTextContent(
+      `โหนดที่อ้างถึง: ${fixtures.mixed}`,
+    );
+    await expect(chipsOf(canvasElement)).toHaveLength(2);
+    await userEvent.click(canvas.getByRole("button", { name: "ลบ โลโก้ ไม่อยู่บนบอร์ดแล้ว" }));
+    await expect(chipsOf(canvasElement)).toEqual([fixtures.mixed]);
+    await expect(args.onMentionsChange).toHaveBeenCalledWith(["palette"]);
+  },
+};
+
+/**
+ * Outside a board there is no node to pick: no Mention button, and "@" is a plain character.
+ * Fixture host, replies by rules.
+ */
+export const NoBoardNoMention: Story = {
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    await userEvent.type(input(canvas), "@บ");
+    await expect(canvas.queryByRole("button", { name: "อ้างถึงโหนด" })).toBeNull();
+    await expect(canvas.queryByRole("listbox")).toBeNull();
+    await expect(input(canvas)).toHaveValue("@บ");
+    await userEvent.keyboard("{Enter}");
+    await expect((args.onAsk as ReturnType<typeof fn>).mock.calls[0]?.[0]).toEqual({
+      text: "@บ",
+      mentions: [],
+    });
+  },
+};
+
+/** The picker and the chips in English, from the catalog; fixture host, replies by rules. */
+export const MentionsEnglish: Story = {
+  args: { defaultMentions: ["logo"] },
+  decorators: [(Story) => <LocaleProvider locale="en">{Story()}</LocaleProvider>],
+  render: (args) => <BoardChat args={args} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await waitFor(() => expect(nodeEl(canvasElement, "logo")).toBeTruthy());
+    const field = canvas.getByRole("textbox", { name: "Message to the engine" });
+    await expect(canvas.getByRole("list", { name: "Mentioned nodes" })).toBeVisible();
+    await userEvent.click(canvas.getByRole("button", { name: "Mention a node" }));
+    await expect(canvas.getByRole("listbox", { name: "Nodes on the board" })).toBeVisible();
+    await userEvent.type(field, "qq");
+    await expect(canvas.getByText('No node named "qq"')).toBeVisible();
+    await userEvent.keyboard("{Escape}");
+    await userEvent.clear(field);
+    await userEvent.click(nodeEl(canvasElement, "logo"));
+    await userEvent.keyboard("{Delete}");
+    await waitFor(() =>
+      expect(chipsOf(canvasElement)).toEqual(["โลโก้ is no longer on the board"]),
+    );
+    await expect(
+      canvas.getByRole("button", { name: "Remove โลโก้ is no longer on the board" }),
+    ).toBeVisible();
+  },
+};
+
+/**
+ * The smallest chat the layout allows, 242 px wide and 380 px tall (the board's height leaves the
+ * chat 356): with three chips and the picker open, the picker stays inside the chat and at the
+ * composer's full width, the chips and the action buttons stay inside the composer, and the
+ * picker scrolls instead of growing. Fixture host, replies by rules.
+ */
+export const MentionsSmallest: Story = {
+  args: { defaultMentions: ["brief", "logo", "palette"] },
+  render: (args) => <BoardChat args={args} height={380} size="min" />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await waitFor(() => expect(nodeEl(canvasElement, "brief")).toBeTruthy());
+    const field = input(canvas);
+    await userEvent.type(field, "@");
+    const picker = canvasElement.querySelector(".ds-chat__picker") as HTMLElement;
+    const chat = box(chatOf(canvasElement));
+    const composer = box(field.closest("form") as Element);
+    await expect(inside(box(picker), chat)).toBe(true);
+    await expect(box(picker).width).toBeCloseTo(composer.width, 0);
+    await expect(box(picker).bottom).toBeLessThanOrEqual(box(field).top + 0.5);
+    await expect(picker.scrollHeight).toBeGreaterThan(picker.clientHeight);
+    for (const part of [".ds-chat__chips", ".ds-chat__actions", "textarea"]) {
+      await expect(inside(box(canvasElement.querySelector(part) as Element), composer)).toBe(true);
+    }
+    for (const button of canvasElement.querySelectorAll(".ds-chat__actions .ds-button")) {
+      await expect(inside(box(button), composer)).toBe(true);
+    }
+    // The chips never overlap the box or the buttons.
+    await expect(
+      overlap(box(canvasElement.querySelector(".ds-chat__chips") as Element), box(field)),
+    ).toBe(false);
+    await userEvent.keyboard("{Escape}");
+    await expect(canvas.queryByRole("listbox")).toBeNull();
   },
 };

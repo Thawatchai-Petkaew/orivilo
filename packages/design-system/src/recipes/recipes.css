@@ -1595,9 +1595,6 @@
   min-width: 0;
   color: var(--cmp-node-kind-fg);
 }
-.ds-node__basis {
-  margin-inline-start: var(--ds-space-inline-md);
-}
 .ds-node__status {
   display: inline-flex;
   align-items: center;
@@ -4090,6 +4087,7 @@ button.ds-tag__main {
 }
 .ds-chat__composer {
   grid-area: composer;
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-areas:
@@ -4106,6 +4104,95 @@ button.ds-tag__main {
 .ds-chat__composer .ds-textarea {
   display: contents;
 }
+.ds-chat__composer:has(.ds-chat__chips) {
+  grid-template-areas:
+    "chips chips"
+    "input input"
+    "count actions";
+}
+.ds-chat__chips {
+  grid-area: chips;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cmp-chat-line-gap);
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ds-chat__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cmp-chat-line-gap);
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+.ds-chat__gone-mark {
+  color: var(--ds-feedback-warning-fg);
+}
+.ds-chat__refs {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--cmp-chat-muted-fg);
+  font-family: var(--cmp-chat-meta-type-font-family);
+  font-size: var(--cmp-chat-meta-type-font-size);
+  line-height: var(--cmp-chat-meta-type-line-height);
+  font-weight: var(--cmp-chat-meta-type-font-weight);
+  letter-spacing: var(--cmp-chat-meta-type-letter-spacing);
+}
+/* The node picker: inside the chat, over the transcript, right above the composer, full width. */
+.ds-chat__picker {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 100%;
+  max-block-size: var(--cmp-chat-picker-max-block-size);
+  overflow-y: auto;
+  padding: var(--cmp-menu-padding);
+  border: 1px solid var(--cmp-menu-border);
+  border-radius: var(--cmp-menu-radius);
+  background: var(--cmp-menu-bg);
+  box-shadow: var(--cmp-menu-shadow);
+  z-index: var(--cmp-menu-layer);
+}
+.ds-chat__option {
+  display: flex;
+  align-items: center;
+  min-block-size: var(--cmp-menu-option-height);
+  padding-inline: var(--cmp-menu-option-padding-x);
+  border-radius: var(--cmp-menu-option-radius);
+  color: var(--cmp-menu-option-fg);
+  font-family: var(--cmp-menu-option-type-font-family);
+  font-size: var(--cmp-menu-option-type-font-size);
+  line-height: var(--cmp-menu-option-type-line-height);
+  font-weight: var(--cmp-menu-option-type-font-weight);
+  letter-spacing: var(--cmp-menu-option-type-letter-spacing);
+  cursor: pointer;
+}
+.ds-chat__option > span:first-child {
+  flex: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ds-chat__option[data-active] {
+  background: var(--cmp-menu-option-bg-hover);
+}
+.ds-chat__option-meta {
+  margin-inline-start: var(--cmp-chat-inline-gap);
+  color: var(--cmp-menu-option-description-fg);
+  font-family: var(--cmp-menu-option-description-type-font-family);
+  font-size: var(--cmp-menu-option-description-type-font-size);
+  line-height: var(--cmp-menu-option-description-type-line-height);
+  font-weight: var(--cmp-menu-option-description-type-font-weight);
+  letter-spacing: var(--cmp-menu-option-description-type-letter-spacing);
+}
+.ds-chat__picker-empty {
+  margin: 0;
+  padding: var(--cmp-menu-padding) var(--cmp-menu-option-padding-x);
+  color: var(--cmp-menu-empty);
+  overflow-wrap: anywhere;
+}
 .ds-chat__composer .ds-control {
   grid-area: input;
   min-inline-size: 0;
@@ -4118,11 +4205,21 @@ button.ds-tag__main {
 .ds-chat__actions {
   grid-area: actions;
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  min-inline-size: 0;
   gap: var(--cmp-chat-inline-gap);
 }
 @container (inline-size < 320px) {
   .ds-chat__composer {
     grid-template-areas:
+      "input input"
+      "count count"
+      "actions actions";
+  }
+  .ds-chat__composer:has(.ds-chat__chips) {
+    grid-template-areas:
+      "chips chips"
       "input input"
       "count count"
       "actions actions";

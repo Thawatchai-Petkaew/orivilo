@@ -1335,6 +1335,7 @@
   --cmp-chat-body-sm-type-line-height: var(--ds-type-body-sm-line-height);
   --cmp-chat-body-sm-type-font-weight: var(--ds-type-body-sm-font-weight);
   --cmp-chat-body-sm-type-letter-spacing: var(--ds-type-body-sm-letter-spacing);
+  --cmp-chat-picker-max-block-size: var(--ds-size-panel-min);
 }
 
 /* Tailwind utilities resolve to semantic tokens only (DESIGN.md §5). The defaults are removed first
