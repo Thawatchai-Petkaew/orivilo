@@ -4217,6 +4217,19 @@ button.ds-tag__main {
   min-inline-size: 0;
   max-inline-size: 100%;
 }
+/* A gone chip truncates only the title; the words after it stay whole. */
+.ds-chat__gone-label {
+  display: flex;
+  gap: var(--cmp-tag-gap);
+}
+.ds-chat__gone-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ds-chat__gone-words {
+  flex: none;
+}
 .ds-chat__gone-mark {
   color: var(--ds-feedback-warning-fg);
 }

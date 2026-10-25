@@ -87,7 +87,7 @@ export const th = {
     mentionNone: 'ไม่มีโหนดชื่อ "{query}"',
     mentioned: "โหนดที่อ้างถึง",
     mentionedLine: "{label}: {titles}",
-    listSeparator: " / ",
+    listSeparator: ", ",
     mentionGone: "{title} ไม่อยู่บนบอร์ดแล้ว",
     starters: "เริ่มจากคำถามเหล่านี้",
     starterMissing: "บอร์ดนี้ยังขาดอะไรบ้าง",

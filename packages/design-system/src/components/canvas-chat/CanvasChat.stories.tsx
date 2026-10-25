@@ -82,6 +82,19 @@ function resolved(el: Element, property: string, prop: "color" | "borderTopColor
   probe.remove();
   return value;
 }
+/** A gone chip at the narrowest width: the title may truncate, the gone words stay whole and inside the chat. */
+async function expectGoneWordsWhole(root: HTMLElement, words: string) {
+  const gone = q(root, ".ds-chat__chip[data-gone]");
+  const title = q(gone, ".ds-chat__gone-title");
+  const tail = q(gone, ".ds-chat__gone-words");
+  await expect(title.scrollWidth).toBeGreaterThan(title.clientWidth);
+  await expect(tail).toHaveTextContent(words);
+  await expect(tail).toBeVisible();
+  await expect(tail.scrollWidth).toBeLessThanOrEqual(tail.clientWidth);
+  await expect(inside(box(tail), box(gone))).toBe(true);
+  await expect(inside(box(gone), box(chatOf(root)))).toBe(true);
+  await expect(overlap(box(title), box(tail))).toBe(false);
+}
 const near = (actual: number, expected: number, tolerance = 0.5) =>
   expect(Math.abs(actual - expected)).toBeLessThanOrEqual(tolerance);
 
@@ -269,7 +282,7 @@ export const OverLimit: Story = {
     await expect(input(canvas)).toHaveAttribute("aria-invalid", "true");
     // The edge eases to the error colour (feedback motion), so wait for it to land.
     // `resolved` adds a node, so it runs outside `waitFor`, whose observer would see it and loop.
-    const errorEdge = resolved(canvasElement, "--cmp-input-border-error");
+    const errorEdge = resolved(chatOf(canvasElement), "--cmp-input-border-error");
     await waitFor(() =>
       expect(getComputedStyle(q(canvasElement, ".ds-chat__box")).borderTopColor).toBe(errorEdge),
     );
@@ -307,13 +320,13 @@ export const Send: Story = {
     const boxStyle = getComputedStyle(q(canvasElement, ".ds-chat__box"));
     await expect(boxStyle.outlineStyle).toBe("solid");
     await expect(boxStyle.outlineWidth).toBe("2px");
-    await expect(boxStyle.outlineColor).toBe(resolved(canvasElement, "--ds-focus-ring"));
+    await expect(boxStyle.outlineColor).toBe(resolved(chatOf(canvasElement), "--ds-focus-ring"));
     await expect(boxStyle.boxShadow).toBe("none");
-    const focusEdge = resolved(canvasElement, "--cmp-input-border-focus");
+    const focusEdge = resolved(chatOf(canvasElement), "--cmp-input-border-focus");
     await waitFor(() => expect(boxStyle.borderTopColor).toBe(focusEdge));
     await expect(getComputedStyle(field).outlineStyle).toBe("none");
     await expect(getComputedStyle(action(canvas, "ส่ง")).backgroundColor).toBe(
-      resolved(canvasElement, "--cmp-button-intent-bg"),
+      resolved(chatOf(canvasElement), "--cmp-button-intent-bg"),
     );
     // Focus on Send shows Send's own ring and none on the box (one ring at a time).
     await userEvent.tab();
@@ -1417,7 +1430,7 @@ export const Mentions: Story = {
       contextNodeId: "brief",
     });
     await expect(canvasElement.querySelector(".ds-chat__refs")).toHaveTextContent(
-      "โหนดที่อ้างถึง: โลโก้ / โปรไฟล์ว่าที่ลูกค้า / บรีฟ",
+      "โหนดที่อ้างถึง: โลโก้, โปรไฟล์ว่าที่ลูกค้า, บรีฟ",
     );
     await waitFor(() => expect(nodeEl(canvasElement, "reply-1")).toBeTruthy());
     await waitFor(() => expect(edgesTo(canvasElement, "reply-1")).toHaveLength(3));
@@ -1521,6 +1534,37 @@ export const MentionGone: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "ลบ โลโก้ ไม่อยู่บนบอร์ดแล้ว" }));
     await expect(chipsOf(canvasElement)).toEqual([fixtures.mixed]);
     await expect(args.onMentionsChange).toHaveBeenCalledWith(["palette"]);
+  },
+};
+
+/** At 240 px a long gone title truncates and "ไม่อยู่บนบอร์ดแล้ว" stays whole (QA ORV-107-qa-1). Fixture host, replies by rules. */
+export const MentionGoneNarrow: Story = {
+  args: { defaultMentions: ["palette"] },
+  render: (args) => <BoardChat args={args} size="min" />,
+  play: async ({ canvasElement }) => {
+    await waitFor(() => expect(nodeEl(canvasElement, "palette")).toBeTruthy());
+    await userEvent.click(nodeEl(canvasElement, "palette"));
+    await userEvent.keyboard("{Delete}");
+    await waitFor(() =>
+      expect(canvasElement.querySelector(".ds-chat__chip[data-gone]")).not.toBeNull(),
+    );
+    await expectGoneWordsWhole(canvasElement, "ไม่อยู่บนบอร์ดแล้ว");
+  },
+};
+
+/** The same in English: "is no longer on the board" stays whole at 240 px. */
+export const MentionGoneNarrowEnglish: Story = {
+  args: { defaultMentions: ["palette"] },
+  decorators: [(Story) => <LocaleProvider locale="en">{Story()}</LocaleProvider>],
+  render: (args) => <BoardChat args={args} size="min" />,
+  play: async ({ canvasElement }) => {
+    await waitFor(() => expect(nodeEl(canvasElement, "palette")).toBeTruthy());
+    await userEvent.click(nodeEl(canvasElement, "palette"));
+    await userEvent.keyboard("{Delete}");
+    await waitFor(() =>
+      expect(canvasElement.querySelector(".ds-chat__chip[data-gone]")).not.toBeNull(),
+    );
+    await expectGoneWordsWhole(canvasElement, "is no longer on the board");
   },
 };
 

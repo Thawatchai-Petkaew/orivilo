@@ -632,13 +632,39 @@ export function CanvasChat({
                       <WarningIcon />
                     </span>
                   )}
-                  <Tag
-                    size="sm"
-                    label={
-                      onBoard(id) ? titleOf(id) : fill(m.chat.mentionGone, { title: titleOf(id) })
-                    }
-                    onRemove={() => changeMentions(ids.filter((other) => other !== id))}
-                  />
+                  {onBoard(id) ? (
+                    <Tag
+                      size="sm"
+                      label={titleOf(id)}
+                      onRemove={() => changeMentions(ids.filter((other) => other !== id))}
+                    />
+                  ) : (
+                    // Tag takes a string label, so the gone chip reuses its markup to truncate only the title.
+                    <span
+                      className="ds-tag"
+                      data-size="sm"
+                      title={fill(m.chat.mentionGone, { title: titleOf(id) })}
+                    >
+                      <span className="ds-tag__main">
+                        <span className="ds-tag__label ds-chat__gone-label">
+                          <span className="ds-chat__gone-title">{titleOf(id)}</span>{" "}
+                          <span className="ds-chat__gone-words">
+                            {fill(m.chat.mentionGone, { title: "" }).trim()}
+                          </span>
+                        </span>
+                      </span>
+                      <button
+                        type="button"
+                        className="ds-tag__remove"
+                        aria-label={fill(m.tag.remove, {
+                          label: fill(m.chat.mentionGone, { title: titleOf(id) }),
+                        })}
+                        onClick={() => changeMentions(ids.filter((other) => other !== id))}
+                      >
+                        <CloseIcon className="size-4" />
+                      </button>
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>
