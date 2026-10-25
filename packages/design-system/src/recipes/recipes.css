@@ -4156,8 +4156,9 @@ button.ds-tag__main {
 .ds-chat__box:hover {
   border-color: var(--cmp-input-border-hover);
 }
-/* One ring, on the box, whenever focus is inside it (ORV-107 comment 10146). The field draws none. */
-.ds-chat__box:focus-within {
+/* One ring, on the box, only while the textarea has focus (ORV-107 comment 10146); a focused
+ * Send, Stop, Mention or chip button draws its own ring and the box none. The field draws none. */
+.ds-chat__box:has(textarea:focus) {
   border-color: var(--cmp-input-border-focus);
   outline: 2px solid var(--ds-focus-ring);
   outline-offset: 0;

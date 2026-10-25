@@ -16,6 +16,9 @@ const meta = {
   component: CanvasChat,
   parameters: {
     layout: "padded",
+    // axe rejects role="combobox" on a textarea, but the mention list needs the combobox pattern
+    // CommandMenu uses (review F1); a multiline field cannot be an input.
+    a11y: { config: { rules: [{ id: "aria-allowed-role", enabled: false }] } },
     docs: {
       description: {
         component:
@@ -117,7 +120,9 @@ async function expectActions(root: HTMLElement) {
 }
 
 const input = (canvas: ReturnType<typeof within>, name = "ข้อความถึงเอนจิน") =>
-  canvas.getByRole("textbox", { name });
+  // A combobox on a board (mentions are possible), a plain textbox otherwise.
+  (canvas.queryByRole("combobox", { name }) ??
+    canvas.getByRole("textbox", { name })) as HTMLElement;
 
 /** Types a message and sends it with Enter. */
 async function ask(canvas: ReturnType<typeof within>, text: string) {
@@ -282,8 +287,10 @@ export const CounterThreshold: Story = {
     await userEvent.click(input(canvas));
     await userEvent.paste("ก".repeat(1799));
     await expect(getComputedStyle(counter).display).toBe("none");
+    await expect(input(canvas).getAttribute("aria-describedby")).not.toContain(counter.id);
     await userEvent.paste("ก");
     await expect(getComputedStyle(counter).display).not.toBe("none");
+    await expect(input(canvas).getAttribute("aria-describedby")).toContain(counter.id);
     await expect(canvas.getByText("ตัวอักษร 1,800 จาก 2,000")).toBeInTheDocument();
   },
 };
@@ -308,6 +315,12 @@ export const Send: Story = {
     await expect(getComputedStyle(action(canvas, "ส่ง")).backgroundColor).toBe(
       resolved(canvasElement, "--cmp-button-intent-bg"),
     );
+    // Focus on Send shows Send's own ring and none on the box (one ring at a time).
+    await userEvent.tab();
+    await expect(action(canvas, "ส่ง")).toHaveFocus();
+    await expect(getComputedStyle(q(canvasElement, ".ds-chat__box")).outlineStyle).toBe("none");
+    await expect(getComputedStyle(action(canvas, "ส่ง")).outlineWidth).toBe("2px");
+    await userEvent.click(field);
     await userEvent.clear(field);
 
     await userEvent.type(field, `  ${chatFixtures.question}  {Enter}`);
@@ -1296,7 +1309,10 @@ export const Mentions: Story = {
     // Row 18: "@" at the start opens the list above the box, exactly the box's width.
     await expect(canvas.queryByRole("listbox")).toBeNull();
     await userEvent.click(field);
+    await expect(field).toHaveAttribute("role", "combobox");
+    await expect(field).toHaveAttribute("aria-expanded", "false");
     await userEvent.type(field, "@");
+    await expect(field).toHaveAttribute("aria-expanded", "true");
     const list = canvas.getByRole("listbox", { name: "โหนดบนบอร์ด" });
     await expect(optionsOf(canvas)).toHaveLength(BOARD.nodes.length);
     await expect(optionsOf(canvas)[0]).toHaveTextContent("บรีฟ");
@@ -1323,6 +1339,7 @@ export const Mentions: Story = {
     await userEvent.type(field, "zz");
     await expect(canvas.getByText('ไม่มีโหนดชื่อ "zz"')).toBeVisible();
     await expect(canvas.queryByRole("listbox")).toBeNull();
+    await expect(field).toHaveAttribute("aria-expanded", "false");
     // Escape closes the list only: the text stays, nothing is sent, the chat stays.
     await userEvent.keyboard("{Escape}");
     await expect(canvas.queryByText('ไม่มีโหนดชื่อ "zz"')).toBeNull();
@@ -1332,6 +1349,11 @@ export const Mentions: Story = {
     // Row 19: picking turns "@query" into the title and a space and adds a chip; Enter during IME composition never picks.
     await userEvent.type(field, "@โล");
     await expect(optionsOf(canvas)).toHaveLength(1);
+    await expect(field).toHaveAttribute("aria-expanded", "true");
+    await userEvent.keyboard("{Escape}");
+    await expect(field).toHaveAttribute("aria-expanded", "false");
+    await userEvent.clear(field);
+    await userEvent.type(field, "@โล");
     field.dispatchEvent(new CompositionEvent("compositionstart", { bubbles: true }));
     field.dispatchEvent(
       new KeyboardEvent("keydown", {
@@ -1348,6 +1370,7 @@ export const Mentions: Story = {
     await userEvent.keyboard("{Enter}");
     await expect(field).toHaveValue("โลโก้ ");
     await expect(canvas.queryByRole("listbox")).toBeNull();
+    await expect(field).toHaveAttribute("aria-expanded", "false");
     await expect(args.onAsk).not.toHaveBeenCalled();
     await expect(args.onMentionsChange).toHaveBeenLastCalledWith(["logo"]);
     await expect(chipsOf(canvasElement)).toEqual(["โลโก้"]);
@@ -1394,7 +1417,7 @@ export const Mentions: Story = {
       contextNodeId: "brief",
     });
     await expect(canvasElement.querySelector(".ds-chat__refs")).toHaveTextContent(
-      "โหนดที่อ้างถึง: โลโก้, โปรไฟล์ว่าที่ลูกค้า, บรีฟ",
+      "โหนดที่อ้างถึง: โลโก้ / โปรไฟล์ว่าที่ลูกค้า / บรีฟ",
     );
     await waitFor(() => expect(nodeEl(canvasElement, "reply-1")).toBeTruthy());
     await waitFor(() => expect(edgesTo(canvasElement, "reply-1")).toHaveLength(3));
@@ -1528,7 +1551,7 @@ export const MentionsEnglish: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await waitFor(() => expect(nodeEl(canvasElement, "logo")).toBeTruthy());
-    const field = canvas.getByRole("textbox", { name: "Message to the engine" });
+    const field = canvas.getByRole("combobox", { name: "Message to the engine" });
     await expect(canvas.getByRole("list", { name: "Mentioned nodes" })).toBeVisible();
     await userEvent.click(canvas.getByRole("button", { name: "Mention a node" }));
     await expect(canvas.getByRole("listbox", { name: "Nodes on the board" })).toBeVisible();

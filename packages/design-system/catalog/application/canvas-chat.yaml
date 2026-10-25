@@ -23,6 +23,6 @@ rules:
   - "A reply placed on the board never covers a node: placeReply steps down by the grid gap until its spot is free"
 a11y:
   - "Send, Stop and Mention are icon-only buttons named from the locale catalog, each with a tooltip showing the name; the honesty line sits under the composer and is announced with the textarea (aria-describedby); the starter prompts are a named list of buttons that fill the textarea and never send"
-  - "The picker is a listbox named by the locale catalog; the textarea carries aria-controls and aria-activedescendant, arrows move, Enter picks, Escape closes the list only, Enter during IME composition never picks or sends"
+  - "The picker is a listbox named by the locale catalog; the textarea is a combobox (role, aria-expanded, aria-controls, aria-activedescendant, as CommandMenu), its description leaves out the counter until it shows at 1,800 characters, arrows move, Enter picks, Escape closes the list only, Enter during IME composition never picks or sends"
   - "Textarea labelled; streaming output in a polite live region with aria-busy; a second status region says started, stopped and failed"
   - "Escape closes the at-cursor form (slice D)"

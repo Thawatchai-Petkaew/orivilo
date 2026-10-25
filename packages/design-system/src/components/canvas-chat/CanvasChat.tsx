@@ -203,6 +203,17 @@ export function CanvasChat({
     const room = composer.getBoundingClientRect().top - root.getBoundingClientRect().top;
     picker.style.maxBlockSize = `min(var(--cmp-chat-picker-max-block-size), ${Math.max(0, room)}px)`;
   });
+  // Textarea always lists its counter in aria-describedby, but the counter is hidden below
+  // COUNTER_FROM; a hidden counter is still read, so its id is left out until it shows (S4).
+  useLayoutEffect(() => {
+    const field = textarea();
+    const counter = composerRef.current?.querySelector<HTMLElement>(".ds-textarea__counter");
+    if (!field || !counter) return;
+    field.setAttribute(
+      "aria-describedby",
+      length >= COUNTER_FROM ? `${noticeId} ${counter.id}` : noticeId,
+    );
+  });
   useLayoutEffect(() => {
     if (nextCaret.current === null) return;
     textarea()?.setSelectionRange(nextCaret.current, nextCaret.current);
@@ -495,7 +506,10 @@ export function CanvasChat({
                     <p className="ds-chat__text">{exchange.request.text}</p>
                     {exchange.mentionTitles.length > 0 ? (
                       <p className="ds-chat__refs">
-                        {m.chat.mentioned}: {exchange.mentionTitles.join(", ")}
+                        {fill(m.chat.mentionedLine, {
+                          label: m.chat.mentioned,
+                          titles: exchange.mentionTitles.join(m.chat.listSeparator),
+                        })}
                       </p>
                     ) : null}
                   </div>
@@ -639,6 +653,8 @@ export function CanvasChat({
             onChange={onDraftChange}
             onSelect={(event) => setCaret(event.currentTarget.selectionStart)}
             onKeyDown={onKeyDown}
+            role={canMention ? "combobox" : undefined}
+            aria-expanded={canMention ? token !== null && options.length > 0 : undefined}
             aria-controls={activeId ? listId : undefined}
             aria-activedescendant={activeId}
             aria-autocomplete={token ? "list" : undefined}

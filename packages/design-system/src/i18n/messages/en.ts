@@ -82,6 +82,8 @@ export const en: Messages = {
     mentionList: "Nodes on the board",
     mentionNone: 'No node named "{query}"',
     mentioned: "Mentioned nodes",
+    mentionedLine: "{label}: {titles}",
+    listSeparator: ", ",
     mentionGone: "{title} is no longer on the board",
     starters: "Ways to start",
     starterMissing: "What is missing here?",

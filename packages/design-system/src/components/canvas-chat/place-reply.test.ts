@@ -181,6 +181,13 @@ describe("estimateReplyHeight", () => {
     );
     expect(estimateReplyHeight("")).toBe(estimateReplyHeight("x"));
   });
+
+  it("counts characters, not glyph widths: 60 capitals estimate like 60 lowercase letters (known bound, spec row 30)", () => {
+    const capitals = estimateReplyHeight("W".repeat(60));
+    expect(capitals).toBe(estimateReplyHeight("i".repeat(60)));
+    // Three lines at 20 characters; wide capitals can wrap to four in the browser.
+    expect(capitals).toBe(Math.ceil(156 + 3 * 22.4));
+  });
 });
 
 describe("replyTitle", () => {
