@@ -515,6 +515,8 @@ test("ORV-115 row 10: a merge into main keeps --merge and develop, --squash and 
   for (const command of [
     `gh pr merge 7 --squash --match-head-commit ${H}`,
     `gh pr merge 7 -s --match-head-commit ${H}`,
+    `gh pr merge 7 --rebase --match-head-commit ${H}`,
+    `gh pr merge 7 -r --match-head-commit ${H}`,
     `gh pr merge 7 --merge --delete-branch --match-head-commit ${H}`,
     `gh pr merge 7 --rebase -d --match-head-commit ${H}`,
     `gh pr merge 7 --squash --delete-branch --match-head-commit ${H}`,

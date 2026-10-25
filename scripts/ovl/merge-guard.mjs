@@ -6,7 +6,7 @@
 //                  a `gh api` call are an allow list; config, remote, token and host forms are named.
 //   export stage   develop-export.mjs builds develop's copy of scripts/ovl (a whole merge only).
 //   records stage  develop's merge-check.mjs, run as a process from the export, never the branch's.
-//                  ORV-115: before it, a --squash or --delete-branch merge reads the PR base with one
+//                  ORV-115: before it, a merge that is not a plain --merge reads the PR base with one
 //                  `gh pr view` and is refused when the base is main.
 // The rule is a text rule, not a parser: quotes and backslashes are removed, runs of blanks collapse
 // and the text is lowercased for comparison. It blocks toward safety. Every non-zero exit is 2.
@@ -33,7 +33,7 @@ const MESSAGES = {
     "no session may point the merge checks at another develop or change how a push or a remote resolves; git remote -v reads the remote instead",
   token: "no session reads the GitHub token, and no other program writes to the GitHub API",
   release:
-    "a merge into main is gh pr merge <n> --merge --match-head-commit <sha>: no --squash, which would let develop and main drift, and no --delete-branch, which would delete develop",
+    "a merge into main is gh pr merge <n> --merge --match-head-commit <sha>: no --squash or --rebase, which would let develop and main drift, and no --delete-branch, which would delete develop",
   merge:
     "gh pr merge must be one whole command, gh pr merge <n> with --squash, --merge or --rebase, " +
     "optional --delete-branch, and --match-head-commit <40-hex sha>",
@@ -82,7 +82,7 @@ function wholeMerge(text) {
   const match = /^gh pr merge ([1-9][0-9]*)((?: [^ ]+)+)$/.exec(text.trim());
   if (match === null) return null;
   let strategy = 0;
-  let squash = false;
+  let mergeCommit = false;
   let del = 0;
   let sha = null;
   const flags = match[2].trim().split(" ");
@@ -90,7 +90,7 @@ function wholeMerge(text) {
     const flag = flags[i];
     if (STRATEGIES.has(flag)) {
       strategy += 1;
-      squash ||= flag === "--squash" || flag === "-s";
+      mergeCommit = flag === "--merge" || flag === "-m";
     } else if (flag === "--delete-branch" || flag === "-d") del += 1;
     else if (flag === "--match-head-commit" && sha === null && SHA.test(flags[i + 1] ?? "")) {
       sha = flags[i + 1];
@@ -98,7 +98,7 @@ function wholeMerge(text) {
     } else return null;
   }
   return strategy === 1 && del <= 1 && sha !== null
-    ? { n: Number(match[1]), sha, squash, deleteBranch: del === 1 }
+    ? { n: Number(match[1]), sha, mergeCommit, deleteBranch: del === 1 }
     : null;
 }
 
@@ -318,12 +318,12 @@ export function textStage(command, cwd, env = process.env) {
 }
 
 /**
- * ORV-115: a merge into main must be a merge commit that keeps develop, so --squash and
- * --delete-branch are refused there. The base is read with one `gh pr view`, only for a merge that
- * names one of the two flags; a base that cannot be read throws, which fails closed.
+ * ORV-115: a merge into main must be a merge commit that keeps develop, so every strategy
+ * but --merge, and --delete-branch, are refused there. The base is read with one `gh pr view`, for
+ * any merge that is not a plain --merge; a base that cannot be read throws, which fails closed.
  */
-function releaseFlagProblems({ n, squash, deleteBranch }, input, env) {
-  if (!squash && !deleteBranch) return [];
+function releaseFlagProblems({ n, mergeCommit, deleteBranch }, input, env) {
+  if (mergeCommit && !deleteBranch) return [];
   const r = spawnSync("gh", ["pr", "view", String(n), "--json", "baseRefName"], {
     cwd: input.cwd,
     env,

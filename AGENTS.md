@@ -65,7 +65,7 @@ Each Jira status means where the work is (ADR 0012): G3 PR review = merged into 
 - Branch `<type>/<ISSUE-KEY>-<slug>` (`feature/`, `fix/`, `chore/`, `docs/`). Conventional Commits.
 - One issue per branch and per git worktree. Stage explicit paths; never `git add -A` in a shared tree.
 - Delete a branch once its PR is merged or closed: the remote branch, the local branch and its worktree. Only `main` and `develop` live on. Check `git branch -a` before you finish a story.
-- PR into `develop`, which parks merged work and deploys nothing. A release PR from `develop` into `main` moves a batch to staging when the owner says so (ADR 0011); a git tag deploys to production.
+- PR into `develop`, which parks merged work and deploys nothing. Claude opens and merges the release PR from `develop` into `main` on green checks (ADR 0016); a git tag, the owner's, deploys to production.
 
 ## Commands
 

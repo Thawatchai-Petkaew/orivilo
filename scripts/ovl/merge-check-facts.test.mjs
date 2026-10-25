@@ -22,7 +22,7 @@ const CHECKS = join(fixtureDir, "pr-checks.json");
 
 /** A `gh` on PATH. `view` and `checks` are file paths printed to stdout; exits are per call. */
 function fixtureGh({
-  view = VIEW,
+  view = crossFalseView(),
   checks = CHECKS,
   viewExit = 0,
   checksExit = 0,
@@ -63,9 +63,14 @@ function rawFiles(text) {
   return file;
 }
 
-/** A view fixture edited by `edit`. */
+function crossFalseView() {
+  return editedView(() => {});
+}
+
+/** The recorded view sample (a same-repository PR) edited by `edit`. */
 function editedView(edit) {
   const data = JSON.parse(readFileSync(VIEW, "utf8"));
+  data.isCrossRepository = false;
   edit(data);
   const file = join(mkdtempSync(join(tmpdir(), "viewfix-")), "view.json");
   writeFileSync(file, JSON.stringify(data));
@@ -85,7 +90,7 @@ test("readPr parses the recorded sample into a flat PR with file paths", () => {
   const calls = readFileSync(join(dir, "calls"), "utf8");
   assert.match(
     calls,
-    /^pr view 87 --json number,title,baseRefName,headRefName,headRefOid,changedFiles$/m,
+    /^pr view 87 --json number,title,baseRefName,headRefName,headRefOid,changedFiles,isCrossRepository$/m,
   );
   assert.match(calls, /^api repos\/\{owner\}\/\{repo\}\/pulls\/87\/files --paginate --slurp$/m);
 });
@@ -226,4 +231,32 @@ test("row 34: a failed fetch or an unknown SHA fails closed", () => {
   assert.throws(() => readFileAtHead("f".repeat(40), "a.txt", { cwd: clone }), FactsError);
   assert.throws(() => readFileAtHead("HEAD", "a.txt", { cwd: clone }), FactsError);
   assert.throws(() => readFileAtHead(sha, "../a.txt", { cwd: clone }), FactsError);
+});
+
+test("ORV-115 SEC-1: isCrossRepository is read, and a missing or non-boolean value fails closed", () => {
+  assert.equal(readPr(87, { env: fixtureGh().env }).isCrossRepository, false);
+  for (const value of [undefined, "false", null]) {
+    const view = editedView((d) => {
+      if (value === undefined) delete d.isCrossRepository;
+      else d.isCrossRepository = value;
+    });
+    assert.throws(
+      () => readPr(87, { env: fixtureGh({ view }).env }),
+      (e) => e instanceof FactsError && /unexpected shape/.test(e.message),
+    );
+  }
+});
+
+test("ORV-115 SEC-3: a renamed file returns its previous path too", () => {
+  const files = rawFiles(
+    JSON.stringify([
+      [
+        ...Array.from({ length: 9 }, (_, i) => ({ filename: `dir/f-${i}.txt`, status: "added" })),
+        { filename: "new/ci.yml", status: "renamed", previous_filename: "old/ci.yml" },
+      ],
+    ]),
+  );
+  const pr = readPr(87, { env: fixtureGh({ files }).env });
+  assert.equal(pr.files.length, 10);
+  assert.deepEqual(pr.previousFiles, ["old/ci.yml"]);
 });

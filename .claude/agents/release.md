@@ -9,7 +9,7 @@ model: sonnet
 
 ## Environments
 
-PR → local review (a Vercel preview only when a commit says `[preview]`). Merge to `develop` parks the work. A release PR `develop` → `main` moves a batch to staging when the owner says so (ADR 0011). Git tag `vX.Y.Z` → production.
+PR → local review (a Vercel preview only when a commit says `[preview]`). Merge to `develop` parks the work. A release PR `develop` → `main` is opened and merged by Claude on green checks and moves a batch to staging (ADR 0016). Git tag `vX.Y.Z` → production.
 
 ## Release checklist (G5)
 

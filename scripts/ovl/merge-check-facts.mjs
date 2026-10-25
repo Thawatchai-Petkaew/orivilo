@@ -7,7 +7,7 @@ import { spawnSync } from "node:child_process";
 export class FactsError extends Error {}
 
 // ORV-115: the file list comes from gh api pulls/<n>/files --paginate, since gh pr view stops at 100.
-const PR_FIELDS = "number,title,baseRefName,headRefName,headRefOid,changedFiles";
+const PR_FIELDS = "number,title,baseRefName,headRefName,headRefOid,changedFiles,isCrossRepository";
 const CHECK_FIELDS = "name,state,bucket,description,link,workflow";
 const SHA = /^[0-9a-f]{40}$/;
 const MAX_BUFFER = 64 * 1024 * 1024;
@@ -50,10 +50,18 @@ function readPaths(num, { cwd, env }) {
         page.every((f) => f !== null && typeof f === "object" && isString(f.filename)),
     );
   if (!ok) throw new FactsError(`gh api pulls/${num}/files printed files in an unexpected shape`);
-  return pages.flat().map((f) => f.filename);
+  const items = pages.flat();
+  // A renamed file also counts by its previous path, so a guard file cannot be renamed out of sight.
+  const previous = items
+    .filter((f) => f.status === "renamed" && isString(f.previous_filename))
+    .map((f) => f.previous_filename);
+  return { files: items.map((f) => f.filename), previous };
 }
 
-/** `gh pr view` plus the paginated file list: {number, title, baseRefName, headRefName, headRefOid, changedFiles, files: string[]}. */
+/**
+ * `gh pr view` plus the paginated file list: {number, title, baseRefName, headRefName, headRefOid,
+ * changedFiles, isCrossRepository, files: string[], previousFiles: string[] (old paths of renames)}.
+ */
 export function readPr(n, { cwd, env = process.env } = {}) {
   const num = prNumber(n);
   const r = run("gh", ["pr", "view", num, "--json", PR_FIELDS], { cwd, env });
@@ -73,9 +81,10 @@ export function readPr(n, { cwd, env = process.env } = {}) {
     isString(data.headRefName) &&
     isString(data.headRefOid) &&
     SHA.test(data.headRefOid) &&
-    Number.isInteger(data.changedFiles);
+    Number.isInteger(data.changedFiles) &&
+    typeof data.isCrossRepository === "boolean";
   if (!ok) throw new FactsError(`gh pr view ${num} printed a PR in an unexpected shape`);
-  const files = readPaths(num, { cwd, env });
+  const { files, previous } = readPaths(num, { cwd, env });
   if (files.length !== data.changedFiles) {
     throw new FactsError(
       `GitHub cut the file list of PR ${num} (${files.length} of ${data.changedFiles} files)`,
@@ -88,7 +97,9 @@ export function readPr(n, { cwd, env = process.env } = {}) {
     headRefName: data.headRefName,
     headRefOid: data.headRefOid,
     changedFiles: data.changedFiles,
+    isCrossRepository: data.isCrossRepository,
     files,
+    previousFiles: previous,
   };
 }
 

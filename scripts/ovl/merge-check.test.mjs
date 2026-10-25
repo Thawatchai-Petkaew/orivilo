@@ -39,6 +39,7 @@ const basePr = (over = {}) => ({
   headRefName: "feature/ORV-1-x",
   headRefOid: H,
   changedFiles: 1,
+  isCrossRepository: false,
   files: ["scripts/x.mjs"],
   ...over,
 });
@@ -363,11 +364,26 @@ test("ORV-115 row 5: only develop goes into main, an approval record does not ch
     at: at(1),
   });
   const pr = release({ headRefName: "feature/ORV-1-x" });
-  blocked(decide(facts(root, { pr, checks: [ci()] })), /only the release PR from develop/);
+  blocked(
+    decide(facts(root, { pr, checks: [ci()] })),
+    /only the release PR from this repository's develop/,
+  );
   blocked(
     decide(facts(root, { pr: basePr({ baseRefName: "release/x" }) })),
     /only into develop or main/,
   );
+});
+
+test("ORV-115 SEC-1: a head named develop from a fork, or with no repository field, is refused", () => {
+  const root = mkdtempSync(join(tmpdir(), "mc-"));
+  const f = (pr) => decide(facts(root, { pr, checks: [ci()] }));
+  blocked(f(release({ isCrossRepository: true })), /this repository's develop/);
+  blocked(f(release({ isCrossRepository: undefined })), /this repository's develop/);
+});
+
+test("ORV-115 SEC-3: a guard file renamed out of its path is judged by its previous path", () => {
+  const pr = basePr({ files: ["scripts/x.mjs"], previousFiles: [".github/workflows/ci.yml"] });
+  blocked(decide(facts(goodRoot(), { pr })), /guard files \(\.github\/workflows\/ci\.yml\)/);
 });
 
 // CLI: a fixture gh on PATH and a throwaway git repo that holds the records.
