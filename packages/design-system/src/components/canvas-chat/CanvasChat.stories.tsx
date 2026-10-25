@@ -337,7 +337,7 @@ export const Send: Story = {
     // With focus in the textarea one ring goes around the whole box, not the field.
     const boxStyle = getComputedStyle(q(canvasElement, ".ds-chat__box"));
     await expect(boxStyle.outlineStyle).toBe("solid");
-    await expect(boxStyle.outlineWidth).toBe("2px");
+    await expect(boxStyle.outlineWidth).toBe("1px");
     await expect(boxStyle.outlineColor).toBe(resolved(chatOf(canvasElement), "--ds-focus-ring"));
     await expect(boxStyle.boxShadow).toBe("none");
     const focusEdge = resolved(chatOf(canvasElement), "--cmp-input-border-focus");
