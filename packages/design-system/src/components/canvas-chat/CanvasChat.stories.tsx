@@ -82,16 +82,19 @@ function resolved(el: Element, property: string, prop: "color" | "borderTopColor
   probe.remove();
   return value;
 }
-/** A gone chip at the narrowest width: the title may truncate, the gone words stay whole and inside the chat. */
+/** A gone chip at the narrowest width: the title truncates on the first line, the gone words stay whole inside the label and the chat. */
 async function expectGoneWordsWhole(root: HTMLElement, words: string) {
   const gone = q(root, ".ds-chat__chip[data-gone]");
+  const label = q(gone, ".ds-tag__label");
   const title = q(gone, ".ds-chat__gone-title");
   const tail = q(gone, ".ds-chat__gone-words");
+  await expect(title.clientWidth).toBeGreaterThan(0);
   await expect(title.scrollWidth).toBeGreaterThan(title.clientWidth);
   await expect(tail).toHaveTextContent(words);
   await expect(tail).toBeVisible();
   await expect(tail.scrollWidth).toBeLessThanOrEqual(tail.clientWidth);
-  await expect(inside(box(tail), box(gone))).toBe(true);
+  await expect(box(tail).right).toBeLessThanOrEqual(box(label).right + 0.5);
+  await expect(inside(box(tail), box(label))).toBe(true);
   await expect(inside(box(gone), box(chatOf(root)))).toBe(true);
   await expect(overlap(box(title), box(tail))).toBe(false);
 }

@@ -4217,18 +4217,22 @@ button.ds-tag__main {
   min-inline-size: 0;
   max-inline-size: 100%;
 }
-/* A gone chip truncates only the title; the words after it stay whole. */
+/* A gone chip wraps: the title truncates on the first line, the gone words sit whole on the next. */
 .ds-chat__gone-label {
   display: flex;
-  gap: var(--cmp-tag-gap);
+  flex-wrap: wrap;
+  column-gap: var(--cmp-tag-gap);
+  white-space: normal;
 }
 .ds-chat__gone-title {
   min-width: 0;
+  max-inline-size: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .ds-chat__gone-words {
-  flex: none;
+  min-width: 0;
 }
 .ds-chat__gone-mark {
   color: var(--ds-feedback-warning-fg);
