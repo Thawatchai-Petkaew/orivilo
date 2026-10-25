@@ -26,7 +26,7 @@ Turborepo + pnpm, Next.js App Router, TypeScript strict, Tailwind CSS v4 + shadc
 2. **Trace everything.** Every PR names its Jira key in the title (`ORV-123: ...`), links its spec, and lists the decisions it relies on. A change to a contract (schema, token, component API, resolver) includes an impact list.
 3. **Verify before handoff.** Run `pnpm lint && pnpm typecheck && pnpm test && pnpm build` and report real output. Never claim a check passed that you did not run.
 4. **Be honest about what is real.** Label mocks and rule-based behavior as such in UI and reports. Never claim AI interpretation, Figma sync, accessibility, or export works without an implementation and a test.
-5. **The owner owns the decisions.** The owner decides G1, G2 and G5 (during the POC Claude passes G1 and G2 under the owner's delegation, ADR 0012 decision 4). Agents pass G3 and G4 only with evidence (full gate, two reviewer passes, CI; ADR 0012), never merge into `main` without the owner's yes, and never tag or deploy to production.
+5. **The owner owns the decisions.** The owner decides G1, G2 and G5 (during the POC Claude passes G1 and G2 under the owner's delegation, ADR 0012 decision 4). Agents pass G3 and G4 only with evidence (full gate, two reviewer passes, CI; ADR 0012). Claude merges the staging release PR (`develop` into `main`) when every check is green (ADR 0016), and never tags or deploys to production.
 6. **Lean.** Add a file, dependency, or abstraction only when the current story needs it.
 7. **Read your rules first.** Before working, read the `.claude/rules/*.md` that match the files you touch.
 

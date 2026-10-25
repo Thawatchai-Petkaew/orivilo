@@ -21,7 +21,15 @@ const VIEW = join(fixtureDir, "pr-view.json");
 const CHECKS = join(fixtureDir, "pr-checks.json");
 
 /** A `gh` on PATH. `view` and `checks` are file paths printed to stdout; exits are per call. */
-function fixtureGh({ view = VIEW, checks = CHECKS, viewExit = 0, checksExit = 0, checksOut } = {}) {
+function fixtureGh({
+  view = VIEW,
+  checks = CHECKS,
+  viewExit = 0,
+  checksExit = 0,
+  checksOut,
+  files = pages(10),
+  filesExit = 0,
+} = {}) {
   const dir = mkdtempSync(join(tmpdir(), "ghfix-"));
   const gh = join(dir, "gh");
   const checksCmd = checksOut === undefined ? `cat '${checks}'` : `printf '%s' '${checksOut}'`;
@@ -32,12 +40,27 @@ echo "$@" >> '${dir}/calls'
 case "$2" in
   view) cat '${view}'; exit ${viewExit} ;;
   checks) ${checksCmd}; exit ${checksExit} ;;
+  repos/*) cat '${files}'; exit ${filesExit} ;;
 esac
 exit 9
 `,
   );
   chmodSync(gh, 0o755);
   return { env: { ...process.env, PATH: `${dir}:${process.env.PATH}` }, dir };
+}
+
+/** A file that prints what `gh api --paginate --slurp` prints: `counts` items per page. */
+function pages(...counts) {
+  let i = 0;
+  const data = counts.map((count) =>
+    Array.from({ length: count }, () => ({ filename: `dir/file-${i++}.txt`, status: "added" })),
+  );
+  return rawFiles(JSON.stringify(data));
+}
+function rawFiles(text) {
+  const file = join(mkdtempSync(join(tmpdir(), "filesfix-")), "files.json");
+  writeFileSync(file, text);
+  return file;
 }
 
 /** A view fixture edited by `edit`. */
@@ -58,21 +81,56 @@ test("readPr parses the recorded sample into a flat PR with file paths", () => {
   assert.match(pr.headRefOid, /^[0-9a-f]{40}$/);
   assert.equal(pr.changedFiles, 10);
   assert.equal(pr.files.length, 10);
-  assert.ok(pr.files.includes("docs/specs/ORV-93/spec.md"));
+  assert.equal(pr.files[0], "dir/file-0.txt");
+  const calls = readFileSync(join(dir, "calls"), "utf8");
   assert.match(
-    readFileSync(join(dir, "calls"), "utf8"),
-    /^pr view 87 --json number,title,baseRefName,headRefName,headRefOid,files,changedFiles$/m,
+    calls,
+    /^pr view 87 --json number,title,baseRefName,headRefName,headRefOid,changedFiles$/m,
   );
+  assert.match(calls, /^api repos\/\{owner\}\/\{repo\}\/pulls\/87\/files --paginate --slurp$/m);
 });
 
-test("row 28: a file list GitHub cut blocks", () => {
+test("ORV-115 row 7: 117 files across two pages are all read", () => {
   const view = editedView((d) => {
-    d.changedFiles = 120;
+    d.changedFiles = 117;
   });
-  assert.throws(
-    () => readPr(87, { env: fixtureGh({ view }).env }),
-    (e) => e instanceof FactsError && /cut/.test(e.message),
-  );
+  const pr = readPr(87, { env: fixtureGh({ view, files: pages(100, 17) }).env });
+  assert.equal(pr.changedFiles, 117);
+  assert.equal(pr.files.length, 117);
+  assert.equal(pr.files[116], "dir/file-116.txt");
+});
+
+test("ORV-115 row 8: a list shorter or longer than changedFiles fails closed", () => {
+  for (const [changed, counts] of [
+    [3000, [100, 100]],
+    [120, [100]],
+    [5, [3, 3]],
+  ]) {
+    const view = editedView((d) => {
+      d.changedFiles = changed;
+    });
+    assert.throws(
+      () => readPr(87, { env: fixtureGh({ view, files: pages(...counts) }).env }),
+      (e) => e instanceof FactsError && /cut the file list of PR 87/.test(e.message),
+    );
+  }
+});
+
+test("ORV-115 row 9: a failing gh api, text that is not JSON and an item with no filename fail closed", () => {
+  const bad = [
+    { filesExit: 1 },
+    { files: rawFiles("not json") },
+    { files: rawFiles('{"filename":"a"}') },
+    { files: rawFiles('[[{"filename":"a"},{"path":"b"}]]') },
+    { files: rawFiles('[[{"filename":7}]]') },
+    { files: rawFiles("[[null]]") },
+  ];
+  for (const over of bad) {
+    const view = editedView((d) => {
+      d.changedFiles = 2;
+    });
+    assert.throws(() => readPr(87, { env: fixtureGh({ view, ...over }).env }), FactsError);
+  }
 });
 
 test("row 34: gh exiting 1, gh missing and a malformed view fail closed", () => {
@@ -85,10 +143,10 @@ test("row 34: gh exiting 1, gh missing and a malformed view fail closed", () => 
     d.headRefOid = "abc";
   });
   assert.throws(() => readPr(87, { env: fixtureGh({ view: noOid }).env }), FactsError);
-  const noFiles = editedView((d) => {
-    delete d.files;
+  const noCount = editedView((d) => {
+    delete d.changedFiles;
   });
-  assert.throws(() => readPr(87, { env: fixtureGh({ view: noFiles }).env }), FactsError);
+  assert.throws(() => readPr(87, { env: fixtureGh({ view: noCount }).env }), FactsError);
 });
 
 test("a PR number that is not a whole number of 1 or more is refused before any call", () => {

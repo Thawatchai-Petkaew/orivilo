@@ -56,6 +56,12 @@ function urlShim() {
   const real = execFileSync("which", ["git"], { encoding: "utf8" }).trim();
   writeFileSync(join(urlShimDir, "git"), `#!/bin/sh\n${URL_ANSWER}\nexec '${real}' "$@"\n`);
   chmodSync(join(urlShimDir, "git"), 0o755);
+  // ORV-115: `gh pr view <n> --json baseRefName` answers FAKE_BASE (default develop), or exits FAKE_GH_EXIT.
+  writeFileSync(
+    join(urlShimDir, "gh"),
+    `#!/bin/sh\nprintf '{"baseRefName":"%s"}' "\${FAKE_BASE:-develop}"\nexit "\${FAKE_GH_EXIT:-0}"\n`,
+  );
+  chmodSync(join(urlShimDir, "gh"), 0o755);
   return urlShimDir;
 }
 
@@ -68,7 +74,10 @@ function shims(failOn = "") {
     writeFileSync(join(dir, name), body);
     chmodSync(join(dir, name), 0o755);
   };
-  write("gh", `#!/bin/sh\necho "$@" >> '${dir}/gh-calls'\nexit 0\n`);
+  write(
+    "gh",
+    `#!/bin/sh\necho "$@" >> '${dir}/gh-calls'\necho '{"baseRefName":"develop"}'\nexit 0\n`,
+  );
   write(
     "git",
     `#!/bin/sh
@@ -210,8 +219,11 @@ test("row 1 (F8): tag pushes and gh release create are blocked", () => {
       "git push --tags",
       "git push --follow-tags origin HEAD",
       "git push origin v1.0",
+      "git push origin v1.0.0",
+      "git push origin refs/tags/v1.0.0",
       "git push origin HEAD:refs/tags/v1.0",
       "gh release create v1.0",
+      "gh release create v1.0.0",
     ],
     PUSH_REASON,
     { cwd: repo },
@@ -495,6 +507,46 @@ test("row 8: every gh pr merge that is not one whole allowed command is blocked,
 });
 
 // ---- composition ----
+
+test("ORV-115 row 10: a merge into main keeps --merge and develop, --squash and --delete-branch block", () => {
+  const RELEASE_REASON = /a merge into main is gh pr merge <n> --merge --match-head-commit <sha>/;
+  const { clone } = fixtureOrigin(OK_STUB);
+  const env = { FAKE_BASE: "main" };
+  for (const command of [
+    `gh pr merge 7 --squash --match-head-commit ${H}`,
+    `gh pr merge 7 -s --match-head-commit ${H}`,
+    `gh pr merge 7 --merge --delete-branch --match-head-commit ${H}`,
+    `gh pr merge 7 --rebase -d --match-head-commit ${H}`,
+    `gh pr merge 7 --squash --delete-branch --match-head-commit ${H}`,
+  ]) {
+    const r = call(command, { cwd: clone, env });
+    assert.equal(r.code, 2, command);
+    assert.match(r.stderr, RELEASE_REASON, command);
+  }
+  const out = join(scratch(), "args");
+  const ok = call(`gh pr merge 7 --merge --match-head-commit ${H}`, {
+    cwd: clone,
+    env: { ...env, STUB_ARGS: out },
+  });
+  assert.deepEqual(ok, { code: 0, stderr: "" });
+  assert.equal(readFileSync(out, "utf8"), `7 --head ${H}`);
+  // The same flags into develop go on to the records stage.
+  const dev = call(`gh pr merge 7 --squash --delete-branch --match-head-commit ${H}`, {
+    cwd: clone,
+    env: { STUB_ARGS: join(scratch(), "args2") },
+  });
+  assert.deepEqual(dev, { code: 0, stderr: "" });
+});
+
+test("ORV-115 row 10: a base that cannot be read fails closed for --squash and --delete-branch", () => {
+  const { clone } = fixtureOrigin(OK_STUB);
+  const r = call(`gh pr merge 7 --squash --match-head-commit ${H}`, {
+    cwd: clone,
+    env: { FAKE_GH_EXIT: "1" },
+  });
+  assert.equal(r.code, 2);
+  assert.match(r.stderr, /^merge-guard failed closed: the base branch of PR 7 could not be read/);
+});
 
 test("row 9: one whole gh pr merge goes to develop's merge-check from the export and is allowed on exit 0", () => {
   for (const agent of [undefined, "a-release"]) {

@@ -202,9 +202,15 @@ A push after the checks changes the head: run the gate again and get new records
 
 **Docs-only PRs.** When every changed file ends in `.md` and is in no protected set (so an improvement run, a handoff or plan update, a spec revision, or a rule, agent or skill file), the PR needs no `qa.json`, no gate record and no screenshots. It needs a `reviewer.v1` approve on the head or the owner approval record, and every other check above. One file outside that definition, a `.md` under `packages/` included, needs the full set.
 
-**A merge into `main`** is allowed only for the release PR (head branch `develop`), with every check green and the owner approval record for its head.
+**A merge into `main`** is allowed only for the staging release PR (head branch `develop`), with every check green and a passing check of the `CI` workflow among them (ADR 0016). It needs no owner approval record, no gate record, no `qa.json` and no reviewer result: the green CI checks are the evidence, and each guard file in it was judged when its own PR merged into `develop`. Claude may open the release PR and merge it. The form is a merge commit that keeps `develop`:
 
-**Owner approval.** The G3 packet prints this line for a guard-file PR or a release PR. The owner runs it from a terminal outside Claude Code, in the main checkout, with `<n>` and `<sha>` filled in. Every Claude Code session is blocked from writing it. A new push needs a new approval; the same line writes over the old file.
+```bash
+gh pr merge <n> --merge --match-head-commit <40-hex sha>
+```
+
+The records stage cannot see the flags, so the guard reads the PR base with one `gh pr view` for a merge that names `--squash` or `--delete-branch`, and refuses both when the base is `main` (a squash lets `develop` and `main` drift, `--delete-branch` deletes `develop`). A base it cannot read fails closed. Tags, `git push origin <tag>` and `gh release create` stay blocked: production is the owner's.
+
+**Owner approval.** The G3 packet prints this line for a guard-file PR into `develop`. The owner runs it from a terminal outside Claude Code, in the main checkout, with `<n>` and `<sha>` filled in. Every Claude Code session is blocked from writing it. A new push needs a new approval; the same line writes over the old file.
 
 ```bash
 mkdir -p .orivilo/owner-approvals && printf '{"by":"owner","pr":%s,"head_sha":"%s","at":"%s"}\n' <n> <sha> "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > .orivilo/owner-approvals/<n>.json
@@ -253,7 +259,7 @@ When the guard blocks, fix the missing record or the PR, or ask the owner. A PR 
 - The export tree is checked right before `merge-check.mjs` starts, so a change in the short window between the two is not caught. The expected origin URL is a constant: a rename or move of the GitHub repo blocks every guarded merge until `develop-export.mjs` changes.
 - The owner approval and waiver are files. `write-guard` blocks a tool write that names `.orivilo`, but until ORV-96 lands a Bash call that hides the folder name (`cd .oriv?lo/owner-approvals && printf ... > 7.json`), or a script a session runs, writes a valid approval or waiver and so can forge the owner's approval for a guard-file PR or a release into `main`. The waiver covers only a rate-limited Vercel check on one head, never a failed build or a failed Actions check.
 - Docs-only PRs skip the qa and the gate record: CI is the only check that runs, and a rule, agent or skill file merges on a reviewer's or the owner's approve.
-- A merge needs the network (`gh` and `git ls-remote`); offline, every `gh pr merge` is blocked. A PR whose file list GitHub cut is blocked, not judged.
+- A merge needs the network (`gh` and `git ls-remote`); offline, every `gh pr merge` is blocked. The changed files come from `gh api repos/{owner}/{repo}/pulls/<n>/files --paginate`; a PR whose list length differs from `changedFiles` (GitHub stops the list at 3000 files) is blocked, not judged. A renamed file counts by its new path only. A release into `main` rests on CI alone: a change CI does not cover reaches staging, and the guard is a rail, not a boundary, so another route to `main` or a tag is not stopped (ORV-97, ORV-96).
 - The records stage checks that the qa's screenshots exist for each story title, not what they show.
 - `g3-check` is a guard rail for agents that follow the rules, not a boundary. It stops a session that moves an issue to G3 PR review by habit or by mistake before the merge and the records exist, and names the missing record. It does not hold against a session that sets out to defeat it. An agent never uses any form below to move an issue around it.
 - `g3-check` does not see other ways to move Jira: the Jira web UI, the Jira REST API through `curl` or a script, a Jira automation rule, or an Atlassian MCP tool whose name its matcher does not hold. The `.mcp.json` server `atlassian` was not reachable headless, so its tool names (`mcp__atlassian__<tool>`) are expected, not recorded.

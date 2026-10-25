@@ -6,7 +6,8 @@ import { spawnSync } from "node:child_process";
 
 export class FactsError extends Error {}
 
-const PR_FIELDS = "number,title,baseRefName,headRefName,headRefOid,files,changedFiles";
+// ORV-115: the file list comes from gh api pulls/<n>/files --paginate, since gh pr view stops at 100.
+const PR_FIELDS = "number,title,baseRefName,headRefName,headRefOid,changedFiles";
 const CHECK_FIELDS = "name,state,bucket,description,link,workflow";
 const SHA = /^[0-9a-f]{40}$/;
 const MAX_BUFFER = 64 * 1024 * 1024;
@@ -25,7 +26,34 @@ function prNumber(n) {
 
 const isString = (v) => typeof v === "string";
 
-/** `gh pr view`: {number, title, baseRefName, headRefName, headRefOid, changedFiles, files: string[]}. */
+/**
+ * The changed paths of PR `num`, read page by page from the REST list (`gh pr view --json files`
+ * stops at 100). A page that is not an array of items with a string `filename` fails closed.
+ */
+function readPaths(num, { cwd, env }) {
+  const r = run("gh", ["api", `repos/{owner}/{repo}/pulls/${num}/files`, "--paginate", "--slurp"], {
+    cwd,
+    env,
+  });
+  if (r.status !== 0) throw new FactsError(`gh api pulls/${num}/files exited ${r.status}`);
+  let pages;
+  try {
+    pages = JSON.parse(r.stdout);
+  } catch {
+    throw new FactsError(`gh api pulls/${num}/files printed text that is not JSON`);
+  }
+  const ok =
+    Array.isArray(pages) &&
+    pages.every(
+      (page) =>
+        Array.isArray(page) &&
+        page.every((f) => f !== null && typeof f === "object" && isString(f.filename)),
+    );
+  if (!ok) throw new FactsError(`gh api pulls/${num}/files printed files in an unexpected shape`);
+  return pages.flat().map((f) => f.filename);
+}
+
+/** `gh pr view` plus the paginated file list: {number, title, baseRefName, headRefName, headRefOid, changedFiles, files: string[]}. */
 export function readPr(n, { cwd, env = process.env } = {}) {
   const num = prNumber(n);
   const r = run("gh", ["pr", "view", num, "--json", PR_FIELDS], { cwd, env });
@@ -45,13 +73,12 @@ export function readPr(n, { cwd, env = process.env } = {}) {
     isString(data.headRefName) &&
     isString(data.headRefOid) &&
     SHA.test(data.headRefOid) &&
-    Number.isInteger(data.changedFiles) &&
-    Array.isArray(data.files) &&
-    data.files.every((f) => f !== null && typeof f === "object" && isString(f.path));
+    Number.isInteger(data.changedFiles);
   if (!ok) throw new FactsError(`gh pr view ${num} printed a PR in an unexpected shape`);
-  if (data.changedFiles > data.files.length) {
+  const files = readPaths(num, { cwd, env });
+  if (files.length !== data.changedFiles) {
     throw new FactsError(
-      `GitHub cut the file list of PR ${num} (${data.files.length} of ${data.changedFiles} files)`,
+      `GitHub cut the file list of PR ${num} (${files.length} of ${data.changedFiles} files)`,
     );
   }
   return {
@@ -61,7 +88,7 @@ export function readPr(n, { cwd, env = process.env } = {}) {
     headRefName: data.headRefName,
     headRefOid: data.headRefOid,
     changedFiles: data.changedFiles,
-    files: data.files.map((f) => f.path),
+    files,
   };
 }
 
