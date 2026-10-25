@@ -2,7 +2,8 @@
 import { describe, expect, it } from "vitest";
 import { GRID, rectOf } from "../canvas-board/arrange";
 import { type BoardNode, connectionProblem, type Graph } from "../canvas-board/graph";
-import { placeReply, replyTitle } from "./place-reply";
+import { chatFixtures } from "../fixtures";
+import { estimateReplyHeight, placeReply, replyTitle } from "./place-reply";
 
 const node = (id: string, x: number, data: Partial<BoardNode["data"]> = {}): BoardNode => ({
   id,
@@ -116,6 +117,23 @@ describe("placeReply", () => {
     expect(lower.position.y).toBeGreaterThan(landed.position.y);
   });
 
+  it("steps past a node below a gap that fits the default height but not the reply's estimated height", () => {
+    // The gap between y 40 and the blocker at y 240 is 200 px: it fits 120, not a long reply.
+    const below: BoardNode = { ...node("c", 264), position: { x: 264, y: 240 } };
+    const g: Graph = { ...base(), nodes: [...base().nodes, below] };
+    const long = "word ".repeat(40);
+    expect(estimateReplyHeight(long)).toBeGreaterThan(200);
+    const landed = placeReply(g, { ...reply, text: long, sources: ["a"] }).nodes.at(-1) as BoardNode;
+    const bottom = 240 + rectOf(g.nodes, below).height;
+    expect(landed.position.x).toBe(264);
+    expect(landed.position.y).toBeGreaterThanOrEqual(bottom);
+    expect((landed.position.y - 40) % GRID).toBe(0);
+    // A short reply fits the same gap and stays at the free spot.
+    const short = placeReply(g, { ...reply, sources: ["a"] }).nodes.at(-1) as BoardNode;
+    expect(estimateReplyHeight("body")).toBeLessThan(200);
+    expect(short.position).toEqual({ x: 264, y: 40 });
+  });
+
   it("leaves a free spot as it is", () => {
     const landed = placeReply(base(), { ...reply, sources: ["a"] }).nodes.at(-1) as BoardNode;
     expect(landed.position).toEqual({ x: 264, y: 40 });
@@ -149,6 +167,17 @@ describe("placeReply", () => {
       placeReply(g, { ...reply, sources: ["a", "b"] }),
     );
     expect(g).toEqual(copy);
+  });
+});
+
+describe("estimateReplyHeight", () => {
+  it("is never under the measured height of the fixture replies and grows with the text", () => {
+    expect(estimateReplyHeight(chatFixtures.reply)).toBeGreaterThanOrEqual(223);
+    expect(estimateReplyHeight(chatFixtures.replyEn)).toBeGreaterThanOrEqual(245);
+    expect(estimateReplyHeight("word ".repeat(200))).toBeGreaterThan(
+      estimateReplyHeight("word ".repeat(20)),
+    );
+    expect(estimateReplyHeight("")).toBe(estimateReplyHeight("x"));
   });
 });
 
