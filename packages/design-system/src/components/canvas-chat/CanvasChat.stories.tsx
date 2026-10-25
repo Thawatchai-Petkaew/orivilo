@@ -334,14 +334,13 @@ export const Send: Story = {
     await userEvent.type(field, "บรรทัดแรก{Shift>}{Enter}{/Shift}บรรทัดสอง");
     await expect(field.value).toBe("บรรทัดแรก\nบรรทัดสอง");
     await expect(args.onAsk).not.toHaveBeenCalled();
-    // With focus in the textarea one ring goes around the whole box, not the field.
+    // With focus in the textarea the box's 1 px border in the focus ink is the single line: no outline on top of it.
     const boxStyle = getComputedStyle(q(canvasElement, ".ds-chat__box"));
-    await expect(boxStyle.outlineStyle).toBe("solid");
-    await expect(boxStyle.outlineWidth).toBe("1px");
-    await expect(boxStyle.outlineColor).toBe(resolved(chatOf(canvasElement), "--ds-focus-ring"));
-    await expect(boxStyle.boxShadow).toBe("none");
     const focusEdge = resolved(chatOf(canvasElement), "--cmp-input-border-focus");
     await waitFor(() => expect(boxStyle.borderTopColor).toBe(focusEdge));
+    await expect(boxStyle.outlineStyle).toBe("none");
+    await expect(boxStyle.borderTopWidth).toBe("1px");
+    await expect(boxStyle.boxShadow).toBe("none");
     await expect(getComputedStyle(field).outlineStyle).toBe("none");
     await expect(getComputedStyle(action(canvas, "ส่ง")).backgroundColor).toBe(
       resolved(chatOf(canvasElement), "--cmp-button-intent-bg"),
@@ -783,9 +782,15 @@ export const Conversation: Story = {
     for (const [i, target] of order.entries()) {
       if (i > 0) await userEvent.tab();
       await expect(target).toHaveFocus();
-      // The textarea's ring is drawn around its whole box.
-      const ringed = target === input(canvas) ? q(canvasElement, ".ds-chat__box") : target;
-      await waitFor(() => expect(getComputedStyle(ringed).outlineStyle).toBe("solid"));
+      if (target === input(canvas)) {
+        // The textarea's single line is the box border in the focus ink, with no outline.
+        const box = getComputedStyle(q(canvasElement, ".ds-chat__box"));
+        const edge = resolved(chatOf(canvasElement), "--cmp-input-border-focus");
+        await waitFor(() => expect(box.borderTopColor).toBe(edge));
+        await expect(box.outlineStyle).toBe("none");
+      } else {
+        await waitFor(() => expect(getComputedStyle(target).outlineStyle).toBe("solid"));
+      }
     }
     // The older failure keeps its text and has no retry: only the newest exchange can resend.
     await expect(canvas.getAllByText(FAILED, { selector: ".ds-chat__failure p" })).toHaveLength(1);

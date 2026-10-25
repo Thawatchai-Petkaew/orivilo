@@ -4156,12 +4156,12 @@ button.ds-tag__main {
 .ds-chat__box:hover {
   border-color: var(--cmp-input-border-hover);
 }
-/* One 1 px ring on the box, chat composer only (ORV-107 comment 10153), while the textarea has focus (comment 10146); a focused
- * Send, Stop, Mention or chip button draws its own ring and the box none. The field draws none. */
+/* Chat composer only: while the textarea has focus the box's own 1 px border in the focus ink is the single focus line
+ * (ORV-107 comments 10153, 10154), with no outline on top of it; a focused Send, Stop, Mention or chip button draws its
+ * own 2 px ring and the box none. The field draws none. */
 .ds-chat__box:has(textarea:focus) {
   border-color: var(--cmp-input-border-focus);
-  outline: 1px solid var(--ds-focus-ring);
-  outline-offset: 0;
+  outline: none;
 }
 .ds-chat__box:has(textarea[aria-invalid="true"]) {
   border-color: var(--cmp-input-border-error);
