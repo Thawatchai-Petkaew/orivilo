@@ -12,6 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@better-auth/core": "1.7.12",
     "@orivilo/db": "workspace:*",
     "@orivilo/intent-engine": "workspace:*",
     "better-auth": "1.7.12",

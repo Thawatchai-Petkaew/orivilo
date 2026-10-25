@@ -261,6 +261,7 @@ export const th = {
     readWithAi: "ให้ AI อ่าน",
     aiReading: "AI กำลังอ่าน",
     aiFailed: "AI อ่านไม่สำเร็จ จึงแสดงการอ่านตามกฎแทน",
+    aiNotice: "โปรดตรวจดู",
     axisLine: "{axis}: {level}",
     quoted: "จากคำว่า {words}",
     notUnderstood: "ยังไม่เข้าใจ: {list}",

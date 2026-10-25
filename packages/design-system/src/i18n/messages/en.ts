@@ -258,6 +258,7 @@ export const en: Messages = {
     readWithAi: "Read with AI",
     aiReading: "AI is reading",
     aiFailed: "AI could not read it, so this is the rules' reading",
+    aiNotice: "Check this",
     axisLine: "{axis}: {level}",
     quoted: "from the words {words}",
     notUnderstood: "Not understood: {list}",
