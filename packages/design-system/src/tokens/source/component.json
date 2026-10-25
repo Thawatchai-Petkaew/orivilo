@@ -2387,10 +2387,20 @@
       "$value": "{text.secondary}",
       "$description": "Notice, speaker, empty text, basis word and stopped word"
     },
-    "divider": {
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.overlay.radius}",
+      "$description": "The floating panel's corners (ORV-107 v1.3)"
+    },
+    "shadow": {
+      "$type": "shadow",
+      "$value": "{elevation.overlay}",
+      "$description": "The floating panel lifts off the board"
+    },
+    "border": {
       "$type": "color",
-      "$value": "{border.subtle}",
-      "$description": "Hairline under the notice and above the composer"
+      "$value": "{border.card}",
+      "$description": "Inset 1 px edge of the panel: transparent in light, visible in dark"
     },
     "question-bg": {
       "$type": "color",
@@ -2403,8 +2413,36 @@
     },
     "question-radius": {
       "$type": "dimension",
-      "$value": "{shape.media.radius}",
-      "$description": "The smallest level: a well inside a panel"
+      "$value": "{shape.overlay.radius}",
+      "$description": "A pill bubble at the end edge (ORV-107 v1.3)"
+    },
+    "question-pad-x": {
+      "$type": "dimension",
+      "$value": "{space.inset.md}"
+    },
+    "question-indent": {
+      "$type": "dimension",
+      "$value": "{space.inset.xl}",
+      "$description": "Space kept free at the start of a question bubble"
+    },
+    "composer-radius": {
+      "$type": "dimension",
+      "$value": "{shape.container.radius}"
+    },
+    "composer-pad": {
+      "$type": "dimension",
+      "$value": "{space.inset.sm}",
+      "$description": "Inside the composer box, and from the box to the honesty line"
+    },
+    "meta-height": {
+      "$type": "dimension",
+      "$value": "{size.control.sm}",
+      "$description": "One line of the reply's meta row"
+    },
+    "foot-pad": {
+      "$type": "dimension",
+      "$value": "{space.inline.lg}",
+      "$description": "Under the honesty line"
     },
     "streaming-fg": {
       "$type": "color",
@@ -2435,8 +2473,8 @@
     },
     "turn-gap": {
       "$type": "dimension",
-      "$value": "{space.stack.sm}",
-      "$description": "From the question to its reply"
+      "$value": "{space.inline.lg}",
+      "$description": "From the question to its reply, and empty text to the starters"
     },
     "line-gap": {
       "$type": "dimension",
@@ -2450,7 +2488,7 @@
     },
     "header-height": {
       "$type": "dimension",
-      "$value": "{size.control.md}"
+      "$value": "{size.control.sm}"
     },
     "icon-size": {
       "$type": "dimension",
@@ -2471,6 +2509,11 @@
     "body-sm-type": {
       "$type": "typography",
       "$value": "{type.body.sm}"
+    },
+    "picker-max-block-size": {
+      "$type": "dimension",
+      "$value": "{size.panel.min}",
+      "$description": "Tallest the mention picker grows before it scrolls, 240 (slice C)"
     }
   }
 }

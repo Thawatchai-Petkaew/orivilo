@@ -1300,20 +1300,28 @@
   --cmp-chat-bg: var(--ds-surface-card);
   --cmp-chat-fg: var(--ds-text-primary);
   --cmp-chat-muted-fg: var(--ds-text-secondary);
-  --cmp-chat-divider: var(--ds-border-subtle);
+  --cmp-chat-radius: var(--ds-shape-overlay-radius);
+  --cmp-chat-shadow: var(--ds-elevation-overlay);
+  --cmp-chat-border: var(--ds-border-card);
   --cmp-chat-question-bg: var(--ds-surface-sunken);
   --cmp-chat-question-fg: var(--ds-text-primary);
-  --cmp-chat-question-radius: var(--ds-shape-media-radius);
+  --cmp-chat-question-radius: var(--ds-shape-overlay-radius);
+  --cmp-chat-question-pad-x: var(--ds-space-inset-md);
+  --cmp-chat-question-indent: var(--ds-space-inset-xl);
+  --cmp-chat-composer-radius: var(--ds-shape-container-radius);
+  --cmp-chat-composer-pad: var(--ds-space-inset-sm);
+  --cmp-chat-meta-height: var(--ds-size-control-sm);
+  --cmp-chat-foot-pad: var(--ds-space-inline-lg);
   --cmp-chat-streaming-fg: var(--ds-status-running);
   --cmp-chat-failed-fg: var(--ds-feedback-danger-fg);
   --cmp-chat-padding-x: var(--ds-space-inset-md);
   --cmp-chat-padding-y: var(--ds-space-inset-sm);
   --cmp-chat-question-pad: var(--ds-space-inset-sm);
   --cmp-chat-exchange-gap: var(--ds-space-stack-lg);
-  --cmp-chat-turn-gap: var(--ds-space-stack-sm);
+  --cmp-chat-turn-gap: var(--ds-space-inline-lg);
   --cmp-chat-line-gap: var(--ds-space-inline-sm);
   --cmp-chat-inline-gap: var(--ds-space-inline-md);
-  --cmp-chat-header-height: var(--ds-size-control-md);
+  --cmp-chat-header-height: var(--ds-size-control-sm);
   --cmp-chat-icon-size: var(--ds-size-icon-sm);
   --cmp-chat-title-type-font-family: var(--ds-type-label-md-font-family);
   --cmp-chat-title-type-font-size: var(--ds-type-label-md-font-size);
@@ -1335,6 +1343,7 @@
   --cmp-chat-body-sm-type-line-height: var(--ds-type-body-sm-line-height);
   --cmp-chat-body-sm-type-font-weight: var(--ds-type-body-sm-font-weight);
   --cmp-chat-body-sm-type-letter-spacing: var(--ds-type-body-sm-letter-spacing);
+  --cmp-chat-picker-max-block-size: var(--ds-size-panel-min);
 }
 
 /* Tailwind utilities resolve to semantic tokens only (DESIGN.md §5). The defaults are removed first

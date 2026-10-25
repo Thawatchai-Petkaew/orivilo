@@ -1,7 +1,7 @@
 ---
 issue: ORV-106 (ORV-105 slice B, ORV-45 part 3; https://tpetkaew.atlassian.net/browse/ORV-106)
 lane: L (risk flags: component public API, board document schema `NodeContent`)
-version: 1.2
+version: 1.3
 ---
 
 ## Why
@@ -99,7 +99,7 @@ Rows 13 to 17 are ORV-105's rows, unchanged; the Result cell is ORV-105's "User 
 - `ChatRequest` gains optional `contextNodeId`; `onReply` return type widens from `void` to `string | undefined`. Callers: `CanvasChat.stories.tsx` only (no `apps/web` caller yet).
 - New exports from `@orivilo/design-system`: `placeReply`, `replyTitle`.
 - Locale: five `chat` keys in `th.ts` and `en.ts`; reused `taskBar.basisRules`, `taskBar.basisMock`, `board.jumped`.
-- Catalog: `canvas-chat.yaml` notes and `coverage.md` row updated for slice B; `canvas-node.yaml` mentions the basis word if its entry lists header contents.
+- Catalog: `canvas-chat.yaml` notes updated for slice B; `canvas-node.yaml` mentions the basis word if its entry lists header contents. `coverage.md` needs no change: its CanvasChat row (status `draft`, story `application-canvas-chat`) is the same before and after slice B.
 - `docs/specs/ORV-105/spec.md` v1.4 for row 32 (story name only, no requirement change).
 - No change to `TaskBar`, `Textarea`, `Tag`, `jumpToNode`, `connectionProblem`, any token or any semantic token. A new token for the reply node or the jump button would be a contract change that bumps this spec.
 
@@ -128,3 +128,4 @@ Rows 13 to 17 are ORV-105's rows, unchanged; the Result cell is ORV-105's "User 
 - v1 (2026-10-25): first slice spec for ORV-105 slice B, from ORV-105 spec v1.3 rows 13 to 17 and design.md §15, plus rows 29 to 33 for the items slice A carried (review N1, QA-1 to QA-3) and the slice B catalog check. Downstream: the slice B build task; `docs/specs/ORV-105/spec.md` v1.4 (row 32).
 - v1.1 (2026-10-25): decisions by Claude within the ORV-105 G1 and G2 scope (comments 10132, 10133). Open questions 1 to 3 take their defaults: export `replyTitle`, the host passes the viewport centre as position with an origin fallback, and a later reply stacks below the lowest reply linked from the same source.
 - v1.2 (2026-10-25): build finding. axe `label-content-name-mismatch` splits Thai into words, so the visible "ไปที่โหนดคำตอบ" is not found inside "ไปที่โหนดคำตอบเรื่อง ..." ("คำตอบเรื่อง" reads as one word). The Thai `chat.jumpLabel` takes a space before "เรื่อง" so the visible text is a whole word of the name and AC 33 holds (zero a11y violations). English is unchanged. Also: `replyTopic` is shared by `replyTitle` and the jump label.
+- v1.3 (2026-10-25): ORV-107 row 32 (ORV-106 QA F3). The Impact list no longer names `coverage.md` as changed; it says the CanvasChat row needs no change for slice B, which matches PR #99. No requirement change. Downstream: none.

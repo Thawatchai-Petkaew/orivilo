@@ -23,9 +23,11 @@ describe("storyOrder and commandAvailable", () => {
     expect(storyOrder("E2-9")).toBeLessThan(storyOrder("E4-1"));
     expect(storyOrder("nonsense")).toBe(Number.MAX_SAFE_INTEGER);
   });
-  it("marks E4-2 to E4-4 commands available and later ones not", () => {
+  it("marks E4-2 to E4-4 commands available and later ones not, but for the early set", () => {
     expect(CURRENT_STORY).toBe("E4-4");
-    expect(available.every((c) => storyOrder(c.since) <= storyOrder("E4-4"))).toBe(true);
+    // ORV-107: `node.mention` ships with the chat's slice C, before E4-5 is the current story.
+    const early = available.filter((c) => storyOrder(c.since) > storyOrder("E4-4"));
+    expect(early.map((c) => c.id)).toEqual(["node.mention"]);
     expect(COMMANDS.filter((c) => !commandAvailable(c)).map((c) => c.since)).not.toContain("E4-4");
     expect(COMMANDS.some((c) => !commandAvailable(c))).toBe(true);
   });
@@ -37,16 +39,21 @@ describe("every available command renders on each surface it names", () => {
   it("checks the real surface names", () => {
     expect(surfaces).toContain("command-menu");
     expect(surfaces.length).toBeGreaterThan(3);
-    // "chat" gets its first command in E4-5; every other surface renders in this build.
-    for (const surface of surfaces.filter((s) => s !== "chat")) {
+    // Every surface renders at least one command in this build; "chat" has `node.mention` (ORV-107).
+    for (const surface of surfaces) {
       expect(surfaceCommands(surface).length, surface).toBeGreaterThan(0);
     }
+  });
+  it("renders node.mention on the chat and context-menu surfaces only", () => {
+    expect(surfaceCommands("chat").map((c) => c.id)).toEqual(["node.mention"]);
+    expect(surfaceCommands("context-menu", ["node"]).map((c) => c.id)).toContain("node.mention");
+    expect(surfaceCommands("command-menu").map((c) => c.id)).not.toContain("node.mention");
   });
   for (const surface of surfaces) {
     it(`${surface}`, () => {
       const expected = available.filter((c) => (c.surfaces as readonly string[]).includes(surface));
       const listed = surfaceCommands(surface).map((c) => c.id);
-      if (surface !== "chat") expect(listed.length).toBeGreaterThan(0);
+      expect(listed.length).toBeGreaterThan(0);
       expect(listed).toEqual(expected.map((c) => c.id));
       expect(listed).not.toContain("board.save-draft");
     });

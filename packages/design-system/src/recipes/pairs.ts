@@ -925,8 +925,8 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
   { recipe: "taskbar", slot: "reason", fg: "taskbar.reason-fg", bg: "taskbar.bg", floor: TEXT },
   { recipe: "taskbar", slot: "row focus", fg: "ds:focus.ring", bg: "taskbar.bg", floor: UI },
   // CanvasChat (ORV-105): text and marks on the panel ground and on the question well, the
-  // transcript focus ring against the panel. Not listed: `chat.divider` is a `border.subtle`
-  // hairline (decorative, WCAG 1.4.11 does not apply), and the question well's edge is not a
+  // transcript focus ring against the panel. Not listed: the panel edge (`chat.border`) and
+  // shadow, which the content does not depend on (WCAG 1.4.11 does not apply), and the question well's edge is not a
   // boundary anyone must perceive to operate anything. Textarea, Button and ScrollArea inside sit
   // on `chat.bg`, which reads `surface.card`, where their pairs exist. If `chat.bg` stops reading
   // `surface.card`, repeat those pairs on `chat.bg`. The lime Send has no floor against the card,
@@ -944,4 +944,34 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
   { recipe: "chat", slot: "streaming", fg: "chat.streaming-fg", bg: "chat.bg", floor: TEXT },
   { recipe: "chat", slot: "failed", fg: "chat.failed-fg", bg: "chat.bg", floor: TEXT },
   { recipe: "chat", slot: "transcript focus", fg: "ds:focus.ring", bg: "chat.bg", floor: UI },
+  // The composer box's focus line is its 1 px border in the focus ink (ORV-107 comment 10154), on the chat ground and on the box fill.
+  { recipe: "chat", slot: "composer focus", fg: "input.border-focus", bg: "chat.bg", floor: UI },
+  {
+    recipe: "chat",
+    slot: "composer focus on field",
+    fg: "input.border-focus",
+    bg: "input.bg",
+    floor: UI,
+  },
+  // Slice C: the gone chip's caution mark. The picker's text pairs are the `menu` ones (it reads
+  // `menu.*`); the question line is `muted` on the question well, listed above as "speaker on well".
+  { recipe: "chat", slot: "gone mark", fg: "ds:feedback.warning.fg", bg: "chat.bg", floor: UI },
+  // v1.6: the gone message under the chip row reads in the warning ink on the composer box.
+  {
+    recipe: "chat",
+    slot: "gone message",
+    fg: "ds:feedback.warning.fg",
+    bg: "input.bg",
+    floor: TEXT,
+  },
+  // v1.3 (ORV-107): the composer box draws its own edge on the panel, so the field is findable
+  // without its placeholder (UI 3.0); over the limit the edge turns to the error colour.
+  { recipe: "chat", slot: "composer edge", fg: "input.border", bg: "chat.bg", floor: UI },
+  {
+    recipe: "chat",
+    slot: "composer error edge",
+    fg: "input.border-error",
+    bg: "chat.bg",
+    floor: UI,
+  },
 ];

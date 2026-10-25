@@ -596,15 +596,20 @@ export const Suggested: Story = {
   },
 };
 
+/** Tall enough that the board toolbar, wrapped or not, covers no part of the three nodes (ORV-107 row 31). */
+const HEIGHT = 520;
+
 /**
  * Basis (ORV-106): a node made from a chat reply names how it was made after the kind word, by
- * rules or from mock data. A node without a basis shows no word. Checked in every cell, both modes.
+ * rules or from mock data. A node without a basis shows no word. The word follows the kind word by
+ * one text space and no margin (ORV-107 row 29). Checked in every cell, both modes; in each, the
+ * board toolbar meets none of the nodes.
  */
 export const Basis: Story = {
   render: () => (
     <Matrix>
       <NodeBoard
-        height={240}
+        height={HEIGHT}
         initial={row([
           { title: "ตามกฎ node", kind: "artifact", size: "sm", basis: "rules" },
           { title: "จำลอง node", kind: "artifact", size: "sm", basis: "mock" },
@@ -628,6 +633,16 @@ export const Basis: Story = {
       await expect(basisOf("ตามกฎ node")).toBeVisible();
       const kind = nodeOf("ตามกฎ node").querySelector(".ds-node__kind") as HTMLElement;
       await expect(kind.textContent).toBe("ชิ้นงาน ตามกฎ");
+      await expect(getComputedStyle(basisOf("ตามกฎ node") as Element).marginInlineStart).toBe(
+        "0px",
+      );
+      const bar = canvas.getByRole("toolbar", { name: "เครื่องมือกระดาน" }).getBoundingClientRect();
+      for (const title of ["ตามกฎ node", "จำลอง node", "ไม่มี basis node"]) {
+        const r = nodeOf(title).getBoundingClientRect();
+        await expect(
+          r.left < bar.right && r.right > bar.left && r.top < bar.bottom && r.bottom > bar.top,
+        ).toBe(false);
+      }
     }
   },
 };

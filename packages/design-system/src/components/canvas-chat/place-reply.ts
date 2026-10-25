@@ -35,6 +35,24 @@ export function replyTitle(question: string, locale: Locale): string {
   return fill(messagesFor(locale).chat.replyTitle, { topic: replyTopic(question, locale) });
 }
 
+/**
+ * Browser probe (ORV-107, Chromium, `OnBoard` story, light, sm note, 240 px wide): a reply note is
+ * the header, the input port row and the border and padding, 156 px in all with no text, plus 22.4
+ * px (the body line height) a line; the text column is 206 px wide, about 29 characters of Thai or
+ * Latin text a line. 20 characters a line leaves room for wide glyphs and a title that wraps, so
+ * the estimate never falls under a measured reply (223 px for the Thai fixture, 245 px for the
+ * English one).
+ */
+const REPLY_CHROME = 156;
+const REPLY_LINE_HEIGHT = 22.4;
+const REPLY_CHARS_PER_LINE = 20;
+
+/** The height, in flow px, a reply note with this text is expected to render at; worked out from the text alone. */
+export function estimateReplyHeight(text: string): number {
+  const lines = Math.max(1, Math.ceil(Array.from(text).length / REPLY_CHARS_PER_LINE));
+  return Math.ceil(REPLY_CHROME + lines * REPLY_LINE_HEIGHT);
+}
+
 export interface PlacedReply {
   id: string;
   title: string;
@@ -49,7 +67,8 @@ export interface PlacedReply {
 /**
  * The graph with the reply added as a `note`, one input port per source that has an output, and a
  * `derived` edge from each. Existing nodes and edges keep their `selected` state (unlike
- * `placeBlock`), so selection and focus do not move.
+ * `placeBlock`), so selection and focus do not move. The note lands at the first spot, stepping
+ * down by the grid gap, where it covers no node at its estimated height.
  */
 export function placeReply(graph: Graph, reply: PlacedReply): Graph {
   const sources = [...new Set(reply.sources)]
@@ -106,5 +125,17 @@ export function placeReply(graph: Graph, reply: PlacedReply): Graph {
       outputs: [],
     },
   };
+  // Never cover a node: step down by the grid gap until the note's rect meets none (ORV-107 row 30).
+  // The rect is as high as the note is expected to render (not rectOf's default height), so a gap
+  // that fits only the default does not take it. Past the lowest node nothing is left to meet.
+  const others = graph.nodes.filter((n) => !n.hidden).map((n) => rectOf(graph.nodes, n));
+  const meets = () => {
+    const r = { ...rectOf([node], node), height: estimateReplyHeight(reply.text) };
+    return others.some(
+      (o) =>
+        r.x < o.x + o.width && r.x + r.width > o.x && r.y < o.y + o.height && r.y + r.height > o.y,
+    );
+  };
+  while (meets()) node.position = { x: node.position.x, y: node.position.y + GRID };
   return { nodes: [...graph.nodes, node], edges: [...graph.edges, ...edges] };
 }

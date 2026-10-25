@@ -7,26 +7,36 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type ChangeEvent,
   type FormEvent,
   type KeyboardEvent,
 } from "react";
+import { surfaceCommands } from "../../commands/index";
 import { LOCALE_TAGS } from "../../i18n/locale";
-import { useLocale, useMessages } from "../../i18n/LocaleProvider";
+import { useLocale, useMessages, useWord } from "../../i18n/LocaleProvider";
 import { fill } from "../../i18n/messages/index";
+import { CANVAS_WORDS } from "../../tokens/canvas";
 import { Button } from "../button/Button";
 import type { ChatBasis } from "../canvas-board/graph";
 import { useBoard } from "../canvas-board/context";
+import { matches } from "../command-menu/CommandMenu";
 import { cx } from "../cx";
 import {
+  ChatIcon,
   CloseIcon,
   FillUnlinkedIcon,
   JumpIcon,
+  MentionIcon,
   RetryIcon,
+  SendIcon,
   SpinnerIcon,
+  StopIcon,
   WarningIcon,
 } from "../icons";
 import { ScrollArea } from "../scroll-area/ScrollArea";
+import { Tag } from "../tag/Tag";
 import { Textarea } from "../textarea/Textarea";
+import { Tooltip } from "../tooltip/Tooltip";
 import { countGraphemes } from "../textarea/graphemes";
 import { replyTopic } from "./place-reply";
 
@@ -35,7 +45,7 @@ export type { ChatBasis };
 export interface ChatRequest {
   /** What the person typed, trimmed. */
   text: string;
-  /** Mentioned node ids still on the board, in the order picked. Always empty until slice C. */
+  /** Mentioned node ids still on the board, in the order picked (ORV-107). */
   mentions: readonly string[];
   /** The node selected alone on the board when the message was sent, if any (ORV-106). */
   contextNodeId?: string | undefined;
@@ -50,7 +60,7 @@ export interface ChatReply {
 export interface CanvasChatProps {
   /** The sidebar chat; the at-cursor form joins in slice D. */
   variant: "sidebar";
-  /** What answers today; shown as a notice before the first message. */
+  /** What answers today; shown as the honesty line under the composer. */
   basis: ChatBasis;
   /**
    * The host's answer. Yields snapshots while it streams; ends to finish; throws to fail.
@@ -65,6 +75,12 @@ export interface CanvasChatProps {
   onReply?: ((reply: ChatReply, request: ChatRequest) => string | undefined) | undefined;
   /** Shows the close button; a streaming reply is aborted before this runs. */
   onClose?: (() => void) | undefined;
+  /** Controlled: the node ids mentioned. The shell adds one on `node.mention` from the context menu. */
+  mentions?: readonly string[] | undefined;
+  /** Uncontrolled start value of the mentions. */
+  defaultMentions?: readonly string[] | undefined;
+  /** Fires with the whole list after a pick or a remove by the person, never on a gone node. */
+  onMentionsChange?: ((ids: readonly string[]) => void) | undefined;
   className?: string | undefined;
 }
 
@@ -73,6 +89,8 @@ type ExchangeStatus = "streaming" | "done" | "stopped" | "failed";
 interface Exchange {
   id: number;
   request: ChatRequest;
+  /** The titles of `request.mentions` when it was sent. */
+  mentionTitles: readonly string[];
   status: ExchangeStatus;
   /** The latest snapshot; dropped on failure. */
   reply: ChatReply | undefined;
@@ -82,10 +100,23 @@ interface Exchange {
   announced?: boolean | undefined;
 }
 
+/** The starter prompts, in the order shown (spec row 34). */
+const STARTERS = ["starterMissing", "starterColours", "starterNext"] as const;
+
 /** The soft limit of the message box, in graphemes (spec: Textarea's counter). */
 const MAX_LENGTH = 2000;
+/** The counter shows from here on, so a short message carries no number (ORV-107 comment 10146). */
+const COUNTER_FROM = 1800;
 /** Within this many pixels of the end, the transcript keeps following the newest reply. */
 const FOLLOW_SLACK = 32;
+
+/** The "@query" that ends at the caret: at the start or after a space, no space inside. */
+function mentionToken(text: string, caret: number): { start: number; query: string } | null {
+  const found = /(^|\s)@(\S*)$/.exec(text.slice(0, caret));
+  if (!found) return null;
+  const query = found[2] ?? "";
+  return { start: caret - query.length - 1, query };
+}
 
 /**
  * The board chat, sidebar variant (catalog `application/canvas-chat`, ORV-105 slice A). It asks the
@@ -94,6 +125,8 @@ const FOLLOW_SLACK = 32;
  * claims AI. One request at a time. Question and reply render as plain text. The transcript lives
  * in component state and is gone on unmount. Inside a `CanvasBoard` it sends the node selected
  * alone as `contextNodeId`, and a reply the host placed as a node gets a jump to it (slice B).
+ * Typing "@" or the Mention button opens a picker of the board's nodes; picked nodes are chips
+ * above the box and travel as ids in `request.mentions` (slice C). Nothing reads their content.
  */
 export function CanvasChat({
   variant,
@@ -101,12 +134,17 @@ export function CanvasChat({
   onAsk,
   onReply,
   onClose,
+  mentions,
+  defaultMentions,
+  onMentionsChange,
   className,
 }: CanvasChatProps) {
   const m = useMessages();
   const locale = useLocale();
+  const word = useWord();
   const board = useBoard();
   const titleId = useId();
+  const noticeId = useId();
   const [draft, setDraft] = useState("");
   const [exchanges, setExchanges] = useState<readonly Exchange[]>([]);
   const [announcement, setAnnouncement] = useState("");
@@ -116,11 +154,77 @@ export function CanvasChat({
   const rootRef = useRef<HTMLElement>(null);
   const follow = useRef(true);
   const composing = useRef(false);
+  const listId = useId();
+  const [ownMentions, setOwnMentions] = useState<readonly string[]>(defaultMentions ?? []);
+  const ids = mentions ?? ownMentions;
+  // The title a mentioned node last had, so its chip can still name it after it is deleted.
+  const titles = useRef(new Map<string, string>());
+  const [caret, setCaret] = useState(0);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [active, setActive] = useState(0);
+  const nextCaret = useRef<number | null>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
 
   const latest = exchanges[exchanges.length - 1];
   const streaming = latest?.status === "streaming";
   const trimmed = draft.trim();
-  const blocked = trimmed === "" || countGraphemes(draft, LOCALE_TAGS[locale]) > MAX_LENGTH;
+  const length = countGraphemes(draft, LOCALE_TAGS[locale]);
+  const blocked = trimmed === "" || length > MAX_LENGTH;
+
+  const token = pickerOpen ? mentionToken(draft, caret) : null;
+  const canMention =
+    board.graph.nodes.length > 0 && surfaceCommands("chat").some((c) => c.id === "node.mention");
+  const options = token
+    ? board.graph.nodes
+        .filter((n) => !n.hidden)
+        .map((n) => ({
+          id: n.id,
+          title: n.data.title,
+          word: word(CANVAS_WORDS.node[n.data.kind]),
+          text: `${n.data.title} ${CANVAS_WORDS.node[n.data.kind].th} ${CANVAS_WORDS.node[n.data.kind].en}`,
+        }))
+        .filter((o) => matches(o.text, token.query))
+    : [];
+  const current = Math.min(active, Math.max(0, options.length - 1));
+  const activeId = token && options.length > 0 ? `${listId}-${current}` : undefined;
+
+  useLayoutEffect(() => {
+    for (const id of ids) {
+      const found = board.graph.nodes.find((n) => n.id === id);
+      if (found) titles.current.set(id, found.data.title);
+    }
+  });
+  // The picker never grows past the chat's top: its room is what lies above the composer.
+  useLayoutEffect(() => {
+    const picker = pickerRef.current;
+    const root = rootRef.current;
+    const composer = composerRef.current;
+    if (!picker || !root || !composer) return;
+    const room = composer.getBoundingClientRect().top - root.getBoundingClientRect().top;
+    picker.style.maxBlockSize = `min(var(--cmp-chat-picker-max-block-size), ${Math.max(0, room)}px)`;
+  });
+  // Textarea always lists its counter in aria-describedby, but the counter is hidden below
+  // COUNTER_FROM; a hidden counter is still read, so its id is left out until it shows (S4).
+  useLayoutEffect(() => {
+    const field = textarea();
+    const counter = composerRef.current?.querySelector<HTMLElement>(".ds-textarea__counter");
+    if (!field || !counter) return;
+    field.setAttribute(
+      "aria-describedby",
+      [
+        noticeId,
+        ...goneIds.map((_, index) => `${noticeId}-gone-${index}`),
+        length >= COUNTER_FROM ? counter.id : "",
+      ]
+        .filter(Boolean)
+        .join(" "),
+    );
+  });
+  useLayoutEffect(() => {
+    if (nextCaret.current === null) return;
+    textarea()?.setSelectionRange(nextCaret.current, nextCaret.current);
+    nextCaret.current = null;
+  });
 
   // The chat unmounting aborts the request in flight; nothing is announced or stored after it.
   useEffect(() => () => abortRef.current?.abort(), []);
@@ -154,6 +258,57 @@ export function CanvasChat({
     setAnnouncement(fill(m.chat.placed, { title: node.data.title }));
     setExchanges((list) => list.map((e) => (e.id === pending.id ? { ...e, announced: true } : e)));
   }, [exchanges, board.graph, m]);
+
+  const onBoard = (id: string) => board.graph.nodes.some((n) => n.id === id);
+  const goneIds = ids.filter((id) => !onBoard(id));
+  const titleOf = (id: string) =>
+    board.graph.nodes.find((n) => n.id === id)?.data.title ?? titles.current.get(id) ?? id;
+
+  const changeMentions = (next: readonly string[]) => {
+    if (mentions === undefined) setOwnMentions(next);
+    onMentionsChange?.(next);
+  };
+
+  /** Picks a node: its "@query" becomes the title and a space, and it joins the chips once. */
+  const pick = (id: string) => {
+    if (!token) return;
+    const label = `${titleOf(id)} `;
+    const text = `${draft.slice(0, token.start)}${label}${draft.slice(caret)}`;
+    const next = token.start + label.length;
+    setDraft(text);
+    setCaret(next);
+    nextCaret.current = next;
+    setPickerOpen(false);
+    if (!ids.includes(id)) changeMentions([...ids, id]);
+    textarea()?.focus();
+  };
+
+  /** The Mention button: an "@" at the caret (after a space) opens the same picker. */
+  const openPicker = () => {
+    const el = textarea();
+    const at = el?.selectionStart ?? draft.length;
+    const lead = at > 0 && !/\s/.test(draft[at - 1] ?? "") ? " " : "";
+    const text = `${draft.slice(0, at)}${lead}@${draft.slice(at)}`;
+    const next = at + lead.length + 1;
+    setDraft(text);
+    setCaret(next);
+    nextCaret.current = next;
+    setActive(0);
+    setPickerOpen(true);
+    el?.focus();
+  };
+
+  const onDraftChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
+    const text = event.currentTarget.value;
+    const at = event.currentTarget.selectionStart;
+    const typed = (event.nativeEvent as InputEvent).data;
+    setDraft(text);
+    setCaret(at);
+    setActive(0);
+    // "@" opens the picker when it is the typed character; later keys only narrow or end it.
+    const found = canMention ? mentionToken(text, at) : null;
+    setPickerOpen(found !== null && (pickerOpen || typed === "@"));
+  };
 
   const patch = (id: number, change: Partial<Exchange>) =>
     setExchanges((list) => list.map((e) => (e.id === id ? { ...e, ...change } : e)));
@@ -198,9 +353,15 @@ export function CanvasChat({
     patch(id, { status: "done", reply: last, placedId });
   };
 
-  const start = (request: ChatRequest, retryId?: number) => {
+  const start = (request: ChatRequest, titlesOf: readonly string[], retryId?: number) => {
     const id = retryId ?? nextId.current++;
-    const fresh: Exchange = { id, request, status: "streaming", reply: undefined };
+    const fresh: Exchange = {
+      id,
+      request,
+      mentionTitles: titlesOf,
+      status: "streaming",
+      reply: undefined,
+    };
     follow.current = true;
     setExchanges((list) =>
       retryId === undefined ? [...list, fresh] : list.map((e) => (e.id === id ? fresh : e)),
@@ -211,12 +372,18 @@ export function CanvasChat({
   const submit = () => {
     if (blocked || streaming) return;
     const [only, ...more] = board.selectedNodeIds;
-    start({
-      text: trimmed,
-      mentions: [],
-      ...(only !== undefined && more.length === 0 ? { contextNodeId: only } : {}),
-    });
+    // A node deleted since it was picked keeps its chip but is left out of the request.
+    const live = ids.filter(onBoard);
+    start(
+      {
+        text: trimmed,
+        mentions: live,
+        ...(only !== undefined && more.length === 0 ? { contextNodeId: only } : {}),
+      },
+      live.map(titleOf),
+    );
     setDraft("");
+    setPickerOpen(false);
     textarea()?.focus();
   };
 
@@ -229,7 +396,7 @@ export function CanvasChat({
   };
 
   const retry = (exchange: Exchange) => {
-    start(exchange.request, exchange.id);
+    start(exchange.request, exchange.mentionTitles, exchange.id);
     textarea()?.focus();
   };
 
@@ -246,6 +413,14 @@ export function CanvasChat({
     onClose?.();
   };
 
+  /** A starter fills the textarea and focuses it, caret at the end; it never sends. */
+  const fillStarter = (text: string) => {
+    setDraft(text);
+    setCaret(text.length);
+    nextCaret.current = text.length;
+    textarea()?.focus();
+  };
+
   const onFormSubmit = (event: FormEvent) => {
     event.preventDefault();
     submit();
@@ -255,8 +430,34 @@ export function CanvasChat({
   // `isComposing` and keyCode 229 cover most engines, the flag covers Safari, whose compositionend
   // fires before the Enter keydown.
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    const isComposing = event.nativeEvent.isComposing || event.keyCode === 229 || composing.current;
+    if (token && !isComposing) {
+      // The open picker owns the arrows, Enter and Escape; Escape closes the list only.
+      const last = Math.max(0, options.length - 1);
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        setActive(
+          event.key === "ArrowDown"
+            ? (current + 1) % (last + 1)
+            : (current - 1 + last + 1) % (last + 1),
+        );
+        event.preventDefault();
+        return;
+      }
+      if (event.key === "Enter" && !event.shiftKey) {
+        const chosen = options[current];
+        if (chosen) pick(chosen.id);
+        event.preventDefault();
+        return;
+      }
+      if (event.key === "Escape") {
+        setPickerOpen(false);
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+    }
     if (event.key !== "Enter" || event.shiftKey) return;
-    if (event.nativeEvent.isComposing || event.keyCode === 229 || composing.current) return;
+    if (isComposing) return;
     event.preventDefault();
     submit();
   };
@@ -272,16 +473,27 @@ export function CanvasChat({
       aria-labelledby={titleId}
     >
       <header className="ds-chat__header">
+        <ChatIcon aria-hidden="true" />
         <span className="ds-chat__title" id={titleId}>
           {m.chat.label}
         </span>
       </header>
-      <p className="ds-chat__notice">
-        {basis === "rules" ? m.chat.noticeRules : m.chat.noticeMock}
-      </p>
       <ScrollArea label={m.chat.transcript} className="ds-chat__scroll">
         {exchanges.length === 0 ? (
-          <p className="ds-chat__empty">{m.chat.empty}</p>
+          <div className="ds-chat__empty">
+            <p>{m.chat.empty}</p>
+            {draft === "" ? (
+              <ul className="ds-chat__starters" aria-label={m.chat.starters}>
+                {STARTERS.map((key) => (
+                  <li key={key}>
+                    <Button variant="secondary" size="sm" onClick={() => fillStarter(m.chat[key])}>
+                      {m.chat[key]}
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
         ) : (
           <ol className="ds-chat__log">
             {exchanges.map((exchange) => {
@@ -297,8 +509,16 @@ export function CanvasChat({
               return (
                 <li key={exchange.id} className="ds-chat__exchange" data-state={status}>
                   <div className="ds-chat__question">
-                    <span className="ds-chat__speaker">{m.chat.you}</span>
+                    <span className="ds-chat__speaker sr-only">{m.chat.you}</span>
                     <p className="ds-chat__text">{exchange.request.text}</p>
+                    {exchange.mentionTitles.length > 0 ? (
+                      <p className="ds-chat__refs">
+                        {fill(m.chat.mentionedLine, {
+                          label: m.chat.mentioned,
+                          titles: exchange.mentionTitles.join(m.chat.listSeparator),
+                        })}
+                      </p>
+                    ) : null}
                   </div>
                   <div className="ds-chat__reply">
                     {status === "failed" ? (
@@ -374,34 +594,158 @@ export function CanvasChat({
         )}
       </ScrollArea>
       <form className="ds-chat__composer" ref={composerRef} onSubmit={onFormSubmit}>
-        <Textarea
-          aria-label={m.chat.input}
-          placeholder={m.chat.placeholder}
-          maxLength={MAX_LENGTH}
-          rows={3}
-          value={draft}
-          onChange={(event) => setDraft(event.currentTarget.value)}
-          onKeyDown={onKeyDown}
-          onCompositionStart={() => {
-            composing.current = true;
-          }}
-          onCompositionEnd={() => {
-            setTimeout(() => {
-              composing.current = false;
-            }, 0);
-          }}
-        />
-        <div className="ds-chat__actions">
-          {streaming ? (
-            <Button variant="secondary" onClick={stop}>
-              {m.chat.stop}
-            </Button>
-          ) : (
-            <Button type="submit" variant="intent" aria-disabled={blocked}>
-              {m.chat.send}
-            </Button>
-          )}
+        {token ? (
+          <div className="ds-chat__picker" ref={pickerRef}>
+            {options.length === 0 ? (
+              <p className="ds-chat__picker-empty" role="status">
+                {fill(m.chat.mentionNone, { query: token.query })}
+              </p>
+            ) : (
+              <div
+                id={listId}
+                role="listbox"
+                aria-label={m.chat.mentionList}
+                className="ds-chat__options"
+              >
+                {options.map((option, index) => (
+                  <div
+                    key={option.id}
+                    id={`${listId}-${index}`}
+                    role="option"
+                    aria-selected={index === current}
+                    className="ds-chat__option"
+                    data-active={index === current ? "" : undefined}
+                    onMouseDown={(event) => event.preventDefault()}
+                    onMouseEnter={() => setActive(index)}
+                    onClick={() => pick(option.id)}
+                  >
+                    <span>
+                      {option.title}
+                      <span className="ds-chat__option-meta">{option.word}</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : null}
+        <div className="ds-chat__box" data-counter={length >= COUNTER_FROM ? "" : undefined}>
+          {ids.length > 0 ? (
+            <div className="ds-chat__mentions">
+              <ul className="ds-chat__chips" aria-label={m.chat.mentioned}>
+                {ids.map((id) => (
+                  <li key={id} className="ds-chat__chip" data-gone={onBoard(id) ? undefined : ""}>
+                    {onBoard(id) ? (
+                      <Tag
+                        size="sm"
+                        label={titleOf(id)}
+                        onRemove={() => changeMentions(ids.filter((other) => other !== id))}
+                      />
+                    ) : (
+                      // Tag takes a string label, so the gone chip reuses its markup to hold the caution mark.
+                      <span className="ds-tag" data-size="sm" title={titleOf(id)}>
+                        <span className="ds-tag__main">
+                          <span className="ds-chat__mark ds-chat__gone-mark" aria-hidden="true">
+                            <WarningIcon />
+                          </span>
+                          <span className="ds-tag__label">{titleOf(id)}</span>
+                        </span>
+                        <button
+                          type="button"
+                          className="ds-tag__remove"
+                          aria-label={fill(m.tag.remove, {
+                            label: fill(m.chat.mentionGone, { title: titleOf(id) }),
+                          })}
+                          onClick={() => changeMentions(ids.filter((other) => other !== id))}
+                        >
+                          <CloseIcon className="size-4" />
+                        </button>
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              {goneIds.map((id, index) => (
+                <p key={id} className="ds-chat__gone-message" id={`${noticeId}-gone-${index}`}>
+                  {fill(m.chat.mentionGone, { title: titleOf(id) })}
+                </p>
+              ))}
+            </div>
+          ) : null}
+          <Textarea
+            aria-label={m.chat.input}
+            aria-describedby={noticeId}
+            placeholder={m.chat.placeholder}
+            maxLength={MAX_LENGTH}
+            rows={1}
+            value={draft}
+            onChange={onDraftChange}
+            onSelect={(event) => setCaret(event.currentTarget.selectionStart)}
+            onKeyDown={onKeyDown}
+            role={canMention ? "combobox" : undefined}
+            aria-expanded={canMention ? token !== null && options.length > 0 : undefined}
+            aria-controls={activeId ? listId : undefined}
+            aria-activedescendant={activeId}
+            aria-autocomplete={token ? "list" : undefined}
+            onCompositionStart={() => {
+              composing.current = true;
+            }}
+            onCompositionEnd={() => {
+              setTimeout(() => {
+                composing.current = false;
+              }, 0);
+            }}
+          />
+          <div className="ds-chat__actions">
+            {canMention ? (
+              <Tooltip content={m.chat.mention}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  iconOnly
+                  aria-label={m.chat.mention}
+                  className="ds-chat__mention"
+                  aria-haspopup="listbox"
+                  aria-expanded={token !== null}
+                  onClick={openPicker}
+                >
+                  <MentionIcon />
+                </Button>
+              </Tooltip>
+            ) : null}
+            {streaming ? (
+              <Tooltip content={m.chat.stop}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  iconOnly
+                  aria-label={m.chat.stop}
+                  className="ds-chat__send"
+                  onClick={stop}
+                >
+                  <StopIcon />
+                </Button>
+              </Tooltip>
+            ) : (
+              <Tooltip content={m.chat.send}>
+                <Button
+                  type="submit"
+                  variant="intent"
+                  size="sm"
+                  iconOnly
+                  aria-label={m.chat.send}
+                  className="ds-chat__send"
+                  aria-disabled={blocked}
+                >
+                  <SendIcon />
+                </Button>
+              </Tooltip>
+            )}
+          </div>
         </div>
+        <p className="ds-chat__notice" id={noticeId}>
+          {basis === "rules" ? m.chat.noticeRules : m.chat.noticeMock}
+        </p>
       </form>
       {onClose ? (
         <Button

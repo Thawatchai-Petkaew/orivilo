@@ -1,6 +1,8 @@
 import type { SVGProps } from "react";
 import {
   Activity,
+  ArrowUp,
+  AtSign,
   Book,
   BookOpen,
   Check,
@@ -26,6 +28,7 @@ import {
   LockOpen,
   Map as MapGlyph,
   Maximize,
+  MessageSquare,
   Minus,
   PenLine,
   MousePointer2,
@@ -38,6 +41,7 @@ import {
   Search,
   Shapes,
   Sparkles,
+  Square,
   StickyNote,
   TextCursorInput,
   Trash,
@@ -111,6 +115,12 @@ export const QueuedIcon = lucide(Clock, "QueuedIcon");
 export const RunningIcon = lucide(Activity, "RunningIcon");
 export const RetryIcon = lucide(RotateCcw, "RetryIcon");
 export const JumpIcon = lucide(LocateFixed, "JumpIcon");
+
+// Board chat (ORV-105 slice C): the button that opens the node picker.
+export const MentionIcon = lucide(AtSign, "MentionIcon");
+export const SendIcon = lucide(ArrowUp, "SendIcon");
+export const StopIcon = lucide(Square, "StopIcon");
+export const ChatIcon = lucide(MessageSquare, "ChatIcon");
 
 /* Node kinds: the icon in a node's top row (ORV-57). */
 export const InputBlockIcon = lucide(TextCursorInput, "InputBlockIcon");
