@@ -74,4 +74,4 @@ The `Check:` line names ORV-110 (board node restyle, the next chat-adjacent UI i
 - Check: `node scripts/ovl/metrics.mjs report ORV-110`
 - Check after: 2026-11-08
 
-Status: proposed
+Status: promoted 2026-10-25, into `.claude/skills/ovl/SKILL.md` (The loop, step 6; section 2) and `.claude/agents/designer.md` (Rework of a look)

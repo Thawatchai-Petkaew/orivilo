@@ -159,6 +159,13 @@ test("row 18: reviewer.v1 must be the latest on the head, from a reviewer", () =
   const designer = goodRoot();
   put(designer, `${RUN}/r/envelope.json`, { task_id: "r", role: "designer", write_set: [] });
   blocked(decide(facts(designer)), /reviewer\.v1/);
+  const security = goodRoot();
+  put(security, `${RUN}/r/envelope.json`, {
+    task_id: "r",
+    role: "security",
+    write_set: [],
+  });
+  blocked(decide(facts(security)), /reviewer\.v1/, new RegExp(H));
 });
 
 test("row 19: failed, pending, skipping, cancel and no checks block", () => {

@@ -27,7 +27,7 @@ import {
 import { validate } from "./validate.mjs";
 
 /** Contracts only some agent types may send. */
-const OWNERS = { "qa.v1": ["qa"], "reviewer.v1": ["reviewer", "designer"] };
+const OWNERS = { "qa.v1": ["qa"], "reviewer.v1": ["reviewer", "designer", "security"] };
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 /** A Result cell with one of these words makes the AC row visual (spec, qa.v1 recorder rules). */
 const VISUAL = /layout|spacing|gap|align|centre|center|colou?r|overlap|motion|position/i;

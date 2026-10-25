@@ -224,7 +224,18 @@ const runAsync = (input) =>
   });
 
 test("I-6: SubagentStart hooks for different roles started at once all bind", async () => {
-  const roles = ["builder", "reviewer", "qa", "designer", "ds-architect", "product", "release"];
+  const roles = [
+    "builder",
+    "reviewer",
+    "qa",
+    "designer",
+    "ds-architect",
+    "product",
+    "release",
+    "architect",
+    "security",
+    "research",
+  ];
   for (let trial = 0; trial < 60; trial++) {
     const root = makeRepo();
     for (const role of roles) {
@@ -309,6 +320,20 @@ test("a reviewer.v1 report from a builder is refused; a designer may send one wh
     write_set: ["docs/specs/ORV-1/design.md"],
   });
   assert.equal(stopWith(root, designer, "designer", reviewer("ORV-1-d")).code, 0);
+});
+
+test("a security subagent may send a reviewer.v1 report", () => {
+  const root = makeRepo();
+  const agent = bind(root, "security", "ORV-1-s", {
+    report_contract: "reviewer.v1",
+    skills: ["quality-gate"],
+  });
+  const message = JSON.stringify(reviewer("ORV-1-s"));
+  const r = run(postAgentInput(root, agent, "security", message));
+  assert.equal(r.code, 0, r.stderr);
+  const result = read(root, "result.json", "ORV-1-s");
+  assert.equal(result.contract, "reviewer.v1");
+  assert.equal(result.report.verdict, "approve");
 });
 
 test("AC 54: an Explore subagent ends with exit 0 and nothing is recorded", () => {
