@@ -90,6 +90,16 @@ test("a heartbeat older than the run start does not count", () => {
   assert.equal(run(root, "check", new Date().toISOString()).code, 2);
 });
 
+test("ORV-108 row 35: owner-close is listed as not probeable, with the reason", () => {
+  const root = makeRepo();
+  registerGuards(root, ["owner-close"]);
+  const plan = JSON.parse(run(root, "plan").stdout);
+  assert.equal(plan.guards[0].name, "owner-close");
+  assert.equal(plan.guards[0].probe, null);
+  assert.match(plan.guards[0].reason, /it runs only after the owner answers a question form/);
+  assert.equal(run(root, "check", plan.since).code, 0);
+});
+
 test("a guard that cannot be probed is listed, not failed", () => {
   const root = makeRepo();
   registerGuards(root, ["owner-grant"]);

@@ -197,7 +197,18 @@ The schemas live in `scripts/ovl/schemas/` as JSON Schema (draft 2020-12), with 
     "task_id": { "type": "string", "pattern": "^ORV-[0-9]+-[a-z0-9-]+$" },
     "issue": { "type": "string", "pattern": "^ORV-[0-9]+$" },
     "role": {
-      "enum": ["product", "ds-architect", "designer", "builder", "qa", "reviewer", "release"]
+      "enum": [
+        "product",
+        "ds-architect",
+        "designer",
+        "builder",
+        "qa",
+        "reviewer",
+        "release",
+        "architect",
+        "security",
+        "research"
+      ]
     },
     "report_contract": { "enum": ["implementer.v1", "reviewer.v1", "qa.v1"] },
     "objective": { "type": "string", "minLength": 1 },
@@ -739,3 +750,4 @@ A quoting bug once silenced every hook in Allkons for a month; this is the check
 - v1.4 (2026-10-24): ORV-88. Records the owner's no-resume answer to ORV-87 open question 7 (Decisions). Hooks gain `resume-guard` on PreToolUse(`SendMessage`), which blocks every `SendMessage` call whatever `to` names; the `ovl-doctor` probe list gains a `SendMessage` probe; Impact gains an ORV-88 entry. The guard arrives with the ORV-88 PR. No AC row is added here (its rows are in `docs/specs/ORV-88/spec.md`), and `envelope.v1`, `envelope-guard` and the round rules do not change. Downstream review: `.claude/settings.json`, `scripts/ovl/doctor.mjs` and its test, `.claude/skills/ovl/SKILL.md`, `scripts/ovl/metrics.mjs`, `docs/specs/ORV-87/spec.md`.
 - v1.5 (2026-10-24): ORV-93 (slice B, PR 84 and PR 85), as ORV-93 spec v1.3 decided. Hooks `write-guard` now states what shipped: the two registrations, paths resolved through `realpath` and lowercased, the main session's Write or Edit of `.orivilo/handoff.md` as the one exception under `.orivilo/`, `docs/` in no set, the builder grant for Write or Edit only and only in the envelope's own `worktree`, Bash naming with normalized paths, the redirect definition, `tail`, `wc` and the bounded `sed -n` as plain reads, the one-line run form with an empty or absolute checkout prefix, one whole `git add`, `git commit` or `git push`, and `ln`, `touch`, `git switch`, `git stash` and `git reset` as subagent write forms. Records, the reviewer rules and the `qa.v1` rules say screenshots resolve in the main checkout's records. Impact gains an ORV-93 entry. No AC row changes; ORV-93's rows test AC 25 to 32, 53 and 65. Downstream review: `docs/specs/ORV-87/spec.md` gets a changelog line for `metrics.mjs session --out` and `--root`, and slice C1's `write_set` union check must allow for main-session `docs/` files (ORV-93 open question 1).
   - Wording, 2026-10-24 (ORV-93 docs review, task ORV-93-docs-review-1 findings D2 to D4; no version bump, no AC row changes). The text now describes the shipped `scripts/ovl/write-guard.mjs`. D2: the promise that a call naming nothing protected is never locked out by its `cwd` covers Bash only; a tool write with a relative path and a `cwd` that cannot be resolved fails closed (ORV-93 AC 25). D3: `--owner` is refused on `close-envelope.mjs` only, not on every form (b) run. D4: the builder grant covers every tool write (Write, Edit, MultiEdit, NotebookEdit) of an exact listed path, not only Write or Edit; the v1.5 line above said Write or Edit only. Downstream review: `.claude/skills/ovl/SKILL.md` Honest limits and the `write-guard` stderr text that says "by Write or Edit", both to be read against this wording.
+- Wording, 2026-10-25 (ORV-108, no version bump, no AC row changes). The `envelope.v1` role enum in the schema block gains `architect`, `security` and `research`, so the block equals `scripts/ovl/schemas/envelope.v1.json`.

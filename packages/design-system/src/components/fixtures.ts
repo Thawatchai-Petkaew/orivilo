@@ -10,6 +10,9 @@ export const fixtures = {
   thai: "บันทึกการเปลี่ยนแปลง",
   latin: "Save changes",
   mixed: "โปรเจกต์ Brand Canvas ของทีม",
+  /** Thai with stacked marks above the line (a vowel and a tone mark on one letter): the sample for clip checks (L-0018). */
+  thaiMarks: "ปิ่นโต้",
+  thaiMarks2: "โลโก้",
   /** No spaces: must wrap by `overflow-wrap: anywhere` or truncate with an ellipsis, never overflow. */
   longThai: "บริษัทพัฒนาซอฟต์แวร์เพื่อการออกแบบอัตลักษณ์แบรนด์และผลิตภัณฑ์ดิจิทัลจำกัดมหาชน",
   longLatin: "Anuphan-and-Plex-mixed-identifier-that-never-breaks-on-its-own-2026",

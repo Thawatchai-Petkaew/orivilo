@@ -427,19 +427,158 @@ test("I-4 and S-5: Explore cannot carry model, isolation or a background flag", 
 
 test("I-6: the envelope issue must equal the issue key in the worktree branch", () => {
   const root = makeRepo();
-  for (const role of ["builder", "reviewer", "qa", "designer"]) {
+  for (const role of ["builder", "reviewer", "qa", "designer", "security"]) {
     const write = role === "builder" || role === "designer" ? undefined : [];
     const skills = {
       builder: ["quality-gate"],
       reviewer: [],
       qa: ["quality-gate", "webapp-testing"],
       designer: ["frontend-design", "webapp-testing"],
+      security: ["quality-gate"],
     }[role];
     const base = { task_id: `ORV-1000-${role}`, issue: "ORV-1000", role, skills };
     const r = dispatch(root, validEnvelope(root, write ? { ...base, write_set: write } : base));
     assert.equal(r.code, 2, role);
     assert.match(r.stderr, /branch/, role);
   }
+});
+
+const SECURITY = { role: "security", skills: ["quality-gate"], write_set: [] };
+const ADR = "docs/adr/0015-standards-and-required-controls.md";
+
+test("ORV-108 row 4: an architect envelope with no skills and an ADR write_set is saved, on any branch", () => {
+  const root = makeRepo("main");
+  const r = dispatch(
+    root,
+    validEnvelope(root, { role: "architect", skills: [], write_set: [ADR] }),
+  );
+  assert.equal(r.code, 0, r.stderr);
+  assert.equal(
+    existsSync(join(root, ".orivilo", "runs", "ORV-1", "ORV-1-a", "envelope.json")),
+    true,
+  );
+});
+
+test("ORV-108 row 5: architect and research need a non-empty write_set", () => {
+  const root = makeRepo();
+  for (const role of ["architect", "research"]) {
+    const r = dispatch(root, validEnvelope(root, { role, skills: [], write_set: [] }));
+    assert.equal(r.code, 2, role);
+    assert.match(r.stderr, new RegExp(`write_set must not be empty for role ${role}`));
+  }
+});
+
+test("ORV-108 row 6: a security envelope without quality-gate is blocked", () => {
+  const root = makeRepo();
+  const r = dispatch(root, validEnvelope(root, { ...SECURITY, skills: [] }));
+  assert.equal(r.code, 2);
+  assert.match(r.stderr, /role security needs the skill "quality-gate" in skills/);
+  assert.equal(dispatch(root, validEnvelope(root, SECURITY)).code, 0);
+});
+
+test("ORV-108 row 7: a security envelope has an empty write_set and the branch issue", () => {
+  const root = makeRepo();
+  const full = dispatch(root, validEnvelope(root, { ...SECURITY, write_set: ["docs/spec.md"] }));
+  assert.equal(full.code, 2);
+  assert.match(full.stderr, /write_set must be empty for role security/);
+  const other = dispatch(
+    root,
+    validEnvelope(root, { ...SECURITY, task_id: "ORV-9-sec", issue: "ORV-9" }),
+  );
+  assert.equal(other.code, 2);
+  assert.match(other.stderr, /envelope issue ORV-9 differs from the issue ORV-1 in branch/);
+});
+
+test("ORV-108 row 8: a research envelope may glob under docs/knowledge", () => {
+  const root = makeRepo("main");
+  const r = dispatch(
+    root,
+    validEnvelope(root, { role: "research", skills: [], write_set: ["docs/knowledge/*/K-*.md"] }),
+  );
+  assert.equal(r.code, 0, r.stderr);
+});
+
+test("ORV-108 row 9: a report_contract the role may not use names the allowed one", () => {
+  const root = makeRepo();
+  const sec = dispatch(
+    root,
+    validEnvelope(root, { ...SECURITY, report_contract: "implementer.v1" }),
+  );
+  assert.equal(sec.code, 2);
+  assert.match(
+    sec.stderr,
+    /report_contract "implementer\.v1" is not allowed for role security.*reviewer\.v1/,
+  );
+  const arch = dispatch(
+    root,
+    validEnvelope(root, {
+      role: "architect",
+      skills: [],
+      write_set: [ADR],
+      report_contract: "reviewer.v1",
+    }),
+  );
+  assert.equal(arch.code, 2);
+  assert.match(
+    arch.stderr,
+    /report_contract "reviewer\.v1" is not allowed for role architect.*implementer\.v1/,
+  );
+});
+
+/** A closed task of `role` whose recorded report requests changes. */
+const seedRoleVerdict = (root, role, taskId) =>
+  seedTask(root, "ORV-1", taskId, {
+    envelope: validEnvelope(root, { task_id: taskId, role, write_set: [], skills: [] }),
+    agent: { agent_id: `a-${taskId}`, agent_type: role, started_at: "2026-10-23T09:00:00.000Z" },
+    result: {
+      contract: "reviewer.v1",
+      recorded_at: "2026-10-23T10:00:00.000Z",
+      report: { verdict: "request_changes" },
+    },
+  });
+
+test("ORV-108 rows 10 and 41: a security or designer request_changes forces rework_of on the next builder", () => {
+  for (const [role, taskId] of [
+    ["security", "ORV-1-sec"],
+    ["designer", "ORV-1-des"],
+  ]) {
+    const root = makeRepo();
+    seedRoleVerdict(root, role, taskId);
+    const r = dispatch(root, validEnvelope(root, { task_id: "ORV-1-b" }));
+    assert.equal(r.code, 2, role);
+    assert.match(r.stderr, /has a verdict.*a builder envelope must name rework_of/, role);
+  }
+});
+
+test("ORV-108 row 40: a designer sign-off (reviewer.v1, empty write_set) is allowed; other shapes need a write_set", () => {
+  const root = makeRepo();
+  const designer = {
+    role: "designer",
+    skills: ["frontend-design", "webapp-testing"],
+    write_set: [],
+  };
+  const ok = dispatch(root, validEnvelope(root, { ...designer, report_contract: "reviewer.v1" }));
+  assert.equal(ok.code, 0, ok.stderr);
+  for (const extra of [{ report_contract: "implementer.v1" }, {}]) {
+    const r = dispatch(root, validEnvelope(root, { ...designer, task_id: "ORV-1-d2", ...extra }));
+    assert.equal(r.code, 2, JSON.stringify(extra));
+    assert.match(r.stderr, /write_set must not be empty for role designer/);
+  }
+});
+
+test("ORV-108: a designer sign-off edits no file", () => {
+  const root = makeRepo();
+  const r = dispatch(
+    root,
+    validEnvelope(root, {
+      role: "designer",
+      skills: ["frontend-design", "webapp-testing"],
+      report_contract: "reviewer.v1",
+      write_set: ["docs/specs/ORV-1/design.md"],
+    }),
+  );
+  assert.equal(r.code, 2);
+  assert.match(r.stderr, /write_set must be empty for role designer/);
 });
 
 test("I-6: a branch with no issue key fails closed", () => {

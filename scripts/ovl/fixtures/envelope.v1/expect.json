@@ -229,7 +229,10 @@
         "builder",
         "qa",
         "reviewer",
-        "release"
+        "release",
+        "architect",
+        "security",
+        "research"
       ]
     }
   },

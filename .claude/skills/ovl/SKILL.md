@@ -13,11 +13,13 @@ Before planning, read `AGENTS.md`, `docs/context/orivilo-brief.md`, the relevant
 
 1. **Lane.** Pick S, M or L from `AGENTS.md`; any risk flag forces L. Write the lane on the issue.
 2. **Discover** (M, L). Dispatch `product` with the `discover` skill; it writes `docs/specs/<KEY>/spec.md` with acceptance criteria and open questions. When a slice becomes its own Jira issue, the same `product` task writes `docs/specs/<slice key>/spec.md` (why, the parent spec and its G1 and G2 comments, the slice's acceptance rows copied with their numbers and no new requirement), and the slice's first builder envelope carries the fact `test -f docs/specs/<slice key>/spec.md` (L-0016).
-3. **Design** (M, L). Dispatch `ds-architect` for schema, token, recipe or resolver changes and `designer` for flows, states and visual direction. They extend the spec folder.
+3. **Design** (M, L). Dispatch `ds-architect` for schema, token, recipe or resolver changes and `designer` for flows, states and visual direction. They extend the spec folder. Dispatch `research` first when a design or tech decision rests on an external fact that has no knowledge entry yet, and `architect` when the story changes system architecture, adds an external service, or needs an ADR outside the design system.
 4. **G1 and G2.** Raise each with the `gate-packet` skill, move the issue, and stop. The owner decides; during the POC Claude passes G1 and G2 under the owner's delegation (ADR 0012 decision 4), and the packet says so.
 5. **Build.** Dispatch `builder` per task, each in its own worktree. A blocker comes back in `blocked_on`.
-6. **Review and qa.** Round 0: dispatch `qa` (`qa.v1`) and `reviewer` (`reviewer.v1`) on the same head SHA. Round 1 or more: dispatch the reviewer re-check first, and `qa` only on a head that re-check approved; a re-check that requests changes sends the head back with no qa walk on it (L-0014). Findings go back to `builder` as a new envelope; after round 2, ask the form (section 3). A docs-only PR has no qa; the reviewer walks its AC rows.
-7. **G3.** Merge into `develop` through `merge-guard` (section 6), move the issue through `g3-check` (section 7), and post the G3 packet.
+6. **Review and qa.** Round 0 (when the PR changes no rendered component; otherwise follow the Visual sign-off paragraph below, where the sign-off goes first and `qa` waits for both approves): dispatch `qa` (`qa.v1`) and `reviewer` (`reviewer.v1`) on the same head SHA. In round 0 also dispatch `security` (`reviewer.v1`) on the same head when the lane is L with the auth or data-access risk flag, the diff touches a path in `.claude/rules/security.md`, the diff changes a model call or a prompt, or the diff adds a runtime dependency; its `request_changes` is a verdict like the reviewer's (findings go back to `builder` with `rework_of`, and round 1 or more re-checks with a new `security` envelope), and it does not replace the reviewer. Round 1 or more: dispatch the reviewer re-check first, and `qa` only on a head that re-check approved; a re-check that requests changes sends the head back with no qa walk on it (L-0014).
+   **Visual sign-off** (L-0019). When the PR changes a rendered component (a changed `*.stories.tsx`, or a changed file under `packages/design-system/src/components/` or `packages/design-system/src/recipes/`), dispatch `designer` with `report_contract` `reviewer.v1` and an empty `write_set` to judge the look of the head. Round 0: the sign-off goes first; when it returns, post its PNG paths (the contact sheet, absolute paths) on the Jira issue, then dispatch `reviewer` (and `security` when its cases hold) on the same head. Round 1 or more: the reviewer re-check first, then a new sign-off on the head the re-check approved, then `qa`. `qa` goes only to a head with both a sign-off approve and a reviewer approve. A sign-off's `request_changes` is a verdict: the fix goes to `builder` with `rework_of`. A docs-only PR has no sign-off.
+   **A look change in rework** (L-0017). A finding or an owner comment whose fix changes how something looks goes to `designer` before any builder envelope. The designer records the change in `docs/specs/<KEY>/design.md` and screenshots it rendered, with the proposed CSS injected into the story, light and dark. The builder envelope then carries that design.md section in `context_pointers` and one fact per screenshot (`checked_by` `test -f <absolute path>`). Findings go back to `builder` as a new envelope; after round 2, ask the form (section 3). A docs-only PR has no qa; the reviewer walks its AC rows.
+7. **G3.** Merge into `develop` through `merge-guard` (section 6), move the issue through `g3-check` (section 7), and post the G3 packet. For a PR that changed a rendered component, the packet lists the PNG paths of the latest designer sign-off approve for the merged head.
 8. **Staging and G4.** When the owner sends a batch to staging (ADR 0011), dispatch `qa` to walk the AC on staging; for lane L its approve backs the G4 packet.
 9. **G5.** Dispatch `release` to prepare the G5 packet. Only the owner decides G5.
 10. **Retro.** Run section 5 after each merge and each staging batch; propose a `retro` when the story taught something reusable.
@@ -90,6 +92,7 @@ Do not set `model`, `isolation` or `run_in_background` on the call. `cwd`, if gi
   rework as usual. A finding of kind (b) goes to the spec's Honest limits in the next revision, with no
   builder round, unless the owner decides otherwise in the question form. A re-check envelope says
   that a bypass of a class already named in Honest limits is not a new finding (L-0012).
+- **Visual fix from a finding.** See step 6, "A look change in rework": the designer decides and screenshots the look first; the builder envelope carries the design.md section and one `test -f <absolute path>` fact per screenshot, and states no CSS value that design.md does not hold.
 - **Never resume.** A re-check, a follow-up question or a fix is a new envelope with a new `task_id`, never a `SendMessage`. A builder rework names `rework_of`; a reviewer re-check does not (`rework_of` is read on builder envelopes only) and puts the earlier `result.json` absolute paths in `context_pointers`. `resume-guard` (PreToolUse `SendMessage`) blocks every `SendMessage`, from the main session and from a subagent, whatever `to` names; it never echoes `to` or the message. When `to` is a recorded agent's id, the stderr names that task, as a hint for the fresh envelope. A subagent that needs a decision reports `blocked` with `needs_decision`, and the answer goes out in a fresh envelope.
 
 The guard blocks, with exit 2 and a reason on stderr, when:
@@ -97,9 +100,9 @@ The guard blocks, with exit 2 and a reason on stderr, when:
 - **`task_id`** is used already for this issue. Every dispatch, including a retry after a refused call, needs a new `task_id` (`ORV-<n>-<lowercase-words>`).
 - **`checked_by`** is prose. Allowed: a command starting with `pnpm `, `node `, `git `, `gh `, `test `, `grep ` or `jq `; a `path` or `path:line` that exists in the worktree; an `https://` URL; a Jira reference `ORV-<n> comment <id>`. An answer the owner gave in chat is recorded in Jira or the spec first, then cited.
 - **`done_when`** is not a check. Each entry is a command with those prefixes, or a `path:line` reference. `pnpm test` passes; "tests pass" does not.
-- **`write_set`** is too broad. Each entry is an exact file or a glob under at least two fixed folders (`scripts/ovl/*.mjs` passes; `packages/`, `apps/**` and `**` do not). No `.` or `..` segment, no leading `./`, no empty segment, and no brace or extglob character (`{ ( ! + @ [`) before the second folder. It is empty for `reviewer`, `qa` and `release`, and not empty for the other roles.
-- **`skills`** misses a required one: `product` needs `discover`; `designer` needs `frontend-design` and `webapp-testing`; `builder` needs `quality-gate`; `qa` needs `quality-gate` and `webapp-testing`; `release` needs `gate-packet`; `ds-architect` and `reviewer` need none.
-- **Issue.** For builder, reviewer, qa and designer, the envelope `issue` must equal the key in the checkout's branch name (`<type>/ORV-<n>-<slug>`); a branch without a key blocks.
+- **`write_set`** is too broad. Each entry is an exact file or a glob under at least two fixed folders (`scripts/ovl/*.mjs` passes; `packages/`, `apps/**` and `**` do not). No `.` or `..` segment, no leading `./`, no empty segment, and no brace or extglob character (`{ ( ! + @ [`) before the second folder. It is empty for `reviewer`, `qa`, `release` and `security`, and for a `designer` envelope with `report_contract` `reviewer.v1` (a visual sign-off); it is not empty for the other roles. `architect` and `research` write only ADRs and `tech.md`, and `docs/knowledge/` entries, in that order.
+- **`skills`** misses a required one: `product` needs `discover`; `designer` needs `frontend-design` and `webapp-testing`; `builder` needs `quality-gate`; `qa` needs `quality-gate` and `webapp-testing`; `release` needs `gate-packet`; `security` needs `quality-gate`; `ds-architect`, `reviewer`, `architect` and `research` need none.
+- **Issue.** For builder, reviewer, qa, designer and security, the envelope `issue` must equal the key in the checkout's branch name (`<type>/ORV-<n>-<slug>`); a branch without a key blocks.
 - **Resume.** Not an Agent call: `resume-guard` blocks every `SendMessage` (see "Never resume" above).
 - **Background, model, isolation.** Blocked for every agent, Explore included.
 - **Open envelope.** One envelope per role is open across the whole repo, all issues and worktrees included. A second one is blocked until the first has a report or is closed (see step 4).
@@ -114,6 +117,8 @@ When the work stops for the owner, post both reports on the Jira issue, then ask
 - the grant option, whose whole label is exactly `อนุญาตรอบ ORV-<n>` or `Grant round ORV-<n>`, naming the escalated issue key, with nothing before or after it
 - a decline option, worded without the grant phrase (`Decline`, `ไม่อนุญาต`, never `Do not grant round ORV-<n>`)
 
+When the round is for a look change, the question names the designer's screenshot paths, so the owner grants a look and not a sentence (L-0017).
+
 Only the grant option the owner clicks counts. Text typed in chat never grants a round, and neither does text typed under Other. If the owner types a grant in chat, say it does not count and ask the form. The `owner-grant` hook writes the record `.orivilo/runs/<ISSUE>/owner-grant-<n>.json`; it quotes the question, the options and the answer.
 
 ## 4. After the call: records and closing
@@ -126,7 +131,15 @@ If the Agent call was refused at the permission prompt, the envelope never start
 node scripts/ovl/close-envelope.mjs <task_id>
 ```
 
-For an envelope whose subagent has already stopped, the same command closes it as `abandoned`. It refuses (exit 2) while the subagent may still run. If a session ended while its subagent ran, only the owner closes the envelope, from a terminal outside Claude Code, with `--owner`. Never run `--owner` yourself.
+For an envelope whose subagent has already stopped, the same command closes it as `abandoned`. It refuses (exit 2) while the subagent may still run. If a session ended while its subagent ran, the envelope is stuck: it is bound and has no final `SubagentStop`. Only the owner closes it, in one of two ways. Never run `--owner` yourself.
+
+1. The close form (first choice, works from the phone). Ask one `AskUserQuestion` that names the task id, its role, its `agent_id` and its `started_at`, and warns that a builder envelope closed this way still counts as a rework round. The options are:
+   - the close option, whose whole label is exactly `ปิดงาน <task_id>` or `Close envelope <task_id>`, with nothing before or after it
+   - a decline option, worded without the close phrase (`Keep open`, `ยังไม่ปิด`)
+
+   Only the close option the owner clicks counts. Text typed in chat never closes an envelope, and neither does text typed under Other. If the owner types it in chat, say it does not count and ask the form. The `owner-close` hook writes `closed.json` (`reason` `abandoned`, `by` `owner`, `source` `question_form`, with the question, options, answer and ids). It refuses a never-bound envelope, one that has stopped, one that is already closed, and one the session still lists as running.
+
+2. From a terminal outside Claude Code: `node scripts/ovl/close-envelope.mjs <task_id> --owner`.
 
 A builder envelope that was bound counts as a rework round after the first verdict, however it ended. Only `denied` and `pre_a3` do not.
 

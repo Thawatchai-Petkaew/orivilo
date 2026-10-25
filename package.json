@@ -16,12 +16,23 @@
     "test:scripts": "node --test scripts/*.test.mjs scripts/ovl/*.test.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "quality-gate": "node scripts/quality-gate.mjs"
+    "quality-gate": "node scripts/quality-gate.mjs",
+    "prepare": "git config core.hooksPath .githooks",
+    "lint:commits": "node scripts/check-commits.mjs",
+    "scan:secrets": "node scripts/scan.mjs secrets",
+    "scan:code": "node scripts/scan.mjs code"
   },
   "devDependencies": {
+    "@commitlint/cli": "21.2.4",
+    "@commitlint/config-conventional": "21.2.4",
+    "@secretlint/secretlint-rule-preset-recommend": "13.0.7",
     "ajv": "8.20.0",
+    "eslint": "9.39.5",
+    "eslint-plugin-security": "4.2.0",
     "prettier": "3.9.9",
+    "secretlint": "13.0.7",
     "turbo": "2.11.7",
-    "typescript": "6.0.3"
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.71.1"
   }
 }

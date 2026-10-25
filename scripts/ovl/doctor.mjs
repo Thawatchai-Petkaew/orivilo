@@ -84,6 +84,7 @@ const PROBES = {
 /** Guards that write heartbeats but need a person or a dispatch, so no probe exists. */
 const UNPROBEABLE = {
   "owner-grant": "it runs only after the owner answers a question form",
+  "owner-close": "it runs only after the owner answers a question form",
   "worktree-guard":
     "it judges only a subagent's Bash call, and a probe from the main session is always allowed",
   "result-recorder":

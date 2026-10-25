@@ -34,7 +34,7 @@ Reviewed `github.com/anthropics/skills` on 2026-10-21 (19 skills). Decision rule
 
 ## Model policy
 
-Analysis on Opus (product, ds-architect, designer, reviewer, qa). Execution on Sonnet (builder, release). The main session runs the loop through the `ovl` skill. The reviewer finds, the builder fixes, the reviewer re-verifies; qa walks the acceptance criteria. Owner decision, 2026-10-21.
+Analysis on Opus (product, ds-architect, architect, security, research, designer, reviewer, qa). Execution on Sonnet (builder, release). The main session runs the loop through the `ovl` skill. The reviewer finds, the builder fixes, the reviewer re-verifies; qa walks the acceptance criteria. Owner decision, 2026-10-21.
 
 ## Review: UI/UX Pro Max (`nextlevelbuilder/ui-ux-pro-max-skill`, MIT, v2, last commit 2026-10-15)
 
