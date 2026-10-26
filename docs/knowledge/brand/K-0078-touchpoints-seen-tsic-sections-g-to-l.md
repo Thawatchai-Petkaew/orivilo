@@ -19,7 +19,7 @@ Tried and not counted: the Riffle restaurant page on creativebloq.com (no text r
 
 ## G. Wholesale and retail trade; repair of motor vehicles and motorcycles (four pages)
 
-- Viand Mercantile, home goods shop, Maine (firstpier.com): "We designed and print-managed packaging, signage, and in-store assets." The pieces named are shopping bags, tissue paper, hang tags, gift cards, shipping tape, an exterior sign, a sandwich board, window graphics.
+- Viand Mercantile, home goods shop, Maine (firstpier.com): "We designed and print-managed packaging, signage, and in-store assets..." The pieces named are shopping bags, tissue paper, hang tags, gift cards, shipping tape, an exterior sign, a sandwich board, window graphics.
 - Jam Kidswear, children's boutique (periscope.co.uk): "We created a logo, retail graphics, and a memorable physical retail and online shopping experience"; captions show an e-commerce website, price tags, window film, shop front signage and a retail bag.
 - Retailminded, a retail advice article (retailminded.com): "Some of the best places to have the logo are on staff uniform, receipts, price tags, and shopping and packaging bags.", plus signage and window displays.
 - Nuts.com, online retailer of nuts, by Pentagram (pentagram.com): "Bags and shipping boxes are covered in commentary".
