@@ -1,7 +1,7 @@
 ---
 issue: ORV-128 (https://tpetkaew.atlassian.net/browse/ORV-128)
-spec: docs/specs/ORV-128/spec.md v1.6
-task: ORV-128-design-schema-1, ORV-128-design-schema-2 (renderer build and text under option D), ORV-128-design-schema-3 (follow spec v1.3), ORV-128-design-schema-4 (follow spec v1.5 and ADR 0019 after review g2-1), ORV-128-design-schema-5 (follow spec v1.6)
+spec: docs/specs/ORV-128/spec.md v1.8
+task: ORV-128-design-schema-1, ORV-128-design-schema-2 (renderer build and text under option D), ORV-128-design-schema-3 (follow spec v1.3), ORV-128-design-schema-4 (follow spec v1.5 and ADR 0019 after review g2-1), ORV-128-design-schema-5 (follow spec v1.6), ORV-128-design-schema-6 (follow spec v1.7 after re-check g2-2), ORV-128-design-schema-7 (follow spec v1.8)
 author: ds-architect
 date: 2026-10-27
 ---
@@ -12,14 +12,14 @@ This is the G2 design for slice 1 of the input analysers. It turns the spec's "E
 
 - ADR 0005 (schema versions), ADR 0007 decision 5 (the fingerprint), ADR 0008 (adapters, evidence spans, `lexicon-1`), ADR 0009 (jobs, recorded tests).
 - The engine source: `fingerprintOf` in `resolver.ts`, `RULE_VALUES` and `interpretWithRules` in `interpreter.ts`, `classifyHex` and `hexSchema` in `color-audit.ts`, `slugSchema` and `PERSONALITY_AXES` in `knowledge.ts`.
-- Review round 2 of the spec (suggestions S1 and S2), and review g2-1 of the G2 design (findings I1 to I6 and S1 to S8, status under "Findings for the spec").
+- Review round 2 of the spec (suggestions S1 and S2), review g2-1 of the G2 design (findings I1 to I6 and S1 to S8) and re-check g2-2 (findings N1 to N5), each with its status under "Findings for the spec".
 
 The spec keeps every closed list, field name, bound and number. Where this design needs something the spec does not say, the gap is listed under "Findings for the spec" at the end, with the change this design assumes.
 
-**One home per rule.** Spec v1.6 defines each rule once, by name. These notes use the same names and point to the spec's section for every threshold and number; the code below implements a rule, it does not restate it. A change to a rule's numbers is made in the spec first.
+**One home per rule.** Spec v1.8 defines each rule once, by name. These notes use the same names and point to the spec's section for every threshold and number; the code below implements a rule, it does not restate it. A change to a rule's numbers is made in the spec first.
 
 <!-- prettier-ignore -->
-| Rule | Defined in spec v1.6 | Used here |
+| Rule | Defined in spec v1.8 | Used here |
 | --- | --- | --- |
 | `thousandths-1` | "Confidence" | §4 `scoreConfidence`, `milli`; §8 `leansOfMeasures`; §14 rows 3, 12, 32 |
 | `industry-margin-1` | "Confidence" | §4 `withinMargin`; §10 `readIndustry`; §14 S1 |
@@ -50,6 +50,7 @@ Everything below lives in `packages/intent-engine/src` and is pure TypeScript. B
 | `measures/colour.ts` | OKLCH, the quantiser wrapper, hue band through `classifyHex`, warm share, declared colours | 1c |
 | `measures/page.ts` | WCAG contrast, text and element density, font families, word count | 1c |
 | `url-analyser.ts` | `readUrlInput`: the role gate of `competitor-not-read-1` in front of `readPage`; `analyseUrl`: fetched bytes and a snapshot or `null` in, sorted evidence and the not-measured list out (§7) | 1c |
+| `report.ts` | `reportSchema`, `Report`, `REPORT_SCHEMA_VERSION`: the command's `--json` contract (§7, "The report schema") | 1d |
 | `industry.ts` | `matchIndustryTerms`, `readIndustry`, the `TsicTaxonomy` port | 2 |
 | `evidence-feed.ts` | `detectConflicts`, `feedEvidence` | 4 |
 
@@ -346,7 +347,7 @@ export const evidenceId = (
 };
 ```
 
-- **What the id covers** follows the spec v1.6 `id` row (unchanged since v1.3): `analyser`, `source` without `retrievedAt`, `observation`, `measure.metric` and `reading.target`, with `source.renderer` inside `source`. Nothing else.
+- **What the id covers** follows the spec v1.8 `id` row (unchanged since v1.3): `analyser`, `source` without `retrievedAt`, `observation`, `measure.metric` and `reading.target`, with `source.renderer` inside `source`. Nothing else.
 - `fingerprintOf` is the ADR 0007 decision 5 fingerprint: FNV-1a over canonical JSON with sorted keys, 8 hex digits. The same input gives the same id, whatever the key order of the object passed in.
 - **`retrievedAt` is excluded** (finding F3, accepted in spec v1.3; open for the owner at G2). `contentHash` already marks a change in the bytes, so the same bytes read again later keep their ids and a node's evidence list does not grow duplicates. `retrievedAt` stays on the item, for the trace. Row 4's later-clock case proves it: equal ids, and only `retrievedAt` differs. If the owner puts the clock back into the id at G2, this function hashes `item.source` whole and row 4's later-clock case expects new ids instead.
 - **Metric and target** are in the id because one colour cluster is one observation with four measures (area share, hue band, lightness, chroma), and one quoted span can carry one measure and one reading. Without them, these items would share an id.
@@ -582,8 +583,64 @@ export async function readUrlInput(
 - **One gate before any request.** `readUrlInput` checks `input.role` first. For `competitor` it returns `NotRead` and calls neither `readPage` nor any port: no request for robots.txt, the page or a stylesheet, and no DNS lookup. For `own` and `reference` it calls `readPage(input.url, ports, robots)` and returns its result unchanged.
 - **The only way in.** `index.ts` exports `readUrlInput` and not `readPage`, so `packages/page-reader` (the command in slice 1d, a later Vercel route) cannot reach the read without passing the gate. `readPage` stays exported from `read-page.ts` for the engine's own tests.
 - **A second check on the bytes.** `analyseUrl` returns `{ ok: false, error: "competitor-not-read" }` when `ctx.role` is `competitor`, before it looks at `read`. Bytes of a competitor page that reached the engine some other way still never become evidence.
-- **What the report holds.** The command prints the URL as text and the `read.notRead.competitor` line in Thai and English (§9), with no evidence and no `notMeasured` list, and exits 0. `--json` writes the same as `{ status: "not-read", url, line }` (row 38). A competitor URL found in a brief (row 21, slice 4) is recorded the same way and never handed to `readUrlInput`.
+- **What the report holds.** The command prints the URL as text and the `read.notRead.competitor` line in Thai and English (§9), with no evidence and no `notMeasured` list, and exits 0. `--json` writes the same as the not-read member of `reportSchema` (below; row 38). A competitor URL found in a brief (row 21, slice 4) is recorded the same way and never handed to `readUrlInput`.
 - **When it lifts.** Only when the owner changes D1 (a spec version bump). The change is the role check in `readUrlInput` and in `analyseUrl`, and rows 21 and 38 change with it.
+
+**The report schema (`report.ts`, slice 1d; re-check g2-2 N5).** Spec rows 17 and 38 assert that the command's `--json` output "parses with the report schema". This is that schema. It lives in the engine, beside the types it is built from, so the command now and a later Vercel route write the same contract and a test can parse either. The command builds the object and writes it as is; the printed report in Thai and English is the same object with each line key filled from §9.
+
+```ts
+export const REPORT_SCHEMA_VERSION = "1.0"; // 1.0 at slice 1d; each member a later slice adds is a minor bump
+
+const notReadReportSchema = z
+  .object({
+    version: z.literal(REPORT_SCHEMA_VERSION),
+    status: z.literal("not-read"), // §7 NotRead, from readUrlInput for a competitor URL
+    url: z.string().max(2048), // as the person gave it, never fetched
+    line: z.literal("read.notRead.competitor"),
+  })
+  .strict();
+
+const axisReportSchema = z
+  .object({
+    axis: personalityAxisSchema, // knowledge.ts, read-only
+    leans: z // empty: the report prints "no signal" for the axis
+      .array(
+        z
+          .object({ lean: z.enum(["high", "low"]), evidenceId: z.string(), confidence: z.number() })
+          .strict(),
+      )
+      .max(5000), // the evidence bound; every reading on the axis above the floor, in compareEvidence order; none is picked (spec case 1)
+  })
+  .strict();
+
+const analysedReportSchema = z
+  .object({
+    version: z.literal(REPORT_SCHEMA_VERSION),
+    status: z.literal("analysed"),
+    url: z.string().max(2048), // the URL read, after redirects
+    renderer: rendererBuildSchema.nullable(), // analyseUrl's renderer: null under option D
+    evidence: z.array(inputEvidenceSchema).max(5000), // analyseUrl's list, sorted (§5)
+    notMeasured: z.array(notMeasuredSchema).max(4), // §7 NotMeasured as zod; empty with a valid snapshot
+    personality: z.array(axisReportSchema).length(5), // one entry per PERSONALITY_AXES axis, in that order
+    lines: z.array(z.enum(["report.conflictsNotChecked"])).max(1), // report lines of §9 keyed here, in this enum's order
+    // slice 2 (1.1): industry: industryReadingSchema, the zod form of §10 IndustryReading; "industry.byNameOnly" joins the lines enum
+    // slice 3 (1.2): mood, its shape fixed with mood-1 in slice 3
+  })
+  .strict();
+
+export const reportSchema = z.discriminatedUnion("status", [
+  notReadReportSchema,
+  analysedReportSchema,
+]);
+export type Report = z.infer<typeof reportSchema>;
+```
+
+- **The two members.** `not-read` is §7's `NotRead` with the version added, and nothing else: no evidence, no `notMeasured`, no personality (row 38). `analysed` is what `analyseUrl` returns when `ok` is true, with the URL, the personality per axis and the report lines added.
+- **Which slice adds which member.** Slice 1d: the schema with both members, `version` 1.0, the fields shown, and `lines` holding `report.conflictsNotChecked` (§9). Slice 2: `industry`, required, the zod form of `IndustryReading` (§10), and `industry.byNameOnly` in `lines`; version 1.1. Slice 3: `mood`; version 1.2. Slice 4: `detectConflicts` ships, the command stops writing `report.conflictsNotChecked`, and its enum member stays so a 1.0 to 1.2 report still parses at its own version.
+- **Personality per axis.** The `leans` of an axis are its `identity-frame.personality.<axis>` readings above the floor, each with its evidence id and confidence. The report never folds them into one lean: two opposite leans print side by side until slice 4 flags them (spec case 1). Row 17's "lean or `no signal`" is one lean, several, or an empty list.
+- **`notMeasured` lines.** The `read.notMeasured` lines are not in `lines`; the command prints one per `notMeasured` entry (§9, row 34), so the entry is written once.
+- **What it does not hold.** A refused or failed read (§6 `ReadResult`) has no member in the 1.0 schema shown. The spec's open question "A report for a refused read" (v1.8, finding F19) sets the default for slice 1d: a third member, `refused`, carrying the refusal key (`read.refused.robots` or `read.refused.address`, the strings of rows 5 and 6) and the printed line, so `--json` always writes a report. The slice 1d spec designs that member, its fields, the command's exit code for a refused read and whether a failed read (row 7) uses it; this design adds no field or exit code ahead of it. The report is command output and is not stored, so a version bump has no migration: a reader parses a report at the version it was written with.
+- **Determinism.** The same bytes, snapshot, clock and versions give a deep-equal report: `evidence` and each axis's `leans` follow `compareEvidence`, `notMeasured` is sorted by `what`, and `lines` follows its enum. No field holds a time other than the items' own `retrievedAt`.
 
 ## 8. Measures and readings (slice 1c)
 
@@ -790,12 +847,13 @@ export function feedEvidence(
 | `renderSnapshotSchema` 1 and `Renderer` port (new contract) | `renderer` build required; `textBoxes` without text replaces text blocks | `packages/page-reader` (ADR 0019): `render-playwright.ts` now, `render-chromium.ts` later, each fills the build at run time |
 | `analyseUrl` | Accepts `null` for the snapshot and returns `notMeasured`; refuses `ctx.role` `competitor` with `competitor-not-read` (§7) | The CLI in `packages/page-reader` (slice 1d); a later Vercel route, which runs option D until ADR 0019's measurement; row 38 |
 | `readUrlInput` (task 4, new contract) | The one engine export that reaches `readPage`, with the role gate of `competitor-not-read-1` in front; `index.ts` no longer exports `readPage` (§7) | `cli.ts` in `packages/page-reader` (slice 1d), which calls it instead of `readPage`; a later Vercel route; rows 5 to 7 still test `readPage` inside the engine; row 38 |
+| `reportSchema` 1.0 (task 6, new contract) | The command's `--json` output: a `not-read` member and an `analysed` member, and by the spec's default for slice 1d a `refused` member whose fields and exit code the slice 1d spec decides (open question "A report for a refused read"); slice 2 adds `industry` (1.1), slice 3 `mood` (1.2) (§7) | `cli.ts` in `packages/page-reader` (slice 1d); a later Vercel route; rows 17 and 38; slice 2 and 3 builders |
 | `RULE_IDS`, `HYPOTHESIS_RULES` (task 4) | `RULE_IDS` drops `word-count-1` and holds the spec's four ids; each later rule reading adds an id with a minor schema bump. `HYPOTHESIS_RULES` names the members of `hypothesis-flag-1` (§2) | Slice 1a builder (rows 2, 10, 11); slice 2 (`tsic-terms-1`, a whole member); slices that add a rule reading on `color.current`, `competitive-frame.lineup-candidate` or `reference.asset` |
 | `checkItem` clauses 5, 6 and 14 to 17 (task 4) | Base `model-reading` whenever `fromModel` is true; a `model` reading needs `fromModel`; `hypothesis-flag-1`; base value from the table; a quote needs a `text` locator; `tool-default` factor with its origin and flag (§2) | Row 2's cases; every analyser that builds items (slices 1c to 7): a model's `asset-shown` item (slice 7) scores 0.7, not 1.0; a slice 6 `tool-default` reading must carry the origin and the flag |
 | `checkAddress` (task 4) | Refuses `::`, `64:ff9b:1::/48` and Teredo; judges `::/96`, `::ffff:0:0/96`, `64:ff9b::/96` and `2002::/16` by the IPv4 they embed (§6) | Row 5; `security` review of slice 1b |
 | `html-text-1` (`page-text.ts`) | New rule: the page text always comes from the document bytes | Rows 9, 10 and 12; slice 2's `matchIndustryTerms`, whose `TextBlock` is this rule's block |
 | `evidenceId` (task 3) | Hashes `source` without `retrievedAt`, as the spec's `id` row says (§3). A re-read of unchanged bytes keeps its ids | Row 4 (later-clock case); `feedEvidence` (slice 4), whose lists no longer gain duplicates on a re-read; the owner at G2, who may put the clock back (then row 4 expects new ids) |
-| `EVIDENCE_STRINGS` (tasks 3 and 4) | Every key under spec v1.6 "Strings" (unchanged since v1.5): adds `industry.byNameOnly`, `report.conflictsNotChecked`, `read.notRead.competitor` (task 4), `read.notMeasured`, the four `read.notRendered.*` reasons and four suggested `{what}` label keys (§9). `QUESTION_KEYS` unchanged at six | Designer and owner review of the copy; the CLI (slices 1d and 2); rows 29 and 38 |
+| `EVIDENCE_STRINGS` (tasks 3 and 4) | Every key under spec v1.8 "Strings" (unchanged since v1.5): adds `industry.byNameOnly`, `report.conflictsNotChecked`, `read.notRead.competitor` (task 4), `read.notMeasured`, the four `read.notRendered.*` reasons and four suggested `{what}` label keys (§9). `QUESTION_KEYS` unchanged at six | Designer and owner review of the copy; the CLI (slices 1d and 2); rows 29 and 38 |
 | Rule names (tasks 3 and 4) | §2, §4, §7, §8, §9 and §10 name `thousandths-1`, `industry-margin-1`, `conflict-question-1`, `industry-level-1`, `html-text-1`, `word-count-1`, `measure-to-lean-1`, `value-to-lean-1`, `tsic-terms-1`, `hypothesis-flag-1` and `competitor-not-read-1` and point to the spec's section; `withinMargin` loses its `margin` parameter | Builders of slices 1a, 1b, 1c, 1d and 2 |
 | ORV-126 state, node record `evidence` field | Must hold input evidence beside proxy answers and references: an entry `{ kind: "input", item: InputEvidence }` in a discriminated union, sorted by node number then id. ORV-126 has no code yet, so its slice 1 defines the union with this member. No ORV-126 rule reads the items | ORV-126 slice 1 builder; `feedEvidence` (slice 4); rows 19, 22 and 24 |
 | ORV-20 colour node (`color-audit.ts`, `color-rules.ts`, `color-knowledge.ts`) | Untouched. `classifyHex` and `hexSchema` are imported read-only; `auditLineup` and `decideColor` take no evidence argument. The G3 packet shows an empty `git diff origin/develop -- packages/intent-engine/src/color-*.ts` | ORV-20 owners |
@@ -815,22 +873,22 @@ These are estimates of production lines, without tests or fixtures:
 | 1a schema, confidence, strings, lean rules | `evidence.ts` 175 (`HYPOTHESIS_RULES` and `checkItem` clauses 14 to 17 added), `confidence.ts` 60, `evidence-strings.ts` 90 (the v1.3 and v1.5 keys and the two maps of §9), `leans.ts` 45, `index.ts` 5 | about 375 | 1, 2, 3, 32, 29 to 31 (and unit tests for `value-to-lean-1` and `measure-to-lean-1`) |
 | 1b safe read and page text | `read-page.ts` 320 (address 100 with the IPv6 parser and the embedded IPv4, robots 80, read 140), tokenizer wrapper and link extraction 20, `page-text.ts` 80 | about 420 | 5, 6, 7, 36, 29 to 31 |
 | 1c renderer contract, measures, URL analyser | `render-snapshot.ts` 60, `measures/colour.ts` 120 (declared fonts added), `measures/page.ts` 70, `url-analyser.ts` 170 (the not-measured path and `readUrlInput` with its role gate added, text extraction moved to 1b) | about 420 | 4, 8 to 12, 34, 35, 38, 29 to 31 |
-| 1d server-only: `packages/page-reader` | `node-ports.ts`, `render-playwright.ts`, `cli.ts` (§13), with the report's not-read path | about 160 | 34, 35, 37, 38, 29 to 31; the live smoke in the G3 packet |
+| 1d server-only: `packages/page-reader`, and the engine's `report.ts` | `node-ports.ts`, `render-playwright.ts`, `cli.ts` (§13), with the report's not-read path; `report.ts` 45 in the engine (§7, "The report schema") | about 205 | 34, 35, 37, 38, 29 to 31; the live smoke in the G3 packet |
 
-The total is about 1,215 lines for 1a to 1c, or about 1,375 with 1d. The rows per slice are the spec's "Delivery" table. **Four PRs, 1a, 1b, 1c and 1d** (finding F1, accepted in spec v1.3; 1d added in spec v1.5, review g2-1 S8).
+The total is about 1,215 lines for 1a to 1c, or about 1,420 with 1d. The rows per slice are the spec's "Delivery" table. **Four PRs, 1a, 1b, 1c and 1d** (finding F1, accepted in spec v1.3; 1d added in spec v1.5, review g2-1 S8).
 
 - 1a and 1b do not wait on the renderer decision.
 - 1c defines the `Renderer` port and tests `analyseUrl` on recorded snapshots; it does not wait on a browser.
 - 1d waits on 1c and on a TypeScript runner for the command (spec "Open questions"); its merge accepts ADR 0019's POC part (§13, ADR 0019 Status).
 - `security` reviews 1b, 1c and 1d (outside reads, `parse5`, the competitor gate, `playwright`).
 
-**Slice 1d** (spec "Open questions", slice 1c's size, decided at G2 by the orchestrator and open for the owner). `packages/page-reader` is its own PR right after 1c. 1c is the engine part, about 420 lines: rows 4, 8 to 12, the engine halves of 34, 35 and 38, and 29 to 31, with `analyseUrl` tested on recorded snapshots and `readUrlInput` over fake ports. 1d is about 160 lines and carries row 34's budget test, the renderer tests of rows 35 and 37, and the command half of row 38. What the option D result holds is §7's, under spec "Where it runs"; this paragraph only says which PR tests it. ADR 0019's POC part is accepted when 1d merges into `develop`, not when 1c does. If the owner wants one PR instead, 1c is about 580 lines and 1d disappears (a spec version bump).
+**Slice 1d** (spec "Open questions", slice 1c's size, decided at G2 by the orchestrator and open for the owner). `packages/page-reader` is its own PR right after 1c. 1c is the engine part, about 420 lines: rows 4, 8 to 12, the engine halves of 34, 35 and 38, and 29 to 31, with `analyseUrl` tested on recorded snapshots and `readUrlInput` over fake ports. 1d is about 205 lines, `report.ts` included, and carries row 34's budget test, the renderer tests of rows 35 and 37, and the command half of row 38. What the option D result holds is §7's, under spec "Where it runs"; this paragraph only says which PR tests it. ADR 0019's POC part is accepted when 1d merges into `develop`, not when 1c does. If the owner wants one PR instead, 1c is about 580 lines and 1d disappears (a spec version bump).
 
 ## 13. Renderer and fetcher placement (architect)
 
 Decided in ADR 0019 (proposed), on K-0081 (0.8). Summary for this design:
 
-- **Where.** A new server-only package, `packages/page-reader` (`@orivilo/page-reader`, Node only). It holds `node-ports.ts` (`ReadPorts` on `node:dns/promises`, `node:http`/`node:https` connected to the checked address, `node:crypto`, `performance.now()`), `render-playwright.ts` and `cli.ts` (`pnpm analyse:url`). The engine defines a `Renderer` port, `render(read) => Promise<unknown>`, whose result it parses with `renderSnapshotSchema`, and never imports the package. `apps/web` does not depend on it in the POC.
+- **Where.** A new server-only package, `packages/page-reader` (`@orivilo/page-reader`, Node only). It holds `node-ports.ts` (`ReadPorts` on `node:dns/promises`, `node:http`/`node:https` connected to the checked address, `node:crypto`, `performance.now()`), `render-playwright.ts` and `cli.ts` (`pnpm analyse:url`, whose `--json` report follows `reportSchema`, §7). The engine defines a `Renderer` port, `render(read) => Promise<unknown>`, whose result it parses with `renderSnapshotSchema`, and never imports the package. `apps/web` does not depend on it in the POC.
 - **POC renderer.** Playwright pinned exactly at `1.56.1`, the version `packages/design-system` already pins, as a dev dependency, with its own bundled Chromium, on the machine that runs the command. No Vercel function launches a browser in the POC.
 - **The renderer never fetches.** It gets the document and stylesheet bytes `readPage` read. Every browser request is intercepted: those URLs are answered from memory, all others are aborted. JavaScript is off; one fresh context per analysis, closed in a `finally`; viewport 1280 x 800; the render uses what is left of the read's 30 s budget by the same `elapsedMs`.
 - **Fallback (option D).** Option D is the fallback everywhere the analysis runs, the POC command and a later Vercel route alike, and it is labelled as not rendered. What it keeps, what it lists as not measured and its reasons are defined once, in spec "Reading a page the person submits", "Where it runs"; its code is §7 ("Without a snapshot"). This section adds nothing to either (review g2-1 I1).
@@ -849,7 +907,7 @@ Tests that prove the placement are in §14, not repeated here: row 34's budget t
 
 ## 14. Tests that prove determinism and conflicts
 
-Each test names its "break it" check: the change to the code that must turn it red before handoff. Row numbers are spec v1.6's; S1 is the boundary test of `industry-margin-1`. The Slice column follows the spec's "Delivery": the tests in `packages/page-reader` are slice 1d (§12).
+Each test names its "break it" check: the change to the code that must turn it red before handoff. Row numbers are spec v1.8's; S1 is the boundary test of `industry-margin-1`. The Slice column follows the spec's "Delivery": the tests in `packages/page-reader` are slice 1d (§12).
 
 <!-- prettier-ignore -->
 | Row | Test | Asserts | Break it | Slice |
@@ -864,7 +922,7 @@ Each test names its "break it" check: the change to the code that must turn it r
 | S1 | `evidence.test.ts` › "the margin is in thousandths and inclusive" | `industry-margin-1`, inputs from its worked example: `withinMargin(0.7, 0.6)` and `withinMargin(0.8, 0.7)` are true; `withinMargin(0.7, 0.599)` is false; `withinMargin(0.9, 0.6)` is false; `withinMargin(0.7, 0.65)` is true | Compare raw differences (`a - b <= 0.1`): the 0.8 and 0.7 case goes red | 1a |
 | 29 | `evidence.test.ts` › "every string is Thai and English" | Every key of `EVIDENCE_STRINGS` (all of spec "Strings", the v1.3 and v1.5 keys `industry.byNameOnly`, `report.conflictsNotChecked`, `read.notRead.competitor`, `read.notMeasured`, the four `read.notRendered.*` and, from 1c, the four `{what}` labels among them) and every `QUESTION_KEYS` entry has non-empty `th` and `en`, with no U+2014 and no U+00B7. `QUESTION_KEYS` equals the six keys of row 29, each a key of `EVIDENCE_STRINGS`. Every `NotMeasured.reason` and every `NotMeasured.what` maps to a key that exists | Add a key with an empty `th`: red. Delete `read.notRendered.budget`: the map case goes red (and the typecheck) | 1a, each |
 | 30 | `evidence.test.ts` › "measures never call a model" | Source scan of the engine modules spec row 30 lists for imports of `openrouter`, `llm-interpreter`, `@orivilo/page-reader` and any `node:` module, and for `Math.random` and `Date.now`. The test name lists the forms it blocks: single-line import, multi-line import, side-effect import, dynamic `import()`, `export ... from`. One failing fixture per form (L-0024) | Feed each fixture: each red. Add `import "node:dns"` to `url-analyser.ts`: red | 1a, each |
-| 5 | `read-page.test.ts` › "public addresses only" | Each URL in row 5 gives `refused` with `read.refused.address`, and so do `http://[::]/` (the unspecified address) and `http://[64:ff9b::a00:5]/` (NAT64 for `10.0.0.5`, I5). The fake network log has no request to a non-public address. A fake `request` that reports a private `remoteAddress` after a public resolve is refused. A `checkAddress` unit table: `::127.0.0.1`, `::ffff:10.0.0.5`, `2002:a00:5::1` (6to4 for `10.0.0.5`), `64:ff9b:1::1`, `2001::1`, `fe80::1%en0` and an unparsable literal are refused; `64:ff9b::808:808` and `2002:808:808::1` (both `8.8.8.8`) are public | Skip the `remoteAddress` re-check: that case goes red. Drop `::` from the list or stop unwrapping NAT64: the I5 cases go red. Refuse every NAT64 address: the `8.8.8.8` case goes red | 1b |
+| 5 | `read-page.test.ts` › "public addresses only" | Each of the first ten URLs in row 5 is refused with `read.refused.address` and no evidence, `http://[::]/` (the unspecified address) and `http://[64:ff9b::a00:5]/` (NAT64 for `10.0.0.5`, I5) among them. The fake network log has no request to a non-public address. `readPage` reads the eleventh, `http://[64:ff9b::808:808]/` (NAT64 for `8.8.8.8`, public): status `read`, and the fake log shows its `/robots.txt` request before the page request (re-check g2-2 N3). A fake `request` that reports a private `remoteAddress` after a public resolve is refused. A `checkAddress` unit table: `::127.0.0.1`, `::ffff:10.0.0.5`, `2002:a00:5::1` (6to4 for `10.0.0.5`), `64:ff9b:1::1`, `2001::1`, `fe80::1%en0` and an unparsable literal are refused; `64:ff9b::808:808` and `2002:808:808::1` (both `8.8.8.8`) are public | Skip the `remoteAddress` re-check: that case goes red. Drop `::` from the list or stop unwrapping NAT64: the I5 cases go red. Refuse every NAT64 address: the `readPage` read of `http://[64:ff9b::808:808]/` and the `8.8.8.8` unit case go red | 1b |
 | 6 | `read-page.test.ts` › "robots.txt first" | As row 6. The fake log shows `/robots.txt` before any page request, and no page request on a refusal | Treat 503 as "no rules": red | 1b |
 | 7 | `read-page.test.ts` › "one page, logged out, bounded" | As row 7, from the fake log: headers, user agent, 10 stylesheets, 2 MB cut with `incomplete`, no 4th redirect, no image, font or script URL, no other page | Raise the stylesheet cap to 12: red | 1b |
 | 36 | `page-text.test.ts` › "html-text-1" | A fixture with `script`, `style`, `template`, `svg`, a `hidden` element, an `aria-hidden="true"` element and `<noscript><p>Enable JavaScript</p></noscript>` gives blocks for the title, the meta description, the headings, the body and the `p` inside the `noscript` (path ending `noscript>p`, text "Enable JavaScript") only, in document order, with the whitespace rule; body text stops at 5,000 characters on whitespace; equal bytes give deep-equal blocks. `word-count-1` on "อยากให้สนุก" gives 3 where splitting on spaces gives 1, on the Node version the slice records (F13) | Drop the `hidden` skip: red. Parse with `scriptingEnabled: true`: the `noscript` case goes red, because the `noscript` then holds raw text and no `p` element (S3). Count by `split(" ")`: the Thai case goes red | 1b |
@@ -884,7 +942,7 @@ Each test names its "break it" check: the change to the code that must turn it r
 | 37 | `packages/page-reader` › "scripts never run" | A fixture whose inline script repaints the background keeps the CSS colour in the snapshot | Turn JavaScript on: red | 1d |
 | 37 | `packages/page-reader` › "fresh context per analysis" | A cookie set during the first of two renders is absent in the second | Reuse the context: red | 1d |
 | 38 | `url-analyser.test.ts` › "a competitor URL is not read" | `readUrlInput({ url, role: "competitor" }, fakePorts)` returns `{ status: "not-read", url, line: "read.notRead.competitor" }` with the URL as given; the fake log has zero entries (no `resolve`, no robots.txt, no page, no stylesheet). The same URL with `role` `own` reads robots.txt first. `analyseUrl(read, null, { role: "competitor", ... })` returns `competitor-not-read` and no evidence. The engine's `index.ts` exports `readUrlInput` and not `readPage` | Move the role check after `readPage`, or drop it: the log is not empty, red. Export `readPage` from `index.ts`: red. Drop the check in `analyseUrl`: red | 1c |
-| 38 | `analyse-url.test.ts` › "a competitor URL is not read" | `pnpm analyse:url --fixture clinic-th --role competitor` over a fake network that logs every request: zero entries; the report prints the URL and the `read.notRead.competitor` line in Thai and English, no evidence and no not-measured line; `--json` parses with the report schema as `{ status: "not-read", url, line }`; exit 0. A source scan finds no `readPage` in `packages/page-reader` | Call `readPage` from `cli.ts`: the scan and the log go red | 1d |
+| 38 | `analyse-url.test.ts` › "a competitor URL is not read" | `pnpm analyse:url --fixture clinic-th --role competitor` over a fake network that logs every request: zero entries; the report prints the URL and the `read.notRead.competitor` line in Thai and English, no evidence and no not-measured line; `--json` parses with `reportSchema` (§7, "The report schema") as its not-read member `{ version: "1.0", status: "not-read", url, line: "read.notRead.competitor" }`; exit 0. A source scan finds no `readPage` in `packages/page-reader` | Call `readPage` from `cli.ts`: the scan and the log go red. Add `evidence: []` to the not-read JSON: the `reportSchema` parse goes red | 1d |
 
 Slice 1 has no cross-item conflict: conflicts land with slices 2 and 4 (rows 14, 22 and 33). Slice 1 proves the two contract conflicts it owns:
 
@@ -900,7 +958,7 @@ Determinism is proved by row 4 (same bytes, snapshot and clock give deep-equal r
 
 ## Findings for the spec
 
-F1 to F12 were raised against spec v1.2 and applied in v1.3; F13 and F14 were raised against v1.3 and applied in v1.4, F14 settled further in v1.5 as slice 1d. The orchestrator accepted all fourteen under ADR 0012 decision 4, and each stays open for the owner at G2 (spec "Owner decisions" says where each lands). This design follows v1.6. One status changed with v1.3: F3's "row 4 holds either way" no longer holds, because row 4 now asserts equal ids under a later clock; if the owner puts `retrievedAt` back, row 4's later-clock case expects new ids (§3). F15 to F17 were raised against v1.5 and applied in v1.6, accepted by the orchestrator under the same decision and open for the owner at G2.
+F1 to F12 were raised against spec v1.2 and applied in v1.3; F13 and F14 were raised against v1.3 and applied in v1.4, F14 settled further in v1.5 as slice 1d. The orchestrator accepted all fourteen under ADR 0012 decision 4, and each stays open for the owner at G2 (spec "Owner decisions" says where each lands). This design follows v1.8. One status changed with v1.3: F3's "row 4 holds either way" no longer holds, because row 4 now asserts equal ids under a later clock; if the owner puts `retrievedAt` back, row 4's later-clock case expects new ids (§3). F15 to F17 were raised against v1.5 and applied in v1.6, and F18 against v1.6 (re-check g2-2 N4) and applied in v1.7, each accepted by the orchestrator under the same decision and open for the owner at G2. F19 was raised against v1.7 by this design's report schema (§7) and applied in v1.8, accepted by the orchestrator under the same decision and open for the owner at G2.
 
 <!-- prettier-ignore -->
 | # | Where in spec v1.2 | Finding | Proposed change |
@@ -931,6 +989,12 @@ F1 to F12 were raised against spec v1.2 and applied in v1.3; F13 and F14 were ra
 | F16 | Row 36, Given and "User sees" | With scripting on, `parse5` reads `noscript` as raw text, so a `noscript` holding plain text gives the same block either way and row 36's "the `noscript`" cannot catch the scripting setting (review g2-1 S3) | Row 36's Given: "a `noscript` holding a `p`"; "User sees": "the `p` inside the `noscript`". §14 row 36 already uses `<noscript><p>Enable JavaScript</p></noscript>` | Applied in v1.6: row 36, Given and "User sees" |
 | F17 | "Worked examples", opening paragraph | It says the ninth line, `hypothesis-flag-1`, "has not been run yet". The main session ran it, and this task ran it again on Node 22.23.0 with ICU 78.2 (2026-10-27): the output matched the five lines shown | "The main session ran all nine lines on Node 22.23.0 with ICU 78.2, and every output matched" | Applied in v1.6: "Worked examples", opening paragraph |
 
+<!-- prettier-ignore -->
+| # | Where in spec v1.6 (F18) and v1.7 (F19) | Finding | Proposed change | Status |
+| --- | --- | --- | --- | --- |
+| F18 | "Confidence", the "When" cells of base `model-reading` and base `measure` | §2 clause 5 gives base `model-reading` to every item with `fromModel` true, a model observation with no reading (an `asset-shown` item, slice 7) included. The spec's "When" read "A reading by a model" and "A code measure with no reading", so that item fell under neither (re-check g2-2 N4) | Base `model-reading`: "A reading or an observation by a model (every item with `fromModel` true)"; base `measure`: "A code measure with no reading and `fromModel` false". No number changes | Applied in v1.7: "Confidence", both "When" cells; "Owner decisions" lists F18 |
+| F19 | "Delivery", row 1d; rows 17 and 38 | Rows 17 and 38 assert "the JSON parses with the report schema", and row 1d names only `packages/page-reader`. The schema is now §7's `reportSchema` in the engine's `report.ts`, which the 1d PR adds (about 45 lines; 1d about 205) | Row 1d's scope adds "and the engine's `report.ts` (`reportSchema`, tech notes §7)"; rows 17 and 38 say "parses with `reportSchema` (tech notes §7)" | Applied in v1.8: "Delivery" row 1d names `report.ts` (`reportSchema`); rows 17 and 38 say the JSON parses with `reportSchema` and point to §7, "The report schema"; open question "A report for a refused read"; "Owner decisions" lists F19 |
+
 **Review g2-1 findings** (on a36ef5d): where each was applied, by task. Each was decided by the orchestrator under ADR 0012 decision 4 and stays open for the owner at G2.
 
 <!-- prettier-ignore -->
@@ -941,8 +1005,8 @@ F1 to F12 were raised against spec v1.2 and applied in v1.3; F13 and F14 were ra
 | I3 | A model item with no reading got base `measure` | §2 `checkItem` clauses 5 and 6; §14 row 2 "base, quote and tool-default fit the item" | Applied |
 | I4 | `hypothesis` had no checkable definition | Spec v1.5, rule `hypothesis-flag-1`; here §2 `HYPOTHESIS_RULES` and clause 14, §8, §14 rows 2 and 10 | Applied |
 | I5 | `checkAddress` missed `::`, `::/96` and NAT64 | §6 Address check; §14 row 5; F15 for the spec's wording | Applied here; F15 applied in spec v1.6 |
-| I6 | Tech notes behind the spec | Spec v1.5 Gap list; here the front matter and the rule table name v1.5 (v1.6 since task `ORV-128-design-schema-5`), F13 to F17 carry their status, and this table | Applied |
-| S1 | Spec copied §12's total | Spec v1.5 "Delivery" | Applied; §12's total is now about 1,215, or 1,375 with 1d |
+| I6 | Tech notes behind the spec | Spec v1.5 Gap list; here the front matter and the rule table name v1.5 (v1.6 since task `ORV-128-design-schema-5`, v1.7 since task `ORV-128-design-schema-6`, v1.8 since task `ORV-128-design-schema-7`), F13 to F17 carry their status, and this table | Applied |
+| S1 | Spec copied §12's total | Spec v1.5 "Delivery" | Applied; §12's total is now about 1,215, or 1,420 with 1d (1,375 before `report.ts`, N5) |
 | S2 | K-0081 cited a wrong spec line | K-0081 | Applied there |
 | S3 | Row 36's noscript break-it could not fail | §14 row 36 fixture; F16 for the spec row | Applied here; F16 applied in spec v1.6 |
 | S4 | Three `checkItem` gaps | §2 clauses 15, 16 and 17; §14 row 2 | Applied |
@@ -950,3 +1014,14 @@ F1 to F12 were raised against spec v1.2 and applied in v1.3; F13 and F14 were ra
 | S6 | ADR 0019 POC part named two ways | ADR 0019 Status and Confirmation | Applied there |
 | S7 | `report.conflictsNotChecked` from slice 2 against "until slice 4" | §8 and §9: printed from the first command, slice 1d, until slice 4 | Applied |
 | S8 | 1c plus page-reader over 400 lines | Spec v1.5 "Delivery" row 1d; ADR 0019 Status; here §1, §12, the §13 test heading and §14's Slice column | Applied |
+
+**Re-check g2-2 findings** (on 4329e9c, task `ORV-128-review-g2-2`): where each was applied, by task. Each was decided by the orchestrator under ADR 0012 decision 4 and stays open for the owner at G2.
+
+<!-- prettier-ignore -->
+| # | Finding, short | Applied where | Status |
+| --- | --- | --- | --- |
+| N1 | ADR 0019 decision 1 had `cli.ts` wire `readPage` | ADR 0019 decision 1, the `cli.ts` bullet now wires `readUrlInput` (task `ORV-128-arch-renderer-5`); here §7 and §13 already said so | Applied there |
+| N2 | ADR 0019 option D "Measures" cell said declared colours and fonts only | ADR 0019 Options table, D column, points to spec "Where it runs" (task `ORV-128-arch-renderer-5`) | Applied there |
+| N3 | §14 row 5 repeated two URLs and never read the public NAT64 URL | §14 row 5: "each of the first ten URLs" refused, the duplicate extras dropped, `readPage` reads `http://[64:ff9b::808:808]/` with robots.txt first, and the NAT64 break-it fails that read (task `ORV-128-design-schema-6`) | Applied |
+| N4 | Spec bases' "When" missed a model observation with no reading | F18; spec v1.7 "Confidence" (task `ORV-128-product-spec-9`) | Applied in spec v1.7 |
+| N5 | "The report schema" named in spec rows 17 and 38, defined nowhere | §7 "The report schema" (`reportSchema`, its two members and the slice that adds each field); §1 `report.ts`; §11; §12 row 1d; §13's `cli.ts` pointer; §14 row 38 (task `ORV-128-design-schema-6`) | Applied |
