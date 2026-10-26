@@ -40,7 +40,7 @@ The handoff §12.2 gives the interpreter its job. It extracts the requirement, c
 
 The owner chose option (a) of ORV-128 decision D6 at G1 (ORV-128 comment 10209): input evidence carries a confidence number computed by code. "Not chosen" above rejected a confidence score per finding because no method backed one. This addition records the method that now backs one, for input evidence only (`docs/specs/ORV-128/spec.md`, "Confidence"; `docs/specs/ORV-128/tech.md` §4).
 
-- **Computed, never reported.** `confidence.value` is a base times every named factor, computed by `scoreConfidence` in `packages/intent-engine/src/confidence.ts` (version `confidence-1`). The bases are `measure` 1.0, `rule-reading` 0.7 and `model-reading` 0.7. The factors are `page-incomplete` 0.7, `few-words` 0.7, `image-small` 0.5, `image-blurred` 0.6, `single-signal` 0.8 and `tool-default` 0. Every number is a hypothesis, to be checked against labelled fixtures.
+- **Computed, never reported.** `confidence.value` is a base times every named factor, computed by `scoreConfidence(base, factors)` in `packages/intent-engine/src/confidence.ts` (version `confidence-1`), which returns `{ confidence, belowFloor }`. The bases are `measure` 1.0, `rule-reading` 0.7 and `model-reading` 0.7. The factors are `page-incomplete` 0.7, `few-words` 0.7, `image-small` 0.5, `image-blurred` 0.6, `single-signal` 0.8 and `tool-default` 0. Every number is a hypothesis, to be checked against labelled fixtures.
 - **One rounding rule.** Factors are multiplied in id order. The product is rounded to 3 decimals. The floor (0.5, owner decision D3) and the 0.1 industry margin are compared in whole thousandths, and exactly 0.1 apart counts as within the margin.
 - **The trace shows the method.** Each item stores its base and factors with their values, and the schema rejects an item whose value is not the computed one.
 - **A model's certainty is never read.** A `score` or `confidence` key from a model fails the strict schema, as in decision 2.
@@ -53,4 +53,4 @@ Confirmation: in `packages/intent-engine/src`, these tests fail `pnpm test` when
 - `evidence.test.ts` › "confidence is computed, never reported", "one mild factor stays, two fall", "the margin is in thousandths and inclusive", and "bounds and forbidden fields" (a reported value that differs from the computed one, and a `score` key);
 - `interpreter.test.ts` › "refuses output outside the schema, such as a confidence score", existing, which still rejects a confidence on a brief finding.
 
-Not confirmed yet; follow-up: ORV-128 slice 1a, which ships `confidence.ts` and these tests.
+Confirmed 2026-10-27: ORV-128 slice 1a (ORV-132, PR 128) merged into `develop` as `a0f67a2` with `confidence.ts` and the tests above.

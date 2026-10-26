@@ -68,46 +68,49 @@ Status: proposed
 
 ## Index
 
-| Lesson                                                   | Issue                  | Rule in short                                                              |
-| -------------------------------------------------------- | ---------------------- | -------------------------------------------------------------------------- |
-| [[L-0001-g3-passed-visual-defects]]                      | ORV-72, ORV-80         | A UI PR shows the render; the reviewer looks at it before G3               |
-| [[L-0002-a-test-that-cannot-fail]]                       | ORV-78                 | A new guard test is seen to fail once before it counts                     |
-| [[L-0003-squash-reset-reverted-a-merged-pr]]             | ORV-77                 | No `reset --soft` onto a moved base; the diff lists only our files         |
-| [[L-0004-delete-branch-left-remotes]]                    | ORV-79                 | Delete the remote branch by hand and check `ls-remote`                     |
-| [[L-0005-issues-missing-from-the-sprint]]                | ORV-79                 | A new issue joins the active sprint in the same step                       |
-| [[L-0006-main-session-worked-solo]]                      | ORV-81                 | Role agents build; a QA agent that did not build accepts                   |
-| [[L-0007-turbo-cache-hid-skipped-tests]]                 | ORV-13                 | Test runs for a handoff use `--force`                                      |
-| [[L-0008-recheck-costs-like-a-first-review]]             | ORV-87, ORV-90, ORV-91 | A re-check starts from the previous findings and the rework diff           |
-| [[L-0009-full-suite-loops-to-verify-a-flaky-fix]]        | ORV-76                 | Verify a fix with affected tests, the full suite once                      |
-| [[L-0010-one-builder-task-built-six-deliverables]]       | ORV-93                 | One builder task per deliverable; split an envelope over 8 pointers        |
-| [[L-0011-spec-revision-and-fix-ran-in-parallel]]         | ORV-93                 | After a contract-changing review, the spec revision runs before the fix    |
-| [[L-0012-guard-reviewed-as-a-boundary-before-its-frame]] | ORV-95                 | A guard spec states guard rail or boundary; bypass classes become limits   |
-| [[L-0013-qa-findings-took-a-second-revision]]            | ORV-95                 | One spec revision waits for both review and qa on one head                 |
-| [[L-0014-qa-walked-a-head-the-recheck-rejected]]         | ORV-98, ORV-95, ORV-93 | From round 1, qa walks only a head the reviewer re-check approved          |
-| [[L-0015-geometry-defects-found-by-the-reviewer-probe]]  | ORV-101, ORV-100       | The builder measures placement AC in a browser at two sizes before handoff |
-| [[L-0016-slice-issue-had-no-spec-of-its-own]]            | ORV-101, ORV-100       | A slice issue gets its own spec file before its first build                |
-| [[L-0017-rework-look-decided-in-text]]                   | ORV-107                | A visual fix in rework is mocked by the designer before the build          |
-| [[L-0018-plays-assert-properties-not-the-render]]        | ORV-107                | Visual plays measure edge ink, sibling height and glyph clip               |
-| [[L-0019-no-designer-looked-at-the-built-head]]          | ORV-107                | A designer signs off screenshots of each approved UI head before qa        |
-| [[L-0020-knowledge-index-left-out-of-the-pr]]            | ORV-109                | check:knowledge fails on an entry with no Index row                        |
-| [[L-0021-synthesis-contradicted-its-own-source]]         | ORV-109                | A synthesis checks every universal word against the entries it cites       |
-| [[L-0022-press-figures-with-no-url-in-source]]           | ORV-109                | Every body fact rests on a URL in `source:` read in the same task          |
-| [[L-0023-research-role-cannot-run-its-checks]]           | ORV-109                | The main session runs research done_when before the review                 |
-| [[L-0024-source-guard-sampled-one-syntax-form]]          | ORV-20                 | A source-text guard fails once on every syntax form it blocks              |
-| [[L-0025-spec-deviation-went-to-review]]                 | ORV-20                 | A builder deviation on a spec row goes to product before review            |
-| [[L-0026-gate-database-url-missing-from-the-fact]]       | ORV-20                 | A gate-passed fact names the database URL it ran with                      |
-| [[L-0027-stalled-reviewer-went-unnoticed]]               | ORV-20                 | List silent bound envelopes before each dispatch and after compaction      |
-| [[L-0028-visual-keyword-rule-on-a-non-ui-story]]         | ORV-20                 | The visual keyword rule applies only to a diff with UI paths               |
-| [[L-0029-fix-walked-only-the-lines-named]]               | ORV-126                | A rule finding's fix reports one verified row per governed line            |
-| [[L-0030-owner-decision-missing-from-the-spec-envelope]] | ORV-126                | Every owner decision comment reaches each document it changes              |
-| [[L-0031-knowledge-source-cited-a-session-upload]]       | ORV-126                | A knowledge source is a repo path or a URL, never an absolute path         |
-| [[L-0032-one-checkout-ran-several-issues]]               | ORV-126                | No branch switch while a task is bound; branch check for every writer      |
-| [[L-0033-spec-and-adr-fixed-in-parallel]]                | ORV-126                | Fixes across spec, ADR and knowledge run one at a time                     |
-| [[L-0034-level-5-count-mixed-two-bases]]                 | ORV-127                | A count names one file and a command; research counts primary files        |
-| [[L-0035-fix-reports-named-the-round-2-findings]]        | ORV-127                | Grep old values and act on fix reports before a re-check                   |
-| [[L-0036-coverage-plan-opened-with-picks]]               | ORV-127                | A coverage plan opens with the whole structure and counts per level        |
-| [[L-0037-owner-decided-before-the-spec-review]]          | ORV-128                | A lane L G1 packet follows a reviewer pass on the spec                     |
-| [[L-0038-spec-claims-a-command-disproves]]               | ORV-128                | Spec numbers and methods get worked examples the main session runs         |
-| [[L-0039-one-rule-stated-in-two-sections]]               | ORV-128                | One home per rule; a disagreement fix removes the restatement              |
-| [[L-0040-bookkeeping-follow-ups-one-role-at-a-time]]     | ORV-128                | Bookkeeping waits for the content fixes, one envelope per role             |
-| [[L-0041-fix-left-stale-text-in-the-other-documents]]    | ORV-128                | A fix greps the other documents for each term it replaces or adds          |
+| Lesson                                                       | Issue                  | Rule in short                                                              |
+| ------------------------------------------------------------ | ---------------------- | -------------------------------------------------------------------------- |
+| [[L-0001-g3-passed-visual-defects]]                          | ORV-72, ORV-80         | A UI PR shows the render; the reviewer looks at it before G3               |
+| [[L-0002-a-test-that-cannot-fail]]                           | ORV-78                 | A new guard test is seen to fail once before it counts                     |
+| [[L-0003-squash-reset-reverted-a-merged-pr]]                 | ORV-77                 | No `reset --soft` onto a moved base; the diff lists only our files         |
+| [[L-0004-delete-branch-left-remotes]]                        | ORV-79                 | Delete the remote branch by hand and check `ls-remote`                     |
+| [[L-0005-issues-missing-from-the-sprint]]                    | ORV-79                 | A new issue joins the active sprint in the same step                       |
+| [[L-0006-main-session-worked-solo]]                          | ORV-81                 | Role agents build; a QA agent that did not build accepts                   |
+| [[L-0007-turbo-cache-hid-skipped-tests]]                     | ORV-13                 | Test runs for a handoff use `--force`                                      |
+| [[L-0008-recheck-costs-like-a-first-review]]                 | ORV-87, ORV-90, ORV-91 | A re-check starts from the previous findings and the rework diff           |
+| [[L-0009-full-suite-loops-to-verify-a-flaky-fix]]            | ORV-76                 | Verify a fix with affected tests, the full suite once                      |
+| [[L-0010-one-builder-task-built-six-deliverables]]           | ORV-93                 | One builder task per deliverable; split an envelope over 8 pointers        |
+| [[L-0011-spec-revision-and-fix-ran-in-parallel]]             | ORV-93                 | After a contract-changing review, the spec revision runs before the fix    |
+| [[L-0012-guard-reviewed-as-a-boundary-before-its-frame]]     | ORV-95                 | A guard spec states guard rail or boundary; bypass classes become limits   |
+| [[L-0013-qa-findings-took-a-second-revision]]                | ORV-95                 | One spec revision waits for both review and qa on one head                 |
+| [[L-0014-qa-walked-a-head-the-recheck-rejected]]             | ORV-98, ORV-95, ORV-93 | From round 1, qa walks only a head the reviewer re-check approved          |
+| [[L-0015-geometry-defects-found-by-the-reviewer-probe]]      | ORV-101, ORV-100       | The builder measures placement AC in a browser at two sizes before handoff |
+| [[L-0016-slice-issue-had-no-spec-of-its-own]]                | ORV-101, ORV-100       | A slice issue gets its own spec file before its first build                |
+| [[L-0017-rework-look-decided-in-text]]                       | ORV-107                | A visual fix in rework is mocked by the designer before the build          |
+| [[L-0018-plays-assert-properties-not-the-render]]            | ORV-107                | Visual plays measure edge ink, sibling height and glyph clip               |
+| [[L-0019-no-designer-looked-at-the-built-head]]              | ORV-107                | A designer signs off screenshots of each approved UI head before qa        |
+| [[L-0020-knowledge-index-left-out-of-the-pr]]                | ORV-109                | check:knowledge fails on an entry with no Index row                        |
+| [[L-0021-synthesis-contradicted-its-own-source]]             | ORV-109                | A synthesis checks every universal word against the entries it cites       |
+| [[L-0022-press-figures-with-no-url-in-source]]               | ORV-109                | Every body fact rests on a URL in `source:` read in the same task          |
+| [[L-0023-research-role-cannot-run-its-checks]]               | ORV-109                | The main session runs research done_when before the review                 |
+| [[L-0024-source-guard-sampled-one-syntax-form]]              | ORV-20                 | A source-text guard fails once on every syntax form it blocks              |
+| [[L-0025-spec-deviation-went-to-review]]                     | ORV-20                 | A builder deviation on a spec row goes to product before review            |
+| [[L-0026-gate-database-url-missing-from-the-fact]]           | ORV-20                 | A gate-passed fact names the database URL it ran with                      |
+| [[L-0027-stalled-reviewer-went-unnoticed]]                   | ORV-20                 | List silent bound envelopes before each dispatch and after compaction      |
+| [[L-0028-visual-keyword-rule-on-a-non-ui-story]]             | ORV-20                 | The visual keyword rule applies only to a diff with UI paths               |
+| [[L-0029-fix-walked-only-the-lines-named]]                   | ORV-126                | A rule finding's fix reports one verified row per governed line            |
+| [[L-0030-owner-decision-missing-from-the-spec-envelope]]     | ORV-126                | Every owner decision comment reaches each document it changes              |
+| [[L-0031-knowledge-source-cited-a-session-upload]]           | ORV-126                | A knowledge source is a repo path or a URL, never an absolute path         |
+| [[L-0032-one-checkout-ran-several-issues]]                   | ORV-126                | No branch switch while a task is bound; branch check for every writer      |
+| [[L-0033-spec-and-adr-fixed-in-parallel]]                    | ORV-126                | Fixes across spec, ADR and knowledge run one at a time                     |
+| [[L-0034-level-5-count-mixed-two-bases]]                     | ORV-127                | A count names one file and a command; research counts primary files        |
+| [[L-0035-fix-reports-named-the-round-2-findings]]            | ORV-127                | Grep old values and act on fix reports before a re-check                   |
+| [[L-0036-coverage-plan-opened-with-picks]]                   | ORV-127                | A coverage plan opens with the whole structure and counts per level        |
+| [[L-0037-owner-decided-before-the-spec-review]]              | ORV-128                | A lane L G1 packet follows a reviewer pass on the spec                     |
+| [[L-0038-spec-claims-a-command-disproves]]                   | ORV-128                | Spec numbers and methods get worked examples the main session runs         |
+| [[L-0039-one-rule-stated-in-two-sections]]                   | ORV-128                | One home per rule; a disagreement fix removes the restatement              |
+| [[L-0040-bookkeeping-follow-ups-one-role-at-a-time]]         | ORV-128                | Bookkeeping waits for the content fixes, one envelope per role             |
+| [[L-0041-fix-left-stale-text-in-the-other-documents]]        | ORV-128                | A fix greps the other documents for each term it replaces or adds          |
+| [[L-0042-break-its-sampled-the-clauses]]                     | ORV-132                | A schema or guard module gets one mutation per clause before handoff       |
+| [[L-0043-split-envelopes-left-tests-outside-the-named-file]] | ORV-132                | A builder write_set holds every test file the spec names for it            |
+| [[L-0044-objective-restated-a-signature]]                    | ORV-132                | A builder objective points to the design, never restates it                |

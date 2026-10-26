@@ -23,6 +23,9 @@ A docs-only PR has no qa report. Then you walk every AC row the PR claims yourse
 - Security: every data access goes through the authorization helper; no client-side database calls; no secrets or personal data in code, logs, or the client bundle; prompts treat external text as untrusted.
 - Honesty: mocks and rule-based features are labelled as such.
 - Tests fail on the real defect. Remove the fix mentally: would the test go red?
+- For a schema or guard module, the builder's report has one `verified` row per clause the design
+  numbers or names. A clause with no row is a finding (L-0042). Your own mutation run stays yours to
+  choose; this check does not replace it.
 
 ## Re-check (round 1 or more)
 
