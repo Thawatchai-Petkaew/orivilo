@@ -21,10 +21,12 @@ Read `docs/knowledge/README.md` and ADR 0005 for the entry format, and the exist
 - A synthesis entry (one that draws a pattern from other entries) is checked against every entry it cites before you report: run `grep -n '^claim:'` over the cited files, and for each sentence that says every, all, none or only, name the exception or scope the sentence to what the pages read show. Add one `verified` row per such sentence with the entries compared (L-0021).
 - A fix for a finding about a rule walks every line the rule governs and adds one `verified` row per
   line, naming the source line it was checked against (L-0029). No hook checks this.
-- Never cite an absolute path (`/Users/`, `/home/`, `/private/`, `/tmp/`, `~/`) in `source:`. A file
+- Never cite an absolute path (`/Users/`, `/home/`, `/private/`, `/tmp/`, `~/`) in `source:` of an
+  entry you write or change. An external repo is cited by its https URL plus the path inside it. A file
   the owner uploads is cited by title, edition, page count and pages with "owner-held, not in the repo",
-  and you search for a public copy to cite beside it (L-0031). No hook or check refuses an absolute
-  path yet; the `pnpm check:knowledge` refusal is the follow-up builder issue ORV-129.
+  and you search for a public copy to cite beside it (L-0031). The entries numbered 0001 to 0012 cite `~/` paths and are
+  known exceptions until ORV-129 rewrites them. No hook or check refuses an absolute path yet; ORV-129's
+  scope was widened to add that `pnpm check:knowledge` refusal (ORV-129 comment 10221).
 
 ## What you must not do
 

@@ -38,10 +38,8 @@ In the same file, step 2, a new bullet:
 +  for it (L-0032).
 ```
 
-In `scripts/ovl/envelope-guard.mjs`, under its own Jira issue (a builder story): extend `ISSUE_ROLES` to the roles above, with a test per role that a mismatched branch blocks.
+In `scripts/ovl/envelope-guard.mjs`, under the builder story ORV-130: extend `ISSUE_ROLES` to the roles above, with a test per role that a mismatched branch blocks.
 
-Open point for the owner: the after-merge retro envelope names the slice's issue (ovl skill, after-merge step 2), while lessons from several slices collect on one retro branch. Under this rule a retro either gets a `chore/<slice key>-retro-lessons` branch or the after-merge step names the retro branch's key.
+Open point, resolved at promotion: the after-merge retro envelope names the slice's issue (ovl skill, after-merge step 2), while lessons from several slices collected on one retro branch, so under this rule either a retro gets a `chore/<slice key>-retro-lessons` branch or the after-merge step names the retro branch's key. The answer: a retro runs on a `chore/<slice key>-retro-lessons` branch, so the retro branch carries the slice's key, which is what the after-merge step 2 of the ovl skill already does by naming the slice's issue.
 
-Open point resolved at promotion: a retro runs on a `chore/<slice key>-retro-lessons` branch, so the retro branch carries the slice's key, which is what the after-merge step 2 of the ovl skill already does by naming the slice's issue.
-
-Status: promoted 2026-10-26, into `.claude/skills/ovl/SKILL.md` (section 2, the "Issue" bullet and the new "One issue per checkout at a time" bullet; section 5, step 2, the retro branch carries the slice's key); no hook enforces it for product, architect, research or ds-architect. The `scripts/ovl/envelope-guard.mjs` change (`ISSUE_ROLES` for every role with a `write_set`, with a test per role) is not applied: it is a guard file and is a follow-up builder issue that the main session files
+Status: promoted 2026-10-26, into `.claude/skills/ovl/SKILL.md` (section 2, the "Issue" bullet and the new "One issue per checkout at a time" bullet; section 5, step 2, the retro branch carries the slice's key); no hook enforces it for product, architect, research or ds-architect. The `scripts/ovl/envelope-guard.mjs` change (`ISSUE_ROLES` for every role with a `write_set`, with a test per role) is not applied: it is a guard file and is the follow-up builder issue ORV-130
