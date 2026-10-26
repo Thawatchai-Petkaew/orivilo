@@ -175,3 +175,4 @@ Keep this table in step with the folder when you add an entry.
 | [[K-0078-touchpoints-seen-tsic-sections-g-to-l]]                                  | 0.75       | Touchpoints named per TSIC section G to L; L thin                     |
 | [[K-0079-touchpoints-seen-tsic-sections-m-to-s]]                                  | 0.75       | Touchpoints named per TSIC section M to S; S thin, N and R mixed      |
 | [[K-0080-proposed-touchpoint-sets-by-tsic-section]]                               | 0.6        | Lead: up to four touchpoints and one screen for each of 18 sections   |
+| [[K-0081-headless-chromium-in-a-vercel-function]]                                 | 0.8        | Headless Chromium on Vercel: 250 MB, Hobby 300 s and 2 GB; unmeasured |
