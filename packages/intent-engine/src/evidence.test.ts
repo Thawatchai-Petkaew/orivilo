@@ -23,6 +23,7 @@ import {
 } from "./evidence";
 import confidenceSource from "./confidence.ts?raw";
 import evidenceSource from "./evidence.ts?raw";
+import { EVIDENCE_STRINGS, QUESTION_KEYS } from "./evidence-strings";
 import stringsSource from "./evidence-strings.ts?raw";
 import leansSource from "./leans.ts?raw";
 import { PERSONALITY_AXES } from "./knowledge";
@@ -264,6 +265,85 @@ describe("bounds and forbidden fields", () => {
     ],
     ["a quality factor without its flag", item({}, { factors: ["page-incomplete"] }), "flags"],
     ["single-signal on a rule reading", ruleItem({}, ["single-signal"]), "confidence.factors"],
+    [
+      "factors out of order",
+      item({
+        confidence: {
+          value: 0.49,
+          base: { id: "measure", value: 1 },
+          factors: [
+            { id: "page-incomplete", value: 0.7 },
+            { id: "few-words", value: 0.7 },
+          ],
+        },
+        belowFloor: true,
+        flags: [{ key: "quality.fewWords" }, { key: "quality.pageIncomplete" }],
+      }),
+      "confidence.factors",
+    ],
+    [
+      "a factor value of 0.9 for page-incomplete",
+      item({
+        confidence: {
+          value: 0.7,
+          base: { id: "measure", value: 1 },
+          factors: [{ id: "page-incomplete", value: 0.9 }],
+        },
+        flags: [{ key: "quality.pageIncomplete" }],
+      }),
+      "confidence.factors",
+    ],
+    ["belowFloor true on a computed-false item", item({ belowFloor: true }), "belowFloor"],
+    [
+      "belowFloor false on a computed-true item",
+      ruleItem(
+        {
+          origin: "tool-default",
+          flags: [{ key: "tool-default", questionId: "evidence.toolDefault" }],
+          belowFloor: false,
+        },
+        ["tool-default"],
+      ),
+      "belowFloor",
+    ],
+    [
+      "a hex value on a personality target",
+      ruleItem({ reading: reading({ value: { hex: "#112233" } }) }),
+      "reading.value",
+    ],
+    [
+      "hypothesis false with a hypothesisNote",
+      item({ hypothesis: false, hypothesisNote: "a note" }),
+      "hypothesisNote",
+    ],
+    ["a quality flag without its factor", item({ flags: [{ key: "quality.fewWords" }] }), "flags"],
+    [
+      "another brand's item targeting color.current",
+      ruleItem({
+        ownedBy: "other",
+        reading: reading({ target: "color.current", value: { hex: "#112233" } }),
+      }),
+      "reading.target",
+    ],
+    [
+      "hue-family with a number",
+      item({ measure: { metric: "hue-family", value: 0.4, unit: "band" } }),
+      "measure.value",
+    ],
+    ...(
+      [
+        ["area-share", "ratio", 1.2],
+        ["warm-share", "ratio", 1.2],
+        ["lightness", "oklch-l", 1.2],
+        ["chroma", "oklch-c", 0.6],
+        ["contrast-ratio", "wcag", 22],
+        ["contrast-ratio", "wcag", 0.5],
+      ] as const
+    ).map(([metric, unit, value]): [string, Item, string] => [
+      `${metric} out of bounds at ${value}`,
+      item({ measure: { metric, value, unit } }),
+      "measure.value",
+    ]),
   ])("%s fails at its path", (_name, x, path) => {
     expect(failures(x)).toEqual([path]);
   });
@@ -380,6 +460,14 @@ describe("base, quote and tool-default fit the item", () => {
   it("clause 4: a quote on a colour observation fails at observation.quote", () => {
     const x = item({ observation: { kind: "colour-area", subject: "blue-primary", quote: "x" } });
     expect(failures(x)).toContain("observation.quote");
+  });
+
+  it("clause 4: a quote on a non-text kind with a text locator fails at exactly observation.quote", () => {
+    const x = item({
+      observation: { kind: "colour-area", subject: "blue-primary", quote: "x" },
+      source: src({ locator: textLocator }),
+    });
+    expect(failures(x)).toEqual(["observation.quote"]);
   });
 
   it("clause 17: tool-default needs origin tool-default and its flag", () => {
@@ -579,7 +667,7 @@ const IMPORT_FORMS: Record<string, RegExp> = {
   "single-line, multi-line and export-from":
     /\b(?:import|export)\b[^;'"]*?\bfrom\s*["']([^"']+)["']/g,
   "side-effect import": /\bimport\s*["']([^"']+)["']/g,
-  "dynamic import()": /\bimport\s*\(\s*["']([^"']+)["']\s*\)/g,
+  "dynamic import()": /\bimport\s*\(\s*["'`]([^"'`]+)["'`]\s*\)/g,
 };
 
 /** What a module does that a measure never may: a blocked import in any form, Math.random, Date.now. */
@@ -591,12 +679,11 @@ function violations(source: string): string[] {
       if (BLOCKED_SPECIFIER.test(m[1] ?? "")) found.push(`${form}: ${m[1]}`);
     }
   }
-  if (/\bMath\s*\.\s*random\b/.test(code)) found.push("Math.random");
-  if (/\bDate\s*\.\s*now\b/.test(code)) found.push("Date.now");
+  if (/\bMath\s*(?:\.\s*random\b|\[\s*["'`]random["'`]\s*\])/.test(code)) found.push("Math.random");
+  if (/\bDate\s*(?:\.\s*now\b|\[\s*["'`]now["'`]\s*\])/.test(code)) found.push("Date.now");
   return found;
 }
 
-// Later slices add their module here when it lands (spec row 30, Slice "each").
 // Later slices add their module here when it lands (spec row 30, Slice "each").
 const SCANNED: Record<string, string> = {
   evidence: evidenceSource,
@@ -615,7 +702,10 @@ describe("measures never call a model", () => {
     ["a dynamic import() of the page reader", 'const r = await import("@orivilo/page-reader");'],
     ["an export ... from openrouter", 'export * from "./openrouter";'],
     ["an export { } from a node: module", 'export { readFile } from "node:fs";'],
+    ["a template-literal dynamic import()", "const r = await import(`./openrouter`);"],
     ["a Math.random call", "const x = Math.random();"],
+    ["a bracket Math.random call", 'const x = Math["random"]();'],
+    ["a bracket Date.now call", "const t = Date[`now`]();"],
     ["a Date.now call", "const t = Date.now();"],
   ];
 
@@ -629,5 +719,80 @@ describe("measures never call a model", () => {
 
   it.each(Object.entries(SCANNED))("%s has none", (_name, text) => {
     expect(violations(text)).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------- row 29
+
+type Entry = { th: string; en: string };
+
+/** The problems of a string table: an empty string, an em dash, a middot, a question key without a string. */
+function stringProblems(table: Record<string, Entry>, questionKeys: readonly string[]): string[] {
+  const problems: string[] = [];
+  for (const [key, entry] of Object.entries(table)) {
+    for (const lang of ["th", "en"] as const) {
+      const text = entry[lang];
+      if (text.trim() === "") problems.push(`${key}.${lang} is empty`);
+      if (text.includes("\u2014")) problems.push(`${key}.${lang} has an em dash`);
+      if (text.includes("\u00b7")) problems.push(`${key}.${lang} has a middot`);
+    }
+  }
+  for (const key of questionKeys) {
+    if (!(key in table)) problems.push(`${key} is a question key without a string`);
+  }
+  return problems;
+}
+
+// The keys of the ORV-128 spec "Strings" section (the four {what} labels wait for slice 1c).
+const SPEC_KEYS = [
+  "evidence.fromModel",
+  "evidence.measured",
+  "evidence.belowFloor",
+  "evidence.conflict",
+  "evidence.toolDefault",
+  "evidence.similarTo",
+  "culture.yellow",
+  "culture.political",
+  "industry.confirm",
+  "industry.byNameOnly",
+  "report.conflictsNotChecked",
+  "read.refused.robots",
+  "read.refused.address",
+  "read.notRead.competitor",
+  "read.notMeasured",
+  "read.notRendered.none",
+  "read.notRendered.failed",
+  "read.notRendered.budget",
+  "read.notRendered.invalid",
+  "quality.fewWords",
+  "quality.pageIncomplete",
+  "quality.imageSmall",
+  "quality.imageBlurred",
+];
+
+describe("evidence strings", () => {
+  it("every string is Thai and English", () => {
+    expect(stringProblems(EVIDENCE_STRINGS, QUESTION_KEYS)).toEqual([]);
+    expect([...QUESTION_KEYS]).toEqual([
+      "evidence.conflict",
+      "evidence.toolDefault",
+      "evidence.similarTo",
+      "culture.yellow",
+      "culture.political",
+      "industry.confirm",
+    ]);
+  });
+
+  it("the key set equals the list the spec Strings section holds", () => {
+    expect(Object.keys(EVIDENCE_STRINGS).sort()).toEqual([...SPEC_KEYS].sort());
+  });
+
+  it("break-it: an empty th, an em dash and a stray question key are reported", () => {
+    const broken = { ...EVIDENCE_STRINGS, "evidence.measured": { th: "", en: "a \u2014 b" } };
+    expect(stringProblems(broken, [...QUESTION_KEYS, "nope"])).toEqual([
+      "evidence.measured.th is empty",
+      "evidence.measured.en has an em dash",
+      "nope is a question key without a string",
+    ]);
   });
 });
