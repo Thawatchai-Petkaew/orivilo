@@ -1,8 +1,8 @@
 ---
 issue: ORV-132 (https://tpetkaew.atlassian.net/browse/ORV-132), slice 1a of ORV-128 (https://tpetkaew.atlassian.net/browse/ORV-128)
-parent: docs/specs/ORV-128/spec.md v1.8
+parent: docs/specs/ORV-128/spec.md v1.9
 lane: L (the evidence schema is a new engine contract every brand node reads; the parent's lane, decision D7)
-version: 1
+version: 1.1
 ---
 
 # ORV-132: the evidence contract, computed confidence and the lean rules (ORV-128 slice 1a)
@@ -30,7 +30,7 @@ This slice's part of it: as the builder of the analysers and of the ORV-126 node
 
 ## What this slice uses from ORV-128 (linked, not copied)
 
-- **Spec** `docs/specs/ORV-128/spec.md` v1.8: "Evidence first" (the fields, the closed lists, `RULE_IDS`, `hypothesis-flag-1`, `value-to-lean-1`, `measure-to-lean-1`); "Confidence" (the table, `thousandths-1`, "The floor", `industry-margin-1`, "Which factors slices 1a to 1d use"); "Strings"; "Hypotheses"; "Worked examples"; "Delivery", row 1a.
+- **Spec** `docs/specs/ORV-128/spec.md` v1.9: "Evidence first" (the fields, the value shape per reading target, the closed lists, `RULE_IDS`, `hypothesis-flag-1`, `value-to-lean-1`, `measure-to-lean-1`); "Confidence" (the table, `thousandths-1`, "The floor", `industry-margin-1`, "Which factors slices 1a to 1d use"); "Strings"; "Hypotheses"; "Worked examples"; "Delivery", row 1a.
 - **G1 decisions**, ORV-128 comment 10209: the owner decided D1 to D7. This slice rests on D3 (the floor) and D6 (a) (a confidence number computed by code). Comment 10215 records the orchestrator's adjustment under D3 (the model-reading base and `value-to-lean-1`).
 - **G2**, the packet in ORV-128 comment 10226, passed in comment 10227 under the owner's delegation (ADR 0012 decision 4), with slice 1 split into 1a to 1d.
 - **Tech notes** `docs/specs/ORV-128/tech.md`: §1 (module layout), §2 (`evidence.ts`, `checkItem` clauses 1 to 17), §3 (`evidenceId`), §4 (`confidence.ts`), §5 (sort order, the analyser-output part), §8 (the `leans.ts` part), §9 (`evidence-strings.ts`), §14 (the tests whose Slice column says 1a).
@@ -53,15 +53,15 @@ Reused read-only, unchanged (tech notes §1): `fingerprintOf` (`resolver.ts`), `
 
 ## Acceptance criteria
 
-Rows copied from ORV-128 spec v1.8 with their numbers and wording; this slice adds no row. In the POC the person sees the result through the engine API; no row renders a screen. Every test uses recorded inputs; none reaches the internet or a model (ADR 0009 point 8).
+Rows copied from ORV-128 spec v1.9 with their numbers and wording; this slice adds no row. In the POC the person sees the result through the engine API; no row renders a screen. Every test uses recorded inputs; none reaches the internet or a model (ADR 0009 point 8).
 
 <!-- prettier-ignore -->
 | # | Given | When | User sees | Data effect | Test | Slice |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | An evidence item valid at each bound (a 300-character quote, confidence 0 and 1, an empty `basedOn`, a `fromModel` item with its `model`) | Parsing with `inputEvidenceSchema`, then a JSON round trip | Parses; the round trip is deep-equal; its `id` equals the computed id | None | `evidence.test.ts` › "a valid item" | 1a |
 | 2 | Items with, in turn: an extra key `html`, `css`, `screenshot`, `pageText` or `score`; `fromModel: true` with a `measure`; `fromModel: true` with `model: null`; `fromModel: false` with a `model`; a 301-character quote; confidence 1.2; a confidence value that is not the computed one (0.9 on base 0.7 with no factors); an unknown `observation.kind` or reading target; `hypothesis: true` with `hypothesisNote: null`; a `colour-area` item with `source.renderer: null`; a `colour-declared` item with a renderer build; a reading with rules `measure-to-lean-1` (a rule hypothesis, `hypothesis-flag-1`) and `hypothesis: false` | Parsing | Each fails with the path of the bad field (`html`, `measure`, `model`, `observation.quote`, `confidence.value`, `confidence.value`, `observation.kind`, `reading.target`, `hypothesisNote`, `source.renderer`, `source.renderer`, `hypothesis`) | None | `evidence.test.ts` › "bounds and forbidden fields" | 1a |
-| 3 | A measure with `page-incomplete`; a model reading with `few-words` and `single-signal`; a floor of 0.5 | `scoreConfidence(item)` | 0.7 with `belowFloor: false`; 0.392 with `belowFloor: true`; each lists its base and factors with their values, factors in id order | None | `evidence.test.ts` › "confidence is computed, never reported" | 1a |
-| 32 | A floor of 0.5 and model readings (base 0.7): one with `single-signal` only; one with `few-words` only; one with `single-signal` and `page-incomplete`; a measure with `image-small` | `scoreConfidence(item)` | 0.56 with `belowFloor: false`; 0.49 with `belowFloor: true`; 0.392 with `belowFloor: true`; 0.5 with `belowFloor: false`; each lists its factors; every order of the factor list gives the same value | None | `evidence.test.ts` › "one mild factor stays, two fall" | 1a |
+| 3 | A measure with `page-incomplete`; a model reading with `few-words` and `single-signal`; a floor of 0.5 | `scoreConfidence(base, factors)`, returning `{ confidence, belowFloor }` | 0.7 with `belowFloor: false`; 0.392 with `belowFloor: true`; each lists its base and factors with their values, factors in id order | None | `evidence.test.ts` › "confidence is computed, never reported" | 1a |
+| 32 | A floor of 0.5 and model readings (base 0.7): one with `single-signal` only; one with `few-words` only; one with `single-signal` and `page-incomplete`; a measure with `image-small` | `scoreConfidence(base, factors)`, returning `{ confidence, belowFloor }` | 0.56 with `belowFloor: false`; 0.49 with `belowFloor: true`; 0.392 with `belowFloor: true`; 0.5 with `belowFloor: false`; each lists its factors; every order of the factor list gives the same value | None | `evidence.test.ts` › "one mild factor stays, two fall" | 1a |
 | 29 | Every key listed under "Strings", the four `{what}` labels once slice 1c names them, and the question keys `evidence.conflict`, `evidence.toolDefault`, `evidence.similarTo`, `culture.yellow`, `culture.political` and `industry.confirm` | Reading their text | Each has non-empty `th` and `en`; neither holds an em dash or a middot | None | `evidence.test.ts` › "every string is Thai and English" | each |
 | 30 | The engine modules `evidence`, `confidence`, `evidence-strings`, `leans`, `read-page`, `page-text`, `render-snapshot`, `measures/colour`, `measures/page`, `url-analyser`, `industry` and `evidence-feed` (names suggested) | Scanning their source | None imports `openrouter`, `llm-interpreter`, `@orivilo/page-reader` or a `node:` module, or calls `Math.random` or `Date.now`; only the model-reading adapters import `openrouter`; tests use a fake network and recorded answers | None | `evidence.test.ts` › "measures never call a model" | each |
 | 31 | The repo after each slice | `pnpm lint && pnpm typecheck && pnpm test && pnpm build`, and CI | All pass; `pnpm contrast` output unchanged from `develop` | None | Quality gate output in each G3 packet | each |
@@ -73,7 +73,7 @@ Rows copied from ORV-128 spec v1.8 with their numbers and wording; this slice ad
 The parent's "Rules and bounds" apply unchanged, in particular "Purity" and "Determinism". This spec defines no rule. Each rule this slice implements keeps its one home in the parent spec, and this spec points to it by name only:
 
 <!-- prettier-ignore -->
-| Rule | Home in `docs/specs/ORV-128/spec.md` v1.8 | Implemented in |
+| Rule | Home in `docs/specs/ORV-128/spec.md` v1.9 | Implemented in |
 | --- | --- | --- |
 | `thousandths-1` | "Confidence" | `confidence.ts` (`milli`, `scoreConfidence`); the thresholds of `leans.ts` |
 | The floor | "Confidence", "The floor" (owner decision D3) | `confidence.ts` (`EVIDENCE_FLOOR`) |
@@ -189,7 +189,7 @@ Slices 1b to 7 also carry rows 29 to 31 again, as the parent's "Delivery" says.
 
 ## Depends on
 
-- [ORV-128 spec](../ORV-128/spec.md) v1.8 and its [tech notes](../ORV-128/tech.md) (G2 design, findings F1 to F19).
+- [ORV-128 spec](../ORV-128/spec.md) v1.9 and its [tech notes](../ORV-128/tech.md) (G2 design, findings F1 to F19).
 - ORV-128 comments 10209 (G1 decisions D1 to D7), 10215 (the orchestrator's adjustment under D3), 10226 (the G2 packet) and 10227 (G2 passed under the owner's delegation, slice split 1a to 1d).
 - [ADR 0008](../../adr/0008-brief-interpreter-adapters.md) and its Addition of 2026-10-26; ADR 0005 (schema versions); ADR 0007 decision 5 (the fingerprint); ADR 0009 point 8 (recorded tests); ADR 0012 decision 4 (the delegated G2).
 - Engine source reused read-only: `resolver.ts`, `interpreter.ts`, `color-audit.ts`, `knowledge.ts`.
@@ -204,3 +204,4 @@ Slices 1b to 7 also carry rows 29 to 31 again, as the parent's "Delivery" says.
 ## Changelog
 
 - v1 (2026-10-27): split from ORV-128 spec v1.8 as slice 1a (L-0016). Rows 1, 2, 3, 32, 29, 30 and 31 copied with their numbers and wording; the rules `thousandths-1`, the floor, `industry-margin-1`, `hypothesis-flag-1`, `value-to-lean-1` and `measure-to-lean-1` pointed to by name in the parent; the deliverables `evidence.ts`, `confidence.ts`, `evidence-strings.ts` and `leans.ts` from tech notes §1 to §5, §8, §9 and §14; five worked examples copied as is. Three open questions with defaults on what tech notes place in 1c. Downstream to review: the ORV-132 Jira issue acceptance, tech notes §1, §7, §9 and §12, the slice 1a builder.
+- v1.1 (2026-10-27): follows ORV-128 spec v1.9, which records three deviations of the slice 1a build (task `ORV-132-build-evidence-1`). Rows 3 and 32: the When cell says `scoreConfidence(base, factors)`, returning `{ confidence, belowFloor }` (tech notes §4), in place of a call that took the whole item; Given, outcomes and test names unchanged. The value shape per reading target and the `reference.asset` font `family` bound keep their one home in the parent's "Evidence first" (the bound listed under its "Hypotheses"); this spec points to "Evidence first" under "What this slice uses" and restates neither. Parent references move from v1.8 to v1.9. No row number, test name or rule home changes. Review: tech notes §2 (the value-shape table's `reference.asset` row) and §4; `evidence.test.ts` (test names unchanged); the ORV-132 Jira issue acceptance (rows 3 and 32).
