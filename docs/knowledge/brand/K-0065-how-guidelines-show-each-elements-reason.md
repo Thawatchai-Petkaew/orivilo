@@ -2,7 +2,7 @@
 id: K-0065
 topic: brand
 claim: The guidelines and case studies read give the reason for an element in five recurring ways (derived from another element, a cultural or brand meaning, a functional need, a problem in the old identity, a link to a brand value), usually as one sentence beside the element or as an image caption, and rarely in a separate rationale chapter.
-source: "/Users/tawatchaipetkaew/.claude/uploads/6ac3845e-0f40-41f1-b299-4c8f7bcb1eee/05a41ee3-TikTok_guidelines.pdf (pages 10, 13, 31, 35, 36); https://art4d.com/en/2023/12/bangkok-metropolitan-administrations-identity-system; https://www.tatnews.org/2016/02/thailand-strengthens-its-quality-leisure-destination-appeal-through-new-amazing-thailand-logo/; https://www.behance.net/blog/fifthsip; https://brand.docusign.com/photography"
+source: "TikTok For Business Brand Guidelines, 70-slide deck, owner-held PDF (file TikTok_guidelines.pdf, not in the repo), pages 10, 13, 31, 35, 36; public copy https://www.slideshare.net/slideshow/tiktokguidelines-1pdf/258073465 (uploaded by a third party, not by TikTok; slides 10, 31, 32, 35 checked); https://art4d.com/en/2023/12/bangkok-metropolitan-administrations-identity-system; https://www.tatnews.org/2016/02/thailand-strengthens-its-quality-leisure-destination-appeal-through-new-amazing-thailand-logo/; https://www.behance.net/blog/fifthsip; https://brand.docusign.com/photography"
 retrieved: 2026-10-26
 confidence: 0.75
 applies_to: [ORV-126]

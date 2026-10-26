@@ -2,7 +2,7 @@
 id: K-0066
 topic: brand
 claim: Published brand guidelines come in two shapes, a paged book (PDF or slides, about 70 to 220 pages in our sample) and a web brand site with one page per element and downloads, while a Behance case study is a third, showcase shape ordered introduction, elements, applications and judged by curators on concept, execution, presentation and context.
-source: "/Users/tawatchaipetkaew/.claude/uploads/6ac3845e-0f40-41f1-b299-4c8f7bcb1eee/05a41ee3-TikTok_guidelines.pdf; https://brand.docusign.com/motion; https://brandingstyleguides.com/; https://brandingstyleguides.com/guide/discord/; https://brandingstyleguides.com/guide/burger-king/; https://standardsmanual.com/products/nasa-graphics-standards-manual; https://www.behance.net/blog/how-to-get-featured-on-behance; https://www.behance.net/blog/fifthsip"
+source: "TikTok For Business Brand Guidelines, 70-slide deck, owner-held PDF (file TikTok_guidelines.pdf, not in the repo); public copy https://www.slideshare.net/slideshow/tiktokguidelines-1pdf/258073465 (70 slides, uploaded by a third party, not by TikTok); https://brand.docusign.com/motion; https://brandingstyleguides.com/; https://brandingstyleguides.com/guide/discord/; https://brandingstyleguides.com/guide/burger-king/; https://standardsmanual.com/products/nasa-graphics-standards-manual; https://www.behance.net/blog/how-to-get-featured-on-behance; https://www.behance.net/blog/fifthsip"
 retrieved: 2026-10-26
 confidence: 0.75
 applies_to: [ORV-126]

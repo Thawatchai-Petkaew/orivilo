@@ -52,4 +52,4 @@ From Google's pricing page:
 
 ## Why it matters for ORIVILO
 
-ADR 0018 pins this model and prices its jobs from these figures. The record's `n` maximum of 1 does not match ADR 0018 decision 4's `n: 4` per logo round or its reason that the model "takes `n`"; four drafts would need four requests on this endpoint. That is for the architect to settle; this entry only records the record.
+A pinned image model and its job prices rest on these figures. The record's `n` maximum of 1 means a request returns one image on this endpoint, so a round of four drafts takes four requests. This entry records the endpoint; how a decision uses it is for the architect.

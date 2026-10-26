@@ -2,7 +2,7 @@
 id: K-0064
 topic: brand
 claim: In the two guidelines read in full on this point (TikTok For Business and DocuSign), the mood or look-and-feel content is not one mood-board page but a set of rule pages for personality and voice, photography, video, motion and sound, each built from a few named principles, mood words to show and to avoid, captioned example images and crossed-out misuse.
-source: "/Users/tawatchaipetkaew/.claude/uploads/6ac3845e-0f40-41f1-b299-4c8f7bcb1eee/05a41ee3-TikTok_guidelines.pdf (pages 5, 6, 7, 22, 48, 49, 51, 52, 54, 70); https://brand.docusign.com/photography; https://brand.docusign.com/sound; https://brand.docusign.com/motion"
+source: "TikTok For Business Brand Guidelines, 70-slide deck, owner-held PDF (file TikTok_guidelines.pdf, not in the repo), pages 5, 6, 7, 22, 48, 49, 51, 52, 54, 70; public copy https://www.slideshare.net/slideshow/tiktokguidelines-1pdf/258073465 (uploaded by a third party, not by TikTok); https://brand.docusign.com/photography; https://brand.docusign.com/sound; https://brand.docusign.com/motion"
 retrieved: 2026-10-26
 confidence: 0.75
 applies_to: [ORV-126]
@@ -14,6 +14,8 @@ license: link-only
 > It should never feel staged, cheesy, overly posed, or overproduced.
 
 (TikTok guidelines, page 48, "Photography Guidelines")
+
+In the public SlideShare copy, fetched on 2026-10-26, this sentence is on slide 48, "Movement should feel efficient, smooth, and fun." on slide 22, casting diversity "among race, culture, gender, age, size, abilities" on slide 49, and "Do not use 3D illustration style." on slide 70.
 
 > If you hear a single don't, the music is off-brand.
 

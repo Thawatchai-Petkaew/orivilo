@@ -2,7 +2,7 @@
 id: K-0060
 topic: brand
 claim: The TikTok For Business brand guidelines (70 landscape pages) are organised as brand story, messaging, design system (rationale, logo, typography, color, toolkit), imagery and advertising, and every visual element is ruled by size, spacing, values and a numbered things-to-avoid page.
-source: "/Users/tawatchaipetkaew/.claude/uploads/6ac3845e-0f40-41f1-b299-4c8f7bcb1eee/05a41ee3-TikTok_guidelines.pdf (pages read as PNGs: p02, p62 contents; p05 to p08 messaging; p10 to p37 design system; p39, p44 toolkit; p48 to p56 imagery and ads; p63 to p70 brand story and illustration)"
+source: "TikTok For Business Brand Guidelines, 70-slide deck, owner-held PDF (file TikTok_guidelines.pdf, not in the repo), pages 2, 62 contents; 5 to 8 messaging; 10 to 37 design system; 39, 44 toolkit; 48 to 56 imagery and ads; 63 to 70 brand story and illustration. Public copy: https://www.slideshare.net/slideshow/tiktokguidelines-1pdf/258073465 (70 slides, uploaded by a third party, not by TikTok)"
 retrieved: 2026-10-26
 confidence: 0.8
 applies_to: [ORV-126]
@@ -14,6 +14,10 @@ license: link-only
 > Our design system is composed of four core elements: logo, typography, color, and a design toolkit with specific shapes, patterns, and graphic symbols.
 
 (page 11, "Design System Overview")
+
+## Where a second reader can check it
+
+The owner supplied the deck as a PDF; it is not committed and has no official TikTok URL that this task could find (a search on 2026-10-26 returned only blog summaries and one copy). A public copy, titled "TikTok_guidelines (1).pdf" on SlideShare and uploaded by a user named Niacakeekarir, was fetched on 2026-10-26: it has 70 slides, the quote above on slide 11, the same two tables of contents on slides 2 and 62, and "WIP" on slides 64, 65, 66, 68 and 69. Who published the deck, and whether it is TikTok's current version, is not confirmed by either copy; the facts below describe the document, not TikTok's present brand.
 
 ## What the document holds, in our words
 

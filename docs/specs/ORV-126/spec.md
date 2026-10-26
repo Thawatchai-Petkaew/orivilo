@@ -1,7 +1,7 @@
 ---
 issue: ORV-126 (https://tpetkaew.atlassian.net/browse/ORV-126), under epic ORV-109
 lane: L (a new engine contract every brand node will depend on: the node graph, the entry classifier and the fill order; it wraps the ORV-20 resolver logic)
-version: 1.2
+version: 1.3
 ---
 
 # ORV-126: phase 1 CI guidebook, entry points and the brand node graph
@@ -14,12 +14,14 @@ The owner also asked how CI is really made, where projects start, how the starti
 
 The brief makes knowledge the moat and asks that every node "collect before generating" and that a user may jump to any node while the graph tracks what is still missing (brief, "Every node carries a knowledge base" and "The board is a presentation, entry is dynamic"). This spec turns the research into a harness the engine can run: an entry catalog, a node graph with dependencies and knowledge, a fill order, and a guidebook assembled with a trace. The owner picked the patterns at G1 (section "Owner decisions (decided at G1)") before any node beyond ORV-20 is built.
 
+After G1 the owner framed the whole harness as three layers (ORV-126 comment 10202): input analysers, the node graph, and an output assembler whose applications follow the business type (TSIC). This spec is layer 2 and the assembly half of layer 3; section "Three layers" places each one.
+
 ### What is real, rule-based and simulated
 
 - **Real (once built):** the graph as data, its integrity check, the entry classifier, the fill planner (including skips and provisional marks) and the guidebook assembly. All are deterministic TypeScript in `packages/intent-engine` with tests.
 - **Rule-based, not AI:** no slice in this spec calls a model. Every result says `method: "rule-based"`. The intake classifier reads a structured inventory, not free text, in the POC.
 - **Given by a person in these slices:** strategic values are written by the person, helped by proxy questions (decision D1), or skipped. The logo mark has no value until its image story ships (decision D8).
-- **Drafted by AI, in later stories and always labelled:** options for strategic nodes drafted from the person's proxy answers (D1 step 2), and logo image drafts inside the decided frame (D8). Each is its own story with its own eval set (ADR 0008, ADR 0009); until a story ships, nothing may say ORIVILO drafts that value. A logo image is a draft for exploring a direction: nothing says it is trademark cleared, unique, registrable or owned.
+- **Drafted by AI, in later stories and always labelled:** options for strategic nodes drafted from the person's proxy answers (D1 step 2), logo image drafts inside the decided frame (D8), and touchpoint mockups and product screen samples for the guidebook's `applications` section (section "Three layers"). Each is its own story with its own eval set (ADR 0008, ADR 0009); until a story ships, nothing may say ORIVILO drafts that value. A logo image is a draft for exploring a direction: nothing says it is trademark cleared, unique, registrable or owned.
 - **Hypothesis-grade:** every node and number that rests on a knowledge entry below confidence 0.7, or on no entry at all, carries `hypothesis: true` and names the low source (section "Hypotheses").
 - **Not done, and said so:** the guidebook states that the name and mark are not IP screened and the identity is not validated by tests, because those nodes are not in the POC, and it lists every strategic step the person skipped together with every decision that rests on it.
 
@@ -31,12 +33,26 @@ As a founder, designer or product manager who brings whatever I have (an idea, a
 
 The graph is built from these parts. A model only interprets input and drafts options; rules decide; checks gate; the person confirms at gates.
 
-1. **Intake classifier.** Reads the starting inventory and decides the entry group (A to E) by rules, places given inputs as fixed nodes, and asks one question when nothing is given. POC: structured inventory only. Later: a model reads free text and documents into inventory facts with evidence spans (ADR 0008 pattern); the rules still decide the group.
+1. **Intake classifier.** Reads the starting inventory and decides the entry group (A to E) by rules, places given inputs as fixed nodes, and asks one question when nothing is given. POC: structured inventory only. Later: the input analysers of layer 1 (ORV-128) read free text and documents into inventory facts with evidence spans (ADR 0008 pattern); the rules still decide the group.
 2. **Sequencer (fill planner).** From the graph and the node states, returns the next nodes in fill order, the questions to ask (proxy questions first for strategic nodes), and for a target node the chain it still needs. It records skips and marks what rests on them provisional. Never fills a value.
 3. **Knowledge.** Each node cites research entries (K-ids in `docs/knowledge/`) and engine knowledge entries (ADR 0005 shape, for example ORV-20's `color.*`). A node's rules may cite only engine entries; engine entries cite K-ids as sources.
 4. **Decision rules.** Closed rules per node (ADR 0006, scoped per node as ADR 0017 set for colour). In the POC: `color` (ORV-20 slice A), and later `logo-type` and `typography` in their own stories.
 5. **Checks.** Deterministic checks after a node decides: graph integrity, contrast (E0-5), and later the Thai colour culture flag (K-0040) and Thai script coverage for type.
-6. **Model calls.** Interpret input and draft options only: intake free text, options for strategic nodes from proxy answers (D1), and logo image drafts inside the decided frame (D8). None in this spec's slices; each arrives as its own story with its own eval set (ADR 0009). The logo image story also waits on an architect ADR that settles the image provider (D8).
+6. **Model calls.** Interpret input and draft options only: intake free text, options for strategic nodes from proxy answers (D1), logo image drafts inside the decided frame (D8), and touchpoint mockups of the chosen direction. None in this spec's slices; each arrives as its own story with its own eval set (ADR 0009). The image stories also wait on [ADR 0018](../../adr/0018-image-generation-provider.md) (proposed), which settles the image provider and the `logo-image` and `mockup-image` jobs.
+
+## Three layers (comment 10202)
+
+The owner's three-layer frame (ORV-126 comment 10202) and where each layer lives:
+
+1. **Layer 1, input analysers.** Read what the person brings (free text, documents, references) into inventory facts and node evidence. A separate story, ORV-128, not this spec. Until it ships, the intake classifier reads a structured inventory (harness part 1).
+2. **Layer 2, the node graph.** The entry catalog, the node graph, the fill order and the propagation rule in this spec (slices 1 to 3).
+3. **Layer 3, the output assembler.** The guidebook assembly (slice 4) plus an `applications` section that shows the chosen direction on the touchpoints a business of that type meets, picked by its TSIC section. This enters phase 1 scope: a CI guidebook carries mood through applied examples, not a collage page (K-0070, 0.7). The section holds:
+   - **Touchpoint mockups.** The touchpoint set per TSIC section is not listed in this spec. It comes from the ORV-127 taxonomy (TSIC 2009) plus a later research task that defines the set for each section; the `touchpoints` story owns the deterministic map from TSIC section to set (ADR 0018 decision 3). The mockups are drawn by ADR 0018's `mockup-image` job in rounds of up to four touchpoints, one image request per touchpoint; a set larger than four is drawn in more than one round, each round counted against the `mockup-image` limit (ADR 0018 decision 7).
+   - **One or two product screen samples.** Images of a product screen (for example a home screen) wearing the chosen mark, colour and type, as the bridge to the design system phase. They are mockup images from the same job, labelled as mockups; they are not built UI, and they create no tokens, role palettes or components (those stay design system work, ORV-125 parked).
+
+Every mockup and screen sample is an AI draft with the label key `touchpoints.mockupLabel` (ADR 0018 decision 5); nothing says it is a final design, trademark cleared, unique or owned.
+
+In this spec's slices the `applications` section is not built: `touchpoints` (node 19) stays out of the POC node set, and slice 4 lists it under `notInThisGuidebook` with its reason (row 18). The `touchpoints` story adds the section with its own spec and rows, after ORV-127, the touchpoint research task and the acceptance of ADR 0018.
 
 ## Entry-point catalog
 
@@ -48,7 +64,7 @@ Five groups, from K-0044 §1 and K-0029 (0.8). The owner's "vibe" and "mood" mer
 - **Classifier signal:** concept given; no live brand, no structural change.
 - **Fixed nodes:** none.
 - **First node:** `business-core`.
-- **Evidence:** Wheeler "Creating the New" (K-0028, 0.85); Zag checkpoints 1 to 6 (K-0030, 0.8).
+- **Evidence:** Wheeler "Creating the New" (K-0028, 0.8); Zag checkpoints 1 to 6 (K-0030, 0.8).
 
 ### B. Name given first
 
@@ -107,9 +123,27 @@ Twenty-two nodes from K-0044 §2 (a candidate graph, confidence 0.75). Each node
 Dependencies come in two kinds:
 
 - **requires:** the node cannot run until the dependency is done (given, kept, derived, decided or confirmed) or skipped by the person (see "Missing strategy" below). The sequencer asks for it first.
-- **informs:** the node may run without it; its record lists the dependency under `madeWithout`, and the guidebook shows that.
+- **informs:** the node may run without it; its record lists the dependency under `madeWithout`, and the guidebook shows that. `madeWithout` is not passed on to dependents.
 
-A node that is **given** by the person does not need its own requires to be done; its record lists the open requires under `unchecked` (K-0044 §3: keep what the client insists on and check it against strategy, never overrule it silently).
+A node that is **given** by the person does not need its own requires to be done: it is never blocked and never provisional, and every gap upstream of it goes to its `unchecked` list (K-0044 §3: keep what the client insists on and check it against strategy, never overrule it silently). A node that is not given may carry `unchecked` too, when a gap reaches it through a given node; the rule below says when.
+
+### The propagation rule (given, decided, provisional, unchecked)
+
+One rule sets `blocked`, `provisional`, `provisionalOn` and `unchecked` for every node. Slice 3 implements it as one function that visits the nodes in fill order, so each require already holds its own marks when its dependents read them. A node reads only its direct requires; the marks travel the chain because each require carries the marks of its own requires.
+
+For a node N, each direct require R contributes causes:
+
+1. **R is open and skipped:** R is a skip cause.
+2. **R is open and not skipped** (not started, blocked, or waiting on its own input): a block cause. When R is blocked, its block causes are passed on instead of R itself, so every node downstream names the node that is really missing.
+3. **R is done** (given, kept, derived, decided or confirmed): every node in R's `provisionalOn` and `unchecked` passes on, a skipped one as a skip cause and any other as an unchecked cause. A done node never passes on a block cause, so a given node cuts blocking.
+
+Then:
+
+- **N is given:** every cause of every kind goes to N's `unchecked`. N keeps `given`; it is never blocked or provisional.
+- **N is not given and has a block cause:** N is `blocked`, naming every block cause.
+- **N is not given and has no block cause:** N may run. Skip causes go to `provisionalOn` (with `provisional: true`); unchecked causes go to `unchecked`.
+
+Every list is sorted by node number. Answering a skipped or open node and planning again recomputes every mark, so the marks it caused clear and nothing else changes. Rows 14, 16 and 23 hold the three cases: an open node behind a given node (row 14), an open node with no given node between (row 16), and a skipped node seen through given and non-given nodes (row 23).
 
 When an input is missing, each input names one behaviour, `onMissing`:
 
@@ -127,9 +161,9 @@ The six strategic nodes are `business-core`, `audience`, `competitive-frame`, `p
 
 1. **Proxy questions.** Instead of asking "what is your positioning?", the node asks questions a person without a written strategy can answer. The answers are stored as evidence on the node, not as its value.
 2. **Drafted options to pick.** A model drafts two or three options for the node's value from the proxy answers and the given material; the person picks one, edits one, or writes their own. A picked option is `confirmed`; a draft not picked is never a value (row 19). Until the drafting story for a node ships, this step is skipped and the person writes the value from their own proxy answers. A drafted lineup for `competitive-frame` may suggest a category and competitor names; it never drafts a competitor's colour.
-3. **Skip.** The person may skip the node. A skipped node stays `open` with `skipped: true` and no value. Its dependents are not blocked by it: they may run, and every record derived, decided or confirmed downstream of it, directly or through the chain, carries `provisional: true` and names it in `provisionalOn`. A given record downstream keeps `given` and lists the skipped node in `unchecked`. An input whose value can come only from the skipped node stays open, and the rule that needs it returns its question; a skip never becomes a value, a default or a neutral middle. The guidebook lists every skipped node and every record provisional on it under `unconfirmed` (row 24). The person can come back to a skipped node at any time; answering it clears the provisional marks it caused.
+3. **Skip.** The person may skip the node. A skipped node stays `open` with `skipped: true` and no value. Its dependents are not blocked by it: they may run, and every record derived, decided or confirmed downstream of it, directly or through the chain, including a chain that passes through a given node, carries `provisional: true` and names it in `provisionalOn`. A given record downstream keeps `given` and lists the skipped node in `unchecked` (section "The propagation rule"). An input whose value can come only from the skipped node stays open, and the rule that needs it returns its question; a skip never becomes a value, a default or a neutral middle. The guidebook lists every skipped node and every record provisional on it under `unconfirmed` (row 24). The person can come back to a skipped node at any time; answering it clears the provisional marks it caused.
 
-A required input that was never answered and never skipped still blocks its dependents (row 16).
+A required input that was never answered and never skipped still blocks its dependents, except where a given node stands between them; there it becomes `unchecked` (rows 14 and 16, section "The propagation rule").
 
 The proxy questions (copy for review by the designer and the owner; question ids are `<node>.proxy.<slug>`):
 
@@ -166,7 +200,7 @@ And the strings around them, with their meaning (data in the engine; a screen la
 - **Inputs:** existing assets, stakeholder answers, market, visual, verbal, legal and language audits.
 - **Output:** audit readout and the list of kept elements.
 - **Requires:** `situation`.
-- **Knowledge:** K-0028 (0.85), K-0029 (0.8), K-0039 (0.75).
+- **Knowledge:** K-0028 (0.8), K-0029 (0.8), K-0039 (0.75).
 - **When missing:** ask for the assets; draft from them; never assume nothing is worth keeping.
 - **POC:** no. The competitor lineup the POC needs lives in `competitive-frame`.
 
@@ -176,7 +210,7 @@ And the strings around them, with their meaning (data in the engine; a screen la
 - **Inputs:** who, what, why; vision; values.
 - **Output:** a stated core.
 - **Requires:** `situation`. **Informs:** `audit`.
-- **Knowledge:** K-0030 (0.8), K-0028 (0.85), K-0036 (0.75).
+- **Knowledge:** K-0030 (0.8), K-0028 (0.8), K-0036 (0.75).
 - **When missing:** proxy (`business-core.proxy.offer`, `business-core.proxy.why`), then options to pick, or skip.
 - **POC:** yes, as given answers or a skip.
 
@@ -186,7 +220,7 @@ And the strings around them, with their meaning (data in the engine; a screen la
 - **Inputs:** target audience; insight.
 - **Output:** target and insight.
 - **Requires:** `situation`. **Informs:** `audit`.
-- **Knowledge:** K-0028 (0.85) for target and insight; the insight field's shape is a hypothesis (see "Hypotheses").
+- **Knowledge:** K-0028 (0.8) for target and insight; the insight field's shape is a hypothesis (see "Hypotheses").
 - **When missing:** proxy (`audience.proxy.best-customer`, `audience.proxy.problem`), then options to pick, or skip.
 - **POC:** yes. **Hypothesis:** the insight field's shape follows a Brand Key style one-page positioning, a source below 0.7 (see "Hypotheses").
 
@@ -196,7 +230,7 @@ And the strings around them, with their meaning (data in the engine; a screen la
 - **Inputs:** category; a lineup of competitors with each one's dominant colour.
 - **Output:** category set, crowded and open colour families.
 - **Requires:** `situation`. **Informs:** `audit`.
-- **Knowledge:** K-0028 (0.85), K-0039 (0.75); engine entries `color.audit-the-category` (0.8) and `color.hue-families` (0.4).
+- **Knowledge:** K-0028 (0.8), K-0039 (0.75); engine entries `color.audit-the-category` (0.8) and `color.hue-families` (0.4).
 - **When missing:** proxy (`competitive-frame.proxy.instead`), then options to pick (category and names only), or skip; `crowded` is derived; a lineup colour is never invented. When skipped, `color` runs with no lineup and ORV-20 returns its `lineup` question, so the signature stays open.
 - **POC:** yes. **Hypothesis:** the hue bands and the crowd threshold (`color.hue-families`, 0.4).
 
@@ -206,7 +240,7 @@ And the strings around them, with their meaning (data in the engine; a screen la
 - **Inputs:** nodes 3, 4, 5.
 - **Output:** onliness statement and brand brief.
 - **Requires:** `business-core`, `audience`, `competitive-frame`.
-- **Knowledge:** K-0028 (0.85), K-0030 (0.8).
+- **Knowledge:** K-0028 (0.8), K-0030 (0.8).
 - **When missing:** proxy (`positioning.proxy.only`), then options to pick, or skip.
 - **POC:** yes, as a given statement or a skip.
 
@@ -226,7 +260,7 @@ And the strings around them, with their meaning (data in the engine; a screen la
 - **Inputs:** `situation.sub-brands`; existing brands and portfolio.
 - **Output:** master brand, endorsed, or house of brands; the number of units to unite.
 - **Requires:** `situation`, `positioning`. **Informs:** `audit`.
-- **Knowledge:** K-0028 (0.85).
+- **Knowledge:** K-0028 (0.8).
 - **When missing:** ask `situation.sub-brands`; when the answer is no, derive "single brand, one unit".
 - **POC:** derive only.
 
@@ -236,7 +270,7 @@ And the strings around them, with their meaning (data in the engine; a screen la
 - **Inputs:** positioning, architecture, trademark screening.
 - **Output:** the name.
 - **Requires:** `positioning`, `architecture`.
-- **Knowledge:** K-0028 (0.85), K-0030 (0.8).
+- **Knowledge:** K-0028 (0.8), K-0030 (0.8).
 - **When missing:** group B has it; group A asks for a working name (decision D9).
 - **POC:** given only, marked "working name, not screened" until `ip-screen` exists.
 
@@ -246,7 +280,7 @@ And the strings around them, with their meaning (data in the engine; a screen la
 - **Inputs:** nodes 6, 7, 9.
 - **Output:** key message, voice, tagline.
 - **Requires:** `positioning`, `identity-frame`, `name`.
-- **Knowledge:** K-0028 (0.85), K-0043 (0.75).
+- **Knowledge:** K-0028 (0.8), K-0043 (0.75).
 - **When missing:** ask; draft later.
 - **POC:** no (decision D4); listed in `notInThisGuidebook`.
 
@@ -256,7 +290,7 @@ And the strings around them, with their meaning (data in the engine; a screen la
 - **Inputs:** positioning, identity frame.
 - **Output:** one theme the visuals express.
 - **Requires:** `positioning`, `identity-frame`.
-- **Knowledge:** K-0028 (0.85), K-0035 (0.75).
+- **Knowledge:** K-0028 (0.8), K-0035 (0.75).
 - **When missing:** proxy (`core-idea.proxy.remember`), then options to pick, or skip.
 - **POC:** yes, as a given statement or a skip.
 
@@ -266,7 +300,7 @@ And the strings around them, with their meaning (data in the engine; a screen la
 - **Inputs:** nodes 5, 7, 11; group E references as evidence.
 - **Output:** mood direction.
 - **Requires:** `competitive-frame`, `identity-frame`, `core-idea`.
-- **Knowledge:** K-0028 (0.85).
+- **Knowledge:** K-0028 (0.8).
 - **When missing:** draft.
 - **POC:** no. It informs `logo-mark`, `color` and `typography`, which run without it and say so.
 
@@ -285,10 +319,10 @@ And the strings around them, with their meaning (data in the engine; a screen la
 - **Part:** model image drafts inside the decided frame (decision D8); person picks; checks on the image files.
 - **Inputs:** the frame: `logo-type` (decided), `name` (given), `core-idea` (given, confirmed or skipped); `color` and `typography` when decided; `look-feel` when it exists; an optional concept note written by the person.
 - **Output:** a round of image drafts, then the draft the person picks, with the frame it was drawn in, the model id and the label. A chosen draft is a direction for the mark, not the delivered logo file (ADR 0009 point 6: raster images are concepts only; the vector mark, lockups, construction and variants are later stories).
-- **Requires:** `core-idea`, `logo-type`. **Informs:** `look-feel`, `color`, `typography`. Without a decided colour the drafts are one colour (black on white) and the record lists `color` under `madeWithout`.
+- **Requires:** `core-idea`, `logo-type`. **Informs:** `look-feel`, `color`, `typography`. Without a decided colour the drafts are one colour (black on white) and the record lists `color` under `madeWithout`. Once `color` is decided the person may run another logo round, drawn with the colour in the frame (D8).
 - **Knowledge:** K-0037 (0.85), K-0035 (0.75).
 - **When missing:** blocked until `logo-type` is decided and `name` is given; no image is drawn outside the frame. When `core-idea` was skipped, the drafts and the pick are provisional on it.
-- **POC:** image drafts in their own story (decision D8), after the architect's image provider ADR. Until that story ships the node stays `open` with its reason `awaiting-image-drafts`, and the guidebook says so.
+- **POC:** image drafts in their own story (decision D8), after ADR 0018 is accepted. Until that story ships the node stays `open` with its reason `awaiting-image-drafts`, and the guidebook says so.
 
 ### 15. Colour (`color`)
 
@@ -313,22 +347,26 @@ And the strings around them, with their meaning (data in the engine; a screen la
 ### 17. Imagery, icons, graphic elements, motion, sound (`expression-kit`)
 
 - **Requires:** `core-idea`, `look-feel`, `color`, `typography`.
-- **Knowledge:** K-0028 (0.85), K-0035 (0.75), K-0043 (0.75).
+- **Knowledge:** K-0028 (0.8), K-0035 (0.75), K-0043 (0.75).
 - **When missing:** draft.
 - **POC:** no.
 
 ### 18. IP and similarity screening, gate (`ip-screen`)
 
 - **Requires:** `name`, `logo-mark`.
-- **Knowledge:** K-0028 (0.85), K-0037 (0.85).
+- **Knowledge:** K-0028 (0.8), K-0037 (0.85).
 - **When missing:** open; the guidebook says "not screened".
 - **POC:** no.
 
 ### 19. Trial applications and touchpoints (`touchpoints`)
 
-- **Requires:** `logo-mark`, `color`, `typography`, `expression-kit`.
-- **Knowledge:** K-0028 (0.85).
-- **POC:** no.
+- **Part:** a deterministic map from TSIC section to touchpoint set, then mockup images of the chosen direction (ADR 0018 `mockup-image`); layer 3 (section "Three layers").
+- **Inputs:** the business's TSIC section (ORV-127 taxonomy), the chosen logo draft, the decided colour and typography.
+- **Output:** the guidebook's `applications` section: a mockup per touchpoint in the set, and one or two product screen samples, each labelled.
+- **Requires:** `logo-mark`, `color`, `typography`. **Informs:** `expression-kit`. (v1.2 required `expression-kit`, which is outside phase 1 and would have blocked the node for good.)
+- **Knowledge:** K-0028 (0.8), K-0070 (0.7).
+- **When missing:** open. Without a TSIC section no touchpoint set is guessed from the name or the concept; whether the section is asked or read by layer 1 is decided in the `touchpoints` story, with its question copy.
+- **POC:** not in this spec's slices; in phase 1 scope through its own story, after ORV-127, the touchpoint research task and ADR 0018.
 
 ### 20. Validation tests (`validation`)
 
@@ -350,7 +388,7 @@ And the strings around them, with their meaning (data in the engine; a screen la
 ### 22. Launch and governance (`launch`)
 
 - **Requires:** `guidebook`.
-- **Knowledge:** K-0028 (0.85).
+- **Knowledge:** K-0028 (0.8).
 - **POC:** no.
 
 ## Fill order
@@ -368,7 +406,9 @@ Ties inside a step are broken by the node number above, so the plan is determini
 
 With the POC set and group A, the plan is: `business-core`, `audience`, `competitive-frame`, `positioning`, `identity-frame`, `architecture`, `name`, `core-idea`, `logo-type`, `logo-mark`, `color`, `typography`, `guidebook`.
 
-**Jumping to a node.** When the person goes straight to a node, the sequencer returns only that node's requires chain, in fill order, with its questions. Informs are listed as `madeWithout`, not asked. A node given by the person is done for planning purposes and lists its open requires as `unchecked`. A skipped node in the chain does not block; the target runs provisional on it.
+**Jumping to a node.** When the person goes straight to a node, the sequencer returns only that node's requires chain, in fill order, with its questions. Informs are listed as `madeWithout`, not asked. Blocked, provisional and unchecked marks follow "The propagation rule": a given node in the chain is done for planning, cuts blocking and passes its gaps on as `unchecked`; a skipped node in the chain does not block, and the target runs provisional on it.
+
+`logo-mark` comes before `color` in this order (K-0044 §3), so the first logo round is drawn in one colour; after `color` is decided the person may run another round with the colour in the frame (D8).
 
 ## Where ORV-20 sits and what it must change
 
@@ -403,7 +443,7 @@ Each slice is one PR of about 400 changed lines and is usable through the engine
 3. **Slice 3, the sequencer:** node states, skips and provisional marks, `planFill(state, target?)`, the ORV-20 adapter. Rows 12 to 17, 21, 22, 23, 27.
 4. **Slice 4, the guidebook:** `assembleGuidebook(state)` with the `unconfirmed` list and labelled drafts. Rows 18, 19, 21, 22, 24, 26.
 
-Function and file names are suggested; the G2 design may rename them, and each named test keeps its name so the G3 packet can point at it. The node stories are separate issues created after G1 in the order the owner picks: `logo-type` rules, `typography` rules, model drafting of options from proxy answers (one per strategic node, D1 step 2), logo image drafts (D8, lane L, after the image provider ADR), and the free-text intake.
+Function and file names are suggested; the G2 design may rename them, and each named test keeps its name so the G3 packet can point at it. The node stories are separate issues created after G1 in the order the owner picks: `logo-type` rules, `typography` rules, model drafting of options from proxy answers (one per strategic node, D1 step 2), logo image drafts (D8, lane L, after ADR 0018 is accepted), the free-text intake (layer 1, ORV-128), and the `touchpoints` story with its `applications` section (layer 3, after ORV-127 and the touchpoint research task).
 
 ## Acceptance criteria
 
@@ -425,16 +465,16 @@ In the POC the person sees the engine's result through its API; no row renders a
 | 11 | An empty inventory | `classifyEntry` | Status `needs-input` with the one question `situation.start` and five choices; no group | None | `brand-entry.test.ts` › "nothing given, one question" |
 | 12 | A group A state after classification, POC node set | `planFill(state)` | `next` equals the POC plan in "Fill order"; the first questions are the proxy questions of `business-core` (`business-core.proxy.offer`, `business-core.proxy.why`) with a skip allowed; out-of-POC nodes are in `notInPoc`, never in `open` | None | `brand-plan.test.ts` › "group A follows the fill order" |
 | 13 | A group A state with nothing answered | `planFill(state, "color")` | `next` is `business-core`, `audience`, `competitive-frame`, `positioning`, `identity-frame`, `color`; no node outside that chain; `look-feel` in `madeWithout` | None | `brand-plan.test.ts` › "jumping asks only the chain" |
-| 14 | `identity-frame` given (ORIVILO vector) and `competitive-frame` given (category and the ORV-20 stand-in lineup); `positioning` open | `planFill(state, "color")`, then running the colour node | `color` is ready; after the run its record has the ORV-20 decisions, `unchecked` `["positioning"]` and `madeWithout` `["look-feel"]`; `positioning` stays open | Node record held in memory only | `brand-plan.test.ts` › "a given input runs and stays unchecked" |
+| 14 | `business-core` and `audience` given; `identity-frame` given (ORIVILO vector) and `competitive-frame` given (category and the ORV-20 stand-in lineup); `positioning` open, never answered and not skipped | `planFill(state, "color")`, then running the colour node | `identity-frame` stays `given` with `unchecked` `["positioning"]`; `color` is ready, not blocked and not provisional, because the given `identity-frame` cuts blocking; after the run its record has the ORV-20 decisions, `unchecked` `["positioning"]` passed on from `identity-frame` and `madeWithout` `["look-feel"]`; `positioning` stays open | Node record held in memory only | `brand-plan.test.ts` › "a given input runs and stays unchecked" |
 | 15 | ORV-20's `decideColor` returning `questions` `lineup` and `personality.expressive` | The colour adapter inside `planFill` | `lineup` is listed under `competitive-frame` and `personality.expressive` under `identity-frame`; ORV-20's `color-audit.test.ts` and `color-rules.test.ts` pass with no edit; no ORV-20 colour source file changes | None | `brand-plan.test.ts` › "colour questions map to their nodes" |
-| 16 | A required input never answered and never skipped (`positioning`) | `planFill`, then `assembleGuidebook` | `positioning` is `open` with `skipped: false`; every node requiring it, directly or through the chain, is `blocked` naming `positioning`; the guidebook item is `open` with its question ids and no value | None | `brand-plan.test.ts` › "open stays open" |
+| 16 | A group A state where `business-core`, `audience` and `competitive-frame` are given and nothing else is; `positioning` never answered and never skipped | `planFill`, then `assembleGuidebook` | `positioning` is `open` with `skipped: false`; every POC node requiring it, directly or through a chain with no given node between (among them `identity-frame`, `architecture`, `core-idea`, `color` and `guidebook`), is `blocked` naming `positioning` and no other node; none of them is provisional; the guidebook item is `open` with its question ids and no value | None | `brand-plan.test.ts` › "open stays open" |
 | 17 | The same state twice, and the same given values supplied in another order | `planFill` | Results deep-equal, with an equal `fingerprint` (FNV-1a over canonical JSON, ADR 0007 decision 5) | None | `brand-plan.test.ts` › "same input, same plan" |
 | 18 | An ORIVILO fixture state with every POC node done and nothing skipped; `logo-mark` holds a fixture chosen draft | `assembleGuidebook(state)` | Sections in order `foundation`, `visual`; `unconfirmed` is empty; each item has its value, provenance (`given`, `derived`, `decided` or `confirmed`), the method that made it (`person`, `rule-based` or `ai-draft`), rule ids, source ids and hypothesis flag; `notInThisGuidebook` lists every out-of-POC node with a reason key, `verbal` among them, `ip-screen` as `not-screened` and `validation` as `not-tested`; `method` is `rule-based` | None | `brand-guidebook.test.ts` › "every item carries its reasons" |
 | 19 | A fixture node with a drafted option not yet chosen | `assembleGuidebook` | The item is `awaiting-choice`; the draft is never shown as a decision | None | `brand-guidebook.test.ts` › "a draft is not a decision" |
 | 20 | Every question (including the proxy questions), every D1 string and every section title in the graph and the guidebook | Reading their text | Each has non-empty `th` and `en`; neither contains an em dash or a middot | None | `brand-graph.test.ts` › "every string is Thai and English" |
 | 21 | The graph, classifier, planner and guidebook modules | Scanning their source | None imports `llm-interpreter` or `openrouter`, `Date` or `Math.random`; every result says `method: "rule-based"` | None | `brand-graph.test.ts` › "rule-based, no model" |
 | 22 | The repo after each slice | `pnpm lint && pnpm typecheck && pnpm test && pnpm build`, and CI | All pass; `pnpm contrast` output is unchanged from `develop` | None | Quality gate output in each G3 packet |
-| 23 | A group A state where `business-core`, `audience` and `competitive-frame` are given, `positioning` is skipped, `identity-frame` and `core-idea` are given, and the name "ORIVILO" is given | `planFill(state)`, then running `architecture` and `color` | `positioning` is `open` with `skipped: true` and no value; no node is `blocked` by it; `architecture` (derived) and `color` (decided) carry `provisional: true` and `provisionalOn` `["positioning"]`; `identity-frame`, `name` and `core-idea` stay `given` and list `positioning` in `unchecked`; no input holds a value the person did not give | Node records held in memory only | `brand-plan.test.ts` › "a skip stays open and makes dependents provisional" |
+| 23 | A group A state where `business-core`, `audience` and `competitive-frame` are given, `positioning` is skipped, `identity-frame` and `core-idea` are given, and the name "ORIVILO" is given | `planFill(state)`, then running `architecture` and `color` | `positioning` is `open` with `skipped: true` and no value; no node is `blocked` by it; `architecture` (derived, requiring `positioning` directly) and `color` (decided, reaching `positioning` only through the given `identity-frame`) carry `provisional: true` and `provisionalOn` `["positioning"]`, and neither lists `positioning` in `unchecked`; `identity-frame`, `name` and `core-idea` stay `given`, are not provisional and list `positioning` in `unchecked`; no input holds a value the person did not give | Node records held in memory only | `brand-plan.test.ts` › "a skip stays open and makes dependents provisional" |
 | 24 | The state from row 23 with every other POC node done | `assembleGuidebook(state)` | `unconfirmed` lists `positioning` with its proxy question id `positioning.proxy.only` and every item provisional on it; each of those items in `foundation` and `visual` shows `provisional` naming `positioning`; the `positioning` item shows no value; answering `positioning` and assembling again empties `unconfirmed` and clears every provisional mark | None | `brand-guidebook.test.ts` › "skipped strategy is listed as unconfirmed" |
 | 25 | The six strategic nodes and every other node | Reading the graph | Each strategic node has `skippable: true` and at least one proxy question with an id `<node>.proxy.<slug>`, the Thai and English text under "Missing strategy" and `hypothesis: true`; no other node is skippable or has a proxy question | None | `brand-graph.test.ts` › "strategy asks by proxy and may be skipped" |
 | 26 | A fixture `logo-mark` record with four image drafts made by `ai-draft`, each with a model id, the frame it was drawn in (logo type, name, core idea) and a file reference; one draft chosen | `assembleGuidebook` | The logo item is `confirmed` from the chosen draft and carries the label key `logo-mark.draftLabel`, the model id and the frame; the three not chosen are not shown as decisions; no field says the mark is trademark cleared, screened, unique, registrable or owned; `ip-screen` stays `not-screened` | None | `brand-guidebook.test.ts` › "a chosen logo draft stays a labelled draft" |
@@ -455,18 +495,20 @@ In the POC the person sees the engine's result through its API; no row renders a
 
 ## Out of scope
 
-- Any screen, canvas node, board preview or presentation layout (POC focus is function).
+- Any ORIVILO screen, canvas node, board preview or presentation layout (POC focus is function). The product screen samples of layer 3 are mockup images inside the guidebook, not ORIVILO UI.
 - Tokens, UI role palettes, components and the design system (ORV-125 stays parked).
-- Model calls of any kind in these slices: drafting options from proxy answers (D1 step 2) and logo image drafts (D8) come in their own stories.
-- Choosing the image provider or model for logo drafts; the architect's ADR does that (D8).
+- Model calls of any kind in these slices: drafting options from proxy answers (D1 step 2), logo image drafts (D8) and touchpoint mockups (layer 3) come in their own stories.
+- Choosing the image provider or model; ADR 0018 (proposed) does that.
+- Layer 1, the input analysers (ORV-128).
+- The `touchpoints` node and the guidebook's `applications` section in these slices: in phase 1 scope, delivered by the `touchpoints` story. The touchpoint set for each TSIC section (ORV-127 plus a research task).
 - Groups C and D beyond classification; the audit and architecture nodes.
-- Naming as a strategy output, verbal identity (decision D4), look and feel, mood boards, the vector logo and its lockups, the expression kit, touchpoints, validation tests, IP screening and launch.
+- Naming as a strategy output, verbal identity (decision D4), look and feel, mood boards, the vector logo and its lockups, the expression kit, validation tests, IP screening and launch.
 - Persistence, export, PDF or print layout of the guidebook.
 - Editing `docs/context/brand/brand-ci-method.md`; decision D5 is carried out in its own docs task.
 
 ## Owner decisions (decided at G1)
 
-The owner answered at G1 and the orchestrator recorded the D1 answer, all on [ORV-126](https://tpetkaew.atlassian.net/browse/ORV-126) (comment 10198). D1 and D8 differ from the v1 recommendations; D2 to D7 and D9 take the option v1 recommended.
+The owner answered at G1 and the orchestrator recorded the D1 answer, all on [ORV-126](https://tpetkaew.atlassian.net/browse/ORV-126) (comment 10198). D1 and D8 differ from the v1 recommendations; D2 to D7 and D9 take the option v1 recommended. After G1 the owner set the three-layer frame (comment 10202, section "Three layers") and answered the five owner questions of ADR 0018, accepting four requests per logo round and its per-person cost ceiling (comment 10205).
 
 ### D1. Missing strategy: proxy questions, drafted options, or a skip
 
@@ -508,14 +550,15 @@ The owner answered at G1 and the orchestrator recorded the D1 answer, all on [OR
 ### D8. The logo mark in the POC: AI image drafts inside the decided frame
 
 - **Decided:** a model draws image drafts of the logo inside the frame the harness has decided, and the person picks one. Not chosen: concept text only (v1 option a) and drafted concept text (v1 option b).
-- **The frame.** The prompt is built by deterministic code from the node records only: the logo type decided by `logo-type`'s rules, the given name, the core idea, and colour and typography when decided (one colour otherwise). The model does not choose the logo type, the name or the colours. No draft is drawn while `logo-type` or `name` is missing (row 27). The prompt builder refuses brand names and artist names typed into a concept note (ADR 0009 point 6). When a frame input is provisional, the drafts are too.
-- **What the person gets.** A round of four drafts, each stored with the model id, its frame and the label. The person picks one, asks for another round within the limits, or leaves the node open. A chosen draft is a direction for the mark, not the delivered logo file (ADR 0009 point 6: raster images are concepts; the vector logo is a later story).
+- **The frame.** The prompt is built by deterministic code from the node records only: the logo type decided by `logo-type`'s rules, the given name, the core idea, and colour and typography when decided (one colour otherwise). The model does not choose the logo type, the name or the colours. ADR 0018 decision 3 sets how the template is built.
+- **One-colour first round, and a re-run after colour (orchestrator's decision under comment 10198's frame).** Comment 10198 names the frame as logo type, colour and core idea, while the fill order keeps `logo-type` and `logo-mark` before `color` (K-0044 §3). The order stays. When `color` is not yet decided, the first logo round is drawn in one colour (black on white) and its record lists `color` under `madeWithout`. After `color` is decided the person may run another logo round, drawn with the decided colour in the frame; it is a new round under the same `logo-image` limit, and its drafts no longer list `color` under `madeWithout`. The orchestrator recorded this as the consequence of the order, not a reorder; the owner may overturn it at the logo image story's G1. No draft is drawn while `logo-type` or `name` is missing (row 27). The prompt builder refuses brand names and artist names typed into a concept note (ADR 0009 point 6). When a frame input is provisional, the drafts are too.
+- **What the person gets.** A round of four drafts (four one-image requests, ADR 0018 decision 4), each stored with the model id, its frame and the label. The person picks one, asks for another round within the limits, or leaves the node open. A chosen draft is a direction for the mark, not the delivered logo file (ADR 0009 point 6: raster images are concepts; the vector logo is a later story).
 - **The label** (key `logo-mark.draftLabel`, shown on every draft and on the chosen one, through the locale catalog when a screen exists). Its meaning: en "AI draft for exploring a direction. Not a final logo. Not checked for trademarks, not shown to be unique, and ownership is not guaranteed."; th "ภาพร่างจาก AI สำหรับสำรวจแนวทาง ยังไม่ใช่โลโก้จริง ยังไม่ได้ตรวจสอบเครื่องหมายการค้า ไม่ได้ยืนยันว่าไม่ซ้ำกับใคร และไม่รับประกันความเป็นเจ้าของ". Nothing in the product says a draft is trademark cleared, unique, registrable or owned; a trademark search is the person's step before registering (ADR 0009 point 6).
-- **Cost estimate (to confirm in the ADR).** About 4 US cents an image, if the provider is ADR 0009's pinned `logo-image` model at its listed image price of 30 US dollars per million image tokens and an image is about 1,300 output tokens (the token count is an assumption, not measured). A round of four is about 16 US cents. Under the limits below, one person can spend at most about 80 US cents a day.
-- **Rate limits (proposed; decided at the logo image story's G1).** A new limit `logo-image`, counted per person through ORV-112's shared helper: 2 rounds per hour and 5 rounds per day, a round being four images, refused rounds not counted, failing closed when the store fails. The per-key credit limit (ADR 0009 point 7) still applies, and the workspace spend cap is ORV-121.
-- **Dependency: an architect ADR on the image provider.** ADR 0009 pins `logo-image` to `google/gemini-nano-banana-2.1` on OpenRouter and calls it the only OpenRouter model that returns images, but no story has called it, recorded an eval set or checked its terms, and K-0046 records that whether OpenRouter covers image models was not checked. The architect's ADR confirms that path or chooses another provider, with its price, its data retention (ADR 0009 addition on Google safety retention), its terms on ownership of outputs, and the image checks (format, size, stored in the workspace's private bucket). The logo image story starts only after that ADR is accepted.
+- **Cost.** Cost is estimated before each run (comment 10198): before a round runs, its estimate is computed from the pinned model's price and the number of requests in the round, and the stored `usage.cost` replaces it once the calls return. The figures and their basis live in one place, [ADR 0018](../../adr/0018-image-generation-provider.md) "Consequences" (the cost per logo round, per mockup round and the most one person can spend in a day); this spec repeats no number. The model and its price are ADR 0018 decision 2.
+- **Rate limits.** ADR 0018 decision 7: the `logo-image` and `mockup-image` limits per person through ORV-112's shared helper, one unit per round. The numbers are decided at the logo image story's G1. The per-key credit limit (ADR 0009 point 7) still applies, and the workspace spend cap is ORV-121.
+- **Dependency: ADR 0018 (proposed).** It settles the provider (OpenRouter's Image API, decision 1), the pinned model and its exit test (decision 2), the frame (decision 3), the request, answer and data policy (decision 4), labels and trace (decision 5), storage (decision 6) and limits (decision 7), on facts recorded in K-0072 to K-0076. The owner answered its questions in comment 10205; it becomes accepted when the logo image story passes G1 with its decisions (ADR 0018 Status). The logo image story ships nothing before that.
 - **Lane.** The logo image story is lane L (asset licensing risk flag, ADR 0009 point 6).
-- **Impact:** node 14, rows 18, 26 and 27, the Out of scope list, the logo image story and its G1, the architect ADR, `.claude/rules/security.md` rule 6 and ADR 0015 decision 4 (a new limit, at that story).
+- **Impact:** node 14, rows 18, 26 and 27, the Out of scope list, the logo image story and its G1, ADR 0018, `.claude/rules/security.md` rule 6 and ADR 0015 decision 4 (a new limit, at that story).
 
 ### D9. Group A without a name
 
@@ -526,18 +569,26 @@ The owner answered at G1 and the orchestrator recorded the D1 answer, all on [OR
 
 - **Business:** closed by K-0044, the owner's phase 1 direction and the G1 decisions D1 to D9.
 - **Functional:** the graph, classifier, planner, skip and provisional rules, and guidebook are specified. Assumed: the proxy question copy (for review by the designer and the owner); the `typography` locale assumption is left to its story.
-- **Technical:** assumed: a new ADR for the brand graph (dependency kinds, `onMissing` including `proxy`, node states, skip and provisional), written by the architect at G2; ADR 0017's per-node scope pattern applies to `logo-type` and `typography`. Must-ask before the logo image story, not before these slices: the image provider ADR (D8).
+- **Technical:** assumed: a new ADR for the brand graph (dependency kinds, `onMissing` including `proxy`, node states, skip and provisional), written by the architect at G2; ADR 0017's per-node scope pattern applies to `logo-type` and `typography`. Must-ask before the logo image and touchpoints stories, not before these slices: the acceptance of ADR 0018 (D8).
 - **UX:** not applicable in the POC; the start question, the proxy questions and the D1 strings are drafted above for review.
 - **Data and security:** assumed: in memory, no persistence, user text and proxy answers treated as data. The logo image story adds a rate limit and stored files, handled in its own spec.
-- **Risk:** the graph is a candidate from a small sample (0.75); the proxy questions have no source; hypotheses are listed and flagged in data. Logo drafts carry a licensing and similarity risk, bounded by the label and the lane L story.
+- **Risk:** the graph is a candidate from a small sample (0.75); the proxy questions have no source; hypotheses are listed and flagged in data. Logo drafts and mockups carry a licensing and similarity risk, bounded by the labels and the lane L stories.
+
+## Open questions (with the default used until answered)
+
+- **How the TSIC section reaches `touchpoints`.** Default: the `touchpoints` story asks the person to pick a section from the ORV-127 taxonomy; layer 1 (ORV-128) may later propose one for the person to confirm. Nothing is guessed.
+- **Which product screen samples.** Default: one screen, chosen by the touchpoint research task for the business type; a second only when that task shows the type has a digital product the customer uses.
+- **Order of touchpoints when a set is larger than four.** Default: the order the research task gives the set; the first round draws the first four. Not decided here.
 
 ## Depends on
 
-- Research: K-0044 (synthesis), K-0036, K-0043, K-0037, K-0029, K-0028, and the other brand entries it cites, in `docs/knowledge/brand/`; K-0027 (architecture patterns: model at the edge, deterministic core) and K-0046 (image providers, OpenRouter image coverage unchecked) in `docs/knowledge/architecture/`.
+- Research: K-0044 (synthesis), K-0036, K-0043, K-0037, K-0029, K-0028, and the other brand entries it cites, in `docs/knowledge/brand/`; K-0027 (architecture patterns: model at the edge, deterministic core) and K-0046 (image providers) in `docs/knowledge/architecture/`; K-0070 (mood carried by applications in context, 0.7) for layer 3. OpenRouter's image coverage, which K-0046 left unchecked, is now checked in K-0072 to K-0076 (`docs/knowledge/platform/`) through ADR 0018.
 - [ORV-20 spec](../ORV-20/spec.md) v1.2 (slice A is node 15) and [ADR 0017](../../adr/0017-node-scoped-color-decisions.md) (node-scoped decisions, the pattern later node stories follow).
 - ADR 0005 (knowledge entries), ADR 0006 (rule grammar), ADR 0007 (status words, fingerprint), ADR 0008 (model interpreters, later drafting stories), [ADR 0009](../../adr/0009-ai-through-openrouter.md) (one pinned model per job, the `logo-image` job, point 6 on generated logos, point 7 on keys and spend, the addition on Google safety retention), ADR 0012 (gates), ADR 0015 decision 4 (rate limits).
 - [ORV-112 spec](../ORV-112/spec.md) (the shared rate limit helper the `logo-image` limit uses) and ORV-121 (workspace spend cap).
-- The architect ADR on the image provider (D8), not yet written.
+- [ADR 0018](../../adr/0018-image-generation-provider.md) (proposed): the image provider, the `logo-image` and `mockup-image` jobs, the frame, the limits and the cost estimate (D8, layer 3).
+- ORV-126 comments 10198 (G1 decisions), 10202 (the three layers) and 10205 (the owner's answers to ADR 0018).
+- ORV-127 (TSIC 2009 taxonomy, the source of touchpoint sets) and ORV-128 (layer 1, input analysers).
 - `docs/context/orivilo-brief.md` (nodes carry knowledge, collect before generating, dynamic entry); `docs/context/brand/brand-ci-method.md` (compared in K-0044 §4).
 
 ## Downstream review if this spec changes
@@ -546,10 +597,12 @@ The owner answered at G1 and the orchestrator recorded the D1 answer, all on [OR
 - `docs/context/brand/brand-ci-method.md`: per decision D5.
 - ORV-19 (E1-4 brand node) and ORV-21 (E1-6 type node): may be reshaped or replaced by the node stories this graph names.
 - ORV-125: stays parked; review if phase 1 scope changes.
-- ADR 0009: the image provider ADR may confirm or supersede its `logo-image` row.
+- ADR 0009: ADR 0018 amends its decision 1 for image jobs and the reason for its `logo-image` row.
+- ADR 0018: its impact list names this spec's D8; a change to D8 or layer 3 is reviewed there.
 
 ## Changelog
 
 - v1 (2026-10-26): first spec. Entry catalog A to E, 22-node graph with harness parts, fill order, ORV-20's position, hypotheses, four slices, rows 1 to 22, owner decisions D1 to D9.
 - v1.1 (2026-10-26): G1 decisions applied (ORV-126 comment 10198). D1 becomes proxy questions, then AI-drafted options to pick, then an allowed skip that leaves the node open and marks dependents provisional, listed under the guidebook's new `unconfirmed` section: new `onMissing` value `proxy`, state fields `skipped`, `provisional`, `provisionalOn`, proxy question copy, D1 strings, rows 3, 12, 16, 20 changed and rows 23, 24, 25 added. D8 becomes AI image drafts of the logo inside the decided frame, with a label, a cost estimate, proposed rate limits and an architect ADR on the image provider as a dependency: node 14 rewritten (`color` added to its informs), rows 18 changed and rows 26, 27 added. D2 to D7 and D9 recorded as decided (the v1 recommendations). Typography's locale assumption moves to its own story. Rows 1 to 22 keep their numbers. Downstream to review: the brand graph ADR and G2 design (new `onMissing` value and state fields), the slice 1, 3 and 4 Jira issues and their specs (new rows), the test plan for rows 3, 12, 16, 18, 20 and 23 to 27, the architect task for the image provider ADR, ADR 0009 (`logo-image` row), the logo image story's G1 (limit numbers, cost), `.claude/rules/security.md` rule 6 and ADR 0015 decision 4 (a `logo-image` limit when that story lands), ORV-121 (spend cap covers image drafts).
 - v1.2 (2026-10-26): the spec no longer cites the two knowledge entries below 0.7 (the Brand Key one-page positioning at 0.65 and typeface impressions at 0.6), so `check:knowledge` passes. Both stay as hypotheses in prose under "Hypotheses". `audience` now names K-0028 (0.85) as its grounds and `typography` names K-0042 (0.85); the insight shape and every personality to typeface link stay marked hypothesis. No row, node, input or decision changes. Downstream to review: the slice 1 graph data (row 4: the low sources each hypothesis node lists).
+- v1.3 (2026-10-26): reviewer findings F1, F2, F4 and F7 on PR 114. (F1) New section "Three layers" records ORV-126 comment 10202: layer 1, the input analysers, is ORV-128; layer 2 is this graph; layer 3 adds a guidebook `applications` section to phase 1 scope, with TSIC-selected touchpoint mockups (sets from the ORV-127 taxonomy plus a later research task, not listed here, drawn by ADR 0018's `mockup-image` job in rounds of up to four) and one or two product screen samples as the bridge to the design system phase. Node 19 `touchpoints` gains part, inputs, output and knowledge (K-0070), and its `expression-kit` require becomes informs; it stays outside these four slices. Out of scope, harness parts 1 and 6, "What is real" and the follow-up story list updated; new "Open questions" section. (F2) D8 records the orchestrator's decision under comment 10198's frame: the order keeps `logo-mark` before `color`, the first logo round is one colour when colour is not decided, and the person may run another round once colour is decided; node 14 and "Fill order" say the same. (F4) ADR 0018 (proposed) linked; D8's cost, rate limit and dependency text replaced with pointers to ADR 0018 decisions 2 and 7 and its Consequences, with the pre-run cost estimate from comment 10198 stated; comment 10205 recorded; "Depends on" and "Downstream review" updated. (F7) New section "The propagation rule" states one rule for given, decided, provisional and unchecked (a given node cuts blocking and passes gaps on as `unchecked`; a skip passes through given nodes as `provisional`); the given-node paragraph, the skip step, the open-input line and "Jumping to a node" reworded to match; rows 14, 16 and 23 reworded with fuller fixtures and the expected marks. No row added or renumbered. Downstream to review: the brand graph ADR and G2 design (the propagation rule as one function), the slice 1 graph data (node 19 requires and informs), the slice 3 Jira issue and its tests for rows 14, 16 and 23, the slice 4 issue (`touchpoints` stays under `notInThisGuidebook`), ADR 0018 (its impact line on D8, and F3: it must state the pre-run cost estimate this spec now requires), the logo image story's G1 (re-run after colour), ORV-127 and the touchpoint research task, ORV-128, and ORV-125 (phase 1 now includes product screen samples as images, not design system work), K-0028 at 0.8.

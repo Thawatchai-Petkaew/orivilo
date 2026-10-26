@@ -1,7 +1,7 @@
 ---
 id: K-0063
 topic: brand
-claim: Inference, not a measured rate, from two samples that agree (eleven guideline projects partly from search summaries, and 18 Behance projects read in a browser) that logo, colour, typography, an overview or story text and applications are the common sections, while motion, sound, voice, illustration, a personality scale and product screens appear only in a few, and no mood-board page was seen in either.
+claim: In two small, non-random samples counted by us (eleven guideline projects, six known only through search summaries, and 18 Behance projects read in a browser), logo was seen in 10 of 11 and 18 of 18, typography in 8 and 9, colour in 7 and 9, applications in 6 and 13, and story or overview text in 5 and 15, while tone of voice was seen in 4 and 2, motion in 3 and 1, and sound in 2 and 0.
 source: "docs/knowledge/brand/K-0060-tiktok-for-business-guidelines-sections.md; docs/knowledge/brand/K-0062-brand-guideline-projects-studied.md; docs/knowledge/brand/K-0064-mood-and-look-and-feel-section-contents.md; https://www.behance.net/gallery/256225289; https://www.behance.net/gallery/179987253/Brand-Guidelines; https://www.behance.net/gallery/183502469/Olade-Brand-Guidelines"
 retrieved: 2026-10-26
 confidence: 0.7
@@ -13,7 +13,7 @@ license: own-words
 
 Our own counts over the projects in [[K-0062-brand-guideline-projects-studied]]. No published study that counts guideline sections was found; a search for one returned practitioner guides only.
 
-Revised on 2026-10-26: the first version (confidence 0.55) rested on eleven projects, six of them known only through search summaries. A second sample of 18 Behance projects was then read in a real browser (screenshot on file, see K-0062), and its counts agree with the first on which sections are common and which are rare. Confidence is raised to 0.7 for that agreement, not higher: both samples are small and not random, the second is sorted by appreciations and crowded with templates, and in it only one or two tiles per project were read (all five for Hedwig), plus the contents pages of Leadeep, Aspot, Olade and Atma. A count is "seen in N"; a project not counted may still hold the section.
+Revised on 2026-10-26: the first version (confidence 0.55) rested on eleven projects, six of them known only through search summaries. A second sample of 18 Behance projects was then read in a real browser (screenshot on file, see K-0062), and its counts agree with the first on which sections are common and which are rare. Revised again on 2026-10-26 after review: the claim now states only the observed counts, at 0.7; the step from these counts to guidebooks in general is kept apart, as an inference below 0.7, in the section "Generalisation" below. 0.7 and not higher because both samples are small and not random, the second is sorted by appreciations and crowded with templates, and in it only one or two tiles per project were read (all five for Hedwig), plus the contents pages of Leadeep, Aspot, Olade and Atma. A count is "seen in N"; a project not counted may still hold the section.
 
 ## Sample 1, eleven projects (as first written)
 
@@ -59,6 +59,10 @@ The 18: Hedwig, Evolta, Truway, Jorixent (the owner's four), Leadeep, Aspot, Ola
 - Motion, 1 (Discord). A personality slider of six opposite pairs, 1 (Kryon).
 - Sound, 0. A mood-board page, 0 (see [[K-0070-mood-carried-by-applications-in-context]]).
 
+## Generalisation (inference, below 0.7, not for a decision on its own)
+
+From the two samples agreeing, guidebooks in general may hold logo, colour, typography, an overview or story text and applications as their common sections, with motion, sound, voice, illustration, a personality scale and product screens in a few. A mood-board page was not seen in the 18 Behance projects (K-0070) or in the two guides read in full on mood, TikTok and DocuSign (K-0064); the other nine projects of sample 1 were not checked for one, and K-0064 notes one Behance service listing (skh.design, via search) that offers mood boards as creative direction outside a guideline. Neither sample is random, so none of this is a rate.
+
 ## Why it matters for ORIVILO
 
-A guidebook spec could treat logo, colour, typography, a short overview with the reason for each element, and applications as the minimum an ORIVILO guidebook holds, and the rarer sections as what makes one feel complete. At 0.7 this may ground a decision on the minimum set; the exact counts are still a sample, not a rate.
+A guidebook spec could cite the counts above for which sections were common in what was read: logo, colour, typography, a short overview and applications. Treating that set as the minimum for every guidebook rests on the generalisation, which is an inference below 0.7 and is for the designer or the owner to accept or not.

@@ -37,7 +37,7 @@ Section 16.2, in capitals in the original:
 - Any clause specific to images or to the Image API. The terms speak of Input and Output in general.
 - That the user owns outputs. Ownership is whatever the model's terms say (for the Gemini API, see [[K-0075-gemini-api-terms-on-generated-output]]).
 
-ADR 0018 (Facts, row 8) records OpenRouter's terms on outputs as not verified because the text it fetched had no matching clause; this read found the clause in section 6.1.
+The clause on output ownership is in section 6.1, read on 2026-10-26.
 
 ## Why it matters for ORIVILO
 

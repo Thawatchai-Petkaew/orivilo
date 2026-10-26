@@ -4,14 +4,14 @@ topic: brand
 claim: Alina Wheeler's Designing Brand Identity (6th edition, Wiley, 2024, with Rob Meyerson) sets out one five-phase process for any identity project, conducting research, clarifying strategy, designing identity, creating touchpoints and managing assets, where positioning, the brand brief and naming come before any design and guidelines and brand books come last, inside asset management.
 source: "https://www.wiley-vch.de/en/areas-interest/art-culture/designing-brand-identity-978-1-119-98481-8 (publisher table of contents, 6th edition); https://www.logodesignlove.com/brand-identity-process (David Airey's transcription of Wheeler's one-page process, edition not named)"
 retrieved: 2026-10-26
-confidence: 0.85
+confidence: 0.8
 applies_to: [ORV-126]
 license: own-words
 ---
 
 ## Evidence
 
-Two sources that agree: the publisher's table of contents for the 6th edition, and a practitioner's transcription of the one-page process chart from an earlier edition. Confidence 0.85, not 0.9, because the book text itself was not read; the phase contents below are section titles, not Wheeler's explanations.
+Two sources that agree: the publisher's table of contents for the 6th edition, and a practitioner's transcription of the one-page process chart from an earlier edition. Both come from Wheeler's own book, so they are one source, not two independent ones. Confidence 0.8 (one source read and quoted, the README cap), lowered from 0.85 on 2026-10-26 after review; the book text itself was not read, and the phase contents below are section titles, not Wheeler's explanations.
 
 The publisher says Part 2 "presents a universal process regardless of the project's scope and nature". Section titles from the 6th edition table of contents, in order (the layout is ours, the titles are the publisher's):
 

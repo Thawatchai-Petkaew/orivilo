@@ -2,7 +2,7 @@
 id: K-0061
 topic: brand
 claim: The TikTok For Business guidelines use one repeated 16:9 page grid (breadcrumb header, a left panel with the rule and its reason, a right panel with the visual), black numbered section dividers, red crossed-out misuse examples, and state reasons as a one-line purpose beside each rule.
-source: "/Users/tawatchaipetkaew/.claude/uploads/6ac3845e-0f40-41f1-b299-4c8f7bcb1eee/05a41ee3-TikTok_guidelines.pdf (pages 4, 9, 10, 13, 22, 25, 31, 35, 36, 44, 51)"
+source: "TikTok For Business Brand Guidelines, 70-slide deck, owner-held PDF (file TikTok_guidelines.pdf, not in the repo), pages 4, 9, 10, 13, 22, 25, 31, 35, 36, 44, 51. Public copy: https://www.slideshare.net/slideshow/tiktokguidelines-1pdf/258073465 (70 slides, uploaded by a third party, not by TikTok)"
 retrieved: 2026-10-26
 confidence: 0.8
 applies_to: [ORV-126]
@@ -18,6 +18,8 @@ license: link-only
 > Our colors take advantage of the existing TikTok brand colors that hold brand equity. They are designed to reflect the youthful and contemporary energy of the TikTok brand.
 
 (page 35, "Color Palette")
+
+Both quotes were found again on 2026-10-26 in the public SlideShare copy, on slides 10 and 35 (see [[K-0060-tiktok-for-business-guidelines-sections]] for that copy). Its text puts the leading rule ("By setting the leading, or line height, to 120% of the font size, our system ensures that text does not collide.") on slide 32 and the accent rule ("Do not use Splash (#25F4EE) to highlight text, as it does not meet accessibility standards.") on slide 31, so the page 31 below may be one page early for the leading rule. It shows "DOWNLOAD" labels on slides 12, 22, 26, 34 and 38.
 
 ## Layout, in our words
 

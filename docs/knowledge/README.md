@@ -122,7 +122,7 @@ Keep this table in step with the folder when you add an entry.
 | [[K-0025-penpot-mcp-model-runs-code-in-plugin]]                  | 0.75       | Penpot MCP lets the model run code in a plugin                        |
 | [[K-0026-hue-agent-skill-design-model-and-validator]]            | 0.8        | Hue: one design model, person approves, validator gates               |
 | [[K-0027-synthesis-ai-design-system-architecture-patterns]]      | 0.8        | Six recurring patterns; shipped color is rule-made except Huemint     |
-| [[K-0028-wheeler-five-phase-identity-process]]                   | 0.85       | Wheeler: research, strategy, identity, touchpoints, managing assets   |
+| [[K-0028-wheeler-five-phase-identity-process]]                   | 0.8        | Wheeler: research, strategy, identity, touchpoints, managing assets   |
 | [[K-0029-ci-project-entry-points-and-initiative-types]]          | 0.8        | New, rename, merger, refresh, rebrand; existing brands audit first    |
 | [[K-0030-neumeier-brand-gap-and-zag-checkpoints]]                | 0.8        | Five disciplines; 17 checkpoints, naming after onliness; swap test    |
 | [[K-0031-kapferer-brand-identity-prism]]                         | 0.7        | Prism: six facets on sender/receiver and external/internal axes       |
@@ -144,7 +144,7 @@ Keep this table in step with the folder when you add an entry.
 | [[K-0060-tiktok-for-business-guidelines-sections]]               | 0.8        | TikTok guide: story, messaging, design system, imagery, advertising   |
 | [[K-0061-tiktok-guidelines-page-layout-and-reasons]]             | 0.8        | TikTok pages: one 16:9 grid, rule and reason left, visual right       |
 | [[K-0062-brand-guideline-projects-studied]]                      | 0.75       | 38 projects: 20 from search summaries, 18 read in a browser           |
-| [[K-0063-guidebook-section-frequency-in-the-sample]]             | 0.7        | Inferred: logo, colour, type, applications common; no mood board      |
+| [[K-0063-guidebook-section-frequency-in-the-sample]]             | 0.7        | Counts in two samples: logo, colour, type, applications seen most     |
 | [[K-0064-mood-and-look-and-feel-section-contents]]               | 0.75       | Two guides: mood is rule pages (voice, photo, motion), not one board  |
 | [[K-0065-how-guidelines-show-each-elements-reason]]              | 0.75       | Five kinds of reason, usually one line beside the element             |
 | [[K-0066-guidebook-deliverable-formats-and-layout]]              | 0.75       | Paged book, web brand site, or Behance showcase case study            |
