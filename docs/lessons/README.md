@@ -89,3 +89,7 @@ Status: proposed
 | [[L-0017-rework-look-decided-in-text]]                   | ORV-107                | A visual fix in rework is mocked by the designer before the build          |
 | [[L-0018-plays-assert-properties-not-the-render]]        | ORV-107                | Visual plays measure edge ink, sibling height and glyph clip               |
 | [[L-0019-no-designer-looked-at-the-built-head]]          | ORV-107                | A designer signs off screenshots of each approved UI head before qa        |
+| [[L-0020-knowledge-index-left-out-of-the-pr]]            | ORV-109                | check:knowledge fails on an entry with no Index row                        |
+| [[L-0021-synthesis-contradicted-its-own-source]]         | ORV-109                | A synthesis checks every universal word against the entries it cites       |
+| [[L-0022-press-figures-with-no-url-in-source]]           | ORV-109                | Every body fact rests on a URL in `source:` read in the same task          |
+| [[L-0023-research-role-cannot-run-its-checks]]           | ORV-109                | The main session runs research done_when before the review                 |
