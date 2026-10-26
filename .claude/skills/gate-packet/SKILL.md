@@ -30,12 +30,12 @@ Next if changes requested: <who reworks what>
 
 What each gate must contain:
 
-| Gate             | Must include                                                                                                        |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------- |
-| G1 Scope         | spec link, gap list summary, questions                                                                              |
-| G2 Design / Plan | spec + design/tech links, impact list                                                                               |
-| G3 PR            | PR link, quality-gate output, reviewer findings (both passes); a preview URL only if a commit asked for `[preview]` |
-| G4 Staging       | staging URL, acceptance criteria walk with evidence per row                                                         |
-| G5 Release       | fix version, changelog, migration notes, rollback plan                                                              |
+| Gate             | Must include                                                                                                                                                                    |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| G1 Scope         | spec link, gap list summary, questions; for lane L the spec review's task id and its open Important findings, each beside the question it touches (L-0037). No hook checks this |
+| G2 Design / Plan | spec + design/tech links, impact list                                                                                                                                           |
+| G3 PR            | PR link, quality-gate output, reviewer findings (both passes); a preview URL only if a commit asked for `[preview]`                                                             |
+| G4 Staging       | staging URL, acceptance criteria walk with evidence per row                                                                                                                     |
+| G5 Release       | fix version, changelog, migration notes, rollback plan                                                                                                                          |
 
 The owner decides by moving the issue on (or by saying so in the thread). Never move past a gate the owner decides on your own, and never move an issue to Done.

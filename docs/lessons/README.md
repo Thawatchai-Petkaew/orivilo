@@ -106,3 +106,6 @@ Status: proposed
 | [[L-0034-level-5-count-mixed-two-bases]]                 | ORV-127                | A count names one file and a command; research counts primary files        |
 | [[L-0035-fix-reports-named-the-round-2-findings]]        | ORV-127                | Grep old values and act on fix reports before a re-check                   |
 | [[L-0036-coverage-plan-opened-with-picks]]               | ORV-127                | A coverage plan opens with the whole structure and counts per level        |
+| [[L-0037-owner-decided-before-the-spec-review]]          | ORV-128                | A lane L G1 packet follows a reviewer pass on the spec                     |
+| [[L-0038-spec-claims-a-command-disproves]]               | ORV-128                | Spec numbers and methods get worked examples the main session runs         |
+| [[L-0039-one-rule-stated-in-two-sections]]               | ORV-128                | One home per rule; a disagreement fix removes the restatement              |
