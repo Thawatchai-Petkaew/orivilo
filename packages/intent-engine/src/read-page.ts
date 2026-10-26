@@ -1,6 +1,8 @@
 // The safe read of ORV-128 tech notes section 6. Pure: every I/O comes through ReadPorts.
 // The lists below are closed constants; a range added later is a change `security` reviews.
 
+import { stylesheetLinksOf } from "./page-text";
+
 // The engine's tsconfig has no DOM or Node lib, so the three web-standard globals this file uses
 // are declared here, module-scoped, with only the members it reads. They exist in every runtime the engine runs in.
 declare class URL {
@@ -59,8 +61,6 @@ export type RobotsRules = {
 };
 /** One analysis owns one cache, so a copy never outlives the analysis (spec: at most 24 hours). */
 export type RobotsCache = Map<string, RobotsRules>;
-/** Returns the href of each stylesheet link, in document order. Slice 1b wires the pinned tokenizer here. */
-export type StylesheetLinks = (document: Uint8Array) => string[];
 
 export const READER_TOKEN = "oriviloreader";
 export const CONTACT_URL = "https://github.com/Thawatchai-Petkaew/orivilo";
@@ -266,7 +266,6 @@ export async function readPage(
   url: string,
   ports: ReadPorts,
   robots: RobotsCache = new Map(),
-  links: StylesheetLinks,
 ): Promise<ReadResult> {
   const headers = { "user-agent": USER_AGENT, accept: "text/html,text/css;q=0.9" };
 
@@ -378,7 +377,7 @@ export async function readPage(
 
   let incomplete = doc.truncated;
   const hrefs: string[] = [];
-  for (const href of links(doc.body)) {
+  for (const href of stylesheetLinksOf(doc.body)) {
     try {
       const u = new URL(href, doc.url);
       if ((u.protocol === "http:" || u.protocol === "https:") && !hrefs.includes(u.href))

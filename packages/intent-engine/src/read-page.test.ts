@@ -6,7 +6,6 @@ import {
   readPage,
   robotsAllows,
   type ReadPorts,
-  type StylesheetLinks,
 } from "./read-page";
 
 type Route = {
@@ -71,7 +70,10 @@ function fakeNet(routes: Record<string, Route>, dns: Record<string, string[]> = 
   return { ports, log, resolved, clock };
 }
 
-const noLinks: StylesheetLinks = () => [];
+/** A page whose head carries one stylesheet link per href, the way the tokenizer reads them. */
+const linkPage = (hrefs: string[]): Route => ({
+  body: `<!doctype html><html><head>${hrefs.map((h) => `<link rel="stylesheet" href="${h}">`).join("")}</head><body></body></html>`,
+});
 const PAGE = "http://example.test/";
 const ROBOTS = "http://example.test/robots.txt";
 const okRoutes = (extra: Record<string, Route> = {}): Record<string, Route> => ({
@@ -95,7 +97,7 @@ describe("public addresses only", () => {
   ];
   it.each(refusedUrls)("refuses %s", async (url, routes, dns) => {
     const net = fakeNet(routes ?? {}, dns);
-    const r = await readPage(url, net.ports, undefined, noLinks);
+    const r = await readPage(url, net.ports);
     expect(r).toEqual({ status: "refused", reason: "read.refused.address" });
     for (const l of net.log) {
       expect(checkAddress(l.address)).toBe("public");
@@ -111,7 +113,7 @@ describe("public addresses only", () => {
       [`${page}robots.txt`]: { status: 404 },
       [page]: { body: "<html></html>" },
     });
-    const r = await readPage(page, net.ports, undefined, noLinks);
+    const r = await readPage(page, net.ports);
     expect(r.status).toBe("read");
     expect(net.log.map((l) => l.url)).toEqual([`${page}robots.txt`, page]);
     expect(net.log[0]?.address).toBe("64:ff9b::808:808");
@@ -119,7 +121,7 @@ describe("public addresses only", () => {
 
   it("refuses a private remoteAddress after a public resolve", async () => {
     const net = fakeNet(okRoutes({ [PAGE]: { remoteAddress: "10.0.0.5" } }));
-    expect(await readPage(PAGE, net.ports, undefined, noLinks)).toEqual({
+    expect(await readPage(PAGE, net.ports)).toEqual({
       status: "refused",
       reason: "read.refused.address",
     });
@@ -127,14 +129,14 @@ describe("public addresses only", () => {
 
   it("refuses a private remoteAddress reported for robots.txt", async () => {
     const net = fakeNet(okRoutes({ [ROBOTS]: { status: 404, remoteAddress: "127.0.0.1" } }));
-    const r = await readPage(PAGE, net.ports, undefined, noLinks);
+    const r = await readPage(PAGE, net.ports);
     expect(r.status).toBe("refused");
     expect(net.log.map((l) => l.url)).toEqual([ROBOTS]);
   });
 
   it("refuses when one of several resolved addresses is private", async () => {
     const net = fakeNet(okRoutes(), { "example.test": ["93.184.216.34", "10.0.0.5"] });
-    expect((await readPage(PAGE, net.ports, undefined, noLinks)).status).toBe("refused");
+    expect((await readPage(PAGE, net.ports)).status).toBe("refused");
     expect(net.log).toHaveLength(0);
   });
 
@@ -143,13 +145,13 @@ describe("public addresses only", () => {
       okRoutes({ [PAGE]: { status: 301, headers: { location: "http://other.test/" } } }),
       { "other.test": ["172.16.0.1"] },
     );
-    expect((await readPage(PAGE, net.ports, undefined, noLinks)).status).toBe("refused");
+    expect((await readPage(PAGE, net.ports)).status).toBe("refused");
     expect(net.log.every((l) => l.url.startsWith("http://example.test/"))).toBe(true);
   });
 
   it("fails with network when the host resolves to nothing", async () => {
     const net = fakeNet({}, { "example.test": [] });
-    expect(await readPage(PAGE, net.ports, undefined, noLinks)).toEqual({
+    expect(await readPage(PAGE, net.ports)).toEqual({
       status: "failed",
       reason: "network",
     });
@@ -157,10 +159,16 @@ describe("public addresses only", () => {
   });
 
   it("refuses a stylesheet that resolves to a private address, the whole read", async () => {
-    const net = fakeNet(okRoutes({ "http://cdn.test/a.css": { body: "a{}" } }), {
-      "cdn.test": ["10.1.1.1"],
-    });
-    const r = await readPage(PAGE, net.ports, undefined, () => ["http://cdn.test/a.css"]);
+    const net = fakeNet(
+      okRoutes({
+        [PAGE]: linkPage(["http://cdn.test/a.css"]),
+        "http://cdn.test/a.css": { body: "a{}" },
+      }),
+      {
+        "cdn.test": ["10.1.1.1"],
+      },
+    );
+    const r = await readPage(PAGE, net.ports);
     expect(r).toEqual({ status: "refused", reason: "read.refused.address" });
   });
 
@@ -260,7 +268,7 @@ describe("robots.txt first", () => {
   ];
   it.each(cases)("%s", async (_n, robots, outcome) => {
     const net = fakeNet(okRoutes({ [ROBOTS]: robots }));
-    const r = await readPage(PAGE, net.ports, undefined, noLinks);
+    const r = await readPage(PAGE, net.ports);
     expect(net.log[0]?.url).toBe(ROBOTS);
     if (outcome === "refused") {
       expect(r).toEqual({ status: "refused", reason: "read.refused.robots" });
@@ -279,7 +287,7 @@ describe("robots.txt first", () => {
       { status: 500 },
     ]) {
       const net = fakeNet(okRoutes({ [ROBOTS]: robots }));
-      expect(await readPage(PAGE, net.ports, undefined, noLinks)).toEqual({
+      expect(await readPage(PAGE, net.ports)).toEqual({
         status: "refused",
         reason: "read.refused.robots",
       });
@@ -287,12 +295,14 @@ describe("robots.txt first", () => {
   });
 
   it("reads robots.txt once per origin and keeps it in the cache", async () => {
-    const net = fakeNet(okRoutes({ "http://example.test/a.css": { body: "a{}" } }));
+    const net = fakeNet(
+      okRoutes({ [PAGE]: linkPage(["/a.css"]), "http://example.test/a.css": { body: "a{}" } }),
+    );
     const cache = new Map();
-    await readPage(PAGE, net.ports, cache, () => ["/a.css"]);
+    await readPage(PAGE, net.ports, cache);
     expect(net.log.filter((l) => l.url === ROBOTS)).toHaveLength(1);
     expect(cache.has("http://example.test")).toBe(true);
-    await readPage(PAGE, net.ports, cache, noLinks);
+    await readPage(PAGE, net.ports, cache);
     expect(net.log.filter((l) => l.url === ROBOTS)).toHaveLength(1);
   });
 
@@ -304,7 +314,7 @@ describe("robots.txt first", () => {
         "http://other.test/p": { body: "x" },
       }),
     );
-    expect(await readPage(PAGE, net.ports, undefined, noLinks)).toEqual({
+    expect(await readPage(PAGE, net.ports)).toEqual({
       status: "refused",
       reason: "read.refused.robots",
     });
@@ -315,10 +325,11 @@ describe("robots.txt first", () => {
     const net = fakeNet(
       okRoutes({
         [ROBOTS]: { body: "User-agent: *\nDisallow: /a.css" },
+        [PAGE]: linkPage(["/a.css"]),
         "http://example.test/a.css": { body: "a{}" },
       }),
     );
-    const r = await readPage(PAGE, net.ports, undefined, () => ["/a.css"]);
+    const r = await readPage(PAGE, net.ports);
     expect(r.status === "read" && r.stylesheets.length).toBe(0);
     expect(r.status === "read" && r.incomplete).toEqual(["page-incomplete"]);
     expect(net.log.some((l) => l.url.endsWith("a.css"))).toBe(false);
@@ -372,8 +383,8 @@ describe("one page, logged out, bounded", () => {
   );
 
   it("sends no cookie or authorization and names the reader", async () => {
-    const net = fakeNet(okRoutes(sheetRoutes));
-    await readPage(PAGE, net.ports, undefined, () => sheets.slice(0, 2));
+    const net = fakeNet(okRoutes({ ...sheetRoutes, [PAGE]: linkPage(sheets.slice(0, 2)) }));
+    await readPage(PAGE, net.ports);
     expect(net.log.length).toBe(4);
     for (const l of net.log) {
       expect(Object.keys(l.headers).sort()).toEqual(["accept", "user-agent"]);
@@ -383,8 +394,8 @@ describe("one page, logged out, bounded", () => {
   });
 
   it("fetches at most 10 stylesheets, in document order, and marks the rest incomplete", async () => {
-    const net = fakeNet(okRoutes(sheetRoutes));
-    const r = await readPage(PAGE, net.ports, undefined, () => sheets);
+    const net = fakeNet(okRoutes({ ...sheetRoutes, [PAGE]: linkPage(sheets) }));
+    const r = await readPage(PAGE, net.ports);
     expect(r.status).toBe("read");
     if (r.status !== "read") return;
     expect(r.stylesheets.map((s) => s.url)).toEqual(sheets.slice(0, 10));
@@ -393,26 +404,25 @@ describe("one page, logged out, bounded", () => {
   });
 
   it("exactly 10 stylesheets is complete, and a duplicate link counts once", async () => {
-    const net = fakeNet(okRoutes(sheetRoutes));
-    const r = await readPage(PAGE, net.ports, undefined, () => [
-      ...sheets.slice(0, 10),
-      sheets[0] ?? "",
-    ]);
+    const net = fakeNet(
+      okRoutes({ ...sheetRoutes, [PAGE]: linkPage([...sheets.slice(0, 10), sheets[0] ?? ""]) }),
+    );
+    const r = await readPage(PAGE, net.ports);
     expect(r.status === "read" && r.stylesheets.length).toBe(10);
     expect(r.status === "read" && r.incomplete).toEqual([]);
   });
 
   it("fetches nothing but the robots file, the page and its stylesheets", async () => {
-    const net = fakeNet(okRoutes(sheetRoutes));
-    // the extractor gives stylesheet links only; the pinned tokenizer (later task) is what keeps other links out
-    await readPage(PAGE, net.ports, undefined, () => sheets.slice(0, 3));
+    const page = `<html><head><link rel="stylesheet" href="${sheets[0]}"><link rel="icon" href="/favicon.ico"><link rel="preload" as="style" href="/p.css"></head><body><a href="/other">x</a><img src="/i.png"><script src="/s.js"></script><link rel="stylesheet" href="${sheets[1]}"><link rel="stylesheet" href="${sheets[2]}"></body></html>`;
+    const net = fakeNet(okRoutes({ ...sheetRoutes, [PAGE]: { body: page } }));
+    await readPage(PAGE, net.ports);
     expect(net.log.map((l) => l.url)).toEqual([ROBOTS, PAGE, ...sheets.slice(0, 3)]);
   });
 
   it("cuts the document at 2 MB with page-incomplete", async () => {
     const big = new Uint8Array(3 * 1024 * 1024).fill(97);
     const net = fakeNet(okRoutes({ [PAGE]: { body: big } }));
-    const r = await readPage(PAGE, net.ports, undefined, noLinks);
+    const r = await readPage(PAGE, net.ports);
     expect(net.log[1]?.maxBytes).toBe(2 * 1024 * 1024);
     expect(r.status === "read" && r.document.bytes.length).toBe(2 * 1024 * 1024);
     expect(r.status === "read" && r.document.truncated).toBe(true);
@@ -422,21 +432,23 @@ describe("one page, logged out, bounded", () => {
   it("cuts a document at exactly 2 MB + 1 even when the port ignores maxBytes", async () => {
     const body = new Uint8Array(2 * 1024 * 1024 + 1).fill(97);
     const net = fakeNet(okRoutes({ [PAGE]: { body, ignoreMaxBytes: true } }));
-    const r = await readPage(PAGE, net.ports, undefined, noLinks);
+    const r = await readPage(PAGE, net.ports);
     expect(r.status === "read" && r.document.bytes.length).toBe(2 * 1024 * 1024);
     expect(r.status === "read" && r.document.truncated).toBe(true);
     const exact = fakeNet(
       okRoutes({ [PAGE]: { body: new Uint8Array(2 * 1024 * 1024), ignoreMaxBytes: true } }),
     );
-    const e = await readPage(PAGE, exact.ports, undefined, noLinks);
+    const e = await readPage(PAGE, exact.ports);
     expect(e.status === "read" && e.document.truncated).toBe(false);
     expect(e.status === "read" && e.incomplete).toEqual([]);
   });
 
   it("cuts a stylesheet at 1 MB with page-incomplete", async () => {
     const css = new Uint8Array(1024 * 1024 + 5).fill(97);
-    const net = fakeNet(okRoutes({ "http://example.test/big.css": { body: css } }));
-    const r = await readPage(PAGE, net.ports, undefined, () => ["/big.css"]);
+    const net = fakeNet(
+      okRoutes({ [PAGE]: linkPage(["/big.css"]), "http://example.test/big.css": { body: css } }),
+    );
+    const r = await readPage(PAGE, net.ports);
     expect(net.log[2]?.maxBytes).toBe(1024 * 1024);
     expect(r.status === "read" && r.stylesheets[0]?.bytes.length).toBe(1024 * 1024);
     expect(r.status === "read" && r.incomplete).toEqual(["page-incomplete"]);
@@ -454,10 +466,10 @@ describe("one page, logged out, bounded", () => {
       return routes;
     };
     const three = fakeNet(chain(3));
-    const ok = await readPage(PAGE, three.ports, undefined, noLinks);
+    const ok = await readPage(PAGE, three.ports);
     expect(ok.status === "read" && ok.url).toBe(hop(3));
     const four = fakeNet(chain(4));
-    expect(await readPage(PAGE, four.ports, undefined, noLinks)).toEqual({
+    expect(await readPage(PAGE, four.ports)).toEqual({
       status: "failed",
       reason: "redirects",
     });
@@ -468,22 +480,22 @@ describe("one page, logged out, bounded", () => {
     const net = fakeNet(
       okRoutes({ [PAGE]: { status: 302, headers: { location: "ftp://example.test/x" } } }),
     );
-    expect((await readPage(PAGE, net.ports, undefined, noLinks)).status).toBe("refused");
+    expect((await readPage(PAGE, net.ports)).status).toBe("refused");
   });
 
   it("gives each request 10 s and the whole read 30 s", async () => {
     const net = fakeNet(okRoutes());
-    await readPage(PAGE, net.ports, undefined, noLinks);
+    await readPage(PAGE, net.ports);
     expect(net.log.map((l) => l.timeoutMs)).toEqual([10_000, 10_000]);
 
     const late = fakeNet(okRoutes());
     late.clock.now = 25_000;
-    await readPage(PAGE, late.ports, undefined, noLinks);
+    await readPage(PAGE, late.ports);
     expect(late.log.map((l) => l.timeoutMs)).toEqual([5_000, 5_000]);
 
     const over = fakeNet(okRoutes());
     over.clock.now = 30_000;
-    expect(await readPage(PAGE, over.ports, undefined, noLinks)).toEqual({
+    expect(await readPage(PAGE, over.ports)).toEqual({
       status: "failed",
       reason: "timeout",
     });
@@ -491,14 +503,14 @@ describe("one page, logged out, bounded", () => {
   });
 
   it("stops fetching stylesheets when the 30 s are spent and says so", async () => {
-    const net = fakeNet(okRoutes(sheetRoutes));
+    const net = fakeNet(okRoutes({ ...sheetRoutes, [PAGE]: linkPage(sheets.slice(0, 3)) }));
     const orig = net.ports.request;
     net.ports.request = async (r) => {
       const out = await orig(r);
       if (r.url === PAGE) net.clock.now = 30_000;
       return out;
     };
-    const r = await readPage(PAGE, net.ports, undefined, () => sheets.slice(0, 3));
+    const r = await readPage(PAGE, net.ports);
     expect(r.status === "read" && r.stylesheets.length).toBe(0);
     expect(r.status === "read" && r.incomplete).toEqual(["page-incomplete"]);
   });
@@ -511,7 +523,7 @@ describe("one page, logged out, bounded", () => {
       if (r.url === ROBOTS) net.clock.now = 30_000;
       return out;
     };
-    expect(await readPage(PAGE, net.ports, undefined, noLinks)).toEqual({
+    expect(await readPage(PAGE, net.ports)).toEqual({
       status: "failed",
       reason: "timeout",
     });
@@ -520,41 +532,43 @@ describe("one page, logged out, bounded", () => {
 
   it("reports a timeout, a network error, a non-html answer and an error status", async () => {
     const t = fakeNet(okRoutes({ [PAGE]: { error: "timeout" } }));
-    expect(await readPage(PAGE, t.ports, undefined, noLinks)).toEqual({
+    expect(await readPage(PAGE, t.ports)).toEqual({
       status: "failed",
       reason: "timeout",
     });
     const n = fakeNet(okRoutes({ [PAGE]: { error: "network" } }));
-    expect(await readPage(PAGE, n.ports, undefined, noLinks)).toEqual({
+    expect(await readPage(PAGE, n.ports)).toEqual({
       status: "failed",
       reason: "network",
     });
     const h = fakeNet(okRoutes({ [PAGE]: { headers: { "content-type": "image/png" } } }));
-    expect(await readPage(PAGE, h.ports, undefined, noLinks)).toEqual({
+    expect(await readPage(PAGE, h.ports)).toEqual({
       status: "failed",
       reason: "not-html",
     });
     const s = fakeNet(okRoutes({ [PAGE]: { status: 500 } }));
-    expect(await readPage(PAGE, s.ports, undefined, noLinks)).toEqual({
+    expect(await readPage(PAGE, s.ports)).toEqual({
       status: "failed",
       reason: "network",
     });
     const x = fakeNet(
       okRoutes({ [PAGE]: { headers: { "Content-Type": "application/xhtml+xml; charset=utf-8" } } }),
     );
-    expect((await readPage(PAGE, x.ports, undefined, noLinks)).status).toBe("read");
+    expect((await readPage(PAGE, x.ports)).status).toBe("read");
   });
 
   it("hashes the bytes it kept and connects to the checked address", async () => {
     const net = fakeNet(okRoutes(), { "example.test": ["93.184.216.34", "93.184.216.35"] });
-    const r = await readPage(PAGE, net.ports, undefined, noLinks);
+    const r = await readPage(PAGE, net.ports);
     expect(r.status === "read" && r.document.contentHash).toBe("hash13");
     expect(net.log.map((l) => l.address)).toEqual(["93.184.216.34", "93.184.216.34"]);
   });
 
   it("skips a stylesheet that fails, with page-incomplete", async () => {
-    const net = fakeNet(okRoutes({ "http://example.test/a.css": { error: "network" } }));
-    const r = await readPage(PAGE, net.ports, undefined, () => ["/a.css"]);
+    const net = fakeNet(
+      okRoutes({ [PAGE]: linkPage(["/a.css"]), "http://example.test/a.css": { error: "network" } }),
+    );
+    const r = await readPage(PAGE, net.ports);
     expect(r.status === "read" && r.stylesheets.length).toBe(0);
     expect(r.status === "read" && r.incomplete).toEqual(["page-incomplete"]);
   });
