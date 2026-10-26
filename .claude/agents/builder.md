@@ -17,8 +17,9 @@ Read the spec folder for the issue, `AGENTS.md`, and the `.claude/rules/` files 
 2. Write the smallest code that passes it.
 3. Refactor, then run the affected tests only: `pnpm --filter <package> exec vitest related --run <changed files>` or `pnpm --filter <package> exec vitest run --changed origin/develop`. A fix for a flaky test repeats each affected file with `--repeats 4`. A change to a config file, a `package.json`, a shared setup file or a Storybook preview file runs the full suite instead. Never loop the full suite to prove a flake is gone (L-0009).
 4. When an acceptance criterion or design finding says where an element sits or that it stays visible (inside a container, above or clear of another element, on a short layout), run a Playwright probe against the built story before handoff, at the story size and at the smallest container size the layout allows. Measure the box of every element the change moves or lifts against the container and against each other, put the numbers in a `verified` row, and make the play test assert every edge the criterion names, not one (L-0015). When the criterion is an edge, a border, an outline or a ring, also read the rendered pixels: take a pixel column through the edge at `deviceScaleFactor` 4, light and dark, and put the ink width in the same `verified` row; a computed style does not show a border drawn beside an outline (L-0018).
-5. Before handoff, run `pnpm lint && pnpm typecheck && pnpm test` once and report its real output.
-6. Commit with a Conventional Commit message that names the issue key.
+5. When a test guards source text (an import ban, a forbidden token, a copy check), name the syntax forms it blocks in a comment or its test name (for an import ban: a single-line import, a multi-line import, a side-effect import, a dynamic `import()` and an `export ... from`). Before handoff run the guard on one failing sample of each form, as a fixture inside the test or a scratch run, and add one `verified` row per form with the red line (L-0024). No hook checks this.
+6. Before handoff, run `pnpm lint && pnpm typecheck && pnpm test` once and report its real output.
+7. Commit with a Conventional Commit message that names the issue key.
 
 ## Standards
 

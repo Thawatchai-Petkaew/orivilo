@@ -93,3 +93,8 @@ Status: proposed
 | [[L-0021-synthesis-contradicted-its-own-source]]         | ORV-109                | A synthesis checks every universal word against the entries it cites       |
 | [[L-0022-press-figures-with-no-url-in-source]]           | ORV-109                | Every body fact rests on a URL in `source:` read in the same task          |
 | [[L-0023-research-role-cannot-run-its-checks]]           | ORV-109                | The main session runs research done_when before the review                 |
+| [[L-0024-source-guard-sampled-one-syntax-form]]          | ORV-20                 | A source-text guard fails once on every syntax form it blocks              |
+| [[L-0025-spec-deviation-went-to-review]]                 | ORV-20                 | A builder deviation on a spec row goes to product before review            |
+| [[L-0026-gate-database-url-missing-from-the-fact]]       | ORV-20                 | A gate-passed fact names the database URL it ran with                      |
+| [[L-0027-stalled-reviewer-went-unnoticed]]               | ORV-20                 | List silent bound envelopes before each dispatch and after compaction      |
+| [[L-0028-visual-keyword-rule-on-a-non-ui-story]]         | ORV-20                 | The visual keyword rule applies only to a diff with UI paths               |
