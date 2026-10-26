@@ -28,6 +28,8 @@ import stringsSource from "./evidence-strings.ts?raw";
 import leansSource from "./leans.ts?raw";
 import { PERSONALITY_AXES } from "./knowledge";
 import snapshotSource from "./render-snapshot.ts?raw";
+import readPageSource from "./read-page.ts?raw";
+import pageTextSource from "./page-text.ts?raw";
 import { rendererBuildSchema } from "./render-snapshot";
 
 // ---------------------------------------------------------------- fixtures
@@ -691,6 +693,8 @@ const SCANNED: Record<string, string> = {
   "evidence-strings": stringsSource,
   leans: leansSource,
   "render-snapshot": snapshotSource,
+  "read-page": readPageSource,
+  "page-text": pageTextSource,
 };
 
 describe("measures never call a model", () => {
