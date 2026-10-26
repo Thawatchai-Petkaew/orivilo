@@ -136,7 +136,9 @@ export type ColorDecisionResult = {
 
 const byText = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 
-export function decideColor(input: ColorInput): ColorDecisionResult {
+/** Throws a ZodError when `facts` or `lineup` break `colorInputSchema`. */
+export function decideColor(raw: ColorInput): ColorDecisionResult {
+  const input = { ...raw, ...colorInputSchema.parse({ facts: raw.facts, lineup: raw.lineup }) };
   const rules = input.rules ?? COLOR_RULES;
   const knowledgeIds = new Set(input.knowledgeIds ?? COLOR_KNOWLEDGE_IDS);
   const issues = checkRuleSet(rules, knowledgeIds, "color");

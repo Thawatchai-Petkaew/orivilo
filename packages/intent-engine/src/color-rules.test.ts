@@ -7,6 +7,7 @@ import { classifyHex, type Lineup } from "./color-audit";
 import { STAND_IN_LINEUP } from "./color-fixtures";
 import { COLOR_KNOWLEDGE_IDS } from "./color-knowledge";
 import { COLOR_RULES, colorInputSchema, decideColor, type ColorInput } from "./color-rules";
+import { STARTER_RULES } from "./directions";
 import { interpretationSchema } from "./interpreter";
 import { resolveProfile } from "./resolver";
 import {
@@ -48,6 +49,9 @@ const everyCandidateCrowded: Lineup = [
   { name: "teal-a", hex: "#00C8A0" },
   { name: "teal-b", hex: "#10D0A8" },
 ];
+
+const FORBIDDEN_IMPORT =
+  /(?:\bfrom|\bimport)\s*\(?\s*["'][^"']*(?:llm-interpreter|openrouter|design-system)/;
 
 const base = { schemaVersion: "1.0", version: 1, topic: "color", priority: 50 } as const;
 const fixtureRule = (patch: Partial<DecisionRule> = {}): DecisionRule => ({
@@ -210,7 +214,21 @@ describe("decideColor", () => {
     expect(result.evaluation.decisions).toEqual({});
   });
 
+  it("input is parsed before it decides", () => {
+    expect(() => decideColor(orivilo({ lineup: [] }))).toThrow();
+    const dup = [
+      { name: "a", hex: "#C6F432" },
+      { name: "a", hex: "#00C8E0" },
+    ];
+    expect(() => decideColor(orivilo({ lineup: dup }))).toThrow();
+    const long = [{ name: "x".repeat(61), hex: "#C6F432" }];
+    expect(() => decideColor(orivilo({ lineup: long }))).toThrow();
+  });
+
   it("same input, same output", () => {
+    const noExpressive = { ...ORIVILO.personality };
+    delete noExpressive.expressive;
+    const rotate = <T>(items: readonly T[]) => [...items.slice(2), ...items.slice(0, 2)];
     const cases: ColorInput[] = [
       orivilo(),
       orivilo({ lineup: withLime }),
@@ -218,6 +236,13 @@ describe("decideColor", () => {
       orivilo({ lineup: everyCandidateCrowded }),
       orivilo({ lineup: null }),
       orivilo({ rules: [...COLOR_RULES, fixtureRule()] }),
+      orivilo({ facts: vector({ ...ORIVILO.personality, expressive: 54, warm: 49 }) }),
+      orivilo({ facts: vector({ ...ORIVILO.personality, expressive: 55, warm: 49 }) }),
+      orivilo({ facts: vector({ ...ORIVILO.personality, expressive: 54, warm: 50 }) }),
+      orivilo({ facts: vector({ ...ORIVILO.personality, warm: 25, premium: 59 }) }),
+      orivilo({ facts: vector({ ...ORIVILO.personality, warm: 75, premium: 60 }) }),
+      orivilo({ facts: vector(noExpressive), lineup: null }),
+      orivilo({ facts: vector(noExpressive) }),
     ];
     for (const input of cases) {
       const rules = input.rules ?? COLOR_RULES;
@@ -229,6 +254,13 @@ describe("decideColor", () => {
       });
       expect(shuffled).toEqual(first);
       expect(shuffled.fingerprint).toBe(first.fingerprint);
+      const rotated = decideColor({
+        ...input,
+        rules: rotate(rules),
+        lineup: input.lineup === null ? null : rotate(input.lineup),
+      });
+      expect(rotated).toEqual(first);
+      expect(rotated.fingerprint).toBe(first.fingerprint);
       expect(decideColor(input).fingerprint).toBe(first.fingerprint);
     }
     // A different input gives a different fingerprint.
@@ -267,12 +299,20 @@ describe("existing contracts unchanged", () => {
 
   it("rule-based, no model", () => {
     for (const source of [auditSource, knowledgeSource, rulesSource, fixturesSource]) {
-      const imports = source
-        .split("\n")
-        .filter((line) => /^\s*(import|export)\b.*from\b/.test(line));
-      expect(imports.join("\n")).not.toMatch(/llm-interpreter|openrouter|design-system/);
+      expect(source).not.toMatch(FORBIDDEN_IMPORT);
       expect(source).not.toMatch(/Date\.now|new Date|Math\.random|fetch\(/);
     }
+    // The pattern catches a static one-line, a static multi-line, a side-effect and a dynamic import.
+    for (const sample of [
+      'import { x } from "./llm-interpreter";',
+      'import {\n  x,\n} from "./openrouter";',
+      'import "../design-system/src";',
+      'const m = await import("./llm-interpreter");',
+      "export { y } from './openrouter';",
+    ]) {
+      expect(sample).toMatch(FORBIDDEN_IMPORT);
+    }
+    expect('import { z } from "zod";').not.toMatch(FORBIDDEN_IMPORT);
     expect(decideColor(orivilo()).method).toBe("rule-based");
   });
 
@@ -327,13 +367,8 @@ describe("scopes", () => {
     });
     expect(pathsOf(mixed)).toEqual(["then"]);
     expect(pathsOf(fixtureRule({ id: "type.signature", topic: "typography" }))).toEqual(["topic"]);
-    const starter = fixtureRule({
-      id: "emphasis.expressive-signature",
-      then: [
-        { set: "emphasis", to: "expressive" },
-        { set: "typeVoice", to: "paired" },
-      ],
-    });
+    const starter = STARTER_RULES.find((r) => r.id === "emphasis.expressive-signature");
+    expect(starter).toBeDefined();
     expect(decisionRuleSchema.parse(starter)).toEqual(starter);
   });
 

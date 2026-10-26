@@ -31,6 +31,21 @@ describe("color knowledge", () => {
     expect(checkCorpus(COLOR_KNOWLEDGE)).toEqual([]);
   });
 
+  it("do and avoid items carry Thai and English", () => {
+    for (const entry of COLOR_KNOWLEDGE) {
+      for (const item of [...entry.do, ...entry.avoid]) {
+        expect(item.th).toBeTruthy();
+        expect(item.en).toBeTruthy();
+      }
+    }
+  });
+
+  it("contrast cites WCAG 1.4.11", () => {
+    const entry = COLOR_KNOWLEDGE.find((e) => e.id === "color.contrast-computed");
+    const urls = entry?.sources.map((s) => ("url" in s ? s.url : undefined));
+    expect(urls?.some((u) => u?.includes("#non-text-contrast"))).toBe(true);
+  });
+
   it("thresholds are hypotheses capped at 0.4", () => {
     for (const id of [
       "color.hue-families",
