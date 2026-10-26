@@ -26,6 +26,21 @@ You own the spec. Use the `discover` skill.
   credential the session does not hold); a text rule alone is never a boundary. The spec lists the
   forms a rule-following agent uses (the commands in skills, agent files and AGENTS.md) as the forms
   the guard must catch (L-0012).
+- An expected result that says every, all, none or each over a set of rules or ids lists the members,
+  or states the ADR rule that selects them. Add one `verified` row per such sentence (L-0025). No hook
+  checks this.
+- For each owner comment in your facts, add one `verified` row per requirement sentence in it, naming
+  the line of your document that meets it, or the line that records a deviation as a decision with the
+  comment id. A requirement you cannot place goes in `needs_decision` (L-0030). No hook checks this.
+- A number the spec derives (a product of factors, a threshold, a margin) and a method that maps input
+  to output (a match, a parse, a lean) each get a worked example under `## Worked examples`: one
+  `node -e` line with real input copied from its source (a module, a page, a fixture file), and the
+  output the spec expects, with its rounding stated. List each as a `verified` row marked "not run, no
+  shell" (L-0038). No hook checks this.
+- Each rule has one home: a section, with a rule name when other sections need it (`tsic-terms-1`).
+  Another section points to the name and never restates the rule's outcome, threshold or question key.
+  Add one `verified` row per named rule with `grep -n "<rule name>"` showing its one definition (L-0039).
+  No hook checks this.
 
 ## Report contract
 

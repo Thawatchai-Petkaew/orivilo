@@ -93,3 +93,19 @@ Status: proposed
 | [[L-0021-synthesis-contradicted-its-own-source]]         | ORV-109                | A synthesis checks every universal word against the entries it cites       |
 | [[L-0022-press-figures-with-no-url-in-source]]           | ORV-109                | Every body fact rests on a URL in `source:` read in the same task          |
 | [[L-0023-research-role-cannot-run-its-checks]]           | ORV-109                | The main session runs research done_when before the review                 |
+| [[L-0024-source-guard-sampled-one-syntax-form]]          | ORV-20                 | A source-text guard fails once on every syntax form it blocks              |
+| [[L-0025-spec-deviation-went-to-review]]                 | ORV-20                 | A builder deviation on a spec row goes to product before review            |
+| [[L-0026-gate-database-url-missing-from-the-fact]]       | ORV-20                 | A gate-passed fact names the database URL it ran with                      |
+| [[L-0027-stalled-reviewer-went-unnoticed]]               | ORV-20                 | List silent bound envelopes before each dispatch and after compaction      |
+| [[L-0028-visual-keyword-rule-on-a-non-ui-story]]         | ORV-20                 | The visual keyword rule applies only to a diff with UI paths               |
+| [[L-0029-fix-walked-only-the-lines-named]]               | ORV-126                | A rule finding's fix reports one verified row per governed line            |
+| [[L-0030-owner-decision-missing-from-the-spec-envelope]] | ORV-126                | Every owner decision comment reaches each document it changes              |
+| [[L-0031-knowledge-source-cited-a-session-upload]]       | ORV-126                | A knowledge source is a repo path or a URL, never an absolute path         |
+| [[L-0032-one-checkout-ran-several-issues]]               | ORV-126                | No branch switch while a task is bound; branch check for every writer      |
+| [[L-0033-spec-and-adr-fixed-in-parallel]]                | ORV-126                | Fixes across spec, ADR and knowledge run one at a time                     |
+| [[L-0034-level-5-count-mixed-two-bases]]                 | ORV-127                | A count names one file and a command; research counts primary files        |
+| [[L-0035-fix-reports-named-the-round-2-findings]]        | ORV-127                | Grep old values and act on fix reports before a re-check                   |
+| [[L-0036-coverage-plan-opened-with-picks]]               | ORV-127                | A coverage plan opens with the whole structure and counts per level        |
+| [[L-0037-owner-decided-before-the-spec-review]]          | ORV-128                | A lane L G1 packet follows a reviewer pass on the spec                     |
+| [[L-0038-spec-claims-a-command-disproves]]               | ORV-128                | Spec numbers and methods get worked examples the main session runs         |
+| [[L-0039-one-rule-stated-in-two-sections]]               | ORV-128                | One home per rule; a disagreement fix removes the restatement              |

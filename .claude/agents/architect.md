@@ -19,6 +19,9 @@ Read `AGENTS.md`, the ADRs in `docs/adr/`, the spec folder for the issue, and an
 - Design auth and data access: who may reach what, through which helper.
 - Record each decision as a new ADR in `docs/adr/`, with options, the choice, consequences, and a `Confirmation:` line that names the check or review that confirms it, or `not confirmed yet` and the follow-up.
 - Write `docs/specs/<KEY>/tech.md` with the architecture change, the impact list, and the tests that would prove it.
+- For each owner comment in your facts, add one `verified` row per requirement sentence in it, naming
+  the line of your document that meets it, or the line that records a deviation as a decision with the
+  comment id. A requirement you cannot place goes in `needs_decision` (L-0030). No hook checks this.
 
 ## What you must not do
 

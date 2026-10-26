@@ -7,6 +7,11 @@ description: Turn a request or Jira issue into a spec with testable acceptance c
 
 1. **Research first.** Read the Jira issue, `docs/context/orivilo-brief.md`, the relevant handoff sections, existing specs in `docs/specs/`, and the code it touches. Search Jira for duplicates.
 2. **Gap list.** For each dimension (business, functional, technical, UX, data/security, risk) mark every gap: closed (evidence), assumed (state the default), must-ask (blocker), or not applicable.
+   When the aim is coverage of a set (categories, touchpoints, sections, rules), the first gap to
+   close is the structure: the standard or source that defines the whole set, its count per level on
+   one base, what is excluded and why, and the data source that orders members inside a level. The
+   spec opens with that structure, then the method, then priorities; a named member appears only as an
+   example of a data row, never as a pick (L-0036). No hook checks this.
 3. **Write `docs/specs/<KEY>/spec.md`:**
 
    ```markdown
