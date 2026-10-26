@@ -1,7 +1,7 @@
 ---
 id: K-0020
 topic: architecture
-claim: The design-token toolchain is fully deterministic and model-free; Style Dictionary builds tokens through a fixed nine-step pipeline (parse, merge, preprocess, transform, resolve references, format, act), reads the DTCG format first-class since v4 but not yet all of DTCG 2025.10, and Tokens Studio's sd-transforms adds its own transforms (math, color modifiers, typography) on top.
+claim: Style Dictionary builds design tokens through a fixed, model-free nine-step pipeline (parse, merge, preprocess, transform, resolve references, format, act).
 source: "https://styledictionary.com/info/architecture/; https://styledictionary.com/info/dtcg/; https://github.com/style-dictionary/style-dictionary; https://www.designtokens.org/TR/2025.10/format/; https://github.com/tokens-studio/sd-transforms"
 retrieved: 2026-10-26
 confidence: 0.8
@@ -29,7 +29,7 @@ The DTCG page for 2025.10 says: "This specification is considered stable." Its s
 - **Provenance:** `$description` and `$extensions` can carry it; the format does not require it.
 - **Human review:** outside the tool (designers edit tokens in Tokens Studio or files).
 - **Cost and rate control:** not applicable.
-- **Stack:** JavaScript/Node (Style Dictionary v5 is current per its banner); sd-transforms registers on the Style Dictionary object.
+- **Stack:** JavaScript/Node (Style Dictionary v5 is current per its banner); Tokens Studio's sd-transforms registers on the Style Dictionary object and adds its own transforms (math, color modifiers, typography) on top.
 - **License:** Style Dictionary Apache-2.0; sd-transforms MIT; DTCG W3C CG Final Specification Agreement.
 
 ### What the sources do not show

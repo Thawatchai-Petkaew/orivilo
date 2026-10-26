@@ -1,7 +1,7 @@
 ---
 id: K-0017
 topic: architecture
-claim: screenshot-to-code (abi) is a React/Vite and FastAPI app that sends a screenshot, mockup or recording to one of several vendor models, produces several variants from a mix of models, can let the agent screenshot its own page in headless Chromium to check it, and evaluates prompt and model changes by a person rating outputs 1 to 4, three runs per combination.
+claim: screenshot-to-code (abi) evaluates prompt and model changes by a person rating outputs 1 to 4, three runs per combination.
 source: "https://github.com/abi/screenshot-to-code (README.md); https://raw.githubusercontent.com/abi/screenshot-to-code/main/Evaluation.md"
 retrieved: 2026-10-26
 confidence: 0.8
@@ -21,7 +21,7 @@ About variants, the README says that with more keys "the app automatically picks
 
 ### The system around the model
 
-- **Model-driven:** reading the image and writing the code. Gemini also extracts real logos and images from the screenshot; Replicate (`z-image-turbo`) generates images.
+- **Model-driven:** reading the image and writing the code. The app sends a screenshot, mockup or recording to one of several vendor models and produces several variants from a mix of models. Gemini also extracts real logos and images from the screenshot; Replicate (`z-image-turbo`) generates images.
 - **Deterministic:** the output stack (HTML + Tailwind, HTML + CSS, React, Vue, Bootstrap, Ionic) is a fixed option the person picks; the preview render in Playwright with Chromium.
 - **Knowledge or retrieval:** none shown beyond the prompt per stack.
 - **Structured output:** code as text; no schema shown.

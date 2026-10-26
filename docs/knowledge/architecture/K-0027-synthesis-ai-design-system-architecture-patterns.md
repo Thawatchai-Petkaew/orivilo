@@ -1,7 +1,7 @@
 ---
 id: K-0027
 topic: architecture
-claim: Across eleven public AI UI generators, token pipelines and color systems read on 2026-10-26, six architecture patterns recur, and the split is sharp; every project that produces color or tokens people ship does it deterministically, while every model-driven generator surveyed lacks at least one of a knowledge layer with sources, schema-checked output, or a recorded trace of what made each result.
+claim: Across eleven public AI UI generators, token pipelines and color systems read on 2026-10-26, six architecture patterns recur; every project that produces color or tokens people ship does it deterministically except Huemint (K-0024), whose own models treat contrast as a loose target, while every model-driven generator surveyed lacks at least one of a knowledge layer with sources, schema-checked output, or a recorded trace of what made each result.
 source: "docs/knowledge/architecture/K-0016-openui-litellm-generator-with-judge-model-evals.md; docs/knowledge/architecture/K-0017-screenshot-to-code-variants-and-human-scored-evals.md; docs/knowledge/architecture/K-0018-tldraw-make-real-canvas-image-to-html-iframe.md; docs/knowledge/architecture/K-0019-v0-composite-model-and-ai-sdk-structured-output.md; docs/knowledge/architecture/K-0020-style-dictionary-dtcg-token-pipeline.md; docs/knowledge/architecture/K-0021-material-color-utilities-hct-deterministic-schemes.md; docs/knowledge/architecture/K-0022-adobe-leonardo-contrast-targeted-palettes.md; docs/knowledge/architecture/K-0023-radix-colors-step-roles-and-apca-guarantee.md; docs/knowledge/architecture/K-0024-huemint-ml-palettes-from-a-contrast-graph.md; docs/knowledge/architecture/K-0025-penpot-mcp-model-runs-code-in-plugin.md; docs/knowledge/architecture/K-0026-hue-agent-skill-design-model-and-validator.md"
 retrieved: 2026-10-26
 confidence: 0.8
@@ -31,7 +31,7 @@ This entry groups what the eleven entries above record; each fact is quoted and 
 
 ### Pattern 1: deterministic core, model at the edge
 
-Seen in K-0020, K-0021, K-0022, K-0023 (no model at all) and in K-0019 and K-0026 (a model proposes, rules or a validator check). Values people ship (hex, tokens, contrast pairs) come from algorithms, curated scales or a fixed pipeline in every project that produces them.
+Seen in K-0020, K-0021, K-0022, K-0023 (no model at all) and in K-0019 and K-0026 (a model proposes, rules or a validator check). Values people ship (hex, tokens, contrast pairs) come from algorithms, curated scales or a fixed pipeline in every project that produces them, with one exception: Huemint (K-0024) generates palettes with its own models and treats its contrast graph as a loose target, not a guarantee.
 
 - **Implies for ORIVILO:** consistent with ADR 0007, ADR 0008 and ADR 0017 (a model reads intent, the resolver decides, hex comes from curated sets). The option the survey adds is algorithmic generation with contrast as the input (K-0021, K-0022) for when curated sets run out; ADR 0007 currently rules generation out.
 
@@ -51,7 +51,7 @@ Seen in K-0019 (base model upgraded "while keeping the rest of the stack stable"
 
 Seen in K-0019 (schema validation, a linter, rule-based AutoFix), K-0026 (a validator that exits 1, including contrast), K-0017 (the agent screenshots its own page). The schema-check pattern in K-0019 rejects a whole result rather than validating partial streams.
 
-- **Implies for ORIVILO:** ADR 0008's strict schema and evidence spans already go further than any generator surveyed: none of them checks that a model's claim matches its input. A model-based fixer (v0's AutoFix) is an option the survey shows; its accuracy figures are vendor-reported and below 0.7.
+- **Implies for ORIVILO:** ADR 0008's strict schema and evidence spans already go further than the pages read show for any generator surveyed: none of the pages read shows a check that a model's claim matches its input. A model-based fixer (v0's AutoFix) is an option the survey shows; its accuracy figures are vendor-reported and below 0.7.
 
 ### Pattern 5: evals are a folder of inputs and a score, by a person or a model
 

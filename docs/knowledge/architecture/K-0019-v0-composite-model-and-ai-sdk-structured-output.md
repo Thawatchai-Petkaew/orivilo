@@ -1,7 +1,7 @@
 ---
 id: K-0019
 topic: architecture
-claim: Vercel describes v0 as a composite model (retrieval, a swappable frontier base model, a fast quick-edit model and a fine-tuned AutoFix model that combines deterministic rules with model corrections on the stream), and the AI SDK it ships validates structured output against a Zod, Valibot or JSON schema and rejects with AI_NoObjectGeneratedError when the output does not parse or validate, while streamed partial objects are not validated.
+claim: Vercel describes v0 as a composite model in which retrieval, a fast quick-edit model and a fine-tuned AutoFix model sit around a swappable frontier base model.
 source: "https://vercel.com/blog/v0-composite-model-family (2025-06-01); https://ai-sdk.dev/docs/ai-sdk-core/generating-structured-data"
 retrieved: 2026-10-26
 confidence: 0.8
@@ -28,7 +28,7 @@ AutoFix is "a pipeline that combines deterministic rules with AI-based correctio
 - **Model-driven:** a base model for new generations and large changes (`v0-1.0-md` on Claude Sonnet 3.7, `v0-1.5-md` on Sonnet 4); a Quick Edit model for narrow edits; `vercel-autofixer-01`, trained with Fireworks AI by reinforcement fine-tuning, which checks the stream during and after generation.
 - **Deterministic:** the rule part of AutoFix and a linter on the final output; a system prompt that fixes the response format; summaries of older chat turns.
 - **Knowledge or retrieval:** retrieval from documentation, UI examples, uploaded project sources and internal Vercel knowledge before each call. How it retrieves is not described.
-- **Structured output:** in the AI SDK, `Output.object`, `Output.array` (with `minItems` and `maxItems`), `Output.choice` (a closed set of strings) and `Output.json` (JSON only, no schema check), on `generateText` and `streamText`. Errors expose `text`, `response`, `usage` and `cause` for logging. No automatic repair is described.
+- **Structured output:** in the AI SDK, `Output.object`, `Output.array` (with `minItems` and `maxItems`), `Output.choice` (a closed set of strings) and `Output.json` (JSON only, no schema check), on `generateText` and `streamText`. Output is validated against a Zod, Valibot or JSON schema, and a result that does not parse or validate is rejected with `AI_NoObjectGeneratedError`; streamed partial objects are not validated. Errors expose `text`, `response`, `usage` and `cause` for logging. No automatic repair is described.
 - **Evals and guardrails:** eval sets built "from common web development tasks", measured as the rate of error-free code. Reported: `v0-1.5-md` 93.87%, `claude-4-opus` 78.43%; AutoFix 86.14% at about 8,130 characters per second. Dataset size and the definition of an error are not given.
 - **Provenance:** not described.
 - **Human review:** chat iteration in the product, not described as a gate.

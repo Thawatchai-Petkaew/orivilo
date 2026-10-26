@@ -37,4 +37,4 @@ The `contrast-colors` README defines `Color` with `colorKeys` ("List of specific
 
 ## Why it matters for ORIVILO
 
-Leonardo is "contrast as the input, not a check afterwards". ORIVILO now checks contrast after choosing values (`pnpm contrast`, ADR 0017 decision 6); Leonardo shows the other option, solving for values that meet the contrast contract. Which to use for future palettes is for the architect.
+Leonardo treats contrast as the input, not a check afterwards. ORIVILO now checks contrast after choosing values (`pnpm contrast`, ADR 0017 decision 6); Leonardo shows the other option, solving for values that meet the contrast contract. Which to use for future palettes is for the architect.

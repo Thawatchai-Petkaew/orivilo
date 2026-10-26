@@ -2,7 +2,7 @@
 id: K-0046
 topic: architecture
 claim: Higgsfield generates with both third-party models (Sora 2, Veo 3.1, Kling, Seedance, Nano Banana Pro and others, also resold through its API) and models it calls its own proprietary ones (DoP, Soul, Popcorn, Cinema Studio), wrapped in an agent harness (Supercomputer) that routes steps across models and tools; no base model is disclosed for any of its own models.
-source: "https://higgsfield.ai/creator-hub/help-center/ai-models/how-do-i-use-dop; https://higgsfield.ai/; https://higgsfield.ai/higgsfield-api; https://higgsfield.ai/blog/how-we-built-supercomputer; https://aimmediahouse.com/retail/higgsfield-ai-thinks-generative-video-still-lacks-one-critical-thing; https://www.designboom.com/?p=1183949"
+source: "https://higgsfield.ai/creator-hub/help-center/ai-models/how-do-i-use-dop; https://higgsfield.ai/; https://higgsfield.ai/higgsfield-api; https://higgsfield.ai/blog/how-we-built-supercomputer; https://aimmediahouse.com/retail/higgsfield-ai-thinks-generative-video-still-lacks-one-critical-thing; https://www.designboom.com/?p=1183949; https://thenextweb.com/news/higgsfield-series-b-400m-5-4bn-valuation-700m-revenue; https://www.unite.ai/higgsfield-secures-fresh-series-b-capital-from-tcv-and-nvidia/; https://gritdaily.com/kazakh-startup-higgsfield-criticism/"
 retrieved: 2026-10-26
 confidence: 0.8
 applies_to: [ORV-109, ADR-0009]
@@ -50,11 +50,12 @@ All quotes were re-read on 2026-10-26 through a fetch tool that returns page tex
 
 ### Company context
 
-- **Funding:** a $400M Series B at a $5.4B valuation, led by DST Global and announced on 2026-08-17 (Yahoo Finance). TCV and NVIDIA joined a Series B extension, reported on 2026-10-23 (Unite.AI).
-- **Revenue (company-reported):** $700M annualized in August 2026, and over $1B in September 2026 according to Unite.AI.
-- **Founder:** Alex Mashrabov, co-founder and CEO, formerly head of AI at Snap.
-- **Refunds:** Grit Daily (2026-10-12) reports complaints about "unlimited access to advanced models", tens of thousands of fake accounts blocked, and about $1.35 million refunded. A third-party review (Kavel, a competitor) quotes the help center: "unlimited" means specific models for a set period.
-- **Plans:** that review lists Starter $19 with 270 credits, Plus $59 with 1,200 credits a month ($47 billed yearly), and Ultra $129 with 3,000 credits ($99 billed yearly). This is not checked against Higgsfield's own pricing page.
+These figures are press-reported, and the revenue and refund figures are company-reported through the press. They do not carry the entry's 0.8 and are not grounds for a decision. Each was re-read on 2026-10-26 at the URL named.
+
+- **Funding:** a $400M Series B at a $5.4B valuation, led by DST Global and announced on 2026-08-17 (The Next Web, 2026-08-17). TCV and NVIDIA joined a Series B extension announced on 2026-10-23 (Unite.AI, 2026-10-23, whose byline is an AI research agent).
+- **Revenue (company-reported):** $700M annualized in August 2026, which The Next Web calls "a run rate rather than booked annual revenue", and over $1B annualized in September 2026 according to Unite.AI.
+- **Founder:** Unite.AI calls Alex Mashrabov "co-founder and CEO". The Next Web says he "ran generative AI at Snap", and Unite.AI says he co-founded AI Factory, the company behind Snapchat's face filters.
+- **Refunds:** Grit Daily (2026-10-12) reports complaints that Higgsfield "promised unlimited access to advanced models", and the company's statement that it "blocked tens of thousands of fake accounts" and "refunded approximately $1.35 million to legitimate users".
 
 ### Claims from the orchestrator's notes that did not re-check
 
@@ -63,6 +64,7 @@ All quotes were re-read on 2026-10-26 through a fetch tool that returns page tex
 - **Cinema Studio:** "about 1,296 lens and motion parameters" is not on the pages read.
 - **Soul ID and CLI:** neither was found on the pages read.
 - **Genjutsu base:** the community guess that it runs on Seedance was not re-read.
+- **Kavel review:** the third-party review cited for the meaning of "unlimited" and for plan prices could not be found again on 2026-10-26, so its help-center quote and its plan prices are dropped.
 - **Unconfirmed company details:** the Series A amount, the CTO's name, the date of the CEO's apology, and the claim that Higgsfield owns its GPUs. The Grit Daily article does not give the apology date, and it describes blocked fake accounts, not bans of paying users.
 
 ### Inference (not fact; confidence 0.4)

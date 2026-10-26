@@ -93,19 +93,33 @@ Open `docs/` (or the repo root) as a vault. The frontmatter reads as Obsidian pr
 
 Keep this table in step with the folder when you add an entry.
 
-| Entry                                                  | Confidence | In short                                                              |
-| ------------------------------------------------------ | ---------- | --------------------------------------------------------------------- |
-| [[K-0001-prose-rules-vs-running-gates]]                | 0.65       | Prose rules caught 0 of 83 gaps, running gates 7 of 7 (count unshown) |
-| [[K-0002-atlas-orchestrates-from-the-main-loop]]       | 0.8        | The orchestrator is a main-loop skill; workers are agents             |
-| [[K-0003-atlas-envelope-v2-and-checked-facts]]         | 0.8        | One envelope, one objective; every fact has `checked_by`              |
-| [[K-0004-atlas-report-contracts]]                      | 0.8        | implementer.v1, reviewer.v1, explorer.v1: JSON only                   |
-| [[K-0005-proof-must-match-the-claim]]                  | 0.8        | Visual claims need computed style or a looked-at screenshot           |
-| [[K-0006-finding-without-evidence-is-dropped]]         | 0.8        | A finding without re-runnable evidence is dropped                     |
-| [[K-0007-model-review-capped-at-two-rounds]]           | 0.8        | Model review stops at 2 rounds, then the human decides                |
-| [[K-0008-hooks-fail-silently-without-a-heartbeat]]     | 0.85       | Hooks failed silently; a heartbeat proves they fire                   |
-| [[K-0009-campvibe-envelope-done-when-is-an-outcome]]   | 0.8        | `done_when` is an outcome a command proves                            |
-| [[K-0010-campvibe-done-needs-a-verify-role]]           | 0.8        | No Done without a QA or Security role in the history                  |
-| [[K-0011-campvibe-circuit-breaker-and-stall-watchdog]] | 0.8        | Back to Discovery after 2 rejections; stall after about 15 minutes    |
-| [[K-0012-skill-use-per-role-is-prose-only]]            | 0.75       | Skill use per role is enforced in prose only                          |
-| [[K-0013-pinned-standards-versions-and-sources]]       | 0.75       | ASVS 5.0.0, LLM Top 10 2025, WCAG 2.2, CWV, PDPA: versions and URLs   |
-| [[K-0014-owasp-llm-top-10-2026-items-and-changes]]     | 0.8        | LLM Top 10 2026: same ten risks, one renamed, list reordered          |
+| Entry                                                           | Confidence | In short                                                              |
+| --------------------------------------------------------------- | ---------- | --------------------------------------------------------------------- |
+| [[K-0001-prose-rules-vs-running-gates]]                         | 0.65       | Prose rules caught 0 of 83 gaps, running gates 7 of 7 (count unshown) |
+| [[K-0002-atlas-orchestrates-from-the-main-loop]]                | 0.8        | The orchestrator is a main-loop skill; workers are agents             |
+| [[K-0003-atlas-envelope-v2-and-checked-facts]]                  | 0.8        | One envelope, one objective; every fact has `checked_by`              |
+| [[K-0004-atlas-report-contracts]]                               | 0.8        | implementer.v1, reviewer.v1, explorer.v1: JSON only                   |
+| [[K-0005-proof-must-match-the-claim]]                           | 0.8        | Visual claims need computed style or a looked-at screenshot           |
+| [[K-0006-finding-without-evidence-is-dropped]]                  | 0.8        | A finding without re-runnable evidence is dropped                     |
+| [[K-0007-model-review-capped-at-two-rounds]]                    | 0.8        | Model review stops at 2 rounds, then the human decides                |
+| [[K-0008-hooks-fail-silently-without-a-heartbeat]]              | 0.85       | Hooks failed silently; a heartbeat proves they fire                   |
+| [[K-0009-campvibe-envelope-done-when-is-an-outcome]]            | 0.8        | `done_when` is an outcome a command proves                            |
+| [[K-0010-campvibe-done-needs-a-verify-role]]                    | 0.8        | No Done without a QA or Security role in the history                  |
+| [[K-0011-campvibe-circuit-breaker-and-stall-watchdog]]          | 0.8        | Back to Discovery after 2 rejections; stall after about 15 minutes    |
+| [[K-0012-skill-use-per-role-is-prose-only]]                     | 0.75       | Skill use per role is enforced in prose only                          |
+| [[K-0013-pinned-standards-versions-and-sources]]                | 0.75       | ASVS 5.0.0, LLM Top 10 2025, WCAG 2.2, CWV, PDPA: versions and URLs   |
+| [[K-0014-owasp-llm-top-10-2026-items-and-changes]]              | 0.8        | LLM Top 10 2026: same ten risks, one renamed, list reordered          |
+| [[K-0016-openui-litellm-generator-with-judge-model-evals]]      | 0.8        | A second model judges screenshots on four 1 to 4 criteria             |
+| [[K-0017-screenshot-to-code-variants-and-human-scored-evals]]   | 0.8        | A person rates outputs 1 to 4, three runs per combination             |
+| [[K-0018-tldraw-make-real-canvas-image-to-html-iframe]]         | 0.8        | Make Real sends a canvas image to a vision model, gets an iframe      |
+| [[K-0019-v0-composite-model-and-ai-sdk-structured-output]]      | 0.8        | v0 is a composite model around a swappable base model                 |
+| [[K-0020-style-dictionary-dtcg-token-pipeline]]                 | 0.8        | Style Dictionary builds tokens in a fixed, model-free pipeline        |
+| [[K-0021-material-color-utilities-hct-deterministic-schemes]]   | 0.8        | Material derives a whole scheme from one color, no model              |
+| [[K-0022-adobe-leonardo-contrast-targeted-palettes]]            | 0.8        | Leonardo solves colors from target contrast ratios                    |
+| [[K-0023-radix-colors-step-roles-and-apca-guarantee]]           | 0.8        | Radix: twelve steps with fixed roles; APCA on steps 11 and 12         |
+| [[K-0024-huemint-ml-palettes-from-a-contrast-graph]]            | 0.8        | Huemint's own models make palettes; contrast is a loose target        |
+| [[K-0025-penpot-mcp-model-runs-code-in-plugin]]                 | 0.75       | Penpot MCP lets the model run code in a plugin                        |
+| [[K-0026-hue-agent-skill-design-model-and-validator]]           | 0.8        | Hue: one design model, person approves, validator gates               |
+| [[K-0027-synthesis-ai-design-system-architecture-patterns]]     | 0.8        | Six recurring patterns; shipped color is rule-made except Huemint     |
+| [[K-0045-wireflow-third-party-models-in-a-hosted-node-graph]]   | 0.75       | Wireflow shows only third-party models behind a node graph            |
+| [[K-0046-higgsfield-own-models-plus-resold-third-party-models]] | 0.8        | Higgsfield resells third-party models and runs its own                |
