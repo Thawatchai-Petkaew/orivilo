@@ -281,9 +281,14 @@ describe.runIf(HAS_TEST_DATABASE)("Better Auth and the authorization helper", ()
         (await t.admin.select().from(rateLimitCounter)).filter(
           (r) => r.key === `sign-in:ip:${subject}`,
         );
+      // Start 1 s after an aligned 10 minute boundary; every post below is 20 s after the last,
+      // so no aligned 10 s window holds more than one and Better Auth's 3 per 10 s never refuses.
+      clock = Math.ceil(clock / 600_000) * 600_000 + 1_000;
+      const verificationRows = async () => (await t.admin.select().from(verification)).length;
+      const before = await verificationRows();
       for (let i = 1; i <= 10; i++) {
         clock += 20_000;
-        await routeA(
+        const res = await routeA(
           new Request("http://localhost:3000/api/auth/sign-in/social", {
             method: "POST",
             headers: {
@@ -294,21 +299,33 @@ describe.runIf(HAS_TEST_DATABASE)("Better Auth and the authorization helper", ()
             body: "{}",
           }),
         );
+        expect(res.status).not.toBe(200);
+        expect(await res.text()).not.toContain("RATE_LIMITED");
+        expect(res.headers.get("x-request-id")).toBeNull();
       }
       expect(await counted()).toHaveLength(0);
+      expect(await verificationRows()).toBe(before);
+
       clock += 20_000;
-      await routeA(
+      const real = await routeA(
         new Request("http://localhost:3000/api/auth/sign-in/social", {
           method: "POST",
           headers: {
             "content-type": "application/json",
-            origin: "https://evil.example",
+            origin: "http://localhost:3000",
             "x-forwarded-for": ip,
           },
           body: JSON.stringify({ provider: "google", callbackURL: "/account" }),
         }),
       );
-      expect((await counted())[0]?.count).toBe(1);
+      expect(real.status).toBe(200);
+      expect(((await real.json()) as { url: string }).url).toMatch(
+        /^https:\/\/accounts\.google\.com\//,
+      );
+      const rows = await counted();
+      expect(rows).toHaveLength(1);
+      expect(rows[0]?.count).toBe(1);
+      expect(await verificationRows()).toBe(before + 1);
     });
 
     it("the sign-in limit is shared by the action and the route", async () => {

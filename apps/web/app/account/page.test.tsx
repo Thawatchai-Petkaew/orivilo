@@ -17,7 +17,7 @@ const { default: AccountPage } = await import("./page");
 
 // ORV-112 design D2a: the column anchors to the top, so the notice grows downward only.
 describe("/account signed out", () => {
-  it("anchors main to the top and keeps the notice line unwidowed", async () => {
+  it("anchors main to the top and does not center it", async () => {
     const html = renderToStaticMarkup(await AccountPage());
     const main = /<main class="([^"]*)"/.exec(html)?.[1] ?? "";
     const classes = main.split(" ");
