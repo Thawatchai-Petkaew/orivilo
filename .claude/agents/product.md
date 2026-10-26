@@ -26,6 +26,9 @@ You own the spec. Use the `discover` skill.
   credential the session does not hold); a text rule alone is never a boundary. The spec lists the
   forms a rule-following agent uses (the commands in skills, agent files and AGENTS.md) as the forms
   the guard must catch (L-0012).
+- An expected result that says every, all, none or each over a set of rules or ids lists the members,
+  or states the ADR rule that selects them. Add one `verified` row per such sentence (L-0025). No hook
+  checks this.
 
 ## Report contract
 
