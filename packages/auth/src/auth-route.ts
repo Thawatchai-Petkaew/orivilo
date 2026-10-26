@@ -1,40 +1,77 @@
 import { randomUUID } from "node:crypto";
-import { RateLimitUnavailable } from "./rate-limit.ts";
+import { type Consumed, RateLimitUnavailable } from "./rate-limit.ts";
 
 const envelope = (
   status: number,
   code: string,
   message: string,
   extra: Record<string, string> = {},
-) =>
-  new Response(
-    JSON.stringify({ error: { code, message, requestId: randomUUID(), retryable: true } }),
-    { status, headers: { "content-type": "application/json", ...extra } },
+) => {
+  const requestId = randomUUID();
+  return new Response(JSON.stringify({ error: { code, message, requestId, retryable: true } }), {
+    status,
+    headers: { "content-type": "application/json", "x-request-id": requestId, ...extra },
+  });
+};
+
+const rateLimited = (wait: string | null) =>
+  envelope(
+    429,
+    "RATE_LIMITED",
+    "Too many requests. Try again later.",
+    wait ? { "retry-after": wait, "x-retry-after": wait } : {},
   );
 
+/** One JSON line by name only: no key, IP, header value, error message or stack. */
+const unavailable = () => {
+  const response = envelope(503, "SERVICE_UNAVAILABLE", "Service unavailable. Try again later.");
+  console.error(
+    JSON.stringify({
+      level: "error",
+      requestId: response.headers.get("x-request-id"),
+      route: "auth",
+      outcome: "unavailable",
+    }),
+  );
+  return response;
+};
+
+export interface AuthRouteOptions {
+  /** Counts one sign-in against the `sign-in` limit for this request's trusted IP (ORV-122). */
+  consumeSignIn: (request: Request) => Promise<Consumed>;
+}
+
 /**
- * Wraps Better Auth's handler (ORV-112). Its 429 from the shared limiter gets `Retry-After` and
- * the error envelope; a store failure, which Better Auth does not catch, answers 503; any other
- * error is rethrown. Only the limiter makes 429s in this setup.
+ * Wraps Better Auth's handler (ORV-112, ORV-122). `POST /api/auth/sign-in/*` is counted against
+ * the `sign-in` limit first, in the bucket `signInWithGoogle` uses, and a refused request never
+ * reaches the handler. The handler's own 429 from the shared limiter gets `Retry-After` and the
+ * error envelope; a store failure answers 503 and is logged once; any other error is rethrown.
+ * Every answer written here carries `x-request-id`, equal to the body's `requestId`.
  */
 export function authRoute(
   handler: (request: Request) => Promise<Response>,
+  options: AuthRouteOptions,
 ): (request: Request) => Promise<Response> {
   return async (request) => {
     try {
+      if (
+        request.method === "POST" &&
+        new URL(request.url).pathname.startsWith("/api/auth/sign-in/")
+      ) {
+        const counted = await options
+          .consumeSignIn(request)
+          .catch((): Consumed => ({ ok: false, reason: "unavailable" }));
+        if (!counted.ok) {
+          return counted.reason === "limited"
+            ? rateLimited(String(counted.retryAfter))
+            : unavailable();
+        }
+      }
       const response = await handler(request);
       if (response.status !== 429) return response;
-      const wait = response.headers.get("x-retry-after");
-      return envelope(
-        429,
-        "RATE_LIMITED",
-        "Too many requests. Try again later.",
-        wait ? { "retry-after": wait, "x-retry-after": wait } : {},
-      );
+      return rateLimited(response.headers.get("x-retry-after"));
     } catch (error) {
-      if (error instanceof RateLimitUnavailable) {
-        return envelope(503, "SERVICE_UNAVAILABLE", "Service unavailable. Try again later.");
-      }
+      if (error instanceof RateLimitUnavailable) return unavailable();
       throw error;
     }
   };

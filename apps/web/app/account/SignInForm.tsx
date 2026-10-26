@@ -17,7 +17,7 @@ function SignInNotice({ state, labels }: { state: SignInState; labels: SignInLab
               {labels.account.problem}
             </Badge>
           </span>
-          <p className="text-body-md">{line}</p>
+          <p className="text-body-md text-pretty">{line}</p>
         </>
       ) : null}
     </div>

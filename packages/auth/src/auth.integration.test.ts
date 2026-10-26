@@ -2,10 +2,16 @@ import { eq, member, organization, project, rateLimitCounter, verification } fro
 import { createDb, type Db } from "@orivilo/db/client";
 import { createTestDatabase, HAS_TEST_DATABASE, type TestDatabase } from "@orivilo/db/testing";
 import { testUtils } from "better-auth/plugins";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { withWorkspace } from "./access.ts";
 import { authRoute } from "./auth-route.ts";
+import { hashIp } from "./client-ip.ts";
 import { createAuth } from "./config.ts";
+import { createRateLimiter, LIMITS } from "./rate-limit.ts";
+
+interface Body {
+  error: { requestId: string };
+}
 
 // ORV-38 AC 1, 2 and 4, against a throwaway database as orivilo_app.
 describe.runIf(HAS_TEST_DATABASE)("Better Auth and the authorization helper", () => {
@@ -136,7 +142,10 @@ describe.runIf(HAS_TEST_DATABASE)("Better Auth and the authorization helper", ()
     let poolB: Db;
     let routeA: (r: Request) => Promise<Response>;
     let routeB: (r: Request) => Promise<Response>;
-    const build = (db: Db) => {
+    const subjectOf = (r: Request) => hashIp(r.headers.get("x-forwarded-for") ?? "", secret);
+    // The same shape as the app's route: the `sign-in` bucket, per trusted IP.
+    const build = (db: Db, countOn: Db = db) => {
+      const signIns = createRateLimiter({ db: countOn, now: () => clock, pruneEveryMs: 0 });
       const instance = createAuth({
         db,
         secret,
@@ -144,7 +153,9 @@ describe.runIf(HAS_TEST_DATABASE)("Better Auth and the authorization helper", ()
         google: { clientId: "test", clientSecret: "test" },
         rateLimit: { now: () => clock, pruneEveryMs: 0 },
       });
-      return authRoute((r) => instance.handler(r));
+      return authRoute((r) => instance.handler(r), {
+        consumeSignIn: (r) => signIns.consume(LIMITS["sign-in"], { ip: subjectOf(r) }),
+      });
     };
     beforeAll(() => {
       poolB = createDb(t.appUrl);
@@ -179,9 +190,11 @@ describe.runIf(HAS_TEST_DATABASE)("Better Auth and the authorization helper", ()
       const wait = Number(fourth?.headers.get("retry-after"));
       expect(wait).toBeGreaterThanOrEqual(1);
       expect(wait).toBeLessThanOrEqual(9);
-      expect(await fourth?.json()).toMatchObject({
+      const body = (await fourth?.json()) as Body;
+      expect(body).toMatchObject({
         error: { code: "RATE_LIMITED", retryable: true, requestId: expect.any(String) },
       });
+      expect(fourth?.headers.get("x-request-id")).toBe(body.error.requestId);
       const found = (await t.admin.select().from(rateLimitCounter)).filter(
         (r) => r.key.startsWith("auth-http:ip:") && r.key.endsWith(":10x3"),
       );
@@ -220,18 +233,93 @@ describe.runIf(HAS_TEST_DATABASE)("Better Auth and the authorization helper", ()
     it("a store failure answers 503 through the handler", async () => {
       const dead = createDb(t.appUrl);
       await dead.$client.end();
-      const route = authRoute((r) =>
-        createAuth({
-          db: dead,
-          secret,
-          baseURL: "http://localhost:3000",
-          google: { clientId: "test", clientSecret: "test" },
-          rateLimit: { now: () => clock, pruneEveryMs: 0 },
-        }).handler(r),
+      const log = vi.spyOn(console, "error").mockImplementation(() => {});
+      try {
+        const route = authRoute(
+          (r) =>
+            createAuth({
+              db: dead,
+              secret,
+              baseURL: "http://localhost:3000",
+              google: { clientId: "test", clientSecret: "test" },
+              rateLimit: { now: () => clock, pruneEveryMs: 0 },
+            }).handler(r),
+          { consumeSignIn: async () => ({ ok: true }) },
+        );
+        const res = await route(signInRequest(1, "203.0.113.50"));
+        expect(res.status).toBe(503);
+        const body = (await res.json()) as Body;
+        expect(body).toMatchObject({ error: { code: "SERVICE_UNAVAILABLE" } });
+        expect(res.headers.get("x-request-id")).toBe(body.error.requestId);
+        expect(log).toHaveBeenCalledTimes(1);
+      } finally {
+        log.mockRestore();
+      }
+    });
+
+    it("a sign-in count that cannot be read answers 503 and starts no sign-in", async () => {
+      const dead = createDb(t.appUrl);
+      await dead.$client.end();
+      const route = build(t.app, dead);
+      const before = (await t.admin.select().from(verification)).length;
+      const log = vi.spyOn(console, "error").mockImplementation(() => {});
+      try {
+        const res = await route(signInRequest(1, "203.0.113.51"));
+        expect(res.status).toBe(503);
+        expect(res.headers.get("x-request-id")).toBe(((await res.json()) as Body).error.requestId);
+        expect(log).toHaveBeenCalledTimes(1);
+      } finally {
+        log.mockRestore();
+      }
+      expect((await t.admin.select().from(verification)).length).toBe(before);
+    });
+
+    it("the sign-in limit is shared by the action and the route", async () => {
+      const ip = "203.0.113.20";
+      const signIns = createRateLimiter({ db: t.app, now: () => clock, pruneEveryMs: 0 });
+      const subject = hashIp(ip, secret);
+      // Ten sign-ins, 20 s apart so Better Auth's own 3 per 10 s rule never refuses one: the
+      // action's consume call and the route mixed.
+      for (let i = 1; i <= 10; i++) {
+        clock += 20_000;
+        if (i % 2) {
+          expect(await signIns.consume(LIMITS["sign-in"], { ip: subject })).toEqual({ ok: true });
+        } else {
+          expect((await routeA(signInRequest(i, ip))).status).toBe(200);
+        }
+      }
+      const rows = (await t.admin.select().from(rateLimitCounter)).filter(
+        (r) => r.key === `sign-in:ip:${subject}`,
       );
-      const res = await route(signInRequest(1, "203.0.113.50"));
-      expect(res.status).toBe(503);
-      expect(await res.json()).toMatchObject({ error: { code: "SERVICE_UNAVAILABLE" } });
+      expect(rows).toHaveLength(1);
+      expect(rows[0]?.count).toBe(10);
+
+      clock += 20_000;
+      const before = (await t.admin.select().from(verification)).length;
+      const refused = await routeB(signInRequest(11, ip));
+      expect(refused.status).toBe(429);
+      const wait = Number(refused.headers.get("retry-after"));
+      expect(wait).toBeGreaterThanOrEqual(1);
+      expect(wait).toBeLessThanOrEqual(600);
+      const body = (await refused.json()) as Body;
+      expect(body).toEqual({
+        error: {
+          code: "RATE_LIMITED",
+          message: "Too many requests. Try again later.",
+          requestId: expect.any(String),
+          retryable: true,
+        },
+      });
+      expect(refused.headers.get("x-request-id")).toBe(body.error.requestId);
+      expect(await signIns.consume(LIMITS["sign-in"], { ip: subject })).toMatchObject({
+        ok: false,
+        reason: "limited",
+      });
+      expect((await t.admin.select().from(verification)).length).toBe(before);
+      const after = (await t.admin.select().from(rateLimitCounter)).filter(
+        (r) => r.key === `sign-in:ip:${subject}`,
+      );
+      expect(after[0]?.count).toBe(10);
     });
   });
 });
