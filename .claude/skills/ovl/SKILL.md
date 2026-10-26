@@ -82,7 +82,17 @@ Do not set `model`, `isolation` or `run_in_background` on the call. `cwd`, if gi
   builder task per deliverable, dispatched in build order, each with only the `context_pointers` and
   `write_set` that deliverable needs. A builder envelope with more than 8 `context_pointers` is split
   before dispatch, unless one fact says why its parts cannot be built apart. The PR still gets one
-  full gate, two reviewer passes and the qa walk (L-0010).
+  full gate, two reviewer passes and the qa walk (L-0010). The `write_set` holds every test file the
+  spec's Tests cell names for the deliverable, even when an earlier or later envelope also writes it;
+  the envelopes run one at a time. Before the first code review, each builder deviation that names a
+  file outside its `write_set` gets a fix envelope or a spec revision that records it (L-0043). No
+  hook checks this; it is the main session's duty.
+- **Builder objective points to the design.** A builder objective names the tech notes section, the
+  clause numbers and the spec rows it builds, by number. It does not restate a signature, return
+  shape, constant, threshold or list. When it must state one (a value the tech notes leave open), it
+  copies the tech notes text word for word and adds a fact whose `checked_by` is
+  `grep -n -F '<text>' docs/specs/<KEY>/tech.md` (L-0044). No hook checks this; it is the main
+  session's duty.
 - **Contract change from a review.** When a review's findings or the owner's answers change the
   spec's contract, dispatch the `product` revision first and the builder fix only after it returns;
   never both from one review at once. When a reviewer and a qa judged the same head in parallel, the
