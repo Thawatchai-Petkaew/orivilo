@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  COLOR_KEYS,
   DECISION_VOCABULARY,
   MAX_CONDITION_DEPTH,
   checkRuleSet,
   decisionRuleSchema,
   evaluateRules,
+  evaluateScope,
   type BriefFacts,
   type Condition,
   type DecisionRule,
@@ -259,5 +261,40 @@ describe("checkRuleSet", () => {
       ["motion.extra", "unknown-knowledge"],
       ["shape.playful-soft", "duplicate-id"],
     ]);
+  });
+});
+
+describe("crowded condition", () => {
+  const colorRule = (when: Condition): DecisionRule => ({
+    ...base,
+    id: "color.test",
+    topic: "color",
+    when,
+    then: [{ set: "signature", to: "lime" }],
+    because: ["color.audit-the-category"],
+  });
+  const facts = (crowded?: string[]) => ({
+    personality: {},
+    industry: null,
+    audiences: [],
+    avoid: [],
+    ...(crowded === undefined ? {} : { crowded }),
+  });
+  const run = (when: Condition, crowded?: string[]) => {
+    const e = evaluateScope([colorRule(when)], facts(crowded), COLOR_KEYS);
+    return e.fired.length > 0 ? true : e.undecided.length > 0 ? e.undecided[0]?.missing : false;
+  };
+  const lime: Condition = { crowded: "lime" };
+
+  it("crowded condition is three-valued", () => {
+    expect(run(lime, ["lime"])).toBe(true);
+    expect(run(lime, [])).toBe(false);
+    expect(run(lime)).toEqual(["lineup"]);
+    expect(run({ not: lime })).toEqual(["lineup"]);
+    expect(run({ not: lime }, [])).toBe(true);
+    expect(run({ all: [lime, { always: true }] })).toEqual(["lineup"]);
+    expect(run({ all: [lime, { not: { always: true } }] })).toBe(false);
+    expect(run({ any: [lime, { always: true }] })).toBe(true);
+    expect(run({ any: [lime, { not: { always: true } }] })).toEqual(["lineup"]);
   });
 });

@@ -8,3 +8,7 @@ export * from "./directions";
 export * from "./saved";
 export * from "./llm-interpreter";
 export * from "./openrouter";
+export * from "./color-audit";
+export * from "./color-knowledge";
+export * from "./color-rules";
+export * from "./color-fixtures";
