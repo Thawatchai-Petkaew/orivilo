@@ -27,7 +27,7 @@ In `.claude/skills/discover/SKILL.md`, step 2, after the gap list sentence:
 +   close is the structure: the standard or source that defines the whole set, its count per level on
 +   one base, what is excluded and why, and the data source that orders members inside a level. The
 +   spec opens with that structure, then the method, then priorities; a named member appears only as an
-+   example of a data row, never as a pick (L-0036).
++   example of a data row, never as a pick (L-0036). No hook checks this.
 ```
 
 What proves it was done: the next spec whose aim is coverage opens with a structure section that names the source, the counts per level and the ranking source before any named member, and the owner does not reject its plan for starting from picks.

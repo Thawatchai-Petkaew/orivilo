@@ -106,8 +106,8 @@ Do not set `model`, `isolation` or `run_in_background` on the call. `cwd`, if gi
   reference to those files up to date. The re-check is dispatched after the last fix (L-0033). No hook
   checks this; it is the main session's duty.
 - **Before a re-check.** For every finding that corrects a value (a count, a code, a date, a name),
-  run `git diff origin/develop...HEAD | grep -n '<old value>'` before the fixes go out, and give each
-  file it hits to a fix envelope with the corrected value as a fact, in the L-0033 order. After the
+  run `git grep -n -F '<old value>' HEAD -- $(git diff --name-only origin/develop...HEAD)` before the
+  fixes go out, and give each file it hits to a fix envelope with the corrected value as a fact, in the L-0033 order. After the
   fixes, read every fix report's `deviations` and `needs_decision`; a line that names a file, a line
   or a value still out of step goes to a new fix envelope before the re-check is dispatched, whatever
   the role (L-0035). No hook checks this; it is the main session's duty.
