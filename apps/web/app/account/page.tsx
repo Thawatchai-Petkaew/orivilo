@@ -6,6 +6,7 @@ import { headers } from "next/headers";
 import { getWebMessages } from "../../i18n/locale";
 import { accessDeps, auth } from "../../server/auth";
 import { signInWithGoogle, signOut } from "./actions";
+import { SignInForm } from "./SignInForm";
 
 export const dynamic = "force-dynamic";
 
@@ -51,20 +52,16 @@ export default async function AccountPage() {
   const { m } = await getWebMessages();
   const view = await load();
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-6 px-4 py-12">
+    <main className="mx-auto flex w-full max-w-md flex-col justify-start gap-6 px-4 pt-24 pb-12">
       <h1 className="font-display text-display-md text-balance">{m.account.heading}</h1>
       {view.kind === "not-configured" ? (
         <p className="text-body-md text-text-secondary">{m.account.notConfigured}</p>
       ) : null}
       {view.kind === "signed-out" ? (
-        <form action={signInWithGoogle} className="flex flex-col gap-3">
-          <p className="text-body-md text-text-secondary">{m.account.signedOut}</p>
-          <div>
-            <Button type="submit" variant="primary">
-              {m.account.signInWithGoogle}
-            </Button>
-          </div>
-        </form>
+        <SignInForm
+          action={signInWithGoogle}
+          labels={{ account: m.account, wait: m.wait, failed: m.saved.errors.failed }}
+        />
       ) : null}
       {view.kind === "signed-in" ? (
         <form action={signOut} className="flex flex-col gap-3">

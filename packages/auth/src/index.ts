@@ -1,3 +1,4 @@
+export { authRoute } from "./auth-route.ts";
 export { clientIp } from "./client-ip.ts";
 export { Denied, ROLES, withWorkspace } from "./access.ts";
 export type { Access, AccessDeps, Role, Session } from "./access.ts";
@@ -16,6 +17,7 @@ export {
   BANGKOK_OFFSET_SECONDS,
   createRateLimiter,
   LIMITS,
+  RateLimitUnavailable,
   retryAfterOf,
   windowOf,
 } from "./rate-limit.ts";
@@ -25,6 +27,7 @@ export type {
   LimitName,
   RateLimitDeps,
   RateLimiter,
+  SharedRateLimiter,
   Subject,
   Window,
 } from "./rate-limit.ts";

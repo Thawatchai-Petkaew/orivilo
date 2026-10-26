@@ -8,6 +8,10 @@ let warned = false;
 
 const hmac = (key: string | Buffer, message: string) => createHmac("sha256", key).update(message);
 
+/** The hex HMAC subject of an already normalised IP, under the key derived from the secret. */
+export const hashIp = (ip: string, secret: string) =>
+  hmac(hmac(secret, IP_KEY_LABEL).digest(), ip).digest("hex");
+
 /**
  * The rate limit subject for a request's network (ORV-112, K-0015). On Vercel
  * (`VERCEL_ENV` production or preview) it is the hex HMAC of `x-forwarded-for`, which the edge
@@ -32,5 +36,5 @@ export function clientIp(
     }
     return "unknown";
   }
-  return hmac(hmac(secret, IP_KEY_LABEL).digest(), ip).digest("hex");
+  return hashIp(ip, secret);
 }
