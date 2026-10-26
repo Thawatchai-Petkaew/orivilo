@@ -274,6 +274,43 @@ describe.runIf(HAS_TEST_DATABASE)("Better Auth and the authorization helper", ()
       expect((await t.admin.select().from(verification)).length).toBe(before);
     });
 
+    it("text/plain posts with a foreign Origin are not counted; a JSON one is", async () => {
+      const ip = "203.0.113.60";
+      const subject = hashIp(ip, secret);
+      const counted = async () =>
+        (await t.admin.select().from(rateLimitCounter)).filter(
+          (r) => r.key === `sign-in:ip:${subject}`,
+        );
+      for (let i = 1; i <= 10; i++) {
+        clock += 20_000;
+        await routeA(
+          new Request("http://localhost:3000/api/auth/sign-in/social", {
+            method: "POST",
+            headers: {
+              "content-type": "text/plain",
+              origin: "https://evil.example",
+              "x-forwarded-for": ip,
+            },
+            body: "{}",
+          }),
+        );
+      }
+      expect(await counted()).toHaveLength(0);
+      clock += 20_000;
+      await routeA(
+        new Request("http://localhost:3000/api/auth/sign-in/social", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            origin: "https://evil.example",
+            "x-forwarded-for": ip,
+          },
+          body: JSON.stringify({ provider: "google", callbackURL: "/account" }),
+        }),
+      );
+      expect((await counted())[0]?.count).toBe(1);
+    });
+
     it("the sign-in limit is shared by the action and the route", async () => {
       const ip = "203.0.113.20";
       const signIns = createRateLimiter({ db: t.app, now: () => clock, pruneEveryMs: 0 });

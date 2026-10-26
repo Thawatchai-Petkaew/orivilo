@@ -6,7 +6,10 @@ interface Body {
   error: { requestId: string };
 }
 
-const request = new Request("http://localhost:3000/api/auth/sign-in/social", { method: "POST" });
+const request = new Request("http://localhost:3000/api/auth/sign-in/social", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+});
 const allowed = async (): Promise<Consumed> => ({ ok: true });
 const wrap = (
   handler: (r: Request) => Promise<Response>,
@@ -107,6 +110,62 @@ describe("authRoute", () => {
     expect(consume).not.toHaveBeenCalled();
     await wrap(handler, consume)(request);
     expect(consume).toHaveBeenCalledTimes(1);
+  });
+
+  // Row 25: only a request Better Auth would parse as a JSON sign-in body is counted.
+  it("does not count other media types, with or without a foreign Origin", async () => {
+    const consume = vi.fn(allowed);
+    const handler = vi.fn(async () => new Response("ok"));
+    const post = (headers: Record<string, string>) =>
+      new Request("http://localhost:3000/api/auth/sign-in/social", { method: "POST", headers });
+    for (const type of [
+      "text/plain",
+      "application/x-www-form-urlencoded",
+      "multipart/form-data; boundary=x",
+      "",
+    ]) {
+      await wrap(
+        handler,
+        consume,
+      )(post({ origin: "https://evil.example", ...(type ? { "content-type": type } : {}) }));
+    }
+    expect(consume).not.toHaveBeenCalled();
+    expect(handler).toHaveBeenCalledTimes(4);
+  });
+
+  it("counts a JSON sign-in with a foreign Origin and no cookie, however the type is written", async () => {
+    const consume = vi.fn(allowed);
+    for (const type of [
+      "application/json",
+      "Application/JSON; charset=utf-8",
+      " application/json ",
+    ]) {
+      await wrap(
+        async () => new Response("ok"),
+        consume,
+      )(
+        new Request("http://localhost:3000/api/auth/sign-in/social", {
+          method: "POST",
+          headers: { "content-type": type, origin: "https://evil.example" },
+        }),
+      );
+    }
+    expect(consume).toHaveBeenCalledTimes(3);
+  });
+
+  it("a count that throws before it returns a promise answers 503 and logs once", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    const handler = vi.fn(async () => new Response("ok"));
+    const res = await wrap(handler, () => {
+      throw new Error("secret detail");
+    })(request);
+    expect(res.status).toBe(503);
+    const body = (await res.json()) as Body & { error: { code: string } };
+    expect(body.error.code).toBe("SERVICE_UNAVAILABLE");
+    expect(res.headers.get("x-request-id")).toBe(body.error.requestId);
+    expect(handler).not.toHaveBeenCalled();
+    expect(log).toHaveBeenCalledTimes(1);
+    expect(String(log.mock.calls[0]?.[0])).not.toContain("secret detail");
   });
 
   it("rethrows any other error and passes a 200 through", async () => {

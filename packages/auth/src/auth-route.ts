@@ -36,13 +36,28 @@ const unavailable = () => {
   return response;
 };
 
+/**
+ * A request that could start a sign-in: `POST /api/auth/sign-in/*` with a JSON media type, read the
+ * way Better Auth does (lower-cased, the part before `;`, trimmed). Origin plays no part: Better
+ * Auth checks it only with a cookie. Any other media type is refused by Better Auth and not counted,
+ * so a cross-site form post cannot fill a network's bucket (ORV-122 row 25).
+ */
+const startsSignIn = (request: Request) =>
+  request.method === "POST" &&
+  new URL(request.url).pathname.startsWith("/api/auth/sign-in/") &&
+  (request.headers.get("content-type") ?? "")
+    .toLowerCase()
+    .split(";", 1)[0]
+    ?.trim()
+    .includes("application/json") === true;
+
 export interface AuthRouteOptions {
   /** Counts one sign-in against the `sign-in` limit for this request's trusted IP (ORV-122). */
   consumeSignIn: (request: Request) => Promise<Consumed>;
 }
 
 /**
- * Wraps Better Auth's handler (ORV-112, ORV-122). `POST /api/auth/sign-in/*` is counted against
+ * Wraps Better Auth's handler (ORV-112, ORV-122). `POST /api/auth/sign-in/*` with a JSON body is counted against
  * the `sign-in` limit first, in the bucket `signInWithGoogle` uses, and a refused request never
  * reaches the handler. The handler's own 429 from the shared limiter gets `Retry-After` and the
  * error envelope; a store failure answers 503 and is logged once; any other error is rethrown.
@@ -54,13 +69,11 @@ export function authRoute(
 ): (request: Request) => Promise<Response> {
   return async (request) => {
     try {
-      if (
-        request.method === "POST" &&
-        new URL(request.url).pathname.startsWith("/api/auth/sign-in/")
-      ) {
-        const counted = await options
-          .consumeSignIn(request)
-          .catch((): Consumed => ({ ok: false, reason: "unavailable" }));
+      if (startsSignIn(request)) {
+        // Wrapped so a count that throws before it returns a promise fails closed like a rejection.
+        const counted = await (async () => options.consumeSignIn(request))().catch(
+          (): Consumed => ({ ok: false, reason: "unavailable" }),
+        );
         if (!counted.ok) {
           return counted.reason === "limited"
             ? rateLimited(String(counted.retryAfter))

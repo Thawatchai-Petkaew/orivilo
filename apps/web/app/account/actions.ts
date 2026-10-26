@@ -2,9 +2,8 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { LIMITS } from "@orivilo/auth";
 import { auth } from "../../server/auth";
-import { limiter, subjectFromHeaders } from "../../server/rate-limit";
+import { consumeSignIn } from "../../server/sign-in-limit";
 
 /** What the sign-in form shows after a refusal; `null` before the first press. */
 export type SignInState =
@@ -16,9 +15,7 @@ export type SignInState =
  * written.
  */
 export async function signInWithGoogle(): Promise<SignInState> {
-  const counted = await limiter().consume(LIMITS["sign-in"], {
-    ip: subjectFromHeaders(await headers()),
-  });
+  const counted = await consumeSignIn(await headers());
   if (!counted.ok) {
     return counted.reason === "limited"
       ? { error: "rate-limited", retryAfter: counted.retryAfter }

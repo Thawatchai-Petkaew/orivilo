@@ -1,4 +1,4 @@
-import { LIMITS, type Limit, type RateLimiter, type Subject } from "@orivilo/auth";
+import { LIMITS, type Limit } from "@orivilo/auth";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // ORV-122 rows 11 and 20: the sign-in limit is checked before Better Auth starts OAuth.
@@ -7,7 +7,7 @@ const state = vi.hoisted(() => ({
     | { ok: true }
     | { ok: false; reason: "limited"; retryAfter: number }
     | { ok: false; reason: "unavailable" },
-  consumed: [] as { limit: Limit; subject: Subject }[],
+  consumed: [] as Limit[],
   signInSocial: vi.fn(),
 }));
 
@@ -20,14 +20,11 @@ vi.mock("next/navigation", () => ({
 vi.mock("../../server/auth", () => ({
   auth: () => ({ api: { signInSocial: state.signInSocial } }),
 }));
-vi.mock("../../server/rate-limit", () => ({
-  subjectFromHeaders: () => "ip-1",
-  limiter: (): RateLimiter => ({
-    async consume(limit, subject) {
-      state.consumed.push({ limit, subject });
-      return state.result;
-    },
-  }),
+vi.mock("../../server/sign-in-limit", () => ({
+  consumeSignIn: async () => {
+    state.consumed.push(LIMITS["sign-in"]);
+    return state.result;
+  },
 }));
 
 const { signInWithGoogle } = await import("./actions");
@@ -41,7 +38,7 @@ beforeEach(() => {
 describe("signInWithGoogle", () => {
   it("counts the sign-in limit per network, then starts OAuth", async () => {
     await expect(signInWithGoogle()).rejects.toThrow("redirect:https://accounts.example/oauth");
-    expect(state.consumed).toEqual([{ limit: LIMITS["sign-in"], subject: { ip: "ip-1" } }]);
+    expect(state.consumed).toEqual([LIMITS["sign-in"]]);
     expect(state.signInSocial).toHaveBeenCalledOnce();
   });
 
