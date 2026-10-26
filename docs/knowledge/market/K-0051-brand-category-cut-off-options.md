@@ -9,13 +9,16 @@ applies_to: [ORV-127]
 license: own-words
 ---
 
+Superseded by ORV-127 comments 10199 and 10200 and the ORV-127 spec (`docs/specs/ORV-127/spec.md`). The text below is kept as the earlier lead; three statements in it were corrected on 2026-10-26 to match [[K-0048-tsic-2009-is-isic-rev4-based-at-five-digits]].
+
 ## Evidence
 
-This entry is research judgment built on [[K-0047-isic-rev4-and-rev5-counts-per-level]], [[K-0048-tsic-2009-is-isic-rev4-based-at-five-digits]], [[K-0049-dbd-new-registrations-open-data-by-objective-code]] and [[K-0050-gics-classifies-companies-for-investors]]. Confidence is 0.6: it rests on an inference about where customers compare, and on K-0048, itself below 0.7. It is a lead for the architect, not grounds for a decision. The counts are exact; the choice among them is not.
+This entry is research judgment built on [[K-0047-isic-rev4-and-rev5-counts-per-level]], [[K-0048-tsic-2009-is-isic-rev4-based-at-five-digits]], [[K-0049-dbd-new-registrations-open-data-by-objective-code]] and [[K-0050-gics-classifies-companies-for-investors]]. Confidence is 0.6: it rests on an inference about where customers compare. K-0048, at 0.8, gives the TSIC counts. It is a lead for the architect, not grounds for a decision. The counts are exact; the choice among them is not.
 
 ### The counts per option (from K-0047 and K-0050)
 
-- ISIC Rev.4 or TSIC 2009, after excluding public administration (O), households (T) and extraterritorial bodies (U): 18 sections, 84 divisions, 231 groups, 408 classes. The TSIC 5-digit subclass count is unknown (K-0048).
+- ISIC Rev.4, after excluding public administration (O), households (T) and extraterritorial bodies (U): 18 sections, 84 divisions, 231 groups, 408 classes.
+- TSIC 2009 after the same exclusions: 18 sections, 84 divisions, 236 groups, 430 classes, and about 1,065 five-digit subclasses (K-0048; the NSO standard states 1,091 subclasses in all, and the NSO workbook lists 1,089).
 - ISIC Rev.5 after the same exclusions (P, U, V): 19 sections, 83 divisions, 251 groups, 451 classes.
 - GICS, whole scheme: 11 sectors, 25 industry groups, 74 industries, 163 sub-industries; no exclusion applies.
 
@@ -30,7 +33,7 @@ These are our readings of example rows, to show the grain; they are not a full a
 
 ### Why Rev.4 class through TSIC, as a recommendation (below 0.7)
 
-- It joins Thai data without a correspondence table: if the DBD code is a TSIC 2009 subclass, its first four digits are the Rev.4 class (inferred, K-0048 and K-0049).
+- It joins Thai data: if the DBD code is a TSIC 2009 subclass, its first four digits are the TSIC class (inferred, K-0048 and K-0049). TSIC has 441 classes against 419 in ISIC Rev.4, so TSIC adds classes of its own, and a join on Rev.4 classes needs a TSIC to ISIC correspondence at the class level (K-0048).
 - 408 classes is a count the phase can plan against; Rev.5 class (451) is the current international standard but needs a Rev.4 to Rev.5 mapping before Thai data ranks it.
 - GICS (163 sub-industries) is smaller and recognisable to investors, but it is trademarked, groups many small consumer services together, and has no Thai formation data keyed to it (K-0050).
 

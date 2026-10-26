@@ -52,7 +52,7 @@ The subtraction is exact against the UNSD totals and the rows above. Our fetch t
 
 ### What this entry does not settle
 
-- Which level is the one where customers compare competitors. That is a judgment, recorded separately with low confidence in [[K-0051-brand-category-cut-off-options]].
+- Which level is the one where customers compare competitors. That is a judgment for ORV-127, recorded in ORV-127 comments 10199 and 10200 and the ORV-127 spec (`docs/specs/ORV-127/spec.md`). The earlier research lead, [[K-0051-brand-category-cut-off-options]], is superseded by them.
 - Other sections that build few consumer or B2B brands (for example 09 mining support, 37 sewerage) are not excluded here; only the three named in the envelope are.
 
 ## Why it matters for ORIVILO

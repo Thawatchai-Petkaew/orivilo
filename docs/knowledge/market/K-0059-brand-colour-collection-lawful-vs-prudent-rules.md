@@ -31,6 +31,8 @@ Not legal advice, and confidence 0.5: this entry is our reading across [[K-0052-
 
 ### Collection rules ORIVILO could adopt (options, not decided)
 
+Lineage: the owner adopted rules based on this list as ORV-127 R1 to R15 under decision D1 (ORV-127 comment 10201; `docs/specs/ORV-127/spec.md`). The adopted text lives in the spec; this list stays the research lead it came from, at 0.5.
+
 For every channel:
 
 1. Store the hex value, its role if known (primary, secondary, background), brand name, category code, source URL, the date read, the channel, and who or what read it. No logo, image, screenshot or page copy is stored.

@@ -4,14 +4,14 @@ topic: market
 claim: Thailand's industrial classification TSIC 2009 follows ISIC Rev.4 and has 5 levels; the NSO standard states 21 sections, 88 divisions, 243 groups, 441 classes and 1,091 five-digit industries. Leaving out divisions 84, 97, 98 and 99 leaves 18, 84, 236, 430 and about 1,065.
 source: "https://catalogapi.nso.go.th/api/doc/department/D08/SD08_08/SD08_08_47_12.pdf; https://catalogapi.nso.go.th/api/doc/department/D08/SD08_08/SD08_08_47_18.xlsx; https://catalog.nso.go.th/en/dataset/0210_12_0009; https://catalogapi.nso.go.th/api/doc/department/D08/SD08_08/SD08_08_56_1.pdf; https://worldoftaxonomy.com/system/tsic_2009; https://openapi.dbd.go.th/juristic_person/registration/99_202501_1.csv; https://unstats.un.org/unsd/classifications/Econ/Download/In Text/ISIC_Rev_4_english_structure.Txt"
 retrieved: 2026-10-26
-confidence: 0.85
+confidence: 0.8
 applies_to: [ORV-127]
 license: own-words
 ---
 
 ## Evidence
 
-Confidence is 0.85 for the per-level counts and the ISIC Rev.4 basis: both are read from the text of an NSO standard (document `SD08_08_47_12`), and the five-digit list was counted from an NSO workbook. It is not higher because the workbook count (1,089) and the stated count (1,091) differ by two, and the brand-relevant five-digit count is approximate. The point on ISIC Rev.5 and the DBD code reading stay inferences, below 0.7, in the last section.
+Confidence is 0.8 for the per-level counts and the ISIC Rev.4 basis: both are read from the text of an NSO standard (document `SD08_08_47_12`), and the five-digit list was counted from an NSO workbook. The standard and the workbook have one publisher, NSO, so they count as one source, which the README caps at 0.8; worldoftaxonomy.com confirms only the ISIC Rev.4 basis and the section count, not the counts below it. The workbook count (1,089) and the stated count (1,091) also differ by two, and the brand-relevant five-digit count is approximate. The point on ISIC Rev.5 and the DBD code reading stay inferences, below 0.7, in the last section.
 
 ### What the NSO standard states (read directly)
 

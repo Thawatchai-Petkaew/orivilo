@@ -142,10 +142,10 @@ Keep this table in step with the folder when you add an entry.
 | [[K-0045-wireflow-third-party-models-in-a-hosted-node-graph]]                     | 0.75       | Wireflow shows only third-party models behind a node graph            |
 | [[K-0046-higgsfield-own-models-plus-resold-third-party-models]]                   | 0.8        | Higgsfield resells third-party models and runs its own                |
 | [[K-0047-isic-rev4-and-rev5-counts-per-level]]                                    | 0.8        | ISIC classes: Rev.4 419, Rev.5 463; 408 and 451 after 3 exclusions    |
-| [[K-0048-tsic-2009-is-isic-rev4-based-at-five-digits]]                            | 0.85       | TSIC 2009 follows ISIC Rev.4; 5 levels, 1,091 five-digit industries   |
+| [[K-0048-tsic-2009-is-isic-rev4-based-at-five-digits]]                            | 0.8        | TSIC 2009 follows ISIC Rev.4; 5 levels, 1,091 five-digit industries   |
 | [[K-0049-dbd-new-registrations-open-data-by-objective-code]]                      | 0.8        | DBD monthly open CSV of new registrations with 5-digit objective code |
 | [[K-0050-gics-classifies-companies-for-investors]]                                | 0.75       | GICS: 163 sub-industries, one code per company, built for investors   |
-| [[K-0051-brand-category-cut-off-options]]                                         | 0.6        | Lead: recommends ISIC Rev.4 class level (408) as the category cut-off |
+| [[K-0051-brand-category-cut-off-options]]                                         | 0.6        | Superseded lead: ISIC Rev.4 class level (408) as the category cut-off |
 | [[K-0052-thai-copyright-excludes-facts-ideas-and-protects-compilation-selection]] | 0.75       | Thai copyright: no ideas, no mere facts; compilation selection only   |
 | [[K-0053-thai-trademark-mark-includes-group-of-colours]]                          | 0.7        | Thai trademark: a group of colours is a mark; registers if uncommon   |
 | [[K-0054-thai-computer-crime-act-access-and-disruption-offences]]                 | 0.7        | Thai CCA: unauthorised access past a block, or disruption, is a crime |

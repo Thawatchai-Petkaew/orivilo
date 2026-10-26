@@ -1,7 +1,7 @@
 ---
 id: K-0050
 topic: market
-claim: GICS has 11 sectors, 25 industry groups, 74 industries and 163 sub-industries and assigns each company one code by its principal business activity, mainly revenue; it is a trademarked MSCI and S&P scheme built for investors, and GS1's GPC classifies products rather than businesses.
+claim: GICS has 11 sectors, 25 industry groups, 74 industries and 163 sub-industries and assigns each company one code by its principal business activity, mainly revenue; it is a trademarked MSCI and S&P scheme built for investors.
 source: "https://www.msci.com/indexes/index-resources/gics; https://en.wikipedia.org/wiki/Global_Industry_Classification_Standard; https://www.msci.com/index/methodology/latest/GICS; https://www.gs1.nl/media/sfpiaxye/gpc-in-a-nutshell_jun24-def.pdf"
 retrieved: 2026-10-26
 confidence: 0.75
