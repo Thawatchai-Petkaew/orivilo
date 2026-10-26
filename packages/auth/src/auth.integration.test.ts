@@ -1,9 +1,17 @@
-import { eq, member, organization, project, verification } from "@orivilo/db";
+import { eq, member, organization, project, rateLimitCounter, verification } from "@orivilo/db";
+import { createDb, type Db } from "@orivilo/db/client";
 import { createTestDatabase, HAS_TEST_DATABASE, type TestDatabase } from "@orivilo/db/testing";
 import { testUtils } from "better-auth/plugins";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { withWorkspace } from "./access.ts";
+import { authRoute } from "./auth-route.ts";
+import { hashIp } from "./client-ip.ts";
 import { createAuth } from "./config.ts";
+import { createRateLimiter, LIMITS } from "./rate-limit.ts";
+
+interface Body {
+  error: { requestId: string };
+}
 
 // ORV-38 AC 1, 2 and 4, against a throwaway database as orivilo_app.
 describe.runIf(HAS_TEST_DATABASE)("Better Auth and the authorization helper", () => {
@@ -124,5 +132,248 @@ describe.runIf(HAS_TEST_DATABASE)("Better Auth and the authorization helper", ()
     await expect(
       withWorkspace(deps(), forged, "anything", "member", async () => undefined),
     ).rejects.toMatchObject({ status: 401 });
+  });
+
+  // ORV-122 rows 12, 20 and 23: two instances on one store, Better Auth's limiter counting there.
+  describe("Better Auth's limiter", () => {
+    const secret = "test-secret-that-is-long-enough-0123456789";
+    // 1 s after an aligned 10 s boundary.
+    let clock = Date.parse("2026-10-26T10:00:01Z");
+    let poolB: Db;
+    let routeA: (r: Request) => Promise<Response>;
+    let routeB: (r: Request) => Promise<Response>;
+    const subjectOf = (r: Request) => hashIp(r.headers.get("x-forwarded-for") ?? "", secret);
+    // The same shape as the app's route: the `sign-in` bucket, per trusted IP.
+    const build = (db: Db, countOn: Db = db) => {
+      const signIns = createRateLimiter({ db: countOn, now: () => clock, pruneEveryMs: 0 });
+      const instance = createAuth({
+        db,
+        secret,
+        baseURL: "http://localhost:3000",
+        google: { clientId: "test", clientSecret: "test" },
+        rateLimit: { now: () => clock, pruneEveryMs: 0 },
+      });
+      return authRoute((r) => instance.handler(r), {
+        consumeSignIn: (r) => signIns.consume(LIMITS["sign-in"], { ip: subjectOf(r) }),
+      });
+    };
+    beforeAll(() => {
+      poolB = createDb(t.appUrl);
+      routeA = build(t.app);
+      routeB = build(poolB);
+    });
+    afterAll(async () => {
+      await poolB?.$client.end();
+    });
+    const signInRequest = (n: number, xff: string) =>
+      new Request("http://localhost:3000/api/auth/sign-in/social", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: "http://localhost:3000",
+          "x-forwarded-for": xff,
+          "x-vercel-forwarded-for": `198.51.100.${n}`,
+          "x-real-ip": `192.0.2.${n}`,
+        },
+        body: JSON.stringify({ provider: "google", callbackURL: "/account" }),
+      });
+
+    it("Better Auth's limiter counts in the shared store", async () => {
+      const statuses: number[] = [];
+      let fourth: Response | undefined;
+      for (const n of [1, 2, 3, 4]) {
+        const res = await (n % 2 ? routeA : routeB)(signInRequest(n, "203.0.113.7"));
+        statuses.push(res.status);
+        if (n === 4) fourth = res;
+      }
+      expect(statuses).toEqual([200, 200, 200, 429]);
+      const wait = Number(fourth?.headers.get("retry-after"));
+      expect(wait).toBeGreaterThanOrEqual(1);
+      expect(wait).toBeLessThanOrEqual(9);
+      const body = (await fourth?.json()) as Body;
+      expect(body).toMatchObject({
+        error: { code: "RATE_LIMITED", retryable: true, requestId: expect.any(String) },
+      });
+      expect(fourth?.headers.get("x-request-id")).toBe(body.error.requestId);
+      const found = (await t.admin.select().from(rateLimitCounter)).filter(
+        (r) => r.key.startsWith("auth-http:ip:") && r.key.endsWith(":10x3"),
+      );
+      expect(found).toHaveLength(1);
+      expect(found[0]?.key).toMatch(/^auth-http:ip:[0-9a-f]{64}:10x3$/);
+      expect(found[0]?.count).toBe(3);
+      // A different trusted header is a different bucket; the forged others never chose one.
+      expect((await routeA(signInRequest(5, "203.0.113.8"))).status).toBe(200);
+    });
+
+    it("made-up paths share one bucket per rule", async () => {
+      clock += 60_000;
+      for (let i = 1; i <= 50; i++) {
+        const res = await (i % 2 ? routeA : routeB)(
+          new Request(`http://localhost:3000/api/auth/made-up-${i}`, {
+            headers: { "x-forwarded-for": "203.0.113.9" },
+          }),
+        );
+        expect(res.status).not.toBe(429);
+      }
+      const found = (await t.admin.select().from(rateLimitCounter)).filter(
+        (r) => r.key.startsWith("auth-http:ip:") && r.key.endsWith(":10x100"),
+      );
+      expect(found).toHaveLength(1);
+      expect(found[0]?.count).toBe(50);
+    });
+
+    it("keeps raw IPs out of every key", async () => {
+      const keys = (await t.admin.select({ key: rateLimitCounter.key }).from(rateLimitCounter)).map(
+        (r) => r.key,
+      );
+      expect(keys.length).toBeGreaterThan(0);
+      for (const key of keys) expect(key).not.toMatch(/203\.0\.113\./);
+    });
+
+    it("a store failure answers 503 through the handler", async () => {
+      const dead = createDb(t.appUrl);
+      await dead.$client.end();
+      const log = vi.spyOn(console, "error").mockImplementation(() => {});
+      try {
+        const route = authRoute(
+          (r) =>
+            createAuth({
+              db: dead,
+              secret,
+              baseURL: "http://localhost:3000",
+              google: { clientId: "test", clientSecret: "test" },
+              rateLimit: { now: () => clock, pruneEveryMs: 0 },
+            }).handler(r),
+          { consumeSignIn: async () => ({ ok: true }) },
+        );
+        const res = await route(signInRequest(1, "203.0.113.50"));
+        expect(res.status).toBe(503);
+        const body = (await res.json()) as Body;
+        expect(body).toMatchObject({ error: { code: "SERVICE_UNAVAILABLE" } });
+        expect(res.headers.get("x-request-id")).toBe(body.error.requestId);
+        expect(log).toHaveBeenCalledTimes(1);
+      } finally {
+        log.mockRestore();
+      }
+    });
+
+    it("a sign-in count that cannot be read answers 503 and starts no sign-in", async () => {
+      const dead = createDb(t.appUrl);
+      await dead.$client.end();
+      const route = build(t.app, dead);
+      const before = (await t.admin.select().from(verification)).length;
+      const log = vi.spyOn(console, "error").mockImplementation(() => {});
+      try {
+        const res = await route(signInRequest(1, "203.0.113.51"));
+        expect(res.status).toBe(503);
+        expect(res.headers.get("x-request-id")).toBe(((await res.json()) as Body).error.requestId);
+        expect(log).toHaveBeenCalledTimes(1);
+      } finally {
+        log.mockRestore();
+      }
+      expect((await t.admin.select().from(verification)).length).toBe(before);
+    });
+
+    it("text/plain posts with a foreign Origin are not counted; a JSON one is", async () => {
+      const ip = "203.0.113.60";
+      const subject = hashIp(ip, secret);
+      const counted = async () =>
+        (await t.admin.select().from(rateLimitCounter)).filter(
+          (r) => r.key === `sign-in:ip:${subject}`,
+        );
+      // Start 1 s after an aligned 10 minute boundary; every post below is 20 s after the last,
+      // so no aligned 10 s window holds more than one and Better Auth's 3 per 10 s never refuses.
+      clock = Math.ceil(clock / 600_000) * 600_000 + 1_000;
+      const verificationRows = async () => (await t.admin.select().from(verification)).length;
+      const before = await verificationRows();
+      for (let i = 1; i <= 10; i++) {
+        clock += 20_000;
+        const res = await routeA(
+          new Request("http://localhost:3000/api/auth/sign-in/social", {
+            method: "POST",
+            headers: {
+              "content-type": "text/plain",
+              origin: "https://evil.example",
+              "x-forwarded-for": ip,
+            },
+            body: "{}",
+          }),
+        );
+        expect(res.status).not.toBe(200);
+        expect(await res.text()).not.toContain("RATE_LIMITED");
+        expect(res.headers.get("x-request-id")).toBeNull();
+      }
+      expect(await counted()).toHaveLength(0);
+      expect(await verificationRows()).toBe(before);
+
+      clock += 20_000;
+      const real = await routeA(
+        new Request("http://localhost:3000/api/auth/sign-in/social", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            origin: "http://localhost:3000",
+            "x-forwarded-for": ip,
+          },
+          body: JSON.stringify({ provider: "google", callbackURL: "/account" }),
+        }),
+      );
+      expect(real.status).toBe(200);
+      expect(((await real.json()) as { url: string }).url).toMatch(
+        /^https:\/\/accounts\.google\.com\//,
+      );
+      const rows = await counted();
+      expect(rows).toHaveLength(1);
+      expect(rows[0]?.count).toBe(1);
+      expect(await verificationRows()).toBe(before + 1);
+    });
+
+    it("the sign-in limit is shared by the action and the route", async () => {
+      const ip = "203.0.113.20";
+      const signIns = createRateLimiter({ db: t.app, now: () => clock, pruneEveryMs: 0 });
+      const subject = hashIp(ip, secret);
+      // Ten sign-ins, 20 s apart so Better Auth's own 3 per 10 s rule never refuses one: the
+      // action's consume call and the route mixed.
+      for (let i = 1; i <= 10; i++) {
+        clock += 20_000;
+        if (i % 2) {
+          expect(await signIns.consume(LIMITS["sign-in"], { ip: subject })).toEqual({ ok: true });
+        } else {
+          expect((await routeA(signInRequest(i, ip))).status).toBe(200);
+        }
+      }
+      const rows = (await t.admin.select().from(rateLimitCounter)).filter(
+        (r) => r.key === `sign-in:ip:${subject}`,
+      );
+      expect(rows).toHaveLength(1);
+      expect(rows[0]?.count).toBe(10);
+
+      clock += 20_000;
+      const before = (await t.admin.select().from(verification)).length;
+      const refused = await routeB(signInRequest(11, ip));
+      expect(refused.status).toBe(429);
+      const wait = Number(refused.headers.get("retry-after"));
+      expect(wait).toBeGreaterThanOrEqual(1);
+      expect(wait).toBeLessThanOrEqual(600);
+      const body = (await refused.json()) as Body;
+      expect(body).toEqual({
+        error: {
+          code: "RATE_LIMITED",
+          message: "Too many requests. Try again later.",
+          requestId: expect.any(String),
+          retryable: true,
+        },
+      });
+      expect(refused.headers.get("x-request-id")).toBe(body.error.requestId);
+      expect(await signIns.consume(LIMITS["sign-in"], { ip: subject })).toMatchObject({
+        ok: false,
+        reason: "limited",
+      });
+      expect((await t.admin.select().from(verification)).length).toBe(before);
+      const after = (await t.admin.select().from(rateLimitCounter)).filter(
+        (r) => r.key === `sign-in:ip:${subject}`,
+      );
+      expect(after[0]?.count).toBe(10);
+    });
   });
 });

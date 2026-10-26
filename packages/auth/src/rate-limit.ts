@@ -1,5 +1,7 @@
 import { type Db } from "@orivilo/db/client";
 import { sql } from "@orivilo/db";
+import type { BetterAuthRateLimitStorage } from "@better-auth/core";
+import { hashIp } from "./client-ip.ts";
 
 /** One fixed window. It starts at floor((t + offsetSeconds) / seconds) * seconds - offsetSeconds. */
 export interface Window {
@@ -35,7 +37,7 @@ export const LIMITS = {
 export type LimitName = keyof typeof LIMITS;
 
 /** A person by session user id, or a network by `clientIp`'s subject. */
-export type Subject = { user: string } | { ip: string };
+export type Subject = { user: string } | { ip: string; scope?: string };
 
 export type Consumed =
   | { ok: true }
@@ -63,6 +65,19 @@ export interface RateLimitDeps {
 
 export interface RateLimiter {
   consume(limit: Limit, subject: Subject): Promise<Consumed>;
+}
+
+export interface SharedRateLimiter extends RateLimiter {
+  /** `rateLimit.customStorage` for Better Auth, counted per trusted IP and rule (`auth-http`). */
+  betterAuthStorage(secret: string): BetterAuthRateLimitStorage;
+}
+
+/** Thrown by `betterAuthStorage` when the store fails; `authRoute` answers it with a 503. */
+export class RateLimitUnavailable extends Error {
+  constructor() {
+    super("rate limit store unavailable");
+    this.name = "RateLimitUnavailable";
+  }
 }
 
 /** Start and end (exclusive) of a window, in Unix seconds, for a time in ms. */
@@ -93,7 +108,9 @@ export function assertNested(limit: Limit) {
 }
 
 export const keyOf = (limit: Limit, subject: Subject) =>
-  "user" in subject ? `${limit.name}:u:${subject.user}` : `${limit.name}:ip:${subject.ip}`;
+  "user" in subject
+    ? `${limit.name}:u:${subject.user}`
+    : `${limit.name}:ip:${subject.ip}${subject.scope ? `:${subject.scope}` : ""}`;
 
 class Refused extends Error {
   readonly endSeconds: number;
@@ -109,7 +126,7 @@ class Refused extends Error {
  * run in one transaction, longest first, and a refusal rolls back every window already raised.
  * `consume` never throws: a store error or a timeout is `unavailable`, never a pass.
  */
-export function createRateLimiter(deps: RateLimitDeps): RateLimiter {
+export function createRateLimiter(deps: RateLimitDeps): SharedRateLimiter {
   const { db } = deps;
   const now = deps.now ?? Date.now;
   const pruneEveryMs = deps.pruneEveryMs ?? 60_000;
@@ -205,7 +222,7 @@ export function createRateLimiter(deps: RateLimitDeps): RateLimiter {
       .catch(() => {});
   }
 
-  return {
+  const limiter: SharedRateLimiter = {
     async consume(limit, subject) {
       const started = performance.now();
       const nowMs = now();
@@ -218,7 +235,29 @@ export function createRateLimiter(deps: RateLimitDeps): RateLimiter {
       prune(nowMs);
       return result;
     },
+    betterAuthStorage(secret) {
+      return {
+        // Better Auth's key is `<ip>|<path>`. The path is dropped and the rule keys the counter,
+        // so a caller cannot make a row per made-up path (ORV-112 tech notes, finding F2).
+        async consume(key, rule) {
+          const ip = key.split("|", 1)[0] ?? "";
+          const subject = !ip || ip === "no-trusted-ip" ? "unknown" : hashIp(ip, secret);
+          const limit: Limit = {
+            name: "auth-http",
+            windows: [{ seconds: rule.window, max: rule.max }],
+          };
+          const result = await limiter.consume(limit, {
+            ip: subject,
+            scope: `${rule.window}x${rule.max}`,
+          });
+          if (result.ok) return { allowed: true, retryAfter: null };
+          if (result.reason === "limited") return { allowed: false, retryAfter: result.retryAfter };
+          throw new RateLimitUnavailable();
+        },
+      };
+    },
   };
+  return limiter;
 }
 
 for (const limit of Object.values(LIMITS)) assertNested(limit);

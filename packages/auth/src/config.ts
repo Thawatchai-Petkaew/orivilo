@@ -4,6 +4,7 @@ import * as schema from "@orivilo/db";
 import { betterAuth, type BetterAuthPlugin } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { oAuthProxy, organization as organizationPlugin } from "better-auth/plugins";
+import { createRateLimiter, type RateLimitDeps } from "./rate-limit.ts";
 import { randomUUID } from "node:crypto";
 
 export interface AuthSettings {
@@ -15,6 +16,8 @@ export interface AuthSettings {
   google: { clientId: string; clientSecret: string };
   /** Extra plugins, for tests only (`testUtils`). */
   plugins?: BetterAuthPlugin[];
+  /** Clock, pruning and timeout for the limiter; tests only. */
+  rateLimit?: Omit<RateLimitDeps, "db">;
 }
 
 const slugOf = (id: string) => `ws-${id.slice(0, 12).toLowerCase()}`;
@@ -26,13 +29,16 @@ const slugOf = (id: string) => `ws-${id.slice(0, 12).toLowerCase()}`;
  */
 export function createAuth(settings: AuthSettings) {
   const { db } = settings;
+  const limiter = createRateLimiter({ db, ...settings.rateLimit });
   return betterAuth({
     secret: settings.secret,
     baseURL: settings.baseURL,
     database: drizzleAdapter(db, { provider: "pg", schema }),
     emailAndPassword: { enabled: false },
     socialProviders: { google: settings.google },
-    rateLimit: { enabled: true },
+    // Always the shared store: Better Auth's memory map counts per instance (ORV-112, ADR 0015).
+    rateLimit: { enabled: true, customStorage: limiter.betterAuthStorage(settings.secret) },
+    advanced: { ipAddress: { ipAddressHeaders: ["x-forwarded-for"] } },
     plugins: [
       organizationPlugin(),
       // `currentURL` is this app's own origin. Without it the proxy takes Vercel's per-deployment
