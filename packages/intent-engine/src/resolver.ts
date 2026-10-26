@@ -135,8 +135,11 @@ function fnv1a(text: string): string {
   return hash.toString(16).padStart(8, "0");
 }
 
+/** FNV-1a over canonical JSON (sorted keys), the fingerprint ADR 0007 decision 5 describes. */
+export const fingerprintOf = (value: unknown): string => fnv1a(canonical(value));
+
 export function resolveProfile(input: ResolveInput): Resolution {
-  const issues = checkRuleSet(input.rules, new Set(input.knowledgeIds));
+  const issues = checkRuleSet(input.rules, new Set(input.knowledgeIds), "profile");
   const evaluation = evaluateRules(input.rules, input.facts);
   const adjustments = new Map(input.adjustments.map((a) => [a.set as DecisionKey, a]));
 
