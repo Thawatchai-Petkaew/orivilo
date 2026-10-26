@@ -1,7 +1,7 @@
 ---
 id: K-0048
 topic: market
-claim: Thailand's industrial classification TSIC 2009 follows ISIC Rev.4 and has 5 levels; the NSO standard states 21 sections, 88 divisions, 243 groups, 441 classes and 1,091 five-digit industries. Leaving out divisions 84, 97, 98 and 99 leaves 18, 84, 236, 430 and about 1,065.
+claim: Thailand's industrial classification TSIC 2009 follows ISIC Rev.4 and has 5 levels; the NSO standard states 21 sections, 88 divisions, 243 groups, 441 classes and 1,091 five-digit industries. The NSO workbook SD08_08_47_18.xlsx lists 1,089 five-digit codes, two fewer than stated; 24 of them fall under divisions 84, 97, 98 and 99, so leaving those divisions out leaves 18 sections, 84 divisions, 236 groups, 430 classes and 1,065 of the 1,089 workbook codes.
 source: "https://catalogapi.nso.go.th/api/doc/department/D08/SD08_08/SD08_08_47_12.pdf; https://catalogapi.nso.go.th/api/doc/department/D08/SD08_08/SD08_08_47_18.xlsx; https://catalog.nso.go.th/en/dataset/0210_12_0009; https://catalogapi.nso.go.th/api/doc/department/D08/SD08_08/SD08_08_56_1.pdf; https://worldoftaxonomy.com/system/tsic_2009; https://openapi.dbd.go.th/juristic_person/registration/99_202501_1.csv; https://unstats.un.org/unsd/classifications/Econ/Download/In Text/ISIC_Rev_4_english_structure.Txt"
 retrieved: 2026-10-26
 confidence: 0.8
@@ -11,7 +11,7 @@ license: own-words
 
 ## Evidence
 
-Confidence is 0.8 for the per-level counts and the ISIC Rev.4 basis: both are read from the text of an NSO standard (document `SD08_08_47_12`), and the five-digit list was counted from an NSO workbook. The standard and the workbook have one publisher, NSO, so they count as one source, which the README caps at 0.8; worldoftaxonomy.com confirms only the ISIC Rev.4 basis and the section count, not the counts below it. The workbook count (1,089) and the stated count (1,091) also differ by two, and the brand-relevant five-digit count is approximate. The point on ISIC Rev.5 and the DBD code reading stay inferences, below 0.7, in the last section.
+Confidence is 0.8 for the per-level counts and the ISIC Rev.4 basis: both are read from the text of an NSO standard (document `SD08_08_47_12`), and the five-digit list was counted from an NSO workbook. The standard and the workbook have one publisher, NSO, so they count as one source, which the README caps at 0.8; worldoftaxonomy.com confirms only the ISIC Rev.4 basis and the section count, not the counts below it. The workbook count (1,089) and the stated count (1,091) also differ by two; the brand-relevant five-digit count (1,065) is exact on the workbook base, and the gap to the stated count is unresolved. The point on ISIC Rev.5 and the DBD code reading stay inferences, below 0.7, in the last section.
 
 ### What the NSO standard states (read directly)
 
@@ -35,7 +35,7 @@ The NSO comparison workbook `SD08_08_47_18.xlsx` lists 1,089 distinct five-digit
 
 ### Brand-relevant counts (derived)
 
-Divisions 84 (public administration and defence, the whole of section O), 97 and 98 (households as employers and producers, section T) and 99 (extraterritorial organisations, section U) hold no brandable business. Taking them out gives 18 sections and 84 divisions. Taking out their groups and classes gives 236 groups and 430 classes, which matches 7 groups and 11 classes under those divisions in ISIC Rev.4; that TSIC does not split them further is an assumption checked only against the orchestrator's count on ORV-127 comment 10200. The five-digit figure is about 1,065, counted from the workbook, so it carries the same two-code gap as above.
+Divisions 84 (public administration and defence, the whole of section O), 97 and 98 (households as employers and producers, section T) and 99 (extraterritorial organisations, section U) hold no brandable business. Taking them out gives 18 sections and 84 divisions. Taking out their groups and classes gives 236 groups and 430 classes, which matches 7 groups and 11 classes under those divisions in ISIC Rev.4; that TSIC does not split them further is an assumption checked only against the orchestrator's count on ORV-127 comment 10200. At the fifth level, the workbook `SD08_08_47_18.xlsx` holds 1,089 codes, 24 of them under divisions 84, 97, 98 and 99, which leaves 1,065 (ORV-127 comment 10207). That figure is on the workbook base. Separately, the standard states 1,091 five-digit industries; the two codes between 1,091 and 1,089 are the open point above, and a brand-relevant count on the stated base is not known.
 
 ### What the NSO catalog page states (read directly)
 

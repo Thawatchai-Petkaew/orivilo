@@ -1,7 +1,7 @@
 ---
 id: K-0051
 topic: market
-claim: Recommendation, not a measured fact, that the ISIC Rev.4 class level read through TSIC 2009 (408 classes after the three exclusions) is the nearest standard level to where customers compare competitors, and that DBD new registrations can rank it by counting the first four digits of each objective code.
+claim: Recommendation, not a measured fact, that the ISIC Rev.4 class level read through TSIC 2009 (408 ISIC Rev.4 classes, 430 in TSIC 2009, after the three exclusions) is the nearest standard level to where customers compare competitors, and that DBD new registrations can rank it by counting the first four digits of each objective code.
 source: "docs/knowledge/market/K-0047-isic-rev4-and-rev5-counts-per-level.md; docs/knowledge/market/K-0048-tsic-2009-is-isic-rev4-based-at-five-digits.md; docs/knowledge/market/K-0049-dbd-new-registrations-open-data-by-objective-code.md; docs/knowledge/market/K-0050-gics-classifies-companies-for-investors.md; https://unstats.un.org/unsd/classifications/Econ/Download/In Text/ISIC_Rev_4_english_structure.Txt"
 retrieved: 2026-10-26
 confidence: 0.6
@@ -18,7 +18,7 @@ This entry is research judgment built on [[K-0047-isic-rev4-and-rev5-counts-per-
 ### The counts per option (from K-0047 and K-0050)
 
 - ISIC Rev.4, after excluding public administration (O), households (T) and extraterritorial bodies (U): 18 sections, 84 divisions, 231 groups, 408 classes.
-- TSIC 2009 after the same exclusions: 18 sections, 84 divisions, 236 groups, 430 classes, and about 1,065 five-digit subclasses (K-0048; the NSO standard states 1,091 subclasses in all, and the NSO workbook lists 1,089).
+- TSIC 2009 after the same exclusions: 18 sections, 84 divisions, 236 groups, 430 classes, and 1,065 of the 1,089 five-digit subclasses in the NSO workbook (K-0048; the NSO standard states 1,091 subclasses in all, a two-code gap that is still open).
 - ISIC Rev.5 after the same exclusions (P, U, V): 19 sections, 83 divisions, 251 groups, 451 classes.
 - GICS, whole scheme: 11 sectors, 25 industry groups, 74 industries, 163 sub-industries; no exclusion applies.
 
@@ -28,7 +28,7 @@ These are our readings of example rows, to show the grain; they are not a full a
 
 - Division is too coarse for retail and food: "Retail trade, except of motor vehicles and motorcycles" (47) is one division and "Food and beverage service activities" (56) is one division, while a customer compares a pharmacy with a pharmacy and a cafe with a cafe.
 - Group still mixes unlike consumer categories in places: group 477 "Retail sale of other goods in specialized stores" holds 4771 (clothing, footwear and leather articles), 4772 (pharmaceutical and medical goods, cosmetic and toilet articles), 4773 (other new goods) and 4774 (second-hand goods).
-- Class separates most of these, but some classes stay broad, for example 1079 "Manufacture of other food products n.e.c." and 4773 "Other retail sale of new goods in specialized stores". Restaurants (5610) and beverage serving (5630) are each one class, so a cafe and a bar share a class. The TSIC 5th digit is the documented place to split such classes, once its subclass list is read.
+- Class separates most of these, but some classes stay broad, for example 1079 "Manufacture of other food products n.e.c." and 4773 "Other retail sale of new goods in specialized stores". Restaurants (5610) and beverage serving (5630) are each one class, so a cafe and a bar share a class. The TSIC 5th digit is the documented place to split such classes; K-0048 has since counted its subclass list (1,089 codes in the NSO workbook, 1,065 after the exclusions), though the subclasses were not read one by one here.
 - The Rev.4 class 4791 "Retail sale via mail order houses or via Internet" matches what DBD's own releases track as "ขายปลีกทางอินเทอร์เน็ต" (K-0049), though DBD's mapping is not stated. UNSD material reported by search says Rev.5 removes the in-store versus online split (not checked; K-0047).
 
 ### Why Rev.4 class through TSIC, as a recommendation (below 0.7)
