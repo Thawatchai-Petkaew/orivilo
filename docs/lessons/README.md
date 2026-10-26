@@ -98,3 +98,8 @@ Status: proposed
 | [[L-0026-gate-database-url-missing-from-the-fact]]       | ORV-20                 | A gate-passed fact names the database URL it ran with                      |
 | [[L-0027-stalled-reviewer-went-unnoticed]]               | ORV-20                 | List silent bound envelopes before each dispatch and after compaction      |
 | [[L-0028-visual-keyword-rule-on-a-non-ui-story]]         | ORV-20                 | The visual keyword rule applies only to a diff with UI paths               |
+| [[L-0029-fix-walked-only-the-lines-named]]               | ORV-126                | A rule finding's fix reports one verified row per governed line            |
+| [[L-0030-owner-decision-missing-from-the-spec-envelope]] | ORV-126                | Every owner decision comment reaches each document it changes              |
+| [[L-0031-knowledge-source-cited-a-session-upload]]       | ORV-126                | A knowledge source is a repo path or a URL, never an absolute path         |
+| [[L-0032-one-checkout-ran-several-issues]]               | ORV-126                | No branch switch while a task is bound; branch check for every writer      |
+| [[L-0033-spec-and-adr-fixed-in-parallel]]                | ORV-126                | Fixes across spec, ADR and knowledge run one at a time                     |
