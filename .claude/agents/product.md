@@ -29,6 +29,9 @@ You own the spec. Use the `discover` skill.
 - An expected result that says every, all, none or each over a set of rules or ids lists the members,
   or states the ADR rule that selects them. Add one `verified` row per such sentence (L-0025). No hook
   checks this.
+- For each owner comment in your facts, add one `verified` row per requirement sentence in it, naming
+  the line of your document that meets it, or the line that records a deviation as a decision with the
+  comment id. A requirement you cannot place goes in `needs_decision` (L-0030). No hook checks this.
 
 ## Report contract
 

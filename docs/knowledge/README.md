@@ -21,7 +21,7 @@ docs/knowledge/<topic>/K-NNNN-<kebab-slug>.md
 id: K-0001
 topic: verification
 claim: One sentence, the single fact.
-source: "repo-relative path, absolute path or URL; for an external repo, the path inside it (with a line)"
+source: "repo-relative path or https URL; for an external repo, the path inside it (with a line); never an absolute path"
 retrieved: 2026-10-23
 confidence: 0.8
 applies_to: [ORV-81]
@@ -37,16 +37,16 @@ license: internal
 One to three sentences.
 ```
 
-| Field        | Meaning                                                                                                 | In `knowledgeEntrySchema` (ADR 0005) |
-| ------------ | ------------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| `id`         | `K-NNNN`, unique across topics                                                                          | `id` (a slug there)                  |
-| `topic`      | The folder the file sits in                                                                             | `appliesTo.topics`                   |
-| `claim`      | One sentence, one fact, in our own words                                                                | `statement`                          |
-| `source`     | Where the evidence is. A path must exist when the entry is written; a line number helps the next reader | `sources[].url` or `title`           |
-| `retrieved`  | ISO date the source was read                                                                            | `sources[].retrievedAt`              |
-| `confidence` | 0 to 1. See the rule below                                                                              | `confidence`                         |
-| `applies_to` | Jira keys, ADRs or plans the entry informs                                                              | (no equivalent)                      |
-| `license`    | How we may reuse the source: `internal`, `own-words`, `link-only`, `MIT`, `CC-BY-4.0`, `CC0-1.0`        | `sources[].license`                  |
+| Field        | Meaning                                                                                                                                                                                                                    | In `knowledgeEntrySchema` (ADR 0005) |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| `id`         | `K-NNNN`, unique across topics                                                                                                                                                                                             | `id` (a slug there)                  |
+| `topic`      | The folder the file sits in                                                                                                                                                                                                | `appliesTo.topics`                   |
+| `claim`      | One sentence, one fact, in our own words                                                                                                                                                                                   | `statement`                          |
+| `source`     | Where the evidence is: a repo-relative path that exists, or an https URL. A file the owner hands over is cited by title, edition, page count and pages, "owner-held, not in the repo", plus a public URL when one is found | `sources[].url` or `title`           |
+| `retrieved`  | ISO date the source was read                                                                                                                                                                                               | `sources[].retrievedAt`              |
+| `confidence` | 0 to 1. See the rule below                                                                                                                                                                                                 | `confidence`                         |
+| `applies_to` | Jira keys, ADRs or plans the entry informs                                                                                                                                                                                 | (no equivalent)                      |
+| `license`    | How we may reuse the source: `internal`, `own-words`, `link-only`, `MIT`, `CC-BY-4.0`, `CC0-1.0`                                                                                                                           | `sources[].license`                  |
 
 ### Quoting
 
