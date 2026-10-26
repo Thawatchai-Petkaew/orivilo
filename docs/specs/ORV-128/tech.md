@@ -1,7 +1,7 @@
 ---
 issue: ORV-128 (https://tpetkaew.atlassian.net/browse/ORV-128)
-spec: docs/specs/ORV-128/spec.md v1.8
-task: ORV-128-design-schema-1, ORV-128-design-schema-2 (renderer build and text under option D), ORV-128-design-schema-3 (follow spec v1.3), ORV-128-design-schema-4 (follow spec v1.5 and ADR 0019 after review g2-1), ORV-128-design-schema-5 (follow spec v1.6), ORV-128-design-schema-6 (follow spec v1.7 after re-check g2-2), ORV-128-design-schema-7 (follow spec v1.8)
+spec: docs/specs/ORV-128/spec.md v1.9; slice 1a spec docs/specs/ORV-132/spec.md v1.1
+task: ORV-128-design-schema-1, ORV-128-design-schema-2 (renderer build and text under option D), ORV-128-design-schema-3 (follow spec v1.3), ORV-128-design-schema-4 (follow spec v1.5 and ADR 0019 after review g2-1), ORV-128-design-schema-5 (follow spec v1.6), ORV-128-design-schema-6 (follow spec v1.7 after re-check g2-2), ORV-128-design-schema-7 (follow spec v1.8), ORV-132-design-bookkeeping-1 (follow spec v1.9 and the slice 1a build)
 author: ds-architect
 date: 2026-10-27
 ---
@@ -16,10 +16,10 @@ This is the G2 design for slice 1 of the input analysers. It turns the spec's "E
 
 The spec keeps every closed list, field name, bound and number. Where this design needs something the spec does not say, the gap is listed under "Findings for the spec" at the end, with the change this design assumes.
 
-**One home per rule.** Spec v1.8 defines each rule once, by name. These notes use the same names and point to the spec's section for every threshold and number; the code below implements a rule, it does not restate it. A change to a rule's numbers is made in the spec first.
+**One home per rule.** The spec defines each rule once, by name. These notes use the same names and point to the spec's section for every threshold and number; the code below implements a rule, it does not restate it. A change to a rule's numbers is made in the spec first.
 
 <!-- prettier-ignore -->
-| Rule | Defined in spec v1.8 | Used here |
+| Rule | Defined in the spec | Used here |
 | --- | --- | --- |
 | `thousandths-1` | "Confidence" | §4 `scoreConfidence`, `milli`; §8 `leansOfMeasures`; §14 rows 3, 12, 32 |
 | `industry-margin-1` | "Confidence" | §4 `withinMargin`; §10 `readIndustry`; §14 S1 |
@@ -42,17 +42,19 @@ Everything below lives in `packages/intent-engine/src` and is pure TypeScript. B
 | --- | --- | --- |
 | `evidence.ts` | Closed lists, `inputEvidenceSchema`, `InputEvidence`, `evidenceId`, `compareEvidence`, `EVIDENCE_SCHEMA_VERSION` | 1a |
 | `confidence.ts` | `CONFIDENCE_BASES`, `CONFIDENCE_FACTORS`, `EVIDENCE_FLOOR`, `milli`, `scoreConfidence`, `withinMargin`, `CONFIDENCE_VERSION` | 1a |
-| `evidence-strings.ts` | `EVIDENCE_STRINGS` (every key under the spec's "Strings", `th` and `en`), `QUESTION_KEYS` | 1a |
+| `evidence-strings.ts` | `EVIDENCE_STRINGS` (every key under the spec's "Strings", `th` and `en`), `QUESTION_KEYS`; the two maps of §9 and the four `{what}` label keys | 1a; the maps and the `{what}` keys 1c |
 | `leans.ts` | Rules `value-to-lean-1` and `measure-to-lean-1` | 1a |
 | `read-page.ts` | `checkAddress`, `parseRobots`, `robotsAllows`, `readPage` over injected ports | 1b |
 | `page-text.ts` | `pageTextOf`: the text blocks of the document bytes by rule `html-text-1`, on the same tokenizer as the stylesheet links (§8) | 1b |
-| `render-snapshot.ts` | `renderSnapshotSchema` and `rendererBuildSchema`: what the renderer hands the engine, parsed as untrusted data; the `Renderer` port type | 1c |
+| `render-snapshot.ts` | `rendererBuildSchema` and `RendererBuild`; `renderSnapshotSchema`: what the renderer hands the engine, parsed as untrusted data; the `Renderer` port type | 1a holds only `rendererBuildSchema` and `RendererBuild`; 1c adds the rest |
 | `measures/colour.ts` | OKLCH, the quantiser wrapper, hue band through `classifyHex`, warm share, declared colours | 1c |
 | `measures/page.ts` | WCAG contrast, text and element density, font families, word count | 1c |
 | `url-analyser.ts` | `readUrlInput`: the role gate of `competitor-not-read-1` in front of `readPage`; `analyseUrl`: fetched bytes and a snapshot or `null` in, sorted evidence and the not-measured list out (§7) | 1c |
 | `report.ts` | `reportSchema`, `Report`, `REPORT_SCHEMA_VERSION`: the command's `--json` contract (§7, "The report schema") | 1d |
 | `industry.ts` | `matchIndustryTerms`, `readIndustry`, the `TsicTaxonomy` port | 2 |
 | `evidence-feed.ts` | `detectConflicts`, `feedEvidence` | 4 |
+
+**What slice 1a ships ahead of 1c and leaves to it** (the ORV-132 spec's open-question defaults). `checkItem` clause 13 and §14 row 2 parse `source.renderer`, so 1a ships `render-snapshot.ts` holding only `rendererBuildSchema` and `RendererBuild` as §7 writes them; 1c adds `renderSnapshotSchema` and the `Renderer` port to that file. The two maps of §9 are typed on §7's `NotMeasured`, a 1c type, so 1a ships `EVIDENCE_STRINGS` with the keys of the spec's "Strings" and `QUESTION_KEYS`, and the two maps, the four `{what}` label keys and row 29's map case land in 1c.
 
 **Server-only modules.** The page reader ports (DNS resolution, an HTTP request pinned to a checked address, SHA-256) and the renderer that produces a `RenderSnapshot` are server-only. The engine defines their contracts (`ReadPorts` in §6, `renderSnapshotSchema` in §7) and never imports them. They live in a new server-only package, `packages/page-reader` (§13, ADR 0019), which ships as slice 1d, its own PR right after 1c (spec "Delivery").
 
@@ -225,7 +227,7 @@ A refine checks that the shape of `value` fits its `target`:
 | `look-feel.mood` | `{ word }`: a slug until `mood-1` lands in slice 3, which narrows it to the closed list (schema 1.1) |
 | `color.current` | `{ hex }`: `hexSchema` |
 | `competitive-frame.lineup-candidate` | `{ name, hex, label: "own-input" \| "reference" }` |
-| `reference.asset` | `{ asset: "colour", hex }` or `{ asset: "font", family }` |
+| `reference.asset` | `{ asset: "colour", hex }` or `{ asset: "font", family }`, `family` 1 to 100 characters after trimming (spec "Evidence first", the reading targets; a hypothesis-grade schema bound listed under "Hypotheses") |
 
 **Confidence.** The base and factors are stored as `{ id, value }` pairs, so the trace shows the numbers and not only their names (finding F5):
 
@@ -311,7 +313,7 @@ export type InputEvidence = z.infer<typeof inputEvidenceSchema>;
 6. `fromModel` and the reading agree (path `fromModel`): `fromModel` true means a reading by `model`, unless `reading` is null for an `asset-shown` observation; a reading by `model` means `fromModel` true.
 7. `single-signal` appears only with base `model-reading`, and `tool-default` only when `reading` is not null (path `confidence.factors`; clause 17 adds the rest of `tool-default`).
 8. Factor ids are unique and in ascending order. Each `{ id, value }` equals the table in `confidence.ts`.
-9. `confidence.value` equals `scoreConfidence(base.id, factor ids).value`, and `belowFloor` equals its `belowFloor` (paths `confidence.value` and `belowFloor`). This is what makes the number computed, never reported (row 3). An item claiming 0.9 with base 0.7 and no factors fails.
+9. `confidence.value` equals `scoreConfidence(base.id, factor ids).confidence.value`, and `belowFloor` equals its `belowFloor` (paths `confidence.value` and `belowFloor`). This is what makes the number computed, never reported (row 3). An item claiming 0.9 with base 0.7 and no factors fails.
 10. Each quality factor has its flag, and each quality flag has its factor (path `flags`). The pairs are `few-words` and `quality.fewWords`, `page-incomplete` and `quality.pageIncomplete`, `image-small` and `quality.imageSmall`, `image-blurred` and `quality.imageBlurred`.
 11. `ownedBy: "other"` never targets `color.current` or a personality axis (path `reading.target`, case 3).
 12. `id` equals `evidenceId(item)` (path `id`), the fingerprint over the fields the spec's `id` row names (§3). `source.retrievedAt` is not part of the id, so an item whose `retrievedAt` alone was changed still parses with its old id, and an item whose `contentHash` or `renderer` was changed fails here.
@@ -347,7 +349,7 @@ export const evidenceId = (
 };
 ```
 
-- **What the id covers** follows the spec v1.8 `id` row (unchanged since v1.3): `analyser`, `source` without `retrievedAt`, `observation`, `measure.metric` and `reading.target`, with `source.renderer` inside `source`. Nothing else.
+- **What the id covers** follows the spec's `id` row (unchanged since v1.3): `analyser`, `source` without `retrievedAt`, `observation`, `measure.metric` and `reading.target`, with `source.renderer` inside `source`. Nothing else.
 - `fingerprintOf` is the ADR 0007 decision 5 fingerprint: FNV-1a over canonical JSON with sorted keys, 8 hex digits. The same input gives the same id, whatever the key order of the object passed in.
 - **`retrievedAt` is excluded** (finding F3, accepted in spec v1.3; open for the owner at G2). `contentHash` already marks a change in the bytes, so the same bytes read again later keep their ids and a node's evidence list does not grow duplicates. `retrievedAt` stays on the item, for the trace. Row 4's later-clock case proves it: equal ids, and only `retrievedAt` differs. If the owner puts the clock back into the id at G2, this function hashes `item.source` whole and row 4's later-clock case expects new ids instead.
 - **Metric and target** are in the id because one colour cluster is one observation with four measures (area share, hue band, lightness, chroma), and one quoted span can carry one measure and one reading. Without them, these items would share an id.
@@ -853,7 +855,7 @@ export function feedEvidence(
 | `checkAddress` (task 4) | Refuses `::`, `64:ff9b:1::/48` and Teredo; judges `::/96`, `::ffff:0:0/96`, `64:ff9b::/96` and `2002::/16` by the IPv4 they embed (§6) | Row 5; `security` review of slice 1b |
 | `html-text-1` (`page-text.ts`) | New rule: the page text always comes from the document bytes | Rows 9, 10 and 12; slice 2's `matchIndustryTerms`, whose `TextBlock` is this rule's block |
 | `evidenceId` (task 3) | Hashes `source` without `retrievedAt`, as the spec's `id` row says (§3). A re-read of unchanged bytes keeps its ids | Row 4 (later-clock case); `feedEvidence` (slice 4), whose lists no longer gain duplicates on a re-read; the owner at G2, who may put the clock back (then row 4 expects new ids) |
-| `EVIDENCE_STRINGS` (tasks 3 and 4) | Every key under spec v1.8 "Strings" (unchanged since v1.5): adds `industry.byNameOnly`, `report.conflictsNotChecked`, `read.notRead.competitor` (task 4), `read.notMeasured`, the four `read.notRendered.*` reasons and four suggested `{what}` label keys (§9). `QUESTION_KEYS` unchanged at six | Designer and owner review of the copy; the CLI (slices 1d and 2); rows 29 and 38 |
+| `EVIDENCE_STRINGS` (tasks 3 and 4) | Every key under the spec's "Strings" (unchanged since v1.5): adds `industry.byNameOnly`, `report.conflictsNotChecked`, `read.notRead.competitor` (task 4), `read.notMeasured`, the four `read.notRendered.*` reasons and four suggested `{what}` label keys (§9). `QUESTION_KEYS` unchanged at six | Designer and owner review of the copy; the CLI (slices 1d and 2); rows 29 and 38 |
 | Rule names (tasks 3 and 4) | §2, §4, §7, §8, §9 and §10 name `thousandths-1`, `industry-margin-1`, `conflict-question-1`, `industry-level-1`, `html-text-1`, `word-count-1`, `measure-to-lean-1`, `value-to-lean-1`, `tsic-terms-1`, `hypothesis-flag-1` and `competitor-not-read-1` and point to the spec's section; `withinMargin` loses its `margin` parameter | Builders of slices 1a, 1b, 1c, 1d and 2 |
 | ORV-126 state, node record `evidence` field | Must hold input evidence beside proxy answers and references: an entry `{ kind: "input", item: InputEvidence }` in a discriminated union, sorted by node number then id. ORV-126 has no code yet, so its slice 1 defines the union with this member. No ORV-126 rule reads the items | ORV-126 slice 1 builder; `feedEvidence` (slice 4); rows 19, 22 and 24 |
 | ORV-20 colour node (`color-audit.ts`, `color-rules.ts`, `color-knowledge.ts`) | Untouched. `classifyHex` and `hexSchema` are imported read-only; `auditLineup` and `decideColor` take no evidence argument. The G3 packet shows an empty `git diff origin/develop -- packages/intent-engine/src/color-*.ts` | ORV-20 owners |
@@ -870,9 +872,9 @@ These are estimates of production lines, without tests or fixtures:
 <!-- prettier-ignore -->
 | Part | Files | Lines | Rows |
 | --- | --- | --- | --- |
-| 1a schema, confidence, strings, lean rules | `evidence.ts` 175 (`HYPOTHESIS_RULES` and `checkItem` clauses 14 to 17 added), `confidence.ts` 60, `evidence-strings.ts` 90 (the v1.3 and v1.5 keys and the two maps of §9), `leans.ts` 45, `index.ts` 5 | about 375 | 1, 2, 3, 32, 29 to 31 (and unit tests for `value-to-lean-1` and `measure-to-lean-1`) |
+| 1a schema, confidence, strings, lean rules | `evidence.ts` 175 (`HYPOTHESIS_RULES` and `checkItem` clauses 14 to 17 added), `confidence.ts` 60, `evidence-strings.ts` 80 (the v1.3 and v1.5 keys; the two maps of §9 and the four `{what}` keys move to 1c), `render-snapshot.ts` 12 (`rendererBuildSchema` and `RendererBuild` only), `leans.ts` 45, `index.ts` 5 | about 375 | 1, 2, 3, 32, 29 to 31 (and unit tests for `value-to-lean-1` and `measure-to-lean-1`) |
 | 1b safe read and page text | `read-page.ts` 320 (address 100 with the IPv6 parser and the embedded IPv4, robots 80, read 140), tokenizer wrapper and link extraction 20, `page-text.ts` 80 | about 420 | 5, 6, 7, 36, 29 to 31 |
-| 1c renderer contract, measures, URL analyser | `render-snapshot.ts` 60, `measures/colour.ts` 120 (declared fonts added), `measures/page.ts` 70, `url-analyser.ts` 170 (the not-measured path and `readUrlInput` with its role gate added, text extraction moved to 1b) | about 420 | 4, 8 to 12, 34, 35, 38, 29 to 31 |
+| 1c renderer contract, measures, URL analyser | `render-snapshot.ts` 48 (`renderSnapshotSchema` and the `Renderer` port; the build schema shipped in 1a), `evidence-strings.ts` 10 (the two maps of §9 and the four `{what}` keys), `measures/colour.ts` 120 (declared fonts added), `measures/page.ts` 70, `url-analyser.ts` 170 (the not-measured path and `readUrlInput` with its role gate added, text extraction moved to 1b) | about 420 | 4, 8 to 12, 34, 35, 38, 29 to 31 |
 | 1d server-only: `packages/page-reader`, and the engine's `report.ts` | `node-ports.ts`, `render-playwright.ts`, `cli.ts` (§13), with the report's not-read path; `report.ts` 45 in the engine (§7, "The report schema") | about 205 | 34, 35, 37, 38, 29 to 31; the live smoke in the G3 packet |
 
 The total is about 1,215 lines for 1a to 1c, or about 1,420 with 1d. The rows per slice are the spec's "Delivery" table. **Four PRs, 1a, 1b, 1c and 1d** (finding F1, accepted in spec v1.3; 1d added in spec v1.5, review g2-1 S8).
@@ -907,7 +909,7 @@ Tests that prove the placement are in §14, not repeated here: row 34's budget t
 
 ## 14. Tests that prove determinism and conflicts
 
-Each test names its "break it" check: the change to the code that must turn it red before handoff. Row numbers are spec v1.8's; S1 is the boundary test of `industry-margin-1`. The Slice column follows the spec's "Delivery": the tests in `packages/page-reader` are slice 1d (§12).
+Each test names its "break it" check: the change to the code that must turn it red before handoff. Row numbers are the spec's; S1 is the boundary test of `industry-margin-1`. The Slice column follows the spec's "Delivery": the tests in `packages/page-reader` are slice 1d (§12).
 
 <!-- prettier-ignore -->
 | Row | Test | Asserts | Break it | Slice |
@@ -917,7 +919,7 @@ Each test names its "break it" check: the change to the code that must turn it r
 | 2 | `evidence.test.ts` › "the renderer fits the observation" | A `colour-area` item with `source.renderer: null` fails at `source.renderer`; a `colour-declared` item with a build fails there too; a `text-span` parses both ways; a build with `browserVersion` "153" (one part) fails | Drop check 13: the first two cases go red | 1a |
 | 2 | `evidence.test.ts` › "base, quote and tool-default fit the item" | Clause 5 (I3): an `asset-shown` item with `fromModel: true`, its `model`, no reading and base `measure` fails at `confidence.base`; the same item with base `model-reading` (0.7) parses. Clause 6: a reading `by: "model"` with `fromModel: false` fails at `fromModel`. Clause 15 (S4): base `{ id: "rule-reading", value: 0.8 }` fails at `confidence.base.value`. Clause 16 (S4): a `text-span` quote on an `element` locator fails at `observation.quote`. Clause 17 (S4): a reading with factor `tool-default` and `origin: "input"` fails at `confidence.factors`, and with `origin: "tool-default"` but no `tool-default` flag fails there too | Give base `measure` to every item with no reading: the I3 case goes red. Drop clause 15, 16 or 17: its case goes red | 1a |
 | 2 | `evidence.test.ts` › "hypothesis-flag-1" | Clause 14 (I4), on the inputs of the spec's ninth worked example (`rules` of rows 11, 13 and 10, `lexicon-1` alone, a model reading): a `measure-to-lean-1` reading and a `tsic-terms-1` reading with `hypothesis: false` fail at `hypothesis`; a `lexicon-1` + `value-to-lean-1` reading parses with `true` (and its note) and with `false`; a `lexicon-1` reading alone, a model reading and a measure with no reading, each with `hypothesis: true`, fail at `hypothesis`. A unit case pins `HYPOTHESIS_RULES` to the spec's members and checks each is in `RULE_IDS`; another pins `RULE_IDS` to the spec's four ids, without `word-count-1` (S5) | Treat `value-to-lean-1` as a whole member: the `false` case goes red. Let any rule reading say `true`: the `lexicon-1` case goes red | 1a |
-| 3 | `evidence.test.ts` › "confidence is computed, never reported" | `scoreConfidence("measure", ["page-incomplete"])` is `{ value: 0.7 }`, not below the floor. `scoreConfidence("model-reading", ["single-signal", "few-words"])` is 0.392, below the floor. Factors are listed in id order with their values. `EVIDENCE_FLOOR === 0.5`. Values as the spec's `thousandths-1` worked example prints them | Return the unrounded product: `toBe(0.392)` goes red (0.39199999999999996) | 1a |
+| 3 | `evidence.test.ts` › "confidence is computed, never reported" | `scoreConfidence("measure", ["page-incomplete"])` returns a `confidence.value` of 0.7 with `belowFloor: false`. `scoreConfidence("model-reading", ["single-signal", "few-words"])` returns a `confidence.value` of 0.392 with `belowFloor: true`. Factors are listed in id order with their values. `EVIDENCE_FLOOR === 0.5`. Values as the spec's `thousandths-1` worked example prints them | Return the unrounded product: `toBe(0.392)` goes red (0.39199999999999996) | 1a |
 | 32 | `evidence.test.ts` › "one mild factor stays, two fall" | Under `thousandths-1`: 0.56 not below; 0.49 below; 0.392 below; `image-small` on a measure gives 0.5, not below. Every permutation of the factor list gives the same value | Change `<` to `<=` in the floor check: the 0.5 case goes red. Drop the factor sort: the permutation case is red if any order differs | 1a |
 | S1 | `evidence.test.ts` › "the margin is in thousandths and inclusive" | `industry-margin-1`, inputs from its worked example: `withinMargin(0.7, 0.6)` and `withinMargin(0.8, 0.7)` are true; `withinMargin(0.7, 0.599)` is false; `withinMargin(0.9, 0.6)` is false; `withinMargin(0.7, 0.65)` is true | Compare raw differences (`a - b <= 0.1`): the 0.8 and 0.7 case goes red | 1a |
 | 29 | `evidence.test.ts` › "every string is Thai and English" | Every key of `EVIDENCE_STRINGS` (all of spec "Strings", the v1.3 and v1.5 keys `industry.byNameOnly`, `report.conflictsNotChecked`, `read.notRead.competitor`, `read.notMeasured`, the four `read.notRendered.*` and, from 1c, the four `{what}` labels among them) and every `QUESTION_KEYS` entry has non-empty `th` and `en`, with no U+2014 and no U+00B7. `QUESTION_KEYS` equals the six keys of row 29, each a key of `EVIDENCE_STRINGS`. Every `NotMeasured.reason` and every `NotMeasured.what` maps to a key that exists | Add a key with an empty `th`: red. Delete `read.notRendered.budget`: the map case goes red (and the typecheck) | 1a, each |
@@ -958,7 +960,7 @@ Determinism is proved by row 4 (same bytes, snapshot and clock give deep-equal r
 
 ## Findings for the spec
 
-F1 to F12 were raised against spec v1.2 and applied in v1.3; F13 and F14 were raised against v1.3 and applied in v1.4, F14 settled further in v1.5 as slice 1d. The orchestrator accepted all fourteen under ADR 0012 decision 4, and each stays open for the owner at G2 (spec "Owner decisions" says where each lands). This design follows v1.8. One status changed with v1.3: F3's "row 4 holds either way" no longer holds, because row 4 now asserts equal ids under a later clock; if the owner puts `retrievedAt` back, row 4's later-clock case expects new ids (§3). F15 to F17 were raised against v1.5 and applied in v1.6, and F18 against v1.6 (re-check g2-2 N4) and applied in v1.7, each accepted by the orchestrator under the same decision and open for the owner at G2. F19 was raised against v1.7 by this design's report schema (§7) and applied in v1.8, accepted by the orchestrator under the same decision and open for the owner at G2.
+F1 to F12 were raised against spec v1.2 and applied in v1.3; F13 and F14 were raised against v1.3 and applied in v1.4, F14 settled further in v1.5 as slice 1d. The orchestrator accepted all fourteen under ADR 0012 decision 4, and each stays open for the owner at G2 (spec "Owner decisions" says where each lands). This design follows the spec version its front matter names; v1.9 recorded three deviations of the slice 1a build and raised no finding here. One status changed with v1.3: F3's "row 4 holds either way" no longer holds, because row 4 now asserts equal ids under a later clock; if the owner puts `retrievedAt` back, row 4's later-clock case expects new ids (§3). F15 to F17 were raised against v1.5 and applied in v1.6, and F18 against v1.6 (re-check g2-2 N4) and applied in v1.7, each accepted by the orchestrator under the same decision and open for the owner at G2. F19 was raised against v1.7 by this design's report schema (§7) and applied in v1.8, accepted by the orchestrator under the same decision and open for the owner at G2.
 
 <!-- prettier-ignore -->
 | # | Where in spec v1.2 | Finding | Proposed change |
@@ -1005,7 +1007,7 @@ F1 to F12 were raised against spec v1.2 and applied in v1.3; F13 and F14 were ra
 | I3 | A model item with no reading got base `measure` | §2 `checkItem` clauses 5 and 6; §14 row 2 "base, quote and tool-default fit the item" | Applied |
 | I4 | `hypothesis` had no checkable definition | Spec v1.5, rule `hypothesis-flag-1`; here §2 `HYPOTHESIS_RULES` and clause 14, §8, §14 rows 2 and 10 | Applied |
 | I5 | `checkAddress` missed `::`, `::/96` and NAT64 | §6 Address check; §14 row 5; F15 for the spec's wording | Applied here; F15 applied in spec v1.6 |
-| I6 | Tech notes behind the spec | Spec v1.5 Gap list; here the front matter and the rule table name v1.5 (v1.6 since task `ORV-128-design-schema-5`, v1.7 since task `ORV-128-design-schema-6`, v1.8 since task `ORV-128-design-schema-7`), F13 to F17 carry their status, and this table | Applied |
+| I6 | Tech notes behind the spec | Spec v1.5 Gap list; here the front matter and the rule table name v1.5 (v1.6 since task `ORV-128-design-schema-5`, v1.7 since task `ORV-128-design-schema-6`, v1.8 since task `ORV-128-design-schema-7`, v1.9 since task `ORV-132-design-bookkeeping-1`), F13 to F17 carry their status, and this table | Applied |
 | S1 | Spec copied §12's total | Spec v1.5 "Delivery" | Applied; §12's total is now about 1,215, or 1,420 with 1d (1,375 before `report.ts`, N5) |
 | S2 | K-0081 cited a wrong spec line | K-0081 | Applied there |
 | S3 | Row 36's noscript break-it could not fail | §14 row 36 fixture; F16 for the spec row | Applied here; F16 applied in spec v1.6 |

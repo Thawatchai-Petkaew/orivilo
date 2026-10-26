@@ -12,3 +12,8 @@ export * from "./color-audit";
 export * from "./color-knowledge";
 export * from "./color-rules";
 export * from "./color-fixtures";
+export * from "./confidence";
+export * from "./evidence-strings";
+export * from "./leans";
+export * from "./render-snapshot";
+export * from "./evidence";
