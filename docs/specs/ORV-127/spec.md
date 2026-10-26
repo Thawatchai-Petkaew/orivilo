@@ -1,7 +1,7 @@
 ---
 issue: ORV-127 (https://tpetkaew.atlassian.net/browse/ORV-127)
 lane: L (data access: a shared library read by every workspace next to records owned by one workspace; collection from outside sites with legal exposure; decision D13)
-version: 1.1
+version: 1.2
 ---
 
 # ORV-127: category colour lineup library on TSIC 2009
@@ -17,9 +17,11 @@ The library is a tree of brand categories on **TSIC 2009**, Thailand's industria
 | 2 | Division | 2 digits | 88 | 4 (84, 97, 98, 99) | 84 |
 | 3 | Group | 3 digits | 243 | 7 | 236 |
 | 4 | Class | 4 digits | 441 | 11 | 430 |
-| 5 | Subclass | 5 digits | 1,091 | about 26 | about 1,065 |
+| 5 | Subclass | 5 digits | 1,091 stated; 1,089 in the NSO workbook | 24 | 1,065 of 1,089 |
 
-Counts per ORV-127 comment 10200. Levels 3 and 4 hold more codes than ISIC Rev.4 (238 groups, 419 classes; K-0047) because TSIC adds Thai groups and classes. The exact subclass count after the exclusion is confirmed in slice 1 (row 1); a different number bumps this spec's version.
+Counts per ORV-127 comments 10200 and 10207. Levels 3 and 4 hold more codes than ISIC Rev.4 (238 groups, 419 classes; K-0047) because TSIC adds Thai groups and classes. At level 5 both figures rest on one base, the NSO comparison workbook `SD08_08_47_18.xlsx`: it lists 1,089 five-digit codes, 24 of them under divisions 84, 97, 98 and 99 (division 99 holds `99001` and `99009`), which leaves 1,065.
+
+**Open point: the two missing subclasses.** The NSO standard `SD08_08_47_12` states 1,091 subclasses; the workbook lists 1,089 (K-0048). Which two codes differ is not known. The code list is built from the workbook, so slice 1 ships 1,089. Before any level 5 collection starts, the two codes are resolved against another NSO source (the 2009 TSIC manual's detailed structure) and either added, with their source, or recorded as not present in the workbook's edition. Either outcome bumps this spec's version. Default until then: 1,089 in all and 1,065 brand-relevant.
 
 A brand record carries the deepest TSIC code known for the brand. A record counts toward its own node and every node above it: a record at subclass `86202` counts for class `8620`, group `862`, division `86` and section `Q`. A record known only to section level counts for that section only.
 
@@ -161,9 +163,9 @@ No row shows UI text. The coverage report and the ranking snapshot are developer
 <!-- prettier-ignore -->
 | # | Given | When | Result | Data effect | Test |
 | --- | --- | --- | --- | --- | --- |
-| 1 | The TSIC 2009 code list built from the NSO structure source, with that source's URL and read date in the module header | Counting codes per level, with and without the exclusions | 21, 88, 243, 441 and 1,091 in all; 18, 84, 236 and 430 brand-relevant at levels 1 to 4, and the brand-relevant subclass count equal to the number written in this spec (about 1,065 now; a different count bumps the spec version before the PR merges) | None | `tsic.test.ts` › "counts per level" |
+| 1 | The TSIC 2009 code list built from the NSO workbook `SD08_08_47_18.xlsx`, with its URL and read date in the module header | Counting codes per level, with and without the exclusions | 21, 88, 243, 441 and 1,089 in all; 18, 84, 236, 430 and 1,065 brand-relevant; 24 subclasses excluded. A different count, including the two missing codes once resolved (open point above), bumps the spec version before the PR merges | None | `tsic.test.ts` › "counts per level" |
 | 2 | The same list | Walking every code to its parent | Every division has a section, every group's first 2 digits are a division, every class's first 3 a group, every subclass's first 4 a class; no code appears twice | None | `tsic.test.ts` › "the tree holds" |
-| 3 | Codes `O`, `T`, `U`, `84`, `970`, `9810`, `99000` and one code under each of them | `isBrandRelevant(code)` | `false` for each; `true` for `Q`, `86`, `862`, `8620`, `86202` | None | `tsic.test.ts` › "exclusions" |
+| 3 | Codes `O`, `T`, `U`, `84`, `970`, `9810`, `99001` and one code under each of them | `isBrandRelevant(code)` | `false` for each; `true` for `Q`, `86`, `862`, `8620`, `86202` | None | `tsic.test.ts` › "exclusions" |
 | 4 | A record with every field valid at each bound (name of 1 and 60 characters, 1 and 6 colours, URL of 2,048 characters) | Parsing with `lineupRecordSchema`, then a JSON round trip | Parses; the round trip is deep-equal; lowercase hex is stored uppercase | None | `lineup-record.test.ts` › "a valid record" |
 | 5 | A record with, in turn: an extra key `logo`, `image`, `screenshot`, `html` or `css`; hex `#FFF` or `red`; two `primary` colours; 7 colours; 0 colours while not `removed`; name of 61 characters; `sourceUrl` `ftp://a.b` or `javascript:x`; `retrievedAt` after the passed clock; `expiresAt` before `retrievedAt`; `categoryCode` `84` or `00000`; `entity` `natural-person`; channel `user` with `workspaceId` `null` | Parsing | Each fails with the path of the bad field (`logo`, `colours.0.hex`, `colours`, `brandName`, `sourceUrl`, `expiresAt`, `categoryCode`, `entity`, `workspaceId`) | None | `lineup-record.test.ts` › "bounds and forbidden fields" |
 | 6 | Fixture records: 5 brands confirmed at `86202`, 1 at section `Q` only, 2 expired, 1 unconfirmed, 1 removed, 1 workspace record, `min` 5 | `coverageReport(records, { min, asOf })` | `86202`, `8620`, `862`, `86` covered; `Q` covered (6 brands); expired, unconfirmed, removed and workspace records counted nowhere | None | `coverage.test.ts` › "what counts" |
@@ -240,7 +242,7 @@ The owner answered D1 to D13 at G1 (ORV-127 comment 10201). The "Decided" column
 ## Depends on
 
 - Knowledge: K-0047 (ISIC Rev.4 counts and the excluded rows), K-0048 (the NSO documents that describe TSIC 2009), K-0049 (DBD new registrations by objective code), K-0052 to K-0058 (the statute and practice readings behind the collection rules).
-- ORV-127 comments 10199 (TSIC 2009, top-down, breadth-first), 10200 (counts per level, confirmed from NSO sources) and 10201 (the owner's G1 answers to D1 to D13).
+- ORV-127 comments 10199 (TSIC 2009, top-down, breadth-first), 10200 (counts per level, confirmed from NSO sources), 10201 (the owner's G1 answers to D1 to D13) and 10207 (the corrected level 5 counts and the open two-code gap).
 - [ORV-20 spec](../ORV-20/spec.md) v1.2: `auditLineup` bounds, the hue families, decision 3 (stand-in lineup) and decision 4 (crowd at two). [ORV-125 spec](../ORV-125/spec.md) for the palette that follows.
 - [ORV-126](https://tpetkaew.atlassian.net/browse/ORV-126) (brand CI phase 1), the first consumer of a real lineup. It has no spec file in the repo yet.
 - ADR 0005 (knowledge and curated data in code), ADR 0007 (curated values, determinism), ADR 0012 (gates), ADR 0017 (colour-scope rules).
@@ -250,3 +252,4 @@ The owner answered D1 to D13 at G1 (ORV-127 comment 10201). The "Decided" column
 
 - v1 (2026-10-26): first spec. Downstream to review once G1 passes: the ORV-127 Jira description, the G2 design and its new ADR, and the ORV-126 spec when it is written.
 - v1.1 (2026-10-26): no decision rests on a knowledge entry below confidence 0.7. The classification and counts cite K-0047 and ORV-127 comments 10199, 10200 and 10201; the collection rules cite the owner's D1 decision and K-0052 to K-0058; K-0048 is cited only where the NSO documents are named; the cut-off options entry is dropped, superseded by the owner's choice of TSIC 2009. D1 to D13 are recorded as decided (comment 10201). No row, rule, bound or slice changed. Downstream to review: the ORV-127 Jira description and the G2 design and its new ADR.
+- v1.2 (2026-10-26): level 5 counts corrected to one base per ORV-127 comment 10207 (review findings F1, F2 and F5 on PR 115): 24 excluded subclasses and 1,065 brand-relevant of the 1,089 codes in the NSO workbook `SD08_08_47_18.xlsx`; the 1,089 versus 1,091 gap is named as an open point with a step to resolve the two codes before any level 5 collection; row 1 now names the workbook as the code list's source and asserts its counts; row 3 uses the real subclass `99001` instead of `99000`. Downstream to review: the ORV-127 Jira description, the G2 design and its new ADR, and K-0048 (its claim still says about 1,065 of 1,091).
