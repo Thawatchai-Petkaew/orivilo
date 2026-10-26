@@ -119,6 +119,22 @@ Do not set `model`, `isolation` or `run_in_background` on the call. `cwd`, if gi
   fixes, read every fix report's `deviations` and `needs_decision`; a line that names a file, a line
   or a value still out of step goes to a new fix envelope before the re-check is dispatched, whatever
   the role (L-0035). No hook checks this; it is the main session's duty.
+- **Bookkeeping after the content fixes.** A report line (`needs_decision` or `deviations`) that only
+  brings a reference, a version number, a status or findings row, or a pointer in another document up to
+  date is bookkeeping. Do not dispatch it alone. Hold it until every content fix of the round is back,
+  then send one envelope per role that owns a named document, with every held line as a fact
+  (`file:line`, old text, new text), before the re-check (L-0035 still applies). A line that changes a
+  rule, a field, a closed list or a number a test asserts is a content fix and is dispatched as now. A
+  finding whose spots sit in two roles' sections of one file goes to one envelope whose `write_set`
+  covers every spot (L-0040). No hook checks this; it is the main session's duty.
+- **A fix greps the other documents.** For each name, value, rule or row the fix adds, removes,
+  renames or narrows (from the finding's `expected` and the objective), the fix envelope gets one
+  `done_when` `git grep -n -F '<term>' -- <each other document of the PR's docs set>` for the old term
+  and one for the new term, and its objective asks the role to do the same for every term its own
+  design introduces. Each hit outside the `write_set` goes in the report's `needs_decision` as
+  `file:line`, old text, new text, and the main session sends it with the round's bookkeeping (L-0040)
+  or as a content fix. For `product`, which has no shell, the main session runs these `done_when`
+  lines after the task (L-0041). No hook checks this; it is the main session's duty.
 - **Review of a guard-rail spec.** When the spec frames a guard as a guard rail, the reviewer
   envelope's objective names the frame and asks for (a) forms a rule-following agent uses that pass
   the guard and (b) bypass classes, each reported once with one probe. A finding of kind (a) goes to
