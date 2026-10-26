@@ -33,7 +33,7 @@ In `.claude/skills/ovl/SKILL.md`, section 2, after the "Before a re-check" bulle
 +- **Bookkeeping after the content fixes.** A report line (`needs_decision` or `deviations`) that only
 +  brings a reference, a version number, a status or findings row, or a pointer in another document up to
 +  date is bookkeeping. Do not dispatch it alone. Hold it until every content fix of the round is back,
-+  then send one envelope per role that owns a named document, with every held line as a fact
++  then send one envelope per role in the L-0033 order that owns a named document, with every held line as a fact
 +  (`file:line`, old text, new text), before the re-check (L-0035 still applies). A line that changes a
 +  rule, a field, a closed list or a number a test asserts is a content fix and is dispatched as now. A
 +  finding whose spots sit in two roles' sections of one file goes to one envelope whose `write_set`
