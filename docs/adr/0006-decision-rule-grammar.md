@@ -1,6 +1,6 @@
 # ADR 0006: Decision rules are a closed grammar evaluated in three-valued logic
 
-- Status: accepted
+- Status: accepted. Decision 3 is superseded by [ADR 0017](0017-node-scoped-color-decisions.md) for node-scoped color decisions; the rest stands.
 - Date: 2026-10-22
 - Decided by: the implementer under the owner's 2026-10-22 policy (agents run G1 to G4; the owner reviews at G5), story ORV-17
 
