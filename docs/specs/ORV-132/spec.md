@@ -2,7 +2,7 @@
 issue: ORV-132 (https://tpetkaew.atlassian.net/browse/ORV-132), slice 1a of ORV-128 (https://tpetkaew.atlassian.net/browse/ORV-128)
 parent: docs/specs/ORV-128/spec.md v1.9
 lane: L (the evidence schema is a new engine contract every brand node reads; the parent's lane, decision D7)
-version: 1.1
+version: 1.2
 ---
 
 # ORV-132: the evidence contract, computed confidence and the lean rules (ORV-128 slice 1a)
@@ -182,8 +182,8 @@ Slices 1b to 7 also carry rows 29 to 31 again, as the parent's "Delivery" says.
 
 ## Open questions (with the default used until answered)
 
-- **`rendererBuildSchema` before slice 1c.** Row 2 and `checkItem` clause 13 need `source.renderer` to parse a renderer build, and tech notes §14 tests "a build with `browserVersion` "153" (one part) fails" in 1a; tech notes §1 places `rendererBuildSchema` in `render-snapshot.ts`, slice 1c. Default: this slice adds `render-snapshot.ts` holding only `rendererBuildSchema` and `RendererBuild`, as tech notes §7 writes them, and slice 1c adds the rest of that file. Impact: tech notes §1 and §12 (about 12 lines move into 1a).
-- **The two maps from `NotMeasured` to strings.** Tech notes §12 counts "the two maps of §9" in 1a, but they are typed on the `NotMeasured` unions of tech notes §7, a slice 1c type, and the `{what}` keys are named in 1c. Default: this slice ships `EVIDENCE_STRINGS` with the keys of the parent's "Strings" and `QUESTION_KEYS`; the two maps, the four `{what}` keys and row 29's map case land in 1c with `NotMeasured`. Impact: tech notes §9 and §12.
+- **`rendererBuildSchema` before slice 1c.** Settled in v1.2: tech notes §1 now records that 1a ships `render-snapshot.ts` holding only `rendererBuildSchema` and `RendererBuild`, and §12 counts it in 1a. The question as it stood: Row 2 and `checkItem` clause 13 need `source.renderer` to parse a renderer build, and tech notes §14 tests "a build with `browserVersion` "153" (one part) fails" in 1a; tech notes §1 places `rendererBuildSchema` in `render-snapshot.ts`, slice 1c. Default: this slice adds `render-snapshot.ts` holding only `rendererBuildSchema` and `RendererBuild`, as tech notes §7 writes them, and slice 1c adds the rest of that file. Impact: tech notes §1 and §12 (about 12 lines move into 1a).
+- **The two maps from `NotMeasured` to strings.** Settled in v1.2: tech notes §1 and §12 now place the two maps of §9 and the four `{what}` keys in 1c. The question as it stood: Tech notes §12 counts "the two maps of §9" in 1a, but they are typed on the `NotMeasured` unions of tech notes §7, a slice 1c type, and the `{what}` keys are named in 1c. Default: this slice ships `EVIDENCE_STRINGS` with the keys of the parent's "Strings" and `QUESTION_KEYS`; the two maps, the four `{what}` keys and row 29's map case land in 1c with `NotMeasured`. Impact: tech notes §9 and §12.
 - **Row 30 before the other modules exist.** Default: the scan in this slice covers the modules of row 30's list that exist after it (`evidence`, `confidence`, `evidence-strings`, `leans`, and `render-snapshot` under the first question), with one failing fixture per import form (tech notes §14, row 30); each later slice's module joins the scan when it lands (Slice "each").
 - **Owner items still open from G2.** The model-reading base, `value-to-lean-1` and findings F1 to F19 stay open for the owner (parent "Owner decisions"). Default: this slice ships the numbers as the parent states them; a change bumps `confidence-1` in the parent first, with the impact list the parent's "Confidence" names.
 
@@ -198,10 +198,11 @@ Slices 1b to 7 also carry rows 29 to 31 again, as the parent's "Delivery" says.
 
 - ORV-128 spec, "Delivery" row 1a (the rows and deliverables this spec copies).
 - ORV-128 tech notes §1, §7, §9 and §12, against the first three open questions.
-- ADR 0008 Addition: its "Not confirmed yet; follow-up" line, once this slice merges with the tests its Confirmation names.
+- ADR 0008 Addition: its Confirmation line (confirmed at a0f67a2, PR 128).
 - The ORV-132 Jira issue acceptance (rows 1, 2, 3, 32, 29, 30, 31).
 
 ## Changelog
 
 - v1 (2026-10-27): split from ORV-128 spec v1.8 as slice 1a (L-0016). Rows 1, 2, 3, 32, 29, 30 and 31 copied with their numbers and wording; the rules `thousandths-1`, the floor, `industry-margin-1`, `hypothesis-flag-1`, `value-to-lean-1` and `measure-to-lean-1` pointed to by name in the parent; the deliverables `evidence.ts`, `confidence.ts`, `evidence-strings.ts` and `leans.ts` from tech notes §1 to §5, §8, §9 and §14; five worked examples copied as is. Three open questions with defaults on what tech notes place in 1c. Downstream to review: the ORV-132 Jira issue acceptance, tech notes §1, §7, §9 and §12, the slice 1a builder.
 - v1.1 (2026-10-27): follows ORV-128 spec v1.9, which records three deviations of the slice 1a build (task `ORV-132-build-evidence-1`). Rows 3 and 32: the When cell says `scoreConfidence(base, factors)`, returning `{ confidence, belowFloor }` (tech notes §4), in place of a call that took the whole item; Given, outcomes and test names unchanged. The value shape per reading target and the `reference.asset` font `family` bound keep their one home in the parent's "Evidence first" (the bound listed under its "Hypotheses"); this spec points to "Evidence first" under "What this slice uses" and restates neither. Parent references move from v1.8 to v1.9. No row number, test name or rule home changes. Review: tech notes §2 (the value-shape table's `reference.asset` row) and §4; `evidence.test.ts` (test names unchanged); the ORV-132 Jira issue acceptance (rows 3 and 32).
+- v1.2 (2026-10-27): bookkeeping after the slice 1a merge (a0f67a2, PR 128); no requirement change. The open questions "`rendererBuildSchema` before slice 1c" and "The two maps from `NotMeasured` to strings" are marked settled, pointing to tech notes §1 and §12, which now record both defaults. The downstream review line for ADR 0008 now names its Confirmation line, confirmed at a0f67a2. No row, rule, deliverable or test name changes. Review: none beyond this file.
