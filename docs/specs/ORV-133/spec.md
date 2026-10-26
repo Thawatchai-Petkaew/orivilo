@@ -2,7 +2,7 @@
 issue: ORV-133 (https://tpetkaew.atlassian.net/browse/ORV-133), slice 1b of ORV-128 (https://tpetkaew.atlassian.net/browse/ORV-128)
 parent: docs/specs/ORV-128/spec.md v1.10
 lane: L (server-side reads of outside web pages with legal exposure, and a new runtime dependency in the engine; the parent's lane, decision D7)
-version: 1.1
+version: 1.2
 ---
 
 # ORV-133: the safe single-page read, the pinned HTML tokenizer and the page text (ORV-128 slice 1b)
@@ -86,7 +86,7 @@ The parent's "Rules and bounds" apply unchanged, in particular "Purity", "Untrus
 
 ## Worked examples
 
-Copied as is from the parent's "Worked examples", the line that belongs to the rules this slice implements. The parent records that the main session ran it on Node 22.23.0 with ICU 78.2 (2026-10-27) and that it printed the output shown. The author of this spec had no shell and did not run it. The slice 1b builder runs it again on the Node line this slice pins, and records the output and the versions; a different output is a finding against the parent spec, and row 36 takes the recorded number (parent "Worked examples").
+Copied as is from the parent's "Worked examples" (v1.11), the two lines that belong to the rules this slice implements. The parent records that the main session ran the first on Node 22.23.0 with ICU 78.2 and the second, the decoding sentence of `html-text-1`, on Node 22.23.0 (both 2026-10-27), and that each printed the output shown. The author of this spec had no shell and ran neither. The slice 1b builder runs both again on the Node line this slice pins, and records the outputs and the versions; a different output is a finding against the parent spec, and row 36 takes the recorded number (parent "Worked examples").
 
 **`html-text-1` whitespace, then `word-count-1`** (section "Page text"). The Thai text is copied from `packages/intent-engine/src/interpreter.test.ts` line 42, wrapped in the whitespace a page would carry; `html-text-1` folds it, and `word-count-1` counts the word-like segments.
 
@@ -101,6 +101,18 @@ node -e 'const t=(" \n  "+"อยากให้สนุก"+"  ").replace(/[\t
 The segment count comes from the ICU data of the Node build (3 on Node 22.23.0, ICU 78.2); if the pinned line splits the text differently, slice 1b records the output and the versions, and row 36 takes the recorded number.
 
 No rounding applies: both outputs are whole counts.
+
+**`html-text-1` decoding** (section "Page text"). The bytes are `<p>`, then E0 B8 AD, the UTF-8 of the first letter of the Thai text at `packages/intent-engine/src/interpreter.test.ts` line 42, then FF, an invalid sequence, then `</p>`. The global `TextDecoder` decodes them as UTF-8; the invalid byte becomes U+FFFD, printed below as the replacement character itself, and the decode does not throw.
+
+```sh
+node -e 'console.log(JSON.stringify(new TextDecoder().decode(new Uint8Array([0x3c,0x70,0x3e,0xe0,0xb8,0xad,0xff,0x3c,0x2f,0x70,0x3e]))))'
+```
+
+```text
+"<p>อ�</p>"
+```
+
+No rounding applies: the output is text.
 
 ## What waits, and on what
 
@@ -152,3 +164,4 @@ Slices 1c to 7 also carry rows 29 to 31 again, as the parent's "Delivery" says.
 
 - v1 (2026-10-27): split from ORV-128 spec v1.9 as slice 1b (L-0016). Rows 5, 6, 7, 36, 29, 30 and 31 copied with their numbers and wording; the address check, robots.txt, logged out, named reader, the read bounds, `html-text-1` and `word-count-1` pointed to by name in the parent; the deliverables `read-page.ts`, `page-text.ts`, the exact tokenizer pin, the Node line in `engines` and `.nvmrc`, the row 30 scan and `index.ts`, from tech notes §1, §6, §8, §12 to §14; the `html-text-1` and `word-count-1` worked example copied as is. What waits on K-0082 and on the `security` review. Five open questions with defaults: the Node line, the 1b exports, the bytes' encoding, the contact URL, the size. Downstream to review: the ORV-133 Jira issue acceptance, tech notes §1 and §14 row 38, the parent's "Page text" (encoding), ADR 0019 Status step (1), K-0082, the slice 1b builder.
 - v1.1 (2026-10-27): the open question on the bytes' character encoding is settled by ORV-128 spec v1.10, which adds the decoding sentence to `html-text-1` and lists the decoding bound under its "Hypotheses" (accepted by the orchestrator under ADR 0012 decision 4, open for the owner); the open question now points there. The parent is cited at v1.10 in the front matter, "What this slice uses", "Rules and bounds" and "Depends on"; rows stay as copied from v1.9, which v1.10 does not change. No row, number or deliverable changes. Review: tech notes §8 ("Page text", the `pageTextOf(documentBytes)` bullet); the slice 1b builder (`page-text.ts` decodes as the rule says); the slice 1c builder (row 9's quote check); K-0082 ("Byte decoding").
+- v1.2 (2026-10-27): "Worked examples" copies as is the parent v1.11 line for the decoding sentence of `html-text-1`, run by the main session on Node 22.23.0; the section's opening paragraph says so. No row, number or deliverable changes. Review: the slice 1b builder (runs the line again on the pinned Node line).

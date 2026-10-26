@@ -1,7 +1,7 @@
 ---
 issue: ORV-128 (https://tpetkaew.atlassian.net/browse/ORV-128), layer 1 of the ORV-126 harness
 lane: L (a new engine contract every brand node reads, the evidence schema; server-side reads of outside web pages with legal exposure; new model calls and prompts; uploaded files)
-version: 1.10
+version: 1.11
 ---
 
 # ORV-128: input analysers, harness layer 1
@@ -373,7 +373,7 @@ In the POC the person sees the analysers' result through the engine API or the c
 
 ## Worked examples
 
-Each line runs as is with `node` and prints the output under it. The author of this spec had no shell; after v1.3 the main session ran all eight lines on Node 22.23.0 with ICU 78.2 (2026-10-27), and every output matched the one shown. The ninth line, `hypothesis-flag-1`, was added in v1.5; the main session ran it on Node 22.23.0 with ICU 78.2 (2026-10-27), and it printed the five lines shown (finding F17). The slice that ships a rule runs its line and its test again on the Node line slice 1b pins (open question "The Node line"), and a different output is a finding against this spec.
+Each line runs as is with `node` and prints the output under it. The author of this spec had no shell; after v1.3 the main session ran all eight lines on Node 22.23.0 with ICU 78.2 (2026-10-27), and every output matched the one shown. The ninth line, `hypothesis-flag-1`, was added in v1.5; the main session ran it on Node 22.23.0 with ICU 78.2 (2026-10-27), and it printed the five lines shown (finding F17). The tenth line, the decoding sentence of `html-text-1`, was added in v1.11; the main session ran it on Node 22.23.0 (2026-10-27), and it printed the output shown. The slice that ships a rule runs its line and its test again on the Node line slice 1b pins (open question "The Node line"), and a different output is a finding against this spec.
 
 **`thousandths-1` and the floor** (section "Confidence"). Factor values copied from the "Confidence" table; factors sorted by id, the product rounded to 3 decimals, the floor compared as `value in thousandths < 500`.
 
@@ -484,6 +484,18 @@ node -e 'const t=(" \n  "+"อยากให้สนุก"+"  ").replace(/[\t
 ```
 
 The segment count comes from the ICU data of the Node build (3 on Node 22.23.0, ICU 78.2); if the pinned line splits the text differently, slice 1b records the output and the versions, and row 36 takes the recorded number.
+
+**`html-text-1` decoding** (section "Page text"). The bytes are `<p>`, then E0 B8 AD, the UTF-8 of the first letter of the Thai text at `packages/intent-engine/src/interpreter.test.ts` line 42, then FF, an invalid sequence, then `</p>`. The global `TextDecoder` decodes them as UTF-8; the invalid byte becomes U+FFFD, printed below as the replacement character itself, and the decode does not throw.
+
+```sh
+node -e 'console.log(JSON.stringify(new TextDecoder().decode(new Uint8Array([0x3c,0x70,0x3e,0xe0,0xb8,0xad,0xff,0x3c,0x2f,0x70,0x3e]))))'
+```
+
+```text
+"<p>อ�</p>"
+```
+
+No rounding applies: the output is text.
 
 ## Out of scope
 
@@ -613,3 +625,4 @@ ADR 0019 (proposed) decides where the reader and the renderer run, the must-ask 
 - v1.8 (2026-10-27): finding F19, raised against v1.7 by task `ORV-128-design-schema-6` and accepted by the orchestrator under ADR 0012 decision 4, open for the owner at G2. "Delivery" row 1d also names the engine's report schema module, `report.ts` (`reportSchema`, tech notes §7, "The report schema"); rows 17 and 38 say the JSON parses with `reportSchema` and point to that section. New open question "A report for a refused read": `reportSchema` has no member for a refused or failed read, and the default before slice 1d is a third member `refused` carrying the refusal key (`read.refused.robots`, `read.refused.address`) and the printed line, designed in the slice 1d spec. "Owner decisions" lists F19; the Gap list and "Depends on" say F1 to F19. No number, row number, rule home or owner decision changes. Review: the tech notes ("Findings for the spec" marks F19 applied in spec v1.8; §7 "What it does not hold" and §11's `reportSchema` row against the open question's default); the slice 1d builder and its spec (row 1d's scope, rows 17 and 38, the `refused` member); `security` for 1d; the owner at G2 for F19.
 - v1.9 (2026-10-27): three deviations of the slice 1a build (task `ORV-132-build-evidence-1`), accepted by the orchestrator under ADR 0012 decision 4 and open for the owner. Rows 3 and 32: the When cell says `scoreConfidence(base, factors)`, returning `{ confidence, belowFloor }`, as tech notes §4 designs it and the build ships it, in place of a call that took the whole item; Given, outcomes and test names unchanged. "Evidence first", the reading targets: a `reference.asset` font `family` is 1 to 100 characters after trimming, a bound the build set where the spec gave none; "Hypotheses" lists it as a schema bound, not a member of `hypothesis-flag-1`. The field table's `reading` row says the schema checks the shape of `value` per `target`, pointing to the tech notes §2 table. No row number, test name, rule home, slice or owner decision changes. Review: the tech notes (§2, the `reference.asset` row of the value-shape table gains the bound; §4 already matches; clause 9 and §14 row 3 read the result as `.value`, where the build returns `{ confidence, belowFloor }`); `evidence.test.ts` (test names unchanged); the slice 7 builder (the font bound on another brand's CI); ORV-132 spec v1.1.
 - v1.10 (2026-10-27): the slice 1b open question on the bytes' character encoding (ORV-133 spec v1, task `ORV-133-product-spec-1`), its default accepted by the orchestrator under ADR 0012 decision 4 and open for the owner. Rule `html-text-1` in "Page text" gains one sentence on how the document bytes are decoded before tokenizing; "Hypotheses" lists that decoding bound, not a member of `hypothesis-flag-1`. No row, number, rule home, slice or owner decision changes. Review: the tech notes (§8 "Page text", the `pageTextOf(documentBytes)` bullet, against the decoding sentence; §1's `page-text.ts` row); the slice 1b builder (`page-text.ts`, row 36's fixture bytes); the slice 1c builder (row 9's quote check reads the same decoded text); ORV-133 spec v1.1; K-0082 ("Byte decoding" names the step this rule now fixes).
+- v1.11 (2026-10-27): "Worked examples" gains a tenth line for the decoding sentence of `html-text-1` (L-0038, proposed by task `ORV-133-product-parent-1`), run by the main session on Node 22.23.0; the section's opening paragraph says so. No row, number, rule home, slice or owner decision changes. Review: the slice 1b builder (`page-text.test.ts` may reuse the bytes); ORV-133 spec v1.2, which copies the line.
