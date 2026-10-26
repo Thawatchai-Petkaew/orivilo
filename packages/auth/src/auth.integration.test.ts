@@ -1,8 +1,10 @@
-import { eq, member, organization, project, verification } from "@orivilo/db";
+import { eq, member, organization, project, rateLimitCounter, verification } from "@orivilo/db";
+import { createDb, type Db } from "@orivilo/db/client";
 import { createTestDatabase, HAS_TEST_DATABASE, type TestDatabase } from "@orivilo/db/testing";
 import { testUtils } from "better-auth/plugins";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { withWorkspace } from "./access.ts";
+import { authRoute } from "./auth-route.ts";
 import { createAuth } from "./config.ts";
 
 // ORV-38 AC 1, 2 and 4, against a throwaway database as orivilo_app.
@@ -124,5 +126,112 @@ describe.runIf(HAS_TEST_DATABASE)("Better Auth and the authorization helper", ()
     await expect(
       withWorkspace(deps(), forged, "anything", "member", async () => undefined),
     ).rejects.toMatchObject({ status: 401 });
+  });
+
+  // ORV-122 rows 12, 20 and 23: two instances on one store, Better Auth's limiter counting there.
+  describe("Better Auth's limiter", () => {
+    const secret = "test-secret-that-is-long-enough-0123456789";
+    // 1 s after an aligned 10 s boundary.
+    let clock = Date.parse("2026-10-26T10:00:01Z");
+    let poolB: Db;
+    let routeA: (r: Request) => Promise<Response>;
+    let routeB: (r: Request) => Promise<Response>;
+    const build = (db: Db) => {
+      const instance = createAuth({
+        db,
+        secret,
+        baseURL: "http://localhost:3000",
+        google: { clientId: "test", clientSecret: "test" },
+        rateLimit: { now: () => clock, pruneEveryMs: 0 },
+      });
+      return authRoute((r) => instance.handler(r));
+    };
+    beforeAll(() => {
+      poolB = createDb(t.appUrl);
+      routeA = build(t.app);
+      routeB = build(poolB);
+    });
+    afterAll(async () => {
+      await poolB?.$client.end();
+    });
+    const signInRequest = (n: number, xff: string) =>
+      new Request("http://localhost:3000/api/auth/sign-in/social", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: "http://localhost:3000",
+          "x-forwarded-for": xff,
+          "x-vercel-forwarded-for": `198.51.100.${n}`,
+          "x-real-ip": `192.0.2.${n}`,
+        },
+        body: JSON.stringify({ provider: "google", callbackURL: "/account" }),
+      });
+
+    it("Better Auth's limiter counts in the shared store", async () => {
+      const statuses: number[] = [];
+      let fourth: Response | undefined;
+      for (const n of [1, 2, 3, 4]) {
+        const res = await (n % 2 ? routeA : routeB)(signInRequest(n, "203.0.113.7"));
+        statuses.push(res.status);
+        if (n === 4) fourth = res;
+      }
+      expect(statuses).toEqual([200, 200, 200, 429]);
+      const wait = Number(fourth?.headers.get("retry-after"));
+      expect(wait).toBeGreaterThanOrEqual(1);
+      expect(wait).toBeLessThanOrEqual(9);
+      expect(await fourth?.json()).toMatchObject({
+        error: { code: "RATE_LIMITED", retryable: true, requestId: expect.any(String) },
+      });
+      const found = (await t.admin.select().from(rateLimitCounter)).filter(
+        (r) => r.key.startsWith("auth-http:ip:") && r.key.endsWith(":10x3"),
+      );
+      expect(found).toHaveLength(1);
+      expect(found[0]?.key).toMatch(/^auth-http:ip:[0-9a-f]{64}:10x3$/);
+      expect(found[0]?.count).toBe(3);
+      // A different trusted header is a different bucket; the forged others never chose one.
+      expect((await routeA(signInRequest(5, "203.0.113.8"))).status).toBe(200);
+    });
+
+    it("made-up paths share one bucket per rule", async () => {
+      clock += 60_000;
+      for (let i = 1; i <= 50; i++) {
+        const res = await (i % 2 ? routeA : routeB)(
+          new Request(`http://localhost:3000/api/auth/made-up-${i}`, {
+            headers: { "x-forwarded-for": "203.0.113.9" },
+          }),
+        );
+        expect(res.status).not.toBe(429);
+      }
+      const found = (await t.admin.select().from(rateLimitCounter)).filter(
+        (r) => r.key.startsWith("auth-http:ip:") && r.key.endsWith(":10x100"),
+      );
+      expect(found).toHaveLength(1);
+      expect(found[0]?.count).toBe(50);
+    });
+
+    it("keeps raw IPs out of every key", async () => {
+      const keys = (await t.admin.select({ key: rateLimitCounter.key }).from(rateLimitCounter)).map(
+        (r) => r.key,
+      );
+      expect(keys.length).toBeGreaterThan(0);
+      for (const key of keys) expect(key).not.toMatch(/203\.0\.113\./);
+    });
+
+    it("a store failure answers 503 through the handler", async () => {
+      const dead = createDb(t.appUrl);
+      await dead.$client.end();
+      const route = authRoute((r) =>
+        createAuth({
+          db: dead,
+          secret,
+          baseURL: "http://localhost:3000",
+          google: { clientId: "test", clientSecret: "test" },
+          rateLimit: { now: () => clock, pruneEveryMs: 0 },
+        }).handler(r),
+      );
+      const res = await route(signInRequest(1, "203.0.113.50"));
+      expect(res.status).toBe(503);
+      expect(await res.json()).toMatchObject({ error: { code: "SERVICE_UNAVAILABLE" } });
+    });
   });
 });

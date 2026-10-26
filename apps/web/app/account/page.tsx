@@ -6,6 +6,7 @@ import { headers } from "next/headers";
 import { getWebMessages } from "../../i18n/locale";
 import { accessDeps, auth } from "../../server/auth";
 import { signInWithGoogle, signOut } from "./actions";
+import { SignInForm } from "./SignInForm";
 
 export const dynamic = "force-dynamic";
 
@@ -57,14 +58,10 @@ export default async function AccountPage() {
         <p className="text-body-md text-text-secondary">{m.account.notConfigured}</p>
       ) : null}
       {view.kind === "signed-out" ? (
-        <form action={signInWithGoogle} className="flex flex-col gap-3">
-          <p className="text-body-md text-text-secondary">{m.account.signedOut}</p>
-          <div>
-            <Button type="submit" variant="primary">
-              {m.account.signInWithGoogle}
-            </Button>
-          </div>
-        </form>
+        <SignInForm
+          action={signInWithGoogle}
+          labels={{ account: m.account, wait: m.wait, failed: m.saved.errors.failed }}
+        />
       ) : null}
       {view.kind === "signed-in" ? (
         <form action={signOut} className="flex flex-col gap-3">
