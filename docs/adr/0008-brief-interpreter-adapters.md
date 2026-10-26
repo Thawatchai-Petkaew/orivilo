@@ -35,3 +35,22 @@ The handoff §12.2 gives the interpreter its job. It extracts the requirement, c
 - **Shipping an LLM adapter now.** There is no implementation to test against yet, so rule 4 keeps it out. Only the interface ships. The tests use a fake adapter, named as a fake, to prove the checks in step 2.
 - **A confidence score per finding.** There is no method to back a number, so the handoff rules it out. The finding's evidence and the `uncertain` list do that job.
 - **Guessing between conflicting words.** A brief that says both "fun" and "formal" leaves playful open and says so. The Studio asks; the interpreter does not decide.
+
+## Addition, 2026-10-26: a computed confidence number for input evidence
+
+The owner chose option (a) of ORV-128 decision D6 at G1 (ORV-128 comment 10209): input evidence carries a confidence number computed by code. "Not chosen" above rejected a confidence score per finding because no method backed one. This addition records the method that now backs one, for input evidence only (`docs/specs/ORV-128/spec.md`, "Confidence"; `docs/specs/ORV-128/tech.md` §4).
+
+- **Computed, never reported.** `confidence.value` is a base times every named factor, computed by `scoreConfidence` in `packages/intent-engine/src/confidence.ts` (version `confidence-1`). The bases are `measure` 1.0, `rule-reading` 0.7 and `model-reading` 0.7. The factors are `page-incomplete` 0.7, `few-words` 0.7, `image-small` 0.5, `image-blurred` 0.6, `single-signal` 0.8 and `tool-default` 0. Every number is a hypothesis, to be checked against labelled fixtures.
+- **One rounding rule.** Factors are multiplied in id order. The product is rounded to 3 decimals. The floor (0.5, owner decision D3) and the 0.1 industry margin are compared in whole thousandths, and exactly 0.1 apart counts as within the margin.
+- **The trace shows the method.** Each item stores its base and factors with their values, and the schema rejects an item whose value is not the computed one.
+- **A model's certainty is never read.** A `score` or `confidence` key from a model fails the strict schema, as in decision 2.
+- **Brief interpretations are unchanged.** Decision 2 still holds for `interpretationSchema`: a brief finding carries no confidence, and its evidence and the `uncertain` list still do that job.
+- **Open for the owner at G2.** The model-reading base of 0.7 is the orchestrator's adjustment under D3 (ORV-128 comment 10215). It was raised from 0.6 so that one mild factor keeps a model reading above the floor (0.7 x 0.8 = 0.56), but two factors do not (0.392). The owner may confirm or overturn it at G2. A change to any base, factor or the floor bumps `confidence-1` and ships with an impact list.
+- **Not chosen:** levels only (`measured`, `supported`, `weak`, option b). The owner asked for a floor, and a number with its factors in the trace shows why an item fell under it.
+
+Confirmation: in `packages/intent-engine/src`, these tests fail `pnpm test` when the method breaks:
+
+- `evidence.test.ts` › "confidence is computed, never reported", "one mild factor stays, two fall", "the margin is in thousandths and inclusive", and "bounds and forbidden fields" (a reported value that differs from the computed one, and a `score` key);
+- `interpreter.test.ts` › "refuses output outside the schema, such as a confidence score", existing, which still rejects a confidence on a brief finding.
+
+Not confirmed yet; follow-up: ORV-128 slice 1a, which ships `confidence.ts` and these tests.
