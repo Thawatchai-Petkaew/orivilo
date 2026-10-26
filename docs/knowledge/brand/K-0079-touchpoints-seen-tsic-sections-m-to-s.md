@@ -56,7 +56,7 @@ Tried and not counted: university guideline PDFs (uaeu.ac.ae, apsu.edu returned 
 - Helsinki City Museum (helsinginkaupunginmuseo.fi): "For example, the design of the toilet, lift and café signs is based on the Falkman font.", and the interior.
 - Your Space, UK gyms, by WPA Pinfold (effectivedesign.org.uk, DBA Design Effectiveness entry): "from identity to signage, interiors to digital marketing".
 - New York Sports Club (gdusa.com): a new logo, website, a first app, kiosk apps for member check-in, in-gym motifs and signage.
-- Named on: signage 5; interiors 3; apps 2; posters 1; programmes 1; tickets or wristbands 1; merchandise 1; website 1; digital marketing 1.
+- Named on: signage 5; interiors 3; apps 2; posters 1; programmes 1; tickets or wristbands 2; merchandise 1; website 1; digital marketing 1.
 - Thin spot: section R mixes events, museums, gambling and sport or fitness (division 93). Signage and interiors are common to all; posters and tickets belong to events and culture, apps and check-in to gyms.
 
 ## S. Other service activities (thin evidence, two pages)
