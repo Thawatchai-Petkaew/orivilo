@@ -27,6 +27,10 @@ Read `docs/knowledge/README.md` and ADR 0005 for the entry format, and the exist
   and you search for a public copy to cite beside it (L-0031). The entries numbered 0001 to 0012 cite `~/` paths and are
   known exceptions until ORV-129 rewrites them. No hook or check refuses an absolute path yet; ORV-129's
   scope was widened to add that `pnpm check:knowledge` refusal (ORV-129 comment 10221).
+- A count you record names the file it was counted in and the pattern. A figure derived from two
+  counts takes both from that file; a total another source states is its own sentence with its own
+  source, and the gap between them is an open point. A count from an envelope fact that you did not
+  recount goes under `### Claims that did not re-check` (L-0034, L-0022). No hook checks this.
 
 ## What you must not do
 

@@ -105,6 +105,12 @@ Do not set `model`, `isolation` or `run_in_background` on the call. `cwd`, if gi
   `context_pointers` and their changed files as facts, and its objective asks it to bring every
   reference to those files up to date. The re-check is dispatched after the last fix (L-0033). No hook
   checks this; it is the main session's duty.
+- **Before a re-check.** For every finding that corrects a value (a count, a code, a date, a name),
+  run `git diff origin/develop...HEAD | grep -n '<old value>'` before the fixes go out, and give each
+  file it hits to a fix envelope with the corrected value as a fact, in the L-0033 order. After the
+  fixes, read every fix report's `deviations` and `needs_decision`; a line that names a file, a line
+  or a value still out of step goes to a new fix envelope before the re-check is dispatched, whatever
+  the role (L-0035). No hook checks this; it is the main session's duty.
 - **Review of a guard-rail spec.** When the spec frames a guard as a guard rail, the reviewer
   envelope's objective names the frame and asks for (a) forms a rule-following agent uses that pass
   the guard and (b) bypass classes, each reported once with one probe. A finding of kind (a) goes to
@@ -114,6 +120,17 @@ Do not set `model`, `isolation` or `run_in_background` on the call. `cwd`, if gi
 - **Visual fix from a finding.** See step 6, "A look change in rework": the designer decides and screenshots the look first; the builder envelope carries the design.md section and one `test -f <absolute path>` fact per screenshot, and states no CSS value that design.md does not hold.
 - **Never resume.** A re-check, a follow-up question or a fix is a new envelope with a new `task_id`, never a `SendMessage`. A builder rework names `rework_of`; a reviewer re-check does not (`rework_of` is read on builder envelopes only) and puts the earlier `result.json` absolute paths in `context_pointers`. `resume-guard` (PreToolUse `SendMessage`) blocks every `SendMessage`, from the main session and from a subagent, whatever `to` names; it never echoes `to` or the message. When `to` is a recorded agent's id, the stderr names that task, as a hint for the fresh envelope. A subagent that needs a decision reports `blocked` with `needs_decision`, and the answer goes out in a fresh envelope.
 - **Research envelope that adds a knowledge entry.** The main session lists `docs/knowledge/README.md` in its `write_set` and gives it one `done_when` entry `grep -q <K id> docs/knowledge/README.md` per new entry. A `needs_decision` or deviation about a file outside the `write_set` is answered by a new envelope before the review is dispatched. After the task, the main session runs `{ git diff --name-only --diff-filter=d HEAD -- docs/knowledge; git ls-files -o --exclude-standard -- docs/knowledge; } | xargs grep -n -E '^source: "?([^"]*; )?(/Users/|/home/|/private/|/tmp/|~/)'` from the repo root, on the files the task changed or added, and expects no output (L-0031); it stops when ORV-129 makes `pnpm check:knowledge` refuse an absolute `source:` path. No hook checks this; it is the main session's duty (L-0020, L-0031).
+- **A count in an envelope.** A fact that gives a count names the one file it was counted in, and its
+  `checked_by` reproduces it (`grep -c -E '<pattern>' <file>`). A figure derived from counts (a total
+  minus an exclusion) takes every operand from that one file. A total that another source states is a
+  separate fact and never an operand. A figure that is exact on its base is not written "about". The
+  main session never asks research to raise confidence on a count the main session made (L-0034). No
+  hook checks this; it is the main session's duty.
+- **A primary file research could not read.** When a research report says a PDF or XLSX did not
+  decode, the main session converts it to text in the scratchpad (a mechanical step, no reading for
+  the document) and dispatches research again with the absolute text path in `context_pointers`.
+  Research counts and quotes from that text and records the pattern it counted with (L-0034). No hook
+  checks this; it is the main session's duty.
 - **A fact that the gate passed.** Its `checked_by` names the run: `TEST_DATABASE_URL=<url> REQUIRE_DB_TESTS=1 pnpm quality-gate`, with the URL the main session used. That URL is a local database with no password, never a secret (L-0026). No hook checks this; it is the main session's duty.
 - **Stall check before each dispatch.** Before each Agent call, and as the first step after a context compaction or a resumed session, list every task folder under the main checkout's `.orivilo/runs/` with `agent.json`, no `result.json`, no `closed.json`, and no heartbeat line for its `agent_id` in the last 20 minutes. Each listed envelope goes to the owner close form (section 4) in the same turn, and no other dispatch of that role happens until the owner answers. Until a script does the check, list those folders with a one-off `ls` and `jq`; a `doctor.mjs stalled` command is a later builder task under its own Jira issue (L-0027). No hook checks this; it is the main session's duty.
 - **One issue per checkout at a time.** Do not run `git checkout` or `git switch` in the session's

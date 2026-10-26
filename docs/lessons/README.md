@@ -103,3 +103,6 @@ Status: proposed
 | [[L-0031-knowledge-source-cited-a-session-upload]]       | ORV-126                | A knowledge source is a repo path or a URL, never an absolute path         |
 | [[L-0032-one-checkout-ran-several-issues]]               | ORV-126                | No branch switch while a task is bound; branch check for every writer      |
 | [[L-0033-spec-and-adr-fixed-in-parallel]]                | ORV-126                | Fixes across spec, ADR and knowledge run one at a time                     |
+| [[L-0034-level-5-count-mixed-two-bases]]                 | ORV-127                | A count names one file and a command; research counts primary files        |
+| [[L-0035-fix-reports-named-the-round-2-findings]]        | ORV-127                | Grep old values and act on fix reports before a re-check                   |
+| [[L-0036-coverage-plan-opened-with-picks]]               | ORV-127                | A coverage plan opens with the whole structure and counts per level        |
