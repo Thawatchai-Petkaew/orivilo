@@ -104,7 +104,7 @@ The `serverExternalPackages` page (`lastUpdated: 2025-12-05`) lists `@sparticuz/
 - **A. `@sparticuz/chromium-min` with `puppeteer-core`, the pack served from `public/` or a URL** (the Vercel template pattern). Backed by: Vercel's guide names these two packages; the template code shows the pattern; the function bundle stays small. Gap: the pack is fetched on a cold start; a pack URL is a supply-chain input to pin; the template code has no licence.
 - **B. `@sparticuz/chromium` (full, 70091665 bytes unpacked) with `puppeteer-core` pinned to 25.11.0.** Backed by: MIT; Puppeteer's table pairs 25.11.0 with Chromium 153.0.8010.36; Next.js opts both packages out of bundling. Gap: fit under 250 MB not measured; five minors behind the latest `puppeteer-core`.
 - **C. `@sparticuz/chromium` with `playwright-core`.** Backed by: the package README shows a Playwright launch. Gap: Playwright calls an outside Chromium "at your own risk"; 1.64 expects Chromium 156.
-- **D. No browser in the function: the fallback the spec names** (declared colours measured from CSS, labelled as such; `docs/specs/ORV-128/spec.md` line 335). Gap: no rendered measure.
+- **D. No browser in the function: the fallback the spec names** (declared colours measured from CSS, labelled as such; `docs/specs/ORV-128/spec.md`, section "Reading a page the person submits", paragraph "Where it runs"). Gap: no rendered measure.
 
 ## Why it matters for ORIVILO
 
