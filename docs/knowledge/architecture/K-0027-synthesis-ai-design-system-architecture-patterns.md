@@ -45,7 +45,7 @@ Seen in K-0020 (token files and a fixed build), K-0026 (`design-model.yaml`), K-
 
 Seen in K-0019 (base model upgraded "while keeping the rest of the stack stable"), K-0016 (any model behind LiteLLM), K-0018 (three vendor SDKs behind the AI SDK).
 
-- **Implies for ORIVILO:** matches ADR 0008's adapter and ADR 0009's OpenRouter module. Two projects (K-0016, K-0017) let the provider vary freely or mix models per variant, which ADR 0009 rejects for traceability; the survey shows the convenience, and none of those projects records which model made a saved result.
+- **Implies for ORIVILO:** matches ADR 0008's adapter and ADR 0009's OpenRouter module. Two projects (K-0016, K-0017) let the provider vary freely or mix models per variant, which ADR 0009 rejects for traceability; the survey shows the convenience, and none of the pages read shows a record of which model made a saved result.
 
 ### Pattern 4: check after generation, deterministically first
 

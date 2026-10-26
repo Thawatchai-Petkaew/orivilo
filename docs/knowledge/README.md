@@ -141,3 +141,20 @@ Keep this table in step with the folder when you add an entry.
 | [[K-0044-synthesis-ci-process-entry-points-and-node-graph]]      | 0.75       | CI order, five entry groups, 22-node graph, compared with the method  |
 | [[K-0045-wireflow-third-party-models-in-a-hosted-node-graph]]    | 0.75       | Wireflow shows only third-party models behind a node graph            |
 | [[K-0046-higgsfield-own-models-plus-resold-third-party-models]]  | 0.8        | Higgsfield resells third-party models and runs its own                |
+| [[K-0060-tiktok-for-business-guidelines-sections]]               | 0.8        | TikTok guide: story, messaging, design system, imagery, advertising   |
+| [[K-0061-tiktok-guidelines-page-layout-and-reasons]]             | 0.8        | TikTok pages: one 16:9 grid, rule and reason left, visual right       |
+| [[K-0062-brand-guideline-projects-studied]]                      | 0.75       | 38 projects: 20 from search summaries, 18 read in a browser           |
+| [[K-0063-guidebook-section-frequency-in-the-sample]]             | 0.7        | Inferred: logo, colour, type, applications common; no mood board      |
+| [[K-0064-mood-and-look-and-feel-section-contents]]               | 0.75       | Two guides: mood is rule pages (voice, photo, motion), not one board  |
+| [[K-0065-how-guidelines-show-each-elements-reason]]              | 0.75       | Five kinds of reason, usually one line beside the element             |
+| [[K-0066-guidebook-deliverable-formats-and-layout]]              | 0.75       | Paged book, web brand site, or Behance showcase case study            |
+| [[K-0067-thai-and-southeast-asian-guideline-traits]]             | 0.6        | Lead: Thai and regional guides add bilingual type, cultural reasons   |
+| [[K-0068-owner-reference-set-and-hedwig]]                        | 0.8        | Owner's four references; only Hedwig goes on to app and web screens   |
+| [[K-0069-logo-reason-as-an-equation-of-parts]]                   | 0.75       | 6 of 18 state a logo reason; 4 as an equation of parts, 2 as text     |
+| [[K-0070-mood-carried-by-applications-in-context]]               | 0.7        | No mood board page in 18 Behance; mood shown by identity in context   |
+| [[K-0071-thai-and-regional-behance-projects]]                    | 0.75       | Four Thai and regional projects; one states colour and type reasons   |
+| [[K-0072-openrouter-image-api-request-and-response]]             | 0.8        | POST /api/v1/images: `b64_json` images, usage cost, no model field    |
+| [[K-0073-openrouter-image-api-has-no-data-policy-fields]]        | 0.8        | Image API provider options have no `zdr` or `data_collection`         |
+| [[K-0074-gemini-nano-banana-2-1-endpoint-and-price]]             | 0.8        | Nano Banana 2.1: one endpoint, n=1, 0.00003 USD per image token       |
+| [[K-0075-gemini-api-terms-on-generated-output]]                  | 0.8        | Gemini: no ownership claim; paid prompts not trained on, but logged   |
+| [[K-0076-openrouter-terms-on-outputs]]                           | 0.8        | OpenRouter defers output ownership to each model's terms              |

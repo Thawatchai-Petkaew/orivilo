@@ -1,7 +1,7 @@
 ---
 issue: ORV-126 (https://tpetkaew.atlassian.net/browse/ORV-126), under epic ORV-109
 lane: L (a new engine contract every brand node will depend on: the node graph, the entry classifier and the fill order; it wraps the ORV-20 resolver logic)
-version: 1.1
+version: 1.2
 ---
 
 # ORV-126: phase 1 CI guidebook, entry points and the brand node graph
@@ -186,9 +186,9 @@ And the strings around them, with their meaning (data in the engine; a screen la
 - **Inputs:** target audience; insight.
 - **Output:** target and insight.
 - **Requires:** `situation`. **Informs:** `audit`.
-- **Knowledge:** K-0028 (0.85); K-0034 (0.65) for the insight field.
+- **Knowledge:** K-0028 (0.85) for target and insight; the insight field's shape is a hypothesis (see "Hypotheses").
 - **When missing:** proxy (`audience.proxy.best-customer`, `audience.proxy.problem`), then options to pick, or skip.
-- **POC:** yes. **Hypothesis:** the insight field's shape rests on K-0034 at 0.65.
+- **POC:** yes. **Hypothesis:** the insight field's shape follows a Brand Key style one-page positioning, a source below 0.7 (see "Hypotheses").
 
 ### 5. Competitive frame and lineup (`competitive-frame`)
 
@@ -306,9 +306,9 @@ And the strings around them, with their meaning (data in the engine; a screen la
 - **Inputs:** scripts and languages, personality, the roles text plays.
 - **Output:** families, roles (looped for reading, loopless for display), pairing, with reasons.
 - **Requires:** `identity-frame`. **Informs:** `look-feel`, `logo-mark`.
-- **Knowledge:** K-0042 (0.85); K-0041 (0.6) for any link from personality to type.
+- **Knowledge:** K-0042 (0.85) for families, roles and pairing; any link from personality to type is a hypothesis (see "Hypotheses").
 - **When missing:** ask `typography.scripts`. Scripts are not strategy, so D1 does not cover them; whether the user's locale may be shown as a visible assumption the person can change is decided in the `typography` story.
-- **POC:** yes, in its own story. **Hypothesis:** every link from personality to a typeface rests on K-0041 at 0.6; the method's 24 px switch and 1.6 to 1.7 Thai line height have no source.
+- **POC:** yes, in its own story. **Hypothesis:** every link from personality to a typeface rests on the finding that typeface design shapes brand impressions, a source below 0.7 (see "Hypotheses"); the method's 24 px switch and 1.6 to 1.7 Thai line height have no source.
 
 ### 17. Imagery, icons, graphic elements, motion, sound (`expression-kit`)
 
@@ -384,10 +384,10 @@ With the POC set and group A, the plan is: `business-core`, `audience`, `competi
 
 ## Hypotheses (below confidence 0.7, or no source)
 
-- K-0034 Brand Key (0.65): the shape of `audience` insight.
+- A Brand Key style one-page positioning (one source at 0.65, not cited as grounds): the shape of `audience` insight.
 - K-0033 archetype effects (weak evidence, K-0044 marks them below 0.7): any archetype vocabulary in `identity-frame`.
 - The five personality axes (no source): `identity-frame` and every ORV-20 rule that reads them.
-- K-0041 typeface impressions (0.6): any personality to typeface link in `typography`.
+- Typeface design shapes brand impressions (one source at 0.6, not cited as grounds): any personality to typeface link in `typography`.
 - ORV-20 engine entries at 0.4 (`color.hue-families`, `color.expressive-signature`, `color.warm-leans-hue`, `color.premium-canvas`, `color.action-is-functional`): `competitive-frame` bands and `color` thresholds.
 - The long-name threshold in `logo-type` (no source).
 - The proxy questions (no source): ours, written to reach the inputs the methods need (K-0036's table) without strategy vocabulary. No source tests that their answers lead to the same strategy a workshop would. Each proxy question carries `hypothesis: true`.
@@ -552,3 +552,4 @@ The owner answered at G1 and the orchestrator recorded the D1 answer, all on [OR
 
 - v1 (2026-10-26): first spec. Entry catalog A to E, 22-node graph with harness parts, fill order, ORV-20's position, hypotheses, four slices, rows 1 to 22, owner decisions D1 to D9.
 - v1.1 (2026-10-26): G1 decisions applied (ORV-126 comment 10198). D1 becomes proxy questions, then AI-drafted options to pick, then an allowed skip that leaves the node open and marks dependents provisional, listed under the guidebook's new `unconfirmed` section: new `onMissing` value `proxy`, state fields `skipped`, `provisional`, `provisionalOn`, proxy question copy, D1 strings, rows 3, 12, 16, 20 changed and rows 23, 24, 25 added. D8 becomes AI image drafts of the logo inside the decided frame, with a label, a cost estimate, proposed rate limits and an architect ADR on the image provider as a dependency: node 14 rewritten (`color` added to its informs), rows 18 changed and rows 26, 27 added. D2 to D7 and D9 recorded as decided (the v1 recommendations). Typography's locale assumption moves to its own story. Rows 1 to 22 keep their numbers. Downstream to review: the brand graph ADR and G2 design (new `onMissing` value and state fields), the slice 1, 3 and 4 Jira issues and their specs (new rows), the test plan for rows 3, 12, 16, 18, 20 and 23 to 27, the architect task for the image provider ADR, ADR 0009 (`logo-image` row), the logo image story's G1 (limit numbers, cost), `.claude/rules/security.md` rule 6 and ADR 0015 decision 4 (a `logo-image` limit when that story lands), ORV-121 (spend cap covers image drafts).
+- v1.2 (2026-10-26): the spec no longer cites the two knowledge entries below 0.7 (the Brand Key one-page positioning at 0.65 and typeface impressions at 0.6), so `check:knowledge` passes. Both stay as hypotheses in prose under "Hypotheses". `audience` now names K-0028 (0.85) as its grounds and `typography` names K-0042 (0.85); the insight shape and every personality to typeface link stay marked hypothesis. No row, node, input or decision changes. Downstream to review: the slice 1 graph data (row 4: the low sources each hypothesis node lists).
