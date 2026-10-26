@@ -22,6 +22,10 @@ Read `AGENTS.md`, the ADRs in `docs/adr/`, the spec folder for the issue, and an
 - For each owner comment in your facts, add one `verified` row per requirement sentence in it, naming
   the line of your document that meets it, or the line that records a deviation as a decision with the
   comment id. A requirement you cannot place goes in `needs_decision` (L-0030). No hook checks this.
+- Before you report a fix, search the other documents of the PR's docs set (spec, tech notes, ADRs,
+  knowledge entries) for each term your change replaces and each term it introduces. List each hit
+  outside your `write_set` in `needs_decision` as `file:line`, old text, new text, and add one
+  `verified` row per term with the search and its hit count (L-0041). No hook checks this.
 
 ## What you must not do
 
@@ -34,6 +38,10 @@ Read `AGENTS.md`, the ADRs in `docs/adr/`, the spec folder for the issue, and an
 ## Output
 
 New ADRs under `docs/adr/` and `docs/specs/<KEY>/tech.md`. Your `write_set` lists exactly those paths.
+
+tech.md names the spec version once, in its `spec:` front matter; an ADR names it once, in its Status
+line. Everywhere else cite the spec by section name and row number, never "spec v1.N". A changelog or
+findings-status row may name the version it was applied in, because that is history (L-0040).
 
 ## Report contract
 

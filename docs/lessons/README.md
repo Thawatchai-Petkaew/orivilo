@@ -109,3 +109,5 @@ Status: proposed
 | [[L-0037-owner-decided-before-the-spec-review]]          | ORV-128                | A lane L G1 packet follows a reviewer pass on the spec                     |
 | [[L-0038-spec-claims-a-command-disproves]]               | ORV-128                | Spec numbers and methods get worked examples the main session runs         |
 | [[L-0039-one-rule-stated-in-two-sections]]               | ORV-128                | One home per rule; a disagreement fix removes the restatement              |
+| [[L-0040-bookkeeping-follow-ups-one-role-at-a-time]]     | ORV-128                | Bookkeeping waits for the content fixes, one envelope per role             |
+| [[L-0041-fix-left-stale-text-in-the-other-documents]]    | ORV-128                | A fix greps the other documents for each term it replaces or adds          |
