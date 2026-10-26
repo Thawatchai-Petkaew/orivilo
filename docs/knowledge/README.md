@@ -171,3 +171,7 @@ Keep this table in step with the folder when you add an entry.
 | [[K-0074-gemini-nano-banana-2-1-endpoint-and-price]]                              | 0.8        | Nano Banana 2.1: one endpoint, n=1, 0.00003 USD per image token       |
 | [[K-0075-gemini-api-terms-on-generated-output]]                                   | 0.8        | Gemini: no ownership claim; paid prompts not trained on, but logged   |
 | [[K-0076-openrouter-terms-on-outputs]]                                            | 0.8        | OpenRouter defers output ownership to each model's terms              |
+| [[K-0077-touchpoints-seen-tsic-sections-a-to-f]]                                  | 0.7        | Touchpoints named per TSIC section A to F; B thin, C mixed            |
+| [[K-0078-touchpoints-seen-tsic-sections-g-to-l]]                                  | 0.75       | Touchpoints named per TSIC section G to L; L thin                     |
+| [[K-0079-touchpoints-seen-tsic-sections-m-to-s]]                                  | 0.75       | Touchpoints named per TSIC section M to S; S thin, N and R mixed      |
+| [[K-0080-proposed-touchpoint-sets-by-tsic-section]]                               | 0.6        | Lead: up to four touchpoints and one screen for each of 18 sections   |
