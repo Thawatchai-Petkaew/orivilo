@@ -19,7 +19,7 @@ Records: `.orivilo/runs/ORV-109/<task_id>/result.json` and `.orivilo/metrics/ORV
 
 `.claude/agents/research.md` lists `tools: Read, Grep, Glob, Write, Edit, WebFetch, WebSearch` and its Report contract says "Check it with `node scripts/ovl/validate.mjs implementer.v1 <file>` before you send it". ORV-109 comment 10203 records the same gap. `sent_back` counts `SubagentStop` blocks from the result recorder (`scripts/ovl/metrics.mjs`); the records do not say why each run was sent back, so this lesson does not claim the missing shell caused them.
 
-No `## Expected saving`: the tokens of a send-back are not split from the run in the records, so the saving cannot be backed by numbers. This is a flow lesson: a `blocked` result that only means "run my checks" stops the loop until the main session reads it.
+No `## Expected saving`: the tokens of a send-back are not split from the run in the records, so no saving is claimed and no re-check date is set. The rule fixes who runs the checks: a `blocked` result that only means "run my checks" stops the loop until the main session reads it.
 
 Giving the role a shell is the other option. It is not proposed: the research agent fetches untrusted web text (AGENTS.md, Data access and security), and a shell would let injected text reach a command line.
 
@@ -39,7 +39,5 @@ Giving the role a shell is the other option. It is not proposed: the research ag
 ```
 
 What proves it was done: the next research tasks report `done` rather than `blocked` for unrun checks, and the reviewer envelope that follows has one fact per research `done_when` command.
-
-Check after: 2026-11-09
 
 Status: promoted 2026-10-26, into `.claude/agents/research.md` (Report contract) and `.claude/skills/ovl/SKILL.md` (section 4, second paragraph)

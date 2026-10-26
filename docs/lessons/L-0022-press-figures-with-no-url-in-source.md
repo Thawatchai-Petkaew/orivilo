@@ -4,7 +4,7 @@ date: 2026-10-26
 issue: [ORV-109]
 what_happened: K-0046 stated funding, revenue, founder and refund facts credited to Yahoo Finance, Unite.AI, Grit Daily and a Kavel review, none of them in `source:` and none with a URL (review finding F2); at fix time Yahoo Finance and the Kavel review could not be found, and "head of AI at Snap" was in no source read.
 cause: The body named an outlet instead of a page fetched in the task, and nothing compares the outlets a body names with the entry's `source:` field.
-rule: Every fact in a research entry rests on a URL in `source:` that was read in the same task; a fact without one is dropped or listed under "did not re-check" with confidence below 0.7, press or company-reported figures say so in their sentence, and the report has one `verified` row per URL with the phrase found there.
+rule: Every fact in a research entry rests on a URL in `source:` that was read in the same task; a fact without one is dropped or listed under a `### Claims that did not re-check` heading, where facts carry no confidence and are not grounds for a decision, press or company-reported figures say so in their sentence, and the report has one `verified` row per URL with the phrase found there.
 ---
 
 ## What happened
@@ -23,11 +23,9 @@ In `.claude/agents/research.md`, "What you do", change the third bullet:
 
 ```diff
 -- Record facts and options, each with its source.
-+- Record facts and options, each with its source. Every fact in the body rests on a URL in `source:` that you fetched in this task; a fact you cannot tie to one is dropped or listed under "did not re-check" below 0.7. A press or company-reported figure says so in its sentence and does not carry the entry's confidence. Add one `verified` row per URL with the phrase you found there (L-0022).
++- Record facts and options, each with its source. Every fact in the body rests on a URL in `source:` that you fetched in this task; a fact you cannot tie to one is dropped or listed under a `### Claims that did not re-check` heading; facts listed there carry no confidence and are not grounds for a decision. A press or company-reported figure says so in its sentence and does not carry the entry's confidence. Add one `verified` row per URL with the phrase you found there (L-0022).
 ```
 
 What proves it was done: the next research report has one `verified` row per `source:` URL, and the review of that PR has no finding of a body fact with no URL in `source:`.
-
-Check after: 2026-11-09
 
 Status: promoted 2026-10-26, into `.claude/agents/research.md` (What you do, third bullet)

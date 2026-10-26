@@ -22,14 +22,12 @@ Round 1 found F1, F2 and F3 (Important) and three Suggestions. The rework they c
 ## Rule
 
 1. A check, by a builder story (the script is a guard file the main session cannot edit): `pnpm check:knowledge` reports every `docs/knowledge/<topic>/K-NNNN-*.md` whose file name has no row in the `## Index` table of `docs/knowledge/README.md`, with a test that fails on a fixture entry with no row.
-2. Until that check is merged, in `.claude/skills/ovl/SKILL.md`, section 2, after the `write_set` bullet:
+2. Until that check is merged, in `.claude/skills/ovl/SKILL.md`, section 2, as the last dispatch rule above the "The guard blocks ... when:" list (a duty of the main session; no hook enforces it):
 
 ```diff
-+- **A research envelope that adds a knowledge entry** lists `docs/knowledge/README.md` in its `write_set` and has one `done_when` entry `grep -q <K id> docs/knowledge/README.md` per new entry. A `needs_decision` or deviation about a file outside the `write_set` is answered by a new envelope before the review is dispatched (L-0020).
++- **Research envelope that adds a knowledge entry.** The main session lists `docs/knowledge/README.md` in its `write_set` and gives it one `done_when` entry `grep -q <K id> docs/knowledge/README.md` per new entry. A `needs_decision` or deviation about a file outside the `write_set` is answered by a new envelope before the review is dispatched. No hook checks this; it is the main session's duty (L-0020).
 ```
 
 What proves it was done: the next knowledge PR's reviewed head shows a README diff with one Index row per new entry (`git diff --name-only origin/develop...<head> -- docs/knowledge/README.md`), and no review finding on a missing Index row.
 
-Check after: 2026-11-09
-
-Status: promoted 2026-10-26, part 2 only, into `.claude/skills/ovl/SKILL.md` (section 2, after the `write_set` bullet). Part 1 (the `pnpm check:knowledge` Index check in `scripts/check-knowledge.mjs`) is not applied: it is a guard file and waits for a builder story, a follow-up the main session files as its own Jira issue.
+Status: promoted 2026-10-26, part 2 only, into `.claude/skills/ovl/SKILL.md` (section 2, last dispatch rule above the "The guard blocks ... when:" list; no hook enforces it). Part 1 (the `pnpm check:knowledge` Index check in `scripts/check-knowledge.mjs`) is not applied: it is a guard file and waits for the builder story ORV-129.

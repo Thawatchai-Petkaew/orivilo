@@ -28,6 +28,4 @@ In `.claude/agents/research.md`, "What you do", add a bullet:
 
 What proves it was done: the next synthesis entry's research report has the `verified` rows, and its review has no finding of a synthesis claim that a cited entry contradicts.
 
-Check after: 2026-11-09
-
 Status: promoted 2026-10-26, into `.claude/agents/research.md` (What you do)
