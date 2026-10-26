@@ -1,7 +1,7 @@
 ---
 issue: ORV-128 (https://tpetkaew.atlassian.net/browse/ORV-128)
-spec: docs/specs/ORV-128/spec.md v1.9; slice 1a spec docs/specs/ORV-132/spec.md v1.1
-task: ORV-128-design-schema-1, ORV-128-design-schema-2 (renderer build and text under option D), ORV-128-design-schema-3 (follow spec v1.3), ORV-128-design-schema-4 (follow spec v1.5 and ADR 0019 after review g2-1), ORV-128-design-schema-5 (follow spec v1.6), ORV-128-design-schema-6 (follow spec v1.7 after re-check g2-2), ORV-128-design-schema-7 (follow spec v1.8), ORV-132-design-bookkeeping-1 (follow spec v1.9 and the slice 1a build)
+spec: docs/specs/ORV-128/spec.md v1.11; slice 1a spec docs/specs/ORV-132/spec.md v1.1; slice 1b spec docs/specs/ORV-133/spec.md v1.3
+task: ORV-128-design-schema-1, ORV-128-design-schema-2 (renderer build and text under option D), ORV-128-design-schema-3 (follow spec v1.3), ORV-128-design-schema-4 (follow spec v1.5 and ADR 0019 after review g2-1), ORV-128-design-schema-5 (follow spec v1.6), ORV-128-design-schema-6 (follow spec v1.7 after re-check g2-2), ORV-128-design-schema-7 (follow spec v1.8), ORV-132-design-bookkeeping-1 (follow spec v1.9 and the slice 1a build), ORV-133-design-bookkeeping-1 (follow spec v1.11 and the slice 1b build)
 author: ds-architect
 date: 2026-10-27
 ---
@@ -58,7 +58,7 @@ Everything below lives in `packages/intent-engine/src` and is pure TypeScript. B
 
 **Server-only modules.** The page reader ports (DNS resolution, an HTTP request pinned to a checked address, SHA-256) and the renderer that produces a `RenderSnapshot` are server-only. The engine defines their contracts (`ReadPorts` in §6, `renderSnapshotSchema` in §7) and never imports them. They live in a new server-only package, `packages/page-reader` (§13, ADR 0019), which ships as slice 1d, its own PR right after 1c (spec "Delivery").
 
-**What is reused, read-only.** `fingerprintOf` (`resolver.ts`), `interpretWithRules` and `RULE_VALUES` (`interpreter.ts`), `classifyHex` and `hexSchema` (`color-audit.ts`), and `slugSchema` and `PERSONALITY_AXES` (`knowledge.ts`). None of these files changes. `index.ts` gains the new exports.
+**What is reused, read-only.** `fingerprintOf` (`resolver.ts`), `interpretWithRules` and `RULE_VALUES` (`interpreter.ts`), `classifyHex` and `hexSchema` (`color-audit.ts`), and `slugSchema` and `PERSONALITY_AXES` (`knowledge.ts`). None of these files changes. `index.ts` gains the new exports. Slice 1b's, as built: `page-text` whole (`export *`: `TextBlock`, `BODY_MAX_CHARS`, `pageTextOf`, `stylesheetLinksOf`, `wordCount`); from `read-page` the types `ReadPorts`, `ReadResult`, `Fetched`, `RobotsRules` and `RobotsCache` and the functions `checkAddress`, `parseRobots` and `robotsAllows`; never `readPage`, so row 38 holds when 1c adds `readUrlInput` (ORV-133 spec, open question "What `index.ts` exports in 1b").
 
 ## 2. The evidence schema (`evidence.ts`)
 
@@ -185,7 +185,7 @@ const locatorSchema = z.discriminatedUnion("kind", [
 ]);
 ```
 
-- `path` is an element path such as `html>body>main>h1:nth-of-type(1)`.
+- `path` is an element path such as `html>body>main:nth-of-type(1)>h1:nth-of-type(1)`, in the form §8 records for `TextBlock`.
 - For a declared colour, `path` is `sheet:<stylesheet url>#<rule index>`. The stylesheet is named by its URL, not by its place in the list (row 4).
 
 **Measure.** The unit is fixed by the metric (`MEASURE_UNITS`), and a refine rejects any other unit. The value is bounded per metric:
@@ -485,7 +485,7 @@ export async function readPage(
 - **Requests.** The request port connects to the address that was checked, so a second DNS answer cannot swap it (DNS rebinding).
 - **Bounds.** The document may be 2 MB and each stylesheet 1 MB. Each request has 10 s, and the whole read has 30 s, measured by `elapsedMs`. At most 10 stylesheets and 3 redirects.
 - **Headers.** Every request sends `user-agent: OriviloReader/1 (+<contact url>)` and nothing else that identifies the reader. It never sends a cookie or an authorization header.
-- **Stylesheet links.** Links are taken from the document with an HTML tokenizer, never with a regular expression. §13 places the tokenizer in the engine (a pinned `parse5`, once researched). The page text (§8) is read with the same parse, so the document is tokenized once.
+- **Stylesheet links.** Links are taken from the document with an HTML tokenizer, never with a regular expression. §13 places the tokenizer in the engine (`parse5` pinned exactly, K-0082). The page text (§8) is read with the same parse. As built in 1b, `stylesheetLinksOf` and `pageTextOf` share one parse function in `page-text.ts` (the same decoding and options), and each call parses the bytes, so both see the same tree.
 - **Order.** Stylesheets are fetched in document order. The result keys each one by URL, so the analyser never depends on the order in which the answers arrive (row 4).
 
 ## 7. The render snapshot (`render-snapshot.ts`, slices 1a for `rendererBuildSchema` and 1c)
@@ -648,8 +648,9 @@ export type Report = z.infer<typeof reportSchema>;
 
 **Page text (answer to the architect's second question).** The visible text spans come from the tokenized HTML, with a render or without one. A render only decides which of those blocks count as visible (finding F11).
 
-- **One source of text.** `pageTextOf(documentBytes)` in `page-text.ts` (slice 1b) parses the document with the engine's pinned tokenizer (ADR 0019 decision 6). Scripting is off (`parse5`'s `scriptingEnabled: false`), as in the JavaScript-off render. Both follow the WHATWG parsing rules, so both build the same tree, and an element path from one names the same element in the other.
-- **Rule `html-text-1`** is defined in spec "Page text": the block list, the skipped subtrees, the whitespace rule, the body bound, and what a render or its absence changes. `pageTextOf` implements it and returns `TextBlock[]`, `{ path, kind: "title" | "meta" | "heading" | "body", text }` in document order, where `text` is the normalised text that locator offsets index. A change to the rule bumps `analyser.version`.
+- **One source of text.** `pageTextOf(documentBytes)` in `page-text.ts` (slice 1b) first decodes the bytes as rule `html-text-1` states (spec "Page text": UTF-8 by the global `TextDecoder`, each invalid sequence replaced by U+FFFD), then parses the document with the engine's pinned tokenizer (ADR 0019 decision 6). Scripting is off (`parse5`'s `scriptingEnabled: false`), as in the JavaScript-off render. Both follow the WHATWG parsing rules, so both build the same tree, and an element path from one names the same element in the other.
+- **Rule `html-text-1`** is defined in spec "Page text": the block list, the skipped subtrees, the whitespace rule, the body bound, and what a render or its absence changes. `pageTextOf` implements it and returns `TextBlock[]`, `{ path, kind: "title" | "meta" | "heading" | "body", text, span }` in document order, where `text` is the normalised text that locator offsets index. A change to the rule bumps `analyser.version`.
+- **The 1b build's `TextBlock`, which slice 1d's renderer must match (row 35).** `span` is `{ start, end }`, offsets into the decoded document: from the start of the block's first text node to the end of its last, and for `meta` the whole `meta` element. `path` joins the element names from `html` down with `>`, and every segment except `html`, `head` and `body` carries `:nth-of-type(n)`, the element's 1-based position among its parent's children of the same name (for example `html>body>main:nth-of-type(1)>h1:nth-of-type(1)`). The renderer's `textBoxes` paths use this same form, or no path matches.
 - **With a snapshot**, `analyseUrl` keeps a body or heading block only when its `path` is among the snapshot's `textBoxes` with a non-empty box. Kept items carry `source.renderer`.
 - **Without a snapshot**, every block is kept, every item has `renderer: null`, and `notMeasured` lists `text-visibility` (§7).
 - **Why not from the render only.** Option D would then lose the text, the `word-count`, every `lexicon-1` reading and, in slice 2, the industry match. Those need no browser. The bytes are also the only text the engine can check a quote against: the snapshot is untrusted, and the hash covers the bytes, not the render.
@@ -862,7 +863,7 @@ export function feedEvidence(
 | ADR 0008 | Addition: a computed confidence number for input evidence (D6 a). Decision 2 and the brief `interpretationSchema` are unchanged, and a brief finding still cannot carry a confidence | Every adapter author |
 | `resolver.ts`, `interpreter.ts`, `knowledge.ts` | Imported read-only; no change | None |
 | `index.ts` | New exports | Engine consumers |
-| `packages/intent-engine/package.json` | `@material/material-color-utilities` pinned exact (slice 1c, if accepted); `parse5` pinned exact (slice 1b, if §13 places link extraction in the engine) | `security` review (supply chain) |
+| `packages/intent-engine/package.json` | `@material/material-color-utilities` pinned exact (slice 1c, if accepted); `parse5` 8.0.1 pinned exact, `entities` 8.1.0 held by the lockfile (slice 1b, K-0082 option A) | `security` review (supply chain) |
 | Profiles, recipes, components, screens | None. No token, recipe, component or screen changes, and `pnpm contrast` output is unchanged (row 31) | None |
 
 ## 12. Budget: slice 1 does not fit 400 lines
@@ -896,7 +897,7 @@ Decided in ADR 0019 (proposed), on K-0081 (0.8). Summary for this design:
 - **Fallback (option D).** Option D is the fallback everywhere the analysis runs, the POC command and a later Vercel route alike, and it is labelled as not rendered. What it keeps, what it lists as not measured and its reasons are defined once, in spec "Reading a page the person submits", "Where it runs"; its code is §7 ("Without a snapshot"). This section adds nothing to either (review g2-1 I1).
 - **The role gate.** `cli.ts` calls `readUrlInput`, never `readPage`, so a competitor URL is never fetched. The rule is `competitor-not-read-1` in the spec; its code is §7 ("The competitor gate").
 - **Vercel, later slice (option B).** `@sparticuz/chromium` pinned at `153.0.0` with `puppeteer-core` pinned at `25.11.0` (Puppeteer's table pairs it with Chromium 153.0.8010.36, K-0081), Node.js runtime on Node 24.x, `maxDuration` on the route, the same interception rules. Until the staging measurement in ADR 0019's Confirmation line (bundle under 250 MB; 20 analyses of a 10-stylesheet page, 10 cold, each within 30 s and under 1600 MB rss) is recorded, the route runs option D. Options A (pack fetched by URL at cold start) and C (Playwright with an outside Chromium, 156 expected against 153) are not chosen.
-- **Tokenizer (§6).** In the engine, pure and pinned, because 1b reads links before any renderer exists and option D has none. `parse5` is the candidate; 1b adds it after a `research` entry records its licence, version and dependencies.
+- **Tokenizer (§6).** In the engine, pure and pinned, because 1b reads links before any renderer exists and option D has none. Slice 1b pins `parse5` 8.0.1 exactly, with `entities` 8.1.0 held by the lockfile (K-0082 option A), after K-0082 recorded its licence, version and dependencies.
 
 Open points this placement raised, and where each now stands:
 
@@ -960,7 +961,7 @@ Determinism is proved by row 4 (same bytes, snapshot and clock give deep-equal r
 
 ## Findings for the spec
 
-F1 to F12 were raised against spec v1.2 and applied in v1.3; F13 and F14 were raised against v1.3 and applied in v1.4, F14 settled further in v1.5 as slice 1d. The orchestrator accepted all fourteen under ADR 0012 decision 4, and each stays open for the owner at G2 (spec "Owner decisions" says where each lands). This design follows the spec version its front matter names; v1.9 recorded three deviations of the slice 1a build and raised no finding here. One status changed with v1.3: F3's "row 4 holds either way" no longer holds, because row 4 now asserts equal ids under a later clock; if the owner puts `retrievedAt` back, row 4's later-clock case expects new ids (§3). F15 to F17 were raised against v1.5 and applied in v1.6, and F18 against v1.6 (re-check g2-2 N4) and applied in v1.7, each accepted by the orchestrator under the same decision and open for the owner at G2. F19 was raised against v1.7 by this design's report schema (§7) and applied in v1.8, accepted by the orchestrator under the same decision and open for the owner at G2.
+F1 to F12 were raised against spec v1.2 and applied in v1.3; F13 and F14 were raised against v1.3 and applied in v1.4, F14 settled further in v1.5 as slice 1d. The orchestrator accepted all fourteen under ADR 0012 decision 4, and each stays open for the owner at G2 (spec "Owner decisions" says where each lands). This design follows the spec version its front matter names; v1.9 recorded three deviations of the slice 1a build and raised no finding here, and v1.10 and v1.11 (the decoding of `html-text-1`) raised none either. The slice 1b build settled F13's open part (its Status says how). One status changed with v1.3: F3's "row 4 holds either way" no longer holds, because row 4 now asserts equal ids under a later clock; if the owner puts `retrievedAt` back, row 4's later-clock case expects new ids (§3). F15 to F17 were raised against v1.5 and applied in v1.6, and F18 against v1.6 (re-check g2-2 N4) and applied in v1.7, each accepted by the orchestrator under the same decision and open for the owner at G2. F19 was raised against v1.7 by this design's report schema (§7) and applied in v1.8, accepted by the orchestrator under the same decision and open for the owner at G2.
 
 <!-- prettier-ignore -->
 | # | Where in spec v1.2 | Finding | Proposed change |
@@ -981,7 +982,7 @@ F1 to F12 were raised against spec v1.2 and applied in v1.3; F13 and F14 were ra
 <!-- prettier-ignore -->
 | # | Where in spec v1.3 | Finding | Proposed change | Status |
 | --- | --- | --- | --- | --- |
-| F13 | "Page text", `word-count-1` ("the Node version is pinned in `engines`"); "Worked examples" ("runs as is with `node` 24", "None of them was run"); row 36 | The Node version is not pinned: the root `package.json` says `"node": ">=22"`, and CI reads `.nvmrc`, which holds `22`. The worked examples were run by the main session on Node 22.23.0 (ICU 78.2), not on 24, while ADR 0019's later Vercel route runs Node 24.x. `Intl.Segmenter` data comes with the Node build, so row 36's count and every `few-words` decision may differ between the command, CI and that route | Slice 1b pins one Node line in `engines` and `.nvmrc` together and records `process.versions.node` and `process.versions.icu` beside row 36's count in its G3 packet. The spec's "Worked examples" says the Node version they were run on (22.23.0). Whether the Vercel route may run another Node line, and so another ICU, is decided in that route's slice, where `word-count` items would then differ as rendered items do across builds | Applied in v1.4: `word-count-1` in "Page text", "Worked examples", open question "The Node line" |
+| F13 | "Page text", `word-count-1` ("the Node version is pinned in `engines`"); "Worked examples" ("runs as is with `node` 24", "None of them was run"); row 36 | The Node version is not pinned: the root `package.json` says `"node": ">=22"`, and CI reads `.nvmrc`, which holds `22`. The worked examples were run by the main session on Node 22.23.0 (ICU 78.2), not on 24, while ADR 0019's later Vercel route runs Node 24.x. `Intl.Segmenter` data comes with the Node build, so row 36's count and every `few-words` decision may differ between the command, CI and that route | Slice 1b pins one Node line in `engines` and `.nvmrc` together and records `process.versions.node` and `process.versions.icu` beside row 36's count in its G3 packet. The spec's "Worked examples" says the Node version they were run on (22.23.0). Whether the Vercel route may run another Node line, and so another ICU, is decided in that route's slice, where `word-count` items would then differ as rendered items do across builds | Applied in v1.4: `word-count-1` in "Page text", "Worked examples", open question "The Node line". Settled by the slice 1b build: root `engines.node` `>=22.23.0 <23` and `.nvmrc` `22`; row 36 ran on Node 22.23.0 with ICU 78.2 (ORV-133 spec, open question "Which Node line"); the Vercel route's Node line stays with that route's slice |
 | F14 | "Open questions", slice 1c's size; ADR 0019 status ("accepted when ORV-128 slice 1c merges") | If 1c splits, the renderer tests that ADR 0019's Confirmation line names (row 34's budget test, 35, 37) move to the PR after 1c, so "slice 1c merges" no longer marks the moment they pass | Read ADR 0019's POC acceptance as "when the PR that carries row 34's budget test, 35 and 37 merges" (§12). ADR 0019 is left unchanged by this task; the spec's open question on 1c's size can say so in one clause | Applied in v1.4, settled in v1.5: "Where it runs", "Delivery" row 1d, open question on slice 1c's size; ADR 0019 Status names slice 1d; §12 here |
 
 <!-- prettier-ignore -->
@@ -1007,7 +1008,7 @@ F1 to F12 were raised against spec v1.2 and applied in v1.3; F13 and F14 were ra
 | I3 | A model item with no reading got base `measure` | §2 `checkItem` clauses 5 and 6; §14 row 2 "base, quote and tool-default fit the item" | Applied |
 | I4 | `hypothesis` had no checkable definition | Spec v1.5, rule `hypothesis-flag-1`; here §2 `HYPOTHESIS_RULES` and clause 14, §8, §14 rows 2 and 10 | Applied |
 | I5 | `checkAddress` missed `::`, `::/96` and NAT64 | §6 Address check; §14 row 5; F15 for the spec's wording | Applied here; F15 applied in spec v1.6 |
-| I6 | Tech notes behind the spec | Spec v1.5 Gap list; here the front matter and the rule table name v1.5 (v1.6 since task `ORV-128-design-schema-5`, v1.7 since task `ORV-128-design-schema-6`, v1.8 since task `ORV-128-design-schema-7`, v1.9 since task `ORV-132-design-bookkeeping-1`), F13 to F17 carry their status, and this table | Applied |
+| I6 | Tech notes behind the spec | Spec v1.5 Gap list; here the front matter and the rule table name v1.5 (v1.6 since task `ORV-128-design-schema-5`, v1.7 since task `ORV-128-design-schema-6`, v1.8 since task `ORV-128-design-schema-7`, v1.9 since task `ORV-132-design-bookkeeping-1`, v1.11 since task `ORV-133-design-bookkeeping-1`), F13 to F17 carry their status, and this table | Applied |
 | S1 | Spec copied §12's total | Spec v1.5 "Delivery" | Applied; §12's total is now about 1,215, or 1,420 with 1d (1,375 before `report.ts`, N5) |
 | S2 | K-0081 cited a wrong spec line | K-0081 | Applied there |
 | S3 | Row 36's noscript break-it could not fail | §14 row 36 fixture; F16 for the spec row | Applied here; F16 applied in spec v1.6 |
