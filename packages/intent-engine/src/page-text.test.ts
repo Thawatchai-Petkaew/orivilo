@@ -9,6 +9,8 @@ declare class TextEncoder {
 }
 
 declare const performance: { now(): number }; // the engine tsconfig has no DOM lib; a timer for the time bounds
+/** The framework timeout of a test that guards a time bound: above the bound, so vitest never pre-empts the guard under a parallel run. */
+const HEAVY_TIMEOUT = 60_000;
 const bytes = (html: string) => new TextEncoder().encode(html);
 const blocksOf = (html: string) => pageTextOf(bytes(html)).blocks;
 const texts = (html: string) => blocksOf(html).map((b) => b.text);
@@ -258,15 +260,19 @@ describe("html-text-1", () => {
     const word = "xxxxxxxxx";
     const words = (n: number) => Array<string>(n).fill(word).join(" ");
 
-    it("keeps 294 of 40,000 headings, 4,998 characters in all, and reports page-incomplete in time", () => {
-      const html = `<body>${"<h2>heading text here</h2>".repeat(40_000)}</body>`;
-      const started = performance.now();
-      const out = pageTextOf(bytes(html));
-      expect(performance.now() - started).toBeLessThan(2000);
-      expect(out.blocks).toHaveLength(294);
-      expect(out.blocks.reduce((n, b) => n + b.text.length, 0)).toBe(4998);
-      expect(out.incomplete).toBe(true);
-    });
+    it(
+      "keeps 294 of 40,000 headings, 4,998 characters in all, and reports page-incomplete in time",
+      () => {
+        const html = `<body>${"<h2>heading text here</h2>".repeat(40_000)}</body>`;
+        const started = performance.now();
+        const out = pageTextOf(bytes(html));
+        expect(performance.now() - started).toBeLessThan(2000);
+        expect(out.blocks).toHaveLength(294);
+        expect(out.blocks.reduce((n, b) => n + b.text.length, 0)).toBe(4998);
+        expect(out.incomplete).toBe(true);
+      },
+      HEAVY_TIMEOUT,
+    );
 
     it("cuts heading text on whitespace within 5,000 characters, and later headings are dropped", () => {
       const out = pageTextOf(bytes(`<h1>${words(300)}</h1><h2>${words(300)}</h2><h3>later</h3>`));
@@ -384,16 +390,21 @@ describe("html-text-1", () => {
         expect(out.incomplete).toBe(true);
         expect(out.blocks).toEqual([]);
       },
+      HEAVY_TIMEOUT,
     );
 
-    it("returns the held-depth page within 10 s, with nothing cut", () => {
-      expect(HELD_DEPTH.length).toBeLessThanOrEqual(DOCUMENT_MAX);
-      const started = performance.now();
-      const out = pageTextOf(bytes(HELD_DEPTH));
-      expect(performance.now() - started).toBeLessThan(10000);
-      expect(out.blocks).toEqual([]); // its p elements hold no text
-      expect(out.incomplete).toBe(false);
-    });
+    it(
+      "returns the held-depth page within 10 s, with nothing cut",
+      () => {
+        expect(HELD_DEPTH.length).toBeLessThanOrEqual(DOCUMENT_MAX);
+        const started = performance.now();
+        const out = pageTextOf(bytes(HELD_DEPTH));
+        expect(performance.now() - started).toBeLessThan(10000);
+        expect(out.blocks).toEqual([]); // its p elements hold no text
+        expect(out.incomplete).toBe(false);
+      },
+      HEAVY_TIMEOUT,
+    );
   });
 
   describe("the path bound", () => {
@@ -439,47 +450,63 @@ describe("html-text-1", () => {
       expect(out.blocks.map((b) => b.text)).toEqual([big]);
     });
 
-    it("returns 5,000 p blocks and 5,000 h2 blocks under a long path within 2 s and 10 MB of path, with none kept", () => {
-      // 28 nested divs put every block's path past 500 characters, well inside the depth bound
-      const html = `<body>${"<div>".repeat(28)}${"<p>x</p>".repeat(5000)}${"<h2>x</h2>".repeat(5000)}</body>`;
-      const started = performance.now();
-      const out = pageTextOf(bytes(html));
-      expect(performance.now() - started).toBeLessThan(2000);
-      expect(out.blocks).toEqual([]);
-      expect(out.incomplete).toBe(true);
-    });
+    it(
+      "returns 5,000 p blocks and 5,000 h2 blocks under a long path within 2 s and 10 MB of path, with none kept",
+      () => {
+        // 28 nested divs put every block's path past 500 characters, well inside the depth bound
+        const html = `<body>${"<div>".repeat(28)}${"<p>x</p>".repeat(5000)}${"<h2>x</h2>".repeat(5000)}</body>`;
+        const started = performance.now();
+        const out = pageTextOf(bytes(html));
+        expect(performance.now() - started).toBeLessThan(2000);
+        expect(out.blocks).toEqual([]);
+        expect(out.incomplete).toBe(true);
+      },
+      HEAVY_TIMEOUT,
+    );
 
-    it("builds no path past the bound: 30,000 blocks under 125 nested long names are dropped in time", () => {
-      // 125 elements named 1,000 characters make each block's path 125,000 characters; built whole, 30,000 of them would take far longer
-      const name = `x-${"a".repeat(998)}`;
-      const html = `<body>${`<${name}>`.repeat(MAX_DEPTH - 4)}${"<p>x</p>".repeat(15_000)}${"<h2>x</h2>".repeat(15_000)}`;
-      const started = performance.now();
-      const out = pageTextOf(bytes(html));
-      expect(performance.now() - started).toBeLessThan(2000);
-      expect(out.blocks).toEqual([]);
-      expect(out.incomplete).toBe(true);
-    });
+    it(
+      "builds no path past the bound: 30,000 blocks under 125 nested long names are dropped in time",
+      () => {
+        // 125 elements named 1,000 characters make each block's path 125,000 characters; built whole, 30,000 of them would take far longer
+        const name = `x-${"a".repeat(998)}`;
+        const html = `<body>${`<${name}>`.repeat(MAX_DEPTH - 4)}${"<p>x</p>".repeat(15_000)}${"<h2>x</h2>".repeat(15_000)}`;
+        const started = performance.now();
+        const out = pageTextOf(bytes(html));
+        expect(performance.now() - started).toBeLessThan(2000);
+        expect(out.blocks).toEqual([]);
+        expect(out.incomplete).toBe(true);
+      },
+      HEAVY_TIMEOUT,
+    );
 
-    it("returns the page of 509 nested long names within 2 s, incomplete, with no path over 500", () => {
-      const name = `x-${"a".repeat(998)}`;
-      const html = `<body>${`<${name}>`.repeat(509)}${"<p>x</p>".repeat(5000)}${"<h2>x</h2>".repeat(5000)}`;
-      const started = performance.now();
-      const out = pageTextOf(bytes(html));
-      expect(performance.now() - started).toBeLessThan(2000);
-      expect(out.incomplete).toBe(true);
-      expect(out.blocks.every((b) => b.path.length <= PATH_MAX_CHARS)).toBe(true);
-    });
+    it(
+      "returns the page of 509 nested long names within 2 s, incomplete, with no path over 500",
+      () => {
+        const name = `x-${"a".repeat(998)}`;
+        const html = `<body>${`<${name}>`.repeat(509)}${"<p>x</p>".repeat(5000)}${"<h2>x</h2>".repeat(5000)}`;
+        const started = performance.now();
+        const out = pageTextOf(bytes(html));
+        expect(performance.now() - started).toBeLessThan(2000);
+        expect(out.incomplete).toBe(true);
+        expect(out.blocks.every((b) => b.path.length <= PATH_MAX_CHARS)).toBe(true);
+      },
+      HEAVY_TIMEOUT,
+    );
   });
 
   describe("paths in one pass per parent", () => {
-    it("numbers 5,000 sibling blocks in time", () => {
-      const html = `<body>${"<p>x</p>".repeat(100_000)}</body>`;
-      const started = performance.now();
-      const out = pageTextOf(bytes(html));
-      expect(performance.now() - started).toBeLessThan(2000);
-      expect(out.blocks).toHaveLength(5000);
-      expect(out.blocks[4999]?.path).toBe("html>body>p:nth-of-type(5000)");
-    });
+    it(
+      "numbers 5,000 sibling blocks in time",
+      () => {
+        const html = `<body>${"<p>x</p>".repeat(100_000)}</body>`;
+        const started = performance.now();
+        const out = pageTextOf(bytes(html));
+        expect(performance.now() - started).toBeLessThan(2000);
+        expect(out.blocks).toHaveLength(5000);
+        expect(out.blocks[4999]?.path).toBe("html>body>p:nth-of-type(5000)");
+      },
+      HEAVY_TIMEOUT,
+    );
 
     it("counts siblings of the same name only", () => {
       const out = pageTextOf(bytes("<body><p>a</p><h1>b</h1><p>c</p><h1>d</h1></body>"));
@@ -580,26 +607,34 @@ describe("the Work bound", () => {
   };
 
   describe("the four 2 MB documents", () => {
-    it("returns the re-opened-formatting page within 10 s, cut by the Element count", () => {
-      expect(REOPENED_FORMATTING.length).toBeLessThanOrEqual(DOCUMENT_MAX);
-      const started = performance.now();
-      const out = pageTextOf(bytes(REOPENED_FORMATTING));
-      expect(performance.now() - started).toBeLessThan(10000);
-      expect(out.incomplete).toBe(true);
-    });
+    it(
+      "returns the re-opened-formatting page within 10 s, cut by the Element count",
+      () => {
+        expect(REOPENED_FORMATTING.length).toBeLessThanOrEqual(DOCUMENT_MAX);
+        const started = performance.now();
+        const out = pageTextOf(bytes(REOPENED_FORMATTING));
+        expect(performance.now() - started).toBeLessThan(10000);
+        expect(out.incomplete).toBe(true);
+      },
+      HEAVY_TIMEOUT,
+    );
 
     it.each([
       ["html start tags with distinct attribute names (the Attribute merge)", HTML_ATTRIBUTES],
       ["body start tags with distinct attribute names (the Attribute merge)", BODY_ATTRIBUTES],
       ["one start tag holding distinct attribute names (the Attribute count)", ONE_TAG],
-    ])("returns the 2 MB page of %s within 2 s, with nothing of it kept", (_n, html) => {
-      expect(html.length).toBeLessThanOrEqual(DOCUMENT_MAX);
-      expect(DOCUMENT_MAX - html.length).toBeLessThan(20); // filled to the bound
-      const started = performance.now();
-      const out = pageTextOf(bytes(html));
-      expect(performance.now() - started).toBeLessThan(2000);
-      expect(out).toEqual({ blocks: [], incomplete: true });
-    });
+    ])(
+      "returns the 2 MB page of %s within 2 s, with nothing of it kept",
+      (_n, html) => {
+        expect(html.length).toBeLessThanOrEqual(DOCUMENT_MAX);
+        expect(DOCUMENT_MAX - html.length).toBeLessThan(20); // filled to the bound
+        const started = performance.now();
+        const out = pageTextOf(bytes(html));
+        expect(performance.now() - started).toBeLessThan(2000);
+        expect(out).toEqual({ blocks: [], incomplete: true });
+      },
+      HEAVY_TIMEOUT,
+    );
 
     it("gives stylesheetLinksOf the same cut: a link before the cut is kept, one after it is not", () => {
       const link = (name: string) => `<link rel=stylesheet href=${name}.css>`;
@@ -621,24 +656,32 @@ describe("the Work bound", () => {
     // <body> pushes html, head and body, <p> a fourth, and each stray </p> pushes a fake p and pops it
     const strays = (n: number) => `<body><p>A</p>${"</p>".repeat(n)}`;
 
-    it("stops the Element count at the push that would be the 1,048,577th", () => {
-      const started = performance.now();
-      expect(read(strays(1_048_572))).toEqual({ texts: ["A"], incomplete: false }); // exactly 1,048,576
-      expect(read(strays(1_048_573))).toEqual({ texts: [], incomplete: true });
-      expect(performance.now() - started).toBeLessThan(10000);
-    });
+    it(
+      "stops the Element count at the push that would be the 1,048,577th",
+      () => {
+        const started = performance.now();
+        expect(read(strays(1_048_572))).toEqual({ texts: ["A"], incomplete: false }); // exactly 1,048,576
+        expect(read(strays(1_048_573))).toEqual({ texts: [], incomplete: true });
+        expect(performance.now() - started).toBeLessThan(10000);
+      },
+      HEAVY_TIMEOUT,
+    );
 
-    it("returns the parse of the empty text when the second parse stops too", () => {
-      // A template in head makes the end of the text push an implied body: the cut text then makes
-      // 1,048,577 pushes. 107 <i></i> line the count up; 106 or 108 do not (tech notes section 6).
-      const doc = (idle: number) =>
-        `<title>T</title><template>${"<i></i>".repeat(idle)}<p>${Array.from({ length: 120 }, (_, i) => `<b id=${i}>`).join("")}${"<p>x".repeat(8700)}`;
-      const started = performance.now();
-      expect(read(doc(107))).toEqual({ texts: [], incomplete: true });
-      expect(read(doc(108))).toEqual({ texts: ["T"], incomplete: true });
-      expect(read(doc(106))).toEqual({ texts: ["T"], incomplete: true });
-      expect(performance.now() - started).toBeLessThan(10000);
-    });
+    it(
+      "returns the parse of the empty text when the second parse stops too",
+      () => {
+        // A template in head makes the end of the text push an implied body: the cut text then makes
+        // 1,048,577 pushes. 107 <i></i> line the count up; 106 or 108 do not (tech notes section 6).
+        const doc = (idle: number) =>
+          `<title>T</title><template>${"<i></i>".repeat(idle)}<p>${Array.from({ length: 120 }, (_, i) => `<b id=${i}>`).join("")}${"<p>x".repeat(8700)}`;
+        const started = performance.now();
+        expect(read(doc(107))).toEqual({ texts: [], incomplete: true });
+        expect(read(doc(108))).toEqual({ texts: ["T"], incomplete: true });
+        expect(read(doc(106))).toEqual({ texts: ["T"], incomplete: true });
+        expect(performance.now() - started).toBeLessThan(10000);
+      },
+      HEAVY_TIMEOUT,
+    );
   });
 
   describe("the Attribute count", () => {
@@ -745,22 +788,26 @@ describe("the Work bound", () => {
         return out;
       };
 
-      it("cuts exactly when the tokenizer starts a 257th name", () => {
-        let checked = 0;
-        for (const syntax of fragments()) {
-          const base = started(tagOf(syntax, 1));
-          if (base === null || base > 256) continue;
-          const tail = 1 + (256 - base);
-          if (started(tagOf(syntax, tail)) !== 256 || started(tagOf(syntax, tail + 1)) !== 257)
-            continue; // the tail is part of a value, or the tag ended early: nothing to line up
-          const fits = pageTextOf(bytes(`<body>${tagOf(syntax, tail)}`)).incomplete;
-          const over = pageTextOf(bytes(`<body>${tagOf(syntax, tail + 1)}`)).incomplete;
-          if (fits || !over)
-            expect.soft({ syntax, fits, over }).toEqual({ syntax, fits: false, over: true });
-          checked++;
-        }
-        expect(checked).toBeGreaterThan(1500);
-      });
+      it(
+        "cuts exactly when the tokenizer starts a 257th name",
+        () => {
+          let checked = 0;
+          for (const syntax of fragments()) {
+            const base = started(tagOf(syntax, 1));
+            if (base === null || base > 256) continue;
+            const tail = 1 + (256 - base);
+            if (started(tagOf(syntax, tail)) !== 256 || started(tagOf(syntax, tail + 1)) !== 257)
+              continue; // the tail is part of a value, or the tag ended early: nothing to line up
+            const fits = pageTextOf(bytes(`<body>${tagOf(syntax, tail)}`)).incomplete;
+            const over = pageTextOf(bytes(`<body>${tagOf(syntax, tail + 1)}`)).incomplete;
+            if (fits || !over)
+              expect.soft({ syntax, fits, over }).toEqual({ syntax, fits: false, over: true });
+            checked++;
+          }
+          expect(checked).toBeGreaterThan(1500);
+        },
+        HEAVY_TIMEOUT,
+      );
     });
 
     it("counts a repeated name each time", () => {
@@ -934,14 +981,31 @@ describe("the Work bound", () => {
       });
     });
 
-    it("checks each offered name against a set kept for the element, not one built per call", () => {
-      // an html holding 256 names is offered 8 MB of one-name tags, about 930,000 calls (pageTextOf takes
-      // any size; a set built per call, as the default merge does, takes about 4 s here)
-      const doc = counting(4 * DOCUMENT_MAX, `<html ${names(256)}><body>`, () => "<html a0>");
-      const started = performance.now();
-      expect(read(doc).incomplete).toBe(false);
-      expect(performance.now() - started).toBeLessThan(2000);
-    });
+    it(
+      "checks each offered name against a set kept for the element, not one built per call",
+      () => {
+        // About 930,000 one-name tags are offered to an html element. A set kept for the element makes the
+        // cost of a call the same whether the element holds 1 name or 256; a set built per call, as the
+        // default merge does, makes it 256 times the work of the 1-name element. The measure is the ratio
+        // of the two, each the fastest of 3 runs, so a loaded machine slows both alike (about 1 for the
+        // kept set, about 8 for the per-call set; tech notes section 14 row 36).
+        const offered = (held: number) =>
+          counting(4 * DOCUMENT_MAX, `<html ${names(held)}><body>`, () => "<html a0>");
+        const fastest = (doc: string) => {
+          let best = Infinity;
+          for (let run = 0; run < 3; run++) {
+            const started = performance.now();
+            expect(read(doc).incomplete).toBe(false);
+            best = Math.min(best, performance.now() - started);
+          }
+          return best;
+        };
+        const one = fastest(offered(1));
+        const many = fastest(offered(256));
+        expect(many / one).toBeLessThan(3);
+      },
+      HEAVY_TIMEOUT,
+    );
 
     it("merges nothing into the html element while a template is open", () => {
       expect(read(`<html><body><template><html hidden></template><p>A</p>`)).toEqual({
@@ -1044,12 +1108,17 @@ describe("stylesheetLinksOf", () => {
       expect(performance.now() - started).toBeLessThan(2000);
       expect(out).toEqual({ hrefs: [], incomplete: true });
     },
+    HEAVY_TIMEOUT,
   );
 
-  it("returns the held-depth page within 10 s with nothing cut", () => {
-    const started = performance.now();
-    const out = stylesheetLinksOf(bytes(HELD_DEPTH));
-    expect(performance.now() - started).toBeLessThan(10000);
-    expect(out).toEqual({ hrefs: [], incomplete: false });
-  });
+  it(
+    "returns the held-depth page within 10 s with nothing cut",
+    () => {
+      const started = performance.now();
+      const out = stylesheetLinksOf(bytes(HELD_DEPTH));
+      expect(performance.now() - started).toBeLessThan(10000);
+      expect(out).toEqual({ hrefs: [], incomplete: false });
+    },
+    HEAVY_TIMEOUT,
+  );
 });
