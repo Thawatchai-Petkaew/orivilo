@@ -2,7 +2,7 @@
 // links, all on one parse of the document bytes by the pinned tokenizer (parse5 8.0.1, K-0082).
 // Pure: no I/O, no clock, no randomness. Changing any rule below bumps `analyser.version`.
 
-import { defaultTreeAdapter, parse, type DefaultTreeAdapterMap } from "parse5";
+import { defaultTreeAdapter, parse, type DefaultTreeAdapterMap, type Token } from "parse5";
 import { PATH_MAX_CHARS } from "./evidence";
 
 // The engine's tsconfig has no DOM or Node lib, so the global this file uses is declared here,
@@ -57,7 +57,14 @@ const isText = (n: ChildNode): n is TextNode => n.nodeName === "#text";
 const attr = (e: Element, name: string): string | undefined =>
   e.attrs.find((a) => a.name === name)?.value;
 
-/** The Nesting count's stop. Private to this module: parseBounded catches it and rethrows anything else. */
+/** The Work bound: element pushes in one parse, and attribute names in one tag or on one html or body element. */
+const MAX_ELEMENT_PUSHES = 1_048_576;
+const MAX_ATTRIBUTES = 256;
+
+/**
+ * A stop of the parse, thrown from a tree adapter hook: the Nesting count, the Element count or the
+ * Attribute merge. Private to this module: parseBounded catches it and rethrows anything else.
+ */
 class NestingStop {
   readonly cut: number;
   constructor(cut: number) {
@@ -65,29 +72,175 @@ class NestingStop {
   }
 }
 
+// The Attribute count's scan (tech notes section 6, Work bound, The Attribute count): the attribute
+// states of the WHATWG tokenizer, as parse5's tokenizer has them (K-0082 section 7 (a)).
+const TAG_NAME = 0;
+const BEFORE_NAME = 1;
+const NAME = 2;
+const AFTER_NAME = 3;
+const BEFORE_VALUE = 4;
+const VALUE_DQ = 5;
+const VALUE_SQ = 6;
+const UNQUOTED = 7;
+const AFTER_QUOTED = 8;
+const SELF_CLOSING = 9;
+const STATES = 10;
+/** A step to this ends the run: the `>` that emits the tag. */
+const END = 10;
+/** Added to the next state of a step that starts an attribute name (the tokenizer's `_createAttr`). */
+const STARTS_NAME = 16;
+const CLASSES = 7;
+const WHITESPACE = 0;
+const SLASH = 1;
+const GT = 2;
+const EQUALS = 3;
+const DOUBLE = 4;
+const SINGLE = 5;
+const OTHER = 6;
+const N = NAME | STARTS_NAME;
+// Rows are states, columns are the character classes: whitespace, "/", ">", "=", '"', "'", any other.
+const STEPS = Int8Array.from(
+  [
+    [BEFORE_NAME, SELF_CLOSING, END, TAG_NAME, TAG_NAME, TAG_NAME, TAG_NAME], // TAG_NAME
+    [BEFORE_NAME, SELF_CLOSING, END, N, N, N, N], // BEFORE_NAME
+    [AFTER_NAME, SELF_CLOSING, END, BEFORE_VALUE, NAME, NAME, NAME], // NAME
+    [AFTER_NAME, SELF_CLOSING, END, BEFORE_VALUE, N, N, N], // AFTER_NAME
+    [BEFORE_VALUE, UNQUOTED, END, UNQUOTED, VALUE_DQ, VALUE_SQ, UNQUOTED], // BEFORE_VALUE
+    [VALUE_DQ, VALUE_DQ, VALUE_DQ, VALUE_DQ, AFTER_QUOTED, VALUE_DQ, VALUE_DQ], // VALUE_DQ
+    [VALUE_SQ, VALUE_SQ, VALUE_SQ, VALUE_SQ, VALUE_SQ, AFTER_QUOTED, VALUE_SQ], // VALUE_SQ
+    [BEFORE_NAME, UNQUOTED, END, UNQUOTED, UNQUOTED, UNQUOTED, UNQUOTED], // UNQUOTED
+    [BEFORE_NAME, SELF_CLOSING, END, N, N, N, N], // AFTER_QUOTED
+    [BEFORE_NAME, SELF_CLOSING, END, N, N, N, N], // SELF_CLOSING
+  ].flat(),
+);
+
+/** The class of a character for STEPS. Whitespace is tab, line feed, form feed, carriage return and space. */
+function classOf(code: number): number {
+  switch (code) {
+    case 9:
+    case 10:
+    case 12:
+    case 13:
+    case 32:
+      return WHITESPACE;
+    case 47:
+      return SLASH;
+    case 62:
+      return GT;
+    case 61:
+      return EQUALS;
+    case 34:
+      return DOUBLE;
+    case 39:
+      return SINGLE;
+    default:
+      return OTHER;
+  }
+}
+
+/**
+ * The Attribute count (spec Work bound): the offset to cut the decoded text at, or -1. A run enters
+ * the tag name state at every `<` or `</` followed by an ASCII letter, wherever it lies, and the
+ * scan steps every live run through the tokenizer's attribute states. Two runs in the same state
+ * move alike from then on, so only one is kept per state: the higher count, the earlier start on a
+ * tie. The scan stops at the character where a run starts its 257th name and returns that run's
+ * start. It counts at least what the tokenizer counts for any tag it reads, and may count more
+ * where the tokenizer reads no tag (a comment, a value, the text of a `script`).
+ */
+function attributeCut(text: string): number {
+  let counts = new Int32Array(STATES).fill(-1);
+  let starts = new Int32Array(STATES);
+  let nextCounts = new Int32Array(STATES);
+  let nextStarts = new Int32Array(STATES);
+  let live = 0;
+  for (let i = 0; i < text.length; i++) {
+    const code = text.charCodeAt(i);
+    if (live > 0) {
+      const cls = classOf(code);
+      nextCounts.fill(-1);
+      live = 0;
+      for (let state = 0; state < STATES; state++) {
+        const count = counts[state] as number;
+        if (count < 0) continue;
+        const step = STEPS[state * CLASSES + cls] as number;
+        const to = step & 15;
+        if (to === END) continue;
+        const next = step & STARTS_NAME ? count + 1 : count;
+        const start = starts[state] as number;
+        if (next > MAX_ATTRIBUTES) return start;
+        const held = nextCounts[to] as number;
+        if (held < 0) live++;
+        if (next > held || (next === held && start < (nextStarts[to] as number))) {
+          nextCounts[to] = next;
+          nextStarts[to] = start;
+        }
+      }
+      [counts, nextCounts] = [nextCounts, counts];
+      [starts, nextStarts] = [nextStarts, starts];
+    }
+    if ((code | 32) >= 97 && (code | 32) <= 122 && i > 0) {
+      const before = text.charCodeAt(i - 1);
+      const tagStart =
+        before === 60
+          ? i - 1
+          : before === 47 && i > 1 && text.charCodeAt(i - 2) === 60
+            ? i - 2
+            : -1;
+      if (tagStart >= 0 && (counts[TAG_NAME] as number) < 0) {
+        counts[TAG_NAME] = 0;
+        starts[TAG_NAME] = tagStart;
+        live++;
+      }
+    }
+  }
+  return -1;
+}
+
 /**
  * One parse with scripting off and source locations on. The tree builder's stack of open elements
  * is counted through parse5's tree adapter hooks `onItemPush` and `onItemPop` (K-0082
  * section 6): a new adapter for each call, so no count outlives it. A hook runs after the stack has
  * changed, so inside `onItemPush` the depth is already the new one, and the only way out of
- * `parse()` is to throw. `cut` is the greatest start offset of any element pushed so far, the one
- * whose push passed the bound included: for an element made from its own start tag that is the
- * tag's offset, and for one the tree builder adds with none it is the latest start tag whose
- * element was pushed (tech notes section 6, "Where the cut falls").
+ * `parse()` is to throw. The push that makes the stack one deeper than MAX_DEPTH stops the parse
+ * (the Nesting count), and so does the one that would be the 1,048,577th (the Element count). The
+ * adapter's `adoptAttributes` replaces the default's merge of an `html` or `body` start tag's
+ * attributes into the element and stops the parse when the element would hold more than
+ * MAX_ATTRIBUTES names (the Attribute merge). `cut` is the greatest start offset of any element
+ * pushed so far, the one whose push passed the bound included: for an element made from its own
+ * start tag that is the tag's offset, and for one the tree builder adds with none it is the latest
+ * start tag whose element was pushed (tech notes section 6, "Where the cut falls"). A merge stops
+ * at that same `cut`, since `adoptAttributes` is not passed the tag's location.
  */
 function parseText(text: string): { document: Document } | { stoppedAt: number } {
   let depth = 0;
+  let pushes = 0;
   let cut = 0;
+  const names = new Map<Element, Set<string>>();
   const treeAdapter = {
     ...defaultTreeAdapter,
     onItemPush(item: Element) {
       depth++;
+      pushes++;
       const start = item.sourceCodeLocation?.startOffset;
       if (start !== undefined && start > cut) cut = start;
-      if (depth > MAX_DEPTH) throw new NestingStop(cut);
+      if (depth > MAX_DEPTH || pushes > MAX_ELEMENT_PUSHES) throw new NestingStop(cut);
     },
     onItemPop() {
       depth--;
+    },
+    adoptAttributes(recipient: Element, attrs: Token.Attribute[]) {
+      if (attrs.length === 0) return;
+      let held = names.get(recipient);
+      if (!held) {
+        held = new Set(recipient.attrs.map((a) => a.name));
+        names.set(recipient, held);
+      }
+      const fresh = attrs.filter((a) => !held.has(a.name));
+      if (held.size + fresh.length > MAX_ATTRIBUTES) throw new NestingStop(cut);
+      for (const a of fresh) {
+        recipient.attrs.push(a);
+        held.add(a.name);
+      }
     },
   };
   try {
@@ -101,15 +254,18 @@ function parseText(text: string): { document: Document } | { stoppedAt: number }
 }
 
 /**
- * html-text-1: decode as UTF-8 (each invalid sequence becomes U+FFFD), then parse. When the Nesting
- * count stops the parse, only the text before the cut is parsed again and `cut` is true. That
- * second parse cannot pass the bound (tech notes section 6); should it stop anyway, the parse of
- * the empty text is returned, still with `cut` true.
+ * html-text-1: decode as UTF-8 (each invalid sequence becomes U+FFFD), cut the text at the Attribute
+ * count if it says so, then parse. When a count stops the parse, only the text before the cut is
+ * parsed again and `cut` is true. That second parse cannot pass the Nesting count or the Attribute
+ * merge; the Element count can stop it at the end of the text (tech notes section 6). Should it
+ * stop, the parse of the empty text is returned, still with `cut` true.
  */
 function parseBounded(bytes: Uint8Array): { document: Document; cut: boolean } {
-  const text = new TextDecoder().decode(bytes);
+  const decoded = new TextDecoder().decode(bytes);
+  const scanned = attributeCut(decoded);
+  const text = scanned < 0 ? decoded : decoded.slice(0, scanned);
   const first = parseText(text);
-  if ("document" in first) return { document: first.document, cut: false };
+  if ("document" in first) return { document: first.document, cut: scanned >= 0 };
   const second = parseText(text.slice(0, first.stoppedAt));
   if ("document" in second) return { document: second.document, cut: true };
   return {

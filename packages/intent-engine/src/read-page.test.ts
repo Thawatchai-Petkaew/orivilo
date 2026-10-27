@@ -1191,6 +1191,105 @@ describe("one page, logged out, bounded", () => {
     });
   });
 
+  describe("the Work bound in a read (R2-1, SEC-133-R2-1, SEC-133-R2-2)", () => {
+    const MAX = 2 * 1024 * 1024;
+    /** `head`, then `unit(0)`, `unit(1)`, ... while the whole stays within 2 MB, then `tail` (all ASCII). */
+    const counting = (head: string, unit: (n: number) => string, tail = "") => {
+      const parts = [head];
+      let length = head.length + tail.length;
+      for (let n = 0; ; n++) {
+        const next = unit(n);
+        if (length + next.length > MAX) break;
+        parts.push(next);
+        length += next.length;
+      }
+      parts.push(tail);
+      return parts.join("");
+    };
+    const reopenedHead = `<body><p>${Array.from({ length: 120 }, (_, i) => `<b id=${i}>`).join("")}`;
+    const reopened =
+      reopenedHead + "<p>x".repeat(Math.floor((MAX - reopenedHead.length) / "<p>x".length));
+    const read = async (html: string) => {
+      const net = fakeNet(okRoutes({ [PAGE]: { body: enc.encode(html) } }));
+      const started = performance.now();
+      const r = await readPage(PAGE, net.ports);
+      return { r, net, ms: performance.now() - started };
+    };
+
+    it("reads the re-opened-formatting document, cut by the Element count", async () => {
+      expect(enc.encode(reopened).length).toBeLessThanOrEqual(MAX);
+      const { r, ms } = await read(reopened);
+      expect(ms).toBeLessThan(10000);
+      expect(r.status).toBe("read");
+      expect(r.status === "read" && r.incomplete).toEqual(["page-incomplete"]);
+    });
+
+    it.each([
+      ["html start tags with distinct attribute names, cut by the Attribute merge", "html"],
+      ["body start tags with distinct attribute names, cut by the Attribute merge", "body"],
+    ])("reads the 2 MB page of %s within 2 s", async (_n, tag) => {
+      const { r, ms } = await read(counting("<body>", (n) => `<${tag} a${n}>`));
+      expect(ms).toBeLessThan(2000);
+      expect(r.status).toBe("read");
+      expect(r.status === "read" && r.incomplete).toEqual(["page-incomplete"]);
+    });
+
+    it("reads the 2 MB page of one start tag holding distinct attributes, cut by the Attribute count", async () => {
+      const { r, ms } = await read(counting("<body><p", (n) => ` a${n}`, ">x"));
+      expect(ms).toBeLessThan(2000);
+      expect(r.status).toBe("read");
+      expect(r.status === "read" && r.incomplete).toEqual(["page-incomplete"]);
+    });
+
+    it("collects stylesheet URLs in one pass and stops at the eleventh", async () => {
+      const html = counting("<head>", (n) => `<link rel=stylesheet href=/${n}>`);
+      const links = (html.match(/<link /g) ?? []).length;
+      expect(links).toBeGreaterThan(63000);
+      const { r, net, ms } = await read(html);
+      expect(ms).toBeLessThan(2000);
+      expect(r.status).toBe("read");
+      expect(r.status === "read" && r.incomplete).toEqual(["page-incomplete"]);
+      const sheets = Array.from({ length: 10 }, (_, i) => `http://example.test/${i}`);
+      expect(net.log.map((l) => l.url)).toEqual([ROBOTS, PAGE, ...sheets]);
+    });
+
+    it("keeps the order of first sight and counts a repeated link once", async () => {
+      const page = `<head>${[3, 1, 3, 2, 1].map((n) => `<link rel=stylesheet href=/${n}>`).join("")}</head>`;
+      const { r, net } = await read(page);
+      expect(net.log.map((l) => l.url)).toEqual([
+        ROBOTS,
+        PAGE,
+        "http://example.test/3",
+        "http://example.test/1",
+        "http://example.test/2",
+      ]);
+      expect(r.status === "read" && r.incomplete).toEqual(["page-incomplete"]); // the 404 sheets
+    });
+
+    it("leaves out a link that is not http or https, or not a URL at all", async () => {
+      const page = `<head>${[
+        "ftp://example.test/a.css",
+        "javascript:x",
+        "data:text/css,a{}",
+        "http://[bad",
+        "/ok.css",
+      ]
+        .map((h) => `<link rel=stylesheet href="${h}">`)
+        .join("")}</head>`;
+      const { r, net } = await read(page);
+      expect(net.log.map((l) => l.url)).toEqual([ROBOTS, PAGE, "http://example.test/ok.css"]);
+      expect(r.status).toBe("read"); // not refused: nothing but the http link was requested
+    });
+
+    it("reads a page that repeats one link 63,886 times as one stylesheet, never reaching the eleventh", async () => {
+      const html = counting("<head>", () => "<link rel=stylesheet href=/x>");
+      const { r, net, ms } = await read(html);
+      expect(ms).toBeLessThan(2000);
+      expect(net.log.map((l) => l.url)).toEqual([ROBOTS, PAGE, "http://example.test/x"]);
+      expect(r.status).toBe("read");
+    });
+  });
+
   describe("a port that rejects is no answer (SEC-133-R1-5, R1-3)", () => {
     const MARKER = "ENOTFOUND-secret-marker-7f3a";
     const boom = () => new Error(MARKER);

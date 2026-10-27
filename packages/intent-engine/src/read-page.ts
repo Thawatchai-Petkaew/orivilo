@@ -618,17 +618,20 @@ export async function readPage(
   let incomplete = doc.truncated;
   const links = stylesheetLinksOf(doc.body);
   if (links.incomplete) incomplete = true; // an element below the depth bound was not looked at
-  const hrefs: string[] = [];
+  // One pass over the links, one `new URL` and one set lookup each, stopping at the eleventh distinct
+  // URL: that one is past MAX_STYLESHEETS, so it only sets page-incomplete (SEC-133-R2-2).
+  const sheetUrls = new Set<string>();
   for (const href of links.hrefs) {
     try {
       const u = new URL(href, doc.url);
-      if ((u.protocol === "http:" || u.protocol === "https:") && !hrefs.includes(u.href))
-        hrefs.push(u.href);
+      if (u.protocol === "http:" || u.protocol === "https:") sheetUrls.add(u.href);
     } catch {
       // an href that is not a URL is not a stylesheet
     }
+    if (sheetUrls.size > MAX_STYLESHEETS) break;
   }
-  if (hrefs.length > MAX_STYLESHEETS) incomplete = true;
+  if (sheetUrls.size > MAX_STYLESHEETS) incomplete = true;
+  const hrefs = [...sheetUrls];
 
   const stylesheets: Fetched[] = [];
   for (const href of hrefs.slice(0, MAX_STYLESHEETS)) {
