@@ -13,6 +13,9 @@ declare class URL {
   readonly origin: string;
   readonly pathname: string;
   readonly search: string;
+  readonly port: string; // "" for the scheme's default port
+  readonly username: string;
+  readonly password: string;
 }
 declare class TextDecoder {
   decode(input: Uint8Array): string;
@@ -21,7 +24,8 @@ declare class TextDecoder {
 export type IncompleteReason = "page-incomplete";
 
 export type ReadPorts = {
-  resolve(host: string): Promise<string[]>; // IP literals, server-only
+  /** IP literals, server-only; it must answer within `budgetMs`, the time left of the 30 s. */
+  resolve(host: string, budgetMs: number): Promise<string[]>;
   request(r: {
     url: string;
     address: string;
@@ -62,6 +66,7 @@ export type RobotsRules = {
 /** One analysis owns one cache, so a copy never outlives the analysis (spec: at most 24 hours). */
 export type RobotsCache = Map<string, RobotsRules>;
 
+export const ROBOTS_MAX_PATTERN = 1000;
 export const READER_TOKEN = "oriviloreader";
 export const CONTACT_URL = "https://github.com/Thawatchai-Petkaew/orivilo";
 export const USER_AGENT = `OriviloReader/1 (+${CONTACT_URL})`;
@@ -129,17 +134,18 @@ function parseIPv6(s: string): number[] | null {
 }
 
 function ipv4Public(b: number[]): boolean {
-  const [a = 0, c = 0, d = 0] = b;
+  const [a = 0, second = 0, third = 0] = b;
   if (a === 0) return false; // 0/8
   if (a === 10) return false;
-  if (a === 100 && c >= 64 && c <= 127) return false; // 100.64/10
+  if (a === 100 && second >= 64 && second <= 127) return false; // 100.64/10
   if (a === 127) return false;
-  if (a === 169 && c === 254) return false; // link-local, includes 169.254.169.254
-  if (a === 172 && c >= 16 && c <= 31) return false;
-  if (a === 192 && c === 168) return false;
+  if (a === 169 && second === 254) return false; // link-local, includes 169.254.169.254
+  if (a === 172 && second >= 16 && second <= 31) return false;
+  if (a === 192 && second === 168) return false;
+  if (a === 192 && second === 0 && third === 0) return false; // 192.0.0/24, IETF protocol assignments
+  if (a === 198 && (second === 18 || second === 19)) return false; // 198.18/15, benchmarking
   if (a >= 224 && a <= 239) return false; // multicast
-  if (b.every((x) => x === 255)) return false; // broadcast
-  void d;
+  if (a >= 240) return false; // 240/4, reserved, includes the broadcast address
   return true;
 }
 
@@ -152,10 +158,12 @@ export function checkAddress(ip: string): "public" | "refused" {
   if (!b) return "refused";
   const [b0 = 0, b1 = 0] = b;
   // Refused outright.
+  // `::` and `::1` are also caught by ::/96 below (0.0.0.0 and 0.0.0.1 lie in 0/8); the lines stay as the spec lists them.
   if (zeros(b, 0, 16)) return "refused"; // ::
   if (zeros(b, 0, 15) && b[15] === 1) return "refused"; // ::1
   if ((b0 & 0xfe) === 0xfc) return "refused"; // fc00::/7
   if (b0 === 0xfe && (b1 & 0xc0) === 0x80) return "refused"; // fe80::/10
+  if (b0 === 0xfe && (b1 & 0xc0) === 0xc0) return "refused"; // fec0::/10, deprecated site-local
   if (b0 === 0xff) return "refused"; // ff00::/8
   if (b0 === 0x00 && b1 === 0x64 && b[2] === 0xff && b[3] === 0x9b && b[4] === 0 && b[5] === 1)
     return "refused"; // 64:ff9b:1::/48
@@ -164,6 +172,8 @@ export function checkAddress(ip: string): "public" | "refused" {
   if (zeros(b, 0, 12)) return ipv4Public(b.slice(12)) ? "public" : "refused"; // ::/96
   if (zeros(b, 0, 10) && b[10] === 0xff && b[11] === 0xff)
     return ipv4Public(b.slice(12)) ? "public" : "refused"; // ::ffff:0:0/96
+  if (zeros(b, 0, 8) && b[8] === 0xff && b[9] === 0xff && b[10] === 0 && b[11] === 0)
+    return ipv4Public(b.slice(12)) ? "public" : "refused"; // ::ffff:0:0:0/96
   if (b0 === 0x00 && b1 === 0x64 && b[2] === 0xff && b[3] === 0x9b && zeros(b, 4, 12))
     return ipv4Public(b.slice(12)) ? "public" : "refused"; // 64:ff9b::/96
   if (b0 === 0x20 && b1 === 0x02) return ipv4Public(b.slice(2, 6)) ? "public" : "refused"; // 6to4
@@ -171,6 +181,12 @@ export function checkAddress(ip: string): "public" | "refused" {
 }
 
 // ---------- robots.txt ----------
+
+/** robots-token-1: the leading run of letters, digits, underscore and hyphen, lower-cased; `*` names the `*` group. */
+function productToken(value: string): string {
+  if (value === "*") return "*";
+  return (/^[A-Za-z0-9_-]*/.exec(value)?.[0] ?? "").toLowerCase();
+}
 
 export function parseRobots(text: string): RobotsRules {
   const groups: RobotsRules["groups"] = [];
@@ -187,7 +203,7 @@ export function parseRobots(text: string): RobotsRules {
         current = { agents: [], rules: [] };
         groups.push(current);
       }
-      current.agents.push(value.toLowerCase());
+      current.agents.push(productToken(value));
       lastWasAgent = true;
     } else if (field === "allow" || field === "disallow") {
       lastWasAgent = false;
@@ -200,23 +216,40 @@ export function parseRobots(text: string): RobotsRules {
   return { groups };
 }
 
+/**
+ * robots-match-1: no regular expression. The pattern splits on `*`; the first part must start the
+ * path, each middle part is found at its first occurrence after the one before, the last part is
+ * found after them (or must end the path when the pattern ends with `$`). At most path length times
+ * pattern length steps.
+ */
 function patternMatches(pattern: string, path: string): boolean {
   const anchored = pattern.endsWith("$");
-  const body = anchored ? pattern.slice(0, -1) : pattern;
-  const source = body
-    .split("*")
-    .map((p) => p.replace(/[.+?^${}()|[\]\\]/g, "\\$&"))
-    .join(".*");
-  return new RegExp(`^${source}${anchored ? "$" : ""}`).test(path);
+  const parts = (anchored ? pattern.slice(0, -1) : pattern).split("*");
+  const first = parts[0] ?? "";
+  if (parts.length === 1) return anchored ? path === first : path.startsWith(first);
+  if (!path.startsWith(first)) return false;
+  let at = first.length;
+  for (const part of parts.slice(1, -1)) {
+    const found = path.indexOf(part, at);
+    if (found < 0) return false;
+    at = found + part.length;
+  }
+  const last = parts[parts.length - 1] ?? "";
+  if (anchored) return path.length - last.length >= at && path.endsWith(last);
+  return path.indexOf(last, at) >= 0;
 }
 
-/** Rules of the group for the token and those of `*` both apply; the longest match wins, Allow on a tie. */
+/**
+ * robots-group-1: when any group names the token, the groups naming it apply, combined, and `*` does
+ * not; `*` applies only when none does. The longest match wins, Allow on a tie.
+ */
 export function robotsAllows(rules: RobotsRules, path: string, token: "oriviloreader"): boolean {
+  const named = rules.groups.filter((g) => g.agents.includes(token));
+  const applying = named.length > 0 ? named : rules.groups.filter((g) => g.agents.includes("*"));
   let best: { allow: boolean; length: number } | null = null;
-  for (const g of rules.groups) {
-    if (!g.agents.includes(token) && !g.agents.includes("*")) continue;
+  for (const g of applying) {
     for (const r of g.rules) {
-      if (!patternMatches(r.pattern, path)) continue;
+      if (r.pattern.length > ROBOTS_MAX_PATTERN || !patternMatches(r.pattern, path)) continue;
       const length = r.pattern.length;
       if (!best || length > best.length || (length === best.length && r.allow)) {
         best = { allow: r.allow, length };
@@ -241,12 +274,30 @@ type Sent =
   | { kind: "refused" }
   | { kind: "failed"; reason: "timeout" | "network" };
 
+type Refusal = { kind: "refused"; reason: "read.refused.address" | "read.refused.robots" };
+type Failure = {
+  kind: "failed";
+  reason: "timeout" | "network" | "redirects" | "not-html" | "status";
+};
 type Outcome =
   | { kind: "ok"; url: string; body: Uint8Array; truncated: boolean; contentType: string }
-  | { kind: "refused"; reason: "read.refused.address" | "read.refused.robots" }
-  | { kind: "failed"; reason: "timeout" | "network" | "redirects" | "not-html" | "status" };
+  | Refusal
+  | Failure;
+/** The answer a redirect chain ended on, status and all. */
+type Walked =
+  | {
+      kind: "ok";
+      url: string;
+      status: number;
+      headers: Record<string, string>;
+      body: Uint8Array;
+      truncated: boolean;
+    }
+  | Refusal
+  | Failure;
 
 const REDIRECT_STATUSES = [301, 302, 303, 307, 308];
+const ADDRESS_REFUSED: Refusal = { kind: "refused", reason: "read.refused.address" };
 
 function stripBrackets(host: string): string {
   return host.startsWith("[") && host.endsWith("]") ? host.slice(1, -1) : host;
@@ -260,6 +311,20 @@ function lowerKeys(h: Record<string, string>): Record<string, string> {
   const out: Record<string, string> = {};
   for (const [k, v] of Object.entries(h)) out[k.toLowerCase()] = v;
   return out;
+}
+
+/** The URL the Address check lets through: http or https, the scheme's default port, no credentials. */
+function allowedUrl(target: string): URL | null {
+  let u: URL;
+  try {
+    u = new URL(target);
+  } catch {
+    return null;
+  }
+  if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+  if (u.port !== "") return null; // a default port is written as ""; any other is refused
+  if (u.username !== "" || u.password !== "") return null;
+  return u;
 }
 
 export async function readPage(
@@ -292,20 +357,65 @@ export async function readPage(
   }
 
   /** Every address of the host must be public; returns the one the request will connect to. */
-  async function addressOf(u: URL): Promise<string | "refused" | "network"> {
-    const addresses = isIpLiteral(u.hostname)
-      ? [stripBrackets(u.hostname)]
-      : await ports.resolve(u.hostname);
+  async function addressOf(u: URL): Promise<string | "refused" | "network" | "timeout"> {
+    let addresses: string[];
+    if (isIpLiteral(u.hostname)) {
+      addresses = [stripBrackets(u.hostname)];
+    } else {
+      const remaining = TOTAL_BUDGET_MS - ports.elapsedMs();
+      if (remaining <= 0) return "timeout";
+      addresses = await ports.resolve(u.hostname, remaining);
+    }
     if (addresses.some((a) => checkAddress(a) !== "public")) return "refused";
     return addresses[0] ?? "network";
   }
 
-  async function robotsOf(u: URL, address: string): Promise<RobotsRules | "refused"> {
+  /**
+   * Follows a chain of at most MAX_REDIRECTS redirects. Every hop runs the Address check: the URL,
+   * the host's addresses and the address connected to. `gate` runs on each hop after the Address
+   * check and before the request (the robots.txt check of a page or a stylesheet).
+   */
+  async function walk(
+    start: string,
+    maxBytes: number,
+    gate?: (u: URL) => Promise<Refusal | Failure | null>,
+  ): Promise<Walked> {
+    let current = start;
+    for (let hop = 0; ; hop++) {
+      const u = allowedUrl(current);
+      if (!u) return ADDRESS_REFUSED;
+      if (ports.elapsedMs() >= TOTAL_BUDGET_MS) return { kind: "failed", reason: "timeout" };
+      const address = await addressOf(u);
+      if (address === "refused") return ADDRESS_REFUSED;
+      if (address === "network" || address === "timeout") {
+        return { kind: "failed", reason: address };
+      }
+      const stopped = gate ? await gate(u) : null;
+      if (stopped) return stopped;
+      const r = await send(u.href, address, maxBytes);
+      if (r.kind === "refused") return ADDRESS_REFUSED;
+      if (r.kind === "failed") return r;
+      const location = r.headers["location"];
+      if (REDIRECT_STATUSES.includes(r.status) && location !== undefined) {
+        if (hop >= MAX_REDIRECTS) return { kind: "failed", reason: "redirects" };
+        try {
+          current = new URL(location, u).href;
+        } catch {
+          return ADDRESS_REFUSED;
+        }
+        continue;
+      }
+      return { ...r, url: u.href };
+    }
+  }
+
+  /** The rules of an origin; a redirect is followed (R3), 5xx or no answer is complete disallow. */
+  async function robotsOf(u: URL): Promise<RobotsRules | Refusal | Failure> {
     const cached = robots.get(u.origin);
     if (cached) return cached;
-    const r = await send(`${u.origin}/robots.txt`, address, ROBOTS_MAX_BYTES);
-    if (r.kind === "refused") return "refused";
-    let rules = DISALLOW_ALL; // 5xx, a redirect or no answer: complete disallow
+    const r = await walk(`${u.origin}/robots.txt`, ROBOTS_MAX_BYTES);
+    if (r.kind === "refused" || (r.kind === "failed" && r.reason === "redirects")) return r;
+    let rules = DISALLOW_ALL; // 5xx, a redirect without a place to go or no answer: complete disallow
     if (r.kind === "ok") {
       if (r.status >= 200 && r.status < 300) rules = parseRobots(new TextDecoder().decode(r.body));
       else if (r.status >= 400 && r.status < 500) rules = parseRobots(""); // 4xx: no rules
@@ -315,48 +425,22 @@ export async function readPage(
   }
 
   async function fetchOne(start: string, maxBytes: number): Promise<Outcome> {
-    let current = start;
-    for (let hop = 0; ; hop++) {
-      let u: URL;
-      try {
-        u = new URL(current);
-      } catch {
-        return { kind: "refused", reason: "read.refused.address" };
-      }
-      if (u.protocol !== "http:" && u.protocol !== "https:") {
-        return { kind: "refused", reason: "read.refused.address" };
-      }
-      if (ports.elapsedMs() >= TOTAL_BUDGET_MS) return { kind: "failed", reason: "timeout" };
-      const address = await addressOf(u);
-      if (address === "refused") return { kind: "refused", reason: "read.refused.address" };
-      if (address === "network") return { kind: "failed", reason: "network" };
-      const rules = await robotsOf(u, address);
-      if (rules === "refused") return { kind: "refused", reason: "read.refused.address" };
-      if (!robotsAllows(rules, u.pathname + u.search, READER_TOKEN)) {
-        return { kind: "refused", reason: "read.refused.robots" };
-      }
-      const r = await send(u.href, address, maxBytes);
-      if (r.kind === "refused") return { kind: "refused", reason: "read.refused.address" };
-      if (r.kind === "failed") return r;
-      const location = r.headers["location"];
-      if (REDIRECT_STATUSES.includes(r.status) && location !== undefined) {
-        if (hop >= MAX_REDIRECTS) return { kind: "failed", reason: "redirects" };
-        try {
-          current = new URL(location, u).href;
-        } catch {
-          return { kind: "refused", reason: "read.refused.address" };
-        }
-        continue;
-      }
-      if (r.status < 200 || r.status >= 300) return { kind: "failed", reason: "status" };
-      return {
-        kind: "ok",
-        url: u.href,
-        body: r.body,
-        truncated: r.truncated,
-        contentType: r.headers["content-type"] ?? "",
-      };
-    }
+    const r = await walk(start, maxBytes, async (u) => {
+      const rules = await robotsOf(u);
+      if ("kind" in rules) return rules;
+      return robotsAllows(rules, u.pathname + u.search, READER_TOKEN)
+        ? null
+        : { kind: "refused", reason: "read.refused.robots" };
+    });
+    if (r.kind !== "ok") return r;
+    if (r.status < 200 || r.status >= 300) return { kind: "failed", reason: "status" };
+    return {
+      kind: "ok",
+      url: r.url,
+      body: r.body,
+      truncated: r.truncated,
+      contentType: r.headers["content-type"] ?? "",
+    };
   }
 
   const fetched = (o: Extract<Outcome, { kind: "ok" }>): Fetched => ({
@@ -376,8 +460,10 @@ export async function readPage(
   }
 
   let incomplete = doc.truncated;
+  const links = stylesheetLinksOf(doc.body);
+  if (links.incomplete) incomplete = true; // an element below the depth bound was not looked at
   const hrefs: string[] = [];
-  for (const href of stylesheetLinksOf(doc.body)) {
+  for (const href of links.hrefs) {
     try {
       const u = new URL(href, doc.url);
       if ((u.protocol === "http:" || u.protocol === "https:") && !hrefs.includes(u.href))

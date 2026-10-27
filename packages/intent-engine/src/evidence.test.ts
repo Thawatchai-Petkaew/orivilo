@@ -50,7 +50,12 @@ const src = (over: Item = {}): Item => ({
   renderer: BUILD,
   ...over,
 });
-const textLocator = { kind: "text", path: "html>body>main>h1:nth-of-type(1)", start: 0, end: 7 };
+const textLocator = {
+  kind: "text",
+  path: "html>body>main:nth-of-type(1)>h1:nth-of-type(1)",
+  start: 0,
+  end: 7,
+};
 const MODEL = {
   job: "interpret",
   modelId: "pinned/model-1",
