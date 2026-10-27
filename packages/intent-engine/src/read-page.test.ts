@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   CONTACT_URL,
+  ROBOTS_MAX_BYTES,
   checkAddress,
   parseRobots,
   readPage,
   robotsAllows,
+  robotsNormalise,
   type ReadPorts,
 } from "./read-page";
 
@@ -361,6 +363,14 @@ describe("robots.txt first", () => {
     ],
     ["a shorter token, Orivilo", { body: "User-agent: Orivilo\nDisallow: /" }, "read"],
     ["a 404", { status: 404 }, "read"],
+    ["a 400", { status: 400 }, "read"],
+    ["a 499", { status: 499 }, "read"],
+    [
+      "a 300 without a place to go, whatever its body",
+      { status: 300, body: "User-agent: *\nAllow: /" },
+      "refused",
+    ],
+    ["a 500", { status: 500, body: "User-agent: *\nAllow: /" }, "refused"],
   ];
   it.each(cases)("%s", async (_n, robots, outcome) => {
     const net = fakeNet(okRoutes({ [ROBOTS]: robots }));
@@ -515,6 +525,267 @@ describe("robots.txt first", () => {
       const shorter = `/${"a".repeat(999)}`;
       const edge = await readAt(shorter, `User-agent: *\nDisallow: ${shorter}`);
       expect(edge.r).toEqual({ status: "refused", reason: "read.refused.robots" });
+    });
+  });
+
+  describe("what robots-match-1 normalises, caps and ranks", () => {
+    const EXAMPLE = "https://example.com";
+    /** One read of `url` whose host serves `robots` (a body or a route) for /robots.txt, and a page. */
+    const readWith = async (url: string, robots: Route | string | Uint8Array) => {
+      const route =
+        typeof robots === "string" || robots instanceof Uint8Array ? { body: robots } : robots;
+      const origin = url.slice(0, url.indexOf("/", url.indexOf("//") + 2));
+      const net = fakeNet({
+        [`${origin}/robots.txt`]: route,
+        [url]: { body: "<html></html>" },
+      });
+      const started = performance.now();
+      const r = await readPage(url, net.ports);
+      return { r, ms: performance.now() - started, log: net.log };
+    };
+    const REFUSED = { status: "refused", reason: "read.refused.robots" };
+    /** `head`, then one comment line of filler, so the whole is exactly `size` bytes (all ASCII). */
+    const padded = (head: string, size: number) => `${head}#${"x".repeat(size - head.length - 1)}`;
+
+    it("covers a Thai path and a percent-encoded unreserved letter (Normalisation, SEC-133-R1-3)", async () => {
+      const robots = "User-agent: OriviloReader\nDisallow: /สินค้า\nDisallow: /private\n";
+      for (const url of [`${EXAMPLE}/สินค้า`, `${EXAMPLE}/%70rivate`, `${EXAMPLE}/private`]) {
+        const { r, log } = await readWith(url, robots);
+        expect(r).toEqual(REFUSED);
+        expect(log.map((l) => l.url)).toEqual([`${EXAMPLE}/robots.txt`]);
+      }
+      expect((await readWith(`${EXAMPLE}/public`, robots)).r.status).toBe("read");
+    });
+
+    it("prints the normalised form of the spec's worked example", () => {
+      expect(robotsNormalise("/สินค้า")).toBe(
+        "/%E0%B8%AA%E0%B8%B4%E0%B8%99%E0%B8%84%E0%B9%89%E0%B8%B2",
+      );
+      expect(robotsNormalise("/%E0%B8%AA%E0%B8%B4%E0%B8%99%E0%B8%84%E0%B9%89%E0%B8%B2")).toBe(
+        "/%E0%B8%AA%E0%B8%B4%E0%B8%99%E0%B8%84%E0%B9%89%E0%B8%B2",
+      );
+      expect(robotsNormalise("/%70rivate")).toBe("/private");
+      expect(robotsNormalise("/a%2fb%7e")).toBe("/a%2Fb~");
+      expect(robotsNormalise("/a%zzb%4")).toBe("/a%zzb%4"); // a % without two hex digits stays
+      expect(robotsNormalise("/%a")).toBe("/%a"); // one hex digit is not enough: the digit keeps its case
+      expect(robotsNormalise("/%aG")).toBe("/%aG");
+      expect(robotsNormalise("\u0080")).toBe("%C2%80"); // the first character outside ASCII
+      expect(robotsNormalise("\uffff")).toBe("%EF%BF%BF"); // the last of the run's range
+      expect(robotsNormalise("/%41%2d%2E%5f%7E%30")).toBe("/A-._~0"); // every unreserved class decodes
+      expect(robotsNormalise("/%25%20%2a")).toBe("/%25%20%2A"); // others stay, in upper case
+      expect(robotsNormalise("/%2541")).toBe("/%2541"); // one pass: %25 is not decoded into a %
+    });
+
+    describe("matches as RFC 9309 section 2.2.2 and the spec's Normalisation state", () => {
+      const denies = (pattern: string, path: string) =>
+        !robotsAllows(parseRobots(`User-agent: *\nDisallow: ${pattern}`), path, "oriviloreader");
+      it("decodes an unreserved percent-encoding in the pattern and in the path, and compares hex digits without case", () => {
+        expect(denies("/p%61th", "/path")).toBe(true);
+        expect(denies("/path", "/p%61th")).toBe(true);
+        expect(denies("/%7Euser", "/~user")).toBe(true);
+        expect(denies("/~user", "/%7euser")).toBe(true);
+        expect(denies("/%E0%B8%AA", "/%e0%b8%aa")).toBe(true);
+        expect(denies("/%e0%b8%aa", "/%E0%B8%AA")).toBe(true);
+      });
+      it("keeps a reserved character as written and a reserved percent-encoding encoded", () => {
+        expect(denies("/a%2fb", "/a/b")).toBe(false);
+        expect(denies("/a/b", "/a%2fb")).toBe(false);
+        expect(denies("/a%2fb", "/a%2Fb")).toBe(true);
+        expect(denies("/a:b", "/a:b")).toBe(true);
+      });
+    });
+
+    describe("%2A and %24 are literal characters (Matching, FU-6, F22)", () => {
+      const denies = (pattern: string, path: string) =>
+        !robotsAllows(parseRobots(`User-agent: *\nDisallow: ${pattern}`), path, "oriviloreader");
+      it.each([
+        ["/path/file-with-a-%2A.html", `${EXAMPLE}/path/file-with-a-*.html`],
+        ["/a-%2A.html", `${EXAMPLE}/a-%2A.html`],
+      ])("refuses the page for the pattern %s", async (pattern, url) => {
+        const { r, log } = await readWith(url, `User-agent: *\nDisallow: ${pattern}`);
+        expect(r).toEqual(REFUSED);
+        expect(log.map((l) => l.url)).toEqual([`${EXAMPLE}/robots.txt`]);
+      });
+      it("covers a written * and $ or their percent-encoding, never another character", () => {
+        expect(denies("/path/foo-%24", "/path/foo-$")).toBe(true);
+        expect(denies("/path/foo-%24", "/path/foo-%24")).toBe(true);
+        expect(denies("/path/foo-%24", "/path/foo-")).toBe(false);
+        expect(denies("/a-%2A.html", "/a-*.html")).toBe(true);
+        expect(denies("/a-%2A.html", "/a-X.html")).toBe(false);
+        expect(denies("/a-%2a.html", "/a-*.html")).toBe(true); // lower-case hex is the same literal
+        expect(denies("/a%2Ab", "/aXXb")).toBe(false); // a %2A never turns into a wildcard
+        expect(denies("/a24", "/a24")).toBe(true); // 2 and 4 after an ordinary character are not a literal
+        expect(denies("/a2A", "/a2A")).toBe(true);
+      });
+      it("an anchored last part holding a literal ends the path (F22)", () => {
+        expect(denies("/*%2A$", "/x%2A")).toBe(true);
+        expect(denies("/*%2A$", "/x*")).toBe(true);
+        expect(denies("/*%2A$", "/x*y")).toBe(false);
+        expect(denies("/*%24$", "/x$")).toBe(true);
+        expect(denies("/*%24$", "/x%24")).toBe(true);
+        expect(denies("/*%24$", "/x$y")).toBe(false);
+      });
+      it("a $ in the middle of a pattern is a literal, and %24 at its end is not an end anchor", () => {
+        expect(denies("/a$b", "/a$b")).toBe(true);
+        expect(denies("/a%24", "/a%24x")).toBe(true);
+      });
+    });
+
+    it("finds each middle part anywhere after the one before it, and the last one after that", () => {
+      const denies = (pattern: string, path: string) =>
+        !robotsAllows(parseRobots(`User-agent: *\nDisallow: ${pattern}`), path, "oriviloreader");
+      expect(denies("/a*b*c", "/aXXbYYc")).toBe(true);
+      expect(denies("/a*b*c", "/aXXbYY")).toBe(false);
+      expect(denies("/a*b*c", "/aXXcYYb")).toBe(false);
+      expect(denies("/a*b*c$", "/aXXbYYcZ")).toBe(false);
+      expect(denies("/a*b*c$", "/aXXbYYc")).toBe(true);
+    });
+
+    it("ranks by the octets of the normalised pattern, not by its parts or its decoded characters", () => {
+      const allows = (text: string, path: string) =>
+        robotsAllows(parseRobots(`User-agent: *\n${text}`), path, "oriviloreader");
+      // both are 3 octets; the parts of /a* are 2 characters, so ranked by parts the disallow would win
+      expect(allows("Disallow: /ab\nAllow: /a*", "/ab")).toBe(true);
+      // /%2F%2F is 7 octets and decodes to 3 characters; /**%2F is 6 octets and 4 characters
+      expect(allows("Allow: /%2F%2F\nDisallow: /**%2F", "/%2F%2F")).toBe(true);
+    });
+
+    it("ranks matches by the normalised pattern's octets, an allow winning a tie (Matching)", async () => {
+      // /pages is 6 octets, /%70age normalises to /page, 5 octets; ranked as written it would be 7 and win
+      const { r } = await readWith(
+        `${EXAMPLE}/pages/x`,
+        "User-agent: *\nAllow: /pages\nDisallow: /%70age",
+      );
+      expect(r.status).toBe("read");
+      const { r: tie } = await readWith(
+        `${EXAMPLE}/pages/x`,
+        "User-agent: *\nDisallow: /%70ages\nAllow: /pages",
+      );
+      expect(tie.status).toBe("read");
+      const { r: longer } = await readWith(
+        `${EXAMPLE}/pages/x`,
+        "User-agent: *\nAllow: /%70ag\nDisallow: /pages",
+      );
+      expect(longer).toEqual(REFUSED);
+    });
+
+    describe("Caps (SEC-133-R1-1, FU-5)", () => {
+      it("refuses a file of 5,001 rules and reads one of 5,000", async () => {
+        const rules = (n: number) => `User-agent: *\n${"Disallow: /x\n".repeat(n)}`;
+        expect((await readWith(`${EXAMPLE}/`, rules(5001))).r).toEqual(REFUSED);
+        expect((await readWith(`${EXAMPLE}/`, rules(5000))).r.status).toBe("read");
+      });
+      it("counts an empty value, an ignored pattern and a rule before the first group, and the group's own rule", () => {
+        const allows = (text: string) => robotsAllows(parseRobots(text), "/", "oriviloreader");
+        const group = "User-agent: *\nAllow: /\n"; // one rule of its own
+        const ignored = `Disallow: /${"a".repeat(1000)}\n`; // 1,001 characters: ignored, and counted
+        expect(allows(`${"Disallow:\n".repeat(4999)}${group}`)).toBe(true);
+        expect(allows(`${"Disallow:\n".repeat(5000)}${group}`)).toBe(false);
+        expect(allows(`${"Disallow:\n".repeat(4998)}${ignored}${group}`)).toBe(true);
+        expect(allows(`${"Disallow:\n".repeat(4999)}${ignored}${group}`)).toBe(false);
+        expect(allows(`${"Allow: /\n".repeat(4999)}${group}`)).toBe(true);
+        expect(allows(`${"Allow: /\n".repeat(5000)}${group}`)).toBe(false);
+      });
+      it("refuses 100,001 pattern characters and reads 100,000", () => {
+        const allows = (last: number) =>
+          robotsAllows(
+            parseRobots(
+              `User-agent: *\nAllow: /\n${`Disallow: /${"x".repeat(999)}\n`.repeat(99)}Disallow: /${"y".repeat(last)}\n`,
+            ),
+            "/",
+            "oriviloreader",
+          );
+        // 1 for the Allow, 99 patterns of 1,000, and a last one of 999 (100,000 in all) or 1,000 (100,001)
+        expect(allows(998)).toBe(true);
+        expect(allows(999)).toBe(false);
+      });
+      it("refuses 101 patterns of 1,000 characters and reads 100", async () => {
+        const rules = (n: number) =>
+          `User-agent: *\n${`Disallow: /${"x".repeat(999)}\n`.repeat(n)}`;
+        expect((await readWith(`${EXAMPLE}/`, rules(101))).r).toEqual(REFUSED);
+        expect((await readWith(`${EXAMPLE}/`, rules(100))).r.status).toBe("read");
+      });
+      it("counts the characters of an ignored pattern too", async () => {
+        // each is 1,001 characters, so ignored; 100 of them are 100,100 characters in all
+        const ignored = (n: number) => `Disallow: /${"a".repeat(1000)}\n`.repeat(n);
+        expect((await readWith(`${EXAMPLE}/`, `User-agent: *\n${ignored(100)}`)).r).toEqual(
+          REFUSED,
+        );
+        expect((await readWith(`${EXAMPLE}/`, `User-agent: *\n${ignored(99)}`)).r.status).toBe(
+          "read",
+        );
+      });
+      it("counts the characters after normalisation, not as written", async () => {
+        // "/" and 333 times %61 is 1,000 characters as written and 334 after: 101 of them are 33,734
+        const short = `Disallow: /${"%61".repeat(333)}\n`.repeat(101);
+        expect((await readWith(`${EXAMPLE}/`, `User-agent: *\n${short}`)).r.status).toBe("read");
+        // "/" and 110 Thai letters is 111 characters as written and 991 after: 101 of them are 100,091
+        const thai = (n: number) => `Disallow: /${"ก".repeat(110)}\n`.repeat(n);
+        expect((await readWith(`${EXAMPLE}/`, `User-agent: *\n${thai(101)}`)).r).toEqual(REFUSED);
+        expect((await readWith(`${EXAMPLE}/`, `User-agent: *\n${thai(100)}`)).r.status).toBe(
+          "read",
+        );
+      });
+      it("ignores a pattern of 1,001 characters after normalisation and keeps one of 1,000", () => {
+        const kept = (pattern: string) =>
+          parseRobots(`User-agent: *\nDisallow: ${pattern}`).groups[0]?.rules.length;
+        // "/" and 110 Thai letters is 991 characters after normalisation, and each "a" adds one
+        expect(kept(`/${"ก".repeat(110)}${"a".repeat(9)}`)).toBe(1);
+        expect(kept(`/${"ก".repeat(110)}${"a".repeat(10)}`)).toBe(0);
+        expect(kept(`/${"a".repeat(999)}`)).toBe(1);
+        expect(kept(`/${"a".repeat(1000)}`)).toBe(0);
+      });
+      it("reads the 500 KB file of 5,000 short wildcard rules against a path of 2,000 characters within 500 ms", async () => {
+        const rules = `User-agent: *\n${"Disallow: /*ab\n".repeat(5000)}`;
+        const body = padded(rules, 500_000);
+        expect(body).toHaveLength(500_000);
+        const { r, ms } = await readWith(`${EXAMPLE}/${"a".repeat(1999)}`, body);
+        expect(r.status).toBe("read");
+        expect(ms).toBeLessThan(500);
+      });
+    });
+
+    describe("the size of the answer (FU-4)", () => {
+      const open = "User-agent: *\nAllow: /\n";
+      it("reads a robots.txt of exactly 500 KiB and refuses one a byte longer, parsing nothing of it", async () => {
+        const size = ROBOTS_MAX_BYTES;
+        const whole = await readWith(`${EXAMPLE}/`, enc.encode(padded(open, size)));
+        expect(whole.r.status).toBe("read");
+        const shut = `User-agent: *\nDisallow: /\n`;
+        // the first 500 KiB allow the page; a byte more, and a part parsed would have let it through
+        const over = await readWith(`${EXAMPLE}/`, enc.encode(padded(open, size + 1)));
+        expect(over.r).toEqual(REFUSED);
+        expect(over.log.map((l) => l.url)).toEqual([`${EXAMPLE}/robots.txt`]);
+        const head = await readWith(`${EXAMPLE}/`, enc.encode(padded(shut, size)));
+        expect(head.r).toEqual(REFUSED);
+      });
+    });
+
+    it("refuses a URL of 2,049 characters with no lookup and no request, and requests one of 2,048", async () => {
+      const url = (n: number) =>
+        `http://example.test/${"a".repeat(n - "http://example.test/".length)}`;
+      expect(url(2049)).toHaveLength(2049);
+      const long = fakeNet(okRoutes());
+      expect(await readPage(url(2049), long.ports)).toEqual({
+        status: "refused",
+        reason: "read.refused.address",
+      });
+      expect(long.resolved).toEqual([]);
+      expect(long.log).toEqual([]);
+      const edge = fakeNet(okRoutes({ [url(2048)]: { body: "<html></html>" } }));
+      expect((await readPage(url(2048), edge.ports)).status).toBe("read");
+      expect(edge.log.map((l) => l.url)).toEqual([ROBOTS, url(2048)]);
+    });
+
+    it("refuses a redirect or a stylesheet link whose URL passes 2,048 characters", async () => {
+      const far = `http://example.test/${"b".repeat(2030)}`;
+      const redirect = fakeNet(okRoutes({ [PAGE]: { status: 302, headers: { location: far } } }));
+      expect(await readPage(PAGE, redirect.ports)).toEqual({
+        status: "refused",
+        reason: "read.refused.address",
+      });
+      const sheet = fakeNet(okRoutes({ [PAGE]: linkPage([far]) }));
+      expect((await readPage(PAGE, sheet.ports)).status).toBe("refused");
     });
   });
 
@@ -866,6 +1137,166 @@ describe("one page, logged out, bounded", () => {
       okRoutes({ [PAGE]: { headers: { "Content-Type": "application/xhtml+xml; charset=utf-8" } } }),
     );
     expect((await readPage(PAGE, x.ports)).status).toBe("read");
+  });
+
+  describe("the Nesting count in a read (SEC-133-R1-2, F20, F23)", () => {
+    const MAX = 2 * 1024 * 1024;
+    /** `head` then `unit` repeated while the whole stays within 2 MB (all ASCII). */
+    const upTo = (head: string, unit: string) =>
+      head + unit.repeat(Math.floor((MAX - head.length) / unit.length));
+    const documents: [string, string][] = [
+      ["nested div elements", upTo("<body>", "<div>")],
+      ["<div></span> repeated", upTo("<body>", "<div></span>")],
+      ["<div><script></div></script> repeated", upTo("<body>", "<div><script></div></script>")],
+      [
+        "a style that opens a comment, then nested div elements",
+        upTo("<body><style><!--</style>", "<div>"),
+      ],
+      ["an svg style, then nested g elements", upTo("<body><svg><style>", "<g>")],
+    ];
+
+    it.each(documents)(
+      "reads the 2 MB page of %s within 2 s, cut and incomplete",
+      async (_n, html) => {
+        const net = fakeNet(okRoutes({ [PAGE]: { body: enc.encode(html) } }));
+        const started = performance.now();
+        const r = await readPage(PAGE, net.ports);
+        expect(performance.now() - started).toBeLessThan(2000);
+        expect(r.status).toBe("read");
+        expect(r.status === "read" && r.incomplete).toEqual(["page-incomplete"]);
+      },
+    );
+
+    it("reads the held-depth page within 2 s with nothing cut", async () => {
+      // 125 divs, then </p> repeated: each pushes a fake p to depth 128 and pops it
+      const html = upTo(`<body>${"<div>".repeat(125)}`, "</p>");
+      const net = fakeNet(okRoutes({ [PAGE]: { body: enc.encode(html) } }));
+      const started = performance.now();
+      const r = await readPage(PAGE, net.ports);
+      expect(performance.now() - started).toBeLessThan(2000);
+      expect(r.status).toBe("read");
+      expect(r.status === "read" && r.incomplete).toEqual([]);
+    });
+
+    it("does not fetch a link the walk skips although the count never stopped (a void link at depth 129)", async () => {
+      // 126 divs hold the stack at 128; the link is void, so it is attached at depth 129 without a push
+      const body = `<body>${"<div>".repeat(126)}<link rel=stylesheet href=a.css></body>`;
+      const net = fakeNet(
+        okRoutes({ [PAGE]: { body }, "http://example.test/a.css": { body: "a{}" } }),
+      );
+      const r = await readPage(PAGE, net.ports);
+      expect(r.status === "read" && r.stylesheets).toEqual([]);
+      expect(r.status === "read" && r.incomplete).toEqual(["page-incomplete"]);
+      expect(net.log.some((l) => l.url.endsWith("a.css"))).toBe(false);
+    });
+  });
+
+  describe("a port that rejects is no answer (SEC-133-R1-5, R1-3)", () => {
+    const MARKER = "ENOTFOUND-secret-marker-7f3a";
+    const boom = () => new Error(MARKER);
+    const expectNoMarker = (r: unknown) => expect(JSON.stringify(r)).not.toContain(MARKER);
+
+    it("fails with network, never rejecting, when resolve rejects on the page's own lookup", async () => {
+      const net = fakeNet(okRoutes());
+      net.ports.resolve = async () => {
+        throw boom();
+      };
+      const r = await readPage(PAGE, net.ports);
+      expect(r).toEqual({ status: "failed", reason: "network" });
+      expectNoMarker(r);
+      expect(net.log).toEqual([]); // no request, robots.txt included
+    });
+
+    it("fails with network when the host of a redirect target cannot be looked up, before its robots.txt is asked", async () => {
+      const net = fakeNet(
+        okRoutes({ [PAGE]: { status: 302, headers: { location: "http://other.test/" } } }),
+      );
+      const resolve = net.ports.resolve;
+      net.ports.resolve = async (host, budgetMs) => {
+        if (host === "other.test") throw boom();
+        return resolve(host, budgetMs);
+      };
+      const r = await readPage(PAGE, net.ports);
+      expect(r).toEqual({ status: "failed", reason: "network" });
+      expectNoMarker(r);
+      expect(net.log.every((l) => l.url.startsWith("http://example.test/"))).toBe(true);
+    });
+
+    it("fails with network when request rejects on the page's own request, after robots.txt answered 404", async () => {
+      const net = fakeNet(okRoutes());
+      const request = net.ports.request;
+      net.ports.request = async (r) => {
+        if (r.url === PAGE) throw boom();
+        return request(r);
+      };
+      const result = await readPage(PAGE, net.ports);
+      expect(result).toEqual({ status: "failed", reason: "network" });
+      expectNoMarker(result);
+      expect(net.log.map((l) => l.url)).toEqual([ROBOTS]);
+    });
+
+    it("treats a robots.txt lookup or request that rejects as no answer: complete disallow", async () => {
+      const lookup = fakeNet(okRoutes());
+      let lookups = 0;
+      const resolve = lookup.ports.resolve;
+      lookup.ports.resolve = async (host, budgetMs) => {
+        if (++lookups === 2) throw boom(); // the first lookup is the page's, the second robots.txt's
+        return resolve(host, budgetMs);
+      };
+      const a = await readPage(PAGE, lookup.ports);
+      expect(a).toEqual({ status: "refused", reason: "read.refused.robots" });
+      expectNoMarker(a);
+      const asking = fakeNet(okRoutes());
+      const request = asking.ports.request;
+      asking.ports.request = async (r) => {
+        if (r.url === ROBOTS) throw boom();
+        return request(r);
+      };
+      const b = await readPage(PAGE, asking.ports);
+      expect(b).toEqual({ status: "refused", reason: "read.refused.robots" });
+      expectNoMarker(b);
+    });
+
+    it("skips a stylesheet whose request rejects, with page-incomplete", async () => {
+      const net = fakeNet(okRoutes({ [PAGE]: linkPage(["/a.css"]) }));
+      const request = net.ports.request;
+      net.ports.request = async (r) => {
+        if (r.url.endsWith("a.css")) throw boom();
+        return request(r);
+      };
+      const r = await readPage(PAGE, net.ports);
+      expect(r.status === "read" && r.stylesheets).toEqual([]);
+      expect(r.status === "read" && r.incomplete).toEqual(["page-incomplete"]);
+      expectNoMarker(r);
+    });
+
+    it("reports timeout, not network, when the 30 s are spent by the time the port rejects", async () => {
+      const lookup = fakeNet(okRoutes());
+      lookup.ports.resolve = async () => {
+        lookup.clock.now = 30_000;
+        throw boom();
+      };
+      expect(await readPage(PAGE, lookup.ports)).toEqual({ status: "failed", reason: "timeout" });
+      const asking = fakeNet(okRoutes());
+      const request = asking.ports.request;
+      asking.ports.request = async (r) => {
+        if (r.url === PAGE) {
+          asking.clock.now = 30_000;
+          throw boom();
+        }
+        return request(r);
+      };
+      expect(await readPage(PAGE, asking.ports)).toEqual({ status: "failed", reason: "timeout" });
+    });
+
+    it("reports timeout when a lookup answers nothing once the 30 s are spent", async () => {
+      const net = fakeNet(okRoutes());
+      net.ports.resolve = async () => {
+        net.clock.now = 30_000;
+        return [];
+      };
+      expect(await readPage(PAGE, net.ports)).toEqual({ status: "failed", reason: "timeout" });
+    });
   });
 
   it("hashes the bytes it kept and connects to the checked address", async () => {

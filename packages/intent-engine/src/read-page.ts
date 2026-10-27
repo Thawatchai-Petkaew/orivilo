@@ -1,6 +1,7 @@
 // The safe read of ORV-128 tech notes section 6. Pure: every I/O comes through ReadPorts.
 // The lists below are closed constants; a range added later is a change `security` reviews.
 
+import { URL_MAX_CHARS } from "./evidence";
 import { stylesheetLinksOf } from "./page-text";
 
 // The engine's tsconfig has no DOM or Node lib, so the three web-standard globals this file uses
@@ -24,8 +25,15 @@ declare class TextDecoder {
 export type IncompleteReason = "page-incomplete";
 
 export type ReadPorts = {
-  /** IP literals, server-only; it must answer within `budgetMs`, the time left of the 30 s. */
+  /**
+   * IP literals, server-only; answers within `budgetMs`, the time left of the 30 s. An empty array
+   * and a rejection are both no answer; `readPage` catches the rejection and keeps none of its text.
+   */
   resolve(host: string, budgetMs: number): Promise<string[]>;
+  /**
+   * A rejection is no answer, caught the same way. `truncated` is true only when the answer had
+   * more than `maxBytes` bytes, so an answer of exactly `maxBytes` is whole.
+   */
   request(r: {
     url: string;
     address: string;
@@ -60,13 +68,25 @@ export type ReadResult =
   | { status: "refused"; reason: "read.refused.address" | "read.refused.robots" }
   | { status: "failed"; reason: "timeout" | "network" | "redirects" | "not-html" };
 
-export type RobotsRules = {
-  groups: { agents: string[]; rules: { allow: boolean; pattern: string }[] }[];
+export type RobotsRule = {
+  allow: boolean;
+  /** Normalised by `robotsNormalise`; its length is its octets, all ASCII. */
+  pattern: string;
+  /** The normalised pattern ends with a written `$`. */
+  anchored: boolean;
+  /** The pattern split on each written `*`; a `%2A` or `%24` stays as written, a literal for `matchAt`. */
+  parts: string[];
 };
+export type RobotsRules = { groups: { agents: string[]; rules: RobotsRule[] }[] };
 /** One analysis owns one cache, so a copy never outlives the analysis (spec: at most 24 hours). */
 export type RobotsCache = Map<string, RobotsRules>;
 
+/** robots-match-1, Caps: a pattern longer than this after normalisation is ignored. */
 export const ROBOTS_MAX_PATTERN = 1000;
+/** robots-match-1, Caps: more Allow and Disallow lines than this is complete disallow. */
+export const ROBOTS_MAX_RULES = 5000;
+/** robots-match-1, Caps: more pattern characters than this, after normalisation, is complete disallow. */
+export const ROBOTS_MAX_PATTERN_CHARS = 100_000;
 export const READER_TOKEN = "oriviloreader";
 export const CONTACT_URL = "https://github.com/Thawatchai-Petkaew/orivilo";
 export const USER_AGENT = `OriviloReader/1 (+${CONTACT_URL})`;
@@ -188,10 +208,52 @@ function productToken(value: string): string {
   return (/^[A-Za-z0-9_-]*/.exec(value)?.[0] ?? "").toLowerCase();
 }
 
+/** Complete disallow, failing closed: one `*` group holding `Disallow: /`. */
+const DISALLOW_ALL: RobotsRules = {
+  groups: [
+    { agents: ["*"], rules: [{ allow: false, pattern: "/", anchored: false, parts: ["/"] }] },
+  ],
+};
+
+/**
+ * robots-match-1, Normalisation (RFC 9309 section 2.2.2), for the path and for each pattern: each
+ * run of characters outside ASCII becomes the upper-case percent-encoding of its UTF-8; then each
+ * `%` and two hex digits becomes the character when that octet is unreserved (a letter, a digit,
+ * hyphen, period, underscore or tilde), and is otherwise written with upper-case hex digits. A `%`
+ * not followed by two hex digits stays. Each step is one left-to-right pass.
+ */
+export function robotsNormalise(s: string): string {
+  return s
+    .replace(/[\u0080-\uffff]+/g, (run) => encodeURIComponent(run))
+    .replace(/%([0-9A-Fa-f]{2})/g, (_m, hex: string) => {
+      const c = String.fromCharCode(parseInt(hex, 16));
+      return /[A-Za-z0-9._~-]/.test(c) ? c : `%${hex.toUpperCase()}`;
+    });
+}
+
+function compileRule(allow: boolean, pattern: string): RobotsRule {
+  const anchored = pattern.endsWith("$");
+  return {
+    allow,
+    pattern,
+    anchored,
+    parts: (anchored ? pattern.slice(0, -1) : pattern).split("*"),
+  };
+}
+
+/**
+ * Per line after the comment is cut: an `allow` or `disallow` line first adds 1 to the rule count,
+ * in a group or not and empty or not, and past ROBOTS_MAX_RULES the whole file is complete disallow;
+ * its value is normalised and its length added to the pattern characters, and past
+ * ROBOTS_MAX_PATTERN_CHARS the whole file is complete disallow; then a pattern longer than
+ * ROBOTS_MAX_PATTERN is ignored and an empty one allows everything, so neither is kept.
+ */
 export function parseRobots(text: string): RobotsRules {
   const groups: RobotsRules["groups"] = [];
   let current: RobotsRules["groups"][number] | null = null;
   let lastWasAgent = false;
+  let ruleCount = 0;
+  let patternChars = 0;
   for (const raw of text.split(/\r\n|\r|\n/)) {
     const line = (raw.includes("#") ? raw.slice(0, raw.indexOf("#")) : raw).trim();
     const colon = line.indexOf(":");
@@ -207,8 +269,13 @@ export function parseRobots(text: string): RobotsRules {
       lastWasAgent = true;
     } else if (field === "allow" || field === "disallow") {
       lastWasAgent = false;
-      if (!current || value === "") continue; // an empty Disallow allows everything
-      current.rules.push({ allow: field === "allow", pattern: value });
+      ruleCount++;
+      if (ruleCount > ROBOTS_MAX_RULES) return DISALLOW_ALL;
+      const pattern = robotsNormalise(value);
+      patternChars += pattern.length;
+      if (patternChars > ROBOTS_MAX_PATTERN_CHARS) return DISALLOW_ALL;
+      if (!current || pattern === "" || pattern.length > ROBOTS_MAX_PATTERN) continue;
+      current.rules.push(compileRule(field === "allow", pattern));
     } else {
       lastWasAgent = false;
     }
@@ -216,40 +283,104 @@ export function parseRobots(text: string): RobotsRules {
   return { groups };
 }
 
+const PERCENT = 37;
+
 /**
- * robots-match-1: no regular expression. The pattern splits on `*`; the first part must start the
- * path, each middle part is found at its first occurrence after the one before, the last part is
- * found after them (or must end the path when the pattern ends with `$`). At most path length times
- * pattern length steps.
+ * The end of the match of `part` in `path` that starts at `at`, or -1. A `%2A` or `%24` in the part
+ * takes a written `*` or `$` in the path (1 character) or the same three characters (3); any other
+ * character of the part takes the same character. The path's character decides which, so the match
+ * at one start is unique and costs at most the part's length. Loops over char codes, not `indexOf`.
  */
-function patternMatches(pattern: string, path: string): boolean {
-  const anchored = pattern.endsWith("$");
-  const parts = (anchored ? pattern.slice(0, -1) : pattern).split("*");
-  const first = parts[0] ?? "";
-  if (parts.length === 1) return anchored ? path === first : path.startsWith(first);
-  if (!path.startsWith(first)) return false;
-  let at = first.length;
+function matchAt(path: string, part: string, at: number): number {
+  let j = at;
+  for (let i = 0; i < part.length;) {
+    const c = part.charCodeAt(i);
+    if (
+      c === PERCENT &&
+      part.charCodeAt(i + 1) === 50 &&
+      (part.charCodeAt(i + 2) === 65 || part.charCodeAt(i + 2) === 52)
+    ) {
+      const literal = part.charCodeAt(i + 2) === 65 ? 42 : 36; // `*` for %2A, `$` for %24
+      if (path.charCodeAt(j) === literal) j += 1;
+      else if (
+        path.charCodeAt(j) === PERCENT &&
+        path.charCodeAt(j + 1) === 50 &&
+        path.charCodeAt(j + 2) === part.charCodeAt(i + 2)
+      )
+        j += 3;
+      else return -1;
+      i += 3;
+    } else {
+      if (path.charCodeAt(j) !== c) return -1;
+      i++;
+      j++;
+    }
+  }
+  return j;
+}
+
+/**
+ * The end of the first match of `part` that starts at or after `from`, or -1. The first match also
+ * ends soonest, which is the one to keep: every later part may start anywhere at or after it.
+ */
+function findFrom(path: string, part: string, from: number): number {
+  for (let start = from; start <= path.length; start++) {
+    const end = matchAt(path, part, start);
+    if (end >= 0) return end;
+  }
+  return -1;
+}
+
+/** Whether `part` has a match from `from` on that ends the path: only the starts that could end it are tried. */
+function endsPath(path: string, part: string, from: number): boolean {
+  let literals = 0;
+  for (let i = 0; i < part.length; i++) {
+    const t = part.slice(i, i + 3);
+    if (t === "%2A" || t === "%24") {
+      literals++;
+      i += 2;
+    }
+  }
+  // the match spans between part.length - 2 * literals and part.length characters of the path
+  const last = path.length - (part.length - 2 * literals);
+  for (let start = Math.max(from, path.length - part.length); start <= last; start++) {
+    if (matchAt(path, part, start) === path.length) return true;
+  }
+  return false;
+}
+
+/**
+ * robots-match-1, Matching: no regular expression, in at most path length times pattern length
+ * steps. The first part must match at the path's start; each later part is found at or after the
+ * end of the one before; an anchored pattern's last part must end the path.
+ */
+function patternMatches(rule: RobotsRule, path: string): boolean {
+  const { parts, anchored } = rule;
+  let at = matchAt(path, parts[0] ?? "", 0);
+  if (at < 0) return false;
+  if (parts.length === 1) return !anchored || at === path.length;
   for (const part of parts.slice(1, -1)) {
-    const found = path.indexOf(part, at);
-    if (found < 0) return false;
-    at = found + part.length;
+    at = findFrom(path, part, at);
+    if (at < 0) return false;
   }
   const last = parts[parts.length - 1] ?? "";
-  if (anchored) return path.length - last.length >= at && path.endsWith(last);
-  return path.indexOf(last, at) >= 0;
+  return anchored ? endsPath(path, last, at) : findFrom(path, last, at) >= 0;
 }
 
 /**
  * robots-group-1: when any group names the token, the groups naming it apply, combined, and `*` does
- * not; `*` applies only when none does. The longest match wins, Allow on a tie.
+ * not; `*` applies only when none does. robots-match-1: the path is normalised once; of the rules
+ * that match it, the most specific is the one whose normalised pattern has the most octets (all
+ * ASCII, so its length), and an allow wins a tie. No match allows.
  */
 export function robotsAllows(rules: RobotsRules, path: string, token: "oriviloreader"): boolean {
+  const normalised = robotsNormalise(path);
   const named = rules.groups.filter((g) => g.agents.includes(token));
   const applying = named.length > 0 ? named : rules.groups.filter((g) => g.agents.includes("*"));
   let best: { allow: boolean; length: number } | null = null;
   for (const g of applying) {
     for (const r of g.rules) {
-      if (r.pattern.length > ROBOTS_MAX_PATTERN || !patternMatches(r.pattern, path)) continue;
+      if (!patternMatches(r, normalised)) continue;
       const length = r.pattern.length;
       if (!best || length > best.length || (length === best.length && r.allow)) {
         best = { allow: r.allow, length };
@@ -258,8 +389,6 @@ export function robotsAllows(rules: RobotsRules, path: string, token: "orivilore
   }
   return best ? best.allow : true;
 }
-
-const DISALLOW_ALL = parseRobots("User-agent: *\nDisallow: /");
 
 // ---------- The read ----------
 
@@ -313,7 +442,11 @@ function lowerKeys(h: Record<string, string>): Record<string, string> {
   return out;
 }
 
-/** The URL the Address check lets through: http or https, the scheme's default port, no credentials. */
+/**
+ * The URL the Address check lets through, checked in this order and all before any lookup: http or
+ * https, the scheme's default port, no credentials, and a whole `href` (as the WHATWG URL writes it)
+ * of at most URL_MAX_CHARS characters, the bound of `source.ref`.
+ */
 function allowedUrl(target: string): URL | null {
   let u: URL;
   try {
@@ -324,6 +457,7 @@ function allowedUrl(target: string): URL | null {
   if (u.protocol !== "http:" && u.protocol !== "https:") return null;
   if (u.port !== "") return null; // a default port is written as ""; any other is refused
   if (u.username !== "" || u.password !== "") return null;
+  if (u.href.length > URL_MAX_CHARS) return null;
   return u;
 }
 
@@ -334,16 +468,26 @@ export async function readPage(
 ): Promise<ReadResult> {
   const headers = { "user-agent": USER_AGENT, accept: "text/html,text/css;q=0.9" };
 
+  /** A port that gave no answer: `timeout` once the 30 s are spent, else `network`. */
+  const noAnswer = (): "timeout" | "network" =>
+    ports.elapsedMs() >= TOTAL_BUDGET_MS ? "timeout" : "network";
+
   async function send(target: string, address: string, maxBytes: number): Promise<Sent> {
     const remaining = TOTAL_BUDGET_MS - ports.elapsedMs();
     if (remaining <= 0) return { kind: "failed", reason: "timeout" };
-    const r = await ports.request({
-      url: target,
-      address,
-      headers: { ...headers },
-      maxBytes,
-      timeoutMs: Math.min(REQUEST_TIMEOUT_MS, remaining),
-    });
+    let r: Awaited<ReturnType<ReadPorts["request"]>>;
+    try {
+      r = await ports.request({
+        url: target,
+        address,
+        headers: { ...headers },
+        maxBytes,
+        timeoutMs: Math.min(REQUEST_TIMEOUT_MS, remaining),
+      });
+    } catch {
+      // A rejection is no answer; the error is not bound, so none of its text can reach the result.
+      return { kind: "failed", reason: noAnswer() };
+    }
     if (!r.ok) return { kind: "failed", reason: r.error };
     if (checkAddress(stripBrackets(r.remoteAddress)) !== "public") return { kind: "refused" };
     const cut = r.body.length > maxBytes;
@@ -364,10 +508,14 @@ export async function readPage(
     } else {
       const remaining = TOTAL_BUDGET_MS - ports.elapsedMs();
       if (remaining <= 0) return "timeout";
-      addresses = await ports.resolve(u.hostname, remaining);
+      try {
+        addresses = await ports.resolve(u.hostname, remaining);
+      } catch {
+        return noAnswer(); // as in `send`: a rejection is no answer and none of its text is kept
+      }
     }
     if (addresses.some((a) => checkAddress(a) !== "public")) return "refused";
-    return addresses[0] ?? "network";
+    return addresses[0] ?? noAnswer();
   }
 
   /**
@@ -409,16 +557,24 @@ export async function readPage(
     }
   }
 
-  /** The rules of an origin; a redirect is followed (R3), 5xx or no answer is complete disallow. */
+  /**
+   * The rules of an origin, for the submitted URL's origin whatever host the redirects land on (R3).
+   * A refusal or `redirects` is returned as is; any other failure is complete disallow; a 2xx
+   * longer than ROBOTS_MAX_BYTES is complete disallow, unparsed; any other 2xx is parsed; a 4xx is no
+   * rules; anything else, a 3xx with no `Location` and a 5xx among them, is complete disallow.
+   */
   async function robotsOf(u: URL): Promise<RobotsRules | Refusal | Failure> {
     const cached = robots.get(u.origin);
     if (cached) return cached;
     const r = await walk(`${u.origin}/robots.txt`, ROBOTS_MAX_BYTES);
     if (r.kind === "refused" || (r.kind === "failed" && r.reason === "redirects")) return r;
-    let rules = DISALLOW_ALL; // 5xx, a redirect without a place to go or no answer: complete disallow
+    let rules = DISALLOW_ALL;
     if (r.kind === "ok") {
-      if (r.status >= 200 && r.status < 300) rules = parseRobots(new TextDecoder().decode(r.body));
-      else if (r.status >= 400 && r.status < 500) rules = parseRobots(""); // 4xx: no rules
+      if (r.status >= 200 && r.status < 300) {
+        if (!r.truncated) rules = parseRobots(new TextDecoder().decode(r.body));
+      } else if (r.status >= 400 && r.status < 500) {
+        rules = { groups: [] }; // 4xx: no rules
+      }
     }
     robots.set(u.origin, rules);
     return rules;

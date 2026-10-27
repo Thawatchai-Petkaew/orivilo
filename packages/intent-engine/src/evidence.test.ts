@@ -14,8 +14,10 @@ import {
 import {
   EVIDENCE_SCHEMA_VERSION,
   HYPOTHESIS_RULES,
+  PATH_MAX_CHARS,
   READING_TARGETS,
   RULE_IDS,
+  URL_MAX_CHARS,
   compareEvidence,
   evidenceId,
   inputEvidenceSchema,
@@ -656,6 +658,45 @@ describe("the margin is in thousandths and inclusive", () => {
     expect(withinMargin(0.7, 0.599)).toBe(false);
     expect(withinMargin(0.9, 0.6)).toBe(false);
     expect(withinMargin(0.7, 0.65)).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------- the bounds the safe read shares (tech notes sections 6 and 8)
+
+describe("the URL and path bounds the safe read shares", () => {
+  it("are 2,048 and 500", () => {
+    expect(URL_MAX_CHARS).toBe(2048);
+    expect(PATH_MAX_CHARS).toBe(500);
+  });
+
+  it("source.ref takes URL_MAX_CHARS characters and refuses one more, at source.ref", () => {
+    const ref = (n: number) => `https://clinic.example/${"a".repeat(n - 23)}`;
+    expect(ref(URL_MAX_CHARS)).toHaveLength(URL_MAX_CHARS);
+    expect(failures(item({ source: src({ ref: ref(URL_MAX_CHARS) }) }))).toBeNull();
+    expect(failures(item({ source: src({ ref: ref(URL_MAX_CHARS + 1) }) }))).toEqual([
+      "source.ref",
+    ]);
+  });
+
+  it("a text locator path takes PATH_MAX_CHARS characters and refuses one more, at source.locator.path", () => {
+    const text = (n: number) =>
+      ruleItem({
+        source: src({
+          locator: { ...textLocator, path: `html>body>${"p".repeat(n - 10)}` },
+          renderer: null,
+        }),
+      });
+    expect(failures(text(PATH_MAX_CHARS))).toBeNull();
+    expect(failures(text(PATH_MAX_CHARS + 1))).toEqual(["source.locator.path"]);
+  });
+
+  it("an element locator path takes PATH_MAX_CHARS characters and refuses one more, at source.locator.path", () => {
+    const element = (n: number) =>
+      item({
+        source: src({ locator: { kind: "element", path: `html>body>${"p".repeat(n - 10)}` } }),
+      });
+    expect(failures(element(PATH_MAX_CHARS))).toBeNull();
+    expect(failures(element(PATH_MAX_CHARS + 1))).toEqual(["source.locator.path"]);
   });
 });
 
