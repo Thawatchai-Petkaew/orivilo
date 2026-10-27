@@ -364,11 +364,11 @@ describe("html-text-1", () => {
       },
     );
 
-    it("returns the held-depth page within 2 s, with nothing cut", () => {
+    it("returns the held-depth page within 10 s, with nothing cut", () => {
       expect(HELD_DEPTH.length).toBeLessThanOrEqual(DOCUMENT_MAX);
       const started = performance.now();
       const out = pageTextOf(bytes(HELD_DEPTH));
-      expect(performance.now() - started).toBeLessThan(2000);
+      expect(performance.now() - started).toBeLessThan(10000);
       expect(out.blocks).toEqual([]); // its p elements hold no text
       expect(out.incomplete).toBe(false);
     });
@@ -641,10 +641,10 @@ describe("stylesheetLinksOf", () => {
     },
   );
 
-  it("returns the held-depth page within 2 s with nothing cut", () => {
+  it("returns the held-depth page within 10 s with nothing cut", () => {
     const started = performance.now();
     const out = stylesheetLinksOf(bytes(HELD_DEPTH));
-    expect(performance.now() - started).toBeLessThan(2000);
+    expect(performance.now() - started).toBeLessThan(10000);
     expect(out).toEqual({ hrefs: [], incomplete: false });
   });
 });

@@ -59,7 +59,10 @@ const attr = (e: Element, name: string): string | undefined =>
 
 /** The Nesting count's stop. Private to this module: parseBounded catches it and rethrows anything else. */
 class NestingStop {
-  constructor(readonly cut: number) {}
+  readonly cut: number;
+  constructor(cut: number) {
+    this.cut = cut;
+  }
 }
 
 /**

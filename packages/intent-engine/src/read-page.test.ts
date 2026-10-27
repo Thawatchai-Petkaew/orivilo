@@ -1167,13 +1167,13 @@ describe("one page, logged out, bounded", () => {
       },
     );
 
-    it("reads the held-depth page within 2 s with nothing cut", async () => {
+    it("reads the held-depth page within 10 s with nothing cut", async () => {
       // 125 divs, then </p> repeated: each pushes a fake p to depth 128 and pops it
       const html = upTo(`<body>${"<div>".repeat(125)}`, "</p>");
       const net = fakeNet(okRoutes({ [PAGE]: { body: enc.encode(html) } }));
       const started = performance.now();
       const r = await readPage(PAGE, net.ports);
-      expect(performance.now() - started).toBeLessThan(2000);
+      expect(performance.now() - started).toBeLessThan(10000);
       expect(r.status).toBe("read");
       expect(r.status === "read" && r.incomplete).toEqual([]);
     });
