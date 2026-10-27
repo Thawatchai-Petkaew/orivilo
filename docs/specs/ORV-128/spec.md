@@ -1,7 +1,7 @@
 ---
 issue: ORV-128 (https://tpetkaew.atlassian.net/browse/ORV-128), layer 1 of the ORV-126 harness
 lane: L (a new engine contract every brand node reads, the evidence schema; server-side reads of outside web pages with legal exposure; new model calls and prompts; uploaded files)
-version: 1.11
+version: 1.12
 ---
 
 # ORV-128: input analysers, harness layer 1
@@ -151,11 +151,16 @@ As a founder or designer who brings whatever I have (my website, a page an AI to
 
 A URL the person submits, for their own brand or as a reference, is read **once, server-side, logged out, after robots.txt**, and what was fetched is kept **only as evidence items**.
 
-- **Address check (R13 of ORV-127).** `https` or `http` only; the host must resolve to a public address (no loopback, private, link-local, carrier-grade NAT, multicast or cloud metadata range, IPv4 or IPv6), checked again on every redirect and on the address actually connected to. At most 3 redirects. IPv6 refused outright: the unspecified address `::`, `::1`, `fc00::/7`, `fe80::/10`, `ff00::/8`, the local-use NAT64 prefix `64:ff9b:1::/48` and Teredo `2001::/32`. An IPv6 address that embeds an IPv4 address is judged by that IPv4 address: IPv4-compatible `::/96`, IPv4-mapped `::ffff:0:0/96`, NAT64 `64:ff9b::/96` and 6to4 `2002::/16`; so `64:ff9b::a00:5` (`10.0.0.5`) is refused and `64:ff9b::808:808` (`8.8.8.8`) is public. A literal with a zone id, or one that does not parse, is refused (tech notes §6, finding F15).
-- **robots.txt (R6, K-0056 at 0.8).** Fetch `/robots.txt` of the host first. Honour a disallow for the product token `OriviloReader` (matched case-insensitively) and for `*`. A 4xx means no rules; a 5xx or no answer means complete disallow. Within one analysis the file is read once; a cached copy is never used for more than 24 hours.
-- **Logged out (R9).** No cookies, no authorization header, no form, no login, no CAPTCHA, no rotating address.
+- **Address check (R13 of ORV-127).** `https` or `http` only, and only the default ports 80 and 443 are read: 80 for `http` and 443 for `https`, so a URL that names any other port, `http://example.com:443/` among them, is refused (SEC-133-7). A URL whose username or password is non-empty is refused, so no credential reaches a request or the result (R4). The host must resolve to a public address (no loopback, private, link-local, carrier-grade NAT, multicast or cloud metadata range, IPv4 or IPv6), checked on the address actually connected to. IPv4 also refused: the special-purpose ranges `240.0.0.0/4` (reserved), `198.18.0.0/15` (benchmarking) and `192.0.0.0/24` (IETF protocol assignments) (SEC-133-6). Every check in this bullet runs on every request: the submitted URL, each redirect hop, each robots.txt request and its redirects, and each stylesheet URL; a stylesheet that fails it refuses the whole read with `read.refused.address`. At most 3 redirects. IPv6 refused outright: the unspecified address `::`, `::1`, `fc00::/7`, `fe80::/10`, `ff00::/8`, the deprecated site-local `fec0::/10`, the local-use NAT64 prefix `64:ff9b:1::/48` and Teredo `2001::/32`. An IPv6 address that embeds an IPv4 address is judged by that IPv4 address: IPv4-compatible `::/96`, IPv4-mapped `::ffff:0:0/96`, IPv4-translated `::ffff:0:0:0/96`, NAT64 `64:ff9b::/96` and 6to4 `2002::/16`; so `64:ff9b::a00:5` and `::ffff:0:a00:5` (both `10.0.0.5`) are refused and `64:ff9b::808:808` (`8.8.8.8`) is public. A literal with a zone id, or one that does not parse, is refused (tech notes §6, finding F15).
+- **robots.txt (R6, K-0056 at 0.8; RFC 9309).** Fetch `/robots.txt` of the host first, under the Address check above. Within one analysis the file is read once; a cached copy is never used for more than 24 hours. How the file is read:
+  - **Rule `robots-token-1`** (R2). A `user-agent` line's value is matched on its product token: the leading run of letters, digits, underscore and hyphen, compared case-insensitively with `oriviloreader`. So `OriviloReader/1`, `OriviloReader` and `oriviloreader` match, and `Orivilo` and `OriviloReader-Bot` do not. The value `*` names the `*` group.
+  - **Rule `robots-group-1`** (R1). When any group names the product token (`robots-token-1`), the rules of every group naming it apply, combined, and the `*` group does not; the `*` group applies only when no group names the token (RFC 9309 section 2.2.1). With neither, nothing is disallowed. So an allow in the `*` group never reopens a path the OriviloReader group disallows.
+  - **Rule `robots-match-1`** (SEC-133-1). A pattern is matched against the path without a regular expression, in at most (path length times pattern length) steps, so with patterns bounded it runs in time linear in the path length. A pattern longer than 1,000 characters is ignored.
+  - **Answers.** A 2xx is parsed. A 3xx is followed, under the same bound of 3 redirects and the Address check on every hop, and the file it lands on is parsed (R3); past the bound the read fails with reason `redirects`, as a page's redirect chain does. A 4xx means no rules; a 5xx or no answer means complete disallow.
+- **Logged out (R9).** No cookies, no authorization header, no form, no login, no CAPTCHA, no rotating address. A URL carrying a username or password never reaches a request (Address check).
 - **Named reader (R7).** The user agent carries `OriviloReader/1` and a contact URL (open question on the URL).
 - **Bounded.** One page and its own stylesheets: at most 10 stylesheets, the document at most 2 MB and each stylesheet at most 1 MB (cut off past that, with the factor `page-incomplete`), 10 seconds per request, 30 seconds in all. No link is followed and no other page of the site is read. Images, fonts and scripts are not fetched; the colour measures cover what CSS paints, and each says so (open question on images).
+- **Depth bound** (SEC-133-3). The document is walked to a depth of 512 elements, counting `html` as 1. An element nested deeper gives no stylesheet link and no page text block, and the read carries `page-incomplete`. The read always returns its result (read, refused or failed), never an exception.
 - **Kept only as evidence (R11).** The HTML, CSS and rendered image live in memory for the run and are discarded. What is returned is the evidence list: measures, quotes of 300 characters at most that a reading rests on, and the content hash. In the POC nothing is persisted (ORV-126 state is in memory; E2-12 owns persistence).
 
 **Where it runs** ([ADR 0019](../../adr/0019-page-renderer-placement.md), proposed; its Status names slice 1d as the PR that accepts its POC part, see the open question on slice 1c's size).
@@ -184,6 +189,8 @@ The page text always comes from the document bytes, with a render or without one
 - **Skipped subtrees:** `head` (except the title and the meta description), `script`, `style`, `template`, `svg`, `iframe`, and any element with the `hidden` attribute or `aria-hidden="true"`. `noscript` is kept, because a JavaScript-off page shows it.
 - **Normalised text.** Runs of ASCII whitespace become one space, and the text is trimmed. Locator offsets index this text, and a quote must equal it at its locator (row 9).
 - **Body bound.** Body text stops at 5,000 characters, cut at the last whitespace before the limit. The title, the meta description and the headings do not count against it.
+- **Heading bound** (SEC-133-4). Heading text shares a bound of its own, 5,000 characters in all over every `h1` to `h6` block, cut at the last whitespace before the limit as body text is. Past it no further heading block is kept, and the page text carries `page-incomplete`. The title and the meta description count against neither bound.
+- **Depth.** An element below the depth bound ("Reading a page the person submits", Depth bound) gives no block.
 - **With a render**, a body or heading block is kept only when the render shows a non-empty box for its path, which drops text hidden by CSS or placed off the page; the title and the meta description are always kept. Kept items carry the render's `renderer`.
 - **Without a render**, every block is kept, every item has `renderer: null`, and `text-visibility` is listed as not measured, because text hidden by CSS may be included. Confidence is unchanged: the text is the page's own, and the label says what was not checked.
 
@@ -199,7 +206,7 @@ ADR 0008 rejected a confidence score per finding because no method backed one. H
 | base `measure` | 1.0 | A code measure with no reading and `fromModel` false |
 | base `rule-reading` | 0.7 | A reading by a rule over quotes or measures |
 | base `model-reading` | 0.7 | A reading or an observation by a model (every item with `fromModel` true) (0.6 in v1.1; raised in v1.2, see "Owner decisions") |
-| `page-incomplete` | times 0.7 | The document or a stylesheet was cut off or failed, or a stylesheet past the tenth was not fetched |
+| `page-incomplete` | times 0.7 | The document or a stylesheet was cut off or failed, a stylesheet past the tenth was not fetched, the document was walked only to the depth bound, or the heading text was cut at its bound |
 | `few-words` | times 0.7 | The text a reading rests on has fewer than 20 words by `word-count-1` |
 | `image-small` | times 0.5 | The image's short edge is under 512 px |
 | `image-blurred` | times 0.6 | Sharpness under the threshold set from fixtures at slice 5 |
@@ -306,9 +313,9 @@ In the POC the person sees the analysers' result through the engine API or the c
 | 2 | Items with, in turn: an extra key `html`, `css`, `screenshot`, `pageText` or `score`; `fromModel: true` with a `measure`; `fromModel: true` with `model: null`; `fromModel: false` with a `model`; a 301-character quote; confidence 1.2; a confidence value that is not the computed one (0.9 on base 0.7 with no factors); an unknown `observation.kind` or reading target; `hypothesis: true` with `hypothesisNote: null`; a `colour-area` item with `source.renderer: null`; a `colour-declared` item with a renderer build; a reading with rules `measure-to-lean-1` (a rule hypothesis, `hypothesis-flag-1`) and `hypothesis: false` | Parsing | Each fails with the path of the bad field (`html`, `measure`, `model`, `observation.quote`, `confidence.value`, `confidence.value`, `observation.kind`, `reading.target`, `hypothesisNote`, `source.renderer`, `source.renderer`, `hypothesis`) | None | `evidence.test.ts` › "bounds and forbidden fields" | 1a |
 | 3 | A measure with `page-incomplete`; a model reading with `few-words` and `single-signal`; a floor of 0.5 | `scoreConfidence(base, factors)`, returning `{ confidence, belowFloor }` | 0.7 with `belowFloor: false`; 0.392 with `belowFloor: true`; each lists its base and factors with their values, factors in id order | None | `evidence.test.ts` › "confidence is computed, never reported" | 1a |
 | 4 | The same recorded page bytes, snapshot and clock twice; then the stylesheets supplied in another order; then the same bytes and snapshot with a later clock | The URL analyser | Deep-equal results with equal ids for the first two; evidence sorted by kind, then locator; with the later clock, equal ids and only `retrievedAt` differs | None | `url-analyser.test.ts` › "same input, same evidence" | 1c |
-| 5 | URLs `ftp://a.b`, `javascript:x`, `http://127.0.0.1/`, `http://10.0.0.5/`, `http://169.254.169.254/`, `http://[::1]/`, `http://[::]/`, `http://[64:ff9b::a00:5]/`, a host the fake resolver maps to `192.168.1.2`, and a public page that redirects to a private address; then `http://[64:ff9b::808:808]/` serving a public page | `readPage(url)` | Each of the first ten refused with `read.refused.address` and no evidence; the fake network records no request to a non-public address; `http://[64:ff9b::808:808]/` is read (its IPv4, `8.8.8.8`, is public) | None | `read-page.test.ts` › "public addresses only" | 1b |
-| 6 | robots.txt that disallows the path for `*`; one that disallows it for `oriviloreader` in lower case; one answering 503; one answering 404 | `readPage` | First three: refused with `read.refused.robots`, no request for the page; the fourth: the page is read | None | `read-page.test.ts` › "robots.txt first" | 1b |
-| 7 | A recorded page with 12 linked stylesheets, a 3 MB document, links to other pages and a 4-step redirect chain | `readPage`, inspecting the fake network log | No request carries a cookie or authorization header; every request's user agent holds `OriviloReader/1` and the contact URL; at most 10 stylesheets fetched; the document cut at 2 MB with `page-incomplete`; no other page and no image, font or script fetched; the fourth redirect refused | None | `read-page.test.ts` › "one page, logged out, bounded" | 1b |
+| 5 | URLs `ftp://a.b`, `javascript:x`, `http://127.0.0.1/`, `http://10.0.0.5/`, `http://169.254.169.254/`, `http://[::1]/`, `http://[::]/`, `http://[64:ff9b::a00:5]/`, a host the fake resolver maps to `192.168.1.2`, a public page that redirects to a private address, `http://user:secret@example.test/`, `https://example.com:6379/`, `http://example.com:443/`, `http://240.0.0.1/`, `http://198.18.0.1/`, `http://192.0.0.170/`, `http://[fec0::1]/`, `http://[::ffff:0:a00:5]/`, a public page that redirects to `http://user:secret@example.test/`, one that redirects to `https://example.com:6379/`, a public page whose stylesheet link is `https://user:secret@example.test/a.css`, and one whose stylesheet link is `https://example.test:8080/a.css`; then `http://[64:ff9b::808:808]/` and `https://example.com:443/`, each serving a public page | `readPage(url)` | Each of the first twenty-two refused with `read.refused.address` and no evidence; the fake network records no request to a non-public address, no request URL holding a username or password, and no request on a port other than 80 or 443; `http://[64:ff9b::808:808]/` is read (its IPv4, `8.8.8.8`, is public) and `https://example.com:443/` is read | None | `read-page.test.ts` › "public addresses only" | 1b |
+| 6 | robots.txt that disallows the path for `*`; one that disallows it for `oriviloreader` in lower case; one answering 503; one answering 404; `User-agent: oriviloreader` `Disallow: /`, then `User-agent: *` `Allow: /public`, for the page `/public`; `User-agent: OriviloReader/1` `Disallow: /`; `User-agent: oriviloreader` `Allow: /`, then `User-agent: *` `Disallow: /`; `http://example.test/robots.txt` answering 301 to `https://example.test/robots.txt`, which answers 200 with `User-agent: *` `Allow: /`; a robots.txt answering 301 to `http://10.0.0.5/robots.txt`; `User-agent: *` with `Disallow: /` followed by `*a` 12 times and `b$`, for the page `/` followed by 38 `a` and a `b`, and then for the page `/` followed by 38 `a`; a `Disallow` pattern of 1,001 characters that matches the page path | `readPage` | Refused with `read.refused.robots` and no request for the page: the `*` disallow, the lower-case token, the 503, the token group over the `*` allow, `OriviloReader/1`, and the pattern ending in `b`. Refused with `read.refused.address` and no request to `10.0.0.5`: the robots.txt redirect to it. The page is read: the 404, the token group's allow over the `*` disallow, the robots.txt redirect to `https`, the path of 38 `a`, and the 1,001-character pattern. Each of the two hostile-pattern cases returns within 1 s | None | `read-page.test.ts` › "robots.txt first" | 1b |
+| 7 | A recorded page with 12 linked stylesheets, a 3 MB document, links to other pages and a 4-step redirect chain; then a document of `<body>` and 5,000 nested `div` elements, with a stylesheet link inside the 600th `div` | `readPage`, inspecting the fake network log | No request carries a cookie or authorization header; every request's user agent holds `OriviloReader/1` and the contact URL; no request URL and no result URL holds a username or password; at most 10 stylesheets fetched; the document cut at 2 MB with `page-incomplete`; no other page and no image, font or script fetched; the fourth redirect refused. The nested document: `readPage` resolves with status `read` and `page-incomplete`, never rejects, and the stylesheet below the depth bound is not fetched | None | `read-page.test.ts` › "one page, logged out, bounded" | 1b |
 | 8 | A recorded fixture page with known colours, text and fonts, and its recorded snapshot | The URL analyser | `colour-area` items whose `area-share` sums to 1 within 0.001 per scope, each with its ORV-20 hue band; a `contrast-ratio` for the body text pair; `text-density` and `element-density`; `font-family` for headings and body; every item `fromModel: false` with a `measure` and a `locator`; every rendered item names the snapshot's `renderer` | None | `url-analyser.test.ts` › "measures by code" | 1c |
 | 9 | The result of row 8 | Inspecting every field | No field holds the HTML, the CSS or an image; every quote is 300 characters or fewer and equals the `html-text-1` text of the document bytes at its locator; a snapshot path that is not in the document adds no text; `source.contentHash` is the SHA-256 of the bytes read; nothing is written to disk, Storage or the database | None (in memory) | `url-analyser.test.ts` › "kept only as evidence" | 1c |
 | 10 | A fixture page whose heading reads "premium and calm"; another with "ไม่หรูหรา"; a third with "not too premium" | The URL analyser | Readings `identity-frame.personality.premium` lean `high` (from 75), lean `low` (from 15) and lean `low` (from 40), `by: rule` with rules `lexicon-1` and `value-to-lean-1`, `fromModel: false`, each quoting the page text; the first two have `hypothesis: false`, the third `hypothesis: true` (`hypothesis-flag-1`) and a `hypothesisNote` naming the "not too" rule; no item holds the 0 to 100 value | None | `url-analyser.test.ts` › "rule-based personality from page text" | 1c |
@@ -337,7 +344,7 @@ In the POC the person sees the analysers' result through the engine API or the c
 | 33 | Candidates `86202` (0.9) and `56101` (0.6), from different TSIC sections and 0.3 apart | `readIndustry` | Code `86202`, level 5; `56101` listed as an alternative with its confidence; no `conflict` flag, no `industry.confirm` question | None | `industry.test.ts` › "outside the margin the top code wins" | 2 |
 | 34 | A recorded read with stylesheets and no snapshot; then a snapshot with an extra key; then a render past the 30 s budget on a fake clock | `analyseUrl(read, null, ctx)`, then with each snapshot case; the CLI on the first | `colour-declared` items, `font-family` items with `sheet:` locators, text spans and `lexicon-1` readings; no `colour-area`, `contrast-pair` or `density`; every item `source.renderer: null`; `notMeasured` lists colour areas, contrast, density and text visibility with reason `no-renderer`, then `snapshot-invalid`, then `render-budget`; nothing repaired, no error; the CLI prints one `read.notMeasured` line per entry with its reason string | None | `url-analyser.test.ts` › "no snapshot: declared colours and the page text", "a bad snapshot runs as option D"; `packages/page-reader` › "out of budget falls back to declared colours" | 1c, 1d |
 | 35 | The same bytes and two recorded snapshots that differ only in `renderer`; a local fixture rendered by Playwright 1.56.1 | The URL analyser on each; the local renderer | Every `colour-area` id differs between the two runs and every `colour-declared` id is equal; each rendered item's `source.renderer` equals its snapshot's; the local render names driver `playwright` `1.56.1` and a four-part Chromium version read from the running browser, and every text box path names an element of the tokenized document | None | `url-analyser.test.ts` › "the renderer build is part of the source"; `packages/page-reader` › "the renderer's paths match the tokenizer" | 1c, 1d |
-| 36 | A fixture document with a title, a meta description, an `h1`, a `p`, a `script`, a `style`, a `template`, an `svg`, an element with `hidden`, one with `aria-hidden="true"`, a `noscript` holding a `p` (`<noscript><p>Enable JavaScript</p></noscript>`), and body text over 5,000 characters; then the Thai text "อยากให้สนุก" | `pageTextOf(bytes)`, then the word count | Blocks for the title, the meta description, the `h1`, the `p` and the `p` inside the `noscript` ("Enable JavaScript") only, in document order, whitespace runs as one space; body text cut on whitespace within 5,000 characters; equal bytes give deep-equal blocks; "อยากให้สนุก" counts 3 words, where splitting on spaces gives 1 | None | `page-text.test.ts` › "html-text-1" | 1b |
+| 36 | A fixture document with a title, a meta description, an `h1`, a `p`, a `script`, a `style`, a `template`, an `svg`, an element with `hidden`, one with `aria-hidden="true"`, a `noscript` holding a `p` (`<noscript><p>Enable JavaScript</p></noscript>`), and body text over 5,000 characters; then the Thai text "อยากให้สนุก"; then a document of `<body>` and 40,000 `<h2>heading text here</h2>`; then a document of `<body>` and 5,000 nested `div` elements whose innermost holds `<p>deep</p>` | `pageTextOf(bytes)`, then the word count | Blocks for the title, the meta description, the `h1`, the `p` and the `p` inside the `noscript` ("Enable JavaScript") only, in document order, whitespace runs as one space; body text cut on whitespace within 5,000 characters; equal bytes give deep-equal blocks; "อยากให้สนุก" counts 3 words, where splitting on spaces gives 1. The heading page: 294 heading blocks of 4,998 characters in all, the cut reported as `page-incomplete`, returned within 2 s. The nested page: no block for "deep", the cut reported as `page-incomplete`, no exception | None | `page-text.test.ts` › "html-text-1" | 1b |
 | 37 | Local fixtures: a page with an outside image, font, script and iframe URL; a page whose inline script repaints the background; two renders in a row, the first setting a cookie | The local renderer | Zero requests leave the process and only the read URLs are answered; the snapshot keeps the CSS colour; the cookie is absent in the second render | None | `packages/page-reader` › "no request leaves the renderer", "scripts never run", "fresh context per analysis" | 1d |
 | 38 | The recorded fixture site `clinic-th` and a fake network that logs every request | The URL analyser with `role` `competitor` over the fake ports; then `pnpm analyse:url --fixture clinic-th --role competitor`, and with `--json` | Zero requests in the fake network log (no robots.txt, no page, no stylesheet); no evidence item rests on the page; the URL recorded as text; the `read.notRead.competitor` line in Thai and English; the JSON parses with `reportSchema` (tech notes §7, "The report schema"); exit 0 | None | `url-analyser.test.ts` › "a competitor URL is not read"; `analyse-url.test.ts` › "a competitor URL is not read" | 1c, 1d |
 
@@ -366,6 +373,7 @@ In the POC the person sees the analysers' result through the engine API or the c
 - The similarity threshold (case 3) and the tool-default tolerance (case 4).
 - The length bound on a `reference.asset` font `family` (section "Evidence first", the reading targets): ours, no source; the slice 1a build set it. A schema bound, not a rule hypothesis: `hypothesis-flag-1` does not read it.
 - The decoding bound in `html-text-1` (section "Page text"): ours, no source on how many submitted pages declare another charset; the slice fixtures may overturn it, and a change is a new version of the rule. A bound, not a rule hypothesis: `hypothesis-flag-1` does not read it.
+- The read's resource bounds added in v1.12: the depth bound of 512 elements ("Reading a page the person submits", Depth bound), the 1,000-character pattern bound of `robots-match-1` and the heading bound of `html-text-1` ("Page text"): ours, no source; set against the hostile inputs of security findings SEC-133-1, SEC-133-3 and SEC-133-4. Bounds, not rule hypotheses: `hypothesis-flag-1` does not read them.
 - The `image-small` and `image-blurred` thresholds (section "Confidence").
 - The five personality axes themselves (ORV-126 decision D6, no source).
 - `mood-1`, the closed list of mood words: ours.
@@ -373,7 +381,7 @@ In the POC the person sees the analysers' result through the engine API or the c
 
 ## Worked examples
 
-Each line runs as is with `node` and prints the output under it. The author of this spec had no shell; after v1.3 the main session ran all eight lines on Node 22.23.0 with ICU 78.2 (2026-10-27), and every output matched the one shown. The ninth line, `hypothesis-flag-1`, was added in v1.5; the main session ran it on Node 22.23.0 with ICU 78.2 (2026-10-27), and it printed the five lines shown (finding F17). The tenth line, the decoding sentence of `html-text-1`, was added in v1.11; the main session ran it on Node 22.23.0 (2026-10-27), and it printed the output shown. The slice that ships a rule runs its line and its test again on the Node line slice 1b pins (open question "The Node line"), and a different output is a finding against this spec.
+Each line runs as is with `node` and prints the output under it. The author of this spec had no shell; after v1.3 the main session ran all eight lines on Node 22.23.0 with ICU 78.2 (2026-10-27), and every output matched the one shown. The ninth line, `hypothesis-flag-1`, was added in v1.5; the main session ran it on Node 22.23.0 with ICU 78.2 (2026-10-27), and it printed the five lines shown (finding F17). The tenth line, the decoding sentence of `html-text-1`, was added in v1.11; the main session ran it on Node 22.23.0 (2026-10-27), and it printed the output shown. Lines eleven to fifteen (`robots-token-1`, `robots-group-1`, `robots-match-1`, the address ranges, and the port and userinfo checks) and the sixteenth (the heading bound of `html-text-1`) were added in v1.12 by an author with no shell: not run; each output shown is the one the spec expects, worked by hand. The slice 1b fix runs them and records the outputs; a different output is a finding against this spec. The robots.txt redirect and the depth bound have no line, because each needs the tokenizer or a fake network; rows 6, 7 and 36 test them. The slice that ships a rule runs its line and its test again on the Node line slice 1b pins (open question "The Node line"), and a different output is a finding against this spec.
 
 **`thousandths-1` and the floor** (section "Confidence"). Factor values copied from the "Confidence" table; factors sorted by id, the product rounded to 3 decimals, the floor compared as `value in thousandths < 500`.
 
@@ -497,6 +505,104 @@ node -e 'console.log(JSON.stringify(new TextDecoder().decode(new Uint8Array([0x3
 
 No rounding applies: the output is text.
 
+**`robots-token-1`** (section "Reading a page the person submits"). Values copied from review finding R2 (`OriviloReader/1`), row 6 (`oriviloreader`), security finding SEC-133-2 (`OriviloReader`) and the user agent `USER_AGENT` in `packages/intent-engine/src/read-page.ts` line 67 with `CONTACT_URL` from line 66; `Orivilo`, `OriviloReader-Bot` and `*` are the bounds. Columns: the value, its product token, whether it matches.
+
+```sh
+node -e 'const tok=v=>(v.trim().match(/^[A-Za-z0-9_-]+/)||[""])[0].toLowerCase();for(const v of ["OriviloReader/1","oriviloreader","OriviloReader","OriviloReader/1 (+https://github.com/Thawatchai-Petkaew/orivilo)","Orivilo","OriviloReader-Bot","*"])console.log(JSON.stringify(v),JSON.stringify(tok(v)),tok(v)==="oriviloreader")'
+```
+
+```text
+"OriviloReader/1" "oriviloreader" true
+"oriviloreader" "oriviloreader" true
+"OriviloReader" "oriviloreader" true
+"OriviloReader/1 (+https://github.com/Thawatchai-Petkaew/orivilo)" "oriviloreader" true
+"Orivilo" "orivilo" false
+"OriviloReader-Bot" "oriviloreader-bot" false
+"*" "" false
+```
+
+No rounding applies: the output is text and booleans.
+
+**`robots-group-1`** (section "Reading a page the person submits"). Files A and B copied from review finding R1 and security finding SEC-133-2, C from R2; D and E are the other two sides of the rule. Paths are matched as plain prefixes here, which these inputs need (`robots-match-1` has its own line); the longest match wins, an allow on a tie, and no match allows. Columns: the file, the path, whether the page may be read.
+
+```sh
+node -e 'const tok=v=>(v.match(/^[A-Za-z0-9_-]+/)||[""])[0].toLowerCase();const parse=t=>{const g=[];let cur=null,inRules=false;for(const raw of t.split("\n")){const l=raw.replace(/#.*/,"").trim();const i=l.indexOf(":");if(i<0)continue;const k=l.slice(0,i).trim().toLowerCase(),v=l.slice(i+1).trim();if(k==="user-agent"){if(!cur||inRules){cur={agents:[],rules:[]};g.push(cur);inRules=false}cur.agents.push(v)}else if((k==="allow"||k==="disallow")&&cur){inRules=true;cur.rules.push([k,v])}}return g};const pick=g=>{const own=g.filter(x=>x.agents.some(a=>tok(a)==="oriviloreader"));return own.length?own:g.filter(x=>x.agents.includes("*"))};const allows=(t,p)=>{let best=null;for(const x of pick(parse(t)))for(const[k,v]of x.rules)if(v&&p.startsWith(v)&&(!best||v.length>best[1].length||(v.length===best[1].length&&k==="allow")))best=[k,v];return !best||best[0]==="allow"};for(const[n,t,p]of[["A","User-agent: oriviloreader\nDisallow: /\n\nUser-agent: *\nAllow: /public","/public"],["B","User-agent: OriviloReader\nDisallow: /\n\nUser-agent: *\nAllow: /about\n","/about"],["C","User-agent: OriviloReader/1\nDisallow: /","/x"],["D","User-agent: *\nDisallow: /private","/public"],["D","User-agent: *\nDisallow: /private","/private/a"],["E","User-agent: oriviloreader\nAllow: /\n\nUser-agent: *\nDisallow: /","/x"]])console.log(n,p,allows(t,p))'
+```
+
+```text
+A /public false
+B /about false
+C /x false
+D /public true
+D /private/a false
+E /x true
+```
+
+No rounding applies: the output is booleans.
+
+**`robots-match-1`** (section "Reading a page the person submits"). The hostile pattern and path lengths are copied from security finding SEC-133-1 (`/` and `*a` 12 times and `b$`; a path of 38 `a`); the others are a plain prefix, an end anchor, and a pattern one character over the bound. `null` means the pattern is ignored. The last column says the hostile cases took under 100 ms in all, a wall-clock check, not a rule.
+
+```sh
+node -e 'const match=(pat,path)=>{if(pat.length>1000)return null;const end=pat.endsWith("$");const body=end?pat.slice(0,-1):pat;const parts=body.split("*");if(!path.startsWith(parts[0]))return false;let pos=parts[0].length;for(let i=1;i<parts.length;i++){const s=parts[i];if(end&&i===parts.length-1)return path.length-s.length>=pos&&path.endsWith(s);const j=path.indexOf(s,pos);if(j<0)return false;pos=j+s.length}return end?pos===path.length:true};const H="/"+"*a".repeat(12)+"b$";const t=Date.now();const r=[match("/private","/private/a"),match("/*.css$","/a/b.css"),match("/*.css$","/a/b.css?x"),match(H,"/"+"a".repeat(38)),match(H,"/"+"a".repeat(38)+"b"),match(H,"/"+"a".repeat(100000)),match("/"+"x".repeat(1000),"/"+"x".repeat(1000))];console.log(r.map(String).join(" "),Date.now()-t<100)'
+```
+
+```text
+true true false false true false null true
+```
+
+No rounding applies: the output is booleans and `null`.
+
+**The address ranges added in v1.12** (section "Reading a page the person submits", Address check). IPv4 and IPv6 inputs copied from security finding SEC-133-6 (`240.0.0.1`, `198.18.0.1`, `192.0.0.170`, `fec0::1`, `::ffff:0:a00:5`); `198.19.255.255` and `feff::1` are the top of their ranges, `198.20.0.1` and `fe80::1` sit just outside them, and `8.8.8.8` is public. For IPv4 the column is the new range it falls in; for IPv6 the columns are whether it is in `fec0::/10` and the IPv4 an IPv4-translated address embeds.
+
+```sh
+node -e 'const v4=s=>s.split(".").reduce((a,x)=>a*256+Number(x),0);const inR=(ip,c)=>{const[b,l]=c.split("/");const m=2**(32-Number(l));return Math.floor(v4(ip)/m)===Math.floor(v4(b)/m)};const R=["240.0.0.0/4","198.18.0.0/15","192.0.0.0/24"];for(const ip of ["240.0.0.1","198.18.0.1","198.19.255.255","198.20.0.1","192.0.0.170","8.8.8.8"])console.log(ip,R.find(c=>inR(ip,c))||"none");const ex=s=>{const[a,b]=s.split("::");const A=a?a.split(":"):[],B=b?b.split(":"):[];return[...A,...Array(8-A.length-B.length).fill("0"),...B].map(h=>parseInt(h,16))};for(const s of ["::ffff:0:a00:5","::ffff:0:808:808","fec0::1","feff::1","fe80::1"]){const h=ex(s);const fec=(h[0]&0xffc0)===0xfec0;const tr=h.slice(0,4).every(x=>x===0)&&h[4]===0xffff&&h[5]===0;console.log(s,fec?"fec0::/10":"-",tr?[h[6]>>8,h[6]&255,h[7]>>8,h[7]&255].join("."):"-")}'
+```
+
+```text
+240.0.0.1 240.0.0.0/4
+198.18.0.1 198.18.0.0/15
+198.19.255.255 198.18.0.0/15
+198.20.0.1 none
+192.0.0.170 192.0.0.0/24
+8.8.8.8 none
+::ffff:0:a00:5 - 10.0.0.5
+::ffff:0:808:808 - 8.8.8.8
+fec0::1 fec0::/10 -
+feff::1 fec0::/10 -
+fe80::1 - -
+```
+
+So `::ffff:0:a00:5` is refused as `10.0.0.5` and `::ffff:0:808:808` is judged public as `8.8.8.8`; `fe80::1` is refused by `fe80::/10`, not by this line. No rounding applies: the IPv4 arithmetic is on whole numbers below 2^32.
+
+**The port and userinfo checks** (section "Reading a page the person submits", Address check). URLs copied from review finding R4 and security findings SEC-133-5 and SEC-133-7; `https://example.com:443/` and `http://example.com:443/` show that the default port is the scheme's own. The WHATWG `URL` drops a port equal to the scheme's default, so an empty `port` is the default. Columns: the URL, whether it carries a username or password, its port, the verdict.
+
+```sh
+node -e 'for(const s of ["http://user:secret@example.test/","https://alice:s3cret@example.com:6379/","https://example.com:6379/","https://example.com:443/","http://example.com:443/","http://example.com/"]){const u=new URL(s);const ui=u.username!==""||u.password!=="";console.log(s,ui,u.port===""?"default":u.port,ui||u.port!==""?"refused":"read")}'
+```
+
+```text
+http://user:secret@example.test/ true default refused
+https://alice:s3cret@example.com:6379/ true 6379 refused
+https://example.com:6379/ false 6379 refused
+https://example.com:443/ false default read
+http://example.com:443/ false 443 refused
+http://example.com/ false default read
+```
+
+No rounding applies: the output is text and booleans.
+
+**The heading bound of `html-text-1`** (section "Page text"). The page is copied from security finding SEC-133-4: 40,000 headings of `heading text here` (17 characters). The cut is the one `page-text.ts` lines 123 to 133 make for body text, here with its own count. Columns: headings kept, characters kept, whether the bound was reached.
+
+```sh
+node -e 'const B=5000,t="heading text here";let used=0,full=false;const kept=[];for(let i=0;i<40000&&!full;i++){const room=B-used;if(t.length<=room){used+=t.length;kept.push(t);continue}full=true;const at=t.lastIndexOf(" ",room);const c=at<0?"":t.slice(0,at).trimEnd();if(c!==""){kept.push(c);used+=c.length}}console.log(kept.length,used,full)'
+```
+
+```text
+294 4998 true
+```
+
+294 headings of 17 characters are 4,998; the 295th has 2 characters of room and no whitespace within them, so it is dropped. No rounding applies: the outputs are whole counts.
+
 ## Out of scope
 
 - Any screen or upload UI (POC focus is function).
@@ -553,6 +659,27 @@ The owner decided D1 to D7 at G1 (ORV-128 comment 10209, on the packet in commen
 | S1 | "Delivery" points to tech notes §12 without copying its total | "Delivery" |
 | S5 | The closed list of rule ids a reading may name | `RULE_IDS` in "Evidence first" |
 | S8 | `packages/page-reader` is its own PR, slice 1d, right after 1c; ADR 0019's POC part is accepted when 1d merges | "Delivery", rows 1c and 1d; rows 34, 35, 37 and 38; open question on slice 1c's size; "Gap list" |
+
+**Slice 1b review round 0** (PR 130 at e21b10a; reviewer task `ORV-133-review-code-2`, R1 to R8; security task `ORV-133-security-2`, SEC-133-1 to SEC-133-7). The orchestrator decided each under the owner's delegation (ADR 0012 decision 4), recorded per L-0013 as a contract change, no contract change, or the id it repeats; applied in v1.12, each open for the owner.
+
+<!-- prettier-ignore -->
+| # | Recorded as | Where |
+| --- | --- | --- |
+| R1 | Contract change: only the groups naming the product token apply; `*` only when none does | Rule `robots-group-1`; row 6 |
+| R2 | Contract change: a `user-agent` value is matched on its product token | Rule `robots-token-1`; row 6 |
+| R3 | Contract change: a robots.txt redirect is followed under the redirect bound and the Address check, and the file it lands on is parsed | robots.txt, Answers; row 6 |
+| R4 | Contract change: a URL with a username or password is refused on every request | Address check; Logged out; rows 5 and 7 |
+| R5 | No contract change: a test per clause of `html-text-1` and `word-count-1` and a report for them | The slice 1b fix (tech notes §14) |
+| R6 | No contract change: a code comment | `page-text.ts` |
+| R7 | Repeats SEC-133-6 | As SEC-133-6 |
+| R8 | No contract change: a break-it line | Tech notes §14 row 5 |
+| SEC-133-1 | Contract change: robots.txt patterns match in linear time without a regular expression; a pattern over 1,000 characters is ignored | Rule `robots-match-1`; row 6; "Hypotheses" |
+| SEC-133-2 | Repeats R1 | As R1 |
+| SEC-133-3 | Contract change: the depth bound, and the read always returns its result | Depth bound; `html-text-1`, Depth; `page-incomplete` in "Confidence"; rows 7 and 36; "Hypotheses" |
+| SEC-133-4 | Contract change: heading text has a bound of its own | `html-text-1`, Heading bound; `page-incomplete` in "Confidence"; row 36; "Hypotheses" |
+| SEC-133-5 | Repeats R4 | As R4 |
+| SEC-133-6 | Contract change: four more ranges refused and IPv4-translated addresses judged by their IPv4 | Address check; row 5 |
+| SEC-133-7 | Contract change: only the default ports 80 and 443, each for its own scheme | Address check; row 5 |
 
 ADR 0019 (proposed) decides where the reader and the renderer run, the must-ask the Gap list left for G2 ("Reading a page the person submits", "Where it runs").
 
@@ -626,3 +753,4 @@ ADR 0019 (proposed) decides where the reader and the renderer run, the must-ask 
 - v1.9 (2026-10-27): three deviations of the slice 1a build (task `ORV-132-build-evidence-1`), accepted by the orchestrator under ADR 0012 decision 4 and open for the owner. Rows 3 and 32: the When cell says `scoreConfidence(base, factors)`, returning `{ confidence, belowFloor }`, as tech notes §4 designs it and the build ships it, in place of a call that took the whole item; Given, outcomes and test names unchanged. "Evidence first", the reading targets: a `reference.asset` font `family` is 1 to 100 characters after trimming, a bound the build set where the spec gave none; "Hypotheses" lists it as a schema bound, not a member of `hypothesis-flag-1`. The field table's `reading` row says the schema checks the shape of `value` per `target`, pointing to the tech notes §2 table. No row number, test name, rule home, slice or owner decision changes. Review: the tech notes (§2, the `reference.asset` row of the value-shape table gains the bound; §4 already matches; clause 9 and §14 row 3 read the result as `.value`, where the build returns `{ confidence, belowFloor }`); `evidence.test.ts` (test names unchanged); the slice 7 builder (the font bound on another brand's CI); ORV-132 spec v1.1.
 - v1.10 (2026-10-27): the slice 1b open question on the bytes' character encoding (ORV-133 spec v1, task `ORV-133-product-spec-1`), its default accepted by the orchestrator under ADR 0012 decision 4 and open for the owner. Rule `html-text-1` in "Page text" gains one sentence on how the document bytes are decoded before tokenizing; "Hypotheses" lists that decoding bound, not a member of `hypothesis-flag-1`. No row, number, rule home, slice or owner decision changes. Review: the tech notes (§8 "Page text", the `pageTextOf(documentBytes)` bullet, against the decoding sentence; §1's `page-text.ts` row); the slice 1b builder (`page-text.ts`, row 36's fixture bytes); the slice 1c builder (row 9's quote check reads the same decoded text); ORV-133 spec v1.1; K-0082 ("Byte decoding" names the step this rule now fixes).
 - v1.11 (2026-10-27): "Worked examples" gains a tenth line for the decoding sentence of `html-text-1` (L-0038, proposed by task `ORV-133-product-parent-1`), run by the main session on Node 22.23.0; the section's opening paragraph says so. No row, number, rule home, slice or owner decision changes. Review: the slice 1b builder (`page-text.test.ts` may reuse the bytes); ORV-133 spec v1.2, which copies the line.
+- v1.12 (2026-10-27): slice 1b review round 0 on PR 130 at e21b10a (R1 to R8, SEC-133-1 to SEC-133-7), decided by the orchestrator under ADR 0012 decision 4 and open for the owner ("Owner decisions" records each as a contract change, no contract change or a repeat, L-0013). In "Reading a page the person submits": the Address check reads only the default ports 80 and 443, each for its own scheme (SEC-133-7), refuses a URL with a username or password (R4, SEC-133-5), refuses `240.0.0.0/4`, `198.18.0.0/15`, `192.0.0.0/24` and `fec0::/10` and judges `::ffff:0:0:0/96` by its IPv4 (SEC-133-6, R7), and runs on every request, robots.txt and stylesheets included; robots.txt gains rules `robots-token-1` (R2), `robots-group-1` (R1, SEC-133-2) and `robots-match-1` (SEC-133-1), and a robots.txt redirect is followed (R3); Logged out points to the Address check; new bullet Depth bound, 512 elements, and the read always returns its result (SEC-133-3). In "Page text", `html-text-1` gains a Heading bound of 5,000 characters in all (SEC-133-4) and a Depth line. The "When" of `page-incomplete` in "Confidence" names the depth and heading cuts; no factor value changes. "Hypotheses" lists the three new bounds. Rows 5, 6, 7 and 36 gain the new cases, numbers and test names kept. "Worked examples" gains six lines, not run (no shell). No string, factor value, slice or owner decision changes. Review: tech notes §6 (`checkAddress` lists, the port and userinfo check, `parseRobots` and `robotsAllows` against the three robots rules, the robots.txt redirect, the depth bound and `ReadResult`) and §8 ("Page text": the heading bound, the depth, how `pageTextOf` reports `page-incomplete`), §14 rows 5, 6, 7 and 36 and the row 5 break-it (R8); `read-page.ts` and `read-page.test.ts`; `page-text.ts` and `page-text.test.ts`; ORV-133 spec v1.4, which copies rows 5, 6, 7 and 36; `security` for the re-review of 1b; ORV-127 spec R6, which still says "for the reader's product token and for `*`".
