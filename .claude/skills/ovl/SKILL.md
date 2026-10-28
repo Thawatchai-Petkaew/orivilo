@@ -156,7 +156,7 @@ Do not set `model`, `isolation` or `run_in_background` on the call. `cwd`, if gi
 }
 ```
 
-- **QA envelope** (G3 acceptance). `role` `qa`, `subagent_type` `qa`, `write_set` `[]`, `skills` `["quality-gate", "webapp-testing"]`, `context_pointers` the spec, and one fact with the PR number, `checked_by` `gh pr view <n>`. The qa runs the full gate in its checkout and writes its screenshots into the main checkout's `.orivilo/runs/<ISSUE>/<task_id>/screenshots/`.
+- **QA envelope** (G3 acceptance). `role` `qa`, `subagent_type` `qa`, `write_set` `[]`, `skills` `["quality-gate", "webapp-testing"]`, `context_pointers` the spec, and one fact with the PR number, `checked_by` `gh pr view <n>`. The qa runs the full gate in its checkout and writes its screenshots into the main checkout's `.orivilo/runs/<ISSUE>/<task_id>/screenshots/`. Every issue a qa envelope walks needs `docs/specs/<issue>/spec.md` with an acceptance table (a table whose header row starts with `#`), lane S and slice issues included (L-0016): `result-recorder` reads that spec and refuses a qa report with the one problem `no acceptance table in docs/specs/<issue>/spec.md` when the file is missing, unreadable or holds no such table, and the envelope closes as `no_report`.
 - **Re-check envelope** (reviewer, round 1 or more). `context_pointers` name the absolute paths of the
   previous review's `result.json` and the rework task's `result.json`, both under the main checkout's
   `.orivilo/runs/<ISSUE>/<task_id>/` (found through `git rev-parse --git-common-dir`; a relative

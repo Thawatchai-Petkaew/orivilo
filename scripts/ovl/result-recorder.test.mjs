@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { storyTitle } from "./result-recorder.mjs";
 import { validate } from "./validate.mjs";
@@ -1321,4 +1321,64 @@ test("ORV-93: a reviewer in a worktree keeps a finding whose screenshot lives in
     ["S1"],
   );
   assert.deepEqual(result.dropped, []);
+});
+
+// ---- ORV-138: qa-spec-1, a qa report on an issue with no usable spec ---------------------------
+
+const NO_TABLE = "no acceptance table in docs/specs/ORV-1/spec.md";
+/** The whole stderr of a refusal: the header and the one problem, nothing else. */
+const ONLY_NO_TABLE = `result-recorder blocked:\n- ${NO_TABLE}`;
+const specFile = (root) => join(root, "docs", "specs", "ORV-1", "spec.md");
+
+/** The ways the spec can be unusable: a missing file, a folder where the file should be, prose with no `#` table. */
+const brokenSpecs = {
+  missing: (root) => rmSync(specFile(root)),
+  unreadable: (root) => {
+    rmSync(specFile(root));
+    mkdirSync(specFile(root));
+  },
+  "no acceptance table": (root) =>
+    writeFileSync(specFile(root), "# ORV-1\n\n| Name | Value |\n| --- | --- |\n| a | b |\n"),
+};
+
+test("ORV-138 row 3: a qa report on an issue whose spec file is missing or unreadable is sent back with the one problem, never a throw", () => {
+  for (const kind of ["missing", "unreadable"]) {
+    const { root, agent, report } = qaSetup();
+    brokenSpecs[kind](root);
+    const r = stopWith(root, agent, "qa", report);
+    assert.equal(r.code, 2, `${kind}: ${r.stderr}`);
+    assert.equal(r.stderr.trim(), ONLY_NO_TABLE, kind);
+    const last = heartbeatLines(root).at(-1);
+    assert.equal(last.event, "SubagentStop", kind);
+    assert.equal(last.decision, "block", kind);
+    assert.equal(has(root, "result.json", "ORV-1-qa"), false, kind);
+  }
+});
+
+test("ORV-138 row 4: a qa report on a spec with no acceptance table is sent back with the one problem", () => {
+  const { root, agent, report } = qaSetup();
+  brokenSpecs["no acceptance table"](root);
+  const r = stopWith(root, agent, "qa", report);
+  assert.equal(r.code, 2, r.stderr);
+  assert.equal(r.stderr.trim(), ONLY_NO_TABLE);
+  assert.equal(heartbeatLines(root).at(-1).decision, "block");
+  // A table whose header starts with `#` but holds no numbered row is no acceptance table either.
+  const empty = qaSetup();
+  writeFileSync(specFile(empty.root), "| # | Criterion |\n| --- | --- |\n| x | y |\n");
+  const e = stopWith(empty.root, empty.agent, "qa", empty.report);
+  assert.equal(e.code, 2, e.stderr);
+  assert.equal(e.stderr.trim(), ONLY_NO_TABLE);
+});
+
+test("ORV-138 row 5: PostToolUse on the Agent call of a qa report with no usable spec closes the envelope as no_report", () => {
+  for (const kind of Object.keys(brokenSpecs)) {
+    const { root, agent, report } = qaSetup();
+    brokenSpecs[kind](root);
+    const r = run(postAgentInput(root, agent, "qa", JSON.stringify(report)));
+    assert.equal(r.code, 2, `${kind}: ${r.stderr}`);
+    assert.ok(r.stderr.includes(NO_TABLE), kind);
+    assert.match(r.stderr, /ORV-1-qa closed as no_report/, kind);
+    assert.equal(read(root, "closed.json", "ORV-1-qa").reason, "no_report", kind);
+    assert.equal(has(root, "result.json", "ORV-1-qa"), false, kind);
+  }
 });

@@ -101,9 +101,17 @@ function findingProblems(root, store, env, report) {
   return { problems, report: { ...rest, findings: kept }, dropped: [...earlier, ...moved] };
 }
 
-/** The rows of the first table in `docs/specs/<issue>/spec.md` whose header starts with `#`, as {row, result}. */
+/**
+ * The rows of the first table in `docs/specs/<issue>/spec.md` whose header starts with `#`, as
+ * {row, result}. An empty list when the file is missing, cannot be read or holds no such table (qa-spec-1).
+ */
 function specRows(root, issue) {
-  const lines = readFileSync(join(root, "docs", "specs", issue, "spec.md"), "utf8").split("\n");
+  let lines;
+  try {
+    lines = readFileSync(join(root, "docs", "specs", issue, "spec.md"), "utf8").split("\n");
+  } catch {
+    return [];
+  }
   const start = lines.findIndex((l) => /^\|\s*#\s*\|/.test(l));
   const rows = [];
   for (const line of start < 0 ? [] : lines.slice(start + 2)) {
@@ -114,8 +122,6 @@ function specRows(root, issue) {
       .map((c) => c.trim());
     if (/^\d+$/.test(cells[0])) rows.push({ row: Number(cells[0]), result: cells[3] ?? "" });
   }
-  if (rows.length === 0)
-    throw new Error(`docs/specs/${issue}/spec.md has no acceptance criteria table`);
   return rows;
 }
 
@@ -241,6 +247,7 @@ function acEvidenceProblem(store, env, e) {
 function qaProblems(root, store, env, report) {
   const out = [];
   const specRowList = specRows(root, env.issue);
+  if (specRowList.length === 0) return [`no acceptance table in docs/specs/${env.issue}/spec.md`];
   const seen = new Set();
   for (const ac of report.ac) {
     if (seen.has(ac.row)) out.push(`ac row ${ac.row} appears more than once`);
