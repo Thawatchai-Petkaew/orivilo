@@ -14,8 +14,10 @@ import {
 import {
   EVIDENCE_SCHEMA_VERSION,
   HYPOTHESIS_RULES,
+  PATH_MAX_CHARS,
   READING_TARGETS,
   RULE_IDS,
+  URL_MAX_CHARS,
   compareEvidence,
   evidenceId,
   inputEvidenceSchema,
@@ -28,6 +30,8 @@ import stringsSource from "./evidence-strings.ts?raw";
 import leansSource from "./leans.ts?raw";
 import { PERSONALITY_AXES } from "./knowledge";
 import snapshotSource from "./render-snapshot.ts?raw";
+import readPageSource from "./read-page.ts?raw";
+import pageTextSource from "./page-text.ts?raw";
 import { rendererBuildSchema } from "./render-snapshot";
 
 // ---------------------------------------------------------------- fixtures
@@ -48,7 +52,12 @@ const src = (over: Item = {}): Item => ({
   renderer: BUILD,
   ...over,
 });
-const textLocator = { kind: "text", path: "html>body>main>h1:nth-of-type(1)", start: 0, end: 7 };
+const textLocator = {
+  kind: "text",
+  path: "html>body>main:nth-of-type(1)>h1:nth-of-type(1)",
+  start: 0,
+  end: 7,
+};
 const MODEL = {
   job: "interpret",
   modelId: "pinned/model-1",
@@ -652,6 +661,45 @@ describe("the margin is in thousandths and inclusive", () => {
   });
 });
 
+// ---------------------------------------------------------------- the bounds the safe read shares (tech notes sections 6 and 8)
+
+describe("the URL and path bounds the safe read shares", () => {
+  it("are 2,048 and 500", () => {
+    expect(URL_MAX_CHARS).toBe(2048);
+    expect(PATH_MAX_CHARS).toBe(500);
+  });
+
+  it("source.ref takes URL_MAX_CHARS characters and refuses one more, at source.ref", () => {
+    const ref = (n: number) => `https://clinic.example/${"a".repeat(n - 23)}`;
+    expect(ref(URL_MAX_CHARS)).toHaveLength(URL_MAX_CHARS);
+    expect(failures(item({ source: src({ ref: ref(URL_MAX_CHARS) }) }))).toBeNull();
+    expect(failures(item({ source: src({ ref: ref(URL_MAX_CHARS + 1) }) }))).toEqual([
+      "source.ref",
+    ]);
+  });
+
+  it("a text locator path takes PATH_MAX_CHARS characters and refuses one more, at source.locator.path", () => {
+    const text = (n: number) =>
+      ruleItem({
+        source: src({
+          locator: { ...textLocator, path: `html>body>${"p".repeat(n - 10)}` },
+          renderer: null,
+        }),
+      });
+    expect(failures(text(PATH_MAX_CHARS))).toBeNull();
+    expect(failures(text(PATH_MAX_CHARS + 1))).toEqual(["source.locator.path"]);
+  });
+
+  it("an element locator path takes PATH_MAX_CHARS characters and refuses one more, at source.locator.path", () => {
+    const element = (n: number) =>
+      item({
+        source: src({ locator: { kind: "element", path: `html>body>${"p".repeat(n - 10)}` } }),
+      });
+    expect(failures(element(PATH_MAX_CHARS))).toBeNull();
+    expect(failures(element(PATH_MAX_CHARS + 1))).toEqual(["source.locator.path"]);
+  });
+});
+
 // ---------------------------------------------------------------- row 30
 
 /** Drops comments and keeps strings, so a word in a comment never fires the scan. */
@@ -691,6 +739,8 @@ const SCANNED: Record<string, string> = {
   "evidence-strings": stringsSource,
   leans: leansSource,
   "render-snapshot": snapshotSource,
+  "read-page": readPageSource,
+  "page-text": pageTextSource,
 };
 
 describe("measures never call a model", () => {

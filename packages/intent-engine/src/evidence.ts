@@ -118,18 +118,23 @@ const QUALITY_PAIRS = [
 
 const hexId = z.string().regex(/^[0-9a-f]{8}$/);
 
+/** The bound of `source.ref`, and of the whole URL the safe read accepts (tech notes section 6), so the two cannot drift apart. */
+export const URL_MAX_CHARS = 2048;
+/** The bound of a locator `path`, and of the element path a text block may have (tech notes section 8). */
+export const PATH_MAX_CHARS = 500;
+
 /** Where in the input. A discriminated union, so every locator sorts the same way (section 5). */
 const locatorSchema = z.discriminatedUnion("kind", [
   z
     .object({
       kind: z.literal("text"),
-      path: z.string().min(1).max(500),
+      path: z.string().min(1).max(PATH_MAX_CHARS),
       start: z.int().min(0),
       end: z.int().min(1),
     })
     .strict()
     .refine((l) => l.end > l.start, { message: "end after start", path: ["end"] }),
-  z.object({ kind: z.literal("element"), path: z.string().min(1).max(500) }).strict(),
+  z.object({ kind: z.literal("element"), path: z.string().min(1).max(PATH_MAX_CHARS) }).strict(),
   z
     .object({
       kind: z.literal("box"),
@@ -251,7 +256,7 @@ const itemShape = z
     role: z.enum(INPUT_ROLES),
     source: z
       .object({
-        ref: z.string().min(1).max(2048),
+        ref: z.string().min(1).max(URL_MAX_CHARS),
         locator: locatorSchema,
         contentHash: z.string().regex(/^[0-9a-f]{64}$/),
         retrievedAt: z.iso.datetime(),

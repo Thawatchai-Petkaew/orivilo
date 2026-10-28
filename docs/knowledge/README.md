@@ -176,3 +176,5 @@ Keep this table in step with the folder when you add an entry.
 | [[K-0079-touchpoints-seen-tsic-sections-m-to-s]]                                  | 0.75       | Touchpoints named per TSIC section M to S; S thin, N and R mixed      |
 | [[K-0080-proposed-touchpoint-sets-by-tsic-section]]                               | 0.6        | Lead: up to four touchpoints and one screen for each of 18 sections   |
 | [[K-0081-headless-chromium-in-a-vercel-function]]                                 | 0.8        | Headless Chromium on Vercel: 250 MB, Hobby 300 s and 2 GB; unmeasured |
+| [[K-0082-parse5-as-a-pure-html-tokenizer]]                                        | 0.8        | parse5 8.0.1 MIT, one dep; hooks; attribute, re-open, sibling costs   |
+| [[K-0083-whatwg-html-void-optional-end-tag-and-raw-text-elements]]                | 0.8        | WHATWG 13 void, 19 optional end tags; record of the v1.14 pre-pass    |
