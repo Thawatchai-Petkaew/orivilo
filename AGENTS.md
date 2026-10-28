@@ -40,7 +40,7 @@ Turborepo + pnpm, Next.js App Router, TypeScript strict, Tailwind CSS v4 + shadc
 
 Each Jira status means where the work is (ADR 0012): G3 PR review = merged into `develop`, Staging = on `main`, Done = the owner signed G5 (on staging until ORV-63). Gate packets use the `gate-packet` skill. Request changes → rework → re-raise the same gate.
 
-During the POC the main session follows the `ovl` skill, section "POC mode" (ORV-137): lean rules until the owner says the POC is over.
+During the POC the main session follows the `ovl` skill, section "POC mode" (ORV-137): lean rules until the owner says the POC is over. In POC mode the G3 evidence "two reviewer passes" (rule 5) reads as the reviewer approve on the merged head (with, for a code PR, the qa approve on it, ADR 0013), plus a re-check for Critical or Important findings, and the G3 packet reports the passes that actually ran.
 
 ## Design-system rules (from the handoff §23)
 

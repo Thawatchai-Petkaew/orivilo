@@ -54,9 +54,15 @@ Rules:
   architect, product and bookkeeping chain.
 - A contract-changing finding: one spec fix, then the builder.
 - Cross-reference and status bookkeeping: once before merge, or dropped.
-- One reviewer pass, plus `security` for untrusted input, auth or model calls; a re-check only for
-  Critical or Important findings. `merge-check` still needs the reviewer approve, the qa approve and
-  the gate record on the merged head (section 6).
+- One reviewer pass, plus `security` whenever step 6 calls for it (untrusted input, auth or data
+  access, a path in `.claude/rules/security.md`, a model call or prompt, a new runtime dependency); a
+  re-check only for Critical or Important findings. `merge-check` still needs a reviewer approve on
+  the merged head, and for a code PR the qa approve and the gate record on it (section 6); a fix
+  pushed after the approve needs a reviewer pass on the new head.
+- G3 evidence: in POC mode, "two reviewer passes" in `AGENTS.md` rule 5, ADR 0012 decision 2, the
+  `gate-packet` G3 row and section 2 ("Builder envelope: one deliverable") reads as the reviewer
+  approve on the merged head (with, for a code PR, the qa approve on it, ADR 0013), plus a re-check
+  for Critical or Important findings. The G3 packet reports the passes that actually ran.
 - Kept: tests, security on untrusted input, no secrets, honesty labels, the quality gate, CI,
   merge-check.
 - Aim: a demo the owner runs, a URL in and a brand evidence report out.
@@ -65,11 +71,8 @@ Main-session duties POC mode suspends:
 
 - L-0037 and L-0008 (step 4): the `reviewer` on the spec before the G1 packet, and the G3 re-check
   from the reviewed sha.
-- L-0025 (step 5): a builder deviation that names a spec row goes to `product` before the review. It
-  goes to one spec fix only when it changes a contract; otherwise the PR body notes it.
 - L-0013 (section 2, "Contract change from a review"): the revision's record of every finding id. The
   order of L-0011 is kept.
-- L-0029 ("Fix for a rule finding"): one `verified` row per governed line.
 - L-0033 ("Fixes across documents that cite each other"): research, architect and product fixes in
   turn.
 - L-0039 ("A finding that two sections disagree"): the pointer fix envelope.
@@ -80,8 +83,14 @@ Main-session duties POC mode suspends:
 
 Main-session duties POC mode keeps:
 
-- Tests, `security` on untrusted input, auth or model calls (step 6), no secrets, honesty labels,
-  the quality gate, CI and `merge-check`.
+- Tests, `security` whenever step 6 calls for it (untrusted input, auth or data access, a path in
+  `.claude/rules/security.md`, a model call or prompt, a new runtime dependency), no secrets, honesty
+  labels, the quality gate, CI and `merge-check`.
+- L-0025 (step 5): a builder deviation that names a spec row, an AC or a spec statement as wrong, or
+  as not met by design, goes to `product` in a revision before the review envelope, and the review
+  envelope carries the new spec version as a fact.
+- L-0029 ("Fix for a rule finding"): the fix envelope lists every line the rule governs, and the fix
+  adds one `verified` row per governed line.
 - L-0045 ("A risk-class finding"): survey every route of the class before one design and one builder
   round.
 - L-0046 (`.claude/rules/testing.md`): time guards sized for CI.
