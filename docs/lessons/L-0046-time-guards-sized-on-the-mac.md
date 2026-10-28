@@ -21,7 +21,7 @@ Records are under `.orivilo/runs/ORV-133/`; per-task tokens from `.orivilo/metri
 - Sum 6,942,380 tokens over 8 tasks, median 724,125. Four of the five owner grants named a time limit as the reason for the round (`owner-grant-1.json`, `-3.json`, `-4.json`, `-5.json`).
 - `HEAVY_TIMEOUT = 60_000` (`page-text.test.ts:13`, `read-page.test.ts:14`) came from `build-rework-5`. The `build-rework-6` objective said "give every new heavy test the HEAVY_TIMEOUT the round 5 tests use", and R4-1 still listed seven heavy tests without it (`page-text.test.ts` lines 1088, 1097, 1103, 1112, 1127; `read-page.test.ts` lines 999, 1009). An instruction with no command to check it did not hold.
 - The ratio seen on R4-1 is about 8 (5,585 ms on CI against 701 ms locally).
-- `review-code-7` checked the class with `cd packages/intent-engine && npx vitest run --testTimeout=400`: all 705 tests passed; at `--testTimeout=150` only `read-page.test.ts:741` failed, the robots.txt test that holds its own 2 s bound. One run, under a second, found every member of the class a CI failure had found one at a time.
+- `review-code-7` ran `cd packages/intent-engine && npx vitest run --testTimeout=400` on the fixed head `9222b28`: all 705 tests passed, in about 13 s; at `--testTimeout=150` only `read-page.test.ts:741` failed, the robots.txt test that holds its own 2 s bound. Run on `769f09e`, the head R4-1 was raised on, the same probe fails 1 of the 7 tests R4-1 listed ("reads the fostered text as html-text-1 does", timed out in 400 ms) and the other six pass it (`ORV-133-review-retro-1`, finding I2). The probe catches only a test that runs over 400 ms locally; it does not list a heavy test without the heavy timeout.
 
 Related: [[L-0009-full-suite-loops-to-verify-a-flaky-fix]] (verify with affected tests; this probe is one run of one package, not a loop), [[L-0042-break-its-sampled-the-clauses]] (a widened time guard must still go red on its mutant).
 
@@ -40,7 +40,10 @@ In `.claude/rules/testing.md`, after the bullet "The full suite always runs wher
 +  the mutant it guards (L-0042). Before handoff the builder runs
 +  `pnpm --filter <package> exec vitest run --testTimeout=400`, gives every test that fails it the
 +  heavy timeout or a lighter input, and adds one `verified` row with the command and its count. The
-+  reviewer runs the same command on a re-check of heavy tests (L-0046). No hook checks this.
++  reviewer runs the same command on a re-check of heavy tests. That run catches only a test over
++  400 ms locally (on `769f09e` it caught 1 of the 7 heavy tests R4-1 listed), so no command checks
++  the `HEAVY_TIMEOUT` sentence: the reviewer reads every test that builds a heavy document and raises
++  one without the heavy timeout as a finding (L-0046). No hook checks this.
 ```
 
 What proves it was done: no gate or CI failure on a time limit in the next slice that adds heavy tests; each builder report on a package with heavy tests has the `--testTimeout=400` row.

@@ -23,7 +23,10 @@ paths:
   the mutant it guards (L-0042). Before handoff the builder runs
   `pnpm --filter <package> exec vitest run --testTimeout=400`, gives every test that fails it the
   heavy timeout or a lighter input, and adds one `verified` row with the command and its count. The
-  reviewer runs the same command on a re-check of heavy tests (L-0046). No hook checks this.
+  reviewer runs the same command on a re-check of heavy tests. That run catches only a test over
+  400 ms locally (on `769f09e` it caught 1 of the 7 heavy tests R4-1 listed), so no command checks
+  the `HEAVY_TIMEOUT` sentence: the reviewer reads every test that builds a heavy document and raises
+  one without the heavy timeout as a finding (L-0046). No hook checks this.
 - A play for a visual criterion (an edge, a row of equal chips, text inside a rounded box) asserts the rendered result through the shared helpers in `packages/design-system/src/testing/visual-asserts.ts` (`expectEdgeInk`, `expectSameHeight`, `expectNoGlyphClip`), with a Thai sample that stacks marks. A play that sets one CSS property and asserts that property is not the visual check (L-0018).
 - A test that guards source text (an import ban, a forbidden token, a copy check) lists the syntax forms it blocks in a comment or in its test name. For an import ban those are a single-line import, a multi-line import, a side-effect import, a dynamic `import()` and an `export ... from`. Before handoff the builder runs the guard on one failing sample of each form, as a fixture inside the test or a scratch run, and adds one `verified` row per form with the red line. The reviewer checks that each form has a row and raises any missing form as a finding. One red run is not enough for a text guard (L-0024, narrows L-0002). No hook checks this.
 - A schema or guard module is proven clause by clause: one mutation per numbered check, per half of a

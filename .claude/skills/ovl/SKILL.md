@@ -153,15 +153,17 @@ Do not set `model`, `isolation` or `run_in_background` on the call. `cwd`, if gi
   that a bypass of a class already named in Honest limits is not a new finding (L-0012).
 - **A risk-class finding.** When a `security` or reviewer finding of Critical or Important severity
   is one route of a risk class (resource exhaustion: a cost that grows faster than the input or with
-  an uncapped count; injection; auth bypass; path or address escape), the next envelope is `research`,
-  before any spec, design or builder envelope. Its objective asks for every route of the class in the
-  code the slice runs on (the pinned dependency included), each with file, line and a quote, and the
+  an uncapped count; injection; auth bypass; path or address escape) in code the spec does not frame
+  as a guard rail, the next envelope is `research`, before any spec, design or builder envelope. Its
+  objective asks for every route of the class in the code the slice runs on (the pinned dependency
+  included), each with file, line and a quote, and the
   search method that found them (the patterns run and their hit counts), recorded in one knowledge
   section. Then one design task covers every listed route with one bound or a named set of bounds,
   one spec revision carries the findings and the design's spec findings, and one builder round builds
   it. Every later reviewer and `security` envelope names that knowledge section as a context pointer
   and says a route outside the list is a new finding that also names the search that missed it
-  (L-0045). No hook checks this; it is the main session's duty.
+  (L-0045). A bypass class of kind (b) in a guard-rail spec follows the "Review of a guard-rail spec"
+  bullet instead (L-0012). No hook checks this; it is the main session's duty.
 - **Visual fix from a finding.** See step 6, "A look change in rework": the designer decides and screenshots the look first; the builder envelope carries the design.md section and one `test -f <absolute path>` fact per screenshot, and states no CSS value that design.md does not hold.
 - **Never resume.** A re-check, a follow-up question or a fix is a new envelope with a new `task_id`, never a `SendMessage`. A builder rework names `rework_of`; a reviewer re-check does not (`rework_of` is read on builder envelopes only) and puts the earlier `result.json` absolute paths in `context_pointers`. `resume-guard` (PreToolUse `SendMessage`) blocks every `SendMessage`, from the main session and from a subagent, whatever `to` names; it never echoes `to` or the message. When `to` is a recorded agent's id, the stderr names that task, as a hint for the fresh envelope. A subagent that needs a decision reports `blocked` with `needs_decision`, and the answer goes out in a fresh envelope.
 - **Research envelope that adds a knowledge entry.** The main session lists `docs/knowledge/README.md` in its `write_set` and gives it one `done_when` entry `grep -q <K id> docs/knowledge/README.md` per new entry. A `needs_decision` or deviation about a file outside the `write_set` is answered by a new envelope before the review is dispatched. After the task, the main session runs `{ git diff --name-only --diff-filter=d HEAD -- docs/knowledge; git ls-files -o --exclude-standard -- docs/knowledge; } | xargs grep -n -E '^source: "?([^"]*; )?(/Users/|/home/|/private/|/tmp/|~/)'` from the repo root, on the files the task changed or added, and expects no output (L-0031); it stops when ORV-129 makes `pnpm check:knowledge` refuse an absolute `source:` path. No hook checks this; it is the main session's duty (L-0020, L-0031).
