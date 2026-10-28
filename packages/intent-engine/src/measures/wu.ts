@@ -20,7 +20,8 @@
 // This file was changed from the original (Apache License 2.0, section 4(b)). The changes: it is
 // TypeScript, it reads RGBA bytes (the original reads ARGB integers), it returns each box's pixel
 // count beside its colour, one function walks the three axes (the original has one copy per axis),
-// and the histogram is built straight from the pixels (no `Map`). The steps and the constants are
+// the histogram is built straight from the pixels (no `Map`), and the cutting loop has a bound on its
+// passes that throws, so a stop that no longer holds is an error, not a loop. The steps and the constants are
 // the original's: 5 index bits, a cube of 33 per side, the box of largest variance cut next.
 // Pure: no I/O, no clock, no random source, no sort; the result is a function of the colour
 // histogram, so the order of the pixels does not change it (ORV-128 tech notes §8, F41).
@@ -60,7 +61,11 @@ export function quantizeWu(rgba: Uint8Array | Uint8ClampedArray, maxColors: numb
   for (const m of Object.values(h)) prefixSums(m);
   const entries = [{ box: wholeCube(), variance: 0 }];
   let next = entries[0] ?? { box: wholeCube(), variance: 0 };
-  while (entries.length < maxColors) {
+  // Each pass adds a box or zeroes the variance of a box that had some, so fewer than 2 * maxColors
+  // passes end the loop. The bound turns a stop that no longer holds into an error, not a loop
+  // that never ends (a synchronous loop that no test timeout can interrupt).
+  for (let pass = 0; entries.length < maxColors; pass++) {
+    if (pass > 2 * maxColors) throw new Error("quantizeWu: the cutting did not stop");
     const added = cut(h, next.box);
     if (added) {
       next.variance = varianceOf(h, next.box);

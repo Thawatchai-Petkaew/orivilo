@@ -179,8 +179,8 @@ describe("clusters are boxes with their counts", () => {
 // The cluster colours of `new QuantizerWu().quantize(argbPixels, 8)` from @material/material-color-utilities
 // 0.4.0 (tarball dist.integrity sha512-dlq6VExJReb8dhjj3a/yTigr3ncNwoFmL5Iy2ENtbDX03EmNeOEdZ+vsaGrj7RTuO+mB7L58II4LCsl4NpM8uw==),
 // in the order it returns them, on the two rasters above. Recorded once by a scratch run outside the
-// repo (named in the ORV-134 PR 1 report); this test imports no package. The two small cases below
-// were recorded by the same run.
+// repo (its recipe is the PR 134 body, section 'How the 0.4.0 colours were recorded'); this test imports
+// no package. The small cases below were recorded by the same run.
 const EXPECTED_04: Record<string, string[]> = {
   "320 x 200": ["141820", "8729e1", "bc2c72", "c47a59", "bc1de2", "4a0744", "dc7a4c", "dc7a64"],
   "320 x 2000": ["141820", "9414c3", "103ecf", "26a251", "d1517b", "145cfb", "942cc3", "3a956f"],
@@ -200,6 +200,35 @@ describe("the port gives 0.4.0's colours", () => {
     }
     for (const red of [100, 108]) pixels.push([red, 100, 100, 255], [red, 100, 100, 255]);
     expect(quantizeWu(rgbaOf(pixels), 3).map(hexOf)).toEqual(["040000", "646464", "6c6464"]);
+  });
+
+  it("cuts the first position of two that split the sum alike", () => {
+    // Three colours 120 apart in red, ten pixels each: cutting after the first or after the second gives
+    // the same summed (sum of colour)^2 / weight, and 0.4.0 keeps the first, so the first colour is alone.
+    const pixels: number[][] = [];
+    for (const red of [0, 120, 240]) {
+      for (let i = 0; i < 10; i++) pixels.push([red, 0, 0, 255]);
+    }
+    expect(quantizeWu(rgbaOf(pixels), 2).map(hexOf)).toEqual(["000000", "b40000"]);
+  });
+
+  it("stops when no box has variance left, with boxes still allowed", () => {
+    // Two flat colours of thirty pixels: after one cut both boxes have variance 0 (and more than one
+    // cell of volume), so cutting stops at once instead of picking a box that cannot be cut again.
+    const pixels: number[][] = [];
+    for (const colour of [0, 255]) {
+      for (let i = 0; i < 30; i++) pixels.push([colour, colour, colour, 255]);
+    }
+    expect(quantizeWu(rgbaOf(pixels), 8).map(hexOf)).toEqual(["000000", "ffffff"]);
+  });
+
+  it("keeps cutting a box whose variance is above 0 and below 1", () => {
+    // After the first cut the box of red 7 and 8 has variance 0.5 (cells 0 and 1); 0.4.0
+    // stops only at 0 or less, so that box is cut too.
+    const pixels: number[][] = [];
+    for (let i = 0; i < 20; i++) pixels.push([200, 0, 0, 255]);
+    pixels.push([7, 0, 0, 255], [8, 0, 0, 255]);
+    expect(quantizeWu(rgbaOf(pixels), 3).map(hexOf)).toEqual(["070000", "c80000", "080000"]);
   });
 
   it("cuts the box of the lower index when two boxes have the same variance", () => {
