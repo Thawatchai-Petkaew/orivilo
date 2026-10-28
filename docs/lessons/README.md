@@ -109,8 +109,12 @@ Status: proposed
 | [[L-0037-owner-decided-before-the-spec-review]]              | ORV-128                | A lane L G1 packet follows a reviewer pass on the spec                     |
 | [[L-0038-spec-claims-a-command-disproves]]                   | ORV-128                | Spec numbers and methods get worked examples the main session runs         |
 | [[L-0039-one-rule-stated-in-two-sections]]                   | ORV-128                | One home per rule; a disagreement fix removes the restatement              |
-| [[L-0040-bookkeeping-follow-ups-one-role-at-a-time]]         | ORV-128                | Bookkeeping waits for the content fixes, one envelope per role             |
+| [[L-0040-bookkeeping-follow-ups-one-role-at-a-time]]         | ORV-128, ORV-133       | Bookkeeping waits for the content fixes, one envelope per role             |
 | [[L-0041-fix-left-stale-text-in-the-other-documents]]        | ORV-128                | A fix greps the other documents for each term it replaces or adds          |
 | [[L-0042-break-its-sampled-the-clauses]]                     | ORV-132                | A schema or guard module gets one mutation per clause before handoff       |
 | [[L-0043-split-envelopes-left-tests-outside-the-named-file]] | ORV-132                | A builder write_set holds every test file the spec names for it            |
 | [[L-0044-objective-restated-a-signature]]                    | ORV-132                | A builder objective points to the design, never restates it                |
+| [[L-0045-one-route-of-a-risk-class-per-round]]               | ORV-133, ORV-128       | A risk-class finding gets a survey of every route before the bound         |
+| [[L-0046-time-guards-sized-on-the-mac]]                      | ORV-133                | Heavy tests carry the heavy timeout; time bounds are sized for CI          |
+| [[L-0047-gate-run-with-an-inline-env-prefix]]                | ORV-133                | Export gate variables first; an inline prefix writes no gate record        |
+| [[L-0048-grant-form-asked-before-the-verdict]]               | ORV-133                | A red CI goes to the re-check; the grant form waits for the verdicts       |

@@ -1,7 +1,7 @@
 ---
 id: L-0040
 date: 2026-10-27
-issue: [ORV-128]
+issue: [ORV-128, ORV-133]
 what_happened: In the ORV-128 G2 design round (PR 126), four writing-role tasks did only bookkeeping that another task's report had raised (a version number, a status row, a stale pointer), each report raising the next, for 882,079 tokens, and review g2-1 spent an Important finding (I6) on tech.md naming an old spec version.
 cause: The main session dispatched each fix report's `needs_decision` line as its own envelope as soon as it arrived, and tech.md names the spec version in body text, so every spec version bump (v1.3 to v1.8) made a tech.md pass due.
 rule: The main session holds every report line that only brings a reference, a version number, a status row or a pointer up to date until all content fixes of the round are back, then sends one envelope per role that holds them all before the re-check; tech.md and an ADR name the spec version in one place only and cite the spec by section name and row number elsewhere.
@@ -20,6 +20,14 @@ Report-to-report chains, each link a `needs_decision` line in one report that be
 The four tasks that did only bookkeeping (`design-schema-5`, `design-schema-7`, `arch-renderer-4`, `product-spec-11`) used 882,079 tokens, 2.95% of the issue's 29,893,601, median 239,000. The main session's own context for the four extra dispatches and reads is not split per task and is not counted here.
 
 Version references: four of seven `design-schema` objectives begin "bring tech.md up to spec v1.N" (`-3`, `-5`, `-6`, `-7`), one per spec bump. At merge commit `82488eb`, `grep -o -E 'spec v1\.[0-9]+' docs/specs/ORV-128/tech.md` counts 23 mentions over six versions (v1.2 to v1.8), and review g2-1 raised I6 (Important) because the front matter and rule table named v1.3 while the spec was v1.4. ADR 0019 still cites "spec v1.4" on lines 3 and 115 after the spec reached v1.8; no review round caught it.
+
+After promotion (2026-10-26T18:31Z, commit `2bb3888`), ORV-133 slice 1b (PR 130) sent more than one bookkeeping envelope to one role in one round, each one named "(L-0040)" or closing a line the previous one reported. Records are under `.orivilo/runs/ORV-133/`, tokens from `.orivilo/metrics/ORV-133.json` (`node scripts/ovl/metrics.mjs report ORV-133`, saved as `.orivilo/metrics/orv133-slice-1b.md`):
+
+- Round 1: `design-bookkeeping-2` (2,503,098) and `design-bookkeeping-3` (335,341, "final bookkeeping ... before the re-check").
+- Round 2: `design-tech-bookkeeping-4` (2,159,829), `-5` (208,405, two status cells `-4` reported) and `-6` (1,333,817, which also carried the GATE-133-1 content change); `research-bookkeeping-1` (4,078,525), `-2` (300,665, lines `product-parent-10` reported) and `-3` (306,745); `product-parent-10` (1,971,672) and `product-parent-12` (293,184, two lines `product-parent-11` reported).
+- The second and later bookkeeping envelopes of a role in a round used 1,444,340 tokens (`design-bookkeeping-3`, `design-tech-bookkeeping-5`, `research-bookkeeping-2`, `-3`, `product-parent-12`), 0.7% of the issue's 203,170,155. In rounds 3, 5 and 6 each role had one bookkeeping envelope per round.
+
+These facts are for the check on the `Check after:` date; they give no verdict.
 
 [[L-0035-fix-reports-named-the-round-2-findings]] makes the main session act on every such line before the re-check; this lesson does not change that. It changes when and how those lines are sent: once, together, per role.
 
