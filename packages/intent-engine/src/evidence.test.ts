@@ -32,6 +32,7 @@ import { PERSONALITY_AXES } from "./knowledge";
 import snapshotSource from "./render-snapshot.ts?raw";
 import readPageSource from "./read-page.ts?raw";
 import pageTextSource from "./page-text.ts?raw";
+import wuSource from "./measures/wu.ts?raw";
 import { rendererBuildSchema } from "./render-snapshot";
 
 // ---------------------------------------------------------------- fixtures
@@ -741,6 +742,7 @@ const SCANNED: Record<string, string> = {
   "render-snapshot": snapshotSource,
   "read-page": readPageSource,
   "page-text": pageTextSource,
+  "measures/wu": wuSource,
 };
 
 describe("measures never call a model", () => {
