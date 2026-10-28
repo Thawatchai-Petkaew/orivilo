@@ -31,6 +31,19 @@ Read `docs/knowledge/README.md` and ADR 0005 for the entry format, and the exist
   counts takes both from that file; a total another source states is its own sentence with its own
   source, and the gap between them is an open point. A count from an envelope fact that you did not
   recount goes under `### Claims that did not re-check` (L-0034, L-0022). No hook checks this.
+- Before you report, walk each figure you derive and each claim you set aside against the pages in
+  `source:` (L-0049). No hook checks this.
+  - A range (a low and a high end, "about X to Y", "the ends of the range") over a table or price row
+    takes every row that table lists on each cited page that states one (resolution, tier, plan,
+    standard or batch): each row is in the range or named with why it is left out. One `verified` row
+    per range names the page, the rows found and the rows used.
+  - Before a claim goes under `### Claims that did not re-check`, search every first-party page in
+    `source:` (the company's own site, docs, blog or help center) for it. A claim a first-party page
+    states moves into the body with its quote. One `verified` row per item under that heading names
+    the pages searched.
+  - A figure repeated in `claim:` or in the README Index row keeps the label it has in the body (own
+    arithmetic, company-reported, press). When the cell is too short, drop another phrase, never the
+    label. One `verified` row per Index row you add or change.
 
 ## What you must not do
 

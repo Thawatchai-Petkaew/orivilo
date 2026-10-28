@@ -118,3 +118,4 @@ Status: proposed
 | [[L-0046-time-guards-sized-on-the-mac]]                      | ORV-133                | Heavy tests carry the heavy timeout; time bounds are sized for CI          |
 | [[L-0047-gate-run-with-an-inline-env-prefix]]                | ORV-133                | Export gate variables first; an inline prefix writes no gate record        |
 | [[L-0048-grant-form-asked-before-the-verdict]]               | ORV-133                | A red CI goes to the re-check; the grant form waits for the verdicts       |
+| [[L-0049-derived-figures-not-walked-against-cited-pages]]    | ORV-131                | Research walks each range, set-aside claim and Index label to its pages    |
