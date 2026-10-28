@@ -3,7 +3,7 @@
 // source (row 30).
 
 import { fingerprintOf } from "../resolver";
-import { linearChannel } from "./colour";
+import { endOfCommentOrString, linearChannel } from "./colour";
 
 /** The viewport the densities are per: 1280 x 800 CSS px, the first screen (tech notes section 7). */
 export const FIRST_SCREEN_HEIGHT = 800;
@@ -130,16 +130,74 @@ export type DeclaredFamily = {
 };
 
 /**
+ * The bound of a family, in characters. It is the snapshot's bound of a text box's `fontFamily`
+ * (`render-snapshot.ts`, 100), so a declared family and a rendered one are held to one limit; a
+ * test in this file's folder keeps the two equal. A declared family over it gives no item (SEC-3).
+ */
+export const FONT_FAMILY_MAX_CHARS = 100;
+
+/** The CSS-wide keywords: a value that names no font. */
+const CSS_WIDE_KEYWORDS = new Set(["inherit", "initial", "unset", "revert", "revert-layer"]);
+
+const IMPORTANT = "!important";
+const FONT_FACE = "@font-face";
+
+/** The `@font-face` blocks of a stylesheet as [index of its `{`, index of its `}`], in order. One forward pass. */
+function fontFaceBlocks(css: string): [number, number][] {
+  const out: [number, number][] = [];
+  const open: (number | null)[] = []; // for each open block, where it began when it is an @font-face
+  let prelude = -1; // the first character of the text before the next "{"; -1 until one is seen
+  let i = 0;
+  while (i < css.length) {
+    const skipped = endOfCommentOrString(css, i);
+    if (skipped !== i) {
+      if (css[i] !== "/" && prelude < 0) prelude = i; // a string counts as text, a comment does not
+      i = skipped;
+      continue;
+    }
+    const c = css[i] as string;
+    if (c === "{") {
+      const isFace =
+        prelude >= 0 &&
+        css.slice(prelude, prelude + FONT_FACE.length).toLowerCase() === FONT_FACE &&
+        !/[\w-]/.test(css[prelude + FONT_FACE.length] ?? "");
+      open.push(isFace ? i : null);
+      prelude = -1;
+    } else if (c === "}") {
+      const start = open.pop();
+      if (start !== undefined && start !== null) out.push([start, i]);
+      prelude = -1;
+    } else if (c === ";") {
+      prelude = -1;
+    } else if (prelude < 0 && c > " ") {
+      prelude = i;
+    }
+    i++;
+  }
+  for (const start of open) if (start !== null) out.push([start, css.length]);
+  return out.sort((a, b) => a[0] - b[0]);
+}
+
+/**
  * The first family of each `font-family` declaration of a stylesheet, in order: the value up to the
  * first comma outside quotes, without a trailing `!important`. The `font` shorthand is not read.
+ * No item for a family that names no font: a value that holds `var(`, a CSS-wide keyword, or a descriptor of
+ * an `@font-face` rule (S-8). The scan of a value stops at FONT_FAMILY_MAX_CHARS characters and a
+ * family over it gives no item, so the cost is linear in the sheet however it is written (SEC-3).
  */
 export function declaredFamiliesOf(css: string): DeclaredFamily[] {
   const out: DeclaredFamily[] = [];
+  const faces = fontFaceBlocks(css);
+  let face = 0;
   for (const m of css.matchAll(/(?<![\w-])font-family\s*:\s*/gi)) {
+    while (face < faces.length && (faces[face]?.[1] ?? 0) < m.index) face++;
+    const block = faces[face];
+    if (block !== undefined && block[0] < m.index) continue;
     const start = m.index + m[0].length;
+    const limit = Math.min(css.length, start + FONT_FAMILY_MAX_CHARS + 1);
     let end = start;
     let quote: string | null = null;
-    for (; end < css.length; end++) {
+    for (; end < limit; end++) {
       const c = css[end];
       if (quote !== null) {
         if (c === quote) quote = null;
@@ -149,11 +207,15 @@ export function declaredFamiliesOf(css: string): DeclaredFamily[] {
         break;
       }
     }
-    const family = css
-      .slice(start, end)
-      .replace(/\s*!important\s*$/i, "")
-      .trimEnd();
-    if (family !== "") out.push({ family, offset: start });
+    if (end - start > FONT_FAMILY_MAX_CHARS) continue;
+    let family = css.slice(start, end).trimEnd();
+    if (family.slice(-IMPORTANT.length).toLowerCase() === IMPORTANT) {
+      family = family.slice(0, -IMPORTANT.length).trimEnd();
+    }
+    if (family === "") continue;
+    if (family.toLowerCase().includes("var(")) continue;
+    if (CSS_WIDE_KEYWORDS.has(family.toLowerCase())) continue;
+    out.push({ family, offset: start });
   }
   return out;
 }

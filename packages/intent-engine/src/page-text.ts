@@ -29,6 +29,9 @@ export type TextBlock = {
 
 /** html-text-1: body text stops at this many characters, and so does heading text, each on its own. */
 export const BODY_MAX_CHARS = 5000;
+/** html-text-1, Title and description bound (SEC-4): the title and the meta description each stop at this many characters. */
+export const TITLE_MAX_CHARS = 1000;
+export const DESCRIPTION_MAX_CHARS = 1000;
 /**
  * html-text-1 and the Depth bound: an element below this depth (html is 1) gives no block and no link,
  * and the parse stops at the push that would make the tree builder's stack one deeper (the Nesting count).
@@ -327,6 +330,12 @@ function hidden(e: Element): boolean {
   );
 }
 
+/** `text` cut at the last space within `room` characters (a space at the limit itself counts), trimmed; empty when it has none. */
+const cutOnSpace = (text: string, room: number): string => {
+  const at = text.lastIndexOf(" ", room);
+  return at < 0 ? "" : text.slice(0, at).trimEnd();
+};
+
 const fold = (s: string) => s.replace(/[\t\n\f\r ]+/g, " ").trim();
 
 /** The 1-based position of each child element among the same-named children of one parent. */
@@ -431,7 +440,7 @@ function pushElements<T>(stack: T[], nodes: ChildNode[], make: (c: Element) => T
 
 export type PageText = {
   blocks: TextBlock[];
-  /** True when the Nesting count, the depth bound, the Heading bound or the Path bound cut something: the read is `page-incomplete`. */
+  /** True when the Nesting count, the depth bound, the Heading bound, the Title and description bound or the Path bound cut something: the read is `page-incomplete`. */
   incomplete: boolean;
 };
 
@@ -463,11 +472,16 @@ function textOf(doc: Document, cut: boolean): PageText {
       blocks.push(b);
       return { used: usedSoFar + b.text.length, full: false };
     }
-    // cut on whitespace within the limit: a space at the limit itself counts
-    const at = b.text.lastIndexOf(" ", room);
-    const text = at < 0 ? "" : b.text.slice(0, at).trimEnd();
+    const text = cutOnSpace(b.text, room);
     if (text !== "") blocks.push({ ...b, text });
     return { used: usedSoFar, full: true };
+  };
+
+  /** The title's or the description's block within its own bound: cut on whitespace, and the page text is incomplete when it was. */
+  const addOwnBound = (b: TextBlock, max: number) => {
+    const text = b.text.length <= max ? b.text : cutOnSpace(b.text, max);
+    if (text.length < b.text.length) incomplete = true;
+    if (text !== "") blocks.push({ ...b, text });
   };
 
   const inHead = (e: Element) => {
@@ -478,7 +492,7 @@ function textOf(doc: Document, cut: boolean): PageText {
         if (b === "long") incomplete = true;
         else if (b) {
           haveTitle = true;
-          blocks.push({ ...b, kind: "title" });
+          addOwnBound({ ...b, kind: "title" }, TITLE_MAX_CHARS);
         }
       } else if (
         c.tagName === "meta" &&
@@ -492,12 +506,10 @@ function textOf(doc: Document, cut: boolean): PageText {
           if (path === null) incomplete = true;
           else {
             haveMeta = true;
-            blocks.push({
-              path,
-              kind: "meta",
-              text,
-              span: { start: loc.startOffset, end: loc.endOffset },
-            });
+            addOwnBound(
+              { path, kind: "meta", text, span: { start: loc.startOffset, end: loc.endOffset } },
+              DESCRIPTION_MAX_CHARS,
+            );
           }
         }
       }

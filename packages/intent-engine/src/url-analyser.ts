@@ -36,9 +36,25 @@ import {
 declare class TextDecoder {
   decode(input: Uint8Array): string;
 }
+declare class URL {
+  constructor(input: string);
+  readonly href: string;
+  readonly protocol: string;
+  readonly username: string;
+  readonly password: string;
+}
 
 /** `analyser.version` of every item: a change to `html-text-1` or to a rule of this file bumps it. */
 const ANALYSER_VERSION = "1";
+
+/**
+ * The caps on what one stylesheet gives (SEC-4): at most this many distinct declared colours and
+ * this many distinct declared families, the first by offset. A sheet past either cap gives its
+ * items with `page-incomplete`. Ten sheets give at most 10 x (256 + 32) items, far from the 2^32
+ * ids an id-collision needs.
+ */
+export const DECLARED_COLOURS_MAX = 256;
+export const DECLARED_FAMILIES_MAX = 32;
 
 // ---------------------------------------------------------------- the competitor gate
 
@@ -51,10 +67,30 @@ export type NotRead = {
 };
 
 /**
+ * The syntax check `readPage` makes of an own URL before any lookup, without a port (SEC-5): it
+ * parses, is http or https, carries no username or password, and is at most URL_MAX_CHARS long as
+ * given (the URL is recorded as given). A competitor URL goes into the report, so a secret in it
+ * or a `javascript:` URL must not be kept.
+ */
+function syntacticallyAllowed(url: string): boolean {
+  if (url.length > URL_MAX_CHARS) return false;
+  let u: URL;
+  try {
+    u = new URL(url);
+  } catch {
+    return false;
+  }
+  return (
+    (u.protocol === "http:" || u.protocol === "https:") && u.username === "" && u.password === ""
+  );
+}
+
+/**
  * competitor-not-read-1, an allow-list (F54): the only engine export that reaches `readPage`, and
  * only for `own` and `reference`. A `competitor` URL is not read and no port is called for it; a
- * value outside INPUT_ROLES is a bug in the caller and throws. A competitor URL over URL_MAX_CHARS
- * is refused as `readPage` refuses an own URL over it, so no URL is recorded in part (F59).
+ * value outside INPUT_ROLES is a bug in the caller and throws. A competitor URL that `readPage`
+ * would refuse on its syntax (not http or https, a username or password, over URL_MAX_CHARS) is
+ * refused the same way, so no URL is recorded in part or with a secret (F59, SEC-5).
  */
 export async function readUrlInput(
   input: UrlInput,
@@ -66,7 +102,7 @@ export async function readUrlInput(
     throw new TypeError("readUrlInput: input.role is not one of INPUT_ROLES");
   }
   if (role === "competitor") {
-    if (input.url.length > URL_MAX_CHARS) {
+    if (!syntacticallyAllowed(input.url)) {
       return { status: "refused", reason: "read.refused.address" };
     }
     return { status: "not-read", url: input.url, line: "read.notRead.competitor" };
@@ -90,6 +126,8 @@ export const notMeasuredSchema = z
   .strict();
 export type NotMeasured = z.infer<typeof notMeasuredSchema>;
 
+const NOT_RENDERED_REASONS = ["no-renderer", "render-failed", "render-budget"] as const;
+
 /** What the caller knows and the bytes do not. Trusted caller data, checked when analyseUrl starts (F48). */
 export type AnalyserContext = {
   /** The person's role for the URL, as given; checked against INPUT_ROLES (F54). Every item's `role`. */
@@ -97,7 +135,7 @@ export type AnalyserContext = {
   /** The read's clock reading, as `z.iso.datetime()` takes it. Every item's `source.retrievedAt`. */
   retrievedAt: string;
   /** Why `snapshot` is null; null when a snapshot is passed. */
-  notRendered: "no-renderer" | "render-failed" | "render-budget" | null;
+  notRendered: (typeof NOT_RENDERED_REASONS)[number] | null;
 };
 
 export type Analysis =
@@ -123,6 +161,12 @@ function checkContext(ctx: AnalyserContext, snapshot: unknown): void {
   }
   if ((ctx.notRendered === null) !== (snapshot !== null)) {
     throw new TypeError("analyseUrl: ctx.notRendered must be set exactly when snapshot is null");
+  }
+  const reason: unknown = ctx.notRendered;
+  if (reason !== null && !NOT_RENDERED_REASONS.some((r) => r === reason)) {
+    throw new TypeError(
+      "analyseUrl: ctx.notRendered is not null and not one of no-renderer, render-failed or render-budget",
+    );
   }
 }
 
@@ -192,7 +236,21 @@ export function analyseUrl(
   // ------------------------------------------------ declared colours and, under option D, declared fonts
   for (const sheet of read.stylesheets) {
     const css = new TextDecoder().decode(sheet.bytes);
-    for (const c of declaredColoursOf(css)) {
+    const colours = declaredColoursOf(css);
+    const families: { subject: string; offset: number }[] = [];
+    if (valid === null) {
+      const seen = new Set<string>();
+      for (const f of declaredFamiliesOf(css)) {
+        const subject = familySubject("declared", f.family);
+        if (subject === null || seen.has(subject)) continue;
+        seen.add(subject);
+        families.push({ subject, offset: f.offset });
+      }
+    }
+    // A sheet past either cap keeps its first items by offset and says so on each of them (SEC-4).
+    const capped = colours.length > DECLARED_COLOURS_MAX || families.length > DECLARED_FAMILIES_MAX;
+    const factors: FactorId[] = capped ? ["page-incomplete"] : [];
+    for (const c of colours.slice(0, DECLARED_COLOURS_MAX)) {
       drafts.push({
         ref: sheet.url,
         contentHash: sheet.contentHash,
@@ -202,27 +260,21 @@ export function analyseUrl(
         subject: c.hex,
         measure: hueMeasure(c.hex),
         reading: null,
-        factors: [],
+        factors,
       });
     }
-    if (valid === null) {
-      const seen = new Set<string>();
-      for (const f of declaredFamiliesOf(css)) {
-        const subject = familySubject("declared", f.family);
-        if (subject === null || seen.has(subject)) continue;
-        seen.add(subject);
-        drafts.push({
-          ref: sheet.url,
-          contentHash: sheet.contentHash,
-          locator: sheetLocator(f.offset),
-          renderer: null,
-          kind: "font-family",
-          subject,
-          measure: null,
-          reading: null,
-          factors: [],
-        });
-      }
+    for (const f of families.slice(0, DECLARED_FAMILIES_MAX)) {
+      drafts.push({
+        ref: sheet.url,
+        contentHash: sheet.contentHash,
+        locator: sheetLocator(f.offset),
+        renderer: null,
+        kind: "font-family",
+        subject: f.subject,
+        measure: null,
+        reading: null,
+        factors,
+      });
     }
   }
 

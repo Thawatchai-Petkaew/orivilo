@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { slugSchema } from "../knowledge";
+import { renderSnapshotSchema } from "../render-snapshot";
 import {
   FIRST_SCREEN_HEIGHT,
+  FONT_FAMILY_MAX_CHARS,
   bodyPairOf,
   contrastRatio,
   declaredFamiliesOf,
@@ -9,6 +11,13 @@ import {
   meetsFirstScreen,
   textDensity,
 } from "./page";
+
+declare const performance: { now(): number }; // the engine tsconfig has no DOM lib; a timer for the time bounds
+/** The framework timeout of a test that guards a time bound: above the bound, so vitest never pre-empts the guard. */
+const HEAVY_TIMEOUT = 60_000;
+/** The time bound of a stylesheet measure on 1 MB, sized for CI (SEC-3). */
+const TIME_BOUND_MS = 2000;
+const MB = 1024 * 1024;
 
 // ORV-128 tech notes section 8, "Page": the contrast of the body pair, the densities and the font
 // subjects. The contrast numbers come from the WCAG 2 formula computed outside the repo (this task).
@@ -220,5 +229,179 @@ describe("declaredFamiliesOf", () => {
 
   it("skips an empty value", () => {
     expect(declaredFamiliesOf("a{font-family:;}")).toEqual([]);
+  });
+
+  describe("a family over the bound gives no item (SEC-3)", () => {
+    const families = (css: string) => declaredFamiliesOf(css).map((f) => f.family);
+
+    it("is the bound of a font family in the snapshot: 100 characters", () => {
+      expect(FONT_FAMILY_MAX_CHARS).toBe(100);
+      const rgba = new Uint8Array(320 * 200 * 4);
+      const snapshot = (fontFamily: string) => ({
+        version: "1",
+        renderer: {
+          driver: "playwright",
+          driverVersion: "1.56.1",
+          browser: "chromium",
+          browserVersion: "141.0.7390.37",
+        },
+        viewport: { width: 1280, height: 800 },
+        firstScreen: { width: 320, height: 200, rgba },
+        fullPage: { width: 320, height: 200, rgba },
+        textBoxes: [
+          {
+            path: "html>body>p",
+            box: { x: 0, y: 0, width: 10, height: 10 },
+            pair: null,
+            fontFamily,
+          },
+        ],
+        elements: [],
+      });
+      expect(
+        renderSnapshotSchema.safeParse(snapshot("a".repeat(FONT_FAMILY_MAX_CHARS))).success,
+      ).toBe(true);
+      expect(
+        renderSnapshotSchema.safeParse(snapshot("a".repeat(FONT_FAMILY_MAX_CHARS + 1))).success,
+      ).toBe(false);
+    });
+
+    it.each([
+      ["a semicolon", ";"],
+      ["a comma", ","],
+      ["a brace", "}"],
+      ["the end of the sheet", ""],
+    ])("a family of 100 characters ending at %s is kept, one of 101 is not", (_n, end) => {
+      const at = (n: number) => `a{font-family:${"f".repeat(n)}${end}`;
+      expect(families(at(100))).toEqual(["f".repeat(100)]);
+      expect(families(at(101))).toEqual([]);
+    });
+
+    it("counts a quoted family with its quotes, and a comma inside the quotes does not end it", () => {
+      expect(families(`a{font-family:"${"f".repeat(98)}"}`)).toHaveLength(1); // 100 with quotes
+      expect(families(`a{font-family:"${"f".repeat(99)}"}`)).toEqual([]); // 101
+      expect(families(`a{font-family:"${"f,".repeat(60)}"}`)).toEqual([]); // the comma is inside the quotes
+    });
+
+    it("an item after an over-long family is still read", () => {
+      expect(families(`a{font-family:${"f".repeat(200)}}b{font-family:Inter}`)).toEqual(["Inter"]);
+    });
+
+    it("the scan counts the value as written, !important included", () => {
+      expect(families(`a{font-family:${"f".repeat(80)} !important}`)).toEqual(["f".repeat(80)]);
+      expect(families(`a{font-family:${"f".repeat(90)} !important}`)).toEqual([]); // 101 as written
+    });
+  });
+
+  describe("no family for a value that names no font (S-8)", () => {
+    const families = (css: string) => declaredFamiliesOf(css).map((f) => f.family);
+
+    it.each([
+      ["a var() value", "a{font-family:var(--font-sans)}"],
+      ["a var() value with a fallback", "a{font-family:var(--font-sans, Inter)}"],
+      ["an upper-case VAR(", "a{font-family:VAR(--x)}"],
+      ["inherit", "a{font-family:inherit}"],
+      ["initial", "a{font-family:initial}"],
+      ["unset", "a{font-family:unset}"],
+      ["revert", "a{font-family:revert}"],
+      ["revert-layer", "a{font-family:revert-layer}"],
+      ["a keyword in any case", "a{font-family:INHERIT}"],
+      ["a keyword with !important", "a{font-family:inherit !important}"],
+      ["an @font-face descriptor", "@font-face{font-family:'X Brand';src:url(x.woff2)}"],
+      ["an @font-face descriptor in any case", "@FONT-FACE{font-family:'X Brand'}"],
+      ["an @font-face inside @media", "@media print{@font-face{font-family:X}}"],
+      ["an @font-face with a comment before it", "/* c */ @font-face /* d */ {font-family:X}"],
+      ["an @font-face with a string holding a brace", "@font-face{src:url('}');font-family:X}"],
+      ["a value that holds var( after other text", "a{font-family:Inter var(--x)}"],
+      ["an @font-face after an @import", "@import url(x.css);@font-face{font-family:X}"],
+      ["an @font-face that is never closed", "@font-face{font-family:X"],
+      ["an @font-face after a rule", "a{margin:0} @font-face{font-family:X}"],
+    ])("gives none for %s", (_name, css) => {
+      expect(families(css)).toEqual([]);
+    });
+
+    it.each([
+      ["a family named like a keyword", "a{font-family:inherited}", ["inherited"]],
+      ["a family that only starts like var", "a{font-family:variable}", ["variable"]],
+      ["a rule after an @font-face", "@font-face{font-family:X} a{font-family:Inter}", ["Inter"]],
+      [
+        "a rule in @media after an @font-face",
+        "@font-face{font-family:X}@media print{a{font-family:Inter}}",
+        ["Inter"],
+      ],
+      ["a rule before an @font-face", "a{font-family:Inter} @font-face{font-family:X}", ["Inter"]],
+      ["a rule whose selector looks like it", "@font-faces{font-family:Inter}", ["Inter"]],
+      [
+        "a rule after an @font-face with a nested block",
+        "@font-face{src:url(x)}a{font-family:Inter}",
+        ["Inter"],
+      ],
+      [
+        "the value after a var() fallback list is not read",
+        "a{font-family:Inter, var(--x)}",
+        ["Inter"],
+      ],
+      [
+        "a second declaration after a keyword",
+        "a{font-family:inherit}b{font-family:Georgia}",
+        ["Georgia"],
+      ],
+    ])("gives the family for %s", (_name, css, expected) => {
+      expect(families(css)).toEqual(expected);
+    });
+  });
+
+  describe("every route is linear in a 1 MB sheet (SEC-3)", () => {
+    const timed = (css: string) => {
+      expect(css.length).toBeLessThanOrEqual(MB);
+      const started = performance.now();
+      const out = declaredFamiliesOf(css);
+      expect(performance.now() - started).toBeLessThan(TIME_BOUND_MS);
+      return out;
+    };
+
+    it.each([
+      ["font-family: with no end", (n: number) => "font-family:a ".repeat(n / 14)],
+      ["a 1 MB run of spaces before !important", (n: number) => `font-family:a${" ".repeat(n)}b`],
+      [
+        "a 1 MB run of spaces then !important",
+        (n: number) => `font-family:a${" ".repeat(n)}!important x`,
+      ],
+      ["a 1 MB quoted value with no end", (n: number) => `font-family:"${"a".repeat(n)}`],
+      [
+        "a 1 MB value of font-family names",
+        (n: number) => `font-family:${"font-family:".repeat(n / 12)}`,
+      ],
+      ["1 MB of open @font-face blocks", (n: number) => "@font-face{".repeat(n / 11)],
+      ["1 MB of unclosed comments", (n: number) => "/*".repeat(n / 2)],
+      ["1 MB of unclosed strings", (n: number) => "'x\n".repeat(n / 4)],
+      ["1 MB of closing braces", (n: number) => "}".repeat(n)],
+    ])(
+      "%s",
+      (_name, make) => {
+        timed(make(MB - 64));
+      },
+      HEAVY_TIMEOUT,
+    );
+
+    it(
+      "1 MB of short declarations is read in order",
+      () => {
+        const n = 45_000;
+        const css = Array.from({ length: n }, (_, i) => `a{font-family:f${i}}`).join("");
+        const out = timed(css);
+        expect(out).toHaveLength(n);
+        expect(out[n - 1]?.family).toBe(`f${n - 1}`);
+      },
+      HEAVY_TIMEOUT,
+    );
+
+    it(
+      "1 MB of @font-face blocks, each with a descriptor, gives none",
+      () => {
+        expect(timed("@font-face{font-family:X}".repeat(40_000))).toEqual([]);
+      },
+      HEAVY_TIMEOUT,
+    );
   });
 });

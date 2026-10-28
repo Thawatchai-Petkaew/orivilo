@@ -281,13 +281,102 @@ describe("html-text-1", () => {
         `<head><title>${long}</title><meta name="description" content="${long}"></head><body><h1>${words(100)}</h1><p>${words(500)}</p><h2>${words(100)}</h2></body>`,
       );
       expect(out.map((b) => [b.kind, b.text.length])).toEqual([
-        ["title", 5999],
-        ["meta", 5999],
+        ["title", 999], // cut by its own bound of 1,000 (SEC-4), not by the body bound
+        ["meta", 999],
         ["heading", 999],
         ["body", 4999],
         ["heading", 999],
       ]);
     });
+  });
+
+  describe("the title and description bound (SEC-4)", () => {
+    const of = {
+      title: (text: string) => `<head><title>${text}</title></head><body><p>after</p></body>`,
+      meta: (text: string) =>
+        `<head><meta name="description" content="${text}"></head><body><p>after</p></body>`,
+    };
+    const run = (kind: "title" | "meta", text: string) => {
+      const out = pageTextOf(bytes(of[kind](text)));
+      return { kept: out.blocks.find((b) => b.kind === kind)?.text, incomplete: out.incomplete };
+    };
+
+    it.each(["title", "meta"] as const)("%s: 1,000 characters are kept whole", (kind) => {
+      const text = `${"x ".repeat(499)}xx`;
+      expect(text).toHaveLength(1000);
+      expect(run(kind, text)).toEqual({ kept: text, incomplete: false });
+    });
+
+    it.each(["title", "meta"] as const)(
+      "%s: 1,001 characters are cut at the last space and the page text is incomplete",
+      (kind) => {
+        const text = `${"x ".repeat(500)}x`;
+        expect(text).toHaveLength(1001);
+        expect(run(kind, text)).toEqual({ kept: text.slice(0, 999), incomplete: true });
+      },
+    );
+
+    it.each(["title", "meta"] as const)(
+      "%s: a space at the limit itself counts, one past it does not",
+      (kind) => {
+        expect(run(kind, `${"a".repeat(1000)} b`)).toEqual({
+          kept: "a".repeat(1000),
+          incomplete: true,
+        });
+        expect(run(kind, `${"a".repeat(1001)} b`)).toEqual({ kept: undefined, incomplete: true });
+      },
+    );
+
+    it.each(["title", "meta"] as const)(
+      "%s: one with no space within the limit keeps nothing and does not let a later one in",
+      (kind) => {
+        const html =
+          kind === "title"
+            ? `<head><title>${"a".repeat(1500)}</title><title>second</title></head>`
+            : `<head><meta name="description" content="${"a".repeat(1500)}"><meta name="description" content="second"></head>`;
+        const out = pageTextOf(bytes(html));
+        expect(out.blocks).toEqual([]);
+        expect(out.incomplete).toBe(true);
+      },
+    );
+
+    it("each has a bound of its own: a full title leaves the description its 1,000", () => {
+      const text = `${"x ".repeat(499)}xx`;
+      const out = pageTextOf(
+        bytes(
+          `<head><title>${text}</title><meta name="description" content="${text}"></head><body><p>after</p></body>`,
+        ),
+      );
+      expect(out.blocks.map((b) => [b.kind, b.text.length])).toEqual([
+        ["title", 1000],
+        ["meta", 1000],
+        ["body", 5],
+      ]);
+      expect(out.incomplete).toBe(false);
+    });
+
+    it("keeps the source span of the whole element when it cuts the text", () => {
+      const html = of.meta("x ".repeat(800));
+      const meta = pageTextOf(bytes(html)).blocks.find((b) => b.kind === "meta");
+      expect(meta?.span.start).toBe(html.indexOf("<meta"));
+      expect(meta?.span.end).toBe(html.indexOf(">", html.indexOf("<meta")) + 1);
+    });
+
+    it(
+      "a 2 MB meta description is cut to 1,000 characters in time",
+      () => {
+        const html = of.meta("we are calm and friendly not bold ".repeat(60_000));
+        expect(html.length).toBeLessThanOrEqual(DOCUMENT_MAX);
+        const started = performance.now();
+        const out = pageTextOf(bytes(html));
+        expect(performance.now() - started).toBeLessThan(TIME_BOUND_MS);
+        const meta = out.blocks.find((b) => b.kind === "meta");
+        expect(meta?.text.length).toBeLessThanOrEqual(1000);
+        expect(meta?.text.length).toBeGreaterThan(900);
+        expect(out.incomplete).toBe(true);
+      },
+      HEAVY_TIMEOUT,
+    );
   });
 
   describe("the heading bound", () => {
@@ -633,6 +722,8 @@ describe("html-text-1", () => {
     const items = (n: number, make: (i: number) => string, sep = " ") =>
       Array.from({ length: n }, (_, i) => make(i)).join(sep);
     const names = (n: number, sep = " ") => items(n, (i) => `a${i}`, sep);
+    /** Distinct two-character names, so 300 of them stay under the 1,000 characters of a title or description (SEC-4). */
+    const shortNames = (n: number) => items(n, (i) => i.toString(36).padStart(2, "a"));
     /** What the page reads from a text: its block texts and whether it says it cut something. */
     const read = (html: string) => {
       const out = pageTextOf(bytes(html));
@@ -917,7 +1008,7 @@ describe("html-text-1", () => {
 
       it("does not hold a quoted value's own words against its tag", () => {
         // the quoted value holds 300 words; the tag holds three names
-        const meta = `<meta name=description content="${names(300)}">`;
+        const meta = `<meta name=description content="${shortNames(300)}">`;
         const out = pageTextOf(bytes(`<head>${meta}</head><body><p>A</p>`));
         expect(out.blocks.map((b) => b.kind)).toEqual(["meta", "body"]);
         expect(out.incomplete).toBe(false);
@@ -965,7 +1056,7 @@ describe("html-text-1", () => {
           expect(inside(wrap)(257)).toEqual({ texts: ["A"], incomplete: true });
         });
         it("cuts at a run in a title that holds more than 256 words", () => {
-          const html = (n: number) => `<title>x<b ${names(n)}></title><body><p>A</p><p>B</p>`;
+          const html = (n: number) => `<title>x<b ${shortNames(n)}></title><body><p>A</p><p>B</p>`;
           expect(read(html(256)).incomplete).toBe(false);
           expect(read(html(257))).toEqual({ texts: ["x"], incomplete: true });
         });

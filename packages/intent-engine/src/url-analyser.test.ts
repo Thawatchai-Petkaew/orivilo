@@ -1422,3 +1422,336 @@ describe("the choices of the analyser, one at a time", () => {
     });
   });
 });
+
+// ---------------------------------------------------------------- slice 1c security rework: SEC-3, SEC-4, SEC-5
+
+declare const performance: { now(): number }; // the engine tsconfig has no DOM lib; a timer for the time bounds
+/** The framework timeout of a test that guards a time bound: above the bound, so vitest never pre-empts the guard. */
+const HEAVY_TIMEOUT = 60_000;
+/** The time bound of a route on 1 MB, sized for CI. */
+const TIME_BOUND_MS = 2000;
+const MB = 1024 * 1024;
+
+const sheetUrl = (i: number) => `https://clinic.example/s${i}.css`;
+const hexAt = (i: number) => `#${i.toString(16).padStart(6, "0")}`;
+/** A stylesheet of `n` rules, each with one distinct colour, the first being `from`. */
+const coloursSheet = (n: number, from = 0x100000) =>
+  Array.from({ length: n }, (_, i) => `a{color:${hexAt(from + i)}}`).join("");
+const familiesSheet = (n: number, prefix = "fam") =>
+  Array.from({ length: n }, (_, i) => `a{font-family:${prefix}${i}}`).join("");
+const pageIncomplete = (item: InputEvidence) =>
+  item.flags.some((f) => f.key === "quality.pageIncomplete");
+const timedAnalysis = (read: Read, snapshot: unknown = null, ctx: AnalyserContext = CTX_D) => {
+  const started = performance.now();
+  const result = analyseUrl(read, snapshot, ctx);
+  const elapsed = performance.now() - started;
+  return { result, elapsed };
+};
+
+describe("a competitor URL is held to the syntax check of an own one (SEC-5)", () => {
+  const noPort = {
+    async resolve(): Promise<string[]> {
+      throw new Error("a port was called");
+    },
+    async request(): Promise<never> {
+      throw new Error("a port was called");
+    },
+    sha256: () => {
+      throw new Error("a port was called");
+    },
+    elapsedMs: () => {
+      throw new Error("a port was called");
+    },
+  } as unknown as ReadPorts;
+  const refused = { status: "refused", reason: "read.refused.address" };
+
+  it.each([
+    ["a username and a password", "https://user:secret@rival.example/"],
+    ["a username only", "https://user@rival.example/"],
+    ["a password only", "https://:secret@rival.example/"],
+    ["javascript:", "javascript:alert(1)"],
+    ["ftp:", "ftp://rival.example/file"],
+    ["file:", "file:///etc/passwd"],
+    ["data:", "data:text/html,<p>x</p>"],
+    ["no scheme", "rival.example/page"],
+    ["text that is no URL", "not a url"],
+    ["an empty string", ""],
+  ])("%s is refused as read.refused.address, with no port called", async (_name, url) => {
+    expect(await readUrlInput({ url, role: "competitor" }, noPort)).toEqual(refused);
+  });
+
+  it("the same userinfo and scheme are refused for an own URL, so the two branches agree", async () => {
+    for (const url of ["https://user:secret@rival.example/", "javascript:alert(1)"]) {
+      expect(await readUrlInput({ url, role: "own" }, noPort)).toEqual(refused);
+    }
+  });
+
+  it.each([
+    "http://rival.example/",
+    "https://rival.example/path?q=1#top",
+    "HTTPS://RIVAL.EXAMPLE/",
+    "https://rival.example:8443/",
+  ])("%s is recorded as given, with no port called", async (url) => {
+    expect(await readUrlInput({ url, role: "competitor" }, noPort)).toEqual({
+      status: "not-read",
+      url,
+      line: "read.notRead.competitor",
+    });
+  });
+});
+
+describe("the context names why there is no render (S-9)", () => {
+  it.each(["banana", "", "snapshot-invalid", "no-flat-pair", undefined, 0, false])(
+    "a notRendered of %j with no snapshot throws a TypeError",
+    (notRendered) => {
+      expect(() =>
+        analyseUrl(READ_A, null, { ...CTX, notRendered } as unknown as AnalyserContext),
+      ).toThrow(
+        new TypeError(
+          "analyseUrl: ctx.notRendered is not null and not one of no-renderer, render-failed or render-budget",
+        ),
+      );
+    },
+  );
+
+  it.each(["no-renderer", "render-failed", "render-budget"] as const)("%s is taken", (reason) => {
+    expect(run(READ_A, null, { ...CTX, notRendered: reason }).notMeasured[0]?.reason).toBe(reason);
+  });
+});
+
+describe("declared colours are read in declaration values only (S-7)", () => {
+  it("an id selector, a commented-out declaration and an svg reference give no item", () => {
+    const css = "#facade { color: red } /* #bad */ a { fill: url(#add) }";
+    const result = run(readOf(HTML_A, [["https://clinic.example/a.css", css]]), null, CTX_D);
+    expect(ofKind(result.evidence, "colour-declared")).toEqual([]);
+  });
+
+  it("a colour in a declaration still gives its item at its offset", () => {
+    const css = "/* #bad */ a { color: #123456 }";
+    const items = ofKind(
+      run(readOf(HTML_A, [["https://clinic.example/a.css", css]]), null, CTX_D).evidence,
+      "colour-declared",
+    );
+    expect(items.map((i) => [i.observation.subject, i.source.locator])).toEqual([
+      ["123456", { kind: "element", path: `sheet:${css.indexOf("#123456")}` }],
+    ]);
+  });
+});
+
+describe("a declared family that names no font gives no item (S-8)", () => {
+  it("a var() value, a CSS-wide keyword and an @font-face descriptor give none", () => {
+    const css =
+      "@font-face{font-family:'X Brand'} body{font-family: var(--font-sans, Inter)} p{font-family:inherit} q{font-family:Georgia}";
+    const items = ofKind(
+      run(readOf(HTML_A, [["https://clinic.example/a.css", css]]), null, CTX_D).evidence,
+      "font-family",
+    );
+    expect(items.map((i) => i.observation.subject)).toEqual(["declared.georgia"]);
+  });
+});
+
+describe("a stylesheet gives at most 256 colours and 32 families (SEC-4)", () => {
+  const sheetItems = (result: ReturnType<typeof run>, kind: string, url: string) =>
+    ofKind(result.evidence, kind).filter((i) => i.source.ref === url);
+
+  it("256 distinct colours are all kept and not flagged; 257 keep the first 256 by offset, each flagged", () => {
+    const full = run(readOf(HTML_A, [[sheetUrl(0), coloursSheet(256)]]), null, CTX_D);
+    const fullItems = sheetItems(full, "colour-declared", sheetUrl(0));
+    expect(fullItems).toHaveLength(256);
+    expect(fullItems.some(pageIncomplete)).toBe(false);
+
+    const over = run(readOf(HTML_A, [[sheetUrl(0), coloursSheet(257)]]), null, CTX_D);
+    const items = sheetItems(over, "colour-declared", sheetUrl(0));
+    expect(items).toHaveLength(256);
+    expect(items.every(pageIncomplete)).toBe(true);
+    expect(items.map((i) => i.observation.subject).sort()).toEqual(
+      Array.from({ length: 256 }, (_, i) => hexAt(0x100000 + i).slice(1)).sort(),
+    );
+  });
+
+  it("the same colour written 300 times is one colour, not a cap", () => {
+    const css = "a{color:#123456}".repeat(300);
+    const result = run(readOf(HTML_A, [[sheetUrl(0), css]]), null, CTX_D);
+    const items = sheetItems(result, "colour-declared", sheetUrl(0));
+    expect(items).toHaveLength(1);
+    expect(pageIncomplete(items[0] as InputEvidence)).toBe(false);
+  });
+
+  it("32 distinct families are all kept and not flagged; 33 keep the first 32 by offset, each flagged", () => {
+    const full = run(readOf(HTML_A, [[sheetUrl(0), familiesSheet(32)]]), null, CTX_D);
+    const fullItems = sheetItems(full, "font-family", sheetUrl(0));
+    expect(fullItems).toHaveLength(32);
+    expect(fullItems.some(pageIncomplete)).toBe(false);
+
+    const over = run(readOf(HTML_A, [[sheetUrl(0), familiesSheet(33)]]), null, CTX_D);
+    const items = sheetItems(over, "font-family", sheetUrl(0));
+    expect(items).toHaveLength(32);
+    expect(items.every(pageIncomplete)).toBe(true);
+    expect(items.map((i) => i.observation.subject).sort()).toEqual(
+      Array.from({ length: 32 }, (_, i) => `declared.fam${i}`).sort(),
+    );
+  });
+
+  it("the same family written 100 times is one family, not a cap", () => {
+    const result = run(
+      readOf(HTML_A, [[sheetUrl(0), "a{font-family:Inter}".repeat(100)]]),
+      null,
+      CTX_D,
+    );
+    const items = sheetItems(result, "font-family", sheetUrl(0));
+    expect(items).toHaveLength(1);
+    expect(pageIncomplete(items[0] as InputEvidence)).toBe(false);
+  });
+
+  it("a sheet past the family cap flags its colours too, and a sheet past the colour cap its families", () => {
+    const manyFamilies = `a{color:#123456}${familiesSheet(33)}`;
+    const a = run(readOf(HTML_A, [[sheetUrl(0), manyFamilies]]), null, CTX_D);
+    expect(sheetItems(a, "colour-declared", sheetUrl(0)).every(pageIncomplete)).toBe(true);
+
+    const manyColours = `a{font-family:Inter}${coloursSheet(257)}`;
+    const b = run(readOf(HTML_A, [[sheetUrl(0), manyColours]]), null, CTX_D);
+    const families = sheetItems(b, "font-family", sheetUrl(0));
+    expect(families).toHaveLength(1);
+    expect(families.every(pageIncomplete)).toBe(true);
+  });
+
+  it("only the sheet past a cap is flagged: another sheet and the page text are not", () => {
+    const result = run(
+      readOf(HTML_A, [
+        [sheetUrl(0), coloursSheet(257)],
+        [sheetUrl(1), "a{color:#654321}"],
+      ]),
+      null,
+      CTX_D,
+    );
+    expect(sheetItems(result, "colour-declared", sheetUrl(0)).every(pageIncomplete)).toBe(true);
+    expect(sheetItems(result, "colour-declared", sheetUrl(1)).some(pageIncomplete)).toBe(false);
+    expect(ofKind(result.evidence, "text-span").some(pageIncomplete)).toBe(false);
+  });
+
+  it("with a render the families of a sheet are not items, so 33 of them flag nothing", () => {
+    const css = `a{color:#123456}${familiesSheet(33)}`;
+    const result = run(readOf(HTML_A, [[sheetUrl(0), css]]), SNAP_A);
+    const items = sheetItems(result, "colour-declared", sheetUrl(0));
+    expect(items).toHaveLength(1);
+    expect(pageIncomplete(items[0] as InputEvidence)).toBe(false);
+  });
+
+  it("an item of a sheet past a cap has confidence 0.7 with the one factor", () => {
+    const result = run(readOf(HTML_A, [[sheetUrl(0), coloursSheet(257)]]), null, CTX_D);
+    const item = sheetItems(result, "colour-declared", sheetUrl(0))[0] as InputEvidence;
+    expect(item.confidence.value).toBe(0.7);
+    expect(item.confidence.factors.map((f) => f.id)).toEqual(["page-incomplete"]);
+    expect(item.flags.map((f) => f.key)).toEqual(["quality.pageIncomplete"]);
+  });
+
+  it("a read that is already incomplete does not carry the factor twice", () => {
+    const read = readOf(HTML_A, [[sheetUrl(0), coloursSheet(257)]], ["page-incomplete"]);
+    const item = sheetItems(
+      run(read, null, CTX_D),
+      "colour-declared",
+      sheetUrl(0),
+    )[0] as InputEvidence;
+    expect(item.confidence.factors.map((f) => f.id)).toEqual(["page-incomplete"]);
+    expect(inputEvidenceSchema.safeParse(item).success).toBe(true);
+  });
+
+  it(
+    "the worst case, 10 sheets of 1 MB and a 2 MB document with a description of 1.7 MB, gives fewer than 5,000 items and no id-collision",
+    () => {
+      const sheets = Array.from({ length: 10 }, (_, s) => {
+        const colours = coloursSheet(60_000, s * 131_072);
+        const families = familiesSheet(30_000, `f${s}x`);
+        return [sheetUrl(s), (colours + families).slice(0, MB)] as [string, string];
+      });
+      const description = "we are calm and friendly not bold ".repeat(52_000);
+      const html = `<html><head><title>${"calm ".repeat(40_000)}</title><meta name="description" content="${description}"></head><body><p>x</p></body></html>`;
+      expect(html.length).toBeLessThanOrEqual(2 * MB);
+      const { result } = timedAnalysis(readOf(html, sheets));
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.evidence.length).toBeLessThan(5000);
+      expect(new Set(result.evidence.map((i) => i.id)).size).toBe(result.evidence.length);
+      expect(ofKind(result.evidence, "colour-declared")).toHaveLength(2560);
+      expect(ofKind(result.evidence, "font-family")).toHaveLength(320);
+    },
+    HEAVY_TIMEOUT,
+  );
+});
+
+describe("the title and the description are bounded before lexicon-1 reads them (SEC-4)", () => {
+  const text = "we are calm and friendly not bold ".repeat(61_000);
+
+  it(
+    "a 2 MB meta description gives a bounded number of items, not an id-collision, in time",
+    () => {
+      const html = `<meta name="description" content="${text.slice(0, 2 * MB - 100)}"><p>x</p>`;
+      const { result, elapsed } = timedAnalysis(readOf(html));
+      expect(elapsed).toBeLessThan(TIME_BOUND_MS);
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      const signals = ofKind(result.evidence, "personality-signal");
+      expect(signals.length).toBeGreaterThan(0);
+      expect(signals.length).toBeLessThan(200);
+      const span = ofKind(result.evidence, "text-span").find(
+        (i) => i.observation.subject === "meta",
+      );
+      expect(span?.source.locator).toMatchObject({ kind: "text", start: 0 });
+      expect(span?.source.locator.kind === "text" && span.source.locator.end).toBeLessThanOrEqual(
+        1000,
+      );
+      expect(result.evidence.every(pageIncomplete)).toBe(true);
+    },
+    HEAVY_TIMEOUT,
+  );
+
+  it(
+    "a 2 MB title is bounded the same way",
+    () => {
+      const html = `<title>${text.slice(0, 2 * MB - 100)}</title><p>x</p>`;
+      const { result, elapsed } = timedAnalysis(readOf(html));
+      expect(elapsed).toBeLessThan(TIME_BOUND_MS);
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(ofKind(result.evidence, "personality-signal").length).toBeLessThan(200);
+      expect(result.evidence.every(pageIncomplete)).toBe(true);
+    },
+    HEAVY_TIMEOUT,
+  );
+
+  it("a description within 1,000 characters is read whole and the items are not flagged", () => {
+    const html = `<meta name="description" content="${"we are calm and friendly not bold ".repeat(28)}"><p>x</p>`;
+    const result = run(readOf(html), null, CTX_D);
+    expect(result.evidence.some(pageIncomplete)).toBe(false);
+  });
+});
+
+describe("every stylesheet route is linear through analyseUrl (SEC-3, SEC-4)", () => {
+  it.each([
+    [
+      "1 MB of distinct hex colours",
+      () => `a{b:${Array.from({ length: 131_000 }, (_, i) => hexAt(i)).join(" ")}}`,
+    ],
+    ["1 MB of font-family: with no end", () => "font-family:a ".repeat(MB / 14 - 8)],
+    ["a 1 MB run of spaces in one family", () => `font-family:a${" ".repeat(MB - 64)}b`],
+    ["rgb( with a 1 MB digit run", () => `a{color:rgb(${"1".repeat(MB - 64)}x,1,1)}`],
+    ["hsl( with a 1 MB digit run", () => `a{color:hsl(${"1".repeat(MB - 64)}x 1% 1%)}`],
+    ["1 MB of one repeated family", () => "a{font-family:Inter}".repeat(MB / 20 - 8)],
+  ])(
+    "%s",
+    (_name, make) => {
+      const css = make();
+      expect(css.length).toBeLessThanOrEqual(MB);
+      const { result, elapsed } = timedAnalysis(readOf(HTML_A, [[sheetUrl(0), css]]));
+      expect(elapsed).toBeLessThan(TIME_BOUND_MS);
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(ofKind(result.evidence, "colour-declared").length).toBeLessThanOrEqual(256);
+      expect(ofKind(result.evidence, "font-family").length).toBeLessThanOrEqual(32);
+      for (const item of result.evidence) {
+        expect(inputEvidenceSchema.safeParse(item).success).toBe(true);
+      }
+    },
+    HEAVY_TIMEOUT,
+  );
+});

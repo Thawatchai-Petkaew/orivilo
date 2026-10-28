@@ -74,7 +74,8 @@ export function paletteOf(areas: readonly ColourArea[]): { warmShare: number; me
     .reduce((sum, a) => sum + a.share, 0);
   const chroma = areas.reduce((sum, a) => sum + a.share * a.chroma, 0);
   return {
-    warmShare: round(warm, 6),
+    // Held to 1 against floating point, not rounded: `measure-to-lean-1` rounds to thousandths once (S-10).
+    warmShare: Math.min(1, warm),
     meanChroma: round(chroma, OKLCH_DECIMALS),
   };
 }
@@ -83,17 +84,28 @@ export function paletteOf(areas: readonly ColourArea[]): { warmShare: number; me
 
 const clampByte = (v: number): number => Math.min(255, Math.max(0, Math.round(v)));
 
+/**
+ * One CSS number as a sign, digits with an optional fraction or a fraction alone, and an optional
+ * exponent. Each character has one way to match (the number form of SEC-3), so a long token fails
+ * in linear time. The two readers below write it out in full, as literals.
+ */
+const COMPONENT = /^([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?)(%?)$/i;
+const HUE = /^([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?)(deg|grad|rad|turn)?$/i;
+
+/** A token of a colour function longer than this is not a colour (SEC-3); a real one is a few characters. */
+const COLOUR_TOKEN_MAX_CHARS = 64;
+
 /** One CSS number or percentage as a fraction of `scale`; null for anything else (`none`, `calc()`, a unit). */
-function component(token: string, scale: number): number | null {
-  const m = /^([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)(%?)$/i.exec(token);
+export function component(token: string, scale: number): number | null {
+  const m = COMPONENT.exec(token);
   if (!m) return null;
   const n = Number(m[1]);
   return m[2] === "%" ? (n / 100) * scale : n;
 }
 
 /** A hue in degrees from a number or a `deg`, `grad`, `rad` or `turn` value. */
-function hueOf(token: string): number | null {
-  const m = /^([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)(deg|grad|rad|turn)?$/i.exec(token);
+export function hueOf(token: string): number | null {
+  const m = HUE.exec(token);
   if (!m) return null;
   const n = Number(m[1]);
   const unit = (m[2] ?? "deg").toLowerCase();
@@ -122,6 +134,7 @@ function hslToBytes(h: number, s: number, l: number): [number, number, number] {
 function functionColour(name: string, args: string): string | null {
   const tokens = args.trim().split(/\s*[,/]\s*|\s+/);
   if (tokens.length !== 3 && tokens.length !== 4) return null;
+  if (tokens.some((t) => t.length > COLOUR_TOKEN_MAX_CHARS)) return null;
   if (tokens.length === 4) {
     const alpha = component(tokens[3] ?? "", 1);
     if (alpha !== 1) return null;
@@ -144,6 +157,92 @@ function functionColour(name: string, args: string): string | null {
 
 const HEX_COLOUR = /#([0-9a-f]{3}|[0-9a-f]{6})(?![0-9a-z_\u0080-\uffff-])/gi;
 const COLOUR_FUNCTION = /\b(rgba?|hsla?)\(([^()]*)\)/gi;
+const IDENT_CHAR = /[A-Za-z0-9_\u0080-\uffff-]/;
+
+/**
+ * The index after the comment or the string that starts at `i`, or `i` when none does. A comment
+ * with no end and a string with no end run to the end of the text; a string also ends before an
+ * unescaped line break, as CSS ends a bad string. One `indexOf` or one walk, forward only.
+ */
+export function endOfCommentOrString(css: string, i: number): number {
+  const c = css[i];
+  if (c === "/" && css[i + 1] === "*") {
+    const close = css.indexOf("*/", i + 2);
+    return close < 0 ? css.length : close + 2;
+  }
+  if (c !== '"' && c !== "'") return i;
+  let j = i + 1;
+  while (j < css.length) {
+    const d = css[j];
+    if (d === "\\") j += 2;
+    else if (d === c) return j + 1;
+    else if (d === "\n" || d === "\r" || d === "\f") return j;
+    else j++;
+  }
+  return css.length;
+}
+
+/** The index after the `url(` token that starts at `i` (its `)`, or the end of the text), or `i` when none starts there. */
+function endOfUrl(css: string, i: number): number {
+  const c = css[i];
+  if ((c !== "u" && c !== "U") || css.slice(i, i + 4).toLowerCase() !== "url(") return i;
+  if (i > 0 && IDENT_CHAR.test(css[i - 1] ?? "")) return i;
+  let j = i + 4;
+  while (j < css.length) {
+    const k = endOfCommentOrString(css, j);
+    if (k !== j) j = k;
+    else if (css[j] === ")") return j + 1;
+    else j++;
+  }
+  return css.length;
+}
+
+/**
+ * The ranges of a stylesheet that are declaration values: the text after a `:` inside a block, up
+ * to the `;` or `}` that ends it. A comment, a string and a `url()` split a value and are not in
+ * it. A `:` whose text ends in `{` was a nested selector, not a declaration, and gives nothing.
+ * One forward pass, so the cost is linear in the sheet.
+ */
+function declarationValues(css: string): [start: number, end: number][] {
+  const out: [number, number][] = [];
+  let depth = 0;
+  let inValue = false;
+  let from = 0; // the start of the piece of the value being read
+  let mark = 0; // out.length when the value began
+  const close = (end: number) => {
+    if (inValue && end > from) out.push([from, end]);
+  };
+  let i = 0;
+  while (i < css.length) {
+    const skipped = Math.max(endOfCommentOrString(css, i), endOfUrl(css, i));
+    if (skipped !== i) {
+      close(i);
+      i = skipped;
+      from = i;
+      continue;
+    }
+    const c = css[i];
+    if (c === "{") {
+      if (inValue) out.length = mark;
+      inValue = false;
+      depth++;
+    } else if (c === "}") {
+      close(i);
+      inValue = false;
+      depth = Math.max(0, depth - 1);
+    } else if (c === ";") {
+      close(i);
+      inValue = false;
+    } else if (c === ":" && depth > 0 && !inValue) {
+      inValue = true;
+      from = i + 1;
+      mark = out.length;
+    }
+    i++;
+  }
+  close(css.length);
+  return out;
+}
 
 export type DeclaredColour = {
   /** Six lowercase hex digits. */
@@ -156,7 +255,8 @@ export type DeclaredColour = {
  * The distinct colours a stylesheet declares, each with the offset of its first occurrence, in order
  * of that offset. Read: hex of 3 or 6 digits, and `rgb()`, `rgba()`, `hsl()` and `hsla()` with no
  * alpha or an alpha of 1. Any other syntax, a colour with an alpha below 1 among it, is skipped and
- * not counted. The whole text is scanned: a comment or a selector that looks like a colour counts.
+ * not counted, and so is a function with a token over 64 characters. Colours are read only in
+ * declaration values (S-7): a selector, a comment, a string and a `url()` give none.
  */
 export function declaredColoursOf(css: string): DeclaredColour[] {
   const first = new Map<string, number>();
@@ -165,13 +265,15 @@ export function declaredColoursOf(css: string): DeclaredColour[] {
     const seen = first.get(hex);
     if (seen === undefined || offset < seen) first.set(hex, offset);
   };
-  for (const m of css.matchAll(HEX_COLOUR)) {
-    const digits = (m[1] ?? "").toLowerCase();
-    const hex = digits.length === 3 ? [...digits].map((d) => d + d).join("") : digits;
-    note(hex, m.index);
-  }
-  for (const m of css.matchAll(COLOUR_FUNCTION)) {
-    note(functionColour((m[1] ?? "").toLowerCase(), m[2] ?? ""), m.index);
+  for (const [start, end] of declarationValues(css)) {
+    const piece = css.slice(start, end);
+    for (const m of piece.matchAll(HEX_COLOUR)) {
+      const digits = (m[1] ?? "").toLowerCase();
+      note(digits.length === 3 ? [...digits].map((d) => d + d).join("") : digits, start + m.index);
+    }
+    for (const m of piece.matchAll(COLOUR_FUNCTION)) {
+      note(functionColour((m[1] ?? "").toLowerCase(), m[2] ?? ""), start + m.index);
+    }
   }
   return [...first].map(([hex, offset]) => ({ hex, offset })).sort((a, b) => a.offset - b.offset);
 }
