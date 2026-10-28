@@ -1,7 +1,7 @@
 ---
 issue: ORV-138 (https://tpetkaew.atlassian.net/browse/ORV-138)
 lane: L (guard files; ORV-138 description)
-version: 1.2
+version: 1.3
 ---
 
 # ORV-138: phase-1 guard batch, seven guard changes in one PR
@@ -213,7 +213,11 @@ Each rule below is the one home of its outcome. Other sections point to the name
     quotes and escaping backslashes removed (`"cd"`, `\cd` and `c""d` each give `cd`; `~` and `~/`
     give the home folder of the hook process), and its kind: `none` with no expansion; `glob` when
     every expansion in it is `?`, `*` or `[`, each of which matches inside one name; `any` otherwise
-    (a `$`, backquote, brace or tilde expansion, whose value may hold `/` and `..`).
+    (a `$`, backquote, brace or tilde expansion, whose value may hold `/` and `..`). Each word also
+    carries its path components, split at each `/`: per component, its fixed part (the text of the
+    component before its first expansion) and a glob flag (the component holds an expansion).
+    resolve-1 (d) collapses `..` against these components, a component with the flag counting as one
+    name (`x*/../.oriv?lo` leaves `.oriv?lo`).
   - (d) Command position. In each segment these words before the command name are skipped:
     assignments (`NAME=value`); reserved words (`if`, `then`, `elif`, `else`, `fi`, `while`, `until`,
     `do`, `done`, `for`, `select`, `case`, `esac`, `coproc`, `function`, `{`, `}`, `[[`, `]]`, `!`,
@@ -221,10 +225,13 @@ Each rule below is the one home of its outcome. Other sections point to the name
     `-C DIR`, and their `--name=value` forms) and its `NAME=VALUE` words; `command` with `-p`;
     `builtin`; `exec` with `-c`, `-l` and `-a NAME`; `nohup`; and `timeout` with its options and
     DURATION. A redirect anywhere in the segment is no command word (K-0090 section 3). The first word
-    left is the command name, read by its fixed part, lowercased (a case-insensitive file system finds
-    `TEE` as `tee`); a command name with an expansion is unknown. `command -v` and `command -V` run no
-    command; `env -S` and `--split-string` make the command unknown. The segment records its `env -C`
-    folder and each `GIT_DIR` or `GIT_WORK_TREE` assignment, as a prefix or an `env` word.
+    left is the command name, read as the base name of its fixed part (the text after its last `/`),
+    lowercased: `/usr/bin/tee`, `./TEE` and `TEE` each read as `tee` (a case-insensitive file system
+    finds `TEE` as `tee`). The prefix programs `env`, `command`, `builtin`, `exec`, `nohup` and
+    `timeout` are found the same way (`/usr/bin/env git switch x` has the command `git`). A command
+    name with an expansion is unknown. `command -v` and `command -V` run no command; `env -S` and
+    `--split-string` make the command unknown. The segment records its `env -C` folder and each
+    `GIT_DIR` or `GIT_WORK_TREE` assignment, as a prefix or an `env` word.
   - (e) Effective cwd. The call starts in the hook input's `cwd`, unknown when it is missing or no
     existing folder. A `cd`, `pushd` or `popd` at command position moves it: options `-L`, `-P`, `-e`,
     `-@` and `--` are skipped; `pushd -n` moves nothing; a literal target resolves against each folder
@@ -267,7 +274,11 @@ Each rule below is the one home of its outcome. Other sections point to the name
     before it, and `-C ""` changing nothing (git(1)). `gh pr checkout` runs in the effective cwd.
   - (c) The checkout is unknown when the effective cwd is unknown; when the segment has `env -C`,
     `--git-dir`, `--work-tree`, or a `GIT_DIR` or `GIT_WORK_TREE` assignment (shell-1 (d)); when a
-    `-C` value has an expansion; or when the git top of a folder cannot be read.
+    `-C` value has an expansion; or when the git top of a folder cannot be read. A switch form whose
+    git top cannot be read is blocked with or without a bound envelope, as a read failure like the
+    records (the read-failure case of row 25, asserted since v1.0); its stderr says the records or the
+    checkout cannot be read and the checkout is unknown. Every other unknown checkout is blocked only
+    while an envelope is bound (open question 13).
 
 - `resolve-1`: `write-guard` judges a Bash call, from the main session or a subagent, by its write
   targets as shell-1 reads them, against the protected sets of the session (all three for the main
@@ -279,29 +290,39 @@ Each rule below is the one home of its outcome. Other sections point to the name
     `-i` (alone, in a group such as `-ni`, with a suffix, or `--in-place`), and `git` whose subcommand,
     after its global options as switch-1 (a) reads them, is `apply`, `restore`, `checkout`, `switch`,
     `stash` or `reset` (the programs of `WRITE_FORMS`, lines 200 to 205). Its path arguments are every
-    later word that is not an option, and the value after `=` of an option word
-    (`--target-directory=<folder>`). No other word of the call is judged.
+    later word that is not an option (a word whose fixed part begins with `-`), every word after a
+    literal `--`, and the value after `=` of an option word whose `=` stands in the fixed part of its
+    first path component (`--target-directory=<folder>`). No other word of the call is judged; the
+    option words this leaves out are a named class in Honest limits, ORV-96 part.
   - (b) Base. A redirect target resolves against each folder of its segment's effective cwd (shell-1
     (e)). A path argument resolves the same way, with git's `-C` folders applied as switch-1 (b)
     applies them; under `env -C`, `--git-dir`, `--work-tree`, or a `GIT_DIR` or `GIT_WORK_TREE`
     assignment its base is unknown. Resolving collapses `.` and `..` (`scripts/x/../ovl/a.mjs` is
     `scripts/ovl/a.mjs`), on the text and again through realpath of the nearest existing folder, as
-    `judgeToolWrite` does (lines 182 to 195); either result counts.
+    `judgeToolWrite` does (lines 182 to 195); either result counts. Realpath gets the path with its
+    `..` already collapsed, so both readings take a `..` after a link by the text (Honest limits,
+    ORV-96 part, the link line).
   - (c) A target of kind `none` is blocked when it lies inside a protected set: the path is in the set,
     or is the set's own folder (`.claude/hooks`, `.orivilo`).
   - (d) A target with an expansion is blocked when its fixed part could begin a protected path. For
     kind `glob`, after `.` and `..` are collapsed with a glob name counting as one name, it could when
     a protected path or a checkout of this project (the main checkout or one under
     `.claude/worktrees/`) begins with the resolved fixed part, or the resolved fixed part lies inside
-    a protected set. For kind `any`, it could when the fixed part is empty, or when the folder it names
-    (the resolved fixed part up to its last `/`) lies inside a checkout of this project or above one.
+    a protected set. A glob target whose resolved fixed part begins no protected path and no checkout
+    and lies inside no protected set is allowed, so `printf x > foo*` from a checkout root is allowed
+    (Worked examples, resolve-1 (d) glob). For kind `any`, it could when the fixed part is empty, or
+    when the folder it names (the resolved fixed part up to its last `/`) lies inside a checkout of
+    this project or above one.
   - (e) A relative target whose base is unknown is blocked (fail closed). An absolute target needs no
     base.
   - (f) Unchanged: the main session's literal-name rule (`named`, lines 67 to 76, and its exceptions,
     lines 651 to 656), the subagent rule of ORV-93 (a literal protected name and a write form by its
     text test, lines 642 to 649), the qa and designer screenshot exception (lines 644 to 646 and
     `isOwnScreenshotWrite`, lines 372 to 381), which allows a subagent call before resolve-1 is read,
-    and the close rules (lines 632 to 634). Line numbers are on 38a7f73.
+    and the close rules (lines 632 to 634). Line numbers are on 38a7f73. A subagent call that names a
+    protected path and holds no write form by the ORV-93 text test (`/usr/bin/tee .orivilo/x`) goes
+    on to resolve-1 after the screenshot exception and the text rule. So for a subagent call resolve-1
+    may block more than the text rule, never less.
 
 ### Branch switch forms (switch-1, L-0012)
 
@@ -449,7 +470,7 @@ N1 in rule no-throw-1; N2, N3 and N4 in Honest limits (the recorder part); N5 in
 ## Worked examples
 
 Run from the repo root. Each command prints exactly the output shown; every output is exact, with no
-rounding. The v1.2 examples were written with no shell and are not run yet.
+rounding. The v1.2 and v1.3 examples were written with no shell and are not run yet.
 
 - rework-1, input copied from `.orivilo/runs/ORV-139/` on 2026-10-29: the `started_at` of
   `ORV-139-build-1`, `-build-2` and `-build-3` `agent.json`, and the `recorded_at` of the two
@@ -504,6 +525,37 @@ rounding. The v1.2 examples were written with no shell and are not run yet.
 
   ```bash
   node -e 'for(const w of [".oriv[i]lo/owner-approvals/7.json",".or{i,}vilo/owner-approvals/7.json","${D}ilo/owner-approvals/7.json","/tmp/orv-$n.txt","/tmp/orv-*"]){const i=w.search(/[?*[{$`]/);console.log(JSON.stringify(w.slice(0,i)),/[?*[]/.test(w[i])?"glob":"any")}'
+  ```
+
+- shell-1 (d) base name (v1.3), input `/usr/bin/tee` from the comment at `scripts/ovl/shell-words.mjs`
+  line 538, `./TEE` and `TEE` from row 41 and the ORV-138-build-resolve report, and `/usr/bin/env`,
+  each read by the expression copied from line 540. Expected output, four lines: `tee`, `tee`,
+  `tee`, `env`.
+
+  ```bash
+  node -e 'for(const f of ["/usr/bin/tee","./TEE","TEE","/usr/bin/env"])console.log(f.slice(f.lastIndexOf("/")+1).toLowerCase())'
+  ```
+
+- shell-1 (c) path components with resolve-1 (d) (v1.3), input the row 48 target
+  `x*/../.oriv?lo/owner-approvals/7.json` from the main checkout root: the components with their
+  fixed parts and glob flags, `..` collapsed with a glob name counting as one name, and the names up
+  to the first glob name, as `globHits` in `scripts/ovl/write-guard.mjs` lines 425 to 445 keeps them
+  (the checkout root base is left out). Expected output: `.oriv`, which `<main>/.orivilo/` begins
+  with (blocked).
+
+  ```bash
+  node -e 'const s=[];for(const c of "x*/../.oriv?lo/owner-approvals/7.json".split("/")){const i=c.search(/[?*[]/);const p={fixed:i<0?c:c.slice(0,i),glob:i>=0};if(p.glob||(p.fixed!==""&&p.fixed!=="."&&p.fixed!==".."))s.push(p);else if(p.fixed==="..")s.pop()}const at=s.findIndex(p=>p.glob);console.log(s.slice(0,at+1).map(p=>p.fixed).join("/"))'
+  ```
+
+- resolve-1 (d) glob (v1.3), input the fixed parts of `foo*`, `*.tmp` and `.oriv[i]lo` relative to
+  the main checkout root, the checkout prefixes (the root itself and `.claude/worktrees/`), and the
+  name prefixes of the three sets copied from `TEXT_PREFIXES` in `scripts/ovl/write-guard.mjs` lines
+  29 to 40: does a checkout or a protected path begin with the fixed part. The one-liner leaves out
+  the inside-a-set test, which none of the three meets. Expected output, three lines: `"foo" false`
+  (allowed), `"" true` (blocked), `".oriv" true` (blocked).
+
+  ```bash
+  node -e 'const pre=["",".claude/worktrees/","packages","apps",".claude/hooks",".claude/settings","scripts/ovl","scripts/quality-gate.mjs",".github/workflows",".gitignore",".orivilo",".quality-gate"];for(const f of ["foo","",".oriv"])console.log(JSON.stringify(f),pre.some(q=>q.startsWith(f)))'
   ```
 
 - shell-1 (e), input three forms copied from "Branch forms to keep" and "Branch switch forms", with
@@ -561,7 +613,12 @@ S, and the shell:
 - A link into a protected folder made by one of the routes above, then written through by a plain
   path; a fixed part under a folder outside every checkout (`/tmp/x*`), even when a link there leads
   into a checkout; and a `..` after a link, which the system resolves through the link and resolve-1
-  by the text.
+  by the text in both readings of resolve-1 (b), since realpath already gets the path with its `..`
+  collapsed.
+- An option word, which resolve-1 (a) does not judge as a path: a word that begins with `-` and holds
+  an expansion (`rm -rf -$X`, `--x$Y=.orivilo/x`, whose `=` comes after the expansion), and a short
+  option with its value attached (`cp -t<dir>`, as in `cp -t.oriv?lo/exports /tmp/x`). `rm -- -$X`
+  is not in this class (resolve-1 (a), the `--` word).
 - The value of a kind `any` expansion that climbs out of a folder outside every checkout with `..`
   (`/tmp/$V`, with V holding `/../` and then a checkout path).
 - State from before the call: CDPATH (a relative `cd` target is resolved against the folder only),
@@ -678,7 +735,8 @@ task that changed nothing still makes the next rejecting verdict count.
     replaces. Impact: one folder lets `false && cd /tmp; printf x > settings.json` from a cwd at
     `<main>/.claude` write the hook wiring, and `true || cd <unbound> && git switch x` switch a bound
     checkout; the set judges a target after a `cd` that may be skipped against both folders.
-13. An unknown checkout with no bound envelope (switch-1). Options: allowed (default), or blocked.
+13. An unknown checkout with no bound envelope (switch-1), other than a git top that cannot be read
+    (switch-1 (c)). Options: allowed (default), or blocked.
     Impact: blocking would stop `cd - && git switch x` in a session with nothing bound.
 
 ## Depends on
@@ -745,3 +803,28 @@ task that changed nothing still makes the next rejecting verdict count.
   `scripts/ovl/result-recorder.mjs` and the row 36 (d) test (RV-5); `.claude/skills/ovl/SKILL.md`
   lines 269 to 275 and 445 (row 52); `docs/knowledge/enforcement/K-0090-bash-forms-for-text-guards.md`
   line 299, which names expand-1; the PR body's deviation list; and the G1 comment on ORV-138.
+
+- v1.3: bookkeeping (L-0040), no new requirement and no new row: the spec states what the round 1
+  builders built, decided by the orchestrator under the owner's delegation (ADR 0012 decision 4).
+  - shell-1 (d): the command name is the lowercased base name of its fixed part (`/usr/bin/tee` and
+    `./TEE` read as `tee`), the orchestrator decision on ORV-138-build-shell needs_decision 1, built
+    in ORV-138-build-resolve (deviation 1). shell-1 (c): each word carries its path components with
+    their fixed part and glob flag, which resolve-1 (d) uses to collapse `..` against a glob name
+    (ORV-138-build-resolve deviation 2).
+  - Honest limits, ORV-96 part: the option word class (`rm -rf -$X`, `--x$Y=...`, `cp -t<dir>`),
+    with resolve-1 (a) saying which option words it judges (ORV-138-build-resolve needs_decision 2);
+    the link line and resolve-1 (b) say realpath gets `..` already collapsed, so a `..` after a link
+    keeps its named bypass (ORV-138-build-resolve needs_decision 1).
+  - switch-1 (c): a switch form whose git top cannot be read is blocked with or without a bound
+    envelope, as row 25 has asserted since v1.0 (ORV-138-build-switch deviation 2); open question 13
+    points to it.
+  - resolve-1 (d): a glob target at a checkout root whose fixed part begins no protected path and no
+    checkout (`printf x > foo*`) is allowed (ORV-138-build-resolve deviation 6).
+  - resolve-1 (f): a subagent call that names a protected path with no write form in its text goes to
+    resolve-1 after the screenshot exception and the text rule; resolve-1 may block more, never less
+    (ORV-138-build-resolve deviation 7).
+  - Worked examples: three new ones, the base name, the path components and the resolve-1 (d) glob.
+
+  Review downstream: `.claude/skills/ovl/SKILL.md` line 459 (the `write-guard` Honest limits bullet,
+  which does not yet name the option word class); the PR body's deviation list; and the G1 comment on
+  ORV-138. The code and tests already match (commits up to 80cc36b).
