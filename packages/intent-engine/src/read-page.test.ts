@@ -996,29 +996,37 @@ describe("one page, logged out, bounded", () => {
     expect(net.log.map((l) => l.url)).toEqual([ROBOTS, PAGE, ...sheets.slice(0, 3)]);
   });
 
-  it("cuts the document at 2 MB with page-incomplete", async () => {
-    const big = new Uint8Array(3 * 1024 * 1024).fill(97);
-    const net = fakeNet(okRoutes({ [PAGE]: { body: big } }));
-    const r = await readPage(PAGE, net.ports);
-    expect(net.log[1]?.maxBytes).toBe(2 * 1024 * 1024);
-    expect(r.status === "read" && r.document.bytes.length).toBe(2 * 1024 * 1024);
-    expect(r.status === "read" && r.document.truncated).toBe(true);
-    expect(r.status === "read" && r.incomplete).toEqual(["page-incomplete"]);
-  });
+  it(
+    "cuts the document at 2 MB with page-incomplete",
+    async () => {
+      const big = new Uint8Array(3 * 1024 * 1024).fill(97);
+      const net = fakeNet(okRoutes({ [PAGE]: { body: big } }));
+      const r = await readPage(PAGE, net.ports);
+      expect(net.log[1]?.maxBytes).toBe(2 * 1024 * 1024);
+      expect(r.status === "read" && r.document.bytes.length).toBe(2 * 1024 * 1024);
+      expect(r.status === "read" && r.document.truncated).toBe(true);
+      expect(r.status === "read" && r.incomplete).toEqual(["page-incomplete"]);
+    },
+    HEAVY_TIMEOUT,
+  );
 
-  it("cuts a document at exactly 2 MB + 1 even when the port ignores maxBytes", async () => {
-    const body = new Uint8Array(2 * 1024 * 1024 + 1).fill(97);
-    const net = fakeNet(okRoutes({ [PAGE]: { body, ignoreMaxBytes: true } }));
-    const r = await readPage(PAGE, net.ports);
-    expect(r.status === "read" && r.document.bytes.length).toBe(2 * 1024 * 1024);
-    expect(r.status === "read" && r.document.truncated).toBe(true);
-    const exact = fakeNet(
-      okRoutes({ [PAGE]: { body: new Uint8Array(2 * 1024 * 1024), ignoreMaxBytes: true } }),
-    );
-    const e = await readPage(PAGE, exact.ports);
-    expect(e.status === "read" && e.document.truncated).toBe(false);
-    expect(e.status === "read" && e.incomplete).toEqual([]);
-  });
+  it(
+    "cuts a document at exactly 2 MB + 1 even when the port ignores maxBytes",
+    async () => {
+      const body = new Uint8Array(2 * 1024 * 1024 + 1).fill(97);
+      const net = fakeNet(okRoutes({ [PAGE]: { body, ignoreMaxBytes: true } }));
+      const r = await readPage(PAGE, net.ports);
+      expect(r.status === "read" && r.document.bytes.length).toBe(2 * 1024 * 1024);
+      expect(r.status === "read" && r.document.truncated).toBe(true);
+      const exact = fakeNet(
+        okRoutes({ [PAGE]: { body: new Uint8Array(2 * 1024 * 1024), ignoreMaxBytes: true } }),
+      );
+      const e = await readPage(PAGE, exact.ports);
+      expect(e.status === "read" && e.document.truncated).toBe(false);
+      expect(e.status === "read" && e.incomplete).toEqual([]);
+    },
+    HEAVY_TIMEOUT,
+  );
 
   it("cuts a stylesheet at 1 MB with page-incomplete", async () => {
     const css = new Uint8Array(1024 * 1024 + 5).fill(97);

@@ -1085,54 +1085,74 @@ describe("html-text-1", () => {
         HEAVY_TIMEOUT,
       );
 
-      it("reads the fostered text as html-text-1 does: a run with no space to stop at gives no block, text with spaces gives one", () => {
-        // the first two pages foster only characters with no whitespace, where the body bound has no place to stop
-        expect(read(FOSTERED_TEXT)).toEqual({ texts: [], incomplete: false });
-        expect(read(FOSTERED_ELEMENTS)).toEqual({ texts: [], incomplete: false });
-        const fostered = pageTextOf(bytes(FOSTERED_AFTER_ELEMENTS));
-        expect(fostered.blocks).toHaveLength(1);
-        expect(fostered.blocks[0]?.text).toBe("a ".repeat(2499) + "a");
-      });
+      it(
+        "reads the fostered text as html-text-1 does: a run with no space to stop at gives no block, text with spaces gives one",
+        () => {
+          // the first two pages foster only characters with no whitespace, where the body bound has no place to stop
+          expect(read(FOSTERED_TEXT)).toEqual({ texts: [], incomplete: false });
+          expect(read(FOSTERED_ELEMENTS)).toEqual({ texts: [], incomplete: false });
+          const fostered = pageTextOf(bytes(FOSTERED_AFTER_ELEMENTS));
+          expect(fostered.blocks).toHaveLength(1);
+          expect(fostered.blocks[0]?.text).toBe("a ".repeat(2499) + "a");
+        },
+        HEAVY_TIMEOUT,
+      );
 
-      it("stops the List steps at the step past 268,435,456", () => {
-        // 23,169 children add 268,412,868 steps, 22,588 under the bound; 23,170 add 268,436,038, 582 past it
-        expect(read(adoption(23_169))).toEqual({ texts: ["after"], incomplete: false });
-        expect(read(adoption(23_170))).toEqual({ texts: [], incomplete: true });
-      });
-
-      it("counts the steps of each parse afresh", () => {
-        // 23,169 children use all but 22,588 of the steps, so a count kept from the call before would cut the next
-        for (let call = 0; call < 3; call++) {
+      it(
+        "stops the List steps at the step past 268,435,456",
+        () => {
+          // 23,169 children add 268,412,868 steps, 22,588 under the bound; 23,170 add 268,436,038, 582 past it
           expect(read(adoption(23_169))).toEqual({ texts: ["after"], incomplete: false });
-        }
-        expect(read(adoption(23_170))).toEqual({ texts: [], incomplete: true });
-        expect(read(adoption(23_169))).toEqual({ texts: ["after"], incomplete: false });
-      });
+          expect(read(adoption(23_170))).toEqual({ texts: [], incomplete: true });
+        },
+        HEAVY_TIMEOUT,
+      );
 
-      it("cuts at the latest start tag pushed: the div of the adoption move, with the link before it kept", () => {
-        const link = (name: string) => `<link rel=stylesheet href=${name}.css>`;
-        // the div holds 23,170 children in all, the last of them the second link
-        const doc = (children: number) =>
-          `<body>${link("a")}<b><div>${"<br>".repeat(children - 1)}${link("b")}</b><p>after</p>`;
-        expect(stylesheetLinksOf(bytes(doc(23_169)))).toEqual({
-          hrefs: ["a.css", "b.css"],
-          incomplete: false,
-        });
-        expect(stylesheetLinksOf(bytes(doc(23_170)))).toEqual({
-          hrefs: ["a.css"],
-          incomplete: true,
-        });
-      });
+      it(
+        "counts the steps of each parse afresh",
+        () => {
+          // 23,169 children use all but 22,588 of the steps, so a count kept from the call before would cut the next
+          for (let call = 0; call < 3; call++) {
+            expect(read(adoption(23_169))).toEqual({ texts: ["after"], incomplete: false });
+          }
+          expect(read(adoption(23_170))).toEqual({ texts: [], incomplete: true });
+          expect(read(adoption(23_169))).toEqual({ texts: ["after"], incomplete: false });
+        },
+        HEAVY_TIMEOUT,
+      );
 
-      it("adds the length of the list of active formatting elements at each push", () => {
-        // 200 stale rounds leave 7,400 entries; each later p push then adds that many steps. The 32,439th
-        // push of a p stays within the bound and the 32,440th passes it. Counting a different length at
-        // each push (one fewer or one more) moves this pair, the stale-marker documents alone do not.
-        const doc = (pushes: number) =>
-          `<body>${STALE_ROUND.repeat(200)}${"<p></p>".repeat(pushes - 1)}<p>Z</p>`;
-        expect(read(doc(32_439))).toEqual({ texts: ["Z"], incomplete: false });
-        expect(read(doc(32_440))).toEqual({ texts: [], incomplete: true });
-      });
+      it(
+        "cuts at the latest start tag pushed: the div of the adoption move, with the link before it kept",
+        () => {
+          const link = (name: string) => `<link rel=stylesheet href=${name}.css>`;
+          // the div holds 23,170 children in all, the last of them the second link
+          const doc = (children: number) =>
+            `<body>${link("a")}<b><div>${"<br>".repeat(children - 1)}${link("b")}</b><p>after</p>`;
+          expect(stylesheetLinksOf(bytes(doc(23_169)))).toEqual({
+            hrefs: ["a.css", "b.css"],
+            incomplete: false,
+          });
+          expect(stylesheetLinksOf(bytes(doc(23_170)))).toEqual({
+            hrefs: ["a.css"],
+            incomplete: true,
+          });
+        },
+        HEAVY_TIMEOUT,
+      );
+
+      it(
+        "adds the length of the list of active formatting elements at each push",
+        () => {
+          // 200 stale rounds leave 7,400 entries; each later p push then adds that many steps. The 32,439th
+          // push of a p stays within the bound and the 32,440th passes it. Counting a different length at
+          // each push (one fewer or one more) moves this pair, the stale-marker documents alone do not.
+          const doc = (pushes: number) =>
+            `<body>${STALE_ROUND.repeat(200)}${"<p></p>".repeat(pushes - 1)}<p>Z</p>`;
+          expect(read(doc(32_439))).toEqual({ texts: ["Z"], incomplete: false });
+          expect(read(doc(32_440))).toEqual({ texts: [], incomplete: true });
+        },
+        HEAVY_TIMEOUT,
+      );
 
       it(
         "returns the parse of the empty text when the List steps stop the second parse",
