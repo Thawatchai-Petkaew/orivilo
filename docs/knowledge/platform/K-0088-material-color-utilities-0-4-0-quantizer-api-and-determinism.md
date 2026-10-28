@@ -132,7 +132,7 @@ The ORV-128 tech notes, §8 "Colour" (`docs/specs/ORV-128/tech.md` line 768, bef
 
 ### Open points
 
-- The tech notes call the proposal "deterministic" and cite K-0021; K-0021 rests on the repo README, which this entry did not find stating determinism. Section 8 reads the TypeScript `QuantizerWsmeans` of 0.4.0 as drawing unseeded random starts on every call through `QuantizerCelebi`. Closed for the tech notes: Findings row F41 (line 1323) replaces the package with Wu's quantiser ported into the engine, and §8 applies it as `quantizeWu(rgba, 8)` in `measures/wu.ts` (line 769), so nothing is pinned for the colour measure. F41's status column still leaves the spec text and the PR split open for the main session and the owner.
+- The tech notes call the proposal "deterministic" and cite K-0021; K-0021 rests on the repo README, which this entry did not find stating determinism. Section 8 reads the TypeScript `QuantizerWsmeans` of 0.4.0 as drawing unseeded random starts on every call through `QuantizerCelebi`. Closed for the tech notes: Findings row F41 (line 1323) replaces the package with Wu's quantiser ported into the engine, and §8 applies it as `quantizeWu(rgba, 8)` in `measures/wu.ts` (line 769), so nothing is pinned for the colour measure. F41's status column records it applied in spec v1.24 with the PR split taken, and open for the owner.
 - Whether different random starts change the clusters for inputs of the size slice 1c will pass: measured by task ORV-134-design-quantiser-1 (tech notes ORV-128 §8), 20 results in 20 calls at 320 x 200 and 14 in 20 at 320 x 2000, with hex and counts both moving.
 - Whether the 9 commits after the publish date touch the quantiser files was not read.
 

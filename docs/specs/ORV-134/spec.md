@@ -1,0 +1,218 @@
+---
+issue: ORV-134 (https://tpetkaew.atlassian.net/browse/ORV-134), slice 1c of ORV-128 (https://tpetkaew.atlassian.net/browse/ORV-128)
+parent: docs/specs/ORV-128/spec.md v1.24
+lane: L (a new engine contract parsed as untrusted data, the render snapshot; the role gate that enforces D1 (a) in front of every read; code ported from a third party under Apache-2.0; the parent's lane, decision D7)
+version: 1.1
+---
+
+# ORV-134: the colour quantiser, the render snapshot contract, the measures and the URL analyser (ORV-128 slice 1c)
+
+## Why
+
+A person who brings their website needs ORIVILO to say what the page shows (its colours, contrast, density, fonts and words) and what that suggests for the brand's personality, with each item traceable to the bytes it came from and labelled as measured by code or read by a rule. Slice 1b reads the page safely and turns its bytes into text; this slice turns that read, and a render of it when there is one, into evidence items, without a model and without a browser in the engine.
+
+The full reasoning is in [ORV-128's Why](../ORV-128/spec.md#why), its analyser "1. Website URL" and its section "Reading a page the person submits", "Where it runs". This story is that spec's slice 1c (L-0016), delivered as two PRs ("Delivery: vertical slices", v1.24).
+
+**Frame.** This spec is not a guard: it judges no tool call's text. Rule `competitor-not-read-1` is a check in our own engine code that a rule-following caller meets (parent, "Another brand's page"); `index.ts` exports `readUrlInput` and not `readPage`, so a caller in `packages/page-reader` reaches the read only through it (tech notes §7). Nothing outside the session enforces it.
+
+**What is real, rule-based and simulated in this slice.**
+
+- **Real (once built):** Wu's colour quantiser (`quantizeWu`), the snapshot schema and its parse, the colour and page measures, `readUrlInput` and `analyseUrl` with option D. Deterministic TypeScript in `packages/intent-engine/src` with tests.
+- **Rule-based, not AI:** the personality readings, by `lexicon-1` (ADR 0008) through `value-to-lean-1`, and the warm and expressive leans, by `measure-to-lean-1`. Each item says `by: "rule"` with its rule ids, and `measure-to-lean-1` and `value-to-lean-1` at 40 are rule hypotheses (parent "Hypotheses").
+- **Simulated in tests:** the render, the network and the clock. Every test runs on recorded page bytes, recorded snapshots, the rasters `wu.test.ts` generates (open question "The rasters PR 1 tests on", decided) and a fake network (ADR 0009 point 8); no test launches a browser, reaches the internet or calls a model.
+- **Not wired yet:** nothing in this slice renders or reads a live page. The renderer, the Node network ports and the command `pnpm analyse:url` are slice 1d, and its live run is the first that reads a website for a person. Until slice 1d merges, nothing may be described as analysing a website for a person, and nothing in this slice calls a model.
+
+## Story
+
+The parent's story holds unchanged ([ORV-128 "Story"](../ORV-128/spec.md#story)).
+
+This slice's part of it: as the builder of the command and of the later analysers, I want one engine function that turns a safe read and an untrusted render snapshot, or no snapshot, into sorted evidence items with their measures, their rule-based readings and the list of what was not measured, and one gate that keeps a competitor's page from being read at all, so that every later report rests on evidence that is the same for the same input and says how it was made.
+
+## What this slice uses from ORV-128 (linked, not copied)
+
+- **Spec** `docs/specs/ORV-128/spec.md` v1.24: "Evidence first" (the schema slice 1a built, rules `value-to-lean-1`, `measure-to-lean-1` and `hypothesis-flag-1`); "The five analysers", 1. Website URL ("By code", with its quantiser sentence as v1.24 writes it, and "Feeds"); "Reading a page the person submits" ("Kept only as evidence"; "Where it runs", option D; "Another brand's page"; rule `competitor-not-read-1`); "Page text" (rules `html-text-1`, its "With a render" and "Without a render" clauses, and `word-count-1`); "Confidence" (the factors `page-incomplete` and `few-words`, rule `thousandths-1`, the floor, and "Which factors slices 1a to 1d use"); "Strings" (`read.notMeasured`, the four `read.notRendered.*` reasons, `quality.fewWords`, `quality.pageIncomplete`, and the four `{what}` labels slice 1c names); "Rules and bounds"; "Worked examples"; "Delivery: vertical slices", row 1c and its opening sentence; "Owner decisions", Tech notes findings against v1.23 (F41).
+- **G1 decisions**, ORV-128 comment 10209: the owner decided D1 to D7. This slice rests on D1 (a), which holds a competitor URL back until the lawyer review (rule `competitor-not-read-1`, row 38), and on D2 (a), which keeps it free of any model call.
+- **G2**, the packet in ORV-128 comment 10226, passed in comment 10227 under the owner's delegation (ADR 0012 decision 4), with slice 1 split into 1a to 1d. The quantiser PR ahead of the rest of 1c is the main session's decision in parent v1.24 (F41), under the same delegation and open for the owner.
+- **Tech notes** `docs/specs/ORV-128/tech.md`: §1 (the rows `render-snapshot.ts`, `measures/colour.ts`, `measures/wu.ts`, `measures/page.ts`, `url-analyser.ts`, `evidence-strings.ts` and `index.ts`), §7 (`renderSnapshotSchema`, the `Renderer` port, parsing the snapshot, option D and `NotMeasured`, the competitor gate), §8 ("Colour", with the quantiser of F41; "Page"; "Personality from the text"; the measured leans), §9 (the two maps and the four `{what}` keys), §12 (row 1c and "The quantiser PR"), §14 (the tests whose Slice column says 1c).
+- **ADR 0019** (proposed) decisions 1, 2 and 4: the engine defines the `Renderer` port and parses the snapshot as untrusted data, never imports `packages/page-reader`, and runs option D when there is no usable render. Its POC part is accepted when slice 1d merges, not this slice.
+
+## Deliverables in two PRs, in build order
+
+Each module is pure TypeScript in `packages/intent-engine/src`: no framework import, no `node:` module, no `Math.random` or `Date.now` (row 30). Bytes, a snapshot, a clock reading and port answers come in as arguments (parent "Rules and bounds", Purity). The order of commits inside a PR is not a requirement.
+
+**PR 1, the quantiser** (about 185 production lines, tech notes §12, "The quantiser PR"). It uses nothing else from 1c and lands first.
+
+<!-- prettier-ignore -->
+| Step | File | Holds (tech notes) | Tests |
+| --- | --- | --- | --- |
+| first | `measures/wu.ts` | `quantizeWu(rgba, maxColors)`: Wu's quantiser ported from `QuantizerWu` of Material Color Utilities 0.4.0, RGBA bytes in, at most 8 clusters with their pixel counts out; internal, not exported from `index.ts`; the file header keeps "Copyright 2021 Google LLC", names the Apache-2.0 licence and says the file was changed (§1; §8, "Colour", and its table row "Licence duty") | `wu.test.ts` › "same pixels, same clusters" (row 4); "clusters are boxes with their counts" and "the port gives 0.4.0's colours" (row 8); the first and the last on the rasters of open question "The rasters PR 1 tests on" |
+| second | `measures/LICENSE-material-color-utilities.txt` | The Apache-2.0 licence text beside `wu.ts`, as the font licences sit beside the fonts in `packages/design-system/src/tokens/fonts/` (§8, "Licence duty") | None (the reviewer and `security` read it) |
+| third | `evidence.test.ts` | Row 30's source scan reads `measures/wu.ts` like every other measure module (§8, "What guards it") | `evidence.test.ts` › "measures never call a model" (row 30) |
+
+**PR 2, the rest of 1c** (about 420 production lines, tech notes §12, row 1c). It waits on PR 1, because `measures/colour.ts` turns the clusters of `quantizeWu` into `colour-area` items.
+
+<!-- prettier-ignore -->
+| Step | File | Holds (tech notes) | Tests |
+| --- | --- | --- | --- |
+| first | `render-snapshot.ts` | `renderSnapshotSchema` and the `Renderer` port, beside `rendererBuildSchema` from slice 1a (§1, §7) | Through `url-analyser.test.ts` (rows 34 and 35) |
+| second | `measures/colour.ts`, `measures/page.ts` | OKLCH, the clusters turned into `colour-area` items with `area-share`, `hue-family` through `classifyHex`, `lightness` and `chroma`; warm share; declared colours. WCAG contrast of the body pair, text and element density, font families, word count (§8, "Colour" and "Page") | `url-analyser.test.ts` › "measures by code" (row 8) |
+| third | `url-analyser.ts` | `readUrlInput`, the role gate of `competitor-not-read-1` in front of `readPage`; `analyseUrl(read, snapshot, ctx)`, with option D and `NotMeasured`; the page text blocks as `text-span` items with `lexicon-1` readings through `value-to-lean-1`; the measured leans through `measure-to-lean-1`; the factors `page-incomplete` and `few-words` (§7; §8, "Personality from the text") | `url-analyser.test.ts` › rows 4, 8 to 12 and the engine halves of 34, 35 and 38 (table below) |
+| fourth | `evidence-strings.ts` | The four `{what}` label keys and the two maps from `NotMeasured.reason` and `NotMeasured.what` to their keys (§9; open question "The four `{what}` labels") | `evidence.test.ts` › "every string is Thai and English" (row 29, the map case from 1c) |
+| fifth | `evidence.test.ts` | Row 30's scan reads `render-snapshot`, `measures/colour`, `measures/page` and `url-analyser` | `evidence.test.ts` › "measures never call a model" (row 30) |
+| last | `index.ts` | The new exports (§1), `readUrlInput` among them; never `readPage` (§7, "The only way in"), and not `quantizeWu`, which is internal (§1) | `url-analyser.test.ts` › "a competitor URL is not read" (row 38) |
+
+Reused read-only, unchanged: `readPage`, `pageTextOf`, `stylesheetLinksOf` and `wordCount` (slice 1b); `inputEvidenceSchema`, `evidenceId`, `compareEvidence`, `scoreConfidence`, `EVIDENCE_STRINGS`, `rendererBuildSchema` and the lean rules in `leans.ts` (slice 1a); `interpretWithRules`, `RULE_VALUES` and `classifyHex` (tech notes §1, "What is reused, read-only").
+
+## Acceptance criteria
+
+Rows copied from ORV-128 spec v1.24 with their numbers and wording; v1.24 changes no row. This slice adds no row. Rows 34, 35 and 38 belong to slices 1c and 1d: this slice carries their engine tests, and their `packages/page-reader` and `analyse-url.test.ts` tests are slice 1d (the table after the rows). In the POC the person sees the result through the engine API; no row renders a screen. Every test uses recorded inputs, or in `wu.test.ts` the rasters of open question "The rasters PR 1 tests on", and a fake network; none reaches the internet or a model (ADR 0009 point 8).
+
+<!-- prettier-ignore -->
+| # | Given | When | User sees | Data effect | Test | Slice |
+| --- | --- | --- | --- | --- | --- | --- |
+| 4 | The same recorded page bytes, snapshot and clock twice; then the stylesheets supplied in another order; then the same bytes and snapshot with a later clock | The URL analyser | Deep-equal results with equal ids for the first two; evidence sorted by kind, then locator; with the later clock, equal ids and only `retrievedAt` differs | None | `url-analyser.test.ts` › "same input, same evidence" | 1c |
+| 8 | A recorded fixture page with known colours, text and fonts, and its recorded snapshot | The URL analyser | `colour-area` items whose `area-share` sums to 1 within 0.001 per scope, each with its ORV-20 hue band; a `contrast-ratio` for the body text pair; `text-density` and `element-density`; `font-family` for headings and body; every item `fromModel: false` with a `measure` and a `locator`; every rendered item names the snapshot's `renderer` | None | `url-analyser.test.ts` › "measures by code" | 1c |
+| 9 | The result of row 8 | Inspecting every field | No field holds the HTML, the CSS or an image; every quote is 300 characters or fewer and equals the `html-text-1` text of the document bytes at its locator; a snapshot path that is not in the document adds no text; `source.contentHash` is the SHA-256 of the bytes read; nothing is written to disk, Storage or the database | None (in memory) | `url-analyser.test.ts` › "kept only as evidence" | 1c |
+| 10 | A fixture page whose heading reads "premium and calm"; another with "ไม่หรูหรา"; a third with "not too premium" | The URL analyser | Readings `identity-frame.personality.premium` lean `high` (from 75), lean `low` (from 15) and lean `low` (from 40), `by: rule` with rules `lexicon-1` and `value-to-lean-1`, `fromModel: false`, each quoting the page text; the first two have `hypothesis: false`, the third `hypothesis: true` (`hypothesis-flag-1`) and a `hypothesisNote` naming the "not too" rule; no item holds the 0 to 100 value | None | `url-analyser.test.ts` › "rule-based personality from page text" | 1c |
+| 11 | A fixture page painted 70 percent in warm hue bands | The URL analyser | A reading `identity-frame.personality.warm` lean `high`, `by: rule` with rule `measure-to-lean-1`, `hypothesis: true`, `basedOn` naming the `warm-share` measure | None | `url-analyser.test.ts` › "measured leans are hypotheses" | 1c |
+| 12 | A fixture page with 12 words and one stylesheet that fails | The URL analyser with a floor of 0.5 | Its readings carry `few-words` and `page-incomplete`; the `lexicon-1` reading is 0.343 with `belowFloor: true`; the quality reasons are `quality.fewWords` and `quality.pageIncomplete`; colour measures carry `page-incomplete` only | None | `url-analyser.test.ts` › "low quality lowers confidence" | 1c |
+| 34 | A recorded read with stylesheets and no snapshot; then a snapshot with an extra key; then a render past the 30 s budget on a fake clock | `analyseUrl(read, null, ctx)`, then with each snapshot case; the CLI on the first | `colour-declared` items, `font-family` items with `sheet:` locators, text spans and `lexicon-1` readings; no `colour-area`, `contrast-pair` or `density`; every item `source.renderer: null`; `notMeasured` lists colour areas, contrast, density and text visibility with reason `no-renderer`, then `snapshot-invalid`, then `render-budget`; nothing repaired, no error; the CLI prints one `read.notMeasured` line per entry with its reason string | None | `url-analyser.test.ts` › "no snapshot: declared colours and the page text", "a bad snapshot runs as option D"; `packages/page-reader` › "out of budget falls back to declared colours" | 1c, 1d |
+| 35 | The same bytes and two recorded snapshots that differ only in `renderer`; a local fixture rendered by Playwright 1.56.1 | The URL analyser on each; the local renderer | Every `colour-area` id differs between the two runs and every `colour-declared` id is equal; each rendered item's `source.renderer` equals its snapshot's; the local render names driver `playwright` `1.56.1` and a four-part Chromium version read from the running browser, and every text box path names an element of the tokenized document | None | `url-analyser.test.ts` › "the renderer build is part of the source"; `packages/page-reader` › "the renderer's paths match the tokenizer" | 1c, 1d |
+| 38 | The recorded fixture site `clinic-th` and a fake network that logs every request | The URL analyser with `role` `competitor` over the fake ports; then `pnpm analyse:url --fixture clinic-th --role competitor`, and with `--json` | Zero requests in the fake network log (no robots.txt, no page, no stylesheet); no evidence item rests on the page; the URL recorded as text; the `read.notRead.competitor` line in Thai and English; the JSON parses with `reportSchema` (tech notes §7, "The report schema"); exit 0 | None | `url-analyser.test.ts` › "a competitor URL is not read"; `analyse-url.test.ts` › "a competitor URL is not read" | 1c, 1d |
+| 29 | Every key listed under "Strings", the four `{what}` labels once slice 1c names them, and the question keys `evidence.conflict`, `evidence.toolDefault`, `evidence.similarTo`, `culture.yellow`, `culture.political` and `industry.confirm` | Reading their text | Each has non-empty `th` and `en`; neither holds an em dash or a middot | None | `evidence.test.ts` › "every string is Thai and English" | each |
+| 30 | The engine modules `evidence`, `confidence`, `evidence-strings`, `leans`, `read-page`, `page-text`, `render-snapshot`, `measures/colour`, `measures/page`, `url-analyser`, `industry` and `evidence-feed` (names suggested) | Scanning their source | None imports `openrouter`, `llm-interpreter`, `@orivilo/page-reader` or a `node:` module, or calls `Math.random` or `Date.now`; only the model-reading adapters import `openrouter`; tests use a fake network and recorded answers | None | `evidence.test.ts` › "measures never call a model" | each |
+| 31 | The repo after each slice | `pnpm lint && pnpm typecheck && pnpm test && pnpm build`, and CI | All pass; `pnpm contrast` output unchanged from `develop` | None | Quality gate output in each G3 packet | each |
+
+"Strings" in row 29 is the parent's section "Strings". What each test asserts beyond its row and the "break it" check for each are in tech notes §14; this spec does not restate them.
+
+**Which PR carries which test.** From tech notes §14, the rows whose Slice column says 1c or 1d. Each row's cases are the row's; this table only says where each test lands.
+
+<!-- prettier-ignore -->
+| Row | Test | Where |
+| --- | --- | --- |
+| 4 | `wu.test.ts` › "same pixels, same clusters" | PR 1 |
+| 8 | `wu.test.ts` › "clusters are boxes with their counts"; `wu.test.ts` › "the port gives 0.4.0's colours" | PR 1 |
+| 4 | `url-analyser.test.ts` › "same input, same evidence"; `url-analyser.test.ts` › "no random source on the colour path" | PR 2 |
+| 8 | `url-analyser.test.ts` › "measures by code" | PR 2 |
+| 9 | `url-analyser.test.ts` › "kept only as evidence"; `url-analyser.test.ts` › "the snapshot cannot add text" | PR 2 |
+| 10, 11, 12 | `url-analyser.test.ts` › the test the row names | PR 2 |
+| 34 | `url-analyser.test.ts` › "no snapshot: declared colours and the page text", "a bad snapshot runs as option D" | PR 2 |
+| 34 | `packages/page-reader` › "out of budget falls back to declared colours" (the render past the budget, and the CLI's `read.notMeasured` lines) | Slice 1d |
+| 35 | `url-analyser.test.ts` › "the renderer build is part of the source" | PR 2 |
+| 35 | `packages/page-reader` › "the renderer's paths match the tokenizer" | Slice 1d |
+| 38 | `url-analyser.test.ts` › "a competitor URL is not read" | PR 2 |
+| 38 | `analyse-url.test.ts` › "a competitor URL is not read" | Slice 1d |
+| 29 | `evidence.test.ts` › "every string is Thai and English" | PR 1 runs it unchanged; PR 2 adds the map case and the four `{what}` keys |
+| 30 | `evidence.test.ts` › "measures never call a model" | PR 1 (`measures/wu`); PR 2 (the other 1c modules) |
+| 31 | Quality gate output in the G3 packet | PR 1 and PR 2, each |
+
+## Rules and bounds
+
+The parent's "Rules and bounds" apply unchanged, in particular "Measures by code, readings labelled", "Purity", "Untrusted input", "Nothing persisted in the POC" and "Determinism". This spec defines no rule. Each rule or bound this slice implements keeps its one home in the parent spec, and this spec points to it by name only:
+
+<!-- prettier-ignore -->
+| Rule or bound | Home in `docs/specs/ORV-128/spec.md` v1.24 | Implemented in |
+| --- | --- | --- |
+| The quantiser | "The five analysers", 1. Website URL, "By code" (F41) | `measures/wu.ts` (PR 1); `measures/colour.ts` (PR 2) |
+| `value-to-lean-1` | "Evidence first", From a `lexicon-1` value to a lean | `url-analyser.ts`, through `leans.ts` (slice 1a) |
+| `measure-to-lean-1` | "Evidence first", From measures to a lean | `url-analyser.ts`, through `leans.ts` (slice 1a) |
+| `hypothesis-flag-1` | "Evidence first", after "Rule ids"; its members under "Hypotheses" | `url-analyser.ts` (the `hypothesis` and `hypothesisNote` of each reading) |
+| `html-text-1`, its "With a render" and "Without a render" clauses | "Page text" | `url-analyser.ts` (which blocks are kept, through `pageTextOf` of slice 1b) |
+| `word-count-1` | "Page text" | `measures/page.ts`, through `wordCount` of slice 1b |
+| `thousandths-1`, the floor, `page-incomplete` and `few-words` | "Confidence", and its "Which factors slices 1a to 1d use" | `url-analyser.ts`, through `scoreConfidence` (slice 1a) |
+| `competitor-not-read-1` | "Reading a page the person submits", after "Another brand's page" | `url-analyser.ts` (`readUrlInput` and `analyseUrl`); `index.ts` |
+| Option D and its reasons | "Reading a page the person submits", "Where it runs" | `url-analyser.ts` (`analyseUrl` with `null` or an invalid snapshot) |
+| Kept only as evidence | "Reading a page the person submits", Kept only as evidence | `url-analyser.ts` |
+
+`lexicon-1` is ADR 0008's rule-based adapter, reused unchanged. A change to a rule, a bound, a factor or a string is made in the parent spec first, with its version bump and impact list; this spec then follows.
+
+## Worked examples
+
+The parent's "Worked examples" hold the lines for the rules this slice uses: `thousandths-1` and the floor (its `page-incomplete+few-words` output, 0.343, is row 12's number), `value-to-lean-1`, `measure-to-lean-1` and `hypothesis-flag-1`. They are not copied here (one home, L-0039); the parent records that the main session ran them on Node 22.23.0 with ICU 78.2 and every output matched. The slice 1c builder runs them again on the pinned Node line, and a different output is a finding against the parent spec.
+
+This slice adds two lines for the quantiser's output, the one method it brings that the parent's lines do not cover. The author of this spec had no shell and ran neither; the PR 1 builder runs both and records the output and the Node version.
+
+**One box, its colour and its count** (the quantiser, tech notes §8, "In and out"). The input is copied from tech notes §14, row 8, `wu.test.ts` › "clusters are boxes with their counts": `maxColors` 1 on the pixels black and `(254, 254, 254)`. With one cluster allowed, every opaque pixel falls in one box, whose colour is the mean of its pixels, rounded per channel, and whose count is its pixel count; the subject of its `colour-area` item is the hex of that colour (tech notes §8).
+
+```sh
+node -e 'const px=[[0,0,0],[254,254,254]];const mean=[0,1,2].map(i=>Math.round(px.reduce((s,p)=>s+p[i],0)/px.length));console.log(mean.join(","),mean.map(v=>v.toString(16).padStart(2,"0")).join(""),px.length)'
+```
+
+```text
+127,127,127 7f7f7f 2
+```
+
+Rounding: each channel's mean is rounded with `Math.round`; here the mean is exactly 127, so the rounding changes nothing.
+
+**Area shares from counts** (row 8, tech notes §8, "Area share"). The counts are copied from the same test: three flat colours of 100, 50 and 10 pixels. Each share is the count over the opaque pixels, not rounded per item.
+
+```sh
+node -e 'const c=[100,50,10];const t=c.reduce((a,b)=>a+b,0);const s=c.map(x=>x/t);console.log(s.join(" "),s.reduce((a,b)=>a+b,0))'
+```
+
+```text
+0.625 0.3125 0.0625 1
+```
+
+Rounding: none. The three shares are exact in binary, so their sum is exactly 1; on other counts the sum is 1 within floating-point error, inside row 8's 0.001.
+
+## Carried review points (review g2-3)
+
+The G2 re-check `ORV-128-review-g2-3` approved the design with four suggestions. ORV-134 carries two of them, S9 and S11. Neither changes a row of this spec; each is a change to the tech notes, which the `ds-architect` makes.
+
+- **S11: `notMeasuredSchema` has no home.** Tech notes §7, "The report schema", builds `reportSchema` with `notMeasuredSchema` ("§7 NotMeasured as zod"), but the design defines it nowhere: §7 holds only the TypeScript type `NotMeasured`, and §1 lists no such export. `NotMeasured` is a type of this slice (`url-analyser.ts`, PR 2). Default: PR 2 defines `notMeasuredSchema` in `url-analyser.ts`, beside `analyseUrl`, and derives `NotMeasured` from it with `z.infer`, so the two cannot drift, as the reviewer proposed; tech notes §1 (the `url-analyser.ts` row) and §7 name it before PR 2 starts.
+- **S9: the report's lines cap.** `analysedReportSchema` caps `lines` at `.max(1)`, and from slice 2 until slice 4 a report carries two lines, `report.conflictsNotChecked` and `industry.byNameOnly`, so a correct slice 2 report would fail the parse. `report.ts` is slice 1d's (parent "Delivery", row 1d), so this slice ships no line of it. Default: the tech notes' slice 2 comment and the bullet "Which slice adds which member" in §7 say the cap rises to 2 at version 1.1, or bound `lines` by the enum's size, before slice 1d writes `report.ts`; the slice 1c G3 packet lists S9 as carried on to slice 1d if the tech notes have not changed by then.
+
+## What waits, and on what
+
+- **PR 1** waits on slice 1b, which row 1c of the parent's "Delivery" names, and on nothing else in 1c. Its PR names the scratch run that records 0.4.0's colours for "the port gives 0.4.0's colours" (open question "The rasters PR 1 tests on"; tech notes §14, row 8); the test imports no package.
+- **PR 2** waits on PR 1 merged into `develop`, and on the tech notes naming `notMeasuredSchema` (S11, above).
+- **The `security` review** (parent "Delivery", row 1c; ADR 0015 decision 2). PR 1: the port and its licence notice (no new dependency; tech notes §8, "Weight and supply chain"). PR 2: the snapshot parse as untrusted data and the role gate in front of every read. G3 of each PR waits on it; a `request_changes` forces rework.
+
+## Out of scope
+
+Everything in the parent's "Out of scope", and the other slices of the parent's "Delivery", each with its own issue and spec:
+
+- **1a (ORV-132)** and **1b (ORV-133):** the evidence schema, confidence, the strings and the lean rules (rows 1, 2, 3, 32); the safe single-page read, the pinned HTML tokenizer and the page text (rows 5, 6, 7, 36). This slice reuses them read-only.
+- **1d:** `packages/page-reader` with the Node ports, the local Playwright renderer and the command `pnpm analyse:url`, `report.ts` with `reportSchema`, the function memory against the Work bound's heap, and the slice 1d halves of rows 34, 35 and 38, and row 37.
+- **2:** industry, `tsic-terms-1`, `industry-level-1` and `readIndustry` (rows 13 to 17, 33).
+- **3:** model readings and `mood-1` (rows 17, 18, 20).
+- **4 to 7:** the brief text analyser, `detectConflicts`, the culture flags and `feedEvidence`; the photo, user HTML and other brand's CI analysers and `similarityCheck` (rows 19, 21 to 28). Their palettes may reuse `quantizeWu` (tech notes §11), in their own slices.
+- A weighted k-means refinement on top of Wu's clusters (tech notes §8, "Other routes, not chosen").
+
+Slices 1d to 7 also carry rows 29 to 31 again, as the parent's "Delivery" says.
+
+## Open questions (with the default used until answered)
+
+- **The PR split.** Decided by the main session in parent v1.24 (F41) under ADR 0012 decision 4, open for the owner. Default: two PRs, the quantiser first. If the owner wants one PR, 1c is one PR at the size tech notes §12 gives for it with the port, and parent "Delivery" takes a version bump.
+- **The four `{what}` labels.** The parent leaves naming their keys and drafting their Thai and English to slice 1c ("Strings"), and their home is the parent's "Strings", not this spec. Default: the keys tech notes §9 suggests, with this draft for the designer's and the owner's review, taken into the parent's "Strings" by a version bump before PR 2 merges. Each fills `{what}` in `read.notMeasured`, so the English line reads, for example, "Not measured: colour areas. The page was not rendered (no renderer is set up)."
+  - `read.notMeasured.what.colourArea` (`colour-area`): en "colour areas"; th "สัดส่วนพื้นที่สี"
+  - `read.notMeasured.what.contrast` (`contrast-pair`): en "text and background contrast"; th "ความต่างระหว่างสีตัวอักษรกับสีพื้นหลัง"
+  - `read.notMeasured.what.density` (`density`): en "content density"; th "ความหนาแน่นของเนื้อหา"
+  - `read.notMeasured.what.textVisibility` (`text-visibility`): en "which text is visible"; th "ข้อความที่มองเห็นได้"
+- **`measures/wu` in row 30's list.** Row 30's Given names `measures/colour` and not `measures/wu`; its list is "names suggested". Default: the scan reads `measures/wu.ts` as a measure module, as tech notes §8 ("What guards it") says, and the row's wording does not change.
+- **The rasters PR 1 tests on.** Decided by the orchestrator in ORV-134 comment 10239, point 3; v1.0's default (the rasters of row 8's recorded snapshot, added by PR 1 as files) no longer holds. `wu.test.ts` builds two RGBA rasters from a seeded generator, one 320 x 200 and one 320 x 2000, each from a fixed seed named in the test and with at least 1,000 distinct colours; PR 1 adds no binary fixture file. "Same pixels, same clusters" and "the port gives 0.4.0's colours" run on these two rasters, in place of the row 8 fixture that tech notes §14, rows 4 and 8, name. The colours "the port gives 0.4.0's colours" expects are recorded once, by a scratch run outside the repo against the tarball K-0088 names by `dist.integrity`. The row 8 fixture stays PR 2's, and its recorded snapshot may reuse the generator.
+- **Size.** Tech notes §12 estimates PR 2 at about 420 production lines, over the 400 line guide. Default: one PR, as G2 split it; if the diff runs well past the estimate, the G3 packet says so and the main session decides a vertical split (for example `readUrlInput` with row 38 apart from `analyseUrl`), never one by layer.
+
+## Depends on
+
+- [ORV-128 spec](../ORV-128/spec.md) v1.24 (its "Owner decisions", Tech notes findings against v1.23, records F41: the quantiser and the PR split) and its [tech notes](../ORV-128/tech.md) (G2 design, findings F1 to F19; F41, raised against v1.23, lands in analyser 1 "By code" and "Delivery").
+- ORV-128 comments 10209 (G1 decisions D1 to D7; D1 (a) governs `competitor-not-read-1`, D2 (a) keeps this slice free of any model call), 10226 (the G2 packet) and 10227 (G2 passed under the owner's delegation, slice split 1a to 1d).
+- ORV-134 comment 10239, point 3: the orchestrator's decision on the rasters PR 1 tests on (open question "The rasters PR 1 tests on").
+- [ORV-132 spec](../ORV-132/spec.md), slice 1a: the evidence schema, `scoreConfidence`, `EVIDENCE_STRINGS`, the lean rules and `rendererBuildSchema`.
+- [ORV-133 spec](../ORV-133/spec.md) v1.16, slice 1b: `readPage`, `ReadPorts`, `ReadResult`, `pageTextOf`, `stylesheetLinksOf` and `wordCount`.
+- [ADR 0019](../../adr/0019-page-renderer-placement.md) (proposed) decisions 1, 2 and 4; [ADR 0008](../../adr/0008-brief-interpreter-adapters.md) (`lexicon-1`, evidence spans) and its Addition of 2026-10-26; ADR 0007 decision 5 (the fingerprint); ADR 0009 point 8 (recorded tests); ADR 0012 decision 4 (the delegated G2 and F41); ADR 0015 decision 2 (`security` review).
+- [K-0088](../../knowledge/platform/K-0088-material-color-utilities-0-4-0-quantizer-api-and-determinism.md) (Material Color Utilities 0.4.0: `QuantizerWu`, which PR 1 ports, and `QuantizerCelebi`, which is not deterministic) and [K-0021](../../knowledge/architecture/K-0021-material-color-utilities-hct-deterministic-schemes.md) (Material Color Utilities, deterministic schemes with no model).
+- `.orivilo/runs/ORV-128/ORV-128-review-g2-3/result.json`: findings S9 and S11.
+
+## Downstream review if this spec changes
+
+- ORV-128 spec, "Delivery: vertical slices" row 1c and its opening sentence, and "Strings" (the four `{what}` labels).
+- ORV-128 tech notes §1, §7 (S9 and S11), §8, §9, §12 and §14 (the rows whose Slice column says 1c).
+- ORV-134 Jira issue acceptance (rows 4, 8 to 12, 34, 35, 38, 29 to 31; S9 and S11).
+- The slice 1d spec, when written: the halves of rows 34, 35 and 38 this slice leaves to it, and S9.
+
+## Changelog
+
+- v1.0 (2026-10-28): split from ORV-128 spec v1.24 as slice 1c (L-0016). Rows 4, 8, 9, 10, 11, 12, 34, 35, 38, 29, 30 and 31 copied with their numbers and wording, with a table of which PR carries which test, and the `packages/page-reader` and `analyse-url.test.ts` tests of rows 34, 35 and 38 left to slice 1d. Two PRs from parent v1.24 (F41): PR 1, `measures/wu.ts` with its licence file and `wu.test.ts` (tech notes §8 "Colour" and §14 rows 4 and 8); PR 2, the rest of 1c. The rules and bounds pointed to by name in the parent; no rule, row or requirement added. Two worked examples for the quantiser's output, not run (no shell). Review points S9 and S11 of review g2-3 carried, with defaults. Five open questions with defaults: the PR split, the four `{what}` labels (draft copy for the parent's "Strings"), `measures/wu` in row 30's list, the rasters of PR 1, the size of PR 2. Review: the ORV-134 Jira issue acceptance; tech notes §1 and §7 (S11, S9); the parent's "Strings" (the four labels); the slice 1c builder.
+- v1.1 (2026-10-28): open question "The rasters PR 1 tests on" answered by the orchestrator's decision in ORV-134 comment 10239, point 3: two RGBA rasters generated in `wu.test.ts` from fixed seeds, 320 x 200 and 320 x 2000, at least 1,000 distinct colours each, no binary fixture file; the expected 0.4.0 colours recorded once by a scratch run outside the repo against the tarball K-0088 names by `dist.integrity`; PR 2's snapshot fixture may reuse the generator. The lines on PR 1's test inputs ("What is real", the PR 1 table, the paragraph before the rows, "What waits") point to that answer; the comment is added to "Depends on". No row, rule or bound changed. Review: tech notes §14, the `wu.test.ts` rows under 4 and 8, which still name the row 8 fixture as their input; the slice 1c builder of PR 1.
