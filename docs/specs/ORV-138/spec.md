@@ -1,7 +1,7 @@
 ---
 issue: ORV-138 (https://tpetkaew.atlassian.net/browse/ORV-138)
 lane: L (guard files; ORV-138 description)
-version: 1.1
+version: 1.2
 ---
 
 # ORV-138: phase-1 guard batch, seven guard changes in one PR
@@ -22,7 +22,11 @@ Build order:
    no throw while a qa report is judged (survey K-0089).
 5. ORV-137 item 2: a rework round counts only after a rejecting verdict on a builder's head.
 6. ORV-130: branch key check for every writing role; no branch switch while an envelope is bound.
-7. ORV-96: a glob, a variable or a `cd` into a record folder fails closed in `write-guard`.
+7. ORV-96: a glob, a variable or a `cd` into a record folder fails closed in `write-guard`; from
+   v1.2 both guards read Bash through one shell reader (survey K-0090).
+
+The round 0 review and security findings (v1.2) add commits after these seven; row 32 gives their
+keys and order.
 
 Process (ORV-138 description): lane L; G1 and G2 pass under the POC delegation (ADR 0012 decision 4);
 one reviewer pass plus `security`; the merge needs the owner's approval line from a terminal outside
@@ -35,6 +39,8 @@ item 2, ORV-130), `worktree-guard` (ORV-130) and `write-guard` (ORV-96). Nothing
 enforces any of them: the run records and the owner approval file are local files, and the planned
 server boundary for merges, GitHub rulesets (ORV-97), returns HTTP 403 on this plan (ORV-97 comment
 10110). A text rule alone is never a boundary. Honest limits lists what each one does not stop.
+`scripts/ovl/shell-words.mjs` (rule shell-1) is a reader that `write-guard` and `worktree-guard`
+call, not a guard of its own: it decides nothing and holds against nothing alone.
 
 No change renders anything: no UI text, no locale strings, no Thai or English copy.
 
@@ -72,17 +78,32 @@ has its one home.
 | 24 | ORV-130 | Rule `switch-1`: each form in "Branch switch forms" is blocked in the main session while an envelope bound to that checkout is open, and the stderr names the bound task id; with no such envelope each is allowed; a subagent's call is not judged by switch-1. | `node --test --test-name-pattern="ORV-138 row 24:" scripts/ovl/worktree-guard.test.mjs` reports at least one passing test |
 | 25 | ORV-130 | While an envelope is bound, `git worktree add`, `git status`, `git branch -a`, `git log` and a `git commit -m` whose message holds the word switch stay allowed; and the read-failure case of switch-1. | `node --test --test-name-pattern="ORV-138 row 25:" scripts/ovl/worktree-guard.test.mjs` reports at least one passing test |
 | 26 | ORV-130 | The ovl skill's "Issue" bullet names no unchecked role but release, and its "One issue per checkout" bullet says `worktree-guard` blocks the switch. | `grep -n "Not enforced yet" .claude/skills/ovl/SKILL.md` prints nothing; `grep -n "worktree-guard" .claude/skills/ovl/SKILL.md` |
-| 27 | ORV-96 | Rule `expand-1`: the review F5 form `cd .oriv?lo/owner-approvals && printf '{"by":"owner"}' > 7.json` is blocked for the main session and for a subagent, and so is the same form into `owner-waivers`. | `node --test --test-name-pattern="ORV-138 row 27:" scripts/ovl/write-guard.test.mjs` reports at least one passing test |
+| 27 | ORV-96 | Rule `resolve-1`: the review F5 form `cd .oriv?lo/owner-approvals && printf '{"by":"owner"}' > 7.json` is blocked for the main session and for a subagent, and so is the same form into `owner-waivers`. | `node --test --test-name-pattern="ORV-138 row 27:" scripts/ovl/write-guard.test.mjs` reports at least one passing test |
 | 28 | ORV-96 | Every form in "Write-guard forms to catch" is blocked, each as a main-session call and as a subagent call. | `node --test --test-name-pattern="ORV-138 row 28:" scripts/ovl/write-guard.test.mjs` reports at least one passing test |
-| 29 | ORV-96 | Every form in "Write-guard forms to keep" is allowed in the session the list names (rule `heredoc-1` for the commit and PR body forms). | `node --test --test-name-pattern="ORV-138 row 29:" scripts/ovl/write-guard.test.mjs` reports at least one passing test |
-| 30 | ORV-96 | Rule `expand-1`, the case where the cwd or a `cd` target cannot be resolved. | `node --test --test-name-pattern="ORV-138 row 30:" scripts/ovl/write-guard.test.mjs` reports at least one passing test |
+| 29 | ORV-96 | Every form in "Write-guard forms to keep" is allowed in the session the list names (rule `shell-1` (f) for the commit and PR body forms). | `node --test --test-name-pattern="ORV-138 row 29:" scripts/ovl/write-guard.test.mjs` reports at least one passing test |
+| 30 | ORV-96 | Rule `resolve-1` (e): a relative write target whose base is unknown is blocked and an absolute `/tmp` target in the same call shape is allowed, one test per cause: a missing call cwd, `cd`, `cd -`, `cd "$D"`, `cd ~-`, `pushd`, `pushd +1`, `popd`, `env -C /tmp`, `git --work-tree=x restore`. | `node --test --test-name-pattern="ORV-138 row 30:" scripts/ovl/write-guard.test.mjs` reports at least one passing test |
 | 31 | ORV-96 | The ovl skill's Honest limits no longer say that a path built by `cd`, expansion or a glob is not seen, or that ORV-96 has not landed; they name the bypass classes of this spec's Honest limits, ORV-96 part. | `grep -n "until ORV-96 lands" .claude/skills/ovl/SKILL.md` prints nothing; `grep -n "expansion or a glob is not seen" .claude/skills/ovl/SKILL.md` prints nothing |
-| 32 | ORV-138 | One PR from `chore/ORV-138-guard-batch`, title `ORV-138: ...`; every commit subject names one source key, and the keys first appear in build order: ORV-94, ORV-120, ORV-104, ORV-136, ORV-137, ORV-130, ORV-96. | `git log --reverse --format=%s origin/develop..HEAD` |
+| 32 | ORV-138 | One PR from `chore/ORV-138-guard-batch`, title `ORV-138: ...`; every commit subject names one source key, and the keys first appear in build order: ORV-94, ORV-120, ORV-104, ORV-136, ORV-137, ORV-130, ORV-96. After the survey commit f026a32 (`docs(ORV-96)`, K-0090) the round 0 fix commits follow in this order: ORV-96 for shell-1 and resolve-1, ORV-130 for switch-1 on shell-1, ORV-136 for the RV-5 head check of no-throw-1. | `git log --reverse --format=%s origin/develop..HEAD` |
 | 33 | ORV-138 | The merge needs the owner approval line for the PR's head, once for the whole batch (ORV-137 comment 10246); before the owner runs it, the pre-check names `.orivilo/owner-approvals/<n>.json` as missing. | `node scripts/ovl/merge-check.mjs <n> --head <sha>` |
 | 34 | ORV-138 | The full gate passes on the head, `pnpm test:scripts` included, and the gate record for the head has `ok: true`. | `pnpm quality-gate`; `pnpm test:scripts` |
 | 35 | ORV-138 | No em dash and no middot in any changed text; Prettier clean. | `pnpm format:check`; `git diff -U0 origin/develop...HEAD` read for the two characters |
 | 36 | ORV-136 | Rule `no-throw-1` (K-0089 N1), one test per case: (a) an approve with no `.quality-gate/report.json` in the hook's checkout; (b) one whose file is not JSON; (c) one whose JSON lacks the fields; (d) an approve whose `head_sha` is not in the hook's checkout; (e) an approve whose diff holds a `*.stories.tsx` removed at the head. Cases (a) to (d) each run at SubagentStop and at PostToolUse on the Agent call. The `git show` route has no test: once the diff has run, the head holds every changed file that is not removed. | `node --test --test-name-pattern="ORV-138 row 36:" scripts/ovl/result-recorder.test.mjs` reports at least one passing test |
 | 37 | ORV-136 | The ovl skill section 2 tells the main session to keep at most one open unbound envelope per role, and why (Honest limits, the binding line; K-0089 N3). | `grep -n "open unbound" .claude/skills/ovl/SKILL.md` prints a line between the `## 2.` and `## 3.` headings |
+| 38 | ORV-96 | Rule `shell-1` (a): `(git switch x)`, `git status & git switch x`, `if true; then git switch x; fi`, `git status # ; git switch x` and `git \` NL `switch x` (NL a newline) each give a segment whose command words are `git switch x`; a `$( )`, a backquote pair and a `>( )` each give the segments of the list inside them. | `node --test --test-name-pattern="ORV-138 row 38:" scripts/ovl/shell-words.test.mjs` reports at least one passing test |
+| 39 | ORV-96 | Rule `shell-1` (b): the RV-1 form of "Write-guard forms to catch" gives the live segments `cd .oriv?lo/owner-approvals` and `printf x > 7.json` and no substitution (Worked examples, shell-1 (b)); `node -e 'process.exit(1 > 0 ? 0 : 1)'` gives no redirect; `"$(printf .oriv)"` opens a substitution; `echo \$(x)` and `echo '$(x)'` open none. | `node --test --test-name-pattern="ORV-138 row 39:" scripts/ovl/shell-words.test.mjs` reports at least one passing test |
+| 40 | ORV-96 | Rule `shell-1` (c): the five words of Worked examples, shell-1 (c), give the fixed parts and kinds shown there; `"cd"`, `\cd` and `c""d` each give the fixed part `cd`; `$'\x2eorivilo'` and `$"x"` give kind `any` with an empty fixed part; `~/x` gives the home folder followed by `/x`, kind `none`. | `node --test --test-name-pattern="ORV-138 row 40:" scripts/ovl/shell-words.test.mjs` reports at least one passing test |
+| 41 | ORV-96 | Rule `shell-1` (d): one test per prefix (`GIT_TRACE=0`, `env -i -u X`, `env -C d`, `command`, `command -p`, `builtin`, `exec -a n`, `nohup`, `timeout -s KILL 5`, `time -p`, `!`, `then`) before `git switch x` leaves `git` as the command name; `command -v git` has no command; `env -S 'git switch x'` and `$G switch x` have an unknown command; `TEE a` has the command `tee`; `env -C d` and `GIT_DIR=x` are recorded on the segment. | `node --test --test-name-pattern="ORV-138 row 41:" scripts/ovl/shell-words.test.mjs` reports at least one passing test |
+| 42 | ORV-96 | Rule `shell-1` (e): the three forms of Worked examples, shell-1 (e), give the sets shown there; one test per form that makes the cwd unknown (a missing call cwd, `cd`, `cd -`, `cd "$D"`, `cd ~-`, `pushd`, `pushd +1`, `popd`); `pushd -n /tmp` moves nothing; `cd -P /tmp` gives `/tmp`; in `cd a && cd b && x`, the segment `x` gets the one folder `<cwd>/a/b`. | `node --test --test-name-pattern="ORV-138 row 42:" scripts/ovl/shell-words.test.mjs` reports at least one passing test |
+| 43 | ORV-96 | Rule `shell-1` (f): a body after each quoted delimiter form (`'EOF'`, `"EOF"`, `\EOF`, `E"O"F`) gives no segment and no word, also when it holds `> x`, `rm x` and `$(rm x)`; a body after an unquoted delimiter that holds `$(rm x)` gives the segment `rm x`; `<<-` ends at a tab-indented delimiter line; the sec-F1 target word of "Write-guard forms to catch" is kind `any` with an empty fixed part. | `node --test --test-name-pattern="ORV-138 row 43:" scripts/ovl/shell-words.test.mjs` reports at least one passing test |
+| 44 | ORV-96 | Rule `shell-1` (g): `> f`, `>> f`, `>\| f`, `>! f`, `&> f`, `&>> f`, `<> f`, `2> f`, `{fd}> f` and `>& f` each give the write target `f`; `2>&1`, `3>&-`, `< f`, `<<< f` and `<&0` give none; `printf > a x` and `> a printf x` give the write target `a`. | `node --test --test-name-pattern="ORV-138 row 44:" scripts/ovl/shell-words.test.mjs` reports at least one passing test |
+| 45 | ORV-96 | Rule `resolve-1` (a): for each of the thirteen write programs (`tee`, `cp`, `mv`, `rm`, `ln`, `touch`, `sed -i`, and `git` `apply`, `restore`, `checkout`, `switch`, `stash`, `reset`), a path argument `.oriv?lo/x` is blocked and `/tmp/x` is allowed; `cp --target-directory=.oriv?lo/exports /tmp/a` is blocked; `grep -n x .oriv?lo/a > /tmp/g.txt` is allowed (its glob word is no write target). Each as the main session and as a subagent. | `node --test --test-name-pattern="ORV-138 row 45:" scripts/ovl/write-guard.test.mjs` reports at least one passing test |
+| 46 | ORV-96 | Rule `resolve-1` (b): `printf x > scripts/x/../ovl/a.mjs` (RV-8) and `git -C .claude restore settings.json` are blocked; `env -C /tmp tee a.txt` is blocked and `env -C /tmp tee /tmp/a.txt` is allowed; with a link `<main>/l` to `<main>/.orivilo`, `printf x > l/a` is blocked. Each as the main session and as a subagent. | `node --test --test-name-pattern="ORV-138 row 46:" scripts/ovl/write-guard.test.mjs` reports at least one passing test |
+| 47 | ORV-96 | Rule `resolve-1` (c): the three RV-2 forms of "Write-guard forms to catch" and `cd .claude && rm -rf hooks` are blocked as the main session and as a subagent; `printf x > packages/a.ts` from the checkout root is blocked as the main session and allowed as a subagent. | `node --test --test-name-pattern="ORV-138 row 47:" scripts/ovl/write-guard.test.mjs` reports at least one passing test |
+| 48 | ORV-96 | Rule `resolve-1` (d), from the main checkout root: the words of Worked examples, shell-1 (c), as redirect targets, the first three blocked and the last two allowed; `rm *.tmp` blocked, and allowed with the cwd at `<main>/docs`; `printf x > logs/$n.txt` with the cwd at `<main>/docs` blocked; `printf x > x*/../.oriv?lo/owner-approvals/7.json` with a folder `<main>/xa` blocked. Each as the main session and as a subagent. | `node --test --test-name-pattern="ORV-138 row 48:" scripts/ovl/write-guard.test.mjs` reports at least one passing test |
+| 49 | ORV-96 | Rule `resolve-1` (f): a qa bound to an open envelope that runs `cp /tmp/a.png <its own screenshots folder>/a.png` is allowed; the same qa writing into another task's screenshots folder is blocked; every write-guard test that predates this PR passes unchanged. | `node --test --test-name-pattern="ORV-138 row 49:" scripts/ovl/write-guard.test.mjs` reports at least one passing test; `pnpm test:scripts` |
+| 50 | ORV-130 | Rule `switch-1` (a) and (b): each form in "Branch forms to keep" is allowed while an envelope is bound to the main checkout, with the cwd the list names; `git -C <main> -C .claude/worktrees/<wt> switch x` is allowed and `git -C <wt> -C <main> switch x` is blocked. | `node --test --test-name-pattern="ORV-138 row 50:" scripts/ovl/worktree-guard.test.mjs` reports at least one passing test |
+| 51 | ORV-130 | Rule `switch-1` (c): each form in "Unknown checkout forms" is blocked while any envelope is bound, and its stderr says the checkout is unknown; with no bound envelope each is allowed. | `node --test --test-name-pattern="ORV-138 row 51:" scripts/ovl/worktree-guard.test.mjs` reports at least one passing test |
+| 52 | ORV-96 | The ovl skill states the v1.2 rules: its Honest limits `write-guard` bullet names `scripts/ovl/shell-words.mjs`, the classes of this spec's Honest limits ORV-96 part (the user's shell among them) and its Cost lines, and no longer says the guard reads a quoted-delimiter `$(cat <<'X'` body as a literal; its "One issue per checkout" bullet names the classes of the ORV-130 part. | `grep -n "shell-words" .claude/skills/ovl/SKILL.md` prints a line; `grep -n "zsh" .claude/skills/ovl/SKILL.md` prints a line in each of the two bullets; `grep -n "reads a quoted-delimiter" .claude/skills/ovl/SKILL.md` prints nothing |
 
 ## Rules
 
@@ -99,7 +120,8 @@ Each rule below is the one home of its outcome. Other sections point to the name
   `no acceptance table in docs/specs/<issue>/spec.md` (the issue key filled in). It is a refusal like
   any other qa.v1 problem: SubagentStop exits 2 and its heartbeat line has decision `block`, and
   PostToolUse on the Agent call closes the envelope as `no_report` with that line in stderr. The
-  recorder does not throw on any state of the spec (no-throw-1).
+  recorder does not throw on any state of the spec (no-throw-1). An approve whose head the checkout
+  lacks is no-throw-1's case, not this rule's.
 - `no-throw-1`: judging a qa.v1 report (`judge` in `scripts/ovl/result-recorder.mjs` and every
   function it calls) never throws. Each refusal route returns a one-line problem and is refused the
   way qa-spec-1 refuses a missing table. Below, `<checkout>` is the git top of the hook input's `cwd`
@@ -115,6 +137,10 @@ Each rule below is the one home of its outcome. Other sections point to the name
     `git diff origin/develop...<head> failed in <checkout>: fetch the head and origin/develop there`;
   - on an approve, `git show <head>:<file>` fails for a changed `*.stories.tsx` that the head holds
     (line 162): `git show <head>:<file> failed in <checkout>`.
+
+  On an approve the head is checked first: when the checkout lacks the head
+  (`git cat-file -e <head>^{commit}` fails), the report gets the `git diff` problem above before the
+  spec is read, so a qa that only has to fetch is told so (row 36 (d), RV-5).
 
   When the gate report cannot be used, the checks that read it (lines 198 to 213) add nothing, and
   the other problems of the report are still listed. A changed stories file that the head does not
@@ -167,52 +193,154 @@ Each rule below is the one home of its outcome. Other sections point to the name
 - `branch-key-1`: `envelope-guard` checks the branch key (`scripts/ovl/envelope-guard.mjs` lines 160
   to 171) for these nine roles: builder, reviewer, qa, designer, security, product, architect,
   ds-architect and research. Release stays out (open question 1).
-- `switch-1`: `worktree-guard` blocks a main-session Bash call (no `agent_id`) when one segment of it
-  (split at `;`, `&&`, `||`, `|` and newlines, after quotes and backslashes are removed and the text is
-  lowercased) is a branch switch form, and an envelope is open and bound (`agent.json`, no
-  `result.json`, no `closed.json`) whose `worktree`, through realpath, is the checkout the call runs in:
-  the `-C` path when given, else the git top of the call's cwd. A segment is a switch form when its
-  first word is `git` and its first word after the git options (`-C <path>`, `-c <key=value>`) is
-  `switch` or `checkout`, or when its first three words are `gh pr checkout`. When the records or the
-  checkout cannot be read, a switch form is blocked and every other call keeps today's verdict. The
-  stderr names the bound task ids. A subagent's call is not judged by switch-1.
-- `expand-1`: `write-guard` judges a Bash call, from the main session or a subagent, as naming a
-  protected path (all three sets for the main session; guard file and record for a subagent, as today)
-  when the call holds a write form (`scripts/ovl/write-guard.mjs` lines 193 to 198 and 246 to 248: a
-  redirect to a file, `tee`, `cp`, `mv`, `rm`, `ln`, `touch`, `sed -i`, and `git` `apply`, `restore`,
-  `checkout`, `switch`, `stash` or `reset`) and any of:
-  - (a) an expansion word: a word that holds `?`, `*`, `[` or `{` outside any quotes, or `$` or a
-    backtick outside single quotes, whose fixed part (the text before the first of those characters)
-    could begin a protected path. It could when the folder that fixed part names, resolved against the
-    call's cwd, is a checkout of this project (the main checkout or one under `.claude/worktrees/`), a
-    folder above one, or a folder inside a protected set. A word whose fixed part is empty always could.
-  - (b) a `cd`, `pushd` or `popd` with no target, with `-`, with an expansion word as its target, or
-    with a target that resolves (against the cwd, after the earlier `cd` words of the same command)
-    inside a protected set.
-  - (c) the call's own cwd is inside a protected set.
+- `shell-1`: `scripts/ovl/shell-words.mjs` is the one reader of Bash text for `write-guard`
+  (resolve-1) and `worktree-guard` (switch-1); neither guard splits or unquotes a command another
+  way. It reads the forms survey K-0090 classes M and U (its sections 1 to 7), left to right, with
+  the quoting of each word kept: nothing is unquoted before the split. It gives:
+  - (a) Segments. A segment ends at each control operator outside quotes (`;`, `&`, `&&`, `||`, `|`,
+    `|&`, `;;`, `;&`, `;;&`, `(`, `)` and a newline; K-0090 section 1) and records the operator that
+    ends it. A `$( )`, a backquote pair, `<( )` and `>( )`, opened outside single quotes and backslash
+    escapes, hold a list whose commands are segments too. A backslash before a newline joins the two
+    lines. `#` starts no comment: the text after it is read as live, as zsh reads it unless
+    `interactive_comments` is set (K-0090, "What the sources read do not say").
+  - (b) Quoting. Single quotes, double quotes, `$'...'`, `$"..."` and backslash escapes stay part of
+    the word they are in. `$`, `${`, `$(`, `$((` and a backquote open an expansion outside single
+    quotes and backslash escapes, inside double quotes too; `?`, `*`, `[` and a brace `{` open one
+    only outside every quote; `~` opens one at the start of a word, except `~` alone and `~/`. A
+    `$'...'` that holds a backslash escape, and any `$"..."`, count as an expansion (shell-1 does not
+    decode them). A `;`, `&`, `|`, `<`, `>`, `(` or `)` inside quotes is a plain character.
+  - (c) Fixed part and kind. Each word gives its fixed part, the text before its first expansion with
+    quotes and escaping backslashes removed (`"cd"`, `\cd` and `c""d` each give `cd`; `~` and `~/`
+    give the home folder of the hook process), and its kind: `none` with no expansion; `glob` when
+    every expansion in it is `?`, `*` or `[`, each of which matches inside one name; `any` otherwise
+    (a `$`, backquote, brace or tilde expansion, whose value may hold `/` and `..`).
+  - (d) Command position. In each segment these words before the command name are skipped:
+    assignments (`NAME=value`); reserved words (`if`, `then`, `elif`, `else`, `fi`, `while`, `until`,
+    `do`, `done`, `for`, `select`, `case`, `esac`, `coproc`, `function`, `{`, `}`, `[[`, `]]`, `!`,
+    and `time` with `-p`); `env` with its options (`-i`, `-0`, `-v`, `-`, `--`, `-u NAME`, `-a ARG`,
+    `-C DIR`, and their `--name=value` forms) and its `NAME=VALUE` words; `command` with `-p`;
+    `builtin`; `exec` with `-c`, `-l` and `-a NAME`; `nohup`; and `timeout` with its options and
+    DURATION. A redirect anywhere in the segment is no command word (K-0090 section 3). The first word
+    left is the command name, read by its fixed part, lowercased (a case-insensitive file system finds
+    `TEE` as `tee`); a command name with an expansion is unknown. `command -v` and `command -V` run no
+    command; `env -S` and `--split-string` make the command unknown. The segment records its `env -C`
+    folder and each `GIT_DIR` or `GIT_WORK_TREE` assignment, as a prefix or an `env` word.
+  - (e) Effective cwd. The call starts in the hook input's `cwd`, unknown when it is missing or no
+    existing folder. A `cd`, `pushd` or `popd` at command position moves it: options `-L`, `-P`, `-e`,
+    `-@` and `--` are skipped; `pushd -n` moves nothing; a literal target resolves against each folder
+    of its own segment's effective cwd (an absolute target as it is, `~` and `~/` from the home folder,
+    `.` and `..` collapsed). The cwd becomes unknown after a `cd` with no target, `cd -`, a target with
+    an expansion (other than `~` and `~/`), `pushd` with no folder or with `+N` or `-N`, and `popd`.
+    A `cd` can fail or be skipped, so the effective cwd of a segment is a set of folders. A segment
+    gets only the folder after the latest `cd` before it in its and-or list (the segments joined by
+    `&&` and `||` within one group) when every operator from the start of that list up to the segment
+    is `&&`. Every other segment gets every folder the call may be in by then: its start folder and
+    each `cd` result so far. An unknown member makes the set unknown. CDPATH and the directory stack
+    are not read (Honest limits).
+  - (f) Here-documents. After `<<` or `<<-` and its delimiter word, the body is the lines after the
+    current line up to the first line that is exactly the delimiter (leading tabs removed for `<<-`),
+    or to the end of the text. When any part of the delimiter word is quoted (`'EOF'`, `"EOF"`,
+    `\EOF`, `E"O"F`), the body is a literal: no segment, word or expansion comes from it. Otherwise it
+    is read as in double quotes: only its `$`, `$(` and backquote expansions count, and a substitution
+    in it holds segments (K-0090 section 3). This holds wherever the here-document opens, inside a
+    substitution or not, and the substitution around it stays an expansion of its word
+    (`"$(cat <<'EOF'` ... `)"` is kind `any`). This clause replaces v1.1's heredoc-1.
+  - (g) Redirects. A redirect operator outside quotes, with an optional number or `{name}` before it,
+    gives a write target, its next word, when the operator is `>`, `>>`, `>|`, `>!` (zsh, read as
+    `>|`), `&>`, `&>>`, `<>`, or `>&` whose word is not digits or `-`. `<`, `<<`, `<<-`, `<<<`, `<&`,
+    and `>&` with digits or `-` give none.
 
-  The call is blocked. When the cwd or a `cd` target cannot be resolved, the call is judged as if (a)
-  held (fail closed). The main session's literal-name rule (`scripts/ovl/write-guard.mjs` lines 386
-  to 403) and the qa and designer screenshot exception (lines 365 to 374) are unchanged. Rule
-  `heredoc-1` applies before (a) is read.
+- `switch-1`: `worktree-guard` blocks a main-session Bash call (no `agent_id`) when an envelope is open
+  and bound (`agent.json`, no `result.json`, no `closed.json`) and a segment of the call, as shell-1
+  reads it, is a branch switch form whose checkout is that envelope's `worktree` (through realpath)
+  or is unknown. The stderr names the bound task ids, and says so when the checkout is unknown. When
+  the records cannot be read, a switch form is blocked; every other call keeps today's verdict. A
+  subagent's call is not judged by switch-1.
+  - (a) A segment is a switch form when, after its prefixes (shell-1 (d)), its command name is `git`
+    and the first word after git's global options is `switch` or `checkout` (lowercased), or its first
+    three words are `gh pr checkout`. Git's global options are the words before the subcommand that
+    start with `-`; `-C`, `-c`, and a `--git-dir` or `--work-tree` with no `=`, take the next word as
+    their value (git(1), K-0090 section 7). So in `git -C <worktree> add checkout` the subcommand is
+    `add`.
+  - (b) The checkout is the git top of the folder git runs in: each folder of the segment's effective
+    cwd (shell-1 (e)), with each `-C <path>` applied in order, a relative path against the folder
+    before it, and `-C ""` changing nothing (git(1)). `gh pr checkout` runs in the effective cwd.
+  - (c) The checkout is unknown when the effective cwd is unknown; when the segment has `env -C`,
+    `--git-dir`, `--work-tree`, or a `GIT_DIR` or `GIT_WORK_TREE` assignment (shell-1 (d)); when a
+    `-C` value has an expansion; or when the git top of a folder cannot be read.
 
-- `heredoc-1`: before expand-1 reads the words, a `$(cat <<'X'` ... `X` ... `)` whose delimiter is
-  quoted (single or double quotes around X) is read as one quoted literal: nothing inside it is an
-  expansion word or a write form. It covers Claude Code's commit and PR body forms. An unquoted
-  delimiter gets no exception.
+- `resolve-1`: `write-guard` judges a Bash call, from the main session or a subagent, by its write
+  targets as shell-1 reads them, against the protected sets of the session (all three for the main
+  session; guard file and record for a subagent, as today). It takes the place of v1.1's expand-1 in
+  `judgeBash` (`scripts/ovl/write-guard.mjs` line 639 on 38a7f73). A call with a blocked target is
+  blocked.
+  - (a) Write targets: each redirect write target (shell-1 (g)), and the path arguments of a write
+    program at command position (shell-1 (d)): `tee`, `cp`, `mv`, `rm`, `ln`, `touch`, `sed` with
+    `-i` (alone, in a group such as `-ni`, with a suffix, or `--in-place`), and `git` whose subcommand,
+    after its global options as switch-1 (a) reads them, is `apply`, `restore`, `checkout`, `switch`,
+    `stash` or `reset` (the programs of `WRITE_FORMS`, lines 200 to 205). Its path arguments are every
+    later word that is not an option, and the value after `=` of an option word
+    (`--target-directory=<folder>`). No other word of the call is judged.
+  - (b) Base. A redirect target resolves against each folder of its segment's effective cwd (shell-1
+    (e)). A path argument resolves the same way, with git's `-C` folders applied as switch-1 (b)
+    applies them; under `env -C`, `--git-dir`, `--work-tree`, or a `GIT_DIR` or `GIT_WORK_TREE`
+    assignment its base is unknown. Resolving collapses `.` and `..` (`scripts/x/../ovl/a.mjs` is
+    `scripts/ovl/a.mjs`), on the text and again through realpath of the nearest existing folder, as
+    `judgeToolWrite` does (lines 182 to 195); either result counts.
+  - (c) A target of kind `none` is blocked when it lies inside a protected set: the path is in the set,
+    or is the set's own folder (`.claude/hooks`, `.orivilo`).
+  - (d) A target with an expansion is blocked when its fixed part could begin a protected path. For
+    kind `glob`, after `.` and `..` are collapsed with a glob name counting as one name, it could when
+    a protected path or a checkout of this project (the main checkout or one under
+    `.claude/worktrees/`) begins with the resolved fixed part, or the resolved fixed part lies inside
+    a protected set. For kind `any`, it could when the fixed part is empty, or when the folder it names
+    (the resolved fixed part up to its last `/`) lies inside a checkout of this project or above one.
+  - (e) A relative target whose base is unknown is blocked (fail closed). An absolute target needs no
+    base.
+  - (f) Unchanged: the main session's literal-name rule (`named`, lines 67 to 76, and its exceptions,
+    lines 651 to 656), the subagent rule of ORV-93 (a literal protected name and a write form by its
+    text test, lines 642 to 649), the qa and designer screenshot exception (lines 644 to 646 and
+    `isOwnScreenshotWrite`, lines 372 to 381), which allows a subagent call before resolve-1 is read,
+    and the close rules (lines 632 to 634). Line numbers are on 38a7f73.
 
 ### Branch switch forms (switch-1, L-0012)
 
 The forms a rule-following main session uses to change branch: `git switch <branch>`,
 `git switch -c <branch>`, `git checkout <branch>`, `git checkout -b <branch>`,
 `git -C <path> switch <branch>`, `gh pr checkout <n>`. Each is caught while an envelope is bound to
-that checkout.
+that checkout. These forms, probed by the reviews or made by shell-1 (e), are caught too, each with
+an envelope bound to `<bound>`:
 
-### Write-guard forms to catch (expand-1, L-0012)
+- `cd <bound> && git switch x`, from a cwd in an unbound worktree (RV-4, sec-F2)
+- `(git switch x)`, `git status & git switch x`, `if true; then git switch x; fi` (RV-7, sec-F2)
+- `git --no-pager checkout x` (RV-7, sec-F2)
+- `env git switch x`, `command git switch x`, `GIT_TRACE=0 git switch x` (sec-F2)
+- `true || cd <unbound> && git switch x` and `false && cd <unbound>; git switch x`, from a cwd in
+  `<bound>` (shell-1 (e))
+
+### Branch forms to keep (switch-1, L-0012)
+
+With an envelope bound to the main checkout, these stay allowed, besides the forms of row 25:
+
+- `cd <unbound worktree> && git switch x`, from a cwd in the main checkout (RV-4)
+- `git -C <unbound worktree> switch x`, from a cwd in the main checkout
+- `git -C <worktree> add checkout` (RV-7: its subcommand is `add`)
+
+### Unknown checkout forms (switch-1 (c))
+
+Each from a cwd in an unbound worktree, while an envelope is bound to the main checkout:
+
+- `cd - && git switch x`
+- `cd "$W" && git switch x`, and `git -C "$W" switch x`
+- `git --git-dir=<wt>/.git switch x`, and `git --work-tree <wt> checkout x`
+- `GIT_DIR=<wt>/.git git switch x`
+- `env -C <wt> git switch x`
+
+### Write-guard forms to catch (resolve-1, L-0012)
 
 The owner lines in the ovl skill section 6 (the `mkdir -p .orivilo/owner-approvals && printf ...`
 line and the `owner-waivers` line) stay blocked inside Claude Code, as today. These forms are added,
-each a test as a main-session call and as a subagent call:
+each a test as a main-session call and as a subagent call (NL marks a newline):
 
 - `cd .oriv?lo/owner-approvals && printf '{"by":"owner"}' > 7.json` (review F5 on PR #88)
 - `cd .oriv?lo/owner-waivers && printf '{"by":"owner"}' > 7.json`
@@ -225,8 +353,24 @@ each a test as a main-session call and as a subagent call:
 - `cd scripts/o?l && tee a.mjs` (a guard file)
 - `cd - && rm x`, and `cd && rm x`
 - `printf x > 7.json` with the call's cwd at `<main>/.orivilo/owner-approvals`
+- RV-1, the F5 form wrapped in single quotes:
+  `echo '$(cat <<"EOF"` NL `' ; cd .oriv?lo/owner-approvals && printf x > 7.json ; echo '` NL `EOF`
+  NL `)'`
+- RV-2, a cwd left by an earlier call: `printf x > settings.json` with the cwd at `<main>/.claude`;
+  `tee ovl/a.mjs` with the cwd at `<main>/scripts`; `printf x > workflows/ci.yml` with the cwd at
+  `<main>/.github`
+- RV-6: `"cd" scripts && tee ovl/a.mjs`; `\cd scripts && tee ovl/a.mjs`;
+  `builtin cd scripts && tee ovl/a.mjs`; `command cd .claude && printf x > settings.json`
+- RV-8: `printf x > scripts/x/../ovl/a.mjs`
+- sec-F1, a here-document as a path part:
+  `printf x > "$(cat <<"EOF"` NL `.oriv` NL `EOF` NL `)ilo/owner-approvals/7.json"`
+- shell-1 (a), (b), (e) and resolve-1 (a), (c): `git status # ; printf x > .oriv?lo/owner-approvals/7.json`;
+  `printf x > $'\x2eorivilo/owner-approvals/7.json'`;
+  `printf x > >(cat > .oriv?lo/owner-approvals/7.json)`; `false && cd /tmp; printf x > settings.json`
+  with the cwd at `<main>/.claude`; `cp --target-directory=.oriv?lo/exports /tmp/x`;
+  `cd .claude && rm -rf hooks`
 
-### Write-guard forms to keep (expand-1, L-0012)
+### Write-guard forms to keep (resolve-1, L-0012)
 
 The commands the ovl skill and `AGENTS.md` give an agent, plus Claude Code's commit and PR forms, stay
 allowed:
@@ -242,6 +386,18 @@ allowed:
 - subagent: `node --test scripts/ovl/*.test.mjs`, and `pnpm test:scripts 2>&1 | tail -5`
 - subagent: `rm -rf /tmp/orv-*` (its fixed part is outside every checkout)
 - subagent (qa): `ls <main>/.orivilo/runs/ORV-1/ORV-1-qa-1/screenshots/*.png`
+
+These forms, which the reviews found blocked under v1.1 (RV-3, sec-F4), stay allowed as the main
+session and as a subagent, from the main checkout root; `<scratchpad>` is a folder outside every
+checkout:
+
+- `cat > <scratchpad>/x.json <<'EOF'` NL `{"a": 1}` NL `EOF` (RV-3)
+- `printf a > /tmp/y.txt; echo "exit=$?"` (RV-3)
+- `for n in 1 2; do printf x > /tmp/orv-$n.txt; done` (RV-3, a for loop with a redirect)
+- `grep -n x "$HOME/.zshrc" > /tmp/g.txt` (RV-3, a `$HOME` word in a read)
+- `pnpm test > /tmp/t.log 2>&1; echo "exit=$?"` (sec-F4)
+- `echo "$(git rev-parse HEAD)"; node -e 'process.exit(1 > 0 ? 0 : 1)'` (sec-F4, a `>` inside a
+  quoted program after a `$(`)
 
 ### Refusal routes found by reading (ORV-136 survey seed)
 
@@ -292,8 +448,8 @@ N1 in rule no-throw-1; N2, N3 and N4 in Honest limits (the recorder part); N5 in
 
 ## Worked examples
 
-Run from the repo root. Each line prints exactly the output shown; every output is exact, with no
-rounding.
+Run from the repo root. Each command prints exactly the output shown; every output is exact, with no
+rounding. The v1.2 examples were written with no shell and are not run yet.
 
 - rework-1, input copied from `.orivilo/runs/ORV-139/` on 2026-10-29: the `started_at` of
   `ORV-139-build-1`, `-build-2` and `-build-3` `agent.json`, and the `recorded_at` of the two
@@ -330,13 +486,42 @@ rounding.
   node -e 'for(const h of ["| # | Given | When | User sees | Data effect | Test | Slice |","| # | Source | Criterion | Check |"])console.log(h.split("|").slice(1,-1).map(c=>c.trim()).indexOf("User sees"))'
   ```
 
-- expand-1 (a), input the review F5 command from the ORV-96 description: the words with an expansion
-  character, each with its fixed part. Expected output: `.oriv?lo/owner-approvals .oriv`. The fixed
-  part `.oriv` has no folder, so its folder is the call's cwd, the checkout root, which is a checkout
-  of this project: the word could begin `.orivilo`, the command has a redirect, and it is blocked.
+- shell-1 (b), input the RV-1 form copied from "Write-guard forms to catch": the characters that
+  stay live outside single quotes, from `;`, `>` and `$(`. The scan tracks single quotes only, which
+  is all this input needs. Expected output: `; > ;` (two separators and a redirect, no
+  substitution), so the `cd` and `printf` segments run and resolve-1 judges them.
 
   ```bash
-  node -e 'const c="cd .oriv?lo/owner-approvals && printf x > 7.json";const x=/[?*[{$`]/;for(const w of c.split(/\s+/))if(x.test(w))console.log(w,w.slice(0,w.search(x)))'
+  node -e 'const c="echo \x27$(cat <<\"EOF\"\n\x27 ; cd .oriv?lo/owner-approvals && printf x > 7.json ; echo \x27\nEOF\n)\x27";let q=false;const live=[];for(let i=0;i<c.length;i++){if(c[i]==="\x27")q=!q;else if(!q&&c[i]==="$"&&c[i+1]==="(")live.push("$(");else if(!q&&";>".includes(c[i]))live.push(c[i])}console.log(live.join(" "))'
+  ```
+
+- shell-1 (c) with resolve-1 (d), input five write target words copied from "Write-guard forms to
+  catch" and "Write-guard forms to keep": each word's fixed part and kind. Expected output, five
+  lines: `".oriv" glob`, `".or" any`, `"" any`, `"/tmp/orv-" any`, `"/tmp/orv-" glob`. From the main
+  checkout root, `<main>/.orivilo/` begins with `<main>/.oriv` (blocked); the folder of `.or` is the
+  checkout root (blocked); an empty `any` fixed part is blocked; the folder `/tmp` of `/tmp/orv-` is
+  neither in nor above a checkout, and no protected path begins with `/tmp/orv-` (both allowed).
+
+  ```bash
+  node -e 'for(const w of [".oriv[i]lo/owner-approvals/7.json",".or{i,}vilo/owner-approvals/7.json","${D}ilo/owner-approvals/7.json","/tmp/orv-$n.txt","/tmp/orv-*"]){const i=w.search(/[?*[{$`]/);console.log(JSON.stringify(w.slice(0,i)),/[?*[]/.test(w[i])?"glob":"any")}'
+  ```
+
+- shell-1 (e), input three forms copied from "Branch forms to keep" and "Branch switch forms", with
+  `/m` for the bound main checkout and `/w` for an unbound worktree: the effective cwd set of the
+  `git switch x` segment. The one-liner models only `&&`, `||` and `;` with literal `cd` targets.
+  Expected output, three lines: `/w` (allowed), `/m /w` (blocked), `/m /w` (blocked).
+
+  ```bash
+  node -e 'for(const c of ["cd /w && git switch x","true || cd /w && git switch x","false && cd /w; git switch x"]){const t=c.split(/ ?(&&|\|\||;) /);let all=["/m"],exact=all,andOnly=true;for(let i=0;i<t.length;i+=2){const w=t[i].split(" ");if(w[0]==="cd"){exact=[w[1]];all=[...all,w[1]]}if(w[0]==="git")console.log((andOnly?exact:all).join(" "));const op=t[i+1];if(op==="||")andOnly=false;if(op===";"){andOnly=true;exact=all}}}'
+  ```
+
+- resolve-1 (b) and (c), input the RV-8 target and the three RV-2 cwd and target pairs from "Write-guard
+  forms to catch", resolved under a checkout `/m`, and the `GUARD_PATH` pattern copied from
+  `scripts/ovl/write-guard.mjs` line 41. Expected output, four lines: `scripts/ovl/a.mjs true`,
+  `.claude/settings.json true`, `scripts/ovl/a.mjs true`, `.github/workflows/ci.yml true`.
+
+  ```bash
+  node -e 'const p=require("path");const g=/^(?:\.claude\/hooks\/|\.claude\/settings[^/]*\.json$|scripts\/ovl\/|scripts\/quality-gate\.mjs$|\.github\/workflows\/|\.gitignore$)/;for(const [cwd,t] of [["","scripts/x/../ovl/a.mjs"],[".claude","settings.json"],["scripts","ovl/a.mjs"],[".github","workflows/ci.yml"]]){const r=p.relative("/m",p.resolve("/m",cwd,t));console.log(r,g.test(r))}'
   ```
 
 ## Out of scope
@@ -350,36 +535,73 @@ rounding.
 - Any UI, locale string or rendered change.
 - Moving the source issues ORV-94, ORV-96, ORV-104, ORV-120, ORV-130 and ORV-136: each moves on when
   this PR merges (ORV-138 description).
+- A full shell parser: shell-1 reads the forms K-0090 classes M and U; the B and S classes are Honest
+  limits.
+- The subagent rule of ORV-93 and the main session's literal-name rule (resolve-1 (f)).
 
 ## Honest limits
 
-ORV-96, `write-guard` expand-1 (a guard rail; each class is named once, and a bypass of a named class
-is not a new finding, L-0012):
+ORV-96, `write-guard` resolve-1 on shell-1 (a guard rail; each class is named once, and a bypass of a
+named class is not a new finding, L-0012). The classes K-0090 marks B (section 8), the state it marks
+S, and the shell:
 
-- An interpreter or a script writes the file with no write form in the text: `node -e`,
-  `python3 -c`, `perl -e`, or a script the session wrote and then runs (`node /tmp/x.mjs`).
-- A program makes the path and passes it on with no expansion word: a pipe into `xargs` or
-  `find -exec` (`printf '\x2eorivilo/owner-approvals/7.json' | xargs touch`).
-- An encoded or built command run by a shell: `echo <base64> | base64 -d | sh`, `sh -c`, `eval`, or
-  `source` of a file the session wrote.
-- A write program outside the write-form list: `dd of=`, `install`, `rsync`, `tar -x`, `unzip -d`,
-  `curl -o`, `wget -O`, `git clone`.
+- The shell. Claude Code runs a Bash call in the user's shell, zsh on the owner's machine, with the
+  profile's aliases and functions. shell-1 reads the forms bash and zsh share; K-0090 read the bash
+  manual only. A zsh-only form is a named bypass: `=name` expansion, glob qualifiers (`*(.)`),
+  `KSH_GLOB` and extglob patterns with `(`, `${~X}` and the other expansion flags, and a profile
+  option that changes how a word expands.
+- `eval`, and `sh -c`, `bash -c`, `zsh -c` and every other interpreter with a program in a word
+  (`node -e`, `python3 -c`, `perl -e`); `source` or `.` of a file; a script the session wrote and then
+  runs (`node /tmp/x.mjs`); an encoded command piped to a shell (`echo <base64> | base64 -d | sh`).
+- `xargs` and `find -exec`: the program takes its arguments from input
+  (`printf '\x2eorivilo/owner-approvals/7.json' | xargs touch`).
+- A variable, substitution, alias or function that holds a command: an unknown command name
+  (`$W x`, `$(printf tee) x`), an alias from the profile or an earlier call, a function defined
+  earlier, `env -S`, a git alias (`git rs x` for `git restore x`), and `git --exec-path=<path>`.
 - A link into a protected folder made by one of the routes above, then written through by a plain
-  path.
-- The fixed-part test works by folder: a fixed part under a folder outside every checkout
-  (`/tmp/x*`) never counts, even when a link there leads into a checkout.
+  path; a fixed part under a folder outside every checkout (`/tmp/x*`), even when a link there leads
+  into a checkout; and a `..` after a link, which the system resolves through the link and resolve-1
+  by the text.
+- The value of a kind `any` expansion that climbs out of a folder outside every checkout with `..`
+  (`/tmp/$V`, with V holding `/../` and then a checkout path).
+- State from before the call: CDPATH (a relative `cd` target is resolved against the folder only),
+  and an exported `GIT_DIR` or `GIT_WORK_TREE` for a git write program.
+- A write program outside the write-form list: `dd of=`, `install`, `rsync`, `tar -x`, `unzip -d`,
+  `curl -o`, `wget -O`, `git clone`, `mkdir`; and the `nohup.out` that `nohup` writes.
+- A literal write target that holds a protected set without lying inside one (`rm -r scripts`, or
+  `git checkout -- .` in a checkout root; open question 10). The reviewer checks what is committed.
 - A session without these hooks escapes them, and a builder whose `write_set` lists
-  `scripts/ovl/write-guard.mjs` can weaken it for its own worktree until the merge, which needs the
-  owner approval line.
+  `scripts/ovl/write-guard.mjs` or `scripts/ovl/shell-words.mjs` can weaken it for its own worktree
+  until the merge, which needs the owner approval line.
 - Cost: a write form with an unquoted glob in a checkout root (`rm *.tmp`) is blocked; use a literal
   path.
+- Cost: under resolve-1 (d), `printf x > "$f"` and `tee "$OUT"` are blocked from every cwd, and
+  `printf x > logs/$n.txt` inside a checkout is blocked; write under a literal folder outside every
+  checkout (`/tmp/orv-$n.txt`), or use the Write tool.
+- Cost: under resolve-1 (e), a relative write target after `cd -`, a bare `cd`, `popd` or a `cd` to
+  an expansion is blocked; under shell-1 (e), a target after a `cd` that may be skipped (after `;`,
+  `||`, `&`, or across a group) is judged against both folders.
+- Cost: the subagent rule of ORV-93 is unchanged, so a subagent call that names a protected path in
+  any word and holds a write form by its text test is still blocked, a `>` inside a quoted program
+  after a `$(` included (sec-F4).
 
-ORV-130, `worktree-guard` switch-1 and `envelope-guard` branch-key-1:
+ORV-130, `worktree-guard` switch-1 on shell-1 and `envelope-guard` branch-key-1:
 
-- switch-1 is a text rule: a `git` or `gh` word the shell builds (`$G switch`), an alias and a script
-  are not seen. A subagent's switch is not judged.
+- The classes K-0090 marks B hide a switch as they hide a write: `eval "git sw""itch x"`,
+  `sh -c 'git switch x'` and every other interpreter, a script, `xargs`, a variable, alias or
+  function that holds `git` or the switch (`$G switch x`, an alias `gs` from the profile),
+  `env -S 'git switch x'`, a git alias (`git co x`), and `git --exec-path=<path>`.
+- The shell line of the ORV-96 part holds here: Claude Code runs the call in the user's shell, zsh on
+  the owner's machine, with the profile's aliases and functions; shell-1 reads the forms bash and zsh
+  share, and a zsh-only form is a named bypass.
+- State from before the call: an exported `GIT_DIR` or `GIT_WORK_TREE`, `core.worktree` set in a git
+  config file or by `-c core.worktree=<path>`, and CDPATH.
+- A subagent's switch is not judged.
 - A stuck bound envelope blocks every switch in its checkout until it is closed; the stall check (ovl
   skill section 2) raises it first.
+- Cost: while any envelope is bound, switch-1 (c) blocks a switch whose checkout is unknown
+  (`cd - && git switch x`); name the checkout with a literal `git -C <path>`. A switch after
+  `cd <path>;` is judged against both folders (shell-1 (e)); join the two with `&&`.
 
 ORV-136 and ORV-120, the recorder:
 
@@ -387,6 +609,10 @@ ORV-136 and ORV-120, the recorder:
   does.
 - A spec can list a row that renders something under `## Rows that render nothing`; only the reviewer
   catches it.
+- The column line (sec-F3): qa-scope-2 reads only a `User sees` column, and 42 of the 59 spec
+  acceptance tables in `docs/specs` on 38a7f73 have none (their fourth header is `Result` in 32,
+  `Then` in 8 and `Check` in 1, and 1 has no fourth column; ORV-138-security-1). So the reviewer
+  checks the visual rows of an older `Result` or `Then` spec.
 - spec-at-head-1 needs the spec committed at the head the qa walks.
 - The gate report line (K-0089 N2): an approve is judged against `.quality-gate/report.json` in the
   checkout the hook runs in (the git top of the hook input's `cwd`, `scripts/ovl/hook.mjs` line 87),
@@ -426,11 +652,14 @@ task that changed nothing still makes the next rejecting verdict count.
    2026-10-26 (ORV-20 comment 10218). The owner put ORV-136 point 2 into this batch on 2026-10-29.
    Default: build qa-scope-2 as written; the G1 comment names L-0028 and its decline so the owner can
    stop it.
-5. heredoc-1. Options: exempt a quoted-delimiter heredoc inside `$(cat ...)` (default), or block every
-   `$(` with a write form. Impact: without it, Claude Code's own commit and PR body forms are blocked
-   whenever the message holds `>` or a write word.
-6. The expand-1 write forms. Options: today's list (default), or every command. Impact: every command
-   would block reads such as `ls *` in a checkout root; the other write programs are an Honest limit.
+5. The here-document clause, shell-1 (f) (v1.1's heredoc-1). Options: a quoted-delimiter body is a
+   literal wherever a here-document opens, and the substitution around it stays an expansion
+   (default, v1.2); or v1.1's exemption of `$(cat <<'X'` alone, read as one plain letter. Impact: the
+   v1.1 form hid the F5 form inside single quotes (RV-1) and let a here-document build a path part
+   (sec-F1).
+6. The resolve-1 write programs. Options: today's list (default), or every command. Impact: every
+   command would judge the words of reads such as `ls *` in a checkout root; the other write programs
+   are an Honest limit.
 7. The home of switch-1. Options: `worktree-guard`, which already runs on every Bash call (default),
    or a new hook with a settings entry.
 8. The spec the recorder reads. Options: at the report's head (default, spec-at-head-1), or the
@@ -438,6 +667,19 @@ task that changed nothing still makes the next rejecting verdict count.
 9. A changed stories file removed at the head (no-throw-1). Options: skip it, as `merge-check` does
    (default); or refuse with the `git show` problem. Impact: refusing would send back an honest walk
    of a PR that deletes a story, and the merge would not need its screenshots anyway.
+10. A literal write target that holds a protected set (resolve-1 (c)). Options: not blocked (default;
+    Honest limits), or blocked when the program writes a whole folder (`rm -r`, `git checkout --`,
+    `git restore`). Impact: the second blocks `git checkout -- .` and `git restore .` in a checkout
+    root; v1.1 did not block them either.
+11. `#` in shell-1 (a). Options: no comment, the text after it read as live (default, fail closed under
+    zsh), or a comment as bash reads it. Impact: a call whose text after `#` holds a write form or a
+    switch form is judged on it.
+12. The effective cwd of shell-1 (e). Options: a set of folders (default), or one folder that each `cd`
+    replaces. Impact: one folder lets `false && cd /tmp; printf x > settings.json` from a cwd at
+    `<main>/.claude` write the hook wiring, and `true || cd <unbound> && git switch x` switch a bound
+    checkout; the set judges a target after a `cd` that may be skipped against both folders.
+13. An unknown checkout with no bound envelope (switch-1). Options: allowed (default), or blocked.
+    Impact: blocking would stop `cd - && git switch x` in a session with nothing bound.
 
 ## Depends on
 
@@ -450,6 +692,12 @@ task that changed nothing still makes the next rejecting verdict count.
   mode).
 - K-0089 (`docs/knowledge/orchestration/K-0089-ovl-qa-walk-refusal-routes.md`): the row 12 survey
   on f2f5fa2, its routes R1 to R22, S1 to S10, M1 to M8, and the points N1 to N5 that v1.1 places.
+- K-0090 (`docs/knowledge/enforcement/K-0090-bash-forms-for-text-guards.md`, commit f026a32): the
+  survey of the Bash forms a text guard reads, with classes M, U, S and B, that bounds shell-1,
+  switch-1 and resolve-1 (L-0045).
+- The round 0 findings on head 38a7f73, recorded 2026-10-28 in the git-ignored run records
+  `.orivilo/runs/ORV-138/ORV-138-review-1/result.json` (RV-1 to RV-8) and
+  `.orivilo/runs/ORV-138/ORV-138-security-1/result.json` (ORV-138-sec-F1 to sec-F4).
 - Lessons L-0012 (guard-rail frame), L-0016 (slice spec), L-0028 (declined visual rule), L-0032 (one
   issue per checkout), L-0045 (survey a risk class first).
 
@@ -466,3 +714,34 @@ task that changed nothing still makes the next rejecting verdict count.
   `scripts/ovl/result-recorder.test.mjs` (no-throw-1, the qa-scope-2 column, rows 16 and 36),
   `.claude/skills/ovl/SKILL.md` section 2 (row 37), the K-0089 claim that the five points are named
   by no rule, and the G1 comment on ORV-138.
+- v1.2: answers the round 0 findings of ORV-138-review-1 and ORV-138-security-1 on 38a7f73, decided
+  by the orchestrator under the owner's delegation (ADR 0012 decision 4) on survey K-0090, one bound
+  per class. New rule shell-1 (`scripts/ovl/shell-words.mjs`, clauses (a) to (g)) folds in v1.1's
+  heredoc-1; resolve-1 replaces expand-1; switch-1 reads shell-1. Rows 27, 29, 30 and 32 name the
+  new rules and commits; rows 38 to 52 are new; "Branch switch forms" and both write-guard form lists
+  grow, and "Branch forms to keep" and "Unknown checkout forms" are new; four worked examples replace
+  the expand-1 one; Honest limits name the K-0090 B classes and the user's shell in the ORV-96 and
+  ORV-130 parts, and the column line in the recorder part; open questions 5 and 6 change and 10 to 13
+  are new. Per finding:
+  - RV-1: contract change, shell-1 (b) and (f).
+  - RV-2: contract change, resolve-1 (b) and (c) on shell-1 (e).
+  - RV-3: contract change, resolve-1 (a).
+  - RV-4: contract change, switch-1 (b) on shell-1 (e).
+  - RV-5: no contract change; no-throw-1 now says that the head check comes before the spec read,
+    which row 36 (d) already required, and qa-spec-1 points to it.
+  - RV-6: contract change, shell-1 (c) and (d).
+  - RV-7: contract change, shell-1 (a) and switch-1 (a).
+  - RV-8: contract change, resolve-1 (b).
+  - sec-F1: contract change, shell-1 (f) with resolve-1 (d).
+  - sec-F2: repeats RV-4 and RV-7.
+  - sec-F3: no contract change; Honest limits, the column line.
+  - sec-F4: repeats RV-3; the `>` in a quoted program is shell-1 (b), and the ORV-93 subagent text
+    test that keeps it is a Cost line.
+
+  Review downstream: `scripts/ovl/shell-words.mjs` and `scripts/ovl/shell-words.test.mjs` (new, rows
+  38 to 44); `scripts/ovl/write-guard.mjs` (`withoutHeredocs`, `shellWords`, `hidesProtectedPath`
+  and their expand-1 and heredoc-1 comments) and `scripts/ovl/write-guard.test.mjs` (rows 27 to 30,
+  45 to 49); `scripts/ovl/worktree-guard.mjs` (`switchForms`) and its test (rows 24, 25, 50, 51);
+  `scripts/ovl/result-recorder.mjs` and the row 36 (d) test (RV-5); `.claude/skills/ovl/SKILL.md`
+  lines 269 to 275 and 445 (row 52); `docs/knowledge/enforcement/K-0090-bash-forms-for-text-guards.md`
+  line 299, which names expand-1; the PR body's deviation list; and the G1 comment on ORV-138.
