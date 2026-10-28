@@ -585,6 +585,11 @@ test("I-4: computed_style evidence with a valid ref and no observed value moves 
 
 test("round in result.json is the issue's rounds used at record time", () => {
   const root = makeRepo();
+  seedTask(root, "ORV-1", "ORV-1-b0", {
+    envelope: validEnvelope(root, { task_id: "ORV-1-b0" }),
+    agent: { agent_id: "a-b0", agent_type: "builder", started_at: "2026-10-23T07:30:00.000Z" },
+    closed: { reason: "no_report", closed_at: "2026-10-23T07:40:00.000Z" },
+  });
   seedTask(root, "ORV-1", "ORV-1-old", {
     envelope: validEnvelope(root, {
       task_id: "ORV-1-old",

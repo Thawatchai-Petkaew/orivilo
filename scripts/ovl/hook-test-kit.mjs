@@ -131,10 +131,15 @@ export function seedGrant(root, issue, n) {
   writeFileSync(join(dir, `owner-grant-${n}.json`), JSON.stringify({ by: "owner" }));
 }
 
-/** ORV-1 after two failed rounds: a request_changes, builder r1, builder r2, then request_changes again. */
+/**
+ * ORV-1 after two failed rounds (rule rework-1): a first builder, a request_changes, rework builder r1,
+ * a request_changes on r1's head, rework builder r2, then request_changes again.
+ */
 export function seedEscalated(root, issue = "ORV-1") {
+  seedBoundBuilder(root, issue, `${issue}-b0`, "2026-10-23T09:50:00.000Z");
   seedVerdict(root, issue, `${issue}-rev`, "request_changes", "2026-10-23T10:00:00.000Z");
   seedBoundBuilder(root, issue, `${issue}-r1`, "2026-10-23T10:05:00.000Z");
+  seedVerdict(root, issue, `${issue}-revb`, "request_changes", "2026-10-23T10:10:00.000Z");
   seedBoundBuilder(root, issue, `${issue}-r2`, "2026-10-23T10:15:00.000Z");
   seedVerdict(root, issue, `${issue}-rev2`, "request_changes", "2026-10-23T10:20:00.000Z");
 }

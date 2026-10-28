@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { readIssue, reworkState } from "./records.mjs";
 import {
   agentInput,
   fixture,
@@ -633,8 +634,10 @@ test("AC 80: approve results alone are no verdict, so a builder needs no rework_
 
 test("S-6: with the last round unreviewed the guard asks for a verdict, not for the owner, and owner-grant refuses", () => {
   const root = makeRepo();
+  seedBoundBuilder(root, "ORV-1", "ORV-1-b0", "2026-10-23T09:50:00.000Z");
   seedVerdict(root, "ORV-1", "ORV-1-rev", "request_changes", "2026-10-23T10:00:00.000Z");
   seedBoundBuilder(root, "ORV-1", "ORV-1-r1", "2026-10-23T10:05:00.000Z");
+  seedVerdict(root, "ORV-1", "ORV-1-revb", "request_changes", "2026-10-23T10:10:00.000Z");
   seedBoundBuilder(root, "ORV-1", "ORV-1-r2", "2026-10-23T10:15:00.000Z");
   const r = dispatch(root, validEnvelope(root, { task_id: "ORV-1-r3", rework_of: "ORV-1-r2" }));
   assert.equal(r.code, 2);
@@ -692,8 +695,10 @@ test("AC 52: another role's open envelope does not block, and a closed one does 
 
 test("AC 67: a bound builder that ended no_report after a verdict is a round; a denied one is not", () => {
   const root = makeRepo();
+  seedBoundBuilder(root, "ORV-1", "ORV-1-b0", "2026-10-23T09:50:00.000Z");
   seedVerdict(root, "ORV-1", "ORV-1-rev", "request_changes", "2026-10-23T10:00:00.000Z");
   seedBoundBuilder(root, "ORV-1", "ORV-1-r1", "2026-10-23T10:05:00.000Z");
+  seedVerdict(root, "ORV-1", "ORV-1-revb", "request_changes", "2026-10-23T10:10:00.000Z");
   seedTask(root, "ORV-1", "ORV-1-r2", {
     envelope: validEnvelope(root, { task_id: "ORV-1-r2" }),
     agent: { agent_id: "a-r2", agent_type: "builder", started_at: "2026-10-23T10:15:00.000Z" },
@@ -706,6 +711,51 @@ test("AC 67: a bound builder that ended no_report after a verdict is a round; a 
   const r = dispatch(root, validEnvelope(root, { task_id: "ORV-1-r4", rework_of: "ORV-1-r2" }));
   assert.equal(r.code, 2);
   assert.match(r.stderr, /rework rounds used/);
+});
+
+// ORV-138 rework-1: the ORV-139 timeline (build-1, build-2, build-3 starts; qa-1 and qa-2 request_changes).
+const seedOrv139 = (root) => {
+  const at = (id, t) => seedBoundBuilder(root, "ORV-1", id, t);
+  at("ORV-1-build-1", "2026-10-28T18:50:51.651Z");
+  seedVerdict(root, "ORV-1", "ORV-1-qa-1", "request_changes", "2026-10-28T19:51:09.039Z", "qa.v1");
+  at("ORV-1-build-2", "2026-10-28T19:51:32.972Z");
+  at("ORV-1-build-3", "2026-10-28T20:01:52.849Z");
+  seedVerdict(root, "ORV-1", "ORV-1-qa-2", "request_changes", "2026-10-28T20:31:41.852Z", "qa.v1");
+};
+
+test("ORV-138 row 19: the ORV-139 timeline has 1 round used, and the next rework builder is allowed", () => {
+  const root = makeRepo();
+  seedOrv139(root);
+  assert.equal(reworkState(readIssue(root, "ORV-1")).rounds, 1);
+  const r = dispatch(
+    root,
+    validEnvelope(root, { task_id: "ORV-1-build-4", rework_of: "ORV-1-build-3" }),
+  );
+  assert.equal(r.code, 0, r.stderr);
+});
+
+test("ORV-138 row 19: a first builder after a verdict, and a builder with no verdict since the last one, are not rounds", () => {
+  const root = makeRepo();
+  seedVerdict(root, "ORV-1", "ORV-1-rev", "request_changes", "2026-10-23T10:00:00.000Z");
+  seedBoundBuilder(root, "ORV-1", "ORV-1-a", "2026-10-23T10:05:00.000Z");
+  assert.equal(reworkState(readIssue(root, "ORV-1")).rounds, 0);
+  seedBoundBuilder(root, "ORV-1", "ORV-1-b", "2026-10-23T10:10:00.000Z");
+  assert.equal(reworkState(readIssue(root, "ORV-1")).rounds, 0);
+});
+
+test("ORV-138 row 20: a builder after a verdict on a builder's head counts, and the allowance still blocks the next one", () => {
+  const root = makeRepo();
+  seedBoundBuilder(root, "ORV-1", "ORV-1-first", "2026-10-23T09:00:00.000Z");
+  seedVerdict(root, "ORV-1", "ORV-1-v1", "request_changes", "2026-10-23T10:00:00.000Z");
+  seedBoundBuilder(root, "ORV-1", "ORV-1-r1", "2026-10-23T10:05:00.000Z");
+  assert.equal(reworkState(readIssue(root, "ORV-1")).rounds, 1);
+  seedVerdict(root, "ORV-1", "ORV-1-v2", "request_changes", "2026-10-23T10:10:00.000Z");
+  seedBoundBuilder(root, "ORV-1", "ORV-1-r2", "2026-10-23T10:15:00.000Z");
+  assert.equal(reworkState(readIssue(root, "ORV-1")).rounds, 2);
+  seedVerdict(root, "ORV-1", "ORV-1-v3", "request_changes", "2026-10-23T10:20:00.000Z");
+  const r = dispatch(root, validEnvelope(root, { task_id: "ORV-1-r3", rework_of: "ORV-1-r2" }));
+  assert.equal(r.code, 2);
+  assert.match(r.stderr, /Two rework rounds used\. Escalate to the owner\./);
 });
 
 /** Runs the guard as a child that starts now; resolves with its exit code. */
