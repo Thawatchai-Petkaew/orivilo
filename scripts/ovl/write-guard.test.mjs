@@ -284,7 +284,7 @@ test("row 7: a glob grants nothing, and a closed envelope grants nothing", () =>
   blocked(call(main, tool("Write", main, "scripts/ovl/a.mjs", { agentId: "aclo" })));
 });
 
-test("row 8: a guard file changes only by Write or Edit, even for the builder that lists it", () => {
+test("row 8: a guard file changes only by a tool write (Write, Edit, MultiEdit or NotebookEdit), even for the builder that lists it", () => {
   const { main } = world();
   bindBuilder(main, "ORV-1-b", SUB, ["scripts/ovl/a.mjs", ".claude/settings.json", ".gitignore"]);
   const commands = [

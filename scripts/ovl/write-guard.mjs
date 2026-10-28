@@ -45,7 +45,7 @@ const MESSAGES = {
   deliverable: (where) =>
     `deliverable ${where}: the main session does not edit deliverables; dispatch a builder envelope`,
   "guard file": (where) =>
-    `guard file ${where}: only a builder whose open envelope lists the exact path may write it, by Write or Edit`,
+    `guard file ${where}: only a builder whose open envelope lists the exact path may write it, by a tool write (Write, Edit, MultiEdit or NotebookEdit)`,
   record: (where) => `record ${where}: only hooks and the scripts in scripts/ovl/ write records`,
 };
 
@@ -392,7 +392,7 @@ function judgeBash(input, command) {
     const folder = ownScreenshots(input, ctx);
     if (folder && isOwnScreenshotWrite(text, folder)) return [];
     return [
-      `a write form names ${list}: guard files change only by Write or Edit from a bound builder, records only by hooks and scripts`,
+      `a write form names ${list}: guard files change only by a tool write (Write, Edit, MultiEdit or NotebookEdit) from a bound builder, records only by hooks and scripts`,
     ];
   }
   if (isPlainRead(command) || isWholeGitWrite(command) || isAllowedRun(command, context(input))) {
