@@ -44,4 +44,4 @@ In `.claude/skills/quality-gate/SKILL.md`, after the code block that shows `pnpm
 
 What proves it was done: `grep -n "REQUIRE_DB_TESTS=1 pnpm quality-gate" .claude/skills/ovl/SKILL.md` finds no line, and the next merge-check of a main-session gate run passes on the first run.
 
-Status: proposed
+Status: promoted 2026-10-28, into `.claude/skills/ovl/SKILL.md` (section 2, "A fact that the gate passed"; section 4, the gate record paragraph) and `.claude/skills/quality-gate/SKILL.md` (after the `pnpm quality-gate` code block); no hook enforces it

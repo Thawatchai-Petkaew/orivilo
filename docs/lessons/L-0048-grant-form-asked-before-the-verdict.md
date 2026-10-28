@@ -43,4 +43,4 @@ In `.claude/skills/ovl/SKILL.md`, section 3, after the first paragraph ("When th
 
 What proves it was done: every `owner-grant-*.json` after promotion is answered after the `ended_at` of each verdict task on its head, and its question names those task ids; no `owner-grant` heartbeat line with `decision` `block` follows a main-session form.
 
-Status: proposed
+Status: promoted 2026-10-28, into `.claude/skills/ovl/SKILL.md` (section 3, after the first paragraph and its option list); no hook enforces it

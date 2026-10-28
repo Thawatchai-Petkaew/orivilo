@@ -64,4 +64,4 @@ What proves it was done: in the next slice with a risk-class finding, the first 
 
 The `Check:` line names ORV-133 as a provisional key. Before the measurement it is replaced by every issue with a risk-class finding after promotion (the next ORV-128 slices read hostile pages and model output), each collected first with `collect <ISSUE>`, and only tasks started after promotion count. With fewer than 5 comparable fix tasks after a risk-class finding the verdict is `not enough data`.
 
-Status: proposed
+Status: promoted 2026-10-28, into `.claude/skills/ovl/SKILL.md` (section 2, "A risk-class finding", after the "Review of a guard-rail spec" bullet); Check after: 2026-11-11; no hook enforces it

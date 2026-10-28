@@ -57,4 +57,4 @@ What proves it was done: no gate or CI failure on a time limit in the next slice
 
 The `Check:` line names ORV-133 as a provisional key. Before the measurement it is replaced by every slice that adds heavy tests after promotion, each collected first with `collect <ISSUE>`, and only tasks started after promotion count. With fewer than 5 comparable builder tasks the verdict is `not enough data`.
 
-Status: proposed
+Status: promoted 2026-10-28, into `.claude/rules/testing.md` (after the "The full suite always runs where it decides" bullet); Check after: 2026-11-11; no hook enforces it
