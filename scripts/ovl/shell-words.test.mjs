@@ -218,6 +218,34 @@ test("ORV-138 row 40: backslashes and quotes are removed from the fixed part; a 
   assert.deepEqual([only("x a*b$c").words[1].fixed, only("x a*b$c").words[1].kind], ["a", "any"]);
 });
 
+test("ORV-138 row 40: a word gives its path components, split at every slash, each with its fixed part and whether it holds an expansion", () => {
+  const parts = (word) => only(`x ${word}`).words[1].parts.map((p) => [p.fixed, p.glob]);
+  assert.deepEqual(parts("a/b"), [
+    ["a", false],
+    ["b", false],
+  ]);
+  assert.deepEqual(parts("x*/../.oriv?lo/7.json"), [
+    ["x", true],
+    ["..", false],
+    [".oriv", true],
+    ["7.json", false],
+  ]);
+  assert.deepEqual(parts("/tmp/orv-*"), [
+    ["", false],
+    ["tmp", false],
+    ["orv-", true],
+  ]);
+  // A quoted slash splits too (the shell does not match a slash with a glob), a quoted glob does not glob.
+  assert.deepEqual(parts("'a?/b'"), [
+    ["a?", false],
+    ["b", false],
+  ]);
+  assert.deepEqual(parts("${D}ilo/o"), [
+    ["", true],
+    ["o", false],
+  ]);
+});
+
 // ---- row 41: clause (d), command position
 
 const PREFIXES = [
@@ -304,6 +332,17 @@ test("ORV-138 row 41: the command name is the lowercased fixed part", () => {
   assert.equal(only('"GiT" switch x').command, "git");
   assert.equal(only("FOO=1").command, null);
   assert.equal(only("FOO=1").unknown, false);
+});
+
+test("ORV-138 row 41: the command name is the lowercased base name of the fixed part, so /usr/bin/tee and /usr/bin/git read as tee and git", () => {
+  assert.equal(only("/usr/bin/tee a").command, "tee");
+  assert.equal(only("/usr/bin/git switch x").command, "git");
+  assert.equal(only("./TEE a").command, "tee");
+  assert.equal(only('"/usr/bin/GIT" switch x').command, "git");
+  assert.equal(only("/usr/bin/env -C d /usr/bin/git switch x").command, "git");
+  assert.equal(said(only("/usr/bin/git switch x")), "/usr/bin/git switch x");
+  // A command name with an expansion stays unknown, whatever its folder.
+  assert.equal(only("/usr/bin/$G switch x").unknown, true);
 });
 
 test("ORV-138 row 41: for, select, case and [[ name no command", () => {

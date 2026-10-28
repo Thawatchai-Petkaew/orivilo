@@ -21,9 +21,11 @@
 //     ends           the operator that ends the segment, or null at the end of the text
 //   substitutions  the "$(", "`", "<(" and ">(" opened outside single quotes and escapes, in order
 //
-//   a word is { raw, fixed, kind, expansions }: the text as written, the text before its first
-//   expansion with quotes and escaping backslashes removed, "none" | "glob" | "any" (clause (c)), and
-//   the expansions found, in order.
+//   a word is { raw, fixed, kind, expansions, parts }: the text as written, the text before its first
+//   expansion with quotes and escaping backslashes removed, "none" | "glob" | "any" (clause (c)), the
+//   expansions found, in order, and the path components of the word, split at every "/" (quoted or
+//   not): [{ fixed, glob }], where fixed is the component's text before its first expansion and glob
+//   says the component holds one (resolve-1 (d) collapses ".." against a glob name with them).
 import { statSync } from "node:fs";
 import { homedir } from "node:os";
 import { resolve } from "node:path";
@@ -75,7 +77,7 @@ const ALWAYS_WRITE = new Set([">", ">>", ">|", ">!", "&>", "&>>", "<>"]);
 /** A control operator ends a word; `<(` and `>(` are checked apart. */
 const WORD_END = new Set([" ", "\t", "\n", ";", "&", "|", "(", ")", "<", ">"]);
 
-/** @typedef {{ raw: string, fixed: string, kind: "none" | "glob" | "any", expansions: string[] }} Word */
+/** @typedef {{ raw: string, fixed: string, kind: "none" | "glob" | "any", expansions: string[], parts: { fixed: string, glob: boolean }[] }} Word */
 
 /**
  * @param {string} text the Bash command text
@@ -410,6 +412,8 @@ function makeWord(raw, pieces, home) {
     } else list[0] = { e: "~" };
   }
   const expansions = [];
+  const parts = [];
+  let part = { fixed: "", glob: false };
   let fixed = "";
   let open = true;
   list.forEach((p, idx) => {
@@ -422,15 +426,23 @@ function makeWord(raw, pieces, home) {
     if (type !== undefined) {
       expansions.push(type);
       open = false;
-    } else if (open) fixed += p.c;
+      part.glob = true;
+    } else {
+      if (p.c === "/") {
+        parts.push(part);
+        part = { fixed: "", glob: false };
+      } else if (!part.glob) part.fixed += p.c;
+      if (open) fixed += p.c;
+    }
   });
+  parts.push(part);
   const kind =
     expansions.length === 0
       ? "none"
       : expansions.every((e) => e === "?" || e === "*" || e === "[")
         ? "glob"
         : "any";
-  return { raw, fixed, kind, expansions };
+  return { raw, fixed, kind, expansions, parts };
 }
 
 /** True when the pieces after a `{` hold an unquoted `}` and, before it, an unquoted `,` or `..`. */
@@ -523,7 +535,9 @@ function resolveCommand(words) {
       continue;
     }
     if (w.kind !== "none") return unknown(i);
-    const name = w.fixed.toLowerCase();
+    // The lowercased base name of the fixed part, so /usr/bin/tee reads as tee (orchestrator decision
+    // on ORV-138-build-shell; clause (d) says "its fixed part, lowercased").
+    const name = w.fixed.slice(w.fixed.lastIndexOf("/") + 1).toLowerCase();
     if (name === "builtin" || name === "nohup") {
       i++;
     } else if (name === "command") {

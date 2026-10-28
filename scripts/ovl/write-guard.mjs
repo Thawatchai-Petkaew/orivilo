@@ -7,14 +7,16 @@
 //   record       .orivilo/, .quality-gate/                 every session is blocked, except the main
 //                session's Write or Edit of .orivilo/handoff.md and a qa or designer's own screenshot PNG
 // The verdict is a deterministic path and text rule, never a model. Tool paths are judged after they are
-// made absolute and resolved through realpath, lowercased. Bash is a text rule (quotes and backslashes
-// removed, lowercased), not a parser. Every non-zero exit is 2; anything unexpected fails closed.
+// made absolute and resolved through realpath, lowercased. Bash is judged two ways, neither a sandbox:
+// a text rule (quotes and backslashes removed, lowercased) for a protected name the text spells out, and
+// rule resolve-1 (ORV-138 spec) for the write targets that scripts/ovl/shell-words.mjs (shell-1) reads
+// from the call. Every non-zero exit is 2; anything unexpected fails closed.
 // stderr and the heartbeat never hold file content or a whole command (the heartbeat is beat()'s six fields).
 import { existsSync, lstatSync, readFileSync, realpathSync, writeSync } from "node:fs";
-import { homedir } from "node:os";
-import { basename, dirname, isAbsolute, join, normalize, resolve } from "node:path";
+import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { beat, recordsRoot } from "./hook.mjs";
 import { allTasks, isOpen } from "./records.mjs";
+import { readShell } from "./shell-words.mjs";
 
 const PATH_FIELD = {
   Write: "file_path",
@@ -380,251 +382,183 @@ function isOwnScreenshotWrite(text, folder) {
   return redirect !== null && !hasWriteForm(redirect[1]);
 }
 
-// ---- expand-1 (ORV-96): a path the text does not spell out ----
+// ---- resolve-1 (ORV-138 spec): the write targets of a call, as shell-words reads them ----
 
-/** The index after the `)` that closes a heredoc opened by match `m`, or -1 when its first X line is not followed by `)`. */
-function heredocEnd(command, m) {
-  let pos = m.index + m[0].length;
-  while (pos <= command.length) {
-    const eol = command.indexOf("\n", pos);
-    const line = command.slice(pos, eol < 0 ? command.length : eol);
-    if ((m[1] ? line.replace(/^\t+/, "") : line) === m[3]) {
-      const close = /^\s*\)/.exec(command.slice(pos + line.length));
-      return close ? pos + line.length + close[0].length : -1;
-    }
-    if (eol < 0) return -1;
-    pos = eol + 1;
-  }
-  return -1;
-}
-
-/**
- * heredoc-1: every `$(cat <<'X'` ... `X` ... `)` with a quoted delimiter, whose body ends at the
- * first line that is exactly X and whose `)` follows, becomes one plain letter. Claude Code's
- * commit and PR body forms; an unquoted delimiter, or anything else around X, is left as it is.
- */
-function withoutHeredocs(command) {
-  const open = /\$\(\s*cat\s+<<(-?)\s*(['"])([A-Za-z_]\w*)\2[ \t]*\n/g;
-  let out = "";
-  let from = 0;
-  for (let m = open.exec(command); m !== null; m = open.exec(command)) {
-    const end = heredocEnd(command, m);
-    if (end < 0) continue;
-    out += `${command.slice(from, m.index)}x`;
-    from = end;
-    open.lastIndex = end;
-  }
-  return out + command.slice(from);
-}
-
-/**
- * The command as segments of words (split at `;`, `&`, `|`, `(`, `)` and newlines), each word
- * {raw, fixed, expands, redirect}: `fixed` is the text before the first character that expands
- * (`?`, `*`, `[` or `{` outside any quotes, `$` or a backtick outside single quotes), `redirect`
- * says the word follows `<` or `>`. A `$(` or backtick substitution is entered, so a command
- * inside it makes its own segments.
- */
-function shellWords(command) {
-  const segments = [[]];
-  const subs = [];
-  let quote = null;
-  let word = null;
-  let redirect = false;
-  const begin = () => {
-    word ??= { raw: "", fixed: "", expands: false, redirect };
-    redirect = false;
-    return word;
-  };
-  const literal = (ch, raw = ch) => {
-    const w = begin();
-    w.raw += raw;
-    if (!w.expands) w.fixed += ch;
-  };
-  const expand = (ch) => {
-    const w = begin();
-    w.raw += ch;
-    w.expands = true;
-  };
-  const endWord = () => {
-    if (word) segments.at(-1).push(word);
-    word = null;
-  };
-  const endSegment = () => {
-    endWord();
-    if (segments.at(-1).length > 0) segments.push([]);
-  };
-  const open = (kind) => {
-    endSegment();
-    subs.push({ kind, depth: 0, quote, word });
-    word = null;
-    quote = null;
-  };
-  const close = () => {
-    endSegment();
-    ({ quote, word } = subs.pop());
-  };
-  for (let i = 0; i < command.length; i++) {
-    const ch = command[i];
-    const next = command[i + 1];
-    const top = subs.at(-1);
-    if (quote === "'") {
-      if (ch === "'") quote = null;
-      else literal(ch);
-    } else if (ch === "`") {
-      if (top?.kind === "tick" && quote === null) {
-        close();
-      } else {
-        expand(ch);
-        open("tick");
-      }
-    } else if (ch === "$") {
-      expand(ch);
-      if (next === "(") {
-        i += 1;
-        open("paren");
-      }
-    } else if (quote === '"') {
-      if (ch === '"') quote = null;
-      else if (ch === "\\" && next !== undefined && '$`"\\'.includes(next)) {
-        literal(next);
-        i += 1;
-      } else literal(ch);
-    } else if (ch === "\\") {
-      if (next === "\n") i += 1;
-      else if (next !== undefined) {
-        literal(next, `\\${next}`);
-        i += 1;
-      }
-    } else if (ch === "'" || ch === '"') {
-      begin().raw += ch;
-      quote = ch;
-    } else if (ch === ")" && top?.kind === "paren" && top.depth === 0) {
-      close();
-    } else if (";&|\n()".includes(ch)) {
-      if (top?.kind === "paren") top.depth += ch === "(" ? 1 : ch === ")" ? -1 : 0;
-      endSegment();
-    } else if (ch === "<" || ch === ">") {
-      endWord();
-      redirect = true;
-    } else if (/\s/.test(ch)) {
-      endWord();
-    } else if ("?*[{".includes(ch)) {
-      expand(ch);
-    } else {
-      literal(ch);
-    }
-  }
-  endWord();
-  return segments;
-}
-
-/** Words that are shell syntax, not a glob, even though they hold `{`, `}`, `[` or `]`. */
-const SYNTAX_WORDS = new Set(["{", "}", "[", "]", "[[", "]]"]);
-const RESERVED = new Set(["!", "{", "then", "do", "else", "elif", "if", "while", "until", "time"]);
-const CD_COMMANDS = new Set(["cd", "pushd", "popd"]);
+/** The programs whose path arguments are write targets (clause (a)); sed needs `-i`, git a write subcommand. */
+const WRITE_PROGRAMS = new Set(["tee", "cp", "mv", "rm", "ln", "touch"]);
+const GIT_WRITES = new Set(["apply", "restore", "checkout", "switch", "stash", "reset"]);
+const SED_IN_PLACE = /^-(?:[a-z]*i|-in-place)/;
 
 /** The protected name prefixes (relative to a checkout) of `sets`. */
 const prefixesOf = (sets) => sets.flatMap((set) => TEXT_PREFIXES[set]);
 
+/** True when the lowercased path `rel` (relative to a checkout) is in a protected set, or is its own folder. */
+const inSet = (rel, sets) => sets.includes(setOf(rel)) || sets.includes(setOf(`${rel}/_`));
+
+/** (c) The literal path `abs` lies inside a protected set, on the text or through realpath. */
+function literalHits(abs, ctx, sets) {
+  return [abs, resolveReal(abs)].some((p) => {
+    const inside = checkoutRel(p.toLowerCase(), ctx.mainLow);
+    return inside !== null && inSet(inside.rel, sets);
+  });
+}
+
 /**
- * Could a path that begins with the lowercased absolute text `p` (its last part may be the start of a name)
- * land in a protected set of `sets`? Yes when `p` is at or above a checkout, names a checkout root's
- * own entry, lies inside a protected set, or begins the name of a protected path.
+ * (d) glob: could a path that begins with the lowercased absolute text `p` (its last name may be only
+ * the start of one) be protected? Yes when a checkout begins with `p`, when `p` lies inside a
+ * protected set, or when a protected path begins with it.
  */
-function reaches(p, ctx, sets) {
+function globBegins(p, ctx, sets) {
   if ([`${ctx.mainLow}/`, `${ctx.mainLow}/.claude/worktrees/`].some((x) => x.startsWith(p))) {
     return true;
   }
   const inside = checkoutRel(p, ctx.mainLow);
   if (inside === null) return false;
-  const cut = inside.rel.lastIndexOf("/");
-  if (cut < 0) return true;
   return (
-    sets.includes(setOf(`${inside.rel.slice(0, cut)}/_`)) ||
-    prefixesOf(sets).some((q) => q.startsWith(inside.rel))
+    inSet(inside.rel, sets) ||
+    prefixesOf(sets).some((q) => q.startsWith(inside.rel)) ||
+    (sets.includes("guard file") && /^\.claude\/settings[^/]*$/.test(inside.rel))
   );
 }
 
-/** expand-1 (a): could the fixed part of an expansion word, from the folder `cur`, begin a protected path? */
-function wordReaches(fixed, cur, ctx, sets) {
-  let text = fixed;
-  if (text.startsWith("~")) {
-    if (text !== "~" && !text.startsWith("~/")) return true;
-    text = homedir() + text.slice(1);
+/** (d) glob: the target's path with `.` and `..` collapsed, a glob name counting as one name. */
+function globHits(base, word, ctx, sets) {
+  const stack = word.fixed.startsWith("/")
+    ? []
+    : base
+        .split("/")
+        .filter(Boolean)
+        .map((fixed) => ({ fixed, glob: false }));
+  for (const part of word.parts) {
+    if (part.glob || (part.fixed !== "" && part.fixed !== "." && part.fixed !== "..")) {
+      stack.push(part);
+    } else if (part.fixed === "..") stack.pop();
   }
-  if (text === "") return true;
-  const abs = normalize(isAbsolute(text) ? text : `${cur}/${text}`);
-  const slash = abs.endsWith("/");
-  const dir = slash ? abs.slice(0, -1) || "/" : dirname(abs);
-  const partial = slash ? "" : basename(abs);
-  const real = `${resolveReal(dir).replace(/\/$/, "")}/${partial}`;
-  return [abs, real].some((p) => reaches(p.toLowerCase(), ctx, sets));
+  const at = stack.findIndex((part) => part.glob);
+  // The glob name was collapsed away by a `..`: what is left is a literal path.
+  if (at < 0) return literalHits(`/${stack.map((p) => p.fixed).join("/")}`, ctx, sets);
+  const names = [...stack.slice(0, at), stack[at]].map((p) => p.fixed);
+  const text = `/${names.join("/")}`;
+  const cut = text.lastIndexOf("/") + 1;
+  const real = `${resolveReal(text.slice(0, cut)).replace(/\/$/, "")}/${text.slice(cut)}`;
+  return [text, real].some((p) => globBegins(p.toLowerCase(), ctx, sets));
 }
 
-/** expand-1 (b) and (c): does the folder `path` lie inside a protected set, or above one inside a checkout? */
-function folderReaches(path, ctx, sets, { ancestors }) {
-  return [path, resolveReal(path)].some((p) => {
-    const inside = checkoutRel(p.toLowerCase(), ctx.mainLow);
-    if (inside === null) return false;
+/** (d) any: the folder the fixed part names lies inside a checkout or above one. */
+function anyHits(abs, endsInSlash, ctx) {
+  const dir = endsInSlash ? abs : dirname(abs);
+  return [dir, resolveReal(dir)].some((p) => {
+    const low = p.toLowerCase();
     return (
-      sets.includes(setOf(`${inside.rel}/_`)) ||
-      (ancestors &&
-        inside.rel !== "" &&
-        prefixesOf(sets).some((q) => q.startsWith(`${inside.rel}/`)))
+      checkoutRel(low, ctx.mainLow) !== null || ctx.mainLow.startsWith(low.replace(/\/$/, "") + "/")
     );
   });
 }
 
 /**
- * expand-1: true when the call holds a write form and names a protected path some way the text
- * does not spell out: (a) an expansion word that could begin one, (b) a cd, pushd or popd that
- * moves into one or cannot be followed, (c) a working directory inside one. A cwd or a cd target
- * that cannot be resolved counts as (a) (fail closed).
+ * Does one write target, a word with the folders its segment may run in (null = unknown), reach a
+ * protected set (clauses (c) to (e))? An absolute target needs no base; any other with an unknown base
+ * is blocked.
  */
-function hidesProtectedPath(input, command, sets) {
-  const flat = withoutHeredocs(command);
-  const text = flat.replace(/["'\\]/g, "").toLowerCase();
-  if (!hasWriteForm(text, blankQuoted(flat).toLowerCase())) return false;
-  if (typeof input.cwd !== "string" || input.cwd === "" || !existsSync(input.cwd)) return true;
-  const ctx = context(input);
-  let cur = resolve(input.cwd);
-  if (folderReaches(cur, ctx, sets, { ancestors: false })) return true;
-  for (const segment of shellWords(flat)) {
-    const words = segment.filter((w) => !w.redirect);
-    for (const w of segment) {
-      if (w.expands && !SYNTAX_WORDS.has(w.raw) && wordReaches(w.fixed, cur, ctx, sets)) {
-        return true;
+function targetHits(word, folders, ctx, sets) {
+  if (word.kind === "any" && word.fixed === "") return true;
+  const absolute = word.fixed.startsWith("/");
+  if (!absolute && folders === null) return true;
+  return (absolute ? [""] : folders).some((base) => {
+    const abs = absolute ? resolve(word.fixed) : resolve(base, word.fixed);
+    if (word.kind === "none") return literalHits(abs, ctx, sets);
+    if (word.kind === "glob") return globHits(base, word, ctx, sets);
+    return anyHits(abs, word.fixed.endsWith("/"), ctx);
+  });
+}
+
+/** An option word that carries a value (`--target-directory=<folder>`), as a word of that value; else null. */
+function optionValue(word) {
+  const at = word.parts[0].fixed.indexOf("=");
+  if (at < 0) return null;
+  const parts = [
+    { ...word.parts[0], fixed: word.parts[0].fixed.slice(at + 1) },
+    ...word.parts.slice(1),
+  ];
+  return { ...word, fixed: word.fixed.slice(word.fixed.indexOf("=") + 1), parts };
+}
+
+/** The path arguments of a write program: every word that is no option, and the value of an option word. */
+function pathArguments(args) {
+  const out = [];
+  let ended = false;
+  for (const word of args) {
+    if (!ended && word.fixed === "--" && word.kind === "none") ended = true;
+    else if (ended || !word.fixed.startsWith("-")) out.push(word);
+    else {
+      const value = optionValue(word);
+      if (value !== null) out.push(value);
+    }
+  }
+  return out;
+}
+
+/**
+ * The write targets of one segment of the call: {word, folders} (folders: the folders it is judged
+ * from, null when unknown). A redirect is judged from the segment's effective cwd; a path argument of a
+ * write program too, with git's -C applied, and from an unknown folder under `env -C`, `--git-dir`,
+ * `--work-tree` or a GIT_DIR or GIT_WORK_TREE assignment.
+ */
+function segmentTargets(segment) {
+  const targets = segment.writeTargets.map((word) => ({ word, folders: segment.cwd }));
+  if (segment.command === null) return targets;
+  const args = segment.commandWords.slice(1);
+  let unknownBase = segment.envChdir.length > 0 || segment.gitEnv.length > 0;
+  let folders = segment.cwd;
+  let list = null;
+  if (WRITE_PROGRAMS.has(segment.command)) list = args;
+  else if (
+    segment.command === "sed" &&
+    args.some((a) => a.kind === "none" && SED_IN_PLACE.test(a.fixed.toLowerCase()))
+  ) {
+    list = args;
+  } else if (segment.command === "git") {
+    let at = 0;
+    for (; at < args.length && args[at].fixed.startsWith("-"); at++) {
+      const option = args[at].kind === "none" ? args[at].fixed : "";
+      if (option === "-C") {
+        const value = args[++at];
+        if (value === undefined || folders === null) continue;
+        // `-C ""` resolves to the folder itself, which is what git does.
+        folders =
+          value.kind === "none" ? [...new Set(folders.map((f) => resolve(f, value.fixed)))] : null;
+      } else if (option === "-c") at++;
+      else if (/^--(?:git-dir|work-tree)(?:=|$)/.test(option)) {
+        unknownBase = true;
+        if (!option.includes("=")) at++;
       }
     }
-    let at = 0;
-    while (
-      at < words.length &&
-      !words[at].expands &&
-      (/^[A-Za-z_]\w*=/.test(words[at].raw) || RESERVED.has(words[at].raw))
-    ) {
-      at += 1;
-    }
-    if (!CD_COMMANDS.has(words[at]?.raw)) continue;
-    const args = words.slice(at + 1);
-    while (args.length > 0 && args[0].fixed.startsWith("-") && args[0].fixed !== "-") {
-      if (args.shift().fixed === "--") break;
-    }
-    const target = args[0];
-    if (target === undefined || target.expands || target.fixed === "-") return true;
-    let dir = target.fixed;
-    if (dir.startsWith("~")) {
-      if (dir !== "~" && !dir.startsWith("~/")) return true;
-      dir = homedir() + dir.slice(1);
-    }
-    cur = resolve(cur, dir);
-    if (folderReaches(cur, ctx, sets, { ancestors: true })) return true;
+    const sub = args[at]?.kind === "none" ? args[at].fixed.toLowerCase() : null;
+    if (GIT_WRITES.has(sub)) list = args.slice(at + 1);
   }
-  return false;
+  if (list === null) return targets;
+  for (const word of pathArguments(list)) {
+    targets.push({ word, folders: unknownBase ? null : folders });
+  }
+  return targets;
+}
+
+/**
+ * resolve-1: true when a write target of the call reaches a protected set of `sets`. The targets are
+ * the redirect targets and the path arguments of a write program, read by shell-words.
+ */
+function writesProtectedPath(input, command, sets) {
+  const { segments } = readShell(command, { cwd: input.cwd });
+  const ctx = context(input);
+  return segments.some((segment) =>
+    segmentTargets(segment).some(({ word, folders }) => targetHits(word, folders, ctx, sets)),
+  );
 }
 
 const OWNER_CLOSE =
   "the owner's close runs only from the owner's own terminal, outside Claude Code";
 const MAIN_ONLY_CLOSE = "only the main session closes an envelope";
+const HIDDEN = "a protected path through an expansion, a cd or the working directory";
 
 function judgeBash(input, command) {
   const text = command.replace(/["'\\]/g, "").toLowerCase();
@@ -635,15 +569,19 @@ function judgeBash(input, command) {
   const sets = subagent ? ["guard file", "record"] : Object.keys(TEXT_PREFIXES);
   const names = named(text, sets);
   let list = names.map(([set, prefix]) => `${set} ${prefix}`).join(", ");
-  if (names.length === 0) {
-    if (!hidesProtectedPath(input, command, sets)) return [];
-    list = "a protected path through an expansion, a cd or the working directory";
+  if (subagent && names.length > 0) {
+    // The screenshot exception comes before resolve-1 is read (resolve-1 (f)); then the ORV-93 text rule.
+    const folder = ownScreenshots(input, context(input));
+    if (folder && isOwnScreenshotWrite(text, folder)) return [];
+    if (!hasWriteForm(text, blankQuoted(command).toLowerCase())) {
+      if (!writesProtectedPath(input, command, sets)) return [];
+      list = HIDDEN;
+    }
+  } else if (names.length === 0) {
+    if (!writesProtectedPath(input, command, sets)) return [];
+    list = HIDDEN;
   }
   if (subagent) {
-    if (!hasWriteForm(text, blankQuoted(command).toLowerCase())) return [];
-    const ctx = context(input);
-    const folder = ownScreenshots(input, ctx);
-    if (folder && isOwnScreenshotWrite(text, folder)) return [];
     return [
       `a write form names ${list}: guard files change only by a tool write (Write, Edit, MultiEdit or NotebookEdit) from a bound builder, records only by hooks and scripts`,
     ];
