@@ -151,6 +151,19 @@ Do not set `model`, `isolation` or `run_in_background` on the call. `cwd`, if gi
   rework as usual. A finding of kind (b) goes to the spec's Honest limits in the next revision, with no
   builder round, unless the owner decides otherwise in the question form. A re-check envelope says
   that a bypass of a class already named in Honest limits is not a new finding (L-0012).
+- **A risk-class finding.** When a `security` or reviewer finding of Critical or Important severity
+  is one route of a risk class (resource exhaustion: a cost that grows faster than the input or with
+  an uncapped count; injection; auth bypass; path or address escape) in code the spec does not frame
+  as a guard rail, the next envelope is `research`, before any spec, design or builder envelope. Its
+  objective asks for every route of the class in the code the slice runs on (the pinned dependency
+  included), each with file, line and a quote, and the
+  search method that found them (the patterns run and their hit counts), recorded in one knowledge
+  section. Then one design task covers every listed route with one bound or a named set of bounds,
+  one spec revision carries the findings and the design's spec findings, and one builder round builds
+  it. Every later reviewer and `security` envelope names that knowledge section as a context pointer
+  and says a route outside the list is a new finding that also names the search that missed it
+  (L-0045). A bypass class of kind (b) in a guard-rail spec follows the "Review of a guard-rail spec"
+  bullet instead (L-0012). No hook checks this; it is the main session's duty.
 - **Visual fix from a finding.** See step 6, "A look change in rework": the designer decides and screenshots the look first; the builder envelope carries the design.md section and one `test -f <absolute path>` fact per screenshot, and states no CSS value that design.md does not hold.
 - **Never resume.** A re-check, a follow-up question or a fix is a new envelope with a new `task_id`, never a `SendMessage`. A builder rework names `rework_of`; a reviewer re-check does not (`rework_of` is read on builder envelopes only) and puts the earlier `result.json` absolute paths in `context_pointers`. `resume-guard` (PreToolUse `SendMessage`) blocks every `SendMessage`, from the main session and from a subagent, whatever `to` names; it never echoes `to` or the message. When `to` is a recorded agent's id, the stderr names that task, as a hint for the fresh envelope. A subagent that needs a decision reports `blocked` with `needs_decision`, and the answer goes out in a fresh envelope.
 - **Research envelope that adds a knowledge entry.** The main session lists `docs/knowledge/README.md` in its `write_set` and gives it one `done_when` entry `grep -q <K id> docs/knowledge/README.md` per new entry. A `needs_decision` or deviation about a file outside the `write_set` is answered by a new envelope before the review is dispatched. After the task, the main session runs `{ git diff --name-only --diff-filter=d HEAD -- docs/knowledge; git ls-files -o --exclude-standard -- docs/knowledge; } | xargs grep -n -E '^source: "?([^"]*; )?(/Users/|/home/|/private/|/tmp/|~/)'` from the repo root, on the files the task changed or added, and expects no output (L-0031); it stops when ORV-129 makes `pnpm check:knowledge` refuse an absolute `source:` path. No hook checks this; it is the main session's duty (L-0020, L-0031).
@@ -165,7 +178,7 @@ Do not set `model`, `isolation` or `run_in_background` on the call. `cwd`, if gi
   the document) and dispatches research again with the absolute text path in `context_pointers`.
   Research counts and quotes from that text and records the pattern it counted with (L-0034). No hook
   checks this; it is the main session's duty.
-- **A fact that the gate passed.** Its `checked_by` names the run: `TEST_DATABASE_URL=<url> REQUIRE_DB_TESTS=1 pnpm quality-gate`, with the URL the main session used. That URL is a local database with no password, never a secret (L-0026). No hook checks this; it is the main session's duty.
+- **A fact that the gate passed.** Its `checked_by` names the run: `export TEST_DATABASE_URL=<url> REQUIRE_DB_TESTS=1; pnpm quality-gate`, with the URL the main session used. That URL is a local database with no password, never a secret (L-0026, L-0047). No hook checks this; it is the main session's duty.
 - **Stall check before each dispatch.** Before each Agent call, and as the first step after a context compaction or a resumed session, list every task folder under the main checkout's `.orivilo/runs/` with `agent.json`, no `result.json`, no `closed.json`, and no heartbeat line for its `agent_id` in the last 20 minutes. Each listed envelope goes to the owner close form (section 4) in the same turn, and no other dispatch of that role happens until the owner answers. Until a script does the check, list those folders with a one-off `ls` and `jq`; a `doctor.mjs stalled` command is a later builder task under its own Jira issue (L-0027). No hook checks this; it is the main session's duty.
 - **One issue per checkout at a time.** Do not run `git checkout` or `git switch` in the session's
   checkout while any envelope there is bound with no `result.json` and no `closed.json` (the stall list
@@ -193,6 +206,12 @@ When the work stops for the owner, post both reports on the Jira issue, then ask
 
 - the grant option, whose whole label is exactly `อนุญาตรอบ ORV-<n>` or `Grant round ORV-<n>`, naming the escalated issue key, with nothing before or after it
 - a decline option, worded without the grant phrase (`Decline`, `ไม่อนุญาต`, never `Do not grant round ORV-<n>`)
+
+Ask the form only after every verdict dispatched on the last builder head is in and one of them
+requests changes, or a gate record on it failed. A red CI on that head is not a verdict: dispatch the
+reviewer re-check (and `security` when its cases hold) on the head first, with the failing CI run id
+as a fact; `owner-grant` writes no grant while the issue is not escalated. The question names the
+verdict task ids and the finding ids the round will fix, and nothing else (L-0048).
 
 When the round is for a look change, the question names the designer's screenshot paths, so the owner grants a look and not a sentence (L-0017).
 
@@ -223,6 +242,8 @@ For an envelope whose subagent has already stopped, the same command closes it a
 A builder envelope that was bound counts as a rework round after the first verdict, however it ended. Only `denied` and `pre_a3` do not.
 
 Running `pnpm quality-gate` in the main session writes a gate record from `.quality-gate/report.json`, whether the run passes (`PostToolUse`) or fails (`PostToolUseFailure`; a failing gate exits 1). A record is written only when the report started after the command started, finished no later than now, and is for the commit now checked out. The same run inside a subagent writes none, an interrupted run writes none, and a partial run (`--only`) writes none.
+A run behind an inline variable prefix (`VAR=... pnpm quality-gate` or `env ... pnpm quality-gate`)
+writes none either: set the variables with `export` in an earlier segment (L-0047).
 
 ## 5. After a merge: measure and improve
 
