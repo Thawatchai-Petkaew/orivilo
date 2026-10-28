@@ -22,7 +22,15 @@ const HEAVY_TIMEOUT = 60_000;
  * (ORV-139, `.claude/rules/testing.md`): each is at least 10 times the slowest local time seen while
  * `pnpm test` ran, or at least 2 times a time measured on CI. The 2 MB description cut took 2,249 ms on
  * CI run 40746575077 (bound 2,000 then), so its bound is 5,000. Each also stays below the time the
- * defect it guards takes (a mutant of the product code ran past it).
+ * defect it guards takes (a mutant of the product code ran past it), except five, the accepted
+ * exceptions of `mutant-exception-1` in `docs/specs/ORV-139/spec.md`, which holds the mutant times:
+ * - "returns the held-depth page within 12 s, with nothing cut" and "within 10 s with nothing cut":
+ *   no mutant was found, so each bound is sized by the 10 L rule alone.
+ * - "returns the re-opened-formatting page within 10 s, cut by the Element count": each cap lifted
+ *   alone stays under the bound, and both lifted abort out of memory, red but not on the time line.
+ * - "stops the Element count at the push that would be the 1,048,577th" and "returns the parse of
+ *   the empty text when the second parse stops too": the mutant is faster than the bound and goes
+ *   red on the value assertion (texts `['A']` and `['T']` instead of `[]`).
  */
 const DESCRIPTION_BOUND_MS = 5000;
 const LOOKUP_BOUND_MS = 3000;
@@ -1268,11 +1276,13 @@ describe("html-text-1", () => {
           // template no body is implied, and the second parse returns with the title.
           const started = performance.now();
           const stopped = pageTextOf(bytes(upTo(DOCUMENT_MAX, "<title>T</title>", STALE_ROUND)));
+          // The time is read right after the stopped parse, before any value check: the defect (the List
+          // steps not counted) runs that parse for about 40 s and would otherwise go red on the value first.
+          expect(performance.now() - started).toBeLessThan(10000);
           expect(stopped).toEqual({ blocks: [], incomplete: true });
           const kept = pageTextOf(bytes(upTo(DOCUMENT_MAX, "<title>T</title><body>", STALE_ROUND)));
           expect(kept.blocks.map((b) => b.text)).toEqual(["T"]);
           expect(kept.incomplete).toBe(true);
-          expect(performance.now() - started).toBeLessThan(10000);
         },
         HEAVY_TIMEOUT,
       );

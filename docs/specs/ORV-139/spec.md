@@ -2,16 +2,16 @@
 issue: ORV-139 (https://tpetkaew.atlassian.net/browse/ORV-139)
 lane: S (test only, no contract change, no product code change)
 mode: POC mode short spec (`.claude/skills/ovl/SKILL.md`, section "POC mode")
-version: 1.0
+version: 1.1
 ---
 
 # ORV-139: wall-clock bounds in the intent-engine heavy tests sized for CI
 
 ## Goal
 
-CI run 40746575077 on PR 135 failed `packages/intent-engine/src/page-text.test.ts`, test "a 2 MB meta description is cut to 1,000 characters in time", with 2249.04 ms against `TIME_BOUND_MS` 2000. The bound was sized on one file on the Mac, not on the CI runner under the parallel full suite. This issue resizes every wall-clock bound in the set `bound-set-1` by the rule `bound-size-1`, so each follows `.claude/rules/testing.md` (L-0046, L-0042): it holds on CI and still goes red on the mutant it guards. Only test files change. Nothing here is simulated or mocked beyond the fake network the tests already use.
+CI run 40746575077 on PR 135 failed `packages/intent-engine/src/page-text.test.ts`, test "a 2 MB meta description is cut to 1,000 characters in time", with 2249.04 ms against `TIME_BOUND_MS` 2000. The bound was sized on one file on the Mac, not on the CI runner under the parallel full suite. This issue resizes the wall-clock bounds of the set `bound-set-1` by the rule `bound-size-1`, so each follows `.claude/rules/testing.md` (L-0046, L-0042): it holds on CI and still goes red on the mutant it guards. One assertion of the set is guarded by a ratio instead (`bound-ratio-1`), and five go red on a value assertion instead of the time line (`mutant-exception-1`). Only test files change. Nothing here is simulated or mocked beyond the fake network the tests already use.
 
-Decisions it depends on: `.claude/rules/testing.md` (the time limit bullet, L-0046 and L-0042; the flaky test bullet, L-0009), and the POC mode section of `.claude/skills/ovl/SKILL.md` (ORV-137), which keeps L-0046.
+Decisions it depends on: `.claude/rules/testing.md` (the time limit bullet, L-0046 and L-0042; the flaky test bullet, L-0009), the POC mode section of `.claude/skills/ovl/SKILL.md` (ORV-137), which keeps L-0046, and `docs/adr/0012-jira-states-by-environment.md` decision 4 (the owner's delegation, used in "Decisions taken under the owner's delegation" below).
 
 ## Rules
 
@@ -29,9 +29,11 @@ The set is every wall-clock assertion matched by these searches on commit `81e95
 
 In `page-text.test.ts` the set holds every bound (2000 and 10000 ms). In the other four files it holds the bounds that share the failing bound, 2000 ms (as `TIME_BOUND_MS` or the literal). An assertion inside a helper (`timed`, `timedToken`, `timedAnalysis` call sites, `readAt`, `readWith`, `read`) counts once, and its local time is the slowest case that runs through it. The ratio check at `page-text.test.ts` line 1135 (`many / one` below 3) is a ratio of two times, not a wall-clock bound, and is not in the set.
 
+After this issue 29 of the 30 lines are wall-clock bounds (18 + 1 + 2 + 3 + 5). The thirtieth, `read-page.test.ts` line 1321, is no longer a wall-clock bound: `bound-ratio-1` replaces it.
+
 ### bound-size-1
 
-For each assertion in `bound-set-1`, its bound B meets one of:
+For each of the 29 wall-clock assertions of `bound-set-1` (every line of its table except `read-page.test.ts` line 1321), its bound B meets one of:
 
 1. B is at least 10 times L, where L is the slowest elapsed time of that assertion seen in one local run of the full suite (`pnpm test` from the repo root), read through a temporary log that is removed before commit; or
 2. B is at least 2 times C, where C is that assertion's elapsed time measured on a CI run, named by its run id.
@@ -40,27 +42,52 @@ B is rounded up to a whole 1,000 ms. B also stays below the time the assertion's
 
 ### bound-mutant-1
 
-Each assertion in `bound-set-1` goes red on the mutant it guards (the defect the test names: a cut removed, a cap lifted, a linear route made to backtrack). The builder applies the mutant to the product code in the working tree, runs the test, sees the elapsed time exceed B, and restores the code. For an `it.each`, one case of the table is enough. When no B satisfies both `bound-size-1` and this rule (the mutant is not slower than the sized bound), the builder stops and reports it in `needs_decision` with the times; no assertion is dropped or weakened to a looser check.
+Each assertion in `bound-set-1` goes red on the mutant it guards (the defect the test names: a cut removed, a cap lifted, a linear route made to backtrack). The builder applies the mutant to the product code in the working tree or a scratch copy, runs the test, sees the elapsed time exceed B (for `bound-ratio-1`, the ratio exceed its bound), and restores the code. For an `it.each`, one case of the table is enough. When no B satisfies both `bound-size-1` and this rule (the mutant is not slower than the sized bound), the builder stops and reports it in `needs_decision` with the times; no assertion is dropped or weakened to a looser check unless a decision recorded in "Decisions taken under the owner's delegation" accepts it. The accepted exceptions to this rule are the five assertions of `mutant-exception-1`.
+
+#### mutant-exception-1
+
+Five assertions of `bound-set-1` have no mutant that goes red on their time line. Each keeps a bound sized by `bound-size-1` (branch 1) and is guarded against its defect by the value assertions of the same test. Lines are on `81e95d5`; mutant times are from `.orivilo/runs/ORV-139/ORV-139-build-1/result.json` (build) and `.orivilo/runs/ORV-139/ORV-139-qa-1/result.json` (qa, run on `d160f71`).
+
+| Line in `page-text.test.ts` | Test name at the handoff                                                      | L, B after       | Mutant tried and its measured time                                                                                                                  | Reason it is not red on time                                                                                                                                                                                           |
+| --------------------------- | ----------------------------------------------------------------------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 525                         | "returns the held-depth page within 12 s, with nothing cut"                   | 1143.3 ms, 12000 | None found; no time measured (build)                                                                                                                | The document stays 128 deep with 500,000 empty p; no code change the builder tried makes it slow without changing what the test asserts. `docs/specs/ORV-128/tech.md` calls this bound a time guard that pins no value |
+| 740                         | "returns the re-opened-formatting page within 10 s, cut by the Element count" | 945.2 ms, 10000  | `MAX_ELEMENT_PUSHES` lifted alone: 1,856.5 ms; `MAX_LIST_STEPS` lifted alone: 1,330.9 ms; both lifted: out of memory (SIGABRT) after 13.2 s (build) | Each cap lifted alone stays under B; both lifted aborts the run, red but not on the time line                                                                                                                          |
+| 789                         | "stops the Element count at the push that would be the 1,048,577th"           | 1053.2 ms, 11000 | `MAX_ELEMENT_PUSHES = 1e18`: 841 ms, red on the value line (795 on `d160f71`), texts `['A']` instead of `[]` (qa, build)                            | The mutant changes the value the test asserts and is not slower than B                                                                                                                                                 |
+| 805                         | "returns the parse of the empty text when the second parse stops too"         | 1122.4 ms, 12000 | `MAX_ELEMENT_PUSHES = 1e18`: 261 ms, red on the value line (811 on `d160f71`), texts `['T']` instead of `[]` (qa, build)                            | As line 789                                                                                                                                                                                                            |
+| 1435                        | "stylesheetLinksOf: returns the held-depth page within 10 s with nothing cut" | 622.1 ms, 10000  | None found; no time measured (build)                                                                                                                | As line 525                                                                                                                                                                                                            |
+
+`page-text.test.ts` line 1268 (List steps, second parse) is not an exception: its time line now runs before the value lines, and the mutant `MAX_LIST_STEPS = 1e18` goes red on it at 37,722.66 ms (`.orivilo/runs/ORV-139/ORV-139-build-2/result.json`).
+
+### bound-ratio-1
+
+The test at `read-page.test.ts` line 1321 on `81e95d5` ("reads a page that repeats one link 63,886 times as one stylesheet, never reaching the eleventh") has no wall-clock bound. It asserts that the fastest of 3 reads of the page of repeated `<link rel=stylesheet href=/x>` over the fastest of 3 reads of a page of the same size of `<link rel=icon href=/x>` is below 5. Its net log and status checks stay.
+
+Why not a wall-clock bound: under the parallel full suite the read took 2,575.75 ms and 2,147.75 ms (qa, `d160f71`, 2 of 3 runs red against 2000), so `bound-size-1` needs B of at least 26,000 ms, and the mutant `hl` (`stylesheetLinksOf` rebuilds its list per link) takes 11,693.1 ms (build). No B meets `bound-size-1` and `bound-mutant-1` together. A ratio of two reads on the same machine slows alike under load. The mutant `hl` gives a ratio of 36.84 (build-2), red on the ratio line; a quiet machine gives about 1 (build-2).
 
 ### bound-name-1
 
 A test name or comment that states a time ("within 2 s", "within 10 s", "in time" with a number) states the assertion's bound after the change.
 
+## Decisions taken under the owner's delegation
+
+- On ORV-139 (2026-10-29) the orchestrator accepted `mutant-exception-1` (qa finding F3 in ORV-139-qa-1; builder `needs_decision` in ORV-139-build-1) and `bound-ratio-1` (qa finding F1; builder `needs_decision` in ORV-139-build-2) under the owner's delegation, `docs/adr/0012-jira-states-by-environment.md` decision 4. The owner can take this back at any time.
+
 ## Acceptance criteria
 
-| #   | Given                                                       | When                           | Then                                                                                                                                                                                                                         | Check                                                                                                                             |
-| --- | ----------------------------------------------------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | The 30 assertion lines of `bound-set-1`                     | The builder hands off          | The report has one `verified` row per assertion: file, test name, L or C (with the run id), the bound before and after                                                                                                       | Count the rows against the table in `bound-set-1`                                                                                 |
-| 2   | Each assertion of `bound-set-1`                             | Its bound is read in the diff  | It meets `bound-size-1`                                                                                                                                                                                                      | Recompute from the row of AC 1                                                                                                    |
-| 3   | Each assertion of `bound-set-1`                             | Its mutant is applied          | The test goes red on the time assertion, and passes again once the code is restored                                                                                                                                          | One `verified` row per assertion with the mutant and the red elapsed time; `git diff` shows no product file                       |
-| 4   | A test in `bound-set-1` whose name or comment states a time | The bound changes              | The text follows `bound-name-1`                                                                                                                                                                                              | `grep -n "within [0-9]* s" packages/intent-engine/src/*.test.ts packages/intent-engine/src/measures/*.test.ts`                    |
-| 5   | Each test that holds an assertion of `bound-set-1`          | It is read                     | It passes the file's `HEAVY_TIMEOUT` as the third argument of `it()` or `it.each()`. On `81e95d5` the one without it is the test at `read-page.test.ts` line 741 ("reads the 500 KB file of 5,000 short wildcard rules ...") | Read each test; `pnpm --filter @orivilo/intent-engine exec vitest run --testTimeout=400` and its fail count as one `verified` row |
-| 6   | The resized bounds                                          | The page-text file is repeated | It passes                                                                                                                                                                                                                    | `pnpm --filter @orivilo/intent-engine exec vitest run --repeats 4 src/page-text.test.ts`                                          |
-| 7   | The branch                                                  | It is checked before handoff   | Only `*.test.ts` files under `packages/intent-engine/src/` changed; the full suite and the gate pass once                                                                                                                    | `git diff --name-only origin/develop...HEAD`; `pnpm lint && pnpm typecheck && pnpm test && pnpm build`                            |
+| #   | Given                                                                                                                                        | When                               | Then                                                                                                                                                                                                                            | Check                                                                                                                             |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | The 30 assertion lines of `bound-set-1`                                                                                                      | The builder hands off              | The report has one `verified` row per line: for the 29 wall-clock assertions, file, test name, L or C (with the run id), the bound before and after; for the line of `bound-ratio-1`, the ratio, its bound and the loaded times | Count the rows against the table in `bound-set-1`                                                                                 |
+| 2   | Each of the 29 wall-clock assertions of `bound-set-1`                                                                                        | Its bound is read in the diff      | It meets `bound-size-1`                                                                                                                                                                                                         | Recompute from the row of AC 1                                                                                                    |
+| 3   | Each assertion of `bound-set-1` except the five of `mutant-exception-1` (`page-text.test.ts` lines 525, 740, 789, 805 and 1435 on `81e95d5`) | Its mutant is applied              | The test goes red on its time assertion (for `bound-ratio-1`, the ratio line), and passes again once the code is restored                                                                                                       | One `verified` row per assertion with the mutant and the red elapsed time or ratio; `git diff` shows no product file              |
+| 4   | A test in `bound-set-1` whose name or comment states a time                                                                                  | The bound changes                  | The text follows `bound-name-1`                                                                                                                                                                                                 | `grep -n "within [0-9]* s" packages/intent-engine/src/*.test.ts packages/intent-engine/src/measures/*.test.ts`                    |
+| 5   | Each test that holds an assertion of `bound-set-1`                                                                                           | It is read                         | It passes the file's `HEAVY_TIMEOUT` as the third argument of `it()` or `it.each()`. On `81e95d5` the one without it is the test at `read-page.test.ts` line 741 ("reads the 500 KB file of 5,000 short wildcard rules ...")    | Read each test; `pnpm --filter @orivilo/intent-engine exec vitest run --testTimeout=400` and its fail count as one `verified` row |
+| 6   | The resized bounds and the ratio                                                                                                             | The two changed files are repeated | They pass                                                                                                                                                                                                                       | `pnpm --filter @orivilo/intent-engine exec vitest run --repeats 4 src/page-text.test.ts src/read-page.test.ts`                    |
+| 7   | The branch                                                                                                                                   | It is checked before handoff       | Only `*.test.ts` files under `packages/intent-engine/src/` and this spec changed; the full suite and the gate pass once                                                                                                         | `git diff --name-only origin/develop...HEAD`; `pnpm lint && pnpm typecheck && pnpm test && pnpm build`                            |
+| 8   | Each assertion of `mutant-exception-1`                                                                                                       | It is read in the diff             | Its bound meets `bound-size-1`, and the `page-text.test.ts` header comment names it as having no time-red mutant                                                                                                                | Read the header comment of `page-text.test.ts`; the mutant rows of `mutant-exception-1`                                           |
 
 ## Worked examples
 
-Both are not run here (no shell in this role); the builder runs them from the repo root on `81e95d5` and reports the output.
+None is run here (no shell in this role); the builder runs each from the repo root and reports the output. Examples 1 and 2 run on `81e95d5`.
 
 1. The search of `bound-set-1` for `page-text.test.ts`, an integer count with no rounding. Expected output: `18`.
 
@@ -80,9 +107,21 @@ Both are not run here (no shell in this role); the builder runs them from the re
    node -e "console.log(Math.ceil(2*2249.04/1000)*1000)"
    ```
 
+4. Why `bound-ratio-1` has no wall-clock B: `bound-size-1`, branch 1, on the slowest loaded time 2575.752542 ms (qa, `d160f71`), rounded up to a whole 1,000 ms, against the mutant time 11693.1 ms (build). Expected output: `26000 false` (the sized bound, and whether it stays below the mutant).
+
+   ```bash
+   node -e "const B=Math.ceil(10*2575.752542/1000)*1000;console.log(B,B<11693.1)"
+   ```
+
+5. The lean of `bound-ratio-1` on the mutant ratio 36.844249128296276 (build-2, `read-page.test.ts:1338`), no rounding. Expected output: `false` (not below 5, so red).
+
+   ```bash
+   node -e "console.log(36.844249128296276<5)"
+   ```
+
 ## Out of scope
 
-- Product code in `packages/intent-engine/src/` (non-test files): no change. A mutant is applied and restored in the working tree only.
+- Product code in `packages/intent-engine/src/` (non-test files): no change. A mutant is applied and restored in the working tree or a scratch copy only.
 - Wall-clock bounds outside `page-text.test.ts` that are not in `bound-set-1`: the 10000 ms bounds at `read-page.test.ts` lines 1190, 1240, 1361, 1380 and the 1000 ms bounds at lines 514 and 521 (on `81e95d5`). The builder may list any that look short in the PR body; they get their own issue.
 - The ratio check at `page-text.test.ts` line 1135.
 - Bounds in other packages (`design-system`, `apps/web`).
@@ -97,3 +136,4 @@ Both are not run here (no shell in this role); the builder runs them from the re
 ## Changelog
 
 - v1.0: first version, from the ORV-139 description and CI run 40746575077.
+- v1.1: qa F1 and F3 (ORV-139-qa-1) and builder ORV-139-build-2 `needs_decision`. Adds `mutant-exception-1` (five page-text assertions guarded by value assertions, with mutant times and reasons), `bound-ratio-1` (the 63,886-link read-page test guarded by a ratio below 5), and the record of their acceptance under ADR 0012 decision 4. `bound-set-1` now states 29 wall-clock bounds after the change; `bound-size-1` covers those 29; `bound-mutant-1` allows a scratch copy and points to the exceptions; AC 1, 2, 3, 6 and 7 changed; AC 8 added; worked examples 4 and 5 added. Downstream to review: PR 136 body (section "Decisions taken under the owner's delegation", which still names six exceptions), the `page-text.test.ts` header comment (lines 20 to 31 of the working tree), the `read-page.test.ts` comment at lines 1323 to 1328 (it says "60 for the defect"; build-2 measured 36.84), and the qa re-check of AC 1, 2, 3, 6 and 8.
