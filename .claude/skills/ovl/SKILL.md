@@ -37,6 +37,83 @@ Rules:
 - Any action that costs money, touches production or deletes data: stop and ask.
 - Report in the handoff shape: `{ issue, lane, gate, artifacts, checks, summary, next }`.
 
+## POC mode
+
+The owner switched the POC to lean delivery on 2026-10-28 (ORV-137; spec
+`docs/specs/ORV-137/spec.md`). POC mode is in effect until the owner says the POC is over. Until
+then, where this section and the loop above or section 2 disagree, this section holds. Hooks and
+guards run unchanged: every block in sections 2 to 7 still applies, and a guard changes only through a
+PR merged with the owner approval line (ORV-137 comment 10246).
+
+Rules:
+
+- One short spec per issue: goal, AC rows, out of scope. Tech notes only when a contract changes; no
+  findings tables or status cells.
+- No doc review before code; G1 and G2 pass under delegation with a short comment.
+- A review finding that changes no contract: the builder fixes it in code, the PR body notes it. No
+  architect, product and bookkeeping chain.
+- A contract-changing finding: one spec fix, then the builder.
+- Cross-reference and status bookkeeping: once before merge, or dropped.
+- One reviewer pass, plus `security` for untrusted input, auth or model calls; a re-check only for
+  Critical or Important findings. `merge-check` still needs the reviewer approve, the qa approve and
+  the gate record on the merged head (section 6).
+- Kept: tests, security on untrusted input, no secrets, honesty labels, the quality gate, CI,
+  merge-check.
+- Aim: a demo the owner runs, a URL in and a brand evidence report out.
+
+Main-session duties POC mode suspends:
+
+- L-0037 and L-0008 (step 4): the `reviewer` on the spec before the G1 packet, and the G3 re-check
+  from the reviewed sha.
+- L-0025 (step 5): a builder deviation that names a spec row goes to `product` before the review. It
+  goes to one spec fix only when it changes a contract; otherwise the PR body notes it.
+- L-0013 (section 2, "Contract change from a review"): the revision's record of every finding id. The
+  order of L-0011 is kept.
+- L-0029 ("Fix for a rule finding"): one `verified` row per governed line.
+- L-0033 ("Fixes across documents that cite each other"): research, architect and product fixes in
+  turn.
+- L-0039 ("A finding that two sections disagree"): the pointer fix envelope.
+- L-0035 ("Before a re-check"): the grep of corrected values and the fix envelopes before the
+  re-check.
+- L-0040 ("Bookkeeping after the content fixes"): replaced by the bookkeeping rule above.
+- L-0041 ("A fix greps the other documents").
+
+Main-session duties POC mode keeps:
+
+- Tests, `security` on untrusted input, auth or model calls (step 6), no secrets, honesty labels,
+  the quality gate, CI and `merge-check`.
+- L-0045 ("A risk-class finding"): survey every route of the class before one design and one builder
+  round.
+- L-0046 (`.claude/rules/testing.md`): time guards sized for CI.
+- L-0047 and L-0026 ("A fact that the gate passed"): the gate runs after `export`, and the fact names
+  the run.
+- L-0011: a contract change from a review gets the spec fix first and the builder after it.
+- L-0010 and L-0043 ("Builder envelope: one deliverable"): one deliverable per builder task, every
+  named test file in the `write_set`; `merge-check` reads the `write_set` union.
+- L-0044 ("Builder objective points to the design"): the objective cites the short spec's AC rows, or
+  the tech notes when a contract change has them.
+- L-0016 (step 2): a slice issue gets its own short spec.
+- L-0030 ("Owner decisions reach every document they change"): the owner's decision comments reach
+  the spec.
+- L-0012 ("Review of a guard-rail spec").
+- L-0014, L-0017 and L-0019 (step 6): qa only on a head the reviewer approved; a look change goes to
+  `designer` first; a visual sign-off on every changed rendered component.
+- L-0020 and L-0031 ("Research envelope that adds a knowledge entry").
+- L-0034 ("A count in an envelope", "A primary file research could not read").
+- L-0027 ("Stall check before each dispatch") and L-0032 ("One issue per checkout at a time").
+- L-0048 (section 3): the grant form only after every verdict on the last builder head is in.
+- L-0023 and L-0038 (section 4): run research's `done_when` and a spec's worked examples, when it has
+  them.
+- The component benchmark (ORV-137 comment 10247). Before a component story is built, its spec opens
+  with a comparison table in the form of `docs/specs/ORV-64/audit.md` section B, with these rows:
+  Untitled UI (variants, sizes, states and slots, read from its page, with the URL), shadcn/ui, Ours,
+  Add, and Do not copy (with the reason). The story ships with Thai and English stories for every
+  variant and state, the Recipes and modes matrix, and a designer visual sign-off. The same rule is in
+  `.claude/rules/design-system.md`.
+
+POC mode ends when the owner says the POC is over. A docs PR then removes this section and its
+pointer in `AGENTS.md`, and the suspended duties apply again.
+
 ## 1. Start of a run: doctor
 
 ```bash

@@ -40,6 +40,8 @@ Turborepo + pnpm, Next.js App Router, TypeScript strict, Tailwind CSS v4 + shadc
 
 Each Jira status means where the work is (ADR 0012): G3 PR review = merged into `develop`, Staging = on `main`, Done = the owner signed G5 (on staging until ORV-63). Gate packets use the `gate-packet` skill. Request changes → rework → re-raise the same gate.
 
+During the POC the main session follows the `ovl` skill, section "POC mode" (ORV-137): lean rules until the owner says the POC is over.
+
 ## Design-system rules (from the handoff §23)
 
 - Read `DESIGN.md` before any UI work; its design gate blocks G3. Read the catalog (`packages/design-system/catalog/`) before composing UI. Use team patterns and components when the requirement matches.
