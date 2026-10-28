@@ -270,10 +270,24 @@ Do not set `model`, `isolation` or `run_in_background` on the call. `cwd`, if gi
   checkout while any envelope there is bound with no `result.json` and no `closed.json` (the stall list
   above shows them). To work on a second issue at the same time, start a `claude --worktree` session
   for it (L-0032). The `worktree-guard` hook blocks the switch: a main-session Bash call with `git switch`,
-  `git checkout` (also after `-C <path>` or `-c <key=value>`) or `gh pr checkout`, in a checkout that
-  has a bound open envelope, exits 2 and names the task ids; it blocks too when it cannot read the
-  records or the checkout. It is a text rule: a `git` word built by the shell, an alias or a script is
-  not seen. Close a stuck envelope (section 4) to switch.
+  `git checkout` (also after git's global options, `-C <path>` and `-c <key=value>` among them, or
+  after `env`, `command` and a variable prefix) or `gh pr checkout`, in a checkout that has a bound
+  open envelope, exits 2 and names the task ids. It reads the call with the one shell reader
+  `scripts/ovl/shell-words.mjs` (the same reader `write-guard` uses), so a switch in a group, after `&`
+  or `;`, in `if` or in a substitution is seen, and `cd <path> && git switch x` is judged in `<path>`.
+  It blocks too when it cannot read the records or the checkout, and when the checkout is unknown
+  while any envelope is bound: after `cd -`, a bare `cd` or a `cd` to an expansion, with `env -C`,
+  `--git-dir`, `--work-tree`, a `GIT_DIR` or `GIT_WORK_TREE` prefix, or a `-C` value that is an
+  expansion. Name the checkout with a literal `git -C <path> switch x`; a switch after a `cd` that may
+  be skipped (after `;`, `||`, `&`) is judged against both folders, so join the steps with `&&`. It is
+  a text rule and a guard rail, and it does not see (each class named once): the shell (Claude Code
+  runs the call in the user's shell, zsh on the owner's machine, with the profile's aliases and
+  functions; the reader reads the forms bash and zsh share, so a zsh-only form is a bypass); an
+  interpreter or a script (`eval`, `sh -c`, `xargs`, a script a session wrote); a variable, alias or
+  function that holds `git` or the switch (`$G switch x`), `env -S`, a git alias (`git co x`) and
+  `git --exec-path`; state from before the call (an exported `GIT_DIR` or `GIT_WORK_TREE`,
+  `core.worktree`, `CDPATH`). A subagent's switch is not judged. Close a stuck envelope (section 4) to
+  switch.
 - **At most one open unbound envelope per role.** `SubagentStart` binds a subagent only when exactly one
   open unbound envelope of its role exists; with two (two PRs of one issue walked at once, say) neither
   binds and neither report is recorded. Dispatch the next envelope of a role only after the last one is
