@@ -41,6 +41,7 @@ import colourSource from "./measures/colour.ts?raw";
 import pageSource from "./measures/page.ts?raw";
 import wuSource from "./measures/wu.ts?raw";
 import urlAnalyserSource from "./url-analyser.ts?raw";
+import reportSource from "./report.ts?raw";
 import { notMeasuredSchema } from "./url-analyser";
 import { rendererBuildSchema } from "./render-snapshot";
 
@@ -755,6 +756,7 @@ const SCANNED: Record<string, string> = {
   "measures/colour": colourSource,
   "measures/page": pageSource,
   "url-analyser": urlAnalyserSource,
+  report: reportSource, // not named in row 30's list; ORV-135 decision 5 adds it to the scan
 };
 
 describe("measures never call a model", () => {
@@ -807,7 +809,8 @@ function stringProblems(table: Record<string, Entry>, questionKeys: readonly str
   return problems;
 }
 
-// The keys of the ORV-128 spec "Strings" section, with the four {what} labels and read.notMeasured.noFlatPair of slice 1c.
+// The keys of the ORV-128 spec "Strings" section, with the four {what} labels and read.notMeasured.noFlatPair of slice 1c,
+// and the four read.failed.* keys of the ORV-135 spec "Strings this slice adds".
 const SPEC_KEYS = [
   "evidence.fromModel",
   "evidence.measured",
@@ -822,6 +825,10 @@ const SPEC_KEYS = [
   "report.conflictsNotChecked",
   "read.refused.robots",
   "read.refused.address",
+  "read.failed.timeout",
+  "read.failed.network",
+  "read.failed.redirects",
+  "read.failed.notHtml",
   "read.notRead.competitor",
   "read.notMeasured",
   "read.notRendered.none",
@@ -850,6 +857,25 @@ describe("evidence strings", () => {
       "culture.political",
       "industry.confirm",
     ]);
+  });
+
+  it("the four read.failed.* keys hold the copy the ORV-135 spec drafts", () => {
+    expect(EVIDENCE_STRINGS["read.failed.timeout"]).toEqual({
+      th: "หน้านี้ใช้เวลาอ่านนานเกินไป เราจึงหยุดอ่าน",
+      en: "The page took too long to read, so we stopped.",
+    });
+    expect(EVIDENCE_STRINGS["read.failed.network"]).toEqual({
+      th: "เราดึงหน้านี้ไม่ได้ เว็บไซต์ไม่ตอบหรือส่งข้อผิดพลาดกลับมา",
+      en: "We could not get this page. The site did not answer or sent an error.",
+    });
+    expect(EVIDENCE_STRINGS["read.failed.redirects"]).toEqual({
+      th: "ที่อยู่นี้ส่งต่อไปยังที่อยู่อื่นหลายครั้งเกินไป เราจึงหยุดอ่าน",
+      en: "This address sent us on to other addresses too many times, so we stopped.",
+    });
+    expect(EVIDENCE_STRINGS["read.failed.notHtml"]).toEqual({
+      th: "ที่อยู่นี้ไม่ใช่หน้าเว็บที่เราอ่านได้",
+      en: "This address is not a web page we can read.",
+    });
   });
 
   it("the key set equals the list the spec Strings section holds", () => {
