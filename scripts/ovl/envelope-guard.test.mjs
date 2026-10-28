@@ -447,8 +447,8 @@ test("I-6: the envelope issue must equal the issue key in the worktree branch", 
 const SECURITY = { role: "security", skills: ["quality-gate"], write_set: [] };
 const ADR = "docs/adr/0015-standards-and-required-controls.md";
 
-test("ORV-108 row 4: an architect envelope with no skills and an ADR write_set is saved, on any branch", () => {
-  const root = makeRepo("main");
+test("ORV-108 row 4: an architect envelope with no skills and an ADR write_set is saved, on a branch keyed to its issue", () => {
+  const root = makeRepo();
   const r = dispatch(
     root,
     validEnvelope(root, { role: "architect", skills: [], write_set: [ADR] }),
@@ -491,7 +491,7 @@ test("ORV-108 row 7: a security envelope has an empty write_set and the branch i
 });
 
 test("ORV-108 row 8: a research envelope may glob under docs/knowledge", () => {
-  const root = makeRepo("main");
+  const root = makeRepo();
   const r = dispatch(
     root,
     validEnvelope(root, { role: "research", skills: [], write_set: ["docs/knowledge/*/K-*.md"] }),
@@ -524,6 +524,67 @@ test("ORV-108 row 9: a report_contract the role may not use names the allowed on
     arch.stderr,
     /report_contract "reviewer\.v1" is not allowed for role architect.*implementer\.v1/,
   );
+});
+
+const FOUR_UNCHECKED_ROLES = [
+  { role: "research", skills: [], write_set: ["docs/knowledge/*/K-*.md"] },
+  { role: "product", skills: ["discover"], write_set: ["docs/specs/ORV-9/spec.md"] },
+  { role: "architect", skills: [], write_set: [ADR] },
+  { role: "ds-architect", skills: [], write_set: ["docs/specs/ORV-9/design.md"] },
+];
+
+test("ORV-138 row 22: a research, product, architect or ds-architect envelope on another issue's branch is blocked with the branch-key reason", () => {
+  for (const extra of FOUR_UNCHECKED_ROLES) {
+    const root = makeRepo();
+    const r = dispatch(root, validEnvelope(root, { task_id: "ORV-9-x", issue: "ORV-9", ...extra }));
+    assert.equal(r.code, 2, extra.role);
+    assert.match(
+      r.stderr,
+      /envelope issue ORV-9 differs from the issue ORV-1 in branch "feature\/ORV-1-test"/,
+      extra.role,
+    );
+    assert.equal(existsSync(join(root, ".orivilo", "runs")), false, extra.role);
+  }
+});
+
+test("ORV-138 row 22: the same four envelopes on the branch of their own issue are saved", () => {
+  for (const extra of FOUR_UNCHECKED_ROLES) {
+    const root = makeRepo();
+    const r = dispatch(root, validEnvelope(root, extra));
+    assert.equal(r.code, 0, `${extra.role}: ${r.stderr}`);
+  }
+});
+
+test("ORV-138 row 22: a release envelope stays out of the branch-key check", () => {
+  const root = makeRepo();
+  const release = {
+    task_id: "ORV-9-rel",
+    issue: "ORV-9",
+    role: "release",
+    skills: ["gate-packet"],
+    write_set: [],
+  };
+  const r = dispatch(root, validEnvelope(root, release));
+  assert.equal(r.code, 0, r.stderr);
+});
+
+test("ORV-138 row 23: a retro envelope (ds-architect, skill retro) on chore/<slice key>-retro-lessons with that key passes", () => {
+  const root = makeRepo("chore/ORV-138-retro-lessons");
+  const retro = {
+    task_id: "ORV-138-retro",
+    issue: "ORV-138",
+    role: "ds-architect",
+    skills: ["retro"],
+    write_set: ["docs/lessons/L-0100.md"],
+  };
+  const r = dispatch(root, validEnvelope(root, retro));
+  assert.equal(r.code, 0, r.stderr);
+  const wrong = dispatch(
+    root,
+    validEnvelope(root, { ...retro, task_id: "ORV-9-retro", issue: "ORV-9" }),
+  );
+  assert.equal(wrong.code, 2);
+  assert.match(wrong.stderr, /envelope issue ORV-9 differs from the issue ORV-138 in branch/);
 });
 
 /** A closed task of `role` whose recorded report requests changes. */
