@@ -1382,3 +1382,75 @@ test("ORV-138 row 5: PostToolUse on the Agent call of a qa report with no usable
     assert.equal(has(root, "result.json", "ORV-1-qa"), false, kind);
   }
 });
+
+test("ORV-138 row 8: a qa report on a slice issue is recorded against the slice's own spec, and no parent spec is read", () => {
+  const { root } = makePrRepo();
+  // ORV-2 is a slice of ORV-1. Its own spec holds the copied rows 7 and 8; the parent spec (ORV-1) holds rows 1 and 2.
+  mkdirSync(join(root, "docs", "specs", "ORV-2"), { recursive: true });
+  writeFileSync(
+    join(root, "docs", "specs", "ORV-2", "spec.md"),
+    [
+      "| #   | Given | When | Result            | Evidence |",
+      "| --- | ----- | ---- | ----------------- | -------- |",
+      "| 7   | a     | b    | The row is saved  | test     |",
+      "| 8   | a     | b    | The row is listed | test     |",
+      "",
+    ].join("\n"),
+  );
+  git(root, "add", "docs/specs/ORV-2/spec.md");
+  git(root, "commit", "-q", "-m", "slice spec");
+  const head = git(root, "rev-parse", "HEAD");
+  writeGate(root, head);
+  const task = "ORV-2-qa";
+  const agent = `agent-${task}`;
+  seedTask(root, "ORV-2", task, {
+    envelope: validEnvelope(root, {
+      task_id: task,
+      issue: "ORV-2",
+      role: "qa",
+      write_set: [],
+      skills: ["quality-gate", "webapp-testing"],
+    }),
+    agent: { agent_id: agent, agent_type: "qa", started_at: "2026-10-23T09:00:00.000Z" },
+  });
+  const shotDir = join(taskDir(root, task, "ORV-2"), "screenshots");
+  mkdirSync(shotDir, { recursive: true });
+  const shot = (mode) => {
+    const name = `components-checkbox--basic-${mode}.png`;
+    writeFileSync(join(shotDir, name), PNG);
+    return {
+      story: "components-checkbox--basic",
+      mode,
+      path: `.orivilo/runs/ORV-2/${task}/screenshots/${name}`,
+      looked_at: true,
+      note: "the check glyph sits on the label centre line",
+    };
+  };
+  const rows = (list) =>
+    list.map((row) => ({ row, status: "pass", visual: false, evidence: [cmdEvidence] }));
+  const report = {
+    task_id: task,
+    issue: "ORV-2",
+    pr: 8,
+    verdict: "approve",
+    head_sha: head,
+    quality_gate: { report: ".quality-gate/report.json", ok: true, head_sha: head },
+    ac: rows([7, 8]),
+    screenshots: [shot("light"), shot("dark")],
+    findings: [],
+  };
+  // The parent's rows are not the slice's: a report that carries them is refused as rows the spec lacks.
+  const parentRows = stopWith(root, agent, "qa", { ...report, ac: rows([1, 2]) });
+  assert.equal(parentRows.code, 2, parentRows.stderr);
+  assert.match(parentRows.stderr, /row 1/);
+  // The slice's own rows are accepted and recorded.
+  const stop = stopWith(root, agent, "qa", report);
+  assert.equal(stop.code, 0, stop.stderr);
+  const recorded = run(postAgentInput(root, agent, "qa", JSON.stringify(report)));
+  assert.equal(recorded.code, 0, recorded.stderr);
+  const qa = JSON.parse(readFileSync(join(taskDir(root, task, "ORV-2"), "qa.json"), "utf8"));
+  assert.deepEqual(
+    qa.report.ac.map((a) => a.row),
+    [7, 8],
+  );
+});

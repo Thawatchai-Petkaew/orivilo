@@ -265,6 +265,17 @@ test("row 25: files outside the write_set union block, main-session docs do not"
   blocked(decide(facts(root, { pr: other })), /ORV-2\/jira-issue/);
 });
 
+test("ORV-138 row 10: a PR that changes DESIGN.md with no envelope listing it is not refused by the write_set union", () => {
+  const root = goodRoot();
+  const design = basePr({ files: ["DESIGN.md"] });
+  assert.deepEqual(decide(facts(root, { pr: design })), []);
+  // The whole file counts, and only that name: a neighbour of it is still outside the union.
+  const mixed = basePr({ files: ["DESIGN.md", "scripts/x.mjs"] });
+  assert.deepEqual(decide(facts(root, { pr: mixed })), []);
+  blocked(decide(facts(root, { pr: basePr({ files: ["DESIGN.md.bak"] }) })), /DESIGN\.md\.bak/);
+  blocked(decide(facts(root, { pr: basePr({ files: ["docs/DESIGN.md"] }) })), /docs\/DESIGN\.md/);
+});
+
 test("row 26: a guard file needs the owner approval for the head", () => {
   for (const file of ["scripts/ovl/x.mjs", ".github/workflows/ci.yml"]) {
     const pr = basePr({ files: [file] });

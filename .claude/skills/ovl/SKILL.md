@@ -381,7 +381,7 @@ node scripts/ovl/merge-check.mjs <n> --head <sha>
 - the latest `reviewer.v1` result from a `reviewer` envelope for that head is an approve;
 - the latest gate record for that head has `ok: true`, `dirty: false` and `steps_source: "gate"`, so run `pnpm quality-gate` in the main session on the pushed head;
 - every check from `gh pr checks` has bucket `pass`;
-- the head branch key and the PR title key name the same issue, and every changed file is in the `write_set` union of the issue's bound envelopes (plus `docs/context/handoff.md`, `docs/plans/*.md` and the issue's `jira-issue.md`);
+- the head branch key and the PR title key name the same issue, and every changed file is in the `write_set` union of the issue's bound envelopes (plus `docs/context/handoff.md`, `docs/plans/*.md`, the issue's `jira-issue.md` and `DESIGN.md`, the whole file);
 - a guard file in the PR also needs the owner approval record (below).
 
 A push after the checks changes the head: run the gate again and get new records for the new SHA.
