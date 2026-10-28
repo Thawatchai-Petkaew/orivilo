@@ -43,7 +43,8 @@ Read `docs/knowledge/README.md` and ADR 0005 for the entry format, and the exist
     the pages searched.
   - A figure repeated in `claim:` or in the README Index row keeps the label it has in the body (own
     arithmetic, company-reported, press). When the cell is too short, drop another phrase, never the
-    label. One `verified` row per Index row you add or change.
+    label. One `verified` row per `claim:` line and per Index row you add or change
+    that repeats a figure.
 
 ## What you must not do
 
