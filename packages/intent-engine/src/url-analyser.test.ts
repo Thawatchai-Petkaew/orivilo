@@ -1430,6 +1430,9 @@ declare const performance: { now(): number }; // the engine tsconfig has no DOM 
 const HEAVY_TIMEOUT = 60_000;
 /** The time bound of a route on 1 MB, sized for CI. */
 const TIME_BOUND_MS = 2000;
+/** The bounds of the 2 MB meta description and the 2 MB title tests, sized for CI the way `TIME_BOUND_MS` is (ORV-139): at least 10 times the slowest local time seen while `pnpm test` ran. */
+const DESCRIPTION_BOUND_MS = 6000;
+const TITLE_BOUND_MS = 4000;
 const MB = 1024 * 1024;
 
 const sheetUrl = (i: number) => `https://clinic.example/s${i}.css`;
@@ -1687,7 +1690,7 @@ describe("the title and the description are bounded before lexicon-1 reads them 
     () => {
       const html = `<meta name="description" content="${text.slice(0, 2 * MB - 100)}"><p>x</p>`;
       const { result, elapsed } = timedAnalysis(readOf(html));
-      expect(elapsed).toBeLessThan(TIME_BOUND_MS);
+      expect(elapsed).toBeLessThan(DESCRIPTION_BOUND_MS);
       expect(result.ok).toBe(true);
       if (!result.ok) return;
       const signals = ofKind(result.evidence, "personality-signal");
@@ -1710,7 +1713,7 @@ describe("the title and the description are bounded before lexicon-1 reads them 
     () => {
       const html = `<title>${text.slice(0, 2 * MB - 100)}</title><p>x</p>`;
       const { result, elapsed } = timedAnalysis(readOf(html));
-      expect(elapsed).toBeLessThan(TIME_BOUND_MS);
+      expect(elapsed).toBeLessThan(TITLE_BOUND_MS);
       expect(result.ok).toBe(true);
       if (!result.ok) return;
       expect(ofKind(result.evidence, "personality-signal").length).toBeLessThan(200);

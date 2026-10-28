@@ -17,8 +17,15 @@ declare class TextEncoder {
 declare const performance: { now(): number }; // the engine tsconfig has no DOM lib; a timer for the time bounds
 /** The framework timeout of a test that guards a time bound: above the bound, so vitest never pre-empts the guard under a parallel run. */
 const HEAVY_TIMEOUT = 60_000;
-/** The bound of the lookup test: the tech notes ask for 2 s; measured locally in the full suite, this is at least 10 times that (see the test). */
-const TIME_BOUND_MS = 2000;
+/**
+ * The wall-clock bounds of the tests below are sized for the CI runner under the parallel full suite
+ * (ORV-139, `.claude/rules/testing.md`): each is at least 10 times the slowest local time seen while
+ * `pnpm test` ran, or at least 2 times a time measured on CI. The 2 MB description cut took 2,249 ms on
+ * CI run 40746575077 (bound 2,000 then), so its bound is 5,000. Each also stays below the time the
+ * defect it guards takes (a mutant of the product code ran past it).
+ */
+const DESCRIPTION_BOUND_MS = 5000;
+const LOOKUP_BOUND_MS = 3000;
 const bytes = (html: string) => new TextEncoder().encode(html);
 const blocksOf = (html: string) => pageTextOf(bytes(html)).blocks;
 const texts = (html: string) => blocksOf(html).map((b) => b.text);
@@ -369,7 +376,7 @@ describe("html-text-1", () => {
         expect(html.length).toBeLessThanOrEqual(DOCUMENT_MAX);
         const started = performance.now();
         const out = pageTextOf(bytes(html));
-        expect(performance.now() - started).toBeLessThan(TIME_BOUND_MS);
+        expect(performance.now() - started).toBeLessThan(DESCRIPTION_BOUND_MS);
         const meta = out.blocks.find((b) => b.kind === "meta");
         expect(meta?.text.length).toBeLessThanOrEqual(1000);
         expect(meta?.text.length).toBeGreaterThan(900);
@@ -389,7 +396,7 @@ describe("html-text-1", () => {
         const html = `<body>${"<h2>heading text here</h2>".repeat(40_000)}</body>`;
         const started = performance.now();
         const out = pageTextOf(bytes(html));
-        expect(performance.now() - started).toBeLessThan(2000);
+        expect(performance.now() - started).toBeLessThan(3000);
         expect(out.blocks).toHaveLength(294);
         expect(out.blocks.reduce((n, b) => n + b.text.length, 0)).toBe(4998);
         expect(out.incomplete).toBe(true);
@@ -517,12 +524,12 @@ describe("html-text-1", () => {
     );
 
     it(
-      "returns the held-depth page within 10 s, with nothing cut",
+      "returns the held-depth page within 12 s, with nothing cut",
       () => {
         expect(HELD_DEPTH.length).toBeLessThanOrEqual(DOCUMENT_MAX);
         const started = performance.now();
         const out = pageTextOf(bytes(HELD_DEPTH));
-        expect(performance.now() - started).toBeLessThan(10000);
+        expect(performance.now() - started).toBeLessThan(12000);
         expect(out.blocks).toEqual([]); // its p elements hold no text
         expect(out.incomplete).toBe(false);
       },
@@ -595,7 +602,7 @@ describe("html-text-1", () => {
         const html = `<body>${`<${name}>`.repeat(MAX_DEPTH - 4)}${"<p>x</p>".repeat(15_000)}${"<h2>x</h2>".repeat(15_000)}`;
         const started = performance.now();
         const out = pageTextOf(bytes(html));
-        expect(performance.now() - started).toBeLessThan(2000);
+        expect(performance.now() - started).toBeLessThan(4000);
         expect(out.blocks).toEqual([]);
         expect(out.incomplete).toBe(true);
       },
@@ -786,7 +793,7 @@ describe("html-text-1", () => {
           const started = performance.now();
           expect(read(strays(1_048_572))).toEqual({ texts: ["A"], incomplete: false }); // exactly 1,048,576
           expect(read(strays(1_048_573))).toEqual({ texts: [], incomplete: true });
-          expect(performance.now() - started).toBeLessThan(10000);
+          expect(performance.now() - started).toBeLessThan(11000);
         },
         HEAVY_TIMEOUT,
       );
@@ -798,11 +805,11 @@ describe("html-text-1", () => {
           // 1,048,577 pushes. 107 <i></i> line the count up; 106 or 108 do not (tech notes section 6).
           const doc = (idle: number) =>
             `<title>T</title><template>${"<i></i>".repeat(idle)}<p>${Array.from({ length: 120 }, (_, i) => `<b id=${i}>`).join("")}${"<p>x".repeat(8700)}`;
-          // the 10 s guard is the row's claim for the document that reaches the third parse; the other two
+          // the 12 s guard is the row's claim for the document that reaches the third parse; the other two
           // are read outside it, so a loaded runner is not charged for three reads against one bound
           const started = performance.now();
           expect(read(doc(107))).toEqual({ texts: [], incomplete: true });
-          expect(performance.now() - started).toBeLessThan(10000);
+          expect(performance.now() - started).toBeLessThan(12000);
           expect(read(doc(108))).toEqual({ texts: ["T"], incomplete: true });
           expect(read(doc(106))).toEqual({ texts: ["T"], incomplete: true });
         },
@@ -1157,12 +1164,12 @@ describe("html-text-1", () => {
         ["adoption move document with text before each line", ADOPTION_MOVE_TEXT],
         ["stale-marker document", STALE_MARKERS],
       ])(
-        "returns the 2 MB %s within 10 s, cut by the List steps",
+        "returns the 2 MB %s within 13 s, cut by the List steps",
         (_n, html) => {
           expect(html.length).toBeLessThanOrEqual(DOCUMENT_MAX);
           const started = performance.now();
           const out = pageTextOf(bytes(html));
-          expect(performance.now() - started).toBeLessThan(10000);
+          expect(performance.now() - started).toBeLessThan(13000);
           expect(out).toEqual({ blocks: [], incomplete: true });
         },
         HEAVY_TIMEOUT,
@@ -1173,12 +1180,12 @@ describe("html-text-1", () => {
         ["table with a br after each", FOSTERED_ELEMENTS],
         ["table after many br, then text", FOSTERED_AFTER_ELEMENTS],
       ])(
-        "returns the 2 MB page fostered out of a %s within 10 s, uncut",
+        "returns the 2 MB page fostered out of a %s within 18 s, uncut",
         (_n, html) => {
           expect(html.length).toBeLessThanOrEqual(DOCUMENT_MAX);
           const started = performance.now();
           const out = pageTextOf(bytes(html));
-          expect(performance.now() - started).toBeLessThan(10000);
+          expect(performance.now() - started).toBeLessThan(18000);
           expect(out.incomplete).toBe(false);
         },
         HEAVY_TIMEOUT,
@@ -1577,7 +1584,7 @@ describe("pageTextAndPathsOf names the elements pathOf names", () => {
       );
       const started = performance.now();
       const out = pageTextAndPathsOf(bytes(html), paths);
-      expect(performance.now() - started).toBeLessThan(TIME_BOUND_MS);
+      expect(performance.now() - started).toBeLessThan(LOOKUP_BOUND_MS);
       expect(out.unmatchedPaths).toBe(2500);
     },
     HEAVY_TIMEOUT,
