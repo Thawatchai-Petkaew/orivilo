@@ -745,3 +745,182 @@ test("row 27: the launcher, run as settings.json runs it, blocks and allows with
   assert.equal(run("docs/a.md").code, 0);
   assert.equal(runNode(hook("write-guard.mjs"), "nope").code, 2);
 });
+
+// ---- ORV-138 rows 27 to 30: expand-1 and heredoc-1 (ORV-96) ----
+
+const HIDDEN = "a protected path through an expansion, a cd or the working directory";
+
+/** The call is blocked by expand-1 (not by a literal name), as the main session and as a subagent. */
+function blockedByExpand(main, command, cwd = main) {
+  blocked(call(main, bash(cwd, command)), new RegExp(`the command names ${HIDDEN} and is neither`));
+  blocked(call(main, bash(cwd, command, SUB)), new RegExp(`a write form names ${HIDDEN}`));
+}
+
+/** The call is allowed, as the main session and as a subagent. */
+function allowedBoth(main, command, cwd = main) {
+  allowed(call(main, bash(cwd, command)));
+  allowed(call(main, bash(cwd, command, SUB)));
+}
+
+const OWNER_FORM = (folder) => `cd .oriv?lo/${folder} && printf '{"by":"owner"}' > 7.json`;
+
+test("ORV-138 row 27: the review F5 form into owner-approvals and owner-waivers is blocked for the main session and a subagent", () => {
+  const { main } = world();
+  for (const folder of ["owner-approvals", "owner-waivers"]) {
+    blockedByExpand(main, OWNER_FORM(folder));
+  }
+  assert.ok(!existsSync(join(main, ".orivilo", "owner-approvals", "7.json")));
+});
+
+test("ORV-138 row 28: every form of 'Write-guard forms to catch' is blocked, as the main session and as a subagent", () => {
+  const { main } = world();
+  const cwdInSet = join(main, ".orivilo", "owner-approvals");
+  mkdirSync(cwdInSet, { recursive: true });
+  const forms = [
+    OWNER_FORM("owner-approvals"),
+    OWNER_FORM("owner-waivers"),
+    "cp -r /tmp/x .oriv*/exports/abc",
+    "printf x > .oriv[i]lo/owner-approvals/7.json",
+    "printf x > .or{i,}vilo/owner-approvals/7.json",
+    "D=.oriv; printf x > ${D}ilo/owner-approvals/7.json",
+    'printf x > "$(printf .oriv)ilo/owner-approvals/7.json"',
+    "printf x > `printf .oriv`ilo/owner-approvals/7.json",
+    "cd scripts/o?l && tee a.mjs",
+    "cd - && rm x",
+    "cd && rm x",
+  ];
+  for (const form of forms) blockedByExpand(main, form);
+  blockedByExpand(main, "printf x > 7.json", cwdInSet);
+});
+
+test("ORV-138 row 28: expand-1 (a) judges the fixed part of a word against the cwd, a worktree and a protected folder", () => {
+  const { main, wt } = world();
+  // A worktree root is a checkout too; so is a path that begins the name of a protected folder.
+  blockedByExpand(main, "printf x > .oriv?lo/a", wt);
+  blockedByExpand(main, "tee scripts/o?l/a.mjs");
+  blockedByExpand(main, "tee .claude/hoo*/a.mjs");
+  blockedByExpand(main, "touch .claude/work*/w/a");
+  blockedByExpand(main, "rm *.tmp");
+  blockedByExpand(main, `rm ${main.slice(0, -3)}*`);
+  blockedByExpand(main, "rm ${X}");
+  // An empty fixed part always could, whatever the cwd; a folder inside a set (named by the cwd) does too.
+  mkdirSync(join(main, "docs"), { recursive: true });
+  mkdirSync(join(main, "scripts"), { recursive: true });
+  blockedByExpand(main, 'printf x > "$D"/a', join(main, "docs"));
+  blockedByExpand(main, "tee ovl/a*.mjs", join(main, "scripts"));
+  // A word whose fixed part is a folder outside every checkout is no reason.
+  allowedBoth(main, "touch /tmp/zz*/a ../../zz*/a", join(main, "docs"));
+  // The main session also protects deliverables; a subagent may write them.
+  blocked(call(main, bash(main, "touch packages/a*")));
+  allowed(call(main, bash(main, "touch packages/a*", SUB)));
+  // A quote or a backslash makes a glob character a plain one; single quotes hold a `$`.
+  allowedBoth(main, "printf x > 'a?b' && touch \\*.tmp '$HOME'");
+  // `{`, `}`, `[` and `]` alone are shell syntax.
+  allowedBoth(main, "[ -f a ] && { rm b; }");
+});
+
+test("ORV-138 row 28: expand-1 (b) follows cd, pushd and popd into a protected set", () => {
+  const { main } = world();
+  mkdirSync(join(main, "scripts"), { recursive: true });
+  mkdirSync(join(main, "docs"), { recursive: true });
+  symlinkSync(join(main, ".orivilo"), join(main, "docs", "lnk"));
+  mkdirSync(join(main, ".orivilo"), { recursive: true });
+  // A target that resolves into a set with no protected name in the text: a name the cwd completes,
+  // a folder above a set, and a link.
+  blockedByExpand(main, "cd ovl && tee a.mjs", join(main, "scripts"));
+  blockedByExpand(main, "cd scripts && tee ovl/a.mjs");
+  blockedByExpand(main, "cd docs/lnk && printf x > a");
+  blockedByExpand(main, "pushd scripts && cd ovl && tee a.mjs");
+  blockedByExpand(main, "popd && rm x");
+  blockedByExpand(main, "cd -P -- scripts && cd ovl && rm x");
+  blockedByExpand(main, "cd ~nobody/x && rm y");
+  // An expansion word as the target is a reason of its own, even where its fixed part is harmless.
+  blockedByExpand(main, "cd /tmp/y* && rm z");
+  // The main session also protects deliverables.
+  blocked(call(main, bash(main, "cd apps && rm x")));
+  blocked(call(main, bash(main, "cd packages/web && rm x")));
+  allowed(call(main, bash(main, "cd apps && rm x", SUB)));
+  // A cd to a folder outside every set, or back to the root, is no reason by itself.
+  allowedBoth(main, "cd docs && rm x");
+  allowedBoth(main, `cd /tmp && cd ${main} && rm x`);
+});
+
+test("ORV-138 row 28: expand-1 (c) judges the cwd of the call; the main session also protects deliverables", () => {
+  const { main, wt } = world();
+  for (const folder of [".orivilo/runs", ".quality-gate"]) {
+    mkdirSync(join(main, folder), { recursive: true });
+    blockedByExpand(main, "touch x", join(main, folder));
+  }
+  mkdirSync(join(wt, ".claude", "hooks"), { recursive: true });
+  blockedByExpand(main, "touch x", join(wt, ".claude", "hooks"));
+  mkdirSync(join(main, "apps", "web"), { recursive: true });
+  blocked(call(main, bash(join(main, "apps", "web"), "touch x")));
+  allowed(call(main, bash(join(main, "apps", "web"), "touch x", SUB)));
+  allowedBoth(main, "touch x", wt);
+});
+
+test("ORV-138 row 29: every form of 'Write-guard forms to keep' is allowed in the session the list names", () => {
+  const { main, wt } = world();
+  const mainForms = [
+    "git grep -n -F 'old' HEAD -- $(git diff --name-only origin/develop...HEAD)",
+    `{ git diff --name-only --diff-filter=d HEAD -- docs/knowledge; git ls-files -o --exclude-standard -- docs/knowledge; } | xargs grep -n -E '^source: "?([^"]*; )?(/Users/|/home/|/private/|/tmp/|~/)'`,
+    "export TEST_DATABASE_URL=postgres://localhost/x REQUIRE_DB_TESTS=1; pnpm quality-gate",
+    `git -C ${wt} push -u origin HEAD`,
+    "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+  ];
+  for (const form of mainForms) allowed(call(main, bash(main, form)));
+  const subForms = [
+    "node --test scripts/ovl/*.test.mjs",
+    "pnpm test:scripts 2>&1 | tail -5",
+    "rm -rf /tmp/orv-*",
+  ];
+  for (const form of subForms) allowed(call(main, bash(main, form, SUB)));
+  bindShooter(main, "qa", "ORV-1-qa-1", "aqa");
+  allowed(
+    call(main, bash(main, `ls ${main}/.orivilo/runs/ORV-1/ORV-1-qa-1/screenshots/*.png`, "aqa")),
+  );
+});
+
+test("ORV-138 row 29: heredoc-1 lets a commit and a PR body form hold >, rm and git switch", () => {
+  const { main } = world();
+  const body =
+    "fix: a -> b\n\nremove the old file, rm it, a > b\ngit switch x and git checkout y\n$(rm z)";
+  const forms = [
+    `git commit -m "$(cat <<'EOF'\n${body}\nEOF\n)"`,
+    `git commit -m "$(cat <<"EOF"\n${body}\nEOF\n)"`,
+    `gh pr create --title "ORV-138: x" --body "$(cat <<'EOF'\n${body}\nEOF\n)"`,
+  ];
+  for (const form of forms) allowed(call(main, bash(main, form)));
+});
+
+test("ORV-138 row 29: heredoc-1 reads only a quoted delimiter that ends the substitution", () => {
+  const { main } = world();
+  const body = "a > b rm c";
+  const forms = [
+    // An unquoted delimiter gets no exception: the shell expands the body.
+    `git commit -m "$(cat <<EOF\n${body}\nEOF\n)"`,
+    // A command after the closing delimiter, or after the closing parenthesis, is judged.
+    `git commit -m "$(cat <<'EOF'\n${body}\nEOF\n; rm .oriv?lo/x\n)"`,
+    `git commit -m "$(cat <<'EOF'\n${body}\nEOF\n)" && rm .oriv?lo/x`,
+    // A command on the opening line, or no closing delimiter at all, is no heredoc form.
+    `git commit -m "$(cat <<'EOF' > .oriv?lo/x\n${body}\nEOF\n)"`,
+    `git commit -m "$(cat <<'EOF'\n${body}\n)"`,
+  ];
+  for (const form of forms) {
+    blocked(call(main, bash(main, form)), new RegExp(`names ${HIDDEN}`));
+  }
+});
+
+test("ORV-138 row 30: expand-1 fails closed when the cwd or a cd target cannot be resolved", () => {
+  const { main } = world();
+  const gone = join(main, ".claude", "worktrees", "gone");
+  // The cwd is removed or missing: any call that holds a write form is blocked; a plain read is not.
+  blockedByExpand(main, "touch a.txt", gone);
+  blockedByExpand(main, "rm -rf /tmp/orv-x", gone);
+  const noCwd = { ...bash(main, "touch a.txt"), cwd: undefined };
+  blocked(call(main, noCwd), new RegExp(`names ${HIDDEN}`));
+  allowedBoth(main, "ls", gone);
+  // A cd target that cannot be followed (another user's home) is the same.
+  blockedByExpand(main, "cd ~nobody/x && rm y");
+  blockedByExpand(main, "pushd ~nobody && rm y");
+});

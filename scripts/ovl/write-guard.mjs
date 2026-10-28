@@ -11,7 +11,8 @@
 // removed, lowercased), not a parser. Every non-zero exit is 2; anything unexpected fails closed.
 // stderr and the heartbeat never hold file content or a whole command (the heartbeat is beat()'s six fields).
 import { existsSync, lstatSync, readFileSync, realpathSync, writeSync } from "node:fs";
-import { basename, dirname, isAbsolute, join, resolve } from "node:path";
+import { homedir } from "node:os";
+import { basename, dirname, isAbsolute, join, normalize, resolve } from "node:path";
 import { beat, recordsRoot } from "./hook.mjs";
 import { allTasks, isOpen } from "./records.mjs";
 
@@ -81,8 +82,8 @@ function setOf(rel) {
   return GUARD_PATH.test(rel) ? "guard file" : null;
 }
 
-/** {set, rel, checkout, isMain} for a lowercased absolute path inside a checkout of this project. */
-function classify(path, mainLow) {
+/** {rel, checkout} for a lowercased absolute path inside a checkout of this project (the main one or a worktree), or null. */
+function checkoutRel(path, mainLow) {
   if (path !== mainLow && !path.startsWith(`${mainLow}/`)) return null;
   let rest = path.slice(mainLow.length);
   let checkout = mainLow;
@@ -91,9 +92,15 @@ function classify(path, mainLow) {
     checkout = `${mainLow}/.claude/worktrees/${worktree[1]}`;
     rest = worktree[2] ?? "";
   }
-  const rel = rest.replace(/^\//, "");
-  const set = setOf(rel);
-  return set ? { set, rel, checkout, isMain: checkout === mainLow } : null;
+  return { rel: rest.replace(/^\//, ""), checkout };
+}
+
+/** {set, rel, checkout, isMain} for a lowercased absolute path inside a checkout of this project. */
+function classify(path, mainLow) {
+  const inside = checkoutRel(path, mainLow);
+  if (inside === null) return null;
+  const set = setOf(inside.rel);
+  return set ? { set, ...inside, isMain: inside.checkout === mainLow } : null;
 }
 
 /** The path with its nearest existing folder resolved through realpath (links followed). */
@@ -373,6 +380,248 @@ function isOwnScreenshotWrite(text, folder) {
   return redirect !== null && !hasWriteForm(redirect[1]);
 }
 
+// ---- expand-1 (ORV-96): a path the text does not spell out ----
+
+/** The index after the `)` that closes a heredoc opened by match `m`, or -1 when its first X line is not followed by `)`. */
+function heredocEnd(command, m) {
+  let pos = m.index + m[0].length;
+  while (pos <= command.length) {
+    const eol = command.indexOf("\n", pos);
+    const line = command.slice(pos, eol < 0 ? command.length : eol);
+    if ((m[1] ? line.replace(/^\t+/, "") : line) === m[3]) {
+      const close = /^\s*\)/.exec(command.slice(pos + line.length));
+      return close ? pos + line.length + close[0].length : -1;
+    }
+    if (eol < 0) return -1;
+    pos = eol + 1;
+  }
+  return -1;
+}
+
+/**
+ * heredoc-1: every `$(cat <<'X'` ... `X` ... `)` with a quoted delimiter, whose body ends at the
+ * first line that is exactly X and whose `)` follows, becomes one plain letter. Claude Code's
+ * commit and PR body forms; an unquoted delimiter, or anything else around X, is left as it is.
+ */
+function withoutHeredocs(command) {
+  const open = /\$\(\s*cat\s+<<(-?)\s*(['"])([A-Za-z_]\w*)\2[ \t]*\n/g;
+  let out = "";
+  let from = 0;
+  for (let m = open.exec(command); m !== null; m = open.exec(command)) {
+    const end = heredocEnd(command, m);
+    if (end < 0) continue;
+    out += `${command.slice(from, m.index)}x`;
+    from = end;
+    open.lastIndex = end;
+  }
+  return out + command.slice(from);
+}
+
+/**
+ * The command as segments of words (split at `;`, `&`, `|`, `(`, `)` and newlines), each word
+ * {raw, fixed, expands, redirect}: `fixed` is the text before the first character that expands
+ * (`?`, `*`, `[` or `{` outside any quotes, `$` or a backtick outside single quotes), `redirect`
+ * says the word follows `<` or `>`. A `$(` or backtick substitution is entered, so a command
+ * inside it makes its own segments.
+ */
+function shellWords(command) {
+  const segments = [[]];
+  const subs = [];
+  let quote = null;
+  let word = null;
+  let redirect = false;
+  const begin = () => {
+    word ??= { raw: "", fixed: "", expands: false, redirect };
+    redirect = false;
+    return word;
+  };
+  const literal = (ch, raw = ch) => {
+    const w = begin();
+    w.raw += raw;
+    if (!w.expands) w.fixed += ch;
+  };
+  const expand = (ch) => {
+    const w = begin();
+    w.raw += ch;
+    w.expands = true;
+  };
+  const endWord = () => {
+    if (word) segments.at(-1).push(word);
+    word = null;
+  };
+  const endSegment = () => {
+    endWord();
+    if (segments.at(-1).length > 0) segments.push([]);
+  };
+  const open = (kind) => {
+    endSegment();
+    subs.push({ kind, depth: 0, quote, word });
+    word = null;
+    quote = null;
+  };
+  const close = () => {
+    endSegment();
+    ({ quote, word } = subs.pop());
+  };
+  for (let i = 0; i < command.length; i++) {
+    const ch = command[i];
+    const next = command[i + 1];
+    const top = subs.at(-1);
+    if (quote === "'") {
+      if (ch === "'") quote = null;
+      else literal(ch);
+    } else if (ch === "`") {
+      if (top?.kind === "tick" && quote === null) {
+        close();
+      } else {
+        expand(ch);
+        open("tick");
+      }
+    } else if (ch === "$") {
+      expand(ch);
+      if (next === "(") {
+        i += 1;
+        open("paren");
+      }
+    } else if (quote === '"') {
+      if (ch === '"') quote = null;
+      else if (ch === "\\" && next !== undefined && '$`"\\'.includes(next)) {
+        literal(next);
+        i += 1;
+      } else literal(ch);
+    } else if (ch === "\\") {
+      if (next === "\n") i += 1;
+      else if (next !== undefined) {
+        literal(next, `\\${next}`);
+        i += 1;
+      }
+    } else if (ch === "'" || ch === '"') {
+      begin().raw += ch;
+      quote = ch;
+    } else if (ch === ")" && top?.kind === "paren" && top.depth === 0) {
+      close();
+    } else if (";&|\n()".includes(ch)) {
+      if (top?.kind === "paren") top.depth += ch === "(" ? 1 : ch === ")" ? -1 : 0;
+      endSegment();
+    } else if (ch === "<" || ch === ">") {
+      endWord();
+      redirect = true;
+    } else if (/\s/.test(ch)) {
+      endWord();
+    } else if ("?*[{".includes(ch)) {
+      expand(ch);
+    } else {
+      literal(ch);
+    }
+  }
+  endWord();
+  return segments;
+}
+
+/** Words that are shell syntax, not a glob, even though they hold `{`, `}`, `[` or `]`. */
+const SYNTAX_WORDS = new Set(["{", "}", "[", "]", "[[", "]]"]);
+const RESERVED = new Set(["!", "{", "then", "do", "else", "elif", "if", "while", "until", "time"]);
+const CD_COMMANDS = new Set(["cd", "pushd", "popd"]);
+
+/** The protected name prefixes (relative to a checkout) of `sets`. */
+const prefixesOf = (sets) => sets.flatMap((set) => TEXT_PREFIXES[set]);
+
+/**
+ * Could a path that begins with the lowercased absolute text `p` (its last part may be the start of a name)
+ * land in a protected set of `sets`? Yes when `p` is at or above a checkout, names a checkout root's
+ * own entry, lies inside a protected set, or begins the name of a protected path.
+ */
+function reaches(p, ctx, sets) {
+  if ([`${ctx.mainLow}/`, `${ctx.mainLow}/.claude/worktrees/`].some((x) => x.startsWith(p))) {
+    return true;
+  }
+  const inside = checkoutRel(p, ctx.mainLow);
+  if (inside === null) return false;
+  const cut = inside.rel.lastIndexOf("/");
+  if (cut < 0) return true;
+  return (
+    sets.includes(setOf(`${inside.rel.slice(0, cut)}/_`)) ||
+    prefixesOf(sets).some((q) => q.startsWith(inside.rel))
+  );
+}
+
+/** expand-1 (a): could the fixed part of an expansion word, from the folder `cur`, begin a protected path? */
+function wordReaches(fixed, cur, ctx, sets) {
+  let text = fixed;
+  if (text.startsWith("~")) {
+    if (text !== "~" && !text.startsWith("~/")) return true;
+    text = homedir() + text.slice(1);
+  }
+  if (text === "") return true;
+  const abs = normalize(isAbsolute(text) ? text : `${cur}/${text}`);
+  const slash = abs.endsWith("/");
+  const dir = slash ? abs.slice(0, -1) || "/" : dirname(abs);
+  const partial = slash ? "" : basename(abs);
+  const real = `${resolveReal(dir).replace(/\/$/, "")}/${partial}`;
+  return [abs, real].some((p) => reaches(p.toLowerCase(), ctx, sets));
+}
+
+/** expand-1 (b) and (c): does the folder `path` lie inside a protected set, or above one inside a checkout? */
+function folderReaches(path, ctx, sets, { ancestors }) {
+  return [path, resolveReal(path)].some((p) => {
+    const inside = checkoutRel(p.toLowerCase(), ctx.mainLow);
+    if (inside === null) return false;
+    return (
+      sets.includes(setOf(`${inside.rel}/_`)) ||
+      (ancestors &&
+        inside.rel !== "" &&
+        prefixesOf(sets).some((q) => q.startsWith(`${inside.rel}/`)))
+    );
+  });
+}
+
+/**
+ * expand-1: true when the call holds a write form and names a protected path some way the text
+ * does not spell out: (a) an expansion word that could begin one, (b) a cd, pushd or popd that
+ * moves into one or cannot be followed, (c) a working directory inside one. A cwd or a cd target
+ * that cannot be resolved counts as (a) (fail closed).
+ */
+function hidesProtectedPath(input, command, sets) {
+  const flat = withoutHeredocs(command);
+  const text = flat.replace(/["'\\]/g, "").toLowerCase();
+  if (!hasWriteForm(text, blankQuoted(flat).toLowerCase())) return false;
+  if (typeof input.cwd !== "string" || input.cwd === "" || !existsSync(input.cwd)) return true;
+  const ctx = context(input);
+  let cur = resolve(input.cwd);
+  if (folderReaches(cur, ctx, sets, { ancestors: false })) return true;
+  for (const segment of shellWords(flat)) {
+    const words = segment.filter((w) => !w.redirect);
+    for (const w of segment) {
+      if (w.expands && !SYNTAX_WORDS.has(w.raw) && wordReaches(w.fixed, cur, ctx, sets)) {
+        return true;
+      }
+    }
+    let at = 0;
+    while (
+      at < words.length &&
+      !words[at].expands &&
+      (/^[A-Za-z_]\w*=/.test(words[at].raw) || RESERVED.has(words[at].raw))
+    ) {
+      at += 1;
+    }
+    if (!CD_COMMANDS.has(words[at]?.raw)) continue;
+    const args = words.slice(at + 1);
+    while (args.length > 0 && args[0].fixed.startsWith("-") && args[0].fixed !== "-") {
+      if (args.shift().fixed === "--") break;
+    }
+    const target = args[0];
+    if (target === undefined || target.expands || target.fixed === "-") return true;
+    let dir = target.fixed;
+    if (dir.startsWith("~")) {
+      if (dir !== "~" && !dir.startsWith("~/")) return true;
+      dir = homedir() + dir.slice(1);
+    }
+    cur = resolve(cur, dir);
+    if (folderReaches(cur, ctx, sets, { ancestors: true })) return true;
+  }
+  return false;
+}
+
 const OWNER_CLOSE =
   "the owner's close runs only from the owner's own terminal, outside Claude Code";
 const MAIN_ONLY_CLOSE = "only the main session closes an envelope";
@@ -383,9 +632,13 @@ function judgeBash(input, command) {
   const closes = new RegExp(`${BEFORE}node\\s+\\S*close-envelope\\.mjs`).test(text);
   if (closes && text.includes("--owner")) return [OWNER_CLOSE];
   if (closes && subagent) return [MAIN_ONLY_CLOSE];
-  const names = named(text, subagent ? ["guard file", "record"] : undefined);
-  if (names.length === 0) return [];
-  const list = names.map(([set, prefix]) => `${set} ${prefix}`).join(", ");
+  const sets = subagent ? ["guard file", "record"] : Object.keys(TEXT_PREFIXES);
+  const names = named(text, sets);
+  let list = names.map(([set, prefix]) => `${set} ${prefix}`).join(", ");
+  if (names.length === 0) {
+    if (!hidesProtectedPath(input, command, sets)) return [];
+    list = "a protected path through an expansion, a cd or the working directory";
+  }
   if (subagent) {
     if (!hasWriteForm(text, blankQuoted(command).toLowerCase())) return [];
     const ctx = context(input);
