@@ -269,7 +269,11 @@ Do not set `model`, `isolation` or `run_in_background` on the call. `cwd`, if gi
 - **One issue per checkout at a time.** Do not run `git checkout` or `git switch` in the session's
   checkout while any envelope there is bound with no `result.json` and no `closed.json` (the stall list
   above shows them). To work on a second issue at the same time, start a `claude --worktree` session
-  for it (L-0032). No hook checks this; it is the main session's duty.
+  for it (L-0032). The `worktree-guard` hook blocks the switch: a main-session Bash call with `git switch`,
+  `git checkout` (also after `-C <path>` or `-c <key=value>`) or `gh pr checkout`, in a checkout that
+  has a bound open envelope, exits 2 and names the task ids; it blocks too when it cannot read the
+  records or the checkout. It is a text rule: a `git` word built by the shell, an alias or a script is
+  not seen. Close a stuck envelope (section 4) to switch.
 - **At most one open unbound envelope per role.** `SubagentStart` binds a subagent only when exactly one
   open unbound envelope of its role exists; with two (two PRs of one issue walked at once, say) neither
   binds and neither report is recorded. Dispatch the next envelope of a role only after the last one is
@@ -288,7 +292,7 @@ The guard blocks, with exit 2 and a reason on stderr, when:
 - **Open envelope.** One envelope per role is open across the whole repo, all issues and worktrees included. A second one is blocked until the first has a report or is closed (see step 4).
 - **Rework rules** (builder only). After a `request_changes` verdict or a failed gate record for the issue, the envelope must name `rework_of`, a task of the same issue that started. A bound builder envelope is a rework round only when a negative verdict was recorded after the latest earlier bound builder started and before it started (the first builder never counts; a builder that continues another with no verdict between them is not a round). After two rework rounds, a builder envelope is blocked: first get a verdict on the last builder round (qa, reviewer or the gate); only if that verdict requests changes, the owner must grant another (step 3).
 
-A valid call is saved as `.orivilo/runs/<ISSUE>/<task_id>/envelope.json`. Records are local and are not committed. They live in one place for the whole repo, the main checkout's `.orivilo/` (found through `git rev-parse --git-common-dir`), so every worktree shares them and removing a worktree keeps them. A hook whose working directory no longer exists fails closed with a clear message. A `.orivilo` that leads outside the main checkout (a link) is refused. The `worktree-guard` hook (PreToolUse Bash) blocks a subagent Bash call whose text (quotes and backslashes removed) holds both "worktree" and "remove" or "prune"; it allows every other call whatever the working directory is, and the main session is never judged. It writes its heartbeat only when the call's directory belongs to this project's repo, so a session in an unrelated repo leaves nothing there. It is a text rule, not a shield: `rm -rf` and a script are not seen. The orchestrator removes a worktree after the agent stops.
+A valid call is saved as `.orivilo/runs/<ISSUE>/<task_id>/envelope.json`. Records are local and are not committed. They live in one place for the whole repo, the main checkout's `.orivilo/` (found through `git rev-parse --git-common-dir`), so every worktree shares them and removing a worktree keeps them. A hook whose working directory no longer exists fails closed with a clear message. A `.orivilo` that leads outside the main checkout (a link) is refused. The `worktree-guard` hook (PreToolUse Bash) blocks a subagent Bash call whose text (quotes and backslashes removed) holds both "worktree" and "remove" or "prune"; it allows every other call whatever the working directory is, and judges the main session only for a branch switch (see "One issue per checkout" in section 2). It writes its heartbeat only when the call's directory belongs to this project's repo, so a session in an unrelated repo leaves nothing there. It is a text rule, not a shield: `rm -rf` and a script are not seen. The orchestrator removes a worktree after the agent stops.
 
 ## 3. Rework round after round 2: ask the form
 
