@@ -25,13 +25,23 @@ import {
 } from "./evidence";
 import confidenceSource from "./confidence.ts?raw";
 import evidenceSource from "./evidence.ts?raw";
-import { EVIDENCE_STRINGS, QUESTION_KEYS } from "./evidence-strings";
+import {
+  EVIDENCE_STRINGS,
+  NOT_MEASURED_REASON_LINES,
+  NOT_MEASURED_WHAT_KEYS,
+  QUESTION_KEYS,
+} from "./evidence-strings";
 import stringsSource from "./evidence-strings.ts?raw";
 import leansSource from "./leans.ts?raw";
 import { PERSONALITY_AXES } from "./knowledge";
 import snapshotSource from "./render-snapshot.ts?raw";
 import readPageSource from "./read-page.ts?raw";
 import pageTextSource from "./page-text.ts?raw";
+import colourSource from "./measures/colour.ts?raw";
+import pageSource from "./measures/page.ts?raw";
+import wuSource from "./measures/wu.ts?raw";
+import urlAnalyserSource from "./url-analyser.ts?raw";
+import { notMeasuredSchema } from "./url-analyser";
 import { rendererBuildSchema } from "./render-snapshot";
 
 // ---------------------------------------------------------------- fixtures
@@ -741,6 +751,10 @@ const SCANNED: Record<string, string> = {
   "render-snapshot": snapshotSource,
   "read-page": readPageSource,
   "page-text": pageTextSource,
+  "measures/wu": wuSource,
+  "measures/colour": colourSource,
+  "measures/page": pageSource,
+  "url-analyser": urlAnalyserSource,
 };
 
 describe("measures never call a model", () => {
@@ -793,7 +807,7 @@ function stringProblems(table: Record<string, Entry>, questionKeys: readonly str
   return problems;
 }
 
-// The keys of the ORV-128 spec "Strings" section (the four {what} labels wait for slice 1c).
+// The keys of the ORV-128 spec "Strings" section, with the four {what} labels and read.notMeasured.noFlatPair of slice 1c.
 const SPEC_KEYS = [
   "evidence.fromModel",
   "evidence.measured",
@@ -814,6 +828,11 @@ const SPEC_KEYS = [
   "read.notRendered.failed",
   "read.notRendered.budget",
   "read.notRendered.invalid",
+  "read.notMeasured.what.colourArea",
+  "read.notMeasured.what.contrast",
+  "read.notMeasured.what.density",
+  "read.notMeasured.what.textVisibility",
+  "read.notMeasured.noFlatPair",
   "quality.fewWords",
   "quality.pageIncomplete",
   "quality.imageSmall",
@@ -844,5 +863,65 @@ describe("evidence strings", () => {
       "evidence.measured.en has an em dash",
       "nope is a question key without a string",
     ]);
+  });
+});
+
+describe("the strings a NotMeasured entry prints (slice 1c, F51)", () => {
+  const reasons = notMeasuredSchema.shape.reason.options;
+  const whats = notMeasuredSchema.shape.what.options;
+
+  it("every reason maps to a line key and every what to a label key, and each key exists", () => {
+    expect(Object.keys(NOT_MEASURED_REASON_LINES).sort()).toEqual([...reasons].sort());
+    expect(Object.keys(NOT_MEASURED_WHAT_KEYS).sort()).toEqual([...whats].sort());
+    for (const reason of reasons) {
+      const { line, reason: filled } = NOT_MEASURED_REASON_LINES[reason];
+      expect(line in EVIDENCE_STRINGS).toBe(true);
+      if (filled !== null) expect(filled in EVIDENCE_STRINGS).toBe(true);
+    }
+    for (const what of whats) expect(NOT_MEASURED_WHAT_KEYS[what] in EVIDENCE_STRINGS).toBe(true);
+  });
+
+  it("each option D reason prints read.notMeasured with its read.notRendered reason", () => {
+    expect(NOT_MEASURED_REASON_LINES).toMatchObject({
+      "no-renderer": { line: "read.notMeasured", reason: "read.notRendered.none" },
+      "render-failed": { line: "read.notMeasured", reason: "read.notRendered.failed" },
+      "render-budget": { line: "read.notMeasured", reason: "read.notRendered.budget" },
+      "snapshot-invalid": { line: "read.notMeasured", reason: "read.notRendered.invalid" },
+    });
+  });
+
+  it("no-flat-pair prints read.notMeasured.noFlatPair and has no reason to fill", () => {
+    expect(NOT_MEASURED_REASON_LINES["no-flat-pair"]).toEqual({
+      line: "read.notMeasured.noFlatPair",
+      reason: null,
+    });
+    expect(EVIDENCE_STRINGS["read.notMeasured.noFlatPair"].en).toContain("{what}");
+    expect(EVIDENCE_STRINGS["read.notMeasured.noFlatPair"].th).toContain("{what}");
+    expect(EVIDENCE_STRINGS["read.notMeasured.noFlatPair"].en).not.toContain("{reason}");
+  });
+
+  it("the four labels are the ones the spec drafts", () => {
+    expect(NOT_MEASURED_WHAT_KEYS).toEqual({
+      "colour-area": "read.notMeasured.what.colourArea",
+      "contrast-pair": "read.notMeasured.what.contrast",
+      density: "read.notMeasured.what.density",
+      "text-visibility": "read.notMeasured.what.textVisibility",
+    });
+    expect(EVIDENCE_STRINGS["read.notMeasured.what.colourArea"]).toEqual({
+      th: "สัดส่วนพื้นที่สี",
+      en: "colour areas",
+    });
+    expect(EVIDENCE_STRINGS["read.notMeasured.what.contrast"]).toEqual({
+      th: "ความต่างระหว่างสีตัวอักษรกับสีพื้นหลัง",
+      en: "text and background contrast",
+    });
+    expect(EVIDENCE_STRINGS["read.notMeasured.what.density"]).toEqual({
+      th: "ความหนาแน่นของเนื้อหา",
+      en: "content density",
+    });
+    expect(EVIDENCE_STRINGS["read.notMeasured.what.textVisibility"]).toEqual({
+      th: "ข้อความที่มองเห็นได้",
+      en: "which text is visible",
+    });
   });
 });

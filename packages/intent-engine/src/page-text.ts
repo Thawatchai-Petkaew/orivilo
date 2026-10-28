@@ -29,6 +29,9 @@ export type TextBlock = {
 
 /** html-text-1: body text stops at this many characters, and so does heading text, each on its own. */
 export const BODY_MAX_CHARS = 5000;
+/** html-text-1, Title and description bound (SEC-4): the title and the meta description each stop at this many characters. */
+export const TITLE_MAX_CHARS = 1000;
+export const DESCRIPTION_MAX_CHARS = 1000;
 /**
  * html-text-1 and the Depth bound: an element below this depth (html is 1) gives no block and no link,
  * and the parse stops at the push that would make the tree builder's stack one deeper (the Nesting count).
@@ -327,6 +330,12 @@ function hidden(e: Element): boolean {
   );
 }
 
+/** `text` cut at the last space within `room` characters (a space at the limit itself counts), trimmed; empty when it has none. */
+const cutOnSpace = (text: string, room: number): string => {
+  const at = text.lastIndexOf(" ", room);
+  return at < 0 ? "" : text.slice(0, at).trimEnd();
+};
+
 const fold = (s: string) => s.replace(/[\t\n\f\r ]+/g, " ").trim();
 
 /** The 1-based position of each child element among the same-named children of one parent. */
@@ -431,15 +440,23 @@ function pushElements<T>(stack: T[], nodes: ChildNode[], make: (c: Element) => T
 
 export type PageText = {
   blocks: TextBlock[];
-  /** True when the Nesting count, the depth bound, the Heading bound or the Path bound cut something: the read is `page-incomplete`. */
+  /** True when the Nesting count, the depth bound, the Heading bound, the Title and description bound or the Path bound cut something: the read is `page-incomplete`. */
   incomplete: boolean;
 };
 
 /** The blocks of the document bytes in document order, by html-text-1. Walks with an explicit stack. */
 export function pageTextOf(documentBytes: Uint8Array): PageText {
+  const { document, cut } = parseBounded(documentBytes);
+  return textOf(document, cut);
+}
+
+/**
+ * The walk of html-text-1 over a parsed tree; `cut` is true when the parse stopped early. Shared by
+ * `pageTextOf` and `pageTextAndPathsOf`, so the two cannot drift.
+ */
+function textOf(doc: Document, cut: boolean): PageText {
   const blocks: TextBlock[] = [];
   const cache: TypeIndexes = new Map();
-  const { document: doc, cut } = parseBounded(documentBytes);
   let incomplete = cut;
   let used = 0; // body characters kept so far
   let bodyFull = false;
@@ -455,11 +472,16 @@ export function pageTextOf(documentBytes: Uint8Array): PageText {
       blocks.push(b);
       return { used: usedSoFar + b.text.length, full: false };
     }
-    // cut on whitespace within the limit: a space at the limit itself counts
-    const at = b.text.lastIndexOf(" ", room);
-    const text = at < 0 ? "" : b.text.slice(0, at).trimEnd();
+    const text = cutOnSpace(b.text, room);
     if (text !== "") blocks.push({ ...b, text });
     return { used: usedSoFar, full: true };
+  };
+
+  /** The title's or the description's block within its own bound: cut on whitespace, and the page text is incomplete when it was. */
+  const addOwnBound = (b: TextBlock, max: number) => {
+    const text = b.text.length <= max ? b.text : cutOnSpace(b.text, max);
+    if (text.length < b.text.length) incomplete = true;
+    if (text !== "") blocks.push({ ...b, text });
   };
 
   const inHead = (e: Element) => {
@@ -470,7 +492,7 @@ export function pageTextOf(documentBytes: Uint8Array): PageText {
         if (b === "long") incomplete = true;
         else if (b) {
           haveTitle = true;
-          blocks.push({ ...b, kind: "title" });
+          addOwnBound({ ...b, kind: "title" }, TITLE_MAX_CHARS);
         }
       } else if (
         c.tagName === "meta" &&
@@ -484,12 +506,10 @@ export function pageTextOf(documentBytes: Uint8Array): PageText {
           if (path === null) incomplete = true;
           else {
             haveMeta = true;
-            blocks.push({
-              path,
-              kind: "meta",
-              text,
-              span: { start: loc.startOffset, end: loc.endOffset },
-            });
+            addOwnBound(
+              { path, kind: "meta", text, span: { start: loc.startOffset, end: loc.endOffset } },
+              DESCRIPTION_MAX_CHARS,
+            );
           }
         }
       }
@@ -554,6 +574,73 @@ export function pageTextOf(documentBytes: Uint8Array): PageText {
     pushElements(stack, e.childNodes, (c) => ({ e: c, inBlock: block, depth: depth + 1 }));
   }
   return { blocks, incomplete };
+}
+
+const BARE_NAMES = new Set(["html", "head", "body"]); // the names `pathOf` writes without an index
+/** A segment `pathOf` writes below the root: the name, matched from the right, then `:nth-of-type(n)` with n from 1. */
+const INDEXED = /^([\s\S]+):nth-of-type\(([1-9][0-9]*)\)$/;
+/** For each parent looked at, its child elements by name, in document order: built on the first visit. */
+type NameMaps = Map<ParentNode, Map<string, Element[]>>;
+
+function childrenNamed(parent: ParentNode, maps: NameMaps): Map<string, Element[]> {
+  let named = maps.get(parent);
+  if (!named) {
+    named = new Map();
+    for (const c of parent.childNodes) {
+      if (!isElement(c)) continue;
+      const list = named.get(c.tagName);
+      if (list) list.push(c);
+      else named.set(c.tagName, [c]);
+    }
+    maps.set(parent, named);
+  }
+  return named;
+}
+
+/**
+ * The inverse of `pathOf`: whether `path` names an element of the tree. It goes down from the
+ * document one segment at a time. The first segment is a bare name among the document's child
+ * elements. Below it, a bare segment is taken only for html, head and body and names the first
+ * child of that name; any other segment must end in `:nth-of-type(n)` and names the nth child of
+ * that name. A segment `pathOf` never writes names nothing. `template` content lies outside the
+ * child lists, so it is not reached. A path over PATH_MAX_CHARS names nothing, as `pathOf` never builds one.
+ */
+function hasElementAt(document: Document, path: string, maps: NameMaps): boolean {
+  if (path.length > PATH_MAX_CHARS) return false;
+  let parent: ParentNode = document;
+  const segments = path.split(">");
+  for (const [i, segment] of segments.entries()) {
+    const named = childrenNamed(parent, maps);
+    let next: Element | undefined;
+    if (i === 0 || BARE_NAMES.has(segment)) {
+      next = named.get(segment)?.[0];
+    } else {
+      const m = INDEXED.exec(segment);
+      const name = m?.[1];
+      if (name !== undefined && !BARE_NAMES.has(name)) {
+        next = named.get(name)?.[Number(m?.[2]) - 1];
+      }
+    }
+    if (!next) return false;
+    parent = next;
+  }
+  return true;
+}
+
+/**
+ * The blocks of `pageTextOf` and, from the same bounded parse, how many of the given element paths
+ * name no element of the tokenized document (F52). `pageTextAndPathsOf(bytes, []).text` equals
+ * `pageTextOf(bytes)`. The paths are looked up one by one; no set of every path is built.
+ */
+export function pageTextAndPathsOf(
+  documentBytes: Uint8Array,
+  paths: readonly string[],
+): { text: PageText; unmatchedPaths: number } {
+  const { document, cut } = parseBounded(documentBytes);
+  const maps: NameMaps = new Map();
+  let unmatchedPaths = 0;
+  for (const path of paths) if (!hasElementAt(document, path, maps)) unmatchedPaths++;
+  return { text: textOf(document, cut), unmatchedPaths };
 }
 
 /** The href of each `link rel="stylesheet"` in document order, as written (the caller resolves it). */

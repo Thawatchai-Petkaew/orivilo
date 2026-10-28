@@ -182,3 +182,4 @@ Keep this table in step with the folder when you add an entry.
 | [[K-0085-higgsfield-tiered-credits-no-rollover-and-separate-api-wallet]]          | 0.8        | Higgsfield: tiered $0.075 to $0.043/credit (own arithmetic), expiring |
 | [[K-0086-reseller-markup-over-model-list-prices]]                                 | 0.7        | Own arithmetic: 0.64 to 6.0 times Google list on Nano Banana images   |
 | [[K-0087-synthesis-prepaid-credits-over-model-costs-and-breakage]]                | 0.7        | Prepaid credits over bought-in models; plan plus top-ups; breakage    |
+| [[K-0088-material-color-utilities-0-4-0-quantizer-api-and-determinism]]           | 0.8        | MCU 0.4.0 Apache-2.0; TS Celebi: 20 results in 20 calls (ORV-134 run) |
