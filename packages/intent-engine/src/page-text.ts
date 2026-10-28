@@ -2,7 +2,7 @@
 // links, all on one parse of the document bytes by the pinned tokenizer (parse5 8.0.1, K-0082).
 // Pure: no I/O, no clock, no randomness. Changing any rule below bumps `analyser.version`.
 
-import { defaultTreeAdapter, parse, type DefaultTreeAdapterMap, type Token } from "parse5";
+import { defaultTreeAdapter, parse, Parser, type DefaultTreeAdapterMap, type Token } from "parse5";
 import { PATH_MAX_CHARS } from "./evidence";
 
 // The engine's tsconfig has no DOM or Node lib, so the global this file uses is declared here,
@@ -15,6 +15,7 @@ type Document = DefaultTreeAdapterMap["document"];
 type Element = DefaultTreeAdapterMap["element"];
 type ChildNode = DefaultTreeAdapterMap["childNode"];
 type TextNode = DefaultTreeAdapterMap["textNode"];
+type ParentNode = DefaultTreeAdapterMap["parentNode"];
 
 export type TextBlock = {
   /** Element path such as `html>body>main:nth-of-type(1)>h1:nth-of-type(1)`; html, head and body carry no index. */
@@ -57,13 +58,17 @@ const isText = (n: ChildNode): n is TextNode => n.nodeName === "#text";
 const attr = (e: Element, name: string): string | undefined =>
   e.attrs.find((a) => a.name === name)?.value;
 
-/** The Work bound: element pushes in one parse, and attribute names in one tag or on one html or body element. */
+/**
+ * The Work bound: element pushes in one parse, attribute names in one tag or on one html or body
+ * element, and list steps in one parse (2^28; tech notes section 6, The List steps).
+ */
 const MAX_ELEMENT_PUSHES = 1_048_576;
 const MAX_ATTRIBUTES = 256;
+const MAX_LIST_STEPS = 268_435_456;
 
 /**
- * A stop of the parse, thrown from a tree adapter hook: the Nesting count, the Element count or the
- * Attribute merge. Private to this module: parseBounded catches it and rethrows anything else.
+ * A stop of the parse, thrown from a tree adapter hook: the Nesting count, the Element count, the
+ * Attribute merge or the List steps. Private to this module: parseBounded catches it and rethrows anything else.
  */
 class NestingStop {
   readonly cut: number;
@@ -200,22 +205,40 @@ function attributeCut(text: string): number {
  * One parse with scripting off and source locations on. The tree builder's stack of open elements
  * is counted through parse5's tree adapter hooks `onItemPush` and `onItemPop` (K-0082
  * section 6): a new adapter for each call, so no count outlives it. A hook runs after the stack has
- * changed, so inside `onItemPush` the depth is already the new one, and the only way out of
- * `parse()` is to throw. The push that makes the stack one deeper than MAX_DEPTH stops the parse
+ * changed, so inside `onItemPush` the depth is already the new one, and the only way out of the
+ * parse is to throw. The push that makes the stack one deeper than MAX_DEPTH stops the parse
  * (the Nesting count), and so does the one that would be the 1,048,577th (the Element count). The
  * adapter's `adoptAttributes` replaces the default's merge of an `html` or `body` start tag's
  * attributes into the element and stops the parse when the element would hold more than
- * MAX_ATTRIBUTES names (the Attribute merge). `cut` is the greatest start offset of any element
+ * MAX_ATTRIBUTES names (the Attribute merge). The List steps add the length of each walk of a
+ * child list (`insertBefore`, `insertTextBefore`, `detachNode`) and of the list of active
+ * formatting elements (at each push) to `steps`, and stop the parse past MAX_LIST_STEPS (tech
+ * notes section 6, The List steps). `cut` is the greatest start offset of any element
  * pushed so far, the one whose push passed the bound included: for an element made from its own
  * start tag that is the tag's offset, and for one the tree builder adds with none it is the latest
- * start tag whose element was pushed (tech notes section 6, "Where the cut falls"). A merge stops
- * at that same `cut`, since `adoptAttributes` is not passed the tag's location.
+ * start tag whose element was pushed (tech notes section 6, "Where the cut falls"). A merge or a
+ * list step stops at that same `cut`, since neither is passed the tag's location.
+ *
+ * The parse runs through `Parser`, which parse5 marks `@internal`, because `onItemPush` reads
+ * `parser.activeFormattingElements.entries` (also `@internal`) and `parse` does not hand out its
+ * parser. The body is that of `Parser.parse` in 8.0.1; the exact pin of parse5 holds it (K-0082).
  */
 function parseText(text: string): { document: Document } | { stoppedAt: number } {
   let depth = 0;
   let pushes = 0;
+  let steps = 0;
   let cut = 0;
   const names = new Map<Element, Set<string>>();
+  const addSteps = (n: number) => {
+    steps += n;
+    if (steps > MAX_LIST_STEPS) throw new NestingStop(cut);
+  };
+  /** The place of `ref` in `parent`, found from the end: a fostered node's reference is the table, near the end. */
+  const placeOf = (parent: ParentNode, ref: ChildNode) => {
+    const at = parent.childNodes.lastIndexOf(ref);
+    addSteps(parent.childNodes.length - at);
+    return at;
+  };
   const treeAdapter = {
     ...defaultTreeAdapter,
     onItemPush(item: Element) {
@@ -224,6 +247,7 @@ function parseText(text: string): { document: Document } | { stoppedAt: number }
       const start = item.sourceCodeLocation?.startOffset;
       if (start !== undefined && start > cut) cut = start;
       if (depth > MAX_DEPTH || pushes > MAX_ELEMENT_PUSHES) throw new NestingStop(cut);
+      addSteps(parser.activeFormattingElements.entries.length);
     },
     onItemPop() {
       depth--;
@@ -242,11 +266,34 @@ function parseText(text: string): { document: Document } | { stoppedAt: number }
         held.add(a.name);
       }
     },
+    insertBefore(parent: ParentNode, node: ChildNode, ref: ChildNode) {
+      parent.childNodes.splice(placeOf(parent, ref), 0, node);
+      node.parentNode = parent;
+    },
+    insertTextBefore(parent: ParentNode, value: string, ref: ChildNode) {
+      const at = placeOf(parent, ref);
+      const before = parent.childNodes[at - 1];
+      if (before && defaultTreeAdapter.isTextNode(before)) {
+        before.value += value;
+      } else {
+        const node = defaultTreeAdapter.createTextNode(value);
+        parent.childNodes.splice(at, 0, node);
+        node.parentNode = parent;
+      }
+    },
+    detachNode(node: ChildNode) {
+      if (node.parentNode) addSteps(node.parentNode.childNodes.length);
+      defaultTreeAdapter.detachNode(node);
+    },
   };
+  const parser = new Parser<DefaultTreeAdapterMap>({
+    scriptingEnabled: false,
+    sourceCodeLocationInfo: true,
+    treeAdapter,
+  });
   try {
-    return {
-      document: parse(text, { scriptingEnabled: false, sourceCodeLocationInfo: true, treeAdapter }),
-    };
+    parser.tokenizer.write(text, true);
+    return { document: parser.document };
   } catch (error) {
     if (error instanceof NestingStop) return { stoppedAt: error.cut };
     throw error;
@@ -257,8 +304,8 @@ function parseText(text: string): { document: Document } | { stoppedAt: number }
  * html-text-1: decode as UTF-8 (each invalid sequence becomes U+FFFD), cut the text at the Attribute
  * count if it says so, then parse. When a count stops the parse, only the text before the cut is
  * parsed again and `cut` is true. That second parse cannot pass the Nesting count or the Attribute
- * merge; the Element count can stop it at the end of the text (tech notes section 6). Should it
- * stop, the parse of the empty text is returned, still with `cut` true.
+ * merge; the Element count and the List steps can stop it at the end of the text (tech notes
+ * section 6). Should it stop, the parse of the empty text is returned, still with `cut` true.
  */
 function parseBounded(bytes: Uint8Array): { document: Document; cut: boolean } {
   const decoded = new TextDecoder().decode(bytes);

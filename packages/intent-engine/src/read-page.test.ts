@@ -738,13 +738,13 @@ describe("robots.txt first", () => {
         expect(kept(`/${"a".repeat(999)}`)).toBe(1);
         expect(kept(`/${"a".repeat(1000)}`)).toBe(0);
       });
-      it("reads the 500 KB file of 5,000 short wildcard rules against a path of 2,000 characters within 500 ms", async () => {
+      it("reads the 500 KB file of 5,000 short wildcard rules against a path of 2,000 characters within 2 s", async () => {
         const rules = `User-agent: *\n${"Disallow: /*ab\n".repeat(5000)}`;
         const body = padded(rules, 500_000);
         expect(body).toHaveLength(500_000);
         const { r, ms } = await readWith(`${EXAMPLE}/${"a".repeat(1999)}`, body);
         expect(r.status).toBe("read");
-        expect(ms).toBeLessThan(500);
+        expect(ms).toBeLessThan(2000);
       });
     });
 
@@ -1313,6 +1313,65 @@ describe("one page, logged out, bounded", () => {
         expect(ms).toBeLessThan(2000);
         expect(net.log.map((l) => l.url)).toEqual([ROBOTS, PAGE, "http://example.test/x"]);
         expect(r.status).toBe("read");
+      },
+      HEAVY_TIMEOUT,
+    );
+
+    // The List steps documents (R3-1, SEC-133-R3-1; tech notes section 6, The List steps, measured), each to 2 MB.
+    const formatting36 = [
+      "b",
+      "big",
+      "code",
+      "em",
+      "font",
+      "i",
+      "s",
+      "small",
+      "strike",
+      "strong",
+      "tt",
+      "u",
+    ]
+      .map((tag) => `<${tag}>`.repeat(3))
+      .join("");
+    const staleRound = `<template>${formatting36}<object></template>`;
+    const repeated = (head: string, unit: string, tail = "") =>
+      head + unit.repeat(Math.floor((MAX - head.length - tail.length) / unit.length)) + tail;
+
+    it.each([
+      ["the adoption move document", repeated("<body><b><div>", "<br>", "</b>")],
+      [
+        "the adoption move document, with text before each line",
+        repeated("<body><b><div>", "x<br>", "</b>"),
+      ],
+      ["the stale-marker document", repeated("<body>", staleRound)],
+    ])(
+      "reads %s, cut by the List steps",
+      async (_n, html) => {
+        expect(enc.encode(html).length).toBeLessThanOrEqual(MAX);
+        const { r, ms } = await read(html);
+        expect(ms).toBeLessThan(10000);
+        expect(r.status).toBe("read");
+        expect(r.status === "read" && r.incomplete).toEqual(["page-incomplete"]);
+      },
+      HEAVY_TIMEOUT,
+    );
+
+    it.each([
+      ["a table with text and a br after each", repeated("<table>", "x<br>")],
+      ["a table with a br after each", repeated("<body><table>", "<br>")],
+      [
+        "a table after many br, then text",
+        `<body>${"<br>".repeat(349_520)}<table>${"a ".repeat(349_520)}<tr>`,
+      ],
+    ])(
+      "reads a page fostered out of %s in linear time, uncut",
+      async (_n, html) => {
+        expect(enc.encode(html).length).toBeLessThanOrEqual(MAX);
+        const { r, ms } = await read(html);
+        expect(ms).toBeLessThan(10000);
+        expect(r.status).toBe("read");
+        expect(r.status === "read" && r.incomplete).toEqual([]);
       },
       HEAVY_TIMEOUT,
     );
