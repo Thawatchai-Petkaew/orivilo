@@ -31,6 +31,7 @@ Read `DESIGN.md` first; it is the contract these rules enforce. The catalog is `
 ## Components
 
 - Every shared component lives in `packages/design-system`, is built on a shadcn primitive, carries no shadcn visual classes, and consumes its recipe.
+- Before a component story is built, its spec opens with a comparison table in the form of `docs/specs/ORV-64/audit.md` section B, with these rows: Untitled UI (variants, sizes, states and slots, read from its page, with the URL), shadcn/ui, Ours, Add, and Do not copy (with the reason). The story ships with Thai and English stories for every variant and state, the Recipes and modes matrix, and a designer visual sign-off. This holds in POC mode too (ORV-137 comment 10247).
 - A component exists only when its catalog entry, its story, and its code land in the same PR. An entry without a story or a story without an entry fails the gate.
 - States per `DESIGN.md` §7, each a story. Hover and focus are interaction states, not public props. Icon-only controls have accessible names. Loading blocks repeat submission.
 - Each component PR shows the same component under at least two recipes and both modes in Storybook.
