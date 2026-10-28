@@ -1661,8 +1661,8 @@ test("ORV-138 row 36: a gate report or git read that fails gives a refusal, at S
         report.head_sha = "f".repeat(40);
         report.quality_gate.head_sha = report.head_sha;
       },
-      // spec-at-head-1 reads first: a head the checkout lacks has no spec, which is qa-spec-1's refusal.
-      new RegExp(NO_TABLE),
+      // no-throw-1: the head check comes before the spec read, so a qa that only has to fetch is told so.
+      /git diff origin\/develop\.\.\.f{40} failed in .*: fetch the head and origin\/develop there/,
     ],
     "(d) origin/develop is not in the checkout": [
       ({ root }) => git(root, "update-ref", "-d", "refs/remotes/origin/develop"),

@@ -347,8 +347,24 @@ function acEvidenceProblem(store, env, e) {
   return null;
 }
 
+/** True when the checkout holds the commit `head`. */
+function hasCommit(root, head) {
+  try {
+    git(root, ["cat-file", "-e", `${head}^{commit}`]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function qaProblems(root, store, env, report) {
   const out = [];
+  // no-throw-1: an approve whose head the checkout lacks is told to fetch, before the spec read finds no spec there.
+  if (report.verdict === "approve" && !hasCommit(root, report.head_sha)) {
+    return [
+      `git diff origin/develop...${report.head_sha} failed in ${root}: fetch the head and origin/develop there`,
+    ];
+  }
   const spec = readSpec(root, report.head_sha, env.issue);
   if (spec === null) return [`no acceptance table in docs/specs/${env.issue}/spec.md`];
   if (spec.problems.length > 0) return spec.problems;
