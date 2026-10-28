@@ -178,7 +178,7 @@ Keep this table in step with the folder when you add an entry.
 | [[K-0081-headless-chromium-in-a-vercel-function]]                                 | 0.8        | Headless Chromium on Vercel: 250 MB, Hobby 300 s and 2 GB; unmeasured |
 | [[K-0082-parse5-as-a-pure-html-tokenizer]]                                        | 0.8        | parse5 8.0.1 MIT, one dep; hooks; attribute, re-open, sibling costs   |
 | [[K-0083-whatwg-html-void-optional-end-tag-and-raw-text-elements]]                | 0.8        | WHATWG 13 void, 19 optional end tags; record of the v1.14 pre-pass    |
-| [[K-0084-wireflow-flat-credit-price-rollover-and-per-node-metering]]              | 0.8        | Wireflow: flat $0.0135 a credit, rollover, per-node cost, 402 at zero |
-| [[K-0085-higgsfield-tiered-credits-no-rollover-and-separate-api-wallet]]          | 0.8        | Higgsfield: $0.075 to $0.043 a credit, expiring; API dollar wallet    |
-| [[K-0086-reseller-markup-over-model-list-prices]]                                 | 0.7        | Own arithmetic: 0.64 to 4.0 times Google list on Nano Banana images   |
+| [[K-0084-wireflow-flat-credit-price-rollover-and-per-node-metering]]              | 0.8        | Wireflow: flat $0.0135/credit (own arithmetic), rollover, 402 at zero |
+| [[K-0085-higgsfield-tiered-credits-no-rollover-and-separate-api-wallet]]          | 0.8        | Higgsfield: tiered $0.075 to $0.043/credit (own arithmetic), expiring |
+| [[K-0086-reseller-markup-over-model-list-prices]]                                 | 0.7        | Own arithmetic: 0.64 to 6.0 times Google list on Nano Banana images   |
 | [[K-0087-synthesis-prepaid-credits-over-model-costs-and-breakage]]                | 0.7        | Prepaid credits over bought-in models; plan plus top-ups; breakage    |

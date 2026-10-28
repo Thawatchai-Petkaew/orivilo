@@ -1,7 +1,7 @@
 ---
 id: K-0086
 topic: market
-claim: Against Google's public Gemini API list prices read on 2026-10-28, our own arithmetic puts Wireflow's resale of Nano Banana Pro at about 1.1 to 2.0 times list and of Nano Banana 2 at about 1.8 to 4.0 times list, and Higgsfield's app resale of Nano Banana Pro at about 0.64 to 1.12 times list and of Nano Banana 2 at about 0.85 to 2.2 times list, depending on plan and resolution; these are markups over list price, not margins, because neither reseller's wholesale price is public, and for the video models compared no vendor list price per second was readable.
+claim: Against Google's public Gemini API list prices for the Standard paid tier read on 2026-10-28, our own arithmetic puts Wireflow's resale of Nano Banana Pro at about 1.1 to 2.0 times list and of Nano Banana 2 at about 1.8 to 6.0 times list, and Higgsfield's app resale of Nano Banana Pro at about 0.64 to 1.25 times list and of Nano Banana 2 at about 0.85 to 2.2 times list, depending on plan and resolution; Google's Batch prices, about half the Standard ones, are a second, lower reference; these are markups over list price, not margins, because neither reseller's wholesale price or route is public, and for the video models compared no vendor list price per second was readable.
 source: "https://ai.google.dev/gemini-api/docs/pricing; https://ai.google.dev/gemini-api/docs/video; https://www.wireflow.ai/pricing; https://www.wireflow.ai/docs/nodes/generate--nano_banana_pro.md; https://www.wireflow.ai/docs/nodes/generate--nano_banana_2.md; https://www.wireflow.ai/docs/nodes/generate--openai_gpt_image_2.md; https://www.wireflow.ai/docs/nodes/generate--flux_2_pro.md; https://www.wireflow.ai/docs/nodes/video--veo3_1.md; https://www.wireflow.ai/docs/nodes/video--seedance_2_5.md; https://higgsfield.ai/blog/higgsfield-pricing-explained; https://higgsfield.ai/blog/unlimited-nano-banana-2-plans; https://higgsfield.ai/creator-hub/help-center/credits-and-usage/how-does-auto-refill-work; https://higgsfield.ai/higgsfield-api; https://developers.openai.com/api/docs/pricing; https://docs.bfl.ai/quick_start/pricing.md; https://bfl.ai/pricing"
 retrieved: 2026-10-28
 confidence: 0.7
@@ -15,35 +15,47 @@ Every page was read on 2026-10-28 through a fetch tool that returns page text an
 
 ### List prices (Google Gemini API pricing page, "Last updated 2026-10-27 UTC", Standard paid tier)
 
-- **Nano Banana Pro** (`gemini-3-pro-image`): "Equivalent to $0.134 per 1K/2K image" and "$0.24 per 4K image".
-- **Nano Banana 2** (`gemini-3.1-flash-image`): "$0.067 per 1K image", "$0.101 per 2K image" and "$0.151 per 4K image".
+- **Nano Banana Pro** (`gemini-3-pro-image`): "Equivalent to $0.134 per 1K/2K image" and "$0.24 per 4K image". The page lists no 0.5K price for this model.
+- **Nano Banana 2** (`gemini-3.1-flash-image`): "Equivalent to $0.045 per 0.5K image", "$0.067 per 1K image", "$0.101 per 2K image" and "$0.151 per 4K image".
 
 ### Reseller figures
 
 - **Wireflow:** about $0.0135 a credit on each paid plan (K-0084, from $36 / 2,660, $59 / 4,370 and $299 / 22,140). The Nano Banana Pro node page says "~20 credits per images" and names no resolution; the Nano Banana 2 node page says "~20 credits per images" and lists resolutions 0.5K, 1K, 2K and 4K with no cost for each.
-- **Higgsfield app:** "outside a window, the price is 2 credits per image, approximately $0.10 at the reference rate of 20 credits per $1." Its cost table (in a post about Nano Banana 2, no model column) gives "2 credits (~$0.10)" at 1K and 2K and "4 credits (~$0.20)" at 4K. Its Starter row reads "Credits only, 2 credits/image" for both the Nano Banana 2 and the Nano Banana Pro columns (blog, 2026-09-21). Price per credit by plan (K-0085): Starter $0.075, Plus $0.049, Ultra $0.043; Auto-Refill $1 = 18 credits, so $0.0556.
+- **Higgsfield app:** "outside a window, the price is 2 credits per image, approximately $0.10 at the reference rate of 20 credits per $1." Its cost table (in a post about Nano Banana 2, no model column) gives "2 credits (~$0.10)" at 1K and 2K and "4 credits (~$0.20)" at 4K. Its Starter row reads "Credits only, 2 credits/image" for both the Nano Banana 2 and the Nano Banana Pro columns (blog, 2026-09-21). The credits table in "Higgsfield pricing explained" (blog, 2026-10-24) names no plan and lists "Nano Banana Pro", 1 image, 2 credits and "Nano Banana Pro 4K", 1 image, 4 credits; we read the 2-credit row as the price below 4K. Price per credit by plan (K-0085): Starter $0.075, Plus $0.049, Ultra $0.043; Auto-Refill $1 = 18 credits, so $0.0556.
 
 ### Markup over list: Wireflow (our arithmetic)
 
 20 credits x $0.0135 = about $0.27 an image.
 
 - **Nano Banana Pro:** $0.27 / $0.134 (1K or 2K list) = about 2.0 times; $0.27 / $0.24 (4K list) = about 1.1 times.
-- **Nano Banana 2:** $0.27 / $0.067 (1K list) = about 4.0 times; $0.27 / $0.101 (2K list) = about 2.7 times; $0.27 / $0.151 (4K list) = about 1.8 times.
+- **Nano Banana 2:** $0.27 / $0.045 (0.5K list) = about 6.0 times; $0.27 / $0.067 (1K list) = about 4.0 times; $0.27 / $0.101 (2K list) = about 2.7 times; $0.27 / $0.151 (4K list) = about 1.8 times.
 
-Because the page gives one figure for all resolutions, the true ratio at a given resolution is unknown; these are the ends of the range.
+Because the page gives one figure for all resolutions, the true ratio at a given resolution is unknown; the ends of the range are about 1.1 to 2.0 times for Nano Banana Pro and about 1.8 to 6.0 times for Nano Banana 2.
 
 ### Markup over list: Higgsfield app (our arithmetic)
 
-2 credits cost $0.086 on Ultra (2 x $0.043), $0.098 on Plus, $0.111 at the Auto-Refill rate, and $0.150 on Starter. 4 credits cost $0.172 on Ultra and $0.300 on Starter.
+2 credits cost $0.086 on Ultra (2 x $0.043), $0.098 on Plus, $0.111 at the Auto-Refill rate, and $0.150 on Starter. 4 credits cost $0.172 on Ultra, $0.196 on Plus, $0.222 at the Auto-Refill rate and $0.300 on Starter.
 
-- **Nano Banana Pro at 1K or 2K, 2 credits:** $0.086 / $0.134 = about 0.64 times (Ultra); $0.098 / $0.134 = about 0.73 times (Plus); $0.111 / $0.134 = about 0.83 times (Auto-Refill); $0.150 / $0.134 = about 1.12 times (Starter). The 4K credit cost for Nano Banana Pro is not stated on the pages read.
+- **Nano Banana Pro at 1K or 2K, 2 credits:** $0.086 / $0.134 = about 0.64 times (Ultra); $0.098 / $0.134 = about 0.73 times (Plus); $0.111 / $0.134 = about 0.83 times (Auto-Refill); $0.150 / $0.134 = about 1.12 times (Starter).
+- **Nano Banana Pro at 4K, 4 credits** (the "Nano Banana Pro 4K" row of the pricing-explained blog): $0.172 / $0.24 = about 0.72 times (Ultra); $0.196 / $0.24 = about 0.82 times (Plus); $0.222 / $0.24 = about 0.93 times (Auto-Refill); $0.300 / $0.24 = about 1.25 times (Starter). So Nano Banana Pro on Higgsfield's app runs from about 0.64 to 1.25 times list.
 - **Nano Banana 2 at 1K, 2 credits:** $0.086 / $0.067 = about 1.28 times (Ultra) to $0.150 / $0.067 = about 2.24 times (Starter).
 - **Nano Banana 2 at 2K, 2 credits:** $0.086 / $0.101 = about 0.85 times (Ultra) to $0.150 / $0.101 = about 1.49 times (Starter).
 - **Nano Banana 2 at 4K, 4 credits:** $0.172 / $0.151 = about 1.14 times (Ultra) to $0.300 / $0.151 = about 1.99 times (Starter).
 
 Higgsfield's own blog makes the same comparison at its reference rate: about $0.10 against Google's $0.067 at 1K, about the same as $0.101 at 2K, and about $0.20 against $0.151 at 4K, and notes that Google's listed prices exclude input tokens. Within an Unlimited window the credit cost of an included model is zero (K-0085), so these ratios apply only outside such windows.
 
-A ratio below 1 means the reseller charges less than the public list price. The pages read do not say why: a negotiated wholesale price, a batch or discount tier, or a loss on that model are all possible, and none is shown.
+A ratio below 1 means the reseller charges less than the Standard list price. The pages read do not say why: a negotiated wholesale price, Google's Batch tier (below) or another discount, or a loss on that model are all possible, and neither reseller says which applies.
+
+### A second, lower reference: Google's Batch prices
+
+The same Google pricing page lists a Batch tier for both models:
+
+- **Nano Banana Pro:** "$0.067 per 1K/2K image" and "$0.12 per 4K image"; no 0.5K price.
+- **Nano Banana 2:** "Equivalent to $0.022 per 0.5K image", "$0.034 per 1K image", "$0.050 per 2K image" and "$0.076 per 4K image".
+
+Higgsfield's Nano Banana 2 blog (2026-09-21) shows the same three Nano Banana 2 figures in a row "Google API, Batch" ($0.034, $0.050, $0.076) with the note "Half price, asynchronous delivery".
+
+Each Batch price is about half the Standard one, so each ratio above is about twice as high against Batch (our arithmetic). Against Batch, none of the Higgsfield app ratios computed above is below 1: the lowest, Ultra on Nano Banana Pro at 1K or 2K, is $0.086 / $0.067 = about 1.28 times (our arithmetic). Neither reseller says whether it buys from Google at the Standard price, the Batch price, a negotiated price or through an aggregator, so the Batch price is a reference, not their cost.
 
 ### Not computed, and why
 
@@ -54,7 +66,7 @@ A ratio below 1 means the reseller charges less than the public list price. The 
 
 ### What these numbers are not
 
-- They are not margins. Wholesale prices are not public: neither Wireflow nor Higgsfield says what it pays Google or any other vendor, or whether it calls the vendor directly or through an aggregator (K-0045 and K-0046 list this as unknown).
+- They are not margins. Wholesale prices are not public: neither Wireflow nor Higgsfield says what it pays Google or any other vendor, on which of Google's tiers, or whether it calls the vendor directly or through an aggregator (K-0045 and K-0046 list this as unknown).
 - They are not a whole-platform markup. Each covers one model at one setting, outside bonuses, packs, Unlimited windows and unused credits.
 
 ### Claims that did not re-check
@@ -67,4 +79,4 @@ These carry no confidence and are not grounds for a decision.
 
 ## Why it matters for ORIVILO
 
-ORV-131 asks what these platforms charge over the models they resell. On the one model family where a public list price was readable, our arithmetic ranges from below list to about four times list, varying with platform, plan and resolution. This entry records arithmetic, not a pricing decision for ORIVILO.
+ORV-131 asks what these platforms charge over the models they resell. On the one model family where a public list price was readable, our arithmetic ranges from below the Standard list price to about six times it, varying with platform, plan and resolution. This entry records arithmetic, not a pricing decision for ORIVILO.

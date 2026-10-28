@@ -1,7 +1,7 @@
 ---
 id: K-0084
 topic: market
-claim: Wireflow sells monthly credit plans at about $0.0135 a credit on each of its three paid plans (our arithmetic), lets unused credits carry over on every plan, meters each model node that runs at its own credit cost shown before the run, refuses an API run with HTTP 402 when the balance is short, says in its terms that credits are refunded automatically when a job fails on a platform error and that payments go through Stripe, and limits API requests per minute by plan.
+claim: Wireflow sells monthly credit plans at about $0.0135 a credit on each of its three paid plans (our arithmetic), lets unused credits carry over on every plan, meters each model node that runs at its own credit cost shown before the run, refuses an API run with HTTP 402 when the balance is short, says in its terms that credits are refunded automatically when a job fails on a platform error and that payments go through Stripe, limits API requests per minute by plan and per key, and caps direct `/execute` calls at 120 executions per user per hour.
 source: "https://www.wireflow.ai/pricing; https://www.wireflow.ai/docs/credits-and-billing.md; https://www.wireflow.ai/docs/credits-and-billing; https://www.wireflow.ai/docs/api/errors.md; https://www.wireflow.ai/docs/api/rate-limits.md; https://www.wireflow.ai/terms; https://www.wireflow.ai/docs/nodes/video--seedance_2_5.md"
 retrieved: 2026-10-28
 confidence: 0.8
@@ -64,9 +64,11 @@ Price a month and credits a month are from the pricing page; the price per credi
 - **Errors page, on retries after a 500:** "A run can start even when the call errors," and "a retry of `/execute` (or of `/run` without the same `Idempotency-Key`) bills a second run."
 - The pages read do not say how the terms' refund on platform error combines with the docs' charge for finished nodes, or whether a 500 that started a run counts as a platform error.
 
-### Rate limits per plan
+### Rate limits
 
 API requests a minute, as the pricing page and the rate-limits page both list them: Free 10, Starter 20, Professional (Pro on the rate-limits page) 60, Team 60. The rate-limits page also lists Enterprise at 200 and Premium at 60; the pricing page lists neither.
+
+The rate-limits page adds a limit on runs: "`POST /api/v1/workflows/{id}/execute` checks a rolling limit of 120 executions per user per hour, across plans." and "The 120/hour limit above applies to direct `/execute` calls, not `/run`." API-key calls "also pass a per-key minute limiter: 60 requests per minute by default", and "Minute counters are held in process memory, so they are a throttling measure, not a precise account-wide spending cap." (The page sets the figures in bold; the bold is left out here.)
 
 The rate-limits page (last updated 2026-10-17) says: "These are request limits. They do not promise a daily number of executions." and "Do not automatically resubmit a paid run after a timeout or `5xx`." Neither page states a limit on concurrent runs.
 

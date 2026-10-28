@@ -1,7 +1,7 @@
 ---
 id: K-0085
 topic: market
-claim: Higgsfield's app sells subscription credits whose price falls with plan size (from $0.075 a credit on Starter to $0.043 on Ultra, our arithmetic on the company's blog of 2026-10-24), expire at renewal, and are spent before any other credits; Credit Packs (subscription required) and Auto-Refill ($1 = 18 credits) last 90 days and are spent soonest-expiring first; concurrency rises with the plan and can be bought as one-time Concurrency Boost packs; "Unlimited" lets selected models run without credits for a window, on higgsfield.ai only and for personal use; its API is a separate prepaid dollar balance with per-model discounts; Stripe's own pages say Higgsfield bills through Stripe.
+claim: Higgsfield's app sells subscription credits whose price falls with plan size (from $0.075 a credit on Starter to $0.043 on Ultra, our arithmetic on the company's blog of 2026-10-24), expire at renewal, and are spent before any other credits; Credit Packs (subscription required) and Auto-Refill ($1 = 18 credits) last 90 days and are spent soonest-expiring first; concurrency rises with the plan and can be bought as one-time Concurrency Boost packs; "Unlimited" lets selected models run without credits for a window, on higgsfield.ai only and for personal use; its API is a separate prepaid dollar balance with per-model discounts, whose funds expire one year after they are added; Stripe's own pages say Higgsfield bills through Stripe.
 source: "https://higgsfield.ai/blog/higgsfield-pricing-explained; https://higgsfield.ai/creator-hub/help-center/credits-and-usage/how-credits-work; https://higgsfield.ai/creator-hub/help-center/credits/how-credits-work; https://higgsfield.ai/creator-hub/help-center/credits-and-usage/how-credit-packs-work; https://higgsfield.ai/creator-hub/help-center/credits-and-usage/how-does-auto-refill-work; https://higgsfield.ai/creator-hub/help-center/credits/top-up-credits-expire; https://higgsfield.ai/creator-hub/help-center/credits-and-usage/how-does-concurrency-boost-work; https://higgsfield.ai/creator-hub/help-center/credits/what-are-unlimited-models-and-which-plans-include-them; https://higgsfield.ai/blog/higgsfield-all-unlimited-explained; https://higgsfield.ai/creator-hub/help-center/plans/how-do-higgsfield-plans-work; https://higgsfield.ai/creator-hub/help-center/refunds/how-do-i-request-a-refund; https://higgsfield.ai/enterprise-help-center/manage-account/buy-credits; https://higgsfield.ai/blog/higgsfield-api; https://higgsfield.ai/higgsfield-api; https://stripe.com/newsroom/news/higgsfield-and-stripe; https://stripe.com/customers/higgsfield; https://thenextweb.com/news/higgsfield-series-b-400m-5-4bn-valuation-700m-revenue; https://www.unite.ai/higgsfield-secures-fresh-series-b-capital-from-tcv-and-nvidia/"
 retrieved: 2026-10-28
 confidence: 0.8
@@ -83,6 +83,7 @@ So for individual plans the price per credit falls as the plan grows (Starter $0
 - "There is no subscription: you top up a balance, pay per generation at published rates, and spending stops automatically at zero." (blog, Higgsfield API, 2026-09-16)
 - "A plan on higgsfield.ai neither grants API access nor changes API pricing."
 - "Failed requests are not charged: billing applies only to successful completions."
+- Expiry: "Does the API balance expire? Yes. Funds expire one year after they are added to the balance, so plan larger top-ups with this period in mind." (same blog, FAQ)
 - The API concurrency limit "increases with the account's top-up volume" (same blog).
 - Discounts: the API page says "volume discounts apply automatically as usage grows" and lists no tiers; it shows per-model launch discounts, such as Seedance 2.5 at "$0.144 / sec" against an original "$0.2057" (30% off) and Kling 3.0 at "$0.042 / sec" against "$0.084" (50% off). No minimum top-up is stated on either page.
 
@@ -113,7 +114,7 @@ These carry no confidence and are not grounds for a decision.
 - Third-party pricing guides found by search list other plan names and prices (for example Starter at about $19 a month on annual billing for 270 credits, Plus at $59 monthly for 1,200, Ultra at $129 for 3,000; or Basic, Pro, Ultimate and Creator plans). None was fetched, and Higgsfield's blog of 2026-10-24 gives different figures.
 - A search summary gave a fixed spending order (subscription, then Credit Pack, then promo, then Auto-Refill last). Both help center paths fetched say subscription first and then soonest expiring.
 - A search summary said a help page lists Credit Packs as non-refundable. The refund page fetched says Credit Packs are refundable within 7 days with zero credits used.
-- Third-party blogs say the API needs a $5 minimum top-up and that API funds expire after one year; another says API calls draw from the app credit balance. None was fetched; Higgsfield's own API blog says the API has its own dollar balance.
+- Third-party blogs say the API needs a $5 minimum top-up; another says API calls draw from the app credit balance. None was fetched; Higgsfield's own API blog states no minimum top-up and says the API has its own dollar balance.
 - A Higgsfield-hosted page on geo.higgsfield.ai that a search said names Stripe returned 404.
 
 ## Unknowns
@@ -124,4 +125,4 @@ These carry no confidence and are not grounds for a decision.
 
 ## Why it matters for ORIVILO
 
-ORV-131 asks how platforms that resell third-party models charge for them. Higgsfield's app uses tiered, expiring subscription credits with a fixed spending order, paid add-ons for packs, refills and concurrency, and an "Unlimited" offer bounded by fair use; its API is a separate prepaid dollar wallet. This entry records the model; it makes no decision on ORIVILO's own pricing.
+ORV-131 asks how platforms that resell third-party models charge for them. Higgsfield's app uses tiered, expiring subscription credits with a fixed spending order, paid add-ons for packs, refills and concurrency, and an "Unlimited" offer bounded by fair use; its API is a separate prepaid dollar wallet whose funds expire after a year. This entry records the model; it makes no decision on ORIVILO's own pricing.

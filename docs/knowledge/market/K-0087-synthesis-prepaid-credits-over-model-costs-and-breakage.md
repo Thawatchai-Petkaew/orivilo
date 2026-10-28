@@ -30,15 +30,15 @@ Deloitte's roadmap on ASC 606 (US GAAP), section 8.8: "Those unexercised rights 
 1. **A platform currency over bought-in models.** Both price app generations in their own credits; Higgsfield's API is the exception and charges dollars (K-0085). Of the model vendors whose pricing pages were read, Google prices in dollars per image and OpenAI in dollars per million tokens; Black Forest Labs is the exception, pricing in its own credits at "1 credit = $0.01 USD" (K-0086). Higgsfield also runs models it calls its own (K-0046); Wireflow's pages show no model of its own (K-0045).
 2. **Prepaid, through a plan plus top-ups.** Both sell monthly plans that grant credits (K-0084, K-0085). Both sell top-ups: Wireflow lets a user "Choose a credit top-up or a subscription plan" and does not say on the pages read whether a top-up needs a plan; Higgsfield's help center says "An active subscription is required to purchase a Credit Pack." Higgsfield's API is the exception to a plan floor: a prepaid dollar balance with no subscription (K-0085).
 3. **Price per credit.** Wireflow keeps it at about $0.0135 on each paid plan; Higgsfield's falls with plan size, from $0.075 to $0.043 on individual plans, and its business plans cost more per credit (our arithmetic, K-0084 and K-0085).
-4. **Expiry, and so breakage.** Higgsfield's subscription credits expire at renewal and its packs, Auto-Refill and Boost credits after 90 days (K-0085). Wireflow's pricing page says unused credits carry over "on every plan"; its pages read do not say whether credits ever lapse (K-0084). Under ASC 606 as Deloitte summarises it, prepaid rights that expire unused are breakage. Neither company's pages read state how many credits expire, so the size of breakage at either is unknown.
-5. **Spend controls.** Both show the cost before a run (K-0084, K-0085). Wireflow's API refuses a run with 402 at a short balance; Higgsfield's API "stops automatically at zero". Higgsfield sells more parallel runs as paid Concurrency Boost packs; Wireflow's pages state request-per-minute limits per plan and do not state a concurrency limit.
-6. **Failed work.** Wireflow's terms refund credits on a platform error; Higgsfield's app "Usually" refunds failed generations and its API does not charge failed requests (K-0084, K-0085).
-7. **Markup over list.** On Nano Banana Pro and Nano Banana 2, our arithmetic gives resale from about 0.64 to about 4.0 times Google's list price, varying with platform, plan and resolution; wholesale prices are not public, so these are not margins (K-0086).
+4. **Expiry, and so breakage.** Higgsfield's subscription credits expire at renewal, its packs, Auto-Refill and Boost credits after 90 days, and its API funds one year after they are added to the balance, so breakage can arise on the API wallet too (K-0085). Wireflow's pricing page says unused credits carry over "on every plan"; its pages read do not say whether credits ever lapse (K-0084). Under ASC 606 as Deloitte summarises it, prepaid rights that expire unused are breakage. Neither company's pages read state how many credits expire, so the size of breakage at either is unknown.
+5. **Spend controls.** Both show the cost before a run (K-0084, K-0085). Wireflow's API refuses a run with 402 at a short balance; Higgsfield's API "stops automatically at zero". Higgsfield sells more parallel runs as paid Concurrency Boost packs; Wireflow's pages state request-per-minute limits per plan and per key, and a rolling cap of 120 executions per user per hour on direct `/execute` calls (not `/run`), and do not state a concurrency limit (K-0084).
+6. **Failed work.** Wireflow's terms promise an automatic credit refund on a platform error, while its docs charge the nodes that finished when a run stops early and say a retry after a 500 can bill a second run; no page read reconciles the two (K-0084). Higgsfield's app "Usually" refunds failed generations and its API does not charge failed requests (K-0085).
+7. **Markup over list.** On Nano Banana Pro and Nano Banana 2, our arithmetic gives resale from about 0.64 to about 6.0 times Google's Standard list price, varying with platform, plan and resolution; Google's Batch prices are about half of Standard, and wholesale prices and routes are not public, so these are not margins (K-0086).
 8. **Payments.** Wireflow's terms name Stripe; Stripe's own pages name Higgsfield as a Stripe Billing customer (K-0084, K-0085).
 
 ### Where the two differ
 
-- Rollover: Wireflow carries over; Higgsfield's subscription credits expire at renewal.
+- Rollover: Wireflow carries over; Higgsfield's subscription credits expire at renewal, its packs and Auto-Refill credits after 90 days, and its API funds one year after top-up.
 - Price per credit: flat at Wireflow, tiered at Higgsfield.
 - Unlimited: Higgsfield offers credit-free windows on selected models under fair use, on higgsfield.ai only; no such offer appears on Wireflow's pages read.
 - API billing: a Wireflow API run is paid in credits by "The API key owner" (K-0084, "Who pays for a run"); Higgsfield's API has its own dollar balance, apart from app credits (K-0085).
@@ -55,9 +55,9 @@ These are leads to check, not grounds for a decision.
 These are options for the architect and the owner, recorded so a later pricing decision can cite the evidence. This entry decides nothing on ORIVILO's own pricing.
 
 - A flat price per credit (Wireflow) or a falling one with plan size (Higgsfield).
-- Credits that carry over, or credits that expire, with the breakage that follows and its accounting.
-- A plan floor with top-ups, or a prepaid wallet with no plan, or both side by side as Higgsfield runs them.
-- Cost shown before the run, a hard stop at zero, and automatic refund on platform failure: both platforms show the cost before a run, both APIs stop at zero balance (the Higgsfield app's behaviour at zero was not read), and both state a refund rule for failed work.
+- Credits that carry over, or credits that expire, with the breakage that follows and its accounting; at Higgsfield the subscription credits, the pack and Auto-Refill credits and the API dollar wallet each expire (K-0085).
+- A plan floor with top-ups, or a prepaid wallet with no plan, or both side by side as Higgsfield runs them (its wallet funds expire one year after top-up, K-0085).
+- Cost shown before the run, a hard stop at zero, and automatic refund on platform failure: both platforms show the cost before a run, both APIs stop at zero balance (the Higgsfield app's behaviour at zero was not read), and both state a refund rule for failed work (Wireflow's terms and docs are not reconciled, K-0084).
 
 ## Why it matters for ORIVILO
 
