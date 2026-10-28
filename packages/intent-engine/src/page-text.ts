@@ -437,9 +437,17 @@ export type PageText = {
 
 /** The blocks of the document bytes in document order, by html-text-1. Walks with an explicit stack. */
 export function pageTextOf(documentBytes: Uint8Array): PageText {
+  const { document, cut } = parseBounded(documentBytes);
+  return textOf(document, cut);
+}
+
+/**
+ * The walk of html-text-1 over a parsed tree; `cut` is true when the parse stopped early. Shared by
+ * `pageTextOf` and `pageTextAndPathsOf`, so the two cannot drift.
+ */
+function textOf(doc: Document, cut: boolean): PageText {
   const blocks: TextBlock[] = [];
   const cache: TypeIndexes = new Map();
-  const { document: doc, cut } = parseBounded(documentBytes);
   let incomplete = cut;
   let used = 0; // body characters kept so far
   let bodyFull = false;
@@ -554,6 +562,73 @@ export function pageTextOf(documentBytes: Uint8Array): PageText {
     pushElements(stack, e.childNodes, (c) => ({ e: c, inBlock: block, depth: depth + 1 }));
   }
   return { blocks, incomplete };
+}
+
+const BARE_NAMES = new Set(["html", "head", "body"]); // the names `pathOf` writes without an index
+/** A segment `pathOf` writes below the root: the name, matched from the right, then `:nth-of-type(n)` with n from 1. */
+const INDEXED = /^([\s\S]+):nth-of-type\(([1-9][0-9]*)\)$/;
+/** For each parent looked at, its child elements by name, in document order: built on the first visit. */
+type NameMaps = Map<ParentNode, Map<string, Element[]>>;
+
+function childrenNamed(parent: ParentNode, maps: NameMaps): Map<string, Element[]> {
+  let named = maps.get(parent);
+  if (!named) {
+    named = new Map();
+    for (const c of parent.childNodes) {
+      if (!isElement(c)) continue;
+      const list = named.get(c.tagName);
+      if (list) list.push(c);
+      else named.set(c.tagName, [c]);
+    }
+    maps.set(parent, named);
+  }
+  return named;
+}
+
+/**
+ * The inverse of `pathOf`: whether `path` names an element of the tree. It goes down from the
+ * document one segment at a time. The first segment is a bare name among the document's child
+ * elements. Below it, a bare segment is taken only for html, head and body and names the first
+ * child of that name; any other segment must end in `:nth-of-type(n)` and names the nth child of
+ * that name. A segment `pathOf` never writes names nothing. `template` content lies outside the
+ * child lists, so it is not reached. A path over PATH_MAX_CHARS names nothing, as `pathOf` never builds one.
+ */
+function hasElementAt(document: Document, path: string, maps: NameMaps): boolean {
+  if (path.length > PATH_MAX_CHARS) return false;
+  let parent: ParentNode = document;
+  const segments = path.split(">");
+  for (const [i, segment] of segments.entries()) {
+    const named = childrenNamed(parent, maps);
+    let next: Element | undefined;
+    if (i === 0 || BARE_NAMES.has(segment)) {
+      next = named.get(segment)?.[0];
+    } else {
+      const m = INDEXED.exec(segment);
+      const name = m?.[1];
+      if (name !== undefined && !BARE_NAMES.has(name)) {
+        next = named.get(name)?.[Number(m?.[2]) - 1];
+      }
+    }
+    if (!next) return false;
+    parent = next;
+  }
+  return true;
+}
+
+/**
+ * The blocks of `pageTextOf` and, from the same bounded parse, how many of the given element paths
+ * name no element of the tokenized document (F52). `pageTextAndPathsOf(bytes, []).text` equals
+ * `pageTextOf(bytes)`. The paths are looked up one by one; no set of every path is built.
+ */
+export function pageTextAndPathsOf(
+  documentBytes: Uint8Array,
+  paths: readonly string[],
+): { text: PageText; unmatchedPaths: number } {
+  const { document, cut } = parseBounded(documentBytes);
+  const maps: NameMaps = new Map();
+  let unmatchedPaths = 0;
+  for (const path of paths) if (!hasElementAt(document, path, maps)) unmatchedPaths++;
+  return { text: textOf(document, cut), unmatchedPaths };
 }
 
 /** The href of each `link rel="stylesheet"` in document order, as written (the caller resolves it). */

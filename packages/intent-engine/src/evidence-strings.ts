@@ -1,3 +1,5 @@
+import type { NotMeasured } from "./url-analyser";
+
 /** Every key under the ORV-128 spec "Strings", Thai and English, word for word. Row 29 reads all of them. */
 export const EVIDENCE_STRINGS = {
   // labels on an item
@@ -84,6 +86,28 @@ export const EVIDENCE_STRINGS = {
     th: "ใช้ผลจากตัวแสดงผลไม่ได้",
     en: "the renderer's result could not be used",
   },
+  // the {what} labels of read.notMeasured, one per NotMeasured.what (drafts, tech notes section 9)
+  "read.notMeasured.what.colourArea": {
+    th: "สัดส่วนพื้นที่สี",
+    en: "colour areas",
+  },
+  "read.notMeasured.what.contrast": {
+    th: "ความต่างระหว่างสีตัวอักษรกับสีพื้นหลัง",
+    en: "text and background contrast",
+  },
+  "read.notMeasured.what.density": {
+    th: "ความหนาแน่นของเนื้อหา",
+    en: "content density",
+  },
+  "read.notMeasured.what.textVisibility": {
+    th: "ข้อความที่มองเห็นได้",
+    en: "which text is visible",
+  },
+  // reason no-flat-pair, after a valid render (F51)
+  "read.notMeasured.noFlatPair": {
+    th: "ไม่ได้วัด: {what} เพราะไม่มีข้อความเนื้อหาที่มองเห็นได้วางอยู่บนพื้นสีเรียบสีเดียว จึงไม่มีคู่สีให้วัด",
+    en: "Not measured: {what}. No visible body text sits on a single flat colour, so there is no colour pair to measure.",
+  },
   // reasons below the floor
   "quality.fewWords": {
     th: "ข้อความมีไม่ถึง 20 คำ",
@@ -112,3 +136,28 @@ export const QUESTION_KEYS = [
   "culture.political",
   "industry.confirm",
 ] as const;
+
+/**
+ * The line a `NotMeasured.reason` prints and the key that fills its `{reason}` (tech notes section 9, F51).
+ * Typed on the reasons of `url-analyser.ts`, so a new reason fails the typecheck until it has a line.
+ * The four option D reasons print `read.notMeasured` with a `read.notRendered.*` reason; `no-flat-pair`
+ * follows a valid render, so it prints its own line and has no reason to fill.
+ */
+export const NOT_MEASURED_REASON_LINES = {
+  "no-renderer": { line: "read.notMeasured", reason: "read.notRendered.none" },
+  "render-failed": { line: "read.notMeasured", reason: "read.notRendered.failed" },
+  "render-budget": { line: "read.notMeasured", reason: "read.notRendered.budget" },
+  "snapshot-invalid": { line: "read.notMeasured", reason: "read.notRendered.invalid" },
+  "no-flat-pair": { line: "read.notMeasured.noFlatPair", reason: null },
+} as const satisfies Record<
+  NotMeasured["reason"],
+  { line: keyof typeof EVIDENCE_STRINGS; reason: keyof typeof EVIDENCE_STRINGS | null }
+>;
+
+/** The key of the `{what}` label of each `NotMeasured.what`. */
+export const NOT_MEASURED_WHAT_KEYS = {
+  "colour-area": "read.notMeasured.what.colourArea",
+  "contrast-pair": "read.notMeasured.what.contrast",
+  density: "read.notMeasured.what.density",
+  "text-visibility": "read.notMeasured.what.textVisibility",
+} as const satisfies Record<NotMeasured["what"], keyof typeof EVIDENCE_STRINGS>;

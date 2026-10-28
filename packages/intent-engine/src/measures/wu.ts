@@ -29,6 +29,8 @@
 const INDEX_BITS = 5;
 const SIDE = (1 << INDEX_BITS) + 1; // 33 cells per side; cell 0 is the empty border of the prefix sums
 const TOTAL = SIDE * SIDE * SIDE; // 35937
+/** The most clusters a caller may ask for: far above the 8 slice 1c passes, and it holds the pass bound at 512. */
+const MAX_COLORS = 256;
 
 export type Cluster = {
   red: number;
@@ -54,9 +56,15 @@ const cellOf = (r: number, g: number, b: number): number => (r * SIDE + g) * SID
  * Wu's quantiser. `rgba` holds four bytes per pixel (red, green, blue, alpha). A pixel with alpha
  * below 255 is skipped, so the counts sum to the opaque pixel count. Returns at most `maxColors`
  * clusters in box order (the order the boxes were made in): each box's mean colour, rounded per
- * channel, and its pixel count. No opaque pixel gives an empty list. `maxColors` is at least 1.
+ * channel, and its pixel count. No opaque pixel gives an empty list. `maxColors` must be an integer
+ * from 1 to 256, else a `RangeError` is thrown before the histogram is built (F45): 0, a negative
+ * number and `NaN` would give one cluster, 2.5 would give three, and `Infinity` would lift the bound on
+ * the cutting passes out of reach.
  */
 export function quantizeWu(rgba: Uint8Array | Uint8ClampedArray, maxColors: number): Cluster[] {
+  if (!Number.isInteger(maxColors) || maxColors < 1 || maxColors > MAX_COLORS) {
+    throw new RangeError("quantizeWu: maxColors must be an integer from 1 to 256");
+  }
   const h = histogramOf(rgba);
   for (const m of Object.values(h)) prefixSums(m);
   const entries = [{ box: wholeCube(), variance: 0 }];

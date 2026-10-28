@@ -10,7 +10,7 @@ import {
 } from "./confidence";
 import { QUESTION_KEYS } from "./evidence-strings";
 import { PERSONALITY_AXES, slugSchema } from "./knowledge";
-import { rendererBuildSchema } from "./render-snapshot";
+import { PATH_MAX_CHARS, rendererBuildSchema } from "./render-snapshot";
 import { fingerprintOf } from "./resolver";
 
 /**
@@ -27,6 +27,7 @@ export const INPUT_KINDS = [
   "brief-text",
 ] as const;
 export const INPUT_ROLES = ["own", "reference", "competitor"] as const;
+export type InputRole = (typeof INPUT_ROLES)[number];
 export const OBSERVATION_KINDS = [
   "colour-area",
   "colour-declared",
@@ -120,8 +121,11 @@ const hexId = z.string().regex(/^[0-9a-f]{8}$/);
 
 /** The bound of `source.ref`, and of the whole URL the safe read accepts (tech notes section 6), so the two cannot drift apart. */
 export const URL_MAX_CHARS = 2048;
-/** The bound of a locator `path`, and of the element path a text block may have (tech notes section 8). */
-export const PATH_MAX_CHARS = 500;
+/**
+ * The bound of a locator `path`, and of the element path a text block may have (tech notes section 8).
+ * Defined in `render-snapshot.ts`, which this module imports, and re-exported: one binding (F47).
+ */
+export { PATH_MAX_CHARS };
 
 /** Where in the input. A discriminated union, so every locator sorts the same way (section 5). */
 const locatorSchema = z.discriminatedUnion("kind", [

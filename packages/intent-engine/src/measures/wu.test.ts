@@ -174,6 +174,40 @@ describe("clusters are boxes with their counts", () => {
   });
 });
 
+describe("maxColors is an integer from 1 to 256", () => {
+  // F45, security review SEC-1 of slice 1c: without the check 0, a negative number and NaN give one
+  // cluster, 2.5 gives three, and Infinity lifts the pass bound out of reach.
+  const three = rgbaOf([
+    ...Array.from({ length: 100 }, () => [255, 0, 0, 255]),
+    ...Array.from({ length: 50 }, () => [0, 255, 0, 255]),
+    ...Array.from({ length: 10 }, () => [0, 0, 255, 255]),
+  ]);
+  const MESSAGE = "quantizeWu: maxColors must be an integer from 1 to 256";
+
+  it.each([0, -1, 257, 2.5, Number.NaN, Number.POSITIVE_INFINITY])(
+    "throws a RangeError for %s",
+    (maxColors) => {
+      expect(() => quantizeWu(three, maxColors)).toThrow(new RangeError(MESSAGE));
+    },
+  );
+
+  it("throws before the histogram is built, whatever the pixels are", () => {
+    expect(() => quantizeWu(new Uint8Array(0), 0)).toThrow(RangeError);
+  });
+
+  it("returns one cluster for 1 and the three colours for 256", () => {
+    expect(quantizeWu(three, 1)).toHaveLength(1);
+    expect(quantizeWu(three, 256)).toHaveLength(3);
+  });
+
+  it("gives at most 256 clusters on the 320 x 200 raster, counts summing to its opaque pixels", () => {
+    const raster = RASTERS[0].raster;
+    const clusters = quantizeWu(raster, 256);
+    expect(clusters.length).toBeLessThanOrEqual(256);
+    expect(clusters.reduce((sum, c) => sum + c.count, 0)).toBe(describeRaster(raster).opaque);
+  });
+});
+
 // ---------------------------------------------------------------- row 8, 0.4.0
 
 // The cluster colours of `new QuantizerWu().quantize(argbPixels, 8)` from @material/material-color-utilities

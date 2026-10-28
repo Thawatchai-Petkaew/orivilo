@@ -1,7 +1,13 @@
 import { defaultTreeAdapter, parse, type DefaultTreeAdapterMap } from "parse5";
 import { describe, expect, it, vi } from "vitest";
 import { PATH_MAX_CHARS } from "./evidence";
-import { MAX_DEPTH, pageTextOf, stylesheetLinksOf, wordCount } from "./page-text";
+import {
+  MAX_DEPTH,
+  pageTextAndPathsOf,
+  pageTextOf,
+  stylesheetLinksOf,
+  wordCount,
+} from "./page-text";
 
 // The engine's tsconfig has no DOM or Node lib, so the one global this file uses is declared here.
 declare class TextEncoder {
@@ -11,6 +17,8 @@ declare class TextEncoder {
 declare const performance: { now(): number }; // the engine tsconfig has no DOM lib; a timer for the time bounds
 /** The framework timeout of a test that guards a time bound: above the bound, so vitest never pre-empts the guard under a parallel run. */
 const HEAVY_TIMEOUT = 60_000;
+/** The bound of the lookup test: the tech notes ask for 2 s; measured locally in the full suite, this is at least 10 times that (see the test). */
+const TIME_BOUND_MS = 2000;
 const bytes = (html: string) => new TextEncoder().encode(html);
 const blocksOf = (html: string) => pageTextOf(bytes(html)).blocks;
 const texts = (html: string) => blocksOf(html).map((b) => b.text);
@@ -1335,6 +1343,151 @@ describe("stylesheetLinksOf", () => {
       const out = stylesheetLinksOf(bytes(HELD_DEPTH));
       expect(performance.now() - started).toBeLessThan(10000);
       expect(out).toEqual({ hrefs: [], incomplete: false });
+    },
+    HEAVY_TIMEOUT,
+  );
+});
+
+// ---------------------------------------------------------------- row 9, F52
+
+describe("pageTextAndPathsOf names the elements pathOf names", () => {
+  // Tech notes section 8, "The element paths of the tokenized document", and section 14, row 9.
+  const HTML = `<!doctype html><html><head><title>T</title></head><body>
+<p:x>px</p:x><a:nth-of-type(1)>weird</a:nth-of-type(1)>
+<p>Lead <span>inline</span></p>
+<div aria-hidden="true"><p>aria</p></div><div hidden><p>hid</p></div>
+<template><p>tpl</p></template></body></html>`;
+  const unmatchedOf = (html: string, paths: string[]) =>
+    pageTextAndPathsOf(bytes(html), paths).unmatchedPaths;
+
+  const MATCHED: [string, string][] = [
+    ["an element named p:x", "html>body>p:x:nth-of-type(1)"],
+    ["an element named a:nth-of-type(1)", "html>body>a:nth-of-type(1):nth-of-type(1)"],
+    ["a span inside a block", "html>body>p:nth-of-type(1)>span:nth-of-type(1)"],
+    ["an element inside aria-hidden", "html>body>div:nth-of-type(1)>p:nth-of-type(1)"],
+    ["an element inside a hidden div", "html>body>div:nth-of-type(2)>p:nth-of-type(1)"],
+    ["the title", "html>head>title:nth-of-type(1)"],
+    ["the root", "html"],
+    ["body", "html>body"],
+  ];
+  const COUNTED: [string, string][] = [
+    ["template content", "html>body>template:nth-of-type(1)>p:nth-of-type(1)"],
+    ["an index on body", "html>body:nth-of-type(1)"],
+    ["a bare segment below the root that is not html, head or body", "html>body>p"],
+    ["an index of 0", "html>body>p:nth-of-type(0)"],
+    ["an index with a leading zero", "html>body>p:nth-of-type(01)"],
+    ["an index past the last", "html>body>p:nth-of-type(2)"],
+    ["a name nothing has", "html>body>x-made-up:nth-of-type(1)"],
+    ["a first segment that is not the root", "body>p:nth-of-type(1)"],
+    ["an empty segment", "html>>p:nth-of-type(1)"],
+    ["a path of 501 characters", `html>body>${"p".repeat(PATH_MAX_CHARS - 10)}:nth-of-type(1)`],
+  ];
+
+  it.each(MATCHED)("matches %s", (_name, path) => {
+    expect(unmatchedOf(HTML, [path])).toBe(0);
+  });
+
+  it.each(COUNTED)("counts %s", (_name, path) => {
+    expect(unmatchedOf(HTML, [path])).toBe(1);
+  });
+
+  it("counts every path that names nothing, once each, among those that match", () => {
+    const paths = [...MATCHED, ...COUNTED].map(([, path]) => path);
+    expect(unmatchedOf(HTML, paths)).toBe(COUNTED.length);
+  });
+
+  it("counts a path of 501 characters even when an element has it", () => {
+    // An element whose name is 500 characters long: pathOf never builds its path, so no path names it.
+    const name = "a".repeat(PATH_MAX_CHARS - 10);
+    const path = `html>body>${name}:nth-of-type(1)`;
+    expect(path.length).toBeGreaterThan(PATH_MAX_CHARS);
+    expect(unmatchedOf(`<body><${name}>x</${name}>`, [path])).toBe(1);
+  });
+
+  it("gives the text of pageTextOf whatever the paths are", () => {
+    const out = pageTextAndPathsOf(bytes(HTML), ["html>body>p", "html>body>p:nth-of-type(1)"]);
+    expect(out.text).toEqual(pageTextOf(bytes(HTML)));
+    expect(out.unmatchedPaths).toBe(1);
+  });
+
+  it("names the element of every block path, on a page that has them", () => {
+    const blocks = pageTextOf(bytes(HTML)).blocks;
+    expect(blocks.length).toBeGreaterThan(2);
+    const out = pageTextAndPathsOf(
+      bytes(HTML),
+      blocks.map((b) => b.path),
+    );
+    expect(out.unmatchedPaths).toBe(0);
+  });
+
+  it("matches a path up to the cut of the Attribute count and counts one after it", () => {
+    const attributes = Array.from({ length: 257 }, (_v, i) => ` a${i}`).join("");
+    const html = `<body><p>one</p><p${attributes}>two</p>`;
+    const out = pageTextAndPathsOf(bytes(html), [
+      "html>body>p:nth-of-type(1)",
+      "html>body>p:nth-of-type(2)",
+    ]);
+    expect(out.unmatchedPaths).toBe(1);
+    expect(out.text.incomplete).toBe(true);
+  });
+
+  const SMALL_FIXTURES: [string, string][] = [
+    ["the html-text-1 fixture", HTML],
+    ["a fostered table", "<table>x<tr><td>cell</td></tr>text</table><p>after</p>"],
+    ["nested lists and inline text", "<ul><li>one <b>bold</b><ul><li>inner</li></ul></li></ul>"],
+    [
+      "a heading, a title and a meta description",
+      '<title>T</title><meta name="description" content="D"><h1>H</h1><p>P</p>',
+    ],
+    [
+      "svg and math",
+      "<body><svg><text>t</text></svg><math><html><p>m</p></html></math><p>after</p>",
+    ],
+    ["a frameset", "<frameset><frame></frameset>"],
+  ];
+  it.each(SMALL_FIXTURES)(
+    "%s: the text equals pageTextOf and its block paths all match",
+    (_n, html) => {
+      const out = pageTextAndPathsOf(bytes(html), []);
+      expect(out.text).toEqual(pageTextOf(bytes(html)));
+      const again = pageTextAndPathsOf(
+        bytes(html),
+        out.text.blocks.map((b) => b.path),
+      );
+      expect(again.unmatchedPaths).toBe(0);
+    },
+  );
+
+  it.each([
+    ...NESTING_DOCUMENTS,
+    ["the held-depth document", HELD_DEPTH] as [string, string],
+    ["re-opened formatting elements", REOPENED_FORMATTING] as [string, string],
+    ["one tag with too many attributes", ONE_TAG] as [string, string],
+  ])(
+    "%s (2 MB): the text equals pageTextOf and its block paths all match",
+    (_n, html) => {
+      const out = pageTextAndPathsOf(bytes(html), []);
+      expect(out.text).toEqual(pageTextOf(bytes(html)));
+      const again = pageTextAndPathsOf(
+        bytes(html),
+        out.text.blocks.map((b) => b.path),
+      );
+      expect(again.unmatchedPaths).toBe(0);
+    },
+    HEAVY_TIMEOUT,
+  );
+
+  it(
+    "looks 5,000 paths up in a 2 MB document of br elements within the bound",
+    () => {
+      const html = upTo(DOCUMENT_MAX, "<body>", "<br>");
+      const paths = Array.from({ length: 5000 }, (_v, i) =>
+        i % 2 === 0 ? `html>body>br:nth-of-type(${i * 100 + 1})` : `html>body>br:nth-of-type(0)`,
+      );
+      const started = performance.now();
+      const out = pageTextAndPathsOf(bytes(html), paths);
+      expect(performance.now() - started).toBeLessThan(TIME_BOUND_MS);
+      expect(out.unmatchedPaths).toBe(2500);
     },
     HEAVY_TIMEOUT,
   );
