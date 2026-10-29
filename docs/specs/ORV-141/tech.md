@@ -368,28 +368,28 @@ As the spec's "Impact list", plus: `apps/web/proxy.test.ts` (new), `apps/web/ser
 
 ### Other documents whose log-line text this changes
 
-These are outside this task's write set. Each needs a follow-up edit by its owner role (listed in the report's `needs_decision`).
+These are outside this task's write set; each is edited by its owner role. The last column says which slice brings each one up to date: the rows marked Slice 1 were done in slice 1 (this PR) by the task named there, and the rows marked Slice 2 are still to do in slice 2. "Today's text" is the text before ORV-141.
 
 <!-- prettier-ignore -->
-| File and line | Today's text (short) | After ORV-141 |
-| --- | --- | --- |
-| `docs/specs/ORV-112/spec.md:113` | "A log line for a call holds the limit name, the outcome and its duration only." | A `rate-limit` step line with the request's `requestId` and `route`, `step`, `limit`, `outcome`, `durationMs` (ORV-141 `orv141-step-lines`) |
-| `docs/specs/ORV-112/spec.md:121` | "The client retry matrix and the request id helper (ORV-113); this story makes a random request id only for the 429 and 503 bodies." | The request id is made by the proxy (ORV-141); the 429 and 503 bodies carry the request's id |
-| `docs/specs/ORV-112/tech.md:154` | `{"level":"warn","route":"rate-limit","outcome":"no-trusted-ip"}` | A `client-ip` step line, `level: "warn"`, `outcome: "no-trusted-ip"`, with the request's `requestId` and `route` |
-| `docs/specs/ORV-112/tech.md:356` | `logRateLimit` writes `{"level":"info","route":"rate-limit","limit","outcome","durationMs"}`; "`requestId` joins the line when ORV-113 adds it." | `logRateLimit` writes a `rate-limit` step line through `logStep`, with `requestId` and the entry's `route` (ORV-141) |
-| `docs/specs/ORV-112/tech.md:546` | "sets `x-request-id` on its 429 and 503 and logs one `{level, requestId, route, outcome}` line on a store failure" | Every answer carries the request's `x-request-id`; one boundary line per answer, route `api/auth` |
-| `docs/specs/ORV-122/spec.md:40` (row 20) | the line has "exactly the fields `level`, `requestId`, `route` (`"auth"`) and `outcome`" | The boundary line: `route: "api/auth"`, plus `durationMs`, `reason: "rate-limit"`, `status: 503` |
-| `docs/specs/ORV-122/spec.md:52` | "`x-request-id` on every 429 and 503 it answers ... one JSON log line by name only on a store failure" | On every answer; one boundary line per answer |
-| `docs/specs/ORV-122/spec.md:62` | "The log line is the only line `authRoute` writes, one per store failure ... A 429 is not logged" | One boundary line per answer; a 429 is `warn`, `limited` |
-| `docs/specs/ORV-122/spec.md:63` | "`authRoute` makes one random id per answer ... Answers the Better Auth handler writes are unchanged" | `authRoute` uses the request's id from the proxy; Better Auth's answers carry it too |
-| `docs/specs/ORV-122/spec.md:77` | "`x-request-id`, the store failure log line" | the request's `x-request-id` on every answer, one boundary line per answer |
-| `docs/specs/ORV-123/spec.md:44` (`orv123-log-line`) | exactly `level`, `route` (`"account/sign-in"`), `outcome`; "A count that answers `unavailable` without throwing adds no line here" | The boundary line: `route: "account/signInWithGoogle"`, with `requestId`, `durationMs`, `reason: "rate-limit"`; an answered `unavailable` writes it too |
-| `docs/specs/ORV-123/spec.md:54` | "A request id for server actions and their log lines (ORV-113)." | Done by ORV-141 |
-| `docs/specs/ORV-123/spec.md:63` | "`console.error` is called once per press; the line parses as JSON with exactly the keys and values of `orv123-log-line`" | One boundary line per press with the keys of ORV-141 row 9 |
-| `docs/specs/ORV-123/spec.md:114` (open question 1) | "(a): `orv123-log-line` has no `requestId`; ORV-113 adds request ids to server actions" | The line carries the request's `requestId` (ORV-141) |
-| `docs/adr/0015-standards-and-required-controls.md:93` | "Today `readBriefWithAi` logs with `console.error` and a plain string, without a request id. That is the known gap." | Gap closed by ORV-141, except Next's and Better Auth's own lines (ORV-141 open question 6) |
-| `docs/adr/0015-standards-and-required-controls.md:95` | "Confirmation: not confirmed yet; follow-up: ORV-113 ..." | Confirmed by ORV-141's tests for rows 1, 14 and 15 and the row 18 probe |
-| `docs/adr/0015-standards-and-required-controls.md:186` | "Observability, error envelope, ... named here, no code and no check (decisions 6 to 12, ORV-113)." | Observability has code and tests (ORV-141); the rest stays with ORV-113 |
+| File and line | Today's text (short) | After ORV-141 | Brought up to date in |
+| --- | --- | --- | --- |
+| `docs/specs/ORV-112/spec.md:113` | "A log line for a call holds the limit name, the outcome and its duration only." | A `rate-limit` step line with the request's `requestId` and `route`, `step`, `limit`, `outcome`, `durationMs` (ORV-141 `orv141-step-lines`) | Slice 2 |
+| `docs/specs/ORV-112/spec.md:121` | "The client retry matrix and the request id helper (ORV-113); this story makes a random request id only for the 429 and 503 bodies." | The request id is made by the proxy (ORV-141); the 429 and 503 bodies carry the request's id | Slice 1, task ORV-141-spec-5 (line 60 too) |
+| `docs/specs/ORV-112/tech.md:154` | `{"level":"warn","route":"rate-limit","outcome":"no-trusted-ip"}` | A `client-ip` step line, `level: "warn"`, `outcome: "no-trusted-ip"`, with the request's `requestId` and `route` | Slice 2 |
+| `docs/specs/ORV-112/tech.md:356` | `logRateLimit` writes `{"level":"info","route":"rate-limit","limit","outcome","durationMs"}`; "`requestId` joins the line when ORV-113 adds it." | `logRateLimit` writes a `rate-limit` step line through `logStep`, with `requestId` and the entry's `route` (ORV-141) | Slice 2 |
+| `docs/specs/ORV-112/tech.md:546` | "sets `x-request-id` on its 429 and 503 and logs one `{level, requestId, route, outcome}` line on a store failure" | Every answer carries the request's `x-request-id`; one boundary line per answer, route `api/auth` | Slice 1, task ORV-141-tech-3 (lines 340 and 341 too) |
+| `docs/specs/ORV-122/spec.md:40` (row 20) | the line has "exactly the fields `level`, `requestId`, `route` (`"auth"`) and `outcome`" | The boundary line: `route: "api/auth"`, plus `durationMs`, `reason: "rate-limit"`, `status: 503` | Slice 1, ORV-122 spec v1.5 |
+| `docs/specs/ORV-122/spec.md:52` | "`x-request-id` on every 429 and 503 it answers ... one JSON log line by name only on a store failure" | On every answer; one boundary line per answer | Slice 1, ORV-122 spec v1.5 |
+| `docs/specs/ORV-122/spec.md:62` | "The log line is the only line `authRoute` writes, one per store failure ... A 429 is not logged" | One boundary line per answer; a 429 is `warn`, `limited` | Slice 1, ORV-122 spec v1.5 |
+| `docs/specs/ORV-122/spec.md:63` | "`authRoute` makes one random id per answer ... Answers the Better Auth handler writes are unchanged" | `authRoute` uses the request's id from the proxy; Better Auth's answers carry it too | Slice 1, ORV-122 spec v1.5 |
+| `docs/specs/ORV-122/spec.md:77` | "`x-request-id`, the store failure log line" | the request's `x-request-id` on every answer, one boundary line per answer | Slice 1, ORV-122 spec v1.5 |
+| `docs/specs/ORV-123/spec.md:44` (`orv123-log-line`) | exactly `level`, `route` (`"account/sign-in"`), `outcome`; "A count that answers `unavailable` without throwing adds no line here" | The boundary line: `route: "account/signInWithGoogle"`, with `requestId`, `durationMs`, `reason: "rate-limit"`; an answered `unavailable` writes it too | Slice 2 |
+| `docs/specs/ORV-123/spec.md:54` | "A request id for server actions and their log lines (ORV-113)." | Done by ORV-141 | Slice 2 |
+| `docs/specs/ORV-123/spec.md:63` | "`console.error` is called once per press; the line parses as JSON with exactly the keys and values of `orv123-log-line`" | One boundary line per press with the keys of ORV-141 row 9 | Slice 2 |
+| `docs/specs/ORV-123/spec.md:114` (open question 1) | "(a): `orv123-log-line` has no `requestId`; ORV-113 adds request ids to server actions" | The line carries the request's `requestId` (ORV-141) | Slice 2 |
+| `docs/adr/0015-standards-and-required-controls.md:93` | "Today `readBriefWithAi` logs with `console.error` and a plain string, without a request id. That is the known gap." | Gap closed by ORV-141, except Next's and Better Auth's own lines (ORV-141 open question 6) | Slice 2 |
+| `docs/adr/0015-standards-and-required-controls.md:95` | "Confirmation: not confirmed yet; follow-up: ORV-113 ..." | Confirmed by ORV-141's tests for rows 1, 14 and 15 and the row 18 probe | Slice 2 |
+| `docs/adr/0015-standards-and-required-controls.md:186` | "Observability, error envelope, ... named here, no code and no check (decisions 6 to 12, ORV-113)." | Observability has code and tests (ORV-141); the rest stays with ORV-113 | Slice 2 |
 
 `.claude/rules/security.md` rule 15 and `docs/specs/ORV-108/spec.md:127` state the requirement this story meets; their text stays.
 
