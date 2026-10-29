@@ -55,7 +55,7 @@ const status = (root: HTMLElement) => within(root).getByRole("status");
 // React Flow hides a node until it is measured, so a node's accessible name can lag its element;
 // stories look a node up inside waitFor the first time.
 const nodeByTitle = (root: HTMLElement, title: string) =>
-  within(root).getByRole("group", { name: new RegExp(`^${title},`) });
+  within(root).getByRole("group", { name: (name: string) => name.startsWith(`${title},`) });
 const handleOf = (root: HTMLElement, nodeId: string, handleId: string) =>
   root.querySelector<HTMLElement>(
     `.react-flow__node[data-id="${nodeId}"] .ds-port__handle[data-handleid="${handleId}"]`,

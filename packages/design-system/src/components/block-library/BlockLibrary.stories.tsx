@@ -53,7 +53,9 @@ type Story = StoryObj<typeof meta>;
 
 const shelf = (root: HTMLElement) => within(root).getByRole("group", { name: "คลังบล็อก" });
 const tile = (root: HTMLElement, name: string) =>
-  within(shelf(root)).getByRole("button", { name: new RegExp(`^${name}`) });
+  within(shelf(root)).getByRole("button", {
+    name: (accessible: string) => accessible.startsWith(name),
+  });
 
 /**
  * The board is usable once React Flow has measured every node (it hides a node until then). Tile
