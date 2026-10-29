@@ -1,4 +1,5 @@
 import type { Complete } from "./llm-interpreter";
+import { toMicroUsd } from "./money";
 
 /**
  * The one way the product calls a model (ADR 0009): OpenRouter's chat completions endpoint, one
@@ -32,6 +33,30 @@ export interface OpenRouterOptions {
   /** An abort signal from the caller, which sets the timeout and then falls back (ADR 0009 point 3). */
   signal?: () => unknown;
   maxTokens?: number;
+  /**
+   * Called exactly once for every request sent, before the call returns or throws, with the cost
+   * OpenRouter reported (ORV-121). Not called when `fetch` was never invoked. Must not throw.
+   */
+  onCall?: (call: OpenRouterCall) => void;
+}
+
+/** What one request cost: millionths of a US dollar, or null when OpenRouter reported none. */
+export interface OpenRouterCall {
+  costMicroUsd: number | null;
+}
+
+/**
+ * The cost a 200 chat completions answer reports in `usage.cost` (K-0091), in millionths of a US
+ * dollar. `null` when it is missing, null, not a finite number at or above 0, or not a safe integer
+ * once rounded: never 0 for "not reported". A reported 0 stays 0.
+ */
+export function reportedCostMicroUsd(body: unknown): number | null {
+  if (typeof body !== "object" || body === null) return null;
+  const usage = (body as { usage?: unknown }).usage;
+  if (typeof usage !== "object" || usage === null) return null;
+  const cost = (usage as { cost?: unknown }).cost;
+  if (typeof cost !== "number") return null;
+  return toMicroUsd(cost);
 }
 
 /** The request body for one structured call. Zero retention and no training on every request. */
@@ -62,35 +87,42 @@ export function openRouterBody(model: string, request: Parameters<Complete>[0], 
 /** A `Complete` that calls OpenRouter. Throws on any failure; it never retries with other settings. */
 export function openRouterComplete(options: OpenRouterOptions): Complete {
   return async (request) => {
-    const response = await options.fetch(OPENROUTER_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${options.apiKey}`,
-        "Content-Type": "application/json",
-        "X-Title": "ORIVILO",
-      },
-      body: JSON.stringify(openRouterBody(options.model, request, options.maxTokens ?? 2000)),
-      ...(options.signal ? { signal: options.signal() } : {}),
-    });
-    if (!response.ok) {
-      // OpenRouter's own message says why (no endpoint, bad schema, no credit); kept short.
-      const error = (await response.json().catch(() => null)) as {
-        error?: { message?: unknown };
-      } | null;
-      const why =
-        typeof error?.error?.message === "string" ? error.error.message.slice(0, 200) : "";
-      throw new Error(`OpenRouter answered ${response.status}. ${why}`.trim());
+    let costMicroUsd: number | null = null;
+    try {
+      const response = await options.fetch(OPENROUTER_URL, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${options.apiKey}`,
+          "Content-Type": "application/json",
+          "X-Title": "ORIVILO",
+        },
+        body: JSON.stringify(openRouterBody(options.model, request, options.maxTokens ?? 2000)),
+        ...(options.signal ? { signal: options.signal() } : {}),
+      });
+      if (!response.ok) {
+        // OpenRouter's own message says why (no endpoint, bad schema, no credit); kept short.
+        const error = (await response.json().catch(() => null)) as {
+          error?: { message?: unknown };
+        } | null;
+        const why =
+          typeof error?.error?.message === "string" ? error.error.message.slice(0, 200) : "";
+        throw new Error(`OpenRouter answered ${response.status}. ${why}`.trim());
+      }
+      const body = (await response.json()) as {
+        model?: unknown;
+        choices?: { message?: { content?: unknown } }[];
+      };
+      // Read first: an answer refused below still cost what it cost (ORV-121 spend-cap-1).
+      costMicroUsd = reportedCostMicroUsd(body);
+      // OpenRouter names the model that answered (sometimes with a dated suffix); another model is refused.
+      if (typeof body.model !== "string" || !body.model.startsWith(options.model)) {
+        throw new Error("OpenRouter answered with another model.");
+      }
+      const content = body.choices?.[0]?.message?.content;
+      if (typeof content !== "string") throw new Error("OpenRouter returned no text.");
+      return content;
+    } finally {
+      options.onCall?.({ costMicroUsd });
     }
-    const body = (await response.json()) as {
-      model?: unknown;
-      choices?: { message?: { content?: unknown } }[];
-    };
-    // OpenRouter names the model that answered (sometimes with a dated suffix); another model is refused.
-    if (typeof body.model !== "string" || !body.model.startsWith(options.model)) {
-      throw new Error("OpenRouter answered with another model.");
-    }
-    const content = body.choices?.[0]?.message?.content;
-    if (typeof content !== "string") throw new Error("OpenRouter returned no text.");
-    return content;
   };
 }
