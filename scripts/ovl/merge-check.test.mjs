@@ -6,7 +6,8 @@ import { execFileSync } from "node:child_process";
 import { chmodSync, cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { decide, runMergeCheck } from "./merge-check.mjs";
+import { carriesApprove, decide, runMergeCheck } from "./merge-check.mjs";
+import { commitFile, gitIn, mergeRepo } from "./hook-test-kit.mjs";
 
 const H = "a".repeat(40);
 const H2 = "b".repeat(40);
@@ -318,6 +319,215 @@ test("row 29 and 30: docs-only PRs need a reviewer or the owner, not a qa", () =
   blocked(decide(facts(notDocs, { pr: basePr({ files: mixed }) })), /qa\.json/);
 });
 
+// ---- ORV-146 point 2a: a PR of test files and docs needs no qa ----
+
+const noQaRoot = (files) => {
+  const root = goodRoot({ writeSet: files });
+  drop(root, `${RUN}/q/qa.json`);
+  return root;
+};
+const noQa = (files, over = {}) =>
+  decide(facts(noQaRoot(files), { pr: basePr({ files }), ...over }));
+
+test("ORV-146 a: a PR of test files and docs needs the gate and a reviewer approve, not a qa", () => {
+  const files = [
+    "packages/design-system/src/button.test.tsx",
+    "apps/web/lib/x.test.ts",
+    "scripts/x.test.mjs",
+    "docs/specs/ORV-1/design.png",
+    "README.md",
+  ];
+  assert.deepEqual(noQa(files), []);
+  assert.deepEqual(noQa(["docs/specs/ORV-1/design.png"]), []);
+
+  const noReviewer = noQaRoot(files);
+  drop(noReviewer, `${RUN}/r/result.json`);
+  blocked(decide(facts(noReviewer, { pr: basePr({ files }) })), /reviewer\.v1/, new RegExp(H));
+
+  const noGate = noQaRoot(files);
+  drop(noGate, `${RUN}/gates`);
+  blocked(decide(facts(noGate, { pr: basePr({ files }) })), /gate record has sha/);
+  const failedGate = noQaRoot(files);
+  put(failedGate, `${RUN}/gates/${at(0)}.json`, {
+    ok: false,
+    sha: H,
+    dirty: false,
+    steps_source: "gate",
+    recorded_at: at(0),
+  });
+  blocked(decide(facts(failedGate, { pr: basePr({ files }) })), /ok: false/);
+});
+
+test("ORV-146 a: one file that is not a test file or docs keeps the qa", () => {
+  const test = "packages/design-system/src/button.test.tsx";
+  const keeps = [
+    "packages/design-system/src/button.tsx",
+    "packages/design-system/src/button.stories.tsx",
+    "packages/design-system/notes.md",
+    ".quality-gate/report.test.json",
+    ".orivilo/x.test.json",
+    "packages/a/foo.tests.ts",
+    "packages/a/foo-test.ts",
+    "packages/a/test.ts",
+    "packages/a/foo.test",
+    "packages/a.test.x/b.ts",
+    "scripts/x.mjs",
+  ];
+  for (const other of keeps) {
+    blocked(noQa([test, other]), /qa\.json/);
+  }
+});
+
+test("ORV-146 a: a PR with no changed file keeps the qa", () => {
+  blocked(noQa([]), /qa\.json/);
+});
+
+test("ORV-146 a: a test file in a guard path still needs the owner approval", () => {
+  const files = ["scripts/ovl/x.test.mjs"];
+  blocked(noQa(files), /owner-approvals\/7\.json/);
+  const root = noQaRoot(files);
+  approval(root);
+  assert.deepEqual(decide(facts(root, { pr: basePr({ files }) })), []);
+});
+
+// ---- ORV-146 point 2b: an approve survives a merge of the base branch ----
+
+const CARRIED = "c".repeat(40);
+
+/** ORV-1 records where the reviewer and the qa approved CARRIED, and only the gate ran on H. */
+function carriedRoot(writeSet) {
+  const root = goodRoot({ writeSet });
+  put(root, `${RUN}/q/qa.json`, { recorded_at: at(1), report: qaReport({ head_sha: CARRIED }) });
+  put(root, `${RUN}/r/result.json`, {
+    contract: "reviewer.v1",
+    recorded_at: at(2),
+    report: { head_sha: CARRIED, verdict: "approve" },
+  });
+  return root;
+}
+const carries =
+  (...shas) =>
+  (sha) =>
+    shas.includes(sha);
+
+test("ORV-146 b: a reviewer and a qa approve on an older head carry when carriesOver says so", () => {
+  const root = carriedRoot();
+  assert.deepEqual(decide(facts(root, { carriesOver: carries(CARRIED) })), []);
+  blocked(decide(facts(root)), /stale/, /no reviewer\.v1 approve/);
+  blocked(decide(facts(root, { carriesOver: carries(H2) })), /stale/, /no reviewer\.v1 approve/);
+});
+
+test("ORV-146 b: each of the reviewer and the qa needs its own carry", () => {
+  const reviewerOnly = carriedRoot();
+  put(reviewerOnly, `${RUN}/q/qa.json`, { recorded_at: at(1), report: qaReport() });
+  assert.deepEqual(decide(facts(reviewerOnly, { carriesOver: carries(CARRIED) })), []);
+  const reviewerStale = carriedRoot();
+  put(reviewerStale, `${RUN}/q/qa.json`, {
+    recorded_at: at(1),
+    report: qaReport({ head_sha: H2 }),
+  });
+  blocked(decide(facts(reviewerStale, { carriesOver: carries(CARRIED) })), /stale/);
+  const qaOnly = carriedRoot();
+  put(qaOnly, `${RUN}/r/result.json`, {
+    contract: "reviewer.v1",
+    recorded_at: at(2),
+    report: { head_sha: H, verdict: "approve" },
+  });
+  assert.deepEqual(decide(facts(qaOnly, { carriesOver: carries(CARRIED) })), []);
+  blocked(decide(facts(qaOnly)), /stale/);
+});
+
+test("ORV-146 b: a carried request_changes is a verdict, a later one on an unrelated head is not", () => {
+  const rc = carriedRoot();
+  put(rc, `${RUN}/r2/envelope.json`, { task_id: "r2", role: "reviewer", write_set: [] });
+  put(rc, `${RUN}/r2/result.json`, {
+    contract: "reviewer.v1",
+    recorded_at: at(6),
+    report: { head_sha: CARRIED, verdict: "request_changes" },
+  });
+  blocked(decide(facts(rc, { carriesOver: carries(CARRIED) })), /no reviewer\.v1 approve/);
+  const unrelated = carriedRoot();
+  put(unrelated, `${RUN}/r2/envelope.json`, { task_id: "r2", role: "reviewer", write_set: [] });
+  put(unrelated, `${RUN}/r2/result.json`, {
+    contract: "reviewer.v1",
+    recorded_at: at(6),
+    report: { head_sha: H2, verdict: "request_changes" },
+  });
+  assert.deepEqual(decide(facts(unrelated, { carriesOver: carries(CARRIED) })), []);
+});
+
+test("ORV-146 b: a carried qa that did not approve, or is for another PR, still blocks", () => {
+  const rc = carriedRoot();
+  put(rc, `${RUN}/q/qa.json`, {
+    recorded_at: at(1),
+    report: qaReport({ head_sha: CARRIED, verdict: "request_changes" }),
+  });
+  blocked(decide(facts(rc, { carriesOver: carries(CARRIED) })), /request_changes/);
+  const other = carriedRoot();
+  put(other, `${RUN}/q/qa.json`, {
+    recorded_at: at(1),
+    report: qaReport({ head_sha: CARRIED, pr: 6 }),
+  });
+  blocked(decide(facts(other, { carriesOver: carries(CARRIED) })), /PR 6/);
+});
+
+test("ORV-146 b: a docs-only PR keeps a reviewer approve across a base merge", () => {
+  const files = ["docs/specs/ORV-1/spec.md"];
+  const root = carriedRoot(files);
+  drop(root, `${RUN}/gates`);
+  drop(root, `${RUN}/q/qa.json`);
+  const pr = basePr({ files });
+  blocked(decide(facts(root, { pr })), /docs-only/);
+  assert.deepEqual(decide(facts(root, { pr, carriesOver: carries(CARRIED) })), []);
+});
+
+test("ORV-146 b: a record with no head sha carries nothing, whatever carriesOver says", () => {
+  const root = carriedRoot();
+  put(root, `${RUN}/r/result.json`, {
+    contract: "reviewer.v1",
+    recorded_at: at(2),
+    report: { verdict: "approve" },
+  });
+  put(root, `${RUN}/q/qa.json`, { recorded_at: at(1), report: qaReport({ head_sha: H }) });
+  blocked(decide(facts(root, { carriesOver: () => true })), /no reviewer\.v1 approve/);
+});
+
+test("ORV-146 b: carriesOver is not asked about the head itself", () => {
+  const asked = [];
+  const carriesOver = (sha) => {
+    asked.push(sha);
+    return false;
+  };
+  assert.deepEqual(decide(facts(goodRoot(), { carriesOver })), []);
+  assert.deepEqual(asked, []);
+});
+
+test("ORV-146 b: the gate record and the owner approval stay bound to the exact head", () => {
+  const noGate = carriedRoot();
+  drop(noGate, `${RUN}/gates`);
+  blocked(decide(facts(noGate, { carriesOver: carries(CARRIED) })), /gate record has sha/);
+  const pr = basePr({ files: ["scripts/ovl/x.mjs"] });
+  const root = carriedRoot();
+  put(root, `${RUN}/b/envelope.json`, {
+    task_id: "b",
+    role: "builder",
+    write_set: ["scripts/ovl/x.mjs"],
+  });
+  approval(root, { head_sha: CARRIED });
+  blocked(decide(facts(root, { pr, carriesOver: carries(CARRIED) })), /owner-approvals\/7\.json/);
+});
+
+test("ORV-146 b: a carry needs a merge that touches no file the PR changes or changed", () => {
+  const merge = (changed, approvedFiles = ["f.txt"]) => ({ changed, approvedFiles });
+  const pr = basePr({ files: ["f.txt", "g.txt"], previousFiles: ["old.txt"] });
+  assert.equal(carriesApprove(null, pr), false);
+  assert.equal(carriesApprove(merge([]), pr), true);
+  assert.equal(carriesApprove(merge(["c.txt", "d/e.txt"]), pr), true);
+  assert.equal(carriesApprove(merge(["c.txt", "g.txt"]), pr), false);
+  assert.equal(carriesApprove(merge(["old.txt"]), pr), false);
+  assert.equal(carriesApprove(merge(["dropped.txt"], ["dropped.txt"]), pr), false);
+});
+
 const ci = (over = {}) => ({ ...pass("check"), workflow: "CI", ...over });
 const release = (over) =>
   basePr({ number: 8, baseRefName: "main", headRefName: "develop", ...over });
@@ -441,4 +651,68 @@ test("row 28 and 35: a moved head blocks and PR text never reaches stderr", () =
   assert.equal(r.code, 2);
   assert.match(r.stderr, /"ci"/);
   assert.doesNotMatch(r.stderr, /CANARY/);
+});
+
+// ORV-146: the whole check on a real repo, an approve given on h0 and a head that merged develop.
+function carryCli({ prFiles = ["f.txt"], ownCommit = false } = {}) {
+  const { work, h0, advance, mergeBase, cloneOrigin } = mergeRepo();
+  // The checkout that runs merge-check is cloned before develop moves and has neither the head nor the new develop.
+  const check = cloneOrigin();
+  advance("c.txt");
+  let head = mergeBase();
+  if (ownCommit) head = commitFile(work, "g.txt");
+  gitIn(work, "push", "-q", "origin", `${head}:refs/pull/7/head`);
+  const run = ".orivilo/runs/ORV-1";
+  put(check, `${run}/b/envelope.json`, { task_id: "b", role: "builder", write_set: prFiles });
+  put(check, `${run}/b/agent.json`, { agent_id: "a" });
+  put(check, `${run}/q/envelope.json`, { task_id: "q", role: "qa", write_set: [] });
+  put(check, `${run}/q/qa.json`, {
+    recorded_at: at(1),
+    report: qaReport({ head_sha: h0 }),
+  });
+  put(check, `${run}/r/envelope.json`, { task_id: "r", role: "reviewer", write_set: [] });
+  put(check, `${run}/r/result.json`, {
+    contract: "reviewer.v1",
+    recorded_at: at(2),
+    report: { head_sha: h0, verdict: "approve" },
+  });
+  put(check, `${run}/gates/${at(0)}.json`, {
+    ok: true,
+    sha: head,
+    dirty: false,
+    steps_source: "gate",
+    recorded_at: at(0),
+  });
+  const bin = mkdtempSync(join(tmpdir(), "mcbin-"));
+  const { files: _files, ...view } = basePr({
+    headRefOid: head,
+    files: prFiles,
+    changedFiles: prFiles.length,
+  });
+  put(bin, "view.json", view);
+  put(bin, "files.json", [prFiles.map((filename) => ({ filename }))]);
+  put(bin, "checks.json", [pass("check")]);
+  const gh = join(bin, "gh");
+  writeFileSync(
+    gh,
+    `#!/bin/sh\ncase "$2" in view) cat '${bin}/view.json' ;; checks) cat '${bin}/checks.json' ;; repos/*) cat '${bin}/files.json' ;; esac\nexit 0\n`,
+  );
+  chmodSync(gh, 0o755);
+  const env = { ...process.env, PATH: `${bin}:${process.env.PATH}` };
+  return runMergeCheck(["7", "--head", head], { cwd: check, env });
+}
+
+test("ORV-146 b as a CLI: reviewer and qa approves on h0 hold across a merge of develop", () => {
+  assert.deepEqual(carryCli(), { code: 0, stderr: "" });
+});
+
+test("ORV-146 b as a CLI: a merge that touches a file of the PR, or a commit of its own, drops them", () => {
+  for (const r of [
+    carryCli({ prFiles: ["f.txt", "c.txt"] }),
+    carryCli({ prFiles: ["f.txt", "g.txt"], ownCommit: true }),
+  ]) {
+    assert.equal(r.code, 2);
+    assert.match(r.stderr, /stale/);
+    assert.match(r.stderr, /no reviewer\.v1 approve/);
+  }
 });

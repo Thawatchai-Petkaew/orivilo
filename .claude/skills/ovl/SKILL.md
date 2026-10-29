@@ -65,6 +65,14 @@ Rules:
   for Critical or Important findings. The G3 packet reports the passes that actually ran.
 - Kept: tests, security on untrusted input, no secrets, honesty labels, the quality gate, CI,
   merge-check.
+- One review round (ORV-146): the reviewer, and `qa` when the PR needs it, pass once on the head. A
+  Suggestion never goes back to a builder: it becomes a follow-up Jira issue and is listed in the PR
+  body. Only a Critical or Important finding goes back with `rework_of`, followed by one re-check.
+- Review by size (ORV-146): a PR whose files are all test files or docs needs the reviewer approve,
+  the gate record and green CI, and no `qa` (section 6). Do not dispatch `qa` for it.
+- Parallel issues (ORV-146): one session dispatches for several issues at once, each in its own git
+  worktree on a branch named for the issue (section 2). A reviewer or qa approve survives a merge of
+  `develop` that touches no file of the PR (section 6).
 - Aim: a demo the owner runs, a URL in and a brand evidence report out.
 
 Main-session duties POC mode suspends:
@@ -137,7 +145,7 @@ If the doctor says a dependency is missing, run `pnpm install` and start again. 
 
 An Agent call needs a `prompt` that is exactly one `envelope.v1` JSON object (no prose, no code fence), with `subagent_type` equal to the envelope `role`. Only the built-in `Explore` agent runs without one.
 
-Do not set `model`, `isolation` or `run_in_background` on the call. `cwd`, if given, must equal the envelope `worktree`, which must be the checkout this session runs in.
+Do not set `model`, `isolation` or `run_in_background` on the call. `cwd`, if given, must equal the envelope `worktree`. For `builder`, `reviewer`, `qa`, `designer` and `security` the `worktree` is any git worktree of this repo (`git worktree list`) whose branch names the envelope `issue`, so one session can serve several issues, each in its own worktree; when it is not the session's own checkout, set `cwd` to it so the subagent starts there. For every other role the `worktree` must be the checkout this session runs in.
 
 ```json
 {
@@ -268,8 +276,9 @@ Do not set `model`, `isolation` or `run_in_background` on the call. `cwd`, if gi
 - **Stall check before each dispatch.** Before each Agent call, and as the first step after a context compaction or a resumed session, list every task folder under the main checkout's `.orivilo/runs/` with `agent.json`, no `result.json`, no `closed.json`, and no heartbeat line for its `agent_id` in the last 20 minutes. Each listed envelope goes to the owner close form (section 4) in the same turn, and no other dispatch of that role happens until the owner answers. Until a script does the check, list those folders with a one-off `ls` and `jq`; a `doctor.mjs stalled` command is a later builder task under its own Jira issue (L-0027). No hook checks this; it is the main session's duty.
 - **One issue per checkout at a time.** Do not run `git checkout` or `git switch` in the session's
   checkout while any envelope there is bound with no `result.json` and no `closed.json` (the stall list
-  above shows them). To work on a second issue at the same time, start a `claude --worktree` session
-  for it (L-0032). No hook checks this; it is the main session's duty.
+  above shows them). To work on a second issue at the same time, make a git worktree for it and dispatch its
+  envelopes there (section 2, ORV-146); the session's checkout stays on its own branch (L-0032). No hook checks this; it is the main
+  session's duty.
 
 The guard blocks, with exit 2 and a reason on stderr, when:
 
@@ -278,10 +287,10 @@ The guard blocks, with exit 2 and a reason on stderr, when:
 - **`done_when`** is not a check. Each entry is a command with those prefixes, or a `path:line` reference. `pnpm test` passes; "tests pass" does not.
 - **`write_set`** is too broad. Each entry is an exact file or a glob under at least two fixed folders (`scripts/ovl/*.mjs` passes; `packages/`, `apps/**` and `**` do not). No `.` or `..` segment, no leading `./`, no empty segment, and no brace or extglob character (`{ ( ! + @ [`) before the second folder. It is empty for `reviewer`, `qa`, `release` and `security`, and for a `designer` envelope with `report_contract` `reviewer.v1` (a visual sign-off); it is not empty for the other roles. `architect` and `research` write only ADRs and `tech.md`, and `docs/knowledge/` entries, in that order.
 - **`skills`** misses a required one: `product` needs `discover`; `designer` needs `frontend-design` and `webapp-testing`; `builder` needs `quality-gate`; `qa` needs `quality-gate` and `webapp-testing`; `release` needs `gate-packet`; `security` needs `quality-gate`; `ds-architect`, `reviewer`, `architect` and `research` need none.
-- **Issue.** For every role with a non-empty `write_set`, and for reviewer, qa, designer and security, the envelope `issue` must equal the key in the checkout's branch name (`<type>/ORV-<n>-<slug>`); a branch without a key blocks (L-0032). Not enforced yet for product, architect, research and ds-architect: `scripts/ovl/envelope-guard.mjs` (`ISSUE_ROLES`) checks builder, reviewer, qa, designer and security only, and extending it is the builder follow-up ORV-130. Until then no hook checks those four roles; the main session compares the envelope `issue` with the branch key before it dispatches them.
+- **Issue.** For every role with a non-empty `write_set`, and for reviewer, qa, designer and security, the envelope `issue` must equal the key in the branch name (`<type>/ORV-<n>-<slug>`) of the envelope `worktree`, read from that worktree and not from the session's checkout; a worktree that is not one of this repo's, a detached head and a branch without a key block (L-0032, ORV-146). Not enforced yet for product, architect, research and ds-architect: `scripts/ovl/envelope-guard.mjs` (`ISSUE_ROLES`) checks builder, reviewer, qa, designer and security only, and extending it is the builder follow-up ORV-130. Until then no hook checks those four roles; the main session compares the envelope `issue` with the branch key before it dispatches them.
 - **Resume.** Not an Agent call: `resume-guard` blocks every `SendMessage` (see "Never resume" above).
 - **Background, model, isolation.** Blocked for every agent, Explore included.
-- **Open envelope.** One envelope per role is open across the whole repo, all issues and worktrees included. A second one is blocked until the first has a report or is closed (see step 4).
+- **Open envelope.** One envelope per role and issue is open across the whole repo, worktrees included (ORV-146). A second one for the same role and issue is blocked until the first has a report or is closed (see step 4); the same role on another issue is not. Two calls made at the same moment for one role and issue still never both run.
 - **Rework rules** (builder only). After a `request_changes` verdict or a failed gate record for the issue, the envelope must name `rework_of`, a task of the same issue that started. After two rework rounds, a builder envelope is blocked: first get a verdict on the last builder round (qa, reviewer or the gate); only if that verdict requests changes, the owner must grant another (step 3).
 
 A valid call is saved as `.orivilo/runs/<ISSUE>/<task_id>/envelope.json`. Records are local and are not committed. They live in one place for the whole repo, the main checkout's `.orivilo/` (found through `git rev-parse --git-common-dir`), so every worktree shares them and removing a worktree keeps them. A hook whose working directory no longer exists fails closed with a clear message. A `.orivilo` that leads outside the main checkout (a link) is refused. The `worktree-guard` hook (PreToolUse Bash) blocks a subagent Bash call whose text (quotes and backslashes removed) holds both "worktree" and "remove" or "prune"; it allows every other call whatever the working directory is, and the main session is never judged. It writes its heartbeat only when the call's directory belongs to this project's repo, so a session in an unrelated repo leaves nothing there. It is a text rule, not a shield: `rm -rf` and a script are not seen. The orchestrator removes a worktree after the agent stops.
@@ -386,7 +395,11 @@ node scripts/ovl/merge-check.mjs <n> --head <sha>
 
 A push after the checks changes the head: run the gate again and get new records for the new SHA.
 
-**Docs-only PRs.** When every changed file ends in `.md` and is in no protected set (so an improvement run, a handoff or plan update, a spec revision, or a rule, agent or skill file), the PR needs no `qa.json`, no gate record and no screenshots. It needs a `reviewer.v1` approve on the head or the owner approval record, and every other check above. One file outside that definition, a `.md` under `packages/` included, needs the full set.
+**Docs-only PRs.** When every changed file ends in `.md` and is in no protected set (so an improvement run, a handoff or plan update, a spec revision, or a rule, agent or skill file), the PR needs no `qa.json`, no gate record and no screenshots. It needs a `reviewer.v1` approve on the head or the owner approval record, and every other check above. One file outside that definition, a `.md` under `packages/` included, needs the full set unless the next paragraph applies.
+
+**Test-only and docs PRs** (ORV-146). When every changed file is a test file (a basename `*.test.*`, outside `.orivilo/` and `.quality-gate/`) or docs (anything under `docs/`, or a `.md` outside the protected sets), the PR needs no `qa.json` and no screenshots. It still needs a `reviewer.v1` approve on the head, the gate record for the head, green checks and the rest above; a test file in a guard path (`scripts/ovl/` and the other guard files) also needs the owner approval record. One file that is neither (a source file, a `*.stories.tsx`, a `.md` under `packages/`) gives the full set. A PR of `.md` files alone stays the docs-only case above, with no gate record.
+
+**An approve across a merge of `develop`** (ORV-146). A reviewer or qa approve given on an older head still counts for the head when the older head is its ancestor, every commit between them that `origin/<base>` lacks is a merge commit, and the files that differ between the two commits include no file the PR changes now, changed at the older head, or renamed from. `merge-check` fetches the PR head and the base and reads this with git, for the reviewer and the qa approve only. The gate record and the owner approval stay bound to the exact head, so run the gate again on the merged head.
 
 **A merge into `main`** is allowed only for the staging release PR (head branch `develop`), with every check green and a passing check of the `CI` workflow among them (ADR 0016). It needs no owner approval record, no gate record, no `qa.json` and no reviewer result: the green CI checks are the evidence, and each guard file in it was judged when its own PR merged into `develop`. Claude may open the release PR and merge it. The form is a merge commit that keeps `develop`:
 
@@ -431,6 +444,7 @@ When the guard blocks, fix the missing record or the PR, or ask the owner. A PR 
 
 ## Honest limits
 
+- Parallel issues (ORV-146) have three limits. `result-recorder` binds a starting subagent to the one open unbound envelope of its role, so two envelopes of one role on two issues that are open and unbound at the same moment leave the subagents unbound (see the next limit); dispatch same-role envelopes of two issues in separate messages, or use different roles. `write-guard` reads a path as a checkout file only under the main checkout or its `.claude/worktrees/<name>`, so a worktree made elsewhere (for example `git worktree add ../x`) gets no deliverable or guard-file rule from it. `envelope-guard` does not require `cwd` when the envelope worktree is not the session's checkout, so set it as section 2 says.
 - `SubagentStart` cannot block (exit 2 only shows stderr). If a subagent starts with no single open envelope to bind to, it runs unbound: no `agent.json`, no round counted, no `result.json`. The guard at dispatch time (one open envelope per role, checked again after the envelope is saved, so two same-role calls made at once never both run: at most one is allowed and the others close as denied) is what prevents this, not the start hook. Every record is written whole (aside, then linked into place), so a start hook running at the same moment as another never reads half a record. One residual window remains: a losing envelope of a same-role race stays visible as open and unbound until its `closed.json` is written, and on a very slow filesystem the winner's start hook could scan inside that span, see two candidates and run unbound. It was not reproduced in 31 trials.
 - Hooks cannot run once the session's own worktree is removed. When `CLAUDE_PROJECT_DIR` is a removed worktree (`claude --worktree`), the hook files are gone with it: `/bin/sh` cannot find `result-recorder.sh`, `|| exit 2` fires even when `stop_hook_active` is true, and nothing is recorded. `worktree-guard` blocks a subagent Bash command whose text, with quotes and backslashes stripped, holds the word `worktree` together with `remove` or `prune`. It misses a word built by shell expansion (an empty `$()` or `${VAR}` inside it) and an encoded command piped to a shell. The main session, `rm -rf`, a shell script or a tool outside Bash can still delete the worktree. Remove a worktree only after the run, from outside it.
 - `resume-guard` sees the `SendMessage` tool only. A Claude Code version that adds a resume field to the Agent tool would pass `envelope-guard` with a valid envelope, and a session without these hooks escapes it. It blocks all messaging: a subagent cannot ask the main session anything through `SendMessage`, and a stale task hint (an agent recorded in a stray worktree folder before `doctor.mjs migrate`) still gets the same block.

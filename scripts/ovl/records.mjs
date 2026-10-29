@@ -7,6 +7,7 @@ import {
   mkdirSync,
   readdirSync,
   readFileSync,
+  realpathSync,
   unlinkSync,
   writeFileSync,
 } from "node:fs";
@@ -154,3 +155,27 @@ export function writeClosed(root, task, reason, extra = {}) {
 /** The checkout's current branch name ("" when detached). */
 export const branchOf = (root) =>
   execFileSync("git", ["branch", "--show-current"], { cwd: root, encoding: "utf8" }).trim();
+
+/**
+ * Every git worktree of the repo that `root` belongs to, as {path, branch}: the real path, and the
+ * branch name ("" when the head is detached). A worktree whose folder is gone is left out.
+ */
+export function worktreesOf(root) {
+  const listing = execFileSync("git", ["worktree", "list", "--porcelain"], {
+    cwd: root,
+    encoding: "utf8",
+  });
+  const found = [];
+  for (const block of listing.split("\n\n")) {
+    const lines = block.split("\n");
+    const path = lines.find((l) => l.startsWith("worktree "))?.slice("worktree ".length);
+    if (path === undefined || lines.includes("bare")) continue;
+    const ref = lines.find((l) => l.startsWith("branch "))?.slice("branch ".length) ?? "";
+    try {
+      found.push({ path: realpathSync(path), branch: ref.replace(/^refs\/heads\//, "") });
+    } catch {
+      // The folder is gone but git still lists it: it cannot hold an envelope.
+    }
+  }
+  return found;
+}

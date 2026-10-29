@@ -8,7 +8,14 @@ import { existsSync, readFileSync } from "node:fs";
 import { join, posix } from "node:path";
 import { fileURLToPath } from "node:url";
 import { recordsRoot } from "./hook.mjs";
-import { fetchPrHead, readChecks, readFileAtHead, readPr } from "./merge-check-facts.mjs";
+import {
+  fetchBase,
+  fetchPrHead,
+  readBaseMerge,
+  readChecks,
+  readFileAtHead,
+  readPr,
+} from "./merge-check-facts.mjs";
 import { readIssue, taskDir } from "./records.mjs";
 import { storyPrefix, storyTitle } from "./result-recorder.mjs";
 import { GUARD_PATH } from "./write-guard.mjs";
@@ -103,6 +110,16 @@ const isProtected = (file) =>
 const isDocsOnly = (files) =>
   files.length > 0 && files.every((f) => f.endsWith(".md") && !isProtected(f));
 
+/** ORV-146: a `*.test.*` file, anywhere but the record folders. */
+const isTestFile = (f) =>
+  /[^/]+\.test\.[^/]+$/.test(f) && !/^(?:\.orivilo|\.quality-gate)(?:\/|$)/.test(f);
+
+/** ORV-146: docs are `docs/**` and a `*.md` outside the protected folders. */
+const isDocsFile = (f) => f.startsWith("docs/") || (f.endsWith(".md") && !isProtected(f));
+
+/** ORV-146: every file is a test file or docs, so no qa evidence is needed (the reviewer approve and the gate still are). */
+const needsNoQa = (files) => files.length > 0 && files.every((f) => isTestFile(f) || isDocsFile(f));
+
 /** Files outside the union of the write_sets of the issue's bound envelopes plus the main-session docs. */
 function outsideUnion(files, tasks, issue) {
   const entries = tasks
@@ -126,14 +143,14 @@ function gateProblems(gates, head) {
   return out;
 }
 
-function qaProblems(root, issue, tasks, n, head, changedStories, storyTitleOf) {
+function qaProblems(root, issue, tasks, n, head, changedStories, storyTitleOf, carriesOver) {
   const qas = tasks
     .map((t) => readJsonIfExists(join(taskDir(root, issue, t.id), "qa.json")))
     .filter((q) => q !== null);
   const q = latest(qas, (x) => time(x.recorded_at, "a qa.json"));
   if (q === undefined) return [`no qa.json for ${issue} on ${head}`];
   const r = q.report;
-  if (r.head_sha !== head) {
+  if (r.head_sha !== head && !carriesOver(r.head_sha)) {
     return [
       `the qa.json evidence is stale: the latest qa.json is for ${r.head_sha}, the head is ${head}`,
     ];
@@ -164,14 +181,29 @@ function qaProblems(root, issue, tasks, n, head, changedStories, storyTitleOf) {
   return out;
 }
 
-/** True when the latest reviewer.v1 result of a reviewer envelope on `head` approves. */
-function reviewerApproves(tasks, head) {
+/**
+ * ORV-146: true when `merge` (from readBaseMerge) shows that the head differs from the approved
+ * commit only by a merge of the base, and that merge touches no file the PR changes now, changed at
+ * the approved commit, or renamed from. A null `merge` carries nothing.
+ */
+export function carriesApprove(merge, pr) {
+  if (merge === null) return false;
+  const prFiles = new Set([...pr.files, ...(pr.previousFiles ?? []), ...merge.approvedFiles]);
+  return !merge.changed.some((f) => prFiles.has(f));
+}
+
+/**
+ * True when the latest reviewer.v1 result of a reviewer envelope on `head` approves. A result on an
+ * older head counts as one on `head` when `carriesOver(its head)` says the head only merged the base.
+ */
+function reviewerApproves(tasks, head, carriesOver) {
   const results = tasks
     .filter(
       (t) =>
         t.envelope?.role === "reviewer" &&
         t.result?.contract === "reviewer.v1" &&
-        t.result.report?.head_sha === head,
+        typeof t.result.report?.head_sha === "string" &&
+        (t.result.report.head_sha === head || carriesOver(t.result.report.head_sha)),
     )
     .map((t) => t.result);
   const r = latest(results, (x) => time(x.recorded_at, "a reviewer.v1 result"));
@@ -198,9 +230,10 @@ function releaseProblems(pr, checks, root) {
 /**
  * The reasons to block the merge (empty to allow). `pr` and `checks` come from merge-check-facts,
  * `root` is the checkout holding the records, `storyTitleOf(file)` gives the Storybook title of a
- * stories file at the head, or null when the head no longer has the file.
+ * stories file at the head, or null when the head no longer has the file. `carriesOver(sha)` says
+ * whether an approve given on the older head `sha` still holds (ORV-146, see carriesApprove).
  */
-export function decide({ pr, checks, head, root, storyTitleOf }) {
+export function decide({ pr, checks, head, root, storyTitleOf, carriesOver = () => false }) {
   const sha = pr.headRefOid;
   if (head !== sha) {
     return [`the PR head moved: --head is ${clean(head)}, GitHub reports ${sha}`];
@@ -234,15 +267,17 @@ export function decide({ pr, checks, head, root, storyTitleOf }) {
   }
 
   if (isDocsOnly(pr.files)) {
-    if (!reviewerApproves(tasks, sha) && approval === null) {
+    if (!reviewerApproves(tasks, sha, carriesOver) && approval === null) {
       out.push(`a docs-only PR needs a reviewer.v1 approve on ${sha} or ${approvalFile}`);
     }
     return out;
   }
   out.push(...gateProblems(gates, sha));
-  const stories = pr.files.filter((f) => f.endsWith(".stories.tsx"));
-  out.push(...qaProblems(root, issue, tasks, n, sha, stories, storyTitleOf));
-  if (!reviewerApproves(tasks, sha)) out.push(`no reviewer.v1 approve on ${sha}`);
+  if (!needsNoQa(pr.files)) {
+    const stories = pr.files.filter((f) => f.endsWith(".stories.tsx"));
+    out.push(...qaProblems(root, issue, tasks, n, sha, stories, storyTitleOf, carriesOver));
+  }
+  if (!reviewerApproves(tasks, sha, carriesOver)) out.push(`no reviewer.v1 approve on ${sha}`);
   return out;
 }
 
@@ -263,16 +298,32 @@ export function runMergeCheck(argv, { cwd = process.cwd(), env = process.env } =
     const pr = readPr(n, { cwd, env });
     const checks = readChecks(n, { cwd, env });
     let fetched = false;
-    const storyTitleOf = (file) => {
+    const fetchHead = () => {
       if (!fetched) {
         fetchPrHead(n, { cwd, env });
         fetched = true;
       }
+    };
+    const storyTitleOf = (file) => {
+      fetchHead();
       return readFileAtHead(pr.headRefOid, file, { cwd, env }) === null
         ? null
         : storyTitle(cwd, pr.headRefOid, file);
     };
-    const reasons = decide({ pr, checks, head, root, storyTitleOf });
+    // ORV-146: git is read only when a record names an older head; each older head is judged once.
+    const carried = new Map();
+    const carriesOver = (approved) => {
+      if (!carried.has(approved)) {
+        if (carried.size === 0) {
+          fetchHead();
+          fetchBase(pr.baseRefName, { cwd, env });
+        }
+        const merge = readBaseMerge(approved, pr.headRefOid, pr.baseRefName, { cwd, env });
+        carried.set(approved, carriesApprove(merge, pr));
+      }
+      return carried.get(approved);
+    };
+    const reasons = decide({ pr, checks, head, root, storyTitleOf, carriesOver });
     if (reasons.length === 0) return { code: 0, stderr: "" };
     return { code: 2, stderr: `merge-check blocked:\n- ${reasons.join("\n- ")}` };
   } catch (error) {
