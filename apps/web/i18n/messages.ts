@@ -163,6 +163,8 @@ const th = {
       "rate-limited": "ส่งคำขอถี่เกินไป จึงยังไม่ได้ทำรายการนี้ ลองใหม่ได้ในอีก {wait}",
       "ai-rate-limited":
         "ใช้ AI อ่านบรีฟครบจำนวนที่กำหนดแล้ว จึงใช้การอ่านตามกฎแทน อ่านด้วย AI ได้อีกครั้งในอีก {wait}",
+      "ai-spend-cap":
+        "เวิร์กสเปซนี้ใช้งบ AI ของเดือนนี้ครบแล้ว จึงใช้การอ่านตามกฎแทน อ่านด้วย AI ได้อีกครั้งเมื่อขึ้นเดือนใหม่",
       failed: "ทำไม่สำเร็จ ลองอีกครั้ง",
     },
     replayReasons: {
@@ -347,6 +349,8 @@ const en: WebMessages = {
         "Too many requests in a short time, so this was not done. Try again in {wait}.",
       "ai-rate-limited":
         "You have reached the limit for AI readings, so the rules' reading is used. AI can read again in {wait}.",
+      "ai-spend-cap":
+        "This workspace has used its AI budget for this month, so the rules' reading is used. AI can read again when the new month starts.",
       failed: "That did not work. Try again.",
     },
     replayReasons: {

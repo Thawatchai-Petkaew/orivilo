@@ -9,6 +9,7 @@ import {
   type LimitName,
   type Role,
   sealReading,
+  type UsageEntry,
   withWorkspace,
 } from "@orivilo/auth";
 import { MissingEnvError, requireEnv } from "@orivilo/db";
@@ -26,6 +27,7 @@ import {
 import { headers } from "next/headers";
 import { accessDeps, auth } from "../../server/auth";
 import { limiter, subjectFromHeaders } from "../../server/rate-limit";
+import { spendCap } from "../../server/spend-cap";
 
 /**
  * Saved directions for the Studio (ORV-35 part 2). Every call goes through `directionService`, so
@@ -43,6 +45,7 @@ export type ActionError =
   | "ai-not-configured"
   | "rate-limited"
   | "ai-rate-limited"
+  | "ai-spend-cap"
   | DirectionError["reason"];
 
 /** A refused call says how long to wait; the caller says it in the person's language (ORV-112). */
@@ -54,10 +57,19 @@ export type RateLimited = {
   retryable: true;
 };
 
+/** The workspace has used its AI budget for the month; the caller keeps the rules' reading (ORV-121). */
+export type SpendCapped = {
+  ok: false;
+  error: "ai-spend-cap";
+  code: "AI_SPEND_CAP";
+  retryable: false;
+};
+
 export type Outcome<T> =
   | { ok: true; value: T }
-  | { ok: false; error: Exclude<ActionError, RateLimited["error"]> }
-  | RateLimited;
+  | { ok: false; error: Exclude<ActionError, RateLimited["error"] | SpendCapped["error"]> }
+  | RateLimited
+  | SpendCapped;
 
 export interface Listing {
   role: Role;
@@ -87,6 +99,8 @@ class AiFailed extends Error {
     super(reason);
   }
 }
+
+class SpendCapReached extends Error {}
 
 /**
  * The one door for the actions. The order is fixed: the session, then the rate limit (per person,
@@ -134,6 +148,9 @@ async function run<T>(
     if (error instanceof DirectionError) return { ok: false, error: error.reason };
     if (error instanceof MissingEnvError) return { ok: false, error: "not-configured" };
     if (error instanceof AiFailed) return { ok: false, error: error.reason };
+    if (error instanceof SpendCapReached) {
+      return { ok: false, error: "ai-spend-cap", code: "AI_SPEND_CAP", retryable: false };
+    }
     console.error("direction action failed", error instanceof Error ? error.name : "unknown");
     return { ok: false, error: "failed" };
   }
@@ -201,15 +218,40 @@ export async function importDirection(file: unknown) {
 const AI_TIMEOUT_MS = 20_000;
 
 /**
+ * Writes the usage records of one reading. A failure never costs the person the paid reading: it
+ * is logged by the error's name only, never the brief, an amount or an id (ORV-121 spend-cap-6).
+ */
+async function recordUsage(
+  h: Headers,
+  charge: { workspaceId: string; userId: string },
+  calls: readonly UsageEntry[],
+) {
+  try {
+    await spendCap().record(h, charge, calls);
+  } catch (error) {
+    console.error("ai usage record failed", error instanceof Error ? error.name : "unknown");
+  }
+}
+
+/**
  * Reads a brief with the `interpret` model (ORV-62, ADR 0009). Signed-in people only, since every
- * call costs money. The output is checked like any adapter's; on any failure the caller keeps the
- * rules' reading and says so. Only the failure kind is logged, never the brief.
+ * call costs money. Before the call the workspace's spend for the month is read and a spent budget
+ * stops it (ORV-121); every request that reaches the model is recorded with the cost it reported.
+ * The output is checked like any adapter's; on any failure the caller keeps the rules' reading and
+ * says so. Only the failure kind is logged, never the brief.
  */
 export async function readBriefWithAi(brief: unknown): Promise<Outcome<SealedReading>> {
-  return run(async () => {
+  return run(async (_service, h, workspaceId) => {
     const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey) throw new AiFailed("ai-not-configured");
+    const checked = await spendCap().check(h, workspaceId);
+    if (!checked.ok) {
+      if (checked.reason === "capped") throw new SpendCapReached();
+      console.error("ai spend cap unavailable");
+      throw new AiFailed();
+    }
     const model = AI_MODELS.interpret;
+    const calls: UsageEntry[] = [];
     const adapter = llmInterpreter(
       model,
       openRouterComplete({
@@ -217,9 +259,15 @@ export async function readBriefWithAi(brief: unknown): Promise<Outcome<SealedRea
         model,
         fetch: (url, init) => fetch(url, init as RequestInit),
         signal: () => AbortSignal.timeout(AI_TIMEOUT_MS),
+        onCall: (c) => calls.push({ job: "interpret", model, costMicroUsd: c.costMicroUsd }),
       }),
     );
-    const outcome = await interpretBrief(adapter, { text: brief });
+    let outcome: Awaited<ReturnType<typeof interpretBrief>>;
+    try {
+      outcome = await interpretBrief(adapter, { text: brief });
+    } finally {
+      await recordUsage(h, checked.charge, calls);
+    }
     if (!outcome.ok) {
       if (outcome.error === "invalid-brief") throw new DirectionError("invalid-input");
       // The adapter's reason is ours or OpenRouter's and never quotes the brief; the others can.
