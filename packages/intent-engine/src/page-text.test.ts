@@ -23,14 +23,14 @@ const HEAVY_TIMEOUT = 60_000;
  * `pnpm test` ran, or at least 2 times a time measured on CI. The 2 MB description cut took 2,249 ms on
  * CI run 40746575077 (bound 2,000 then), so its bound is 5,000. Where CI showed a slower time than
  * the local run allowed for, the bound follows the slowest CI time seen: the held-depth page took
- * 8,485 ms (run 40826193643), the re-opened-formatting page 6,437 ms (run 40835251401), the
- * 5,000 sibling blocks 1,495 ms (run 40713714426) and the 5,000 path lookups 1,654 ms (run
+ * 8,485 ms (run 40826193643), the re-opened-formatting page 7,287 ms (run 40878076151), the
+ * 5,000 sibling blocks 1,527 ms (run 40890047958) and the 5,000 path lookups 1,654 ms (run
  * 40713714426). Each also stays below the time the
  * defect it guards takes (a mutant of the product code ran past it), except five, the accepted
  * exceptions of `mutant-exception-1` in `docs/specs/ORV-139/spec.md`, which holds the mutant times:
  * - "returns the held-depth page within 17 s, with nothing cut" and "within 10 s with nothing cut":
  *   no mutant was found, so each bound is sized by the local 10 L or the CI 2 C rule alone.
- * - "returns the re-opened-formatting page within 13 s, cut by the Element count": each cap lifted
+ * - "returns the re-opened-formatting page within 15 s, cut by the Element count": each cap lifted
  *   alone stays under the bound, and both lifted abort out of memory, red but not on the time line.
  * - "stops the Element count at the push that would be the 1,048,577th" and "returns the parse of
  *   the empty text when the second parse stops too": the mutant is faster than the bound and goes
@@ -643,7 +643,7 @@ describe("html-text-1", () => {
         const html = `<body>${"<p>x</p>".repeat(100_000)}</body>`;
         const started = performance.now();
         const out = pageTextOf(bytes(html));
-        expect(performance.now() - started).toBeLessThan(3000);
+        expect(performance.now() - started).toBeLessThan(4000);
         expect(out.blocks).toHaveLength(5000);
         expect(out.blocks[4999]?.path).toBe("html>body>p:nth-of-type(5000)");
       },
@@ -751,12 +751,12 @@ describe("html-text-1", () => {
 
     describe("the four 2 MB documents", () => {
       it(
-        "returns the re-opened-formatting page within 13 s, cut by the Element count",
+        "returns the re-opened-formatting page within 15 s, cut by the Element count",
         () => {
           expect(REOPENED_FORMATTING.length).toBeLessThanOrEqual(DOCUMENT_MAX);
           const started = performance.now();
           const out = pageTextOf(bytes(REOPENED_FORMATTING));
-          expect(performance.now() - started).toBeLessThan(13000);
+          expect(performance.now() - started).toBeLessThan(15000);
           expect(out.incomplete).toBe(true);
         },
         HEAVY_TIMEOUT,

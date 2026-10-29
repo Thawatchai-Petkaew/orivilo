@@ -1323,9 +1323,10 @@ describe("one page, logged out, bounded", () => {
         // The measure is a ratio, not a wall-clock bound: under the parallel full suite this read took
         // 2.1 to 2.6 s against 0.19 s alone (ORV-139 F1), so 10 times the loaded time (26 s) is above the
         // 11.7 s the defect takes (a list rebuilt per link, so quadratic) and no bound meets both. The
-        // control is a page of the same size whose links are not stylesheets, which costs the same parse
-        // and adds no href; the page of stylesheet links costs about the same (a ratio near 1, 36.84 for
-        // the defect, measured in ORV-139 build-2). Each is the fastest of 3 runs, so a loaded machine slows both alike.
+        // control is a page of the same byte size whose links are not stylesheets: it holds more link
+        // elements (91,180 against 72,315), so its read costs at least as much, and it adds no href. The
+        // page of stylesheet links costs about the same (a ratio near 1, 36.84 for the defect, measured
+        // in ORV-139 build-2). Each is the fastest of 3 runs, so a loaded machine slows both alike.
         const html = counting("<head>", () => "<link rel=stylesheet href=/x>");
         const control = counting("<head>", () => "<link rel=icon href=/x>");
         const fastest = async (doc: string) => {
