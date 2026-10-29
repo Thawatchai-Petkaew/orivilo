@@ -337,8 +337,8 @@ return betterAuth({
 
 `authRoute(handler: (r: Request) => Promise<Response>): (r: Request) => Promise<Response>` wraps `auth().handler`. It sits in `packages/auth`, not in the route file, so that AC 12's integration test covers the header and the body (finding F6).
 
-- **On a 429 from the handler:** answer 429 with `Retry-After: <X-Retry-After>` (the original `X-Retry-After` is kept too), `Content-Type: application/json`, and the body `{"error":{"code":"RATE_LIMITED","message":"Too many requests. Try again later.","requestId":"<randomUUID()>","retryable":true}}`. Only the limiter makes 429s in this Better Auth setup.
-- **On `RateLimitUnavailable`:** answer 503 with `{"error":{"code":"SERVICE_UNAVAILABLE","message":"Service unavailable. Try again later.","requestId":"…","retryable":true}}`. The spec says nothing about this case (finding F8). Any other error is rethrown, as today.
+- **On a 429 from the handler:** answer 429 with `Retry-After: <X-Retry-After>` (the original `X-Retry-After` is kept too), `Content-Type: application/json`, and the body `{"error":{"code":"RATE_LIMITED","message":"Too many requests. Try again later.","requestId":"<the request's id>","retryable":true}}`. Since ORV-141 the body's `requestId` is the request's id (the proxy's `x-request-id`, or a fresh one from `requestIdOf`), the same value as the `x-request-id` header and the boundary line (ORV-141 tech notes section 5); before ORV-141 it was a fresh `randomUUID()`. Only the limiter makes 429s in this Better Auth setup.
+- **On `RateLimitUnavailable`:** answer 503 with `{"error":{"code":"SERVICE_UNAVAILABLE","message":"Service unavailable. Try again later.","requestId":"<the request's id>","retryable":true}}`, the same id as the 429 and the `x-request-id` header since ORV-141; before ORV-141 it was a fresh random id, as on the 429. The spec says nothing about this case (finding F8). Any other error is rethrown, as today.
 - The route file becomes `export const GET = authRoute((r) => auth().handler(r))`, and the same for `POST`.
 
 ### The app (`apps/web/server/rate-limit.ts`, `import "server-only"`)
