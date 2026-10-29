@@ -87,8 +87,12 @@ export interface RequestContext {
 const UNKNOWN = "unknown";
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const ERROR_NAME = /^[A-Z][A-Za-z]{0,39}$/;
-/** `auth-http` is the limit name Better Auth's counts carry (`betterAuthStorage`). */
-const LIMIT_NAMES: readonly string[] = [...Object.keys(LIMITS), "auth-http"];
+/**
+ * `auth-http` is the limit name Better Auth's counts carry (`betterAuthStorage`). Read when a line
+ * is written, never at module load: `rate-limit.ts` imports `client-ip.ts`, which imports this
+ * file, so `LIMITS` is not defined yet when this module loads through `rate-limit.ts`.
+ */
+const limitNames = (): readonly string[] => [...Object.keys(LIMITS), "auth-http"];
 
 function closed(value: unknown, list: readonly string[]): string {
   return typeof value === "string" && list.includes(value) ? value : UNKNOWN;
@@ -122,7 +126,7 @@ export function writeLine(fields: Record<string, unknown>): void {
 
   const line: Record<string, unknown> = { level, requestId, route, durationMs, outcome };
   if (step !== undefined) line["step"] = step;
-  if (fields["limit"] !== undefined) line["limit"] = closed(fields["limit"], LIMIT_NAMES);
+  if (fields["limit"] !== undefined) line["limit"] = closed(fields["limit"], limitNames());
   if (fields["reason"] !== undefined) line["reason"] = closed(fields["reason"], REASONS);
   const status = fields["status"];
   if (
