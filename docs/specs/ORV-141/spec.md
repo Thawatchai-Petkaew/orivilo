@@ -50,7 +50,7 @@ A server action or route handler added later joins this table and `orv141-routes
 Request-time log calls on `develop` at `d1a20b4` (found with `grep -rn 'console\.' apps/web/app apps/web/server apps/web/i18n apps/web/proxy.ts packages/auth/src`, test files excluded): 7 calls in 5 files. Each moves to the one logger and takes the shape in `orv141-line-shape`.
 
 <!-- prettier-ignore -->
-| # | File and line | Today | Becomes |
+| Call | File and line | Today | Becomes |
 | --- | --- | --- | --- |
 | C1 | `apps/web/server/rate-limit.ts:14` | `console.log` JSON `{level:"info", route:"rate-limit", limit, outcome, durationMs}` | A step line by `orv141-step-lines` (`step: "rate-limit"`), with the request's `requestId` and `route` |
 | C2 | `apps/web/app/directions/actions.ts:113` | `console.error("rate limit unavailable", limit)` | Removed; the boundary line by `orv141-boundary-line` says `outcome: "unavailable"`, `reason: "rate-limit"` |
