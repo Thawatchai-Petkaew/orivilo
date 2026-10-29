@@ -169,6 +169,15 @@ No money column exists today.
 
 Confirmation: not confirmed yet; follow-up: ORV-113 sets the money rules as a test list, and the first story that stores an amount carries it, with a test of the rounding helper on halves (0.5, 1.5, 2.5 satang) and a schema test that every amount column has a currency column beside it.
 
+**Addition, 2026-10-29 (ORV-121): AI usage amounts in millionths of a US dollar.** Decided under the owner's delegation (ADR 0012 decision 4, ORV-121 comment 10258), as the default of the ORV-121 spec's open question 2. The rule above stays; this adds one unit for one kind of amount.
+
+- **What it covers.** The cost of an AI call as OpenRouter reports it, and the spend cap per workspace (decision 4). Nothing a customer pays or is shown as a price; those stay in minor units as above.
+- **The unit.** An integer count of millionths of a US dollar, in a `bigint` column whose name ends in `_micro_usd`, with `currency` (`USD`) beside it. Cents would round a reading of about 1.4 cents to 1 cent, an under-count of about 29 percent per call.
+- **The rounding.** Half to even at the millionth, by one helper (`toMicroUsd` in `packages/intent-engine/src/money.ts`), applied to the shortest decimal text of the reported number, never to float arithmetic (K-0091 for the field; `docs/specs/ORV-121/tech.md` §3).
+- **No cost is not zero.** A cost OpenRouter did not report is stored as null and adds nothing to a sum; it is never stored as 0.
+
+Confirmation: not confirmed yet; follow-up ORV-121, whose `money.test.ts` fails `pnpm test` when `toMicroUsd` does not round 0.5, 1.5 and 2.5 millionths to 0, 2 and 2 or does not give `14000 12 14 13 5000000` for the spec's worked example 2, and whose `packages/db/src/schema.test.ts` fails when a `_micro_usd` column has no `currency` column in its table.
+
 ### 13. No conformance claim
 
 No UI text, report, gate packet or PR may say the product conforms to ASVS, the OWASP GenAI LLM Top 10, WCAG or the PDPA, or meets a performance budget. A report may say which check ran and what it found.
