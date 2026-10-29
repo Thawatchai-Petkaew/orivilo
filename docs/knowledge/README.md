@@ -184,4 +184,4 @@ Keep this table in step with the folder when you add an entry.
 | [[K-0087-synthesis-prepaid-credits-over-model-costs-and-breakage]]                | 0.7        | Prepaid credits over bought-in models; plan plus top-ups; breakage    |
 | [[K-0088-material-color-utilities-0-4-0-quantizer-api-and-determinism]]           | 0.8        | MCU 0.4.0 Apache-2.0; TS Celebi: 20 results in 20 calls (ORV-134 run) |
 | [[K-0089-ovl-qa-walk-refusal-routes]]                                             | 0.8        | ORV-136 survey: qa refusal routes on f2f5fa2; 5 uncovered (own count) |
-| [[K-0090-bash-forms-for-text-guards]]                                             | 0.8        | Bash 5.3 and git forms a text guard reads; PR 137 probes by class     |
+| [[K-0090-bash-forms-for-text-guards]]                                             | 0.8        | Bash, zsh and git forms a guard reads; reader desyncs; runner options |
