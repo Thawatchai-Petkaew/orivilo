@@ -22,7 +22,11 @@ const K_FIELDS = [
 const L_FIELDS = ["id", "date", "issue", "what_happened", "cause", "rule"];
 const ADR_MIN_CONFIDENCE = 0.7;
 const FIRST_CONFIRMED_ADR = 15;
-const CONFIDENCE_FORMAT = /^(0(\.\d+)?|1(\.0+)?)$/;
+const CONFIDENCE_FORMAT = /^(?:0(?:\.\d+|)|1(?:\.0+|))$/;
+const ENTRY_FILE_NAME = {
+  K: /^(K-\d{4})-[a-z0-9-]+\.md$/,
+  L: /^(L-\d{4})-[a-z0-9-]+\.md$/,
+};
 // Used only when docs/knowledge/README.md has no readable license row. Mirrors that README's list.
 const FALLBACK_LICENSES = ["internal", "own-words", "link-only", "MIT", "CC-BY-4.0", "CC0-1.0"];
 
@@ -139,8 +143,18 @@ const SAVING_LINES = [
   "Check after",
 ];
 // One collector command: issue keys, --flags, values and plain names only; no shell syntax.
-const COLLECTOR_CHECK =
-  /^`node scripts\/ovl\/metrics\.mjs (?:collect|report|session|due)(?: -{0,2}[A-Za-z0-9_][\w.\/:=-]*)*`$/;
+const COLLECTOR_ARG = /^-{0,2}[A-Za-z0-9_][\w.\/:=-]*$/;
+/** True for a backticked, single-spaced `node scripts/ovl/metrics.mjs <collect|report|session|due> <words>`. */
+function isCollectorCheck(check) {
+  if (check.length < 2 || !check.startsWith("`") || !check.endsWith("`")) return false;
+  const [node, script, sub, ...args] = check.slice(1, -1).split(" ");
+  return (
+    node === "node" &&
+    script === "scripts/ovl/metrics.mjs" &&
+    ["collect", "report", "session", "due"].includes(sub) &&
+    args.every((word) => COLLECTOR_ARG.test(word))
+  );
+}
 // A saving counts tokens.total or one of the four kinds, never the notice figure (ORV-87 finding F6).
 const NOT_A_TOTAL = /\b(?:reported_total|notice figure|subagent_tokens)\b/i;
 
@@ -186,7 +200,7 @@ function checkSaving(text) {
     }
   }
   const check = found.get("Check");
-  if (check && !COLLECTOR_CHECK.test(check)) {
+  if (check && !isCollectorCheck(check)) {
     problems.push(
       '## Expected saving: "Check:" must be a collector command in backticks, node scripts/ovl/metrics.mjs ...',
     );
@@ -214,7 +228,7 @@ export function checkKnowledge(root, now = new Date()) {
         report(path, "only .md files belong here; this file is not checked");
         continue;
       }
-      const nameMatch = name.match(new RegExp(`^(${prefix}-\\d{4})-[a-z0-9-]+\\.md$`));
+      const nameMatch = name.match(ENTRY_FILE_NAME[prefix]);
       if (!nameMatch) {
         report(path, `malformed file name ${name}; expected ${prefix}-NNNN-kebab-slug.md`);
         continue;
