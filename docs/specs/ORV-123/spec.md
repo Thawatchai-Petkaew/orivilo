@@ -1,7 +1,7 @@
 ---
 issue: ORV-123 (https://tpetkaew.atlassian.net/browse/ORV-123)
 lane: L
-version: 1.0
+version: 1.1
 ---
 
 # ORV-123: sign-in follow-ups from ORV-122
@@ -41,7 +41,7 @@ Rows 1 and 2 follow `orv123-count-guard` and `orv123-log-line`; row 5 follows `o
 ## Rules and bounds
 
 - **orv123-count-guard.** `signInWithGoogle` calls `consumeSignIn` so that a synchronous throw and a rejection reach the same path as a count that answers `unavailable`: the action returns `{ error: "failed" }` and does not call `signInSocial`. This is the same guard `authRoute` uses (ORV-122 "Rules and bounds", store failure). Only the count is guarded: an error from `auth().api.signInSocial`, the missing-URL error and Next's `redirect` throw pass through unchanged, so a granted sign-in still redirects.
-- **orv123-log-line.** When the guard in `orv123-count-guard` catches a throw or a rejection, the action writes exactly one line with `console.error`: one JSON object with exactly the keys `level` (`"error"`), `route` (`"account/sign-in"`) and `outcome` (`"unavailable"`). The line holds no IP, key, header value, error message, error name or stack (`.claude/rules/security.md` rules 8 and 15). A count that answers `unavailable` without throwing adds no line here; the limiter's own `onResult` line already records it (open question 2).
+- **orv123-log-line.** When the count throws, rejects (the guard in `orv123-count-guard`) or answers `unavailable`, the action writes exactly one boundary line by ORV-141 `orv141-boundary-line`: route `account/signInWithGoogle`, with the request's `requestId` and `durationMs`, outcome `unavailable` and reason `rate-limit`; ORV-142 row 9 holds its exact keys and values. The line holds no IP, key, header value, error message, error name or stack (`.claude/rules/security.md` rules 8 and 15). The limiter's own `rate-limit` step line (ORV-141 `orv141-step-lines`) is a separate line and never at `error` (open question 2). Before ORV-142 the line was one `console.error` call with exactly `level`, `route` (`"account/sign-in"`) and `outcome`, written only for a throw or a rejection.
 - **orv123-failure-copy.** In Thai the failure notice says "ทำไม่สำเร็จ" once, in the badge; the line under it says what to do without repeating it. The exact Thai line, and any English change, are decided in `docs/specs/ORV-123/design.md`. The English badge "Not done" and line "That did not work. Try again." stay unless design.md changes them. The change does not alter `saved.errors.failed` as the directions pages use it (open question 3).
 - **orv123-wait-phrase.** In Thai at 360 px, the wait phrase of the limit line ("ในอีก 7 นาที" for a 420 s wait) does not break across lines. The method (for example a span per sentence, or a no-wrap span around the phrase) and any copy change are decided in `docs/specs/ORV-123/design.md`; ORV-112 design.md §13 names a span per sentence as a starting point, not a decision. The method must keep ORV-112 design.md D2a (the notice grows downward only, badge and line never side by side).
 - Thai and English strings change together in `apps/web/i18n/messages.ts`; no middot and no em dash in any string.
@@ -51,7 +51,7 @@ Rows 1 and 2 follow `orv123-count-guard` and `orv123-log-line`; row 5 follows `o
 - Errors from `signInSocial`, the missing-URL error and the redirect (they keep today's behaviour).
 - The copy of `saved.errors.failed` on the directions pages.
 - Wrapping of the English limit line, and of any line other than the Thai sign-in limit line.
-- A request id for server actions and their log lines (ORV-113).
+- Making a request id for server actions and their log lines: done by ORV-141 (the id) and ORV-142 (the actions' lines), not by this story; before them this line named it as ORV-113 work.
 - A Playwright page test for `apps/web` (not set up; ORV-112 design.md v1.2).
 - Any change to `authRoute`'s code or to the count's limit, window or subject.
 
@@ -60,7 +60,7 @@ Rows 1 and 2 follow `orv123-count-guard` and `orv123-log-line`; row 5 follows `o
 <!-- prettier-ignore -->
 | Row | File | Test title | What it asserts |
 | --- | --- | --- | --- |
-| 1, 2 | `apps/web/app/account/actions.test.ts` | "a count that throws or rejects returns failed and logs once" | For a non-async mock that throws and an async mock that rejects, each with the message `secret detail`: the action resolves to `{ error: "failed" }`; `signInSocial` is not called; `console.error` is called once per press; the line parses as JSON with exactly the keys and values of `orv123-log-line`; the line does not contain `secret detail` |
+| 1, 2 | `apps/web/app/account/actions.test.ts` | "a count that throws or rejects returns failed and logs once" | For a non-async mock that throws and an async mock that rejects, each with the message `secret detail`: the action resolves to `{ error: "failed" }`; `signInSocial` is not called; one boundary line per press with the keys of ORV-142 row 9 (`orv123-log-line`, review finding R3-S1); no line contains `secret detail`. Before ORV-142 it asserted one `console.error` call per press whose line had exactly the three keys of the old `orv123-log-line` |
 | 1, 2 | `apps/web/app/account/actions.test.ts` | "counts the sign-in limit per network, then starts OAuth" (existing) | Still passes: the guard does not swallow the redirect |
 | 3 | `packages/auth/src/auth-route.test.ts` | "does not count other media types, with or without a foreign Origin" | The 4 media types with the foreign `Origin` and the same 4 with no `Origin`: the count is never called; the handler is called 8 times |
 | 4 | `docs/specs/ORV-122/spec.md` | none (a document row) | The two `grep -n` commands in row 4 each print a table line |
@@ -111,8 +111,8 @@ Each line is copied from its source and was not run in this task (no shell).
 <!-- prettier-ignore -->
 | # | Question | Options | Impact | Default |
 | --- | --- | --- | --- | --- |
-| 1 | Does the action's log line carry a `requestId`? | (a) no; (b) a random id per line, as `authRoute` makes | (b) gives an id that no response header carries, since server actions have no `x-request-id` yet | (a): `orv123-log-line` has no `requestId`; ORV-113 adds request ids to server actions |
-| 2 | Does the action also log when the count answers `unavailable` without throwing? | (a) no; (b) yes, the same line | (b) writes two lines for one failure, the limiter's `onResult` line and this one | (a), as `orv123-log-line` says |
+| 1 | Does the action's log line carry a `requestId`? | (a) no; (b) a random id per line, as `authRoute` made before ORV-141 | (b) gives an id that no response header carries; server actions had no `x-request-id` before ORV-141 | Settled by ORV-141 and ORV-142, neither option: the line carries the request's `requestId` (ORV-141 `orv141-request-id`), the id of the response's `x-request-id`. Before them the default was (a), no `requestId`, with request ids left to ORV-113 |
+| 2 | Does the action also log when the count answers `unavailable` without throwing? | (a) no; (b) yes, the same line | (b) writes two lines for one failure, the limiter's `rate-limit` step line and this one | Settled by ORV-142 as (b): every call writes its boundary line (ORV-141 `orv141-boundary-line`), and the step line is never at `error` (`orv141-step-lines`), so the boundary line stays the one `error` line. Before ORV-142 the default was (a) |
 | 3 | Where does the sign-in failure line live? | (a) its own key under `account`, named in design.md; (b) change `saved.errors.failed` | (b) changes the directions pages' copy, which is out of scope | (a); `saved.errors.failed` keeps its copy |
 | 4 | What if design.md names no wrapping method? | (a) the build waits for design.md; (b) the builder picks | (b) puts a design choice in a build task | (a); ORV-112 design.md §13's span per sentence is a starting point for the designer only |
 
@@ -130,8 +130,9 @@ English copy stays unless the designer changes it; Thai and English change toget
 
 ## Depends on
 
-[ORV-122](https://tpetkaew.atlassian.net/browse/ORV-122) spec v1.4 (rows 11, 20 and 25, "Rules and bounds"), [ORV-112](https://tpetkaew.atlassian.net/browse/ORV-112) design.md D2, D2a and §13, ORV-112 decisions 4 (`useActionState` form) and 7 (fail closed), ORV-113 (request ids), ADR 0015 decision 6 (logs), `.claude/rules/security.md` rules 8 and 15, sign-off `ORV-122-design-signoff-2` (S2). `docs/specs/ORV-123/design.md` (a later task) decides the copy of row 5 and the copy and method of row 6.
+[ORV-122](https://tpetkaew.atlassian.net/browse/ORV-122) spec v1.4 (rows 11, 20 and 25, "Rules and bounds"), [ORV-112](https://tpetkaew.atlassian.net/browse/ORV-112) design.md D2, D2a and §13, ORV-112 decisions 4 (`useActionState` form) and 7 (fail closed), ORV-141 spec v1.2 (`orv141-request-id`, `orv141-boundary-line`, `orv141-step-lines`) and ORV-142 spec v1.0 row 9 (the line since ORV-142; ORV-113 named request ids before), ADR 0015 decision 6 (logs), `.claude/rules/security.md` rules 8 and 15, sign-off `ORV-122-design-signoff-2` (S2). `docs/specs/ORV-123/design.md` (a later task) decides the copy of row 5 and the copy and method of row 6.
 
 ## Changelog
 
 - v1.0 (2026-10-29): first spec, the five items of ORV-123 comment 10254. Downstream to review: the ORV-123 Jira issue acceptance (rows 1 to 6), `docs/specs/ORV-123/design.md` (to be written: rows 5 and 6), the build task (Impact list), `docs/specs/ORV-112/design.md` §13 and `docs/specs/ORV-112/tech.md` "Slice B as built".
+- v1.1 (2026-10-29): brought up to date after ORV-142 (ORV-141 slice 2, ORV-141 tech notes section 12, task ORV-142-spec-1); the change to the line is ORV-141's requirement (`orv141-boundary-line`, built by ORV-142), and this story adds none. `orv123-log-line` is the action's boundary line, route `account/signInWithGoogle`, with `requestId`, `durationMs` and reason `rate-limit`, written for an answered `unavailable` too, with one clause on the old three-key `console.error` line; "Out of scope" says the request id for server actions is done by ORV-141 and ORV-142; the "Tests" row for rows 1 and 2 asserts one boundary line per press with the keys of ORV-142 row 9 (review finding R3-S1); open questions 1 and 2 record what ORV-141 and ORV-142 settled, each with its default before; "Depends on" names ORV-141 and ORV-142 for request ids. Rows, rule names and copy unchanged. Downstream to review: none to change; `apps/web/app/account/actions.test.ts` already asserts the boundary line (ORV-142 row 9); the four ORV-123 rows of `docs/specs/ORV-141/tech.md` section 12 can name this task (architect).
