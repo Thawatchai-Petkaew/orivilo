@@ -118,19 +118,21 @@ describe("authRoute", () => {
     const handler = vi.fn(async () => new Response("ok"));
     const post = (headers: Record<string, string>) =>
       new Request("http://localhost:3000/api/auth/sign-in/social", { method: "POST", headers });
-    for (const type of [
-      "text/plain",
-      "application/x-www-form-urlencoded",
-      "multipart/form-data; boundary=x",
-      "",
-    ]) {
-      await wrap(
-        handler,
-        consume,
-      )(post({ origin: "https://evil.example", ...(type ? { "content-type": type } : {}) }));
+    for (const origin of ["https://evil.example", undefined]) {
+      for (const type of [
+        "text/plain",
+        "application/x-www-form-urlencoded",
+        "multipart/form-data; boundary=x",
+        "",
+      ]) {
+        await wrap(
+          handler,
+          consume,
+        )(post({ ...(origin ? { origin } : {}), ...(type ? { "content-type": type } : {}) }));
+      }
     }
     expect(consume).not.toHaveBeenCalled();
-    expect(handler).toHaveBeenCalledTimes(4);
+    expect(handler).toHaveBeenCalledTimes(8);
   });
 
   it("counts a JSON sign-in with a foreign Origin and no cookie, however the type is written", async () => {

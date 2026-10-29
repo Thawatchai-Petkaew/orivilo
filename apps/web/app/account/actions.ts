@@ -9,13 +9,24 @@ import { consumeSignIn } from "../../server/sign-in-limit";
 export type SignInState =
   { error: "rate-limited"; retryAfter: number } | { error: "failed" } | null;
 
+/** One JSON line by name only: no IP, key, header value, error message, error name or stack. */
+function unavailable(): { ok: false; reason: "unavailable" } {
+  console.error(
+    JSON.stringify({ level: "error", route: "account/sign-in", outcome: "unavailable" }),
+  );
+  return { ok: false, reason: "unavailable" };
+}
+
 /**
  * Starts Google sign-in; the form runs it through `useActionState`. The `sign-in` limit per network is counted first
- * (ORV-122): over it, or with the store down, OAuth is not started and no `verification` row is
- * written.
+ * (ORV-122): over it, or with the store down (a count that answers unavailable, throws or rejects,
+ * ORV-123), OAuth is not started and no `verification` row is written.
  */
 export async function signInWithGoogle(): Promise<SignInState> {
-  const counted = await consumeSignIn(await headers());
+  const requestHeaders = await headers();
+  // Wrapped so a count that throws before it returns a promise fails closed like a rejection
+  // (ORV-123), as in `authRoute`. Only the count is guarded.
+  const counted = await (async () => consumeSignIn(requestHeaders))().catch(unavailable);
   if (!counted.ok) {
     return counted.reason === "limited"
       ? { error: "rate-limited", retryAfter: counted.retryAfter }
