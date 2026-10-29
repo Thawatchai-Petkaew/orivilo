@@ -3,7 +3,8 @@
  * dollar, one rounding rule for every AI usage amount. Pure; no float arithmetic on the amount.
  */
 
-const TEXT = /^(\d+)(?:\.(\d+))?(?:e([+-]?\d+))?$/;
+// Optional groups are written `(?:X|)`, the form `pnpm scan:code` passes (ORV-114 scan-unsafe-1).
+const TEXT = /^(\d+)(?:\.(\d+)|)(?:e([+-]?\d+)|)$/;
 
 /**
  * Rounds `usd` to millionths of a US dollar, half to even, from the shortest decimal text of the

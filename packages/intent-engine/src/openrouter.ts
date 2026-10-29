@@ -87,18 +87,21 @@ export function openRouterBody(model: string, request: Parameters<Complete>[0], 
 /** A `Complete` that calls OpenRouter. Throws on any failure; it never retries with other settings. */
 export function openRouterComplete(options: OpenRouterOptions): Complete {
   return async (request) => {
+    // Built before the `try`: a throw here (the body, the `signal()` call) sends nothing, so
+    // `onCall` records nothing (ORV-121 spend-cap-1).
+    const init = {
+      method: "POST" as const,
+      headers: {
+        Authorization: `Bearer ${options.apiKey}`,
+        "Content-Type": "application/json",
+        "X-Title": "ORIVILO",
+      },
+      body: JSON.stringify(openRouterBody(options.model, request, options.maxTokens ?? 2000)),
+      ...(options.signal ? { signal: options.signal() } : {}),
+    };
     let costMicroUsd: number | null = null;
     try {
-      const response = await options.fetch(OPENROUTER_URL, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${options.apiKey}`,
-          "Content-Type": "application/json",
-          "X-Title": "ORIVILO",
-        },
-        body: JSON.stringify(openRouterBody(options.model, request, options.maxTokens ?? 2000)),
-        ...(options.signal ? { signal: options.signal() } : {}),
-      });
+      const response = await options.fetch(OPENROUTER_URL, init);
       if (!response.ok) {
         // OpenRouter's own message says why (no endpoint, bad schema, no credit); kept short.
         const error = (await response.json().catch(() => null)) as {

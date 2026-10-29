@@ -123,6 +123,26 @@ describe("openRouterComplete onCall", () => {
     expect(calls).toEqual([]);
   });
 
+  it("onCall is not called when the request is never sent", async () => {
+    const calls: OpenRouterCall[] = [];
+    let fetched = 0;
+    const complete = openRouterComplete({
+      apiKey: "k",
+      model: MODEL,
+      fetch: () => {
+        fetched += 1;
+        return ok(answer())("", { method: "POST", headers: {}, body: "" });
+      },
+      signal: () => {
+        throw new Error("no signal");
+      },
+      onCall: (c) => calls.push(c),
+    });
+    await expect(complete(REQUEST)).rejects.toThrow("no signal");
+    expect(fetched).toBe(0);
+    expect(calls).toEqual([]);
+  });
+
   it("works without an onCall", async () => {
     const complete = openRouterComplete({ apiKey: "k", model: MODEL, fetch: ok(answer()) });
     await expect(complete(REQUEST)).resolves.toBe("{}");
