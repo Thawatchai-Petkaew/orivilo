@@ -2,7 +2,7 @@
 id: K-0006
 topic: verification
 claim: In Allkons a reviewer finding must carry a command that re-runs and its literal output; a finding without that evidence is dropped, not downgraded.
-source: "~/My Work/TechFlow/AI-First/allkons-marketplace/.claude/skills/atlas/references/report-contracts.md:53-57"
+source: "https://bitbucket.org/ThammasornDEV/allkons-marketplace .claude/skills/atlas/references/report-contracts.md:53-57"
 retrieved: 2026-10-23
 confidence: 0.8
 applies_to: [ORV-81]
