@@ -151,7 +151,7 @@ The user id is Better Auth's own random id, taken from the session on the server
 ### Reading the IP: `clientIp(headers, env, secret): string` returns a subject
 
 1. **Is this Vercel?** Yes if `env.VERCEL_ENV` is `"production"` or `"preview"`. Otherwise it is "off Vercel" and the subject is `local`. The spec's test is "`VERCEL` is set" (finding F4). K-0015 notes that a pulled `.env.local` may set Vercel variables locally. `VERCEL_ENV` is `development` in that file, and `settingsFromEnv` already relies on `VERCEL_ENV` on deployments.
-2. **On Vercel:** read only `x-forwarded-for`, through `getIPFromHeader`. If it holds exactly one valid IP, normalise it with the same rules as Better Auth: IPv4 as it is, IPv4-mapped IPv6 to IPv4, IPv6 masked to its /64. Then HMAC it. If it is missing, empty, a comma list or not an IP, the subject is `unknown`, with one `console.warn` per process: `{"level":"warn","route":"rate-limit","outcome":"no-trusted-ip"}`, with no header values.
+2. **On Vercel:** read only `x-forwarded-for`, through `getIPFromHeader`. If it holds exactly one valid IP, normalise it with the same rules as Better Auth: IPv4 as it is, IPv4-mapped IPv6 to IPv4, IPv6 masked to its /64. Then HMAC it. If it is missing, empty, a comma list or not an IP, the subject is `unknown`, with one `client-ip` step line per process through `logStep`: `level: "warn"`, `step: "client-ip"`, `outcome: "no-trusted-ip"`, `durationMs`, and the request's `requestId` and `route`, with no header values (ORV-141 tech notes section 6, built in ORV-142 task B4). Before ORV-142 it was one `console.warn` of `{"level":"warn","route":"rate-limit","outcome":"no-trusted-ip"}`, with no request id.
 3. **`x-vercel-forwarded-for`, `x-real-ip` and every other header are never read.**
 
 **Normalising.** Import `normalizeIP` and `getIPFromHeader` from `@better-auth/core/utils/ip`. That package is exported as `./utils/*`, and Better Auth already installs it. Add `"@better-auth/core": "1.7.12"` to `packages/auth/package.json`, pinned to the same version as `better-auth`, because pnpm will not resolve a transitive dependency. Then our sign-in bucket and Better Auth's route bucket parse the header with the same code, and IPv6 callers cannot dodge the limit by rotating addresses inside their /64. This is decided (ORV-112, after review): `@better-auth/core` 1.7.12 is a direct dependency of `packages/auth`, and there is no hand-written `node:net` version. When `better-auth` is upgraded, `@better-auth/core` moves with it in the same change.
@@ -353,7 +353,7 @@ export const subjectFromHeaders = (h: Headers) =>
   clientIp(h, process.env, requireEnv("BETTER_AUTH_SECRET"));
 ```
 
-`logRateLimit` writes one JSON line: `{"level":"info","route":"rate-limit","limit","outcome","durationMs"}`. It writes no key, no user id and no IP. `requestId` joins the line when ORV-113 adds it.
+`logRateLimit` writes one `rate-limit` step line through `logStep`: `level: "info"`, `step: "rate-limit"`, `limit`, `outcome`, `durationMs`, and the request's `requestId` and the entry's `route` (ORV-141 tech notes section 6, built in ORV-142 task B4). It writes no key, no user id and no IP. Before ORV-142 the line was `{"level":"info","route":"rate-limit","limit","outcome","durationMs"}`, with no request id.
 
 Every limited action uses the same database pool as Better Auth, `appDb()` with `max: 5`.
 
