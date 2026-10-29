@@ -1,7 +1,7 @@
 ---
 issue: ORV-141 (https://tpetkaew.atlassian.net/browse/ORV-141)
 lane: M
-version: 1.0
+version: 1.1
 ---
 
 # ORV-141: a server-made request id and one JSON log line per request
@@ -92,9 +92,9 @@ Every row's lines follow `orv141-line-shape` and `orv141-allow-list`. The UI cop
 
 ## Rules and bounds
 
-- **orv141-request-id.** The server makes one id per request to a server action or route handler: a UUID v4 from `crypto.randomUUID()`. A value the client sends in `x-request-id`, or in any other header, is never used as the id, on every path into those entries, including requests that carry `next-router-prefetch` or `purpose: prefetch` (which today's proxy matcher skips, `apps/web/proxy.ts` lines 22 to 25). The id goes in the response's `x-request-id` header on every answer (success, refusal, redirect, 429, 503, and answers Better Auth's handler writes), in every line logged for that request, and in the `requestId` of `authRoute`'s error bodies, which stop making their own. Where the id is made (proxy, boundary, or both) is for the tech notes. Page responses may carry the header too; this story does not require or test it.
+- **orv141-request-id.** The server makes one id per request to a server action or route handler: a UUID v4 from `crypto.randomUUID()`. A value the client sends in `x-request-id`, or in any other header, is never used as the id, on every path into those entries, including requests that carry `next-router-prefetch` or `purpose: prefetch` (which today's proxy matcher skips, `apps/web/proxy.ts` lines 22 to 25). The id goes in the response's `x-request-id` header on every answer (success, refusal, redirect, 429, 503, and answers Better Auth's handler writes), in every line logged for that request, and in the `requestId` of `authRoute`'s error bodies, which stop making their own. Where the id is made: open question 1. Page responses may carry the header too; this story does not require or test it.
 - **orv141-line-shape.** A line is one JSON object on one physical line, written to standard output (`info`) or standard error (`warn`, `error`). It always has `level` (`"info"`, `"warn"` or `"error"`), `requestId` (the request's id from `orv141-request-id`), `route` (from `orv141-routes`), `durationMs` (a non-negative integer, `Math.round` of the elapsed milliseconds, halves up) and `outcome` (from `orv141-outcomes`). For a boundary line `durationMs` is the time from entering the boundary to writing the line; for a step line it is the step's own time.
-- **orv141-allow-list.** A line holds only these keys: the five of `orv141-line-shape`, and optionally `step` (`"rate-limit"`, `"client-ip"`, `"ai-usage"`), `limit` (a `LimitName` from `packages/auth/src/rate-limit.ts`), `reason` (from `orv141-reasons`), `status` (an integer HTTP status, `api/auth` lines only) and `errorName` (matching `^[A-Z][A-Za-z]{0,39}$`). Any other key the caller passes is dropped. A `route`, `step`, `reason` or `errorName` value outside its list or pattern is written as `"unknown"`. No key holds an email, name, IP, user id, workspace id, session token, API key, brief text, error message or stack, so no `personal` or `secret` field reaches a line and no mask helper is needed here (ADR 0015 decisions 8 and 9).
+- **orv141-allow-list.** A line holds only these keys: the five of `orv141-line-shape`, and optionally `step` (`"rate-limit"`, `"client-ip"`, `"ai-usage"`), `limit` (a `LimitName` from `packages/auth/src/rate-limit.ts`, or `auth-http`, the limit name `betterAuthStorage` in the same file gives Better Auth's counts), `reason` (from `orv141-reasons`), `status` (an integer HTTP status, `api/auth` lines only) and `errorName` (matching `^[A-Z][A-Za-z]{0,39}$`). Any other key the caller passes is dropped. A `route`, `step`, `reason` or `errorName` value outside its list or pattern is written as `"unknown"`. Each of the six keys `outcome`, `requestId`, `level`, `limit`, `status` and `durationMs` also has one fallback for a value outside its list, pattern or type; the six fallbacks are defined in the tech notes, section 3, "How `writeLine` closes a line", and the row 14 test in tech notes section 9 covers each. No key holds an email, name, IP, user id, workspace id, session token, API key, brief text, error message or stack, so no `personal` or `secret` field reaches a line and no mask helper is needed here (ADR 0015 decisions 8 and 9).
 - **orv141-routes.** The `route` values are the third column of the table in "The set this covers", and nothing else. The `api/auth` value never holds the path, which the client chooses.
 - **orv141-outcomes.** A boundary line's `outcome` is one of `ok`, `refused`, `limited`, `unavailable`, `failed`. A step line's `outcome` is, for `rate-limit`, `allowed`, `limited` or `unavailable`; for `client-ip`, `no-trusted-ip`; for `ai-usage`, `record-failed` or `cost-not-reported`.
 - **orv141-reasons.** `reason` is the most specific closed value the boundary knows: an `interpretBrief` failure kind (`adapter-failed`, `invalid-output`, `evidence-mismatch`) for an AI failure; `rate-limit` when the limiter answered unavailable or the count threw; `unexpected` for an error the boundary does not recognise; otherwise a member of the type `ActionError` in `apps/web/app/directions/actions.ts` (which includes `DirectionError["reason"]` and `ReplayRefusal`). `invalid-input` covers `setLocale`'s refused value.
@@ -137,6 +137,16 @@ Each line is copied from its source and was not run in this task (no shell).
   node -e 'const REASONS=new Set(["adapter-failed","invalid-output","evidence-mismatch","rate-limit","unexpected"]);for (const r of ["adapter-failed","OpenRouter answered 401."]) console.log(REASONS.has(r)?r:"unknown")'
   # expected:
   # adapter-failed
+  # unknown
+  ```
+
+- **`limit`** (`orv141-allow-list`, rows 3 and 14). Input: the keys of `LIMITS` in `packages/auth/src/rate-limit.ts` (lines 25 to 35), `auth-http` from `betterAuthStorage` in the same file (line 246), and a free-text value. The `"unknown"` for a value outside the set is the fallback of tech notes section 3. No rounding.
+
+  ```bash
+  node -e 'const LIMIT_NAMES=["sign-in","ai-read","write","import","signed-out"];const allowed=new Set([...LIMIT_NAMES,"auth-http"]);for (const l of ["write","auth-http","ana@example.com"]) console.log(allowed.has(l)?l:"unknown")'
+  # expected:
+  # write
+  # auth-http
   # unknown
   ```
 
@@ -185,16 +195,16 @@ Each line is copied from its source and was not run in this task (no shell).
 
 ## Impact list
 
-- **Proxy**: `apps/web/proxy.ts` (the id, and how requests the matcher skips today are covered).
+- **Proxy**: `apps/web/proxy.ts` (the id, and the matcher change of open question 1).
 - **New logger module** with its unit test, in the place the tech notes choose; it must be importable by `packages/auth` code or receive the id and write function from the app.
 - **Actions**: `apps/web/app/directions/actions.ts` (C2 to C4, the boundary line in `run`), `apps/web/app/account/actions.ts` (C5, both actions), `apps/web/i18n/actions.ts` (boundary line).
 - **App server**: `apps/web/server/rate-limit.ts` (C1, the step line with the request's id and route).
 - **`packages/auth`**: `auth-route.ts` (C6, the request's id in the envelopes, one line per answer), `client-ip.ts` (C7).
 - **Lint**: `apps/web/eslint.config.mjs` and `packages/auth/eslint.config.mjs` (`orv141-no-console`).
 - **Existing tests that change**: `apps/web/app/account/actions.test.ts` (exact keys of the line, ORV-123), `apps/web/app/directions/actions.test.ts` (the global `console.error` spy), `packages/auth/src/auth-route.test.ts` (the line's `route` value and one line per answer), `packages/auth/src/auth.integration.test.ts` (lines 236 and 265 spy `console.error`; line 304 expects no `x-request-id` on a Better Auth answer, which this story changes), `packages/auth/src/client-ip.test.ts` (line 51, the warn line).
-- **Size.** Likely near 400 changed lines with tests. If the tech notes estimate more, split vertically: slice 1 the id, the logger and the directions actions (rows 1 to 8, 14 to 16); slice 2 the account and locale actions and `authRoute` (rows 9 to 13); row 18 with the last slice.
+- **Size.** Over 400 changed lines with tests (the estimate is in tech notes section 11), so the story ships as two vertical slices: slice 1 the id, the logger and `authRoute`; slice 2 the step lines, the three action files and the lint rule; row 18 after slice 2. The rows each slice carries and why `authRoute` ships with the proxy and the lint rule ships last are in tech notes section 11.
 - **`security` role** is dispatched on the PR: the diff touches `apps/web/proxy.ts` and `packages/auth/**`, paths in `.claude/rules/security.md` (ADR 0015 decision 2).
-- **Docs to review** (outside this task's write set): ADR 0015 decision 6 "known gap" sentence and its Confirmation, and "Not done yet" (observability); `docs/specs/ORV-122/spec.md` "The log line" and "Request id" bullets; `docs/specs/ORV-123/spec.md` `orv123-log-line` and open question 1; `docs/specs/ORV-112/spec.md` "Rules and bounds" (a log line for a call) and "Out of scope" (the request id helper); `docs/specs/ORV-112/tech.md` `logRateLimit` (line 356).
+- **Docs to review** (outside this task's write set): ADR 0015 decision 6 "known gap" sentence and its Confirmation, and "Not done yet" (observability); `docs/specs/ORV-122/spec.md` "The log line" and "Request id" bullets; `docs/specs/ORV-123/spec.md` `orv123-log-line` and open question 1; `docs/specs/ORV-112/spec.md` "Rules and bounds" (a log line for a call) and "Out of scope" (the request id helper); `docs/specs/ORV-112/tech.md` `logRateLimit` (line 356); `docs/specs/ORV-108/spec.md` line 164 and row 69 (the proxy matcher skips prefetch requests, which open question 1 changes).
 
 ## Open questions
 
@@ -203,7 +213,7 @@ Each has a default; under the owner's delegation (ADR 0012 decision 4) G2 passes
 <!-- prettier-ignore -->
 | # | Question | Options | Impact | Default |
 | --- | --- | --- | --- | --- |
-| 1 | Where is the id made for requests the proxy matcher skips (`next-router-prefetch`, `purpose: prefetch`)? | (a) the proxy runs for them too and only skips the CSP work; (b) the boundary makes its own id when the request did not pass the proxy; (c) both | (a) is one place but changes the matcher the CSP relies on; (b) needs a way to know the proxy ran that a client cannot fake | Row 2 must hold; the tech notes choose and say why |
+| 1 | Where is the id made for requests the proxy matcher skips (`next-router-prefetch`, `purpose: prefetch`)? | (a) the proxy runs for them too and only skips the CSP work; (b) the boundary makes its own id when the request did not pass the proxy; (c) both | (a) is one place but changes the matcher the CSP relies on; (b) needs a way to know the proxy ran that a client cannot fake | Decided in v1.1: (a), with one change from its wording: the proxy does the CSP work for prefetches too, because Next strips `next-router-prefetch` before the proxy sees the request, so the proxy cannot tell a prefetch from a navigation. The proxy is the only place the id is made; the reasons (b) and (c) cannot hold row 2 are in tech notes section 2 (D1) |
 | 2 | Does a successful call write a line? | (a) yes, `info`; (b) only refusals and failures | (b) leaves no `durationMs` for normal calls and no line to find by id after a good save | (a), `orv141-boundary-line` |
 | 3 | Is `errorName` logged? | (a) yes, by the pattern in `orv141-allow-list`; (b) no, `reason: "unexpected"` only | (b) loses the one hint today's C3 line gives | (a) |
 | 4 | Is OpenRouter's message (C4's third part) kept? | (a) dropped, the failure kind only; (b) kept, cut to 200 characters as today | (b) puts third-party free text in a line, which `orv141-allow-list` forbids; (a) loses the reason OpenRouter gave (no credit, no endpoint) | (a); a numeric `status` from the adapter can be added later as an allow-listed key if the adapter error carries one |
@@ -220,3 +230,4 @@ ADR 0015 decision 6 (observability), decisions 2 (the `security` role), 7 (the e
 ## Changelog
 
 - v1.0 (2026-10-29): first spec, ORV-113 item 1 as its own slice (task ORV-141-spec-1). Downstream to review: the ORV-141 Jira issue acceptance (rows 1 to 18), the tech notes (to be written: open question 1, the logger's place, the size), ADR 0015 decision 6 text and "Not done yet", `docs/specs/ORV-122/spec.md`, `docs/specs/ORV-123/spec.md`, `docs/specs/ORV-112/spec.md` and `docs/specs/ORV-112/tech.md` as listed under "Impact list", ORV-121's PR (row 17).
+- v1.1 (2026-10-29): the tech notes' "Findings for the spec" F1 to F4 (task ORV-141-spec-2); no acceptance row changes. F1, contract change: `orv141-allow-list` closes `limit` to `LimitName` plus `auth-http`. F2, contract change: `orv141-allow-list` names a fallback for `outcome`, `requestId`, `level`, `limit`, `status` and `durationMs`, defined in tech notes section 3. F3, contract change: open question 1 decided (a), the proxy matcher passes prefetches and the proxy does the CSP work for them too (tech notes section 2). F4, no contract change: the "Impact list" slice split is the one in tech notes section 11. Downstream to review: `docs/specs/ORV-141/tech.md` (front matter `spec:` version, D6, the F2 sentence in section 3, the first paragraph of section 11, the "Findings for the spec" table), `docs/specs/ORV-108/spec.md` line 164 and row 69 (the matcher), the ORV-141 Jira issue (no acceptance change).
