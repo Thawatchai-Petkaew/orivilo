@@ -1,6 +1,6 @@
 ---
 issue: ORV-144 (https://tpetkaew.atlassian.net/browse/ORV-144)
-spec: docs/specs/ORV-144/spec.md v1.0
+spec: docs/specs/ORV-144/spec.md v1.1
 task: ORV-144-tech-1
 author: architect
 date: 2026-10-29
@@ -232,14 +232,14 @@ export function fetchWithRetry(
 ```
 
 - `method` is `(init.method ?? "GET").toUpperCase()`; `idempotencyKey` is `new Headers(init.headers).get("idempotency-key")`, counted only when non-empty after trimming.
-- `retryable` is read from a clone of the answer (`response.clone().json()`), only when its `content-type` holds `application/json`; a body that does not parse, or has no `error.retryable` boolean, reads as `null`, so the matrix default applies.
+- `retryable` is read from a clone of the answer (`response.clone().json()`), only when its status is 400 or more and its `content-type` holds `application/json`; a body that does not parse, or has no `error.retryable` boolean, reads as `null`, so the matrix default applies.
 - An answer that will be retried has its body cancelled before the wait.
-- **Abort (D7).** When `init.signal` is aborted, the error is rethrown at once and not retried: the caller asked to stop. The spec's "a call with no answer" does not say this (finding F3).
+- **Abort (D7).** When `init.signal` is aborted, the error is rethrown at once and not retried: the caller asked to stop. The spec's "a call with no answer" does not say this (finding F3). An abort is seen only when a try rejects: an abort during a wait does not cut the wait short; the next `fetch` rejects on the aborted signal, and that error is rethrown.
 - Defaults: `fetch` is `globalThis.fetch`, `sleep` is a `setTimeout` promise, `random` is `Math.random`.
 
 ### The import ban
 
-`apps/web/eslint.config.mjs` gains one config object for `client/**/*.{ts,tsx}` (tests ignored): `no-console: "error"`; `no-restricted-imports` with the patterns `node:*`, `@orivilo/auth` and `@orivilo/auth/*` (it reports a single-line import, a multi-line import, a side-effect import and an `export ... from`); and `no-restricted-syntax` on `ImportExpression` whose source starts with `node:` or `@orivilo/auth` (a dynamic `import()`, which `no-restricted-imports` does not report). The ban is stricter than the spec (it bars type imports too); the module needs none. `apps/web/vitest.config.ts` adds `client/**/*.test.ts` to `include`.
+`apps/web/eslint.config.mjs` gains one config object for `client/**/*.{ts,tsx}` (tests ignored): `no-console: "error"`; `no-restricted-imports` with the patterns `node:*`, `@orivilo/auth` and `@orivilo/auth/*` (it reports a single-line import, a multi-line import, a side-effect import and an `export ... from`); and `no-restricted-syntax` on `ImportExpression[source.value=/^(node:|@orivilo.auth)/]` (a dynamic `import()`, which `no-restricted-imports` does not report; esquery regexes cannot hold a slash, so `.` stands for the one in `@orivilo/auth`). The ban is stricter than the spec (it bars type imports too); the module needs none. `apps/web/vitest.config.ts` adds `client/**/*.test.ts` to `include`.
 
 ### No caller today
 
@@ -430,7 +430,7 @@ As the spec's "Impact list", plus: `apps/web/app/directions/studio-calls.ts` (ne
 
 ### Tests that change
 
-As the spec's "Impact list", plus: `apps/web/app/account/SignInForm.test.tsx` (fixtures, and the reference case), `apps/web/i18n/wait.test.ts` (the two helpers). New: `packages/auth/src/errors.test.ts`, `apps/web/app/directions/SavedStudio.test.tsx`, `apps/web/client/retry.test.ts`, `apps/web/i18n/messages.test.ts`. `auth.integration.test.ts` is expected to stay as it is (§9).
+As the spec's "Impact list", plus: `apps/web/app/account/SignInForm.test.tsx` (fixtures, and the reference case), `apps/web/i18n/wait.test.ts` (the two helpers), `apps/web/app/account/sign-in-line.test.ts` (the labels gain `failure`, and the reference cases, B7), `apps/web/app/account/page.test.tsx` (the labels assertion gains `failure`, B7). New: `packages/auth/src/errors.test.ts`, `apps/web/app/directions/SavedStudio.test.tsx`, `apps/web/client/retry.test.ts`, `apps/web/i18n/messages.test.ts`. `auth.integration.test.ts` is expected to stay as it is (§9).
 
 ## 13. Documents to bring up to date
 
@@ -474,8 +474,8 @@ No. No new package, dependency, runtime or service: `errors.ts` is a module in a
 <!-- prettier-ignore -->
 | # | Where in the spec | Finding | This design assumes | Status |
 | --- | --- | --- | --- | --- |
-| F1 | Row 20; AGENTS.md line 52 | No `pnpm check-i18n` command exists; `check-i18n.test.ts` and `check-copy.test.ts` scan `packages/design-system` only, so no check reads `apps/web/i18n/messages.ts` for a middot, an em dash or a missing language | A new `apps/web/i18n/messages.test.ts` (D5); `pnpm typecheck` covers the key set | Open, for the `spec` role (§13) |
-| F2 | "Impact list", Size; open question 11 | The size is about 940 lines, not 600, and comment 10268 decides one PR | §10, §11 | Open, for the `spec` role (§13) |
-| F3 | `orv144-retry`, "a call with no answer" | A call the caller aborted has no answer too; retrying it would undo the caller's stop | Not retried; rethrown (D7) | Open, for the `spec` role: add the clause or drop D7 |
-| F4 | Rows 8, 9, 13, 14 ("They press") | `apps/web` has no DOM test environment; a click cannot be simulated without a new dependency | The call handling is tested through `runCall` and `refreshList`, the region through row 12's markup (D4) | Open, for the `spec` role: the test column names the method |
-| F5 | `orv144-route-answers` | It does not say the status of a rewritten answer stays the handler's | The status stays (a 418 answers 418 with `BAD_REQUEST`); row 4 asserts it | Open, for the `spec` role: one clause |
+| F1 | Row 20; AGENTS.md line 52 | No `pnpm check-i18n` command exists; `check-i18n.test.ts` and `check-copy.test.ts` scan `packages/design-system` only, so no check reads `apps/web/i18n/messages.ts` for a middot, an em dash or a missing language | A new `apps/web/i18n/messages.test.ts` (D5); `pnpm typecheck` covers the key set | Resolved in spec v1.1 |
+| F2 | "Impact list", Size; open question 11 | The size is about 940 lines, not 600, and comment 10268 decides one PR | §10, §11 | Resolved in spec v1.1 |
+| F3 | `orv144-retry`, "a call with no answer" | A call the caller aborted has no answer too; retrying it would undo the caller's stop | Not retried; rethrown (D7) | Resolved in spec v1.1 |
+| F4 | Rows 8, 9, 13, 14 ("They press") | `apps/web` has no DOM test environment; a click cannot be simulated without a new dependency | The call handling is tested through `runCall` and `refreshList`, the region through row 12's markup (D4) | Resolved in spec v1.1 |
+| F5 | `orv144-route-answers` | It does not say the status of a rewritten answer stays the handler's | The status stays (a 418 answers 418 with `BAD_REQUEST`); row 4 asserts it | Resolved in spec v1.1 |
