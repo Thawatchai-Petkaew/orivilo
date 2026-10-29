@@ -6,6 +6,7 @@ const { en, th } = webMessages;
 const labels = (m: typeof en) => ({
   account: m.account,
   wait: m.wait,
+  failure: m.failure,
 });
 
 // ORV-122 row 11 and ORV-123 rows 5 and 6: the line under the button, both locales.
@@ -72,5 +73,45 @@ describe("the sign-in line", () => {
       reason: th.account.failed,
     });
     expect(th.account.failed).not.toBe(th.saved.errors.failed);
+  });
+
+  // ORV-144 row 15: the reference line for INTERNAL_ERROR only.
+  it("an INTERNAL_ERROR state shows the reference, English and Thai", () => {
+    const state = {
+      error: "failed",
+      code: "INTERNAL_ERROR",
+      requestId: "req-77",
+      retryable: false,
+    } as const;
+    expect(signInLine(state, labels(en))).toEqual({
+      reason: en.account.failed,
+      reference: "Reference: req-77",
+    });
+    expect(signInLine(state, labels(th))).toEqual({
+      reason: th.account.failed,
+      reference: "รหัสอ้างอิง: req-77",
+    });
+  });
+
+  it("gives no reference for SERVICE_UNAVAILABLE or a rate limit", () => {
+    const unavailable = {
+      error: "failed",
+      code: "SERVICE_UNAVAILABLE",
+      requestId: "req-77",
+      retryable: true,
+    } as const;
+    const limited = {
+      error: "rate-limited",
+      code: "RATE_LIMITED",
+      requestId: "req-77",
+      retryAfter: 60,
+      retryable: true,
+    } as const;
+    expect(signInLine(unavailable, labels(en))).not.toHaveProperty("reference");
+    expect(signInLine(limited, labels(en))).not.toHaveProperty("reference");
+    // A rate limit whose wait is unusable falls back to the failure line, still without a reference.
+    expect(signInLine({ ...limited, retryAfter: 0 }, labels(en))).toEqual({
+      reason: en.account.failed,
+    });
   });
 });

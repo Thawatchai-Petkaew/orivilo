@@ -26,6 +26,7 @@ function SignInNotice({ state, labels }: { state: SignInState; labels: SignInLab
               </>
             ) : null}
           </p>
+          {line.reference ? <p className="text-body-md">{line.reference}</p> : null}
         </>
       ) : null}
     </div>

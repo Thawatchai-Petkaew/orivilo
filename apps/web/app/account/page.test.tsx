@@ -37,6 +37,10 @@ describe("/account signed out", () => {
   // ORV-123 row 5 (design R1): the failure line comes from `account.failed`, not `saved.errors.failed`.
   it("gives the sign-in form its own failure line", async () => {
     renderToStaticMarkup(await AccountPage());
-    expect(form.labels).toEqual({ account: webMessages.en.account, wait: webMessages.en.wait });
+    expect(form.labels).toEqual({
+      account: webMessages.en.account,
+      wait: webMessages.en.wait,
+      failure: webMessages.en.failure,
+    });
   });
 });
