@@ -4,14 +4,16 @@ import { webMessages } from "../../i18n/messages";
 import { readingResult } from "./read-outcome";
 
 const { errors } = webMessages.en.saved;
-const { wait } = webMessages.en;
+const { wait, failure } = webMessages.en;
 const reading = { id: "r" } as unknown as Interpretation;
 const ID = "5f0c6f7e-2b1d-4c3a-9e8f-0a1b2c3d4e5f";
 
 // ORV-112 rows 5 and 8: a refusal by a rate limit is a studio notice and never a card notice.
 describe("readingResult", () => {
   it("keeps a checked reading and its seal", () => {
-    expect(readingResult({ ok: true, value: { reading, seal: "s" } }, errors, wait)).toEqual({
+    expect(
+      readingResult({ ok: true, value: { reading, seal: "s" } }, errors, wait, failure),
+    ).toEqual({
       reading,
       seal: "s",
     });
@@ -29,9 +31,10 @@ describe("readingResult", () => {
       },
       errors,
       wait,
+      failure,
     );
     expect(result).toEqual({ notice: expect.stringContaining("12 minutes") });
-    expect(result).not.toHaveProperty("cardNotice");
+    expect(result).not.toHaveProperty("cardLines");
     expect(JSON.stringify(result)).not.toContain("{wait}");
   });
 
@@ -47,10 +50,11 @@ describe("readingResult", () => {
         },
         errors,
         wait,
+        failure,
       ),
     ).toEqual({
       reading: null,
-      cardNotice: null,
+      cardLines: null,
     });
   });
 
@@ -66,10 +70,32 @@ describe("readingResult", () => {
         },
         errors,
         wait,
+        failure,
       ),
     ).toEqual({
       reading: null,
-      cardNotice: errors["ai-not-configured"],
+      cardLines: [errors["ai-not-configured"], `Reference: ${ID}`],
+    });
+  });
+
+  it("gives a Thai setup problem its Thai reference line", () => {
+    const th = webMessages.th;
+    expect(
+      readingResult(
+        {
+          ok: false,
+          error: "ai-not-configured",
+          code: "INTERNAL_ERROR",
+          requestId: ID,
+          retryable: false,
+        },
+        th.saved.errors,
+        th.wait,
+        th.failure,
+      ),
+    ).toEqual({
+      reading: null,
+      cardLines: [th.saved.errors["ai-not-configured"], `รหัสอ้างอิง: ${ID}`],
     });
   });
 });

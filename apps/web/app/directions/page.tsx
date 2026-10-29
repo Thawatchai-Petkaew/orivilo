@@ -17,7 +17,7 @@ async function load(): Promise<SavedView> {
   if (listing.ok) return { kind: "ready", listing: listing.value };
   if (listing.error === "signed-out") return { kind: "signed-out" };
   if (listing.error === "not-configured") return { kind: "not-configured" };
-  return { kind: "error", error: listing.error };
+  return { kind: "error", failure: listing };
 }
 
 /**
@@ -35,6 +35,7 @@ export default async function DirectionsPage() {
         view={await load()}
         m={m.saved}
         wait={m.wait}
+        failure={m.failure}
         defaultBrief={messagesFor(locale).direction.preset1Text}
         preview={<WorkspaceScreen />}
       />
