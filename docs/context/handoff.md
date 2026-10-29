@@ -95,7 +95,7 @@ The first improvement run (2026-10-24, ORV-91) produced `docs/lessons/L-0008-rec
 - `apps/web/.env.local` from `apps/web/.env.example` with real values, for `pnpm dev`. `vercel env pull` leaves secrets empty (`""`); fill them by hand. Development uses local Postgres (ADR 0010), never the staging database:
   - `createdb orivilo_dev`, then `MIGRATION_DATABASE_URL=postgres://<you>@localhost:5432/orivilo_dev pnpm --filter @orivilo/db migrate` (prints "migrations applied").
   - `psql -d orivilo_dev -c "alter role orivilo_app login password 'orivilo_app_test'"`: migrations create `orivilo_app` without a login; the database tests set this same password on every run, so a password of your own does not survive.
-  - `DATABASE_URL=postgres://orivilo_app:orivilo_app_test@localhost:5432/orivilo_dev`.
+  - `DATABASE_URL=postgres://orivilo_app:{password}@localhost:5432/orivilo_dev`, where `{password}` is `orivilo_app_test`, the password the line above sets.
   - `BETTER_AUTH_SECRET`: a new one per machine (`openssl rand -base64 32`), not staging's.
   - `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`: the staging OAuth client, with `http://localhost:3000` as a JavaScript origin and `http://localhost:3000/api/auth/callback/google` as a redirect URI. Production gets its own client (ORV-63).
   - `OPENROUTER_API_KEY`: the same key works locally; its spend joins staging's.

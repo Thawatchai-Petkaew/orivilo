@@ -30,7 +30,7 @@ type Story = StoryObj<typeof meta>;
 
 const nodeEls = (root: HTMLElement) => root.querySelectorAll<HTMLElement>(".react-flow__node");
 const nodeByTitle = (root: HTMLElement, title: string) =>
-  within(root).getByRole("group", { name: new RegExp(`^${title},`) });
+  within(root).getByRole("group", { name: (name: string) => name.startsWith(`${title},`) });
 const toolbarOf = (root: HTMLElement, title: string) =>
   within(root).getByRole("toolbar", { name: `เครื่องมือของ ${title}` });
 

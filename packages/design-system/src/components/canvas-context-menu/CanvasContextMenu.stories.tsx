@@ -28,7 +28,7 @@ type Story = StoryObj<typeof meta>;
 const body = () => within(document.body);
 const nodeEls = (root: HTMLElement) => root.querySelectorAll<HTMLElement>(".react-flow__node");
 const nodeByTitle = (root: HTMLElement, title: string) =>
-  within(root).getByRole("group", { name: new RegExp(`^${title},`) });
+  within(root).getByRole("group", { name: (name: string) => name.startsWith(`${title},`) });
 /**
  * The board is usable once React Flow has measured every node (it hides a node until then) and has
  * drawn every edge; nodes in the DOM alone are not enough, so a fast machine passed and a loaded
@@ -59,13 +59,13 @@ export const OnNode: Story = {
     await expect(items.at(-1)).toHaveTextContent(commandById("selection.delete").label.th);
     // Group needs two nodes; ungroup needs a group: both present, both disabled.
     const group = within(menu).getByRole("menuitem", {
-      name: new RegExp(commandById("selection.group").label.th),
+      name: (name: string) => name.includes(commandById("selection.group").label.th),
     });
     await expect(group).toHaveAttribute("data-disabled");
     await expect(names.length).toBeGreaterThan(0);
     await userEvent.click(
       within(menu).getByRole("menuitem", {
-        name: new RegExp(`^${commandById("selection.duplicate").label.th}`),
+        name: (name: string) => name.startsWith(commandById("selection.duplicate").label.th),
       }),
     );
     await waitFor(() => expect(nodeEls(region)).toHaveLength(BOARD_NODES.length + 1));
@@ -85,7 +85,7 @@ export const OnBoard: Story = {
       items.map((i) => i.textContent?.includes(commandById("board.add-node").label.th)),
     ).toContain(true);
     const paste = within(menu).getByRole("menuitem", {
-      name: new RegExp(commandById("board.paste").label.th),
+      name: (name: string) => name.includes(commandById("board.paste").label.th),
     });
     await expect(paste).toHaveAttribute("data-disabled");
     await userEvent.keyboard("{Escape}");
@@ -99,7 +99,7 @@ export const OnBoard: Story = {
     const again = await body().findByRole("menu");
     await expect(
       within(again).getByRole("menuitem", {
-        name: new RegExp(commandById("board.paste").label.th),
+        name: (name: string) => name.includes(commandById("board.paste").label.th),
       }),
     ).not.toHaveAttribute("data-disabled");
     await userEvent.keyboard("{Escape}");
@@ -121,7 +121,7 @@ export const OnEdge: Story = {
     await expect(items.length).toBe(surfaceCommands("context-menu", ["edge"]).length);
     await userEvent.click(
       within(menu).getByRole("menuitem", {
-        name: new RegExp(commandById("edge.kind-reference").label.th),
+        name: (name: string) => name.includes(commandById("edge.kind-reference").label.th),
       }),
     );
     await waitFor(() =>
@@ -140,7 +140,9 @@ export const ShiftF10: Story = {
     await userEvent.keyboard("{Shift>}{F10}{/Shift}");
     const menu = await body().findByRole("menu");
     await expect(
-      within(menu).getByRole("menuitem", { name: new RegExp(commandById("node.rename").label.th) }),
+      within(menu).getByRole("menuitem", {
+        name: (name: string) => name.includes(commandById("node.rename").label.th),
+      }),
     ).toBeInTheDocument();
     await userEvent.keyboard("{Escape}");
     await waitFor(() => expect(body().queryByRole("menu")).toBeNull());
@@ -189,7 +191,9 @@ export const MentionItemNoShell: Story = {
       within(menu).queryByRole("menuitem", { name: "อ้างถึง node นี้ใน prompt" }),
     ).toBeNull();
     await expect(
-      within(menu).getByRole("menuitem", { name: new RegExp(commandById("node.rename").label.th) }),
+      within(menu).getByRole("menuitem", {
+        name: (name: string) => name.includes(commandById("node.rename").label.th),
+      }),
     ).toBeInTheDocument();
     await userEvent.keyboard("{Escape}");
   },

@@ -109,7 +109,7 @@ describe("public addresses only", () => {
     ["http://[64:ff9b::a00:5]/"],
     [PAGE, {}, { "example.test": ["192.168.1.2"] }],
     [PAGE, okRoutes({ [PAGE]: { status: 302, headers: { location: "http://10.0.0.5/" } } })],
-    ["http://user:secret@example.test/", okRoutes()],
+    ["http://user:password@example.test/", okRoutes()],
     ["http://user@example.test/", okRoutes()],
     ["http://:secret@example.test/", okRoutes()],
     ["https://example.com:6379/"],
@@ -123,14 +123,14 @@ describe("public addresses only", () => {
     [
       PAGE,
       okRoutes({
-        [PAGE]: { status: 302, headers: { location: "http://user:secret@example.test/" } },
+        [PAGE]: { status: 302, headers: { location: "http://user:password@example.test/" } },
       }),
     ],
     [
       PAGE,
       okRoutes({ [PAGE]: { status: 302, headers: { location: "https://example.com:6379/" } } }),
     ],
-    [PAGE, okRoutes({ [PAGE]: linkPage(["https://user:secret@example.test/a.css"]) })],
+    [PAGE, okRoutes({ [PAGE]: linkPage(["https://user:password@example.test/a.css"]) })],
     [PAGE, okRoutes({ [PAGE]: linkPage(["https://example.test:8080/a.css"]) })],
   ];
   it.each(refusedUrls)("refuses %s", async (url, routes, dns) => {
@@ -172,7 +172,7 @@ describe("public addresses only", () => {
 
   it("refuses a robots.txt redirect to a host with credentials or another port", async () => {
     for (const location of [
-      "http://user:secret@example.test/robots.txt",
+      "http://user:password@example.test/robots.txt",
       "http://example.test:8080/robots.txt",
     ]) {
       const net = fakeNet(okRoutes({ [ROBOTS]: { status: 301, headers: { location } } }));

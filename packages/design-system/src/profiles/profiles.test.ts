@@ -213,7 +213,7 @@ describe("Profile.validate catches", () => {
         $value: { light: "{color.lime.300}", dark: "{color.lime.300}" },
       });
       const p = new Profile(base, withSemantic({ [g ?? ""]: node }));
-      expect(p.validate().join("\n")).toMatch(new RegExp(`${path.replace(".", "\\.")} is locked`));
+      expect(p.validate().join("\n")).toContain(`${path} is locked`);
       expect(p.overrides).not.toContain(path);
     }
   });
@@ -314,7 +314,7 @@ describe("Profile.validate catches", () => {
     for (const path of Object.keys(IDENTITY_OVERRIDES).flatMap((g) =>
       Object.keys(IDENTITY_OVERRIDES[g as keyof typeof IDENTITY_OVERRIDES]).map((k) => `${g}.${k}`),
     )) {
-      expect(errors).toMatch(new RegExp(`${path.replace(".", "\\.")} carries ORIVILO's identity`));
+      expect(errors).toContain(`${path} carries ORIVILO's identity`);
     }
   });
 

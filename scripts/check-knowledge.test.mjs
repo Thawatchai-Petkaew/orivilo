@@ -456,6 +456,21 @@ test("AC21: a Check that chains, pipes, substitutes or is unclosed fails", () =>
   }
 });
 
+test("ORV-114 scan-unsafe-4: a Check with another command, another script or a stray space fails", () => {
+  for (const check of [
+    "`npx scripts/ovl/metrics.mjs due`",
+    "`node scripts/ovl/other.mjs due`",
+    "`node scripts/ovl/metrics.mjs  due`",
+    "`node scripts/ovl/metrics.mjs due `",
+  ]) {
+    const problems = savingProblems(withSaving({ Check: check }));
+    assert.ok(
+      problems.some((p) => p.includes("collector command")),
+      check,
+    );
+  }
+});
+
 test("a word that merely contains notice is not a notice figure", () => {
   const fine = savingProblems(withSaving({ Target: "a noticeable drop in median tokens.total" }));
   assert.deepEqual(fine, []);

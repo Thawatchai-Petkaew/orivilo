@@ -64,9 +64,8 @@ const THAI_JARGON = [
   "ดีบัก",
   "คิวรี",
 ];
-const LATIN_JARGON = ["API", "endpoint", "payload", "JSON", "null", "undefined"];
 const STRING_LITERAL = /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`/g;
-const LATIN_WORD = new RegExp(`(?<![A-Za-z0-9_])(?:${LATIN_JARGON.join("|")})(?![A-Za-z0-9_])`);
+const LATIN_WORD = /(?<![A-Za-z0-9_])(?:API|endpoint|payload|JSON|null|undefined)(?![A-Za-z0-9_])/;
 
 /** Each jargon word found in a string literal of `source`, as `line N has <word>`. */
 function thaiJargonHits(source: string): string[] {

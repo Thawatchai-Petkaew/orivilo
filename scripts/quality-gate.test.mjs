@@ -351,8 +351,7 @@ test("ORV-108 row 20: the gate and CI run commits, secrets and codescan in the s
 });
 
 test("ORV-108 row 20: USAGE lists the three new steps", () => {
-  for (const name of ["commits", "secrets", "codescan"])
-    assert.match(USAGE, new RegExp(`\\b${name}\\b`));
+  for (const word of [/\bcommits\b/, /\bsecrets\b/, /\bcodescan\b/]) assert.match(USAGE, word);
 });
 
 test("ORV-108 row 21: CI checks out the full history and adds no action, secret or permission", () => {

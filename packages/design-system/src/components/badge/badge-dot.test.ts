@@ -16,6 +16,7 @@ interface TokenNode {
 const component = JSON.parse(read("tokens/source/component.json")) as TokenNode;
 const dots = (component["badge"] as TokenNode)["dot"] as Record<string, { $value?: unknown }>;
 const VARIANTS = ["neutral", "success", "warning", "danger", "info", "brand"] as const;
+const DOT_LINE = /--cmp-badge-dot-([a-z]+):\s*([^;]+);/g;
 const FEEDBACK = ["success", "warning", "danger", "info"] as const;
 
 describe("badge dot tokens", () => {
@@ -40,8 +41,8 @@ describe("badge dot tokens", () => {
   it("is declared in the generated CSS as a var() of a semantic token", () => {
     const generated = read("tokens/generated.css");
     for (const variant of VARIANTS) {
-      const line = new RegExp(`--cmp-badge-dot-${variant}:\\s*([^;]+);`).exec(generated);
-      expect(line?.[1], variant).toMatch(/^var\(--ds-[a-z0-9-]+\)$/);
+      const line = [...generated.matchAll(DOT_LINE)].find((m) => m[1] === variant);
+      expect(line?.[2], variant).toMatch(/^var\(--ds-[a-z0-9-]+\)$/);
     }
   });
 

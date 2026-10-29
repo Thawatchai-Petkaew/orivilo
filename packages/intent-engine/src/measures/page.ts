@@ -117,7 +117,8 @@ export function familySubject(
   name = name.replace(ASCII_WHITESPACE, " ").trim();
   name = name.replace(/[A-Z]/g, (c) => c.toLowerCase());
   if (name === "") return null;
-  if (/^[a-z0-9]+(?:[ -][a-z0-9]+)*$/.test(name)) return `${role}.${name.replace(/ /g, "-")}`;
+  if (/^(?![ -])(?![\s\S]*[ -](?:[ -]|$))[a-z0-9 -]+$/.test(name))
+    return `${role}.${name.replace(/ /g, "-")}`;
   const base = name.replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "family";
   return `${role}.${base}.${fingerprintOf(name)}`;
 }
