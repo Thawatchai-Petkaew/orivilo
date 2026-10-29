@@ -1,40 +1,56 @@
-import { randomUUID } from "node:crypto";
+import {
+  atBoundary,
+  type Ended,
+  endingOfStatus,
+  type Reason,
+  REQUEST_ID_HEADER,
+  requestIdOf,
+} from "./log.ts";
 import { type Consumed, RateLimitUnavailable } from "./rate-limit.ts";
 
+/** The request's id goes in the body and the header, the same value (ORV-141 `orv141-request-id`). */
 const envelope = (
   status: number,
   code: string,
   message: string,
+  requestId: string,
   extra: Record<string, string> = {},
-) => {
-  const requestId = randomUUID();
-  return new Response(JSON.stringify({ error: { code, message, requestId, retryable: true } }), {
+) =>
+  new Response(JSON.stringify({ error: { code, message, requestId, retryable: true } }), {
     status,
-    headers: { "content-type": "application/json", "x-request-id": requestId, ...extra },
+    headers: { "content-type": "application/json", [REQUEST_ID_HEADER]: requestId, ...extra },
   });
-};
 
-const rateLimited = (wait: string | null) =>
+const rateLimited = (requestId: string, wait: string | null) =>
   envelope(
     429,
     "RATE_LIMITED",
     "Too many requests. Try again later.",
+    requestId,
     wait ? { "retry-after": wait, "x-retry-after": wait } : {},
   );
 
-/** One JSON line by name only: no key, IP, header value, error message or stack. */
-const unavailable = () => {
-  const response = envelope(503, "SERVICE_UNAVAILABLE", "Service unavailable. Try again later.");
-  console.error(
-    JSON.stringify({
-      level: "error",
-      requestId: response.headers.get("x-request-id"),
-      route: "auth",
-      outcome: "unavailable",
-    }),
-  );
-  return response;
+const unavailable = (requestId: string) =>
+  envelope(503, "SERVICE_UNAVAILABLE", "Service unavailable. Try again later.", requestId);
+
+/**
+ * A copy of `response` carrying the request's id. A copy, not a mutation: `Response.redirect`
+ * has immutable headers. `new Headers(...)` keeps each `Set-Cookie` value separate.
+ */
+const withRequestId = (response: Response, requestId: string) => {
+  const headers = new Headers(response.headers);
+  headers.set(REQUEST_ID_HEADER, requestId);
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
 };
+
+const ended = (response: Response, reason?: Reason): Ended<Response> => ({
+  value: response,
+  ending: { ...endingOfStatus(response.status), ...(reason ? { reason } : {}) },
+});
 
 /**
  * A request that could start a sign-in: `POST /api/auth/sign-in/*` with a JSON media type, read the
@@ -57,35 +73,41 @@ export interface AuthRouteOptions {
 }
 
 /**
- * Wraps Better Auth's handler (ORV-112, ORV-122). `POST /api/auth/sign-in/*` with a JSON body is counted against
- * the `sign-in` limit first, in the bucket `signInWithGoogle` uses, and a refused request never
+ * Wraps Better Auth's handler (ORV-112, ORV-122, ORV-141). `POST /api/auth/sign-in/*` with a JSON
+ * body is counted against the `sign-in` limit first, in the bucket `signInWithGoogle` uses, and a refused request never
  * reaches the handler. The handler's own 429 from the shared limiter gets `Retry-After` and the
- * error envelope; a store failure answers 503 and is logged once; any other error is rethrown.
- * Every answer written here carries `x-request-id`, equal to the body's `requestId`.
+ * error envelope; a store failure answers 503; any other error is rethrown. Every answer carries
+ * the request's `x-request-id` (the proxy's, or a fresh one), and the boundary writes one line per
+ * request. The handler's body, status and `Set-Cookie` values pass through unchanged.
  */
 export function authRoute(
   handler: (request: Request) => Promise<Response>,
   options: AuthRouteOptions,
 ): (request: Request) => Promise<Response> {
   return async (request) => {
-    try {
-      if (startsSignIn(request)) {
-        // Wrapped so a count that throws before it returns a promise fails closed like a rejection.
-        const counted = await (async () => options.consumeSignIn(request))().catch(
-          (): Consumed => ({ ok: false, reason: "unavailable" }),
-        );
-        if (!counted.ok) {
-          return counted.reason === "limited"
-            ? rateLimited(String(counted.retryAfter))
-            : unavailable();
+    const requestId = requestIdOf(request.headers);
+    return atBoundary({ requestId, route: "api/auth" }, async () => {
+      try {
+        if (startsSignIn(request)) {
+          // Wrapped so a count that throws before it returns a promise fails closed like a rejection.
+          const counted = await (async () => options.consumeSignIn(request))().catch(
+            (): Consumed => ({ ok: false, reason: "unavailable" }),
+          );
+          if (!counted.ok) {
+            return counted.reason === "limited"
+              ? ended(rateLimited(requestId, String(counted.retryAfter)))
+              : ended(unavailable(requestId), "rate-limit");
+          }
         }
+        const response = await handler(request);
+        if (response.status !== 429) return ended(withRequestId(response, requestId));
+        return ended(rateLimited(requestId, response.headers.get("x-retry-after")));
+      } catch (error) {
+        if (error instanceof RateLimitUnavailable) {
+          return ended(unavailable(requestId), "rate-limit");
+        }
+        throw error;
       }
-      const response = await handler(request);
-      if (response.status !== 429) return response;
-      return rateLimited(response.headers.get("x-retry-after"));
-    } catch (error) {
-      if (error instanceof RateLimitUnavailable) return unavailable();
-      throw error;
-    }
+    });
   };
 }
