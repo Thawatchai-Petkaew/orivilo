@@ -65,6 +65,8 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
 describe("signInWithGoogle", () => {
   it("counts the sign-in limit per network, then starts OAuth", async () => {
     await expect(signInWithGoogle()).rejects.toThrow("redirect:https://accounts.example/oauth");
@@ -74,16 +76,28 @@ describe("signInWithGoogle", () => {
 
   it("sign-in over the limit does not start OAuth", async () => {
     state.result = { ok: false, reason: "limited", retryAfter: 180 };
-    expect(await signInWithGoogle()).toEqual({
+    const result = await signInWithGoogle();
+    expect(result).toStrictEqual({
       error: "rate-limited",
+      code: "RATE_LIMITED",
+      requestId: expect.stringMatching(UUID_V4),
       retryAfter: 180,
+      retryable: true,
     });
+    expect(result?.requestId).toBe(written()[0]?.["requestId"]);
     expect(state.signInSocial).not.toHaveBeenCalled();
   });
 
   it("sign-in fails closed", async () => {
     state.result = { ok: false, reason: "unavailable" };
-    expect(await signInWithGoogle()).toEqual({ error: "failed" });
+    const result = await signInWithGoogle();
+    expect(result).toStrictEqual({
+      error: "failed",
+      code: "SERVICE_UNAVAILABLE",
+      requestId: expect.stringMatching(UUID_V4),
+      retryable: true,
+    });
+    expect(result?.requestId).toBe(written()[0]?.["requestId"]);
     expect(state.signInSocial).not.toHaveBeenCalled();
   });
 
@@ -98,7 +112,12 @@ describe("signInWithGoogle", () => {
     ];
     for (const [index, count] of counts.entries()) {
       state.consume = count;
-      expect(await signInWithGoogle()).toEqual({ error: "failed" });
+      const result = await signInWithGoogle();
+      expect(result).toMatchObject({
+        error: "failed",
+        code: "SERVICE_UNAVAILABLE",
+        retryable: true,
+      });
       expect(state.signInSocial).not.toHaveBeenCalled();
       const lines = written();
       expect(lines).toHaveLength(index + 1);
@@ -138,9 +157,18 @@ describe("signInWithGoogle", () => {
     ]);
   });
 
-  it("an error from signInSocial is one failed line and is rethrown", async () => {
-    state.signInSocial.mockRejectedValue(new Error("oauth down"));
-    await expect(signInWithGoogle()).rejects.toThrow("oauth down");
+  // ORV-144 row 15 (operator half), open question 9: a throw is the INTERNAL_ERROR state, not a rejection.
+  it("an error from signInSocial returns the INTERNAL_ERROR state and logs one failed line", async () => {
+    state.signInSocial.mockRejectedValue(new Error("oauth down for ana@example.com"));
+    const result = await signInWithGoogle();
+    expect(result).toStrictEqual({
+      error: "failed",
+      code: "INTERNAL_ERROR",
+      requestId: expect.stringMatching(UUID_V4),
+      retryable: false,
+    });
+    expect(JSON.stringify(result)).not.toContain("ana@example.com");
+    expect(JSON.stringify(result)).not.toContain("oauth down");
     const lines = written();
     expect(lines).toEqual([
       expect.objectContaining({
@@ -149,17 +177,30 @@ describe("signInWithGoogle", () => {
         outcome: "failed",
         reason: "unexpected",
         errorName: "Error",
+        requestId: result?.requestId,
       }),
     ]);
     expect(JSON.stringify(lines)).not.toContain("oauth down");
+    expect(state.linesAtRedirect).toEqual([]);
   });
 
-  it("a missing URL is one failed line and is rethrown", async () => {
+  it("a missing URL returns the INTERNAL_ERROR state and logs one failed line", async () => {
     state.signInSocial.mockResolvedValue({ url: undefined });
-    await expect(signInWithGoogle()).rejects.toThrow("did not return a URL");
+    const result = await signInWithGoogle();
+    expect(result).toStrictEqual({
+      error: "failed",
+      code: "INTERNAL_ERROR",
+      requestId: expect.stringMatching(UUID_V4),
+      retryable: false,
+    });
     expect(written()).toEqual([
-      expect.objectContaining({ outcome: "failed", reason: "unexpected" }),
+      expect.objectContaining({
+        outcome: "failed",
+        reason: "unexpected",
+        requestId: result?.requestId,
+      }),
     ]);
+    expect(state.linesAtRedirect).toEqual([]);
   });
 
   it("a redirect is logged as ok", async () => {

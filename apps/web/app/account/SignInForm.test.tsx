@@ -43,7 +43,13 @@ describe("SignInForm", () => {
       "มีการลงชื่อเข้าใช้จากเครือข่ายนี้ถี่เกินไป ลองใหม่ได้ในอีก 3 นาที",
     ],
   ] as const)("shows the word and the wait line in %s, button enabled", (_l, m, word, line) => {
-    const html = render(m, { error: "rate-limited", retryAfter: 180 });
+    const html = render(m, {
+      error: "rate-limited",
+      code: "RATE_LIMITED",
+      requestId: "r1",
+      retryAfter: 180,
+      retryable: true,
+    });
     const status = statusOf(html);
     expect(text(status)).toContain(word);
     const paragraph = /<p class="[^"]*">(.*?)<\/p>/.exec(status);
@@ -59,7 +65,12 @@ describe("SignInForm", () => {
     ["en", webMessages.en, "Not done", "You cannot sign in right now. Try again."],
     ["th", webMessages.th, "ทำไม่สำเร็จ", "ตอนนี้ยังลงชื่อเข้าใช้ไม่ได้ ลองใหม่อีกครั้ง"],
   ] as const)("shows the failure word once, then the line, in %s", (l, m, word, line) => {
-    const html = render(m, { error: "failed" });
+    const html = render(m, {
+      error: "failed",
+      code: "SERVICE_UNAVAILABLE",
+      requestId: "r1",
+      retryable: true,
+    });
     const status = statusOf(html);
     expect(text(status)).toContain(word);
     expect(occurrences(text(status), word)).toBe(1);
@@ -87,7 +98,15 @@ describe("SignInForm", () => {
       "Too many sign-in attempts from this network. Try again in 7 minutes.",
     ],
   ] as const)("keeps the wait phrase together in %s", (_l, m, retry, full) => {
-    const status = statusOf(render(m, { error: "rate-limited", retryAfter: 420 }));
+    const status = statusOf(
+      render(m, {
+        error: "rate-limited",
+        code: "RATE_LIMITED",
+        requestId: "r1",
+        retryAfter: 420,
+        retryable: true,
+      }),
+    );
     const paragraph = /<p class="text-body-md text-pretty">(.*?)<\/p>/.exec(status)?.[1] ?? "";
     const spans = [...paragraph.matchAll(/<span class="inline-block">(.*?)<\/span>/g)];
     expect(spans).toHaveLength(1);
