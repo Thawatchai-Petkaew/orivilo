@@ -31,3 +31,5 @@ export type {
   Subject,
   Window,
 } from "./rate-limit.ts";
+export { AI_SPEND_CAP_MICRO_USD, createSpendCap, monthOf } from "./spend-cap.ts";
+export type { Charge, SpendCap, SpendCapDeps, SpendCheck, UsageEntry } from "./spend-cap.ts";
