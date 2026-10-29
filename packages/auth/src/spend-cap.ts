@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { aiUsage, and, eq, gte, lt, sql } from "@orivilo/db";
+import { inWorkspace } from "@orivilo/db/client";
 import type { AiJob } from "@orivilo/intent-engine";
 import { Denied, withWorkspace, type AccessDeps } from "./access.ts";
 import { BANGKOK_OFFSET_SECONDS } from "./rate-limit.ts";
@@ -17,10 +18,18 @@ export interface SpendCapDeps {
   capMicroUsd?: number;
 }
 
-/** Who a call is charged to, as the authorization helper resolved it. */
+/** Module-private: no other module can name it, so no other module can write a `Charge`. */
+declare const issued: unique symbol;
+
+/**
+ * Who a call is charged to, as `check`'s `withWorkspace` resolved it. Only `check` makes one: the
+ * brand keeps an object literal out at compile time, and `record` refuses at run time a charge that
+ * `check` did not issue or that was already used.
+ */
 export interface Charge {
-  workspaceId: string;
-  userId: string;
+  readonly workspaceId: string;
+  readonly userId: string;
+  readonly [issued]: true;
 }
 
 export type SpendCheck =
@@ -39,8 +48,12 @@ export interface UsageEntry {
 export interface SpendCap {
   /** Throws `Denied` without an active workspace or for a non-member; never throws otherwise. */
   check(headers: Headers, workspaceId: string | null | undefined): Promise<SpendCheck>;
-  /** One row per entry, in one transaction; nothing to do for no entries. Throws on any failure. */
-  record(headers: Headers, charge: Charge, entries: readonly UsageEntry[]): Promise<void>;
+  /**
+   * One row per entry, in one transaction scoped to `charge.workspaceId`; reads no session. Uses up
+   * the charge; nothing to write for no entries. Throws for a charge `check` did not issue or one
+   * already used, and on any other failure.
+   */
+  record(charge: Charge, entries: readonly UsageEntry[]): Promise<void>;
 }
 
 /** The Bangkok calendar month holding `nowMs`: start inclusive, end exclusive (spend-cap-2). */
@@ -56,14 +69,18 @@ export function monthOf(nowMs: number): { start: Date; end: Date } {
 }
 
 /**
- * The spend cap per workspace (ORV-121, ADR 0015 decision 4). It reads and writes `ai_usage` only
- * through `withWorkspace`, so the membership check and row security by workspace apply to both.
+ * The spend cap per workspace (ORV-121, ADR 0015 decision 4). `check` reads `ai_usage` through
+ * `withWorkspace`, so the membership check and row security by workspace apply. `record` writes
+ * inside `inWorkspace` with a charge only `check` makes, and reads no session, so a person who
+ * signs out or leaves during the call cannot keep a paid request out of the sum (SEC-1).
  * `check` fails closed: any error or a read past `timeoutMs` is `unavailable`, never a pass.
  */
 export function createSpendCap(deps: SpendCapDeps): SpendCap {
   const now = deps.now ?? Date.now;
   const timeoutMs = deps.timeoutMs ?? 2_000;
   const capMicroUsd = deps.capMicroUsd ?? AI_SPEND_CAP_MICRO_USD;
+  /** The charges `check` issued and `record` has not used; nothing else adds to it. */
+  const issuedCharges = new WeakSet<Charge>();
 
   /**
    * Runs `work` against a timer. `work` gets `abortIfTimedOut`, which it calls between statements
@@ -126,7 +143,13 @@ export function createSpendCap(deps: SpendCapDeps): SpendCap {
               const total = Number(row?.total);
               if (!Number.isSafeInteger(total)) return unavailable;
               if (total >= capMicroUsd) return { ok: false, reason: "capped" } as const;
-              return { ok: true, charge: { workspaceId: a.workspaceId, userId: a.userId } };
+              // The one cast in the package: the brand has no run-time value, the set is the proof.
+              const charge = Object.freeze({
+                workspaceId: a.workspaceId,
+                userId: a.userId,
+              }) as Charge;
+              issuedCharges.add(charge);
+              return { ok: true, charge };
             });
           } catch (error) {
             if (error instanceof Denied) throw error;
@@ -137,7 +160,9 @@ export function createSpendCap(deps: SpendCapDeps): SpendCap {
       );
     },
 
-    async record(headers, charge, entries) {
+    async record(charge, entries) {
+      // The charge first: one not issued by this helper, or already used, is refused before any query.
+      if (!issuedCharges.delete(charge)) throw new Error("charge was not issued by check");
       if (entries.length === 0) return;
       for (const { costMicroUsd } of entries) {
         if (costMicroUsd !== null && !(Number.isSafeInteger(costMicroUsd) && costMicroUsd >= 0)) {
@@ -146,16 +171,16 @@ export function createSpendCap(deps: SpendCapDeps): SpendCap {
       }
       await bounded(
         (abortIfTimedOut) =>
-          withWorkspace(deps.access, headers, charge.workspaceId, "member", async (a) => {
+          inWorkspace(deps.access.db, charge.workspaceId, async (tx) => {
             abortIfTimedOut();
-            await setTimeouts(a.tx);
+            await setTimeouts(tx);
             abortIfTimedOut();
             const createdAt = new Date(now());
-            await a.tx.insert(aiUsage).values(
+            await tx.insert(aiUsage).values(
               entries.map((e) => ({
                 id: randomUUID(),
-                workspaceId: a.workspaceId,
-                userId: a.userId,
+                workspaceId: charge.workspaceId,
+                userId: charge.userId,
                 job: e.job,
                 model: e.model,
                 costMicroUsd: e.costMicroUsd,

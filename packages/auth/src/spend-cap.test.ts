@@ -1,7 +1,7 @@
 import { type Db } from "@orivilo/db/client";
 import { describe, expect, it, vi } from "vitest";
 import { Denied } from "./access.ts";
-import { AI_SPEND_CAP_MICRO_USD, createSpendCap, monthOf } from "./spend-cap.ts";
+import { AI_SPEND_CAP_MICRO_USD, type Charge, createSpendCap, monthOf } from "./spend-cap.ts";
 
 /** A database that fails the test if anything touches it. */
 const untouchable = new Proxy({} as Db, {
@@ -43,7 +43,7 @@ describe("the cap", () => {
 
 // The paths that never reach a workspace query, so no database is needed.
 describe("createSpendCap before any query", () => {
-  const charge = { workspaceId: "ws-a", userId: "u-1" };
+  const forged = { workspaceId: "ws-a", userId: "u-1" } as unknown as Charge;
   const entry = { job: "interpret", model: "m", costMicroUsd: 1 } as const;
 
   it("check throws Denied without a session", async () => {
@@ -85,30 +85,17 @@ describe("createSpendCap before any query", () => {
     expect(await cap.check(new Headers(), "ws-a")).toEqual({ ok: false, reason: "unavailable" });
   });
 
-  it("record rejects when the session read hangs past timeoutMs", async () => {
-    const cap = createSpendCap({
-      access: { db: untouchable, getSession: () => new Promise(() => {}) },
-      timeoutMs: 50,
-    });
-    await expect(cap.record(new Headers(), charge, [entry])).rejects.toThrow();
-  });
-
-  it("record with no entries does nothing and reads no session", async () => {
+  // Only `check` makes a charge (tech.md section 4): the cast below is test code forging one.
+  it("record refuses a charge check did not issue and touches no database", async () => {
     const getSession = vi.fn();
     const cap = createSpendCap({ access: { db: untouchable, getSession } });
-    await expect(cap.record(new Headers(), charge, [])).resolves.toBeUndefined();
+    await expect(cap.record(forged, [entry])).rejects.toThrow("not issued");
+    await expect(cap.record(forged, [])).rejects.toThrow("not issued");
     expect(getSession).not.toHaveBeenCalled();
   });
 
-  it.each([-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, Number.MAX_SAFE_INTEGER + 1])(
-    "record rejects the cost %s before it touches the database",
-    async (costMicroUsd) => {
-      const getSession = vi.fn();
-      const cap = createSpendCap({ access: { db: untouchable, getSession } });
-      await expect(
-        cap.record(new Headers(), charge, [entry, { ...entry, costMicroUsd }]),
-      ).rejects.toThrow();
-      expect(getSession).not.toHaveBeenCalled();
-    },
-  );
+  it("record refuses a copy of a real-looking charge shape too", async () => {
+    const cap = createSpendCap({ access: { db: untouchable, getSession: vi.fn() } });
+    await expect(cap.record({ ...forged }, [entry])).rejects.toThrow("not issued");
+  });
 });

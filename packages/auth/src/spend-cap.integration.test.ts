@@ -1,7 +1,7 @@
 import { aiUsage, eq, member, organization, sql, user } from "@orivilo/db";
 import { createTestDatabase, HAS_TEST_DATABASE, type TestDatabase } from "@orivilo/db/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createSpendCap, monthOf } from "./spend-cap.ts";
+import { type Charge, createSpendCap, monthOf, type SpendCap } from "./spend-cap.ts";
 
 // ORV-121 spend-cap-1 to spend-cap-7 for the helper, against a throwaway database as orivilo_app.
 const NOW = Date.parse("2026-10-15T05:00:00Z");
@@ -23,6 +23,15 @@ describe.runIf(HAS_TEST_DATABASE)("the spend cap helper", () => {
       timeoutMs,
     });
   const headers = new Headers();
+  // A cap that never caps, so its `check` always issues a charge; `record` needs the same instance.
+  const openCap = (timeoutMs = 2_000) => capWith(Number.MAX_SAFE_INTEGER - 1, timeoutMs);
+  // A charge only `check` makes: `check` as u-1 in `workspaceId`.
+  const chargeFor = async (cap: SpendCap, workspaceId: string) => {
+    sessionUser = "u-1";
+    const checked = await cap.check(headers, workspaceId);
+    if (!checked.ok) throw new Error(`no charge: ${checked.reason}`);
+    return checked.charge;
+  };
 
   beforeAll(async () => {
     t = await createTestDatabase();
@@ -32,14 +41,25 @@ describe.runIf(HAS_TEST_DATABASE)("the spend cap helper", () => {
       { id: "u-2", name: "Two", email: "two@example.com" },
     ]);
     await t.admin.insert(organization).values(
-      ["ws-a", "ws-b", "ws-sum", "ws-big", "ws-rec", "ws-lock", "ws-empty", "ws-dead"].map(
-        (id) => ({
-          id,
-          name: id,
-          slug: id,
-          createdAt: at,
-        }),
-      ),
+      [
+        "ws-a",
+        "ws-b",
+        "ws-sum",
+        "ws-big",
+        "ws-rec",
+        "ws-lock",
+        "ws-empty",
+        "ws-dead",
+        "ws-gone-session",
+        "ws-gone-member",
+        "ws-twice",
+        "ws-deleted",
+      ].map((id) => ({
+        id,
+        name: id,
+        slug: id,
+        createdAt: at,
+      })),
     );
     await t.admin.insert(member).values([
       { id: "m-a", organizationId: "ws-a", userId: "u-1", role: "member", createdAt: at },
@@ -51,6 +71,28 @@ describe.runIf(HAS_TEST_DATABASE)("the spend cap helper", () => {
       { id: "m-lock", organizationId: "ws-lock", userId: "u-1", role: "member", createdAt: at },
       { id: "m-empty", organizationId: "ws-empty", userId: "u-1", role: "member", createdAt: at },
       { id: "m-dead", organizationId: "ws-dead", userId: "u-1", role: "member", createdAt: at },
+      {
+        id: "m-gone-session",
+        organizationId: "ws-gone-session",
+        userId: "u-1",
+        role: "member",
+        createdAt: at,
+      },
+      {
+        id: "m-gone-member",
+        organizationId: "ws-gone-member",
+        userId: "u-1",
+        role: "member",
+        createdAt: at,
+      },
+      {
+        id: "m-deleted",
+        organizationId: "ws-deleted",
+        userId: "u-1",
+        role: "member",
+        createdAt: at,
+      },
+      { id: "m-twice", organizationId: "ws-twice", userId: "u-1", role: "member", createdAt: at },
     ]);
     const row = (id: string, workspaceId: string, cost: number | null, createdAt: Date) => ({
       id,
@@ -109,6 +151,10 @@ describe.runIf(HAS_TEST_DATABASE)("the spend cap helper", () => {
         reason: "capped",
       });
       expect(await capWith(10_000_000).check(headers, "ws-sum")).toMatchObject({ ok: true });
+    });
+
+    it("issues a frozen charge", async () => {
+      expect(Object.isFrozen(await chargeFor(openCap(), "ws-empty"))).toBe(true);
     });
 
     it("a workspace with no records is ok and charges the session's person", async () => {
@@ -188,16 +234,15 @@ describe.runIf(HAS_TEST_DATABASE)("the spend cap helper", () => {
   });
 
   describe("record", () => {
-    it("writes Access's ids, the injected time, the job, the model and the amounts", async () => {
-      sessionUser = "u-1";
-      const cap = capWith(5_000_000);
-      await cap.record(headers, { workspaceId: "ws-rec", userId: "ignored-by-the-helper" }, [
+    it("writes the charge's ids, the injected time, the job, the model and the amounts", async () => {
+      const cap = openCap();
+      const charge = await chargeFor(cap, "ws-rec");
+      await cap.record(charge, [
         { job: "interpret", model: "anthropic/claude-sonnet-5.5", costMicroUsd: 14_000 },
         { job: "chat", model: "anthropic/claude-sonnet-5.5", costMicroUsd: null },
       ]);
       const rows = (await rowsOf("ws-rec")).sort((x, y) => x.job.localeCompare(y.job));
       expect(rows).toHaveLength(2);
-      expect(rows.map((r) => r.id)).toEqual([expect.any(String), expect.any(String)]);
       expect(new Set(rows.map((r) => r.id)).size).toBe(2);
       expect(rows[0]).toMatchObject({
         workspaceId: "ws-rec",
@@ -229,43 +274,117 @@ describe.runIf(HAS_TEST_DATABASE)("the spend cap helper", () => {
     });
 
     it("stores a reported cost of 0 as 0, not as not reported", async () => {
-      sessionUser = "u-1";
-      await capWith(1).record(headers, { workspaceId: "ws-empty", userId: "u-1" }, [
-        { job: "interpret", model: "m-zero", costMicroUsd: 0 },
-      ]);
+      const cap = openCap();
+      const charge = await chargeFor(cap, "ws-empty");
+      await cap.record(charge, [{ job: "interpret", model: "m-zero", costMicroUsd: 0 }]);
       const zero = (await rowsOf("ws-empty")).find((r) => r.model === "m-zero");
       expect(zero?.costMicroUsd).toBe(0);
     });
 
-    it("writes nothing when one entry is invalid", async () => {
-      sessionUser = "u-1";
-      const count = (await rowsOf("ws-a")).length;
-      await expect(
-        capWith(1).record(headers, { workspaceId: "ws-a", userId: "u-1" }, [
-          { job: "interpret", model: "m", costMicroUsd: 5 },
-          { job: "interpret", model: "m", costMicroUsd: -1 },
-        ]),
-      ).rejects.toThrow();
-      expect(await rowsOf("ws-a")).toHaveLength(count);
+    it("writes nothing for no entries", async () => {
+      const before = (await rowsOf("ws-a")).length;
+      const cap = openCap();
+      await expect(cap.record(await chargeFor(cap, "ws-a"), [])).resolves.toBeUndefined();
+      expect(await rowsOf("ws-a")).toHaveLength(before);
     });
 
+    it.each([-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, Number.MAX_SAFE_INTEGER + 1])(
+      "writes nothing when one entry has the cost %s",
+      async (costMicroUsd) => {
+        const count = (await rowsOf("ws-a")).length;
+        const cap = openCap();
+        await expect(
+          cap.record(await chargeFor(cap, "ws-a"), [
+            { job: "interpret", model: "m", costMicroUsd: 5 },
+            { job: "interpret", model: "m", costMicroUsd },
+          ]),
+        ).rejects.toThrow();
+        expect(await rowsOf("ws-a")).toHaveLength(count);
+      },
+    );
+
     it("is charged to the workspace the check passed, not the session's other one", async () => {
-      sessionUser = "u-1";
-      await capWith(1).record(headers, { workspaceId: "ws-b", userId: "u-1" }, [
-        { job: "interpret", model: "m-for-b", costMicroUsd: 1 },
-      ]);
+      const cap = openCap();
+      const charge = await chargeFor(cap, "ws-b");
+      await cap.record(charge, [{ job: "interpret", model: "m-for-b", costMicroUsd: 1 }]);
       expect((await rowsOf("ws-b")).some((r) => r.model === "m-for-b")).toBe(true);
       expect((await rowsOf("ws-a")).some((r) => r.model === "m-for-b")).toBe(false);
     });
 
-    it("rejects with Denied for a workspace the person is no longer a member of", async () => {
-      sessionUser = "u-2";
+    // SEC-1: the record reads no session, so nothing that happens to the caller after `check`
+    // keeps a paid request out of the sum.
+    it("record writes the charge after the session is deleted", async () => {
+      const cap = openCap();
+      const charge = await chargeFor(cap, "ws-gone-session");
+      sessionUser = null;
+      await cap.record(charge, [{ job: "interpret", model: "m-no-session", costMicroUsd: 7 }]);
+      expect(await rowsOf("ws-gone-session")).toEqual([
+        expect.objectContaining({
+          workspaceId: "ws-gone-session",
+          userId: "u-1",
+          model: "m-no-session",
+          costMicroUsd: 7,
+        }),
+      ]);
+    });
+
+    it("record writes the charge after the membership is removed", async () => {
+      const cap = openCap();
+      const charge = await chargeFor(cap, "ws-gone-member");
+      await t.admin.delete(member).where(eq(member.id, "m-gone-member"));
+      sessionUser = "u-1";
+      // The person is no longer a member: a check now is refused, the earlier charge still records.
+      await expect(cap.check(headers, "ws-gone-member")).rejects.toMatchObject({
+        name: "Denied",
+        reason: "not-a-member",
+      });
+      await cap.record(charge, [{ job: "interpret", model: "m-no-member", costMicroUsd: 8 }]);
+      expect(await rowsOf("ws-gone-member")).toEqual([
+        expect.objectContaining({
+          workspaceId: "ws-gone-member",
+          userId: "u-1",
+          model: "m-no-member",
+          costMicroUsd: 8,
+        }),
+      ]);
+    });
+
+    it("record refuses a charge used twice and writes one row", async () => {
+      const cap = openCap();
+      const charge = await chargeFor(cap, "ws-twice");
+      await cap.record(charge, [{ job: "interpret", model: "m-twice", costMicroUsd: 3 }]);
       await expect(
-        capWith(1).record(headers, { workspaceId: "ws-a", userId: "u-2" }, [
-          { job: "interpret", model: "m-denied", costMicroUsd: 1 },
-        ]),
-      ).rejects.toMatchObject({ name: "Denied", reason: "not-a-member" });
-      expect((await rowsOf("ws-a")).some((r) => r.model === "m-denied")).toBe(false);
+        cap.record(charge, [{ job: "interpret", model: "m-twice", costMicroUsd: 3 }]),
+      ).rejects.toThrow("not issued");
+      expect(await rowsOf("ws-twice")).toHaveLength(1);
+    });
+
+    it("record refuses a charge another spend cap issued", async () => {
+      const charge = await chargeFor(openCap(), "ws-twice");
+      const other = openCap();
+      await expect(
+        other.record(charge, [{ job: "interpret", model: "m-other", costMicroUsd: 3 }]),
+      ).rejects.toThrow("not issued");
+      expect((await rowsOf("ws-twice")).some((r) => r.model === "m-other")).toBe(false);
+    });
+
+    it("record refuses a forged charge and writes nothing", async () => {
+      const before = (await rowsOf("ws-a")).length;
+      const forged = { workspaceId: "ws-a", userId: "u-1" } as unknown as Charge;
+      await expect(
+        openCap().record(forged, [{ job: "interpret", model: "m-forged", costMicroUsd: 1 }]),
+      ).rejects.toThrow("not issued");
+      expect(await rowsOf("ws-a")).toHaveLength(before);
+    });
+
+    it("rejects when the workspace was deleted after the check and writes nothing", async () => {
+      const cap = openCap();
+      const charge = await chargeFor(cap, "ws-deleted");
+      await t.admin.delete(organization).where(eq(organization.id, "ws-deleted"));
+      await expect(
+        cap.record(charge, [{ job: "interpret", model: "m-dead", costMicroUsd: 1 }]),
+      ).rejects.toThrow();
+      expect(await rowsOf("ws-deleted")).toHaveLength(0);
     });
   });
 
@@ -320,14 +439,13 @@ describe.runIf(HAS_TEST_DATABASE)("the spend cap helper", () => {
     it(
       "record rejects within timeoutMs, leaves no waiting query and writes nothing",
       async () => {
-        sessionUser = "u-1";
+        const cap = openCap(300);
+        const charge = await chargeFor(cap, "ws-lock");
         const unlock = await lockTable();
         try {
           const started = performance.now();
           await expect(
-            capWith(5_000_000, 300).record(headers, { workspaceId: "ws-lock", userId: "u-1" }, [
-              { job: "interpret", model: "m", costMicroUsd: 1 },
-            ]),
+            cap.record(charge, [{ job: "interpret", model: "m", costMicroUsd: 1 }]),
           ).rejects.toThrow();
           expect(performance.now() - started).toBeLessThan(3_000);
           await expect.poll(waiters, { timeout: 5_000 }).toBe(0);
