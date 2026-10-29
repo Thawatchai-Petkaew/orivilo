@@ -1,6 +1,6 @@
 ---
 issue: ORV-141 (https://tpetkaew.atlassian.net/browse/ORV-141)
-spec: docs/specs/ORV-141/spec.md v1.0
+spec: docs/specs/ORV-141/spec.md v1.1
 task: ORV-141-tech-1
 author: architect
 date: 2026-10-29
@@ -29,7 +29,7 @@ Sources read for this design (Next.js 16.4.1 as installed in `apps/web/node_modu
 | D3 | Steps get the request's id and route from one `AsyncLocalStorage` that the boundary opens | §3 | rows 3 and 7 tests (a step line carries the boundary's `requestId`) |
 | D4 | Each entry states its ending per branch (`Ended<T>`); the boundary helper writes the one line and rethrows a throw | §5 | rows 3 to 13 tests |
 | D5 | Next's `redirect` is called after the boundary returns, so no Next internal error type is needed to read it as `ok` | §5 | row 10 test |
-| D6 | Two slices instead of the spec's suggested split: slice 1 the id, the logger and `authRoute`; slice 2 the steps, the three action files and the lint rule | §11 | each PR's diff size in its G3 packet |
+| D6 | Two slices, the split the spec's "Impact list" (Size) adopts: slice 1 the id, the logger and `authRoute`; slice 2 the steps, the three action files and the lint rule | §11 | each PR's diff size in its G3 packet |
 
 Open questions 2 to 9 keep their defaults: (a) each.
 
@@ -143,7 +143,7 @@ The line is built key by key from `orv141-allow-list` in this order: `level`, `r
 
 - `route`, `step`, `reason`: outside its list, `"unknown"` (spec). `errorName`: not matching `^[A-Z][A-Za-z]{0,39}$`, `"unknown"` (spec).
 - `durationMs`: `Math.max(0, Math.round(x))` for a finite number, else `0`.
-- `outcome`: with `step`, outside that step's list; without `step`, outside `BOUNDARY_OUTCOMES`: `"unknown"`. `requestId` not a UUID v4: `"unknown"`. `level` outside the three: `"error"`, so a bad level is never quieter. `limit` outside `LimitName` and `auth-http`: `"unknown"`. `status`: kept only when it is an integer from 100 to 599 and `route` is `api/auth`. These five are this design's, the spec names only the first four keys; finding F2.
+- `outcome`: with `step`, outside that step's list; without `step`, outside `BOUNDARY_OUTCOMES`: `"unknown"`. `requestId` not a UUID v4: `"unknown"`. `level` outside the three: `"error"`, so a bad level is never quieter. `limit` outside `LimitName` and `auth-http`: `"unknown"`. `status`: kept only when it is an integer from 100 to 599 and `route` is `api/auth`. The spec's `orv141-allow-list` names these fallbacks and points here for the values (finding F2).
 - `info` goes to `console.log` (standard output); `warn` to `console.warn` and `error` to `console.error` (standard error).
 
 ### The request context
@@ -347,7 +347,7 @@ Both PRs touch `apps/web/proxy.ts` or `packages/auth/**`, so the `security` role
 
 ## 11. Size and slices
 
-Estimated changed lines with tests: B1 about 300, B2 about 70, B3 about 150 (slice 1 about 520); B4 about 60, B5 about 190, B6 about 100, B7 about 70, B8 about 15 (slice 2 about 435). Over 400 in total, so the story splits, as the spec's "Impact list" says. The split differs from the spec's suggestion (slice 1 the id, the logger and the directions actions; slice 2 the account and locale actions and `authRoute`) for two reasons:
+Estimated changed lines with tests: B1 about 300, B2 about 70, B3 about 150 (slice 1 about 520); B4 about 60, B5 about 190, B6 about 100, B7 about 70, B8 about 15 (slice 2 about 435). Over 400 in total, so the story splits, as the spec's "Impact list" says. The spec's "Impact list" (Size) takes this split, for two reasons:
 
 1. **`authRoute` must ship with the proxy.** Once the proxy sets `x-request-id` on `/api/auth` answers, the local server keeps the proxy's header and does not append the route's (send-response.js lines 49 to 50). `authRoute`'s own random id would then sit in the 429 and 503 bodies while a different id sits in the header. B3 makes them the same, so it goes in the proxy's PR.
 2. **The lint rule cannot pass before the last `console` call moves.** C5 (account) is in slice 2, so row 16 is in slice 2.
@@ -400,9 +400,9 @@ No. No new package, dependency, runtime or service. ADR 0015 decision 6 already 
 ## Findings for the spec
 
 <!-- prettier-ignore -->
-| # | Where in the spec | Finding | This design assumes |
-| --- | --- | --- | --- |
-| F1 | `orv141-allow-list`, `limit` | Better Auth's counts go through the same `onResult` with the limit name `auth-http` (`packages/auth/src/rate-limit.ts`, `betterAuthStorage`), which is not a `LimitName`. The spec does not say what a `limit` outside `LimitName` becomes | `limit` is closed to `LimitName` plus `auth-http`; anything else is `"unknown"`. The spec adds `auth-http` to the allow-list |
-| F2 | `orv141-allow-list` | It names the fallback only for `route`, `step`, `reason` and `errorName` | §3 adds fallbacks for `outcome`, `requestId`, `level`, `limit`, `status` and `durationMs`; row 14's test covers each |
-| F3 | Open question 1, option (a) | "only skips the CSP work" cannot be built for `next-router-prefetch`, which Next hides from the proxy | The proxy does the CSP work for prefetches too (§2) |
-| F4 | "Impact list", Size | The suggested split puts `authRoute` after the proxy and row 16 before C5 moves | The split in §11 |
+| # | Where in the spec | Finding | This design assumes | Status |
+| --- | --- | --- | --- | --- |
+| F1 | `orv141-allow-list`, `limit` | Better Auth's counts go through the same `onResult` with the limit name `auth-http` (`packages/auth/src/rate-limit.ts`, `betterAuthStorage`), which is not a `LimitName`. The spec does not say what a `limit` outside `LimitName` becomes | `limit` is closed to `LimitName` plus `auth-http`; anything else is `"unknown"`. The spec adds `auth-http` to the allow-list | Resolved in spec v1.1 |
+| F2 | `orv141-allow-list` | It names the fallback only for `route`, `step`, `reason` and `errorName` | §3 adds fallbacks for `outcome`, `requestId`, `level`, `limit`, `status` and `durationMs`; row 14's test covers each | Resolved in spec v1.1 |
+| F3 | Open question 1, option (a) | "only skips the CSP work" cannot be built for `next-router-prefetch`, which Next hides from the proxy | The proxy does the CSP work for prefetches too (§2) | Resolved in spec v1.1 (open question 1 decided (a)) |
+| F4 | "Impact list", Size | The suggested split puts `authRoute` after the proxy and row 16 before C5 moves | The split in §11 | Resolved in spec v1.1 |
