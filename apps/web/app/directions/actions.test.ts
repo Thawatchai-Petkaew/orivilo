@@ -1,4 +1,11 @@
-import { Denied, type Limit, LIMITS, type RateLimiter, type Subject } from "@orivilo/auth";
+import {
+  Denied,
+  DirectionError,
+  type Limit,
+  LIMITS,
+  type RateLimiter,
+  type Subject,
+} from "@orivilo/auth";
 import { captureLines, expectLineShape } from "@orivilo/auth/log-testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -105,24 +112,38 @@ afterEach(() => {
   fetchSpy.mockReset();
 });
 
+const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
+/** ORV-144 row 10: the ORV-112 outcome plus the request's id, a UUID v4 made by the server. */
 const refused = (error: string, retryAfter: number) => ({
   ok: false,
   error,
   code: "RATE_LIMITED",
+  requestId: expect.stringMatching(UUID_V4),
   retryAfter,
   retryable: true,
 });
 
+/** The id the call's one boundary line holds (the lines that carry no `step`). */
+const boundaryId = () => {
+  const [line] = written().filter((l) => !("step" in l));
+  return line?.["requestId"];
+};
+
 describe("AI reading limits", () => {
   it("AI reading over the hour limit makes no model call", async () => {
     preload(LIMITS["ai-read"], { user: "P" }, 3600, 10);
-    expect(await readBriefWithAi("a calm clinic")).toEqual(refused("ai-rate-limited", 3600));
+    const result = await readBriefWithAi("a calm clinic");
+    expect(result).toEqual(refused("ai-rate-limited", 3600));
+    expect(result).toHaveProperty("requestId", boundaryId());
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it("AI reading over the day limit", async () => {
     preload(LIMITS["ai-read"], { user: "P" }, 86_400, 50);
-    expect(await readBriefWithAi("a calm clinic")).toEqual(refused("ai-rate-limited", 86_400));
+    const result = await readBriefWithAi("a calm clinic");
+    expect(result).toEqual(refused("ai-rate-limited", 86_400));
+    expect(result).toHaveProperty("requestId", boundaryId());
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
@@ -132,7 +153,7 @@ describe("AI reading limits", () => {
     const result = await readBriefWithAi("a calm clinic");
     // Q was let through to the model (the fake model answers 500, so the reading fails).
     expect(fetchSpy).toHaveBeenCalledTimes(1);
-    expect(result).toEqual({ ok: false, error: "ai-failed" });
+    expect(result).toMatchObject({ ok: false, error: "ai-failed" });
     expect(counted(LIMITS["ai-read"], { user: "Q" }, 3600)).toBe(1);
     expect(counted(LIMITS["ai-read"], { user: "P" }, 3600)).toBe(10);
     expect(state.consumed).toEqual(["ai-read:u:Q"]);
@@ -141,7 +162,9 @@ describe("AI reading limits", () => {
   it("a signed-out reading is limited per network and says rate-limited", async () => {
     state.session = null;
     preload(LIMITS["signed-out"], { ip: "ip-1" }, 600, 30);
-    expect(await readBriefWithAi("a calm clinic")).toEqual(refused("rate-limited", 600));
+    const result = await readBriefWithAi("a calm clinic");
+    expect(result).toEqual(refused("rate-limited", 600));
+    expect(result).toHaveProperty("requestId", boundaryId());
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 });
@@ -149,7 +172,9 @@ describe("AI reading limits", () => {
 describe("write and import limits", () => {
   it("a write over the limit changes nothing", async () => {
     preload(LIMITS.write, { user: "P" }, 600, 60);
-    expect(await saveDirection({ name: "x" })).toEqual(refused("rate-limited", 600));
+    const saved = await saveDirection({ name: "x" });
+    expect(saved).toEqual(refused("rate-limited", 600));
+    expect(saved).toHaveProperty("requestId", boundaryId());
     expect(await approveDirection("d1")).toEqual(refused("rate-limited", 600));
     expect(state.service.saveDraft).not.toHaveBeenCalled();
     expect(state.service.approve).not.toHaveBeenCalled();
@@ -163,7 +188,9 @@ describe("write and import limits", () => {
 
   it("an import over the limit creates nothing", async () => {
     preload(LIMITS.import, { user: "P" }, 3600, 10);
-    expect(await importDirection({ any: "file" })).toEqual(refused("rate-limited", 3600));
+    const result = await importDirection({ any: "file" });
+    expect(result).toEqual(refused("rate-limited", 3600));
+    expect(result).toHaveProperty("requestId", boundaryId());
     expect(state.service.importFile).not.toHaveBeenCalled();
   });
 
@@ -185,9 +212,11 @@ describe("signed-out calls", () => {
   it("signed-out calls are limited per trusted IP", async () => {
     state.session = null;
     preload(LIMITS["signed-out"], { ip: "ip-1" }, 600, 30);
-    expect(await saveDirection({ name: "x" })).toEqual(refused("rate-limited", 600));
+    const limited = await saveDirection({ name: "x" });
+    expect(limited).toEqual(refused("rate-limited", 600));
+    expect(limited).toHaveProperty("requestId", boundaryId());
     state.ip = "ip-2";
-    expect(await saveDirection({ name: "x" })).toEqual({ ok: false, error: "signed-out" });
+    expect(await saveDirection({ name: "x" })).toMatchObject({ ok: false, error: "signed-out" });
     expect(state.service.saveDraft).not.toHaveBeenCalled();
   });
 });
@@ -198,14 +227,27 @@ describe("the limiter fails closed", () => {
   });
 
   it("keeps the rules' reading and makes no model call", async () => {
-    expect(await readBriefWithAi("a calm clinic")).toEqual({ ok: false, error: "ai-failed" });
+    expect(await readBriefWithAi("a calm clinic")).toMatchObject({
+      ok: false,
+      error: "ai-failed",
+      code: "SERVICE_UNAVAILABLE",
+      retryable: true,
+    });
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it("refuses a save, an approval and an import as failed", async () => {
-    expect(await saveDirection({ name: "x" })).toEqual({ ok: false, error: "failed" });
-    expect(await approveDirection("d1")).toEqual({ ok: false, error: "failed" });
-    expect(await importDirection({})).toEqual({ ok: false, error: "failed" });
+    state.requestId = "3f2b8c1e-5d4a-4b7e-9c2d-1a6f0e8b7d35";
+    const failed = {
+      ok: false,
+      error: "failed",
+      code: "SERVICE_UNAVAILABLE",
+      requestId: "3f2b8c1e-5d4a-4b7e-9c2d-1a6f0e8b7d35",
+      retryable: true,
+    };
+    expect(await saveDirection({ name: "x" })).toStrictEqual(failed);
+    expect(await approveDirection("d1")).toStrictEqual(failed);
+    expect(await importDirection({})).toStrictEqual(failed);
     expect(state.service.saveDraft).not.toHaveBeenCalled();
     expect(state.service.approve).not.toHaveBeenCalled();
     expect(state.service.importFile).not.toHaveBeenCalled();
@@ -214,7 +256,6 @@ describe("the limiter fails closed", () => {
 
 // ORV-142 rows 2 (directions boundary), 3 to 8 and 15: every call is one boundary.
 describe("boundary lines", () => {
-  const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
   const ID = "3f2b8c1e-5d4a-4b7e-9c2d-1a6f0e8b7d35";
   const boundaryOf = () => written().filter((line) => !("step" in line));
   const stepsOf = () => written().filter((line) => "step" in line);
@@ -257,7 +298,7 @@ describe("boundary lines", () => {
 
   it("a refusal is logged as refused with its reason", async () => {
     state.service.saveDraft.mockRejectedValue(new Denied(403, "not-a-member"));
-    expect(await saveDirection({ name: "x" })).toEqual({ ok: false, error: "forbidden" });
+    expect(await saveDirection({ name: "x" })).toMatchObject({ ok: false, error: "forbidden" });
     const lines = boundaryOf();
     expect(lines).toHaveLength(1);
     expect(lines[0]).toMatchObject({ level: "info", outcome: "refused", reason: "forbidden" });
@@ -270,7 +311,7 @@ describe("boundary lines", () => {
         { status: 401 },
       ),
     );
-    expect(await readBriefWithAi("call ana@example.com about a calm clinic")).toEqual({
+    expect(await readBriefWithAi("call ana@example.com about a calm clinic")).toMatchObject({
       ok: false,
       error: "ai-failed",
     });
@@ -291,7 +332,7 @@ describe("boundary lines", () => {
 
   it("an unexpected error is logged once by name only", async () => {
     state.service.saveDraft.mockRejectedValue(new Error("ana@example.com tok_seeded"));
-    expect(await saveDirection({ name: "x" })).toEqual({ ok: false, error: "failed" });
+    expect(await saveDirection({ name: "x" })).toMatchObject({ ok: false, error: "failed" });
     const errors = capture.lines.filter((line) => line.stream === "error");
     expect(errors).toHaveLength(1);
     expect(boundaryOf()[0]).toMatchObject({
@@ -308,7 +349,7 @@ describe("boundary lines", () => {
   it("a store failure is one error line", async () => {
     state.mode = "unavailable";
     state.requestId = ID;
-    expect(await saveDirection({ name: "x" })).toEqual({ ok: false, error: "failed" });
+    expect(await saveDirection({ name: "x" })).toMatchObject({ ok: false, error: "failed" });
     const steps = stepsOf();
     expect(steps).toHaveLength(1);
     expect(steps[0]).toMatchObject({
@@ -341,5 +382,172 @@ describe("boundary lines", () => {
       reason: "ai-rate-limited",
     });
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+});
+
+// ORV-144 rows 6, 7, 9 and 11: every failure outcome carries code, requestId and retryable.
+describe("failure outcomes carry the error fields", () => {
+  const ID = "3f2b8c1e-5d4a-4b7e-9c2d-1a6f0e8b7d35";
+
+  it("a failure outcome carries code, requestId and retryable", async () => {
+    state.requestId = ID;
+    state.service.saveDraft.mockRejectedValue(new Denied(403, "not-a-member"));
+    const result = await saveDirection({ name: "x" });
+    expect(result).toStrictEqual({
+      ok: false,
+      error: "forbidden",
+      code: "FORBIDDEN",
+      requestId: ID,
+      retryable: false,
+    });
+    const [line] = written().filter((l) => !("step" in l));
+    expect(line?.["requestId"]).toBe(ID);
+    expect(result).toHaveProperty("requestId", line?.["requestId"]);
+  });
+
+  /** The 17 cases of the spec's table: expected code and retryable are written out here. */
+  const cases: {
+    name: string;
+    expected: { error: string; code: string; retryable: boolean };
+    arrange: () => void;
+    call: () => Promise<unknown>;
+  }[] = [
+    {
+      name: "no session",
+      expected: { error: "signed-out", code: "UNAUTHENTICATED", retryable: false },
+      arrange: () => {
+        state.session = null;
+      },
+      call: () => saveDirection({ name: "x" }),
+    },
+    {
+      name: "Denied 403",
+      expected: { error: "forbidden", code: "FORBIDDEN", retryable: false },
+      arrange: () => state.service.saveDraft.mockRejectedValue(new Denied(403, "role-too-low")),
+      call: () => saveDirection({ name: "x" }),
+    },
+    {
+      name: "a missing setting",
+      expected: { error: "not-configured", code: "INTERNAL_ERROR", retryable: false },
+      arrange: () => vi.stubEnv("BETTER_AUTH_SECRET", ""),
+      call: () => saveDirection({ name: "x" }),
+    },
+    {
+      name: "a plain Error",
+      expected: { error: "failed", code: "INTERNAL_ERROR", retryable: false },
+      arrange: () => state.service.saveDraft.mockRejectedValue(new Error("boom")),
+      call: () => saveDirection({ name: "x" }),
+    },
+    {
+      name: "OpenRouter answers 500",
+      expected: { error: "ai-failed", code: "UPSTREAM_FAILED", retryable: true },
+      arrange: () => undefined,
+      call: () => readBriefWithAi("a calm clinic"),
+    },
+    {
+      name: "no OPENROUTER_API_KEY",
+      expected: { error: "ai-not-configured", code: "INTERNAL_ERROR", retryable: false },
+      arrange: () => vi.stubEnv("OPENROUTER_API_KEY", ""),
+      call: () => readBriefWithAi("a calm clinic"),
+    },
+    {
+      name: "write bucket full",
+      expected: { error: "rate-limited", code: "RATE_LIMITED", retryable: true },
+      arrange: () => preload(LIMITS.write, { user: "P" }, 600, 60),
+      call: () => saveDirection({ name: "x" }),
+    },
+    {
+      name: "ai-read bucket full",
+      expected: { error: "ai-rate-limited", code: "RATE_LIMITED", retryable: true },
+      arrange: () => preload(LIMITS["ai-read"], { user: "P" }, 3600, 10),
+      call: () => readBriefWithAi("a calm clinic"),
+    },
+    ...(
+      [
+        ["invalid-input", "INVALID_INPUT"],
+        ["invalid-file", "INVALID_INPUT"],
+        ["not-found", "NOT_FOUND"],
+        ["no-draft", "CONFLICT"],
+        ["resolver-changed", "INVALID_INPUT"],
+        ["profile-missing", "INVALID_INPUT"],
+        ["fingerprint-mismatch", "INVALID_INPUT"],
+      ] as const
+    ).map(([reason, code]) => ({
+      name: `DirectionError ${reason}`,
+      expected: { error: reason, code, retryable: false },
+      arrange: () => state.service.saveDraft.mockRejectedValue(new DirectionError(reason)),
+      call: () => saveDirection({ name: "x" }),
+    })),
+    {
+      name: "the limiter is unavailable on a save",
+      expected: { error: "failed", code: "SERVICE_UNAVAILABLE", retryable: true },
+      arrange: () => {
+        state.mode = "unavailable";
+      },
+      call: () => saveDirection({ name: "x" }),
+    },
+    {
+      name: "the limiter is unavailable on a reading",
+      expected: { error: "ai-failed", code: "SERVICE_UNAVAILABLE", retryable: true },
+      arrange: () => {
+        state.mode = "unavailable";
+      },
+      call: () => readBriefWithAi("a calm clinic"),
+    },
+  ];
+
+  it("has 17 cases", () => {
+    expect(cases).toHaveLength(17);
+  });
+
+  it.each(cases)("each reason maps to its code: $name", async ({ expected, arrange, call }) => {
+    state.requestId = ID;
+    arrange();
+    const result = await call();
+    expect(result).toMatchObject({ ok: false, ...expected, requestId: ID });
+    expect(Object.keys(result as object)).toEqual(
+      expect.arrayContaining(["ok", "error", "code", "requestId", "retryable"]),
+    );
+  });
+
+  it("a Denied 401 from the service is signed-out with UNAUTHENTICATED", async () => {
+    state.requestId = ID;
+    state.service.saveDraft.mockRejectedValue(new Denied(401, "no-session"));
+    expect(await saveDirection({ name: "x" })).toStrictEqual({
+      ok: false,
+      error: "signed-out",
+      code: "UNAUTHENTICATED",
+      requestId: ID,
+      retryable: false,
+    });
+  });
+
+  it("an unexpected error carries INTERNAL_ERROR and nothing of the error", async () => {
+    state.requestId = ID;
+    state.service.saveDraft.mockRejectedValue(new Error("ana@example.com tok_seeded"));
+    const result = await saveDirection({ name: "x" });
+    expect(result).toStrictEqual({
+      ok: false,
+      error: "failed",
+      code: "INTERNAL_ERROR",
+      requestId: ID,
+      retryable: false,
+    });
+    const text = JSON.stringify(result);
+    expect(text).not.toContain("ana@example.com");
+    expect(text).not.toContain("tok_seeded");
+  });
+
+  it("an AI failure carries UPSTREAM_FAILED and is not retried", async () => {
+    state.requestId = ID;
+    const result = await readBriefWithAi("a calm clinic");
+    expect(result).toStrictEqual({
+      ok: false,
+      error: "ai-failed",
+      code: "UPSTREAM_FAILED",
+      requestId: ID,
+      retryable: true,
+    });
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
 });

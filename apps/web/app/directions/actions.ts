@@ -8,6 +8,8 @@ import {
   directionService,
   type Ended,
   type Ending,
+  type ErrorCode,
+  failureFields,
   LIMITS,
   type LimitName,
   type Reason,
@@ -51,19 +53,31 @@ export type ActionError =
   | "ai-rate-limited"
   | DirectionError["reason"];
 
-/** A refused call says how long to wait; the caller says it in the person's language (ORV-112). */
+/**
+ * A refused call says how long to wait; the caller says it in the person's language (ORV-112).
+ * Like every failure it carries the error fields of ORV-144 (`orv144-outcome`).
+ */
 export type RateLimited = {
   ok: false;
   error: "rate-limited" | "ai-rate-limited";
   code: "RATE_LIMITED";
+  requestId: string;
   retryAfter: number;
   retryable: true;
 };
 
-export type Outcome<T> =
-  | { ok: true; value: T }
-  | { ok: false; error: Exclude<ActionError, RateLimited["error"]> }
-  | RateLimited;
+export type Failed = {
+  ok: false;
+  error: Exclude<ActionError, RateLimited["error"]>;
+  code: ErrorCode;
+  requestId: string;
+  retryable: boolean;
+};
+
+/** What a person's failed call carries to the UI. */
+export type ActionFailure = Failed | RateLimited;
+
+export type Outcome<T> = { ok: true; value: T } | ActionFailure;
 
 export interface Listing {
   role: Role;
@@ -116,6 +130,27 @@ function endingOf(outcome: Outcome<unknown>): Ending {
   return { level: "info", outcome: "refused", reason };
 }
 
+/**
+ * `orv144-outcome`: the code of each reason on its default path. `satisfies` makes a new
+ * `ActionError` member without a code fail `pnpm typecheck`. The two rate limit reasons are not
+ * here: the limited path builds its own outcome with `RATE_LIMITED`.
+ */
+const CODE_OF = {
+  "signed-out": "UNAUTHENTICATED",
+  forbidden: "FORBIDDEN",
+  "not-found": "NOT_FOUND",
+  "no-draft": "CONFLICT",
+  "invalid-input": "INVALID_INPUT",
+  "invalid-file": "INVALID_INPUT",
+  "resolver-changed": "INVALID_INPUT",
+  "profile-missing": "INVALID_INPUT",
+  "fingerprint-mismatch": "INVALID_INPUT",
+  failed: "INTERNAL_ERROR",
+  "not-configured": "INTERNAL_ERROR",
+  "ai-not-configured": "INTERNAL_ERROR",
+  "ai-failed": "UPSTREAM_FAILED",
+} satisfies Record<Failed["error"], ErrorCode>;
+
 const ended = <T>(value: Outcome<T>): Ended<Outcome<T>> => ({ value, ending: endingOf(value) });
 
 /**
@@ -134,7 +169,14 @@ async function run<T>(
   limit?: LimitName,
 ): Promise<Outcome<T>> {
   const h = await headers();
-  return atBoundary({ requestId: requestIdOf(h), route }, async (): Promise<Ended<Outcome<T>>> => {
+  const requestId = requestIdOf(h);
+  /** A failure outcome: its request id is the boundary line's (row 6). */
+  const fail = (error: Failed["error"], code: ErrorCode = CODE_OF[error]): Failed => ({
+    ok: false,
+    error,
+    ...failureFields(code, requestId),
+  });
+  return atBoundary({ requestId, route }, async (): Promise<Ended<Outcome<T>>> => {
     try {
       const session = await auth().api.getSession({ headers: h });
       if (limit) {
@@ -144,20 +186,19 @@ async function run<T>(
         if (!counted.ok) {
           if (counted.reason === "unavailable") {
             return {
-              value: { ok: false, error: limit === "ai-read" ? "ai-failed" : "failed" },
+              value: fail(limit === "ai-read" ? "ai-failed" : "failed", "SERVICE_UNAVAILABLE"),
               ending: { level: "error", outcome: "unavailable", reason: "rate-limit" },
             };
           }
           return ended({
             ok: false,
             error: session && limit === "ai-read" ? "ai-rate-limited" : "rate-limited",
-            code: "RATE_LIMITED",
+            ...failureFields("RATE_LIMITED", requestId),
             retryAfter: counted.retryAfter,
-            retryable: true,
           });
         }
       }
-      if (!session) return ended({ ok: false, error: "signed-out" });
+      if (!session) return ended(fail("signed-out"));
       const service = directionService(accessDeps(), CURATED_PROFILES, {
         sealKey: requireEnv("BETTER_AUTH_SECRET"),
       });
@@ -167,18 +208,18 @@ async function run<T>(
       });
     } catch (error) {
       if (error instanceof Denied) {
-        return ended({ ok: false, error: error.status === 401 ? "signed-out" : "forbidden" });
+        return ended(fail(error.status === 401 ? "signed-out" : "forbidden"));
       }
-      if (error instanceof DirectionError) return ended({ ok: false, error: error.reason });
-      if (error instanceof MissingEnvError) return ended({ ok: false, error: "not-configured" });
+      if (error instanceof DirectionError) return ended(fail(error.reason));
+      if (error instanceof MissingEnvError) return ended(fail("not-configured"));
       if (error instanceof AiFailed) {
         return {
-          value: { ok: false, error: error.reason },
+          value: fail(error.reason),
           ending: { level: "error", outcome: "failed", reason: error.kind },
         };
       }
       return {
-        value: { ok: false, error: "failed" },
+        value: fail("failed"),
         ending: {
           level: "error",
           outcome: "failed",
