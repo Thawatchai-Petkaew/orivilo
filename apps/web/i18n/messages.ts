@@ -90,7 +90,9 @@ const th = {
     notConfigured:
       "ยังลงชื่อเข้าใช้ในสภาพแวดล้อมนี้ไม่ได้ เพราะยังไม่ได้ตั้งค่า Google และฐานข้อมูล",
     problem: "ทำไม่สำเร็จ",
-    rateLimited: "มีการลงชื่อเข้าใช้จากเครือข่ายนี้ถี่เกินไป ลองใหม่ได้ในอีก {wait}",
+    failed: "ตอนนี้ยังลงชื่อเข้าใช้ไม่ได้ ลองใหม่อีกครั้ง",
+    limitReason: "มีการลงชื่อเข้าใช้จากเครือข่ายนี้ถี่เกินไป",
+    limitRetry: "ลองใหม่ได้ในอีก {wait}",
   },
   wait: {
     seconds: { one: "{n} วินาที", other: "{n} วินาที" },
@@ -265,7 +267,9 @@ const en: WebMessages = {
     signOut: "Sign out",
     notConfigured: "Sign-in is not available here yet: Google and the database are not set up.",
     problem: "Not done",
-    rateLimited: "Too many sign-in attempts from this network. Try again in {wait}.",
+    failed: "You cannot sign in right now. Try again.",
+    limitReason: "Too many sign-in attempts from this network.",
+    limitRetry: "Try again in {wait}.",
   },
   wait: {
     seconds: { one: "{n} second", other: "{n} seconds" },

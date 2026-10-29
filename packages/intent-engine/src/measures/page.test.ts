@@ -138,6 +138,12 @@ describe("familySubject", () => {
     expect(slugSchema.safeParse(subject).success).toBe(true);
   });
 
+  it("ORV-114 scan-unsafe-2: familySubject gives three parts when a separator is doubled or trails", () => {
+    for (const family of ["Open -Sans", "Open- Sans", "Inter-"]) {
+      expect(familySubject("body", family), family).toMatch(/^body\.[a-z0-9-]+\.[0-9a-f]{8}$/);
+    }
+  });
+
   it("an empty family, and a quoted empty one, give none", () => {
     expect(familySubject("body", "")).toBeNull();
     expect(familySubject("body", '""')).toBeNull();

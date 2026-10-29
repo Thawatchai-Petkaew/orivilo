@@ -61,7 +61,9 @@ const previewScope = (root: HTMLElement) =>
 export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const reading = within(canvas.getByRole("region", { name: new RegExp(th.reading) }));
+    const reading = within(
+      canvas.getByRole("region", { name: (name: string) => name.includes(th.reading) }),
+    );
     await expect(reading.getByText(th.byRules)).toBeVisible();
     await expect(reading.getByText("เป็นระเบียบ: ต้องการ")).toBeVisible();
     await expect(reading.getByText("พรีเมียม: ต้องการ")).toBeVisible();
@@ -132,9 +134,9 @@ export const SampleBriefs: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole("button", { name: th.preset2 }));
-    await expect(canvas.getByRole("textbox", { name: new RegExp(th.brief) })).toHaveValue(
-      th.preset2Text,
-    );
+    await expect(
+      canvas.getByRole("textbox", { name: (name: string) => name.includes(th.brief) }),
+    ).toHaveValue(th.preset2Text);
     await expect(canvas.getByRole("button", { name: th.preset2 })).toHaveAttribute(
       "aria-pressed",
       "true",
@@ -397,7 +399,8 @@ export const ReadWithAi: Story = {
   args: { defaultBrief: FRIENDLY_BRIEF, readWithAi: readWithFakeAi },
   play: async ({ args, canvasElement }) => {
     const canvas = within(canvasElement);
-    const reading = () => within(canvas.getByRole("region", { name: new RegExp(th.reading) }));
+    const reading = () =>
+      within(canvas.getByRole("region", { name: (name: string) => name.includes(th.reading) }));
     await expect(reading().getByText(th.byRulesOnly)).toBeVisible();
     await expect(reading().getByText(th.unread)).toBeVisible();
 
@@ -438,7 +441,9 @@ async function expectNoteUnderButton(reading: HTMLElement, note: HTMLElement, bu
 export const AiFails: Story = {
   args: { defaultBrief: FRIENDLY_BRIEF, readWithAi: () => Promise.resolve(null) },
   play: async ({ canvasElement }) => {
-    const region = within(canvasElement).getByRole("region", { name: new RegExp(th.reading) });
+    const region = within(canvasElement).getByRole("region", {
+      name: (name: string) => name.includes(th.reading),
+    });
     const reading = within(region);
     const button = reading.getByRole("button", { name: th.readWithAi });
     await userEvent.click(button);
@@ -468,7 +473,9 @@ export const AiLimited: Story = {
   play: async ({ canvasElement, globals }) => {
     const c = globals.locale === "en" ? en : th;
     const line = limitedFor(globals.locale);
-    const region = within(canvasElement).getByRole("region", { name: new RegExp(c.reading) });
+    const region = within(canvasElement).getByRole("region", {
+      name: (name: string) => name.includes(c.reading),
+    });
     const reading = within(region);
     const button = reading.getByRole("button", { name: c.readWithAi });
     // The polite live region is mounted before the text arrives.
@@ -504,7 +511,9 @@ export const AiLimitedEnglishNarrow: Story = {
     </Under>
   ),
   play: async ({ canvasElement }) => {
-    const region = within(canvasElement).getByRole("region", { name: new RegExp(en.reading) });
+    const region = within(canvasElement).getByRole("region", {
+      name: (name: string) => name.includes(en.reading),
+    });
     const reading = within(region);
     const button = reading.getByRole("button", { name: en.readWithAi });
     await userEvent.click(button);

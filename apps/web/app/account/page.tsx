@@ -58,10 +58,7 @@ export default async function AccountPage() {
         <p className="text-body-md text-text-secondary">{m.account.notConfigured}</p>
       ) : null}
       {view.kind === "signed-out" ? (
-        <SignInForm
-          action={signInWithGoogle}
-          labels={{ account: m.account, wait: m.wait, failed: m.saved.errors.failed }}
-        />
+        <SignInForm action={signInWithGoogle} labels={{ account: m.account, wait: m.wait }} />
       ) : null}
       {view.kind === "signed-in" ? (
         <form action={signOut} className="flex flex-col gap-3">

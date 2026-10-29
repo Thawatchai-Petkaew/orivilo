@@ -53,7 +53,9 @@ export const Interactive: Story = {
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const cards = canvas.getAllByRole("button", { name: new RegExp(fixtures.mixed) });
+    const cards = canvas.getAllByRole("button", {
+      name: (name: string) => name.includes(fixtures.mixed),
+    });
     await expect(cards).toHaveLength(2);
     await expect(cards[0]).toHaveAttribute("aria-pressed", "false");
     await expect(cards[1]).toHaveAttribute("aria-pressed", "true");

@@ -2,7 +2,7 @@
 id: K-0010
 topic: enforcement
 claim: In Camp Vibes, complete() refuses to move a story to Done unless a QA or Security role appears in the ticket's role history, so the Verify stage is code, not convention.
-source: "~/Claude/Projects/CAMPVIBE/lib/delivery/tickets.ts:345-359 (hasPassedVerify in lib/delivery/verify-stage.ts)"
+source: "https://github.com/Thawatchai-Petkaew/campvibe lib/delivery/tickets.ts:345-359 (hasPassedVerify in lib/delivery/verify-stage.ts)"
 retrieved: 2026-10-23
 confidence: 0.8
 applies_to: [ORV-81]

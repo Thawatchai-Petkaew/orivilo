@@ -11,6 +11,12 @@ const config = [
   { files: ["**/*.tsx"], ...noRawStyleClasses },
   // ADR 0002: only server/ opens the database; everything else goes through withWorkspace.
   { files: ["**/*.{ts,tsx}"], ignores: DB_CLIENT_ONLY_IN, ...restrictDbClient },
+  // ORV-141 orv141-no-console: request-time lines go through the logger in @orivilo/auth, never console.
+  {
+    files: ["app/**/*.{ts,tsx}", "server/**/*.{ts,tsx}", "i18n/**/*.{ts,tsx}", "proxy.ts"],
+    ignores: ["**/*.test.ts", "**/*.test.tsx"],
+    rules: { "no-console": "error" },
+  },
 ];
 
 export default config;

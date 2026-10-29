@@ -89,8 +89,8 @@ const clampByte = (v: number): number => Math.min(255, Math.max(0, Math.round(v)
  * exponent. Each character has one way to match (the number form of SEC-3), so a long token fails
  * in linear time. The two readers below write it out in full, as literals.
  */
-const COMPONENT = /^([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?)(%?)$/i;
-const HUE = /^([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?)(deg|grad|rad|turn)?$/i;
+const COMPONENT = /^([+-]?(?:\d+(?:\.\d*|)|\.\d+)(?:e[+-]?\d+|))(%?)$/i;
+const HUE = /^([+-]?(?:\d+(?:\.\d*|)|\.\d+)(?:e[+-]?\d+|))(deg|grad|rad|turn)?$/i;
 
 /** A token of a colour function longer than this is not a colour (SEC-3); a real one is a few characters. */
 const COLOUR_TOKEN_MAX_CHARS = 64;
