@@ -49,7 +49,7 @@ During the POC the main session follows the `ovl` skill, section "POC mode" (ORV
 - Read type signatures and an example before using props. Never invent token names or public APIs without adding them to the contract.
 - Recipes use semantic tokens. No per-page hex, radius, or font values to change a mood.
 - Brand accent never replaces error, warning, selection, or focus semantics.
-- Every UI string comes from the locale catalog (`packages/design-system/src/i18n`, `apps/web/i18n`), Thai and English together; no hard-coded copy in a component or a page. `check-i18n` fails the build on it.
+- Every UI string comes from the locale catalog (`packages/design-system/src/i18n`, `apps/web/i18n`), Thai and English together; no hard-coded copy in a component or a page. `check-i18n` (`packages/design-system`) and `apps/web/i18n/messages.test.ts` (`apps/web`) fail the build on it.
 - No middot (·) and no em dash (—) in any UI text. Hard rule from the owner; the copy check fails the build on them.
 - Never render trust badges, ratings, discounts, countdowns, or success states without backing data.
 - A profile changes visual expression only. Business logic, permissions, and validation come from the domain.
