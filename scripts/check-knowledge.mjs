@@ -26,6 +26,27 @@ const CONFIDENCE_FORMAT = /^(0(\.\d+)?|1(\.0+)?)$/;
 // Used only when docs/knowledge/README.md has no readable license row. Mirrors that README's list.
 const FALLBACK_LICENSES = ["internal", "own-words", "link-only", "MIT", "CC-BY-4.0", "CC0-1.0"];
 
+/**
+ * The rows of the `## Index` table in docs/knowledge/README.md as `{ name, confidence }`
+ * (docs/specs/ORV-129/spec.md, index-read-1). Null when the file is absent or has no `## Index` line.
+ */
+function readIndex(root) {
+  const path = join(root, "docs/knowledge/README.md");
+  if (!existsSync(path)) return null;
+  const lines = readFileSync(path, "utf8").replace(/\r\n/g, "\n").split("\n");
+  const start = lines.findIndex((line) => /^## Index\s*$/.test(line));
+  if (start === -1) return null;
+  const rows = [];
+  for (const line of lines.slice(start + 1)) {
+    if (line.startsWith("## ")) break;
+    if (!line.startsWith("|")) continue;
+    const cells = line.split("|").map((cell) => cell.trim());
+    const name = cells[1]?.match(/^\[\[([^\]]+)\]\]$/)?.[1];
+    if (name !== undefined) rows.push({ name, confidence: cells[2] ?? "" });
+  }
+  return rows;
+}
+
 /** Reads the allowed licenses from the `license` row of the field table in docs/knowledge/README.md. */
 function readLicenses(root) {
   const path = join(root, "docs/knowledge/README.md");
@@ -101,6 +122,9 @@ function isPresent(value) {
 function latestDate(now) {
   return new Date(now.getTime() + 14 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
+
+// A word of a `source:` value that only one machine can open: a rooted path, `~`, or a drive letter.
+const NON_PORTABLE_WORD = /^(\/|~|[A-Za-z]:)/;
 
 // Hyphen-like characters: ASCII "-" plus U+2010 to U+2013.
 const K_CITATION = /\bk[-\u2010-\u2013]\d{4}\b/gi;
@@ -181,7 +205,7 @@ export function checkKnowledge(root, now = new Date()) {
   const rel = (path) => relative(root, path).split("\\").join("/");
   const report = (path, message) => problems.push(`${rel(path)}: ${message}`);
 
-  function loadEntries(dir, prefix, fields) {
+  function loadEntries(dir, prefix, fields, files = []) {
     const entries = new Map();
     for (const path of walk(dir)) {
       const name = path.slice(path.lastIndexOf("/") + 1);
@@ -197,6 +221,7 @@ export function checkKnowledge(root, now = new Date()) {
       }
       const text = readFileSync(path, "utf8");
       const data = parseFrontmatter(text);
+      files.push({ path, name: name.slice(0, -3), data, raw: parseFrontmatter(text, true) });
       if (!data) {
         report(path, "missing frontmatter");
         continue;
@@ -229,7 +254,8 @@ export function checkKnowledge(root, now = new Date()) {
     return entries;
   }
 
-  const entries = loadEntries(join(root, "docs/knowledge"), "K", K_FIELDS);
+  const entryFiles = [];
+  const entries = loadEntries(join(root, "docs/knowledge"), "K", K_FIELDS, entryFiles);
   loadEntries(join(root, "docs/lessons"), "L", L_FIELDS);
 
   const licenses = readLicenses(root);
@@ -256,6 +282,53 @@ export function checkKnowledge(root, now = new Date()) {
     }
     if (isPresent(data.license) && !licenses.includes(data.license)) {
       report(path, `license ${data.license} is not one of: ${licenses.join(", ")}`);
+    }
+  }
+
+  for (const { path, data } of entryFiles) {
+    if (!data || !isPresent(data.source)) continue;
+    const source = Array.isArray(data.source) ? data.source.join(" ") : data.source;
+    for (const word of source.split(/\s+/)) {
+      const bare = word.replace(/^[([<"`]+/, "");
+      if (NON_PORTABLE_WORD.test(bare)) {
+        report(
+          path,
+          `source holds an absolute or session path ${bare}; cite a repo-relative path or an https URL (L-0031)`,
+        );
+      }
+    }
+  }
+
+  const index = entryFiles.length > 0 ? readIndex(root) : null;
+  const readmePath = join(root, "docs/knowledge/README.md");
+  if (entryFiles.length > 0 && existsSync(readmePath)) {
+    if (index === null) report(readmePath, "has no ## Index table");
+    else {
+      const rowNames = new Set(index.map((row) => row.name));
+      const byName = new Map(entryFiles.map((file) => [file.name, file]));
+      for (const { path, name } of entryFiles) {
+        if (!rowNames.has(name)) {
+          report(path, "has no row in the docs/knowledge/README.md Index");
+        }
+      }
+      for (const row of index) {
+        const file = byName.get(row.name);
+        if (!file) {
+          report(readmePath, `Index row [[${row.name}]] names no entry file`);
+          continue;
+        }
+        const confidence = file.raw?.confidence;
+        if (
+          confidence !== undefined &&
+          CONFIDENCE_FORMAT.test(confidence) &&
+          !(CONFIDENCE_FORMAT.test(row.confidence) && Number(row.confidence) === Number(confidence))
+        ) {
+          report(
+            readmePath,
+            `Index row [[${row.name}]] has confidence ${row.confidence}, the entry has ${confidence}`,
+          );
+        }
+      }
     }
   }
 
