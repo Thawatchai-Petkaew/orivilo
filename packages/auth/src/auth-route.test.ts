@@ -4,8 +4,16 @@ import { captureLines, expectLineShape } from "./log-testing.ts";
 import { type Consumed, RateLimitUnavailable } from "./rate-limit.ts";
 
 interface Body {
-  error: { requestId: string };
+  error: { code: string; requestId: string; retryable: boolean };
 }
+
+/** The parsed body, after asserting exact keys at both levels (ORV-144 `orv144-envelope`). */
+const exactBody = async (res: Response) => {
+  const body = (await res.json()) as Body;
+  expect(Object.keys(body)).toEqual(["error"]);
+  expect(Object.keys(body.error)).toEqual(["code", "message", "requestId", "retryable"]);
+  return body;
+};
 
 const request = new Request("http://localhost:3000/api/auth/sign-in/social", {
   method: "POST",
@@ -49,8 +57,8 @@ describe("authRoute", () => {
     expect(res.status).toBe(429);
     expect(res.headers.get("retry-after")).toBe("7");
     expect(res.headers.get("x-retry-after")).toBe("7");
-    const body = (await res.json()) as Body;
-    expect(body).toEqual({
+    const body = await exactBody(res);
+    expect(body).toStrictEqual({
       error: {
         code: "RATE_LIMITED",
         message: "Too many requests. Try again later.",
@@ -59,6 +67,23 @@ describe("authRoute", () => {
       },
     });
     expect(res.headers.get("x-request-id")).toBe(body.error.requestId);
+    expect(res.headers.get("content-type")).toBe("application/json");
+
+    // The other path: a count that answers limited, with no handler 429.
+    const counted = await wrap(
+      async () => new Response("ok"),
+      async (): Promise<Consumed> => ({ ok: false, reason: "limited", retryAfter: 7 }),
+    )(request);
+    expect(counted.status).toBe(429);
+    expect(counted.headers.get("retry-after")).toBe("7");
+    const countedBody = await exactBody(counted);
+    expect(countedBody.error).toStrictEqual({
+      code: "RATE_LIMITED",
+      message: "Too many requests. Try again later.",
+      requestId: countedBody.error.requestId,
+      retryable: true,
+    });
+    expect(counted.headers.get("x-request-id")).toBe(countedBody.error.requestId);
   });
 
   // Row 12.
@@ -68,8 +93,8 @@ describe("authRoute", () => {
       throw new RateLimitUnavailable();
     })(withId(SEEDED_ID));
     expect(res.status).toBe(503);
-    const body = (await res.json()) as Body;
-    expect(body).toEqual({
+    const body = await exactBody(res);
+    expect(body).toStrictEqual({
       error: {
         code: "SERVICE_UNAVAILABLE",
         message: "Service unavailable. Try again later.",
@@ -100,7 +125,7 @@ describe("authRoute", () => {
     expect(refused.status).toBe(503);
     expect(handler).not.toHaveBeenCalled();
     expect(refused.headers.get("x-request-id")).toBe(SEEDED_ID);
-    expect(await refused.json()).toEqual({
+    expect(await exactBody(refused)).toStrictEqual({
       error: {
         code: "SERVICE_UNAVAILABLE",
         message: "Service unavailable. Try again later.",
@@ -204,25 +229,120 @@ describe("authRoute", () => {
     ]);
 
     capture?.lines.splice(0);
-    const boom = new Error("ana@example.com");
-    await expect(
-      wrap(async () => {
-        throw boom;
-      })(get),
-    ).rejects.toBe(boom);
+    const thrown500 = await wrap(async () => {
+      throw new Error("ana@example.com at /Users/x/app.ts:12");
+    })(get);
+    expect(thrown500.status).toBe(500);
+    const text = await thrown500.clone().text();
+    expect(text).not.toContain("ana@example.com");
+    expect(text).not.toContain("/Users/");
+    expect(text).not.toContain(" at ");
+    const thrownBody = await exactBody(thrown500);
+    expect(thrownBody.error).toStrictEqual({
+      code: "INTERNAL_ERROR",
+      message: "Something went wrong on our side.",
+      requestId: SEEDED_ID,
+      retryable: false,
+    });
+    expect(thrown500.headers.get("x-request-id")).toBe(thrownBody.error.requestId);
     expect(capture?.lines).toHaveLength(1);
     expect(capture?.lines[0]?.stream).toBe("error");
-    const [thrown] = linesOf();
-    expect(thrown).toEqual({
-      level: "error",
-      requestId: SEEDED_ID,
-      route: "api/auth",
-      durationMs: expect.any(Number),
-      outcome: "failed",
-      reason: "unexpected",
-      errorName: "Error",
-    });
+    expect(linesOf()).toEqual([
+      {
+        level: "error",
+        requestId: SEEDED_ID,
+        route: "api/auth",
+        durationMs: expect.any(Number),
+        outcome: "failed",
+        reason: "unexpected",
+        errorName: "Error",
+        status: 500,
+      },
+    ]);
     expect(String(capture?.lines[0]?.args[0])).not.toContain("ana@example.com");
+  });
+
+  // Row 4 (orv144-route-answers, open question 1): Better Auth's own error answers.
+  it("an error answer from Better Auth gets the error body", async () => {
+    const get = new Request("http://localhost:3000/api/auth/get-session", {
+      headers: { "x-request-id": SEEDED_ID },
+    });
+    const betterAuth = (status: number) => async () => {
+      const headers = new Headers({
+        "content-type": "application/json",
+        "content-length": "999",
+        "x-custom": "kept",
+      });
+      headers.append("set-cookie", "a=1; Path=/; HttpOnly");
+      headers.append("set-cookie", "b=2; Path=/; HttpOnly");
+      return new Response(JSON.stringify({ code: "UNAUTHORIZED", message: "ana@example.com" }), {
+        status,
+        headers,
+      });
+    };
+
+    const denied = await wrap(betterAuth(401))(get);
+    expect(denied.status).toBe(401);
+    expect(denied.headers.get("content-type")).toBe("application/json");
+    expect(denied.headers.get("x-request-id")).toBe(SEEDED_ID);
+    expect(denied.headers.get("x-custom")).toBe("kept");
+    // The handler's content-length described its own body, not the one written here.
+    expect(denied.headers.get("content-length")).not.toBe("999");
+    expect(denied.headers.getSetCookie()).toEqual([
+      "a=1; Path=/; HttpOnly",
+      "b=2; Path=/; HttpOnly",
+    ]);
+    expect(await denied.clone().text()).not.toContain("ana@example.com");
+    expect((await exactBody(denied)).error).toStrictEqual({
+      code: "UNAUTHENTICATED",
+      message: "Sign in to continue.",
+      requestId: SEEDED_ID,
+      retryable: false,
+    });
+
+    for (const [status, code, retryable] of [
+      [400, "BAD_REQUEST", false],
+      [418, "BAD_REQUEST", false],
+      [500, "INTERNAL_ERROR", false],
+      [501, "INTERNAL_ERROR", false],
+      [503, "SERVICE_UNAVAILABLE", true],
+    ] as const) {
+      const res = await wrap(betterAuth(status))(get);
+      expect(res.status).toBe(status);
+      const { error } = await exactBody(res);
+      expect({ code: error.code, retryable: error.retryable, requestId: error.requestId }).toEqual({
+        code,
+        retryable,
+        requestId: SEEDED_ID,
+      });
+    }
+
+    // The handler's body is cancelled, not left open.
+    let cancelled = false;
+    await wrap(
+      async () =>
+        new Response(
+          new ReadableStream({
+            cancel() {
+              cancelled = true;
+            },
+          }),
+          { status: 401 },
+        ),
+    )(get);
+    expect(cancelled).toBe(true);
+
+    // Below 400 the answer is the handler's, byte for byte.
+    const ok = await wrap(async () => new Response("fine", { status: 200 }))(get);
+    expect(await ok.text()).toBe("fine");
+    const moved = await wrap(
+      async () =>
+        new Response("moved body", { status: 302, headers: { location: "http://localhost/x" } }),
+    )(get);
+    expect(moved.status).toBe(302);
+    expect(await moved.text()).toBe("moved body");
+    expect(moved.headers.get("location")).toBe("http://localhost/x");
+    capture?.lines.splice(0);
   });
 
   it("reads a redirect, a refusal and Better Auth's own 503 from the status", async () => {
@@ -354,7 +474,7 @@ describe("authRoute", () => {
       throw new Error("secret detail");
     })(request);
     expect(res.status).toBe(503);
-    const body = (await res.json()) as Body & { error: { code: string } };
+    const body = (await res.json()) as Body;
     expect(body.error.code).toBe("SERVICE_UNAVAILABLE");
     expect(res.headers.get("x-request-id")).toBe(body.error.requestId);
     expect(handler).not.toHaveBeenCalled();
@@ -363,13 +483,12 @@ describe("authRoute", () => {
     expect(String(capture?.lines[0]?.args[0])).not.toContain("secret detail");
   });
 
-  it("rethrows any other error and passes a 200 through", async () => {
-    const boom = new Error("boom");
-    await expect(
-      wrap(async () => {
-        throw boom;
-      })(request),
-    ).rejects.toBe(boom);
+  it("answers any other error with 500 and passes a 200 through", async () => {
+    const failed = await wrap(async () => {
+      throw new Error("boom");
+    })(request);
+    expect(failed.status).toBe(500);
+    expect((await exactBody(failed)).error.requestId).toBe(failed.headers.get("x-request-id"));
     const res = await wrap(async () => new Response("fine", { status: 200 }))(request);
     expect(res.status).toBe(200);
     expect(await res.text()).toBe("fine");

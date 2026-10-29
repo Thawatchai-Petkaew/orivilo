@@ -171,6 +171,10 @@ const th = {
       "fingerprint-mismatch": "ผลต่างจากเดิม",
     },
   },
+  failure: {
+    reference: "รหัสอ้างอิง: {requestId}",
+    network: "ติดต่อ ORIVILO ไม่ได้ ตรวจการเชื่อมต่อแล้วลองอีกครั้ง",
+  },
   workspace: {
     title: "เวิร์กสเปซ, ORIVILO",
     description: "หน้าอ้างอิง: เวิร์กสเปซของทีมพร้อมสร้างโปรเจกต์ (E2-8) ข้อมูลตัวอย่างภาษาไทย",
@@ -354,6 +358,10 @@ const en: WebMessages = {
       "profile-missing": "the profile is gone",
       "fingerprint-mismatch": "the result differs",
     },
+  },
+  failure: {
+    reference: "Reference: {requestId}",
+    network: "Could not reach ORIVILO. Check your connection, then try again.",
   },
   workspace: {
     title: "Workspace, ORIVILO",

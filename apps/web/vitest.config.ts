@@ -10,6 +10,7 @@ export default defineConfig({
       "app/**/*.test.ts",
       "app/**/*.test.tsx",
       "server/**/*.test.ts",
+      "client/**/*.test.ts",
     ],
   },
 });

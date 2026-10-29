@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { webMessages } from "./messages";
-import { errorLine, formatWait } from "./wait";
+import { errorLine, failureLines, formatWait, referenceLine } from "./wait";
 
 // ORV-112 AC 16.
 describe("formatWait", () => {
@@ -53,5 +53,68 @@ describe("errorLine", () => {
 
   it("passes other errors through", () => {
     expect(line("en", "forbidden")).toBe(webMessages.en.saved.errors.forbidden);
+  });
+});
+
+const ID = "5f0c6f7e-2b1d-4c3a-9e8f-0a1b2c3d4e5f";
+
+// ORV-144 orv144-ui and the worked example "The reference line".
+describe("referenceLine", () => {
+  it("fills the id for INTERNAL_ERROR only", () => {
+    expect(referenceLine(webMessages.en.failure, { code: "INTERNAL_ERROR", requestId: ID })).toBe(
+      `Reference: ${ID}`,
+    );
+    expect(referenceLine(webMessages.th.failure, { code: "INTERNAL_ERROR", requestId: ID })).toBe(
+      `รหัสอ้างอิง: ${ID}`,
+    );
+  });
+
+  it.each([
+    "BAD_REQUEST",
+    "FORBIDDEN",
+    "RATE_LIMITED",
+    "UPSTREAM_FAILED",
+    "SERVICE_UNAVAILABLE",
+  ] as const)("gives none for %s", (code) => {
+    expect(referenceLine(webMessages.en.failure, { code, requestId: ID })).toBeNull();
+  });
+});
+
+describe("failureLines", () => {
+  const labels = (l: "en" | "th") => ({
+    errors: webMessages[l].saved.errors,
+    wait: webMessages[l].wait,
+    failure: webMessages[l].failure,
+  });
+
+  it("gives the failed line then the reference for INTERNAL_ERROR", () => {
+    const outcome = { error: "failed", code: "INTERNAL_ERROR", requestId: ID } as const;
+    expect(failureLines(labels("en"), outcome)).toStrictEqual([
+      "That did not work. Try again.",
+      `Reference: ${ID}`,
+    ]);
+    expect(failureLines(labels("th"), outcome)).toStrictEqual([
+      "ทำไม่สำเร็จ ลองอีกครั้ง",
+      `รหัสอ้างอิง: ${ID}`,
+    ]);
+  });
+
+  it("gives the failed line alone for a code without a reference", () => {
+    expect(
+      failureLines(labels("en"), { error: "failed", code: "SERVICE_UNAVAILABLE", requestId: ID }),
+    ).toStrictEqual(["That did not work. Try again."]);
+  });
+
+  it("keeps the wait in words for a rate limit, with no reference", () => {
+    expect(
+      failureLines(labels("en"), {
+        error: "rate-limited",
+        code: "RATE_LIMITED",
+        requestId: ID,
+        retryAfter: 240,
+      }),
+    ).toStrictEqual([
+      "Too many requests in a short time, so this was not done. Try again in 4 minutes.",
+    ]);
   });
 });
