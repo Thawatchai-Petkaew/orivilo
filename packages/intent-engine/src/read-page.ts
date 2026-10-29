@@ -433,7 +433,7 @@ function stripBrackets(host: string): string {
 }
 
 function isIpLiteral(host: string): boolean {
-  return host.startsWith("[") || /^[0-9]+(\.[0-9]+){3}$/.test(host);
+  return host.startsWith("[") || /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/.test(host);
 }
 
 function lowerKeys(h: Record<string, string>): Record<string, string> {

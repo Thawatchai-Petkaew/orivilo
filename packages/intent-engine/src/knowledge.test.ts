@@ -4,6 +4,7 @@ import {
   checkCorpus,
   freshness,
   knowledgeEntrySchema,
+  slugSchema,
   type KnowledgeEntry,
 } from "./knowledge";
 
@@ -180,6 +181,30 @@ describe("knowledgeEntrySchema", () => {
     expect(fails({ relations: [{ type: "refines", to: semanticsSeparate.id }] })).toEqual([
       "relations",
     ]);
+  });
+});
+
+describe("slugSchema", () => {
+  it("ORV-114 scan-unsafe-2: slugSchema accepts and refuses the same slugs as before", () => {
+    for (const slug of ["color.semantics-separate", "lexicon-1", "a", "a1-b2.c3"]) {
+      expect(slugSchema.safeParse(slug).success, slug).toBe(true);
+    }
+    for (const slug of [
+      "",
+      "-a",
+      "a-",
+      ".a",
+      "a.",
+      "a--b",
+      "a..b",
+      "a-.b",
+      "a.-b",
+      "A",
+      "a b",
+      "a\n",
+    ]) {
+      expect(slugSchema.safeParse(slug).success, JSON.stringify(slug)).toBe(false);
+    }
   });
 });
 

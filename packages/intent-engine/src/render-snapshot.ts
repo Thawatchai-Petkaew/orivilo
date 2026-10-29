@@ -29,7 +29,7 @@ const RASTER_WIDTH = 320; // both rasters are downsampled to this width
 const RASTER_MAX_HEIGHT = 2000; // the renderer cuts the full page at 2,000 rows
 const BOX_MAX_Y = 1_000_000; // CSS px down the page; the renderer clips every box to it (F47)
 const FONT_FAMILY_MAX_CHARS = 100; // the bound of a font `family` in a reading's value
-const PATH_FORM = /^html(?:>[^>\t\n\f\r ]+)*$/; // html, then ">" and a segment with no ">" and no ASCII whitespace
+const PATH_FORM = /^html(?=>|$)(?![\s\S]*>(?:>|$))[^\t\n\f\r ]*$/; // html, then ">" and a segment with no ">" and no ASCII whitespace
 
 /** RGBA bytes, four per pixel, row by row, from the top left (F46). */
 const rasterSchema = (minHeight: number, maxHeight: number) =>

@@ -27,4 +27,23 @@ export default [
   {
     ignores: ["**/node_modules/**", "**/.next/**", "**/dist/**", "**/storybook-static/**"],
   },
+  {
+    // packages/db/src/migrate.ts:31, `realpathSync(started)`. `started` is `path.resolve(argv1)` (line 28)
+    // and `argv1` is `process.argv[1]` (line 38): the script path the operator started the migration
+    // with. The module runs as a CLI with MIGRATION_DATABASE_URL; no request reaches it. A rewrite
+    // without the call would change how `isEntry` resolves symlinks. This block also hides a later
+    // finding of this rule in this file (ORV-114, scan-override-1).
+    files: ["packages/db/src/migrate.ts"],
+    rules: { "security/detect-non-literal-fs-filename": "off" },
+  },
+  {
+    // packages/intent-engine/src/interpreter.ts:319 and :320. The pattern is a lexicon term passed
+    // through `escape` (line 314), so every regex metacharacter in it is literal. The terms come from
+    // the `lexicon` argument of `interpretWithRules`, whose default is RULE_LEXICON; no call in the
+    // repo passes another. The user's brief is the string searched, never the pattern. A rewrite
+    // without `RegExp` would change the interpreter's matching code (resolver logic is a risk flag).
+    // This block also hides a later finding of this rule in this file (ORV-114, scan-override-1).
+    files: ["packages/intent-engine/src/interpreter.ts"],
+    rules: { "security/detect-non-literal-regexp": "off" },
+  },
 ];
