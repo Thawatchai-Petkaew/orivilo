@@ -1,7 +1,7 @@
 ---
 issue: ORV-121 (https://tpetkaew.atlassian.net/browse/ORV-121)
-spec: docs/specs/ORV-121/spec.md v1.0
-task: ORV-121-tech-1
+spec: docs/specs/ORV-121/spec.md v1.2
+task: ORV-121-tech-1, ORV-121-tech-2
 author: architect
 date: 2026-10-29
 ---
@@ -305,16 +305,17 @@ One PR (open question 7). Each task is one builder deliverable and runs `pnpm li
 
 ## 10. Impact list
 
-| Contract                                   | Change                                                                | Callers and documents                                                                                     |
-| ------------------------------------------ | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `OpenRouterOptions` (`openrouter.ts`)      | Gains optional `onCall` (S1)                                          | `readBriefWithAi`; `openrouter.test.ts`. Optional, so no other caller breaks                              |
-| `reportedCostMicroUsd`, `toMicroUsd` (new) | New exports (S2, S3)                                                  | `openRouterComplete`; the image story reuses both for `usage.cost` on the Image API (ADR 0018 decision 4) |
-| `Complete`, `llmInterpreter`               | None (S4)                                                             | The spec's "Tech notes" section expected a change here; see below                                         |
-| `ai_usage` table, migrations 0006 and 0007 | New tenant table (S5)                                                 | `TENANT_TABLES`; `access.test.ts`; `migrate.test.ts`; every later AI job writes it (`spend-cap-1`)        |
-| `packages/auth` exports                    | `createSpendCap`, `monthOf`, `AI_SPEND_CAP_MICRO_USD`, types (S6)     | `apps/web/server/spend-cap.ts`; the image story's estimate check (ADR 0018 decision 4)                    |
-| `Outcome<T>`, `ActionError` (`actions.ts`) | Gains `SpendCapped` and `"ai-spend-cap"` (S8)                         | `read-outcome.ts`, `SavedStudio.tsx` (`errorLine` keys), `i18n/wait.ts` (type only)                       |
-| `saved.errors` (`messages.ts`)             | Gains `ai-spend-cap` (S10)                                            | `read-outcome.ts`; `check-i18n`                                                                           |
-| ADR 0015 decision 12                       | Addition of 2026-10-29: AI usage amounts in millionths of a US dollar | `.claude/rules/security.md` rule 12 still says minor units only                                           |
-| ADR 0018 decision 7                        | The spend cap sums ORV-121's usage record, not the image record       | The logo image story writes one `ai_usage` row per image request                                          |
+| Contract                                   | Change                                                                          | Callers and documents                                                                                        |
+| ------------------------------------------ | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `OpenRouterOptions` (`openrouter.ts`)      | Gains optional `onCall` (S1)                                                    | `readBriefWithAi`; `openrouter.test.ts`. Optional, so no other caller breaks                                 |
+| `reportedCostMicroUsd`, `toMicroUsd` (new) | New exports (S2, S3)                                                            | `openRouterComplete`; the image story reuses both for `usage.cost` on the Image API (ADR 0018 decision 4)    |
+| `Complete`, `llmInterpreter`               | None (S4)                                                                       | The spec's "Tech notes" section adopted `onCall` in v1.1 (ORV-121 comment 10259); see below                  |
+| `ai_usage` table, migrations 0006 and 0007 | New tenant table (S5)                                                           | `TENANT_TABLES`; `access.test.ts`; `migrate.test.ts`; every later AI job writes it (`spend-cap-1`)           |
+| `packages/auth` exports                    | `createSpendCap`, `monthOf`, `AI_SPEND_CAP_MICRO_USD`, types (S6)               | `apps/web/server/spend-cap.ts`; the image story's estimate check (ADR 0018 decision 4)                       |
+| `Outcome<T>`, `ActionError` (`actions.ts`) | Gains `SpendCapped` and `"ai-spend-cap"` (S8)                                   | `read-outcome.ts`, `SavedStudio.tsx` (`errorLine` keys), `i18n/wait.ts` (type only)                          |
+| `saved.errors` (`messages.ts`)             | Gains `ai-spend-cap` (S10)                                                      | `read-outcome.ts`; `check-i18n`                                                                              |
+| ADR 0015 decision 4                        | Addition of 2026-10-29: the cap figure, 5 US dollars (`AI_SPEND_CAP_MICRO_USD`) | ADR 0015 decision 3 (LLM06:2026 row) and "Not done yet"; `.claude/rules/security.md` rule 6 gains the figure |
+| ADR 0015 decision 12                       | Addition of 2026-10-29: AI usage amounts in millionths of a US dollar           | `.claude/rules/security.md` rule 12 gains the unit (`_micro_usd`)                                            |
+| ADR 0018 decision 7                        | The spend cap sums ORV-121's usage record, not the image record                 | The logo image story writes one `ai_usage` row per image request                                             |
 
-**Where this differs from the spec.** The spec's "Tech notes" section expects `Complete` and `openRouterComplete` to return the reported cost beside the answer text. A return value cannot carry it where the spec needs it: when `llmInterpreter` or `interpretBrief` refuses an answer (row 6), the outcome holds no adapter value, and when `openRouterComplete` throws (row 7), it returns nothing. A callback from the one place that sends the request reaches both, and leaves `Complete`, `llmInterpreter` and their tests as they are. This is the architect's choice in this note, open for the owner at G2.
+**Where this differs from the spec.** It no longer does. The spec's "Tech notes" section first expected `Complete` and `openRouterComplete` to return the reported cost beside the answer text. A return value cannot carry it where the spec needs it: when `llmInterpreter` or `interpretBrief` refuses an answer (row 6), the outcome holds no adapter value, and when `openRouterComplete` throws (row 7's status 500 and aborted runs), it returns nothing. A callback from the one place that sends the request reaches both, and leaves `Complete`, `llmInterpreter` and their tests as they are. The architect chose the callback in this note; G1 and G2 passed with it under the owner's delegation (ORV-121 comment 10259, ADR 0012 decision 4), and spec v1.1 adopted it in its "Tech notes" section.
