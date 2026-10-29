@@ -2,7 +2,7 @@
 id: K-0009
 topic: orchestration
 claim: Camp Vibes dispatches with a small envelope {ticket, spec, files, deltas, done_when}, and done_when states an outcome a command proves, not the shape of the code (CAM-670).
-source: "~/Claude/Projects/CAMPVIBE/.claude/rules/efficiency.md:43 and 82-86 (also .claude/agents/orchestrator.md:116)"
+source: "https://github.com/Thawatchai-Petkaew/campvibe .claude/rules/efficiency.md:43 and 82-86 (also .claude/agents/orchestrator.md:116)"
 retrieved: 2026-10-23
 confidence: 0.8
 applies_to: [ORV-81]

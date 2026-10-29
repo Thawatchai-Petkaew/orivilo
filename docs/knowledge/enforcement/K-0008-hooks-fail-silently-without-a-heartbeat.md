@@ -2,7 +2,7 @@
 id: K-0008
 topic: enforcement
 claim: A hook that never runs looks the same as one that always passes; Allkons' hooks failed every call for about a month from a quoting bug, Camp Vibes' hooks read environment variables that do not exist, and a heartbeat log is what makes the difference visible.
-source: "~/My Work/TechFlow/AI-First/allkons-marketplace/.claude/hooks/require-checked-by.py:15-20; ~/Claude/Projects/CAMPVIBE/.claude/hooks/palette-guard.sh:5-7 (CAM-691); ~/Claude/Projects/CAMPVIBE/.claude/hooks/npm-shared-node-modules-guard.sh:17-24 (CAM-690)"
+source: "https://bitbucket.org/ThammasornDEV/allkons-marketplace .claude/hooks/require-checked-by.py:15-20; https://github.com/Thawatchai-Petkaew/campvibe .claude/hooks/palette-guard.sh:5-7 (CAM-691); https://github.com/Thawatchai-Petkaew/campvibe .claude/hooks/npm-shared-node-modules-guard.sh:17-24 (CAM-690)"
 retrieved: 2026-10-23
 confidence: 0.85
 applies_to: [ORV-81, ORV-82]
