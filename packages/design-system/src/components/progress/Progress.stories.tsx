@@ -1,8 +1,17 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { ComponentType } from "react";
 import { expect, within } from "storybook/test";
 import { fixtures } from "../fixtures";
 import { Matrix, Narrow } from "../matrix";
 import { Progress } from "./Progress";
+
+/** A width cap around the story. Storybook adds a meta decorator to every story (a story's
+ * `decorators: []` does not drop it), so each story that wants it names it. */
+const inWidth = (Story: ComponentType) => (
+  <div className="max-w-sm">
+    <Story />
+  </div>
+);
 
 const meta = {
   title: "Base/Progress",
@@ -17,7 +26,6 @@ const meta = {
     },
   },
   args: { label: "สร้างโลโก้", value: 40 },
-  decorators: [(Story) => <div className="max-w-sm">{Story()}</div>],
 } satisfies Meta<typeof Progress>;
 
 export default meta;
@@ -25,6 +33,7 @@ type Story = StoryObj<typeof meta>;
 
 /** A bar with its range, a visible label and the value as text. */
 export const Determinate: Story = {
+  decorators: [inWidth],
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const bar = canvas.getByRole("progressbar", { name: "สร้างโลโก้" });
@@ -39,6 +48,7 @@ export const Determinate: Story = {
 
 /** The value is clamped to 0 to max; `max` other than 100 scales the text. */
 export const Clamped: Story = {
+  decorators: [inWidth],
   render: () => (
     <div className="flex flex-col gap-4">
       <Progress label="เกินช่วง" value={140} />
@@ -64,6 +74,7 @@ export const Clamped: Story = {
 
 /** No `aria-valuenow`, `aria-busy` set, and the text says Working. */
 export const Indeterminate: Story = {
+  decorators: [inWidth],
   args: { value: undefined },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -76,6 +87,7 @@ export const Indeterminate: Story = {
 
 /** Under reduced motion the sweep is switched off by the recipe; the text still says Working. */
 export const ReducedMotion: Story = {
+  decorators: [inWidth],
   args: { value: undefined },
   play: async ({ canvasElement }) => {
     await expect(within(canvasElement).getByText("กำลังทำงาน")).toBeVisible();
@@ -102,6 +114,7 @@ export const ReducedMotion: Story = {
 
 /** A finished job says so in words with an icon, in a status region; the bar is full. */
 export const Done: Story = {
+  decorators: [inWidth],
   args: { status: "done", value: undefined },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -114,6 +127,7 @@ export const Done: Story = {
 
 /** A failed job keeps where it stopped and says Failed in words with an icon. */
 export const Failed: Story = {
+  decorators: [inWidth],
   args: { status: "failed" },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -125,6 +139,7 @@ export const Failed: Story = {
 };
 
 export const Sizes: Story = {
+  decorators: [inWidth],
   render: () => (
     <div className="flex flex-col gap-4">
       <Progress label="เล็ก" value={60} size="sm" />
@@ -134,6 +149,7 @@ export const Sizes: Story = {
 };
 
 export const LongLabelAt360: Story = {
+  decorators: [inWidth],
   render: () => (
     <Narrow>
       <Progress label={fixtures.longThai} value={72} />
@@ -154,5 +170,8 @@ export const RecipesAndModes: Story = {
       <Progress label="พลาด" value={25} status="failed" size="sm" />
     </Matrix>
   ),
-  decorators: [],
+  play: async ({ canvasElement }) => {
+    // The matrix is not inside the width cap: a meta decorator wrapping this story would narrow it.
+    await expect(canvasElement.querySelector(".max-w-sm")).toBeNull();
+  },
 };

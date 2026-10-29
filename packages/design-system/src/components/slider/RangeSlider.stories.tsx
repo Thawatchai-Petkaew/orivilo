@@ -1,9 +1,17 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useState } from "react";
+import { type ComponentType, useState } from "react";
 import { expect, userEvent, within } from "storybook/test";
 import { fixtures } from "../fixtures";
 import { Matrix, Narrow } from "../matrix";
 import { RangeSlider } from "./RangeSlider";
+
+/** A width cap around the story. Storybook adds a meta decorator to every story (a story's
+ * `decorators: []` does not drop it), so each story that wants it names it. */
+const inWidth = (Story: ComponentType) => (
+  <div className="max-w-sm">
+    <Story />
+  </div>
+);
 
 const meta = {
   title: "Base/Range slider",
@@ -18,7 +26,6 @@ const meta = {
     },
   },
   args: { label: "ช่วงระยะห่าง", defaultValue: [20, 60], format: (v: number) => `${v} px` },
-  decorators: [(Story) => <div className="max-w-sm">{Story()}</div>],
 } satisfies Meta<typeof RangeSlider>;
 
 export default meta;
@@ -34,6 +41,7 @@ const thumbs = (root: HTMLElement) => {
 
 /** Both values read as text without hover; each thumb is named and reads its own value (AC 1, 5). */
 export const Default: Story = {
+  decorators: [inWidth],
   play: async ({ canvasElement }) => {
     const { lower, upper } = thumbs(canvasElement);
     await expect(within(canvasElement).getByText("20 px ถึง 60 px")).toBeVisible();
@@ -44,6 +52,7 @@ export const Default: Story = {
 
 /** Each thumb takes arrows, Page and Home/End on its own (AC 2). */
 export const Keyboard: Story = {
+  decorators: [inWidth],
   play: async ({ canvasElement }) => {
     const { lower, upper } = thumbs(canvasElement);
     lower.focus();
@@ -67,6 +76,7 @@ export const Keyboard: Story = {
  * the user moved keeps focus and keeps moving itself afterwards (AC 3).
  */
 export const NoCrossing: Story = {
+  decorators: [inWidth],
   args: { defaultValue: [55, 60] },
   play: async ({ canvasElement }) => {
     const { lower, upper } = thumbs(canvasElement);
@@ -86,6 +96,7 @@ export const NoCrossing: Story = {
 
 /** `minGap` keeps the thumbs apart (AC 4). */
 export const MinGap: Story = {
+  decorators: [inWidth],
   args: { defaultValue: [40, 60], minGap: 10 },
   play: async ({ canvasElement }) => {
     const { lower, upper } = thumbs(canvasElement);
@@ -117,6 +128,7 @@ function Committed() {
 
 /** Controlled; a keyboard step commits at once with both values (AC 6). A drag commits on release in Radix. */
 export const Commit: Story = {
+  decorators: [inWidth],
   render: () => <Committed />,
   play: async ({ canvasElement }) => {
     const { upper } = thumbs(canvasElement);
@@ -127,6 +139,7 @@ export const Commit: Story = {
 };
 
 export const Disabled: Story = {
+  decorators: [inWidth],
   args: { disabled: true },
   play: async ({ canvasElement }) => {
     for (const thumb of within(canvasElement).getAllByRole("slider")) {
@@ -136,7 +149,6 @@ export const Disabled: Story = {
 };
 
 export const LongLabelAt360: Story = {
-  decorators: [],
   render: (args) => (
     <Narrow>
       <RangeSlider {...args} label={fixtures.longThai} />
@@ -145,11 +157,14 @@ export const LongLabelAt360: Story = {
 };
 
 export const RecipesAndModes: Story = {
-  decorators: [],
   render: (args) => (
     <Matrix>
       <RangeSlider {...args} />
       <RangeSlider {...args} label="ปิดอยู่" disabled />
     </Matrix>
   ),
+  play: async ({ canvasElement }) => {
+    // The matrix is not inside the width cap: a meta decorator wrapping this story would narrow it.
+    await expect(canvasElement.querySelector(".max-w-sm")).toBeNull();
+  },
 };
