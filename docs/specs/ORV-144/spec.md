@@ -2,7 +2,7 @@
 issue: ORV-144 (https://tpetkaew.atlassian.net/browse/ORV-144)
 parent: ORV-113 (item 2)
 lane: M
-version: 1.2
+version: 1.3
 ---
 
 # ORV-144: one error body, its codes and the retry matrix (ORV-113 item 2)
@@ -36,7 +36,7 @@ The survey ran on `feature/ORV-144-error-envelope` at `7112447`. Producers are t
 ### Producers (8)
 
 <!-- prettier-ignore -->
-| # | Where | Today | Becomes |
+| Id | Where | Today | Becomes |
 | --- | --- | --- | --- |
 | P1 | `packages/auth/src/auth-route.ts` lines 12 to 34 (`envelope`, `rateLimited`, `unavailable`) | Inline body for 429 `RATE_LIMITED` and 503 `SERVICE_UNAVAILABLE`, `retryable: true` fixed | Built by the helper of `orv144-envelope` from `orv144-codes`; same bytes as today for these two |
 | P2 | `auth-route.ts` line 103 (`withRequestId(response, ...)`) | Better Auth's own answers pass through with Better Auth's body, error statuses included | An answer with status 400 or more is rewritten by `orv144-route-answers` (open question 1) |
@@ -52,7 +52,7 @@ Inner error classes are mapped at a boundary and are not bodies: `Denied` (`pack
 ### Readers (7)
 
 <!-- prettier-ignore -->
-| # | Where | Today | Becomes |
+| Id | Where | Today | Becomes |
 | --- | --- | --- | --- |
 | R1 | `apps/web/app/directions/page.tsx` lines 15 to 21 (`load`) | Maps `listDirections`' failure to a `SavedView` with its `error` | The `error` view also keeps the outcome's `code` and `requestId` for `orv144-ui` |
 | R2 | `SavedStudio.tsx` lines 127 to 129 (first notice from the view) | One `errorLine` | `orv144-ui`, reference line |
@@ -282,3 +282,4 @@ ADR 0015 decision 7 (the body and the matrix), decisions 2 (`security` role), 4 
 - v1.0 (2026-10-29): first spec, ORV-113 item 2 as its own story (task ORV-144-spec-1). Downstream to review: the ORV-144 Jira issue acceptance (rows 1 to 20), the tech notes (to be written: the helper's and the retry module's place, the slice sizes of open question 11), and the documents under "Impact list", "Docs to review".
 - v1.1 (2026-10-29): the tech notes' "Findings for the spec" F1 to F5 and ORV-144 comment 10268 (task ORV-144-spec-2). Comment 10268: open question 11 decided (b), one PR, and questions 1 to 10 and 12 at their defaults ("Open questions" intro and question 11). F1, requirement change: row 20 is checked by a new `apps/web/i18n/messages.test.ts` and `pnpm typecheck`, since no `check-i18n` command exists and the existing i18n and copy checks scan `packages/design-system` only. F2, no requirement change: Size is about 940 lines (tech notes section 11, worked example "The size"), one PR. F3, contract change: `orv144-retry` does not retry a call its caller aborted. F4, no requirement change: the Test column of rows 8, 9, 13 and 14 names `runCall` and `refreshList` of `studio-calls.ts`, as `apps/web` has no DOM test environment. F5, no requirement change (row 4 already expected it): `orv144-route-answers` says a rewritten answer keeps the handler's status. Row 16 and the Impact list name the places the tech notes chose (`packages/auth/src/errors.ts`, `apps/web/client/retry.ts`, `studio-calls.ts`, the two config files). The spec rows of "Docs to review" are brought up to date in this task (ORV-141 spec v1.3, ORV-112 spec v1.8, ORV-122 spec v1.6, ORV-123 spec v1.2). Downstream to review: `docs/specs/ORV-144/tech.md` (front matter `spec:` version, the status column of "Findings for the spec", the spec rows of section 13), the ORV-144 Jira issue acceptance (rows 8, 9, 13, 14, 16 and 20), `AGENTS.md` line 52 (`check-i18n` does not run on `apps/web`, the main session decides).
 - v1.2 (2026-10-29): bookkeeping for ORV-144 as built (task ORV-144-spec-book-1), no requirement change. "Impact list", "Docs to review" now states each document's status: the spec rows brought up to date in v1.1, the tech rows in commit 3b911a0, ORV-122 spec row 25's Result in ORV-122 spec v1.7 (this task), and ADR 0015 lines 128 and 189 waiting for the merge. `AGENTS.md` line 52 now names both catalog checks, `check-i18n` for `packages/design-system` and `apps/web/i18n/messages.test.ts` for `apps/web` (v1.1's F1), in this task. No row, rule or copy changes. Downstream to review: ADR 0015 lines 128 and 189 (architect, after the merge).
+- v1.3 (2026-10-29): qa finding ORV-144-qa-1-F1 (task ORV-144-spec-qa-f1), no requirement change. The first header cell of the "Producers (8)" and "Readers (7)" tables reads `Id` instead of `#`, so the acceptance table is the first table in this spec whose first header cell is `#`, the one the result recorder reads. No row, rule or copy changes. Downstream to review: none.
