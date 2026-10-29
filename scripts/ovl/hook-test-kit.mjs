@@ -29,16 +29,26 @@ export function makeRepo(branch = "feature/ORV-1-test") {
 
 const git = (cwd, ...args) => execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
 
-/** A repo with one commit on `branch` and a second worktree on its own branch `second`: {main, wt}. */
+/**
+ * A repo with one commit on `branch` and a second worktree on its own branch `second`, under
+ * `.claude/worktrees/second` as the ovl skill lays it out: {main, wt}.
+ */
 export function twoCheckouts(branch = "feature/ORV-1-test", second = "feature/ORV-2-second") {
   const main = makeRepo(branch);
   git(main, "config", "user.email", "t@example.com");
   git(main, "config", "user.name", "t");
   git(main, "add", "-A");
   git(main, "commit", "-q", "-m", "base");
-  const wt = join(realpathSync(mkdtempSync(join(tmpdir(), "ovl-wt-"))), "second");
+  const wt = join(main, ".claude", "worktrees", "second");
   git(main, "worktree", "add", "-q", "-b", second, wt);
   return { main, wt };
+}
+
+/** A worktree of `main` on a new branch `branch`, made in a temp folder outside `.claude/worktrees`. */
+export function outsideWorktree(main, branch = "feature/ORV-3-outside") {
+  const wt = join(realpathSync(mkdtempSync(join(tmpdir(), "ovl-wt-"))), "outside");
+  git(main, "worktree", "add", "-q", "-b", branch, wt);
+  return wt;
 }
 
 export function validEnvelope(root, overrides = {}) {

@@ -9,7 +9,7 @@ import {
   unlinkSync,
   writeFileSync,
 } from "node:fs";
-import { isAbsolute, join, relative, resolve } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import {
   allTasks,
   isOpen,
@@ -157,14 +157,21 @@ function semanticProblems(env, toolInput, root) {
 }
 
 /**
- * The envelope worktree must be a git worktree of this repo, and its branch (<type>/ORV-<n>-<slug>)
- * must name the envelope issue, so a relabelled issue cannot dodge a rework count. The session's own
- * checkout is one such worktree; so is any other, which lets one session serve several issues (ORV-146).
+ * The envelope worktree must be a git worktree of this repo, placed where write-guard judges paths
+ * (the main working tree `main`, or a folder directly under `main`/.claude/worktrees), and its branch
+ * (<type>/ORV-<n>-<slug>) must name the envelope issue, so a relabelled issue cannot dodge a rework
+ * count. The session's own checkout is one such worktree; so is any other, which lets one session
+ * serve several issues (ORV-146).
  */
-function worktreeProblems(env, worktree, root) {
+function worktreeProblems(env, worktree, root, main) {
   const found = worktreesOf(root).find((w) => w.path === worktree);
   if (found === undefined) {
     return [`worktree "${env.worktree}" is not a git worktree of this repo`];
+  }
+  if (worktree !== main && dirname(worktree) !== join(main, ".claude", "worktrees")) {
+    return [
+      `worktree "${env.worktree}" must be the main working tree or a folder under ${join(main, ".claude", "worktrees")}, where write-guard judges the paths`,
+    ];
   }
   const key = /^[a-z]+\/(ORV-\d+)-/.exec(found.branch)?.[1];
   if (key === undefined) {
@@ -177,20 +184,32 @@ function worktreeProblems(env, worktree, root) {
     : [`envelope issue ${env.issue} differs from the issue ${key} in branch "${found.branch}"`];
 }
 
-/** The open envelope of the same role and issue, if any, other than `exceptId`. */
+/**
+ * The open envelope that blocks `env`, other than `exceptId`: one of the same role and issue, or one
+ * of the same role and any issue that no subagent has started on yet. The start hook binds a starting
+ * subagent to the one open unbound envelope of its role, so a second unbound one would leave both
+ * unbound and outside the rework count (ORV-146).
+ */
 const openOfRole = (env, store, exceptId) =>
   allTasks(store).find(
-    (t) => t.id !== exceptId && isOpen(t) && t.issue === env.issue && t.envelope.role === env.role,
+    (t) =>
+      t.id !== exceptId &&
+      isOpen(t) &&
+      t.envelope.role === env.role &&
+      (t.issue === env.issue || t.agent === undefined),
   );
 
-/** One open envelope per role and issue in the repo (spec, Envelope guard; per issue since ORV-146). */
+/** One open envelope per role and issue, and one unbound envelope per role (spec, Envelope guard; ORV-146). */
 function openProblems(env, store) {
   const open = openOfRole(env, store);
-  return open
-    ? [
-        `${env.role} envelope ${open.id} is still open; wait for its report, or close it with: node scripts/ovl/close-envelope.mjs ${open.id}`,
-      ]
-    : [];
+  if (open === undefined) return [];
+  const why =
+    open.issue === env.issue
+      ? "is still open; wait for its report"
+      : `of ${open.issue} is open and no subagent has started on it; dispatch after it starts, or wait for its report`;
+  return [
+    `${env.role} envelope ${open.id} ${why}, or close it with: node scripts/ovl/close-envelope.mjs ${open.id}`,
+  ];
 }
 
 function reworkProblems(env, store) {
@@ -273,7 +292,7 @@ export function checkEnvelope(input, { root, store }) {
     // A worktree that does not exist cannot be this checkout; the comparison below reports it.
   }
   if (ISSUE_ROLES.has(env.role)) {
-    reasons.push(...worktreeProblems(env, worktree, root));
+    reasons.push(...worktreeProblems(env, worktree, root, store));
   } else if (worktree !== root) {
     reasons.push(`worktree "${env.worktree}" must be this checkout (${root})`);
   }

@@ -336,6 +336,12 @@ test("ORV-146 a: a PR of test files and docs needs the gate and a reviewer appro
     "scripts/x.test.mjs",
     "docs/specs/ORV-1/design.png",
     "README.md",
+    "scripts/y.test.js",
+    "scripts/y.test.cjs",
+    "scripts/y.test.mts",
+    "scripts/y.test.cts",
+    "packages/a/z.test.tsx",
+    "packages/a.stories.d/b.test.ts",
   ];
   assert.deepEqual(noQa(files), []);
   assert.deepEqual(noQa(["docs/specs/ORV-1/design.png"]), []);
@@ -366,12 +372,22 @@ test("ORV-146 a: one file that is not a test file or docs keeps the qa", () => {
     "packages/design-system/notes.md",
     ".quality-gate/report.test.json",
     ".orivilo/x.test.json",
+    ".quality-gate/report.test.mjs",
+    ".orivilo/x.test.ts",
     "packages/a/foo.tests.ts",
     "packages/a/foo-test.ts",
     "packages/a/test.ts",
     "packages/a/foo.test",
     "packages/a.test.x/b.ts",
     "scripts/x.mjs",
+    // ORV-146 F1, SEC-1: Storybook loads a stories file and an app loads a data or env file,
+    // whatever else the name holds.
+    "packages/design-system/src/button.test.stories.tsx",
+    "packages/design-system/src/button.test.stories.ts",
+    "packages/design-system/src/button.stories.test.tsx",
+    "apps/web/.env.test.local",
+    "packages/a/foo.test.json",
+    "packages/a/foo.test.css",
   ];
   for (const other of keeps) {
     blocked(noQa([test, other]), /qa\.json/);
@@ -454,6 +470,124 @@ test("ORV-146 b: a carried request_changes is a verdict, a later one on an unrel
     report: { head_sha: H2, verdict: "request_changes" },
   });
   assert.deepEqual(decide(facts(unrelated, { carriesOver: carries(CARRIED) })), []);
+});
+
+test("ORV-146 SEC-2: a reviewer verdict on the exact head wins over an approve carried from an older head", () => {
+  const rc = carriedRoot();
+  put(rc, `${RUN}/r/result.json`, {
+    contract: "reviewer.v1",
+    recorded_at: at(6),
+    report: { head_sha: CARRIED, verdict: "approve" },
+  });
+  put(rc, `${RUN}/r2/envelope.json`, { task_id: "r2", role: "reviewer", write_set: [] });
+  put(rc, `${RUN}/r2/result.json`, {
+    contract: "reviewer.v1",
+    recorded_at: at(5),
+    report: { head_sha: H, verdict: "request_changes" },
+  });
+  blocked(decide(facts(rc, { carriesOver: carries(CARRIED) })), /no reviewer\.v1 approve/);
+  // The other way round: an approve on the exact head wins over a carried request_changes.
+  const ok = carriedRoot();
+  put(ok, `${RUN}/r/result.json`, {
+    contract: "reviewer.v1",
+    recorded_at: at(5),
+    report: { head_sha: CARRIED, verdict: "request_changes" },
+  });
+  put(ok, `${RUN}/r2/envelope.json`, { task_id: "r2", role: "reviewer", write_set: [] });
+  put(ok, `${RUN}/r2/result.json`, {
+    contract: "reviewer.v1",
+    recorded_at: at(4),
+    report: { head_sha: H, verdict: "approve" },
+  });
+  put(ok, `${RUN}/q/qa.json`, { recorded_at: at(1), report: qaReport() });
+  assert.deepEqual(decide(facts(ok, { carriesOver: carries(CARRIED) })), []);
+});
+
+test("ORV-146 SEC-2: a qa verdict on the exact head wins over an approve carried from an older head", () => {
+  const root = carriedRoot();
+  put(root, `${RUN}/q/qa.json`, { recorded_at: at(6), report: qaReport({ head_sha: CARRIED }) });
+  put(root, `${RUN}/q2/envelope.json`, { task_id: "q2", role: "qa", write_set: [] });
+  put(root, `${RUN}/q2/qa.json`, {
+    recorded_at: at(5),
+    report: qaReport({ verdict: "request_changes" }),
+  });
+  blocked(decide(facts(root, { carriesOver: carries(CARRIED) })), /request_changes/);
+  const ok = carriedRoot();
+  put(ok, `${RUN}/q/qa.json`, {
+    recorded_at: at(5),
+    report: qaReport({ head_sha: CARRIED, verdict: "request_changes" }),
+  });
+  put(ok, `${RUN}/q2/envelope.json`, { task_id: "q2", role: "qa", write_set: [] });
+  put(ok, `${RUN}/q2/qa.json`, { recorded_at: at(4), report: qaReport() });
+  assert.deepEqual(decide(facts(ok, { carriesOver: carries(CARRIED) })), []);
+});
+
+test("ORV-146 SEC-2: a request_changes and a later approve on the same carried head hold", () => {
+  const root = carriedRoot();
+  put(root, `${RUN}/r/result.json`, {
+    contract: "reviewer.v1",
+    recorded_at: at(6),
+    report: { head_sha: CARRIED, verdict: "approve" },
+  });
+  put(root, `${RUN}/r2/envelope.json`, { task_id: "r2", role: "reviewer", write_set: [] });
+  put(root, `${RUN}/r2/result.json`, {
+    contract: "reviewer.v1",
+    recorded_at: at(3),
+    report: { head_sha: CARRIED, verdict: "request_changes" },
+  });
+  put(root, `${RUN}/q2/envelope.json`, { task_id: "q2", role: "qa", write_set: [] });
+  put(root, `${RUN}/q2/qa.json`, {
+    recorded_at: at(0),
+    report: qaReport({ head_sha: CARRIED, verdict: "request_changes" }),
+  });
+  assert.deepEqual(decide(facts(root, { carriesOver: carries(CARRIED) })), []);
+});
+
+test("ORV-146 SEC-2: a reviewer result with no report is ignored, not a crash", () => {
+  for (const root of [goodRoot(), carriedRoot()]) {
+    put(root, `${RUN}/r2/envelope.json`, { task_id: "r2", role: "reviewer", write_set: [] });
+    put(root, `${RUN}/r2/result.json`, { contract: "reviewer.v1", recorded_at: at(7) });
+    assert.deepEqual(decide(facts(root, { carriesOver: carries(CARRIED) })), []);
+  }
+});
+
+test("ORV-146 SEC-2: a qa.json with no head sha carries nothing, whatever carriesOver says", () => {
+  const root = goodRoot();
+  put(root, `${RUN}/q/qa.json`, {
+    recorded_at: at(1),
+    report: qaReport({ head_sha: undefined }),
+  });
+  blocked(decide(facts(root, { carriesOver: () => true })), /qa\.json/);
+});
+
+test("ORV-146 SEC-2: a carried approve holds only when no other carried head requests changes", () => {
+  const MID = "d".repeat(40);
+  const reviewer = carriedRoot();
+  put(reviewer, `${RUN}/r/result.json`, {
+    contract: "reviewer.v1",
+    recorded_at: at(6),
+    report: { head_sha: CARRIED, verdict: "approve" },
+  });
+  put(reviewer, `${RUN}/r2/envelope.json`, { task_id: "r2", role: "reviewer", write_set: [] });
+  put(reviewer, `${RUN}/r2/result.json`, {
+    contract: "reviewer.v1",
+    recorded_at: at(5),
+    report: { head_sha: MID, verdict: "request_changes" },
+  });
+  blocked(
+    decide(facts(reviewer, { carriesOver: carries(CARRIED, MID) })),
+    /no reviewer\.v1 approve/,
+  );
+  assert.deepEqual(decide(facts(reviewer, { carriesOver: carries(CARRIED) })), []);
+  const qa = carriedRoot();
+  put(qa, `${RUN}/q/qa.json`, { recorded_at: at(6), report: qaReport({ head_sha: CARRIED }) });
+  put(qa, `${RUN}/q2/envelope.json`, { task_id: "q2", role: "qa", write_set: [] });
+  put(qa, `${RUN}/q2/qa.json`, {
+    recorded_at: at(5),
+    report: qaReport({ head_sha: MID, verdict: "request_changes" }),
+  });
+  blocked(decide(facts(qa, { carriesOver: carries(CARRIED, MID) })), /request_changes/);
+  assert.deepEqual(decide(facts(qa, { carriesOver: carries(CARRIED) })), []);
 });
 
 test("ORV-146 b: a carried qa that did not approve, or is for another PR, still blocks", () => {

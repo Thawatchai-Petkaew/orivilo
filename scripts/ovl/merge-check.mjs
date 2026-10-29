@@ -49,6 +49,28 @@ function latest(items, at) {
   return best;
 }
 
+/**
+ * ORV-146: the record that judges `head` among `records` (each {recorded_at, report: {head_sha,
+ * verdict}}), or undefined. The latest record on the exact head wins over any record carried from
+ * an older head. With none on the head, the latest carried record (`carriesOver(its head)`) judges,
+ * except that an approve does not hold while another carried head requests changes: the request is
+ * returned instead.
+ */
+function pickVerdict(records, head, carriesOver, what) {
+  const onHead = records.filter((r) => r.report?.head_sha === head);
+  if (onHead.length > 0) return latest(onHead, (x) => time(x.recorded_at, what));
+  const carried = records.filter(
+    (r) => typeof r.report?.head_sha === "string" && carriesOver(r.report.head_sha),
+  );
+  const best = latest(carried, (x) => time(x.recorded_at, what));
+  if (best?.report.verdict !== "approve") return best;
+  return (
+    carried.find(
+      (r) => r.report.head_sha !== best.report.head_sha && r.report.verdict !== "approve",
+    ) ?? best
+  );
+}
+
 const readJsonIfExists = (file) =>
   existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : null;
 
@@ -110,9 +132,18 @@ const isProtected = (file) =>
 const isDocsOnly = (files) =>
   files.length > 0 && files.every((f) => f.endsWith(".md") && !isProtected(f));
 
-/** ORV-146: a `*.test.*` file, anywhere but the record folders. */
-const isTestFile = (f) =>
-  /[^/]+\.test\.[^/]+$/.test(f) && !/^(?:\.orivilo|\.quality-gate)(?:\/|$)/.test(f);
+/**
+ * ORV-146: a test file is a basename ending in `.test.` and a script or module extension, with no
+ * `.stories.` segment (Storybook loads such a file as a story) and not in the record folders.
+ */
+const isTestFile = (f) => {
+  const base = f.slice(f.lastIndexOf("/") + 1);
+  return (
+    /\.test\.(?:ts|tsx|js|mjs|cjs|mts|cts)$/.test(base) &&
+    !base.includes(".stories.") &&
+    !/^(?:\.orivilo|\.quality-gate)(?:\/|$)/.test(f)
+  );
+};
 
 /** ORV-146: docs are `docs/**` and a `*.md` outside the protected folders. */
 const isDocsFile = (f) => f.startsWith("docs/") || (f.endsWith(".md") && !isProtected(f));
@@ -147,14 +178,18 @@ function qaProblems(root, issue, tasks, n, head, changedStories, storyTitleOf, c
   const qas = tasks
     .map((t) => readJsonIfExists(join(taskDir(root, issue, t.id), "qa.json")))
     .filter((q) => q !== null);
-  const q = latest(qas, (x) => time(x.recorded_at, "a qa.json"));
-  if (q === undefined) return [`no qa.json for ${issue} on ${head}`];
-  const r = q.report;
-  if (r.head_sha !== head && !carriesOver(r.head_sha)) {
+  const last = latest(qas, (x) => time(x.recorded_at, "a qa.json"));
+  if (last === undefined) return [`no qa.json for ${issue} on ${head}`];
+  // A later qa.json on a head that is neither this one nor carried makes the evidence stale; a
+  // later one carried from an older head gives way to a verdict on this head (ORV-146 SEC-2).
+  const lastSha = last.report.head_sha;
+  if (lastSha !== head && !(typeof lastSha === "string" && carriesOver(lastSha))) {
     return [
-      `the qa.json evidence is stale: the latest qa.json is for ${r.head_sha}, the head is ${head}`,
+      `the qa.json evidence is stale: the latest qa.json is for ${lastSha}, the head is ${head}`,
     ];
   }
+  const q = pickVerdict(qas, head, carriesOver, "a qa.json");
+  const r = q.report;
   const out = [];
   if (r.pr !== n)
     out.push(`the latest qa.json for ${issue} is for PR ${r.pr}, not PR ${n} (head ${head})`);
@@ -198,16 +233,11 @@ export function carriesApprove(merge, pr) {
  */
 function reviewerApproves(tasks, head, carriesOver) {
   const results = tasks
-    .filter(
-      (t) =>
-        t.envelope?.role === "reviewer" &&
-        t.result?.contract === "reviewer.v1" &&
-        typeof t.result.report?.head_sha === "string" &&
-        (t.result.report.head_sha === head || carriesOver(t.result.report.head_sha)),
-    )
+    .filter((t) => t.envelope?.role === "reviewer" && t.result?.contract === "reviewer.v1")
     .map((t) => t.result);
-  const r = latest(results, (x) => time(x.recorded_at, "a reviewer.v1 result"));
-  return r?.report.verdict === "approve";
+  return (
+    pickVerdict(results, head, carriesOver, "a reviewer.v1 result")?.report.verdict === "approve"
+  );
 }
 
 /**
