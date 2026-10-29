@@ -1,5 +1,6 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { authRoute } from "./auth-route.ts";
+import { captureLines, expectLineShape } from "./log-testing.ts";
 import { type Consumed, RateLimitUnavailable } from "./rate-limit.ts";
 
 interface Body {
@@ -16,9 +17,30 @@ const wrap = (
   consumeSignIn: (r: Request) => Promise<Consumed> = allowed,
 ) => authRoute(handler, { consumeSignIn });
 
-afterEach(() => vi.restoreAllMocks());
+const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+const SEEDED_ID = "6f1c1f0e-3f5a-4c7e-9b1d-2a8e5d4c3b21";
+const withId = (id: string, headers: Record<string, string> = {}) =>
+  new Request("http://localhost:3000/api/auth/sign-in/social", {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-request-id": id, ...headers },
+  });
 
-// ORV-122 rows 12, 20 and 24: the wrapper's header, bodies, request id and log line.
+let capture: ReturnType<typeof captureLines> | undefined;
+beforeEach(() => {
+  capture = captureLines();
+});
+const linesOf = () => (capture?.lines ?? []).map((line) => expectLineShape(line));
+
+afterEach(() => {
+  // Row 15: every line any test here wrote has the shape, asserted or not.
+  linesOf();
+  capture?.restore();
+  capture = undefined;
+  vi.restoreAllMocks();
+});
+
+// ORV-122 rows 12, 20 and 24 and ORV-141 rows 2, 12, 13 and 15: the wrapper's header, bodies,
+// request id and boundary line.
 describe("authRoute", () => {
   it("turns a 429 into Retry-After and the RATE_LIMITED body", async () => {
     const res = await wrap(
@@ -39,37 +61,130 @@ describe("authRoute", () => {
     expect(res.headers.get("x-request-id")).toBe(body.error.requestId);
   });
 
-  it("a store failure answers 503", async () => {
-    vi.spyOn(console, "error").mockImplementation(() => {});
+  // Row 12.
+  it("a store failure answers 503 and logs once", async () => {
+    const handler = vi.fn(async () => new Response("ok"));
     const res = await wrap(async () => {
       throw new RateLimitUnavailable();
-    })(request);
+    })(withId(SEEDED_ID));
     expect(res.status).toBe(503);
     const body = (await res.json()) as Body;
     expect(body).toEqual({
       error: {
         code: "SERVICE_UNAVAILABLE",
         message: "Service unavailable. Try again later.",
-        requestId: expect.any(String),
+        requestId: SEEDED_ID,
         retryable: true,
       },
     });
-    expect(res.headers.get("x-request-id")).toBe(body.error.requestId);
+    expect(res.headers.get("x-request-id")).toBe(SEEDED_ID);
+    expect(capture?.lines).toHaveLength(1);
+    expect(capture?.lines[0]?.stream).toBe("error");
+    expect(linesOf()).toEqual([
+      {
+        level: "error",
+        requestId: SEEDED_ID,
+        route: "api/auth",
+        durationMs: expect.any(Number),
+        outcome: "unavailable",
+        reason: "rate-limit",
+        status: 503,
+      },
+    ]);
+    // A sign-in count that answers unavailable never reaches the handler.
+    capture?.lines.splice(0);
+    const refused = await wrap(handler, async () => ({ ok: false, reason: "unavailable" }))(
+      withId(SEEDED_ID),
+    );
+    expect(refused.status).toBe(503);
+    expect(handler).not.toHaveBeenCalled();
   });
 
-  it("a store failure logs one line by name only", async () => {
-    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+  // Row 2, the api/auth boundary: the client's value is never kept.
+  it("never keeps the client's id", async () => {
     const res = await wrap(async () => {
       throw new RateLimitUnavailable();
-    })(request);
-    expect(log).toHaveBeenCalledTimes(1);
-    const line = JSON.parse(String(log.mock.calls[0]?.[0]));
-    expect(line).toEqual({
-      level: "error",
-      requestId: res.headers.get("x-request-id"),
-      route: "auth",
-      outcome: "unavailable",
+    })(withId("client-chosen-id"));
+    const id = res.headers.get("x-request-id");
+    expect(id).toMatch(UUID_V4);
+    expect(id).not.toBe("client-chosen-id");
+    expect(((await res.json()) as Body).error.requestId).toBe(id);
+    expect(linesOf().map((line) => line["requestId"])).toEqual([id]);
+    // A handler answer gets the same fresh id, and two requests get two ids.
+    const passed = await wrap(async () => new Response("ok"))(withId("client-chosen-id"));
+    const other = await wrap(async () => new Response("ok"))(withId("client-chosen-id"));
+    expect(passed.headers.get("x-request-id")).toMatch(UUID_V4);
+    expect(passed.headers.get("x-request-id")).not.toBe(other.headers.get("x-request-id"));
+    expect(linesOf().at(-1)?.["requestId"]).toBe(other.headers.get("x-request-id"));
+  });
+
+  // Row 13.
+  it("every answer carries the request id and one line", async () => {
+    const handler = async () => {
+      const headers = new Headers({ "content-type": "text/plain" });
+      headers.append("set-cookie", "a=1; Path=/; HttpOnly");
+      headers.append("set-cookie", "b=2; Path=/; HttpOnly");
+      return new Response("fine", { status: 200, headers });
+    };
+    const get = new Request("http://localhost:3000/api/auth/get-session", {
+      headers: { "x-request-id": SEEDED_ID },
     });
+    const res = await wrap(handler)(get);
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe("fine");
+    expect(res.headers.get("x-request-id")).toBe(SEEDED_ID);
+    expect(res.headers.get("content-type")).toBe("text/plain");
+    expect(res.headers.getSetCookie()).toEqual(["a=1; Path=/; HttpOnly", "b=2; Path=/; HttpOnly"]);
+    expect(capture?.lines[0]?.stream).toBe("log");
+    expect(linesOf()).toEqual([
+      {
+        level: "info",
+        requestId: SEEDED_ID,
+        route: "api/auth",
+        durationMs: expect.any(Number),
+        outcome: "ok",
+        status: 200,
+      },
+    ]);
+
+    capture?.lines.splice(0);
+    const boom = new Error("ana@example.com");
+    await expect(
+      wrap(async () => {
+        throw boom;
+      })(get),
+    ).rejects.toBe(boom);
+    expect(capture?.lines).toHaveLength(1);
+    expect(capture?.lines[0]?.stream).toBe("error");
+    const [thrown] = linesOf();
+    expect(thrown).toEqual({
+      level: "error",
+      requestId: SEEDED_ID,
+      route: "api/auth",
+      durationMs: expect.any(Number),
+      outcome: "failed",
+      reason: "unexpected",
+      errorName: "Error",
+    });
+    expect(String(capture?.lines[0]?.args[0])).not.toContain("ana@example.com");
+  });
+
+  it("reads a redirect, a refusal and Better Auth's own 503 from the status", async () => {
+    const redirect = await wrap(async () =>
+      Response.redirect("http://localhost:3000/account", 302),
+    )(withId(SEEDED_ID));
+    expect(redirect.status).toBe(302);
+    expect(redirect.headers.get("x-request-id")).toBe(SEEDED_ID);
+    expect(redirect.headers.get("location")).toBe("http://localhost:3000/account");
+    await wrap(async () => new Response("no", { status: 401 }))(withId(SEEDED_ID));
+    await wrap(async () => new Response("down", { status: 503 }))(withId(SEEDED_ID));
+    expect(
+      linesOf().map(({ level, outcome, status, reason }) => ({ level, outcome, status, reason })),
+    ).toEqual([
+      { level: "info", outcome: "ok", status: 302, reason: undefined },
+      { level: "info", outcome: "refused", status: 401, reason: undefined },
+      { level: "error", outcome: "unavailable", status: 503, reason: undefined },
+    ]);
   });
 
   it("counts a sign-in first; refused, the handler never runs", async () => {
@@ -83,8 +198,29 @@ describe("authRoute", () => {
     expect(res.headers.get("x-request-id")).toBe(((await res.json()) as Body).error.requestId);
   });
 
+  it("a refused sign-in is one warn line, limited, with no reason", async () => {
+    await wrap(
+      async () => new Response("ok"),
+      async () => ({
+        ok: false,
+        reason: "limited",
+        retryAfter: 42,
+      }),
+    )(withId(SEEDED_ID));
+    expect(capture?.lines[0]?.stream).toBe("warn");
+    expect(linesOf()).toEqual([
+      {
+        level: "warn",
+        requestId: SEEDED_ID,
+        route: "api/auth",
+        durationMs: expect.any(Number),
+        outcome: "limited",
+        status: 429,
+      },
+    ]);
+  });
+
   it("a sign-in count that fails or throws answers 503 and logs once", async () => {
-    const log = vi.spyOn(console, "error").mockImplementation(() => {});
     const handler = vi.fn(async () => new Response("ok"));
     for (const consume of [
       async (): Promise<Consumed> => ({ ok: false, reason: "unavailable" }),
@@ -95,8 +231,9 @@ describe("authRoute", () => {
       expect((await wrap(handler, consume)(request)).status).toBe(503);
     }
     expect(handler).not.toHaveBeenCalled();
-    expect(log).toHaveBeenCalledTimes(2);
-    expect(String(log.mock.calls[1]?.[0])).not.toContain("secret detail");
+    expect(capture?.lines).toHaveLength(2);
+    expect(linesOf().map((line) => line["reason"])).toEqual(["rate-limit", "rate-limit"]);
+    expect(String(capture?.lines[1]?.args[0])).not.toContain("secret detail");
   });
 
   it("counts only POST requests under /api/auth/sign-in/", async () => {
@@ -156,7 +293,6 @@ describe("authRoute", () => {
   });
 
   it("a count that throws before it returns a promise answers 503 and logs once", async () => {
-    const log = vi.spyOn(console, "error").mockImplementation(() => {});
     const handler = vi.fn(async () => new Response("ok"));
     const res = await wrap(handler, () => {
       throw new Error("secret detail");
@@ -166,8 +302,9 @@ describe("authRoute", () => {
     expect(body.error.code).toBe("SERVICE_UNAVAILABLE");
     expect(res.headers.get("x-request-id")).toBe(body.error.requestId);
     expect(handler).not.toHaveBeenCalled();
-    expect(log).toHaveBeenCalledTimes(1);
-    expect(String(log.mock.calls[0]?.[0])).not.toContain("secret detail");
+    expect(capture?.lines).toHaveLength(1);
+    linesOf();
+    expect(String(capture?.lines[0]?.args[0])).not.toContain("secret detail");
   });
 
   it("rethrows any other error and passes a 200 through", async () => {
@@ -177,7 +314,9 @@ describe("authRoute", () => {
         throw boom;
       })(request),
     ).rejects.toBe(boom);
-    const ok = new Response("fine", { status: 200 });
-    expect(await wrap(async () => ok)(request)).toBe(ok);
+    const res = await wrap(async () => new Response("fine", { status: 200 }))(request);
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe("fine");
+    expect(res.headers.get("x-request-id")).toMatch(UUID_V4);
   });
 });
