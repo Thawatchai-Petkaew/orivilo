@@ -1428,11 +1428,11 @@ describe("the choices of the analyser, one at a time", () => {
 declare const performance: { now(): number }; // the engine tsconfig has no DOM lib; a timer for the time bounds
 /** The framework timeout of a test that guards a time bound: above the bound, so vitest never pre-empts the guard. */
 const HEAVY_TIMEOUT = 60_000;
-/** The time bound of a route on 1 MB, sized for CI. */
-const TIME_BOUND_MS = 2000;
-/** The bounds of the 2 MB meta description and the 2 MB title tests, sized for CI the way `TIME_BOUND_MS` is (ORV-139): at least 10 times the slowest local time seen while `pnpm test` ran. */
-const DESCRIPTION_BOUND_MS = 6000;
-const TITLE_BOUND_MS = 4000;
+/** The time bound of a route on 1 MB, sized for CI: 1 MB of distinct hex colours took 1,042 ms on CI run 40835251401, so at least 2 times that. */
+const TIME_BOUND_MS = 3000;
+/** The bounds of the 2 MB meta description and the 2 MB title tests, sized for CI the way `TIME_BOUND_MS` is (ORV-139): at least 2 times the slowest CI time seen. The description took 3,005 ms (ORV-139 comment 10271) and the title 2,109 ms (run 40878076151). */
+const DESCRIPTION_BOUND_MS = 7000;
+const TITLE_BOUND_MS = 5000;
 const MB = 1024 * 1024;
 
 const sheetUrl = (i: number) => `https://clinic.example/s${i}.css`;
