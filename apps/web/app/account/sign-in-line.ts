@@ -6,18 +6,25 @@ import type { SignInState } from "./actions";
 export interface SignInLabels {
   account: WebMessages["account"];
   wait: WebMessages["wait"];
-  /** The plain failure line, `saved.errors.failed`. */
-  failed: string;
+}
+
+/** The sentences under the sign-in button; `retry` is kept whole on one line (design.md R2). */
+export interface SignInLine {
+  reason: string;
+  retry?: string;
 }
 
 /**
- * The sentence under the sign-in button, or `null` before any refusal. A wait that is not a
- * positive number falls back to the plain failure line rather than print an empty one.
+ * The line under the sign-in button, or `null` before any refusal. A wait that is not a positive
+ * number falls back to the plain failure line (`account.failed`) rather than print an empty one.
  */
-export function signInLine(state: SignInState, labels: SignInLabels): string | null {
+export function signInLine(state: SignInState, labels: SignInLabels): SignInLine | null {
   if (!state) return null;
   if (state.error === "rate-limited" && Number.isFinite(state.retryAfter) && state.retryAfter > 0) {
-    return fill(labels.account.rateLimited, { wait: formatWait(labels.wait, state.retryAfter) });
+    return {
+      reason: labels.account.limitReason,
+      retry: fill(labels.account.limitRetry, { wait: formatWait(labels.wait, state.retryAfter) }),
+    };
   }
-  return labels.failed;
+  return { reason: labels.account.failed };
 }
