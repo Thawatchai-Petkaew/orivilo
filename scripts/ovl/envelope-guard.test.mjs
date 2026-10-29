@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -9,6 +9,7 @@ import {
   heartbeatLines,
   hook,
   makeRepo,
+  outsideWorktree,
   registeredCommands,
   runCommand,
   runNode,
@@ -19,6 +20,7 @@ import {
   seedGrant,
   seedTask,
   seedVerdict,
+  twoCheckouts,
   validEnvelope,
 } from "./hook-test-kit.mjs";
 
@@ -658,15 +660,47 @@ test("S-6: with the last round unreviewed the guard asks for a verdict, not for 
   assert.equal(existsSync(join(root, ".orivilo/runs/ORV-1/owner-grant-1.json")), false);
 });
 
-test("AC 52: a second builder envelope is blocked while one is open in this checkout, any issue", () => {
+test("ORV-146: a second builder envelope is blocked while one is open for the same issue", () => {
+  const root = makeRepo();
+  seedTask(root, "ORV-1", "ORV-1-other", {
+    envelope: validEnvelope(root, { task_id: "ORV-1-other" }),
+  });
+  const r = dispatch(root, validEnvelope(root, { task_id: "ORV-1-b" }));
+  assert.equal(r.code, 2);
+  assert.match(r.stderr, /ORV-1-other/);
+  assert.match(r.stderr, /close-envelope\.mjs ORV-1-other/);
+});
+
+test("ORV-146: a bound open envelope of another issue does not block the role", () => {
+  const root = makeRepo();
+  seedBoundBuilder(root, "ORV-9", "ORV-9-other", "2026-10-23T10:00:00.000Z", true);
+  const r = dispatch(root, validEnvelope(root));
+  assert.equal(r.code, 0, r.stderr);
+});
+
+test("ORV-146 SEC-4: an unbound open envelope of the same role blocks a dispatch for any issue", () => {
   const root = makeRepo();
   seedTask(root, "ORV-9", "ORV-9-other", {
     envelope: validEnvelope(root, { task_id: "ORV-9-other", issue: "ORV-9" }),
   });
   const r = dispatch(root, validEnvelope(root));
   assert.equal(r.code, 2);
-  assert.match(r.stderr, /ORV-9-other/);
+  assert.match(r.stderr, /ORV-9-other of ORV-9 is open and no subagent has started on it/);
   assert.match(r.stderr, /close-envelope\.mjs ORV-9-other/);
+  assert.equal(savedEnvelope(root, "ORV-1", "ORV-1-a"), false);
+  const reviewer = dispatch(
+    root,
+    validEnvelope(root, { task_id: "ORV-1-rev", role: "reviewer", skills: [], write_set: [] }),
+  );
+  assert.equal(reviewer.code, 0, reviewer.stderr);
+});
+
+test("ORV-146 SEC-4: a bound open envelope of the same role and issue blocks", () => {
+  const root = makeRepo();
+  seedBoundBuilder(root, "ORV-1", "ORV-1-bound", "2026-10-23T10:00:00.000Z", true);
+  const r = dispatch(root, validEnvelope(root, { task_id: "ORV-1-b" }));
+  assert.equal(r.code, 2);
+  assert.match(r.stderr, /ORV-1-bound is still open/);
 });
 
 test("AC 52: another role's open envelope does not block, and a closed one does not either", () => {
@@ -738,4 +772,196 @@ test("C-2: two builder envelopes dispatched at the same moment never both run", 
       assert.equal(JSON.parse(readFileSync(join(dir(t), "closed.json"), "utf8")).reason, "denied");
     }
   }
+});
+
+// ---- ORV-146 point 1: any worktree of this repo whose branch names the envelope issue ----
+
+const savedEnvelope = (main, issue, task) =>
+  existsSync(join(main, ".orivilo", "runs", issue, task, "envelope.json"));
+
+test("ORV-146: a session in the main checkout dispatches a builder into a worktree of another issue", () => {
+  const { main, wt } = twoCheckouts();
+  const env = validEnvelope(wt, { task_id: "ORV-2-a", issue: "ORV-2" });
+  const r = dispatch(main, env, { cwd: wt });
+  assert.equal(r.code, 0, r.stderr);
+  assert.equal(savedEnvelope(main, "ORV-2", "ORV-2-a"), true);
+});
+
+test("ORV-146: the issue is read from the envelope worktree's branch, not the session checkout's", () => {
+  const { main, wt } = twoCheckouts("main");
+  const ok = dispatch(main, validEnvelope(wt, { task_id: "ORV-2-a", issue: "ORV-2" }));
+  assert.equal(ok.code, 0, ok.stderr);
+  const wrong = dispatch(main, validEnvelope(wt, { task_id: "ORV-1-a", issue: "ORV-1" }));
+  assert.equal(wrong.code, 2);
+  assert.match(wrong.stderr, /envelope issue ORV-1 differs from the issue ORV-2 in branch/);
+});
+
+test("ORV-146: a session in a worktree dispatches into the main checkout and into a sibling", () => {
+  const { main, wt } = twoCheckouts();
+  const toMain = dispatch(wt, validEnvelope(main, { task_id: "ORV-1-a" }));
+  assert.equal(toMain.code, 0, toMain.stderr);
+  seedTask(main, "ORV-1", "ORV-1-a", {
+    agent: { agent_id: "a-ORV-1-a", agent_type: "builder", started_at: "2026-10-23T10:00:00.000Z" },
+  });
+  const self = dispatch(wt, validEnvelope(wt, { task_id: "ORV-2-a", issue: "ORV-2" }));
+  assert.equal(self.code, 0, self.stderr);
+});
+
+test("ORV-146: every issue role is judged by the branch of its envelope worktree", () => {
+  const { main, wt } = twoCheckouts();
+  const roles = {
+    reviewer: { skills: [], write_set: [] },
+    qa: { skills: ["quality-gate", "webapp-testing"], write_set: [] },
+    security: { skills: ["quality-gate"], write_set: [] },
+    designer: { skills: ["frontend-design", "webapp-testing"], write_set: ["docs/spec.md"] },
+  };
+  for (const [role, shape] of Object.entries(roles)) {
+    const task_id = `ORV-2-${role}`;
+    const base = { task_id, issue: "ORV-2", role, ...shape };
+    const ok = dispatch(main, validEnvelope(wt, base));
+    assert.equal(ok.code, 0, `${role}: ${ok.stderr}`);
+    const bad = dispatch(
+      main,
+      validEnvelope(wt, { ...base, task_id: `ORV-1-${role}`, issue: "ORV-1" }),
+    );
+    assert.equal(bad.code, 2, role);
+    assert.match(bad.stderr, /differs from the issue ORV-2 in branch/, role);
+  }
+});
+
+test("ORV-146: a path that is no worktree of this repo is blocked, whatever its branch", () => {
+  const { main } = twoCheckouts();
+  const stranger = makeRepo("feature/ORV-3-stranger");
+  const r = dispatch(main, validEnvelope(stranger, { task_id: "ORV-3-a", issue: "ORV-3" }));
+  assert.equal(r.code, 2);
+  assert.match(r.stderr, /worktree .* is not a git worktree of this repo/);
+  assert.equal(savedEnvelope(main, "ORV-3", "ORV-3-a"), false);
+  const gone = dispatch(
+    main,
+    validEnvelope(main, { task_id: "ORV-1-b", worktree: `${main}/nope` }),
+  );
+  assert.equal(gone.code, 2);
+  assert.match(gone.stderr, /is not a git worktree of this repo/);
+});
+
+test("ORV-146: a worktree on a detached head or a branch with no key is blocked", () => {
+  const { main, wt } = twoCheckouts();
+  execFileSync("git", ["checkout", "-q", "--detach"], { cwd: wt });
+  const detached = dispatch(main, validEnvelope(wt, { task_id: "ORV-2-a", issue: "ORV-2" }));
+  assert.equal(detached.code, 2);
+  assert.match(detached.stderr, /names no issue key/);
+  execFileSync("git", ["checkout", "-q", "-b", "scratch"], { cwd: wt });
+  const keyless = dispatch(main, validEnvelope(wt, { task_id: "ORV-2-b", issue: "ORV-2" }));
+  assert.equal(keyless.code, 2);
+  assert.match(keyless.stderr, /branch "scratch" of worktree .* names no issue key/);
+});
+
+test("ORV-146: a worktree other than the session checkout is still refused for a role with no issue check", () => {
+  const { main, wt } = twoCheckouts();
+  const env = validEnvelope(wt, { role: "architect", skills: [], write_set: [ADR] });
+  const r = dispatch(main, env);
+  assert.equal(r.code, 2);
+  assert.match(r.stderr, /must be this checkout/);
+});
+
+test("ORV-146: the cwd of the call must still equal the envelope worktree", () => {
+  const { main, wt } = twoCheckouts();
+  const r = dispatch(main, validEnvelope(wt, { task_id: "ORV-2-a", issue: "ORV-2" }), {
+    cwd: main,
+  });
+  assert.equal(r.code, 2);
+  assert.match(r.stderr, /cwd .* must equal the envelope worktree/);
+});
+
+test("ORV-146: builders of two issues run at once; a second builder of one issue is blocked", () => {
+  const { main, wt } = twoCheckouts();
+  const first = dispatch(main, validEnvelope(main, { task_id: "ORV-1-a" }), { cwd: main });
+  assert.equal(first.code, 0, first.stderr);
+  const early = dispatch(main, validEnvelope(wt, { task_id: "ORV-2-a", issue: "ORV-2" }), {
+    cwd: wt,
+  });
+  assert.equal(early.code, 2, "the first builder is not bound yet");
+  seedTask(main, "ORV-1", "ORV-1-a", {
+    agent: { agent_id: "a-ORV-1-a", agent_type: "builder", started_at: "2026-10-23T10:00:00.000Z" },
+  });
+  const other = dispatch(main, validEnvelope(wt, { task_id: "ORV-2-a", issue: "ORV-2" }), {
+    cwd: wt,
+  });
+  assert.equal(other.code, 0, other.stderr);
+  const again = dispatch(main, validEnvelope(wt, { task_id: "ORV-2-b", issue: "ORV-2" }), {
+    cwd: wt,
+  });
+  assert.equal(again.code, 2);
+  assert.match(again.stderr, /ORV-2-a is still open/);
+  const reviewer = dispatch(
+    main,
+    validEnvelope(wt, {
+      task_id: "ORV-2-rev",
+      issue: "ORV-2",
+      role: "reviewer",
+      skills: [],
+      write_set: [],
+    }),
+    { cwd: wt },
+  );
+  assert.equal(reviewer.code, 0, reviewer.stderr);
+});
+
+test("ORV-146 SEC-4: two builder envelopes of different issues dispatched at the same moment never both run", async () => {
+  for (let trial = 0; trial < 4; trial++) {
+    const { main, wt } = twoCheckouts();
+    const calls = [
+      agentInput(main, validEnvelope(main, { task_id: "ORV-1-a" })),
+      agentInput(main, validEnvelope(wt, { task_id: "ORV-2-a", issue: "ORV-2" })),
+    ];
+    const runs = await Promise.all(calls.map(dispatchAsync));
+    const why = `trial ${trial}: ${runs.map((r) => `${r.code} ${r.stderr}`).join(" | ")}`;
+    const allowed = runs.filter((r) => r.code === 0).length;
+    assert.ok(allowed <= 1, why);
+    const tasks = [
+      ["ORV-1", "ORV-1-a"],
+      ["ORV-2", "ORV-2-a"],
+    ];
+    const dir = ([issue, task]) => join(main, ".orivilo/runs", issue, task);
+    // An envelope still open is one that runs; any other that was saved is closed as denied.
+    const open = tasks.filter(
+      (t) => existsSync(join(dir(t), "envelope.json")) && !existsSync(join(dir(t), "closed.json")),
+    );
+    assert.equal(open.length, allowed, why);
+    for (const t of tasks.filter((t) => existsSync(join(dir(t), "closed.json")))) {
+      assert.equal(JSON.parse(readFileSync(join(dir(t), "closed.json"), "utf8")).reason, "denied");
+    }
+  }
+});
+
+// ---- ORV-146 SEC-3: only the paths write-guard judges ----
+
+test("ORV-146 SEC-3: a worktree outside .claude/worktrees is blocked for every issue role", () => {
+  const { main } = twoCheckouts();
+  const out = outsideWorktree(main);
+  const roles = {
+    builder: { skills: ["quality-gate"], write_set: ["scripts/ovl/x.mjs"] },
+    reviewer: { skills: [], write_set: [] },
+    qa: { skills: ["quality-gate", "webapp-testing"], write_set: [] },
+    security: { skills: ["quality-gate"], write_set: [] },
+    designer: { skills: ["frontend-design", "webapp-testing"], write_set: ["docs/spec.md"] },
+  };
+  for (const [role, shape] of Object.entries(roles)) {
+    const task_id = `ORV-3-${role}`;
+    const r = dispatch(main, validEnvelope(out, { task_id, issue: "ORV-3", role, ...shape }));
+    assert.equal(r.code, 2, role);
+    assert.match(r.stderr, /must be the main working tree or a folder under .*\.claude\/worktrees/);
+    assert.equal(savedEnvelope(main, "ORV-3", task_id), false, role);
+  }
+});
+
+test("ORV-146 SEC-3: a worktree nested below .claude/worktrees/<name> is blocked", () => {
+  const { main } = twoCheckouts();
+  const nested = join(main, ".claude", "worktrees", "a", "b");
+  execFileSync("git", ["worktree", "add", "-q", "-b", "feature/ORV-3-nested", nested], {
+    cwd: main,
+  });
+  const r = dispatch(main, validEnvelope(nested, { task_id: "ORV-3-a", issue: "ORV-3" }));
+  assert.equal(r.code, 2);
+  assert.match(r.stderr, /must be the main working tree or a folder under/);
 });

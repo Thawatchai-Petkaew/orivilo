@@ -27,6 +27,30 @@ export function makeRepo(branch = "feature/ORV-1-test") {
   return root;
 }
 
+const git = (cwd, ...args) => execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
+
+/**
+ * A repo with one commit on `branch` and a second worktree on its own branch `second`, under
+ * `.claude/worktrees/second` as the ovl skill lays it out: {main, wt}.
+ */
+export function twoCheckouts(branch = "feature/ORV-1-test", second = "feature/ORV-2-second") {
+  const main = makeRepo(branch);
+  git(main, "config", "user.email", "t@example.com");
+  git(main, "config", "user.name", "t");
+  git(main, "add", "-A");
+  git(main, "commit", "-q", "-m", "base");
+  const wt = join(main, ".claude", "worktrees", "second");
+  git(main, "worktree", "add", "-q", "-b", second, wt);
+  return { main, wt };
+}
+
+/** A worktree of `main` on a new branch `branch`, made in a temp folder outside `.claude/worktrees`. */
+export function outsideWorktree(main, branch = "feature/ORV-3-outside") {
+  const wt = join(realpathSync(mkdtempSync(join(tmpdir(), "ovl-wt-"))), "outside");
+  git(main, "worktree", "add", "-q", "-b", branch, wt);
+  return wt;
+}
+
 export function validEnvelope(root, overrides = {}) {
   return {
     envelope_version: 1,
@@ -210,3 +234,54 @@ export const postAgentFailureInput = (root, prompt, extra = {}) => {
   const base = fixture("PostToolUseFailure-Agent-derived-from-binary");
   return { ...base, cwd: root, tool_input: { ...base.tool_input, prompt }, ...extra };
 };
+
+export const gitIn = (cwd, ...args) =>
+  execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@t", ...args], {
+    cwd,
+    encoding: "utf8",
+  }).trim();
+export const commitFile = (cwd, file, text = `${file}\n`) => {
+  writeFileSync(join(cwd, file), text);
+  gitIn(cwd, "add", file);
+  gitIn(cwd, "commit", "-q", "-m", `edit ${file}`);
+  return gitIn(cwd, "rev-parse", "HEAD");
+};
+
+/**
+ * origin (bare) with develop; `work` is a clone on feature/ORV-1-x with one commit f.txt (h0);
+ * `other` is a second clone that advances develop. Nothing is fetched into work yet. `cloneOrigin()`
+ * makes one more clone of origin as it is now.
+ */
+export function mergeRepo() {
+  const root = mkdtempSync(join(tmpdir(), "mergegit-"));
+  const origin = join(root, "origin.git");
+  gitIn(root, "init", "-q", "--bare", "-b", "develop", origin);
+  const seed = join(root, "seed");
+  gitIn(root, "init", "-q", "-b", "develop", seed);
+  commitFile(seed, "a.txt");
+  gitIn(seed, "remote", "add", "origin", origin);
+  gitIn(seed, "push", "-q", "origin", "develop");
+  const work = join(root, "work");
+  gitIn(root, "clone", "-q", origin, work);
+  gitIn(work, "checkout", "-q", "-b", "feature/ORV-1-x");
+  const h0 = commitFile(work, "f.txt");
+  const other = join(root, "other");
+  gitIn(root, "clone", "-q", origin, other);
+  const advance = (file, text) => {
+    const sha = commitFile(other, file, text);
+    gitIn(other, "push", "-q", "origin", "develop");
+    return sha;
+  };
+  const mergeBase = () => {
+    gitIn(work, "fetch", "-q", "origin", "develop");
+    gitIn(work, "merge", "-q", "--no-ff", "-m", "merge develop", "origin/develop");
+    return gitIn(work, "rev-parse", "HEAD");
+  };
+  let clones = 0;
+  const cloneOrigin = () => {
+    const dir = join(root, `clone-${clones++}`);
+    gitIn(root, "clone", "-q", origin, dir);
+    return dir;
+  };
+  return { work, h0, advance, mergeBase, cloneOrigin };
+}
