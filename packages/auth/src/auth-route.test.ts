@@ -91,13 +91,69 @@ describe("authRoute", () => {
         status: 503,
       },
     ]);
-    // A sign-in count that answers unavailable never reaches the handler.
+    // A sign-in count that answers unavailable never reaches the handler, and the answer carries
+    // the request's id in the body, the header and the line.
     capture?.lines.splice(0);
     const refused = await wrap(handler, async () => ({ ok: false, reason: "unavailable" }))(
       withId(SEEDED_ID),
     );
     expect(refused.status).toBe(503);
     expect(handler).not.toHaveBeenCalled();
+    expect(refused.headers.get("x-request-id")).toBe(SEEDED_ID);
+    expect(await refused.json()).toEqual({
+      error: {
+        code: "SERVICE_UNAVAILABLE",
+        message: "Service unavailable. Try again later.",
+        requestId: SEEDED_ID,
+        retryable: true,
+      },
+    });
+    expect(capture?.lines).toHaveLength(1);
+    expect(linesOf()).toEqual([
+      {
+        level: "error",
+        requestId: SEEDED_ID,
+        route: "api/auth",
+        durationMs: expect.any(Number),
+        outcome: "unavailable",
+        reason: "rate-limit",
+        status: 503,
+      },
+    ]);
+  });
+
+  // ORV-141 row 12: a 429 authRoute writes itself carries the request's id, not a fresh one.
+  it.each([
+    {
+      name: "a refused sign-in count",
+      consume: async (): Promise<Consumed> => ({ ok: false, reason: "limited", retryAfter: 42 }),
+      handler: async () => new Response("ok"),
+      handlerCalls: 0,
+    },
+    {
+      name: "the handler's own 429",
+      consume: allowed,
+      handler: async () => new Response("{}", { status: 429, headers: { "X-Retry-After": "7" } }),
+      handlerCalls: 1,
+    },
+  ])("$name answers 429 on the request's id in the body, the header and the line", async (c) => {
+    const handler = vi.fn(c.handler);
+    const res = await wrap(handler, c.consume)(withId(SEEDED_ID));
+    expect(res.status).toBe(429);
+    expect(handler).toHaveBeenCalledTimes(c.handlerCalls);
+    expect(res.headers.get("x-request-id")).toBe(SEEDED_ID);
+    expect(((await res.json()) as Body).error.requestId).toBe(SEEDED_ID);
+    expect(capture?.lines).toHaveLength(1);
+    expect(linesOf()).toEqual([
+      {
+        level: "warn",
+        requestId: SEEDED_ID,
+        route: "api/auth",
+        durationMs: expect.any(Number),
+        outcome: "limited",
+        status: 429,
+      },
+    ]);
   });
 
   // Row 2, the api/auth boundary: the client's value is never kept.

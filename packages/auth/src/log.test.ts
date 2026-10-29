@@ -357,6 +357,8 @@ describe("atBoundary", () => {
   const ok: Ending = { level: "info", outcome: "ok" };
 
   it("writes exactly one line and returns the work's value", async () => {
+    // A frozen clock: the work takes no time, so durationMs is 0 whatever the machine's speed.
+    vi.useFakeTimers({ toFake: ["performance"] });
     await expect(atBoundary(context, async () => ({ value: 42, ending: ok }))).resolves.toBe(42);
     expect(capture.lines).toHaveLength(1);
     expect(expectLineShape(first())).toEqual({
