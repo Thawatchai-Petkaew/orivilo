@@ -130,6 +130,8 @@ From the parent's "Impact list", "Contract change, slice 5 only", each checked a
 | `fetchSpy` in A | `actions.test.ts` line 157 and every `new Response(...)` it resolves | None: a real `Response` has a real `body`. The error bodies `down` (line 814) and the `Response.json` 401 (line 393) read as before | A passes unchanged (B1) |
 | `llm-guardrails.test.ts`, scripts, stories | none builds a `FetchLike` or calls `openRouterComplete` (searched the checkout) | None | The search in the report |
 
+Addition, 2026-10-30 (ORV-160 slice 8, held from review ORV-176 finding S2). The last row is the record of these notes and is wrong for `llm-guardrails.test.ts`: its row 3 test builds a `FetchLike` (`doFetch`, line 193) and calls `openRouterComplete` (line 206), so it is one more consumer. PR 159 (`c054855`) moved its answer to `body: oneChunk({ ... })` (line 198), with `oneChunk` (line 411) and a module-scoped `declare class TextEncoder` (line 406) appended to the file, in the shape this section gives `fakeFetch`. Lines are those of `develop` at `b7e9d0d`. For scripts and stories the row held at `d8c9fa7`; the recorder script came later, in ORV-177.
+
 ## 5. Tests by acceptance row
 
 All new tests go in C under one block, `describe("ORV-160 slice 5 (ORV-176): client hardening, rows 17 and 26", ...)`, after the slice 2 block, with a comment that every answer in it is hand-written, not a recording (`orv160-form`).
@@ -217,6 +219,8 @@ Outside this file's write set, for the main session to place (most belong to sli
 3. `docs/specs/ORV-160/spec.md` line 107 (`orv160-answer-model`): "Today: ... (`openrouter.ts` line 121, `!body.model.startsWith(options.model)`)" is history once B1 merges; after it, line 121 is `if (!pinnedModel(body.model, options.model)) {`.
 4. `docs/specs/ORV-160/spec.md` line 67 (row 14) and `docs/specs/ORV-172/spec.md` line 39: the Red when names "the `if` that tests `body.model.startsWith(options.model)`"; lines 121 to 123 still hold the `if` and its throw (D6), so the mutation still makes row 14 red; only the quoted condition is stale.
 5. `docs/specs/ORV-121/tech.md` line 169: "`response.json()` has already parsed the number" stays true in substance (`JSON.parse` parses it now); no change needed.
+
+Addition, 2026-10-30 (ORV-160 slice 8). Items 1 to 3 are placed in parent spec v1.4 as re-pins and dated notes, found by their text (the line numbers above had moved). Item 4 is not: the parent's rule against row text changes keeps row 14's Red when as written, and the parent's v1.4 changelog line records why the mutation still holds. `docs/specs/ORV-172/spec.md` was not edited.
 
 ## Findings for the spec
 
