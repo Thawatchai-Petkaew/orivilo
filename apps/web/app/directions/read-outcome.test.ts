@@ -42,12 +42,13 @@ describe("readingResult", () => {
   it.each(["en", "th"] as const)("a spent AI budget yields only a notice (%s)", (locale) => {
     const { errors: localized } = webMessages[locale].saved;
     const result = readingResult(
-      { ok: false, error: "ai-spend-cap", code: "AI_SPEND_CAP", retryable: false },
+      { ok: false, error: "ai-spend-cap", code: "AI_SPEND_CAP", requestId: ID, retryable: false },
       localized,
       webMessages[locale].wait,
+      webMessages[locale].failure,
     );
     expect(result).toEqual({ notice: localized["ai-spend-cap"] });
-    expect(result).not.toHaveProperty("cardNotice");
+    expect(result).not.toHaveProperty("cardLines");
   });
 
   it("leaves a plain AI failure to the studio, with no card notice", () => {
