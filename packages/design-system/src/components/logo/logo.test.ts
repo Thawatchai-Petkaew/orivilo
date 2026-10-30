@@ -2,11 +2,17 @@
  * The Logo's geometry and sizing (ORV-118, rules `logo-geometry-1` and `logo-size-1`, spec rows 1,
  * 3 and 5, worked examples W1 to W5). Every drawn number is compared with the three brand files in
  * `docs/context/brand/assets/`, parsed here. Colours in those files are ignored: the tokens own
- * colour. The render cases are added with the component.
+ * colour. The render cases (rows 5, 7, 8) run the component through `renderToStaticMarkup`.
  */
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { LocaleProvider } from "../../i18n/LocaleProvider";
+import { en } from "../../i18n/messages/en";
+import { th } from "../../i18n/messages/th";
+import { Logo, type LogoProps } from "./Logo";
 import {
   DEFAULT_HEIGHT,
   GEOMETRY,
@@ -326,5 +332,185 @@ describe("W4: width follows from the viewBox ratio", () => {
       "20.00",
       "4.80",
     ]);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// The render cases: the component's markup (tech.md section 4, "Rendered markup").
+// ---------------------------------------------------------------------------------------------
+
+const render = (props: LogoProps = {}, locale: "th" | "en" = "th"): string =>
+  renderToStaticMarkup(
+    createElement(LocaleProvider, { locale, children: createElement(Logo, props) }),
+  );
+
+/** The attributes of the root `<svg>` start tag. */
+const rootAttrs = (markup: string): Attrs => attrsOf(/<svg\s[^>]*>/.exec(markup)?.[0] ?? "");
+
+describe("renders the markup of logo-api-1", () => {
+  it("is React's static output for a mark at 16, with the attribute order fixed", () => {
+    expect(render({ kind: "mark", height: 16 })).toBe(
+      '<svg xmlns="http://www.w3.org/2000/svg" class="ds-logo" data-kind="mark" data-form="16" data-tone="full" viewBox="0 0 150 150" width="16" height="16" role="img" aria-label="ORIVILO"><path class="ds-logo__ring" d="M 70.42 25.2 A 52.5 52.5 0 1 0 125.71 63.91" fill="none" stroke-width="34" stroke-linecap="round"></path><circle class="ds-logo__dot" cx="105.11" cy="34.49" r="15"></circle></svg>',
+    );
+  });
+
+  it("defaults to a horizontal lockup, 24 high, in full tone", () => {
+    const a = rootAttrs(render());
+    expect([a["data-kind"], a["height"], a["width"], a["data-tone"], a["data-form"]]).toEqual([
+      "horizontal",
+      "24",
+      "106.08",
+      "full",
+      "24",
+    ]);
+  });
+
+  it("draws the horizontal wordmark in a translate(190 45) group after the mark at the origin", () => {
+    const markup = render({ kind: "horizontal", height: 64 });
+    expect(markup).toContain('<g transform="translate(190 45)">');
+    expect(markup.indexOf("ds-logo__ring")).toBeLessThan(markup.indexOf("translate(190 45)"));
+    expect(rootAttrs(markup)["viewBox"]).toBe("0 0 663 150");
+  });
+
+  it("draws the stacked mark in translate(161.5 0) and the wordmark in translate(0 270)", () => {
+    const markup = render({ kind: "stacked", height: 80 });
+    expect(markup.indexOf('transform="translate(161.5 0)"')).toBeGreaterThan(-1);
+    expect(markup.indexOf('transform="translate(161.5 0)"')).toBeLessThan(
+      markup.indexOf('transform="translate(0 270)"'),
+    );
+    expect(rootAttrs(markup)["viewBox"]).toBe("0 0 473 375");
+  });
+
+  it("draws the wordmark in a stroked group and a filled group, with no ring and no ds-logo__dot", () => {
+    const markup = render({ kind: "wordmark", height: 20 });
+    expect(markup).toContain(
+      '<g class="ds-logo__strokes" fill="none" stroke-width="24" stroke-linecap="butt" stroke-linejoin="round">',
+    );
+    expect(markup).toContain('<g class="ds-logo__fills">');
+    expect(markup).not.toContain("ds-logo__ring");
+    expect(markup).not.toContain("ds-logo__dot");
+    const [strokes, fills] = markup.split('<g class="ds-logo__fills">');
+    expect(shapesOf(strokes ?? "")).toEqual(strokeElements());
+    expect(numbers(shapesOf(fills ?? "")[0]?.attrs["points"] ?? "")).toEqual(
+      GEOMETRY.wordmark.fills.polygon.flat(),
+    );
+    expect(rootAttrs(markup)["data-form"]).toBe("master");
+  });
+
+  it("writes the ring stroke of the form the height calls for", () => {
+    const stroke = (height: number) =>
+      shapesOf(render({ kind: "mark", height }))[0]?.attrs["stroke-width"];
+    expect([16, 19.9, 20, 24, 24.1, 120].map(stroke)).toEqual(["34", "34", "32", "32", "30", "30"]);
+  });
+
+  it("joins className after ds-logo", () => {
+    expect(rootAttrs(render({ className: "ms-2" }))["class"]).toBe("ds-logo ms-2");
+  });
+
+  it("carries no colour: no stroke, style or fill other than none, and no hex", () => {
+    for (const kind of ["mark", "wordmark", "horizontal", "stacked"] as const) {
+      const markup = render({ kind, height: 80, tone: "one-colour" });
+      expect(markup, kind).not.toMatch(/\sstroke="/);
+      expect(markup, kind).not.toMatch(/\sstyle="/);
+      expect(markup, kind).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
+      const fills = [...markup.matchAll(/\sfill="([^"]*)"/g)].map((m) => m[1]);
+      expect(
+        fills.every((f) => f === "none"),
+        kind,
+      ).toBe(true);
+    }
+  });
+
+  it("passes no prop through to the svg: style, fill, stroke, width and color are dropped", () => {
+    const props = { style: { color: "red" }, fill: "red", stroke: "red", width: 999, color: "red" };
+    const markup = render({ kind: "mark", height: 40, ...props } as LogoProps);
+    expect(markup).toBe(render({ kind: "mark", height: 40 }));
+  });
+
+  it("writes data-tone for the recipe and keeps the geometry the same in both tones", () => {
+    const full = render({ kind: "horizontal", tone: "full" });
+    const one = render({ kind: "horizontal", tone: "one-colour" });
+    expect(rootAttrs(one)["data-tone"]).toBe("one-colour");
+    expect(one.replace('data-tone="one-colour"', 'data-tone="full"')).toBe(full);
+  });
+
+  it("gives the same markup when asked twice", () => {
+    expect(render({ kind: "stacked", height: 61 })).toBe(render({ kind: "stacked", height: 61 }));
+  });
+});
+
+describe("never renders below the kind's minimum (the markup)", () => {
+  it("renders mark 12 at 16, wordmark 10 at 20, horizontal 10 at 20 and stacked 30 at 50", () => {
+    const heights = (
+      [
+        ["mark", 12],
+        ["wordmark", 10],
+        ["horizontal", 10],
+        ["stacked", 30],
+      ] as const
+    ).map(([kind, height]) => rootAttrs(render({ kind, height }))["height"]);
+    expect(heights).toEqual(["16", "20", "20", "50"]);
+  });
+
+  it("renders NaN and Infinity at the larger of 24 and the minimum, and 0 and -5 at the minimum", () => {
+    const at = (kind: LogoKind, height: number) => rootAttrs(render({ kind, height }))["height"];
+    for (const kind of ["mark", "wordmark", "horizontal"] as const) {
+      expect(at(kind, Number.NaN)).toBe("24");
+      expect(at(kind, Number.POSITIVE_INFINITY)).toBe("24");
+      expect(at(kind, 0)).toBe(String(MINIMUM[kind]));
+      expect(at(kind, -5)).toBe(String(MINIMUM[kind]));
+    }
+    expect(at("stacked", Number.NaN)).toBe("50");
+    expect(at("stacked", Number.POSITIVE_INFINITY)).toBe("50");
+    expect(at("stacked", -5)).toBe("50");
+  });
+
+  it("writes a data-form that agrees with the written height", () => {
+    const a = rootAttrs(render({ kind: "stacked", height: 60 }));
+    const b = rootAttrs(render({ kind: "stacked", height: 60.25 }));
+    expect([a["data-form"], b["data-form"]]).toEqual(["24", "master"]);
+  });
+});
+
+describe("names the image from the catalog", () => {
+  it("is role=img with the Thai and the English name of the catalog", () => {
+    for (const [locale, messages] of [
+      ["th", th],
+      ["en", en],
+    ] as const) {
+      const a = rootAttrs(render({}, locale));
+      expect(a["role"], locale).toBe("img");
+      expect(a["aria-label"], locale).toBe(messages.logo.name);
+      expect(a["aria-label"], locale).toBe("ORIVILO");
+      expect(a["aria-hidden"], locale).toBeUndefined();
+    }
+  });
+
+  it("has no title element, so there is one name and no tooltip", () => {
+    expect(render()).not.toContain("<title");
+  });
+
+  it("names the image in the default Thai locale outside any provider", () => {
+    const markup = renderToStaticMarkup(createElement(Logo));
+    expect(rootAttrs(markup)["aria-label"]).toBe(th.logo.name);
+  });
+});
+
+describe("hides a decorative image from assistive tech", () => {
+  it("writes aria-hidden=true, with no role and no aria-label", () => {
+    for (const kind of ["mark", "wordmark", "horizontal", "stacked"] as const) {
+      const a = rootAttrs(render({ kind, decorative: true }));
+      expect(a["aria-hidden"], kind).toBe("true");
+      expect(a["role"], kind).toBeUndefined();
+      expect(a["aria-label"], kind).toBeUndefined();
+    }
+  });
+
+  it("draws the same shapes named and decorative", () => {
+    const strip = (m: string) =>
+      m.replace(/ role="img" aria-label="ORIVILO"| aria-hidden="true"/, "");
+    expect(strip(render({ kind: "horizontal" }))).toBe(
+      strip(render({ kind: "horizontal", decorative: true })),
+    );
   });
 });
