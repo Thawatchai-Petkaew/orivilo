@@ -211,7 +211,7 @@ Confirmation: `reviewer` and `security` read each PR for such a claim (AGENTS.md
 - **404 not 403:** `withWorkspace` answers 403 for a non-member today (decision 10, ORV-113).
 - **Privacy notice:** ADR 0009 requires it to name OpenRouter and each model host before real customers use AI features. Not written.
 
-Addition, 2026-10-30 (ORV-158). Classification tags now have code and checks (decision 9, the addition above). The bullet "Error envelope, PDPA masking, classification tags, uploads, money" keeps its other items as it states them: the error envelope, PDPA masking and uploads have no code, and money has its helper only for AI usage amounts (decision 12's addition).
+Addition, 2026-10-30 (ORV-158). The bullet "Error envelope, PDPA masking, classification tags, uploads, money" stays as the record of 2026-10-29 (ORV-142). On 2026-10-30 its items stand as follows. Classification tags have code and checks (decision 9, the addition above). The error envelope has code and tests from ORV-144: the code list and the body helpers in `packages/auth/src/errors.ts` (`ERROR_CODES`, `errorBody`, `errorResponse`) and the retry module `apps/web/client/retry.ts`, which no client caller uses yet. PDPA masking (decision 8) and uploads (decision 11) have no code. Money has its helper and its schema test only for AI usage amounts (decision 12's addition, ORV-121).
 
 ## Consequences
 
