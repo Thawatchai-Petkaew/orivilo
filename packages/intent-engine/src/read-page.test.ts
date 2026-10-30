@@ -1184,14 +1184,16 @@ describe("one page, logged out, bounded", () => {
     );
 
     it(
-      "reads the held-depth page within 10 s with nothing cut",
+      "reads the held-depth page within 16 s with nothing cut",
       async () => {
+        // Bound: twice the slowest CI time, 7,508 ms (run 40890047958), rounded up to 16000 (ORV-145). No mutant
+        // is slower on this time line; the value lines below guard the defect.
         // 125 divs, then </p> repeated: each pushes a fake p to depth 128 and pops it
         const html = upTo(`<body>${"<div>".repeat(125)}`, "</p>");
         const net = fakeNet(okRoutes({ [PAGE]: { body: enc.encode(html) } }));
         const started = performance.now();
         const r = await readPage(PAGE, net.ports);
-        expect(performance.now() - started).toBeLessThan(10000);
+        expect(performance.now() - started).toBeLessThan(16000);
         expect(r.status).toBe("read");
         expect(r.status === "read" && r.incomplete).toEqual([]);
       },
@@ -1237,11 +1239,13 @@ describe("one page, logged out, bounded", () => {
     };
 
     it(
-      "reads the re-opened-formatting document, cut by the Element count",
+      "reads the re-opened-formatting document within 22 s, cut by the Element count",
       async () => {
+        // Bound: twice the slowest CI time, 10,899 ms (run 40915924406), rounded up to 22000 (ORV-145). Lifting
+        // both caps aborts the run out of memory, red but not on this time line (ORV-139 mutant-exception-1).
         expect(enc.encode(reopened).length).toBeLessThanOrEqual(MAX);
         const { r, ms } = await read(reopened);
-        expect(ms).toBeLessThan(10000);
+        expect(ms).toBeLessThan(22000);
         expect(r.status).toBe("read");
         expect(r.status === "read" && r.incomplete).toEqual(["page-incomplete"]);
       },
