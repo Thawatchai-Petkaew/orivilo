@@ -156,7 +156,12 @@ function outsideUnion(files, tasks, issue) {
   const entries = tasks
     .filter((t) => t.agent !== undefined)
     .flatMap((t) => (Array.isArray(t.envelope?.write_set) ? t.envelope.write_set : []));
-  const main = ["docs/context/handoff.md", "docs/plans/*.md", `docs/specs/${issue}/jira-issue.md`];
+  const main = [
+    "docs/context/handoff.md",
+    "docs/plans/*.md",
+    `docs/specs/${issue}/jira-issue.md`,
+    "DESIGN.md",
+  ];
   const listed = [...entries, ...main];
   return files.filter((f) => !listed.some((e) => e === f || posix.matchesGlob(f, e)));
 }

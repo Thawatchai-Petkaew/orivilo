@@ -2,6 +2,7 @@
 
 import {
   atBoundary,
+  type Charge,
   Denied,
   DirectionError,
   type DirectionSummary,
@@ -12,11 +13,13 @@ import {
   failureFields,
   LIMITS,
   type LimitName,
+  logStep,
   type Reason,
   requestIdOf,
   type Role,
   type Route,
   sealReading,
+  type UsageEntry,
   withWorkspace,
 } from "@orivilo/auth";
 import { MissingEnvError, requireEnv } from "@orivilo/db";
@@ -34,6 +37,7 @@ import {
 import { headers } from "next/headers";
 import { accessDeps, auth } from "../../server/auth";
 import { limiter, subjectFromHeaders } from "../../server/rate-limit";
+import { spendCap } from "../../server/spend-cap";
 
 /**
  * Saved directions for the Studio (ORV-35 part 2). Every call goes through `directionService`, so
@@ -45,12 +49,14 @@ import { limiter, subjectFromHeaders } from "../../server/rate-limit";
 export type ActionError =
   | "signed-out"
   | "forbidden"
+  | "workspace-not-found"
   | "not-configured"
   | "failed"
   | "ai-failed"
   | "ai-not-configured"
   | "rate-limited"
   | "ai-rate-limited"
+  | "ai-spend-cap"
   | DirectionError["reason"];
 
 /**
@@ -66,16 +72,28 @@ export type RateLimited = {
   retryable: true;
 };
 
+/**
+ * The workspace has used its AI budget for the month; the caller keeps the rules' reading
+ * (ORV-121). Built only with `failureFields("AI_SPEND_CAP", requestId)`.
+ */
+export type SpendCapped = {
+  ok: false;
+  error: "ai-spend-cap";
+  code: "AI_SPEND_CAP";
+  requestId: string;
+  retryable: false;
+};
+
 export type Failed = {
   ok: false;
-  error: Exclude<ActionError, RateLimited["error"]>;
+  error: Exclude<ActionError, RateLimited["error"] | SpendCapped["error"]>;
   code: ErrorCode;
   requestId: string;
   retryable: boolean;
 };
 
 /** What a person's failed call carries to the UI. */
-export type ActionFailure = Failed | RateLimited;
+export type ActionFailure = Failed | RateLimited | SpendCapped;
 
 export type Outcome<T> = { ok: true; value: T } | ActionFailure;
 
@@ -113,7 +131,11 @@ class AiFailed extends Error {
   }
 }
 
-const LIMITED: readonly ActionError[] = ["rate-limited", "ai-rate-limited"];
+/** The spend cap's two outcomes, thrown by the interpret path and mapped in `run` (ORV-121). */
+class SpendCapReached extends Error {}
+class SpendCapUnavailable extends Error {}
+
+const LIMITED: readonly ActionError[] = ["rate-limited", "ai-rate-limited", "ai-spend-cap"];
 const FAILED: readonly ActionError[] = [
   "failed",
   "ai-failed",
@@ -132,12 +154,14 @@ function endingOf(outcome: Outcome<unknown>): Ending {
 
 /**
  * `orv144-outcome`: the code of each reason on its default path. `satisfies` makes a new
- * `ActionError` member without a code fail `pnpm typecheck`. The two rate limit reasons are not
- * here: the limited path builds its own outcome with `RATE_LIMITED`.
+ * `ActionError` member without a code fail `pnpm typecheck`. The two rate limit reasons and
+ * `ai-spend-cap` are not here: each limited path builds its own outcome, with `RATE_LIMITED` and
+ * `AI_SPEND_CAP`.
  */
 const CODE_OF = {
   "signed-out": "UNAUTHENTICATED",
   forbidden: "FORBIDDEN",
+  "workspace-not-found": "NOT_FOUND",
   "not-found": "NOT_FOUND",
   "no-draft": "CONFLICT",
   "invalid-input": "INVALID_INPUT",
@@ -150,6 +174,13 @@ const CODE_OF = {
   "ai-not-configured": "INTERNAL_ERROR",
   "ai-failed": "UPSTREAM_FAILED",
 } satisfies Record<Failed["error"], ErrorCode>;
+
+/** orv159-boundary: a `Denied` maps by its status alone; a new status without a row fails `pnpm typecheck`. */
+const ERROR_OF_DENIED = {
+  401: "signed-out",
+  403: "forbidden",
+  404: "workspace-not-found",
+} as const satisfies Record<Denied["status"], Failed["error"]>;
 
 const ended = <T>(value: Outcome<T>): Ended<Outcome<T>> => ({ value, ending: endingOf(value) });
 
@@ -207,15 +238,26 @@ async function run<T>(
         value: await fn(service, h, session.session.activeOrganizationId),
       });
     } catch (error) {
-      if (error instanceof Denied) {
-        return ended(fail(error.status === 401 ? "signed-out" : "forbidden"));
-      }
+      if (error instanceof Denied) return ended(fail(ERROR_OF_DENIED[error.status]));
       if (error instanceof DirectionError) return ended(fail(error.reason));
       if (error instanceof MissingEnvError) return ended(fail("not-configured"));
       if (error instanceof AiFailed) {
         return {
           value: fail(error.reason),
           ending: { level: "error", outcome: "failed", reason: error.kind },
+        };
+      }
+      if (error instanceof SpendCapReached) {
+        return ended({
+          ok: false,
+          error: "ai-spend-cap",
+          ...failureFields("AI_SPEND_CAP", requestId),
+        });
+      }
+      if (error instanceof SpendCapUnavailable) {
+        return {
+          value: fail("ai-failed", "SERVICE_UNAVAILABLE"),
+          ending: { level: "error", outcome: "unavailable", reason: "spend-cap" },
         };
       }
       return {
@@ -304,17 +346,45 @@ export async function importDirection(file: unknown) {
 const AI_TIMEOUT_MS = 20_000;
 
 /**
+ * Writes the usage records of one reading with the charge `check` issued. A not-reported cost gets
+ * one step line each: if OpenRouter drops `usage.cost`, these lines show a cap that stopped counting.
+ * A failed record never costs the person the paid reading: it is one step line, with no error text,
+ * brief, amount or id (ORV-121 spend-cap-6). Never throws.
+ */
+async function recordUsage(charge: Charge, calls: readonly UsageEntry[]): Promise<void> {
+  for (const call of calls) {
+    if (call.costMicroUsd === null) {
+      logStep({ step: "ai-usage", outcome: "cost-not-reported", level: "warn", durationMs: 0 });
+    }
+  }
+  const started = performance.now();
+  try {
+    await spendCap().record(charge, calls);
+  } catch {
+    const durationMs = performance.now() - started;
+    logStep({ step: "ai-usage", outcome: "record-failed", level: "warn", durationMs });
+  }
+}
+
+/**
  * Reads a brief with the `interpret` model (ORV-62, ADR 0009). Signed-in people only, since every
- * call costs money. The output is checked like any adapter's; on any failure the caller keeps the
- * rules' reading and says so. Only the failure kind is logged (the boundary line), never the brief.
+ * call costs money. Before the call the workspace's spend for the month is read and a spent budget
+ * stops it (ORV-121); every request that reaches the model is recorded with the cost it reported.
+ * The output is checked like any adapter's; on any failure the caller keeps the rules' reading and
+ * says so. Only the failure kind is logged (the boundary line), never the brief.
  */
 export async function readBriefWithAi(brief: unknown): Promise<Outcome<SealedReading>> {
   return run(
     "directions/readBriefWithAi",
-    async () => {
+    async (_service, h, workspaceId) => {
       const apiKey = process.env.OPENROUTER_API_KEY;
       if (!apiKey) throw new AiFailed("ai-not-configured");
+      const checked = await spendCap().check(h, workspaceId);
+      if (!checked.ok) {
+        throw checked.reason === "capped" ? new SpendCapReached() : new SpendCapUnavailable();
+      }
       const model = AI_MODELS.interpret;
+      const calls: UsageEntry[] = [];
       const adapter = llmInterpreter(
         model,
         openRouterComplete({
@@ -322,9 +392,15 @@ export async function readBriefWithAi(brief: unknown): Promise<Outcome<SealedRea
           model,
           fetch: (url, init) => fetch(url, init as RequestInit),
           signal: () => AbortSignal.timeout(AI_TIMEOUT_MS),
+          onCall: (c) => calls.push({ job: "interpret", model, costMicroUsd: c.costMicroUsd }),
         }),
       );
-      const outcome = await interpretBrief(adapter, { text: brief });
+      let outcome: Awaited<ReturnType<typeof interpretBrief>>;
+      try {
+        outcome = await interpretBrief(adapter, { text: brief });
+      } finally {
+        await recordUsage(checked.charge, calls);
+      }
       if (!outcome.ok) {
         if (outcome.error === "invalid-brief") throw new DirectionError("invalid-input");
         // Only the kind reaches the line: `outcome.detail` can hold OpenRouter's text or the brief.
