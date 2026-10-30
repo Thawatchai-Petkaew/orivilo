@@ -38,6 +38,19 @@ describe("readingResult", () => {
     expect(JSON.stringify(result)).not.toContain("{wait}");
   });
 
+  // ORV-121 row 2: the over-cap outcome is a studio notice in the person's language (C1), never a card notice.
+  it.each(["en", "th"] as const)("a spent AI budget yields only a notice (%s)", (locale) => {
+    const { errors: localized } = webMessages[locale].saved;
+    const result = readingResult(
+      { ok: false, error: "ai-spend-cap", code: "AI_SPEND_CAP", requestId: ID, retryable: false },
+      localized,
+      webMessages[locale].wait,
+      webMessages[locale].failure,
+    );
+    expect(result).toEqual({ notice: localized["ai-spend-cap"] });
+    expect(result).not.toHaveProperty("cardLines");
+  });
+
   it("leaves a plain AI failure to the studio, with no card notice", () => {
     expect(
       readingResult(
