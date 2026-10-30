@@ -7,6 +7,7 @@ export * from "./suggest";
 export * from "./directions";
 export * from "./saved";
 export * from "./llm-interpreter";
+export * from "./money";
 export * from "./openrouter";
 export * from "./color-audit";
 export * from "./color-knowledge";

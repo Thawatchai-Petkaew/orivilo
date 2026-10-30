@@ -2,7 +2,7 @@
 issue: ORV-144 (https://tpetkaew.atlassian.net/browse/ORV-144)
 parent: ORV-113 (item 2)
 lane: M
-version: 1.3
+version: 1.4
 ---
 
 # ORV-144: one error body, its codes and the retry matrix (ORV-113 item 2)
@@ -71,13 +71,13 @@ Every body in these rows has the shape of `orv144-envelope`; every code, status 
 <!-- prettier-ignore -->
 | # | Given | When | Who sees what | Data effect | Test |
 | --- | --- | --- | --- | --- | --- |
-| 1 | The code list module | Its exports are read | Operator: exactly the 13 codes of `orv144-codes`, each with the status, default `retryable` and message of its row | None | New `packages/auth/src/errors.test.ts`, "the code list is the matrix's statuses, one code each" |
+| 1 | The code list module | Its exports are read | Operator: exactly the 14 codes of `orv144-codes` (13 statuses, as two codes share 429), each with the status, default `retryable` and message of its row | None | New `packages/auth/src/errors.test.ts`, "the code list is the matrix's statuses, one code each"; with ORV-121, "AI_SPEND_CAP shares 429 and is never the code of a status" |
 | 2 | `authRoute` with a count that answers limited, and one with a handler that answers 429 with `X-Retry-After: 7` | `POST /api/auth/sign-in/social` with a JSON body | Operator: 429, `Retry-After` as today, body exactly `{"error":{"code":"RATE_LIMITED","message":"Too many requests. Try again later.","requestId":<id>,"retryable":true}}` with no other key at either level, `x-request-id` equal to `requestId` | No `verification` row | `packages/auth/src/auth-route.test.ts`, "turns a 429 into Retry-After and the RATE_LIMITED body" (widened to exact keys) |
 | 3 | `authRoute` with a count that answers unavailable | The same request | Operator: 503, body exactly `{"error":{"code":"SERVICE_UNAVAILABLE","message":"Service unavailable. Try again later.","requestId":<id>,"retryable":true}}`; one boundary line as ORV-141 row 12 | No `verification` row | `auth-route.test.ts`, "a store failure answers 503 and logs once" (widened to exact keys) |
 | 4 | `authRoute` with a handler that answers 401 with Better Auth's body `{"code":"UNAUTHORIZED","message":"ana@example.com"}` and two `Set-Cookie` values; then handlers answering 400, 418, 500 and 503 the same way; then 200 and 302 | `GET /api/auth/get-session` | Operator: 401 with the `UNAUTHENTICATED` body, both cookies kept, no `ana@example.com` in the body; 400 and 418 with `BAD_REQUEST`; 500 with `INTERNAL_ERROR`; 503 with `SERVICE_UNAVAILABLE`; the 200 and 302 bodies byte for byte as the handler wrote them | None | `auth-route.test.ts`, "an error answer from Better Auth gets the error body" (open question 1) |
 | 5 | `authRoute` with a handler that throws `new Error("ana@example.com at /Users/x/app.ts:12")` | `GET /api/auth/get-session` | Operator: 500, body exactly the `INTERNAL_ERROR` body with `requestId` equal to `x-request-id`; the body contains neither `ana@example.com`, `/Users/` nor ` at `; the call does not reject. One boundary line, `level: "error"`, `outcome: "failed"`, `reason: "unexpected"`, `errorName: "Error"`, `status: 500` | None | `auth-route.test.ts`, "every answer carries the request id and one line" (its throw case changes from rethrown to the 500 body, open question 2) |
 | 6 | A signed-in person who is not a member of the active workspace, Thai or English UI | They press "Save draft" / "บันทึกฉบับร่าง" | Person: today's line, English "This account is not allowed to do this in this workspace." / Thai "บัญชีนี้ไม่มีสิทธิ์ทำสิ่งนี้ในเวิร์กสเปซนี้", with no reference line. Operator: the outcome is `{ ok: false, error: "forbidden", code: "FORBIDDEN", requestId: <id>, retryable: false }`, and its `requestId` equals the boundary line's | None | `apps/web/app/directions/actions.test.ts`, "a failure outcome carries code, requestId and retryable" |
-| 7 | The 15 members of `ActionError` and the two unavailable paths, each forced in turn | The action runs | Operator: each outcome's `code` and `retryable` are the ones the table in `orv144-outcome` gives for its `error` and path | None | `actions.test.ts`, "each reason maps to its code" (one case per table row) |
+| 7 | The 16 members of `ActionError` and the three unavailable paths (the limiter on a save, the limiter on a reading, the spend cap on a reading), each forced in turn | The action runs | Operator: each outcome's `code` and `retryable` are the ones the table in `orv144-outcome` gives for its `error` and path | None | `actions.test.ts`, "each reason maps to its code" (one case per table row) |
 | 8 | The limiter answers unavailable | A person saves | Person: today's line in the notice, badge "Not done" / "ทำไม่สำเร็จ", line English "That did not work. Try again." / Thai "ทำไม่สำเร็จ ลองอีกครั้ง", no reference line. Operator: `code: "SERVICE_UNAVAILABLE"`, `retryable: true`; `saveDirection` was called once | No data written | `actions.test.ts` (the outcome) and new `apps/web/app/directions/SavedStudio.test.tsx`, "a failed write is shown and not retried", through `runCall` of `apps/web/app/directions/studio-calls.ts` (`apps/web` has no DOM test environment, so the press itself is not simulated) |
 | 9 | The direction service throws `new Error("ana@example.com tok_seeded")` | A person saves, Thai or English UI | Person: badge "Not done" / "ทำไม่สำเร็จ", then English "That did not work. Try again." and "Reference: <id>" / Thai "ทำไม่สำเร็จ ลองอีกครั้ง" and "รหัสอ้างอิง: <id>", in the notice's live region. Operator: `code: "INTERNAL_ERROR"`, `retryable: false`; `JSON.stringify` of the outcome contains neither seeded value | None | `actions.test.ts`, "an unexpected error carries INTERNAL_ERROR and nothing of the error"; `SavedStudio.test.tsx`, "an INTERNAL_ERROR notice shows the reference", through `runCall` |
 | 10 | A person over the `write` limit | They save | Person: today's ORV-112 line, English "Too many requests in a short time, so this was not done. Try again in 10 minutes." / Thai "ส่งคำขอถี่เกินไป จึงยังไม่ได้ทำรายการนี้ ลองใหม่ได้ในอีก 10 นาที" (wait as computed), no reference line. Operator: the ORV-112 outcome plus `requestId` | No data written | `actions.test.ts`, the `refused` helper gains `requestId` |
@@ -95,7 +95,7 @@ Every body in these rows has the shape of `orv144-envelope`; every code, status 
 ## Rules and bounds
 
 - **orv144-envelope.** An error body is a JSON object with one key, `error`, whose value has exactly four keys: `code` (a member of `orv144-codes`), `message` (by `orv144-message`), `requestId` (the request's id, ORV-141 `orv141-request-id`) and `retryable` (a boolean). The response has `content-type: application/json` and `x-request-id` equal to `requestId`. One helper beside the code list builds it; no other code writes an error body.
-- **orv144-codes.** The closed list holds one code per status the matrix of ADR 0015 decision 7 names, kept beside the helper. A status the list does not name maps by class: another 4xx to `BAD_REQUEST`, another 5xx to `INTERNAL_ERROR`. `retryable` is the matrix's default for the status. A new code joins the list, this table and its test in the PR that first makes it (for example `AI_SPEND_CAP`, open question 12).
+- **orv144-codes.** The closed list holds one code per status the matrix of ADR 0015 decision 7 names, and `AI_SPEND_CAP` (ADR 0015 decision 4), kept beside the helper. Where two codes share a status, the first listed is the status's code: `codeOfStatus(429)` is `RATE_LIMITED`, and only the spend cap path names `AI_SPEND_CAP`. A status the list does not name maps by class: another 4xx to `BAD_REQUEST`, another 5xx to `INTERNAL_ERROR`. `retryable` is the matrix's default for the status, except for `AI_SPEND_CAP`, which ADR 0015 decision 4 sets to `false` over its status's default. A new code joins the list, this table and its test in the PR that first makes it, as ORV-121 does for `AI_SPEND_CAP` (open question 12).
 
   <!-- prettier-ignore -->
   | Code | Status | Retryable | Message |
@@ -109,13 +109,14 @@ Every body in these rows has the shape of `orv144-envelope`; every code, status 
   | `PAYLOAD_TOO_LARGE` | 413 | false | The request is too large. |
   | `INVALID_INPUT` | 422 | false | The input is not valid. |
   | `RATE_LIMITED` | 429 | true | Too many requests. Try again later. |
+  | `AI_SPEND_CAP` | 429 | false | The workspace has used its AI budget for this month. |
   | `INTERNAL_ERROR` | 500 | false | Something went wrong on our side. |
   | `UPSTREAM_FAILED` | 502 | true | A service we depend on failed. Try again later. |
   | `SERVICE_UNAVAILABLE` | 503 | true | Service unavailable. Try again later. |
   | `UPSTREAM_TIMEOUT` | 504 | true | A service we depend on did not answer in time. Try again later. |
 
 - **orv144-message.** `message` is the fixed English text of its code's row above, read by code, not shown to people (as ORV-112 decided for the two bodies of today). It is never built from an error object, a third party's text, a query, a path or a request value, so no stack, path or personal data can reach it.
-- **orv144-outcome.** A server action failure outcome keeps its `error` key (the catalog key the UI reads and the log's `reason`) and adds `code`, `requestId` (the same value the boundary line holds) and `retryable`. A rate limit outcome keeps `retryAfter`. The map, for the 15 members of `ActionError` (`signed-out`, `forbidden`, `not-configured`, `failed`, `ai-failed`, `ai-not-configured`, `rate-limited`, `ai-rate-limited`, `invalid-input`, `invalid-file`, `not-found`, `no-draft`, `resolver-changed`, `profile-missing`, `fingerprint-mismatch`) and for `signInWithGoogle`'s states:
+- **orv144-outcome.** A server action failure outcome keeps its `error` key (the catalog key the UI reads and the log's `reason`) and adds `code`, `requestId` (the same value the boundary line holds) and `retryable`. A rate limit outcome keeps `retryAfter`. The map, for the 16 members of `ActionError` (`signed-out`, `forbidden`, `not-configured`, `failed`, `ai-failed`, `ai-not-configured`, `rate-limited`, `ai-rate-limited`, `ai-spend-cap`, `invalid-input`, `invalid-file`, `not-found`, `no-draft`, `resolver-changed`, `profile-missing`, `fingerprint-mismatch`) and for `signInWithGoogle`'s states:
 
   <!-- prettier-ignore -->
   | `error` | Path | Code |
@@ -126,7 +127,8 @@ Every body in these rows has the shape of `orv144-envelope`; every code, status 
   | `no-draft` | any | `CONFLICT` |
   | `invalid-input`, `invalid-file`, `resolver-changed`, `profile-missing`, `fingerprint-mismatch` | any | `INVALID_INPUT` |
   | `rate-limited`, `ai-rate-limited` | over a limit | `RATE_LIMITED` |
-  | `failed`, `ai-failed` | the limiter or count answered unavailable | `SERVICE_UNAVAILABLE` |
+  | `ai-spend-cap` | over the spend cap | `AI_SPEND_CAP` |
+  | `failed`, `ai-failed` | the limiter or count answered unavailable, or for `ai-failed` the spend cap's sum could not be read | `SERVICE_UNAVAILABLE` |
   | `ai-failed` | an `interpretBrief` failure kind (`adapter-failed`, `invalid-output`, `evidence-mismatch`) | `UPSTREAM_FAILED` |
   | `failed`, `not-configured`, `ai-not-configured` | a throw the boundary does not recognise, or a missing setting | `INTERNAL_ERROR` |
 
@@ -150,16 +152,17 @@ Every body in these rows has the shape of `orv144-envelope`; every code, status 
 
 Each line is copied from its source and was not run in this task (no shell).
 
-- **Reason to code** (`orv144-outcome`, rows 6 to 11 and 15). Input: the 15 `ActionError` members from `apps/web/app/directions/actions.ts` lines 43 to 52 with `DirectionError["reason"]` (`packages/auth/src/directions.ts` line 30) and `ReplayRefusal` expanded, and the unavailable path of `run` (lines 145 to 149). No rounding.
+- **Reason to code** (`orv144-outcome`, rows 6 to 11 and 15). Input: the 16 `ActionError` members from `apps/web/app/directions/actions.ts` lines 43 to 52 with `DirectionError["reason"]` (`packages/auth/src/directions.ts` line 30) and `ReplayRefusal` expanded, `ai-spend-cap` among them since ORV-121, and the unavailable paths of `run` (the limiter's, lines 145 to 149, and ORV-121's spend cap). No rounding.
 
   ```bash
-  node -e 'const MAP={"signed-out":"UNAUTHENTICATED",forbidden:"FORBIDDEN","not-found":"NOT_FOUND","no-draft":"CONFLICT","invalid-input":"INVALID_INPUT","invalid-file":"INVALID_INPUT","resolver-changed":"INVALID_INPUT","profile-missing":"INVALID_INPUT","fingerprint-mismatch":"INVALID_INPUT","rate-limited":"RATE_LIMITED","ai-rate-limited":"RATE_LIMITED",failed:"INTERNAL_ERROR","not-configured":"INTERNAL_ERROR","ai-not-configured":"INTERNAL_ERROR","ai-failed":"UPSTREAM_FAILED"};const code=(error,unavailable)=>unavailable?"SERVICE_UNAVAILABLE":MAP[error];console.log(Object.keys(MAP).length);for (const [e,u] of [["forbidden",false],["no-draft",false],["fingerprint-mismatch",false],["ai-failed",false],["failed",true],["ai-failed",true]]) console.log(e,u,code(e,u))'
+  node -e 'const MAP={"signed-out":"UNAUTHENTICATED",forbidden:"FORBIDDEN","not-found":"NOT_FOUND","no-draft":"CONFLICT","invalid-input":"INVALID_INPUT","invalid-file":"INVALID_INPUT","resolver-changed":"INVALID_INPUT","profile-missing":"INVALID_INPUT","fingerprint-mismatch":"INVALID_INPUT","rate-limited":"RATE_LIMITED","ai-rate-limited":"RATE_LIMITED",failed:"INTERNAL_ERROR","not-configured":"INTERNAL_ERROR","ai-not-configured":"INTERNAL_ERROR","ai-failed":"UPSTREAM_FAILED","ai-spend-cap":"AI_SPEND_CAP"};const code=(error,unavailable)=>unavailable?"SERVICE_UNAVAILABLE":MAP[error];console.log(Object.keys(MAP).length);for (const [e,u] of [["forbidden",false],["no-draft",false],["fingerprint-mismatch",false],["ai-failed",false],["ai-spend-cap",false],["failed",true],["ai-failed",true]]) console.log(e,u,code(e,u))'
   # expected:
-  # 15
+  # 16
   # forbidden false FORBIDDEN
   # no-draft false CONFLICT
   # fingerprint-mismatch false INVALID_INPUT
   # ai-failed false UPSTREAM_FAILED
+  # ai-spend-cap false AI_SPEND_CAP
   # failed true SERVICE_UNAVAILABLE
   # ai-failed true SERVICE_UNAVAILABLE
   ```
@@ -238,7 +241,7 @@ Each line is copied from its source and was not run in this task (no shell).
 - 404 instead of 403 for a workspace the caller is not a member of (ADR 0015 decision 10). It changes an auth answer, is L lane, and stays in ORV-113.
 - A client caller that retries automatically: none exists (open question 4). The first `GET` or keyed write adopts the module.
 - An idempotency key on any write, and the server side that would honour it.
-- `AI_SPEND_CAP` and the spend cap (ADR 0015 decision 4, open question 12).
+- The spend cap (ADR 0015 decision 4); ORV-121 adds `AI_SPEND_CAP` to the list with its producer (open question 12).
 - A network failure on `/account`'s forms and a throw from `signOut` (open questions 9 and 10).
 - An `error.tsx` page for Next.js's own errors, and Next.js's and Better Auth's own log lines (ORV-141 open question 6).
 - Masking, classification tags, uploads and money (ORV-113 items for decisions 8, 9, 11 and 12).
@@ -252,6 +255,7 @@ Each line is copied from its source and was not run in this task (no shell).
 - **Size.** About 940 changed lines with tests, task by task in tech notes section 11 (worked example "The size"), over the 400 line mark. It ships as one PR anyway: open question 11 is decided (b) in ORV-144 comment 10268, and the G3 packet lists one commit per task.
 - **`security` role** is dispatched on each PR (`packages/auth/**`).
 - **Docs to review**, status. Brought up to date in spec v1.1 (task ORV-144-spec-2), the spec rows: `docs/specs/ORV-141/spec.md` row 13 (ORV-141 spec v1.3), `docs/specs/ORV-112/spec.md` line 60 (ORV-112 spec v1.8), `docs/specs/ORV-122/spec.md` lines 52 and 61 (ORV-122 spec v1.6), `docs/specs/ORV-123/spec.md` line 51 (ORV-123 spec v1.2). Brought up to date in commit 3b911a0, the tech rows: `docs/specs/ORV-141/tech.md` lines 230, 244, 245 and 318; `docs/specs/ORV-112/tech.md` lines 341 and 476. Brought up to date in spec v1.2 (task ORV-144-spec-book-1): `docs/specs/ORV-122/spec.md` row 25's Result (ORV-122 spec v1.7). Waiting for the merge: ADR 0015 decision 7 Confirmation (line 128) and "Not done yet" (line 189).
+- **Note, 2026-10-30 (ORV-170).** The two ADR 0015 edits the bullet above lists as waiting for the merge are recorded as ADR 0015 Additions dated 2026-10-30 (ORV-170, recording ORV-144): decision 7's Confirmation at line 140 and the "Not done yet" bullet at line 240. The bullet above stays as written.
 
 ## Open questions
 
@@ -271,7 +275,7 @@ Each has a default; under the owner's delegation (ADR 0012 decision 4) G2 passes
 | 9 | `signInWithGoogle`'s throws (`signInSocial`, the missing URL) and `signOut`'s | (a) `signInWithGoogle` returns the `INTERNAL_ERROR` state with the reference; `signOut` unchanged; (b) both rethrow as today (ORV-123 "Out of scope") | (b) shows Next.js's error page with no id; `signOut` returns no outcome, so decision 7's outcome rule does not reach it | (a) |
 | 10 | A network failure on `/account`'s forms | (a) recorded gap, Next.js's error page as today; (b) catch it in `SignInForm` | (b) wraps a `useActionState` action whose redirect handling under a `catch` is not verified on Next.js 16.4.1 | (a) |
 | 11 | How is the story sliced? | (a) slice 1: the code list and helper, `authRoute`, the directions outcomes and the `/directions` UI (rows 1 to 14, 20); slice 2 as a child issue, as ORV-142 was: the sign-in state and the retry module (rows 15 to 19); (b) one PR | (b) is about 940 lines with tests (tech notes section 11), over the 400 line mark | Decided (b), one PR, in ORV-144 comment 10268; the default was (a) |
-| 12 | Does `AI_SPEND_CAP` join the list now? | (a) with the spend cap story, which first makes it; (b) now | (b) adds a code with no producer | (a) |
+| 12 | Does `AI_SPEND_CAP` join the list now? | (a) with the spend cap story, which first makes it; (b) now | (b) adds a code with no producer | (a); ORV-121 adds it right after `RATE_LIMITED`, and `codeOfStatus(429)` stays `RATE_LIMITED` |
 
 ## Depends on
 
@@ -283,3 +287,4 @@ ADR 0015 decision 7 (the body and the matrix), decisions 2 (`security` role), 4 
 - v1.1 (2026-10-29): the tech notes' "Findings for the spec" F1 to F5 and ORV-144 comment 10268 (task ORV-144-spec-2). Comment 10268: open question 11 decided (b), one PR, and questions 1 to 10 and 12 at their defaults ("Open questions" intro and question 11). F1, requirement change: row 20 is checked by a new `apps/web/i18n/messages.test.ts` and `pnpm typecheck`, since no `check-i18n` command exists and the existing i18n and copy checks scan `packages/design-system` only. F2, no requirement change: Size is about 940 lines (tech notes section 11, worked example "The size"), one PR. F3, contract change: `orv144-retry` does not retry a call its caller aborted. F4, no requirement change: the Test column of rows 8, 9, 13 and 14 names `runCall` and `refreshList` of `studio-calls.ts`, as `apps/web` has no DOM test environment. F5, no requirement change (row 4 already expected it): `orv144-route-answers` says a rewritten answer keeps the handler's status. Row 16 and the Impact list name the places the tech notes chose (`packages/auth/src/errors.ts`, `apps/web/client/retry.ts`, `studio-calls.ts`, the two config files). The spec rows of "Docs to review" are brought up to date in this task (ORV-141 spec v1.3, ORV-112 spec v1.8, ORV-122 spec v1.6, ORV-123 spec v1.2). Downstream to review: `docs/specs/ORV-144/tech.md` (front matter `spec:` version, the status column of "Findings for the spec", the spec rows of section 13), the ORV-144 Jira issue acceptance (rows 8, 9, 13, 14, 16 and 20), `AGENTS.md` line 52 (`check-i18n` does not run on `apps/web`, the main session decides).
 - v1.2 (2026-10-29): bookkeeping for ORV-144 as built (task ORV-144-spec-book-1), no requirement change. "Impact list", "Docs to review" now states each document's status: the spec rows brought up to date in v1.1, the tech rows in commit 3b911a0, ORV-122 spec row 25's Result in ORV-122 spec v1.7 (this task), and ADR 0015 lines 128 and 189 waiting for the merge. `AGENTS.md` line 52 now names both catalog checks, `check-i18n` for `packages/design-system` and `apps/web/i18n/messages.test.ts` for `apps/web` (v1.1's F1), in this task. No row, rule or copy changes. Downstream to review: ADR 0015 lines 128 and 189 (architect, after the merge).
 - v1.3 (2026-10-29): qa finding ORV-144-qa-1-F1 (task ORV-144-spec-qa-f1), no requirement change. The first header cell of the "Producers (8)" and "Readers (7)" tables reads `Id` instead of `#`, so the acceptance table is the first table in this spec whose first header cell is `#`, the one the result recorder reads. No row, rule or copy changes. Downstream to review: none.
+- v1.4 (2026-10-30): brought up to date for ORV-121, from its tech notes revision ORV-121-tech-5 (decisions D1, D4 and D5, under the owner's delegation, ADR 0012 decision 4; task ORV-121-spec-5); the change is ORV-121's requirement, made in the PR that first makes the code as open question 12 (a) says, and it rides in ORV-121's PR. Contract change: `orv144-codes` gains `AI_SPEND_CAP` (429, `retryable: false`, its message) right after `RATE_LIMITED`; where two codes share a status the first listed is its code, so `codeOfStatus(429)` stays `RATE_LIMITED` (D4), and `retryable` follows ADR 0015 decision 4 for `AI_SPEND_CAP`. `orv144-outcome` covers the 16 members of `ActionError`, maps `ai-spend-cap` to `AI_SPEND_CAP` (D5), and maps `ai-failed` to `SERVICE_UNAVAILABLE` when the spend cap's sum could not be read (D1). Row 1 reads 14 codes and names ORV-121's test; row 7 reads 16 members and three unavailable paths; the worked example "Reason to code" gains the `ai-spend-cap` key and case and prints 16; "Out of scope" and open question 12 say ORV-121 adds the code. No other row, rule or copy changes. Downstream to review: `docs/specs/ORV-144/tech.md` lines 26, 35, 72, 374, 380 and 462, and the sketches at lines 136, 146 and 148, which name no spend cap branch (architect); `packages/auth/src/errors.ts` and its comment on `codeOfStatus`, `errors.test.ts`, and `apps/web/app/directions/actions.test.ts` "each reason maps to its code" (ORV-121's builder, ORV-121 tech notes S11 and S13); the ORV-144 Jira issue acceptance (rows 1 and 7).

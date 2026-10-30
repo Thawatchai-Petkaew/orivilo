@@ -14,6 +14,7 @@ const TABLE = [
   ["PAYLOAD_TOO_LARGE", 413, false, "The request is too large."],
   ["INVALID_INPUT", 422, false, "The input is not valid."],
   ["RATE_LIMITED", 429, true, "Too many requests. Try again later."],
+  ["AI_SPEND_CAP", 429, false, "The workspace has used its AI budget for this month."],
   ["INTERNAL_ERROR", 500, false, "Something went wrong on our side."],
   ["UPSTREAM_FAILED", 502, true, "A service we depend on failed. Try again later."],
   ["SERVICE_UNAVAILABLE", 503, true, "Service unavailable. Try again later."],
@@ -32,10 +33,14 @@ describe("the error code list", () => {
       expect(ERROR_CODES[code]).toStrictEqual({ status, retryable, message });
     }
     const statuses = Object.values(ERROR_CODES).map((entry) => entry.status);
+    expect(TABLE).toHaveLength(14);
     expect(new Set(statuses).size).toBe(13);
     expect(statuses).toStrictEqual(TABLE.map(([, status]) => status));
 
-    for (const [code, status] of TABLE) expect(codeOfStatus(status)).toBe(code);
+    // AI_SPEND_CAP shares 429 with RATE_LIMITED, which is listed first and is the status's code.
+    for (const [code, status] of TABLE) {
+      if (code !== "AI_SPEND_CAP") expect(codeOfStatus(status)).toBe(code);
+    }
     expect(codeOfStatus(401)).toBe("UNAUTHENTICATED");
     expect(codeOfStatus(418)).toBe("BAD_REQUEST");
     expect(codeOfStatus(500)).toBe("INTERNAL_ERROR");
@@ -44,6 +49,23 @@ describe("the error code list", () => {
     // The class fallback has two edges: below 500 is BAD_REQUEST, 500 and above INTERNAL_ERROR.
     expect(codeOfStatus(499)).toBe("BAD_REQUEST");
     expect(codeOfStatus(599)).toBe("INTERNAL_ERROR");
+  });
+
+  it("AI_SPEND_CAP shares 429 and is never the code of a status", () => {
+    expect(ERROR_CODES.AI_SPEND_CAP).toStrictEqual({
+      status: 429,
+      retryable: false,
+      message: "The workspace has used its AI budget for this month.",
+    });
+    expect(codeOfStatus(429)).toBe("RATE_LIMITED");
+    for (let status = 400; status <= 599; status += 1) {
+      expect(codeOfStatus(status)).not.toBe("AI_SPEND_CAP");
+    }
+    expect(failureFields("AI_SPEND_CAP", ID)).toStrictEqual({
+      code: "AI_SPEND_CAP",
+      requestId: ID,
+      retryable: false,
+    });
   });
 
   it("builds the body of the worked example byte for byte, with the keys in order", () => {
