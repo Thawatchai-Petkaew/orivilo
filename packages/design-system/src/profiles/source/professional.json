@@ -320,6 +320,12 @@
           "light": "{color.white}",
           "dark": "{color.slate.900}"
         }
+      },
+      "dot-small": {
+        "$value": {
+          "light": "{color.navy.700}",
+          "dark": "{color.navy.400}"
+        }
       }
     },
     "shape": {

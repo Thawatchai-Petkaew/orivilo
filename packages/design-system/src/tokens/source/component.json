@@ -2520,5 +2520,20 @@
       "$value": "{size.panel.min}",
       "$description": "Tallest the mention picker grows before it scrolls, 240 (slice C)"
     }
+  },
+  "logo": {
+    "$description": "The ORIVILO mark, wordmark and lockups (ORV-118, logo-colour-1)",
+    "ink": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    },
+    "dot": {
+      "$type": "color",
+      "$value": "{brand.signature}"
+    },
+    "dot-small": {
+      "$type": "color",
+      "$value": "{brand.dot-small}"
+    }
   }
 }

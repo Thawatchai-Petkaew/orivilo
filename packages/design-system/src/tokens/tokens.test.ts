@@ -6,6 +6,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { componentsReading } from "../profiles/refine";
 import { tokens } from "./index";
 
 describe("token layers", () => {
@@ -64,6 +65,7 @@ describe("token scope", () => {
       "text.on-intent",
     ]);
     expect(by("identity")).toEqual([
+      "brand.dot-small",
       "brand.ink",
       "brand.signature",
       "selection.bg",
@@ -73,6 +75,21 @@ describe("token scope", () => {
       "text.link",
       "text.link-hover",
     ]);
+  });
+});
+
+describe("the small-dot token (ORV-118)", () => {
+  it("lists nine identity tokens, so a profile must override each", () => {
+    expect(tokens.layer("semantic").filter((t) => t.scope === "identity")).toHaveLength(9);
+  });
+
+  it("has one reader, the logo component tokens", () => {
+    expect(componentsReading(["brand.dot-small"])).toEqual(["logo"]);
+    const readers = tokens
+      .layer("component")
+      .filter((t) => JSON.stringify(t.raw).includes("{brand.dot-small}"))
+      .map((t) => t.path);
+    expect(readers).toEqual(["logo.dot-small"]);
   });
 });
 

@@ -550,7 +550,7 @@
         "light": "{color.lime.300}",
         "dark": "{color.lime.300}"
       },
-      "$description": "Mark dot, one highlight plane; never text on light ground",
+      "$description": "Mark dot above 24 px, one highlight plane; never text on light ground",
       "$extensions": {
         "orivilo": {
           "scope": "identity"
@@ -569,6 +569,23 @@
           "contrast": {
             "against": "brand.signature",
             "floor": 4.5
+          },
+          "scope": "identity"
+        }
+      }
+    },
+    "dot-small": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.violet.600}",
+        "dark": "{color.lime.300}"
+      },
+      "$description": "The mark's dot at 24 px and below (logo forms 16 and 24); read only by logo.dot-small",
+      "$extensions": {
+        "orivilo": {
+          "contrast": {
+            "against": "surface.canvas",
+            "floor": 3
           },
           "scope": "identity"
         }

@@ -244,6 +244,7 @@
   --ds-focus-offset: var(--op-color-gray-50);
   --ds-brand-signature: var(--op-color-lime-300);
   --ds-brand-ink: var(--op-color-gray-900);
+  --ds-brand-dot-small: var(--op-color-violet-600);
   --ds-feedback-success-fg: var(--op-color-green-700);
   --ds-feedback-success-surface: var(--op-color-green-50);
   --ds-feedback-success-border: var(--op-color-green-300);
@@ -443,6 +444,7 @@
   --ds-focus-offset: var(--op-color-gray-900);
   --ds-brand-signature: var(--op-color-lime-300);
   --ds-brand-ink: var(--op-color-gray-900);
+  --ds-brand-dot-small: var(--op-color-lime-300);
   --ds-feedback-success-fg: var(--op-color-green-400);
   --ds-feedback-success-surface: var(--op-color-green-950);
   --ds-feedback-success-border: var(--op-color-green-700);
@@ -525,6 +527,7 @@
     --ds-focus-offset: var(--op-color-gray-900);
     --ds-brand-signature: var(--op-color-lime-300);
     --ds-brand-ink: var(--op-color-gray-900);
+    --ds-brand-dot-small: var(--op-color-lime-300);
     --ds-feedback-success-fg: var(--op-color-green-400);
     --ds-feedback-success-surface: var(--op-color-green-950);
     --ds-feedback-success-border: var(--op-color-green-700);
@@ -1345,6 +1348,9 @@
   --cmp-chat-body-sm-type-font-weight: var(--ds-type-body-sm-font-weight);
   --cmp-chat-body-sm-type-letter-spacing: var(--ds-type-body-sm-letter-spacing);
   --cmp-chat-picker-max-block-size: var(--ds-size-panel-min);
+  --cmp-logo-ink: var(--ds-text-primary);
+  --cmp-logo-dot: var(--ds-brand-signature);
+  --cmp-logo-dot-small: var(--ds-brand-dot-small);
 }
 
 /* Tailwind utilities resolve to semantic tokens only (DESIGN.md §5). The defaults are removed first
@@ -1400,6 +1406,7 @@
   --color-focus-offset: var(--ds-focus-offset);
   --color-brand-signature: var(--ds-brand-signature);
   --color-brand-ink: var(--ds-brand-ink);
+  --color-brand-dot-small: var(--ds-brand-dot-small);
   --color-feedback-success-fg: var(--ds-feedback-success-fg);
   --color-feedback-success-surface: var(--ds-feedback-success-surface);
   --color-feedback-success-border: var(--ds-feedback-success-border);
