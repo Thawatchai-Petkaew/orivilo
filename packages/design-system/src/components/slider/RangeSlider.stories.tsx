@@ -164,6 +164,8 @@ export const RecipesAndModes: Story = {
     </Matrix>
   ),
   play: async ({ canvasElement }) => {
+    // No Field nested in a Field: a meta decorator wrapping this story would break its labels.
+    await expect(canvasElement.querySelectorAll(".ds-field .ds-field")).toHaveLength(0);
     // The matrix is not inside the width cap: a meta decorator wrapping this story would narrow it.
     await expect(canvasElement.querySelector(".max-w-sm")).toBeNull();
   },
