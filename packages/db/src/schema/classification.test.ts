@@ -126,6 +126,7 @@ describe("the field classification map (ORV-158, orv158-walk)", () => {
         "invitation.email",
         "invitation.inviterId",
         "member.userId",
+        "organization.metadata",
         "organization.name",
         "project.createdBy",
         "rateLimitCounter.key",

@@ -68,7 +68,7 @@ export const CLASSIFICATION = {
     slug: "internal", // record
     logo: "internal", // record
     createdAt: "internal", // record
-    metadata: "internal", // record
+    metadata: "personal", // free-text
   },
   member: {
     id: "internal", // row-key
