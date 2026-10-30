@@ -1,9 +1,9 @@
 ---
 issue: ORV-118 (https://tpetkaew.atlassian.net/browse/ORV-118)
-spec: docs/specs/ORV-118/spec.md v1.1
-task: ORV-118-tech-1, ORV-118-tech-2 (findings F1 to F6 applied in the spec; the row 5 test fixed)
+spec: docs/specs/ORV-118/spec.md v1.2
+task: ORV-118-tech-1, ORV-118-tech-2 (findings F1 to F6 applied in the spec; the row 5 test fixed), ORV-118-arch-violet (section 13, the owner decision in comment 10336; findings F7 to F11 open)
 author: ds-architect
-date: 2026-10-30
+date: 2026-10-31
 ---
 
 # ORV-118 tech notes: the Logo, the small-dot token and the generated icons
@@ -39,7 +39,7 @@ The worked examples W1 to W7 were run from the repo root, and each printed the s
 <!-- prettier-ignore -->
 | # | Decision | Section | Confirmed by |
 | --- | --- | --- | --- |
-| D1 | Open question 1: the small dot reads a new semantic token `brand.dot-small`. It is identity-scoped, violet.600 in light and lime.300 in dark, and paired with `surface.canvas` at 3.0. Professional overrides it with navy.700 and navy.400, Friendly with coral.700 and coral.400 | §2 | Row 10: `pnpm contrast`, `contrast-pairs.test.ts`, `profiles.test.ts`, `tokens.test.ts` |
+| D1 | Open question 1: the small dot reads a new semantic token `brand.dot-small`. It is identity-scoped, violet.600 in light and violet.400 in dark (lime.300 in dark before D10), and paired with `surface.canvas` at 3.0. Professional overrides it with navy.700 and navy.400, Friendly with coral.700 and coral.400 | §2 | Row 10: `pnpm contrast`, `contrast-pairs.test.ts`, `profiles.test.ts`, `tokens.test.ts` |
 | D2 | Component tokens `logo.ink`, `logo.dot` and `logo.dot-small`, as `logo-colour-1` names them. They are kept because `componentsReading` finds a component only through its component tokens. Recipe `ds-logo` with two recipe pairs. The master dot stays out of `pairs.ts`, with the reason in its header comment | §3 | `recipes.test.ts`, row 10 |
 | D3 | `logo-api-1` confirmed with five amendments: the `LogoKind` and `LogoTone` type exports, a `height` that is not a finite number falls back to 24, closed props, a wordmark's form is always `master`, and one fixed markup | §4 | Unit tests for rows 5, 7 and 8 |
 | D4 | Asset form: inline SVG drawn from a typed geometry module, which a test checks against the three brand files. No SVG file is imported or fetched at runtime | §5 | Row 1 unit test |
@@ -48,6 +48,7 @@ The worked examples W1 to W7 were run from the repo root, and each printed the s
 | D7 | The "Kinds" story renders the four kinds at height 64, not 96. At 96 the horizontal lockup is 424.32 px wide and overflows the 360 px width the design gate checks | §7, F1 | Row 1 play |
 | D8 | The Storybook manager is pinned to the light base, because the brand image carries light values only (`logo-icon-1`) | §5, F5 | Row 22 |
 | D9 | The test project runs each story once, in Thai and light mode. The dark halves of rows 2 and 4 are therefore asserted in the neutral dark cell of "Recipes and modes", and the English half of row 7 in a unit test | §7, F6 | Rows 2, 4 and 7 |
+| D10 | Comment 10336 (owner): under neutral the dot is violet at every size. `brand.signature` becomes violet.600 and violet.400, `brand.ink` white in light, `brand.dot-small` violet.400 in dark. No token name is added or dropped: `brand.dot-small` and `logo.dot-small` stay, because they carry the 3.0 floor other profiles need. The app icon's dot takes the dark value | §13 | `pnpm contrast`; the three new cases in `tokens.test.ts`; rows 1 to 4 and 17 to 21 |
 
 Open questions 2 to 12 keep their spec defaults:
 
@@ -65,7 +66,9 @@ Open questions 2 to 12 keep their spec defaults:
 
 ## 2. The small-dot token (open question 1)
 
-**Choice.** A new semantic token `brand.dot-small`, identity scope, `{color.violet.600}` in light and `{color.lime.300}` in dark. Its contrast pair is `brand.dot-small` on `surface.canvas` at floor 3.0. The name is confirmed. It names the one thing it colours, the mark's dot in the small forms, and it sits beside `brand.signature` (the master dot) in the `brand` group.
+Section 13 changes the neutral dark value from lime.300 to violet.400 and keeps the token; the values in this section are updated to it. The proof run below is the one made at `eeb2e71`, before that change; section 13 has the run after it.
+
+**Choice.** A new semantic token `brand.dot-small`, identity scope, `{color.violet.600}` in light and `{color.violet.400}` in dark. Its contrast pair is `brand.dot-small` on `surface.canvas` at floor 3.0. The name is confirmed. It names the one thing it colours, the mark's dot in the small forms, and it sits beside `brand.signature` (the master dot) in the `brand` group.
 
 **Why a semantic token.**
 
@@ -78,13 +81,13 @@ Open questions 2 to 12 keep their spec defaults:
 - Identity scope makes every profile override the token (`Profile.validate`), as it does for `brand.signature`. A customer profile then sets its own small dot, and none of ORIVILO's violet or lime survives under a customer profile (DESIGN.md §9 item 10).
 - Studio scope remaps a token in CSS to the profile's action, while the profile's `TokenSet` still resolves the base value. `pnpm contrast` would then measure lime on the profile canvas while the screen shows the profile's action, so the pair would test a colour nobody sees. The scratch run below shows this gap on an existing Studio token: under Professional, `action.intent` resolves to #D9F66F while the CSS remaps it to #19315E.
 
-**Values per boundary.** This follows the spec's rule in open question 1: each profile takes its own `text.brand` primitive step in light and its `brand.signature` step in dark. The ratios come from the scratch run below, to one decimal. The floor is 3.0 and the lowest ratio is 6.6.
+**Values per boundary.** This follows the spec's rule in open question 1: each profile takes its own `text.brand` primitive step in light and its `brand.signature` step in dark. The ratios come from the scratch run below, to one decimal. The floor is 3.0 and the lowest ratio is 6.1.
 
 <!-- prettier-ignore -->
 | Boundary | `brand.dot-small` | `surface.canvas` | Ratio |
 | --- | --- | --- | --- |
 | neutral, light | violet.600 #7A22C7 | #F4F4F0 | 6.6 |
-| neutral, dark | lime.300 #D9F66F | #16151D | 15 |
+| neutral, dark | violet.400 #B07FEE | #16151D | 6.1 |
 | Professional, light | navy.700 #254582 | #F5F7F9 | 8.7 |
 | Professional, dark | navy.400 #7CA4EE | #1B1E23 | 6.7 |
 | Friendly, light | coral.700 #972F1D | #F9F6F2 | 7.1 |
@@ -97,8 +100,8 @@ Open questions 2 to 12 keep their spec defaults:
 ```json
 "dot-small": {
   "$type": "color",
-  "$value": { "light": "{color.violet.600}", "dark": "{color.lime.300}" },
-  "$description": "The mark's dot at 24 px and below (logo forms 16 and 24); read only by logo.dot-small",
+  "$value": { "light": "{color.violet.600}", "dark": "{color.violet.400}" },
+  "$description": "The mark's dot at 24 px and below (logo forms 16 and 24), at least 3.0 on the canvas under every profile; equal to brand.signature in the ORIVILO profile; read only by logo.dot-small",
   "$extensions": {
     "orivilo": {
       "contrast": { "against": "surface.canvas", "floor": 3 },
@@ -108,7 +111,7 @@ Open questions 2 to 12 keep their spec defaults:
 }
 ```
 
-- The `brand.signature` description becomes "Mark dot above 24 px, one highlight plane; never text on light ground".
+- The `brand.signature` description becomes "The signature colour: the mark dot above 24 px, a bead, one highlight plane; never text and never an action; shares violet with action.primary in the ORIVILO profile only (ORV-118)" (section 13).
 - `professional.json`, `semantic.brand`: `"dot-small": { "$value": { "light": "{color.navy.700}", "dark": "{color.navy.400}" } }`.
 - `friendly.json`, `semantic.brand`: the same with `{color.coral.700}` and `{color.coral.400}`.
 
@@ -187,7 +190,7 @@ There are no dimension tokens. Stroke widths, radii and positions are drawing ge
 { recipe: "logo", slot: "small dot", fg: "logo.dot-small", bg: "ds:surface.canvas", floor: UI },
 ```
 
-The "Not listed" paragraph of the header comment gains: "`logo.dot`, the master dot (`brand.signature`; 1.1 on the light canvas under neutral, 2.3 under Friendly): a logotype's accent is decoration and the ring carries the shape; WCAG 1.4.11 does not apply to a logotype." In the scratch run, under all six boundaries, `logo.ink` reaches at least 14.0 on the canvas and `logo.dot-small` at least 6.6.
+The "Not listed" paragraph of the header comment gains: "`logo.dot`, the master dot (`brand.signature`; 2.3 on the light canvas under Friendly): a logotype's accent is decoration and the ring carries the shape; WCAG 1.4.11 does not apply to a logotype." In the scratch run, under all six boundaries, `logo.ink` reaches at least 14.0 on the canvas and `logo.dot-small` at least 6.1 (section 13).
 
 ## 4. The public API (`logo-api-1`)
 
@@ -287,8 +290,8 @@ Rejected:
 | File | What | Colours read (neutral token source) |
 | --- | --- | --- |
 | `apps/web/app/icon1.svg` | The mark at height 16 (form 16), on a transparent ground. Its `<style>` sets the ring and dot for light, then again inside `@media (prefers-color-scheme: dark)` | Ring `text.primary` and dot `brand.dot-small`, through `logo.ink` and `logo.dot-small`: light values, then dark |
-| `apps/web/app/icon2.png` | 32 by 32 app icon: a `<rect>` with `rx` 7.33 (side × 22 / 96); a 21.33 mark box centred at offset 5.34 inside a `<g transform>`; form 24 (W3, W7) | Ground `surface.inverse`, ring `text.on-inverse`, both light values; dot `brand.signature` in every form |
-| `apps/web/app/apple-icon.png` | 180 by 180 app icon: `rx` 41.25, a 120 mark box at offset 30, master form | The same as `icon2.png` |
+| `apps/web/app/icon2.png` | 32 by 32 app icon: a `<rect>` with `rx` 7.33 (side × 22 / 96); a 21.33 mark box centred at offset 5.34 inside a `<g transform>`; form 24 (W3, W7) | Ground `surface.inverse`, ring `text.on-inverse`, both light values; dot: the dark value of the token the form picks (`logo-colour-1`), here `brand.dot-small` (section 13) |
+| `apps/web/app/apple-icon.png` | 180 by 180 app icon: `rx` 41.25, a 120 mark box at offset 30, master form | The same as `icon2.png`; the master form's dot is the dark value of `brand.signature` |
 | `packages/design-system/.storybook/static/orivilo-logo.svg` | `horizontal` at height 24 (width 106.08, form 24) | `logo.ink` and `logo.dot-small`, light values only |
 
 Next adds the head links from the file names (app-icons.md lines 64 to 68):
@@ -344,6 +347,7 @@ Conflicts (a required value is never changed silently):
 - A reader of `brand.dot-small` other than `logo.dot-small` fails `tokens.test.ts`, which requires `componentsReading(["brand.dot-small"])` to equal `["logo"]`.
 - A colour literal in the recipe fails `recipes.test.ts`, and a colour attribute in the component fails the markup case in `logo.test.ts`.
 - A missing or non-colour token in the generator throws with its path.
+- Under neutral, `brand.signature` and `action.primary` must resolve to one hex in each mode, each straight to its primitive, and no component may read both. A change to either value, a reference from one to the other, or a shared reader fails `tokens.test.ts` (section 13).
 
 ## 7. Tests by acceptance row
 
@@ -376,10 +380,10 @@ The smallest probed part is the dot at height 16, with a radius of 1.6 px. That 
 | Row | File | Test | What it asserts |
 | --- | --- | --- | --- |
 | 1, unit | `src/components/logo/logo.test.ts` (new) | "draws each kind as logo-geometry-1 and the brand files" | Each kind's `viewBox`, and every `d`, centre, radius, polygon point, cap and join, the wordmark stroke 24 and the lockup transforms, equal the numbers parsed from the three brand files. The stacked transforms equal W5. W1 (both arc ends 52.50 from (75, 77.5)) and W2 (gaps 5.91, 4.91 and 3.91) are computed from the module's numbers |
-| 1, play | `Logo.stories.tsx` "Kinds" | play | Four `svg.ds-logo` with the four `data-kind` values, boxes 64 high at the widths above. Computed ring and wordmark stroke #16151D and master dot #D9F66F. `expectPaintAt` on the mark's ring and dot |
-| 2 | "Recipes and modes" | play, neutral dark cell | The master forms (mark 64, horizontal 32, wordmark 20, stacked 80): computed ring and wordmark stroke #F2F1EC and dot #D9F66F (W6's source values). `expectPaintAt` on ring and dot |
-| 3 | "Small sizes"; `logo.test.ts` "picks the form from the mark height" | play; unit | Play: for the eight heights, `data-form` and the ring's `stroke-width` attribute follow W3 (`34 34 34 32 32 30 30 30`), and the dot is #7A22C7 in forms 16 and 24 and #D9F66F in the master, both computed and by `expectPaintAt`. Unit: the same inputs through the form function, plus stacked 60 (form 24) and 60.25 (master) |
-| 4 | "Recipes and modes" | play, neutral dark cell | Mark 16 and mark 24: `stroke-width` 34 and 32, and the dot #D9F66F, both computed and by `expectPaintAt` |
+| 1, play | `Logo.stories.tsx` "Kinds" | play | Four `svg.ds-logo` with the four `data-kind` values, boxes 64 high at the widths above. Computed ring and wordmark stroke #16151D and master dot #7A22C7. `expectPaintAt` on the mark's ring and dot |
+| 2 | "Recipes and modes" | play, neutral dark cell | The master forms (mark 64, horizontal 32, wordmark 20, stacked 80): computed ring and wordmark stroke #F2F1EC and dot #B07FEE (W6's source values). `expectPaintAt` on ring and dot |
+| 3 | "Small sizes"; `logo.test.ts` "picks the form from the mark height" | play; unit | Play: for the eight heights, `data-form` and the ring's `stroke-width` attribute follow W3 (`34 34 34 32 32 30 30 30`), and the dot is #7A22C7 in every form (section 13), both computed and by `expectPaintAt`. The switch between `logo.dot` and `logo.dot-small` stays proven by row 9 in the Friendly light cell, where the small forms paint coral.700 #972F1D and the master coral.400 #FC826B. Unit: the same inputs through the form function, plus stacked 60 (form 24) and 60.25 (master) |
+| 4 | "Recipes and modes" | play, neutral dark cell | Mark 16 and mark 24: `stroke-width` 34 and 32, and the dot #B07FEE, both computed and by `expectPaintAt` |
 | 5 | `logo.test.ts` "never renders below the kind's minimum" | unit (`renderToStaticMarkup`) | Mark 12 renders `height="16"`, wordmark 10 renders 20, horizontal 10 renders 20, stacked 30 renders 50. `NaN` and `Infinity` render the larger of 24 and the minimum; 0 and -5 render the kind's minimum |
 | 6 | "One colour" | play, all six cells | For every Logo of the four kinds, each painted part (the ring or wordmark strokes, the dot or the fills) has the same computed colour, equal to the cell's resolved `logo.ink`. `expectPaintAt` shows the dot equal to the ring in the neutral light and dark cells |
 | 7 | "Named"; `logo.test.ts` "names the image from the catalog" | play (Thai); unit | Play: `getByRole("img", { name: "ORIVILO" })` finds exactly one. Unit: inside `LocaleProvider` `th` and `en`, `role="img"` and an `aria-label` equal to `th.logo.name` and `en.logo.name` |
@@ -392,11 +396,11 @@ The smallest probed part is the dot at height 16, with a radius of 1.6 px. That 
 | 14 | R2 | scripted run | At 360 px, in Thai and English, on `/`, `/directions`, `/account` and `/workspace`: the header svg box is 106.08 by 24 (within 0.01), and `document.documentElement.scrollWidth <= innerWidth`. No painting element other than the Logo and its ancestors has a box that meets the Logo box grown by 4.8 px. A painting element is a text node's parent, a link, a button, a form control, an image or svg, or an element with a visible border or background |
 | 15 | `apps/web/app/account/page.test.tsx` (widened), Thai | unit | Signed out: an svg with `role="img"`, `aria-label="ORIVILO"`, `data-kind="stacked"` and `height="80"` comes before the `h1` "บัญชีและเวิร์กสเปซ". The sign-in form comes after the `h1` (the `SignInForm` mock renders a marker element) |
 | 16 | `page.test.tsx`, English | unit | The same svg comes before the `h1` "Account and workspace" in the signed-in view (`getSession` returns a session; `withWorkspace` is mocked) and in the not-configured view (`auth()` throws `MissingEnvError`) |
-| 17 | `src/components/logo/assets.test.ts` (new); R2 | unit; evidence | Unit: `icon1.svg` is the mark with `data-form="16"` and `stroke-width="34"`. Outside the media block the ring is #16151D and the dot #7A22C7; inside `@media (prefers-color-scheme: dark)` they are #F2F1EC and #D9F66F. R2: the head has `<link rel="icon" type="image/svg+xml" sizes="any">` to the file, the file is fetched with 200 and `image/svg+xml`, and it is rendered under `colorScheme: "light"` |
+| 17 | `src/components/logo/assets.test.ts` (new); R2 | unit; evidence | Unit: `icon1.svg` is the mark with `data-form="16"` and `stroke-width="34"`. Outside the media block the ring is #16151D and the dot #7A22C7; inside `@media (prefers-color-scheme: dark)` they are #F2F1EC and #B07FEE. R2: the head has `<link rel="icon" type="image/svg+xml" sizes="any">` to the file, the file is fetched with 200 and `image/svg+xml`, and it is rendered under `colorScheme: "light"` |
 | 18 | As row 17 | unit; evidence | Unit: the dark block. R2: the file is rendered under `colorScheme: "dark"` |
-| 19 | `assets.test.ts`; R2 | unit; evidence | Unit: the `icon2.png` IHDR is 32 by 32. In the in-memory render, corner (0, 0) is transparent, the centre is #16151D, the dot centre #D9F66F and a ring point #F2F1EC. R2: `<link rel="icon" type="image/png" sizes="32x32">`, fetched with 200 |
+| 19 | `assets.test.ts`; R2 | unit; evidence | Unit: the `icon2.png` IHDR is 32 by 32. In the in-memory render, corner (0, 0) is transparent, the centre is #16151D, the dot centre #B07FEE and a ring point #F2F1EC. R2: `<link rel="icon" type="image/png" sizes="32x32">`, fetched with 200 |
 | 20 | `assets.test.ts`; R2 | unit; evidence | Unit: the `apple-icon.png` IHDR is 180 by 180, with the same four probes. R2: `<link rel="apple-touch-icon" sizes="180x180">`, fetched with 200 |
-| 21 | `assets.test.ts` "the committed assets are fresh" | unit | Regenerated bytes equal the four committed files; otherwise the failure lists each stale path and the command. With the light value of `brand.dot-small` changed in a `TokenSet` built from a copy of the sources, exactly `apps/web/app/icon1.svg` and `.storybook/static/orivilo-logo.svg` are stale. With the dot radius changed in a copy of the geometry, all four are. Two generations give equal bytes |
+| 21 | `assets.test.ts` "the committed assets are fresh" | unit | Regenerated bytes equal the four committed files; otherwise the failure lists each stale path and the command. With the light value of `brand.dot-small` changed in a `TokenSet` built from a copy of the sources, exactly `apps/web/app/icon1.svg` and `.storybook/static/orivilo-logo.svg` are stale. With the dark value of `brand.dot-small` changed, exactly `icon1.svg` and `icon2.png` are (the 32 px icon is form 24); with the dark value of `brand.signature` changed, exactly `apple-icon.png` is (section 13). With the dot radius changed in a copy of the geometry, all four are. Two generations give equal bytes |
 | 22 | `assets.test.ts` "the Storybook brand reads the generated image"; R2 | unit; evidence | Unit: `.storybook/manager.ts` sets `base: "light"`, `brandTitle: "ORIVILO"` and `brandImage: "./orivilo-logo.svg"`. `.storybook/main.ts` has `staticDirs: ["./static"]`. The image has `data-kind="horizontal"`, `height="24"`, `data-form="24"` and the dot #7A22C7. R2: after `pnpm build`, `storybook-static/orivilo-logo.svg` exists; plus a screenshot of the sidebar |
 
 **R2 setup.** R2 runs on a production build: `pnpm build`, then `pnpm --filter @orivilo/web exec next start -p 3100`. The owner's dev server keeps port 3000. It runs Playwright Chromium from a scratch script.
@@ -447,6 +451,8 @@ Estimated changed lines, with tests:
 Both slices are over the 400-line guide. Whether to split them is decided in the spec's Story section, paragraph "Size".
 
 ## 10. Impact list
+
+This list predates comment 10336. The contract change of comment 10336 has its own impact list in section 13.
 
 ### Contract change
 
@@ -537,6 +543,224 @@ No.
 2. **Local cache (risk).** `turbo.json` sets no `inputs`, so the design-system `test` task hashes only its own package. After an edit to `apps/web/app/icon*` or `docs/context/brand/assets` alone, a local cache hit can skip the freshness and geometry tests. CI starts without a cache, and `pnpm test --force` reruns locally. Follow-up: a package `turbo.json` with those inputs.
 3. **Trademark (`logo-screen-1`).** The mark may merge into `develop` and run on staging. A release that carries it to production, to the app or to a production Storybook site, waits for the screening record on ORV-118.
 4. **Follow-up: a permanent e2e suite.** An `apps/web/e2e` suite for row 14 and the head links. It changes CI, which waits for the owner's approval during the POC.
+5. **A violet brand badge reads like a button (risk, section 13).** Under neutral in light mode, `Badge` variant `brand` now has the same ground and label colours as the primary button. The designer checks the recommended badge in Direction Studio at sign-off.
+6. **Follow-up: the colour node on ORIVILO's own brief.** `packages/intent-engine` `color-rules.test.ts` ("ORIVILO decides lime, near, soft") and the knowledge entry that keeps the action colour apart from the signature (`color-knowledge.ts`, sourced from brand spec v1.1 §5) now disagree with ORIVILO's shell. No engine change in ORV-118; the engine's own issue decides whether its rules or its test change (ADR 0017 keeps `signature` to lime, cyan, magenta and teal).
+
+## 13. The violet dot (owner decision, ORV-118 comment 10336)
+
+**The decision.** ORV-118 comment 10336 records the owner's choice of 2026-10-31. The owner looked at the Logo stories on PR 165 and said the lime dot and the violet primary button do not go together. Asked which colour is the main brand colour, the owner picked violet for both. For the ORIVILO (neutral) profile:
+
+- the mark's dot is violet at every size: violet.600 #7A22C7 in light and violet.400 #B07FEE in dark, the values of `action.primary`;
+- lime #D9F66F stays as the Studio intent accent (`action.intent`) only, and is no longer the signature;
+- other profiles keep `logo-scope-1`: their identity tokens colour the logo.
+
+**Reading.** "Lime only for `action.intent`" covers every lime that neutral spends outside the intent action. Outside the `action.intent` group, two semantic tokens resolve to lime under neutral: `brand.signature` in both modes and `brand.dot-small` in dark (a scratch walk of every semantic and component token's resolve chain; on the component side only the `button.intent` group and `node.fg-missing`, both through `action.intent`, stay lime). So `brand.signature` changes, and all of its readers change with it, not only the logo (the table of readers below). The owner saw the logo and the button only. The other readers (the brand badge, the glow and the bead) are named for the designer's sign-off in task V2.
+
+### Token changes
+
+Only `src/tokens/source/semantic.json` changes. Professional and Friendly override all three tokens already, so their sources do not change.
+
+<!-- prettier-ignore -->
+| Token (identity scope) | Before, light and dark | After, light and dark | Why |
+| --- | --- | --- | --- |
+| `brand.signature` | lime.300, lime.300 | violet.600, violet.400 | The decision. It references the primitives itself, never `{action.primary}` (below) |
+| `brand.ink` | gray.900, gray.900 | white, gray.900 | gray.900 on violet.600 is 2.49, under the 4.5 floor of `brand.ink` on `brand.signature`. White on violet.600 is 7.29. The dark value stays: gray.900 on violet.400 is 6.14. The pattern is Professional's (`brand.ink` white and slate.900 on navy.700 and navy.400) |
+| `brand.dot-small` | violet.600, lime.300 | violet.600, violet.400 | The dot is violet in both modes |
+| `logo.dot`, `logo.dot-small` (component) | `{brand.signature}`, `{brand.dot-small}` | No change | They keep pointing at the brand tokens |
+
+Descriptions:
+
+- `brand.signature`: "The signature colour: the mark dot above 24 px, a bead, one highlight plane; never text and never an action; shares violet with action.primary in the ORIVILO profile only (ORV-118)".
+- `brand.dot-small`: the text in section 2.
+- `brand.ink` keeps "Ink on the signature".
+
+### `brand.dot-small` and `logo.dot-small` stay
+
+Under neutral, the two dot tokens now resolve to one value in each mode, and that is the owner's "every size". The contract keeps both, because the second one carries a rule the first cannot:
+
+1. **The floor.** `brand.dot-small` carries a 3.0 floor against `surface.canvas` under every profile. That floor keeps the 16 px dot visible: brand spec v1.1 §8 has the tab-bar test, where a light dot vanished on a light tab. `brand.signature` has no floor against the canvas. It is a ground (the brand badge), a glow and a bead, and a profile may set a light highlight there: Friendly's coral.400 is 2.3 on its light canvas. If the two tokens merged, either `brand.signature` would take the 3.0 floor, which fails Friendly and would change its badge, glow and bead, or the small dot would lose its floor.
+2. **`logo-scope-1` unchanged.** Under Friendly in light mode, the small forms paint coral.700 (7.1 on the canvas) and the master paints coral.400. Without `brand.dot-small`, Friendly's small dot would drop to 2.3.
+3. **No new name, and none dropped.** The change is three values and two descriptions. The recipe rule `.ds-logo:is([data-form="16"], [data-form="24"]) .ds-logo__dot` stays. Under neutral it now paints the same violet, and the Friendly light cell of "Recipes and modes" still shows the switch (row 3 in section 7).
+
+### How the dot stays a brand token while it equals `action.primary`
+
+- **Equal by primitive, not by reference.** `brand.signature` points at `{color.violet.600}` and `{color.violet.400}` itself. Its resolve chain is `["primitive:color.violet.600"]` in light and `["primitive:color.violet.400"]` in dark, with no action token in it. A profile that moves its action colour leaves its logo alone, and a profile that moves its signature leaves its button alone.
+- **Separate readers.**
+  - `componentsReading(["brand.signature"])` is `["badge", "logo", "nav-item", "tile"]`.
+  - `componentsReading(["action.primary"])` is `["button", "checkbox", "progress", "resizable", "slider"]`.
+  - The two lists share no component. No brand reader takes a click, and no action reads the brand.
+- **Identity scope stays.** Every profile must override `brand.signature`, `brand.ink` and `brand.dot-small` (`Profile.validate`), so the shell's violet never reaches a customer preview through them (DESIGN.md §9 item 10).
+- **The equality holds under neutral only, and a test pins it.** Under Professional the values are #254582 and #19315E, under Friendly #FC826B and #E05C45, as before. Under neutral a test requires one hex in each mode. A later change to either token therefore fails the test and needs a decision; nothing drifts silently.
+- **DESIGN.md §8 keeps Brand presence and Act as two rows.** Only the neutral value is shared.
+
+### Pairs and floors this change touches
+
+From a scratch run at `d31aaf3`. It applied the three values in memory and ran the repo's `TokenSet`, `Profile`, `checkContrast`, `unexplainedColours`, `staleExemptions` and `RECIPE_PAIRS`. Ratios are rounded as `pnpm contrast` prints them; W6 gives two decimals.
+
+<!-- prettier-ignore -->
+| Pair | Floor | Neutral before, light and dark | Neutral after, light and dark |
+| --- | --- | --- | --- |
+| `brand.ink` on `brand.signature` (the declaration in `semantic.json` and `PAIR_RULES` "text on the signature") | 4.5 | 15, 15 | 7.3 (#FFFFFF on #7A22C7), 6.1 (#16151D on #B07FEE) |
+| `brand.dot-small` on `surface.canvas` | 3.0 | 6.6, 15 | 6.6, 6.1 (#B07FEE on #16151D) |
+| Recipe `badge`, slot "brand" (`badge.brand.fg` on `badge.brand.bg`) | 4.5 | 15, 15 | 7.3, 6.1 |
+| Recipe `badge`, slot "brand dot" (`badge.dot.brand` on `badge.brand.bg`) | 3.0 | 15, 15 | 7.3, 6.1 |
+| Recipe `logo`, slot "small dot" (`logo.dot-small` on `ds:surface.canvas`) | 3.0 | 6.6, 15 | 6.6, 6.1 |
+| Recipe `logo`, slot "ink" | 3.0 | 16.4, 16 | No change |
+| `logo.dot`, the master dot (not a pair) | None | 1.1, 15 | 6.6, 6.1. It stays out of `pairs.ts`, because Friendly's master dot is still 2.3 on its light canvas |
+| App icon dot on the ink square (a generated file, not a pair) | None | lime.300, 15 | violet.600 would be 2.49, so the icon takes the dark value, 6.14 (`logo-icon-1`, F9) |
+
+- Professional and Friendly: every ratio is unchanged.
+- Totals after the change:
+  - 97 semantic pairs and 582 checks, with 0 under the floor, 0 unexplained colours and 0 stale exemptions;
+  - lowest 3.3 (`border.control` on `surface.card`, Friendly dark), the same as before;
+  - 249 recipe pairs in 6 cells, 0 under the floor.
+- No pair is added or dropped, and no exemption changes.
+
+### Readers of `brand.signature`
+
+The search: `grep -rn -E "brand\.signature|brand-signature|brand\.ink|brand-ink|dot-small" packages apps`, without `node_modules`, `.next`, `storybook-static` and `generated.css`, plus a walk of `component.json` for every `{brand.*}` value.
+
+<!-- prettier-ignore -->
+| Reader | Where it shows | Effect under neutral |
+| --- | --- | --- |
+| `logo.dot` (`component.json:2532`) | The Logo's master dot | Lime becomes violet; the small forms were violet in light already, and dark now matches |
+| `badge.brand.bg` (`component.json:733`), with `badge.brand.fg` and `badge.dot.brand` reading `brand.ink` (`:737`, `:784`) | `Badge` variant `brand`: `DirectionStudio.tsx:217` (the recommended direction, rendered on `/directions` through `SavedStudio.tsx`), `Card.stories.tsx:137`, `Badge.stories.tsx:16` | The lime pill with ink text becomes a violet.600 pill with a white label in light, and a violet.400 pill with an ink label in dark. In light this is the primary button's pair of colours (risk 5) |
+| `tile.glow` (`component.json:391`) | `foundations/spec-sheet.tsx:78`, the Foundations spec sheet | The soft glow becomes violet |
+| `nav-item.bead` (`component.json:421`) | `foundations/spec-sheet.tsx:132` | The bead becomes violet |
+| Tailwind `bg-brand-signature` | `apps/web/app/layout.tsx:39` (the header dot, which task B2 replaces with the Logo); `examples/landing.tsx:43` (the example's header dot) | The dot becomes violet |
+| `brand.ink`'s contrast declaration and `PAIR_RULES` line 79 | `pnpm contrast` | New values, as in the pair table |
+
+`packages/intent-engine` reads no design token (follow-up 6 in section 12).
+
+### Generated CSS
+
+`pnpm --filter @orivilo/design-system tokens` rewrites 6 lines of `src/tokens/generated.css` (line numbers at `d31aaf3`):
+
+- 245: `--ds-brand-signature` becomes `var(--op-color-violet-600)`;
+- 246: `--ds-brand-ink` becomes `var(--op-color-white)`;
+- 445 and 528 (dark, and system dark): `--ds-brand-signature` becomes `var(--op-color-violet-400)`;
+- 447 and 530: `--ds-brand-dot-small` becomes `var(--op-color-violet-400)`.
+
+`src/profiles/generated.css` is byte-equal: a scratch run of `emitProfilesCss` with the change gave the committed file.
+
+### Determinism and conflicts
+
+- **Determinism.** The values are primitive references in a source file. They resolve the same way on every run, and the generated CSS is checked against them by the existing "matches the source files" case in `tokens.test.ts`.
+- **Conflicts.**
+  - A profile that leaves any of the three at the shell's value still fails `Profile.validate`.
+  - A value under a floor fails `pnpm contrast`, `contrast-pairs.test.ts` and `recipes.test.ts`.
+  - The three new cases below turn a drift between the brand and the action into a failure.
+
+### Tests
+
+New cases in `src/tokens/tokens.test.ts`, under `describe("the violet signature (ORV-118, comment 10336)")`:
+
+1. "shares one value with action.primary under neutral, in both modes". For each of `MODES`, `brand.signature` and `action.primary` resolve to the same value: #7A22C7 in light and #B07FEE in dark.
+2. "reaches its primitive directly, never through an action token". The resolve chain is `["primitive:color.violet.600"]` in light and `["primitive:color.violet.400"]` in dark.
+3. "keeps brand readers and action readers apart".
+   - `componentsReading(["brand.signature"])` equals `["badge", "logo", "nav-item", "tile"]`.
+   - It shares no entry with `componentsReading(["action.primary"])`.
+
+Red proofs (L-0042), one per case, each restored afterwards:
+
+- for case 1, `brand.signature` dark set to `{color.lime.300}`;
+- for case 2, `brand.signature` set to `{action.primary}`;
+- for case 3, a temporary `button.primary.ring` with the value `{brand.signature}`.
+
+<!-- prettier-ignore -->
+| Test | Change | Rows |
+| --- | --- | --- |
+| `src/tokens/tokens.test.ts` | The three cases above; the identity list (nine) and the one-reader case for `brand.dot-small` stay | 10 |
+| `src/components/logo/Logo.stories.tsx` lines 30 and 31 | `NEUTRAL_LIGHT.dot` becomes #7A22C7; `NEUTRAL_DARK.dot` and `NEUTRAL_DARK.dotSmall` become #B07FEE. The plays read these constants, so no play code changes | 1 to 4 and 6; row 9 reads the token source |
+| `src/tokens/contrast-pairs.test.ts`, `src/profiles/profiles.test.ts`, `src/recipes/recipes.test.ts`, `src/components/logo/logo.test.ts`, `tests/check-catalog.test.ts` | None. They pass as they are, because no pair key, override fixture, recipe rule, markup or catalog field changes | 5, 7, 8, 10, 11 |
+| `src/components/logo/assets.test.ts` (slice B, not built) | Written against the updated rows 17 to 21 of section 7 | 17 to 21 |
+| `packages/intent-engine/src/color-rules.test.ts` | None (follow-up 6) | None |
+
+### DESIGN.md lines that change
+
+<!-- prettier-ignore -->
+| Line | Today | After |
+| --- | --- | --- |
+| 21 (§2) | "Lime is the signature; it appears as a bead, a highlight plane, or the one Intent Engine button per screen, never as body text on light ground and never as a status colour. Orbit violet does the work of action, selection and links (brand case study board 06); it is never a tint or a wash." | "Violet is the signature (owner, ORV-118): the mark's dot, a bead and one highlight plane (`brand.signature`), the same value as the one primary action (`action.primary`) in the ORIVILO profile, and still a separate token. Lime is spent once, on the one Intent Engine button per screen (`action.intent`), never as body text on light ground and never as a status colour. Orbit violet also does the work of selection and links (brand case study board 06); apart from the one signature glow it is never a tint or a wash." |
+| 22 (§2) | "at most one soft lime glow per screen"; "with the lime limited to one button and one bead" | "at most one soft signature glow per screen"; "with the lime limited to one button" |
+| 78 (§3.1) | `brand.signature`: lime.300 #D9F66F, lime.300 #D9F66F, "Mark dot above 24 px, one highlight plane; never text on light ground" | violet.600 #7A22C7, violet.400 #B07FEE, "Mark dot above 24 px, a bead, one highlight plane; never text, never an action" |
+| 79 (§3.1) | `brand.ink`: gray.900 #16151D in light | white #FFFFFF in light; dark stays gray.900 #16151D |
+| 80 (§3.1) | `brand.dot-small`: lime.300 #D9F66F in dark | violet.400 #B07FEE in dark |
+| 121 (§3.5, Depth) | "a soft lime glow (radial, 35% light, 14% dark)" | "a soft signature glow (radial, 35% light, 14% dark)" |
+| After 214 (§8, below the table) | No text | "Brand presence and Act share one value in the ORIVILO profile (violet.600 and violet.400, owner, ORV-118) and stay two tokens: no component reads both, and `tokens.test.ts` fails when they drift apart." |
+| 222 (§9 item 1) | "in dark mode lime stays at one button and one bead and the glow at 14%" | "in dark mode lime stays at one button, and the signature glow at 14%" |
+| After 300 (change log) | No entry | v1.43: the ORIVILO signature becomes violet (ORV-118, comment 10336): `brand.signature` violet.600 and violet.400, `brand.ink` white in light, `brand.dot-small` violet.400 in dark; lime is `action.intent` only. Downstream: the brand badge, the glow and the bead turn violet under neutral; Professional and Friendly unchanged |
+
+Lines 32 (nine identity tokens), 210 (Brand presence row), 216 (proportion; lime stays under 2), 229 (§9 item 8) and 290 (§12 Logo row) stay as they are.
+
+### Brand spec lines that change
+
+These are in `docs/context/brand/orivilo-brand-spec-v1.1.md`.
+
+<!-- prettier-ignore -->
+| Line | Today | After |
+| --- | --- | --- |
+| 1 and 3 | Title v1.1; the Status line | Title v1.2; the Status line adds "v1.2 (2026-10-31): the signature is violet (owner, ORV-118 comment 10336)" |
+| 18 (§2, Colours) | "dot lime #D9F66F" | "dot violet #7A22C7 on paper, #B07FEE on ink" |
+| 19 (§2, Small) | "≤ 24 px on light ground: dot becomes violet #7A22C7" | "≤ 24 px: stroke 32 to 34; the dot keeps its colour" |
+| 58 (§5, `brand.signature`) | "#D9F66F", "ink on it 15.0; never text on light ground (1.2)" | "#7A22C7", "white on it 7.3; canvas 6.6; never text, never an action" |
+| 64 (§5, dark set) | Ends with "lime unchanged" | Ends with "signature #B07FEE (ink on it 6.1); lime #D9F66F is the intent action only" |
+| 66 (§5) | "10 lime" | "10 violet and lime, lime under 2" |
+| 92 (§8, Mark similarity) | "the 55° opening and the lime bead carry the difference" | "the 55° opening and the dot carry the difference" |
+| New §10 | No text | "Changes in v1.2": the decision, and that the §8 favicon result of 2026-10-21 (violet reads on a light tab, lime does not) now holds at every size |
+
+The file name keeps `v1.1`, because six files link to it: `DESIGN.md`, `docs/context/ui-direction.md`, `docs/specs/ORV-20/spec.md`, `docs/specs/ORV-118/spec.md`, `docs/specs/ORV-125/spec.md` and `packages/intent-engine/src/color-knowledge.ts`. A new `-v1.2` file is the other option (needs a decision).
+
+### Other documents
+
+- `packages/design-system/catalog/base/logo.yaml:24`: "(violet on the light canvas, lime on the dark one)" becomes "(violet in both modes under the ORIVILO profile; another profile sets its own)".
+- `src/recipes/pairs.ts:13` (code comment): the change in section 3.
+- The spec: findings F7 to F11.
+
+### Builder task list
+
+<!-- prettier-ignore -->
+| Task | Role | Deliverable | Files | Tests and evidence | Needs |
+| --- | --- | --- | --- | --- | --- |
+| S1 | product | The spec's next version, from F7 to F11 | `docs/specs/ORV-118/spec.md` | The lines in the findings table | None |
+| S2 | designer | Brand spec v1.2 | `docs/context/brand/orivilo-brand-spec-v1.1.md` | The table above | None |
+| V1 | builder | The violet signature on PR 165 | `src/tokens/source/semantic.json`; `src/tokens/generated.css` (from `pnpm --filter @orivilo/design-system tokens`; `src/profiles/generated.css` must come out unchanged); `src/recipes/pairs.ts:13`; `src/tokens/tokens.test.ts`; `src/components/logo/Logo.stories.tsx:30-31`; `catalog/base/logo.yaml:24`; DESIGN.md as in the table above | The three new cases, each red and then restored, one `verified` row per clause; `pnpm contrast` prints "97 pairs x 3 sets x 2 modes = 582 checks, 0 under floor, 0 unexplained; lowest 3.3"; the Logo stories pass in the Storybook test project; `pnpm lint && pnpm typecheck && pnpm test && pnpm build` | S1 |
+| V2 | designer | A new sign-off on PR 165 (`logo-render-1`) | None (a Jira comment) | A contact sheet at 360 px, light and dark: the six Logo stories, `Badge` "brand", Direction Studio with the recommended badge, the Card story and the Foundations spec sheet (glow and bead). It decides risk 5 | V1 |
+
+Slice B adds no task: B1 builds against the updated §5 table and rows 17 to 21, and R2 checks the favicon's dark block for #B07FEE.
+
+### Impact list
+
+- **Contract change.**
+  - The values of three identity-scoped semantic tokens under neutral (`brand.signature`, `brand.ink`, `brand.dot-small`) and two descriptions.
+  - The `logo-icon-1` rule for the app icon's dot.
+  - No token, component token, recipe rule, pair or public API is added, renamed or dropped. The identity tokens stay nine, and the semantic pairs stay 97.
+- **Profiles.**
+  - Neutral changes.
+  - Professional and Friendly do not change: their sources stay, and their generated CSS is byte-equal.
+  - A refined profile keeps its overrides (`refineProfile` swaps only shape, type and motion).
+  - A resolved customer profile (E2-9) must still override all three tokens.
+- **Recipes.** No CSS change. The `pairs.ts` header comment changes.
+- **Components.**
+  - `Logo`: the dot is violet in every form under neutral.
+  - `Badge` variant `brand`: a violet ground, with a white label in light and an ink label in dark.
+  - The Foundations spec sheet: the `tile` glow and the `nav-item` bead.
+  - The Landing example: its header dot.
+- **Screens.**
+  - The app header dot on every page (until B2 puts the Logo there).
+  - `/directions`: the recommended badge.
+  - `/account`, once B3 lands.
+  - The favicon and app icons, once B1 lands.
+  - Storybook: Base/Logo, Base/Badge, the Card and Direction Studio stories, and the Foundations pages Semantic, Component tokens, Profiles and the spec sheet. The Storybook brand image does not change: it is light and form 24, which was violet already.
+- **`packages/intent-engine`.** No change (follow-up 6).
+
+### Is an ADR needed?
+
+No.
+
+- The token layers, the identity scope and the floors stay as DESIGN.md §3.1, §5 and §9 item 10 describe them; only values change.
+- DESIGN.md's change log and brand spec v1.2 record the brand change.
+- ADR 0017's `signature` vocabulary names the hue families the colour node may pick for a customer. It does not name ORIVILO's own token, so it does not change.
 
 ## Findings for the spec
 
@@ -549,3 +773,8 @@ No.
 | F4 | `logo-api-1` | Amendments: the `LogoKind` and `LogoTone` exports; a `height` that is not a finite number renders at 24 before the minimum applies; closed props; a wordmark is always `master` | §4 | Applied in spec v1.1 |
 | F5 | Out of scope, Storybook manager | The brand image carries light values only, so the manager must use the light base, while Storybook's default follows the OS scheme | `base: "light"` in `manager.ts` | Applied in spec v1.1 |
 | F6 | Rows 2, 4 and 7, Given | The rows name a story in a mode or locale that the test project does not run: it runs each story once, in Thai and light mode | The dark halves are asserted in the neutral dark cell of "Recipes and modes", row 7's English half in a unit test; the toolbar renders are on the R1 contact sheet | Applied in spec v1.1 |
+| F7 | `logo-colour-1`, the neutral values (spec line 98) | Comment 10336 makes the dot violet at every size. The line gives `brand.signature` lime.300 in both modes and `brand.dot-small` lime.300 in dark, and cites board 05 and brand spec v1.1 §2 for "violet on the light canvas and lime on the dark canvas" | "`brand.signature` violet.600 #7A22C7 light, violet.400 #B07FEE dark; `brand.dot-small` the same values. So the dot is violet at every size in both modes (owner, ORV-118 comment 10336; brand spec v1.2 §2)." Contract change: token values (section 13) | Open |
+| F8 | `logo-colour-1`, the contrast paragraph (spec line 100) | "The master dot (`brand.signature` on the light canvas, 1.10 by W6) is left out" no longer gives the reason: neutral's master dot is now 6.61 | "The master dot is left out of `src/recipes/pairs.ts` (`brand.signature` has no floor on the canvas; Friendly's is 2.3 on its light canvas), with the reason in its header comment" | Open |
+| F9 | `logo-icon-1`, the app icon (spec line 113) | "dot `brand.signature` in every form", with the light values, puts violet.600 on the ink square at 2.49 (W6) | "dot: the dark value of the token the form picks (`logo-colour-1`), because the ground is the ink square: `brand.dot-small` at 32 px (form 24), `brand.signature` at 180 px (master), #B07FEE in both, 6.14 (W6)". Contract change: the asset's colour rule | Open |
+| F10 | W6 (spec lines 185 and 188) | The pairs it computes (lime.300 on gray.900, lime.300 on gray.50) no longer describe the logo | "violet.600 on gray.50 (dot, light canvas), violet.400 on gray.900 (dot, dark canvas), white on violet.600 (`brand.ink` on the signature, light), violet.600 on gray.900 (why the app icon takes the dark value). Expected: `6.61 6.14 7.29 2.49`." The command prints `R("7A22C7","F4F4F0"),R("B07FEE","16151D"),R("FFFFFF","7A22C7"),R("7A22C7","16151D")` with the same `L` and `R` | Open |
+| F11 | Changelog; open question 1 (spec line 210) | No changelog entry for the decision. Open question 1 asks for a dot "violet on the light canvas, lime on the dark one" | A changelog entry naming F7 to F10 and their kinds. Downstream: brand spec v1.2, DESIGN.md (section 13), the tech notes' `spec:` version, task V1 and the V2 sign-off. Open question 1 keeps its text and gains "Values revised by comment 10336 (tech notes, section 13)" | Open |
