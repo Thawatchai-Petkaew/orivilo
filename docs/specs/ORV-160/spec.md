@@ -2,7 +2,7 @@
 issue: ORV-160 (https://tpetkaew.atlassian.net/browse/ORV-160)
 parent: ORV-113 (item 7)
 lane: L
-version: 1.0
+version: 1.1
 ---
 
 # ORV-160: a guardrail test set from the OWASP LLM Top 10 2026 and a harness for the interpreter path (ORV-113 item 7)
@@ -110,7 +110,8 @@ Each row's Test column names the file and the form (`orv160-form`); the Red when
 - **orv160-prompt-hygiene.** `LLM_SYSTEM_PROMPT`, lowercased, contains none of these 11 markers: `sk-or-`, `bearer`, `api key`, `secret`, `password`, `openrouter`, `process.env`, `workspace`, `organization`, `permission`, `@`. The test proves each marker with one red sample, the prompt with that marker appended (worked example "The prompt check"). A marker the prompt already holds is a builder deviation, not a list edit.
 - **orv160-titles.** In G, each `describe` title other than the guard's own (titled `orv160-titles`) begins with a 2026 id, `LLM` and two digits from 01 to 10 then `:2026`, and no `describe`, `it` or `it.each` title contains `conform`, `complian` or `certif`, case-insensitive; the guard's own titles avoid the three stems too. The forms read are a `describe(` title, an `it(` title and an `it.each(...)(` title, each in double quotes, single quotes or backticks; the guard lists them in its test name, and the builder adds one `verified` row per form with its red sample (`.claude/rules/testing.md` line 31). A 2025 id in a title is a review finding (ADR 0015, Consequences).
 - **orv160-network-block.** A setup file replaces `globalThis.fetch` with a function that rejects with "Network is blocked in tests (ADR 0009 point 8)." for any URL. It is wired by a new `packages/intent-engine/vitest.config.ts` (`setupFiles`) and by `setupFiles` in `apps/web/vitest.config.ts` (open question 6). A test that needs a `fetch` stubs one, as `actions.test.ts` line 96 does; `vi.unstubAllGlobals()` returns to the block.
-- **orv160-recordings.** The recorder `scripts/probe/openrouter-interpret-record.mjs` runs by hand outside turbo (`turbo.json` passes no OpenRouter key), sends each case brief of row 35 once to `interpret` through `openRouterComplete`, and prints one JSON line per case: the case id, the answering `model`, the date and the raw text. It prints no header and no key. The lines go into R by hand, under a comment naming the model id and the date. A run costs money and follows open question 7.
+- **orv160-recordings.** The recorder `scripts/probe/openrouter-interpret-record.mjs` runs by hand outside turbo (`turbo.json` passes no OpenRouter key), sends each case brief of row 35 once to `interpret` through `openRouterComplete`, and prints one JSON line per case: the case id, the answering `model`, the date and the raw text. It prints no header and no key. The lines go into R by hand, under a comment naming the model id and the date. A run costs money and follows `orv160-recorder-run`.
+- **orv160-recorder-run.** The builder runs the recorder with a developer key (ADR 0009 point 8, line 81), and the main session asks the owner to confirm in the question form before every run; no run starts without that confirmation. Decided by the owner in ORV-160 comment 10293 (open question 7).
 - **orv160-security-dispatch.** The main session dispatches `security` (`reviewer.v1`) in round 0 on the head of each ORV-160 PR, slices 1, 2, 3, 4, 5, 6 (if open question 5 is (b)), 7 and 8, beside the reviewer, and on each re-check. Reason: `.claude/rules/security.md` lists seven paths (lines 3 to 9), none under `packages/intent-engine`, so a test-only diff there meets none of the four cases of the ovl skill step 6 (`.claude/skills/ovl/SKILL.md` line 25). Slice 8 proposes the path (open question 12). In POC mode a test-only PR needs no `qa` (review by size, ORV-146); `security` still runs.
 - **orv160-no-conformance.** No test title, PR body, gate packet or ADR addition from this story says the product conforms to, complies with or is certified against the OWASP LLM Top 10. A report says which rows ran and what they found (ADR 0015 decision 13, `.claude/rules/security.md` rule 16).
 
@@ -204,7 +205,7 @@ The plan's order, each slice one PR into `develop`, aiming under about 400 chang
 4. **Boundary and label** (test-only, `apps/web`, after PR 141, which changes `actions.test.ts` and `actions.ts`): rows 6 to 8, 25, 28 and 32.
 5. **Client hardening** (source change, tech notes first, full review set): rows 17 and 26; `orv160-bound-response` and the slice 5 form of `orv160-answer-model`.
 6. **Story play** only if open question 5 is (b): one `readWithAi` call per press, none on mount or while typing, in `DirectionStudio.stories.tsx` (full set with the designer sign-off, since a story changes).
-7. **Network block and recordings** (config and a script, full review set): rows 34 to 36; the recorder run of open question 7 is the G4 evidence.
+7. **Network block and recordings** (config and a script, full review set): rows 34 to 36; a recorder run under `orv160-recorder-run` is the G4 evidence.
 8. **Docs closing**: the dated additions listed under "Impact list", and the `security.md` path of open question 12 with the owner's approval line.
 
 ## Out of scope
@@ -232,7 +233,7 @@ The plan's order, each slice one PR into `develop`, aiming under about 400 chang
 
 ## Open questions
 
-Each has a default; under the owner's delegation (ADR 0012 decision 4) G2 passes on the defaults. Questions 1 to 4 are the four `needs_decision` lines of task ORV-160-research-2.
+Each has a default; under the owner's delegation (ADR 0012 decision 4) G2 passes on the defaults. The owner decided questions 7 and 12 in the question form on 2026-10-30 (ORV-160 comment 10293); their Default cells record the decision. Questions 1 to 4 are the four `needs_decision` lines of task ORV-160-research-2.
 
 <!-- prettier-ignore -->
 | # | Question | Options | Impact | Default |
@@ -243,12 +244,12 @@ Each has a default; under the owner's delegation (ADR 0012 decision 4) G2 passes
 | 4 | Static set or an adaptive attacker that knows the defence (an LLM01:2026 measure)? | (a) a static hand-written set in CI plus the recorded replay; the adaptive attacker is recorded as not done in ADR 0015; (b) also an adaptive run by hand with a developer key that varies cases against the real model; (c) an attacker model in CI | (c) is ruled out: CI has no key and tests never call a model (ADR 0009 point 8); (b) costs money each run | (a) |
 | 5 | LLM03:2026 is read as out of scope, yet ADR 0015 row 63 maps "a person confirms before model output changes saved data" to it with follow-up ORV-113. Test it here? | (a) no: row 63 stays manual and slice 8's ADR addition says why; (b) yes: a boundary row that `readBriefWithAi` writes nothing, and slice 6's story play | (a) leaves row 63 `not covered yet`; (b) adds a Storybook slice with a designer sign-off | (a) |
 | 6 | Where does the network block live? | (a) the engine (new `vitest.config.ts`) and `apps/web` (`setupFiles`); (b) the engine only; (c) none | The engine never calls the global `fetch` (it is injected), so (b) guards little: the real path that uses the global `fetch` is in `apps/web` | (a), `orv160-network-block` |
-| 7 | Who runs the recorder, with which key? | (a) the owner, once, with the staging key, within its 20 US dollar monthly credit limit (ADR 0009 line 76); (b) the builder with a developer key after the owner approves the spend | A run costs money: the loop stops and asks (ovl skill, Rules) | (a) |
+| 7 | Who runs the recorder, with which key? | (a) the owner, once, with the staging key, within its 20 US dollar monthly credit limit (ADR 0009 line 76); (b) the builder with a developer key after the owner approves the spend | A run costs money: the loop stops and asks (ovl skill, Rules) | Decided by the owner in ORV-160 comment 10293: neither option as written; `orv160-recorder-run` states the decision |
 | 8 | Is slice 5 (client hardening) part of ORV-160? | (a) yes, the last code slice, tech notes first; (b) its own story | (b) leaves rows 17 and 26 out of the set | (a) |
 | 9 | What is the response byte bound? | (a) 65,536 bytes (worked example "The response bound"); (b) a figure from a recorded answer's size, set in tech notes | (a) rests on an assumed bytes-per-token ceiling | (a), confirmed or changed in tech notes after slice 7's recordings |
 | 10 | Exact model id or a dated suffix? | (a) exact, or the pinned id plus `-` and 8 digits; (b) exact only | (b) fails if OpenRouter names a dated variant, which the comment at `openrouter.ts` line 88 says it sometimes does; the suffix form is an assumption until a recorded answer shows it | (a), `orv160-answer-model` |
 | 11 | Strip invisible characters (tag block, variation selectors, zero width) from a brief before the prompt? | (a) not in ORV-160: row 4 pins that they reach only the user message; a follow-up issue; (b) strip now | (b) changes the brief text the quote check and the seal read, so it is a contract change | (a) |
-| 12 | Add `packages/intent-engine/**` to the paths of `.claude/rules/security.md`? | (a) yes, in slice 8 with the owner's approval line; (b) no, keep `orv160-security-dispatch` per story | (b) leaves the next prompt change under the engine without an automatic `security` dispatch | (a) |
+| 12 | Add `packages/intent-engine/**` to the paths of `.claude/rules/security.md`? | (a) yes, in slice 8 with the owner's approval line; (b) no, keep `orv160-security-dispatch` per story | (b) leaves the next prompt change under the engine without an automatic `security` dispatch | Decided (a) by the owner in ORV-160 comment 10293 |
 
 ## Depends on
 
@@ -257,3 +258,4 @@ ADR 0015 decisions 1 (the 2026 edition), 2 (`security` dispatch), 3 (the AI cont
 ## Changelog
 
 - v1.0 (2026-10-30): first spec, ORV-113 item 7 as its own story (task ORV-160-spec-1), lane L, POC mode short spec. Downstream to review: the ORV-160 Jira acceptance (rows 1 to 36), the tech notes before slice 5, and the documents under "Impact list", "Docs to bring up to date".
+- v1.1 (2026-10-30): the owner's answers in ORV-160 comment 10293 (task ORV-160-spec-2). Open question 7 decided, written as the new rule `orv160-recorder-run`, which `orv160-recordings` and slice 7's G4 line point to; default (a), the owner with the staging key, is dropped. Open question 12 decided (a). Downstream to review: the slice 7 builder envelope and its G4 packet (who runs the recorder, the confirmation before each run), the slice 8 change to `.claude/rules/security.md`, and the copy of this spec on `feature/ORV-160-llm-guardrails` (f4e25b5), which still holds v1.0.
