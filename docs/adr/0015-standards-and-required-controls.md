@@ -137,6 +137,30 @@ The matrix is the default per status; a body with `retryable: false` is not retr
 
 Confirmation: not confirmed yet; follow-up: ORV-113, which adds the error helper and the client retry, with a test per matrix row and a test that a thrown error's stack and a seeded email do not reach the body.
 
+Addition, 2026-10-30 (ORV-170, recording ORV-144). The Confirmation line above stays as the record of 2026-10-25. ORV-144 (PR #144, merge commit `b861607`) built the error helper and the client retry; this addition states what its code and tests show on `develop` at `46d2492`.
+
+- **The body.** `packages/auth/src/errors.ts` holds the closed code list, `ERROR_CODES`, and the only writers of an error body, `errorBody` and `errorResponse`. The list has 14 codes for 13 statuses: one per status of the matrix above and `AI_SPEND_CAP` (429, `retryable: false`, decision 4, added by ORV-121). `codeOfStatus` gives a status its code; where two codes share a status the first listed is its code, so 429 is `RATE_LIMITED`; an unlisted 4xx is `BAD_REQUEST` and an unlisted 5xx `INTERNAL_ERROR`. `message` is the fixed English text of the code's row, never built from an error object. `packages/auth/src/errors.test.ts` pins the list, the body byte for byte with its key order, and the `content-type` and `x-request-id` headers.
+- **The route.** `authRoute` in `packages/auth/src/auth-route.ts` answers its own 429 and 503, every Better Auth answer with status 400 or more, and any other throw (500 `INTERNAL_ERROR`, no longer rethrown) with that body. In `packages/auth/src/auth-route.test.ts`, "every answer carries the request id and one line" throws `ana@example.com at /Users/x/app.ts:12` and finds neither the email, `/Users/` nor `" at "` in the body, and "an error answer from Better Auth gets the error body" finds no seeded email in a rewritten 401. That is the test the line above asks for, a thrown error's stack and a seeded email kept out of the body.
+- **Outcome objects.** The failure outcomes of the seven server actions in `apps/web/app/directions/actions.ts` and the states of `signInWithGoogle` in `apps/web/app/account/actions.ts` carry `code`, `requestId` and `retryable` through `failureFields`. Backed by `apps/web/app/directions/actions.test.ts` ("a failure outcome carries code, requestId and retryable", "each reason maps to its code", "an unexpected error carries INTERNAL_ERROR and nothing of the error") and `apps/web/app/account/actions.test.ts` ("an error from signInSocial returns the INTERNAL_ERROR state and logs one failed line"). `signOut` and `setLocale` return no outcome and carry none.
+- **The matrix.** `apps/web/client/retry.ts` (`retryDelay`, `fetchWithRetry`) decides each retry. `apps/web/client/retry.test.ts` has a test per matrix row: "4xx and 500 are not retried" (rows 400 to 422 and 500), "408 and 429 wait for Retry-After", "5xx gateway answers and network errors back off with jitter" (the 502, 503, 504 row and the network row), and "only a GET or a keyed write is retried, and never a retryable false" (the rule above the matrix and the body's `retryable: false`).
+
+How ORV-144 reads the decided text, from its open questions taken at their defaults under the owner's delegation (ORV-144 comment 10268, ADR 0012 decision 4):
+
+- "At most 3 tries" is at most 3 retries after the first call, one per listed delay, so a call is made at most 4 times (open question 5, `MAX_RETRIES` in `retry.ts`).
+- "Wait for `Retry-After`" holds for a whole number of seconds from 0 to 10. Over 10 s the call is not retried automatically and the person sees the wait; a value that is missing or not a whole number waits 1 s (open question 7, `MAX_WAIT_SECONDS`).
+- "With jitter" is `base * (0.5 + r)` ms with `r` in [0, 1), so the listed delays are the middle of each wait: 0.5 s is 250 to 750 ms (open question 6).
+- A write "carries an idempotency key" when its request has a non-empty `Idempotency-Key` header (open question 4).
+- A call its caller aborted has no answer but is not retried (ORV-144 tech notes D7, test "an aborted call is not retried").
+- "The UI maps it to a catalog string": the line a person reads still comes from the outcome's `error` key (ORV-144 open question 3), and `code` decides only whether the reference line with the `requestId` shows, which only `INTERNAL_ERROR` does (open question 8, `referenceLine` in `apps/web/i18n/wait.ts`).
+
+What this does not confirm:
+
+- **No client caller uses `apps/web/client/retry.ts`.** Every client call today is a server action, an HTTP `POST` without an idempotency key, so by this decision none is retried, and the module is proven by its own tests only (ORV-144 open question 4). The retry in use is confirmed when the first `GET` or keyed caller lands with a test.
+- A network failure on the `/account` forms shows Next.js's error page, with no body and no `requestId` (ORV-144 open question 10, a recorded gap).
+- No automated check stops other code from writing an error body; the `reviewer` and `security` roles read each diff for one (ORV-144 spec, "Frame").
+
+Decision 7 is confirmed for the body, the code list, the outcome fields and the retry decision by the tests named above. The client retry in the app is not confirmed yet; follow-up: the first story with a `GET` or keyed client call.
+
 ### 8. Personal data (PDPA): masked by default
 
 - Thailand's Personal Data Protection Act B.E. 2562 (2019) applies to the people whose data the product holds. Per K-0013 section 5 (confidence 0.75 for these dates), read from the regulator's page <https://www.pdpc.or.th/3442/>: the Act was published in the Royal Gazette on 27 May 2019 and has been in force in every section since 1 June 2022. The Gazette text itself (volume 136, part 69 Gor; a copy at <https://ratchakitcha.soc.go.th/documents/17082307.pdf>) and the section 2 schedule were not read, so they sit below 0.7 and nothing here rests on them. The Thai Gazette text is the binding one; no official English translation was found.
@@ -212,6 +236,8 @@ Confirmation: `reviewer` and `security` read each PR for such a claim (AGENTS.md
 - **Privacy notice:** ADR 0009 requires it to name OpenRouter and each model host before real customers use AI features. Not written.
 
 Addition, 2026-10-30 (ORV-158). The bullet "Error envelope, PDPA masking, classification tags, uploads, money" stays as the record of 2026-10-29 (ORV-142). On 2026-10-30 its items stand as follows. Classification tags have code and checks (decision 9, the addition above). The error envelope has code and tests from ORV-144: the code list and the body helpers in `packages/auth/src/errors.ts` (`ERROR_CODES`, `errorBody`, `errorResponse`) and the retry module `apps/web/client/retry.ts`, which no client caller uses yet. PDPA masking (decision 8) and uploads (decision 11) have no code. Money has its helper and its schema test only for AI usage amounts (decision 12's addition, ORV-121).
+
+Addition, 2026-10-30 (ORV-170, recording ORV-144). The bullet "Error envelope, PDPA masking, classification tags, uploads, money" stays as the record of 2026-10-29 (ORV-142), and the ORV-158 addition above stays as written. For the error envelope the bullet's "no code and no check" no longer holds: decision 7 has code and tests from ORV-144, listed in decision 7's addition of 2026-10-30 (ORV-170). Still open for it: no client caller uses `apps/web/client/retry.ts`, so no call in the app is retried automatically; a network failure on the `/account` forms has no body and no `requestId` (ORV-144 open question 10); and no automated check stops code other than `errorBody` and `errorResponse` from writing an error body. PDPA masking (decision 8), uploads (decision 11) and money (decision 12) stand as the ORV-158 addition records.
 
 ## Consequences
 

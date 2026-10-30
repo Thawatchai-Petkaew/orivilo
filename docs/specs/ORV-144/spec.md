@@ -255,6 +255,7 @@ Each line is copied from its source and was not run in this task (no shell).
 - **Size.** About 940 changed lines with tests, task by task in tech notes section 11 (worked example "The size"), over the 400 line mark. It ships as one PR anyway: open question 11 is decided (b) in ORV-144 comment 10268, and the G3 packet lists one commit per task.
 - **`security` role** is dispatched on each PR (`packages/auth/**`).
 - **Docs to review**, status. Brought up to date in spec v1.1 (task ORV-144-spec-2), the spec rows: `docs/specs/ORV-141/spec.md` row 13 (ORV-141 spec v1.3), `docs/specs/ORV-112/spec.md` line 60 (ORV-112 spec v1.8), `docs/specs/ORV-122/spec.md` lines 52 and 61 (ORV-122 spec v1.6), `docs/specs/ORV-123/spec.md` line 51 (ORV-123 spec v1.2). Brought up to date in commit 3b911a0, the tech rows: `docs/specs/ORV-141/tech.md` lines 230, 244, 245 and 318; `docs/specs/ORV-112/tech.md` lines 341 and 476. Brought up to date in spec v1.2 (task ORV-144-spec-book-1): `docs/specs/ORV-122/spec.md` row 25's Result (ORV-122 spec v1.7). Waiting for the merge: ADR 0015 decision 7 Confirmation (line 128) and "Not done yet" (line 189).
+- **Note, 2026-10-30 (ORV-170).** The two ADR 0015 edits the bullet above lists as waiting for the merge are recorded as ADR 0015 Additions dated 2026-10-30 (ORV-170, recording ORV-144): decision 7's Confirmation at line 140 and the "Not done yet" bullet at line 240. The bullet above stays as written.
 
 ## Open questions
 
