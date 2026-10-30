@@ -905,6 +905,7 @@ S, and the shell:
   an assignment before `[[`, a delimiter line with trailing text, a quoted `))` in `$(( ))` or
   `(( ))` among them), and makes a form unknown (unknown-1) where the reader cannot match both
   shells.
+
 - `eval`, and `sh -c`, `bash -c`, `zsh -c` and every other interpreter with a program in a word
   (`node -e`, `python3 -c`, `perl -e`) or in a quoted-delimiter here-document body (`sh <<'EOF'`,
   `python3 - <<'PY'`; v1.5), which the text rules do not read (resolve-1 (f)); `source` or `.` of a
