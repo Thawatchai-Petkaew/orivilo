@@ -1,7 +1,7 @@
 ---
 issue: ORV-138 (https://tpetkaew.atlassian.net/browse/ORV-138)
 lane: L (guard files; ORV-138 description)
-version: 1.6
+version: 1.7
 ---
 
 # ORV-138: phase-1 guard batch, seven guard changes in one PR
@@ -877,6 +877,34 @@ S, and the shell:
   command position, `${~X}` and the other expansion flags, an alias (Z1), and a profile option that
   changes how a word expands. Glob qualifiers (`*(.)`) and extglob patterns with `(` are no longer
   in this class: they make the call unknown (unknown-1, S11).
+- The desync line (v1.7, ORV-138-sec-F8): a place where the reader's quote, brace, arithmetic or
+  here-document state parts from the shell's. The reader then reads a wrong list of segments instead
+  of marking the call unknown, since unknown-1 holds only the members it lists, so the call fails
+  open: the lines the shell runs and the reader swallows are not judged. The four forms sec-F8 found
+  (the ORV-138-security-3 probe on 9b9d155), each with a hidden
+  `cd .oriv?lo/owner-approvals && printf x > 7.json` that `write-guard` allowed and the shell ran:
+  - a single quote inside a `${ }` default value, under zsh: in `x=; echo "${x:-'}"` NL a hidden line
+    NL `echo "'}"`, the reader takes the `'` as opening a quote that runs to the next `'`, two lines
+    down, while zsh ends `${x:-'}` at its first `}` and runs the hidden line (bash does not). Allowed
+    as the main session and as a subagent;
+  - an assignment before `[[`, under bash 3.2: in `x=1 [[ a > 7.json ]]` the `[[` is no reserved
+    word, so bash takes `>` as a redirect and writes `7.json`, while the reader reads the words as the
+    condition of shell-1 (g) (H19);
+  - a quoted here-document delimiter line with trailing text, under bash: in `x=$(cat <<'E'` NL `hi`
+    NL `E)` NL a hidden line, bash ends the body at the line `E)` and runs the next line, while the
+    body end of shell-1 (f) (H15) does not end it there;
+  - a quoted `))` inside `$(( ))`, under bash: in `echo $(( '))' + $(<hidden command>) ))` bash runs
+    the hidden command, and the reader's arithmetic state (shell-1 (a)) gives it no segment.
+
+  The first, third and fourth forms hide a `git switch x` the same way (the ORV-130 part). A hidden
+  target written as a glob (`.oriv?lo`) names no literal `.orivilo` for the text rules to find. No
+  form in "Write-guard forms to keep" or "Branch forms to keep" has these shapes: the commit and PR
+  body forms end the body at a line that is exactly `EOF` and close the substitution on the next
+  line. A follow-up issue surveys the whole class (L-0045): every place where the reader's quote,
+  brace, arithmetic or here-document state can part from zsh or from bash (`${ }` and `$[ ]` values,
+  an assignment before `[[`, a delimiter line with trailing text, a quoted `))` in `$(( ))` or
+  `(( ))` among them), and makes a form unknown (unknown-1) where the reader cannot match both
+  shells.
 - `eval`, and `sh -c`, `bash -c`, `zsh -c` and every other interpreter with a program in a word
   (`node -e`, `python3 -c`, `perl -e`) or in a quoted-delimiter here-document body (`sh <<'EOF'`,
   `python3 - <<'PY'`; v1.5), which the text rules do not read (resolve-1 (f)); `source` or `.` of a
@@ -956,6 +984,10 @@ ORV-130, `worktree-guard` switch-1 on shell-1 and `envelope-guard` branch-key-1:
 - The shell line of the ORV-96 part holds here: Claude Code runs the call in the user's shell, zsh on
   the owner's machine, with the profile's aliases and functions; shell-1 reads the forms that line
   names, and the zsh-only forms it lists are named bypasses.
+- The desync line of the ORV-96 part holds here (v1.7, sec-F8): with a hidden `git switch x` in
+  place of the write, its first, third and fourth forms pass `worktree-guard` as a bound main-session
+  call, and zsh (the first) or bash (the third and fourth) switches the bound checkout (the
+  ORV-138-security-3 probe on 9b9d155).
 - State from before the call: an exported `GIT_DIR` or `GIT_WORK_TREE`, `core.worktree` set in a git
   config file or by `-c core.worktree=<path>`, and CDPATH.
 - A subagent's switch is not judged.
@@ -1074,6 +1106,11 @@ task that changed nothing still makes the next rejecting verdict count.
   switch-1 and resolve-1 (L-0045). Its sections 10 (where a one-pass reader can part from the shell,
   rows C1 to C8, Q1 to Q5, H1 to H20, S1 to S11, Z1 to Z8) and 11 (runners, 11a and 11b), commit
   985cae9, bound unknown-1 and shell-1 (d) in v1.4.
+- The round 4 findings on head 9b9d155, in the git-ignored run records
+  `.orivilo/runs/ORV-138/ORV-138-review-4/result.json` (RV4-1) and
+  `.orivilo/runs/ORV-138/ORV-138-security-3/result.json` (ORV-138-sec-F8), recorded 2026-10-30; and
+  the owner's answer on sec-F8 in the question form on 2026-10-30, "บันทึกเป็นข้อจำกัด (แนะนำ)"
+  (record it as a limit, the recommended route).
 - The round 3 findings on head c490d76, in the git-ignored run record
   `.orivilo/runs/ORV-138/ORV-138-review-3/result.json` (RV3-1, RV3-2 and RV2-6 again, recorded
   2026-10-30).
@@ -1241,3 +1278,30 @@ task that changed nothing still makes the next rejecting verdict count.
   Review downstream: `.claude/skills/ovl/SKILL.md` line 471 on c490d76 (the `write-guard` Honest
   limits bullet, which does not name the content class); the PR body's deviation list; and the G1
   comment on ORV-138. The code and tests already match.
+
+- v1.7: answers the findings of ORV-138-security-3 and ORV-138-review-4 on 9b9d155. sec-F8 is
+  decided by the owner (the question form, 2026-10-30, "บันทึกเป็นข้อจำกัด (แนะนำ)": record it as a
+  limit); RV4-1 by the orchestrator under the owner's delegation (ADR 0012 decision 4) in POC mode
+  (ORV-137). No new row, no new requirement and no rule change: Honest limits gain the desync line in
+  the ORV-96 part and its pointer in the ORV-130 part. Per finding (L-0013):
+  - sec-F8: no contract change. The reader-versus-shell quote, brace, arithmetic and here-document
+    desyncs that fail open are a guard-rail bypass class (L-0012 kind (b)): a rule-following agent
+    writes none of the four forms, and no command of "Write-guard forms to keep" or "Branch forms to
+    keep" has their shapes. So the desync line names the class, with no builder round and no new
+    test, and a follow-up issue surveys it. The route the finding expects (survey now, make each form
+    unknown under unknown-1, and add the forms to the tests of rows 24, 28, 55, 58 and 59) is that
+    follow-up's, not this PR's.
+  - RV4-1: no contract change. The merge of `develop` (ea032aa) into the branch, with its conflicts
+    in `docs/knowledge/README.md` (the K-0089, K-0090 and K-0091 index rows, kept in key order) and
+    `scripts/ovl/result-recorder.test.mjs` (the ORV-138 block, the `});` that closes its last test,
+    then the ORV-162 block), is builder work. The auto-merged `scripts/ovl/result-recorder.mjs` keeps
+    ORV-162's `judgeRoot` and every rule of this spec. The gate on the clean merged head, CI on it and
+    the reviewer approve on it are G3 preconditions, not spec requirements.
+
+  Review downstream: `.claude/skills/ovl/SKILL.md` line 489 on 9b9d155 (the `write-guard` Honest
+  limits bullet) and lines 305 to 313 (the "One issue per checkout" bullet's list of what
+  `worktree-guard` does not see), which do not name the desync class that rows 31 and 52 ask them to
+  name; `docs/knowledge/enforcement/K-0090-bash-forms-for-text-guards.md` section 10, whose rows H15
+  and H19 are marked model with no word on the trailing-text and assignment-before-`[[` cases; the
+  follow-up issue, to be filed, whose key a later revision adds to the desync line; the PR body's
+  deviation list; and the G1 comment on ORV-138. The code and tests are unchanged.
