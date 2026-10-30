@@ -183,6 +183,11 @@ const th = {
     title: "เวิร์กสเปซ, ORIVILO",
     description: "หน้าอ้างอิง: เวิร์กสเปซของทีมพร้อมสร้างโปรเจกต์ (E2-8) ข้อมูลตัวอย่างภาษาไทย",
   },
+  notFound: {
+    heading: "ไม่พบหน้านี้",
+    body: "ไม่มีหน้าใดใน ORIVILO ที่ใช้ที่อยู่นี้ ตรวจที่อยู่อีกครั้ง หรือกลับไปหน้าแรก",
+    home: "ไปหน้าแรก",
+  },
 };
 
 export type WebMessages = typeof th;
@@ -375,6 +380,11 @@ const en: WebMessages = {
     title: "Workspace, ORIVILO",
     description:
       "The reference screen: a team workspace with project creation (E2-8). Thai fixture data.",
+  },
+  notFound: {
+    heading: "Page not found",
+    body: "No page in ORIVILO has this address. Check the address, or go back to the home page.",
+    home: "Go to the home page",
   },
 };
 
