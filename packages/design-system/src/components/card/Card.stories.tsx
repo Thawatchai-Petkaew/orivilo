@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { Badge } from "../badge/Badge";
 import { Button } from "../button/Button";
 import { fixtures } from "../fixtures";
@@ -80,10 +80,18 @@ export const Link: Story = {
   },
 };
 
-/** Hover shows an edge, focus the ring, pressed the same edge; none is a tint alone (DESIGN.md §7). */
+/**
+ * Hover shows an edge, focus the ring, pressed the same edge; none is a tint alone (DESIGN.md §7).
+ * A synthetic pointer sets no `:hover`, so `parameters.pseudo` forces the hover look on the hover
+ * card (spec ORV-84, `hover-force-1`).
+ */
 export const InteractionStates: Story = {
+  parameters: { pseudo: { rootSelector: "body", hover: ['[data-testid="hover"]'] } },
   render: () => (
-    <div className="grid gap-4 sm:grid-cols-3">
+    <div className="grid gap-4 sm:grid-cols-2">
+      <Card interactive data-testid="default">
+        {content}
+      </Card>
       <Card interactive data-testid="hover">
         {content}
       </Card>
@@ -101,6 +109,11 @@ export const InteractionStates: Story = {
     await userEvent.hover(canvas.getByTestId("hover"));
     canvas.getByTestId("focus").focus();
     await expect(canvas.getByTestId("focus")).toHaveFocus();
+    await waitFor(() =>
+      expect(getComputedStyle(canvas.getByTestId("hover")).borderColor).not.toBe(
+        getComputedStyle(canvas.getByTestId("default")).borderColor,
+      ),
+    );
   },
 };
 

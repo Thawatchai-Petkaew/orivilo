@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, fn, userEvent, within } from "storybook/test";
+import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { fixtures } from "../fixtures";
 import { ChevronDownIcon, PlusIcon } from "../icons";
 import { Matrix, Narrow } from "../matrix";
@@ -52,10 +52,18 @@ export const Sizes: Story = {
   ),
 };
 
-/** Hover, focus-visible and pressed are interaction states; the play function puts one instance in each. */
+/**
+ * Hover, focus-visible and pressed are interaction states; the play function puts one instance in
+ * each. A synthetic pointer sets no `:hover`, so `parameters.pseudo` forces the hover look on the
+ * hover button (spec ORV-84, `hover-force-1`) and the play asserts it against a default button.
+ */
 export const InteractionStates: Story = {
+  parameters: { pseudo: { rootSelector: "body", hover: ['[data-testid="hover"]'] } },
   render: (args) => (
     <div className="flex flex-wrap items-center gap-3">
+      <Button {...args} variant="primary" data-testid="default">
+        Default
+      </Button>
       <Button {...args} variant="primary" data-testid="hover">
         Hover
       </Button>
@@ -73,6 +81,12 @@ export const InteractionStates: Story = {
     await userEvent.hover(canvas.getByTestId("hover"));
     canvas.getByTestId("focus").focus();
     await expect(canvas.getByTestId("focus")).toHaveFocus();
+    // The hover rule changes the background, and the recipe eases it over the feedback duration.
+    await waitFor(() =>
+      expect(getComputedStyle(canvas.getByTestId("hover")).backgroundColor).not.toBe(
+        getComputedStyle(canvas.getByTestId("default")).backgroundColor,
+      ),
+    );
   },
 };
 

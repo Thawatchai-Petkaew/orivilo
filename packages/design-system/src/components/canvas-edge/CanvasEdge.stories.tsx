@@ -126,8 +126,13 @@ export const Meanings: Story = {
   },
 };
 
-/** Rest, hover, selected and focus-visible: hover darkens, selected and focus take the violet stroke and the wider width. */
+/**
+ * Rest, hover, selected and focus-visible: hover darkens, selected and focus take the violet stroke
+ * and the wider width. A synthetic pointer sets no `:hover`, so `parameters.pseudo` forces the hover
+ * look on edge 2 (spec ORV-84, `hover-force-1`).
+ */
 export const InteractionStates: Story = {
+  parameters: { pseudo: { rootSelector: "body", hover: ['.react-flow__edge[data-id="e1"]'] } },
   render: () => (
     <EdgeBoard
       initial={pairs(
@@ -152,10 +157,11 @@ export const InteractionStates: Story = {
     // The stroke transitions over the feedback duration once the class lands.
     await waitFor(() => expect(strokeOf(selected)).not.toBe(strokeOf(rest)));
     await expect(widthOf(selected)).not.toBe(widthOf(rest));
-    // Synthetic pointer events never set :hover, so the hover stroke is checked by eye in the story.
     await userEvent.hover(hover.querySelector(".react-flow__edge-interaction") as Element);
     focus.focus();
     await expect(focus).toHaveFocus();
+    // The forced hover look: the hover edge strokes differently from the edge at rest.
+    await waitFor(() => expect(strokeOf(hover)).not.toBe(strokeOf(rest)));
   },
 };
 

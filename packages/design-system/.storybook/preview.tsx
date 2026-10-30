@@ -1,5 +1,7 @@
 import type { Decorator, Preview } from "@storybook/react-vite";
 import { useEffect } from "react";
+import { FORCE_RE_RENDER } from "storybook/internal/core-events";
+import { addons } from "storybook/preview-api";
 import "../src/tokens/fonts.css";
 import "../src/tokens/orivilo.css";
 import {
@@ -15,17 +17,38 @@ import { LocaleProvider } from "../src/i18n/LocaleProvider";
 /**
  * Mode and profile come from the toolbar and reach the story only through the same boundary
  * component the app will use. A story never sets a colour itself (DESIGN.md §3, rules §Storybook).
+ * A padded story gets `p-4` inside the surface (spec ORV-84, `surface-padding-1`): Storybook's own
+ * 1rem body padding is white and sits outside the surface, so an item flush with the surface drew
+ * its focus ring (2 px at a 2 px offset) and its Thai marks on that white margin.
  */
 const withDesignProfile: Decorator = (Story, context) => (
   <DesignProfileBoundary
     mode={context.globals["mode"] as Mode}
     profile={context.globals["profile"] as ProfileId}
   >
-    <div className="min-h-dvh bg-surface-canvas font-body text-text-primary">
+    <div
+      className={`min-h-dvh bg-surface-canvas font-body text-text-primary${
+        context.parameters["layout"] === "padded" ? " p-4" : ""
+      }`}
+    >
       <Story />
     </div>
   </DesignProfileBoundary>
 );
+
+/**
+ * Storybook-only nudge for `parameters.pseudo` (storybook-addon-pseudo-states, spec ORV-84,
+ * `hover-force-1`). The addon rewrites the `:hover` rules only on channel events, and a portable
+ * story run (the Vitest storybook project) emits none of them, so a story that sets the parameter
+ * asks for one re-render after it mounts. The recipes and the `:hover` rules stay as they are.
+ */
+const withPseudoStatesNudge: Decorator = (Story, context) => {
+  const forced = context.parameters["pseudo"] !== undefined;
+  useEffect(() => {
+    if (forced) addons.getChannel().emit(FORCE_RE_RENDER);
+  }, [forced]);
+  return <Story />;
+};
 
 /**
  * The locale comes from the toolbar and reaches the story through the same provider the app uses
@@ -55,7 +78,7 @@ const TEST_LOCALE: unknown = (import.meta as { env?: Record<string, unknown> }).
 const INITIAL_LOCALE: Locale = isLocale(TEST_LOCALE) ? TEST_LOCALE : "en";
 
 const preview: Preview = {
-  decorators: [withDesignProfile, withLocale],
+  decorators: [withDesignProfile, withLocale, withPseudoStatesNudge],
   globalTypes: {
     locale: {
       description: "UI language: every string comes from the locale catalog (spec ORV-39)",
