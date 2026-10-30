@@ -99,17 +99,32 @@ async function pixelsOf(
   canvas.width = bitmap.width;
   canvas.height = bitmap.height;
   const context = canvas.getContext("2d");
-  if (!context) throw new Error("expectEdgeInk: no 2d canvas to read the screenshot");
+  if (!context) throw new Error("no 2d canvas to read the screenshot");
   context.drawImage(bitmap, 0, 0);
   const { data } = context.getImageData(0, 0, bitmap.width, bitmap.height);
   return { data, width: bitmap.width, height: bitmap.height };
+}
+
+/**
+ * One screenshot of `el`, decoded to pixels. Vitest runs story files in parallel iframes and a
+ * screenshot waits on the page, so concurrent shots starve each other. One lock across the iframes
+ * takes them one at a time. It needs Vitest browser mode (see `inVitest`).
+ */
+async function shoot(el: Element) {
+  const { page } = await import("vitest/browser");
+  const shot = await navigator.locks.request("orivilo-screenshot", () =>
+    page.screenshot({ element: el, save: false }),
+  );
+  return pixelsOf(shot);
 }
 
 const label = (el: Element) =>
   `<${el.localName}${el.className && typeof el.className === "string" ? `.${el.className.split(" ").join(".")}` : ""}>`;
 
 /** True under Vitest browser mode; false on the static Storybook, where `vitest/browser` is missing. */
-export const inVitest = Boolean((import.meta as { env?: Record<string, unknown> }).env?.["VITEST"]);
+export const inVitest = Boolean(
+  (globalThis as Record<string, unknown>)["__vitest_browser__"] === true,
+);
 
 /**
  * Asserts the ink drawn at one edge of `el` (or at each of several, from one screenshot) is `px` CSS px wide, read from a screenshot (a pixel
@@ -124,7 +139,6 @@ export async function expectEdgeInk(
   px: number,
   reach = 4,
 ) {
-  const { page } = await import("vitest/browser");
   // The screenshot clips to one element, so shoot the nearest ancestor that holds the edge and its margin.
   const holds = (a: DOMRect, r: DOMRect) =>
     a.left <= r.left - reach &&
@@ -135,12 +149,7 @@ export async function expectEdgeInk(
   while (scope.parentElement && !holds(scope.getBoundingClientRect(), el.getBoundingClientRect())) {
     scope = scope.parentElement;
   }
-  // Vitest runs story files in parallel iframes and a screenshot waits on the page, so concurrent shots
-  // starve each other. One lock across the iframes takes them one at a time.
-  const shot = await navigator.locks.request("orivilo-screenshot", () =>
-    page.screenshot({ element: scope, save: false }),
-  );
-  const { data, width } = await pixelsOf(shot);
+  const { data, width } = await shoot(scope);
   const frame = scope.getBoundingClientRect();
   const rect = el.getBoundingClientRect();
   const scale = width / frame.width;
@@ -168,6 +177,84 @@ export async function expectEdgeInk(
       Math.abs(read - px),
       `${side} edge of ${label(el)} draws ${read} px of ink, expected ${px} px`,
     ).toBeLessThanOrEqual(0.25);
+  }
+}
+
+export type ViewBox = readonly [minX: number, minY: number, width: number, height: number];
+export interface PaintProbe {
+  /** A point in the svg's `viewBox` units. */
+  x: number;
+  y: number;
+  /** The colour the pixel there must be, as `#rrggbb`. */
+  hex: string;
+}
+
+/** A pixel passes when the summed RGB difference from the expected colour is at most this. */
+const PAINT_TOLERANCE = 12;
+
+/** `#rrggbb` as RGB. Throws on anything else, so a mistyped expectation is not read as black. */
+export function hexToRgb(hex: string): Rgb {
+  const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex);
+  if (!m) throw new Error(`hexToRgb needs #rrggbb, got "${hex}"`);
+  return [parseInt(m[1] as string, 16), parseInt(m[2] as string, 16), parseInt(m[3] as string, 16)];
+}
+
+/** True when the pixel is within the paint tolerance (a summed RGB difference of 12) of the hex colour. */
+export function paintMatches(pixel: Rgb, hex: string): boolean {
+  return distance(pixel, hexToRgb(hex)) <= PAINT_TOLERANCE;
+}
+
+/**
+ * Maps a point in `viewBox` units to CSS px from the top left of the svg's box. The svg draws with
+ * `preserveAspectRatio="xMidYMid meet"` (the default): one uniform scale, the drawing centred in
+ * the box. Parameters are plain numbers so the mapping is tested in node.
+ */
+export function viewBoxToBox(
+  point: { x: number; y: number },
+  viewBox: ViewBox,
+  size: { width: number; height: number },
+): { x: number; y: number } {
+  const [minX, minY, vbWidth, vbHeight] = viewBox;
+  if (vbWidth <= 0 || vbHeight <= 0) throw new Error("viewBoxToBox needs a viewBox with a size");
+  const scale = Math.min(size.width / vbWidth, size.height / vbHeight);
+  return {
+    x: (size.width - vbWidth * scale) / 2 + (point.x - minX) * scale,
+    y: (size.height - vbHeight * scale) / 2 + (point.y - minY) * scale,
+  };
+}
+
+const hexOf = (px: Rgb) =>
+  `#${px
+    .map((v) => v.toString(16).padStart(2, "0"))
+    .join("")
+    .toUpperCase()}`;
+
+/**
+ * Asserts the rendered pixel at each probe point of an svg is the expected colour, within a summed
+ * RGB difference of 12. Probe points are in `viewBox` units; they must sit wholly inside the part
+ * they probe (further than a pixel's diagonal from its edge), so no antialiasing reaches them. It
+ * reads a screenshot, so computed style does not decide the result. It runs where Vitest browser
+ * mode runs; a play guards the call with `inVitest`.
+ */
+export async function expectPaintAt(svg: SVGSVGElement, probes: readonly PaintProbe[]) {
+  const viewBox = svg.viewBox.baseVal;
+  const { data, width, height } = await shoot(svg);
+  const rect = svg.getBoundingClientRect();
+  const scale = width / rect.width;
+  for (const probe of probes) {
+    const at = viewBoxToBox(probe, [viewBox.x, viewBox.y, viewBox.width, viewBox.height], rect);
+    const x = Math.floor(at.x * scale);
+    const y = Math.floor(at.y * scale);
+    expect(
+      x >= 0 && y >= 0 && x < width && y < height,
+      `probe (${probe.x}, ${probe.y}) of ${label(svg)} falls outside the screenshot`,
+    ).toBe(true);
+    const i = (y * width + x) * 4;
+    const pixel: Rgb = [data[i] ?? 0, data[i + 1] ?? 0, data[i + 2] ?? 0];
+    expect(
+      paintMatches(pixel, probe.hex),
+      `${label(svg)} paints ${hexOf(pixel)} at (${probe.x}, ${probe.y}), expected ${probe.hex.toUpperCase()}`,
+    ).toBe(true);
   }
 }
 
