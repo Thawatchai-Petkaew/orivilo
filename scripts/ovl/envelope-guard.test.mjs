@@ -969,7 +969,7 @@ test("ORV-146: a worktree on a detached head or a branch with no key is blocked"
 
 test("ORV-146: a worktree other than the session checkout is still refused for a role with no issue check", () => {
   const { main, wt } = twoCheckouts();
-  const env = validEnvelope(wt, { role: "architect", skills: [], write_set: [ADR] });
+  const env = validEnvelope(wt, { role: "release", skills: ["gate-packet"], write_set: [] });
   const r = dispatch(main, env);
   assert.equal(r.code, 2);
   assert.match(r.stderr, /must be this checkout/);
