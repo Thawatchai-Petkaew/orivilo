@@ -173,16 +173,36 @@ describe.runIf(HAS_TEST_DATABASE)("saved directions", () => {
     await expect(service.read(f.headers, f.workspaceId, versionId)).rejects.toMatchObject({
       reason: "not-found",
     });
+    // A version id that exists nowhere answers the same way (ORV-159 row 12).
+    await expect(
+      service.read(f.headers, f.workspaceId, "00000000-0000-4000-8000-000000000000"),
+    ).rejects.toMatchObject({ reason: "not-found" });
     await expect(
       service.saveDraft(f.headers, f.workspaceId, { ...studio, directionId }),
     ).rejects.toMatchObject({ reason: "not-found" });
-    // Asking for Eak's workspace is denied before any query.
-    await expect(service.list(f.headers, e.workspaceId)).rejects.toMatchObject({ status: 403 });
+    // Asking for Eak's workspace is denied before any query, as a workspace the caller is not in.
+    await expect(service.list(f.headers, e.workspaceId)).rejects.toMatchObject({
+      status: 404,
+      reason: "not-a-member",
+    });
     // And without the helper, row security alone returns nothing.
     const rows = await inWorkspace(t.app, f.workspaceId, (tx) =>
       tx.select().from(directionVersion).where(eq(directionVersion.id, versionId)),
     );
     expect(rows).toEqual([]);
+  });
+
+  // ORV-159 row 13: a person whose member row is gone is denied like a stranger, and the session
+  // is not touched.
+  it("denies a former member with 404 and keeps the session (ORV-159 row 13)", async () => {
+    const i = await signIn("i@example.com", "Ing");
+    await t.admin.delete(member).where(eq(member.userId, i.user.id));
+    await expect(service.list(i.headers, i.workspaceId)).rejects.toMatchObject({
+      status: 404,
+      reason: "not-a-member",
+    });
+    const session = await auth.api.getSession({ headers: i.headers });
+    expect(session?.session.activeOrganizationId).toBe(i.workspaceId);
   });
 
   it("stores the server's fingerprint, never the client's (AC 9)", async () => {
