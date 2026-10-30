@@ -1,6 +1,6 @@
 ---
 issue: ORV-158 (https://tpetkaew.atlassian.net/browse/ORV-158)
-spec: docs/specs/ORV-158/spec.md v1.0
+spec: docs/specs/ORV-158/spec.md v1.1
 task: ORV-158-tech-1
 author: ds-architect
 date: 2026-10-30
@@ -8,7 +8,7 @@ date: 2026-10-30
 
 # ORV-158 tech notes: the field classification map
 
-These notes turn the spec's "Rules and bounds" into files, code, tests and a build order. They use the spec's rule names (`orv158-closed`, `orv158-keys`, `orv158-basis`, `orv158-tags`, `orv158-type`, `orv158-walk`, `orv158-pins`, `orv158-export`, `orv158-rebase`, `orv158-no-migration`) and do not restate their tables or clause texts; a change to a rule is made in the spec first. "Row n" is a row of the spec's "Acceptance criteria".
+These notes turn the spec's "Rules and bounds" into files, code, tests and a build order. They use the spec's rule names (`orv158-closed`, `orv158-keys`, `orv158-basis`, `orv158-hold`, `orv158-tags`, `orv158-type`, `orv158-walk`, `orv158-pins`, `orv158-export`, `orv158-rebase`, `orv158-no-migration`) and do not restate their tables or clause texts; a change to a rule is made in the spec first. "Row n" is a row of the spec's "Acceptance criteria".
 
 Sources read, as they read in this checkout at `eeb2e71`: the spec; ADR 0015 decision 9 (lines 139 to 145) and "Not done yet" (lines 180 to 191); `.claude/rules/security.md` rule 11 (line 26); `.claude/rules/testing.md` (lines 11, 16, 18 to 29 and 32 to 34); `packages/db/src/schema/index.ts` (4 lines), `auth.ts`, `direction.ts`, `workspace.ts`, `rate-limit.ts`; `packages/db/src/index.ts` (5 lines), `client.ts` line 5, `env.ts`, `boundary.test.ts` line 3; `packages/db/tsconfig.json`, `package.json`, `drizzle.config.ts`, `vitest.config.ts`, `eslint.config.mjs`; `tsconfig.base.json`; `.prettierrc.json`; drizzle-orm 0.45.4 declarations (`utils.d.ts` line 37 `getTableColumns<T extends Table>(table: T): T['_']['columns']`, `entity.d.ts` line 7 `is`, `pg-core/table.d.ts` line 15 `class PgTable<T extends TableConfig = TableConfig>`).
 
@@ -234,7 +234,7 @@ The W1 input goes through `tablesOf` with a real `pgTable`, so the case also pro
 | "every exported table and column has one tag" | 1 | `classificationProblems(tablesOf(schema), CLASSIFICATION, TAGS)` equals `[]` | Drop the `is` filter (§4) |
 | W1 to W5, one case each (`it.each` over §4's table is allowed) | 10 to 14 | §4 | §4 |
 | "the tag list is the closed list" | 15 | `TAGS` equals `["public", "internal", "personal", "secret"]` | Add `"restricted"` to `TAGS`. Not `"confidential"`: that would also make the T3 fixture compile, two reds for one mutation |
-| "pins the secret and personal columns" | 16 | The sorted `table.column` keys tagged `secret` equal the 6 of `orv158-tags`; those tagged `personal` equal its 20; those tagged `public` equal `[]` (D5). Each list is written out in the test, not derived | `session.token` to `internal`, red; `account.accountId` to `internal`, red; `rateLimitCounter.count` to `public`, red |
+| "pins the secret and personal columns" | 16 | The sorted `table.column` keys tagged `secret` equal the 6 of `orv158-tags`; those tagged `personal` equal its 21 (22 with `aiUsage.userId`); those tagged `public` equal `[]` (D5). Each list is written out in the test, not derived | `session.token` to `internal`, red; `account.accountId` to `internal`, red; `rateLimitCounter.count` to `public`, red; `organization.metadata` to `internal`, red |
 | "keeps decision 9's examples" | 16 | The seven keys of `orv158-pins`' second sentence, each with its tag, one `expect` each | `session.token` to `internal`, red here and in the pins test. No map mutation reddens this test alone, as its keys are a subset of the pins; it guards decision 9's examples if a later edit changes a pin list and the map together |
 | "the schema barrel does not carry the map" | 17 | `Object.keys(schema)` contains neither `CLASSIFICATION` nor `TAGS` | Add `export * from "./classification.ts";` to `schema/index.ts`, red (typecheck may also fail on the cycle; the test is the check) |
 
@@ -301,7 +301,7 @@ B4's documents, each a dated paragraph, never a rewrite:
 | --- | --- |
 | `classification.ts` | 118 in the prototype at 80 entries; about 130 with doc comments and the 8 `aiUsage` lines and their 2 table lines |
 | `classification.fixtures.ts` | 40 (§3 verbatim) |
-| `classification.test.ts` | about 130 (the spec's estimate; the pin lists are 26 lines of it) |
+| `classification.test.ts` | about 130 (the spec's estimate; the pin lists are 28 lines of it (6 secret, 22 personal)) |
 | `src/index.ts` and the B4 documents | about 10 |
 | Total | about 310 |
 
