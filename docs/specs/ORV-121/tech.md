@@ -103,6 +103,7 @@ export const aiUsage = pgTable(
 - **No float anywhere.** `mode: "number"` reads the `bigint` as a JS number; the helper checks every amount with `Number.isSafeInteger` before it writes (ADR 0015 decision 12). The largest safe value is about 9 billion US dollars in millionths.
 - **No pruning** (spec, "Out of scope"). A row is about 150 bytes; at the `ai-read` day limit of 50 per person, a workspace of 10 writes at most 15,500 rows a month.
 - **Classification tags**, when `classification.ts` lands (ORV-113): `user_id` `personal` (it names a person through `user`), every other column `internal`.
+  - Note, 2026-10-30 (ORV-158, `orv158-rebase`): `classification.ts` landed with ORV-158, which carries the 8 `ai_usage` entries with these tags (`user_id` `personal`, the other seven `internal`). The sentence above stays as the record.
 - `TENANT_TABLES` in `schema/workspace.ts` gains `"ai_usage"`, so the existing policy test covers it.
 - `packages/db/src/index.ts` adds `gte` and `lt` to its operator exports, for the month range.
 

@@ -148,6 +148,8 @@ The user id is Better Auth's own random id, taken from the session on the server
 - If `BETTER_AUTH_SECRET` is rotated, every IP bucket is reset. That is acceptable, since buckets last minutes or hours at most.
 - Without the key, the hashes cannot be turned back into IPs, even though IPv4 is only 2^32 addresses. A hashed IP is still pseudonymous personal data. Rows live at most 24 hours past their window's end, so 48 hours at most for a day window (§5). When `classification.ts` lands (ORV-113), tag `key` as `personal` and the other three columns as `internal`. This is a record of retention, not a PDPA claim.
 
+Note, 2026-10-30 (ORV-158): `classification.ts` landed, and `rateLimitCounter.key` is tagged `personal` and the other three columns `internal`, as the line above asked. The test `packages/db/src/schema/classification.test.ts` pins `rateLimitCounter.key` in the `personal` set.
+
 ### Reading the IP: `clientIp(headers, env, secret): string` returns a subject
 
 1. **Is this Vercel?** Yes if `env.VERCEL_ENV` is `"production"` or `"preview"`. Otherwise it is "off Vercel" and the subject is `local`. The spec's test is "`VERCEL` is set" (finding F4). K-0015 notes that a pulled `.env.local` may set Vercel variables locally. `VERCEL_ENV` is `development` in that file, and `settingsFromEnv` already relies on `VERCEL_ENV` on deployments.
