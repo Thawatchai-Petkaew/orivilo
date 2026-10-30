@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { storyTitle } from "./result-recorder.mjs";
 import { validate } from "./validate.mjs";
@@ -37,22 +37,26 @@ const has = (root, name, task) => existsSync(join(taskDir(root, task), name));
 
 const git = (root, ...args) => execFileSync("git", args, { cwd: root, encoding: "utf8" }).trim();
 
-/** A repo with a base commit on origin/develop, then a PR commit that changes one story file. */
-function makePrRepo() {
+const DEFAULT_SPEC = [
+  "| #   | Given | When | User sees                         | Evidence |",
+  "| --- | ----- | ---- | --------------------------------- | -------- |",
+  "| 1   | a     | b    | The check is centred on the label | test     |",
+  "| 2   | a     | b    | The row is saved                  | test     |",
+  "",
+].join("\n");
+
+/**
+ * A repo with a base commit on origin/develop, then a PR commit that changes one story file. `spec` is
+ * the text of docs/specs/ORV-1/spec.md in the base commit, or a function that makes that path.
+ */
+function makePrRepo(spec = DEFAULT_SPEC) {
   const root = makeRepo();
   git(root, "config", "user.email", "t@example.com");
   git(root, "config", "user.name", "t");
   mkdirSync(join(root, "docs", "specs", "ORV-1"), { recursive: true });
-  writeFileSync(
-    join(root, "docs", "specs", "ORV-1", "spec.md"),
-    [
-      "| #   | Given | When | Result                            | Evidence |",
-      "| --- | ----- | ---- | --------------------------------- | -------- |",
-      "| 1   | a     | b    | The check is centred on the label | test     |",
-      "| 2   | a     | b    | The row is saved                  | test     |",
-      "",
-    ].join("\n"),
-  );
+  const specPath = join(root, "docs", "specs", "ORV-1", "spec.md");
+  if (typeof spec === "function") spec(specPath);
+  else writeFileSync(specPath, spec);
   git(root, "add", "-A");
   git(root, "commit", "-q", "-m", "base");
   git(root, "update-ref", "refs/remotes/origin/develop", "HEAD");
@@ -181,8 +185,8 @@ function qaReport(root, head, task, over = {}) {
 }
 
 /** Sets up the PR repo with a bound qa envelope, a passing gate report and a passing report. */
-function qaSetup(over = {}) {
-  const { root, head } = makePrRepo();
+function qaSetup(over = {}, spec = DEFAULT_SPEC) {
+  const { root, head } = makePrRepo(spec);
   const agent = bind(root, "qa", "ORV-1-qa");
   writeGate(root, head);
   return { root, head, agent, report: qaReport(root, head, "ORV-1-qa", over) };
@@ -581,6 +585,11 @@ test("I-4: computed_style evidence with a valid ref and no observed value moves 
 
 test("round in result.json is the issue's rounds used at record time", () => {
   const root = makeRepo();
+  seedTask(root, "ORV-1", "ORV-1-b0", {
+    envelope: validEnvelope(root, { task_id: "ORV-1-b0" }),
+    agent: { agent_id: "a-b0", agent_type: "builder", started_at: "2026-10-23T07:30:00.000Z" },
+    closed: { reason: "no_report", closed_at: "2026-10-23T07:40:00.000Z" },
+  });
   seedTask(root, "ORV-1", "ORV-1-old", {
     envelope: validEnvelope(root, {
       task_id: "ORV-1-old",
@@ -1321,4 +1330,520 @@ test("ORV-93: a reviewer in a worktree keeps a finding whose screenshot lives in
     ["S1"],
   );
   assert.deepEqual(result.dropped, []);
+});
+
+// ---- ORV-138: qa-spec-1, a qa report on an issue with no usable spec ---------------------------
+
+const NO_TABLE = "no acceptance table in docs/specs/ORV-1/spec.md";
+/** The whole stderr of a refusal: the header and the one problem, nothing else. */
+const ONLY_NO_TABLE = `result-recorder blocked:\n- ${NO_TABLE}`;
+const specFile = (root) => join(root, "docs", "specs", "ORV-1", "spec.md");
+
+/**
+ * The ways the spec can be unusable at the head, as the `spec` argument of makePrRepo: no file, a
+ * folder where the file should be, prose with no `#` table.
+ */
+const brokenSpecs = {
+  missing: () => {},
+  unreadable: (path) => {
+    mkdirSync(path);
+    writeFileSync(join(path, "x"), "x\n");
+  },
+  "no acceptance table": "# ORV-1\n\n| Name | Value |\n| --- | --- |\n| a | b |\n",
+};
+
+test("ORV-138 row 3: a qa report on an issue whose spec file is missing or unreadable is sent back with the one problem, never a throw", () => {
+  for (const kind of ["missing", "unreadable"]) {
+    const { root, agent, report } = qaSetup({}, brokenSpecs[kind]);
+    const r = stopWith(root, agent, "qa", report);
+    assert.equal(r.code, 2, `${kind}: ${r.stderr}`);
+    assert.equal(r.stderr.trim(), ONLY_NO_TABLE, kind);
+    const last = heartbeatLines(root).at(-1);
+    assert.equal(last.event, "SubagentStop", kind);
+    assert.equal(last.decision, "block", kind);
+    assert.equal(has(root, "result.json", "ORV-1-qa"), false, kind);
+  }
+});
+
+test("ORV-138 row 4: a qa report on a spec with no acceptance table is sent back with the one problem", () => {
+  const { root, agent, report } = qaSetup({}, brokenSpecs["no acceptance table"]);
+  const r = stopWith(root, agent, "qa", report);
+  assert.equal(r.code, 2, r.stderr);
+  assert.equal(r.stderr.trim(), ONLY_NO_TABLE);
+  assert.equal(heartbeatLines(root).at(-1).decision, "block");
+  // A table whose header starts with `#` but holds no numbered row is no acceptance table either.
+  const empty = qaSetup({}, "| # | Criterion |\n| --- | --- |\n| x | y |\n");
+  const e = stopWith(empty.root, empty.agent, "qa", empty.report);
+  assert.equal(e.code, 2, e.stderr);
+  assert.equal(e.stderr.trim(), ONLY_NO_TABLE);
+});
+
+test("ORV-138 row 5: PostToolUse on the Agent call of a qa report with no usable spec closes the envelope as no_report", () => {
+  for (const kind of Object.keys(brokenSpecs)) {
+    const { root, agent, report } = qaSetup({}, brokenSpecs[kind]);
+    const r = run(postAgentInput(root, agent, "qa", JSON.stringify(report)));
+    assert.equal(r.code, 2, `${kind}: ${r.stderr}`);
+    assert.ok(r.stderr.includes(NO_TABLE), kind);
+    assert.match(r.stderr, /ORV-1-qa closed as no_report/, kind);
+    assert.equal(read(root, "closed.json", "ORV-1-qa").reason, "no_report", kind);
+    assert.equal(has(root, "result.json", "ORV-1-qa"), false, kind);
+  }
+});
+
+test("ORV-138 row 8: a qa report on a slice issue is recorded against the slice's own spec, and no parent spec is read", () => {
+  const { root } = makePrRepo();
+  // ORV-2 is a slice of ORV-1. Its own spec holds the copied rows 7 and 8; the parent spec (ORV-1) holds rows 1 and 2.
+  mkdirSync(join(root, "docs", "specs", "ORV-2"), { recursive: true });
+  writeFileSync(
+    join(root, "docs", "specs", "ORV-2", "spec.md"),
+    [
+      "| #   | Given | When | Result            | Evidence |",
+      "| --- | ----- | ---- | ----------------- | -------- |",
+      "| 7   | a     | b    | The row is saved  | test     |",
+      "| 8   | a     | b    | The row is listed | test     |",
+      "",
+    ].join("\n"),
+  );
+  git(root, "add", "docs/specs/ORV-2/spec.md");
+  git(root, "commit", "-q", "-m", "slice spec");
+  const head = git(root, "rev-parse", "HEAD");
+  writeGate(root, head);
+  const task = "ORV-2-qa";
+  const agent = `agent-${task}`;
+  seedTask(root, "ORV-2", task, {
+    envelope: validEnvelope(root, {
+      task_id: task,
+      issue: "ORV-2",
+      role: "qa",
+      write_set: [],
+      skills: ["quality-gate", "webapp-testing"],
+    }),
+    agent: { agent_id: agent, agent_type: "qa", started_at: "2026-10-23T09:00:00.000Z" },
+  });
+  const shotDir = join(taskDir(root, task, "ORV-2"), "screenshots");
+  mkdirSync(shotDir, { recursive: true });
+  const shot = (mode) => {
+    const name = `components-checkbox--basic-${mode}.png`;
+    writeFileSync(join(shotDir, name), PNG);
+    return {
+      story: "components-checkbox--basic",
+      mode,
+      path: `.orivilo/runs/ORV-2/${task}/screenshots/${name}`,
+      looked_at: true,
+      note: "the check glyph sits on the label centre line",
+    };
+  };
+  const rows = (list) =>
+    list.map((row) => ({ row, status: "pass", visual: false, evidence: [cmdEvidence] }));
+  const report = {
+    task_id: task,
+    issue: "ORV-2",
+    pr: 8,
+    verdict: "approve",
+    head_sha: head,
+    quality_gate: { report: ".quality-gate/report.json", ok: true, head_sha: head },
+    ac: rows([7, 8]),
+    screenshots: [shot("light"), shot("dark")],
+    findings: [],
+  };
+  // The parent's rows are not the slice's: a report that carries them is refused as rows the spec lacks.
+  const parentRows = stopWith(root, agent, "qa", { ...report, ac: rows([1, 2]) });
+  assert.equal(parentRows.code, 2, parentRows.stderr);
+  assert.match(parentRows.stderr, /row 1/);
+  // The slice's own rows are accepted and recorded.
+  const stop = stopWith(root, agent, "qa", report);
+  assert.equal(stop.code, 0, stop.stderr);
+  const recorded = run(postAgentInput(root, agent, "qa", JSON.stringify(report)));
+  assert.equal(recorded.code, 0, recorded.stderr);
+  const qa = JSON.parse(readFileSync(join(taskDir(root, task, "ORV-2"), "qa.json"), "utf8"));
+  assert.deepEqual(
+    qa.report.ac.map((a) => a.row),
+    [7, 8],
+  );
+});
+
+// ---- ORV-138 (ORV-136): spec-at-head-1, qa-scope-1, qa-scope-2, no-throw-1 --------------------
+
+const ROW3 = "| 3   | a     | b    | The row is listed                 | test     |\n";
+const THREE_ROWS = DEFAULT_SPEC + ROW3;
+const passRow = (row) => ({ row, status: "pass", visual: false, evidence: [cmdEvidence] });
+const rowsOf = (report) => report.ac.map((a) => a.row);
+
+test("ORV-138 row 13: the spec is read as committed at the report's head, not from the working tree", () => {
+  // The working tree holds prose with no table; the head holds the table: the walk is accepted.
+  const a = qaSetup();
+  writeFileSync(specFile(a.root), "# changed after the commit\n");
+  const accepted = stopWith(a.root, a.agent, "qa", a.report);
+  assert.equal(accepted.code, 0, accepted.stderr);
+  // The head holds row 3 and the working tree does not: a report without row 3 is refused for it.
+  const b = qaSetup({}, THREE_ROWS);
+  writeFileSync(specFile(b.root), DEFAULT_SPEC);
+  const refused = stopWith(b.root, b.agent, "qa", b.report);
+  assert.equal(refused.code, 2, refused.stderr);
+  assert.match(refused.stderr, /ac has no entry for spec row 3/);
+  // The reverse: the working tree has row 3 and the head does not.
+  const c = qaSetup();
+  writeFileSync(specFile(c.root), THREE_ROWS);
+  assert.equal(stopWith(c.root, c.agent, "qa", c.report).code, 0);
+});
+
+const PER_PR = `${THREE_ROWS}\n## Rows per PR\n\n- PR 7: rows 1, 3\n- PR 8: rows 2\n`;
+
+test("ORV-138 row 14: an approve on a PR with a line has an entry for each listed row only; with no line every row counts", () => {
+  const listed = qaSetup({}, PER_PR);
+  listed.report.ac = [listed.report.ac[0], passRow(3)];
+  const ok = stopWith(listed.root, listed.agent, "qa", listed.report);
+  assert.equal(ok.code, 0, ok.stderr);
+  const rec = run(postAgentInput(listed.root, listed.agent, "qa", JSON.stringify(listed.report)));
+  assert.equal(rec.code, 0, rec.stderr);
+  assert.deepEqual(rowsOf(read(listed.root, "qa.json", "ORV-1-qa").report), [1, 3]);
+  // A range in the list.
+  const range = qaSetup({}, PER_PR.replace("rows 1, 3", "rows 1-3"));
+  range.report.ac = [range.report.ac[0], range.report.ac[1], passRow(3)];
+  assert.equal(stopWith(range.root, range.agent, "qa", range.report).code, 0);
+  // No line for PR 7 (only PR 8 has one): every row of the table is in scope, as before.
+  const fallback = qaSetup({}, THREE_ROWS + "\n## Rows per PR\n\n- PR 8: rows 2\n");
+  fallback.report.ac.push(passRow(3));
+  assert.equal(stopWith(fallback.root, fallback.agent, "qa", fallback.report).code, 0);
+  const skipped = qaSetup({}, THREE_ROWS + "\n## Rows per PR\n\n- PR 8: rows 2\n");
+  const miss = stopWith(skipped.root, skipped.agent, "qa", skipped.report);
+  assert.equal(miss.code, 2);
+  assert.match(miss.stderr, /ac has no entry for spec row 3/);
+  // No section at all.
+  const none = qaSetup({}, THREE_ROWS);
+  none.report.ac.push(passRow(3));
+  assert.equal(stopWith(none.root, none.agent, "qa", none.report).code, 0);
+});
+
+test("ORV-138 row 15: each condition of qa-scope-1, broken, refuses the report", () => {
+  const refusal = (spec, edit, pattern, label) => {
+    const s = qaSetup({}, spec);
+    edit(s.report);
+    const r = stopWith(s.root, s.agent, "qa", s.report);
+    assert.equal(r.code, 2, `${label}: ${r.stderr}`);
+    assert.match(r.stderr, pattern, label);
+    assert.equal(heartbeatLines(s.root).at(-1).decision, "block", label);
+  };
+  // 1. exactly one entry for each listed row: one missing, one repeated
+  refusal(
+    PER_PR,
+    (report) => (report.ac = [report.ac[0]]),
+    /ac has no entry for spec row 3/,
+    "missing entry",
+  );
+  refusal(
+    PER_PR,
+    (report) => (report.ac = [report.ac[0], passRow(3), passRow(3)]),
+    /ac row 3 appears more than once/,
+    "repeated entry",
+  );
+  // 2. an entry for an unlisted row
+  refusal(
+    PER_PR,
+    (report) => report.ac.push(passRow(3)),
+    /ac row 2 is not in PR 7's rows/,
+    "unlisted row",
+  );
+  // 3. a listed number that is not a row of the table
+  refusal(
+    PER_PR.replace("rows 1, 3", "rows 1, 3, 9"),
+    (report) => (report.ac = [report.ac[0], passRow(3)]),
+    /PR 7 lists row 9, which is not in the acceptance table/,
+    "listed number not in the table",
+  );
+  // 4. an approve needs every listed row pass or owner_verify
+  refusal(
+    PER_PR,
+    (report) => (report.ac = [report.ac[0], { ...passRow(3), status: "fail" }]),
+    /ac row 3 is fail; an approve needs every row pass or owner_verify/,
+    "listed row fail",
+  );
+  // A malformed line leaves the scope unknown, so it refuses and does not widen the scope.
+  for (const bad of ["- PR 7: rows 3-1", "- PR 7: rows one", "- PR seven: rows 1"]) {
+    refusal(
+      `${THREE_ROWS}\n## Rows per PR\n\n${bad}\n`,
+      () => {},
+      /malformed line under "## Rows per PR"/,
+      bad,
+    );
+  }
+});
+
+const ENGINE_CELL = "`colour-area` items whose `area-share` sums to 1 within 0.001 per scope";
+const engineSpec = (nothing = "") =>
+  [
+    "| #   | Given | When | User sees   | Evidence |",
+    "| --- | ----- | ---- | ----------- | -------- |",
+    `| 1   | a     | b    | ${ENGINE_CELL} | test     |`,
+    "| 2   | a     | b    | The row is saved | test |",
+    "",
+    nothing,
+  ].join("\n");
+const NOTHING = (list) => `## Rows that render nothing\n\n- Rows: ${list}\n`;
+
+test("ORV-138 row 16: qa-scope-2 exempts a listed row from the keyword rule, and reads only the User sees column", () => {
+  const engine = (nothing, edit) => {
+    const s = qaSetup({}, engineSpec(nothing));
+    s.report.ac = [{ ...passRow(1) }, passRow(2)];
+    edit?.(s.report);
+    return { ...s, r: stopWith(s.root, s.agent, "qa", s.report) };
+  };
+  // Unlisted: the keyword in the User sees cell makes row 1 visual, so visual: false is refused.
+  const unlisted = engine("");
+  assert.equal(unlisted.r.code, 2, unlisted.r.stderr);
+  assert.match(unlisted.r.stderr, /ac row 1 is visual by the spec's keyword list/);
+  // Listed: the same entry is accepted.
+  const listed = engine(NOTHING("1"));
+  assert.equal(listed.r.code, 0, listed.r.stderr);
+  // Listed and marked visual: still needs screenshot or computed_style evidence.
+  const marked = engine(NOTHING("1"), (report) => (report.ac[0].visual = true));
+  assert.equal(marked.r.code, 2, marked.r.stderr);
+  assert.match(marked.r.stderr, /screenshot|computed_style/);
+  const shot = qaReport(marked.root, marked.head, "ORV-1-qa").ac[0].evidence;
+  const withShot = engine(NOTHING("1"), (report) => {
+    report.ac[0] = { row: 1, status: "pass", visual: true, evidence: shot };
+  });
+  assert.equal(withShot.r.code, 0, withShot.r.stderr);
+  // A listed number that is not a row of the table refuses the report.
+  const stray = engine(NOTHING("1, 9"));
+  assert.equal(stray.r.code, 2, stray.r.stderr);
+  assert.match(stray.r.stderr, /lists row 9, which is not in the acceptance table/);
+  // A malformed line of the section leaves the exemption unknown, so it refuses.
+  const bad = engine("## Rows that render nothing\n\n- Rows: one\n");
+  assert.equal(bad.r.code, 2, bad.r.stderr);
+  assert.match(bad.r.stderr, /malformed line under "## Rows that render nothing"/);
+  // Column case: this spec's own header; a keyword in the Check cell of an unlisted row is no keyword row.
+  const checkSpec = [
+    "| # | Source | Criterion | Check |",
+    "| --- | --- | --- | --- |",
+    "| 1 | ORV-1 | The label is centred | the colour and spacing of the layout |",
+    "| 2 | ORV-1 | The row is saved | pnpm test |",
+    "",
+  ].join("\n");
+  const column = qaSetup({}, checkSpec);
+  column.report.ac = [passRow(1), passRow(2)];
+  const c = stopWith(column.root, column.agent, "qa", column.report);
+  assert.equal(c.code, 0, c.stderr);
+});
+
+/** A qa approve whose head is a commit that removes the stories file the base holds. */
+function removedStorySetup() {
+  const { root } = makePrRepo();
+  git(root, "update-ref", "refs/remotes/origin/develop", "HEAD");
+  git(root, "rm", "-q", "packages/ds/src/checkbox/checkbox.stories.tsx");
+  git(root, "commit", "-q", "-m", "remove the story");
+  const head = git(root, "rev-parse", "HEAD");
+  const agent = bind(root, "qa", "ORV-1-qa");
+  writeGate(root, head);
+  return { root, head, agent, report: qaReport(root, head, "ORV-1-qa") };
+}
+
+test("ORV-138 row 36: a gate report or git read that fails gives a refusal, at SubagentStop and at PostToolUse, never a throw", () => {
+  const cases = {
+    "(a) no gate report": [
+      ({ root }) => rmSync(join(root, ".quality-gate", "report.json")),
+      /\.quality-gate\/report\.json cannot be read in /,
+    ],
+    "(b) gate report is not JSON": [
+      ({ root }) => writeFileSync(join(root, ".quality-gate", "report.json"), "not json"),
+      /\.quality-gate\/report\.json is not JSON/,
+    ],
+    "(c) gate report lacks the fields": [
+      ({ root }) => writeFileSync(join(root, ".quality-gate", "report.json"), '{"ok":true}'),
+      /\.quality-gate\/report\.json lacks ok, stepsSource, git\.sha or git\.dirty/,
+    ],
+    "(c) gate report is null": [
+      ({ root }) => writeFileSync(join(root, ".quality-gate", "report.json"), "null"),
+      /\.quality-gate\/report\.json lacks ok, stepsSource, git\.sha or git\.dirty/,
+    ],
+    "(d) head is not in the checkout": [
+      ({ report }) => {
+        report.head_sha = "f".repeat(40);
+        report.quality_gate.head_sha = report.head_sha;
+      },
+      // no-throw-1: the head check comes before the spec read, so a qa that only has to fetch is told so.
+      /git diff origin\/develop\.\.\.f{40} failed in .*: fetch the head and origin\/develop there/,
+    ],
+    "(d) origin/develop is not in the checkout": [
+      ({ root }) => git(root, "update-ref", "-d", "refs/remotes/origin/develop"),
+      /git diff origin\/develop\.\.\.[0-9a-f]{40} failed in .*: fetch the head and origin\/develop there/,
+    ],
+  };
+  for (const [label, [break_, pattern]] of Object.entries(cases)) {
+    const stopSide = qaSetup();
+    break_(stopSide);
+    const stop = stopWith(stopSide.root, stopSide.agent, "qa", stopSide.report);
+    assert.equal(stop.code, 2, `${label}: ${stop.stderr}`);
+    assert.match(stop.stderr, pattern, label);
+    assert.equal(heartbeatLines(stopSide.root).at(-1).event, "SubagentStop", label);
+    assert.equal(heartbeatLines(stopSide.root).at(-1).decision, "block", label);
+    const postSide = qaSetup();
+    break_(postSide);
+    const post = run(
+      postAgentInput(postSide.root, postSide.agent, "qa", JSON.stringify(postSide.report)),
+    );
+    assert.equal(post.code, 2, `${label}: ${post.stderr}`);
+    assert.match(post.stderr, pattern, label);
+    assert.match(post.stderr, /ORV-1-qa closed as no_report/, label);
+    assert.equal(heartbeatLines(postSide.root).at(-1).decision, "block", label);
+    assert.equal(read(postSide.root, "closed.json", "ORV-1-qa").reason, "no_report", label);
+  }
+  // The other problems of the report are still listed when the gate report is unusable.
+  const both = qaSetup();
+  rmSync(join(both.root, ".quality-gate", "report.json"));
+  both.report.ac[1].status = "fail";
+  both.report.screenshots = [];
+  const listed = stopWith(both.root, both.agent, "qa", both.report);
+  assert.match(listed.stderr, /cannot be read in /);
+  assert.match(listed.stderr, /ac row 2 is fail/);
+  assert.match(listed.stderr, /no screenshot for a story of "Components\/Checkbox"/);
+  // (e) a changed stories file that the head removed is skipped: no story, no screenshot, no refusal.
+  const removed = removedStorySetup();
+  const ok = stopWith(removed.root, removed.agent, "qa", removed.report);
+  assert.equal(ok.code, 0, ok.stderr);
+  const okPost = run(
+    postAgentInput(removed.root, removed.agent, "qa", JSON.stringify(removed.report)),
+  );
+  assert.equal(okPost.code, 0, okPost.stderr);
+});
+
+test("ORV-138 no-throw-1: a screenshot path that is a folder is refused as not a PNG, never a throw", () => {
+  const { root, agent, report } = qaSetup();
+  const shot = join(root, report.screenshots[0].path);
+  rmSync(shot);
+  mkdirSync(shot);
+  const r = stopWith(root, agent, "qa", report);
+  assert.equal(r.code, 2, r.stderr);
+  assert.match(r.stderr, /is not a PNG file/);
+  assert.equal(heartbeatLines(root).at(-1).decision, "block");
+});
+
+// ---- ORV-162: a report is judged against the envelope's worktree (judge-root-1) -----------------
+
+/**
+ * A main checkout with one base commit (origin/develop) that holds no spec and no gate report, and an
+ * issue worktree W under `.claude/worktrees/w` that holds the spec, a changed stories file and a clean
+ * gate report for its head. A qa envelope is bound with `worktree` W; the hook runs in the main checkout.
+ */
+function worktreeQa() {
+  const main = makeRepo();
+  git(main, "config", "user.email", "t@example.com");
+  git(main, "config", "user.name", "t");
+  git(main, "add", "-A");
+  git(main, "commit", "-q", "-m", "base");
+  git(main, "update-ref", "refs/remotes/origin/develop", "HEAD");
+  const wt = join(main, ".claude", "worktrees", "w");
+  git(main, "worktree", "add", "-q", "-b", "feature/ORV-1-wt", wt);
+  const specDir = join(wt, "docs", "specs", "ORV-1");
+  mkdirSync(specDir, { recursive: true });
+  writeFileSync(
+    join(specDir, "spec.md"),
+    [
+      "| #   | Given | When | Result                            | Evidence |",
+      "| --- | ----- | ---- | --------------------------------- | -------- |",
+      "| 1   | a     | b    | The check is centred on the label | test     |",
+      "| 2   | a     | b    | The row is saved                  | test     |",
+      "",
+    ].join("\n"),
+  );
+  const story = join(wt, "packages", "ds", "src", "checkbox");
+  mkdirSync(story, { recursive: true });
+  writeFileSync(
+    join(story, "checkbox.stories.tsx"),
+    'export default { title: "Components/Checkbox" };\nexport const Basic = {};\n',
+  );
+  git(wt, "add", "-A");
+  git(wt, "commit", "-q", "-m", "pr");
+  const head = git(wt, "rev-parse", "HEAD");
+  writeGate(wt, head);
+  assert.equal(existsSync(join(main, "docs", "specs")), false);
+  assert.equal(existsSync(join(main, ".quality-gate")), false);
+  const agent = bind(main, "qa", "ORV-1-qa", { worktree: wt });
+  return { main, wt, head, agent, report: qaReport(main, head, "ORV-1-qa") };
+}
+
+test("ORV-162 row 1: a foreground qa approve is judged against the envelope's worktree and recorded in the main checkout", () => {
+  const { main, wt, agent, report } = worktreeQa();
+  const stop = run(stopInput(main, agent, "qa", JSON.stringify(report)));
+  assert.equal(stop.code, 0, stop.stderr);
+  const r = run(postAgentInput(main, agent, "qa", JSON.stringify(report)));
+  assert.equal(r.code, 0, r.stderr);
+  assert.equal(read(main, "result.json", "ORV-1-qa").report.verdict, "approve");
+  assert.equal(read(main, "qa.json", "ORV-1-qa").contract, "qa.v1");
+  assert.equal(existsSync(join(wt, ".orivilo", "runs")), false);
+  assert.equal(has(main, "closed.json", "ORV-1-qa"), false);
+});
+
+test("ORV-162 row 2: a background qa approve is judged against the envelope's worktree at SubagentStop, once", () => {
+  const { main, wt, agent, report } = worktreeQa();
+  const stop = run(backgroundStop(main, agent, "qa", report));
+  assert.equal(stop.code, 0, stop.stderr);
+  assert.equal(read(main, "result.json", "ORV-1-qa").report.verdict, "approve");
+  assert.equal(read(main, "qa.json", "ORV-1-qa").contract, "qa.v1");
+  assert.equal(existsSync(join(wt, ".orivilo", "runs")), false);
+  const again = run(backgroundStop(main, agent, "qa", report));
+  assert.equal(again.code, 2);
+  assert.match(again.stderr, /already closed/);
+});
+
+test("ORV-162 row 3: a worktree of another clone is not read; the hook's own checkout is judged", () => {
+  // The hook's checkout holds the spec and the gate report; the envelope's worktree is a clone that holds neither.
+  const { root, head } = makePrRepo();
+  writeGate(root, head);
+  const clone = makeRepo();
+  assert.equal(existsSync(join(clone, "docs", "specs")), false);
+  const agent = bind(root, "qa", "ORV-1-qa", { worktree: clone });
+  const report = qaReport(root, head, "ORV-1-qa");
+  const stop = run(stopInput(root, agent, "qa", JSON.stringify(report)));
+  assert.equal(stop.code, 0, stop.stderr);
+  const r = run(postAgentInput(root, agent, "qa", JSON.stringify(report)));
+  assert.equal(r.code, 0, r.stderr);
+  assert.equal(read(root, "result.json", "ORV-1-qa").report.verdict, "approve");
+  assert.equal(existsSync(join(clone, ".orivilo")), false);
+  // Same files as today: a stale report in the hook's checkout is refused exactly as before ORV-162.
+  const stale = makePrRepo();
+  writeGate(stale.root, "b".repeat(40));
+  const staleAgent = bind(stale.root, "qa", "ORV-1-qa", { worktree: clone });
+  const bad = run(
+    stopInput(
+      stale.root,
+      staleAgent,
+      "qa",
+      JSON.stringify(qaReport(stale.root, stale.head, "ORV-1-qa")),
+    ),
+  );
+  assert.equal(bad.code, 2);
+  assert.match(bad.stderr, /is for b{40}, not head_sha/);
+});
+
+test("ORV-162 row 4: an envelope whose worktree is gone, or that has none, fails closed and writes no result", () => {
+  const { main, wt, agent, report } = worktreeQa();
+  rmSync(wt, { recursive: true, force: true });
+  for (const input of [
+    stopInput(main, agent, "qa", JSON.stringify(report)),
+    postAgentInput(main, agent, "qa", JSON.stringify(report)),
+    backgroundStop(main, agent, "qa", report),
+  ]) {
+    const r = run(input);
+    assert.equal(r.code, 2, r.stderr);
+    assert.ok(r.stderr.includes(wt), r.stderr);
+    assert.equal(has(main, "result.json", "ORV-1-qa"), false);
+  }
+
+  const bare = makePrRepo();
+  writeGate(bare.root, bare.head);
+  const noWorktree = bind(bare.root, "qa", "ORV-1-qa");
+  const { worktree: _gone, ...envelope } = read(bare.root, "envelope.json", "ORV-1-qa");
+  writeFileSync(join(taskDir(bare.root, "ORV-1-qa"), "envelope.json"), JSON.stringify(envelope));
+  const missing = run(
+    stopInput(
+      bare.root,
+      noWorktree,
+      "qa",
+      JSON.stringify(qaReport(bare.root, bare.head, "ORV-1-qa")),
+    ),
+  );
+  assert.equal(missing.code, 2);
+  assert.match(missing.stderr, /worktree/);
+  assert.equal(has(bare.root, "result.json", "ORV-1-qa"), false);
 });

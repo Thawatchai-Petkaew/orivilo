@@ -25,6 +25,31 @@ describe("failureNotice", () => {
     });
   });
 
+  it.each([
+    [
+      "en",
+      webMessages.en,
+      "This workspace was not found in your account. Sign in again on the Account page to open a workspace you belong to.",
+    ],
+    [
+      "th",
+      webMessages.th,
+      "ไม่พบเวิร์กสเปซนี้ในบัญชีของคุณ ลงชื่อเข้าใช้อีกครั้งที่หน้าบัญชีเพื่อเปิดเวิร์กสเปซที่คุณเป็นสมาชิก",
+    ],
+  ] as const)(
+    "a workspace-not-found failure shows its line and no reference in %s",
+    (_l, m, line) => {
+      const failure: ActionFailure = {
+        ok: false,
+        error: "workspace-not-found",
+        code: "NOT_FOUND",
+        requestId: ID,
+        retryable: false,
+      };
+      expect(failureNotice(labelsOf(m), failure)).toStrictEqual({ tone: "danger", lines: [line] });
+    },
+  );
+
   it("puts the wait in words for a rate limit and adds no reference", () => {
     const failure: ActionFailure = {
       ok: false,

@@ -21,6 +21,11 @@ export const ERROR_CODES = {
   PAYLOAD_TOO_LARGE: { status: 413, retryable: false, message: "The request is too large." },
   INVALID_INPUT: { status: 422, retryable: false, message: "The input is not valid." },
   RATE_LIMITED: { status: 429, retryable: true, message: "Too many requests. Try again later." },
+  AI_SPEND_CAP: {
+    status: 429,
+    retryable: false,
+    message: "The workspace has used its AI budget for this month.",
+  },
   INTERNAL_ERROR: {
     status: 500,
     retryable: false,
@@ -48,7 +53,11 @@ export interface ErrorBody {
   error: { code: ErrorCode; message: string; requestId: string; retryable: boolean };
 }
 
-/** orv144-codes: the code of a status of 400 or more; an unlisted 4xx is BAD_REQUEST, an unlisted 5xx INTERNAL_ERROR. */
+/**
+ * orv144-codes: the code of a status of 400 or more; an unlisted 4xx is BAD_REQUEST, an unlisted 5xx
+ * INTERNAL_ERROR. Where two codes share a status the first listed is the status's code, so 429 is
+ * RATE_LIMITED and AI_SPEND_CAP is no status's code: only the spend cap path names it (ORV-121).
+ */
 export function codeOfStatus(status: number): ErrorCode {
   const listed = (Object.keys(ERROR_CODES) as ErrorCode[]).find(
     (code) => ERROR_CODES[code].status === status,

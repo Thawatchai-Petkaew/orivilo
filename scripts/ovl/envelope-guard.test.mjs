@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { readIssue, reworkState } from "./records.mjs";
 import {
   agentInput,
   fixture,
@@ -448,8 +449,8 @@ test("I-6: the envelope issue must equal the issue key in the worktree branch", 
 const SECURITY = { role: "security", skills: ["quality-gate"], write_set: [] };
 const ADR = "docs/adr/0015-standards-and-required-controls.md";
 
-test("ORV-108 row 4: an architect envelope with no skills and an ADR write_set is saved, on any branch", () => {
-  const root = makeRepo("main");
+test("ORV-108 row 4: an architect envelope with no skills and an ADR write_set is saved, on a branch keyed to its issue", () => {
+  const root = makeRepo();
   const r = dispatch(
     root,
     validEnvelope(root, { role: "architect", skills: [], write_set: [ADR] }),
@@ -492,7 +493,7 @@ test("ORV-108 row 7: a security envelope has an empty write_set and the branch i
 });
 
 test("ORV-108 row 8: a research envelope may glob under docs/knowledge", () => {
-  const root = makeRepo("main");
+  const root = makeRepo();
   const r = dispatch(
     root,
     validEnvelope(root, { role: "research", skills: [], write_set: ["docs/knowledge/*/K-*.md"] }),
@@ -525,6 +526,67 @@ test("ORV-108 row 9: a report_contract the role may not use names the allowed on
     arch.stderr,
     /report_contract "reviewer\.v1" is not allowed for role architect.*implementer\.v1/,
   );
+});
+
+const FOUR_UNCHECKED_ROLES = [
+  { role: "research", skills: [], write_set: ["docs/knowledge/*/K-*.md"] },
+  { role: "product", skills: ["discover"], write_set: ["docs/specs/ORV-9/spec.md"] },
+  { role: "architect", skills: [], write_set: [ADR] },
+  { role: "ds-architect", skills: [], write_set: ["docs/specs/ORV-9/design.md"] },
+];
+
+test("ORV-138 row 22: a research, product, architect or ds-architect envelope on another issue's branch is blocked with the branch-key reason", () => {
+  for (const extra of FOUR_UNCHECKED_ROLES) {
+    const root = makeRepo();
+    const r = dispatch(root, validEnvelope(root, { task_id: "ORV-9-x", issue: "ORV-9", ...extra }));
+    assert.equal(r.code, 2, extra.role);
+    assert.match(
+      r.stderr,
+      /envelope issue ORV-9 differs from the issue ORV-1 in branch "feature\/ORV-1-test"/,
+      extra.role,
+    );
+    assert.equal(existsSync(join(root, ".orivilo", "runs")), false, extra.role);
+  }
+});
+
+test("ORV-138 row 22: the same four envelopes on the branch of their own issue are saved", () => {
+  for (const extra of FOUR_UNCHECKED_ROLES) {
+    const root = makeRepo();
+    const r = dispatch(root, validEnvelope(root, extra));
+    assert.equal(r.code, 0, `${extra.role}: ${r.stderr}`);
+  }
+});
+
+test("ORV-138 row 22: a release envelope stays out of the branch-key check", () => {
+  const root = makeRepo();
+  const release = {
+    task_id: "ORV-9-rel",
+    issue: "ORV-9",
+    role: "release",
+    skills: ["gate-packet"],
+    write_set: [],
+  };
+  const r = dispatch(root, validEnvelope(root, release));
+  assert.equal(r.code, 0, r.stderr);
+});
+
+test("ORV-138 row 23: a retro envelope (ds-architect, skill retro) on chore/<slice key>-retro-lessons with that key passes", () => {
+  const root = makeRepo("chore/ORV-138-retro-lessons");
+  const retro = {
+    task_id: "ORV-138-retro",
+    issue: "ORV-138",
+    role: "ds-architect",
+    skills: ["retro"],
+    write_set: ["docs/lessons/L-0100.md"],
+  };
+  const r = dispatch(root, validEnvelope(root, retro));
+  assert.equal(r.code, 0, r.stderr);
+  const wrong = dispatch(
+    root,
+    validEnvelope(root, { ...retro, task_id: "ORV-9-retro", issue: "ORV-9" }),
+  );
+  assert.equal(wrong.code, 2);
+  assert.match(wrong.stderr, /envelope issue ORV-9 differs from the issue ORV-138 in branch/);
 });
 
 /** A closed task of `role` whose recorded report requests changes. */
@@ -635,8 +697,10 @@ test("AC 80: approve results alone are no verdict, so a builder needs no rework_
 
 test("S-6: with the last round unreviewed the guard asks for a verdict, not for the owner, and owner-grant refuses", () => {
   const root = makeRepo();
+  seedBoundBuilder(root, "ORV-1", "ORV-1-b0", "2026-10-23T09:50:00.000Z");
   seedVerdict(root, "ORV-1", "ORV-1-rev", "request_changes", "2026-10-23T10:00:00.000Z");
   seedBoundBuilder(root, "ORV-1", "ORV-1-r1", "2026-10-23T10:05:00.000Z");
+  seedVerdict(root, "ORV-1", "ORV-1-revb", "request_changes", "2026-10-23T10:10:00.000Z");
   seedBoundBuilder(root, "ORV-1", "ORV-1-r2", "2026-10-23T10:15:00.000Z");
   const r = dispatch(root, validEnvelope(root, { task_id: "ORV-1-r3", rework_of: "ORV-1-r2" }));
   assert.equal(r.code, 2);
@@ -726,8 +790,10 @@ test("AC 52: another role's open envelope does not block, and a closed one does 
 
 test("AC 67: a bound builder that ended no_report after a verdict is a round; a denied one is not", () => {
   const root = makeRepo();
+  seedBoundBuilder(root, "ORV-1", "ORV-1-b0", "2026-10-23T09:50:00.000Z");
   seedVerdict(root, "ORV-1", "ORV-1-rev", "request_changes", "2026-10-23T10:00:00.000Z");
   seedBoundBuilder(root, "ORV-1", "ORV-1-r1", "2026-10-23T10:05:00.000Z");
+  seedVerdict(root, "ORV-1", "ORV-1-revb", "request_changes", "2026-10-23T10:10:00.000Z");
   seedTask(root, "ORV-1", "ORV-1-r2", {
     envelope: validEnvelope(root, { task_id: "ORV-1-r2" }),
     agent: { agent_id: "a-r2", agent_type: "builder", started_at: "2026-10-23T10:15:00.000Z" },
@@ -740,6 +806,51 @@ test("AC 67: a bound builder that ended no_report after a verdict is a round; a 
   const r = dispatch(root, validEnvelope(root, { task_id: "ORV-1-r4", rework_of: "ORV-1-r2" }));
   assert.equal(r.code, 2);
   assert.match(r.stderr, /rework rounds used/);
+});
+
+// ORV-138 rework-1: the ORV-139 timeline (build-1, build-2, build-3 starts; qa-1 and qa-2 request_changes).
+const seedOrv139 = (root) => {
+  const at = (id, t) => seedBoundBuilder(root, "ORV-1", id, t);
+  at("ORV-1-build-1", "2026-10-28T18:50:51.651Z");
+  seedVerdict(root, "ORV-1", "ORV-1-qa-1", "request_changes", "2026-10-28T19:51:09.039Z", "qa.v1");
+  at("ORV-1-build-2", "2026-10-28T19:51:32.972Z");
+  at("ORV-1-build-3", "2026-10-28T20:01:52.849Z");
+  seedVerdict(root, "ORV-1", "ORV-1-qa-2", "request_changes", "2026-10-28T20:31:41.852Z", "qa.v1");
+};
+
+test("ORV-138 row 19: the ORV-139 timeline has 1 round used, and the next rework builder is allowed", () => {
+  const root = makeRepo();
+  seedOrv139(root);
+  assert.equal(reworkState(readIssue(root, "ORV-1")).rounds, 1);
+  const r = dispatch(
+    root,
+    validEnvelope(root, { task_id: "ORV-1-build-4", rework_of: "ORV-1-build-3" }),
+  );
+  assert.equal(r.code, 0, r.stderr);
+});
+
+test("ORV-138 row 19: a first builder after a verdict, and a builder with no verdict since the last one, are not rounds", () => {
+  const root = makeRepo();
+  seedVerdict(root, "ORV-1", "ORV-1-rev", "request_changes", "2026-10-23T10:00:00.000Z");
+  seedBoundBuilder(root, "ORV-1", "ORV-1-a", "2026-10-23T10:05:00.000Z");
+  assert.equal(reworkState(readIssue(root, "ORV-1")).rounds, 0);
+  seedBoundBuilder(root, "ORV-1", "ORV-1-b", "2026-10-23T10:10:00.000Z");
+  assert.equal(reworkState(readIssue(root, "ORV-1")).rounds, 0);
+});
+
+test("ORV-138 row 20: a builder after a verdict on a builder's head counts, and the allowance still blocks the next one", () => {
+  const root = makeRepo();
+  seedBoundBuilder(root, "ORV-1", "ORV-1-first", "2026-10-23T09:00:00.000Z");
+  seedVerdict(root, "ORV-1", "ORV-1-v1", "request_changes", "2026-10-23T10:00:00.000Z");
+  seedBoundBuilder(root, "ORV-1", "ORV-1-r1", "2026-10-23T10:05:00.000Z");
+  assert.equal(reworkState(readIssue(root, "ORV-1")).rounds, 1);
+  seedVerdict(root, "ORV-1", "ORV-1-v2", "request_changes", "2026-10-23T10:10:00.000Z");
+  seedBoundBuilder(root, "ORV-1", "ORV-1-r2", "2026-10-23T10:15:00.000Z");
+  assert.equal(reworkState(readIssue(root, "ORV-1")).rounds, 2);
+  seedVerdict(root, "ORV-1", "ORV-1-v3", "request_changes", "2026-10-23T10:20:00.000Z");
+  const r = dispatch(root, validEnvelope(root, { task_id: "ORV-1-r3", rework_of: "ORV-1-r2" }));
+  assert.equal(r.code, 2);
+  assert.match(r.stderr, /Two rework rounds used\. Escalate to the owner\./);
 });
 
 /** Runs the guard as a child that starts now; resolves with its exit code. */
@@ -858,7 +969,7 @@ test("ORV-146: a worktree on a detached head or a branch with no key is blocked"
 
 test("ORV-146: a worktree other than the session checkout is still refused for a role with no issue check", () => {
   const { main, wt } = twoCheckouts();
-  const env = validEnvelope(wt, { role: "architect", skills: [], write_set: [ADR] });
+  const env = validEnvelope(wt, { role: "release", skills: ["gate-packet"], write_set: [] });
   const r = dispatch(main, env);
   assert.equal(r.code, 2);
   assert.match(r.stderr, /must be this checkout/);

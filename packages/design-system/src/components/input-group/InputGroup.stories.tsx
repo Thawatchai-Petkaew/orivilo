@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { ComponentType } from "react";
 import { expect, userEvent, within } from "storybook/test";
 import { Button } from "../button/Button";
 import { Field } from "../field/Field";
@@ -6,6 +7,14 @@ import { fixtures } from "../fixtures";
 import { ReferenceIcon, SearchIcon } from "../icons";
 import { Matrix, Narrow } from "../matrix";
 import { InputGroup } from "./InputGroup";
+
+/** A width cap around the story. Storybook adds a meta decorator to every story (a story's
+ * `decorators: []` does not drop it), so each story that wants it names it. */
+const inWidth = (Story: ComponentType) => (
+  <div className="max-w-md">
+    <Story />
+  </div>
+);
 
 const meta = {
   title: "Base/Input group",
@@ -19,13 +28,6 @@ const meta = {
       },
     },
   },
-  decorators: [
-    (Story) => (
-      <div className="max-w-md">
-        <Story />
-      </div>
-    ),
-  ],
 } satisfies Meta<typeof InputGroup>;
 
 export default meta;
@@ -33,6 +35,7 @@ type Story = StoryObj<typeof meta>;
 
 /** A search field: an icon at the start. */
 export const WithIcon: Story = {
+  decorators: [inWidth],
   render: () => (
     <Field label="ค้นหา">
       <InputGroup start={<SearchIcon />} placeholder="ค้นหาโปรเจกต์" />
@@ -42,6 +45,7 @@ export const WithIcon: Story = {
 
 /** A text addon is read with the input (AC 3), and the Field's description still comes first. */
 export const TextAddon: Story = {
+  decorators: [inWidth],
   render: () => (
     <Field label="เว็บไซต์" description="ใส่ที่อยู่โดยไม่ต้องมี https://">
       <InputGroup start="https://" end=".com" placeholder="example" />
@@ -60,6 +64,7 @@ export const TextAddon: Story = {
 
 /** One outline around all parts: the input has no edge of its own (AC 3). */
 export const OneOutline: Story = {
+  decorators: [inWidth],
   render: () => (
     <Field label="ลิงก์">
       <InputGroup
@@ -92,6 +97,7 @@ export const OneOutline: Story = {
 
 /** Focus on the input draws the ring around the whole group, not around the input (AC 3). */
 export const FocusRing: Story = {
+  decorators: [inWidth],
   render: () => (
     <Field label="ค้นหา">
       <InputGroup start={<SearchIcon />} placeholder="ค้นหาโปรเจกต์" />
@@ -111,6 +117,7 @@ export const FocusRing: Story = {
 
 /** The error and the disabled state cover the whole group, and the Field supplies the message (AC 3). */
 export const InvalidAndDisabled: Story = {
+  decorators: [inWidth],
   render: () => (
     <div className="flex flex-col gap-4">
       <Field label="เว็บไซต์" error="ที่อยู่เว็บไซต์ไม่ถูกต้อง ลองใส่ตัวอย่างเช่น example.com">
@@ -135,6 +142,7 @@ export const InvalidAndDisabled: Story = {
 
 /** A shortcut shows a Kbd at the end, hidden from assistive tech, and the input announces it (AC 4). */
 export const Shortcut: Story = {
+  decorators: [inWidth],
   render: () => (
     <Field label="ค้นหา">
       <InputGroup start={<SearchIcon />} shortcut="Mod+K" placeholder="ค้นหาคำสั่ง" />
@@ -155,6 +163,7 @@ export const Shortcut: Story = {
 };
 
 export const Sizes: Story = {
+  decorators: [inWidth],
   render: () => (
     <div className="flex flex-col gap-4">
       {(["sm", "md", "lg"] as const).map((size) => (
@@ -167,6 +176,7 @@ export const Sizes: Story = {
 };
 
 export const LongValueAt360: Story = {
+  decorators: [inWidth],
   render: () => (
     <Narrow>
       <Field label={fixtures.longThai}>
@@ -186,7 +196,6 @@ export const LongValueAt360: Story = {
 };
 
 export const RecipesAndModes: Story = {
-  decorators: [],
   render: () => (
     <Matrix>
       <Field label="ค้นหา">
@@ -210,6 +219,10 @@ export const RecipesAndModes: Story = {
     </Matrix>
   ),
   play: async ({ canvasElement }) => {
+    // No Field nested in a Field: a meta decorator wrapping this story would break its labels.
+    await expect(canvasElement.querySelectorAll(".ds-field .ds-field")).toHaveLength(0);
+    // The matrix is not inside the width cap: a meta decorator wrapping this story would narrow it.
+    await expect(canvasElement.querySelector(".max-w-md")).toBeNull();
     await expect(canvasElement.querySelectorAll("[data-matrix-cell]")).toHaveLength(6);
     await expect(canvasElement.querySelectorAll(".ds-input-group")).toHaveLength(6 * 5);
   },

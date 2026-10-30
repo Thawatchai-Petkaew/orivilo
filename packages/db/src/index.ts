@@ -2,4 +2,4 @@
 export * from "./schema/index.ts";
 export { MissingEnvError, requireEnv } from "./env.ts";
 // The query operators, so callers use this package's drizzle instance and its types.
-export { and, asc, desc, eq, sql } from "drizzle-orm";
+export { and, asc, desc, eq, gte, lt, sql } from "drizzle-orm";

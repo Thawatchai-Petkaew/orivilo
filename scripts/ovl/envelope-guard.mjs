@@ -47,7 +47,18 @@ export const ROLE_CONTRACTS = {
   research: ["implementer.v1"],
 };
 
-const ISSUE_ROLES = new Set(["builder", "reviewer", "qa", "designer", "security"]);
+/** Every role but release: a release envelope has an empty write_set and its G5 packet spans a batch (ORV-138 open question 1). */
+const ISSUE_ROLES = new Set([
+  "builder",
+  "reviewer",
+  "qa",
+  "designer",
+  "security",
+  "product",
+  "architect",
+  "ds-architect",
+  "research",
+]);
 const EMPTY_WRITE_SET = new Set(["reviewer", "qa", "release", "security"]);
 
 /** A designer judges a head (reviewer.v1) and edits no file; any other designer shape writes design files. */
