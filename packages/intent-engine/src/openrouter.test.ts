@@ -170,7 +170,9 @@ async function oneCall(extra: Partial<Parameters<typeof openRouterComplete>[0]> 
   const complete = openRouterComplete({ apiKey: "k", model: MODEL, fetch: doFetch, ...extra });
   await complete(REQUEST);
   expect(seen).toHaveLength(1);
-  const { url, init } = seen[0]!;
+  const [call] = seen;
+  if (!call) throw new Error("openRouterComplete made no fetch call");
+  const { url, init } = call;
   const body = JSON.parse(init.body) as {
     max_tokens: number;
     messages: { role: string; content: string }[];
