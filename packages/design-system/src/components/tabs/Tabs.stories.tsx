@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { fixtures } from "../fixtures";
 import { ArtifactIcon, KnowledgeIcon, ReferenceIcon } from "../icons";
 import { Matrix, Narrow } from "../matrix";
@@ -170,8 +170,13 @@ export const VerticalSmall: Story = {
 
 export const Small: Story = { render: () => <Fixture size="sm" /> };
 
-/** Focus selects (automatic activation), so the focused tab shows the ring over the selected edge; hover is the third tab. */
+/**
+ * Focus selects (automatic activation), so the focused tab shows the ring over the selected edge;
+ * hover is the third tab. A synthetic pointer sets no `:hover`, so `parameters.pseudo` forces the
+ * hover look on that tab (spec ORV-84, `hover-force-1`).
+ */
 export const InteractionStates: Story = {
+  parameters: { pseudo: { rootSelector: "body", hover: ['[role="tab"][id$="-trigger-history"]'] } },
   render: () => <Fixture defaultValue="decisions" />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -182,6 +187,11 @@ export const InteractionStates: Story = {
       "aria-selected",
       "true",
     );
+    // The selection moved to Tokens, so การตัดสินใจ is at rest; the hover rule changes ink and ground.
+    const hover = getComputedStyle(canvas.getByRole("tab", { name: "ประวัติ" }));
+    const rest = getComputedStyle(canvas.getByRole("tab", { name: "การตัดสินใจ" }));
+    await waitFor(() => expect(hover.color).not.toBe(rest.color));
+    await waitFor(() => expect(hover.backgroundColor).not.toBe(rest.backgroundColor));
   },
 };
 

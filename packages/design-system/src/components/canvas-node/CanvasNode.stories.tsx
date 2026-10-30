@@ -199,32 +199,45 @@ export const Sizes: Story = {
   },
 };
 
-/** Hover shows an edge, focus the ring outside the node, selected the violet edge; all three differ (DESIGN.md §7). */
+/**
+ * Hover shows an edge, focus the ring outside the node, selected the violet edge; all three differ
+ * (DESIGN.md §7). A synthetic pointer sets no `:hover`, so `parameters.pseudo` forces the hover look
+ * on the hover node (spec ORV-84, `hover-force-1`); the default node sits beside it.
+ */
 export const InteractionStates: Story = {
-  render: () => (
-    <NodeBoard
-      initial={{
-        ...row([{ title: "hover" }, { title: "focus" }, { title: "selected" }]),
-        nodes: row([{ title: "hover" }, { title: "focus" }, { title: "selected" }]).nodes.map(
-          (n, i) => ({
-            ...n,
-            selected: i === 2,
-          }),
-        ),
-      }}
-    />
-  ),
+  parameters: {
+    pseudo: { rootSelector: "body", hover: ['.react-flow__node[data-id="n1"] .ds-node'] },
+  },
+  render: () => {
+    const graph = row([
+      { title: "default" },
+      { title: "hover" },
+      { title: "focus" },
+      { title: "selected" },
+    ]);
+    return (
+      <NodeBoard
+        initial={{ ...graph, nodes: graph.nodes.map((n, i) => ({ ...n, selected: i === 3 })) }}
+      />
+    );
+  },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await ready(canvasElement, 3);
+    await ready(canvasElement, 4);
     await userEvent.hover(canvas.getByText("hover"));
     const focus = canvas.getByRole("group", { name: "focus, ความรู้" });
     focus.focus();
     await expect(focus).toHaveFocus();
     const selected = canvasElement.querySelector(".ds-node[data-selected]") as HTMLElement;
     await expect(within(selected).getByText("selected")).toBeVisible();
+    const rest = nodeEls(canvasElement)[0] as HTMLElement;
     await expect(getComputedStyle(selected).borderColor).not.toBe(
-      getComputedStyle(nodeEls(canvasElement)[1] as HTMLElement).borderColor,
+      getComputedStyle(rest).borderColor,
+    );
+    // The forced hover look: the hover node's border differs from the default node's.
+    const hover = nodeEls(canvasElement)[1] as HTMLElement;
+    await waitFor(() =>
+      expect(getComputedStyle(hover).borderColor).not.toBe(getComputedStyle(rest).borderColor),
     );
   },
 };
