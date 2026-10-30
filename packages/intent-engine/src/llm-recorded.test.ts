@@ -57,6 +57,19 @@ function replayModel(raw: string | null): Complete {
     raw === null ? Promise.reject(new Error("No answer was recorded.")) : Promise.resolve(raw);
 }
 
+/** The recording for one case id. */
+function entryOf(id: string) {
+  const entry = fixture.cases.find((c) => c.id === id);
+  if (!entry) throw new Error(`No recording for ${id}.`);
+  return entry;
+}
+
+/** One recorded brief back through interpretBrief with a fake model that returns the recorded text. */
+function replay(entry: { text: string; raw: string | null }) {
+  const adapter = llmInterpreter(AI_MODELS.interpret, replayModel(entry.raw));
+  return interpretBrief(adapter, { text: entry.text });
+}
+
 /** Every evidence span of a reading: the findings' own and each `notUnderstood` entry's. */
 function spansOf(reading: Interpretation) {
   return [
@@ -80,26 +93,29 @@ describe("LLM01:2026 recorded answers replayed (row 35, orv160-recorder-output)"
     expect(fixture.cases.map((c) => c.id)).toStrictEqual(CASE_IDS);
   });
 
-  let spanCount = 0;
-
   it.each(CASE_IDS)("%s: the replay gives the outcome the recorder wrote", async (id) => {
-    const entry = fixture.cases.find((c) => c.id === id);
-    if (!entry) throw new Error(`No recording for ${id}.`);
-
-    const adapter = llmInterpreter(AI_MODELS.interpret, replayModel(entry.raw));
-    const outcome = await interpretBrief(adapter, { text: entry.text });
+    const entry = entryOf(id);
+    const outcome = await replay(entry);
 
     expect(outcome.ok ? "ok" : outcome.error).toBe(entry.outcome);
 
     if (outcome.ok) {
       for (const span of spansOf(outcome.interpretation)) {
         expect(entry.text.slice(span.start, span.end)).toBe(span.text);
-        spanCount += 1;
       }
     }
   });
 
-  it("checked at least one span across the ok readings", () => {
+  it("checked at least one span across the ok readings", async () => {
+    let spanCount = 0;
+    for (const entry of fixture.cases) {
+      const outcome = await replay(entry);
+      if (!outcome.ok) continue;
+      for (const span of spansOf(outcome.interpretation)) {
+        expect(entry.text.slice(span.start, span.end)).toBe(span.text);
+        spanCount += 1;
+      }
+    }
     expect(spanCount).toBeGreaterThan(0);
   });
 
