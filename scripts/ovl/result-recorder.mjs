@@ -30,7 +30,7 @@ import { validate } from "./validate.mjs";
 /** Contracts only some agent types may send. */
 const OWNERS = { "qa.v1": ["qa"], "reviewer.v1": ["reviewer", "designer", "security"] };
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-/** A Result cell with one of these words makes the AC row visual (spec, qa.v1 recorder rules). */
+/** A `User sees` cell with one of these words makes the AC row visual (qa-scope-2). */
 const VISUAL = /layout|spacing|gap|align|centre|center|colou?r|overlap|motion|position/i;
 /** computed_style evidence: `<story id> <selector> <css property>`. */
 const STYLE_REF = /^[a-z0-9-]+--[a-z0-9-]+ \S.* [a-z-]+$/;
@@ -57,9 +57,12 @@ function pngProblem(store, env, path) {
   if (!existsSync(full)) {
     return `screenshot ${path} does not exist; screenshots live in the main checkout's records (${store})`;
   }
-  return readFileSync(full).subarray(0, 8).equals(PNG_SIGNATURE)
-    ? null
-    : `screenshot ${path} is not a PNG file`;
+  try {
+    if (readFileSync(full).subarray(0, 8).equals(PNG_SIGNATURE)) return null;
+  } catch {
+    // A folder or an unreadable file at the path is no PNG either (no-throw-1).
+  }
+  return `screenshot ${path} is not a PNG file`;
 }
 
 function codeExists(root, head, file, line) {
@@ -102,34 +105,117 @@ function findingProblems(root, store, env, report) {
   return { problems, report: { ...rest, findings: kept }, dropped: [...earlier, ...moved] };
 }
 
-/** The rows of the first table in `docs/specs/<issue>/spec.md` whose header starts with `#`, as {row, result}. */
-function specRows(root, issue) {
-  const lines = readFileSync(join(root, "docs", "specs", issue, "spec.md"), "utf8").split("\n");
-  const start = lines.findIndex((l) => /^\|\s*#\s*\|/.test(l));
+/** The row numbers of a list such as `3-5, 8`, or null when a part is not a number or an `a-b` range with a not above b. */
+function parseRowList(text) {
   const rows = [];
-  for (const line of start < 0 ? [] : lines.slice(start + 2)) {
-    if (!line.startsWith("|")) break;
-    const cells = line
-      .split("|")
-      .slice(1, -1)
-      .map((c) => c.trim());
-    if (/^\d+$/.test(cells[0])) rows.push({ row: Number(cells[0]), result: cells[3] ?? "" });
+  for (const part of text.split(",")) {
+    const m = /^\s*(\d+)(?:\s*-\s*(\d+))?\s*$/.exec(part);
+    if (!m) return null;
+    const first = Number(m[1]);
+    const last = m[2] === undefined ? first : Number(m[2]);
+    if (first > last || last - first > 10000) return null;
+    for (let row = first; row <= last; row++) rows.push(row);
   }
-  if (rows.length === 0)
-    throw new Error(`docs/specs/${issue}/spec.md has no acceptance criteria table`);
   return rows;
 }
 
-/** The gate report in the checkout, read as the gate record needs it. Throws on a missing or malformed file. */
-function gateReport(root) {
-  const r = JSON.parse(readFileSync(join(root, ".quality-gate", "report.json"), "utf8"));
+/** The `- ` lines of the `## <heading>` section of a spec, trimmed; the section ends at the next heading. */
+function sectionItems(lines, heading) {
+  const start = lines.findIndex((l) => l.trim() === `## ${heading}`);
+  if (start < 0) return [];
+  const rest = lines.slice(start + 1);
+  const end = rest.findIndex((l) => /^#{1,2}\s/.test(l));
+  return (end < 0 ? rest : rest.slice(0, end))
+    .map((l) => l.trim())
+    .filter((l) => l.startsWith("- "));
+}
+
+/**
+ * The spec at the report's head (spec-at-head-1), as {rows, perPr, nothing, problems}, or null when the
+ * file is missing at the head, cannot be read or holds no numbered row in a table whose header starts
+ * with `#` (qa-spec-1).
+ *   rows      {row, sees} of the first such table; `sees` is the `User sees` cell, "" when the table has no such column (qa-scope-2)
+ *   perPr     {pr, rows} for each `- PR <n>: rows <list>` line of `## Rows per PR` (qa-scope-1)
+ *   nothing   the rows of `- Rows: <list>` under `## Rows that render nothing` (qa-scope-2)
+ *   problems  one for each malformed line of those two sections
+ */
+function readSpec(root, head, issue) {
+  let lines;
+  try {
+    lines = git(root, ["show", `${head}:docs/specs/${issue}/spec.md`]).split("\n");
+  } catch {
+    return null;
+  }
+  const start = lines.findIndex((l) => /^\|\s*#\s*\|/.test(l));
+  if (start < 0) return null;
+  const split = (line) =>
+    line
+      .split("|")
+      .slice(1, -1)
+      .map((c) => c.trim());
+  const seesAt = split(lines[start]).indexOf("User sees");
+  const rows = [];
+  for (const line of lines.slice(start + 2)) {
+    if (!line.startsWith("|")) break;
+    const cells = split(line);
+    if (/^\d+$/.test(cells[0])) {
+      rows.push({ row: Number(cells[0]), sees: seesAt < 0 ? "" : (cells[seesAt] ?? "") });
+    }
+  }
+  if (rows.length === 0) return null;
+  const problems = [];
+  const malformed = (heading, item) =>
+    problems.push(
+      `docs/specs/${issue}/spec.md has a malformed line under "## ${heading}": ${item}`,
+    );
+  const perPr = [];
+  for (const item of sectionItems(lines, "Rows per PR")) {
+    const m = /^- PR (\d+): rows (.+)$/.exec(item);
+    const list = m ? parseRowList(m[2]) : null;
+    if (list) perPr.push({ pr: Number(m[1]), rows: list });
+    else malformed("Rows per PR", item);
+  }
+  const nothing = [];
+  for (const item of sectionItems(lines, "Rows that render nothing")) {
+    const m = /^- Rows: (.+)$/.exec(item);
+    const list = m ? parseRowList(m[1]) : null;
+    if (list) nothing.push(...list);
+    else malformed("Rows that render nothing", item);
+  }
+  return { rows, perPr, nothing, problems };
+}
+
+/** The gate report in the checkout: {report}, or {problem} when it is missing, not JSON or lacks a field (no-throw-1). */
+function readGateReport(root) {
+  let text;
+  try {
+    text = readFileSync(join(root, ".quality-gate", "report.json"), "utf8");
+  } catch {
+    return { problem: `.quality-gate/report.json cannot be read in ${root}` };
+  }
+  let r;
+  try {
+    r = JSON.parse(text);
+  } catch {
+    return { problem: ".quality-gate/report.json is not JSON" };
+  }
   const ok =
+    r !== null &&
+    typeof r === "object" &&
     typeof r.ok === "boolean" &&
     typeof r.stepsSource === "string" &&
     typeof r.git?.sha === "string" &&
     typeof r.git?.dirty === "boolean";
-  if (!ok) throw new Error(".quality-gate/report.json lacks ok, stepsSource, git.sha or git.dirty");
-  return r;
+  return ok
+    ? { report: r }
+    : { problem: ".quality-gate/report.json lacks ok, stepsSource, git.sha or git.dirty" };
+}
+
+/** The gate report, read as the gate record needs it. Throws on a missing or malformed file. */
+function gateReport(root) {
+  const { report, problem } = readGateReport(root);
+  if (problem) throw new Error(problem);
+  return report;
 }
 
 /** The top-level `title` of the meta object: inline in `export default {...}`, or the object a named `export default <name>` points to. */
@@ -189,29 +275,52 @@ function approveProblems(root, report) {
   if (report.quality_gate.head_sha !== report.head_sha) {
     out.push("quality_gate.head_sha differs from head_sha: the evidence is stale");
   }
-  const gate = gateReport(root);
-  if (gate.git.sha !== report.head_sha) {
-    out.push(
-      `.quality-gate/report.json is for ${gate.git.sha}, not head_sha: the evidence is stale`,
-    );
-  }
-  if (gate.git.dirty)
-    out.push(".quality-gate/report.json is dirty: it ran with uncommitted changes");
-  if (gate.stepsSource !== "gate") {
-    out.push(
-      `.quality-gate/report.json has stepsSource "${gate.stepsSource}"; an approve needs "gate"`,
-    );
-  }
-  if (!gate.ok) out.push(".quality-gate/report.json has ok: false");
-  if (gate.partial === true) {
-    out.push(".quality-gate/report.json is partial (--only); an approve needs a full gate run");
+  const { report: gate, problem } = readGateReport(root);
+  if (problem) out.push(problem);
+  else {
+    if (gate.git.sha !== report.head_sha) {
+      out.push(
+        `.quality-gate/report.json is for ${gate.git.sha}, not head_sha: the evidence is stale`,
+      );
+    }
+    if (gate.git.dirty)
+      out.push(".quality-gate/report.json is dirty: it ran with uncommitted changes");
+    if (gate.stepsSource !== "gate") {
+      out.push(
+        `.quality-gate/report.json has stepsSource "${gate.stepsSource}"; an approve needs "gate"`,
+      );
+    }
+    if (!gate.ok) out.push(".quality-gate/report.json has ok: false");
+    if (gate.partial === true) {
+      out.push(".quality-gate/report.json is partial (--only); an approve needs a full gate run");
+    }
   }
 
-  const files = git(root, ["diff", "--name-only", `origin/develop...${report.head_sha}`])
-    .split("\n")
-    .filter((f) => f.endsWith(".stories.tsx"));
+  let files;
+  try {
+    // --diff-filter=d leaves out a file the head removed: it has no story left to photograph.
+    files = git(root, [
+      "diff",
+      "--name-only",
+      "--diff-filter=d",
+      `origin/develop...${report.head_sha}`,
+    ])
+      .split("\n")
+      .filter((f) => f.endsWith(".stories.tsx"));
+  } catch {
+    out.push(
+      `git diff origin/develop...${report.head_sha} failed in ${root}: fetch the head and origin/develop there`,
+    );
+    return out;
+  }
   for (const file of files) {
-    const title = storyTitle(root, report.head_sha, file);
+    let title;
+    try {
+      title = storyTitle(root, report.head_sha, file);
+    } catch {
+      out.push(`git show ${report.head_sha}:${file} failed in ${root}`);
+      continue;
+    }
     const prefix = storyPrefix(title);
     const shots = report.screenshots.filter((s) => s.story.startsWith(prefix));
     if (shots.length === 0) {
@@ -239,24 +348,58 @@ function acEvidenceProblem(store, env, e) {
   return null;
 }
 
+/** True when the checkout holds the commit `head`. */
+function hasCommit(root, head) {
+  try {
+    git(root, ["cat-file", "-e", `${head}^{commit}`]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function qaProblems(root, store, env, report) {
   const out = [];
-  const specRowList = specRows(root, env.issue);
+  // no-throw-1: an approve whose head the checkout lacks is told to fetch, before the spec read finds no spec there.
+  if (report.verdict === "approve" && !hasCommit(root, report.head_sha)) {
+    return [
+      `git diff origin/develop...${report.head_sha} failed in ${root}: fetch the head and origin/develop there`,
+    ];
+  }
+  const spec = readSpec(root, report.head_sha, env.issue);
+  if (spec === null) return [`no acceptance table in docs/specs/${env.issue}/spec.md`];
+  if (spec.problems.length > 0) return spec.problems;
+  const tableRows = spec.rows.map((s) => s.row);
+  // qa-scope-1: the spec's line for this PR narrows the rows; with no line every row is in scope.
+  const lines = spec.perPr.filter((l) => l.pr === report.pr);
+  const listed = lines.length === 0 ? null : lines.flatMap((l) => l.rows);
+  for (const row of new Set(listed ?? [])) {
+    if (!tableRows.includes(row)) {
+      out.push(`PR ${report.pr} lists row ${row}, which is not in the acceptance table`);
+    }
+  }
+  for (const row of new Set(spec.nothing)) {
+    if (!tableRows.includes(row)) {
+      out.push(`"Rows that render nothing" lists row ${row}, which is not in the acceptance table`);
+    }
+  }
   const seen = new Set();
   for (const ac of report.ac) {
     if (seen.has(ac.row)) out.push(`ac row ${ac.row} appears more than once`);
     seen.add(ac.row);
-    if (!specRowList.some((s) => s.row === ac.row)) {
-      out.push(`ac row ${ac.row} is not a row of the spec`);
+    if (!tableRows.includes(ac.row)) out.push(`ac row ${ac.row} is not a row of the spec`);
+    else if (listed && !listed.includes(ac.row)) {
+      out.push(`ac row ${ac.row} is not in PR ${report.pr}'s rows`);
     }
   }
-  for (const { row, result } of specRowList) {
+  for (const { row, sees } of spec.rows.filter((s) => !listed || listed.includes(s.row))) {
     const ac = report.ac.find((a) => a.row === row);
     if (!ac) {
       out.push(`ac has no entry for spec row ${row}`);
       continue;
     }
-    if (VISUAL.test(result) && !ac.visual) {
+    // qa-scope-2: the keyword rule reads the `User sees` cell, and a row listed as rendering nothing is exempt.
+    if (VISUAL.test(sees) && !spec.nothing.includes(row) && !ac.visual) {
       out.push(`ac row ${row} is visual by the spec's keyword list; visual cannot be false`);
     }
     if (report.verdict === "approve" && ac.status === "fail") {
