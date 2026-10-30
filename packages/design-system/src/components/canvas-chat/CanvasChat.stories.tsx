@@ -2,6 +2,8 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useReactFlow } from "@xyflow/react";
 import { useRef, useState, type ReactNode } from "react";
 import { expect, fn, userEvent, waitFor, within } from "storybook/test";
+import { commandById } from "../../commands/index";
+import { formatNumber } from "../../i18n/format";
 import { DEFAULT_LOCALE, isLocale, pick } from "../../i18n/locale";
 import { LocaleProvider, useLocale } from "../../i18n/LocaleProvider";
 import { fill, messagesFor } from "../../i18n/messages/index";
@@ -165,7 +167,10 @@ const localeOf = (globals: Record<string, unknown>) =>
   isLocale(globals["locale"]) ? globals["locale"] : DEFAULT_LOCALE;
 const catalogOf = (globals: Record<string, unknown>) => messagesFor(localeOf(globals));
 
-/** The field's name in either catalog: a story may sit under a locale decorator that differs from the toolbar. */
+/**
+ * The field's name in either catalog, for `goneStory`, whose own `LocaleProvider` differs from the
+ * toolbar (ORV-119 own-locale-1). Every other play names the field from `catalogOf(globals)`.
+ */
 const inputNames: string[] = [messagesFor("th").chat.input, messagesFor("en").chat.input];
 const input = (
   canvas: ReturnType<typeof within>,
@@ -176,23 +181,13 @@ const input = (
   (canvas.queryByRole("combobox", { name }) ??
     canvas.getByRole("textbox", { name })) as HTMLElement;
 
-/** Types a message and sends it with Enter. */
-async function ask(canvas: ReturnType<typeof within>, text: string, name?: string) {
+/** Types a message and sends it with Enter; `name` is the field's name in the active catalog. */
+async function ask(canvas: ReturnType<typeof within>, text: string, name: string) {
   await userEvent.type(input(canvas, name), `${text}{Enter}`);
 }
 
-/** Send and Stop by their name in either catalog, like the field. */
-type ButtonName = (accessibleName: string) => boolean;
-const nameIn = (pickName: (c: ReturnType<typeof messagesFor>) => string): ButtonName => {
-  const names = [pickName(messagesFor("th")), pickName(messagesFor("en"))];
-  return (accessibleName) => names.includes(accessibleName);
-};
-const SEND = nameIn((c) => c.chat.send);
-const STOP = nameIn((c) => c.chat.stop);
-const YOU = nameIn((c) => c.chat.you);
-
 /** The Stop button (with a stream running) or Send (without one) in the composer. */
-const action = (canvas: ReturnType<typeof within>, name: string | ButtonName) =>
+const action = (canvas: ReturnType<typeof within>, name: string) =>
   canvas.getByRole("button", { name });
 
 /** The signal of the nth `onAsk` call. */
@@ -286,12 +281,14 @@ export const Idle: Story = {
 /** Mock basis: the notice and the reply word both say mock data, and nothing says AI answered. */
 export const Mock: Story = {
   args: { basis: "mock", onAsk: fn(chatFixtures.host(chatFixtures.reply, "mock")) },
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, globals }) => {
+    const m = catalogOf(globals);
+    const c = m.chat;
     const canvas = within(canvasElement);
-    await expectNotice(canvasElement, "คำตอบเป็นข้อมูลจำลอง ยังไม่มี AI");
-    await ask(canvas, chatFixtures.question);
+    await expectNotice(canvasElement, c.noticeMock);
+    await ask(canvas, chatFixtures.question, c.input);
     await waitFor(() =>
-      expect(canvas.getByText("ข้อมูลจำลอง", { selector: ".ds-chat__basis" })).toBeVisible(),
+      expect(canvas.getByText(m.taskBar.basisMock, { selector: ".ds-chat__basis" })).toBeVisible(),
     );
     await expect(chatOf(canvasElement).textContent).not.toMatch(
       /(AI|เอไอ)\s*(answered|replied|ตอบ)|(answered|replied|ตอบ)\s*(by|โดย)\s*(AI|เอไอ)/i,
@@ -301,9 +298,10 @@ export const Mock: Story = {
 
 /** Blank and space-only text: Send is aria-disabled, stays focusable, and nothing is sent. Nothing is asked, so no host answers (a rules host is wired). */
 export const BlankSend: Story = {
-  play: async ({ canvasElement, args }) => {
+  play: async ({ canvasElement, args, globals }) => {
+    const c = catalogOf(globals).chat;
     const canvas = within(canvasElement);
-    const send = action(canvas, SEND);
+    const send = action(canvas, c.send);
     await expect(send).toHaveAttribute("aria-disabled", "true");
     await expect(send).toBeEnabled();
     // The lime appears only once there is something to send.
@@ -311,25 +309,34 @@ export const BlankSend: Story = {
       resolved(send, "--cmp-button-primary-bg-disabled"),
     );
     await userEvent.click(send);
-    await userEvent.type(input(canvas), "   {Enter}");
+    await userEvent.type(input(canvas, c.input), "   {Enter}");
     await expect(send).toHaveAttribute("aria-disabled", "true");
     await userEvent.click(send);
     await expect(args.onAsk).not.toHaveBeenCalled();
-    await expect(canvas.getByText("ยังไม่มีข้อความ ถามเรื่องบนบอร์ดได้เลย")).toBeVisible();
+    await expect(canvas.getByText(c.empty)).toBeVisible();
   },
 };
 
 /** 2,010 graphemes: the counter says by how much, Send is aria-disabled, Enter does nothing. Nothing is asked, so no host answers (a rules host is wired). */
 export const OverLimit: Story = {
-  play: async ({ canvasElement, args }) => {
+  play: async ({ canvasElement, args, globals }) => {
+    const m = catalogOf(globals);
+    const c = m.chat;
+    const locale = localeOf(globals);
     const canvas = within(canvasElement);
-    await userEvent.click(input(canvas));
+    await userEvent.click(input(canvas, c.input));
     await userEvent.paste("ก".repeat(2010));
     await expect(
-      canvas.getByText("ตัวอักษร 2,010 จาก 2,000 เกินมา 10 ตัวอักษร"),
+      canvas.getByText(
+        fill(m.textarea.countOver, {
+          count: formatNumber(2010, locale),
+          max: formatNumber(2000, locale),
+          over: formatNumber(10, locale),
+        }),
+      ),
     ).toBeInTheDocument();
-    await expect(action(canvas, SEND)).toHaveAttribute("aria-disabled", "true");
-    await expect(input(canvas)).toHaveAttribute("aria-invalid", "true");
+    await expect(action(canvas, c.send)).toHaveAttribute("aria-disabled", "true");
+    await expect(input(canvas, c.input)).toHaveAttribute("aria-invalid", "true");
     // The edge eases to the error colour (feedback motion), so wait for it to land.
     // `resolved` adds a node, so it runs outside `waitFor`, whose observer would see it and loop.
     const errorEdge = resolved(chatOf(canvasElement), "--cmp-input-border-error");
@@ -337,32 +344,43 @@ export const OverLimit: Story = {
       expect(getComputedStyle(q(canvasElement, ".ds-chat__box")).borderTopColor).toBe(errorEdge),
     );
     await userEvent.keyboard("{Enter}");
-    await userEvent.click(action(canvas, SEND));
+    await userEvent.click(action(canvas, c.send));
     await expect(args.onAsk).not.toHaveBeenCalled();
   },
 };
 
 /** The counter stays hidden below 1,800 graphemes and shows from 1,800. The fixture host answers by rules. */
 export const CounterThreshold: Story = {
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, globals }) => {
+    const m = catalogOf(globals);
+    const c = m.chat;
+    const locale = localeOf(globals);
     const canvas = within(canvasElement);
     const counter = q(canvasElement, ".ds-textarea__counter");
-    await userEvent.click(input(canvas));
+    await userEvent.click(input(canvas, c.input));
     await userEvent.paste("ก".repeat(1799));
     await expect(getComputedStyle(counter).display).toBe("none");
-    await expect(input(canvas).getAttribute("aria-describedby")).not.toContain(counter.id);
+    await expect(input(canvas, c.input).getAttribute("aria-describedby")).not.toContain(counter.id);
     await userEvent.paste("ก");
     await expect(getComputedStyle(counter).display).not.toBe("none");
-    await expect(input(canvas).getAttribute("aria-describedby")).toContain(counter.id);
-    await expect(canvas.getByText("ตัวอักษร 1,800 จาก 2,000")).toBeInTheDocument();
+    await expect(input(canvas, c.input).getAttribute("aria-describedby")).toContain(counter.id);
+    await expect(
+      canvas.getByText(
+        fill(m.textarea.countOf, {
+          count: formatNumber(1800, locale),
+          max: formatNumber(2000, locale),
+        }),
+      ),
+    ).toBeInTheDocument();
   },
 };
 
 /** Enter and Send both ask once with the trimmed text and a signal; Shift+Enter adds a line. The fixture host answers by rules. */
 export const Send: Story = {
-  play: async ({ canvasElement, args }) => {
+  play: async ({ canvasElement, args, globals }) => {
+    const c = catalogOf(globals).chat;
     const canvas = within(canvasElement);
-    const field = input(canvas) as HTMLTextAreaElement;
+    const field = input(canvas, c.input) as HTMLTextAreaElement;
     await userEvent.type(field, "บรรทัดแรก{Shift>}{Enter}{/Shift}บรรทัดสอง");
     await expect(field.value).toBe("บรรทัดแรก\nบรรทัดสอง");
     await expect(args.onAsk).not.toHaveBeenCalled();
@@ -378,14 +396,14 @@ export const Send: Story = {
     await expect(boxStyle.borderTopWidth).toBe("1px");
     await expect(boxStyle.boxShadow).toBe("none");
     await expect(getComputedStyle(field).outlineStyle).toBe("none");
-    await expect(getComputedStyle(action(canvas, SEND)).backgroundColor).toBe(
+    await expect(getComputedStyle(action(canvas, c.send)).backgroundColor).toBe(
       resolved(chatOf(canvasElement), "--cmp-button-intent-bg"),
     );
     // Focus on Send shows Send's own ring and none on the box (one ring at a time).
     await userEvent.tab();
-    await expect(action(canvas, SEND)).toHaveFocus();
+    await expect(action(canvas, c.send)).toHaveFocus();
     await expect(getComputedStyle(q(canvasElement, ".ds-chat__box")).outlineStyle).toBe("none");
-    await expect(getComputedStyle(action(canvas, SEND)).outlineWidth).toBe("2px");
+    await expect(getComputedStyle(action(canvas, c.send)).outlineWidth).toBe("2px");
     await userEvent.click(field);
     await userEvent.clear(field);
 
@@ -395,27 +413,28 @@ export const Send: Story = {
       { text: chatFixtures.question, mentions: [] },
       expect.any(AbortSignal),
     );
-    await expect(canvas.getByText(YOU)).toBeVisible();
+    await expect(canvas.getByText(c.you)).toBeVisible();
     await expect(canvas.getByText(chatFixtures.question)).toBeVisible();
     await expect(field.value).toBe("");
     await expect(field).toHaveFocus();
 
     // The first reply must end before a second message can go.
-    await waitFor(() => expect(action(canvas, SEND)).toBeVisible());
+    await waitFor(() => expect(action(canvas, c.send)).toBeVisible());
     await userEvent.type(field, "คำถามที่สอง");
-    await userEvent.click(action(canvas, SEND));
+    await userEvent.click(action(canvas, c.send));
     await expect(args.onAsk).toHaveBeenCalledTimes(2);
     await expect(field.value).toBe("");
     await expect(field).toHaveFocus();
-    await expect(canvas.getAllByText(YOU)).toHaveLength(2);
+    await expect(canvas.getAllByText(c.you)).toHaveLength(2);
   },
 };
 
 /** Enter that commits a Thai IME composition never sends, even when compositionend came first. The fixture host answers by rules. */
 export const ImeCompose: Story = {
-  play: async ({ canvasElement, args }) => {
+  play: async ({ canvasElement, args, globals }) => {
+    const c = catalogOf(globals).chat;
     const canvas = within(canvasElement);
-    const field = input(canvas);
+    const field = input(canvas, c.input);
     const enter = (isComposing: boolean) =>
       field.dispatchEvent(
         new KeyboardEvent("keydown", {
@@ -446,40 +465,42 @@ export const ImeCompose: Story = {
  */
 export const Streaming: Story = {
   args: { onAsk: fn(chatFixtures.hostHold(chatFixtures.reply)) },
-  play: async ({ canvasElement, args }) => {
+  play: async ({ canvasElement, args, globals }) => {
+    const c = catalogOf(globals).chat;
     const canvas = within(canvasElement);
-    const sendBox = box(action(canvas, SEND));
-    await ask(canvas, chatFixtures.question);
+    const sendBox = box(action(canvas, c.send));
+    await ask(canvas, chatFixtures.question, c.input);
     await waitFor(() =>
-      expect(canvas.getByText("กำลังตอบ", { selector: ".ds-chat__progress" })).toBeVisible(),
+      expect(canvas.getByText(c.streaming, { selector: ".ds-chat__progress" })).toBeVisible(),
     );
-    await expect(action(canvas, STOP)).toBeVisible();
+    await expect(action(canvas, c.stop)).toBeVisible();
     // Stop is a round 32 px button in Send's place; the meta row is one 32 px line; the honesty line stays.
-    near(box(action(canvas, STOP)).width, 32);
-    near(box(action(canvas, STOP)).left, sendBox.left);
-    near(box(action(canvas, STOP)).top, sendBox.top);
+    near(box(action(canvas, c.stop)).width, 32);
+    near(box(action(canvas, c.stop)).left, sendBox.left);
+    near(box(action(canvas, c.stop)).top, sendBox.top);
     near(box(q(canvasElement, ".ds-chat__meta")).height, 32);
-    await expectNotice(canvasElement, "คำตอบมาจากกฎที่เขียนไว้ ยังไม่มี AI");
-    await expect(canvas.queryByRole("button", { name: SEND })).toBeNull();
+    await expectNotice(canvasElement, c.noticeRules);
+    await expect(canvas.queryByRole("button", { name: c.send })).toBeNull();
     const reply = canvasElement.querySelector(".ds-chat__reply .ds-chat__text") as HTMLElement;
     await waitFor(() => expect(reply.textContent).not.toBe(""));
     await expect(chatFixtures.reply.startsWith(reply.textContent ?? "x")).toBe(true);
     await expect(reply).toHaveAttribute("aria-live", "polite");
     await expect(reply).toHaveAttribute("aria-busy", "true");
-    await expect(statusOf(canvasElement)).toHaveTextContent("กำลังตอบ");
+    await expect(statusOf(canvasElement)).toHaveTextContent(c.streaming);
     // The box stays editable for the next draft, but Enter sends nothing while a reply streams.
-    await userEvent.type(input(canvas), "ข้อความที่สอง{Enter}");
+    await userEvent.type(input(canvas, c.input), "ข้อความที่สอง{Enter}");
     await expect(args.onAsk).toHaveBeenCalledTimes(1);
-    await expect((input(canvas) as HTMLTextAreaElement).value).toBe("ข้อความที่สอง");
+    await expect((input(canvas, c.input) as HTMLTextAreaElement).value).toBe("ข้อความที่สอง");
   },
 };
 
 /** Under reduced motion the streaming mark stops: the word "Replying" carries the state. The fixture host answers by rules. */
 export const StreamingReducedMotion: Story = {
   args: { onAsk: fn(chatFixtures.hostHold(chatFixtures.reply)) },
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, globals }) => {
+    const c = catalogOf(globals).chat;
     const canvas = within(canvasElement);
-    await ask(canvas, chatFixtures.question);
+    await ask(canvas, chatFixtures.question, c.input);
     await waitFor(() =>
       expect(canvasElement.querySelector(".ds-chat__mark .ds-spin")).not.toBeNull(),
     );
@@ -513,17 +534,19 @@ export const StreamingReducedMotion: Story = {
 
 /** A finished rules reply: full text, its basis word, Send back, onReply once with the last snapshot. The fixture host answers by rules. */
 export const Replied: Story = {
-  play: async ({ canvasElement, args }) => {
+  play: async ({ canvasElement, args, globals }) => {
+    const m = catalogOf(globals);
+    const c = m.chat;
     const canvas = within(canvasElement);
-    await ask(canvas, chatFixtures.question);
+    await ask(canvas, chatFixtures.question, c.input);
     await waitFor(() =>
-      expect(canvas.getByText("ตามกฎ", { selector: ".ds-chat__basis" })).toBeVisible(),
+      expect(canvas.getByText(m.taskBar.basisRules, { selector: ".ds-chat__basis" })).toBeVisible(),
     );
     const reply = canvasElement.querySelector(".ds-chat__reply .ds-chat__text") as HTMLElement;
     await expect(reply).toHaveTextContent(chatFixtures.reply);
     await expect(reply).toHaveAttribute("aria-busy", "false");
-    await expect(action(canvas, SEND)).toBeVisible();
-    await expect(canvas.queryByRole("button", { name: STOP })).toBeNull();
+    await expect(action(canvas, c.send)).toBeVisible();
+    await expect(canvas.queryByRole("button", { name: c.stop })).toBeNull();
     // Changes 4 and 5: a pill bubble at the end edge; "คุณ" is read first but not drawn; 12 px to the reply.
     const exchange = q(canvasElement, ".ds-chat__exchange");
     const question = q(canvasElement, ".ds-chat__question");
@@ -535,15 +558,15 @@ export const Replied: Story = {
     const speaker = q(canvasElement, ".ds-chat__speaker");
     near(box(speaker).width, 1, 0.1);
     near(box(speaker).height, 1, 0.1);
-    await expect(exchange.textContent?.startsWith("คุณ")).toBe(true);
+    await expect(exchange.textContent?.startsWith(c.you)).toBe(true);
     near(box(q(canvasElement, ".ds-chat__reply")).top - box(question).bottom, 12);
     // Change 6: the meta row is one 32 px line and the reply is plain text at the start edge.
     near(box(q(canvasElement, ".ds-chat__meta")).height, 32);
     near(box(reply).left, log.left + 16);
-    await expect(canvas.queryByRole("list", { name: "เริ่มจากคำถามเหล่านี้" })).toBeNull();
+    await expect(canvas.queryByRole("list", { name: c.starters })).toBeNull();
     // The host placed nothing (onReply returns nothing): no jump, no unlinked note, as in slice A.
-    await expect(canvas.queryByRole("button", { name: /^ไปที่โหนดคำตอบ/ })).toBeNull();
-    await expect(canvas.queryByText("ไม่ได้ผูกกับโหนดใด")).toBeNull();
+    await expect(canvas.queryByRole("button", { name: (n) => n.startsWith(c.jump) })).toBeNull();
+    await expect(canvas.queryByText(c.unlinked)).toBeNull();
     await expect(args.onReply).toHaveBeenCalledTimes(1);
     await expect(args.onReply).toHaveBeenCalledWith(
       { text: chatFixtures.reply, basis: "rules" },
@@ -555,11 +578,13 @@ export const Replied: Story = {
 /** A reply with line breaks keeps them: the newlines are in the text and the lines render apart. The fixture host answers by rules. */
 export const RepliedLines: Story = {
   args: { onAsk: fn(chatFixtures.host(chatFixtures.replyLines)) },
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, globals }) => {
+    const m = catalogOf(globals);
+    const c = m.chat;
     const canvas = within(canvasElement);
-    await ask(canvas, chatFixtures.question);
+    await ask(canvas, chatFixtures.question, c.input);
     await waitFor(() =>
-      expect(canvas.getByText("ตามกฎ", { selector: ".ds-chat__basis" })).toBeVisible(),
+      expect(canvas.getByText(m.taskBar.basisRules, { selector: ".ds-chat__basis" })).toBeVisible(),
     );
     const reply = canvasElement.querySelector(".ds-chat__reply .ds-chat__text") as HTMLElement;
     await expect(reply.textContent).toBe(chatFixtures.replyLines);
@@ -580,17 +605,19 @@ export const FocusKeptOnEnd: Story = {
       </Frame>
     );
   },
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, globals }) => {
+    const m = catalogOf(globals);
+    const c = m.chat;
     const canvas = within(canvasElement);
-    await ask(canvas, chatFixtures.question);
-    const stop = await canvas.findByRole("button", { name: STOP });
+    await ask(canvas, chatFixtures.question, c.input);
+    const stop = await canvas.findByRole("button", { name: c.stop });
     stop.focus();
     await expect(stop).toHaveFocus();
     (window as unknown as { __latch: () => void }).__latch();
     await waitFor(() =>
-      expect(canvas.getByText("ตามกฎ", { selector: ".ds-chat__basis" })).toBeVisible(),
+      expect(canvas.getByText(m.taskBar.basisRules, { selector: ".ds-chat__basis" })).toBeVisible(),
     );
-    await expect(input(canvas)).toHaveFocus();
+    await expect(input(canvas, c.input)).toHaveFocus();
   },
 };
 
@@ -605,64 +632,66 @@ export const FocusKeptOnFail: Story = {
       </Frame>
     );
   },
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, globals }) => {
+    const c = catalogOf(globals).chat;
     const canvas = within(canvasElement);
-    await ask(canvas, chatFixtures.question);
-    const stop = await canvas.findByRole("button", { name: STOP });
+    await ask(canvas, chatFixtures.question, c.input);
+    const stop = await canvas.findByRole("button", { name: c.stop });
     stop.focus();
     await expect(stop).toHaveFocus();
     (window as unknown as { __latch: () => void }).__latch();
-    await expect(await failure(canvas)).toBeVisible();
-    await expect(input(canvas)).toHaveFocus();
+    await expect(await failure(canvas, c.failed)).toBeVisible();
+    await expect(input(canvas, c.input)).toHaveFocus();
   },
 };
 
 /** Stop mid-stream: the signal aborts, the partial text stays marked Stopped, nothing is passed on. The fixture host answers by rules. */
 export const Stopped: Story = {
   args: { onAsk: fn(chatFixtures.hostHold(chatFixtures.reply)) },
-  play: async ({ canvasElement, args }) => {
+  play: async ({ canvasElement, args, globals }) => {
+    const c = catalogOf(globals).chat;
     const canvas = within(canvasElement);
-    await ask(canvas, chatFixtures.question);
-    const stop = await canvas.findByRole("button", { name: STOP });
+    await ask(canvas, chatFixtures.question, c.input);
+    const stop = await canvas.findByRole("button", { name: c.stop });
     const reply = canvasElement.querySelector(".ds-chat__reply .ds-chat__text") as HTMLElement;
     await waitFor(() => expect(reply.textContent).not.toBe(""));
     const partial = reply.textContent;
     await userEvent.click(stop);
     await expect(signalOf(args.onAsk as never).aborted).toBe(true);
     await expect(reply).toHaveTextContent(partial ?? "");
-    await expect(canvas.getByText("หยุดแล้ว", { selector: ".ds-chat__stopped" })).toBeVisible();
+    await expect(canvas.getByText(c.stopped, { selector: ".ds-chat__stopped" })).toBeVisible();
     await expect(args.onReply).not.toHaveBeenCalled();
-    await expect(action(canvas, SEND)).toBeVisible();
-    await expect(input(canvas)).toHaveFocus();
+    await expect(action(canvas, c.send)).toBeVisible();
+    await expect(input(canvas, c.input)).toHaveFocus();
     await expect(reply).toHaveAttribute("aria-busy", "false");
-    await expect(statusOf(canvasElement)).toHaveTextContent("หยุดแล้ว");
+    await expect(statusOf(canvasElement)).toHaveTextContent(c.stopped);
   },
 };
 
-const FAILED = "ยังไม่ได้คำตอบ ข้อความของคุณยังอยู่ กดส่งอีกครั้งได้เลย";
-/** The visible failure text; the status region says it too, for screen readers only. */
-const failure = (canvas: ReturnType<typeof within>) =>
-  canvas.findByText(FAILED, { selector: ".ds-chat__failure p" });
+/** The visible failure text (`chat.failed` of the active catalog); the status region says it too, for screen readers only. */
+const failure = (canvas: ReturnType<typeof within>, text: string) =>
+  canvas.findByText(text, { selector: ".ds-chat__failure p" });
 
 /** The host throws at once: the question stays, the thrown text never shows, Send again repeats it. The fixture host throws, so no basis is shown. */
 export const Failed: Story = {
   args: { onAsk: fn(chatFixtures.hostFail("upstream timeout 504")) },
-  play: async ({ canvasElement, args }) => {
+  play: async ({ canvasElement, args, globals }) => {
+    const c = catalogOf(globals).chat;
     const canvas = within(canvasElement);
-    await ask(canvas, chatFixtures.question);
-    await expect(await failure(canvas)).toBeVisible();
+    await ask(canvas, chatFixtures.question, c.input);
+    await expect(await failure(canvas, c.failed)).toBeVisible();
     await expect(canvas.getByText(chatFixtures.question)).toBeVisible();
     await expect(canvas.queryByText(/504/)).toBeNull();
     await expect(args.onReply).not.toHaveBeenCalled();
-    await expect(statusOf(canvasElement)).toHaveTextContent(FAILED);
-    await expectNotice(canvasElement, "คำตอบมาจากกฎที่เขียนไว้ ยังไม่มี AI");
-    await userEvent.click(canvas.getByRole("button", { name: "ส่งอีกครั้ง" }));
+    await expect(statusOf(canvasElement)).toHaveTextContent(c.failed);
+    await expectNotice(canvasElement, c.noticeRules);
+    await userEvent.click(canvas.getByRole("button", { name: c.retry }));
     await expect(args.onAsk).toHaveBeenCalledTimes(2);
     await expect((args.onAsk as ReturnType<typeof fn>).mock.calls[1]?.[0]).toBe(
       (args.onAsk as ReturnType<typeof fn>).mock.calls[0]?.[0],
     );
-    await expect(input(canvas)).toHaveFocus();
-    await expect(await failure(canvas)).toBeVisible();
+    await expect(input(canvas, c.input)).toHaveFocus();
+    await expect(await failure(canvas, c.failed)).toBeVisible();
     await expect(canvas.getAllByText(chatFixtures.question)).toHaveLength(1);
   },
 };
@@ -670,49 +699,53 @@ export const Failed: Story = {
 /** The iterable throws after a snapshot: the partial text is dropped, the failure shows. The fixture host answers by rules. */
 export const FailedMidStream: Story = {
   args: { onAsk: fn(chatFixtures.hostFailMidStream(chatFixtures.reply, "stream reset")) },
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, globals }) => {
+    const m = catalogOf(globals);
+    const c = m.chat;
     const canvas = within(canvasElement);
-    await ask(canvas, chatFixtures.question);
-    await expect(await failure(canvas)).toBeVisible();
+    await ask(canvas, chatFixtures.question, c.input);
+    await expect(await failure(canvas, c.failed)).toBeVisible();
     await expect(canvasElement.querySelectorAll(".ds-chat__reply .ds-chat__text")).toHaveLength(0);
     await expect(canvas.queryByText(/stream reset/)).toBeNull();
-    await expect(canvas.queryByText("ตามกฎ")).toBeNull();
+    await expect(canvas.queryByText(m.taskBar.basisRules)).toBeNull();
   },
 };
 
 /** An iterable that ends with no snapshot is a failure, not an empty reply. The fixture host ends with no reply, so no basis is shown. */
 export const FailedNoReply: Story = {
   args: { onAsk: fn(chatFixtures.hostEmpty) },
-  play: async ({ canvasElement, args }) => {
+  play: async ({ canvasElement, args, globals }) => {
+    const c = catalogOf(globals).chat;
     const canvas = within(canvasElement);
-    await ask(canvas, chatFixtures.question);
-    await expect(await failure(canvas)).toBeVisible();
+    await ask(canvas, chatFixtures.question, c.input);
+    await expect(await failure(canvas, c.failed)).toBeVisible();
     await expect(args.onReply).not.toHaveBeenCalled();
-    await expect(canvas.getByRole("button", { name: "ส่งอีกครั้ง" })).toBeVisible();
+    await expect(canvas.getByRole("button", { name: c.retry })).toBeVisible();
   },
 };
 
 /** Close while streaming: the signal aborts, the status region says Stopped, then onClose runs once. The fixture host answers by rules. */
 export const Close: Story = {
   args: { onAsk: fn(chatFixtures.hostHold(chatFixtures.reply)) },
-  play: async ({ canvasElement, args }) => {
+  play: async ({ canvasElement, args, globals }) => {
+    const c = catalogOf(globals).chat;
     const canvas = within(canvasElement);
-    await ask(canvas, chatFixtures.question);
-    await canvas.findByRole("button", { name: STOP });
+    await ask(canvas, chatFixtures.question, c.input);
+    await canvas.findByRole("button", { name: c.stop });
     const order: string[] = [];
     signalOf(args.onAsk as never).addEventListener("abort", () => order.push("abort"));
     // By the time the host closes the chat, its status region already says Stopped.
     (args.onClose as ReturnType<typeof fn>).mockImplementation(() => {
-      if (statusOf(canvasElement).textContent === "หยุดแล้ว") order.push("status");
+      if (statusOf(canvasElement).textContent === c.stopped) order.push("status");
       order.push("close");
     });
-    await userEvent.click(canvas.getByRole("button", { name: "ปิดแชท" }));
+    await userEvent.click(canvas.getByRole("button", { name: c.close }));
     await expect(args.onClose).toHaveBeenCalledTimes(1);
     await expect(order).toEqual(["abort", "status", "close"]);
-    await expect(statusOf(canvasElement)).toHaveTextContent("หยุดแล้ว");
+    await expect(statusOf(canvasElement)).toHaveTextContent(c.stopped);
     // The host keeps the chat mounted: the reply is stopped, not stuck replying.
-    await expect(canvas.getByText("หยุดแล้ว", { selector: ".ds-chat__stopped" })).toBeVisible();
-    await expect(canvas.queryByRole("button", { name: STOP })).toBeNull();
+    await expect(canvas.getByText(c.stopped, { selector: ".ds-chat__stopped" })).toBeVisible();
+    await expect(canvas.queryByRole("button", { name: c.stop })).toBeNull();
     await expect(chatOf(canvasElement)).toHaveAttribute("data-state", "stopped");
   },
 };
@@ -724,8 +757,9 @@ export const NoClose: Story = {
       <CanvasChat {...args} onClose={undefined} />
     </Frame>
   ),
-  play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).queryByRole("button", { name: "ปิดแชท" })).toBeNull();
+  play: async ({ canvasElement, globals }) => {
+    const c = catalogOf(globals).chat;
+    await expect(within(canvasElement).queryByRole("button", { name: c.close })).toBeNull();
   },
 };
 
@@ -746,15 +780,19 @@ const conversationHost: ChatHost = (request, signal) => {
   );
 };
 
-async function converse(canvasElement: HTMLElement, questions: readonly string[]) {
+async function converse(
+  canvasElement: HTMLElement,
+  questions: readonly string[],
+  c: ReturnType<typeof catalogOf>["chat"],
+) {
   const canvas = within(canvasElement);
   for (const [i, question] of questions.entries()) {
-    await ask(canvas, question);
+    await ask(canvas, question, c.input);
     if (question.startsWith("4")) {
-      await userEvent.click(await canvas.findByRole("button", { name: STOP }));
+      await userEvent.click(await canvas.findByRole("button", { name: c.stop }));
     }
-    await waitFor(() => expect(canvas.queryByRole("button", { name: STOP })).toBeNull());
-    await waitFor(() => expect(canvas.getAllByText(YOU)).toHaveLength(i + 1));
+    await waitFor(() => expect(canvas.queryByRole("button", { name: c.stop })).toBeNull());
+    await waitFor(() => expect(canvas.getAllByText(c.you)).toHaveLength(i + 1));
   }
 }
 
@@ -775,10 +813,11 @@ const SIX = [
  */
 export const Conversation: Story = {
   args: { onAsk: fn(conversationHost) },
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, globals }) => {
+    const c = catalogOf(globals).chat;
     const canvas = within(canvasElement);
-    await converse(canvasElement, SIX);
-    const transcript = canvas.getByRole("region", { name: "บทสนทนา" });
+    await converse(canvasElement, SIX, c);
+    const transcript = canvas.getByRole("region", { name: c.transcript });
     await expect(transcript.scrollHeight).toBeGreaterThan(transcript.clientHeight);
     await waitFor(() =>
       expect(transcript.scrollTop + transcript.clientHeight).toBeGreaterThanOrEqual(
@@ -796,7 +835,7 @@ export const Conversation: Story = {
         box(q(exchanges[0] as HTMLElement, ".ds-chat__meta")).bottom,
       24,
     );
-    await expectNotice(canvasElement, "คำตอบมาจากกฎที่เขียนไว้ ยังไม่มี AI");
+    await expectNotice(canvasElement, c.noticeRules);
     // The transcript sits above the composer, and the composer stays inside the chat.
     const chat = box(chatOf(canvasElement));
     const composer = box(canvasElement.querySelector(".ds-chat__composer") as HTMLElement);
@@ -811,14 +850,14 @@ export const Conversation: Story = {
     transcript.focus();
     const order = [
       transcript,
-      input(canvas),
-      action(canvas, SEND),
-      canvas.getByRole("button", { name: "ปิดแชท" }),
+      input(canvas, c.input),
+      action(canvas, c.send),
+      canvas.getByRole("button", { name: c.close }),
     ];
     for (const [i, target] of order.entries()) {
       if (i > 0) await userEvent.tab();
       await expect(target).toHaveFocus();
-      if (target === input(canvas)) {
+      if (target === input(canvas, c.input)) {
         // The textarea's single line is the box border in the focus ink, with no outline.
         const box = getComputedStyle(q(canvasElement, ".ds-chat__box"));
         const edge = resolved(chatOf(canvasElement), "--cmp-input-border-focus");
@@ -829,22 +868,26 @@ export const Conversation: Story = {
       }
     }
     // The older failure keeps its text and has no retry: only the newest exchange can resend.
-    await expect(canvas.getAllByText(FAILED, { selector: ".ds-chat__failure p" })).toHaveLength(1);
-    await expect(canvas.queryByRole("button", { name: "ส่งอีกครั้ง" })).toBeNull();
+    await expect(canvas.getAllByText(c.failed, { selector: ".ds-chat__failure p" })).toHaveLength(
+      1,
+    );
+    await expect(canvas.queryByRole("button", { name: c.retry })).toBeNull();
   },
 };
 
 /** The notice says rules while the reply says mock: each is shown as it is, never corrected. The fixture host answers with mock data under a rules notice. */
 export const BasisMismatch: Story = {
   args: { basis: "rules", onAsk: fn(chatFixtures.host(chatFixtures.reply, "mock")) },
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, globals }) => {
+    const m = catalogOf(globals);
+    const c = m.chat;
     const canvas = within(canvasElement);
-    await expect(canvas.getByText("คำตอบมาจากกฎที่เขียนไว้ ยังไม่มี AI")).toBeVisible();
-    await ask(canvas, chatFixtures.question);
+    await expect(canvas.getByText(c.noticeRules)).toBeVisible();
+    await ask(canvas, chatFixtures.question, c.input);
     await waitFor(() =>
-      expect(canvas.getByText("ข้อมูลจำลอง", { selector: ".ds-chat__basis" })).toBeVisible(),
+      expect(canvas.getByText(m.taskBar.basisMock, { selector: ".ds-chat__basis" })).toBeVisible(),
     );
-    await expect(canvas.queryByText("ตามกฎ")).toBeNull();
+    await expect(canvas.queryByText(m.taskBar.basisRules)).toBeNull();
   },
 };
 
@@ -893,11 +936,13 @@ export const Narrow: Story = {
       <CanvasChat {...args} />
     </Frame>
   ),
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, globals }) => {
+    const m = catalogOf(globals);
+    const c = m.chat;
     const canvas = within(canvasElement);
-    await ask(canvas, chatFixtures.longQuestion);
+    await ask(canvas, chatFixtures.longQuestion, c.input);
     await waitFor(() =>
-      expect(canvas.getByText("ตามกฎ", { selector: ".ds-chat__basis" })).toBeVisible(),
+      expect(canvas.getByText(m.taskBar.basisRules, { selector: ".ds-chat__basis" })).toBeVisible(),
     );
     await expectFits(canvasElement);
     const replyText = canvasElement.querySelector(".ds-chat__reply .ds-chat__text") as HTMLElement;
@@ -913,15 +958,17 @@ export const NarrowestPanel: Story = {
       <CanvasChat {...args} />
     </Frame>
   ),
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, globals }) => {
+    const m = catalogOf(globals);
+    const c = m.chat;
     const canvas = within(canvasElement);
-    await ask(canvas, chatFixtures.longQuestion);
+    await ask(canvas, chatFixtures.longQuestion, c.input);
     await waitFor(() =>
-      expect(canvas.getByText("ตามกฎ", { selector: ".ds-chat__basis" })).toBeVisible(),
+      expect(canvas.getByText(m.taskBar.basisRules, { selector: ".ds-chat__basis" })).toBeVisible(),
     );
     await expectFits(canvasElement);
     // At 240 the row still fits: Send sits inside the box, and the counter is hidden under 1,800.
-    await expect(inside(box(action(canvas, SEND)), box(q(canvasElement, ".ds-chat__box")))).toBe(
+    await expect(inside(box(action(canvas, c.send)), box(q(canvasElement, ".ds-chat__box")))).toBe(
       true,
     );
     await expect(getComputedStyle(q(canvasElement, ".ds-textarea__counter")).display).toBe("none");
@@ -940,15 +987,17 @@ export const WidestPanel: Story = {
       <CanvasChat {...args} />
     </Frame>
   ),
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, globals }) => {
+    const m = catalogOf(globals);
+    const c = m.chat;
     const canvas = within(canvasElement);
-    await ask(canvas, chatFixtures.question);
+    await ask(canvas, chatFixtures.question, c.input);
     await waitFor(() =>
-      expect(canvas.getByText("ตามกฎ", { selector: ".ds-chat__basis" })).toBeVisible(),
+      expect(canvas.getByText(m.taskBar.basisRules, { selector: ".ds-chat__basis" })).toBeVisible(),
     );
     await expectFits(canvasElement);
     near(box(chatOf(canvasElement)).width, 480);
-    await expect(inside(box(action(canvas, SEND)), box(q(canvasElement, ".ds-chat__box")))).toBe(
+    await expect(inside(box(action(canvas, c.send)), box(q(canvasElement, ".ds-chat__box")))).toBe(
       true,
     );
     await expect(getComputedStyle(q(canvasElement, ".ds-textarea__counter")).display).toBe("none");
@@ -1066,17 +1115,20 @@ export const RecipesAndModes: Story = {
       </Frame>
     </Matrix>
   ),
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, globals }) => {
+    const m = catalogOf(globals);
     const cells = Array.from(canvasElement.querySelectorAll<HTMLElement>("[data-matrix-cell]"));
     await expect(cells).toHaveLength(6);
-    for (const cell of cells) await ask(within(cell), chatFixtures.question);
+    for (const cell of cells) await ask(within(cell), chatFixtures.question, m.chat.input);
     await waitFor(() =>
       expect(canvasElement.querySelectorAll(".ds-chat__basis")).toHaveLength(cells.length),
     );
     // Each chat shows the panel layout: 320 px wide inside its 322 px frame, with the basis word.
     for (const cell of cells) {
       await expect(box(chatOf(cell)).width).toBeCloseTo(320, 0);
-      await expect(within(cell).getByText("ตามกฎ", { selector: ".ds-chat__basis" })).toBeVisible();
+      await expect(
+        within(cell).getByText(m.taskBar.basisRules, { selector: ".ds-chat__basis" }),
+      ).toBeVisible();
       // In dark the panel's edge is the card border; in light it is transparent.
       if (cell.dataset.matrixMode === "dark") {
         await expect(getComputedStyle(chatOf(cell)).outlineColor).toBe(
@@ -1309,7 +1361,9 @@ export const OnBoard: Story = {
  */
 export const Unlinked: Story = {
   render: (args) => <BoardChat args={args} />,
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, globals }) => {
+    const c = catalogOf(globals).chat;
+    const locale = localeOf(globals);
     const canvas = within(canvasElement);
     await waitFor(() => expect(nodeEl(canvasElement, "brief")).toBeTruthy());
     await expect(canvasElement.querySelectorAll(".react-flow__node.selected")).toHaveLength(0);
@@ -1318,13 +1372,13 @@ export const Unlinked: Story = {
     await waitFor(() =>
       expect(canvasElement.querySelectorAll(".react-flow__edge")).toHaveLength(edges),
     );
-    const title = `คำตอบเรื่อง ${chatFixtures.question}`;
-    await ask(canvas, chatFixtures.question);
+    const title = replyTitle(chatFixtures.question, locale);
+    await ask(canvas, chatFixtures.question, c.input);
     await waitFor(() => expect(nodeEl(canvasElement, "reply-1")).toBeTruthy());
     const reply = nodeEl(canvasElement, "reply-1");
     await waitFor(() => expect(within(reply).getByText(title)).toBeVisible());
     await expect(canvasElement.querySelectorAll(".react-flow__edge")).toHaveLength(edges);
-    await expect(canvas.getByText("ไม่ได้ผูกกับโหนดใด")).toBeVisible();
+    await expect(canvas.getByText(c.unlinked)).toBeVisible();
     // Its left edge is the board's centre, snapped to the grid: within half a grid unit. The
     // centre is covered by a node, so the note steps down by whole grid units, never up.
     const board = box(boardEl(canvasElement));
@@ -1343,7 +1397,9 @@ export const Unlinked: Story = {
         inside(box(canvasElement.querySelector(part) as Element), box(chatOf(canvasElement))),
       ).toBe(true);
     }
-    await userEvent.click(canvas.getByRole("button", { name: /^ไปที่โหนดคำตอบ เรื่อง/ }));
+    await userEvent.click(
+      canvas.getByRole("button", { name: fill(c.jumpLabel, { topic: chatFixtures.question }) }),
+    );
     await waitFor(() => expect(reply).toHaveClass("selected"));
     await waitFor(() => expect(reply).toHaveFocus());
   },
@@ -1531,7 +1587,9 @@ export const Mentions: Story = {
 export const MentionFromMenu: Story = {
   args: { onMentionsChange: fn() },
   render: (args) => <BoardChat args={args} controlled />,
-  play: async ({ canvasElement, args }) => {
+  play: async ({ canvasElement, args, globals }) => {
+    const m = catalogOf(globals);
+    const mentionItem = pick(commandById("node.mention").label, localeOf(globals));
     const canvas = within(canvasElement);
     await waitFor(() => expect(nodeEl(canvasElement, "logo")).toBeTruthy());
     await waitFor(() =>
@@ -1539,28 +1597,28 @@ export const MentionFromMenu: Story = {
     );
     await userEvent.pointer({ keys: "[MouseRight]", target: nodeEl(canvasElement, "logo") });
     const menu = await within(document.body).findByRole("menu");
-    await userEvent.click(
-      within(menu).getByRole("menuitem", { name: "อ้างถึง node นี้ใน prompt" }),
-    );
+    await userEvent.click(within(menu).getByRole("menuitem", { name: mentionItem }));
     await waitFor(() => expect(chipsOf(canvasElement)).toEqual(["โลโก้"]));
     // A second use adds a second chip; the same node twice adds none. The shell owns the list.
     await userEvent.pointer({ keys: "[MouseRight]", target: nodeEl(canvasElement, "palette") });
     await userEvent.click(
       within(await within(document.body).findByRole("menu")).getByRole("menuitem", {
-        name: "อ้างถึง node นี้ใน prompt",
+        name: mentionItem,
       }),
     );
     await waitFor(() => expect(chipsOf(canvasElement)).toHaveLength(2));
     await userEvent.pointer({ keys: "[MouseRight]", target: nodeEl(canvasElement, "logo") });
     await userEvent.click(
       within(await within(document.body).findByRole("menu")).getByRole("menuitem", {
-        name: "อ้างถึง node นี้ใน prompt",
+        name: mentionItem,
       }),
     );
     await expect(chipsOf(canvasElement)).toHaveLength(2);
     // A pick through the chat's own picker calls the callback; a shell add does not.
     await expect(args.onMentionsChange).not.toHaveBeenCalled();
-    await userEvent.click(canvas.getAllByRole("button", { name: /^ลบ / })[0] as HTMLElement);
+    await userEvent.click(
+      canvas.getByRole("button", { name: fill(m.tag.remove, { label: "โลโก้" }) }),
+    );
     await expect(args.onMentionsChange).toHaveBeenCalledTimes(1);
     await expect(chipsOf(canvasElement)).toHaveLength(1);
   },
@@ -1677,12 +1735,13 @@ export const MentionGonePanelEnglishDark: Story = goneStory("panel", "en", "dark
  * Fixture host, replies by rules.
  */
 export const NoBoardNoMention: Story = {
-  play: async ({ canvasElement, args }) => {
+  play: async ({ canvasElement, args, globals }) => {
+    const c = catalogOf(globals).chat;
     const canvas = within(canvasElement);
-    await userEvent.type(input(canvas), "@บ");
-    await expect(canvas.queryByRole("button", { name: "อ้างถึงโหนด" })).toBeNull();
+    await userEvent.type(input(canvas, c.input), "@บ");
+    await expect(canvas.queryByRole("button", { name: c.mention })).toBeNull();
     await expect(canvas.queryByRole("listbox")).toBeNull();
-    await expect(input(canvas)).toHaveValue("@บ");
+    await expect(input(canvas, c.input)).toHaveValue("@บ");
     await userEvent.keyboard("{Enter}");
     await expect((args.onAsk as ReturnType<typeof fn>).mock.calls[0]?.[0]).toEqual({
       text: "@บ",
@@ -1739,10 +1798,11 @@ export const MentionsEnglish: Story = {
 export const MentionsSmallest: Story = {
   args: { defaultMentions: ["brief", "logo", "palette"] },
   render: (args) => <BoardChat args={args} height={380} size="min" />,
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, globals }) => {
+    const c = catalogOf(globals).chat;
     const canvas = within(canvasElement);
     await waitFor(() => expect(nodeEl(canvasElement, "brief")).toBeTruthy());
-    const field = input(canvas);
+    const field = input(canvas, c.input);
     await userEvent.type(field, "@");
     const picker = canvasElement.querySelector(".ds-chat__picker") as HTMLElement;
     const chat = box(chatOf(canvasElement));

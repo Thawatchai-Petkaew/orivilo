@@ -23,7 +23,7 @@ Comment 10268 takes open questions 1 to 10 and 12 at their defaults and decides 
 | --- | --- | --- |
 | 1 | (a) Better Auth's own answers with status 400 or more get the error body, code by status, other headers kept | §3, `asErrorAnswer`; row 4 test |
 | 2 | (a) a throw in `authRoute` answers 500 `INTERNAL_ERROR` with row 5's line | §3, the `catch`; row 5 test |
-| 3 | (a) 13 codes, one per matrix status; `error` stays the catalog key | §2, `ERROR_CODES`; §4, `CODE_OF` |
+| 3 | (a) one code per matrix status, and with ORV-121 `AI_SPEND_CAP` on 429: 14 codes, 13 statuses; `error` stays the catalog key | §2, `ERROR_CODES`; §4, `CODE_OF` |
 | 4 | (a) no client caller retries today; a keyed write carries a non-empty `Idempotency-Key` | §5; §6 (no server action call is wrapped) |
 | 5 | (a) 3 retries after the first call | §5, `MAX_RETRIES`; row 17 test |
 | 6 | (a) jitter `base × (0.5 + r)` | §5, `retryDelay`; row 18 test |
@@ -32,7 +32,7 @@ Comment 10268 takes open questions 1 to 10 and 12 at their defaults and decides 
 | 9 | (a) `signInWithGoogle`'s two throws return the `INTERNAL_ERROR` state; `signOut` unchanged | §4, account; row 15 test |
 | 10 | (a) a network failure on `/account`'s forms stays a recorded gap | §6, R6 (no `catch` added) |
 | 11 | (b) one PR, not the default's two slices | §10 and §11: eight builder tasks in one PR |
-| 12 | (a) `AI_SPEND_CAP` joins the list with the spend cap story | §2: the list has 13 codes |
+| 12 | (a) `AI_SPEND_CAP` joins the list with the spend cap story | §2: the list has 14 codes, `AI_SPEND_CAP` right after `RATE_LIMITED` (ORV-121 tech notes D4) |
 
 ### Design decisions
 
@@ -69,7 +69,7 @@ import { REQUEST_ID_HEADER } from "./log.ts";
 /** orv144-codes: the spec's table, in its order. Each entry: status, default retryable, message. */
 export const ERROR_CODES = {
   BAD_REQUEST: { status: 400, retryable: false, message: "..." },
-  // ... the 13 rows of orv144-codes, messages copied from the spec (orv144-message)
+  // ... the 14 rows of orv144-codes, messages copied from the spec (orv144-message)
 } as const;
 export type ErrorCode = keyof typeof ERROR_CODES;
 
@@ -133,19 +133,19 @@ export type RateLimited = {
 };
 export type Failed = {
   ok: false;
-  error: Exclude<ActionError, RateLimited["error"]>;
+  error: Exclude<ActionError, RateLimited["error"] | SpendCapped["error"]>;
   code: ErrorCode;
   requestId: string;
   retryable: boolean;
 };
-/** What a person's failed call carries to the UI. */
-export type ActionFailure = Failed | RateLimited;
+/** What a person's failed call carries to the UI. SpendCapped: ORV-121 tech notes S8. */
+export type ActionFailure = Failed | RateLimited | SpendCapped;
 export type Outcome<T> = { ok: true; value: T } | ActionFailure;
 ```
 
-- `CODE_OF`, unexported, is `orv144-outcome`'s table for the default path of each member, written `{ ... } satisfies Record<ActionError, ErrorCode>`, so a new `ActionError` member without a code fails `pnpm typecheck`. Its `failed` is `INTERNAL_ERROR` and its `ai-failed` is `UPSTREAM_FAILED`.
+- `CODE_OF`, unexported, is `orv144-outcome`'s table for the default path of each member, written `{ ... } satisfies Record<Failed["error"], ErrorCode>`, as `actions.ts` has it, so a new `ActionError` member without a code fails `pnpm typecheck`; the rate limit and spend cap reasons build their own outcomes (ORV-121 tech notes S8, S13). Its `failed` is `INTERNAL_ERROR` and its `ai-failed` is `UPSTREAM_FAILED`.
 - `run` reads `const requestId = requestIdOf(h)` once and passes it both to `atBoundary` and to a private `fail(error, code = CODE_OF[error])`, which returns `{ ok: false, error, ...failureFields(code, requestId) }`. So the outcome's `requestId` is the boundary line's (row 6).
-- Branch by branch (ORV-141 tech notes section 5's table): limiter unavailable returns `fail(..., "SERVICE_UNAVAILABLE")`; limited returns the `RateLimited` object with `...failureFields("RATE_LIMITED", requestId)` and `retryAfter`; every other failure branch returns `fail(error)`. Endings do not change (`endingOf` reads only `error`).
+- Branch by branch (ORV-141 tech notes section 5's table): limiter unavailable returns `fail(..., "SERVICE_UNAVAILABLE")`; limited returns the `RateLimited` object with `...failureFields("RATE_LIMITED", requestId)` and `retryAfter`; with ORV-121, spend cap reached returns the `SpendCapped` object with `...failureFields("AI_SPEND_CAP", requestId)` and spend cap unavailable returns `fail("ai-failed", "SERVICE_UNAVAILABLE")`; every other failure branch returns `fail(error)`. Endings do not change (`endingOf` reads only `error`).
 - No exported action changes its parameters; every action's return type gains the three fields through `Outcome<T>`.
 
 ### Account (`apps/web/app/account/actions.ts`, P5, P6)
@@ -371,13 +371,13 @@ export function refreshList(
 <!-- prettier-ignore -->
 | Row | File | Test | What it asserts |
 | --- | --- | --- | --- |
-| 1 | `packages/auth/src/errors.test.ts` (new) | "the code list is the matrix's statuses, one code each" | `ERROR_CODES` equals the spec's 13 rows written out in the test, in order; statuses distinct; `codeOfStatus` for each listed status and for 401, 418, 500, 501, 503 (the worked example "Status to code"); `errorBody("INTERNAL_ERROR", id)` stringifies to the worked example "The body" byte for byte; `errorResponse` sets `content-type` and `x-request-id` over copied values, keeps two `Set-Cookie`, defaults the status and takes an override; `failureFields` gives the code's `retryable` |
+| 1 | `packages/auth/src/errors.test.ts` (new) | "the code list is the matrix's statuses, one code each" | `ERROR_CODES` equals the spec's 14 rows written out in the test, in order; 13 distinct statuses, as `AI_SPEND_CAP` shares 429; `codeOfStatus` for each listed status (skipping `AI_SPEND_CAP`, whose own test is ORV-121 tech notes S11) and for 401, 418, 500, 501, 503 (the worked example "Status to code"); `errorBody("INTERNAL_ERROR", id)` stringifies to the worked example "The body" byte for byte; `errorResponse` sets `content-type` and `x-request-id` over copied values, keeps two `Set-Cookie`, defaults the status and takes an override; `failureFields` gives the code's `retryable` |
 | 2 | `packages/auth/src/auth-route.test.ts` | "turns a 429 into Retry-After and the RATE_LIMITED body" (widened) | Both paths (count limited; handler 429 with `X-Retry-After: 7`): 429, `Retry-After`, exact body, `x-request-id` equals `requestId` |
 | 3 | `auth-route.test.ts` | "a store failure answers 503 and logs once" (widened) | Exact `SERVICE_UNAVAILABLE` body; the line as ORV-141 row 12 |
 | 4 | `auth-route.test.ts` | "an error answer from Better Auth gets the error body" (new) | 401 with Better Auth's body holding `ana@example.com` and two `Set-Cookie`: 401, exact `UNAUTHENTICATED` body, `getSetCookie()` has both, no email in the text, `content-type: application/json`; 400 and 418: `BAD_REQUEST`, status kept; 500: `INTERNAL_ERROR`; 503: `SERVICE_UNAVAILABLE`; 200 and a 302 with a body: text byte for byte as written, `location` kept |
 | 5 | `auth-route.test.ts` | "every answer carries the request id and one line" (throw case changed) | The seeded throw resolves to 500 with the exact `INTERNAL_ERROR` body, `requestId` equal to `x-request-id`; the text holds neither `ana@example.com`, `/Users/` nor ` at `; one line `error`, `failed`, `unexpected`, `errorName: "Error"`, `status: 500`. "rethrows any other error and passes a 200 through" becomes "answers any other error with 500 and passes a 200 through" |
 | 6 | `apps/web/app/directions/actions.test.ts` | "a failure outcome carries code, requestId and retryable" | `Denied(403)` on save: outcome equals `{ ok: false, error: "forbidden", code: "FORBIDDEN", requestId, retryable: false }`, `requestId` equal to the captured boundary line's |
-| 7 | `actions.test.ts` | "each reason maps to its code" | `it.each` over 17 cases: the 15 members (no session; `Denied(403)`; `MissingEnvError`; a plain `Error`; fake `fetch` 500; no `OPENROUTER_API_KEY`; a preloaded `write` and `ai-read` bucket; `DirectionError` with each of its 7 reasons) and the two unavailable paths (save gives `failed`, a reading gives `ai-failed`). Expected code and `retryable` are written in the test from the spec's tables, not read from `ERROR_CODES` |
+| 7 | `actions.test.ts` | "each reason maps to its code" | `it.each` over 19 cases: the 16 members (no session; `Denied(403)`; `MissingEnvError`; a plain `Error`; fake `fetch` 500; no `OPENROUTER_API_KEY`; a preloaded `write` and `ai-read` bucket; a workspace over its spend cap; `DirectionError` with each of its 7 reasons) and the three unavailable paths (save gives `failed`; a reading gives `ai-failed` from the limiter and from the spend cap, ORV-121 tech notes S13). Expected code and `retryable` are written in the test from the spec's tables, not read from `ERROR_CODES` |
 | 8 | `actions.test.ts`; `apps/web/app/directions/SavedStudio.test.tsx` (new) | "refuses a save, an approval and an import as failed" (widened); "a failed write is shown and not retried" | Outcome `{ error: "failed", code: "SERVICE_UNAVAILABLE", retryable: true, requestId }`. `runCall` with that outcome, English and Thai labels: the call ran once; `setNotice` got tone `danger` and exactly the failed line; `setBusy` got `true` then `false` |
 | 9 | `actions.test.ts`; `SavedStudio.test.tsx` | "an unexpected error carries INTERNAL_ERROR and nothing of the error"; "an INTERNAL_ERROR notice shows the reference" | Outcome `failed`, `INTERNAL_ERROR`, `false`; `JSON.stringify` of it holds neither seeded value. `runCall` with that outcome: lines are the failed line then "Reference: <id>" / "รหัสอ้างอิง: <id>" |
 | 10 | `actions.test.ts` | the `refused` helper gains `requestId` | Every limited case also asserts `requestId` (a UUID v4 equal to the line's) |
@@ -459,7 +459,7 @@ Each file below is outside this task's write set and is edited by its owner role
 | `docs/specs/ORV-122/spec.md 61` | "only an error from the Better Auth handler that is not `RateLimitUnavailable` is rethrown" | "... is answered 500 `INTERNAL_ERROR` (rethrown before ORV-144)" | `spec` |
 | `docs/specs/ORV-123/spec.md 43` (`orv123-count-guard`) | "returns `{ error: "failed" }` ... an error from `auth().api.signInSocial`, the missing-URL error and Next's `redirect` throw pass through unchanged" | The state also carries `code`, `requestId`, `retryable` (ORV-144); only Next's `redirect` passes through; the other two return the `INTERNAL_ERROR` state since ORV-144 | `spec` |
 | `docs/specs/ORV-123/spec.md 51` (Out of scope) | "Errors from `signInSocial`, the missing-URL error and the redirect (they keep today's behaviour)." | Add: ORV-144 later returns the `INTERNAL_ERROR` state for the first two | `spec` |
-| `docs/adr/0015-standards-and-required-controls.md 128` | "Confirmation: not confirmed yet; follow-up: ORV-113 ..." | A dated addition after line 128, as ORV-142 added after line 95: the helper, the outcome fields and the retry module exist (ORV-144); confirmed by ORV-144's tests for rows 1 to 19; "at most 3 tries" reads as 3 retries after the first call (ORV-144 open question 5); not yet: no client caller retries, `AI_SPEND_CAP` waits for the spend cap story. Line 128 stays as history | `architect` |
+| `docs/adr/0015-standards-and-required-controls.md 128` | "Confirmation: not confirmed yet; follow-up: ORV-113 ..." | A dated addition after line 128, as ORV-142 added after line 95: the helper, the outcome fields and the retry module exist (ORV-144); confirmed by ORV-144's tests for rows 1 to 19; "at most 3 tries" reads as 3 retries after the first call (ORV-144 open question 5); not yet: no client caller retries; `AI_SPEND_CAP` joins the list with ORV-121 (ORV-121 tech notes D4). Line 128 stays as history | `architect` |
 | `docs/adr/0015-standards-and-required-controls.md 189` | "Error envelope, PDPA masking, classification tags, uploads, money: named here, no code and no check (decisions 7 to 12, ORV-113)." | "Error envelope: code and tests (decision 7, ORV-144); no client caller retries yet. PDPA masking, classification tags, uploads, money: named here, no code and no check (decisions 8 to 12, ORV-113)." | `architect` |
 | `.claude/rules/security.md 29` (rule 14) | "at most 3 tries" | "at most 3 retries after the first call (ORV-144 open question 5)" | `architect` (the rule mirrors ADR 0015, which names this file under "What this changes in earlier docs") |
 

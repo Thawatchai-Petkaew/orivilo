@@ -39,12 +39,13 @@ export const STEP_OUTCOMES = {
 } as const;
 export type Step = keyof typeof STEP_OUTCOMES;
 
-/** orv141-reasons: the AI failure kinds, the two boundary reasons, then every `ActionError` member. */
+/** orv141-reasons: the AI failure kinds, the three boundary reasons, then every `ActionError` member. */
 export const REASONS = [
   "adapter-failed",
   "invalid-output",
   "evidence-mismatch",
   "rate-limit",
+  "spend-cap",
   "unexpected",
   "signed-out",
   "forbidden",
@@ -54,6 +55,7 @@ export const REASONS = [
   "ai-not-configured",
   "rate-limited",
   "ai-rate-limited",
+  "ai-spend-cap",
   "invalid-input",
   "invalid-file",
   "not-found",
