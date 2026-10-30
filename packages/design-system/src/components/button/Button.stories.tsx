@@ -1,9 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fn, userEvent, within } from "storybook/test";
+import { DesignProfileBoundary, type Mode } from "../../boundary/DesignProfileBoundary";
+import { expectInkCentred, inVitest } from "../../testing/visual-asserts";
 import { fixtures } from "../fixtures";
 import { ChevronDownIcon, PlusIcon } from "../icons";
 import { Matrix, Narrow } from "../matrix";
-import { Button, type ButtonVariant } from "./Button";
+import { Button, type ButtonVariant, type ControlSize } from "./Button";
 
 const VARIANTS: readonly ButtonVariant[] = [
   "primary",
@@ -73,6 +75,51 @@ export const InteractionStates: Story = {
     await userEvent.hover(canvas.getByTestId("hover"));
     canvas.getByTestId("focus").focus();
     await expect(canvas.getByTestId("focus")).toHaveFocus();
+  },
+};
+
+const SIZES: readonly ControlSize[] = ["sm", "md", "lg"];
+const MODES: readonly Mode[] = ["light", "dark"];
+
+/**
+ * ORV-111: a label sits at the vertical centre of its button, in Thai as in English. Primary
+ * buttons at sm, md and lg, each with `fixtures.thai` and `fixtures.latin`, under the neutral
+ * profile in light and dark. The play reads the rendered pixels (`expectInkCentred`, rule
+ * ink-centre-1), one screenshot per boundary and one assertion per button, so a Thai label that
+ * rides high fails with its offset. The static Storybook shows the story without the check.
+ */
+export const LabelCentre: Story = {
+  render: (args) => (
+    <>
+      {MODES.map((mode) => (
+        <DesignProfileBoundary key={mode} mode={mode} profile="neutral">
+          <div
+            data-testid={`label-centre-${mode}`}
+            className="flex flex-col gap-3 bg-surface-canvas p-4"
+          >
+            {SIZES.map((size) => (
+              <div key={size} className="flex flex-wrap items-center gap-3">
+                {[fixtures.thai, fixtures.latin].map((label) => (
+                  <Button key={label} {...args} variant="primary" size={size}>
+                    {label}
+                  </Button>
+                ))}
+              </div>
+            ))}
+          </div>
+        </DesignProfileBoundary>
+      ))}
+    </>
+  ),
+  play: async ({ canvasElement }) => {
+    if (!inVitest) return; // the screenshot needs Vitest browser mode
+    const canvas = within(canvasElement);
+    for (const mode of MODES) {
+      const cell = canvas.getByTestId(`label-centre-${mode}`);
+      const buttons = within(cell).getAllByRole("button");
+      await expect(buttons).toHaveLength(SIZES.length * 2);
+      await expectInkCentred(cell, buttons);
+    }
   },
 };
 
