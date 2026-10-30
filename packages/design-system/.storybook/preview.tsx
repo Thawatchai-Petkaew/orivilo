@@ -37,16 +37,38 @@ const withDesignProfile: Decorator = (Story, context) => (
 );
 
 /**
- * Storybook-only nudge for `parameters.pseudo` (storybook-addon-pseudo-states, spec ORV-84,
- * `hover-force-1`). The addon rewrites the `:hover` rules only on channel events, and a portable
- * story run (the Vitest storybook project) emits none of them, so a story that sets the parameter
- * asks for one re-render after it mounts. The recipes and the `:hover` rules stay as they are.
+ * Storybook-only force of `parameters.pseudo.hover` (storybook-addon-pseudo-states, spec ORV-84,
+ * `hover-force-1`). The addon rewrites the `:hover` rules to `.pseudo-hover` only on channel events
+ * and puts the class on the hover item inside a Storybook hook effect, and those effects run on
+ * `STORY_RENDERED`: a portable-story run emits none of that, and the Storybook UI emits it after the
+ * play, so the hover look arrived too late for the play's assertion. This decorator asks for the
+ * rewrite once and puts the class on the hover item itself as soon as the item exists. An observer
+ * keeps it there, since React Flow draws nodes and edges after the first render and a re-render can
+ * rewrite a class. The recipes and the `:hover` rules stay as they are.
  */
-const withPseudoStatesNudge: Decorator = (Story, context) => {
-  const forced = context.parameters["pseudo"] !== undefined;
+const withPseudoHover: Decorator = (Story, context) => {
+  const pseudo = context.parameters["pseudo"] as { hover?: readonly string[] } | undefined;
+  const selectors = pseudo?.hover;
   useEffect(() => {
-    if (forced) addons.getChannel().emit(FORCE_RE_RENDER);
-  }, [forced]);
+    if (selectors === undefined) return;
+    addons.getChannel().emit(FORCE_RE_RENDER);
+    const force = () => {
+      for (const selector of selectors) {
+        for (const el of document.querySelectorAll(selector)) {
+          if (!el.classList.contains("pseudo-hover")) el.classList.add("pseudo-hover");
+        }
+      }
+    };
+    force();
+    const observer = new MutationObserver(force);
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+    return () => observer.disconnect();
+  }, [selectors]);
   return <Story />;
 };
 
@@ -78,7 +100,7 @@ const TEST_LOCALE: unknown = (import.meta as { env?: Record<string, unknown> }).
 const INITIAL_LOCALE: Locale = isLocale(TEST_LOCALE) ? TEST_LOCALE : "en";
 
 const preview: Preview = {
-  decorators: [withDesignProfile, withLocale, withPseudoStatesNudge],
+  decorators: [withDesignProfile, withLocale, withPseudoHover],
   globalTypes: {
     locale: {
       description: "UI language: every string comes from the locale catalog (spec ORV-39)",

@@ -139,7 +139,7 @@ export const InteractionStates: Story = {
         [{ meaning: "input" }, { meaning: "input" }, { meaning: "input" }, { meaning: "input" }],
         [2],
       )}
-      height={560}
+      height={900}
     />
   ),
   play: async ({ canvasElement }) => {
@@ -160,6 +160,17 @@ export const InteractionStates: Story = {
     await userEvent.hover(hover.querySelector(".react-flow__edge-interaction") as Element);
     focus.focus();
     await expect(focus).toHaveFocus();
+    // The focused edge's ring (outline width plus offset) ends above the controls bar (design.md
+    // row 1): the board is tall enough that the fit leaves the bottom pair clear of the bar.
+    const ring = getComputedStyle(focus);
+    await expect(ring.outlineStyle).not.toBe("none");
+    const reach = parseFloat(ring.outlineWidth) + parseFloat(ring.outlineOffset);
+    const bar = canvasElement.querySelector(".ds-controls") as HTMLElement;
+    await waitFor(() =>
+      expect(focus.getBoundingClientRect().bottom + reach).toBeLessThanOrEqual(
+        bar.getBoundingClientRect().top,
+      ),
+    );
     // The forced hover look: the hover edge strokes differently from the edge at rest.
     await waitFor(() => expect(strokeOf(hover)).not.toBe(strokeOf(rest)));
   },
