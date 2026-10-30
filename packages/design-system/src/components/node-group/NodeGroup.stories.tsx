@@ -27,7 +27,7 @@ type Story = StoryObj<typeof meta>;
 const nodeEls = (root: HTMLElement) => root.querySelectorAll<HTMLElement>(".react-flow__node");
 const groupEl = (root: HTMLElement) => root.querySelector<HTMLElement>(".ds-group");
 const nodeByTitle = (root: HTMLElement, title: string) =>
-  within(root).getByRole("group", { name: new RegExp(`^${title},`) });
+  within(root).getByRole("group", { name: (name: string) => name.startsWith(`${title},`) });
 
 /** The group frames the logo and palette nodes; its header names it and its kind (AC 11). */
 export const Grouped: Story = {

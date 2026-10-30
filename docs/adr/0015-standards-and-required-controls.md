@@ -94,6 +94,8 @@ Today `readBriefWithAi` logs with `console.error` and a plain string, without a 
 
 Confirmation: not confirmed yet; follow-up: ORV-113, which adds the request id and the logger, with a test that a response carries `x-request-id`, that the log line parses as JSON with the five fields, and that a seeded email and token never appear in it.
 
+Addition, 2026-10-29 (ORV-141 and ORV-142). The two lines above stay as the record of 2026-10-25. The gap they name is closed: the proxy makes the request id and sets `x-request-id` (ORV-141), and the `api/auth` route handler (ORV-141), every server action, the limiter and the client IP read (ORV-142) write their lines through one logger, `packages/auth/src/log.ts`, with the request's `requestId` and `route`. Still open: Next.js's and Better Auth's own log lines do not go through the logger (ORV-141 open question 6, recorded as a known gap). Decision 6 is confirmed by ORV-141's tests for rows 1, 14 and 15; the staging probe, ORV-142 row 18, is still to run, and until it passes the header on a Vercel response is not confirmed.
+
 ### 7. API error envelope and retry matrix
 
 Every error response body is:
@@ -183,7 +185,8 @@ Confirmation: `reviewer` and `security` read each PR for such a claim (AGENTS.md
 - **Correction to spec ORV-108 v2, AC row 14.** The row says no automated axe scan runs. The first draft of this ADR checked and found that axe does run on every Storybook story (`packages/design-system/.storybook/preview.tsx`, `a11y: { test: "error" }`, inside `pnpm test`). What is missing is an axe scan of `apps/web` pages, as the WCAG line above says. This ADR records the observed state; the spec is not edited here.
 - **Performance:** nothing measures Core Web Vitals or bundle size (decision 5, ORV-113).
 - **Rate limit and spend cap:** named here, no code and no check (decision 4, ORV-112).
-- **Observability, error envelope, PDPA masking, classification tags, uploads, money:** named here, no code and no check (decisions 6 to 12, ORV-113).
+- **Observability:** code and tests (decision 6, ORV-141 and ORV-142). Open: the staging probe (ORV-142 row 18) and Next.js's and Better Auth's own log lines (ORV-141 open question 6).
+- **Error envelope, PDPA masking, classification tags, uploads, money:** named here, no code and no check (decisions 7 to 12, ORV-113).
 - **404 not 403:** `withWorkspace` answers 403 for a non-member today (decision 10, ORV-113).
 - **Privacy notice:** ADR 0009 requires it to name OpenRouter and each model host before real customers use AI features. Not written.
 

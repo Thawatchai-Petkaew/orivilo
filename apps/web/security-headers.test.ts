@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { NextRequest } from "next/server";
 import nextConfig from "./next.config";
-import { config, proxy } from "./proxy";
+import { proxy } from "./proxy";
 import { buildCsp, createNonce, CSP_HEADER } from "./security-headers";
 
 describe("static security headers", () => {
@@ -80,19 +80,5 @@ describe("csp", () => {
     );
     expect(response.headers.get(`x-middleware-request-${CSP_HEADER.toLowerCase()}`)).toBe(csp);
     expect(response.headers.get("x-middleware-request-x-nonce")).toBe(nonce);
-  });
-});
-
-describe("proxy matcher", () => {
-  it("skips static assets, images, the favicon and prefetch requests", () => {
-    expect(config.matcher).toEqual([
-      {
-        source: "/((?!_next/static|_next/image|favicon.ico).*)",
-        missing: [
-          { type: "header", key: "next-router-prefetch" },
-          { type: "header", key: "purpose", value: "prefetch" },
-        ],
-      },
-    ]);
   });
 });

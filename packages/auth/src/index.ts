@@ -31,3 +31,7 @@ export type {
   Subject,
   Window,
 } from "./rate-limit.ts";
+export { atBoundary, logStep, REQUEST_ID_HEADER, requestIdOf } from "./log.ts";
+export type { Ended, Ending, Reason, Route } from "./log.ts";
+export { failureFields } from "./errors.ts";
+export type { ErrorCode } from "./errors.ts";

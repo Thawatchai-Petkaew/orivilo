@@ -135,7 +135,7 @@ export const SameHeight: Story = {
     const gone = q(canvasElement, "[data-case='gone'] .ds-tag");
     const normal = q(canvasElement, "[data-case='normal'] .ds-tag");
     await expect(() => expectSameHeight(gone, normal)).toThrow(
-      /is \d+(\.\d+)? px tall but .* is \d+(\.\d+)? px/,
+      /is \d+(?:\.\d+|) px tall but .* is \d+(?:\.\d+|) px/,
     );
     // Two chips of one height pass.
     expectSameHeight(normal, normal);

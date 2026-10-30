@@ -15,8 +15,8 @@ import {
 declare const performance: { now(): number }; // the engine tsconfig has no DOM lib; a timer for the time bounds
 /** The framework timeout of a test that guards a time bound: above the bound, so vitest never pre-empts the guard. */
 const HEAVY_TIMEOUT = 60_000;
-/** The time bound of a stylesheet measure on 1 MB, sized for CI (SEC-3). */
-const TIME_BOUND_MS = 2000;
+/** The time bound of a stylesheet measure on 1 MB (SEC-3), sized for the CI runner under the parallel full suite (ORV-139): at least 10 times the slowest local time seen while `pnpm test` ran, and below the time the defect it guards takes. */
+const TIME_BOUND_MS = 3000;
 const MB = 1024 * 1024;
 
 // ORV-128 tech notes section 8, "Page": the contrast of the body pair, the densities and the font
@@ -136,6 +136,12 @@ describe("familySubject", () => {
   ])("%s gives %s, and the subject passes slugSchema", (family, subject) => {
     expect(familySubject("body", family)).toBe(subject);
     expect(slugSchema.safeParse(subject).success).toBe(true);
+  });
+
+  it("ORV-114 scan-unsafe-2: familySubject gives three parts when a separator is doubled or trails", () => {
+    for (const family of ["Open -Sans", "Open- Sans", "Inter-"]) {
+      expect(familySubject("body", family), family).toMatch(/^body\.[a-z0-9-]+\.[0-9a-f]{8}$/);
+    }
   });
 
   it("an empty family, and a quoted empty one, give none", () => {

@@ -60,7 +60,7 @@ export default async function AccountPage() {
       {view.kind === "signed-out" ? (
         <SignInForm
           action={signInWithGoogle}
-          labels={{ account: m.account, wait: m.wait, failed: m.saved.errors.failed }}
+          labels={{ account: m.account, wait: m.wait, failure: m.failure }}
         />
       ) : null}
       {view.kind === "signed-in" ? (

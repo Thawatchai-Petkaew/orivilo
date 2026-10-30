@@ -1,5 +1,6 @@
 import { getIPFromHeader } from "@better-auth/core/utils/ip";
 import { createHmac } from "node:crypto";
+import { logStep } from "./log.ts";
 
 /** The label that derives the IP hashing key from the auth secret (ORV-112 tech notes, finding F3). */
 const IP_KEY_LABEL = "orivilo/rate-limit/ip/v1";
@@ -25,14 +26,18 @@ export function clientIp(
   env: Record<string, string | undefined>,
   secret: string,
 ): string {
+  const started = performance.now();
   if (env["VERCEL_ENV"] !== "production" && env["VERCEL_ENV"] !== "preview") return "local";
   const ip = getIPFromHeader(headers.get("x-forwarded-for") ?? "");
   if (!ip) {
     if (!warned) {
       warned = true;
-      console.warn(
-        JSON.stringify({ level: "warn", route: "rate-limit", outcome: "no-trusted-ip" }),
-      );
+      logStep({
+        step: "client-ip",
+        outcome: "no-trusted-ip",
+        level: "warn",
+        durationMs: performance.now() - started,
+      });
     }
     return "unknown";
   }

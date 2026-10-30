@@ -78,9 +78,7 @@ describe("recipes.css", () => {
       .filter((m) => /backdrop-filter:\s*blur\(/.test(m[2] ?? ""))
       .map((m) => (m[1] ?? "").trim());
     const reduced = [
-      ...bare.matchAll(
-        /@media \(prefers-reduced-transparency: reduce\) \{((?:\s*[^{}]+\{[^{}]*\})*)\s*\}/g,
-      ),
+      ...bare.matchAll(/@media \(prefers-reduced-transparency: reduce\) \{([\s\S]*?\})\s*\}/g),
     ]
       .flatMap((m) => [...(m[1] ?? "").matchAll(/([^{}]+)\{([^{}]*)\}/g)])
       .filter((m) => /backdrop-filter:\s*none/.test(m[2] ?? ""))

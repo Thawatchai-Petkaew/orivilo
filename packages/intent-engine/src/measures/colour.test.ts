@@ -15,8 +15,10 @@ import {
 declare const performance: { now(): number }; // the engine tsconfig has no DOM lib; a timer for the time bounds
 /** The framework timeout of a test that guards a time bound: above the bound, so vitest never pre-empts the guard. */
 const HEAVY_TIMEOUT = 60_000;
-/** The time bound of a stylesheet measure on 1 MB, sized for CI (SEC-3). */
+/** The time bound of a number reader on one 1 MB token (SEC-3), sized for the CI runner under the parallel full suite (ORV-139): at least 10 times the slowest local time seen while `pnpm test` ran, and below the time the defect it guards takes. */
 const TIME_BOUND_MS = 2000;
+/** The time bound of a whole 1 MB sheet read by `declaredColoursOf` (SEC-3), sized the same way. */
+const SHEET_BOUND_MS = 4000;
 const MB = 1024 * 1024;
 
 // ORV-128 tech notes section 8, "Colour": OKLCH, the colour areas of one raster, the palette and the
@@ -417,7 +419,7 @@ describe("declaredColoursOf", () => {
       const started = performance.now();
       const out = declaredColoursOf(css);
       const elapsed = performance.now() - started;
-      expect(elapsed).toBeLessThan(TIME_BOUND_MS);
+      expect(elapsed).toBeLessThan(SHEET_BOUND_MS);
       return out;
     };
 

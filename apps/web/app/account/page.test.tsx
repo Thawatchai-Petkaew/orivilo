@@ -12,6 +12,13 @@ vi.mock("../../server/auth", () => ({
   accessDeps: () => ({}),
 }));
 vi.mock("./actions", () => ({ signInWithGoogle: async () => null, signOut: async () => {} }));
+const form = vi.hoisted(() => ({ labels: undefined as unknown }));
+vi.mock("./SignInForm", () => ({
+  SignInForm: (props: { labels: unknown }) => {
+    form.labels = props.labels;
+    return null;
+  },
+}));
 
 const { default: AccountPage } = await import("./page");
 
@@ -25,5 +32,15 @@ describe("/account signed out", () => {
     expect(classes).toContain("pt-24");
     expect(classes).not.toContain("min-h-dvh");
     expect(classes).not.toContain("justify-center");
+  });
+
+  // ORV-123 row 5 (design R1): the failure line comes from `account.failed`, not `saved.errors.failed`.
+  it("gives the sign-in form its own failure line", async () => {
+    renderToStaticMarkup(await AccountPage());
+    expect(form.labels).toEqual({
+      account: webMessages.en.account,
+      wait: webMessages.en.wait,
+      failure: webMessages.en.failure,
+    });
   });
 });

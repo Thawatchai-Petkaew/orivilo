@@ -168,3 +168,61 @@ export function readFileAtHead(sha, file, { cwd, env = process.env } = {}) {
   if (r.status !== 0) throw new FactsError(`git show ${sha} exited ${r.status}`);
   return r.stdout;
 }
+
+const BASE = /^[A-Za-z0-9][A-Za-z0-9._/-]*$/;
+
+function baseName(base) {
+  if (!isString(base) || !BASE.test(base)) {
+    throw new FactsError("the base is not a plain branch name");
+  }
+  return base;
+}
+
+/** `git fetch origin <base>` into origin/<base>, so the commits a merge of the base brought are known. */
+export function fetchBase(base, { cwd, env = process.env } = {}) {
+  const name = baseName(base);
+  const r = run(
+    "git",
+    ["fetch", "--quiet", "origin", `+refs/heads/${name}:refs/remotes/origin/${name}`],
+    { cwd, env },
+  );
+  if (r.status !== 0) throw new FactsError(`git fetch origin ${name} exited ${r.status}`);
+}
+
+const gitLines = (args, opts, what) => {
+  const r = run("git", args, opts);
+  if (r.status !== 0) throw new FactsError(`${what} exited ${r.status}`);
+  return r.stdout.split("\0").filter((line) => line !== "");
+};
+
+/**
+ * ORV-146: whether `head` differs from the approved commit `approved` only by merges of origin/<base>.
+ * Null when it does not: `approved` is not a known commit or not behind `head`, or a commit between
+ * them that origin/<base> lacks is not a merge. Otherwise {changed, approvedFiles}: the files that differ
+ * between `approved` and `head`, and the files the PR had changed at `approved` (against its
+ * merge base with origin/<base>). Both lists name a rename by its old and its new path. The caller
+ * decides whether the two lists meet; origin/<base> and `head` must be fetched first.
+ */
+export function readBaseMerge(approved, head, base, { cwd, env = process.env } = {}) {
+  if (!SHA.test(head)) throw new FactsError("the head must be a 40-hex SHA");
+  const ref = `origin/${baseName(base)}`;
+  const opts = { cwd, env };
+  if (!SHA.test(approved)) return null;
+  if (run("git", ["cat-file", "-e", `${approved}^{commit}`], opts).status !== 0) return null;
+  const behind = run("git", ["merge-base", "--is-ancestor", approved, head], opts);
+  if (behind.status === 1) return null;
+  if (behind.status !== 0) {
+    throw new FactsError(`git merge-base --is-ancestor exited ${behind.status}`);
+  }
+  const own = gitLines(
+    ["rev-list", "--parents", "-z", head, `^${approved}`, `^${ref}`, "--"],
+    opts,
+    "git rev-list",
+  );
+  // A line is a commit and its parents; one parent only means a commit of the branch's own, not a merge.
+  if (own.some((line) => line.split(" ").length < 3)) return null;
+  const fork = run("git", ["merge-base", approved, ref], opts).stdout.trim();
+  const names = (from, to) =>
+    gitLines(["diff", "--name-only", "--no-renames", "-z", from, to, "--"], opts, "git diff");
+  return { changed: names(approved, head), approvedFiles: names(fork, approved) };
+}
