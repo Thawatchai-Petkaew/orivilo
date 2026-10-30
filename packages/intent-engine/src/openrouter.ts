@@ -24,7 +24,7 @@ export const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 export type FetchLike = (
   url: string,
   init: { method: "POST"; headers: Record<string, string>; body: string; signal?: unknown },
-) => Promise<{ ok: boolean; status: number; json(): Promise<unknown> }>;
+) => Promise<{ ok: boolean; status: number; body: ResponseBody | null }>;
 
 export interface OpenRouterOptions {
   apiKey: string;
@@ -104,21 +104,21 @@ export function openRouterComplete(options: OpenRouterOptions): Complete {
       const response = await options.fetch(OPENROUTER_URL, init);
       if (!response.ok) {
         // OpenRouter's own message says why (no endpoint, bad schema, no credit); kept short.
-        const error = (await response.json().catch(() => null)) as {
+        const error = (await readBoundedJson(response.body).catch(() => null)) as {
           error?: { message?: unknown };
         } | null;
         const why =
           typeof error?.error?.message === "string" ? error.error.message.slice(0, 200) : "";
         throw new Error(`OpenRouter answered ${response.status}. ${why}`.trim());
       }
-      const body = (await response.json()) as {
+      const body = (await readBoundedJson(response.body)) as {
         model?: unknown;
         choices?: { message?: { content?: unknown } }[];
       };
       // Read first: an answer refused below still cost what it cost (ORV-121 spend-cap-1).
       costMicroUsd = reportedCostMicroUsd(body);
-      // OpenRouter names the model that answered (sometimes with a dated suffix); another model is refused.
-      if (typeof body.model !== "string" || !body.model.startsWith(options.model)) {
+      // The answer names its model: the pinned id, or it with a dated suffix (pinnedModel).
+      if (!pinnedModel(body.model, options.model)) {
         throw new Error("OpenRouter answered with another model.");
       }
       const content = body.choices?.[0]?.message?.content;
@@ -128,4 +128,61 @@ export function openRouterComplete(options: OpenRouterOptions): Complete {
       options.onCall?.({ costMicroUsd });
     }
   };
+}
+
+/** The most bytes of an OpenRouter answer body the client reads (`orv160-bound-response`). */
+const RESPONSE_MAX_BYTES = 65_536;
+
+/** The part of a web `ReadableStream<Uint8Array>` this module reads; `Response.body` fits it. */
+export interface ResponseBody {
+  getReader(): {
+    read(): Promise<{ done: boolean; value?: Uint8Array | undefined }>;
+    cancel(reason?: unknown): Promise<void>;
+  };
+}
+
+// The engine's tsconfig has no DOM or Node lib (as in read-page.ts): only the member used here.
+declare class TextDecoder {
+  decode(input: Uint8Array): string;
+}
+
+/**
+ * Reads a body as JSON, counting its bytes as they arrive. Once the count passes
+ * RESPONSE_MAX_BYTES it stops reading, cancels the stream and throws before anything is parsed,
+ * so the cost in that body is never read and `onCall` gets null (a route into
+ * `orv160-wallet-gap`). `Content-Length` is never read. A null body reads as "".
+ */
+async function readBoundedJson(body: ResponseBody | null): Promise<unknown> {
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  if (body !== null) {
+    const reader = body.getReader();
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (value === undefined) continue;
+      total += value.byteLength;
+      if (total > RESPONSE_MAX_BYTES) {
+        void reader.cancel().catch(() => undefined);
+        throw new Error(`OpenRouter answered with more than ${RESPONSE_MAX_BYTES} bytes.`);
+      }
+      chunks.push(value);
+    }
+  }
+  const all = new Uint8Array(total);
+  let at = 0;
+  for (const chunk of chunks) {
+    all.set(chunk, at);
+    at += chunk.byteLength;
+  }
+  return JSON.parse(new TextDecoder().decode(all));
+}
+
+/** The pinned id, or the pinned id followed by `-` and 8 digits (`orv160-answer-model`). */
+function pinnedModel(answered: unknown, pinned: string): boolean {
+  return (
+    typeof answered === "string" &&
+    (answered === pinned ||
+      (answered.startsWith(`${pinned}-`) && /^\d{8}$/.test(answered.slice(pinned.length + 1))))
+  );
 }

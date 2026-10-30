@@ -820,6 +820,13 @@ describe("the spend cap on an AI reading", () => {
       "an aborted request",
       () => fetchSpy.mockRejectedValue(new DOMException("aborted", "AbortError")),
     ],
+    [
+      "an answer over the response bound (ORV-160 row 26)",
+      () =>
+        fetchSpy.mockImplementation(async () =>
+          completion(JSON.stringify(GOOD), { pad: "x".repeat(65_536) }),
+        ),
+    ],
   ])("a call with no reported cost is recorded as not reported: %s", async (_name, arrange) => {
     arrange();
     expect(await readBriefWithAi(BRIEF)).toStrictEqual(UPSTREAM);

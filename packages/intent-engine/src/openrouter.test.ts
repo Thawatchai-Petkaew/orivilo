@@ -26,10 +26,39 @@ function run(doFetch: FetchLike) {
   return { calls, complete };
 }
 
+// The engine's tsconfig has no DOM lib (as in read-page.test.ts line 32).
+declare class TextEncoder {
+  encode(input: string): Uint8Array;
+}
+const enc = new TextEncoder();
+
+/** A body that hands out `text`'s bytes in `size`-byte chunks and counts reads and cancels. */
+function chunked(text: string, size = 16_384) {
+  const bytes = enc.encode(text);
+  const seen = { reads: 0, cancels: 0 };
+  let at = 0;
+  const body = {
+    getReader: () => ({
+      read: () => {
+        seen.reads += 1;
+        if (at >= bytes.byteLength) return Promise.resolve({ done: true });
+        const value = bytes.slice(at, at + size);
+        at += size;
+        return Promise.resolve({ done: false, value });
+      },
+      cancel: () => {
+        seen.cancels += 1;
+        return Promise.resolve();
+      },
+    }),
+  };
+  return { body, seen };
+}
+
 const ok =
   (body: unknown): FetchLike =>
   () =>
-    Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(body) });
+    Promise.resolve({ ok: true, status: 200, body: chunked(JSON.stringify(body)).body });
 
 describe("reportedCostMicroUsd (spec spend-cap-6, K-0091)", () => {
   it("reads usage.cost in millionths of a dollar", () => {
@@ -85,7 +114,7 @@ describe("openRouterComplete onCall", () => {
       Promise.resolve({
         ok: false,
         status: 500,
-        json: () => Promise.resolve({ usage: { cost: 0.014 } }),
+        body: chunked(JSON.stringify({ usage: { cost: 0.014 } })).body,
       }),
     );
     await expect(complete(REQUEST)).rejects.toThrow("OpenRouter answered 500");
@@ -100,9 +129,9 @@ describe("openRouterComplete onCall", () => {
 
   it("is called once with null when the 200 body cannot be parsed", async () => {
     const { calls, complete } = run(() =>
-      Promise.resolve({ ok: true, status: 200, json: () => Promise.reject(new Error("bad json")) }),
+      Promise.resolve({ ok: true, status: 200, body: chunked("not json").body }),
     );
-    await expect(complete(REQUEST)).rejects.toThrow("bad json");
+    await expect(complete(REQUEST)).rejects.toThrow(SyntaxError);
     expect(calls).toEqual([{ costMicroUsd: null }]);
   });
 
@@ -254,5 +283,75 @@ describe("the request openRouterComplete sends (ORV-160 rows 9 to 16, 23, 24)", 
     expect(withSignal.init.signal).toBe(marker);
     const without = await oneCall();
     expect("signal" in without.init).toBe(false);
+  });
+});
+
+/**
+ * ORV-160 slice 5 (ORV-176): the answer model and the response bound. Every answer here is
+ * hand-written, not a recording (orv160-form); no row calls a model or the network.
+ */
+
+/** `orv160-bound-response`, written out: a change to the client's constant fails row 26. */
+const BOUND = 65_536;
+
+/** A valid 200 answer with `usage.cost` 0.014 whose UTF-8 form is exactly `bytes` bytes. */
+function sized(bytes: number): string {
+  const base = JSON.stringify(answer({ usage: { cost: 0.014 }, pad: "" })).length;
+  return JSON.stringify(answer({ usage: { cost: 0.014 }, pad: "x".repeat(bytes - base) }));
+}
+
+describe("ORV-160 slice 5 (ORV-176): client hardening, rows 17 and 26", () => {
+  it("row 17: only the pinned id or it plus a dash and 8 digits is accepted (orv160-answer-model)", async () => {
+    const evil = run(ok(answer({ model: `${MODEL}-evil` }))).complete;
+    await expect(evil(REQUEST)).rejects.toThrow(
+      new Error("OpenRouter answered with another model."),
+    );
+    const dated = run(ok(answer({ model: `${MODEL}-20261001` }))).complete;
+    await expect(dated(REQUEST)).resolves.toBe("{}");
+  });
+
+  describe("row 26: the answer body is bounded (orv160-bound-response)", () => {
+    const TOO_BIG = new Error("OpenRouter answered with more than 65536 bytes.");
+
+    it("one byte over the bound is refused before it is parsed, and the stream is cancelled", async () => {
+      const { body, seen } = chunked(sized(BOUND + 1));
+      const { calls, complete } = run(() => Promise.resolve({ ok: true, status: 200, body }));
+      await expect(complete(REQUEST)).rejects.toThrow(TOO_BIG);
+      expect(calls).toEqual([{ costMicroUsd: null }]);
+      expect(seen).toEqual({ reads: 5, cancels: 1 });
+    });
+
+    it("a Content-Length that says 100 does not change that", async () => {
+      const { body, seen } = chunked(sized(BOUND + 1));
+      const response = {
+        ok: true,
+        status: 200,
+        body,
+        headers: {
+          get: (name: string) => (name.toLowerCase() === "content-length" ? "100" : null),
+        },
+      };
+      const { calls, complete } = run(() => Promise.resolve(response));
+      await expect(complete(REQUEST)).rejects.toThrow(TOO_BIG);
+      expect(calls).toEqual([{ costMicroUsd: null }]);
+      expect(seen).toEqual({ reads: 5, cancels: 1 });
+    });
+
+    it("exactly the bound is read, parsed and not cancelled", async () => {
+      const { body, seen } = chunked(sized(BOUND));
+      const { calls, complete } = run(() => Promise.resolve({ ok: true, status: 200, body }));
+      await expect(complete(REQUEST)).resolves.toBe("{}");
+      expect(calls).toEqual([{ costMicroUsd: 14000 }]);
+      expect(seen).toEqual({ reads: 5, cancels: 0 });
+    });
+
+    it("an error body over the bound gives the status error without OpenRouter's text", async () => {
+      const text = JSON.stringify({ error: { message: "boom" }, pad: "x".repeat(BOUND) });
+      const { body, seen } = chunked(text);
+      const { calls, complete } = run(() => Promise.resolve({ ok: false, status: 500, body }));
+      await expect(complete(REQUEST)).rejects.toThrow(new Error("OpenRouter answered 500."));
+      expect(calls).toEqual([{ costMicroUsd: null }]);
+      expect(seen.cancels).toBe(1);
+    });
   });
 });
