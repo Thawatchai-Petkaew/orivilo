@@ -51,8 +51,10 @@ Known limits of part 3:
 
 - **Imported files are not sealed.** An imported file keeps whatever reading it carries, as long as the reading quotes its own brief and replays. The file is the person's own export, and the trace shows the reading's adapter and model.
 - **No per-person rate limit yet.** The OpenRouter account budget caps spend. A per-person limit comes with the `instant` job, which calls far more often.
+  - Addition, 2026-10-30 (ORV-160 slice 8). The line above is the record of part 3. Since then ORV-112 added the per-person `ai-read` rate limit on an AI reading (`apps/web/app/directions/actions.ts` line 415, tested in `actions.test.ts`, `describe("AI reading limits"`), and ORV-121 (PR 141, `739ee3b`) added a spend cap per workspace, checked before each call (`actions.ts` line 382). A call whose cost is not reported is not counted by the cap: ORV-160 `orv160-wallet-gap`, follow-up ORV-171.
 
 ## Not in this part
 
 - Image reading, chat, instant elements and logos: each has its own story under ADR 0009.
 - A recorded evaluation on real model answers: the fixtures here are written by hand and say so. Part 3 records real answers on staging and replaces them.
+  - Addition, 2026-10-30 (ORV-160 slice 8). The line above is the record of part 2. Real answers were first recorded by ORV-178 (ORV-160 slice 7b, `b7e9d0d`), with a developer key and not on staging: `packages/intent-engine/src/llm-recorded.json` holds the answers of `anthropic/claude-sonnet-5.5` on 2026-10-30 to 9 adversarial briefs, replayed by `llm-recorded.test.ts`. They sit beside the hand-written fixtures and replace none. They show one model's answers to attack briefs on one date; they are not an evaluation of reading quality, which no recorded set covers yet.
