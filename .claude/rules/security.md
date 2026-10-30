@@ -7,11 +7,14 @@ paths:
   - "apps/web/proxy.ts"
   - "packages/db/**"
   - "packages/auth/**"
+  - "packages/intent-engine/**"
 ---
 
 # Security rules
 
 Standards and required controls: `docs/adr/0015-standards-and-required-controls.md` (ADR 0015). Rules 6 and 9 to 16 point at its decisions; most have no check yet, so read its "Not done yet" before you claim a gap is new.
+
+Added 2026-10-30 (ORV-160): the path `packages/intent-engine/**`, approved by the owner in ORV-160 comment 10293 (spec open question 12, option (a)). The engine holds the model call, the interpreter's system prompt and its answer schema, so a diff there now meets the ovl skill's case "the diff touches a path in `.claude/rules/security.md`" and `security` is dispatched on it (ADR 0015 decision 2).
 
 1. Read the session on the server through Better Auth. Never trust user, workspace, or role ids from the client.
 2. Every workspace query goes through the central authorization helper and is scoped by workspace id. Default deny.
