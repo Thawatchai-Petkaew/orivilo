@@ -195,11 +195,10 @@ describe("LLM01:2026 prompt injection (rows 1 to 5, orv160-request-envelope)", (
       return Promise.resolve({
         ok: true,
         status: 200,
-        json: () =>
-          Promise.resolve({
-            model: MODEL,
-            choices: [{ message: { content: JSON.stringify(reading) } }],
-          }),
+        body: oneChunk({
+          model: MODEL,
+          choices: [{ message: { content: JSON.stringify(reading) } }],
+        }),
       });
     };
     const adapter = llmInterpreter(
@@ -402,3 +401,24 @@ describe("orv160-titles", () => {
     expect(titleProblems(sample("it", '"', GUARD_TITLE))).toEqual([]);
   });
 });
+
+// The engine's tsconfig has no DOM lib (as in read-page.test.ts line 32).
+declare class TextEncoder {
+  encode(input: string): Uint8Array;
+}
+
+/** A one-chunk response body of `JSON.stringify(body)`. */
+function oneChunk(body: unknown) {
+  const value = new TextEncoder().encode(JSON.stringify(body));
+  let sent = false;
+  return {
+    getReader: () => ({
+      read: () => {
+        if (sent) return Promise.resolve({ done: true });
+        sent = true;
+        return Promise.resolve({ done: false, value });
+      },
+      cancel: () => Promise.resolve(),
+    }),
+  };
+}

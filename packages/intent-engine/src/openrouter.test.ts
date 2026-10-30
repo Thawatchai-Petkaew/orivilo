@@ -26,10 +26,39 @@ function run(doFetch: FetchLike) {
   return { calls, complete };
 }
 
+// The engine's tsconfig has no DOM lib (as in read-page.test.ts line 32).
+declare class TextEncoder {
+  encode(input: string): Uint8Array;
+}
+const enc = new TextEncoder();
+
+/** A body that hands out `text`'s bytes in `size`-byte chunks and counts reads and cancels. */
+function chunked(text: string, size = 16_384) {
+  const bytes = enc.encode(text);
+  const seen = { reads: 0, cancels: 0 };
+  let at = 0;
+  const body = {
+    getReader: () => ({
+      read: () => {
+        seen.reads += 1;
+        if (at >= bytes.byteLength) return Promise.resolve({ done: true });
+        const value = bytes.slice(at, at + size);
+        at += size;
+        return Promise.resolve({ done: false, value });
+      },
+      cancel: () => {
+        seen.cancels += 1;
+        return Promise.resolve();
+      },
+    }),
+  };
+  return { body, seen };
+}
+
 const ok =
   (body: unknown): FetchLike =>
   () =>
-    Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(body) });
+    Promise.resolve({ ok: true, status: 200, body: chunked(JSON.stringify(body)).body });
 
 describe("reportedCostMicroUsd (spec spend-cap-6, K-0091)", () => {
   it("reads usage.cost in millionths of a dollar", () => {
@@ -85,7 +114,7 @@ describe("openRouterComplete onCall", () => {
       Promise.resolve({
         ok: false,
         status: 500,
-        json: () => Promise.resolve({ usage: { cost: 0.014 } }),
+        body: chunked(JSON.stringify({ usage: { cost: 0.014 } })).body,
       }),
     );
     await expect(complete(REQUEST)).rejects.toThrow("OpenRouter answered 500");
@@ -100,9 +129,9 @@ describe("openRouterComplete onCall", () => {
 
   it("is called once with null when the 200 body cannot be parsed", async () => {
     const { calls, complete } = run(() =>
-      Promise.resolve({ ok: true, status: 200, json: () => Promise.reject(new Error("bad json")) }),
+      Promise.resolve({ ok: true, status: 200, body: chunked("not json").body }),
     );
-    await expect(complete(REQUEST)).rejects.toThrow("bad json");
+    await expect(complete(REQUEST)).rejects.toThrow(SyntaxError);
     expect(calls).toEqual([{ costMicroUsd: null }]);
   });
 
