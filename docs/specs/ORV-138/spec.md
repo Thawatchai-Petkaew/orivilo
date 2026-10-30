@@ -1,7 +1,7 @@
 ---
 issue: ORV-138 (https://tpetkaew.atlassian.net/browse/ORV-138)
 lane: L (guard files; ORV-138 description)
-version: 1.4
+version: 1.5
 ---
 
 # ORV-138: phase-1 guard batch, seven guard changes in one PR
@@ -76,7 +76,7 @@ has its one home.
 | 22 | ORV-130 | Rule `branch-key-1`: a research envelope on a branch keyed to another issue is blocked with the branch-key reason; the same for product, architect and ds-architect. | `node --test --test-name-pattern="ORV-138 row 22:" scripts/ovl/envelope-guard.test.mjs` reports at least one passing test |
 | 23 | ORV-130 | A retro envelope (role ds-architect, skill retro) on `chore/<slice key>-retro-lessons` whose `issue` is that slice key passes the branch-key check. | `node --test --test-name-pattern="ORV-138 row 23:" scripts/ovl/envelope-guard.test.mjs` reports at least one passing test |
 | 24 | ORV-130 | Rule `switch-1`: each form in "Branch switch forms" is blocked in the main session while an envelope bound to that checkout is open, and the stderr names the bound task id; with no such envelope each is allowed; a subagent's call is not judged by switch-1. | `node --test --test-name-pattern="ORV-138 row 24:" scripts/ovl/worktree-guard.test.mjs` reports at least one passing test |
-| 25 | ORV-130 | While an envelope is bound, `git worktree add`, `git status`, `git branch -a`, `git log` and a `git commit -m` whose message holds the word switch stay allowed; and the read-failure case of switch-1. | `node --test --test-name-pattern="ORV-138 row 25:" scripts/ovl/worktree-guard.test.mjs` reports at least one passing test |
+| 25 | ORV-130 | While an envelope is bound, `git worktree add`, `git status`, `git branch -a`, `git log` and a `git commit -m` whose message holds the word switch stay allowed; the read-failure case of switch-1 (c); and, in a test of its own (v1.5), the gone-cwd case of switch-1 (c). | `node --test --test-name-pattern="ORV-138 row 25:" scripts/ovl/worktree-guard.test.mjs` reports at least one passing test; `node --test --test-name-pattern="ORV-138 row 25: a call cwd that is gone" scripts/ovl/worktree-guard.test.mjs` reports 1 passing test |
 | 26 | ORV-130 | The ovl skill's "Issue" bullet names no unchecked role but release, and its "One issue per checkout" bullet says `worktree-guard` blocks the switch. | `grep -n "Not enforced yet" .claude/skills/ovl/SKILL.md` prints nothing; `grep -n "worktree-guard" .claude/skills/ovl/SKILL.md` |
 | 27 | ORV-96 | Rule `resolve-1`: the review F5 form `cd .oriv?lo/owner-approvals && printf '{"by":"owner"}' > 7.json` is blocked for the main session and for a subagent, and so is the same form into `owner-waivers`. | `node --test --test-name-pattern="ORV-138 row 27:" scripts/ovl/write-guard.test.mjs` reports at least one passing test |
 | 28 | ORV-96 | Every form in "Write-guard forms to catch" is blocked, each as a main-session call and as a subagent call. | `node --test --test-name-pattern="ORV-138 row 28:" scripts/ovl/write-guard.test.mjs` reports at least one passing test |
@@ -368,12 +368,16 @@ Each rule below is the one home of its outcome. Other sections point to the name
     before it, and `-C ""` changing nothing (git(1)). `gh pr checkout` runs in the effective cwd.
   - (c) The checkout is unknown when the effective cwd is unknown; when the segment has a folder
     change (`env -C`, `sudo -D`, `sudo -R`, `chroot`), `--git-dir`, `--work-tree`, or a `GIT_DIR` or
-    `GIT_WORK_TREE` assignment (shell-1 (d)); when a
-    `-C` value has an expansion; or when the git top of a folder cannot be read. A switch form whose
-    git top cannot be read is blocked with or without a bound envelope, as a read failure like the
-    records (the read-failure case of row 25, asserted since v1.0); its stderr says the records or the
-    checkout cannot be read and the checkout is unknown. Every other unknown checkout is blocked only
-    while an envelope is bound (open question 13).
+    `GIT_WORK_TREE` assignment (shell-1 (d)); when a `-C` value has an expansion; or when the git
+    top of a folder that exists cannot be read. A switch form whose git top cannot be read for a
+    folder that exists is blocked with or without a bound envelope, as a read failure like the
+    records (the read-failure case of row 25, asserted since v1.0); its stderr says the records or
+    the checkout cannot be read and the checkout is unknown. A call cwd that is gone is no folder
+    that exists: its effective cwd is unknown (shell-1 (e)), so with the records read from
+    `CLAUDE_PROJECT_DIR` its switch form is an unknown checkout, not a read failure
+    (the gone-cwd case of row 25, v1.5; with `CLAUDE_PROJECT_DIR` unset the records come from that
+    cwd and cannot be read, a read failure). Every other unknown checkout, the gone-cwd case among
+    them, is blocked only while an envelope is bound (open question 13).
   - (d) A main-session call that shell-1 marks unknown (unknown-1) is blocked while any envelope is
     open and bound, whatever its segments; its stderr says the call could not be read and names the
     bound task ids. When the records cannot be read, an unknown call is blocked as a switch form is.
@@ -680,7 +684,7 @@ N1 in rule no-throw-1; N2, N3 and N4 in Honest limits (the recorder part); N5 in
 ## Worked examples
 
 Run from the repo root. Each command prints exactly the output shown; every output is exact, with no
-rounding unless one states it. The v1.2 to v1.4 examples were written with no shell and are not run
+rounding unless one states it. The v1.2 to v1.5 examples were written with no shell and are not run
 yet.
 
 - rework-1, input copied from `.orivilo/runs/ORV-139/` on 2026-10-29: the `started_at` of
@@ -827,6 +831,17 @@ yet.
   node -e 'console.log(Math.round(1560*(100005/40005)**2))'
   ```
 
+- switch-1 (c), the gone-cwd case (v1.5), input the cwd and command of the row 25 gone-cwd test
+  (`scripts/ovl/worktree-guard.test.mjs` lines 253 and 256: `join(main, "gone")` and
+  `git switch x`), with the repo root as `main`, read by `readShell` (`scripts/ovl/shell-words.mjs`
+  line 149; its start folder is null for a cwd that is no existing folder, lines 181 to 188): the
+  effective cwd of the segment, for the repo root and for `<root>/gone`, which does not exist.
+  Expected output, two lines: `known` and `unknown`.
+
+  ```bash
+  node -e 'const p=require("path");import(require("url").pathToFileURL(p.resolve("scripts/ovl/shell-words.mjs")).href).then(({readShell})=>{for(const cwd of [process.cwd(),p.join(process.cwd(),"gone")])console.log(readShell("git switch x",{cwd}).segments[0].cwd===null?"unknown":"known")})'
+  ```
+
 ## Out of scope
 
 - Revising the ORV-81, ORV-93 and ORV-95 specs, which state the old rules; for the rules this PR
@@ -861,8 +876,10 @@ S, and the shell:
   changes how a word expands. Glob qualifiers (`*(.)`) and extglob patterns with `(` are no longer
   in this class: they make the call unknown (unknown-1, S11).
 - `eval`, and `sh -c`, `bash -c`, `zsh -c` and every other interpreter with a program in a word
-  (`node -e`, `python3 -c`, `perl -e`); `source` or `.` of a file; a script the session wrote and then
-  runs (`node /tmp/x.mjs`); an encoded command piped to a shell (`echo <base64> | base64 -d | sh`).
+  (`node -e`, `python3 -c`, `perl -e`) or in a quoted-delimiter here-document body (`sh <<'EOF'`,
+  `python3 - <<'PY'`; v1.5), which the text rules do not read (resolve-1 (f)); `source` or `.` of a
+  file; a script the session wrote and then runs (`node /tmp/x.mjs`); an encoded command piped to a
+  shell (`echo <base64> | base64 -d | sh`).
 - `xargs` and `find -exec`: the program takes its arguments from input
   (`printf '\x2eorivilo/owner-approvals/7.json' | xargs touch`).
 - A variable, substitution, alias or function that holds a command: an unknown command name
@@ -1163,3 +1180,29 @@ task that changed nothing still makes the next rejecting verdict count.
   lines 269 to 290 and 459 (row 63); K-0090 line 513, which says the sources do not tell which shell
   runs the call or whether it is interactive (the spec now rests that on the live checks of the two
   run records, not on a page); the PR body's deviation list; and the G1 comment on ORV-138.
+
+- v1.5: answers the two needs_decision items and deviation 1 of ORV-138-build-r3 (round 3, head
+  34113b1), decided by the orchestrator under the owner's delegation (ADR 0012 decision 4). No new
+  row and no new requirement: switch-1 (c), row 25, the interpreter line of Honest limits (ORV-96
+  part) and the Worked examples change. Per item (L-0013):
+  - needs_decision 1, an interpreter whose program comes from a quoted-delimiter here-document body
+    (`sh <<'EOF'`, `python3 - <<'PY'`): no contract change. resolve-1 (f) skips that body since v1.4
+    (RV2-3), so the form passes as the main session and as a subagent (the ORV-138-build-r3 probe;
+    the same body after an unquoted delimiter is still blocked). It is a bypass of the named
+    interpreter class (L-0012 kind (b)), so the interpreter line names it, with no builder round.
+  - needs_decision 2 with deviation 1, a call cwd that is gone: contract change, switch-1 (c) and
+    row 25. That cwd is an unknown effective cwd (shell-1 (e)), so with the records read from
+    `CLAUDE_PROJECT_DIR` (RV2-5) its switch form is an unknown checkout, blocked only while an
+    envelope is bound (open question 13's default). Before round 3 the records came from the cwd,
+    and the row 25 test blocked it as a read failure with nothing bound. The read-failure case keeps
+    a git top that cannot be read for a folder that exists and records that cannot be read. Row 25
+    names the gone-cwd case, and its Check names the test. The code and tests at 34113b1 already do
+    this, so no builder round. A new worked example shows the reader's unknown cwd for a folder that
+    is gone.
+
+  Review downstream: `scripts/ovl/worktree-guard.test.mjs` lines 230 to 264 (the read-failure test
+  of row 25 and the gone-cwd test) and `scripts/ovl/worktree-guard.mjs` lines 50 to 140
+  (`switchForms`, `switchBlock`), which already match; `.claude/skills/ovl/SKILL.md` line 471 (the
+  `write-guard` Honest limits bullet, which already names a program in a quoted here-document) and
+  lines 283 to 286 (the "One issue per checkout" bullet, whose list of unknown checkouts does not
+  name a cwd that is gone); and the PR body's deviation list (ORV-138-build-r3 deviation 1).
