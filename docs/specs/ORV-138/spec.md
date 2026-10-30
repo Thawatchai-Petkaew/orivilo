@@ -1,7 +1,7 @@
 ---
 issue: ORV-138 (https://tpetkaew.atlassian.net/browse/ORV-138)
 lane: L (guard files; ORV-138 description)
-version: 1.7
+version: 1.8
 ---
 
 # ORV-138: phase-1 guard batch, seven guard changes in one PR
@@ -83,7 +83,7 @@ has its one home.
 | 29 | ORV-96 | Every form in "Write-guard forms to keep" is allowed in the session the list names (rule `shell-1` (f) for the commit and PR body forms). | `node --test --test-name-pattern="ORV-138 row 29:" scripts/ovl/write-guard.test.mjs` reports at least one passing test |
 | 30 | ORV-96 | Rule `resolve-1` (e): a relative write target whose base is unknown is blocked and an absolute `/tmp` target in the same call shape is allowed, one test per cause: a missing call cwd, `cd`, `cd -`, `cd "$D"`, `cd ~-`, `pushd`, `pushd +1`, `popd`, `env -C /tmp`, `git --work-tree=x restore`. | `node --test --test-name-pattern="ORV-138 row 30:" scripts/ovl/write-guard.test.mjs` reports at least one passing test |
 | 31 | ORV-96 | The ovl skill's Honest limits no longer say that a path built by `cd`, expansion or a glob is not seen, or that ORV-96 has not landed; they name the bypass classes of this spec's Honest limits, ORV-96 part. | `grep -n "until ORV-96 lands" .claude/skills/ovl/SKILL.md` prints nothing; `grep -n "expansion or a glob is not seen" .claude/skills/ovl/SKILL.md` prints nothing |
-| 32 | ORV-138 | One PR from `chore/ORV-138-guard-batch`, title `ORV-138: ...`; every commit subject names one source key, and the keys first appear in build order: ORV-94, ORV-120, ORV-104, ORV-136, ORV-137, ORV-130, ORV-96. After the survey commit f026a32 (`docs(ORV-96)`, K-0090) the round 0 fix commits follow in this order: ORV-96 for shell-1 and resolve-1, ORV-130 for switch-1 on shell-1, ORV-136 for the RV-5 head check of no-throw-1. After the K-0090 sections 10 and 11 commit 985cae9 (`docs(ORV-136)`) and the v1.4 spec commit, the round 1 re-check fix commits (ORV-138-review-2, ORV-138-security-2) follow in this order: ORV-96 for shell-1 and `write-guard`, ORV-130 for `worktree-guard`. | `git log --reverse --format=%s origin/develop..HEAD` |
+| 32 | ORV-138 | One PR from `chore/ORV-138-guard-batch`, title `ORV-138: ...`; every commit subject names one source key, and the keys first appear in build order: ORV-94, ORV-120, ORV-104, ORV-136, ORV-137, ORV-130, ORV-96. After the survey commit f026a32 (`docs(ORV-96)`, K-0090) the round 0 fix commits follow in this order: ORV-96 for shell-1 and resolve-1, ORV-130 for switch-1 on shell-1, ORV-136 for the RV-5 head check of no-throw-1. After the K-0090 sections 10 and 11 commit 985cae9 (`docs(ORV-136)`) and the v1.4 spec commit b19fe81 (`docs(ORV-96)`), the commits follow as built (v1.8), in this order: 7e91576 (`fix(ORV-96)`) for the shell reader, shell-1; 34113b1 (`fix(ORV-138)`) for the round 1 re-check fixes (ORV-138-review-2, ORV-138-security-2) of `write-guard` resolve-1 (f) and (g), `worktree-guard` switch-1 (d) and the records root of switch-1, with their shell-1 and ovl skill parts; then the ORV-138 and ORV-96 docs, test and merge commits: c490d76 (`docs(ORV-138)`, v1.5), 02c2dc5 (`docs(ORV-138)`, v1.6), a56cfb7 (`chore(ORV-138)`, merge of `develop`), 9b9d155 (`test(ORV-138)`), 18986d8 (`docs(ORV-96)`, v1.7), e4a11dd (`chore(ORV-138)`, merge of `develop`), 00ede5a (`docs(ORV-96)`), and the v1.8 spec commit. No ORV-130 commit follows b19fe81. | `git log --reverse --format=%s origin/develop..HEAD` |
 | 33 | ORV-138 | The merge needs the owner approval line for the PR's head, once for the whole batch (ORV-137 comment 10246); before the owner runs it, the pre-check names `.orivilo/owner-approvals/<n>.json` as missing. | `node scripts/ovl/merge-check.mjs <n> --head <sha>` |
 | 34 | ORV-138 | The full gate passes on the head, `pnpm test:scripts` included, and the gate record for the head has `ok: true`. | `pnpm quality-gate`; `pnpm test:scripts` |
 | 35 | ORV-138 | No em dash and no middot in any changed text; Prettier clean. | `pnpm format:check`; `git diff -U0 origin/develop...HEAD` read for the two characters |
@@ -1306,3 +1306,20 @@ task that changed nothing still makes the next rejecting verdict count.
   and H19 are marked model with no word on the trailing-text and assignment-before-`[[` cases; the
   follow-up issue, to be filed, whose key a later revision adds to the desync line; the PR body's
   deviation list; and the G1 comment on ORV-138. The code and tests are unchanged.
+
+- v1.8: answers QA-1 of ORV-138-qa-1 on 00ede5a (row 32 fails), decided by the orchestrator under
+  the owner's delegation (ADR 0012 decision 4) in POC mode (ORV-137). No new row, no new requirement
+  and no rule change: only row 32 changes. Since v1.4 row 32 said the round 1 re-check fixes follow
+  b19fe81 as ORV-96 for shell-1 and `write-guard`, then ORV-130 for `worktree-guard`, and v1.5 to
+  v1.7 never restated it. The builders built them as 7e91576 (`fix(ORV-96)`, shell-1 only) and
+  34113b1 (`fix(ORV-138)`, the `write-guard` and `worktree-guard` changes with the records root), so
+  no ORV-130 commit follows b19fe81. QA-1 accepts a spec revision that restates the order as built,
+  with the reason here, or re-keyed commits; the orchestrator chose the revision, so no history is
+  rewritten. Row 32 now states the post-v1.4 order as built, the v1.8 commit included. Cost: the
+  ORV-130 trace of its round 1 changes (switch-1 (d), the records root; rows 59 and 61) runs through
+  34113b1 under the batch key, not a commit keyed ORV-130.
+
+  Review downstream: the PR body's commit list and deviation list; the G1 comment on ORV-138; ORV-130,
+  whose trace names 34113b1 for its round 1 changes when it moves on; and the head, which moves with
+  this commit, so the owner approval line, the gate, CI and the reviewer and qa passes are needed again
+  on the new head. The code and tests are unchanged.
