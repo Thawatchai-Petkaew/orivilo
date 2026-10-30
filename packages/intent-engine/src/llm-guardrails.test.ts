@@ -7,7 +7,7 @@ import {
   llmInterpreter,
   type Complete,
 } from "./llm-interpreter";
-import { AI_MODELS, openRouterComplete, type FetchLike } from "./openrouter";
+import { AI_MODELS, OPENROUTER_URL, openRouterComplete, type FetchLike } from "./openrouter";
 
 /*
  * ORV-160 guardrail rows that run on a fake model (orv160-form). The model answers below are
@@ -422,3 +422,11 @@ function oneChunk(body: unknown) {
     }),
   };
 }
+
+describe("LLM06:2026 no network in tests (row 34, orv160-network-block)", () => {
+  it("rejects a call to the OpenRouter URL that no test stubbed", async () => {
+    await expect(fetch(OPENROUTER_URL)).rejects.toThrow(
+      "Network is blocked in tests (ADR 0009 point 8).",
+    );
+  });
+});

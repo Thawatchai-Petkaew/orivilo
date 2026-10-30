@@ -1,6 +1,7 @@
 import { DirectionStudio, LocaleProvider } from "@orivilo/design-system";
 import {
   AI_MODELS,
+  OPENROUTER_URL,
   type Interpretation,
   interpretBrief,
   llmInterpreter,
@@ -72,4 +73,12 @@ describe("a quote that is markup (row 32)", () => {
       expect(markup).not.toContain("<img");
     },
   );
+});
+
+describe("the network block (row 34)", () => {
+  it("rejects a call to the OpenRouter URL that no test stubbed", async () => {
+    await expect(fetch(OPENROUTER_URL)).rejects.toThrow(
+      "Network is blocked in tests (ADR 0009 point 8).",
+    );
+  });
 });
