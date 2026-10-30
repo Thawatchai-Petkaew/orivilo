@@ -1,7 +1,7 @@
 ---
 id: K-0093
 topic: standards
-claim: The final 2026 OWASP LLM Top 10 entry files name, per entry, the risk examples, the attack scenarios and the prevention measures; read against a one-turn text interpreter with no tools, retrieval or memory (a reading, not a decision), LLM03 and LLM09 do not reach it and the other eight reach it in part.
+claim: The final 2026 OWASP LLM Top 10 entry files name, per entry, the risk examples, the attack scenarios and the prevention measures; read against a one-turn text interpreter with no tools, retrieval or memory (a reading, not a decision), LLM01, LLM06 and LLM07 reach it, LLM02, LLM04, LLM05, LLM08 and LLM10 reach it in part, and LLM03 and LLM09 do not reach it.
 source: "https://raw.githubusercontent.com/GenAI-Security-Project/GenAI-LLM-Top10/main/2026/final/LLM01_PromptInjection.md; https://raw.githubusercontent.com/GenAI-Security-Project/GenAI-LLM-Top10/main/2026/final/LLM02_SensitiveInformationDisclosure.md; https://raw.githubusercontent.com/GenAI-Security-Project/GenAI-LLM-Top10/main/2026/final/LLM03_ExcessiveAgency.md; https://raw.githubusercontent.com/GenAI-Security-Project/GenAI-LLM-Top10/main/2026/final/LLM04_SupplyChain.md; https://raw.githubusercontent.com/GenAI-Security-Project/GenAI-LLM-Top10/main/2026/final/LLM05_DataModelPoisoning.md; https://raw.githubusercontent.com/GenAI-Security-Project/GenAI-LLM-Top10/main/2026/final/LLM06_UnboundedConsumption.md; https://raw.githubusercontent.com/GenAI-Security-Project/GenAI-LLM-Top10/main/2026/final/LLM07_Misinformation.md; https://raw.githubusercontent.com/GenAI-Security-Project/GenAI-LLM-Top10/main/2026/final/LLM08_HiddenContextExposure.md; https://raw.githubusercontent.com/GenAI-Security-Project/GenAI-LLM-Top10/main/2026/final/LLM09_VectorAndEmbeddingWeaknesses.md; https://raw.githubusercontent.com/GenAI-Security-Project/GenAI-LLM-Top10/main/2026/final/LLM10_ImproperOutputHandling.md; https://github.com/GenAI-Security-Project/GenAI-LLM-Top10/tree/main/2026/final; https://raw.githubusercontent.com/GenAI-Security-Project/GenAI-LLM-Top10/main/2026/README.md; https://github.com/GenAI-Security-Project/GenAI-LLM-Top10; https://genai.owasp.org/resource/owasp-genai-llm-top-10-2026/; https://genai.owasp.org/llm-top-10/; packages/intent-engine/src/llm-interpreter.ts; packages/intent-engine/src/openrouter.ts; packages/intent-engine/src/interpreter.ts"
 retrieved: 2026-10-30
 confidence: 0.75
@@ -232,7 +232,7 @@ The path read here (`packages/intent-engine/src/llm-interpreter.ts`, `openrouter
 
 ### Claims that did not re-check
 
-- The envelope quotes ORV-160 item 7 as "a guardrail test set from the OWASP Top 10 for LLM Applications and an evaluation harness for the interpreter path". The Jira issue was not fetched in this task. Pages searched: none of the `source:` pages are Jira.
+- The envelope quotes ORV-113 item 7 as "a guardrail test set from the OWASP Top 10 for LLM Applications and an evaluation harness for the interpreter path". The Jira issue was not fetched in this task. Pages searched: none of the `source:` pages are Jira.
 
 ## Why it matters for ORIVILO
 
