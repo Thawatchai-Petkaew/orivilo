@@ -49,6 +49,7 @@ export const REASONS = [
   "unexpected",
   "signed-out",
   "forbidden",
+  "workspace-not-found",
   "not-configured",
   "failed",
   "ai-failed",

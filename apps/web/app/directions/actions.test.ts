@@ -119,7 +119,7 @@ vi.mock("../../server/spend-cap", () => ({
       async check(_h, workspaceId): Promise<SpendCheck> {
         state.checked += 1;
         if (!workspaceId) throw new Denied(403, "no-workspace");
-        if (!state.members.has(workspaceId)) throw new Denied(403, "not-a-member");
+        if (!state.members.has(workspaceId)) throw new Denied(404, "not-a-member");
         if (state.sum === "unavailable") return { ok: false, reason: "unavailable" };
         if (monthSum(workspaceId) >= state.cap) return { ok: false, reason: "capped" };
         const charge = Object.freeze({
@@ -374,11 +374,18 @@ describe("boundary lines", () => {
   });
 
   it("a refusal is logged as refused with its reason", async () => {
-    state.service.saveDraft.mockRejectedValue(new Denied(403, "not-a-member"));
-    expect(await saveDirection({ name: "x" })).toMatchObject({ ok: false, error: "forbidden" });
+    state.service.saveDraft.mockRejectedValue(new Denied(404, "not-a-member"));
+    expect(await saveDirection({ name: "x" })).toMatchObject({
+      ok: false,
+      error: "workspace-not-found",
+    });
     const lines = boundaryOf();
     expect(lines).toHaveLength(1);
-    expect(lines[0]).toMatchObject({ level: "info", outcome: "refused", reason: "forbidden" });
+    expect(lines[0]).toMatchObject({
+      level: "info",
+      outcome: "refused",
+      reason: "workspace-not-found",
+    });
   });
 
   it("an AI failure is logged once at the boundary, without the brief or OpenRouter's text", async () => {
@@ -468,12 +475,12 @@ describe("failure outcomes carry the error fields", () => {
 
   it("a failure outcome carries code, requestId and retryable", async () => {
     state.requestId = ID;
-    state.service.saveDraft.mockRejectedValue(new Denied(403, "not-a-member"));
+    state.service.saveDraft.mockRejectedValue(new Denied(404, "not-a-member"));
     const result = await saveDirection({ name: "x" });
     expect(result).toStrictEqual({
       ok: false,
-      error: "forbidden",
-      code: "FORBIDDEN",
+      error: "workspace-not-found",
+      code: "NOT_FOUND",
       requestId: ID,
       retryable: false,
     });
@@ -482,7 +489,7 @@ describe("failure outcomes carry the error fields", () => {
     expect(result).toHaveProperty("requestId", line?.["requestId"]);
   });
 
-  /** The 19 cases of the spec's table: expected code and retryable are written out here. */
+  /** The 20 cases of the spec's table: expected code and retryable are written out here. */
   const cases: {
     name: string;
     expected: { error: string; code: string; retryable: boolean };
@@ -501,6 +508,12 @@ describe("failure outcomes carry the error fields", () => {
       name: "Denied 403",
       expected: { error: "forbidden", code: "FORBIDDEN", retryable: false },
       arrange: () => state.service.saveDraft.mockRejectedValue(new Denied(403, "role-too-low")),
+      call: () => saveDirection({ name: "x" }),
+    },
+    {
+      name: "Denied 404",
+      expected: { error: "workspace-not-found", code: "NOT_FOUND", retryable: false },
+      arrange: () => state.service.saveDraft.mockRejectedValue(new Denied(404, "not-a-member")),
       call: () => saveDirection({ name: "x" }),
     },
     {
@@ -587,8 +600,8 @@ describe("failure outcomes carry the error fields", () => {
     },
   ];
 
-  it("has 19 cases", () => {
-    expect(cases).toHaveLength(19);
+  it("has 20 cases", () => {
+    expect(cases).toHaveLength(20);
   });
 
   it.each(cases)("each reason maps to its code: $name", async ({ expected, arrange, call }) => {
@@ -608,6 +621,18 @@ describe("failure outcomes carry the error fields", () => {
       ok: false,
       error: "signed-out",
       code: "UNAUTHENTICATED",
+      requestId: ID,
+      retryable: false,
+    });
+  });
+
+  it("a workspace id the session lacks stays forbidden", async () => {
+    state.requestId = ID;
+    state.service.saveDraft.mockRejectedValue(new Denied(403, "no-workspace"));
+    expect(await saveDirection({ name: "x" })).toStrictEqual({
+      ok: false,
+      error: "forbidden",
+      code: "FORBIDDEN",
       requestId: ID,
       retryable: false,
     });
@@ -844,19 +869,19 @@ describe("the spend cap on an AI reading", () => {
   });
 
   it.each([
-    ["no active workspace", null],
-    ["a workspace the person is not a member of", "other"],
-  ])(
+    ["no active workspace", null, "forbidden", "FORBIDDEN"],
+    ["a workspace the person is not a member of", "other", "workspace-not-found", "NOT_FOUND"],
+  ] as const)(
     "AI reading needs a workspace the person belongs to: %s",
-    async (_name, activeOrganizationId) => {
+    async (_name, activeOrganizationId, error, code) => {
       state.session = { user: { id: "P" }, session: { activeOrganizationId } as never };
       answers(JSON.stringify(GOOD));
-      expect(await readBriefWithAi(BRIEF)).toStrictEqual(failure("forbidden", "FORBIDDEN", false));
+      expect(await readBriefWithAi(BRIEF)).toStrictEqual(failure(error, code, false));
       expect(fetchSpy).not.toHaveBeenCalled();
       expect(state.recordCalls).toBe(0);
       expect(state.ledger).toEqual([]);
       expect(boundary()).toEqual([
-        expect.objectContaining({ level: "info", outcome: "refused", reason: "forbidden" }),
+        expect.objectContaining({ level: "info", outcome: "refused", reason: error }),
       ]);
     },
   );
