@@ -2,7 +2,7 @@
 issue: ORV-83 (https://tpetkaew.atlassian.net/browse/ORV-83)
 lane: S (story harness only: seven story files; no component, recipe, token or catalog contract)
 mode: POC mode short spec (`.claude/skills/ovl/SKILL.md`, section "POC mode")
-version: 1.0
+version: 1.1
 ---
 
 # ORV-83: no nested Field in seven form-control story files
@@ -52,7 +52,7 @@ node -e 'const F=k=>({c:"ds-field",k}),D=k=>({c:"div",k});const story=D([F([]),F
 
 ## Open questions (with defaults)
 
-1. `Progress.stories.tsx`, `Slider.stories.tsx` and `RangeSlider.stories.tsx` contain no `Field` on the current tree: their meta decorator is a `max-w-sm` div (lines 20, 20 and 21), and neither `progress/` nor `slider/` holds the string `Field` or `ds-field`. A play with the row 1 assertion there passes before any fix, so "seen to fail before the fix" cannot be shown for those three files. Option A: add the play to each and report in the PR that it was green before the fix, with the grep as the reason. Option B: the owner amends ORV-83 to drop those three files or to name the defect they carry. Impact: A ships the guard play for all seven files and leaves row 1's red-run clause met for four; B changes the issue. Default: A, recorded in the PR as a deviation from row 1 for those three files.
+1. On develop at the PR's merge base `b663352`, four Scope files have no `Field` in their meta decorator, so no story in them renders a Field inside a Field: `InputGroup.stories.tsx`, whose meta decorator is a `max-w-md` div (lines 22 to 28), and `Progress.stories.tsx`, `Slider.stories.tsx` and `RangeSlider.stories.tsx`, whose meta decorator is a `max-w-sm` div (lines 20, 20 and 21). On that commit, neither `progress/` nor `slider/` holds the string `Field` or `ds-field`; the InputGroup stories render their own Fields, none inside another, and `InputGroup.tsx` holds no `ds-field` (it reads the Field through `useFieldControl`, line 59). So a play with the row 1 assertion passes before any fix in each of these four files, and "seen to fail before the fix" cannot be shown for that assertion there. The red run these four files do have is the builder's wrapper mutation (ORV-83-build-1): with `decorators: [inWidth]` put back on `RecipesAndModes` in the four files, 4 plays failed (InputGroup, Progress, RangeSlider and Slider Recipes And Modes) on their check that the width wrapper is gone, so that run shows the plays catch the old wrapper, not a nested Field. Option A: add the play with the row 1 assertion to each of the four files, report in the PR that the assertion was green before the fix, with the develop lines and greps above as the reason, and report the wrapper mutation as the red run for those files. Option B: the owner amends ORV-83 to drop those four files or to name the defect they carry. Impact: A ships a play with the row 1 assertion in each of the seven files in Scope and leaves row 1's red-run clause met for Input, Select and PasswordInput only; B changes the issue. Default: A, recorded in the PR as a deviation from row 1 for InputGroup, Progress, Slider and RangeSlider.
 
 ## Depends on
 
@@ -62,3 +62,4 @@ node -e 'const F=k=>({c:"ds-field",k}),D=k=>({c:"div",k});const story=D([F([]),F
 ## Changelog
 
 - v1.0: first version, the three criteria of Jira ORV-83 copied. Downstream to review: none yet (no build exists).
+- v1.1 (2026-10-30): review ORV-83-review-1 F2. Open question 1 and its default name InputGroup beside Progress, Slider and RangeSlider: InputGroup's meta decorator at `b663352` (lines 22 to 28) is a `max-w-md` div with no Field, so its row 1 assertion is green before the fix, and the red run its play has is the builder's wrapper mutation (ORV-83-build-1). The impact now lists Input, Select and PasswordInput as the files that meet row 1's red-run clause (v1.0 said four, counting InputGroup), and the question cites commit `b663352` instead of "the current tree". F1 (no play in Progress, Slider or RangeSlider holds the row 1 assertion) changes no contract: default A already asks for that play in each of the three, so the builder adds it in code. Rows 1 to 3 keep their numbers and text. Downstream to review: the PR 146 body, whose open question 1 line names only Slider, RangeSlider and Progress (F2 evidence); no story file changes for F2.
