@@ -2,7 +2,7 @@
 issue: ORV-161 (https://tpetkaew.atlassian.net/browse/ORV-161)
 parent: ORV-113 (item 8)
 lane: L
-version: 1.2
+version: 1.3
 ---
 
 # ORV-161: axe on every apps/web page (ORV-113 item 8)
@@ -122,14 +122,14 @@ The qa walk of a PR covers the rows its line names (ORV-138 rule `qa-scope-1`). 
 
 - **orv161-wait.** Before axe runs, a scan waits for conditions, never for a fixed time, and checks five of them:
   - the response status: 200 for the four routes, 404 for `/_not-found`
-  - the state's catalog line is visible
+  - the state's catalog line is visible (for `/workspace`, the fixture heading of row 1, since that screen has no catalog copy)
   - `document.documentElement.lang` equals the cookie locale
   - `matchMedia("(prefers-color-scheme: dark)").matches` equals the scheme
   - `innerWidth` equals the width
 
   Time limits are sized for the CI runner (testing.md): the first CI run's step time is recorded with its run id, and the per-test and server-start limits are each at least 10 times the local time measured under `pnpm quality-gate`.
 
-- **orv161-exceptions.** A rule is off for one page state only through an entry `{ route, state, rule, reason }` in one exported list in the scan file, applied as axe's `disableRules` for that state alone. `reason` says why the rule does not fit that page, which is the reason comment of ADR 0015 line 29 in a form the test reads. The run fails on an entry whose `reason` is empty, or whose `rule` is not one of the 91. A violation found while building is fixed in that slice; an exception is the last resort, and each one is listed in the PR body and in this spec's next version.
+- **orv161-exceptions.** A rule is off for one page state only through an entry `{ route, state, rule, reason }` in one exported list in the scan file, applied as axe's `rules: { <id>: { enabled: false } }` option for that state alone, merged with the `target-size` switch of `orv161-rules`. `AxeBuilder#disableRules` is not used: it replaces the whole `rules` option and would drop that switch. `reason` says why the rule does not fit that page, which is the reason comment of ADR 0015 line 29 in a form the test reads. The run fails on an entry whose `reason` is empty, or whose `rule` is not one of the 91. A violation found while building is fixed in that slice; an exception is the last resort, and each one is listed in the PR body and in this spec's next version.
 - **orv161-session.** The signed-in states use a session minted by a test-only `createAuth({ ..., plugins: [testUtils()] })` instance. It is built in `apps/web/e2e/` over the same throwaway database and the same per-run secret as the server on port 3201. `createAuth`'s `plugins` option is marked for tests only (`packages/auth/src/config.ts` lines 17 and 51).
   - The user `e2e@example.com` is created through the adapter, so Better Auth's hooks create its workspace and owner membership.
   - The session cookie goes into the browser context as `better-auth.session_token`, with no `__Secure-` prefix, because the server's `baseURL` is `http://` (worked example "The cookie name").
@@ -275,3 +275,4 @@ ADR 0015 decision 1 (the WCAG row, its Confirmation and "Not done yet"), decisio
 - v1.0 (2026-10-30): first spec, ORV-113 item 8 as its own story (task ORV-161-spec-2; ORV-161-spec-1 stopped before writing). Downstream to review: the ORV-161 Jira issue acceptance (rows 1 to 21); the G1 and G2 packets (lane L, or M if open question 1 is answered (b)); and the documents under "Impact list", brought up to date in slices 4 to 6.
 - v1.1 (2026-10-31): anchors and qa scope only; no acceptance row changes meaning (task ORV-161-spec-3). ORV-161-qa-1-F1: new section "Rows per PR" with `- PR 163: rows 1, 2, 3, 4`. R1-F1: the ADR 0015 WCAG line of "Not done yet" is named by its text "No axe scan runs on `apps/web` pages" instead of a line number, in "Why", row 19, "Impact list" and open question 3. R1-F2: `listDirections` (row 16) is named by its `export async function` line, the Vitest globs ("Placement") by the `include` list of `apps/web/vitest.config.ts`, and the ORV-118 tech notes ("Depends on") by the paragraph "R2 setup", on the `feature/ORV-118-logo` branch. Downstream to review: the qa walk of PR 163 (rows 1 to 4) and the slice 6 builder envelope (row 19 anchors).
 - v1.2 (2026-10-31): mutants as built and one slice 3 scope line; no acceptance row changes meaning (task ORV-180-spec-2, from the deviations and needs_decision of task ORV-180-build-scan). `orv161-mutants`: M2's red line is the `lang` check of `orv161-wait`, which fails before axe, with `html-has-lang` shown in a second scratch run without that check; M3 uses a near-canvas colour made with `color-mix()`, since equal colours give axe `incomplete`; M7 is red through a load-time guard on the six port 3200 names, with its error line, and its rule class is `orv161-servers`. "Slices" item 3 and "Impact list" gain the underline at rest on the home page backlog link in `apps/web/app/page.tsx`, so the 8 scans of `/` meet row 8. Downstream to review: `docs/specs/ORV-180/spec.md` (v1.1), the slice 3 builder envelope (its write set gains `apps/web/app/page.tsx`), the slice 3 PR body (the M2, M3 and M7 `verified` rows) and the reviewer's `DESIGN.md` section 11 walk, which now covers a UI change on `/`.
+- v1.3 (2026-10-31): two rule texts as built; no acceptance row changes meaning (task ORV-180-spec-3, from the needs_decision of task ORV-180-spec-2 and deviations 4 and 5 of task ORV-180-build-scan). `orv161-exceptions`: an exception is applied as axe's `rules: { <id>: { enabled: false } }` option for its state alone, merged with the `target-size` switch, not as `disableRules`, which replaces the whole `rules` option and would drop that switch. `orv161-wait`: for `/workspace` the state line is the fixture heading of row 1, not catalog copy. Downstream to review: `docs/specs/ORV-180/spec.md` (it names the parent as v1.2 in "Parent spec and gates" and "Depends on"), the slice 3 PR body (deviations 4 and 5 now match the spec) and the reviewer's read of `apps/web/e2e/pages.a11y.spec.ts`.
