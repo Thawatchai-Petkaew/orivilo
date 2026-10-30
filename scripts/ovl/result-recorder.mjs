@@ -13,6 +13,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { ROLE_CONTRACTS } from "./envelope-guard.mjs";
+import { gitTop, recordsRoot } from "./hook.mjs";
 import {
   allTasks,
   branchOf,
@@ -311,6 +312,18 @@ function judge(root, store, task, text) {
   return judged;
 }
 
+/**
+ * judge-root-1 (ORV-162): the checkout a report is judged against. It is the envelope's worktree (its git
+ * top level) when that worktree shares the hook's records root `store`, else the hook's own `root`.
+ * Throws when the envelope has no worktree or its folder is gone, so the hook fails closed.
+ */
+function judgeRoot(task, root, store) {
+  const worktree = task.envelope.worktree;
+  if (!nonblank(worktree)) throw new Error(`envelope ${task.id} has no worktree to judge against`);
+  // A gone folder makes recordsRoot throw, and its message names the path.
+  return recordsRoot(worktree) === store ? gitTop(worktree) : root;
+}
+
 function onStart(input, { store }) {
   const agentId = field(input, "agent_id");
   const agentType = field(input, "agent_type");
@@ -349,7 +362,7 @@ function onStop(input, { root, store }) {
     const { task, reason } = boundTask(store, agentId);
     if (!task) return active ? [] : [reason];
     const judged = judge(
-      root,
+      judgeRoot(task, root, store),
       store,
       task,
       field(input, "last_assistant_message", "the final message"),
@@ -400,7 +413,7 @@ function onAgent(input, { root, store }) {
     .filter((c) => c?.type === "text")
     .map((c) => c.text)
     .join("\n");
-  const judged = judge(root, store, task, text);
+  const judged = judge(judgeRoot(task, root, store), store, task, text);
   if (judged.problems.length > 0) {
     writeClosed(store, task, "no_report");
     return [...judged.problems, `${task.id} closed as no_report`];
