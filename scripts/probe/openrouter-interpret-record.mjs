@@ -120,7 +120,7 @@ export async function record({ env, fetch, fixturePath, write }) {
     );
     const durationMs = Math.round(performance.now() - started);
     const result = outcome.ok ? "ok" : outcome.error;
-    entries.push({ id, model: answeredModel(seen), date, raw, outcome: result, durationMs });
+    entries.push({ id, text, model: answeredModel(seen), date, raw, outcome: result, durationMs });
     write(`${id}: ${result} in ${durationMs} ms`);
   }
   writeFileSync(

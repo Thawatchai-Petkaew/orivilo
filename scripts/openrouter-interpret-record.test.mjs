@@ -8,7 +8,10 @@ import { join } from "node:path";
 import { after, describe, it, mock } from "node:test";
 import { record } from "./probe/openrouter-interpret-record.mjs";
 
-const MODEL = "anthropic/claude-sonnet-5.5";
+// The engine is TypeScript; the recorder import above has registered the hook that lets node load it.
+const { AI_MODELS } = await import("../packages/intent-engine/src/index.ts");
+const MODEL = AI_MODELS.interpret;
+const DATED_MODEL = `${MODEL}-20261001`;
 const FAKE_KEY = "sk-or-v1-test-0000";
 const IDS = ["row-1", "row-2", "row-3", "row-4", "row-5", "row-18", "row-27", "row-30", "row-31"];
 
@@ -16,7 +19,7 @@ const dir = mkdtempSync(join(tmpdir(), "orv177-"));
 after(() => rmSync(dir, { recursive: true, force: true }));
 
 /** A hand-written answer, not a recording: a valid reading that quotes the brief's first word. */
-function answer(init) {
+function answer(init, { model = MODEL, chunks = 1 } = {}) {
   const user = JSON.parse(init.body).messages[1].content;
   const reading = {
     findings: [
@@ -24,20 +27,29 @@ function answer(init) {
     ],
     notUnderstood: [],
   };
-  return new Response(
-    JSON.stringify({ model: MODEL, choices: [{ message: { content: JSON.stringify(reading) } }] }),
-    { status: 200 },
+  const body = new TextEncoder().encode(
+    JSON.stringify({ model, choices: [{ message: { content: JSON.stringify(reading) } }] }),
   );
+  const size = Math.ceil(body.byteLength / chunks);
+  const stream = new ReadableStream({
+    start(controller) {
+      for (let at = 0; at < body.byteLength; at += size) {
+        controller.enqueue(body.slice(at, at + size));
+      }
+      controller.close();
+    },
+  });
+  return new Response(stream, { status: 200 });
 }
 
 /** A fake `fetch` that keeps every call; `status(n)` picks the answer for the n-th call (from 1). */
-function fakeFetch(status = () => 200) {
+function fakeFetch(status = () => 200, options) {
   const calls = [];
   const fetch = async (url, init) => {
     calls.push({ url, init });
     const code = status(calls.length);
     return code === 200
-      ? answer(init)
+      ? answer(init, options)
       : new Response(JSON.stringify({ error: {} }), { status: code });
   };
   return { fetch, calls };
@@ -92,7 +104,47 @@ describe("ORV-177 row 37: the recorder with a key", () => {
         "model",
         "outcome",
         "raw",
+        "text",
       ]);
+    }
+  });
+
+  it("keeps each case's brief text exactly as sent, the tag-character brief included", async () => {
+    const fixturePath = join(dir, "text.json");
+    const { fetch, calls } = fakeFetch();
+    await record({ env, fetch, fixturePath, write: () => undefined });
+    const { cases } = JSON.parse(readFileSync(fixturePath, "utf8"));
+    cases.forEach((c, i) => {
+      const sent = JSON.parse(calls[i].init.body).messages[1].content;
+      assert.equal(typeof c.text, "string");
+      assert.ok(c.text.length > 0);
+      assert.ok(sent.includes(c.text), `${c.id}: the request holds the kept text`);
+    });
+    const row4 = cases.find((c) => c.id === "row-4");
+    assert.ok([...row4.text].some((ch) => ch.codePointAt(0) >= 0xe0000));
+  });
+
+  it("records the answering model of a dated answer delivered in 5 chunks", async () => {
+    const fixturePath = join(dir, "dated.json");
+    const { fetch } = fakeFetch(() => 200, { model: DATED_MODEL, chunks: 5 });
+    const code = await record({ env, fetch, fixturePath, write: () => undefined });
+    assert.equal(code, 0);
+    const { cases } = JSON.parse(readFileSync(fixturePath, "utf8"));
+    assert.equal(cases.length, 9);
+    for (const c of cases) {
+      assert.equal(c.model, DATED_MODEL);
+      assert.equal(c.outcome, "ok");
+    }
+  });
+
+  it("records a foreign answering model as itself with outcome adapter-failed", async () => {
+    const fixturePath = join(dir, "foreign.json");
+    const { fetch } = fakeFetch(() => 200, { model: "openai/gpt-x", chunks: 3 });
+    await record({ env, fetch, fixturePath, write: () => undefined });
+    const { cases } = JSON.parse(readFileSync(fixturePath, "utf8"));
+    for (const c of cases) {
+      assert.equal(c.model, "openai/gpt-x");
+      assert.equal(c.outcome, "adapter-failed");
     }
   });
 
