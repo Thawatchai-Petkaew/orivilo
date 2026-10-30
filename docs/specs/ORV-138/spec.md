@@ -1,7 +1,7 @@
 ---
 issue: ORV-138 (https://tpetkaew.atlassian.net/browse/ORV-138)
 lane: L (guard files; ORV-138 description)
-version: 1.5
+version: 1.6
 ---
 
 # ORV-138: phase-1 guard batch, seven guard changes in one PR
@@ -430,7 +430,9 @@ Each rule below is the one home of its outcome. Other sections point to the name
     still judges every write target of the call, the redirect target of that here-document's command
     included. A subagent call that names a protected path and holds no write form by the ORV-93 text
     test (`/usr/bin/tee .orivilo/x`) goes on to resolve-1 after the screenshot exception and the text
-    rule. So for a subagent call resolve-1 may block more than the text rule, never less.
+    rule. So for a subagent call resolve-1 may block more than the text rule. It judges only the
+    targets the call's words name, so a call whose targets stand in a body the text rules skip passes
+    both: the content line of Honest limits, ORV-96 part (v1.6, RV3-1).
   - (g) A call that shell-1 marks unknown (unknown-1) is blocked, for the main session and a subagent,
     after the screenshot exception and the close rules of (f) and before any target is judged; its
     stderr says the call could not be read and names the cause.
@@ -882,6 +884,14 @@ S, and the shell:
   shell (`echo <base64> | base64 -d | sh`).
 - `xargs` and `find -exec`: the program takes its arguments from input
   (`printf '\x2eorivilo/owner-approvals/7.json' | xargs touch`).
+- The content line (v1.6, RV3-1): a write program whose targets come from the content it reads, not
+  from its words, so resolve-1 (a) judges only the words and never the targets. One such program is
+  `git apply` with a patch from a quoted-delimiter here-document (`git apply <<'EOF'` with a patch
+  that creates `.orivilo/owner-approvals/7.json` or changes a guard file), whose body the text rules
+  do not read since v1.4 (resolve-1 (f)), or from a file (`git apply /tmp/x.patch`). Both forms pass
+  as the main session and as a subagent, and zsh and bash write the file (the ORV-138-review-3 probe
+  on c490d76); the file form passed on ad941b2 too. A patch after an unquoted delimiter is still read
+  by the text rules, and the probe's unquoted form was blocked.
 - A variable, substitution, alias or function that holds a command: an unknown command name
   (`$W x`, `$(printf tee) x`), an alias from the profile or an earlier call, a function defined
   earlier, a git alias (`git rs x` for `git restore x`), and `git --exec-path=<path>`. (`env -S` left
@@ -1064,6 +1074,9 @@ task that changed nothing still makes the next rejecting verdict count.
   switch-1 and resolve-1 (L-0045). Its sections 10 (where a one-pass reader can part from the shell,
   rows C1 to C8, Q1 to Q5, H1 to H20, S1 to S11, Z1 to Z8) and 11 (runners, 11a and 11b), commit
   985cae9, bound unknown-1 and shell-1 (d) in v1.4.
+- The round 3 findings on head c490d76, in the git-ignored run record
+  `.orivilo/runs/ORV-138/ORV-138-review-3/result.json` (RV3-1, RV3-2 and RV2-6 again, recorded
+  2026-10-30).
 - The round 1 re-check findings on head ad941b2, in the git-ignored run records
   `.orivilo/runs/ORV-138/ORV-138-review-2/result.json` (RV2-1 to RV2-6, recorded 2026-10-29) and
   `.orivilo/runs/ORV-138/ORV-138-security-2/result.json` (ORV-138-sec-F5 to sec-F7, recorded
@@ -1206,3 +1219,25 @@ task that changed nothing still makes the next rejecting verdict count.
   `write-guard` Honest limits bullet, which already names a program in a quoted here-document) and
   lines 283 to 286 (the "One issue per checkout" bullet, whose list of unknown checkouts does not
   name a cwd that is gone); and the PR body's deviation list (ORV-138-build-r3 deviation 1).
+
+- v1.6: answers the findings of ORV-138-review-3 on c490d76, decided by the orchestrator under the
+  owner's delegation (ADR 0012 decision 4) in POC mode (ORV-137). No new row, no new requirement and
+  no rule change: Honest limits, ORV-96 part, gains the content line, and the last sentence of
+  resolve-1 (f) points to it. Per finding (L-0013):
+  - RV3-1: no contract change. A write program whose targets come from the content it reads
+    (`git apply` with a patch from a quoted-delimiter here-document or a file) is a guard-rail bypass
+    class (L-0012 kind (b)), so the content line names it, with no builder round and no new test. The
+    resolve-1 (a) route (count `git apply`'s targets as unknown, so the call is blocked) is not
+    taken: the main session itself applies patch files with `git apply`. resolve-1 (f) no longer says
+    a subagent call is blocked never less than by the text rule.
+  - RV3-2: no contract change. The merge of `develop` into the branch and the two conflict hunks in
+    `.claude/skills/ovl/SKILL.md` (the "One issue per checkout" bullet, and the Issue and Open
+    envelope bullets) are builder work; the merge keeps the row 37 bullet, as the binding line of
+    Honest limits (recorder part) requires.
+  - RV2-6: no contract change. The timing bound is out of scope here; `develop` holds its fix
+    (d736b80, ORV-139), which reaches the branch with the RV3-2 merge, and CI on the merged head is a
+    G3 precondition, not a spec requirement.
+
+  Review downstream: `.claude/skills/ovl/SKILL.md` line 471 on c490d76 (the `write-guard` Honest
+  limits bullet, which does not name the content class); the PR body's deviation list; and the G1
+  comment on ORV-138. The code and tests already match.
