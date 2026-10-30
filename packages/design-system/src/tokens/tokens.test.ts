@@ -7,7 +7,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { componentsReading } from "../profiles/refine";
-import { tokens } from "./index";
+import { MODES, tokens } from "./index";
 
 describe("token layers", () => {
   it("reference only the layer below and carry both modes", () => {
@@ -90,6 +90,34 @@ describe("the small-dot token (ORV-118)", () => {
       .filter((t) => JSON.stringify(t.raw).includes("{brand.dot-small}"))
       .map((t) => t.path);
     expect(readers).toEqual(["logo.dot-small"]);
+  });
+});
+
+describe("the violet signature (ORV-118, comment 10336)", () => {
+  const read = (path: string, mode: (typeof MODES)[number]) => {
+    const token = tokens.get("semantic", path);
+    if (!token) throw new Error(`semantic token ${path} is missing`);
+    return tokens.resolve(token, mode);
+  };
+
+  it("shares one value with action.primary under neutral, in both modes", () => {
+    const expected = { light: "#7A22C7", dark: "#B07FEE" } as const;
+    for (const mode of MODES) {
+      expect(String(read("brand.signature", mode).value).toUpperCase(), mode).toBe(expected[mode]);
+      expect(String(read("action.primary", mode).value).toUpperCase(), mode).toBe(expected[mode]);
+    }
+  });
+
+  it("reaches its primitive directly, never through an action token", () => {
+    expect(read("brand.signature", "light").chain).toEqual(["primitive:color.violet.600"]);
+    expect(read("brand.signature", "dark").chain).toEqual(["primitive:color.violet.400"]);
+  });
+
+  it("keeps brand readers and action readers apart", () => {
+    const brand = componentsReading(["brand.signature"]);
+    expect(brand).toEqual(["badge", "logo", "nav-item", "tile"]);
+    const action = componentsReading(["action.primary"]);
+    expect(brand.filter((name) => action.includes(name))).toEqual([]);
   });
 });
 

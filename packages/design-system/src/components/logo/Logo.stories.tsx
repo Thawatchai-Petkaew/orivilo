@@ -15,7 +15,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "The ORIVILO logo (ORV-118): mark, wordmark and the horizontal and stacked lockups. Colour comes from the logo tokens, so a profile and a mode repaint it. Below 20 px the ring is heavier and the dot turns violet on the light canvas. The only text is the accessible name, which the locale toolbar switches between Thai and English. The mark is not yet screened as a trademark (logo-screen-1).",
+          "The ORIVILO logo (ORV-118): mark, wordmark and the horizontal and stacked lockups. Colour comes from the logo tokens, so a profile and a mode repaint it. Below 20 px the ring is heavier. Under the ORIVILO profile the dot is violet at every size. The only text is the accessible name, which the locale toolbar switches between Thai and English. The mark is not yet screened as a trademark (logo-screen-1).",
       },
     },
   },
@@ -27,8 +27,8 @@ type Story = StoryObj<typeof meta>;
 const row = "flex flex-wrap items-end gap-6";
 
 /** The neutral values rows 1 to 4 and 6 compare with (spec W6, DESIGN.md section 3.1). */
-const NEUTRAL_LIGHT = { ink: "#16151D", dot: "#D9F66F", dotSmall: "#7A22C7" } as const;
-const NEUTRAL_DARK = { ink: "#F2F1EC", dot: "#D9F66F", dotSmall: "#D9F66F" } as const;
+const NEUTRAL_LIGHT = { ink: "#16151D", dot: "#7A22C7", dotSmall: "#7A22C7" } as const;
+const NEUTRAL_DARK = { ink: "#F2F1EC", dot: "#B07FEE", dotSmall: "#B07FEE" } as const;
 
 interface Colours {
   ink: string;
@@ -45,6 +45,22 @@ function coloursOf(profile: string, mode: Mode): Colours {
     return String(set.resolve(token, mode).value);
   };
   return { ink: read("ink"), dot: read("dot"), dotSmall: read("dot-small") };
+}
+
+/**
+ * The colours of the profile and mode the toolbar has set, so a play passes under every toolbar
+ * pair. `literal` is the neutral light set where the pixel probe runs, and undefined elsewhere.
+ */
+function toolbarColours(globals: Record<string, unknown>): {
+  colours: Colours;
+  literal: Colours | undefined;
+} {
+  const profile = String(globals["profile"]);
+  const mode = globals["mode"] as Mode;
+  return {
+    colours: coloursOf(profile, mode),
+    literal: profile === "neutral" && mode === "light" ? NEUTRAL_LIGHT : undefined,
+  };
 }
 
 /** How a browser reports a computed colour. */
@@ -150,7 +166,8 @@ export const Kinds: Story = {
       <Logo kind="stacked" height={64} />
     </div>
   ),
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, globals }) => {
+    const { colours, literal } = toolbarColours(globals);
     const logos = logosIn(canvasElement);
     expect(logos.map((svg) => svg.dataset["kind"])).toEqual([
       "mark",
@@ -168,8 +185,8 @@ export const Kinds: Story = {
       ).toBe(true);
     });
     for (const svg of logos) {
-      expectColours(svg, NEUTRAL_LIGHT);
-      await expectPaint(svg, NEUTRAL_LIGHT);
+      expectColours(svg, colours);
+      if (literal) await expectPaint(svg, literal);
     }
   },
 };
@@ -185,7 +202,8 @@ export const SmallSizes: Story = {
       ))}
     </div>
   ),
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, globals }) => {
+    const { colours, literal } = toolbarColours(globals);
     const logos = logosIn(canvasElement);
     expect(logos).toHaveLength(SMALL_HEIGHTS.length);
     // W3: the form and the ring stroke for each asked height.
@@ -200,9 +218,9 @@ export const SmallSizes: Story = {
         svg.querySelector(".ds-logo__ring")?.getAttribute("stroke-width"),
         `${at}: stroke`,
       ).toBe(strokes[i]);
-      // Small forms carry the violet dot on the light canvas, the master the lime one.
-      expectColours(svg, NEUTRAL_LIGHT);
-      await expectPaint(svg, NEUTRAL_LIGHT);
+      // The small forms read the small dot and the master the master dot: one violet under neutral.
+      expectColours(svg, colours);
+      if (literal) await expectPaint(svg, literal);
     }
   },
 };
