@@ -2,7 +2,7 @@
 issue: ORV-118 (https://tpetkaew.atlassian.net/browse/ORV-118)
 lane: L (risk flag: component public API; also a semantic token contract change, see open question 1)
 mode: POC mode (`.claude/skills/ovl/SKILL.md`, section "POC mode")
-version: 1.2
+version: 1.3
 gates: G1 and G2 passed by Claude under the owner's delegation (ADR 0012 decision 4)
 ---
 
@@ -95,9 +95,9 @@ The Logo reads three component tokens, each pointing at one semantic token (comp
 | Ring, wordmark strokes, i-dots, v | `logo.ink` reads `text.primary`    | `logo.ink`                                                 | `logo.ink`                      |
 | Dot                               | `logo.dot` reads `brand.signature` | `logo.dot-small` reads `brand.dot-small` (new, question 1) | `logo.ink`                      |
 
-Neutral values: `text.primary` gray.900 #16151D light, gray.100 #F2F1EC dark; `brand.signature` lime.300 #D9F66F in both modes; `brand.dot-small` violet.600 #7A22C7 light, lime.300 #D9F66F dark. So a small dot is violet on the light canvas and lime on the dark canvas, as board 05 and brand spec v1.1 section 2 require.
+Neutral values: `text.primary` gray.900 #16151D light, gray.100 #F2F1EC dark; `brand.signature` violet.600 #7A22C7 light, violet.400 #B07FEE dark; `brand.dot-small` the same values. So the dot is violet at every size in both modes (owner, ORV-118 comment 10336; brand spec v1.2 §2). Under neutral these are the values of the primary button (`action.primary`), and the two stay separate tokens; lime is spent only on `action.intent` (tech notes, section 13).
 
-Contrast (`pnpm contrast`): one new semantic pair, `brand.dot-small` on `surface.canvas`, floor 3.0 (W6). The ring is `text.primary` on `surface.canvas`, already a pair. The master dot (`brand.signature` on the light canvas, 1.10 by W6) is left out of `src/recipes/pairs.ts` with the reason in its header comment: a logo's accent is decoration, and the ring carries the shape (WCAG 1.4.11 does not apply to a logotype).
+Contrast (`pnpm contrast`): one new semantic pair, `brand.dot-small` on `surface.canvas`, floor 3.0 (W6). The ring is `text.primary` on `surface.canvas`, already a pair. The master dot is left out of `src/recipes/pairs.ts` (`brand.signature` has no floor on the canvas; Friendly's is 2.3 on its light canvas), with the reason in its header comment: a logo's accent is decoration, and the ring carries the shape (WCAG 1.4.11 does not apply to a logotype).
 
 ### logo-name-1
 
@@ -110,7 +110,7 @@ Clear space is the master stroke width scaled to the rendered mark: `m × 30 / 1
 ### logo-icon-1
 
 - Favicon, SVG: the mark in form 16 on a transparent ground. Ring `text.primary` and dot `brand.dot-small`, light values by default and dark values inside `@media (prefers-color-scheme: dark)` in the same file.
-- App icon, PNG, at 32 px (favicon fallback) and 180 px (Apple touch icon): a square with corner radius `side × 22 / 96` filled with `surface.inverse` (light value, #16151D), the mark box `side × 2 / 3` centred (open question 5), ring `text.on-inverse` (light value, #F2F1EC), dot `brand.signature` in every form, stroke by `logo-size-1` for the mark box size (W7).
+- App icon, PNG, at 32 px (favicon fallback) and 180 px (Apple touch icon): a square with corner radius `side × 22 / 96` filled with `surface.inverse` (light value, #16151D), the mark box `side × 2 / 3` centred (open question 5), ring `text.on-inverse` (light value, #F2F1EC), dot: the dark value of the token the form picks (`logo-colour-1`), because the ground is the ink square: `brand.dot-small` at 32 px (form 24), `brand.signature` at 180 px (master), #B07FEE in both, 6.14 (W6); stroke by `logo-size-1` for the mark box size (W7).
 - Storybook brand image: the `horizontal` lockup at height 24, `tone="full"`, light values.
 
 ### logo-asset-1
@@ -182,10 +182,10 @@ W5. `logo-geometry-1`, the stacked positions: mark x, wordmark box top, wordmark
 node -e 'console.log(((473-150)/2).toFixed(2),150+0.5*150,150+0.5*150+45,150+0.5*150+150)'
 ```
 
-W6. `logo-colour-1`, WCAG 2 contrast from DESIGN.md §3.1 hex values: violet.600 on gray.50 (small dot, light canvas), lime.300 on gray.900 (dot, dark canvas), lime.300 on gray.50 (why the small dot leaves lime). Rounded to 2 decimals. Expected: `6.61 14.98 1.10`.
+W6. `logo-colour-1` and `logo-icon-1`, WCAG 2 contrast from DESIGN.md §3.1 hex values: violet.600 on gray.50 (dot, light canvas), violet.400 on gray.900 (dot, dark canvas), white on violet.600 (`brand.ink` on the signature, light), violet.600 on gray.900 (why the app icon takes the dark value). Rounded to 2 decimals. Expected: `6.61 6.14 7.29 2.49`.
 
 ```bash
-node -e 'const L=h=>{const c=[0,2,4].map(i=>parseInt(h.slice(i,i+2),16)/255).map(v=>v<=0.04045?v/12.92:((v+0.055)/1.055)**2.4);return 0.2126*c[0]+0.7152*c[1]+0.0722*c[2]};const R=(a,b)=>{const[x,y]=[L(a),L(b)].sort((p,q)=>q-p);return((x+0.05)/(y+0.05)).toFixed(2)};console.log(R("7A22C7","F4F4F0"),R("D9F66F","16151D"),R("D9F66F","F4F4F0"))'
+node -e 'const L=h=>{const c=[0,2,4].map(i=>parseInt(h.slice(i,i+2),16)/255).map(v=>v<=0.04045?v/12.92:((v+0.055)/1.055)**2.4);return 0.2126*c[0]+0.7152*c[1]+0.0722*c[2]};const R=(a,b)=>{const[x,y]=[L(a),L(b)].sort((p,q)=>q-p);return((x+0.05)/(y+0.05)).toFixed(2)};console.log(R("7A22C7","F4F4F0"),R("B07FEE","16151D"),R("FFFFFF","7A22C7"),R("7A22C7","16151D"))'
 ```
 
 W7. `logo-icon-1`, app icon corner radius (22 on 96) and mark box (2/3) at 32 and 180 px. Rounded to 2 decimals. Expected: `32 7.33 21.33` and `180 41.25 120.00` on two lines; by W3 the 32 px icon draws form 24 and the 180 px icon the master.
@@ -204,10 +204,11 @@ node -e 'for(const s of [32,180])console.log(s,(s*22/96).toFixed(2),(s*2/3).toFi
 - A Thai-script wordmark.
 - The trademark screening itself, the lineup test with outsiders, and print or embroidery tests (brand spec v1.1 section 8).
 - Customer logos made by the Brand module.
+- The `packages/intent-engine` colour rules and their test on ORIVILO's own brief, which still pick lime as the signature: follow-up ORV-185 (ORV-118 comment 10338 item 5; tech notes, section 12, item 6).
 
 ## Open questions (option, impact, default)
 
-1. Which token carries the small dot (violet on the light canvas, lime on the dark one)? No existing semantic token has those values: `text.brand` is violet.700 in light and violet.300 in dark, `action.primary` means "act" (DESIGN.md §8). Option: a recipe rule keyed on the mode, which breaks under `mode="system"`. Decided in the tech notes (section 2, D1) at the default, and accepted by the main session under ADR 0012 decision 4: the name `brand.dot-small` is confirmed, a new identity-scoped semantic token whose neutral values and pair are in `logo-colour-1` and whose profile values are in the tech notes, section 2. Professional and Friendly must override it (each takes its own `text.brand` primitive step in light and its `brand.signature` step in dark, and `pnpm contrast` proves the pair). Impact (contract change): the full list is in the tech notes, section 10.
+1. Which token carries the small dot (violet on the light canvas, lime on the dark one)? No existing semantic token has those values: `text.brand` is violet.700 in light and violet.300 in dark, `action.primary` means "act" (DESIGN.md §8). Option: a recipe rule keyed on the mode, which breaks under `mode="system"`. Decided in the tech notes (section 2, D1) at the default, and accepted by the main session under ADR 0012 decision 4: the name `brand.dot-small` is confirmed, a new identity-scoped semantic token whose neutral values and pair are in `logo-colour-1` and whose profile values are in the tech notes, section 2. Professional and Friendly must override it (each takes its own `text.brand` primitive step in light and its `brand.signature` step in dark, and `pnpm contrast` proves the pair). Impact (contract change): the full list is in the tech notes, section 10. Values revised by comment 10336 (tech notes, section 13).
 2. Form boundaries. Brand spec v1.1 says "≤ 24 px: stroke 32 to 34" and Jira gives 34 at 16 and 32 at 24. Default: `logo-size-1` (below 20 is form 16, 20 to 24 is form 24).
 3. What "wordmark never below 20 px high" measures. Default: the wordmark's 150-unit box (x-height then 13.3 px).
 4. The stacked gap "0.5 × mark height": the mark box (150) or the ring's outer height (135)? Default: the box, 75 units.
@@ -224,7 +225,8 @@ node -e 'for(const s of [32,180])console.log(s,(s*22/96).toFixed(2),(s*2/3).toFi
 
 - Jira ORV-118 description; G1 and G2 passed by Claude under ADR 0012 decision 4 (`docs/adr/0012-jira-states-by-environment.md`).
 - Brand identity case study, board 05 Logo: https://claude.ai/artifact/1Hmo2mQ9GnfRvN5WmJJB4C
-- `docs/context/brand/orivilo-brand-spec-v1.1.md` sections 2 to 4 and 8; `docs/context/brand/assets/`.
+- `docs/context/brand/orivilo-brand-spec-v1.1.md` sections 2 to 4 and 8; `docs/context/brand/assets/`. The file holds brand spec v1.2 from 2026-10-31, edited in place with its file name kept (ORV-118 comment 10338 item 4).
+- ORV-118 comment 10336 (the owner's decision: the mark's dot is violet, the same as the primary button; lime only for `action.intent`) and comment 10338 (the delegated decisions on it); tech notes, section 13.
 - DESIGN.md §3.1 (tokens, identity scope), §5 (layers), §8 (colour roles), §9 item 10, §10 (copy), §11 (design gate).
 - ADR 0003 (`docs/adr/0003-shadcn-behavior-own-visual-layer.md`, Storybook and catalog), ADR 0013 (qa approve on a code PR).
 - ORV-39 (locale catalog), E2-3 (neutral shell), E0-5 (`pnpm contrast`), ORV-137 (POC mode, component benchmark), ORV-146 (the qa recorder reads the first table headed `#`).
@@ -247,3 +249,12 @@ node -e 'for(const s of [32,180])console.log(s,(s*22/96).toFixed(2),(s*2/3).toFi
   - Benchmark, Add row: names the accessible name on the Logo itself beside the decorative switch; same scope as v1.1.
   - Benchmark, Do not copy row: gains spread attribute props, a lockup of HTML boxes, fixed colours in the mark and a logo with no name of its own, each already decided by `logo-api-1`, `logo-geometry-1`, `logo-colour-1` and `logo-name-1`.
   - Downstream to review: the tech notes' `spec:` version (v1.1 to v1.2); the dependency of task A5 in tech notes section 8 is now met.
+- v1.3 (2026-10-31): the violet dot, from the owner's decision in ORV-118 comment 10336 and the delegated decisions of comment 10338, through tech notes section 13 and its findings F7 to F11 ("Findings for the spec"). This is the spec's v1.3; the v1.2 that comment 10338 item 4 names is the brand spec's. Each finding, with its kind:
+  - F7, contract change (the values of identity-scoped tokens under neutral, tech notes section 13): `logo-colour-1`'s neutral values make the dot violet at every size in both modes, at the primary button's values, with lime left to `action.intent`. Comment 10338 item 1, the wide reading: `brand.signature` itself turns violet, so every reader of it changes with the logo (tech notes section 13, "Readers of `brand.signature`").
+  - F8, no contract change: `logo-colour-1`'s contrast paragraph gives the reason that still holds for keeping the master dot out of `src/recipes/pairs.ts`.
+  - F9, contract change (the asset's colour rule): `logo-icon-1`'s app icon dot takes the dark value of the token its form picks.
+  - F10, no contract change: W6 computes the pairs the new values give, with a new expected line.
+  - F11, no contract change: this entry; open question 1 keeps its text and points to tech notes section 13.
+  - Acceptance rows: no row's text changes. Rows 1 to 4, 9, 10, 13, 15, 16 and 18 to 20 now show or check the new dot values through the rules they name; rows 12, 17 and 22 render light-mode small forms, which were violet already.
+  - Comment 10338, the other items: item 2, risk 5 (a violet brand badge reads like the primary button) is judged by the designer at the V2 sign-off; item 3, the glow stays and becomes the one violet signature glow (DESIGN.md §2, task V1); item 4, the brand spec is edited in place (Depends on); item 5, the intent-engine colour rules are follow-up ORV-185 (Out of scope).
+  - Downstream to review: brand spec v1.2 (task S2); DESIGN.md §2, §3.1, §3.5, §8, §9 item 1 and its change log (tech notes section 13, task V1); `catalog/base/logo.yaml:24`, `src/recipes/pairs.ts:13` and `Logo.stories.tsx` lines 30 and 31 (task V1); the tech notes' `spec:` version (v1.2 to v1.3) and the Status column of F7 to F11; the V2 sign-off (the Logo stories, the brand badge, the glow and the bead); slice B tasks B1 (the app icon dot) and R2 (the favicon's dark block).
