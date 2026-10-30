@@ -97,6 +97,7 @@ Every scan runs on the pages of `orv161-pages`, under `orv161-matrix`, with `orv
 The qa walk of a PR covers the rows its line names (ORV-138 rule `qa-scope-1`). Each later slice PR adds its line here when it opens, with the rows that "Slices" gives it.
 
 - PR 163: rows 1, 2, 3, 4
+- PR 166: rows 5, 6, 7, 8, 9, 10
 
 ## Rules and bounds
 

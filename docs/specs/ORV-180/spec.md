@@ -2,7 +2,7 @@
 issue: ORV-180 (https://tpetkaew.atlassian.net/browse/ORV-180)
 parent: ORV-161 (slice 3, "Scan PR")
 lane: L, inherited from ORV-161
-version: 1.1
+version: 1.2
 ---
 
 # ORV-180: ORV-161 slice 3, the axe scan of the pages without a database
@@ -19,7 +19,7 @@ This file is the slice spec of L-0016: a slice issue gets its own spec. It adds 
 
 ## Parent spec and gates
 
-- Parent spec: `docs/specs/ORV-161/spec.md` v1.2 (changelog line "v1.2 (2026-10-31)").
+- Parent spec: `docs/specs/ORV-161/spec.md` v1.3 (changelog line "v1.3 (2026-10-31)").
 - G1 and G2: ORV-161 comment 10290, passed under the owner's delegation in POC mode (ADR 0012 decision 4, parent "Lane"). ORV-180 inherits both; no new gate decision is needed for this slice.
 - Decisions: the parent's "Depends on".
 - Review: full gate, reviewer and qa (parent "Slices", item 3). The `security` role is slice 5's (parent "Impact list", "Roles").
@@ -43,16 +43,16 @@ Reading notes, no new requirement:
 
 - Row 6: this slice meets the "40 tests in slice 3" clause. The "72 after slice 5" clause is slice 5's, and its list count is a `verified` row of that PR.
 - Row 8: "the 40 scans" are the 5 states `orv161-pages` gives slice 3, each under the 8 combinations of `orv161-matrix` (parent worked example "The matrix").
-- Row 9: "v1.0" is the parent spec's version. No parent version since (v1.1 included) added an entry, so the list is empty in this slice too. An entry found needed while building follows `orv161-exceptions` and is listed in the PR body.
+- Row 9: "v1.0" is the parent spec's version. No parent version since (v1.1 to v1.3 included) added an entry, so the list is empty in this slice too. An entry found needed while building follows `orv161-exceptions` and is listed in the PR body.
 - Row 10: "Each mutant" is M1, M2, M3, M4, M5, M6, M7, M8 and M9, the nine rows of the `orv161-mutants` table, with the red line that table gives each. The PR body holds one `verified` row per mutant (parent "Slices", item 3).
 
 ## Rows per PR
 
 The qa walk of a PR covers the rows its line names (ORV-138 rule `qa-scope-1`).
 
-- The slice 3 PR (`feature/ORV-180-axe-scan`, its number added when it opens): rows 5, 6, 7, 8, 9, 10
+- PR 166 (`feature/ORV-180-axe-scan`, the slice 3 PR): rows 5, 6, 7, 8, 9, 10
 
-The same line goes into the parent's "Rows per PR" when the PR opens, as the parent's section says.
+The same line is in the parent's "Rows per PR", as the parent's section says.
 
 ## Rules and bounds
 
@@ -94,9 +94,10 @@ The parent's open questions and their defaults hold (parent "Open questions"); G
 
 ## Depends on
 
-The parent spec `docs/specs/ORV-161/spec.md` v1.2 and its "Depends on"; ORV-161 comment 10290 (G1 and G2 under delegation); PR 163 (slices 1 and 2, rows 1 to 4: the `main` on `/workspace` that M1 reverts and the 404 page that `/_not-found` scans); L-0016 (a slice issue gets its own spec); ORV-138 rule `qa-scope-1` (the `## Rows per PR` form).
+The parent spec `docs/specs/ORV-161/spec.md` v1.3 and its "Depends on"; ORV-161 comment 10290 (G1 and G2 under delegation); PR 163 (slices 1 and 2, rows 1 to 4: the `main` on `/workspace` that M1 reverts and the 404 page that `/_not-found` scans); L-0016 (a slice issue gets its own spec); ORV-138 rule `qa-scope-1` (the `## Rows per PR` form).
 
 ## Changelog
 
 - v1.0 (2026-10-31): slice spec for ORV-180, ORV-161 slice 3, from ORV-161 spec v1.1 (task ORV-180-spec-1). Rows 5 to 10 copied with their numbers, columns and text unchanged; the rules are pointers to the parent; one open question on the time limits before slice 4. No new requirement. Downstream to review: the ORV-180 Jira acceptance (rows 5 to 10), the slice 3 builder envelope, the slice 3 PR body (the M1 to M9 `verified` rows and the `--list` count), and the parent's "Rows per PR", which gains the slice 3 line when the PR opens.
 - v1.1 (2026-10-31): follows parent v1.2 (task ORV-180-spec-2); no acceptance row changes meaning. "Parent spec and gates", "Files", names the home page backlog link fix in `apps/web/app/page.tsx` as part of this slice, pointing to the parent's "Slices", item 3; the parent version in "Parent spec and gates" and "Depends on" is v1.2. The M2, M3 and M7 red lines change in the parent's `orv161-mutants` only, which row 10's reading note points to. Downstream to review: the slice 3 builder envelope (its write set gains `apps/web/app/page.tsx`), the slice 3 PR body (the M2, M3 and M7 `verified` rows) and the reviewer's `DESIGN.md` section 11 walk for the change on `/`.
+- v1.2 (2026-10-31): follows parent v1.3 and names the PR (task ORV-180-spec-4, review ORV-180-review-1 findings R1-1 and R1-4); no acceptance row changes meaning. "Rows per PR" names PR 166 in place of "its number added when it opens", and the parent's "Rows per PR" gains the line "PR 166: rows 5, 6, 7, 8, 9, 10". The parent version in "Parent spec and gates" and "Depends on" is v1.3; the row 9 reading note counts v1.1 to v1.3 as adding no exception entry (parent v1.3 changes how an entry is applied, not the list). Downstream to review: the qa walk of PR 166 (`qa-scope-1` reads the new line) and the PR 166 body, if it cites the slice spec version.
