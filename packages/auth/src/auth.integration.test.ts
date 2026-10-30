@@ -3,7 +3,7 @@ import { createDb, type Db } from "@orivilo/db/client";
 import { createTestDatabase, HAS_TEST_DATABASE, type TestDatabase } from "@orivilo/db/testing";
 import { testUtils } from "better-auth/plugins";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { withWorkspace } from "./access.ts";
+import { Denied, withWorkspace } from "./access.ts";
 import { authRoute } from "./auth-route.ts";
 import { hashIp } from "./client-ip.ts";
 import { createAuth } from "./config.ts";
@@ -116,7 +116,31 @@ describe.runIf(HAS_TEST_DATABASE)("Better Auth and the authorization helper", ()
       withWorkspace(deps(), c.headers, d.workspaceId, "member", async () => {
         ran = true;
       }),
-    ).rejects.toMatchObject({ status: 403, reason: "not-a-member" });
+    ).rejects.toMatchObject({ status: 404, reason: "not-a-member" });
+    expect(ran).toBe(false);
+  });
+
+  // ORV-159 row 4: asking for a workspace that exists and one that does not gives one answer.
+  it("denies a missing workspace id like a foreign one (ORV-159 row 4)", async () => {
+    const m = await signIn("m@example.com", "Mali");
+    const n = await signIn("n@example.com", "Nok");
+    const missing = "9f1c2d3e-0000-4000-8000-000000000000";
+    let ran = false;
+    const answers = await Promise.all(
+      [n.workspaceId, missing].map((id) =>
+        withWorkspace(deps(), m.headers, id, "member", async () => {
+          ran = true;
+        }).catch((error: unknown) => error),
+      ),
+    );
+    for (const answer of answers) {
+      expect(answer).toBeInstanceOf(Denied);
+      expect(answer).toMatchObject({
+        status: 404,
+        reason: "not-a-member",
+        message: "access denied: not-a-member",
+      });
+    }
     expect(ran).toBe(false);
   });
 

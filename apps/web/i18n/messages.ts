@@ -149,6 +149,8 @@ const th = {
     errors: {
       "signed-out": "เซสชันหมดอายุ ลงชื่อเข้าใช้อีกครั้งแล้วลองใหม่",
       forbidden: "บัญชีนี้ไม่มีสิทธิ์ทำสิ่งนี้ในเวิร์กสเปซนี้",
+      "workspace-not-found":
+        "ไม่พบเวิร์กสเปซนี้ในบัญชีของคุณ ลงชื่อเข้าใช้อีกครั้งที่หน้าบัญชีเพื่อเปิดเวิร์กสเปซที่คุณเป็นสมาชิก",
       "not-configured": "ยังบันทึกทิศทางในสภาพแวดล้อมนี้ไม่ได้ เพราะยังไม่ได้ตั้งค่าฐานข้อมูล",
       "not-found": "ไม่พบทิศทางนี้ในเวิร์กสเปซของคุณ",
       "no-draft": "ไม่มีฉบับร่างให้อนุมัติ บันทึกฉบับร่างก่อน",
@@ -163,6 +165,8 @@ const th = {
       "rate-limited": "ส่งคำขอถี่เกินไป จึงยังไม่ได้ทำรายการนี้ ลองใหม่ได้ในอีก {wait}",
       "ai-rate-limited":
         "ใช้ AI อ่านบรีฟครบจำนวนที่กำหนดแล้ว จึงใช้การอ่านตามกฎแทน อ่านด้วย AI ได้อีกครั้งในอีก {wait}",
+      "ai-spend-cap":
+        "เวิร์กสเปซนี้ใช้งบ AI ของเดือนนี้ครบแล้ว จึงใช้การอ่านตามกฎแทน อ่านด้วย AI ได้อีกครั้งเมื่อขึ้นเดือนใหม่",
       failed: "ทำไม่สำเร็จ ลองอีกครั้ง",
     },
     replayReasons: {
@@ -333,6 +337,8 @@ const en: WebMessages = {
     errors: {
       "signed-out": "Your session has ended. Sign in again and retry.",
       forbidden: "This account is not allowed to do this in this workspace.",
+      "workspace-not-found":
+        "This workspace was not found in your account. Sign in again on the Account page to open a workspace you belong to.",
       "not-configured":
         "Directions cannot be saved in this environment yet: the database is not set up.",
       "not-found": "This direction was not found in your workspace.",
@@ -351,6 +357,8 @@ const en: WebMessages = {
         "Too many requests in a short time, so this was not done. Try again in {wait}.",
       "ai-rate-limited":
         "You have reached the limit for AI readings, so the rules' reading is used. AI can read again in {wait}.",
+      "ai-spend-cap":
+        "This workspace has used its AI budget for this month, so the rules' reading is used. AI can read again when the new month starts.",
       failed: "That did not work. Try again.",
     },
     replayReasons: {
