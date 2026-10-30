@@ -4,3 +4,4 @@ packages/design-system/src/tokens/generated.css
 packages/design-system/src/profiles/generated.css
 packages/design-system/src/commands/generated.ts
 packages/design-system/src/blocks/generated.ts
+.claude/worktrees/

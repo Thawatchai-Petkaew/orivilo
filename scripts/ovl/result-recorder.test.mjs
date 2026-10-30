@@ -1717,3 +1717,133 @@ test("ORV-138 no-throw-1: a screenshot path that is a folder is refused as not a
   assert.match(r.stderr, /is not a PNG file/);
   assert.equal(heartbeatLines(root).at(-1).decision, "block");
 });
+
+// ---- ORV-162: a report is judged against the envelope's worktree (judge-root-1) -----------------
+
+/**
+ * A main checkout with one base commit (origin/develop) that holds no spec and no gate report, and an
+ * issue worktree W under `.claude/worktrees/w` that holds the spec, a changed stories file and a clean
+ * gate report for its head. A qa envelope is bound with `worktree` W; the hook runs in the main checkout.
+ */
+function worktreeQa() {
+  const main = makeRepo();
+  git(main, "config", "user.email", "t@example.com");
+  git(main, "config", "user.name", "t");
+  git(main, "add", "-A");
+  git(main, "commit", "-q", "-m", "base");
+  git(main, "update-ref", "refs/remotes/origin/develop", "HEAD");
+  const wt = join(main, ".claude", "worktrees", "w");
+  git(main, "worktree", "add", "-q", "-b", "feature/ORV-1-wt", wt);
+  const specDir = join(wt, "docs", "specs", "ORV-1");
+  mkdirSync(specDir, { recursive: true });
+  writeFileSync(
+    join(specDir, "spec.md"),
+    [
+      "| #   | Given | When | Result                            | Evidence |",
+      "| --- | ----- | ---- | --------------------------------- | -------- |",
+      "| 1   | a     | b    | The check is centred on the label | test     |",
+      "| 2   | a     | b    | The row is saved                  | test     |",
+      "",
+    ].join("\n"),
+  );
+  const story = join(wt, "packages", "ds", "src", "checkbox");
+  mkdirSync(story, { recursive: true });
+  writeFileSync(
+    join(story, "checkbox.stories.tsx"),
+    'export default { title: "Components/Checkbox" };\nexport const Basic = {};\n',
+  );
+  git(wt, "add", "-A");
+  git(wt, "commit", "-q", "-m", "pr");
+  const head = git(wt, "rev-parse", "HEAD");
+  writeGate(wt, head);
+  assert.equal(existsSync(join(main, "docs", "specs")), false);
+  assert.equal(existsSync(join(main, ".quality-gate")), false);
+  const agent = bind(main, "qa", "ORV-1-qa", { worktree: wt });
+  return { main, wt, head, agent, report: qaReport(main, head, "ORV-1-qa") };
+}
+
+test("ORV-162 row 1: a foreground qa approve is judged against the envelope's worktree and recorded in the main checkout", () => {
+  const { main, wt, agent, report } = worktreeQa();
+  const stop = run(stopInput(main, agent, "qa", JSON.stringify(report)));
+  assert.equal(stop.code, 0, stop.stderr);
+  const r = run(postAgentInput(main, agent, "qa", JSON.stringify(report)));
+  assert.equal(r.code, 0, r.stderr);
+  assert.equal(read(main, "result.json", "ORV-1-qa").report.verdict, "approve");
+  assert.equal(read(main, "qa.json", "ORV-1-qa").contract, "qa.v1");
+  assert.equal(existsSync(join(wt, ".orivilo", "runs")), false);
+  assert.equal(has(main, "closed.json", "ORV-1-qa"), false);
+});
+
+test("ORV-162 row 2: a background qa approve is judged against the envelope's worktree at SubagentStop, once", () => {
+  const { main, wt, agent, report } = worktreeQa();
+  const stop = run(backgroundStop(main, agent, "qa", report));
+  assert.equal(stop.code, 0, stop.stderr);
+  assert.equal(read(main, "result.json", "ORV-1-qa").report.verdict, "approve");
+  assert.equal(read(main, "qa.json", "ORV-1-qa").contract, "qa.v1");
+  assert.equal(existsSync(join(wt, ".orivilo", "runs")), false);
+  const again = run(backgroundStop(main, agent, "qa", report));
+  assert.equal(again.code, 2);
+  assert.match(again.stderr, /already closed/);
+});
+
+test("ORV-162 row 3: a worktree of another clone is not read; the hook's own checkout is judged", () => {
+  // The hook's checkout holds the spec and the gate report; the envelope's worktree is a clone that holds neither.
+  const { root, head } = makePrRepo();
+  writeGate(root, head);
+  const clone = makeRepo();
+  assert.equal(existsSync(join(clone, "docs", "specs")), false);
+  const agent = bind(root, "qa", "ORV-1-qa", { worktree: clone });
+  const report = qaReport(root, head, "ORV-1-qa");
+  const stop = run(stopInput(root, agent, "qa", JSON.stringify(report)));
+  assert.equal(stop.code, 0, stop.stderr);
+  const r = run(postAgentInput(root, agent, "qa", JSON.stringify(report)));
+  assert.equal(r.code, 0, r.stderr);
+  assert.equal(read(root, "result.json", "ORV-1-qa").report.verdict, "approve");
+  assert.equal(existsSync(join(clone, ".orivilo")), false);
+  // Same files as today: a stale report in the hook's checkout is refused exactly as before ORV-162.
+  const stale = makePrRepo();
+  writeGate(stale.root, "b".repeat(40));
+  const staleAgent = bind(stale.root, "qa", "ORV-1-qa", { worktree: clone });
+  const bad = run(
+    stopInput(
+      stale.root,
+      staleAgent,
+      "qa",
+      JSON.stringify(qaReport(stale.root, stale.head, "ORV-1-qa")),
+    ),
+  );
+  assert.equal(bad.code, 2);
+  assert.match(bad.stderr, /is for b{40}, not head_sha/);
+});
+
+test("ORV-162 row 4: an envelope whose worktree is gone, or that has none, fails closed and writes no result", () => {
+  const { main, wt, agent, report } = worktreeQa();
+  rmSync(wt, { recursive: true, force: true });
+  for (const input of [
+    stopInput(main, agent, "qa", JSON.stringify(report)),
+    postAgentInput(main, agent, "qa", JSON.stringify(report)),
+    backgroundStop(main, agent, "qa", report),
+  ]) {
+    const r = run(input);
+    assert.equal(r.code, 2, r.stderr);
+    assert.ok(r.stderr.includes(wt), r.stderr);
+    assert.equal(has(main, "result.json", "ORV-1-qa"), false);
+  }
+
+  const bare = makePrRepo();
+  writeGate(bare.root, bare.head);
+  const noWorktree = bind(bare.root, "qa", "ORV-1-qa");
+  const { worktree: _gone, ...envelope } = read(bare.root, "envelope.json", "ORV-1-qa");
+  writeFileSync(join(taskDir(bare.root, "ORV-1-qa"), "envelope.json"), JSON.stringify(envelope));
+  const missing = run(
+    stopInput(
+      bare.root,
+      noWorktree,
+      "qa",
+      JSON.stringify(qaReport(bare.root, bare.head, "ORV-1-qa")),
+    ),
+  );
+  assert.equal(missing.code, 2);
+  assert.match(missing.stderr, /worktree/);
+  assert.equal(has(bare.root, "result.json", "ORV-1-qa"), false);
+});

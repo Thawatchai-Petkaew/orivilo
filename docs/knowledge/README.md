@@ -185,3 +185,4 @@ Keep this table in step with the folder when you add an entry.
 | [[K-0088-material-color-utilities-0-4-0-quantizer-api-and-determinism]]           | 0.8        | MCU 0.4.0 Apache-2.0; TS Celebi: 20 results in 20 calls (ORV-134 run) |
 | [[K-0089-ovl-qa-walk-refusal-routes]]                                             | 0.8        | ORV-136 survey: qa refusal routes on f2f5fa2; 5 uncovered (own count) |
 | [[K-0090-bash-forms-for-text-guards]]                                             | 0.8        | Bash, zsh and git forms a guard reads; reader desyncs; runner options |
+| [[K-0091-openrouter-chat-completions-usage-cost]]                                 | 0.8        | Chat `usage.cost`: number or null, credits (USD base); no flag needed |
