@@ -2,7 +2,7 @@
 issue: ORV-84 (https://tpetkaew.atlassian.net/browse/ORV-84)
 lane: M (design-system stories and the Storybook preview surface, found in the ORV-80 visual QA)
 mode: POC mode short spec (`.claude/skills/ovl/SKILL.md`, section "POC mode")
-version: 1.0
+version: 1.1
 ---
 
 # ORV-84: hover items without a pointer, focus rings and Thai marks inside the mode surface
@@ -36,8 +36,8 @@ As the designer or the owner reviewing a component in Storybook, I want each `In
 ## Scope
 
 - The 8 `InteractionStates` stories of `hover-items-1`: the force of `hover-force-1`, the default items that `hover-items-1` adds, and the assertion of `hover-test-1`.
-- The Storybook preview surface: the `withDesignProfile` decorator in `packages/design-system/.storybook/preview.tsx` (lines 19 to 28), as `surface-padding-1` states. Checkbox `Indeterminate` and Textarea `Counter` and `OverLimit` need no change of their own.
-- For the default route of `hover-force-1`: `packages/design-system/.storybook/main.ts` (the addons list, line 5), `packages/design-system/package.json` (devDependencies) and `pnpm-lock.yaml`. For the fallback route instead: `packages/design-system/src/recipes/recipes.css` (section Recipe contract impact).
+- The Storybook preview `packages/design-system/.storybook/preview.tsx`, in two parts: the `withDesignProfile` decorator (lines 19 to 28), as `surface-padding-1` states, and beside it the one Storybook-only decorator of the default route of `hover-force-1`. Neither part changes a recipe, token or component contract: the preview runs in Storybook only, and no recipe, token source, `--cmp-*` name or component prop changes with it. Checkbox `Indeterminate` and Textarea `Counter` and `OverLimit` need no change of their own.
+- For the default route of `hover-force-1`, also: `packages/design-system/.storybook/main.ts` (the addons list, line 5), `packages/design-system/package.json` (devDependencies) and `pnpm-lock.yaml`. For the fallback route instead: `packages/design-system/src/recipes/recipes.css` (section Recipe contract impact).
 - One PR into `develop`, about 200 changed lines outside the lockfile.
 
 ## Rules and bounds
@@ -63,10 +63,15 @@ Story labels are fixture text written in the story and do not change with the to
 
 Each story of `hover-items-1` renders its hover item in the hover look from render, with no pointer, through one route for all 8 stories:
 
-1. Default route: a pseudo-state parameter, `parameters.pseudo` of the Storybook addon `storybook-addon-pseudo-states`, registered in `packages/design-system/.storybook/main.ts` and added to the devDependencies of `packages/design-system`. Its selector hits the element the hover rule keys on (for the Checkbox the root `.ds-checkbox` div, `Checkbox.tsx` lines 56 to 60, not the box that the story's `id` lands on).
+1. Default route: a pseudo-state parameter, `parameters.pseudo` of the Storybook addon `storybook-addon-pseudo-states`, registered in `packages/design-system/.storybook/main.ts` and added to the devDependencies of `packages/design-system`; release 10.6.3 of the addon names `storybook: ^10.6.3` as its peer dependency (task ORV-84-build-1b). It has two more parts:
+   - On each of the 8 stories of `hover-items-1`, the parameter sets `rootSelector: "body"` and a hover selector that hits the element the hover rule keys on (for the Checkbox the root `.ds-checkbox` div, `Checkbox.tsx` lines 56 to 60, not the box that the story's `id` lands on).
+   - One Storybook-only decorator in `packages/design-system/.storybook/preview.tsx` emits `FORCE_RE_RENDER` (from `storybook/internal/core-events`) on the preview channel once after the story mounts, and only for a story that sets `parameters.pseudo`.
+
+   Why both: the storybook test project renders no `#storybook-root` or `#root`, so without `rootSelector` the addon adds no `pseudo-hover` class; and the addon rewrites the `:hover` rules only on channel events (`STORY_RENDERED`, `GLOBALS_UPDATED`, `FORCE_RE_RENDER`, `FORCE_REMOUNT`, `DOCS_RENDERED`) that a portable-story run never emits. With both parts the builder's probe made the Button play pass (task ORV-84-build-1b, its `verified` rows on causes 1 and 2 and on the probe).
+
 2. Fallback route: a data attribute that the hover rule also matches, set on the hover item or on an element the story renders around it. It changes the recipe contract (section Recipe contract impact).
 
-The builder takes the default route. If no release of the addon accepts storybook 10.6.3 in its peer dependencies, or the parameter does not show the hover look in the storybook test project, the builder stops with `blocked` and names the reason; the fallback then waits for tech notes, since it changes a contract (POC mode). The force never comes from a pointer event (`userEvent.hover` sets no `:hover`), a new component prop or graph data field (a public API; DESIGN.md §7 line 198 keeps hover out of public props) or a colour set in the story (`.claude/rules/design-system.md`, section Storybook). The `:hover` rules stay as they are, so a real pointer still shows the look.
+The builder takes the default route. If, with both parts, the parameter does not show the hover look in the storybook test project for one of the 8 stories, the builder stops with `blocked` and names the story and the reason; the fallback then waits for tech notes, since it changes a contract (POC mode). The force never comes from a pointer event (`userEvent.hover` sets no `:hover`), a new component prop or graph data field (a public API; DESIGN.md §7 line 198 keeps hover out of public props) or a colour set in the story (`.claude/rules/design-system.md`, section Storybook). The `:hover` rules stay as they are, so a real pointer still shows the look.
 
 ### hover-test-1
 
@@ -96,7 +101,7 @@ The stories the designer screenshots in the Storybook UI, in light and dark mode
 
 ## Recipe contract impact (fallback route only)
 
-The default route of `hover-force-1` changes no recipe, token or component. The addon runs in Storybook only and is not a runtime dependency, so POC mode asks no security pass for it (`.claude/skills/ovl/SKILL.md` lines 57 and 58). The fallback route adds a hover hook to the recipe contract:
+The default route of `hover-force-1` changes no contract (section Scope). The addon runs in Storybook only and is not a runtime dependency, so POC mode asks no security pass for it (`.claude/skills/ovl/SKILL.md` lines 57 and 58). The fallback route adds a hover hook to the recipe contract:
 
 - `packages/design-system/src/recipes/recipes.css` lines 8 to 10 say interaction states are pseudo-classes; the header gains the hook and who may set it.
 - The hover rules that `hover-items-1` names gain the hook beside `:hover`, with the same declarations. The rule at line 242 is `.ds-control`, so the hook also reaches the Select trigger (`Select.tsx` line 103) and the DirectionStudio control (`DirectionStudio.tsx` line 179). The 20 other lines with `:hover` (Out of scope) stay as they are.
@@ -134,7 +139,7 @@ None is run here (no shell in this role); each runs from the repo root with `nod
 
 ## Open questions (with defaults)
 
-1. Hover route. Options: (a) the pseudo-state parameter, a devDependency and no contract change; whether a release accepts storybook 10.6.3 was not checked here (no network); (b) a data attribute, a recipe contract change with tech notes. Default: as `hover-force-1` states.
+1. Hover route. Options: (a) the pseudo-state parameter with its two more parts, a devDependency and a Storybook-only decorator, no contract change, proven on the Button story by task ORV-84-build-1b; (b) a data attribute, a recipe contract change with tech notes; (c) a play helper per story that adds the `pseudo-hover` class and rewrites the rules without the addon, a bigger custom piece. Default: (a), as `hover-force-1` states; the main session took it as option A of the `needs_decision` of task ORV-84-build-1b (task ORV-84-spec-2).
 2. What to compare where the hover rule changes no border (Button, Tabs, CanvasEdge), though the issue says border. Options: (a) the property the hover rule sets; (b) add a border change to those hover rules, a design change beyond this issue. Default: (a), the compared entries of `hover-items-1`.
 3. Where the padding lives. Options: (a) the decorator, padded stories only; (b) a padded wrapper in each of the 32 files; (c) the decorator for every story, fullscreen ones too, which shifts the stories that fill the frame. Default: (a), as `surface-padding-1` states.
 4. Storybook's white margin around padded stories, white in dark mode too. Options: (a) keep it; (b) move the 32 files to fullscreen, which changes the frame of every padded story and each of those files. Default: (a); this issue keeps rings and marks off it.
@@ -142,6 +147,7 @@ None is run here (no shell in this role); each runs from the repo root with `nod
 6. Which stories are single-component stories, a term the issue does not define. Options: (a) `single-component-story-1`; (b) every story in `src/components`, the 12 fullscreen files that `single-component-story-1` leaves out too, which have no white margin, so the padding would only shift stories that fill the frame. Default: (a).
 7. An automated check that rings and marks stay inside the mode surface. Options: (a) none, the screenshots of row 5 are the check, as the issue names them; (b) a play that measures the ring box against the surface box, which still cannot see a mark drawn above the font's ascent (`packages/design-system/src/testing/visual-asserts.ts` lines 243 and 244). Default: (a).
 8. Follow-up issues for the items of Out of scope. Options: (a) open them now; (b) leave them to the main session at G3, when the PR shows what is left. Default: (b); none is opened by this spec.
+9. Which stories the decorator of `hover-force-1` nudges. Options: (a) a story that sets `parameters.pseudo`; (b) every story, which re-renders each story of the full run of `surface-padding-1` once more for no gain. Default: (a), as `hover-force-1` states.
 
 ## Depends on
 
@@ -151,7 +157,9 @@ None is run here (no shell in this role); each runs from the repo root with `nod
 - `.claude/rules/testing.md`: a test fails on the real defect and waits for conditions, and a preview file change runs the full suite.
 - Lessons L-0001, L-0015, L-0018 and L-0019 (`docs/LESSONS.md`).
 - ORV-80, the visual QA that found both defects, and ORV-137, POC mode (`.claude/skills/ovl/SKILL.md`).
+- Task ORV-84-build-1b (`.orivilo/runs/ORV-84/ORV-84-build-1b/result.json`): the builder's probe of the default route, and option A of its `needs_decision`, which v1.1 takes.
 
 ## Changelog
 
 - v1.0 (2026-10-30): first version, from the ORV-84 description as the envelope of task ORV-84-spec-1 gives it (no Jira tool in this role). Downstream to review: none yet; no tech notes, design or code exist for ORV-84.
+- v1.1 (2026-10-31): the default route of `hover-force-1` gains `rootSelector: "body"` on each parameter and one Storybook-only decorator in `preview.tsx` that emits `FORCE_RE_RENDER`, after task ORV-84-build-1b found the parameter alone shows no hover look in the storybook test project (its option A); Scope names that decorator beside `surface-padding-1` and states that it changes no recipe, token or component contract; open question 1 records the release check and option (c), and open question 9 is new. The acceptance criteria are unchanged. Downstream to review: the next builder task for ORV-84 (its write set and `done_when` cover the decorator), and the reviewer's read of the `preview.tsx` diff for row 3, which now holds two decorators. No tech notes, design or code exist yet.
