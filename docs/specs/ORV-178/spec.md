@@ -2,7 +2,7 @@
 issue: ORV-178 (https://tpetkaew.atlassian.net/browse/ORV-178)
 parent: ORV-160 (slice 7b, the second part of slice 7, "Network block and recordings")
 lane: L, inherited from ORV-160
-version: 1.0
+version: 1.1
 ---
 
 # ORV-178: ORV-160 slice 7b, the recorder run and the recorded replay
@@ -21,7 +21,7 @@ This file is the slice spec of L-0016: a slice issue gets its own spec. It adds 
 
 ## Parent spec and gates
 
-- Parent spec: `docs/specs/ORV-160/spec.md` v1.2 (changelog line "v1.2 (2026-10-30)").
+- Parent spec: `docs/specs/ORV-160/spec.md` v1.3 (changelog line "v1.3 (2026-10-30)").
 - G1 and G2: ORV-160 comment 10293, passed under the owner's delegation in POC mode (ADR 0012 decision 4, parent "Lane"). The same comment holds the owner's decision on who runs the recorder (parent open question 7), written in the parent as `orv160-recorder-run`. ORV-178 inherits G1 and G2; no new gate decision is needed for this slice. The confirmation before the run is not a gate: it is the step `orv160-recorder-run` names.
 - Decisions: the parent's "Depends on".
 - Review: the full review set (parent "Slices", item 7); `security` runs on this slice's PR as `orv160-security-dispatch` says.
@@ -110,7 +110,7 @@ The case count 9 and the run's cost are the parent's worked example "The run cos
 - **The source check** (row 35, the clause "R's own source text holds none of the recorded raw texts", and its mutation (2)). Input: two `raw` values in the shape of script line 123, one null and one a JSON answer in the schema's shape (hand-written, not a recording); a stand-in line of R's source; the same source with the second raw pasted as a double-quoted string literal. Counts, no rounding. It shows that a raw answer is JSON, so a pasted literal escapes its quotes and a plain search misses it (open question 2).
 
   ```bash
-  node -e 'const raws=[null,"{\"findings\":[],\"notUnderstood\":[]}"];const kept=raws.filter(r=>typeof r==="string");const clean="const file = JSON.parse(readFileSync(path, \"utf8\"));";const pasted=clean+"\nconst raw = "+JSON.stringify(kept[0])+";";const plain=s=>kept.filter(r=>s.includes(r)).length;const both=s=>kept.filter(r=>s.includes(r)||s.includes(JSON.stringify(r).slice(1,-1))).length;console.log(kept.length,plain(clean),both(clean),plain(pasted),both(pasted))'
+  node -e 'const raws=[null,"{\"findings\":[],\"notUnderstood\":[]}"];const kept=raws.filter(r=>typeof r==="string");const clean="const fixture = JSON.parse(await readText(FIXTURE_PATH));";const pasted=clean+"\nconst raw = "+JSON.stringify(kept[0])+";";const plain=s=>kept.filter(r=>s.includes(r)).length;const both=s=>kept.filter(r=>s.includes(r)||s.includes(JSON.stringify(r).slice(1,-1))).length;console.log(kept.length,plain(clean),both(clean),plain(pasted),both(pasted))'
   # expected:
   # 1 0 0 0 1
   ```
@@ -134,13 +134,14 @@ The parent's open questions and their defaults hold (parent "Open questions"); G
 | --- | --- | --- | --- | --- |
 | 1 | How does R replay an entry whose `raw` is null (the call threw before an answer reached the interpreter)? | (a) a fake model that throws, so the replayed outcome is `adapter-failed` (`interpreter.ts` line 126), compared with the recorded one like any entry; (b) R skips it and the PR body lists it | (a) keeps "each" over all 9 cases; (b) leaves a case unreplayed | (a) |
 | 2 | How does R's source check find a pasted recording? | (a) it searches its own source for each string `raw` and for that raw's JSON-escaped form (`JSON.stringify(raw)` without the outer quotes); (b) the raw text only | (b) misses a raw pasted as a double-quoted literal, the form mutation (2) names (worked example "The source check") | (a) |
-| 3 | How does R read the file, given the engine has no Node types (`packages/intent-engine/package.json` has no `@types/node`; G says so at `llm-guardrails.test.ts` lines 318 and 319)? | (a) add `@types/node` 25.9.9, the version `apps/web`, `auth`, `db` and `design-system` pin, to the engine's devDependencies and read with `readFileSync` as `orv160-recorder-output` says; (b) read it as G reads its own source, a `?raw` import, then `JSON.parse` | (a) adds one dependency line and lets Node globals typecheck in engine source, which AGENTS.md describes as "Pure TS, no framework imports", so only review keeps them out; (b) departs from the text of `orv160-recorder-output` and needs a parent changelog line | (a) |
+| 3 | How does R read the file, given the engine has no Node types (`packages/intent-engine/package.json` has no `@types/node`; G says so at `llm-guardrails.test.ts` lines 318 and 319)? | (a) add `@types/node` 25.9.9, the version `apps/web`, `auth`, `db` and `design-system` pin, to the engine's devDependencies and read with `readFileSync` as `orv160-recorder-output` said up to parent v1.2; (b) read it as G reads its own source, a `?raw` import, then `JSON.parse` | (a) adds one dependency line and lets Node globals typecheck in engine source, which AGENTS.md describes as "Pure TS, no framework imports", so only review keeps them out; (b) departs from the text of `orv160-recorder-output` up to parent v1.2 and needs a parent changelog line, added as parent v1.3 | Default (a); decided (b) by the main session (R lines 18 to 24), written into `orv160-recorder-output` by parent v1.3 |
 | 4 | What if the recorded file holds `sk-or-` or `Bearer` inside a model's raw answer, with no key leaked? | (a) R goes red as row 35 says; the builder stops, the file stays uncommitted, and the main session asks the owner (a rerun is a new spend); (b) edit the file | (b) is ruled out: nobody re-types a recording (`orv160-recorder-output`) | (a) |
 
 ## Depends on
 
-The parent spec `docs/specs/ORV-160/spec.md` v1.2 and its "Depends on"; ORV-160 comment 10293 (G1 and G2, and open question 7, written as `orv160-recorder-run`); ORV-177, its spec `docs/specs/ORV-177/spec.md` v1.0 and PR 160 (slice 7a, merged as c068371: the recorder script, P and the network block; its open question 1 default (a) places the run here); ORV-174 and PR 158 (slice 3, the hand-written outcomes in G); L-0016 (a slice issue gets its own spec); ADR 0012 (lane L G4 evidence).
+The parent spec `docs/specs/ORV-160/spec.md` v1.3 and its "Depends on"; ORV-160 comment 10293 (G1 and G2, and open question 7, written as `orv160-recorder-run`); ORV-177, its spec `docs/specs/ORV-177/spec.md` v1.0 and PR 160 (slice 7a, merged as c068371: the recorder script, P and the network block; its open question 1 default (a) places the run here); ORV-174 and PR 158 (slice 3, the hand-written outcomes in G); L-0016 (a slice issue gets its own spec); ADR 0012 (lane L G4 evidence).
 
 ## Changelog
 
 - v1.0 (2026-10-30): slice spec for ORV-178, ORV-160 slice 7b, from ORV-160 spec v1.2 (task ORV-178-spec-1). Row 35 copied with its number, columns and text unchanged, with the parent's file key R; the rules are pointers to the parent; the fixture shape is read from the merged recorder and P on `develop` c068371; the run is this slice's G4 evidence. No new requirement. Downstream to review: the ORV-178 Jira acceptance (row 35 and the run), the main session's confirmation question before the run (`orv160-recorder-run`), the slice's first builder envelope (fact `test -f docs/specs/ORV-178/spec.md`, L-0016, the statement of `orv160-recorder-output` and `orv160-recorder-key`, and open questions 1 to 4), the G4 packet, and the parent's "Slices" item 7, which still lists rows 34 to 37 and the run as one slice (ORV-177 open question 1).
+- v1.1 (2026-10-30): review ORV-178-review-1 on PR 161 head 8165200 (task ORV-178-spec-2). Per finding: **I1** contract change in the parent, none here: open question 3 was decided (b) by the main session, the `?raw` import then `JSON.parse` that R uses (lines 18 to 24), and the parent spec v1.3 rewrites `orv160-recorder-output` to match; the question 3 row records the decision, and the worked example "The source check" now uses a stand-in source line in R's `?raw` form (its expected output is unchanged). **S1** no contract change: the span count test depends on test order; a test fix in R, row 35's span clause is unchanged. **S2** no contract change: the recorded `row-5` failed at the call (`raw` null), not at the quote check G row 5 asserts, and the recorder keeps no failure detail; this is a note for the PR body and the G4 packet and an input for ORV-171 and the parent's later slices, not a requirement. No row text changes. Downstream to review: PR 161's body ("Decisions relied on" and the `row-5` note), the G4 packet, and this spec's "Parent spec and gates" and "Depends on", which still name parent v1.2.
