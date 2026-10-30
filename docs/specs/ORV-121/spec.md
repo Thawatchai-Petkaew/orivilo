@@ -127,6 +127,7 @@ node -e 'const read=2000*2+1000*10,cap=5_000_000,day=50*read;console.log(read,Ma
 - The cost estimate before an image round and its check against the remaining cap (ADR 0018 decision 4); that is the logo image story's, and it reads this story's sum.
 - Pruning or archiving usage records.
 - The client retry matrix (ORV-144); this story's outcomes carry the error fields and request id that ORV-141 and ORV-144 made. Classification tags for the new columns land with ORV-113's `classification.ts`, or with this story if that file exists by then.
+  - Note, 2026-10-30 (ORV-158, `orv158-rebase`): ORV-158 added `classification.ts` and carries the 8 `ai_usage` entries (`user_id` `personal`, every other column `internal`), as this line allowed.
 - Reconciling records with OpenRouter's own activity log.
 
 ## Open questions (option, impact, default)

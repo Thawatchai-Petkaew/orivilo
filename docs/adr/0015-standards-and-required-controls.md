@@ -154,6 +154,8 @@ Confirmation: not confirmed yet; follow-up: ORV-113, which adds the mask helper 
 
 Confirmation: not confirmed yet; follow-up: ORV-113, which adds `classification.ts`, with `pnpm typecheck` failing on an untagged column and a test that walks every exported table with `getTableColumns` and finds a tag for each.
 
+Addition, 2026-10-30 (ORV-158). The map exists at `packages/db/src/schema/classification.ts`, with one entry for every column of every exported table, `ai_usage` included. The type fixtures in `packages/db/src/schema/classification.fixtures.ts` make `pnpm typecheck` fail on each of the five defects of ORV-158 `orv158-type` (a column without an entry, an entry for a column the table does not have, a value outside the closed tag list, a table without an entry, an entry for a table that does not exist). `packages/db/src/schema/classification.test.ts` walks every exported table with `getTableColumns` and pins the `secret` and `personal` columns as sets. The Confirmation line above stays as the record of 2026-10-25. This confirms the tags only; masking (decision 8) is still not built.
+
 ### 10. 404, not 403
 
 A read or write of a resource outside the caller's workspace answers 404 with the same body as a resource that does not exist, so the answer does not show that it exists. 403 is only for a resource the caller can see but may not change (for example a role too low to edit).
@@ -208,6 +210,8 @@ Confirmation: `reviewer` and `security` read each PR for such a claim (AGENTS.md
 - **Error envelope, PDPA masking, classification tags, uploads, money:** named here, no code and no check (decisions 7 to 12, ORV-113).
 - **404 not 403:** `withWorkspace` answers 403 for a non-member today (decision 10, ORV-113).
 - **Privacy notice:** ADR 0009 requires it to name OpenRouter and each model host before real customers use AI features. Not written.
+
+Addition, 2026-10-30 (ORV-158). Classification tags now have code and checks (decision 9, the addition above). The bullet "Error envelope, PDPA masking, classification tags, uploads, money" keeps its other items as it states them: the error envelope, PDPA masking and uploads have no code, and money has its helper only for AI usage amounts (decision 12's addition).
 
 ## Consequences
 
