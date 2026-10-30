@@ -72,6 +72,7 @@ describe("referenceLine", () => {
   it.each([
     "BAD_REQUEST",
     "FORBIDDEN",
+    "NOT_FOUND",
     "RATE_LIMITED",
     "UPSTREAM_FAILED",
     "SERVICE_UNAVAILABLE",

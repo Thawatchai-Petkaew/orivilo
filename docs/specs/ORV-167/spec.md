@@ -2,7 +2,7 @@
 issue: ORV-167 (https://tpetkaew.atlassian.net/browse/ORV-167)
 parent: ORV-159 (docs/specs/ORV-159/spec.md v1.1)
 lane: L
-version: 1.0
+version: 1.1
 ---
 
 # ORV-167: the helper answers 404 for a workspace the caller is not in (ORV-159 slice 2)
@@ -48,7 +48,7 @@ The rows keep their ORV-159 numbers and their Check cells; rows 8 to 11 and 14 t
 Notes on the rows (no row above is changed by them):
 
 - **Row 12, the reviewed mutation.** Task ORV-159-review-1, finding S1 (Suggestion), ran row 12's mutation as written and found it reaches only the last AC 8 assertion: with line 16 alone set to `USING (true)`, `directions.integration.test.ts` goes red at line 192, while the read at line 173 stays `not-found`, because `service.read` inner-joins `direction` (`packages/auth/src/directions.ts` line 183), whose policy still holds. The mutation that reaches the clause "a foreign direction answers like a missing one" sets both policies, `0003_directions_access.sql` lines 12 and 16, to `USING (true)`; it goes red at line 173 ("promise resolved instead of rejecting"). The reviewer accepted the two-policy mutation as row 12's mutation and the builder's deviation that recorded it. QA records row 12 with three red runs: the two-policy mutation (red at the clause), the line 16 mutation of the row (red at line 192) and the earlier `deps.db` mutation (red at setup). The row's own text changes only in the parent spec and tech notes T4, in the slice 3 or slice 4 bookkeeping pass (S1: "Follow-up, does not block").
-- **Line numbers.** The rows' line numbers are the parent's, at `develop` `eeb2e71`. At PR 150's head `218271e` the `access.ts` throws of rows 1, 2, 3 and 5 sit at lines 57, 58, 64 and 65, and row 12's `actions.test.ts` `not-found` case is at line 546 (after PR 141, ORV-121), as task ORV-159-qa-1 recorded. QA finds each by its text.
+- **Line numbers.** The rows' line numbers are the parent's, at `develop` `eeb2e71`. The `access.ts` throws of rows 1, 2, 3 and 5 sit at lines 58, 59, 65 and 66 (`grep -n "throw new Denied" packages/auth/src/access.ts` on `develop` `7d04e4a`, review finding N1 of ORV-167), and row 12's `actions.test.ts` `not-found` case is at line 546 at PR 150's head `218271e` (after PR 141, ORV-121), as task ORV-159-qa-1 recorded. QA finds each by its text.
 - **Database evidence.** The integration tests of rows 3, 4, 5, 12 and 13 skip without `TEST_DATABASE_URL`; their evidence is a local run against Postgres (tech notes T7) and the CI run id on the PR head (parent "Slices", item 2).
 
 ## Rules and bounds
@@ -101,3 +101,4 @@ ORV-159 spec v1.1 (the parent: rules, worked examples, open questions 1 to 9, "S
 ## Changelog
 
 - v1.0 (2026-10-30): first spec, ORV-159 slice 2 as its own issue (task ORV-167-spec-1), written from ORV-159 spec v1.1 after task ORV-159-qa-1 finding QA-1. Rows 1 to 7, 12 and 13 copied word for word with their numbers and Check cells; no new requirement. The reviewed row 12 mutation (ORV-159-review-1 S1) is a note under the table, not a changed row. Downstream to review: the ORV-167 Jira acceptance (these rows), the fresh `qa` envelope on ORV-167 for PR 150, the first builder envelope for ORV-167 (fact `test -f docs/specs/ORV-167/spec.md`, L-0016), and the parent's "Slices" item 2 and tech notes section 7 task 1, which do not yet name ORV-167.
+- v1.1 (2026-10-30): "Notes on the rows", second bullet: the `access.ts` throw lines become 58, 59, 65 and 66, read on `develop` `7d04e4a` (review finding N1, task ORV-169-spec-1). No row changes. The parent's row 12 and tech notes T4 now carry the two-policy mutation of the first bullet (parent v1.2); row 12 here keeps the v1.1 text QA recorded. Downstream to review: none beyond the parent's v1.2 list.

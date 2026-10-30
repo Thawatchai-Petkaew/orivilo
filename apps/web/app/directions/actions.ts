@@ -49,6 +49,7 @@ import { spendCap } from "../../server/spend-cap";
 export type ActionError =
   | "signed-out"
   | "forbidden"
+  | "workspace-not-found"
   | "not-configured"
   | "failed"
   | "ai-failed"
@@ -160,6 +161,7 @@ function endingOf(outcome: Outcome<unknown>): Ending {
 const CODE_OF = {
   "signed-out": "UNAUTHENTICATED",
   forbidden: "FORBIDDEN",
+  "workspace-not-found": "NOT_FOUND",
   "not-found": "NOT_FOUND",
   "no-draft": "CONFLICT",
   "invalid-input": "INVALID_INPUT",
@@ -172,6 +174,13 @@ const CODE_OF = {
   "ai-not-configured": "INTERNAL_ERROR",
   "ai-failed": "UPSTREAM_FAILED",
 } satisfies Record<Failed["error"], ErrorCode>;
+
+/** orv159-boundary: a `Denied` maps by its status alone; a new status without a row fails `pnpm typecheck`. */
+const ERROR_OF_DENIED = {
+  401: "signed-out",
+  403: "forbidden",
+  404: "workspace-not-found",
+} as const satisfies Record<Denied["status"], Failed["error"]>;
 
 const ended = <T>(value: Outcome<T>): Ended<Outcome<T>> => ({ value, ending: endingOf(value) });
 
@@ -229,9 +238,7 @@ async function run<T>(
         value: await fn(service, h, session.session.activeOrganizationId),
       });
     } catch (error) {
-      if (error instanceof Denied) {
-        return ended(fail(error.status === 401 ? "signed-out" : "forbidden"));
-      }
+      if (error instanceof Denied) return ended(fail(ERROR_OF_DENIED[error.status]));
       if (error instanceof DirectionError) return ended(fail(error.reason));
       if (error instanceof MissingEnvError) return ended(fail("not-configured"));
       if (error instanceof AiFailed) {

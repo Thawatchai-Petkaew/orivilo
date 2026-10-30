@@ -149,6 +149,8 @@ const th = {
     errors: {
       "signed-out": "เซสชันหมดอายุ ลงชื่อเข้าใช้อีกครั้งแล้วลองใหม่",
       forbidden: "บัญชีนี้ไม่มีสิทธิ์ทำสิ่งนี้ในเวิร์กสเปซนี้",
+      "workspace-not-found":
+        "ไม่พบเวิร์กสเปซนี้ในบัญชีของคุณ ลงชื่อเข้าใช้อีกครั้งที่หน้าบัญชีเพื่อเปิดเวิร์กสเปซที่คุณเป็นสมาชิก",
       "not-configured": "ยังบันทึกทิศทางในสภาพแวดล้อมนี้ไม่ได้ เพราะยังไม่ได้ตั้งค่าฐานข้อมูล",
       "not-found": "ไม่พบทิศทางนี้ในเวิร์กสเปซของคุณ",
       "no-draft": "ไม่มีฉบับร่างให้อนุมัติ บันทึกฉบับร่างก่อน",
@@ -335,6 +337,8 @@ const en: WebMessages = {
     errors: {
       "signed-out": "Your session has ended. Sign in again and retry.",
       forbidden: "This account is not allowed to do this in this workspace.",
+      "workspace-not-found":
+        "This workspace was not found in your account. Sign in again on the Account page to open a workspace you belong to.",
       "not-configured":
         "Directions cannot be saved in this environment yet: the database is not set up.",
       "not-found": "This direction was not found in your workspace.",
