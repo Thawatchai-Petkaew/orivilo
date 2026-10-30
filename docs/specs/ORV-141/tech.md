@@ -88,8 +88,8 @@ export const STEP_OUTCOMES = {
 } as const; // orv141-outcomes
 export type Step = keyof typeof STEP_OUTCOMES;
 export const REASONS = [
-  /* orv141-reasons: the three interpretBrief failure kinds, "rate-limit",
-  "unexpected", "invalid-input", and every member of ActionError spelled out */
+  /* orv141-reasons: the three interpretBrief failure kinds, "rate-limit", "spend-cap"
+  (ORV-121), "unexpected", "invalid-input", and every member of ActionError spelled out */
 ] as const;
 export type Reason = (typeof REASONS)[number];
 export type Level = "info" | "warn" | "error";
@@ -211,10 +211,12 @@ Every entry in the spec's "The set this covers" calls `atBoundary` once with its
 - Inside the work, today's branches stay in today's order and return today's outcomes; each now also names its ending:
 
 <!-- prettier-ignore -->
-| Branch | Outcome returned (unchanged) | Ending |
+| Branch | Outcome returned (unchanged, but the two spend cap rows are new with ORV-121) | Ending |
 | --- | --- | --- |
 | Limiter answers unavailable (C2 removed) | `failed`, or `ai-failed` for `ai-read` | `error`, `unavailable`, `reason: "rate-limit"` |
 | Limiter answers limited | `RateLimited` | by `endingOf`: `warn`, `limited`, `reason` = its `error` |
+| Spend cap reached (ORV-121) | `SpendCapped` (`ai-spend-cap`) | by `endingOf`: `warn`, `limited`, `reason` = its `error` |
+| Spend cap sum unavailable (ORV-121) | `ai-failed` | `error`, `unavailable`, `reason: "spend-cap"` |
 | No session, `Denied`, `DirectionError` | `signed-out`, `forbidden`, the error's reason | by `endingOf`: `info`, `refused`, `reason` = its `error` |
 | `MissingEnvError` | `not-configured` | by `endingOf`: `error`, `failed`, `reason: "not-configured"` |
 | `AiFailed` (C4 removed) | `ai-failed` or `ai-not-configured` | `error`, `failed`, `reason` = the kind: `adapter-failed`, `invalid-output`, `evidence-mismatch`, or `ai-not-configured` |
