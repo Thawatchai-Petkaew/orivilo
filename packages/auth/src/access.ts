@@ -44,7 +44,8 @@ const rank = (role: string) => ROLES.indexOf(role as Role);
  * belongs to the workspace with at least `minRole`, then runs `fn` in a transaction scoped to
  * that workspace, so row security agrees with this check. Anything else is denied before any
  * workspace query runs. A workspace the person is not in answers 404, like one that does not
- * exist: the check reads only `member`, so it cannot tell the two apart. Never take the workspace or user id from the client as proof of access.
+ * exist: the check reads only `member`, so it cannot tell the two apart.
+ * Never take the workspace or user id from the client as proof of access.
  */
 export async function withWorkspace<T>(
   deps: AccessDeps,
