@@ -2,7 +2,7 @@
 issue: ORV-84 (https://tpetkaew.atlassian.net/browse/ORV-84)
 lane: M (design-system stories and the Storybook preview surface, found in the ORV-80 visual QA)
 mode: POC mode short spec (`.claude/skills/ovl/SKILL.md`, section "POC mode")
-version: 1.3
+version: 1.4
 ---
 
 # ORV-84: hover items without a pointer, focus rings and Thai marks inside the mode surface
@@ -129,7 +129,9 @@ None is run here (no shell in this role); each runs from the repo root with `nod
 
 ## Rows per PR
 
-- The one PR of Scope, branch `fix/ORV-84-story-hover-surface` into `develop`: rows 1, 2, 3, 4 and 5. No row waits for a later PR.
+- PR 164: rows 1, 2, 3, 4, 5
+
+PR 164 is the one PR of Scope, branch `fix/ORV-84-story-hover-surface` into `develop`. No row waits for a later PR.
 
 ## Out of scope
 
@@ -172,3 +174,4 @@ None is run here (no shell in this role); each runs from the repo root with `nod
 - v1.1 (2026-10-31): the default route of `hover-force-1` gains `rootSelector: "body"` on each parameter and one Storybook-only decorator in `preview.tsx` that emits `FORCE_RE_RENDER`, after task ORV-84-build-1b found the parameter alone shows no hover look in the storybook test project (its option A); Scope names that decorator beside `surface-padding-1` and states that it changes no recipe, token or component contract; open question 1 records the release check and option (c), and open question 9 is new. The acceptance criteria are unchanged. Downstream to review: the next builder task for ORV-84 (its write set and `done_when` cover the decorator), and the reviewer's read of the `preview.tsx` diff for row 3, which now holds two decorators. No tech notes, design or code exist yet.
 - v1.2 (2026-10-31): from the deviations of task ORV-84-build-2 (`.orivilo/runs/ORV-84/ORV-84-build-2/result.json`). `surface-padding-1` names the real test viewport, 1200 by 900 px from `@storybook/addon-vitest`, not the 414 px that v1.1 assumed, and bounds the 360 px column at both 1200 px and 414 px, the two widths the builder measured; worked example 1 takes both widths and expects `4 16 false true 1168 360 382 360`. `hover-items-1` records as in scope the Card grid move to `sm:grid-cols-2` and the CanvasNode default node as the first of 4 nodes, with its single `row()` call and the selected check against the default node. Section Rows per PR is new. The acceptance criteria are unchanged in meaning. Downstream to review: the reviewer's and qa's read of rows 3 and 1 against commit 47327ba on `fix/ORV-84-story-hover-surface` (the builder's measurement already covers both widths), and the designer's screenshots of row 5, which now see 4 cards in two columns in Card `InteractionStates`. No tech notes or design exist for ORV-84.
 - v1.3 (2026-10-31): from deviation 1 of task ORV-84-build-r1 (`.orivilo/runs/ORV-84/ORV-84-build-r1/result.json`, L-0025). The default route of `hover-force-1` no longer has the addon apply the `pseudo-hover` class after a `FORCE_RE_RENDER` nudge: one Storybook-only decorator, `withPseudoHover`, emits `FORCE_RE_RENDER` once (the addon still rewrites the `:hover` rules) and adds the class to the `parameters.pseudo.hover` selectors itself, kept by a `MutationObserver`, because Storybook runs hook effects on `STORY_RENDERED`, which the UI emits after the play. Scope names the decorator and records the F2 fix of `design.md` row 1 (the CanvasEdge `EdgeBoard` height and the play assertion that the focused ring ends above the controls bar) for row 4; open questions 1 and 9 and Depends on follow. The acceptance criteria are unchanged in meaning. Downstream to review: the reviewer's read of the `preview.tsx` diff for row 3 and of `withPseudoHover` against `hover-force-1`, and qa's run of rows 1 and 2, on commit 684532f of `fix/ORV-84-story-hover-surface`; the designer's screenshots of row 5, where CanvasEdge `InteractionStates` now shows the taller board; `design.md` needs no change (row 1 is the source). No tech notes exist for ORV-84.
+- v1.4 (2026-10-31): section Rows per PR gives its list line in the form the result recorder reads (`- PR 164: rows 1, 2, 3, 4, 5`, `scripts/ovl/result-recorder.mjs`, which marks any other list line there as malformed), and the branch sentence moves after the list as prose. The rows of the PR and the acceptance criteria are unchanged. Downstream to review: the next recorder run of qa for ORV-84 against PR 164, which now reads the rows of the PR from this section. No tech notes exist for ORV-84.
