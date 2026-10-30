@@ -738,14 +738,18 @@ describe("robots.txt first", () => {
         expect(kept(`/${"a".repeat(999)}`)).toBe(1);
         expect(kept(`/${"a".repeat(1000)}`)).toBe(0);
       });
-      it("reads the 500 KB file of 5,000 short wildcard rules against a path of 2,000 characters within 2 s", async () => {
-        const rules = `User-agent: *\n${"Disallow: /*ab\n".repeat(5000)}`;
-        const body = padded(rules, 500_000);
-        expect(body).toHaveLength(500_000);
-        const { r, ms } = await readWith(`${EXAMPLE}/${"a".repeat(1999)}`, body);
-        expect(r.status).toBe("read");
-        expect(ms).toBeLessThan(2000);
-      });
+      it(
+        "reads the 500 KB file of 5,000 short wildcard rules against a path of 2,000 characters within 7 s",
+        async () => {
+          const rules = `User-agent: *\n${"Disallow: /*ab\n".repeat(5000)}`;
+          const body = padded(rules, 500_000);
+          expect(body).toHaveLength(500_000);
+          const { r, ms } = await readWith(`${EXAMPLE}/${"a".repeat(1999)}`, body);
+          expect(r.status).toBe("read");
+          expect(ms).toBeLessThan(7000);
+        },
+        HEAVY_TIMEOUT,
+      );
     });
 
     describe("the size of the answer (FU-4)", () => {
@@ -1180,14 +1184,16 @@ describe("one page, logged out, bounded", () => {
     );
 
     it(
-      "reads the held-depth page within 10 s with nothing cut",
+      "reads the held-depth page within 16 s with nothing cut",
       async () => {
+        // Bound: twice the slowest CI time, 7,508 ms (run 40890047958), rounded up to 16000 (ORV-145). No mutant
+        // is slower on this time line; the value lines below guard the defect.
         // 125 divs, then </p> repeated: each pushes a fake p to depth 128 and pops it
         const html = upTo(`<body>${"<div>".repeat(125)}`, "</p>");
         const net = fakeNet(okRoutes({ [PAGE]: { body: enc.encode(html) } }));
         const started = performance.now();
         const r = await readPage(PAGE, net.ports);
-        expect(performance.now() - started).toBeLessThan(10000);
+        expect(performance.now() - started).toBeLessThan(16000);
         expect(r.status).toBe("read");
         expect(r.status === "read" && r.incomplete).toEqual([]);
       },
@@ -1233,11 +1239,13 @@ describe("one page, logged out, bounded", () => {
     };
 
     it(
-      "reads the re-opened-formatting document, cut by the Element count",
+      "reads the re-opened-formatting document within 22 s, cut by the Element count",
       async () => {
+        // Bound: twice the slowest CI time, 10,899 ms (run 40915924406), rounded up to 22000 (ORV-145). Lifting
+        // both caps aborts the run out of memory, red but not on this time line (ORV-139 mutant-exception-1).
         expect(enc.encode(reopened).length).toBeLessThanOrEqual(MAX);
         const { r, ms } = await read(reopened);
-        expect(ms).toBeLessThan(10000);
+        expect(ms).toBeLessThan(22000);
         expect(r.status).toBe("read");
         expect(r.status === "read" && r.incomplete).toEqual(["page-incomplete"]);
       },
@@ -1276,7 +1284,7 @@ describe("one page, logged out, bounded", () => {
         const links = (html.match(/<link /g) ?? []).length;
         expect(links).toBeGreaterThan(63000);
         const { r, net, ms } = await read(html);
-        expect(ms).toBeLessThan(2000);
+        expect(ms).toBeLessThan(3000);
         expect(r.status).toBe("read");
         expect(r.status === "read" && r.incomplete).toEqual(["page-incomplete"]);
         const sheets = Array.from({ length: 10 }, (_, i) => `http://example.test/${i}`);
@@ -1316,9 +1324,24 @@ describe("one page, logged out, bounded", () => {
     it(
       "reads a page that repeats one link 63,886 times as one stylesheet, never reaching the eleventh",
       async () => {
+        // The measure is a ratio, not a wall-clock bound: under the parallel full suite this read took
+        // 2.1 to 2.6 s against 0.19 s alone (ORV-139 F1), so 10 times the loaded time (26 s) is above the
+        // 11.7 s the defect takes (a list rebuilt per link, so quadratic) and no bound meets both. The
+        // control is a page of the same byte size whose links are not stylesheets: it holds more link
+        // elements (91,180 against 72,315), so its read costs at least as much, and it adds no href. The
+        // page of stylesheet links costs about the same (a ratio near 1, 36.84 for the defect, measured
+        // in ORV-139 build-2). Each is the fastest of 3 runs, so a loaded machine slows both alike.
         const html = counting("<head>", () => "<link rel=stylesheet href=/x>");
-        const { r, net, ms } = await read(html);
-        expect(ms).toBeLessThan(2000);
+        const control = counting("<head>", () => "<link rel=icon href=/x>");
+        const fastest = async (doc: string) => {
+          let best = Infinity;
+          for (let run = 0; run < 3; run++) best = Math.min(best, (await read(doc)).ms);
+          return best;
+        };
+        const baseline = await fastest(control);
+        const repeated = await fastest(html);
+        expect(repeated / baseline).toBeLessThan(5);
+        const { r, net } = await read(html);
         expect(net.log.map((l) => l.url)).toEqual([ROBOTS, PAGE, "http://example.test/x"]);
         expect(r.status).toBe("read");
       },

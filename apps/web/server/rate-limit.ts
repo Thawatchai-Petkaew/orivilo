@@ -1,7 +1,20 @@
 import "server-only";
-import { clientIp, createRateLimiter, type RateLimiter } from "@orivilo/auth";
+import { clientIp, createRateLimiter, logStep, type RateLimiter } from "@orivilo/auth";
 import { requireEnv } from "@orivilo/db";
 import { appDb } from "@orivilo/db/client";
+
+/**
+ * One `rate-limit` step line per count (ORV-141 `orv141-step-lines`): the limit's name, the outcome
+ * and the time, with the open request's id and route. Never a key, an id or an IP. Better Auth's
+ * counts reach it too, under the limit name `auth-http`.
+ */
+export function logRateLimit(r: {
+  limit: string;
+  outcome: "allowed" | "limited" | "unavailable";
+  durationMs: number;
+}): void {
+  logStep({ step: "rate-limit", limit: r.limit, outcome: r.outcome, durationMs: r.durationMs });
+}
 
 let shared: RateLimiter | undefined;
 
@@ -9,17 +22,7 @@ let shared: RateLimiter | undefined;
 export function limiter(): RateLimiter {
   shared ??= createRateLimiter({
     db: appDb(),
-    // One line per call: the limit's name, the outcome and the time. Never a key, an id or an IP.
-    onResult: (r) =>
-      console.log(
-        JSON.stringify({
-          level: "info",
-          route: "rate-limit",
-          limit: r.limit,
-          outcome: r.outcome,
-          durationMs: Math.round(r.durationMs),
-        }),
-      ),
+    onResult: logRateLimit,
   });
   return shared;
 }

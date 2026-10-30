@@ -18,6 +18,7 @@ vi.mock("react", async (importOriginal) => {
 const labels = (m: typeof webMessages.en) => ({
   account: m.account,
   wait: m.wait,
+  failure: m.failure,
 });
 const render = (m: typeof webMessages.en, state: SignInState) => {
   refused.state = state;
@@ -43,7 +44,13 @@ describe("SignInForm", () => {
       "มีการลงชื่อเข้าใช้จากเครือข่ายนี้ถี่เกินไป ลองใหม่ได้ในอีก 3 นาที",
     ],
   ] as const)("shows the word and the wait line in %s, button enabled", (_l, m, word, line) => {
-    const html = render(m, { error: "rate-limited", retryAfter: 180 });
+    const html = render(m, {
+      error: "rate-limited",
+      code: "RATE_LIMITED",
+      requestId: "r1",
+      retryAfter: 180,
+      retryable: true,
+    });
     const status = statusOf(html);
     expect(text(status)).toContain(word);
     const paragraph = /<p class="[^"]*">(.*?)<\/p>/.exec(status);
@@ -59,7 +66,12 @@ describe("SignInForm", () => {
     ["en", webMessages.en, "Not done", "You cannot sign in right now. Try again."],
     ["th", webMessages.th, "ทำไม่สำเร็จ", "ตอนนี้ยังลงชื่อเข้าใช้ไม่ได้ ลองใหม่อีกครั้ง"],
   ] as const)("shows the failure word once, then the line, in %s", (l, m, word, line) => {
-    const html = render(m, { error: "failed" });
+    const html = render(m, {
+      error: "failed",
+      code: "SERVICE_UNAVAILABLE",
+      requestId: "r1",
+      retryable: true,
+    });
     const status = statusOf(html);
     expect(text(status)).toContain(word);
     expect(occurrences(text(status), word)).toBe(1);
@@ -87,7 +99,15 @@ describe("SignInForm", () => {
       "Too many sign-in attempts from this network. Try again in 7 minutes.",
     ],
   ] as const)("keeps the wait phrase together in %s", (_l, m, retry, full) => {
-    const status = statusOf(render(m, { error: "rate-limited", retryAfter: 420 }));
+    const status = statusOf(
+      render(m, {
+        error: "rate-limited",
+        code: "RATE_LIMITED",
+        requestId: "r1",
+        retryAfter: 420,
+        retryable: true,
+      }),
+    );
     const paragraph = /<p class="text-body-md text-pretty">(.*?)<\/p>/.exec(status)?.[1] ?? "";
     const spans = [...paragraph.matchAll(/<span class="inline-block">(.*?)<\/span>/g)];
     expect(spans).toHaveLength(1);
@@ -95,6 +115,36 @@ describe("SignInForm", () => {
     expect(text(paragraph)).toBe(full);
     // The reason, one plain space, then the span.
     expect(paragraph.endsWith(` <span class="inline-block">${retry}</span>`)).toBe(true);
+  });
+
+  // ORV-144 row 15 (person half): the reference line is a second paragraph in the same live region,
+  // for INTERNAL_ERROR only.
+  it.each([
+    ["en", webMessages.en, "You cannot sign in right now. Try again.", "Reference: req-77"],
+    ["th", webMessages.th, "ตอนนี้ยังลงชื่อเข้าใช้ไม่ได้ ลองใหม่อีกครั้ง", "รหัสอ้างอิง: req-77"],
+  ] as const)("shows the reference line after the failure line in %s", (_l, m, line, reference) => {
+    const status = statusOf(
+      render(m, { error: "failed", code: "INTERNAL_ERROR", requestId: "req-77", retryable: false }),
+    );
+    const paragraphs = [...status.matchAll(/<p class="[^"]*">(.*?)<\/p>/g)].map((p) =>
+      text(p[1] ?? ""),
+    );
+    expect(paragraphs).toEqual([line, reference]);
+  });
+
+  it.each([
+    ["SERVICE_UNAVAILABLE", "failed"],
+    ["RATE_LIMITED", "rate-limited"],
+  ] as const)("shows no reference line for %s", (code, error) => {
+    const state: SignInState =
+      error === "failed"
+        ? { error, code: "SERVICE_UNAVAILABLE", requestId: "req-77", retryable: true }
+        : { error, code: "RATE_LIMITED", requestId: "req-77", retryAfter: 60, retryable: true };
+    expect(code).toBe(state?.code);
+    const status = statusOf(render(webMessages.en, state));
+    expect(text(status)).not.toContain("Reference");
+    expect(text(status)).not.toContain("req-77");
+    expect(occurrences(status, "<p ")).toBe(1);
   });
 
   it("keeps the status region mounted and empty before any refusal", () => {
