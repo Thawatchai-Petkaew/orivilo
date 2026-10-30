@@ -50,9 +50,9 @@ Reading notes, no new requirement:
 
 The qa walk of a PR covers the rows its line names (ORV-138 rule `qa-scope-1`).
 
-- PR 166 (`feature/ORV-180-axe-scan`, the slice 3 PR): rows 5, 6, 7, 8, 9, 10
+- PR 166: rows 5, 6, 7, 8, 9, 10
 
-The same line is in the parent's "Rows per PR", as the parent's section says.
+PR 166 is the slice 3 PR, on branch `feature/ORV-180-axe-scan`. The same line is in the parent's "Rows per PR", as the parent's section says.
 
 ## Rules and bounds
 
@@ -100,4 +100,4 @@ The parent spec `docs/specs/ORV-161/spec.md` v1.3 and its "Depends on"; ORV-161 
 
 - v1.0 (2026-10-31): slice spec for ORV-180, ORV-161 slice 3, from ORV-161 spec v1.1 (task ORV-180-spec-1). Rows 5 to 10 copied with their numbers, columns and text unchanged; the rules are pointers to the parent; one open question on the time limits before slice 4. No new requirement. Downstream to review: the ORV-180 Jira acceptance (rows 5 to 10), the slice 3 builder envelope, the slice 3 PR body (the M1 to M9 `verified` rows and the `--list` count), and the parent's "Rows per PR", which gains the slice 3 line when the PR opens.
 - v1.1 (2026-10-31): follows parent v1.2 (task ORV-180-spec-2); no acceptance row changes meaning. "Parent spec and gates", "Files", names the home page backlog link fix in `apps/web/app/page.tsx` as part of this slice, pointing to the parent's "Slices", item 3; the parent version in "Parent spec and gates" and "Depends on" is v1.2. The M2, M3 and M7 red lines change in the parent's `orv161-mutants` only, which row 10's reading note points to. Downstream to review: the slice 3 builder envelope (its write set gains `apps/web/app/page.tsx`), the slice 3 PR body (the M2, M3 and M7 `verified` rows) and the reviewer's `DESIGN.md` section 11 walk for the change on `/`.
-- v1.2 (2026-10-31): follows parent v1.3 and names the PR (task ORV-180-spec-4, review ORV-180-review-1 findings R1-1 and R1-4); no acceptance row changes meaning. "Rows per PR" names PR 166 in place of "its number added when it opens", and the parent's "Rows per PR" gains the line "PR 166: rows 5, 6, 7, 8, 9, 10". The parent version in "Parent spec and gates" and "Depends on" is v1.3; the row 9 reading note counts v1.1 to v1.3 as adding no exception entry (parent v1.3 changes how an entry is applied, not the list). Downstream to review: the qa walk of PR 166 (`qa-scope-1` reads the new line) and the PR 166 body, if it cites the slice spec version.
+- v1.2 (2026-10-31): follows parent v1.3 and names the PR (task ORV-180-spec-4, review ORV-180-review-1 findings R1-1 and R1-4); no acceptance row changes meaning. "Rows per PR" names PR 166 in place of "its number added when it opens", and the parent's "Rows per PR" gains the line "PR 166: rows 5, 6, 7, 8, 9, 10". The parent version in "Parent spec and gates" and "Depends on" is v1.3; the row 9 reading note counts v1.1 to v1.3 as adding no exception entry (parent v1.3 changes how an entry is applied, not the list). Downstream to review: the qa walk of PR 166 (`qa-scope-1` reads the new line) and the PR 166 body, if it cites the slice spec version. Fix for qa finding ORV-180-qa-1-F2 (task ORV-180-spec-5): the "Rows per PR" list line reads "PR 166: rows 5, 6, 7, 8, 9, 10" with nothing before the colon, the form of the parent's "PR 163: rows 1, 2, 3, 4" that the recorder reads, and the branch name moves to the sentence after the list.
