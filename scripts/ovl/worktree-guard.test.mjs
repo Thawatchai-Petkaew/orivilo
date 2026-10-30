@@ -1,5 +1,6 @@
-// ORV-138 rows 24, 25, 50 and 51: worktree-guard rule switch-1 (a main-session branch switch while
-// an envelope is bound to that checkout, or its checkout is unknown), read by shell-1. Inputs come
+// ORV-138 rows 24, 25, 50, 51, 59 and 61: worktree-guard rule switch-1 (a main-session branch switch
+// while an envelope is bound to that checkout, or its checkout is unknown, or the call is one that
+// shell-1 cannot read), read by shell-1. Inputs come
 // from hook stdin recorded in Claude Code 2.1.282 (docs/specs/ORV-93/samples.md); a test never
 // feeds an invented shape.
 //
@@ -9,7 +10,8 @@
 // a group, `&`, `if`, `git --no-pager`, `env`, `command`, a variable prefix, `||` with `cd`); and
 // the text shapes around them: every segment separator (; && || | newline), quotes, backslashes,
 // upper case, git options -c and -C (also a quoted -C path with a space), and a checkout reached
-// through a link. "Branch forms to keep" are row 50 and "Unknown checkout forms" row 51.
+// through a link. "Branch forms to keep" are row 50, "Unknown checkout forms" row 51, "Unknown
+// call forms" row 59, and the records root (CLAUDE_PROJECT_DIR) row 61.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
@@ -17,6 +19,7 @@ import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSyn
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { fixture, heartbeatLines, makeRepo, seedTask, validEnvelope } from "./hook-test-kit.mjs";
+import { describeCause } from "./shell-words.mjs";
 import { judge } from "./worktree-guard.mjs";
 
 const git = (cwd, ...args) =>
@@ -57,10 +60,11 @@ function bash(cwd, command, agentId) {
   return input;
 }
 
-/** Runs the check in-process with CLAUDE_PROJECT_DIR set to `main`. */
-function call(main, input) {
+/** Runs the check in-process with CLAUDE_PROJECT_DIR set to `projectDir`, or unset when it is undefined. */
+function callWith(projectDir, input) {
   const before = process.env.CLAUDE_PROJECT_DIR;
-  process.env.CLAUDE_PROJECT_DIR = main;
+  if (projectDir === undefined) delete process.env.CLAUDE_PROJECT_DIR;
+  else process.env.CLAUDE_PROJECT_DIR = projectDir;
   try {
     return judge(JSON.stringify(input));
   } finally {
@@ -68,6 +72,9 @@ function call(main, input) {
     else process.env.CLAUDE_PROJECT_DIR = before;
   }
 }
+
+/** Runs the check in-process with CLAUDE_PROJECT_DIR set to `main`. */
+const call = (main, input) => callWith(main, input);
 
 const blocked = (r, ...patterns) => {
   assert.equal(r.code, 2, r.stderr);
@@ -223,12 +230,11 @@ test("ORV-138 row 25: other git commands stay allowed while an envelope is bound
 test("ORV-138 row 25: a switch form is blocked when the records or the checkout cannot be read, and other calls keep their verdict", () => {
   const { main, wt } = world();
   const outside = realpathSync(mkdtempSync(join(tmpdir(), "ovl-plain-")));
-  const gone = join(main, "gone");
-  // The checkout cannot be read: the call's cwd is outside a repo, is gone, or -C names a non-repo.
-  for (const cwd of [outside, gone]) {
-    blocked(call(main, bash(cwd, "git switch x")), /cannot be read/);
-    allowed(call(main, bash(cwd, "git status")));
-  }
+  // The checkout cannot be read: the call's cwd is outside a repo, or -C names a non-repo. (A cwd
+  // that is gone is no read failure since the records come from CLAUDE_PROJECT_DIR, RV2-5: see the
+  // next test.)
+  blocked(call(main, bash(outside, "git switch x")), /cannot be read/);
+  allowed(call(main, bash(outside, "git status")));
   blocked(call(main, bash(wt, `git -C ${outside} switch x`)), /cannot be read/);
   allowed(call(main, bash(wt, `git -C ${outside} status`)));
   // The records cannot be read: an envelope.json that is not JSON.
@@ -240,6 +246,21 @@ test("ORV-138 row 25: a switch form is blocked when the records or the checkout 
   allowed(call(main, bash(wt, "git status")));
   // A subagent is still not judged by switch-1 there.
   allowed(call(main, bash(wt, "git switch x", "asub1")));
+});
+
+test("ORV-138 row 25: a call cwd that is gone is an unknown checkout, blocked only while an envelope is bound (RV2-5)", () => {
+  const { main } = world();
+  const gone = join(main, "gone");
+  // The records are read from CLAUDE_PROJECT_DIR, so a cwd that is gone no longer fails the read:
+  // the effective cwd is unknown (shell-1 (e)) and switch-1 (c) judges it like any unknown checkout.
+  allowed(call(main, bash(gone, "git switch x")));
+  allowed(call(main, bash(gone, "git status")));
+  bind(main, main, "ORV-1-main");
+  const result = call(main, bash(gone, "git switch x"));
+  blocked(result, /checkout is unknown/, /ORV-1-main/);
+  assert.doesNotMatch(result.stderr, /cannot be read/);
+  allowed(call(main, bash(gone, "git status")));
+  allowed(call(main, bash(gone, "git switch x", "asub1")));
 });
 
 /** `world()` and a second, unbound worktree `.claude/worktrees/u`. */
@@ -274,6 +295,28 @@ test("ORV-138 row 24: the probed switch forms are blocked, each with an envelope
   }
 });
 
+test("ORV-138 row 24: the v1.4 probed forms (comments, here-documents, arithmetic, runners) are blocked while an envelope is bound", () => {
+  const { main, wt } = world();
+  bind(main, wt, "ORV-1-bound");
+  for (const command of [
+    // RV2-1, sec-F5 (1), shell-1 (a): a quote in a comment opens nothing, the next line is live.
+    "git status # don't\ngit switch x",
+    "# switch back, it's done\ngit switch x",
+    // sec-F5 (4), shell-1 (f), H8: a `$'EOF'` delimiter is the plain word EOF.
+    "cat <<$'EOF'\nx\nEOF\ngit switch x",
+    // sec-F5 (3), shell-1 (f), H3: a line inside the substitution that the operator opens is live.
+    "cat <<'EOF' $(\ngit switch x\n)\nx\nEOF",
+    // RV2-2, shell-1 (a), H17: `<<` in arithmetic is a shift, not a here-document.
+    "(( n = 1 << 2 ))\ngit switch x",
+    // RV2-4, sec-F6, shell-1 (d): the runner is skipped, git is the command.
+    "nice git switch x",
+    "stdbuf -o0 git switch x",
+    "/usr/bin/time git switch x",
+  ]) {
+    blocked(call(main, bash(wt, command)), /ORV-1-bound/);
+  }
+});
+
 test("ORV-138 row 24: a switch form inside a substitution is found and one inside a quoted word is not", () => {
   const { main, wt } = world();
   bind(main, wt, "ORV-1-bound");
@@ -286,10 +329,13 @@ test("ORV-138 row 24: a switch form inside a substitution is found and one insid
 test("ORV-138 row 50: the branch forms to keep are allowed while an envelope is bound to the main checkout", () => {
   const { main, wt, u } = worldWithOther();
   bind(main, main, "ORV-1-main");
-  // The three forms of "Branch forms to keep", from a cwd in the main checkout.
+  // The forms of "Branch forms to keep", from a cwd in the main checkout.
   allowed(call(main, bash(main, `cd ${u} && git switch x`)));
   allowed(call(main, bash(main, `git -C ${u} switch x`)));
   allowed(call(main, bash(main, `git -C ${u} add checkout`)));
+  // v1.4, shell-1 (a): the switch is inside a comment and does not run; without the comment it is blocked.
+  allowed(call(main, bash(main, "git status # ; git switch x")));
+  blocked(call(main, bash(main, "git status ; git switch x")), /ORV-1-main/);
   // A relative -C path is resolved against the cwd.
   allowed(call(main, bash(main, "git -C .claude/worktrees/u switch x")));
   // switch-1 (b): each -C is applied in order, against the folder before it.
@@ -362,4 +408,127 @@ test("ORV-138 row 51: with no bound envelope each unknown checkout form is allow
     envelope: validEnvelope(main, { task_id: "ORV-1-unbound" }),
   });
   allowed(call(main, bash(u, "cd - && git switch x")));
+});
+
+/** Each form of "Unknown call forms" (unknown-1) with the cause shell-1 gives; NL is a newline. */
+const UNKNOWN_CALLS = [
+  ["C6", "x=`echo a # `\necho b`"],
+  ["C7", "histchars='!^%'\necho % it's\ngit status"],
+  ["H4", "x=$(cat <<'EOF')\ngit status\nEOF"],
+  ["H5", "x=`cat <<'EOF'`\ngit status\nEOF"],
+  ["H8", "cat <<$'E\\x4fF'\nx\nEOF"],
+  ["H9", 'cat <<$"EOF"\nx\nEOF'],
+  ["H11", "cat <<`EOF`\nx\n`EOF`"],
+  ["H12", "cat <<E\\\nOF\nx\nEOF"],
+  ["H13", "cat <<EOF\nEO\\\nF\ngit status"],
+  ["S2", 'echo `echo "a` b"'],
+  ["S3", "echo $((cd /tmp; git status) )"],
+  ["S4", "((git status) )"],
+  ["S11", "ls a(b|c)"],
+  ["S11", "print *(e:'git status':)"],
+  ["runner:env", "env -S 'git status'"],
+  ["runner:flock", "flock /tmp/orv.lock -c 'git status'"],
+  ["runner:sudo", "sudo -s git status"],
+  ["runner:sudo", "sudo -i git status"],
+  ["runner:sudo", "sudo -h git status"],
+  ["runner:script", "script -c 'git status' /tmp/t"],
+  ["runner:script", "script -t /tmp/t"],
+  ["runner:watch", "watch git status"],
+  ["runner:watch", "watch -x git status"],
+  ["runner:parallel", "parallel git status ::: a"],
+  ["runner:pnpm exec", "pnpm exec -c 'git status'"],
+  ["runner:npx", "npx -c 'git status'"],
+  ["runner:chrt", "chrt git status"],
+  ["runner:prlimit", "prlimit -n 5 git status"],
+  ["runner:prlimit", "prlimit --nofile git status"],
+  ["runner:nice", "nice -z git status"],
+  ["runner:nice", "nice $N git status"],
+  ["length", `echo ${"a".repeat(199996)}`],
+];
+
+test("ORV-138 row 59: switch-1 (d) blocks each unknown call form while an envelope is bound to any checkout, says the call could not be read and names the task ids", () => {
+  const { main, u } = worldWithOther();
+  bind(main, main, "ORV-1-main");
+  for (const [cause, form] of UNKNOWN_CALLS) {
+    // From a cwd in the checkout the envelope is bound to, and from one in another checkout.
+    for (const cwd of [main, u]) {
+      const result = call(main, bash(cwd, form));
+      blocked(result, /the call could not be read/, /ORV-1-main/);
+      assert.ok(result.stderr.includes(describeCause(cause)), `${cause}: ${result.stderr}`);
+    }
+  }
+});
+
+test("ORV-138 row 59: switch-1 (d) names every bound task id, and judges a call that holds no switch", () => {
+  const { main, wt } = world();
+  bind(main, wt, "ORV-1-one");
+  bind(main, main, "ORV-1-two");
+  blocked(call(main, bash(main, "watch git status")), /ORV-1-one/, /ORV-1-two/);
+});
+
+test("ORV-138 row 59: with no bound envelope each unknown call form is allowed", () => {
+  const { main, u } = worldWithOther();
+  for (const [, form] of UNKNOWN_CALLS) allowed(call(main, bash(u, form)));
+  // An envelope that is closed, finished or not bound does not count as bound.
+  const report = {
+    contract: "implementer.v1",
+    recorded_at: "2026-10-24T10:00:00.000Z",
+    report: {},
+  };
+  bind(main, main, "ORV-1-done", { result: report });
+  bind(main, main, "ORV-1-closed", {
+    closed: { reason: "no_report", closed_at: "2026-10-24T10:00:00Z" },
+  });
+  seedTask(main, "ORV-1", "ORV-1-unbound", {
+    envelope: validEnvelope(main, { task_id: "ORV-1-unbound" }),
+  });
+  for (const [, form] of UNKNOWN_CALLS) allowed(call(main, bash(u, form)));
+});
+
+test("ORV-138 row 59: a subagent's unknown call is not judged by switch-1", () => {
+  const { main, u } = worldWithOther();
+  bind(main, main);
+  for (const [, form] of UNKNOWN_CALLS) allowed(call(main, bash(u, form, "asub1")));
+});
+
+test("ORV-138 row 59: when the records cannot be read an unknown call is blocked as a switch form is, and a call that can be read keeps its verdict", () => {
+  const { main, wt } = world();
+  const dir = join(main, ".orivilo", "runs", "ORV-1", "ORV-1-bad");
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, "envelope.json"), "{ not json");
+  for (const [, form] of UNKNOWN_CALLS) {
+    blocked(call(main, bash(wt, form)), /the call could not be read/, /cannot be read/);
+  }
+  allowed(call(main, bash(wt, "git status")));
+});
+
+test("ORV-138 row 61: switch-1 reads the records of CLAUDE_PROJECT_DIR, so a cwd left in a second repository hides no bound envelope (RV2-5)", () => {
+  const { main } = world();
+  bind(main, main, "ORV-1-main");
+  const other = makeRepo();
+  blocked(call(main, bash(other, `cd ${main} && git switch x`)), /ORV-1-main/);
+  // A switch in the second repository's own checkout is none of the bound envelope's.
+  allowed(call(main, bash(other, "git switch x")));
+});
+
+test("ORV-138 row 61: with CLAUDE_PROJECT_DIR unset the records come from the call's cwd", () => {
+  const { main, wt } = world();
+  bind(main, wt, "ORV-1-bound");
+  // Each form of "Branch switch forms" (the row 24 list) is blocked with the variable unset too.
+  for (const command of FORMS(wt)) {
+    blocked(callWith(undefined, bash(wt, command)), /ORV-1-bound/);
+  }
+  blocked(callWith(undefined, bash(main, `git -C ${wt} switch x`)), /ORV-1-bound/);
+  // From a cwd in a second repository the records are that repository's own.
+  const other = makeRepo();
+  allowed(callWith(undefined, bash(other, `cd ${wt} && git switch x`)));
+  bind(other, other, "ORV-1-other");
+  blocked(callWith(undefined, bash(other, "git switch x")), /ORV-1-other/);
+});
+
+test("ORV-138 row 61: a CLAUDE_PROJECT_DIR that is no repository leaves the records unreadable: a switch form is blocked and other calls keep their verdict", () => {
+  const { wt } = world();
+  const plain = realpathSync(mkdtempSync(join(tmpdir(), "ovl-plain-")));
+  blocked(callWith(plain, bash(wt, "git switch x")), /cannot be read/);
+  allowed(callWith(plain, bash(wt, "git status")));
 });

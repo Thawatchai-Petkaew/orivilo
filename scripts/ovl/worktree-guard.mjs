@@ -5,23 +5,26 @@
 // subagent whose command text, with quote and backslash characters removed and lowercased, holds
 // both "worktree" and "remove" (or "prune") is blocked. That verdict is fixed before any checkout
 // is looked up and never depends on one, and so is every verdict except a main-session branch
-// switch (switch-1 below), so the guard can never lock a session out of Bash; only the heartbeat
-// resolves the records folder.
+// switch or a call that shell-1 cannot read (switch-1 below), so the guard can never lock a
+// session out of Bash; only the heartbeat resolves the records folder.
 // The heartbeat is written only when the call's cwd belongs to this project's repo (the same main
 // checkout as CLAUDE_PROJECT_DIR); a cwd in any other repo gets no .orivilo, and the verdict is
 // the same either way.
 //
 // Rule switch-1 (ORV-138, ORV-130, L-0032) is the second check, for the main session: a branch switch
 // form is blocked while an open envelope is bound to the checkout the call runs in, or while any
-// envelope is bound and the checkout is unknown. The call is read by scripts/ovl/shell-words.mjs
+// envelope is bound and the checkout is unknown; a call that shell-1 marks unknown (unknown-1) is
+// blocked while any envelope is bound (clause (d)). The call is read by scripts/ovl/shell-words.mjs
 // (shell-1), the one reader of Bash text for the guards: this file splits and unquotes nothing
-// itself. A switch form fails closed: when the records or the checkout cannot be read, it is
-// blocked, and every other call keeps the verdict it had.
+// itself. The envelopes are read from the records of CLAUDE_PROJECT_DIR when it is set, else of the
+// call's cwd, as write-guard reads them (RV2-5). A switch form or an unknown call fails closed: when
+// the records or the checkout cannot be read, it is blocked, and every other call keeps the verdict
+// it had.
 import { readFileSync, realpathSync, writeSync } from "node:fs";
 import { resolve } from "node:path";
 import { beat, gitTop, recordsRoot } from "./hook.mjs";
 import { allTasks, isOpen } from "./records.mjs";
-import { readShell } from "./shell-words.mjs";
+import { describeCause, readShell } from "./shell-words.mjs";
 
 const MESSAGE =
   "a subagent must not remove or prune a worktree: the hooks live in it and stop working. " +
@@ -80,14 +83,27 @@ export function switchForms(segments) {
  * Rule switch-1 for one main-session call: the reason to block, or undefined. A switch form is
  * blocked when an open bound envelope (agent.json, no result.json, no closed.json) has the checkout
  * the form runs in as its worktree; when its checkout is unknown while any envelope is bound; and
- * when the records or the checkout cannot be read.
+ * when the records or the checkout cannot be read. A call that shell-1 marks unknown (unknown-1) is
+ * blocked while any envelope is bound, whatever its segments, and when the records cannot be read
+ * (clause (d)); no segment of such a call is judged. The records are those of CLAUDE_PROJECT_DIR
+ * when it is set, else of the call's cwd (RV2-5).
  */
 function switchBlock(command, cwd) {
-  const forms = switchForms(readShell(command, { cwd }).segments);
-  if (forms.length === 0) return undefined;
+  const read = readShell(command, { cwd });
+  const forms = read.unknown ? [] : switchForms(read.segments);
+  if (!read.unknown && forms.length === 0) return undefined;
+  const causes = read.causes.map(describeCause).join("; ");
   try {
-    const store = recordsRoot(cwd);
+    const store = recordsRoot(process.env.CLAUDE_PROJECT_DIR || cwd);
     const bound = allTasks(store).filter((t) => isOpen(t) && t.agent !== undefined);
+    if (read.unknown) {
+      if (bound.length === 0) return undefined;
+      return (
+        `the call could not be read (rule unknown-1: ${causes}) while envelope ` +
+        `${bound.map((t) => t.id).join(", ")} is bound: a branch switch could hide in it. ` +
+        "Split it into simpler calls"
+      );
+    }
     for (const { folders, unknown } of forms) {
       if (unknown) {
         if (bound.length === 0) continue;
@@ -117,7 +133,9 @@ function switchBlock(command, cwd) {
     }
     return undefined;
   } catch (error) {
-    return `a branch switch is blocked because the records or the checkout cannot be read (the checkout is unknown): ${error.message}`;
+    return read.unknown
+      ? `the call could not be read (rule unknown-1: ${causes}) and the records cannot be read, so it is blocked: ${error.message}`
+      : `a branch switch is blocked because the records or the checkout cannot be read (the checkout is unknown): ${error.message}`;
   }
 }
 

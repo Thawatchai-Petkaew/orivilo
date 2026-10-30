@@ -10,13 +10,15 @@
 // made absolute and resolved through realpath, lowercased. Bash is judged two ways, neither a sandbox:
 // a text rule (quotes and backslashes removed, lowercased) for a protected name the text spells out, and
 // rule resolve-1 (ORV-138 spec) for the write targets that scripts/ovl/shell-words.mjs (shell-1) reads
-// from the call. Every non-zero exit is 2; anything unexpected fails closed.
+// from the call. A call that shell-1 cannot read (unknown-1) is blocked, and the text rule does not read
+// the body of a quoted-delimiter here-document, which is text and runs nothing (resolve-1 (f), (g)).
+// Every non-zero exit is 2; anything unexpected fails closed.
 // stderr and the heartbeat never hold file content or a whole command (the heartbeat is beat()'s six fields).
 import { existsSync, lstatSync, readFileSync, realpathSync, writeSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { beat, recordsRoot } from "./hook.mjs";
 import { allTasks, isOpen } from "./records.mjs";
-import { readShell } from "./shell-words.mjs";
+import { describeCause, readShell } from "./shell-words.mjs";
 
 const PATH_FIELD = {
   Write: "file_path",
@@ -545,40 +547,69 @@ function segmentTargets(segment) {
 
 /**
  * resolve-1: true when a write target of the call reaches a protected set of `sets`. The targets are
- * the redirect targets and the path arguments of a write program, read by shell-words.
+ * the redirect targets and the path arguments of a write program, read by shell-words (`segments`).
  */
-function writesProtectedPath(input, command, sets) {
-  const { segments } = readShell(command, { cwd: input.cwd });
+function writesProtectedPath(input, segments, sets) {
   const ctx = context(input);
   return segments.some((segment) =>
     segmentTargets(segment).some(({ word, folders }) => targetHits(word, folders, ctx, sets)),
   );
 }
 
+/**
+ * The call without the bodies of its quoted-delimiter here-documents (`bodies`: the places shell-1
+ * (f) found, in text order and none inside another). A body is literal text that nothing runs, so
+ * the text rules must not read it (resolve-1 (f), RV2-3); resolve-1 still judges every write target
+ * of the call.
+ */
+function withoutBodies(command, bodies) {
+  let out = "";
+  let at = 0;
+  for (const { start, end } of bodies) {
+    out += command.slice(at, start);
+    at = end;
+  }
+  return out + command.slice(at);
+}
+
 const OWNER_CLOSE =
   "the owner's close runs only from the owner's own terminal, outside Claude Code";
 const MAIN_ONLY_CLOSE = "only the main session closes an envelope";
 const HIDDEN = "a protected path through an expansion, a cd or the working directory";
+/** resolve-1 (g): a call shell-1 marks unknown is blocked, and the reason names its causes. */
+const unreadable = (causes) =>
+  `the call could not be read (rule unknown-1): ${causes.map(describeCause).join("; ")}. ` +
+  "The guard blocks what it cannot read; split the call into simpler ones";
 
 function judgeBash(input, command) {
-  const text = command.replace(/["'\\]/g, "").toLowerCase();
+  const whole = command.replace(/["'\\]/g, "").toLowerCase();
   const subagent = input.agent_id != null;
-  const closes = new RegExp(`${BEFORE}node\\s+\\S*close-envelope\\.mjs`).test(text);
-  if (closes && text.includes("--owner")) return [OWNER_CLOSE];
+  const closes = new RegExp(`${BEFORE}node\\s+\\S*close-envelope\\.mjs`).test(whole);
+  if (closes && whole.includes("--owner")) return [OWNER_CLOSE];
   if (closes && subagent) return [MAIN_ONLY_CLOSE];
+  const read = readShell(command, { cwd: input.cwd });
+  // resolve-1 (f): the literal-name rule and the ORV-93 text rule read the call without the body of
+  // a quoted-delimiter here-document.
+  const code = withoutBodies(command, read.heredocBodies);
+  const text = code.replace(/["'\\]/g, "").toLowerCase();
   const sets = subagent ? ["guard file", "record"] : Object.keys(TEXT_PREFIXES);
   const names = named(text, sets);
-  let list = names.map(([set, prefix]) => `${set} ${prefix}`).join(", ");
   if (subagent && names.length > 0) {
-    // The screenshot exception comes before resolve-1 is read (resolve-1 (f)); then the ORV-93 text rule.
+    // The screenshot exception comes before resolve-1 is read (resolve-1 (f)).
     const folder = ownScreenshots(input, context(input));
     if (folder && isOwnScreenshotWrite(text, folder)) return [];
-    if (!hasWriteForm(text, blankQuoted(command).toLowerCase())) {
-      if (!writesProtectedPath(input, command, sets)) return [];
+  }
+  // resolve-1 (g): after the close rules and the screenshot exception, before any target is judged.
+  if (read.unknown) return [unreadable(read.causes)];
+  let list = names.map(([set, prefix]) => `${set} ${prefix}`).join(", ");
+  if (subagent && names.length > 0) {
+    // Then the ORV-93 text rule.
+    if (!hasWriteForm(text, blankQuoted(code).toLowerCase())) {
+      if (!writesProtectedPath(input, read.segments, sets)) return [];
       list = HIDDEN;
     }
   } else if (names.length === 0) {
-    if (!writesProtectedPath(input, command, sets)) return [];
+    if (!writesProtectedPath(input, read.segments, sets)) return [];
     list = HIDDEN;
   }
   if (subagent) {

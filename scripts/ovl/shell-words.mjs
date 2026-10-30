@@ -25,7 +25,8 @@
 //   substitutions  the "$(", "`", "<(", ">(", "=(", "${" opened outside single quotes and escapes
 //   heredocBodies  [{ start, end }] the place in the text of each here-document body with a quoted
 //                  delimiter (literal text, no segment comes from it; clause (f), resolve-1 (f)): the
-//                  first character of the body to the start of its delimiter line (or the text end)
+//                  first character of the body to the start of its delimiter line (or the text end);
+//                  in text order, none inside another
 //   unknown        true when the call holds a form of unknown-1 (clause (h)); neither guard judges
 //                  its segments
 //   causes         why, in the order found: "length", "C6", "C7", "H4", "H5", "H8", "H9", "H11",

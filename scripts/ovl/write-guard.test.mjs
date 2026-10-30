@@ -25,6 +25,7 @@ import {
   seedTask,
   validEnvelope,
 } from "./hook-test-kit.mjs";
+import { describeCause } from "./shell-words.mjs";
 import { judge } from "./write-guard.mjs";
 
 const SUB = "asub1";
@@ -1004,8 +1005,10 @@ test("ORV-138 row 28: the forms of 'Write-guard forms to catch' added in v1.2 ar
   blockedByResolve(main, "printf x > scripts/x/../ovl/a.mjs");
   // sec-F1: a here-document as a path part.
   blockedByResolve(main, `printf x > "$(cat <<"EOF"\n.oriv\nEOF\n)ilo/owner-approvals/7.json"`);
-  // shell-1 (a), (b), (e) and resolve-1 (a), (c).
-  blockedByResolve(main, "git status # ; printf x > .oriv?lo/owner-approvals/7.json");
+  // shell-1 (a), (b), (e) and resolve-1 (a), (c). v1.4: a comment ends at its newline, so the write
+  // stands on the next line (v1.2 to v1.3 had `git status # ;` before the write on the same line,
+  // which the shell does not run).
+  blockedByResolve(main, "git status # it's\nprintf x > .oriv?lo/owner-approvals/7.json");
   blockedByResolve(main, "printf x > $'\\x2eorivilo/owner-approvals/7.json'");
   blockedByResolve(main, "printf x > >(cat > .oriv?lo/owner-approvals/7.json)");
   blockedByResolve(main, "false && cd /tmp; printf x > settings.json", join(main, ".claude"));
@@ -1204,4 +1207,190 @@ test("ORV-138 row 49: resolve-1 (f) leaves the screenshot exception and the olde
   blocked(call(main, bash(main, `/usr/bin/tee ${own}/a.txt`, "aqa")));
   // A read that names a record stays allowed.
   allowed(call(main, bash(main, `ls ${own}`, "aqa")));
+});
+
+// ---- ORV-138 rows 28, 58 and 60 (v1.4): resolve-1 (g) blocks an unknown call, (f) skips a quoted body ----
+
+/** The call is blocked because shell-1 could not read it (resolve-1 (g)), as the main session and as a subagent. */
+function blockedUnknown(main, command, cause, cwd = main) {
+  for (const agentId of [undefined, SUB]) {
+    const result = call(main, bash(cwd, command, agentId));
+    blocked(result, /the call could not be read/);
+    assert.ok(result.stderr.includes(describeCause(cause)), `${cause}: ${result.stderr}`);
+  }
+}
+
+test("ORV-138 row 28: the round 1 re-check forms of 'Write-guard forms to catch' (v1.4) are blocked, as the main session and as a subagent", () => {
+  const { main } = world();
+  const f5 = OWNER_FORM("owner-approvals");
+  for (const form of [
+    // RV2-1, sec-F5 (1): a quote in a comment opens no quote, so the write on the next line is live.
+    `true # it's done\n${f5}`,
+    `# the "owner\n${f5}`,
+    // RV2-2: a shift inside (( )) opens no here-document.
+    `(( n = 1 << 2 ))\n${f5}`,
+    // sec-F5 (3): a here-document pending across the newline of a $( ).
+    `cat <<'EOF' $(\n${f5}\n)\nx\nEOF`,
+    // sec-F5 (4): a $'...' delimiter.
+    `cat <<$'EOF'\nx\nEOF\n${f5}`,
+    // RV2-4 and sec-F6: a runner before the write program.
+    "nice cp /dev/null .oriv?lo/owner-approvals/",
+    "caffeinate -i cp /dev/null .oriv?lo/owner-approvals/",
+    "/usr/bin/time cp /dev/null .oriv?lo/owner-approvals/",
+    "cd .oriv?lo/owner-approvals && nice tee 7.json",
+    "cd .oriv?lo/owner-approvals && nice cp /tmp/a 7.json",
+    "cd .oriv?lo/owner-approvals && stdbuf -o0 tee 7.json",
+    "cd .oriv?lo/owner-approvals && /usr/bin/time cp /tmp/a 7.json",
+  ]) {
+    blockedByResolve(main, form);
+  }
+  // RV2-2, sec-F5 (2): a here-document in a substitution that closes on its own line makes the call
+  // unknown (unknown-1, H4 and H5), and resolve-1 (g) blocks it.
+  blockedUnknown(main, `x=$(cat <<'EOF')\n${f5}\nEOF`, "H4");
+  blockedUnknown(main, `x=\`cat <<'EOF'\`\n${f5}\nEOF`, "H5");
+});
+
+/** Each form of "Unknown call forms" (unknown-1) with the cause shell-1 gives; NL is a newline. */
+const UNKNOWN_CALLS = [
+  ["C6", "x=`echo a # `\necho b`"],
+  ["C7", "histchars='!^%'\necho % it's\ngit status"],
+  ["H4", "x=$(cat <<'EOF')\ngit status\nEOF"],
+  ["H5", "x=`cat <<'EOF'`\ngit status\nEOF"],
+  ["H8", "cat <<$'E\\x4fF'\nx\nEOF"],
+  ["H9", 'cat <<$"EOF"\nx\nEOF'],
+  ["H11", "cat <<`EOF`\nx\n`EOF`"],
+  ["H12", "cat <<E\\\nOF\nx\nEOF"],
+  ["H13", "cat <<EOF\nEO\\\nF\ngit status"],
+  ["S2", 'echo `echo "a` b"'],
+  ["S3", "echo $((cd /tmp; git status) )"],
+  ["S4", "((git status) )"],
+  ["S11", "ls a(b|c)"],
+  ["S11", "print *(e:'git status':)"],
+  ["runner:env", "env -S 'git status'"],
+  ["runner:flock", "flock /tmp/orv.lock -c 'git status'"],
+  ["runner:sudo", "sudo -s git status"],
+  ["runner:sudo", "sudo -i git status"],
+  ["runner:sudo", "sudo -h git status"],
+  ["runner:script", "script -c 'git status' /tmp/t"],
+  ["runner:script", "script -t /tmp/t"],
+  ["runner:watch", "watch git status"],
+  ["runner:watch", "watch -x git status"],
+  ["runner:parallel", "parallel git status ::: a"],
+  ["runner:pnpm exec", "pnpm exec -c 'git status'"],
+  ["runner:npx", "npx -c 'git status'"],
+  ["runner:chrt", "chrt git status"],
+  ["runner:prlimit", "prlimit -n 5 git status"],
+  ["runner:prlimit", "prlimit --nofile git status"],
+  ["runner:nice", "nice -z git status"],
+  ["runner:nice", "nice $N git status"],
+  ["length", `echo ${"a".repeat(199996)}`],
+];
+
+// The forms are harmless commands, so the block comes from the reading alone.
+let unknownWorld;
+for (const [cause, form] of UNKNOWN_CALLS) {
+  test(`ORV-138 row 58: resolve-1 (g) blocks ${cause} ${JSON.stringify(form.length > 60 ? form.slice(0, 20) : form)} as the main session and as a subagent, and says the call could not be read`, () => {
+    unknownWorld ??= world();
+    blockedUnknown(unknownWorld.main, form, cause);
+  });
+}
+
+test("ORV-138 row 58: resolve-1 (g) comes after the close rules and the screenshot exception, and before any target is judged", () => {
+  const { main } = world();
+  // The close rules read the call first, whatever shell-1 makes of it.
+  blocked(
+    call(main, bash(main, "histchars=x node scripts/ovl/close-envelope.mjs ORV-1-a --owner")),
+    /owner's own terminal/,
+  );
+  blocked(
+    call(main, bash(main, "histchars=x node scripts/ovl/close-envelope.mjs ORV-1-a", SUB)),
+    /only the main session closes/,
+  );
+  // The screenshot exception allows a qa's copy of its own PNG although the call is unknown (S11);
+  // the same copy into another task's folder is blocked, as an unknown call.
+  bindShooter(main, "qa", "ORV-1-qa-1", "aqa");
+  allowed(call(main, bash(main, `cp /tmp/a(b).png ${shots(main, "ORV-1-qa-1")}/a.png`, "aqa")));
+  const result = call(
+    main,
+    bash(main, `cp /tmp/a(b).png ${shots(main, "ORV-1-other")}/a.png`, "aqa"),
+  );
+  blocked(result, /the call could not be read/);
+  assert.ok(result.stderr.includes(describeCause("S11")), result.stderr);
+  // No target is judged first: the call names no protected path and no write program.
+  const harmless = call(main, bash(main, "ls a(b)", SUB));
+  blocked(harmless, /the call could not be read/);
+  assert.doesNotMatch(harmless.stderr, /a write form names/);
+});
+
+const REPORT_BODY =
+  '{"file": "scripts/ovl/write-guard.mjs", "ref": ".orivilo/runs/ORV-138/x/result.json"}';
+
+test("ORV-138 row 60: a subagent writes a report from a quoted here-document whose body names a guard path and a record path, and validates it (RV2-3)", () => {
+  const { main } = world();
+  const out = outside(main);
+  for (const delimiter of ["'EOF'", '"EOF"', "\\EOF", 'E"O"F']) {
+    allowed(
+      call(
+        main,
+        bash(main, `cat > ${out}/orv-report.json <<${delimiter}\n${REPORT_BODY}\nEOF`, SUB),
+      ),
+    );
+  }
+  allowed(
+    call(main, bash(main, `node scripts/ovl/validate.mjs reviewer.v1 ${out}/orv-report.json`, SUB)),
+  );
+});
+
+test("ORV-138 row 60: the same report with an unquoted delimiter is blocked as a subagent, and so is a body that names a record for the main session", () => {
+  const { main } = world();
+  const out = outside(main);
+  const unquoted = `cat > ${out}/orv-report.json <<EOF\n${REPORT_BODY}\nEOF`;
+  blocked(call(main, bash(main, unquoted, SUB)), /a write form names/);
+  blocked(call(main, bash(main, unquoted)), /the command names/);
+});
+
+test("ORV-138 row 60: a here-document that writes into a record is blocked as the main session and as a subagent", () => {
+  const { main } = world();
+  const form = "cat > .orivilo/x.json <<'EOF'\n{}\nEOF";
+  blocked(call(main, bash(main, form)));
+  blocked(call(main, bash(main, form, SUB)));
+  // The opener line and what runs after the delimiter line are read as before.
+  for (const hidden of [
+    "cat <<'EOF' > .oriv?lo/x.json\n{}\nEOF",
+    "cat > /tmp/orv-x.json <<'EOF'\n{}\nEOF\nrm .orivilo/x",
+    "cat > /tmp/orv-x.json <<'EOF'\n{}\nEOF\nrm .oriv?lo/x",
+  ]) {
+    blocked(call(main, bash(main, hidden)));
+    blocked(call(main, bash(main, hidden, SUB)));
+  }
+});
+
+test("ORV-138 row 60: as the main session, a quoted here-document body that names a record write is text, not a write", () => {
+  const { main } = world();
+  const out = outside(main);
+  const note = `cat > ${out}/orv-note.md <<'EOF'\nprintf x > .orivilo/owner-approvals/7.json\nEOF`;
+  allowed(call(main, bash(main, note)));
+  allowed(call(main, bash(main, note, SUB)));
+  // A tab-indented delimiter ends a <<- body; the body is text there too.
+  allowed(call(main, bash(main, `cat > ${out}/orv-note.md <<-'EOF'\n\trm .orivilo/x\n\tEOF`)));
+});
+
+test("ORV-138 row 60: every quoted here-document body of a call is skipped by the text rules, not only the first", () => {
+  const { main } = world();
+  const out = outside(main);
+  const two = `cat > ${out}/a.md <<'A'; cat > ${out}/b.md <<'B'\n${REPORT_BODY}\nA\n${REPORT_BODY}\nB`;
+  allowed(call(main, bash(main, two)));
+  allowed(call(main, bash(main, two, SUB)));
+  // A body after an unquoted delimiter is still read, whichever place it takes in the call.
+  const mixed = `cat > ${out}/a.md <<'A'; cat > ${out}/b.md <<B\n${REPORT_BODY}\nA\n${REPORT_BODY}\nB`;
+  blocked(call(main, bash(main, mixed)), /the command names/);
+  blocked(call(main, bash(main, mixed, SUB)), /a write form names/);
+});
+
+test("ORV-138 row 60: a quoted here-document body that holds a > or a write command is no write form for the subagent text rule", () => {
+  const { main } = world();
+  // The call names a guard path outside its body, so the ORV-93 text rule reads it.
+  const piped = `node scripts/ovl/validate.mjs reviewer.v1 /dev/stdin <<'EOF'\n{"note": "a"}\nwhen a > b\ncp x y\nEOF`;
+  allowed(call(main, bash(main, piped, SUB)));
+  blocked(call(main, bash(main, piped.replace("<<'EOF'", "<<EOF"), SUB)), /a write form names/);
 });
