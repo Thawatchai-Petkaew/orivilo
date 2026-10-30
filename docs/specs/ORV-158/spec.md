@@ -2,7 +2,7 @@
 issue: ORV-158 (https://tpetkaew.atlassian.net/browse/ORV-158)
 parent: ORV-113 (item 4)
 lane: L
-version: 1.0
+version: 1.1
 ---
 
 # ORV-158: the field classification map (ORV-113 item 4)
@@ -51,7 +51,7 @@ As the person who runs ORIVILO, I want every database column to carry one decide
 | 13 | The walk's fixture input for W4 | The walk compares | Operator: exactly W4's problem, naming `table.column` | None | `classification.test.ts`, one case for W4 |
 | 14 | The walk's fixture input for W5 | The walk compares | Operator: exactly W5's problem, naming `table.column` | None | `classification.test.ts`, one case for W5 |
 | 15 | `TAGS` | The test reads it | Operator: equal to `orv158-closed`; with a fifth value added (mutation), red; restored, green | None | `classification.test.ts`, "the tag list is the closed list" |
-| 16 | `CLASSIFICATION` | The pins of `orv158-pins` are compared | Operator: equal; with `session.token` retagged `internal`, red; with `account.accountId` retagged `internal`, red; restored, green | None | `classification.test.ts`, "pins the secret and personal columns" and "keeps decision 9's examples" |
+| 16 | `CLASSIFICATION` | The pins of `orv158-pins` are compared | Operator: equal; with `session.token` retagged `internal`, red; with `account.accountId` retagged `internal`, red; with `organization.metadata` retagged `internal`, red; restored, green | None | `classification.test.ts`, "pins the secret and personal columns" and "keeps decision 9's examples" |
 | 17 | `@orivilo/db` | A module imports `CLASSIFICATION`, `TAGS` and `Tag` from the package root, and the test reads the schema barrel's keys | Operator: the import compiles; the barrel holds no classification export (`orv158-export`) | `client.ts`, `drizzle.config.ts`, `schema/index.ts` and `package.json` unchanged | `classification.test.ts`, "the schema barrel does not carry the map"; `git diff --stat` on the four files is empty |
 | 18 | PR 141 (ORV-121, the `ai_usage` table) and this story's code PR, in either order | The second one rebases on `develop` | Operator: as `orv158-rebase` says for that order | None | The second PR's `pnpm typecheck` and `classification.test.ts` run, quoted in its G3 packet |
 | 19 | The code PR | It is diffed against `develop` | Operator: as `orv158-no-migration` says | No schema or data change | `git diff --stat origin/develop... -- packages/db/migrations packages/db/src/schema/auth.ts packages/db/src/schema/workspace.ts packages/db/src/schema/direction.ts packages/db/src/schema/rate-limit.ts` is empty; `pnpm --filter @orivilo/db generate` writes no file |
@@ -70,19 +70,24 @@ As the person who runs ORIVILO, I want every database column to carry one decide
   | `person` | A value that names, contacts, locates, pictures or identifies a person or their device | `personal` | personal data |
   | `user-ref` | A user id: the `user` table's own key or a column that holds one, so it points at one person (ORV-121 tech notes line 105) | `personal` | personal data |
   | `hashed-subject` | A keyed hash of a client IP, or a user id (ORV-112 tech notes line 149) | `personal` | personal data |
-  | `free-text` | Text a person writes with no limit on what it says, kept with a model's reading of it | `personal` | AI content |
+  | `free-text` | Text or a JSON record a person writes with no limit on what it holds: a brief kept with a model's reading of it, or a record with no named purpose and no shape (`orv158-hold`) | `personal` | AI content for the brief a model reads; personal data for a record no model reads |
   | `credential` | A value that grants access or completes a sign-in step | `secret` | secret or token |
   | `workspace-key` | A workspace id | `internal` | workspace key |
   | `row-key` | A row's own random id, or a reference to a row that is not a person | `internal` | plain |
   | `label` | A short name a person gives a workspace item | `internal` | plain |
   | `amount` | A money amount or its currency code | `internal` | money |
-  | `record` | A time, state, role, count, provider name, scope, fingerprint, job or model name, or a workspace's slug, logo or metadata | `internal` | plain |
+  | `record` | A time, state, role, count, provider name, scope, fingerprint, job or model name, or a workspace's slug or logo (`orv158-hold`) | `internal` | plain |
 
   In `classification.ts` each column's entry is one line that ends with a comment naming its basis, so this count over the file gives the number of columns (80 at `eeb2e71`, 88 once `ai_usage` is in):
 
   ```bash
   grep -cE '^[[:space:]]+[A-Za-z]+: "(public|internal|personal|secret)", // (person|user-ref|hashed-subject|free-text|credential|workspace-key|row-key|label|amount|record)$' packages/db/src/schema/classification.ts
   ```
+
+- **orv158-hold.** A column is tagged by what its write paths can put in it, not by what today's rows hold, and when two paths give different tags the more guarded one wins (`personal` over `internal`). A write path is any code that writes the column: this repo's (the sign-up hook, `packages/auth/src/config.ts` line 62), a Better Auth plugin's own store whether enabled or not, and a Better Auth endpoint a signed-in person can call. The organization endpoints are such paths: `organizationPlugin()` is set up with no options (`config.ts` line 43), `apps/web/app/api/auth/[...all]/route.ts` passes every `/api/auth` path to Better Auth, and in Better Auth 1.7.12 (`better-auth/dist/plugins/organization/routes/crud-org.mjs`) `/organization/create` takes `slug` as any string of at least one character (line 14), `logo` as any string (line 16) and `metadata` as `z.record(z.string(), z.any())` (line 17), and `/organization/update` takes the same three (lines 162 to 164). Three cases:
+  - Code that writes a person's data into the column gives `person`: `organization.name` (the sign-up hook), `verification.identifier` (the email OTP plugin; open question 8).
+  - A person who fills a field with a named purpose (a workspace item's name, URL key or image URL) gives that purpose's basis, `label` or `record`; a person who types their own name or picture into such a field is the masking item's question (open question 3): `project.name`, `direction.name`, `organization.slug`, `organization.logo`.
+  - A person who writes a value with no named purpose and no shape gives `free-text`: `organization.metadata`.
 
 - **orv158-tags.** The tag and basis of every column of the 11 tables at `develop` `eeb2e71`, read from `auth.ts` (7 tables, 54 columns), `direction.ts` (2, 17), `workspace.ts` (1, 5) and `rate-limit.ts` (1, 4). The latest Drizzle snapshot, `packages/db/migrations/meta/0005_snapshot.json`, lists the same 11 tables and 80 columns (`grep -c '"primaryKey":'` gives 80).
 
@@ -119,17 +124,17 @@ As the person who runs ORIVILO, I want every database column to carry one decide
   | `account` | `createdAt` (`created_at`) | internal | record | |
   | `account` | `updatedAt` (`updated_at`) | internal | record | |
   | `verification` | `id` | internal | row-key | |
-  | `verification` | `identifier` | personal | person | By what it can hold: Better Auth's email OTP plugin puts the email in it (`better-auth/dist/plugins/email-otp/routes.mjs` line 142); not enabled today (open question 8) |
+  | `verification` | `identifier` | personal | person | First case of `orv158-hold`: Better Auth's email OTP plugin puts the email in it (`better-auth/dist/plugins/email-otp/routes.mjs` line 142); not enabled today (open question 8) |
   | `verification` | `value` | secret | credential | Better Auth stores the OAuth state with its code verifier here (`better-auth/dist/state.mjs` lines 79 to 84) |
   | `verification` | `expiresAt` (`expires_at`) | internal | record | |
   | `verification` | `createdAt` (`created_at`) | internal | record | |
   | `verification` | `updatedAt` (`updated_at`) | internal | record | |
   | `organization` | `id` | internal | workspace-key | |
   | `organization` | `name` | personal | person | The sign-up hook names the first workspace after the person (see below) |
-  | `organization` | `slug` | internal | record | Made from the id (`config.ts` line 23) |
-  | `organization` | `logo` | internal | record | |
+  | `organization` | `slug` | internal | record | A URL key: the sign-up hook writes `ws-` and the first 12 characters of the id (`config.ts` lines 23 and 62), and a signed-in person can send any slug to Better Auth's organization create and update endpoints; second case of `orv158-hold` |
+  | `organization` | `logo` | internal | record | An image URL for the workspace: the sign-up hook writes none, and a signed-in person can send any string to Better Auth's organization create and update endpoints; second case of `orv158-hold` |
   | `organization` | `createdAt` (`created_at`) | internal | record | |
-  | `organization` | `metadata` | internal | record | |
+  | `organization` | `metadata` | personal | free-text | Any JSON record a signed-in person sends to Better Auth's organization create and update endpoints, stored as text (`auth.ts` line 84); third case of `orv158-hold`; one tag for the whole value |
   | `member` | `id` | internal | row-key | |
   | `member` | `organizationId` (`organization_id`) | internal | workspace-key | |
   | `member` | `userId` (`user_id`) | personal | user-ref | |
@@ -170,7 +175,7 @@ As the person who runs ORIVILO, I want every database column to carry one decide
   | `rateLimitCounter` | `windowEnd` (`window_end`) | internal | record | |
   | `rateLimitCounter` | `count` | internal | record | |
 
-  `organization.name`: Better Auth's user create hook names the auto-created workspace `user.name || user.email` (`packages/auth/src/config.ts` line 62), so the column can hold a person's name or email address.
+  `organization.name`: Better Auth's user create hook names the auto-created workspace `user.name || user.email` (`packages/auth/src/config.ts` line 62), so the column can hold a person's name or email address (first case of `orv158-hold`).
 
   The 8 columns of `ai_usage` (PR 141, ORV-121 tech notes section 2), which join the map by `orv158-rebase`. They agree with ORV-121 tech notes line 105 (`user_id` personal, every other column internal):
 
@@ -204,7 +209,7 @@ As the person who runs ORIVILO, I want every database column to carry one decide
 
   On the real inputs the list is empty. On one fixture input per clause (an in-test table or map with that one defect) the list is exactly that clause's problem. The walk covers at run time what `orv158-type` covers at compile time, because a cast or an `any` can silence a type.
 
-- **orv158-pins.** The test pins the two sets whose loss would leak data: the `table.column` keys tagged `secret` and those tagged `personal` each equal, as sets, the rows of `orv158-tags` with that tag (6 and 20 at `eeb2e71`; 6 and 21 once `ai_usage` is in). It also checks decision 9's examples one by one: `user.email`, `user.name` and `session.ipAddress` are `personal`; `session.token`, `account.accessToken`, `account.refreshToken` and `account.idToken` are `secret`.
+- **orv158-pins.** The test pins the two sets whose loss would leak data: the `table.column` keys tagged `secret` and those tagged `personal` each equal, as sets, the rows of `orv158-tags` with that tag (6 and 21 at `eeb2e71`; 6 and 22 once `ai_usage` is in). It also checks decision 9's examples one by one: `user.email`, `user.name` and `session.ipAddress` are `personal`; `session.token`, `account.accessToken`, `account.refreshToken` and `account.idToken` are `secret`.
 - **orv158-export.** `classification.ts` sits at the path decision 9 names but is not re-exported by `schema/index.ts`, so the drizzle `schema` object of `client.ts` and the input of `drizzle.config.ts` stay tables and relations only, and `classification.ts` can read the barrel's types without an import cycle. The package root, `packages/db/src/index.ts`, gains one line exporting `CLASSIFICATION`, `TAGS` and `Tag` for the masking item to consume. No new subpath in `package.json` (open question 4).
 - **orv158-rebase.** PR 141 (ORV-121, `feature/ORV-121-ai-spend-cap`) adds `ai_usage` and is not merged. Whichever PR lands second adds or reconciles the 8 `ai_usage` entries:
   - If PR 141 lands first, this story's code PR rebases on it and carries the 8 entries with the tags and basis of the `ai_usage` table above, and `orv158-pins`' personal set gains `aiUsage.userId`.
@@ -222,14 +227,14 @@ Each line is copied from its source and was not run in this task (no shell); the
 - **The counts** (`orv158-tags`, `orv158-basis`, `orv158-pins`; rows 1, 2 and 16). Input: the column keys of `auth.ts`, `direction.ts`, `workspace.ts` and `rate-limit.ts` at `eeb2e71`, and of `ai-usage.ts` in ORV-121 tech notes section 2, with the tag and basis of `orv158-tags`. Counts are whole numbers; no rounding. `mismatch` counts entries whose tag is not their basis's tag.
 
   ```bash
-  node -e 'const TAGS=["public","internal","personal","secret"];const B={person:"personal","user-ref":"personal","hashed-subject":"personal","free-text":"personal",credential:"secret","workspace-key":"internal","row-key":"internal",label:"internal",amount:"internal",record:"internal"};const M={user:{id:"personal user-ref",name:"personal person",email:"personal person",emailVerified:"internal record",image:"personal person",createdAt:"internal record",updatedAt:"internal record"},session:{id:"internal row-key",expiresAt:"internal record",token:"secret credential",createdAt:"internal record",updatedAt:"internal record",ipAddress:"personal person",userAgent:"personal person",userId:"personal user-ref",activeOrganizationId:"internal workspace-key"},account:{id:"internal row-key",accountId:"personal person",providerId:"internal record",userId:"personal user-ref",accessToken:"secret credential",refreshToken:"secret credential",idToken:"secret credential",accessTokenExpiresAt:"internal record",refreshTokenExpiresAt:"internal record",scope:"internal record",password:"secret credential",createdAt:"internal record",updatedAt:"internal record"},verification:{id:"internal row-key",identifier:"personal person",value:"secret credential",expiresAt:"internal record",createdAt:"internal record",updatedAt:"internal record"},organization:{id:"internal workspace-key",name:"personal person",slug:"internal record",logo:"internal record",createdAt:"internal record",metadata:"internal record"},member:{id:"internal row-key",organizationId:"internal workspace-key",userId:"personal user-ref",role:"internal record",createdAt:"internal record"},invitation:{id:"internal row-key",organizationId:"internal workspace-key",email:"personal person",role:"internal record",status:"internal record",expiresAt:"internal record",createdAt:"internal record",inviterId:"personal user-ref"},project:{id:"internal row-key",workspaceId:"internal workspace-key",name:"internal label",createdBy:"personal user-ref",createdAt:"internal record"},direction:{id:"internal row-key",workspaceId:"internal workspace-key",name:"internal label",createdBy:"personal user-ref",createdAt:"internal record",updatedAt:"internal record"},directionVersion:{id:"internal row-key",directionId:"internal row-key",workspaceId:"internal workspace-key",status:"internal record",number:"internal record",snapshot:"personal free-text",fingerprint:"internal record",createdBy:"personal user-ref",createdAt:"internal record",approvedBy:"personal user-ref",approvedAt:"internal record"},rateLimitCounter:{key:"personal hashed-subject",windowStart:"internal record",windowEnd:"internal record",count:"internal record"}};const A={aiUsage:{id:"internal row-key",workspaceId:"internal workspace-key",userId:"personal user-ref",job:"internal record",model:"internal record",costMicroUsd:"internal amount",currency:"internal amount",createdAt:"internal record"}};const run=(m)=>{const e=Object.values(m).flatMap((t)=>Object.values(t));const tc=Object.fromEntries(TAGS.map((t)=>[t,0]));const bc=Object.fromEntries(Object.keys(B).map((b)=>[b,0]));let bad=0;for(const v of e){const [t,b]=v.split(" ");tc[t]++;bc[b]++;if(B[b]!==t)bad++}return [Object.keys(m).length+" "+e.length,JSON.stringify(tc),JSON.stringify(bc),"mismatch "+bad]};console.log(run(M).join("\n"));console.log(run({...M,...A}).slice(0,2).join("\n"))'
+  node -e 'const TAGS=["public","internal","personal","secret"];const B={person:"personal","user-ref":"personal","hashed-subject":"personal","free-text":"personal",credential:"secret","workspace-key":"internal","row-key":"internal",label:"internal",amount:"internal",record:"internal"};const M={user:{id:"personal user-ref",name:"personal person",email:"personal person",emailVerified:"internal record",image:"personal person",createdAt:"internal record",updatedAt:"internal record"},session:{id:"internal row-key",expiresAt:"internal record",token:"secret credential",createdAt:"internal record",updatedAt:"internal record",ipAddress:"personal person",userAgent:"personal person",userId:"personal user-ref",activeOrganizationId:"internal workspace-key"},account:{id:"internal row-key",accountId:"personal person",providerId:"internal record",userId:"personal user-ref",accessToken:"secret credential",refreshToken:"secret credential",idToken:"secret credential",accessTokenExpiresAt:"internal record",refreshTokenExpiresAt:"internal record",scope:"internal record",password:"secret credential",createdAt:"internal record",updatedAt:"internal record"},verification:{id:"internal row-key",identifier:"personal person",value:"secret credential",expiresAt:"internal record",createdAt:"internal record",updatedAt:"internal record"},organization:{id:"internal workspace-key",name:"personal person",slug:"internal record",logo:"internal record",createdAt:"internal record",metadata:"personal free-text"},member:{id:"internal row-key",organizationId:"internal workspace-key",userId:"personal user-ref",role:"internal record",createdAt:"internal record"},invitation:{id:"internal row-key",organizationId:"internal workspace-key",email:"personal person",role:"internal record",status:"internal record",expiresAt:"internal record",createdAt:"internal record",inviterId:"personal user-ref"},project:{id:"internal row-key",workspaceId:"internal workspace-key",name:"internal label",createdBy:"personal user-ref",createdAt:"internal record"},direction:{id:"internal row-key",workspaceId:"internal workspace-key",name:"internal label",createdBy:"personal user-ref",createdAt:"internal record",updatedAt:"internal record"},directionVersion:{id:"internal row-key",directionId:"internal row-key",workspaceId:"internal workspace-key",status:"internal record",number:"internal record",snapshot:"personal free-text",fingerprint:"internal record",createdBy:"personal user-ref",createdAt:"internal record",approvedBy:"personal user-ref",approvedAt:"internal record"},rateLimitCounter:{key:"personal hashed-subject",windowStart:"internal record",windowEnd:"internal record",count:"internal record"}};const A={aiUsage:{id:"internal row-key",workspaceId:"internal workspace-key",userId:"personal user-ref",job:"internal record",model:"internal record",costMicroUsd:"internal amount",currency:"internal amount",createdAt:"internal record"}};const run=(m)=>{const e=Object.values(m).flatMap((t)=>Object.values(t));const tc=Object.fromEntries(TAGS.map((t)=>[t,0]));const bc=Object.fromEntries(Object.keys(B).map((b)=>[b,0]));let bad=0;for(const v of e){const [t,b]=v.split(" ");tc[t]++;bc[b]++;if(B[b]!==t)bad++}return [Object.keys(m).length+" "+e.length,JSON.stringify(tc),JSON.stringify(bc),"mismatch "+bad]};console.log(run(M).join("\n"));console.log(run({...M,...A}).slice(0,2).join("\n"))'
   # expected:
   # 11 80
-  # {"public":0,"internal":54,"personal":20,"secret":6}
-  # {"person":9,"user-ref":9,"hashed-subject":1,"free-text":1,"credential":6,"workspace-key":7,"row-key":9,"label":2,"amount":0,"record":36}
+  # {"public":0,"internal":53,"personal":21,"secret":6}
+  # {"person":9,"user-ref":9,"hashed-subject":1,"free-text":2,"credential":6,"workspace-key":7,"row-key":9,"label":2,"amount":0,"record":35}
   # mismatch 0
   # 12 88
-  # {"public":0,"internal":61,"personal":21,"secret":6}
+  # {"public":0,"internal":60,"personal":22,"secret":6}
   ```
 
 - **The walk** (`orv158-walk`, rows 1 and 10 to 14). Input: the 4 column keys of `rateLimitCounter` in `rate-limit.ts` lines 11 to 14 with their tags from `orv158-tags`, then one defect per clause. No rounding.
@@ -257,6 +262,19 @@ Each line is copied from its source and was not run in this task (no shell); the
   # false
   ```
 
+- **The write paths** (`orv158-hold`; the `organization.slug`, `logo` and `metadata` rows of `orv158-tags`, row 16). Input: each column's write paths with the source line each is copied from (`config.ts` lines 23 and 62; `crud-org.mjs` lines 13, 14, 16 and 17; the email OTP plugin's `routes.mjs` line 142). A path that writes a person's data gives `person`, one with a named purpose gives that purpose's basis, any other gives `free-text`; the more guarded tag wins. No rounding.
+
+  ```bash
+  node -e 'const B={person:"personal","free-text":"personal",label:"internal",record:"internal"};const rank={internal:1,personal:2};const hold=(paths)=>paths.map((p)=>p.personData?"person":p.purpose?p.basis:"free-text").map((b)=>[b,B[b]]).sort((x,y)=>rank[y[1]]-rank[x[1]])[0].join(" ");const C={"organization.name":[{src:"config.ts:62 user.name || user.email",personData:true},{src:"crud-org.mjs:13 z.string().min(1)",purpose:"workspace name",basis:"label"}],"organization.slug":[{src:"config.ts:23 ws- and the id",purpose:"URL key",basis:"record"},{src:"crud-org.mjs:14 z.string().min(1)",purpose:"URL key",basis:"record"}],"organization.logo":[{src:"crud-org.mjs:16 z.string()",purpose:"image URL",basis:"record"}],"organization.metadata":[{src:"crud-org.mjs:17 z.record(z.string(), z.any())"}],"verification.identifier":[{src:"email-otp/routes.mjs:142 the email",personData:true}],"project.name":[{src:"a person names a project",purpose:"project name",basis:"label"}]};for(const [k,v] of Object.entries(C))console.log(k,hold(v))'
+  # expected:
+  # organization.name person personal
+  # organization.slug record internal
+  # organization.logo record internal
+  # organization.metadata free-text personal
+  # verification.identifier person personal
+  # project.name label internal
+  ```
+
 - **The size** ("Impact list", Size). Input: the estimate per file of the code PR, each rounded to tens: `classification.ts` 120 (88 entry lines, 12 table lines, the type and `TAGS`), `classification.test.ts` 130, the T1 to T5 fixtures 40, `src/index.ts` and the docs of "Impact list", "Docs" 10. The sum adds no rounding.
 
   ```bash
@@ -276,7 +294,7 @@ Each line is copied from its source and was not run in this task (no shell); the
 
 ## Impact list
 
-- **Contract change: the schema's classification.** New `packages/db/src/schema/classification.ts` (`CLASSIFICATION`, `TAGS`, `Tag`, the `Classification` type), its test `classification.test.ts`, and the T1 to T5 fixtures (file named in the tech notes). A table or column added later joins `orv158-tags` and the map in the same PR; `orv158-type` makes `pnpm typecheck` force it.
+- **Contract change: the schema's classification.** New `packages/db/src/schema/classification.ts` (`CLASSIFICATION`, `TAGS`, `Tag`, the `Classification` type), its test `classification.test.ts`, and the T1 to T5 fixtures (file named in the tech notes). A table or column added later joins `orv158-tags` and the map in the same PR; `orv158-type` makes `pnpm typecheck` force it. v1.1 changes one tag in this contract: `organization.metadata` from `internal` (`record`) to `personal` (`free-text`), so the `personal` set of `orv158-pins` gains one key; the masking item (decision 8) masks it by default.
 - **Package export surface.** `packages/db/src/index.ts` gains one export line (`orv158-export`). Unchanged: `schema/index.ts`, `client.ts`, `drizzle.config.ts`, `package.json` `exports`.
 - **Size.** About 300 changed lines with tests (worked example "The size"), under the 400 line mark.
 - **Slices.** (1) A docs PR: this spec and `docs/specs/ORV-158/tech.md` by `ds-architect` (the `Classification` type's shape, the fixture file and one mutation per T clause, the walk's function), with G1 and G2. (2) One code PR into `develop` by the builder, with `security`, `reviewer` and `qa` in one round (ORV-146), then the G3 packet.
@@ -306,8 +324,9 @@ Each has a default. Under the owner's delegation (ADR 0012 decision 4) G1 and G2
 
 ## Depends on
 
-ADR 0015 decision 9 (the tags and the file), decisions 2 (`security` role), 3, 6 and 8 (the consumers), 12 (money, out of scope), 13 (no conformance claim); `.claude/rules/security.md` rule 11; `.claude/rules/testing.md` (one mutation per clause, L-0042); ADR 0012 decision 4 (G1 and G2 under delegation); ORV-113 (parent; item 4 is this story); ORV-112 tech notes line 149 (`rate_limit_counter` tags); ORV-121 tech notes section 2 and line 105, spec line 129, and PR 141 (`ai_usage`); ORV-144 spec v1.2 (the pending "Not done yet" update); Better Auth 1.7.12 (`auth.ts` line 1); drizzle-orm 0.45.4 (`is`, `PgTable`, `getTableColumns`).
+ADR 0015 decision 9 (the tags and the file), decisions 2 (`security` role), 3, 6 and 8 (the consumers), 12 (money, out of scope), 13 (no conformance claim); `.claude/rules/security.md` rule 11; `.claude/rules/testing.md` (one mutation per clause, L-0042); ADR 0012 decision 4 (G1 and G2 under delegation); ORV-113 (parent; item 4 is this story); ORV-112 tech notes line 149 (`rate_limit_counter` tags); ORV-121 tech notes section 2 and line 105, spec line 129, and PR 141 (`ai_usage`); ORV-144 spec v1.2 (the pending "Not done yet" update); Better Auth 1.7.12 (`auth.ts` line 1; its organization create and update endpoints, `better-auth/dist/plugins/organization/routes/crud-org.mjs` lines 13 to 17 and 161 to 164, for `orv158-hold`); drizzle-orm 0.45.4 (`is`, `PgTable`, `getTableColumns`).
 
 ## Changelog
 
 - v1.0 (2026-10-30): first spec, ORV-113 item 4 as its own story (task ORV-158-spec-2; task ORV-158-spec-1 stopped before writing a file). Downstream to review: the ORV-158 Jira issue acceptance (rows 1 to 21), the tech notes (to be written by `ds-architect`: the `Classification` type, the fixture file and the T clause mutations), and the documents under "Impact list", "Docs".
+- v1.1 (2026-10-30): the reports on head `1b1255a` (task ORV-158-spec-3). Security ORV-158-security-1 S1 (Important), contract change: `organization.metadata` is retagged from `internal` (`record`) to `personal` (`free-text`), as Better Auth's organization create and update endpoints take any JSON record from a signed-in person; the new rule `orv158-hold` states how a write path sets a tag, the `free-text` row of `orv158-basis` is widened to a record with no named purpose and no shape, the `record` row drops metadata, `orv158-pins` counts become 6 and 21 at `eeb2e71`, 6 and 22 with `ai_usage`, row 16 gains the `organization.metadata` mutation, and "The counts" expects internal 53 and 60, personal 21 and 22, `free-text` 2, `record` 35. Security ORV-158-security-1 S2 (Suggestion), no contract change: the `organization.slug` note no longer says "made from the id" alone, and the `slug` and `logo` notes name the client write path and point at `orv158-hold`, second case, for why both stay `internal`; a worked example "The write paths" is added. QA ORV-158-qa-1 approved with no findings. Downstream to review: `packages/db/src/schema/classification.ts` line 71, the personal pin of `classification.test.ts` (lines 117 to 141), `docs/specs/ORV-158/tech.md` (spec version, rule names, the pin count and mutations, the pin line count), PR 153's description and its G3 packet.
