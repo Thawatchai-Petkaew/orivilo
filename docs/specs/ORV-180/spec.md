@@ -2,7 +2,7 @@
 issue: ORV-180 (https://tpetkaew.atlassian.net/browse/ORV-180)
 parent: ORV-161 (slice 3, "Scan PR")
 lane: L, inherited from ORV-161
-version: 1.0
+version: 1.1
 ---
 
 # ORV-180: ORV-161 slice 3, the axe scan of the pages without a database
@@ -19,11 +19,11 @@ This file is the slice spec of L-0016: a slice issue gets its own spec. It adds 
 
 ## Parent spec and gates
 
-- Parent spec: `docs/specs/ORV-161/spec.md` v1.1 (changelog line "v1.1 (2026-10-31)").
+- Parent spec: `docs/specs/ORV-161/spec.md` v1.2 (changelog line "v1.2 (2026-10-31)").
 - G1 and G2: ORV-161 comment 10290, passed under the owner's delegation in POC mode (ADR 0012 decision 4, parent "Lane"). ORV-180 inherits both; no new gate decision is needed for this slice.
 - Decisions: the parent's "Depends on".
 - Review: full gate, reviewer and qa (parent "Slices", item 3). The `security` role is slice 5's (parent "Impact list", "Roles").
-- Files: the parent's "Impact list" and "Placement" name them; this slice writes the slice 3 part of them and no guard file.
+- Files: the parent's "Impact list" and "Placement" name them; this slice writes the slice 3 part of them and no guard file. That part includes the home page backlog link fix in `apps/web/app/page.tsx`, whose change the parent's "Slices", item 3, states.
 
 ## Acceptance criteria
 
@@ -94,8 +94,9 @@ The parent's open questions and their defaults hold (parent "Open questions"); G
 
 ## Depends on
 
-The parent spec `docs/specs/ORV-161/spec.md` v1.1 and its "Depends on"; ORV-161 comment 10290 (G1 and G2 under delegation); PR 163 (slices 1 and 2, rows 1 to 4: the `main` on `/workspace` that M1 reverts and the 404 page that `/_not-found` scans); L-0016 (a slice issue gets its own spec); ORV-138 rule `qa-scope-1` (the `## Rows per PR` form).
+The parent spec `docs/specs/ORV-161/spec.md` v1.2 and its "Depends on"; ORV-161 comment 10290 (G1 and G2 under delegation); PR 163 (slices 1 and 2, rows 1 to 4: the `main` on `/workspace` that M1 reverts and the 404 page that `/_not-found` scans); L-0016 (a slice issue gets its own spec); ORV-138 rule `qa-scope-1` (the `## Rows per PR` form).
 
 ## Changelog
 
 - v1.0 (2026-10-31): slice spec for ORV-180, ORV-161 slice 3, from ORV-161 spec v1.1 (task ORV-180-spec-1). Rows 5 to 10 copied with their numbers, columns and text unchanged; the rules are pointers to the parent; one open question on the time limits before slice 4. No new requirement. Downstream to review: the ORV-180 Jira acceptance (rows 5 to 10), the slice 3 builder envelope, the slice 3 PR body (the M1 to M9 `verified` rows and the `--list` count), and the parent's "Rows per PR", which gains the slice 3 line when the PR opens.
+- v1.1 (2026-10-31): follows parent v1.2 (task ORV-180-spec-2); no acceptance row changes meaning. "Parent spec and gates", "Files", names the home page backlog link fix in `apps/web/app/page.tsx` as part of this slice, pointing to the parent's "Slices", item 3; the parent version in "Parent spec and gates" and "Depends on" is v1.2. The M2, M3 and M7 red lines change in the parent's `orv161-mutants` only, which row 10's reading note points to. Downstream to review: the slice 3 builder envelope (its write set gains `apps/web/app/page.tsx`), the slice 3 PR body (the M2, M3 and M7 `verified` rows) and the reviewer's `DESIGN.md` section 11 walk for the change on `/`.

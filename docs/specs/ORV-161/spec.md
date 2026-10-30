@@ -2,7 +2,7 @@
 issue: ORV-161 (https://tpetkaew.atlassian.net/browse/ORV-161)
 parent: ORV-113 (item 8)
 lane: L
-version: 1.1
+version: 1.2
 ---
 
 # ORV-161: axe on every apps/web page (ORV-113 item 8)
@@ -144,12 +144,12 @@ The qa walk of a PR covers the rows its line names (ORV-138 rule `qa-scope-1`). 
   | Id | Rule class | Mutation | Red line expected |
   | --- | --- | --- | --- |
   | M1 | `best-practice`, landmarks | Revert slice 2's `main` on `/workspace` | `landmark-one-main` (and `region`) on the 8 `/workspace` scans |
-  | M2 | `wcag2a` | Drop `lang` from `<html>` in `apps/web/app/layout.tsx` | `html-has-lang` on every scan; the `lang` check of `orv161-wait` also fails |
-  | M3 | `wcag2aa` | In the scan, before axe, give the layout's nav links `color: var(--ds-surface-canvas)` | `color-contrast` in both schemes |
+  | M2 | `wcag2a` | Drop `lang` from `<html>` in `apps/web/app/layout.tsx` | The `lang` check of `orv161-wait` on every scan, which fails before axe runs. A second scratch run with that check removed shows `html-has-lang` on every scan |
+  | M3 | `wcag2aa` | In the scan, before axe, give the layout's nav links a colour close to the canvas, made with `color-mix()` from `var(--ds-surface-canvas)` and 10% gray. Not the canvas colour itself: equal colours give axe `incomplete` (`equalRatio`), not a violation | `color-contrast` in both schemes |
   | M4 | `wcag21a` | Set the layout's home link `aria-label` to `m.app.nav`, which does not contain its visible text "ORIVILO" | `label-content-name-mismatch` |
   | M5 | `wcag21aa` | In the scan, before axe, add `<input aria-label="x" autocomplete="orv-nonsense">` to `main` | `autocomplete-valid` |
   | M6 | `wcag22aa`, the switched-on rule | In the scan, before axe, add two 12 by 12 px buttons with names, side by side with no gap | `target-size` (worked example "Target spacing") |
-  | M7 | State reach | Set port 3200's `DATABASE_URL` to `postgres://orivilo_app:x@127.0.0.1:1/none` | The state line check of `/directions` and `/account` fails before axe runs |
+  | M7 | `orv161-servers` | Set port 3200's `DATABASE_URL` to `postgres://orivilo_app:x@127.0.0.1:1/none`. The scan file holds a load-time guard that each of the six port 3200 names of `orv161-servers` is the empty string; the guard is not a test, so the count stays 40. Without it this mutant stays green, since the other five empty names keep both pages not-configured | The guard fails at load, before any scan, with "Error: the port 3200 server must have DATABASE_URL set to the empty string" |
   | M8 | `orv161-exceptions` | Add `{ route: "/workspace", state: "page", rule: "region", reason: "" }` | "exception without a reason" |
   | M9 | `orv161-matrix` | Drop `colorScheme` from the dark combinations | The scheme check of `orv161-wait` on the dark scans |
 
@@ -218,7 +218,7 @@ One PR each, in this order. Sizes are estimates of changed lines with tests.
 
 1. **Spec PR** (this file; docs only). Reviewer approve, then the G1 and G2 packets under delegation.
 2. **Fix PR, lane S** (rows 1 to 4, about 120 lines). `apps/web/app/workspace/page.tsx` wraps `<WorkspaceScreen />` in a `main`. The wrapper goes in the page, not in the component (a `main` there would nest a second one in `/directions`) and not in the layout (the other three pages render their own). New `apps/web/app/not-found.tsx` with the `notFound` keys (open question 4). Both tests are in rows 1 and 3. It can merge in parallel with slice 1.
-3. **Scan PR** (rows 5 to 10, about 300 lines). `apps/web/package.json` gains `@playwright/test`, `@axe-core/playwright` and the `test:e2e` script. The root `package.json` gains its script. New `apps/web/playwright.config.ts` (`orv161-servers` port 3200, `orv161-matrix`) and `apps/web/e2e/pages.a11y.spec.ts`. The `verified` rows of M1 to M9 go in the PR body. Full gate, reviewer and qa.
+3. **Scan PR** (rows 5 to 10, about 300 lines). `apps/web/package.json` gains `@playwright/test`, `@axe-core/playwright` and the `test:e2e` script. The root `package.json` gains its script. New `apps/web/playwright.config.ts` (`orv161-servers` port 3200, `orv161-matrix`) and `apps/web/e2e/pages.a11y.spec.ts`. In `apps/web/app/page.tsx` the home page backlog link (the `a` after `m.home.schemaLine`) is underlined at rest, not only on hover, so `link-in-text-block` passes and the 8 scans of `/` meet row 8's zero violations. The `verified` rows of M1 to M9 go in the PR body. Full gate, reviewer and qa.
 4. **Guard-file PR** (rows 11 to 14, about 60 lines). It needs a bound builder whose envelope lists `.github/workflows/ci.yml` and `scripts/quality-gate.mjs` by exact path, and the owner approval record at G3.
    - `ci.yml`: `- run: pnpm test:e2e` between `pnpm build` and `pnpm audit`.
    - `quality-gate.mjs`: step `{ name: "e2e", command: ["pnpm", "test:e2e"], env: { REQUIRE_DB_TESTS: "1" } }` after `build`, and a `KEY_LINE` alternative for `\d+ (passed|failed|flaky)`. Setting `REQUIRE_DB_TESTS` now means slice 5 needs no guard file.
@@ -240,7 +240,7 @@ One PR each, in this order. Sizes are estimates of changed lines with tests.
 ## Impact list
 
 - **New files.** `apps/web/playwright.config.ts`, `apps/web/e2e/pages.a11y.spec.ts` and the slice 5 fixture under `apps/web/e2e/`, `apps/web/app/not-found.tsx`, `apps/web/app/not-found.test.tsx`, `apps/web/app/workspace/page.test.tsx`.
-- **Changed code.** `apps/web/app/workspace/page.tsx`; `apps/web/i18n/messages.ts` (`notFound` keys in slice 2, the home entry in slice 6); `apps/web/package.json`; the root `package.json`; `pnpm-lock.yaml`. After slice 3, `grep -n 'axe-core@' pnpm-lock.yaml` still shows one version.
+- **Changed code.** `apps/web/app/workspace/page.tsx`; `apps/web/app/page.tsx` (the backlog link underline, slice 3); `apps/web/i18n/messages.ts` (`notFound` keys in slice 2, the home entry in slice 6); `apps/web/package.json`; the root `package.json`; `pnpm-lock.yaml`. After slice 3, `grep -n 'axe-core@' pnpm-lock.yaml` still shows one version.
 - **Guard files** (slice 4, owner approval). `.github/workflows/ci.yml` and `scripts/quality-gate.mjs`. The root `.gitignore` needs no change: lines 15 and 16 already ignore `playwright-report/` and `test-results/`.
 - **Rules, skills, agents and docs.** `.claude/rules/security.md` (slice 5); `.claude/skills/quality-gate/SKILL.md`, `.github/pull_request_template.md` and `AGENTS.md` (slice 4); `docs/adr/0015-standards-and-required-controls.md` (Additions after line 39 and after the "Not done yet" line that holds "No axe scan runs on `apps/web` pages"), `docs/specs/ORV-108/spec.md` (row 14 note), `DESIGN.md` (section 11 line 251), `.claude/agents/qa.md` and `.claude/skills/webapp-testing/SKILL.md` (lines 13, 25 and 36), all in slice 6.
 - **Unchanged.** `packages/design-system` (component, story, catalog), `apps/web/server/auth.ts`, `turbo.json`, `apps/web/vitest.config.ts` and the ESLint configs. `apps/web/tsconfig.json` already includes `**/*.ts`, so `@playwright/test` types must be installed before `pnpm typecheck` passes.
@@ -274,3 +274,4 @@ ADR 0015 decision 1 (the WCAG row, its Confirmation and "Not done yet"), decisio
 
 - v1.0 (2026-10-30): first spec, ORV-113 item 8 as its own story (task ORV-161-spec-2; ORV-161-spec-1 stopped before writing). Downstream to review: the ORV-161 Jira issue acceptance (rows 1 to 21); the G1 and G2 packets (lane L, or M if open question 1 is answered (b)); and the documents under "Impact list", brought up to date in slices 4 to 6.
 - v1.1 (2026-10-31): anchors and qa scope only; no acceptance row changes meaning (task ORV-161-spec-3). ORV-161-qa-1-F1: new section "Rows per PR" with `- PR 163: rows 1, 2, 3, 4`. R1-F1: the ADR 0015 WCAG line of "Not done yet" is named by its text "No axe scan runs on `apps/web` pages" instead of a line number, in "Why", row 19, "Impact list" and open question 3. R1-F2: `listDirections` (row 16) is named by its `export async function` line, the Vitest globs ("Placement") by the `include` list of `apps/web/vitest.config.ts`, and the ORV-118 tech notes ("Depends on") by the paragraph "R2 setup", on the `feature/ORV-118-logo` branch. Downstream to review: the qa walk of PR 163 (rows 1 to 4) and the slice 6 builder envelope (row 19 anchors).
+- v1.2 (2026-10-31): mutants as built and one slice 3 scope line; no acceptance row changes meaning (task ORV-180-spec-2, from the deviations and needs_decision of task ORV-180-build-scan). `orv161-mutants`: M2's red line is the `lang` check of `orv161-wait`, which fails before axe, with `html-has-lang` shown in a second scratch run without that check; M3 uses a near-canvas colour made with `color-mix()`, since equal colours give axe `incomplete`; M7 is red through a load-time guard on the six port 3200 names, with its error line, and its rule class is `orv161-servers`. "Slices" item 3 and "Impact list" gain the underline at rest on the home page backlog link in `apps/web/app/page.tsx`, so the 8 scans of `/` meet row 8. Downstream to review: `docs/specs/ORV-180/spec.md` (v1.1), the slice 3 builder envelope (its write set gains `apps/web/app/page.tsx`), the slice 3 PR body (the M2, M3 and M7 `verified` rows) and the reviewer's `DESIGN.md` section 11 walk, which now covers a UI change on `/`.
