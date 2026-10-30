@@ -187,3 +187,4 @@ Keep this table in step with the folder when you add an entry.
 | [[K-0090-bash-forms-for-text-guards]]                                             | 0.8        | Bash, zsh and git forms a guard reads; reader desyncs; runner options |
 | [[K-0091-openrouter-chat-completions-usage-cost]]                                 | 0.8        | Chat `usage.cost`: number or null, credits (USD base); no flag needed |
 | [[K-0092-better-auth-organization-not-found-vs-forbidden]]                        | 0.8        | Better Auth 1.7.12: get org 400 if missing, 403 if not a member       |
+| [[K-0093-owasp-llm-top-10-2026-attack-classes-and-prevention]]                    | 0.75       | LLM Top 10 2026 attacks and fixes per entry; interpreter reading      |
