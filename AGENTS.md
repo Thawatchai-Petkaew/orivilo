@@ -48,7 +48,7 @@ During the POC the main session follows the `ovl` skill, section "POC mode" (ORV
 - Storybook is the catalog's visual half (ADR 0003). No shared component exists without a story and a catalog entry in the same PR; no Studio UI is built before Storybook is set up (E2-0).
 - Read type signatures and an example before using props. Never invent token names or public APIs without adding them to the contract.
 - Recipes use semantic tokens. No per-page hex, radius, or font values to change a mood.
-- Brand accent never replaces error, warning, selection, or focus semantics.
+- Brand accent never replaces error, warning or selection semantics. Focus takes the profile's brand hue through its own `focus.*` tokens (owner, ORV-192 comment 10403) and keeps its own shape, a line with a halo, so it never reads as selection.
 - Every UI string comes from the locale catalog (`packages/design-system/src/i18n`, `apps/web/i18n`), Thai and English together; no hard-coded copy in a component or a page. `check-i18n` (`packages/design-system`) and `apps/web/i18n/messages.test.ts` (`apps/web`) fail the build on it.
 - No middot (·) and no em dash (—) in any UI text. Hard rule from the owner; the copy check fails the build on them.
 - Never render trust badges, ratings, discounts, countdowns, or success states without backing data.

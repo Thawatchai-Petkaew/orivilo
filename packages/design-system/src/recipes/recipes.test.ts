@@ -96,6 +96,51 @@ describe("recipes.css", () => {
   });
 });
 
+describe("the logo recipe (ORV-118, logo-colour-1)", () => {
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  const rules = [...bare.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => ({
+    selector: (m[1] ?? "").trim().replace(/\s+/g, " "),
+    body: (m[2] ?? "").trim(),
+  }));
+  const logo = rules.filter((r) => r.selector.includes(".ds-logo"));
+
+  it("lists the ink and the small dot against the canvas at 3.0, and not the master dot", () => {
+    const pairs = RECIPE_PAIRS.filter((p) => p.recipe === "logo").map((p) => [
+      p.slot,
+      p.fg,
+      p.bg,
+      p.floor,
+    ]);
+    expect(pairs).toEqual([
+      ["ink", "logo.ink", "ds:surface.canvas", 3],
+      ["small dot", "logo.dot-small", "ds:surface.canvas", 3],
+    ]);
+  });
+
+  it("paints the ring and the strokes with logo.ink, the fills with logo.ink and the dot with logo.dot", () => {
+    const body = (selector: string) => logo.find((r) => r.selector === selector)?.body;
+    expect(body(".ds-logo__ring, .ds-logo__strokes")).toBe("stroke: var(--cmp-logo-ink);");
+    expect(body(".ds-logo__fills")).toBe("fill: var(--cmp-logo-ink);");
+    expect(body(".ds-logo__dot")).toBe("fill: var(--cmp-logo-dot);");
+  });
+
+  it("switches the dot to logo.dot-small in forms 16 and 24 only", () => {
+    const small = logo.find((r) => r.selector.includes('[data-form="16"]'));
+    expect(small?.selector).toBe('.ds-logo:is([data-form="16"], [data-form="24"]) .ds-logo__dot');
+    expect(small?.body).toBe("fill: var(--cmp-logo-dot-small);");
+  });
+
+  it("puts the one-colour rule last, so one colour wins in every form", () => {
+    const last = logo[logo.length - 1];
+    expect(last?.selector).toBe('.ds-logo[data-tone="one-colour"] .ds-logo__dot');
+    expect(last?.body).toBe("fill: var(--cmp-logo-ink);");
+  });
+
+  it("keeps the box whole in a flex row", () => {
+    expect(logo[0]).toEqual({ selector: ".ds-logo", body: "display: block;\n  flex: none;" });
+  });
+});
+
 describe("recipe contrast pairs", () => {
   for (const { id, set } of sets) {
     for (const mode of MODES) {

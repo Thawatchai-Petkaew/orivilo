@@ -5,7 +5,7 @@
     "th": "เป็นมิตร",
     "en": "Friendly"
   },
-  "$description": "Hand-made profile for a welcoming, touch-first product (handoff §19 and §18.4 Airbnb calibration). Warm cream neutrals, coral actions with ink text (white on a coral this bright cannot reach 4.5) that lighten on hover and again on press, teal links and selection, pill controls with soft containers, flat cards, Anuphan on headings, 44 px controls. Values are an interpretation, not a customer brand.",
+  "$description": "Hand-made profile for a welcoming, touch-first product (handoff §19 and §18.4 Airbnb calibration). Warm cream neutrals, coral actions with ink text (white on a coral this bright cannot reach 4.5) that lighten on hover and again on press, teal links and selection, pill controls with soft containers, flat cards, 44 px controls. Values are an interpretation, not a customer brand.",
   "$decisions": {
     "shape": "soft",
     "surfaceTreatment": "flat",
@@ -261,6 +261,12 @@
           "dark": "{color.cream.900}"
         }
       },
+      "on-inverse-secondary": {
+        "$value": {
+          "light": "{color.cream.400}",
+          "dark": "{color.cream.600}"
+        }
+      },
       "link": {
         "$value": {
           "light": "{color.teal.700}",
@@ -370,6 +376,20 @@
           "light": "{color.cream.900}",
           "dark": "{color.cream.900}"
         }
+      },
+      "dot-small": {
+        "$value": {
+          "light": "{color.coral.700}",
+          "dark": "{color.coral.400}"
+        }
+      }
+    },
+    "focus": {
+      "ring": {
+        "$value": {
+          "light": "{color.coral.500}",
+          "dark": "{color.coral.300}"
+        }
       }
     },
     "shape": {
@@ -396,28 +416,6 @@
       "check": {
         "radius": {
           "$value": "{radius.6}"
-        }
-      }
-    },
-    "type": {
-      "heading": {
-        "md": {
-          "$value": {
-            "fontFamily": "{font.family.anuphan}",
-            "fontSize": "{font.size.24}",
-            "lineHeight": "{font.line-height.1-3}",
-            "fontWeight": "{font.weight.600}",
-            "letterSpacing": "{font.letter-spacing.normal}"
-          }
-        },
-        "sm": {
-          "$value": {
-            "fontFamily": "{font.family.anuphan}",
-            "fontSize": "{font.size.20}",
-            "lineHeight": "{font.line-height.1-5}",
-            "fontWeight": "{font.weight.600}",
-            "letterSpacing": "{font.letter-spacing.normal}"
-          }
         }
       }
     },

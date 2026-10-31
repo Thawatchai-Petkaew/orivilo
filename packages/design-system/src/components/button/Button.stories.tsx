@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, fn, userEvent, within } from "storybook/test";
+import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { DesignProfileBoundary, type Mode } from "../../boundary/DesignProfileBoundary";
 import { expectInkCentred, inVitest } from "../../testing/visual-asserts";
 import { fixtures } from "../fixtures";
@@ -20,7 +20,7 @@ const meta = {
   title: "Base/Button",
   component: Button,
   args: { children: fixtures.thai, onClick: fn() },
-  parameters: { layout: "padded" },
+  parameters: { layout: "centered" },
 } satisfies Meta<typeof Button>;
 
 export default meta;
@@ -36,6 +36,19 @@ export const Variants: Story = {
       ))}
     </div>
   ),
+  play: async ({ canvasElement }) => {
+    // A small component sits in the middle of the canvas on both axes (spec ORV-189, `centre-1`).
+    const row = within(canvasElement).getAllByRole("button")[0]?.parentElement as HTMLElement;
+    const surface = row.parentElement as HTMLElement;
+    const at = row.getBoundingClientRect();
+    const around = surface.getBoundingClientRect();
+    await expect(
+      Math.abs(at.left + at.width / 2 - (around.left + around.width / 2)),
+    ).toBeLessThanOrEqual(1);
+    await expect(
+      Math.abs(at.top + at.height / 2 - (around.top + around.height / 2)),
+    ).toBeLessThanOrEqual(1);
+  },
 };
 
 export const Sizes: Story = {
@@ -54,10 +67,18 @@ export const Sizes: Story = {
   ),
 };
 
-/** Hover, focus-visible and pressed are interaction states; the play function puts one instance in each. */
+/**
+ * Hover, focus-visible and pressed are interaction states; the play function puts one instance in
+ * each. A synthetic pointer sets no `:hover`, so `parameters.pseudo` forces the hover look on the
+ * hover button (spec ORV-84, `hover-force-1`) and the play asserts it against a default button.
+ */
 export const InteractionStates: Story = {
+  parameters: { pseudo: { rootSelector: "body", hover: ['[data-testid="hover"]'] } },
   render: (args) => (
     <div className="flex flex-wrap items-center gap-3">
+      <Button {...args} variant="primary" data-testid="default">
+        Default
+      </Button>
       <Button {...args} variant="primary" data-testid="hover">
         Hover
       </Button>
@@ -75,6 +96,23 @@ export const InteractionStates: Story = {
     await userEvent.hover(canvas.getByTestId("hover"));
     canvas.getByTestId("focus").focus();
     await expect(canvas.getByTestId("focus")).toHaveFocus();
+    // The hover rule changes the background, and the recipe eases it over the feedback duration.
+    await waitFor(() =>
+      expect(getComputedStyle(canvas.getByTestId("hover")).backgroundColor).not.toBe(
+        getComputedStyle(canvas.getByTestId("default")).backgroundColor,
+      ),
+    );
+    // Focus (ORV-192 row 9): the border turns to the resolved --ds-focus-ring, and a filled button adds
+    // an inset ink line beside the outer halo.
+    const probe = document.createElement("span");
+    probe.style.color = "var(--ds-focus-ring)";
+    canvas.getByTestId("focus").appendChild(probe);
+    const ring = getComputedStyle(probe).color;
+    probe.remove();
+    await waitFor(() =>
+      expect(getComputedStyle(canvas.getByTestId("focus")).borderTopColor).toBe(ring),
+    );
+    await expect(getComputedStyle(canvas.getByTestId("focus")).boxShadow).toContain("inset");
   },
 };
 
@@ -392,6 +430,7 @@ export const LongLabelAt360: Story = {
 };
 
 export const RecipesAndModes: Story = {
+  parameters: { layout: "padded" },
   render: (args) => (
     <Matrix>
       <div className="flex flex-wrap items-center gap-2">
@@ -421,4 +460,14 @@ export const RecipesAndModes: Story = {
       </div>
     </Matrix>
   ),
+  play: async ({ canvasElement }) => {
+    // A Matrix keeps the full width: the surface less its own padding (spec ORV-189, `matrix-keep-1`).
+    const grid = canvasElement.querySelector("[data-matrix-cell]")?.closest(".grid") as HTMLElement;
+    const surface = grid.parentElement as HTMLElement;
+    await expect(grid.getBoundingClientRect().width).toBe(
+      surface.getBoundingClientRect().width - 32,
+    );
+    // The surface pads the grid by 16 on top too: `layout: "padded"` (spec ORV-192, row 10).
+    await expect(grid.getBoundingClientRect().top).toBe(surface.getBoundingClientRect().top + 16);
+  },
 };

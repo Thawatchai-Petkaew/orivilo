@@ -71,7 +71,7 @@ export default async function Home() {
         <p className="text-body-sm text-text-secondary">
           {fill(m.home.schemaLine, params)}{" "}
           <a
-            className="text-text-link underline-offset-4 hover:text-text-link-hover hover:underline"
+            className="text-text-link underline underline-offset-4 hover:text-text-link-hover"
             href="https://tpetkaew.atlassian.net/browse/ORV"
           >
             {m.home.backlogLink}

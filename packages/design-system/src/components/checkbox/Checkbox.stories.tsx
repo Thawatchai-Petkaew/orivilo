@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { fixtures } from "../fixtures";
 import { Matrix, Narrow } from "../matrix";
 import { Checkbox } from "./Checkbox";
@@ -8,7 +8,7 @@ const meta = {
   title: "Base/Checkbox",
   component: Checkbox,
   args: { label: "ส่งสรุปให้ทีมเมื่ออนุมัติ" },
-  parameters: { layout: "padded" },
+  parameters: { layout: "centered" },
 } satisfies Meta<typeof Checkbox>;
 
 export default meta;
@@ -99,9 +99,15 @@ export const Sizes: Story = {
   },
 };
 
+/**
+ * A synthetic pointer sets no `:hover`, so `parameters.pseudo` forces the hover look (spec ORV-84,
+ * `hover-force-1`). The hover rule keys on the `.ds-checkbox` root, not on the box that carries the `id`.
+ */
 export const InteractionStates: Story = {
+  parameters: { pseudo: { rootSelector: "body", hover: [".ds-checkbox:has(#cb-hover)"] } },
   render: (args) => (
     <div className="flex flex-col gap-3">
+      <Checkbox {...args} label="Default" id="cb-default" />
       <Checkbox {...args} label="Hover" id="cb-hover" />
       <Checkbox {...args} label="Focus" id="cb-focus" />
     </div>
@@ -111,6 +117,11 @@ export const InteractionStates: Story = {
     await userEvent.hover(canvas.getByText("Hover"));
     canvas.getByRole("checkbox", { name: "Focus" }).focus();
     await expect(canvas.getByRole("checkbox", { name: "Focus" })).toHaveFocus();
+    await waitFor(() =>
+      expect(
+        getComputedStyle(canvas.getByRole("checkbox", { name: "Hover" })).borderColor,
+      ).not.toBe(getComputedStyle(canvas.getByRole("checkbox", { name: "Default" })).borderColor),
+    );
   },
 };
 
@@ -149,6 +160,7 @@ export const LongLabelAt360: Story = {
 };
 
 export const RecipesAndModes: Story = {
+  parameters: { layout: "padded" },
   render: (args) => (
     <Matrix>
       <Checkbox {...args} />

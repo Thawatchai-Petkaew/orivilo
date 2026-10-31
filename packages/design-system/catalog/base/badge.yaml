@@ -20,7 +20,8 @@ examples:
   - src/examples/workspace.tsx
 rules:
   - "Status colours come from feedback tokens, never the brand accent"
+  - "Brand always shows its bead in brand.dot-small on the neutral ground and takes no icon (an icon with brand is a type error); it is presence, never an action"
   - "Never rendered without backing data (AGENTS.md)"
-  - "dot puts a dot before the word in the variant's own colour (success, warning, danger and info read feedback tokens through badge.dot.*; neutral and brand are allowed); icon puts an icon before the word, 14 px in sm and 16 px in md; one or the other, a type error together; both are hidden from assistive tech"
+  - "dot puts a dot before the word in the variant's own colour (success, warning, danger and info read feedback tokens through badge.dot.*; neutral is allowed; brand always shows it); icon puts an icon before the word, 14 px in sm and 16 px in md; one or the other, a type error together; both are hidden from assistive tech"
 a11y:
   - "Colour never carries the meaning alone; the word does, so a dot or an icon is hidden from assistive tech"

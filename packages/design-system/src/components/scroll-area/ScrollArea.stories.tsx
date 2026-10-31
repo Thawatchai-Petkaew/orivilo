@@ -15,7 +15,7 @@ const meta = {
   title: "Base/Scroll area",
   component: ScrollArea,
   parameters: {
-    layout: "padded",
+    layout: "centered",
     docs: {
       description: {
         component:
@@ -62,6 +62,7 @@ function Cell() {
 }
 
 export const RecipesAndModes: Story = {
+  parameters: { layout: "padded" },
   render: () => (
     <Matrix>
       <Cell />

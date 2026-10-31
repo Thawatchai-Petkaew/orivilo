@@ -174,7 +174,7 @@ function fakeFetch(status: number, body: unknown) {
     return Promise.resolve({
       ok: status >= 200 && status < 300,
       status,
-      json: () => Promise.resolve(body),
+      body: oneChunk(body),
     });
   };
   return { calls, doFetch };
@@ -240,3 +240,24 @@ describe("openRouterComplete", () => {
     await expect(complete(REQUEST)).rejects.toThrow();
   });
 });
+
+// The engine's tsconfig has no DOM lib (as in read-page.test.ts line 32).
+declare class TextEncoder {
+  encode(input: string): Uint8Array;
+}
+
+/** A one-chunk response body of `JSON.stringify(body)`. */
+function oneChunk(body: unknown) {
+  const value = new TextEncoder().encode(JSON.stringify(body));
+  let sent = false;
+  return {
+    getReader: () => ({
+      read: () => {
+        if (sent) return Promise.resolve({ done: true });
+        sent = true;
+        return Promise.resolve({ done: false, value });
+      },
+      cancel: () => Promise.resolve(),
+    }),
+  };
+}

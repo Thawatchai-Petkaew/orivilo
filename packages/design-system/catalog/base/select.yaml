@@ -24,6 +24,7 @@ rules:
   - "SelectOption takes an optional icon (16 px, hidden from assistive tech) and description (a second line in text.secondary, read through aria-describedby; the option's name stays the label). The trigger shows the icon and the label after a choice, never the description"
   - "groups ({ label, options }[]) replaces options, never both; each group is role=group named by its heading, type-ahead and arrow keys run across groups, an empty group is not rendered, and no group left shows emptyText"
   - "Single value only: no multi-select and no search here (Combobox, later)"
+  - "A description is 13 / 400 secondary, never heavier than its label (ORV-192 row 17)"
 a11y:
   - Keyboard: arrows, type-ahead, Escape closes and returns focus
   - "An icon is decoration; a group heading names its group; a description is the option's description"

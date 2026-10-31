@@ -7,7 +7,8 @@
  *
  * Variants and sizes are data attributes (`data-variant`, `data-size`) so a component sets one
  * attribute instead of composing class strings. Interaction states are pseudo-classes; Radix state
- * is `data-state` and `data-disabled`. Focus comes from the global `:focus-visible` rule.
+ * is `data-state` and `data-disabled`. Focus comes from the global `:focus-visible` rule (orivilo.css): a 1 px `focus.ring` line and its
+ * halo; a recipe with its own border turns that border instead (ORV-192 row 9).
  */
 
 /* Button ------------------------------------------------------------------------------------ */
@@ -170,6 +171,21 @@
   text-decoration: none;
 }
 
+/* Focus (ORV-192 row 9): the button's own 1 px border turns to focus.ring with the halo on it; a
+ * filled button adds a 1 px line in its own ink inside the border, which alone would not show on
+ * the brand or red fill. */
+.ds-button[data-variant]:focus-visible {
+  border-color: var(--ds-focus-ring);
+  outline: 1px solid transparent;
+  outline-offset: 0;
+  box-shadow: var(--_focus-shadow-border);
+}
+.ds-button[data-variant="primary"]:focus-visible,
+.ds-button[data-variant="destructive"]:focus-visible,
+.ds-button[data-variant="intent"]:focus-visible {
+  box-shadow: var(--_focus-shadow-fill);
+}
+
 /* Icon slot: before or after the label, at the icon size of the button's size. */
 .ds-button__icon {
   display: inline-flex;
@@ -239,14 +255,22 @@
 .ds-control [data-placeholder] {
   color: var(--cmp-input-placeholder);
 }
-.ds-control:hover:not(:disabled):not([data-disabled]):not([readonly]) {
+.ds-control:hover:not(:disabled):not([data-disabled]):not([readonly]):not(:focus-visible):not(
+    :focus-within
+  ) {
   border-color: var(--cmp-input-border-hover);
 }
-.ds-control:focus-visible,
-.ds-control:focus-within {
+.ds-control:focus-visible:not([readonly]),
+.ds-control:focus-within:not([readonly]) {
   border-color: var(--cmp-input-border-focus);
+  outline: 1px solid transparent;
+  outline-offset: 0;
+  box-shadow: var(--_focus-shadow-border);
 }
-.ds-control[aria-invalid="true"] {
+/* Invalid keeps its red border while focused; the halo shows the focus. */
+.ds-control[aria-invalid="true"],
+.ds-control[aria-invalid="true"]:focus-visible,
+.ds-control[aria-invalid="true"]:focus-within {
   border-color: var(--cmp-input-border-error);
 }
 .ds-control:disabled,
@@ -353,13 +377,15 @@
 .ds-input-group:hover:not([data-disabled]) {
   border-color: var(--cmp-input-border-hover);
 }
-/* The ring goes around the whole group, drawn when the input has keyboard focus; a Button in a slot keeps its own ring. */
+/* The group is the field (ORV-192 row 9): its border turns to focus.ring with the halo on it; a Button in a slot keeps its own. */
 .ds-input-group:has(.ds-input-group__input:focus-visible) {
   border-color: var(--cmp-input-border-focus);
-  outline: 2px solid var(--ds-focus-ring);
-  outline-offset: 2px;
+  outline: 1px solid transparent;
+  outline-offset: 0;
+  box-shadow: var(--_focus-shadow-border);
 }
-.ds-input-group[data-invalid] {
+.ds-input-group[data-invalid],
+.ds-input-group[data-invalid]:has(.ds-input-group__input:focus-visible) {
   border-color: var(--cmp-input-border-error);
 }
 .ds-input-group[data-disabled] {
@@ -381,9 +407,10 @@
   letter-spacing: inherit;
   text-overflow: ellipsis;
 }
-/* The group draws the ring; the global :focus-visible ring would only surround the input. */
+/* The group draws the focus; the global :focus-visible line would only surround the input. */
 .ds-input-group__input:focus-visible {
   outline: none;
+  box-shadow: var(--_focus-shadow-none);
 }
 .ds-input-group__input::placeholder {
   color: var(--cmp-input-placeholder);
@@ -429,6 +456,14 @@
   box-shadow: var(--cmp-menu-shadow);
   overflow: hidden;
   z-index: var(--cmp-menu-layer);
+}
+/* Focus on the panel itself (Radix focuses it when nothing inside takes focus): the border form of
+   ORV-192 row 9, the elevation kept under the halo. */
+.ds-menu:focus-visible {
+  border-color: var(--ds-focus-ring);
+  outline: 1px solid transparent;
+  outline-offset: 0;
+  box-shadow: var(--cmp-menu-shadow), var(--_focus-shadow-border);
 }
 .ds-menu__option {
   display: flex;
@@ -563,7 +598,7 @@
     background-color var(--ds-motion-feedback-duration) var(--ds-motion-easing),
     border-color var(--ds-motion-feedback-duration) var(--ds-motion-easing);
 }
-.ds-checkbox:hover .ds-checkbox__box:not([data-disabled]) {
+.ds-checkbox:hover .ds-checkbox__box:not([data-disabled]):not(:focus-visible) {
   border-color: var(--cmp-checkbox-border-hover);
 }
 .ds-checkbox__box[data-state="checked"],
@@ -572,6 +607,22 @@
   border-color: var(--cmp-checkbox-bg-checked);
 }
 .ds-checkbox__box[aria-invalid="true"] {
+  border-color: var(--cmp-checkbox-border-error);
+}
+/* Focus (ORV-192 row 9): the box's border turns to focus.ring with the halo on it; a checked box adds
+ * a 1 px line in the check ink inside, because its border equals its fill. Invalid keeps its red. */
+.ds-checkbox__box:focus-visible {
+  border-color: var(--ds-focus-ring);
+  outline: 1px solid transparent;
+  outline-offset: 0;
+  box-shadow: var(--_focus-shadow-border);
+}
+.ds-checkbox__box[data-state="checked"]:focus-visible,
+.ds-checkbox__box[data-state="indeterminate"]:focus-visible {
+  --_inner: inset 0 0 0 1px var(--cmp-checkbox-fg-checked);
+  box-shadow: var(--_inner), var(--_focus-shadow-border);
+}
+.ds-checkbox__box[aria-invalid="true"]:focus-visible {
   border-color: var(--cmp-checkbox-border-error);
 }
 .ds-checkbox__box[data-disabled] {
@@ -650,6 +701,10 @@
 }
 .ds-field__description {
   color: var(--cmp-field-description);
+}
+/* Compact pair: 4 px under its label (ORV-192 row 17). */
+.ds-field__label + .ds-field__description {
+  margin-block-start: calc(var(--ds-space-inline-sm) - var(--cmp-field-gap));
 }
 .ds-field__error {
   color: var(--cmp-field-error);
@@ -785,6 +840,13 @@
   box-shadow: var(--cmp-popover-shadow);
   z-index: var(--cmp-popover-layer);
 }
+/* Focus on the panel itself: the border form of ORV-192 row 9, the elevation kept under the halo. */
+.ds-popover:focus-visible {
+  border-color: var(--ds-focus-ring);
+  outline: 1px solid transparent;
+  outline-offset: 0;
+  box-shadow: var(--cmp-popover-shadow), var(--_focus-shadow-border);
+}
 
 /* Tabs -------------------------------------------------------------------------------------- */
 
@@ -847,11 +909,10 @@
   background: transparent;
   cursor: not-allowed;
 }
+/* Inside the trigger (ORV-192 row 9): the list scrolls and would clip an outside halo. */
 .ds-tabs__trigger:focus-visible {
-  outline-offset: -2px;
-}
-.ds-tabs__panel {
-  outline-offset: 2px;
+  outline-offset: -1px;
+  box-shadow: var(--_focus-shadow-inset);
 }
 .ds-tabs[data-orientation="vertical"] .ds-tabs__panel {
   flex: 1;
@@ -952,6 +1013,13 @@
   z-index: var(--cmp-dialog-layer);
   animation: ds-dialog-in var(--ds-motion-overlay-duration) var(--ds-motion-easing);
 }
+/* Focus on the panel itself: the border form of ORV-192 row 9, the elevation kept under the halo. */
+.ds-dialog:focus-visible {
+  border-color: var(--ds-focus-ring);
+  outline: 1px solid transparent;
+  outline-offset: 0;
+  box-shadow: var(--cmp-dialog-shadow), var(--_focus-shadow-border);
+}
 .ds-dialog__header {
   display: flex;
   align-items: flex-start;
@@ -975,6 +1043,10 @@
 .ds-dialog__description {
   margin: 0;
   color: var(--cmp-dialog-description);
+}
+/* Header pair: 8 px under the title, the body gap after it (ORV-192 row 17). */
+.ds-dialog__header + .ds-dialog__description {
+  margin-block-start: calc(var(--ds-space-stack-sm) - var(--cmp-dialog-gap));
 }
 /* The body scrolls, and a scroll container clips what draws outside a control, such as the focus
  * ring and its gap. The body bleeds that distance and pads it back, so the ring stays whole. */
@@ -1065,6 +1137,15 @@
 .ds-card[data-selected] {
   background: var(--cmp-card-bg-selected);
   border-color: var(--cmp-card-border-selected);
+}
+/* Focus (ORV-192 row 9): the border form. The card's own border turns focus.ring, selected or not, and
+   no outline sits beside it. Its rest shadow is the shell elevation, which is none under every profile,
+   so the halo stands alone. */
+.ds-card[data-interactive]:focus-visible {
+  border-color: var(--ds-focus-ring);
+  outline: 1px solid transparent;
+  outline-offset: 0;
+  box-shadow: var(--_focus-shadow-border);
 }
 .ds-card__title {
   margin: 0;
@@ -1245,6 +1326,10 @@
 .ds-table__status-text {
   margin: 0;
 }
+/* Compact pair: 4 px under its title (ORV-192 row 17). */
+.ds-table__status-title + .ds-table__status-text {
+  margin-block-start: calc(var(--ds-space-inline-sm) - var(--ds-space-stack-sm));
+}
 @container ds-table (max-width: 479px) {
   .ds-table,
   .ds-table__caption,
@@ -1361,15 +1446,18 @@
   width: 100%;
   height: 100%;
 }
-/* React Flow strips the outline from its own node types; ours keep the ring (DESIGN.md §3.1). */
+/* React Flow strips the outline from its own node types; ours keep the focus line and halo (DESIGN.md §3.1).
+   The edge is SVG: the shadow does not paint there, the line does. */
 .ds-board .react-flow__node:focus-visible {
-  outline: 2px solid var(--ds-focus-ring);
-  outline-offset: 2px;
+  outline: 1px solid var(--ds-focus-ring);
+  outline-offset: 0;
+  box-shadow: var(--_focus-shadow);
   border-radius: var(--cmp-node-radius);
 }
 .ds-board .react-flow__edge:focus-visible {
-  outline: 2px solid var(--ds-focus-ring);
-  outline-offset: 2px;
+  outline: 1px solid var(--ds-focus-ring);
+  outline-offset: 0;
+  box-shadow: var(--_focus-shadow);
 }
 .ds-board .react-flow__attribution {
   color: var(--ds-text-secondary);
@@ -1502,7 +1590,7 @@
   border-color: var(--cmp-node-border-hover);
 }
 /* Selected and the keyboard-connect candidate: a 2 px violet edge (border plus an inset outline),
- * distinct from the ink focus ring the React Flow wrapper draws outside the node. */
+ * distinct from the brand focus line the React Flow wrapper draws outside the node. */
 .ds-node[data-selected],
 .ds-node[data-connect-candidate] {
   border-color: var(--cmp-node-border-selected);
@@ -2030,10 +2118,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 1.5em;
+  min-width: 2.25em;
   padding-inline: var(--cmp-kbd-padding-x);
   border: 1px solid var(--cmp-kbd-border);
-  border-bottom-width: 2px;
   border-radius: var(--cmp-kbd-radius);
   background: var(--cmp-kbd-bg);
   color: var(--cmp-kbd-fg);
@@ -2093,6 +2180,14 @@
   color: var(--cmp-menu-option-fg-disabled);
   cursor: not-allowed;
 }
+/* The highlight ground is the focus mark in a list; this outweighs the global rule, which the plain
+   `outline: none` never did (ORV-192 row 9). */
+.ds-menu__option:focus-visible,
+.ds-menu__item:focus-visible,
+.ds-command__input:focus-visible {
+  outline: none;
+  box-shadow: var(--_focus-shadow-none);
+}
 /* Checkable items (ORV-78): a glyph column kept when unchecked, and glyph plus fill when checked,
    the same selected pair as a Select option. */
 .ds-menu__indicator {
@@ -2110,8 +2205,9 @@
 /* Highlighted and checked: the selected fill stays and a focus ring shows where the pointer or
    keyboard is, so the two never read the same (DESIGN.md §7). */
 .ds-menu__item[data-checkable][data-state="checked"][data-highlighted]:not([data-disabled]) {
-  outline: 2px solid var(--ds-focus-ring);
-  outline-offset: -2px;
+  outline: 1px solid var(--ds-focus-ring);
+  outline-offset: -1px;
+  box-shadow: var(--_focus-shadow-inset);
 }
 .ds-menu__shortcut {
   margin-left: auto;
@@ -2140,16 +2236,17 @@
 }
 
 /* ToggleGroup, segmented (ORV-65): a sunken track; the pressed item is a raised card chip with a
- * ring and heavier text. No selection tint and no canvas violet, so the pressed item reads the same
+ * soft lift, no ring. No selection tint and no canvas violet, so the pressed item reads the same
  * under every profile. No bottom edge either: a transparent 2px edge lifted Thai labels off centre.
  * Inner items take the track's radius minus its padding, so pill and square profiles both nest. */
 
 .ds-toggle {
   --_pad: 3px;
-  /* Inner radius, the hover wash and the pressed ring, each built only from tokens. */
+  /* Inner radius, the hover wash and the pressed lift, each built only from tokens. */
   --_item-radius: max(0px, calc(var(--cmp-toggle-radius) - var(--_pad)));
   --_hover: color-mix(in srgb, var(--cmp-toggle-bg-hover) 55%, transparent);
-  --_ring: 0 0 0 1px var(--cmp-toggle-border-pressed);
+  --_lift: 0 1px 3px
+    color-mix(in srgb, var(--ds-surface-scrim) calc(var(--ds-opacity-scrim) * 50%), transparent);
   display: inline-flex;
   align-items: center;
   gap: 2px;
@@ -2191,22 +2288,32 @@
   background: var(--_hover);
   color: var(--cmp-toggle-fg-hover);
 }
-/* Pressed: the chip, its ring and a heavier weight (catalog rule: never a tint alone). */
+/* Pressed: the card chip and its lift, no ring (catalog rule: never a tint alone). */
 .ds-toggle__item[data-state="on"] {
   background: var(--cmp-toggle-bg-pressed);
   color: var(--cmp-toggle-fg-pressed);
-  font-weight: var(--ds-type-heading-sm-font-weight);
-  box-shadow: var(--_ring);
+  box-shadow: var(--_lift);
+}
+/* A pressed chip keeps its look under the pointer. */
+.ds-toggle__item[data-state="on"]:hover:not(:disabled) {
+  background: var(--cmp-toggle-bg-pressed);
+  color: var(--cmp-toggle-fg-pressed);
 }
 .ds-toggle__item:focus-visible {
-  outline: 2px solid var(--ds-focus-ring);
-  outline-offset: 1px;
+  outline: 1px solid var(--ds-focus-ring);
+  outline-offset: 0;
+  box-shadow: var(--_focus-shadow);
+}
+/* A focused pressed chip keeps its lift under the halo: the lift is the pressed cue other than
+ * colour, so keyboard focus must not take it away (ORV-192 review F4). */
+.ds-toggle__item[data-state="on"]:focus-visible {
+  box-shadow: var(--_lift), var(--_focus-shadow);
 }
 .ds-toggle__item:disabled {
   color: var(--cmp-toggle-fg-disabled);
   cursor: not-allowed;
 }
-/* A disabled pressed item keeps its chip but drops the ring, so it does not read as live. */
+/* A disabled pressed item keeps its chip but drops the lift, so it does not read as live. */
 .ds-toggle__item[data-state="on"]:disabled {
   box-shadow: var(--ds-elevation-shell);
 }
@@ -2246,6 +2353,7 @@
   opacity: var(--ds-opacity-disabled);
 }
 .ds-board .react-flow__panel.ds-controls {
+  anchor-name: --ds-board-controls;
   margin: var(--ds-space-inset-md);
   flex-wrap: wrap;
   max-width: calc(100% - 2 * var(--ds-space-inset-md));
@@ -2276,8 +2384,9 @@
   background: var(--cmp-button-ghost-bg-hover);
 }
 .ds-controls__zoom:focus-visible {
-  outline: 2px solid var(--ds-focus-ring);
-  outline-offset: 2px;
+  outline: 1px solid var(--ds-focus-ring);
+  outline-offset: 0;
+  box-shadow: var(--_focus-shadow);
 }
 .ds-controls__zoom:disabled {
   color: var(--cmp-button-ghost-fg-disabled);
@@ -2360,6 +2469,13 @@
   overflow: hidden;
   z-index: var(--cmp-command-layer);
   animation: ds-dialog-in var(--ds-motion-overlay-duration) var(--ds-motion-easing);
+}
+/* Focus on the panel itself: the border form of ORV-192 row 9, the elevation kept under the halo. */
+.ds-command:focus-visible {
+  border-color: var(--ds-focus-ring);
+  outline: 1px solid transparent;
+  outline-offset: 0;
+  box-shadow: var(--cmp-command-shadow), var(--_focus-shadow-border);
 }
 @media (prefers-reduced-transparency: reduce) {
   .ds-command {
@@ -2594,9 +2710,14 @@
   width: auto;
   height: auto;
 }
-.ds-board .react-flow__node-group.selected,
 .ds-board .react-flow__node-group:focus-visible {
-  outline: 2px solid var(--ds-focus-ring);
+  outline: 1px solid var(--ds-focus-ring);
+  outline-offset: 0;
+  box-shadow: var(--_focus-shadow);
+}
+/* Selected is distinct from focus (DESIGN.md §7): a selected group takes the canvas selection, not the focus line. */
+.ds-board .react-flow__node-group.selected {
+  outline: 2px solid var(--cmp-node-border-selected);
   outline-offset: 2px;
 }
 
@@ -2610,8 +2731,11 @@
 .ds-scroll__viewport {
   width: 100%;
   height: 100%;
-  /* The focus ring of the region itself draws inside, where the scroll container cannot clip it. */
-  outline-offset: -2px;
+  /* The focus line of the region itself draws inside, where the scroll container cannot clip it. */
+  outline-offset: -1px;
+}
+.ds-scroll__viewport:focus-visible {
+  box-shadow: var(--_focus-shadow-inset);
 }
 .ds-scroll__bar {
   display: flex;
@@ -2787,6 +2911,15 @@
   overflow-wrap: anywhere;
   z-index: var(--cmp-side-sheet-layer);
 }
+/* Focus on the panel itself: its one border, on the open edge, turns brand; the border form of
+   ORV-192 row 9 on that edge (row 19, sign-off 2 F2). The weight beats the data-side border
+   shorthands below, and only the open edge has a width, so only it shows. */
+.ds-side-sheet[data-side]:focus-visible {
+  border-color: var(--ds-focus-ring);
+  outline: 1px solid transparent;
+  outline-offset: 0;
+  box-shadow: var(--cmp-side-sheet-shadow), var(--_focus-shadow-border);
+}
 .ds-side-sheet[data-size="lg"] {
   width: min(var(--cmp-side-sheet-width-lg), calc(100% - var(--ds-space-gutter)));
 }
@@ -2885,11 +3018,16 @@
 .ds-prompt__upload {
   display: flex;
   flex-direction: column;
-  gap: var(--ds-space-stack-sm);
+  gap: var(--ds-space-inline-sm);
 }
 .ds-prompt__note {
   margin: 0;
   color: var(--cmp-prompt-progress-fg);
+  font-family: var(--cmp-prompt-note-type-font-family);
+  font-size: var(--cmp-prompt-note-type-font-size);
+  line-height: var(--cmp-prompt-note-type-line-height);
+  font-weight: var(--cmp-prompt-note-type-font-weight);
+  letter-spacing: var(--cmp-prompt-note-type-letter-spacing);
 }
 .ds-prompt__actions {
   display: flex;
@@ -2919,7 +3057,7 @@
   white-space: nowrap;
 }
 
-/* BlockLibrary (ORV-44 part 2): a glass shelf at the bottom of the board, above the controls.
+/* BlockLibrary (ORV-44 part 2): a glass shelf at the bottom of the board, 16 px above the controls at any row count.
  * A tile not on the board has a dashed edge; on the board, solid, with its fill word and mark. */
 .ds-board .react-flow__panel.ds-shelf {
   --_glass: color-mix(
@@ -2933,6 +3071,10 @@
   width: max-content;
   max-width: calc(100% - 2 * var(--ds-space-inset-md));
   margin: 0 0 calc(var(--ds-size-control-md) + 3 * var(--ds-space-inset-md));
+  /* xyflow centres a bottom-center panel with translateX(-15px) translateX(-50%), the first step
+   * undoing its own 15px margin. This recipe sets no inline margin, so only the plain half-width
+   * shift is left (ORV-190). */
+  transform: translateX(-50%);
   padding: var(--cmp-shelf-padding);
   border: 1px solid var(--cmp-shelf-border);
   border-radius: var(--cmp-shelf-radius);
@@ -2990,6 +3132,12 @@
   gap: var(--ds-space-inline-lg);
   overflow-x: auto;
   overscroll-behavior-x: contain;
+  /* The row clips both axes at its padding box, so the focus ring (reach 4) of the first and last
+   * tile was cut. Bleed the box out by the ring and pad it back: the tiles keep their place
+   * (ORV-190, as .ds-dialog__body does). */
+  margin: calc(-1 * var(--ds-space-inline-sm));
+  padding: var(--ds-space-inline-sm);
+  scroll-padding: var(--ds-space-inline-sm);
 }
 .ds-shelf__group {
   display: flex;
@@ -3009,7 +3157,7 @@
   flex-direction: column;
   align-items: stretch;
   justify-content: space-between;
-  gap: var(--ds-space-stack-sm);
+  gap: var(--ds-space-inline-sm);
   width: var(--cmp-shelf-tile-width);
   height: 100%;
   padding: var(--ds-space-inset-sm);
@@ -3049,6 +3197,14 @@
 .ds-shelf__tile:hover:not(:disabled) {
   background: var(--cmp-shelf-tile-bg-hover);
 }
+/* Focus (ORV-192 row 9): the tile's border turns to focus.ring, solid, with the halo on it. */
+.ds-shelf__tile:focus-visible {
+  border-color: var(--ds-focus-ring);
+  border-style: solid;
+  outline: 1px solid transparent;
+  outline-offset: 0;
+  box-shadow: var(--_focus-shadow-border);
+}
 .ds-shelf__tile:disabled {
   cursor: default;
 }
@@ -3058,6 +3214,13 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.ds-shelf__name {
+  font-family: var(--cmp-shelf-tile-name-type-font-family);
+  font-size: var(--cmp-shelf-tile-name-type-font-size);
+  line-height: var(--cmp-shelf-tile-name-type-line-height);
+  font-weight: var(--cmp-shelf-tile-name-type-font-weight);
+  letter-spacing: var(--cmp-shelf-tile-name-type-letter-spacing);
 }
 /* State word and, for colour blocks, the swatches share one row, so every tile is the same height. */
 .ds-shelf__meta {
@@ -3076,6 +3239,11 @@
   align-items: center;
   gap: var(--ds-space-inline-sm);
   color: var(--cmp-shelf-tile-state-fg);
+  font-family: var(--cmp-shelf-tile-state-type-font-family);
+  font-size: var(--cmp-shelf-tile-state-type-font-size);
+  line-height: var(--cmp-shelf-tile-state-type-line-height);
+  font-weight: var(--cmp-shelf-tile-state-type-font-weight);
+  letter-spacing: var(--cmp-shelf-tile-state-type-letter-spacing);
 }
 .ds-shelf__state svg {
   flex: 0 0 auto;
@@ -3156,6 +3324,10 @@
   display: flex;
   flex-direction: column;
   gap: var(--cmp-inspector-gap);
+}
+/* Header pair: 8 px under the title (ORV-192 row 17). */
+.ds-inspector__empty > .ds-inspector__title + .ds-inspector__muted {
+  margin-block-start: calc(var(--ds-space-stack-sm) - var(--cmp-inspector-gap));
 }
 .ds-inspector__body {
   padding-block-start: var(--cmp-inspector-gap);
@@ -3441,6 +3613,10 @@
 }
 .ds-toast__icon {
   flex: none;
+  /* the icon's centre on the close button's centre */
+  width: var(--ds-size-icon-md);
+  height: var(--ds-size-icon-md);
+  margin-block-start: calc((var(--cmp-button-height-sm) - var(--ds-size-icon-md)) / 2);
   color: var(--cmp-toast-success-icon);
 }
 .ds-toast[data-variant="danger"] .ds-toast__icon {
@@ -3449,10 +3625,19 @@
 .ds-toast__content {
   flex: 1 1 auto;
   min-width: 0;
+  /* the title's first line centres on the close button; later lines flow under it */
+  padding-block-start: calc(
+    (
+        var(--cmp-button-height-sm) - var(--cmp-toast-title-type-font-size) *
+          var(--cmp-toast-title-type-line-height)
+      ) /
+      2
+  );
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: var(--ds-space-stack-sm);
+  /* title and description are one block, 4 px apart (ORV-192 row 17) */
+  gap: var(--ds-space-inline-sm);
 }
 .ds-toast__title {
   font-family: var(--cmp-toast-title-type-font-family);
@@ -3480,6 +3665,8 @@
 }
 .ds-toast__action {
   padding-inline: var(--cmp-button-padding-x-sm);
+  /* with the content gap of 4, an action keeps 8 px above it (ORV-192 row 17) */
+  margin-block-start: var(--ds-space-inline-sm);
 }
 .ds-toast__close {
   flex: none;
@@ -3489,11 +3676,27 @@
 .ds-toast__close:hover {
   border-color: currentColor;
 }
-/* The global ring is not readable on the inverse ground, so the outline takes the toast's text. */
+/* The action and close sit on the inverse ground, where the brand is not readable, so their line
+   and halo take the toast's text. The root's line and halo sit outside the toast, on the page, so
+   they take focus.ring as Dialog and Popover do (ORV-192 row 19, sign-off 2 F1). */
+.ds-toast {
+  --_toast-halo: color-mix(
+    in srgb,
+    var(--cmp-toast-fg) calc(var(--ds-focus-halo-opacity) * 100%),
+    transparent
+  );
+  --_toast-shadow: 0 0 0 4px var(--_toast-halo);
+}
+.ds-toast:focus-visible {
+  outline: 1px solid var(--ds-focus-ring);
+  outline-offset: 0;
+  box-shadow: var(--cmp-toast-shadow), var(--_focus-shadow);
+}
 .ds-toast__action:focus-visible,
 .ds-toast__close:focus-visible {
-  outline: 2px solid var(--cmp-toast-fg);
-  outline-offset: 2px;
+  outline: 1px solid var(--cmp-toast-fg);
+  outline-offset: 0;
+  box-shadow: var(--_toast-shadow);
 }
 @keyframes ds-toast-in {
   from {
@@ -3553,7 +3756,6 @@
   position: relative;
   overflow: hidden;
   height: var(--cmp-progress-height-md);
-  border: 1px solid var(--cmp-progress-track-border);
   border-radius: var(--cmp-progress-radius);
   background: var(--cmp-progress-track);
 }
@@ -3597,6 +3799,8 @@
   display: inline-flex;
   align-items: stretch;
   max-width: min(var(--cmp-tag-max-width), 100%);
+  /* One line by design: a 1.7 label line never grows the tag (ORV-192 row 18). */
+  height: var(--cmp-tag-height-md);
   min-height: var(--cmp-tag-height-md);
   border: 1px solid var(--cmp-tag-border);
   border-radius: var(--cmp-tag-radius);
@@ -3610,6 +3814,7 @@
   overflow: hidden;
 }
 .ds-tag[data-size="sm"] {
+  height: var(--cmp-tag-height-sm);
   min-height: var(--cmp-tag-height-sm);
   font-family: var(--cmp-tag-type-sm-font-family);
   font-size: var(--cmp-tag-type-sm-font-size);
@@ -3632,6 +3837,11 @@
 .ds-tag[data-size="sm"] .ds-tag__main {
   padding-inline: var(--cmp-tag-padding-x-sm);
 }
+/* With a remove, the label stops one gap before it at both sizes (ORV-192 row 13). */
+.ds-tag:has(> .ds-tag__remove) .ds-tag__main,
+.ds-tag[data-size="sm"]:has(> .ds-tag__remove) .ds-tag__main {
+  padding-inline-end: var(--cmp-tag-gap);
+}
 button.ds-tag__main {
   cursor: pointer;
 }
@@ -3644,8 +3854,11 @@ button.ds-tag__main {
 .ds-tag__check {
   flex: none;
 }
-.ds-tag:hover {
-  background: var(--cmp-tag-bg-hover);
+/* Hover (ORV-192 row 13): a selectable tag shows hover on its edge; the fill does not change, and a focused tag keeps its focus edge. */
+.ds-tag:has(> button.ds-tag__main):hover:not([data-selected]):not([data-disabled]):not(
+    :has(> .ds-tag__main:focus-visible)
+  ) {
+  border-color: var(--cmp-tag-border-hover);
 }
 /* Selected: the selection ground and a heavier edge, plus the check; never colour alone. */
 .ds-tag[data-selected] {
@@ -3658,20 +3871,44 @@ button.ds-tag__main {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: var(--cmp-tag-height-sm);
+  align-self: center;
+  width: var(--cmp-tag-remove-size);
+  min-width: var(--cmp-tag-remove-size);
+  height: var(--cmp-tag-remove-size);
+  margin-inline-end: var(--cmp-tag-gap);
   padding: 0;
   border: 0;
+  border-radius: var(--cmp-tag-remove-radius);
   background: transparent;
   color: var(--cmp-tag-remove-fg);
   cursor: pointer;
 }
+/* sm: the remove fills the tag's inner height, flush to the end. */
+.ds-tag[data-size="sm"] .ds-tag__remove {
+  align-self: stretch;
+  height: auto;
+  margin-inline-end: 0;
+}
 .ds-tag__remove:hover {
   background: var(--cmp-tag-remove-bg-hover);
+  color: var(--cmp-tag-remove-fg-hover);
 }
-.ds-tag__main:focus-visible,
+/* Focus (ORV-192 row 9): the label part turns the tag's own border to focus.ring with the halo on it;
+   the remove draws its line on its own edge and the halo inward, inside the pill. */
+.ds-tag:has(> .ds-tag__main:focus-visible) {
+  border-color: var(--ds-focus-ring);
+  outline: 1px solid transparent;
+  outline-offset: 0;
+  box-shadow: var(--_focus-shadow-border);
+}
+.ds-tag__main:focus-visible {
+  outline: none;
+  box-shadow: var(--_focus-shadow-none);
+}
 .ds-tag__remove:focus-visible {
-  outline: 2px solid var(--ds-focus-ring);
-  outline-offset: -2px;
+  outline: 1px solid var(--ds-focus-ring);
+  outline-offset: -1px;
+  box-shadow: var(--_focus-shadow-inset);
 }
 .ds-tag[data-disabled] {
   border-color: var(--cmp-tag-bg-disabled);
@@ -3784,8 +4021,9 @@ button.ds-tag__main {
 }
 /* Programmatic focus after Retry unmounts: inset so the scroll viewport does not clip it. */
 .ds-taskbar__row:focus-visible {
-  outline: 2px solid var(--ds-focus-ring);
-  outline-offset: -2px;
+  outline: 1px solid var(--ds-focus-ring);
+  outline-offset: -1px;
+  box-shadow: var(--_focus-shadow-inset);
 }
 .ds-taskbar__mark {
   grid-area: mark;
@@ -3909,6 +4147,27 @@ button.ds-tag__main {
     var(--ds-space-inset-md) * 2 + var(--cmp-button-height-sm) + 2 * var(--cmp-toolbar-padding) +
       2px + var(--_lift)
   );
+}
+/* The shelf sits 16 px above the controls at any row count (ORV-192 row 2). It comes after the task
+ * bar's shelf margin above, which has the same specificity, so the anchor wins with and without a
+ * task bar; the two margins are the fallback where anchor positioning is missing. */
+@supports (anchor-name: --a) {
+  .ds-board .react-flow__panel.ds-shelf,
+  .ds-board:has(.ds-taskbar) .react-flow__panel.ds-shelf {
+    position-anchor: --ds-board-controls;
+    bottom: anchor(top);
+    margin-block-end: var(--ds-space-inset-md);
+  }
+}
+/* The status line also sits 16 px above the controls at any row count (ORV-192 row 2). It comes after
+ * both status rules and wins over them at equal specificity; the open list rule below is more
+ * specific and keeps its own placement. */
+@supports (anchor-name: --a) {
+  .ds-board:has(.ds-controls) .ds-board__status,
+  .ds-board:has(.ds-taskbar) .ds-board__status {
+    position-anchor: --ds-board-controls;
+    bottom: calc(anchor(top) + var(--ds-space-inset-md));
+  }
 }
 /* An open list adds up to its capped height to the bar. Only the status line clears it, and never
  * past the board's top edge; the toolbar, minimap and shelf keep their closed-bar places. */
@@ -4171,12 +4430,13 @@ button.ds-tag__main {
 .ds-chat__box:hover {
   border-color: var(--cmp-input-border-hover);
 }
-/* Chat composer only: while the textarea has focus the box's own 1 px border in the focus ink is the single focus line
- * (ORV-107 comments 10153, 10154), with no outline on top of it; a focused Send, Stop, Mention or chip button draws its
- * own 2 px ring and the box none. The field draws none. */
+/* Chat composer only: while the textarea has focus the box's own 1 px border in focus.ring is the focus line and the
+ * halo touches it (ORV-107 comments 10153, 10154; ORV-192 row 9), with no outline on top of it; a focused Send, Stop,
+ * Mention or chip button draws its own 1 px line and halo and the box none. The field draws none. */
 .ds-chat__box:has(textarea:focus) {
   border-color: var(--cmp-input-border-focus);
   outline: none;
+  box-shadow: var(--_focus-shadow-border);
 }
 .ds-chat__box:has(textarea[aria-invalid="true"]) {
   border-color: var(--cmp-input-border-error);
@@ -4195,6 +4455,7 @@ button.ds-tag__main {
 }
 .ds-chat__box .ds-control:focus-visible {
   outline: none;
+  box-shadow: var(--_focus-shadow-none);
 }
 .ds-chat__box .ds-textarea__counter {
   grid-area: count;
@@ -4337,4 +4598,27 @@ button.ds-tag__main {
   .ds-chat__box {
     transition: none;
   }
+}
+
+/* Logo (ORV-118): colour only. Geometry, stroke widths and size are attributes the component writes. */
+.ds-logo {
+  display: block;
+  flex: none;
+}
+.ds-logo__ring,
+.ds-logo__strokes {
+  stroke: var(--cmp-logo-ink);
+}
+.ds-logo__fills {
+  fill: var(--cmp-logo-ink);
+}
+.ds-logo__dot {
+  fill: var(--cmp-logo-dot);
+}
+.ds-logo:is([data-form="16"], [data-form="24"]) .ds-logo__dot {
+  fill: var(--cmp-logo-dot-small);
+}
+/* Last on purpose: the same specificity as the rule above, so one colour wins in every form. */
+.ds-logo[data-tone="one-colour"] .ds-logo__dot {
+  fill: var(--cmp-logo-ink);
 }

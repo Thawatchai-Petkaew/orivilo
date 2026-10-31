@@ -9,6 +9,7 @@ import { expect } from "storybook/test";
  */
 
 export type Side = "top" | "right" | "bottom" | "left";
+type Side4 = "Top" | "Right" | "Bottom" | "Left";
 export type Rgb = readonly [number, number, number];
 
 /** A pixel counts as ink when it differs from both backgrounds by more than this (sum over RGB). */
@@ -30,6 +31,15 @@ export function inkWidth(line: readonly Rgb[], devicePixelRatio: number): number
     (px) => distance(px, outside) > INK_DISTANCE && distance(px, inside) > INK_DISTANCE,
   );
   return ink.length / devicePixelRatio;
+}
+
+/**
+ * The index of the first row that holds a pixel more than `INK_DISTANCE` from `ground`, or null
+ * when every row is plain ground. Used to find where a line of text starts to draw.
+ */
+export function firstInkRow(rows: readonly (readonly Rgb[])[], ground: Rgb): number | null {
+  const at = rows.findIndex((row) => row.some((px) => distance(px, ground) > INK_DISTANCE));
+  return at === -1 ? null : at;
 }
 
 export interface Corner {
@@ -107,16 +117,21 @@ async function pixelsOf(
 }
 
 /**
- * One screenshot of `scope`, decoded. `scale` is the screenshot width over the element's CSS width.
- * Vitest runs story files in parallel iframes and a screenshot waits on the page, so concurrent
- * shots starve each other. One lock across the iframes takes them one at a time.
+ * One screenshot of `el`, decoded to pixels. Vitest runs story files in parallel iframes and a
+ * screenshot waits on the page, so concurrent shots starve each other. One lock across the iframes
+ * takes them one at a time. It needs Vitest browser mode (see `inVitest`).
  */
-async function screenshotOf(scope: Element) {
+async function shoot(el: Element) {
   const { page } = await import("vitest/browser");
   const shot = await navigator.locks.request("orivilo-screenshot", () =>
-    page.screenshot({ element: scope, save: false }),
+    page.screenshot({ element: el, save: false }),
   );
-  const { data, width } = await pixelsOf(shot);
+  return pixelsOf(shot);
+}
+
+/** One screenshot of `scope` with its frame and `scale`, the screenshot width over the element's CSS width. */
+async function screenshotOf(scope: Element) {
+  const { data, width } = await shoot(scope);
   const frame = scope.getBoundingClientRect();
   return { data, width, frame, scale: width / frame.width };
 }
@@ -124,13 +139,10 @@ async function screenshotOf(scope: Element) {
 const label = (el: Element) =>
   `<${el.localName}${el.className && typeof el.className === "string" ? `.${el.className.split(" ").join(".")}` : ""}>`;
 
-/**
- * True under Vitest browser mode; false on the static Storybook, where `vitest/browser` is missing.
- * Vite's mode tells them apart: the test project runs in `test`, Storybook in `development` or
- * `production`. Vitest sets no `VITEST` key on `import.meta.env` in the browser, so a guard on that
- * key is always false there and the play behind it passes without reading a pixel.
- */
-export const inVitest = (import.meta as { env?: Record<string, unknown> }).env?.["MODE"] === "test";
+/** True under Vitest browser mode; false on the static Storybook, where `vitest/browser` is missing. */
+export const inVitest = Boolean(
+  (globalThis as Record<string, unknown>)["__vitest_browser__"] === true,
+);
 
 /**
  * Asserts the ink drawn at one edge of `el` (or at each of several, from one screenshot) is `px` CSS px wide, read from a screenshot (a pixel
@@ -184,6 +196,119 @@ export async function expectEdgeInk(
   }
 }
 
+export type ViewBox = readonly [minX: number, minY: number, width: number, height: number];
+export interface PaintProbe {
+  /** A point in the svg's `viewBox` units. */
+  x: number;
+  y: number;
+  /** The colour the pixel there must be, as `#rrggbb`. */
+  hex: string;
+}
+
+/** A pixel passes when the summed RGB difference from the expected colour is at most this. */
+const PAINT_TOLERANCE = 12;
+
+/** `#rrggbb` as RGB. Throws on anything else, so a mistyped expectation is not read as black. */
+export function hexToRgb(hex: string): Rgb {
+  const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex);
+  if (!m) throw new Error(`hexToRgb needs #rrggbb, got "${hex}"`);
+  return [parseInt(m[1] as string, 16), parseInt(m[2] as string, 16), parseInt(m[3] as string, 16)];
+}
+
+/** True when the pixel is within the paint tolerance (a summed RGB difference of 12) of the hex colour. */
+export function paintMatches(pixel: Rgb, hex: string): boolean {
+  return distance(pixel, hexToRgb(hex)) <= PAINT_TOLERANCE;
+}
+
+/**
+ * Maps a point in `viewBox` units to CSS px from the top left of the svg's box. The svg draws with
+ * `preserveAspectRatio="xMidYMid meet"` (the default): one uniform scale, the drawing centred in
+ * the box. Parameters are plain numbers so the mapping is tested in node.
+ */
+export function viewBoxToBox(
+  point: { x: number; y: number },
+  viewBox: ViewBox,
+  size: { width: number; height: number },
+): { x: number; y: number } {
+  const [minX, minY, vbWidth, vbHeight] = viewBox;
+  if (vbWidth <= 0 || vbHeight <= 0) throw new Error("viewBoxToBox needs a viewBox with a size");
+  const scale = Math.min(size.width / vbWidth, size.height / vbHeight);
+  return {
+    x: (size.width - vbWidth * scale) / 2 + (point.x - minX) * scale,
+    y: (size.height - vbHeight * scale) / 2 + (point.y - minY) * scale,
+  };
+}
+
+const hexOf = (px: Rgb) =>
+  `#${px
+    .map((v) => v.toString(16).padStart(2, "0"))
+    .join("")
+    .toUpperCase()}`;
+
+export interface SvgPaint {
+  svg: SVGSVGElement;
+  probes: readonly PaintProbe[];
+}
+
+/** The nearest element that holds every one of `els` (the element itself when there is one). */
+function commonAncestor(els: readonly Element[]): Element {
+  let scope: Element | null = els[0] ?? null;
+  while (scope && !els.every((el) => scope?.contains(el))) scope = scope.parentElement;
+  if (!scope) throw new Error("expectPaintsAt needs svgs that share an ancestor");
+  return scope;
+}
+
+/** Moves `el` by less than a pixel so its box starts on the pixel grid; it moves nothing else. */
+function snapToGrid(el: HTMLElement | SVGElement) {
+  el.style.translate = "none";
+  const box = el.getBoundingClientRect();
+  el.style.translate = `${Math.round(box.x) - box.x}px ${Math.round(box.y) - box.y}px`;
+}
+
+/**
+ * Asserts the rendered pixel at each probe point of each svg is the expected colour, within a
+ * summed RGB difference of 12, from ONE screenshot of the nearest ancestor that holds all the svgs.
+ * Each screenshot queues on the shared lock behind every other story file, so a play with many svgs
+ * takes one shot rather than one per svg (ORV-118 R2). A box at a half pixel is painted snapped to
+ * the grid but screenshotted from its floor, so the scope and then each svg are moved by less than
+ * a pixel onto the grid first. Probe points are in `viewBox` units; they must sit wholly inside the
+ * part they probe (further than a pixel's diagonal from its edge), so no antialiasing reaches them.
+ * It reads a screenshot, so computed style does not decide the result. It runs where Vitest browser
+ * mode runs; a play guards the call with `inVitest`.
+ */
+export async function expectPaintsAt(entries: readonly SvgPaint[]) {
+  const scope = commonAncestor(entries.map((entry) => entry.svg));
+  if (scope instanceof HTMLElement || scope instanceof SVGElement) snapToGrid(scope);
+  for (const { svg } of entries) if (svg !== scope) snapToGrid(svg);
+  const { data, width, height } = await shoot(scope);
+  const frame = scope.getBoundingClientRect();
+  const scale = scope === entries[0]?.svg ? width / frame.width : window.devicePixelRatio;
+  for (const { svg, probes } of entries) {
+    const viewBox = svg.viewBox.baseVal;
+    const rect = svg.getBoundingClientRect();
+    for (const probe of probes) {
+      const at = viewBoxToBox(probe, [viewBox.x, viewBox.y, viewBox.width, viewBox.height], rect);
+      const x = Math.floor((rect.x - frame.x + at.x) * scale);
+      const y = Math.floor((rect.y - frame.y + at.y) * scale);
+      expect(
+        x >= 0 && y >= 0 && x < width && y < height,
+        `probe (${probe.x}, ${probe.y}) of ${label(svg)} falls outside the screenshot`,
+      ).toBe(true);
+      const i = (y * width + x) * 4;
+      const pixel: Rgb = [data[i] ?? 0, data[i + 1] ?? 0, data[i + 2] ?? 0];
+      expect(
+        paintMatches(pixel, probe.hex),
+        `${label(svg)} paints ${hexOf(pixel)} at (${probe.x}, ${probe.y}), expected ${probe.hex.toUpperCase()}`,
+      ).toBe(true);
+    }
+  }
+}
+
+/** One svg of `expectPaintsAt`. */
+export function expectPaintAt(svg: SVGSVGElement, probes: readonly PaintProbe[]) {
+  return expectPaintsAt([{ svg, probes }]);
+}
+
 /** Asserts chips, tags or controls in one row have the same rendered height, within 0.5 px. */
 export function expectSameHeight(el: Element, ...siblings: Element[]) {
   const height = el.getBoundingClientRect().height;
@@ -194,6 +319,111 @@ export function expectSameHeight(el: Element, ...siblings: Element[]) {
       `${label(el)} is ${height} px tall but ${label(other)} is ${otherHeight} px`,
     ).toBeLessThanOrEqual(0.5);
   }
+}
+
+/**
+ * Asserts a title over its supporting text (ORV-192 row 17): the text starts `gap` px under the
+ * title (within 0.5), the title is 500 and the text 400, and their inks differ. A compact pair has
+ * one size; a header pair (`header: true`) has a 20 px title over 16 px text. `titleBottom` is for a
+ * title that is a bare text node (the Tooltip's content): pass the bottom of its line box.
+ */
+export function expectTitleOverText(
+  title: Element,
+  text: Element,
+  { gap, header = false, titleBottom }: { gap: number; header?: boolean; titleBottom?: number },
+) {
+  const bottom = titleBottom ?? title.getBoundingClientRect().bottom;
+  const actual = text.getBoundingClientRect().top - bottom;
+  expect(
+    Math.abs(actual - gap),
+    `${label(text)} starts ${actual} px under its title, not ${gap} px`,
+  ).toBeLessThanOrEqual(0.5);
+  const t = getComputedStyle(title);
+  const x = getComputedStyle(text);
+  expect(t.fontWeight, `${label(title)} weight`).toBe("500");
+  expect(x.fontWeight, `${label(text)} weight`).toBe("400");
+  if (header) {
+    expect(parseFloat(t.fontSize), `${label(title)} size`).toBe(20);
+    expect(parseFloat(x.fontSize), `${label(text)} size`).toBe(16);
+  } else {
+    expect(x.fontSize, `${label(text)} is the size of its title`).toBe(t.fontSize);
+  }
+  expect(x.color, `${label(text)} reads in a different ink than its title`).not.toBe(t.color);
+}
+
+/** The colour a semantic token resolves to at `el`, as the browser computes it (`rgb(...)`). */
+export function resolvedColor(el: Element, token: string): string {
+  const probe = document.createElement("span");
+  probe.style.color = `var(${token})`;
+  el.append(probe);
+  const color = getComputedStyle(probe).color;
+  probe.remove();
+  return color;
+}
+
+/**
+ * The border form of focus (ORV-192 row 9, DESIGN.md "Every focusable control"): under keyboard
+ * focus the element's own border turns `focus.ring` on each of `sides` (all four by default), the
+ * other sides stay 0 px wide so no second line sits anywhere (the side sheet has one border, on its
+ * open edge: `["Left"]` in a left-to-right page), the outline stays transparent so no line sits
+ * beside the border, and a 3 px halo touches the border. The element's rest elevation, if it has
+ * one, stays first in the shadow list. Puts focus back where it was.
+ */
+export async function expectFocusBorderForm(
+  el: HTMLElement,
+  sides: readonly Side4[] = ["Top", "Right", "Bottom", "Left"],
+) {
+  const rest = getComputedStyle(el).boxShadow;
+  const before = document.activeElement;
+  el.focus();
+  expect(el.matches(":focus-visible"), `${label(el)} matches :focus-visible`).toBe(true);
+  // A border-color transition (Card) is still running right after focus; read the settled look.
+  await Promise.all(el.getAnimations().map((a) => a.finished));
+  const style = getComputedStyle(el);
+  const ring = resolvedColor(el, "--ds-focus-ring");
+  for (const side of ["Top", "Right", "Bottom", "Left"] as const) {
+    if (sides.includes(side)) {
+      expect(style[`border${side}Color`], `${label(el)} border ${side} is focus.ring`).toBe(ring);
+      expect(parseFloat(style[`border${side}Width`]), `${label(el)} border ${side} width`).toBe(1);
+    } else {
+      expect(parseFloat(style[`border${side}Width`]), `${label(el)} border ${side} width`).toBe(0);
+    }
+  }
+  // No second line beside the border: the outline is transparent, or a library already set it to none.
+  if (style.outlineStyle !== "none") {
+    expect(style.outlineColor, `${label(el)} outline is transparent`).toBe("rgba(0, 0, 0, 0)");
+  }
+  expect(style.boxShadow, `${label(el)} halo is 3 px`).toMatch(/ 0px 0px 0px 3px$/);
+  if (rest !== "none")
+    expect(style.boxShadow.startsWith(rest), `${label(el)} keeps its elevation`).toBe(true);
+  if (before instanceof HTMLElement && before !== document.body) before.focus();
+  else el.blur();
+}
+
+/**
+ * The elevation form of focus (ORV-192 row 9): the element keeps its rest shadow, first in the list,
+ * and gains a 4 px halo after it, with a 1 px outline in `ink` (`focus.ring` unless the element sits
+ * on a ground where the brand is not readable). Puts focus back where it was.
+ */
+export async function expectFocusElevationForm(
+  el: HTMLElement,
+  ink = resolvedColor(el, "--ds-focus-ring"),
+) {
+  const rest = getComputedStyle(el).boxShadow;
+  expect(rest, `${label(el)} has an elevation at rest`).not.toBe("none");
+  const before = document.activeElement;
+  el.focus();
+  expect(el.matches(":focus-visible"), `${label(el)} matches :focus-visible`).toBe(true);
+  // A border-color transition (Card) is still running right after focus; read the settled look.
+  await Promise.all(el.getAnimations().map((a) => a.finished));
+  const style = getComputedStyle(el);
+  expect(style.boxShadow.startsWith(rest), `${label(el)} keeps its elevation`).toBe(true);
+  expect(style.boxShadow, `${label(el)} adds the halo`).toMatch(/ 0px 0px 0px 4px$/);
+  expect(style.outlineWidth, `${label(el)} outline width`).toBe("1px");
+  expect(style.outlineStyle, `${label(el)} outline style`).toBe("solid");
+  expect(style.outlineColor, `${label(el)} outline colour`).toBe(ink);
+  if (before instanceof HTMLElement && before !== document.body) before.focus();
+  else el.blur();
 }
 
 const px = (value: string, basis: number) => {
@@ -509,4 +739,71 @@ export async function expectInkCentred(scope: Element, boxes: readonly Element[]
   const readings = await measureInkCentre(scope, boxes);
   const report = offCentreReport(readings);
   for (const reading of readings) expect(reading.centred, report).toBe(true);
+}
+
+/**
+ * Asserts the first ink of `el`'s first line starts at least `px` CSS px below the bottom of
+ * `above` (ORV-192 row 19). Thai marks such as the ฟื้ stack rise above the line box, so a box
+ * check cannot see them; this reads them. `above` is hidden while one screenshot of the nearest
+ * ancestor holding both boxes is taken (restored in `finally`), the ground is the pixel 1 CSS px
+ * inside the top left of `above`, and the rows from the top of `above` down to the bottom of
+ * `el`'s first line are scanned over `el`'s columns. It runs where Vitest browser mode runs; a play
+ * guards the call with `inVitest`.
+ */
+export async function expectInkClearsAbove(el: Element, above: Element, px = 4) {
+  const holds = (a: DOMRect, r: DOMRect) =>
+    a.left <= r.left && a.top <= r.top && a.right >= r.right && a.bottom >= r.bottom;
+  const aboveRect = above.getBoundingClientRect();
+  const rect = el.getBoundingClientRect();
+  const both = new DOMRect(
+    Math.min(rect.left, aboveRect.left),
+    Math.min(rect.top, aboveRect.top),
+    Math.max(rect.right, aboveRect.right) - Math.min(rect.left, aboveRect.left),
+    Math.max(rect.bottom, aboveRect.bottom) - Math.min(rect.top, aboveRect.top),
+  );
+  let scope: Element = el;
+  while (scope.parentElement && !holds(scope.getBoundingClientRect(), both)) {
+    scope = scope.parentElement;
+  }
+  const hidden = above as HTMLElement;
+  const previous = hidden.style.visibility;
+  hidden.style.visibility = "hidden";
+  try {
+    const { data, width } = await shoot(scope);
+    const frame = scope.getBoundingClientRect();
+    const scale = width / frame.width;
+    const style = getComputedStyle(el);
+    const lineHeight = parseFloat(style.lineHeight);
+    const firstLineBottom = Number.isNaN(lineHeight)
+      ? rect.bottom
+      : Math.min(rect.bottom, rect.top + parseFloat(style.paddingTop) + lineHeight);
+    const pixel = (x: number, y: number): Rgb => {
+      const at = (y * width + x) * 4;
+      return [data[at] ?? 0, data[at + 1] ?? 0, data[at + 2] ?? 0];
+    };
+    const ground = pixel(
+      Math.round((aboveRect.left + 1 - frame.left) * scale),
+      Math.round((aboveRect.top + 1 - frame.top) * scale),
+    );
+    const top = Math.round((aboveRect.top - frame.top) * scale);
+    const bottom = Math.round((firstLineBottom - frame.top) * scale);
+    const left = Math.round((rect.left - frame.left) * scale);
+    const right = Math.round((rect.right - frame.left) * scale);
+    const rows: Rgb[][] = [];
+    for (let y = top; y < bottom; y++) {
+      const row: Rgb[] = [];
+      for (let x = left; x < right; x++) row.push(pixel(x, y));
+      rows.push(row);
+    }
+    const found = firstInkRow(rows, ground);
+    expect(found, `${label(el)} draws no ink in its first line`).not.toBeNull();
+    const gap = (top + (found ?? 0)) / scale + frame.top - aboveRect.bottom;
+    const read = Math.round(gap * 10) / 10;
+    expect(
+      read,
+      `${label(el)} ink starts ${read} px under ${label(above)}, expected at least ${px} px`,
+    ).toBeGreaterThanOrEqual(px);
+  } finally {
+    hidden.style.visibility = previous;
+  }
 }

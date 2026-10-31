@@ -10,6 +10,14 @@
  * its shadow and its options, a tab list by its tabs and the selected edge, a dialog by its scrim
  * and shadow, a card by its ground; the edge is decoration and WCAG 1.4.11 does not apply to it.
  *
+ * `progress.track`, a filled `border.subtle` bar, 1.2 to 2.1 against the page: the value is printed
+ * as text beside every bar, so the track is not the only carrier and WCAG 1.4.11 does not apply to
+ * it (ORV-192 row 14). The fill, done fill and failed fill are listed against the track at 3.0.
+ *
+ * `logo.dot`, the master dot (`brand.signature`; 6.6 on the light canvas under neutral, 2.3 under
+ * Friendly): a logotype's accent is decoration and the ring carries the shape; WCAG 1.4.11 does
+ * not apply to a logotype. It stays out of the list because Friendly's master dot is under 3.0.
+ *
  * Paths are component-token paths (`button.primary.fg`) or semantic paths prefixed `ds:` where a
  * recipe sits on a page ground rather than its own (`ds:surface.canvas`).
  */
@@ -292,7 +300,7 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     floor: TEXT,
   },
   { recipe: "menu", slot: "empty line", fg: "menu.empty", bg: "menu.bg", floor: TEXT },
-  // Checkable menu item (ORV-78): the focus ring on the selected fill when highlighted
+  // Checkable menu item (ORV-78): the focus.ring (the brand) line on the selected fill when highlighted
   {
     recipe: "menu",
     slot: "checked highlighted ring",
@@ -697,6 +705,7 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     floor: TEXT,
   },
   { recipe: "toggle", slot: "disabled", fg: "toggle.fg-disabled", bg: "toggle.bg", floor: UI },
+  { recipe: "toggle", slot: "focus line", fg: "ds:focus.ring", bg: "toggle.bg", floor: UI },
   { recipe: "toolbar", slot: "text", fg: "toolbar.fg", bg: "toolbar.bg", floor: TEXT },
   { recipe: "toolbar", slot: "glyph", fg: "button.ghost.fg", bg: "toolbar.bg", floor: TEXT },
   { recipe: "command", slot: "option", fg: "command.fg", bg: "command.bg", floor: TEXT },
@@ -855,13 +864,6 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     bg: "ds:surface.card",
     floor: TEXT,
   },
-  {
-    recipe: "progress",
-    slot: "track edge",
-    fg: "progress.track-border",
-    bg: "ds:surface.card",
-    floor: UI,
-  },
   { recipe: "progress", slot: "fill", fg: "progress.fill", bg: "progress.track", floor: UI },
   { recipe: "progress", slot: "done fill", fg: "progress.done", bg: "progress.track", floor: UI },
   {
@@ -887,9 +889,9 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
   },
   // Tag (E4-5): the label on its ground in each state, the edge against the card, the remove glyph.
   { recipe: "tag", slot: "label", fg: "tag.fg", bg: "tag.bg", floor: TEXT },
-  { recipe: "tag", slot: "label hover", fg: "tag.fg", bg: "tag.bg-hover", floor: TEXT },
   { recipe: "tag", slot: "label selected", fg: "tag.fg", bg: "tag.bg-selected", floor: TEXT },
-  { recipe: "tag", slot: "edge", fg: "tag.border", bg: "ds:surface.card", floor: UI },
+  // The resting hairline is decorative; hover and focus carry the edge (ORV-192 row 13).
+  { recipe: "tag", slot: "hover edge", fg: "tag.border-hover", bg: "ds:surface.card", floor: UI },
   {
     recipe: "tag",
     slot: "selected edge",
@@ -898,14 +900,15 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     floor: UI,
   },
   { recipe: "tag", slot: "remove", fg: "tag.remove-fg", bg: "tag.bg", floor: TEXT },
+  { recipe: "tag", slot: "remove focus", fg: "ds:focus.ring", bg: "tag.bg", floor: UI },
   {
     recipe: "tag",
     slot: "remove hover",
-    fg: "tag.remove-fg",
+    fg: "tag.remove-fg-hover",
     bg: "tag.remove-bg-hover",
     floor: TEXT,
   },
-  // TaskBar (ORV-100): text and marks on the bar's ground, the row focus ring against it. Not listed:
+  // TaskBar (ORV-100): text and marks on the bar's ground, the row focus line (focus.ring, the brand) against it. Not listed:
   // `taskbar.border` and `taskbar.divider` are `border.subtle` dividers (the bar is identified by its
   // ground and, on the board, its shadow). Progress and Button inside the bar sit on `taskbar.bg`,
   // which reads `surface.card`; their pairs exist on `ds:surface.card`. If `taskbar.bg` stops
@@ -925,7 +928,7 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
   { recipe: "taskbar", slot: "reason", fg: "taskbar.reason-fg", bg: "taskbar.bg", floor: TEXT },
   { recipe: "taskbar", slot: "row focus", fg: "ds:focus.ring", bg: "taskbar.bg", floor: UI },
   // CanvasChat (ORV-105): text and marks on the panel ground and on the question well, the
-  // transcript focus ring against the panel. Not listed: the panel edge (`chat.border`) and
+  // transcript focus line (focus.ring, the brand) against the panel. Not listed: the panel edge (`chat.border`) and
   // shadow, which the content does not depend on (WCAG 1.4.11 does not apply), and the question well's edge is not a
   // boundary anyone must perceive to operate anything. Textarea, Button and ScrollArea inside sit
   // on `chat.bg`, which reads `surface.card`, where their pairs exist. If `chat.bg` stops reading
@@ -944,7 +947,7 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
   { recipe: "chat", slot: "streaming", fg: "chat.streaming-fg", bg: "chat.bg", floor: TEXT },
   { recipe: "chat", slot: "failed", fg: "chat.failed-fg", bg: "chat.bg", floor: TEXT },
   { recipe: "chat", slot: "transcript focus", fg: "ds:focus.ring", bg: "chat.bg", floor: UI },
-  // The composer box's focus line is its 1 px border in the focus ink (ORV-107 comment 10154), on the chat ground and on the box fill.
+  // The composer box's focus line is its 1 px border in focus.ring, the brand (ORV-107 comment 10154), on the chat ground and on the box fill.
   { recipe: "chat", slot: "composer focus", fg: "input.border-focus", bg: "chat.bg", floor: UI },
   {
     recipe: "chat",
@@ -974,4 +977,7 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     bg: "chat.bg",
     floor: UI,
   },
+  // Logo (ORV-118)
+  { recipe: "logo", slot: "ink", fg: "logo.ink", bg: "ds:surface.canvas", floor: UI },
+  { recipe: "logo", slot: "small dot", fg: "logo.dot-small", bg: "ds:surface.canvas", floor: UI },
 ];

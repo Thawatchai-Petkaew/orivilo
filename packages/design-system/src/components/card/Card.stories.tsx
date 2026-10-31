@@ -1,8 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { Badge } from "../badge/Badge";
 import { Button } from "../button/Button";
 import { fixtures } from "../fixtures";
+import { expectFocusBorderForm } from "../../testing/visual-asserts";
 import { Matrix, Narrow } from "../matrix";
 import { Card, CardFooter, CardTitle, CardValue } from "./Card";
 
@@ -39,6 +40,12 @@ export const Default: Story = {
       </CardFooter>
     </Card>
   ),
+  play: async ({ canvasElement }) => {
+    // ORV-192 row 18: the paragraph has no type token of its own, so it takes the boundary's body
+    // type, 16 / 1.7 (27.2 px), not Tailwind's 16 / 1.5 (24 px).
+    const paragraph = canvasElement.querySelector("article p") as HTMLElement;
+    await expect(getComputedStyle(paragraph).lineHeight).toBe("27.2px");
+  },
 };
 
 /** The whole card is one button; its text is its name. Selected renders `aria-pressed` (AC 8). */
@@ -80,10 +87,18 @@ export const Link: Story = {
   },
 };
 
-/** Hover shows an edge, focus the ring, pressed the same edge; none is a tint alone (DESIGN.md §7). */
+/**
+ * Hover shows an edge, focus the ring, pressed the same edge; none is a tint alone (DESIGN.md §7).
+ * A synthetic pointer sets no `:hover`, so `parameters.pseudo` forces the hover look on the hover
+ * card (spec ORV-84, `hover-force-1`).
+ */
 export const InteractionStates: Story = {
+  parameters: { pseudo: { rootSelector: "body", hover: ['[data-testid="hover"]'] } },
   render: () => (
-    <div className="grid gap-4 sm:grid-cols-3">
+    <div className="grid gap-4 sm:grid-cols-2">
+      <Card interactive data-testid="default">
+        {content}
+      </Card>
       <Card interactive data-testid="hover">
         {content}
       </Card>
@@ -101,6 +116,13 @@ export const InteractionStates: Story = {
     await userEvent.hover(canvas.getByTestId("hover"));
     canvas.getByTestId("focus").focus();
     await expect(canvas.getByTestId("focus")).toHaveFocus();
+    await waitFor(() =>
+      expect(getComputedStyle(canvas.getByTestId("hover")).borderColor).not.toBe(
+        getComputedStyle(canvas.getByTestId("default")).borderColor,
+      ),
+    );
+    // Border form (ORV-192 row 9): the card's own border turns focus.ring, no outline beside it.
+    await expectFocusBorderForm(canvas.getByTestId("focus"));
   },
 };
 

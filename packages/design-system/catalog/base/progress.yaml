@@ -17,6 +17,7 @@ examples: []
 rules:
   - "Indeterminate shows motion only when reduced motion is off; otherwise a static bar with text"
   - "Value is clamped to 0 to `max`; omit `value` for an unknown length"
+  - "The track is a filled `border.subtle` bar with no outline; the running fill is `text.brand`, done and failed the feedback ink, each 3.0 or more against the track"
   - 'Shows the value as text ("40%") or the word Working; done and failed say so in words with an icon, never by colour alone'
 a11y:
   - "role progressbar with aria-valuenow, aria-valuemin and aria-valuemax, or aria-busy and no aria-valuenow when the length is unknown"

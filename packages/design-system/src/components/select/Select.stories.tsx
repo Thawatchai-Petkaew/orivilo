@@ -1,9 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { ComponentType } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { DesignProfileBoundary } from "../../boundary/DesignProfileBoundary";
 import { Field } from "../field/Field";
 import { fixtureOptions, fixtures } from "../fixtures";
 import { ArtifactIcon, DirectionIcon, KnowledgeIcon, NoteIcon, ReferenceIcon } from "../icons";
+import { expectFocusBorderForm } from "../../testing/visual-asserts";
 import { Matrix, Narrow } from "../matrix";
 import { Select, type SelectGroup, type SelectOption, type SelectProps } from "./Select";
 
@@ -59,20 +61,21 @@ const groups: readonly SelectGroup[] = [
   },
 ];
 
+/** A Field around the story, for stories of one control. Storybook adds a meta decorator to every
+ * story (a story's `decorators: []` does not drop it), so each story that wants it names it. */
+const inField = (Story: ComponentType) => (
+  <div className="max-w-md">
+    <Field label="โมดูล">
+      <Story />
+    </Field>
+  </div>
+);
+
 const meta = {
   title: "Base/Select",
   component: Select,
   args: { options: fixtureOptions },
   parameters: { layout: "padded" },
-  decorators: [
-    (Story) => (
-      <div className="max-w-md">
-        <Field label="โมดูล">
-          <Story />
-        </Field>
-      </div>
-    ),
-  ],
 } satisfies Meta<FlatSelectProps>;
 
 export default meta;
@@ -80,10 +83,9 @@ type Story = StoryObj<typeof meta>;
 
 const body = () => within(document.body);
 
-export const Default: Story = {};
+export const Default: Story = { decorators: [inField] };
 
 export const Sizes: Story = {
-  decorators: [],
   render: (args) => (
     <div className="flex max-w-md flex-col gap-4">
       <Field label="เล็ก">
@@ -97,18 +99,25 @@ export const Sizes: Story = {
       </Field>
     </div>
   ),
+  play: async ({ canvasElement }) => {
+    // No Field nested in a Field: a meta decorator wrapping this story would break its labels.
+    await expect(canvasElement.querySelectorAll(".ds-field .ds-field")).toHaveLength(0);
+  },
 };
 
-export const WithValue: Story = { args: { defaultValue: "product" } };
+export const WithValue: Story = { decorators: [inField], args: { defaultValue: "product" } };
 
 /** Keyboard: Enter opens, arrows move, Enter chooses, Escape closes and returns focus. */
 export const Open: Story = {
+  decorators: [inField],
   args: { defaultValue: "canvas" },
   play: async ({ canvasElement }) => {
     const trigger = within(canvasElement).getByRole("combobox", { name: "โมดูล" });
     trigger.focus();
     await userEvent.keyboard("{Enter}");
     const listbox = await body().findByRole("listbox");
+    // Border form (ORV-192 row 9): the listbox panel's border turns focus.ring and its elevation stays.
+    await expectFocusBorderForm(listbox);
     const selected = within(listbox).getByRole("option", { name: "Brand Canvas" });
     await expect(selected).toHaveAttribute("aria-selected", "true");
     await expect(within(listbox).getByRole("option", { name: "เก็บถาวรแล้ว" })).toHaveAttribute(
@@ -124,7 +133,6 @@ export const Open: Story = {
 
 /** The listbox is rendered in a portal and still carries the trigger's profile (AC 7). */
 export const InsideProfile: Story = {
-  decorators: [],
   render: (args) => (
     <DesignProfileBoundary profile="professional" mode="dark">
       <div className="max-w-md rounded-container bg-surface-canvas p-4 font-body text-text-primary">
@@ -150,6 +158,7 @@ export const InsideProfile: Story = {
 
 /** AC 1 and 2: icon before the label, description as a second line, trigger keeps one line. */
 export const IconsAndDescriptions: Story = {
+  decorators: [inField],
   args: { options: richOptions },
   play: async ({ canvasElement }) => {
     const trigger = within(canvasElement).getByRole("combobox", { name: "โมดูล" });
@@ -185,6 +194,7 @@ export const IconsAndDescriptions: Story = {
 
 /** AC 3: groups with headings; arrow keys and type-ahead cross groups; an empty group is not rendered. */
 export const Grouped: Story = {
+  decorators: [inField],
   render: () => <Select groups={groups} />,
   play: async ({ canvasElement }) => {
     const trigger = within(canvasElement).getByRole("combobox", { name: "โมดูล" });
@@ -210,6 +220,7 @@ export const Grouped: Story = {
 
 /** Groups with nothing in them show the empty line, not a blank listbox. */
 export const GroupedEmpty: Story = {
+  decorators: [inField],
   render: () => <Select groups={[{ label: "ออกแบบ", options: [] }]} />,
   play: async ({ canvasElement }) => {
     await userEvent.click(within(canvasElement).getByRole("combobox", { name: "โมดูล" }));
@@ -219,7 +230,6 @@ export const GroupedEmpty: Story = {
 };
 
 export const RichAt360: Story = {
-  decorators: [],
   args: { options: richOptions },
   render: (args) => (
     <Narrow>
@@ -236,7 +246,6 @@ export const RichAt360: Story = {
 };
 
 export const Invalid: Story = {
-  decorators: [],
   render: (args) => (
     <div className="max-w-md">
       <Field label="โมดูล" error="เลือกโมดูลที่งานนี้สังกัด">
@@ -244,12 +253,20 @@ export const Invalid: Story = {
       </Field>
     </div>
   ),
+  play: async ({ canvasElement }) => {
+    // No Field nested in a Field: a meta decorator wrapping this story would break its labels.
+    await expect(canvasElement.querySelectorAll(".ds-field .ds-field")).toHaveLength(0);
+  },
 };
 
-export const Disabled: Story = { args: { disabled: true, defaultValue: "canvas" } };
+export const Disabled: Story = {
+  decorators: [inField],
+  args: { disabled: true, defaultValue: "canvas" },
+};
 
 /** No options yet: the list says so instead of opening blank. */
 export const Empty: Story = {
+  decorators: [inField],
   args: { options: [], emptyText: "ยังไม่มีโมดูล สร้างโมดูลแรกจากหน้าโปรเจกต์" },
   play: async ({ canvasElement }) => {
     await userEvent.click(within(canvasElement).getByRole("combobox", { name: "โมดูล" }));
@@ -259,7 +276,6 @@ export const Empty: Story = {
 };
 
 export const LongOptionAt360: Story = {
-  decorators: [],
   render: (args) => (
     <Narrow>
       <Field label="โมดูล">
@@ -270,7 +286,6 @@ export const LongOptionAt360: Story = {
 };
 
 export const RecipesAndModes: Story = {
-  decorators: [],
   render: (args) => (
     <Matrix>
       <Field label="โมดูล">
@@ -280,11 +295,15 @@ export const RecipesAndModes: Story = {
         <Select {...args} />
       </Field>
       <Field label="รายละเอียด">
-        <Select {...args} options={richOptions} defaultValue="canvas" />
+        <Select options={richOptions} defaultValue="canvas" />
       </Field>
       <Field label="กลุ่ม">
         <Select groups={groups} defaultValue="review" />
       </Field>
     </Matrix>
   ),
+  play: async ({ canvasElement }) => {
+    // No Field nested in a Field: a meta decorator wrapping this story would break its labels.
+    await expect(canvasElement.querySelectorAll(".ds-field .ds-field")).toHaveLength(0);
+  },
 };

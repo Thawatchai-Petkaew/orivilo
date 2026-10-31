@@ -5,6 +5,7 @@ import { Input } from "../input/Input";
 import { Matrix, Narrow } from "../matrix";
 import { Select } from "../select/Select";
 import { Textarea } from "../textarea/Textarea";
+import { expectTitleOverText } from "../../testing/visual-asserts";
 import { Field } from "./Field";
 
 const meta = {
@@ -29,6 +30,11 @@ export const WithDescription: Story = {
   play: async ({ canvasElement }) => {
     const input = within(canvasElement).getByLabelText("ชื่อโปรเจกต์");
     await expect(input).toHaveAccessibleDescription("ชื่อที่ทีมจะเห็นในรายการโปรเจกต์");
+    // ORV-192 row 17: a compact pair, 14 / 500 label over 14 / 400 secondary text, 4 px apart.
+    const label = canvasElement.querySelector(".ds-field__label");
+    const text = canvasElement.querySelector(".ds-field__description");
+    if (!label || !text) throw new Error("the field has no label or description");
+    expectTitleOverText(label, text, { gap: 4 });
   },
 };
 

@@ -4,6 +4,7 @@ import { expect, userEvent, waitFor, within } from "storybook/test";
 import { DesignProfileBoundary } from "../../boundary/DesignProfileBoundary";
 import { Button } from "../button/Button";
 import { fixtures } from "../fixtures";
+import { expectFocusBorderForm } from "../../testing/visual-asserts";
 import { Matrix } from "../matrix";
 import { Sheet, SheetClose, SheetContent, type SheetContentProps, SheetTrigger } from "./Sheet";
 
@@ -76,6 +77,8 @@ export const Closed: Story = {
       await userEvent.tab();
       await expect(sheet.contains(document.activeElement)).toBe(true);
     }
+    // Border form on the open edge (ORV-192 rows 9 and 19): one brand line, the shadow first, the 3 px halo last
+    await expectFocusBorderForm(sheet, ["Left"]);
     await userEvent.keyboard("{Escape}");
     await waitFor(() => expect(body().queryByRole("dialog")).toBeNull());
     await expect(button).toHaveFocus();

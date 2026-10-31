@@ -19,11 +19,11 @@ recipes: [neutral, professional, friendly]
 examples: []
 rules:
   - "start and end hold an icon element, a Button, or a string; a string is a text addon that the input reads through aria-describedby"
-  - "One outline around the whole group: the input draws no edge, the focus ring surrounds the group, and invalid and disabled cover the group"
+  - "One outline around the whole group: the input draws no edge, the group's border turns to focus.ring with its halo, and invalid and disabled cover the group"
   - "Inside a Field it takes the label, description, error and required wiring from context exactly as Input does"
   - "An addon never carries the error message; the Field does"
   - "shortcut takes a registry shortcut, shows a Kbd at the very end and sets aria-keyshortcuts; the Kbd is hidden from assistive tech"
   - "Use a sm or md Button in a slot; it shares the height of the group"
 a11y:
-  - "The focus ring is drawn around the group when the input has keyboard focus; a Button in a slot keeps its own ring"
+  - "The group's border turns to focus.ring with its halo when the input has keyboard focus; a Button in a slot keeps its own"
   - "An icon is hidden from assistive tech; the Field label is the name"

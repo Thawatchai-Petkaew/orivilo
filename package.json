@@ -11,6 +11,7 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
+    "test:e2e": "pnpm --filter @orivilo/web test:e2e",
     "contrast": "pnpm --filter @orivilo/design-system contrast",
     "check:knowledge": "node scripts/check-knowledge.mjs",
     "test:scripts": "node --test scripts/*.test.mjs scripts/ovl/*.test.mjs",

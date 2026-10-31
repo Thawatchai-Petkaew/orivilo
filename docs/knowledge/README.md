@@ -183,3 +183,22 @@ Keep this table in step with the folder when you add an entry.
 | [[K-0086-reseller-markup-over-model-list-prices]]                                 | 0.7        | Own arithmetic: 0.64 to 6.0 times Google list on Nano Banana images   |
 | [[K-0087-synthesis-prepaid-credits-over-model-costs-and-breakage]]                | 0.7        | Prepaid credits over bought-in models; plan plus top-ups; breakage    |
 | [[K-0088-material-color-utilities-0-4-0-quantizer-api-and-determinism]]           | 0.8        | MCU 0.4.0 Apache-2.0; TS Celebi: 20 results in 20 calls (ORV-134 run) |
+| [[K-0089-ovl-qa-walk-refusal-routes]]                                             | 0.8        | ORV-136 survey: qa refusal routes on f2f5fa2; 5 uncovered (own count) |
+| [[K-0090-bash-forms-for-text-guards]]                                             | 0.8        | Bash, zsh and git forms a guard reads; reader desyncs; runner options |
+| [[K-0091-openrouter-chat-completions-usage-cost]]                                 | 0.8        | Chat `usage.cost`: number or null, credits (USD base); no flag needed |
+| [[K-0092-better-auth-organization-not-found-vs-forbidden]]                        | 0.8        | Better Auth 1.7.12: get org 400 if missing, 403 if not a member       |
+| [[K-0093-owasp-llm-top-10-2026-attack-classes-and-prevention]]                    | 0.75       | LLM Top 10 2026 attacks and fixes per entry; interpreter reading      |
+| [[K-0094-untitled-ui-react-logo-components]]                                      | 0.8        | Untitled UI logo: 2 components, no props, className size, no name     |
+| [[K-0095-open-ring-and-dot-marks-in-use]]                                         | 0.6        | Lead: ring and dot marks read; none upper right; registers unread     |
+| [[K-0096-untitled-ui-title-and-supporting-text-pair]]                             | 0.8        | Untitled: weight and colour step; gap 0 to 8 px (own arithmetic)      |
+| [[K-0097-shadcn-ui-title-and-description-pair]]                                   | 0.8        | shadcn: 500 or 600 over muted text-sm; 2 or 8 px gap (own arithmetic) |
+| [[K-0098-material-3-dialog-headline-and-supporting-text]]                         | 0.8        | M3 dialog: 24 over 14 on-surface-variant, no weight step, 16dp gap    |
+| [[K-0099-apple-hig-headline-equals-body-size-weight-step]]                        | 0.8        | Apple: Headline and Body share size and leading; weight step only     |
+| [[K-0100-carbon-notification-title-subtitle-and-body-sets]]                       | 0.8        | Carbon: 14/600 over 14/400, one colour; body 14/20, compact 14/18     |
+| [[K-0101-atlassian-heading-body-pairing-and-paragraph-spacing]]                   | 0.8        | Atlassian: bold heading, body 14/20 and 16/24, paragraph gap 12, 16   |
+| [[K-0102-wcag-2-2-text-spacing-and-line-spacing]]                                 | 0.8        | WCAG 2.2: survive 1.5 line height (AA); 1.5 floor at AAA (1.4.8)      |
+| [[K-0103-ibm-type-scale-thai-at-95-percent-same-line-height]]                     | 0.8        | IBM: Thai at 95% on Latin line height; 1.50 to 1.58 (own arithmetic)  |
+| [[K-0104-thai-is-a-tall-script-with-stacked-marks]]                               | 0.8        | Thai is tall (Material, no values); W3C: up to 4 glyphs plus tone     |
+| [[K-0105-thai-and-uk-readers-prefer-1-5-or-double-line-spacing]]                  | 0.7        | Thai and UK readers prefer 1.5 or double spacing (abstract only)      |
+| [[K-0106-informal-test-tall-scripts-clip-at-1-1-line-height]]                     | 0.5        | Lead: tall scripts clip at 1.1, fixed at 1.6 (informal test)          |
+| [[K-0107-synthesis-title-supporting-text-and-paragraph-line-height]]              | 0.75       | Synthesis: weight step 13 of 14; body 1.29 to 1.625 (own arithmetic)  |

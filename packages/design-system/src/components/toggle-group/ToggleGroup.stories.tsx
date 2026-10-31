@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, fn, userEvent, within } from "storybook/test";
+import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { CursorIcon, HandIcon } from "../icons";
+import { inVitest } from "../../testing/visual-asserts";
 import { Matrix } from "../matrix";
 import { ToggleGroup, ToggleGroupItem } from "./ToggleGroup";
 
@@ -50,11 +51,11 @@ const meta = {
   title: "Base/Toggle group",
   component: Modes,
   parameters: {
-    layout: "padded",
+    layout: "centered",
     docs: {
       description: {
         component:
-          "One of a few modes (single) or any of a few switches (multiple), E4-3. Radix gives roving tabindex and the pressed semantics. Segmented (ORV-65): a sunken track, and the pressed item is a raised card chip with a ring and heavier text, the same under every profile; never a tint alone.",
+          "One of a few modes (single) or any of a few switches (multiple), E4-3. Radix gives roving tabindex and the pressed semantics. Segmented (ORV-65): a sunken track, and the pressed item is a raised card chip with a ring and text.primary ink, the same under every profile; never a tint alone.",
       },
     },
   },
@@ -72,15 +73,34 @@ export const Single: Story = {
     const select = canvas.getByRole("radio", { name: "โหมดเลือก" });
     const pan = canvas.getByRole("radio", { name: "โหมดเลื่อนกระดาน" });
     await expect(select).toHaveAttribute("data-state", "on");
-    // More than colour: the pressed chip has a ring and a heavier weight (ORV-65 AC 2).
+    // More than colour: the pressed chip has a ring and a raised ground (ORV-65 AC 2). Both items
+    // keep one weight, so a text item does not change width when it is pressed (ORV-192).
     await expect(getComputedStyle(select).boxShadow).not.toBe(getComputedStyle(pan).boxShadow);
-    await expect(Number(getComputedStyle(select).fontWeight)).toBeGreaterThan(
-      Number(getComputedStyle(pan).fontWeight),
+    await expect(getComputedStyle(select).backgroundColor).not.toBe(
+      getComputedStyle(pan).backgroundColor,
     );
+    await expect(getComputedStyle(select).fontWeight).toBe(getComputedStyle(pan).fontWeight);
     await userEvent.click(pan);
     await expect(pan).toHaveAttribute("data-state", "on");
     await expect(select).toHaveAttribute("data-state", "off");
     await expect(args.onValueChange).toHaveBeenCalledWith("pan");
+    // ORV-192 row 12: with focus gone, the pressed chip is lifted by a 0 1px 3px shadow of black at
+    // 24 percent (half of opacity.scrim) and has no 1 px ring (a `0px 0px 0px 1px` spread).
+    pan.blur();
+    await waitFor(() => expect(getComputedStyle(pan).boxShadow).toMatch(/ 0px 1px 3px 0px$/));
+    await expect(getComputedStyle(pan).boxShadow).toMatch(/^color\(srgb 0 0 0 \/ 0\.24\) /);
+    await expect(getComputedStyle(pan).boxShadow).not.toContain("0px 0px 0px 1px");
+    // Under a real pointer the chip keeps its ground: no hover wash on a pressed item. Only
+    // Vitest browser mode has a real pointer; the synthetic one of `storybook/test` sets no :hover.
+    if (inVitest) {
+      const { userEvent: pointer } = await import("vitest/browser");
+      const ground = getComputedStyle(pan).backgroundColor;
+      await pointer.hover(pan);
+      await expect(pan.matches(":hover")).toBe(true);
+      await Promise.all(pan.getAnimations().map((a) => a.finished));
+      await expect(getComputedStyle(pan).backgroundColor).toBe(ground);
+      await pointer.unhover(pan);
+    }
   },
 };
 
@@ -136,6 +156,13 @@ export const Keyboard: Story = {
     await expect(pan).toHaveFocus();
     await userEvent.keyboard(" ");
     await expect(pan).toHaveAttribute("data-state", "on");
+    // ORV-192 row 12 and row 9: a keyboard-focused pressed chip keeps its lift first and ends with
+    // the 4 px brand halo, so focus never takes the pressed cue away.
+    await expect(pan.matches(":focus-visible")).toBe(true);
+    await waitFor(() => expect(getComputedStyle(pan).boxShadow).toMatch(/ 0px 0px 0px 4px$/));
+    await expect(getComputedStyle(pan).boxShadow).toMatch(
+      /^color\(srgb 0 0 0 \/ 0\.24\) 0px 1px 3px 0px, /,
+    );
     await userEvent.tab();
     await expect(pan).not.toHaveFocus();
   },
@@ -154,6 +181,7 @@ export const Disabled: Story = {
 
 /** Both types under every profile in both modes. */
 export const RecipesAndModes: Story = {
+  parameters: { layout: "padded" },
   render: () => (
     <Matrix>
       <div className="flex flex-wrap items-center gap-4">

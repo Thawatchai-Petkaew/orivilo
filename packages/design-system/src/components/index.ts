@@ -35,6 +35,7 @@ export {
   type PopoverProps,
   PopoverTrigger,
 } from "./popover/Popover";
+export { Logo, type LogoKind, type LogoProps, type LogoTone } from "./logo/Logo";
 export { Progress, type ProgressProps, type ProgressStatus } from "./progress/Progress";
 export { Resizable, type ResizableProps } from "./resizable/Resizable";
 export { ScrollArea, type ScrollAreaProps } from "./scroll-area/ScrollArea";

@@ -1,15 +1,28 @@
 import { renderToStaticMarkup } from "react-dom/server";
+import { Denied } from "@orivilo/auth";
 import { describe, expect, it, vi } from "vitest";
 import { webMessages } from "../../i18n/messages";
 
 vi.mock("server-only", () => ({}));
 vi.mock("next/headers", () => ({ headers: async () => new Headers() }));
-vi.mock("../../i18n/locale", () => ({
-  getWebMessages: async () => ({ m: webMessages.en }),
+const state = vi.hoisted(() => ({
+  locale: "en" as "en" | "th",
+  session: null as unknown,
+  denied: null as unknown,
 }));
+vi.mock("../../i18n/locale", async () => {
+  const { webMessages: all } = await import("../../i18n/messages");
+  return { getWebMessages: async () => ({ m: all[state.locale] }) };
+});
 vi.mock("../../server/auth", () => ({
-  auth: () => ({ api: { getSession: async () => null } }),
+  auth: () => ({ api: { getSession: async () => state.session } }),
   accessDeps: () => ({}),
+}));
+vi.mock("@orivilo/auth", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@orivilo/auth")>()),
+  withWorkspace: async () => {
+    throw state.denied;
+  },
 }));
 vi.mock("./actions", () => ({ signInWithGoogle: async () => null, signOut: async () => {} }));
 const form = vi.hoisted(() => ({ labels: undefined as unknown }));
@@ -42,5 +55,29 @@ describe("/account signed out", () => {
       wait: webMessages.en.wait,
       failure: webMessages.en.failure,
     });
+  });
+});
+
+// ORV-159 row 14 (orv159-account): any Denied from the workspace helper shows the sign-in view.
+describe("/account with a Denied workspace", () => {
+  it.each(
+    (["en", "th"] as const).flatMap((locale) =>
+      [new Denied(404, "not-a-member"), new Denied(403, "no-workspace")].map(
+        (denied) => [locale, denied] as const,
+      ),
+    ),
+  )("a denied workspace shows the sign-in view in %s (%j)", async (locale, denied) => {
+    state.locale = locale;
+    state.session = {
+      user: { email: "ana@example.com" },
+      session: { activeOrganizationId: "ws-other" },
+    };
+    state.denied = denied;
+    form.labels = undefined;
+    const m = webMessages[locale];
+    const html = renderToStaticMarkup(await AccountPage());
+    expect(/<h1[^>]*>(.*?)<\/h1>/.exec(html)?.[1]).toBe(m.account.heading);
+    expect(form.labels).toEqual({ account: m.account, wait: m.wait, failure: m.failure });
+    expect(html).not.toContain("ana@example.com");
   });
 });

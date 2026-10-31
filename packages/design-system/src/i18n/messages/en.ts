@@ -37,6 +37,9 @@ export const en: Messages = {
     done: "Done",
     failed: "Failed",
   },
+  logo: {
+    name: "ORIVILO",
+  },
   taskBar: {
     label: "Jobs",
     show: "Show jobs",

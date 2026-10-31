@@ -1,0 +1,30 @@
+name: Logo
+tier: base
+status: stable
+since: ORV-118
+import: "@orivilo/design-system"
+story: base-logo
+useWhen:
+  - "ORIVILO's own mark in the Studio shell: the app header, the account page, the favicon and app icons, the Storybook brand"
+  - "A lockup that names the product (horizontal for a header, stacked for a page that stands alone)"
+avoidWhen:
+  - "Inside a customer preview frame; the Logo is the Studio's mark, not the customer's (DESIGN.md §9 item 10)"
+  - "Any size, colour or ground set from outside; the Logo takes a height and a tone, never a width, a colour or a className that scales it"
+  - "A status dot or a decorative ring; use Badge or an icon"
+contract: LogoProps
+variants: [mark, wordmark, horizontal, stacked]
+sizes: [form-16, form-24, master]
+states: [default]
+recipes: [neutral, professional, friendly]
+examples: []
+rules:
+  - "logo-scope-1: the Logo is ORIVILO's own mark for the Studio shell (app header, /account, favicon and app icons, Storybook brand); it never renders inside a customer preview frame; under a customer profile its colours follow that profile's identity tokens, and the Recipes and modes story shows this for layout proof only"
+  - "logo-screen-1: the mark is not yet screened against DIP Thailand (classes 9 and 42) or the WIPO Global Brand Database; it may merge into develop and run on staging, and G5 for a release that carries it to production waits for a screening record linked on ORV-118"
+  - "Height is the rendered height in CSS px of the whole drawing and the Logo never scales with its container; the minimum per kind is 16 for mark, 20 for wordmark, 20 for horizontal and 50 for stacked, and a smaller height renders at the minimum"
+  - "The ring stroke follows the mark height: below 20 is form 16 (stroke 34), 20 to 24 is form 24 (stroke 32), above 24 is the master (stroke 30), and the dot is radius 19 in every form; in forms 16 and 24 the dot reads brand.dot-small (violet in both modes under the ORIVILO profile; another profile sets its own)"
+  - "Clear space is the master stroke scaled to the rendered mark (mark height x 30 / 150) on every side; the Logo adds no padding, the page that places it keeps the space"
+  - "tone one-colour paints the whole drawing in logo.ink; there is no colour, stroke, ground or width prop and the props are closed"
+a11y:
+  - "Named by default: one image (role img) named ORIVILO in Thai and English, from the design-system locale catalog"
+  - "decorative hides the drawing from assistive tech (aria-hidden, no name); use it where the name is beside it or an enclosing element carries it, such as the header link"
+  - "The master dot (brand.signature) is left out of the contrast pairs because a logo's accent is decoration and the ring carries the shape; the ring and the small dot are checked at 3.0 against surface.canvas"

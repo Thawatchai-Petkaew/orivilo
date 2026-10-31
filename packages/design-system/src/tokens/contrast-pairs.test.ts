@@ -36,7 +36,16 @@ describe("the pair set", () => {
     expect(keys.has("text.on-action|action.primary-press")).toBe(true);
     expect(keys.has("feedback.danger.fg|feedback.danger.surface")).toBe(true);
     expect(keys.has("border.control|surface.card")).toBe(true);
+    expect(keys.has("brand.dot-small|surface.canvas")).toBe(true);
     expect(PAIR_RULES.every((r) => r.floor === 4.5 || r.floor === 3)).toBe(true);
+  });
+
+  it("pairs the small-dot token with the page canvas alone, at the UI floor, under the rule's wording", () => {
+    const own = semanticPairs(tokens).filter((p) => p.fg === "brand.dot-small");
+    expect(own.map((p) => `${p.fg}|${p.bg}|${p.floor}`)).toEqual([
+      "brand.dot-small|surface.canvas|3",
+    ]);
+    expect(own[0]?.where).toBe("the logo's small-form dot on the page");
   });
 
   it("includes every pair semantic.json declares with a floor, at that floor or higher", () => {

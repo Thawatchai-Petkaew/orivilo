@@ -1,34 +1,34 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, userEvent, within } from "storybook/test";
+import type { ComponentType } from "react";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { Field } from "../field/Field";
 import { fixtures } from "../fixtures";
 import { Matrix, Narrow } from "../matrix";
 import { Input } from "./Input";
+
+/** A Field around the story, for stories of one control. Storybook adds a meta decorator to every
+ * story (a story's `decorators: []` does not drop it), so each story that wants it names it. */
+const inField = (Story: ComponentType) => (
+  <div className="max-w-md">
+    <Field label="ชื่อโปรเจกต์">
+      <Story />
+    </Field>
+  </div>
+);
 
 const meta = {
   title: "Base/Input",
   component: Input,
   args: { placeholder: "เช่น Brand Canvas" },
   parameters: { layout: "padded" },
-  /** Every input has a visible label (catalog rule); the Field supplies it. */
-  decorators: [
-    (Story) => (
-      <div className="max-w-md">
-        <Field label="ชื่อโปรเจกต์">
-          <Story />
-        </Field>
-      </div>
-    ),
-  ],
 } satisfies Meta<typeof Input>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Default: Story = {};
+export const Default: Story = { decorators: [inField] };
 
 export const Sizes: Story = {
-  decorators: [],
   render: (args) => (
     <div className="flex max-w-md flex-col gap-4">
       <Field label="เล็ก">
@@ -42,13 +42,21 @@ export const Sizes: Story = {
       </Field>
     </div>
   ),
+  play: async ({ canvasElement }) => {
+    // No Field nested in a Field: a meta decorator wrapping this story would break its labels.
+    await expect(canvasElement.querySelectorAll(".ds-field .ds-field")).toHaveLength(0);
+  },
 };
 
-/** Hover and focus-visible via the play function; the focused edge is `focus.ring` plus the global ring. */
+/** Hover and focus-visible via the play function; the focused edge is the brand border plus its halo (ORV-192 row 9). */
+/** A synthetic pointer sets no `:hover`, so `parameters.pseudo` forces the hover look (spec ORV-84, `hover-force-1`). */
 export const InteractionStates: Story = {
-  decorators: [],
+  parameters: { pseudo: { rootSelector: "body", hover: ['[data-testid="hover"]'] } },
   render: (args) => (
     <div className="flex max-w-md flex-col gap-4">
+      <Field label="Default">
+        <Input {...args} data-testid="default" />
+      </Field>
       <Field label="Hover">
         <Input {...args} data-testid="hover" />
       </Field>
@@ -62,13 +70,17 @@ export const InteractionStates: Story = {
     await userEvent.hover(canvas.getByTestId("hover"));
     canvas.getByTestId("focus").focus();
     await expect(canvas.getByTestId("focus")).toHaveFocus();
+    await waitFor(() =>
+      expect(getComputedStyle(canvas.getByTestId("hover")).borderColor).not.toBe(
+        getComputedStyle(canvas.getByTestId("default")).borderColor,
+      ),
+    );
   },
 };
 
-export const WithValue: Story = { args: { defaultValue: fixtures.mixed } };
+export const WithValue: Story = { decorators: [inField], args: { defaultValue: fixtures.mixed } };
 
 export const Invalid: Story = {
-  decorators: [],
   render: (args) => (
     <div className="max-w-md">
       <Field label="อีเมล" error="อีเมลต้องมีเครื่องหมาย @ เช่น name@example.com">
@@ -84,13 +96,18 @@ export const Invalid: Story = {
   },
 };
 
-export const Disabled: Story = { args: { disabled: true, defaultValue: fixtures.latin } };
+export const Disabled: Story = {
+  decorators: [inField],
+  args: { disabled: true, defaultValue: fixtures.latin },
+};
 
 /** Read-only looks like text, not like a disabled control (DESIGN.md §7). */
-export const ReadOnly: Story = { args: { readOnly: true, defaultValue: fixtures.thai } };
+export const ReadOnly: Story = {
+  decorators: [inField],
+  args: { readOnly: true, defaultValue: fixtures.thai },
+};
 
 export const Types: Story = {
-  decorators: [],
   render: (args) => (
     <div className="flex max-w-md flex-col gap-4">
       <Field label="จำนวน">
@@ -104,10 +121,13 @@ export const Types: Story = {
       </Field>
     </div>
   ),
+  play: async ({ canvasElement }) => {
+    // No Field nested in a Field: a meta decorator wrapping this story would break its labels.
+    await expect(canvasElement.querySelectorAll(".ds-field .ds-field")).toHaveLength(0);
+  },
 };
 
 export const LongValueAt360: Story = {
-  decorators: [],
   render: (args) => (
     <Narrow>
       <Field label={fixtures.longThai}>
@@ -118,7 +138,6 @@ export const LongValueAt360: Story = {
 };
 
 export const RecipesAndModes: Story = {
-  decorators: [],
   render: (args) => (
     <Matrix>
       <Field label="ชื่อโปรเจกต์">
@@ -135,4 +154,8 @@ export const RecipesAndModes: Story = {
       </Field>
     </Matrix>
   ),
+  play: async ({ canvasElement }) => {
+    // No Field nested in a Field: a meta decorator wrapping this story would break its labels.
+    await expect(canvasElement.querySelectorAll(".ds-field .ds-field")).toHaveLength(0);
+  },
 };

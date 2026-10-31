@@ -39,6 +39,7 @@ Legend: `none` not started, `planned` entry exists, no code, `draft` code and st
 | ScrollArea    | draft  | base-scroll-area    |
 | Kbd           | stable | base-kbd            |
 | Resizable     | draft  | base-resizable      |
+| Logo          | stable | base-logo           |
 
 ## Application
 

@@ -119,9 +119,9 @@ function ToastItem({ entry }: { entry: ToastEntry }) {
       }}
     >
       {variant === "success" ? (
-        <CheckIcon className="ds-toast__icon size-5" />
+        <CheckIcon className="ds-toast__icon" />
       ) : danger ? (
-        <WarningIcon className="ds-toast__icon size-5" />
+        <WarningIcon className="ds-toast__icon" />
       ) : null}
       <div className="ds-toast__content">
         <ToastPrimitive.Title className="ds-toast__title">{title}</ToastPrimitive.Title>

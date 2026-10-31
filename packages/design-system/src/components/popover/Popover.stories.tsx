@@ -6,13 +6,14 @@ import { Button } from "../button/Button";
 import { Field } from "../field/Field";
 import { fixtures } from "../fixtures";
 import { Input } from "../input/Input";
+import { expectFocusBorderForm } from "../../testing/visual-asserts";
 import { Matrix } from "../matrix";
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "./Popover";
 
 const meta = {
   title: "Base/Popover",
   component: Popover,
-  parameters: { layout: "padded" },
+  parameters: { layout: "centered" },
   args: {
     children: (
       <>
@@ -54,6 +55,8 @@ export const Closed: Story = {
     await userEvent.click(trigger);
     const dialog = await body().findByRole("dialog", { name: "เปลี่ยนชื่อโปรเจกต์" });
     await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true));
+    // Border form (ORV-192 row 9): the panel's border turns focus.ring and its elevation stays.
+    await expectFocusBorderForm(dialog);
     await userEvent.keyboard("{Escape}");
     await waitFor(() => expect(body().queryByRole("dialog")).toBeNull());
     await expect(trigger).toHaveFocus();
@@ -125,6 +128,7 @@ export const InsideProfile: Story = {
 };
 
 export const RecipesAndModes: Story = {
+  parameters: { layout: "padded" },
   render: (args) => (
     <Matrix>
       <div className="min-h-64">

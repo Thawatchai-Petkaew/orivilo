@@ -230,7 +230,13 @@ export class TokenSet {
         light.push(...this.declarations(token, token.raw.light));
         dark.push(...this.declarations(token, token.raw.dark));
       } else {
-        light.push(...this.declarations(token, token.raw));
+        const lines = this.declarations(token, token.raw);
+        light.push(...lines);
+        // A boundary resets a token only by declaring it on its own element, so the dark set
+        // repeats every mode-independent semantic token (size, shape, space, type). Primitives stay
+        // in the light set: a profile may not shadow a base primitive (profiles.test.ts), so
+        // inheriting them cannot leak a parent's value.
+        if (token.layer === "semantic") dark.push(...lines);
       }
     }
     const theme: string[] = [];

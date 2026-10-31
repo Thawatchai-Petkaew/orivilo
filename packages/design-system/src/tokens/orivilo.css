@@ -28,10 +28,45 @@
  * adding the semantic ones, so a raw class such as `bg-red-500` produces no CSS (the lint rule
  * reports it as well). */
 
-/* Focus is the same on every ground: a 2 px ring with a 2 px gap (DESIGN.md §3.1 focus.ring). */
+/* Focus (ORV-192 row 9): the profile's brand colour as a 1 px line on the control's edge and a 3 px
+ * halo of the same colour touching it, no gap; a recipe with its own border turns that border
+ * instead. The shadows are local properties so recipes read them through var(). */
+:root,
+[data-design-profile] {
+  --_focus-halo: color-mix(
+    in srgb,
+    var(--ds-focus-ring) calc(var(--ds-focus-halo-opacity) * 100%),
+    transparent
+  );
+  --_focus-shadow: 0 0 0 4px var(--_focus-halo);
+  --_focus-shadow-border: 0 0 0 3px var(--_focus-halo);
+  --_focus-shadow-fill: inset 0 0 0 1px currentColor, 0 0 0 3px var(--_focus-halo);
+  --_focus-shadow-none: none;
+  --_focus-shadow-inset: inset 0 0 0 4px var(--_focus-halo);
+}
+
+/* Every boundary, portals included, starts from the body type (ORV-192 row 18). */
+[data-design-profile] {
+  font-family: var(--ds-type-body-md-font-family);
+  font-size: var(--ds-type-body-md-font-size);
+  line-height: var(--ds-type-body-md-line-height);
+  font-weight: var(--ds-type-body-md-font-weight);
+}
+
+/* Display type pads its own top (ORV-192 row 19): Sarabun's tallest stack (ฟื้) rises 17 px above a
+ * 56 / 1.2 line box and 8.5 px above a 32 / 1.25 one; the padding keeps it 7 px or more clear of
+ * whatever sits above. */
+.text-display-lg {
+  padding-block-start: var(--ds-space-stack-lg);
+}
+.text-display-md {
+  padding-block-start: var(--ds-space-stack-md);
+}
+
 :focus-visible {
-  outline: 2px solid var(--ds-focus-ring);
-  outline-offset: 2px;
+  outline: 1px solid var(--ds-focus-ring);
+  outline-offset: 0;
+  box-shadow: var(--_focus-shadow);
 }
 
 @media (prefers-reduced-motion: reduce) {

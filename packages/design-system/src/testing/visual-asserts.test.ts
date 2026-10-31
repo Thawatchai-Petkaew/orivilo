@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  firstInkRow,
+  hexToRgb,
   inkCentreOf,
   inkWidth,
   offCentreReport,
   outsideCorner,
+  paintMatches,
+  viewBoxToBox,
   type InkBox,
   type InkCentre,
   type Radii,
@@ -33,6 +37,49 @@ describe("inkWidth", () => {
 
   it("refuses an empty line", () => {
     expect(() => inkWidth([], 1)).toThrow();
+  });
+});
+
+describe("firstInkRow", () => {
+  const ground: Rgb = [250, 250, 250];
+  const ink: Rgb = [20, 20, 20];
+
+  it("returns the index of the first row with a pixel far from the ground", () => {
+    const rows = [
+      [ground, ground],
+      [ground, ground],
+      [ground, ink],
+      [ink, ink],
+    ];
+    expect(firstInkRow(rows, ground)).toBe(2);
+  });
+
+  it("returns null for rows of plain ground", () => {
+    expect(
+      firstInkRow(
+        [
+          [ground, ground],
+          [ground, ground],
+        ],
+        ground,
+      ),
+    ).toBeNull();
+  });
+
+  it("does not count a faint antialiasing pixel as ink", () => {
+    expect(
+      firstInkRow(
+        [
+          [ground, [245, 245, 247]],
+          [ground, ink],
+        ],
+        ground,
+      ),
+    ).toBe(1);
+  });
+
+  it("returns null for no rows", () => {
+    expect(firstInkRow([], ground)).toBeNull();
   });
 });
 
@@ -333,5 +380,63 @@ describe("offCentreReport", () => {
       '"Thai", 48 px tall, in neutral dark: ink 11.00 to 26.00 px, offset -2.25 px',
     );
     expect(report).not.toContain("Latin");
+  });
+});
+
+describe("viewBoxToBox", () => {
+  it("scales a point when the box has the viewBox's aspect ratio", () => {
+    expect(viewBoxToBox({ x: 22.5, y: 77.5 }, [0, 0, 128, 128], { width: 64, height: 64 })).toEqual(
+      {
+        x: 11.25,
+        y: 38.75,
+      },
+    );
+  });
+
+  it("subtracts the viewBox origin", () => {
+    expect(
+      viewBoxToBox({ x: 182, y: -25 }, [100, -50, 200, 100], { width: 100, height: 50 }),
+    ).toEqual({
+      x: 41,
+      y: 12.5,
+    });
+  });
+
+  it("centres the drawing when the box is wider than the viewBox (meet)", () => {
+    expect(viewBoxToBox({ x: 0, y: 0 }, [0, 0, 100, 50], { width: 200, height: 50 })).toEqual({
+      x: 50,
+      y: 0,
+    });
+  });
+
+  it("centres the drawing when the box is taller than the viewBox (meet)", () => {
+    expect(viewBoxToBox({ x: 50, y: 25 }, [0, 0, 100, 50], { width: 100, height: 100 })).toEqual({
+      x: 50,
+      y: 50,
+    });
+  });
+
+  it("refuses a viewBox with no size", () => {
+    expect(() => viewBoxToBox({ x: 0, y: 0 }, [0, 0, 0, 10], { width: 10, height: 10 })).toThrow();
+  });
+});
+
+describe("hexToRgb and paintMatches", () => {
+  it("reads #rrggbb in either case", () => {
+    expect(hexToRgb("#D9F66F")).toEqual([217, 246, 111]);
+    expect(hexToRgb("#d9f66f")).toEqual([217, 246, 111]);
+  });
+
+  it("refuses a short or malformed hex", () => {
+    expect(() => hexToRgb("#fff")).toThrow();
+    expect(() => hexToRgb("D9F66F")).toThrow();
+  });
+
+  it("allows a summed difference of 12 and no more", () => {
+    expect(paintMatches([217, 246, 111], "#D9F66F")).toBe(true);
+    expect(paintMatches([229, 246, 111], "#D9F66F")).toBe(true);
+    expect(paintMatches([230, 246, 111], "#D9F66F")).toBe(false);
+    expect(paintMatches([223, 252, 111], "#D9F66F")).toBe(true);
+    expect(paintMatches([224, 252, 111], "#D9F66F")).toBe(false);
   });
 });

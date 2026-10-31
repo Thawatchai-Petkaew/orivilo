@@ -20,6 +20,7 @@ rules:
   - "The handoff §17.5 trace (Intent, Decisions, Tokens, Recipes, Components) lands with E2-11; the sources tab is its first step, and no mock trace is shown"
   - "The shell lays it out: a Resizable side panel on wide screens, a Sheet on narrow ones"
   - "node.open (Enter on a node) selects the node and moves focus here; panel.toggle-inspector shows and hides it; Escape inside it runs panel.close"
+  - "Title 20 / 500 primary over description 16 / 400 secondary, 8 px apart (ORV-192 row 17)"
 a11y:
   - "A named region, focusable so node.open can move focus to it; tabs for sections, the missing count is in the tab's name"
   - "Fill states are words with a mark, never colour alone"

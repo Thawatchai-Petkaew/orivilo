@@ -6,6 +6,7 @@ import { Button } from "../button/Button";
 import { Field } from "../field/Field";
 import { fixtures } from "../fixtures";
 import { Input } from "../input/Input";
+import { expectFocusBorderForm, expectTitleOverText } from "../../testing/visual-asserts";
 import { Matrix } from "../matrix";
 import {
   Dialog,
@@ -107,6 +108,8 @@ export const Closed: Story = {
       await userEvent.tab();
       await expect(dialog.contains(document.activeElement)).toBe(true);
     }
+    // Border form (ORV-192 row 9): the panel's border turns focus.ring and its elevation stays.
+    await expectFocusBorderForm(dialog);
     await userEvent.keyboard("{Escape}");
     await waitFor(() => expect(body().queryByRole("dialog")).toBeNull());
     await expect(button).toHaveFocus();
@@ -116,7 +119,7 @@ export const Closed: Story = {
 /**
  * Open with first focus on the name field. The play proves the focus ring is whole: the scrolling
  * body is a scroll container, which clips what draws outside a control, so the body bleeds the
- * ring's distance (2 px ring plus 2 px gap) on every side.
+ * reach (the 1 px line plus the 3 px halo, ORV-192 row 9) on every side.
  */
 export const Open: Story = {
   args: { defaultOpen: true },
@@ -137,6 +140,11 @@ export const Open: Story = {
     await expect(outer.right).toBeGreaterThanOrEqual(inner.right + ring);
     await expect(outer.top).toBeLessThanOrEqual(inner.top - ring);
     await expect(outer.bottom).toBeGreaterThanOrEqual(inner.bottom + ring);
+    // ORV-192 row 17: the header pair, 20 / 500 title over 16 / 400 description, 8 px apart.
+    const title = dialog?.querySelector(".ds-dialog__title");
+    const text = dialog?.querySelector(".ds-dialog__description");
+    if (!title || !text) throw new Error("the dialog has no title or description");
+    expectTitleOverText(title, text, { gap: 8, header: true });
   },
 };
 
@@ -248,7 +256,11 @@ function Frame({
   );
 }
 
-/** 360 px with long Thai content: the panel fills the width minus the gutter, the body scrolls, the actions stack (AC 7). */
+/**
+ * 360 px with long Thai content: the panel fills the width minus the gutter, the body scrolls, the
+ * actions stack (AC 7). The 360 x 560 frame is a phone, not a board or a panel, so it keeps its
+ * height (spec ORV-189, `exempt-1`).
+ */
 export const LongContentAt360: Story = {
   render: () => (
     <Frame className="h-[560px] w-[360px] max-w-full">

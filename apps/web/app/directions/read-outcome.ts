@@ -7,7 +7,7 @@ import type { Outcome } from "./actions";
 export type ReadingResult =
   /** Checked reading, with the seal to keep for it. */
   | { reading: Interpretation; seal: string }
-  /** A refusal by a rate limit: said in the studio, under the button, and not in the card. */
+  /** A refusal by a rate limit or a spent AI budget: said in the studio, under the button, and not in the card. */
   | { notice: string }
   /**
    * AI could not read. `cardLines` is a setup problem's own words (and its reference when it has
@@ -25,6 +25,7 @@ export function readingResult(
   if (result.error === "ai-rate-limited" || result.error === "rate-limited") {
     return { notice: errorLine(errors, wait, result.error, result.retryAfter) };
   }
+  if (result.error === "ai-spend-cap") return { notice: errors["ai-spend-cap"] };
   return {
     reading: null,
     cardLines:
