@@ -442,3 +442,71 @@ describe("the decision vocabulary", () => {
     }
   });
 });
+
+/**
+ * A small cascade over the generated CSS (ORV-192 row 4). It reads every rule of tokens and
+ * profiles generated.css, keeps the ones that match one boundary element (a mode, a profile and
+ * the OS preference), and returns the custom properties that element declares itself, by
+ * specificity then source order. A property the element declares itself is reset; one it does not
+ * declare is inherited from the parent boundary.
+ */
+function declaredOn(mode: "light" | "dark" | "system", profile: string, osDark: boolean) {
+  const files = ["../tokens/generated.css", "../profiles/generated.css"];
+  const own = new Map<string, { value: string; weight: number; order: number }>();
+  let order = 0;
+  for (const file of files) {
+    const css = readFileSync(path.join(import.meta.dirname, file), "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/@theme inline \{[\s\S]*?\n\}/, "");
+    const rule = /(@media \(prefers-color-scheme: dark\) \{\s*)?([^{}@]+)\{([^{}]*)\}/g;
+    for (const m of css.matchAll(rule)) {
+      const [, media, selectors = "", body = ""] = m;
+      if (media && !osDark) continue;
+      for (const sel of selectors.split(",").map((s) => s.trim())) {
+        if (sel === ":root") continue; // the document, never a boundary element
+        const parts = [...sel.matchAll(/(:not\()?\[([a-z-]+)(?:="([^"]*)")?\]\)?/g)];
+        const attrs: Record<string, string> = { "data-mode": mode, "data-design-profile": profile };
+        const hits = parts.every((p) => {
+          const name = p[2] ?? "";
+          const equal = attrs[name] === p[3] || (p[3] === undefined && name in attrs);
+          return p[1] ? !equal : equal;
+        });
+        if (!hits) continue;
+        order += 1;
+        const weight = parts.length;
+        for (const d of body.matchAll(/(--[a-z0-9-]+):\s*([^;]+);/g)) {
+          const prev = own.get(d[1] ?? "");
+          if (!prev || weight >= prev.weight)
+            own.set(d[1] ?? "", { value: (d[2] ?? "").trim(), weight, order });
+        }
+      }
+    }
+  }
+  return own;
+}
+
+describe("a nested boundary resets every semantic value (ORV-192 row 4)", () => {
+  const semanticNames = tokens
+    .layer("semantic")
+    .flatMap((t) => tokens.declarations(t, t.raw))
+    .map((d) => d.slice(0, d.indexOf(":")));
+
+  for (const mode of ["light", "dark", "system"] as const) {
+    for (const osDark of mode === "system" ? [false, true] : [false]) {
+      for (const id of PROFILE_IDS) {
+        it(`${id} in ${mode}${osDark ? " with the OS in dark" : ""} declares every semantic token itself`, () => {
+          const own = declaredOn(mode, id, osDark);
+          const missing = semanticNames.filter((n) => !own.has(n));
+          expect(missing).toEqual([]);
+        });
+      }
+    }
+  }
+
+  it("neutral in dark inside friendly reads neutral's size, not friendly's 44px", () => {
+    const neutral = declaredOn("dark", "neutral", false);
+    const friendly = declaredOn("dark", "friendly", false);
+    expect(friendly.get("--ds-size-control-md")?.value).toBe("var(--op-size-11)");
+    expect(neutral.get("--ds-size-control-md")?.value).toBe("var(--op-size-10)");
+  });
+});
