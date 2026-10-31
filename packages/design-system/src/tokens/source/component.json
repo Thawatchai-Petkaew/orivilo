@@ -2180,20 +2180,20 @@
     }
   },
   "tag": {
-    "$description": "A removable or selectable label the user chose (E4-5): a reference, a filter, a mention",
+    "$description": "A removable or selectable label the user chose (E4-5): a reference, a filter, a mention. Style A, soft pill (ORV-192 row 13): sunken fill, hairline edge, regular-weight label, the remove a circle inside the pill",
     "bg": {
       "$type": "color",
       "$value": "{surface.sunken}"
-    },
-    "bg-hover": {
-      "$type": "color",
-      "$value": "{surface.hover}"
     },
     "fg": {
       "$type": "color",
       "$value": "{text.primary}"
     },
     "border": {
+      "$type": "color",
+      "$value": "{border.subtle}"
+    },
+    "border-hover": {
       "$type": "color",
       "$value": "{border.control}"
     },
@@ -2217,9 +2217,21 @@
       "$type": "color",
       "$value": "{text.secondary}"
     },
+    "remove-fg-hover": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    },
     "remove-bg-hover": {
       "$type": "color",
-      "$value": "{surface.hover}"
+      "$value": "{surface.card}"
+    },
+    "remove-size": {
+      "$type": "dimension",
+      "$value": "{size.icon.lg}"
+    },
+    "remove-radius": {
+      "$type": "dimension",
+      "$value": "{shape.control.radius}"
     },
     "radius": {
       "$type": "dimension",
@@ -2256,11 +2268,11 @@
     "type": {
       "sm": {
         "$type": "typography",
-        "$value": "{type.label.sm}"
+        "$value": "{type.body.xs}"
       },
       "md": {
         "$type": "typography",
-        "$value": "{type.label.md}"
+        "$value": "{type.body.sm}"
       }
     }
   },

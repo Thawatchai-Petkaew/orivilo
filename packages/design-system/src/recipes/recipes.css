@@ -3720,6 +3720,11 @@
 .ds-tag[data-size="sm"] .ds-tag__main {
   padding-inline: var(--cmp-tag-padding-x-sm);
 }
+/* With a remove, the label stops one gap before it at both sizes (ORV-192 row 13). */
+.ds-tag:has(> .ds-tag__remove) .ds-tag__main,
+.ds-tag[data-size="sm"]:has(> .ds-tag__remove) .ds-tag__main {
+  padding-inline-end: var(--cmp-tag-gap);
+}
 button.ds-tag__main {
   cursor: pointer;
 }
@@ -3732,8 +3737,11 @@ button.ds-tag__main {
 .ds-tag__check {
   flex: none;
 }
-.ds-tag:hover {
-  background: var(--cmp-tag-bg-hover);
+/* Hover (ORV-192 row 13): a selectable tag shows hover on its edge; the fill does not change, and a focused tag keeps its focus edge. */
+.ds-tag:has(> button.ds-tag__main):hover:not([data-selected]):not([data-disabled]):not(
+    :has(> .ds-tag__main:focus-visible)
+  ) {
+  border-color: var(--cmp-tag-border-hover);
 }
 /* Selected: the selection ground and a heavier edge, plus the check; never colour alone. */
 .ds-tag[data-selected] {
@@ -3746,15 +3754,27 @@ button.ds-tag__main {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: var(--cmp-tag-height-sm);
+  align-self: center;
+  width: var(--cmp-tag-remove-size);
+  min-width: var(--cmp-tag-remove-size);
+  height: var(--cmp-tag-remove-size);
+  margin-inline-end: var(--cmp-tag-gap);
   padding: 0;
   border: 0;
+  border-radius: var(--cmp-tag-remove-radius);
   background: transparent;
   color: var(--cmp-tag-remove-fg);
   cursor: pointer;
 }
+/* sm: the remove fills the tag's inner height, flush to the end. */
+.ds-tag[data-size="sm"] .ds-tag__remove {
+  align-self: stretch;
+  height: auto;
+  margin-inline-end: 0;
+}
 .ds-tag__remove:hover {
   background: var(--cmp-tag-remove-bg-hover);
+  color: var(--cmp-tag-remove-fg-hover);
 }
 /* Focus (ORV-192 row 9): the label part turns the tag's own border to focus.ring with the halo on it;
    the remove draws its line on its own edge and the halo inward, inside the pill. */

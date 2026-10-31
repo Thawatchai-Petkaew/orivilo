@@ -89,6 +89,48 @@ export const Sizes: Story = {
       <Tag {...args} size="md" />
     </div>
   ),
+  /** Style A (ORV-192 row 13): regular-weight labels at 13 and 14 px, a round remove inside the pill. */
+  play: async ({ canvasElement }) => {
+    const [sm, md] = [...canvasElement.querySelectorAll<HTMLElement>(".ds-tag")] as [
+      HTMLElement,
+      HTMLElement,
+    ];
+    // Resolve the two tokens through the browser beside the tags, inside any profile boundary.
+    const probe = document.createElement("span");
+    probe.style.color = "var(--ds-border-subtle)";
+    probe.style.borderRadius = "var(--ds-shape-control-radius)";
+    (md.parentElement ?? canvasElement).append(probe);
+    const expected = {
+      color: getComputedStyle(probe).color,
+      radius: getComputedStyle(probe).borderTopLeftRadius,
+    };
+    probe.remove();
+    const smStyle = getComputedStyle(sm);
+    const mdStyle = getComputedStyle(md);
+    await expect([smStyle.fontSize, smStyle.fontWeight, smStyle.lineHeight]).toEqual([
+      "13px",
+      "400",
+      "19.5px",
+    ]);
+    await expect([mdStyle.fontSize, mdStyle.fontWeight, mdStyle.lineHeight]).toEqual([
+      "14px",
+      "400",
+      "22.4px",
+    ]);
+    await expect(smStyle.borderTopColor).toBe(expected.color);
+    await expect(mdStyle.borderTopColor).toBe(expected.color);
+    const mdRemove = md.querySelector<HTMLElement>(".ds-tag__remove") as HTMLElement;
+    const mdBox = mdRemove.getBoundingClientRect();
+    await expect([mdBox.width, mdBox.height]).toEqual([24, 24]);
+    await expect(getComputedStyle(mdRemove).borderTopLeftRadius).toBe(expected.radius);
+    // The md remove ends 4 px (the gap) inside the tag's inner end, past the 1 px edge.
+    await expect(Math.abs(md.getBoundingClientRect().right - 1 - mdBox.right - 4) < 0.5).toBe(true);
+    // The sm label stops at least 4 px before its remove.
+    const smRm = sm.querySelector<HTMLElement>(".ds-tag__remove") as HTMLElement;
+    const smLabel = sm.querySelector<HTMLElement>(".ds-tag__label") as HTMLElement;
+    const gap = smRm.getBoundingClientRect().left - smLabel.getBoundingClientRect().right;
+    await expect(gap >= 4 - 0.5).toBe(true);
+  },
 };
 
 export const Disabled: Story = {

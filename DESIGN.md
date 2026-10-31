@@ -1,4 +1,4 @@
-# DESIGN.md: ORIVILO (agent-readable, v1.51)
+# DESIGN.md: ORIVILO (agent-readable, v1.52)
 
 Read this before any UI work: a Studio screen, a shared component, a story, a recipe, a preview, or a review of generated output. It is the design contract the `frontend-design` skill critiques against and the **design gate** (§11) that blocks G3. Rules that enforce it live in `.claude/rules/design-system.md`; the component registry lives in `packages/design-system/catalog/`.
 
@@ -128,11 +128,11 @@ Controls are pills; rectangular shapes grow with their level: media 12 inside a 
 
 ## 4. Typography, Thai and Latin together
 
-| Role    | Family stack                                          | Weights                        | Size / line-height     |
-| ------- | ----------------------------------------------------- | ------------------------------ | ---------------------- |
-| Display | `"IBM Plex Sans", "Sarabun", system-ui, sans-serif`   | 500 (faces 400, 500, 600)      | 56/1.2 and 32/1.25     |
-| Body/UI | `"IBM Plex Sans", "Sarabun", system-ui, sans-serif`   | 400, 500 (faces 400, 500, 600) | 20/1.5, 16/1.7, 14/1.6 |
-| Mono    | `"IBM Plex Mono", "Sarabun", ui-monospace, monospace` | 400, 500                       | 14 / 1.6               |
+| Role    | Family stack                                          | Weights                        | Size / line-height                                             |
+| ------- | ----------------------------------------------------- | ------------------------------ | -------------------------------------------------------------- |
+| Display | `"IBM Plex Sans", "Sarabun", system-ui, sans-serif`   | 500 (faces 400, 500, 600)      | 56/1.2 and 32/1.25                                             |
+| Body/UI | `"IBM Plex Sans", "Sarabun", system-ui, sans-serif`   | 400, 500 (faces 400, 500, 600) | 20/1.5, 16/1.7, 14/1.6, 13/1.5 (`type.body.xs`, compact chips) |
+| Mono    | `"IBM Plex Mono", "Sarabun", ui-monospace, monospace` | 400, 500                       | 14 / 1.6                                                       |
 
 Rules (from the specimen run, brand spec §6 and §8):
 
@@ -317,3 +317,5 @@ Change log: v1.49 (2026-10-31) the Progress track is a filled bar with no outlin
 Change log: v1.50 (2026-10-31) the Block library shelf and the board status line clear the canvas controls at any row count (ORV-192 row 2): the controls panel is a CSS anchor (`anchor-name: --ds-board-controls`) and the shelf and the status line take their bottom from its top, 16 px (`space.inset.md`) above it, with and without the task bar; without anchor support (`@supports not (anchor-name: --a)`) the old calc stays as the fallback. The controls wrap to two rows under 657 px and three at 320, where the shelf overlapped them by 14 px (360) and 50 px (320). Impact: at 1300 the shelf's bottom drops 6 px (10 px under Friendly), so the gap is one token everywhere; the BlockLibrary stories assert the 16 px gap at one, two and three rows. No token, pair or API change.
 
 Change log: v1.51 (2026-10-31) focus takes the profile's brand (ORV-192 row 9, owner comments 10393, 10403): `focus.ring` becomes the primitive of `action.primary` in every set (violet.600 / violet.400 base, navy.800 / navy.300 Professional, coral.500 / coral.300 Friendly), identity-scoped; the `focus` group leaves the locked groups; new `focus.halo-opacity` and primitive `opacity.focus-halo` 0.24; `focus.offset` removed. Every focused control shows its own border, or a 1 px line on its edge, in the brand with a 3 px halo touching it; filled buttons and a checked checkbox add a 1 px ink line inside; the selected node group takes `canvas.selection`. Impact: every focusable control in every profile changes look; no layout moves (reach 4 px or less).
+
+Change log: v1.52 (2026-10-31) Tag style A (ORV-192 row 13, owner comment 10397): new semantic `type.body.xs` (13 px, 1.5, 400); `tag.type.md` takes `type.body.sm` and `tag.type.sm` takes `type.body.xs` (were label 500); `tag.border` takes `border.subtle`; `tag.bg-hover` is removed and new `tag.border-hover`, `tag.remove-size`, `tag.remove-radius`, `tag.remove-fg-hover` are added; `tag.remove-bg-hover` takes `surface.card`. Impact: every Tag, the chat composer mention chips included (they are Tag sm and the gone chip reuses the `ds-tag` markup); the removable md tag is 118 px with a 12 character label, was 133.

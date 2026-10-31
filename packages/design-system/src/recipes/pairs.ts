@@ -889,9 +889,9 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
   },
   // Tag (E4-5): the label on its ground in each state, the edge against the card, the remove glyph.
   { recipe: "tag", slot: "label", fg: "tag.fg", bg: "tag.bg", floor: TEXT },
-  { recipe: "tag", slot: "label hover", fg: "tag.fg", bg: "tag.bg-hover", floor: TEXT },
   { recipe: "tag", slot: "label selected", fg: "tag.fg", bg: "tag.bg-selected", floor: TEXT },
-  { recipe: "tag", slot: "edge", fg: "tag.border", bg: "ds:surface.card", floor: UI },
+  // The resting hairline is decorative; hover and focus carry the edge (ORV-192 row 13).
+  { recipe: "tag", slot: "hover edge", fg: "tag.border-hover", bg: "ds:surface.card", floor: UI },
   {
     recipe: "tag",
     slot: "selected edge",
@@ -904,7 +904,7 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
   {
     recipe: "tag",
     slot: "remove hover",
-    fg: "tag.remove-fg",
+    fg: "tag.remove-fg-hover",
     bg: "tag.remove-bg-hover",
     floor: TEXT,
   },

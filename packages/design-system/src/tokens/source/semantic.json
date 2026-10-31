@@ -1001,6 +1001,17 @@
           "fontWeight": "{font.weight.400}",
           "letterSpacing": "{font.letter-spacing.normal}"
         }
+      },
+      "xs": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "{font.family.plex-sans}",
+          "fontSize": "{font.size.13}",
+          "lineHeight": "{font.line-height.1-5}",
+          "fontWeight": "{font.weight.400}",
+          "letterSpacing": "{font.letter-spacing.normal}"
+        },
+        "$description": "The smallest body size: 13 px regular, for compact chips such as the sm Tag (ORV-192 row 13)"
       }
     },
     "label": {
