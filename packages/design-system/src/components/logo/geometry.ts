@@ -84,7 +84,7 @@ export const GEOMETRY: Geometry = {
       cap: "round",
     },
     /** The dot, one size in every form (`DOT_RADIUS`). */
-    dot: { cx: 105.11, cy: 34.49, r: 21 },
+    dot: { cx: 105.11, cy: 34.49, r: 19 },
   },
   wordmark: {
     viewBox: [0, -45, 473, 150],
@@ -147,11 +147,11 @@ export const RING_STROKE: Readonly<Record<LogoForm, number>> = {
   master: 30,
 };
 
-/** The dot's radius per form: one dot in every form, 0.7 x the master stroke (ORV-192 row 5). */
+/** The dot's radius per form: one dot in every form, 0.63 x the master stroke (ORV-192 row 5). */
 export const DOT_RADIUS: Readonly<Record<LogoForm, number>> = {
-  "16": 21,
-  "24": 21,
-  master: 21,
+  "16": 19,
+  "24": 19,
+  master: 19,
 };
 
 export interface LogoSize {
