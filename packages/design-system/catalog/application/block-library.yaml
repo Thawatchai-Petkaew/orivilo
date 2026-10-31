@@ -18,7 +18,7 @@ rules:
   - "Blocks come from the registry (catalog/blocks/mvp.yaml); no tile is listed by hand"
   - "Each tile shows its state from the board's data as a word and a mark, never a guess and never colour alone; a summarized colour block shows its swatches"
   - "Drag to the board to place at the drop point; Enter or click places at the viewport centre; a block already on the board is selected and fitted, never added twice"
-  - "Glass like the toolbar, solid under reduced transparency; sits above the board controls"
+  - "Glass like the toolbar, solid under reduced transparency; sits 16 px above the board controls at any row count"
   - "Centred on the board with equal gaps to both edges, 16 px at its widest, on the controls and task bar start edge; the focus ring of the first and last tile stays whole in the scrolling row"
   - "Renders inside CanvasBoard (its children); the shell owns the graph and adds the node through onPlace (placeBlock builds it)"
 a11y:

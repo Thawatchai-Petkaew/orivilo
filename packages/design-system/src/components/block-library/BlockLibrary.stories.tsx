@@ -15,10 +15,12 @@ import { MIDWAY } from "./fixtures";
 function ShelfBoard({
   initial = MIDWAY,
   height = 640,
+  status,
   children,
 }: {
   initial?: Graph;
   height?: number;
+  status?: string | undefined;
   children?: ReactNode;
 }) {
   const [graph, setGraph] = useState(initial);
@@ -30,6 +32,7 @@ function ShelfBoard({
         label={`กระดาน Intent Studio${scope ? `, ${id} ${scope.mode}` : ""}`}
         graph={graph}
         onChange={setGraph}
+        status={status}
       >
         <BlockLibrary
           onPlace={(block, position) =>
@@ -85,11 +88,23 @@ const expectCentred = (board: HTMLElement) => {
   expect(Math.abs(s.left - c.left)).toBeLessThanOrEqual(1);
 };
 
-/** shelf-rise-1: the shelf's bottom edge sits this far above the board's bottom edge (neutral profile). */
-const expectRise = (board: HTMLElement, rise: number) => {
-  const b = board.getBoundingClientRect();
+/** The gap above the canvas controls, `--ds-space-inset-md` (recipes.css, anchored to the controls). */
+const CLEAR = 16;
+
+/**
+ * shelf-clear-1 (ORV-192, row 2): the shelf's bottom edge sits CLEAR above the canvas controls' top
+ * edge at any number of control rows (the controls wrap to two rows under 657 px and three at 320),
+ * with or without the task bar. A fixed rise above the board's bottom overlapped the second row by
+ * 14 px at 360. Pass `status` to check the board status line against the controls the same way.
+ */
+const expectClear = (board: HTMLElement, status = false) => {
+  const c = part(board, ".react-flow__panel.ds-controls");
   const s = part(board, SHELF);
-  expect(Math.abs(b.bottom - s.bottom - rise)).toBeLessThanOrEqual(1);
+  expect(Math.abs(c.top - s.bottom - CLEAR)).toBeLessThanOrEqual(1);
+  if (status) {
+    const t = part(board, ".ds-board__status");
+    expect(Math.abs(c.top - t.bottom - CLEAR)).toBeLessThanOrEqual(1);
+  }
 };
 
 const boardOf = (root: HTMLElement) => root.querySelector<HTMLElement>(".ds-board") as HTMLElement;
@@ -228,7 +243,7 @@ export const Default: Story = {
     ).toHaveLength(2);
     // ORV-190: the shelf is centred on the board, on the controls' start edge, at its old height.
     expectCentred(boardOf(canvasElement));
-    expectRise(boardOf(canvasElement), 88);
+    expectClear(boardOf(canvasElement));
     await expectRings(canvasElement);
   },
 };
@@ -237,7 +252,7 @@ export const Default: Story = {
 export const Narrow: Story = {
   render: () => (
     <NarrowFrame>
-      <ShelfBoard />
+      <ShelfBoard status="วางบล็อกแล้ว" />
     </NarrowFrame>
   ),
   play: async ({ canvasElement }) => {
@@ -245,6 +260,12 @@ export const Narrow: Story = {
     const board = boardOf(canvasElement);
     await expect(Math.round(board.getBoundingClientRect().width)).toBe(360);
     expectCentred(board);
+    // The controls wrap to two rows at 360, and the shelf and the status line clear both.
+    const controls = part(board, ".react-flow__panel.ds-controls");
+    await expect(controls.height).toBeGreaterThan(
+      2 * part(board, ".react-flow__panel.ds-controls button").height,
+    );
+    expectClear(board, true);
     const s = part(board, SHELF);
     const inShelf = within(shelf(canvasElement));
     for (const el of [
@@ -274,7 +295,7 @@ export const WithTaskBar: Story = {
     await ready(canvasElement);
     const board = boardOf(canvasElement);
     expectCentred(board);
-    expectRise(board, 162);
+    expectClear(board);
     const s = part(board, SHELF);
     const bar = part(board, ".ds-taskbar");
     await expect(Math.abs(s.left - bar.left)).toBeLessThanOrEqual(1);
@@ -404,6 +425,8 @@ export const RecipesAndModes: Story = {
       await expect(b.height).toBe(520);
       const s = part(board, SHELF);
       await expect(Math.abs(s.left - b.left - (b.right - s.right))).toBeLessThanOrEqual(1);
+      // ORV-192 row 2: the same gap above the controls under every profile and mode.
+      expectClear(board);
     }
   },
 };

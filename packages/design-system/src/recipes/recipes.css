@@ -2244,6 +2244,7 @@
   opacity: var(--ds-opacity-disabled);
 }
 .ds-board .react-flow__panel.ds-controls {
+  anchor-name: --ds-board-controls;
   margin: var(--ds-space-inset-md);
   flex-wrap: wrap;
   max-width: calc(100% - 2 * var(--ds-space-inset-md));
@@ -2917,7 +2918,7 @@
   white-space: nowrap;
 }
 
-/* BlockLibrary (ORV-44 part 2): a glass shelf at the bottom of the board, above the controls.
+/* BlockLibrary (ORV-44 part 2): a glass shelf at the bottom of the board, 16 px above the controls at any row count.
  * A tile not on the board has a dashed edge; on the board, solid, with its fill word and mark. */
 .ds-board .react-flow__panel.ds-shelf {
   --_glass: color-mix(
@@ -3916,6 +3917,27 @@ button.ds-tag__main {
     var(--ds-space-inset-md) * 2 + var(--cmp-button-height-sm) + 2 * var(--cmp-toolbar-padding) +
       2px + var(--_lift)
   );
+}
+/* The shelf sits 16 px above the controls at any row count (ORV-192 row 2). It comes after the task
+ * bar's shelf margin above, which has the same specificity, so the anchor wins with and without a
+ * task bar; the two margins are the fallback where anchor positioning is missing. */
+@supports (anchor-name: --a) {
+  .ds-board .react-flow__panel.ds-shelf,
+  .ds-board:has(.ds-taskbar) .react-flow__panel.ds-shelf {
+    position-anchor: --ds-board-controls;
+    bottom: anchor(top);
+    margin-block-end: var(--ds-space-inset-md);
+  }
+}
+/* The status line also sits 16 px above the controls at any row count (ORV-192 row 2). It comes after
+ * both status rules and wins over them at equal specificity; the open list rule below is more
+ * specific and keeps its own placement. */
+@supports (anchor-name: --a) {
+  .ds-board:has(.ds-controls) .ds-board__status,
+  .ds-board:has(.ds-taskbar) .ds-board__status {
+    position-anchor: --ds-board-controls;
+    bottom: calc(anchor(top) + var(--ds-space-inset-md));
+  }
 }
 /* An open list adds up to its capped height to the bar. Only the status line clears it, and never
  * past the board's top edge; the toolbar, minimap and shelf keep their closed-bar places. */
