@@ -1,4 +1,4 @@
-import { DesignProfileBoundary, LocaleProvider } from "@orivilo/design-system";
+import { DesignProfileBoundary, LocaleProvider, Logo } from "@orivilo/design-system";
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -29,16 +29,8 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             <div className="min-h-dvh bg-surface-canvas font-body text-body-md text-text-primary">
               <header className="mx-auto flex max-w-2xl flex-wrap items-center justify-between gap-3 px-4 pt-4">
                 <nav aria-label={m.app.nav} className="flex items-center gap-4 text-label-md">
-                  <Link
-                    aria-label={m.app.home}
-                    className="flex items-center gap-2 text-text-primary hover:text-text-link-hover"
-                    href="/"
-                  >
-                    <span
-                      aria-hidden="true"
-                      className="size-2 rounded-control bg-brand-signature"
-                    />
-                    {m.app.title}
+                  <Link aria-label={m.app.home} className="flex items-center" href="/">
+                    <Logo decorative />
                   </Link>
                   <Link className={NAV_LINK} href="/directions">
                     {m.app.studio}
