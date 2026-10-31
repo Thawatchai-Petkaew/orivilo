@@ -3060,6 +3060,7 @@
 /* BlockLibrary (ORV-44 part 2): a glass shelf at the bottom of the board, 16 px above the controls at any row count.
  * A tile not on the board has a dashed edge; on the board, solid, with its fill word and mark. */
 .ds-board .react-flow__panel.ds-shelf {
+  anchor-name: --ds-board-shelf;
   --_glass: color-mix(
     in srgb,
     var(--cmp-shelf-bg) calc(var(--cmp-shelf-opacity) * 100%),
@@ -4159,13 +4160,22 @@ button.ds-tag__main {
     margin-block-end: var(--ds-space-inset-md);
   }
 }
-/* The status line also sits 16 px above the controls at any row count (ORV-192 row 2). It comes after
- * both status rules and wins over them at equal specificity; the open list rule below is more
- * specific and keeps its own placement. */
+/* The status line also sits 16 px above the controls at any row count, or above the shelf when there
+ * is one (ORV-192 row 2, ORV-194 row 5). It comes after both status rules and wins over them at
+ * equal specificity; the open list rule below is more specific and keeps its own placement. */
 @supports (anchor-name: --a) {
   .ds-board:has(.ds-controls) .ds-board__status,
   .ds-board:has(.ds-taskbar) .ds-board__status {
     position-anchor: --ds-board-controls;
+    bottom: calc(anchor(top) + var(--ds-space-inset-md));
+  }
+}
+/* With a shelf on the board the status line stands 16 px above the shelf, never on a tile (ORV-194 row 5).
+ * Its specificity equals the controls rule above, so it comes after it; the open list rule below is
+ * more specific and still wins. */
+@supports (anchor-name: --a) {
+  .ds-board:has(.ds-shelf) .ds-board__status {
+    position-anchor: --ds-board-shelf;
     bottom: calc(anchor(top) + var(--ds-space-inset-md));
   }
 }

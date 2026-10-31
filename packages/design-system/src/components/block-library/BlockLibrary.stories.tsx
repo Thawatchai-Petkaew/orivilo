@@ -96,7 +96,9 @@ const CLEAR = 16;
  * shelf-clear-1 (ORV-192, row 2): the shelf's bottom edge sits CLEAR above the canvas controls' top
  * edge at any number of control rows (the controls wrap to two rows under 657 px and three at 320),
  * with or without the task bar. A fixed rise above the board's bottom overlapped the second row by
- * 14 px at 360. Pass `status` to check the board status line against the controls the same way.
+ * 14 px at 360. Pass `status` to check the board status line (ORV-194 row 5): its bottom edge sits
+ * CLEAR above the shelf's top edge, and its box intersects no shelf tile. The shelf and the status
+ * line shared one band over the controls, so the status covered the first tile.
  */
 const expectClear = (board: HTMLElement, status = false) => {
   const c = part(board, ".react-flow__panel.ds-controls");
@@ -104,7 +106,12 @@ const expectClear = (board: HTMLElement, status = false) => {
   expect(Math.abs(c.top - s.bottom - CLEAR)).toBeLessThanOrEqual(1);
   if (status) {
     const t = part(board, ".ds-board__status");
-    expect(Math.abs(c.top - t.bottom - CLEAR)).toBeLessThanOrEqual(1);
+    expect(Math.abs(s.top - t.bottom - CLEAR)).toBeLessThanOrEqual(1);
+    for (const tileEl of board.querySelectorAll<HTMLElement>(".ds-shelf__tile")) {
+      const r = tileEl.getBoundingClientRect();
+      const overlaps = t.left < r.right && t.right > r.left && t.top < r.bottom && t.bottom > r.top;
+      expect(overlaps).toBe(false);
+    }
   }
 };
 
@@ -285,6 +292,15 @@ export const Narrow: Story = {
     }
     await expectScrollPadding(canvasElement);
     await expectRings(canvasElement);
+  },
+};
+
+/** ORV-194 row 5: at the 1440 case, a status message stands 16 px above the shelf and covers no tile. */
+export const WithStatus: Story = {
+  render: () => <ShelfBoard status="วางบล็อกแล้ว" />,
+  play: async ({ canvasElement }) => {
+    await ready(canvasElement);
+    expectClear(boardOf(canvasElement), true);
   },
 };
 
