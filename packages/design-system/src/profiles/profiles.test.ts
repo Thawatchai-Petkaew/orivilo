@@ -143,14 +143,11 @@ describe("type weights", () => {
     });
 
     it(`under ${id}, display, heading and numeral are 500 and body and code are 400`, () => {
-      const weight = (path: string) =>
-        Number(
-          (
-            set.resolve(set.get("semantic", path)!, "light").value as {
-              fontWeight: number;
-            }
-          ).fontWeight,
-        );
+      const weight = (path: string) => {
+        const token = set.get("semantic", path);
+        if (!token) throw new Error(`no semantic token ${path}`);
+        return Number((set.resolve(token, "light").value as { fontWeight: number }).fontWeight);
+      };
       for (const path of [
         "type.display.lg",
         "type.display.md",
