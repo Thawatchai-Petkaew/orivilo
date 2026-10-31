@@ -457,6 +457,14 @@
   overflow: hidden;
   z-index: var(--cmp-menu-layer);
 }
+/* Focus on the panel itself (Radix focuses it when nothing inside takes focus): the border form of
+   ORV-192 row 9, the elevation kept under the halo. */
+.ds-menu:focus-visible {
+  border-color: var(--ds-focus-ring);
+  outline: 1px solid transparent;
+  outline-offset: 0;
+  box-shadow: var(--cmp-menu-shadow), var(--_focus-shadow-border);
+}
 .ds-menu__option {
   display: flex;
   align-items: center;
@@ -832,6 +840,13 @@
   box-shadow: var(--cmp-popover-shadow);
   z-index: var(--cmp-popover-layer);
 }
+/* Focus on the panel itself: the border form of ORV-192 row 9, the elevation kept under the halo. */
+.ds-popover:focus-visible {
+  border-color: var(--ds-focus-ring);
+  outline: 1px solid transparent;
+  outline-offset: 0;
+  box-shadow: var(--cmp-popover-shadow), var(--_focus-shadow-border);
+}
 
 /* Tabs -------------------------------------------------------------------------------------- */
 
@@ -998,6 +1013,13 @@
   z-index: var(--cmp-dialog-layer);
   animation: ds-dialog-in var(--ds-motion-overlay-duration) var(--ds-motion-easing);
 }
+/* Focus on the panel itself: the border form of ORV-192 row 9, the elevation kept under the halo. */
+.ds-dialog:focus-visible {
+  border-color: var(--ds-focus-ring);
+  outline: 1px solid transparent;
+  outline-offset: 0;
+  box-shadow: var(--cmp-dialog-shadow), var(--_focus-shadow-border);
+}
 .ds-dialog__header {
   display: flex;
   align-items: flex-start;
@@ -1115,6 +1137,15 @@
 .ds-card[data-selected] {
   background: var(--cmp-card-bg-selected);
   border-color: var(--cmp-card-border-selected);
+}
+/* Focus (ORV-192 row 9): the border form. The card's own border turns focus.ring, selected or not, and
+   no outline sits beside it. Its rest shadow is the shell elevation, which is none under every profile,
+   so the halo stands alone. */
+.ds-card[data-interactive]:focus-visible {
+  border-color: var(--ds-focus-ring);
+  outline: 1px solid transparent;
+  outline-offset: 0;
+  box-shadow: var(--_focus-shadow-border);
 }
 .ds-card__title {
   margin: 0;
@@ -2434,6 +2465,13 @@
   z-index: var(--cmp-command-layer);
   animation: ds-dialog-in var(--ds-motion-overlay-duration) var(--ds-motion-easing);
 }
+/* Focus on the panel itself: the border form of ORV-192 row 9, the elevation kept under the halo. */
+.ds-command:focus-visible {
+  border-color: var(--ds-focus-ring);
+  outline: 1px solid transparent;
+  outline-offset: 0;
+  box-shadow: var(--cmp-command-shadow), var(--_focus-shadow-border);
+}
 @media (prefers-reduced-transparency: reduce) {
   .ds-command {
     --_glass: var(--cmp-command-bg);
@@ -2867,6 +2905,10 @@
   letter-spacing: var(--cmp-side-sheet-body-type-letter-spacing);
   overflow-wrap: anywhere;
   z-index: var(--cmp-side-sheet-layer);
+}
+/* Focus on the panel itself: no border, so the elevation form of ORV-192 row 9, the shadow kept under the halo. */
+.ds-side-sheet:focus-visible {
+  box-shadow: var(--cmp-side-sheet-shadow), var(--_focus-shadow);
 }
 .ds-side-sheet[data-size="lg"] {
   width: min(var(--cmp-side-sheet-width-lg), calc(100% - var(--ds-space-gutter)));
@@ -3625,15 +3667,23 @@
   border-color: currentColor;
 }
 /* The brand is not readable on the inverse ground, so the line and halo take the toast's text: the
-   same shape as focus elsewhere, in the toast's ink (ORV-192 row 9). */
-.ds-toast__action:focus-visible,
-.ds-toast__close:focus-visible {
+   same shape as focus elsewhere, in the toast's ink (ORV-192 row 9). The root (a focusable li) is
+   the elevation form: it keeps its shadow and the halo joins it. */
+.ds-toast {
   --_toast-halo: color-mix(
     in srgb,
     var(--cmp-toast-fg) calc(var(--ds-focus-halo-opacity) * 100%),
     transparent
   );
   --_toast-shadow: 0 0 0 4px var(--_toast-halo);
+}
+.ds-toast:focus-visible {
+  outline: 1px solid var(--cmp-toast-fg);
+  outline-offset: 0;
+  box-shadow: var(--cmp-toast-shadow), var(--_toast-shadow);
+}
+.ds-toast__action:focus-visible,
+.ds-toast__close:focus-visible {
   outline: 1px solid var(--cmp-toast-fg);
   outline-offset: 0;
   box-shadow: var(--_toast-shadow);

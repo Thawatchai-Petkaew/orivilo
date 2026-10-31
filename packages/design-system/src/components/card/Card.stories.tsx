@@ -3,6 +3,7 @@ import { expect, userEvent, waitFor, within } from "storybook/test";
 import { Badge } from "../badge/Badge";
 import { Button } from "../button/Button";
 import { fixtures } from "../fixtures";
+import { expectFocusBorderForm } from "../../testing/visual-asserts";
 import { Matrix, Narrow } from "../matrix";
 import { Card, CardFooter, CardTitle, CardValue } from "./Card";
 
@@ -120,6 +121,8 @@ export const InteractionStates: Story = {
         getComputedStyle(canvas.getByTestId("default")).borderColor,
       ),
     );
+    // Border form (ORV-192 row 9): the card's own border turns focus.ring, no outline beside it.
+    await expectFocusBorderForm(canvas.getByTestId("focus"));
   },
 };
 

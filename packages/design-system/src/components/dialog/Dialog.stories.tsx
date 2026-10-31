@@ -6,7 +6,7 @@ import { Button } from "../button/Button";
 import { Field } from "../field/Field";
 import { fixtures } from "../fixtures";
 import { Input } from "../input/Input";
-import { expectTitleOverText } from "../../testing/visual-asserts";
+import { expectFocusBorderForm, expectTitleOverText } from "../../testing/visual-asserts";
 import { Matrix } from "../matrix";
 import {
   Dialog,
@@ -108,6 +108,8 @@ export const Closed: Story = {
       await userEvent.tab();
       await expect(dialog.contains(document.activeElement)).toBe(true);
     }
+    // Border form (ORV-192 row 9): the panel's border turns focus.ring and its elevation stays.
+    await expectFocusBorderForm(dialog);
     await userEvent.keyboard("{Escape}");
     await waitFor(() => expect(body().queryByRole("dialog")).toBeNull());
     await expect(button).toHaveFocus();

@@ -6,7 +6,11 @@ import { useMessages } from "../../i18n/LocaleProvider";
 import { Button } from "../button/Button";
 import { fixtures } from "../fixtures";
 import { Matrix } from "../matrix";
-import { expectTitleOverText, resolvedColor } from "../../testing/visual-asserts";
+import {
+  expectFocusElevationForm,
+  expectTitleOverText,
+  resolvedColor,
+} from "../../testing/visual-asserts";
 import { type ToastEntry, type ToastOptions, Toaster, ToastRegion, toast } from "./Toast";
 
 /**
@@ -119,6 +123,10 @@ export const Default: Story = {
     await expect(body().getByRole("button", { name: "เลิกทำ" })).toBeVisible();
     // Focus does not jump to the toast when it appears.
     await expect(trigger).toHaveFocus();
+    // Elevation form (ORV-192 row 9): the toast keeps its shadow and gains a halo in its own ink,
+    // since the brand is not readable on the inverse ground.
+    const toast = title.closest<HTMLElement>(".ds-toast") as HTMLElement;
+    await expectFocusElevationForm(toast, getComputedStyle(toast).color);
     await userEvent.keyboard("{Escape}");
     await waitFor(() => expect(title).not.toBeInTheDocument());
   },

@@ -4,6 +4,7 @@ import { expect, userEvent, waitFor, within } from "storybook/test";
 import { DesignProfileBoundary } from "../../boundary/DesignProfileBoundary";
 import { Button } from "../button/Button";
 import { fixtures } from "../fixtures";
+import { expectFocusElevationForm } from "../../testing/visual-asserts";
 import { Matrix } from "../matrix";
 import { Sheet, SheetClose, SheetContent, type SheetContentProps, SheetTrigger } from "./Sheet";
 
@@ -76,6 +77,8 @@ export const Closed: Story = {
       await userEvent.tab();
       await expect(sheet.contains(document.activeElement)).toBe(true);
     }
+    // Elevation form (ORV-192 row 9): the panel has no border, so it keeps its shadow and gains the halo.
+    await expectFocusElevationForm(sheet);
     await userEvent.keyboard("{Escape}");
     await waitFor(() => expect(body().queryByRole("dialog")).toBeNull());
     await expect(button).toHaveFocus();

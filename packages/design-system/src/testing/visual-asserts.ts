@@ -345,6 +345,62 @@ export function resolvedColor(el: Element, token: string): string {
   return color;
 }
 
+/**
+ * The border form of focus (ORV-192 row 9, DESIGN.md "Every focusable control"): under keyboard
+ * focus the element's own border turns `focus.ring` on all four sides, the outline stays
+ * transparent so no second line sits beside the border, and a 3 px halo touches the border. The
+ * element's rest elevation, if it has one, stays first in the shadow list. Puts focus back where it was.
+ */
+export async function expectFocusBorderForm(el: HTMLElement) {
+  const rest = getComputedStyle(el).boxShadow;
+  const before = document.activeElement;
+  el.focus();
+  expect(el.matches(":focus-visible"), `${label(el)} matches :focus-visible`).toBe(true);
+  // A border-color transition (Card) is still running right after focus; read the settled look.
+  await Promise.all(el.getAnimations().map((a) => a.finished));
+  const style = getComputedStyle(el);
+  const ring = resolvedColor(el, "--ds-focus-ring");
+  for (const side of ["Top", "Right", "Bottom", "Left"] as const) {
+    expect(style[`border${side}Color`], `${label(el)} border ${side} is focus.ring`).toBe(ring);
+    expect(parseFloat(style[`border${side}Width`]), `${label(el)} border ${side} width`).toBe(1);
+  }
+  // No second line beside the border: the outline is transparent, or a library already set it to none.
+  if (style.outlineStyle !== "none") {
+    expect(style.outlineColor, `${label(el)} outline is transparent`).toBe("rgba(0, 0, 0, 0)");
+  }
+  expect(style.boxShadow, `${label(el)} halo is 3 px`).toMatch(/ 0px 0px 0px 3px$/);
+  if (rest !== "none")
+    expect(style.boxShadow.startsWith(rest), `${label(el)} keeps its elevation`).toBe(true);
+  if (before instanceof HTMLElement && before !== document.body) before.focus();
+  else el.blur();
+}
+
+/**
+ * The elevation form of focus (ORV-192 row 9): the element keeps its rest shadow, first in the list,
+ * and gains a 4 px halo after it, with a 1 px outline in `ink` (`focus.ring` unless the element sits
+ * on a ground where the brand is not readable). Puts focus back where it was.
+ */
+export async function expectFocusElevationForm(
+  el: HTMLElement,
+  ink = resolvedColor(el, "--ds-focus-ring"),
+) {
+  const rest = getComputedStyle(el).boxShadow;
+  expect(rest, `${label(el)} has an elevation at rest`).not.toBe("none");
+  const before = document.activeElement;
+  el.focus();
+  expect(el.matches(":focus-visible"), `${label(el)} matches :focus-visible`).toBe(true);
+  // A border-color transition (Card) is still running right after focus; read the settled look.
+  await Promise.all(el.getAnimations().map((a) => a.finished));
+  const style = getComputedStyle(el);
+  expect(style.boxShadow.startsWith(rest), `${label(el)} keeps its elevation`).toBe(true);
+  expect(style.boxShadow, `${label(el)} adds the halo`).toMatch(/ 0px 0px 0px 4px$/);
+  expect(style.outlineWidth, `${label(el)} outline width`).toBe("1px");
+  expect(style.outlineStyle, `${label(el)} outline style`).toBe("solid");
+  expect(style.outlineColor, `${label(el)} outline colour`).toBe(ink);
+  if (before instanceof HTMLElement && before !== document.body) before.focus();
+  else el.blur();
+}
+
 const px = (value: string, basis: number) => {
   const n = parseFloat(value);
   return value.trim().endsWith("%") ? (n / 100) * basis : n;

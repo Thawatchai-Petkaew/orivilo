@@ -5,6 +5,7 @@ import { DesignProfileBoundary } from "../../boundary/DesignProfileBoundary";
 import { Field } from "../field/Field";
 import { fixtureOptions, fixtures } from "../fixtures";
 import { ArtifactIcon, DirectionIcon, KnowledgeIcon, NoteIcon, ReferenceIcon } from "../icons";
+import { expectFocusBorderForm } from "../../testing/visual-asserts";
 import { Matrix, Narrow } from "../matrix";
 import { Select, type SelectGroup, type SelectOption, type SelectProps } from "./Select";
 
@@ -115,6 +116,8 @@ export const Open: Story = {
     trigger.focus();
     await userEvent.keyboard("{Enter}");
     const listbox = await body().findByRole("listbox");
+    // Border form (ORV-192 row 9): the listbox panel's border turns focus.ring and its elevation stays.
+    await expectFocusBorderForm(listbox);
     const selected = within(listbox).getByRole("option", { name: "Brand Canvas" });
     await expect(selected).toHaveAttribute("aria-selected", "true");
     await expect(within(listbox).getByRole("option", { name: "เก็บถาวรแล้ว" })).toHaveAttribute(
