@@ -43,7 +43,7 @@ The stories that fill: each wrapper marked "Fills" in design.md, section "Where 
 
 ### centre-1
 
-The files whose meta `layout` moves from `padded` to `centered` (design.md row 5 and section "Centred files"): Badge, Button, Checkbox, Kbd, Tag, Tooltip, Popover, ToggleGroup, ContextMenu, DropdownMenu, Toast and ScrollArea, and Logo once ORV-118 and ORV-189 are both merged (whichever merges second makes that change). A small component is one whose `ds-*` elements keep the width they have today when centred. Field-width files fail that test and stay `padded` (designer's default): Input, Input group, Password input, Textarea, Select, Field, Slider, Range slider, Progress, Tabs, Table and Card.
+The files whose meta `layout` moves from `padded` to `centered` (design.md row 5 and section "Centred files"): Badge, Button, Checkbox, Kbd, Tag, Tooltip, Popover, ToggleGroup, ContextMenu, DropdownMenu, Toast and ScrollArea, and Logo (ORV-118 is on `develop`; ORV-189 merges second, so the Logo change is done in this PR). A small component is one whose `ds-*` elements keep the width they have today when centred. Field-width files fail that test and stay `padded` (designer's default): Input, Input group, Password input, Textarea, Select, Field, Slider, Range slider, Progress, Tabs, Table and Card.
 
 ### matrix-keep-1
 
@@ -84,7 +84,6 @@ The main session fills this section once the PR exists, one list line per PR in 
 - Component, recipe, token, profile and public API changes, and `apps/web`.
 - The Block library fit at a 760 px canvas, where the second node row runs under the shelf (`CanvasBoard.tsx` line 540, a component follow-up).
 - Inspector `StudioLayout` at 360 px, which uses the Resizable where the component's doc says a Sheet (a story follow-up).
-- The Logo story change while ORV-118 is not merged (`centre-1`).
 - A dark mode or second locale run of the plays; dark mode is checked by eye (row 9).
 - Visual regression baselines (`.claude/rules/testing.md`).
 

@@ -11,7 +11,7 @@ const meta = {
   title: "Base/Logo",
   component: Logo,
   parameters: {
-    layout: "padded",
+    layout: "centered",
     docs: {
       description: {
         component:
@@ -301,6 +301,7 @@ const ONE_COLOUR: readonly { kind: LogoKind; height: number }[] = [
 
 /** `tone="one-colour"`: the whole drawing, dot included, in the ink, under six boundaries. */
 export const OneColour: Story = {
+  parameters: { layout: "padded" },
   render: () => (
     <Matrix>
       <div className={row}>
@@ -376,6 +377,7 @@ const FIXTURE = [
 
 /** All kinds and forms under neutral, Professional and Friendly, light and dark. */
 export const RecipesAndModes: Story = {
+  parameters: { layout: "padded" },
   render: () => (
     <Matrix>
       <div className={row}>

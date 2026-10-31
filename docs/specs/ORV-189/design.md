@@ -75,7 +75,7 @@ Decision 2 says small components. The test for "small": centred, the story's `ds
 | `dropdown-menu/DropdownMenu.stories.tsx` | 78 | `RecipesAndModes` line 172, `CheckableRecipesAndModes` line 314 | none |
 | `toast/Toast.stories.tsx` | 42 | `RecipesAndModes` line 285 | none |
 | `scroll-area/ScrollArea.stories.tsx` | 18 | `RecipesAndModes` line 64 | none (fixed 384 px box) |
-| `logo/Logo.stories.tsx` (branch `feature/ORV-118-logo`, not on `develop`) | 14 | `OneColour` line 231, `RecipesAndModes` line 306 | not measured here; `Kinds` is a `flex flex-wrap` row of fixed-height SVGs like Badge `Variants`. Whichever of ORV-118 and ORV-189 merges second makes this change |
+| `logo/Logo.stories.tsx` (on `develop` with ORV-118 PR 165) | 14 | `OneColour` line 231, `RecipesAndModes` line 306 | not measured here; `Kinds` is a `flex flex-wrap` row of fixed-height SVGs like Badge `Variants`. ORV-189 merges second and makes this change: done in this PR (meta `centered`; `OneColour` and `RecipesAndModes` set `padded`) |
 
 Stay `padded`, top start, full width (field-width or wide): Input, Input group, Password input, Textarea, Select, Field, Slider, Range slider, Progress, Tabs, Table, Card. Stay as they are: the panel files of section "Where heights are set" (Canvas chat, Inspector, Task bar, Missing inputs prompt are `padded` and fill), Direction studio, Dialog, Sheet, Resizable, the Examples (they render through `Under`, already `min-h-dvh`) and the Foundations pages.
 
@@ -143,7 +143,7 @@ What the screenshots show:
 
 Screenshots: `/tmp/orv-189-design/shots/<story>-<frame>-<mode>-<locale>-<before|after>.png` for `blocklib`, `chat`, `chatboard`, `insp`, `inspstudio`, `button`, `badge`, `button360`, `buttonmatrix` (frames `ui1300`, `ui800`, `w360`; English before and after, Thai after), plus `checkbox-iframe1440-*.png`. Contact sheets: `/tmp/orv-189-design/shots/sheet-<story>-ui1300_ui800.png` and `sheet-<story>-w360.png`.
 
-Not rendered: Logo `Kinds`. The Logo story is on `feature/ORV-118-logo`, not in this worktree, and this task starts Storybook from this worktree only.
+Not rendered in the design pass: Logo `Kinds` (ORV-118 was not yet merged). The Logo change is done in this PR, after the merge of ORV-118 (PR 165).
 
 ## Seen, not in scope
 
@@ -157,6 +157,6 @@ In the Storybook UI at 1440 x 1300 and 1440 x 800 (sidebar and panel hidden) and
 
 - `application-block-library--default`, `application-inspector--studio-layout`, `application-canvas-chat--on-board`: the board meets the bottom edge; no bare band; no scroll.
 - `application-canvas-chat--idle`, `application-inspector--selected`: the panel runs from 16 px under the top to 16 px above the bottom; no white band in dark.
-- `base-button--variants`, `base-badge--variants`, `base-checkbox--interaction-states`, and when ORV-118 is merged `base-logo--kinds`: the content block in the middle of the canvas; wrapped rows share one start edge; the focus ring and Thai marks whole.
+- `base-button--variants`, `base-badge--variants`, `base-checkbox--interaction-states`, and `base-logo--kinds`: the content block in the middle of the canvas; wrapped rows share one start edge; the focus ring and Thai marks whole.
 - `base-button--recipes-and-modes`: two columns at 1440, one at 360, full width, surface from `[0, 0]`.
 - `application-canvas-chat--mentions-smallest`, `application-task-bar--on-short-board`, `application-canvas-chat--starters-at-widths`: still 380, 420 and 560 px tall (exempt).
