@@ -36,7 +36,9 @@ The copy these rows show is the parent spec's "Copy" table: `app.home`, `account
 
 ## Rows per PR
 
-The slice B PR (no number yet) carries rows 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22. The main session adds the line `- PR <n>: rows 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22` here once the PR exists (open question 1). Until then the qa result recorder reads every row of the table above, which is the same set of rows.
+- PR 170: rows 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22
+
+PR 170 is the slice B PR (open question 1, default taken).
 
 ## Why
 
@@ -104,4 +106,5 @@ node -e 'console.log((19*16/150).toFixed(2),(15*16/150).toFixed(2))'
 
 ## Changelog
 
+- v1.1 (2026-11-01): the Rows per PR line names PR 170 (open question 1 default).
 - v1.0 (2026-11-01): first version, the slice B spec of ORV-118 (L-0016), from parent spec v1.3 rows 12 to 22 and tech notes section 8 at develop `18763ee`. Downstream to review: the slice B builder envelopes B1 to B4 and R2 (B1 against open question 2), the qa envelope (rows 12 to 22), the parent spec's Rows per PR line, and tech notes lines 368 and 403.
