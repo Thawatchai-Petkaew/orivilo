@@ -1303,7 +1303,7 @@
   --cmp-kbd-type-line-height: var(--ds-type-label-sm-line-height);
   --cmp-kbd-type-font-weight: var(--ds-type-label-sm-font-weight);
   --cmp-kbd-type-letter-spacing: var(--ds-type-label-sm-letter-spacing);
-  --cmp-kbd-padding-x: var(--ds-space-inline-sm);
+  --cmp-kbd-padding-x: var(--ds-space-inline-md);
   --cmp-toggle-bg: var(--ds-surface-sunken);
   --cmp-toggle-fg: var(--ds-text-secondary);
   --cmp-toggle-border: var(--ds-border-subtle);

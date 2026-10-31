@@ -1614,7 +1614,7 @@
     },
     "padding-x": {
       "$type": "dimension",
-      "$value": "{space.inline.sm}"
+      "$value": "{space.inline.md}"
     }
   },
   "toggle": {

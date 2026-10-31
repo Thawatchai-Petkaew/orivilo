@@ -2030,10 +2030,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 1.5em;
+  min-width: 2.25em;
   padding-inline: var(--cmp-kbd-padding-x);
   border: 1px solid var(--cmp-kbd-border);
-  border-bottom-width: 2px;
   border-radius: var(--cmp-kbd-radius);
   background: var(--cmp-kbd-bg);
   color: var(--cmp-kbd-fg);
