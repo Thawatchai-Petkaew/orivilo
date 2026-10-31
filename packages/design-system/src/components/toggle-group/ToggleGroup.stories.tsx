@@ -156,6 +156,13 @@ export const Keyboard: Story = {
     await expect(pan).toHaveFocus();
     await userEvent.keyboard(" ");
     await expect(pan).toHaveAttribute("data-state", "on");
+    // ORV-192 row 12 and row 9: a keyboard-focused pressed chip keeps its lift first and ends with
+    // the 4 px brand halo, so focus never takes the pressed cue away.
+    await expect(pan.matches(":focus-visible")).toBe(true);
+    await waitFor(() => expect(getComputedStyle(pan).boxShadow).toMatch(/ 0px 0px 0px 4px$/));
+    await expect(getComputedStyle(pan).boxShadow).toMatch(
+      /^color\(srgb 0 0 0 \/ 0\.24\) 0px 1px 3px 0px, /,
+    );
     await userEvent.tab();
     await expect(pan).not.toHaveFocus();
   },

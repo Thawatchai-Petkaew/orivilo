@@ -2304,6 +2304,11 @@
   outline-offset: 0;
   box-shadow: var(--_focus-shadow);
 }
+/* A focused pressed chip keeps its lift under the halo: the lift is the pressed cue other than
+ * colour, so keyboard focus must not take it away (ORV-192 review F4). */
+.ds-toggle__item[data-state="on"]:focus-visible {
+  box-shadow: var(--_lift), var(--_focus-shadow);
+}
 .ds-toggle__item:disabled {
   color: var(--cmp-toggle-fg-disabled);
   cursor: not-allowed;
