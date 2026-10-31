@@ -412,7 +412,7 @@
             "fontFamily": "{font.family.anuphan}",
             "fontSize": "{font.size.24}",
             "lineHeight": "{font.line-height.1-3}",
-            "fontWeight": "{font.weight.600}",
+            "fontWeight": "{font.weight.500}",
             "letterSpacing": "{font.letter-spacing.normal}"
           }
         },
@@ -421,7 +421,7 @@
             "fontFamily": "{font.family.anuphan}",
             "fontSize": "{font.size.20}",
             "lineHeight": "{font.line-height.1-5}",
-            "fontWeight": "{font.weight.600}",
+            "fontWeight": "{font.weight.500}",
             "letterSpacing": "{font.letter-spacing.normal}"
           }
         }

@@ -357,7 +357,7 @@
             "fontFamily": "{font.family.plex-sans}",
             "fontSize": "{font.size.56}",
             "lineHeight": "{font.line-height.1-2}",
-            "fontWeight": "{font.weight.600}",
+            "fontWeight": "{font.weight.500}",
             "letterSpacing": "{font.letter-spacing.tight}"
           }
         },
@@ -366,7 +366,7 @@
             "fontFamily": "{font.family.plex-sans}",
             "fontSize": "{font.size.32}",
             "lineHeight": "{font.line-height.1-25}",
-            "fontWeight": "{font.weight.600}",
+            "fontWeight": "{font.weight.500}",
             "letterSpacing": "{font.letter-spacing.tight}"
           }
         }
