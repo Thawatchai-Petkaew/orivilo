@@ -2138,11 +2138,11 @@
     "$description": "How far a job has got (E4-5): a bar, a label and the value as text",
     "track": {
       "$type": "color",
-      "$value": "{surface.sunken}"
+      "$value": "{border.subtle}"
     },
     "fill": {
       "$type": "color",
-      "$value": "{action.primary}"
+      "$value": "{text.brand}"
     },
     "done": {
       "$type": "color",
@@ -2177,10 +2177,6 @@
     "value-type": {
       "$type": "typography",
       "$value": "{type.label.md}"
-    },
-    "track-border": {
-      "$type": "color",
-      "$value": "{border.control}"
     }
   },
   "tag": {

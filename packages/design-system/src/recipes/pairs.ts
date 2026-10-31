@@ -10,6 +10,10 @@
  * its shadow and its options, a tab list by its tabs and the selected edge, a dialog by its scrim
  * and shadow, a card by its ground; the edge is decoration and WCAG 1.4.11 does not apply to it.
  *
+ * `progress.track`, a filled `border.subtle` bar, 1.2 to 2.1 against the page: the value is printed
+ * as text beside every bar, so the track is not the only carrier and WCAG 1.4.11 does not apply to
+ * it (ORV-192 row 14). The fill, done fill and failed fill are listed against the track at 3.0.
+ *
  * `logo.dot`, the master dot (`brand.signature`; 6.6 on the light canvas under neutral, 2.3 under
  * Friendly): a logotype's accent is decoration and the ring carries the shape; WCAG 1.4.11 does
  * not apply to a logotype. It stays out of the list because Friendly's master dot is under 3.0.
@@ -858,13 +862,6 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     fg: "progress.value-fg",
     bg: "ds:surface.card",
     floor: TEXT,
-  },
-  {
-    recipe: "progress",
-    slot: "track edge",
-    fg: "progress.track-border",
-    bg: "ds:surface.card",
-    floor: UI,
   },
   { recipe: "progress", slot: "fill", fg: "progress.fill", bg: "progress.track", floor: UI },
   { recipe: "progress", slot: "done fill", fg: "progress.done", bg: "progress.track", floor: UI },

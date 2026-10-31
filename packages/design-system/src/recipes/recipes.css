@@ -3561,7 +3561,6 @@
   position: relative;
   overflow: hidden;
   height: var(--cmp-progress-height-md);
-  border: 1px solid var(--cmp-progress-track-border);
   border-radius: var(--cmp-progress-radius);
   background: var(--cmp-progress-track);
 }

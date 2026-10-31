@@ -1453,8 +1453,8 @@
   --cmp-direction-sample-padding: var(--ds-space-inset-md);
   --cmp-direction-preview-border: var(--ds-border-subtle);
   --cmp-direction-preview-radius: var(--ds-shape-container-radius);
-  --cmp-progress-track: var(--ds-surface-sunken);
-  --cmp-progress-fill: var(--ds-action-primary);
+  --cmp-progress-track: var(--ds-border-subtle);
+  --cmp-progress-fill: var(--ds-text-brand);
   --cmp-progress-done: var(--ds-feedback-success-fg);
   --cmp-progress-failed: var(--ds-feedback-danger-fg);
   --cmp-progress-value-fg: var(--ds-text-secondary);
@@ -1467,7 +1467,6 @@
   --cmp-progress-value-type-line-height: var(--ds-type-label-md-line-height);
   --cmp-progress-value-type-font-weight: var(--ds-type-label-md-font-weight);
   --cmp-progress-value-type-letter-spacing: var(--ds-type-label-md-letter-spacing);
-  --cmp-progress-track-border: var(--ds-border-control);
   --cmp-tag-bg: var(--ds-surface-sunken);
   --cmp-tag-bg-hover: var(--ds-surface-hover);
   --cmp-tag-fg: var(--ds-text-primary);
