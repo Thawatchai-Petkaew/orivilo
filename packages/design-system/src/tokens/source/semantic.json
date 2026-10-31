@@ -1052,6 +1052,19 @@
         }
       }
     },
+    "control": {
+      "md": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "{font.family.plex-sans}",
+          "fontSize": "{font.size.14}",
+          "lineHeight": "{font.line-height.1-6}",
+          "fontWeight": "{font.weight.500}",
+          "letterSpacing": "{font.letter-spacing.normal}"
+        },
+        "$description": "The label of a single-line control with a height token that never wraps (button md and lg, tab, badge md). Its line height only places the line box: 1.6 keeps the label body on the control centre (ORV-111 ink-centre-1, ORV-194 row 6b). A label that can wrap takes type.label.md."
+      }
+    },
     "code": {
       "md": {
         "$type": "typography",
