@@ -801,8 +801,8 @@
   --cmp-badge-type-md-line-height: var(--ds-type-label-md-line-height);
   --cmp-badge-type-md-font-weight: var(--ds-type-label-md-font-weight);
   --cmp-badge-type-md-letter-spacing: var(--ds-type-label-md-letter-spacing);
-  --cmp-badge-brand-bg: var(--ds-brand-signature);
-  --cmp-badge-brand-fg: var(--ds-brand-ink);
+  --cmp-badge-brand-bg: var(--ds-surface-sunken);
+  --cmp-badge-brand-fg: var(--ds-text-primary);
   --cmp-badge-padding-x-sm: var(--ds-space-inline-md);
   --cmp-badge-padding-x-md: var(--ds-space-inline-lg);
   --cmp-badge-height-sm: var(--ds-size-icon-md);
@@ -812,7 +812,7 @@
   --cmp-badge-dot-warning: var(--ds-feedback-warning-fg);
   --cmp-badge-dot-danger: var(--ds-feedback-danger-fg);
   --cmp-badge-dot-info: var(--ds-feedback-info-fg);
-  --cmp-badge-dot-brand: var(--ds-brand-ink);
+  --cmp-badge-dot-brand: var(--ds-brand-dot-small);
   --cmp-badge-dot-size: var(--ds-space-inline-md);
   --cmp-badge-icon-size-sm: var(--ds-size-icon-xs);
   --cmp-badge-icon-size-md: var(--ds-size-icon-sm);

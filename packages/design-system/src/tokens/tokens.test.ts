@@ -83,13 +83,13 @@ describe("the small-dot token (ORV-118)", () => {
     expect(tokens.layer("semantic").filter((t) => t.scope === "identity")).toHaveLength(9);
   });
 
-  it("has one reader, the logo component tokens", () => {
-    expect(componentsReading(["brand.dot-small"])).toEqual(["logo"]);
+  it("has two readers, the logo component tokens and the brand badge's bead", () => {
+    expect(componentsReading(["brand.dot-small"])).toEqual(["badge", "logo"]);
     const readers = tokens
       .layer("component")
       .filter((t) => JSON.stringify(t.raw).includes("{brand.dot-small}"))
       .map((t) => t.path);
-    expect(readers).toEqual(["logo.dot-small"]);
+    expect(readers).toEqual(["badge.dot.brand", "logo.dot-small"]);
   });
 });
 
@@ -115,7 +115,7 @@ describe("the violet signature (ORV-118, comment 10336)", () => {
 
   it("keeps brand readers and action readers apart", () => {
     const brand = componentsReading(["brand.signature"]);
-    expect(brand).toEqual(["badge", "logo", "nav-item", "tile"]);
+    expect(brand).toEqual(["logo", "nav-item", "tile"]);
     const action = componentsReading(["action.primary"]);
     expect(brand.filter((name) => action.includes(name))).toEqual([]);
   });

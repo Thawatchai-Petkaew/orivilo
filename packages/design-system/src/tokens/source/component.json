@@ -730,11 +730,11 @@
     "brand": {
       "bg": {
         "$type": "color",
-        "$value": "{brand.signature}"
+        "$value": "{surface.sunken}"
       },
       "fg": {
         "$type": "color",
-        "$value": "{brand.ink}"
+        "$value": "{text.primary}"
       }
     },
     "padding-x": {
@@ -781,7 +781,7 @@
       },
       "brand": {
         "$type": "color",
-        "$value": "{brand.ink}"
+        "$value": "{brand.dot-small}"
       }
     },
     "dot-size": {

@@ -77,7 +77,7 @@ The source of truth is `packages/design-system/src/tokens/source/semantic.json`;
 | `focus.offset`             | gray.50 #F4F4F0             | gray.900 #16151D            |                         | The gap colour between ring and control                                                                                            |
 | `brand.signature`          | violet.600 #7A22C7          | violet.400 #B07FEE          |                         | Mark dot above 24 px, a bead, one highlight plane; never text, never an action                                                     |
 | `brand.ink`                | white #FFFFFF               | gray.900 #16151D            | brand.signature, 4.5    | Ink on the signature                                                                                                               |
-| `brand.dot-small`          | violet.600 #7A22C7          | violet.400 #B07FEE          | surface.canvas, 3       | The mark's dot at 24 px and below; read only by `logo.dot-small`                                                                   |
+| `brand.dot-small`          | violet.600 #7A22C7          | violet.400 #B07FEE          | surface.canvas, 3       | The mark's dot at 24 px and below; read by `logo.dot-small` and `badge.dot.brand` (the brand badge's bead)                         |
 | `feedback.success.fg`      | green.700 #0B6E4F           | green.400 #5CC9A3           | surface.canvas, 4.5     | Success text, icon                                                                                                                 |
 | `feedback.success.surface` | green.50 #EAF9F3            | green.950 #072016           |                         |                                                                                                                                    |
 | `feedback.success.border`  | green.300 #83D4B5           | green.700 #0B6E4F           |                         |                                                                                                                                    |
@@ -200,18 +200,18 @@ Hover and focus stay interaction states, not public props (handoff §14). Icon-o
 
 ## 8. Colour roles: meaning never moves
 
-| Meaning           | Colour                                                              | Not interchangeable with     |
-| ----------------- | ------------------------------------------------------------------- | ---------------------------- |
-| Act               | `action.primary` (violet)                                           | selection fill, info         |
-| Ask the engine    | `action.intent` (lime)                                              | any other action, any status |
-| Go somewhere      | `text.link` (violet text)                                           | buttons                      |
-| Selected          | `surface.selected`                                                  | focus, hover                 |
-| Focused           | `focus.ring` (ink)                                                  | selection, brand             |
-| Brand presence    | `brand.signature` and `brand.dot-small` (the mark's small dot only) | any feedback, any action     |
-| Wrong / dangerous | `feedback.danger`                                                   | warning, brand               |
-| Caution           | `feedback.warning`                                                  | danger                       |
-| Done well         | `feedback.success`                                                  | brand signature              |
-| Learn             | `feedback.info`                                                     | action                       |
+| Meaning           | Colour                                                                                         | Not interchangeable with     |
+| ----------------- | ---------------------------------------------------------------------------------------------- | ---------------------------- |
+| Act               | `action.primary` (violet)                                                                      | selection fill, info         |
+| Ask the engine    | `action.intent` (lime)                                                                         | any other action, any status |
+| Go somewhere      | `text.link` (violet text)                                                                      | buttons                      |
+| Selected          | `surface.selected`                                                                             | focus, hover                 |
+| Focused           | `focus.ring` (ink)                                                                             | selection, brand             |
+| Brand presence    | `brand.signature` and `brand.dot-small` (the mark's small dot and the brand badge's bead only) | any feedback, any action     |
+| Wrong / dangerous | `feedback.danger`                                                                              | warning, brand               |
+| Caution           | `feedback.warning`                                                                             | danger                       |
+| Done well         | `feedback.success`                                                                             | brand signature              |
+| Learn             | `feedback.info`                                                                                | action                       |
 
 Brand presence and Act share one value in the ORIVILO profile (violet.600 and violet.400, owner, ORV-118) and stay two tokens: no component reads both, and `tokens.test.ts` fails when they drift apart.
 
@@ -301,3 +301,5 @@ Change log: v1.40 (2026-10-25) corrects the CanvasChat composer focus line (ORV-
 Change log: v1.41 (2026-10-31) adds the small-dot token for the ORIVILO Logo (ORV-118, spec v1.1): semantic `brand.dot-small` (identity scope; violet.600 in light, lime.300 in dark; paired with `surface.canvas` at 3.0) and the component tokens `logo.ink`, `logo.dot` and `logo.dot-small`; `brand.signature` now reads as the mark dot above 24 px; identity-scoped tokens are nine; the contrast check covers 97 pairs. Downstream: every profile overrides `brand.dot-small` (Professional navy.700 and navy.400, Friendly coral.700 and coral.400); a customer profile must too (`Profile.validate`).
 Change log: v1.42 (2026-10-31) adds the Logo row to section 12 and the Logo catalog entry (ORV-118, slice A): `catalog/base/logo.yaml` is `stable` with the recipes neutral, professional and friendly, and carries the `logo-scope-1` and `logo-screen-1` rules; `coverage.md` gains the Base row. The mark is not screened against DIP Thailand or the WIPO Global Brand Database, so G5 for production waits for the screening record. No token, recipe or component API changes beyond v1.41.
 Change log: v1.43 (2026-10-31) the ORIVILO signature becomes violet (ORV-118, comment 10336): `brand.signature` violet.600 and violet.400, `brand.ink` white in light, `brand.dot-small` violet.400 in dark; lime is `action.intent` only. Downstream: the brand badge, the glow and the bead turn violet under neutral; Professional and Friendly unchanged.
+
+Change log: v1.44 (2026-10-31) the brand badge takes the mark's bead (ORV-118, sign-off `ORV-118-signoff-2` finding F1, comment 10373, design row 1): component tokens `badge.brand.bg` `{surface.sunken}`, `badge.brand.fg` `{text.primary}` and `badge.dot.brand` `{brand.dot-small}`; `Badge` variant `brand` always renders its bead and takes no icon (`icon` with brand is a type error); `brand.dot-small` has a second reader, `badge.dot.brand`, and no component token reads `brand.ink` any more. Downstream: the recommended badge in Direction Studio and `/directions` is a quiet pill with a bead and no longer reads as the primary button; `componentsReading(["brand.signature"])` is `["logo", "nav-item", "tile"]`.

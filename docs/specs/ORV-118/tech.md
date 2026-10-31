@@ -93,7 +93,7 @@ Section 13 changes the neutral dark value from lime.300 to violet.400 and keeps 
 | Friendly, light | coral.700 #972F1D | #F9F6F2 | 7.1 |
 | Friendly, dark | coral.400 #FC826B | #241D13 | 6.8 |
 
-**Use rule.** Only `logo.dot-small` reads `brand.dot-small`. It is never text, an action, a link, a selection, focus or a status. DESIGN.md §8 "Brand presence" names it, and a test pins the one reader (§6). The build also writes the Tailwind theme variable `--color-brand-dot-small`, as it does for every semantic colour; no class uses it.
+**Use rule.** `logo.dot-small` and `badge.dot.brand` (the brand badge's bead, design row 1) read `brand.dot-small`. It is never text, an action, a link, a selection, focus or a status. DESIGN.md §8 "Brand presence" names it, and a test pins the one reader (§6). The build also writes the Tailwind theme variable `--color-brand-dot-small`, as it does for every semantic colour; no class uses it.
 
 **The source change.** In `semantic.json`, group `brand`, after `ink`:
 
@@ -101,7 +101,7 @@ Section 13 changes the neutral dark value from lime.300 to violet.400 and keeps 
 "dot-small": {
   "$type": "color",
   "$value": { "light": "{color.violet.600}", "dark": "{color.violet.400}" },
-  "$description": "The mark's dot at 24 px and below (logo forms 16 and 24), at least 3.0 on the canvas under every profile; equal to brand.signature in the ORIVILO profile; read only by logo.dot-small",
+  "$description": "The mark's dot at 24 px and below (logo forms 16 and 24), at least 3.0 on the canvas under every profile; equal to brand.signature in the ORIVILO profile; read by logo.dot-small and badge.dot.brand (the brand badge's bead)",
   "$extensions": {
     "orivilo": {
       "contrast": { "against": "surface.canvas", "floor": 3 },
@@ -344,7 +344,7 @@ Conflicts (a required value is never changed silently):
 
 - A profile that leaves `brand.dot-small` at the shell's value fails `Profile.validate`. The existing case "a profile that leaves an identity token at the shell's value" in `profiles.test.ts` iterates `IDENTITY_OVERRIDES`, so adding the token to that fixture makes the case cover it.
 - A profile value under 3.0 on its canvas fails `pnpm contrast`, `contrast-pairs.test.ts` and CI.
-- A reader of `brand.dot-small` other than `logo.dot-small` fails `tokens.test.ts`, which requires `componentsReading(["brand.dot-small"])` to equal `["logo"]`.
+- A reader of `brand.dot-small` other than `logo.dot-small` and `badge.dot.brand` fails `tokens.test.ts`, which requires `componentsReading(["brand.dot-small"])` to equal `["badge", "logo"]`.
 - A colour literal in the recipe fails `recipes.test.ts`, and a colour attribute in the component fails the markup case in `logo.test.ts`.
 - A missing or non-colour token in the generator throws with its path.
 - Under neutral, `brand.signature` and `action.primary` must resolve to one hex in each mode, each straight to its primitive, and no component may read both. A change to either value, a reference from one to the other, or a shared reader fails `tokens.test.ts` (section 13).
@@ -389,7 +389,7 @@ The smallest probed part is the dot at height 16, with a radius of 1.6 px. That 
 | 7 | "Named"; `logo.test.ts` "names the image from the catalog" | play (Thai); unit | Play: `getByRole("img", { name: "ORIVILO" })` finds exactly one. Unit: inside `LocaleProvider` `th` and `en`, `role="img"` and an `aria-label` equal to `th.logo.name` and `en.logo.name` |
 | 8 | "Decorative"; the a11y addon | play; every story | No element has role `img`. The svg has `aria-hidden="true"` and no `aria-label`. The six stories report zero violations (the project runs a11y as an error) |
 | 9 | "Recipes and modes" | play, all six cells | Each Logo's `getBoundingClientRect()` is the same in all six cells and equals W4 within 0.01 (horizontal 32 is 141.44 by 32). Computed paints equal the values the token source resolves for the cell: `logo.ink`, and `logo.dot` or `logo.dot-small` by `data-form`, under neutral, Professional and Friendly |
-| 10 | `pnpm contrast`; `contrast-pairs.test.ts`; `recipes.test.ts`; `tokens.test.ts`; `profiles.test.ts` | script; unit | `pnpm contrast` passes with the new pair under the six boundaries (output attached to the PR). The pair key `brand.dot-small\|surface.canvas` exists. The two logo recipe pairs pass under all six. The identity list has nine tokens. `componentsReading(["brand.dot-small"])` is `["logo"]`. The identity case covers `brand.dot-small` |
+| 10 | `pnpm contrast`; `contrast-pairs.test.ts`; `recipes.test.ts`; `tokens.test.ts`; `profiles.test.ts` | script; unit | `pnpm contrast` passes with the new pair under the six boundaries (output attached to the PR). The pair key `brand.dot-small\|surface.canvas` exists. The two logo recipe pairs pass under all six. The identity list has nine tokens. `componentsReading(["brand.dot-small"])` is `["badge", "logo"]` (design row 1). The identity case covers `brand.dot-small` |
 | 11 | `tests/check-catalog.test.ts` | unit | `catalog/base/logo.yaml` holds: `name: Logo`, `tier: base`, `status: stable`, `since: ORV-118`, `import: "@orivilo/design-system"`, `story: base-logo`, `contract: LogoProps`, `variants: [mark, wordmark, horizontal, stacked]`, `sizes: [form-16, form-24, master]`, `states: [default]`, `recipes: [neutral, professional, friendly]` and `examples: []`. Its `rules` lines cover `logo-scope-1`, `logo-screen-1`, and height and clear space; its `a11y` lines cover named and decorative. `coverage.md` has the Base row "Logo, stable, base-logo" |
 | 12 | `apps/web/app/layout.test.tsx` (new), Thai | unit (`renderToStaticMarkup`) | The nav's first link has `href="/"` and `aria-label="ORIVILO หน้าแรก"`. It holds one `svg.ds-logo` with `data-kind="horizontal"`, `height="24"`, `width="106.08"`, `aria-hidden="true"` and no role, and no text. The markup has no `bg-brand-signature`. The Studio and Account links follow it |
 | 13 | `layout.test.tsx`, English; R2 | unit; evidence | The link is named "ORIVILO home". R2 shows the dark colours (the mode is CSS, not markup) |
@@ -543,7 +543,7 @@ No.
 2. **Local cache (risk).** `turbo.json` sets no `inputs`, so the design-system `test` task hashes only its own package. After an edit to `apps/web/app/icon*` or `docs/context/brand/assets` alone, a local cache hit can skip the freshness and geometry tests. CI starts without a cache, and `pnpm test --force` reruns locally. Follow-up: a package `turbo.json` with those inputs.
 3. **Trademark (`logo-screen-1`).** The mark may merge into `develop` and run on staging. A release that carries it to production, to the app or to a production Storybook site, waits for the screening record on ORV-118.
 4. **Follow-up: a permanent e2e suite.** An `apps/web/e2e` suite for row 14 and the head links. It changes CI, which waits for the owner's approval during the POC.
-5. **A violet brand badge reads like a button (risk, section 13).** Under neutral in light mode, `Badge` variant `brand` now has the same ground and label colours as the primary button. The designer checks the recommended badge in Direction Studio at sign-off.
+5. **A violet brand badge reads like a button (risk, section 13).** Under neutral in light mode, `Badge` variant `brand` now has the same ground and label colours as the primary button. The designer checks the recommended badge in Direction Studio at sign-off. Resolved by design row 1 (sign-off `ORV-118-signoff-2` F1, comment 10373): the brand badge takes `surface.sunken`, `text.primary` and the mark's bead (`brand.dot-small`), so it no longer shares the primary button's colours.
 6. **Follow-up: the colour node on ORIVILO's own brief.** `packages/intent-engine` `color-rules.test.ts` ("ORIVILO decides lime, near, soft") and the knowledge entry that keeps the action colour apart from the signature (`color-knowledge.ts`, sourced from brand spec v1.1 §5) now disagree with ORIVILO's shell. No engine change in ORV-118; the engine's own issue decides whether its rules or its test change (ADR 0017 keeps `signature` to lime, cyan, magenta and teal).
 
 ## 13. The violet dot (owner decision, ORV-118 comment 10336)
@@ -586,7 +586,7 @@ Under neutral, the two dot tokens now resolve to one value in each mode, and tha
 
 - **Equal by primitive, not by reference.** `brand.signature` points at `{color.violet.600}` and `{color.violet.400}` itself. Its resolve chain is `["primitive:color.violet.600"]` in light and `["primitive:color.violet.400"]` in dark, with no action token in it. A profile that moves its action colour leaves its logo alone, and a profile that moves its signature leaves its button alone.
 - **Separate readers.**
-  - `componentsReading(["brand.signature"])` is `["badge", "logo", "nav-item", "tile"]`.
+  - `componentsReading(["brand.signature"])` is `["logo", "nav-item", "tile"]`.
   - `componentsReading(["action.primary"])` is `["button", "checkbox", "progress", "resizable", "slider"]`.
   - The two lists share no component. No brand reader takes a click, and no action reads the brand.
 - **Identity scope stays.** Every profile must override `brand.signature`, `brand.ink` and `brand.dot-small` (`Profile.validate`), so the shell's violet never reaches a customer preview through them (DESIGN.md §9 item 10).
@@ -624,7 +624,7 @@ The search: `grep -rn -E "brand\.signature|brand-signature|brand\.ink|brand-ink|
 | Reader | Where it shows | Effect under neutral |
 | --- | --- | --- |
 | `logo.dot` (`component.json:2532`) | The Logo's master dot | Lime becomes violet; the small forms were violet in light already, and dark now matches |
-| `badge.brand.bg` (`component.json:733`), with `badge.brand.fg` and `badge.dot.brand` reading `brand.ink` (`:737`, `:784`) | `Badge` variant `brand`: `DirectionStudio.tsx:217` (the recommended direction, rendered on `/directions` through `SavedStudio.tsx`), `Card.stories.tsx:137`, `Badge.stories.tsx:16` | The lime pill with ink text becomes a violet.600 pill with a white label in light, and a violet.400 pill with an ink label in dark. In light this is the primary button's pair of colours (risk 5) |
+| `badge.brand.bg` (`component.json:733`), with `badge.brand.fg` and `badge.dot.brand` reading `brand.ink` (`:737`, `:784`) | `Badge` variant `brand`: `DirectionStudio.tsx:217` (the recommended direction, rendered on `/directions` through `SavedStudio.tsx`), `Card.stories.tsx:137`, `Badge.stories.tsx:16` | The lime pill with ink text becomes a violet.600 pill with a white label in light, and a violet.400 pill with an ink label in dark. In light this is the primary button's pair of colours (risk 5) Superseded by design row 1: the badge is a `surface.sunken` pill with a `text.primary` label and a `brand.dot-small` bead, and `badge.dot.brand` reads `{brand.dot-small}` |
 | `tile.glow` (`component.json:391`) | `foundations/spec-sheet.tsx:78`, the Foundations spec sheet | The soft glow becomes violet |
 | `nav-item.bead` (`component.json:421`) | `foundations/spec-sheet.tsx:132` | The bead becomes violet |
 | Tailwind `bg-brand-signature` | `apps/web/app/layout.tsx:39` (the header dot, which task B2 replaces with the Logo); `examples/landing.tsx:43` (the example's header dot) | The dot becomes violet |
@@ -658,7 +658,7 @@ New cases in `src/tokens/tokens.test.ts`, under `describe("the violet signature 
 1. "shares one value with action.primary under neutral, in both modes". For each of `MODES`, `brand.signature` and `action.primary` resolve to the same value: #7A22C7 in light and #B07FEE in dark.
 2. "reaches its primitive directly, never through an action token". The resolve chain is `["primitive:color.violet.600"]` in light and `["primitive:color.violet.400"]` in dark.
 3. "keeps brand readers and action readers apart".
-   - `componentsReading(["brand.signature"])` equals `["badge", "logo", "nav-item", "tile"]`.
+   - `componentsReading(["brand.signature"])` equals `["logo", "nav-item", "tile"]`.
    - It shares no entry with `componentsReading(["action.primary"])`.
 
 Red proofs (L-0042), one per case, each restored afterwards:

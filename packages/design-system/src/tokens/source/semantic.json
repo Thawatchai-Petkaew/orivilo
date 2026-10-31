@@ -580,7 +580,7 @@
         "light": "{color.violet.600}",
         "dark": "{color.violet.400}"
       },
-      "$description": "The mark's dot at 24 px and below (logo forms 16 and 24), at least 3.0 on the canvas under every profile; equal to brand.signature in the ORIVILO profile; read only by logo.dot-small",
+      "$description": "The mark's dot at 24 px and below (logo forms 16 and 24), at least 3.0 on the canvas under every profile; equal to brand.signature in the ORIVILO profile; read by logo.dot-small and badge.dot.brand (the brand badge's bead)",
       "$extensions": {
         "orivilo": {
           "contrast": {
