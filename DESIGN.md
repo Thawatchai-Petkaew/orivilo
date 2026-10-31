@@ -1,4 +1,4 @@
-# DESIGN.md: ORIVILO (agent-readable, v1.55)
+# DESIGN.md: ORIVILO (agent-readable, v1.56)
 
 Read this before any UI work: a Studio screen, a shared component, a story, a recipe, a preview, or a review of generated output. It is the design contract the `frontend-design` skill critiques against and the **design gate** (§11) that blocks G3. Rules that enforce it live in `.claude/rules/design-system.md`; the component registry lives in `packages/design-system/catalog/`.
 
@@ -142,6 +142,7 @@ Rules (from the specimen run, brand spec §6 and §8):
 - Running text is 1.7 at every body size (ORV-192 row 18). Sarabun's stacks reach 1.25 em above the baseline and its lower vowels 0.33 em below, so below 1.7 a stack such as ที่ or ฟื้น can touch the ุ or ู of the line above; Latin alone would allow 1.43 to 1.5, and a mixed screen takes the Thai value. A boundary carries `type.body.md`, so text without its own token inherits it.
 - No letter-spacing and no text-transform on Thai, ever. Latin eyebrows in tracked caps are anti-pattern 5.
 - A mixed line takes the body line-height; Thai must not look smaller or lighter than the Latin beside it.
+- A single-line control centres the label's body: Thai marks above and below the consonant rise and fall outside it, as Latin accents and descenders do (ORV-111).
 - Title over supporting text (ORV-192 row 17): in a compact component (Toast, Tooltip, Field, a table empty state, the missing-inputs prompt, a block library tile) both lines have one size, the title is 500 in the ground's primary ink and the text 400 in its secondary ink, 4 px apart; a header (Dialog, Sheet, Inspector) is a 20 / 500 primary title over a 16 / 400 secondary description, 8 px apart; a choice row (Checkbox, Select option) keeps its own label and a smaller secondary description at 0 px. On `surface.inverse` the secondary ink is `text.on-inverse-secondary`.
 - Fixture content for every component includes Thai, Latin, a long Thai name without spaces, and a missing value.
 - Fonts load self-hosted from `apps/web` (OFL); no runtime fetch from Google Fonts in product code.
@@ -329,3 +330,5 @@ Change log: v1.53 (2026-10-31) title over supporting text, paragraph line height
 Change log: v1.54 (2026-10-31) ORV-192 row 19 (sign-off 2 F1 to F3): display type pads its own top; the Toast root focus line and halo are `focus.ring`; the side sheet's open edge turns `focus.ring`. Impact: every `text-display-lg` line moves down 24 px (Typography row, landing hero) and every `text-display-md` line 16 px (Foundations page titles, decision log, settings and workspace examples, the app's home, not found, account and directions pages); a focused toast shows a brand line and halo on the page; a focused side sheet shows one line. No token, value or contrast pair changes.
 
 Change log: v1.55 (2026-11-01) the Logo row names the generated assets (ORV-118 slice B, task B1, ORV-195): the favicon SVG, the two app icon PNGs and the Storybook brand image, written by the `logo-assets` command and checked by `assets.test.ts`. No token, value, recipe or component API changes.
+
+Change log: v1.56 (2026-11-01) ORV-111: section 4 gains one rule line, a single-line control centres the label's body (Thai marks above and below the consonant rise and fall outside it, as Latin accents and descenders do). The Storybook play of Button Label Centre judges the body within 1.5 px (`ink-centre-1`, `src/testing/visual-asserts.ts`) and reports the whole-ink offset beside it. No token, font, recipe, profile or component changes, and no label moves. The base meets the rule in the Button story and in 20 of the 24 member pairs; four do not, the sm Input, Input group, Password input and Select, whose Thai body reads -1.89 px in their own stories (1.5 px is the bound), so the rule is not yet met everywhere and the follow-up is ORV-199 (`docs/specs/ORV-111/tech.md`, After).
