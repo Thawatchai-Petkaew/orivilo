@@ -145,6 +145,23 @@ export const inVitest = Boolean(
 );
 
 /**
+ * The screenshot clips to one element, so this returns the nearest ancestor (or `el` itself) whose
+ * box holds the box of `el` and `reach` CSS px of margin on every side.
+ */
+function scopeHolding(el: Element, reach: number): Element {
+  const holds = (a: DOMRect, r: DOMRect) =>
+    a.left <= r.left - reach &&
+    a.top <= r.top - reach &&
+    a.right >= r.right + reach &&
+    a.bottom >= r.bottom + reach;
+  let scope: Element = el;
+  while (scope.parentElement && !holds(scope.getBoundingClientRect(), el.getBoundingClientRect())) {
+    scope = scope.parentElement;
+  }
+  return scope;
+}
+
+/**
  * Asserts the ink drawn at one edge of `el` (or at each of several, from one screenshot) is `px` CSS px wide, read from a screenshot (a pixel
  * line through the middle of the edge, 4 CSS px outside to 4 inside). Computed style does not
  * decide the result, so a border and an outline drawn side by side count as the two they are.
@@ -157,16 +174,7 @@ export async function expectEdgeInk(
   px: number,
   reach = 4,
 ) {
-  // The screenshot clips to one element, so shoot the nearest ancestor that holds the edge and its margin.
-  const holds = (a: DOMRect, r: DOMRect) =>
-    a.left <= r.left - reach &&
-    a.top <= r.top - reach &&
-    a.right >= r.right + reach &&
-    a.bottom >= r.bottom + reach;
-  let scope: Element = el;
-  while (scope.parentElement && !holds(scope.getBoundingClientRect(), el.getBoundingClientRect())) {
-    scope = scope.parentElement;
-  }
+  const scope = scopeHolding(el, reach);
   const { data, width, frame, scale } = await screenshotOf(scope);
   const rect = el.getBoundingClientRect();
   for (const side of typeof sides === "string" ? [sides] : sides) {
@@ -332,8 +340,13 @@ export function expectTitleOverText(
   text: Element,
   { gap, header = false, titleBottom }: { gap: number; header?: boolean; titleBottom?: number },
 ) {
-  const bottom = titleBottom ?? title.getBoundingClientRect().bottom;
-  const actual = text.getBoundingClientRect().top - bottom;
+  // A one-line label pads its clip box and cancels it with a negative margin (ORV-194 row 7), so
+  // its border box reaches past its line: read the gap between the two lines, inside the padding.
+  const bottom =
+    titleBottom ??
+    title.getBoundingClientRect().bottom - parseFloat(getComputedStyle(title).paddingBottom);
+  const actual =
+    text.getBoundingClientRect().top + parseFloat(getComputedStyle(text).paddingTop) - bottom;
   expect(
     Math.abs(actual - gap),
     `${label(text)} starts ${actual} px under its title, not ${gap} px`,
@@ -400,10 +413,79 @@ export async function expectFocusBorderForm(
   else el.blur();
 }
 
+export type Rgba = readonly [r: number, g: number, b: number, a: number];
+
+/**
+ * A computed CSS colour as red, green and blue on 0 to 255 and alpha on 0 to 1. Reads the forms a
+ * browser serialises: `rgb(...)`, `rgba(...)` (comma or space separated) and `color(srgb ...)`.
+ */
+export function parseCssColor(value: string): Rgba {
+  const text = value.trim();
+  const srgb = /^color\(srgb\s+([^)]+)\)$/.exec(text);
+  const legacy = /^rgba?\(([^)]+)\)$/.exec(text);
+  const body = (srgb ?? legacy)?.[1];
+  if (!body) throw new Error(`Not a colour the helper reads: ${value}`);
+  const [channels = "", alpha] = body.split("/");
+  const parts = channels.split(/[\s,]+/).filter(Boolean);
+  const alphaText = alpha ?? (legacy && parts.length === 4 ? parts.pop() : undefined);
+  if (parts.length !== 3) throw new Error(`Not a colour the helper reads: ${value}`);
+  const scale = srgb ? 255 : 1;
+  const [r, g, b] = parts.map((part) => parseFloat(part) * scale) as [number, number, number];
+  const a =
+    alphaText === undefined ? 1 : parseFloat(alphaText) / (alphaText.includes("%") ? 100 : 1);
+  return [r, g, b, a];
+}
+
+/**
+ * A computed CSS colour as `#rrggbb` (the form `contrastRatio` takes), or `null` when its alpha is
+ * under 1: a colour that lets the ground through has no single hex, so a transparent highlight
+ * fails the play that compares it (ORV-194 row 9).
+ */
+export function cssColorToHex(value: string): string | null {
+  const [r, g, b, a] = parseCssColor(value);
+  if (a < 1) return null;
+  return `#${[r, g, b]
+    .map((channel) => Math.round(channel).toString(16).padStart(2, "0"))
+    .join("")}`;
+}
+
+/** The colour of the last shadow in a computed `box-shadow` list (the colour comes first in it). */
+export function lastShadowColor(boxShadow: string): string {
+  const shadows: string[] = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < boxShadow.length; i += 1) {
+    const ch = boxShadow[i];
+    if (ch === "(") depth += 1;
+    else if (ch === ")") depth -= 1;
+    else if (ch === "," && depth === 0) {
+      shadows.push(boxShadow.slice(start, i));
+      start = i + 1;
+    }
+  }
+  shadows.push(boxShadow.slice(start));
+  const last = shadows[shadows.length - 1]?.trim() ?? "";
+  const colour = /^(?:rgba?|color)\([^)]*\)/.exec(last);
+  if (!colour) throw new Error(`No colour leads the last shadow: ${boxShadow}`);
+  return colour[0];
+}
+
+/** Two colours within 1.5 on a 0 to 255 channel (serialisation rounding) and 0.015 on alpha. */
+export function colorsMatch(a: Rgba, b: Rgba): boolean {
+  return (
+    Math.abs(a[0] - b[0]) <= 1.5 &&
+    Math.abs(a[1] - b[1]) <= 1.5 &&
+    Math.abs(a[2] - b[2]) <= 1.5 &&
+    Math.abs(a[3] - b[3]) <= 0.015
+  );
+}
+
 /**
  * The elevation form of focus (ORV-192 row 9): the element keeps its rest shadow, first in the list,
  * and gains a 4 px halo after it, with a 1 px outline in `ink` (`focus.ring` unless the element sits
- * on a ground where the brand is not readable). Puts focus back where it was.
+ * on a ground where the brand is not readable). The halo's colour is that `ink` at
+ * `focus.halo-opacity` (ORV-194 row 2), so a halo drawn in another ink is red. Puts focus back where
+ * it was.
  */
 export async function expectFocusElevationForm(
   el: HTMLElement,
@@ -419,6 +501,16 @@ export async function expectFocusElevationForm(
   const style = getComputedStyle(el);
   expect(style.boxShadow.startsWith(rest), `${label(el)} keeps its elevation`).toBe(true);
   expect(style.boxShadow, `${label(el)} adds the halo`).toMatch(/ 0px 0px 0px 4px$/);
+  const probe = document.createElement("span");
+  probe.style.color = `color-mix(in srgb, ${ink} calc(var(--ds-focus-halo-opacity) * 100%), transparent)`;
+  el.append(probe);
+  const haloInk = getComputedStyle(probe).color;
+  probe.remove();
+  const halo = lastShadowColor(style.boxShadow);
+  expect(
+    colorsMatch(parseCssColor(halo), parseCssColor(haloInk)),
+    `${label(el)} halo is ${ink} at focus.halo-opacity (${haloInk}), not ${halo}`,
+  ).toBe(true);
   expect(style.outlineWidth, `${label(el)} outline width`).toBe("1px");
   expect(style.outlineStyle, `${label(el)} outline style`).toBe("solid");
   expect(style.outlineColor, `${label(el)} outline colour`).toBe(ink);
@@ -882,5 +974,165 @@ export async function expectInkClearsAbove(el: Element, above: Element, px = 4) 
     ).toBeGreaterThanOrEqual(px);
   } finally {
     hidden.style.visibility = previous;
+  }
+}
+
+/** A pixel whose channel `main` (0 red, 2 blue) stands more than 40 above both others: the test paint of `expectLinesClear`. */
+const dominant = (px: Rgb, main: 0 | 2) => {
+  const others = main === 0 ? [px[1], px[2]] : [px[0], px[1]];
+  return others.every((o) => px[main] - o > 40);
+};
+
+/**
+ * The smallest gap, over every pixel column, from the lowest red pixel to the highest blue pixel,
+ * in CSS px (the device rows between them divided by the device pixel ratio). A negative value
+ * means the two inks overlap. A column with only one of the two colours is skipped; null when no
+ * column has both.
+ */
+export function linesGap(rows: readonly (readonly Rgb[])[], devicePixelRatio: number) {
+  const width = rows[0]?.length ?? 0;
+  let smallest: number | null = null;
+  for (let x = 0; x < width; x++) {
+    let lowestRed = -1;
+    let highestBlue = -1;
+    for (let y = 0; y < rows.length; y++) {
+      const px = rows[y]?.[x];
+      if (!px) continue;
+      if (dominant(px, 0)) lowestRed = y;
+      else if (dominant(px, 2) && highestBlue < 0) highestBlue = y;
+    }
+    if (lowestRed < 0 || highestBlue < 0) continue;
+    const gap = (highestBlue - lowestRed - 1) / devicePixelRatio;
+    if (smallest === null || gap < smallest) smallest = gap;
+  }
+  return smallest;
+}
+
+/** The floor of `lines-clear-1`: `px` less one device pixel, which antialiasing may take. */
+export const linesFloor = (px: number, devicePixelRatio: number) => px - 1 / devicePixelRatio;
+
+/**
+ * Asserts a wrapped title keeps at least `px` CSS px between the lowest ink of one line and the
+ * highest ink of the next (ORV-194 row 6, rule `lines-clear-1`), within one device pixel. A shallow
+ * clone of `el` (same classes, recipe and line height, same width) is put after it and filled with
+ * two forced lines of the tallest Thai stacks, the first in red and the second in blue (test paint,
+ * never shipped). One screenshot of the clone is read; the clone is taken out in `finally`. It runs
+ * where Vitest browser mode runs; a play guards the call with `inVitest`.
+ */
+export async function expectLinesClear(el: HTMLElement, px = 1.5) {
+  const clone = el.cloneNode(false) as HTMLElement;
+  clone.removeAttribute("id");
+  clone.style.width = `${el.getBoundingClientRect().width}px`;
+  const line = (text: string, color: string) => {
+    const span = document.createElement("span");
+    span.style.color = color;
+    span.textContent = text;
+    return span;
+  };
+  clone.append(
+    line("ฟูฟูฟูปู่ปู่ฟูฟู", "rgb(224, 0, 0)"),
+    document.createElement("br"),
+    line("ฟื้ฟื้ฟื้ปี๊ปี๊ฟื้ฟื้", "rgb(0, 0, 224)"),
+  );
+  el.after(clone);
+  try {
+    const { data, width, height } = await shoot(clone);
+    const scale = width / clone.getBoundingClientRect().width;
+    const rows: Rgb[][] = [];
+    for (let y = 0; y < height; y++) {
+      const row: Rgb[] = [];
+      for (let x = 0; x < width; x++) {
+        const at = (y * width + x) * 4;
+        row.push([data[at] ?? 0, data[at + 1] ?? 0, data[at + 2] ?? 0]);
+      }
+      rows.push(row);
+    }
+    const gap = linesGap(rows, scale);
+    expect(gap, `${label(el)} draws no red line above a blue line`).not.toBeNull();
+    const floor = linesFloor(px, scale);
+    expect(
+      gap ?? 0,
+      `${label(el)} lines are ${gap} px apart, expected at least ${floor} px (${px} px less one device pixel)`,
+    ).toBeGreaterThanOrEqual(floor);
+  } finally {
+    clone.remove();
+  }
+}
+
+/**
+ * How far, in CSS px, the highest ink that `visible` draws above row `aboveRow` and `shipped` does
+ * not, measured up from that row (ORV-194 row 7). Both shots cover the same region, so a row index
+ * in one is the same place in the other. A row differs when a pixel in it is more than
+ * `INK_DISTANCE` from the same pixel of the other shot. 0 means the shipped label cuts nothing
+ * above `aboveRow`. Anything the two shots share (a tag's border, a tile's edge) never counts.
+ */
+export function inkCutAbove(
+  shipped: readonly (readonly Rgb[])[],
+  visible: readonly (readonly Rgb[])[],
+  aboveRow: number,
+  devicePixelRatio: number,
+) {
+  for (let y = 0; y < Math.min(aboveRow, shipped.length, visible.length); y++) {
+    const a = shipped[y] ?? [];
+    const b = visible[y] ?? [];
+    if (b.some((px, x) => a[x] && distance(px, a[x]) > INK_DISTANCE)) {
+      return (aboveRow - y) / devicePixelRatio;
+    }
+  }
+  return 0;
+}
+
+/**
+ * Asserts a one-line label shows the whole stack of Thai marks (ORV-194 row 7): a shallow clone of
+ * `el` (same classes, same parent, so the same recipe applies) holding `sample` is put after it and
+ * shot twice over a region from 8 px above to 8 px below its border box, once as shipped and once
+ * with `overflow: visible` set inline. No row above the clone's line (its content box) may differ
+ * between the two shots, so the clip box cuts no mark. The clone is taken out in `finally`. It runs
+ * where Vitest browser mode runs; a play guards the call with `inVitest`. `expectNoGlyphClip`
+ * cannot do this: it cannot see marks above the font ascent.
+ */
+export async function expectLabelInkWhole(el: HTMLElement, sample = "ฟื้ปั้ปี๊ฟื้") {
+  const reach = 8;
+  const clone = el.cloneNode(false) as HTMLElement;
+  clone.removeAttribute("id");
+  clone.textContent = sample;
+  el.after(clone);
+  try {
+    const region = async () => {
+      const scope = scopeHolding(clone, reach);
+      const { data, width } = await shoot(scope);
+      const frame = scope.getBoundingClientRect();
+      const rect = clone.getBoundingClientRect();
+      const scale = width / frame.width;
+      const top = Math.round((rect.top - reach - frame.top) * scale);
+      const bottom = Math.round((rect.bottom + reach - frame.top) * scale);
+      const left = Math.round((rect.left - frame.left) * scale);
+      const right = Math.round((rect.right - frame.left) * scale);
+      const rows: Rgb[][] = [];
+      for (let y = top; y < bottom; y++) {
+        const row: Rgb[] = [];
+        for (let x = left; x < right; x++) {
+          const at = (y * width + x) * 4;
+          row.push([data[at] ?? 0, data[at + 1] ?? 0, data[at + 2] ?? 0]);
+        }
+        rows.push(row);
+      }
+      return { rows, scale };
+    };
+    const shipped = await region();
+    clone.style.overflow = "visible";
+    const visible = await region();
+    const line = Math.round(
+      (reach + parseFloat(getComputedStyle(clone).paddingTop)) * shipped.scale,
+    );
+    const ground = visible.rows[line]?.[0];
+    expect(
+      ground && firstInkRow(visible.rows.slice(line), ground),
+      `${label(el)} draws no ink for the sample ${sample}`,
+    ).not.toBeNull();
+    const cut = inkCutAbove(shipped.rows, visible.rows, line, shipped.scale);
+    expect(cut, `${label(el)} cuts ${cut} px of its Thai stack above the label line`).toBe(0);
+  } finally {
+    clone.remove();
   }
 }

@@ -55,7 +55,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "One of a few modes (single) or any of a few switches (multiple), E4-3. Radix gives roving tabindex and the pressed semantics. Segmented (ORV-65): a sunken track, and the pressed item is a raised card chip with a ring and text.primary ink, the same under every profile; never a tint alone.",
+          "One of a few modes (single) or any of a few switches (multiple), E4-3. Radix gives roving tabindex and the pressed semantics. Segmented (ORV-65): a sunken track, and the pressed item is a raised card chip with text.primary ink and a soft lift, no ring, the same under every profile; never a tint alone.",
       },
     },
   },

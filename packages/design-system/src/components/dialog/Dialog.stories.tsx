@@ -6,7 +6,15 @@ import { Button } from "../button/Button";
 import { Field } from "../field/Field";
 import { fixtures } from "../fixtures";
 import { Input } from "../input/Input";
-import { expectFocusBorderForm, expectTitleOverText } from "../../testing/visual-asserts";
+import { contrastRatio } from "../../foundations/contrast";
+import {
+  cssColorToHex,
+  expectFocusBorderForm,
+  expectLinesClear,
+  expectTitleOverText,
+  inVitest,
+  resolvedColor,
+} from "../../testing/visual-asserts";
 import { Matrix } from "../matrix";
 import {
   Dialog,
@@ -145,6 +153,15 @@ export const Open: Story = {
     const text = dialog?.querySelector(".ds-dialog__description");
     if (!title || !text) throw new Error("the dialog has no title or description");
     expectTitleOverText(title, text, { gap: 8, header: true });
+    // ORV-194 row 9: selected text takes the selection pair and reads at 4.5 or more on its highlight.
+    const selected = getComputedStyle(input, "::selection");
+    const ink = cssColorToHex(selected.color);
+    const highlight = cssColorToHex(selected.backgroundColor);
+    await expect(ink).toBe(cssColorToHex(resolvedColor(scroller, "--ds-selection-fg")));
+    await expect(highlight).toBe(cssColorToHex(resolvedColor(scroller, "--ds-selection-bg")));
+    await expect(ink && highlight ? contrastRatio(ink, highlight) : null).toBeGreaterThanOrEqual(
+      4.5,
+    );
   },
 };
 
@@ -283,6 +300,14 @@ export const LongContentAt360: Story = {
       )}
     </Frame>
   ),
+  play: async ({ canvasElement }) => {
+    const panel = await within(canvasElement).findByRole("dialog");
+    await Promise.all(panel.getAnimations().map((a) => a.finished));
+    const title = panel.querySelector<HTMLElement>(".ds-dialog__title");
+    if (!title) throw new Error("the dialog has no title");
+    // ORV-194 row 6: the title's wrapped Thai lines keep 1.5 px of ground between them.
+    if (inVitest) await expectLinesClear(title);
+  },
 };
 
 /** The content is rendered in a portal and still carries the trigger's profile and mode (AC 3). */

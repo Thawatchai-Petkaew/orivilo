@@ -9,18 +9,21 @@ import { fixtureJobs } from "../fixtures";
 import { fillHeight, Matrix, Narrow as NarrowFrame } from "../matrix";
 import { TaskBar } from "../task-bar/TaskBar";
 import { BlockLibrary } from "./BlockLibrary";
-import { expectTitleOverText } from "../../testing/visual-asserts";
+import { expectLabelInkWhole, expectTitleOverText, inVitest } from "../../testing/visual-asserts";
 import { MIDWAY } from "./fixtures";
 
 /** The shell's side for stories: the graph in state, and `placeBlock` for each placed tile. */
 function ShelfBoard({
   initial = MIDWAY,
   height = 640,
+  fixed = false,
   status,
   children,
 }: {
   initial?: Graph;
   height?: number;
+  /** Size the board to exactly `height` px instead of filling the viewport (ORV-194 row 10). */
+  fixed?: boolean;
   status?: string | undefined;
   children?: ReactNode;
 }) {
@@ -28,7 +31,7 @@ function ShelfBoard({
   const scope = useDesignProfile();
   const id = typeof scope?.profile === "string" ? scope.profile : scope?.profile.id;
   return (
-    <div style={{ height: fillHeight(height) }}>
+    <div style={{ height: fixed ? `${height}px` : fillHeight(height) }}>
       <CanvasBoard
         label={`กระดาน Intent Studio${scope ? `, ${id} ${scope.mode}` : ""}`}
         graph={graph}
@@ -96,7 +99,9 @@ const CLEAR = 16;
  * shelf-clear-1 (ORV-192, row 2): the shelf's bottom edge sits CLEAR above the canvas controls' top
  * edge at any number of control rows (the controls wrap to two rows under 657 px and three at 320),
  * with or without the task bar. A fixed rise above the board's bottom overlapped the second row by
- * 14 px at 360. Pass `status` to check the board status line against the controls the same way.
+ * 14 px at 360. Pass `status` to check the board status line (ORV-194 row 5): its bottom edge sits
+ * CLEAR above the shelf's top edge, and its box intersects no shelf tile. The shelf and the status
+ * line shared one band over the controls, so the status covered the first tile.
  */
 const expectClear = (board: HTMLElement, status = false) => {
   const c = part(board, ".react-flow__panel.ds-controls");
@@ -104,7 +109,12 @@ const expectClear = (board: HTMLElement, status = false) => {
   expect(Math.abs(c.top - s.bottom - CLEAR)).toBeLessThanOrEqual(1);
   if (status) {
     const t = part(board, ".ds-board__status");
-    expect(Math.abs(c.top - t.bottom - CLEAR)).toBeLessThanOrEqual(1);
+    expect(Math.abs(s.top - t.bottom - CLEAR)).toBeLessThanOrEqual(1);
+    for (const tileEl of board.querySelectorAll<HTMLElement>(".ds-shelf__tile")) {
+      const r = tileEl.getBoundingClientRect();
+      const overlaps = t.left < r.right && t.right > r.left && t.top < r.bottom && t.bottom > r.top;
+      expect(overlaps).toBe(false);
+    }
   }
 };
 
@@ -214,6 +224,18 @@ const ready = async (root: HTMLElement) => {
   });
 };
 
+/**
+ * shelf-fit-1 (ORV-194 row 10): after the first fit, no node's box reaches into the shelf; each
+ * node's bottom edge is at or above the shelf's top edge. xyflow centred the graph in the whole
+ * board, which left the lowest nodes under the shelf (661 > 640.6 at 900 px, 591 > 500.6 at 760).
+ */
+const expectNodesAboveShelf = (board: HTMLElement) => {
+  const top = part(board, SHELF).top;
+  const nodes = board.querySelectorAll<HTMLElement>(".react-flow__node");
+  expect(nodes.length).toBeGreaterThan(0);
+  for (const n of nodes) expect(n.getBoundingClientRect().bottom).toBeLessThanOrEqual(top);
+};
+
 /** Every block by module, each with its state as a word and a mark: not on the board, empty, partial, summarized, unlinked. */
 export const Default: Story = {
   render: () => <ShelfBoard />,
@@ -248,10 +270,25 @@ export const Default: Story = {
     const state = summarized.querySelector(".ds-shelf__state");
     if (!name || !state) throw new Error("the tile has no name or state");
     expectTitleOverText(name, state, { gap: 4 });
+    // ORV-194 row 7: the one-line name shows the whole stack of ฟื้ ปั้ ปี๊.
+    if (inVitest) await expectLabelInkWhole(name as HTMLElement);
+    // ORV-194 row 10: the first fit keeps every node above the shelf.
+    await waitFor(() => expectNodesAboveShelf(boardOf(canvasElement)));
     // ORV-190: the shelf is centred on the board, on the controls' start edge, at its old height.
     expectCentred(boardOf(canvasElement));
     expectClear(boardOf(canvasElement));
     await expectRings(canvasElement);
+  },
+};
+
+/** ORV-194 row 10: a board 760 px tall, the shelf near its middle; the first fit still keeps every node above the shelf. */
+export const ShortBoard: Story = {
+  render: () => <ShelfBoard height={760} fixed />,
+  play: async ({ canvasElement }) => {
+    await ready(canvasElement);
+    const board = boardOf(canvasElement);
+    await expect(Math.round(board.getBoundingClientRect().height)).toBe(760);
+    await waitFor(() => expectNodesAboveShelf(board));
   },
 };
 
@@ -267,6 +304,8 @@ export const Narrow: Story = {
     const board = boardOf(canvasElement);
     await expect(Math.round(board.getBoundingClientRect().width)).toBe(360);
     expectCentred(board);
+    // ORV-194 row 10: at 360 px the first fit still keeps every node above the shelf.
+    await waitFor(() => expectNodesAboveShelf(board));
     // The controls wrap to two rows at 360, and the shelf and the status line clear both.
     const controls = part(board, ".react-flow__panel.ds-controls");
     await expect(controls.height).toBeGreaterThan(
@@ -285,6 +324,15 @@ export const Narrow: Story = {
     }
     await expectScrollPadding(canvasElement);
     await expectRings(canvasElement);
+  },
+};
+
+/** ORV-194 row 5: at the 1440 case, a status message stands 16 px above the shelf and covers no tile. */
+export const WithStatus: Story = {
+  render: () => <ShelfBoard status="วางบล็อกแล้ว" />,
+  play: async ({ canvasElement }) => {
+    await ready(canvasElement);
+    expectClear(boardOf(canvasElement), true);
   },
 };
 

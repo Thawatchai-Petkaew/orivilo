@@ -183,6 +183,7 @@ describe("type weights", () => {
         "type.numeral.md",
         "type.label.md",
         "type.label.sm",
+        "type.control.md",
       ]) {
         expect(weight(path), path).toBe(500);
       }
@@ -255,6 +256,34 @@ describe("running text clears Thai marks (row 18)", () => {
         const { lineHeight } = set.resolve(t, "light").value as { lineHeight: number };
         expect(lineHeight, t.path).toBeGreaterThanOrEqual(1.7);
       }
+    });
+    it(`under ${id}, wrapping labels and headings clear Thai marks (ORV-194 row 6)`, () => {
+      for (const path of ["type.label.md", "type.heading.sm"]) {
+        const token = set.layer("semantic").find((t) => t.path === path);
+        if (!token) throw new Error(`no ${path} token`);
+        const { lineHeight } = set.resolve(token, "light").value as { lineHeight: number };
+        expect(lineHeight, path).toBeGreaterThanOrEqual(1.7);
+      }
+    });
+    it(`under ${id}, a single-line control label is the label at 1.6 (ORV-194 row 6b)`, () => {
+      const value = (path: string) => {
+        const token = set.layer("semantic").find((t) => t.path === path);
+        if (!token) throw new Error(`no ${path} token`);
+        return set.resolve(token, "light").value as {
+          fontFamily: unknown;
+          fontSize: unknown;
+          fontWeight: unknown;
+          letterSpacing: unknown;
+          lineHeight: number;
+        };
+      };
+      const control = value("type.control.md");
+      const label = value("type.label.md");
+      expect(control.fontFamily).toEqual(label.fontFamily);
+      expect(control.fontSize).toEqual(label.fontSize);
+      expect(control.fontWeight).toEqual(label.fontWeight);
+      expect(control.letterSpacing).toEqual(label.letterSpacing);
+      expect(control.lineHeight).toBe(1.6);
     });
   }
 });
