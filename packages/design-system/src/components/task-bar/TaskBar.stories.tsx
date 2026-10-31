@@ -482,12 +482,19 @@ export const OnBoard: Story = {
 
 /**
  * The jump on a 420 px board with the list open: the status line and the toolbar stay inside the
- * board and the node is visible in it. Mock jobs.
+ * board and the node is visible in it. Mock jobs. The board keeps 420 px (`fill={false}`): the
+ * story proves a bound on the board's height (spec ORV-189, `exempt-1`).
  */
 export const OnShortBoard: Story = {
   args: { jobs: boardJobs },
   render: (args) => (
-    <Stateful initial={BOARD} height={420} label="กระดานแบรนด์ (ข้อมูลตัวอย่าง)" minimap={false}>
+    <Stateful
+      initial={BOARD}
+      height={420}
+      fill={false}
+      label="กระดานแบรนด์ (ข้อมูลตัวอย่าง)"
+      minimap={false}
+    >
       <TaskBar {...args} />
     </Stateful>
   ),

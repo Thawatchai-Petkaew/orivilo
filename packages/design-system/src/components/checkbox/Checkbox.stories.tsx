@@ -8,7 +8,7 @@ const meta = {
   title: "Base/Checkbox",
   component: Checkbox,
   args: { label: "ส่งสรุปให้ทีมเมื่ออนุมัติ" },
-  parameters: { layout: "padded" },
+  parameters: { layout: "centered" },
 } satisfies Meta<typeof Checkbox>;
 
 export default meta;
@@ -160,6 +160,7 @@ export const LongLabelAt360: Story = {
 };
 
 export const RecipesAndModes: Story = {
+  parameters: { layout: "padded" },
   render: (args) => (
     <Matrix>
       <Checkbox {...args} />

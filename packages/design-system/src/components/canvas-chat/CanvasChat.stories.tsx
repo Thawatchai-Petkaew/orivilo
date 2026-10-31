@@ -12,7 +12,7 @@ import { BOARD } from "../canvas-board/fixtures";
 import type { Graph } from "../canvas-board/graph";
 import { chatFixtures, fixtures, type ChatHost } from "../fixtures";
 import { DesignProfileBoundary } from "../../boundary/DesignProfileBoundary";
-import { Matrix } from "../matrix";
+import { fillHeight, Matrix } from "../matrix";
 import { CanvasChat, type ChatReply, type ChatRequest } from "./CanvasChat";
 import { CANVAS_WORDS } from "../../tokens/canvas";
 import { placeReply, replyTitle } from "./place-reply";
@@ -63,8 +63,24 @@ const WIDTH = {
   max: "w-[480px]",
 } as const;
 
-function Frame({ size, children }: { size: keyof typeof WIDTH; children: ReactNode }) {
-  return <div className={`h-[560px] max-w-full ${WIDTH[size]}`}>{children}</div>;
+/**
+ * A panel frame: 560 px tall, or the viewport frame when that is taller (spec ORV-189,
+ * `fill-height-1`). `fill={false}` keeps the 560 px, for a story that shows several frames at once.
+ */
+function Frame({
+  size,
+  fill: filled = true,
+  children,
+}: {
+  size: keyof typeof WIDTH;
+  fill?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div style={{ height: filled ? fillHeight(560) : 560 }} className={`max-w-full ${WIDTH[size]}`}>
+      {children}
+    </div>
+  );
 }
 
 const chatOf = (root: HTMLElement) => root.querySelector<HTMLElement>(".ds-chat") as HTMLElement;
@@ -207,6 +223,8 @@ export const Idle: Story = {
     const canvas = within(canvasElement);
     const chatEl = chatOf(canvasElement);
     const chat = box(chatEl);
+    // The panel fills the padded frame and is never shorter than its 560 px (spec ORV-189, `fill-height-1`).
+    near(chat.height, Math.max(560, window.innerHeight - 32));
     await expect(canvas.getByRole("region", { name: c.label })).toBeVisible();
     await expect(canvas.getByText(c.empty)).toBeVisible();
     await expectNotice(canvasElement, c.noticeRules);
@@ -1075,7 +1093,7 @@ export const StartersAtWidths: Story = {
         (["min", "panel", "max"] as const).map((size) => (
           <LocaleProvider key={`${locale}-${size}`} locale={locale}>
             <div data-case={`${locale}-${size}`}>
-              <Frame size={size}>
+              <Frame size={size} fill={false}>
                 <CanvasChat {...args} />
               </Frame>
             </div>
@@ -1146,6 +1164,7 @@ function BoardChat({
   selected,
   args,
   height = 560,
+  fill: filled = true,
   controlled = false,
   size = "panel",
 }: {
@@ -1153,6 +1172,8 @@ function BoardChat({
   selected?: string;
   args: Parameters<typeof CanvasChat>[0];
   height?: number;
+  /** The board fills the viewport frame when it is taller than `height`; `false` keeps `height`. */
+  fill?: boolean;
   /** The shell owns the mentions: `node.mention` from the context menu adds the node (ORV-107). */
   controlled?: boolean;
   /** The chat's width, from the panel range. */
@@ -1186,7 +1207,7 @@ function BoardChat({
     return id;
   };
   return (
-    <div style={{ height }} className="relative">
+    <div style={{ height: filled ? fillHeight(height) : height }} className="relative">
       <CanvasBoard
         graph={graph}
         onChange={setGraph}
@@ -1279,11 +1300,11 @@ export const OnBoard: Story = {
     const locale = localeOf(globals);
     const canvas = within(canvasElement);
     await waitFor(() => expect(nodeEl(canvasElement, "brief")).toHaveClass("selected"));
-    // Change 1: the chat floats 12 px from the board's top and end edges and keeps its height (536).
+    // Change 1: the chat floats 12 px from the board's top and end edges and keeps the board's height less 24.
     const floating = box(chatOf(canvasElement));
     near(box(boardEl(canvasElement)).right - floating.right, 12);
     near(floating.top - box(boardEl(canvasElement)).top, 12);
-    near(floating.height, 536);
+    near(floating.height, box(boardEl(canvasElement)).height - 24);
     // Change 13: the quiet header and the one-row box leave the transcript room for the answer.
     await expect(box(viewportOf(canvasElement)).height).toBeGreaterThanOrEqual(349);
     await ask(canvas, chatFixtures.question, c.input);
@@ -1799,7 +1820,7 @@ export const MentionsEnglish: Story = {
  */
 export const MentionsSmallest: Story = {
   args: { defaultMentions: ["brief", "logo", "palette"] },
-  render: (args) => <BoardChat args={args} height={380} size="min" />,
+  render: (args) => <BoardChat args={args} height={380} fill={false} size="min" />,
   play: async ({ canvasElement, globals }) => {
     const c = catalogOf(globals).chat;
     const canvas = within(canvasElement);

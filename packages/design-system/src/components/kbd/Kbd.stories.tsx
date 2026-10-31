@@ -9,7 +9,7 @@ const meta = {
   component: Kbd,
   args: { shortcut: shortcutsOf("board.command-menu")[0] ?? "Mod+K", apple: false },
   parameters: {
-    layout: "padded",
+    layout: "centered",
     docs: {
       description: {
         component:
@@ -82,6 +82,7 @@ export const NamedKeys: Story = {
 
 /** Key caps under every profile in both modes, on the canvas and inside a menu-like ground. */
 export const RecipesAndModes: Story = {
+  parameters: { layout: "padded" },
   render: () => (
     <Matrix>
       <div className="flex flex-wrap items-center gap-3">

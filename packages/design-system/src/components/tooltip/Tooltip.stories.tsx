@@ -32,7 +32,7 @@ const meta = {
       </Button>
     ),
   },
-  parameters: { layout: "padded" },
+  parameters: { layout: "centered" },
 } satisfies Meta<typeof Tooltip>;
 
 export default meta;
@@ -103,6 +103,7 @@ export const LongContent: Story = {
 };
 
 export const RecipesAndModes: Story = {
+  parameters: { layout: "padded" },
   render: (args) => (
     <Matrix>
       <div className="flex min-h-24 items-end gap-3">

@@ -62,7 +62,7 @@ const meta = {
   title: "Base/Context menu",
   component: Surface,
   parameters: {
-    layout: "padded",
+    layout: "centered",
     docs: {
       description: {
         component:
@@ -122,6 +122,7 @@ export const FromKeyboard: Story = {
 
 /** The surface under every profile in both modes; a context menu cannot be held open, so the play opens and closes each cell's. */
 export const RecipesAndModes: Story = {
+  parameters: { layout: "padded" },
   render: (args) => (
     <Matrix>
       <Surface {...args} />

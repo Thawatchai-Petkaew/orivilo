@@ -7,7 +7,7 @@ import { BlockLibrary } from "../block-library/BlockLibrary";
 import { blockNode, feed, MIDWAY } from "../block-library/fixtures";
 import { CanvasBoard } from "../canvas-board/CanvasBoard";
 import type { Graph } from "../canvas-board/graph";
-import { Matrix, Narrow } from "../matrix";
+import { fillHeight, Matrix, Narrow } from "../matrix";
 import { Resizable } from "../resizable/Resizable";
 import { Sheet, SheetContent } from "../sheet/Sheet";
 import { Inspector } from "./Inspector";
@@ -57,7 +57,10 @@ function Panel({ initial, label }: { initial: Graph; label?: string }) {
   const scope = useDesignProfile();
   const id = typeof scope?.profile === "string" ? scope.profile : scope?.profile.id;
   return (
-    <div className="h-[520px] max-w-sm rounded-container border border-border-card">
+    <div
+      style={{ height: fillHeight(520) }}
+      className="max-w-sm rounded-container border border-border-card"
+    >
       <Inspector
         label={label ?? (scope ? `แผงรายละเอียด, ${id} ${scope.mode}` : undefined)}
         graph={graph}
@@ -84,7 +87,7 @@ function Studio({ initial = MIDWAY }: { initial?: Graph }) {
     if (focusPanel > 0) panel.current?.focus();
   }, [focusPanel]);
   return (
-    <div ref={area} className="flex h-[640px] min-w-0">
+    <div ref={area} style={{ height: fillHeight(640) }} className="flex min-w-0">
       <div className="min-w-0 flex-1">
         <CanvasBoard
           label="กระดาน Intent Studio"
@@ -175,6 +178,11 @@ export const Selected: Story = {
   render: () => <Panel initial={select(MIDWAY, ["starter"])} />,
   play: async ({ canvasElement }) => {
     const p = panelOf(canvasElement);
+    // The panel fills the padded frame and is never shorter than its 520 px (spec ORV-189, `fill-height-1`).
+    const wrapper = canvasElement.querySelector(".ds-inspector")?.parentElement;
+    await expect(wrapper?.getBoundingClientRect().height).toBe(
+      Math.max(520, window.innerHeight - 32),
+    );
     await expect(p.getByRole("heading", { name: "สีตั้งต้น" })).toBeVisible();
     await expect(p.getByText("ทิศทาง")).toBeVisible();
     await expect(p.getByText("สรุปแล้ว")).toBeVisible();
