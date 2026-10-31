@@ -409,5 +409,7 @@ export const RecipesAndModes: Story = {
     await expect(grid.getBoundingClientRect().width).toBe(
       surface.getBoundingClientRect().width - 32,
     );
+    // The surface pads the grid by 16 on top too: `layout: "padded"` (spec ORV-192, row 10).
+    await expect(grid.getBoundingClientRect().top).toBe(surface.getBoundingClientRect().top + 16);
   },
 };
