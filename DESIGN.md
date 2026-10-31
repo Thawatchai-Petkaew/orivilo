@@ -1,4 +1,4 @@
-# DESIGN.md: ORIVILO (agent-readable, v1.36)
+# DESIGN.md: ORIVILO (agent-readable, v1.45)
 
 Read this before any UI work: a Studio screen, a shared component, a story, a recipe, a preview, or a review of generated output. It is the design contract the `frontend-design` skill critiques against and the **design gate** (§11) that blocks G3. Rules that enforce it live in `.claude/rules/design-system.md`; the component registry lives in `packages/design-system/catalog/`.
 
@@ -19,7 +19,7 @@ Two namespaces, one component set. A component never knows which brand it is ren
 - **Idea.** A loop that does not close, and the dot it stays connected to: a product keeps becoming, and every artifact traces back to its reason. Space, restraint, one signature colour spent where it counts.
 - **ORIVILO is its own first customer.** The shell must pass the same tests we run on generated output: the "tells of generated design" list in `.claude/skills/frontend-design/SKILL.md`, contrast on real pairs in every mode, Thai and Latin on the same line.
 - **Spend boldness once.** Violet is the signature (owner, ORV-118): the mark's dot, a bead and one highlight plane (`brand.signature`), the same value as the one primary action (`action.primary`) in the ORIVILO profile, and still a separate token. Lime is spent once, on the one Intent Engine button per screen (`action.intent`), never as body text on light ground and never as a status colour. Orbit violet also does the work of selection and links (brand case study board 06); apart from the one signature glow it is never a tint or a wash. Everything else is ink and canvas.
-- **Airy bento (mood E, owner's choice 2026-10-21).** Overview screens are a loose grid of borderless white cards on the warm canvas with generous padding, pill controls, big numerals set in the body face at weight 600, and at most one soft signature glow per screen. Working surfaces (canvas, inspector, tables) keep the compact density of §3.3; the bento is for reading, not for operating. In dark mode the same shapes hold, with the lime limited to one button so the screen does not collapse into the near-black-with-acid-accent look (§9 item 1).
+- **Airy bento (mood E, owner's choice 2026-10-21).** Overview screens are a loose grid of borderless white cards on the warm canvas with generous padding, pill controls, big numerals set in the body face at weight 500, and at most one soft signature glow per screen. Working surfaces (canvas, inspector, tables) keep the compact density of §3.3; the bento is for reading, not for operating. In dark mode the same shapes hold, with the lime limited to one button so the screen does not collapse into the near-black-with-acid-accent look (§9 item 1).
 - **Honest UI.** Rule-based behavior is labelled rule-based. Mock data is labelled mock. No trust badge, rating, discount, countdown, or success state without backing data (`AGENTS.md`).
 - **Words are design.** Sentence case, plain verbs, from the user's view, in the user's language. Thai copy is written as Thai, never translated word by word.
 
@@ -124,15 +124,15 @@ Ratios recorded elsewhere in this file were computed from these values. `surface
 | Motion  | `motion.feedback.duration` 120 ms, `motion.overlay.duration` 200 ms, `motion.page.duration` 320 ms, one ease-out, `prefers-reduced-motion` removes all non-essential motion. The engine at work is the only looping motion (owner, ORV-57): the AI gradient (`ai.gradient-start` violet into `ai.gradient-end` blue) turns around a running node, travels along an edge feeding it and along the line being drawn while connecting, and colours the icons of that work; nothing loops at rest, and the gradient never stands in for error, warning, selection or focus |
 | Density | `comfortable` (default) and `compact` (row block 8 instead of 12); a profile may set one, a page may not                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 
-Controls are pills; rectangular shapes grow with their level: media 12 inside a container 16 inside an overlay 24. One radius for every level is anti-pattern 3 (§9). Numerals in a bento tile use the body face at weight 600 with letter-spacing -0.02em on Latin digits only, never on Thai.
+Controls are pills; rectangular shapes grow with their level: media 12 inside a container 16 inside an overlay 24. One radius for every level is anti-pattern 3 (§9). Numerals in a bento tile use the body face at weight 500 with letter-spacing -0.02em on Latin digits only, never on Thai.
 
 ## 4. Typography, Thai and Latin together
 
-| Role    | Family stack                                             | Weights       | Size / line-height     |
-| ------- | -------------------------------------------------------- | ------------- | ---------------------- |
-| Display | `"Anuphan", "IBM Plex Sans Thai", system-ui, sans-serif` | 600, 700      | 56/1.2 and 32/1.25     |
-| Body/UI | `"IBM Plex Sans", "Sarabun", system-ui, sans-serif`      | 400, 500, 600 | 20/1.5, 16/1.7, 14/1.6 |
-| Mono    | `"IBM Plex Mono", ui-monospace, monospace`               | 400, 500      | 14 / 1.6               |
+| Role    | Family stack                                             | Weights                        | Size / line-height     |
+| ------- | -------------------------------------------------------- | ------------------------------ | ---------------------- |
+| Display | `"Anuphan", "IBM Plex Sans Thai", system-ui, sans-serif` | 500 (faces 400 to 700)         | 56/1.2 and 32/1.25     |
+| Body/UI | `"IBM Plex Sans", "Sarabun", system-ui, sans-serif`      | 400, 500 (faces 400, 500, 600) | 20/1.5, 16/1.7, 14/1.6 |
+| Mono    | `"IBM Plex Mono", ui-monospace, monospace`               | 400, 500                       | 14 / 1.6               |
 
 Rules (from the specimen run, brand spec §6 and §8):
 
@@ -303,3 +303,5 @@ Change log: v1.42 (2026-10-31) adds the Logo row to section 12 and the Logo cata
 Change log: v1.43 (2026-10-31) the ORIVILO signature becomes violet (ORV-118, comment 10336): `brand.signature` violet.600 and violet.400, `brand.ink` white in light, `brand.dot-small` violet.400 in dark; lime is `action.intent` only. Downstream: the brand badge, the glow and the bead turn violet under neutral; Professional and Friendly unchanged.
 
 Change log: v1.44 (2026-10-31) the brand badge takes the mark's bead (ORV-118, sign-off `ORV-118-signoff-2` finding F1, comment 10373, design row 1): component tokens `badge.brand.bg` `{surface.sunken}`, `badge.brand.fg` `{text.primary}` and `badge.dot.brand` `{brand.dot-small}`; `Badge` variant `brand` always renders its bead and takes no icon (`icon` with brand is a type error); `brand.dot-small` has a second reader, `badge.dot.brand`, and no component token reads `brand.ink` any more. Downstream: the recommended badge in Direction Studio and `/directions` is a quiet pill with a bead and no longer reads as the primary button; `componentsReading(["brand.signature"])` is `["logo", "nav-item", "tile"]`.
+
+Change log: v1.45 (2026-10-31) the type feels lighter (ORV-192 row 7): `type.display.lg`, `type.display.md`, `type.heading.md`, `type.heading.sm`, `type.numeral.lg` and `type.numeral.md` go from weight 600 to 500 in the base set, and the Friendly heading and Professional display overrides follow; body and code stay 400, label stays 500, so the scale uses two weights (500 for what names something, 400 for running text). The ToggleGroup pressed item drops its heavier weight step and keeps its chip, ring and `text.primary` ink (`toggle.$description` and the catalog rule reworded). Impact: every card, dialog, inspector, side sheet and direction title, the bento numerals and the Typography page are one weight step lighter; no size, line-height, family, colour or contrast pair changes. Guard: `profiles.test.ts` ties every `type.*` weight to a face the stack carries.
