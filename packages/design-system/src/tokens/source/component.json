@@ -1618,7 +1618,7 @@
     }
   },
   "toggle": {
-    "$description": "ToggleGroup, segmented: a sunken track; the pressed item is a raised card chip with a ring and text.primary ink, never a selection tint or the canvas violet, so it reads the same under every profile (ORV-65)",
+    "$description": "ToggleGroup, segmented: a sunken track; the pressed item is a raised card chip with text.primary ink and a soft lift, no ring, never a selection tint or the canvas violet, so it reads the same under every profile (ORV-65, ORV-192 row 12)",
     "bg": {
       "$type": "color",
       "$value": "{surface.sunken}"
@@ -1646,10 +1646,6 @@
     "fg-pressed": {
       "$type": "color",
       "$value": "{text.primary}"
-    },
-    "border-pressed": {
-      "$type": "color",
-      "$value": "{border.subtle}"
     },
     "fg-disabled": {
       "$type": "color",

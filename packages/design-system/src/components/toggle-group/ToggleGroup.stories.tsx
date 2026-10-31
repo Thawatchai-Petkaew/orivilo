@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, fn, userEvent, within } from "storybook/test";
+import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { CursorIcon, HandIcon } from "../icons";
+import { inVitest } from "../../testing/visual-asserts";
 import { Matrix } from "../matrix";
 import { ToggleGroup, ToggleGroupItem } from "./ToggleGroup";
 
@@ -83,6 +84,23 @@ export const Single: Story = {
     await expect(pan).toHaveAttribute("data-state", "on");
     await expect(select).toHaveAttribute("data-state", "off");
     await expect(args.onValueChange).toHaveBeenCalledWith("pan");
+    // ORV-192 row 12: with focus gone, the pressed chip is lifted by a 0 1px 3px shadow of black at
+    // 24 percent (half of opacity.scrim) and has no 1 px ring (a `0px 0px 0px 1px` spread).
+    pan.blur();
+    await waitFor(() => expect(getComputedStyle(pan).boxShadow).toMatch(/ 0px 1px 3px 0px$/));
+    await expect(getComputedStyle(pan).boxShadow).toMatch(/^color\(srgb 0 0 0 \/ 0\.24\) /);
+    await expect(getComputedStyle(pan).boxShadow).not.toContain("0px 0px 0px 1px");
+    // Under a real pointer the chip keeps its ground: no hover wash on a pressed item. Only
+    // Vitest browser mode has a real pointer; the synthetic one of `storybook/test` sets no :hover.
+    if (inVitest) {
+      const { userEvent: pointer } = await import("vitest/browser");
+      const ground = getComputedStyle(pan).backgroundColor;
+      await pointer.hover(pan);
+      await expect(pan.matches(":hover")).toBe(true);
+      await Promise.all(pan.getAnimations().map((a) => a.finished));
+      await expect(getComputedStyle(pan).backgroundColor).toBe(ground);
+      await pointer.unhover(pan);
+    }
   },
 };
 

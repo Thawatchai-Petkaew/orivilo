@@ -1330,7 +1330,6 @@
   --cmp-toggle-fg-hover: var(--ds-text-primary);
   --cmp-toggle-bg-pressed: var(--ds-surface-card);
   --cmp-toggle-fg-pressed: var(--ds-text-primary);
-  --cmp-toggle-border-pressed: var(--ds-border-subtle);
   --cmp-toggle-fg-disabled: var(--ds-text-secondary);
   --cmp-toggle-radius: var(--ds-shape-control-radius);
   --cmp-command-bg: var(--ds-surface-raised);
