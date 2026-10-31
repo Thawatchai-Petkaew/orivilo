@@ -119,7 +119,6 @@ describe("the shipped profiles", () => {
  * a value between two faces splits a Thai and Latin line across two faces, so the line looks uneven.
  */
 const WEIGHTS_BY_FAMILY: Record<string, readonly number[]> = {
-  Anuphan: [400, 500, 600, 700],
   "IBM Plex Sans": [400, 500, 600],
   "IBM Plex Mono": [400, 500],
 };
@@ -168,40 +167,42 @@ describe("type weights", () => {
 });
 
 /**
- * ORV-192 row 15 (owner, comment 10400). Thai in a heading takes the body family, so under the
- * neutral standard and Professional the display face is the Plex Sans stack (Latin in Plex Sans,
- * Thai in looped Sarabun). Friendly restates Anuphan and keeps it. The stack decides the Thai face:
- * the browser takes the first family that carries the glyph.
+ * ORV-192 row 16 (owner, comment 10401; supersedes the row 15 Friendly exception). Thai renders in
+ * Sarabun in every profile and every type token. The browser takes the first family that carries
+ * the glyph, so each stack names its Latin face first and Sarabun second: IBM Plex Sans for the
+ * sans roles, IBM Plex Mono for code. No stack names Anuphan or IBM Plex Sans Thai.
  */
-describe("display face (row 15)", () => {
-  const PLEX_SANS = ["IBM Plex Sans", "Sarabun"];
-  const ANUPHAN = ["Anuphan", "IBM Plex Sans Thai"];
-  const expected: Record<string, string[]> = {
-    neutral: PLEX_SANS,
-    professional: PLEX_SANS,
-    friendly: ANUPHAN,
-  };
+describe("Thai face (row 16)", () => {
+  const LATIN_FACE = ["IBM Plex Sans", "IBM Plex Mono"];
   const sets = [
     { id: "neutral", set: tokens },
     ...profiles.map((p) => ({ id: p.id, set: p.tokens })),
   ];
 
+  const stacks = (set: (typeof sets)[number]["set"]) =>
+    set
+      .layer("semantic")
+      .filter((t) => t.path.startsWith("type.") || t.path.startsWith("font."))
+      .map((t) => {
+        const value = set.resolve(t, "light").value as string[] | { fontFamily: string[] };
+        return { path: t.path, family: Array.isArray(value) ? value : value.fontFamily };
+      });
+
   for (const { id, set } of sets) {
-    it(`under ${id}, font.display and type.display.lg and .md lead with ${expected[id]?.[0]} then ${expected[id]?.[1]}`, () => {
-      const family = (path: string) => {
-        const token = set.get("semantic", path);
-        if (!token) throw new Error(`no semantic token ${path}`);
-        const value = set.resolve(token, "light").value as string[] | { fontFamily: string[] };
-        return (Array.isArray(value) ? value : value.fontFamily).slice(0, 2);
-      };
-      for (const path of ["font.display", "type.display.lg", "type.display.md"]) {
-        expect(family(path), path).toEqual(expected[id]);
+    it(`under ${id}, every type.* token and font.* family leads Thai to Sarabun`, () => {
+      const found = stacks(set);
+      expect(found.length).toBeGreaterThanOrEqual(15);
+      for (const { path: p, family } of found) {
+        expect(LATIN_FACE, `${p} Latin face`).toContain(family[0]);
+        expect(family[1], `${p} Thai face`).toBe("Sarabun");
+        expect(family, `${p} names no other Thai face`).not.toContain("Anuphan");
+        expect(family, `${p} names no other Thai face`).not.toContain("IBM Plex Sans Thai");
       }
     });
   }
 
   it("covers the neutral standard, Professional and Friendly", () => {
-    expect(sets.map((s) => s.id).sort()).toEqual(Object.keys(expected).sort());
+    expect(sets.map((s) => s.id).sort()).toEqual(["friendly", "neutral", "professional"]);
   });
 });
 

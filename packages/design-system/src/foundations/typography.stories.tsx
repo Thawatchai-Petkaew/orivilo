@@ -34,9 +34,9 @@ function TypographyPage() {
       <h1 className="font-display text-display-md">Typography</h1>
       <p className="mt-2 max-w-prose text-text-secondary">
         Thai and Latin on the same line at each step of the scale. Thai is looped Sarabun at every
-        size, headings included, with Latin and digits in IBM Plex Sans; the Friendly profile sets
-        its headings in loopless Anuphan. Fonts are self-hosted from this package. No letter-spacing
-        and no text-transform on Thai.
+        size, headings included, with Latin and digits in IBM Plex Sans, in every profile. Code
+        takes Sarabun for Thai too. Fonts are self-hosted from this package. No letter-spacing and
+        no text-transform on Thai.
       </p>
       <dl className="mt-8 space-y-8">
         {SCALE.map((step) => (
@@ -82,7 +82,8 @@ type Story = StoryObj<typeof meta>;
 /**
  * The body role sets Thai in looped Sarabun and Latin in IBM Plex Sans (ORV-58): the stack names
  * Plex first, and the self-hosted Sarabun face loads for a Thai character. The display role takes
- * the same family (ORV-192 row 15), so a Thai heading is Sarabun at 500 too.
+ * the same family (ORV-192 row 15), so a Thai heading is Sarabun at 500 too. The mono role names
+ * Sarabun after IBM Plex Mono, so Thai in code is Sarabun as well (row 16).
  */
 export const Scale: Story = {
   play: async ({ canvasElement }) => {
@@ -99,6 +100,9 @@ export const Scale: Story = {
         /^"IBM Plex Sans", Sarabun,/,
       );
     }
+    const mono = canvasElement.querySelector<HTMLElement>(".font-mono");
+    if (!mono) throw new Error("no mono sample");
+    await expect(getComputedStyle(mono).fontFamily).toMatch(/^"IBM Plex Mono", Sarabun,/);
     const weight = (el: Element | null) => getComputedStyle(el as HTMLElement).fontWeight;
     for (const cls of [".text-display-lg", ".text-display-md", "h1", "h2"]) {
       await expect(weight(canvasElement.querySelector(cls)), cls).toBe("500");
@@ -110,5 +114,24 @@ export const Scale: Story = {
     await expect(medium.map((f) => f.family.replaceAll('"', ""))).toContain("Sarabun");
     const display = await document.fonts.load("500 56px Sarabun", "ก");
     await expect(display.map((f) => f.family.replaceAll('"', ""))).toContain("Sarabun");
+  },
+};
+
+/**
+ * ORV-192 row 16: Friendly sets no heading in another family, so its display and heading lines
+ * read the same Plex Sans stack with Sarabun for Thai, not Anuphan.
+ */
+export const Friendly: Story = {
+  globals: { profile: "friendly" },
+  play: async ({ canvasElement }) => {
+    const lines = canvasElement.querySelectorAll<HTMLElement>(
+      ".text-display-lg, .text-display-md, h1, h2",
+    );
+    await expect(lines.length).toBeGreaterThanOrEqual(3);
+    for (const line of lines) {
+      await expect(getComputedStyle(line).fontFamily, line.className).toMatch(
+        /^"IBM Plex Sans", Sarabun,/,
+      );
+    }
   },
 };

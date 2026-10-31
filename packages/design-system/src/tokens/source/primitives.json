@@ -597,17 +597,13 @@
   },
   "font": {
     "family": {
-      "anuphan": {
-        "$type": "fontFamily",
-        "$value": ["Anuphan", "IBM Plex Sans Thai", "system-ui", "sans-serif"]
-      },
       "plex-sans": {
         "$type": "fontFamily",
         "$value": ["IBM Plex Sans", "Sarabun", "system-ui", "sans-serif"]
       },
       "plex-mono": {
         "$type": "fontFamily",
-        "$value": ["IBM Plex Mono", "ui-monospace", "monospace"]
+        "$value": ["IBM Plex Mono", "Sarabun", "ui-monospace", "monospace"]
       }
     },
     "size": {

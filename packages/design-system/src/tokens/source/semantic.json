@@ -1141,7 +1141,7 @@
     "display": {
       "$type": "fontFamily",
       "$value": "{font.family.plex-sans}",
-      "$description": "Display role: the body family, so a Thai heading is looped Sarabun and Latin is IBM Plex Sans (owner, ORV-192 row 15); Friendly restates Anuphan"
+      "$description": "Display role: the body family, so a Thai heading is looped Sarabun and Latin is IBM Plex Sans in every profile (owner, ORV-192 rows 15 and 16)"
     },
     "body": {
       "$type": "fontFamily",
