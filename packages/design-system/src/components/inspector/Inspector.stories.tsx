@@ -59,7 +59,7 @@ function Panel({ initial, label }: { initial: Graph; label?: string }) {
   return (
     <div
       style={{ height: fillHeight(520) }}
-      className="max-w-sm rounded-container border border-border-card"
+      className="max-w-sm overflow-hidden rounded-container border border-border-card"
     >
       <Inspector
         label={label ?? (scope ? `แผงรายละเอียด, ${id} ${scope.mode}` : undefined)}
@@ -183,6 +183,8 @@ export const Selected: Story = {
     await expect(wrapper?.getBoundingClientRect().height).toBe(
       Math.max(520, window.innerHeight - 32),
     );
+    // The wrapper is rounded and the panel paints square to its edge, so the wrapper must clip (spec ORV-192, row 1).
+    await expect(getComputedStyle(wrapper as Element).overflow).toBe("hidden");
     await expect(p.getByRole("heading", { name: "สีตั้งต้น" })).toBeVisible();
     await expect(p.getByText("ทิศทาง")).toBeVisible();
     await expect(p.getByText("สรุปแล้ว")).toBeVisible();
