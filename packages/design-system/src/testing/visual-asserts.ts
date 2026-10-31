@@ -5,7 +5,7 @@ import { expect } from "storybook/test";
  * CSS property a fix sets passes whenever the CSS is as written; these read the rendered result:
  * the ink drawn at an edge, the height of siblings in a row, glyph boxes inside a rounded clip, and
  * where a label sits in its control. The pure parts (`inkWidth`, `outsideCorner`, `inkCentreOf`,
- * `offCentreReport`) take plain numbers so they are tested in node.
+ * `bodyOf`, `offCentreReport`) take plain numbers or strings so they are tested in node.
  */
 
 export type Side = "top" | "right" | "bottom" | "left";
@@ -526,8 +526,18 @@ export function expectNoGlyphClip(el: Element) {
   expect(checked, `${label(el)} has no text under a clipping ancestor to check`).toBeGreaterThan(0);
 }
 
-/** Pass bound of ink-centre-1 (spec ORV-111, clause 9): the ink centre is this close to the control centre, in CSS px. */
-const INK_CENTRE_BOUND = 1;
+/**
+ * Pass bound of ink-centre-1 (spec ORV-111 v1.1, clause 9): the body's ink centre is this close to
+ * the control centre, in CSS px. It is the 1 px target plus the half device pixel that text snaps
+ * to at device scale factor 1 while the box may sit at a fractional y.
+ */
+const INK_CENTRE_BOUND = 1.5;
+
+/**
+ * The body of a label (ink-centre-1): the label with the Thai marks above and below the consonant
+ * removed, U+0E31, U+0E34 to U+0E3A and U+0E47 to U+0E4E. A Latin label is its own body.
+ */
+export const bodyOf = (text: string) => text.replace(/[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]/g, "");
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -554,14 +564,15 @@ export interface InkCentre {
   inkBottom: number;
   /** Ink centre minus control centre, in CSS px to 2 decimals. A negative offset is above the centre. */
   offset: number;
-  /** True when the offset, as reported, is at most 1 CSS px either way. */
+  /** True when the offset, as reported, is at most `INK_CENTRE_BOUND` (1.5) CSS px either way. */
   centred: boolean;
 }
 
 /**
  * Where the ink of a label sits in its control box, read from a decoded screenshot (RGBA bytes,
  * `width` px wide, at `scale` device px per CSS px). This is ink-centre-1 of the ORV-111 spec,
- * clauses 3 to 9; null when the region holds no ink.
+ * clauses 3 to 9, on whatever ink the region holds (the caller decides whether that is the body or
+ * the whole label); null when the region holds no ink.
  */
 export function inkCentreOf(
   image: { data: ArrayLike<number>; width: number },
@@ -625,20 +636,30 @@ export function inkCentreOf(
   };
 }
 
-export interface InkReading extends InkCentre {
+/** What a label is judged by: its body (the rule), or its whole ink. */
+export type InkMeasure = "body" | "ink";
+
+export interface InkReading {
   /** The box, its label and its height, so a failure line names it. */
   name: string;
+  /** The reading of the label's body (clause 9 judges this one). */
+  body: InkCentre;
+  /** The reading of the whole ink, Thai marks included: reported beside the body. */
+  ink: InkCentre;
 }
 
-/** The failure message of `expectInkCentred`: each box whose label is off the centre, with its offset. Empty when none is. */
-export function offCentreReport(readings: readonly InkReading[]): string {
-  const off = readings.filter((reading) => !reading.centred);
+/**
+ * The failure message of `expectInkCentred`: each box whose `measure` reading is off the centre,
+ * with the body offset and the whole-ink offset beside it. Empty when none is.
+ */
+export function offCentreReport(readings: readonly InkReading[], measure: InkMeasure): string {
+  const off = readings.filter((reading) => !reading[measure].centred);
   if (off.length === 0) return "";
   return [
-    `${off.length} of ${readings.length} labels sit more than ${INK_CENTRE_BOUND} px from the centre of their control (a negative offset is above it):`,
+    `${off.length} of ${readings.length} labels have a ${measure === "body" ? "body" : "whole ink"} more than ${INK_CENTRE_BOUND} px from the centre of their control (a negative offset is above it):`,
     ...off.map(
       (r) =>
-        `${r.name}: ink ${r.inkTop.toFixed(2)} to ${r.inkBottom.toFixed(2)} px, offset ${r.offset.toFixed(2)} px`,
+        `${r.name}: body offset ${r.body.offset.toFixed(2)} px, whole-ink offset ${r.ink.offset.toFixed(2)} px`,
     ),
   ].join("\n");
 }
@@ -689,30 +710,32 @@ function columnsOf(box: Element, rect: DOMRect): { left: number; right: number }
   return { left, right };
 }
 
-/**
- * Where the ink of each label sits in its control (spec ORV-111, rule ink-centre-1), from one
- * screenshot of `scope`, which holds every box. It waits for the faces of the labels first (clause
- * 1), shoots `scope` the way `expectEdgeInk` does (clause 2), then reads each box (clauses 3 to 9).
- * It runs where Vitest browser mode runs; a play guards the call with `inVitest`.
- */
-export async function measureInkCentre(
-  scope: Element,
-  boxes: readonly Element[],
-): Promise<InkReading[]> {
-  const runs = boxes.map(runsOf);
-  await Promise.all(runs.flat().map(({ font, text }) => document.fonts.load(font, text)));
-  await document.fonts.ready;
-  const { data, width, frame, scale } = await screenshotOf(scope);
+/** The label of `box` as the screenshot shows it, with the text nodes (or the input value) set by `text`. */
+function setLabelText(box: Element, text: (current: string) => string): () => void {
+  if (box instanceof HTMLInputElement) {
+    const before = box.value;
+    box.value = text(before);
+    return () => {
+      box.value = before;
+    };
+  }
+  const nodes = textNodesOf(box).map((node) => ({ node, before: node.data }));
+  for (const { node, before } of nodes) node.data = text(before);
+  return () => {
+    for (const { node, before } of nodes) node.data = before;
+  };
+}
+
+/** One pass of clauses 2 to 8: a screenshot of `scope`, then the ink of each box as it renders now. */
+async function readBoxes(scope: Element, boxes: readonly Element[], names: readonly string[]) {
+  const { data, width, frame } = await screenshotOf(scope);
+  // Clause 2: the scale is the device pixel ratio, not the screenshot width over the CSS width,
+  // which drifts when the scope has a fractional width.
+  const scale = window.devicePixelRatio;
   return boxes.map((box, i) => {
     const rect = box.getBoundingClientRect();
     const style = getComputedStyle(box);
     const columns = columnsOf(box, rect);
-    const boundary = box.closest("[data-design-profile]");
-    const name = `${label(box)} "${(runs[i] ?? []).map((run) => run.text.trim()).join(" ")}", ${rect.height} px tall${
-      boundary
-        ? `, in ${boundary.getAttribute("data-design-profile")} ${boundary.getAttribute("data-mode")}`
-        : ""
-    }`;
     const found = inkCentreOf({ data, width }, scale, {
       top: rect.top - frame.top,
       height: rect.height,
@@ -721,24 +744,78 @@ export async function measureInkCentre(
       textLeft: columns.left - frame.left,
       textRight: columns.right - frame.left,
     });
-    if (!found) throw new Error(`${name}: the region of its label holds no ink to measure`);
-    return { ...found, name };
+    if (!found) throw new Error(`${names[i]}: the region of its label holds no ink to measure`);
+    return found;
   });
 }
 
 /**
- * Asserts the label of each of `boxes` sits at the vertical centre of its control, within 1 CSS px
- * (ink-centre-1), read from one screenshot of `scope`, the element that holds them all. Each box
- * is one assertion, and a failure lists every box that is off with its offset. Computed style does
- * not decide the result, so a face whose glyphs ride high in its line shows. Use it with the Thai
- * and the English sample of `fixtures.ts`. It runs where Vitest browser mode runs; a play guards
- * the call with `inVitest`.
+ * Where the ink of each label sits in its control (spec ORV-111 v1.1, rule ink-centre-1), from a
+ * screenshot of `scope`, which holds every box. It waits for the faces of the labels first (clause
+ * 1), shoots `scope` the way `expectEdgeInk` does (clause 2) and reads each box (clauses 3 to 8):
+ * that is the whole-ink reading. When a label holds Thai marks, it then takes the marks out of the
+ * text, shoots again, reads the body, and puts the label back; a label with no marks has the one
+ * reading for both. It runs where Vitest browser mode runs; a play guards the call with `inVitest`.
  */
-export async function expectInkCentred(scope: Element, boxes: readonly Element[]) {
+export async function measureInkCentre(
+  scope: Element,
+  boxes: readonly Element[],
+): Promise<InkReading[]> {
+  const runs = boxes.map(runsOf);
+  await Promise.all(
+    runs
+      .flat()
+      .flatMap(({ font, text }) => [
+        document.fonts.load(font, text),
+        document.fonts.load(font, bodyOf(text)),
+      ]),
+  );
+  await document.fonts.ready;
+  const names = boxes.map((box, i) => {
+    const boundary = box.closest("[data-design-profile]");
+    return `${label(box)} "${(runs[i] ?? []).map((run) => run.text.trim()).join(" ")}", ${box.getBoundingClientRect().height} px tall${
+      boundary
+        ? `, in ${boundary.getAttribute("data-design-profile")} ${boundary.getAttribute("data-mode")}`
+        : ""
+    }`;
+  });
+  const whole = await readBoxes(scope, boxes, names);
+  const marked = runs.map((box) => box.some(({ text }) => bodyOf(text) !== text));
+  let stripped = whole;
+  if (marked.some(Boolean)) {
+    const restores = boxes.map((box) => setLabelText(box, bodyOf));
+    try {
+      stripped = await readBoxes(scope, boxes, names);
+    } finally {
+      for (const restore of restores) restore();
+    }
+  }
+  return boxes.map((_, i) => ({
+    name: names[i] ?? "",
+    body: marked[i] ? (stripped[i] as InkCentre) : (whole[i] as InkCentre),
+    ink: whole[i] as InkCentre,
+  }));
+}
+
+/**
+ * Asserts the label of each of `boxes` sits at the vertical centre of its control (ink-centre-1),
+ * read from screenshots of `scope`, the element that holds them all: one for the whole ink and one
+ * for the body. `measure` names the reading that is judged, within 1.5 CSS px: `"body"` for a
+ * Thai label whose marks rise freely above the consonants, `"ink"` for the whole ink. Each box is
+ * one assertion, and a failure lists every box that is off with its body offset and its whole-ink
+ * offset. Computed style does not decide the result, so a face whose glyphs ride high in its line
+ * shows. Use it with the Thai and the English sample of `fixtures.ts`. It runs where Vitest browser
+ * mode runs; a play guards the call with `inVitest`.
+ */
+export async function expectInkCentred(
+  scope: Element,
+  boxes: readonly Element[],
+  { measure }: { measure: InkMeasure },
+) {
   expect(boxes.length, `${label(scope)} has no box to measure`).toBeGreaterThan(0);
   const readings = await measureInkCentre(scope, boxes);
-  const report = offCentreReport(readings);
-  for (const reading of readings) expect(reading.centred, report).toBe(true);
+  const report = offCentreReport(readings, measure);
+  for (const reading of readings) expect(reading[measure].centred, report).toBe(true);
 }
 
 /**

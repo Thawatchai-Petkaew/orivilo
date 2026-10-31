@@ -123,8 +123,10 @@ const MODES: readonly Mode[] = ["light", "dark"];
  * ORV-111: a label sits at the vertical centre of its button, in Thai as in English. Primary
  * buttons at sm, md and lg, each with `fixtures.thai` and `fixtures.latin`, under the neutral
  * profile in light and dark. The play reads the rendered pixels (`expectInkCentred`, rule
- * ink-centre-1), one screenshot per boundary and one assertion per button, so a Thai label that
- * rides high fails with its offset. The static Storybook shows the story without the check.
+ * ink-centre-1) and judges the label's body: Thai marks above and below the consonant rise and
+ * fall outside it, as Latin accents and descenders do. It takes one screenshot per boundary for
+ * the body and one for the whole ink, and makes one assertion per button, so a label whose body
+ * rides high fails with both offsets. The static Storybook shows the story without the check.
  */
 export const LabelCentre: Story = {
   render: (args) => (
@@ -156,7 +158,7 @@ export const LabelCentre: Story = {
       const cell = canvas.getByTestId(`label-centre-${mode}`);
       const buttons = within(cell).getAllByRole("button");
       await expect(buttons).toHaveLength(SIZES.length * 2);
-      await expectInkCentred(cell, buttons);
+      await expectInkCentred(cell, buttons, { measure: "body" });
     }
   },
 };

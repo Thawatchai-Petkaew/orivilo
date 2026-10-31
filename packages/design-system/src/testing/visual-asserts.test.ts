@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  bodyOf,
   firstInkRow,
   hexToRgb,
   inkCentreOf,
@@ -10,6 +11,7 @@ import {
   viewBoxToBox,
   type InkBox,
   type InkCentre,
+  type InkReading,
   type Radii,
   type Rgb,
 } from "./visual-asserts";
@@ -160,12 +162,12 @@ const read = (image: ReturnType<typeof shot>, at: InkBox = control, scale = 1): 
 };
 
 describe("inkCentreOf", () => {
-  it("reads the two columns of worked example 1 as -1.50 above the centre and 0.50 below, 'false true'", () => {
+  it("reads the two columns of worked example 1 as -1.50 above the centre and 0.50 below, 'true true'", () => {
     const thai = read(shot(4, 40, rowsOf(thaiRows)));
     const latin = read(shot(4, 40, rowsOf(latinRows)));
     expect(
       `${thai.offset.toFixed(2)} ${latin.offset.toFixed(2)} ${thai.centred} ${latin.centred}`,
-    ).toBe("-1.50 0.50 false true");
+    ).toBe("-1.50 0.50 true true");
   });
 
   it("gives the ink top and the ink bottom in CSS px below the top of the box (clause 6)", () => {
@@ -330,56 +332,114 @@ describe("inkCentreOf", () => {
     expect(found).toMatchObject({ inkTop: 10.67, inkBottom: 25.67, offset: -1.83 });
   });
 
-  it("passes an offset of 1 either way and fails one past it (clause 9)", () => {
-    // Ink rows 10 to 27 centre at 19 (offset -1), rows 12 to 29 at 21 (offset 1), rows 12 to 28 at 20.5.
+  it("passes an offset of 1.5 either way and fails one past it (clause 9)", () => {
+    // Ink rows 10 to 26 centre at 18.5 (offset -1.5), rows 13 to 29 at 21.5 (offset 1.5); one row
+    // more on the far side reads -2 and 2.
     const band = (first: number, last: number) => {
       const rows: Record<number, Rgb> = {};
       for (let y = first; y <= last; y++) rows[y] = WHITE;
       return read(shot(4, 40, rowsOf(rows)));
     };
-    expect(band(10, 27)).toMatchObject({ offset: -1, centred: true });
-    expect(band(12, 29)).toMatchObject({ offset: 1, centred: true });
-    expect(band(10, 26)).toMatchObject({ offset: -1.5, centred: false });
-    expect(band(13, 29)).toMatchObject({ offset: 1.5, centred: false });
+    expect(band(10, 26)).toMatchObject({ offset: -1.5, centred: true });
+    expect(band(13, 29)).toMatchObject({ offset: 1.5, centred: true });
+    expect(band(10, 25)).toMatchObject({ offset: -2, centred: false });
+    expect(band(14, 29)).toMatchObject({ offset: 2, centred: false });
   });
 
   it("judges the offset as reported, to 2 decimals (clause 9)", () => {
-    // 1.004 reports as 1.00, so it passes; 1.01 reports as 1.01, so it fails.
+    // 1.504 reports as 1.50, so it passes; 1.51 reports as 1.51, so it fails.
     const rows: Record<number, Rgb> = {};
-    for (let y = 12; y <= 29; y++) rows[y] = WHITE;
+    for (let y = 13; y <= 29; y++) rows[y] = WHITE;
     const image = shot(4, 41, rowsOf(rows));
-    expect(read(image, { ...control, top: -0.004 })).toMatchObject({ offset: 1, centred: true });
-    expect(read(image, { ...control, top: -0.01 })).toMatchObject({ offset: 1.01, centred: false });
+    expect(read(image, { ...control, top: -0.004 })).toMatchObject({ offset: 1.5, centred: true });
+    expect(read(image, { ...control, top: -0.01 })).toMatchObject({ offset: 1.51, centred: false });
+  });
+});
+
+/** ink-centre-1, the body: the label with its Thai marks above and below the consonant taken out. */
+describe("bodyOf", () => {
+  const th = (code: number) => String.fromCharCode(code);
+
+  it("prints the body of fixtures.thai and fixtures.latin as worked example 4 does", () => {
+    expect(`${bodyOf("บันทึกการเปลี่ยนแปลง")}|${bodyOf("Save changes")}`).toBe(
+      "บนทกการเปลยนแปลง|Save changes",
+    );
+  });
+
+  it("drops U+0E31 (mai han-akat) and keeps its neighbours U+0E30 and U+0E32", () => {
+    expect(bodyOf(`ก${th(0x0e31)}`)).toBe("ก");
+    expect(bodyOf(`ก${th(0x0e30)}${th(0x0e32)}`)).toBe(`ก${th(0x0e30)}${th(0x0e32)}`);
+  });
+
+  it("keeps U+0E33 (sara am), which lies between the dropped marks", () => {
+    expect(bodyOf(`ก${th(0x0e33)}`)).toBe(`ก${th(0x0e33)}`);
+  });
+
+  it("drops U+0E34 to U+0E3A, both ends included, and keeps U+0E3B", () => {
+    for (let code = 0x0e34; code <= 0x0e3a; code++) expect(bodyOf(`ก${th(code)}`)).toBe("ก");
+    expect(bodyOf(`ก${th(0x0e3b)}`)).toBe(`ก${th(0x0e3b)}`);
+  });
+
+  it("keeps U+0E46 (mai yamok), which lies below the dropped range", () => {
+    expect(bodyOf(`ก${th(0x0e46)}`)).toBe(`ก${th(0x0e46)}`);
+  });
+
+  it("drops U+0E47 to U+0E4E, both ends included, and keeps U+0E4F", () => {
+    for (let code = 0x0e47; code <= 0x0e4e; code++) expect(bodyOf(`ก${th(code)}`)).toBe("ก");
+    expect(bodyOf(`ก${th(0x0e4f)}`)).toBe(`ก${th(0x0e4f)}`);
+  });
+
+  it("drops every mark of a string, not only the first", () => {
+    expect(bodyOf(`ก${th(0x0e34)}ก${th(0x0e34)}`)).toBe("กก");
+  });
+
+  it("leaves a Latin label as it is", () => {
+    expect(bodyOf("Sign up")).toBe("Sign up");
   });
 });
 
 describe("offCentreReport", () => {
-  const reading = (name: string, offset: number, centred: boolean) => ({
-    name,
+  const at = (offset: number): InkCentre => ({
     inkTop: 11,
     inkBottom: 26,
     offset,
-    centred,
+    centred: Math.abs(offset) <= 1.5,
+  });
+  const reading = (name: string, body: number, ink: number): InkReading => ({
+    name,
+    body: at(body),
+    ink: at(ink),
   });
 
-  it("says nothing when every label is centred", () => {
-    expect(offCentreReport([reading("a", 0.5, true), reading("b", -1, true)])).toBe("");
+  it("says nothing when every body is centred, however far the whole ink sits", () => {
+    expect(offCentreReport([reading("a", 0.5, -3.5), reading("b", -1.5, -1.5)], "body")).toBe("");
   });
 
-  it("lists each failing box with its offset and leaves the centred ones out", () => {
-    const report = offCentreReport([
-      reading('<button.ds-button> "Thai", 32 px tall, in neutral light', -1.5, false),
-      reading('<button.ds-button> "Latin", 32 px tall, in neutral light', 0.5, true),
-      reading('<button.ds-button> "Thai", 48 px tall, in neutral dark', -2.25, false),
-    ]);
+  it("lists each box whose body is off with the body offset and the whole-ink offset", () => {
+    const report = offCentreReport(
+      [
+        reading('<button.ds-button> "Thai", 32 px tall, in neutral light', -2, -3.5),
+        reading('<button.ds-button> "Latin", 32 px tall, in neutral light', 0.5, 0.5),
+        reading('<button.ds-button> "Thai", 48 px tall, in neutral dark', -2.25, -4),
+      ],
+      "body",
+    );
     expect(report).toContain("2 of 3");
+    expect(report).toContain("1.5 px");
     expect(report).toContain(
-      '"Thai", 32 px tall, in neutral light: ink 11.00 to 26.00 px, offset -1.50 px',
+      '"Thai", 32 px tall, in neutral light: body offset -2.00 px, whole-ink offset -3.50 px',
     );
     expect(report).toContain(
-      '"Thai", 48 px tall, in neutral dark: ink 11.00 to 26.00 px, offset -2.25 px',
+      '"Thai", 48 px tall, in neutral dark: body offset -2.25 px, whole-ink offset -4.00 px',
     );
     expect(report).not.toContain("Latin");
+  });
+
+  it("judges the whole ink when asked to, and then leaves the body alone", () => {
+    const readings = [reading("a", 0.5, -3.5), reading("b", 3, 0.5)];
+    expect(offCentreReport(readings, "ink")).toContain("1 of 2");
+    expect(offCentreReport(readings, "ink")).toContain("a: ");
+    expect(offCentreReport(readings, "ink")).not.toContain("b: ");
   });
 });
 

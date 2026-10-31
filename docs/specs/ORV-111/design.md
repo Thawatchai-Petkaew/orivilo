@@ -1,6 +1,6 @@
 ---
 issue: ORV-111 (https://tpetkaew.atlassian.net/browse/ORV-111)
-spec: docs/specs/ORV-111/spec.md (v1.0)
+spec: docs/specs/ORV-111/spec.md (v1.1)
 tech: docs/specs/ORV-111/tech.md (Before, base 18763ee)
 task: ORV-111-design-1
 ---
