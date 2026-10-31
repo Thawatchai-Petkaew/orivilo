@@ -4,6 +4,8 @@ import {
   firstInkRow,
   hexToRgb,
   inkWidth,
+  linesFloor,
+  linesGap,
   lastShadowColor,
   outsideCorner,
   paintMatches,
@@ -209,5 +211,75 @@ describe("colorsMatch", () => {
 
   it("tells a halo in another ink from the right one", () => {
     expect(colorsMatch([20, 80, 200, 0.4], [250, 250, 250, 0.4])).toBe(false);
+  });
+});
+
+describe("linesFloor", () => {
+  it("takes one device pixel off the floor (lines-clear-1, worked example 2)", () => {
+    expect([1, 2, 4].map((d) => linesFloor(1.5, d))).toEqual([0.5, 1, 1.25]);
+  });
+
+  it("passes the readings design.md records and fails the one of today", () => {
+    expect(1 >= linesFloor(1.5, 1)).toBe(true);
+    expect(1.5 >= linesFloor(1.5, 4)).toBe(true);
+    expect(0 >= linesFloor(1.5, 1)).toBe(false);
+  });
+});
+
+describe("linesGap", () => {
+  const g: Rgb = [250, 250, 250];
+  const red: Rgb = [224, 0, 0];
+  const blu: Rgb = [0, 0, 224];
+
+  it("counts the ground rows between the lowest red and the highest blue", () => {
+    expect(linesGap([[red], [g], [g], [blu]], 1)).toBe(2);
+  });
+
+  it("divides device rows by the device pixel ratio", () => {
+    expect(linesGap([[red], [g], [g], [g], [g], [g], [g], [blu]], 4)).toBe(1.5);
+  });
+
+  it("reads 0 when the two inks touch and a negative value when they overlap", () => {
+    expect(linesGap([[red], [blu]], 1)).toBe(0);
+    expect(linesGap([[red], [blu], [red], [blu]], 1)).toBe(-2);
+  });
+
+  it("takes the smallest gap over all columns", () => {
+    expect(
+      linesGap(
+        [
+          [red, red],
+          [g, g],
+          [g, blu],
+          [blu, g],
+        ],
+        1,
+      ),
+    ).toBe(1);
+  });
+
+  it("does not count a faint antialiasing pixel as ink", () => {
+    expect(linesGap([[red], [[250, 220, 220]], [g], [blu]], 1)).toBe(2);
+    expect(linesGap([[red], [g], [[220, 220, 250]], [g], [blu]], 1)).toBe(3);
+  });
+
+  it("counts a pixel as red or blue only when its channel stands more than 40 above both others", () => {
+    expect(linesGap([[[81, 40, 40]], [g], [[40, 40, 81]]], 1)).toBe(1);
+    expect(linesGap([[[80, 40, 40]], [g], [[40, 40, 80]]], 1)).toBeNull();
+  });
+
+  it("skips a column with only one colour and gives null when none has both", () => {
+    expect(
+      linesGap(
+        [
+          [red, g],
+          [g, g],
+          [blu, blu],
+        ],
+        1,
+      ),
+    ).toBe(1);
+    expect(linesGap([[red], [g]], 1)).toBeNull();
+    expect(linesGap([], 1)).toBeNull();
   });
 });

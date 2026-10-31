@@ -652,3 +652,85 @@ export async function expectInkClearsAbove(el: Element, above: Element, px = 4) 
     hidden.style.visibility = previous;
   }
 }
+
+/** A pixel whose channel `main` (0 red, 2 blue) stands more than 40 above both others: the test paint of `expectLinesClear`. */
+const dominant = (px: Rgb, main: 0 | 2) => {
+  const others = main === 0 ? [px[1], px[2]] : [px[0], px[1]];
+  return others.every((o) => px[main] - o > 40);
+};
+
+/**
+ * The smallest gap, over every pixel column, from the lowest red pixel to the highest blue pixel,
+ * in CSS px (the device rows between them divided by the device pixel ratio). A negative value
+ * means the two inks overlap. A column with only one of the two colours is skipped; null when no
+ * column has both.
+ */
+export function linesGap(rows: readonly (readonly Rgb[])[], devicePixelRatio: number) {
+  const width = rows[0]?.length ?? 0;
+  let smallest: number | null = null;
+  for (let x = 0; x < width; x++) {
+    let lowestRed = -1;
+    let highestBlue = -1;
+    for (let y = 0; y < rows.length; y++) {
+      const px = rows[y]?.[x];
+      if (!px) continue;
+      if (dominant(px, 0)) lowestRed = y;
+      else if (dominant(px, 2) && highestBlue < 0) highestBlue = y;
+    }
+    if (lowestRed < 0 || highestBlue < 0) continue;
+    const gap = (highestBlue - lowestRed - 1) / devicePixelRatio;
+    if (smallest === null || gap < smallest) smallest = gap;
+  }
+  return smallest;
+}
+
+/** The floor of `lines-clear-1`: `px` less one device pixel, which antialiasing may take. */
+export const linesFloor = (px: number, devicePixelRatio: number) => px - 1 / devicePixelRatio;
+
+/**
+ * Asserts a wrapped title keeps at least `px` CSS px between the lowest ink of one line and the
+ * highest ink of the next (ORV-194 row 6, rule `lines-clear-1`), within one device pixel. A shallow
+ * clone of `el` (same classes, recipe and line height, same width) is put after it and filled with
+ * two forced lines of the tallest Thai stacks, the first in red and the second in blue (test paint,
+ * never shipped). One screenshot of the clone is read; the clone is taken out in `finally`. It runs
+ * where Vitest browser mode runs; a play guards the call with `inVitest`.
+ */
+export async function expectLinesClear(el: HTMLElement, px = 1.5) {
+  const clone = el.cloneNode(false) as HTMLElement;
+  clone.removeAttribute("id");
+  clone.style.width = `${el.getBoundingClientRect().width}px`;
+  const line = (text: string, color: string) => {
+    const span = document.createElement("span");
+    span.style.color = color;
+    span.textContent = text;
+    return span;
+  };
+  clone.append(
+    line("ฟูฟูฟูปู่ปู่ฟูฟู", "rgb(224, 0, 0)"),
+    document.createElement("br"),
+    line("ฟื้ฟื้ฟื้ปี๊ปี๊ฟื้ฟื้", "rgb(0, 0, 224)"),
+  );
+  el.after(clone);
+  try {
+    const { data, width, height } = await shoot(clone);
+    const scale = width / clone.getBoundingClientRect().width;
+    const rows: Rgb[][] = [];
+    for (let y = 0; y < height; y++) {
+      const row: Rgb[] = [];
+      for (let x = 0; x < width; x++) {
+        const at = (y * width + x) * 4;
+        row.push([data[at] ?? 0, data[at + 1] ?? 0, data[at + 2] ?? 0]);
+      }
+      rows.push(row);
+    }
+    const gap = linesGap(rows, scale);
+    expect(gap, `${label(el)} draws no red line above a blue line`).not.toBeNull();
+    const floor = linesFloor(px, scale);
+    expect(
+      gap ?? 0,
+      `${label(el)} lines are ${gap} px apart, expected at least ${floor} px (${px} px less one device pixel)`,
+    ).toBeGreaterThanOrEqual(floor);
+  } finally {
+    clone.remove();
+  }
+}

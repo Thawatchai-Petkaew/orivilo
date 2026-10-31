@@ -6,7 +6,12 @@ import { Button } from "../button/Button";
 import { Field } from "../field/Field";
 import { fixtures } from "../fixtures";
 import { Input } from "../input/Input";
-import { expectFocusBorderForm, expectTitleOverText } from "../../testing/visual-asserts";
+import {
+  expectFocusBorderForm,
+  expectLinesClear,
+  expectTitleOverText,
+  inVitest,
+} from "../../testing/visual-asserts";
 import { Matrix } from "../matrix";
 import {
   Dialog,
@@ -283,6 +288,14 @@ export const LongContentAt360: Story = {
       )}
     </Frame>
   ),
+  play: async ({ canvasElement }) => {
+    const panel = await within(canvasElement).findByRole("dialog");
+    await Promise.all(panel.getAnimations().map((a) => a.finished));
+    const title = panel.querySelector<HTMLElement>(".ds-dialog__title");
+    if (!title) throw new Error("the dialog has no title");
+    // ORV-194 row 6: the title's wrapped Thai lines keep 1.5 px of ground between them.
+    if (inVitest) await expectLinesClear(title);
+  },
 };
 
 /** The content is rendered in a portal and still carries the trigger's profile and mode (AC 3). */
