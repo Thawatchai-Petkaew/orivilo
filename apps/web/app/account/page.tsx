@@ -1,6 +1,6 @@
 import { Denied, withWorkspace } from "@orivilo/auth";
 import { eq, MissingEnvError, organization } from "@orivilo/db";
-import { Button, fill } from "@orivilo/design-system";
+import { Button, fill, Logo } from "@orivilo/design-system";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { getWebMessages } from "../../i18n/locale";
@@ -53,6 +53,7 @@ export default async function AccountPage() {
   const view = await load();
   return (
     <main className="mx-auto flex w-full max-w-md flex-col justify-start gap-6 px-4 pt-24 pb-12">
+      <Logo kind="stacked" height={80} />
       <h1 className="font-display text-display-md text-balance">{m.account.heading}</h1>
       {view.kind === "not-configured" ? (
         <p className="text-body-md text-text-secondary">{m.account.notConfigured}</p>
