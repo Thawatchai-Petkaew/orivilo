@@ -4581,6 +4581,26 @@ button.ds-tag__main {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* One-line labels clip at their padding box, and Sarabun's tallest stack (ปี๊, ฟื้) rises up to 3 px above a label line. Every ellipsis label pads its clip box 4 px out and cancels the space with a negative margin: no layout moves and no mark is cut (ORV-194 row 7). */
+.ds-control[data-trigger] > span:first-child,
+.ds-menu__option > span:first-child:not(.ds-menu__option-body),
+.ds-menu__option-label,
+.ds-menu__option-body > span:first-child,
+.ds-table__td[data-truncate] > .ds-table__cell,
+.ds-menu__item > span:first-child:not(.ds-menu__indicator),
+.ds-menu__item > .ds-menu__indicator + span,
+.ds-command__option > span:first-child,
+.ds-group__title,
+.ds-shelf__name,
+.ds-shelf__state,
+.ds-tag__label,
+.ds-taskbar__summary,
+.ds-taskbar__name,
+.ds-taskbar__progress .ds-progress__label,
+.ds-chat__option > span:first-child {
+  padding-block: var(--ds-space-inline-sm);
+  margin-block: calc(-1 * var(--ds-space-inline-sm));
+}
 .ds-chat__option[data-active] {
   background: var(--cmp-menu-option-bg-hover);
 }

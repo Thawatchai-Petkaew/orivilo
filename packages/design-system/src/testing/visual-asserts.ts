@@ -137,6 +137,23 @@ export const inVitest = Boolean(
 );
 
 /**
+ * The screenshot clips to one element, so this returns the nearest ancestor (or `el` itself) whose
+ * box holds the box of `el` and `reach` CSS px of margin on every side.
+ */
+function scopeHolding(el: Element, reach: number): Element {
+  const holds = (a: DOMRect, r: DOMRect) =>
+    a.left <= r.left - reach &&
+    a.top <= r.top - reach &&
+    a.right >= r.right + reach &&
+    a.bottom >= r.bottom + reach;
+  let scope: Element = el;
+  while (scope.parentElement && !holds(scope.getBoundingClientRect(), el.getBoundingClientRect())) {
+    scope = scope.parentElement;
+  }
+  return scope;
+}
+
+/**
  * Asserts the ink drawn at one edge of `el` (or at each of several, from one screenshot) is `px` CSS px wide, read from a screenshot (a pixel
  * line through the middle of the edge, 4 CSS px outside to 4 inside). Computed style does not
  * decide the result, so a border and an outline drawn side by side count as the two they are.
@@ -149,16 +166,7 @@ export async function expectEdgeInk(
   px: number,
   reach = 4,
 ) {
-  // The screenshot clips to one element, so shoot the nearest ancestor that holds the edge and its margin.
-  const holds = (a: DOMRect, r: DOMRect) =>
-    a.left <= r.left - reach &&
-    a.top <= r.top - reach &&
-    a.right >= r.right + reach &&
-    a.bottom >= r.bottom + reach;
-  let scope: Element = el;
-  while (scope.parentElement && !holds(scope.getBoundingClientRect(), el.getBoundingClientRect())) {
-    scope = scope.parentElement;
-  }
+  const scope = scopeHolding(el, reach);
   const { data, width } = await shoot(scope);
   const frame = scope.getBoundingClientRect();
   const rect = el.getBoundingClientRect();
@@ -326,8 +334,13 @@ export function expectTitleOverText(
   text: Element,
   { gap, header = false, titleBottom }: { gap: number; header?: boolean; titleBottom?: number },
 ) {
-  const bottom = titleBottom ?? title.getBoundingClientRect().bottom;
-  const actual = text.getBoundingClientRect().top - bottom;
+  // A one-line label pads its clip box and cancels it with a negative margin (ORV-194 row 7), so
+  // its border box reaches past its line: read the gap between the two lines, inside the padding.
+  const bottom =
+    titleBottom ??
+    title.getBoundingClientRect().bottom - parseFloat(getComputedStyle(title).paddingBottom);
+  const actual =
+    text.getBoundingClientRect().top + parseFloat(getComputedStyle(text).paddingTop) - bottom;
   expect(
     Math.abs(actual - gap),
     `${label(text)} starts ${actual} px under its title, not ${gap} px`,
@@ -730,6 +743,84 @@ export async function expectLinesClear(el: HTMLElement, px = 1.5) {
       gap ?? 0,
       `${label(el)} lines are ${gap} px apart, expected at least ${floor} px (${px} px less one device pixel)`,
     ).toBeGreaterThanOrEqual(floor);
+  } finally {
+    clone.remove();
+  }
+}
+
+/**
+ * How far, in CSS px, the highest ink that `visible` draws above row `aboveRow` and `shipped` does
+ * not, measured up from that row (ORV-194 row 7). Both shots cover the same region, so a row index
+ * in one is the same place in the other. A row differs when a pixel in it is more than
+ * `INK_DISTANCE` from the same pixel of the other shot. 0 means the shipped label cuts nothing
+ * above `aboveRow`. Anything the two shots share (a tag's border, a tile's edge) never counts.
+ */
+export function inkCutAbove(
+  shipped: readonly (readonly Rgb[])[],
+  visible: readonly (readonly Rgb[])[],
+  aboveRow: number,
+  devicePixelRatio: number,
+) {
+  for (let y = 0; y < Math.min(aboveRow, shipped.length, visible.length); y++) {
+    const a = shipped[y] ?? [];
+    const b = visible[y] ?? [];
+    if (b.some((px, x) => a[x] && distance(px, a[x]) > INK_DISTANCE)) {
+      return (aboveRow - y) / devicePixelRatio;
+    }
+  }
+  return 0;
+}
+
+/**
+ * Asserts a one-line label shows the whole stack of Thai marks (ORV-194 row 7): a shallow clone of
+ * `el` (same classes, same parent, so the same recipe applies) holding `sample` is put after it and
+ * shot twice over a region from 8 px above to 8 px below its border box, once as shipped and once
+ * with `overflow: visible` set inline. No row above the clone's line (its content box) may differ
+ * between the two shots, so the clip box cuts no mark. The clone is taken out in `finally`. It runs
+ * where Vitest browser mode runs; a play guards the call with `inVitest`. `expectNoGlyphClip`
+ * cannot do this: it cannot see marks above the font ascent.
+ */
+export async function expectLabelInkWhole(el: HTMLElement, sample = "ฟื้ปั้ปี๊ฟื้") {
+  const reach = 8;
+  const clone = el.cloneNode(false) as HTMLElement;
+  clone.removeAttribute("id");
+  clone.textContent = sample;
+  el.after(clone);
+  try {
+    const region = async () => {
+      const scope = scopeHolding(clone, reach);
+      const { data, width } = await shoot(scope);
+      const frame = scope.getBoundingClientRect();
+      const rect = clone.getBoundingClientRect();
+      const scale = width / frame.width;
+      const top = Math.round((rect.top - reach - frame.top) * scale);
+      const bottom = Math.round((rect.bottom + reach - frame.top) * scale);
+      const left = Math.round((rect.left - frame.left) * scale);
+      const right = Math.round((rect.right - frame.left) * scale);
+      const rows: Rgb[][] = [];
+      for (let y = top; y < bottom; y++) {
+        const row: Rgb[] = [];
+        for (let x = left; x < right; x++) {
+          const at = (y * width + x) * 4;
+          row.push([data[at] ?? 0, data[at + 1] ?? 0, data[at + 2] ?? 0]);
+        }
+        rows.push(row);
+      }
+      return { rows, scale };
+    };
+    const shipped = await region();
+    clone.style.overflow = "visible";
+    const visible = await region();
+    const line = Math.round(
+      (reach + parseFloat(getComputedStyle(clone).paddingTop)) * shipped.scale,
+    );
+    const ground = visible.rows[line]?.[0];
+    expect(
+      ground && firstInkRow(visible.rows.slice(line), ground),
+      `${label(el)} draws no ink for the sample ${sample}`,
+    ).not.toBeNull();
+    const cut = inkCutAbove(shipped.rows, visible.rows, line, shipped.scale);
+    expect(cut, `${label(el)} cuts ${cut} px of its Thai stack above the label line`).toBe(0);
   } finally {
     clone.remove();
   }

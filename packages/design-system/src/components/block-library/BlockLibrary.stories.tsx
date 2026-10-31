@@ -9,7 +9,7 @@ import { fixtureJobs } from "../fixtures";
 import { fillHeight, Matrix, Narrow as NarrowFrame } from "../matrix";
 import { TaskBar } from "../task-bar/TaskBar";
 import { BlockLibrary } from "./BlockLibrary";
-import { expectTitleOverText } from "../../testing/visual-asserts";
+import { expectLabelInkWhole, expectTitleOverText, inVitest } from "../../testing/visual-asserts";
 import { MIDWAY } from "./fixtures";
 
 /** The shell's side for stories: the graph in state, and `placeBlock` for each placed tile. */
@@ -255,6 +255,8 @@ export const Default: Story = {
     const state = summarized.querySelector(".ds-shelf__state");
     if (!name || !state) throw new Error("the tile has no name or state");
     expectTitleOverText(name, state, { gap: 4 });
+    // ORV-194 row 7: the one-line name shows the whole stack of ฟื้ ปั้ ปี๊.
+    if (inVitest) await expectLabelInkWhole(name as HTMLElement);
     // ORV-190: the shelf is centred on the board, on the controls' start edge, at its old height.
     expectCentred(boardOf(canvasElement));
     expectClear(boardOf(canvasElement));

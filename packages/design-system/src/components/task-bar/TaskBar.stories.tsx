@@ -8,6 +8,7 @@ import { fixtureJobs, fixtureManyJobs, fixtureTaskJobs, fixtureTaskJobsEn } from
 import { BOARD } from "../canvas-board/fixtures";
 import { Stateful } from "../canvas-board/story-shell";
 import { Matrix, Narrow as NarrowFrame } from "../matrix";
+import { expectLabelInkWhole, inVitest } from "../../testing/visual-asserts";
 import { TaskBar, type TaskJob } from "./TaskBar";
 
 const meta = {
@@ -118,6 +119,12 @@ export const Running: Story = {
     const unknown = canvas.getByRole("progressbar", { name: fixtureJobs.runningUnknown.name });
     await expect(unknown).not.toHaveAttribute("aria-valuenow");
     await expect(canvas.getByText("กำลังทำงาน")).toBeVisible();
+    // ORV-194 row 7: the one-line job title shows the whole stack of ฟื้ ปั้ ปี๊.
+    const title = canvasElement.querySelector<HTMLElement>(
+      ".ds-taskbar__progress .ds-progress__label",
+    );
+    if (!title) throw new Error("the running job has no progress label");
+    if (inVitest) await expectLabelInkWhole(title);
   },
 };
 

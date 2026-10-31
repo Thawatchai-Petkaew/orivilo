@@ -3,6 +3,7 @@ import {
   colorsMatch,
   firstInkRow,
   hexToRgb,
+  inkCutAbove,
   inkWidth,
   linesFloor,
   linesGap,
@@ -281,5 +282,44 @@ describe("linesGap", () => {
     ).toBe(1);
     expect(linesGap([[red], [g]], 1)).toBeNull();
     expect(linesGap([], 1)).toBeNull();
+  });
+});
+
+describe("inkCutAbove", () => {
+  const ground: Rgb = [250, 250, 250];
+  const ink: Rgb = [20, 20, 20];
+  const border: Rgb = [227, 227, 227];
+  const shot = (inkAt: number | null, rows = 10) =>
+    Array.from({ length: rows }, (_, y) => (y === inkAt ? [ground, ink] : [ground, ground]));
+
+  it("reads 0 when both shots draw the same rows above the line", () => {
+    expect(inkCutAbove(shot(3), shot(3), 6, 1)).toBe(0);
+  });
+
+  it("reads how high the visible shot draws above the line that the shipped one does not, in CSS px", () => {
+    expect(inkCutAbove(shot(null), shot(4), 6, 1)).toBe(2);
+    expect(inkCutAbove(shot(6), shot(2), 8, 4)).toBe(1.5);
+  });
+
+  it("takes the highest differing row when several differ", () => {
+    const visible = shot(4).map((row, y) => (y === 3 ? [ground, ink] : row));
+    expect(inkCutAbove(shot(null), visible, 6, 1)).toBe(3);
+  });
+
+  it("ignores ink on or below the line, which clipping never cuts", () => {
+    expect(inkCutAbove(shot(null), shot(6), 6, 1)).toBe(0);
+    expect(inkCutAbove(shot(null), shot(8), 6, 1)).toBe(0);
+  });
+
+  it("does not count a line both shots share, such as a tag's border above the label", () => {
+    const withBorder = (rows: Rgb[][]) => rows.map((row, y) => (y === 2 ? [border, border] : row));
+    expect(inkCutAbove(withBorder(shot(null)), withBorder(shot(5)), 6, 1)).toBe(1);
+    expect(inkCutAbove(withBorder(shot(null)), withBorder(shot(null)), 6, 1)).toBe(0);
+  });
+
+  it("does not count a faint antialiasing pixel as a difference", () => {
+    const faint: Rgb = [240, 240, 240];
+    const visible = shot(null).map((row, y) => (y === 4 ? [ground, faint] : row));
+    expect(inkCutAbove(shot(null), visible, 6, 1)).toBe(0);
   });
 });
