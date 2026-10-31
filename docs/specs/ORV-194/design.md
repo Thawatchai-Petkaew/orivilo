@@ -6,14 +6,17 @@ Scripts and raw numbers: `/tmp/orv-194-design-1/scripts/` (`shoot.cjs`, `sheet.c
 
 ## Rows
 
-| Row | Fix in one line                                                                                                                                                                | Token value change                                     | Public API change |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------ | ----------------- |
-| 5   | When a shelf is on the board, the status line sits 16 px (`space.inset.md`) above it, through anchor positioning on the shelf                                                  | No                                                     | No                |
-| 6   | `type.label.md` and `type.heading.sm` line heights go from 1.6 and 1.5 to 1.7 (`font.line-height.1-7`)                                                                         | **Yes**, two semantic values (route B below avoids it) | No                |
-| 7   | Every one-line ellipsis label extends its clip box 4 px (`space.inline.sm`) above and below with a padding and negative margin pair, so no Thai stack is cut                   | No                                                     | No                |
-| 8   | The Select listbox is never wider than the space Radix measures (`--radix-select-content-available-width`), and an option description wraps inside it                          | No                                                     | No                |
-| 9   | Selected text uses `selection.bg` and `selection.fg` in every boundary (`::selection`)                                                                                         | No                                                     | No                |
-| 10  | Every fit (first fit, zoom to fit, zoom to selection, jump to node) adds the height the bottom panels and the task bar cover to its bottom padding, so no node sits under them | No                                                     | No                |
+| Row | Fix in one line                                                                                                                                                                      | Token value change                                     | Public API change |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------ | ----------------- |
+| 5   | When a shelf is on the board, the status line sits 16 px (`space.inset.md`) above it, through anchor positioning on the shelf                                                        | No                                                     | No                |
+| 6   | `type.label.md` and `type.heading.sm` line heights go from 1.6 and 1.5 to 1.7 (`font.line-height.1-7`)                                                                               | **Yes**, two semantic values (route B below avoids it) | No                |
+| 7   | Every one-line ellipsis label extends its clip box 4 px (`space.inline.sm`) above and below with a padding and negative margin pair, so no Thai stack is cut                         | No                                                     | No                |
+| 8   | The Select listbox is never wider than the space Radix measures (`--radix-select-content-available-width`), and an option description wraps inside it                                | No                                                     | No                |
+| 9   | Selected text uses `selection.bg` and `selection.fg` in every boundary (`::selection`)                                                                                               | No                                                     | No                |
+| 10  | Every fit (first fit, zoom to fit, zoom to selection, jump to node) adds the height the bottom panels and the task bar cover to its bottom padding, so no node sits under them       | No                                                     | No                |
+| 6b  | Labels that never wrap in a height-token control (button md and lg, tab, badge md) take a new `type.control.md` (14 / 1.6 / 500); `type.label.md` stays 1.7 for every wrapping label | **Yes**, a new semantic token (contract change)        | No                |
+| 12  | The header locale switch takes back its ghost inset (`-(button.padding-x-sm + 1px)` inline margin): one row in Thai at 360, the 16 px start edge when it wraps                       | No                                                     | No                |
+| 13  | The header logo link takes 4 px padding and -4 px margin (`space.inline.sm`), so its focus line clears the logo ink by 4 px                                                          | No                                                     | No                |
 
 ## Row 5: the board status line covers no shelf tile
 
@@ -490,6 +493,184 @@ Contact sheet `/tmp/orv-194-design-1/row-10-contact.png`.
 - `application-block-library--default` at 1200 by 900 and the new `ShortBoard` at 1200 by 760, light and dark: no node, port or edge label under the shelf.
 - `application-canvas-board--default` at 1440: the graph above the controls.
 
+## Row 6b: single-line control labels stay on the ORV-111 centre under route A
+
+### What is asked
+
+Route A (row 6) set `type.label.md` to 14 / 1.7. On the merge head `e97179c`, the ORV-111 play `Base/Button` `LabelCentre` fails: the Thai body of "บันทึกการเปลี่ยนแปลง" reads -2.00 px at md (40) and lg (48) in neutral dark. The `ink-centre-1` bound is 1.5 px. The task is one fix that brings every single-line control back inside `ink-centre-1` and keeps every row 6 wrapped-label clearance. The fix may not relax a play or a floor.
+
+Setup: Storybook at `e97179c` on port 6194, Chromium (Playwright 1.56.1), device scale 1, reduced motion. Readings come from `/tmp/orv-194-design-2/scripts/ink.cjs`, a Playwright port of `measureInkCentre` and `inkCentreOf` (`visual-asserts.ts`): an element screenshot of the scope, the ground taken as the most frequent colour, `INK_DISTANCE` 48, and the body with U+0E31, U+0E34 to U+0E3A and U+0E47 to U+0E4E removed. The port gives the same numbers as the real play. It reads -2.00 for the two failing dark boxes, and at 1.6 it gives exactly the ORV-111 `tech.md` Before table (md and lg Thai body -0.50 light and -1.00 dark; English 1.00).
+
+### Why 1.7 moves the label (`r6b/sweep.txt`)
+
+- In a single-line control, the line height does not space lines apart. It sets only the height of the line box, which `align-items: center` centres in the control.
+- Chromium splits the leading (line height minus the 18 px content height that IBM Plex Sans 14 px rounds to) and floors the top half to a whole pixel. The glyphs then sit `frac((L - 18) / 2)` px above the true centre of the line box.
+- At 22.4 px (1.6) that is 0.2 px, and the baseline rounds down onto the same pixel row as at a whole-pixel split. At 23.8 px (1.7) it is 0.9 px, and the baseline rounds one whole device pixel up.
+- A sweep of the line height on the md button in dark mode shows this step. The Thai body reads -1.00 at 20, 20.6, 21, 22, 22.4, 22.8, 23, 24, 24.4, 25 and 26 px. It reads -2.00 at 21.6, 23.4, 23.8 and 25.2 px, where the floored part is 0.6 px or more.
+- So 1.7 is not wrong for text. It falls on an unlucky step for a box centred on a single line. Which step a value lands on depends on font metrics, so picking a different "lucky" line height for labels would be fragile.
+
+### Survey: every single-line control that renders `type.label.md` (`r6b/lh-probe.txt`, `r6b/survey.txt`)
+
+The survey covers every box that sets 14 / 1.7 / 500 at head and centres one line in a height token. The `single-line-control-1` members are button md and lg and tabs sm and md. Badge md is not a member (its height reads `size.icon.*`) but works the same way. Two application-tier header labels share the token. Each box shows "บันทึกการเปลี่ยนแปลง" and "Save changes" in its own story (the tabs and badge labels are set to them; the task bar and chat labels keep their own copy). The table gives body offsets, light and dark:
+
+| Box (story)                                                                | Height | `white-space`                     | Head (1.7) Thai / English                 | Base (1.6) Thai / English             | With the fix Thai / English           |
+| -------------------------------------------------------------------------- | ------ | --------------------------------- | ----------------------------------------- | ------------------------------------- | ------------------------------------- |
+| `.ds-button` md (`base-button--label-centre`)                              | 40     | nowrap                            | -1.50 / 0.00 light; **-2.00** / 0.00 dark | -0.50 / 1.00 light; -1.00 / 1.00 dark | -0.50 / 1.00 light; -1.00 / 1.00 dark |
+| `.ds-button` lg (same)                                                     | 48     | nowrap                            | -1.50 / 0.00 light; **-2.00** / 0.00 dark | -0.50 / 1.00; -1.00 / 1.00            | -0.50 / 1.00; -1.00 / 1.00            |
+| `.ds-tabs__trigger` md, not selected (`base-tabs--default`)                | 40     | nowrap                            | -1.50 / 0.00 (on the bound)               | -0.50 / 1.00                          | -0.50 / 1.00                          |
+| `.ds-tabs__trigger` sm, not selected (`base-tabs--small`)                  | 32     | nowrap                            | -1.50 / 0.00 (on the bound)               | -0.50 / 1.00                          | -0.50 / 1.00                          |
+| `.ds-badge` md (`base-badge--sizes`)                                       | 24     | nowrap                            | -1.50 / 0.00 (on the bound)               | -0.50 / 1.00                          | -0.50 / 1.00                          |
+| `.ds-taskbar__label` in its 56 px header (`application-task-bar--running`) | 56     | none (one word, `flex: none`)     | -0.39 / -0.89 light; 0.11 / -0.89 dark    | -0.17 / -0.67; 0.33 / -0.67           | unchanged (not in the fix)            |
+| `.ds-chat__title` in its 48 px header (`application-canvas-chat--idle`)    | 48     | wraps (`overflow-wrap: anywhere`) | 0.00 / -1.00                              | 1.00 / 0.00                           | unchanged (not in the fix)            |
+
+- Button sm, ToggleGroup and the canvas zoom read `type.label.sm` (13 / 1.5). Input, Select trigger, Input group sm, Tag md and menu options read `type.body.*`. Row 6 does not reach any of them.
+- Every value in the "With the fix" column equals the ORV-111 After table for that box. The fix gives back exactly the rendering ORV-111 measured and the owner approved (target C, ORV-111 comment 10412).
+- Heights are unchanged in every column: 40, 48, 32 and 24. The heights come from tokens, not from the line box.
+
+### Routes considered
+
+- **A. A control label type (chosen).** Labels that never wrap, in a control with a height token, take a new semantic `type.control.md` (14 / 1.6 / 500). `type.label.md` stays 14 / 1.7 for every label that can wrap. The line box of a single-line control does no spacing work, so it can use the line height that keeps the body centred. This is one fix for the class.
+- B. A "lucky" label line height such as 24 px (1.714). It depends on how Plex 14 px rounds its metrics and on Chromium's floor. A change of face, size or profile would move it again. Rejected.
+- C. A nudge per control (padding or a translate). `fix-once-1` of ORV-111 refuses this ("No control gets its own nudge"). Rejected.
+- D. Put `type.label.md` back to 1.6. That undoes row 6 route A (comment 10417) for field labels, toast titles, the prompt and the other wrapping labels. Rejected.
+- E. Widen the 1.5 px bound. That relaxes a guard, which the envelope forbids. Rejected.
+
+### Fix
+
+**Contract change: new semantic token `type.control.md`.** It is a typography token: `font.family.plex-sans`, `font.size.14`, `font.line-height.1-6`, `font.weight.500`, `font.letter-spacing.normal`. No profile overrides it, as none overrides `type.label.md` today. Four component tokens re-point to it.
+
+| #    | File, line (head `e97179c`)                                                                                                   | Before                                                                                                                                                     | After                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 6b.1 | `packages/design-system/src/tokens/source/semantic.json`, after line 1054 (the `}` that closes `type.label`, before `"code"`) | none                                                                                                                                                       | `"control": { "md": { "$type": "typography", "$value": { "fontFamily": "{font.family.plex-sans}", "fontSize": "{font.size.14}", "lineHeight": "{font.line-height.1-6}", "fontWeight": "{font.weight.500}", "letterSpacing": "{font.letter-spacing.normal}" }, "$description": "The label of a single-line control with a height token that never wraps (button md and lg, tab, badge md). Its line height only places the line box: 1.6 keeps the label body on the control centre (ORV-111 ink-centre-1, ORV-194 row 6b). A label that can wrap takes type.label.md." } },` |
+| 6b.2 | `packages/design-system/src/tokens/source/component.json` line 202 (`button.type.md`)                                         | `"{type.label.md}"`                                                                                                                                        | `"{type.control.md}"`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| 6b.3 | `component.json` line 206 (`button.type.lg`)                                                                                  | `"{type.label.md}"`                                                                                                                                        | `"{type.control.md}"`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| 6b.4 | `component.json` line 727 (`badge.type.md`)                                                                                   | `"{type.label.md}"`                                                                                                                                        | `"{type.control.md}"`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| 6b.5 | `component.json` line 1153 (`tabs.type`)                                                                                      | `"{type.label.md}"`                                                                                                                                        | `"{type.control.md}"`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| 6b.6 | `src/tokens/generated.css` (generated)                                                                                        | `--cmp-button-type-md-*`, `-lg-*`, `--cmp-badge-type-md-*`, `--cmp-tabs-type-*` read `--ds-type-label-md-*` (lines 873 to 882, 1053 to 1057, 1181 to 1185) | Run `pnpm --filter @orivilo/design-system tokens` and commit the output. The four groups read `--ds-type-control-md-*`, the new `--ds-type-control-md-*` block appears in each mode block, and `@theme` gains `--text-control-md`. Hand edits are not allowed.                                                                                                                                                                                                                                                                                                               |
+| 6b.7 | `src/profiles/profiles.test.ts` lines 177 to 187 (the weight-500 list) and lines 259 to 266 (the row 6 test)                  | `type.control.md` not listed                                                                                                                               | Add `"type.control.md"` to the weight-500 list. Add a test "under ${id}, a single-line control label is the label at 1.6 (ORV-194 row 6b)": `type.control.md` has the same `fontFamily`, `fontSize`, `fontWeight` and `letterSpacing` as `type.label.md` under every set, and `lineHeight` 1.6. The row 6 test stays as it is (`type.label.md` and `type.heading.sm` at 1.7 or more).                                                                                                                                                                                        |
+| 6b.8 | `DESIGN.md` §4: the type table "Body/UI" row (line 135), the rules after line 143, and a change log line                      | not stated                                                                                                                                                 | In the table, append "; 14/1.6 for a single-line control label (`type.control.md`)". Add a rule after line 143: "A label that never wraps, in a control with a height token (button md and lg, tab, badge md), takes `type.control.md` (14 / 1.6). Its line height places the line box and nothing else. At 1.7, Chromium's floored half-leading lifts the Thai body one pixel above the ORV-111 bound (ORV-194 row 6b). A label that can wrap keeps `type.label.md` (14 / 1.7)." Change log v1.58 with the impact list below.                                               |
+| 6b.9 | Plays                                                                                                                         | `Button.stories.tsx` `LabelCentre` red at `e97179c`                                                                                                        | No play changes. `LabelCentre` is green after 6b.1 to 6b.6. The builder runs `pnpm --filter @orivilo/design-system exec vitest run --project storybook src/components/button/Button.stories.tsx` and the four row 6 plays (`Toast` `At360`, `Dialog` `LongContentAt360`, `Sheet` `Open`, `MissingInputsPrompt` `ImagesLater`).                                                                                                                                                                                                                                               |
+
+Impact list (contract change): every Button at md and lg, every Tabs trigger and every md Badge render their label line box at 22.4 px instead of 23.8 px. Their heights stay 40, 48, 32 and 24 because they come from tokens. Their labels drop one device pixel back to the ORV-111 position. Nothing else reads the four component tokens (`recipes.css` lines 29, 56, 761 and 884 only). `type.label.md` and every other consumer of it (field label, toast title, prompt question, slider and progress values, node header, group label, shelf name, task bar label and name, chat title) keep 14 / 1.7. No contrast pair changes. The lane stays L: a new semantic token is a contract change.
+
+### Row 6 clearances with the fix (`r6b/gap.txt`, `scripts/gap.cjs`, device scale 4)
+
+| Wrapped label (story, 360)                                                 | Head | With the fix |
+| -------------------------------------------------------------------------- | ---- | ------------ |
+| `.ds-toast__title` (`base-toast--at-360`)                                  | 1.51 | 1.51         |
+| `.ds-prompt__question` (`application-missing-inputs-prompt--images-later`) | 1.5  | 1.5          |
+| `.ds-dialog__title` (`application-dialog--long-content-at-360`)            | 2    | 2            |
+| `.ds-side-sheet__title` (`application-sheet--open`)                        | 2    | 2            |
+| `.ds-field__label` (`base-field--long-label-at-360`)                       | 1.5  | 1.5          |
+| `.ds-chat__title` (`application-canvas-chat--idle`)                        | 1.51 | 1.51         |
+
+The four changed boxes have `white-space: nowrap` (`recipes.css` lines 32, 764 and 887), and no rule sets them back to `normal`. A second line can never form in them, so a 1.6 line box there cannot crowd Thai marks.
+
+### Rendered
+
+Contact sheet `/tmp/orv-194-design-2/row-6b-contact.png`, device scale 4, before (head) and after (`r6b/fix.css` injected; the primitive only stands in for the token build):
+
+- `button-label-centre-{light,dark}-{before,after}.png`: in dark, the md and lg Thai labels sit one CSS pixel higher before than after. After, the Thai consonants share one line with "Save changes" in every size, as in ORV-111. Light shows the same, less clearly.
+- `tabs-default-{light,dark}-{before,after}.png` and `badge-sizes-{light,dark}-{before,after}.png`: the same one-pixel drop back to the base position. The tab underline, the focus ring of the focused tab and the badge pills do not change.
+
+All under `/tmp/orv-194-design-2/r6b/`.
+
+### Screens to check in visual QA (row 6b)
+
+- `base-button--label-centre` (both cells), `base-button--sizes`, `base-tabs--default`, `base-tabs--small` and `base-badge--sizes`, Thai and English, light and dark. Labels sit as in the ORV-111 After table, and heights are unchanged.
+- The row 6 screens stay as listed there. No wrapped label moves.
+
+## Row 12: the app header at 360 keeps one start edge
+
+### What is asked
+
+ORV-195 sign-off finding S1 (ORV-194 comment 10414): at 360 px in Thai, the 106 px lockup pushes the locale switch to a second header row. Its first label starts at x 29, while the lockup starts at x 16, so the header has two start edges. The fix either keeps the switch on the lockup's row or wraps it onto the 16 px start edge.
+
+### Today (`r12/head.txt`, production build of `e97179c` on port 3194)
+
+- Content width at 360 is 328 px. The nav is 206.48 px in Thai and 232.08 px in English, the header gap is 12 px, and the form is 120.84 px. The row needs 339.32 px in Thai and 364.92 px in English, so both wrap and the header is 84 px tall.
+- The form is two ghost sm buttons. Each pads its label by `button.padding-x-sm` (12 px, `space.inline.lg`) plus its 1 px transparent border. On the wrapped row the first label therefore starts at 16 + 13 = 29.
+- At 1280 the header is one row, 48 px tall. The last button ends on the content end edge (960), so its label "English" ends 13 px inside it, while the lockup starts on the content start edge (320).
+- At 320 the header wraps the same way as at 360.
+
+### Fix
+
+The switch takes back its own inset: the form gets a negative inline margin equal to the ghost button's inline padding plus its border. Its labels then align with the content edges, the way an inline ghost control is usually set flush. One rule covers both outcomes the finding offers:
+
+- Thai at 360: the form is 26 px narrower in layout (94.84 px), so the row needs 313.32 px of 328. It fits on one row with 14.7 px to spare, and the header is 48 px. "English" ends at x 344, the content end edge.
+- English at 360 and every locale at 320: the form wraps, and the label "ไทย" starts at x 16, the lockup's start edge. The header stays 84 px.
+- At 1280: the row is unchanged, and "English" now ends on the content end edge (960) instead of 13 px inside it.
+
+| #    | File, line (head `e97179c`)                                                                                       | Before                                | After                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ---- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 12.1 | `apps/web/i18n/LocaleSwitch.tsx` line 10                                                                          | `className="flex items-center gap-1"` | `className="-mx-[calc(var(--cmp-button-padding-x-sm)+1px)] flex items-center gap-1"`. That is `margin-inline: calc(-1 * (var(--cmp-button-padding-x-sm) + 1px))`, -13 px today, where 1px is the Button border (`recipes.css` line 22). It reads the Button token, so a padding change keeps the edge. `LocaleSwitch` is used only in the header (`app/layout.tsx` line 42).                                                                                                                                                                                                                              |
+| 12.2 | `apps/web/e2e/header.spec.ts` (new), run by the existing Playwright config (`playwright.config.ts`, `next start`) | none                                  | For widths 360 and 1280, locales th and en (cookie `orv-locale`) and colour schemes light and dark: `scrollWidth === innerWidth`. Take the left of a Range over the first locale button's text. If the form's top is below the nav's bottom (wrapped), that left equals the logo `svg` left within 0.5 px. If not, the right of a Range over the last button's text equals the header content right edge (header right minus its padding-right) within 0.5 px. At 360 in Thai, the form's top equals the nav row (one row, header height 48). Red at `e97179c` (text left 29 against 16; Thai header 84). |
+
+### Measured after (`r12/after.txt`, `r12/after.css` injected)
+
+| Width, locale | Header height | Logo left | First switch label left | Switch row             | Button box left, right |
+| ------------- | ------------- | --------- | ----------------------- | ---------------------- | ---------------------- |
+| 360 th        | 84 to **48**  | 16        | 29 to 249.16            | wrapped to **one row** | 236.16, 357            |
+| 360 en        | 84            | 16        | 29 to **16**            | wrapped                | 3, 123.84              |
+| 320 th, en    | 84            | 16        | 29 to **16**            | wrapped                | 3, 123.84              |
+| 1280 th, en   | 48            | 320       | 852.16 to 865.16        | one row                | 852.16, 973            |
+
+- `scrollWidth` equals the viewport at every width.
+- The focus state: a focused ghost button turns its border to `focus.ring` and draws a 3 px halo (`--_focus-shadow-border`). On the wrapped row the button's left edge is at 3 px, so the halo ends at x 0. In Thai at 360 "English" ends at 357 and its halo ends at 360. The halo is whole in both cases; the shots show it.
+- Hover: the ghost wash covers the button box, 3 px from the screen edge on the wrapped row. That is the expected flush ghost look, and it covers no content.
+- When this card ships with row 13, the logo link's padding and negative margin cancel, so the nav width and every number above stay the same.
+
+### Rendered
+
+Contact sheet `/tmp/orv-194-design-2/row-12-contact.png`, device scale 2. It shows before (`*-head.png`) and after (`*-after.png`) at 360 and 1280, Thai and English, light and dark, the after shots at 320, and the focus of the switch at 360 (`focus/header-360-*-after-focus.png`):
+
+- 360 Thai, after: one row. The lockup, สตูดิโอ, บัญชี, ไทย and English sit on one line, "English" ends on the right edge, and the Thai marks are whole.
+- 360 English, after: "ไทย" starts under the ring of the logo, on one start edge.
+- 1280: the same row, with the switch now flush with the content end.
+- Focus: the pill outline and halo are whole at x 0 (English, ไทย focused) and at x 360 (Thai, English focused), in light and dark.
+
+### Screens to check in visual QA (row 12)
+
+- `/` at 360 and 1280, Thai and English, light and dark. Also at 320, the narrowest phone width.
+- The switch focus at 360 in both locales.
+
+## Row 13: the logo link's focus line clears the logo ink
+
+### What is asked
+
+ORV-195 sign-off finding S2: the global focus line (1 px `focus.ring`, offset 0, `orivilo.css` lines 74 to 78) draws on the logo link, whose box is the `svg` box. The lockup's ink reaches that box at both ends, so the line touches the ring and the last "o". The fix goes on the link only. The `Logo` component keeps no padding (`logo-space-1`).
+
+### Today (`r13/before.txt`, device scale 4)
+
+From the focus line to the ink: start 1 px, end 0.08 px, top 0.75 px, bottom 0.5 px. The same in 360 and 1280, Thai and English, light and dark. The link box is 106.08 by 24 at (16, 16) at 360 and (320, 20) at 1280.
+
+### Fix
+
+The link takes 4 px of padding (`space.inline.sm`) and the same negative margin, so the line moves 4 px out and the layout does not move. The halo (4 px, `--_focus-shadow`) stays outside the line, as everywhere else, so the focus keeps its own shape of a line with a halo. The corners stay square, like every text link's focus in the shell.
+
+| #    | File, line (head `e97179c`)                      | Before                          | After                                                                                                                                                                                                                                                                                                                                                      |
+| ---- | ------------------------------------------------ | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 13.1 | `apps/web/app/layout.tsx` line 32                | `className="flex items-center"` | `className="-m-1 flex items-center p-1"` (4 px = `space.inline.sm`, the shell's 4 px spacing step as in `px-4`, `gap-4`). The `Logo` component and its files do not change.                                                                                                                                                                                |
+| 13.2 | `apps/web/e2e/header.spec.ts` (the spec of 12.2) | none                            | At 360 and 1280, th and en: press Tab once. The active element is the home link (`aria-label` `m.app.home`). Its box holds the `svg` box with at least 4 px on every side (`link.left <= svg.left - 4`, and the same for the other sides). The `svg` box is at (16, 16) at 360 and at (320, 20) at 1280, as before. Red at `e97179c` (0 px on every side). |
+
+### Measured after (`r13/after.txt`)
+
+- From the focus line to the ink: start 5 px, end 4.08 px, top 4.75 px, bottom 4.5 px, at every width, locale and mode.
+- The link box is 114.08 by 32 at (12, 12) at 360 and (316, 16) at 1280.
+- The `svg` box is unchanged.
+- The halo ends 8 px from the svg box. At 360 that is 8 px below the top of the page, and the nearest link (สตูดิโอ, Studio) is 16 px away, so nothing clips and nothing is covered.
+
+### Rendered
+
+Contact sheet `/tmp/orv-194-design-2/row-13-contact.png`, device scale 4, before and after at 360 and 1280, Thai and English, light and dark (`/tmp/orv-194-design-2/r13/focus-logo-*.png`):
+
+- Before: the violet line runs against the ring on the left and the last "o" on the right.
+- After: an even band of ground shows between the line and the lockup on all four sides, and the halo sits outside the line. Dark mode shows the lilac line and the light lockup with the same clear band.
+
+### Screens to check in visual QA (row 13)
+
+- `/` focused on the logo link (Tab once) at 360 and 1280, Thai and English, light and dark.
+
 ## Contact sheets
 
 - Row 5: `/tmp/orv-194-design-1/row-5-contact.png`
@@ -498,12 +679,16 @@ Contact sheet `/tmp/orv-194-design-1/row-10-contact.png`.
 - Row 8: `/tmp/orv-194-design-1/row-8-contact.png`
 - Row 9: `/tmp/orv-194-design-1/row-9-contact.png`
 - Row 10: `/tmp/orv-194-design-1/row-10-contact.png`
+- Row 6b: `/tmp/orv-194-design-2/row-6b-contact.png` (scripts `/tmp/orv-194-design-2/scripts/`, `ink.cjs`, `gap.cjs`, `shoot.cjs`, `sheet.cjs`)
+- Row 12: `/tmp/orv-194-design-2/row-12-contact.png` (`header.mjs`)
+- Row 13: `/tmp/orv-194-design-2/row-13-contact.png` (`logo-focus.mjs`)
 
 ## Corrections for the spec
 
 - Row 6: the 1.5 px floor reads as `1.5 - 1 / devicePixelRatio` in the helper, to absorb one device pixel of antialiasing (the same gap reads 1 at scale 1 and 1.5 at scale 4).
 - Row 5: the `Narrow` play's status clause now measures 16 px above the shelf, not the controls, when a shelf is present.
 - Row 10: the play needs a 760 px story (`ShortBoard`), since `ShelfBoard` fills the viewport.
+- Rows 6b, 12 and 13 (design 2): the spec has no rows 12 and 13 yet, and row 6 does not yet say that single-line control labels take `type.control.md`. The spec gains row 12 (ORV-195 S1) and row 13 (ORV-195 S2) with the Checks of 12.2 and 13.2, and row 6's Data effect names 6b.1 to 6b.8, with a version bump.
 
 ## Seen, not in these rows
 
@@ -513,4 +698,4 @@ Contact sheet `/tmp/orv-194-design-1/row-10-contact.png`.
 
 ## Lane
 
-Lane: L, row 6. Route A changes the line height values of `type.label.md` and `type.heading.sm`, which are semantic tokens. Rows 5, 7, 8, 9 and 10 change no token value and no public API. If the owner picks route B for row 6, every row is S.
+Lane: L, row 6. Route A changes the line height values of `type.label.md` and `type.heading.sm`, which are semantic tokens; row 6b adds the semantic token `type.control.md` (a contract change, with its impact list in row 6b). Rows 12 and 13 change `apps/web` classes only, with no token and no public API. Rows 5, 7, 8, 9 and 10 change no token value and no public API. If the owner picks route B for row 6, every row is S.
