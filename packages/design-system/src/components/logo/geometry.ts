@@ -76,13 +76,14 @@ export const GEOMETRY: Geometry = {
   mark: {
     viewBox: [0, 0, 150, 150],
     ring: {
-      d: "M 70.42 25.2 A 52.5 52.5 0 1 0 125.71 63.91",
+      d: "M 57.04 28.17 A 52.5 52.5 0 1 0 127.5 77.5",
       centre: [75, 77.5],
       radius: 52.5,
-      start: [70.42, 25.2],
-      end: [125.71, 63.91],
+      start: [57.04, 28.17],
+      end: [127.5, 77.5],
       cap: "round",
     },
+    /** The master dot; the small forms draw it at `DOT_RADIUS[form]`. */
     dot: { cx: 105.11, cy: 34.49, r: 15 },
   },
   wordmark: {
@@ -144,6 +145,13 @@ export const RING_STROKE: Readonly<Record<LogoForm, number>> = {
   "16": 34,
   "24": 32,
   master: 30,
+};
+
+/** The dot's radius per form: half the ring's stroke, so the dot is as wide as the ring. */
+export const DOT_RADIUS: Readonly<Record<LogoForm, number>> = {
+  "16": 17,
+  "24": 16,
+  master: 15,
 };
 
 export interface LogoSize {

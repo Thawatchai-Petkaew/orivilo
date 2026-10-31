@@ -1,6 +1,6 @@
-# ORIVILO brand spec v1.2 (working hypothesis)
+# ORIVILO brand spec v1.3 (working hypothesis)
 
-Status: hypothesis approved by GOLF on 2026-10-21 for continued work ("ดำเนินการต่อเลย เอาตามที่คุณแนะนำ"). Not a cleared brand: see §8 for the tests still open. Supersedes the palette and type sections of `orivilo-brand-identity-v1.md`; the strategy and voice sections there still apply. The visual case study lives on the "ORIVILO brand identity case study" canvas; the method is in `brand-ci-method.md`. v1.2 (2026-10-31): the signature is violet (owner, ORV-118 comment 10336); see §10.
+Status: hypothesis approved by GOLF on 2026-10-21 for continued work ("ดำเนินการต่อเลย เอาตามที่คุณแนะนำ"). Not a cleared brand: see §8 for the tests still open. Supersedes the palette and type sections of `orivilo-brand-identity-v1.md`; the strategy and voice sections there still apply. The visual case study lives on the "ORIVILO brand identity case study" canvas; the method is in `brand-ci-method.md`. v1.2 (2026-10-31): the signature is violet (owner, ORV-118 comment 10336); see §10. v1.3 (2026-10-31): the mark's opening is 110° and the dot is as wide as the stroke (owner, ORV-118 comments 10375 and 10376); see §11.
 
 ## 1. Idea
 
@@ -10,17 +10,17 @@ A loop that does not close, and the dot it stays connected to. A product keeps b
 
 File: `assets/orivilo-mark.svg` (150 × 150 grid, ring outer diameter 135, 7.5 units of margin so the ring never touches the box edge).
 
-| Element | Value                                                                          |
-| ------- | ------------------------------------------------------------------------------ |
-| Ring    | centre (75, 77.5), radius 52.5, stroke 30, round caps; bottom at y = 145       |
-| Opening | 80°, centred 55° above the horizontal on the right                             |
-| Dot     | radius 15 (half the stroke) on the ring centreline at the opening              |
-| Colours | ring ink #16151D or paper #F2F1EC; dot violet #7A22C7 on paper, #B07FEE on ink |
-| Small   | ≤ 24 px: stroke 32 to 34; the dot keeps its colour                             |
-| Clear   | X = 30 units (the stroke) on every side                                        |
-| Minimum | 16 px favicon · 24 px UI · 48 px app icon · 8 mm print                         |
+| Element | Value                                                                                                                     |
+| ------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Ring    | centre (75, 77.5), radius 52.5, stroke 30, round caps; bottom at y = 145                                                  |
+| Opening | 110°, centred 55° above the horizontal on the right; the lower end is on the horizontal through the centre, (127.5, 77.5) |
+| Dot     | diameter equals the stroke (radius 15 in the master) on the ring centreline at the opening                                |
+| Colours | ring ink #16151D or paper #F2F1EC; dot violet #7A22C7 on paper, #B07FEE on ink                                            |
+| Small   | ≤ 24 px: stroke 32 to 34 and the dot grows with it (diameter 32 to 34, radius 16 to 17); the dot keeps its colour         |
+| Clear   | X = 30 units (the stroke) on every side                                                                                   |
+| Minimum | 16 px favicon · 24 px UI · 48 px app icon · 8 mm print                                                                    |
 
-Why 55°, not 20°: with the opening on the right the ring read as a "c". Moving it to the upper right and filling it with the dot keeps it an "o". Why the margin: the first export had the outer edge exactly on the box, and the renderer clipped the right side into a straight line.
+Why 110°: see §11. Why 55°, not 20°: with the opening on the right the ring read as a "c". Moving it to the upper right and filling it with the dot keeps it an "o". Why the margin: the first export had the outer edge exactly on the box, and the renderer clipped the right side into a straight line.
 
 ## 3. Wordmark
 
@@ -102,3 +102,11 @@ Lime becomes the signature. Violet moves to 272° and deepens (#7A22C7). Canvas 
 The signature is violet (owner, ORV-118 comment 10336). The mark's dot is #7A22C7 on paper and #B07FEE on ink, the same values as the primary action (`action.primary`) in the ORIVILO profile; `brand.signature` stays a separate token, so brand presence and action never share a reader. Lime #D9F66F is spent only on the intent action (`action.intent`), one button per screen. This replaces "Lime becomes the signature" in §9.
 
 The §8 favicon result of 2026-10-21 (violet reads on a light tab, lime does not) now holds at every size: the dot is violet in every form, so the small form (§2) no longer switches its colour and changes only the stroke. On ink the dot takes #B07FEE (ink on it 6.1).
+
+## 11. Changes in v1.3
+
+The owner kept the mark and asked for two changes (ORV-118 comment 10375) and picked the gap of G2 (comment 10376). At 16 px and 20 px the dot was hard to see: it was 3.2 px and 4.0 px across and 0.42 px and 0.66 px from the upper cap, so at device scale 1 it shared a pixel with the cap and in one colour it fused into the ring.
+
+The dot's diameter now equals the ring stroke in each form: 34 in form 16 (radius 17), 32 in form 24 (radius 16), 30 in the master (radius 15, as drawn in the brand files). The opening widens from 80° to 110°, one arc in every form: `M 57.04 28.17 A 52.5 52.5 0 1 0 127.5 77.5`. The dot's centre (105.11, 34.49), the ring's centre and radius, the round caps, the stroke ladder 34 / 32 / 30 and every colour are unchanged. The gap between the dot and a cap is 1.54 px at 16 px and 2.2 px at 20 px, and at 16 px and scale 1 the pixel toward the upper cap is the canvas.
+
+A wider opening is a little more like a spinner's arc; the lineup with three outsiders (§8) stays the test for that read. The two brand files `orivilo-mark.svg` and `orivilo-lockup.svg` draw the master and carry the new arc with the dot at radius 15.

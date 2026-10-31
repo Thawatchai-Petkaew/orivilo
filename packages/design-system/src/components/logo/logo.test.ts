@@ -15,6 +15,7 @@ import { th } from "../../i18n/messages/th";
 import { Logo, type LogoProps } from "./Logo";
 import {
   DEFAULT_HEIGHT,
+  DOT_RADIUS,
   GEOMETRY,
   type LogoKind,
   MINIMUM,
@@ -179,6 +180,18 @@ describe("W1: both arc ends lie on the ring", () => {
     expect(`${distance(start)} ${distance(end)}`).toBe("52.50 52.50");
     expect(radius).toBe(52.5);
   });
+
+  it("opens 110 degrees: the arc is the G2 arc and its lower end is on the horizontal through the centre", () => {
+    const { d, centre, start, end } = GEOMETRY.mark.ring;
+    expect(d).toBe("M 57.04 28.17 A 52.5 52.5 0 1 0 127.5 77.5");
+    expect(start).toEqual([57.04, 28.17]);
+    expect(end).toEqual([127.5, 77.5]);
+    expect(end[1]).toBe(centre[1]);
+    // The angle between the two ends, seen from the centre, is the opening.
+    const angle = ([x, y]: readonly [number, number]) =>
+      (Math.atan2(centre[1] - y, x - centre[0]) * 180) / Math.PI;
+    expect(Math.round(angle(start) - angle(end))).toBe(110);
+  });
 });
 
 describe("W2: the dot has the same gap to each cap", () => {
@@ -186,18 +199,25 @@ describe("W2: the dot has the same gap to each cap", () => {
   const toDot = (p: readonly [number, number]) => Math.hypot(p[0] - dot.cx, p[1] - dot.cy);
 
   it("is the same distance from the dot to both ends, within the 2-decimal rounding of the ends", () => {
-    expect(Math.abs(toDot(ring.start) - toDot(ring.end))).toBeLessThan(0.005);
+    expect(Math.abs(toDot(ring.start) - toDot(ring.end))).toBeLessThan(0.01);
   });
 
-  it("is 5.91, 4.91 and 3.91 units at the three strokes, and 1.26, 0.79 and 0.42 px at 32, 24 and 16", () => {
+  it("is 18.48, 16.48 and 14.48 units at the three strokes, and 3.94, 2.64 and 1.54 px at 32, 24 and 16", () => {
     const nearest = Math.min(toDot(ring.start), toDot(ring.end));
     const lines = [32, 24, 16].map((height) => {
       const { form } = logoSize("mark", height);
       const stroke = RING_STROKE[form];
-      const gap = nearest - (stroke / 2 + dot.r);
+      const gap = nearest - (stroke / 2 + DOT_RADIUS[form]);
       return `${stroke} ${gap.toFixed(2)} ${((gap * height) / GEOMETRY.mark.viewBox[3]).toFixed(2)}`;
     });
-    expect(lines).toEqual(["30 5.91 1.26", "32 4.91 0.79", "34 3.91 0.42"]);
+    expect(lines).toEqual(["30 18.48 3.94", "32 16.48 2.64", "34 14.48 1.54"]);
+  });
+
+  it("makes the dot as wide as the ring stroke in each form (34, 32, 30)", () => {
+    for (const form of ["16", "24", "master"] as const)
+      expect(DOT_RADIUS[form] * 2, `form ${form}`).toBe(RING_STROKE[form]);
+    expect(DOT_RADIUS).toEqual({ "16": 17, "24": 16, master: 15 });
+    expect(GEOMETRY.mark.dot.r).toBe(DOT_RADIUS.master);
   });
 });
 
@@ -350,8 +370,18 @@ const rootAttrs = (markup: string): Attrs => attrsOf(/<svg\s[^>]*>/.exec(markup)
 describe("renders the markup of logo-api-1", () => {
   it("is React's static output for a mark at 16, with the attribute order fixed", () => {
     expect(render({ kind: "mark", height: 16 })).toBe(
-      '<svg xmlns="http://www.w3.org/2000/svg" class="ds-logo" data-kind="mark" data-form="16" data-tone="full" viewBox="0 0 150 150" width="16" height="16" role="img" aria-label="ORIVILO"><path class="ds-logo__ring" d="M 70.42 25.2 A 52.5 52.5 0 1 0 125.71 63.91" fill="none" stroke-width="34" stroke-linecap="round"></path><circle class="ds-logo__dot" cx="105.11" cy="34.49" r="15"></circle></svg>',
+      '<svg xmlns="http://www.w3.org/2000/svg" class="ds-logo" data-kind="mark" data-form="16" data-tone="full" viewBox="0 0 150 150" width="16" height="16" role="img" aria-label="ORIVILO"><path class="ds-logo__ring" d="M 57.04 28.17 A 52.5 52.5 0 1 0 127.5 77.5" fill="none" stroke-width="34" stroke-linecap="round"></path><circle class="ds-logo__dot" cx="105.11" cy="34.49" r="17"></circle></svg>',
     );
+  });
+
+  it("draws the dot as wide as the ring stroke: r 17, 16 and 15 at the three forms", () => {
+    const dotAndRing = (height: number) => {
+      const markup = render({ kind: "mark", height });
+      const dot = attrsOf(/<circle\s[^>]*>/.exec(markup)?.[0] ?? "");
+      const ring = attrsOf(/<path\s[^>]*>/.exec(markup)?.[0] ?? "");
+      return `${dot["r"]} ${ring["stroke-width"]}`;
+    };
+    expect([16, 24, 64].map(dotAndRing)).toEqual(["17 34", "16 32", "15 30"]);
   });
 
   it("defaults to a horizontal lockup, 24 high, in full tone", () => {

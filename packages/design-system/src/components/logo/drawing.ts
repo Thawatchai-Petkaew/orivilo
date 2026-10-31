@@ -8,6 +8,7 @@
 import { createElement, type ReactElement } from "react";
 import { cx } from "../cx.ts";
 import {
+  DOT_RADIUS,
   GEOMETRY,
   RING_STROKE,
   type Geometry,
@@ -46,7 +47,7 @@ function markParts(geometry: Geometry, form: LogoForm): ReactElement[] {
       className: "ds-logo__dot",
       cx: dot.cx,
       cy: dot.cy,
-      r: dot.r,
+      r: DOT_RADIUS[form],
     }),
   ];
 }

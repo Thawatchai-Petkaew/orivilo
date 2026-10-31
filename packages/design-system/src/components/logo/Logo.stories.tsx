@@ -150,6 +150,39 @@ async function expectPaint(svgs: readonly SVGSVGElement[], c: Colours) {
   await expectPaintsAt(svgs.map((svg) => ({ svg, probes: probesOf(svg, c) })));
 }
 
+/** The RGB of pixel (x, y) of the 16 x 16 raster. */
+type Raster = (x: number, y: number) => readonly [number, number, number];
+
+/**
+ * Draws the 16 px mark onto a 16 x 16 canvas at scale 1 over `ground` and returns its pixels. The
+ * ring and dot paints are written inline on a copy of the markup, so the raster does not depend on
+ * the page's profile or mode, and no screenshot is taken. Scale 1 is how a tab bar draws a favicon.
+ */
+async function rasterOf(svg: SVGSVGElement, paint: Colours, ground: string): Promise<Raster> {
+  const copy = svg.cloneNode(true) as SVGSVGElement;
+  copy.querySelector(".ds-logo__ring")?.setAttribute("stroke", paint.ink);
+  copy.querySelector(".ds-logo__dot")?.setAttribute("fill", paint.dot);
+  const image = new Image();
+  image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(new XMLSerializer().serializeToString(copy))}`;
+  await image.decode();
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = 16;
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("no 2d canvas to rasterise the mark");
+  context.fillStyle = ground;
+  context.fillRect(0, 0, 16, 16);
+  context.drawImage(image, 0, 0, 16, 16);
+  const { data } = context.getImageData(0, 0, 16, 16);
+  return (x, y) => [
+    data[(y * 16 + x) * 4] ?? 0,
+    data[(y * 16 + x) * 4 + 1] ?? 0,
+    data[(y * 16 + x) * 4 + 2] ?? 0,
+  ];
+}
+
+/** The rendered canvas colours under neutral, behind the 16 px raster (DESIGN.md section 3.1). */
+const GROUND = { light: "#F4F4F0", dark: "#16151D" } as const;
+
 const near = (read: number, expected: number) => Math.abs(read - expected) <= 0.02;
 
 /** The four kinds at height 64 (D7: 96 would overflow the 360 px column). */
@@ -185,6 +218,9 @@ export const Kinds: Story = {
   },
 };
 
+/** The ring's arc: 110 degrees open, the lower end on the horizontal through the centre (design row 2). */
+const G2_ARC = "M 57.04 28.17 A 52.5 52.5 0 1 0 127.5 77.5";
+
 const SMALL_HEIGHTS = [12, 16, 19.9, 20, 24, 24.1, 32, 120];
 
 /** The mark at the heights where the form changes. Below 16 it renders at 16, the minimum. */
@@ -214,6 +250,42 @@ export const SmallSizes: Story = {
       ).toBe(strokes[i]);
       // The small forms read the small dot and the master the master dot: one violet under neutral.
       expectColours(svg, colours);
+      // The dot is as wide as the ring (half its stroke wide) and the ring has the G2 arc.
+      expect(
+        Number(svg.querySelector(".ds-logo__dot")?.getAttribute("r")) * 2,
+        `${at}: dot diameter is the ring stroke`,
+      ).toBe(Number(strokes[i]));
+      expect(svg.querySelector(".ds-logo__ring")?.getAttribute("d"), `${at}: ring arc`).toBe(
+        G2_ARC,
+      );
+    }
+    const radii = logos.map((svg) => svg.querySelector(".ds-logo__dot")?.getAttribute("r"));
+    expect(radii.join(" ")).toBe("17 17 17 16 16 15 15 15");
+    // The 16 px mark at scale 1, in light, dark and one-colour: the pixel up and left of the dot,
+    // toward the upper cap, is the canvas, and the one down and right, toward the lower cap, is
+    // within 24 of it, so the dot stands apart from both caps (design row 2, sign-off F2).
+    const small = logoAt(canvasElement, "mark", 16);
+    for (const [mode, paint] of [
+      ["light", NEUTRAL_LIGHT],
+      ["dark", NEUTRAL_DARK],
+    ] as const) {
+      for (const tone of ["full", "one-colour"] as const) {
+        const at = `16 px ${mode} ${tone}`;
+        const ground = hexToRgb(GROUND[mode]);
+        const raster = await rasterOf(
+          small,
+          { ...paint, dot: tone === "full" ? paint.dot : paint.ink },
+          GROUND[mode],
+        );
+        const off = (x: number, y: number) => {
+          const px = raster(x, y);
+          return Math.hypot(px[0] - ground[0], px[1] - ground[1], px[2] - ground[2]);
+        };
+        expect(off(8, 3), `${at}: pixel (8, 3) is the canvas`).toBe(0);
+        expect(off(12, 5), `${at}: pixel (12, 5) is within 24 of the canvas`).toBeLessThanOrEqual(
+          24,
+        );
+      }
     }
     if (literal) await expectPaint(logos, literal);
   },
