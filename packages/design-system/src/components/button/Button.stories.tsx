@@ -18,7 +18,7 @@ const meta = {
   title: "Base/Button",
   component: Button,
   args: { children: fixtures.thai, onClick: fn() },
-  parameters: { layout: "padded" },
+  parameters: { layout: "centered" },
 } satisfies Meta<typeof Button>;
 
 export default meta;
@@ -34,6 +34,19 @@ export const Variants: Story = {
       ))}
     </div>
   ),
+  play: async ({ canvasElement }) => {
+    // A small component sits in the middle of the canvas on both axes (spec ORV-189, `centre-1`).
+    const row = within(canvasElement).getAllByRole("button")[0]?.parentElement as HTMLElement;
+    const surface = row.parentElement as HTMLElement;
+    const at = row.getBoundingClientRect();
+    const around = surface.getBoundingClientRect();
+    await expect(
+      Math.abs(at.left + at.width / 2 - (around.left + around.width / 2)),
+    ).toBeLessThanOrEqual(1);
+    await expect(
+      Math.abs(at.top + at.height / 2 - (around.top + around.height / 2)),
+    ).toBeLessThanOrEqual(1);
+  },
 };
 
 export const Sizes: Story = {
@@ -359,6 +372,7 @@ export const LongLabelAt360: Story = {
 };
 
 export const RecipesAndModes: Story = {
+  parameters: { layout: "padded" },
   render: (args) => (
     <Matrix>
       <div className="flex flex-wrap items-center gap-2">
@@ -388,4 +402,12 @@ export const RecipesAndModes: Story = {
       </div>
     </Matrix>
   ),
+  play: async ({ canvasElement }) => {
+    // A Matrix keeps the full width: the surface less its own padding (spec ORV-189, `matrix-keep-1`).
+    const grid = canvasElement.querySelector("[data-matrix-cell]")?.closest(".grid") as HTMLElement;
+    const surface = grid.parentElement as HTMLElement;
+    await expect(grid.getBoundingClientRect().width).toBe(
+      surface.getBoundingClientRect().width - 32,
+    );
+  },
 };

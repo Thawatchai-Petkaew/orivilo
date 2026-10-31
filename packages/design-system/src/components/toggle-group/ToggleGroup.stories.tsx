@@ -50,7 +50,7 @@ const meta = {
   title: "Base/Toggle group",
   component: Modes,
   parameters: {
-    layout: "padded",
+    layout: "centered",
     docs: {
       description: {
         component:
@@ -154,6 +154,7 @@ export const Disabled: Story = {
 
 /** Both types under every profile in both modes. */
 export const RecipesAndModes: Story = {
+  parameters: { layout: "padded" },
   render: () => (
     <Matrix>
       <div className="flex flex-wrap items-center gap-4">

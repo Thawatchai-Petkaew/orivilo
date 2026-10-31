@@ -12,7 +12,7 @@ import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "./Popover
 const meta = {
   title: "Base/Popover",
   component: Popover,
-  parameters: { layout: "padded" },
+  parameters: { layout: "centered" },
   args: {
     children: (
       <>
@@ -125,6 +125,7 @@ export const InsideProfile: Story = {
 };
 
 export const RecipesAndModes: Story = {
+  parameters: { layout: "padded" },
   render: (args) => (
     <Matrix>
       <div className="min-h-64">

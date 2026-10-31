@@ -9,7 +9,7 @@ const meta = {
   title: "Base/Tag",
   component: Tag,
   parameters: {
-    layout: "padded",
+    layout: "centered",
     docs: {
       description: {
         component:
@@ -121,6 +121,7 @@ export const LongLabelAt360: Story = {
 };
 
 export const RecipesAndModes: Story = {
+  parameters: { layout: "padded" },
   render: (args) => (
     <Matrix>
       <div className="flex flex-wrap items-center gap-3">

@@ -248,7 +248,11 @@ function Frame({
   );
 }
 
-/** 360 px with long Thai content: the panel fills the width minus the gutter, the body scrolls, the actions stack (AC 7). */
+/**
+ * 360 px with long Thai content: the panel fills the width minus the gutter, the body scrolls, the
+ * actions stack (AC 7). The 360 x 560 frame is a phone, not a board or a panel, so it keeps its
+ * height (spec ORV-189, `exempt-1`).
+ */
 export const LongContentAt360: Story = {
   render: () => (
     <Frame className="h-[560px] w-[360px] max-w-full">

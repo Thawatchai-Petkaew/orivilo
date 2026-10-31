@@ -5,7 +5,7 @@ import { useDesignProfile } from "../../boundary/DesignProfileBoundary";
 import { placeBlock } from "../../blocks/index";
 import { CanvasBoard } from "../canvas-board/CanvasBoard";
 import type { Graph } from "../canvas-board/graph";
-import { Matrix } from "../matrix";
+import { fillHeight, Matrix } from "../matrix";
 import { BlockLibrary } from "./BlockLibrary";
 import { MIDWAY } from "./fixtures";
 
@@ -15,7 +15,7 @@ function ShelfBoard({ initial = MIDWAY, height = 640 }: { initial?: Graph; heigh
   const scope = useDesignProfile();
   const id = typeof scope?.profile === "string" ? scope.profile : scope?.profile.id;
   return (
-    <div style={{ height }}>
+    <div style={{ height: fillHeight(height) }}>
       <CanvasBoard
         label={`กระดาน Intent Studio${scope ? `, ${id} ${scope.mode}` : ""}`}
         graph={graph}
@@ -75,6 +75,9 @@ export const Default: Story = {
   render: () => <ShelfBoard />,
   play: async ({ canvasElement }) => {
     await ready(canvasElement);
+    // The board fills the viewport and is never shorter than its 640 px (spec ORV-189, `fill-height-1`).
+    const board = canvasElement.querySelector(".ds-board");
+    await expect(board?.getBoundingClientRect().height).toBe(Math.max(640, window.innerHeight));
     const s = within(shelf(canvasElement));
     await expect(s.getByRole("heading", { name: "แบรนด์" })).toBeVisible();
     await expect(s.getByRole("heading", { name: "ระบบออกแบบ" })).toBeVisible();
@@ -210,5 +213,9 @@ export const RecipesAndModes: Story = {
   ),
   play: async ({ canvasElement }) => {
     await waitFor(() => expect(canvasElement.querySelectorAll(".ds-shelf")).toHaveLength(6));
+    // A board in a Matrix cell keeps its 520 px (spec ORV-189, `matrix-keep-1`).
+    const boards = [...canvasElement.querySelectorAll(".ds-board")];
+    await expect(boards).toHaveLength(6);
+    for (const board of boards) await expect(board.getBoundingClientRect().height).toBe(520);
   },
 };

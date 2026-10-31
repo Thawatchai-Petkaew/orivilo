@@ -75,7 +75,7 @@ const meta = {
   title: "Base/Dropdown menu",
   component: NodeMenu,
   parameters: {
-    layout: "padded",
+    layout: "centered",
     docs: {
       description: {
         component:
@@ -170,6 +170,7 @@ export const Keyboard: Story = {
 
 /** The open menu under every profile in both modes; non-modal so six can stay open at once. */
 export const RecipesAndModes: Story = {
+  parameters: { layout: "padded" },
   render: (args) => (
     <Matrix>
       <div className="min-h-80">
@@ -312,6 +313,7 @@ export const Checkable: Story = {
 
 /** The view menu under every profile in both modes, with checked and unchecked items. */
 export const CheckableRecipesAndModes: Story = {
+  parameters: { layout: "padded" },
   render: () => (
     <Matrix>
       <div className="min-h-136">

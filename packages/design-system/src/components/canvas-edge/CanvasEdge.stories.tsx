@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useDesignProfile } from "../../boundary/DesignProfileBoundary";
 import { CanvasBoard, type CanvasBoardProps } from "../canvas-board/CanvasBoard";
 import type { BoardEdge, BoardNode, EdgeContent, Graph } from "../canvas-board/graph";
-import { Matrix } from "../matrix";
+import { fillHeight, Matrix } from "../matrix";
 
 const text = { id: "text", kind: "text", label: "ข้อความ" } as const;
 
@@ -65,7 +65,7 @@ function EdgeBoard({
   const scope = useDesignProfile();
   const id = typeof scope?.profile === "string" ? scope.profile : scope?.profile.id;
   return (
-    <div style={{ height }}>
+    <div style={{ height: fillHeight(height) }}>
       <CanvasBoard
         label={`ตัวอย่างสาย${scope ? `, ${id} ${scope.mode}` : ""}`}
         {...rest}

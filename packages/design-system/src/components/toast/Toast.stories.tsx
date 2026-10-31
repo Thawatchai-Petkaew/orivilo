@@ -39,7 +39,7 @@ const meta = {
   title: "Base/Toast",
   component: Toaster,
   parameters: {
-    layout: "padded",
+    layout: "centered",
     docs: {
       description: {
         component:
@@ -283,6 +283,7 @@ function Cell() {
 
 /** Every variant under three profiles in both modes; each cell mounts its own region (mock data). */
 export const RecipesAndModes: Story = {
+  parameters: { layout: "padded" },
   render: () => (
     <Matrix>
       <Cell />

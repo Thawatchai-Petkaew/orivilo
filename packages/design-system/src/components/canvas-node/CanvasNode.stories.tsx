@@ -8,7 +8,7 @@ import { blockNode, feed } from "../block-library/fixtures";
 import { LONG_NODE } from "../canvas-board/fixtures";
 import type { BoardNode, Graph, NodeContent } from "../canvas-board/graph";
 import { fixtures } from "../fixtures";
-import { Matrix, Narrow } from "../matrix";
+import { fillHeight, Matrix, Narrow } from "../matrix";
 
 const text = { id: "text", kind: "text", label: "ข้อความ" } as const;
 const image = { id: "image", kind: "image", label: "ภาพ" } as const;
@@ -44,7 +44,7 @@ function NodeBoard({
   const scope = useDesignProfile();
   const id = typeof scope?.profile === "string" ? scope.profile : scope?.profile.id;
   return (
-    <div style={{ height }}>
+    <div style={{ height: fillHeight(height) }}>
       <CanvasBoard
         label={`${rest.label ?? "ตัวอย่าง node"}${scope ? `, ${id} ${scope.mode}` : ""}`}
         {...rest}
