@@ -1,16 +1,26 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { useDesignProfile } from "../../boundary/DesignProfileBoundary";
 import { placeBlock } from "../../blocks/index";
 import { CanvasBoard } from "../canvas-board/CanvasBoard";
 import type { Graph } from "../canvas-board/graph";
-import { fillHeight, Matrix } from "../matrix";
+import { fixtureJobs } from "../fixtures";
+import { fillHeight, Matrix, Narrow as NarrowFrame } from "../matrix";
+import { TaskBar } from "../task-bar/TaskBar";
 import { BlockLibrary } from "./BlockLibrary";
 import { MIDWAY } from "./fixtures";
 
 /** The shell's side for stories: the graph in state, and `placeBlock` for each placed tile. */
-function ShelfBoard({ initial = MIDWAY, height = 640 }: { initial?: Graph; height?: number }) {
+function ShelfBoard({
+  initial = MIDWAY,
+  height = 640,
+  children,
+}: {
+  initial?: Graph;
+  height?: number;
+  children?: ReactNode;
+}) {
   const [graph, setGraph] = useState(initial);
   const scope = useDesignProfile();
   const id = typeof scope?.profile === "string" ? scope.profile : scope?.profile.id;
@@ -28,6 +38,7 @@ function ShelfBoard({ initial = MIDWAY, height = 640 }: { initial?: Graph; heigh
             )
           }
         />
+        {children}
       </CanvasBoard>
     </div>
   );
@@ -56,6 +67,75 @@ const tile = (root: HTMLElement, name: string) =>
   within(shelf(root)).getByRole("button", {
     name: (accessible: string) => accessible.startsWith(name),
   });
+
+const SHELF = ".react-flow__panel.ds-shelf";
+const part = (board: HTMLElement, selector: string) =>
+  (board.querySelector(selector) as HTMLElement).getBoundingClientRect();
+
+/**
+ * shelf-gap-1 and shelf-edge-1 (ORV-190): the gap from the shelf to the board's left edge equals
+ * the gap to its right edge, and the shelf starts on the canvas controls' start edge. xyflow's
+ * centring shift left the shelf 15 px left of centre (gaps 1 and 31).
+ */
+const expectCentred = (board: HTMLElement) => {
+  const b = board.getBoundingClientRect();
+  const s = part(board, SHELF);
+  const c = part(board, ".react-flow__panel.ds-controls");
+  expect(Math.abs(s.left - b.left - (b.right - s.right))).toBeLessThanOrEqual(1);
+  expect(Math.abs(s.left - c.left)).toBeLessThanOrEqual(1);
+};
+
+/** shelf-rise-1: the shelf's bottom edge sits this far above the board's bottom edge (neutral profile). */
+const expectRise = (board: HTMLElement, rise: number) => {
+  const b = board.getBoundingClientRect();
+  const s = part(board, SHELF);
+  expect(Math.abs(b.bottom - s.bottom - rise)).toBeLessThanOrEqual(1);
+};
+
+const boardOf = (root: HTMLElement) => root.querySelector<HTMLElement>(".ds-board") as HTMLElement;
+
+const FIRST_TILE = "โลโก้ที่มีอยู่";
+const LAST_TILE = "สองทิศทาง";
+
+/** The 2 px outline and the 2 px offset of `:focus-visible` (orivilo.css). */
+const RING_REACH = 4;
+
+/**
+ * shelf-ring-1: the tile has keyboard focus and its whole ring, four sides, fits inside the
+ * scrolling row's box. Focus scrolls the tile into view, so the check waits for the scroll.
+ */
+const expectRingWhole = async (root: HTMLElement, name: string) => {
+  const t = tile(root, name);
+  const g = root.querySelector(".ds-shelf__groups") as HTMLElement;
+  await waitFor(() => {
+    expect(t).toHaveFocus();
+    expect(t.matches(":focus-visible")).toBe(true);
+    const tb = t.getBoundingClientRect();
+    const gb = g.getBoundingClientRect();
+    expect(tb.left - RING_REACH).toBeGreaterThanOrEqual(gb.left - 0.01);
+    expect(tb.right + RING_REACH).toBeLessThanOrEqual(gb.right + 0.01);
+    expect(tb.top - RING_REACH).toBeGreaterThanOrEqual(gb.top - 0.01);
+    expect(tb.bottom + RING_REACH).toBeLessThanOrEqual(gb.bottom + 0.01);
+  });
+};
+
+/** From the search field, Tab lands on the shelf's one tab stop, the first tile; End goes to the last. */
+const focusFirstTile = async (root: HTMLElement) => {
+  within(shelf(root)).getByRole("searchbox", { name: "ค้นหาบล็อก" }).focus();
+  await userEvent.tab();
+};
+
+/** The ring of the first and then the last tile is whole; the first tile has not moved for the row. */
+const expectRings = async (root: HTMLElement) => {
+  await focusFirstTile(root);
+  await expectRingWhole(root, FIRST_TILE);
+  // The row adds no offset: the tile starts the 1 px border plus --cmp-shelf-padding (16) inside the shelf.
+  expect(
+    Math.abs(tile(root, FIRST_TILE).getBoundingClientRect().left - part(root, SHELF).left - 17),
+  ).toBeLessThanOrEqual(0.5);
+  await userEvent.keyboard("{End}");
+  await expectRingWhole(root, LAST_TILE);
+};
 
 /**
  * The board is usable once React Flow has measured every node (it hides a node until then). Tile
@@ -98,6 +178,59 @@ export const Default: Story = {
     await expect(
       tile(canvasElement, "สีตั้งต้น").querySelectorAll(".ds-node__swatch"),
     ).toHaveLength(2);
+    // ORV-190: the shelf is centred on the board, on the controls' start edge, at its old height.
+    expectCentred(boardOf(canvasElement));
+    expectRise(boardOf(canvasElement), 88);
+    await expectRings(canvasElement);
+  },
+};
+
+/** ORV-190: a 360 px board. The shelf is centred with the same gaps, its title and search stay inside, the rings are whole. */
+export const Narrow: Story = {
+  render: () => (
+    <NarrowFrame>
+      <ShelfBoard />
+    </NarrowFrame>
+  ),
+  play: async ({ canvasElement }) => {
+    await ready(canvasElement);
+    const board = boardOf(canvasElement);
+    await expect(Math.round(board.getBoundingClientRect().width)).toBe(360);
+    expectCentred(board);
+    const s = part(board, SHELF);
+    const inShelf = within(shelf(canvasElement));
+    for (const el of [
+      inShelf.getByRole("heading", { name: "คลังบล็อก" }),
+      inShelf.getByRole("searchbox", { name: "ค้นหาบล็อก" }),
+    ]) {
+      const box = el.getBoundingClientRect();
+      await expect(box.left).toBeGreaterThanOrEqual(s.left);
+      await expect(box.right).toBeLessThanOrEqual(s.right);
+    }
+    await expectRings(canvasElement);
+  },
+};
+
+/** ORV-190: with the collapsed task bar (mock jobs) the shelf shares both edges with the bar and keeps its lift above it. */
+export const WithTaskBar: Story = {
+  render: () => (
+    <ShelfBoard>
+      <TaskBar
+        jobs={[fixtureJobs.failed, fixtureJobs.running, fixtureJobs.done, fixtureJobs.longName]}
+        defaultExpanded={false}
+      />
+    </ShelfBoard>
+  ),
+  play: async ({ canvasElement }) => {
+    await ready(canvasElement);
+    const board = boardOf(canvasElement);
+    expectCentred(board);
+    expectRise(board, 162);
+    const s = part(board, SHELF);
+    const bar = part(board, ".ds-taskbar");
+    await expect(Math.abs(s.left - bar.left)).toBeLessThanOrEqual(1);
+    await expect(Math.abs(s.right - bar.right)).toBeLessThanOrEqual(1);
+    await expect(s.bottom).toBeLessThanOrEqual(bar.top);
   },
 };
 
@@ -213,9 +346,15 @@ export const RecipesAndModes: Story = {
   ),
   play: async ({ canvasElement }) => {
     await waitFor(() => expect(canvasElement.querySelectorAll(".ds-shelf")).toHaveLength(6));
-    // A board in a Matrix cell keeps its 520 px (spec ORV-189, `matrix-keep-1`).
-    const boards = [...canvasElement.querySelectorAll(".ds-board")];
+    // ORV-190: each shelf is centred in its own board, under every profile and mode.
+    // ORV-189 (`matrix-keep-1`): a board in a Matrix cell keeps its 520 px.
+    const boards = [...canvasElement.querySelectorAll<HTMLElement>(".ds-board")];
     await expect(boards).toHaveLength(6);
-    for (const board of boards) await expect(board.getBoundingClientRect().height).toBe(520);
+    for (const board of boards) {
+      const b = board.getBoundingClientRect();
+      await expect(b.height).toBe(520);
+      const s = part(board, SHELF);
+      await expect(Math.abs(s.left - b.left - (b.right - s.right))).toBeLessThanOrEqual(1);
+    }
   },
 };

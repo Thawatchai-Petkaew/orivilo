@@ -77,6 +77,12 @@ export const PAIR_RULES: readonly PairRule[] = [
   { fg: ["text.on-inverse"], on: ["surface.inverse"], floor: TEXT, where: "tooltips" },
   { fg: ["selection.fg"], on: ["selection.bg"], floor: TEXT, where: "selected text" },
   { fg: ["brand.ink"], on: ["brand.signature"], floor: TEXT, where: "text on the signature" },
+  {
+    fg: ["brand.dot-small"],
+    on: ["surface.canvas"],
+    floor: UI,
+    where: "the logo's small-form dot on the page",
+  },
   ...FEEDBACK.map((kind) => ({
     fg: [`feedback.${kind}.fg`],
     on: ["surface.canvas", "surface.card", `feedback.${kind}.surface`],

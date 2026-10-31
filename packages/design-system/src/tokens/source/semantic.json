@@ -547,10 +547,10 @@
     "signature": {
       "$type": "color",
       "$value": {
-        "light": "{color.lime.300}",
-        "dark": "{color.lime.300}"
+        "light": "{color.violet.600}",
+        "dark": "{color.violet.400}"
       },
-      "$description": "Mark dot, one highlight plane; never text on light ground",
+      "$description": "The signature colour: the mark dot above 24 px, a bead, one highlight plane; never text and never an action; shares violet with action.primary in the ORIVILO profile only (ORV-118)",
       "$extensions": {
         "orivilo": {
           "scope": "identity"
@@ -560,7 +560,7 @@
     "ink": {
       "$type": "color",
       "$value": {
-        "light": "{color.gray.900}",
+        "light": "{color.white}",
         "dark": "{color.gray.900}"
       },
       "$description": "Ink on the signature",
@@ -569,6 +569,23 @@
           "contrast": {
             "against": "brand.signature",
             "floor": 4.5
+          },
+          "scope": "identity"
+        }
+      }
+    },
+    "dot-small": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.violet.600}",
+        "dark": "{color.violet.400}"
+      },
+      "$description": "The mark's dot at 24 px and below (logo forms 16 and 24), at least 3.0 on the canvas under every profile; equal to brand.signature in the ORIVILO profile; read by logo.dot-small and badge.dot.brand (the brand badge's bead)",
+      "$extensions": {
+        "orivilo": {
+          "contrast": {
+            "against": "surface.canvas",
+            "floor": 3
           },
           "scope": "identity"
         }

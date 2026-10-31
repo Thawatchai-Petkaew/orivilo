@@ -6,7 +6,14 @@ import { fixtures } from "../components/fixtures";
 import { LocaleProvider } from "../i18n/LocaleProvider";
 import { Tag } from "../components/tag/Tag";
 import { CloseIcon, WarningIcon } from "../components/icons";
-import { expectEdgeInk, expectNoGlyphClip, expectSameHeight, inVitest } from "./visual-asserts";
+import {
+  expectEdgeInk,
+  expectNoGlyphClip,
+  expectPaintAt,
+  expectPaintsAt,
+  expectSameHeight,
+  inVitest,
+} from "./visual-asserts";
 
 const meta = {
   title: "Foundations/Visual asserts",
@@ -15,7 +22,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Proof that the shared play helpers (L-0018) go red on the three ORV-107 defects and green on the fixed render. The edge story renders the defect's CSS beside the fixed CSS. The gone chip stories render the real chip markup and recipe classes with the verbatim ORV-107 c1c9fad gone chip rules, then the shipped chip. These are test fixtures, not components.",
+          "Proof that the shared play helpers (L-0018) go red on the three ORV-107 defects and green on the fixed render, and that the paint helper (ORV-118) goes red on a wrong colour. The edge story renders the defect's CSS beside the fixed CSS. The gone chip stories render the real chip markup and recipe classes with the verbatim ORV-107 c1c9fad gone chip rules, then the shipped chip. These are test fixtures, not components.",
       },
     },
   },
@@ -179,5 +186,63 @@ export const ShippedChipPasses: Story = {
       expectSameHeight(tag, normal);
       expectNoGlyphClip(tag);
     }
+  },
+};
+
+const INK = "#16151D";
+const DOT = "#D9F66F";
+
+/** Two svgs, read together and apart: a square one, and a letterboxed one (a 100 x 50 drawing in a 200 x 50 box, so it is centred). Each draws an ink rect and a lime dot. */
+export const PaintAt: Story = {
+  render: () => (
+    <div style={{ display: "flex", gap: 24, padding: 16 }}>
+      <svg data-case="square" width={64} height={64} viewBox="0 0 128 128" aria-hidden="true">
+        <rect x="0" y="0" width="64" height="128" fill={INK} />
+        <circle cx="96" cy="64" r="16" fill={DOT} />
+      </svg>
+      <svg data-case="letterbox" width={200} height={50} viewBox="0 0 100 50" aria-hidden="true">
+        <rect x="0" y="0" width="50" height="50" fill={INK} />
+        <circle cx="75" cy="25" r="10" fill={DOT} />
+      </svg>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    if (!inVitest) return; // the screenshot needs Vitest browser mode
+    const square = q<SVGSVGElement>(canvasElement, "[data-case='square']");
+    const letterbox = q<SVGSVGElement>(canvasElement, "[data-case='letterbox']");
+    // Green: the right colour at each probe, including through the letterbox offset.
+    await expectPaintAt(square, [
+      { x: 32, y: 64, hex: INK },
+      { x: 96, y: 64, hex: DOT },
+    ]);
+    await expectPaintAt(letterbox, [
+      { x: 25, y: 25, hex: INK },
+      { x: 75, y: 25, hex: DOT },
+    ]);
+    // Red: the dot probed for the ink colour, and the ink probed for the dot colour.
+    await expect(expectPaintAt(square, [{ x: 96, y: 64, hex: INK }])).rejects.toThrow(
+      /paints #D9F66F at \(96, 64\), expected #16151D/,
+    );
+    await expect(expectPaintAt(letterbox, [{ x: 25, y: 25, hex: DOT }])).rejects.toThrow(
+      /paints #16151D at \(25, 25\), expected #D9F66F/,
+    );
+    // Red: a colour a few steps off the right one is still inside the tolerance, a visibly different one is not.
+    await expectPaintAt(square, [{ x: 96, y: 64, hex: "#D9F66A" }]);
+    await expect(expectPaintAt(square, [{ x: 96, y: 64, hex: "#D9F67F" }])).rejects.toThrow(
+      /expected #D9F67F/,
+    );
+    // One screenshot for both svgs (ORV-118 R2): green on the right colours in each, red on the
+    // second svg's wrong colour, which a read of the first svg's origin alone would not catch.
+    const both = [
+      { svg: square, probes: [{ x: 96, y: 64, hex: DOT }] },
+      { svg: letterbox, probes: [{ x: 25, y: 25, hex: INK }] },
+    ];
+    await expectPaintsAt(both);
+    await expect(
+      expectPaintsAt([
+        both[0] as (typeof both)[0],
+        { svg: letterbox, probes: [{ x: 75, y: 25, hex: INK }] },
+      ]),
+    ).rejects.toThrow(/paints #D9F66F at \(75, 25\), expected #16151D/);
   },
 };

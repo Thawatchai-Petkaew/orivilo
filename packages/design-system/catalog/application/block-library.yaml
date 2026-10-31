@@ -19,6 +19,7 @@ rules:
   - "Each tile shows its state from the board's data as a word and a mark, never a guess and never colour alone; a summarized colour block shows its swatches"
   - "Drag to the board to place at the drop point; Enter or click places at the viewport centre; a block already on the board is selected and fitted, never added twice"
   - "Glass like the toolbar, solid under reduced transparency; sits above the board controls"
+  - "Centred on the board with equal gaps to both edges, 16 px at its widest, on the controls and task bar start edge; the focus ring of the first and last tile stays whole in the scrolling row"
   - "Renders inside CanvasBoard (its children); the shell owns the graph and adds the node through onPlace (placeBlock builds it)"
 a11y:
   - "A group named by its heading; search is a labelled searchbox; tiles are one Tab stop with arrow keys, Home and End between them"

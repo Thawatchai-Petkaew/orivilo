@@ -5,7 +5,10 @@
  */
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { Badge } from "./Badge";
 
 const root = path.join(import.meta.dirname, "../..");
 const read = (file: string) => readFileSync(path.join(root, file), "utf8");
@@ -55,5 +58,35 @@ describe("badge dot tokens", () => {
     expect(dotRules.length).toBeGreaterThan(0);
     for (const rule of dotRules)
       expect(rule).not.toMatch(/#[0-9a-f]{3,8}\b|\b(?:rgb|hsl|oklch)\(/i);
+  });
+});
+
+describe("the brand badge's bead (ORV-118 row 1)", () => {
+  const html = (props: Record<string, unknown>) =>
+    renderToStaticMarkup(createElement(Badge, { children: "ORIVILO", ...props }));
+
+  it("reads the mark's small dot, and the badge sits on the neutral ground in the primary text", () => {
+    expect(dots["brand"]?.$value).toBe("{brand.dot-small}");
+    const brand = (component["badge"] as TokenNode)["brand"] as Record<
+      string,
+      { $value?: unknown }
+    >;
+    expect(brand["bg"]?.$value).toBe("{surface.sunken}");
+    expect(brand["fg"]?.$value).toBe("{text.primary}");
+  });
+
+  it("always renders the bead, with or without the dot prop", () => {
+    for (const props of [{ variant: "brand" }, { variant: "brand", dot: true }]) {
+      expect(html(props)).toContain('<span class="ds-badge__dot" aria-hidden="true"></span>');
+    }
+  });
+
+  it("renders no icon on a brand badge, even from untyped callers", () => {
+    expect(html({ variant: "brand", icon: "x" })).not.toContain("ds-badge__icon");
+  });
+
+  it("leaves the other variants without a bead until they ask for one", () => {
+    expect(html({ variant: "neutral" })).not.toContain("ds-badge__dot");
+    expect(html({ variant: "success", dot: true })).toContain("ds-badge__dot");
   });
 });

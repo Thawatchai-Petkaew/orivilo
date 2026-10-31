@@ -2933,6 +2933,10 @@
   width: max-content;
   max-width: calc(100% - 2 * var(--ds-space-inset-md));
   margin: 0 0 calc(var(--ds-size-control-md) + 3 * var(--ds-space-inset-md));
+  /* xyflow centres a bottom-center panel with translateX(-15px) translateX(-50%), the first step
+   * undoing its own 15px margin. This recipe sets no inline margin, so only the plain half-width
+   * shift is left (ORV-190). */
+  transform: translateX(-50%);
   padding: var(--cmp-shelf-padding);
   border: 1px solid var(--cmp-shelf-border);
   border-radius: var(--cmp-shelf-radius);
@@ -2990,6 +2994,12 @@
   gap: var(--ds-space-inline-lg);
   overflow-x: auto;
   overscroll-behavior-x: contain;
+  /* The row clips both axes at its padding box, so the focus ring (reach 4) of the first and last
+   * tile was cut. Bleed the box out by the ring and pad it back: the tiles keep their place
+   * (ORV-190, as .ds-dialog__body does). */
+  margin: calc(-1 * var(--ds-space-inline-sm));
+  padding: var(--ds-space-inline-sm);
+  scroll-padding: var(--ds-space-inline-sm);
 }
 .ds-shelf__group {
   display: flex;
@@ -4337,4 +4347,27 @@ button.ds-tag__main {
   .ds-chat__box {
     transition: none;
   }
+}
+
+/* Logo (ORV-118): colour only. Geometry, stroke widths and size are attributes the component writes. */
+.ds-logo {
+  display: block;
+  flex: none;
+}
+.ds-logo__ring,
+.ds-logo__strokes {
+  stroke: var(--cmp-logo-ink);
+}
+.ds-logo__fills {
+  fill: var(--cmp-logo-ink);
+}
+.ds-logo__dot {
+  fill: var(--cmp-logo-dot);
+}
+.ds-logo:is([data-form="16"], [data-form="24"]) .ds-logo__dot {
+  fill: var(--cmp-logo-dot-small);
+}
+/* Last on purpose: the same specificity as the rule above, so one colour wins in every form. */
+.ds-logo[data-tone="one-colour"] .ds-logo__dot {
+  fill: var(--cmp-logo-ink);
 }

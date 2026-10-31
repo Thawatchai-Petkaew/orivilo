@@ -242,8 +242,9 @@
   --ds-selection-fg: var(--op-color-violet-700);
   --ds-focus-ring: var(--op-color-gray-900);
   --ds-focus-offset: var(--op-color-gray-50);
-  --ds-brand-signature: var(--op-color-lime-300);
-  --ds-brand-ink: var(--op-color-gray-900);
+  --ds-brand-signature: var(--op-color-violet-600);
+  --ds-brand-ink: var(--op-color-white);
+  --ds-brand-dot-small: var(--op-color-violet-600);
   --ds-feedback-success-fg: var(--op-color-green-700);
   --ds-feedback-success-surface: var(--op-color-green-50);
   --ds-feedback-success-border: var(--op-color-green-300);
@@ -441,8 +442,9 @@
   --ds-selection-fg: var(--op-color-violet-400);
   --ds-focus-ring: var(--op-color-gray-100);
   --ds-focus-offset: var(--op-color-gray-900);
-  --ds-brand-signature: var(--op-color-lime-300);
+  --ds-brand-signature: var(--op-color-violet-400);
   --ds-brand-ink: var(--op-color-gray-900);
+  --ds-brand-dot-small: var(--op-color-violet-400);
   --ds-feedback-success-fg: var(--op-color-green-400);
   --ds-feedback-success-surface: var(--op-color-green-950);
   --ds-feedback-success-border: var(--op-color-green-700);
@@ -523,8 +525,9 @@
     --ds-selection-fg: var(--op-color-violet-400);
     --ds-focus-ring: var(--op-color-gray-100);
     --ds-focus-offset: var(--op-color-gray-900);
-    --ds-brand-signature: var(--op-color-lime-300);
+    --ds-brand-signature: var(--op-color-violet-400);
     --ds-brand-ink: var(--op-color-gray-900);
+    --ds-brand-dot-small: var(--op-color-violet-400);
     --ds-feedback-success-fg: var(--op-color-green-400);
     --ds-feedback-success-surface: var(--op-color-green-950);
     --ds-feedback-success-border: var(--op-color-green-700);
@@ -798,8 +801,8 @@
   --cmp-badge-type-md-line-height: var(--ds-type-label-md-line-height);
   --cmp-badge-type-md-font-weight: var(--ds-type-label-md-font-weight);
   --cmp-badge-type-md-letter-spacing: var(--ds-type-label-md-letter-spacing);
-  --cmp-badge-brand-bg: var(--ds-brand-signature);
-  --cmp-badge-brand-fg: var(--ds-brand-ink);
+  --cmp-badge-brand-bg: var(--ds-surface-sunken);
+  --cmp-badge-brand-fg: var(--ds-text-primary);
   --cmp-badge-padding-x-sm: var(--ds-space-inline-md);
   --cmp-badge-padding-x-md: var(--ds-space-inline-lg);
   --cmp-badge-height-sm: var(--ds-size-icon-md);
@@ -809,7 +812,7 @@
   --cmp-badge-dot-warning: var(--ds-feedback-warning-fg);
   --cmp-badge-dot-danger: var(--ds-feedback-danger-fg);
   --cmp-badge-dot-info: var(--ds-feedback-info-fg);
-  --cmp-badge-dot-brand: var(--ds-brand-ink);
+  --cmp-badge-dot-brand: var(--ds-brand-dot-small);
   --cmp-badge-dot-size: var(--ds-space-inline-md);
   --cmp-badge-icon-size-sm: var(--ds-size-icon-xs);
   --cmp-badge-icon-size-md: var(--ds-size-icon-sm);
@@ -1345,6 +1348,9 @@
   --cmp-chat-body-sm-type-font-weight: var(--ds-type-body-sm-font-weight);
   --cmp-chat-body-sm-type-letter-spacing: var(--ds-type-body-sm-letter-spacing);
   --cmp-chat-picker-max-block-size: var(--ds-size-panel-min);
+  --cmp-logo-ink: var(--ds-text-primary);
+  --cmp-logo-dot: var(--ds-brand-signature);
+  --cmp-logo-dot-small: var(--ds-brand-dot-small);
 }
 
 /* Tailwind utilities resolve to semantic tokens only (DESIGN.md §5). The defaults are removed first
@@ -1400,6 +1406,7 @@
   --color-focus-offset: var(--ds-focus-offset);
   --color-brand-signature: var(--ds-brand-signature);
   --color-brand-ink: var(--ds-brand-ink);
+  --color-brand-dot-small: var(--ds-brand-dot-small);
   --color-feedback-success-fg: var(--ds-feedback-success-fg);
   --color-feedback-success-surface: var(--ds-feedback-success-surface);
   --color-feedback-success-border: var(--ds-feedback-success-border);
