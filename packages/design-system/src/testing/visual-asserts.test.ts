@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { inkWidth, outsideCorner, type Radii, type Rgb } from "./visual-asserts";
+import {
+  hexToRgb,
+  inkWidth,
+  outsideCorner,
+  paintMatches,
+  viewBoxToBox,
+  type Radii,
+  type Rgb,
+} from "./visual-asserts";
 
 const white: Rgb = [255, 255, 255];
 const grey: Rgb = [245, 245, 245];
@@ -51,5 +59,63 @@ describe("outsideCorner", () => {
 
   it("names a point outside the box", () => {
     expect(outsideCorner({ x: 120, y: 5 }, box, pill(0))).toBe("topRight");
+  });
+});
+
+describe("viewBoxToBox", () => {
+  it("scales a point when the box has the viewBox's aspect ratio", () => {
+    expect(viewBoxToBox({ x: 22.5, y: 77.5 }, [0, 0, 128, 128], { width: 64, height: 64 })).toEqual(
+      {
+        x: 11.25,
+        y: 38.75,
+      },
+    );
+  });
+
+  it("subtracts the viewBox origin", () => {
+    expect(
+      viewBoxToBox({ x: 182, y: -25 }, [100, -50, 200, 100], { width: 100, height: 50 }),
+    ).toEqual({
+      x: 41,
+      y: 12.5,
+    });
+  });
+
+  it("centres the drawing when the box is wider than the viewBox (meet)", () => {
+    expect(viewBoxToBox({ x: 0, y: 0 }, [0, 0, 100, 50], { width: 200, height: 50 })).toEqual({
+      x: 50,
+      y: 0,
+    });
+  });
+
+  it("centres the drawing when the box is taller than the viewBox (meet)", () => {
+    expect(viewBoxToBox({ x: 50, y: 25 }, [0, 0, 100, 50], { width: 100, height: 100 })).toEqual({
+      x: 50,
+      y: 50,
+    });
+  });
+
+  it("refuses a viewBox with no size", () => {
+    expect(() => viewBoxToBox({ x: 0, y: 0 }, [0, 0, 0, 10], { width: 10, height: 10 })).toThrow();
+  });
+});
+
+describe("hexToRgb and paintMatches", () => {
+  it("reads #rrggbb in either case", () => {
+    expect(hexToRgb("#D9F66F")).toEqual([217, 246, 111]);
+    expect(hexToRgb("#d9f66f")).toEqual([217, 246, 111]);
+  });
+
+  it("refuses a short or malformed hex", () => {
+    expect(() => hexToRgb("#fff")).toThrow();
+    expect(() => hexToRgb("D9F66F")).toThrow();
+  });
+
+  it("allows a summed difference of 12 and no more", () => {
+    expect(paintMatches([217, 246, 111], "#D9F66F")).toBe(true);
+    expect(paintMatches([229, 246, 111], "#D9F66F")).toBe(true);
+    expect(paintMatches([230, 246, 111], "#D9F66F")).toBe(false);
+    expect(paintMatches([223, 252, 111], "#D9F66F")).toBe(true);
+    expect(paintMatches([224, 252, 111], "#D9F66F")).toBe(false);
   });
 });

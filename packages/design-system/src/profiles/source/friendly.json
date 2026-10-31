@@ -370,6 +370,12 @@
           "light": "{color.cream.900}",
           "dark": "{color.cream.900}"
         }
+      },
+      "dot-small": {
+        "$value": {
+          "light": "{color.coral.700}",
+          "dark": "{color.coral.400}"
+        }
       }
     },
     "shape": {

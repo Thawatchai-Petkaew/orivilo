@@ -10,6 +10,10 @@
  * its shadow and its options, a tab list by its tabs and the selected edge, a dialog by its scrim
  * and shadow, a card by its ground; the edge is decoration and WCAG 1.4.11 does not apply to it.
  *
+ * `logo.dot`, the master dot (`brand.signature`; 6.6 on the light canvas under neutral, 2.3 under
+ * Friendly): a logotype's accent is decoration and the ring carries the shape; WCAG 1.4.11 does
+ * not apply to a logotype. It stays out of the list because Friendly's master dot is under 3.0.
+ *
  * Paths are component-token paths (`button.primary.fg`) or semantic paths prefixed `ds:` where a
  * recipe sits on a page ground rather than its own (`ds:surface.canvas`).
  */
@@ -974,4 +978,7 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     bg: "chat.bg",
     floor: UI,
   },
+  // Logo (ORV-118)
+  { recipe: "logo", slot: "ink", fg: "logo.ink", bg: "ds:surface.canvas", floor: UI },
+  { recipe: "logo", slot: "small dot", fg: "logo.dot-small", bg: "ds:surface.canvas", floor: UI },
 ];

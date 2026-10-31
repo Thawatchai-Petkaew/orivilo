@@ -41,6 +41,9 @@ export const th = {
     done: "เสร็จแล้ว",
     failed: "ไม่สำเร็จ",
   },
+  logo: {
+    name: "ORIVILO",
+  },
   taskBar: {
     label: "งาน",
     show: "แสดงงาน",

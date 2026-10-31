@@ -4338,3 +4338,26 @@ button.ds-tag__main {
     transition: none;
   }
 }
+
+/* Logo (ORV-118): colour only. Geometry, stroke widths and size are attributes the component writes. */
+.ds-logo {
+  display: block;
+  flex: none;
+}
+.ds-logo__ring,
+.ds-logo__strokes {
+  stroke: var(--cmp-logo-ink);
+}
+.ds-logo__fills {
+  fill: var(--cmp-logo-ink);
+}
+.ds-logo__dot {
+  fill: var(--cmp-logo-dot);
+}
+.ds-logo:is([data-form="16"], [data-form="24"]) .ds-logo__dot {
+  fill: var(--cmp-logo-dot-small);
+}
+/* Last on purpose: the same specificity as the rule above, so one colour wins in every form. */
+.ds-logo[data-tone="one-colour"] .ds-logo__dot {
+  fill: var(--cmp-logo-ink);
+}

@@ -54,6 +54,7 @@ const IDENTITY_OVERRIDES = {
   },
   brand: {
     signature: { $value: { light: "{color.blue.600}", dark: "{color.blue.400}" } },
+    "dot-small": { $value: { light: "{color.blue.700}", dark: "{color.blue.400}" } },
     ink: { $value: { light: "{color.white}", dark: "{color.gray.900}" } },
   },
 };

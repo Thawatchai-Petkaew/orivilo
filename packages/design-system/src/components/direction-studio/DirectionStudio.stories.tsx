@@ -72,6 +72,14 @@ export const Default: Story = {
 
     const recommended = within(cardOf(canvasElement, "สุขุม"));
     await expect(recommended.getByText(th.recommended)).toBeVisible();
+    // ORV-118 row 1: the recommended badge carries the mark's bead and does not read as the card's
+    // own button (a different ground, whatever the toolbar profile and mode).
+    const badge = recommended.getByText(th.recommended).closest<HTMLElement>(".ds-badge");
+    await expect(badge?.querySelector(".ds-badge__dot")).not.toBeNull();
+    const useButton = recommended.getByRole("button", { name: "ดูทิศทางนี้ สุขุม" });
+    await expect(getComputedStyle(badge as HTMLElement).backgroundColor).not.toBe(
+      getComputedStyle(useButton).backgroundColor,
+    );
     await expect(
       recommended.getByText("ตรงกับบรีฟ: รูปทรง เหลี่ยมคม, การเคลื่อนไหว นิ่ง"),
     ).toBeVisible();

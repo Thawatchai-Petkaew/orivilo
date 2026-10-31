@@ -396,8 +396,10 @@ export const Send: Story = {
     await expect(boxStyle.borderTopWidth).toBe("1px");
     await expect(boxStyle.boxShadow).toBe("none");
     await expect(getComputedStyle(field).outlineStyle).toBe("none");
-    await expect(getComputedStyle(action(canvas, c.send)).backgroundColor).toBe(
-      resolved(chatOf(canvasElement), "--cmp-button-intent-bg"),
+    // `resolved` adds a node, so it runs outside `waitFor`. The button colour transitions, so wait for the settled value.
+    const sendBg = resolved(chatOf(canvasElement), "--cmp-button-intent-bg");
+    await waitFor(() =>
+      expect(getComputedStyle(action(canvas, c.send)).backgroundColor).toBe(sendBg),
     );
     // Focus on Send shows Send's own ring and none on the box (one ring at a time).
     await userEvent.tab();

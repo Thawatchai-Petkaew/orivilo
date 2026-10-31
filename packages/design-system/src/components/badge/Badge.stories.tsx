@@ -4,6 +4,7 @@ import { expect, within } from "storybook/test";
 import { fixtures } from "../fixtures";
 import { CheckIcon, LockIcon, StaleIcon, WarningIcon } from "../icons";
 import { Matrix, Narrow } from "../matrix";
+import { expectSameHeight } from "../../testing/visual-asserts";
 import { Badge, type BadgeVariant } from "./Badge";
 
 /** The word carries the status; each is a state a real record can be in. */
@@ -27,15 +28,47 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Variants: Story = {
-  render: (args) => (
+  render: () => (
     <div className="flex flex-wrap items-center gap-2">
       {STATUS.map(({ variant, word }) => (
-        <Badge key={variant} {...args} variant={variant}>
+        <Badge key={variant} variant={variant}>
           {word}
         </Badge>
       ))}
     </div>
   ),
+  // ORV-118 row 1: the brand badge shares the neutral ground and is told apart by the mark's bead.
+  // Probes, not literals, so the play holds under every toolbar profile and mode. The probe sits
+  // inside the profile and mode boundary the badge sits in; on the canvas root it would read neutral light.
+  play: async ({ canvasElement }) => {
+    const badgeOf = (word: string) =>
+      within(canvasElement).getByText(word).closest<HTMLElement>(".ds-badge") as HTMLElement;
+    const brand = badgeOf("ORIVILO");
+    const neutral = badgeOf("ฉบับร่าง");
+    const bead = brand.firstElementChild as HTMLElement;
+    await expect(bead).toHaveClass("ds-badge__dot");
+    await expect(bead).toHaveAttribute("aria-hidden", "true");
+    await expect(brand).toHaveTextContent(/^ORIVILO$/);
+    await expect(brand.querySelector(".ds-badge__icon")).toBeNull();
+    const boundary = brand.closest("[data-design-profile]");
+    if (!boundary) throw new Error("the Variants badge sits in no profile and mode boundary");
+    const probe = (property: "color" | "background-color", token: string) => {
+      const el = document.createElement("span");
+      el.style.setProperty(property, `var(${token})`);
+      boundary.appendChild(el);
+      const value = getComputedStyle(el).getPropertyValue(property);
+      el.parentNode?.removeChild(el);
+      return value;
+    };
+    await expect(getComputedStyle(brand).backgroundColor).toBe(
+      getComputedStyle(neutral).backgroundColor,
+    );
+    await expect(getComputedStyle(brand).color).toBe(probe("color", "--ds-text-primary"));
+    await expect(getComputedStyle(bead).backgroundColor).toBe(
+      probe("background-color", "--ds-brand-dot-small"),
+    );
+    expectSameHeight(brand, neutral);
+  },
 };
 
 export const Sizes: Story = {
@@ -57,14 +90,19 @@ export const Sizes: Story = {
   ),
 };
 
-const ICONS: Record<BadgeVariant, ReactNode> = {
+const ICONS: Record<Exclude<BadgeVariant, "brand">, ReactNode> = {
   neutral: <LockIcon />,
   success: <CheckIcon />,
   warning: <StaleIcon />,
   danger: <WarningIcon />,
   info: <CheckIcon />,
-  brand: <CheckIcon />,
 };
+
+/** The brand badge takes no icon: its bead is what tells it from a neutral badge (ORV-118). */
+const ICON_STATUS = STATUS.filter(
+  (entry): entry is { variant: Exclude<BadgeVariant, "brand">; word: string } =>
+    entry.variant !== "brand",
+);
 
 /** AC 4: a dot in the variant's feedback ink before the word; the word carries the meaning. */
 export const WithDot: Story = {
@@ -101,7 +139,7 @@ export const WithDot: Story = {
 export const WithIcon: Story = {
   render: () => (
     <div className="flex flex-wrap items-center gap-2">
-      {STATUS.map(({ variant, word }) => (
+      {ICON_STATUS.map(({ variant, word }) => (
         <Badge key={variant} variant={variant} icon={ICONS[variant]}>
           {word}
         </Badge>
@@ -128,10 +166,16 @@ export const WithIcon: Story = {
 /** `dot` and `icon` together do not compile; the type keeps the badge to one mark. */
 export const OneMarkOnly: Story = {
   render: () => (
-    // @ts-expect-error a dot and an icon in one badge is a type error (AC 5)
-    <Badge dot icon={<CheckIcon />}>
-      {fixtures.latin}
-    </Badge>
+    <>
+      {/* @ts-expect-error a dot and an icon in one badge is a type error (AC 5) */}
+      <Badge dot icon={<CheckIcon />}>
+        {fixtures.latin}
+      </Badge>
+      {/* @ts-expect-error an icon on the brand badge is a type error: its bead is its mark (ORV-118 design row 1) */}
+      <Badge variant="brand" icon={<CheckIcon />}>
+        ORIVILO
+      </Badge>
+    </>
   ),
 };
 
@@ -180,7 +224,7 @@ export const At360: Story = {
 };
 
 export const RecipesAndModes: Story = {
-  render: (args) => (
+  render: () => (
     <Matrix>
       <div className="flex flex-wrap items-center gap-2">
         {STATUS.map(({ variant, word }) => (
@@ -190,7 +234,7 @@ export const RecipesAndModes: Story = {
         ))}
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        {STATUS.map(({ variant, word }) => (
+        {ICON_STATUS.map(({ variant, word }) => (
           <Badge key={variant} variant={variant} icon={ICONS[variant]}>
             {word}
           </Badge>
@@ -198,7 +242,7 @@ export const RecipesAndModes: Story = {
       </div>
       <div className="flex flex-wrap items-center gap-2">
         {STATUS.map(({ variant, word }) => (
-          <Badge key={variant} {...args} variant={variant} size="sm">
+          <Badge key={variant} variant={variant} size="sm">
             {word}
           </Badge>
         ))}
