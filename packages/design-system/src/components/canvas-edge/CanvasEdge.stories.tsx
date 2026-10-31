@@ -160,7 +160,7 @@ export const InteractionStates: Story = {
     await userEvent.hover(hover.querySelector(".react-flow__edge-interaction") as Element);
     focus.focus();
     await expect(focus).toHaveFocus();
-    // The focused edge's ring (outline width plus offset) ends above the controls bar (design.md
+    // The focused edge's reach is the 1 px line (outline width plus offset; an SVG edge gets no halo) and ends above the controls bar (design.md
     // row 1): the board is tall enough that the fit leaves the bottom pair clear of the bar.
     const ring = getComputedStyle(focus);
     await expect(ring.outlineStyle).not.toBe("none");

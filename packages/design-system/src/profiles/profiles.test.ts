@@ -52,6 +52,7 @@ const IDENTITY_OVERRIDES = {
     bg: { $value: { light: "{color.blue.50}", dark: "{color.blue.950}" } },
     fg: { $value: { light: "{color.blue.700}", dark: "{color.blue.300}" } },
   },
+  focus: { ring: { $value: { light: "{color.blue.700}", dark: "{color.blue.300}" } } },
   brand: {
     signature: { $value: { light: "{color.blue.600}", dark: "{color.blue.400}" } },
     "dot-small": { $value: { light: "{color.blue.700}", dark: "{color.blue.400}" } },
@@ -111,6 +112,32 @@ describe("the shipped profiles", () => {
         expect(changed).toEqual(["action.primary", "surface.canvas", "shape.control.radius"]);
       });
     });
+  }
+});
+
+/**
+ * ORV-192 row 9. Focus takes the brand hue: the ring is the primitive behind the action.primary
+ * of the same set, in both modes, so the focused line reads as the colour a user sees on controls.
+ */
+describe("focus.ring is the action.primary primitive under every set and mode (ORV-192 row 9)", () => {
+  const sets = [
+    { id: "neutral", tokens },
+    ...profiles.map((p) => ({ id: p.id, tokens: p.tokens })),
+  ];
+  for (const set of sets) {
+    for (const mode of MODES) {
+      it(`${set.id}, ${mode}`, () => {
+        const ring = set.tokens.get("semantic", "focus.ring");
+        const primary = set.tokens.get("semantic", "action.primary");
+        if (!ring || !primary) throw new Error("focus.ring or action.primary is missing");
+        expect(set.tokens.resolve(ring, mode).value).toEqual(
+          set.tokens.resolve(primary, mode).value,
+        );
+        expect(set.tokens.resolve(ring, mode).chain).toEqual(
+          set.tokens.resolve(primary, mode).chain,
+        );
+      });
+    }
   }
 });
 
@@ -300,7 +327,7 @@ describe("Profile.validate catches", () => {
   });
 
   it("an override inside a locked group", () => {
-    for (const path of ["feedback.danger.fg", "focus.ring"]) {
+    for (const path of ["feedback.danger.fg", "canvas.grid"]) {
       const [g, ...rest] = path.split(".");
       const node = rest.reduceRight<Record<string, unknown>>((acc, key) => ({ [key]: acc }), {
         $value: { light: "{color.lime.300}", dark: "{color.lime.300}" },

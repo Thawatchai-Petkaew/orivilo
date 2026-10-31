@@ -112,7 +112,7 @@ const boardOf = (root: HTMLElement) => root.querySelector<HTMLElement>(".ds-boar
 const FIRST_TILE = "โลโก้ที่มีอยู่";
 const LAST_TILE = "สองทิศทาง";
 
-/** The 2 px outline and the 2 px offset of `:focus-visible` (orivilo.css). */
+/** The halo reaches 3 px outside the tile's border (ORV-192 row 9); 4 is kept as the global reach of `:focus-visible` (orivilo.css). */
 const RING_REACH = 4;
 
 /**

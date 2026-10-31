@@ -20,7 +20,7 @@ import { LocaleProvider } from "../src/i18n/LocaleProvider";
  * component the app will use. A story never sets a colour itself (DESIGN.md §3, rules §Storybook).
  * A padded story gets `p-4` inside the surface (spec ORV-84, `surface-padding-1`): Storybook's own
  * 1rem body padding is white and sits outside the surface, so an item flush with the surface drew
- * its focus ring (2 px at a 2 px offset) and its Thai marks on that white margin. The surface owns
+ * its focus line and halo (4 px at most) and its Thai marks on that white margin. The surface owns
  * padding and centring, and `preview.css` takes Storybook's own box away (spec ORV-189).
  *
  * The surface also sets `--story-fill`, the height a board or a panel may fill (`fillHeight` in

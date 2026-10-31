@@ -402,28 +402,30 @@ export const Send: Story = {
     await userEvent.type(field, "บรรทัดแรก{Shift>}{Enter}{/Shift}บรรทัดสอง");
     await expect(field.value).toBe("บรรทัดแรก\nบรรทัดสอง");
     await expect(args.onAsk).not.toHaveBeenCalled();
-    // With focus in the textarea the box's 1 px border in the focus ink is the single line: no outline on top of it.
+    // With focus in the textarea the box's 1 px border in focus.ring is the single line, with the halo touching it: no outline on top of it.
     const boxStyle = getComputedStyle(q(canvasElement, ".ds-chat__box"));
     const focusEdge = resolved(chatOf(canvasElement), "--cmp-input-border-focus");
     await waitFor(() => expect(boxStyle.borderTopColor).toBe(focusEdge));
-    // The rendered edge is 1 px of ink on every side, not a border and an outline drawn side by side (L-0018).
+    // The rendered edge is 4 px of ink on every side: the 1 px brand border and the 3 px halo touching it, with no gap
+    // and no second line beside the border (L-0018; a border and an outline side by side would read 2 px at the line).
     if (inVitest) {
-      await expectEdgeInk(q(canvasElement, ".ds-chat__box"), ["top", "right", "bottom", "left"], 1);
+      await expectEdgeInk(q(canvasElement, ".ds-chat__box"), ["top", "right", "bottom", "left"], 4);
     }
     await expect(boxStyle.outlineStyle).toBe("none");
     await expect(boxStyle.borderTopWidth).toBe("1px");
-    await expect(boxStyle.boxShadow).toBe("none");
+    await expect(boxStyle.boxShadow).not.toBe("none");
     await expect(getComputedStyle(field).outlineStyle).toBe("none");
+    await expect(getComputedStyle(field).boxShadow).toBe("none");
     // `resolved` adds a node, so it runs outside `waitFor`. The button colour transitions, so wait for the settled value.
     const sendBg = resolved(chatOf(canvasElement), "--cmp-button-intent-bg");
     await waitFor(() =>
       expect(getComputedStyle(action(canvas, c.send)).backgroundColor).toBe(sendBg),
     );
-    // Focus on Send shows Send's own ring and none on the box (one ring at a time).
+    // Focus on Send shows Send's own line and halo and none on the box (one focus mark at a time).
     await userEvent.tab();
     await expect(action(canvas, c.send)).toHaveFocus();
     await expect(getComputedStyle(q(canvasElement, ".ds-chat__box")).outlineStyle).toBe("none");
-    await expect(getComputedStyle(action(canvas, c.send)).outlineWidth).toBe("2px");
+    await expect(getComputedStyle(action(canvas, c.send)).outlineWidth).toBe("1px");
     await userEvent.click(field);
     await userEvent.clear(field);
 
@@ -878,7 +880,7 @@ export const Conversation: Story = {
       if (i > 0) await userEvent.tab();
       await expect(target).toHaveFocus();
       if (target === input(canvas, c.input)) {
-        // The textarea's single line is the box border in the focus ink, with no outline.
+        // The textarea's single line is the box border in focus.ring, with its halo and no outline.
         const box = getComputedStyle(q(canvasElement, ".ds-chat__box"));
         const edge = resolved(chatOf(canvasElement), "--cmp-input-border-focus");
         await waitFor(() => expect(box.borderTopColor).toBe(edge));

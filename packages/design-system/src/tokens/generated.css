@@ -179,6 +179,7 @@
   --op-opacity-glow-dark: 0.14;
   --op-opacity-scrim: 0.48;
   --op-opacity-selection: 0.16;
+  --op-opacity-focus-halo: 0.24;
   --op-opacity-glass: 0.72;
   --op-duration-0: 0ms;
   --op-duration-120: 120ms;
@@ -239,8 +240,8 @@
   --ds-action-destructive-press: var(--op-color-red-900);
   --ds-selection-bg: var(--op-color-violet-50);
   --ds-selection-fg: var(--op-color-violet-700);
-  --ds-focus-ring: var(--op-color-gray-900);
-  --ds-focus-offset: var(--op-color-gray-50);
+  --ds-focus-ring: var(--op-color-violet-600);
+  --ds-focus-halo-opacity: var(--op-opacity-focus-halo);
   --ds-brand-signature: var(--op-color-violet-600);
   --ds-brand-ink: var(--op-color-white);
   --ds-brand-dot-small: var(--op-color-violet-600);
@@ -439,8 +440,8 @@
   --ds-action-destructive-press: var(--op-color-red-500);
   --ds-selection-bg: var(--op-color-violet-950);
   --ds-selection-fg: var(--op-color-violet-400);
-  --ds-focus-ring: var(--op-color-gray-100);
-  --ds-focus-offset: var(--op-color-gray-900);
+  --ds-focus-ring: var(--op-color-violet-400);
+  --ds-focus-halo-opacity: var(--op-opacity-focus-halo);
   --ds-brand-signature: var(--op-color-violet-400);
   --ds-brand-ink: var(--op-color-gray-900);
   --ds-brand-dot-small: var(--op-color-violet-400);
@@ -640,8 +641,8 @@
     --ds-action-destructive-press: var(--op-color-red-500);
     --ds-selection-bg: var(--op-color-violet-950);
     --ds-selection-fg: var(--op-color-violet-400);
-    --ds-focus-ring: var(--op-color-gray-100);
-    --ds-focus-offset: var(--op-color-gray-900);
+    --ds-focus-ring: var(--op-color-violet-400);
+    --ds-focus-halo-opacity: var(--op-opacity-focus-halo);
     --ds-brand-signature: var(--op-color-violet-400);
     --ds-brand-ink: var(--op-color-gray-900);
     --ds-brand-dot-small: var(--op-color-violet-400);
@@ -1637,7 +1638,6 @@
   --color-selection-bg: var(--ds-selection-bg);
   --color-selection-fg: var(--ds-selection-fg);
   --color-focus-ring: var(--ds-focus-ring);
-  --color-focus-offset: var(--ds-focus-offset);
   --color-brand-signature: var(--ds-brand-signature);
   --color-brand-ink: var(--ds-brand-ink);
   --color-brand-dot-small: var(--ds-brand-dot-small);

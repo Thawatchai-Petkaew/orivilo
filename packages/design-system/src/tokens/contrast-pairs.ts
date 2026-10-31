@@ -103,9 +103,17 @@ export const PAIR_RULES: readonly PairRule[] = [
   },
   {
     fg: ["focus.ring"],
-    on: ["surface.canvas", "surface.card", "focus.offset"],
+    on: [
+      "surface.canvas",
+      "surface.card",
+      "surface.raised",
+      "surface.sunken",
+      "surface.hover",
+      "selection.bg",
+    ],
     floor: UI,
-    where: "the focus ring against the page, a card and its own offset halo",
+    where:
+      "the focus line on the page, a card, a menu, a track or tag fill, a hovered row and a selected ground (ORV-192 row 9)",
   },
   {
     fg: ["port.text", "port.image", "port.palette", "port.type", "port.profile"],

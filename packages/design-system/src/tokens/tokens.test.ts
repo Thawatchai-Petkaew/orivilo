@@ -117,6 +117,7 @@ describe("token scope", () => {
       "brand.dot-small",
       "brand.ink",
       "brand.signature",
+      "focus.ring",
       "selection.bg",
       "selection.fg",
       "surface.selected",
@@ -128,8 +129,8 @@ describe("token scope", () => {
 });
 
 describe("the small-dot token (ORV-118)", () => {
-  it("lists nine identity tokens, so a profile must override each", () => {
-    expect(tokens.layer("semantic").filter((t) => t.scope === "identity")).toHaveLength(9);
+  it("lists ten identity tokens, so a profile must override each", () => {
+    expect(tokens.layer("semantic").filter((t) => t.scope === "identity")).toHaveLength(10);
   });
 
   it("has two readers, the logo component tokens and the brand badge's bead", () => {
@@ -167,6 +168,29 @@ describe("the violet signature (ORV-118, comment 10336)", () => {
     expect(brand).toEqual(["logo", "nav-item", "tile"]);
     const action = componentsReading(["action.primary"]);
     expect(brand.filter((name) => action.includes(name))).toEqual([]);
+  });
+});
+
+describe("focus follows the brand (ORV-192 row 9)", () => {
+  const read = (path: string, mode: (typeof MODES)[number]) => {
+    const token = tokens.get("semantic", path);
+    if (!token) throw new Error(`semantic token ${path} is missing`);
+    return tokens.resolve(token, mode);
+  };
+
+  it("reaches the violet primitive directly, the same one action.primary reads", () => {
+    expect(read("focus.ring", "light").chain).toEqual(["primitive:color.violet.600"]);
+    expect(read("focus.ring", "dark").chain).toEqual(["primitive:color.violet.400"]);
+  });
+
+  it("mixes the halo at 24 percent of the ring", () => {
+    expect(tokens.get("semantic", "focus.halo-opacity")).toBeDefined();
+    expect(read("focus.halo-opacity", "light").value).toBe(0.24);
+    expect(read("focus.halo-opacity", "dark").value).toBe(0.24);
+  });
+
+  it("has no gap colour any more", () => {
+    expect(tokens.get("semantic", "focus.offset")).toBeUndefined();
   });
 });
 

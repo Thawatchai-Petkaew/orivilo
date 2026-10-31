@@ -2,7 +2,7 @@
 /* Each profile overrides semantic values inside its boundary; component tokens are re-declared
  * on [data-design-profile] by generated.css, so they resolve against these values. */
 
-/* Profile professional: Professional (สุขุม). 41 overrides, 24 own primitives. */
+/* Profile professional: Professional (สุขุม). 42 overrides, 24 own primitives. */
 [data-design-profile="professional"]:not([data-mode="dark"]) {
   --op-color-slate-25: #FBFCFD;
   --op-color-slate-50: #F5F7F9;
@@ -61,6 +61,7 @@
   --ds-brand-signature: var(--op-color-navy-700);
   --ds-brand-ink: var(--op-color-white);
   --ds-brand-dot-small: var(--op-color-navy-700);
+  --ds-focus-ring: var(--op-color-navy-800);
   --ds-shape-control-radius: var(--op-radius-6);
   --ds-shape-media-radius: var(--op-radius-8);
   --ds-shape-container-radius: var(--op-radius-12);
@@ -140,6 +141,7 @@
   --ds-brand-signature: var(--op-color-navy-400);
   --ds-brand-ink: var(--op-color-slate-900);
   --ds-brand-dot-small: var(--op-color-navy-400);
+  --ds-focus-ring: var(--op-color-navy-300);
   --ds-shape-control-radius: var(--op-radius-6);
   --ds-shape-media-radius: var(--op-radius-8);
   --ds-shape-container-radius: var(--op-radius-12);
@@ -220,6 +222,7 @@
     --ds-brand-signature: var(--op-color-navy-400);
     --ds-brand-ink: var(--op-color-slate-900);
     --ds-brand-dot-small: var(--op-color-navy-400);
+    --ds-focus-ring: var(--op-color-navy-300);
     --ds-shape-control-radius: var(--op-radius-6);
     --ds-shape-media-radius: var(--op-radius-8);
     --ds-shape-container-radius: var(--op-radius-12);
@@ -242,7 +245,7 @@
     --ds-action-intent-press: var(--ds-action-primary-press);
   }
 }
-/* Profile friendly: Friendly (เป็นมิตร). 41 overrides, 36 own primitives. */
+/* Profile friendly: Friendly (เป็นมิตร). 42 overrides, 36 own primitives. */
 [data-design-profile="friendly"]:not([data-mode="dark"]) {
   --op-color-cream-25: #FDFBF9;
   --op-color-cream-50: #F9F6F2;
@@ -313,6 +316,7 @@
   --ds-brand-signature: var(--op-color-coral-400);
   --ds-brand-ink: var(--op-color-cream-900);
   --ds-brand-dot-small: var(--op-color-coral-700);
+  --ds-focus-ring: var(--op-color-coral-500);
   --ds-shape-control-radius: var(--op-radius-full);
   --ds-shape-media-radius: var(--op-radius-16);
   --ds-shape-container-radius: var(--op-radius-20);
@@ -396,6 +400,7 @@
   --ds-brand-signature: var(--op-color-coral-400);
   --ds-brand-ink: var(--op-color-cream-900);
   --ds-brand-dot-small: var(--op-color-coral-400);
+  --ds-focus-ring: var(--op-color-coral-300);
   --ds-shape-control-radius: var(--op-radius-full);
   --ds-shape-media-radius: var(--op-radius-16);
   --ds-shape-container-radius: var(--op-radius-20);
@@ -480,6 +485,7 @@
     --ds-brand-signature: var(--op-color-coral-400);
     --ds-brand-ink: var(--op-color-cream-900);
     --ds-brand-dot-small: var(--op-color-coral-400);
+    --ds-focus-ring: var(--op-color-coral-300);
     --ds-shape-control-radius: var(--op-radius-full);
     --ds-shape-media-radius: var(--op-radius-16);
     --ds-shape-container-radius: var(--op-radius-20);

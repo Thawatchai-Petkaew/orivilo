@@ -515,7 +515,7 @@
     "body-bleed": {
       "$type": "dimension",
       "$value": "{space.inline.sm}",
-      "$description": "How far the scrolling body bleeds past its box so a control's focus ring (2 px plus a 2 px gap) is not clipped"
+      "$description": "How far the scrolling body bleeds past its box so a control's focus line and halo (4 px at most, ORV-192 row 9) are not clipped"
     },
     "title-type": {
       "$type": "typography",

@@ -378,6 +378,14 @@
         }
       }
     },
+    "focus": {
+      "ring": {
+        "$value": {
+          "light": "{color.coral.500}",
+          "dark": "{color.coral.300}"
+        }
+      }
+    },
     "shape": {
       "control": {
         "radius": {

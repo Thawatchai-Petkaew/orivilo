@@ -100,6 +100,17 @@ export const InteractionStates: Story = {
         getComputedStyle(canvas.getByTestId("default")).backgroundColor,
       ),
     );
+    // Focus (ORV-192 row 9): the border turns to the resolved --ds-focus-ring, and a filled button adds
+    // an inset ink line beside the outer halo.
+    const probe = document.createElement("span");
+    probe.style.color = "var(--ds-focus-ring)";
+    canvas.getByTestId("focus").appendChild(probe);
+    const ring = getComputedStyle(probe).color;
+    probe.remove();
+    await waitFor(() =>
+      expect(getComputedStyle(canvas.getByTestId("focus")).borderTopColor).toBe(ring),
+    );
+    await expect(getComputedStyle(canvas.getByTestId("focus")).boxShadow).toContain("inset");
   },
 };
 

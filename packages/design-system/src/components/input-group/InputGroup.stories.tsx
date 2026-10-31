@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ComponentType } from "react";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { Button } from "../button/Button";
 import { Field } from "../field/Field";
 import { fixtures } from "../fixtures";
@@ -95,7 +95,7 @@ export const OneOutline: Story = {
   },
 };
 
-/** Focus on the input draws the ring around the whole group, not around the input (AC 3). */
+/** Focus on the input turns the whole group's border to the brand and adds the halo, not around the input (AC 3; ORV-192 row 9). */
 export const FocusRing: Story = {
   decorators: [inWidth],
   render: () => (
@@ -109,9 +109,18 @@ export const FocusRing: Story = {
     await expect(getComputedStyle(group).outlineStyle).toBe("none");
     await userEvent.tab();
     await expect(input).toHaveFocus();
-    await expect(getComputedStyle(group).outlineStyle).toBe("solid");
-    await expect(getComputedStyle(group).outlineWidth).toBe("2px");
+    // The group's border is the focus line (it turns to the resolved --ds-focus-ring) and the halo touches it;
+    // the outline is transparent, kept for forced-colours mode.
+    const probe = document.createElement("span");
+    probe.style.color = "var(--ds-focus-ring)";
+    group.appendChild(probe);
+    const ring = getComputedStyle(probe).color;
+    probe.remove();
+    await waitFor(() => expect(getComputedStyle(group).borderTopColor).toBe(ring));
+    await expect(getComputedStyle(group).outlineColor).toBe("rgba(0, 0, 0, 0)");
+    await expect(getComputedStyle(group).boxShadow).not.toBe("none");
     await expect(getComputedStyle(input).outlineStyle).toBe("none");
+    await expect(getComputedStyle(input).boxShadow).toBe("none");
   },
 };
 

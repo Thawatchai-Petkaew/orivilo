@@ -300,7 +300,7 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     floor: TEXT,
   },
   { recipe: "menu", slot: "empty line", fg: "menu.empty", bg: "menu.bg", floor: TEXT },
-  // Checkable menu item (ORV-78): the focus ring on the selected fill when highlighted
+  // Checkable menu item (ORV-78): the focus.ring (the brand) line on the selected fill when highlighted
   {
     recipe: "menu",
     slot: "checked highlighted ring",
@@ -705,6 +705,7 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     floor: TEXT,
   },
   { recipe: "toggle", slot: "disabled", fg: "toggle.fg-disabled", bg: "toggle.bg", floor: UI },
+  { recipe: "toggle", slot: "focus line", fg: "ds:focus.ring", bg: "toggle.bg", floor: UI },
   { recipe: "toolbar", slot: "text", fg: "toolbar.fg", bg: "toolbar.bg", floor: TEXT },
   { recipe: "toolbar", slot: "glyph", fg: "button.ghost.fg", bg: "toolbar.bg", floor: TEXT },
   { recipe: "command", slot: "option", fg: "command.fg", bg: "command.bg", floor: TEXT },
@@ -899,6 +900,7 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     floor: UI,
   },
   { recipe: "tag", slot: "remove", fg: "tag.remove-fg", bg: "tag.bg", floor: TEXT },
+  { recipe: "tag", slot: "remove focus", fg: "ds:focus.ring", bg: "tag.bg", floor: UI },
   {
     recipe: "tag",
     slot: "remove hover",
@@ -906,7 +908,7 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     bg: "tag.remove-bg-hover",
     floor: TEXT,
   },
-  // TaskBar (ORV-100): text and marks on the bar's ground, the row focus ring against it. Not listed:
+  // TaskBar (ORV-100): text and marks on the bar's ground, the row focus line (focus.ring, the brand) against it. Not listed:
   // `taskbar.border` and `taskbar.divider` are `border.subtle` dividers (the bar is identified by its
   // ground and, on the board, its shadow). Progress and Button inside the bar sit on `taskbar.bg`,
   // which reads `surface.card`; their pairs exist on `ds:surface.card`. If `taskbar.bg` stops
@@ -926,7 +928,7 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
   { recipe: "taskbar", slot: "reason", fg: "taskbar.reason-fg", bg: "taskbar.bg", floor: TEXT },
   { recipe: "taskbar", slot: "row focus", fg: "ds:focus.ring", bg: "taskbar.bg", floor: UI },
   // CanvasChat (ORV-105): text and marks on the panel ground and on the question well, the
-  // transcript focus ring against the panel. Not listed: the panel edge (`chat.border`) and
+  // transcript focus line (focus.ring, the brand) against the panel. Not listed: the panel edge (`chat.border`) and
   // shadow, which the content does not depend on (WCAG 1.4.11 does not apply), and the question well's edge is not a
   // boundary anyone must perceive to operate anything. Textarea, Button and ScrollArea inside sit
   // on `chat.bg`, which reads `surface.card`, where their pairs exist. If `chat.bg` stops reading
@@ -945,7 +947,7 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
   { recipe: "chat", slot: "streaming", fg: "chat.streaming-fg", bg: "chat.bg", floor: TEXT },
   { recipe: "chat", slot: "failed", fg: "chat.failed-fg", bg: "chat.bg", floor: TEXT },
   { recipe: "chat", slot: "transcript focus", fg: "ds:focus.ring", bg: "chat.bg", floor: UI },
-  // The composer box's focus line is its 1 px border in the focus ink (ORV-107 comment 10154), on the chat ground and on the box fill.
+  // The composer box's focus line is its 1 px border in focus.ring, the brand (ORV-107 comment 10154), on the chat ground and on the box fill.
   { recipe: "chat", slot: "composer focus", fg: "input.border-focus", bg: "chat.bg", floor: UI },
   {
     recipe: "chat",

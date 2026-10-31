@@ -116,7 +116,7 @@ export const Closed: Story = {
 /**
  * Open with first focus on the name field. The play proves the focus ring is whole: the scrolling
  * body is a scroll container, which clips what draws outside a control, so the body bleeds the
- * ring's distance (2 px ring plus 2 px gap) on every side.
+ * reach (the 1 px line plus the 3 px halo, ORV-192 row 9) on every side.
  */
 export const Open: Story = {
   args: { defaultOpen: true },
