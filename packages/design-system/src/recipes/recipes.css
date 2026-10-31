@@ -3555,6 +3555,10 @@
 }
 .ds-toast__icon {
   flex: none;
+  /* the icon's centre on the close button's centre */
+  width: var(--ds-size-icon-md);
+  height: var(--ds-size-icon-md);
+  margin-block-start: calc((var(--cmp-button-height-sm) - var(--ds-size-icon-md)) / 2);
   color: var(--cmp-toast-success-icon);
 }
 .ds-toast[data-variant="danger"] .ds-toast__icon {
@@ -3563,6 +3567,14 @@
 .ds-toast__content {
   flex: 1 1 auto;
   min-width: 0;
+  /* the title's first line centres on the close button; later lines flow under it */
+  padding-block-start: calc(
+    (
+        var(--cmp-button-height-sm) - var(--cmp-toast-title-type-font-size) *
+          var(--cmp-toast-title-type-line-height)
+      ) /
+      2
+  );
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -3595,6 +3607,8 @@
 }
 .ds-toast__action {
   padding-inline: var(--cmp-button-padding-x-sm);
+  /* with the content gap of 4, an action keeps 8 px above it (ORV-192 row 17) */
+  margin-block-start: var(--ds-space-inline-sm);
 }
 .ds-toast__close {
   flex: none;
