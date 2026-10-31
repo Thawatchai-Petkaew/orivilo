@@ -135,6 +135,13 @@ const expectRings = async (root: HTMLElement) => {
   ).toBeLessThanOrEqual(0.5);
   await userEvent.keyboard("{End}");
   await expectRingWhole(root, LAST_TILE);
+  // Leave the story as it opens (ORV-192, row 6): the row at its start and no tile focused, or the
+  // last tile's ring and a shelf scrolled to its end are what the Storybook UI shows after the play.
+  const g = root.querySelector<HTMLElement>(".ds-shelf__groups") as HTMLElement;
+  g.scrollLeft = 0;
+  (document.activeElement as HTMLElement | null)?.blur();
+  await expect(g.scrollLeft).toBe(0);
+  await expect(tile(root, LAST_TILE)).not.toHaveFocus();
 };
 
 /** The gap `scroll-padding` keeps at a scrolled-to edge: --ds-space-inline-sm, 4 px (recipes.css, `.ds-shelf__groups`). */
