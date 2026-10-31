@@ -79,6 +79,8 @@ None is run here (no shell in this role); each runs from the repo root with `nod
 
 The main session fills this section once the PR exists, one list line per PR in the form the result recorder reads (`scripts/ovl/result-recorder.mjs`).
 
+- PR 168: rows 1, 2, 3, 4, 5, 6, 7, 8, 9
+
 ## Out of scope
 
 - Component, recipe, token, profile and public API changes, and `apps/web`.
