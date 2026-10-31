@@ -449,6 +449,7 @@
 .ds-menu {
   min-width: var(--radix-select-trigger-width);
   max-height: var(--radix-select-content-available-height);
+  max-width: var(--radix-select-content-available-width);
   padding: var(--cmp-menu-padding);
   border: 1px solid var(--cmp-menu-border);
   border-radius: var(--cmp-menu-radius);
@@ -493,7 +494,7 @@
   color: var(--cmp-menu-option-fg-disabled);
   cursor: not-allowed;
 }
-.ds-menu__option > span:first-child {
+.ds-menu__option > span:first-child:not(.ds-menu__option-body) {
   min-width: 0;
   flex: 1;
   overflow: hidden;
@@ -530,7 +531,9 @@
 }
 .ds-menu__option-body {
   display: flex;
+  flex: 1;
   flex-direction: column;
+  min-width: 0;
   white-space: normal;
 }
 .ds-menu__option-body > span:first-child {
