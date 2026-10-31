@@ -233,6 +233,32 @@ describe("Thai face (row 16)", () => {
   });
 });
 
+/**
+ * Sarabun's stacks reach 1.25 em above the baseline and its lower vowels 0.33 em below, so a line
+ * height under 1.7 lets a stack such as ที่ touch the ุ of the line above (measured, ORV-192 row 18).
+ */
+describe("running text clears Thai marks (row 18)", () => {
+  const sets = [
+    { id: "neutral", set: tokens },
+    ...profiles.map((p) => ({ id: p.id, set: p.tokens })),
+  ];
+  for (const { id, set } of sets) {
+    it(`under ${id}, every type.body.* line height is at least 1.7`, () => {
+      const body = set.layer("semantic").filter((t) => t.path.startsWith("type.body."));
+      expect(body.map((t) => t.path).sort()).toEqual([
+        "type.body.lg",
+        "type.body.md",
+        "type.body.sm",
+        "type.body.xs",
+      ]);
+      for (const t of body) {
+        const { lineHeight } = set.resolve(t, "light").value as { lineHeight: number };
+        expect(lineHeight, t.path).toBeGreaterThanOrEqual(1.7);
+      }
+    });
+  }
+});
+
 describe("profile CSS", () => {
   it("matches the source files (run `pnpm --filter @orivilo/design-system tokens`)", () => {
     const committed = readFileSync(path.join(import.meta.dirname, "generated.css"), "utf8");

@@ -3719,6 +3719,8 @@
   display: inline-flex;
   align-items: stretch;
   max-width: min(var(--cmp-tag-max-width), 100%);
+  /* One line by design: a 1.7 label line never grows the tag (ORV-192 row 18). */
+  height: var(--cmp-tag-height-md);
   min-height: var(--cmp-tag-height-md);
   border: 1px solid var(--cmp-tag-border);
   border-radius: var(--cmp-tag-radius);
@@ -3732,6 +3734,7 @@
   overflow: hidden;
 }
 .ds-tag[data-size="sm"] {
+  height: var(--cmp-tag-height-sm);
   min-height: var(--cmp-tag-height-sm);
   font-family: var(--cmp-tag-type-sm-font-family);
   font-size: var(--cmp-tag-type-sm-font-size);

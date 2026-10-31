@@ -110,12 +110,12 @@ export const Sizes: Story = {
     await expect([smStyle.fontSize, smStyle.fontWeight, smStyle.lineHeight]).toEqual([
       "13px",
       "400",
-      "19.5px",
+      "22.1px",
     ]);
     await expect([mdStyle.fontSize, mdStyle.fontWeight, mdStyle.lineHeight]).toEqual([
       "14px",
       "400",
-      "22.4px",
+      "23.8px",
     ]);
     await expect(smStyle.borderTopColor).toBe(expected.color);
     await expect(mdStyle.borderTopColor).toBe(expected.color);

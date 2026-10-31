@@ -19,10 +19,10 @@ const SCALE: readonly Step[] = [
     className: "font-display text-display-md",
     spec: "32 / 1.25, weight 500",
   },
-  { role: "Body 20", className: "font-body text-body-lg", spec: "20 / 1.5, weight 400" },
+  { role: "Body 20", className: "font-body text-body-lg", spec: "20 / 1.7, weight 400" },
   { role: "Body 16", className: "font-body text-body-md", spec: "16 / 1.7, weight 400" },
-  { role: "Body 14", className: "font-body text-body-sm", spec: "14 / 1.6, weight 400" },
-  { role: "Mono 14", className: "font-mono text-body-sm", spec: "14 / 1.6, weight 400" },
+  { role: "Body 14", className: "font-body text-body-sm", spec: "14 / 1.7, weight 400" },
+  { role: "Mono 14", className: "font-mono text-body-sm", spec: "14 / 1.7, weight 400" },
 ];
 
 const SAMPLE = "ระบบตั้งใจ Intent Engine ตีความแบรนด์ให้เป็นผลิตภัณฑ์ที่มีชีวิต 0123";
@@ -110,6 +110,12 @@ export const Scale: Story = {
     for (const cls of [".text-body-lg", ".text-body-md", ".text-body-sm"]) {
       await expect(weight(canvasElement.querySelector(cls)), cls).toBe("400");
     }
+    // ORV-192 row 18: running text is 1.7 at every body size, which clears Sarabun's stacked marks.
+    const lineHeight = (cls: string) =>
+      getComputedStyle(canvasElement.querySelector(cls) as HTMLElement).lineHeight;
+    await expect(lineHeight(".text-body-lg")).toBe("34px");
+    await expect(lineHeight(".text-body-md")).toBe("27.2px");
+    await expect(lineHeight(".text-body-sm")).toBe("23.8px");
     const medium = await document.fonts.load("500 20px Sarabun", "ก");
     await expect(medium.map((f) => f.family.replaceAll('"', ""))).toContain("Sarabun");
     const display = await document.fonts.load("500 56px Sarabun", "ก");

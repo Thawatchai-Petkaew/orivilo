@@ -45,6 +45,14 @@
   --_focus-shadow-inset: inset 0 0 0 4px var(--_focus-halo);
 }
 
+/* Every boundary, portals included, starts from the body type (ORV-192 row 18). */
+[data-design-profile] {
+  font-family: var(--ds-type-body-md-font-family);
+  font-size: var(--ds-type-body-md-font-size);
+  line-height: var(--ds-type-body-md-line-height);
+  font-weight: var(--ds-type-body-md-font-weight);
+}
+
 :focus-visible {
   outline: 1px solid var(--ds-focus-ring);
   outline-offset: 0;

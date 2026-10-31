@@ -993,7 +993,7 @@
         "$value": {
           "fontFamily": "{font.family.plex-sans}",
           "fontSize": "{font.size.20}",
-          "lineHeight": "{font.line-height.1-5}",
+          "lineHeight": "{font.line-height.1-7}",
           "fontWeight": "{font.weight.400}",
           "letterSpacing": "{font.letter-spacing.normal}"
         }
@@ -1013,7 +1013,7 @@
         "$value": {
           "fontFamily": "{font.family.plex-sans}",
           "fontSize": "{font.size.14}",
-          "lineHeight": "{font.line-height.1-6}",
+          "lineHeight": "{font.line-height.1-7}",
           "fontWeight": "{font.weight.400}",
           "letterSpacing": "{font.letter-spacing.normal}"
         }
@@ -1023,7 +1023,7 @@
         "$value": {
           "fontFamily": "{font.family.plex-sans}",
           "fontSize": "{font.size.13}",
-          "lineHeight": "{font.line-height.1-5}",
+          "lineHeight": "{font.line-height.1-7}",
           "fontWeight": "{font.weight.400}",
           "letterSpacing": "{font.letter-spacing.normal}"
         },
