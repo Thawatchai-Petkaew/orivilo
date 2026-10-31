@@ -120,7 +120,7 @@ Also out of scope: `apps/web`, a component public API change, and visual regress
 
 - `docs/specs/ORV-192/design.md`: the `## Rows` table, rows 1 to 19 and their sections, including "Every focusable control", "Without the ring, chip and ink are weak in lightness", "Out of scope, measured" and "Screens to check in visual QA (row 19)".
 - `DESIGN.md` §3.1 (the `text.on-inverse-secondary` row) and §4 (the row 17 and row 18 rules).
-- `docs/knowledge/design/K-0107-synthesis-title-supporting-text-and-paragraph-line-height.md` and K-0096 to K-0106: the research behind rows 17 and 18.
+- `docs/knowledge/design/K-0107-synthesis-title-supporting-text-and-paragraph-line-height.md` and K-0096 to K-0105: the research behind rows 17 and 18.
 - `docs/specs/ORV-189/spec.md` `matrix-keep-1`: the Button Matrix that row 10 asserts.
 - ADR 0003 (`docs/adr/0003-shadcn-behavior-own-visual-layer.md`): Storybook is the visual half of the catalog.
 - `.claude/rules/testing.md`: a play for a visual criterion goes through `visual-asserts.ts`, and a test fails on the real defect.
