@@ -202,7 +202,7 @@ describe("W2: the dot has the same gap to each cap", () => {
     expect(Math.abs(toDot(ring.start) - toDot(ring.end))).toBeLessThan(0.01);
   });
 
-  it("is 18.48, 16.48 and 14.48 units at the three strokes, and 3.94, 2.64 and 1.54 px at 32, 24 and 16", () => {
+  it("is 12.48, 11.48 and 10.48 units at the three strokes, and 2.66, 1.84 and 1.12 px at 32, 24 and 16", () => {
     const nearest = Math.min(toDot(ring.start), toDot(ring.end));
     const lines = [32, 24, 16].map((height) => {
       const { form } = logoSize("mark", height);
@@ -210,13 +210,12 @@ describe("W2: the dot has the same gap to each cap", () => {
       const gap = nearest - (stroke / 2 + DOT_RADIUS[form]);
       return `${stroke} ${gap.toFixed(2)} ${((gap * height) / GEOMETRY.mark.viewBox[3]).toFixed(2)}`;
     });
-    expect(lines).toEqual(["30 18.48 3.94", "32 16.48 2.64", "34 14.48 1.54"]);
+    expect(lines).toEqual(["30 12.48 2.66", "32 11.48 1.84", "34 10.48 1.12"]);
   });
 
-  it("makes the dot as wide as the ring stroke in each form (34, 32, 30)", () => {
-    for (const form of ["16", "24", "master"] as const)
-      expect(DOT_RADIUS[form] * 2, `form ${form}`).toBe(RING_STROKE[form]);
-    expect(DOT_RADIUS).toEqual({ "16": 17, "24": 16, master: 15 });
+  it("draws one dot of radius 21 in every form, 0.7 x the master stroke (ORV-192 row 5)", () => {
+    expect(DOT_RADIUS).toEqual({ "16": 21, "24": 21, master: 21 });
+    expect(GEOMETRY.mark.dot.r).toBe(21);
     expect(GEOMETRY.mark.dot.r).toBe(DOT_RADIUS.master);
   });
 });
@@ -370,18 +369,18 @@ const rootAttrs = (markup: string): Attrs => attrsOf(/<svg\s[^>]*>/.exec(markup)
 describe("renders the markup of logo-api-1", () => {
   it("is React's static output for a mark at 16, with the attribute order fixed", () => {
     expect(render({ kind: "mark", height: 16 })).toBe(
-      '<svg xmlns="http://www.w3.org/2000/svg" class="ds-logo" data-kind="mark" data-form="16" data-tone="full" viewBox="0 0 150 150" width="16" height="16" role="img" aria-label="ORIVILO"><path class="ds-logo__ring" d="M 57.04 28.17 A 52.5 52.5 0 1 0 127.5 77.5" fill="none" stroke-width="34" stroke-linecap="round"></path><circle class="ds-logo__dot" cx="105.11" cy="34.49" r="17"></circle></svg>',
+      '<svg xmlns="http://www.w3.org/2000/svg" class="ds-logo" data-kind="mark" data-form="16" data-tone="full" viewBox="0 0 150 150" width="16" height="16" role="img" aria-label="ORIVILO"><path class="ds-logo__ring" d="M 57.04 28.17 A 52.5 52.5 0 1 0 127.5 77.5" fill="none" stroke-width="34" stroke-linecap="round"></path><circle class="ds-logo__dot" cx="105.11" cy="34.49" r="21"></circle></svg>',
     );
   });
 
-  it("draws the dot as wide as the ring stroke: r 17, 16 and 15 at the three forms", () => {
+  it("draws the dot at r 21 beside the ring stroke 34, 32 and 30 at the three forms", () => {
     const dotAndRing = (height: number) => {
       const markup = render({ kind: "mark", height });
       const dot = attrsOf(/<circle\s[^>]*>/.exec(markup)?.[0] ?? "");
       const ring = attrsOf(/<path\s[^>]*>/.exec(markup)?.[0] ?? "");
       return `${dot["r"]} ${ring["stroke-width"]}`;
     };
-    expect([16, 24, 64].map(dotAndRing)).toEqual(["17 34", "16 32", "15 30"]);
+    expect([16, 24, 64].map(dotAndRing)).toEqual(["21 34", "21 32", "21 30"]);
   });
 
   it("defaults to a horizontal lockup, 24 high, in full tone", () => {

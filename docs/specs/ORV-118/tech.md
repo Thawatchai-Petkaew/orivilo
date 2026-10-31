@@ -239,7 +239,7 @@ Not exported: the geometry module, the drawing function, the form function and t
 **Rendered markup.** This is React's static output for `<Logo kind="mark" height={16} />`. The drawing function fixes the attribute order:
 
 ```text
-<svg xmlns="http://www.w3.org/2000/svg" class="ds-logo" data-kind="mark" data-form="16" data-tone="full" viewBox="0 0 150 150" width="16" height="16" role="img" aria-label="ORIVILO"><path class="ds-logo__ring" d="M 57.04 28.17 A 52.5 52.5 0 1 0 127.5 77.5" fill="none" stroke-width="34" stroke-linecap="round"></path><circle class="ds-logo__dot" cx="105.11" cy="34.49" r="17"></circle></svg>
+<svg xmlns="http://www.w3.org/2000/svg" class="ds-logo" data-kind="mark" data-form="16" data-tone="full" viewBox="0 0 150 150" width="16" height="16" role="img" aria-label="ORIVILO"><path class="ds-logo__ring" d="M 57.04 28.17 A 52.5 52.5 0 1 0 127.5 77.5" fill="none" stroke-width="34" stroke-linecap="round"></path><circle class="ds-logo__dot" cx="105.11" cy="34.49" r="21"></circle></svg>
 ```
 
 - The wordmark is drawn in two groups, with the numbers of `orivilo-wordmark.svg`:
@@ -379,7 +379,7 @@ The smallest probed part is the dot at height 16, with a radius of 1.6 px. That 
 <!-- prettier-ignore -->
 | Row | File | Test | What it asserts |
 | --- | --- | --- | --- |
-| 1, unit | `src/components/logo/logo.test.ts` (new) | "draws each kind as logo-geometry-1 and the brand files" | Each kind's `viewBox`, and every `d`, centre, radius, polygon point, cap and join, the wordmark stroke 24 and the lockup transforms, equal the numbers parsed from the three brand files. The stacked transforms equal W5. W1 (both arc ends 52.50 from (75, 77.5)) and W2 (gaps 18.48, 16.48 and 14.48) are computed from the module's numbers |
+| 1, unit | `src/components/logo/logo.test.ts` (new) | "draws each kind as logo-geometry-1 and the brand files" | Each kind's `viewBox`, and every `d`, centre, radius, polygon point, cap and join, the wordmark stroke 24 and the lockup transforms, equal the numbers parsed from the three brand files. The stacked transforms equal W5. W1 (both arc ends 52.50 from (75, 77.5)) and W2 (gaps 12.48, 11.48 and 10.48) are computed from the module's numbers |
 | 1, play | `Logo.stories.tsx` "Kinds" | play | Four `svg.ds-logo` with the four `data-kind` values, boxes 64 high at the widths above. Computed ring and wordmark stroke #16151D and master dot #7A22C7. `expectPaintAt` on the mark's ring and dot |
 | 2 | "Recipes and modes" | play, neutral dark cell | The master forms (mark 64, horizontal 32, wordmark 20, stacked 80): computed ring and wordmark stroke #F2F1EC and dot #B07FEE (W6's source values). `expectPaintAt` on ring and dot |
 | 3 | "Small sizes"; `logo.test.ts` "picks the form from the mark height" | play; unit | Play: for the eight heights, `data-form` and the ring's `stroke-width` attribute follow W3 (`34 34 34 32 32 30 30 30`), and the dot is #7A22C7 in every form (section 13), both computed and by `expectPaintAt`. The switch between `logo.dot` and `logo.dot-small` stays proven by row 9 in the Friendly light cell, where the small forms paint coral.700 #972F1D and the master coral.400 #FC826B. Unit: the same inputs through the form function, plus stacked 60 (form 24) and 60.25 (master) |
