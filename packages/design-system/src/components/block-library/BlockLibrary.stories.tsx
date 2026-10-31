@@ -137,6 +137,47 @@ const expectRings = async (root: HTMLElement) => {
   await expectRingWhole(root, LAST_TILE);
 };
 
+/** The gap `scroll-padding` keeps at a scrolled-to edge: --ds-space-inline-sm, 4 px (recipes.css, `.ds-shelf__groups`). */
+const SCROLL_GAP = 4;
+
+/**
+ * shelf-scrollpad-1 (ORV-192, row 3): a tile that scrolls into view from outside the row stops
+ * SCROLL_GAP short of the end edge when it comes from the right, and short of the start edge when it
+ * comes from the left. Without `scroll-padding` the tile lands flush on the edge. The tiles picked
+ * are neither the first nor the last, since the row's own padding already gives those their gap.
+ */
+const expectScrollPadding = async (root: HTMLElement) => {
+  const g = root.querySelector<HTMLElement>(".ds-shelf__groups") as HTMLElement;
+  const tiles = [...g.querySelectorAll<HTMLElement>("button")].slice(1, -1);
+  // The row must overflow, or there is nothing to scroll into view.
+  expect(g.scrollWidth).toBeGreaterThan(g.clientWidth);
+  g.scrollLeft = 0;
+  const fromRight = tiles.find(
+    (t) => t.getBoundingClientRect().left >= g.getBoundingClientRect().right,
+  );
+  if (!fromRight) throw new Error("no tile starts past the row's end edge");
+  fromRight.scrollIntoView({ inline: "nearest", block: "nearest", behavior: "instant" });
+  await waitFor(() =>
+    expect(
+      Math.abs(
+        g.getBoundingClientRect().right - fromRight.getBoundingClientRect().right - SCROLL_GAP,
+      ),
+    ).toBeLessThanOrEqual(0.5),
+  );
+  g.scrollLeft = g.scrollWidth;
+  const fromLeft = [...tiles]
+    .reverse()
+    .find((t) => t.getBoundingClientRect().right <= g.getBoundingClientRect().left);
+  if (!fromLeft) throw new Error("no tile ends before the row's start edge");
+  fromLeft.scrollIntoView({ inline: "nearest", block: "nearest", behavior: "instant" });
+  await waitFor(() =>
+    expect(
+      Math.abs(fromLeft.getBoundingClientRect().left - g.getBoundingClientRect().left - SCROLL_GAP),
+    ).toBeLessThanOrEqual(0.5),
+  );
+  g.scrollLeft = 0;
+};
+
 /**
  * The board is usable once React Flow has measured every node (it hides a node until then). Tile
  * states, drops and the viewport centre all read the measured board, so a loaded machine looked
@@ -207,6 +248,7 @@ export const Narrow: Story = {
       await expect(box.left).toBeGreaterThanOrEqual(s.left);
       await expect(box.right).toBeLessThanOrEqual(s.right);
     }
+    await expectScrollPadding(canvasElement);
     await expectRings(canvasElement);
   },
 };
