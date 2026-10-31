@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  firstInkRow,
   hexToRgb,
   inkWidth,
   outsideCorner,
@@ -32,6 +33,49 @@ describe("inkWidth", () => {
 
   it("refuses an empty line", () => {
     expect(() => inkWidth([], 1)).toThrow();
+  });
+});
+
+describe("firstInkRow", () => {
+  const ground: Rgb = [250, 250, 250];
+  const ink: Rgb = [20, 20, 20];
+
+  it("returns the index of the first row with a pixel far from the ground", () => {
+    const rows = [
+      [ground, ground],
+      [ground, ground],
+      [ground, ink],
+      [ink, ink],
+    ];
+    expect(firstInkRow(rows, ground)).toBe(2);
+  });
+
+  it("returns null for rows of plain ground", () => {
+    expect(
+      firstInkRow(
+        [
+          [ground, ground],
+          [ground, ground],
+        ],
+        ground,
+      ),
+    ).toBeNull();
+  });
+
+  it("does not count a faint antialiasing pixel as ink", () => {
+    expect(
+      firstInkRow(
+        [
+          [ground, [245, 245, 247]],
+          [ground, ink],
+        ],
+        ground,
+      ),
+    ).toBe(1);
+  });
+
+  it("returns null for no rows", () => {
+    expect(firstInkRow([], ground)).toBeNull();
   });
 });
 

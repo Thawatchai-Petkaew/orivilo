@@ -175,5 +175,24 @@ export const RecipesAndModes: Story = {
     await expect(canvasElement.querySelectorAll(".ds-field .ds-field")).toHaveLength(0);
     // The matrix is not inside the width cap: a meta decorator wrapping this story would narrow it.
     await expect(canvasElement.querySelector(".max-w-sm")).toBeNull();
+    // Row 14: the track is a filled border.subtle bar with no outline, and the fill takes the
+    // whole bar height (ORV-192).
+    const bars = canvasElement.querySelectorAll<HTMLElement>(".ds-progress__bar");
+    await expect(bars).toHaveLength(6 * 4);
+    for (const bar of bars) {
+      const cell = bar.closest<HTMLElement>("[data-matrix-cell]");
+      if (!cell) throw new Error("a bar sits outside its matrix cell");
+      const probe = cell.appendChild(document.createElement("span"));
+      probe.style.background = "var(--ds-border-subtle)";
+      const subtle = getComputedStyle(probe).backgroundColor;
+      probe.remove();
+      const style = getComputedStyle(bar);
+      for (const side of ["Top", "Right", "Bottom", "Left"] as const) {
+        await expect(style[`border${side}Width`]).toBe("0px");
+      }
+      await expect(style.backgroundColor).toBe(subtle);
+      const fill = bar.querySelector<HTMLElement>(".ds-progress__fill");
+      await expect(fill?.getBoundingClientRect().height).toBe(bar.getBoundingClientRect().height);
+    }
   },
 };

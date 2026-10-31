@@ -18,6 +18,8 @@ rules:
   - "Remove is a real button beside the label with its own accessible name, never nested in the toggle"
   - "A selectable tag (`selected`, `defaultSelected` or `onSelectedChange`) is a toggle button; selected adds a check and a heavier edge, not colour alone"
   - "A long label truncates with the full text in `title`"
+  - "Style A, soft pill (ORV-192 row 13): sunken fill, `border.subtle` hairline, label in `type.body.sm` (md) or `type.body.xs` (sm) at weight 400; the remove is a round button inside the pill"
+  - "Hover shows on the edge of a selectable tag only; the fill never changes on hover"
 a11y:
   - 'Remove button reachable by keyboard and named "Remove {label}" from the locale catalog'
   - "Selectable tag exposes aria-pressed; Space and Enter toggle"

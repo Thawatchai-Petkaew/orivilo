@@ -1,6 +1,6 @@
-# ORIVILO brand spec v1.3 (working hypothesis)
+# ORIVILO brand spec v1.5 (working hypothesis)
 
-Status: hypothesis approved by GOLF on 2026-10-21 for continued work ("ดำเนินการต่อเลย เอาตามที่คุณแนะนำ"). Not a cleared brand: see §8 for the tests still open. Supersedes the palette and type sections of `orivilo-brand-identity-v1.md`; the strategy and voice sections there still apply. The visual case study lives on the "ORIVILO brand identity case study" canvas; the method is in `brand-ci-method.md`. v1.2 (2026-10-31): the signature is violet (owner, ORV-118 comment 10336); see §10. v1.3 (2026-10-31): the mark's opening is 110° and the dot is as wide as the stroke (owner, ORV-118 comments 10375 and 10376); see §11.
+Status: hypothesis approved by GOLF on 2026-10-21 for continued work ("ดำเนินการต่อเลย เอาตามที่คุณแนะนำ"). Not a cleared brand: see §8 for the tests still open. Supersedes the palette and type sections of `orivilo-brand-identity-v1.md`; the strategy and voice sections there still apply. The visual case study lives on the "ORIVILO brand identity case study" canvas; the method is in `brand-ci-method.md`. v1.2 (2026-10-31): the signature is violet (owner, ORV-118 comment 10336); see §10. v1.3 (2026-10-31): the mark's opening is 110° and the dot is as wide as the stroke (owner, ORV-118 comments 10375 and 10376); see §11. v1.4 (2026-10-31): the dot is radius 21 in every form (owner, ORV-192 row 5); see §12. v1.5 (2026-10-31): the dot is radius 19 in every form, a little smaller (owner, ORV-192 row 5); see §13.
 
 ## 1. Idea
 
@@ -14,9 +14,9 @@ File: `assets/orivilo-mark.svg` (150 × 150 grid, ring outer diameter 135, 7.5 u
 | ------- | ------------------------------------------------------------------------------------------------------------------------- |
 | Ring    | centre (75, 77.5), radius 52.5, stroke 30, round caps; bottom at y = 145                                                  |
 | Opening | 110°, centred 55° above the horizontal on the right; the lower end is on the horizontal through the centre, (127.5, 77.5) |
-| Dot     | diameter equals the stroke (radius 15 in the master) on the ring centreline at the opening                                |
+| Dot     | radius 19 (diameter 38, 1.27 x the master stroke) on the ring centreline at the opening, in every form                    |
 | Colours | ring ink #16151D or paper #F2F1EC; dot violet #7A22C7 on paper, #B07FEE on ink                                            |
-| Small   | ≤ 24 px: stroke 32 to 34 and the dot grows with it (diameter 32 to 34, radius 16 to 17); the dot keeps its colour         |
+| Small   | ≤ 24 px: the stroke grows to 32 and 34, the dot stays radius 19; the dot keeps its colour                                 |
 | Clear   | X = 30 units (the stroke) on every side                                                                                   |
 | Minimum | 16 px favicon · 24 px UI · 48 px app icon · 8 mm print                                                                    |
 
@@ -110,3 +110,11 @@ The owner kept the mark and asked for two changes (ORV-118 comment 10375) and pi
 The dot's diameter now equals the ring stroke in each form: 34 in form 16 (radius 17), 32 in form 24 (radius 16), 30 in the master (radius 15, as drawn in the brand files). The opening widens from 80° to 110°, one arc in every form: `M 57.04 28.17 A 52.5 52.5 0 1 0 127.5 77.5`. The dot's centre (105.11, 34.49), the ring's centre and radius, the round caps, the stroke ladder 34 / 32 / 30 and every colour are unchanged. The gap between the dot and a cap is 1.54 px at 16 px and 2.2 px at 20 px, and at 16 px and scale 1 the pixel toward the upper cap is the canvas.
 
 A wider opening is a little more like a spinner's arc; the lineup with three outsiders (§8) stays the test for that read. The two brand files `orivilo-mark.svg` and `orivilo-lockup.svg` draw the master and carry the new arc with the dot at radius 15.
+
+## 12. Changes in v1.4
+
+The owner asked for a bigger dot so it balances the ring (ORV-192 comment 10388, row 5); the choice among sizes was left to the designer's recommendation, candidate D2. The dot is radius 21 (diameter 42) in every form, 0.7 x the master stroke, where v1.3 (§11) set its diameter equal to the stroke (radius 17, 16 and 15). The dot's centre (105.11, 34.49), the ring, the opening, the stroke ladder 34 / 32 / 30 and every colour are unchanged. The gap between the dot and the nearer cap is 12.48, 11.48 and 10.48 units in the three forms: 2.66 px at 32 px, 1.84 px at 24 px and 1.12 px at 16 px, where v1.3 gave 3.94, 2.64 and 1.54. At 16 px and scale 1 the pixel toward the upper cap is still the canvas. The wordmark's i-dots stay radius 15. The two brand files `orivilo-mark.svg` and `orivilo-lockup.svg` carry the dot at radius 21. Superseded by §13: the dot is radius 19.
+
+## 13. Changes in v1.5
+
+The owner viewed the radius 21 dot of §12 in Storybook and asked for it a little smaller (ORV-192 row 5, "ลดลงอีก นิด"). The dot is radius 19 (diameter 38) in every form, 0.63 x the master stroke, so §12's radius 21 is superseded. The dot's centre (105.11, 34.49), the ring, the opening, the stroke ladder 34 / 32 / 30 and every colour are unchanged. The gap between the dot and the nearer cap is 14.48, 13.48 and 12.48 units in the three forms: 3.09 px at 32 px, 2.16 px at 24 px and 1.33 px at 16 px, where §12 gave 2.66, 1.84 and 1.12. At 16 px and scale 1 the pixel toward the upper cap is still the canvas. The wordmark's i-dots stay radius 15. The two brand files `orivilo-mark.svg` and `orivilo-lockup.svg` carry the dot at radius 19.

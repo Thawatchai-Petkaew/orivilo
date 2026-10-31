@@ -6,7 +6,60 @@ import { useMessages } from "../../i18n/LocaleProvider";
 import { Button } from "../button/Button";
 import { fixtures } from "../fixtures";
 import { Matrix } from "../matrix";
+import {
+  expectFocusElevationForm,
+  expectTitleOverText,
+  resolvedColor,
+} from "../../testing/visual-asserts";
 import { type ToastEntry, type ToastOptions, Toaster, ToastRegion, toast } from "./Toast";
+
+/**
+ * ORV-192 row 17: in every toast with a description, the text is 4 px under the title in the
+ * inverse ground's secondary ink.
+ */
+function expectDescriptionPair(item: Element) {
+  const title = item.querySelector(".ds-toast__title");
+  const text = item.querySelector(".ds-toast__description");
+  if (!title) throw new Error("the toast has no title");
+  if (!text) return;
+  expectTitleOverText(title, text, { gap: 4 });
+  expect(getComputedStyle(text).color).toBe(resolvedColor(item, "--ds-text-on-inverse-secondary"));
+  // An action keeps 8 px above it: the content gap of 4 plus its 4 px margin.
+  const action = item.querySelector(".ds-toast__action");
+  if (action) {
+    const gap = action.getBoundingClientRect().top - text.getBoundingClientRect().bottom;
+    expect(
+      Math.abs(gap - 8),
+      `the action is ${gap} px under the text, not 8 px`,
+    ).toBeLessThanOrEqual(0.5);
+  }
+}
+
+/**
+ * ORV-192 row 11: the title's first line and the status icon centre on the close button's centre
+ * line, within 0.5 px, whether the toast has a description, an action or only a title.
+ */
+function expectCentredOnClose(item: Element) {
+  const close = item.querySelector(".ds-toast__close");
+  const title = item.querySelector<HTMLElement>(".ds-toast__title");
+  if (!close || !title) throw new Error("the toast has no close button or title");
+  const centre = close.getBoundingClientRect().top + close.getBoundingClientRect().height / 2;
+  const lineHeight = parseFloat(getComputedStyle(title).lineHeight);
+  const first = title.getBoundingClientRect().top + lineHeight / 2;
+  expect(
+    Math.abs(first - centre),
+    `the title's first line is ${first - centre} px off`,
+  ).toBeLessThanOrEqual(0.5);
+  const icon = item.querySelector(".ds-toast__icon");
+  if (icon) {
+    const box = icon.getBoundingClientRect();
+    const off = box.top + box.height / 2 - centre;
+    expect(
+      Math.abs(off),
+      `the icon is ${off} px off the close button's centre`,
+    ).toBeLessThanOrEqual(0.5);
+  }
+}
 
 const body = () => within(document.body);
 const toastsOpen = () => document.querySelectorAll('.ds-toast[data-state="open"]');
@@ -70,6 +123,10 @@ export const Default: Story = {
     await expect(body().getByRole("button", { name: "เลิกทำ" })).toBeVisible();
     // Focus does not jump to the toast when it appears.
     await expect(trigger).toHaveFocus();
+    // Elevation form (ORV-192 rows 9 and 19): the toast keeps its shadow and gains a 1 px line and
+    // halo in the profile's brand, on the page
+    const toast = title.closest<HTMLElement>(".ds-toast") as HTMLElement;
+    await expectFocusElevationForm(toast);
     await userEvent.keyboard("{Escape}");
     await waitFor(() => expect(title).not.toBeInTheDocument());
   },
@@ -220,6 +277,8 @@ export const At360: Story = {
     await expect(Math.round(f.right - t.right)).toBeGreaterThan(0);
     await expect(t.left).toBeGreaterThanOrEqual(f.left);
     await expect(t.bottom).toBeLessThanOrEqual(f.bottom);
+    expectCentredOnClose(item);
+    expectDescriptionPair(item);
   },
 };
 
@@ -291,5 +350,9 @@ export const RecipesAndModes: Story = {
   ),
   play: async ({ canvasElement }) => {
     await waitFor(() => expect(canvasElement.querySelectorAll(".ds-toast")).toHaveLength(18));
+    for (const item of canvasElement.querySelectorAll(".ds-toast")) {
+      expectCentredOnClose(item);
+      expectDescriptionPair(item);
+    }
   },
 };

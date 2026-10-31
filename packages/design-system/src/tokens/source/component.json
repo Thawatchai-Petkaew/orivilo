@@ -515,7 +515,7 @@
     "body-bleed": {
       "$type": "dimension",
       "$value": "{space.inline.sm}",
-      "$description": "How far the scrolling body bleeds past its box so a control's focus ring (2 px plus a 2 px gap) is not clipped"
+      "$description": "How far the scrolling body bleeds past its box so a control's focus line and halo (4 px at most, ORV-192 row 9) are not clipped"
     },
     "title-type": {
       "$type": "typography",
@@ -559,7 +559,7 @@
     "$description": "A short notice that does not block (E4-5): saved, generation failed",
     "description": {
       "$type": "color",
-      "$value": "{text.on-inverse}"
+      "$value": "{text.on-inverse-secondary}"
     },
     "shadow": {
       "$type": "shadow",
@@ -649,12 +649,12 @@
     },
     "description-fg": {
       "$type": "color",
-      "$value": "{text.on-inverse}",
-      "$description": "The second line; the inverse ground has no muted step that keeps 4.5, so it differs by type, not colour"
+      "$value": "{text.on-inverse-secondary}",
+      "$description": "The second line, one step under the content's ink (ORV-192 row 17)"
     },
     "description-type": {
       "$type": "typography",
-      "$value": "{type.body.sm}"
+      "$value": "{type.body.xs}"
     },
     "line-gap": {
       "$type": "dimension",
@@ -1034,7 +1034,7 @@
       },
       "description-type": {
         "$type": "typography",
-        "$value": "{type.label.sm}"
+        "$value": "{type.body.xs}"
       },
       "icon-size": {
         "$type": "dimension",
@@ -1614,11 +1614,11 @@
     },
     "padding-x": {
       "$type": "dimension",
-      "$value": "{space.inline.sm}"
+      "$value": "{space.inline.md}"
     }
   },
   "toggle": {
-    "$description": "ToggleGroup, segmented: a sunken track; the pressed item is a raised card chip with a ring and heavier text, never a selection tint or the canvas violet, so it reads the same under every profile (ORV-65)",
+    "$description": "ToggleGroup, segmented: a sunken track; the pressed item is a raised card chip with text.primary ink and a soft lift, no ring, never a selection tint or the canvas violet, so it reads the same under every profile (ORV-65, ORV-192 row 12)",
     "bg": {
       "$type": "color",
       "$value": "{surface.sunken}"
@@ -1646,10 +1646,6 @@
     "fg-pressed": {
       "$type": "color",
       "$value": "{text.primary}"
-    },
-    "border-pressed": {
-      "$type": "color",
-      "$value": "{border.subtle}"
     },
     "fg-disabled": {
       "$type": "color",
@@ -1992,6 +1988,14 @@
       "$value": "{text.secondary}",
       "$description": "The state word under the block name"
     },
+    "tile-name-type": {
+      "$type": "typography",
+      "$value": "{type.label.md}"
+    },
+    "tile-state-type": {
+      "$type": "typography",
+      "$value": "{type.body.sm}"
+    },
     "tile-radius": {
       "$type": "dimension",
       "$value": "{shape.media.radius}"
@@ -2045,6 +2049,10 @@
     "question-type": {
       "$type": "typography",
       "$value": "{type.label.md}"
+    },
+    "note-type": {
+      "$type": "typography",
+      "$value": "{type.body.sm}"
     }
   },
   "inspector": {
@@ -2138,11 +2146,11 @@
     "$description": "How far a job has got (E4-5): a bar, a label and the value as text",
     "track": {
       "$type": "color",
-      "$value": "{surface.sunken}"
+      "$value": "{border.subtle}"
     },
     "fill": {
       "$type": "color",
-      "$value": "{action.primary}"
+      "$value": "{text.brand}"
     },
     "done": {
       "$type": "color",
@@ -2177,27 +2185,23 @@
     "value-type": {
       "$type": "typography",
       "$value": "{type.label.md}"
-    },
-    "track-border": {
-      "$type": "color",
-      "$value": "{border.control}"
     }
   },
   "tag": {
-    "$description": "A removable or selectable label the user chose (E4-5): a reference, a filter, a mention",
+    "$description": "A removable or selectable label the user chose (E4-5): a reference, a filter, a mention. Style A, soft pill (ORV-192 row 13): sunken fill, hairline edge, regular-weight label, the remove a circle inside the pill",
     "bg": {
       "$type": "color",
       "$value": "{surface.sunken}"
-    },
-    "bg-hover": {
-      "$type": "color",
-      "$value": "{surface.hover}"
     },
     "fg": {
       "$type": "color",
       "$value": "{text.primary}"
     },
     "border": {
+      "$type": "color",
+      "$value": "{border.subtle}"
+    },
+    "border-hover": {
       "$type": "color",
       "$value": "{border.control}"
     },
@@ -2221,9 +2225,21 @@
       "$type": "color",
       "$value": "{text.secondary}"
     },
+    "remove-fg-hover": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    },
     "remove-bg-hover": {
       "$type": "color",
-      "$value": "{surface.hover}"
+      "$value": "{surface.card}"
+    },
+    "remove-size": {
+      "$type": "dimension",
+      "$value": "{size.icon.lg}"
+    },
+    "remove-radius": {
+      "$type": "dimension",
+      "$value": "{shape.control.radius}"
     },
     "radius": {
       "$type": "dimension",
@@ -2260,11 +2276,11 @@
     "type": {
       "sm": {
         "$type": "typography",
-        "$value": "{type.label.sm}"
+        "$value": "{type.body.xs}"
       },
       "md": {
         "$type": "typography",
-        "$value": "{type.label.md}"
+        "$value": "{type.body.sm}"
       }
     }
   },

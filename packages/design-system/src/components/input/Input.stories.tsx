@@ -48,7 +48,7 @@ export const Sizes: Story = {
   },
 };
 
-/** Hover and focus-visible via the play function; the focused edge is `focus.ring` plus the global ring. */
+/** Hover and focus-visible via the play function; the focused edge is the brand border plus its halo (ORV-192 row 9). */
 /** A synthetic pointer sets no `:hover`, so `parameters.pseudo` forces the hover look (spec ORV-84, `hover-force-1`). */
 export const InteractionStates: Story = {
   parameters: { pseudo: { rootSelector: "body", hover: ['[data-testid="hover"]'] } },

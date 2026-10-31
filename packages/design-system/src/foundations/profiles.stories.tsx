@@ -45,6 +45,7 @@ const runtimeProbe = new Profile(
     $decisions: { shape: "rounded", surfaceTreatment: "flat" },
     semantic: {
       surface: { selected: { $value: { light: "{color.blue.50}", dark: "{color.blue.950}" } } },
+      focus: { ring: { $value: { light: "{color.blue.700}", dark: "{color.blue.300}" } } },
       text: {
         link: { $value: { light: "{color.blue.700}", dark: "{color.blue.300}" } },
         "link-hover": { $value: { light: "{color.blue.900}", dark: "{color.blue.200}" } },
@@ -208,7 +209,7 @@ function ProfilesPage({ mode, profile }: { mode: Mode; profile: ProfileId }) {
   return (
     <Page
       title={`Profiles, ${mode} mode`}
-      lead="A profile is a semantic overlay (DESIGN.md §5): it changes the value behind existing names inside its DesignProfileBoundary and may bring primitive ramps of its own. It never adds a name, never changes a base primitive, and never touches feedback or focus. It must override every identity token (the shell's violet and lime), and it never carries the Studio's intent action, which renders as the profile's primary action inside the boundary. The two profiles here are hand-made interpretations (handoff §19), not customer brands. Every declared contrast pair is tested under each profile in both modes by profiles.test.ts."
+      lead="A profile is a semantic overlay (DESIGN.md §5): it changes the value behind existing names inside its DesignProfileBoundary and may bring primitive ramps of its own. It never adds a name, never changes a base primitive, and never touches feedback. It must override every identity token (the shell's violet and lime), which includes restating focus.ring as its own primary action, and it never carries the Studio's intent action, which renders as the profile's primary action inside the boundary. The two profiles here are hand-made interpretations (handoff §19), not customer brands. Every declared contrast pair is tested under each profile in both modes by profiles.test.ts."
     >
       <Section title="The same spec sheet under each profile">
         <div className="grid gap-4 lg:grid-cols-3">
@@ -365,6 +366,13 @@ const meta = {
         expect(read("text.on-intent"), `text.on-intent under ${id}`).toBe(read("text.on-action"));
       } else {
         expect(read("action.intent")).not.toBe(read("action.primary"));
+      }
+      // Row 9: focus.ring carries ORIVILO's identity, so a runtime profile restates it as its own primary action.
+      if (id === runtimeProbe.id) {
+        expect(runtimeProbe.validate(), "the runtime probe passes Profile.validate").toEqual([]);
+        expect(read("focus.ring"), "runtime probe focus.ring is its action.primary").toBe(
+          read("action.primary"),
+        );
       }
     }
   },

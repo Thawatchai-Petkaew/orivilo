@@ -190,3 +190,15 @@ Keep this table in step with the folder when you add an entry.
 | [[K-0093-owasp-llm-top-10-2026-attack-classes-and-prevention]]                    | 0.75       | LLM Top 10 2026 attacks and fixes per entry; interpreter reading      |
 | [[K-0094-untitled-ui-react-logo-components]]                                      | 0.8        | Untitled UI logo: 2 components, no props, className size, no name     |
 | [[K-0095-open-ring-and-dot-marks-in-use]]                                         | 0.6        | Lead: ring and dot marks read; none upper right; registers unread     |
+| [[K-0096-untitled-ui-title-and-supporting-text-pair]]                             | 0.8        | Untitled: weight and colour step; gap 0 to 8 px (own arithmetic)      |
+| [[K-0097-shadcn-ui-title-and-description-pair]]                                   | 0.8        | shadcn: 500 or 600 over muted text-sm; 2 or 8 px gap (own arithmetic) |
+| [[K-0098-material-3-dialog-headline-and-supporting-text]]                         | 0.8        | M3 dialog: 24 over 14 on-surface-variant, no weight step, 16dp gap    |
+| [[K-0099-apple-hig-headline-equals-body-size-weight-step]]                        | 0.8        | Apple: Headline and Body share size and leading; weight step only     |
+| [[K-0100-carbon-notification-title-subtitle-and-body-sets]]                       | 0.8        | Carbon: 14/600 over 14/400, one colour; body 14/20, compact 14/18     |
+| [[K-0101-atlassian-heading-body-pairing-and-paragraph-spacing]]                   | 0.8        | Atlassian: bold heading, body 14/20 and 16/24, paragraph gap 12, 16   |
+| [[K-0102-wcag-2-2-text-spacing-and-line-spacing]]                                 | 0.8        | WCAG 2.2: survive 1.5 line height (AA); 1.5 floor at AAA (1.4.8)      |
+| [[K-0103-ibm-type-scale-thai-at-95-percent-same-line-height]]                     | 0.8        | IBM: Thai at 95% on Latin line height; 1.50 to 1.58 (own arithmetic)  |
+| [[K-0104-thai-is-a-tall-script-with-stacked-marks]]                               | 0.8        | Thai is tall (Material, no values); W3C: up to 4 glyphs plus tone     |
+| [[K-0105-thai-and-uk-readers-prefer-1-5-or-double-line-spacing]]                  | 0.7        | Thai and UK readers prefer 1.5 or double spacing (abstract only)      |
+| [[K-0106-informal-test-tall-scripts-clip-at-1-1-line-height]]                     | 0.5        | Lead: tall scripts clip at 1.1, fixed at 1.6 (informal test)          |
+| [[K-0107-synthesis-title-supporting-text-and-paragraph-line-height]]              | 0.75       | Synthesis: weight step 13 of 14; body 1.29 to 1.625 (own arithmetic)  |

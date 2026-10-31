@@ -264,14 +264,14 @@ export const Checkable: Story = {
     await userEvent.click(minimap);
     await expect(minimap).toHaveAttribute("aria-checked", "true");
     await expect(body().getByRole("menu")).toBeInTheDocument();
-    // Highlighted by the pointer and checked shows the focus ring, so it reads apart from checked.
+    // Highlighted by the pointer and checked shows the focus line, so it reads apart from checked.
     await userEvent.hover(minimap);
     await waitFor(() => expect(minimap).toHaveAttribute("data-highlighted"));
-    // The ring sits inside the selected fill (offset -2px), not the global focus ring's outer gap,
+    // The line sits inside the selected fill (offset -1px), not the global focus line outside the box,
     // so it shows for a pointer too, where :focus-visible does not apply.
     await expect(getComputedStyle(minimap).outlineStyle).toBe("solid");
-    await expect(getComputedStyle(minimap).outlineOffset).toBe("-2px");
-    await expect(getComputedStyle(grid).outlineOffset).not.toBe("-2px");
+    await expect(getComputedStyle(minimap).outlineOffset).toBe("-1px");
+    await expect(getComputedStyle(grid).outlineOffset).not.toBe("-1px");
     // AC 4: arrows move, Enter and Space toggle.
     minimap.focus();
     await userEvent.keyboard("{ArrowUp}");

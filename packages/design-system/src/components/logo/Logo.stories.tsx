@@ -250,20 +250,19 @@ export const SmallSizes: Story = {
       ).toBe(strokes[i]);
       // The small forms read the small dot and the master the master dot: one violet under neutral.
       expectColours(svg, colours);
-      // The dot is as wide as the ring (half its stroke wide) and the ring has the G2 arc.
-      expect(
-        Number(svg.querySelector(".ds-logo__dot")?.getAttribute("r")) * 2,
-        `${at}: dot diameter is the ring stroke`,
-      ).toBe(Number(strokes[i]));
+      // The dot is radius 19 at every height (ORV-192 row 5) and the ring has the G2 arc.
+      expect(svg.querySelector(".ds-logo__dot")?.getAttribute("r"), `${at}: dot radius`).toBe("19");
       expect(svg.querySelector(".ds-logo__ring")?.getAttribute("d"), `${at}: ring arc`).toBe(
         G2_ARC,
       );
     }
     const radii = logos.map((svg) => svg.querySelector(".ds-logo__dot")?.getAttribute("r"));
-    expect(radii.join(" ")).toBe("17 17 17 16 16 15 15 15");
+    expect(radii.join(" ")).toBe("19 19 19 19 19 19 19 19");
     // The 16 px mark at scale 1, in light, dark and one-colour: the pixel up and left of the dot,
     // toward the upper cap, is the canvas, and the one down and right, toward the lower cap, is
-    // within 24 of it, so the dot stands apart from both caps (design row 2, sign-off F2).
+    // within 24 of it, so the dot stands apart from both caps (design row 2, sign-off F2). The
+    // dot is radius 19 now (ORV-192 row 5): pixel (12, 5) is inside it, so the second probe sits
+    // at (13, 5).
     const small = logoAt(canvasElement, "mark", 16);
     for (const [mode, paint] of [
       ["light", NEUTRAL_LIGHT],
@@ -282,7 +281,7 @@ export const SmallSizes: Story = {
           return Math.hypot(px[0] - ground[0], px[1] - ground[1], px[2] - ground[2]);
         };
         expect(off(8, 3), `${at}: pixel (8, 3) is the canvas`).toBe(0);
-        expect(off(12, 5), `${at}: pixel (12, 5) is within 24 of the canvas`).toBeLessThanOrEqual(
+        expect(off(13, 5), `${at}: pixel (13, 5) is within 24 of the canvas`).toBeLessThanOrEqual(
           24,
         );
       }

@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 663 150">
   <!-- mark box 150 and wordmark box 150, bottom-aligned; ring bottom = baseline (y = 145); gap 40 -->
   <path d="M 57.04 28.17 A 52.5 52.5 0 1 0 127.5 77.5" fill="none" stroke="#16151D" stroke-width="30" stroke-linecap="round"/>
-  <circle cx="105.11" cy="34.49" r="15" fill="#D9F66F"/>
+  <circle cx="105.11" cy="34.49" r="19" fill="#D9F66F"/>
   <g transform="translate(190,45)">
   <g fill="none" stroke="#16151D" stroke-width="24" stroke-linecap="butt" stroke-linejoin="round">
     <circle cx="52" cy="50" r="40"/>

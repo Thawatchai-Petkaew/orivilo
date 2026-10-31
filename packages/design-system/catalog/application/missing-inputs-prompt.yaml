@@ -19,6 +19,7 @@ rules:
   - "Saving writes the answer to the node at once; the node's count and every downstream node update from the same derived rules"
   - "Skip moves on without writing; an empty or malformed answer is not saved and the field says why"
   - "Image inputs say uploads come later and offer skip only; nothing pretends to upload"
+  - "Title over supporting text (ORV-192 row 17): one size, title 500 in the ground's primary ink, text 400 in its secondary ink, 4 px apart"
 a11y:
   - "A group named for the node; each question is a labelled field; Enter saves"
   - "Each save is announced in a status line; the k of n line is text, not a bar"

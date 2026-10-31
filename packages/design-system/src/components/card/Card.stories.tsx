@@ -3,6 +3,7 @@ import { expect, userEvent, waitFor, within } from "storybook/test";
 import { Badge } from "../badge/Badge";
 import { Button } from "../button/Button";
 import { fixtures } from "../fixtures";
+import { expectFocusBorderForm } from "../../testing/visual-asserts";
 import { Matrix, Narrow } from "../matrix";
 import { Card, CardFooter, CardTitle, CardValue } from "./Card";
 
@@ -39,6 +40,12 @@ export const Default: Story = {
       </CardFooter>
     </Card>
   ),
+  play: async ({ canvasElement }) => {
+    // ORV-192 row 18: the paragraph has no type token of its own, so it takes the boundary's body
+    // type, 16 / 1.7 (27.2 px), not Tailwind's 16 / 1.5 (24 px).
+    const paragraph = canvasElement.querySelector("article p") as HTMLElement;
+    await expect(getComputedStyle(paragraph).lineHeight).toBe("27.2px");
+  },
 };
 
 /** The whole card is one button; its text is its name. Selected renders `aria-pressed` (AC 8). */
@@ -114,6 +121,8 @@ export const InteractionStates: Story = {
         getComputedStyle(canvas.getByTestId("default")).borderColor,
       ),
     );
+    // Border form (ORV-192 row 9): the card's own border turns focus.ring, no outline beside it.
+    await expectFocusBorderForm(canvas.getByTestId("focus"));
   },
 };
 

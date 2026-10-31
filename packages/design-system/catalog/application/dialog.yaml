@@ -24,6 +24,7 @@ rules:
   - Modal by default; `modal={false}` only for previews and the recipe matrix
   - "`container` mounts the portal inside a frame (a preview); the content still re-opens the trigger's boundary"
   - The close control sits last in reading order so first focus lands on the task, and top-right in the recipe
+  - "Title 20 / 500 primary over description 16 / 400 secondary, 8 px apart (ORV-192 row 17)"
 a11y:
   - Focus trapped while open and returned to the trigger on close; Escape closes unless pending
   - The title is the accessible name; the description is linked when given; the error has role alert

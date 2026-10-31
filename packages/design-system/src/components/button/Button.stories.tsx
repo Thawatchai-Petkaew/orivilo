@@ -100,6 +100,17 @@ export const InteractionStates: Story = {
         getComputedStyle(canvas.getByTestId("default")).backgroundColor,
       ),
     );
+    // Focus (ORV-192 row 9): the border turns to the resolved --ds-focus-ring, and a filled button adds
+    // an inset ink line beside the outer halo.
+    const probe = document.createElement("span");
+    probe.style.color = "var(--ds-focus-ring)";
+    canvas.getByTestId("focus").appendChild(probe);
+    const ring = getComputedStyle(probe).color;
+    probe.remove();
+    await waitFor(() =>
+      expect(getComputedStyle(canvas.getByTestId("focus")).borderTopColor).toBe(ring),
+    );
+    await expect(getComputedStyle(canvas.getByTestId("focus")).boxShadow).toContain("inset");
   },
 };
 
@@ -409,5 +420,7 @@ export const RecipesAndModes: Story = {
     await expect(grid.getBoundingClientRect().width).toBe(
       surface.getBoundingClientRect().width - 32,
     );
+    // The surface pads the grid by 16 on top too: `layout: "padded"` (spec ORV-192, row 10).
+    await expect(grid.getBoundingClientRect().top).toBe(surface.getBoundingClientRect().top + 16);
   },
 };

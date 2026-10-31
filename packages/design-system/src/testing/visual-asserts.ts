@@ -8,6 +8,7 @@ import { expect } from "storybook/test";
  */
 
 export type Side = "top" | "right" | "bottom" | "left";
+type Side4 = "Top" | "Right" | "Bottom" | "Left";
 export type Rgb = readonly [number, number, number];
 
 /** A pixel counts as ink when it differs from both backgrounds by more than this (sum over RGB). */
@@ -29,6 +30,15 @@ export function inkWidth(line: readonly Rgb[], devicePixelRatio: number): number
     (px) => distance(px, outside) > INK_DISTANCE && distance(px, inside) > INK_DISTANCE,
   );
   return ink.length / devicePixelRatio;
+}
+
+/**
+ * The index of the first row that holds a pixel more than `INK_DISTANCE` from `ground`, or null
+ * when every row is plain ground. Used to find where a line of text starts to draw.
+ */
+export function firstInkRow(rows: readonly (readonly Rgb[])[], ground: Rgb): number | null {
+  const at = rows.findIndex((row) => row.some((px) => distance(px, ground) > INK_DISTANCE));
+  return at === -1 ? null : at;
 }
 
 export interface Corner {
@@ -305,6 +315,111 @@ export function expectSameHeight(el: Element, ...siblings: Element[]) {
   }
 }
 
+/**
+ * Asserts a title over its supporting text (ORV-192 row 17): the text starts `gap` px under the
+ * title (within 0.5), the title is 500 and the text 400, and their inks differ. A compact pair has
+ * one size; a header pair (`header: true`) has a 20 px title over 16 px text. `titleBottom` is for a
+ * title that is a bare text node (the Tooltip's content): pass the bottom of its line box.
+ */
+export function expectTitleOverText(
+  title: Element,
+  text: Element,
+  { gap, header = false, titleBottom }: { gap: number; header?: boolean; titleBottom?: number },
+) {
+  const bottom = titleBottom ?? title.getBoundingClientRect().bottom;
+  const actual = text.getBoundingClientRect().top - bottom;
+  expect(
+    Math.abs(actual - gap),
+    `${label(text)} starts ${actual} px under its title, not ${gap} px`,
+  ).toBeLessThanOrEqual(0.5);
+  const t = getComputedStyle(title);
+  const x = getComputedStyle(text);
+  expect(t.fontWeight, `${label(title)} weight`).toBe("500");
+  expect(x.fontWeight, `${label(text)} weight`).toBe("400");
+  if (header) {
+    expect(parseFloat(t.fontSize), `${label(title)} size`).toBe(20);
+    expect(parseFloat(x.fontSize), `${label(text)} size`).toBe(16);
+  } else {
+    expect(x.fontSize, `${label(text)} is the size of its title`).toBe(t.fontSize);
+  }
+  expect(x.color, `${label(text)} reads in a different ink than its title`).not.toBe(t.color);
+}
+
+/** The colour a semantic token resolves to at `el`, as the browser computes it (`rgb(...)`). */
+export function resolvedColor(el: Element, token: string): string {
+  const probe = document.createElement("span");
+  probe.style.color = `var(${token})`;
+  el.append(probe);
+  const color = getComputedStyle(probe).color;
+  probe.remove();
+  return color;
+}
+
+/**
+ * The border form of focus (ORV-192 row 9, DESIGN.md "Every focusable control"): under keyboard
+ * focus the element's own border turns `focus.ring` on each of `sides` (all four by default), the
+ * other sides stay 0 px wide so no second line sits anywhere (the side sheet has one border, on its
+ * open edge: `["Left"]` in a left-to-right page), the outline stays transparent so no line sits
+ * beside the border, and a 3 px halo touches the border. The element's rest elevation, if it has
+ * one, stays first in the shadow list. Puts focus back where it was.
+ */
+export async function expectFocusBorderForm(
+  el: HTMLElement,
+  sides: readonly Side4[] = ["Top", "Right", "Bottom", "Left"],
+) {
+  const rest = getComputedStyle(el).boxShadow;
+  const before = document.activeElement;
+  el.focus();
+  expect(el.matches(":focus-visible"), `${label(el)} matches :focus-visible`).toBe(true);
+  // A border-color transition (Card) is still running right after focus; read the settled look.
+  await Promise.all(el.getAnimations().map((a) => a.finished));
+  const style = getComputedStyle(el);
+  const ring = resolvedColor(el, "--ds-focus-ring");
+  for (const side of ["Top", "Right", "Bottom", "Left"] as const) {
+    if (sides.includes(side)) {
+      expect(style[`border${side}Color`], `${label(el)} border ${side} is focus.ring`).toBe(ring);
+      expect(parseFloat(style[`border${side}Width`]), `${label(el)} border ${side} width`).toBe(1);
+    } else {
+      expect(parseFloat(style[`border${side}Width`]), `${label(el)} border ${side} width`).toBe(0);
+    }
+  }
+  // No second line beside the border: the outline is transparent, or a library already set it to none.
+  if (style.outlineStyle !== "none") {
+    expect(style.outlineColor, `${label(el)} outline is transparent`).toBe("rgba(0, 0, 0, 0)");
+  }
+  expect(style.boxShadow, `${label(el)} halo is 3 px`).toMatch(/ 0px 0px 0px 3px$/);
+  if (rest !== "none")
+    expect(style.boxShadow.startsWith(rest), `${label(el)} keeps its elevation`).toBe(true);
+  if (before instanceof HTMLElement && before !== document.body) before.focus();
+  else el.blur();
+}
+
+/**
+ * The elevation form of focus (ORV-192 row 9): the element keeps its rest shadow, first in the list,
+ * and gains a 4 px halo after it, with a 1 px outline in `ink` (`focus.ring` unless the element sits
+ * on a ground where the brand is not readable). Puts focus back where it was.
+ */
+export async function expectFocusElevationForm(
+  el: HTMLElement,
+  ink = resolvedColor(el, "--ds-focus-ring"),
+) {
+  const rest = getComputedStyle(el).boxShadow;
+  expect(rest, `${label(el)} has an elevation at rest`).not.toBe("none");
+  const before = document.activeElement;
+  el.focus();
+  expect(el.matches(":focus-visible"), `${label(el)} matches :focus-visible`).toBe(true);
+  // A border-color transition (Card) is still running right after focus; read the settled look.
+  await Promise.all(el.getAnimations().map((a) => a.finished));
+  const style = getComputedStyle(el);
+  expect(style.boxShadow.startsWith(rest), `${label(el)} keeps its elevation`).toBe(true);
+  expect(style.boxShadow, `${label(el)} adds the halo`).toMatch(/ 0px 0px 0px 4px$/);
+  expect(style.outlineWidth, `${label(el)} outline width`).toBe("1px");
+  expect(style.outlineStyle, `${label(el)} outline style`).toBe("solid");
+  expect(style.outlineColor, `${label(el)} outline colour`).toBe(ink);
+  if (before instanceof HTMLElement && before !== document.body) before.focus();
+  else el.blur();
+}
+
 const px = (value: string, basis: number) => {
   const n = parseFloat(value);
   return value.trim().endsWith("%") ? (n / 100) * basis : n;
@@ -403,4 +518,71 @@ export function expectNoGlyphClip(el: Element) {
     }
   }
   expect(checked, `${label(el)} has no text under a clipping ancestor to check`).toBeGreaterThan(0);
+}
+
+/**
+ * Asserts the first ink of `el`'s first line starts at least `px` CSS px below the bottom of
+ * `above` (ORV-192 row 19). Thai marks such as the ฟื้ stack rise above the line box, so a box
+ * check cannot see them; this reads them. `above` is hidden while one screenshot of the nearest
+ * ancestor holding both boxes is taken (restored in `finally`), the ground is the pixel 1 CSS px
+ * inside the top left of `above`, and the rows from the top of `above` down to the bottom of
+ * `el`'s first line are scanned over `el`'s columns. It runs where Vitest browser mode runs; a play
+ * guards the call with `inVitest`.
+ */
+export async function expectInkClearsAbove(el: Element, above: Element, px = 4) {
+  const holds = (a: DOMRect, r: DOMRect) =>
+    a.left <= r.left && a.top <= r.top && a.right >= r.right && a.bottom >= r.bottom;
+  const aboveRect = above.getBoundingClientRect();
+  const rect = el.getBoundingClientRect();
+  const both = new DOMRect(
+    Math.min(rect.left, aboveRect.left),
+    Math.min(rect.top, aboveRect.top),
+    Math.max(rect.right, aboveRect.right) - Math.min(rect.left, aboveRect.left),
+    Math.max(rect.bottom, aboveRect.bottom) - Math.min(rect.top, aboveRect.top),
+  );
+  let scope: Element = el;
+  while (scope.parentElement && !holds(scope.getBoundingClientRect(), both)) {
+    scope = scope.parentElement;
+  }
+  const hidden = above as HTMLElement;
+  const previous = hidden.style.visibility;
+  hidden.style.visibility = "hidden";
+  try {
+    const { data, width } = await shoot(scope);
+    const frame = scope.getBoundingClientRect();
+    const scale = width / frame.width;
+    const style = getComputedStyle(el);
+    const lineHeight = parseFloat(style.lineHeight);
+    const firstLineBottom = Number.isNaN(lineHeight)
+      ? rect.bottom
+      : Math.min(rect.bottom, rect.top + parseFloat(style.paddingTop) + lineHeight);
+    const pixel = (x: number, y: number): Rgb => {
+      const at = (y * width + x) * 4;
+      return [data[at] ?? 0, data[at + 1] ?? 0, data[at + 2] ?? 0];
+    };
+    const ground = pixel(
+      Math.round((aboveRect.left + 1 - frame.left) * scale),
+      Math.round((aboveRect.top + 1 - frame.top) * scale),
+    );
+    const top = Math.round((aboveRect.top - frame.top) * scale);
+    const bottom = Math.round((firstLineBottom - frame.top) * scale);
+    const left = Math.round((rect.left - frame.left) * scale);
+    const right = Math.round((rect.right - frame.left) * scale);
+    const rows: Rgb[][] = [];
+    for (let y = top; y < bottom; y++) {
+      const row: Rgb[] = [];
+      for (let x = left; x < right; x++) row.push(pixel(x, y));
+      rows.push(row);
+    }
+    const found = firstInkRow(rows, ground);
+    expect(found, `${label(el)} draws no ink in its first line`).not.toBeNull();
+    const gap = (top + (found ?? 0)) / scale + frame.top - aboveRect.bottom;
+    const read = Math.round(gap * 10) / 10;
+    expect(
+      read,
+      `${label(el)} ink starts ${read} px under ${label(above)}, expected at least ${px} px`,
+    ).toBeGreaterThanOrEqual(px);
+  } finally {
+    hidden.style.visibility = previous;
+  }
 }

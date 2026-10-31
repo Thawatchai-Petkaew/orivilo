@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect } from "storybook/test";
+import { expectInkClearsAbove, inVitest } from "../testing/visual-asserts";
 
 interface Step {
   role: string;
@@ -11,31 +12,32 @@ interface Step {
 const SCALE: readonly Step[] = [
   {
     role: "Display 56",
-    className: "font-display text-display-lg font-semibold",
-    spec: "56 / 1.2, weight 600",
+    className: "font-display text-display-lg",
+    spec: "56 / 1.2, weight 500",
   },
   {
     role: "Display 32",
-    className: "font-display text-display-md font-semibold",
-    spec: "32 / 1.25, weight 600",
+    className: "font-display text-display-md",
+    spec: "32 / 1.25, weight 500",
   },
-  { role: "Body 20", className: "font-body text-body-lg", spec: "20 / 1.5, weight 400" },
+  { role: "Body 20", className: "font-body text-body-lg", spec: "20 / 1.7, weight 400" },
   { role: "Body 16", className: "font-body text-body-md", spec: "16 / 1.7, weight 400" },
-  { role: "Body 14", className: "font-body text-body-sm", spec: "14 / 1.6, weight 400" },
-  { role: "Mono 14", className: "font-mono text-body-sm", spec: "14 / 1.6, weight 400" },
+  { role: "Body 14", className: "font-body text-body-sm", spec: "14 / 1.7, weight 400" },
+  { role: "Mono 14", className: "font-mono text-body-sm", spec: "14 / 1.7, weight 400" },
 ];
 
-const SAMPLE = "ระบบตั้งใจ Intent Engine ตีความแบรนด์ให้เป็นผลิตภัณฑ์ที่มีชีวิต 0123";
+const SAMPLE = "ฟื้นฟูแบรนด์ด้วยระบบตั้งใจ Intent Engine ให้เป็นผลิตภัณฑ์ที่มีชีวิต 0123";
 const LONG_THAI = "บริษัทออริวิโลเทคโนโลยีสร้างสรรค์จำกัดมหาชนสาขากรุงเทพมหานคร";
 
 function TypographyPage() {
   return (
     <div className="mx-auto max-w-5xl p-6">
-      <h1 className="font-display text-display-md font-semibold">Typography</h1>
+      <h1 className="font-display text-display-md">Typography</h1>
       <p className="mt-2 max-w-prose text-text-secondary">
-        Thai and Latin on the same line at each step of the scale. Loopless Anuphan at 24 px and
-        above, looped Sarabun below with Latin and digits in IBM Plex Sans. Fonts are self-hosted
-        from this package. No letter-spacing and no text-transform on Thai.
+        Thai and Latin on the same line at each step of the scale. Thai is looped Sarabun at every
+        size, headings included, with Latin and digits in IBM Plex Sans, in every profile. Code
+        takes Sarabun for Thai too. Fonts are self-hosted from this package. No letter-spacing and
+        no text-transform on Thai.
       </p>
       <dl className="mt-8 space-y-8">
         {SCALE.map((step) => (
@@ -47,7 +49,7 @@ function TypographyPage() {
           </div>
         ))}
       </dl>
-      <h2 className="mt-10 font-display text-body-lg font-semibold">
+      <h2 className="mt-10 font-display text-heading-sm">
         Fixture lines every component must survive
       </h2>
       <ul className="mt-3 space-y-2">
@@ -80,7 +82,9 @@ type Story = StoryObj<typeof meta>;
 
 /**
  * The body role sets Thai in looped Sarabun and Latin in IBM Plex Sans (ORV-58): the stack names
- * Plex first, and the self-hosted Sarabun face loads for a Thai character.
+ * Plex first, and the self-hosted Sarabun face loads for a Thai character. The display role takes
+ * the same family (ORV-192 row 15), so a Thai heading is Sarabun at 500 too. The mono role names
+ * Sarabun after IBM Plex Mono, so Thai in code is Sarabun as well (row 16).
  */
 export const Scale: Story = {
   play: async ({ canvasElement }) => {
@@ -91,5 +95,62 @@ export const Scale: Story = {
     await expect(thai.map((f) => f.family.replaceAll('"', ""))).toContain("Sarabun");
     const latin = await document.fonts.load("400 16px Sarabun", "A");
     await expect(latin).toHaveLength(0);
+    for (const cls of [".text-display-lg", ".text-display-md"]) {
+      const display = canvasElement.querySelector<HTMLElement>(cls);
+      await expect(getComputedStyle(display as HTMLElement).fontFamily, cls).toMatch(
+        /^"IBM Plex Sans", Sarabun,/,
+      );
+    }
+    const mono = canvasElement.querySelector<HTMLElement>(".font-mono");
+    if (!mono) throw new Error("no mono sample");
+    await expect(getComputedStyle(mono).fontFamily).toMatch(/^"IBM Plex Mono", Sarabun,/);
+    const weight = (el: Element | null) => getComputedStyle(el as HTMLElement).fontWeight;
+    for (const cls of [".text-display-lg", ".text-display-md", "h1", "h2"]) {
+      await expect(weight(canvasElement.querySelector(cls)), cls).toBe("500");
+    }
+    for (const cls of [".text-body-lg", ".text-body-md", ".text-body-sm"]) {
+      await expect(weight(canvasElement.querySelector(cls)), cls).toBe("400");
+    }
+    // ORV-192 row 18: running text is 1.7 at every body size, which clears Sarabun's stacked marks.
+    const lineHeight = (cls: string) =>
+      getComputedStyle(canvasElement.querySelector(cls) as HTMLElement).lineHeight;
+    await expect(lineHeight(".text-body-lg")).toBe("34px");
+    await expect(lineHeight(".text-body-md")).toBe("27.2px");
+    await expect(lineHeight(".text-body-sm")).toBe("23.8px");
+    // ORV-192 row 19: display type pads its own top, so the tallest Thai stack (ฟื้, the first word
+    // of the sample) clears the caption above the line.
+    for (const [cls, padding] of [
+      [".text-display-lg", "24px"],
+      [".text-display-md", "16px"],
+    ] as const) {
+      const row = canvasElement.querySelector<HTMLElement>(`dl ${cls}`) as HTMLElement;
+      if (inVitest) {
+        await expectInkClearsAbove(row, row.previousElementSibling as Element, 4);
+      }
+      await expect(getComputedStyle(row).paddingTop, cls).toBe(padding);
+    }
+    const medium = await document.fonts.load("500 20px Sarabun", "ก");
+    await expect(medium.map((f) => f.family.replaceAll('"', ""))).toContain("Sarabun");
+    const display = await document.fonts.load("500 56px Sarabun", "ก");
+    await expect(display.map((f) => f.family.replaceAll('"', ""))).toContain("Sarabun");
+  },
+};
+
+/**
+ * ORV-192 row 16: Friendly sets no heading in another family, so its display and heading lines
+ * read the same Plex Sans stack with Sarabun for Thai, not Anuphan.
+ */
+export const Friendly: Story = {
+  globals: { profile: "friendly" },
+  play: async ({ canvasElement }) => {
+    const lines = canvasElement.querySelectorAll<HTMLElement>(
+      ".text-display-lg, .text-display-md, h1, h2",
+    );
+    await expect(lines.length).toBeGreaterThanOrEqual(3);
+    for (const line of lines) {
+      await expect(getComputedStyle(line).fontFamily, line.className).toMatch(
+        /^"IBM Plex Sans", Sarabun,/,
+      );
+    }
   },
 };

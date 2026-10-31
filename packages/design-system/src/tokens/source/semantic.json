@@ -226,6 +226,22 @@
         }
       }
     },
+    "on-inverse-secondary": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.gray.400}",
+        "dark": "{color.gray.600}"
+      },
+      "$description": "Supporting text on surface.inverse, one step under text.on-inverse (ORV-192 row 17)",
+      "$extensions": {
+        "orivilo": {
+          "contrast": {
+            "against": "surface.inverse",
+            "floor": 4.5
+          }
+        }
+      }
+    },
     "link": {
       "$type": "color",
       "$value": {
@@ -521,26 +537,24 @@
     "ring": {
       "$type": "color",
       "$value": {
-        "light": "{color.gray.900}",
-        "dark": "{color.gray.100}"
+        "light": "{color.violet.600}",
+        "dark": "{color.violet.400}"
       },
-      "$description": "2 px ring with a 2 px gap, on any ground",
+      "$description": "The profile's brand colour on a focused control: its own 1 px border turns to it, or a 1 px line on its edge where it has none; the primitive of action.primary in every set (ORV-192 row 9)",
       "$extensions": {
         "orivilo": {
           "contrast": {
             "against": "surface.canvas",
             "floor": 3
-          }
+          },
+          "scope": "identity"
         }
       }
     },
-    "offset": {
-      "$type": "color",
-      "$value": {
-        "light": "{color.gray.50}",
-        "dark": "{color.gray.900}"
-      },
-      "$description": "The gap colour between ring and control"
+    "halo-opacity": {
+      "$type": "number",
+      "$value": "{opacity.focus-halo}",
+      "$description": "Share of focus.ring in the 3 px halo that touches the focus line, no gap (ORV-192 row 9)"
     }
   },
   "brand": {
@@ -933,20 +947,20 @@
       "lg": {
         "$type": "typography",
         "$value": {
-          "fontFamily": "{font.family.anuphan}",
+          "fontFamily": "{font.family.plex-sans}",
           "fontSize": "{font.size.56}",
           "lineHeight": "{font.line-height.1-2}",
-          "fontWeight": "{font.weight.600}",
+          "fontWeight": "{font.weight.500}",
           "letterSpacing": "{font.letter-spacing.normal}"
         }
       },
       "md": {
         "$type": "typography",
         "$value": {
-          "fontFamily": "{font.family.anuphan}",
+          "fontFamily": "{font.family.plex-sans}",
           "fontSize": "{font.size.32}",
           "lineHeight": "{font.line-height.1-25}",
-          "fontWeight": "{font.weight.600}",
+          "fontWeight": "{font.weight.500}",
           "letterSpacing": "{font.letter-spacing.normal}"
         }
       }
@@ -958,7 +972,7 @@
           "fontFamily": "{font.family.plex-sans}",
           "fontSize": "{font.size.24}",
           "lineHeight": "{font.line-height.1-3}",
-          "fontWeight": "{font.weight.600}",
+          "fontWeight": "{font.weight.500}",
           "letterSpacing": "{font.letter-spacing.normal}"
         }
       },
@@ -968,7 +982,7 @@
           "fontFamily": "{font.family.plex-sans}",
           "fontSize": "{font.size.20}",
           "lineHeight": "{font.line-height.1-5}",
-          "fontWeight": "{font.weight.600}",
+          "fontWeight": "{font.weight.500}",
           "letterSpacing": "{font.letter-spacing.normal}"
         }
       }
@@ -979,7 +993,7 @@
         "$value": {
           "fontFamily": "{font.family.plex-sans}",
           "fontSize": "{font.size.20}",
-          "lineHeight": "{font.line-height.1-5}",
+          "lineHeight": "{font.line-height.1-7}",
           "fontWeight": "{font.weight.400}",
           "letterSpacing": "{font.letter-spacing.normal}"
         }
@@ -999,10 +1013,21 @@
         "$value": {
           "fontFamily": "{font.family.plex-sans}",
           "fontSize": "{font.size.14}",
-          "lineHeight": "{font.line-height.1-6}",
+          "lineHeight": "{font.line-height.1-7}",
           "fontWeight": "{font.weight.400}",
           "letterSpacing": "{font.letter-spacing.normal}"
         }
+      },
+      "xs": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "{font.family.plex-sans}",
+          "fontSize": "{font.size.13}",
+          "lineHeight": "{font.line-height.1-7}",
+          "fontWeight": "{font.weight.400}",
+          "letterSpacing": "{font.letter-spacing.normal}"
+        },
+        "$description": "The smallest body size: 13 px regular, for compact chips such as the sm Tag (ORV-192 row 13)"
       }
     },
     "label": {
@@ -1046,7 +1071,7 @@
           "fontFamily": "{font.family.plex-sans}",
           "fontSize": "{font.size.40}",
           "lineHeight": "{font.line-height.1}",
-          "fontWeight": "{font.weight.600}",
+          "fontWeight": "{font.weight.500}",
           "letterSpacing": "{font.letter-spacing.tight}"
         }
       },
@@ -1056,7 +1081,7 @@
           "fontFamily": "{font.family.plex-sans}",
           "fontSize": "{font.size.32}",
           "lineHeight": "{font.line-height.1}",
-          "fontWeight": "{font.weight.600}",
+          "fontWeight": "{font.weight.500}",
           "letterSpacing": "{font.letter-spacing.tight}"
         }
       }
@@ -1140,8 +1165,8 @@
   "font": {
     "display": {
       "$type": "fontFamily",
-      "$value": "{font.family.anuphan}",
-      "$description": "Display role, loopless Thai at 24 px and above"
+      "$value": "{font.family.plex-sans}",
+      "$description": "Display role: the body family, so a Thai heading is looped Sarabun and Latin is IBM Plex Sans in every profile (owner, ORV-192 rows 15 and 16)"
     },
     "body": {
       "$type": "fontFamily",

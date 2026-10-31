@@ -7,6 +7,7 @@ import { blockNode, feed } from "../block-library/fixtures";
 import { CanvasBoard } from "../canvas-board/CanvasBoard";
 import type { Graph } from "../canvas-board/graph";
 import { Matrix } from "../matrix";
+import { expectTitleOverText } from "../../testing/visual-asserts";
 import { MissingInputsPrompt } from "./MissingInputsPrompt";
 
 function answer(graph: Graph, nodeId: string, inputId: string, value: Answer): Graph {
@@ -198,6 +199,11 @@ export const ImagesLater: Story = {
     );
     await expect(prompt.getByText("การอัปโหลดภาพมาในงานถัดไป ข้ามข้อนี้ไปก่อนได้")).toBeVisible();
     await expect(prompt.queryByRole("button", { name: "บันทึก" })).toBeNull();
+    // ORV-192 row 17: the note is a compact pair with the question, 14 / 400 under 14 / 500, 4 px apart.
+    const question = canvasElement.querySelector(".ds-prompt__question");
+    const note = canvasElement.querySelector(".ds-prompt__note");
+    if (!question || !note) throw new Error("the prompt has no question or note");
+    expectTitleOverText(question, note, { gap: 4 });
   },
 };
 

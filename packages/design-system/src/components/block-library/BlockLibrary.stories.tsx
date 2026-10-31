@@ -9,16 +9,19 @@ import { fixtureJobs } from "../fixtures";
 import { fillHeight, Matrix, Narrow as NarrowFrame } from "../matrix";
 import { TaskBar } from "../task-bar/TaskBar";
 import { BlockLibrary } from "./BlockLibrary";
+import { expectTitleOverText } from "../../testing/visual-asserts";
 import { MIDWAY } from "./fixtures";
 
 /** The shell's side for stories: the graph in state, and `placeBlock` for each placed tile. */
 function ShelfBoard({
   initial = MIDWAY,
   height = 640,
+  status,
   children,
 }: {
   initial?: Graph;
   height?: number;
+  status?: string | undefined;
   children?: ReactNode;
 }) {
   const [graph, setGraph] = useState(initial);
@@ -30,6 +33,7 @@ function ShelfBoard({
         label={`กระดาน Intent Studio${scope ? `, ${id} ${scope.mode}` : ""}`}
         graph={graph}
         onChange={setGraph}
+        status={status}
       >
         <BlockLibrary
           onPlace={(block, position) =>
@@ -85,11 +89,23 @@ const expectCentred = (board: HTMLElement) => {
   expect(Math.abs(s.left - c.left)).toBeLessThanOrEqual(1);
 };
 
-/** shelf-rise-1: the shelf's bottom edge sits this far above the board's bottom edge (neutral profile). */
-const expectRise = (board: HTMLElement, rise: number) => {
-  const b = board.getBoundingClientRect();
+/** The gap above the canvas controls, `--ds-space-inset-md` (recipes.css, anchored to the controls). */
+const CLEAR = 16;
+
+/**
+ * shelf-clear-1 (ORV-192, row 2): the shelf's bottom edge sits CLEAR above the canvas controls' top
+ * edge at any number of control rows (the controls wrap to two rows under 657 px and three at 320),
+ * with or without the task bar. A fixed rise above the board's bottom overlapped the second row by
+ * 14 px at 360. Pass `status` to check the board status line against the controls the same way.
+ */
+const expectClear = (board: HTMLElement, status = false) => {
+  const c = part(board, ".react-flow__panel.ds-controls");
   const s = part(board, SHELF);
-  expect(Math.abs(b.bottom - s.bottom - rise)).toBeLessThanOrEqual(1);
+  expect(Math.abs(c.top - s.bottom - CLEAR)).toBeLessThanOrEqual(1);
+  if (status) {
+    const t = part(board, ".ds-board__status");
+    expect(Math.abs(c.top - t.bottom - CLEAR)).toBeLessThanOrEqual(1);
+  }
 };
 
 const boardOf = (root: HTMLElement) => root.querySelector<HTMLElement>(".ds-board") as HTMLElement;
@@ -97,7 +113,7 @@ const boardOf = (root: HTMLElement) => root.querySelector<HTMLElement>(".ds-boar
 const FIRST_TILE = "โลโก้ที่มีอยู่";
 const LAST_TILE = "สองทิศทาง";
 
-/** The 2 px outline and the 2 px offset of `:focus-visible` (orivilo.css). */
+/** The halo reaches 3 px outside the tile's border (ORV-192 row 9); 4 is kept as the global reach of `:focus-visible` (orivilo.css). */
 const RING_REACH = 4;
 
 /**
@@ -135,6 +151,54 @@ const expectRings = async (root: HTMLElement) => {
   ).toBeLessThanOrEqual(0.5);
   await userEvent.keyboard("{End}");
   await expectRingWhole(root, LAST_TILE);
+  // Leave the story as it opens (ORV-192, row 6): the row at its start and no tile focused, or the
+  // last tile's ring and a shelf scrolled to its end are what the Storybook UI shows after the play.
+  const g = root.querySelector<HTMLElement>(".ds-shelf__groups") as HTMLElement;
+  g.scrollLeft = 0;
+  (document.activeElement as HTMLElement | null)?.blur();
+  await expect(g.scrollLeft).toBe(0);
+  await expect(tile(root, LAST_TILE)).not.toHaveFocus();
+};
+
+/** The gap `scroll-padding` keeps at a scrolled-to edge: --ds-space-inline-sm, 4 px (recipes.css, `.ds-shelf__groups`). */
+const SCROLL_GAP = 4;
+
+/**
+ * shelf-scrollpad-1 (ORV-192, row 3): a tile that scrolls into view from outside the row stops
+ * SCROLL_GAP short of the end edge when it comes from the right, and short of the start edge when it
+ * comes from the left. Without `scroll-padding` the tile lands flush on the edge. The tiles picked
+ * are neither the first nor the last, since the row's own padding already gives those their gap.
+ */
+const expectScrollPadding = async (root: HTMLElement) => {
+  const g = root.querySelector<HTMLElement>(".ds-shelf__groups") as HTMLElement;
+  const tiles = [...g.querySelectorAll<HTMLElement>("button")].slice(1, -1);
+  // The row must overflow, or there is nothing to scroll into view.
+  expect(g.scrollWidth).toBeGreaterThan(g.clientWidth);
+  g.scrollLeft = 0;
+  const fromRight = tiles.find(
+    (t) => t.getBoundingClientRect().left >= g.getBoundingClientRect().right,
+  );
+  if (!fromRight) throw new Error("no tile starts past the row's end edge");
+  fromRight.scrollIntoView({ inline: "nearest", block: "nearest", behavior: "instant" });
+  await waitFor(() =>
+    expect(
+      Math.abs(
+        g.getBoundingClientRect().right - fromRight.getBoundingClientRect().right - SCROLL_GAP,
+      ),
+    ).toBeLessThanOrEqual(0.5),
+  );
+  g.scrollLeft = g.scrollWidth;
+  const fromLeft = [...tiles]
+    .reverse()
+    .find((t) => t.getBoundingClientRect().right <= g.getBoundingClientRect().left);
+  if (!fromLeft) throw new Error("no tile ends before the row's start edge");
+  fromLeft.scrollIntoView({ inline: "nearest", block: "nearest", behavior: "instant" });
+  await waitFor(() =>
+    expect(
+      Math.abs(fromLeft.getBoundingClientRect().left - g.getBoundingClientRect().left - SCROLL_GAP),
+    ).toBeLessThanOrEqual(0.5),
+  );
+  g.scrollLeft = 0;
 };
 
 /**
@@ -178,9 +242,15 @@ export const Default: Story = {
     await expect(
       tile(canvasElement, "สีตั้งต้น").querySelectorAll(".ds-node__swatch"),
     ).toHaveLength(2);
+    // ORV-192 row 17: a tile's name and state are a compact pair, 14 / 500 over 14 / 400, 4 px apart.
+    const summarized = tile(canvasElement, "สีตั้งต้น");
+    const name = summarized.querySelector(".ds-shelf__name");
+    const state = summarized.querySelector(".ds-shelf__state");
+    if (!name || !state) throw new Error("the tile has no name or state");
+    expectTitleOverText(name, state, { gap: 4 });
     // ORV-190: the shelf is centred on the board, on the controls' start edge, at its old height.
     expectCentred(boardOf(canvasElement));
-    expectRise(boardOf(canvasElement), 88);
+    expectClear(boardOf(canvasElement));
     await expectRings(canvasElement);
   },
 };
@@ -189,7 +259,7 @@ export const Default: Story = {
 export const Narrow: Story = {
   render: () => (
     <NarrowFrame>
-      <ShelfBoard />
+      <ShelfBoard status="วางบล็อกแล้ว" />
     </NarrowFrame>
   ),
   play: async ({ canvasElement }) => {
@@ -197,6 +267,12 @@ export const Narrow: Story = {
     const board = boardOf(canvasElement);
     await expect(Math.round(board.getBoundingClientRect().width)).toBe(360);
     expectCentred(board);
+    // The controls wrap to two rows at 360, and the shelf and the status line clear both.
+    const controls = part(board, ".react-flow__panel.ds-controls");
+    await expect(controls.height).toBeGreaterThan(
+      2 * part(board, ".react-flow__panel.ds-controls button").height,
+    );
+    expectClear(board, true);
     const s = part(board, SHELF);
     const inShelf = within(shelf(canvasElement));
     for (const el of [
@@ -207,6 +283,7 @@ export const Narrow: Story = {
       await expect(box.left).toBeGreaterThanOrEqual(s.left);
       await expect(box.right).toBeLessThanOrEqual(s.right);
     }
+    await expectScrollPadding(canvasElement);
     await expectRings(canvasElement);
   },
 };
@@ -225,7 +302,7 @@ export const WithTaskBar: Story = {
     await ready(canvasElement);
     const board = boardOf(canvasElement);
     expectCentred(board);
-    expectRise(board, 162);
+    expectClear(board);
     const s = part(board, SHELF);
     const bar = part(board, ".ds-taskbar");
     await expect(Math.abs(s.left - bar.left)).toBeLessThanOrEqual(1);
@@ -355,6 +432,8 @@ export const RecipesAndModes: Story = {
       await expect(b.height).toBe(520);
       const s = part(board, SHELF);
       await expect(Math.abs(s.left - b.left - (b.right - s.right))).toBeLessThanOrEqual(1);
+      // ORV-192 row 2: the same gap above the controls under every profile and mode.
+      expectClear(board);
     }
   },
 };

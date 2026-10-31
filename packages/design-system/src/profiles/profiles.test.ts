@@ -52,6 +52,7 @@ const IDENTITY_OVERRIDES = {
     bg: { $value: { light: "{color.blue.50}", dark: "{color.blue.950}" } },
     fg: { $value: { light: "{color.blue.700}", dark: "{color.blue.300}" } },
   },
+  focus: { ring: { $value: { light: "{color.blue.700}", dark: "{color.blue.300}" } } },
   brand: {
     signature: { $value: { light: "{color.blue.600}", dark: "{color.blue.400}" } },
     "dot-small": { $value: { light: "{color.blue.700}", dark: "{color.blue.400}" } },
@@ -110,6 +111,186 @@ describe("the shipped profiles", () => {
         );
         expect(changed).toEqual(["action.primary", "surface.canvas", "shape.control.radius"]);
       });
+    });
+  }
+});
+
+/**
+ * ORV-192 row 9. Focus takes the brand hue: the ring is the primitive behind the action.primary
+ * of the same set, in both modes, so the focused line reads as the colour a user sees on controls.
+ */
+describe("focus.ring is the action.primary primitive under every set and mode (ORV-192 row 9)", () => {
+  const sets = [
+    { id: "neutral", tokens },
+    ...profiles.map((p) => ({ id: p.id, tokens: p.tokens })),
+  ];
+  for (const set of sets) {
+    for (const mode of MODES) {
+      it(`${set.id}, ${mode}`, () => {
+        const ring = set.tokens.get("semantic", "focus.ring");
+        const primary = set.tokens.get("semantic", "action.primary");
+        if (!ring || !primary) throw new Error("focus.ring or action.primary is missing");
+        expect(set.tokens.resolve(ring, mode).value).toEqual(
+          set.tokens.resolve(primary, mode).value,
+        );
+        expect(set.tokens.resolve(ring, mode).chain).toEqual(
+          set.tokens.resolve(primary, mode).chain,
+        );
+      });
+    }
+  }
+});
+
+/**
+ * ORV-192 row 7. A browser draws a weight only from the faces the loaded files carry (fonts.css):
+ * a value between two faces splits a Thai and Latin line across two faces, so the line looks uneven.
+ */
+const WEIGHTS_BY_FAMILY: Record<string, readonly number[]> = {
+  "IBM Plex Sans": [400, 500, 600],
+  "IBM Plex Mono": [400, 500],
+};
+
+describe("type weights", () => {
+  const sets = [
+    { id: "neutral", set: tokens },
+    ...profiles.map((p) => ({ id: p.id, set: p.tokens })),
+  ];
+
+  for (const { id, set } of sets) {
+    it(`under ${id}, every type.* weight is one its stack carries`, () => {
+      const types = set.layer("semantic").filter((t) => t.path.startsWith("type."));
+      expect(types.length).toBeGreaterThanOrEqual(12);
+      for (const t of types) {
+        const v = set.resolve(t, "light").value as { fontFamily: string[]; fontWeight: number };
+        const allowed = WEIGHTS_BY_FAMILY[v.fontFamily[0] ?? ""];
+        expect(allowed, `${t.path} has a known first family`).toBeDefined();
+        expect(allowed, `${t.path} weight ${v.fontWeight}`).toContain(Number(v.fontWeight));
+      }
+    });
+
+    it(`under ${id}, display, heading and numeral are 500 and body and code are 400`, () => {
+      const weight = (path: string) => {
+        const token = set.get("semantic", path);
+        if (!token) throw new Error(`no semantic token ${path}`);
+        return Number((set.resolve(token, "light").value as { fontWeight: number }).fontWeight);
+      };
+      for (const path of [
+        "type.display.lg",
+        "type.display.md",
+        "type.heading.md",
+        "type.heading.sm",
+        "type.numeral.lg",
+        "type.numeral.md",
+        "type.label.md",
+        "type.label.sm",
+      ]) {
+        expect(weight(path), path).toBe(500);
+      }
+      for (const path of ["type.body.lg", "type.body.md", "type.body.sm", "type.code.md"]) {
+        expect(weight(path), path).toBe(400);
+      }
+    });
+  }
+});
+
+/**
+ * ORV-192 row 16 (owner, comment 10401; supersedes the row 15 Friendly exception). Thai renders in
+ * Sarabun in every profile and every type token. The browser takes the first family that carries
+ * the glyph, so each stack names its Latin face first and Sarabun second: IBM Plex Sans for the
+ * sans roles, IBM Plex Mono for code. No stack names Anuphan or IBM Plex Sans Thai.
+ */
+describe("Thai face (row 16)", () => {
+  const LATIN_FACE = ["IBM Plex Sans", "IBM Plex Mono"];
+  const sets = [
+    { id: "neutral", set: tokens },
+    ...profiles.map((p) => ({ id: p.id, set: p.tokens })),
+  ];
+
+  const stacks = (set: (typeof sets)[number]["set"]) =>
+    set
+      .layer("semantic")
+      .filter((t) => t.path.startsWith("type.") || t.path.startsWith("font."))
+      .map((t) => {
+        const value = set.resolve(t, "light").value as string[] | { fontFamily: string[] };
+        return { path: t.path, family: Array.isArray(value) ? value : value.fontFamily };
+      });
+
+  for (const { id, set } of sets) {
+    it(`under ${id}, every type.* token and font.* family leads Thai to Sarabun`, () => {
+      const found = stacks(set);
+      expect(found.length).toBeGreaterThanOrEqual(15);
+      for (const { path: p, family } of found) {
+        expect(LATIN_FACE, `${p} Latin face`).toContain(family[0]);
+        expect(family[1], `${p} Thai face`).toBe("Sarabun");
+        expect(family, `${p} names no other Thai face`).not.toContain("Anuphan");
+        expect(family, `${p} names no other Thai face`).not.toContain("IBM Plex Sans Thai");
+      }
+    });
+  }
+
+  it("covers the neutral standard, Professional and Friendly", () => {
+    expect(sets.map((s) => s.id).sort()).toEqual(["friendly", "neutral", "professional"]);
+  });
+});
+
+/**
+ * Sarabun's stacks reach 1.25 em above the baseline and its lower vowels 0.33 em below, so a line
+ * height under 1.7 lets a stack such as ที่ touch the ุ of the line above (measured, ORV-192 row 18).
+ */
+describe("running text clears Thai marks (row 18)", () => {
+  const sets = [
+    { id: "neutral", set: tokens },
+    ...profiles.map((p) => ({ id: p.id, set: p.tokens })),
+  ];
+  for (const { id, set } of sets) {
+    it(`under ${id}, every type.body.* line height is at least 1.7`, () => {
+      const body = set.layer("semantic").filter((t) => t.path.startsWith("type.body."));
+      expect(body.map((t) => t.path).sort()).toEqual([
+        "type.body.lg",
+        "type.body.md",
+        "type.body.sm",
+        "type.body.xs",
+      ]);
+      for (const t of body) {
+        const { lineHeight } = set.resolve(t, "light").value as { lineHeight: number };
+        expect(lineHeight, t.path).toBeGreaterThanOrEqual(1.7);
+      }
+    });
+  }
+});
+
+/**
+ * Display type pads its own top by `space.stack.lg` (56 px) and `space.stack.md` (32 px) so the
+ * tallest Thai stack (ฟื้) stays clear of what sits above it. The padding was sized from the ink
+ * measured at these sizes and line heights; a change to any of them needs the ink re-measured
+ * (docs/specs/ORV-192/design.md, row 19).
+ */
+describe("display stack clearance (row 19)", () => {
+  const sets = [
+    { id: "neutral", set: tokens },
+    ...profiles.map((p) => ({ id: p.id, set: p.tokens })),
+  ];
+  const dimension = (value: unknown) => {
+    const v = value as { value: number; unit?: string } | number | string;
+    return typeof v === "object" ? v.value : parseFloat(String(v));
+  };
+  for (const { id, set } of sets) {
+    const resolve = (path: string) => {
+      const token = set.layer("semantic").find((t) => t.path === path);
+      if (!token) throw new Error(`no ${path} token`);
+      return set.resolve(token, "light").value;
+    };
+    it(`under ${id}, display.lg is 56 px at 1.2 or more and display.md 32 px at 1.25 or more`, () => {
+      const lg = resolve("type.display.lg") as { fontSize: string; lineHeight: number };
+      const md = resolve("type.display.md") as { fontSize: string; lineHeight: number };
+      expect(dimension(lg.fontSize), "type.display.lg size").toBe(56);
+      expect(lg.lineHeight, "type.display.lg line height").toBeGreaterThanOrEqual(1.2);
+      expect(dimension(md.fontSize), "type.display.md size").toBe(32);
+      expect(md.lineHeight, "type.display.md line height").toBeGreaterThanOrEqual(1.25);
+    });
+    it(`under ${id}, space.stack.lg is 24 px and space.stack.md 16 px`, () => {
+      expect(dimension(resolve("space.stack.lg")), "space.stack.lg").toBe(24);
+      expect(dimension(resolve("space.stack.md")), "space.stack.md").toBe(16);
     });
   }
 });
@@ -208,7 +389,7 @@ describe("Profile.validate catches", () => {
   });
 
   it("an override inside a locked group", () => {
-    for (const path of ["feedback.danger.fg", "focus.ring"]) {
+    for (const path of ["feedback.danger.fg", "canvas.grid"]) {
       const [g, ...rest] = path.split(".");
       const node = rest.reduceRight<Record<string, unknown>>((acc, key) => ({ [key]: acc }), {
         $value: { light: "{color.lime.300}", dark: "{color.lime.300}" },
@@ -349,5 +530,73 @@ describe("the decision vocabulary", () => {
         true,
       );
     }
+  });
+});
+
+/**
+ * A small cascade over the generated CSS (ORV-192 row 4). It reads every rule of tokens and
+ * profiles generated.css, keeps the ones that match one boundary element (a mode, a profile and
+ * the OS preference), and returns the custom properties that element declares itself, by
+ * specificity then source order. A property the element declares itself is reset; one it does not
+ * declare is inherited from the parent boundary.
+ */
+function declaredOn(mode: "light" | "dark" | "system", profile: string, osDark: boolean) {
+  const files = ["../tokens/generated.css", "../profiles/generated.css"];
+  const own = new Map<string, { value: string; weight: number; order: number }>();
+  let order = 0;
+  for (const file of files) {
+    const css = readFileSync(path.join(import.meta.dirname, file), "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/@theme inline \{[\s\S]*?\n\}/, "");
+    const rule = /(@media \(prefers-color-scheme: dark\) \{\s*)?([^{}@]+)\{([^{}]*)\}/g;
+    for (const m of css.matchAll(rule)) {
+      const [, media, selectors = "", body = ""] = m;
+      if (media && !osDark) continue;
+      for (const sel of selectors.split(",").map((s) => s.trim())) {
+        if (sel === ":root") continue; // the document, never a boundary element
+        const parts = [...sel.matchAll(/(:not\()?\[([a-z-]+)(?:="([^"]*)")?\]\)?/g)];
+        const attrs: Record<string, string> = { "data-mode": mode, "data-design-profile": profile };
+        const hits = parts.every((p) => {
+          const name = p[2] ?? "";
+          const equal = attrs[name] === p[3] || (p[3] === undefined && name in attrs);
+          return p[1] ? !equal : equal;
+        });
+        if (!hits) continue;
+        order += 1;
+        const weight = parts.length;
+        for (const d of body.matchAll(/(--[a-z0-9-]+):\s*([^;]+);/g)) {
+          const prev = own.get(d[1] ?? "");
+          if (!prev || weight >= prev.weight)
+            own.set(d[1] ?? "", { value: (d[2] ?? "").trim(), weight, order });
+        }
+      }
+    }
+  }
+  return own;
+}
+
+describe("a nested boundary resets every semantic value (ORV-192 row 4)", () => {
+  const semanticNames = tokens
+    .layer("semantic")
+    .flatMap((t) => tokens.declarations(t, t.raw))
+    .map((d) => d.slice(0, d.indexOf(":")));
+
+  for (const mode of ["light", "dark", "system"] as const) {
+    for (const osDark of mode === "system" ? [false, true] : [false]) {
+      for (const id of PROFILE_IDS) {
+        it(`${id} in ${mode}${osDark ? " with the OS in dark" : ""} declares every semantic token itself`, () => {
+          const own = declaredOn(mode, id, osDark);
+          const missing = semanticNames.filter((n) => !own.has(n));
+          expect(missing).toEqual([]);
+        });
+      }
+    }
+  }
+
+  it("neutral in dark inside friendly reads neutral's size, not friendly's 44px", () => {
+    const neutral = declaredOn("dark", "neutral", false);
+    const friendly = declaredOn("dark", "friendly", false);
+    expect(friendly.get("--ds-size-control-md")?.value).toBe("var(--op-size-11)");
+    expect(neutral.get("--ds-size-control-md")?.value).toBe("var(--op-size-10)");
   });
 });

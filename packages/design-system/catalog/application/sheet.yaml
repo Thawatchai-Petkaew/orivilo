@@ -18,6 +18,7 @@ rules:
   - "Portal content receives the trigger's DesignProfileBoundary; the InsideProfile story proves it"
   - "Never wider than the viewport less the gutter"
   - "The body scrolls on its own and is a Tab stop"
+  - "Title 20 / 500 primary over description 16 / 400 secondary, 8 px apart (ORV-192 row 17)"
 a11y:
   - "Focus trapped while open and returned to the trigger; Escape closes unless pending"
   - "The title is the accessible name; the error has role alert"
