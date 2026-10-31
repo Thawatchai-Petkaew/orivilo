@@ -256,6 +256,14 @@ describe("running text clears Thai marks (row 18)", () => {
         expect(lineHeight, t.path).toBeGreaterThanOrEqual(1.7);
       }
     });
+    it(`under ${id}, wrapping labels and headings clear Thai marks (ORV-194 row 6)`, () => {
+      for (const path of ["type.label.md", "type.heading.sm"]) {
+        const token = set.layer("semantic").find((t) => t.path === path);
+        if (!token) throw new Error(`no ${path} token`);
+        const { lineHeight } = set.resolve(token, "light").value as { lineHeight: number };
+        expect(lineHeight, path).toBeGreaterThanOrEqual(1.7);
+      }
+    });
   }
 });
 

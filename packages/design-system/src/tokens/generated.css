@@ -313,7 +313,7 @@
   --ds-type-heading-md-letter-spacing: var(--op-font-letter-spacing-normal);
   --ds-type-heading-sm-font-family: var(--op-font-family-plex-sans);
   --ds-type-heading-sm-font-size: var(--op-font-size-20);
-  --ds-type-heading-sm-line-height: var(--op-font-line-height-1-5);
+  --ds-type-heading-sm-line-height: var(--op-font-line-height-1-7);
   --ds-type-heading-sm-font-weight: var(--op-font-weight-500);
   --ds-type-heading-sm-letter-spacing: var(--op-font-letter-spacing-normal);
   --ds-type-body-lg-font-family: var(--op-font-family-plex-sans);
@@ -338,7 +338,7 @@
   --ds-type-body-xs-letter-spacing: var(--op-font-letter-spacing-normal);
   --ds-type-label-md-font-family: var(--op-font-family-plex-sans);
   --ds-type-label-md-font-size: var(--op-font-size-14);
-  --ds-type-label-md-line-height: var(--op-font-line-height-1-6);
+  --ds-type-label-md-line-height: var(--op-font-line-height-1-7);
   --ds-type-label-md-font-weight: var(--op-font-weight-500);
   --ds-type-label-md-letter-spacing: var(--op-font-letter-spacing-normal);
   --ds-type-label-sm-font-family: var(--op-font-family-plex-sans);
@@ -519,7 +519,7 @@
   --ds-type-heading-md-letter-spacing: var(--op-font-letter-spacing-normal);
   --ds-type-heading-sm-font-family: var(--op-font-family-plex-sans);
   --ds-type-heading-sm-font-size: var(--op-font-size-20);
-  --ds-type-heading-sm-line-height: var(--op-font-line-height-1-5);
+  --ds-type-heading-sm-line-height: var(--op-font-line-height-1-7);
   --ds-type-heading-sm-font-weight: var(--op-font-weight-500);
   --ds-type-heading-sm-letter-spacing: var(--op-font-letter-spacing-normal);
   --ds-type-body-lg-font-family: var(--op-font-family-plex-sans);
@@ -544,7 +544,7 @@
   --ds-type-body-xs-letter-spacing: var(--op-font-letter-spacing-normal);
   --ds-type-label-md-font-family: var(--op-font-family-plex-sans);
   --ds-type-label-md-font-size: var(--op-font-size-14);
-  --ds-type-label-md-line-height: var(--op-font-line-height-1-6);
+  --ds-type-label-md-line-height: var(--op-font-line-height-1-7);
   --ds-type-label-md-font-weight: var(--op-font-weight-500);
   --ds-type-label-md-letter-spacing: var(--op-font-letter-spacing-normal);
   --ds-type-label-sm-font-family: var(--op-font-family-plex-sans);
@@ -726,7 +726,7 @@
     --ds-type-heading-md-letter-spacing: var(--op-font-letter-spacing-normal);
     --ds-type-heading-sm-font-family: var(--op-font-family-plex-sans);
     --ds-type-heading-sm-font-size: var(--op-font-size-20);
-    --ds-type-heading-sm-line-height: var(--op-font-line-height-1-5);
+    --ds-type-heading-sm-line-height: var(--op-font-line-height-1-7);
     --ds-type-heading-sm-font-weight: var(--op-font-weight-500);
     --ds-type-heading-sm-letter-spacing: var(--op-font-letter-spacing-normal);
     --ds-type-body-lg-font-family: var(--op-font-family-plex-sans);
@@ -751,7 +751,7 @@
     --ds-type-body-xs-letter-spacing: var(--op-font-letter-spacing-normal);
     --ds-type-label-md-font-family: var(--op-font-family-plex-sans);
     --ds-type-label-md-font-size: var(--op-font-size-14);
-    --ds-type-label-md-line-height: var(--op-font-line-height-1-6);
+    --ds-type-label-md-line-height: var(--op-font-line-height-1-7);
     --ds-type-label-md-font-weight: var(--op-font-weight-500);
     --ds-type-label-md-letter-spacing: var(--op-font-letter-spacing-normal);
     --ds-type-label-sm-font-family: var(--op-font-family-plex-sans);
