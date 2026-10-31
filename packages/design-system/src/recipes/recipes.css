@@ -2140,7 +2140,7 @@
 }
 
 /* ToggleGroup, segmented (ORV-65): a sunken track; the pressed item is a raised card chip with a
- * ring and heavier text. No selection tint and no canvas violet, so the pressed item reads the same
+ * ring. No selection tint and no canvas violet, so the pressed item reads the same
  * under every profile. No bottom edge either: a transparent 2px edge lifted Thai labels off centre.
  * Inner items take the track's radius minus its padding, so pill and square profiles both nest. */
 
@@ -2191,11 +2191,10 @@
   background: var(--_hover);
   color: var(--cmp-toggle-fg-hover);
 }
-/* Pressed: the chip, its ring and a heavier weight (catalog rule: never a tint alone). */
+/* Pressed: the chip and its ring (catalog rule: never a tint alone). */
 .ds-toggle__item[data-state="on"] {
   background: var(--cmp-toggle-bg-pressed);
   color: var(--cmp-toggle-fg-pressed);
-  font-weight: var(--ds-type-heading-sm-font-weight);
   box-shadow: var(--_ring);
 }
 .ds-toggle__item:focus-visible {

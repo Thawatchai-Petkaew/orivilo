@@ -54,7 +54,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "One of a few modes (single) or any of a few switches (multiple), E4-3. Radix gives roving tabindex and the pressed semantics. Segmented (ORV-65): a sunken track, and the pressed item is a raised card chip with a ring and heavier text, the same under every profile; never a tint alone.",
+          "One of a few modes (single) or any of a few switches (multiple), E4-3. Radix gives roving tabindex and the pressed semantics. Segmented (ORV-65): a sunken track, and the pressed item is a raised card chip with a ring and text.primary ink, the same under every profile; never a tint alone.",
       },
     },
   },
@@ -72,11 +72,13 @@ export const Single: Story = {
     const select = canvas.getByRole("radio", { name: "โหมดเลือก" });
     const pan = canvas.getByRole("radio", { name: "โหมดเลื่อนกระดาน" });
     await expect(select).toHaveAttribute("data-state", "on");
-    // More than colour: the pressed chip has a ring and a heavier weight (ORV-65 AC 2).
+    // More than colour: the pressed chip has a ring and a raised ground (ORV-65 AC 2). Both items
+    // keep one weight, so a text item does not change width when it is pressed (ORV-192).
     await expect(getComputedStyle(select).boxShadow).not.toBe(getComputedStyle(pan).boxShadow);
-    await expect(Number(getComputedStyle(select).fontWeight)).toBeGreaterThan(
-      Number(getComputedStyle(pan).fontWeight),
+    await expect(getComputedStyle(select).backgroundColor).not.toBe(
+      getComputedStyle(pan).backgroundColor,
     );
+    await expect(getComputedStyle(select).fontWeight).toBe(getComputedStyle(pan).fontWeight);
     await userEvent.click(pan);
     await expect(pan).toHaveAttribute("data-state", "on");
     await expect(select).toHaveAttribute("data-state", "off");
