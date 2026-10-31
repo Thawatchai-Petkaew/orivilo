@@ -40,8 +40,9 @@ Rows 1 to 11 are slice A (the `Logo` component in `packages/design-system`), row
 ## Rows per PR
 
 - PR 165: rows 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
+- PR 170: rows 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22
 
-PR 165 is slice A (Story). Slice B, rows 12 to 22, gets its line here when the slice B PR opens.
+PR 165 is slice A (Story). PR 170 is slice B (ORV-195).
 
 ## Benchmark (component rule, ORV-137 comment 10247)
 

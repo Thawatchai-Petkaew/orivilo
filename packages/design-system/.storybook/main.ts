@@ -9,6 +9,7 @@ const config: StorybookConfig = {
     "storybook-addon-pseudo-states",
   ],
   framework: "@storybook/react-vite",
+  staticDirs: ["./static"],
 };
 
 export default config;
