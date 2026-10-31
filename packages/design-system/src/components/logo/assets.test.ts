@@ -210,6 +210,25 @@ describe("the Storybook brand image", () => {
   });
 });
 
+describe("the Storybook brand reads the generated image (row 22)", () => {
+  const source = (file: string): string =>
+    readFileSync(path.join(REPO_ROOT, "packages/design-system/.storybook", file), "utf8");
+
+  it("serves the static folder, so the built output holds orivilo-logo.svg", () => {
+    expect(source("main.ts")).toMatch(/staticDirs:\s*\[\s*"\.\/static"\s*,?\s*\]/);
+  });
+
+  it("sets the light base, the title ORIVILO and the relative brand image in the manager", () => {
+    const manager = source("manager.ts");
+    expect(manager).toContain('from "storybook/manager-api"');
+    expect(manager).toContain('from "storybook/theming/create"');
+    expect(manager).toMatch(/addons\.setConfig\(\{\s*theme:\s*create\(/);
+    expect(manager).toMatch(/base:\s*"light"/);
+    expect(manager).toMatch(/brandTitle:\s*"ORIVILO"/);
+    expect(manager).toMatch(/brandImage:\s*"\.\/orivilo-logo\.svg"/);
+  });
+});
+
 describe("the committed assets are fresh (row 21)", () => {
   it(
     "generates the four files, in order, with equal bytes on two generations",
