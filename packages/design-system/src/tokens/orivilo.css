@@ -53,6 +53,16 @@
   font-weight: var(--ds-type-body-md-font-weight);
 }
 
+/* Display type pads its own top (ORV-192 row 19): Sarabun's tallest stack (ฟื้) rises 17 px above a
+ * 56 / 1.2 line box and 8.5 px above a 32 / 1.25 one; the padding keeps it 7 px or more clear of
+ * whatever sits above. */
+.text-display-lg {
+  padding-block-start: var(--ds-space-stack-lg);
+}
+.text-display-md {
+  padding-block-start: var(--ds-space-stack-md);
+}
+
 :focus-visible {
   outline: 1px solid var(--ds-focus-ring);
   outline-offset: 0;

@@ -123,10 +123,10 @@ export const Default: Story = {
     await expect(body().getByRole("button", { name: "เลิกทำ" })).toBeVisible();
     // Focus does not jump to the toast when it appears.
     await expect(trigger).toHaveFocus();
-    // Elevation form (ORV-192 row 9): the toast keeps its shadow and gains a halo in its own ink,
-    // since the brand is not readable on the inverse ground.
+    // Elevation form (ORV-192 rows 9 and 19): the toast keeps its shadow and gains a 1 px line and
+    // halo in the profile's brand, on the page
     const toast = title.closest<HTMLElement>(".ds-toast") as HTMLElement;
-    await expectFocusElevationForm(toast, getComputedStyle(toast).color);
+    await expectFocusElevationForm(toast);
     await userEvent.keyboard("{Escape}");
     await waitFor(() => expect(title).not.toBeInTheDocument());
   },

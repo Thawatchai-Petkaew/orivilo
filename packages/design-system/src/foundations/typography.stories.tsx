@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect } from "storybook/test";
+import { expectInkClearsAbove, inVitest } from "../testing/visual-asserts";
 
 interface Step {
   role: string;
@@ -25,7 +26,7 @@ const SCALE: readonly Step[] = [
   { role: "Mono 14", className: "font-mono text-body-sm", spec: "14 / 1.7, weight 400" },
 ];
 
-const SAMPLE = "ระบบตั้งใจ Intent Engine ตีความแบรนด์ให้เป็นผลิตภัณฑ์ที่มีชีวิต 0123";
+const SAMPLE = "ฟื้นฟูแบรนด์ด้วยระบบตั้งใจ Intent Engine ให้เป็นผลิตภัณฑ์ที่มีชีวิต 0123";
 const LONG_THAI = "บริษัทออริวิโลเทคโนโลยีสร้างสรรค์จำกัดมหาชนสาขากรุงเทพมหานคร";
 
 function TypographyPage() {
@@ -116,6 +117,18 @@ export const Scale: Story = {
     await expect(lineHeight(".text-body-lg")).toBe("34px");
     await expect(lineHeight(".text-body-md")).toBe("27.2px");
     await expect(lineHeight(".text-body-sm")).toBe("23.8px");
+    // ORV-192 row 19: display type pads its own top, so the tallest Thai stack (ฟื้, the first word
+    // of the sample) clears the caption above the line.
+    for (const [cls, padding] of [
+      [".text-display-lg", "24px"],
+      [".text-display-md", "16px"],
+    ] as const) {
+      const row = canvasElement.querySelector<HTMLElement>(`dl ${cls}`) as HTMLElement;
+      if (inVitest) {
+        await expectInkClearsAbove(row, row.previousElementSibling as Element, 4);
+      }
+      await expect(getComputedStyle(row).paddingTop, cls).toBe(padding);
+    }
     const medium = await document.fonts.load("500 20px Sarabun", "ก");
     await expect(medium.map((f) => f.family.replaceAll('"', ""))).toContain("Sarabun");
     const display = await document.fonts.load("500 56px Sarabun", "ก");

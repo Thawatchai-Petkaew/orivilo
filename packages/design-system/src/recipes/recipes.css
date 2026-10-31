@@ -2911,9 +2911,14 @@
   overflow-wrap: anywhere;
   z-index: var(--cmp-side-sheet-layer);
 }
-/* Focus on the panel itself: no border, so the elevation form of ORV-192 row 9, the shadow kept under the halo. */
-.ds-side-sheet:focus-visible {
-  box-shadow: var(--cmp-side-sheet-shadow), var(--_focus-shadow);
+/* Focus on the panel itself: its one border, on the open edge, turns brand; the border form of
+   ORV-192 row 9 on that edge (row 19, sign-off 2 F2). The weight beats the data-side border
+   shorthands below, and only the open edge has a width, so only it shows. */
+.ds-side-sheet[data-side]:focus-visible {
+  border-color: var(--ds-focus-ring);
+  outline: 1px solid transparent;
+  outline-offset: 0;
+  box-shadow: var(--cmp-side-sheet-shadow), var(--_focus-shadow-border);
 }
 .ds-side-sheet[data-size="lg"] {
   width: min(var(--cmp-side-sheet-width-lg), calc(100% - var(--ds-space-gutter)));
@@ -3671,9 +3676,9 @@
 .ds-toast__close:hover {
   border-color: currentColor;
 }
-/* The brand is not readable on the inverse ground, so the line and halo take the toast's text: the
-   same shape as focus elsewhere, in the toast's ink (ORV-192 row 9). The root (a focusable li) is
-   the elevation form: it keeps its shadow and the halo joins it. */
+/* The action and close sit on the inverse ground, where the brand is not readable, so their line
+   and halo take the toast's text. The root's line and halo sit outside the toast, on the page, so
+   they take focus.ring as Dialog and Popover do (ORV-192 row 19, sign-off 2 F1). */
 .ds-toast {
   --_toast-halo: color-mix(
     in srgb,
@@ -3683,9 +3688,9 @@
   --_toast-shadow: 0 0 0 4px var(--_toast-halo);
 }
 .ds-toast:focus-visible {
-  outline: 1px solid var(--cmp-toast-fg);
+  outline: 1px solid var(--ds-focus-ring);
   outline-offset: 0;
-  box-shadow: var(--cmp-toast-shadow), var(--_toast-shadow);
+  box-shadow: var(--cmp-toast-shadow), var(--_focus-shadow);
 }
 .ds-toast__action:focus-visible,
 .ds-toast__close:focus-visible {

@@ -259,6 +259,42 @@ describe("running text clears Thai marks (row 18)", () => {
   }
 });
 
+/**
+ * Display type pads its own top by `space.stack.lg` (56 px) and `space.stack.md` (32 px) so the
+ * tallest Thai stack (ฟื้) stays clear of what sits above it. The padding was sized from the ink
+ * measured at these sizes and line heights; a change to any of them needs the ink re-measured
+ * (docs/specs/ORV-192/design.md, row 19).
+ */
+describe("display stack clearance (row 19)", () => {
+  const sets = [
+    { id: "neutral", set: tokens },
+    ...profiles.map((p) => ({ id: p.id, set: p.tokens })),
+  ];
+  const dimension = (value: unknown) => {
+    const v = value as { value: number; unit?: string } | number | string;
+    return typeof v === "object" ? v.value : parseFloat(String(v));
+  };
+  for (const { id, set } of sets) {
+    const resolve = (path: string) => {
+      const token = set.layer("semantic").find((t) => t.path === path);
+      if (!token) throw new Error(`no ${path} token`);
+      return set.resolve(token, "light").value;
+    };
+    it(`under ${id}, display.lg is 56 px at 1.2 or more and display.md 32 px at 1.25 or more`, () => {
+      const lg = resolve("type.display.lg") as { fontSize: string; lineHeight: number };
+      const md = resolve("type.display.md") as { fontSize: string; lineHeight: number };
+      expect(dimension(lg.fontSize), "type.display.lg size").toBe(56);
+      expect(lg.lineHeight, "type.display.lg line height").toBeGreaterThanOrEqual(1.2);
+      expect(dimension(md.fontSize), "type.display.md size").toBe(32);
+      expect(md.lineHeight, "type.display.md line height").toBeGreaterThanOrEqual(1.25);
+    });
+    it(`under ${id}, space.stack.lg is 24 px and space.stack.md 16 px`, () => {
+      expect(dimension(resolve("space.stack.lg")), "space.stack.lg").toBe(24);
+      expect(dimension(resolve("space.stack.md")), "space.stack.md").toBe(16);
+    });
+  }
+});
+
 describe("profile CSS", () => {
   it("matches the source files (run `pnpm --filter @orivilo/design-system tokens`)", () => {
     const committed = readFileSync(path.join(import.meta.dirname, "generated.css"), "utf8");

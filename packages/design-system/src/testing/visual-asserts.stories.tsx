@@ -8,6 +8,7 @@ import { Tag } from "../components/tag/Tag";
 import { CloseIcon, WarningIcon } from "../components/icons";
 import {
   expectEdgeInk,
+  expectInkClearsAbove,
   expectNoGlyphClip,
   expectPaintAt,
   expectPaintsAt,
@@ -158,6 +159,33 @@ export const GlyphClip: Story = {
   play: async ({ canvasElement }) => {
     const gone = q(canvasElement, "[data-case='gone'] .ds-tag");
     await expect(() => expectNoGlyphClip(gone)).toThrow(/ปิ่นโต้.*outside the clip.*corner/);
+  },
+};
+
+/**
+ * ORV-192 row 19: a caption flush over a 56 px Thai display line. With the top padding set to 0
+ * (the 5e20cf8 look) the stack of ฟื้ rises into the caption and `expectInkClearsAbove` throws;
+ * with the shipped `text-display-lg` padding it passes.
+ */
+export const StackClear: Story = {
+  render: () => (
+    <DesignProfileBoundary mode="light" profile="neutral">
+      <div data-case="caption" className="font-mono text-body-sm">
+        Display 56: 56 / 1.2, weight 500
+      </div>
+      <div data-case="display" className="font-display text-display-lg">
+        ฟื้นฟู
+      </div>
+    </DesignProfileBoundary>
+  ),
+  play: async ({ canvasElement }) => {
+    if (!inVitest) return;
+    const caption = q(canvasElement, "[data-case='caption']");
+    const display = q(canvasElement, "[data-case='display']");
+    display.style.paddingBlockStart = "0";
+    await expect(expectInkClearsAbove(display, caption, 4)).rejects.toThrow(/expected at least 4/);
+    display.style.paddingBlockStart = "";
+    await expectInkClearsAbove(display, caption, 4);
   },
 };
 
