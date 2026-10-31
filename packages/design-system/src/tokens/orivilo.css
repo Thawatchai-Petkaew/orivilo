@@ -54,7 +54,7 @@
 }
 
 /* Display type pads its own top (ORV-192 row 19): Sarabun's tallest stack (ฟื้) rises 17 px above a
- * 56 / 1.2 line box and 8.5 px above a 32 / 1.25 one; the padding keeps it 7 px or more clear of
+ * 56 / 1.2 line box and 8.5 px above a 32 / 1.25 one; the padding keeps it 6.5 px or more clear of
  * whatever sits above. */
 .text-display-lg {
   padding-block-start: var(--ds-space-stack-lg);
