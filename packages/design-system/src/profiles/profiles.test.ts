@@ -114,6 +114,62 @@ describe("the shipped profiles", () => {
   }
 });
 
+/**
+ * ORV-192 row 7. A browser draws a weight only from the faces the loaded files carry (fonts.css):
+ * a value between two faces splits a Thai and Latin line across two faces, so the line looks uneven.
+ */
+const WEIGHTS_BY_FAMILY: Record<string, readonly number[]> = {
+  Anuphan: [400, 500, 600, 700],
+  "IBM Plex Sans": [400, 500, 600],
+  "IBM Plex Mono": [400, 500],
+};
+
+describe("type weights", () => {
+  const sets = [
+    { id: "neutral", set: tokens },
+    ...profiles.map((p) => ({ id: p.id, set: p.tokens })),
+  ];
+
+  for (const { id, set } of sets) {
+    it(`under ${id}, every type.* weight is one its stack carries`, () => {
+      const types = set.layer("semantic").filter((t) => t.path.startsWith("type."));
+      expect(types.length).toBeGreaterThanOrEqual(12);
+      for (const t of types) {
+        const v = set.resolve(t, "light").value as { fontFamily: string[]; fontWeight: number };
+        const allowed = WEIGHTS_BY_FAMILY[v.fontFamily[0] ?? ""];
+        expect(allowed, `${t.path} has a known first family`).toBeDefined();
+        expect(allowed, `${t.path} weight ${v.fontWeight}`).toContain(Number(v.fontWeight));
+      }
+    });
+
+    it(`under ${id}, display, heading and numeral are 500 and body and code are 400`, () => {
+      const weight = (path: string) =>
+        Number(
+          (
+            set.resolve(set.get("semantic", path)!, "light").value as {
+              fontWeight: number;
+            }
+          ).fontWeight,
+        );
+      for (const path of [
+        "type.display.lg",
+        "type.display.md",
+        "type.heading.md",
+        "type.heading.sm",
+        "type.numeral.lg",
+        "type.numeral.md",
+        "type.label.md",
+        "type.label.sm",
+      ]) {
+        expect(weight(path), path).toBe(500);
+      }
+      for (const path of ["type.body.lg", "type.body.md", "type.body.sm", "type.code.md"]) {
+        expect(weight(path), path).toBe(400);
+      }
+    });
+  }
+});
+
 describe("profile CSS", () => {
   it("matches the source files (run `pnpm --filter @orivilo/design-system tokens`)", () => {
     const committed = readFileSync(path.join(import.meta.dirname, "generated.css"), "utf8");
