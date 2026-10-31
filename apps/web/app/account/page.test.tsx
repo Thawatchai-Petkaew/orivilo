@@ -32,7 +32,7 @@ const form = vi.hoisted(() => ({ labels: undefined as unknown }));
 vi.mock("./SignInForm", () => ({
   SignInForm: (props: { labels: unknown }) => {
     form.labels = props.labels;
-    return null;
+    return <span data-testid="sign-in-form" />;
   },
 }));
 
@@ -135,4 +135,23 @@ describe.each([
     expect(html.indexOf("<svg")).toBeLessThan(html.indexOf("<h1"));
     expect(/<h1[^>]*>(.*?)<\/h1>/.exec(html)?.[1]).toBe(webMessages[locale].account.heading);
   });
+
+  // ORV-195 row 15: the sign-in form follows the heading, so the order is svg, h1, form; the other
+  // two views render no sign-in form.
+  it(
+    view === "signed-out"
+      ? "places the sign-in form after the heading, below the lockup"
+      : "renders no sign-in form",
+    async () => {
+      const html = await markup();
+      const at = html.indexOf('data-testid="sign-in-form"');
+      if (view !== "signed-out") {
+        expect(at).toBe(-1);
+        return;
+      }
+      expect(at).toBeGreaterThan(-1);
+      expect(html.indexOf("<svg")).toBeLessThan(html.indexOf("<h1"));
+      expect(html.indexOf("<h1")).toBeLessThan(at);
+    },
+  );
 });
