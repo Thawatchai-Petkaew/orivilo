@@ -48,6 +48,8 @@ Row 2 changes a test helper, row 3 changes docs and one CSS comment, row 4 chang
 
 One PR holds every built row: rows 1 to 10, 12 and 13 (row 6 with its single-line controls). Row 11 is in no PR of this card (`gate-file-1`). The PR is not open yet, so its number is unknown here; the main session adds the line `- PR <n>: rows 1-10, 12, 13` below once it is open. Until that line exists, the qa recorder reads every row of the table, row 11 among them under "Rows that render nothing".
 
+- PR 172: rows 1-10, 12, 13
+
 ## Rules and bounds
 
 ### designer-first-1
