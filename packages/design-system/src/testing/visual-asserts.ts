@@ -394,10 +394,66 @@ export async function expectFocusBorderForm(
   else el.blur();
 }
 
+export type Rgba = readonly [r: number, g: number, b: number, a: number];
+
+/**
+ * A computed CSS colour as red, green and blue on 0 to 255 and alpha on 0 to 1. Reads the forms a
+ * browser serialises: `rgb(...)`, `rgba(...)` (comma or space separated) and `color(srgb ...)`.
+ */
+export function parseCssColor(value: string): Rgba {
+  const text = value.trim();
+  const srgb = /^color\(srgb\s+([^)]+)\)$/.exec(text);
+  const legacy = /^rgba?\(([^)]+)\)$/.exec(text);
+  const body = (srgb ?? legacy)?.[1];
+  if (!body) throw new Error(`Not a colour the helper reads: ${value}`);
+  const [channels = "", alpha] = body.split("/");
+  const parts = channels.split(/[\s,]+/).filter(Boolean);
+  const alphaText = alpha ?? (legacy && parts.length === 4 ? parts.pop() : undefined);
+  if (parts.length !== 3) throw new Error(`Not a colour the helper reads: ${value}`);
+  const scale = srgb ? 255 : 1;
+  const [r, g, b] = parts.map((part) => parseFloat(part) * scale) as [number, number, number];
+  const a =
+    alphaText === undefined ? 1 : parseFloat(alphaText) / (alphaText.includes("%") ? 100 : 1);
+  return [r, g, b, a];
+}
+
+/** The colour of the last shadow in a computed `box-shadow` list (the colour comes first in it). */
+export function lastShadowColor(boxShadow: string): string {
+  const shadows: string[] = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < boxShadow.length; i += 1) {
+    const ch = boxShadow[i];
+    if (ch === "(") depth += 1;
+    else if (ch === ")") depth -= 1;
+    else if (ch === "," && depth === 0) {
+      shadows.push(boxShadow.slice(start, i));
+      start = i + 1;
+    }
+  }
+  shadows.push(boxShadow.slice(start));
+  const last = shadows[shadows.length - 1]?.trim() ?? "";
+  const colour = /^(?:rgba?|color)\([^)]*\)/.exec(last);
+  if (!colour) throw new Error(`No colour leads the last shadow: ${boxShadow}`);
+  return colour[0];
+}
+
+/** Two colours within 1.5 on a 0 to 255 channel (serialisation rounding) and 0.015 on alpha. */
+export function colorsMatch(a: Rgba, b: Rgba): boolean {
+  return (
+    Math.abs(a[0] - b[0]) <= 1.5 &&
+    Math.abs(a[1] - b[1]) <= 1.5 &&
+    Math.abs(a[2] - b[2]) <= 1.5 &&
+    Math.abs(a[3] - b[3]) <= 0.015
+  );
+}
+
 /**
  * The elevation form of focus (ORV-192 row 9): the element keeps its rest shadow, first in the list,
  * and gains a 4 px halo after it, with a 1 px outline in `ink` (`focus.ring` unless the element sits
- * on a ground where the brand is not readable). Puts focus back where it was.
+ * on a ground where the brand is not readable). The halo's colour is that `ink` at
+ * `focus.halo-opacity` (ORV-194 row 2), so a halo drawn in another ink is red. Puts focus back where
+ * it was.
  */
 export async function expectFocusElevationForm(
   el: HTMLElement,
@@ -413,6 +469,16 @@ export async function expectFocusElevationForm(
   const style = getComputedStyle(el);
   expect(style.boxShadow.startsWith(rest), `${label(el)} keeps its elevation`).toBe(true);
   expect(style.boxShadow, `${label(el)} adds the halo`).toMatch(/ 0px 0px 0px 4px$/);
+  const probe = document.createElement("span");
+  probe.style.color = `color-mix(in srgb, ${ink} calc(var(--ds-focus-halo-opacity) * 100%), transparent)`;
+  el.append(probe);
+  const haloInk = getComputedStyle(probe).color;
+  probe.remove();
+  const halo = lastShadowColor(style.boxShadow);
+  expect(
+    colorsMatch(parseCssColor(halo), parseCssColor(haloInk)),
+    `${label(el)} halo is ${ink} at focus.halo-opacity (${haloInk}), not ${halo}`,
+  ).toBe(true);
   expect(style.outlineWidth, `${label(el)} outline width`).toBe("1px");
   expect(style.outlineStyle, `${label(el)} outline style`).toBe("solid");
   expect(style.outlineColor, `${label(el)} outline colour`).toBe(ink);

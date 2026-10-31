@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  colorsMatch,
   firstInkRow,
   hexToRgb,
   inkWidth,
+  lastShadowColor,
   outsideCorner,
   paintMatches,
+  parseCssColor,
   viewBoxToBox,
   type Radii,
   type Rgb,
@@ -161,5 +164,50 @@ describe("hexToRgb and paintMatches", () => {
     expect(paintMatches([230, 246, 111], "#D9F66F")).toBe(false);
     expect(paintMatches([223, 252, 111], "#D9F66F")).toBe(true);
     expect(paintMatches([224, 252, 111], "#D9F66F")).toBe(false);
+  });
+});
+
+describe("parseCssColor", () => {
+  it("reads rgb and rgba in comma and space forms", () => {
+    expect(parseCssColor("rgb(10, 20, 30)")).toEqual([10, 20, 30, 1]);
+    expect(parseCssColor("rgba(10, 20, 30, 0.25)")).toEqual([10, 20, 30, 0.25]);
+    expect(parseCssColor("rgb(10 20 30 / 0.25)")).toEqual([10, 20, 30, 0.25]);
+  });
+
+  it("reads color(srgb) on 0 to 1 as 0 to 255", () => {
+    expect(parseCssColor("color(srgb 1 0 0.5 / 0.25)")).toEqual([255, 0, 127.5, 0.25]);
+    expect(parseCssColor("color(srgb 0 0 0)")).toEqual([0, 0, 0, 1]);
+  });
+
+  it("refuses a colour it does not read", () => {
+    expect(() => parseCssColor("#fff")).toThrow();
+    expect(() => parseCssColor("color(display-p3 1 0 0)")).toThrow();
+  });
+});
+
+describe("lastShadowColor", () => {
+  it("returns the colour of the last shadow in the list", () => {
+    expect(
+      lastShadowColor(
+        "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px, color(srgb 0.1 0.2 0.3 / 0.25) 0px 0px 0px 4px",
+      ),
+    ).toBe("color(srgb 0.1 0.2 0.3 / 0.25)");
+    expect(lastShadowColor("rgb(1, 2, 3) 0px 0px 0px 4px")).toBe("rgb(1, 2, 3)");
+  });
+
+  it("refuses a list that has no leading colour", () => {
+    expect(() => lastShadowColor("none")).toThrow();
+  });
+});
+
+describe("colorsMatch", () => {
+  it("allows 1.5 on a channel and 0.015 on alpha, and no more", () => {
+    expect(colorsMatch([10, 20, 30, 0.25], [11.5, 20, 30, 0.26])).toBe(true);
+    expect(colorsMatch([10, 20, 30, 0.25], [11.6, 20, 30, 0.25])).toBe(false);
+    expect(colorsMatch([10, 20, 30, 0.25], [10, 20, 30, 0.27])).toBe(false);
+  });
+
+  it("tells a halo in another ink from the right one", () => {
+    expect(colorsMatch([20, 80, 200, 0.4], [250, 250, 250, 0.4])).toBe(false);
   });
 });
