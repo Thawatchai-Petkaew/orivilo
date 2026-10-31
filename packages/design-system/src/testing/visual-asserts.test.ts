@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   colorsMatch,
+  cssColorToHex,
   firstInkRow,
   hexToRgb,
   inkCutAbove,
@@ -185,6 +186,20 @@ describe("parseCssColor", () => {
   it("refuses a colour it does not read", () => {
     expect(() => parseCssColor("#fff")).toThrow();
     expect(() => parseCssColor("color(display-p3 1 0 0)")).toThrow();
+  });
+});
+
+describe("cssColorToHex", () => {
+  it("converts an opaque rgb and rgba to #rrggbb", () => {
+    expect(cssColorToHex("rgb(107, 34, 176)")).toBe("#6b22b0");
+    expect(cssColorToHex("rgba(244, 238, 253, 1)")).toBe("#f4eefd");
+    expect(cssColorToHex("color(srgb 1 0 0.5)")).toBe("#ff0080");
+  });
+
+  it("returns null for any alpha under 1, so a transparent highlight fails the play", () => {
+    expect(cssColorToHex("rgba(0, 0, 0, 0)")).toBeNull();
+    expect(cssColorToHex("rgba(244, 238, 253, 0.99)")).toBeNull();
+    expect(cssColorToHex("rgb(10 20 30 / 0.5)")).toBeNull();
   });
 });
 

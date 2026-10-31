@@ -430,6 +430,19 @@ export function parseCssColor(value: string): Rgba {
   return [r, g, b, a];
 }
 
+/**
+ * A computed CSS colour as `#rrggbb` (the form `contrastRatio` takes), or `null` when its alpha is
+ * under 1: a colour that lets the ground through has no single hex, so a transparent highlight
+ * fails the play that compares it (ORV-194 row 9).
+ */
+export function cssColorToHex(value: string): string | null {
+  const [r, g, b, a] = parseCssColor(value);
+  if (a < 1) return null;
+  return `#${[r, g, b]
+    .map((channel) => Math.round(channel).toString(16).padStart(2, "0"))
+    .join("")}`;
+}
+
 /** The colour of the last shadow in a computed `box-shadow` list (the colour comes first in it). */
 export function lastShadowColor(boxShadow: string): string {
   const shadows: string[] = [];

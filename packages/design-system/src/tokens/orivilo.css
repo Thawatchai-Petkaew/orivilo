@@ -53,6 +53,14 @@
   font-weight: var(--ds-type-body-md-font-weight);
 }
 
+/* Selected text uses the selection pair, not the browser's highlight, so it reads at 4.5 or more in
+ * every profile and mode (ORV-194 row 9). Never the brand accent. */
+[data-design-profile] ::selection,
+[data-design-profile]::selection {
+  background-color: var(--ds-selection-bg);
+  color: var(--ds-selection-fg);
+}
+
 /* Display type pads its own top (ORV-192 row 19): Sarabun's tallest stack (ฟื้) rises 17 px above a
  * 56 / 1.2 line box and 8.5 px above a 32 / 1.25 one; the padding keeps it 6.5 px or more clear of
  * whatever sits above. */
