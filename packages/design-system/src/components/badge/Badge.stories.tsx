@@ -21,7 +21,7 @@ const meta = {
   title: "Base/Badge",
   component: Badge,
   args: { children: "ฉบับร่าง" },
-  parameters: { layout: "padded" },
+  parameters: { layout: "centered" },
 } satisfies Meta<typeof Badge>;
 
 export default meta;
@@ -224,6 +224,7 @@ export const At360: Story = {
 };
 
 export const RecipesAndModes: Story = {
+  parameters: { layout: "padded" },
   render: () => (
     <Matrix>
       <div className="flex flex-wrap items-center gap-2">

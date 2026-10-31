@@ -36,6 +36,7 @@ function PromptBoard({
   return (
     <div className="grid items-start gap-4 md:grid-cols-[1fr_minmax(0,22rem)]">
       {board ? (
+        // The prompt is the subject and the board only sits beside it, so it keeps 320 px (spec ORV-189, `exempt-1`).
         <div style={{ height: 320 }}>
           <CanvasBoard
             label={`กระดาน${scope ? `, ${id} ${scope.mode}` : ""}`}

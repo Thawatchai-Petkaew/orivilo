@@ -4,7 +4,7 @@ import { commandById, surfaceCommands } from "../../commands/index";
 import { CanvasBoard } from "../canvas-board/CanvasBoard";
 import { BOARD, BOARD_NODES } from "../canvas-board/fixtures";
 import { MatrixBoard, Stateful } from "../canvas-board/story-shell";
-import { Matrix } from "../matrix";
+import { fillHeight, Matrix } from "../matrix";
 import { MOD } from "../story-keys";
 
 const meta = {
@@ -178,7 +178,7 @@ export const MentionItem: Story = {
 /** A board with no shell (no onCommand) cannot hand the mention on, so the item is not offered. */
 export const MentionItemNoShell: Story = {
   render: () => (
-    <div style={{ height: 520 }} className="relative">
+    <div style={{ height: fillHeight(520) }} className="relative">
       <CanvasBoard graph={BOARD} label="กระดานแบรนด์ (ข้อมูลตัวอย่าง)" minimap={false} />
     </div>
   ),

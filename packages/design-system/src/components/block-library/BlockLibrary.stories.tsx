@@ -6,7 +6,7 @@ import { placeBlock } from "../../blocks/index";
 import { CanvasBoard } from "../canvas-board/CanvasBoard";
 import type { Graph } from "../canvas-board/graph";
 import { fixtureJobs } from "../fixtures";
-import { Matrix, Narrow as NarrowFrame } from "../matrix";
+import { fillHeight, Matrix, Narrow as NarrowFrame } from "../matrix";
 import { TaskBar } from "../task-bar/TaskBar";
 import { BlockLibrary } from "./BlockLibrary";
 import { MIDWAY } from "./fixtures";
@@ -25,7 +25,7 @@ function ShelfBoard({
   const scope = useDesignProfile();
   const id = typeof scope?.profile === "string" ? scope.profile : scope?.profile.id;
   return (
-    <div style={{ height }}>
+    <div style={{ height: fillHeight(height) }}>
       <CanvasBoard
         label={`กระดาน Intent Studio${scope ? `, ${id} ${scope.mode}` : ""}`}
         graph={graph}
@@ -155,6 +155,9 @@ export const Default: Story = {
   render: () => <ShelfBoard />,
   play: async ({ canvasElement }) => {
     await ready(canvasElement);
+    // The board fills the viewport and is never shorter than its 640 px (spec ORV-189, `fill-height-1`).
+    const board = canvasElement.querySelector(".ds-board");
+    await expect(board?.getBoundingClientRect().height).toBe(Math.max(640, window.innerHeight));
     const s = within(shelf(canvasElement));
     await expect(s.getByRole("heading", { name: "แบรนด์" })).toBeVisible();
     await expect(s.getByRole("heading", { name: "ระบบออกแบบ" })).toBeVisible();
@@ -344,10 +347,12 @@ export const RecipesAndModes: Story = {
   play: async ({ canvasElement }) => {
     await waitFor(() => expect(canvasElement.querySelectorAll(".ds-shelf")).toHaveLength(6));
     // ORV-190: each shelf is centred in its own board, under every profile and mode.
+    // ORV-189 (`matrix-keep-1`): a board in a Matrix cell keeps its 520 px.
     const boards = [...canvasElement.querySelectorAll<HTMLElement>(".ds-board")];
     await expect(boards).toHaveLength(6);
     for (const board of boards) {
       const b = board.getBoundingClientRect();
+      await expect(b.height).toBe(520);
       const s = part(board, SHELF);
       await expect(Math.abs(s.left - b.left - (b.right - s.right))).toBeLessThanOrEqual(1);
     }
