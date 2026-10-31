@@ -2,20 +2,21 @@
 issue: ORV-192 (https://tpetkaew.atlassian.net/browse/ORV-192)
 lane: L by default (open question 1)
 mode: POC mode short spec (`.claude/skills/ovl/SKILL.md`, section "POC mode")
-version: 1.0
+version: 1.1
 ---
 
-# ORV-192: UI polish batch, 18 look and test rows
+# ORV-192: UI polish batch, 19 look and test rows
 
 ## Goal
 
 The owner's UI polish batch card: the rows of Jira ORV-192 comment 10388 and the comments that follow it (10391 to 10404), as `docs/specs/ORV-192/design.md` cites them. Small look comments go into one combined card and one PR (owner, 2026-10-31). Each row keeps its number from the `## Rows` table of design.md; where its values live: `rows-home-1`.
 
-The 18 rows by kind:
+The 19 rows by kind:
 
 - Decided by the owner, built: 5 (comment 10388, then reduced to radius 19), 9 (comments 10402 and 10403), 13 (style A, comment 10397), 15 (comment 10400) and 16 (comment 10401, which supersedes the Friendly part of row 15).
 - Recommended by the designer, built, for the owner to judge: the eight rows of `judge-built-1`.
 - Test and token fixes carried from earlier cards: 1 (ORV-189 row 9, comment 10378), 3 and 6 (ORV-190), 4 (design.md row 4, the dark block survey) and 10 (ORV-189 row 6).
+- From sign-off ORV-192-signoff-2 finding F3, recommended by the designer, built, judged by the designer's visual sign-off: 19. It is not under `judge-built-1`, because the owner approved the built rows live (ORV-192 comment 10406) before row 19 existed.
 
 Nothing here is simulated: the stories render the real components, and the tests read the real token source and generated CSS. No product behaviour, permission or stored data changes.
 
@@ -42,6 +43,7 @@ Nothing here is simulated: the stories render the real components, and the tests
 | 16 | Storybook `Foundations/Typography` `Friendly`, and Card and Dialog titles under Friendly | The page renders | Thai in each display and heading line is Sarabun; Thai in code is Sarabun after IBM Plex Mono; the Anuphan and IBM Plex Sans Thai files no longer load | Friendly's font overrides removed; the `font.family.anuphan` primitive, both families' files and their `@font-face` rules dropped | `Friendly` play (`typography.stories.tsx` line 130); `Scale` play mono family `/^"IBM Plex Mono", Sarabun,/` (line 105); `profiles.test.ts` "Thai face (row 16)" (line 202): under neutral, Professional and Friendly, each `type.*` token and `font.*` family has IBM Plex Sans or IBM Plex Mono first and Sarabun second, and names neither Anuphan nor IBM Plex Sans Thai |
 | 17 | Storybook, the compact pairs (Toast, Tooltip, Field, Table empty state, Missing-inputs prompt, Block library tile), the header pairs (Dialog, Inspector with nothing selected) and the Select option | Each renders | Compact: one size, title 500 in the ground's primary ink over text 400 in its secondary ink, 4 px apart. Header: 20 / 500 primary over 16 / 400 secondary, 8 px apart. The Select option description is 13 / 400 secondary, 0 px under its label. On Toast and Tooltip the text takes the new muted inverse ink. Copy, Field `WithDescription` (story fixture, Thai only): label ชื่อโปรเจกต์ over ชื่อที่ทีมจะเห็นในรายการโปรเจกต์. Checkbox, Card and Side sheet do not move | New semantic `text.on-inverse-secondary` in the base, Professional and Friendly sets; seven component tokens change or join (design.md section "Builder table (row 17)", Impact) | The plays `Base/Field` `WithDescription`, `Base/Toast` `RecipesAndModes`, `Base/Tooltip` `WithDescription`, `Application/Dialog` `Open`, `Application/Inspector` `NoSelection`, `Application/MissingInputsPrompt` `ImagesLater` and `Application/BlockLibrary` `Default`, through `expectTitleOverText` (`visual-asserts.ts` line 309): size, weight, colour and the 4 or 8 px gap per pair; recipe pairs toast and tooltip description at 4.5 under the base, Professional and Friendly sets in both modes; the Select option by the designer's visual QA (design.md, section "Screens to check in visual QA (row 17)") |
 | 18 | Storybook `Foundations/Typography` `Scale`, `Application/Card` `Default`, `Base/Tag` `Sizes`, a Thai paragraph with stacked marks | The stories render | Running text is 1.7 at each body size: 13 / 22.1, 14 / 23.8, 16 / 27.2, 20 / 34 (worked example 4); in a wrapped Thai paragraph no mark touches the line above; untyped text inside a boundary is 16 / 27.2, not 16 / 1.5; tags stay 24 and 32 px tall. No new copy | `semantic.json` `type.body.xs`, `type.body.sm`, `type.body.lg` line heights; `orivilo.css` boundary type | `Scale` play: body lg, md, sm compute 34, 27.2 and 23.8 px (`typography.stories.tsx` lines 116 to 118); `profiles.test.ts` (line 246): each `type.body.*` line height is at least 1.7 under the base, Professional and Friendly sets; `Card` `Default` play: the untyped paragraph computes 27.2 px (`Card.stories.tsx` line 43); `Tag` `Sizes`: still 24 and 32 |
+| 19 | Storybook `Foundations/Typography` `Scale` and `Friendly` at 360 and 1440, Thai and English, light and dark, under neutral, Professional and Friendly; and the pages that set display type | The display rows render; the story fixture's sample starts with ฟื้น, Sarabun's tallest stack | A band of ground between each display row's caption and the highest Thai mark of its first line (7 px or more measured, design.md row 19); the mark no longer covers the caption (today 17 px into it at 56 / 1.2 and 9 px at 32 / 1.25). Every `text-display-lg` line (the Typography row, the landing hero) sits 24 px lower and every `text-display-md` line (the Foundations page titles, the decision log, settings and workspace examples, the app's home, not found, account and directions pages) 16 px lower than before; headings and numerals do not move. Copy, the sample of the story fixture (one line, Thai with Latin and digits): ฟื้นฟูแบรนด์ด้วยระบบตั้งใจ Intent Engine ให้เป็นผลิตภัณฑ์ที่มีชีวิต 0123 | `orivilo.css`: `.text-display-lg` takes `padding-block-start: var(--ds-space-stack-lg)` and `.text-display-md` `var(--ds-space-stack-md)`, outside any `@layer`; no token, value or contrast pair changes; `typography.stories.tsx` `SAMPLE`; DESIGN.md §4 display bullet and change log v1.54 | `Scale` play (`typography.stories.tsx` lines 122 to 131): for `.text-display-lg` and `.text-display-md` in the `dl`, `expectInkClearsAbove(row, caption, 4)` (`visual-asserts.ts` line 532) passes and `paddingTop` computes `24px` and `16px`; `StackClear` (`visual-asserts.stories.tsx` line 170): with `padding-block-start: 0` it throws /expected at least 4/, with the shipped padding it passes; the `firstInkRow` node cases in `visual-asserts.test.ts`; `profiles.test.ts` "display stack clearance (row 19)" (line 268): under the base set and each profile, `type.display.lg` 56 px at 1.2 or more, `type.display.md` 32 px at 1.25 or more, `space.stack.lg` 24 and `space.stack.md` 16; the `Friendly` story by the designer's visual QA (design.md, section "Screens to check in visual QA (row 19)") |
 
 The rows of `judge-built-1` wait for the owner's live judgement; rows 5, 9, 13, 15 and 16 build an owner decision as written.
 
@@ -116,7 +118,7 @@ Also out of scope: `apps/web`, a component public API change, and visual regress
 
 ## Depends on
 
-- `docs/specs/ORV-192/design.md`: the `## Rows` table, rows 1 to 18 and their sections, including "Every focusable control", "Without the ring, chip and ink are weak in lightness" and "Out of scope, measured".
+- `docs/specs/ORV-192/design.md`: the `## Rows` table, rows 1 to 19 and their sections, including "Every focusable control", "Without the ring, chip and ink are weak in lightness", "Out of scope, measured" and "Screens to check in visual QA (row 19)".
 - `DESIGN.md` §3.1 (the `text.on-inverse-secondary` row) and §4 (the row 17 and row 18 rules).
 - `docs/knowledge/design/K-0107-synthesis-title-supporting-text-and-paragraph-line-height.md` and K-0096 to K-0106: the research behind rows 17 and 18.
 - `docs/specs/ORV-189/spec.md` `matrix-keep-1`: the Button Matrix that row 10 asserts.
@@ -126,3 +128,4 @@ Also out of scope: `apps/web`, a component public API change, and visual regress
 ## Changelog
 
 - v1.0 (2026-10-31): first version, from design.md rows 1 to 18 and the owner comments it cites (10378, 10388, 10391 to 10404; no Jira tool in this role, so the comment text is as design.md quotes it). The `## Rows per PR` section is left for the main session to add once the PR exists. Downstream to review: the qa envelope and the G3 packet for ORV-192 (they cite criteria 1 to 18).
+- v1.1 (2026-10-31): adds criterion 19 from design.md row 19 (sign-off ORV-192-signoff-2 finding F3, the display stack clearance only), for review finding R4-1 of ORV-192-review-4, and a row 19 line in the design.md `## Rows` index. Row 19's F1 (Toast root focus) and F2 (side sheet edge) stay under criterion 9. The title, the rows by kind (a row 19 kind: judged by the designer's visual sign-off, not under `judge-built-1`, because the owner approved the built rows in comment 10406 before row 19 existed) and Depends on (rows 1 to 19 and "Screens to check in visual QA (row 19)") now count 19 rows. Downstream to review: the qa envelope and the G3 packet for ORV-192 (they now cite criteria 1 to 19).
