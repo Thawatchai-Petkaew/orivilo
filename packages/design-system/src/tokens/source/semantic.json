@@ -226,6 +226,22 @@
         }
       }
     },
+    "on-inverse-secondary": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.gray.400}",
+        "dark": "{color.gray.600}"
+      },
+      "$description": "Supporting text on surface.inverse, one step under text.on-inverse (ORV-192 row 17)",
+      "$extensions": {
+        "orivilo": {
+          "contrast": {
+            "against": "surface.inverse",
+            "floor": 4.5
+          }
+        }
+      }
+    },
     "link": {
       "$type": "color",
       "$value": {

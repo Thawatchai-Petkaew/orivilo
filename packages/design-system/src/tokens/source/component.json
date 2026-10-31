@@ -559,7 +559,7 @@
     "$description": "A short notice that does not block (E4-5): saved, generation failed",
     "description": {
       "$type": "color",
-      "$value": "{text.on-inverse}"
+      "$value": "{text.on-inverse-secondary}"
     },
     "shadow": {
       "$type": "shadow",
@@ -649,12 +649,12 @@
     },
     "description-fg": {
       "$type": "color",
-      "$value": "{text.on-inverse}",
-      "$description": "The second line; the inverse ground has no muted step that keeps 4.5, so it differs by type, not colour"
+      "$value": "{text.on-inverse-secondary}",
+      "$description": "The second line, one step under the content's ink (ORV-192 row 17)"
     },
     "description-type": {
       "$type": "typography",
-      "$value": "{type.body.sm}"
+      "$value": "{type.body.xs}"
     },
     "line-gap": {
       "$type": "dimension",
@@ -1034,7 +1034,7 @@
       },
       "description-type": {
         "$type": "typography",
-        "$value": "{type.label.sm}"
+        "$value": "{type.body.xs}"
       },
       "icon-size": {
         "$type": "dimension",
@@ -1992,6 +1992,14 @@
       "$value": "{text.secondary}",
       "$description": "The state word under the block name"
     },
+    "tile-name-type": {
+      "$type": "typography",
+      "$value": "{type.label.md}"
+    },
+    "tile-state-type": {
+      "$type": "typography",
+      "$value": "{type.body.sm}"
+    },
     "tile-radius": {
       "$type": "dimension",
       "$value": "{shape.media.radius}"
@@ -2045,6 +2053,10 @@
     "question-type": {
       "$type": "typography",
       "$value": "{type.label.md}"
+    },
+    "note-type": {
+      "$type": "typography",
+      "$value": "{type.body.sm}"
     }
   },
   "inspector": {

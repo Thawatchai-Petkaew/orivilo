@@ -694,6 +694,10 @@
 .ds-field__description {
   color: var(--cmp-field-description);
 }
+/* Compact pair: 4 px under its label (ORV-192 row 17). */
+.ds-field__label + .ds-field__description {
+  margin-block-start: calc(var(--ds-space-inline-sm) - var(--cmp-field-gap));
+}
 .ds-field__error {
   color: var(--cmp-field-error);
 }
@@ -1018,6 +1022,10 @@
   margin: 0;
   color: var(--cmp-dialog-description);
 }
+/* Header pair: 8 px under the title, the body gap after it (ORV-192 row 17). */
+.ds-dialog__header + .ds-dialog__description {
+  margin-block-start: calc(var(--ds-space-stack-sm) - var(--cmp-dialog-gap));
+}
 /* The body scrolls, and a scroll container clips what draws outside a control, such as the focus
  * ring and its gap. The body bleeds that distance and pads it back, so the ring stays whole. */
 .ds-dialog__body {
@@ -1286,6 +1294,10 @@
 }
 .ds-table__status-text {
   margin: 0;
+}
+/* Compact pair: 4 px under its title (ORV-192 row 17). */
+.ds-table__status-title + .ds-table__status-text {
+  margin-block-start: calc(var(--ds-space-inline-sm) - var(--ds-space-stack-sm));
 }
 @container ds-table (max-width: 479px) {
   .ds-table,
@@ -2948,11 +2960,16 @@
 .ds-prompt__upload {
   display: flex;
   flex-direction: column;
-  gap: var(--ds-space-stack-sm);
+  gap: var(--ds-space-inline-sm);
 }
 .ds-prompt__note {
   margin: 0;
   color: var(--cmp-prompt-progress-fg);
+  font-family: var(--cmp-prompt-note-type-font-family);
+  font-size: var(--cmp-prompt-note-type-font-size);
+  line-height: var(--cmp-prompt-note-type-line-height);
+  font-weight: var(--cmp-prompt-note-type-font-weight);
+  letter-spacing: var(--cmp-prompt-note-type-letter-spacing);
 }
 .ds-prompt__actions {
   display: flex;
@@ -3082,7 +3099,7 @@
   flex-direction: column;
   align-items: stretch;
   justify-content: space-between;
-  gap: var(--ds-space-stack-sm);
+  gap: var(--ds-space-inline-sm);
   width: var(--cmp-shelf-tile-width);
   height: 100%;
   padding: var(--ds-space-inset-sm);
@@ -3140,6 +3157,13 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.ds-shelf__name {
+  font-family: var(--cmp-shelf-tile-name-type-font-family);
+  font-size: var(--cmp-shelf-tile-name-type-font-size);
+  line-height: var(--cmp-shelf-tile-name-type-line-height);
+  font-weight: var(--cmp-shelf-tile-name-type-font-weight);
+  letter-spacing: var(--cmp-shelf-tile-name-type-letter-spacing);
+}
 /* State word and, for colour blocks, the swatches share one row, so every tile is the same height. */
 .ds-shelf__meta {
   display: flex;
@@ -3157,6 +3181,11 @@
   align-items: center;
   gap: var(--ds-space-inline-sm);
   color: var(--cmp-shelf-tile-state-fg);
+  font-family: var(--cmp-shelf-tile-state-type-font-family);
+  font-size: var(--cmp-shelf-tile-state-type-font-size);
+  line-height: var(--cmp-shelf-tile-state-type-line-height);
+  font-weight: var(--cmp-shelf-tile-state-type-font-weight);
+  letter-spacing: var(--cmp-shelf-tile-state-type-letter-spacing);
 }
 .ds-shelf__state svg {
   flex: 0 0 auto;
@@ -3237,6 +3266,10 @@
   display: flex;
   flex-direction: column;
   gap: var(--cmp-inspector-gap);
+}
+/* Header pair: 8 px under the title (ORV-192 row 17). */
+.ds-inspector__empty > .ds-inspector__title + .ds-inspector__muted {
+  margin-block-start: calc(var(--ds-space-stack-sm) - var(--cmp-inspector-gap));
 }
 .ds-inspector__body {
   padding-block-start: var(--cmp-inspector-gap);
@@ -3533,7 +3566,8 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: var(--ds-space-stack-sm);
+  /* title and description are one block, 4 px apart (ORV-192 row 17) */
+  gap: var(--ds-space-inline-sm);
 }
 .ds-toast__title {
   font-family: var(--cmp-toast-title-type-font-family);

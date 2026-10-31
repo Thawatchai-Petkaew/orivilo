@@ -12,6 +12,7 @@ import { Resizable } from "../resizable/Resizable";
 import { Sheet, SheetContent } from "../sheet/Sheet";
 import { Inspector } from "./Inspector";
 import { MOD } from "../story-keys";
+import { expectTitleOverText } from "../../testing/visual-asserts";
 
 function select(graph: Graph, ids: readonly string[]): Graph {
   return {
@@ -161,6 +162,11 @@ export const NoSelection: Story = {
     await expect(p.getByText("บนกระดานมี 6 node")).toBeVisible();
     const rows = p.getAllByRole("listitem").map((li) => li.textContent);
     await expect(rows).toEqual(["ยังว่าง2", "ตอบยังไม่ครบ1", "สรุปแล้ว2", "ยังไม่เชื่อม1"]);
+    // ORV-192 row 17: the header pair, 20 / 500 title over 16 / 400 text, 8 px apart.
+    const title = canvasElement.querySelector(".ds-inspector__empty > .ds-inspector__title");
+    const text = canvasElement.querySelector(".ds-inspector__empty > .ds-inspector__muted");
+    if (!title || !text) throw new Error("the empty inspector has no title or text");
+    expectTitleOverText(title, text, { gap: 8, header: true });
   },
 };
 

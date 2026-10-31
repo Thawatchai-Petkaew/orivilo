@@ -6,7 +6,21 @@ import { useMessages } from "../../i18n/LocaleProvider";
 import { Button } from "../button/Button";
 import { fixtures } from "../fixtures";
 import { Matrix } from "../matrix";
+import { expectTitleOverText, resolvedColor } from "../../testing/visual-asserts";
 import { type ToastEntry, type ToastOptions, Toaster, ToastRegion, toast } from "./Toast";
+
+/**
+ * ORV-192 row 17: in every toast with a description, the text is 4 px under the title in the
+ * inverse ground's secondary ink.
+ */
+function expectDescriptionPair(item: Element) {
+  const title = item.querySelector(".ds-toast__title");
+  const text = item.querySelector(".ds-toast__description");
+  if (!title) throw new Error("the toast has no title");
+  if (!text) return;
+  expectTitleOverText(title, text, { gap: 4 });
+  expect(getComputedStyle(text).color).toBe(resolvedColor(item, "--ds-text-on-inverse-secondary"));
+}
 
 const body = () => within(document.body);
 const toastsOpen = () => document.querySelectorAll('.ds-toast[data-state="open"]');
@@ -220,6 +234,7 @@ export const At360: Story = {
     await expect(Math.round(f.right - t.right)).toBeGreaterThan(0);
     await expect(t.left).toBeGreaterThanOrEqual(f.left);
     await expect(t.bottom).toBeLessThanOrEqual(f.bottom);
+    expectDescriptionPair(item);
   },
 };
 
@@ -291,5 +306,6 @@ export const RecipesAndModes: Story = {
   ),
   play: async ({ canvasElement }) => {
     await waitFor(() => expect(canvasElement.querySelectorAll(".ds-toast")).toHaveLength(18));
+    for (const item of canvasElement.querySelectorAll(".ds-toast")) expectDescriptionPair(item);
   },
 };

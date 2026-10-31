@@ -6,6 +6,7 @@ import { Button } from "../button/Button";
 import { Field } from "../field/Field";
 import { fixtures } from "../fixtures";
 import { Input } from "../input/Input";
+import { expectTitleOverText } from "../../testing/visual-asserts";
 import { Matrix } from "../matrix";
 import {
   Dialog,
@@ -137,6 +138,11 @@ export const Open: Story = {
     await expect(outer.right).toBeGreaterThanOrEqual(inner.right + ring);
     await expect(outer.top).toBeLessThanOrEqual(inner.top - ring);
     await expect(outer.bottom).toBeGreaterThanOrEqual(inner.bottom + ring);
+    // ORV-192 row 17: the header pair, 20 / 500 title over 16 / 400 description, 8 px apart.
+    const title = dialog?.querySelector(".ds-dialog__title");
+    const text = dialog?.querySelector(".ds-dialog__description");
+    if (!title || !text) throw new Error("the dialog has no title or description");
+    expectTitleOverText(title, text, { gap: 8, header: true });
   },
 };
 

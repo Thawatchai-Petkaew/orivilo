@@ -305,6 +305,46 @@ export function expectSameHeight(el: Element, ...siblings: Element[]) {
   }
 }
 
+/**
+ * Asserts a title over its supporting text (ORV-192 row 17): the text starts `gap` px under the
+ * title (within 0.5), the title is 500 and the text 400, and their inks differ. A compact pair has
+ * one size; a header pair (`header: true`) has a 20 px title over 16 px text. `titleBottom` is for a
+ * title that is a bare text node (the Tooltip's content): pass the bottom of its line box.
+ */
+export function expectTitleOverText(
+  title: Element,
+  text: Element,
+  { gap, header = false, titleBottom }: { gap: number; header?: boolean; titleBottom?: number },
+) {
+  const bottom = titleBottom ?? title.getBoundingClientRect().bottom;
+  const actual = text.getBoundingClientRect().top - bottom;
+  expect(
+    Math.abs(actual - gap),
+    `${label(text)} starts ${actual} px under its title, not ${gap} px`,
+  ).toBeLessThanOrEqual(0.5);
+  const t = getComputedStyle(title);
+  const x = getComputedStyle(text);
+  expect(t.fontWeight, `${label(title)} weight`).toBe("500");
+  expect(x.fontWeight, `${label(text)} weight`).toBe("400");
+  if (header) {
+    expect(parseFloat(t.fontSize), `${label(title)} size`).toBe(20);
+    expect(parseFloat(x.fontSize), `${label(text)} size`).toBe(16);
+  } else {
+    expect(x.fontSize, `${label(text)} is the size of its title`).toBe(t.fontSize);
+  }
+  expect(x.color, `${label(text)} reads in a different ink than its title`).not.toBe(t.color);
+}
+
+/** The colour a semantic token resolves to at `el`, as the browser computes it (`rgb(...)`). */
+export function resolvedColor(el: Element, token: string): string {
+  const probe = document.createElement("span");
+  probe.style.color = `var(${token})`;
+  el.append(probe);
+  const color = getComputedStyle(probe).color;
+  probe.remove();
+  return color;
+}
+
 const px = (value: string, basis: number) => {
   const n = parseFloat(value);
   return value.trim().endsWith("%") ? (n / 100) * basis : n;

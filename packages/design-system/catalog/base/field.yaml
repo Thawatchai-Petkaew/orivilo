@@ -20,5 +20,6 @@ examples:
 rules:
   - "Exactly one control as children; it reads the wiring through context (useFieldControl)"
   - "Error copy says what went wrong and how to fix it"
+  - "Title over supporting text (ORV-192 row 17): one size, title 500 in the ground's primary ink, text 400 in its secondary ink, 4 px apart"
 a11y:
   - "Label linked by for/id; description and error by aria-describedby; error sets aria-invalid and is announced as an alert"

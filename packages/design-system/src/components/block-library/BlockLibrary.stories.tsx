@@ -9,6 +9,7 @@ import { fixtureJobs } from "../fixtures";
 import { fillHeight, Matrix, Narrow as NarrowFrame } from "../matrix";
 import { TaskBar } from "../task-bar/TaskBar";
 import { BlockLibrary } from "./BlockLibrary";
+import { expectTitleOverText } from "../../testing/visual-asserts";
 import { MIDWAY } from "./fixtures";
 
 /** The shell's side for stories: the graph in state, and `placeBlock` for each placed tile. */
@@ -241,6 +242,12 @@ export const Default: Story = {
     await expect(
       tile(canvasElement, "สีตั้งต้น").querySelectorAll(".ds-node__swatch"),
     ).toHaveLength(2);
+    // ORV-192 row 17: a tile's name and state are a compact pair, 14 / 500 over 14 / 400, 4 px apart.
+    const summarized = tile(canvasElement, "สีตั้งต้น");
+    const name = summarized.querySelector(".ds-shelf__name");
+    const state = summarized.querySelector(".ds-shelf__state");
+    if (!name || !state) throw new Error("the tile has no name or state");
+    expectTitleOverText(name, state, { gap: 4 });
     // ORV-190: the shelf is centred on the board, on the controls' start edge, at its old height.
     expectCentred(boardOf(canvasElement));
     expectClear(boardOf(canvasElement));

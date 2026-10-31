@@ -4,6 +4,7 @@ import { DesignProfileBoundary } from "../../boundary/DesignProfileBoundary";
 import { Button } from "../button/Button";
 import { fixtures } from "../fixtures";
 import { Matrix } from "../matrix";
+import { expectTitleOverText, resolvedColor } from "../../testing/visual-asserts";
 import { Tooltip } from "./Tooltip";
 
 function CloseGlyph() {
@@ -137,6 +138,20 @@ export const WithDescription: Story = {
     await expect(
       visible?.querySelectorAll("a, button, input, select, textarea, [tabindex]"),
     ).toHaveLength(0);
+    // ORV-192 row 17: 13 / 500 content over 13 / 400 text 4 px under it, in the inverse ground's
+    // secondary ink. The content is a bare text node, so its line box ends one line under the padding.
+    const text = visible?.querySelector(".ds-tooltip__description");
+    if (!visible || !text) throw new Error("the tooltip has no description");
+    const style = getComputedStyle(visible);
+    const titleBottom =
+      visible.getBoundingClientRect().top +
+      parseFloat(style.borderTopWidth) +
+      parseFloat(style.paddingTop) +
+      parseFloat(style.lineHeight);
+    expectTitleOverText(visible, text, { gap: 4, titleBottom });
+    await expect(getComputedStyle(text).color).toBe(
+      resolvedColor(visible, "--ds-text-on-inverse-secondary"),
+    );
   },
 };
 

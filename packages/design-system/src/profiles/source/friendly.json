@@ -261,6 +261,12 @@
           "dark": "{color.cream.900}"
         }
       },
+      "on-inverse-secondary": {
+        "$value": {
+          "light": "{color.cream.400}",
+          "dark": "{color.cream.600}"
+        }
+      },
       "link": {
         "$value": {
           "light": "{color.teal.700}",

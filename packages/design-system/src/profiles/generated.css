@@ -2,7 +2,7 @@
 /* Each profile overrides semantic values inside its boundary; component tokens are re-declared
  * on [data-design-profile] by generated.css, so they resolve against these values. */
 
-/* Profile professional: Professional (สุขุม). 42 overrides, 24 own primitives. */
+/* Profile professional: Professional (สุขุม). 43 overrides, 24 own primitives. */
 [data-design-profile="professional"]:not([data-mode="dark"]) {
   --op-color-slate-25: #FBFCFD;
   --op-color-slate-50: #F5F7F9;
@@ -43,6 +43,7 @@
   --ds-text-disabled: var(--op-color-slate-400);
   --ds-text-on-action: var(--op-color-white);
   --ds-text-on-inverse: var(--op-color-slate-100);
+  --ds-text-on-inverse-secondary: var(--op-color-slate-400);
   --ds-text-link: var(--op-color-navy-700);
   --ds-text-link-hover: var(--op-color-navy-900);
   --ds-text-brand: var(--op-color-navy-700);
@@ -123,6 +124,7 @@
   --ds-text-disabled: var(--op-color-slate-600);
   --ds-text-on-action: var(--op-color-slate-900);
   --ds-text-on-inverse: var(--op-color-slate-900);
+  --ds-text-on-inverse-secondary: var(--op-color-slate-600);
   --ds-text-link: var(--op-color-navy-300);
   --ds-text-link-hover: var(--op-color-navy-200);
   --ds-text-brand: var(--op-color-navy-300);
@@ -204,6 +206,7 @@
     --ds-text-disabled: var(--op-color-slate-600);
     --ds-text-on-action: var(--op-color-slate-900);
     --ds-text-on-inverse: var(--op-color-slate-900);
+    --ds-text-on-inverse-secondary: var(--op-color-slate-600);
     --ds-text-link: var(--op-color-navy-300);
     --ds-text-link-hover: var(--op-color-navy-200);
     --ds-text-brand: var(--op-color-navy-300);
@@ -245,7 +248,7 @@
     --ds-action-intent-press: var(--ds-action-primary-press);
   }
 }
-/* Profile friendly: Friendly (เป็นมิตร). 42 overrides, 36 own primitives. */
+/* Profile friendly: Friendly (เป็นมิตร). 43 overrides, 36 own primitives. */
 [data-design-profile="friendly"]:not([data-mode="dark"]) {
   --op-color-cream-25: #FDFBF9;
   --op-color-cream-50: #F9F6F2;
@@ -298,6 +301,7 @@
   --ds-text-disabled: var(--op-color-cream-400);
   --ds-text-on-action: var(--op-color-cream-900);
   --ds-text-on-inverse: var(--op-color-cream-100);
+  --ds-text-on-inverse-secondary: var(--op-color-cream-400);
   --ds-text-link: var(--op-color-teal-700);
   --ds-text-link-hover: var(--op-color-teal-900);
   --ds-text-brand: var(--op-color-coral-700);
@@ -382,6 +386,7 @@
   --ds-text-disabled: var(--op-color-cream-600);
   --ds-text-on-action: var(--op-color-cream-900);
   --ds-text-on-inverse: var(--op-color-cream-900);
+  --ds-text-on-inverse-secondary: var(--op-color-cream-600);
   --ds-text-link: var(--op-color-teal-300);
   --ds-text-link-hover: var(--op-color-teal-200);
   --ds-text-brand: var(--op-color-coral-300);
@@ -467,6 +472,7 @@
     --ds-text-disabled: var(--op-color-cream-600);
     --ds-text-on-action: var(--op-color-cream-900);
     --ds-text-on-inverse: var(--op-color-cream-900);
+    --ds-text-on-inverse-secondary: var(--op-color-cream-600);
     --ds-text-link: var(--op-color-teal-300);
     --ds-text-link-hover: var(--op-color-teal-200);
     --ds-text-brand: var(--op-color-coral-300);

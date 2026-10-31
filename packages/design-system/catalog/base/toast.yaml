@@ -22,6 +22,7 @@ rules:
   - "At most three on screen, the oldest leaves first; 5 seconds for neutral and success, a danger toast stays until dismissed and ignores `duration`"
   - "The region sits at the bottom end corner inside the profile portal scope and clears the safe-area insets"
   - "Status is shown by an icon as well as the edge colour; the toast keeps the inverse ground"
+  - "Title over supporting text (ORV-192 row 17): one size, title 500 in the ground's primary ink, text 400 in its secondary ink, 4 px apart"
 a11y:
   - "Polite live region; failure uses assertive; dismissable by keyboard"
   - "The close button is named from the locale catalog; Escape dismisses; focus does not move to a toast when it appears; F8 moves focus into the region"
