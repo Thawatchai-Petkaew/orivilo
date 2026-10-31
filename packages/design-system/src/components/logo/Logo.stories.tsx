@@ -3,7 +3,7 @@ import { expect, within } from "storybook/test";
 import type { Mode } from "../../boundary/DesignProfileBoundary";
 import { profileById } from "../../profiles/index";
 import { tokens } from "../../tokens/index";
-import { expectPaintAt, hexToRgb, inVitest, type PaintProbe } from "../../testing/visual-asserts";
+import { expectPaintsAt, hexToRgb, inVitest, type PaintProbe } from "../../testing/visual-asserts";
 import { Matrix } from "../matrix";
 import { Logo, type LogoKind, type LogoTone } from "./Logo";
 
@@ -119,7 +119,7 @@ const AT: Record<LogoKind, { mark?: readonly [number, number]; word?: readonly [
   };
 
 /**
- * Probe points wholly inside a part (expectPaintAt): the ring at its left extreme and the dot at
+ * Probe points wholly inside a part (expectPaintsAt): the ring at its left extreme and the dot at
  * its centre, the wordmark's first `o` stroke and its first i-dot.
  */
 function probesOf(svg: SVGSVGElement, c: Colours): PaintProbe[] {
@@ -142,16 +142,12 @@ function probesOf(svg: SVGSVGElement, c: Colours): PaintProbe[] {
 
 /**
  * Reads the rendered pixels where Vitest browser mode runs; the static Storybook has no screenshot.
- * A box at a half pixel is painted snapped to the grid but screenshotted from its floor, so the
- * probe lands one pixel off, enough to miss the 1.6 px dot of the 16 px mark. A translate of less
- * than a pixel puts the box on the grid first; it moves nothing else.
+ * One screenshot covers every Logo handed in (ORV-118 R2), because each shot queues on the shared
+ * screenshot lock behind every other story file.
  */
-async function expectPaint(svg: SVGSVGElement, c: Colours) {
+async function expectPaint(svgs: readonly SVGSVGElement[], c: Colours) {
   if (!inVitest) return;
-  svg.style.translate = "none";
-  const box = svg.getBoundingClientRect();
-  svg.style.translate = `${Math.round(box.x) - box.x}px ${Math.round(box.y) - box.y}px`;
-  await expectPaintAt(svg, probesOf(svg, c));
+  await expectPaintsAt(svgs.map((svg) => ({ svg, probes: probesOf(svg, c) })));
 }
 
 const near = (read: number, expected: number) => Math.abs(read - expected) <= 0.02;
@@ -184,10 +180,8 @@ export const Kinds: Story = {
         `${svg.dataset["kind"]} width ${box.width}`,
       ).toBe(true);
     });
-    for (const svg of logos) {
-      expectColours(svg, colours);
-      if (literal) await expectPaint(svg, literal);
-    }
+    for (const svg of logos) expectColours(svg, colours);
+    if (literal) await expectPaint(logos, literal);
   },
 };
 
@@ -220,8 +214,8 @@ export const SmallSizes: Story = {
       ).toBe(strokes[i]);
       // The small forms read the small dot and the master the master dot: one violet under neutral.
       expectColours(svg, colours);
-      if (literal) await expectPaint(svg, literal);
     }
+    if (literal) await expectPaint(logos, literal);
   },
 };
 
@@ -261,7 +255,7 @@ export const OneColour: Story = {
       if (profile === "neutral") {
         const literal = mode === "dark" ? NEUTRAL_DARK : NEUTRAL_LIGHT;
         expect(colours.ink).toBe(literal.ink);
-        for (const svg of logos) await expectPaint(svg, literal);
+        await expectPaint(logos, literal);
       }
     }
   },
@@ -344,9 +338,9 @@ export const RecipesAndModes: Story = {
         );
         // Rows 2, 4 and 9: the paint follows the profile and the mode.
         expectColours(svg, colours);
-        // Rows 2 and 4: the neutral dark cell is read from its pixels too.
-        if (neutralDark) await expectPaint(svg, colours);
       }
+      // Rows 2 and 4: the neutral dark cell is read from its pixels too.
+      if (neutralDark) await expectPaint(logosIn(cell), colours);
     }
   },
 };

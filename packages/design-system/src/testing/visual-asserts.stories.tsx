@@ -10,6 +10,7 @@ import {
   expectEdgeInk,
   expectNoGlyphClip,
   expectPaintAt,
+  expectPaintsAt,
   expectSameHeight,
   inVitest,
 } from "./visual-asserts";
@@ -191,7 +192,7 @@ export const ShippedChipPasses: Story = {
 const INK = "#16151D";
 const DOT = "#D9F66F";
 
-/** Two svgs: a square one, and a letterboxed one (a 100 x 50 drawing in a 200 x 50 box, so it is centred). Each draws an ink rect and a lime dot. */
+/** Two svgs, read together and apart: a square one, and a letterboxed one (a 100 x 50 drawing in a 200 x 50 box, so it is centred). Each draws an ink rect and a lime dot. */
 export const PaintAt: Story = {
   render: () => (
     <div style={{ display: "flex", gap: 24, padding: 16 }}>
@@ -230,5 +231,18 @@ export const PaintAt: Story = {
     await expect(expectPaintAt(square, [{ x: 96, y: 64, hex: "#D9F67F" }])).rejects.toThrow(
       /expected #D9F67F/,
     );
+    // One screenshot for both svgs (ORV-118 R2): green on the right colours in each, red on the
+    // second svg's wrong colour, which a read of the first svg's origin alone would not catch.
+    const both = [
+      { svg: square, probes: [{ x: 96, y: 64, hex: DOT }] },
+      { svg: letterbox, probes: [{ x: 25, y: 25, hex: INK }] },
+    ];
+    await expectPaintsAt(both);
+    await expect(
+      expectPaintsAt([
+        both[0] as (typeof both)[0],
+        { svg: letterbox, probes: [{ x: 75, y: 25, hex: INK }] },
+      ]),
+    ).rejects.toThrow(/paints #D9F66F at \(75, 25\), expected #16151D/);
   },
 };

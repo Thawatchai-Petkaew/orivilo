@@ -38,7 +38,8 @@ export const Variants: Story = {
     </div>
   ),
   // ORV-118 row 1: the brand badge shares the neutral ground and is told apart by the mark's bead.
-  // Probes, not literals, so the play holds under every toolbar profile and mode.
+  // Probes, not literals, so the play holds under every toolbar profile and mode. The probe sits
+  // inside the profile and mode boundary the badge sits in; on the canvas root it would read neutral light.
   play: async ({ canvasElement }) => {
     const badgeOf = (word: string) =>
       within(canvasElement).getByText(word).closest<HTMLElement>(".ds-badge") as HTMLElement;
@@ -49,10 +50,12 @@ export const Variants: Story = {
     await expect(bead).toHaveAttribute("aria-hidden", "true");
     await expect(brand).toHaveTextContent(/^ORIVILO$/);
     await expect(brand.querySelector(".ds-badge__icon")).toBeNull();
+    const boundary = brand.closest("[data-design-profile]");
+    if (!boundary) throw new Error("the Variants badge sits in no profile and mode boundary");
     const probe = (property: "color" | "background-color", token: string) => {
       const el = document.createElement("span");
       el.style.setProperty(property, `var(${token})`);
-      canvasElement.appendChild(el);
+      boundary.appendChild(el);
       const value = getComputedStyle(el).getPropertyValue(property);
       el.parentNode?.removeChild(el);
       return value;
@@ -163,10 +166,16 @@ export const WithIcon: Story = {
 /** `dot` and `icon` together do not compile; the type keeps the badge to one mark. */
 export const OneMarkOnly: Story = {
   render: () => (
-    // @ts-expect-error a dot and an icon in one badge is a type error (AC 5)
-    <Badge dot icon={<CheckIcon />}>
-      {fixtures.latin}
-    </Badge>
+    <>
+      {/* @ts-expect-error a dot and an icon in one badge is a type error (AC 5) */}
+      <Badge dot icon={<CheckIcon />}>
+        {fixtures.latin}
+      </Badge>
+      {/* @ts-expect-error an icon on the brand badge is a type error: its bead is its mark (ORV-118 design row 1) */}
+      <Badge variant="brand" icon={<CheckIcon />}>
+        ORIVILO
+      </Badge>
+    </>
   ),
 };
 

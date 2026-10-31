@@ -229,33 +229,68 @@ const hexOf = (px: Rgb) =>
     .join("")
     .toUpperCase()}`;
 
+export interface SvgPaint {
+  svg: SVGSVGElement;
+  probes: readonly PaintProbe[];
+}
+
+/** The nearest element that holds every one of `els` (the element itself when there is one). */
+function commonAncestor(els: readonly Element[]): Element {
+  let scope: Element | null = els[0] ?? null;
+  while (scope && !els.every((el) => scope?.contains(el))) scope = scope.parentElement;
+  if (!scope) throw new Error("expectPaintsAt needs svgs that share an ancestor");
+  return scope;
+}
+
+/** Moves `el` by less than a pixel so its box starts on the pixel grid; it moves nothing else. */
+function snapToGrid(el: HTMLElement | SVGElement) {
+  el.style.translate = "none";
+  const box = el.getBoundingClientRect();
+  el.style.translate = `${Math.round(box.x) - box.x}px ${Math.round(box.y) - box.y}px`;
+}
+
 /**
- * Asserts the rendered pixel at each probe point of an svg is the expected colour, within a summed
- * RGB difference of 12. Probe points are in `viewBox` units; they must sit wholly inside the part
- * they probe (further than a pixel's diagonal from its edge), so no antialiasing reaches them. It
- * reads a screenshot, so computed style does not decide the result. It runs where Vitest browser
+ * Asserts the rendered pixel at each probe point of each svg is the expected colour, within a
+ * summed RGB difference of 12, from ONE screenshot of the nearest ancestor that holds all the svgs.
+ * Each screenshot queues on the shared lock behind every other story file, so a play with many svgs
+ * takes one shot rather than one per svg (ORV-118 R2). A box at a half pixel is painted snapped to
+ * the grid but screenshotted from its floor, so the scope and then each svg are moved by less than
+ * a pixel onto the grid first. Probe points are in `viewBox` units; they must sit wholly inside the
+ * part they probe (further than a pixel's diagonal from its edge), so no antialiasing reaches them.
+ * It reads a screenshot, so computed style does not decide the result. It runs where Vitest browser
  * mode runs; a play guards the call with `inVitest`.
  */
-export async function expectPaintAt(svg: SVGSVGElement, probes: readonly PaintProbe[]) {
-  const viewBox = svg.viewBox.baseVal;
-  const { data, width, height } = await shoot(svg);
-  const rect = svg.getBoundingClientRect();
-  const scale = width / rect.width;
-  for (const probe of probes) {
-    const at = viewBoxToBox(probe, [viewBox.x, viewBox.y, viewBox.width, viewBox.height], rect);
-    const x = Math.floor(at.x * scale);
-    const y = Math.floor(at.y * scale);
-    expect(
-      x >= 0 && y >= 0 && x < width && y < height,
-      `probe (${probe.x}, ${probe.y}) of ${label(svg)} falls outside the screenshot`,
-    ).toBe(true);
-    const i = (y * width + x) * 4;
-    const pixel: Rgb = [data[i] ?? 0, data[i + 1] ?? 0, data[i + 2] ?? 0];
-    expect(
-      paintMatches(pixel, probe.hex),
-      `${label(svg)} paints ${hexOf(pixel)} at (${probe.x}, ${probe.y}), expected ${probe.hex.toUpperCase()}`,
-    ).toBe(true);
+export async function expectPaintsAt(entries: readonly SvgPaint[]) {
+  const scope = commonAncestor(entries.map((entry) => entry.svg));
+  if (scope instanceof HTMLElement || scope instanceof SVGElement) snapToGrid(scope);
+  for (const { svg } of entries) if (svg !== scope) snapToGrid(svg);
+  const { data, width, height } = await shoot(scope);
+  const frame = scope.getBoundingClientRect();
+  const scale = scope === entries[0]?.svg ? width / frame.width : window.devicePixelRatio;
+  for (const { svg, probes } of entries) {
+    const viewBox = svg.viewBox.baseVal;
+    const rect = svg.getBoundingClientRect();
+    for (const probe of probes) {
+      const at = viewBoxToBox(probe, [viewBox.x, viewBox.y, viewBox.width, viewBox.height], rect);
+      const x = Math.floor((rect.x - frame.x + at.x) * scale);
+      const y = Math.floor((rect.y - frame.y + at.y) * scale);
+      expect(
+        x >= 0 && y >= 0 && x < width && y < height,
+        `probe (${probe.x}, ${probe.y}) of ${label(svg)} falls outside the screenshot`,
+      ).toBe(true);
+      const i = (y * width + x) * 4;
+      const pixel: Rgb = [data[i] ?? 0, data[i + 1] ?? 0, data[i + 2] ?? 0];
+      expect(
+        paintMatches(pixel, probe.hex),
+        `${label(svg)} paints ${hexOf(pixel)} at (${probe.x}, ${probe.y}), expected ${probe.hex.toUpperCase()}`,
+      ).toBe(true);
+    }
   }
+}
+
+/** One svg of `expectPaintsAt`. */
+export function expectPaintAt(svg: SVGSVGElement, probes: readonly PaintProbe[]) {
+  return expectPaintsAt([{ svg, probes }]);
 }
 
 /** Asserts chips, tags or controls in one row have the same rendered height, within 0.5 px. */
