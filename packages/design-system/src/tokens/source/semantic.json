@@ -933,7 +933,7 @@
       "lg": {
         "$type": "typography",
         "$value": {
-          "fontFamily": "{font.family.anuphan}",
+          "fontFamily": "{font.family.plex-sans}",
           "fontSize": "{font.size.56}",
           "lineHeight": "{font.line-height.1-2}",
           "fontWeight": "{font.weight.500}",
@@ -943,7 +943,7 @@
       "md": {
         "$type": "typography",
         "$value": {
-          "fontFamily": "{font.family.anuphan}",
+          "fontFamily": "{font.family.plex-sans}",
           "fontSize": "{font.size.32}",
           "lineHeight": "{font.line-height.1-25}",
           "fontWeight": "{font.weight.500}",
@@ -1140,8 +1140,8 @@
   "font": {
     "display": {
       "$type": "fontFamily",
-      "$value": "{font.family.anuphan}",
-      "$description": "Display role, loopless Thai at 24 px and above"
+      "$value": "{font.family.plex-sans}",
+      "$description": "Display role: the body family, so a Thai heading is looped Sarabun and Latin is IBM Plex Sans (owner, ORV-192 row 15); Friendly restates Anuphan"
     },
     "body": {
       "$type": "fontFamily",

@@ -1,4 +1,4 @@
-# DESIGN.md: ORIVILO (agent-readable, v1.45)
+# DESIGN.md: ORIVILO (agent-readable, v1.46)
 
 Read this before any UI work: a Studio screen, a shared component, a story, a recipe, a preview, or a review of generated output. It is the design contract the `frontend-design` skill critiques against and the **design gate** (§11) that blocks G3. Rules that enforce it live in `.claude/rules/design-system.md`; the component registry lives in `packages/design-system/catalog/`.
 
@@ -128,15 +128,15 @@ Controls are pills; rectangular shapes grow with their level: media 12 inside a 
 
 ## 4. Typography, Thai and Latin together
 
-| Role    | Family stack                                             | Weights                        | Size / line-height     |
-| ------- | -------------------------------------------------------- | ------------------------------ | ---------------------- |
-| Display | `"Anuphan", "IBM Plex Sans Thai", system-ui, sans-serif` | 500 (faces 400 to 700)         | 56/1.2 and 32/1.25     |
-| Body/UI | `"IBM Plex Sans", "Sarabun", system-ui, sans-serif`      | 400, 500 (faces 400, 500, 600) | 20/1.5, 16/1.7, 14/1.6 |
-| Mono    | `"IBM Plex Mono", ui-monospace, monospace`               | 400, 500                       | 14 / 1.6               |
+| Role    | Family stack                                        | Weights                        | Size / line-height     |
+| ------- | --------------------------------------------------- | ------------------------------ | ---------------------- |
+| Display | `"IBM Plex Sans", "Sarabun", system-ui, sans-serif` | 500 (faces 400, 500, 600)      | 56/1.2 and 32/1.25     |
+| Body/UI | `"IBM Plex Sans", "Sarabun", system-ui, sans-serif` | 400, 500 (faces 400, 500, 600) | 20/1.5, 16/1.7, 14/1.6 |
+| Mono    | `"IBM Plex Mono", ui-monospace, monospace`          | 400, 500                       | 14 / 1.6               |
 
 Rules (from the specimen run, brand spec §6 and §8):
 
-- Loopless Thai (Anuphan) at 24 px and above; looped Thai (Sarabun, owner's choice of 2026-10-22, ORV-58) below, for body, UI, chat and node cards, because looped Thai reads more easily in running text. Latin and digits in body text stay IBM Plex Sans, which sits first in the stack; Sarabun is self-hosted as a Thai subset only. Tone marks need the 1.2 line-height at display size.
+- Looped Thai (Sarabun, owner's choice of 2026-10-22, ORV-58) at every size, headings included (owner, 2026-10-31, ORV-192 row 15), because looped Thai reads more easily and a Thai heading then matches the Thai beside it. Latin and digits stay IBM Plex Sans, which sits first in the stack; Sarabun is self-hosted as a Thai subset only. Display takes the body family. Friendly is the one exception: it restates `font.display`, `type.display.lg` and `type.display.md` in loopless Anuphan, as it already sets its headings. Tone marks need the 1.2 line-height at display size.
 - No letter-spacing and no text-transform on Thai, ever. Latin eyebrows in tracked caps are anti-pattern 5.
 - A mixed line takes the body line-height; Thai must not look smaller or lighter than the Latin beside it.
 - Fixture content for every component includes Thai, Latin, a long Thai name without spaces, and a missing value.
@@ -305,3 +305,5 @@ Change log: v1.43 (2026-10-31) the ORIVILO signature becomes violet (ORV-118, co
 Change log: v1.44 (2026-10-31) the brand badge takes the mark's bead (ORV-118, sign-off `ORV-118-signoff-2` finding F1, comment 10373, design row 1): component tokens `badge.brand.bg` `{surface.sunken}`, `badge.brand.fg` `{text.primary}` and `badge.dot.brand` `{brand.dot-small}`; `Badge` variant `brand` always renders its bead and takes no icon (`icon` with brand is a type error); `brand.dot-small` has a second reader, `badge.dot.brand`, and no component token reads `brand.ink` any more. Downstream: the recommended badge in Direction Studio and `/directions` is a quiet pill with a bead and no longer reads as the primary button; `componentsReading(["brand.signature"])` is `["logo", "nav-item", "tile"]`.
 
 Change log: v1.45 (2026-10-31) the type feels lighter (ORV-192 row 7): `type.display.lg`, `type.display.md`, `type.heading.md`, `type.heading.sm`, `type.numeral.lg` and `type.numeral.md` go from weight 600 to 500 in the base set, and the Friendly heading and Professional display overrides follow; body and code stay 400, label stays 500, so the scale uses two weights (500 for what names something, 400 for running text). The ToggleGroup pressed item drops its heavier weight step and keeps its chip, ring and `text.primary` ink (`toggle.$description` and the catalog rule reworded). Impact: every card, dialog, inspector, side sheet and direction title, the bento numerals and the Typography page are one weight step lighter; no size, line-height, family, colour or contrast pair changes. Guard: `profiles.test.ts` ties every `type.*` weight to a face the stack carries.
+
+Change log: v1.46 (2026-10-31) Thai headings use the body family (ORV-192 row 15, owner comment 10400): in the base set `font.display`, `type.display.lg` and `type.display.md` take `{font.family.plex-sans}` (Latin in IBM Plex Sans, Thai in looped Sarabun) instead of Anuphan; the Friendly profile restates all three with `{font.family.anuphan}` so it keeps Anuphan; Professional adds no override and now follows the base, which matches its own Plex Sans `type.display`. Impact: under the neutral standard and Professional every `font-display` and display-size Thai line renders in Sarabun 500 (the Typography page title and rows, direction and canvas titles); Friendly is unchanged; no size, line-height, weight, colour or contrast pair changes. Guard: `profiles.test.ts` "display face (row 15)" checks the first two families under all three sets.

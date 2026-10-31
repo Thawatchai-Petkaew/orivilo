@@ -33,9 +33,10 @@ function TypographyPage() {
     <div className="mx-auto max-w-5xl p-6">
       <h1 className="font-display text-display-md">Typography</h1>
       <p className="mt-2 max-w-prose text-text-secondary">
-        Thai and Latin on the same line at each step of the scale. Loopless Anuphan at 24 px and
-        above, looped Sarabun below with Latin and digits in IBM Plex Sans. Fonts are self-hosted
-        from this package. No letter-spacing and no text-transform on Thai.
+        Thai and Latin on the same line at each step of the scale. Thai is looped Sarabun at every
+        size, headings included, with Latin and digits in IBM Plex Sans; the Friendly profile sets
+        its headings in loopless Anuphan. Fonts are self-hosted from this package. No letter-spacing
+        and no text-transform on Thai.
       </p>
       <dl className="mt-8 space-y-8">
         {SCALE.map((step) => (
@@ -80,7 +81,8 @@ type Story = StoryObj<typeof meta>;
 
 /**
  * The body role sets Thai in looped Sarabun and Latin in IBM Plex Sans (ORV-58): the stack names
- * Plex first, and the self-hosted Sarabun face loads for a Thai character.
+ * Plex first, and the self-hosted Sarabun face loads for a Thai character. The display role takes
+ * the same family (ORV-192 row 15), so a Thai heading is Sarabun at 500 too.
  */
 export const Scale: Story = {
   play: async ({ canvasElement }) => {
@@ -91,6 +93,12 @@ export const Scale: Story = {
     await expect(thai.map((f) => f.family.replaceAll('"', ""))).toContain("Sarabun");
     const latin = await document.fonts.load("400 16px Sarabun", "A");
     await expect(latin).toHaveLength(0);
+    for (const cls of [".text-display-lg", ".text-display-md"]) {
+      const display = canvasElement.querySelector<HTMLElement>(cls);
+      await expect(getComputedStyle(display as HTMLElement).fontFamily, cls).toMatch(
+        /^"IBM Plex Sans", Sarabun,/,
+      );
+    }
     const weight = (el: Element | null) => getComputedStyle(el as HTMLElement).fontWeight;
     for (const cls of [".text-display-lg", ".text-display-md", "h1", "h2"]) {
       await expect(weight(canvasElement.querySelector(cls)), cls).toBe("500");
@@ -100,5 +108,7 @@ export const Scale: Story = {
     }
     const medium = await document.fonts.load("500 20px Sarabun", "ก");
     await expect(medium.map((f) => f.family.replaceAll('"', ""))).toContain("Sarabun");
+    const display = await document.fonts.load("500 56px Sarabun", "ก");
+    await expect(display.map((f) => f.family.replaceAll('"', ""))).toContain("Sarabun");
   },
 };

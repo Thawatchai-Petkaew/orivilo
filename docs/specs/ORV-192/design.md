@@ -8,6 +8,7 @@ Design decisions for the ORV-192 UI polish batch (the rows of Jira ORV-192 comme
 | --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 5   | The mark's dot: `packages/design-system/src/components/logo/geometry.ts` (`GEOMETRY.mark.dot.r`, `DOT_RADIUS`), the brand files `orivilo-mark.svg` and `orivilo-lockup.svg`    | Status: **D2 chosen by the owner (2026-10-31, ORV-192 row 5), built.** The dot's radius becomes 21 drawing units in every form (today 17 / 16 / 15, half the stroke); the centre, the ring, the stroke ladder and every colour stay. **The owner then reduced D2 from radius 21 to 19 (2026-10-31, "ลดลงอีก นิด"), built:** radius 19 in every form, clearance 14.48 / 13.48 / 12.48 units, which is 3.09 px at 32, 2.16 px at 24 and 1.33 px at 16 (D2 at 21 gave 12.48 / 11.48 / 10.48 and 2.66 / 1.84 / 1.12) | Owner, ORV-192 comment 10388 row 5: a bigger dot so it balances the ring | `Base/Logo` story `Small sizes`: the dot's `r` is 19 at every height; the 16 px pixel probe reads pixel (8, 3) as the canvas and pixel (13, 5) within 24 of it, light and dark, full colour and one-colour                                                                                                                                          |
 | 7   | The type weights: `type.display.*`, `type.heading.*`, `type.numeral.*` in `semantic.json` and the two profile overrides (`friendly.json` heading, `professional.json` display) | Status: **recommended by the designer, for the owner to build and judge live.** Display, heading and numeral go from 600 to 500 (six tokens, plus the four profile overrides that restate them). Label stays 500, body and code stay 400. The ToggleGroup pressed item loses its weight step and keeps its chip, ring and ink. Every new weight has a true face in every stack that sets it (no synthesized or substituted face)                                                                                 | Owner, ORV-192 comment 10391 row 7: the type feels too heavy             | `Foundations/Typography` `Scale`: the display rows and the section heading compute 500, the body rows 400, and `document.fonts.load("500 20px Sarabun", "ก")` returns a Sarabun face; `Base/ToggleGroup` `Single`: the pressed item differs by box-shadow and background, not by weight; the face test in `profiles.test.ts` (builder table row 12) |
+| 15  | The display face: `font.display`, `type.display.lg` and `type.display.md` in `semantic.json`, and the Friendly restatement in `friendly.json`                                  | Status: **decided by the owner (comment 10400), built.** Thai headings use the body family, Sarabun, in the neutral standard; Friendly keeps Anuphan; Professional follows the base.                                                                                                                                                                                                                                                                                                                             |
 
 ## Row 5: mark dot size
 
@@ -276,3 +277,38 @@ The ToggleGroup has its own pair, `base-toggle-group--single__all__pair.png`. Th
 - `base-button--sizes` and `base-button--variants`: unchanged, with all three sizes at one weight.
 - `base-toggle-group--single` and `base-toggle-group--thai-centred`: the pressed item reads through its chip and ring, and a text item keeps its width when pressed.
 - The Friendly profile on Card and Dialog (headings in Anuphan at 500), and Professional on the Typography display rows.
+
+## Row 15: Thai headings in Sarabun
+
+### Decision
+
+The owner decided (Jira ORV-192 comment 10400): Thai headings use the body family, Sarabun, in our standard only. The standard is the neutral set in `semantic.json`; Friendly keeps Anuphan. This reverses the display half of the ORV-58 split (Anuphan at 24 px and above), and it supersedes the row 7 notes that call display "Anuphan" in the base set.
+
+### What changes
+
+| Token                                     | Base before           | Base after              | Friendly                        | Professional                  |
+| ----------------------------------------- | --------------------- | ----------------------- | ------------------------------- | ----------------------------- |
+| `font.display`                            | `font.family.anuphan` | `font.family.plex-sans` | restated, `font.family.anuphan` | none, follows the base        |
+| `type.display.lg` (56 / 1.2, weight 500)  | Anuphan stack         | Plex Sans stack         | restated, Anuphan stack         | own override, Plex Sans stack |
+| `type.display.md` (32 / 1.25, weight 500) | Anuphan stack         | Plex Sans stack         | restated, Anuphan stack         | own override, Plex Sans stack |
+
+Size, line-height, weight and letter-spacing are untouched. The Friendly restatement copies the old base values for these two types, so Friendly renders exactly as before.
+
+### Result in the three profiles
+
+- **Neutral (the standard):** `font-display` and display-size Thai render `"IBM Plex Sans", "Sarabun"`: Latin and digits in Plex Sans, Thai in looped Sarabun 500. A heading's Thai now matches the Thai in the text under it.
+- **Professional:** no new override. Its `type.display.*` were already the Plex Sans stack, but `font.display` followed the base (Anuphan), so a `font-display` line and a `text-display-*` line could disagree. Both are now Plex Sans, so display headings are consistent.
+- **Friendly:** `font.display` and `type.display.*` are restated with Anuphan, next to its existing Anuphan `type.heading.*`. Display and heading are both Anuphan, as before.
+
+### Why this is allowed
+
+`font` and `type` are not in `LOCKED_GROUPS`, and both names exist in the base set, so the friendly override is a new value for existing semantic names, which the profile rules permit.
+
+### Guard
+
+`profiles.test.ts` "display face (row 15)": under neutral, Professional and Friendly, the first two families of `font.display`, `type.display.lg` and `type.display.md` are `IBM Plex Sans`, `Sarabun` under neutral and Professional, and `Anuphan`, `IBM Plex Sans Thai` under Friendly. The Typography `Scale` play reads the computed family of the two display rows (`/^"IBM Plex Sans", Sarabun,/`) and loads Sarabun at 500 and 56 px for a Thai glyph, as it already does at 500 and 20 px.
+
+### Screens to check in visual QA
+
+- `foundations-typography--scale` under neutral and Professional: the display rows and the title are Sarabun Medium for Thai; under Friendly they are Anuphan Medium.
+- Any story that shows a display-size Thai title (direction titles, canvas titles) under neutral: the Thai is looped, with tone marks whole at 56 px.

@@ -405,7 +405,32 @@
         }
       }
     },
+    "font": {
+      "display": {
+        "$value": "{font.family.anuphan}"
+      }
+    },
     "type": {
+      "display": {
+        "lg": {
+          "$value": {
+            "fontFamily": "{font.family.anuphan}",
+            "fontSize": "{font.size.56}",
+            "lineHeight": "{font.line-height.1-2}",
+            "fontWeight": "{font.weight.500}",
+            "letterSpacing": "{font.letter-spacing.normal}"
+          }
+        },
+        "md": {
+          "$value": {
+            "fontFamily": "{font.family.anuphan}",
+            "fontSize": "{font.size.32}",
+            "lineHeight": "{font.line-height.1-25}",
+            "fontWeight": "{font.weight.500}",
+            "letterSpacing": "{font.letter-spacing.normal}"
+          }
+        }
+      },
       "heading": {
         "md": {
           "$value": {

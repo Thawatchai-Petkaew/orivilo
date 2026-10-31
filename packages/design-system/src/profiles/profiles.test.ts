@@ -167,6 +167,44 @@ describe("type weights", () => {
   }
 });
 
+/**
+ * ORV-192 row 15 (owner, comment 10400). Thai in a heading takes the body family, so under the
+ * neutral standard and Professional the display face is the Plex Sans stack (Latin in Plex Sans,
+ * Thai in looped Sarabun). Friendly restates Anuphan and keeps it. The stack decides the Thai face:
+ * the browser takes the first family that carries the glyph.
+ */
+describe("display face (row 15)", () => {
+  const PLEX_SANS = ["IBM Plex Sans", "Sarabun"];
+  const ANUPHAN = ["Anuphan", "IBM Plex Sans Thai"];
+  const expected: Record<string, string[]> = {
+    neutral: PLEX_SANS,
+    professional: PLEX_SANS,
+    friendly: ANUPHAN,
+  };
+  const sets = [
+    { id: "neutral", set: tokens },
+    ...profiles.map((p) => ({ id: p.id, set: p.tokens })),
+  ];
+
+  for (const { id, set } of sets) {
+    it(`under ${id}, font.display and type.display.lg and .md lead with ${expected[id]?.[0]} then ${expected[id]?.[1]}`, () => {
+      const family = (path: string) => {
+        const token = set.get("semantic", path);
+        if (!token) throw new Error(`no semantic token ${path}`);
+        const value = set.resolve(token, "light").value as string[] | { fontFamily: string[] };
+        return (Array.isArray(value) ? value : value.fontFamily).slice(0, 2);
+      };
+      for (const path of ["font.display", "type.display.lg", "type.display.md"]) {
+        expect(family(path), path).toEqual(expected[id]);
+      }
+    });
+  }
+
+  it("covers the neutral standard, Professional and Friendly", () => {
+    expect(sets.map((s) => s.id).sort()).toEqual(Object.keys(expected).sort());
+  });
+});
+
 describe("profile CSS", () => {
   it("matches the source files (run `pnpm --filter @orivilo/design-system tokens`)", () => {
     const committed = readFileSync(path.join(import.meta.dirname, "generated.css"), "utf8");

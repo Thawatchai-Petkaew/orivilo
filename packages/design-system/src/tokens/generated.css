@@ -295,12 +295,12 @@
   --ds-size-sheet-md: var(--op-size-container-xs);
   --ds-size-sheet-lg: var(--op-size-container-sm);
   --ds-size-tile: var(--op-size-44);
-  --ds-type-display-lg-font-family: var(--op-font-family-anuphan);
+  --ds-type-display-lg-font-family: var(--op-font-family-plex-sans);
   --ds-type-display-lg-font-size: var(--op-font-size-56);
   --ds-type-display-lg-line-height: var(--op-font-line-height-1-2);
   --ds-type-display-lg-font-weight: var(--op-font-weight-500);
   --ds-type-display-lg-letter-spacing: var(--op-font-letter-spacing-normal);
-  --ds-type-display-md-font-family: var(--op-font-family-anuphan);
+  --ds-type-display-md-font-family: var(--op-font-family-plex-sans);
   --ds-type-display-md-font-size: var(--op-font-size-32);
   --ds-type-display-md-line-height: var(--op-font-line-height-1-25);
   --ds-type-display-md-font-weight: var(--op-font-weight-500);
@@ -367,7 +367,7 @@
   --ds-opacity-disabled: var(--op-opacity-disabled);
   --ds-opacity-scrim: var(--op-opacity-scrim);
   --ds-opacity-selection: var(--op-opacity-selection);
-  --ds-font-display: var(--op-font-family-anuphan);
+  --ds-font-display: var(--op-font-family-plex-sans);
   --ds-font-body: var(--op-font-family-plex-sans);
   --ds-font-mono: var(--op-font-family-plex-mono);
   --ds-layer-overlay: var(--op-z-overlay);
