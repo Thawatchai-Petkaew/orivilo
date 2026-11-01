@@ -31,6 +31,9 @@ export {
   DialogTrigger,
   type DialogVariant,
 } from "./dialog/Dialog";
+export { EvidenceList, type EvidenceListProps } from "./evidence-list/EvidenceList";
+export { EvidenceSpan, type EvidenceSpanProps } from "./evidence-span/EvidenceSpan";
+export type { EvidenceItem } from "./evidence-span/span";
 export { Field, type FieldProps, useFieldControl } from "./field/Field";
 export { Input, type InputProps } from "./input/Input";
 export { InputGroup, type InputGroupProps } from "./input-group/InputGroup";

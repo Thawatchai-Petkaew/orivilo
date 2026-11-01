@@ -1005,4 +1005,20 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
   // Logo (ORV-118)
   { recipe: "logo", slot: "ink", fg: "logo.ink", bg: "ds:surface.canvas", floor: UI },
   { recipe: "logo", slot: "small dot", fg: "logo.dot-small", bg: "ds:surface.canvas", floor: UI },
+  // EvidenceSpan and EvidenceList (ORV-211): the source line in the card, and the secondary text
+  // on the page (the two missing texts and the list's source line).
+  {
+    recipe: "evidence",
+    slot: "source line",
+    fg: "ds:text.secondary",
+    bg: "popover.bg",
+    floor: TEXT,
+  },
+  {
+    recipe: "evidence",
+    slot: "secondary text on the page",
+    fg: "ds:text.secondary",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
 ];

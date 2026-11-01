@@ -84,6 +84,8 @@ Legend: `none` not started, `planned` entry exists, no code, `draft` code and st
 | DirectionStudio     | draft   | application-direction-studio      |
 | CanvasChat          | draft   | application-canvas-chat           |
 | TaskBar             | draft   | application-task-bar              |
+| EvidenceSpan        | draft   | application-evidence-span         |
+| EvidenceList        | draft   | application-evidence-list         |
 | CompareStrip        | planned | E4-6                              |
 | VersionBadge        | planned | E4-6                              |
 

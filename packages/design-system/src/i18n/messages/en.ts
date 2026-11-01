@@ -102,6 +102,15 @@ export const en: Messages = {
   tag: {
     remove: "Remove {label}",
   },
+  evidence: {
+    trigger: "Evidence",
+    cardLabel: "Evidence from the brief",
+    sourceByRule: "From your brief, read by rules",
+    sourceByModel: "From your brief, read by an AI model",
+    missing: "No evidence",
+    countOne: "1 quote from the brief",
+    count: "{count} quotes from the brief",
+  },
   textarea: {
     ratio: "{count}/{max}",
     count: "Characters: {count}",
