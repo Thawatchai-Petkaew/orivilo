@@ -2,7 +2,7 @@
 issue: ORV-205 (https://tpetkaew.atlassian.net/browse/ORV-205)
 lane: S (a flaky test; no token, recipe or component change unless row 5 applies)
 mode: POC mode short spec (`.claude/skills/ovl/SKILL.md`, section "POC mode")
-version: 1.0
+version: 1.1
 ---
 
 # ORV-205: the TaskBar Running play gives the same verdict on every CI run
@@ -20,13 +20,21 @@ Nothing in this issue is simulated: the play reads real screenshots in Chromium 
 
 ## What is known
 
-- The failure line, from CI: `cuts 2 px of its Thai stack above the label line` (`visual-asserts.ts` line 1234, the second `expect` of `expectLabelInkWhole`).
+- The failure line, from CI on `d55c46c`: `cuts 2 px of its Thai stack above the label line` (then line 1234 of `visual-asserts.ts`, the second `expect` of `expectLabelInkWhole`). Since the builder commit `e70a1ab` the same `expect` reads `cuts N px of its Thai stack above the clip box` (`visual-asserts.ts` line 1252), because the cut is now measured from the clip edge (see Fix as built).
 - Failed: PR 175, run 41283990380, TaskBar `Running` failed in both attempts with that line (envelope fact, checked against <https://github.com/Thawatchai-Petkaew/orivilo/actions/runs/41283990380>).
 - Passed: develop run 41282025377 at `d55c46c` (envelope fact, <https://github.com/Thawatchai-Petkaew/orivilo/actions/runs/41282025377>). ORV-205 in Jira lists the other runs; this role has no Jira tool, so the builder reads that list there.
 - The play never fails on the Mac (envelope fact). CI runs on Linux.
-- How the helper reads the label (`visual-asserts.ts` lines 1194 to 1238): it puts a shallow clone of the label, holding `ฟื้ปั้ปี๊ฟื้`, after the label; shoots a region from 8 px above to 8 px below the clone twice, once as shipped and once with `overflow: visible` inline; sets the line at `Math.round((8 + paddingTop) * scale)`; and `inkCutAbove` (lines 1169 to 1183) reports the distance from the first row above the line where any pixel differs between the two shots by more than `INK_DISTANCE`. Any pixel that changes between the two shots for another reason counts as a cut.
+- How the helper read the label on `d55c46c` (`visual-asserts.ts` lines 1194 to 1238 there): it puts a shallow clone of the label, holding `ฟื้ปั้ปี๊ฟื้`, after the label; shoots a region from 8 px above to 8 px below the clone twice, once as shipped and once with `overflow: visible` inline; sets the line at `Math.round((8 + paddingTop) * scale)`; and `inkCutAbove` (lines 1169 to 1183) reports the distance from the first row above the line where any pixel differs between the two shots by more than `INK_DISTANCE`. Any pixel that changes between the two shots for another reason counts as a cut.
 - The recipe the label gets (`packages/design-system/src/recipes/recipes.css`): `overflow: hidden; text-overflow: ellipsis; white-space: nowrap` (lines 4149 to 4153) and `padding-block: var(--ds-space-inline-sm); margin-block: calc(-1 * var(--ds-space-inline-sm))` (lines 4689 to 4693, shared with `.ds-chat__option > span:first-child`).
 - The story renders three jobs: a known length, a value past the maximum, and an unknown length (`fixtureJobs.runningUnknown`), whose progress moves (the `RunningReducedMotion` story exists because the recipe switches a sweep and a retry spinner off under reduced motion).
+
+## Fix as built (v1.1)
+
+What the builder commit `e70a1ab` changed, recorded here so the rows below read against it:
+
+- The cut is measured from the clip edge, not the label line. `overflow: hidden` clips at the clone's padding box, so the new `clipEdgeRow(reach, borderTop, devicePixelRatio)` (`visual-asserts.ts` lines 1185 to 1194) returns `Math.round((reach + borderTop) * devicePixelRatio)`, and `inkCutAbove` reads only the rows above that edge (line 1251). Rows in the label's block padding, between the clip edge and the label line, are no longer read: the clip never touches them, and Chromium on Linux sometimes leaves the faint top row of a tone mark out of the `overflow: visible` raster, which read as a 2 px cut (the doc comment at lines 1196 to 1206). The `draws no ink` check still reads from the label line (lines 1238 to 1250).
+- The named cause is raster noise in the padding rows, not a visual clip, so row 5 does not apply (its own last sentence).
+- A second flake, found while running row 2 with `--repeats 4`: the board plays of the same file, `OnBoard`, `OnShortBoard` and `OnBoardReducedMotion`, clicked Go to node before the board's first fit, which then overwrote the jump (`OnShortBoard` failed about 1 repeat in 3). Each of the three plays now first awaits the new `boardFitted` helper (`TaskBar.stories.tsx` lines 430 to 441, called at lines 464, 520 and 557), which waits until every `.react-flow__node` is present and visible. It waits for a condition, not a fixed time (`.claude/rules/testing.md`). It changes no assertion of those plays.
 
 ## Builder's first task
 
@@ -54,9 +62,9 @@ The fix keeps both halves of the Goal. It must not make the check pass by wideni
 | --- | --- | --- | --- | --- | --- |
 | 1 | The head of the ORV-205 branch | The builder reads the play, the recipe lines above and `expectLabelInkWhole` and takes the reading on the failing setup | No UI; the PR body | The PR body names the cause by `taskbar-cause-1` | The reviewer finds the one-sentence cause and its before and after readings in the PR body |
 | 2 | The fix | `pnpm --filter @orivilo/design-system exec vitest run --project storybook --repeats 4 src/components/task-bar/TaskBar.stories.tsx`, then, when the fix touches the helper, the same command on each other story file that calls `expectLabelInkWhole` (on `d55c46c`: `tag/Tag.stories.tsx`, `node-group/NodeGroup.stories.tsx`, `block-library/BlockLibrary.stories.tsx`) | No UI | None | Every run passes, every repeat, and the PR body pastes the summary lines. The Mac never failed, so this row alone does not prove the flake gone; row 4 does |
-| 3 | The fix, plus a scratch mutation that cuts the marks: in `recipes.css` the `.ds-taskbar__progress .ds-progress__label` selector is taken out of the rule at lines 4689 to 4693, so the label has no block padding and `overflow: hidden` cuts the stack | The row 2 command runs on the TaskBar file without `--repeats` | No UI | The mutation is restored before the commit | The `Running` play fails with `cuts N px of its Thai stack above the label line`, N above 0, and passes once restored. Both outputs go in the PR body (`taskbar-verdict-1`, half 2) |
+| 3 | The fix, plus a scratch mutation that cuts the marks: in `recipes.css` the `.ds-taskbar__progress .ds-progress__label` selector is taken out of the rule at lines 4689 to 4693, so the label has no block padding and `overflow: hidden` cuts the stack | The row 2 command runs on the TaskBar file without `--repeats` | No UI | The mutation is restored before the commit | The `Running` play fails with `cuts N px of its Thai stack above the clip box`, N above 0, and passes once restored. Both outputs go in the PR body (`taskbar-verdict-1`, half 2) |
 | 4 | The PR's head on GitHub | CI runs, and the main session reruns the same head once (attempt 2) | No UI | None | Both CI attempts on the same head pass, with their run ids and attempt numbers in the PR body. The failing run 41283990380 failed in both attempts, so two green attempts are the bar |
-| 5 | Only if row 1 names a real visual clip on Linux (the recipe's padding does not hold the marks of the real font) | The builder changes the recipe for the label so the marks fit, through semantic or component tokens only (`.claude/rules/design-system.md`) | Storybook Base/Task bar `Running` and `RecipesAndModes` show the job title `ฟื้ ปั้ ปี๊` with its whole stack of marks, at 360 px and at full width, in light and dark | The recipe change; if it is in the shared rule at lines 4689 to 4693, the chat option is in its impact list | A designer signs off on screenshots of those stories, Thai and English, both modes; rows 2 to 4 pass on the changed recipe. When row 1 names a cause that is not a visual clip, this row is not applicable and the PR says so |
+| 5 | Only if row 1 names a real visual clip on Linux (the recipe's padding does not hold the marks of the real font) | The builder changes the recipe for the label so the marks fit, through semantic or component tokens only (`.claude/rules/design-system.md`) | Storybook Base/Task bar `Running` and `RecipesAndModes` show the job title `ฟื้ ปั้ ปี๊` with its whole stack of marks, at 360 px and at full width, in light and dark | The recipe change; if it is in the shared rule at lines 4689 to 4693, the chat option is in its impact list | A designer signs off on screenshots of those stories, Thai and English, both modes; rows 2 to 4 pass on the changed recipe. When row 1 names a cause that is not a visual clip, this row is not applicable and the PR says so. Since v1.1: not applicable, the cause is raster noise in the padding rows (Fix as built) |
 
 ## Rows per PR
 
@@ -71,7 +79,7 @@ One PR for rows 1 to 5; the main session adds the PR line when the PR opens.
 - Row 3: a scratch mutation and test runs.
 - Row 4: CI runs.
 
-Row 5 renders, when it applies, and needs its screenshots.
+Row 5 renders, when it applies, and needs its screenshots. Since v1.1 it does not apply, so no row of this PR renders.
 
 ## Out of scope
 
@@ -89,10 +97,12 @@ Row 5 renders, when it applies, and needs its screenshots.
 ## Depends on
 
 - `docs/specs/ORV-194/spec.md` row 7, the check this play carries.
-- `packages/design-system/src/testing/visual-asserts.ts` lines 1162 to 1238, `inkCutAbove` and `expectLabelInkWhole`.
+- `packages/design-system/src/testing/visual-asserts.ts` at `e70a1ab`, lines 1169 to 1256: `inkCutAbove`, `clipEdgeRow` and `expectLabelInkWhole`.
+- `packages/design-system/src/components/task-bar/TaskBar.stories.tsx` at `e70a1ab`, `boardFitted` (lines 430 to 441).
 - `.claude/rules/testing.md`: a test fails on the real defect; a flaky fix repeats the affected file with `--repeats 4`; wait for conditions, never for fixed time.
 - `DESIGN.md` §11, the design gate, for row 5 only.
 
 ## Changelog
 
 - v1.0 (2026-11-01): first version, from the envelope facts (failure line, run 41283990380 failed in both attempts, run 41282025377 at `d55c46c` passed, the Mac never fails) and a read of the play, the recipe and the helper. No Jira tool in this role. Downstream to review: the builder envelope for ORV-205 (rows 1 to 5, rules `taskbar-cause-1` and `taskbar-verdict-1`) and the qa envelope (Rows per PR, Rows that render nothing).
+- v1.1 (2026-11-01): after builder commit `e70a1ab`. Row 3 and What is known expect the new failure text `cuts N px of its Thai stack above the clip box`; new section Fix as built records that the cut is measured from the clip edge (the padding box top, `clipEdgeRow`) and not the label line, that row 5 does not apply because the named cause is not a visual clip, and that `OnBoard`, `OnShortBoard` and `OnBoardReducedMotion` now await `boardFitted` (a second flake found under `--repeats 4`). Depends on points at the new line ranges. Downstream to review: the reviewer and qa envelopes for ORV-205 (row 3 failure text, row 5 not applicable, the three board plays in the row 2 run) and the PR body (row 1 cause, row 3 output).
