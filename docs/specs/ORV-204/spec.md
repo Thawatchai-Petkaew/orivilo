@@ -117,6 +117,8 @@ Rows 1 to 5 prove rows 1 to 3 of the owner's list on the Select; rows 6 to 8 and
 
 One PR covers rows 1 to 13 (design.md builder rows 1.1 to 3.2, estimated under the 400-line guide); the main session adds its line in the form `qa-scope-1` reads when the PR opens, with a changelog line.
 
+- PR 177: rows 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13
+
 ## Rows that render nothing
 
 - Rows: 6, 7, 8, 11, 13
