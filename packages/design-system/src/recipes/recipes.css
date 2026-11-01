@@ -302,6 +302,10 @@
   resize: none;
   overflow-y: auto;
 }
+/* Textarea sm wraps: it keeps body.sm 14 / 1.7 for Thai line clearance (ORV-192 row 18); single-line sm fields read type.field.sm at 1.6 (ORV-199). */
+.ds-control[data-multiline][data-size="sm"] {
+  line-height: var(--ds-type-body-sm-line-height);
+}
 
 /* Textarea counter (ORV-72): graphemes against the limit, under the box at the end edge. */
 .ds-textarea {

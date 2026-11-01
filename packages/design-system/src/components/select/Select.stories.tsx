@@ -7,6 +7,8 @@ import { fixtureOptions, fixtures } from "../fixtures";
 import { ArtifactIcon, DirectionIcon, KnowledgeIcon, NoteIcon, ReferenceIcon } from "../icons";
 import {
   expectFocusBorderForm,
+  expectInkCentred,
+  expectLabelInkWhole,
   expectNoGlyphClip,
   inVitest,
   resolvedColor,
@@ -154,6 +156,96 @@ export const Sizes: Story = {
   play: async ({ canvasElement }) => {
     // No Field nested in a Field: a meta decorator wrapping this story would break its labels.
     await expect(canvasElement.querySelectorAll(".ds-field .ds-field")).toHaveLength(0);
+  },
+};
+
+const MODES = ["light", "dark"] as const;
+
+/** The 16 positions of a box below a whole CSS pixel, 0, 1/16, ..., 15/16 (ORV-199 field-sm-sweep-1). */
+const SWEEP = Array.from({ length: 16 }, (_, k) => k);
+
+/** The Thai value with every stack of marks, for the clip box of the trigger's value (ORV-199 row 6). */
+const markStack = "ฟื้ปี๊ปุ่มสั่งซื้อฟูปู่";
+
+/**
+ * Where the value of an sm trigger sits in its box (ORV-199 field-sm-sweep-1). A line box and a
+ * whole-pixel glyph snap meet at a fraction of a pixel, so one y can pass by luck; each cell holds
+ * 16 rows, every row a fixed 96 px holding an sm Select with the Thai value and, 44 px below it, one
+ * with the English value, both `k/16` px below a whole pixel (the row height is fixed, so the offset
+ * does not add up). The play
+ * runs `expectInkCentred` with the body reading on the Thai trigger of each row, which fails with
+ * the offset of every trigger that is off; the English trigger stays for the look and is not judged
+ * (it reads 1.75 px off on the Linux CI runner, spec field-sm-sweep-1). Then `expectLabelInkWhole`
+ * on one trigger's value with a stack of Thai marks. The static Storybook shows the story without
+ * the checks.
+ */
+export const LabelCentre: Story = {
+  render: () => (
+    <>
+      {MODES.map((mode) => (
+        <DesignProfileBoundary key={mode} mode={mode} profile="neutral">
+          <div
+            data-testid={`label-centre-${mode}`}
+            className="flex flex-col bg-surface-canvas px-4 py-4"
+          >
+            {SWEEP.map((k) => (
+              <div
+                key={k}
+                className="box-border flex h-24 flex-col items-stretch gap-3"
+                style={{ paddingTop: `${k / 16}px` }}
+              >
+                {[
+                  { value: "th", label: fixtures.thai },
+                  { value: "en", label: fixtures.latin },
+                ].map(({ value, label }) => (
+                  <Select
+                    key={value}
+                    size="sm"
+                    options={[
+                      { value: "th", label: fixtures.thai },
+                      { value: "en", label: fixtures.latin },
+                    ]}
+                    defaultValue={value}
+                    aria-label={label}
+                  />
+                ))}
+              </div>
+            ))}
+          </div>
+        </DesignProfileBoundary>
+      ))}
+    </>
+  ),
+  play: async ({ canvasElement }) => {
+    if (!inVitest) return; // the screenshot needs Vitest browser mode
+    const canvas = within(canvasElement);
+    await expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth);
+    for (const mode of MODES) {
+      const cell = canvas.getByTestId(`label-centre-${mode}`);
+      const triggers = within(cell).getAllByRole("combobox");
+      await expect(triggers).toHaveLength(SWEEP.length * 2);
+      // The look (ORV-199 F-S1): every trigger lies inside its cell with 16 px of canvas above and below, so no border
+      // touches the boundary edge and the frame does not scroll sideways.
+      const box = cell.getBoundingClientRect();
+      for (const trigger of triggers) {
+        const t = trigger.getBoundingClientRect();
+        await expect(t.left).toBeGreaterThanOrEqual(box.left);
+        await expect(t.right).toBeLessThanOrEqual(box.right);
+        await expect(t.top).toBeGreaterThanOrEqual(box.top + 16);
+        await expect(t.bottom).toBeLessThanOrEqual(box.bottom - 16);
+      }
+      // The cell is 1568 px tall, past the viewport a screenshot clips to, so each 96 px row is read on its own.
+      for (let row = 0; row < SWEEP.length; row++) {
+        const thaiTrigger = triggers[row * 2];
+        const rowEl = thaiTrigger?.parentElement;
+        if (!thaiTrigger || !rowEl) throw new Error(`the sweep row ${row} holds no trigger`);
+        await expectInkCentred(rowEl, [thaiTrigger], { measure: "body" });
+      }
+      // The English trigger of row 0 has 44 px of its row above it, so the 8 px reach of the check stays inside the row.
+      const value = triggers[1]?.firstElementChild;
+      if (!(value instanceof HTMLElement)) throw new Error("the sm trigger holds no value span");
+      await expectLabelInkWhole(value, markStack);
+    }
   },
 };
 

@@ -265,7 +265,7 @@
     "type": {
       "sm": {
         "$type": "typography",
-        "$value": "{type.body.sm}"
+        "$value": "{type.field.sm}"
       },
       "md": {
         "$type": "typography",

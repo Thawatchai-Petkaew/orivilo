@@ -146,6 +146,8 @@ Each reading is an offset in CSS px, ink centre minus control centre (clause 8);
 | toggle-group | `.ds-toggle__item`, not pressed | sm | 24 | -1.00 | -3.50 | -1.00 | -3.50 | 0.50 | 0.50 | yes | none |
 | toggle-group | `.ds-toggle__item`, not pressed | md | 32 | -1.50 | -4.00 | -1.00 | -3.50 | 0.50 | 0.50 | yes | none |
 
+ORV-199: the four sm rows read -0.30 Thai body, -2.30 whole ink (Select -2.80) and 1.20 English in their own stories after the fix, and -1.17 to 1.27 over every y.
+
 Four of the 24 pairs fail clause 9 in their own story: Input, Input group, Password input and Select at sm. Each reads a Thai body of -1.89 px (whole ink -3.89) in light and dark, 0.39 px outside the 1.5 px bound; English reads -0.39. Their box sits at a top of 46.390625 px under the Field label (22.4 px line height), and the same boxes read -1.50 for the body when the root is moved down 0.61 px (top 47.00). The cause is that the body of a sm single-line field already sits 1.5 px above the centre with no margin, so a fractional y tips it over. The other 20 pairs pass in their own story; the largest is the Thai body at -1.50 (Context Menu, Select option, Tag, and Toggle Group md in light) and the next is Input, Input group, Password input and Select at md at -1.28. The follow-up for the four sm field controls is ORV-199 (https://tpetkaew.atlassian.net/browse/ORV-199); this issue changes no source (fix-once-1). Notes:
 
 1. At the bound. The pairs that read -1.50 pass with no margin, because clause 9 includes the bound. Readings in own stories fall on steps of 0.61 px for the field controls (the fractional y) and on half rows elsewhere, so one half row more would fail the pairs that read -1.50.

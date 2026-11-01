@@ -785,13 +785,16 @@ function textNodesOf(box: Element): Text[] {
 }
 
 /**
- * The element whose text is the label of `box` (ink-corner-1 clause 5): the one `<input>` in a box
- * that holds no text node, such as `.ds-input-group`; `box` itself otherwise.
+ * The element whose text is the label of `box` (ink-group-1): an `<input>` is read by its own value;
+ * a box that holds exactly one `<input>` is read by that input, whatever text its other descendants
+ * hold (an addon such as "THB"); a box that holds more than one `<input>` throws; a box that holds
+ * none is `box` itself.
  */
 function labelHolder(box: Element): Element {
-  if (box instanceof HTMLInputElement || textNodesOf(box).length > 0) return box;
+  if (box instanceof HTMLInputElement) return box;
   const inputs = box.querySelectorAll("input");
-  return inputs.length === 1 ? (inputs[0] as HTMLInputElement) : box;
+  if (inputs.length > 1) throw new Error(`${label(box)}: holds more than one input to measure`);
+  return inputs[0] ?? box;
 }
 
 /** The runs of label text in `box`, each with the font that sets it. An `<input>` has one run: its value. */
@@ -946,7 +949,7 @@ async function readBoxes(scope: Element, boxes: readonly Element[], names: reado
  * that is the whole-ink reading. When a label holds Thai marks, it then takes the marks out of the
  * text, shoots again, reads the body, and puts the label back; a label with no marks has the one
  * reading for both. A rounded box loses the columns its corner curves reach, and a box that holds one
- * `<input>` and no text is read by that input (ORV-198, rule ink-corner-1). It runs where Vitest
+ * `<input>` is read by that input (ORV-198 ink-corner-1, ORV-199 ink-group-1). It runs where Vitest
  * browser mode runs; a play guards the call with `inVitest`.
  */
 export async function measureInkCentre(
