@@ -1,13 +1,20 @@
 import { describe, expect, it } from "vitest";
 import {
   bodyOf,
+  colorsMatch,
+  cssColorToHex,
   firstInkRow,
   hexToRgb,
   inkCentreOf,
+  inkCutAbove,
   inkWidth,
+  linesFloor,
+  linesGap,
+  lastShadowColor,
   offCentreReport,
   outsideCorner,
   paintMatches,
+  parseCssColor,
   viewBoxToBox,
   type InkBox,
   type InkCentre,
@@ -498,5 +505,173 @@ describe("hexToRgb and paintMatches", () => {
     expect(paintMatches([230, 246, 111], "#D9F66F")).toBe(false);
     expect(paintMatches([223, 252, 111], "#D9F66F")).toBe(true);
     expect(paintMatches([224, 252, 111], "#D9F66F")).toBe(false);
+  });
+});
+
+describe("parseCssColor", () => {
+  it("reads rgb and rgba in comma and space forms", () => {
+    expect(parseCssColor("rgb(10, 20, 30)")).toEqual([10, 20, 30, 1]);
+    expect(parseCssColor("rgba(10, 20, 30, 0.25)")).toEqual([10, 20, 30, 0.25]);
+    expect(parseCssColor("rgb(10 20 30 / 0.25)")).toEqual([10, 20, 30, 0.25]);
+  });
+
+  it("reads color(srgb) on 0 to 1 as 0 to 255", () => {
+    expect(parseCssColor("color(srgb 1 0 0.5 / 0.25)")).toEqual([255, 0, 127.5, 0.25]);
+    expect(parseCssColor("color(srgb 0 0 0)")).toEqual([0, 0, 0, 1]);
+  });
+
+  it("refuses a colour it does not read", () => {
+    expect(() => parseCssColor("#fff")).toThrow();
+    expect(() => parseCssColor("color(display-p3 1 0 0)")).toThrow();
+  });
+});
+
+describe("cssColorToHex", () => {
+  it("converts an opaque rgb and rgba to #rrggbb", () => {
+    expect(cssColorToHex("rgb(107, 34, 176)")).toBe("#6b22b0");
+    expect(cssColorToHex("rgba(244, 238, 253, 1)")).toBe("#f4eefd");
+    expect(cssColorToHex("color(srgb 1 0 0.5)")).toBe("#ff0080");
+  });
+
+  it("returns null for any alpha under 1, so a transparent highlight fails the play", () => {
+    expect(cssColorToHex("rgba(0, 0, 0, 0)")).toBeNull();
+    expect(cssColorToHex("rgba(244, 238, 253, 0.99)")).toBeNull();
+    expect(cssColorToHex("rgb(10 20 30 / 0.5)")).toBeNull();
+  });
+});
+
+describe("lastShadowColor", () => {
+  it("returns the colour of the last shadow in the list", () => {
+    expect(
+      lastShadowColor(
+        "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px, color(srgb 0.1 0.2 0.3 / 0.25) 0px 0px 0px 4px",
+      ),
+    ).toBe("color(srgb 0.1 0.2 0.3 / 0.25)");
+    expect(lastShadowColor("rgb(1, 2, 3) 0px 0px 0px 4px")).toBe("rgb(1, 2, 3)");
+  });
+
+  it("refuses a list that has no leading colour", () => {
+    expect(() => lastShadowColor("none")).toThrow();
+  });
+});
+
+describe("colorsMatch", () => {
+  it("allows 1.5 on a channel and 0.015 on alpha, and no more", () => {
+    expect(colorsMatch([10, 20, 30, 0.25], [11.5, 20, 30, 0.26])).toBe(true);
+    expect(colorsMatch([10, 20, 30, 0.25], [11.6, 20, 30, 0.25])).toBe(false);
+    expect(colorsMatch([10, 20, 30, 0.25], [10, 20, 30, 0.27])).toBe(false);
+  });
+
+  it("tells a halo in another ink from the right one", () => {
+    expect(colorsMatch([20, 80, 200, 0.4], [250, 250, 250, 0.4])).toBe(false);
+  });
+});
+
+describe("linesFloor", () => {
+  it("takes one device pixel off the floor (lines-clear-1, worked example 2)", () => {
+    expect([1, 2, 4].map((d) => linesFloor(1.5, d))).toEqual([0.5, 1, 1.25]);
+  });
+
+  it("passes the readings design.md records and fails the one of today", () => {
+    expect(1 >= linesFloor(1.5, 1)).toBe(true);
+    expect(1.5 >= linesFloor(1.5, 4)).toBe(true);
+    expect(0 >= linesFloor(1.5, 1)).toBe(false);
+  });
+});
+
+describe("linesGap", () => {
+  const g: Rgb = [250, 250, 250];
+  const red: Rgb = [224, 0, 0];
+  const blu: Rgb = [0, 0, 224];
+
+  it("counts the ground rows between the lowest red and the highest blue", () => {
+    expect(linesGap([[red], [g], [g], [blu]], 1)).toBe(2);
+  });
+
+  it("divides device rows by the device pixel ratio", () => {
+    expect(linesGap([[red], [g], [g], [g], [g], [g], [g], [blu]], 4)).toBe(1.5);
+  });
+
+  it("reads 0 when the two inks touch and a negative value when they overlap", () => {
+    expect(linesGap([[red], [blu]], 1)).toBe(0);
+    expect(linesGap([[red], [blu], [red], [blu]], 1)).toBe(-2);
+  });
+
+  it("takes the smallest gap over all columns", () => {
+    expect(
+      linesGap(
+        [
+          [red, red],
+          [g, g],
+          [g, blu],
+          [blu, g],
+        ],
+        1,
+      ),
+    ).toBe(1);
+  });
+
+  it("does not count a faint antialiasing pixel as ink", () => {
+    expect(linesGap([[red], [[250, 220, 220]], [g], [blu]], 1)).toBe(2);
+    expect(linesGap([[red], [g], [[220, 220, 250]], [g], [blu]], 1)).toBe(3);
+  });
+
+  it("counts a pixel as red or blue only when its channel stands more than 40 above both others", () => {
+    expect(linesGap([[[81, 40, 40]], [g], [[40, 40, 81]]], 1)).toBe(1);
+    expect(linesGap([[[80, 40, 40]], [g], [[40, 40, 80]]], 1)).toBeNull();
+  });
+
+  it("skips a column with only one colour and gives null when none has both", () => {
+    expect(
+      linesGap(
+        [
+          [red, g],
+          [g, g],
+          [blu, blu],
+        ],
+        1,
+      ),
+    ).toBe(1);
+    expect(linesGap([[red], [g]], 1)).toBeNull();
+    expect(linesGap([], 1)).toBeNull();
+  });
+});
+
+describe("inkCutAbove", () => {
+  const ground: Rgb = [250, 250, 250];
+  const ink: Rgb = [20, 20, 20];
+  const border: Rgb = [227, 227, 227];
+  const shot = (inkAt: number | null, rows = 10) =>
+    Array.from({ length: rows }, (_, y) => (y === inkAt ? [ground, ink] : [ground, ground]));
+
+  it("reads 0 when both shots draw the same rows above the line", () => {
+    expect(inkCutAbove(shot(3), shot(3), 6, 1)).toBe(0);
+  });
+
+  it("reads how high the visible shot draws above the line that the shipped one does not, in CSS px", () => {
+    expect(inkCutAbove(shot(null), shot(4), 6, 1)).toBe(2);
+    expect(inkCutAbove(shot(6), shot(2), 8, 4)).toBe(1.5);
+  });
+
+  it("takes the highest differing row when several differ", () => {
+    const visible = shot(4).map((row, y) => (y === 3 ? [ground, ink] : row));
+    expect(inkCutAbove(shot(null), visible, 6, 1)).toBe(3);
+  });
+
+  it("ignores ink on or below the line, which clipping never cuts", () => {
+    expect(inkCutAbove(shot(null), shot(6), 6, 1)).toBe(0);
+    expect(inkCutAbove(shot(null), shot(8), 6, 1)).toBe(0);
+  });
+
+  it("does not count a line both shots share, such as a tag's border above the label", () => {
+    const withBorder = (rows: Rgb[][]) => rows.map((row, y) => (y === 2 ? [border, border] : row));
+    expect(inkCutAbove(withBorder(shot(null)), withBorder(shot(5)), 6, 1)).toBe(1);
+    expect(inkCutAbove(withBorder(shot(null)), withBorder(shot(null)), 6, 1)).toBe(0);
+  });
+
+  it("does not count a faint antialiasing pixel as a difference", () => {
+    const faint: Rgb = [240, 240, 240];
+    const visible = shot(null).map((row, y) => (y === 4 ? [ground, faint] : row));
+    expect(inkCutAbove(shot(null), visible, 6, 1)).toBe(0);
   });
 });

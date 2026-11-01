@@ -4,6 +4,7 @@ import { BOARD, BOARD_NODES, COLLAPSED_BOARD, GROUPED_BOARD } from "../canvas-bo
 import { MatrixBoard, Stateful } from "../canvas-board/story-shell";
 import type { Graph } from "../canvas-board/graph";
 import { Matrix } from "../matrix";
+import { expectLabelInkWhole, inVitest } from "../../testing/visual-asserts";
 import { MOD } from "../story-keys";
 
 const meta = {
@@ -43,6 +44,10 @@ export const Grouped: Story = {
     await expect(logo.left).toBeGreaterThanOrEqual(g.left);
     await expect(logo.top).toBeGreaterThanOrEqual(g.top);
     await expect(logo.right).toBeLessThanOrEqual(g.right + 1);
+    // ORV-194 row 7: the one-line group title shows the whole stack of ฟื้ ปั้ ปี๊.
+    const title = group.querySelector<HTMLElement>(".ds-group__title");
+    if (!title) throw new Error("the group has no title");
+    if (inVitest) await expectLabelInkWhole(title);
   },
 };
 

@@ -199,11 +199,11 @@
       },
       "md": {
         "$type": "typography",
-        "$value": "{type.label.md}"
+        "$value": "{type.control.md}"
       },
       "lg": {
         "$type": "typography",
-        "$value": "{type.label.md}"
+        "$value": "{type.control.md}"
       }
     }
   },
@@ -724,7 +724,7 @@
       },
       "md": {
         "$type": "typography",
-        "$value": "{type.label.md}"
+        "$value": "{type.control.md}"
       }
     },
     "brand": {
@@ -1150,7 +1150,7 @@
     },
     "type": {
       "$type": "typography",
-      "$value": "{type.label.md}"
+      "$value": "{type.control.md}"
     },
     "icon-size": {
       "sm": {

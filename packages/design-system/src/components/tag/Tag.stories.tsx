@@ -3,6 +3,7 @@ import { useState } from "react";
 import { expect, fn, userEvent, within } from "storybook/test";
 import { fixtures } from "../fixtures";
 import { Matrix, Narrow } from "../matrix";
+import { expectLabelInkWhole, inVitest } from "../../testing/visual-asserts";
 import { Tag } from "./Tag";
 
 const meta = {
@@ -130,6 +131,10 @@ export const Sizes: Story = {
     const smLabel = sm.querySelector<HTMLElement>(".ds-tag__label") as HTMLElement;
     const gap = smRm.getBoundingClientRect().left - smLabel.getBoundingClientRect().right;
     await expect(gap >= 4 - 0.5).toBe(true);
+    // ORV-194 row 7: the md one-line label shows the whole stack of ฟื้ ปั้ ปี๊.
+    const mdLabel = md.querySelector<HTMLElement>(".ds-tag__label");
+    if (!mdLabel) throw new Error("the md tag has no label");
+    if (inVitest) await expectLabelInkWhole(mdLabel);
   },
 };
 

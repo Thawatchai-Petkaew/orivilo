@@ -7,7 +7,7 @@ import { blockNode, feed } from "../block-library/fixtures";
 import { CanvasBoard } from "../canvas-board/CanvasBoard";
 import type { Graph } from "../canvas-board/graph";
 import { Matrix } from "../matrix";
-import { expectTitleOverText } from "../../testing/visual-asserts";
+import { expectLinesClear, expectTitleOverText, inVitest } from "../../testing/visual-asserts";
 import { MissingInputsPrompt } from "./MissingInputsPrompt";
 
 function answer(graph: Graph, nodeId: string, inputId: string, value: Answer): Graph {
@@ -204,6 +204,8 @@ export const ImagesLater: Story = {
     const note = canvasElement.querySelector(".ds-prompt__note");
     if (!question || !note) throw new Error("the prompt has no question or note");
     expectTitleOverText(question, note, { gap: 4 });
+    // ORV-194 row 6: a wrapped question keeps 1.5 px of ground between its Thai lines.
+    if (inVitest) await expectLinesClear(question as HTMLElement);
   },
 };
 

@@ -5,7 +5,7 @@ import { DesignProfileBoundary } from "../../boundary/DesignProfileBoundary";
 import { Field } from "../field/Field";
 import { fixtureOptions, fixtures } from "../fixtures";
 import { ArtifactIcon, DirectionIcon, KnowledgeIcon, NoteIcon, ReferenceIcon } from "../icons";
-import { expectFocusBorderForm } from "../../testing/visual-asserts";
+import { expectFocusBorderForm, inVitest } from "../../testing/visual-asserts";
 import { Matrix, Narrow } from "../matrix";
 import { Select, type SelectGroup, type SelectOption, type SelectProps } from "./Select";
 
@@ -82,6 +82,53 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 const body = () => within(document.body);
+
+/** Runs `check` with the browser at 360 by 640, the size the row 8 stories name, then puts the size
+ * back. Vitest's browser iframe is 1200 by 900, wide enough to hide a listbox that runs off a phone. The
+ * static Storybook has no `vitest/browser`; there the frame is the viewport the toolbar chose. */
+async function atPhoneSize(check: () => Promise<void>) {
+  if (!inVitest) return check();
+  const { page } = await import("vitest/browser");
+  const before = { width: window.innerWidth, height: window.innerHeight };
+  // Radix closes an open Select on a window resize, so each resize settles before the next step.
+  const resized = async (width: number, height: number) => {
+    await page.viewport(width, height);
+    await waitFor(() => expect([window.innerWidth, window.innerHeight]).toEqual([width, height]));
+    await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+  };
+  // The screenshot lock of `visual-asserts.ts`: no other file's screenshot runs while the frame is resized.
+  await navigator.locks.request("orivilo-screenshot", async () => {
+    await resized(360, 640);
+    try {
+      await check();
+    } finally {
+      await resized(before.width, before.height);
+    }
+  });
+}
+
+/** The open listbox stays inside the viewport on all four sides, and when its options do not fit it
+ * scrolls inside itself (ORV-194 row 8). Geometry and computed style only. */
+async function expectListboxInViewport() {
+  const listbox = await body().findByRole("listbox");
+  await expect(listbox).toBeVisible();
+  const box = listbox.getBoundingClientRect();
+  await expect(box.left).toBeGreaterThanOrEqual(0);
+  await expect(box.top).toBeGreaterThanOrEqual(0);
+  await expect(box.right).toBeLessThanOrEqual(window.innerWidth);
+  await expect(box.bottom).toBeLessThanOrEqual(window.innerHeight);
+  // A description wraps under its label inside the option, never past the option's edge or the listbox.
+  for (const description of listbox.querySelectorAll(".ds-menu__option-description")) {
+    const option = description.closest(".ds-menu__option");
+    const edge = option ? option.getBoundingClientRect().right : box.right;
+    await expect(description.getBoundingClientRect().right).toBeLessThanOrEqual(edge);
+    await expect(description.scrollWidth).toBeLessThanOrEqual(description.clientWidth);
+  }
+  const viewport = listbox.querySelector("[data-radix-select-viewport]");
+  if (viewport && viewport.scrollHeight > viewport.clientHeight) {
+    await expect(getComputedStyle(viewport).overflowY).not.toBe("visible");
+  }
+}
 
 export const Default: Story = { decorators: [inField] };
 
@@ -239,9 +286,11 @@ export const RichAt360: Story = {
     </Narrow>
   ),
   play: async ({ canvasElement }) => {
-    await userEvent.click(within(canvasElement).getByRole("combobox", { name: "โมดูล" }));
-    await expect(await body().findByRole("listbox")).toBeVisible();
-    await userEvent.keyboard("{Escape}");
+    await atPhoneSize(async () => {
+      await userEvent.click(within(canvasElement).getByRole("combobox", { name: "โมดูล" }));
+      await expectListboxInViewport();
+      await userEvent.keyboard("{Escape}");
+    });
   },
 };
 
@@ -283,6 +332,13 @@ export const LongOptionAt360: Story = {
       </Field>
     </Narrow>
   ),
+  play: async ({ canvasElement }) => {
+    await atPhoneSize(async () => {
+      await userEvent.click(within(canvasElement).getByRole("combobox", { name: "โมดูล" }));
+      await expectListboxInViewport();
+      await userEvent.keyboard("{Escape}");
+    });
+  },
 };
 
 export const RecipesAndModes: Story = {

@@ -128,7 +128,7 @@ export interface CanvasBoardProps {
   emptyAction?: ReactNode;
   /** Rich node body; a node's `summary` renders when this returns nothing. */
   renderBody?: ((node: BoardNode) => ReactNode) | undefined;
-  /** Fit every node into view on mount; on by default. */
+  /** Fit every node into the part of the board no panel covers, on mount; on by default. */
   fitView?: boolean | undefined;
   /** The controls, context menu, command menu and shortcut sheet; on by default (E4-3). */
   chrome?: boolean | undefined;
@@ -528,6 +528,37 @@ function Board({
     nodeElement(id)?.focus();
   };
 
+  /**
+   * Per-side padding for a fit: xyflow's own for `base` on each side, plus, on the bottom, the board
+   * height that the bottom panels and the task bar cover, so no node lands under them (ORV-194 row
+   * 10). xyflow reads a number padding p as floor((V - V / (1 + p)) / 2) per side.
+   */
+  const freePadding = (base: number) => {
+    const el = wrapper.current;
+    if (!el) return base;
+    const rect = el.getBoundingClientRect();
+    const side = (v: number) => Math.floor((v - v / (1 + base)) / 2);
+    const overlays = [
+      ...el.querySelectorAll<HTMLElement>(".react-flow__panel.bottom, .ds-taskbar"),
+    ];
+    const cover = Math.max(0, ...overlays.map((o) => rect.bottom - o.getBoundingClientRect().top));
+    const y = side(rect.height);
+    const x = side(rect.width);
+    const px = (n: number): `${number}px` => `${n}px`;
+    return { top: px(y), right: px(x), bottom: px(y + Math.ceil(cover)), left: px(x) };
+  };
+
+  /**
+   * The options of xyflow's own first fit. It runs when the nodes are measured, in the same update
+   * that shows them, so no frame shows the graph unfitted. `padding` is read at that moment, so it
+   * sees the panels as laid out then (ORV-194 row 10).
+   */
+  const firstFit = {
+    get padding() {
+      return freePadding(0.2);
+    },
+  };
+
   const jumpToNode = (id: string, options?: JumpOptions) => {
     const g = graphRef.current;
     const node = g.nodes.find((n) => n.id === id);
@@ -536,21 +567,12 @@ function Board({
       const only = node.selected && selectedNodes(g).length === 1;
       if (!only) emit(selectOnly(g, [id]));
     }
-    // xyflow reads a number padding p as floor((H - H / (1 + p)) / 2) per side, so 0.5 is H / 6.
-    // A task bar on the board covers the foot of it: the bar's height above the board's bottom
-    // edge joins the bottom side, in pixels, so the node lands inside the board above the bar.
-    const rect = wrapper.current?.getBoundingClientRect();
-    const bar = wrapper.current?.querySelector<HTMLElement>(".ds-taskbar");
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const side = rect ? Math.floor((rect.height - rect.height / 1.5) / 2) : 0;
-    const cover = rect && bar ? Math.max(0, rect.bottom - bar.getBoundingClientRect().top) : 0;
     void flow.fitView({
       nodes: [{ id }],
       duration: reduced ? 0 : 200,
       maxZoom: 1,
-      padding: bar
-        ? { top: `${side}px`, left: `${side}px`, right: `${side}px`, bottom: `${side + cover}px` }
-        : 0.5,
+      padding: freePadding(0.5),
     });
     focusNode(id);
     setMessage(fill(m.board.jumped, { title: node.data.title }));
@@ -669,13 +691,13 @@ function Board({
         setMessage(m.board.zoom100);
         return true;
       case "board.zoom-to-fit":
-        void flow.fitView({ padding: 0.2, duration: 200 });
+        void flow.fitView({ padding: freePadding(0.2), duration: 200 });
         setMessage(fill(m.board.fitAll, { count: g.nodes.length }));
         return true;
       case "board.zoom-to-selection":
         void flow.fitView({
           nodes: picked.map((n) => ({ id: n.id })),
-          padding: 0.3,
+          padding: freePadding(0.3),
           duration: 200,
         });
         setMessage(fill(m.board.fitSelection, { count: picked.length }));
@@ -1067,7 +1089,7 @@ function Board({
       onNodeDragStop={onNodeDragStop}
       isValidConnection={isValidConnection}
       fitView={fitView}
-      fitViewOptions={{ padding: 0.2 }}
+      fitViewOptions={firstFit}
       minZoom={0.25}
       maxZoom={2}
       snapToGrid={snap}

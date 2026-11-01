@@ -7,7 +7,11 @@ import { setLocale } from "./actions";
  */
 export function LocaleSwitch({ locale, label }: { locale: Locale; label: string }) {
   return (
-    <form action={setLocale} aria-label={label} className="flex items-center gap-1">
+    <form
+      action={setLocale}
+      aria-label={label}
+      className="-mx-[calc(var(--cmp-button-padding-x-sm)+1px)] flex items-center gap-1"
+    >
       {LOCALES.map((id) => (
         <Button
           key={id}

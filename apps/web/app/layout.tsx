@@ -29,7 +29,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             <div className="min-h-dvh bg-surface-canvas font-body text-body-md text-text-primary">
               <header className="mx-auto flex max-w-2xl flex-wrap items-center justify-between gap-3 px-4 pt-4">
                 <nav aria-label={m.app.nav} className="flex items-center gap-4 text-label-md">
-                  <Link aria-label={m.app.home} className="flex items-center" href="/">
+                  <Link aria-label={m.app.home} className="-m-1 flex items-center p-1" href="/">
                     <Logo decorative />
                   </Link>
                   <Link className={NAV_LINK} href="/directions">

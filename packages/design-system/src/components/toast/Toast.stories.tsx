@@ -8,7 +8,9 @@ import { fixtures } from "../fixtures";
 import { Matrix } from "../matrix";
 import {
   expectFocusElevationForm,
+  expectLinesClear,
   expectTitleOverText,
+  inVitest,
   resolvedColor,
 } from "../../testing/visual-asserts";
 import { type ToastEntry, type ToastOptions, Toaster, ToastRegion, toast } from "./Toast";
@@ -279,6 +281,8 @@ export const At360: Story = {
     await expect(t.bottom).toBeLessThanOrEqual(f.bottom);
     expectCentredOnClose(item);
     expectDescriptionPair(item);
+    // ORV-194 row 6: the title's wrapped Thai lines keep 1.5 px of ground between them.
+    if (inVitest) await expectLinesClear(title);
   },
 };
 

@@ -449,6 +449,7 @@
 .ds-menu {
   min-width: var(--radix-select-trigger-width);
   max-height: var(--radix-select-content-available-height);
+  max-width: var(--radix-select-content-available-width);
   padding: var(--cmp-menu-padding);
   border: 1px solid var(--cmp-menu-border);
   border-radius: var(--cmp-menu-radius);
@@ -493,7 +494,7 @@
   color: var(--cmp-menu-option-fg-disabled);
   cursor: not-allowed;
 }
-.ds-menu__option > span:first-child {
+.ds-menu__option > span:first-child:not(.ds-menu__option-body) {
   min-width: 0;
   flex: 1;
   overflow: hidden;
@@ -530,7 +531,9 @@
 }
 .ds-menu__option-body {
   display: flex;
+  flex: 1;
   flex-direction: column;
+  min-width: 0;
   white-space: normal;
 }
 .ds-menu__option-body > span:first-child {
@@ -3060,6 +3063,7 @@
 /* BlockLibrary (ORV-44 part 2): a glass shelf at the bottom of the board, 16 px above the controls at any row count.
  * A tile not on the board has a dashed edge; on the board, solid, with its fill word and mark. */
 .ds-board .react-flow__panel.ds-shelf {
+  anchor-name: --ds-board-shelf;
   --_glass: color-mix(
     in srgb,
     var(--cmp-shelf-bg) calc(var(--cmp-shelf-opacity) * 100%),
@@ -4159,13 +4163,22 @@ button.ds-tag__main {
     margin-block-end: var(--ds-space-inset-md);
   }
 }
-/* The status line also sits 16 px above the controls at any row count (ORV-192 row 2). It comes after
- * both status rules and wins over them at equal specificity; the open list rule below is more
- * specific and keeps its own placement. */
+/* The status line also sits 16 px above the controls at any row count, or above the shelf when there
+ * is one (ORV-192 row 2, ORV-194 row 5). It comes after both status rules and wins over them at
+ * equal specificity; the open list rule below is more specific and keeps its own placement. */
 @supports (anchor-name: --a) {
   .ds-board:has(.ds-controls) .ds-board__status,
   .ds-board:has(.ds-taskbar) .ds-board__status {
     position-anchor: --ds-board-controls;
+    bottom: calc(anchor(top) + var(--ds-space-inset-md));
+  }
+}
+/* With a shelf on the board the status line stands 16 px above the shelf, never on a tile (ORV-194 row 5).
+ * Its specificity equals the controls rule above, so it comes after it; the open list rule below is
+ * more specific and still wins. */
+@supports (anchor-name: --a) {
+  .ds-board:has(.ds-shelf) .ds-board__status {
+    position-anchor: --ds-board-shelf;
     bottom: calc(anchor(top) + var(--ds-space-inset-md));
   }
 }
@@ -4570,6 +4583,26 @@ button.ds-tag__main {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+/* One-line labels clip at their padding box, and Sarabun's tallest stack (ปี๊, ฟื้) rises up to 3 px above a label line. Every ellipsis label pads its clip box 4 px out and cancels the space with a negative margin: no layout moves and no mark is cut (ORV-194 row 7). */
+.ds-control[data-trigger] > span:first-child,
+.ds-menu__option > span:first-child:not(.ds-menu__option-body),
+.ds-menu__option-label,
+.ds-menu__option-body > span:first-child,
+.ds-table__td[data-truncate] > .ds-table__cell,
+.ds-menu__item > span:first-child:not(.ds-menu__indicator),
+.ds-menu__item > .ds-menu__indicator + span,
+.ds-command__option > span:first-child,
+.ds-group__title,
+.ds-shelf__name,
+.ds-shelf__state,
+.ds-tag__label,
+.ds-taskbar__summary,
+.ds-taskbar__name,
+.ds-taskbar__progress .ds-progress__label,
+.ds-chat__option > span:first-child {
+  padding-block: var(--ds-space-inline-sm);
+  margin-block: calc(-1 * var(--ds-space-inline-sm));
 }
 .ds-chat__option[data-active] {
   background: var(--cmp-menu-option-bg-hover);
