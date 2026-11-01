@@ -669,6 +669,13 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
   { recipe: "kbd", slot: "key", fg: "kbd.fg", bg: "kbd.bg", floor: TEXT },
   { recipe: "kbd", slot: "key on menu", fg: "kbd.fg", bg: "menu.bg", floor: TEXT },
   { recipe: "menu", slot: "label", fg: "menu.label-fg", bg: "menu.bg", floor: TEXT },
+  {
+    recipe: "menu",
+    slot: "disabled option",
+    fg: "menu.option.fg-disabled",
+    bg: "menu.bg",
+    floor: UI,
+  },
   { recipe: "menu", slot: "shortcut", fg: "menu.shortcut-fg", bg: "kbd.bg", floor: TEXT },
   {
     recipe: "menu",

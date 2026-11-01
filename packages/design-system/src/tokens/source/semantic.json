@@ -156,8 +156,8 @@
     "disabled": {
       "$type": "color",
       "$value": {
-        "light": "{color.gray.400}",
-        "dark": "{color.gray.600}"
+        "light": "{color.gray.500}",
+        "dark": "{color.gray.500}"
       },
       "$description": "Disabled labels"
     },

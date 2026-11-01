@@ -195,8 +195,8 @@
       },
       "disabled": {
         "$value": {
-          "light": "{color.slate.400}",
-          "dark": "{color.slate.600}"
+          "light": "{color.slate.500}",
+          "dark": "{color.slate.500}"
         }
       },
       "on-action": {

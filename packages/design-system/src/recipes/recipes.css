@@ -2311,12 +2311,12 @@
 }
 .ds-menu__separator {
   height: 1px;
-  margin-block: var(--cmp-menu-padding);
+  margin-block: var(--ds-space-inline-lg);
   background: var(--cmp-menu-separator);
 }
 .ds-menu__label {
   padding-inline: var(--cmp-menu-option-padding-x);
-  padding-block: var(--cmp-menu-padding);
+  padding-block: var(--ds-space-inline-sm);
   color: var(--cmp-menu-label-fg);
   font-family: var(--cmp-kbd-type-font-family);
   font-size: var(--cmp-kbd-type-font-size);

@@ -970,7 +970,7 @@
     },
     "radius": {
       "$type": "dimension",
-      "$value": "{shape.media.radius}"
+      "$value": "{shape.overlay.radius}"
     },
     "shadow": {
       "$type": "shadow",
@@ -1003,7 +1003,7 @@
       },
       "radius": {
         "$type": "dimension",
-        "$value": "{shape.control.radius}"
+        "$value": "{shape.media.radius}"
       },
       "height": {
         "$type": "dimension",
