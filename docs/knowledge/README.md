@@ -202,3 +202,14 @@ Keep this table in step with the folder when you add an entry.
 | [[K-0105-thai-and-uk-readers-prefer-1-5-or-double-line-spacing]]                  | 0.7        | Thai and UK readers prefer 1.5 or double spacing (abstract only)      |
 | [[K-0106-informal-test-tall-scripts-clip-at-1-1-line-height]]                     | 0.5        | Lead: tall scripts clip at 1.1, fixed at 1.6 (informal test)          |
 | [[K-0107-synthesis-title-supporting-text-and-paragraph-line-height]]              | 0.75       | Synthesis: weight step 13 of 14; body 1.29 to 1.625 (own arithmetic)  |
+| [[K-0108-untitled-ui-loading-indicator-types-sizes-and-no-announcement]]          | 0.8        | Untitled spinner: 3 types, 32 to 64 px, label; silent, no role        |
+| [[K-0109-untitled-ui-react-lists-no-skeleton-component]]                          | 0.75       | Untitled UI React lists no skeleton component                         |
+| [[K-0110-shadcn-ui-spinner-status-role-on-the-icon]]                              | 0.8        | shadcn Spinner: role status, aria-label Loading on the icon, size-4   |
+| [[K-0111-shadcn-ui-skeleton-pulse-div-without-aria]]                              | 0.8        | shadcn Skeleton: pulse div, className only, no aria                   |
+| [[K-0112-tailwind-spin-and-pulse-ignore-reduced-motion-by-default]]               | 0.8        | Tailwind spin 1s and pulse 2s loop; reduced motion left to the author |
+| [[K-0113-wai-aria-1-2-aria-busy-defers-announcements]]                            | 0.8        | aria-busy: assistive tech may wait; it does not announce              |
+| [[K-0114-wai-aria-1-2-role-status-is-a-polite-live-region]]                       | 0.8        | role status: polite, atomic, takes no focus                           |
+| [[K-0115-wcag-2-2-status-messages-cover-the-waiting-state]]                       | 0.8        | SC 4.1.3 (AA): the waiting state is a status message                  |
+| [[K-0116-wcag-2-2-animation-from-interactions-and-c39]]                           | 0.8        | SC 2.3.3 is AAA, interaction-started motion; C39 reduced motion       |
+| [[K-0117-wcag-2-2-pause-stop-hide-and-loading-animations]]                        | 0.8        | SC 2.2.2 (A): over 5 s beside content; preload can be essential       |
+| [[K-0118-synthesis-spinner-and-skeleton-benchmark]]                               | 0.75       | Synthesis: spinner and skeleton benchmark table, audit B form         |

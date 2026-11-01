@@ -322,6 +322,8 @@ export const LoadingWithIcons: Story = {
     const button = canvas.getByRole("button", { name: /Save changes/ });
     await expect(button.querySelectorAll(".ds-button__icon")).toHaveLength(2);
     await expect(button.querySelector(".ds-spin")).not.toBeNull();
+    // The spinner is decorative, so the button holds exactly one status, its own (spin-button-1).
+    await expect(button.querySelectorAll('[role="status"]')).toHaveLength(1);
   },
 };
 

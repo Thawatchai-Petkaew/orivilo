@@ -37,6 +37,14 @@ export {
 } from "./popover/Popover";
 export { Logo, type LogoKind, type LogoProps, type LogoTone } from "./logo/Logo";
 export { Progress, type ProgressProps, type ProgressStatus } from "./progress/Progress";
+export {
+  Skeleton,
+  SkeletonGroup,
+  type SkeletonGroupProps,
+  type SkeletonProps,
+  type SkeletonShape,
+} from "./skeleton/Skeleton";
+export { Spinner, type SpinnerProps, type SpinnerSize } from "./spinner/Spinner";
 export { Resizable, type ResizableProps } from "./resizable/Resizable";
 export { ScrollArea, type ScrollAreaProps } from "./scroll-area/ScrollArea";
 export { Select, type SelectGroup, type SelectOption, type SelectProps } from "./select/Select";

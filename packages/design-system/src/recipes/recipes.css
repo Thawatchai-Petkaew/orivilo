@@ -1409,6 +1409,93 @@
   }
 }
 
+/* Spinner (ORV-201): the ring and its status label. No reduced-motion rule names .ds-spin,
+ * .ds-spinner or .ds-spinner__ring (spin-motion-1). Ring sizes sit under :where() so a slot that
+ * sizes its svg (.ds-button__icon > svg) wins. */
+.ds-spinner {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: var(--ds-space-inline-md);
+  max-inline-size: 100%;
+  color: var(--cmp-spinner-fg);
+  font-family: var(--ds-type-body-sm-font-family);
+  font-size: var(--ds-type-body-sm-font-size);
+  line-height: var(--ds-type-body-sm-line-height);
+  font-weight: var(--ds-type-body-sm-font-weight);
+}
+:where(.ds-spinner__ring) {
+  --_ring: var(--ds-size-icon-md);
+  flex: none;
+  inline-size: var(--_ring);
+  block-size: var(--_ring);
+}
+:where(.ds-spinner__ring[data-size="sm"]) {
+  --_ring: var(--ds-size-icon-sm);
+}
+:where(.ds-spinner__ring[data-size="lg"]) {
+  --_ring: var(--ds-size-icon-lg);
+}
+.ds-spinner > .ds-spinner__ring {
+  margin-block-start: calc(
+    (var(--ds-type-body-sm-font-size) * var(--ds-type-body-sm-line-height) - var(--_ring)) / 2
+  );
+}
+.ds-spinner__label {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+.ds-spinner[data-size="lg"] {
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ds-space-stack-sm);
+  text-align: center;
+}
+.ds-spinner[data-size="lg"] > .ds-spinner__ring,
+.ds-spinner[data-label-hidden] > .ds-spinner__ring {
+  margin-block-start: 0;
+}
+
+/* Skeleton (ORV-201): static placeholder shapes, no animation and no transition (skel-pulse-1).
+ * The outline is transparent: in forced colours it draws in the system ink, so a shape stays
+ * visible when the background is dropped. */
+.ds-skeleton {
+  display: block;
+  background: var(--cmp-skeleton-bg);
+  outline: 1px solid transparent;
+  outline-offset: -1px;
+}
+.ds-skeleton[data-shape="text"] {
+  position: relative;
+  block-size: calc(var(--ds-type-body-sm-font-size) * var(--ds-type-body-sm-line-height));
+  background: transparent;
+  outline: 0;
+}
+.ds-skeleton[data-shape="text"]::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block: calc(
+    var(--ds-type-body-sm-font-size) * (var(--ds-type-body-sm-line-height) - 1) / 2
+  );
+  background: var(--cmp-skeleton-bg);
+  border-radius: var(--ds-shape-control-radius);
+  outline: 1px solid transparent;
+  outline-offset: -1px;
+}
+.ds-skeleton[data-shape="block"] {
+  border-radius: var(--ds-shape-media-radius);
+}
+.ds-skeleton[data-shape="circle"] {
+  aspect-ratio: 1;
+  clip-path: circle(50%);
+}
+.ds-skeleton-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-stack-sm);
+  min-inline-size: 0;
+}
+
 /* Canvas (ADR 0004, E4-2): React Flow for behaviour, every value from the board, node, port and
  * edge tokens (E4-1). The base stylesheet (imported in orivilo.css) reads `--xy-*` properties; each
  * one it reads is set here from a component token, so no React Flow default colour reaches the
