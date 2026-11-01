@@ -856,6 +856,21 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
   { recipe: "toast", slot: "danger icon", fg: "toast.danger-icon", bg: "toast.bg", floor: UI },
   { recipe: "toast", slot: "success edge", fg: "toast.success-edge", bg: "toast.bg", floor: UI },
   { recipe: "toast", slot: "danger edge", fg: "toast.danger-edge", bg: "toast.bg", floor: UI },
+  // Spinner (ORV-201): the ring and its label read one token, so both pairs sit at the text floor.
+  {
+    recipe: "spinner",
+    slot: "ring and label",
+    fg: "spinner.fg",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
+  {
+    recipe: "spinner",
+    slot: "ring and label",
+    fg: "spinner.fg",
+    bg: "ds:surface.card",
+    floor: TEXT,
+  },
   // Progress (E4-5): the value text, the bar against its track, the track against the card.
   {
     recipe: "progress",

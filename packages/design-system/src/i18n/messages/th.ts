@@ -9,6 +9,9 @@ export const th = {
   button: {
     working: "กำลังดำเนินการ",
   },
+  spinner: {
+    loading: "กำลังโหลด",
+  },
   dialog: {
     close: "ปิด",
   },

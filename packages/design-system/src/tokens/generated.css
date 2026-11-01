@@ -1501,6 +1501,7 @@
   --cmp-direction-sample-padding: var(--ds-space-inset-md);
   --cmp-direction-preview-border: var(--ds-border-subtle);
   --cmp-direction-preview-radius: var(--ds-shape-container-radius);
+  --cmp-spinner-fg: var(--ds-text-secondary);
   --cmp-progress-track: var(--ds-border-subtle);
   --cmp-progress-fill: var(--ds-text-brand);
   --cmp-progress-done: var(--ds-feedback-success-fg);
