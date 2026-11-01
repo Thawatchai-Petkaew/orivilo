@@ -237,7 +237,7 @@ export const At360: Story = {
   parameters: { layout: "fullscreen" },
   args: { children: ev.fact.long, item: ev.long },
   render: (args) => (
-    <div data-testid="frame" className="w-[360px] max-w-full overflow-hidden">
+    <div data-testid="frame" className="w-[360px] max-w-full overflow-hidden p-4">
       <p>
         <EvidenceSpan {...args} />
       </p>
@@ -246,6 +246,15 @@ export const At360: Story = {
   play: async ({ canvasElement }) => {
     await atPhoneSize(async () => {
       const frame = within(canvasElement).getByTestId("frame");
+      // The surface's 16 px inset holds: the first glyph of the fact sits 16 px or more from the frame's left and top edge.
+      const text = document.createTreeWalker(frame, NodeFilter.SHOW_TEXT).nextNode() as Text;
+      const range = document.createRange();
+      range.setStart(text, 0);
+      range.setEnd(text, 1);
+      const glyph = range.getBoundingClientRect();
+      const frameBox = frame.getBoundingClientRect();
+      await expect(glyph.left - frameBox.left).toBeGreaterThanOrEqual(16);
+      await expect(glyph.top - frameBox.top).toBeGreaterThanOrEqual(16);
       await userEvent.click(pillOf(canvasElement, pillName(ev.fact.long)));
       const dialog = await body().findByRole("dialog", { name: "หลักฐานจากบรีฟ" });
       await settled(async () => {
