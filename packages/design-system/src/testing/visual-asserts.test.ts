@@ -15,7 +15,9 @@ import {
   outsideCorner,
   paintMatches,
   parseCssColor,
+  readGeometries,
   viewBoxToBox,
+  type BoxGeometry,
   type InkBox,
   type InkCentre,
   type InkReading,
@@ -360,6 +362,219 @@ describe("inkCentreOf", () => {
     const image = shot(4, 41, rowsOf(rows));
     expect(read(image, { ...control, top: -0.004 })).toMatchObject({ offset: 1.5, centred: true });
     expect(read(image, { ...control, top: -0.01 })).toMatchObject({ offset: 1.51, centred: false });
+  });
+});
+
+/**
+ * ink-corner-1 (ORV-198): the region of clause 3 loses the columns a corner curve reaches. The
+ * fixtures are those of the spec's worked examples: a 40 px box at left 0 with a 1 px border, the
+ * label columns 8 to 32 and the ink rows of `thaiRows` in column 20. A stand-in canvas colour is
+ * painted where the corner curve leaves the box, as the page behind a rounded control shows there.
+ */
+const CANVAS: Rgb = [240, 240, 240];
+const round = (r: number): Radii => ({
+  topLeft: { x: r, y: r },
+  topRight: { x: r, y: r },
+  bottomRight: { x: r, y: r },
+  bottomLeft: { x: r, y: r },
+});
+const inkColumn = (x: number, y: number) => (x === 20 ? thaiRows[y] : undefined);
+/** True where the padding box curve (border 1, outer radius `r`) leaves the box of side 40. */
+function outsideCurve(x: number, y: number, r: number) {
+  const px = x + 0.5;
+  const py = y + 0.5;
+  if (px < 1 || px > 39 || py < 1 || py > 39) return true;
+  const inner = r - 1;
+  const cx = px < 1 + inner ? 1 + inner : px > 39 - inner ? 39 - inner : null;
+  const cy = py < 1 + inner ? 1 + inner : py > 39 - inner ? 39 - inner : null;
+  return cx !== null && cy !== null && (px - cx) ** 2 + (py - cy) ** 2 > inner * inner;
+}
+const rounded = (radii: Radii, text = { textLeft: 8, textRight: 32 }): InkBox => ({
+  ...control,
+  ...text,
+  corners: { left: 0, width: 40, radii },
+});
+
+describe("inkCentreOf with rounded corners (ink-corner-1)", () => {
+  it("reads -1.50 where the columns of the curve are cut, and 0.00 where they are not (clauses 2, 3, worked example 1)", () => {
+    const image = shot(40, 40, (x, y) => (outsideCurve(x, y, 16) ? CANVAS : inkColumn(x, y)));
+    const cut = read(image, rounded(round(16)));
+    expect(`${cut.offset.toFixed(2)} ${cut.centred}`).toBe("-1.50 true");
+    // The same label columns with no corners: the curve's canvas pixels are ink, so the band takes
+    // the whole padding box and the offset reads 0.00 for any label.
+    expect(read(image, { ...control, textLeft: 8, textRight: 32 }).offset).toBe(0);
+  });
+
+  it("reads -1.50 for a box with square corners, with or without the curve paint (worked example 1)", () => {
+    const image = shot(40, 40, inkColumn);
+    expect(read(image, rounded(round(0))).offset).toBe(-1.5);
+    expect(read(image, { ...control, textLeft: 8, textRight: 32 }).offset).toBe(-1.5);
+  });
+
+  it("rounds a bound a cut sets inward: the left cut up, the right cut down (clause 3, worked example 2)", () => {
+    // Radius 16.5 cuts at 16.5 and 23.5: columns 17 to 22 are read. A canvas pixel in column 16
+    // (row 1) and one in column 23 (row 38) sit just outside the cuts.
+    const image = shot(40, 40, (x, y) =>
+      (x === 16 && y === 1) || (x === 23 && y === 38) ? CANVAS : inkColumn(x, y),
+    );
+    expect(read(image, rounded(round(16.5))).offset).toBe(-1.5);
+  });
+
+  it("cuts at the larger horizontal radius of the two corners on a side (clause 2)", () => {
+    // Left: top-left 4, bottom-left 16, so the left cut is 16 and column 10 is not read. Right:
+    // top-right 16, bottom-right 4, so the right cut is 24 and column 30 is not read.
+    const radii: Radii = {
+      topLeft: { x: 4, y: 4 },
+      topRight: { x: 16, y: 16 },
+      bottomRight: { x: 4, y: 4 },
+      bottomLeft: { x: 16, y: 16 },
+    };
+    const left = shot(40, 40, (x, y) => (x === 10 && y === 1 ? CANVAS : inkColumn(x, y)));
+    const right = shot(40, 40, (x, y) => (x === 30 && y === 38 ? CANVAS : inkColumn(x, y)));
+    expect(read(left, rounded(radii)).offset).toBe(-1.5);
+    expect(read(right, rounded(radii)).offset).toBe(-1.5);
+  });
+
+  it("keeps the label's bound when it is the tighter one, rounding it outward (clause 3)", () => {
+    // Radius 4 cuts at 4 and 36; the label columns 18.5 to 21.2 are inside, read as 18 to 22. A
+    // canvas pixel in column 18 is read (offset -6.50, the band takes row 1); one in column 17 is not.
+    const at = rounded(round(4), { textLeft: 18.5, textRight: 21.2 });
+    const inside = shot(40, 40, (x, y) => (x === 18 && y === 1 ? CANVAS : inkColumn(x, y)));
+    const outside = shot(40, 40, (x, y) => (x === 17 && y === 1 ? CANVAS : inkColumn(x, y)));
+    expect(read(inside, at).offset).toBe(-6.5);
+    expect(read(outside, at).offset).toBe(-1.5);
+  });
+
+  it("cuts nothing on a side with no radius, so a fractional edge keeps the clause 3 columns (clause 3)", () => {
+    // Box left 0.5, no radius, label from 0.5: the label's bound floors to column 0, which a cut
+    // rounded up to column 1 would drop.
+    const image = shot(40, 40, (x, y) => (x === 0 ? thaiRows[y] : undefined));
+    const at: InkBox = {
+      ...control,
+      textLeft: 0.5,
+      textRight: 10,
+      corners: { left: 0.5, width: 39, radii: round(0) },
+    };
+    expect(read(image, at).offset).toBe(-1.5);
+  });
+
+  it("converts the cuts to device px with the scale (clause 3)", () => {
+    // At scale 2 the 16 px cut is device column 32; a canvas pixel in device column 31 is not read.
+    const rows: Record<number, Rgb> = {};
+    for (let y = 23; y <= 51; y++) rows[y] = WHITE;
+    const image = shot(80, 80, (x, y) =>
+      x === 31 && y === 2 ? CANVAS : x === 40 ? rows[y] : undefined,
+    );
+    const at: InkBox = {
+      ...control,
+      textLeft: 8,
+      textRight: 32,
+      corners: { left: 0, width: 40, radii: round(16) },
+    };
+    expect(read(image, at, 2)).toMatchObject({ inkTop: 11.5, inkBottom: 26 });
+  });
+
+  it("measures the cuts from the box's left edge and its width, not from 0 (clause 2)", () => {
+    // A box at left 10, 40 wide, radius 16: the cuts are at 26 and 34, so columns 26 to 33 are read.
+    // Ink in column 30; a canvas pixel in column 20 (between the cuts of a box at 0) is not read.
+    const image = shot(60, 40, (x, y) =>
+      x === 20 && y === 1 ? CANVAS : x === 30 ? thaiRows[y] : undefined,
+    );
+    const at: InkBox = {
+      ...control,
+      textLeft: 12,
+      textRight: 48,
+      corners: { left: 10, width: 40, radii: round(16) },
+    };
+    expect(read(image, at).offset).toBe(-1.5);
+  });
+
+  it("cuts nothing on the right when its corners are square, so a fractional right edge keeps the clause 3 columns (clause 3)", () => {
+    // The box ends at 10.2 and the label at 10.2: the label's bound ceils to column 11, which a cut
+    // rounded down to column 10 would take away.
+    const image = shot(40, 40, (x, y) => (x === 10 ? thaiRows[y] : undefined));
+    const at: InkBox = {
+      ...control,
+      textLeft: 0,
+      textRight: 10.2,
+      corners: { left: 0, width: 10.2, radii: round(0) },
+    };
+    expect(read(image, at).offset).toBe(-1.5);
+  });
+
+  it("returns null when the cuts leave no column (clause 4)", () => {
+    const image = shot(40, 40, inkColumn);
+    // Radius 20 cuts at 20 and 20: no column is left.
+    expect(inkCentreOf(image, 1, rounded(round(20)))).toBeNull();
+    // A pill wider than the label's columns: the cuts pass each other.
+    expect(inkCentreOf(image, 1, rounded(round(25)))).toBeNull();
+  });
+});
+
+/**
+ * The pure part of `readBoxes` (ink-centre-1 clause 2): the scale is `devicePixelRatio`. A scope
+ * with a fractional width gives a screenshot a pixel wider than its CSS width; the screenshot
+ * width over the frame width would then drift off 1.
+ */
+describe("readGeometries", () => {
+  const geometry: BoxGeometry = {
+    rect: { left: 0, top: 0, width: 100.5, height: 40 },
+    borderTop: 1,
+    borderBottom: 1,
+    textLeft: 0,
+    textRight: 100.5,
+    radii: round(0),
+  };
+
+  it("takes the scale from devicePixelRatio, not from the screenshot width over the frame width (worked example 3)", () => {
+    const image = shot(101, 40, inkColumn);
+    const [found] = readGeometries(image, { left: 0, top: 0 }, [geometry], 1);
+    expect(`${found?.offset.toFixed(2)} ${found?.centred}`).toBe("-1.50 true");
+  });
+
+  it("measures the frame's origin off the box edges", () => {
+    // The frame starts at (10, 5): the box sits at (10, 5) on the page and at (0, 0) in the image.
+    const moved: BoxGeometry = {
+      ...geometry,
+      rect: { left: 10, top: 5, width: 100.5, height: 40 },
+      textLeft: 10,
+      textRight: 110.5,
+    };
+    const [found] = readGeometries(shot(101, 40, inkColumn), { left: 10, top: 5 }, [moved], 1);
+    expect(found?.offset).toBe(-1.5);
+  });
+
+  it("takes the frame's left off the label and the box edges alike when it cuts the corners", () => {
+    // Frame at left 10: the box starts at 10 on the page and at 0 in the image, the label from 28
+    // to 42 on the page (18 to 32 in the image). The cuts are at 16 and 24; ink in column 20.
+    const image = shot(40, 40, inkColumn);
+    const g: BoxGeometry = {
+      rect: { left: 10, top: 5, width: 40, height: 40 },
+      borderTop: 1,
+      borderBottom: 1,
+      textLeft: 28,
+      textRight: 42,
+      radii: round(16),
+    };
+    expect(readGeometries(image, { left: 10, top: 5 }, [g], 1)[0]?.offset).toBe(-1.5);
+  });
+
+  it("reads a null for a box whose region holds no ink", () => {
+    const image = shot(101, 40, () => undefined);
+    expect(readGeometries(image, { left: 0, top: 0 }, [geometry], 1)).toEqual([null]);
+  });
+
+  it("cuts a rounded geometry at its corners", () => {
+    const image = shot(40, 40, (x, y) => (outsideCurve(x, y, 16) ? CANVAS : inkColumn(x, y)));
+    const g: BoxGeometry = {
+      rect: { left: 0, top: 0, width: 40, height: 40 },
+      borderTop: 1,
+      borderBottom: 1,
+      textLeft: 8,
+      textRight: 32,
+      radii: round(16),
+    };
+    expect(readGeometries(image, { left: 0, top: 0 }, [g], 1)[0]?.offset).toBe(-1.5);
   });
 });
 

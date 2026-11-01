@@ -4,6 +4,7 @@ import { expect } from "storybook/test";
 import { DesignProfileBoundary } from "../boundary/DesignProfileBoundary";
 import { fixtures } from "../components/fixtures";
 import { LocaleProvider } from "../i18n/LocaleProvider";
+import { InputGroup } from "../components/input-group/InputGroup";
 import { Tag } from "../components/tag/Tag";
 import { CloseIcon, WarningIcon } from "../components/icons";
 import {
@@ -14,6 +15,7 @@ import {
   expectPaintsAt,
   expectSameHeight,
   inVitest,
+  measureInkCentre,
 } from "./visual-asserts";
 
 const meta = {
@@ -275,5 +277,63 @@ export const PaintAt: Story = {
         { svg: letterbox, probes: [{ x: 75, y: 25, hex: INK }] },
       ]),
     ).rejects.toThrow(/paints #D9F66F at \(75, 25\), expected #16151D/);
+  },
+};
+
+/**
+ * ORV-198, ink-corner-1 clause 5: a box that holds one `<input>` and no text (`.ds-input-group`) is
+ * read by the input's value, over the input's content box, with the group's own border box and
+ * rounded corners. The pixels outside the corner curve are not ink: the band the play reads is the
+ * label's own, not the whole padding box. Before the fix the helper threw "has no text to measure"
+ * on a group, and on a rounded box the curve's pixels took the band to the padding box (offset 0.00).
+ */
+export const InkCentreInputGroup: Story = {
+  render: () => (
+    <>
+      {(["light", "dark"] as const).map((mode) => (
+        <DesignProfileBoundary key={mode} mode={mode} profile="neutral">
+          <div
+            data-case={`input-group-${mode}`}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+              padding: 16,
+              background: "var(--ds-surface-canvas)",
+            }}
+          >
+            {(["md", "lg"] as const).map((size) => (
+              <InputGroup
+                key={size}
+                size={size}
+                aria-label={size}
+                defaultValue={fixtures.thai}
+                groupClassName="w-64"
+              />
+            ))}
+          </div>
+        </DesignProfileBoundary>
+      ))}
+    </>
+  ),
+  play: async ({ canvasElement }) => {
+    if (!inVitest) return; // the screenshot needs Vitest browser mode
+    for (const mode of ["light", "dark"]) {
+      const cell = q(canvasElement, `[data-case='input-group-${mode}']`);
+      const groups = [...cell.querySelectorAll(".ds-input-group")];
+      expect(groups).toHaveLength(2);
+      const readings = await measureInkCentre(cell, groups);
+      for (const [i, reading] of readings.entries()) {
+        const group = groups[i] as Element;
+        const height = group.getBoundingClientRect().height;
+        expect(reading.name, "the group is read by its input's value").toContain(fixtures.thai);
+        // The label's ink sits clear of the border rows: the band is not the whole padding box.
+        expect(reading.ink.inkTop, `${reading.name} top of the band`).toBeGreaterThan(4);
+        expect(reading.ink.inkBottom, `${reading.name} bottom of the band`).toBeLessThan(
+          height - 4,
+        );
+        expect(Number.isFinite(reading.body.offset)).toBe(true);
+      }
+    }
   },
 };
