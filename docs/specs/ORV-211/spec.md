@@ -202,6 +202,12 @@ Story files: `Application/Evidence span` (id `application-evidence-span`, `Evide
 
 One PR carries every row, 1 to 25: both components with the helper (`spanOf`, `countLabel`, `CARD_GUTTER`), `EvidenceQuote`, the recipe block, the two pairs, the seven locale keys, the fixtures, two story files and two catalog entries. It is estimated at about 600 changed lines, over the 400-line guide; the main session decided one PR anyway (ORV-211 comment 10488), because the two components share the helper, `EvidenceQuote`, the quote and source recipe classes, the keys and the fixtures, so a split would ship half a shared piece in each. The main session adds the PR line, in the form `qa-scope-1` reads (`scripts/ovl/result-recorder.mjs`), with a changelog line once the PR exists.
 
+- PR 179: rows 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25
+
+## Rows that render nothing
+
+- Rows: 21, 22, 23, 25
+
 ## Out of scope
 
 - A brief analyser that makes `brief-text` items; this story renders mock items only.
@@ -269,3 +275,4 @@ node -e 'const s=require("./packages/design-system/src/tokens/source/semantic.js
 
 - v1.0 (2026-11-01): first version, from K-0127 to K-0135 at `00f6b67` and audit D.1 row 8. Downstream to review: the designer envelope (design.md, open questions 1 to 3), the builder envelopes (two PRs, rows as in "Rows per PR"), the qa envelope (the Rows per PR lines once the PRs exist), `catalog/coverage.md` and the Tag catalog entry (consumer line).
 - v1.1 (2026-11-01): folds design.md amendments A1 (the pill's name is the label then the fact through `aria-labelledby`, `ev-trigger-1`, AC 1, 2, 4, 7, 11, 12), A2 (classes `ds-evidence-span__missing` and `ds-evidence-list__missing`, `ev-missing-1`, `ev-recipe-1`, AC 9, 17), A3 (quote line `border.control` with an 8 px indent, source line 4 px under in `text.secondary`, list items 16 px apart, `ev-recipe-1`, AC 16, W4), A4 (two new pairs, new rule `ev-pairs-1`, AC 14, 20, 23) and A5 (`PopoverContent collisionPadding={CARD_GUTTER}`, `ev-open-1`, AC 12, 21, W3); closes open questions 1 to 3 as design.md answers them; one PR carries every row (ORV-211 comment 10488). Downstream to review: the builder envelope (one PR, all rows), the qa envelope (the one PR line once it exists), design.md front matter (names spec v1.0), `catalog/coverage.md` and the Tag catalog entry (consumer line).
+- v1.1 (2026-11-01, PR line): adds `- PR 179: rows 1 to 25` and `## Rows that render nothing` (rows 21, 22, 23, 25), with no row changed.
