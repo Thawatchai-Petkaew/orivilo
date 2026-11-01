@@ -29,3 +29,11 @@ Facts from outside design systems and standards that inform ORIVILO's own design
 | [[K-0116-wcag-2-2-animation-from-interactions-and-c39]]                  | WCAG 2.2 SC 2.3.3 and technique C39 (prefers-reduced-motion)           |
 | [[K-0117-wcag-2-2-pause-stop-hide-and-loading-animations]]               | WCAG 2.2 SC 2.2.2 and loading animations                               |
 | [[K-0118-synthesis-spinner-and-skeleton-benchmark]]                      | Synthesis of K-0108 to K-0117: spinner and skeleton benchmark table    |
+| [[K-0119-untitled-ui-react-has-no-collapsible-component]]                | Does Untitled UI React have a collapsible or disclosure component      |
+| [[K-0120-shadcn-ui-collapsible-three-parts-no-styles]]                   | shadcn/ui Collapsible: parts, control props, versions, registry file   |
+| [[K-0121-radix-collapsible-api-data-state-and-height-variable]]          | Radix UI Collapsible: props, data attributes, CSS variables, keyboard  |
+| [[K-0122-radix-collapsible-source-aria-wiring-and-mount-animation]]      | Radix Collapsible source: ARIA wiring, mounting, size measurement      |
+| [[K-0123-wai-aria-apg-disclosure-button-expanded-enter-space]]           | WAI-ARIA APG Disclosure pattern: roles, states, keyboard               |
+| [[K-0124-wcag-2-2-motion-animation-excludes-opacity]]                    | WCAG 2.2 SC 2.3.3: what counts as motion animation                     |
+| [[K-0125-wcag-2-2-pause-stop-hide-starts-automatically-includes-hover]]  | WCAG 2.2 SC 2.2.2: what "starts automatically" means                   |
+| [[K-0126-synthesis-collapsible-benchmark]]                               | Synthesis of K-0119 to K-0125: Collapsible benchmark table             |

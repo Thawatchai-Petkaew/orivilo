@@ -4742,3 +4742,41 @@ button.ds-tag__main {
 .ds-logo[data-tone="one-colour"] .ds-logo__dot {
   fill: var(--cmp-logo-ink);
 }
+
+/* Collapsible (ORV-203): a ghost Button over content that is mounted only while open. The trigger
+ * label wraps and keeps the md height at one line; the chevron stays on the first line; the content
+ * starts on the label's start edge (Button padding plus its 1 px border). */
+.ds-collapsible {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-stack-sm);
+  min-inline-size: 0;
+}
+.ds-collapsible__trigger {
+  align-self: flex-start;
+  align-items: flex-start;
+  max-inline-size: 100%;
+  white-space: normal;
+  text-align: start;
+  padding-block: calc((var(--cmp-button-height-md) - 2px - 1lh) / 2);
+}
+.ds-collapsible__trigger .ds-button__icon {
+  margin-block-start: calc((1lh - var(--cmp-button-icon-size-md)) / 2);
+}
+.ds-collapsible__content {
+  min-inline-size: 0;
+  padding-inline: calc(var(--cmp-button-padding-x-md) + 1px);
+  overflow-wrap: break-word;
+  font-family: var(--ds-type-body-sm-font-family);
+  font-size: var(--ds-type-body-sm-font-size);
+  line-height: var(--ds-type-body-sm-line-height);
+  font-weight: var(--ds-type-body-sm-font-weight);
+  letter-spacing: var(--ds-type-body-sm-letter-spacing);
+  animation: ds-fade-in var(--ds-motion-feedback-duration) var(--ds-motion-easing);
+}
+/* Written on the bare class, after the fade, so it wins at the same specificity. */
+@media (prefers-reduced-motion: reduce) {
+  .ds-collapsible__content {
+    animation: none;
+  }
+}

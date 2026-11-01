@@ -21,6 +21,14 @@ export const fixtures = {
   missingLabel: "ไม่มีข้อมูล",
 } as const;
 
+/** Collapsible story copy (ORV-203): the caller's label and content, not catalog keys. */
+export const collapsibleFixtures = {
+  trigger: "รายละเอียดโปรเจกต์",
+  content: fixtures.mixed,
+  triggerEn: "Project details",
+  contentEn: "The team's Brand Canvas project",
+} as const;
+
 export interface FixtureOption {
   value: string;
   label: string;
