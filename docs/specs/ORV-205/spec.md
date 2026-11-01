@@ -68,9 +68,7 @@ The fix keeps both halves of the Goal. It must not make the check pass by wideni
 
 ## Rows per PR
 
-The ORV-205 PR is not open yet; the main session writes its number into this line when it opens.
-
-One PR for rows 1 to 5; the main session adds the PR line when the PR opens.
+- PR 178: rows 1, 2, 3, 4, 5
 
 ## Rows that render nothing
 
