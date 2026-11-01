@@ -14,6 +14,9 @@
  * as text beside every bar, so the track is not the only carrier and WCAG 1.4.11 does not apply to
  * it (ORV-192 row 14). The fill, done fill and failed fill are listed against the track at 3.0.
  *
+ * `skeleton.bg`, a filled `border.subtle` shape: it is hidden from assistive technology and the
+ * hidden status of the group carries the state, so WCAG 1.4.11 does not apply to it (ORV-201).
+ *
  * `logo.dot`, the master dot (`brand.signature`; 6.6 on the light canvas under neutral, 2.3 under
  * Friendly): a logotype's accent is decoration and the ring carries the shape; WCAG 1.4.11 does
  * not apply to a logotype. It stays out of the list because Friendly's master dot is under 3.0.

@@ -1,0 +1,26 @@
+name: Skeleton
+tier: base
+status: draft
+since: ORV-201
+import: "@orivilo/design-system"
+story: base-skeleton
+useWhen:
+  - "A region whose layout is known is waiting for its content"
+avoidWhen:
+  - "A small region, a row or a control with no known layout (use Spinner)"
+  - "A job with a known length or a value to show (use Progress)"
+contract: SkeletonProps
+variants: [text, block, circle]
+sizes: []
+states: [static, grouped]
+recipes: [neutral, professional, friendly]
+examples: []
+rules:
+  - "Three shapes: `text` is one line box of `type.body.sm` with the bar inset by the half leading, so stacked lines keep the pitch of real text; `block` takes `shape.media.radius`; `circle` is round in every profile by `clip-path`"
+  - "The fill is `skeleton.bg` (`border.subtle`), one flat colour with no gradient and no shimmer"
+  - "Static in every motion setting: no pulse, no shimmer, no transition. A page waiting for data is not the engine at work, and a long pulse beside usable content falls under WCAG 2.2.2"
+  - "The caller sets width, and height for `block`, with layout utilities; the shapes stay where the content will take its place, and the caller swaps the group for the content"
+  - "Wrap the shapes of one region in SkeletonGroup. A Skeleton outside a group is allowed only inside a region that owns its own status"
+a11y:
+  - "Every shape is aria-hidden; SkeletonGroup sets aria-busy on itself and renders one visually hidden role status with the label (`skeleton.loading` by default), however many shapes it holds"
+  - "The group announces nothing when it unmounts; the content that replaces it is the caller's to announce if needed"

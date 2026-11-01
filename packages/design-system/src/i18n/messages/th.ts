@@ -12,6 +12,9 @@ export const th = {
   spinner: {
     loading: "กำลังโหลด",
   },
+  skeleton: {
+    loading: "กำลังโหลดเนื้อหา",
+  },
   dialog: {
     close: "ปิด",
   },

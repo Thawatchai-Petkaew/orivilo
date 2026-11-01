@@ -1455,6 +1455,47 @@
   margin-block-start: 0;
 }
 
+/* Skeleton (ORV-201): static placeholder shapes, no animation and no transition (skel-pulse-1).
+ * The outline is transparent: in forced colours it draws in the system ink, so a shape stays
+ * visible when the background is dropped. */
+.ds-skeleton {
+  display: block;
+  background: var(--cmp-skeleton-bg);
+  outline: 1px solid transparent;
+  outline-offset: -1px;
+}
+.ds-skeleton[data-shape="text"] {
+  position: relative;
+  block-size: calc(var(--ds-type-body-sm-font-size) * var(--ds-type-body-sm-line-height));
+  background: transparent;
+  outline: 0;
+}
+.ds-skeleton[data-shape="text"]::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block: calc(
+    var(--ds-type-body-sm-font-size) * (var(--ds-type-body-sm-line-height) - 1) / 2
+  );
+  background: var(--cmp-skeleton-bg);
+  border-radius: var(--ds-shape-control-radius);
+  outline: 1px solid transparent;
+  outline-offset: -1px;
+}
+.ds-skeleton[data-shape="block"] {
+  border-radius: var(--ds-shape-media-radius);
+}
+.ds-skeleton[data-shape="circle"] {
+  aspect-ratio: 1;
+  clip-path: circle(50%);
+}
+.ds-skeleton-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-stack-sm);
+  min-inline-size: 0;
+}
+
 /* Canvas (ADR 0004, E4-2): React Flow for behaviour, every value from the board, node, port and
  * edge tokens (E4-1). The base stylesheet (imported in orivilo.css) reads `--xy-*` properties; each
  * one it reads is set here from a component token, so no React Flow default colour reaches the
