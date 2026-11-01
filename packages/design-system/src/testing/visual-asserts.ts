@@ -647,6 +647,11 @@ export interface InkBox {
   /** The columns of the label text, from its left edge to its right edge. */
   textLeft: number;
   textRight: number;
+  /**
+   * The box's left edge and width with its border-box corner radii (ink-corner-1). Absent for a box
+   * with square corners. The columns a corner curve reaches are not read.
+   */
+  corners?: { left: number; width: number; radii: Radii };
 }
 
 export interface InkCentre {
@@ -663,7 +668,7 @@ export interface InkCentre {
 /**
  * Where the ink of a label sits in its control box, read from a decoded screenshot (RGBA bytes,
  * `width` px wide, at `scale` device px per CSS px). This is ink-centre-1 of the ORV-111 spec,
- * clauses 3 to 9, on whatever ink the region holds (the caller decides whether that is the body or
+ * clauses 3 to 9, with the region cut at the corner curves by ink-corner-1 of the ORV-198 spec, on whatever ink the region holds (the caller decides whether that is the body or
  * the whole label); null when the region holds no ink.
  */
 export function inkCentreOf(
@@ -675,8 +680,21 @@ export function inkCentreOf(
   const height = data.length / 4 / width;
   // Clause 3: the columns of the label, rounded outward, and the rows of the padding box, rounded
   // inward so a row that is half border is not read; all of it inside the image.
-  const left = Math.max(0, Math.floor(box.textLeft * scale));
-  const right = Math.min(width, Math.ceil(box.textRight * scale));
+  let leftColumn = Math.floor(box.textLeft * scale);
+  let rightColumn = Math.ceil(box.textRight * scale);
+  // ink-corner-1: a bound a cut sets rounds inward, so a column the curve's antialiasing touches
+  // is not read. A side with no radius has no cut and keeps the label's bound.
+  if (box.corners) {
+    const { left: edge, width: span, radii } = box.corners;
+    const leftRadius = Math.max(radii.topLeft.x, radii.bottomLeft.x);
+    const rightRadius = Math.max(radii.topRight.x, radii.bottomRight.x);
+    if (leftRadius > 0) leftColumn = Math.max(leftColumn, Math.ceil((edge + leftRadius) * scale));
+    if (rightRadius > 0) {
+      rightColumn = Math.min(rightColumn, Math.floor((edge + span - rightRadius) * scale));
+    }
+  }
+  const left = Math.max(0, leftColumn);
+  const right = Math.min(width, rightColumn);
   const top = Math.max(0, Math.ceil((box.top + box.borderTop) * scale));
   const bottom = Math.min(height, Math.floor((box.top + box.height - box.borderBottom) * scale));
   const at = (x: number, y: number): Rgb => {
@@ -766,8 +784,19 @@ function textNodesOf(box: Element): Text[] {
   return nodes;
 }
 
+/**
+ * The element whose text is the label of `box` (ink-corner-1 clause 5): the one `<input>` in a box
+ * that holds no text node, such as `.ds-input-group`; `box` itself otherwise.
+ */
+function labelHolder(box: Element): Element {
+  if (box instanceof HTMLInputElement || textNodesOf(box).length > 0) return box;
+  const inputs = box.querySelectorAll("input");
+  return inputs.length === 1 ? (inputs[0] as HTMLInputElement) : box;
+}
+
 /** The runs of label text in `box`, each with the font that sets it. An `<input>` has one run: its value. */
-function runsOf(box: Element): { text: string; font: string }[] {
+function runsOf(container: Element): { text: string; font: string }[] {
+  const box = labelHolder(container);
   const fontOf = (el: Element) => {
     const style = getComputedStyle(el);
     return `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
@@ -780,9 +809,11 @@ function runsOf(box: Element): { text: string; font: string }[] {
 }
 
 /** The columns of the label (clause 3): the client rects of a Range over its text, or an `<input>`'s content box. */
-function columnsOf(box: Element, rect: DOMRect): { left: number; right: number } {
+function columnsOf(container: Element): { left: number; right: number } {
+  const box = labelHolder(container);
   if (box instanceof HTMLInputElement) {
     const style = getComputedStyle(box);
+    const rect = box.getBoundingClientRect();
     return {
       left: rect.left + parseFloat(style.borderLeftWidth) + parseFloat(style.paddingLeft),
       right: rect.right - parseFloat(style.borderRightWidth) - parseFloat(style.paddingRight),
@@ -803,7 +834,8 @@ function columnsOf(box: Element, rect: DOMRect): { left: number; right: number }
 }
 
 /** The label of `box` as the screenshot shows it, with the text nodes (or the input value) set by `text`. */
-function setLabelText(box: Element, text: (current: string) => string): () => void {
+function setLabelText(container: Element, text: (current: string) => string): () => void {
+  const box = labelHolder(container);
   if (box instanceof HTMLInputElement) {
     const before = box.value;
     box.value = text(before);
@@ -818,24 +850,90 @@ function setLabelText(box: Element, text: (current: string) => string): () => vo
   };
 }
 
+/** The border-box corner radii of a box as the browser draws them (ink-corner-1 clause 1). */
+function borderRadiiOf(rect: DOMRect, style: CSSStyleDeclaration): Radii {
+  const corner = (value: string): Corner => {
+    const [rx = "0", ry = rx] = value.split(" ");
+    return { x: Math.max(0, px(rx, rect.width)), y: Math.max(0, px(ry, rect.height)) };
+  };
+  const radii: Radii = {
+    topLeft: corner(style.borderTopLeftRadius),
+    topRight: corner(style.borderTopRightRadius),
+    bottomRight: corner(style.borderBottomRightRadius),
+    bottomLeft: corner(style.borderBottomLeftRadius),
+  };
+  // Radii that overlap are scaled down together, as the browser does (a pill reads half the height).
+  const scale = Math.min(
+    1,
+    rect.width / Math.max(1, radii.topLeft.x + radii.topRight.x),
+    rect.width / Math.max(1, radii.bottomLeft.x + radii.bottomRight.x),
+    rect.height / Math.max(1, radii.topLeft.y + radii.bottomLeft.y),
+    rect.height / Math.max(1, radii.topRight.y + radii.bottomRight.y),
+  );
+  if (scale < 1) {
+    for (const c of Object.values(radii)) {
+      c.x *= scale;
+      c.y *= scale;
+    }
+  }
+  return radii;
+}
+
+/** One box as the page lays it out, in CSS px from the top-left corner of the viewport. */
+export interface BoxGeometry {
+  /** The border box. */
+  rect: { left: number; top: number; width: number; height: number };
+  borderTop: number;
+  borderBottom: number;
+  /** The columns of the label. */
+  textLeft: number;
+  textRight: number;
+  radii: Radii;
+}
+
+/**
+ * The pure part of one pass (clauses 3 to 8 with ink-corner-1): the ink of each box in a decoded
+ * screenshot whose top-left corner is `frame`. The scale is the window's `devicePixelRatio`, chosen
+ * here and not the screenshot width over `frame.width`, which drifts off the ratio when the frame
+ * has a fractional width (clause 2). A box whose region holds no ink reads null.
+ */
+export function readGeometries(
+  image: { data: ArrayLike<number>; width: number },
+  frame: Pick<DOMRect, "left" | "top" | "width">,
+  geometries: readonly BoxGeometry[],
+  view: { devicePixelRatio: number },
+): (InkCentre | null)[] {
+  const scale = view.devicePixelRatio;
+  return geometries.map((g) =>
+    inkCentreOf(image, scale, {
+      top: g.rect.top - frame.top,
+      height: g.rect.height,
+      borderTop: g.borderTop,
+      borderBottom: g.borderBottom,
+      textLeft: g.textLeft - frame.left,
+      textRight: g.textRight - frame.left,
+      corners: { left: g.rect.left - frame.left, width: g.rect.width, radii: g.radii },
+    }),
+  );
+}
+
 /** One pass of clauses 2 to 8: a screenshot of `scope`, then the ink of each box as it renders now. */
 async function readBoxes(scope: Element, boxes: readonly Element[], names: readonly string[]) {
   const { data, width, frame } = await screenshotOf(scope);
-  // Clause 2: the scale is the device pixel ratio, not the screenshot width over the CSS width,
-  // which drifts when the scope has a fractional width.
-  const scale = window.devicePixelRatio;
-  return boxes.map((box, i) => {
+  const geometries = boxes.map((box): BoxGeometry => {
     const rect = box.getBoundingClientRect();
     const style = getComputedStyle(box);
-    const columns = columnsOf(box, rect);
-    const found = inkCentreOf({ data, width }, scale, {
-      top: rect.top - frame.top,
-      height: rect.height,
+    const columns = columnsOf(box);
+    return {
+      rect,
       borderTop: parseFloat(style.borderTopWidth),
       borderBottom: parseFloat(style.borderBottomWidth),
-      textLeft: columns.left - frame.left,
-      textRight: columns.right - frame.left,
-    });
+      textLeft: columns.left,
+      textRight: columns.right,
+      radii: borderRadiiOf(rect, style),
+    };
+  });
+  return readGeometries({ data, width }, frame, geometries, window).map((found, i) => {
     if (!found) throw new Error(`${names[i]}: the region of its label holds no ink to measure`);
     return found;
   });
@@ -847,7 +945,9 @@ async function readBoxes(scope: Element, boxes: readonly Element[], names: reado
  * 1), shoots `scope` the way `expectEdgeInk` does (clause 2) and reads each box (clauses 3 to 8):
  * that is the whole-ink reading. When a label holds Thai marks, it then takes the marks out of the
  * text, shoots again, reads the body, and puts the label back; a label with no marks has the one
- * reading for both. It runs where Vitest browser mode runs; a play guards the call with `inVitest`.
+ * reading for both. A rounded box loses the columns its corner curves reach, and a box that holds one
+ * `<input>` and no text is read by that input (ORV-198, rule ink-corner-1). It runs where Vitest
+ * browser mode runs; a play guards the call with `inVitest`.
  */
 export async function measureInkCentre(
   scope: Element,
