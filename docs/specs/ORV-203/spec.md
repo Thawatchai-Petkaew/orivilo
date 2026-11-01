@@ -114,6 +114,8 @@ Story file: `Base/Collapsible` (id `base-collapsible`), a new `Collapsible.stori
 
 One PR is planned for rows 1 to 16: the component, recipe, stories, fixtures and catalog entry are estimated at about 350 changed lines, under the 400-line guide. The main session adds the PR line, in the form `qa-scope-1` reads (`scripts/ovl/result-recorder.mjs`), with a changelog line once the PR exists.
 
+- PR 176: rows 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16
+
 ## Out of scope
 
 - Moving TaskBar, Resizable's reopen control or DirectionStudio's `<details>` blocks onto Collapsible. Follow-up card; TaskBar's bottom-docked chevron and its always-set `aria-controls` would change, and TaskBar would need `forceMount` or a different focus path (K-0126, open points).
