@@ -2,7 +2,7 @@
 issue: ORV-52 (https://tpetkaew.atlassian.net/browse/ORV-52), backlog E3-4
 lane: M (no risk flag on the default path; open questions 3, 4 and 5 turn it L if the owner picks their option b)
 mode: POC mode short spec (`.claude/skills/ovl/SKILL.md`, section "POC mode")
-version: 1.0
+version: 1.1
 depends on: ORV-32 (E2-9, the deterministic resolver, merged as `packages/intent-engine/src/resolver.ts`)
 ---
 
@@ -26,8 +26,8 @@ As the owner, I want ORIVILO's own brand to come out of the same resolver the St
 - `orv52-locks-1`. ORIVILO's brand locks are three, each from a recorded owner decision: `shape: rounded` (pill controls, mood E, owner 2026-10-21, DESIGN.md line 22), `surfaceTreatment: flat` (borderless cards, same line), `typeVoice: single` (display takes the body family, owner ORV-192 rows 15 and 16, `font.display` in `semantic.json`). `emphasis` and `motion` are not locked: the rules set emphasis to expressive, and motion stays open because premium 65 is under the 70 of `motion.premium-quiet`.
 - `orv52-decisions-1`. `orivilo.json` declares `shape: rounded`, `surfaceTreatment: flat`, `emphasis: expressive`, `typeVoice: single`, `motion: standard`. Each must pass `Profile.validate()` against the tokens (`checkDecisions` in `model.ts`): control radius 999 and container 16 meet rounded, `border.card` light `transparent` meets flat.
 - `orv52-tokens-1`. `orivilo.json` overrides exactly the ten identity-scoped tokens, each with the base set's own reference, so it renders the same values as the base set: `surface.selected`, `text.link`, `text.link-hover`, `text.brand`, `selection.bg`, `selection.fg`, `focus.ring`, `brand.signature`, `brand.ink`, `brand.dot-small`. No own primitives. `$name` is th `ORIVILO`, en `ORIVILO` (open question 6); `$description` says the values are hand-copied from the base set and are not generated.
-- `orv52-scope-1`. `orivilo` is a brand profile, not a customer direction. It is exported in its own list, `BRAND_PROFILES` in `packages/design-system/src/profiles/index.ts`, and stays out of `profiles`, `PROFILE_IDS` and `CURATED_PROFILES`, so the Storybook toolbar, the `Matrix` cells, the Studio's directions and every saved snapshot's fingerprint are unchanged (open question 1).
-- `orv52-match-1`. A brand spec colour matches when the hex the profile resolves to for that token and mode equals the spec's hex, compared upper-case, no rounding. For a Studio-scoped token the rendered hex is that of its `STUDIO_REMAP` target (`action.intent` renders `action.primary`), because `Profile.tokens` still holds lime there and only `emitCss` remaps it. A spec token with no semantic token of that name does not match. The compared set is the 19 rows of brand spec §5 (light) and the 7 values of its dark set line, mapped in the diff table below.
+- `orv52-scope-1`. `orivilo` is a brand profile, not a customer direction. It is exported in its own list, `BRAND_PROFILES` in `packages/design-system/src/profiles/index.ts`, and stays out of `profiles`, `PROFILE_IDS` and `CURATED_PROFILES`, so the Storybook toolbar, the `Matrix` cells, the Studio's directions and every saved snapshot's fingerprint are unchanged (open question 1). Neither `generated.css` changes: `scripts/build-tokens.ts` emits `src/profiles/generated.css` from `profiles` only (lines 5 and 15), so `orivilo` gets no CSS block and renders only as a runtime `Profile` object.
+- `orv52-match-1`. A brand spec colour matches when the hex the profile resolves to for that token and mode equals the spec's hex, compared upper-case, no rounding. For a Studio-scoped token the rendered hex is that of its `STUDIO_REMAP` target (`action.intent` renders `action.primary`), because `Profile.tokens` still holds lime there and only `emitCss` remaps it. A spec token with no semantic token of that name does not match. The compared set is the 19 rows of brand spec §5 (light) and the 7 values of its dark set line, each mapped to one semantic token by `orv52-map-1`.
 
 ## Acceptance criteria
 
@@ -62,6 +62,40 @@ The brand spec file keeps the name `orivilo-brand-spec-v1.1.md` and now holds v1
 | d-8 | Type scale 14 / 1.6 | Line height 1.6 at 14 px | `type.body.sm` 14 / 1.7; `type.control.md` and `type.field.sm` keep 14 / 1.6 | Not found for `body.sm` (open question 2); 1.6 on control and field is ORV-111 and ORV-199 |
 | d-9 | Radius | s 6, m 10, l 14, xl 22 | Control 999 (pill), media 12, container 16, overlay 24, check 4 | Mood E pill controls, owner 2026-10-21. The v1.1 scale fits no `shape` value (worked example 2), and 10, 14 and 22 are not primitives (open question 5) |
 | d-10 | Space | An 8 px scale | 4 px steps (`space.1` 4, `space.3` 12; `space.inline.sm` 4, `space.row-block.comfortable` 12) | Not found in the token source (open question 2) |
+
+### Compared values (`orv52-map-1`)
+
+`orv52-map-1`. The 26 values row 7 compares, each with the semantic token it reads. Light: the 19 rows of brand spec §5 (lines 44 to 62) by their own name, except that a `feedback.<kind>` row reads `feedback.<kind>.fg` (§5 names the hue, the contract splits it into fg, surface and border, and fg is the text and icon hue). Dark: the 7 values of the dark set line (line 64), by the role each names.
+
+<!-- prettier-ignore -->
+| Mode | Brand spec name | Hex | Semantic token |
+| --- | --- | --- | --- |
+| light | surface.canvas | #F4F4F0 | `surface.canvas` |
+| light | surface.card | #FFFFFF | `surface.card` |
+| light | surface.selected | #F4EEFD | `surface.selected` |
+| light | surface.inverse | #16151D | `surface.inverse` |
+| light | text.primary | #16151D | `text.primary` |
+| light | text.secondary | #5B5A66 | `text.secondary` |
+| light | text.body-soft | #3A394A | `text.body-soft` (no such token, d-2) |
+| light | action.primary | #7A22C7 | `action.primary` |
+| light | action.primary-hover | #6B22B0 | `action.primary-hover` |
+| light | action.primary-press | #3F1366 | `action.primary-press` |
+| light | selection.fg | #6B22B0 | `selection.fg` |
+| light | focus.ring | #16151D | `focus.ring` |
+| light | border.control | #85838F | `border.control` |
+| light | border.subtle | #E3E2DC | `border.subtle` |
+| light | brand.signature | #7A22C7 | `brand.signature` |
+| light | feedback.success | #0B6E4F | `feedback.success.fg` |
+| light | feedback.warning | #B54708 | `feedback.warning.fg` |
+| light | feedback.danger | #B42318 | `feedback.danger.fg` |
+| light | feedback.info | #1D6FD6 | `feedback.info.fg` |
+| dark | surface | #16151D | `surface.canvas` |
+| dark | card | #1E1D26 | `surface.card` |
+| dark | text | #F2F1EC | `text.primary` |
+| dark | secondary | #A9A7B3 | `text.secondary` |
+| dark | action | #B07FEE | `action.primary` |
+| dark | signature | #B07FEE | `brand.signature` |
+| dark | lime (intent action) | #D9F66F | `action.intent` (renders its `STUDIO_REMAP` target, d-4) |
 
 What matches, for the record: the other 16 light rows of §5 and 6 of the 7 dark values (all but lime), §2's dot colours through `brand.signature` and `brand.dot-small`, §6 display 56 / 1.2 and 32 / 1.25 and body 16 / 1.7, and §7 motion 120 / 200 / 320 with one ease-out. Brand spec §5 gives no dark value for `selection.fg`; that is a gap in the spec, not a diff.
 
@@ -118,3 +152,4 @@ What matches, for the record: the other 16 light rows of §5 and 6 of the 7 dark
 ## Changelog
 
 - 1.0 (2026-11-02): first version.
+- 1.1 (2026-11-02): lists the 26 compared values and their tokens as `orv52-map-1` (the builder's mapping in `orivilo.test.ts` `SPEC_VALUES`, checked against brand spec §5 lines 44 to 64); `orv52-scope-1` records that neither `generated.css` changes. No AC outcome changes. Review downstream: `packages/design-system/src/profiles/orivilo.test.ts` (matches as is).
