@@ -81,7 +81,9 @@ Rows 1 to 4 and 7 are design.md rows F1 to F4 and builder rows F.1 to F.5; row 5
 
 ## Rows per PR
 
-One PR carries rows 1 to 12. The main session adds the line in the form `- PR <number>: rows 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12` when the PR opens (`qa-scope-1`, ORV-138); the PR number does not exist yet.
+One PR carries rows 1 to 12. The main session adds the line in the form `- PR <number>: rows 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12` when the PR opens (`qa-scope-1`, ORV-138).
+
+- PR 175: rows 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12
 
 ## Rows that render nothing
 
