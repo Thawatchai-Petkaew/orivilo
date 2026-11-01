@@ -427,6 +427,19 @@ export const RecipesAndModes: Story = {
   decorators: [],
 };
 
+/**
+ * Waits until the board has drawn and fitted its nodes. xyflow keeps a node hidden until it has
+ * measured it and runs its first fit in the update that shows it (`firstFit` in CanvasBoard), so a
+ * jump made while a node is still hidden is overwritten by that fit and lands off the board on a
+ * short one (ORV-205: On Short Board failed about 1 repeat in 3).
+ */
+const boardFitted = (canvasElement: HTMLElement) =>
+  waitFor(() => {
+    const nodes = Array.from(canvasElement.querySelectorAll(".react-flow__node"));
+    expect(nodes.length).toBeGreaterThan(0);
+    for (const node of nodes) expect(node).toBeVisible();
+  });
+
 /** Three done jobs: one with a node on the board, one with no node, one whose node is not there. */
 const boardJobs: readonly TaskJob[] = [
   { ...fixtureJobs.done, id: "job-on-board", nodeId: "logo" },
@@ -448,9 +461,7 @@ export const OnBoard: Story = {
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await waitFor(() =>
-      expect(canvasElement.querySelectorAll(".react-flow__node").length).toBeGreaterThan(0),
-    );
+    await boardFitted(canvasElement);
     const jumps = canvas.getAllByRole("button", { name: /^ไปที่โหนดของ/ });
     await expect(jumps).toHaveLength(1);
     await expect(jumps[0]).toHaveAccessibleName(`ไปที่โหนดของ ${boardJobs[0]?.name}`);
@@ -506,9 +517,7 @@ export const OnShortBoard: Story = {
     </Stateful>
   ),
   play: async ({ canvasElement }) => {
-    await waitFor(() =>
-      expect(canvasElement.querySelectorAll(".react-flow__node").length).toBeGreaterThan(0),
-    );
+    await boardFitted(canvasElement);
     await userEvent.click(within(canvasElement).getByRole("button", { name: /^ไปที่โหนดของ/ }));
     const logo = canvasElement.querySelector<HTMLElement>('.react-flow__node[data-id="logo"]');
     await waitFor(() => expect(logo).toHaveClass("selected"));
@@ -545,9 +554,7 @@ export const OnBoardReducedMotion: Story = {
         ? ({ ...original(query), matches: true } as MediaQueryList)
         : original(query);
     try {
-      await waitFor(() =>
-        expect(canvasElement.querySelectorAll(".react-flow__node").length).toBeGreaterThan(0),
-      );
+      await boardFitted(canvasElement);
       const before = viewportTransform(canvasElement);
       const jump = within(canvasElement).getByRole("button", { name: /^ไปที่โหนดของ/ });
       await userEvent.click(jump);

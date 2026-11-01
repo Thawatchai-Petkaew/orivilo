@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   bodyOf,
+  clipEdgeRow,
   colorsMatch,
   cssColorToHex,
   firstInkRow,
@@ -900,5 +901,32 @@ describe("inkCutAbove", () => {
     const faint: Rgb = [240, 240, 240];
     const visible = shot(null).map((row, y) => (y === 4 ? [ground, faint] : row));
     expect(inkCutAbove(shot(null), visible, 6, 1)).toBe(0);
+  });
+});
+
+describe("clipEdgeRow", () => {
+  it("is the reach above the border box, in device rows", () => {
+    expect(clipEdgeRow(8, 0, 1)).toBe(8);
+    expect(clipEdgeRow(8, 0, 4)).toBe(32);
+  });
+
+  it("moves down by the top border, because the clip is the padding box", () => {
+    expect(clipEdgeRow(8, 1, 1)).toBe(9);
+    expect(clipEdgeRow(8, 1.5, 2)).toBe(19);
+  });
+
+  it("reads a difference inside the label's block padding as no cut (ORV-205)", () => {
+    const ground: Rgb = [250, 250, 250];
+    const ink: Rgb = [20, 20, 20];
+    const shot = (inkAt: number | null) =>
+      Array.from({ length: 24 }, (_, y) => (y === inkAt ? [ground, ink] : [ground, ground]));
+    // Region reach 8, padding 4: the clip edge is row 8 and the label line row 12. A top mark row
+    // that one shot draws and the other does not, at row 10, is inside the padding: no cut.
+    const edge = clipEdgeRow(8, 0, 1);
+    expect(inkCutAbove(shot(null), shot(10), edge, 1)).toBe(0);
+    // With no padding the edge is the line (row 12), and the same row is a real cut.
+    expect(inkCutAbove(shot(null), shot(10), clipEdgeRow(12, 0, 1), 1)).toBe(2);
+    // A row above the clip edge is a real cut with padding too.
+    expect(inkCutAbove(shot(null), shot(6), edge, 1)).toBe(2);
   });
 });

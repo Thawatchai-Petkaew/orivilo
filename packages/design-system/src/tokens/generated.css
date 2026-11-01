@@ -213,7 +213,7 @@
   --ds-text-secondary: var(--op-color-gray-600);
   --ds-text-tertiary: var(--op-color-gray-600);
   --ds-text-placeholder: var(--op-color-gray-600);
-  --ds-text-disabled: var(--op-color-gray-400);
+  --ds-text-disabled: var(--op-color-gray-500);
   --ds-text-on-action: var(--op-color-white);
   --ds-text-on-intent: var(--op-color-gray-900);
   --ds-text-on-destructive: var(--op-color-white);
@@ -429,7 +429,7 @@
   --ds-text-secondary: var(--op-color-gray-400);
   --ds-text-tertiary: var(--op-color-gray-400);
   --ds-text-placeholder: var(--op-color-gray-400);
-  --ds-text-disabled: var(--op-color-gray-600);
+  --ds-text-disabled: var(--op-color-gray-500);
   --ds-text-on-action: var(--op-color-gray-900);
   --ds-text-on-intent: var(--op-color-gray-900);
   --ds-text-on-destructive: var(--op-color-gray-900);
@@ -646,7 +646,7 @@
     --ds-text-secondary: var(--op-color-gray-400);
     --ds-text-tertiary: var(--op-color-gray-400);
     --ds-text-placeholder: var(--op-color-gray-400);
-    --ds-text-disabled: var(--op-color-gray-600);
+    --ds-text-disabled: var(--op-color-gray-500);
     --ds-text-on-action: var(--op-color-gray-900);
     --ds-text-on-intent: var(--op-color-gray-900);
     --ds-text-on-destructive: var(--op-color-gray-900);
@@ -1159,7 +1159,7 @@
   --cmp-checkbox-target-min: var(--ds-size-icon-lg);
   --cmp-menu-bg: var(--ds-surface-raised);
   --cmp-menu-border: var(--ds-border-subtle);
-  --cmp-menu-radius: var(--ds-shape-media-radius);
+  --cmp-menu-radius: var(--ds-shape-overlay-radius);
   --cmp-menu-shadow: var(--ds-elevation-overlay);
   --cmp-menu-padding: var(--ds-space-inset-sm);
   --cmp-menu-option-fg: var(--ds-text-primary);
@@ -1167,7 +1167,7 @@
   --cmp-menu-option-bg-selected: var(--ds-surface-selected);
   --cmp-menu-option-fg-selected: var(--ds-selection-fg);
   --cmp-menu-option-fg-disabled: var(--ds-text-disabled);
-  --cmp-menu-option-radius: var(--ds-shape-control-radius);
+  --cmp-menu-option-radius: var(--ds-shape-media-radius);
   --cmp-menu-option-height: var(--ds-size-control-md);
   --cmp-menu-option-padding-x: var(--ds-space-inset-sm);
   --cmp-menu-option-type-font-family: var(--ds-type-body-sm-font-family);
@@ -1516,6 +1516,8 @@
   --cmp-direction-sample-padding: var(--ds-space-inset-md);
   --cmp-direction-preview-border: var(--ds-border-subtle);
   --cmp-direction-preview-radius: var(--ds-shape-container-radius);
+  --cmp-spinner-fg: var(--ds-text-secondary);
+  --cmp-skeleton-bg: var(--ds-border-subtle);
   --cmp-progress-track: var(--ds-border-subtle);
   --cmp-progress-fill: var(--ds-text-brand);
   --cmp-progress-done: var(--ds-feedback-success-fg);

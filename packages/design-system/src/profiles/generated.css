@@ -40,7 +40,7 @@
   --ds-text-secondary: var(--op-color-slate-600);
   --ds-text-tertiary: var(--op-color-slate-600);
   --ds-text-placeholder: var(--op-color-slate-600);
-  --ds-text-disabled: var(--op-color-slate-400);
+  --ds-text-disabled: var(--op-color-slate-500);
   --ds-text-on-action: var(--op-color-white);
   --ds-text-on-inverse: var(--op-color-slate-100);
   --ds-text-on-inverse-secondary: var(--op-color-slate-400);
@@ -121,7 +121,7 @@
   --ds-text-secondary: var(--op-color-slate-300);
   --ds-text-tertiary: var(--op-color-slate-400);
   --ds-text-placeholder: var(--op-color-slate-400);
-  --ds-text-disabled: var(--op-color-slate-600);
+  --ds-text-disabled: var(--op-color-slate-500);
   --ds-text-on-action: var(--op-color-slate-900);
   --ds-text-on-inverse: var(--op-color-slate-900);
   --ds-text-on-inverse-secondary: var(--op-color-slate-600);
@@ -203,7 +203,7 @@
     --ds-text-secondary: var(--op-color-slate-300);
     --ds-text-tertiary: var(--op-color-slate-400);
     --ds-text-placeholder: var(--op-color-slate-400);
-    --ds-text-disabled: var(--op-color-slate-600);
+    --ds-text-disabled: var(--op-color-slate-500);
     --ds-text-on-action: var(--op-color-slate-900);
     --ds-text-on-inverse: var(--op-color-slate-900);
     --ds-text-on-inverse-secondary: var(--op-color-slate-600);
@@ -298,7 +298,7 @@
   --ds-text-secondary: var(--op-color-cream-600);
   --ds-text-tertiary: var(--op-color-cream-600);
   --ds-text-placeholder: var(--op-color-cream-600);
-  --ds-text-disabled: var(--op-color-cream-400);
+  --ds-text-disabled: var(--op-color-cream-500);
   --ds-text-on-action: var(--op-color-cream-900);
   --ds-text-on-inverse: var(--op-color-cream-100);
   --ds-text-on-inverse-secondary: var(--op-color-cream-400);
@@ -383,7 +383,7 @@
   --ds-text-secondary: var(--op-color-cream-300);
   --ds-text-tertiary: var(--op-color-cream-400);
   --ds-text-placeholder: var(--op-color-cream-400);
-  --ds-text-disabled: var(--op-color-cream-600);
+  --ds-text-disabled: var(--op-color-cream-500);
   --ds-text-on-action: var(--op-color-cream-900);
   --ds-text-on-inverse: var(--op-color-cream-900);
   --ds-text-on-inverse-secondary: var(--op-color-cream-600);
@@ -469,7 +469,7 @@
     --ds-text-secondary: var(--op-color-cream-300);
     --ds-text-tertiary: var(--op-color-cream-400);
     --ds-text-placeholder: var(--op-color-cream-400);
-    --ds-text-disabled: var(--op-color-cream-600);
+    --ds-text-disabled: var(--op-color-cream-500);
     --ds-text-on-action: var(--op-color-cream-900);
     --ds-text-on-inverse: var(--op-color-cream-900);
     --ds-text-on-inverse-secondary: var(--op-color-cream-600);

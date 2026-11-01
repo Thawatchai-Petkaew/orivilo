@@ -245,8 +245,8 @@
       },
       "disabled": {
         "$value": {
-          "light": "{color.cream.400}",
-          "dark": "{color.cream.600}"
+          "light": "{color.cream.500}",
+          "dark": "{color.cream.500}"
         }
       },
       "on-action": {

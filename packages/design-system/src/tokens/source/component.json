@@ -970,7 +970,7 @@
     },
     "radius": {
       "$type": "dimension",
-      "$value": "{shape.media.radius}"
+      "$value": "{shape.overlay.radius}"
     },
     "shadow": {
       "$type": "shadow",
@@ -1003,7 +1003,7 @@
       },
       "radius": {
         "$type": "dimension",
-        "$value": "{shape.control.radius}"
+        "$value": "{shape.media.radius}"
       },
       "height": {
         "$type": "dimension",
@@ -2140,6 +2140,20 @@
     "preview-radius": {
       "$type": "dimension",
       "$value": "{shape.container.radius}"
+    }
+  },
+  "spinner": {
+    "$description": "The waiting ring and its label (ORV-201): one ink for both",
+    "fg": {
+      "$type": "color",
+      "$value": "{text.secondary}"
+    }
+  },
+  "skeleton": {
+    "$description": "A static placeholder shape (ORV-201): one flat fill",
+    "bg": {
+      "$type": "color",
+      "$value": "{border.subtle}"
     }
   },
   "progress": {

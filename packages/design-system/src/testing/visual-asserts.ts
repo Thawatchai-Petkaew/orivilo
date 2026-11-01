@@ -1186,13 +1186,26 @@ export function inkCutAbove(
 }
 
 /**
+ * The row of a region shot, counted from its top, where the clip box of a label starts: the
+ * region reaches `reach` CSS px above the border box, and `overflow: hidden` clips at the padding
+ * box, `borderTop` CSS px inside it. Rows above this one are the only rows the clip can change; a
+ * row below it, in the label's own block padding, shows the same in both shots by CSS and can
+ * differ only by raster noise (ORV-205).
+ */
+export function clipEdgeRow(reach: number, borderTop: number, devicePixelRatio: number) {
+  return Math.round((reach + borderTop) * devicePixelRatio);
+}
+
+/**
  * Asserts a one-line label shows the whole stack of Thai marks (ORV-194 row 7): a shallow clone of
  * `el` (same classes, same parent, so the same recipe applies) holding `sample` is put after it and
  * shot twice over a region from 8 px above to 8 px below its border box, once as shipped and once
- * with `overflow: visible` set inline. No row above the clone's line (its content box) may differ
- * between the two shots, so the clip box cuts no mark. The clone is taken out in `finally`. It runs
- * where Vitest browser mode runs; a play guards the call with `inVitest`. `expectNoGlyphClip`
- * cannot do this: it cannot see marks above the font ascent.
+ * with `overflow: visible` set inline. No row above the clone's clip box (its padding box) may
+ * differ between the two shots, so the clip cuts no mark. Rows in the padding below that edge are
+ * not read (ORV-205): the clip never touches them, and Chromium on Linux sometimes leaves the faint
+ * top row of a tone mark out of the `overflow: visible` raster, which read as a 2 px cut. The clone
+ * is taken out in `finally`. It runs where Vitest browser mode runs; a play guards the call with
+ * `inVitest`. `expectNoGlyphClip` cannot do this: it cannot see marks above the font ascent.
  */
 export async function expectLabelInkWhole(el: HTMLElement, sample = "ฟื้ปั้ปี๊ฟื้") {
   const reach = 8;
@@ -1228,13 +1241,18 @@ export async function expectLabelInkWhole(el: HTMLElement, sample = "ฟื้�
     const line = Math.round(
       (reach + parseFloat(getComputedStyle(clone).paddingTop)) * shipped.scale,
     );
+    const edge = clipEdgeRow(
+      reach,
+      parseFloat(getComputedStyle(clone).borderTopWidth),
+      shipped.scale,
+    );
     const ground = visible.rows[line]?.[0];
     expect(
       ground && firstInkRow(visible.rows.slice(line), ground),
       `${label(el)} draws no ink for the sample ${sample}`,
     ).not.toBeNull();
-    const cut = inkCutAbove(shipped.rows, visible.rows, line, shipped.scale);
-    expect(cut, `${label(el)} cuts ${cut} px of its Thai stack above the label line`).toBe(0);
+    const cut = inkCutAbove(shipped.rows, visible.rows, edge, shipped.scale);
+    expect(cut, `${label(el)} cuts ${cut} px of its Thai stack above the clip box`).toBe(0);
   } finally {
     clone.remove();
   }

@@ -5,6 +5,12 @@ export const en: Messages = {
   button: {
     working: "Working",
   },
+  spinner: {
+    loading: "Loading",
+  },
+  skeleton: {
+    loading: "Loading content",
+  },
   dialog: {
     close: "Close",
   },

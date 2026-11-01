@@ -9,7 +9,9 @@ import {
   expectFocusBorderForm,
   expectInkCentred,
   expectLabelInkWhole,
+  expectNoGlyphClip,
   inVitest,
+  resolvedColor,
 } from "../../testing/visual-asserts";
 import { Matrix, Narrow } from "../matrix";
 import { Select, type SelectGroup, type SelectOption, type SelectProps } from "./Select";
@@ -357,6 +359,66 @@ export const Grouped: Story = {
     await userEvent.keyboard("{Enter}");
     await waitFor(() => expect(body().queryByRole("listbox")).toBeNull());
     await expect(trigger).toHaveTextContent("Brand Canvas");
+  },
+};
+
+/** The length a token resolves to at `el`, in px, as the browser computes it. */
+function resolvedLength(el: Element, token: string): number {
+  const probe = document.createElement("span");
+  probe.style.display = "block";
+  probe.style.width = `var(${token})`;
+  el.append(probe);
+  const px = parseFloat(getComputedStyle(probe).width);
+  probe.remove();
+  return px;
+}
+
+/** ORV-204 rows 1 to 3: the selected described option is one rounded card, the line sits evenly
+ * between its groups, each heading sits on its own options, the disabled option reads in
+ * `text.disabled`, and the panel takes the overlay radius. Every value is compared with the
+ * resolved token, so the play holds under any profile the boundary sets. */
+export const GroupedSelectedDescribed: Story = {
+  decorators: [inField],
+  render: () => <Select groups={groups} defaultValue="design-system" />,
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole("combobox", { name: "โมดูล" }));
+    const listbox = await body().findByRole("listbox");
+    const checked = within(listbox).getByRole("option", { name: "Design System" });
+    await expect(checked).toHaveAttribute("aria-selected", "true");
+    // menu-option-radius-1: one radius whatever the line count.
+    const mediaRadius = resolvedLength(listbox, "--ds-shape-media-radius");
+    await expect(parseFloat(getComputedStyle(checked).borderTopLeftRadius)).toBe(mediaRadius);
+    await expect(parseFloat(getComputedStyle(checked).borderBottomRightRadius)).toBe(mediaRadius);
+    // menu-separator-1: the same gap above and below the line.
+    const separator = listbox.querySelector(".ds-menu__separator");
+    const labels = [...listbox.querySelectorAll<HTMLElement>(".ds-menu__label")];
+    await expect(separator).not.toBeNull();
+    await expect(labels).toHaveLength(2);
+    const nextLabel = labels[1] as HTMLElement;
+    const line = (separator as Element).getBoundingClientRect();
+    const gap = resolvedLength(listbox, "--ds-space-inline-lg");
+    await expect(Math.round(line.top - checked.getBoundingClientRect().bottom)).toBe(gap);
+    await expect(Math.round(nextLabel.getBoundingClientRect().top - line.bottom)).toBe(gap);
+    // menu-label-1: each heading sits on its own options.
+    const labelPad = resolvedLength(listbox, "--ds-space-inline-sm");
+    for (const label of labels) {
+      const style = getComputedStyle(label);
+      await expect(parseFloat(style.paddingTop)).toBe(labelPad);
+      await expect(parseFloat(style.paddingBottom)).toBe(labelPad);
+    }
+    // text-disabled-1: the disabled option reads in text.disabled.
+    const disabled = within(listbox).getByRole("option", { name: "เก็บถาวรแล้ว" });
+    await expect(disabled).toHaveAttribute("aria-disabled", "true");
+    await expect(getComputedStyle(disabled).color).toBe(
+      resolvedColor(listbox, "--ds-text-disabled"),
+    );
+    // The listbox clips its viewport, so one call judges the headings and every option inside it.
+    expectNoGlyphClip(listbox);
+    // menu-radius-1: the panel takes the overlay radius.
+    const overlayRadius = resolvedLength(listbox, "--ds-shape-overlay-radius");
+    await expect(parseFloat(getComputedStyle(listbox).borderTopLeftRadius)).toBe(overlayRadius);
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() => expect(body().queryByRole("listbox")).toBeNull());
   },
 };
 
