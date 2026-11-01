@@ -187,7 +187,13 @@ describe("type weights", () => {
       ]) {
         expect(weight(path), path).toBe(500);
       }
-      for (const path of ["type.body.lg", "type.body.md", "type.body.sm", "type.code.md"]) {
+      for (const path of [
+        "type.body.lg",
+        "type.body.md",
+        "type.body.sm",
+        "type.field.sm",
+        "type.code.md",
+      ]) {
         expect(weight(path), path).toBe(400);
       }
     });
@@ -284,6 +290,26 @@ describe("running text clears Thai marks (row 18)", () => {
       expect(control.fontWeight).toEqual(label.fontWeight);
       expect(control.letterSpacing).toEqual(label.letterSpacing);
       expect(control.lineHeight).toBe(1.6);
+    });
+    it(`under ${id}, a single-line sm field value is body.sm at 1.6 (ORV-199)`, () => {
+      const value = (path: string) => {
+        const token = set.layer("semantic").find((t) => t.path === path);
+        if (!token) throw new Error(`no ${path} token`);
+        return set.resolve(token, "light").value as {
+          fontFamily: unknown;
+          fontSize: unknown;
+          fontWeight: unknown;
+          letterSpacing: unknown;
+          lineHeight: number;
+        };
+      };
+      const field = value("type.field.sm");
+      const body = value("type.body.sm");
+      expect(field.fontFamily).toEqual(body.fontFamily);
+      expect(field.fontSize).toEqual(body.fontSize);
+      expect(field.fontWeight).toEqual(body.fontWeight);
+      expect(field.letterSpacing).toEqual(body.letterSpacing);
+      expect(field.lineHeight).toBe(1.6);
     });
   }
 });
