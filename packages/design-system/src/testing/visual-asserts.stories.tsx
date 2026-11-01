@@ -10,6 +10,7 @@ import { CloseIcon, WarningIcon } from "../components/icons";
 import {
   expectEdgeInk,
   expectInkClearsAbove,
+  expectLabelInkWhole,
   expectNoGlyphClip,
   expectPaintAt,
   expectPaintsAt,
@@ -188,6 +189,93 @@ export const StackClear: Story = {
     await expect(expectInkClearsAbove(display, caption, 4)).rejects.toThrow(/expected at least 4/);
     display.style.paddingBlockStart = "";
     await expectInkClearsAbove(display, caption, 4);
+  },
+};
+
+/**
+ * ORV-205: a one-line ellipsis label as the recipe builds it (a 4 px block padding that a negative
+ * margin cancels) shows the whole stack of Thai marks, and `expectLabelInkWhole` passes; with the
+ * padding taken out (the look before ORV-194 row 7) `overflow: hidden` cuts the stack above the
+ * line and the helper throws. The sample font is loaded first so both shots draw the same face.
+ */
+export const LabelInkWhole: Story = {
+  render: () => (
+    <DesignProfileBoundary mode="light" profile="neutral">
+      <div
+        style={{ display: "flex", gap: 24, padding: 16, background: "var(--ds-surface-canvas)" }}
+      >
+        <span
+          data-case="label"
+          className="font-body"
+          style={{
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            fontSize: 14,
+            fontWeight: 500,
+            lineHeight: 1.7,
+            paddingBlock: 4,
+            marginBlock: -4,
+          }}
+        >
+          ฟื้นฟูปั้นปี๊บ
+        </span>
+      </div>
+    </DesignProfileBoundary>
+  ),
+  play: async ({ canvasElement }) => {
+    if (!inVitest) return;
+    const label = q(canvasElement, "[data-case='label']");
+    await document.fonts.load("500 14px Sarabun", "ฟื้ปั้ปี๊");
+    await document.fonts.ready;
+    await expectLabelInkWhole(label);
+    label.style.paddingBlock = "0";
+    label.style.marginBlock = "0";
+    await expect(expectLabelInkWhole(label)).rejects.toThrow(
+      /cuts [0-9.]+ px of its Thai stack above the clip box/,
+    );
+  },
+};
+
+/**
+ * ORV-205: a difference that only the `overflow: visible` shot has, drawn inside the label's own
+ * block padding (a 2 px stripe, rows 1 to 3 under the top of the border box), is not a cut: the
+ * clip never touches the padding box, and Chromium on Linux drew such a difference by raster noise
+ * in some runs. `expectLabelInkWhole` reads from the clip edge up and passes. Read from the label
+ * line, as it did before, it would see the stripe 3 px above the line and throw.
+ */
+export const LabelPaddingNoise: Story = {
+  render: () => (
+    <DesignProfileBoundary mode="light" profile="neutral">
+      <style>{`[data-case='noisy'][style*='overflow: visible'] { background: linear-gradient(to bottom, transparent 1px, black 1px, black 3px, transparent 3px); }`}</style>
+      <div
+        style={{ display: "flex", gap: 24, padding: 16, background: "var(--ds-surface-canvas)" }}
+      >
+        <span
+          data-case="noisy"
+          className="font-body"
+          style={{
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            fontSize: 14,
+            fontWeight: 500,
+            lineHeight: 1.7,
+            paddingBlock: 4,
+            marginBlock: -4,
+          }}
+        >
+          ฟื้นฟูปั้นปี๊บ
+        </span>
+      </div>
+    </DesignProfileBoundary>
+  ),
+  play: async ({ canvasElement }) => {
+    if (!inVitest) return;
+    const label = q(canvasElement, "[data-case='noisy']");
+    await document.fonts.load("500 14px Sarabun", "ฟื้ปั้ปี๊");
+    await document.fonts.ready;
+    await expectLabelInkWhole(label);
   },
 };
 
