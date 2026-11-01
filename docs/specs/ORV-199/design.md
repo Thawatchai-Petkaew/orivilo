@@ -123,3 +123,40 @@ Full-story shots, 108 PNGs, `/tmp/orv-199-design-1/shots/<story>-w<360|1440>-<th
 - `base-textarea--sizes`: sm unchanged, 23.8 px lines.
 - `application-direction-studio--default`: the sample field reads as before, one pixel lower, one line.
 - A sm field with ฟื้ปี๊ปุ่มสั่งซื้อฟูปู่: no mark cut above or below.
+
+## F-S1: the LabelCentre sweep row stacks its triggers (sign-off ORV-199-signoff-1, head `3ce0fa0`)
+
+The sign-off found that `Base/Select` `LabelCentre` breaks at 360: each sweep row sets the Thai and the English sm trigger side by side, `className="w-60"` does not reach the trigger width (the `.ds-control` recipe sizes it), so at 360 the English trigger runs to x 380.66, past its cell (right edge 344) and the viewport, and the page scrolls sideways (`scrollWidth` 381). At 1440 each trigger is 682 px wide. Both cells also start with the first trigger's border on the boundary's top edge. The ink readings are unaffected; the look is the finding.
+
+<!-- prettier-ignore -->
+| # | Target | Tokens | The play that proves it |
+| --- | --- | --- | --- |
+| F-S1 | Each of the 16 sweep rows is 96 px tall and stacks its two sm triggers, Thai on top at `k/16` px, English below at `k/16 + 44` px (32 px box plus the 12 px gap), so both triggers of a row sit at the same fraction. Every trigger takes the cell width (cell minus 16 px each side) and stays 32 px tall. Each cell has 16 px above the first row and below the last, so no trigger border touches the boundary edge. 16 fractions and 32 triggers per cell are kept | none; layout utilities only (`h-24`, `flex-col`, `items-stretch`, `py-4`), no colour, radius, font or token change | The existing play (`toHaveLength(SWEEP.length * 2)`, `expectInkCentred(..., { measure: "body" })`, `expectLabelInkWhole`) unchanged. Injected render: `scrollWidth` equals the viewport at 360 and 1440, 0 triggers outside their cell, 16 distinct y fractions per page, every trigger 32 px (`node /tmp/orv-199-signoff-1/scripts/lcfix.cjs <playwright>`) |
+
+### F-S1: builder table (head `3ce0fa0`)
+
+| #      | File, line                                                                                                                                          | Before                                                                                                                                                                       | After                                                                                                                                                                                                           |
+| ------ | --------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F-S1.1 | `packages/design-system/src/components/select/Select.stories.tsx`, the cell `div` of `LabelCentre` (`data-testid` `label-centre-light` and `-dark`) | `className="flex flex-col bg-surface-canvas px-4"`                                                                                                                           | `className="flex flex-col bg-surface-canvas px-4 py-4"`                                                                                                                                                         |
+| F-S1.2 | same story, the sweep row `div` (the one whose `style` sets `paddingTop` to `k / 16` px)                                                            | `className="box-border flex h-12 items-start gap-3"`                                                                                                                         | `className="box-border flex h-24 flex-col items-stretch gap-3"`; keep the `paddingTop` style as it is                                                                                                           |
+| F-S1.3 | same story, the `Select` inside the row                                                                                                             | `className="w-60"`                                                                                                                                                           | drop the `className` prop; the trigger takes the row width through `items-stretch`                                                                                                                              |
+| F-S1.4 | same story, the JSDoc above `LabelCentre`                                                                                                           | "every row an sm Select with the Thai value and one with the English value, its box `k/16` px below a whole pixel (the row is a fixed 48 px, so the offset does not add up)" | "every row a fixed 96 px holding an sm Select with the Thai value and, 44 px below it, one with the English value, both `k/16` px below a whole pixel (the row height is fixed, so the offset does not add up)" |
+
+The row height stays fixed (96 px is a whole pixel), so the offset of row `k` does not carry into row `k + 1`, as before. 32 + 12 + 32 = 76 px plus at most 15/16 px of padding fits the 96 px row, so no trigger leaves its row.
+
+### F-S1: rendered (proposed CSS injected into `base-select--label-centre` on `3ce0fa0`)
+
+Injected CSS: `[data-testid^="label-centre-"] > div { height: 96px; flex-direction: column; align-items: stretch; } [data-testid^="label-centre-"] { padding-block: 16px; }`, the same layout as F-S1.1 and F-S1.2 (`w-60` had no effect, so leaving it in the injection does not change the render). Storybook on port 6450, device scale 2, reduced motion, top 420 px of the page:
+
+- `/tmp/orv-199-signoff-1/screenshots/proposed-select-label-centre-w360-th-light.png`
+- `/tmp/orv-199-signoff-1/screenshots/proposed-select-label-centre-w360-th-dark.png`
+- `/tmp/orv-199-signoff-1/screenshots/proposed-select-label-centre-w360-en-light.png`
+- `/tmp/orv-199-signoff-1/screenshots/proposed-select-label-centre-w360-en-dark.png`
+- `/tmp/orv-199-signoff-1/screenshots/proposed-select-label-centre-w1440-th-light.png`
+- `/tmp/orv-199-signoff-1/screenshots/proposed-select-label-centre-w1440-th-dark.png`
+- `/tmp/orv-199-signoff-1/screenshots/proposed-select-label-centre-w1440-en-light.png`
+- `/tmp/orv-199-signoff-1/screenshots/proposed-select-label-centre-w1440-en-dark.png`
+
+What the eye reads: at 360 every row is a Thai pill (บันทึกการเปลี่ยนแปลง) over an English pill (Save changes), both from x 32 to x 328, one start edge, one height, the chevron at the same inset; 16 px of canvas above the first pill; no sideways scroll. At 1440 the pills run the cell width with the same rhythm (12 px inside a pair, 20 px between pairs). The Thai marks above (ที่, ลี่) are whole. The values do not change with the locale global (they are fixtures), so the th and en frames match; the light and dark frames differ only in the root around the light cell, which the 420 px crop shows first.
+
+Screens to check in visual QA (G3) for F-S1: `base-select--label-centre` at 360 and the widest canvas, Thai and English, light and dark, scrolled to the dark cell as well: no trigger past its cell, no sideways scroll, the first trigger of each cell clear of the boundary edge.
