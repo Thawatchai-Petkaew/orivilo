@@ -893,18 +893,19 @@ export interface BoxGeometry {
 
 /**
  * The pure part of one pass (clauses 3 to 8 with ink-corner-1): the ink of each box in a decoded
- * screenshot whose top-left corner is `frame`. The scale is `devicePixelRatio`, not the screenshot
- * width over the frame's CSS width, which drifts when the frame has a fractional width (clause 2).
- * A box whose region holds no ink reads null.
+ * screenshot whose top-left corner is `frame`. The scale is the window's `devicePixelRatio`, chosen
+ * here and not the screenshot width over `frame.width`, which drifts off the ratio when the frame
+ * has a fractional width (clause 2). A box whose region holds no ink reads null.
  */
 export function readGeometries(
   image: { data: ArrayLike<number>; width: number },
-  frame: { left: number; top: number },
+  frame: Pick<DOMRect, "left" | "top" | "width">,
   geometries: readonly BoxGeometry[],
-  devicePixelRatio: number,
+  view: { devicePixelRatio: number },
 ): (InkCentre | null)[] {
+  const scale = view.devicePixelRatio;
   return geometries.map((g) =>
-    inkCentreOf(image, devicePixelRatio, {
+    inkCentreOf(image, scale, {
       top: g.rect.top - frame.top,
       height: g.rect.height,
       borderTop: g.borderTop,
@@ -932,12 +933,10 @@ async function readBoxes(scope: Element, boxes: readonly Element[], names: reado
       radii: borderRadiiOf(rect, style),
     };
   });
-  return readGeometries({ data, width }, frame, geometries, window.devicePixelRatio).map(
-    (found, i) => {
-      if (!found) throw new Error(`${names[i]}: the region of its label holds no ink to measure`);
-      return found;
-    },
-  );
+  return readGeometries({ data, width }, frame, geometries, window).map((found, i) => {
+    if (!found) throw new Error(`${names[i]}: the region of its label holds no ink to measure`);
+    return found;
+  });
 }
 
 /**

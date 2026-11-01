@@ -517,6 +517,7 @@ describe("inkCentreOf with rounded corners (ink-corner-1)", () => {
  * width over the frame width would then drift off 1.
  */
 describe("readGeometries", () => {
+  const view = { devicePixelRatio: 1 };
   const geometry: BoxGeometry = {
     rect: { left: 0, top: 0, width: 100.5, height: 40 },
     borderTop: 1,
@@ -528,7 +529,7 @@ describe("readGeometries", () => {
 
   it("takes the scale from devicePixelRatio, not from the screenshot width over the frame width (worked example 3)", () => {
     const image = shot(101, 40, inkColumn);
-    const [found] = readGeometries(image, { left: 0, top: 0 }, [geometry], 1);
+    const [found] = readGeometries(image, { left: 0, top: 0, width: 100.5 }, [geometry], view);
     expect(`${found?.offset.toFixed(2)} ${found?.centred}`).toBe("-1.50 true");
   });
 
@@ -540,7 +541,12 @@ describe("readGeometries", () => {
       textLeft: 10,
       textRight: 110.5,
     };
-    const [found] = readGeometries(shot(101, 40, inkColumn), { left: 10, top: 5 }, [moved], 1);
+    const [found] = readGeometries(
+      shot(101, 40, inkColumn),
+      { left: 10, top: 5, width: 100.5 },
+      [moved],
+      view,
+    );
     expect(found?.offset).toBe(-1.5);
   });
 
@@ -556,12 +562,16 @@ describe("readGeometries", () => {
       textRight: 42,
       radii: round(16),
     };
-    expect(readGeometries(image, { left: 10, top: 5 }, [g], 1)[0]?.offset).toBe(-1.5);
+    expect(readGeometries(image, { left: 10, top: 5, width: 100.5 }, [g], view)[0]?.offset).toBe(
+      -1.5,
+    );
   });
 
   it("reads a null for a box whose region holds no ink", () => {
     const image = shot(101, 40, () => undefined);
-    expect(readGeometries(image, { left: 0, top: 0 }, [geometry], 1)).toEqual([null]);
+    expect(readGeometries(image, { left: 0, top: 0, width: 100.5 }, [geometry], view)).toEqual([
+      null,
+    ]);
   });
 
   it("cuts a rounded geometry at its corners", () => {
@@ -574,7 +584,9 @@ describe("readGeometries", () => {
       textRight: 32,
       radii: round(16),
     };
-    expect(readGeometries(image, { left: 0, top: 0 }, [g], 1)[0]?.offset).toBe(-1.5);
+    expect(readGeometries(image, { left: 0, top: 0, width: 100.5 }, [g], view)[0]?.offset).toBe(
+      -1.5,
+    );
   });
 });
 
