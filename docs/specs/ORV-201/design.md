@@ -1,6 +1,6 @@
 ---
 issue: ORV-201
-spec: docs/specs/ORV-201/spec.md v1.0
+spec: docs/specs/ORV-201/spec.md v1.1
 task: ORV-201-design-1
 date: 2026-11-01
 ---
