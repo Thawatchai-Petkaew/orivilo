@@ -106,6 +106,15 @@ export const th = {
   tag: {
     remove: "ลบ {label}",
   },
+  evidence: {
+    trigger: "หลักฐาน",
+    cardLabel: "หลักฐานจากบรีฟ",
+    sourceByRule: "จากบรีฟของคุณ อ่านด้วยกฎ",
+    sourceByModel: "จากบรีฟของคุณ อ่านด้วยโมเดล AI",
+    missing: "ไม่มีหลักฐาน",
+    countOne: "ยกมาจากบรีฟ 1 ข้อความ",
+    count: "ยกมาจากบรีฟ {count} ข้อความ",
+  },
   textarea: {
     ratio: "{count}/{max}",
     count: "ตัวอักษร {count}",

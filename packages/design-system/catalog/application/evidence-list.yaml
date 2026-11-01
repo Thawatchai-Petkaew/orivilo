@@ -1,0 +1,29 @@
+name: EvidenceList
+tier: application
+status: draft
+since: ORV-211
+import: "@orivilo/design-system"
+story: application-evidence-list
+useWhen:
+  - "The quotes of the brief that a reading drew on, behind one count"
+avoidWhen:
+  - "One fact with its own quote (use EvidenceSpan)"
+  - "Evidence from a website, a photo or another brand's CI (the item is narrowed to the brief)"
+contract: EvidenceListProps
+variants: []
+sizes: []
+states: [closed, open, empty]
+recipes: [neutral, professional, friendly]
+examples: []
+rules:
+  - "Props: items (readonly EvidenceItem[]), open, defaultOpen, onOpenChange; no size, variant or className"
+  - "Built on our Collapsible, closed by default: the trigger, its chevron swap, the fade and the reduced-motion rule are Collapsible's"
+  - "The count is the items with a usable quote; the label has a singular form in English and a Thai form (`evidence.countOne`, `evidence.count`)"
+  - "One `li` per counted item in the order of `items`, each a `blockquote` with its source line 4 px under it (`text.secondary`) and 16 px between items"
+  - "Items without a usable quote are not counted or listed; with none, plain text from `evidence.missing` takes the trigger's place at its height and label edge, no button"
+  - "The quote is a text child, never HTML; no link, and `source.ref` and `source.locator` are never shown"
+  - "Mock evidence in stories: no brief analyser exists yet, and no story claims a rule or a model read a brief"
+a11y:
+  - "The trigger is Collapsible's button with `aria-expanded`, and Enter and Space toggle it"
+  - "The quotes are a list, one list item each"
+  - "The count and the missing text are plain text in the person's language"

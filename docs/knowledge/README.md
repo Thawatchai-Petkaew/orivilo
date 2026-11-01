@@ -221,3 +221,12 @@ Keep this table in step with the folder when you add an entry.
 | [[K-0124-wcag-2-2-motion-animation-excludes-opacity]]                             | 0.8        | SC 2.3.3 motion animation excludes colour, blur and opacity           |
 | [[K-0125-wcag-2-2-pause-stop-hide-starts-automatically-includes-hover]]           | 0.8        | SC 2.2.2: a button press is not automatic; hover and focus are        |
 | [[K-0126-synthesis-collapsible-benchmark]]                                        | 0.75       | Synthesis: Collapsible benchmark table, audit B form                  |
+| [[K-0127-ai-elements-inline-citation-hover-card-badge-and-carousel]]              | 0.8        | AI Elements citation: no-delay hover card, hostname +N pill, carousel |
+| [[K-0128-ai-elements-sources-collapsible-count-trigger-and-links]]                | 0.8        | AI Elements Sources: Collapsible, "Used {count} sources", no plural   |
+| [[K-0129-radix-hover-card-sighted-users-only-no-keyboard-content]]                | 0.8        | Hover Card: sighted users only; content out of tab order, no touch    |
+| [[K-0130-radix-popover-dialog-pattern-trigger-wiring-and-focus]]                  | 0.8        | Radix Popover: dialog role, haspopup, Esc to trigger, non-modal       |
+| [[K-0131-untitled-ui-react-has-no-citation-or-source-list-component]]             | 0.75       | Untitled UI React: no citation, quote or source list; tooltip nearest |
+| [[K-0132-wai-aria-apg-disclosure-and-button-for-a-popover-trigger]]               | 0.8        | APG Disclosure and Button: what a panel-opening button follows        |
+| [[K-0133-wai-aria-apg-no-non-modal-dialog-pattern-tooltip-note]]                  | 0.8        | APG: no popover pattern; focusable hover content: non-modal dialog    |
+| [[K-0134-wcag-2-2-content-on-hover-or-focus-dismissible-hoverable-persistent]]    | 0.8        | SC 1.4.13 (AA): dismissible, hoverable, persistent on hover or focus  |
+| [[K-0135-synthesis-evidence-span-and-evidence-list-benchmark]]                    | 0.75       | Synthesis: EvidenceSpan and EvidenceList benchmark, audit B form      |

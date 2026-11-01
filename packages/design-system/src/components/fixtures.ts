@@ -1,4 +1,5 @@
 import type { ChatBasis, ChatReply, ChatRequest } from "./canvas-chat/CanvasChat";
+import type { EvidenceItem } from "./evidence-span/span";
 import type { TaskJob } from "./task-bar/TaskBar";
 
 /**
@@ -27,6 +28,85 @@ export const collapsibleFixtures = {
   content: fixtures.mixed,
   triggerEn: "Project details",
   contentEn: "The team's Brand Canvas project",
+} as const;
+
+/**
+ * EvidenceSpan and EvidenceList story content (ORV-211): MOCK evidence items. No brief analyser
+ * exists yet, so nothing here was read from a brief by a rule or a model; the `fromModel` flag is a
+ * fixture value. A text locator points at the quote's place in `brief` (0 when the quote is not in it).
+ */
+function mockItem(
+  id: string,
+  brief: string,
+  kind: EvidenceItem["observation"]["kind"],
+  subject: string,
+  quote: string | undefined,
+  fromModel: boolean,
+): EvidenceItem {
+  const found = quote === undefined ? -1 : brief.indexOf(quote);
+  const start = Math.max(found, 0);
+  return {
+    id,
+    inputKind: "brief-text",
+    fromModel,
+    source: {
+      ref: "fixture:brief",
+      locator:
+        quote === undefined
+          ? { kind: "element", path: "brief" }
+          : { kind: "text", path: "brief", start, end: start + quote.length },
+      contentHash: "0".repeat(64),
+      retrievedAt: "2026-11-01T00:00:00.000Z",
+      renderer: null,
+    },
+    observation: { kind, subject, ...(quote === undefined ? {} : { quote }) },
+  };
+}
+
+const briefTh = "ร้านบ้านกาแฟ อยากให้ลูกค้ารู้สึกอบอุ่นเหมือนมาบ้านเพื่อน ใช้โทนไม้และแสงธรรมชาติ";
+const briefEn =
+  "Baan Coffee wants guests to feel as warm as at a friend's home, with wood tones and daylight";
+
+export const evidenceFixtures = {
+  brief: briefTh,
+  briefEn,
+  name: mockItem("00000001", briefTh, "brand-name", "name", "ร้านบ้านกาแฟ", false),
+  warm: mockItem(
+    "00000002",
+    briefTh,
+    "personality-signal",
+    "warm",
+    "อยากให้ลูกค้ารู้สึกอบอุ่นเหมือนมาบ้านเพื่อน",
+    true,
+  ),
+  mood: mockItem("00000003", briefTh, "mood-word", "wood", "ใช้โทนไม้และแสงธรรมชาติ", false),
+  noQuote: mockItem("00000004", briefTh, "industry-candidate", "coffee-shop", undefined, false),
+  markup: mockItem("00000005", briefTh, "text-span", "test", "<b>ตัวหนา</b> ในบรีฟ", false),
+  long: mockItem("00000006", briefTh, "brand-name", "company", fixtures.longThai, false),
+  nameEn: mockItem("00000011", briefEn, "brand-name", "name", "Baan Coffee", false),
+  warmEn: mockItem(
+    "00000012",
+    briefEn,
+    "personality-signal",
+    "warm",
+    "feel as warm as at a friend's home",
+    true,
+  ),
+  moodEn: mockItem("00000013", briefEn, "mood-word", "wood", "wood tones and daylight", false),
+  noQuoteEn: mockItem("00000014", briefEn, "industry-candidate", "coffee-shop", undefined, false),
+  /** The facts the caller prints beside an item: the caller's text, not a catalog key. */
+  fact: {
+    name: "ชื่อแบรนด์: บ้านกาแฟ",
+    warm: "บุคลิก: อบอุ่น",
+    mood: "อารมณ์: ไม้และแสงธรรมชาติ",
+    noQuote: "อุตสาหกรรม: ร้านกาแฟ",
+    markup: "ข้อความทดสอบ",
+    long: "ชื่อบริษัท",
+    nameEn: "Brand name: Baan Coffee",
+    warmEn: "Personality: warm",
+    moodEn: "Mood: wood and daylight",
+    noQuoteEn: "Industry: coffee shop",
+  },
 } as const;
 
 export interface FixtureOption {
