@@ -14,6 +14,14 @@ export {
 } from "./card/Card";
 export { Checkbox, type CheckboxProps, type CheckedState } from "./checkbox/Checkbox";
 export {
+  Collapsible,
+  CollapsibleContent,
+  type CollapsibleContentProps,
+  type CollapsibleProps,
+  CollapsibleTrigger,
+  type CollapsibleTriggerProps,
+} from "./collapsible/Collapsible";
+export {
   Dialog,
   DialogClose,
   DialogContent,

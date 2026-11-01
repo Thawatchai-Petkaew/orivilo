@@ -1,0 +1,30 @@
+name: Collapsible
+tier: base
+status: draft
+since: ORV-203
+import: "@orivilo/design-system"
+story: base-collapsible
+useWhen:
+  - "One block of detail the person may not need right now, shown by a press on its own button"
+avoidWhen:
+  - "Several blocks of which one is open at a time (an Accordion, not built yet)"
+  - "A list of jobs docked at the foot of a board (Task bar owns its own toggle)"
+  - "Content whose state must survive closing: its children are unmounted while closed"
+contract: CollapsibleProps
+variants: []
+sizes: []
+states: [closed, open, disabled]
+recipes: [neutral, professional, friendly]
+examples: []
+rules:
+  - "Three parts: Collapsible (open, defaultOpen, onOpenChange, disabled), CollapsibleTrigger (the label) and CollapsibleContent; className on each is layout only"
+  - "The trigger is a ghost md Button with a trailing chevron: down while closed, up while open, swapped with no transition, so the state shows by shape"
+  - "The label wraps; at one line the trigger is the md height, and the chevron stays beside the first line"
+  - "The content starts on the label's start edge, in `type.body.sm`, and sets no colour"
+  - "Opening fades the content in at `motion.feedback.duration`; closing is at once; `animation: none` under reduced motion. No height, width or transform animates"
+  - "The content children render only while open (no `forceMount`; Radix keeps an empty hidden element while closed), so state inside it is lost on close"
+  - "The component owns no copy: the label and the content are the caller's, in the person's language"
+a11y:
+  - "The trigger is a button with `aria-expanded`, and `aria-controls` equal to the content id only while open, all from Radix"
+  - "Enter and Space toggle it; hover and focus never open it"
+  - "Disabled sets `disabled` and `data-disabled`; a press does nothing"

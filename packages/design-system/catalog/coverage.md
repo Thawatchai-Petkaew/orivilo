@@ -30,6 +30,7 @@ Legend: `none` not started, `planned` entry exists, no code, `draft` code and st
 | Progress      | draft  | base-progress       |
 | Spinner       | draft  | base-spinner        |
 | Skeleton      | draft  | base-skeleton       |
+| Collapsible   | draft  | base-collapsible    |
 | Slider        | draft  | base-slider         |
 | RangeSlider   | draft  | base-range-slider   |
 | Toast         | draft  | base-toast          |
