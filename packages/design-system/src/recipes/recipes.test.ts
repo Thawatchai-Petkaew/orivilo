@@ -141,6 +141,34 @@ describe("the logo recipe (ORV-118, logo-colour-1)", () => {
   });
 });
 
+describe("the menu listbox (ORV-204, menu-separator-1, menu-label-1, menu-disabled-pair-1)", () => {
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  const body = (selector: string) =>
+    [...bare.matchAll(/([^{}]+)\{([^{}]*)\}/g)].find((m) => (m[1] ?? "").trim() === selector)?.[2];
+
+  it("puts the same space-inline-lg above and below the separator", () => {
+    expect(body(".ds-menu__separator")).toContain("margin-block: var(--ds-space-inline-lg);");
+  });
+
+  it("pads a group heading by space-inline-sm above and below", () => {
+    expect(body(".ds-menu__label")).toContain("padding-block: var(--ds-space-inline-sm);");
+  });
+
+  it("lists the disabled option against the menu ground at the UI floor of 3", () => {
+    expect(RECIPE_PAIRS.filter((p) => p.recipe === "menu" && p.slot === "disabled option")).toEqual(
+      [
+        {
+          recipe: "menu",
+          slot: "disabled option",
+          fg: "menu.option.fg-disabled",
+          bg: "menu.bg",
+          floor: 3,
+        },
+      ],
+    );
+  });
+});
+
 describe("recipe contrast pairs", () => {
   for (const { id, set } of sets) {
     for (const mode of MODES) {
