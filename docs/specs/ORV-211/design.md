@@ -1,6 +1,6 @@
 ---
 issue: ORV-211 (https://tpetkaew.atlassian.net/browse/ORV-211)
-spec: docs/specs/ORV-211/spec.md v1.0
+spec: docs/specs/ORV-211/spec.md v1.1
 task: ORV-211-design-1
 date: 2026-11-01
 ---
