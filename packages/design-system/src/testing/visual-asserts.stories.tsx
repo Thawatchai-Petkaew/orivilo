@@ -337,3 +337,61 @@ export const InkCentreInputGroup: Story = {
     }
   },
 };
+
+/**
+ * ORV-199, ink-group-1: a box that holds exactly one `<input>` is read by that input's value, even
+ * when it also holds a text addon. The ORV-198 holder read any box with a text node by itself, so a
+ * group with `end="THB"` was read by "THB" (clause 2). A box that holds two inputs has no one value
+ * to read: the helper rejects and names it, and never falls back to the box's text (clause 3).
+ */
+export const InkCentreGroupAddon: Story = {
+  render: () => (
+    <>
+      {(["light", "dark"] as const).map((mode) => (
+        <DesignProfileBoundary key={mode} mode={mode} profile="neutral">
+          <div
+            data-case={`group-addon-${mode}`}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+              padding: 16,
+              background: "var(--ds-surface-canvas)",
+            }}
+          >
+            <InputGroup
+              aria-label="with addon"
+              defaultValue={fixtures.thai}
+              end="THB"
+              groupClassName="w-64"
+            />
+            <InputGroup aria-label="no addon" defaultValue={fixtures.thai} groupClassName="w-64" />
+            <div data-box="two-inputs" style={{ display: "flex", gap: 8 }}>
+              <input aria-label="first" defaultValue={fixtures.thai} />
+              <input aria-label="second" defaultValue={fixtures.latin} />
+            </div>
+          </div>
+        </DesignProfileBoundary>
+      ))}
+    </>
+  ),
+  play: async ({ canvasElement }) => {
+    if (!inVitest) return; // the screenshot needs Vitest browser mode
+    for (const mode of ["light", "dark"]) {
+      const cell = q(canvasElement, `[data-case='group-addon-${mode}']`);
+      const groups = [...cell.querySelectorAll(".ds-input-group")];
+      expect(groups).toHaveLength(2);
+      const [withAddon, plain] = await measureInkCentre(cell, groups);
+      for (const reading of [withAddon, plain]) {
+        expect(reading?.name, "the group is read by its input's value").toContain(fixtures.thai);
+        expect(reading?.name, "the addon is not the label").not.toContain("THB");
+      }
+      expect(withAddon?.body.offset.toFixed(2), "the addon does not move the body reading").toBe(
+        plain?.body.offset.toFixed(2),
+      );
+      await expect(measureInkCentre(cell, [q(cell, "[data-box='two-inputs']")])).rejects.toThrow(
+        /<div>: holds more than one input to measure/,
+      );
+    }
+  },
+};
