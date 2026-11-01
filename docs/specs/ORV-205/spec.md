@@ -72,10 +72,9 @@ The fix keeps both halves of the Goal. It must not make the check pass by wideni
 
 ## Rows that render nothing
 
-- Row 1: a reading and a sentence in the PR body.
-- Row 2: test runs.
-- Row 3: a scratch mutation and test runs.
-- Row 4: CI runs.
+- Rows: 1, 2, 3, 4
+
+Row 1 is a reading and a sentence in the PR body, row 2 is test runs, row 3 is a scratch mutation and test runs, and row 4 is CI runs.
 
 Row 5 renders, when it applies, and needs its screenshots. Since v1.1 it does not apply, so no row of this PR renders.
 
