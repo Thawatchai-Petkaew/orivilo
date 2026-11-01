@@ -1,0 +1,88 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "$id": "orivilo",
+  "$name": {
+    "th": "ORIVILO",
+    "en": "ORIVILO"
+  },
+  "$description": "ORIVILO's own brand as a profile (ORV-52). It overrides the ten identity-scoped tokens with the base set's own references, so it renders the base look. The values are hand-copied from the base set and are not generated: the resolver chooses this profile through ORIVILO's brand locks, it does not compute its values. Departures from brand spec v1.1 are listed in docs/specs/ORV-52/spec.md.",
+  "$decisions": {
+    "shape": "rounded",
+    "surfaceTreatment": "flat",
+    "emphasis": "expressive",
+    "typeVoice": "single",
+    "motion": "standard"
+  },
+  "semantic": {
+    "surface": {
+      "selected": {
+        "$value": {
+          "light": "{color.violet.50}",
+          "dark": "{color.violet.950}"
+        }
+      }
+    },
+    "text": {
+      "link": {
+        "$value": {
+          "light": "{color.violet.700}",
+          "dark": "{color.violet.300}"
+        }
+      },
+      "link-hover": {
+        "$value": {
+          "light": "{color.violet.900}",
+          "dark": "{color.violet.200}"
+        }
+      },
+      "brand": {
+        "$value": {
+          "light": "{color.violet.700}",
+          "dark": "{color.violet.300}"
+        }
+      }
+    },
+    "selection": {
+      "bg": {
+        "$value": {
+          "light": "{color.violet.50}",
+          "dark": "{color.violet.950}"
+        }
+      },
+      "fg": {
+        "$value": {
+          "light": "{color.violet.700}",
+          "dark": "{color.violet.400}"
+        }
+      }
+    },
+    "focus": {
+      "ring": {
+        "$value": {
+          "light": "{color.violet.600}",
+          "dark": "{color.violet.400}"
+        }
+      }
+    },
+    "brand": {
+      "signature": {
+        "$value": {
+          "light": "{color.violet.600}",
+          "dark": "{color.violet.400}"
+        }
+      },
+      "ink": {
+        "$value": {
+          "light": "{color.white}",
+          "dark": "{color.gray.900}"
+        }
+      },
+      "dot-small": {
+        "$value": {
+          "light": "{color.violet.600}",
+          "dark": "{color.violet.400}"
+        }
+      }
+    }
+  }
+}
