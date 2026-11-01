@@ -168,8 +168,9 @@ const markStack = "ฟื้ปี๊ปุ่มสั่งซื้อฟู�
 /**
  * Where the value of an sm trigger sits in its box (ORV-199 field-sm-sweep-1). A line box and a
  * whole-pixel glyph snap meet at a fraction of a pixel, so one y can pass by luck; each cell holds
- * 16 rows, every row an sm Select with the Thai value and one with the English value, its box
- * `k/16` px below a whole pixel (the row is a fixed 48 px, so the offset does not add up). The play
+ * 16 rows, every row a fixed 96 px holding an sm Select with the Thai value and, 44 px below it, one
+ * with the English value, both `k/16` px below a whole pixel (the row height is fixed, so the offset
+ * does not add up). The play
  * runs `expectInkCentred` with the body reading per cell, which fails with the offset of every
  * trigger that is off, then `expectLabelInkWhole` on one trigger's value with a stack of Thai
  * marks. The static Storybook shows the story without the checks.
@@ -181,12 +182,12 @@ export const LabelCentre: Story = {
         <DesignProfileBoundary key={mode} mode={mode} profile="neutral">
           <div
             data-testid={`label-centre-${mode}`}
-            className="flex flex-col bg-surface-canvas px-4"
+            className="flex flex-col bg-surface-canvas px-4 py-4"
           >
             {SWEEP.map((k) => (
               <div
                 key={k}
-                className="box-border flex h-12 items-start gap-3"
+                className="box-border flex h-24 flex-col items-stretch gap-3"
                 style={{ paddingTop: `${k / 16}px` }}
               >
                 {[
@@ -202,7 +203,6 @@ export const LabelCentre: Story = {
                     ]}
                     defaultValue={value}
                     aria-label={label}
-                    className="w-60"
                   />
                 ))}
               </div>
@@ -215,12 +215,29 @@ export const LabelCentre: Story = {
   play: async ({ canvasElement }) => {
     if (!inVitest) return; // the screenshot needs Vitest browser mode
     const canvas = within(canvasElement);
+    await expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth);
     for (const mode of MODES) {
       const cell = canvas.getByTestId(`label-centre-${mode}`);
       const triggers = within(cell).getAllByRole("combobox");
       await expect(triggers).toHaveLength(SWEEP.length * 2);
-      await expectInkCentred(cell, triggers, { measure: "body" });
-      const value = triggers[0]?.firstElementChild;
+      // The look (ORV-199 F-S1): every trigger lies inside its cell with 16 px of canvas above and below, so no border
+      // touches the boundary edge and the frame does not scroll sideways.
+      const box = cell.getBoundingClientRect();
+      for (const trigger of triggers) {
+        const t = trigger.getBoundingClientRect();
+        await expect(t.left).toBeGreaterThanOrEqual(box.left);
+        await expect(t.right).toBeLessThanOrEqual(box.right);
+        await expect(t.top).toBeGreaterThanOrEqual(box.top + 16);
+        await expect(t.bottom).toBeLessThanOrEqual(box.bottom - 16);
+      }
+      // The cell is 1568 px tall, past the viewport a screenshot clips to, so each 96 px row is read on its own.
+      for (let row = 0; row < SWEEP.length; row++) {
+        const rowEl = triggers[row * 2]?.parentElement;
+        if (!rowEl) throw new Error(`the sweep row ${row} holds no trigger`);
+        await expectInkCentred(rowEl, triggers.slice(row * 2, row * 2 + 2), { measure: "body" });
+      }
+      // The English trigger of row 0 has 44 px of its row above it, so the 8 px reach of the check stays inside the row.
+      const value = triggers[1]?.firstElementChild;
       if (!(value instanceof HTMLElement)) throw new Error("the sm trigger holds no value span");
       await expectLabelInkWhole(value, markStack);
     }
