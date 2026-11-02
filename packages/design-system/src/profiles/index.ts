@@ -2,6 +2,7 @@ import component from "../tokens/source/component.json" with { type: "json" };
 import primitives from "../tokens/source/primitives.json" with { type: "json" };
 import semantic from "../tokens/source/semantic.json" with { type: "json" };
 import friendly from "./source/friendly.json" with { type: "json" };
+import orivilo from "./source/orivilo.json" with { type: "json" };
 import professional from "./source/professional.json" with { type: "json" };
 import type { CuratedProfile } from "@orivilo/intent-engine";
 import { type BaseSources, Profile, type ProfileSource } from "./model.ts";
@@ -27,6 +28,14 @@ export const CURATED_PROFILES: readonly CuratedProfile[] = profiles.map((p) => (
   id: p.id,
   decisions: p.decisions as CuratedProfile["decisions"],
 }));
+
+/**
+ * ORIVILO's own brand as a profile (ORV-52). It is not a customer direction, so it stays out of
+ * `profiles`, `PROFILE_IDS` and `CURATED_PROFILES`: the toolbar, the `Matrix` cells, the Studio's
+ * directions and every saved snapshot's fingerprint are unchanged. The resolver chooses it only
+ * when a caller passes it in, through ORIVILO's brand locks (`orivilo.test.ts`).
+ */
+export const BRAND_PROFILES: readonly Profile[] = [new Profile(base, orivilo as ProfileSource)];
 
 export const PROFILE_IDS = ["neutral", ...profiles.map((p) => p.id)] as const;
 
