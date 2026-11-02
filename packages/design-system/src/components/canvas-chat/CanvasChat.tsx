@@ -164,6 +164,7 @@ export function CanvasChat({
   const [unseen, setUnseen] = useState(false);
   const copyPress = useRef(0);
   const copyTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const copyFrame = useRef(0);
   const nextId = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
   const composerRef = useRef<HTMLFormElement>(null);
@@ -249,6 +250,7 @@ export function CanvasChat({
     () => () => {
       copyPress.current += 1;
       clearTimeout(copyTimer.current);
+      cancelAnimationFrame(copyFrame.current);
     },
     [],
   );
@@ -441,7 +443,14 @@ export function CanvasChat({
       if (press !== copyPress.current) return;
       clearTimeout(copyTimer.current);
       setCopyStatus({ exchangeId: exchange.id, result });
-      setAnnouncement(result === "copied" ? m.chat.copied : m.chat.copyFailed);
+      // The region is emptied first and written on the next frame, so a result with the same text as
+      // the one before (a second copy, a retry after a failure) is a change a screen reader announces.
+      const text = result === "copied" ? m.chat.copied : m.chat.copyFailed;
+      cancelAnimationFrame(copyFrame.current);
+      setAnnouncement("");
+      copyFrame.current = requestAnimationFrame(() => {
+        if (press === copyPress.current) setAnnouncement(text);
+      });
       if (result === "copied") {
         copyTimer.current = setTimeout(() => {
           setCopyStatus(null);

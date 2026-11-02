@@ -1539,7 +1539,7 @@ export const CopyReply: Story = {
       await expect(clip.writes[0]?.split("\n")).toHaveLength(4);
       const note = q(canvasElement, ".ds-chat__copied");
       await expect(note).toHaveTextContent(c.copied);
-      await expect(statusOf(canvasElement)).toHaveTextContent(c.copied);
+      await waitFor(() => expect(statusOf(canvasElement)).toHaveTextContent(c.copied));
       await expect(q(canvasElement, ".ds-chat__meta").lastElementChild).toBe(note);
       await expect(button).toHaveFocus();
       await expect(button.getAttribute("aria-label")).toBe(
@@ -1583,7 +1583,7 @@ export const CopyPending: Story = {
       clip.release(1);
       await waitFor(() => expect(hasTick(button)).toBe(true));
       await expect(q(canvasElement, ".ds-chat__copied")).toHaveTextContent(c.copied);
-      await expect(statusOf(canvasElement)).toHaveTextContent(c.copied);
+      await waitFor(() => expect(statusOf(canvasElement)).toHaveTextContent(c.copied));
       // The earlier press fails after the later one has shown its result: it is stale and shows nothing.
       clip.reject(0);
       await settled();
@@ -1613,7 +1613,7 @@ export const CopyFailed: Story = {
     const expectFailed = async (button: HTMLElement) => {
       const note = q(canvasElement, ".ds-chat__copy-failed");
       await expect(note).toHaveTextContent(c.copyFailed);
-      await expect(statusOf(canvasElement)).toHaveTextContent(c.copyFailed);
+      await waitFor(() => expect(statusOf(canvasElement)).toHaveTextContent(c.copyFailed));
       await expect(canvasElement).not.toHaveTextContent("NotAllowedError");
       await expect(hasTick(button)).toBe(false);
       await expect(hasCopyGlyph(button)).toBe(true);
@@ -1656,6 +1656,49 @@ export const CopyFailed: Story = {
         expect(canvasElement.querySelector(".ds-chat__copy-failed")).not.toBeNull(),
       );
       await expectFailed(button);
+    });
+  },
+};
+
+/**
+ * Every settled press is announced once in the polite status region, also when its text equals the
+ * text already there: a second copy inside 2000 ms, and a retry after a failure (ORV-217 copy-status-1).
+ * A MutationObserver records each text the region holds; two results with the same words need two
+ * writes of those words, so a screen reader hears both.
+ */
+export const CopyAnnouncesEachPress: Story = {
+  args: { onAsk: fn(chatFixtures.host(chatFixtures.replyLines, "rules", { steps: 2, ms: 10 })) },
+  play: async ({ canvasElement, globals }) => {
+    const m = catalogOf(globals);
+    const c = m.chat;
+    const canvas = within(canvasElement);
+    const region = statusOf(canvasElement);
+    const seen: string[] = [];
+    const observer = new MutationObserver(() => seen.push(region.textContent ?? ""));
+    const times = (text: string) => seen.filter((t) => t === text).length;
+    await withClipboard("resolve", async (clip) => {
+      await ask(canvas, chatFixtures.question, c.input);
+      await replied(canvas, m.taskBar.basisRules);
+      const button = copyButtons(canvas, c.copy)[0] as HTMLElement;
+      observer.observe(region, { childList: true, characterData: true, subtree: true });
+      try {
+        // Two good copies in a row, well inside the 2000 ms note: the words are written twice.
+        await userEvent.click(button);
+        await waitFor(() => expect(times(c.copied)).toBe(1));
+        await userEvent.click(button);
+        await waitFor(() => expect(times(c.copied)).toBe(2));
+        await expect(region).toHaveTextContent(c.copied);
+        // A failure never clears on a timer, so every retry fails with the same words again.
+        clip.stub.mode = "reject";
+        await userEvent.click(button);
+        await waitFor(() => expect(times(c.copyFailed)).toBe(1));
+        await userEvent.click(button);
+        await waitFor(() => expect(times(c.copyFailed)).toBe(2));
+        await expect(region).toHaveTextContent(c.copyFailed);
+        await expect(clip.writes).toHaveLength(4);
+      } finally {
+        observer.disconnect();
+      }
     });
   },
 };
