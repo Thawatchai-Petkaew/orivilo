@@ -292,6 +292,42 @@ export const chatFixtures = {
       },
     };
   },
+  /**
+   * Yields the first snapshot of `text` at once, then one more snapshot per `next()` call, and ends
+   * after the last. For tests that need new text to arrive at a moment of their choosing.
+   */
+  hostPaced: (
+    text: string,
+    basis: ChatBasis = "rules",
+    steps = 4,
+  ): { host: ChatHost; next: () => void } => {
+    const waiting: (() => void)[] = [];
+    let credit = 0;
+    return {
+      next: () => {
+        const resume = waiting.shift();
+        if (resume) resume();
+        else credit += 1;
+      },
+      host: async function* (_request, signal): AsyncGenerator<ChatReply> {
+        for (const [i, snapshot] of snapshotsOf(text, steps).entries()) {
+          if (i > 0 && credit > 0) credit -= 1;
+          else if (i > 0) {
+            await new Promise<void>((resolve) => {
+              waiting.push(resolve);
+              signal.addEventListener("abort", () => resolve(), { once: true });
+            });
+          }
+          if (signal.aborted) return;
+          yield { text: snapshot, basis };
+        }
+      },
+    };
+  },
+  /** Ends after one snapshot whose text is empty: a finished reply with nothing in it. */
+  hostBlank: async function* (): AsyncGenerator<ChatReply> {
+    yield { text: "", basis: "rules" };
+  } as ChatHost,
   /** Ends without a snapshot. */
   hostEmpty: async function* (): AsyncGenerator<ChatReply> {} as ChatHost,
 } as const;

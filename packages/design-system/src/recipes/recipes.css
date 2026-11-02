@@ -4495,6 +4495,43 @@ button.ds-tag__main {
   grid-column: 2;
   justify-self: start;
 }
+/* D2: a 12 px column gap, and buttons pulled back by their own 8 px inline padding, so a button that
+ * wraps to the start of a line puts its icon on the basis word's edge; line 1 is unchanged. */
+.ds-chat__meta {
+  column-gap: var(--cmp-chat-turn-gap);
+}
+.ds-chat__meta .ds-button {
+  padding-inline: var(--cmp-chat-inline-gap); /* existing */
+  margin-inline-start: calc(-1 * var(--cmp-chat-inline-gap));
+}
+/* Copied: the muted voice of the basis word, at the end of the row (ORV-217 D1). */
+.ds-chat__copied {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+  color: var(--cmp-chat-muted-fg);
+}
+/* Copy failed: always a line of its own; mark on the row's edge, text hanging after it. */
+.ds-chat__copy-failed {
+  display: grid;
+  grid-template-columns: var(--cmp-chat-icon-size) minmax(0, 1fr);
+  column-gap: var(--cmp-chat-inline-gap);
+  flex-basis: 100%;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+  color: var(--cmp-chat-failed-fg);
+}
+/* Back to latest: shares the transcript's cell, centred at its foot, painted over it (ORV-217 D3). */
+.ds-chat__latest {
+  grid-area: log;
+  align-self: end;
+  justify-self: center;
+  position: relative;
+  display: flex;
+  max-inline-size: calc(100% - 2 * var(--cmp-chat-padding-x));
+  margin-block-end: var(--cmp-chat-padding-x);
+  border-radius: var(--ds-shape-control-radius);
+  box-shadow: var(--ds-elevation-overlay);
+}
 /* The composer: no rule above it. The box, then the honesty line 8 below it. */
 .ds-chat__composer {
   grid-area: composer;

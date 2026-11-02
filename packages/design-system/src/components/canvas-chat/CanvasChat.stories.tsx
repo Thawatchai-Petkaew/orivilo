@@ -870,8 +870,10 @@ export const Conversation: Story = {
     await expect(canvasElement.querySelectorAll(".ds-chat [aria-live='polite']")).toHaveLength(1);
     // Keyboard: transcript, textarea, Send, close; the focus ring shows on each.
     transcript.focus();
+    // The transcript's own buttons (Copy on each finished reply) come between it and the textarea.
     const order = [
       transcript,
+      ...within(transcript).queryAllByRole("button"),
       input(canvas, c.input),
       action(canvas, c.send),
       canvas.getByRole("button", { name: c.close }),
@@ -1148,6 +1150,12 @@ export const RecipesAndModes: Story = {
     // Each chat shows the panel layout: 320 px wide inside its 322 px frame, with the basis word.
     for (const cell of cells) {
       await expect(box(chatOf(cell)).width).toBeCloseTo(320, 0);
+      // Each reply carries its Copy button (ORV-217 row 17).
+      await expect(
+        within(cell).getAllByRole("button", {
+          name: (name: string) => name.startsWith(m.chat.copy),
+        }),
+      ).toHaveLength(1);
       await expect(
         within(cell).getByText(m.taskBar.basisRules, { selector: ".ds-chat__basis" }),
       ).toBeVisible();
@@ -1427,6 +1435,527 @@ export const Unlinked: Story = {
     );
     await waitFor(() => expect(reply).toHaveClass("selected"));
     await waitFor(() => expect(reply).toHaveFocus());
+  },
+};
+
+/**
+ * A stand-in for `navigator.clipboard`: no story writes to the real system clipboard (ORV-217).
+ * `writes` holds every `writeText` argument, `write` and `readText` are spies the plays expect never
+ * to be called, and `mode` says how the next `writeText` ends. `restore()` puts the browser's own back.
+ */
+function clipboardStub(mode: "resolve" | "reject" | "hold") {
+  const own = Object.getOwnPropertyDescriptor(navigator, "clipboard");
+  const writes: string[] = [];
+  const held: { resolve: () => void; reject: (error: Error) => void }[] = [];
+  const stub = {
+    mode,
+    write: fn(),
+    readText: fn(),
+    writeText: (text: string): Promise<void> => {
+      writes.push(text);
+      if (stub.mode === "reject") return Promise.reject(new Error("NotAllowedError"));
+      if (stub.mode === "hold") {
+        return new Promise<void>((resolve, reject) => held.push({ resolve, reject }));
+      }
+      return Promise.resolve();
+    },
+  };
+  const install = (value: unknown) =>
+    Object.defineProperty(navigator, "clipboard", { value, configurable: true });
+  install(stub);
+  return {
+    stub,
+    writes,
+    /** Settles the nth held write (the latest by default) as resolved or as rejected. */
+    release: (n = held.length - 1) => held[n]?.resolve(),
+    reject: (n = held.length - 1) => held[n]?.reject(new Error("NotAllowedError")),
+    /** The page has no clipboard at all (an insecure context). */
+    missing: () => install(undefined),
+    restore: () => {
+      if (own) Object.defineProperty(navigator, "clipboard", own);
+      else Reflect.deleteProperty(navigator, "clipboard");
+    },
+  };
+}
+
+/** Runs a play with the stub installed and always puts the browser's clipboard back. */
+async function withClipboard(
+  mode: "resolve" | "reject" | "hold",
+  run: (clip: ReturnType<typeof clipboardStub>) => Promise<void>,
+) {
+  const clip = clipboardStub(mode);
+  try {
+    await run(clip);
+  } finally {
+    clip.restore();
+  }
+}
+
+/** Waits until a reply has ended: the basis word shows only on a finished or stopped reply. */
+const replied = (canvas: ReturnType<typeof within>, basisWord: string) =>
+  waitFor(() => expect(canvas.getByText(basisWord, { selector: ".ds-chat__basis" })).toBeVisible());
+
+/** Two animation frames: React has rendered what an event or a scroll scheduled. */
+const settled = () =>
+  new Promise<void>((resolve) =>
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+  );
+
+/** The copy buttons by their visible word; a name starts with it (SC 2.5.3, copy-name-1). */
+const copyButtons = (canvas: ReturnType<typeof within>, word: string) =>
+  canvas.queryAllByRole("button", { name: (name: string) => name.startsWith(word) });
+
+/** True when the button's glyph is the tick; the copy glyph otherwise. */
+const hasTick = (button: HTMLElement) => button.querySelector("svg.lucide-check") !== null;
+const hasCopyGlyph = (button: HTMLElement) => button.querySelector("svg.lucide-copy") !== null;
+
+/** A finished reply gets Copy beside its basis word; a press writes the text and shows the result (ORV-217 rows 1 to 3). */
+export const CopyReply: Story = {
+  args: { onAsk: fn(chatFixtures.host(chatFixtures.replyLines, "rules", { steps: 2, ms: 10 })) },
+  play: async ({ canvasElement, globals }) => {
+    const m = catalogOf(globals);
+    const c = m.chat;
+    const canvas = within(canvasElement);
+    await withClipboard("resolve", async (clip) => {
+      await ask(canvas, chatFixtures.question, c.input);
+      await replied(canvas, m.taskBar.basisRules);
+      const button = canvas.getByRole("button", {
+        name: fill(c.copyLabel, { topic: chatFixtures.question }),
+      });
+      // Row 1: a ghost button with the copy glyph and its word, after the basis word.
+      await expect(button).toHaveTextContent(c.copy);
+      await expect(button).toHaveAttribute("data-variant", "ghost");
+      await expect(hasCopyGlyph(button)).toBe(true);
+      const basis = q(canvasElement, ".ds-chat__basis");
+      await expect(
+        Boolean(basis.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING),
+      ).toBe(true);
+      await expect(canvasElement.querySelector(".ds-chat__copied")).toBeNull();
+      // Row 2: the text goes to the clipboard whole, then a tick and the note, last in the row.
+      await userEvent.click(button);
+      await waitFor(() => expect(hasTick(button)).toBe(true));
+      const ticked = performance.now();
+      await expect(clip.writes).toEqual([chatFixtures.replyLines]);
+      await expect(clip.writes[0]?.split("\n")).toHaveLength(4);
+      const note = q(canvasElement, ".ds-chat__copied");
+      await expect(note).toHaveTextContent(c.copied);
+      await expect(statusOf(canvasElement)).toHaveTextContent(c.copied);
+      await expect(q(canvasElement, ".ds-chat__meta").lastElementChild).toBe(note);
+      await expect(button).toHaveFocus();
+      await expect(button.getAttribute("aria-label")).toBe(
+        fill(c.copyLabel, { topic: chatFixtures.question }),
+      );
+      // Row 3: two seconds later the note goes and the copy glyph comes back.
+      await waitFor(() => expect(canvasElement.querySelector(".ds-chat__copied")).toBeNull(), {
+        timeout: 4000,
+      });
+      // The note stays for COPIED_MS (2000 ms); polling can only make the reading a little late.
+      await expect(performance.now() - ticked).toBeGreaterThanOrEqual(1900);
+      await expect(hasCopyGlyph(button)).toBe(true);
+      await expect(hasTick(button)).toBe(false);
+      await expect(button).toHaveFocus();
+    });
+  },
+};
+
+/** The write has not resolved: nothing changes, then it resolves and the tick shows (ORV-217 row 4). */
+export const CopyPending: Story = {
+  args: { onAsk: fn(chatFixtures.host(chatFixtures.replyLines, "rules", { steps: 2, ms: 10 })) },
+  play: async ({ canvasElement, globals }) => {
+    const m = catalogOf(globals);
+    const c = m.chat;
+    const canvas = within(canvasElement);
+    await withClipboard("hold", async (clip) => {
+      await ask(canvas, chatFixtures.question, c.input);
+      await replied(canvas, m.taskBar.basisRules);
+      const button = copyButtons(canvas, c.copy)[0] as HTMLElement;
+      const before = statusOf(canvasElement).textContent;
+      await userEvent.click(button);
+      await waitFor(() => expect(clip.writes).toHaveLength(1));
+      await expect(hasTick(button)).toBe(false);
+      await expect(canvasElement.querySelector(".ds-chat__copied")).toBeNull();
+      await expect(canvasElement.querySelector(".ds-chat__copy-failed")).toBeNull();
+      await expect(statusOf(canvasElement).textContent).toBe(before);
+      // A second press while the first is pending: still nothing, then the later press settles first.
+      await userEvent.click(button);
+      await waitFor(() => expect(clip.writes).toHaveLength(2));
+      await expect(hasTick(button)).toBe(false);
+      clip.release(1);
+      await waitFor(() => expect(hasTick(button)).toBe(true));
+      await expect(q(canvasElement, ".ds-chat__copied")).toHaveTextContent(c.copied);
+      await expect(statusOf(canvasElement)).toHaveTextContent(c.copied);
+      // The earlier press fails after the later one has shown its result: it is stale and shows nothing.
+      clip.reject(0);
+      await settled();
+      await expect(canvasElement.querySelector(".ds-chat__copy-failed")).toBeNull();
+      await expect(hasTick(button)).toBe(true);
+      await expect(statusOf(canvasElement)).toHaveTextContent(c.copied);
+    });
+  },
+};
+
+/** A rejected write, then no clipboard at all: the failure says so, in the failure colour, on its own line (ORV-217 rows 5 and 6). */
+export const CopyFailed: Story = {
+  args: { onAsk: fn(chatFixtures.host(chatFixtures.replyLines, "rules", { steps: 2, ms: 10 })) },
+  play: async ({ canvasElement, globals }) => {
+    const m = catalogOf(globals);
+    const c = m.chat;
+    const canvas = within(canvasElement);
+    /** What the chat's own failure colour resolves to, read from a probe in the same cascade. */
+    const failureInk = () => {
+      const probe = document.createElement("div");
+      probe.className = "ds-chat__failure";
+      chatOf(canvasElement).appendChild(probe);
+      const ink = getComputedStyle(probe).color;
+      probe.remove();
+      return ink;
+    };
+    const expectFailed = async (button: HTMLElement) => {
+      const note = q(canvasElement, ".ds-chat__copy-failed");
+      await expect(note).toHaveTextContent(c.copyFailed);
+      await expect(statusOf(canvasElement)).toHaveTextContent(c.copyFailed);
+      await expect(canvasElement).not.toHaveTextContent("NotAllowedError");
+      await expect(hasTick(button)).toBe(false);
+      await expect(hasCopyGlyph(button)).toBe(true);
+      await expect(note.querySelector(".ds-chat__mark svg")).not.toBeNull();
+      await expect(getComputedStyle(note).color).toBe(failureInk());
+      await expect(q(canvasElement, ".ds-chat__meta").lastElementChild).toBe(note);
+      await expect(box(note).top).toBeGreaterThanOrEqual(box(button).bottom - 0.5);
+      await expect(inside(box(note), box(chatOf(canvasElement)))).toBe(true);
+      await expect(canvasElement.querySelector(".ds-chat__copied")).toBeNull();
+    };
+    await withClipboard("reject", async (clip) => {
+      await ask(canvas, chatFixtures.question, c.input);
+      await replied(canvas, m.taskBar.basisRules);
+      const button = copyButtons(canvas, c.copy)[0] as HTMLElement;
+      await userEvent.click(button);
+      await waitFor(() =>
+        expect(canvasElement.querySelector(".ds-chat__copy-failed")).not.toBeNull(),
+      );
+      await expectFailed(button);
+      await expect(button).toHaveFocus();
+      // On its own line at every width, also where the sentence would fit beside the button.
+      const frame = chatOf(canvasElement).parentElement as HTMLElement;
+      frame.style.width = "1100px";
+      await settled();
+      await expect(box(chatOf(canvasElement)).width).toBeGreaterThan(900);
+      await expectFailed(button);
+      frame.style.width = "";
+      // The failure does not clear on a timer: it is still there after the copied note's two seconds.
+      await new Promise((resolve) => setTimeout(resolve, 2300));
+      await expectFailed(button);
+      // The failure stays until the next press; a good write replaces it at once.
+      clip.stub.mode = "resolve";
+      await userEvent.click(button);
+      await waitFor(() => expect(hasTick(button)).toBe(true));
+      await expect(canvasElement.querySelector(".ds-chat__copy-failed")).toBeNull();
+      // Row 6: no clipboard in the page is the same failure.
+      clip.missing();
+      await userEvent.click(button);
+      await waitFor(() =>
+        expect(canvasElement.querySelector(".ds-chat__copy-failed")).not.toBeNull(),
+      );
+      await expectFailed(button);
+    });
+  },
+};
+
+/** The host for `CopyStates`: the first character of the question picks the outcome. */
+const copyStatesHost =
+  (hold: ChatHost): ChatHost =>
+  (request, signal) => {
+    const kind = request.text.charAt(0);
+    if (kind === "1") return chatFixtures.hostHold(chatFixtures.reply)(request, signal);
+    if (kind === "2") return chatFixtures.hostFail()(request, signal);
+    if (kind === "3") return chatFixtures.hostBlank(request, signal);
+    return hold(request, signal);
+  };
+
+/** Copy is for a finished reply with text: not stopped, failed, streaming or empty (ORV-217 rows 7, 21 and 22). */
+export const CopyStates: Story = {
+  render: (args) => {
+    const latch = chatFixtures.hostLatch(chatFixtures.reply);
+    (window as unknown as { __latch: () => void }).__latch = latch.release;
+    return (
+      <Frame size="sheet">
+        <CanvasChat {...args} onAsk={copyStatesHost(latch.host)} />
+      </Frame>
+    );
+  },
+  play: async ({ canvasElement, globals }) => {
+    const m = catalogOf(globals);
+    const c = m.chat;
+    const canvas = within(canvasElement);
+    await ask(canvas, "1 หยุดกลางคัน", c.input);
+    await userEvent.click(await canvas.findByRole("button", { name: c.stop }));
+    await waitFor(() => expect(canvas.queryByRole("button", { name: c.stop })).toBeNull());
+    await ask(canvas, "2 ล้มเหลว", c.input);
+    await waitFor(() =>
+      expect(canvas.getAllByText(c.failed, { selector: ".ds-chat__failure p" })).toHaveLength(1),
+    );
+    await ask(canvas, "3 ตอบว่าง", c.input);
+    await waitFor(() => expect(canvas.getAllByText(c.you)).toHaveLength(3));
+    await waitFor(() => expect(canvasElement.querySelectorAll(".ds-chat__basis")).toHaveLength(2));
+    await ask(canvas, "4 กำลังตอบ", c.input);
+    await canvas.findByRole("button", { name: c.stop });
+    // Stopped, failed, empty done and streaming: no Copy on any.
+    await expect(copyButtons(canvas, c.copy)).toHaveLength(0);
+    // Row 22: the basis word and the stopped word read as two items, 12 px apart.
+    const stopped = q(canvasElement, ".ds-chat__stopped");
+    const basis = q(stopped.closest(".ds-chat__meta") as HTMLElement, ".ds-chat__basis");
+    near(box(stopped).left - box(basis).right, 12);
+    (window as unknown as { __latch: () => void }).__latch();
+    await waitFor(() => expect(copyButtons(canvas, c.copy)).toHaveLength(1));
+    // The empty done reply added none; the one that shows is the last exchange's.
+    const exchanges = [...canvasElement.querySelectorAll<HTMLElement>(".ds-chat__exchange")];
+    await expect(exchanges).toHaveLength(4);
+    await expect(exchanges[2]?.getAttribute("data-state")).toBe("done");
+    await expect(exchanges[2]?.querySelector(".ds-button")).toBeNull();
+    await expect(exchanges[3]?.querySelector(".ds-button")).not.toBeNull();
+  },
+};
+
+/** A reply that holds markup is copied as the same characters: no HTML, no item write (ORV-217 row 8). */
+export const CopyMarkup: Story = {
+  args: { onAsk: fn(chatFixtures.host("<b>ตัวหนา</b> ในคำตอบ", "rules", { steps: 2, ms: 10 })) },
+  play: async ({ canvasElement, globals }) => {
+    const m = catalogOf(globals);
+    const c = m.chat;
+    const canvas = within(canvasElement);
+    await withClipboard("resolve", async (clip) => {
+      await ask(canvas, chatFixtures.question, c.input);
+      await replied(canvas, m.taskBar.basisRules);
+      await expect(q(canvasElement, ".ds-chat__reply .ds-chat__text").textContent).toBe(
+        "<b>ตัวหนา</b> ในคำตอบ",
+      );
+      await expect(canvasElement.querySelector(".ds-chat__reply b")).toBeNull();
+      await userEvent.click(copyButtons(canvas, c.copy)[0] as HTMLElement);
+      await waitFor(() => expect(clip.writes).toHaveLength(1));
+      await expect(clip.writes[0]).toBe("<b>ตัวหนา</b> ในคำตอบ");
+      await expect(clip.stub.write).not.toHaveBeenCalled();
+      await expect(clip.stub.readText).not.toHaveBeenCalled();
+    });
+  },
+};
+
+/** Copy in English: the name starts with the visible word, and the result reads in English (ORV-217 row 9). */
+export const CopyInEnglish: Story = {
+  args: {
+    basis: "mock",
+    onAsk: fn(chatFixtures.host(chatFixtures.replyEn, "mock", { steps: 2, ms: 10 })),
+  },
+  decorators: [(Story) => <LocaleProvider locale="en">{Story()}</LocaleProvider>],
+  play: async ({ canvasElement }) => {
+    const en = messagesFor("en");
+    const canvas = within(canvasElement);
+    await withClipboard("resolve", async (clip) => {
+      await ask(canvas, chatFixtures.questionEn, en.chat.input);
+      await replied(canvas, en.taskBar.basisMock);
+      const button = canvas.getByRole("button", {
+        name: "Copy reply on Summarise the brand node",
+      });
+      await expect(button).toHaveTextContent("Copy");
+      await userEvent.click(button);
+      await waitFor(() => expect(statusOf(canvasElement)).toHaveTextContent("Reply copied"));
+      await expect(clip.writes).toEqual([chatFixtures.replyEn]);
+      await expect(q(canvasElement, ".ds-chat__copied")).toHaveTextContent("Reply copied");
+    });
+  },
+};
+
+/**
+ * The chat on a board at the 240 px panel, with the jump button: the row wraps with Copy on line 1
+ * and the jump on line 2, its glyph on the basis word's edge; the note comes last and moves nothing
+ * (ORV-217 row 23). Fixture host, replies by rules.
+ */
+export const CopyOnBoard: Story = {
+  render: (args) => <BoardChat selected="brief" args={args} size="min" />,
+  play: async ({ canvasElement, globals }) => {
+    const m = catalogOf(globals);
+    const c = m.chat;
+    const canvas = within(canvasElement);
+    await withClipboard("resolve", async () => {
+      await waitFor(() => expect(nodeEl(canvasElement, "brief")).toBeTruthy());
+      await ask(canvas, chatFixtures.question, c.input);
+      const jump = await canvas.findByRole("button", {
+        name: fill(c.jumpLabel, { topic: chatFixtures.question }),
+      });
+      await replied(canvas, m.taskBar.basisRules);
+      const copy = canvas.getByRole("button", {
+        name: fill(c.copyLabel, { topic: chatFixtures.question }),
+      });
+      const basis = box(q(canvasElement, ".ds-chat__basis"));
+      near(box(copy).left - basis.right, 4);
+      await expect(box(jump).top).toBeGreaterThanOrEqual(box(copy).bottom - 0.5);
+      // The button's 1 px transparent border sits between its box and its glyph: the glyph is 1 px in.
+      near(box(q(jump, "svg")).left, basis.left, 1);
+      const before = box(jump);
+      await userEvent.click(copy);
+      await waitFor(() => expect(canvasElement.querySelector(".ds-chat__copied")).not.toBeNull());
+      const after = box(jump);
+      for (const edge of ["left", "top", "right", "bottom"] as const) {
+        near(after[edge], before[edge]);
+      }
+      const note = q(canvasElement, ".ds-chat__copied");
+      await expect(q(canvasElement, ".ds-chat__meta").lastElementChild).toBe(note);
+      await expect(inside(box(note), box(chatOf(canvasElement)))).toBe(true);
+    });
+  },
+};
+
+/** The frame of `BackToLatest`: 360 by 480, so five exchanges overflow the transcript. */
+function LatestFrame({ children }: { children: ReactNode }) {
+  return (
+    <div style={{ height: 480 }} className="w-[360px] max-w-full">
+      {children}
+    </div>
+  );
+}
+
+/** Five quick replies, then a sixth that yields one snapshot per `__next()` call (ORV-217 rows 10 to 16). */
+function PacedChat({ args }: { args: Parameters<typeof CanvasChat>[0] }) {
+  const [paced] = useState(() => chatFixtures.hostPaced(chatFixtures.replyLines));
+  (window as unknown as { __next: () => void }).__next = paced.next;
+  const quick = chatFixtures.host(chatFixtures.reply, "rules", { steps: 2, ms: 10 });
+  const onAsk = (request: ChatRequest, signal: AbortSignal) =>
+    request.text.startsWith("6") ? paced.host(request, signal) : quick(request, signal);
+  return (
+    <LatestFrame>
+      <CanvasChat {...args} onAsk={onAsk} />
+    </LatestFrame>
+  );
+}
+
+const next = () => (window as unknown as { __next: () => void }).__next();
+
+/** Sets the scroll position and waits for the scroll event the chat listens to. */
+async function scrollViewport(el: HTMLElement, top: number) {
+  const scrolled = new Promise<void>((resolve) =>
+    el.addEventListener("scroll", () => resolve(), { once: true }),
+  );
+  el.scrollTop = top;
+  await scrolled;
+  await settled();
+}
+const latestWrapper = (root: HTMLElement) => root.querySelector<HTMLElement>(".ds-chat__latest");
+const distanceToEnd = (el: HTMLElement) => el.scrollHeight - el.scrollTop - el.clientHeight;
+
+/** Five finished exchanges and a sixth streaming; the reader is then scrolled to the top. */
+async function awayFromEnd(canvasElement: HTMLElement, c: ReturnType<typeof catalogOf>["chat"]) {
+  const canvas = within(canvasElement);
+  for (const [i, question] of ["1 หนึ่ง", "2 สอง", "3 สาม", "4 สี่", "5 ห้า"].entries()) {
+    await ask(canvas, question, c.input);
+    await waitFor(() => expect(canvas.getAllByText(c.you)).toHaveLength(i + 1));
+    await waitFor(() => expect(canvas.queryByRole("button", { name: c.stop })).toBeNull());
+    // New text that arrives while the reader is at the end never shows the button.
+    await settled();
+    await expect(canvasElement.querySelector(".ds-chat__latest")).toBeNull();
+  }
+  await ask(canvas, "6 หก", c.input);
+  await canvas.findByRole("button", { name: c.stop });
+  const viewport = viewportOf(canvasElement);
+  await expect(viewport.scrollHeight).toBeGreaterThan(viewport.clientHeight);
+  await waitFor(() => expect(distanceToEnd(viewport)).toBeLessThanOrEqual(32));
+  await scrollViewport(viewport, 0);
+  return viewport;
+}
+
+/**
+ * Back to latest: it shows only when the reader is away from the end and new text arrives, floats
+ * over the foot of the transcript without moving the composer, jumps at once, and leaves nothing
+ * in the DOM when hidden (ORV-217 rows 10 to 15 and 24). Fixture host, replies by rules.
+ */
+export const BackToLatest: Story = {
+  render: (args) => <PacedChat args={args} />,
+  play: async ({ canvasElement, globals }) => {
+    const c = catalogOf(globals).chat;
+    const canvas = within(canvasElement);
+    const viewport = await awayFromEnd(canvasElement, c);
+    const composer = q(canvasElement, ".ds-chat__composer");
+    const composerTop = box(composer).top;
+    // Row 10: away from the end with nothing new, there is no button and no wrapper.
+    await expect(canvas.queryByRole("button", { name: c.toLatest, hidden: true })).toBeNull();
+    await expect(canvasElement.querySelector(".ds-chat__latest")).toBeNull();
+    const statusBefore = statusOf(canvasElement).textContent;
+    next();
+    const button = await canvas.findByRole("button", { name: c.toLatest });
+    await expect(canvas.getByRole("button", { name: c.toLatest })).toBe(button);
+    await expect(button.querySelector("svg.lucide-chevron-down")).not.toBeNull();
+    await expect(button).toHaveAttribute("data-variant", "secondary");
+    near(box(composer).top, composerTop);
+    const scroll = box(q(canvasElement, ".ds-chat__scroll"));
+    await expect(inside(box(button), scroll)).toBe(true);
+    near((box(button).left + box(button).right) / 2, (scroll.left + scroll.right) / 2, 1);
+    // Row 24: 16 px above the composer, a shadow in the button's shape, no motion.
+    const wrapper = latestWrapper(canvasElement) as HTMLElement;
+    near(composerTop - box(button).bottom, 16);
+    await expect(getComputedStyle(wrapper).boxShadow).not.toBe("none");
+    await expect(getComputedStyle(wrapper).borderRadius).toBe(
+      getComputedStyle(button).borderRadius,
+    );
+    await expect(getComputedStyle(wrapper).transitionDuration).toBe("0s");
+    await expect(getComputedStyle(wrapper).animationName).toBe("none");
+    // The button paints over the transcript: the point at its centre is the button.
+    const centre = {
+      x: (box(button).left + box(button).right) / 2,
+      y: (box(button).top + box(button).bottom) / 2,
+    };
+    await expect(button.contains(document.elementFromPoint(centre.x, centre.y))).toBe(true);
+    // Row 15: the button announces nothing; the reply's live region is as it was.
+    await expect(wrapper.querySelectorAll("[aria-live], [role='status']")).toHaveLength(0);
+    await expect(wrapper).not.toHaveAttribute("aria-live");
+    await expect(statusOf(canvasElement).textContent).toBe(statusBefore);
+    const live = canvasElement.querySelector(".ds-chat [aria-live='polite']") as HTMLElement;
+    await expect(live).toHaveAttribute("aria-busy", "true");
+    // Row 14: Tab from the end of the transcript reaches the button, then the textarea.
+    const inTranscript = copyButtons(canvas, catalogOf(globals).chat.copy).at(-1) as HTMLElement;
+    inTranscript.focus({ preventScroll: true });
+    await userEvent.tab();
+    await expect(button).toHaveFocus();
+    await userEvent.tab();
+    await expect(input(canvas, c.input)).toHaveFocus();
+    // Row 11: a press jumps to the end at once (no frame awaited), hides the button, focuses the textarea.
+    button.focus();
+    button.click();
+    await expect(distanceToEnd(viewport)).toBeLessThanOrEqual(32);
+    await expect(canvasElement.querySelector(".ds-chat__latest")).toBeNull();
+    await expect(canvas.queryByRole("button", { name: c.toLatest, hidden: true })).toBeNull();
+    await expect(input(canvas, c.input)).toHaveFocus();
+    await expect(document.body).not.toHaveFocus();
+    // Row 12: shown again, the reader scrolls back to the end by hand: the button goes, Tab skips it.
+    await scrollViewport(viewport, 0);
+    next();
+    await canvas.findByRole("button", { name: c.toLatest });
+    await scrollViewport(viewport, viewport.scrollHeight);
+    await waitFor(() => expect(canvasElement.querySelector(".ds-chat__latest")).toBeNull());
+    const lastCopy = copyButtons(canvas, c.copy).at(-1) as HTMLElement;
+    lastCopy.focus({ preventScroll: true });
+    await userEvent.tab();
+    await expect(input(canvas, c.input)).toHaveFocus();
+    // Row 13: shown once more, the reply ends and a new message is sent: the button goes and the view follows.
+    await scrollViewport(viewport, 0);
+    next();
+    await waitFor(() => expect(copyButtons(canvas, c.copy)).toHaveLength(6));
+    await canvas.findByRole("button", { name: c.toLatest });
+    await ask(canvas, "7 เจ็ด", c.input);
+    await waitFor(() => expect(canvasElement.querySelector(".ds-chat__latest")).toBeNull());
+    await waitFor(() => expect(canvas.getAllByText(c.you)).toHaveLength(7));
+    await waitFor(() => expect(distanceToEnd(viewport)).toBeLessThanOrEqual(32));
+  },
+};
+
+/** Back to latest in English: the button reads "Go to latest" and is shown only after new text (ORV-217 row 16). */
+export const BackToLatestInEnglish: Story = {
+  decorators: [(Story) => <LocaleProvider locale="en">{Story()}</LocaleProvider>],
+  render: (args) => <PacedChat args={args} />,
+  play: async ({ canvasElement }) => {
+    const c = messagesFor("en").chat;
+    const canvas = within(canvasElement);
+    await awayFromEnd(canvasElement, c);
+    await expect(canvasElement.querySelector(".ds-chat__latest")).toBeNull();
+    next();
+    const button = await canvas.findByRole("button", { name: "Go to latest" });
+    await expect(button).toHaveTextContent("Go to latest");
   },
 };
 
