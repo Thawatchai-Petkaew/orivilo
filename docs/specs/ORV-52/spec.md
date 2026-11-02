@@ -45,6 +45,14 @@ No UI changes in this story: no page, story or component shows `orivilo`, so no 
 | 7 | `orivilo` and brand spec §5 and its dark set | The test applies `orv52-match-1` to each of the 26 mapped values | Nothing | None | The ids that do not match equal exactly the colour rows of the diff table: d-1, d-2, d-3, d-4 (worked example 3 shows the method on three of them) |
 | 8 | The ORV-32 tests and `profiles.test.ts` | `pnpm test` | Nothing | None | Unchanged and green; `PROFILE_IDS` still `["neutral", "professional", "friendly"]` |
 
+## Rows per PR
+
+- PR 180: rows 1, 2, 3, 4, 5, 6, 7, 8
+
+## Rows that render nothing
+
+- Rows: 1, 2, 3, 4, 5, 6, 7, 8
+
 ## Diff against brand spec v1.1
 
 The brand spec file keeps the name `orivilo-brand-spec-v1.1.md` and now holds v1.5; §5 to §7 are unchanged since v1.2 except as noted. Rows d-1 to d-4 are colour and row 7 checks them. Rows d-5 to d-10 are type, shape and space, which `orv52-match-1` does not cover; the test does not check them, this table is their record.
@@ -153,3 +161,4 @@ What matches, for the record: the other 16 light rows of §5 and 6 of the 7 dark
 
 - 1.0 (2026-11-02): first version.
 - 1.1 (2026-11-02): lists the 26 compared values and their tokens as `orv52-map-1` (the builder's mapping in `orivilo.test.ts` `SPEC_VALUES`, checked against brand spec §5 lines 44 to 64); `orv52-scope-1` records that neither `generated.css` changes. No AC outcome changes. Review downstream: `packages/design-system/src/profiles/orivilo.test.ts` (matches as is).
+- 1.1 (2026-11-02, PR line): adds `- PR 180: rows 1 to 8` and `## Rows that render nothing` (every row, no UI), with no row changed.
