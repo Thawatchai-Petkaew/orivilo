@@ -222,7 +222,7 @@ The back-to-latest ground is opaque, so the text running behind it never meets i
 
 ## 10. Writing
 
-The five keys are the spec's Copy table, unchanged. Read aloud: "คัดลอก" is the verb a Thai reader expects on this button; "คัดลอกคำตอบแล้ว" names what was copied; "คัดลอกไม่ได้ ลองเลือกข้อความแล้วคัดลอกเอง" says what went wrong and the fix (DESIGN §10); "ไปที่ข้อความล่าสุด" matches "ไปที่โหนดคำตอบ" in form. No middot, no em dash, sentence case in English.
+The five keys are the spec's Copy table; Thai copyLabel takes a space after คัดลอก (spec v1.3). Read aloud: "คัดลอก" is the verb a Thai reader expects on this button; "คัดลอกคำตอบแล้ว" names what was copied; "คัดลอกไม่ได้ ลองเลือกข้อความแล้วคัดลอกเอง" says what went wrong and the fix (DESIGN §10); "ไปที่ข้อความล่าสุด" matches "ไปที่โหนดคำตอบ" in form. No middot, no em dash, sentence case in English.
 
 ## 11. Deltas against the spec (each with a default)
 
