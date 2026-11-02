@@ -93,140 +93,148 @@ Open `docs/` (or the repo root) as a vault. The frontmatter reads as Obsidian pr
 
 Keep this table in step with the folder when you add an entry.
 
-| Entry                                                                             | Confidence | In short                                                              |
-| --------------------------------------------------------------------------------- | ---------- | --------------------------------------------------------------------- |
-| [[K-0001-prose-rules-vs-running-gates]]                                           | 0.65       | Prose rules caught 0 of 83 gaps, running gates 7 of 7 (count unshown) |
-| [[K-0002-atlas-orchestrates-from-the-main-loop]]                                  | 0.8        | The orchestrator is a main-loop skill; workers are agents             |
-| [[K-0003-atlas-envelope-v2-and-checked-facts]]                                    | 0.8        | One envelope, one objective; every fact has `checked_by`              |
-| [[K-0004-atlas-report-contracts]]                                                 | 0.8        | implementer.v1, reviewer.v1, explorer.v1: JSON only                   |
-| [[K-0005-proof-must-match-the-claim]]                                             | 0.8        | Visual claims need computed style or a looked-at screenshot           |
-| [[K-0006-finding-without-evidence-is-dropped]]                                    | 0.8        | A finding without re-runnable evidence is dropped                     |
-| [[K-0007-model-review-capped-at-two-rounds]]                                      | 0.8        | Model review stops at 2 rounds, then the human decides                |
-| [[K-0008-hooks-fail-silently-without-a-heartbeat]]                                | 0.85       | Hooks failed silently; a heartbeat proves they fire                   |
-| [[K-0009-campvibe-envelope-done-when-is-an-outcome]]                              | 0.8        | `done_when` is an outcome a command proves                            |
-| [[K-0010-campvibe-done-needs-a-verify-role]]                                      | 0.8        | No Done without a QA or Security role in the history                  |
-| [[K-0011-campvibe-circuit-breaker-and-stall-watchdog]]                            | 0.8        | Back to Discovery after 2 rejections; stall after about 15 minutes    |
-| [[K-0012-skill-use-per-role-is-prose-only]]                                       | 0.75       | Skill use per role is enforced in prose only                          |
-| [[K-0013-pinned-standards-versions-and-sources]]                                  | 0.75       | ASVS 5.0.0, LLM Top 10 2025, WCAG 2.2, CWV, PDPA: versions and URLs   |
-| [[K-0014-owasp-llm-top-10-2026-items-and-changes]]                                | 0.8        | LLM Top 10 2026: same ten risks, one renamed, list reordered          |
-| [[K-0015-vercel-client-ip-headers]]                                               | 0.8        | Vercel overwrites x-forwarded-for; which IP header a proxy can't fake |
-| [[K-0016-openui-litellm-generator-with-judge-model-evals]]                        | 0.8        | A second model judges screenshots on four 1 to 4 criteria             |
-| [[K-0017-screenshot-to-code-variants-and-human-scored-evals]]                     | 0.8        | A person rates outputs 1 to 4, three runs per combination             |
-| [[K-0018-tldraw-make-real-canvas-image-to-html-iframe]]                           | 0.8        | Make Real sends a canvas image to a vision model, gets an iframe      |
-| [[K-0019-v0-composite-model-and-ai-sdk-structured-output]]                        | 0.8        | v0 is a composite model around a swappable base model                 |
-| [[K-0020-style-dictionary-dtcg-token-pipeline]]                                   | 0.8        | Style Dictionary builds tokens in a fixed, model-free pipeline        |
-| [[K-0021-material-color-utilities-hct-deterministic-schemes]]                     | 0.8        | Material derives a whole scheme from one color, no model              |
-| [[K-0022-adobe-leonardo-contrast-targeted-palettes]]                              | 0.8        | Leonardo solves colors from target contrast ratios                    |
-| [[K-0023-radix-colors-step-roles-and-apca-guarantee]]                             | 0.8        | Radix: twelve steps with fixed roles; APCA on steps 11 and 12         |
-| [[K-0024-huemint-ml-palettes-from-a-contrast-graph]]                              | 0.8        | Huemint's own models make palettes; contrast is a loose target        |
-| [[K-0025-penpot-mcp-model-runs-code-in-plugin]]                                   | 0.75       | Penpot MCP lets the model run code in a plugin                        |
-| [[K-0026-hue-agent-skill-design-model-and-validator]]                             | 0.8        | Hue: one design model, person approves, validator gates               |
-| [[K-0027-synthesis-ai-design-system-architecture-patterns]]                       | 0.8        | Six recurring patterns; shipped color is rule-made except Huemint     |
-| [[K-0028-wheeler-five-phase-identity-process]]                                    | 0.8        | Wheeler: research, strategy, identity, touchpoints, managing assets   |
-| [[K-0029-ci-project-entry-points-and-initiative-types]]                           | 0.8        | New, rename, merger, refresh, rebrand; existing brands audit first    |
-| [[K-0030-neumeier-brand-gap-and-zag-checkpoints]]                                 | 0.8        | Five disciplines; 17 checkpoints, naming after onliness; swap test    |
-| [[K-0031-kapferer-brand-identity-prism]]                                          | 0.7        | Prism: six facets on sender/receiver and external/internal axes       |
-| [[K-0032-aaker-core-and-extended-identity]]                                       | 0.8        | Core and extended identity; product, organization, person, symbol     |
-| [[K-0033-brand-archetypes-mark-pearson-weak-evidence]]                            | 0.7        | Twelve archetypes are widely used; empirical support is thin          |
-| [[K-0034-unilever-brand-key-one-page-positioning]]                                | 0.65       | Brand Key: nine-part one-page positioning; no Unilever source found   |
-| [[K-0035-agency-case-studies-idea-before-visuals]]                                | 0.75       | Agencies set a core idea before visuals and deliver a system          |
-| [[K-0036-minimum-inputs-and-what-practitioners-do-when-missing]]                  | 0.75       | Missing strategy is researched or asked, not defaulted                |
-| [[K-0037-logo-types-and-when-a-symbol-is-justified]]                              | 0.85       | Mark types; emphasise the name, add a symbol only with a reason       |
-| [[K-0038-color-meaning-is-learned-and-culture-specific]]                          | 0.7        | Colour shifts brand personality; meanings are culture-bound           |
-| [[K-0039-distinctive-assets-colour-uniqueness-against-category]]                  | 0.75       | Assets judged by fame and uniqueness; choose for contrast             |
-| [[K-0040-thai-colour-culture-day-colours-royal-and-political]]                    | 0.7        | Thai day colours, royal yellow, political red and yellow              |
-| [[K-0041-typeface-design-shapes-brand-impressions]]                               | 0.6        | Typeface design shapes impressions; six dimensions (unread paper)     |
-| [[K-0042-thai-latin-typography-looped-loopless-pairing]]                          | 0.85       | Thai looped for text, loopless for display; pairs with serif or sans  |
-| [[K-0043-brand-guidebook-structure]]                                              | 0.75       | Guidebook: foundation, verbal, visual, applications; last deliverable |
-| [[K-0044-synthesis-ci-process-entry-points-and-node-graph]]                       | 0.75       | CI order, five entry groups, 22-node graph, compared with the method  |
-| [[K-0045-wireflow-third-party-models-in-a-hosted-node-graph]]                     | 0.75       | Wireflow shows only third-party models behind a node graph            |
-| [[K-0046-higgsfield-own-models-plus-resold-third-party-models]]                   | 0.8        | Higgsfield resells third-party models and runs its own                |
-| [[K-0047-isic-rev4-and-rev5-counts-per-level]]                                    | 0.8        | ISIC classes: Rev.4 419, Rev.5 463; 408 and 451 after 3 exclusions    |
-| [[K-0048-tsic-2009-is-isic-rev4-based-at-five-digits]]                            | 0.8        | TSIC 2009 follows ISIC Rev.4; 5 levels, 1,091 five-digit industries   |
-| [[K-0049-dbd-new-registrations-open-data-by-objective-code]]                      | 0.8        | DBD monthly open CSV of new registrations with 5-digit objective code |
-| [[K-0050-gics-classifies-companies-for-investors]]                                | 0.75       | GICS: 163 sub-industries, one code per company, built for investors   |
-| [[K-0051-brand-category-cut-off-options]]                                         | 0.6        | Superseded lead: ISIC Rev.4 class level (408) as the category cut-off |
-| [[K-0052-thai-copyright-excludes-facts-ideas-and-protects-compilation-selection]] | 0.75       | Thai copyright: no ideas, no mere facts; compilation selection only   |
-| [[K-0053-thai-trademark-mark-includes-group-of-colours]]                          | 0.7        | Thai trademark: a group of colours is a mark; registers if uncommon   |
-| [[K-0054-thai-computer-crime-act-access-and-disruption-offences]]                 | 0.7        | Thai CCA: unauthorised access past a block, or disruption, is a crime |
-| [[K-0055-thai-pdpa-covers-natural-persons-not-companies]]                         | 0.7        | PDPA covers natural persons only; brand colours are not personal data |
-| [[K-0056-robots-txt-rfc-9309-is-not-access-authorization]]                        | 0.8        | robots.txt (RFC 9309) is not access authorization; 24 h cache limit   |
-| [[K-0057-eu-database-terms-and-tdm-opt-out]]                                      | 0.7        | EU: terms can limit an unprotected database; TDM has an opt-out       |
-| [[K-0058-us-facts-free-and-scraping-cases]]                                       | 0.75       | US: facts are free (Feist); scraping cases turn on contract terms     |
-| [[K-0059-brand-colour-collection-lawful-vs-prudent-rules]]                        | 0.5        | Lead, not legal advice: hex records likely lawful; risk in collection |
-| [[K-0060-tiktok-for-business-guidelines-sections]]                                | 0.8        | TikTok guide: story, messaging, design system, imagery, advertising   |
-| [[K-0061-tiktok-guidelines-page-layout-and-reasons]]                              | 0.8        | TikTok pages: one 16:9 grid, rule and reason left, visual right       |
-| [[K-0062-brand-guideline-projects-studied]]                                       | 0.75       | 38 projects: 20 from search summaries, 18 read in a browser           |
-| [[K-0063-guidebook-section-frequency-in-the-sample]]                              | 0.7        | Counts in two samples: logo, colour, type, applications seen most     |
-| [[K-0064-mood-and-look-and-feel-section-contents]]                                | 0.75       | Two guides: mood is rule pages (voice, photo, motion), not one board  |
-| [[K-0065-how-guidelines-show-each-elements-reason]]                               | 0.75       | Five kinds of reason, usually one line beside the element             |
-| [[K-0066-guidebook-deliverable-formats-and-layout]]                               | 0.75       | Paged book, web brand site, or Behance showcase case study            |
-| [[K-0067-thai-and-southeast-asian-guideline-traits]]                              | 0.6        | Lead: Thai and regional guides add bilingual type, cultural reasons   |
-| [[K-0068-owner-reference-set-and-hedwig]]                                         | 0.8        | Owner's four references; only Hedwig goes on to app and web screens   |
-| [[K-0069-logo-reason-as-an-equation-of-parts]]                                    | 0.75       | 6 of 18 state a logo reason; 4 as an equation of parts, 2 as text     |
-| [[K-0070-mood-carried-by-applications-in-context]]                                | 0.7        | No mood board page in 18 Behance; mood shown by identity in context   |
-| [[K-0071-thai-and-regional-behance-projects]]                                     | 0.75       | Four Thai and regional projects; one states colour and type reasons   |
-| [[K-0072-openrouter-image-api-request-and-response]]                              | 0.8        | POST /api/v1/images: `b64_json` images, usage cost, no model field    |
-| [[K-0073-openrouter-image-api-has-no-data-policy-fields]]                         | 0.8        | Image API provider options have no `zdr` or `data_collection`         |
-| [[K-0074-gemini-nano-banana-2-1-endpoint-and-price]]                              | 0.8        | Nano Banana 2.1: one endpoint, n=1, 0.00003 USD per image token       |
-| [[K-0075-gemini-api-terms-on-generated-output]]                                   | 0.8        | Gemini: no ownership claim; paid prompts not trained on, but logged   |
-| [[K-0076-openrouter-terms-on-outputs]]                                            | 0.8        | OpenRouter defers output ownership to each model's terms              |
-| [[K-0077-touchpoints-seen-tsic-sections-a-to-f]]                                  | 0.7        | Touchpoints named per TSIC section A to F; B thin, C mixed            |
-| [[K-0078-touchpoints-seen-tsic-sections-g-to-l]]                                  | 0.75       | Touchpoints named per TSIC section G to L; L thin                     |
-| [[K-0079-touchpoints-seen-tsic-sections-m-to-s]]                                  | 0.75       | Touchpoints named per TSIC section M to S; S thin, N and R mixed      |
-| [[K-0080-proposed-touchpoint-sets-by-tsic-section]]                               | 0.6        | Lead: up to four touchpoints and one screen for each of 18 sections   |
-| [[K-0081-headless-chromium-in-a-vercel-function]]                                 | 0.8        | Headless Chromium on Vercel: 250 MB, Hobby 300 s and 2 GB; unmeasured |
-| [[K-0082-parse5-as-a-pure-html-tokenizer]]                                        | 0.8        | parse5 8.0.1 MIT, one dep; hooks; attribute, re-open, sibling costs   |
-| [[K-0083-whatwg-html-void-optional-end-tag-and-raw-text-elements]]                | 0.8        | WHATWG 13 void, 19 optional end tags; record of the v1.14 pre-pass    |
-| [[K-0084-wireflow-flat-credit-price-rollover-and-per-node-metering]]              | 0.8        | Wireflow: flat $0.0135/credit (own arithmetic), rollover, 402 at zero |
-| [[K-0085-higgsfield-tiered-credits-no-rollover-and-separate-api-wallet]]          | 0.8        | Higgsfield: tiered $0.075 to $0.043/credit (own arithmetic), expiring |
-| [[K-0086-reseller-markup-over-model-list-prices]]                                 | 0.7        | Own arithmetic: 0.64 to 6.0 times Google list on Nano Banana images   |
-| [[K-0087-synthesis-prepaid-credits-over-model-costs-and-breakage]]                | 0.7        | Prepaid credits over bought-in models; plan plus top-ups; breakage    |
-| [[K-0088-material-color-utilities-0-4-0-quantizer-api-and-determinism]]           | 0.8        | MCU 0.4.0 Apache-2.0; TS Celebi: 20 results in 20 calls (ORV-134 run) |
-| [[K-0089-ovl-qa-walk-refusal-routes]]                                             | 0.8        | ORV-136 survey: qa refusal routes on f2f5fa2; 5 uncovered (own count) |
-| [[K-0090-bash-forms-for-text-guards]]                                             | 0.8        | Bash, zsh and git forms a guard reads; reader desyncs; runner options |
-| [[K-0091-openrouter-chat-completions-usage-cost]]                                 | 0.8        | Chat `usage.cost`: number or null, credits (USD base); no flag needed |
-| [[K-0092-better-auth-organization-not-found-vs-forbidden]]                        | 0.8        | Better Auth 1.7.12: get org 400 if missing, 403 if not a member       |
-| [[K-0093-owasp-llm-top-10-2026-attack-classes-and-prevention]]                    | 0.75       | LLM Top 10 2026 attacks and fixes per entry; interpreter reading      |
-| [[K-0094-untitled-ui-react-logo-components]]                                      | 0.8        | Untitled UI logo: 2 components, no props, className size, no name     |
-| [[K-0095-open-ring-and-dot-marks-in-use]]                                         | 0.6        | Lead: ring and dot marks read; none upper right; registers unread     |
-| [[K-0096-untitled-ui-title-and-supporting-text-pair]]                             | 0.8        | Untitled: weight and colour step; gap 0 to 8 px (own arithmetic)      |
-| [[K-0097-shadcn-ui-title-and-description-pair]]                                   | 0.8        | shadcn: 500 or 600 over muted text-sm; 2 or 8 px gap (own arithmetic) |
-| [[K-0098-material-3-dialog-headline-and-supporting-text]]                         | 0.8        | M3 dialog: 24 over 14 on-surface-variant, no weight step, 16dp gap    |
-| [[K-0099-apple-hig-headline-equals-body-size-weight-step]]                        | 0.8        | Apple: Headline and Body share size and leading; weight step only     |
-| [[K-0100-carbon-notification-title-subtitle-and-body-sets]]                       | 0.8        | Carbon: 14/600 over 14/400, one colour; body 14/20, compact 14/18     |
-| [[K-0101-atlassian-heading-body-pairing-and-paragraph-spacing]]                   | 0.8        | Atlassian: bold heading, body 14/20 and 16/24, paragraph gap 12, 16   |
-| [[K-0102-wcag-2-2-text-spacing-and-line-spacing]]                                 | 0.8        | WCAG 2.2: survive 1.5 line height (AA); 1.5 floor at AAA (1.4.8)      |
-| [[K-0103-ibm-type-scale-thai-at-95-percent-same-line-height]]                     | 0.8        | IBM: Thai at 95% on Latin line height; 1.50 to 1.58 (own arithmetic)  |
-| [[K-0104-thai-is-a-tall-script-with-stacked-marks]]                               | 0.8        | Thai is tall (Material, no values); W3C: up to 4 glyphs plus tone     |
-| [[K-0105-thai-and-uk-readers-prefer-1-5-or-double-line-spacing]]                  | 0.7        | Thai and UK readers prefer 1.5 or double spacing (abstract only)      |
-| [[K-0106-informal-test-tall-scripts-clip-at-1-1-line-height]]                     | 0.5        | Lead: tall scripts clip at 1.1, fixed at 1.6 (informal test)          |
-| [[K-0107-synthesis-title-supporting-text-and-paragraph-line-height]]              | 0.75       | Synthesis: weight step 13 of 14; body 1.29 to 1.625 (own arithmetic)  |
-| [[K-0108-untitled-ui-loading-indicator-types-sizes-and-no-announcement]]          | 0.8        | Untitled spinner: 3 types, 32 to 64 px, label; silent, no role        |
-| [[K-0109-untitled-ui-react-lists-no-skeleton-component]]                          | 0.75       | Untitled UI React lists no skeleton component                         |
-| [[K-0110-shadcn-ui-spinner-status-role-on-the-icon]]                              | 0.8        | shadcn Spinner: role status, aria-label Loading on the icon, size-4   |
-| [[K-0111-shadcn-ui-skeleton-pulse-div-without-aria]]                              | 0.8        | shadcn Skeleton: pulse div, className only, no aria                   |
-| [[K-0112-tailwind-spin-and-pulse-ignore-reduced-motion-by-default]]               | 0.8        | Tailwind spin 1s and pulse 2s loop; reduced motion left to the author |
-| [[K-0113-wai-aria-1-2-aria-busy-defers-announcements]]                            | 0.8        | aria-busy: assistive tech may wait; it does not announce              |
-| [[K-0114-wai-aria-1-2-role-status-is-a-polite-live-region]]                       | 0.8        | role status: polite, atomic, takes no focus                           |
-| [[K-0115-wcag-2-2-status-messages-cover-the-waiting-state]]                       | 0.8        | SC 4.1.3 (AA): the waiting state is a status message                  |
-| [[K-0116-wcag-2-2-animation-from-interactions-and-c39]]                           | 0.8        | SC 2.3.3 is AAA, interaction-started motion; C39 reduced motion       |
-| [[K-0117-wcag-2-2-pause-stop-hide-and-loading-animations]]                        | 0.8        | SC 2.2.2 (A): over 5 s beside content; preload can be essential       |
-| [[K-0118-synthesis-spinner-and-skeleton-benchmark]]                               | 0.75       | Synthesis: spinner and skeleton benchmark table, audit B form         |
-| [[K-0119-untitled-ui-react-has-no-collapsible-component]]                         | 0.75       | Untitled UI React: no collapsible; FAQ accordions, tree views nearest |
-| [[K-0120-shadcn-ui-collapsible-three-parts-no-styles]]                            | 0.8        | shadcn Collapsible: three parts, data-slot only, no class or motion   |
-| [[K-0121-radix-collapsible-api-data-state-and-height-variable]]                   | 0.8        | Radix Collapsible: props, data-state, height variable, Space, Enter   |
-| [[K-0122-radix-collapsible-source-aria-wiring-and-mount-animation]]               | 0.8        | Radix source: aria-expanded; aria-controls only while open; hidden    |
-| [[K-0123-wai-aria-apg-disclosure-button-expanded-enter-space]]                    | 0.8        | APG Disclosure: button, aria-expanded, optional aria-controls         |
-| [[K-0124-wcag-2-2-motion-animation-excludes-opacity]]                             | 0.8        | SC 2.3.3 motion animation excludes colour, blur and opacity           |
-| [[K-0125-wcag-2-2-pause-stop-hide-starts-automatically-includes-hover]]           | 0.8        | SC 2.2.2: a button press is not automatic; hover and focus are        |
-| [[K-0126-synthesis-collapsible-benchmark]]                                        | 0.75       | Synthesis: Collapsible benchmark table, audit B form                  |
-| [[K-0127-ai-elements-inline-citation-hover-card-badge-and-carousel]]              | 0.8        | AI Elements citation: no-delay hover card, hostname +N pill, carousel |
-| [[K-0128-ai-elements-sources-collapsible-count-trigger-and-links]]                | 0.8        | AI Elements Sources: Collapsible, "Used {count} sources", no plural   |
-| [[K-0129-radix-hover-card-sighted-users-only-no-keyboard-content]]                | 0.8        | Hover Card: sighted users only; content out of tab order, no touch    |
-| [[K-0130-radix-popover-dialog-pattern-trigger-wiring-and-focus]]                  | 0.8        | Radix Popover: dialog role, haspopup, Esc to trigger, non-modal       |
-| [[K-0131-untitled-ui-react-has-no-citation-or-source-list-component]]             | 0.75       | Untitled UI React: no citation, quote or source list; tooltip nearest |
-| [[K-0132-wai-aria-apg-disclosure-and-button-for-a-popover-trigger]]               | 0.8        | APG Disclosure and Button: what a panel-opening button follows        |
-| [[K-0133-wai-aria-apg-no-non-modal-dialog-pattern-tooltip-note]]                  | 0.8        | APG: no popover pattern; focusable hover content: non-modal dialog    |
-| [[K-0134-wcag-2-2-content-on-hover-or-focus-dismissible-hoverable-persistent]]    | 0.8        | SC 1.4.13 (AA): dismissible, hoverable, persistent on hover or focus  |
-| [[K-0135-synthesis-evidence-span-and-evidence-list-benchmark]]                    | 0.75       | Synthesis: EvidenceSpan and EvidenceList benchmark, audit B form      |
+| Entry                                                                                   | Confidence | In short                                                              |
+| --------------------------------------------------------------------------------------- | ---------- | --------------------------------------------------------------------- |
+| [[K-0001-prose-rules-vs-running-gates]]                                                 | 0.65       | Prose rules caught 0 of 83 gaps, running gates 7 of 7 (count unshown) |
+| [[K-0002-atlas-orchestrates-from-the-main-loop]]                                        | 0.8        | The orchestrator is a main-loop skill; workers are agents             |
+| [[K-0003-atlas-envelope-v2-and-checked-facts]]                                          | 0.8        | One envelope, one objective; every fact has `checked_by`              |
+| [[K-0004-atlas-report-contracts]]                                                       | 0.8        | implementer.v1, reviewer.v1, explorer.v1: JSON only                   |
+| [[K-0005-proof-must-match-the-claim]]                                                   | 0.8        | Visual claims need computed style or a looked-at screenshot           |
+| [[K-0006-finding-without-evidence-is-dropped]]                                          | 0.8        | A finding without re-runnable evidence is dropped                     |
+| [[K-0007-model-review-capped-at-two-rounds]]                                            | 0.8        | Model review stops at 2 rounds, then the human decides                |
+| [[K-0008-hooks-fail-silently-without-a-heartbeat]]                                      | 0.85       | Hooks failed silently; a heartbeat proves they fire                   |
+| [[K-0009-campvibe-envelope-done-when-is-an-outcome]]                                    | 0.8        | `done_when` is an outcome a command proves                            |
+| [[K-0010-campvibe-done-needs-a-verify-role]]                                            | 0.8        | No Done without a QA or Security role in the history                  |
+| [[K-0011-campvibe-circuit-breaker-and-stall-watchdog]]                                  | 0.8        | Back to Discovery after 2 rejections; stall after about 15 minutes    |
+| [[K-0012-skill-use-per-role-is-prose-only]]                                             | 0.75       | Skill use per role is enforced in prose only                          |
+| [[K-0013-pinned-standards-versions-and-sources]]                                        | 0.75       | ASVS 5.0.0, LLM Top 10 2025, WCAG 2.2, CWV, PDPA: versions and URLs   |
+| [[K-0014-owasp-llm-top-10-2026-items-and-changes]]                                      | 0.8        | LLM Top 10 2026: same ten risks, one renamed, list reordered          |
+| [[K-0015-vercel-client-ip-headers]]                                                     | 0.8        | Vercel overwrites x-forwarded-for; which IP header a proxy can't fake |
+| [[K-0016-openui-litellm-generator-with-judge-model-evals]]                              | 0.8        | A second model judges screenshots on four 1 to 4 criteria             |
+| [[K-0017-screenshot-to-code-variants-and-human-scored-evals]]                           | 0.8        | A person rates outputs 1 to 4, three runs per combination             |
+| [[K-0018-tldraw-make-real-canvas-image-to-html-iframe]]                                 | 0.8        | Make Real sends a canvas image to a vision model, gets an iframe      |
+| [[K-0019-v0-composite-model-and-ai-sdk-structured-output]]                              | 0.8        | v0 is a composite model around a swappable base model                 |
+| [[K-0020-style-dictionary-dtcg-token-pipeline]]                                         | 0.8        | Style Dictionary builds tokens in a fixed, model-free pipeline        |
+| [[K-0021-material-color-utilities-hct-deterministic-schemes]]                           | 0.8        | Material derives a whole scheme from one color, no model              |
+| [[K-0022-adobe-leonardo-contrast-targeted-palettes]]                                    | 0.8        | Leonardo solves colors from target contrast ratios                    |
+| [[K-0023-radix-colors-step-roles-and-apca-guarantee]]                                   | 0.8        | Radix: twelve steps with fixed roles; APCA on steps 11 and 12         |
+| [[K-0024-huemint-ml-palettes-from-a-contrast-graph]]                                    | 0.8        | Huemint's own models make palettes; contrast is a loose target        |
+| [[K-0025-penpot-mcp-model-runs-code-in-plugin]]                                         | 0.75       | Penpot MCP lets the model run code in a plugin                        |
+| [[K-0026-hue-agent-skill-design-model-and-validator]]                                   | 0.8        | Hue: one design model, person approves, validator gates               |
+| [[K-0027-synthesis-ai-design-system-architecture-patterns]]                             | 0.8        | Six recurring patterns; shipped color is rule-made except Huemint     |
+| [[K-0028-wheeler-five-phase-identity-process]]                                          | 0.8        | Wheeler: research, strategy, identity, touchpoints, managing assets   |
+| [[K-0029-ci-project-entry-points-and-initiative-types]]                                 | 0.8        | New, rename, merger, refresh, rebrand; existing brands audit first    |
+| [[K-0030-neumeier-brand-gap-and-zag-checkpoints]]                                       | 0.8        | Five disciplines; 17 checkpoints, naming after onliness; swap test    |
+| [[K-0031-kapferer-brand-identity-prism]]                                                | 0.7        | Prism: six facets on sender/receiver and external/internal axes       |
+| [[K-0032-aaker-core-and-extended-identity]]                                             | 0.8        | Core and extended identity; product, organization, person, symbol     |
+| [[K-0033-brand-archetypes-mark-pearson-weak-evidence]]                                  | 0.7        | Twelve archetypes are widely used; empirical support is thin          |
+| [[K-0034-unilever-brand-key-one-page-positioning]]                                      | 0.65       | Brand Key: nine-part one-page positioning; no Unilever source found   |
+| [[K-0035-agency-case-studies-idea-before-visuals]]                                      | 0.75       | Agencies set a core idea before visuals and deliver a system          |
+| [[K-0036-minimum-inputs-and-what-practitioners-do-when-missing]]                        | 0.75       | Missing strategy is researched or asked, not defaulted                |
+| [[K-0037-logo-types-and-when-a-symbol-is-justified]]                                    | 0.85       | Mark types; emphasise the name, add a symbol only with a reason       |
+| [[K-0038-color-meaning-is-learned-and-culture-specific]]                                | 0.7        | Colour shifts brand personality; meanings are culture-bound           |
+| [[K-0039-distinctive-assets-colour-uniqueness-against-category]]                        | 0.75       | Assets judged by fame and uniqueness; choose for contrast             |
+| [[K-0040-thai-colour-culture-day-colours-royal-and-political]]                          | 0.7        | Thai day colours, royal yellow, political red and yellow              |
+| [[K-0041-typeface-design-shapes-brand-impressions]]                                     | 0.6        | Typeface design shapes impressions; six dimensions (unread paper)     |
+| [[K-0042-thai-latin-typography-looped-loopless-pairing]]                                | 0.85       | Thai looped for text, loopless for display; pairs with serif or sans  |
+| [[K-0043-brand-guidebook-structure]]                                                    | 0.75       | Guidebook: foundation, verbal, visual, applications; last deliverable |
+| [[K-0044-synthesis-ci-process-entry-points-and-node-graph]]                             | 0.75       | CI order, five entry groups, 22-node graph, compared with the method  |
+| [[K-0045-wireflow-third-party-models-in-a-hosted-node-graph]]                           | 0.75       | Wireflow shows only third-party models behind a node graph            |
+| [[K-0046-higgsfield-own-models-plus-resold-third-party-models]]                         | 0.8        | Higgsfield resells third-party models and runs its own                |
+| [[K-0047-isic-rev4-and-rev5-counts-per-level]]                                          | 0.8        | ISIC classes: Rev.4 419, Rev.5 463; 408 and 451 after 3 exclusions    |
+| [[K-0048-tsic-2009-is-isic-rev4-based-at-five-digits]]                                  | 0.8        | TSIC 2009 follows ISIC Rev.4; 5 levels, 1,091 five-digit industries   |
+| [[K-0049-dbd-new-registrations-open-data-by-objective-code]]                            | 0.8        | DBD monthly open CSV of new registrations with 5-digit objective code |
+| [[K-0050-gics-classifies-companies-for-investors]]                                      | 0.75       | GICS: 163 sub-industries, one code per company, built for investors   |
+| [[K-0051-brand-category-cut-off-options]]                                               | 0.6        | Superseded lead: ISIC Rev.4 class level (408) as the category cut-off |
+| [[K-0052-thai-copyright-excludes-facts-ideas-and-protects-compilation-selection]]       | 0.75       | Thai copyright: no ideas, no mere facts; compilation selection only   |
+| [[K-0053-thai-trademark-mark-includes-group-of-colours]]                                | 0.7        | Thai trademark: a group of colours is a mark; registers if uncommon   |
+| [[K-0054-thai-computer-crime-act-access-and-disruption-offences]]                       | 0.7        | Thai CCA: unauthorised access past a block, or disruption, is a crime |
+| [[K-0055-thai-pdpa-covers-natural-persons-not-companies]]                               | 0.7        | PDPA covers natural persons only; brand colours are not personal data |
+| [[K-0056-robots-txt-rfc-9309-is-not-access-authorization]]                              | 0.8        | robots.txt (RFC 9309) is not access authorization; 24 h cache limit   |
+| [[K-0057-eu-database-terms-and-tdm-opt-out]]                                            | 0.7        | EU: terms can limit an unprotected database; TDM has an opt-out       |
+| [[K-0058-us-facts-free-and-scraping-cases]]                                             | 0.75       | US: facts are free (Feist); scraping cases turn on contract terms     |
+| [[K-0059-brand-colour-collection-lawful-vs-prudent-rules]]                              | 0.5        | Lead, not legal advice: hex records likely lawful; risk in collection |
+| [[K-0060-tiktok-for-business-guidelines-sections]]                                      | 0.8        | TikTok guide: story, messaging, design system, imagery, advertising   |
+| [[K-0061-tiktok-guidelines-page-layout-and-reasons]]                                    | 0.8        | TikTok pages: one 16:9 grid, rule and reason left, visual right       |
+| [[K-0062-brand-guideline-projects-studied]]                                             | 0.75       | 38 projects: 20 from search summaries, 18 read in a browser           |
+| [[K-0063-guidebook-section-frequency-in-the-sample]]                                    | 0.7        | Counts in two samples: logo, colour, type, applications seen most     |
+| [[K-0064-mood-and-look-and-feel-section-contents]]                                      | 0.75       | Two guides: mood is rule pages (voice, photo, motion), not one board  |
+| [[K-0065-how-guidelines-show-each-elements-reason]]                                     | 0.75       | Five kinds of reason, usually one line beside the element             |
+| [[K-0066-guidebook-deliverable-formats-and-layout]]                                     | 0.75       | Paged book, web brand site, or Behance showcase case study            |
+| [[K-0067-thai-and-southeast-asian-guideline-traits]]                                    | 0.6        | Lead: Thai and regional guides add bilingual type, cultural reasons   |
+| [[K-0068-owner-reference-set-and-hedwig]]                                               | 0.8        | Owner's four references; only Hedwig goes on to app and web screens   |
+| [[K-0069-logo-reason-as-an-equation-of-parts]]                                          | 0.75       | 6 of 18 state a logo reason; 4 as an equation of parts, 2 as text     |
+| [[K-0070-mood-carried-by-applications-in-context]]                                      | 0.7        | No mood board page in 18 Behance; mood shown by identity in context   |
+| [[K-0071-thai-and-regional-behance-projects]]                                           | 0.75       | Four Thai and regional projects; one states colour and type reasons   |
+| [[K-0072-openrouter-image-api-request-and-response]]                                    | 0.8        | POST /api/v1/images: `b64_json` images, usage cost, no model field    |
+| [[K-0073-openrouter-image-api-has-no-data-policy-fields]]                               | 0.8        | Image API provider options have no `zdr` or `data_collection`         |
+| [[K-0074-gemini-nano-banana-2-1-endpoint-and-price]]                                    | 0.8        | Nano Banana 2.1: one endpoint, n=1, 0.00003 USD per image token       |
+| [[K-0075-gemini-api-terms-on-generated-output]]                                         | 0.8        | Gemini: no ownership claim; paid prompts not trained on, but logged   |
+| [[K-0076-openrouter-terms-on-outputs]]                                                  | 0.8        | OpenRouter defers output ownership to each model's terms              |
+| [[K-0077-touchpoints-seen-tsic-sections-a-to-f]]                                        | 0.7        | Touchpoints named per TSIC section A to F; B thin, C mixed            |
+| [[K-0078-touchpoints-seen-tsic-sections-g-to-l]]                                        | 0.75       | Touchpoints named per TSIC section G to L; L thin                     |
+| [[K-0079-touchpoints-seen-tsic-sections-m-to-s]]                                        | 0.75       | Touchpoints named per TSIC section M to S; S thin, N and R mixed      |
+| [[K-0080-proposed-touchpoint-sets-by-tsic-section]]                                     | 0.6        | Lead: up to four touchpoints and one screen for each of 18 sections   |
+| [[K-0081-headless-chromium-in-a-vercel-function]]                                       | 0.8        | Headless Chromium on Vercel: 250 MB, Hobby 300 s and 2 GB; unmeasured |
+| [[K-0082-parse5-as-a-pure-html-tokenizer]]                                              | 0.8        | parse5 8.0.1 MIT, one dep; hooks; attribute, re-open, sibling costs   |
+| [[K-0083-whatwg-html-void-optional-end-tag-and-raw-text-elements]]                      | 0.8        | WHATWG 13 void, 19 optional end tags; record of the v1.14 pre-pass    |
+| [[K-0084-wireflow-flat-credit-price-rollover-and-per-node-metering]]                    | 0.8        | Wireflow: flat $0.0135/credit (own arithmetic), rollover, 402 at zero |
+| [[K-0085-higgsfield-tiered-credits-no-rollover-and-separate-api-wallet]]                | 0.8        | Higgsfield: tiered $0.075 to $0.043/credit (own arithmetic), expiring |
+| [[K-0086-reseller-markup-over-model-list-prices]]                                       | 0.7        | Own arithmetic: 0.64 to 6.0 times Google list on Nano Banana images   |
+| [[K-0087-synthesis-prepaid-credits-over-model-costs-and-breakage]]                      | 0.7        | Prepaid credits over bought-in models; plan plus top-ups; breakage    |
+| [[K-0088-material-color-utilities-0-4-0-quantizer-api-and-determinism]]                 | 0.8        | MCU 0.4.0 Apache-2.0; TS Celebi: 20 results in 20 calls (ORV-134 run) |
+| [[K-0089-ovl-qa-walk-refusal-routes]]                                                   | 0.8        | ORV-136 survey: qa refusal routes on f2f5fa2; 5 uncovered (own count) |
+| [[K-0090-bash-forms-for-text-guards]]                                                   | 0.8        | Bash, zsh and git forms a guard reads; reader desyncs; runner options |
+| [[K-0091-openrouter-chat-completions-usage-cost]]                                       | 0.8        | Chat `usage.cost`: number or null, credits (USD base); no flag needed |
+| [[K-0092-better-auth-organization-not-found-vs-forbidden]]                              | 0.8        | Better Auth 1.7.12: get org 400 if missing, 403 if not a member       |
+| [[K-0093-owasp-llm-top-10-2026-attack-classes-and-prevention]]                          | 0.75       | LLM Top 10 2026 attacks and fixes per entry; interpreter reading      |
+| [[K-0094-untitled-ui-react-logo-components]]                                            | 0.8        | Untitled UI logo: 2 components, no props, className size, no name     |
+| [[K-0095-open-ring-and-dot-marks-in-use]]                                               | 0.6        | Lead: ring and dot marks read; none upper right; registers unread     |
+| [[K-0096-untitled-ui-title-and-supporting-text-pair]]                                   | 0.8        | Untitled: weight and colour step; gap 0 to 8 px (own arithmetic)      |
+| [[K-0097-shadcn-ui-title-and-description-pair]]                                         | 0.8        | shadcn: 500 or 600 over muted text-sm; 2 or 8 px gap (own arithmetic) |
+| [[K-0098-material-3-dialog-headline-and-supporting-text]]                               | 0.8        | M3 dialog: 24 over 14 on-surface-variant, no weight step, 16dp gap    |
+| [[K-0099-apple-hig-headline-equals-body-size-weight-step]]                              | 0.8        | Apple: Headline and Body share size and leading; weight step only     |
+| [[K-0100-carbon-notification-title-subtitle-and-body-sets]]                             | 0.8        | Carbon: 14/600 over 14/400, one colour; body 14/20, compact 14/18     |
+| [[K-0101-atlassian-heading-body-pairing-and-paragraph-spacing]]                         | 0.8        | Atlassian: bold heading, body 14/20 and 16/24, paragraph gap 12, 16   |
+| [[K-0102-wcag-2-2-text-spacing-and-line-spacing]]                                       | 0.8        | WCAG 2.2: survive 1.5 line height (AA); 1.5 floor at AAA (1.4.8)      |
+| [[K-0103-ibm-type-scale-thai-at-95-percent-same-line-height]]                           | 0.8        | IBM: Thai at 95% on Latin line height; 1.50 to 1.58 (own arithmetic)  |
+| [[K-0104-thai-is-a-tall-script-with-stacked-marks]]                                     | 0.8        | Thai is tall (Material, no values); W3C: up to 4 glyphs plus tone     |
+| [[K-0105-thai-and-uk-readers-prefer-1-5-or-double-line-spacing]]                        | 0.7        | Thai and UK readers prefer 1.5 or double spacing (abstract only)      |
+| [[K-0106-informal-test-tall-scripts-clip-at-1-1-line-height]]                           | 0.5        | Lead: tall scripts clip at 1.1, fixed at 1.6 (informal test)          |
+| [[K-0107-synthesis-title-supporting-text-and-paragraph-line-height]]                    | 0.75       | Synthesis: weight step 13 of 14; body 1.29 to 1.625 (own arithmetic)  |
+| [[K-0108-untitled-ui-loading-indicator-types-sizes-and-no-announcement]]                | 0.8        | Untitled spinner: 3 types, 32 to 64 px, label; silent, no role        |
+| [[K-0109-untitled-ui-react-lists-no-skeleton-component]]                                | 0.75       | Untitled UI React lists no skeleton component                         |
+| [[K-0110-shadcn-ui-spinner-status-role-on-the-icon]]                                    | 0.8        | shadcn Spinner: role status, aria-label Loading on the icon, size-4   |
+| [[K-0111-shadcn-ui-skeleton-pulse-div-without-aria]]                                    | 0.8        | shadcn Skeleton: pulse div, className only, no aria                   |
+| [[K-0112-tailwind-spin-and-pulse-ignore-reduced-motion-by-default]]                     | 0.8        | Tailwind spin 1s and pulse 2s loop; reduced motion left to the author |
+| [[K-0113-wai-aria-1-2-aria-busy-defers-announcements]]                                  | 0.8        | aria-busy: assistive tech may wait; it does not announce              |
+| [[K-0114-wai-aria-1-2-role-status-is-a-polite-live-region]]                             | 0.8        | role status: polite, atomic, takes no focus                           |
+| [[K-0115-wcag-2-2-status-messages-cover-the-waiting-state]]                             | 0.8        | SC 4.1.3 (AA): the waiting state is a status message                  |
+| [[K-0116-wcag-2-2-animation-from-interactions-and-c39]]                                 | 0.8        | SC 2.3.3 is AAA, interaction-started motion; C39 reduced motion       |
+| [[K-0117-wcag-2-2-pause-stop-hide-and-loading-animations]]                              | 0.8        | SC 2.2.2 (A): over 5 s beside content; preload can be essential       |
+| [[K-0118-synthesis-spinner-and-skeleton-benchmark]]                                     | 0.75       | Synthesis: spinner and skeleton benchmark table, audit B form         |
+| [[K-0119-untitled-ui-react-has-no-collapsible-component]]                               | 0.75       | Untitled UI React: no collapsible; FAQ accordions, tree views nearest |
+| [[K-0120-shadcn-ui-collapsible-three-parts-no-styles]]                                  | 0.8        | shadcn Collapsible: three parts, data-slot only, no class or motion   |
+| [[K-0121-radix-collapsible-api-data-state-and-height-variable]]                         | 0.8        | Radix Collapsible: props, data-state, height variable, Space, Enter   |
+| [[K-0122-radix-collapsible-source-aria-wiring-and-mount-animation]]                     | 0.8        | Radix source: aria-expanded; aria-controls only while open; hidden    |
+| [[K-0123-wai-aria-apg-disclosure-button-expanded-enter-space]]                          | 0.8        | APG Disclosure: button, aria-expanded, optional aria-controls         |
+| [[K-0124-wcag-2-2-motion-animation-excludes-opacity]]                                   | 0.8        | SC 2.3.3 motion animation excludes colour, blur and opacity           |
+| [[K-0125-wcag-2-2-pause-stop-hide-starts-automatically-includes-hover]]                 | 0.8        | SC 2.2.2: a button press is not automatic; hover and focus are        |
+| [[K-0126-synthesis-collapsible-benchmark]]                                              | 0.75       | Synthesis: Collapsible benchmark table, audit B form                  |
+| [[K-0127-ai-elements-inline-citation-hover-card-badge-and-carousel]]                    | 0.8        | AI Elements citation: no-delay hover card, hostname +N pill, carousel |
+| [[K-0128-ai-elements-sources-collapsible-count-trigger-and-links]]                      | 0.8        | AI Elements Sources: Collapsible, "Used {count} sources", no plural   |
+| [[K-0129-radix-hover-card-sighted-users-only-no-keyboard-content]]                      | 0.8        | Hover Card: sighted users only; content out of tab order, no touch    |
+| [[K-0130-radix-popover-dialog-pattern-trigger-wiring-and-focus]]                        | 0.8        | Radix Popover: dialog role, haspopup, Esc to trigger, non-modal       |
+| [[K-0131-untitled-ui-react-has-no-citation-or-source-list-component]]                   | 0.75       | Untitled UI React: no citation, quote or source list; tooltip nearest |
+| [[K-0132-wai-aria-apg-disclosure-and-button-for-a-popover-trigger]]                     | 0.8        | APG Disclosure and Button: what a panel-opening button follows        |
+| [[K-0133-wai-aria-apg-no-non-modal-dialog-pattern-tooltip-note]]                        | 0.8        | APG: no popover pattern; focusable hover content: non-modal dialog    |
+| [[K-0134-wcag-2-2-content-on-hover-or-focus-dismissible-hoverable-persistent]]          | 0.8        | SC 1.4.13 (AA): dismissible, hoverable, persistent on hover or focus  |
+| [[K-0135-synthesis-evidence-span-and-evidence-list-benchmark]]                          | 0.75       | Synthesis: EvidenceSpan and EvidenceList benchmark, audit B form      |
+| [[K-0136-untitled-ui-messaging-no-copy-action-no-scroll-button]]                        | 0.75       | Untitled Messaging: no copy action or scroll button; API table unread |
+| [[K-0137-shadcn-ui-message-footer-holds-actions-icon-buttons-need-aria-label]]          | 0.8        | shadcn Message: actions in MessageFooter, ghost icon, aria-label Copy |
+| [[K-0138-shadcn-ui-bubble-variants-and-no-action-slot]]                                 | 0.8        | shadcn Bubble: 7 variants (own count), no size, no action slot        |
+| [[K-0139-shadcn-ui-message-scroller-button-docs-and-styled-registry]]                   | 0.8        | shadcn scroll button: inert, tabIndex -1 when caught up; sr-only name |
+| [[K-0140-shadcn-react-message-scroller-primitive-smooth-default-8px-edge-blur]]         | 0.8        | @shadcn/react scroller: smooth default, 8 px edge, blur on press      |
+| [[K-0141-ai-elements-message-action-label-tooltip-and-copy-without-result-state]]       | 0.8        | AI Elements MessageAction: ghost icon-sm, sr-only label; no copied UI |
+| [[K-0142-ai-elements-conversation-scroll-button-unmounts-at-bottom-no-accessible-name]] | 0.8        | AI Elements scroll button: unmounts at bottom, smooth, no name        |
+| [[K-0143-synthesis-chat-copy-action-and-scroll-to-latest-benchmark]]                    | 0.75       | Synthesis: chat copy action and scroll-to-latest benchmark table      |

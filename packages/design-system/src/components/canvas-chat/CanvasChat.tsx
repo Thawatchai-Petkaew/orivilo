@@ -22,8 +22,11 @@ import { useBoard } from "../canvas-board/context";
 import { matches } from "../command-menu/CommandMenu";
 import { cx } from "../cx";
 import {
+  CheckIcon,
   ChatIcon,
+  ChevronDownIcon,
   CloseIcon,
+  CopyIcon,
   FillUnlinkedIcon,
   JumpIcon,
   MentionIcon,
@@ -109,6 +112,14 @@ const MAX_LENGTH = 2000;
 const COUNTER_FROM = 1800;
 /** Within this many pixels of the end, the transcript keeps following the newest reply. */
 const FOLLOW_SLACK = 32;
+/** How long "Reply copied" and the tick stay after the write resolves (ORV-217 copy-status-1). */
+const COPIED_MS = 2000;
+
+/** The one copy result of the chat: which reply, and whether the write worked. */
+interface CopyStatus {
+  exchangeId: number;
+  result: "copied" | "failed";
+}
 
 /** The "@query" that ends at the caret: at the start or after a space, no space inside. */
 function mentionToken(text: string, caret: number): { start: number; query: string } | null {
@@ -148,6 +159,12 @@ export function CanvasChat({
   const [draft, setDraft] = useState("");
   const [exchanges, setExchanges] = useState<readonly Exchange[]>([]);
   const [announcement, setAnnouncement] = useState("");
+  const [copyStatus, setCopyStatus] = useState<CopyStatus | null>(null);
+  // New text arrived while the reader was away from the end (ORV-217 latest-shown-1).
+  const [unseen, setUnseen] = useState(false);
+  const copyPress = useRef(0);
+  const copyTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const copyFrame = useRef(0);
   const nextId = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
   const composerRef = useRef<HTMLFormElement>(null);
@@ -228,6 +245,15 @@ export function CanvasChat({
 
   // The chat unmounting aborts the request in flight; nothing is announced or stored after it.
   useEffect(() => () => abortRef.current?.abort(), []);
+  // A copy result that arrives after unmount sets nothing: the press count moves on and the timer stops.
+  useEffect(
+    () => () => {
+      copyPress.current += 1;
+      clearTimeout(copyTimer.current);
+      cancelAnimationFrame(copyFrame.current);
+    },
+    [],
+  );
 
   const viewport = () =>
     rootRef.current?.querySelector<HTMLElement>(".ds-scroll__viewport") ?? null;
@@ -239,6 +265,7 @@ export function CanvasChat({
     if (!el) return;
     const onScroll = () => {
       follow.current = el.scrollHeight - el.scrollTop - el.clientHeight <= FOLLOW_SLACK;
+      if (follow.current) setUnseen(false);
     };
     el.addEventListener("scroll", onScroll, { passive: true });
     return () => el.removeEventListener("scroll", onScroll);
@@ -310,8 +337,10 @@ export function CanvasChat({
     setPickerOpen(found !== null && (pickerOpen || typed === "@"));
   };
 
-  const patch = (id: number, change: Partial<Exchange>) =>
+  const patch = (id: number, change: Partial<Exchange>) => {
+    if (!follow.current) setUnseen(true);
     setExchanges((list) => list.map((e) => (e.id === id ? { ...e, ...change } : e)));
+  };
 
   /** The button that had focus is about to unmount: move focus to the textarea instead (D2). */
   const keepFocus = () => {
@@ -363,6 +392,12 @@ export function CanvasChat({
       reply: undefined,
     };
     follow.current = true;
+    setUnseen(false);
+    if (retryId !== undefined && copyStatus?.exchangeId === retryId) {
+      copyPress.current += 1;
+      clearTimeout(copyTimer.current);
+      setCopyStatus(null);
+    }
     setExchanges((list) =>
       retryId === undefined ? [...list, fresh] : list.map((e) => (e.id === id ? fresh : e)),
     );
@@ -398,6 +433,48 @@ export function CanvasChat({
   const retry = (exchange: Exchange) => {
     start(exchange.request, exchange.mentionTitles, exchange.id);
     textarea()?.focus();
+  };
+
+  /** Puts the reply's text, exactly as shown, on the clipboard; success shows only after the write resolves. */
+  const copy = (exchange: Exchange) => {
+    const press = ++copyPress.current;
+    const settle = (result: CopyStatus["result"]) => {
+      // A later press, a Send again or an unmount has moved the count on: this result is stale.
+      if (press !== copyPress.current) return;
+      clearTimeout(copyTimer.current);
+      setCopyStatus({ exchangeId: exchange.id, result });
+      // The region is emptied first and written on the next frame, so a result with the same text as
+      // the one before (a second copy, a retry after a failure) is a change a screen reader announces.
+      const text = result === "copied" ? m.chat.copied : m.chat.copyFailed;
+      cancelAnimationFrame(copyFrame.current);
+      setAnnouncement("");
+      copyFrame.current = requestAnimationFrame(() => {
+        if (press === copyPress.current) setAnnouncement(text);
+      });
+      if (result === "copied") {
+        copyTimer.current = setTimeout(() => {
+          setCopyStatus(null);
+          setAnnouncement((text) => (text === m.chat.copied ? "" : text));
+        }, COPIED_MS);
+      }
+    };
+    // Not every context has a clipboard (an insecure page, a locked-down frame); that is a failure.
+    const clipboard: Clipboard | undefined = navigator.clipboard;
+    if (typeof clipboard?.writeText !== "function") return settle("failed");
+    // The rejection's message is never shown: it is the browser's, not ours.
+    clipboard.writeText(exchange.reply?.text ?? "").then(
+      () => settle("copied"),
+      () => settle("failed"),
+    );
+  };
+
+  /** Jumps to the end at once, follows again, and moves focus to the textarea before the button unmounts. */
+  const toLatest = () => {
+    const el = viewport();
+    if (el) el.scrollTop = el.scrollHeight;
+    follow.current = true;
+    textarea()?.focus();
+    setUnseen(false);
   };
 
   const close = () => {
@@ -506,6 +583,10 @@ export function CanvasChat({
               const linked = placed
                 ? board.graph.edges.some((e) => e.source === placed.id || e.target === placed.id)
                 : false;
+              // Copy is for a finished reply with text; "copied" for an empty string has nothing behind it.
+              const copyable = status === "done" && reply !== undefined && reply.text !== "";
+              const copyResult =
+                copyStatus?.exchangeId === exchange.id ? copyStatus.result : undefined;
               return (
                 <li key={exchange.id} className="ds-chat__exchange" data-state={status}>
                   <div className="ds-chat__question">
@@ -562,6 +643,19 @@ export function CanvasChat({
                           {status === "stopped" ? (
                             <span className="ds-chat__stopped">{m.chat.stopped}</span>
                           ) : null}
+                          {copyable ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              iconLeading={copyResult === "copied" ? <CheckIcon /> : <CopyIcon />}
+                              aria-label={fill(m.chat.copyLabel, {
+                                topic: replyTopic(exchange.request.text, locale),
+                              })}
+                              onClick={() => copy(exchange)}
+                            >
+                              {m.chat.copy}
+                            </Button>
+                          ) : null}
                           {placed ? (
                             <Button
                               variant="ghost"
@@ -583,6 +677,17 @@ export function CanvasChat({
                               {m.chat.unlinked}
                             </span>
                           ) : null}
+                          {copyable && copyResult === "copied" ? (
+                            <span className="ds-chat__copied">{m.chat.copied}</span>
+                          ) : null}
+                          {copyable && copyResult === "failed" ? (
+                            <span className="ds-chat__copy-failed">
+                              <span className="ds-chat__mark" aria-hidden="true">
+                                <WarningIcon />
+                              </span>
+                              <span>{m.chat.copyFailed}</span>
+                            </span>
+                          ) : null}
                         </div>
                       </>
                     )}
@@ -593,6 +698,18 @@ export function CanvasChat({
           </ol>
         )}
       </ScrollArea>
+      {unseen ? (
+        <div className="ds-chat__latest">
+          <Button
+            variant="secondary"
+            size="sm"
+            iconLeading={<ChevronDownIcon />}
+            onClick={toLatest}
+          >
+            {m.chat.toLatest}
+          </Button>
+        </div>
+      ) : null}
       <form className="ds-chat__composer" ref={composerRef} onSubmit={onFormSubmit}>
         {token ? (
           <div className="ds-chat__picker" ref={pickerRef}>
