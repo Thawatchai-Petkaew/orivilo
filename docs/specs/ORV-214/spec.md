@@ -69,7 +69,11 @@ session creates the issue; this spec does not.
 
 ## Rows per PR
 
-Filled in by the main session.
+- PR 181: rows 1, 2, 3, 4, 5
+
+## Rows that render nothing
+
+- Rows: 1, 2, 3, 4, 5
 
 ## Decisions this relies on
 
