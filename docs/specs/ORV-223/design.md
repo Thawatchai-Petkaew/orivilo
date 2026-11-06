@@ -1,6 +1,6 @@
 ---
 issue: ORV-223
-spec: docs/specs/ORV-223/spec.md v1.2
+spec: docs/specs/ORV-223/spec.md v1.4
 task: ORV-223-design-1
 date: 2026-11-06
 ---
@@ -16,7 +16,7 @@ Open question 7 keeps its default. Open question 9 keeps its default on the boar
 1. A person opens a board with no nodes. CanvasBoard's overlay shows the tile, the title and the host's action, centred. Nothing is spoken: the words are read in page order (`empty-live-1`).
 2. The person opens the task bar with no jobs. The panel shows the tile at the bar's start edge, the title over the description, and the action under them. The header still reads "ยังไม่มีงาน".
 3. The person presses the action. What it does is the host's; every action in the stories is mock.
-4. The last item leaves. The bar's own status says `taskBar.none` and the toggle takes focus. The board's status line says what was deleted and the region takes focus, one Tab from the action (`empty-focus-1`).
+4. The last item leaves. The bar's own status says `taskBar.none` and the toggle takes focus. The board's status line says what was deleted and the region takes focus, and the action is reached by Tab in page order after the toolbar (`empty-board-1`, spec row 20).
 5. A wait starts. The board's overlay shows the ring and the words once, and the always-mounted status line carries the same words out of sight. When the wait ends the overlay goes and the line returns to `message || status || ""` (`load-board-1`).
 
 `empty` is false while `loading` is true (`CanvasBoard.tsx` line 1073), so the two forms never show together.
