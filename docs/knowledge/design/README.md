@@ -73,3 +73,51 @@ Facts from outside design systems and standards that inform ORIVILO's own design
 | [[K-0168-wcag-f81-error-fields-by-color-alone]]                                | WCAG failure F81: required or error fields by colour only              |
 | [[K-0169-wcag-2-2-non-text-contrast-graphics-for-understanding]]               | WCAG 2.2 SC 1.4.11: which graphics need 3:1                            |
 | [[K-0170-synthesis-alert-and-featured-icon-benchmark]]                         | Synthesis of K-0158 to K-0169: Alert and FeaturedIcon table            |
+| [[K-0185-untitled-ui-avatar-sizes-props-and-slots]]                            | Untitled UI Avatar: sizes, props, slots, related components            |
+| [[K-0186-untitled-ui-avatar-fallback-chain-and-sticky-load-failure]]           | Untitled UI Avatar: fallback order and what a load failure does        |
+| [[K-0187-untitled-ui-avatar-one-indicator-and-unnamed-status-dot]]             | Untitled UI Avatar: indicators and what the status dot is              |
+| [[K-0188-untitled-ui-avatar-alt-repeats-visible-name-no-aria]]                 | Untitled UI Avatar: alt, aria, focus ring                              |
+| [[K-0189-shadcn-ui-avatar-parts-sizes-and-classes]]                            | shadcn/ui Avatar: parts, sizes, registry classes                       |
+| [[K-0190-shadcn-ui-avatar-fallback-text-children-no-icon-example]]             | shadcn/ui Avatar: what the fallback holds, alt in the samples          |
+| [[K-0191-shadcn-ui-avatar-badge-empty-span-no-status-meaning]]                 | shadcn/ui AvatarBadge: what it is and what it means                    |
+| [[K-0192-radix-avatar-three-parts-no-accessibility-text]]                      | Radix Avatar page: parts, props, what it does not state                |
+| [[K-0193-radix-avatar-source-preload-fallback-and-lost-alt]]                   | Radix Avatar source: load statuses, fallback timing, where alt goes    |
+| [[K-0194-base-ui-avatar-keep-mounted-and-broken-image-note]]                   | Base UI Avatar: fallback, keepMounted, accessible name note            |
+| [[K-0195-wcag-2-2-non-text-content-decoration-and-null-alt]]                   | WCAG 2.2 SC 1.1.1 and H67: text alternative or ignored                 |
+| [[K-0196-wai-images-tutorial-image-described-by-adjacent-text]]                | WAI tutorial: image described by adjacent text                         |
+| [[K-0197-wcag-2-2-h2-image-and-text-in-one-link]]                              | H2 and the WAI tutorial: image with text in a link, image alone        |
+| [[K-0198-whatwg-html-alt-for-a-face-beside-text]]                              | WHATWG HTML: alt for a face beside text, in a caption, in a control    |
+| [[K-0199-wai-aria-1-2-img-name-presentation-and-aria-label]]                   | WAI-ARIA 1.2: role img, role presentation, aria-hidden, aria-label     |
+| [[K-0200-aria-in-html-img-rows]]                                               | ARIA in HTML: which roles and attributes an img may take               |
+| [[K-0201-wcag-2-2-use-of-color-and-non-text-contrast-for-a-dot]]               | WCAG 2.2 SC 1.4.1 and 1.4.11 as they bear on a status dot              |
+| [[K-0202-initials-for-thai-silence-and-charat]]                                | Do the sources say how to make Thai initials; what getInitials does    |
+| [[K-0203-synthesis-avatar-benchmark]]                                          | Synthesis of K-0185 to K-0202: Avatar benchmark table                  |
+| [[K-0260-untitled-ui-file-uploaders-examples-and-props]]                       | Untitled UI file uploaders: examples, parts, props, sizes, variants    |
+| [[K-0261-untitled-ui-list-progress-bar-and-fill-items]]                        | Untitled UI upload list: progress, complete, item forms                |
+| [[K-0262-untitled-ui-failed-item-try-again-and-delete]]                        | Untitled UI failed item: text, retry, delete                           |
+| [[K-0263-untitled-ui-size-and-type-limits-and-silent-drop]]                    | Untitled UI size and type limits: checks, callbacks, rejection         |
+| [[K-0264-untitled-ui-drop-zone-keyboard-and-screen-reader]]                    | Untitled UI drop zone for keyboard and screen reader users             |
+| [[K-0265-untitled-ui-progress-indicators-no-accessible-name]]                  | Untitled UI progress indicators: role, value, accessible name          |
+| [[K-0266-untitled-ui-file-trigger-and-inputs-file-upload-example]]             | Untitled UI FileTrigger and the Inputs file upload example             |
+| [[K-0267-shadcn-ui-no-dropzone-input-type-file-example]]                       | Does shadcn/ui have a dropzone; its Input type file example            |
+| [[K-0268-shadcn-ui-attachment-parts-sizes-and-props]]                          | shadcn/ui Attachment: parts, props, sizes, orientation                 |
+| [[K-0269-shadcn-ui-attachment-states-retry-and-cancel-samples]]                | shadcn/ui Attachment: states, retry, cancel, progress text             |
+| [[K-0270-shadcn-ui-attachment-accessibility-and-no-aria-in-source]]            | shadcn/ui Attachment: accessibility guidance and ARIA in the source    |
+| [[K-0271-shadcn-ui-progress-upload-label-and-field-error-alert]]               | shadcn/ui Progress upload label, FieldError and invalid styling        |
+| [[K-0272-radix-has-no-file-or-dropzone-primitive]]                             | Does Radix have a file input, upload or dropzone primitive             |
+| [[K-0273-radix-progress-api-and-source-no-accessible-name]]                    | Radix Progress: props, data states, ARIA in the source                 |
+| [[K-0274-radix-form-message-and-focus-first-invalid]]                          | Radix Form: validation message, focus on an invalid submit             |
+| [[K-0275-wcag-2-2-dragging-movements-single-pointer-alternative]]              | WCAG 2.2 SC 2.5.7 Dragging Movements and its scope                     |
+| [[K-0276-wcag-2-2-keyboard-and-the-drag-and-drop-example]]                     | WCAG 2.2 SC 2.1.1 Keyboard and its drag and drop example               |
+| [[K-0277-wcag-2-2-status-messages-progress-and-error-techniques]]              | WCAG 2.2 SC 4.1.3 techniques for errors and for progress               |
+| [[K-0278-wcag-2-2-aria25-aria27-file-upload-progress-announcing]]              | WCAG techniques ARIA25 and ARIA27: file upload progress                |
+| [[K-0279-wcag-2-2-error-identification-in-text]]                               | WCAG 2.2 SC 3.3.1 Error Identification                                 |
+| [[K-0280-wcag-2-2-error-suggestion-for-allowed-values]]                        | WCAG 2.2 SC 3.3.3 Error Suggestion                                     |
+| [[K-0281-wcag-2-2-labels-or-instructions-expected-format]]                     | WCAG 2.2 SC 3.3.2 Labels or Instructions                               |
+| [[K-0282-wai-aria-apg-no-file-or-drag-pattern-meter-note]]                     | WAI-ARIA APG: file or drag pattern, meter against progress             |
+| [[K-0283-wai-aria-1-2-progressbar-role-and-region-loading]]                    | WAI-ARIA 1.2 role progressbar                                          |
+| [[K-0284-wai-aria-1-2-grabbed-and-dropeffect-deprecated]]                      | WAI-ARIA 1.2 aria-grabbed and aria-dropeffect                          |
+| [[K-0285-aria-in-html-input-file-takes-no-role]]                               | ARIA in HTML: input type file and the progress element                 |
+| [[K-0286-html-accept-is-a-hint-back-it-on-the-server]]                         | HTML and MDN: accept, multiple, hiding a file input                    |
+| [[K-0287-react-aria-dropzone-takes-a-file-trigger-child]]                      | React Aria DropZone: file picking, labels, keyboard text               |
+| [[K-0288-synthesis-file-upload-benchmark]]                                     | Synthesis of K-0260 to K-0287: file upload benchmark table             |

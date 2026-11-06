@@ -70,7 +70,10 @@ export interface FieldProps {
    * `span` with an id, and the control names itself with `aria-labelledby` (field-group-1).
    */
   group?: boolean | undefined;
-  /** One control: Input, Textarea or Select, or with `group`, a RadioGroup. */
+  /**
+   * One control: Input, Textarea, Select, or the file input inside FileUpload; with `group`, a
+   * RadioGroup.
+   */
   children: ReactNode;
 }
 

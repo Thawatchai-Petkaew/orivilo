@@ -14,7 +14,9 @@ import {
   lastShadowColor,
   offCentreReport,
   outsideCorner,
+  paintDifference,
   paintMatches,
+  paintRegion,
   parseCssColor,
   readGeometries,
   viewBoxToBox,
@@ -943,5 +945,74 @@ describe("clipEdgeRow", () => {
     expect(inkCutAbove(shot(null), shot(10), clipEdgeRow(12, 0, 1), 1)).toBe(2);
     // A row above the clip edge is a real cut with padding too.
     expect(inkCutAbove(shot(null), shot(6), edge, 1)).toBe(2);
+  });
+});
+
+describe("paintDifference", () => {
+  const row = (...px: Rgb[]) => px;
+
+  it("reads two equal regions as 0", () => {
+    expect(paintDifference([row(white, blue)], [row(white, blue)])).toBe(0);
+  });
+
+  it("counts each pixel that is over the tolerance of 12", () => {
+    expect(paintDifference([row(white, white, blue)], [row(white, blue, white)])).toBe(2);
+  });
+
+  it("reads a pixel 12 apart as the same and 13 apart as different", () => {
+    expect(paintDifference([row([100, 100, 100])], [row([104, 104, 104])])).toBe(0);
+    expect(paintDifference([row([100, 100, 100])], [row([104, 104, 105])])).toBe(1);
+  });
+
+  it("sees a faint fault that the ink distance of 48 would pass", () => {
+    expect(paintDifference([row([240, 240, 240])], [row([220, 240, 240])])).toBe(1);
+  });
+
+  it("throws on two regions of different sizes, in rows and in columns", () => {
+    expect(() => paintDifference([row(white)], [row(white), row(white)])).toThrow(/same size/);
+    expect(() => paintDifference([row(white)], [row(white, white)])).toThrow(/same size/);
+  });
+});
+
+describe("paintRegion", () => {
+  /** A 10 by 10 shot whose red channel holds the column and green the row. */
+  const shot = (() => {
+    const data = new Uint8ClampedArray(10 * 10 * 4);
+    for (let y = 0; y < 10; y++) {
+      for (let x = 0; x < 10; x++) data.set([x, y, 0, 255], (y * 10 + x) * 4);
+    }
+    return { data, width: 10 };
+  })();
+  const frame = { left: 100, top: 50, width: 10 };
+
+  it("reads the box plus 2 px on every side", () => {
+    const rows = paintRegion(shot, frame, { left: 103, top: 53, width: 2, height: 2 });
+    expect(rows).toHaveLength(6);
+    expect(rows[0]).toHaveLength(6);
+    expect(rows[0]?.[0]).toEqual([1, 1, 0]);
+    expect(rows[5]?.[5]).toEqual([6, 6, 0]);
+  });
+
+  it("anchors at the rounded position: a quarter stays, a half and three quarters go on", () => {
+    const at = (offset: number) =>
+      paintRegion(shot, frame, {
+        left: 103 + offset,
+        top: 53 + offset,
+        width: 2,
+        height: 2,
+      })[0]?.[0];
+    expect(at(0.25)).toEqual([1, 1, 0]);
+    expect(at(0.5)).toEqual([2, 2, 0]);
+    expect(at(0.75)).toEqual([2, 2, 0]);
+  });
+
+  it("reads a shot at twice the scale in device pixels", () => {
+    const wide = { data: new Uint8ClampedArray(20 * 20 * 4), width: 20 };
+    for (let y = 0; y < 20; y++) {
+      for (let x = 0; x < 20; x++) wide.data.set([x, y, 0, 255], (y * 20 + x) * 4);
+    }
+    const rows = paintRegion(wide, frame, { left: 103, top: 53, width: 2, height: 2 });
+    expect(rows).toHaveLength(12);
+    expect(rows[0]?.[0]).toEqual([2, 2, 0]);
   });
 });

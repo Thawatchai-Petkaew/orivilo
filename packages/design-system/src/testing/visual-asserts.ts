@@ -1352,3 +1352,144 @@ export async function expectFrameCutsNoInk(el: HTMLElement, frame: HTMLElement) 
     });
   }
 }
+
+/** CSS px of page read around a disc's box, so ink that strays past the edge shows. */
+const PAINT_MARGIN = 2;
+
+export interface PaintShot {
+  data: Uint8ClampedArray;
+  width: number;
+}
+
+/**
+ * The pixel rows of `rect` plus `PAINT_MARGIN` CSS px on every side, read from a shot of the box
+ * `frame`. The box paints on the rounded pixel, so the region is anchored at `Math.round` of the
+ * box's position in the frame: `Math.floor` reads one row off at a half or three quarters of a
+ * pixel and goes red on good CSS. Plain numbers, so the anchor is tested in node.
+ */
+export function paintRegion(
+  shot: PaintShot,
+  frame: { left: number; top: number; width: number },
+  rect: { left: number; top: number; width: number; height: number },
+): Rgb[][] {
+  const scale = shot.width / frame.width;
+  const margin = Math.round(PAINT_MARGIN * scale);
+  const left = Math.round((rect.left - frame.left) * scale) - margin;
+  const top = Math.round((rect.top - frame.top) * scale) - margin;
+  const width = Math.round(rect.width * scale) + 2 * margin;
+  const height = Math.round(rect.height * scale) + 2 * margin;
+  const rows: Rgb[][] = [];
+  for (let y = top; y < top + height; y++) {
+    const row: Rgb[] = [];
+    for (let x = left; x < left + width; x++) {
+      const at = (y * shot.width + x) * 4;
+      row.push([shot.data[at] ?? 0, shot.data[at + 1] ?? 0, shot.data[at + 2] ?? 0]);
+    }
+    rows.push(row);
+  }
+  return rows;
+}
+
+/**
+ * How many pixels of `a` differ from the same pixel of `b` by more than `PAINT_TOLERANCE` (the
+ * summed RGB distance). It is not `INK_DISTANCE`: at 48 a faint fault in a light disc reads 0 and
+ * the play passes on it. Both regions must be the same size.
+ */
+export function paintDifference(
+  a: readonly (readonly Rgb[])[],
+  b: readonly (readonly Rgb[])[],
+): number {
+  if (a.length !== b.length || a.some((row, y) => row.length !== b[y]?.length)) {
+    throw new Error("paintDifference needs two regions of the same size");
+  }
+  let differing = 0;
+  a.forEach((row, y) => {
+    row.forEach((px, x) => {
+      if (distance(px, b[y]?.[x] as Rgb) > PAINT_TOLERANCE) differing++;
+    });
+  });
+  return differing;
+}
+
+/** The part of `n` after the point, 0 to under 1. */
+const fractionOf = (n: number) => n - Math.floor(n);
+
+/** True when `n` sits within 0.02 px of a position that is `offset` after a whole pixel. */
+function sitsAt(n: number, offset: number): boolean {
+  const gap = Math.abs(fractionOf(n) - offset);
+  return Math.min(gap, 1 - gap) <= 0.02;
+}
+
+/**
+ * Asserts each of `discs` keeps the paint it has on a whole pixel when it sits `offsets` of a
+ * pixel off the grid in both axes (ORV-224 row R1). `frame` is shot at offset 0, then once per
+ * offset; the discs move by layout, with `padding-block-start` and `padding-inline-start` of
+ * `4 + offset` px and `padding-block-end` of `4 - offset` px, so the shot keeps its size. A
+ * transform would carry the box and its clip together and show no fault, so none is used. The
+ * frame must start on a whole pixel and each disc must sit at `offset` after one, so an offset that
+ * did nothing is red. Every disc, plus a margin, must differ from its offset-0 region by no pixel
+ * over `PAINT_TOLERANCE`. The inline padding is put back in `finally`. It reads device scale 1, the
+ * Storybook project's. It runs where Vitest browser mode runs; a play guards the call with `inVitest`.
+ */
+export async function expectPaintHolds(
+  frame: HTMLElement,
+  discs: readonly HTMLElement[],
+  offsets: readonly number[],
+) {
+  expect(discs.length, `${label(frame)} holds no disc to read`).toBeGreaterThan(0);
+  const saved = {
+    paddingBlockStart: frame.style.paddingBlockStart,
+    paddingInlineStart: frame.style.paddingInlineStart,
+    paddingBlockEnd: frame.style.paddingBlockEnd,
+  };
+  const read = async (offset: number) => {
+    frame.style.paddingBlockStart = `${4 + offset}px`;
+    frame.style.paddingInlineStart = `${4 + offset}px`;
+    frame.style.paddingBlockEnd = `${4 - offset}px`;
+    const box = frame.getBoundingClientRect();
+    expect(
+      sitsAt(box.left, 0) && sitsAt(box.top, 0),
+      `${label(frame)} sits at ${box.left}, ${box.top}, not on a whole pixel`,
+    ).toBe(true);
+    for (const disc of discs) {
+      const at = disc.getBoundingClientRect();
+      expect(
+        sitsAt(at.left, offset) && sitsAt(at.top, offset),
+        `${label(disc)} sits at ${at.left}, ${at.top}, not ${offset} px after a whole pixel`,
+      ).toBe(true);
+    }
+    const shot = await shoot(frame);
+    return discs.map((disc) => paintRegion(shot, box, disc.getBoundingClientRect()));
+  };
+  try {
+    const whole = await read(0);
+    for (const offset of offsets) {
+      const moved = await read(offset);
+      moved.forEach((region, i) => {
+        const differing = paintDifference(whole[i] ?? [], region);
+        expect(
+          differing,
+          `${label(discs[i] as HTMLElement)} paints ${differing} px unlike its whole-pixel paint at an offset of ${offset} px`,
+        ).toBe(0);
+      });
+    }
+  } finally {
+    Object.assign(frame.style, saved);
+  }
+}
+
+/**
+ * Asserts `a` and `b` paint the same, disc and margin, from one shot of `scope` (ORV-224 row R2):
+ * a line a link draws through the letter in `b` and not in `a` shows as differing pixels. Each
+ * region is anchored as `paintRegion` does. It runs where Vitest browser mode runs; a play guards
+ * the call with `inVitest`.
+ */
+export async function expectSamePaint(scope: Element, a: Element, b: Element) {
+  const shot = await shoot(scope);
+  const frame = scope.getBoundingClientRect();
+  const differing = paintDifference(
+    paintRegion(shot, frame, a.getBoundingClientRect()),
+    paintRegion(shot, frame, b.getBoundingClientRect()),
+  );
+  expect(differing, `${label(b)} paints ${differing} px unlike ${label(a)}`).toBe(0);
+}
