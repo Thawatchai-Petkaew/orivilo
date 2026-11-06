@@ -3,7 +3,7 @@ issue: ORV-240 (https://tpetkaew.atlassian.net/browse/ORV-240), the Alert slice 
 lane: L (as ORV-222)
 mode: POC mode short spec (`.claude/skills/ovl/SKILL.md`, section "POC mode")
 parent: docs/specs/ORV-222/spec.md v1.3, with docs/specs/ORV-222/design.md
-version: 1.0
+version: 1.1
 ---
 
 # ORV-240: Alert (ORV-222 slice)
@@ -65,7 +65,7 @@ Row 20 is a type check and a source search, row 21 is catalog and copy checks, a
 
 ## Rows per PR
 
-One PR is planned for rows 9 to 23. The main session adds its line here, in the form `qa-scope-1` reads, with a changelog line once the PR exists.
+- PR 191: rows 9-23
 
 ## Rules and bounds
 
@@ -117,4 +117,5 @@ This story derives no number and adds no method. W2 (row 10) and W4 (row 19) sta
 
 ## Changelog
 
+- v1.1 (2026-11-06): by the main session. Rows per PR gains the line for PR 191. No requirement changes.
 - v1.0 (2026-11-06): slice spec split from ORV-222 spec v1.3 (L-0016). Rows 9 to 23 copied with their numbers and no new requirement; row 22 names ORV-240 for its Jira comment, and row 23 keeps its Alert half. Downstream to review: the builder envelope (rows 9 to 23, one PR), the qa envelope (the Rows per PR line once the PR exists), and the parent spec, which does not name ORV-240 yet.
