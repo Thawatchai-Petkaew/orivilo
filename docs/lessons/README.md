@@ -119,3 +119,6 @@ Status: proposed
 | [[L-0047-gate-run-with-an-inline-env-prefix]]                | ORV-133                | Export gate variables first; an inline prefix writes no gate record        |
 | [[L-0048-grant-form-asked-before-the-verdict]]               | ORV-133                | A red CI goes to the re-check; the grant form waits for the verdicts       |
 | [[L-0049-derived-figures-not-walked-against-cited-pages]]    | ORV-131                | Research walks each range, set-aside claim and Index label to its pages    |
+| [[L-0050-poc-bookkeeping-edited-outside-every-write-set]]    | ORV-217                | A bookkeeping edit runs in an envelope whose write_set names its file      |
+| [[L-0051-spec-written-before-its-benchmark-research]]        | ORV-217                | Benchmark research runs before the spec for a row no entry answers         |
+| [[L-0052-status-ac-had-no-repeat-row]]                       | ORV-217                | A live-region AC has a row that sets the same text twice                   |
