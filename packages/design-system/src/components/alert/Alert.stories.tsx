@@ -372,6 +372,10 @@ export const Dismissible: Story = {
     );
     for (let i = 0; i < 8 && document.activeElement !== danger; i += 1) await userEvent.tab();
     await expect(document.activeElement).toBe(danger);
+    // Escape with focus inside a block does nothing either: a handler on the block would see it here.
+    await userEvent.keyboard("{Escape}");
+    await expect(onDismiss).toHaveBeenCalledTimes(0);
+    await expect(alertsOf(canvasElement)).toHaveLength(4);
     await userEvent.keyboard("{Enter}");
     await expect(onDismiss).toHaveBeenCalledTimes(1);
     await expect(onDismiss).toHaveBeenCalledWith("danger");
