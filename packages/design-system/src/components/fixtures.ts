@@ -606,3 +606,19 @@ export const chatFixtures = {
   /** Ends without a snapshot. */
   hostEmpty: async function* (): AsyncGenerator<ChatReply> {} as ChatHost,
 } as const;
+
+/**
+ * Calendar story dates (ORV-231): mock `IsoDate`s around one fixed "today", so no play reads the
+ * clock. November 2026 has 30 days over five rows with a Sunday start.
+ */
+export const calendarFixtures = {
+  today: "2026-11-06",
+  selected: "2026-11-12",
+  /** The first and last day that can be pressed in the bounds stories. */
+  min: "2026-11-03",
+  max: "2026-11-24",
+  /** A day inside the bounds that the caller blocks. */
+  blocked: "2026-11-18",
+  /** The caller's own button in the controlled-clear story: caller text, not a catalog key. */
+  clear: { th: "ล้างวันที่", en: "Clear date" },
+} as const;

@@ -5563,6 +5563,165 @@ button.ds-tag__main {
   letter-spacing: var(--ds-type-body-sm-letter-spacing);
 }
 
+/* Calendar (ORV-231, cal-look-1) ------------------------------------------------------------ */
+/*
+ * A month grid for one date. Selected is the selection ground with an edge, never the brand; every
+ * state differs by more than colour: hover has an edge, selected has an edge, today is underlined,
+ * disabled is struck through, focus is the border form. No opacity and no animation. The recipe
+ * sets no overflow on the calendar, the grid or the heading, so a Thai mark or a focus halo is
+ * never cut. `--_cell` is the cell size from a 360 px viewport up and shrinks under it so the
+ * seven columns still fit (the 2px is a popover's two borders).
+ */
+.ds-calendar {
+  --_cell: min(
+    var(--cmp-calendar-cell-size),
+    calc((100vw - 2 * var(--ds-space-gutter) - 2 * var(--cmp-calendar-padding) - 2px) / 7)
+  );
+  position: relative;
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  padding: var(--cmp-calendar-padding);
+  border-radius: var(--cmp-calendar-radius);
+  background: var(--cmp-calendar-bg);
+  color: var(--cmp-calendar-fg);
+}
+.ds-calendar__months {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cmp-calendar-months-gap);
+}
+/* The two month buttons float over the captions, so they span both months. */
+.ds-calendar__nav {
+  position: absolute;
+  inset-block-start: var(--cmp-calendar-padding);
+  inset-inline: calc(
+    var(--cmp-calendar-padding) + (var(--_cell) - var(--cmp-button-height-sm)) / 2
+  );
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+}
+.ds-calendar__nav > .ds-button {
+  position: relative;
+  pointer-events: auto;
+}
+/* The look stays sm; the press area reaches size.touch. */
+.ds-calendar__nav > .ds-button::after {
+  content: "";
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  inline-size: var(--cmp-calendar-cell-size);
+  block-size: var(--cmp-calendar-cell-size);
+  translate: -50% -50%;
+}
+/* A month reserves six rows, so the panel and the Next button hold at four, five and six rows. */
+.ds-calendar__month {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmp-calendar-gap);
+  inline-size: calc(7 * var(--_cell));
+  min-block-size: calc(
+    2 * var(--cmp-button-height-sm) + var(--cmp-calendar-gap) + 6 *
+      (var(--_cell) + var(--cmp-calendar-row-gap))
+  );
+}
+.ds-calendar__caption {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: var(--cmp-button-height-sm);
+}
+.ds-calendar__heading {
+  font-family: var(--cmp-calendar-heading-type-font-family);
+  font-size: var(--cmp-calendar-heading-type-font-size);
+  line-height: var(--cmp-calendar-heading-type-line-height);
+  font-weight: var(--cmp-calendar-heading-type-font-weight);
+  letter-spacing: var(--cmp-calendar-heading-type-letter-spacing);
+}
+.ds-calendar__grid {
+  inline-size: 100%;
+  margin-block: calc(-1 * var(--cmp-calendar-row-gap));
+  border-collapse: separate;
+  border-spacing: 0 var(--cmp-calendar-row-gap);
+  table-layout: fixed;
+}
+.ds-calendar__weekday {
+  block-size: var(--cmp-button-height-sm);
+  padding: 0;
+  color: var(--cmp-calendar-weekday-fg);
+  font-family: var(--cmp-calendar-weekday-type-font-family);
+  font-size: var(--cmp-calendar-weekday-type-font-size);
+  line-height: var(--cmp-calendar-weekday-type-line-height);
+  font-weight: var(--cmp-calendar-weekday-type-font-weight);
+  letter-spacing: var(--cmp-calendar-weekday-type-letter-spacing);
+  text-align: center;
+}
+.ds-calendar__day {
+  position: relative;
+  inline-size: var(--_cell);
+  block-size: var(--_cell);
+  padding: 0;
+}
+/* The button fills its cell's width, so a calendar in a narrow column narrows its days and keeps their height. */
+.ds-calendar__day-button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  inline-size: 100%;
+  block-size: var(--_cell);
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--cmp-calendar-day-radius);
+  background: transparent;
+  color: var(--cmp-calendar-fg);
+  font-family: var(--cmp-calendar-day-type-font-family);
+  font-size: var(--cmp-calendar-day-type-font-size);
+  line-height: var(--cmp-calendar-day-type-line-height);
+  font-weight: var(--cmp-calendar-day-type-font-weight);
+  letter-spacing: var(--cmp-calendar-day-type-letter-spacing);
+  text-decoration-skip-ink: none;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.25em;
+  cursor: pointer;
+}
+/* Hover never reaches a disabled day (its ink falls under 3.0 on the hover ground) or a focused one. */
+.ds-calendar__day-button:hover:not(:disabled):not([aria-disabled="true"]):not(:focus-visible) {
+  border-color: var(--cmp-calendar-day-hover-edge);
+  background: var(--cmp-calendar-day-hover-bg);
+}
+.ds-calendar__day[data-today] > .ds-calendar__day-button {
+  text-decoration-line: underline;
+}
+.ds-calendar__day[data-selected] > .ds-calendar__day-button {
+  border-color: var(--cmp-calendar-day-selected-edge);
+  background: var(--cmp-calendar-day-selected-bg);
+  color: var(--cmp-calendar-day-selected-fg);
+}
+.ds-calendar__day[data-selected]
+  > .ds-calendar__day-button:hover:not(:disabled):not([aria-disabled="true"]):not(:focus-visible) {
+  border-color: var(--cmp-calendar-day-hover-edge);
+  background: var(--cmp-calendar-day-selected-bg);
+}
+/* Disabled and focus are raised to the cell's child so they beat the selected rule above. */
+.ds-calendar__day > .ds-calendar__day-button:is(:disabled, [aria-disabled="true"]) {
+  color: var(--cmp-calendar-day-disabled-fg);
+  text-decoration-line: line-through;
+  text-decoration-thickness: 1px;
+  cursor: not-allowed;
+}
+.ds-calendar__day[data-today] > .ds-calendar__day-button:is(:disabled, [aria-disabled="true"]) {
+  text-decoration-line: underline line-through;
+}
+.ds-calendar__day > .ds-calendar__day-button:focus-visible {
+  z-index: 1;
+  border-color: var(--ds-focus-ring);
+  outline: 1px solid transparent;
+  outline-offset: 0;
+  box-shadow: var(--_focus-shadow-border);
+}
+
 /* Page header (ORV-225, page-header-slots-1, header-type-1, header-stack-1): a title, a line of
  * description, a row of labels and the page's actions. The root is a size container named
  * ds-page-header, because the parts nest in each other and in the screen's own container; a

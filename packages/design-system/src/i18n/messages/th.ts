@@ -515,6 +515,28 @@ export const th = {
     noDownstream: "ไม่มี node ปลายทาง",
     connectCancelled: "ยกเลิกการต่อสาย",
   },
+  calendar: {
+    previousMonth: "เดือนก่อนหน้า",
+    nextMonth: "เดือนถัดไป",
+    navigation: "เปลี่ยนเดือน",
+    dayToday: "วันนี้ {date}",
+    daySelected: "{date} เลือกแล้ว",
+    dayTodaySelected: "วันนี้ {date} เลือกแล้ว",
+    weekdayShortSun: "อา.",
+    weekdayShortMon: "จ.",
+    weekdayShortTue: "อ.",
+    weekdayShortWed: "พ.",
+    weekdayShortThu: "พฤ.",
+    weekdayShortFri: "ศ.",
+    weekdayShortSat: "ส.",
+    weekdayFullSun: "วันอาทิตย์",
+    weekdayFullMon: "วันจันทร์",
+    weekdayFullTue: "วันอังคาร",
+    weekdayFullWed: "วันพุธ",
+    weekdayFullThu: "วันพฤหัสบดี",
+    weekdayFullFri: "วันศุกร์",
+    weekdayFullSat: "วันเสาร์",
+  },
 };
 
 export type Messages = typeof th;

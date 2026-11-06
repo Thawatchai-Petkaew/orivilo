@@ -137,6 +137,87 @@ describe("the logo recipe (ORV-118, logo-colour-1)", () => {
   });
 });
 
+/**
+ * The calendar recipe reads only the names `cal-look-1` opens with. The guard reads the CSS text
+ * and blocks four forms in a `.ds-calendar` rule: a `var()` of another component token, a `var()`
+ * of a semantic token other than the two named, a `var()` of a primitive, and an `overflow`,
+ * `overflow-x` or `overflow-y` declaration.
+ */
+const CALENDAR_OWN = /^--cmp-calendar-[a-z0-9-]+$/;
+const CALENDAR_BORROWED = new Set([
+  "--ds-focus-ring",
+  "--ds-space-gutter",
+  "--cmp-button-height-sm",
+  // Locals: the shared focus halo (orivilo.css) and the calendar's own cell size.
+  "--_focus-shadow-border",
+  "--_cell",
+]);
+
+function calendarFindings(source: string): string[] {
+  const bare = source.replace(/\/\*[\s\S]*?\*\//g, "");
+  const found: string[] = [];
+  for (const m of bare.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    const selector = (m[1] ?? "").trim().replace(/\s+/g, " ");
+    if (!/\.ds-calendar(?![\w-])|\.ds-calendar__/.test(selector)) continue;
+    const body = m[2] ?? "";
+    for (const use of body.matchAll(/var\((--[a-z0-9_-]+)/g)) {
+      const name = use[1] ?? "";
+      if (!CALENDAR_OWN.test(name) && !CALENDAR_BORROWED.has(name))
+        found.push(`${selector}: var(${name})`);
+    }
+    for (const decl of body.matchAll(/^\s*(overflow(?:-[xy])?)\s*:/gm))
+      found.push(`${selector}: ${decl[1]}`);
+  }
+  return found;
+}
+
+describe("the calendar recipe (ORV-231, cal-look-1)", () => {
+  it("reads only the calendar tokens, the named borrowed names and its locals, and sets no overflow", () => {
+    expect(calendarFindings(css)).toEqual([]);
+  });
+
+  it("finds each blocked form in a failing sample", () => {
+    const rule = (decl: string) => `.ds-calendar__grid {\n  ${decl}\n}`;
+    // Another component token, a semantic token outside the two named, a primitive, and each overflow form.
+    expect(calendarFindings(rule("color: var(--cmp-popover-fg);"))).toEqual([
+      ".ds-calendar__grid: var(--cmp-popover-fg)",
+    ]);
+    expect(calendarFindings(rule("color: var(--ds-text-primary);"))).toEqual([
+      ".ds-calendar__grid: var(--ds-text-primary)",
+    ]);
+    expect(calendarFindings(rule("color: var(--op-neutral-900);"))).toEqual([
+      ".ds-calendar__grid: var(--op-neutral-900)",
+    ]);
+    expect(calendarFindings(rule("overflow: hidden;"))).toEqual([".ds-calendar__grid: overflow"]);
+    expect(calendarFindings(rule("overflow-x: auto;"))).toEqual([".ds-calendar__grid: overflow-x"]);
+    expect(calendarFindings(rule("overflow-y: clip;"))).toEqual([".ds-calendar__grid: overflow-y"]);
+    // The root selector itself, and a rule outside the calendar, which the guard leaves alone.
+    expect(calendarFindings(".ds-calendar {\n  color: var(--ds-text-primary);\n}")).toHaveLength(1);
+    expect(calendarFindings(".ds-popover {\n  overflow: hidden;\n}")).toEqual([]);
+  });
+
+  it("lists the pairs of cal-look-1: four at 4.5 and nine at 3", () => {
+    const pairs = RECIPE_PAIRS.filter((p) => p.recipe === "calendar");
+    expect(pairs.filter((p) => p.floor === 4.5).map((p) => `${p.fg} on ${p.bg}`)).toEqual([
+      "calendar.fg on calendar.bg",
+      "calendar.weekday-fg on calendar.bg",
+      "calendar.fg on calendar.day-hover-bg",
+      "calendar.day-selected-fg on calendar.day-selected-bg",
+    ]);
+    expect(pairs.filter((p) => p.floor === 3).map((p) => `${p.fg} on ${p.bg}`)).toEqual([
+      "calendar.day-selected-edge on calendar.bg",
+      "calendar.day-hover-edge on calendar.bg",
+      "calendar.day-disabled-fg on calendar.bg",
+      "calendar.day-selected-edge on calendar.day-selected-bg",
+      "calendar.day-hover-edge on calendar.day-hover-bg",
+      "calendar.day-hover-edge on calendar.day-selected-bg",
+      "calendar.day-disabled-fg on calendar.day-selected-bg",
+      "ds:focus.ring on calendar.bg",
+      "ds:focus.ring on calendar.day-selected-bg",
+    ]);
+  });
+});
+
 describe("the menu listbox (ORV-204, menu-separator-1, menu-label-1, menu-disabled-pair-1)", () => {
   const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
   const body = (selector: string) =>

@@ -390,3 +390,33 @@ Keep this table in step with the folder when you add an entry.
 | [[K-0317-wcag-2-2-on-input-and-name-role-value-for-a-custom-list]]                      | 0.8        | WCAG SC 3.2.2 and 4.1.2 for a custom list and its chosen value        |
 | [[K-0318-wcag-2-2-keyboard-and-focus-order-no-rule-after-removal]]                      | 0.75       | WCAG SC 2.1.1 and 2.4.3: no rule for focus after a removal            |
 | [[K-0319-synthesis-combobox-and-multi-select-benchmark]]                                | 0.75       | Synthesis: Combobox and Multi-select benchmark, audit B form          |
+| [[K-0380-untitled-ui-date-picker-forms-and-react-aria]]                                 | 0.8        | Untitled date pickers: seven examples (own count), React Aria base    |
+| [[K-0381-untitled-ui-date-picker-trigger-apply-and-cancel]]                             | 0.8        | Untitled picker: Apply and Cancel; value changes before Apply         |
+| [[K-0382-untitled-ui-date-range-presets-and-breakpoints]]                               | 0.8        | Untitled range: nine presets (page figure), sidebar from lg           |
+| [[K-0383-untitled-ui-calendar-props-header-and-today-button]]                           | 0.8        | Untitled Calendar: children slot, Today button, two months from md    |
+| [[K-0384-untitled-ui-calendar-cell-states]]                                             | 0.8        | Untitled day cell: state list, brand fill, opacity-50 outside days    |
+| [[K-0385-untitled-ui-calendars-page-is-an-event-calendar]]                              | 0.8        | Untitled Calendars page: an event schedule, not a date picker         |
+| [[K-0386-untitled-ui-libraries-versions-and-licenses]]                                  | 0.8        | Untitled MIT; React Aria 1.22.1 and date 3.12.4 Apache-2.0 on main    |
+| [[K-0387-react-aria-calendar-grid-keys-and-names]]                                      | 0.8        | React Aria calendar: roles, Home and End by month, announcements      |
+| [[K-0388-react-aria-calendar-system-and-week-start-from-locale]]                        | 0.8        | React Aria: calendar and week start from locale; Sunday by default    |
+| [[K-0389-shadcn-ui-calendar-page-props-and-versions]]                                   | 0.8        | shadcn Calendar page: on React DayPicker, no word Buddhist            |
+| [[K-0390-shadcn-ui-calendar-source-defaults-and-day-button]]                            | 0.8        | shadcn calendar.tsx: ghost day button, bg-primary, bg-muted           |
+| [[K-0391-shadcn-ui-date-picker-is-popover-plus-calendar]]                               | 0.8        | shadcn Date Picker: no root component, Popover plus Calendar          |
+| [[K-0392-shadcn-ui-date-picker-examples-range-input-and-presets]]                       | 0.8        | shadcn picker samples: range, date of birth, input, presets           |
+| [[K-0393-shadcn-ui-registry-dependency-and-persian-path]]                               | 0.8        | shadcn MIT; installs DayPicker @latest; Persian path is v9            |
+| [[K-0394-react-day-picker-package-version-and-license]]                                 | 0.8        | DayPicker 10.0.2 MIT on date-fns; radix-ui has no date package        |
+| [[K-0395-react-day-picker-props-modes-and-day-states]]                                  | 0.8        | DayPicker props: three modes, four caption layouts, day states        |
+| [[K-0396-react-day-picker-range-mode-props]]                                            | 0.8        | DayPicker range: min and max in nights, 0-night default               |
+| [[K-0397-react-day-picker-keys-grid-and-names]]                                         | 0.8        | DayPicker keys: follows APG, Home and End by week, 365 tries          |
+| [[K-0398-react-day-picker-buddhist-build]]                                              | 0.8        | DayPicker Buddhist add-on: +543 on listed formats, Thai digits        |
+| [[K-0399-react-day-picker-week-start-locale-and-thai-labels]]                           | 0.8        | DayPicker week start from locale or weekStartsOn; Thai labels         |
+| [[K-0400-wai-aria-apg-date-picker-dialog-keys]]                                         | 0.8        | APG date picker keys: Home and End by week, Cancel keeps date         |
+| [[K-0401-wai-aria-apg-date-picker-dialog-names-and-roles]]                              | 0.8        | APG date picker names: Change Date, abbr, polite month heading        |
+| [[K-0402-wai-aria-apg-grid-pattern-keys-and-roles]]                                     | 0.8        | APG Grid: one tab stop, Home and End per row, no calendar text        |
+| [[K-0403-wai-aria-apg-modal-dialog-keys-and-roles]]                                     | 0.8        | APG Modal Dialog: Tab wraps; mark modal only if outside blocked       |
+| [[K-0404-intl-datetimeformat-calendar-option-and-ca-key]]                               | 0.8        | Intl: calendar option beats ca key; default is locale dependent       |
+| [[K-0405-cldr-thailand-prefers-buddhist-and-thai-formats]]                              | 0.8        | CLDR: Thailand Buddhist first; era in full date; Latin digits         |
+| [[K-0406-runtime-default-calendar-for-thai-can-differ]]                                 | 0.7        | Thai year: explicit calendar works; plain th-TH output not read       |
+| [[K-0407-cldr-thailand-week-starts-sunday-and-getweekinfo]]                             | 0.8        | CLDR: Thailand week starts Sunday; getWeekInfo newly available        |
+| [[K-0408-date-fns-thai-locale-sunday-gregorian-year]]                                   | 0.8        | date-fns Thai locale: Sunday, no 543, Gregorian year (own reading)    |
+| [[K-0409-synthesis-calendar-and-date-picker-benchmark]]                                 | 0.75       | Synthesis: Calendar and Date picker benchmark tables                  |
