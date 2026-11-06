@@ -398,13 +398,30 @@ Each at 360 and 1440 px, light and dark, Thai and English, neutral and one other
 | `Done`            | Tick and word; "ไม่ทราบขนาด" in the size's place                                                                                 |
 | `Failed`          | Mark, word, reason in danger ink; Retry under the reason on the name's x; edge unchanged; Tab to Retry and to Remove, halo whole |
 | `Rejected`        | Lines directly under the zone and above the list; the error edge; 5 lines and the fold                                           |
-| `Full`            | Dimmed Button, hint in full ink; at 360 px the hint under the Button on one start edge; Tab, halo on the inert Button            |
+| `Full`            | Dimmed Button, hint in full ink; at 360 px the hint under the Button on one start edge; Tab, line and halo on the inert Button   |
 | `Disabled`        | Dim label, limits, edge and hint; the row's words stay readable                                                                  |
 | `Invalid`         | The caller's line 8 px under the zone                                                                                            |
 | `At360`           | Long names wrap inside the row; Remove stays up top; no mark cut                                                                 |
 | `DragOver` (PR 2) | Solid ink edge; height unchanged; the word changes                                                                               |
 | `RecipesAndModes` | Friendly, which no shot here covers: its 16 px media radius and pill Button                                                      |
 
+## 17. Rework F1: focus on the inert Button
+
+From ORV-227-signoff-1 finding F1 (ORV-227 comment 10554), recorded by the main session from the sign-off's own proposal and proof.
+
+The Button's disabled border rule (0,4,0) beats the focus rule (0,3,0), so a focused `aria-disabled` Button shows the halo with no line. Spec row 34 asks for the line and the halo on each button. The rule below goes in the Button recipe after the variant blocks, at the focus rule near `recipes.css` line 182, so equal specificity and later order win:
+
+```css
+.ds-button[data-variant][aria-disabled="true"]:focus-visible {
+  border-color: var(--ds-focus-ring);
+}
+```
+
+The Button stays dimmed. The sign-off proved this by injection on `Full` in 8 shots (360 and 1440, light and dark, neutral and professional, Thai): the border equals the ring in each, and the strongest focus pixel against its ground reads 6.14 to 11.91. An injected tag sits last, so the proof does not show file order. The recipe is shared, so every `aria-disabled` Button story is read: `Button.stories.tsx` line 179, CanvasChat, TaskBar, DirectionStudio.
+
+Shots: `proposed-full-choose-{360,1440}-{light,dark}-{neutral,professional}.png` in `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-227-signoff-1/extra/focus-crops/`.
+
 ## Changelog
 
+- 1.1 (2026-11-06): section 17 and the `Full` line of section 16, from sign-off finding F1.
 - 1.0 (2026-11-06): first version, from spec v1.0.
