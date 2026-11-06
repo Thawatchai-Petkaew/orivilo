@@ -208,7 +208,7 @@ Rows 6 and 20 are type checks and a source search, rows 7 and 21 are catalog and
 
 ## Rows per PR
 
-No PR exists yet. The main session adds one line per PR here when it opens (open question 11).
+- PR 186: rows 1-8, 23
 
 ## Out of scope
 
