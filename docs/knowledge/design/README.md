@@ -46,3 +46,33 @@ Facts from outside design systems and standards that inform ORIVILO's own design
 | [[K-0133-wai-aria-apg-no-non-modal-dialog-pattern-tooltip-note]]               | WAI-ARIA APG: popover and non-modal dialog guidance, Tooltip note      |
 | [[K-0134-wcag-2-2-content-on-hover-or-focus-dismissible-hoverable-persistent]] | WCAG 2.2 SC 1.4.13 Content on Hover or Focus                           |
 | [[K-0135-synthesis-evidence-span-and-evidence-list-benchmark]]                 | Synthesis of K-0127 to K-0134: EvidenceSpan and EvidenceList table     |
+| [[K-0340-untitled-ui-react-lists-no-accordion-component]]                      | Does Untitled UI React have an accordion component                     |
+| [[K-0341-shadcn-ui-accordion-docs-parts-examples-and-versions]]                | shadcn/ui Accordion docs: parts, examples, versions                    |
+| [[K-0342-shadcn-ui-accordion-registry-classes-chevron-and-no-aria]]            | shadcn/ui Accordion registry files: classes, icon, ARIA                |
+| [[K-0343-radix-accordion-parts-props-and-data-attributes]]                     | Radix UI Accordion: parts, props, data attributes                      |
+| [[K-0344-radix-accordion-keyboard-adds-arrows-home-end]]                       | Radix UI Accordion: keyboard table and key handling                    |
+| [[K-0345-radix-accordion-source-h3-header-aria-disabled-and-region]]           | Radix Accordion source: heading, aria-disabled, region                 |
+| [[K-0346-radix-accordion-animation-height-variable-no-reduced-motion]]         | Radix UI Accordion: size variables and animation example               |
+| [[K-0347-wai-aria-apg-accordion-keyboard-enter-space-tab]]                     | WAI-ARIA APG Accordion pattern: keyboard                               |
+| [[K-0348-wai-aria-apg-accordion-heading-button-expanded-and-controls]]         | WAI-ARIA APG Accordion: heading level, expanded, controls              |
+| [[K-0349-wai-aria-apg-accordion-aria-disabled-and-optional-region]]            | WAI-ARIA APG Accordion: aria-disabled and optional region              |
+| [[K-0350-wai-aria-apg-accordion-example-h3-region-and-no-key-handler]]         | WAI-ARIA APG Accordion example: markup, keys, script                   |
+| [[K-0351-wai-aria-1-2-aria-expanded-values]]                                   | WAI-ARIA 1.2 aria-expanded                                             |
+| [[K-0352-untitled-ui-content-divider-types-children-and-classname]]            | Untitled UI Content divider: types, children, className                |
+| [[K-0353-untitled-ui-content-divider-plain-div-not-a-separator]]               | Untitled UI Content divider: what assistive tech gets                  |
+| [[K-0354-untitled-ui-section-divider-hr-in-shared-assets]]                     | Untitled UI SectionDivider in the open-source repo                     |
+| [[K-0355-shadcn-ui-separator-docs-and-registry-decorative-by-default]]         | shadcn/ui Separator: docs, registry, defaults                          |
+| [[K-0356-radix-separator-decorative-role-none-and-vertical-orientation]]       | Radix UI Separator: decorative, role, orientation                      |
+| [[K-0357-wai-aria-1-2-separator-static-or-focusable]]                          | WAI-ARIA 1.2 separator: static and focusable                           |
+| [[K-0358-wai-aria-1-2-separator-orientation-and-presentational-children]]      | WAI-ARIA 1.2 separator: orientation, presentational children           |
+| [[K-0359-untitled-ui-metrics-nine-cards-and-eighteen-examples]]                | Untitled UI Metrics: cards and examples                                |
+| [[K-0360-untitled-ui-metrics-change-indicator-and-trend-props]]                | Untitled UI Metrics: change indicator and direction props              |
+| [[K-0361-untitled-ui-metrics-footer-actions-icon-and-chart-props]]             | Untitled UI Metrics: footer, actions, icon, chart props                |
+| [[K-0362-untitled-ui-metrics-no-state-size-or-accessibility-text]]             | Untitled UI Metrics: states, sizes, accessibility text                 |
+| [[K-0363-shadcn-ui-lists-no-metric-or-filter-bar-component]]                   | Does shadcn/ui have a Metric or Filter bar component                   |
+| [[K-0364-untitled-ui-filter-bars-examples-and-listed-states]]                  | Untitled UI Filter bars: examples and listed states                    |
+| [[K-0365-untitled-ui-filter-bar-layout-parts-hold-no-state]]                   | Untitled UI FilterBar layout parts                                     |
+| [[K-0366-untitled-ui-filter-dropdown-props-and-advanced-filter]]               | Untitled UI FilterDropdown props and the advanced filter               |
+| [[K-0367-untitled-ui-filter-bar-small-screens-and-accessible-names]]           | Untitled UI Filter bars: small screens and accessible names            |
+| [[K-0368-untitled-ui-open-repo-has-no-divider-metrics-or-filter-bar-code]]     | Is Untitled UI divider, metrics or filter bar code open                |
+| [[K-0369-synthesis-accordion-separator-metric-and-filter-bar-benchmark]]       | Synthesis of K-0340 to K-0368: four benchmark tables                   |
