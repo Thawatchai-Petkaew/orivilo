@@ -99,6 +99,82 @@ export const Default: Story = {
 /** The empty board's mock action: it names its outcome and starts nothing. */
 const addFirst = (label: string) => <Button variant="secondary">{label}</Button>;
 
+/** The length a token resolves to at `el`, in px, as the browser computes it. */
+function resolvedLength(el: Element, token: string): number {
+  const probe = document.createElement("span");
+  probe.style.display = "block";
+  probe.style.width = `var(${token})`;
+  el.append(probe);
+  const px = parseFloat(getComputedStyle(probe).width);
+  probe.remove();
+  return px;
+}
+
+/** The first match of `selector` under `root`; a missing part fails the play with its name. */
+function part(root: ParentNode, selector: string): HTMLElement {
+  const el = root.querySelector<HTMLElement>(selector);
+  if (el === null) throw new Error(`No element matches ${selector}`);
+  return el;
+}
+
+/** Half a pixel: the browser lays boxes on a 1/64 px grid and the form is centred by halves. */
+const HALF_PX = 0.5;
+
+/**
+ * The empty form on a board with a toolbar (ORV-223 D15, rows 22, 44 and 45): the form's centre is
+ * on the board's centre line across, the action stands at least `space.inset.md` above the toolbar,
+ * and the tile is inside the board. Lengths are the resolved tokens, so the play holds under any
+ * profile the boundary sets.
+ */
+async function expectFormClearOfToolbar(root: HTMLElement, actionName: string) {
+  const board = part(root, ".ds-board");
+  const bar = part(board, ".ds-controls");
+  const form = part(board, ".ds-empty-state");
+  const tile = part(form, ".ds-featured-icon");
+  const action = within(root).getByRole("button", { name: actionName });
+  const clear = resolvedLength(board, "--ds-space-inset-md");
+  const b = board.getBoundingClientRect();
+  const f = form.getBoundingClientRect();
+  await expect(Math.abs(f.left + f.width / 2 - (b.left + b.width / 2))).toBeLessThanOrEqual(
+    HALF_PX,
+  );
+  await expect(
+    bar.getBoundingClientRect().top - action.getBoundingClientRect().bottom,
+  ).toBeGreaterThanOrEqual(clear - HALF_PX);
+  await expect(tile.getBoundingClientRect().top).toBeGreaterThanOrEqual(b.top);
+}
+
+/**
+ * Rows 44 and 45: a 294 px board 360 tall wraps its toolbar, and the form still clears it, every
+ * button of the toolbar answers a hit test at its own centre, and a status from the first command
+ * leaves the pill 8 px under the form. Each button is scrolled into view first, because
+ * `elementFromPoint` returns null outside the viewport.
+ */
+async function expectShortBoardClear(root: HTMLElement, actionName: string, statusText: string) {
+  const board = part(root, ".ds-board");
+  const bar = part(board, ".ds-controls");
+  const buttonHeight = resolvedLength(board, "--cmp-button-height-sm");
+  await expect(bar.getBoundingClientRect().height).toBeGreaterThan(2 * buttonHeight);
+  await expectFormClearOfToolbar(root, actionName);
+  const buttons = [...bar.querySelectorAll<HTMLElement>("button")];
+  await expect(buttons).toHaveLength(14);
+  for (const button of buttons) {
+    button.scrollIntoView({ block: "center", inline: "center" });
+    const r = button.getBoundingClientRect();
+    const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    await expect(hit !== null && button.contains(hit)).toBe(true);
+  }
+  await userEvent.click(part(bar, '[data-command="board.zoom-in"]'));
+  await waitFor(() => expect(within(root).getByRole("status")).toHaveTextContent(statusText));
+  const pill = part(board, ".ds-board__status");
+  const action = within(root).getByRole("button", { name: actionName });
+  const stack = resolvedLength(board, "--ds-space-stack-sm");
+  await expect(
+    pill.getBoundingClientRect().top - action.getBoundingClientRect().bottom,
+  ).toBeGreaterThanOrEqual(stack - HALF_PX);
+  await expectFormClearOfToolbar(root, actionName);
+}
+
 /** No node: a tile, the empty title as a level 2 heading and the consumer's action; nothing else claims content (AC 12). */
 export const Empty: Story = {
   args: {
@@ -112,6 +188,16 @@ export const Empty: Story = {
     await expect(nodeEls(canvasElement)).toHaveLength(0);
     await expect(canvas.getByRole("heading", { level: 2 })).toHaveTextContent("กระดานยังว่าง");
     await expect(status(canvasElement)).toHaveTextContent("");
+    // Row 19: on a board at least 520 px tall the form's centre is the board's centre.
+    const board = part(canvasElement, ".ds-board").getBoundingClientRect();
+    await expect(board.height).toBeGreaterThanOrEqual(520);
+    const form = part(canvasElement, ".ds-empty-state").getBoundingClientRect();
+    await expect(
+      Math.abs(form.left + form.width / 2 - (board.left + board.width / 2)),
+    ).toBeLessThanOrEqual(HALF_PX);
+    await expect(
+      Math.abs(form.top + form.height / 2 - (board.top + board.height / 2)),
+    ).toBeLessThanOrEqual(HALF_PX);
   },
 };
 
@@ -161,7 +247,7 @@ export const EmptyInEnglish: Story = {
   },
 };
 
-/** The empty board in a 360 px frame: the form stays centred and nothing is cut. */
+/** The empty board in a 360 px frame: the form is centred across, clear of the toolbar, and nothing is cut. */
 export const EmptyAt360: Story = {
   args: {
     initial: { nodes: [], edges: [] },
@@ -183,6 +269,47 @@ export const EmptyAt360: Story = {
     const title = canvas.getByRole("heading", { level: 2 }).getBoundingClientRect();
     await expect(title.left).toBeGreaterThanOrEqual(frameBox.left);
     await expect(title.right).toBeLessThanOrEqual(frameBox.right);
+    await expectFormClearOfToolbar(canvasElement, "เพิ่ม node แรก");
+  },
+};
+
+/**
+ * The empty board in a 294 px frame, 360 tall: the toolbar wraps and the form rises clear of it,
+ * every button stays reachable, and a status from the first command stands under the form
+ * (`empty-board-1`, ORV-223 D15).
+ */
+export const EmptyShort: Story = {
+  args: {
+    initial: { nodes: [], edges: [] },
+    emptyAction: addFirst("เพิ่ม node แรก"),
+  },
+  render: (args) => (
+    <div className="w-[294px]">
+      <Stateful {...args} height={360} fill={false} />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    await expectShortBoardClear(canvasElement, "เพิ่ม node แรก", "ซูมเข้า");
+  },
+};
+
+/** The short empty board in English. */
+export const EmptyShortInEnglish: Story = {
+  args: {
+    initial: { nodes: [], edges: [] },
+    emptyAction: addFirst("Add your first node"),
+  },
+  decorators: [(Story) => <LocaleProvider locale="en">{Story()}</LocaleProvider>],
+  render: (args) => (
+    <div className="w-[294px]">
+      <Stateful {...args} height={360} fill={false} />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    await expect(
+      within(canvasElement).getByRole("heading", { level: 2, name: "The board is empty" }),
+    ).toBeVisible();
+    await expectShortBoardClear(canvasElement, "Add your first node", "Zoomed in");
   },
 };
 

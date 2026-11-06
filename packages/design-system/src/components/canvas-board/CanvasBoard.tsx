@@ -318,7 +318,8 @@ function Board({
   const [clipboard, setClipboard] = useState<Clipboard | null>(null);
 
   // When a delete leaves no node and focus fell to the body, the board keeps the keyboard (the
-  // form line of a cut) and the empty form's action is one Tab away (`empty-board-1`).
+  // form line of a cut) and Tab reaches the empty form's action in page order, after the toolbar
+  // and the attribution link (`empty-board-1`).
   useEffect(() => {
     if (!focusWhenEmpty.current) return;
     focusWhenEmpty.current = false;

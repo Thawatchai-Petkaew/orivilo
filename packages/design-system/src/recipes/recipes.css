@@ -4399,6 +4399,39 @@ button.ds-tag__main {
     bottom: calc(anchor(top) + var(--ds-space-inset-md));
   }
 }
+/* The empty form never sits under the toolbar (ORV-223 D15). Without anchor positioning it starts at
+ * the top: the toolbar's height cannot be read, and clear beats centred. */
+.ds-board:has(.ds-controls) .ds-board__overlay:has(> .ds-empty-state) {
+  justify-content: flex-start;
+}
+/* The box is symmetric about the board's centre while there is room, so the form stays centred. When
+ * the form outgrows it, the auto margins fall to 0 and the reversed column grows it upward, away from
+ * the toolbar. A status line adds its own height: 41.8 px of padding, line and border, then 8 px. It
+ * is summed from the tokens that draw `.ds-board__status` (the pill comes after the overlay in the
+ * DOM, so the overlay cannot anchor to it); change its padding, type or border and this changes too. */
+@supports (anchor-name: --a) {
+  .ds-board:has(.ds-controls) .ds-board__overlay:has(> .ds-empty-state) {
+    --_clear: var(--ds-space-inset-md);
+    position-anchor: --ds-board-controls;
+    top: min(calc(anchor(top) - var(--_clear)), calc(100% - anchor(top) + var(--_clear)));
+    bottom: calc(anchor(top) + var(--_clear));
+    flex-direction: column-reverse;
+    padding-block: 0;
+  }
+  .ds-board:has(.ds-shelf) .ds-board__overlay:has(> .ds-empty-state) {
+    position-anchor: --ds-board-shelf;
+  }
+  .ds-board:has(.ds-board__status:not(:empty)) .ds-board__overlay:has(> .ds-empty-state) {
+    --_clear: calc(
+      var(--ds-space-inset-md) + 2 * var(--ds-space-inset-sm) +
+        var(--cmp-node-body-type-font-size) * var(--cmp-node-body-type-line-height) + 2px +
+        var(--ds-space-stack-sm)
+    );
+  }
+  .ds-board:has(.ds-controls) .ds-board__overlay > .ds-empty-state {
+    margin-block: auto;
+  }
+}
 /* An open list adds up to its capped height to the bar. Only the status line clears it, and never
  * past the board's top edge; the toolbar, minimap and shelf keep their closed-bar places. */
 .ds-board:has(.ds-taskbar__panel:not([hidden])) .ds-board__status {

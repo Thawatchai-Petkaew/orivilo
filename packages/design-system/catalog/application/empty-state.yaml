@@ -25,6 +25,7 @@ rules:
   - "Title over text is the compact form of DESIGN.md section 4: 14 / 500 in `text.primary` over 14 / 400 in `text.secondary`, 4 px apart. Long words break by `overflow-wrap: anywhere`; nothing is clamped. No animation, no transition"
   - "It never speaks and never takes focus: no live role, no `tabindex`, no `autoFocus`. A region that was already empty on first render says nothing; one that turns empty by a search or a change the person did not make owns a status container mounted before the words, and puts the form in it (the NoResults story); one that turns empty by the person's own delete lets its existing status line say so. On the last item leaving, the region keeps the keyboard (empty-live-1, empty-focus-1)"
   - "Which one to use: a whole region with no known layout takes the loading pattern, a region with a known layout takes SkeletonGroup, a row or a control takes Spinner, a job with a known length takes Progress; EmptyState replaces the content, never sits beside a wait (load-use-1)"
+  - "On a CanvasBoard the form is centred on the board and rises clear of the toolbar, the shelf and a one line status when the board is short (empty-board-1, empty-board-short-1); the rule applies to the board's empty form only"
   - "The words and the actions in the stories are mock: no press starts a job or adds a node"
 a11y:
   - "The title is a heading of the caller's level, so the region can be reached by heading; the tile is hidden from assistive technology"
