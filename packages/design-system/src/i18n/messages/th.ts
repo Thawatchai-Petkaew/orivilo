@@ -42,6 +42,11 @@ export const th = {
     region: "การแจ้งเตือน",
     dismiss: "ปิดการแจ้งเตือน",
   },
+  breadcrumb: {
+    label: "เส้นทางถึงหน้านี้",
+    showAll: "แสดงเส้นทางทั้งหมด",
+    missing: "ไม่มีชื่อ",
+  },
   progress: {
     working: "กำลังทำงาน",
     done: "เสร็จแล้ว",

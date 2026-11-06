@@ -4779,7 +4779,9 @@ button.ds-tag__main {
 .ds-taskbar__summary,
 .ds-taskbar__name,
 .ds-taskbar__progress .ds-progress__label,
-.ds-chat__option > span:first-child {
+.ds-chat__option > span:first-child,
+.ds-breadcrumb__link,
+.ds-breadcrumb__page {
   padding-block: var(--ds-space-inline-sm);
   margin-block: calc(-1 * var(--ds-space-inline-sm));
 }
@@ -4933,4 +4935,84 @@ button.ds-tag__main {
   line-height: var(--ds-type-body-sm-line-height);
   font-weight: var(--ds-type-body-sm-font-weight);
   letter-spacing: var(--ds-type-body-sm-letter-spacing);
+}
+
+/* Breadcrumb (ORV-229): a trail of places, quiet navigation. The nav item tokens give the ink; the
+ * current crumb differs from a link by weight and behaviour, not by colour alone. Every item keeps
+ * the control-sm height so each line of a wrapped trail, with or without the ellipsis, is one height. */
+.ds-breadcrumb__list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  min-block-size: var(--ds-size-control-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--cmp-nav-item-fg);
+  font-family: var(--ds-type-body-sm-font-family);
+  font-size: var(--ds-type-body-sm-font-size);
+  line-height: var(--ds-type-body-sm-line-height);
+  font-weight: var(--ds-type-body-sm-font-weight);
+  letter-spacing: var(--ds-type-body-sm-letter-spacing);
+}
+.ds-breadcrumb__item {
+  display: flex;
+  align-items: center;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  min-block-size: var(--ds-size-control-sm);
+}
+/* A label stays on one line: the trail wraps first, and only a crumb wider than a whole line is cut at the end of its line. The clip box and its Thai padding come from the shared list above. */
+.ds-breadcrumb__link,
+.ds-breadcrumb__page {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* A link pads its inline sides and cancels the padding with a margin, so no ink moves and the focus line clears the glyphs. */
+.ds-breadcrumb__link {
+  padding-inline: var(--ds-space-inline-sm);
+  margin-inline: calc(-1 * var(--ds-space-inline-sm));
+  color: var(--cmp-nav-item-fg);
+  text-decoration: none;
+  text-underline-offset: 0.2em;
+}
+.ds-breadcrumb__item:last-child > .ds-breadcrumb__link {
+  margin-inline-end: 0;
+}
+.ds-breadcrumb__link:hover {
+  color: var(--cmp-nav-item-fg-hover);
+  text-decoration: underline;
+}
+/* The shape of focus follows the control shape; the line and the halo stay global. At rest a pill would round the box that clips the text and cut its ink. */
+.ds-breadcrumb__link:focus-visible {
+  border-radius: var(--cmp-nav-item-radius);
+}
+.ds-breadcrumb__page {
+  color: var(--cmp-nav-item-fg-active);
+  font-family: var(--ds-type-label-md-font-family);
+  font-size: var(--ds-type-label-md-font-size);
+  line-height: var(--ds-type-label-md-line-height);
+  font-weight: var(--ds-type-label-md-font-weight);
+  letter-spacing: var(--ds-type-label-md-letter-spacing);
+}
+.ds-breadcrumb__separator {
+  flex: none;
+  margin-inline: var(--ds-space-inline-md);
+  color: var(--cmp-nav-item-fg);
+}
+/* The ellipsis is a ghost Button: it reads the trail's ink, and a negative margin takes back the empty part of its square. */
+.ds-breadcrumb__item > .ds-button[data-variant="ghost"] {
+  margin-inline: calc(-1 * var(--ds-space-inline-md));
+  color: var(--cmp-nav-item-fg);
+}
+.ds-breadcrumb__item > .ds-button[data-variant="ghost"]:hover,
+.ds-breadcrumb__item > .ds-button[data-variant="ghost"]:active {
+  color: var(--cmp-nav-item-fg-hover);
+}
+/* An icon-only Button gives its child no size; the glyph draws at the button icon size. */
+.ds-breadcrumb .ds-button[data-icon-only] > svg {
+  inline-size: var(--cmp-button-icon-size-md);
+  block-size: var(--cmp-button-icon-size-md);
 }

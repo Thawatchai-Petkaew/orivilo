@@ -916,6 +916,63 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     bg: "featured-icon.info.bg",
     floor: UI,
   },
+  // Breadcrumb (ORV-229): the nav item inks on the page grounds, and the ellipsis ink on the ghost Button's hover and press grounds.
+  {
+    recipe: "breadcrumb",
+    slot: "link on canvas",
+    fg: "nav-item.fg",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
+  {
+    recipe: "breadcrumb",
+    slot: "link on card",
+    fg: "nav-item.fg",
+    bg: "ds:surface.card",
+    floor: TEXT,
+  },
+  {
+    recipe: "breadcrumb",
+    slot: "link hover on canvas",
+    fg: "nav-item.fg-hover",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
+  {
+    recipe: "breadcrumb",
+    slot: "link hover on card",
+    fg: "nav-item.fg-hover",
+    bg: "ds:surface.card",
+    floor: TEXT,
+  },
+  {
+    recipe: "breadcrumb",
+    slot: "current on canvas",
+    fg: "nav-item.fg-active",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
+  {
+    recipe: "breadcrumb",
+    slot: "current on card",
+    fg: "nav-item.fg-active",
+    bg: "ds:surface.card",
+    floor: TEXT,
+  },
+  {
+    recipe: "breadcrumb",
+    slot: "ellipsis hover",
+    fg: "nav-item.fg-hover",
+    bg: "button.ghost.bg-hover",
+    floor: TEXT,
+  },
+  {
+    recipe: "breadcrumb",
+    slot: "ellipsis press",
+    fg: "nav-item.fg-hover",
+    bg: "button.ghost.bg-press",
+    floor: TEXT,
+  },
   // Progress (E4-5): the value text, the bar against its track, the track against the card.
   {
     recipe: "progress",

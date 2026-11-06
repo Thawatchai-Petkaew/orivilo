@@ -38,6 +38,11 @@ export const en: Messages = {
     region: "Notifications",
     dismiss: "Dismiss",
   },
+  breadcrumb: {
+    label: "Breadcrumb",
+    showAll: "Show the full path",
+    missing: "No name",
+  },
   progress: {
     working: "Working",
     done: "Done",

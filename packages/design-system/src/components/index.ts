@@ -1,4 +1,12 @@
 export { Badge, type BadgeProps, type BadgeVariant } from "./badge/Badge";
+export {
+  Breadcrumb,
+  BreadcrumbLink,
+  type BreadcrumbLinkProps,
+  BreadcrumbPage,
+  type BreadcrumbPageProps,
+  type BreadcrumbProps,
+} from "./breadcrumb/Breadcrumb";
 export { Button, type ButtonProps, type ButtonVariant, type ControlSize } from "./button/Button";
 export {
   Card,

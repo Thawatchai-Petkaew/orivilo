@@ -1,0 +1,32 @@
+name: Breadcrumb
+tier: base
+status: draft
+since: ORV-229
+import: "@orivilo/design-system"
+story: base-breadcrumb
+useWhen:
+  - "A screen inside a project needs to say where the person is, as a trail of places they can go back to"
+  - "A page deep in a hierarchy (project, board, decision log) where the parent places are real routes"
+avoidWhen:
+  - "Moving page by page through one long list (Pagination)"
+  - "Switching between views of the same page (Tabs)"
+  - "A single step back (a ghost Button or a link says it with less)"
+contract: BreadcrumbProps
+variants: []
+sizes: []
+states: [default, hover, focus-visible, current, collapsed, expanded]
+recipes: [neutral, professional, friendly]
+examples: []
+rules:
+  - "Three parts: Breadcrumb (maxVisible, aria-label), BreadcrumbLink (href, or asChild over a router Link) and BreadcrumbPage; className on each is layout only. Write the crumbs as direct children in trail order, the page last"
+  - "A native `nav` holding an ordered list, named by `aria-label`: the catalog's `breadcrumb.label` by default, replaced by the caller's. Give each trail on one page its own name, without the word navigation"
+  - 'Place one BreadcrumbPage, last. It is not a link and not a Tab stop, carries `aria-current="page"`, and differs from a link by weight 500 and darker ink, with no underline or hover change'
+  - "A link reads `nav-item.fg` in `type.body.sm`; on hover `nav-item.fg-hover` with an underline. Focus is the global line and halo on a pill that clears the glyphs"
+  - "A slash with a space on each side separates the crumbs, hidden from assistive tech; the list wraps between items"
+  - "Over `maxVisible` crumbs (4 by default, 0 turns collapsing off) the first crumb stays, an ellipsis button follows it and the last `maxVisible - 1` stay. A press shows the hidden crumbs in place and moves focus to the first of them; the trail stays open until it unmounts"
+  - "A long label stays on one line and is cut with an ellipsis at the end of its line; the whole text stays in the DOM. A crumb with no name shows `breadcrumb.missing`, and a link keeps its `href`"
+  - "No route uses it yet: the stories run on mock trails with `#` links"
+a11y:
+  - 'A `nav` landmark with a name, an `ol`, and `aria-current="page"` on the last crumb; separators and nothing else are `aria-hidden`'
+  - "Links and the ellipsis button are native: Tab moves through them, Enter follows a link and Enter or Space presses the button"
+  - "The ellipsis button is named `breadcrumb.showAll`; after a press focus moves to the first revealed link, because the button is gone"
