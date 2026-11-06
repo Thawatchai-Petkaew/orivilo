@@ -212,6 +212,9 @@ export const Destructive: Story = {
     await expect(panel).toHaveAttribute("data-variant", "destructive");
     await expect(args.onConfirm).not.toHaveBeenCalled();
     const { title, impact, footer, close, cancel, confirm } = partsOf(panel);
+    // Row 2: a ghost cancel and a destructive confirm, never the primary look of the safe path.
+    await expect(cancel).toHaveAttribute("data-variant", "ghost");
+    await expect(confirm).toHaveAttribute("data-variant", "destructive");
     await expect(within(panel).getByRole("button", { name: copy.cancel })).toBe(cancel);
     await expect(within(panel).getByRole("button", { name: "ปิด" })).toBe(close);
     const glyph = panel.querySelector(".ds-dialog__glyph");
@@ -259,6 +262,9 @@ export const Accept: Story = {
     await expect(panel).toHaveAttribute("data-variant", "default");
     await expect(panel.querySelector(".ds-dialog__glyph")).toBeNull();
     const { cancel, confirm } = partsOf(panel);
+    // Row 4: a ghost cancel and a primary confirm.
+    await expect(cancel).toHaveAttribute("data-variant", "ghost");
+    await expect(confirm).toHaveAttribute("data-variant", "primary");
     await waitFor(() => expect(confirm).toHaveFocus());
     await expect(confirm.matches(":focus-visible")).toBe(true);
     await expect(
