@@ -1500,6 +1500,81 @@
   min-inline-size: 0;
 }
 
+/* Empty state (ORV-223): md is a centred column, sm starts at the line's start. */
+.ds-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--cmp-empty-state-gap-md);
+  min-inline-size: 0;
+  max-inline-size: var(--cmp-empty-state-max-width);
+  margin-inline: auto;
+  text-align: center;
+}
+.ds-empty-state__body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--cmp-empty-state-gap-md);
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+.ds-empty-state__text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmp-empty-state-text-gap);
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+.ds-empty-state__title,
+.ds-empty-state__description {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.ds-empty-state__title {
+  color: var(--cmp-empty-state-title);
+  font-family: var(--cmp-empty-state-title-type-font-family);
+  font-size: var(--cmp-empty-state-title-type-font-size);
+  line-height: var(--cmp-empty-state-title-type-line-height);
+  font-weight: var(--cmp-empty-state-title-type-font-weight);
+  letter-spacing: var(--cmp-empty-state-title-type-letter-spacing);
+}
+.ds-empty-state__description {
+  color: var(--cmp-empty-state-description);
+  font-family: var(--cmp-empty-state-body-type-font-family);
+  font-size: var(--cmp-empty-state-body-type-font-size);
+  line-height: var(--cmp-empty-state-body-type-line-height);
+  font-weight: var(--cmp-empty-state-body-type-font-weight);
+  letter-spacing: var(--cmp-empty-state-body-type-letter-spacing);
+}
+.ds-empty-state__action {
+  display: flex;
+  max-inline-size: 100%;
+}
+.ds-empty-state[data-size="sm"] {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: var(--cmp-empty-state-gap-sm);
+  max-inline-size: none;
+  margin-inline: 0;
+  text-align: start;
+}
+.ds-empty-state[data-size="sm"] > .ds-empty-state__body {
+  flex: 1 1 auto;
+  align-items: flex-start;
+  gap: var(--cmp-empty-state-action-gap);
+}
+/* with a tile, the title's first line centres on it; later lines flow under it */
+.ds-empty-state[data-size="sm"] > .ds-featured-icon + .ds-empty-state__body {
+  padding-block-start: calc(
+    (
+        var(--cmp-featured-icon-size-sm) - var(--cmp-empty-state-title-type-font-size) *
+          var(--cmp-empty-state-title-type-line-height)
+      ) /
+      2
+  );
+}
+
 /* Canvas (ADR 0004, E4-2): React Flow for behaviour, every value from the board, node, port and
  * edge tokens (E4-1). The base stylesheet (imported in orivilo.css) reads `--xy-*` properties; each
  * one it reads is set here from a component token, so no React Flow default colour reaches the
@@ -1593,7 +1668,7 @@
 .ds-board__overlay > * {
   pointer-events: auto;
 }
-.ds-board__overlay p {
+.ds-board__overlay > p {
   margin: 0;
 }
 .ds-board__spinner {
@@ -3850,6 +3925,10 @@
   background: var(--cmp-featured-icon-info-bg);
   color: var(--cmp-featured-icon-info-fg);
 }
+.ds-featured-icon[data-variant="neutral"] {
+  background: var(--cmp-featured-icon-neutral-bg);
+  color: var(--cmp-featured-icon-neutral-fg);
+}
 
 /* Progress (E4-5) ---------------------------------------------------------------------------- */
 
@@ -4219,8 +4298,7 @@ button.ds-tag__main {
   font-weight: var(--cmp-taskbar-meta-type-font-weight);
   letter-spacing: var(--cmp-taskbar-meta-type-letter-spacing);
 }
-.ds-taskbar__reason,
-.ds-taskbar__empty {
+.ds-taskbar__reason {
   margin: 0;
   overflow-wrap: anywhere;
   font-family: var(--cmp-taskbar-body-type-font-family);
@@ -4228,15 +4306,12 @@ button.ds-tag__main {
   line-height: var(--cmp-taskbar-body-type-line-height);
   font-weight: var(--cmp-taskbar-body-type-font-weight);
   letter-spacing: var(--cmp-taskbar-body-type-letter-spacing);
-}
-.ds-taskbar__reason {
   grid-area: reason;
   margin-block-start: var(--cmp-taskbar-line-gap);
   color: var(--cmp-taskbar-reason-fg);
 }
 .ds-taskbar__empty {
   padding: var(--cmp-taskbar-row-block) var(--cmp-taskbar-padding-x);
-  color: var(--cmp-taskbar-muted-fg);
 }
 .ds-taskbar__actions {
   grid-area: actions;

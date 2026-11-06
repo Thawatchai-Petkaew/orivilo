@@ -32,12 +32,52 @@ export const featuredIconFixtures = {
     warning: "ผลนี้เก่ากว่าข้อมูลต้นทาง",
     danger: "สร้างหน้าแรกไม่สำเร็จ",
     info: "ผลนี้มาจากกฎ ไม่ได้มาจากโมเดล",
+    neutral: "ยังไม่มีงานบนบอร์ดนี้",
   },
   en: {
     success: "Home page built",
     warning: "This result is older than its source",
     danger: "Couldn't build the home page",
     info: "This result comes from rules, not a model",
+    neutral: "No jobs on this board yet",
+  },
+} as const;
+
+/**
+ * EmptyState story copy (ORV-223): the caller's words for a first use and a no-results form, and
+ * the actions' names. They are caller text, not catalog keys, and they are mock: no press runs
+ * anything.
+ */
+export const emptyStateFixtures = {
+  th: {
+    firstUse: {
+      title: "ยังไม่มีบรีฟ",
+      description: "เพิ่มบรีฟเพื่อเริ่มอ่านข้อมูลแบรนด์ด้วยกฎ",
+      action: "เพิ่มบรีฟ",
+    },
+    noResults: {
+      title: 'ไม่พบงานที่ตรงกับ "โลโก้"',
+      description: "ลองคำอื่น หรือล้างคำค้นหา",
+      action: "ล้างคำค้นหา",
+      trigger: "ค้นหา",
+    },
+    barAction: "เริ่มงานแรก",
+    boardAction: "เพิ่ม node แรก",
+  },
+  en: {
+    firstUse: {
+      title: "No brief yet",
+      description: "Add a brief so the rules can read your brand",
+      action: "Add a brief",
+    },
+    noResults: {
+      title: 'No job matches "logo"',
+      description: "Try another word, or clear the search",
+      action: "Clear the search",
+      trigger: "Search",
+    },
+    barAction: "Start the first job",
+    boardAction: "Add your first node",
   },
 } as const;
 

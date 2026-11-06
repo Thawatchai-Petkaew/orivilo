@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fn, userEvent, waitFor, within } from "storybook/test";
+import { LocaleProvider } from "../../i18n/LocaleProvider";
 import { Button } from "../button/Button";
 import { fixtures } from "../fixtures";
 import { Matrix, Narrow } from "../matrix";
@@ -95,17 +96,110 @@ export const Default: Story = {
   },
 };
 
-/** No node: the empty text and the consumer's action; nothing else claims content (AC 12). */
+/** The empty board's mock action: it names its outcome and starts nothing. */
+const addFirst = (label: string) => <Button variant="secondary">{label}</Button>;
+
+/** No node: a tile, the empty title as a level 2 heading and the consumer's action; nothing else claims content (AC 12). */
 export const Empty: Story = {
   args: {
     initial: { nodes: [], edges: [] },
-    emptyAction: <Button variant="secondary">เพิ่ม node แรก</Button>,
+    emptyAction: addFirst("เพิ่ม node แรก"),
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("กระดานยังว่าง")).toBeVisible();
     await expect(canvas.getByRole("button", { name: "เพิ่ม node แรก" })).toBeVisible();
     await expect(nodeEls(canvasElement)).toHaveLength(0);
+    await expect(canvas.getByRole("heading", { level: 2 })).toHaveTextContent("กระดานยังว่าง");
+    await expect(status(canvasElement)).toHaveTextContent("");
+  },
+};
+
+/**
+ * The last node is deleted by keyboard: the status line says what went, the region keeps the
+ * keyboard (focus does not fall to the body) and Tab reaches the empty form's action after the
+ * toolbar.
+ */
+export const TurnsEmpty: Story = {
+  args: {
+    initial: { nodes: [BOARD_NODES[0] as (typeof BOARD_NODES)[number]], edges: [] },
+    emptyAction: addFirst("เพิ่ม node แรก"),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const region = canvas.getByRole("region");
+    await waitFor(() => expect(nodeEls(region)).toHaveLength(1));
+    const node = await waitFor(() => nodeByTitle(region, "บรีฟ"));
+    await focusOn(() => node);
+    await userEvent.keyboard("{Enter}");
+    await userEvent.keyboard("{Delete}");
+    await waitFor(() => expect(nodeEls(region)).toHaveLength(0));
+    await waitFor(() => expect(status(region)).toHaveTextContent("ลบ 1 node"));
+    await waitFor(() => expect(canvas.getByRole("heading", { level: 2 })).toBeVisible());
+    await waitFor(() => expect(document.activeElement).toBe(region));
+    // The toolbar and the attribution link come first in the page order, so the action is the
+    // twelfth stop from the region, not the first: Tab until it, with a bound.
+    const action = canvas.getByRole("button", { name: "เพิ่ม node แรก" });
+    for (let i = 0; i < 14 && document.activeElement !== action; i++) await userEvent.tab();
+    await expect(document.activeElement).toBe(action);
+  },
+};
+
+/** The empty board in English. */
+export const EmptyInEnglish: Story = {
+  args: {
+    initial: { nodes: [], edges: [] },
+    emptyAction: addFirst("Add your first node"),
+  },
+  decorators: [(Story) => <LocaleProvider locale="en">{Story()}</LocaleProvider>],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(
+      canvas.getByRole("heading", { level: 2, name: "The board is empty" }),
+    ).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "Add your first node" })).toBeVisible();
+  },
+};
+
+/** The empty board in a 360 px frame: the form stays centred and nothing is cut. */
+export const EmptyAt360: Story = {
+  args: {
+    initial: { nodes: [], edges: [] },
+    emptyAction: addFirst("เพิ่ม node แรก"),
+  },
+  render: (args) => (
+    <div data-testid="frame" className="w-[360px] max-w-full">
+      <Stateful {...args} height={420} fill={false} />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const frame = canvas.getByTestId("frame");
+    await expect(frame.scrollWidth).toBeLessThanOrEqual(360);
+    const frameBox = frame.getBoundingClientRect();
+    const action = canvas.getByRole("button", { name: "เพิ่ม node แรก" }).getBoundingClientRect();
+    await expect(action.left).toBeGreaterThanOrEqual(frameBox.left);
+    await expect(action.right).toBeLessThanOrEqual(frameBox.right);
+    const title = canvas.getByRole("heading", { level: 2 }).getBoundingClientRect();
+    await expect(title.left).toBeGreaterThanOrEqual(frameBox.left);
+    await expect(title.right).toBeLessThanOrEqual(frameBox.right);
+  },
+};
+
+/** The empty board under the three profiles in both modes, one board per cell. */
+export const EmptyRecipesAndModes: Story = {
+  args: {
+    initial: { nodes: [], edges: [] },
+    emptyAction: addFirst("เพิ่ม node แรก"),
+  },
+  render: (args) => (
+    <Matrix>
+      <MatrixBoard {...args} height={360} />
+    </Matrix>
+  ),
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelectorAll("[data-matrix-cell]")).toHaveLength(6);
+    await expect(within(canvasElement).getAllByRole("heading", { level: 2 })).toHaveLength(6);
   },
 };
 

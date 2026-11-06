@@ -1,19 +1,25 @@
+import type { ComponentType } from "react";
 import { cx } from "../cx";
-import { CheckIcon, DangerIcon, InfoIcon, WarningIcon } from "../icons";
+import { CheckIcon, DangerIcon, InfoIcon, WarningIcon, type IconProps } from "../icons";
 
-export type FeaturedIconVariant = "success" | "warning" | "danger" | "info";
+export type FeaturedIconVariant = "success" | "warning" | "danger" | "info" | "neutral";
 export type FeaturedIconSize = "sm" | "md" | "lg";
 
-export interface FeaturedIconProps {
-  /** The feedback kind. It sets the tint and the glyph; there is no default. */
-  variant: FeaturedIconVariant;
+/** A glyph from `icons.tsx`, as a component and never an element, so the tile sizes it. */
+export type FeaturedIconGlyph = ComponentType<IconProps>;
+
+type FeaturedIconKind =
+  | { variant: "success" | "warning" | "danger" | "info"; icon?: never }
+  | { variant: "neutral"; icon: FeaturedIconGlyph };
+
+export type FeaturedIconProps = FeaturedIconKind & {
   /** The tile at 32, 40 or 48 px (`size.control.*`), the glyph at 16, 20 or 24 px (`size.icon.*`). */
   size?: FeaturedIconSize | undefined;
   /** Layout only. */
   className?: string | undefined;
-}
+};
 
-/** One drawing per kind, so the kind never rests on colour alone (`fi-glyph-1`). */
+/** One drawing per feedback kind, so the kind never rests on colour alone (`fi-glyph-1`). */
 const GLYPHS = {
   success: CheckIcon,
   warning: WarningIcon,
@@ -22,12 +28,14 @@ const GLYPHS = {
 } as const;
 
 /**
- * A glyph on a tinted tile for one feedback kind (catalog `base/featured-icon`). The tile is
- * hidden from assistive technology: use it only beside words that say the same thing, and use
- * Badge for a status with no words.
+ * A glyph on a tile (catalog `base/featured-icon`). A feedback kind sets the tint and the glyph;
+ * `neutral` is a quiet grey tile and takes the caller's `icon`. The tile is hidden from assistive
+ * technology: use it only beside words that say the same thing, and use Badge for a status with
+ * no words.
  */
-export function FeaturedIcon({ variant, size = "sm", className }: FeaturedIconProps) {
-  const Glyph = GLYPHS[variant];
+export function FeaturedIcon(props: FeaturedIconProps) {
+  const { variant, size = "sm", className } = props;
+  const Glyph = props.variant === "neutral" ? props.icon : GLYPHS[props.variant];
   return (
     <span
       className={cx("ds-featured-icon", className)}

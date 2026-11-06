@@ -23,6 +23,7 @@ import {
   Info,
   Keyboard,
   Link,
+  ListTodo,
   LoaderCircle,
   Lock,
   LocateFixed,
@@ -61,10 +62,10 @@ import {
  * icons from this file only, never from `lucide-react` directly (lint), so the defaults below
  * hold everywhere and only the named glyphs reach the bundle.
  *
- * All 53 glyphs are Lucide today. A glyph Lucide lacks is drawn here as inline SVG on a 20 grid,
+ * All 54 glyphs are Lucide today. A glyph Lucide lacks is drawn here as inline SVG on a 20 grid,
  * stroke 2, round caps and joins, `currentColor`, `aria-hidden`.
  */
-type IconProps = Omit<SVGProps<SVGSVGElement>, "children">;
+export type IconProps = Omit<SVGProps<SVGSVGElement>, "children">;
 
 /**
  * Lucide draws on a 24 grid; ours used a 20 grid at stroke 2. Stroke 2.4 on 24 keeps the same
@@ -119,6 +120,8 @@ export const ExpandIcon = lucide(ChevronDown, "ExpandIcon");
 // Task bar (ORV-100)
 export const QueuedIcon = lucide(Clock, "QueuedIcon");
 export const RunningIcon = lucide(Activity, "RunningIcon");
+/** A list of to-dos: the jobs panel with nothing in it, as the tile of its empty form (ORV-223). QueuedIcon marks one state, so it would say a job waits. */
+export const JobsIcon = lucide(ListTodo, "JobsIcon");
 export const RetryIcon = lucide(RotateCcw, "RetryIcon");
 export const JumpIcon = lucide(LocateFixed, "JumpIcon");
 

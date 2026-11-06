@@ -10,7 +10,7 @@ import {
   resolvedColor,
 } from "../../testing/visual-asserts";
 import { featuredIconFixtures, fixtures } from "../fixtures";
-import { CheckIcon, DangerIcon, InfoIcon, WarningIcon } from "../icons";
+import { CheckIcon, DangerIcon, InfoIcon, JobsIcon, QueuedIcon, WarningIcon } from "../icons";
 import { Matrix } from "../matrix";
 import { FeaturedIcon, type FeaturedIconSize, type FeaturedIconVariant } from "./FeaturedIcon";
 
@@ -23,7 +23,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "A glyph on a tinted tile for one feedback kind (ORV-222): success, warning, danger or info. The kind sets the tint and the drawing, so it never rests on colour alone, and the tile is hidden from assistive technology: it stands only beside words that say the same thing (use Badge for a status with no words). The words in these stories are mock.",
+          "A glyph on a tile. A feedback kind (ORV-222: success, warning, danger or info) sets the tint and the drawing, so it never rests on colour alone. The neutral kind (ORV-223) is a quiet grey tile that takes the caller's own glyph, for an empty form. The tile is hidden from assistive technology: it stands only beside words that say the same thing (use Badge for a status with no words). The words in these stories are mock.",
       },
     },
   },
@@ -32,31 +32,64 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+type FeedbackKind = Exclude<FeaturedIconVariant, "neutral">;
 const VARIANTS = [
   "success",
   "warning",
   "danger",
   "info",
-] as const satisfies readonly FeaturedIconVariant[];
+] as const satisfies readonly FeedbackKind[];
 const SIZES = ["sm", "md", "lg"] as const satisfies readonly FeaturedIconSize[];
 
 /** Tile then glyph, in px: `size.control.*` then `size.icon.*` (spec ORV-222, worked example W1). */
 const BOXES = { sm: [32, 16], md: [40, 20], lg: [48, 24] } as const;
 
-/** The four kinds beside their words, in the language of the copy. */
+/** One tile of a kind; the neutral kind draws the jobs glyph, as the empty task bar does. */
+function Tile({
+  variant,
+  size,
+}: {
+  variant: FeaturedIconVariant;
+  size?: FeaturedIconSize | undefined;
+}) {
+  return variant === "neutral" ? (
+    <FeaturedIcon variant="neutral" icon={JobsIcon} size={size} />
+  ) : (
+    <FeaturedIcon variant={variant} size={size} />
+  );
+}
+
+/** The four feedback kinds (and the neutral one with `withNeutral`) beside their words. */
 function Rows({
   copy,
   size,
+  withNeutral = false,
 }: {
   copy: Record<FeaturedIconVariant, string>;
   size?: FeaturedIconSize;
+  withNeutral?: boolean;
 }) {
+  const kinds: readonly FeaturedIconVariant[] = withNeutral ? [...VARIANTS, "neutral"] : VARIANTS;
   return (
     <ul className="m-0 flex list-none flex-col gap-3 p-0">
-      {VARIANTS.map((variant) => (
+      {kinds.map((variant) => (
         <li key={variant} className="flex items-center gap-3 text-label-md">
-          <FeaturedIcon variant={variant} size={size} />
+          <Tile variant={variant} size={size} />
           <span>{copy[variant]}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** The neutral tile at sm, md and lg, each beside the words. */
+function NeutralRows({ text }: { text: string }) {
+  return (
+    <ul className="m-0 flex list-none flex-col gap-3 p-0">
+      {SIZES.map((size) => (
+        <li key={size} className="flex items-center gap-3 text-label-md">
+          <FeaturedIcon variant="neutral" icon={JobsIcon} size={size} />
+          <span>{text}</span>
         </li>
       ))}
     </ul>
@@ -72,13 +105,13 @@ const GLYPH_OF = {
   warning: WarningIcon,
   danger: DangerIcon,
   info: InfoIcon,
-} as const satisfies Record<FeaturedIconVariant, unknown>;
+} as const satisfies Record<FeedbackKind, unknown>;
 
 /** The drawing inside an svg, as markup; the svg's own attributes (class, size) are left out. */
 const drawingOf = (svg: SVGSVGElement) => svg.innerHTML;
 
 /** The glyph alone, mounted in a detached node (not in the story), then read and unmounted. */
-const drawingOfGlyph = (variant: FeaturedIconVariant) => {
+const drawingOfGlyph = (variant: FeedbackKind) => {
   const Glyph = GLYPH_OF[variant];
   const holder = document.createElement("div");
   const root = createRoot(holder);
@@ -101,6 +134,24 @@ async function expectHiddenTile(tile: HTMLElement) {
   await expect(tile.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
 }
 
+/** The neutral tile as `fi-neutral-colour-1` reads it: the quiet ground and ink, the size and the glyph's size. */
+async function expectNeutralTile(tile: HTMLElement, size: FeaturedIconSize) {
+  const [tileSize, glyphSize] = BOXES[size];
+  const glyph = tile.querySelector("svg") as SVGSVGElement;
+  const tileStyle = getComputedStyle(tile);
+  const glyphStyle = getComputedStyle(glyph);
+  await expect(tile).toHaveAttribute("data-variant", "neutral");
+  await expect(tile).toHaveAttribute("data-size", size);
+  await expect(Math.abs(parseFloat(tileStyle.width) - tileSize)).toBeLessThanOrEqual(0.5);
+  await expect(Math.abs(parseFloat(tileStyle.height) - tileSize)).toBeLessThanOrEqual(0.5);
+  await expect(Math.abs(parseFloat(glyphStyle.width) - glyphSize)).toBeLessThanOrEqual(0.5);
+  await expect(Math.abs(parseFloat(glyphStyle.height) - glyphSize)).toBeLessThanOrEqual(0.5);
+  await expect(glyphStyle.color).toBe(resolvedColor(tile, "--cmp-featured-icon-neutral-fg"));
+  await expect(tileStyle.backgroundColor).toBe(
+    resolvedColor(tile, "--cmp-featured-icon-neutral-bg"),
+  );
+}
+
 /** Four tinted tiles with four different glyphs, each beside its words. */
 export const Variants: Story = {
   render: () => <Rows copy={featuredIconFixtures.th} />,
@@ -114,7 +165,7 @@ export const Variants: Story = {
     const drawings = tiles.map((tile) => drawingOf(tile.querySelector("svg") as SVGSVGElement));
     await expect(new Set(drawings).size).toBe(4);
     for (const [i, tile] of tiles.entries()) {
-      const variant = VARIANTS[i] as FeaturedIconVariant;
+      const variant = VARIANTS[i] as FeedbackKind;
       await expect(tile).toHaveAttribute("data-variant", variant);
       await expectHiddenTile(tile);
       const glyph = tile.querySelector("svg") as SVGSVGElement;
@@ -185,6 +236,34 @@ export const Sizes: Story = {
   },
 };
 
+/**
+ * The neutral tile (ORV-223): a quiet grey ground with the caller's glyph, at sm, md and lg beside
+ * the words. The tile is the same as a feedback tile in size, radius and hidden state; only the
+ * ground, the ink and the caller's own glyph differ.
+ */
+export const Neutral: Story = {
+  render: () => <NeutralRows text={featuredIconFixtures.th.neutral} />,
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getAllByText(featuredIconFixtures.th.neutral)).toHaveLength(
+      3,
+    );
+    const tiles = tilesOf(canvasElement);
+    await expect(tiles).toHaveLength(3);
+    for (const [i, tile] of tiles.entries()) {
+      const size = SIZES[i] as FeaturedIconSize;
+      await expectHiddenTile(tile);
+      await expectNeutralTile(tile, size);
+      // The tile holds no text, so the glyph is centred by boxes, not by ink.
+      const tileBox = tile.getBoundingClientRect();
+      const glyphBox = (tile.querySelector("svg") as SVGSVGElement).getBoundingClientRect();
+      const dx = glyphBox.left + glyphBox.width / 2 - (tileBox.left + tileBox.width / 2);
+      const dy = glyphBox.top + glyphBox.height / 2 - (tileBox.top + tileBox.height / 2);
+      await expect(Math.abs(dx), `the ${size} glyph is ${dx} px off`).toBeLessThanOrEqual(0.5);
+      await expect(Math.abs(dy), `the ${size} glyph is ${dy} px off`).toBeLessThanOrEqual(0.5);
+    }
+  },
+};
+
 /** English: the four kinds beside the English words (as `Variants`), then at sm, md and lg (as `Sizes`). */
 export const InEnglish: Story = {
   decorators: [(Story) => <LocaleProvider locale="en">{Story()}</LocaleProvider>],
@@ -192,6 +271,7 @@ export const InEnglish: Story = {
     <div className="flex flex-col gap-6">
       <Rows copy={featuredIconFixtures.en} />
       <SizeRows />
+      <NeutralRows text={featuredIconFixtures.en.neutral} />
     </div>
   ),
   play: async ({ canvasElement }) => {
@@ -199,12 +279,18 @@ export const InEnglish: Story = {
     for (const variant of VARIANTS) {
       await expect(canvas.getByText(featuredIconFixtures.en[variant])).toBeVisible();
     }
+    await expect(canvas.getAllByText(featuredIconFixtures.en.neutral)).toHaveLength(3);
     const tiles = tilesOf(canvasElement);
-    // Four tiles beside the words, then twelve: the four kinds at each of the three sizes.
-    await expect(tiles).toHaveLength(16);
+    // Four tiles beside the words, twelve (the four kinds at each of the three sizes), then the
+    // three neutral tiles beside their words.
+    await expect(tiles).toHaveLength(19);
     for (const [i, tile] of tiles.entries()) {
       await expectHiddenTile(tile);
-      const variant = VARIANTS[i % VARIANTS.length] as FeaturedIconVariant;
+      if (i >= 16) {
+        await expectNeutralTile(tile, SIZES[i - 16] as FeaturedIconSize);
+        continue;
+      }
+      const variant = VARIANTS[i % VARIANTS.length] as FeedbackKind;
       await expect(tile).toHaveAttribute("data-variant", variant);
       if (i >= VARIANTS.length) {
         const size = SIZES[Math.floor((i - VARIANTS.length) / VARIANTS.length)] as FeaturedIconSize;
@@ -271,21 +357,22 @@ export const At360: Story = {
 export const RecipesAndModes: Story = {
   render: () => (
     <Matrix>
-      <Rows copy={featuredIconFixtures.th} />
+      <Rows copy={featuredIconFixtures.th} withNeutral />
     </Matrix>
   ),
   play: async ({ canvasElement }) => {
     const cells = canvasElement.querySelectorAll("[data-matrix-cell]");
     await expect(cells).toHaveLength(6);
-    for (const cell of cells) await expect(tilesOf(cell)).toHaveLength(4);
-    await expect(tilesOf(canvasElement)).toHaveLength(24);
+    for (const cell of cells) await expect(tilesOf(cell)).toHaveLength(5);
+    await expect(tilesOf(canvasElement)).toHaveLength(30);
   },
 };
 
 /**
  * Type contract (`fi-api-1`), checked by `pnpm typecheck`. The rejected elements are created and
- * dropped, never mounted: a missing variant, a variant outside the four kinds, a caller's own
- * `icon` and a `children` are each a type error. The story draws the one valid tile.
+ * dropped, never mounted: a missing variant, a variant outside the five kinds, an `icon` on a
+ * feedback kind, a neutral tile without an `icon`, an `icon` given as an element and a `children`
+ * are each a type error. The story draws the one valid tile.
  */
 export const TypeContract: Story = {
   render: () => {
@@ -294,10 +381,16 @@ export const TypeContract: Story = {
       <FeaturedIcon />,
       // @ts-expect-error brand is not a feedback kind
       <FeaturedIcon variant="brand" />,
-      // @ts-expect-error the variant sets the glyph; there is no icon prop
+      // @ts-expect-error a feedback kind sets its own glyph and refuses an icon
       <FeaturedIcon variant="success" icon={<span />} />,
       // @ts-expect-error there is no children prop
       <FeaturedIcon variant="success">x</FeaturedIcon>,
+      // @ts-expect-error the neutral kind needs the caller's glyph
+      <FeaturedIcon variant="neutral" />,
+      // @ts-expect-error a feedback kind keeps its own glyph and refuses an icon
+      <FeaturedIcon variant="danger" icon={JobsIcon} />,
+      // @ts-expect-error the icon is a component, never an element
+      <FeaturedIcon variant="neutral" icon={<QueuedIcon />} />,
     ];
     return (
       <div data-rejected={rejected.length}>
