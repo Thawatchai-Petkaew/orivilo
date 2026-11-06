@@ -299,3 +299,33 @@ Keep this table in step with the folder when you add an entry.
 | [[K-0286-html-accept-is-a-hint-back-it-on-the-server]]                                  | 0.8        | HTML accept is a hint; MDN: back it with server-side validation       |
 | [[K-0287-react-aria-dropzone-takes-a-file-trigger-child]]                               | 0.75       | React Aria DropZone: FileTrigger as a child; no keyboard drop text    |
 | [[K-0288-synthesis-file-upload-benchmark]]                                              | 0.75       | Synthesis: file upload benchmark table, audit B form                  |
+| [[K-0290-untitled-ui-select-sizes-states-and-item-slots]]                               | 0.8        | Untitled Select: sizes, states, item slots; no loading or empty       |
+| [[K-0291-untitled-ui-select-combobox-opens-on-focus-visual-hint]]                       | 0.8        | Untitled ComboBox: menuTrigger focus, visual-only key hint            |
+| [[K-0292-untitled-ui-multi-select-count-trigger-footer-and-search-dialog]]              | 0.8        | Untitled MultiSelect: count trigger, footer, search dialog, empty     |
+| [[K-0293-untitled-ui-tag-select-removal-keys-and-focus]]                                | 0.8        | Untitled TagSelect: removal keys, no Delete, focus after removal      |
+| [[K-0294-untitled-ui-tag-close-x-size-and-one-fixed-name]]                              | 0.8        | Untitled TagCloseX: 14 to 20 px (own arithmetic), one fixed name      |
+| [[K-0295-untitled-ui-input-tags-silent-rejection-and-focus]]                            | 0.8        | Untitled InputTags: silent refusal, focus only when none left         |
+| [[K-0296-untitled-ui-command-menu-filter-false-and-empty-state]]                        | 0.75       | Untitled Command menu: filter false for async, emptyState node        |
+| [[K-0297-react-aria-combobox-menu-trigger-empty-and-count-announcement]]                | 0.8        | React Aria ComboBox: menuTrigger values, count announcement           |
+| [[K-0298-shadcn-ui-combobox-is-built-on-base-ui-on-the-radix-tab]]                      | 0.8        | shadcn Combobox: built on Base UI even on the Radix URL               |
+| [[K-0299-shadcn-ui-combobox-parts-props-and-examples]]                                  | 0.8        | shadcn Combobox: parts, examples; no size, Async or keyboard text     |
+| [[K-0300-shadcn-ui-combobox-chips-remove-button-has-no-name]]                           | 0.8        | shadcn chips: 24 px remove (own arithmetic), no name on the button    |
+| [[K-0301-shadcn-ui-command-on-cmdk-and-the-popover-combobox-sample]]                    | 0.8        | shadcn Command on cmdk; Popover sample; no Tag in the list            |
+| [[K-0302-cmdk-roles-keys-empty-and-loading]]                                            | 0.8        | cmdk: aria-expanded fixed true, Empty presentation, Loading, keys     |
+| [[K-0303-base-ui-combobox-status-and-empty-are-live-regions]]                           | 0.8        | Base UI Combobox: Status and Empty are mounted live regions           |
+| [[K-0304-base-ui-combobox-async-search-sample]]                                         | 0.8        | Base UI Async samples: status text, abort, chosen items merged        |
+| [[K-0305-base-ui-combobox-chip-keys-and-focus-after-removal]]                           | 0.8        | Base UI chips: Backspace, Delete, focus after removal                 |
+| [[K-0306-base-ui-combobox-multiple-mode-strings-left-to-the-author]]                    | 0.8        | Base UI multiple: screen reader strings left to the author            |
+| [[K-0307-radix-has-no-combobox-and-select-is-one-value-without-search]]                 | 0.75       | Radix: no combobox package; Select one value, no search               |
+| [[K-0308-wai-aria-apg-combobox-kinds-and-autocomplete-forms]]                           | 0.8        | APG Combobox: select-only, editable, four autocomplete forms          |
+| [[K-0309-wai-aria-apg-combobox-keyboard-and-listbox-popup-keys]]                        | 0.8        | APG Combobox keys, listbox popup keys, popup may close on no match    |
+| [[K-0310-wai-aria-apg-combobox-roles-states-and-aria-busy]]                             | 0.8        | APG and ARIA 1.2: combobox roles, states, aria-busy while loading     |
+| [[K-0311-wai-aria-apg-listbox-multi-select-keys-and-state]]                             | 0.8        | APG Listbox: multi-select keys, aria-selected or aria-checked         |
+| [[K-0312-wai-aria-apg-listbox-cautions-select-all-and-delete-example]]                  | 0.8        | APG Listbox cautions, Select All buttons, Delete in an example        |
+| [[K-0313-wai-aria-apg-has-no-tag-or-multi-value-combobox-pattern]]                      | 0.75       | APG: no pattern for tags or a multi-value combobox                    |
+| [[K-0314-wcag-2-2-status-message-result-count]]                                         | 0.8        | WCAG SC 4.1.3: "5 results returned" as a status message               |
+| [[K-0315-wcag-2-2-target-size-minimum-and-spacing]]                                     | 0.8        | WCAG SC 2.5.8: 24 by 24 CSS pixels, Spacing, combobox list scope      |
+| [[K-0316-wcag-2-2-popup-opened-by-focus]]                                               | 0.75       | WCAG SC 3.2.1, 1.4.13, 2.4.11 for a list opened on focus              |
+| [[K-0317-wcag-2-2-on-input-and-name-role-value-for-a-custom-list]]                      | 0.8        | WCAG SC 3.2.2 and 4.1.2 for a custom list and its chosen value        |
+| [[K-0318-wcag-2-2-keyboard-and-focus-order-no-rule-after-removal]]                      | 0.75       | WCAG SC 2.1.1 and 2.4.3: no rule for focus after a removal            |
+| [[K-0319-synthesis-combobox-and-multi-select-benchmark]]                                | 0.75       | Synthesis: Combobox and Multi-select benchmark, audit B form          |
