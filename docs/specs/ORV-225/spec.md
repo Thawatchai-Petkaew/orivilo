@@ -3,7 +3,7 @@ issue: ORV-225 (https://tpetkaew.atlassian.net/browse/ORV-225)
 lane: as set on ORV-225 in Jira (not read in this role). By this spec's reading the risk flag "component public API" applies (AGENTS.md, "Lanes and gates"): four new public components, a new prop on `CollapsibleTrigger` and on `WorkspaceScreen`, and three repointed component tokens ("Contract changes and impact"), so lane L
 mode: POC mode short spec (`.claude/skills/ovl/SKILL.md`, section "POC mode")
 source_rows: docs/specs/ORV-64/audit.md section D.3 row 22
-version: 1.1
+version: 1.2
 design: docs/specs/ORV-225/design.md, version 1, at 9fe740e. It answers open questions 3, 6 and 9 and gives the builders the CSS and markup per rule; its "Amendments to the spec" rows 1 to 12 are in this version. The designer still signs the rows named in `stories-1`
 ---
 
@@ -342,7 +342,9 @@ Stories are those of `stories-1`. Plays run in Thai; each `En` twin runs the sam
 
 ## Rows per PR
 
-No PR exists yet, so this section has no PR lines. The main session adds one line per PR once it exists, in the form `qa-scope-1` reads (`scripts/ovl/result-recorder.mjs`), with a changelog line. The plan is six PRs, one deliverable each, in this order. A and B can run beside C. D needs C, E needs D, F needs all of them. Row 75 belongs to every PR.
+- PR 189: rows 1-12, 75
+
+The main session adds one line per PR once it exists, in the form `qa-scope-1` reads (`scripts/ovl/result-recorder.mjs`), with a changelog line. The plan is six PRs, one deliverable each, in this order. A and B can run beside C. D needs C, E needs D, F needs all of them. Row 75 belongs to every PR.
 
 <!-- prettier-ignore -->
 | Slice | Deliverable | Rows | Changed lines, estimate |
@@ -475,3 +477,4 @@ node -e 'console.log(60*60*24*365)'
 
 - 1: first version, from K-0204 to K-0236 and the repo on this branch.
 - 1.1: takes in `design.md` amendments 1 to 12 and its answers to open questions 3, 6 and 9, with question 9 on the designer's proposal (G2, ORV-225 comment 10532). Rules changed: `nav-focus-1`, `nav-narrow-1`, `top-nav-1`, `top-skip-1`, `sidebar-rail-1`, `shell-ia-1`, `section-header-1`, `header-type-1`, `header-stack-1`. Rows 12, 22, 41, 56 and 63 post the sign-off's PNG paths as a Jira comment (`stories-1`). `frame-ink-1` and rows 7, 18, 30, 35 and 49 name `expectFrameCutsNoInk(el, frame)` for the frame clip, because `expectLabelInkWhole` reads only its own clone, and Depends on gains PR 186. Rows 29, 38, 39, 48, 59, 60 and 73 and W4 and W7 follow the amendments, and the front matter points to `design.md`. No row number changes, so "Rows per PR" stands. Downstream to review: `design.md` (it still reads "Waits for a decision" on question 9), the slice A to F builder envelopes, the designer's sign-off list and the qa envelopes.
+- 1.2: by the main session. Rows per PR gains the line for PR 189, slice A. No requirement changes.
