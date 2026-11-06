@@ -89,7 +89,7 @@ function startFromTop() {
   (document.activeElement as HTMLElement | null)?.blur();
 }
 
-/** The focus look of `crumb-look-1`: a 1 px line, a 4 px halo, a pill; the padding cancelled by the margin. */
+/** The focus look of `crumb-look-1`: a 1 px line, a 4 px halo, a small corner; the padding cancelled by the margin. */
 async function expectCrumbFocus(link: HTMLElement) {
   const style = getComputedStyle(link);
   await expect(link.matches(":focus-visible")).toBe(true);
@@ -97,7 +97,7 @@ async function expectCrumbFocus(link: HTMLElement) {
   await expect(style.outlineWidth).toBe("1px");
   await expect(style.boxShadow).toMatch(/0px 0px 0px 4px$/);
   await expect(style.borderTopLeftRadius).toBe(
-    style.getPropertyValue("--cmp-nav-item-radius").trim(),
+    style.getPropertyValue("--ds-shape-check-radius").trim(),
   );
   await expect(style.paddingInlineStart).toBe("4px");
   await expect(style.marginInlineStart).toBe("-4px");
@@ -398,20 +398,18 @@ async function playAt360(
 /** In 360 px, two long Thai crumbs sit on their own lines, cut at the end of the line, no scroll. */
 export const At360: Story = {
   render: () => (
-    <At360Frame lang="th" long={fixtures.longThai} first="ฟื้ปั้ปี๊ฟื้" second="เส้นทาง ก" />
+    <At360Frame lang="th" long={fixtures.longThai} first="ฟื้ปั้ปี๊กี๊" second="เส้นทาง ก" />
   ),
   play: async ({ canvasElement }) => {
-    const { navs } = await playAt360(canvasElement, "th", fixtures.longThai, "เส้นทาง ก");
+    const { frame, navs } = await playAt360(canvasElement, "th", fixtures.longThai, "เส้นทาง ก");
     // Tab reaches the first link of the second trail, which is not cut, with the focus look.
     const target = within(navs[1]).getAllByRole("link")[0] as HTMLElement;
     startFromTop();
     for (let i = 0; i < 4; i++) await userEvent.tab();
     await expect(target).toHaveFocus();
     await expectCrumbFocus(target);
-    // Row 15's last step, `expectFrameCutsNoInk(target, frame)`, is not here: on the built link it is
-    // red by one pixel group (x 3, y 146 px from the frame's top left, neutral light, Thai sample
-    // "ฟื้ปั้ปี๊ฟื้"), the cut the design accepted on its analogue (design.md, "What this does not
-    // prove"). It goes back to the designer as a deviation; no tolerance is added here.
+    // Row 15: the focus corner rounds the box that clips the text, so no Thai mark is cut under focus.
+    if (inVitest) await expectFrameCutsNoInk(target, frame);
   },
 };
 

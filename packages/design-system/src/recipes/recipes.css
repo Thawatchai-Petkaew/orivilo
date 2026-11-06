@@ -4985,9 +4985,9 @@ button.ds-tag__main {
   color: var(--cmp-nav-item-fg-hover);
   text-decoration: underline;
 }
-/* The shape of focus follows the control shape; the line and the halo stay global. At rest a pill would round the box that clips the text and cut its ink. */
+/* The focus corner rounds the box that clips the text, so it stays small: a pill cuts Thai marks at both ends of a label. The line and the halo stay global. */
 .ds-breadcrumb__link:focus-visible {
-  border-radius: var(--cmp-nav-item-radius);
+  border-radius: var(--ds-shape-check-radius);
 }
 .ds-breadcrumb__page {
   color: var(--cmp-nav-item-fg-active);
