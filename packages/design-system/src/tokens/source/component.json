@@ -2637,6 +2637,58 @@
       }
     }
   },
+  "alert": {
+    "$description": "An inline message for one feedback kind (ORV-222, alert-look-1): a card ground, a 1 px edge per kind (danger takes the foreground ink), a title over a description",
+    "bg": {
+      "$type": "color",
+      "$value": "{surface.card}"
+    },
+    "success-edge": {
+      "$type": "color",
+      "$value": "{feedback.success.border}"
+    },
+    "warning-edge": {
+      "$type": "color",
+      "$value": "{feedback.warning.border}"
+    },
+    "danger-edge": {
+      "$type": "color",
+      "$value": "{feedback.danger.fg}",
+      "$description": "The one strong edge: a failed job is drawn at full strength (design.md C2)"
+    },
+    "info-edge": {
+      "$type": "color",
+      "$value": "{feedback.info.border}"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.container.radius}"
+    },
+    "padding": {
+      "$type": "dimension",
+      "$value": "{space.inset.md}"
+    },
+    "gap": {
+      "$type": "dimension",
+      "$value": "{space.inline.lg}"
+    },
+    "title": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    },
+    "description": {
+      "$type": "color",
+      "$value": "{text.secondary}"
+    },
+    "title-type": {
+      "$type": "typography",
+      "$value": "{type.label.md}"
+    },
+    "body-type": {
+      "$type": "typography",
+      "$value": "{type.body.sm}"
+    }
+  },
   "logo": {
     "$description": "The ORIVILO mark, wordmark and lockups (ORV-118, logo-colour-1)",
     "ink": {

@@ -35,6 +35,7 @@ Legend: `none` not started, `planned` entry exists, no code, `draft` code and st
 | RangeSlider   | draft  | base-range-slider   |
 | Toast         | draft  | base-toast          |
 | FeaturedIcon  | draft  | base-featured-icon  |
+| Alert         | draft  | base-alert          |
 | File upload   | none   |                     |
 | Calendar      | draft  | base-calendar       |
 | Date picker   | none   |                     |

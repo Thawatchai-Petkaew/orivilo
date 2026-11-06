@@ -250,6 +250,62 @@ describe("the menu listbox (ORV-204, menu-separator-1, menu-label-1, menu-disabl
   });
 });
 
+describe("the alert recipe (ORV-222, alert-look-1)", () => {
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  const rules = [...bare.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => ({
+    selector: (m[1] ?? "").trim().replace(/\s+/g, " "),
+    body: (m[2] ?? "").trim(),
+  }));
+  const alert = rules.filter((r) => r.selector.startsWith(".ds-alert"));
+  const body = (selector: string) => alert.find((r) => r.selector === selector)?.body ?? "";
+
+  it("lists the title and description at the text floor and the danger edge at the UI floor, on alert.bg", () => {
+    const pairs = RECIPE_PAIRS.filter((p) => p.recipe === "alert").map((p) => [
+      p.slot,
+      p.fg,
+      p.bg,
+      p.floor,
+    ]);
+    expect(pairs).toEqual([
+      ["title", "alert.title", "alert.bg", 4.5],
+      ["description", "alert.description", "alert.bg", 4.5],
+      ["danger edge", "alert.danger-edge", "alert.bg", 3],
+    ]);
+  });
+
+  it("does not list the success, warning and info edges: they are decoration", () => {
+    const listed = RECIPE_PAIRS.filter((p) => p.recipe === "alert").map((p) => p.fg);
+    for (const kind of ["success", "warning", "info"]) {
+      expect(listed, `alert.${kind}-edge`).not.toContain(`alert.${kind}-edge`);
+    }
+  });
+
+  it("draws one 1 px edge per kind from its own token", () => {
+    expect(body(".ds-alert")).toContain("border: 1px solid transparent;");
+    for (const kind of ["success", "warning", "danger", "info"]) {
+      expect(body(`.ds-alert[data-variant="${kind}"]`)).toBe(
+        `border-color: var(--cmp-alert-${kind}-edge);`,
+      );
+    }
+  });
+
+  it("is a block at its parent's width, with no shadow, animation or transition", () => {
+    expect(body(".ds-alert")).toContain("inline-size: 100%;");
+    for (const rule of alert) {
+      expect(rule.body, rule.selector).not.toMatch(/animation|transition|box-shadow/);
+    }
+  });
+
+  it("wraps the title and description by overflow-wrap anywhere and never clips them", () => {
+    expect(body(".ds-alert__title, .ds-alert__description")).toContain("overflow-wrap: anywhere;");
+    for (const rule of alert) {
+      expect(rule.body, rule.selector).not.toMatch(
+        /line-clamp|text-overflow|overflow:|overflow-[xy]:/,
+      );
+    }
+  });
+});
+
 describe("recipe contrast pairs", () => {
   for (const { id, set } of sets) {
     for (const mode of MODES) {
