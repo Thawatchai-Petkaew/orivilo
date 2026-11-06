@@ -1,7 +1,7 @@
 ---
 issue: ORV-229
 spec: docs/specs/ORV-229/spec.md v1.1
-task: ORV-229-design-1
+task: ORV-229-design-1, ORV-229-design-2
 date: 2026-11-06
 ---
 
@@ -9,7 +9,7 @@ date: 2026-11-06
 
 The look of the trail and the page row, the answers to open questions 1 to 11, the proof of the colour pairs, the Copy table read aloud, and one row of CSS and markup per rule for the builder. Every value is an existing `--ds-*` or `--cmp-*` property; this design adds no token.
 
-All eleven open questions stay on their defaults. The render still found five things the spec needs changed: one Thai name, the focus shape of a crumb, the height of a wrapped line, the ink and spacing of the ellipsis, and the ink of a disabled chevron. Those are amendments A1 to A5; A6 counts the pairs, and A7 writes down a glyph size and a wrap the spec leaves unsaid. Each has its old and new text, and the tables below assume they are taken. No colour pair is refused. Four pairs are added, so the count goes from twelve to sixteen.
+All eleven open questions stay on their defaults. The render still found five things the spec needs changed: one Thai name, the focus shape of a crumb, the height of a wrapped line, the ink and spacing of the ellipsis, and the ink of a disabled chevron. Those are amendments A1 to A5; A6 counts the pairs, and A7 writes down a glyph size and a wrap the spec leaves unsaid. Each has its old and new text, and the tables below assume they are taken. A8 came later, from the built component: it withdraws the cut accepted on the analogue and replaces the focus pill (see "Row 15, the focus step"). No colour pair is refused. Four pairs are added, so the count goes from twelve to sixteen.
 
 ## Flow
 
@@ -121,7 +121,7 @@ Add the rows to `recipes.css` in this order: D17 has the specificity of D16 and 
 | D4 | `crumb-look-1`, A2 | `.ds-breadcrumb__link` | `padding-inline: var(--ds-space-inline-sm); margin-inline: calc(-1 * var(--ds-space-inline-sm)); color: var(--cmp-nav-item-fg); text-decoration: none; text-underline-offset: 0.2em;` | Ink stays where it was, the focus line clears the glyphs by 4 px, the first crumb's ink sits on the start edge | Row 4 with A2's check |
 | D5 | `crumb-cut-1`, A2 | `.ds-breadcrumb__item:last-child > .ds-breadcrumb__link` | `margin-inline-end: 0;` | A last crumb that is a long link leaves the frame at 360, not 364, in Thai and English | Row 15 with A2's second trail |
 | D6 | `crumb-look-1` | `.ds-breadcrumb__link:hover` | `color: var(--cmp-nav-item-fg-hover); text-decoration: underline;` No transition, so row 5 reads the end state at once | Ink and underline | Rows 5, 12 |
-| D7 | `crumb-look-1`, A2 | `.ds-breadcrumb__link:focus-visible` | `border-radius: var(--cmp-nav-item-radius);` Line and halo stay global. The radius is on focus only: at rest a pill would round the box that clips the text, and cut glyph ink | A pill in neutral and Friendly, radius 6 in Professional | Row 4 with A2's check |
+| D7 | `crumb-look-1`, A2, A8 | `.ds-breadcrumb__link:focus-visible` | `border-radius: var(--ds-shape-check-radius);` Line and halo stay global. The radius is on focus only, and it rounds the box that clips the text, so it must stay at 8 px or under (A8) | 4 px in neutral, `orivilo` and Professional, 6 px in Friendly | Row 4 with A8's check, row 15 |
 | D8 | `crumb-look-1`, `crumb-current-1` | `.ds-breadcrumb__page` | `color: var(--cmp-nav-item-fg-active);` and the `--ds-type-label-md-*` set. No padding-inline, no hover rule | Weight 500 against 400 | Row 2 |
 | D9 | `crumb-markup-1` | `.ds-breadcrumb__separator` | `flex: none; margin-inline: var(--ds-space-inline-md); color: var(--cmp-nav-item-fg);` | 8 px from a crumb to its slash on each side | Row 3 for the markup, row 20's sign-off for the spacing |
 | D10 | `crumb-expand-1`, A4 | `.ds-breadcrumb__item > .ds-button[data-variant="ghost"]` | `margin-inline: calc(-1 * var(--ds-space-inline-md)); color: var(--cmp-nav-item-fg);` and, on `:hover` and `:active`, `color: var(--cmp-nav-item-fg-hover);` | The dots sit 10 px from each slash, where the spec as written leaves 15 | Row 6 with A4's check |
@@ -148,7 +148,7 @@ Selected does not apply: a current crumb or page is a place, marked `aria-curren
 | --- | --- | --- |
 | Default | Links in `nav-item.fg` at 400, slashes in the same ink | Numbers in `nav-item.fg` at 500, chevrons in `button.ghost.fg`, gaps in `nav-item.fg` |
 | Hover | Link: darker ink and an underline. Ellipsis: Button's own ground and edge, plus darker ink. Current crumb: no change | Number: hover ground and darker ink. Chevron: Button's own. Current page: no change |
-| Focus | Link: global 1 px line and 4 px shadow, on a pill. Ellipsis: Button's border form. Current crumb: not focusable | Number and current page: the border form. Chevron: Button's own. Gap: not focusable |
+| Focus | Link: global 1 px line and 4 px shadow, on the small corner of `shape.check.radius`. Ellipsis: Button's border form. Current crumb: not focusable | Number and current page: the border form. Chevron: Button's own. Gap: not focusable |
 | Current | Weight 500, `nav-item.fg-active`, no link | `nav-item.fg-active` on `bg-active`, in a 1 px `border.strong` edge, still a link |
 | Disabled | None: a crumb is a link or the page | Previous on page 1 and Next on the last page, `text.disabled`, not a Tab stop, in place |
 | Loading | None (Out of scope): each is a navigation to a new page | The same |
@@ -175,6 +175,8 @@ New: "Focus is the global `:focus-visible` line and halo (`orivilo.css` lines 74
 Why: as written, the line is a square box touching the first and last glyph, in a system of pills (`study-spec-against-proposal-light.png`, top against bottom).
 
 Row 4 adds: on a focused link computed `borderTopLeftRadius` equals `getComputedStyle(link).getPropertyValue("--cmp-nav-item-radius")`, and `paddingInlineStart` is `4px`.
+
+A8 replaces the radius in this amendment. The padding, the margin and the second trail stand.
 
 Row 15 adds a second trail to `At360`, all links, ending in `fixtures.longThai`, under its own `aria-label`: the frame's `scrollWidth` is not above 360. Row 16 adds the same with `fixtures.longLatin`.
 
@@ -232,6 +234,36 @@ Row 6 adds: the ellipsis `svg` is 16 px wide. Row 22 adds: each chevron `svg` an
 
 New: "`li.ds-pagination__status` shows `pagination.status`, in `type.body.sm` and `--cmp-nav-item-fg`, between Previous and Next (K-0326), and the list stops wrapping and spreads, so Previous and Next hold the two ends."
 
+### A8. The crumb's focus corner (`crumb-look-1`, `crumb-cut-1`, Fixtures, rows 4 and 15)
+
+`crumb-look-1` old: "A link takes `--ds-space-inline-sm` of inline padding, cancelled by a negative margin so no ink moves, and `--cmp-nav-item-radius` while focused, so the line follows the control shape and clears the glyphs."
+
+New: "A link takes `--ds-space-inline-sm` of inline padding, cancelled by a negative margin so no ink moves, and `--ds-shape-check-radius` while focused, so the line clears the glyphs. A link's box clips its text, so its focus corner rounds that clip too, and it stays at 8 px or under in every profile: a pill in a 32 px line cuts Thai marks at both ends of a label."
+
+`crumb-cut-1` old: "The design's clip figures are an analogue: injected markup in Chromium at 2x, with the worst sample of `expectLabelInkWhole`, gave 0 pixels cut at rest, and under focus 0 in Professional and 3 device pixels in neutral, from the corner of the pill. Row 15 settles both on the built component."
+
+New: "The design's first clip figures were an analogue, from one sample at the start corner. On the built component a pill cut marks at both corners, so the focus corner is `--ds-shape-check-radius` (`crumb-look-1`). Row 15 proves it."
+
+`crumb-cut-1` old: "If that step goes red, the builder reports the pixel the helper names and does not widen the helper, drop the step or change the radius: the design accepted this cut on the analogue, so the call goes back to the designer."
+
+New: "If that step goes red, the builder reports the pixel the helper names and does not widen the helper, drop the step or change the radius: no cut is accepted, so the call goes back to the designer."
+
+Fixtures old: "The second trail of `At360` opens on `ฟื้ปั้ปี๊ฟื้`, the default sample of `expectLabelInkWhole`: a test string, shown in that story only."
+
+New: "The second trail of `At360` opens on `ฟื้ปั้ปี๊กี๊`, a stack at the start corner and `กี๊` at the end corner: a test string, shown in that story only."
+
+Row 4 old: "on a focused link computed `borderTopLeftRadius` equals `getComputedStyle(link).getPropertyValue("--cmp-nav-item-radius")`"
+
+New: "on a focused link computed `borderTopLeftRadius` equals `getComputedStyle(link).getPropertyValue("--ds-shape-check-radius")`"
+
+Row 15 old, in the action: "two links, `ฟื้ปั้ปี๊ฟื้` then `fixtures.longThai`"
+
+New: "two links, `ฟื้ปั้ปี๊กี๊` then `fixtures.longThai`"
+
+Row 15's check is not changed: "Under keyboard focus on the first link of the second trail, which is not cut, `expectFrameCutsNoInk(link, frame)` passes" stands, with no tolerance.
+
+Why: see "Row 15, the focus step".
+
 ### Facts in the spec that have moved
 
 Develop merged after v1.0. None of these changes a rule; product can correct them with the amendments.
@@ -240,18 +272,59 @@ Develop merged after v1.0. None of these changes a rule; product can correct the
 - `crumb-cut-1` says the clip-box list is at `recipes.css` line 4716: it is now lines 4767 to 4782.
 - The contract table says the `icons.tsx` comment at line 62 counts 46 against 49 imports: the comment is now at line 64 and says 53, and the file imports 51. The builder counts again in the same edit.
 
+## Row 15, the focus step
+
+The builder found `expectFrameCutsNoInk(link, frame)` red on the first link of the second trail. The cut does not stand. The corner changes and the check stays as written.
+
+**Decision.** Row D7 becomes `border-radius: var(--ds-shape-check-radius);`. Row 15's play keeps its step, on a sharper label (A8). No token is added, no ink moves, no size changes.
+
+**Why the cut does not stand.** The acceptance on the analogue was wrong on its one reason: "only with that stack as the first glyph". It read one sample at the start corner. A mark sits at the right of its base, so the end corner cuts far more. In the real `At360` story, under real keyboard focus, the pill cuts `เจ้าหนี้`, `ลูกหนี้`, `สิ่งนี้`, `ไฟฟ้า` and `ไปให้`, ordinary names a crumb can hold. Row 15 expects "no Thai mark is cut, at rest or under focus", and a tolerance would blind the check to the defect it exists for.
+
+**Why the pill cannot hold.** The cut pixels are ink that lies outside the pill, not only outside the clip. A pill in a 32 px line, 4 px from the text, is too round for a label whose marks rise to about 2 px from its top: at the 4x study the marks run into the line. So a clip on an inner element would trade the cut for a mark across the focus line, and it would also add an element that `asChild` has no place for. The shape has to change, not the clip.
+
+Measured on every Thai first and last cluster: 4416 labels of the form cluster, ก, cluster (44 consonants, upper and lower vowels, tone marks, leading vowels), each in a box with the crumb's own recipe, shot clipped and unclipped with the helper's threshold (`INK_DISTANCE` 48).
+
+<!-- prettier-ignore -->
+| Shape | Inline padding | Labels cut, 1x | Labels cut, 2x | Verdict |
+| --- | --- | --- | --- | --- |
+| Pill, as built | 4 px | 2138 | 2144 | Refused: nearly half |
+| Radius 14 | 4 px | 1314 | 1622 | Refused |
+| Radius 12, `shape.media.radius` in neutral | 4 px | 867 | 897 | Refused, and that token is 16 in Friendly |
+| Radius 10 | 4 px | 622 | 336 | Refused |
+| Radius 8 | 4 px | 0 | 0 | Clear: the bound |
+| Radius 6, `shape.check.radius` in Friendly | 4 px | 0 | 0 | Taken |
+| Radius 4, `shape.check.radius` in neutral and Professional | 4 px | 0 | 0 | Taken |
+| Pill | 6 px, no token | 1237 | 1222 | Refused |
+| Pill | 8 px, `space.inline.md` | 620 | 439 | Refused: still cuts, and the line sits on the slash |
+
+**Why this token.** `shape.check.radius` is the only shape token at 8 px or under in every profile, and its description, "small chips inside controls", fits a box around a word; `cmp-tabs-radius` reads it too. It keeps the profiles apart, with Friendly softer than the others. `min(var(--cmp-nav-item-radius), var(--ds-shape-check-radius))` was tried and dropped: the computed values are the same in every profile, and `recipes.test.ts` line 60 refuses a `border-radius` that does not open with `var(`.
+
+**The cost.** A focused crumb is no longer a pill in neutral and Friendly, so it differs from the focused ellipsis beside it, which stays a Button shape. Professional moves from 6 to 4 px, so there too the crumb and the ellipsis, at 6 px, no longer match. The line still clears the glyphs by 4 px at the sides, and the shape is still a line with a halo in the profile's brand hue, so it does not read as selection. The label is a word in running wayfinding, not a control with its own ground, and the small corner reads that way.
+
+**The play.** The old label is a weak test: `ฟื้ปั้ปี๊ฟื้` passes at radius 12 and 14, because its marks clear the end corner. `ฟื้ปั้ปี๊กี๊` is red at the pill, at 12 and at 10, and green at 8, 6 and 4, in the real story at 1x and 2x, so the step guards the bound and not only the pill.
+
+What the builder changes, nothing else:
+
+1. `packages/design-system/src/recipes/recipes.css`, the `.ds-breadcrumb__link:focus-visible` rule: D7's CSS. Its comment says a pill: it becomes "The focus corner rounds the box that clips the text, so it stays small: a pill cuts Thai marks at both ends of a label. The line and the halo stay global."
+2. `Breadcrumb.stories.tsx`, `At360`: `first="ฟื้ปั้ปี๊กี๊"`, and the comment that marks the place is replaced by the step `if (inVitest) await expectFrameCutsNoInk(target, frame);`. The frame comes back from `playAt360`, which returns it.
+3. `Breadcrumb.stories.tsx`, `expectCrumbFocus`: the radius line reads `--ds-shape-check-radius`, and its doc comment drops the word "pill".
+4. `packages/design-system/catalog/base/breadcrumb.yaml` line 24: "on a pill that clears the glyphs" becomes "on a small corner that clears the glyphs".
+
+Impact: Breadcrumb only. No token, no recipe of another component, no public API. Pagination's numbers are not affected: a page link does not clip its text.
+
 ## Screens to check in visual QA
 
 Rows 20 and 43 name the stories, and screen 7 adds `FormEdge`. Look hard at these:
 
 1. `Collapsed`, closed and hovered: the dots read as part of the trail at rest, and on hover and focus the pill may touch both slashes but leaves each one readable.
-2. `Default` under Tab, Thai: the pill clears "โปรเจกต์ทั้งหมด", marks included. The halo reaches the slash and leaves it readable.
+2. `Default` under Tab, Thai: the focus line clears "โปรเจกต์ทั้งหมด", marks included, at both corners. The halo reaches the slash and leaves it readable.
 3. `Default`, focus on "5" against focus on "6", under Professional light: the halo is what tells them apart, since `focus.ring` and `border.strong` are close there.
 4. `OnCard` with focus on the current page: the fill is gone and the focus line replaces the edge, so ink and halo carry it while focused.
 5. `FirstPage` and `LastPage` under Friendly dark on a card: the lowest disabled pair, 3.3.
 6. `At360`: a cut crumb and its slash. The cut falls between whole glyphs, so the gap before the slash was about 16 px on both long fixtures, where a whole crumb has 8. It reads as a cut, not as a fault, but it is the loosest spot in the trail.
 7. `FormEdge`: the jump at 479 and 480 px, with the chevrons at the ends in the first and beside the numbers in the second.
 8. `RecipesAndModes`: Friendly has no screenshot here, so this is its first look.
+9. `RecipesAndModes` under Tab: a focused crumb beside the focused ellipsis's shape. In neutral and Friendly the crumb has a small corner and the ellipsis is a circle; in Professional it is 4 px against 6 px. This is A8's cost, and the closed-trail sheet shows it.
 
 ## Screenshots
 
@@ -285,13 +358,34 @@ Contact sheet: `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-
 | The spec as written against the proposal, light | `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-229-design-1/shots/study-spec-against-proposal-light.png` |
 | The spec as written against the proposal, dark | `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-229-design-1/shots/study-spec-against-proposal-dark.png` |
 
+Row 15's focus step (ORV-229-design-2): the real Breadcrumb stories in Storybook, with D7's CSS added by `page.addStyleTag`, under real keyboard focus. Neutral, Friendly and Professional, light and dark, Thai and English, in the narrowest and widest frame each story allows. Console and page errors over the run: 0.
+
+Contact sheet: `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-229-design-2/sheets/contact-sheet.png`
+
+<!-- prettier-ignore -->
+| Screen | Path |
+| --- | --- |
+| As built against the proposal, 4x, every profile and mode | `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-229-design-2/sheets/study.png` |
+| Neutral, light | `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-229-design-2/sheets/neutral-light.png` |
+| Neutral, dark | `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-229-design-2/sheets/neutral-dark.png` |
+| Friendly, light | `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-229-design-2/sheets/friendly-light.png` |
+| Friendly, dark | `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-229-design-2/sheets/friendly-dark.png` |
+| Professional, light | `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-229-design-2/sheets/professional-light.png` |
+| Professional, dark | `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-229-design-2/sheets/professional-dark.png` |
+| A closed trail, real focus in each of the six cells of `RecipesAndModes`, crumb and ellipsis, 360 and 1440, Thai only since that story has no English | `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-229-design-2/sheets/closed-trail.png` |
+
+Each sheet is built from the single shots in `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-229-design-2/shots/` and `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-229-design-2/shots/closed/`. In the `Default` sheets "หน้าแรก" and "Home" are underlined because the play leaves its forced hover on them; that is not part of the proposal.
+
 The scratchpad is not kept. The main session copies these under `.orivilo/runs/` if they are to outlive the session.
 
 ## What this does not prove
 
 - No component exists, so no play or acceptance row ran. The sizes above come from the injected markup, and Button is real only as its recipe, not its React.
 - Friendly was not rendered. Its colours are in the pair table, and its pill is neutral's, so `RecipesAndModes` is its first look (QA screen 8).
-- The clip was measured by comparing `overflow: hidden` with `visible` on the worst sample in `expectLabelInkWhole` ("ฟื้ปั้ปี๊ฟื้"), at 2x, in neutral and Professional. At rest: 0 pixels cut on the link and on the current crumb. Under real keyboard focus: 0 in Professional, and 3 device pixels in neutral, from the pill's corner. It lasts only while focused, and only with that stack as the first glyph, so it is accepted. The repo's own `expectLabelInkWhole` and `expectFrameCutsNoInk` have not run on this; rows 15 and 16 do that.
+- The clip was first measured by comparing `overflow: hidden` with `visible` on the worst sample in `expectLabelInkWhole` ("ฟื้ปั้ปี๊ฟื้"), at 2x, in neutral and Professional. At rest: 0 pixels cut on the link and on the current crumb. Under real keyboard focus: 0 in Professional, and 3 device pixels in neutral, from the pill's corner. That cut was accepted here, and the acceptance is withdrawn: see "Row 15, the focus step".
+- Row 15's figures come from a Playwright port of `expectFrameCutsNoInk`, not from the helper. Against the built component the port is red at the pixel the builder reported, x 3, y 146, at 1x, so it reads what the helper reads. The helper itself runs on this only when the builder restores the step.
+- The 4416 labels are Thai, in Chromium, in boxes that carry the crumb's recipe and an inline radius, not in a trail under real focus. Fifty-four real words and samples, Latin among them, ran in the story under real focus: 0 cut at radius 8 and under. Safari and Firefox draw marks a little differently, and radius 6 and 4 leave 2 px and more below the bound for that.
+- Nothing guards the bound in a profile. A profile that sets `shape.check.radius` above 8 px brings the cut back, and row 15 runs only under neutral in Vitest. Friendly at 6 px was measured here, not by the play.
 - The 16 pairs were read from the token source with a scratch script, not from `pnpm contrast` or `recipes.test.ts`, since the pairs are not in `pairs.ts` yet.
 - Target size: a crumb is 31.8 px high and a page link 40 px, under `size.touch` 44. A page link matches Button md, and the spec sets both, so neither is changed here.
-- Frame edge: a first crumb's focus pill overhangs the start edge by 4 px, plus the halo. A parent that clips flush with the trail cuts it, as it would cut any control's halo.
+- Frame edge: a first crumb's focus line overhangs the start edge by 4 px, plus the halo. A parent that clips flush with the trail cuts it, as it would cut any control's halo.
