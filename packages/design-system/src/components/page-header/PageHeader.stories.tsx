@@ -4,6 +4,7 @@ import { LocaleProvider } from "../../i18n/LocaleProvider";
 import {
   expectFrameCutsNoInk,
   expectLinesClear,
+  expectSameHeight,
   inVitest,
   resolvedColor,
 } from "../../testing/visual-asserts";
@@ -22,7 +23,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "The opening of a screen (ORV-225): a title, one line of description, a row of labels and the screen's actions. The root is a div, never a header element, so the part adds no banner landmark wherever it is placed. The level (1 to 6) sets the element and never the size, so a screen that embeds it passes the level after its own headings. Under 480 px the actions stack under the title on the same start edge. The words in these stories are mock.",
+          "The opening of a screen (ORV-225): a title, one line of description, a row of labels and the screen's actions. The root is a div, never a header element, so the part adds no banner landmark wherever it is placed. The level (1 to 6) sets the element and never the size, so a screen that embeds it passes the level after its own headings. Under 480 px the actions stack under the title on the same start edge, and from 480 they do the same when they would leave the title less than nine title sizes. The words in these stories are mock.",
       },
     },
   },
@@ -73,6 +74,8 @@ function tokenPx(el: Element, token: string): number {
 
 const near = (a: number, b: number, why: string) =>
   expect(Math.abs(a - b), `${why}: ${a} against ${b}`).toBeLessThanOrEqual(0.5);
+
+const lastChildOf = (el: HTMLElement) => el.lastElementChild as HTMLElement;
 
 /** Rows 1 and 2: one h1, a div root and no banner, the title in the form of `header-type-1`. */
 async function expectOpening(canvasElement: HTMLElement, copy: Copy) {
@@ -306,6 +309,11 @@ async function expectStacked(canvasElement: HTMLElement, copy: Copy) {
     text.bottom - 0.5,
   );
   near(button.left, title.left, "the action's start edge against the title's");
+  near(
+    button.top - lastChildOf(part(root, "text")).getBoundingClientRect().bottom,
+    tokenPx(root, "--ds-space-inset-md"),
+    "the gap between the title block's last line and the action",
+  );
   await expect(root.scrollWidth).toBe(root.clientWidth);
   await expect(frame.scrollWidth).toBe(frame.clientWidth);
 }
@@ -325,6 +333,165 @@ export const NarrowEn: Story = {
   decorators: inEnglish,
   render: () => narrow(en),
   play: ({ canvasElement }) => expectStacked(canvasElement, en),
+};
+
+/** The floor of `header-stack-1`: nine title sizes, read off the token, never a neutral number. */
+const floorOf = (root: HTMLElement) => 9 * tokenPx(root, "--ds-type-display-md-font-size");
+
+/**
+ * Row 76, under: the actions sit under the title block, the least start edge is the title's, the
+ * gap to the last text line is `space.inset.md`, buttons of one line are as tall as each other,
+ * and nothing scrolls sideways.
+ */
+async function expectActionsUnder(root: HTMLElement, copy: Copy) {
+  const text = part(root, "text").getBoundingClientRect();
+  const box = root.getBoundingClientRect();
+  const buttons = within(root).getAllByRole("button");
+  const rects = buttons.map((b) => b.getBoundingClientRect());
+  await expect(text.width, "the title block keeps its floor").toBeGreaterThanOrEqual(
+    floorOf(root) - 0.5,
+  );
+  for (const rect of rects) {
+    await expect(rect.top, "every action starts under the title block").toBeGreaterThanOrEqual(
+      text.bottom - 0.5,
+    );
+    await expect(rect.right, "no action passes the header's end edge").toBeLessThanOrEqual(
+      box.right + 0.5,
+    );
+  }
+  near(
+    Math.min(...rects.map((r) => r.left)),
+    part(root, "title").getBoundingClientRect().left,
+    "the actions' start edge against the title's",
+  );
+  near(
+    Math.min(...rects.map((r) => r.top)) -
+      lastChildOf(part(root, "text")).getBoundingClientRect().bottom,
+    tokenPx(root, "--ds-space-inset-md"),
+    "the gap between the title block's last line and the actions",
+  );
+  await expect(root.scrollWidth).toBe(root.clientWidth);
+  for (const top of new Set(rects.map((r) => Math.round(r.top)))) {
+    const line = buttons.filter((_, i) => Math.round((rects[i] as DOMRect).top) === top);
+    expectSameHeight(line[0] as Element, ...line.slice(1));
+  }
+  await expectTitleInk(root, copy);
+}
+
+/**
+ * Row 76, beside: the last action sits on the header's end edge, on the title block's bottom edge,
+ * the title on the start edge, and the title block keeps its floor.
+ */
+async function expectActionsBeside(root: HTMLElement, copy: Copy) {
+  const box = root.getBoundingClientRect();
+  const text = part(root, "text").getBoundingClientRect();
+  const rects = within(root)
+    .getAllByRole("button")
+    .map((b) => b.getBoundingClientRect());
+  near(
+    Math.max(...rects.map((r) => r.right)),
+    box.right,
+    "the last action's end edge against the header's",
+  );
+  for (const rect of rects)
+    near(rect.bottom, text.bottom, "the action's bottom edge against the title block's");
+  near(part(root, "title").getBoundingClientRect().left, box.left, "the title's start edge");
+  await expect(text.width, "the title block keeps its floor").toBeGreaterThanOrEqual(
+    floorOf(root) - 0.5,
+  );
+  await expect(root.scrollWidth).toBe(root.clientWidth);
+  await expectTitleInk(root, copy);
+}
+
+/** Under Vitest, as `expectLongTitle` does: the lines clear and the header's frame cuts no ink. */
+async function expectTitleInk(root: HTMLElement, copy: Copy) {
+  await expect(within(root).getByRole("heading", { name: copy.title })).toBeVisible();
+  if (inVitest) {
+    const title = part(root, "title");
+    await expectLinesClear(title);
+    await expectFrameCutsNoInk(title, root);
+  }
+}
+
+// Literal class names, so Tailwind's scanner sees every width.
+const frameWidth = {
+  479: "w-[479px]",
+  480: "w-[480px]",
+  520: "w-[520px]",
+  640: "w-[640px]",
+} as const;
+
+interface ManyFrame {
+  width: keyof typeof frameWidth;
+  actions: (copy: Copy) => string[];
+  form: "under" | "beside";
+  oneLine?: boolean;
+}
+
+/** Row 76: the seven frames of design.md "Finding F1", each a header with every slot filled. */
+const manyFrames: readonly ManyFrame[] = [
+  {
+    width: 480,
+    actions: (c) => [c.action, ...c.moreActions.slice(0, 2)],
+    form: "under",
+    oneLine: true,
+  },
+  { width: 480, actions: (c) => [c.action, ...c.moreActions], form: "under", oneLine: true },
+  { width: 480, actions: (c) => [c.action], form: "beside" },
+  { width: 480, actions: (c) => [c.longAction], form: "beside" },
+  { width: 479, actions: (c) => [c.action], form: "under" },
+  { width: 520, actions: (c) => [c.action, c.moreActions[0]], form: "under" },
+  { width: 640, actions: (c) => [c.action, c.moreActions[0]], form: "beside" },
+];
+
+const many = (copy: Copy) => (
+  <div className="flex flex-col gap-8">
+    {manyFrames.map((frame, i) => (
+      <div key={i} data-testid={`frame-${i + 1}`} className={frameWidth[frame.width]}>
+        <Sample
+          copy={copy}
+          actions={frame.actions(copy).map((label, n) => (
+            <Button key={label} variant={n === 0 ? "primary" : "secondary"}>
+              {label}
+            </Button>
+          ))}
+        />
+      </div>
+    ))}
+  </div>
+);
+
+async function expectManyActions(canvasElement: HTMLElement, copy: Copy) {
+  const canvas = within(canvasElement);
+  for (const [i, frame] of manyFrames.entries()) {
+    const slot = canvas.getByTestId(`frame-${i + 1}`);
+    await expect(slot.getBoundingClientRect().width).toBe(frame.width);
+    const root = rootsOf(slot)[0] as HTMLElement;
+    await expect(within(root).getAllByRole("button")).toHaveLength(frame.actions(copy).length);
+    if (frame.form === "under") await expectActionsUnder(root, copy);
+    else await expectActionsBeside(root, copy);
+    if (frame.oneLine) {
+      const title = part(root, "title");
+      const style = getComputedStyle(title);
+      near(
+        title.getBoundingClientRect().height,
+        parseFloat(style.lineHeight) + parseFloat(style.paddingTop),
+        "the title is one line",
+      );
+    }
+  }
+}
+
+/** Row 76: from container 480, three and four actions go under the title block, one stays beside it. */
+export const ManyActions: Story = {
+  render: () => many(th),
+  play: ({ canvasElement }) => expectManyActions(canvasElement, th),
+};
+
+export const ManyActionsEn: Story = {
+  decorators: inEnglish,
+  render: () => many(en),
+  play: ({ canvasElement }) => expectManyActions(canvasElement, en),
 };
 
 /** Row 11: three profiles in both modes, the title and the description in their own inks. */

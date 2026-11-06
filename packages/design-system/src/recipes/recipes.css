@@ -4947,15 +4947,20 @@ button.ds-tag__main {
   inline-size: 100%;
   min-inline-size: 0;
 }
+/* From 480 up the title block keeps nine title sizes (288 px under neutral) and the actions wrap
+ * under it, on the same start edge, when they would leave it less (header-stack-1). The basis sits
+ * here, above the @container block, which stays last: at 479 and below its flex: none must win,
+ * because in a column the basis would be a height. */
 .ds-page-header__row {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-end;
   justify-content: space-between;
   gap: var(--ds-space-inset-md);
 }
 .ds-page-header__text {
   display: flex;
-  flex: 1 1 auto;
+  flex: 1 1 calc(9 * var(--ds-type-display-md-font-size));
   flex-direction: column;
   gap: var(--ds-space-stack-sm);
   min-inline-size: 0;
