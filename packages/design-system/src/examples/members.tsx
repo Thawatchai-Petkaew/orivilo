@@ -41,15 +41,8 @@ export interface Member {
   joined: string;
 }
 
+/** The rows start in neither date order nor name order, so a choice of order is seen to change them. */
 export const MEMBERS: readonly Member[] = [
-  {
-    id: "m1",
-    name: "Priya Nair",
-    email: "priya.nair@example.com",
-    role: "admin",
-    state: "active",
-    joined: "2025-03-14",
-  },
   {
     id: "m2",
     name: "สมชาย ใจดี",
@@ -67,20 +60,28 @@ export const MEMBERS: readonly Member[] = [
     joined: "2025-09-21",
   },
   {
-    id: "m4",
-    name: "ปัญญาวัฒน์เจริญสุขสมบูรณ์พูนผลศิริมงคลชัย",
-    email: undefined,
-    role: "developer",
-    state: "active",
-    joined: "2026-01-08",
-  },
-  {
     id: "m5",
     name: "Mia Tanaka",
     email: "mia.tanaka@example.com",
     role: "reviewer",
     state: "invited",
     joined: "2026-10-30",
+  },
+  {
+    id: "m1",
+    name: "Priya Nair",
+    email: "priya.nair@example.com",
+    role: "admin",
+    state: "active",
+    joined: "2025-03-14",
+  },
+  {
+    id: "m4",
+    name: "ปัญญาวัฒน์เจริญสุขสมบูรณ์พูนผลศิริมงคลชัย",
+    email: undefined,
+    role: "developer",
+    state: "active",
+    joined: "2026-01-08",
   },
   {
     id: "m6",
@@ -145,21 +146,26 @@ const ordered = (rows: readonly Member[], order: MemberOrder | undefined): reado
 
 function RowActions({
   member,
+  anchor,
   onMakeAdmin,
   onRemove,
 }: {
   member: Member;
+  /** Hands the screen the element that holds this person's control, so focus can return to it. */
+  anchor: (node: HTMLSpanElement | null) => void;
   onMakeAdmin: () => void;
   onRemove: () => void;
 }) {
   const isAdmin = member.role === "admin" || member.role === "owner";
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger>
-        <Button variant="ghost" size="sm" aria-label={`จัดการ ${member.name}`}>
-          จัดการ
-        </Button>
-      </DropdownMenuTrigger>
+      <span ref={anchor} className="inline-flex">
+        <DropdownMenuTrigger>
+          <Button variant="ghost" size="sm" aria-label={`จัดการ ${member.name}`}>
+            จัดการ
+          </Button>
+        </DropdownMenuTrigger>
+      </span>
       <DropdownMenuContent align="end">
         <DropdownMenuItem disabled={isAdmin} onSelect={onMakeAdmin}>
           ตั้งเป็นผู้ดูแล
@@ -189,6 +195,11 @@ export function MembersScreen() {
   const [removing, setRemoving] = useState<Member | undefined>(undefined);
   const [removeOpen, setRemoveOpen] = useState(false);
 
+  // Where keyboard focus goes when the confirmation closes: the person's own control, or the invite action.
+  const controls = useRef(new Map<string, HTMLSpanElement>());
+  const inviteAnchor = useRef<HTMLSpanElement>(null);
+  const confirmed = useRef(false);
+
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const nextId = useRef(1);
   useEffect(() => {
@@ -206,6 +217,7 @@ export function MembersScreen() {
   };
 
   const askRemove = (member: Member) => {
+    confirmed.current = false;
     setRemoving(member);
     setRemoveOpen(true);
   };
@@ -213,6 +225,7 @@ export function MembersScreen() {
   const confirmRemove = () => {
     if (!removing) return;
     const gone = removing;
+    confirmed.current = true;
     setMembers((rows) => rows.filter((row) => row.id !== gone.id));
     setMessage(`นำ ${gone.name} ออกแล้ว`);
     setRemoveOpen(false);
@@ -278,6 +291,10 @@ export function MembersScreen() {
       cell: (row) => (
         <RowActions
           member={row}
+          anchor={(node) => {
+            if (node) controls.current.set(row.id, node);
+            else controls.current.delete(row.id);
+          }}
           onMakeAdmin={() => makeAdmin(row.id)}
           onRemove={() => askRemove(row)}
         />
@@ -309,9 +326,11 @@ export function MembersScreen() {
             }
           }}
         >
-          <DialogTrigger>
-            <Button variant="primary">เชิญสมาชิก</Button>
-          </DialogTrigger>
+          <span ref={inviteAnchor} className="inline-flex">
+            <DialogTrigger>
+              <Button variant="primary">เชิญสมาชิก</Button>
+            </DialogTrigger>
+          </span>
           <DialogContent
             title="เชิญสมาชิก"
             size="md"
@@ -409,6 +428,13 @@ export function MembersScreen() {
           size="sm"
           title={`นำ ${removing?.name ?? ""} ออกจากเวิร์กสเปซ`}
           description={`${removing?.name ?? ""} จะเข้าเวิร์กสเปซนี้ไม่ได้อีก และต้องเชิญใหม่หากจะกลับมา`}
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            const anchor = confirmed.current
+              ? inviteAnchor.current
+              : controls.current.get(removing?.id ?? "");
+            anchor?.querySelector("button")?.focus();
+          }}
           footer={
             <>
               <DialogClose>

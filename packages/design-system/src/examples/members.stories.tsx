@@ -98,12 +98,19 @@ export const FilterInvited: Story = {
     const order = canvas.getByRole("radiogroup", { name: "เรียงตาม" });
     await expect(within(order).getAllByRole("radio")).toHaveLength(2);
     const byDate = [...MEMBERS].sort((a, b) => a.joined.localeCompare(b.joined));
-    await userEvent.click(within(order).getByRole("radio", { name: "วันที่เข้าร่วม" }));
-    await expect(firstRow(canvasElement)).toHaveTextContent(byDate[0]?.name ?? "");
-
     const byName = [...MEMBERS].sort((a, b) => a.name.localeCompare(b.name, "th"));
+    const start = memberAt(0).name;
+    // The sample rows start in neither order, so a choice that leaves them as they came is seen.
+    await expect(start).not.toBe(byDate[0]?.name);
+    await expect(start).not.toBe(byName[0]?.name);
+    await expect(firstRow(canvasElement)).toHaveTextContent(start);
+
+    await userEvent.click(within(order).getByRole("radio", { name: "วันที่เข้าร่วม" }));
+    await waitFor(() => expect(firstRow(canvasElement)).toHaveTextContent(byDate[0]?.name ?? ""));
+    await expect(firstRow(canvasElement)).not.toHaveTextContent(start);
+
     await userEvent.click(within(order).getByRole("radio", { name: "ชื่อ" }));
-    await expect(firstRow(canvasElement)).toHaveTextContent(byName[0]?.name ?? "");
+    await waitFor(() => expect(firstRow(canvasElement)).toHaveTextContent(byName[0]?.name ?? ""));
     await expect(firstRow(canvasElement)).not.toHaveTextContent(byDate[0]?.name ?? "");
 
     await userEvent.click(within(group).getByRole("radio", { name: "รอตอบรับ" }));
@@ -163,7 +170,7 @@ export const InviteMember: Story = {
   },
 };
 
-/** Make admin, then remove: cancel first, then confirm; the menu order, the role word, the consequence, the announcement (row 4). */
+/** Make admin, then remove: cancel, Escape, then confirm; the menu order, the role word, the consequence, where focus lands, who is gone, the announcement (row 4). */
 export const RemoveMember: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -175,7 +182,7 @@ export const RemoveMember: Story = {
     const closed = () => waitFor(() => expect(body().queryByRole("menu")).toBeNull());
     const gone = () => waitFor(() => expect(body().queryByRole("dialog")).toBeNull());
 
-    let menu = await openActions(canvasElement, name);
+    const menu = await openActions(canvasElement, name);
     const items = within(menu).getAllByRole("menuitem");
     await expect(items.map((item) => item.textContent)).toEqual(["ตั้งเป็นผู้ดูแล", "นำออก"]);
     await expect(items[1]).toHaveAttribute("data-destructive");
@@ -184,9 +191,19 @@ export const RemoveMember: Story = {
     await closed();
     await expect(rowOf(canvasElement, name)).toHaveTextContent("ผู้ดูแล");
 
-    menu = await openActions(canvasElement, name);
-    await userEvent.click(within(menu).getByRole("menuitem", { name: "นำออก" }));
-    let dialog = await body().findByRole("dialog", { name: `นำ ${name} ออกจากเวิร์กสเปซ` });
+    const control = () => canvas.getByRole("button", { name: `จัดการ ${name}` });
+    const focusIs = (element: () => HTMLElement) =>
+      waitFor(() => {
+        expect(document.body).not.toHaveFocus();
+        expect(element()).toHaveFocus();
+      });
+    const askRemove = async () => {
+      const opened = await openActions(canvasElement, name);
+      await userEvent.click(within(opened).getByRole("menuitem", { name: "นำออก" }));
+      return body().findByRole("dialog", { name: `นำ ${name} ออกจากเวิร์กสเปซ` });
+    };
+
+    let dialog = await askRemove();
     await expect(dialog).toHaveTextContent(
       `${name} จะเข้าเวิร์กสเปซนี้ไม่ได้อีก และต้องเชิญใหม่หากจะกลับมา`,
     );
@@ -194,15 +211,27 @@ export const RemoveMember: Story = {
     await gone();
     await expect(rowsOf(canvasElement)).toHaveLength(MEMBERS.length);
     await expect(rowOf(canvasElement, name)).toHaveTextContent("ผู้ดูแล");
+    await focusIs(control);
 
-    menu = await openActions(canvasElement, name);
-    await userEvent.click(within(menu).getByRole("menuitem", { name: "นำออก" }));
-    dialog = await body().findByRole("dialog", { name: `นำ ${name} ออกจากเวิร์กสเปซ` });
+    dialog = await askRemove();
+    await userEvent.keyboard("{Escape}");
+    await gone();
+    await expect(rowsOf(canvasElement)).toHaveLength(MEMBERS.length);
+    await expect(rowOf(canvasElement, name)).toHaveTextContent("ผู้ดูแล");
+    await focusIs(control);
+
+    dialog = await askRemove();
     await userEvent.click(within(dialog).getByRole("button", { name: "นำออก" }));
     await gone();
     await expect(rowsOf(canvasElement)).toHaveLength(MEMBERS.length - 1);
-    await expect(canvasElement.textContent ?? "").not.toContain(`จัดการ ${name}`);
+    // The name lives in a row's name cell, so the rows tell who is gone; the page text holds c-15 too.
+    await expect(rowsOf(canvasElement).some((row) => row.textContent?.includes(name))).toBe(false);
+    await expect(canvas.queryByRole("button", { name: `จัดการ ${name}` })).toBeNull();
+    for (const member of MEMBERS.filter((other) => other.id !== target.id)) {
+      await expect(rowOf(canvasElement, member.name)).toBeInTheDocument();
+    }
     await expect(canvas.getByText(`นำ ${name} ออกแล้ว`)).toBeVisible();
+    await focusIs(() => canvas.getByRole("button", { name: INVITE }));
   },
 };
 
