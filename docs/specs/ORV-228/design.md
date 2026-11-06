@@ -121,7 +121,7 @@ All CSS goes in `recipes.css`, after `.ds-menu`, in the block at the end of this
 <!-- prettier-ignore -->
 | Rule | Markup | CSS | Play that proves it |
 | --- | --- | --- | --- |
-| `cbx-base-1` | `<Popover.Content className="ds-menu ds-combobox__popup" side="bottom" align="start" sideOffset={4}>`. 4 is `Select`'s offset, not `Popover`'s default of 6 | `.ds-combobox`, `.ds-combobox__popup` | Row 21, plus a read of the gap in row 4 |
+| `cbx-base-1` | `<Popover.Content className="ds-menu ds-combobox__popup" side="bottom" align="start" sideOffset={4} collisionPadding={8}>`. 4 is `Select`'s offset, not `Popover`'s default of 6. `collisionPadding` 8 came with the build: without it the popup ended 0.2 px past a 640 px viewport (ORV-228-build-1, row 22) | `.ds-combobox`, `.ds-combobox__popup` | Row 21, plus a read of the gap in row 4 |
 | `cbx-kind-1` | No option has `data-highlighted` until a key or the pointer makes one so | None | Row 2 |
 | `cbx-value-1` | Chosen option: `data-state="checked"`. Reopened list: the whole list | D7 | Row 6 |
 | `cbx-open-1` | In the end slot, last: `<Button variant="ghost" size="sm" iconOnly tabIndex={-1} aria-label={...} disabled={disabled} onMouseDown={preventDefault}><ChevronDownIcon className="size-5" /></Button>`. `onMouseDown` keeps focus in the input (row 4). No rotation | Slot rules | Rows 3, 4 |
