@@ -1,6 +1,6 @@
 ---
 issue: ORV-222
-spec: docs/specs/ORV-222/spec.md v1.2
+spec: docs/specs/ORV-222/spec.md v1.3
 task: ORV-222-design-1
 date: 2026-11-06
 ---
