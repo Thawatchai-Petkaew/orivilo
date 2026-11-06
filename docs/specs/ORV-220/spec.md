@@ -2,7 +2,7 @@
 issue: ORV-220 (https://tpetkaew.atlassian.net/browse/ORV-220)
 lane: S, as the envelope sets it (Jira not read in this role). No risk flag applies: no prop, token, schema, resolver, auth or data access change
 mode: POC mode short spec (`.claude/skills/ovl/SKILL.md`, section "POC mode")
-version: 1.0
+version: 1.1
 ---
 
 # ORV-220: a second Copy press always reaches the status region
@@ -64,6 +64,8 @@ The PR body quotes both counts with the rate, the machine and the command. The l
 
 One PR is expected for all rows. The main session adds the PR line once the PR exists, in the form `qa-scope-1` reads (`scripts/ovl/result-recorder.mjs`), with a changelog line.
 
+- PR 197: rows 1-4
+
 ## Out of scope
 
 - Any change to `copy-status-1`, the copy notes, `COPIED_MS` or the look of the chat.
@@ -106,4 +108,5 @@ node -e 'for(const r of [1,5])console.log(r,((1-r/50)**50*100).toFixed(1))'
 
 ## Changelog
 
+- v1.1 (2026-11-06): the line for PR 197 under "Rows per PR". No requirement changed.
 - v1.0 (2026-11-06): first version, from the ORV-220 envelope. Downstream to review: the builder envelope (rows 1 to 4, the three open question defaults), the reviewer envelope (the PR body of rows 1 and 3), the PR line under "Rows per PR".
