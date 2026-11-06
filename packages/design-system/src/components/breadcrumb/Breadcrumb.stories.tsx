@@ -128,6 +128,8 @@ export const Default: Story = {
     }
     await expect(getComputedStyle(current).fontWeight).toBe("500");
     await expect(getComputedStyle(links[0] as HTMLElement).fontWeight).toBe("400");
+    await expect(getComputedStyle(current).paddingInlineStart).toBe("4px");
+    await expect(getComputedStyle(current).marginInlineStart).toBe("-4px");
 
     // Row 3: a slash between two crumbs, none after the last, never in a link's name.
     const separators = nav.querySelectorAll(".ds-breadcrumb__separator");
@@ -309,6 +311,8 @@ export const Missing: Story = {
     const current = currentOf(canvasElement) as HTMLElement;
     await expect(current).toHaveTextContent("ไม่มีชื่อ");
     await expect(current).toHaveAttribute("aria-current", "page");
+    // Row 11: the current crumb's box clips its text, and the Thai flag of ไ at its start must not be sliced.
+    if (inVitest) await expectFrameCutsNoInk(current, current.closest("nav") as HTMLElement);
   },
 };
 
@@ -392,6 +396,7 @@ async function playAt360(
   // The whole name stays in the DOM, so the accessible name is never cut.
   await expect(page).toHaveTextContent(long);
   await expect(getComputedStyle(lastLink).marginInlineEnd).toBe("0px");
+  await expect(getComputedStyle(page).marginInlineEnd).toBe("0px");
   return { frame, navs };
 }
 
@@ -440,5 +445,34 @@ export const RecipesAndModes: Story = {
     await expect(navs).toHaveLength(6);
     await expect(new Set(navs.map((nav) => nav.getAttribute("aria-label"))).size).toBe(6);
     await expect(canvasElement.querySelectorAll('[aria-current="page"]')).toHaveLength(6);
+  },
+};
+
+/** One trail per cell: a link and a current crumb reading `ไปให้`, a test string whose marks overhang both ends of its box. */
+function InkCell() {
+  const scope = useDesignProfile();
+  return (
+    <Breadcrumb aria-label={`เส้นทาง ${String(scope?.profile)} ${scope?.mode}`}>
+      <BreadcrumbLink href={trail[0].href}>{trail[0].th}</BreadcrumbLink>
+      <BreadcrumbPage>ไปให้</BreadcrumbPage>
+    </Breadcrumb>
+  );
+}
+
+/** Row 45: in all six boundaries no mark of the current crumb is cut at its start or its end. */
+export const CurrentInk: Story = {
+  render: () => (
+    <Matrix>
+      <InkCell />
+    </Matrix>
+  ),
+  play: async ({ canvasElement }) => {
+    const navs = within(canvasElement).getAllByRole("navigation");
+    await expect(navs).toHaveLength(6);
+    for (const nav of navs) {
+      const current = currentOf(nav) as HTMLElement;
+      await expect(current.scrollWidth).toBeLessThanOrEqual(current.clientWidth);
+      if (inVitest) await expectFrameCutsNoInk(current, nav);
+    }
   },
 };

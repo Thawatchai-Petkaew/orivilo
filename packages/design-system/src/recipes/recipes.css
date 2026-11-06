@@ -4978,7 +4978,8 @@ button.ds-tag__main {
   text-decoration: none;
   text-underline-offset: 0.2em;
 }
-.ds-breadcrumb__item:last-child > .ds-breadcrumb__link {
+.ds-breadcrumb__item:last-child > .ds-breadcrumb__link,
+.ds-breadcrumb__item:last-child > .ds-breadcrumb__page {
   margin-inline-end: 0;
 }
 .ds-breadcrumb__link:hover {
@@ -4989,7 +4990,10 @@ button.ds-tag__main {
 .ds-breadcrumb__link:focus-visible {
   border-radius: var(--ds-shape-check-radius);
 }
+/* The current crumb pads its inline sides as a link does: its box clips its text, and Thai marks overhang both ends of a label. The margin keeps the ink where it was. */
 .ds-breadcrumb__page {
+  padding-inline: var(--ds-space-inline-sm);
+  margin-inline: calc(-1 * var(--ds-space-inline-sm));
   color: var(--cmp-nav-item-fg-active);
   font-family: var(--ds-type-label-md-font-family);
   font-size: var(--ds-type-label-md-font-size);
