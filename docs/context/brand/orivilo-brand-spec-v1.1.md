@@ -99,7 +99,7 @@ Lime becomes the signature. Violet moves to 272° and deepens (#7A22C7). Canvas 
 
 ## 10. Changes in v1.2
 
-The signature is violet (owner, ORV-118 comment 10336). The mark's dot is #7A22C7 on paper and #B07FEE on ink, the same values as the primary action (`action.primary`) in the ORIVILO profile; `brand.signature` stays a separate token, so brand presence and action never share a reader. Lime #D9F66F is spent only on the intent action (`action.intent`), one button per screen. This replaces "Lime becomes the signature" in §9.
+The signature is violet (owner, ORV-118 comment 10336). The mark's dot is #7A22C7 on paper and #B07FEE on ink, the same values as the primary action (`action.primary`) in the base set (neutral); `brand.signature` stays a separate token, so brand presence and action never share a reader. Lime #D9F66F is spent only on the intent action (`action.intent`), one button per screen. This replaces "Lime becomes the signature" in §9.
 
 The §8 favicon result of 2026-10-21 (violet reads on a light tab, lime does not) now holds at every size: the dot is violet in every form, so the small form (§2) no longer switches its colour and changes only the stroke. On ink the dot takes #B07FEE (ink on it 6.1).
 
