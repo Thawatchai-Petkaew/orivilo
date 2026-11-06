@@ -185,6 +185,11 @@
 .ds-button[data-variant="intent"]:focus-visible {
   box-shadow: var(--_focus-shadow-fill);
 }
+/* An inert but focusable Button (aria-disabled) stays dimmed, and its focus still draws the line:
+ * the disabled border rule above has the same weight, so this one sits after it (ORV-227 F1). */
+.ds-button[data-variant][aria-disabled="true"]:focus-visible {
+  border-color: var(--ds-focus-ring);
+}
 
 /* Icon slot: before or after the label, at the icon size of the button's size. */
 .ds-button__icon {

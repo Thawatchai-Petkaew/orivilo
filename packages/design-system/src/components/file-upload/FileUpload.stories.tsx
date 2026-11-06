@@ -3,6 +3,7 @@ import { useMemo, useRef, useState } from "react";
 import { expect, fireEvent, fn, userEvent, waitFor, within } from "storybook/test";
 import { LocaleProvider } from "../../i18n/LocaleProvider";
 import {
+  expectFocusBorderForm,
   expectFrameCutsNoInk,
   expectLabelInkWhole,
   expectLinesClear,
@@ -595,6 +596,9 @@ const playFull =
     await expect(choose).toHaveFocus();
     await userEvent.keyboard("{Enter}");
     await expect(choose).toHaveAttribute("aria-disabled", "true");
+    await expect(choose).toHaveFocus();
+    // Spec row 34 / design 17: the inert Button still draws its line, equal to focus.ring, with the halo.
+    await expectFocusBorderForm(choose);
     await expect(choose).toHaveFocus();
     await expect(input).toBeDisabled();
     await userEvent.click(canvasElement.querySelector(".ds-field__label") as HTMLElement);
