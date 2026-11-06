@@ -1,6 +1,6 @@
 ---
 issue: ORV-229
-spec: docs/specs/ORV-229/spec.md v1.2
+spec: docs/specs/ORV-229/spec.md v1.3
 task: ORV-229-design-1, ORV-229-design-2, ORV-229-design-3
 date: 2026-11-06
 ---
