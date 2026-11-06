@@ -18,7 +18,7 @@ Legend: `none` not started, `planned` entry exists, no code, `draft` code and st
 | RadioGroup    | none   |                     |
 | Switch        | none   |                     |
 | Textarea      | stable | base-textarea       |
-| Combobox      | none   |                     |
+| Combobox      | draft  | base-combobox       |
 | Badge         | stable | base-badge          |
 | Tag           | draft  | base-tag            |
 | Avatar        | none   |                     |

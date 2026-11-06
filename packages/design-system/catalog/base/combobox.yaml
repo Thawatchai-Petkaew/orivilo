@@ -1,0 +1,34 @@
+name: Combobox
+tier: base
+status: draft
+since: ORV-228
+import: "@orivilo/design-system"
+story: base-combobox
+useWhen:
+  - "Pick one of a long list by typing to filter it, with options from `options` or `groups`"
+avoidWhen:
+  - "Six or more known options that need no search (Select)"
+  - "Five or fewer options that should all be visible (RadioGroup)"
+  - "Several values (Multi-select, later); free text that is not a listed option (Input)"
+contract: ComboboxProps
+variants: [default]
+sizes: [sm, md, lg]
+states: [default, hover, focus-visible, open, disabled, invalid, empty]
+recipes: [neutral, professional, friendly]
+examples: []
+rules:
+  - "The editable combobox with list autocomplete and manual selection: DOM focus stays in the input, `aria-autocomplete` is list, no option is active until a key or the pointer makes one so, and the typed text is never the value. The value is limited to listed options"
+  - "An option is identified by its `value`. Choosing sets the value, puts the label in the input, closes the list and calls `onValueChange` once. When focus leaves with edited text, the text reverts to the chosen label (or to empty with no value) and `onValueChange` is not called. `name` renders one hidden input with the chosen `value`"
+  - "The list opens on a text edit, on Down Arrow, Up Arrow and Alt + Down Arrow, and on the chevron button. It never opens on focus or on a click in the input. The chevron is an icon-only ghost Button out of the tab order, named `combobox.open` or `combobox.close`"
+  - "Keys: Down and Up Arrow move over enabled options and wrap, Enter chooses the active option, Escape closes and keeps the text, Home and End move only with an active option, Left and Right Arrow take the active mark away, a typed character does too, Tab closes and chooses nothing. While an IME composition runs the key handler returns at once"
+  - "`aria-expanded` is true exactly while the listbox is in the DOM; `aria-controls` names it only then; `aria-activedescendant` names the active option. `aria-selected` marks the chosen option only and never follows the active one. A description is read through `aria-describedby`; the option's name stays the label"
+  - "The filter is a rule-based substring match over label and description (trim, lower case, blank matches), not a semantic search and not AI. No Thai folding: a query missing a tone mark does not match. Disabled options stay and count"
+  - "One live region (`role=status`) stays mounted outside the portal and says the count, or the empty line. The visible empty line is plain text in the popup, with no role. An empty list shows `emptyText` or `select.empty`; a query with no match shows `combobox.empty` with the query"
+  - "The popup is Radix Popover (position, portal, collision, Escape), the keys and attributes are ours because Radix has no combobox. It is the field's width, 4 px under it, capped at `size.panel.default`, and re-opens the field's profile through PortalScope; the InsideProfile and InsideDialog stories prove it"
+  - "`options` or `groups`, never both; `clearable` adds an icon-only button named `combobox.clear` while there is a value. Slot buttons and option rows are at least 24 by 24 px"
+  - "A chosen option shows the selected fill and a check; a chosen and active option adds a 1 px focus line on its edge, so selection and focus never read the same. An active option that is not chosen keeps the system's ground alone (known limit, ORV-242)"
+  - "Async search and Multi-select are separate stories of ORV-228 and are not in this entry yet"
+a11y:
+  - "Keyboard: Down Arrow, Up Arrow, Alt + Down Arrow, Enter, Escape, Home, End; the option marked is named by `aria-activedescendant`"
+  - "The name comes from the Field label or `aria-label`; the listbox is named by `combobox.list`; a group heading names its group"
+  - "No screen reader was used to check this entry; plays assert the attributes and the status text"

@@ -22,6 +22,16 @@ export const th = {
     placeholder: "เลือก",
     empty: "ไม่มีตัวเลือก",
   },
+  combobox: {
+    prompt: "พิมพ์เพื่อค้นหา",
+    list: "ตัวเลือก",
+    open: "เปิดรายการ",
+    close: "ปิดรายการ",
+    clear: "ล้างค่าที่เลือก",
+    countOne: "พบ 1 รายการ",
+    count: "พบ {count} รายการ",
+    empty: 'ไม่พบ "{query}" ลองคำอื่น',
+  },
   table: {
     loading: "กำลังโหลด",
     missing: "ไม่มีข้อมูล",
