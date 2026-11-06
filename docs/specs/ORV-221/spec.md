@@ -3,7 +3,7 @@ issue: ORV-221 (https://tpetkaew.atlassian.net/browse/ORV-221)
 lane: L, from the envelope fact (not read in Jira in this role); a new component public API is an L-lane risk flag (AGENTS.md, "Lanes and gates"), so G1 and G2 apply, passed by Claude under the owner's delegation during the POC (ADR 0012 decision 4)
 mode: POC mode short spec (`.claude/skills/ovl/SKILL.md`, section "POC mode")
 source_row: docs/specs/ORV-64/audit.md section D.3 row 18 ("RadioGroup and Switch")
-version: 1.1
+version: 1.2
 ---
 
 # ORV-221: RadioGroup and Switch (base)
@@ -59,7 +59,7 @@ As a person changing workspace settings, I see every choice at once and pick one
 
 `RadioGroupItemProps`: `value`, `label` (required), `description`, `disabled`, `id`, `className` (layout only).
 
-An item renders the Radix item as the circle, `RadioDotIcon` in its indicator, a real `<label htmlFor>` that is part of the hit area, and the description tied by `aria-describedby`. A click on the description does not select (K-0144). The circle alone is never the control (K-0155, as `CheckboxProps.label`). The label and description follow the choice row of `DESIGN.md` section 4 and read `ds-field__description` as Checkbox does. The circle centres on the first line of its label, as `.ds-checkbox__box` does.
+An item renders the Radix item as the circle, `RadioDotIcon` in its indicator, a real `<label htmlFor>` that is part of the hit area, and the description tied by `aria-describedby`. A click on the description does not select (K-0144). The circle alone is never the control (K-0155, as `CheckboxProps.label`). The label and description follow the choice row of `DESIGN.md` section 4 and read `ds-field__description` as Checkbox does. The circle centres on the first line of its label, as `.ds-checkbox__box` does. A disabled group and a disabled row carry the `aria-disabled` of `control-disabled-1`.
 
 ### radio-forms-1
 
@@ -159,6 +159,8 @@ A radio is round in every profile, because a rounded square reads as a checkbox.
 ### control-disabled-1
 
 Disabled reads the tokens of `control-tokens-1`, never `opacity`. A disabled group disables each item, and one item can be disabled alone. A disabled label reads `text.disabled` and the cursor is `not-allowed`, as `.ds-checkbox[data-disabled]` does.
+
+A disabled RadioGroup has `aria-disabled` on its root, and each disabled row (`.ds-radio`) has it too, with `text.disabled` unchanged. That ink reads 3.37 on `surface.canvas` under neutral light (W4): it holds the 3.0 of `DESIGN.md` section 7, but the a11y addon, which fails a story on a violation (`.storybook/preview.tsx` line 165), asks 4.5 of text it does not read as disabled. axe-core 4.14.0 already skips a label whose `for` reaches the disabled radio, and skips the description only through an `aria-disabled` ancestor (`colorContrastMatches` and `isDisabled`, `axe.js` lines 33074, 33099 to 33105 and 29710 to 29728). So the row's attribute is the one the addon needs, in `Disabled` and in `DisabledItem` alike. The root's states the group's disabled state, and the addon does not depend on it.
 
 ### state-set-1
 
@@ -261,7 +263,7 @@ Stories: `Base/Radio group` (id `base-radio-group`) and `Base/Switch` (id `base-
 | 9 | Same | `Checked` renders one checked and one unchecked radio | The checked circle holds a dot on the selected ground with the selection edge; the other is empty | None. The indicator svg exists only in the checked radio (`control-tokens-1`) | `Checked` play: computed `backgroundColor` and `borderColor` against `--cmp-radio-bg-checked` and `--cmp-radio-border-checked` through `resolvedColor` |
 | 10 | Same | `Sizes` renders `sm` and `md` | Two groups, the small circle with smaller text, each circle centred on its first line | None. Circle sizes equal W1's `radio` line to 0.5 px; the `sm` target equals `radio.target-min` | `Sizes` play: boxes by `getBoundingClientRect`, target by `elementFromPoint` as Checkbox lines 90 to 97 |
 | 11 | Same | `Horizontal` renders the group in a wide frame, then `HorizontalAt360` in `Narrow` | One row of options, wrapping at 360 px with no sideways scroll | None | Both plays: first and second circle `top` equal in `Horizontal`; frame `scrollWidth` equals `clientWidth` in `HorizontalAt360` |
-| 12 | Storybook, a 360 px frame | `LongContentAt360` renders an item with `fixtures.longThai` as label and `fixtures.longLatin` as description, and one with `fixtures.thaiMarks` | The text wraps beside the circle, no sideways scroll, no clipped Thai marks | None | `LongContentAt360` play: frame `scrollWidth` equals `clientWidth`, `expectNoGlyphClip` on the labels |
+| 12 | Storybook, a 360 px frame | `LongContentAt360` renders an item with `fixtures.longThai` as label and `fixtures.longLatin` as description, and one with `fixtures.thaiMarks` | The text wraps beside the circle, no sideways scroll, no clipped Thai marks | None | `LongContentAt360` play: frame `scrollWidth` equals `clientWidth`, each label and every ancestor up to the frame have `overflow` visible, `expectLinesClear` on the wrapped long Thai label |
 | 13 | Storybook, Professional, light | `RoundUnderProfessional` renders through `Under` | A round circle, next to a Field input with Professional's control radius | None. Width equals height and computed `borderTopLeftRadius` equals the resolved `--ds-shape-round-radius` (`control-shape-1`) | `RoundUnderProfessional` play |
 | 14 | Storybook test project, Thai | `InForm` renders the group with `name` `access` in a `<form>`, the play moves the value, then resets | The dot moves, then returns to "เฉพาะสมาชิก" (Members only) | `new FormData(form).get("access")` is `organization`, then `members` after `form.reset()` | `InForm` play |
 | 15 | Same, English | `InEnglish` renders Default, NoValue, Checked, InteractionStates, Sizes `sm` and `md`, Horizontal, Disabled, DisabledItem, Invalid and Required | The same rows with the English column of "Copy": "Who can open this workspace", "Members only", "Choose who can open this workspace before you save" | None | `InEnglish` play: each group found by its English name, the alert text in English |
@@ -282,7 +284,7 @@ Stories: `Base/Radio group` (id `base-radio-group`) and `Base/Switch` (id `base-
 | 30 | Same | `Bare` renders one Switch with `aria-label` and one with `aria-labelledby`, no `Field` | Two switches with no visible label of their own | None. Each has a name; the a11y addon reports zero violations (`switch-api-1`) | `Bare` play: `getByRole("switch", { name })` for both, with the names `switchFixtures.jobs` and `switchFixtures.comments` |
 | 31 | Same | `InForm` renders a Switch with `name` `comments` in a `<form>`, and the play toggles | The thumb moves | `new FormData(form).get("comments")` is `null` off and `on` on | `InForm` play |
 | 32 | Same | `ReducedMotion` renders | The thumb moves with no slide under reduced motion, and the ring keeps turning in `Saving` | None. A `prefers-reduced-motion: reduce` rule removes the transition from `.ds-switch__thumb`, and none stops `.ds-spin` (`switch-size-1`, ORV-201 `spin-motion-1`) | `ReducedMotion` play: the stylesheet walk of `Spinner.stories.tsx` lines 97 to 112 |
-| 33 | Storybook, a 360 px frame | `LongContentAt360` renders `Field orientation="horizontal"` with `fixtures.longThai` as label, `fixtures.longLatin` as description and `fixtures.longThai` as error, and one with `fixtures.thaiMarks` as label | The text wraps in its column, the Switch stays at the end of the first line, no sideways scroll, no clipped Thai marks | None | `LongContentAt360` play: frame `scrollWidth` equals `clientWidth`, the Switch's right edge inside the frame, `expectNoGlyphClip` on both labels |
+| 33 | Storybook, a 360 px frame | `LongContentAt360` renders `Field orientation="horizontal"` with `fixtures.longThai` as label, `fixtures.longLatin` as description and `fixtures.longThai` as error, and one with `fixtures.thaiMarks` as label | The text wraps in its column, the Switch stays at the end of the first line, no sideways scroll, no clipped Thai marks | None | `LongContentAt360` play: frame `scrollWidth` equals `clientWidth`, the Switch's right edge inside the frame, each label and every ancestor up to the frame have `overflow` visible, `expectLinesClear` on the wrapped long Thai label |
 | 34 | Same as row 21, English | `InEnglish` renders Default, InteractionStates, Sizes `sm` and `md`, off and on, Disabled, Invalid, Saving and SaveFails | The English column of "Copy": "Notify me about new comments", "Saving", "We could not save this setting. Check your connection, then try again" | None. The status holds "Saving" | `InEnglish` play |
 | 35 | Storybook test project | `RecipesAndModes` renders through `Matrix` | Off, on, invalid, disabled, saving and `sm` rows in six boundaries: neutral, professional, friendly, each in light and dark | None | `RecipesAndModes` play: six cells; contrast is row 38 |
 | 36 | `Base/Field`, Thai | `Horizontal` renders a Switch and `HorizontalInvalid` adds an error | The row of row 21, and the error under both columns | None. DOM order label, description, control, error (`field-row-1`) | `Horizontal` and `HorizontalInvalid` plays |
@@ -299,7 +301,7 @@ Rows 1 to 20 are the RadioGroup with `Field group`; rows 21 to 39 the Switch wit
 
 ## Rows per PR
 
-The main session adds one line per PR when it opens, in the form `qa-scope-1` reads (`scripts/ovl/result-recorder.mjs`), per open question 6. Under its default the first PR takes rows 1 to 20 and 40, and the second rows 21 to 40.
+- PR 187: rows 1-20, 40
 
 ## Out of scope
 
@@ -364,7 +366,18 @@ W3. The margin of `control-pairs-1`: `selection.fg` as a fill on `surface.canvas
 node -e 'const L=h=>{const c=[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4);return .2126*c[0]+.7152*c[1]+.0722*c[2]};const r=(a,b)=>{const[x,y]=[L(a),L(b)].sort((m,n)=>n-m);return (x+.05)/(y+.05)};const s={"neutral light":["#6B22B0","#F4F4F0","#FFFFFF"],"neutral dark":["#B07FEE","#16151D","#1E1D26"],"friendly light":["#00645B","#F9F6F2","#FFFFFF"],"friendly dark":["#8AD1C7","#241D13","#3E3424"],"professional light":["#254582","#F5F7F9","#FFFFFF"],"professional dark":["#A0C1FE","#1B1E23","#30363D"]};let lo=[99];for(const[n,[f,cv,cd]]of Object.entries(s))for(const[g,b]of [["canvas",cv],["card",cd]]){const v=r(f,b);if(v<lo[0])lo=[v,n,g]}console.log("lowest",lo[1],lo[2],lo[0].toFixed(2))'
 ```
 
+W4. The ratio of `control-disabled-1`: `text.disabled` on `surface.canvas` under neutral light. Input: `text.disabled` light references `color.gray.500`, `#85838F` (`semantic.json` line 159, `primitives.json` line 32), and `surface.canvas` light references `color.gray.50`, `#F4F4F0` (`semantic.json` line 8, `primitives.json` line 12). Expected output, computed by hand and to be confirmed by the run: rounded to two decimals, then truncated to two decimals, which is the form axe-core reports (`axe.js` line 31605) and the 3.37 of the rule.
+
+```text
+3.38 3.37
+```
+
+```bash
+node -e 'const L=h=>{const c=[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4);return .2126*c[0]+.7152*c[1]+.0722*c[2]};const r=(L("#F4F4F0")+.05)/(L("#85838F")+.05);console.log(r.toFixed(2),Math.floor(r*100)/100)'
+```
+
 ## Changelog
 
 - v1.0 (2026-11-06): first version, from K-0144 to K-0157 and audit D.3 row 18. Downstream to review: the designer envelope (design.md, open questions 1, 3, 4 and 5), the builder envelopes (split per open question 6), the qa envelope (Rows per PR lines once the PRs exist), `catalog/coverage.md`, `DESIGN.md` sections 3.3, 4 and 12.
 - v1.1 (2026-11-06): takes in amendments A1 to A4 of design.md, which came from the render. A1 drops `switch.ring-size` and `switch.ring-size-sm`, because `size.icon.xs` is 14 px and no 12 px semantic size exists. A2 gives an on Switch `--_focus-shadow-fill`, because its border equals its fill. A3 makes the thumb's radius concentric with the track. A4 reads "changes" in row 25, because `border.strong` is near white in dark. W1 gains the ring and the thumb's radius. Closes open questions 1, 3, 4 and 5 with design.md's answers, each the default. Downstream to review: the builder envelopes (`component.json` and the recipe, two fewer tokens), the qa envelope (rows 24 and 25, W1's new output), design.md's `spec:` line (still reads v1.0).
+- v1.2 (2026-11-06): takes in the deviations of the build on PR 187. Rows 12 and 33 drop `expectNoGlyphClip`, because it throws when no ancestor clips and nothing clips these labels; each now reads that nothing up to the frame clips and runs `expectLinesClear` on the wrapped long Thai label. `control-disabled-1` records `aria-disabled` with W4 and `radio-api-1` points to it, because the a11y addon fails a disabled description in `text.disabled` at 3.37 without it, and the token stays. "Rows per PR" holds PR 187's line in place of the prose, in the numbers and ranges `qa-scope-1` reads; the Switch PR's line is added when it opens. Downstream to review: design.md line 114 (names `expectNoGlyphClip` as the proof in rows 12 and 33) and its `spec:` line, `catalog/base/radio-group.yaml` line 29 (reads `aria-disabled` on the group only), the qa envelope (rows 12 and 33, PR 187's rows), the Switch builder envelope (row 33).

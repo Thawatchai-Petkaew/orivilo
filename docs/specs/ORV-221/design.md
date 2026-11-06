@@ -1,6 +1,6 @@
 ---
 issue: ORV-221
-spec: docs/specs/ORV-221/spec.md v1.0
+spec: docs/specs/ORV-221/spec.md v1.2
 task: ORV-221-design-1
 date: 2026-11-06
 ---
@@ -111,7 +111,7 @@ Selected and focused are separate rows: a checked control can be focused or not,
 
 ## Thai, long content, small screens, motion
 
-- Thai marks: `crop-radio-360-long.png` and the `Long content` blocks show no clipped mark at 1.7 line height, and `ปิ่นโต้` keeps its marks above. `expectNoGlyphClip` stays the proof in rows 12 and 33.
+- Thai marks: `crop-radio-360-long.png` and the `Long content` blocks show no clipped mark at 1.7 line height, and `ปิ่นโต้` keeps its marks above. The proof in rows 12 and 33 is that nothing up to the frame clips, with `expectLinesClear` on the wrapped long Thai label.
 - Long labels: `overflow-wrap: anywhere` on the label, `min-inline-size: 0` down the chain. Page overflow was 0 in all 40 shots of the five scenes under neutral and professional, at 360 and 1440.
 - Thai line break: at 360 the Switch description breaks inside โปรเจกต์ (โปรเจ on one line, กต์ on the next) in the `switch-*-360` shots. `Intl.Segmenter` on Thai gives the same pieces (`โปร`, `เจ`, `กต์`), so the word is not in the dictionary the browser uses. It is not caused by the recipe. The real settings form at 360 breaks at a word edge, because its column differs. The sign-off should note it, and it should not count against this look.
 - Missing data: no value shows an empty group or an off Switch; no description drops the line and the control stays on the first line.
