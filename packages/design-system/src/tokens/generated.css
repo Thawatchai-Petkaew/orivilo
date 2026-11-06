@@ -1518,6 +1518,8 @@
   --cmp-direction-preview-radius: var(--ds-shape-container-radius);
   --cmp-spinner-fg: var(--ds-text-secondary);
   --cmp-skeleton-bg: var(--ds-border-subtle);
+  --cmp-avatar-bg: var(--ds-border-subtle);
+  --cmp-avatar-fg: var(--ds-text-primary);
   --cmp-progress-track: var(--ds-border-subtle);
   --cmp-progress-fill: var(--ds-text-brand);
   --cmp-progress-done: var(--ds-feedback-success-fg);

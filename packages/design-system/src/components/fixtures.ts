@@ -50,6 +50,28 @@ export const collapsibleFixtures = {
 } as const;
 
 /**
+ * Avatar story content (ORV-224): MOCK people. The names are invented and no real person's photo
+ * is used. `picture` is a drawn stand-in (a head and shoulders of two flat shapes) as an inline
+ * SVG `data:` URI; its colours are picture content, not style values. `brokenPicture` is a PNG
+ * `data:` URI that cannot decode, so a failed load needs no network. Both pass the CSP `img-src`.
+ */
+const PICTURE_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><rect width="96" height="96" fill="#2F6F73"/><circle cx="48" cy="38" r="18" fill="#DCE9E4"/><path d="M12 96a36 34 0 0 1 72 0z" fill="#DCE9E4"/></svg>';
+
+export const avatarFixtures = {
+  name: "สมชาย ใจดี",
+  nameEn: "Anong Srisuk",
+  /** Opens with a leading vowel before its consonant, a name whose first letter is not its first character. */
+  namePreBase: "ไพลิน ศรีสุข",
+  menuLabel: "เปิดเมนูบัญชีของสมชาย ใจดี",
+  menuLabelEn: "Open the account menu for Anong Srisuk",
+  newPicture: "โหลดรูปใหม่",
+  newPictureEn: "Load a new picture",
+  picture: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(PICTURE_SVG)}`,
+  brokenPicture: "data:image/png;base64,AAAA",
+} as const;
+
+/**
  * EvidenceSpan and EvidenceList story content (ORV-211): MOCK evidence items. No brief analyser
  * exists yet, so nothing here was read from a brief by a rule or a model; the `fromModel` flag is a
  * fixture value. A text locator points at the quote's place in `brief` (0 when the quote is not in it).

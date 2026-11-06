@@ -1500,6 +1500,56 @@
   min-inline-size: 0;
 }
 
+/* Avatar (ORV-224). Round under each profile by clip, the form Skeleton's circle uses. No border,
+ * no shadow, no motion. `overflow` adds no look; the clip checks read it. `contain: paint` keeps
+ * the round edge at a sub-pixel position, where the clip alone leaves a flat top (R1). */
+.ds-avatar {
+  display: inline-block;
+  flex: none;
+  vertical-align: middle;
+  inline-size: var(--ds-size-control-md);
+  block-size: var(--ds-size-control-md);
+  overflow: hidden;
+  clip-path: circle(50%);
+  contain: paint;
+  background: var(--cmp-avatar-bg);
+}
+.ds-avatar[data-size="sm"] {
+  inline-size: var(--ds-size-control-sm);
+  block-size: var(--ds-size-control-sm);
+}
+.ds-avatar__image {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+/* An atomic inline: a line a flex or grid link draws does not enter it (R2). */
+.ds-avatar__fallback {
+  display: inline-flex;
+  vertical-align: top;
+  align-items: center;
+  justify-content: center;
+  inline-size: 100%;
+  block-size: 100%;
+  color: var(--cmp-avatar-fg);
+  font-family: var(--ds-type-control-md-font-family);
+  font-size: var(--ds-type-control-md-font-size);
+  line-height: var(--ds-type-control-md-line-height);
+  font-weight: var(--ds-type-control-md-font-weight);
+  letter-spacing: var(--ds-type-control-md-letter-spacing);
+  white-space: nowrap;
+  user-select: none;
+}
+.ds-avatar__fallback > svg {
+  inline-size: var(--ds-size-icon-md);
+  block-size: var(--ds-size-icon-md);
+}
+.ds-avatar[data-size="sm"] .ds-avatar__fallback > svg {
+  inline-size: var(--ds-size-icon-sm);
+  block-size: var(--ds-size-icon-sm);
+}
+
 /* Canvas (ADR 0004, E4-2): React Flow for behaviour, every value from the board, node, port and
  * edge tokens (E4-1). The base stylesheet (imported in orivilo.css) reads `--xy-*` properties; each
  * one it reads is set here from a component token, so no React Flow default colour reaches the

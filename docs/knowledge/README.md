@@ -251,6 +251,25 @@ Keep this table in step with the folder when you add an entry.
 | [[K-0168-wcag-f81-error-fields-by-color-alone]]                                         | 0.8        | F81: error fields marked by colour alone fail SC 1.4.1                |
 | [[K-0169-wcag-2-2-non-text-contrast-graphics-for-understanding]]                        | 0.8        | SC 1.4.11 (AA): 3:1 for graphics required for understanding           |
 | [[K-0170-synthesis-alert-and-featured-icon-benchmark]]                                  | 0.75       | Synthesis: Alert and FeaturedIcon benchmark table, audit B form       |
+| [[K-0185-untitled-ui-avatar-sizes-props-and-slots]]                                     | 0.8        | Untitled Avatar: size xs to 2xl, no variant; slots and option props   |
+| [[K-0186-untitled-ui-avatar-fallback-chain-and-sticky-load-failure]]                    | 0.8        | Untitled: initials, icons, User01; a failed image stays failed        |
+| [[K-0187-untitled-ui-avatar-one-indicator-and-unnamed-status-dot]]                      | 0.8        | Untitled: one indicator at a time; dot differs by colour, no text     |
+| [[K-0188-untitled-ui-avatar-alt-repeats-visible-name-no-aria]]                          | 0.8        | Untitled: alt repeats the visible name; no aria; ring via parent link |
+| [[K-0189-shadcn-ui-avatar-parts-sizes-and-classes]]                                     | 0.8        | shadcn Avatar: six parts (own count), default sm lg, no variant       |
+| [[K-0190-shadcn-ui-avatar-fallback-text-children-no-icon-example]]                      | 0.8        | shadcn fallback: caller's text, no icon sample; alt is a handle       |
+| [[K-0191-shadcn-ui-avatar-badge-empty-span-no-status-meaning]]                          | 0.8        | shadcn AvatarBadge: empty span, green by caller, no status meaning    |
+| [[K-0192-radix-avatar-three-parts-no-accessibility-text]]                               | 0.8        | Radix page: Root, Image, Fallback; no alt or accessibility text       |
+| [[K-0193-radix-avatar-source-preload-fallback-and-lost-alt]]                            | 0.8        | Radix 1.3.1: preload, img once loaded; alt gone while Fallback shows  |
+| [[K-0194-base-ui-avatar-keep-mounted-and-broken-image-note]]                            | 0.8        | Base UI: data-error, keepMounted; fallback gives the accessible name  |
+| [[K-0195-wcag-2-2-non-text-content-decoration-and-null-alt]]                            | 0.8        | SC 1.1.1 (A) and H67: text alternative, or ignored; no avatar named   |
+| [[K-0196-wai-images-tutorial-image-described-by-adjacent-text]]                         | 0.8        | WAI tutorial: image described by adjacent text takes empty alt        |
+| [[K-0197-wcag-2-2-h2-image-and-text-in-one-link]]                                       | 0.8        | H2: image and text in one link, empty alt; image alone names action   |
+| [[K-0198-whatwg-html-alt-for-a-face-beside-text]]                                       | 0.8        | WHATWG: face beside text is the author's call; example has empty alt  |
+| [[K-0199-wai-aria-1-2-img-name-presentation-and-aria-label]]                            | 0.8        | ARIA 1.2: role img needs a name; aria-labelledby over aria-label      |
+| [[K-0200-aria-in-html-img-rows]]                                                        | 0.8        | ARIA in HTML: img roles by alt; empty alt takes only aria-hidden      |
+| [[K-0201-wcag-2-2-use-of-color-and-non-text-contrast-for-a-dot]]                        | 0.8        | SC 1.4.1 and 1.4.11: colour alone, status icon contrast; no dot named |
+| [[K-0202-initials-for-thai-silence-and-charat]]                                         | 0.75       | Sources silent on Thai initials; getInitials uses charAt(0)           |
+| [[K-0203-synthesis-avatar-benchmark]]                                                   | 0.75       | Synthesis: Avatar benchmark table, audit B form                       |
 | [[K-0380-untitled-ui-date-picker-forms-and-react-aria]]                                 | 0.8        | Untitled date pickers: seven examples (own count), React Aria base    |
 | [[K-0381-untitled-ui-date-picker-trigger-apply-and-cancel]]                             | 0.8        | Untitled picker: Apply and Cancel; value changes before Apply         |
 | [[K-0382-untitled-ui-date-range-presets-and-breakpoints]]                               | 0.8        | Untitled range: nine presets (page figure), sidebar from lg           |
