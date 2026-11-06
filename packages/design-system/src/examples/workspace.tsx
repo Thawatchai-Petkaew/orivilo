@@ -11,7 +11,9 @@ import {
   DialogContent,
   DialogTrigger,
   Field,
+  type HeadingLevel,
   Input,
+  PageHeader,
   Select,
   Table,
   type TableColumn,
@@ -45,6 +47,11 @@ export interface WorkspaceScreenProps {
   loadError?: string | undefined;
   /** Simulated latency of create and archive, so pending shows. */
   latency?: number | undefined;
+  /**
+   * The level of the page title, 1 to 5, default 1. A page that embeds the screen under its own headings
+   * passes the level after them, so the page keeps one `h1` and no skipped level (`heading-level-1`).
+   */
+  headingLevel?: Exclude<HeadingLevel, 6> | undefined;
 }
 
 export const PROJECTS: readonly Project[] = [
@@ -316,6 +323,7 @@ export function WorkspaceScreen({
   loading = false,
   loadError,
   latency = 600,
+  headingLevel = 1,
 }: WorkspaceScreenProps) {
   const [projects, setProjects] = useState<readonly Project[]>(initial);
   const [error, setError] = useState<string | undefined>(loadError);
@@ -330,26 +338,27 @@ export function WorkspaceScreen({
 
   return (
     <div className="@container mx-auto flex w-full max-w-5xl flex-col gap-4 p-6">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div className="flex flex-col gap-2">
-          <h1 className="font-display text-display-md text-balance">ทีมออกแบบ Brand Canvas</h1>
-          <p className="max-w-prose text-body-md text-text-secondary">
-            {projects.length} โปรเจกต์, สมาชิก {members} คน
-          </p>
-          <p className="flex flex-wrap items-center gap-2 text-body-sm text-text-secondary">
+      <PageHeader
+        level={headingLevel}
+        title="ทีมออกแบบ Brand Canvas"
+        description={`${projects.length} โปรเจกต์, สมาชิก ${members} คน`}
+        meta={
+          <>
             <Badge size="sm">ข้อมูลตัวอย่าง</Badge>
             สิ่งที่สร้างหรือเก็บถาวรในหน้านี้ยังไม่ได้บันทึกจริง
-          </p>
-        </div>
-        <CreateProjectDialog
-          existing={projects}
-          latency={latency}
-          onCreate={(project) => {
-            setProjects((rows) => [project, ...rows]);
-            setAnnouncement(`สร้างโปรเจกต์ ${project.name} แล้ว`);
-          }}
-        />
-      </header>
+          </>
+        }
+        actions={
+          <CreateProjectDialog
+            existing={projects}
+            latency={latency}
+            onCreate={(project) => {
+              setProjects((rows) => [project, ...rows]);
+              setAnnouncement(`สร้างโปรเจกต์ ${project.name} แล้ว`);
+            }}
+          />
+        }
+      />
 
       <div className="flex min-h-9 flex-wrap items-center gap-3" aria-live="polite">
         {selected.size > 0 ? (

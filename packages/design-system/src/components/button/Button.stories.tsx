@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { DesignProfileBoundary, type Mode } from "../../boundary/DesignProfileBoundary";
-import { expectInkCentred, inVitest } from "../../testing/visual-asserts";
+import { expectFocusBorderForm, expectInkCentred, inVitest } from "../../testing/visual-asserts";
 import { fixtures } from "../fixtures";
 import { ChevronDownIcon, PlusIcon } from "../icons";
 import { Matrix, Narrow } from "../matrix";
@@ -211,6 +211,11 @@ export const AriaDisabled: Story = {
       getComputedStyle(live).backgroundColor,
     );
     live.remove();
+    // ORV-227 F1: the dimmed button still draws its focus line, equal to focus.ring, in every variant.
+    for (const button of buttons) {
+      await expectFocusBorderForm(button);
+      await expect(button).toHaveAttribute("aria-disabled", "true");
+    }
   },
 };
 

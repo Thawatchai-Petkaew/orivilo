@@ -1,14 +1,15 @@
 /**
  * The recipe layer (ADR 0003 item 2, DESIGN.md §5 and §11, spec E2-4). Fails when a recipe writes
  * a raw value, reads a custom property no token declares or a primitive directly, or when any pair
- * in `pairs.ts` is under its floor under any profile in either mode.
+ * in `pairs.ts` is under its floor under any set of `CONTRAST_SETS` (neutral, the profiles and the
+ * brand profiles, orivilo among them) in either mode.
  */
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { contrastRatio } from "../foundations/contrast";
-import { profiles } from "../profiles/index";
-import { MODES, type Mode, TokenSet, tokens } from "../tokens/index";
+import { CONTRAST_SETS } from "../profiles/index";
+import { MODES, type Mode, TokenSet } from "../tokens/index";
 import { RECIPE_PAIRS } from "./pairs";
 
 const here = import.meta.dirname;
@@ -17,11 +18,6 @@ const generated = readFileSync(path.join(here, "../tokens/generated.css"), "utf8
 
 /** Every custom property the token build declares. */
 const declared = new Set([...generated.matchAll(/^\s*(--[a-z0-9-]+):/gm)].map((m) => m[1]));
-
-const sets: { id: string; set: TokenSet }[] = [
-  { id: "neutral", set: tokens },
-  ...profiles.map((p) => ({ id: p.id, set: p.tokens })),
-];
 
 function hexOf(set: TokenSet, ref: string, mode: Mode): string {
   const [layer, p] = ref.startsWith("ds:")
@@ -170,6 +166,87 @@ describe("the logo recipe (ORV-118, logo-colour-1)", () => {
   });
 });
 
+/**
+ * The calendar recipe reads only the names `cal-look-1` opens with. The guard reads the CSS text
+ * and blocks four forms in a `.ds-calendar` rule: a `var()` of another component token, a `var()`
+ * of a semantic token other than the two named, a `var()` of a primitive, and an `overflow`,
+ * `overflow-x` or `overflow-y` declaration.
+ */
+const CALENDAR_OWN = /^--cmp-calendar-[a-z0-9-]+$/;
+const CALENDAR_BORROWED = new Set([
+  "--ds-focus-ring",
+  "--ds-space-gutter",
+  "--cmp-button-height-sm",
+  // Locals: the shared focus halo (orivilo.css) and the calendar's own cell size.
+  "--_focus-shadow-border",
+  "--_cell",
+]);
+
+function calendarFindings(source: string): string[] {
+  const bare = source.replace(/\/\*[\s\S]*?\*\//g, "");
+  const found: string[] = [];
+  for (const m of bare.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    const selector = (m[1] ?? "").trim().replace(/\s+/g, " ");
+    if (!/\.ds-calendar(?![\w-])|\.ds-calendar__/.test(selector)) continue;
+    const body = m[2] ?? "";
+    for (const use of body.matchAll(/var\((--[a-z0-9_-]+)/g)) {
+      const name = use[1] ?? "";
+      if (!CALENDAR_OWN.test(name) && !CALENDAR_BORROWED.has(name))
+        found.push(`${selector}: var(${name})`);
+    }
+    for (const decl of body.matchAll(/^\s*(overflow(?:-[xy])?)\s*:/gm))
+      found.push(`${selector}: ${decl[1]}`);
+  }
+  return found;
+}
+
+describe("the calendar recipe (ORV-231, cal-look-1)", () => {
+  it("reads only the calendar tokens, the named borrowed names and its locals, and sets no overflow", () => {
+    expect(calendarFindings(css)).toEqual([]);
+  });
+
+  it("finds each blocked form in a failing sample", () => {
+    const rule = (decl: string) => `.ds-calendar__grid {\n  ${decl}\n}`;
+    // Another component token, a semantic token outside the two named, a primitive, and each overflow form.
+    expect(calendarFindings(rule("color: var(--cmp-popover-fg);"))).toEqual([
+      ".ds-calendar__grid: var(--cmp-popover-fg)",
+    ]);
+    expect(calendarFindings(rule("color: var(--ds-text-primary);"))).toEqual([
+      ".ds-calendar__grid: var(--ds-text-primary)",
+    ]);
+    expect(calendarFindings(rule("color: var(--op-neutral-900);"))).toEqual([
+      ".ds-calendar__grid: var(--op-neutral-900)",
+    ]);
+    expect(calendarFindings(rule("overflow: hidden;"))).toEqual([".ds-calendar__grid: overflow"]);
+    expect(calendarFindings(rule("overflow-x: auto;"))).toEqual([".ds-calendar__grid: overflow-x"]);
+    expect(calendarFindings(rule("overflow-y: clip;"))).toEqual([".ds-calendar__grid: overflow-y"]);
+    // The root selector itself, and a rule outside the calendar, which the guard leaves alone.
+    expect(calendarFindings(".ds-calendar {\n  color: var(--ds-text-primary);\n}")).toHaveLength(1);
+    expect(calendarFindings(".ds-popover {\n  overflow: hidden;\n}")).toEqual([]);
+  });
+
+  it("lists the pairs of cal-look-1: four at 4.5 and nine at 3", () => {
+    const pairs = RECIPE_PAIRS.filter((p) => p.recipe === "calendar");
+    expect(pairs.filter((p) => p.floor === 4.5).map((p) => `${p.fg} on ${p.bg}`)).toEqual([
+      "calendar.fg on calendar.bg",
+      "calendar.weekday-fg on calendar.bg",
+      "calendar.fg on calendar.day-hover-bg",
+      "calendar.day-selected-fg on calendar.day-selected-bg",
+    ]);
+    expect(pairs.filter((p) => p.floor === 3).map((p) => `${p.fg} on ${p.bg}`)).toEqual([
+      "calendar.day-selected-edge on calendar.bg",
+      "calendar.day-hover-edge on calendar.bg",
+      "calendar.day-disabled-fg on calendar.bg",
+      "calendar.day-selected-edge on calendar.day-selected-bg",
+      "calendar.day-hover-edge on calendar.day-hover-bg",
+      "calendar.day-hover-edge on calendar.day-selected-bg",
+      "calendar.day-disabled-fg on calendar.day-selected-bg",
+      "ds:focus.ring on calendar.bg",
+      "ds:focus.ring on calendar.day-selected-bg",
+    ]);
+  });
+});
+
 describe("the menu listbox (ORV-204, menu-separator-1, menu-label-1, menu-disabled-pair-1)", () => {
   const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
   const body = (selector: string) =>
@@ -198,8 +275,140 @@ describe("the menu listbox (ORV-204, menu-separator-1, menu-label-1, menu-disabl
   });
 });
 
+describe("the radio focus line (ORV-221, control-tokens-1, control-pairs-1, radio-api-1)", () => {
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  const body = (selector: string) =>
+    [...bare.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+      .find((m) => (m[1] ?? "").trim().replace(/\s+/g, " ") === selector)?.[2]
+      ?.replace(/\s+/g, " ")
+      .trim();
+
+  it("lists the inner line of a focused checked radio on the checked ground at the UI floor", () => {
+    const pairs = RECIPE_PAIRS.filter((p) => p.recipe === "radio" && p.slot.endsWith("on checked"));
+    expect(pairs.map((p) => [p.slot, p.fg, p.bg, p.floor])).toEqual([
+      ["focus line on checked", "ds:focus.ring", "radio.bg-checked", 3],
+      ["error line on checked", "radio.border-error", "radio.bg-checked", 3],
+    ]);
+  });
+
+  it("adds the inner line to a checked radio in focus.ring, and in the error colour when invalid", () => {
+    expect(body('.ds-radio__control[data-state="checked"]:focus-visible')).toBe(
+      "--_inner: inset 0 0 0 1px var(--ds-focus-ring); box-shadow: var(--_inner), var(--_focus-shadow-border);",
+    );
+    expect(
+      body(
+        '.ds-radio-group[aria-invalid="true"] .ds-radio__control[data-state="checked"]:focus-visible',
+      ),
+    ).toBe("--_inner: inset 0 0 0 1px var(--cmp-radio-border-error);");
+  });
+
+  it("draws no focus on the group root", () => {
+    expect(body(".ds-radio-group:focus-visible")).toBe(
+      "outline: none; box-shadow: var(--_focus-shadow-none);",
+    );
+  });
+});
+
+describe("the file upload recipe (ORV-227)", () => {
+  const mine = RECIPE_PAIRS.filter((p) => p.recipe === "file-upload").map((p) => [
+    p.fg,
+    p.bg,
+    p.floor,
+  ]);
+
+  it("lists the zone edge and the invalid edge on the canvas and a card at 3, the words at 4.5", () => {
+    expect(mine).toEqual([
+      ["file-upload.zone-border", "ds:surface.canvas", 3],
+      ["file-upload.zone-border", "ds:surface.card", 3],
+      ["file-upload.zone-border-invalid", "ds:surface.canvas", 3],
+      ["file-upload.zone-border-invalid", "ds:surface.card", 3],
+      ["progress.done", "ds:surface.canvas", 4.5],
+      ["progress.failed", "ds:surface.canvas", 4.5],
+      ["field.description", "ds:surface.card", 4.5],
+    ]);
+  });
+
+  it("leaves the disabled edge and the row hairline out of the list, as pairs.ts says", () => {
+    const listed = RECIPE_PAIRS.flatMap((p) => [p.fg, p.bg]);
+    expect(listed).not.toContain("file-upload.zone-border-disabled");
+    expect(listed).not.toContain("file-upload.item-border");
+  });
+
+  it("reads each of its component tokens in the recipe", () => {
+    const names = [...generated.matchAll(/^\s*(--cmp-file-upload-[a-z-]+):/gm)].map((m) => m[1]);
+    expect(names.sort()).toEqual(
+      [
+        "--cmp-file-upload-gap",
+        "--cmp-file-upload-item-border",
+        "--cmp-file-upload-padding",
+        "--cmp-file-upload-radius",
+        "--cmp-file-upload-zone-border",
+        "--cmp-file-upload-zone-border-disabled",
+        "--cmp-file-upload-zone-border-invalid",
+      ].sort(),
+    );
+    for (const name of names) expect(css, name).toContain(`var(${name})`);
+  });
+});
+
+describe("the alert recipe (ORV-222, alert-look-1)", () => {
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  const rules = [...bare.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => ({
+    selector: (m[1] ?? "").trim().replace(/\s+/g, " "),
+    body: (m[2] ?? "").trim(),
+  }));
+  const alert = rules.filter((r) => r.selector.startsWith(".ds-alert"));
+  const body = (selector: string) => alert.find((r) => r.selector === selector)?.body ?? "";
+
+  it("lists the title and description at the text floor and the danger edge at the UI floor, on alert.bg", () => {
+    const pairs = RECIPE_PAIRS.filter((p) => p.recipe === "alert").map((p) => [
+      p.slot,
+      p.fg,
+      p.bg,
+      p.floor,
+    ]);
+    expect(pairs).toEqual([
+      ["title", "alert.title", "alert.bg", 4.5],
+      ["description", "alert.description", "alert.bg", 4.5],
+      ["danger edge", "alert.danger-edge", "alert.bg", 3],
+    ]);
+  });
+
+  it("does not list the success, warning and info edges: they are decoration", () => {
+    const listed = RECIPE_PAIRS.filter((p) => p.recipe === "alert").map((p) => p.fg);
+    for (const kind of ["success", "warning", "info"]) {
+      expect(listed, `alert.${kind}-edge`).not.toContain(`alert.${kind}-edge`);
+    }
+  });
+
+  it("draws one 1 px edge per kind from its own token", () => {
+    expect(body(".ds-alert")).toContain("border: 1px solid transparent;");
+    for (const kind of ["success", "warning", "danger", "info"]) {
+      expect(body(`.ds-alert[data-variant="${kind}"]`)).toBe(
+        `border-color: var(--cmp-alert-${kind}-edge);`,
+      );
+    }
+  });
+
+  it("is a block at its parent's width, with no shadow, animation or transition", () => {
+    expect(body(".ds-alert")).toContain("inline-size: 100%;");
+    for (const rule of alert) {
+      expect(rule.body, rule.selector).not.toMatch(/animation|transition|box-shadow/);
+    }
+  });
+
+  it("wraps the title and description by overflow-wrap anywhere and never clips them", () => {
+    expect(body(".ds-alert__title, .ds-alert__description")).toContain("overflow-wrap: anywhere;");
+    for (const rule of alert) {
+      expect(rule.body, rule.selector).not.toMatch(
+        /line-clamp|text-overflow|overflow:|overflow-[xy]:/,
+      );
+    }
+  });
+});
+
 describe("recipe contrast pairs", () => {
-  for (const { id, set } of sets) {
+  for (const { id, set } of CONTRAST_SETS) {
     for (const mode of MODES) {
       for (const pair of RECIPE_PAIRS) {
         it(`${pair.recipe} ${pair.slot}: ${pair.fg} on ${pair.bg} ≥ ${pair.floor} under ${id} in ${mode}`, () => {

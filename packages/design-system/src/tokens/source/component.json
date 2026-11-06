@@ -959,6 +959,86 @@
       "$description": "WCAG 2.5.8: the small box keeps a 24 px target when its label is visually hidden. Borrows size.icon.lg (24) because no semantic target size exists; retuning icon sizes moves this floor"
     }
   },
+  "radio": {
+    "bg": {
+      "$type": "color",
+      "$value": "{surface.card}"
+    },
+    "border": {
+      "$type": "color",
+      "$value": "{border.control}"
+    },
+    "border-hover": {
+      "$type": "color",
+      "$value": "{border.control-hover}"
+    },
+    "bg-checked": {
+      "$type": "color",
+      "$value": "{surface.selected}",
+      "$description": "A checked radio reads the selection tokens, not action.primary (DESIGN.md section 8)"
+    },
+    "border-checked": {
+      "$type": "color",
+      "$value": "{selection.fg}"
+    },
+    "dot": {
+      "$type": "color",
+      "$value": "{selection.fg}"
+    },
+    "border-checked-hover": {
+      "$type": "color",
+      "$value": "{border.strong}"
+    },
+    "border-error": {
+      "$type": "color",
+      "$value": "{border.error}"
+    },
+    "bg-disabled": {
+      "$type": "color",
+      "$value": "{surface.disabled}"
+    },
+    "border-disabled": {
+      "$type": "color",
+      "$value": "{border.disabled}"
+    },
+    "dot-disabled": {
+      "$type": "color",
+      "$value": "{text.secondary}"
+    },
+    "size": {
+      "$type": "dimension",
+      "$value": "{size.icon.md}"
+    },
+    "size-sm": {
+      "$type": "dimension",
+      "$value": "{size.icon.sm}"
+    },
+    "target-min": {
+      "$type": "dimension",
+      "$value": "{size.icon.lg}",
+      "$description": "WCAG 2.5.8: the sm circle keeps a 24 px target. Borrows size.icon.lg (24) because no semantic target size exists"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.round.radius}"
+    },
+    "label-type": {
+      "$type": "typography",
+      "$value": "{type.body.md}"
+    },
+    "label-type-sm": {
+      "$type": "typography",
+      "$value": "{type.body.sm}"
+    },
+    "gap": {
+      "$type": "dimension",
+      "$value": "{space.inline.md}"
+    },
+    "group-gap": {
+      "$type": "dimension",
+      "$value": "{space.stack.sm}"
+    }
+  },
   "menu": {
     "bg": {
       "$type": "color",
@@ -2156,6 +2236,17 @@
       "$value": "{border.subtle}"
     }
   },
+  "avatar": {
+    "$description": "A person's disc (ORV-224): the ground of Skeleton's circle, so one replaces the other",
+    "bg": {
+      "$type": "color",
+      "$value": "{border.subtle}"
+    },
+    "fg": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    }
+  },
   "progress": {
     "$description": "How far a job has got (E4-5): a bar, a label and the value as text",
     "track": {
@@ -2199,6 +2290,37 @@
     "value-type": {
       "$type": "typography",
       "$value": "{type.label.md}"
+    }
+  },
+  "file-upload": {
+    "$description": "A picker with a list of files (ORV-227). One radius for the zone and its rows: siblings, and a control box like Textarea",
+    "zone-border": {
+      "$type": "color",
+      "$value": "{border.control}"
+    },
+    "zone-border-invalid": {
+      "$type": "color",
+      "$value": "{border.error}"
+    },
+    "zone-border-disabled": {
+      "$type": "color",
+      "$value": "{border.disabled}"
+    },
+    "item-border": {
+      "$type": "color",
+      "$value": "{border.subtle}"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.media.radius}"
+    },
+    "padding": {
+      "$type": "dimension",
+      "$value": "{space.inset.md}"
+    },
+    "gap": {
+      "$type": "dimension",
+      "$value": "{space.inline.md}"
     }
   },
   "tag": {
@@ -2552,7 +2674,7 @@
     }
   },
   "featured-icon": {
-    "$description": "A glyph on a tinted tile for one feedback kind (ORV-222): the kind's surface and foreground, one media radius, a size scale on the control and icon sizes",
+    "$description": "A glyph on a tinted tile for one feedback kind (ORV-222) or a neutral tile (ORV-223): the kind's surface and foreground, one media radius, a size scale on the control and icon sizes",
     "success": {
       "bg": {
         "$type": "color",
@@ -2593,6 +2715,16 @@
         "$value": "{feedback.info.fg}"
       }
     },
+    "neutral": {
+      "bg": {
+        "$type": "color",
+        "$value": "{border.subtle}"
+      },
+      "fg": {
+        "$type": "color",
+        "$value": "{text.secondary}"
+      }
+    },
     "radius": {
       "$type": "dimension",
       "$value": "{shape.media.radius}"
@@ -2626,6 +2758,97 @@
       }
     }
   },
+  "alert": {
+    "$description": "An inline message for one feedback kind (ORV-222, alert-look-1): a card ground, a 1 px edge per kind (danger takes the foreground ink), a title over a description",
+    "bg": {
+      "$type": "color",
+      "$value": "{surface.card}"
+    },
+    "success-edge": {
+      "$type": "color",
+      "$value": "{feedback.success.border}"
+    },
+    "warning-edge": {
+      "$type": "color",
+      "$value": "{feedback.warning.border}"
+    },
+    "danger-edge": {
+      "$type": "color",
+      "$value": "{feedback.danger.fg}",
+      "$description": "The one strong edge: a failed job is drawn at full strength (design.md C2)"
+    },
+    "info-edge": {
+      "$type": "color",
+      "$value": "{feedback.info.border}"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.container.radius}"
+    },
+    "padding": {
+      "$type": "dimension",
+      "$value": "{space.inset.md}"
+    },
+    "gap": {
+      "$type": "dimension",
+      "$value": "{space.inline.lg}"
+    },
+    "title": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    },
+    "description": {
+      "$type": "color",
+      "$value": "{text.secondary}"
+    },
+    "title-type": {
+      "$type": "typography",
+      "$value": "{type.label.md}"
+    },
+    "body-type": {
+      "$type": "typography",
+      "$value": "{type.body.sm}"
+    }
+  },
+  "empty-state": {
+    "$description": "A tile, a title over text and one action for a region with nothing in it (ORV-223): compact title over text at both sizes, md a centred column capped at the panel width, sm starting at the line's start",
+    "title": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    },
+    "description": {
+      "$type": "color",
+      "$value": "{text.secondary}"
+    },
+    "title-type": {
+      "$type": "typography",
+      "$value": "{type.label.md}"
+    },
+    "body-type": {
+      "$type": "typography",
+      "$value": "{type.body.sm}"
+    },
+    "text-gap": {
+      "$type": "dimension",
+      "$value": "{space.inline.sm}"
+    },
+    "gap-md": {
+      "$type": "dimension",
+      "$value": "{space.stack.md}"
+    },
+    "gap-sm": {
+      "$type": "dimension",
+      "$value": "{space.inline.lg}"
+    },
+    "action-gap": {
+      "$type": "dimension",
+      "$value": "{space.stack.sm}"
+    },
+    "max-width": {
+      "$type": "dimension",
+      "$value": "{size.panel.default}"
+    }
+  },
   "logo": {
     "$description": "The ORIVILO mark, wordmark and lockups (ORV-118, logo-colour-1)",
     "ink": {
@@ -2639,6 +2862,87 @@
     "dot-small": {
       "$type": "color",
       "$value": "{brand.dot-small}"
+    }
+  },
+  "calendar": {
+    "$description": "A month grid for one date (ORV-231, cal-look-1): selected is surface.selected with an edge, never the brand; every state has a carrier beyond colour",
+    "bg": {
+      "$type": "color",
+      "$value": "{surface.raised}"
+    },
+    "fg": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    },
+    "weekday-fg": {
+      "$type": "color",
+      "$value": "{text.secondary}"
+    },
+    "heading-type": {
+      "$type": "typography",
+      "$value": "{type.label.md}"
+    },
+    "weekday-type": {
+      "$type": "typography",
+      "$value": "{type.body.xs}"
+    },
+    "day-type": {
+      "$type": "typography",
+      "$value": "{type.control.md}"
+    },
+    "cell-size": {
+      "$type": "dimension",
+      "$value": "{size.touch}"
+    },
+    "gap": {
+      "$type": "dimension",
+      "$value": "{space.stack.sm}"
+    },
+    "months-gap": {
+      "$type": "dimension",
+      "$value": "{space.stack.lg}"
+    },
+    "row-gap": {
+      "$type": "dimension",
+      "$value": "{space.inline.sm}",
+      "$description": "The gap between day rows, so the lines of stacked range rows stay two and a focus halo clears the next row"
+    },
+    "padding": {
+      "$type": "dimension",
+      "$value": "{space.inset.sm}",
+      "$description": "A calendar on a page is a padded tile; seven touch cells plus this padding fit a popover under 360 px"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.container.radius}"
+    },
+    "day-radius": {
+      "$type": "dimension",
+      "$value": "{shape.control.radius}"
+    },
+    "day-hover-bg": {
+      "$type": "color",
+      "$value": "{surface.hover}"
+    },
+    "day-hover-edge": {
+      "$type": "color",
+      "$value": "{border.control-hover}"
+    },
+    "day-selected-bg": {
+      "$type": "color",
+      "$value": "{surface.selected}"
+    },
+    "day-selected-fg": {
+      "$type": "color",
+      "$value": "{selection.fg}"
+    },
+    "day-selected-edge": {
+      "$type": "color",
+      "$value": "{selection.fg}"
+    },
+    "day-disabled-fg": {
+      "$type": "color",
+      "$value": "{text.disabled}"
     }
   }
 }

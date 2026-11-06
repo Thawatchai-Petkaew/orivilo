@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, within } from "storybook/test";
+import { radioFixtures } from "../components/fixtures";
 import { Narrow, Under } from "../components/matrix";
 import { SettingsForm } from "./settings-form";
 
@@ -10,7 +11,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Base tier page example (E2-7): Tabs, Field, Input, Textarea, Select, Checkbox, Popover, Tooltip and Button composed into a settings page. Fixture content; nothing is saved. Read `src/examples/settings-form.tsx` before composing a form.",
+          "Base tier page example (E2-7): Tabs, Field, Input, Textarea, Select, RadioGroup, Checkbox, Popover, Tooltip and Button composed into a settings page. Fixture content; nothing is saved. Read `src/examples/settings-form.tsx` before composing a form.",
       },
     },
   },
@@ -22,10 +23,19 @@ type Story = StoryObj<typeof meta>;
 const primaryButtons = (root: HTMLElement) =>
   root.querySelectorAll('.ds-button[data-variant="primary"]');
 
+/** One page header per screen: its own root, no header element or banner, one level 1 heading (ORV-225 AC 9). */
+async function expectOnePageHeader(root: HTMLElement) {
+  await expect(root.querySelectorAll(".ds-page-header")).toHaveLength(1);
+  await expect(root.querySelector("header")).toBeNull();
+  await expect(within(root).queryByRole("banner")).toBeNull();
+  await expect(within(root).getAllByRole("heading", { level: 1 })).toHaveLength(1);
+}
+
 /** Every control is labelled, the panel is labelled by its tab, and the page has one primary action (AC 2). */
 export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+    await expectOnePageHeader(canvasElement);
     await expect(canvas.getByLabelText(/ชื่อเวิร์กสเปซ/)).toBeInstanceOf(HTMLInputElement);
     await expect(canvas.getByLabelText("ลิงก์")).toBeInstanceOf(HTMLInputElement);
     await expect(canvas.getByLabelText("คำอธิบาย")).toBeInstanceOf(HTMLTextAreaElement);
@@ -33,6 +43,8 @@ export const Default: Story = {
     await expect(
       canvas.getByRole("checkbox", { name: "ส่งสรุปรายสัปดาห์ให้ทุกคนในเวิร์กสเปซ" }),
     ).toBeChecked();
+    await expect(canvas.getByRole("radiogroup", { name: radioFixtures.label })).toBeInTheDocument();
+    await expect(canvas.getAllByRole("radio")).toHaveLength(3);
     const tab = canvas.getByRole("tab", { name: "ทั่วไป" });
     await expect(canvas.getByRole("tabpanel")).toHaveAttribute("aria-labelledby", tab.id);
     await expect(canvas.getByRole("button", { name: "คัดลอกลิงก์" })).toBeInTheDocument();
@@ -46,11 +58,16 @@ export const Invalid: Story = {
     errors: {
       name: "ใส่ชื่อเวิร์กสเปซอย่างน้อย 3 ตัวอักษร",
       profile: "เลือก profile เริ่มต้นก่อนบันทึก",
+      access: radioFixtures.error,
     },
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getAllByRole("alert")).toHaveLength(2);
+    await expect(canvas.getAllByRole("alert")).toHaveLength(3);
+    await expect(canvas.getByRole("radiogroup", { name: radioFixtures.label })).toHaveAttribute(
+      "aria-invalid",
+      "true",
+    );
     await expect(canvas.getByLabelText(/ชื่อเวิร์กสเปซ/)).toHaveAttribute("aria-invalid", "true");
     await expect(canvas.getByRole("combobox", { name: /Profile เริ่มต้น/ })).toHaveAttribute(
       "aria-invalid",
@@ -70,6 +87,7 @@ export const Saving: Story = {
     await expect(canvas.getByLabelText(/ชื่อเวิร์กสเปซ/)).toBeDisabled();
     await expect(canvas.getByLabelText("คำอธิบาย")).toBeDisabled();
     await expect(canvas.getByRole("combobox", { name: /Profile เริ่มต้น/ })).toBeDisabled();
+    for (const radio of canvas.getAllByRole("radio")) await expect(radio).toBeDisabled();
     await expect(canvas.getByRole("button", { name: "ยกเลิก" })).toBeDisabled();
   },
 };

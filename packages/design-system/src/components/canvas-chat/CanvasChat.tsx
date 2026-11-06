@@ -442,12 +442,17 @@ export function CanvasChat({
       // A later press, a Send again or an unmount has moved the count on: this result is stale.
       if (press !== copyPress.current) return;
       clearTimeout(copyTimer.current);
-      setCopyStatus({ exchangeId: exchange.id, result });
       // The region is emptied first and written on the next frame, so a result with the same text as
       // the one before (a second copy, a retry after a failure) is a change a screen reader announces.
+      // The empty text is committed before the frame is asked for: on a slow page the frame can fire
+      // before React renders a plain update, and then both texts fold into one render that changes
+      // nothing (ORV-220).
       const text = result === "copied" ? m.chat.copied : m.chat.copyFailed;
       cancelAnimationFrame(copyFrame.current);
-      setAnnouncement("");
+      flushSync(() => {
+        setCopyStatus({ exchangeId: exchange.id, result });
+        setAnnouncement("");
+      });
       copyFrame.current = requestAnimationFrame(() => {
         if (press === copyPress.current) setAnnouncement(text);
       });

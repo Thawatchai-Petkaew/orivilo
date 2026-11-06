@@ -1080,32 +1080,48 @@ export async function expectInkClearsAbove(el: Element, above: Element, px = 4) 
   }
 }
 
-/** A pixel whose channel `main` (0 red, 2 blue) stands more than 40 above both others: the test paint of `expectLinesClear`. */
-const dominant = (px: Rgb, main: 0 | 2) => {
+/** The strength of the test paint of `expectLinesClear`: its red is rgb(224, 0, 0), its blue rgb(0, 0, 224). */
+const LINES_INK = 224;
+
+/** Below this share of a pixel covered, the pixel is ground: raster noise, not ink. */
+const LINES_MIN_COVERAGE = 0.05;
+
+/**
+ * The share of a pixel the test paint covers, 0 to 1, from how far its channel `main` (0 red, 2
+ * blue) stands above both others. A red of 224 over any ground gives the difference `224 * share`
+ * with the others at `ground * (1 - share)`, so the share needs no ground colour.
+ */
+const coverage = (px: Rgb, main: 0 | 2) => {
   const others = main === 0 ? [px[1], px[2]] : [px[0], px[1]];
-  return others.every((o) => px[main] - o > 40);
+  return Math.min(1, Math.max(0, (px[main] - Math.max(...others)) / LINES_INK));
 };
 
 /**
- * The smallest gap, over every pixel column, from the lowest red pixel to the highest blue pixel,
- * in CSS px (the device rows between them divided by the device pixel ratio). A negative value
- * means the two inks overlap. A column with only one of the two colours is skipped; null when no
- * column has both.
+ * The smallest gap, over every pixel column, from the bottom edge of the lowest red ink to the top
+ * edge of the highest blue ink, in CSS px. An edge is read inside its pixel row from the share the
+ * ink covers: the lowest red row holds ink down to `row + share`, the highest blue row from
+ * `row + 1 - share`. Whole rows would not do. Counting a row as ink from a fifth of coverage, they
+ * read a gap of 0.7 px as 0 where the rasteriser hints a face, so a gap that clears the floor failed
+ * it (ORV-221: Linux, device scale 1, 0.71 px read as 0, the Mac read 1.8). A negative value means
+ * the two inks overlap. A column with only one of the two colours is skipped; null when no column
+ * has both.
  */
 export function linesGap(rows: readonly (readonly Rgb[])[], devicePixelRatio: number) {
   const width = rows[0]?.length ?? 0;
   let smallest: number | null = null;
   for (let x = 0; x < width; x++) {
-    let lowestRed = -1;
-    let highestBlue = -1;
+    let redBottom: number | null = null;
+    let blueTop: number | null = null;
     for (let y = 0; y < rows.length; y++) {
       const px = rows[y]?.[x];
       if (!px) continue;
-      if (dominant(px, 0)) lowestRed = y;
-      else if (dominant(px, 2) && highestBlue < 0) highestBlue = y;
+      const red = coverage(px, 0);
+      const blue = coverage(px, 2);
+      if (red > LINES_MIN_COVERAGE) redBottom = y + red;
+      else if (blue > LINES_MIN_COVERAGE && blueTop === null) blueTop = y + 1 - blue;
     }
-    if (lowestRed < 0 || highestBlue < 0) continue;
-    const gap = (highestBlue - lowestRed - 1) / devicePixelRatio;
+    if (redBottom === null || blueTop === null) continue;
+    const gap = (blueTop - redBottom) / devicePixelRatio;
     if (smallest === null || gap < smallest) smallest = gap;
   }
   return smallest;
@@ -1119,13 +1135,18 @@ export const linesFloor = (px: number, devicePixelRatio: number) => px - 1 / dev
  * highest ink of the next (ORV-194 row 6, rule `lines-clear-1`), within one device pixel. A shallow
  * clone of `el` (same classes, recipe and line height, same width) is put after it and filled with
  * two forced lines of the tallest Thai stacks, the first in red and the second in blue (test paint,
- * never shipped). One screenshot of the clone is read; the clone is taken out in `finally`. It runs
- * where Vitest browser mode runs; a play guards the call with `inVitest`.
+ * never shipped), painted in grey antialiasing. One screenshot of the clone is read; the clone is
+ * taken out in `finally`. It runs where Vitest browser mode runs; a play guards the call with
+ * `inVitest`.
  */
 export async function expectLinesClear(el: HTMLElement, px = 1.5) {
   const clone = el.cloneNode(false) as HTMLElement;
   clone.removeAttribute("id");
   clone.style.width = `${el.getBoundingClientRect().width}px`;
+  // A composited layer with no opaque ground is painted in grey antialiasing. Without it the Linux
+  // runner paints coloured subpixel fringes (715 fringed pixels in this clone, 0 with it), and the
+  // reading takes its share of ink from the colour channels.
+  clone.style.willChange = "transform";
   const line = (text: string, color: string) => {
     const span = document.createElement("span");
     span.style.color = color;
@@ -1155,7 +1176,7 @@ export async function expectLinesClear(el: HTMLElement, px = 1.5) {
     const floor = linesFloor(px, scale);
     expect(
       gap ?? 0,
-      `${label(el)} lines are ${gap} px apart, expected at least ${floor} px (${px} px less one device pixel)`,
+      `${label(el)} lines are ${Math.round((gap ?? 0) * 100) / 100} px apart, expected at least ${floor} px (${px} px less one device pixel)`,
     ).toBeGreaterThanOrEqual(floor);
   } finally {
     clone.remove();
@@ -1330,4 +1351,145 @@ export async function expectFrameCutsNoInk(el: HTMLElement, frame: HTMLElement) 
       node.style.overflow = inline[i] ?? "";
     });
   }
+}
+
+/** CSS px of page read around a disc's box, so ink that strays past the edge shows. */
+const PAINT_MARGIN = 2;
+
+export interface PaintShot {
+  data: Uint8ClampedArray;
+  width: number;
+}
+
+/**
+ * The pixel rows of `rect` plus `PAINT_MARGIN` CSS px on every side, read from a shot of the box
+ * `frame`. The box paints on the rounded pixel, so the region is anchored at `Math.round` of the
+ * box's position in the frame: `Math.floor` reads one row off at a half or three quarters of a
+ * pixel and goes red on good CSS. Plain numbers, so the anchor is tested in node.
+ */
+export function paintRegion(
+  shot: PaintShot,
+  frame: { left: number; top: number; width: number },
+  rect: { left: number; top: number; width: number; height: number },
+): Rgb[][] {
+  const scale = shot.width / frame.width;
+  const margin = Math.round(PAINT_MARGIN * scale);
+  const left = Math.round((rect.left - frame.left) * scale) - margin;
+  const top = Math.round((rect.top - frame.top) * scale) - margin;
+  const width = Math.round(rect.width * scale) + 2 * margin;
+  const height = Math.round(rect.height * scale) + 2 * margin;
+  const rows: Rgb[][] = [];
+  for (let y = top; y < top + height; y++) {
+    const row: Rgb[] = [];
+    for (let x = left; x < left + width; x++) {
+      const at = (y * shot.width + x) * 4;
+      row.push([shot.data[at] ?? 0, shot.data[at + 1] ?? 0, shot.data[at + 2] ?? 0]);
+    }
+    rows.push(row);
+  }
+  return rows;
+}
+
+/**
+ * How many pixels of `a` differ from the same pixel of `b` by more than `PAINT_TOLERANCE` (the
+ * summed RGB distance). It is not `INK_DISTANCE`: at 48 a faint fault in a light disc reads 0 and
+ * the play passes on it. Both regions must be the same size.
+ */
+export function paintDifference(
+  a: readonly (readonly Rgb[])[],
+  b: readonly (readonly Rgb[])[],
+): number {
+  if (a.length !== b.length || a.some((row, y) => row.length !== b[y]?.length)) {
+    throw new Error("paintDifference needs two regions of the same size");
+  }
+  let differing = 0;
+  a.forEach((row, y) => {
+    row.forEach((px, x) => {
+      if (distance(px, b[y]?.[x] as Rgb) > PAINT_TOLERANCE) differing++;
+    });
+  });
+  return differing;
+}
+
+/** The part of `n` after the point, 0 to under 1. */
+const fractionOf = (n: number) => n - Math.floor(n);
+
+/** True when `n` sits within 0.02 px of a position that is `offset` after a whole pixel. */
+function sitsAt(n: number, offset: number): boolean {
+  const gap = Math.abs(fractionOf(n) - offset);
+  return Math.min(gap, 1 - gap) <= 0.02;
+}
+
+/**
+ * Asserts each of `discs` keeps the paint it has on a whole pixel when it sits `offsets` of a
+ * pixel off the grid in both axes (ORV-224 row R1). `frame` is shot at offset 0, then once per
+ * offset; the discs move by layout, with `padding-block-start` and `padding-inline-start` of
+ * `4 + offset` px and `padding-block-end` of `4 - offset` px, so the shot keeps its size. A
+ * transform would carry the box and its clip together and show no fault, so none is used. The
+ * frame must start on a whole pixel and each disc must sit at `offset` after one, so an offset that
+ * did nothing is red. Every disc, plus a margin, must differ from its offset-0 region by no pixel
+ * over `PAINT_TOLERANCE`. The inline padding is put back in `finally`. It reads device scale 1, the
+ * Storybook project's. It runs where Vitest browser mode runs; a play guards the call with `inVitest`.
+ */
+export async function expectPaintHolds(
+  frame: HTMLElement,
+  discs: readonly HTMLElement[],
+  offsets: readonly number[],
+) {
+  expect(discs.length, `${label(frame)} holds no disc to read`).toBeGreaterThan(0);
+  const saved = {
+    paddingBlockStart: frame.style.paddingBlockStart,
+    paddingInlineStart: frame.style.paddingInlineStart,
+    paddingBlockEnd: frame.style.paddingBlockEnd,
+  };
+  const read = async (offset: number) => {
+    frame.style.paddingBlockStart = `${4 + offset}px`;
+    frame.style.paddingInlineStart = `${4 + offset}px`;
+    frame.style.paddingBlockEnd = `${4 - offset}px`;
+    const box = frame.getBoundingClientRect();
+    expect(
+      sitsAt(box.left, 0) && sitsAt(box.top, 0),
+      `${label(frame)} sits at ${box.left}, ${box.top}, not on a whole pixel`,
+    ).toBe(true);
+    for (const disc of discs) {
+      const at = disc.getBoundingClientRect();
+      expect(
+        sitsAt(at.left, offset) && sitsAt(at.top, offset),
+        `${label(disc)} sits at ${at.left}, ${at.top}, not ${offset} px after a whole pixel`,
+      ).toBe(true);
+    }
+    const shot = await shoot(frame);
+    return discs.map((disc) => paintRegion(shot, box, disc.getBoundingClientRect()));
+  };
+  try {
+    const whole = await read(0);
+    for (const offset of offsets) {
+      const moved = await read(offset);
+      moved.forEach((region, i) => {
+        const differing = paintDifference(whole[i] ?? [], region);
+        expect(
+          differing,
+          `${label(discs[i] as HTMLElement)} paints ${differing} px unlike its whole-pixel paint at an offset of ${offset} px`,
+        ).toBe(0);
+      });
+    }
+  } finally {
+    Object.assign(frame.style, saved);
+  }
+}
+
+/**
+ * Asserts `a` and `b` paint the same, disc and margin, from one shot of `scope` (ORV-224 row R2):
+ * a line a link draws through the letter in `b` and not in `a` shows as differing pixels. Each
+ * region is anchored as `paintRegion` does. It runs where Vitest browser mode runs; a play guards
+ * the call with `inVitest`.
+ */
+export async function expectSamePaint(scope: Element, a: Element, b: Element) {
+  const shot = await shoot(scope);
+  const frame = scope.getBoundingClientRect();
+  const differing = paintDifference(
+    paintRegion(shot, frame, a.getBoundingClientRect()),
+    paintRegion(shot, frame, b.getBoundingClientRect()),
+  );
+  expect(differing, `${label(b)} paints ${differing} px unlike ${label(a)}`).toBe(0);
 }

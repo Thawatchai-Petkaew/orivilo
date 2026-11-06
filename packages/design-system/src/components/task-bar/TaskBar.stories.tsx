@@ -4,11 +4,18 @@ import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { DEFAULT_LOCALE, isLocale } from "../../i18n/locale";
 import { LocaleProvider } from "../../i18n/LocaleProvider";
 import { messagesFor } from "../../i18n/messages/index";
-import { fixtureJobs, fixtureManyJobs, fixtureTaskJobs, fixtureTaskJobsEn } from "../fixtures";
+import { Button } from "../button/Button";
+import {
+  emptyStateFixtures,
+  fixtureJobs,
+  fixtureManyJobs,
+  fixtureTaskJobs,
+  fixtureTaskJobsEn,
+} from "../fixtures";
 import { BOARD } from "../canvas-board/fixtures";
 import { Stateful } from "../canvas-board/story-shell";
 import { Matrix, Narrow as NarrowFrame } from "../matrix";
-import { expectLabelInkWhole, inVitest } from "../../testing/visual-asserts";
+import { expectFrameCutsNoInk, expectLabelInkWhole, inVitest } from "../../testing/visual-asserts";
 import { TaskBar, type TaskJob } from "./TaskBar";
 
 const meta = {
@@ -46,7 +53,22 @@ const viewportTransform = (root: HTMLElement) =>
 const rowOf = (root: HTMLElement, id: string) =>
   root.querySelector<HTMLElement>(`[data-job-id="${id}"]`) as HTMLElement;
 
-/** Collapsed with no jobs: the summary says so; opening shows the empty text. Mock: no jobs. */
+/** The panel the toggle controls. */
+const panelOf = (root: HTMLElement) =>
+  root.querySelector<HTMLElement>(".ds-taskbar__panel") as HTMLElement;
+
+/** The empty form's mock action: counts presses, starts nothing (no command starts a job yet). */
+const startJob = fn();
+const emptyAction = (label: string) => (
+  <Button variant="secondary" size="sm" onClick={startJob}>
+    {label}
+  </Button>
+);
+
+/**
+ * Collapsed with no jobs: the summary says so; opening shows the empty form, a tile, a title over
+ * the words and no action. The bar's own status stays empty. Mock: no jobs.
+ */
 export const Empty: Story = {
   args: { jobs: [], defaultExpanded: false },
   play: async ({ canvasElement }) => {
@@ -62,8 +84,136 @@ export const Empty: Story = {
     );
     // The list fades in over a short time after a press.
     await waitFor(() =>
-      expect(canvas.getByText("ยังไม่มีงาน งานที่เริ่มบนบอร์ดจะแสดงที่นี่")).toBeVisible(),
+      expect(
+        canvas.getByRole("heading", { level: 3, name: "ยังไม่มีงานบนบอร์ดนี้" }),
+      ).toBeVisible(),
     );
+    await expect(canvas.getByText("งานที่เริ่มบนบอร์ดจะแสดงที่นี่")).toBeVisible();
+    await expect(announcer(canvasElement)).toHaveTextContent("");
+    await expect(within(panelOf(canvasElement)).queryAllByRole("button")).toHaveLength(0);
+  },
+};
+
+/** With `emptyAction` the host's own button shows under the words once the panel is open. Mock action. */
+export const EmptyWithAction: Story = {
+  args: { jobs: [], defaultExpanded: false, emptyAction: emptyAction("เริ่มงานแรก") },
+  play: async ({ canvasElement }) => {
+    startJob.mockClear();
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("button", { name: "แสดงงาน" }));
+    const action = await canvas.findByRole("button", { name: "เริ่มงานแรก" });
+    await expect(canvas.getByRole("heading", { level: 3 })).toHaveTextContent(
+      "ยังไม่มีงานบนบอร์ดนี้",
+    );
+    await userEvent.click(action);
+    await expect(startJob).toHaveBeenCalledTimes(1);
+  },
+};
+
+function TurnsEmptyHost() {
+  const [jobs, setJobs] = useState<readonly TaskJob[]>([fixtureJobs.failed]);
+  return <TaskBar jobs={jobs} defaultExpanded onRetry={() => setJobs([])} />;
+}
+
+/**
+ * The last job leaves while the person holds its retry button: the form takes the row's place, the
+ * bar's own status says so and the toggle takes the keyboard. Mock job.
+ */
+export const TurnsEmpty: Story = {
+  render: () => <TurnsEmptyHost />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const retry = canvas.getByRole("button", { name: `ลองอีกครั้ง ${fixtureJobs.failed.name}` });
+    retry.focus();
+    await expect(retry).toHaveFocus();
+    await userEvent.keyboard("{Enter}");
+    await waitFor(() => expect(announcer(canvasElement)).toHaveTextContent("ยังไม่มีงาน"));
+    await expect(canvas.getByRole("heading", { level: 3 })).toHaveTextContent(
+      "ยังไม่มีงานบนบอร์ดนี้",
+    );
+    await waitFor(() => expect(canvas.getByRole("button", { name: "ซ่อนงาน" })).toHaveFocus());
+    await expect(
+      canvasElement.querySelector(".ds-taskbar__summary"),
+      "the summary reads the empty words",
+    ).toHaveTextContent("ยังไม่มีงาน");
+  },
+};
+
+/** The empty form in English, opened, with the host's action. Mock action. */
+export const EmptyInEnglish: Story = {
+  args: { jobs: [], defaultExpanded: false, emptyAction: emptyAction("Start the first job") },
+  decorators: [(Story) => <LocaleProvider locale="en">{Story()}</LocaleProvider>],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("No jobs yet")).toBeVisible();
+    await userEvent.click(canvas.getByRole("button", { name: "Show jobs" }));
+    await waitFor(() =>
+      expect(
+        canvas.getByRole("heading", { level: 3, name: "No jobs on this board yet" }),
+      ).toBeVisible(),
+    );
+    await expect(canvas.getByText("Jobs you start on the board show up here")).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "Start the first job" })).toBeVisible();
+  },
+};
+
+/**
+ * The empty form opened in a 360 px frame: the tile, the wrapped words and the action stay inside
+ * the bar. The bar's root is the one clip in the frame (`recipes.css`), so every part from the
+ * title up to the panel must show its overflow and the title must lie inside the bar's padding box.
+ */
+export const EmptyAt360: Story = {
+  args: {
+    jobs: [],
+    defaultExpanded: true,
+    emptyAction: emptyAction(emptyStateFixtures.th.barAction),
+  },
+  decorators: [(Story) => <NarrowFrame>{Story()}</NarrowFrame>],
+  play: async ({ canvasElement }) => {
+    const root = bar(canvasElement);
+    const frame = root.parentElement as HTMLElement;
+    await expect(frame.scrollWidth).toBeLessThanOrEqual(360);
+    const title = canvasElement.querySelector<HTMLElement>(".ds-empty-state__title") as HTMLElement;
+    for (let el: HTMLElement | null = title; el && el !== root; el = el.parentElement) {
+      const style = getComputedStyle(el);
+      await expect(style.overflowX, `${el.className} clips on x`).toBe("visible");
+      await expect(style.overflowY, `${el.className} clips on y`).toBe("visible");
+    }
+    const rootStyle = getComputedStyle(root);
+    const inner = root.getBoundingClientRect();
+    const box = title.getBoundingClientRect();
+    await expect(box.left).toBeGreaterThanOrEqual(
+      inner.left + parseFloat(rootStyle.borderLeftWidth),
+    );
+    await expect(box.right).toBeLessThanOrEqual(
+      inner.right - parseFloat(rootStyle.borderRightWidth),
+    );
+    const action = within(canvasElement).getByRole("button", {
+      name: emptyStateFixtures.th.barAction,
+    });
+    await expect(action.getBoundingClientRect().right).toBeLessThanOrEqual(inner.right);
+    if (inVitest) {
+      await expectLabelInkWhole(title);
+      await expectFrameCutsNoInk(title, root);
+    }
+  },
+};
+
+/**
+ * The empty form opened under the three profiles in both modes. Six bars share one document, so
+ * axe's landmark-unique rule is off here, as in `RecipesAndModes`. Mock action.
+ */
+export const EmptyRecipesAndModes: Story = {
+  parameters: { a11y: { config: { rules: [{ id: "landmark-unique", enabled: false }] } } },
+  args: { jobs: [], defaultExpanded: true, emptyAction: emptyAction("เริ่มงานแรก") },
+  render: (args) => (
+    <Matrix>
+      <TaskBar {...args} />
+    </Matrix>
+  ),
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelectorAll("[data-matrix-cell]")).toHaveLength(6);
+    await expect(within(canvasElement).getAllByRole("heading", { level: 3 })).toHaveLength(6);
   },
 };
 
