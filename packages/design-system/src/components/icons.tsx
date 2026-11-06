@@ -51,6 +51,7 @@ import {
   TriangleAlert,
   Undo2,
   Unlink,
+  UserRound,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -139,6 +140,8 @@ export const ReferenceIcon = lucide(Link, "ReferenceIcon");
 export const DirectionIcon = lucide(Compass, "DirectionIcon");
 export const NoteIcon = lucide(StickyNote, "NoteIcon");
 export const GroupIcon = lucide(Group, "GroupIcon");
+/** A person: the last step of an Avatar when there is no picture and no initials (ORV-224). */
+export const PersonIcon = lucide(UserRound, "PersonIcon");
 
 /* Run steps: what the engine is doing in each step of a running node (ORV-57). */
 export const ReadStepIcon = lucide(BookOpen, "ReadStepIcon");

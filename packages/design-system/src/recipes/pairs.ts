@@ -28,6 +28,12 @@
  * (ORV-223, `fi-neutral-colour-1`): against its ground it measures 1.15 at the lowest (the board in
  * neutral light), the glyph on it is listed at 3.0, and the words beside it carry the meaning.
  *
+ * `alert.success-edge`, `alert.warning-edge` and `alert.info-edge`, a 1 px `feedback.<kind>.border`
+ * line round the block: `contrast-pairs.ts` holds `feedback.*.border` as decoration, and the tile
+ * and the words say the kind, so WCAG 1.4.11 does not apply to them. `alert.danger-edge`, the
+ * foreground ink of the kind, is listed at 3.0 so the strength of a failure's edge is proven
+ * (ORV-222, `alert-look-1`).
+ *
  * Paths are component-token paths (`button.primary.fg`) or semantic paths prefixed `ds:` where a
  * recipe sits on a page ground rather than its own (`ds:surface.canvas`).
  */
@@ -968,6 +974,10 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     bg: "board.bg",
     floor: TEXT,
   },
+  // Alert (ORV-222, alert-look-1): the title and description on the card ground, and the danger edge.
+  { recipe: "alert", slot: "title", fg: "alert.title", bg: "alert.bg", floor: TEXT },
+  { recipe: "alert", slot: "description", fg: "alert.description", bg: "alert.bg", floor: TEXT },
+  { recipe: "alert", slot: "danger edge", fg: "alert.danger-edge", bg: "alert.bg", floor: UI },
   // Progress (E4-5): the value text, the bar against its track, the track against the card.
   {
     recipe: "progress",
@@ -1108,4 +1118,7 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     bg: "ds:surface.canvas",
     floor: TEXT,
   },
+  // Avatar (ORV-224): the initials and the glyph share one ink on the disc. TEXT also covers the
+  // glyph, which needs only the UI floor.
+  { recipe: "avatar", slot: "fallback", fg: "avatar.fg", bg: "avatar.bg", floor: TEXT },
 ];
