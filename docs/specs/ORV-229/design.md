@@ -1,6 +1,6 @@
 ---
 issue: ORV-229
-spec: docs/specs/ORV-229/spec.md v1.1
+spec: docs/specs/ORV-229/spec.md v1.2
 task: ORV-229-design-1, ORV-229-design-2
 date: 2026-11-06
 ---
@@ -381,7 +381,7 @@ The scratchpad is not kept. The main session copies these under `.orivilo/runs/`
 ## What this does not prove
 
 - No component exists, so no play or acceptance row ran. The sizes above come from the injected markup, and Button is real only as its recipe, not its React.
-- Friendly was not rendered. Its colours are in the pair table, and its pill is neutral's, so `RecipesAndModes` is its first look (QA screen 8).
+- ORV-229-design-1 did not render Friendly; its colours are in the pair table. ORV-229-design-2 rendered it, with a 6 px crumb corner, so `RecipesAndModes` is its first look on the built component (QA screen 8).
 - The clip was first measured by comparing `overflow: hidden` with `visible` on the worst sample in `expectLabelInkWhole` ("ฟื้ปั้ปี๊ฟื้"), at 2x, in neutral and Professional. At rest: 0 pixels cut on the link and on the current crumb. Under real keyboard focus: 0 in Professional, and 3 device pixels in neutral, from the pill's corner. That cut was accepted here, and the acceptance is withdrawn: see "Row 15, the focus step".
 - Row 15's figures come from a Playwright port of `expectFrameCutsNoInk`, not from the helper. Against the built component the port is red at the pixel the builder reported, x 3, y 146, at 1x, so it reads what the helper reads. The helper itself runs on this only when the builder restores the step.
 - The 4416 labels are Thai, in Chromium, in boxes that carry the crumb's recipe and an inline radius, not in a trail under real focus. Fifty-four real words and samples, Latin among them, ran in the story under real focus: 0 cut at radius 8 and under. Safari and Firefox draw marks a little differently, and radius 6 and 4 leave 2 px and more below the bound for that.
