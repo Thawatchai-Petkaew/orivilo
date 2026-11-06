@@ -48,10 +48,10 @@ export interface WorkspaceScreenProps {
   /** Simulated latency of create and archive, so pending shows. */
   latency?: number | undefined;
   /**
-   * The level of the page title, default 1. A page that embeds the screen under its own headings
+   * The level of the page title, 1 to 5, default 1. A page that embeds the screen under its own headings
    * passes the level after them, so the page keeps one `h1` and no skipped level (`heading-level-1`).
    */
-  headingLevel?: HeadingLevel | undefined;
+  headingLevel?: Exclude<HeadingLevel, 6> | undefined;
 }
 
 export const PROJECTS: readonly Project[] = [
