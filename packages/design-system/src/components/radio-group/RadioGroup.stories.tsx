@@ -4,6 +4,7 @@ import { LocaleProvider } from "../../i18n/LocaleProvider";
 import {
   expectEdgeInk,
   expectFocusBorderForm,
+  expectFrameCutsNoInk,
   expectLinesClear,
   inVitest,
   resolvedColor,
@@ -215,6 +216,11 @@ export const Disabled: Story = {
     await expect(getComputedStyle(control).backgroundColor).toBe(
       resolvedColor(control, "--cmp-radio-bg-disabled"),
     );
+    // The root takes programmatic focus and draws no focus of its own: focus shows on a radio only.
+    const group = canvas.getByRole("radiogroup", { name: w.label });
+    group.focus();
+    await expect(group.matches(":focus-visible")).toBe(true);
+    if (inVitest) await expectEdgeInk(group, "right", 0, 6);
   },
 };
 
@@ -258,6 +264,37 @@ export const Invalid: Story = {
       resolvedColor(circle, "--cmp-radio-border-error"),
     );
     if (inVitest) await expectEdgeInk(circle, "left", 1);
+  },
+};
+
+/**
+ * A checked radio in an invalid group under focus: one 2 px red line (border plus inner line) with
+ * the brand halo (D23). The first row is forced to :hover too, since invalid wins over hover (D6).
+ */
+export const InvalidChecked: Story = {
+  parameters: {
+    pseudo: {
+      rootSelector: "body",
+      hover: [".ds-radio-group > .ds-radio:first-child"],
+      focusVisible: [".ds-radio__control[data-state='checked']"],
+    },
+  },
+  render: () => <Access error defaultValue="members" />,
+  play: async ({ canvasElement }) => {
+    const on = within(canvasElement).getByRole("radio", { name: w.members });
+    const off = within(canvasElement).getByRole("radio", { name: w.organization });
+    await waitFor(() => expect(getComputedStyle(on).boxShadow).toMatch(/ 0px 0px 0px 3px$/));
+    await expect(getComputedStyle(on).borderTopColor).toBe(
+      resolvedColor(on, "--cmp-radio-border-error"),
+    );
+    await expect(
+      getComputedStyle(on).boxShadow.startsWith(resolvedColor(on, "--cmp-radio-border-error")),
+    ).toBe(true);
+    await expect(on.querySelector("svg")).not.toBeNull();
+    if (inVitest) {
+      await expectEdgeInk(off, "left", 1, 2);
+      await expectEdgeInk(on, "left", 2, 2);
+    }
   },
 };
 
@@ -410,6 +447,11 @@ export const LongContentAt360: Story = {
     }
     const long = within(canvasElement).getByText(fixtures.longThai);
     if (inVitest) await expectLinesClear(long);
+    // The frame clip: expectLabelInkWhole reads only its own clone, so it cannot see this one.
+    const marks = canvasElement.querySelectorAll<HTMLElement>(".ds-radio__label")[1] as HTMLElement;
+    await expect(marks).toHaveTextContent(fixtures.thaiMarks);
+    const narrow = marks.closest<HTMLElement>('[role="radiogroup"]')?.parentElement as HTMLElement;
+    if (inVitest) await expectFrameCutsNoInk(marks, narrow);
   },
 };
 
@@ -522,6 +564,7 @@ export const InteractionStates: Story = {
     pseudo: {
       rootSelector: "body",
       hover: [".ds-radio:has(#rg-hover)", ".ds-radio:has(#rg-hover-on)"],
+      focusVisible: ["#rg-focus", "#rg-focus-on"],
     },
   },
   render: () => <InteractionRows />,
@@ -541,11 +584,38 @@ export const InteractionStates: Story = {
     await expectFocusBorderForm(circle("rg-focus"));
     await expectFocusBorderForm(circle("rg-focus-on"));
     await expect(circle("rg-focus-on").querySelector("svg")).not.toBeNull();
+    // expectFocusBorderForm focuses and blurs, so the rows held by `focusVisible` are read here, at rest.
+    for (const id of ["rg-focus", "rg-focus-on"]) {
+      await waitFor(() =>
+        expect(getComputedStyle(circle(id)).boxShadow, `${id} holds the halo`).toMatch(
+          / 0px 0px 0px 3px$/,
+        ),
+      );
+      await expect(circle(id)).not.toHaveFocus();
+      await expect(getComputedStyle(circle(id)).borderTopColor).toBe(
+        resolvedColor(circle(id), "--ds-focus-ring"),
+      );
+    }
+    if (inVitest) {
+      await expectEdgeInk(circle("rg-rest-on"), "left", 1, 2);
+      await expectEdgeInk(circle("rg-focus-on"), "left", 2, 2);
+    }
   },
 };
 
 /** Every state with the English column of the spec's "Copy" table. */
 export const InEnglish: Story = {
+  parameters: {
+    pseudo: {
+      rootSelector: "body",
+      hover: [".ds-radio:has(#rg-hover)", ".ds-radio:has(#rg-hover-on)"],
+      focusVisible: [
+        "#rg-focus",
+        "#rg-focus-on",
+        "[data-testid='invalid-checked'] .ds-radio__control[data-state='checked']",
+      ],
+    },
+  },
   decorators: [(Story) => <LocaleProvider locale="en">{Story()}</LocaleProvider>],
   render: () => {
     const cases: [string, AccessProps][] = [
@@ -557,6 +627,7 @@ export const InEnglish: Story = {
       ["disabled", { defaultValue: "organization", disabled: true }],
       ["disabled-item", { defaultValue: "organization", linkDisabled: true }],
       ["invalid", { error: true }],
+      ["invalid-checked", { error: true, defaultValue: "members" }],
       ["required", { required: true }],
     ];
     return (
@@ -584,11 +655,12 @@ export const InEnglish: Story = {
       "disabled",
       "disabled-item",
       "invalid",
+      "invalid-checked",
       "required",
     ]) {
       const scope = within(canvas.getByTestId(id));
       await expect(scope.getByRole("radiogroup", { name: t.label })).toHaveAccessibleDescription(
-        id === "invalid" ? `${t.error} ${t.help}` : t.help,
+        id === "invalid" || id === "invalid-checked" ? `${t.error} ${t.help}` : t.help,
       );
       await expect(scope.getByRole("radio", { name: t.members })).toHaveAccessibleDescription(
         t.membersHelp,
@@ -601,6 +673,13 @@ export const InEnglish: Story = {
       within(canvas.getByTestId("disabled-item")).getByRole("radio", { name: t.link }),
     ).toBeDisabled();
     await expect(canvas.getByTestId("states").querySelectorAll("[role=radio]")).toHaveLength(6);
+    const on = within(canvas.getByTestId("invalid-checked")).getByRole("radio", {
+      name: t.members,
+    });
+    await waitFor(() => expect(getComputedStyle(on).boxShadow).toMatch(/ 0px 0px 0px 3px$/));
+    await expect(
+      getComputedStyle(on).boxShadow.startsWith(resolvedColor(on, "--cmp-radio-border-error")),
+    ).toBe(true);
   },
 };
 

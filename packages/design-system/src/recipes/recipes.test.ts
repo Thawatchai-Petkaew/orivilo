@@ -169,6 +169,40 @@ describe("the menu listbox (ORV-204, menu-separator-1, menu-label-1, menu-disabl
   });
 });
 
+describe("the radio focus line (ORV-221, control-tokens-1, control-pairs-1, radio-api-1)", () => {
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  const body = (selector: string) =>
+    [...bare.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+      .find((m) => (m[1] ?? "").trim().replace(/\s+/g, " ") === selector)?.[2]
+      ?.replace(/\s+/g, " ")
+      .trim();
+
+  it("lists the inner line of a focused checked radio on the checked ground at the UI floor", () => {
+    const pairs = RECIPE_PAIRS.filter((p) => p.recipe === "radio" && p.slot.endsWith("on checked"));
+    expect(pairs.map((p) => [p.slot, p.fg, p.bg, p.floor])).toEqual([
+      ["focus line on checked", "ds:focus.ring", "radio.bg-checked", 3],
+      ["error line on checked", "radio.border-error", "radio.bg-checked", 3],
+    ]);
+  });
+
+  it("adds the inner line to a checked radio in focus.ring, and in the error colour when invalid", () => {
+    expect(body('.ds-radio__control[data-state="checked"]:focus-visible')).toBe(
+      "--_inner: inset 0 0 0 1px var(--ds-focus-ring); box-shadow: var(--_inner), var(--_focus-shadow-border);",
+    );
+    expect(
+      body(
+        '.ds-radio-group[aria-invalid="true"] .ds-radio__control[data-state="checked"]:focus-visible',
+      ),
+    ).toBe("--_inner: inset 0 0 0 1px var(--cmp-radio-border-error);");
+  });
+
+  it("draws no focus on the group root", () => {
+    expect(body(".ds-radio-group:focus-visible")).toBe(
+      "outline: none; box-shadow: var(--_focus-shadow-none);",
+    );
+  });
+});
+
 describe("recipe contrast pairs", () => {
   for (const { id, set } of sets) {
     for (const mode of MODES) {

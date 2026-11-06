@@ -379,6 +379,21 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
   },
   { recipe: "radio", slot: "dot", fg: "radio.dot", bg: "radio.bg-checked", floor: UI },
   { recipe: "radio", slot: "edge error", fg: "radio.border-error", bg: "radio.bg", floor: UI },
+  // The inner line of a focused checked radio sits on the checked ground (D22, D23)
+  {
+    recipe: "radio",
+    slot: "focus line on checked",
+    fg: "ds:focus.ring",
+    bg: "radio.bg-checked",
+    floor: UI,
+  },
+  {
+    recipe: "radio",
+    slot: "error line on checked",
+    fg: "radio.border-error",
+    bg: "radio.bg-checked",
+    floor: UI,
+  },
   {
     recipe: "radio",
     slot: "disabled dot",

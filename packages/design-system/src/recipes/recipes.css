@@ -693,6 +693,12 @@
   flex-wrap: wrap;
   column-gap: var(--ds-space-stack-md);
 }
+/* The group draws no focus: the radios do. The root takes programmatic focus (a click on a
+   description, then a key), and the global :focus-visible band would wrap the whole group. */
+.ds-radio-group:focus-visible {
+  outline: none;
+  box-shadow: var(--_focus-shadow-none);
+}
 .ds-radio {
   display: flex;
   align-items: flex-start;
@@ -750,15 +756,24 @@
 .ds-radio-group[aria-invalid="true"] .ds-radio__control {
   border-color: var(--cmp-radio-border-error);
 }
-/* Focus (ORV-192 row 9): the circle's border turns to focus.ring with the halo on it. Invalid keeps its red. */
+/* Focus (ORV-192 row 9): the circle's border turns to focus.ring with the halo on it. A checked
+   radio adds a 1 px inner line through --_inner (as .ds-checkbox__box), so its border reads twice
+   as wide as the rest line. Invalid keeps its red, on the border and on the inner line. */
 .ds-radio__control:focus-visible {
   border-color: var(--ds-focus-ring);
   outline: 1px solid transparent;
   outline-offset: 0;
   box-shadow: var(--_focus-shadow-border);
 }
+.ds-radio__control[data-state="checked"]:focus-visible {
+  --_inner: inset 0 0 0 1px var(--ds-focus-ring);
+  box-shadow: var(--_inner), var(--_focus-shadow-border);
+}
 .ds-radio-group[aria-invalid="true"] .ds-radio__control:focus-visible {
   border-color: var(--cmp-radio-border-error);
+}
+.ds-radio-group[aria-invalid="true"] .ds-radio__control[data-state="checked"]:focus-visible {
+  --_inner: inset 0 0 0 1px var(--cmp-radio-border-error);
 }
 .ds-radio-group .ds-radio__control[data-disabled] {
   background: var(--cmp-radio-bg-disabled);

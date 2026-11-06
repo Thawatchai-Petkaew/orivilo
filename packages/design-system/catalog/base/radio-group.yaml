@@ -24,6 +24,7 @@ rules:
   - "`orientation` is layout only (vertical or horizontal) and is not passed to Radix, so all four arrow keys keep working"
   - "The circle is round under every profile (`shape.round.radius`); checked reads the selection tokens, never action.primary"
   - "Invalid and required sit on the group, never on an item; the error edge stays through hover and focus"
+  - "Focus shows on a radio only: the group root draws none. A checked radio under focus adds a 1 px inner line to its border (2 px in all), in `focus.ring`, or in the error colour when the group is invalid"
   - "Disabled reads tokens, never opacity; one item can be disabled alone and the arrow keys skip it"
 a11y:
   - "Role radiogroup with `aria-invalid` and `aria-required` on the group only; `aria-disabled` sits on the group when it is disabled and on each disabled row (`.ds-radio`), never on a radio; each radio is described by its own line"
