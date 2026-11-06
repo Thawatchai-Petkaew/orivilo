@@ -581,6 +581,16 @@
   display: block;
   width: 100%;
 }
+/* D15: with one field the root never goes under its content, and the root is the popup's anchor, so
+   the popup keeps the field's width. The input has a least width, so the slot never leaves the field
+   and the chevron keeps Select's place in any container. */
+.ds-combobox:has(> .ds-input-group > .ds-input-group__input) {
+  min-width: min-content;
+}
+.ds-combobox .ds-input-group > .ds-input-group__input {
+  width: var(--ds-size-control-lg);
+  min-width: var(--ds-size-control-lg);
+}
 .ds-combobox .ds-input-group__slot {
   gap: var(--cmp-input-group-inset);
 }
@@ -612,9 +622,34 @@
   max-width: var(--radix-popover-content-available-width);
   max-height: min(var(--radix-popover-content-available-height), var(--ds-size-panel-default));
 }
+/* D17: a list that overflows shows the ScrollArea thumb in the popup's end padding, off the rows. The
+   bar's selector carries the attribute to outrank `.ds-scroll__bar[data-orientation]`, which comes later. */
+.ds-combobox__scroll {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
 .ds-combobox__list {
+  flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+}
+/* Radix wraps the options in a `display: table` div that grows to the widest label. A block keeps
+   long labels on their ellipsis, as `.ds-taskbar__scroll` does. The `LongList` play goes red if Radix changes it. */
+.ds-combobox__list > div {
+  display: block !important;
+}
+.ds-combobox__scroll > .ds-scroll__bar[data-orientation="vertical"] {
+  width: var(--cmp-menu-padding);
+  margin-block: calc(var(--cmp-menu-radius) / 2);
+  margin-inline-end: calc(-1 * var(--cmp-menu-padding));
+}
+.ds-combobox__scroll .ds-scroll__thumb {
+  background: var(--cmp-scroll-area-thumb-hover);
+}
+.ds-combobox__scroll .ds-scroll__thumb:hover {
+  background: var(--cmp-scroll-area-thumb);
 }
 .ds-combobox__popup .ds-menu__empty {
   align-items: flex-start;

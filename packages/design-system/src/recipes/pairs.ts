@@ -316,6 +316,21 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     bg: "menu.option.bg-selected",
     floor: UI,
   },
+  // Combobox list (ORV-228, D17): the ScrollArea thumb sits in the popup's end padding, on the menu ground
+  {
+    recipe: "menu",
+    slot: "scroll thumb at rest",
+    fg: "scroll-area.thumb-hover",
+    bg: "menu.bg",
+    floor: UI,
+  },
+  {
+    recipe: "menu",
+    slot: "scroll thumb on hover",
+    fg: "scroll-area.thumb",
+    bg: "menu.bg",
+    floor: UI,
+  },
   // Checkbox
   {
     recipe: "checkbox",

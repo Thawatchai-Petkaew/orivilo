@@ -175,6 +175,12 @@ function resolvedLength(el: Element, token: string): number {
 
 const near = (a: number, b: number, within_ = 1) => Math.abs(a - b) <= within_;
 
+/** How far the centre of `inner` lies from the right edge of `outer`. */
+const fromEnd = (outer: Element, inner: Element) => {
+  const box = inner.getBoundingClientRect();
+  return outer.getBoundingClientRect().right - (box.left + box.right) / 2;
+};
+
 /** Runs `check` with the browser at 360 by 640, then puts the size back; the static Storybook uses the toolbar's frame. */
 async function atPhoneSize(check: () => Promise<void>) {
   if (!inVitest) return check();
@@ -206,6 +212,35 @@ function expectNoClipBetween(el: HTMLElement, frame: HTMLElement) {
       "visible",
     ]);
   }
+}
+
+/** D17: while the list overflows a thumb shows in the popup's end padding, whatever the row height. */
+async function expectScrollCue(listbox: HTMLElement, rowHeight: number) {
+  const row = within(listbox).getAllByRole("option")[0] as HTMLElement;
+  if (inVitest) {
+    expect(near(row.getBoundingClientRect().height, rowHeight, 0.5), `row of ${rowHeight}`).toBe(
+      true,
+    );
+  }
+  await expect(listbox.scrollHeight).toBeGreaterThan(listbox.clientHeight);
+  const popup = popupOf(listbox);
+  const thumb = await waitFor(() => {
+    const el = popup.querySelector<HTMLElement>(".ds-scroll__thumb");
+    expect(el).not.toBeNull();
+    return el as HTMLElement;
+  });
+  const box = thumb.getBoundingClientRect();
+  const list = listbox.getBoundingClientRect();
+  const frame = popup.getBoundingClientRect();
+  // Off the rows, inside the popup, clear of its corner, and long enough to read.
+  await expect(box.left).toBeGreaterThanOrEqual(list.right);
+  await expect(box.right).toBeLessThanOrEqual(frame.right - 1);
+  const clear = resolvedLength(popup, "--cmp-menu-radius") / 2;
+  await expect(box.top - frame.top).toBeGreaterThanOrEqual(clear);
+  await expect(frame.bottom - box.bottom).toBeGreaterThanOrEqual(clear);
+  await expect(box.height).toBeGreaterThanOrEqual(18);
+  await expect(getComputedStyle(thumb).backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+  return thumb;
 }
 
 // --- Default (rows 1, 2, 3 and the focus step of 28) -------------------------------------------
@@ -246,9 +281,113 @@ const SIZES = ["sm", "md", "lg"] as const;
 
 const sizes = twin((c) => ({
   render: (args) => (
-    <div className="flex max-w-3xl flex-col gap-4">
+    <div className="@container max-w-3xl">
+      <div className="flex flex-col gap-8 @2xl:gap-4">
+        {SIZES.map((size, i) => (
+          <div
+            key={size}
+            data-testid={size}
+            className="grid grid-cols-1 items-start gap-2 @2xl:grid-cols-3 @2xl:gap-4"
+          >
+            <Combobox
+              {...args}
+              options={c.options}
+              size={size}
+              defaultValue={opt(c, "latin")}
+              clearable
+              aria-label={`${c.label} ${c.sizes[i]}`}
+            />
+            <Select
+              size={size}
+              options={fixtureOptions}
+              defaultValue="canvas"
+              aria-label={`Select ${c.sizes[i]}`}
+            />
+            <Input size={size} aria-label={`Input ${c.sizes[i]}`} />
+          </div>
+        ))}
+      </div>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    // No Field nested in a Field: a meta decorator wrapping this story would break its labels.
+    await expect(canvasElement.querySelectorAll(".ds-field .ds-field")).toHaveLength(0);
+    const check = async () => {
+      for (const [i, size] of SIZES.entries()) {
+        const row = canvas.getByTestId(size);
+        const input = within(row).getByRole("combobox", { name: `${c.label} ${c.sizes[i]}` });
+        const group = groupOf(input);
+        const select = within(row).getByRole("combobox", { name: `Select ${c.sizes[i]}` });
+        const plain = within(row).getByRole("textbox", { name: `Input ${c.sizes[i]}` });
+        expectSameHeight(group, plain);
+        const control = resolvedLength(row, `--ds-size-control-${size}`);
+        expect(
+          near(group.getBoundingClientRect().height, control, 0.5),
+          `${size} field is ${group.getBoundingClientRect().height} tall, expected ${control}`,
+        ).toBe(true);
+        // The slot buttons are square: 24, 30 and 38 px (W6), and do not overlap.
+        const inset = resolvedLength(row, "--cmp-input-group-inset");
+        const side =
+          size === "sm" ? resolvedLength(row, "--ds-size-icon-lg") : control - 2 - 2 * inset;
+        const clear = within(row).getByRole("button", { name: c.clear });
+        const chevron = within(row).getByRole("button", { name: c.open });
+        for (const button of [clear, chevron]) {
+          const box = button.getBoundingClientRect();
+          expect(
+            near(box.width, side, 0.5),
+            `${size} slot button is ${box.width} wide, expected ${side}`,
+          ).toBe(true);
+          expect(
+            near(box.height, side, 0.5),
+            `${size} slot button is ${box.height} tall, expected ${side}`,
+          ).toBe(true);
+          await expect(box.width).toBeGreaterThanOrEqual(24);
+        }
+        await expect(clear.getBoundingClientRect().right).toBeLessThanOrEqual(
+          chevron.getBoundingClientRect().left,
+        );
+        // One control with Select: the chevron glyph sits as far from the end, in the same ink.
+        const glyph = chevron.querySelector("svg") as SVGElement;
+        const selectGlyph = select.querySelector("svg") as SVGElement;
+        expect(
+          near(fromEnd(group, glyph), fromEnd(select, selectGlyph), 1),
+          `${size} chevron centre is ${fromEnd(group, glyph)} from the end, Select's is ${fromEnd(select, selectGlyph)}`,
+        ).toBe(true);
+        await expect(getComputedStyle(chevron).color).toBe(getComputedStyle(selectGlyph).color);
+        // F1: the input keeps its least width, the slot stays in the field, the value reads whole.
+        await expect(input.getBoundingClientRect().width).toBeGreaterThanOrEqual(
+          resolvedLength(row, "--ds-size-control-lg"),
+        );
+        await expect(chevron.getBoundingClientRect().right).toBeLessThanOrEqual(
+          group.getBoundingClientRect().right,
+        );
+        const box = input as HTMLInputElement;
+        await expect(box.scrollWidth).toBeLessThanOrEqual(box.clientWidth);
+        // An open option row meets SC 2.5.8.
+        await userEvent.click(chevron);
+        const listbox = await body().findByRole("listbox");
+        await expect(
+          within(listbox).getAllByRole("option")[0]?.getBoundingClientRect().height,
+        ).toBeGreaterThanOrEqual(24);
+        await userEvent.keyboard("{Escape}");
+        await closed();
+      }
+    };
+    // F1 again at 360 by 640, where the row is one column.
+    await check();
+    if (inVitest) await atPhoneSize(check);
+  },
+}));
+export const Sizes: Story = sizes.th;
+export const SizesInEnglish: Story = sizes.en;
+
+/** D15: in a cell under the least field, the field keeps its least width and the slot stays in it. */
+const leastWidth = twin((c) => ({
+  render: (args) => (
+    <div className="flex flex-col gap-4">
       {SIZES.map((size, i) => (
-        <div key={size} data-testid={size} className="grid grid-cols-3 items-start gap-4">
+        <div key={size} data-testid={size} className="w-24">
           <Combobox
             {...args}
             options={c.options}
@@ -257,79 +396,49 @@ const sizes = twin((c) => ({
             clearable
             aria-label={`${c.label} ${c.sizes[i]}`}
           />
-          <Select
-            size={size}
-            options={fixtureOptions}
-            defaultValue="canvas"
-            aria-label={`Select ${c.sizes[i]}`}
-          />
-          <Input size={size} aria-label={`Input ${c.sizes[i]}`} />
         </div>
       ))}
     </div>
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    // No Field nested in a Field: a meta decorator wrapping this story would break its labels.
-    await expect(canvasElement.querySelectorAll(".ds-field .ds-field")).toHaveLength(0);
     for (const [i, size] of SIZES.entries()) {
       const row = canvas.getByTestId(size);
       const input = within(row).getByRole("combobox", { name: `${c.label} ${c.sizes[i]}` });
       const group = groupOf(input);
-      const select = within(row).getByRole("combobox", { name: `Select ${c.sizes[i]}` });
-      const plain = within(row).getByRole("textbox", { name: `Input ${c.sizes[i]}` });
-      expectSameHeight(group, plain);
-      const control = resolvedLength(row, `--ds-size-control-${size}`);
-      expect(
-        near(group.getBoundingClientRect().height, control, 0.5),
-        `${size} field is ${group.getBoundingClientRect().height} tall, expected ${control}`,
-      ).toBe(true);
-      // The slot buttons are square: 24, 30 and 38 px (W6), and do not overlap.
-      const inset = resolvedLength(row, "--cmp-input-group-inset");
-      const side =
-        size === "sm" ? resolvedLength(row, "--ds-size-icon-lg") : control - 2 - 2 * inset;
-      const clear = within(row).getByRole("button", { name: c.clear });
       const chevron = within(row).getByRole("button", { name: c.open });
-      for (const button of [clear, chevron]) {
-        const box = button.getBoundingClientRect();
-        expect(
-          near(box.width, side, 0.5),
-          `${size} slot button is ${box.width} wide, expected ${side}`,
-        ).toBe(true);
-        expect(
-          near(box.height, side, 0.5),
-          `${size} slot button is ${box.height} tall, expected ${side}`,
-        ).toBe(true);
-        await expect(box.width).toBeGreaterThanOrEqual(24);
-      }
-      await expect(clear.getBoundingClientRect().right).toBeLessThanOrEqual(
-        chevron.getBoundingClientRect().left,
-      );
-      // One control with Select: the chevron glyph sits as far from the end, in the same ink.
-      const glyph = chevron.querySelector("svg") as SVGElement;
-      const selectGlyph = select.querySelector("svg") as SVGElement;
-      const fromEnd = (outer: Element, inner: Element) => {
-        const box = inner.getBoundingClientRect();
-        return outer.getBoundingClientRect().right - (box.left + box.right) / 2;
-      };
+      // The cell is under the least field, so the field is at its least: 48 px of input, no more.
+      const least = resolvedLength(row, "--ds-size-control-lg");
       expect(
-        near(fromEnd(group, glyph), fromEnd(select, selectGlyph), 1),
-        `${size} chevron centre is ${fromEnd(group, glyph)} from the end, Select's is ${fromEnd(select, selectGlyph)}`,
+        near(input.getBoundingClientRect().width, least, 1),
+        `input is ${input.getBoundingClientRect().width} wide, the least is ${least}`,
       ).toBe(true);
-      await expect(getComputedStyle(chevron).color).toBe(getComputedStyle(selectGlyph).color);
-      // An open option row meets SC 2.5.8.
+      await expect(chevron.getBoundingClientRect().right).toBeLessThanOrEqual(
+        group.getBoundingClientRect().right,
+      );
+      // Select's chevron place: the field's padding, half the glyph, the border.
+      const place =
+        resolvedLength(row, "--cmp-input-padding-x") +
+        resolvedLength(row, "--ds-size-icon-md") / 2 +
+        1;
+      await expect(near(fromEnd(group, chevron.querySelector("svg") as SVGElement), place)).toBe(
+        true,
+      );
+      // The root is the anchor, so the popup stays the field's width.
       await userEvent.click(chevron);
       const listbox = await body().findByRole("listbox");
-      await expect(
-        within(listbox).getAllByRole("option")[0]?.getBoundingClientRect().height,
-      ).toBeGreaterThanOrEqual(24);
+      await waitFor(() =>
+        expect(
+          near(popupOf(listbox).getBoundingClientRect().width, group.getBoundingClientRect().width),
+        ).toBe(true),
+      );
       await userEvent.keyboard("{Escape}");
       await closed();
     }
   },
 }));
-export const Sizes: Story = sizes.th;
-export const SizesInEnglish: Story = sizes.en;
+export const LeastWidth: Story = leastWidth.th;
+export const LeastWidthInEnglish: Story = leastWidth.en;
 
 // --- WithValue and Missing (row 20) ------------------------------------------------------------
 
@@ -383,6 +492,12 @@ const openList = twin((c) => ({
       expect(near(box.left, field.left), `popup left ${box.left} of ${field.left}`).toBe(true);
       expect(near(box.top, field.bottom + 4), `popup top ${box.top} of ${field.bottom}`).toBe(true);
     });
+    // D17: a thumb shows exactly while the list overflows (seven rows fit at 40 px and overflow by 6 px at 44).
+    await waitFor(() =>
+      expect(popup.querySelector(".ds-scroll__bar") !== null).toBe(
+        listbox.scrollHeight > listbox.clientHeight,
+      ),
+    );
     // Hover is an interaction state: the pointer marks an option.
     const logo = within(listbox).getByRole("option", { name: opt(c, "logo").label });
     await userEvent.hover(logo);
@@ -769,19 +884,29 @@ export const Pointer: Story = {
   },
 };
 
-/** Row 12: 40 options. The popup stops at the cap and the marked option stays in view. */
+/** 40 options, the fourth a long Thai name with no spaces, so the block wrapper of the Viewport has a label to hold. */
+const longOptions = comboboxFixtures.long.map((option, i) =>
+  i === 3 ? { value: "long", label: fixtures.longThai } : option,
+);
+
+/** The 40-option field of row 12. */
+const longListFrame = () => (
+  <div className="max-w-md">
+    <Field label={TH.label}>
+      <Combobox options={longOptions} />
+    </Field>
+  </div>
+);
+
+/** Row 12: 40 options. The popup stops at the cap, a thumb says it scrolls, and the marked option stays in view. */
 export const LongList: Story = {
-  render: (args) => (
-    <div className="max-w-md">
-      <Field label={TH.label}>
-        <Combobox {...args} options={comboboxFixtures.long} />
-      </Field>
-    </div>
-  ),
+  render: () => longListFrame(),
   play: async ({ canvasElement }) => {
     const input = inputOf(canvasElement, TH);
     await userEvent.click(within(canvasElement).getByRole("button", { name: TH.open }));
     const listbox = await body().findByRole("listbox");
+    const thumb = await expectScrollCue(listbox, 40);
+    const before = thumb.getBoundingClientRect().top;
     await userEvent.keyboard("{ArrowDown}".repeat(30));
     await waitFor(() => expect(activeLabel(input)).toBe("ตัวเลือกที่ 30"));
     const active = document.getElementById(
@@ -794,9 +919,33 @@ export const LongList: Story = {
       expect(row.bottom).toBeLessThanOrEqual(inside.bottom + 1);
     });
     await expect(listbox.scrollTop).toBeGreaterThan(0);
+    // The thumb follows the list down.
+    await waitFor(() => expect(thumb.getBoundingClientRect().top).toBeGreaterThan(before));
     // The cap of A1 on real Radix values: the field is near the top, so the cap decides.
     const cap = resolvedLength(listbox, "--ds-size-panel-default");
     await expect(near(popupOf(listbox).getBoundingClientRect().height, cap)).toBe(true);
+    // A press on the bar leaves the field alone: focus stays in the input and the list stays open.
+    await userEvent.click(thumb);
+    await expect(input).toHaveFocus();
+    await expect(body().getByRole("listbox")).toBe(listbox);
+    // The long label stays on its ellipsis: the block wrapper of the Radix Viewport holds.
+    await expect(listbox.scrollWidth).toBeLessThanOrEqual(listbox.clientWidth);
+    await userEvent.keyboard("{Escape}");
+    await closed();
+  },
+};
+
+/** Row 12 under Friendly, whose rows are 44 px: the thumb says it scrolls, whatever the foot row shows. */
+export const LongListFriendly: Story = {
+  render: () => (
+    <DesignProfileBoundary profile="friendly" mode="light">
+      <div className="bg-surface-canvas p-4 font-body text-text-primary">{longListFrame()}</div>
+    </DesignProfileBoundary>
+  ),
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole("button", { name: TH.open }));
+    const listbox = await body().findByRole("listbox");
+    await expectScrollCue(listbox, 44);
     await userEvent.keyboard("{Escape}");
     await closed();
   },
@@ -883,21 +1032,23 @@ export const InsideDialog: Story = {
 };
 
 /** Row 22: at 360 px the field and its list stay inside the frame, and Thai ink stays whole. */
-export const At360: Story = {
-  render: () => (
-    <Narrow>
-      <div data-testid="frame" className="relative h-[340px] w-[360px] max-w-full">
-        <Field label={TH.label}>
-          <Combobox options={TH.options} />
+const at360Frame = () => (
+  <Narrow>
+    <div data-testid="frame" className="relative h-[340px] w-[360px] max-w-full">
+      <Field label={TH.label}>
+        <Combobox options={TH.options} />
+      </Field>
+      <div className="absolute inset-x-0 top-[240px]">
+        <Field label={`${TH.label} 2`}>
+          <Combobox options={comboboxFixtures.long} />
         </Field>
-        <div className="absolute inset-x-0 top-[240px]">
-          <Field label={`${TH.label} 2`}>
-            <Combobox options={comboboxFixtures.long} />
-          </Field>
-        </div>
       </div>
-    </Narrow>
-  ),
+    </div>
+  </Narrow>
+);
+
+export const At360: Story = {
+  render: () => at360Frame(),
   play: async ({ canvasElement }) => {
     await atPhoneSize(async () => {
       const frame = within(canvasElement).getByTestId("frame");
@@ -963,6 +1114,33 @@ export const At360: Story = {
         expect(box.bottom).toBeLessThanOrEqual(window.innerHeight);
         expect(box.height).toBeLessThan(cap);
       });
+      await expectScrollCue(listbox, 40);
+      await userEvent.keyboard("{Escape}");
+      await closed();
+    });
+  },
+};
+
+/** Row 22 under Friendly, whose rows are 44 px: the second list still shows its thumb at 360 by 640. */
+export const At360Friendly: Story = {
+  render: () => (
+    <DesignProfileBoundary profile="friendly" mode="light">
+      <div className="bg-surface-canvas font-body text-text-primary">{at360Frame()}</div>
+    </DesignProfileBoundary>
+  ),
+  play: async ({ canvasElement }) => {
+    await atPhoneSize(async () => {
+      await userEvent.click(
+        within(canvasElement).getAllByRole("button", { name: TH.open })[1] as HTMLElement,
+      );
+      const listbox = await body().findByRole("listbox");
+      const cap = resolvedLength(listbox, "--ds-size-panel-default");
+      await waitFor(() => {
+        const box = popupOf(listbox).getBoundingClientRect();
+        expect(box.bottom).toBeLessThanOrEqual(window.innerHeight);
+        expect(box.height).toBeLessThan(cap);
+      });
+      await expectScrollCue(listbox, 44);
       await userEvent.keyboard("{Escape}");
       await closed();
     });

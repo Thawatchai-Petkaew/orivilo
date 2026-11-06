@@ -1,6 +1,6 @@
 "use client";
 
-import { Popover as PopoverPrimitive } from "radix-ui";
+import { Popover as PopoverPrimitive, ScrollArea as ScrollAreaPrimitive } from "radix-ui";
 import {
   type ChangeEvent,
   Fragment,
@@ -259,33 +259,38 @@ export function Combobox({
             onMouseDown={keepFocus}
           >
             {listboxShown ? (
-              <div
-                role="listbox"
-                id={list.listId}
-                aria-label={m.combobox.list}
-                className="ds-combobox__list"
-              >
-                {visibleGroups
-                  ? visibleGroups.map((group, groupIndex) => {
-                      const first = start;
-                      start += group.options.length;
-                      const headingId = `${list.listId}-g${groupIndex}`;
-                      return (
-                        <Fragment key={`${groupIndex}:${group.label}`}>
-                          {groupIndex > 0 ? (
-                            <div className="ds-menu__separator" aria-hidden="true" />
-                          ) : null}
-                          <div role="group" aria-labelledby={headingId}>
-                            <div className="ds-menu__label" id={headingId}>
-                              {group.label}
+              <ScrollAreaPrimitive.Root type="auto" className="ds-combobox__scroll">
+                <ScrollAreaPrimitive.Viewport
+                  role="listbox"
+                  id={list.listId}
+                  aria-label={m.combobox.list}
+                  className="ds-combobox__list"
+                >
+                  {visibleGroups
+                    ? visibleGroups.map((group, groupIndex) => {
+                        const first = start;
+                        start += group.options.length;
+                        const headingId = `${list.listId}-g${groupIndex}`;
+                        return (
+                          <Fragment key={`${groupIndex}:${group.label}`}>
+                            {groupIndex > 0 ? (
+                              <div className="ds-menu__separator" aria-hidden="true" />
+                            ) : null}
+                            <div role="group" aria-labelledby={headingId}>
+                              <div className="ds-menu__label" id={headingId}>
+                                {group.label}
+                              </div>
+                              {group.options.map((option, k) => renderOption(option, first + k))}
                             </div>
-                            {group.options.map((option, k) => renderOption(option, first + k))}
-                          </div>
-                        </Fragment>
-                      );
-                    })
-                  : visible.map((option, at) => renderOption(option, at))}
-              </div>
+                          </Fragment>
+                        );
+                      })
+                    : visible.map((option, at) => renderOption(option, at))}
+                </ScrollAreaPrimitive.Viewport>
+                <ScrollAreaPrimitive.Scrollbar className="ds-scroll__bar" orientation="vertical">
+                  <ScrollAreaPrimitive.Thumb className="ds-scroll__thumb" />
+                </ScrollAreaPrimitive.Scrollbar>
+              </ScrollAreaPrimitive.Root>
             ) : null}
             {count === 0 ? (
               <div className="ds-menu__empty">
