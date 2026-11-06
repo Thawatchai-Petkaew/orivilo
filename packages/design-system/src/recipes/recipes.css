@@ -4469,6 +4469,7 @@ button.ds-tag__main {
   inset-block-end: var(--ds-space-inset-md);
   z-index: var(--cmp-taskbar-layer);
   box-shadow: var(--cmp-taskbar-shadow);
+  anchor-name: --ds-board-taskbar;
 }
 .ds-board:has(.ds-taskbar) {
   --_lift: calc(
@@ -4550,6 +4551,35 @@ button.ds-tag__main {
   }
   .ds-board:has(.ds-controls) .ds-board__overlay > .ds-empty-state {
     margin-block: auto;
+  }
+}
+/* With the bar's panel open the card covers the toolbar, so the form clears the higher of the two
+ * (ORV-223 D16). The pill has gone up to the board's start edge, so it adds nothing to the clear.
+ * The action stops rising one inset under the board's top: a full list must not push it off the
+ * board, where neither a pointer nor the focus line can reach it. */
+@supports (anchor-name: --a) {
+  .ds-board:has(.ds-controls):has(.ds-taskbar__panel:not([hidden]))
+    .ds-board__overlay:has(> .ds-empty-state) {
+    --_clear: var(--ds-space-inset-md);
+    --_floor: calc(var(--cmp-button-height-md) + var(--ds-space-inset-md));
+    top: min(
+      max(
+        min(
+          calc(anchor(top) - var(--_clear)),
+          calc(anchor(--ds-board-taskbar top) - var(--_clear))
+        ),
+        var(--_floor)
+      ),
+      max(
+        calc(100% - anchor(top) + var(--_clear)),
+        calc(100% - anchor(--ds-board-taskbar top) + var(--_clear))
+      ),
+      calc(100% - var(--_floor))
+    );
+    bottom: min(
+      max(calc(anchor(top) + var(--_clear)), calc(anchor(--ds-board-taskbar top) + var(--_clear))),
+      calc(100% - var(--_floor))
+    );
   }
 }
 /* An open list adds up to its capped height to the bar. Only the status line clears it, and never

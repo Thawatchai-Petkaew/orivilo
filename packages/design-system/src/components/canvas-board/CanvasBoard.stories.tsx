@@ -2,9 +2,11 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useEffect, useState } from "react";
 import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { LocaleProvider } from "../../i18n/LocaleProvider";
+import { expectFrameCutsNoInk, expectLabelInkWhole, inVitest } from "../../testing/visual-asserts";
 import { Button } from "../button/Button";
-import { fixtures } from "../fixtures";
+import { fixtureManyJobs, fixtures } from "../fixtures";
 import { Matrix, Narrow } from "../matrix";
+import { TaskBar } from "../task-bar/TaskBar";
 import { CanvasBoard, GRID_UNIT } from "./CanvasBoard";
 import type { Graph } from "./graph";
 import { BOARD, BOARD_NODES, LONG_NODE } from "./fixtures";
@@ -131,9 +133,9 @@ const HALF_PX = 0.5;
 async function expectFormClearOfToolbar(root: HTMLElement, actionName: string) {
   const board = part(root, ".ds-board");
   const bar = part(board, ".ds-controls");
-  const form = part(board, ".ds-empty-state");
+  const form = part(board, ".ds-board__overlay .ds-empty-state");
   const tile = part(form, ".ds-featured-icon");
-  const action = within(root).getByRole("button", { name: actionName });
+  const action = within(form).getByRole("button", { name: actionName });
   const clear = resolvedLength(board, "--ds-space-inset-md");
   const b = board.getBoundingClientRect();
   const f = form.getBoundingClientRect();
@@ -413,6 +415,145 @@ export const EmptyShortInEnglish: Story = {
       within(canvasElement).getByRole("heading", { level: 2, name: "The board is empty" }),
     ).toBeVisible();
     await expectShortBoardClear(canvasElement, "Add your first node", "Zoomed in");
+  },
+};
+
+/** The bar's mock action (D10): it names its outcome and starts nothing. */
+const startFirst = (label: string) => (
+  <Button variant="secondary" size="sm">
+    {label}
+  </Button>
+);
+
+/** The action answers a hit test at its own centre. */
+async function expectAnswers(el: HTMLElement) {
+  const r = el.getBoundingClientRect();
+  const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+  await expect(hit !== null && el.contains(hit)).toBe(true);
+}
+
+/**
+ * Rows 47 and 48: the form clears the open bar as it clears the toolbar, no ink is cut, and closing
+ * the panel gives the form back to the toolbar's rule (ORV-223 D16).
+ */
+async function expectFormClearOfOpenBar(root: HTMLElement, actionName: string) {
+  const board = part(root, ".ds-board");
+  const form = part(board, ".ds-board__overlay .ds-empty-state");
+  const action = within(form).getByRole("button", { name: actionName });
+  const clear = resolvedLength(board, "--ds-space-inset-md");
+  await expectFormClearOfToolbar(root, actionName);
+  await expect(
+    part(board, ".ds-taskbar").getBoundingClientRect().top - action.getBoundingClientRect().bottom,
+  ).toBeGreaterThanOrEqual(clear - HALF_PX);
+  await expectAnswers(action);
+  if (inVitest) {
+    await expectFrameCutsNoInk(form, board);
+    await expectLabelInkWhole(part(form, ".ds-empty-state__title"));
+  }
+  await userEvent.click(part(board, ".ds-taskbar button[aria-expanded='true']"));
+  await waitFor(() =>
+    expect(part(board, ".ds-taskbar button[aria-expanded='false']")).toBeVisible(),
+  );
+  await expectFormClearOfToolbar(root, actionName);
+  await expectAnswers(action);
+}
+
+/**
+ * The empty board with the task bar's panel open, 900 px wide and 420 tall: the form stands above
+ * the bar's card, not on it (`empty-board-1`, ORV-223 D16), and goes back to the toolbar's rule
+ * when the panel closes.
+ */
+export const EmptyBarOpen: Story = {
+  args: {
+    initial: { nodes: [], edges: [] },
+    emptyAction: addFirst("เพิ่ม node แรก"),
+  },
+  render: (args) => (
+    <div className="w-[900px] max-w-full">
+      <Stateful {...args} height={420} fill={false}>
+        <TaskBar jobs={[]} defaultExpanded emptyAction={startFirst("เริ่มงานแรก")} />
+      </Stateful>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    await expectFormClearOfOpenBar(canvasElement, "เพิ่ม node แรก");
+  },
+};
+
+/** The same board with the open bar, in English. */
+export const EmptyBarOpenInEnglish: Story = {
+  args: {
+    initial: { nodes: [], edges: [] },
+    emptyAction: addFirst("Add your first node"),
+  },
+  decorators: [(Story) => <LocaleProvider locale="en">{Story()}</LocaleProvider>],
+  render: (args) => (
+    <div className="w-[900px] max-w-full">
+      <Stateful {...args} height={420} fill={false}>
+        <TaskBar jobs={[]} defaultExpanded emptyAction={startFirst("Start the first job")} />
+      </Stateful>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    await expectFormClearOfOpenBar(canvasElement, "Add your first node");
+  },
+};
+
+/**
+ * A list that fills the board: the action stops one inset under the board's top, whole and
+ * pressable, though it then stands on the card (ORV-223 D16, row 49).
+ */
+export const EmptyJobsOpen: Story = {
+  args: {
+    initial: { nodes: [], edges: [] },
+    emptyAction: addFirst("เพิ่ม node แรก"),
+  },
+  render: (args) => (
+    <div className="w-[900px] max-w-full">
+      <Stateful {...args} height={420} fill={false}>
+        <TaskBar jobs={fixtureManyJobs} defaultExpanded />
+      </Stateful>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const board = part(canvasElement, ".ds-board");
+    const form = part(board, ".ds-board__overlay .ds-empty-state");
+    const action = within(form).getByRole("button", { name: "เพิ่ม node แรก" });
+    const clear = resolvedLength(board, "--ds-space-inset-md");
+    await expect(
+      action.getBoundingClientRect().top - board.getBoundingClientRect().top,
+    ).toBeGreaterThanOrEqual(clear - HALF_PX);
+    await expectAnswers(action);
+  },
+};
+
+/**
+ * Row 50: with the panel open a status adds nothing to the clear, because the pill stands at the
+ * board's top; the action stays one inset above the higher of the bar and the toolbar.
+ */
+export const EmptyBarOpenWithStatus: Story = {
+  args: {
+    initial: { nodes: [], edges: [] },
+    emptyAction: addFirst("เพิ่ม node แรก"),
+    status: "ซูมเข้า",
+  },
+  render: (args) => (
+    <div className="w-[900px] max-w-full">
+      <Stateful {...args} height={420} fill={false}>
+        <TaskBar jobs={[]} defaultExpanded emptyAction={startFirst("เริ่มงานแรก")} />
+      </Stateful>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const board = part(canvasElement, ".ds-board");
+    const form = part(board, ".ds-board__overlay .ds-empty-state");
+    const action = within(form).getByRole("button", { name: "เพิ่ม node แรก" });
+    const clear = resolvedLength(board, "--ds-space-inset-md");
+    const bar = part(board, ".ds-taskbar").getBoundingClientRect();
+    const toolbar = part(board, ".ds-controls").getBoundingClientRect();
+    await expect(
+      Math.abs(Math.min(bar.top, toolbar.top) - action.getBoundingClientRect().bottom - clear),
+    ).toBeLessThanOrEqual(HALF_PX);
   },
 };
 
