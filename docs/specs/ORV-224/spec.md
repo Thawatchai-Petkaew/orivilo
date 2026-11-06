@@ -3,7 +3,7 @@ issue: ORV-224 (https://tpetkaew.atlassian.net/browse/ORV-224)
 lane: as set on ORV-224 in Jira (not read in this role); a new component public API is an L-lane risk flag (AGENTS.md, "Lanes and gates"), so G1 and G2 apply, passed by Claude under the owner's delegation during the POC (ADR 0012 decision 4)
 mode: POC mode short spec (`.claude/skills/ovl/SKILL.md`, section "POC mode")
 source_row: docs/specs/ORV-64/audit.md section D.3 row 21 ("Avatar")
-version: 1.1
+version: 1.2
 ---
 
 # ORV-224: Avatar (base)
@@ -65,7 +65,7 @@ What the disc shows, in order:
 
 Rule-based, pure, and internal: `initialsOf(name: string): string` in `src/components/avatar/initials.ts`, not exported from the package. An empty string means no initials.
 
-1. Split the trimmed name on whitespace and keep the words that hold a letter (`\p{L}`). No word kept: no initials.
+1. Split the name on whitespace and keep the words that hold a letter (`\p{L}`). The split and the letter filter already drop the empty word a leading or trailing space leaves, so no separate trim is needed. No word kept: no initials.
 2. Take the first grapheme cluster that holds a letter in the first kept word (`Intl.Segmenter` with `granularity: "grapheme"`, as `fixtures.ts` line 214 does).
 3. If that cluster is Thai script (`\p{Script=Thai}`): the result is the first Thai consonant of that word (U+0E01 to U+0E2E), alone and with no vowel or mark, so a leading vowel such as โ is passed over. One letter, never two. A word with no consonant gives no initials.
 4. Otherwise: the result is that cluster, plus the first such cluster of the last kept word when there are two or more kept words and that cluster is not Thai, upper-cased with `toUpperCase()` in code, never by CSS.
@@ -196,8 +196,8 @@ Story file and story names per `avatar-stories-1`. `T` is the Storybook test pro
 | 15 | `src/components/avatar/Avatar.fixtures.tsx`, a type fixture in the form of `packages/db/src/schema/classification.fixtures.ts` | `<Avatar status="online" />`, `verified`, `count={3}` and `badge` each sit under `// @ts-expect-error` | Not a screen | The type rejects each (`avatar-none-1`); the builder confirms the file is inside the package's typecheck | `pnpm --filter @orivilo/design-system typecheck` output, and with one directive removed, its failure |
 | 16 | The PR head | The source and the diff are searched | Not a screen | `grep -n -e "console\." -e "title=" -e "data-name" -e "data-src" packages/design-system/src/components/avatar/Avatar.tsx` prints nothing; `git diff --name-only origin/develop...HEAD -- apps/web packages/db packages/auth` prints nothing (`avatar-data-1`) | Both outputs in the builder's `verified` |
 | 17 | The PR head | `check-catalog`, `check-i18n` and the copy check run | Not a screen | `catalog/base/avatar.yaml` resolves to `base-avatar`; `coverage.md` line 24 reads `draft`; `avatar.noName` is in both locales; no middot or em dash in the new files | `pnpm --filter @orivilo/design-system test` output |
-| 18 | The PR head | `recipes.test.ts`, `tokens.test.ts` and `pnpm contrast` run | Not a screen | The `avatar` `fallback` pair passes floor 4.5 under each set in both modes; `generated.css` is not stale | `pnpm contrast` output and the test output |
-| 19 | Storybook at 360 and 1440 px, light and dark, Thai and English | The designer opens `Picture`, `Initials`, `NoName`, `Sizes`, `BesideName`, `AsControl`, `At360`, `RecipesAndModes` | The three steps read as one component; initials sit centred at both sizes; the disc holds on `surface.canvas` and `surface.card` | None | Designer visual sign-off with screenshots in `docs/specs/ORV-224/design.md`, with the answers to open questions 1, 2, 4, 6 and 7 |
+| 18 | The PR head | `recipes.test.ts`, `tokens.test.ts` and `pnpm contrast` run | Not a screen | The `avatar` `fallback` pair passes floor 4.5 under neutral, professional, friendly and orivilo (`CONTRAST_SETS`) in both modes; `generated.css` is not stale | `recipes.test.ts` output proves the pair under neutral, professional and friendly in both modes (its `sets`, lines 21 to 24). Orivilo is not in those `sets`, so its two values rest on the reading at `design.md` line 181, with no test. `pnpm contrast` reads semantic pairs only, so it proves nothing of this pair, and its output is the check that no semantic pair moved. `tokens.test.ts` output shows `generated.css` is not stale |
+| 19 | Storybook at 360 and 1440 px, light and dark, Thai and English | The designer opens `Picture`, `Initials`, `NoName`, `Sizes`, `BesideName`, `AsControl`, `At360`, `RecipesAndModes` | The three steps read as one component; initials sit centred at both sizes; the disc holds on `surface.canvas` and `surface.card` | None | Designer visual sign-off, with the PNG paths of its `checks_run` posted on ORV-224 as a Jira comment, since a sign-off has an empty `write_set` and cannot write `design.md`. The answers to open questions 1, 2, 4, 6 and 7 stay in `docs/specs/ORV-224/design.md` |
 | 20 | The PR head | The affected suites run | Every play and test passes | None | `pnpm --filter @orivilo/design-system exec vitest run --project storybook src/components/avatar src/components/button` and `pnpm --filter @orivilo/design-system exec vitest run src/components/avatar src/recipes src/i18n`, output in the builder's `verified`; `pnpm lint && pnpm typecheck && pnpm test && pnpm build` at the G3 gate |
 
 ## Rows that render nothing
@@ -206,7 +206,9 @@ Story file and story names per `avatar-stories-1`. `T` is the Storybook test pro
 
 ## Rows per PR
 
-One PR is planned for rows 1 to 20, because a catalog entry, its story and its code land in the same PR. Own estimate: about 430 changed lines (stories 170, component 60, tests 50, recipe 40, helper 30, catalog 30, fixtures 20, the rest 30), near the 400-line guide. The main session adds the PR line, in the form `qa-scope-1` reads (`scripts/ovl/result-recorder.mjs`), with a changelog line once the PR exists.
+One PR is planned for rows 1 to 20, because a catalog entry, its story and its code land in the same PR. Own estimate: about 430 changed lines (stories 170, component 60, tests 50, recipe 40, helper 30, catalog 30, fixtures 20, the rest 30), near the 400-line guide. The line below is in the form `qa-scope-1` reads (`scripts/ovl/result-recorder.mjs`).
+
+- PR 188: rows 1-20
 
 ## Out of scope
 
@@ -226,7 +228,7 @@ None is run here (no shell in this role); each runs from the repo root with `nod
 W1. The method of `avatar-initials-1`. Input: the fixtures `thaiMarks`, `thaiMarks2`, `longThai`, `mixed`, `latin`, `longLatin` copied from `src/components/fixtures.ts` lines 12 to 19, then the mixed name `Brand แคนวาส`, the name `2026` and three spaces. Expected output, one JSON string per line in this order, no rounding: `"ป"`, `"ล"`, `"บ"`, `"ป"`, `"SC"`, `"A"`, `"B"`, `""`, `""`.
 
 ```bash
-node -e 'const seg=new Intl.Segmenter("th",{granularity:"grapheme"});const first=w=>[...seg.segment(w)].map(s=>s.segment).find(g=>/\p{L}/u.test(g));const thai=g=>/\p{Script=Thai}/u.test(g);const f=n=>{const ws=n.trim().split(/\s+/).filter(w=>/\p{L}/u.test(w));if(!ws.length)return "";const a=first(ws[0]);if(thai(a))return (ws[0].match(/[ก-ฮ]/)??[""])[0];const b=ws.length>1?first(ws[ws.length-1]):"";return (a+(b&&!thai(b)?b:"")).toUpperCase()};for(const n of ["ปิ่นโต้","โลโก้","บริษัทพัฒนาซอฟต์แวร์เพื่อการออกแบบอัตลักษณ์แบรนด์และผลิตภัณฑ์ดิจิทัลจำกัดมหาชน","โปรเจกต์ Brand Canvas ของทีม","Save changes","Anuphan-and-Plex-mixed-identifier-that-never-breaks-on-its-own-2026","Brand แคนวาส","2026","   "])console.log(JSON.stringify(f(n)))'
+node -e 'const seg=new Intl.Segmenter("th",{granularity:"grapheme"});const first=w=>[...seg.segment(w)].map(s=>s.segment).find(g=>/\p{L}/u.test(g));const thai=g=>/\p{Script=Thai}/u.test(g);const f=n=>{const ws=n.split(/\s+/).filter(w=>/\p{L}/u.test(w));if(!ws.length)return "";const a=first(ws[0]);if(thai(a))return (ws[0].match(/[ก-ฮ]/)??[""])[0];const b=ws.length>1?first(ws[ws.length-1]):"";return (a+(b&&!thai(b)?b:"")).toUpperCase()};for(const n of ["ปิ่นโต้","โลโก้","บริษัทพัฒนาซอฟต์แวร์เพื่อการออกแบบอัตลักษณ์แบรนด์และผลิตภัณฑ์ดิจิทัลจำกัดมหาชน","โปรเจกต์ Brand Canvas ของทีม","Save changes","Anuphan-and-Plex-mixed-identifier-that-never-breaks-on-its-own-2026","Brand แคนวาส","2026","   "])console.log(JSON.stringify(f(n)))'
 ```
 
 W2. The pixels of `avatar-size-1` (AC 7, 11). Input: `size.control.sm` and `.md`, `size.icon.sm` and `.md` (`semantic.json` lines 851 to 858 and 875 to 882), which reference `size.8`, `size.10`, `size.icon-4` and `size.icon-5` (`primitives.json` lines 521, 529, 557 and 561). Expected output, px, no rounding: `sm 32px 16px`, then `md 40px 20px`.
@@ -274,3 +276,4 @@ Each default is what the Rules above state, so the builder has one reading. The 
 
 - v1.0 (2026-11-06): first version, from K-0185 to K-0203 and audit D.3 row 21. The Jira issue was not read (no Jira tool in this role). Downstream to review: the designer envelope (`design.md`, open questions 1, 2, 4, 6, 7, and `type.label.sm` at `sm` against AC 7), the owner (open questions 2 and 3), the builder envelope (rows 1 to 20, one PR), the qa envelope (the Rows per PR line once the PR exists), and `catalog/coverage.md`.
 - v1.1 (2026-11-06): the six amendments of `design.md`, accepted under delegation (ORV-224 comment 10521): `avatar-look-1`, `avatar-size-1`, the contract rows Component tokens and Recipe classes, and AC 2, 7, 9 and 11; AC 11 proves the name by visible overflow and `expectLinesClear` in place of amendment 4's clipping frame; open questions 1, 2, 4, 6 and 7 answered, the Thai reader of question 2 open for the owner. Downstream to review: `design.md` (amendment 4 on AC 11, the `spec:` line), the builder envelope (`component.json`, `recipes.css`, rows 2, 7, 9, 11), the qa envelope (the same rows), the owner (open questions 2 and 3).
+- v1.2 (2026-11-06): from the deviations of ORV-224-build-1 (L-0025). AC 18: `recipes.test.ts` proves the `avatar` `fallback` pair and `pnpm contrast` checks that no semantic pair moved, and the sets are listed, with orivilo resting on the `design.md` reading since `recipes.test.ts` does not read it. AC 19: the sign-off's PNG paths go on the issue as a Jira comment. Rows per PR: the line for PR 188. `avatar-initials-1` clause 1: no separate trim. Downstream to review: `design.md` (the `spec:` line), the designer sign-off envelope (row 19), the qa envelope (rows 18 and 19 and the PR line), the main session (the Jira comment of row 19, and whether `recipes.test.ts` reads orivilo). The builder has nothing to change for clause 1: `initials.ts` line 24 already has this form.

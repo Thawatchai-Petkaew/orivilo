@@ -1,6 +1,6 @@
 ---
 issue: ORV-224
-spec: docs/specs/ORV-224/spec.md v1.1
+spec: docs/specs/ORV-224/spec.md v1.2
 task: ORV-224-design-1
 date: 2026-11-06
 ---
