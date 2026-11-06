@@ -193,11 +193,11 @@ export const InEnglish: Story = {
 export const At360: Story = {
   render: () => (
     <Narrow>
-      <p data-name="" className="m-0 text-body-md [overflow-wrap:anywhere]">
+      <p data-name="" className="m-0 text-label-md [overflow-wrap:anywhere]">
         {fixtures.longThai}
       </p>
       <Separator className="my-3" />
-      <p className="m-0 text-body-md [overflow-wrap:anywhere]">{fixtures.longThai}</p>
+      <p className="m-0 text-label-md [overflow-wrap:anywhere]">{fixtures.longThai}</p>
     </Narrow>
   ),
   play: async ({ canvasElement }) => {
