@@ -3,8 +3,8 @@ issue: ORV-225 (https://tpetkaew.atlassian.net/browse/ORV-225)
 lane: as set on ORV-225 in Jira (not read in this role). By this spec's reading the risk flag "component public API" applies (AGENTS.md, "Lanes and gates"): four new public components, a new prop on `CollapsibleTrigger` and on `WorkspaceScreen`, and three repointed component tokens ("Contract changes and impact"), so lane L
 mode: POC mode short spec (`.claude/skills/ovl/SKILL.md`, section "POC mode")
 source_rows: docs/specs/ORV-64/audit.md section D.3 row 22
-version: 1.2
-design: docs/specs/ORV-225/design.md, version 1, at 9fe740e. It answers open questions 3, 6 and 9 and gives the builders the CSS and markup per rule; its "Amendments to the spec" rows 1 to 12 are in this version. The designer still signs the rows named in `stories-1`
+version: 1.3
+design: docs/specs/ORV-225/design.md, version 2, at c1b90a7. It answers open questions 3, 6 and 9 and finding F1 of ORV-225-signoff-1, and gives the builders the CSS and markup per rule; its "Amendments to the spec" rows 1 to 21 are in this version. The designer still signs the rows named in `stories-1`
 ---
 
 # ORV-225: Sidebar navigation, Top navigation, Page header and Section header
@@ -172,7 +172,7 @@ This is the default of open question 8, and the top row is the answer to open qu
 
 ### page-header-slots-1
 
-Props: `title`, `description`, `meta`, `actions`, `level`. `title` is required. `description` is one line of `text-body-md` secondary text. `meta` is a row under it for labels, such as the workspace screen's sample-data row. `actions` sits at the row's end. A missing slot renders no node. There is no `breadcrumb` slot until D.3 row 26 lands.
+Props: `title`, `description`, `meta`, `actions`, `level`. `title` is required. `description` is one line of `text-body-md` secondary text. `meta` is a row under it for labels, such as the workspace screen's sample-data row. `actions` sits at the row's end, or under the title block by `header-stack-1`. A missing slot renders no node. There is no `breadcrumb` slot until D.3 row 26 lands.
 
 ### section-header-1
 
@@ -189,7 +189,7 @@ The contract holds the WHATWG bar (K-0231): a heading is at most one level deepe
 
 ### header-stack-1
 
-`ds-page-header` and `ds-section-header` are containers. At `@container ds-page-header (max-width: 479px)` and `@container ds-section-header (max-width: 479px)`, named by the rule in `nav-narrow-1` and at the Table's value, the title block and `actions` stack, title first, on one start edge. Wider, they share a row with `actions` on the end edge. Neither scrolls sideways.
+`ds-page-header` and `ds-section-header` are containers. At `@container ds-page-header (max-width: 479px)` and `@container ds-section-header (max-width: 479px)`, named by the rule in `nav-narrow-1` and at the Table's value, the title block and `actions` stack, title first, on one start edge. Wider, they share a row with `actions` on the end edge while the title block keeps its floor: nine title sizes on Page header (288 px under neutral), `size.panel.min` on Section header (240 px). When `actions` leaves the title block less than its floor, `actions` moves under the block on the same start edge, `space.inset.md` under its last line, and wraps there. Neither scrolls sideways. Worked example W10.
 
 ### frame-ink-1
 
@@ -212,8 +212,8 @@ Every story below has a Thai form and an English twin named with the suffix `En`
 
 - `Application/Top navigation` (id `application-top-navigation`): `Default`, `WithCurrent`, `ParentCurrent`, `WithBadge`, `WithIcons`, `TwoRows`, `NoItems`, `Hover`, `FocusVisible`, `LongLabels`, `Narrow`, `DrawerOpen`, `SkipLink`, `RecipesAndModes`, `InsideProfile`.
 - `Application/Sidebar navigation` (id `application-sidebar-navigation`): `Simple`, `SectionDividers`, `SectionLabels`, `Nested`, `NestedCurrent`, `WithBadges`, `HeaderFooter`, `Empty`, `Hover`, `FocusVisible`, `LongLabels`, `LongPage`, `Narrow`, `DrawerOpen`, `Rail`, `RailTooltip`, `RailNested`, `RailNoIcons`, `RecipesAndModes`, `InsideProfile`.
-- `Application/Page header` (id `application-page-header`): `Default`, `TitleOnly`, `WithActions`, `WithMeta`, `LongTitle`, `HeadingLevel`, `Narrow`, `RecipesAndModes`.
-- `Application/Section header` (id `application-section-header`): `Default`, `TitleOnly`, `WithActions`, `WithTabs`, `WithDivider`, `LongTitle`, `HeadingLevel`, `Narrow`, `RecipesAndModes`.
+- `Application/Page header` (id `application-page-header`): `Default`, `TitleOnly`, `WithActions`, `ManyActions`, `WithMeta`, `LongTitle`, `HeadingLevel`, `Narrow`, `RecipesAndModes`.
+- `Application/Section header` (id `application-section-header`): `Default`, `TitleOnly`, `WithActions`, `ManyActions`, `WithTabs`, `WithDivider`, `LongTitle`, `HeadingLevel`, `Narrow`, `RecipesAndModes`.
 - `Examples/Application: Workspace (reference)`: adds `InShell` and `InShellNarrow`.
 
 ## Contract changes and impact
@@ -226,6 +226,7 @@ Every story below has a Thai form and an English twin named with the suffix `En`
 | New `nav-item.row-radius`, `{shape.media.radius}` | Component token | `component.json` gains one key, `generated.css` regenerates, and `.ds-nav-item` reads it on Sidebar, drawer and rail rows; `sm` stays on `nav-item.radius`. Nothing else reads it, and no value moves on an existing reader. No semantic token, primitive or profile changes. `spec-sheet.tsx` keeps `nav-item.radius` on its one-line sample, so it needs no edit for this token |
 | `ds-nav-item` with `__label`, `__bead`, `__badge`, and `data-size` `sm`, `md` | Recipe, `recipes.css` | New. Holds `nav-look-1`, `nav-focus-1`, `nav-size-1` |
 | `ds-top-nav`, `ds-top-nav__row` (with `data-row="sub"` on the second row), `ds-top-nav__list`, `ds-top-nav__skip`, `ds-top-nav__nav`, `ds-top-nav__actions`, `ds-top-nav__opener`, `ds-sidebar`, `ds-sidebar__panel`, `ds-sidebar__label`, `ds-sidebar__toggle`, `ds-sidebar__content`, `ds-sidebar__groups`, `ds-sidebar__group`, `ds-sidebar__list`, `ds-sidebar__opener`, `ds-nav-item__icon`, `ds-nav-group`, `ds-nav-group__trigger`, `ds-nav-group__content`, `ds-nav-drawer`, `ds-nav-drawer__list`, `ds-nav-drawer__label`, `ds-page-header`, `ds-page-header__title`, `ds-page-header__row`, `ds-page-header__text`, `ds-page-header__description`, `ds-page-header__meta`, `ds-page-header__actions`, `ds-section-header`, `ds-section-header__title`, `ds-section-header__row`, `ds-section-header__text`, `ds-section-header__description`, `ds-section-header__actions` | Recipe | New. Layout from tokens only. Raw container widths have the `ds-table` precedent; if `recipes.test.ts` rejects `calc` with a literal 2, that is a contract change to raise, not to work around |
+| `.ds-page-header__row` and `.ds-section-header__row`, one shared selector, wrap; `.ds-page-header__text` and `.ds-section-header__text` take the floor of `header-stack-1` as their flex basis | Recipe | `design.md` rows 4a and 8a. Edited in place, above each `@container` block, which stays last in its recipe. Slice A lands the Page header half, slice B its own. No new token, no token value moves, no change to `PageHeaderProps`. `type.display.md` size and `size.panel.min` each gain one reader. No example screen needs an edit (`design.md`, "Finding F1") |
 | `pairs.ts`: `nav-item.fg` on `ds:surface.canvas` TEXT; `nav-item.fg` on `side-sheet.bg` TEXT; `nav-item.fg-hover` on `nav-item.bg-hover` TEXT; `nav-item.fg-active` on `nav-item.bg-active` TEXT; `nav-item.bead` on `nav-item.bg-active` UI; `nav-item.fg-active` on `ds:surface.canvas` TEXT; `nav-item.fg-active` on `side-sheet.bg` TEXT; `nav-item.fg-active` on `nav-item.bg-hover` TEXT; `ds:text.primary` on `ds:surface.card` TEXT, for the skip link | Recipe pairs | Nine new pairs. An open marked group shows `fg-active` on no fill and on hover, and a drawer sits on `side-sheet.bg`. `pairs.ts` holds no `ds:text.primary` row today, so the skip link's pair is new. `recipes.test.ts` and `pnpm contrast` check each under every profile in both modes. A failing pair stops slice C |
 | New public `TopNavigation`, `TopNavigationProps`: `name`, `brand`, `items`, `subItems`, `subName`, `actions`, `currentPath`, `linkComponent` (default `a`), `contentClassName`, `skipHref`, `skipLabel` | Component API | New, `src/components/top-navigation/`. Built on `Sheet` |
 | New public `SidebarNavigation`, `SidebarNavigationProps`: `name`, `groups`, `header`, `footer`, `children`, `currentPath`, `linkComponent`, `collapsed`, `defaultCollapsed`, `onCollapsedChange` | Component API | New, `src/components/sidebar-navigation/`. Built on `Sheet`, `Collapsible`, `Tooltip` |
@@ -235,9 +236,11 @@ Every story below has a Thai form and an English twin named with the suffix `En`
 | `WorkspaceScreenProps` gains `headingLevel`, 1 to 5, default 1 | Example API | `apps/web/app/directions/page.tsx` and `DirectionStudio.stories.tsx` line 39 pass 4 (W6). `apps/web/app/workspace/page.tsx` unchanged |
 | Icons `MenuIcon` (Lucide Menu), `PanelStartCloseIcon` (Lucide PanelLeftClose) | `icons.tsx` | New. `MenuIcon` is the Top navigation opener. `PanelStartOpenIcon` is reused for expand and for the Sidebar opener (`nav-narrow-1`). The shell's Sidebar reuses `DirectionIcon` and `GroupIcon` |
 | `navFixtures` in `src/components/fixtures.ts` | Fixtures | New, Acceptance criteria intro |
+| `pageHeaderFixtures` in `src/components/fixtures.ts` gains `moreActions`, Thai "นำเข้าแบรนด์", "เชิญสมาชิกทีม", "ส่งออกรายงาน", English "Import brand", "Invite team members", "Export report", and `longAction`, Thai "บันทึกการตัดสินใจใหม่", English "Add a new decision" | Fixtures | Mock copy, like the file's other entries. Row 76's frame with `longAction` pins the floor only while the label measures between 144 and 176 at container 480, W10: Thai 162.1, English 157.9. Row 77 uses the same labels, because `design.md` measured its forms on them |
 | Locale group `nav`, and web keys in "Copy" | i18n | `check-i18n`, `apps/web/i18n/messages.test.ts` |
 | Cookie `orv-sidebar` | App | `sidebar-memory-1`. New name, read and written only by `apps/web` |
 | Catalog `application/top-navigation.yaml`, `sidebar-navigation.yaml`, `page-header.yaml`, `section-header.yaml`, status `draft`; `coverage.md` rows 55 to 58 | Catalog | `check-catalog`. `coverage.md` line 119's note goes |
+| `catalog/application/page-header.yaml` line 27 and `states`, and the docs sentence in `PageHeader.stories.tsx` | Catalog | Line 27 and the docs sentence take the words of `design.md` amendment 21, which state `header-stack-1`. `states` gains `many-actions`. `section-header.yaml`, not yet written, takes the same sentence with `size.panel.min` and the same state. `check-catalog` |
 | Skip link and `id="main"` on five `main` elements | App | `top-skip-1`. `account/page.test.tsx` line 45's regex needs `class` first, so `id` follows it |
 | `apps/web/app/layout.tsx` moves its header into `AppNav` | App | `layout.test.tsx` mocks `next/navigation`. `header.spec.ts`: the content edge at lines 53, 54 and 66 reads `.ds-top-nav__row`, because the root is full width now; line 87 takes one more Tab. Lines 83 and 108 to 109 hold their numbers (W2) |
 | `DESIGN.md` section 12 reference screen row | Doc | Slice F updates it |
@@ -259,7 +262,7 @@ Every story below has a Thai form and an English twin named with the suffix `En`
 
 ## Acceptance criteria
 
-Stories are those of `stories-1`. Plays run in Thai; each `En` twin runs the same play on the English copy. `navFixtures` is story data for routes that do not exist: "ภาพรวม" / "Overview" (`/overview`), "โปรเจกต์" / "Projects" (`/projects`, badge "4"), "สมาชิก" / "Members" (`/members`), and a group "ตั้งค่า" / "Settings" holding "ทั่วไป" / "General" (`/settings/general`) and "ความปลอดภัย" / "Security" (`/settings/security`), nav names "เมนูหลัก" / "Main" and second row "เมนูย่อย" / "Section". A fixture `linkComponent` records presses. Where a row says a text proof it means `frame-ink-1`. Sizes and looks are those of the named rule.
+Stories are those of `stories-1`. Plays run in Thai; each `En` twin runs the same play on the English copy. `navFixtures` is story data for routes that do not exist: "ภาพรวม" / "Overview" (`/overview`), "โปรเจกต์" / "Projects" (`/projects`, badge "4"), "สมาชิก" / "Members" (`/members`), and a group "ตั้งค่า" / "Settings" holding "ทั่วไป" / "General" (`/settings/general`) and "ความปลอดภัย" / "Security" (`/settings/security`), nav names "เมนูหลัก" / "Main" and second row "เมนูย่อย" / "Section". A fixture `linkComponent` records presses. Where a row says a text proof it means `frame-ink-1`. Sizes and looks are those of the named rule. Rows 76 and 77 take their frames and the checks of `expectActionsUnder` and `expectActionsBeside` from `design.md`, section "Finding F1". Neither helper reads a line count, so row 76's title on one line is read at the designer's sign-off, its PNG paths posted as a Jira comment (`stories-1`).
 
 <!-- prettier-ignore -->
 | # | Given | When | User sees | Data effect | Check |
@@ -268,7 +271,7 @@ Stories are those of `stories-1`. Plays run in Thai; each `En` twin runs the sam
 | 2 | `DefaultEn` | Rendering | "Brand Canvas design team" and its English description | Same as row 1 (`stories-1`) | `DefaultEn` play |
 | 3 | `TitleOnly` | Rendering | The title alone | No empty `p` under the root: the title block has one child (`page-header-slots-1`) | `TitleOnly` play |
 | 4 | `WithActions` at 1280 | Rendering | The action button in position at the row's end edge, the title at the start edge | Button `right` equals the root's `right`, title `left` equals the root's `left`, within 0.5 (`header-stack-1`) | `WithActions` play |
-| 5 | `Narrow` with an action, 360 px | Rendering | The action's position is under the title, on the same start edge, and nothing scrolls sideways | Button `top` at or below the title block's `bottom`; the two `left` values equal within 0.5; root `scrollWidth` equals `clientWidth` (`header-stack-1`) | `Narrow` play |
+| 5 | `Narrow` with an action, 360 px | Rendering | The action's position is under the title, on the same start edge, and nothing scrolls sideways | Button `top` at or below the title block's `bottom`; the two `left` values equal within 0.5; the button's `top` minus the last child of the title block's `bottom` equals `--ds-space-inset-md` within 0.5; root `scrollWidth` equals `clientWidth` (`header-stack-1`) | `Narrow` play, through `expectStacked` |
 | 6 | `WithMeta` | Rendering | "ข้อมูลตัวอย่าง" as a label under the description | The `meta` node follows the description in DOM order (`page-header-slots-1`) | `WithMeta` play |
 | 7 | `LongTitle`, `fixtures.longThai` and a title of stacked marks, 360 px | Rendering | The title wraps; no line's marks overlap the line above | The text proof for the page header title passes, with `expectFrameCutsNoInk(el, frame)` for the frame clip, `frame` the `.ds-page-header` (`frame-ink-1`, `header-type-1`, W7) | `LongTitle` play |
 | 8 | `HeadingLevel`, level 4 beside level 1 | Rendering | Two titles at one size | First heading is `h4`; both `font-size` values are equal (`heading-level-1`) | `HeadingLevel` play |
@@ -339,18 +342,20 @@ Stories are those of `stories-1`. Plays run in Thai; each `En` twin runs the sam
 | 73 | Workspace `InShell`, `InShellNarrow` | Rendering | Top menu, side menu and the reference screen in position in one page; at 360 px both menus as icon buttons and the table in its narrow form; beside the wide Sidebar the table turns where `nav-narrow-1` says | `WorkspaceScreen` itself holds no landmark; `getByRole("main")` is the story's; one `h1`; under neutral `.ds-table__frame` `clientWidth` and the table's form at containers 768, 769 and 770 match W4 (`reference-adopt-1`, `nav-narrow-1`) | `InShell`, `InShellNarrow` plays |
 | 74 | Slice F's copy and docs | `check-i18n` and `messages.test.ts` run | Nothing | Every key of "Copy" has Thai and English; no middot and no em dash; `DESIGN.md` section 12 and `coverage.md` name the four parts | `check-i18n`, `messages.test.ts`, `check-catalog` |
 | 75 | Each slice's PR | `pnpm lint && pnpm typecheck && pnpm test && pnpm build` runs | Nothing | All four pass, real output in the PR | CI and the G3 gate |
+| 76 | `ManyActions`, `ManyActionsEn`, seven frames at containers 479, 480, 520 and 640 | Rendering | At 480 three and four actions in position under the title block, on the same start edge, the title on one line; one action, at both lengths, beside it at the end edge; at 479 one action under; two actions under at 520 and beside at 640 | Under: `expectActionsUnder`. Beside: `expectActionsBeside`. The floor reads `--ds-type-display-md-font-size` (`header-stack-1`) | `ManyActions`, `ManyActionsEn` plays |
+| 77 | `ManyActions`, `ManyActionsEn`, six frames at containers 479, 480 and 520 | Rendering | At 480 two, three and four actions in position under the title block, on the same start edge; one action beside it at the end edge; at 479 one action under; two actions beside at 520 | As row 76 on `.ds-section-header`, the floor reading `--ds-size-panel-min` (`header-stack-1`) | `ManyActions`, `ManyActionsEn` plays of `SectionHeader.stories.tsx`, on the component slice B builds. `design.md` specifies this play and has not run it: its forms were measured on injected markup, so these plays are the proof |
 
 ## Rows per PR
 
-- PR 189: rows 1-12, 75
+- PR 189: rows 1-12, 75-76
 
-The main session adds one line per PR once it exists, in the form `qa-scope-1` reads (`scripts/ovl/result-recorder.mjs`), with a changelog line. The plan is six PRs, one deliverable each, in this order. A and B can run beside C. D needs C, E needs D, F needs all of them. Row 75 belongs to every PR.
+The main session adds one line per PR once it exists, in the form `qa-scope-1` reads (`scripts/ovl/result-recorder.mjs`), with a changelog line. The plan is six PRs, one deliverable each, in this order. A and B can run beside C. D needs C, E needs D, F needs all of them. Row 75 belongs to every PR. Row 76 is in PR 189, slice A. Row 77 is in slice B's PR, which has no number yet, so no list line holds it until the main session adds that PR's line.
 
 <!-- prettier-ignore -->
 | Slice | Deliverable | Rows | Changed lines, estimate |
 | --- | --- | --- | --- |
-| A | Page header in the catalog, used by the three example screens, with `headingLevel` on the workspace screen | 1 to 12 | 350 |
-| B | Section header in the catalog, used by the reference screen | 13 to 22 | 300 |
+| A | Page header in the catalog, used by the three example screens, with `headingLevel` on the workspace screen | 1 to 12, 76 | 350 |
+| B | Section header in the catalog, used by the reference screen | 13 to 22, 77 | 300 |
 | C | Top navigation in the catalog, with the matcher, `ds-nav-item`, the token changes and the pairs | 23 to 41 | 400 |
 | D | Sidebar navigation in the catalog, with groups, nested items and the drawer | 42 to 56 | 400 |
 | E | The rail state of the Sidebar | 57 to 63 | 200 |
@@ -405,6 +410,7 @@ G2 passed under delegation (ORV-225 comment 10532) on the designer's answers in 
 - `.claude/rules/design-system.md`, `.claude/rules/testing.md`.
 - ORV-161 (the screen stays landmark-free), ORV-194 (rows 7, 12, 13, `lines-clear-1`).
 - `docs/specs/ORV-225/design.md` and G2, ORV-225 comment 10532 (the comment taken from this task's facts; Jira itself not read in this role).
+- Sign-off ORV-225-signoff-1, finding F1, on head 787ee7f, the source of `design.md` version 2 and of `header-stack-1`'s floor.
 - ORV-222 PR 186 (the helper `expectFrameCutsNoInk`, which `frame-ink-1` calls). It merges before any slice of this issue is built.
 - ORV-137 comment 10247 (benchmark table, as read through `.claude/rules/design-system.md`; Jira itself not read in this role).
 
@@ -473,8 +479,15 @@ W9, `sidebar-memory-1`: `maxAge` of `orv-locale`, `apps/web/i18n/actions.ts` lin
 node -e 'console.log(60*60*24*365)'
 ```
 
+W10, `header-stack-1`: `--ds-type-display-md-font-size` (32), `--ds-space-inset-md` (16), `--ds-size-panel-min` (240), `--ds-size-panel-default` (320), and the widths `design.md` measured: `longAction` Thai 162.1 and English 157.9, the live wrapper 206.8, and the edges of two actions at 536.2 Thai and 556.6 English, each the actions' width plus 304. Expected four lines, one decimal place on the measured widths. `288 304 256`: the Page header floor, then the room each header's floor and gap take beside the actions. `301.9 17.2 176 144`: what `longAction` leaves the text at 480, the live wrapper's margin at 480, then the widest and narrowest `longAction` that holds the floor between 288 and 320. `true true true`: `longAction` in both languages and the live wrapper sit beside at 480. `232.2 252.6 false false true true false false true true`: two actions' width, Thai then English, and whether they sit beside on Page header at 520 and 640, then on Section header at 480 and 520.
+
+```bash
+node -e 'const size=32,gap=16,min=240,def=320,c=480,th=162.1,en=157.9,live=206.8,two=[536.2-304,556.6-304];const page=9*size,f=n=>n.toFixed(1),fits=(w,floor,x)=>w+floor+gap<=x;console.log(page,page+gap,min+gap);console.log(f(c-gap-th),f(c-gap-min-live),c-gap-page,c-gap-def);console.log(fits(th,page,c),fits(en,page,c),fits(live,min,c));console.log(two.map(f).join(" "),[[page,520],[page,640],[min,480],[min,520]].flatMap(([floor,x])=>two.map(w=>fits(w,floor,x))).join(" "))'
+```
+
 ## Changelog
 
 - 1: first version, from K-0204 to K-0236 and the repo on this branch.
 - 1.1: takes in `design.md` amendments 1 to 12 and its answers to open questions 3, 6 and 9, with question 9 on the designer's proposal (G2, ORV-225 comment 10532). Rules changed: `nav-focus-1`, `nav-narrow-1`, `top-nav-1`, `top-skip-1`, `sidebar-rail-1`, `shell-ia-1`, `section-header-1`, `header-type-1`, `header-stack-1`. Rows 12, 22, 41, 56 and 63 post the sign-off's PNG paths as a Jira comment (`stories-1`). `frame-ink-1` and rows 7, 18, 30, 35 and 49 name `expectFrameCutsNoInk(el, frame)` for the frame clip, because `expectLabelInkWhole` reads only its own clone, and Depends on gains PR 186. Rows 29, 38, 39, 48, 59, 60 and 73 and W4 and W7 follow the amendments, and the front matter points to `design.md`. No row number changes, so "Rows per PR" stands. Downstream to review: `design.md` (it still reads "Waits for a decision" on question 9), the slice A to F builder envelopes, the designer's sign-off list and the qa envelopes.
 - 1.2: by the main session. Rows per PR gains the line for PR 189, slice A. No requirement changes.
+- v1.3: takes in `design.md` version 2 at c1b90a7, amendments 13 to 21, its answer to finding F1 of ORV-225-signoff-1 on head 787ee7f. Amendment 13: `header-stack-1` gains the title block's floor and the move under it. 14: `page-header-slots-1` points to it. 15: row 5 gains the gap check, in its Data effect cell, where the quoted text sits, and its Check cell names `expectStacked`; row 15 follows through "As rows 4 and 5". 16 and 17: new rows 76 and 77, with a sentence in the Acceptance criteria intro for their frames and helpers. 18: the PR 189 line and slices A and B; row 77 waits for slice B's PR. 19: `stories-1` gains `ManyActions` in both lists. 20: a fixtures row in "Contract changes and impact". 21: a catalog row there. That table also gains the recipe row of the design's impact list. New W10, one line in Depends on, and the front matter's `design:` line. Every other row number stands, and "Rows that render nothing" stands, because rows 76 and 77 render. Downstream to review: `design.md` (front matter `spec:`, and its impact row naming amendments 13 to 19), PR 189's rework envelope, slice B's builder envelope, the designer's sign-off list, the qa envelopes, `page-header.yaml`, `fixtures.ts`, `PageHeader.stories.tsx`, `recipes.css`.
