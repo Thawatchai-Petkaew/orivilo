@@ -61,7 +61,10 @@ export interface DialogContentProps extends Omit<
   variant?: DialogVariant | undefined;
   /** `sm` for a confirmation, `md` for a short form. Longer tasks take a Sheet or a page. */
   size?: DialogSize | undefined;
-  /** The task inside is running: Escape, the scrim and the close control do nothing; `aria-busy`. */
+  /**
+   * The task inside is running: Escape, the scrim and the close control do nothing; `aria-busy`
+   * (a caller's own `aria-busy` wins, as ConfirmDialog's status line needs).
+   */
   pending?: boolean | undefined;
   /** What went wrong and how to fix it; announced, shown above the actions. */
   error?: ReactNode | undefined;
@@ -97,6 +100,7 @@ export function DialogContent({
   onEscapeKeyDown,
   onPointerDownOutside,
   onInteractOutside,
+  "aria-busy": ariaBusy,
   ...rest
 }: DialogContentProps) {
   const m = useMessages();
@@ -110,7 +114,7 @@ export function DialogContent({
           className={cx("ds-dialog", size === "md" ? "max-w-lg" : "max-w-sm", className)}
           data-variant={variant}
           data-size={size}
-          aria-busy={pending || undefined}
+          aria-busy={ariaBusy ?? (pending || undefined)}
           onEscapeKeyDown={(event) => {
             if (pending) event.preventDefault();
             onEscapeKeyDown?.(event);

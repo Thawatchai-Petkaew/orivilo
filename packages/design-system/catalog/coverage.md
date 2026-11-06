@@ -64,7 +64,7 @@ Legend: `none` not started, `planned` entry exists, no code, `draft` code and st
 | Metric                  | none   |                            |
 | Filters                 | none   |                            |
 | Settings layout         | none   |                            |
-| ConfirmDialog (pattern) | none   |                            |
+| ConfirmDialog (pattern) | draft  | application-confirm-dialog |
 
 ## Application, canvas set (ADR 0004)
 

@@ -1093,6 +1093,59 @@
   top: var(--ds-space-inset-md);
   inset-inline-end: var(--ds-space-inset-md);
 }
+/* Confirm dialog (ORV-226): the panel is its own scroller, so the actions stay in reach. */
+.ds-confirm {
+  container-type: inline-size;
+  overflow: hidden auto;
+  overscroll-behavior: contain;
+  /* The footer owns the foot padding: a sticky box is held inside its scroller's padding. */
+  padding-block-end: 0;
+}
+/* One start edge: the glyph takes its own row, beside the close control, and the title the full width. */
+.ds-confirm[data-variant="destructive"] .ds-dialog__header {
+  flex-direction: column;
+  gap: var(--ds-space-stack-sm);
+  padding-inline-end: 0;
+}
+.ds-confirm[data-variant="destructive"] .ds-dialog__glyph {
+  margin-block-start: calc(
+    (var(--cmp-button-height-sm) - var(--ds-size-icon-md)) / 2 + var(--ds-space-inset-md) -
+      var(--cmp-dialog-padding)
+  );
+}
+/* The actions stick to the panel's foot. The box takes the gap above them and the padding below, so
+ * at rest nothing moves, and scrolled text passes under it. */
+.ds-confirm .ds-dialog__footer {
+  position: sticky;
+  inset-block-end: 0;
+  margin-block-start: calc(-1 * var(--cmp-dialog-gap));
+  padding-block: var(--cmp-dialog-gap) var(--cmp-dialog-padding);
+  background: var(--cmp-dialog-bg);
+}
+/* The shape follows the panel, not the viewport. A caller's long label wraps inside the panel; it
+ * never leaves it. */
+.ds-confirm .ds-dialog__footer > .ds-button {
+  flex: 0 0 auto;
+  min-width: 0;
+  max-width: 100%;
+  padding-block: var(--ds-space-inline-sm);
+  white-space: normal;
+}
+/* The confirm holds the room its spinner takes, so a press moves neither button and changes no row. */
+.ds-confirm .ds-dialog__footer > .ds-button + .ds-button:not([data-loading]) {
+  max-width: calc(100% - var(--cmp-button-icon-size-md) - var(--cmp-button-gap));
+  margin-inline-start: calc(var(--cmp-button-icon-size-md) + var(--cmp-button-gap));
+}
+/* Below its cap the panel always stacks, so no label, language or spinner can change the shape. */
+@container (max-width: 333px) {
+  .ds-confirm .ds-dialog__footer > .ds-button {
+    flex: 1 0 100%;
+  }
+  .ds-confirm .ds-dialog__footer > .ds-button + .ds-button:not([data-loading]) {
+    max-width: 100%;
+    margin-inline-start: 0;
+  }
+}
 @keyframes ds-fade-in {
   from {
     opacity: 0;

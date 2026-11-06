@@ -41,6 +41,60 @@ export const featuredIconFixtures = {
   },
 } as const;
 
+/**
+ * ConfirmDialog story copy (ORV-226): MOCK. Nothing here is real: no project is deleted, no model
+ * or rule proposed the three changes, the version history the accept copy mentions does not exist,
+ * and the failures are story content. The words are the caller's, not catalog keys.
+ */
+export const confirmFixtures = {
+  th: {
+    delete: {
+      title: "ลบโปรเจกต์นี้ถาวร",
+      impact: "สมาชิก 4 คนจะเข้าถึงไม่ได้อีก และลิงก์ที่แชร์ไปจะใช้ไม่ได้ การลบย้อนกลับไม่ได้",
+      confirm: "ลบโปรเจกต์",
+      cancel: "เก็บไว้",
+      pending: "กำลังลบโปรเจกต์",
+      failed: "ลบโปรเจกต์ไม่สำเร็จ เพราะการเชื่อมต่อขาดหาย ตรวจการเชื่อมต่อแล้วลองอีกครั้ง",
+    },
+    accept: {
+      title: "ยอมรับการเปลี่ยนแปลงที่เสนอ 3 รายการ",
+      impact: "สีหลัก ฟอนต์หัวข้อ และระยะห่างจะเปลี่ยนตามที่เสนอ ย้อนกลับได้จากประวัติเวอร์ชัน",
+      confirm: "ยอมรับการเปลี่ยนแปลง",
+      cancel: "คงแบบเดิมไว้",
+      pending: "กำลังยอมรับการเปลี่ยนแปลง",
+      failed:
+        "ยอมรับการเปลี่ยนแปลงไม่สำเร็จ เพราะการเชื่อมต่อขาดหาย ตรวจการเชื่อมต่อแล้วลองอีกครั้ง",
+    },
+    rows: ["แบรนด์หลัก", "หน้าแลนดิ้ง", "คู่มือสี"],
+    rowTrigger: "ลบ {name}",
+    opener: "ลบจากเมนู",
+  },
+  en: {
+    delete: {
+      title: "Delete this project permanently",
+      impact: "4 members lose access and shared links stop working. This cannot be undone",
+      confirm: "Delete project",
+      cancel: "Keep project",
+      pending: "Deleting project",
+      failed:
+        "Could not delete the project because the connection dropped. Check your connection and try again",
+    },
+    accept: {
+      title: "Accept 3 proposed changes",
+      impact:
+        "The primary colour, heading font and spacing change as proposed. You can undo this from version history",
+      confirm: "Accept changes",
+      cancel: "Keep current version",
+      pending: "Accepting changes",
+      failed:
+        "Could not accept the changes because the connection dropped. Check your connection and try again",
+    },
+    rows: ["Main brand", "Landing page", "Colour guide"],
+    rowTrigger: "Delete {name}",
+    opener: "Delete from menu",
+  },
+} as const;
+
 /** Collapsible story copy (ORV-203): the caller's label and content, not catalog keys. */
 export const collapsibleFixtures = {
   trigger: "รายละเอียดโปรเจกต์",

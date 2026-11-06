@@ -1,4 +1,4 @@
-# DESIGN.md: ORIVILO (agent-readable, v1.60)
+# DESIGN.md: ORIVILO (agent-readable, v1.61)
 
 Read this before any UI work: a Studio screen, a shared component, a story, a recipe, a preview, or a review of generated output. It is the design contract the `frontend-design` skill critiques against and the **design gate** (§11) that blocks G3. Rules that enforce it live in `.claude/rules/design-system.md`; the component registry lives in `packages/design-system/catalog/`.
 
@@ -169,16 +169,16 @@ The three files compile to `generated.css` and the profiles to `src/profiles/gen
 
 Order of evidence: requirement and data → catalog (`packages/design-system/catalog/`) → the entry's contract and example → the active profile → shadcn, Radix, Tailwind docs last.
 
-| Task                                                      | Start with                          | Then check                                  |
-| --------------------------------------------------------- | ----------------------------------- | ------------------------------------------- |
-| Pick one of a short list where all options should be seen | RadioGroup                          | Count and space; ≥ 6 options → Select       |
-| Pick one of a long list, needs search                     | Combobox                            | Async data, empty, keyboard                 |
-| On/off setting that applies immediately                   | Switch                              | Save feedback and error recovery            |
-| On/off that applies on submit                             | Checkbox                            |                                             |
-| Confirm a destructive action                              | ConfirmDialog pattern (ours)        | Impact text, pending, failure               |
-| Secondary task without leaving the page                   | Dialog (small) or Sheet (long form) | Portal receives the profile; focus returns  |
-| Compare rows of the same shape                            | Table                               | Long Thai names, missing cells, small width |
-| One primary action per view                               | Button `primary`                    | Everything else `secondary` or `ghost`      |
+| Task                                                        | Start with                          | Then check                                  |
+| ----------------------------------------------------------- | ----------------------------------- | ------------------------------------------- |
+| Pick one of a short list where all options should be seen   | RadioGroup                          | Count and space; ≥ 6 options → Select       |
+| Pick one of a long list, needs search                       | Combobox                            | Async data, empty, keyboard                 |
+| On/off setting that applies immediately                     | Switch                              | Save feedback and error recovery            |
+| On/off that applies on submit                               | Checkbox                            |                                             |
+| Confirm a destructive action, or accepting proposed changes | ConfirmDialog pattern (ours)        | Impact text, pending, failure               |
+| Secondary task without leaving the page                     | Dialog (small) or Sheet (long form) | Portal receives the profile; focus returns  |
+| Compare rows of the same shape                              | Table                               | Long Thai names, missing cells, small width |
+| One primary action per view                                 | Button `primary`                    | Everything else `secondary` or `ghost`      |
 
 A pattern that already exists comes before composing new base components, but only when the task matches, not when the name is close. If nothing fits, propose an extension (variant, recipe slot, or pattern) in the PR with scope and reason; do not fork a component.
 
@@ -344,3 +344,5 @@ Change log: v1.58 (2026-11-01) ORV-204 rows 1 to 3, the Select listbox polish (o
 Change log: v1.59 (2026-11-01) ORV-199: the semantic token `type.field.sm` (14 / 1.6, the family, size, weight and spacing of `type.body.sm`) is new, and `input.type.sm` reads it instead of `type.body.sm`. At 1.7 the floored half-leading put the Thai body of a sm field value up to 1.86 px above the box centre at some box positions, outside the ORV-111 bound; at 1.6 it reads -1.17 to -0.23 (Thai body) and 0.33 to 1.27 (English) over every position. Textarea sm keeps `type.body.sm` through its own recipe rule (ORV-192 row 18). Impact: every sm Input, Input group, Password input, Select trigger and the Direction studio sample field render their value line box at 22.4 px instead of 23.8 px, and the value (and an Input group slot text and icon row) drops 0.7 px, one device pixel at most; heights stay 32 px (`size.control.sm`). Textarea sm, md and lg and every md and lg field do not change. No contrast pair, component API or profile file changes.
 
 Change log: v1.60 (2026-11-06) ORV-216: §2 and §8 name the set where `brand.signature` and `action.primary` share one violet by its id, neutral, the base set, since ORV-52 added a brand profile with the id `orivilo`. Wording only: no token, value, contrast pair, component or profile file changes.
+
+Change log: v1.61 (2026-11-06) ORV-226: §6 widens the ConfirmDialog task to "Confirm a destructive action, or accepting proposed changes"; the pattern is built (catalog entry `application-confirm-dialog`, draft). No token, value, contrast pair or profile file changes.

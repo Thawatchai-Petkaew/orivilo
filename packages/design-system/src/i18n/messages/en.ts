@@ -13,6 +13,8 @@ export const en: Messages = {
   },
   dialog: {
     close: "Close",
+    confirmFailed: "This did not go through. Try again, or close this and come back later",
+    impactMissing: "No details on what this affects. Check before you confirm",
   },
   select: {
     placeholder: "Choose",

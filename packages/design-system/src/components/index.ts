@@ -22,6 +22,12 @@ export {
   type CollapsibleTriggerProps,
 } from "./collapsible/Collapsible";
 export {
+  ConfirmDialog,
+  type ConfirmCloseOutcome,
+  type ConfirmDialogProps,
+  type ConfirmResult,
+} from "./confirm-dialog/ConfirmDialog";
+export {
   Dialog,
   DialogClose,
   DialogContent,
