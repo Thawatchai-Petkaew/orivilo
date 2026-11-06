@@ -1,5 +1,6 @@
 import type { ChatBasis, ChatReply, ChatRequest } from "./canvas-chat/CanvasChat";
 import type { EvidenceItem } from "./evidence-span/span";
+import type { SelectOption } from "./select/Select";
 import type { TaskJob } from "./task-bar/TaskBar";
 
 /**
@@ -121,6 +122,31 @@ export const collapsibleFixtures = {
 } as const;
 
 /**
+ * RadioGroup story content (ORV-221): the Thai column plays, the `En` keys feed the `InEnglish`
+ * story. Copy is the caller's, not a catalog key.
+ */
+export const radioFixtures = {
+  label: "ใครเข้าเวิร์กสเปซนี้ได้",
+  help: "มีผลกับทุกโปรเจกต์ในเวิร์กสเปซนี้",
+  members: "เฉพาะสมาชิก",
+  membersHelp: "คนที่ทีมเชิญเท่านั้น",
+  organization: "ทุกคนในองค์กร",
+  organizationHelp: "ทุกคนที่ใช้อีเมลขององค์กร",
+  link: "ทุกคนที่มีลิงก์",
+  linkHelp: "ใครก็ตามที่ได้รับลิงก์นี้",
+  error: "เลือกว่าใครเข้าเวิร์กสเปซนี้ได้ก่อนบันทึก",
+  labelEn: "Who can open this workspace",
+  helpEn: "Applies to every project in this workspace",
+  membersEn: "Members only",
+  membersHelpEn: "Only people the team invited",
+  organizationEn: "Everyone in the organization",
+  organizationHelpEn: "Anyone with an organization email",
+  linkEn: "Anyone with the link",
+  linkHelpEn: "Anyone who receives this link",
+  errorEn: "Choose who can open this workspace before you save",
+} as const;
+
+/**
  * Avatar story content (ORV-224): MOCK people. The names are invented and no real person's photo
  * is used. `picture` is a drawn stand-in (a head and shoulders of two flat shapes) as an inline
  * SVG `data:` URI; its colours are picture content, not style values. `brokenPicture` is a PNG
@@ -236,6 +262,43 @@ export const fixtureOptions: readonly FixtureOption[] = [
   { value: "long", label: fixtures.longThai },
   { value: "archived", label: "เก็บถาวรแล้ว", disabled: true },
 ];
+
+/**
+ * Combobox story content (ORV-228): the caller's labels and options, not catalog keys. Mock: the
+ * options are fixtures, and no server or search source stands behind them. `options` and
+ * `optionsEn` list the same seven values in the same order (stacked Thai marks on `pinto` and
+ * `logo`, a disabled `closed`, and `long` with no spaces); `long` is 40 options to scroll.
+ */
+export const comboboxFixtures = {
+  label: "หัวข้อ",
+  labelEn: "Topic",
+  multiLabel: "หัวข้อที่สนใจ",
+  multiLabelEn: "Topics",
+  error: "เลือกหัวข้อที่งานนี้สังกัด",
+  errorEn: "Choose the topic this work belongs to",
+  options: [
+    { value: "save", label: fixtures.thai },
+    { value: "latin", label: fixtures.latin },
+    { value: "closed", label: "ปิดรับแล้ว", disabled: true },
+    { value: "canvas", label: fixtures.mixed },
+    { value: "pinto", label: fixtures.thaiMarks },
+    { value: "logo", label: fixtures.thaiMarks2 },
+    { value: "long", label: fixtures.longThai },
+  ] satisfies readonly SelectOption[],
+  optionsEn: [
+    { value: "save", label: "Save changes" },
+    { value: "latin", label: "Brand guide" },
+    { value: "closed", label: "Closed", disabled: true },
+    { value: "canvas", label: "The team's Brand Canvas project" },
+    { value: "pinto", label: "Pinto" },
+    { value: "logo", label: "Logo" },
+    { value: "long", label: fixtures.longLatin },
+  ] satisfies readonly SelectOption[],
+  long: Array.from({ length: 40 }, (_, i): SelectOption => ({
+    value: `item-${i + 1}`,
+    label: `ตัวเลือกที่ ${i + 1}`,
+  })),
+} as const;
 
 /**
  * Task bar jobs (ORV-100): mock data for stories, one per state. A failed job's reason says what

@@ -100,6 +100,19 @@ describe("the shipped profiles", () => {
         }
       });
 
+      it("leaves shape.round.radius at the full radius, so a radio stays round (ORV-221)", () => {
+        expect(p.overrides).not.toContain("shape.round.radius");
+        const under = p.tokens.get("semantic", "shape.round.radius");
+        expect(under).toBeDefined();
+        if (!under) return;
+        for (const mode of MODES) {
+          const full = tokens.get("semantic", "shape.round.radius");
+          expect(full && p.tokens.resolve(under, mode).value).toEqual(
+            full && tokens.resolve(full, mode).value,
+          );
+        }
+      });
+
       it("changes the look: action, canvas, and control radius differ from neutral or from each other", () => {
         const other = profiles.find((o) => o.id !== p.id);
         const changed = ["action.primary", "surface.canvas", "shape.control.radius"].filter(

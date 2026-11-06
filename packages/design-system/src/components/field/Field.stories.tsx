@@ -1,8 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, within } from "storybook/test";
-import { fixtures, fixtureOptions } from "../fixtures";
+import { fixtures, fixtureOptions, radioFixtures } from "../fixtures";
 import { Input } from "../input/Input";
 import { Matrix, Narrow } from "../matrix";
+import { RadioGroup, RadioGroupItem } from "../radio-group/RadioGroup";
 import { Select } from "../select/Select";
 import { Textarea } from "../textarea/Textarea";
 import { expectTitleOverText } from "../../testing/visual-asserts";
@@ -90,9 +91,40 @@ export const EveryControl: Story = {
     await expect(canvas.getByLabelText("สรุปงาน")).toHaveAccessibleDescription(
       "สั้นพอที่จะอ่านจบในหนึ่งนาที",
     );
+    // Without `group` the label stays a <label> whose `for` is the control's id (field-group-1).
+    const label = canvasElement.querySelector(".ds-field__label") as HTMLLabelElement;
+    await expect(label.tagName).toBe("LABEL");
+    await expect(label.htmlFor).toBe(canvas.getByLabelText("ชื่อโปรเจกต์").id);
     const trigger = canvas.getByRole("combobox", { name: "โมดูล" });
     await expect(trigger).toHaveAttribute("aria-invalid", "true");
     await expect(trigger).toHaveAccessibleDescription("เลือกโมดูลที่งานนี้สังกัด");
+  },
+};
+
+/**
+ * `group`: the control is a RadioGroup, a `div` that `for` cannot reach, so the label is a `span`
+ * with an id and the group names itself with `aria-labelledby` (field-group-1).
+ */
+export const GroupControl: Story = {
+  args: {
+    group: true,
+    label: radioFixtures.label,
+    description: radioFixtures.help,
+    children: (
+      <RadioGroup defaultValue="members">
+        <RadioGroupItem value="members" label={radioFixtures.members} />
+        <RadioGroupItem value="organization" label={radioFixtures.organization} />
+      </RadioGroup>
+    ),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const label = canvasElement.querySelector(".ds-field__label") as HTMLElement;
+    await expect(label.tagName).toBe("SPAN");
+    await expect(label.hasAttribute("for")).toBe(false);
+    const group = canvas.getByRole("radiogroup", { name: radioFixtures.label });
+    await expect(group).toHaveAttribute("aria-labelledby", label.id);
+    await expect(group).toHaveAccessibleDescription(radioFixtures.help);
   },
 };
 
