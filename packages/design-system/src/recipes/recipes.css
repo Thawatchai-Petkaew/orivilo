@@ -5424,3 +5424,86 @@ button.ds-tag__main {
   font-weight: var(--ds-type-body-sm-font-weight);
   letter-spacing: var(--ds-type-body-sm-letter-spacing);
 }
+
+/* Page header (ORV-225, page-header-slots-1, header-type-1, header-stack-1): a title, a line of
+ * description, a row of labels and the page's actions. The root is a size container named
+ * ds-page-header, because the parts nest in each other and in the screen's own container; a
+ * container cannot be styled by its own query, so the row is the child that changes. The title
+ * takes the size, weight and family of type.display.md, the 1.7 line of type.heading.sm so wrapped
+ * Thai lines clear (ORV-194) and 8 px of top padding, where the 1.7 line already lowers the ink. */
+
+.ds-page-header {
+  container: ds-page-header / inline-size;
+  inline-size: 100%;
+  min-inline-size: 0;
+}
+/* From 480 up the title block keeps nine title sizes (288 px under neutral) and the actions wrap
+ * under it, on the same start edge, when they would leave it less (header-stack-1). The basis sits
+ * here, above the @container block, which stays last: at 479 and below its flex: none must win,
+ * because in a column the basis would be a height. */
+.ds-page-header__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--ds-space-inset-md);
+}
+.ds-page-header__text {
+  display: flex;
+  flex: 1 1 calc(9 * var(--ds-type-display-md-font-size));
+  flex-direction: column;
+  gap: var(--ds-space-stack-sm);
+  min-inline-size: 0;
+}
+.ds-page-header__title {
+  margin: 0;
+  padding-block-start: var(--ds-space-stack-sm);
+  color: var(--ds-text-primary);
+  font-family: var(--ds-type-display-md-font-family);
+  font-size: var(--ds-type-display-md-font-size);
+  line-height: var(--ds-type-heading-sm-line-height);
+  font-weight: var(--ds-type-display-md-font-weight);
+  letter-spacing: var(--ds-type-display-md-letter-spacing);
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+.ds-page-header__description {
+  margin: 0;
+  max-inline-size: 65ch;
+  color: var(--ds-text-secondary);
+  font-family: var(--ds-type-body-md-font-family);
+  font-size: var(--ds-type-body-md-font-size);
+  line-height: var(--ds-type-body-md-line-height);
+  font-weight: var(--ds-type-body-md-font-weight);
+  letter-spacing: var(--ds-type-body-md-letter-spacing);
+}
+.ds-page-header__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ds-space-inline-md);
+  margin: 0;
+  color: var(--ds-text-secondary);
+  font-family: var(--ds-type-body-sm-font-family);
+  font-size: var(--ds-type-body-sm-font-size);
+  line-height: var(--ds-type-body-sm-line-height);
+  font-weight: var(--ds-type-body-sm-font-weight);
+}
+.ds-page-header__actions {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ds-space-inline-md);
+  max-inline-size: 100%;
+}
+@container ds-page-header (max-width: 479px) {
+  .ds-page-header__row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .ds-page-header__text {
+    flex: none;
+    inline-size: 100%;
+  }
+}

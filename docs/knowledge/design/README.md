@@ -92,6 +92,39 @@ Facts from outside design systems and standards that inform ORIVILO's own design
 | [[K-0201-wcag-2-2-use-of-color-and-non-text-contrast-for-a-dot]]               | WCAG 2.2 SC 1.4.1 and 1.4.11 as they bear on a status dot              |
 | [[K-0202-initials-for-thai-silence-and-charat]]                                | Do the sources say how to make Thai initials; what getInitials does    |
 | [[K-0203-synthesis-avatar-benchmark]]                                          | Synthesis of K-0185 to K-0202: Avatar benchmark table                  |
+| [[K-0204-untitled-ui-sidebar-five-variants-and-item-shape]]                    | Untitled sidebars: 5 variants; widths 280, 280, 68, 276, 276 px        |
+| [[K-0205-untitled-ui-sidebar-nested-details-and-aria-current]]                 | Untitled NavList: details nesting, aria-current, aside with no nav     |
+| [[K-0206-untitled-ui-slim-rail-nav-button-and-hover-panel]]                    | Untitled Slim: NavButton has no aria-current, panel on hover only      |
+| [[K-0207-untitled-ui-mobile-navigation-header-below-lg]]                       | Untitled below lg: header bar and modal; Slim list has no activeUrl    |
+| [[K-0208-untitled-ui-header-navigation-variants-and-active-match]]             | Untitled header: Simple, Dual-tier; active by exact or prefix match    |
+| [[K-0209-untitled-ui-header-navigation-landmarks-and-drawer]]                  | Untitled header: unnamed nav, no aria-current, drawer below lg         |
+| [[K-0210-untitled-ui-page-header-six-variants-no-props-h1]]                    | Untitled Page headers: 6 compositions, no props, real h1               |
+| [[K-0211-untitled-ui-section-header-parts-h2-and-section-label]]               | Untitled SectionHeader: 5 parts, 6 examples (own count), h2            |
+| [[K-0212-untitled-ui-breadcrumbs-types-collapse-and-current]]                  | Untitled Breadcrumbs: maxVisibleItems 4, last item aria-current        |
+| [[K-0213-shadcn-ui-sidebar-parts-variants-and-collapsible-modes]]              | shadcn Sidebar: sidebar, floating, inset; offcanvas, icon or none      |
+| [[K-0214-shadcn-ui-sidebar-state-cookie-shortcut-and-widths]]                  | shadcn Sidebar: 16, 18, 3rem; cookie 7 days; Cmd/Ctrl+b; 768 px        |
+| [[K-0215-shadcn-ui-sidebar-menu-button-sizes-and-data-active]]                 | shadcn MenuButton: sm, default, lg; data-active, no aria-current       |
+| [[K-0216-shadcn-ui-sidebar-source-landmarks-and-collapse-mechanism]]           | shadcn sidebar.tsx: no nav, no aside; offcanvas moves off screen       |
+| [[K-0217-shadcn-ui-sidebar-mobile-sheet-on-radix-dialog]]                      | shadcn mobile sidebar: Sheet on Radix Dialog, sr-only English title    |
+| [[K-0218-shadcn-ui-sidebar-nested-collapsible-and-icon-mode]]                  | shadcn nesting: Collapsible, defaultOpen from isActive, icon hides     |
+| [[K-0219-shadcn-ui-navigation-menu-parts-and-viewport]]                        | shadcn Navigation Menu: viewport prop, data-active, md classes         |
+| [[K-0220-radix-navigation-menu-api-keyboard-and-not-a-menu-role]]              | Radix Navigation Menu: delays 200 and 300, not the menu role           |
+| [[K-0221-radix-navigation-menu-source-aria-and-mouse-only-hover]]              | Radix source: nav named Main, Link sets aria-current, mouse hover      |
+| [[K-0222-shadcn-ui-breadcrumb-current-page-span-role-link]]                    | shadcn Breadcrumb: nav, ol; current page a span with role link         |
+| [[K-0223-shadcn-ui-no-page-header-and-radix-no-sidebar]]                       | shadcn: no page header entry; Radix: no Sidebar primitive found        |
+| [[K-0224-wai-aria-apg-landmark-regions-and-labels]]                            | APG landmarks: unique labels, one main, seven or fewer as a guide      |
+| [[K-0225-html-aria-header-nav-aside-roles-and-h97]]                            | ARIA in HTML: header is banner at top level, aside complementary       |
+| [[K-0226-wai-aria-1-2-aria-current-values-and-one-per-set]]                    | WAI-ARIA 1.2: aria-current values, one element per set                 |
+| [[K-0227-wcag-2-2-location-aria26-and-g128]]                                   | WCAG SC 2.4.8 Location (AAA): G65, G63, G128, ARIA26                   |
+| [[K-0228-wai-aria-apg-breadcrumb-current-page]]                                | APG Breadcrumb: named nav, aria-current optional on a non-link         |
+| [[K-0229-wai-aria-apg-disclosure-navigation-not-menu-role]]                    | APG disclosure navigation: buttons with aria-expanded, no menu role    |
+| [[K-0230-wcag-2-2-heading-order-advisory-not-required]]                        | WCAG 2.2 pages read: heading order is guidance, not a criterion        |
+| [[K-0231-whatwg-heading-levels-and-wai-tutorial-fixed-sections]]               | WHATWG: heading one level deeper at most; WAI: fixed sections          |
+| [[K-0232-wcag-2-2-bypass-blocks-techniques]]                                   | WCAG SC 2.4.1 Bypass Blocks (A): skip link, landmarks, headings        |
+| [[K-0233-wcag-2-2-reflow-and-consistent-navigation]]                           | WCAG Reflow at 320 px (AA); Consistent Navigation (AA)                 |
+| [[K-0234-wcag-2-2-focus-order-and-focus-not-obscured]]                         | WCAG Focus Order (A), Focus Not Obscured (AA): modal, sticky header    |
+| [[K-0235-wcag-2-2-target-size-minimum-for-nav-items]]                          | WCAG SC 2.5.8 (AA): 24 by 24 CSS px targets, with exceptions           |
+| [[K-0236-synthesis-app-navigation-and-headers-benchmark]]                      | Synthesis of K-0204 to K-0235: app navigation and headers, four tables |
 | [[K-0260-untitled-ui-file-uploaders-examples-and-props]]                       | Untitled UI file uploaders: examples, parts, props, sizes, variants    |
 | [[K-0261-untitled-ui-list-progress-bar-and-fill-items]]                        | Untitled UI upload list: progress, complete, item forms                |
 | [[K-0262-untitled-ui-failed-item-try-again-and-delete]]                        | Untitled UI failed item: text, retry, delete                           |

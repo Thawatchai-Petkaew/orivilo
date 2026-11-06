@@ -51,6 +51,7 @@ export {
 export { FileUpload, type FileUploadItem, type FileUploadProps } from "./file-upload/FileUpload";
 export { IMAGE_UPLOAD_LIMITS, type FileUploadLimits } from "./file-upload/limits";
 export { Input, type InputProps } from "./input/Input";
+export { type HeadingLevel, PageHeader, type PageHeaderProps } from "./page-header/PageHeader";
 export {
   RadioGroup,
   RadioGroupItem,

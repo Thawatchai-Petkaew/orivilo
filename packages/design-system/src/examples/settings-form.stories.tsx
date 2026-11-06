@@ -23,10 +23,19 @@ type Story = StoryObj<typeof meta>;
 const primaryButtons = (root: HTMLElement) =>
   root.querySelectorAll('.ds-button[data-variant="primary"]');
 
+/** One page header per screen: its own root, no header element or banner, one level 1 heading (ORV-225 AC 9). */
+async function expectOnePageHeader(root: HTMLElement) {
+  await expect(root.querySelectorAll(".ds-page-header")).toHaveLength(1);
+  await expect(root.querySelector("header")).toBeNull();
+  await expect(within(root).queryByRole("banner")).toBeNull();
+  await expect(within(root).getAllByRole("heading", { level: 1 })).toHaveLength(1);
+}
+
 /** Every control is labelled, the panel is labelled by its tab, and the page has one primary action (AC 2). */
 export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+    await expectOnePageHeader(canvasElement);
     await expect(canvas.getByLabelText(/ชื่อเวิร์กสเปซ/)).toBeInstanceOf(HTMLInputElement);
     await expect(canvas.getByLabelText("ลิงก์")).toBeInstanceOf(HTMLInputElement);
     await expect(canvas.getByLabelText("คำอธิบาย")).toBeInstanceOf(HTMLTextAreaElement);
