@@ -3901,6 +3901,76 @@
   color: var(--cmp-featured-icon-info-fg);
 }
 
+/* Alert (ORV-222) ---------------------------------------------------------------------------- */
+
+.ds-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--cmp-alert-gap);
+  box-sizing: border-box;
+  inline-size: 100%;
+  padding: var(--cmp-alert-padding);
+  border: 1px solid transparent;
+  border-radius: var(--cmp-alert-radius);
+  background: var(--cmp-alert-bg);
+  color: var(--cmp-alert-description);
+  font-family: var(--cmp-alert-body-type-font-family);
+  font-size: var(--cmp-alert-body-type-font-size);
+  line-height: var(--cmp-alert-body-type-line-height);
+  font-weight: var(--cmp-alert-body-type-font-weight);
+  letter-spacing: var(--cmp-alert-body-type-letter-spacing);
+}
+.ds-alert[data-variant="success"] {
+  border-color: var(--cmp-alert-success-edge);
+}
+.ds-alert[data-variant="warning"] {
+  border-color: var(--cmp-alert-warning-edge);
+}
+.ds-alert[data-variant="danger"] {
+  border-color: var(--cmp-alert-danger-edge);
+}
+.ds-alert[data-variant="info"] {
+  border-color: var(--cmp-alert-info-edge);
+}
+.ds-alert__content {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: flex-start;
+  /* title and description are one block, 4 px apart (DESIGN.md section 4) */
+  gap: var(--ds-space-inline-sm);
+  min-inline-size: 0;
+  /* the title's first line centres on the tile and the close; later lines flow under it */
+  padding-block-start: calc(
+    (
+        var(--cmp-featured-icon-size-sm) - var(--cmp-alert-title-type-font-size) *
+          var(--cmp-alert-title-type-line-height)
+      ) /
+      2
+  );
+}
+.ds-alert__title,
+.ds-alert__description {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.ds-alert__title {
+  color: var(--cmp-alert-title);
+  font-family: var(--cmp-alert-title-type-font-family);
+  font-size: var(--cmp-alert-title-type-font-size);
+  line-height: var(--cmp-alert-title-type-line-height);
+  font-weight: var(--cmp-alert-title-type-font-weight);
+  letter-spacing: var(--cmp-alert-title-type-letter-spacing);
+}
+/* with the content gap of 4, an action keeps 8 px above it */
+.ds-alert__action {
+  display: flex;
+  margin-block-start: var(--ds-space-inline-sm);
+}
+.ds-alert__close {
+  flex: none;
+}
+
 /* Progress (E4-5) ---------------------------------------------------------------------------- */
 
 .ds-progress {
