@@ -4,7 +4,7 @@ date: 2026-11-06
 issue: [ORV-217]
 what_happened: The main session edited `docs/specs/ORV-105/spec.md` AC 11 itself in commit `3584ead`, a file in no ORV-217 envelope's `write_set`, so merge-check refused the first merge of PR 182 and a verify-only product task ran after qa to bring the file into the `write_set` union.
 cause: The POC mode bookkeeping bullet ("once before merge, or dropped") names no role and no `write_set`, and the spec revision envelope whose objective asked to record the ORV-105 AC 11 change listed only the ORV-217 spec, so the main session applied the cross-document line itself.
-rule: In POC mode a cross-reference or bookkeeping edit runs in a role envelope whose `write_set` names every file it edits, a revision envelope whose objective changes or records a line in another document lists that document in its `write_set`, and the main session edits only the files merge-check allows it.
+rule: In POC mode a cross-reference or bookkeeping edit runs in a role envelope whose `write_set` names every file it edits, a revision envelope whose objective changes another document's line, or records an impact on another document, lists that document in its `write_set`, and the main session edits only the files merge-check allows it.
 ---
 
 ## What happened
@@ -30,8 +30,9 @@ In `.claude/skills/ovl/SKILL.md`, section POC mode, Rules (line 56):
 +- Cross-reference and status bookkeeping: once before merge, or dropped. When it is done, a role does
 +  it in an envelope whose `write_set` names every file it edits, so the role's own standards (version
 +  and changelog line) apply; the main session edits only the files `merge-check` lets it (section 6).
-+  A revision envelope whose objective changes or records a line in another document lists that
-+  document in its `write_set` (L-0050). No hook checks this before the merge.
++  A revision envelope whose objective changes another document's line, or records an impact on
++  another document, lists that document in its `write_set` (L-0050). No hook checks this before
++  the merge.
 ```
 
 What proves it was done: in the next issue whose spec revision changes another issue's document, that document is in the revising envelope's `write_set`, merge-check's first run on the PR reports no `files outside the write_set union`, and no envelope with `changed: []` is bound only to cover a file already committed.

@@ -18,6 +18,26 @@ Records are under `.orivilo/runs/<ISSUE>/`; ORV-217 tokens are `tokens.total` fr
 
 The component benchmark bullet (`.claude/skills/ovl/SKILL.md`, POC mode, and `.claude/rules/design-system.md`) says what the table holds, not when its research runs. No lesson covers the order.
 
+## The check, run on the five ORV-217 rows
+
+A phrase search such as `git grep -l -i 'untitled ui messaging' -- docs/knowledge/design` finds nothing (exit 1), although K-0136 answers that row: its claim reads "Untitled UI React's Messaging page". So the check matches the `claim:` line with the system and the component as separate terms on that line:
+
+```bash
+git grep -l -i -E -e '^claim:.*<system>' --and -e '<component>' -- docs/knowledge/design
+```
+
+Run on the five rows `ORV-217-spec-1` marked as open research needs, with `<system>` and `<component>` as `untitled ui` and `messaging`, `shadcn` and `bubble`, `shadcn` and `message ?scroller`, `ai elements` and `message`, `ai elements` and `conversation`:
+
+| Row                        | At `1a87338` (develop before PR 182) | At `751f524` (after PR 182) |
+| -------------------------- | ------------------------------------ | --------------------------- |
+| Untitled UI Messaging      | 0 files                              | K-0136, K-0143              |
+| shadcn/ui Bubble           | 0 files                              | K-0138                      |
+| shadcn/ui Message Scroller | 0 files                              | K-0139, K-0140, K-0143      |
+| AI Elements Message        | 0 files                              | K-0141, K-0143              |
+| AI Elements Conversation   | 0 files                              | K-0142, K-0143              |
+
+Before the research the check sends all five rows to a research envelope; after it, each row finds the entry its benchmark cell cites (spec, section Benchmark), and K-0143 is the synthesis of K-0136 to K-0142.
+
 ## Rule
 
 Proposed diff, for the owner to approve. No rule file is edited in this retro.
@@ -25,8 +45,9 @@ Proposed diff, for the owner to approve. No rule file is edited in this retro.
 In `.claude/skills/ovl/SKILL.md`, section POC mode, the component benchmark bullet (lines 127 to 132), after "with these rows: ... Do not copy (with the reason).":
 
 ```diff
-+  Before the spec envelope, check each row against `docs/knowledge/design/` (`git grep -l -i
-+  '<system> <component>' docs/knowledge/design`). A row that no entry answers gets a `research`
++  Before the spec envelope, check each row against the `claim:` lines of `docs/knowledge/design/`,
++  the system and the component as separate terms (`git grep -l -i -E -e '^claim:.*<system>' --and
++  -e '<component>' -- docs/knowledge/design`). A row that no entry answers gets a `research`
 +  envelope first; the spec envelope then carries those entry ids in `context_pointers` and never asks
 +  product to mark a cell as an open research need (L-0051).
 ```
