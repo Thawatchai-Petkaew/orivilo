@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, within } from "storybook/test";
 import { LocaleProvider } from "../../i18n/LocaleProvider";
-import { expectNoGlyphClip, resolvedColor } from "../../testing/visual-asserts";
+import { expectLabelInkWhole, inVitest, resolvedColor } from "../../testing/visual-asserts";
 import { featuredIconFixtures, fixtures } from "../fixtures";
 import { Matrix } from "../matrix";
 import { FeaturedIcon, type FeaturedIconSize, type FeaturedIconVariant } from "./FeaturedIcon";
@@ -169,10 +169,13 @@ export const InEnglish: Story = {
   },
 };
 
-/** In a 360 px frame each tile keeps its 48 px and a long name wraps beside it. */
+/**
+ * In a 360 px frame each tile keeps its 48 px and a long name wraps beside it. The frame clips
+ * nothing (spec ORV-222 v1.2, row 4): a frame that clips would hide the Thai marks the check looks for.
+ */
 export const At360: Story = {
   render: () => (
-    <div data-testid="frame" className="w-[360px] max-w-full overflow-hidden">
+    <div data-testid="frame" className="w-[360px] max-w-full">
       <ul className="m-0 flex list-none flex-col gap-3 p-0">
         {VARIANTS.map((variant) => (
           <li key={variant} className="flex items-start gap-3">
@@ -200,8 +203,15 @@ export const At360: Story = {
     for (const name of names) {
       // 48 px is the tile; a name that wraps is taller than one 24 px line.
       await expect(name.getBoundingClientRect().height).toBeGreaterThan(24);
+      // Every ancestor of a name up to and including the frame clips nothing.
+      for (let el: HTMLElement | null = name; el; el = el === frame ? null : el.parentElement) {
+        const style = getComputedStyle(el);
+        await expect(style.overflowX, `${el.localName} clips on x`).toBe("visible");
+        await expect(style.overflowY, `${el.localName} clips on y`).toBe("visible");
+      }
     }
-    expectNoGlyphClip(frame);
+    // The first name shows the whole stack of Thai marks, so the long name can be read whole.
+    if (inVitest) await expectLabelInkWhole(names[0] as HTMLElement);
   },
 };
 
