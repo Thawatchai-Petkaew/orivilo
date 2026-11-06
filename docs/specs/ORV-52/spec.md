@@ -2,7 +2,7 @@
 issue: ORV-52 (https://tpetkaew.atlassian.net/browse/ORV-52), backlog E3-4
 lane: M (no risk flag on the default path; open questions 3, 4 and 5 turn it L if the owner picks their option b)
 mode: POC mode short spec (`.claude/skills/ovl/SKILL.md`, section "POC mode")
-version: 1.1
+version: 1.2
 depends on: ORV-32 (E2-9, the deterministic resolver, merged as `packages/intent-engine/src/resolver.ts`)
 ---
 
@@ -37,7 +37,7 @@ No UI changes in this story: no page, story or component shows `orivilo`, so no 
 | # | Given | When | User sees | Data effect | Check |
 | --- | --- | --- | --- | --- | --- |
 | 1 | `orivilo.json` per `orv52-tokens-1` and `orv52-decisions-1` | `new Profile(base, orivilo).validate()` runs | Nothing (no UI) | None | Returns `[]` |
-| 2 | The `orivilo` profile | The contrast pairs `profiles.test.ts` checks for each profile run under `orivilo`, light and dark | Nothing | None | Every pair meets its floor in both modes |
+| 2 | The `orivilo` profile | The contrast pairs `src/tokens/contrast-pairs.test.ts` checks for each profile (`checkContrast` in `src/tokens/contrast-pairs.ts`) run under `orivilo`, light and dark | Nothing | None | Every pair meets its floor in both modes |
 | 3 | `orivilo` and the base set | The test resolves each of the ten tokens of `orv52-tokens-1` in light and dark under both | Nothing | None | All 20 values are equal (the profile renders the base look) |
 | 4 | Facts per `orv52-vector-1`, no locks, `STARTER_RULES`, `STARTER_KNOWLEDGE_IDS`, profiles `[...CURATED_PROFILES, ...BRAND_PROFILES as curated]` | `resolveProfile` runs | Nothing | None | `status` `conflicted`; one `rule-tie` conflict on `shape` (crisp, soft); `decisions` emphasis expressive and typeVoice paired; `open` `["shape", "surfaceTreatment", "motion"]`, in `DECISION_KEYS` order; `profileId` `friendly` (worked example 1, first run) |
 | 5 | Row 4's input with the locks of `orv52-locks-1` | `resolveProfile` runs | Nothing | None | `profileId` `orivilo`, `profileTies` `[]`, `unsupported` `[]`; three `locked` conflicts: shape against crisp, shape against soft, typeVoice against paired; `open` `["motion"]` (worked example 1, second run) |
@@ -162,3 +162,4 @@ What matches, for the record: the other 16 light rows of §5 and 6 of the 7 dark
 - 1.0 (2026-11-02): first version.
 - 1.1 (2026-11-02): lists the 26 compared values and their tokens as `orv52-map-1` (the builder's mapping in `orivilo.test.ts` `SPEC_VALUES`, checked against brand spec §5 lines 44 to 64); `orv52-scope-1` records that neither `generated.css` changes. No AC outcome changes. Review downstream: `packages/design-system/src/profiles/orivilo.test.ts` (matches as is).
 - 1.1 (2026-11-02, PR line): adds `- PR 180: rows 1 to 8` and `## Rows that render nothing` (every row, no UI), with no row changed.
+- 1.2 (2026-11-06): ORV-216 item 2 (reviewer R1-S2): row 2 names `src/tokens/contrast-pairs.test.ts` (`checkContrast`) as the source of the contrast pairs, in place of `profiles.test.ts`, which checks profile rules and no pairs. No AC outcome changes. Review downstream: `packages/design-system/src/profiles/orivilo.test.ts` row 2 (matches as is: it calls `checkContrast`).
