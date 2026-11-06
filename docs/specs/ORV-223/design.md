@@ -1,6 +1,6 @@
 ---
 issue: ORV-223
-spec: docs/specs/ORV-223/spec.md v1.1
+spec: docs/specs/ORV-223/spec.md v1.2
 task: ORV-223-design-1
 date: 2026-11-06
 ---
@@ -35,7 +35,7 @@ Open question 7 keeps its default. Open question 9 keeps its default on the boar
 | # | Change | Spec text it changes | Fallback if refused |
 | --- | --- | --- | --- |
 | C1 | `export const JobsIcon = lucide(ListTodo, "JobsIcon");` in `icons.tsx`, used by the task bar's empty form and by FeaturedIcon `Neutral` | `empty-bar-1` (`icon={QueuedIcon}`); AC row 1 ("with `QueuedIcon`", "a clock glyph", which becomes "a list glyph"); open question 9 default for the bar; the impact list gains `src/components/icons.tsx`: one import, one line, and the glyph count in its comment | `icon={QueuedIcon}` and no new glyph: one prop, and AC row 1 stands |
-| C2 | Two new component tokens, `empty-state.max-width` and `loading-state.max-width`, both from `size.panel.default` (320). `.ds-empty-state` at `md` and `.ds-loading-state` cap their column with them; `sm` has no cap | `empty-look-1` ("reads only these new component tokens"); `load-live-1` ("reading one new token"). W5 and every AC row stand | Drop both tokens and the two `max-inline-size` lines. A long description then runs 756 px on one line under a 40 px tile (`measure-uncapped.png`) |
+| C2 | Two new component tokens, `empty-state.max-width` and `loading-state.max-width`, both from `size.panel.default` (320). `.ds-empty-state` at `md` and `.ds-loading-state` cap their column with them; `sm` has no cap | `empty-look-1` ("reads only these new component tokens"); `load-live-1` ("reading one new token"). W5 stands; AC rows 5 and 27 measure the cap (spec v1.2) | Drop both tokens and the two `max-inline-size` lines. A long description then runs 756 px on one line under a 40 px tile (`measure-uncapped.png`) |
 | C3 | AC row 1: replace `expectInkCentred` with a box check, the svg's centre on the tile's centre to 0.5 px on both axes | AC row 1, Check column | None. `expectInkCentred` reads text, and `visual-asserts.ts` line 835 throws "has no text to measure" on a tile that holds only an svg. This is ORV-222 design C3 again |
 | C4 | `load-board-1` hides the line by a recipe rule on `.ds-board[data-loading]`, not by adding the `sr-only` class | `load-board-1`, the words "by the `sr-only` form"; AC row 35's check stands | None. `recipes.css` is not in a layer, so `.ds-board__status` beats Tailwind's `sr-only`: the class alone measures 34 by 18 px, with its padding of 8 and 16 and its 1 px border kept, and AC row 35 asks for 1 by 1. The rule measures 1 by 1 |
 
