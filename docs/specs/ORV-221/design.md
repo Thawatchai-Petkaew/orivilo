@@ -1,7 +1,7 @@
 ---
 issue: ORV-221
 spec: docs/specs/ORV-221/spec.md v1.2
-task: ORV-221-design-1
+task: ORV-221-design-1, ORV-221-design-2
 date: 2026-11-06
 ---
 
@@ -10,6 +10,8 @@ date: 2026-11-06
 The look of the two controls, decided on rendered proposals. The builder builds from this file; the recipe in "Recipe" is the CSS that was rendered, with the one naming change that section states.
 
 Every proposal image below is static HTML that mirrors the Radix output, with this CSS put in by `page.addStyleTag` over the stories `base-checkbox--checked` and `examples-base-settings-form--default`. Hover, pressed and focus were forced through twin classes in the images and read separately on real pseudo states (D19). The images are Thai only, as the envelope asked. English belongs to sign-off rows 20 and 39, on the real stories.
+
+D22 to D25 are the rework of the sign-off `ORV-221-signoff-1` at head `023cb9c` (findings F1, F2, F3). Their images are not static HTML: they are the real stories at that head with the proposed CSS injected, listed under "Rework screenshots, design 2". The Switch rows are untouched here; the Switch PR is a later PR.
 
 ## Flow
 
@@ -67,6 +69,10 @@ Evidence: the `compare` shots, one block per question, each with its options sid
 | D19 | Evidence read on real pseudo states | Neutral light. Hover off `rgb(91, 90, 102)`; on, edge `rgb(22, 21, 29)`, fill kept; press `rgb(22, 21, 29)`; on and focused, hovered, then Space held: edge stays `rgb(122, 34, 199)`; invalid on, hovered, pressed, focused: edge stays `rgb(180, 35, 24)` | The rules below were corrected for this: my first draft let the hover and press rules beat focus and invalid by specificity | 25, 27 |
 | D20 | No Field label hover tie on the Switch | The label gets `cursor: pointer`, no hover link to the track | Field's label is shared with other controls; the pointer is enough, and a hover tie would need `:has` for one control | 21 |
 | D21 | Disabled empty circle | `surface.disabled` on canvas is under 3.0 | Accepted. It is the same as a disabled Checkbox and Input, and it reads through its label. `control-pairs-1` does not list this pair | 4, 5 |
+| D22 | A checked radio under focus draws a 2 px line (F1) | 1 px `focus.ring` border plus a 1 px inner line in `focus.ring` (the local `--_inner`, then `--_focus-shadow-border`), with the 3 px halo touching it, against 1 px at rest. The circle stays 20 and 16 px and the dot stays `radio.dot` at 8 and 6 px; the gap from line to dot goes from 5 to 4 px at md and from 4 to 3 px at sm. No new token. Play: `InteractionStates`, `expectEdgeInk` left, 1 px on `rg-rest-on`, 2 px on `rg-focus-on`, reach 2 | Width carries the change, because colour cannot: `focus.ring` against the rest edge reads only 1.0 to 1.95 over the eight boundaries, and 1.0 is the same colour. Rendered by real focus at md and sm, device scale 1, 2 and 6, under neutral, professional and friendly, light and dark: 2 px of edge ink against 1 px at rest and 1 px today. Chosen over the sign-off's `--_focus-shadow-fill`, which reads the same 2 px but draws the inner line in dot ink: under friendly that is a coral line beside a teal one, two semantics in one line, muddy in both modes. One line in one colour keeps `DESIGN.md` section 3.1's line in `focus.ring`, and the dot alone keeps the selection colour. The form is the Checkbox's (`recipes.css` lines 627 to 631) with another ink, because a radio's ground is a light tint, not its edge colour | 8, 9 |
+| D23 | Checked and invalid under focus draws a 2 px red line (F1) | 1 px `radio.border-error` border plus a 1 px inner line in `radio.border-error`, the 3 px halo still from `focus.ring`, the dot kept. Play: `InvalidChecked` and the `invalid-checked` case of `InEnglish`, the shadow starts with the resolved `--cmp-radio-border-error`; `expectEdgeInk` left, 1 px on the unchecked circle, 2 px on the checked one, reach 2 | The sign-off's `:not([aria-invalid])` is refused: it leaves this state with a halo only, which is F1 again. Rendered on `Invalid` by Tab then Space, with four forms side by side: today, a dot line, a ring line and an error line. The dot and ring lines put two colours in one line and take the edge away from D6's "the error edge stays through hover and focus". The red line reads as one line in all six boundaries | 6, 8 |
+| D24 | The group root draws no focus (F2) | `.ds-radio-group:focus-visible` sets `outline: none` and `box-shadow: var(--_focus-shadow-none)`. The band goes from a 4 px halo to 0 px; focus shows on a radio only. No token. Play: `Disabled`, the root focused and matching `:focus-visible`, `expectEdgeInk` right, 0 px, reach 6 | Radix gives the root `tabindex` 0, so a click that lands on no control leaves focus on the root. The plays of `Disabled` and `DisabledItem` leave it there at rest, and on a real page a click on a description then any key does the same. The global `:focus-visible` rule then drew a band round the whole group, as tall as the form section and with no meaning. The root is a wrapper, not a control, so `DESIGN.md` section 7's "never removed" stays true of the radios; `.ds-menu__option` and `.ds-input-group__input` set the same pair. `outline: none` is written out although Radix sets it inline, so the rule does not rest on Radix. Tab from a click-focused root leaves the group, and Shift+Tab then lands on the checked radio with its full focus look: that is Radix's behaviour today, the same with or without the band, and this row does not change it | 4, 5 |
+| D25 | The focus rows hold the focus look at rest (F3) | `focusVisible: ["#rg-focus", "#rg-focus-on"]` in the same `parameters.pseudo` object as `hover`, in `InteractionStates` and `InEnglish`. The two rows show D22's look with no DOM focus. No change to `.storybook/preview.tsx`. Play: `InteractionStates`, `waitFor` the halo on both rows, `not.toHaveFocus`, the border against `--ds-focus-ring` | As built both focus rows read as rest, because the story names no `focusVisible`. `withPseudoHover` does not carry it: the decorator reads only `pseudo.hover`, adds only `pseudo-hover`, and asks for the sheet rewrite only when `hover` is set. It does not need to: the addon's own decorator adds `pseudo-focus-visible` (seen in the iframe and in Vitest). What matters is the rewrite. A story with `hover` and `focusVisible` passed alone in 5 of 5 runs. A story with `focusVisible` only failed alone in 5 of 5 (`expected 'none' to match / 0px 0px 0px 3px$/`) and passes in the whole file only through an earlier story's rewrite, an order dependency. So the rule: a story that forces `focusVisible` names `hover` in the same object, and reads the held look inside `waitFor`. Extending the decorator also worked, but it is not needed and it is a shared file that triggers the full suite | 8, 15 |
 
 Finding outside this story: on a Checkbox, the row hover rule beats the error edge. In the browser an invalid box reads `rgb(180, 35, 24)` at rest and `rgb(91, 90, 102)` under hover (`recipes.css` line 608). The radio does not copy it. It needs its own follow-up card.
 
@@ -83,14 +89,15 @@ Selected and focused are separate rows: a checked control can be focused or not,
 | --- | --- | --- |
 | Default | Empty circle, `radio.bg`, `radio.border` | `radio` block States |
 | Hover | Edge `radio.border-hover`, from anywhere on the row's content | Same |
-| Focus | `focus.ring` border, 3 px halo, circle otherwise unchanged | Same |
+| Focus | `focus.ring` border, 3 px halo, circle otherwise unchanged. Only a radio shows focus: the group root draws nothing (D24) | Same, and `InteractionStates` (D25) |
 | Selected | Dot on `radio.bg-checked`, `radio.border-checked` edge | Same |
 | Selected and hover | Edge `radio.border-checked-hover`, dot unchanged | Same |
-| Selected and focus | The focus line and halo, the dot kept | Same |
+| Selected and focus | A 2 px line in `focus.ring` (1 px border, 1 px inner line), 3 px halo, the dot kept (D22) | `InteractionStates` (D25) |
+| Selected, error and focus | A 2 px line in `radio.border-error` (1 px border, 1 px inner line), 3 px halo from `focus.ring`, the dot kept (D23) | `InvalidChecked` |
 | Disabled | `radio.bg-disabled`, `radio.border-disabled`, `radio.dot-disabled` when checked, labels `text.disabled` | `radio` blocks Disabled, Disabled item |
 | Loading | Not applicable (`state-set-1`): the form's button carries it, and `saving` in the example disables the group | Settings form |
 | Empty | Not applicable: a group with no option is not rendered. A group with no value shows no dot (row 2) | `radio` block One form |
-| Error | Every circle takes `radio.border-error`, through hover and focus; the message is `Field`'s | `radio` block Invalid |
+| Error | Every circle takes `radio.border-error`, through hover and focus; a checked circle under focus is the row "Selected, error and focus"; the message is `Field`'s | `radio` block Invalid |
 | Success | None: a radio applies on submit | Not applicable |
 
 ### Switch
@@ -117,10 +124,15 @@ Selected and focused are separate rows: a checked control can be focused or not,
 - Missing data: no value shows an empty group or an off Switch; no description drops the line and the control stays on the first line.
 - Reduced motion: under `prefers-reduced-motion: reduce` the thumb's transition reads 0 s, and `ds-spin` keeps turning at 1 s, as ORV-201 `spin-motion-1` asks.
 - Forced colours: the transparent outlines on track and thumb draw both, so the thumb's place shows the state (`zoom-forced-neutral-light.png`, taken before the last edit to the hover and press rules, which touch no rest look).
+- D22 at every line count: the long label reads 3 lines at 360 and 2 at 1440, one-line labels are in `Sizes`, and the circle stays on the first line with the line and halo unclipped. Page overflow was 0 in all 18 scenes in all eight rendered boundaries.
+- D22 under forced colours (neutral, md, light and dark): shadows drop, so the inner line and halo go, and the transparent outline draws. Rest is a plain circle, focus a heavier line, the dot kept (`sheet-forced.png`).
+- D22 under reduced motion: the recipe transitions only `background-color` and `border-color`, so the inner line and halo appear at once. The 0.12 s colour transition that remains is F5's card, not touched here.
 
 ## Recipe
 
 The render declared the tokens in a style tag and read `--ds-type-body-*` directly; the recipe below reads `--cmp-radio-label-type-*` and `--cmp-radio-label-type-sm-*`, which `control-tokens-1` sets to the same values. Every value is a `--cmp-*` or `--ds-*` property or a `calc` of them, for `recipes.test.ts`. `--_focus-shadow-border` and `--_focus-shadow-fill` are the ones in `recipes.css` today.
+
+The inner line of D22 and D23 goes through the local `--_inner`, as `.ds-checkbox__box` does: `recipes.test.ts` line 61 fails any `box-shadow:` line that does not start with `var(`. Each new rule wins by specificity, not by its place: `.ds-radio-group:focus-visible` is 0,2,0 against the global 0,1,0; the checked rule is 0,3,0 against `.ds-radio__control:focus-visible` at 0,2,0; the invalid and checked rule is 0,5,0 and only changes `--_inner`.
 
 ### R1: RadioGroup
 
@@ -136,6 +148,10 @@ The render declared the tokens in a style tag and read `--ds-type-body-*` direct
   flex-direction: row;
   flex-wrap: wrap;
   column-gap: var(--ds-space-stack-md);
+}
+.ds-radio-group:focus-visible {
+  outline: none;
+  box-shadow: var(--_focus-shadow-none);
 }
 .ds-radio {
   display: flex;
@@ -194,8 +210,15 @@ The render declared the tokens in a style tag and read `--ds-type-body-*` direct
   outline-offset: 0;
   box-shadow: var(--_focus-shadow-border);
 }
+.ds-radio__control[data-state="checked"]:focus-visible {
+  --_inner: inset 0 0 0 1px var(--ds-focus-ring);
+  box-shadow: var(--_inner), var(--_focus-shadow-border);
+}
 .ds-radio-group[aria-invalid="true"] .ds-radio__control:focus-visible {
   border-color: var(--cmp-radio-border-error);
+}
+.ds-radio-group[aria-invalid="true"] .ds-radio__control[data-state="checked"]:focus-visible {
+  --_inner: inset 0 0 0 1px var(--cmp-radio-border-error);
 }
 .ds-radio-group .ds-radio__control[data-disabled] {
   background: var(--cmp-radio-bg-disabled);
@@ -398,12 +421,97 @@ The `:active` selector carries `[data-state]` on purpose: without it the hover r
 | `control-tokens-1` | None | All of R1 and R3. `component.json` as the spec's table, less the two tokens of A1 | On `expectEdgeInk` for the track: read the side away from the thumb (`right` off, `left` on), or the fill between edge and thumb counts as ink. In `parameters.pseudo` the radio's hover target is `.ds-radio`, the row; the Switch's is the track |
 | `control-shape-1` | None | `--cmp-radio-radius` reads `--ds-shape-round-radius`, on `{radius.full}` | Row 13 |
 | `control-disabled-1` | `data-disabled` on `.ds-radio`, from the item's own `disabled` or the group's | The disabled rules of R1 and R3. No `opacity` | `.ds-radio-group` in the disabled selector is what makes it beat the checked rule |
+| D22, D23 (`control-tokens-1`, `control-pairs-1`) | None | The two checked focus rules of R1. Rewrite the comment above the radio's focus rules (`recipes.css` line 753) to say a checked radio adds the inner line. `pairs.ts`: the two pairs of A7 | `expectFocusBorderForm` passes with and without these rules, so it cannot prove them: use `expectEdgeInk` with reach 2. A reach of 4 counts the halo as ink |
+| D24 (`radio-api-1`) | None | The `.ds-radio-group:focus-visible` rule of R1 | Reach 6, not 4: at 4 the first pixel read is the halo and the check reads 0 px on the defect too |
+| D25 (AC rows 8, 15) | None. No change to `.storybook/preview.tsx` | None | The `parameters.pseudo` of "Plays for D22 to D25". A story that forces `focusVisible` names `hover` in the same object |
+
+### Plays for D22 to D25
+
+These ran as written on the real package with the stories and the CSS overlaid in memory. `InteractionStates` and `InEnglish` share this `hover`:
+
+```ts
+// InteractionStates
+pseudo: {
+  rootSelector: "body",
+  hover: [".ds-radio:has(#rg-hover)", ".ds-radio:has(#rg-hover-on)"],
+  focusVisible: ["#rg-focus", "#rg-focus-on"],
+},
+
+// InEnglish: the same, with one more focusVisible selector
+focusVisible: [
+  "#rg-focus",
+  "#rg-focus-on",
+  "[data-testid='invalid-checked'] .ds-radio__control[data-state='checked']",
+],
+
+// InteractionStates play, after the existing lines
+for (const id of ["rg-focus", "rg-focus-on"]) {
+  await waitFor(() =>
+    expect(getComputedStyle(circle(id)).boxShadow, id + " holds the halo").toMatch(/ 0px 0px 0px 3px$/),
+  );
+  await expect(circle(id)).not.toHaveFocus();
+  await expect(getComputedStyle(circle(id)).borderTopColor).toBe(
+    resolvedColor(circle(id), "--ds-focus-ring"),
+  );
+}
+if (inVitest) {
+  await expectEdgeInk(circle("rg-rest-on"), "left", 1, 2);
+  await expectEdgeInk(circle("rg-focus-on"), "left", 2, 2);
+}
+
+// Disabled play, at the end
+const group = canvas.getByRole("radiogroup", { name: w.label });
+group.focus();
+await expect(group.matches(":focus-visible")).toBe(true);
+if (inVitest) await expectEdgeInk(group, "right", 0, 6);
+
+// New story, before Required
+export const InvalidChecked: Story = {
+  parameters: {
+    pseudo: {
+      rootSelector: "body",
+      hover: [".ds-radio-group > .ds-radio:first-child"],
+      focusVisible: [".ds-radio__control[data-state='checked']"],
+    },
+  },
+  render: () => <Access error defaultValue="members" />,
+  play: async ({ canvasElement }) => {
+    const on = within(canvasElement).getByRole("radio", { name: w.members });
+    const off = within(canvasElement).getByRole("radio", { name: w.organization });
+    await waitFor(() => expect(getComputedStyle(on).boxShadow).toMatch(/ 0px 0px 0px 3px$/));
+    await expect(getComputedStyle(on).borderTopColor).toBe(
+      resolvedColor(on, "--cmp-radio-border-error"),
+    );
+    await expect(
+      getComputedStyle(on).boxShadow.startsWith(resolvedColor(on, "--cmp-radio-border-error")),
+    ).toBe(true);
+    await expect(on.querySelector("svg")).not.toBeNull();
+    if (inVitest) {
+      await expectEdgeInk(off, "left", 1, 2);
+      await expectEdgeInk(on, "left", 2, 2);
+    }
+  },
+};
+
+// InEnglish: one more case after "invalid", and at the end of the play
+["invalid-checked", { error: true, defaultValue: "members" }],
+
+const on = within(canvas.getByTestId("invalid-checked")).getByRole("radio", { name: t.members });
+await waitFor(() => expect(getComputedStyle(on).boxShadow).toMatch(/ 0px 0px 0px 3px$/));
+await expect(
+  getComputedStyle(on).boxShadow.startsWith(resolvedColor(on, "--cmp-radio-border-error")),
+).toBe(true);
+```
+
+The `hover` of `InvalidChecked` is not only there for the rewrite: it holds D6, invalid wins over hover, on the first row.
+
+Each play goes red on its defect. All 20 stories pass with the three rules. Without the two checked rules, `InteractionStates` (`draws 1 px of ink, expected 2 px`), `InvalidChecked` and `InEnglish` fail. Without the root rule, `Disabled` fails (`right edge of <div.ds-radio-group> draws 4 px of ink, expected 0 px`). Without the invalid rule, `InvalidChecked` and `InEnglish` fail. `InteractionStates` and `InvalidChecked` also passed alone with `--repeats 4`. These runs add the CSS through a style element, because `recipes.css` reaches the page through an `@import`, past the overlay. So `recipes.test.ts` has not run on these rules: the builder's run is that proof.
 
 `settings-example-1`, outside the table's range but rendered: the Notifications panel is `<div class="flex flex-col gap-6" role="group" aria-labelledby={headingId}>` holding `<div class="flex flex-col gap-1"><h2 class="text-label-md text-text-primary" id={headingId}>` with `<p class="text-body-sm text-text-secondary">`, then the two `Field orientation="horizontal"`.
 
 ## Spec amendments this design needs (L-0019)
 
-None of these changes the default of an open question. `spec.md` is outside this task's write set, so product takes them into v1.1 before the builder envelope, or the builder reads this section as the later word.
+None of these changes the default of an open question. `spec.md` is outside this task's write set, so product takes them into v1.1 before the builder envelope, or the builder reads this section as the later word. A5 to A9 come from the rework of design 2 and go the same way into the next spec version. They add no token and keep every AC row number, so the "Rows per PR" line of PR 187 stands.
 
 <!-- prettier-ignore -->
 | # | Rule | Change | Why | Impact |
@@ -412,12 +520,17 @@ None of these changes the default of an open question. `spec.md` is outside this
 | A2 | `control-tokens-1`, last paragraph | On a Switch, on, focus reads `--_focus-shadow-fill`, not `--_focus-shadow-border`, with `color: switch.thumb-on` on the track | The border equals the fill, so the line would not show. It is the filled controls' form, as primary Button and the checked Checkbox. The inner line touches the thumb (border 1 px plus line 1 px is the 2 px inset), so the thumb joins the line while focused; I accepted this after the zoom shots | The computed shadow still ends in `0px 0px 0px 3px`, so `expectFocusBorderForm` passes |
 | A3 | `switch-size-1` | The thumb's radius is `calc(switch.radius - inset)` | Concentric with the track. A thumb on the track's own 6 px leaves a gap that is uneven at the corners under professional | It still reads `shape.control.radius` through `switch.radius` |
 | A4 | AC row 25, "User sees" | "pressed darkens the track" reads "pressed changes the track" | In dark `border.strong` is near white. The check, computed against rest, holds as written | Wording only; qa should read the row this way |
+| A5 | `control-tokens-1`, last paragraph (D22, D23) | "both controls take the `focus.ring` border and the `--_focus-shadow-border` halo" gains: a checked radio adds a 1 px inner line through its own `--_inner`, in `focus.ring`, and in `radio.border-error` when the group is invalid | With border and halo alone the checked radio's line does not differ from rest (F1). It is a change of ink from the Checkbox's form, not of form | `recipes.css` only. The shadow still ends in `0px 0px 0px 3px`. No token |
+| A6 | AC row 8, "User sees" and "Check"; AC row 15 | Row 8 sees: the focus rows hold the brand line with its halo at rest, the checked one twice the width of the rest row, its dot kept. Row 8 checks: `parameters.pseudo` with `focusVisible` beside `hover`, the held look read inside `waitFor`, `not.toHaveFocus`, `expectEdgeInk` left 1 px against 2 px at reach 2. `expectFocusBorderForm` stays for the real focus path. Row 15: `InEnglish` holds the same two rows | `expectFocusBorderForm` focuses and then blurs, so on its own it passes with the defect and says nothing of the rows at rest (F1, F3) | `RadioGroup.stories.tsx` only. Row 25 of the Switch keeps its wording until the Switch PR |
+| A7 | `control-pairs-1`, `radio` list; AC row 19 | Two more pairs at the UI floor: `ds:focus.ring` on `radio.bg-checked` (lowest 3.33, friendly light) and `radio.border-error` on `radio.bg-checked` (lowest 5.79). Both read over the eight boundaries of `CONTRAST_SETS` | The inner line sits on the checked ground, a pair no rule covered. `pairs.ts` lines 306 to 310 are the precedent for `ds:focus.ring` on a selected fill | `pairs.ts`, `recipes.test.ts`, `pnpm contrast`. No token |
+| A8 | `radio-api-1`; AC row 4, "Check" | `radio-api-1` gains: the root draws no focus, focus shows on a radio only. Row 4's play adds the root check of D24 | F2. The rule belongs to the component, whatever story shows it | `recipes.css`, `RadioGroup.stories.tsx`. `DESIGN.md` is unchanged: section 7's "never removed" speaks of controls |
+| A9 | AC rows 6, 15 and 20 | Row 6 adds the story `InvalidChecked` and its play. Row 15's list adds the `invalid-checked` case. Row 20's list adds `InvalidChecked` | D23 is a state of its own, and `.claude/rules/design-system.md` asks for each state as a story, in Thai and English | `RadioGroup.stories.tsx`, the qa walk of rows 6, 15 and 20 |
 
 ## Screens to check in visual QA
 
 Sign-off follows rows 20 and 39 on the real stories, with Thai and English, and uses this list against the proposal shots.
 
-1. `Base/Radio group`: `Default`, `Checked`, `InteractionStates`, `Invalid`, `Disabled`, `Sizes`, `Horizontal`, `HorizontalAt360`, `LongContentAt360`, `RoundUnderProfessional`.
+1. `Base/Radio group`: `Default`, `Checked`, `InteractionStates`, `Invalid`, `InvalidChecked`, `Disabled`, `Sizes`, `Horizontal`, `HorizontalAt360`, `LongContentAt360`, `RoundUnderProfessional`.
 2. `Base/Switch`: `Default`, `Sizes`, `InteractionStates`, `Disabled`, `Invalid`, `Saving`, `SaveFails`, `Bare`, `LongContentAt360`.
 3. `Base/Field`: `GroupControl`, `Horizontal`, `HorizontalInvalid`.
 4. `Examples/Base: Settings form`: `Default`, `Invalid`, `Saving`, `Notifications`, `NotificationsAt360`.
@@ -429,6 +542,34 @@ Look for:
 - The ring legible on both thumbs, light and dark, at sm.
 - Hover on an invalid or a focused Switch: the edge does not change.
 - No clipped Thai mark in `ปิ่นโต้` and the long labels. The break inside โปรเจกต์ is a dictionary matter, not a finding.
+- A checked radio under focus: one 2 px line in `focus.ring` in every profile, in light and dark, at md and sm, the dot kept and not touching the line (D22). In `InvalidChecked`, one 2 px red line, with the halo in the brand (D23).
+- `InteractionStates` and `InEnglish`: both focus rows show the look at rest with no click (D25).
+- `Disabled` and `DisabledItem` as their plays leave them, and a click on a description then a key in `Default` and the settings form: no band round the group (D24).
+
+## Rework screenshots, design 2
+
+Folder: `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-221-design-2/`. It is a session scratchpad, so these files may not outlive the session.
+
+These are the real stories at `023cb9c` in Storybook, with the R1 rules put in by `page.addStyleTag`. Each scene reached its state this way: the `*-focus` scenes by a real Tab, `invalid-focus` by Tab then Space; `disabled-rest` and `disabled-item-rest` as their plays leave them; `default-click` and `settings-click` by a real click on a description and then a key; `interaction` and `english` through the `updateGlobals` channel event with the pseudo object, because the stories at this head do not name `focusVisible`. `interaction-before` and `disabled-*-before` show the head as built. The `english` scene is the `InEnglish` story; every other scene is Thai. The `invalid-checked` case of `InEnglish` is proven by its play, not by a screenshot.
+
+Names: `crops/<scene>-<profile>-<mode>-<width>.png` and `shots/` for the full pages, 18 capture scenes in eight boundaries: `neutral` and `professional`, `light` and `dark`, `360` and `1440`, device scale 2. The scenes `default-click-back` and `settings-click-back` are Tab then Shift+Tab after a click. The comparison sheets add `friendly`.
+
+The PNGs were judged through the sheets below, not one file at a time. In `sheet-disabled-rest*.png` and `sheet-disabled-item-rest*.png` the 1440 cells are small, so the band there was also read as a computed shadow in all eight boundaries. The white strip beside a 360 cell is the sheet's column, not the render.
+
+<!-- prettier-ignore -->
+| Sheet | Shows | Path |
+| --- | --- | --- |
+| Contact sheet | The F1 comparison and the invalid forms on top, then every scene in its eight boundaries | `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-221-design-2/contact-sheet.png` |
+| F1 forms, md | Rest, today, F1a dot ink, F1b `focus.ring`, device scale 6 | `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-221-design-2/f1-compare/sheet-md-x6.png` |
+| F1 forms, sm | The same, device scale 6 | `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-221-design-2/f1-compare/sheet-sm-x6.png` |
+| F1 forms, md, real pixels | The same, device scale 1, enlarged | `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-221-design-2/f1-compare/sheet-md-x1.png` |
+| F1 forms, sm, real pixels | The same, device scale 1, enlarged | `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-221-design-2/f1-compare/sheet-sm-x1.png` |
+| Checked and invalid forms | Today, dot line, ring line, error line | `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-221-design-2/f1-invalid/sheet-invalid.png` |
+| Focus, per scene | `sheet-default-focus.png`, `sheet-sizes-md-focus.png`, `sheet-sizes-sm-focus.png`, `sheet-long-focus.png`, `sheet-horizontal-focus.png`, `sheet-settings-focus.png`, `sheet-invalid-focus.png` | The folder above |
+| Root band, per scene | `sheet-disabled-rest-before.png`, `sheet-disabled-rest.png`, `sheet-disabled-item-rest-before.png`, `sheet-disabled-item-rest.png` | The folder above |
+| After a click, per scene | `sheet-default-click.png`, `sheet-default-click-tab.png`, `sheet-default-click-back.png`, `sheet-settings-click.png`, `sheet-settings-click-tab.png`, `sheet-settings-click-back.png` | The folder above |
+| Held rows, per scene | `sheet-interaction-before.png`, `sheet-interaction.png`, `sheet-english.png` | The folder above |
+| Forced colours | Rest and focus, neutral, light and dark | `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-221-design-2/sheet-forced.png` |
 
 ## Proposal screenshots
 
