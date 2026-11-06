@@ -1,14 +1,15 @@
 /**
  * The recipe layer (ADR 0003 item 2, DESIGN.md §5 and §11, spec E2-4). Fails when a recipe writes
  * a raw value, reads a custom property no token declares or a primitive directly, or when any pair
- * in `pairs.ts` is under its floor under any profile in either mode.
+ * in `pairs.ts` is under its floor under any set of `CONTRAST_SETS` (neutral, the profiles and the
+ * brand profiles, orivilo among them) in either mode.
  */
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { contrastRatio } from "../foundations/contrast";
-import { profiles } from "../profiles/index";
-import { MODES, type Mode, TokenSet, tokens } from "../tokens/index";
+import { CONTRAST_SETS } from "../profiles/index";
+import { MODES, type Mode, TokenSet } from "../tokens/index";
 import { RECIPE_PAIRS } from "./pairs";
 
 const here = import.meta.dirname;
@@ -17,11 +18,6 @@ const generated = readFileSync(path.join(here, "../tokens/generated.css"), "utf8
 
 /** Every custom property the token build declares. */
 const declared = new Set([...generated.matchAll(/^\s*(--[a-z0-9-]+):/gm)].map((m) => m[1]));
-
-const sets: { id: string; set: TokenSet }[] = [
-  { id: "neutral", set: tokens },
-  ...profiles.map((p) => ({ id: p.id, set: p.tokens })),
-];
 
 function hexOf(set: TokenSet, ref: string, mode: Mode): string {
   const [layer, p] = ref.startsWith("ds:")
@@ -250,6 +246,40 @@ describe("the menu listbox (ORV-204, menu-separator-1, menu-label-1, menu-disabl
   });
 });
 
+describe("the radio focus line (ORV-221, control-tokens-1, control-pairs-1, radio-api-1)", () => {
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  const body = (selector: string) =>
+    [...bare.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+      .find((m) => (m[1] ?? "").trim().replace(/\s+/g, " ") === selector)?.[2]
+      ?.replace(/\s+/g, " ")
+      .trim();
+
+  it("lists the inner line of a focused checked radio on the checked ground at the UI floor", () => {
+    const pairs = RECIPE_PAIRS.filter((p) => p.recipe === "radio" && p.slot.endsWith("on checked"));
+    expect(pairs.map((p) => [p.slot, p.fg, p.bg, p.floor])).toEqual([
+      ["focus line on checked", "ds:focus.ring", "radio.bg-checked", 3],
+      ["error line on checked", "radio.border-error", "radio.bg-checked", 3],
+    ]);
+  });
+
+  it("adds the inner line to a checked radio in focus.ring, and in the error colour when invalid", () => {
+    expect(body('.ds-radio__control[data-state="checked"]:focus-visible')).toBe(
+      "--_inner: inset 0 0 0 1px var(--ds-focus-ring); box-shadow: var(--_inner), var(--_focus-shadow-border);",
+    );
+    expect(
+      body(
+        '.ds-radio-group[aria-invalid="true"] .ds-radio__control[data-state="checked"]:focus-visible',
+      ),
+    ).toBe("--_inner: inset 0 0 0 1px var(--cmp-radio-border-error);");
+  });
+
+  it("draws no focus on the group root", () => {
+    expect(body(".ds-radio-group:focus-visible")).toBe(
+      "outline: none; box-shadow: var(--_focus-shadow-none);",
+    );
+  });
+});
+
 describe("the file upload recipe (ORV-227)", () => {
   const mine = RECIPE_PAIRS.filter((p) => p.recipe === "file-upload").map((p) => [
     p.fg,
@@ -349,7 +379,7 @@ describe("the alert recipe (ORV-222, alert-look-1)", () => {
 });
 
 describe("recipe contrast pairs", () => {
-  for (const { id, set } of sets) {
+  for (const { id, set } of CONTRAST_SETS) {
     for (const mode of MODES) {
       for (const pair of RECIPE_PAIRS) {
         it(`${pair.recipe} ${pair.slot}: ${pair.fg} on ${pair.bg} ≥ ${pair.floor} under ${id} in ${mode}`, () => {

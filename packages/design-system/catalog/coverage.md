@@ -15,7 +15,7 @@ Legend: `none` not started, `planned` entry exists, no code, `draft` code and st
 | Field         | stable | E2-4                |
 | Select        | stable | base-select         |
 | Checkbox      | stable | base-checkbox       |
-| RadioGroup    | none   |                     |
+| RadioGroup    | draft  | base-radio-group    |
 | Switch        | none   |                     |
 | Textarea      | stable | base-textarea       |
 | Combobox      | draft  | base-combobox       |
@@ -57,9 +57,9 @@ Legend: `none` not started, `planned` entry exists, no code, `draft` code and st
 | Sheet                   | draft  | application-sheet          |
 | Top navigation          | none   |                            |
 | Sidebar navigation      | none   |                            |
-| Page header             | none   |                            |
+| Page header             | draft  | application-page-header    |
 | Section header          | none   |                            |
-| Empty state             | none   |                            |
+| Empty state             | draft  | application-empty-state    |
 | Loading state           | none   |                            |
 | Command menu            | stable | application-command-menu   |
 | Shortcut sheet          | stable | application-shortcut-sheet |
@@ -120,4 +120,4 @@ Commands and shortcuts for the set: `commands/canvas.yaml` (checked by `check-co
 | Tokens and type specimen       | foundation  | stable | foundations-typography                   |
 | Members (agent, ORV-37)        | application | draft  | examples-application-members-agent       |
 
-Marketing has no section entries yet and will not until a story needs a generated landing page; the gap is intentional and reported here rather than implied. Its page example (E2-7) is `draft` for that reason: it is composed from Base and Application components only, and becomes `stable` when a marketing section lands with its own entry. A page example lists only the public components it uses; an inline page header, metric or empty state in an example does not make that row above real.
+Marketing has no section entries yet and will not until a story needs a generated landing page; the gap is intentional and reported here rather than implied. Its page example (E2-7) is `draft` for that reason: it is composed from Base and Application components only, and becomes `stable` when a marketing section lands with its own entry. A page example lists only the public components it uses; an inline metric or empty state in an example does not make that row above real.

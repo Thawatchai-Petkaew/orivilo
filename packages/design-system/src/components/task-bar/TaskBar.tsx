@@ -7,10 +7,12 @@ import type { Messages } from "../../i18n/messages/index";
 import { Button } from "../button/Button";
 import { useBoard } from "../canvas-board/context";
 import { cx } from "../cx";
+import { EmptyState } from "../empty-state/EmptyState";
 import {
   CheckIcon,
   CollapseIcon,
   ExpandIcon,
+  JobsIcon,
   JumpIcon,
   QueuedIcon,
   RetryIcon,
@@ -47,6 +49,11 @@ export interface TaskBarProps {
   expanded?: boolean | undefined;
   defaultExpanded?: boolean | undefined;
   onExpandedChange?: ((expanded: boolean) => void) | undefined;
+  /**
+   * The caller's own Button for the empty form (no jobs), one at most, shown in the panel under
+   * the words. Pass none when the person cannot start a job.
+   */
+  emptyAction?: ReactNode;
   className?: string | undefined;
 }
 
@@ -95,6 +102,7 @@ export function TaskBar({
   expanded: expandedProp,
   defaultExpanded = false,
   onExpandedChange,
+  emptyAction,
   className,
 }: TaskBarProps) {
   const m = useMessages();
@@ -147,10 +155,14 @@ export function TaskBar({
         return next;
       });
     }
+    // The last job leaving is a change the person may not have made: the bar says so itself, in
+    // the status it mounted before the words (`empty-live-1`). First render and 0 to 0 say nothing.
     setMessage(
-      changed
-        .map((j) => fill(m.taskBar.announce, { name: j.name, state: stateWord(m, j.state) }))
-        .join(", "),
+      seen.states.size > 0 && jobs.length === 0
+        ? m.taskBar.none
+        : changed
+            .map((j) => fill(m.taskBar.announce, { name: j.name, state: stateWord(m, j.state) }))
+            .join(", "),
     );
   }
 
@@ -221,7 +233,16 @@ export function TaskBar({
         hidden={!open}
       >
         {jobs.length === 0 ? (
-          <p className="ds-taskbar__empty">{m.taskBar.empty}</p>
+          <div className="ds-taskbar__empty">
+            <EmptyState
+              size="sm"
+              level={3}
+              icon={JobsIcon}
+              title={m.taskBar.emptyTitle}
+              description={m.taskBar.empty}
+              action={emptyAction}
+            />
+          </div>
         ) : (
           <ScrollArea label={m.taskBar.list} className="ds-taskbar__scroll">
             <ul className="ds-taskbar__list" role="list">

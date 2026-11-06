@@ -36,7 +36,7 @@ const meta = {
     },
   },
   args: {
-    preview: <WorkspaceScreen latency={0} />,
+    preview: <WorkspaceScreen latency={0} headingLevel={4} />,
     defaultBrief: th.preset1Text,
     onChange: fn(),
   },
@@ -102,6 +102,14 @@ export const Default: Story = {
       "true",
     );
     await expect(previewScope(canvasElement)?.dataset["designProfile"]).toBe("professional");
+
+    // ORV-225 row 10 (heading-level-1, W6): the studio holds an h2 and the preview an h3, so the
+    // embedded screen opens its title at h4 and the preview adds no h1.
+    const preview = within(canvas.getByRole("region", { name: th.preview }));
+    await expect(preview.queryAllByRole("heading", { level: 1 })).toHaveLength(0);
+    await expect(
+      preview.getByRole("heading", { level: 4, name: "ทีมออกแบบ Brand Canvas" }),
+    ).toBeVisible();
   },
 };
 

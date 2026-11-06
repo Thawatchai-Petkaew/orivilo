@@ -238,6 +238,20 @@ Keep this table in step with the folder when you add an entry.
 | [[K-0141-ai-elements-message-action-label-tooltip-and-copy-without-result-state]]       | 0.8        | AI Elements MessageAction: ghost icon-sm, sr-only label; no copied UI |
 | [[K-0142-ai-elements-conversation-scroll-button-unmounts-at-bottom-no-accessible-name]] | 0.8        | AI Elements scroll button: unmounts at bottom, smooth, no name        |
 | [[K-0143-synthesis-chat-copy-action-and-scroll-to-latest-benchmark]]                    | 0.75       | Synthesis: chat copy action and scroll-to-latest benchmark table      |
+| [[K-0144-untitled-ui-radio-buttons-two-sizes-label-hint-no-invalid]]                    | 0.8        | Untitled radio: sm, md; label, hint; group disable; no invalid state  |
+| [[K-0145-untitled-ui-radio-groups-card-forms-and-no-group-label]]                       | 0.75       | Untitled radio groups: card forms, item disable; source files unread  |
+| [[K-0146-untitled-ui-toggle-base-and-slim-two-sizes-no-invalid]]                        | 0.8        | Untitled Toggle: sm, md; slim form; hover only when on; no invalid    |
+| [[K-0147-shadcn-ui-radio-group-two-parts-item-invalid-no-size]]                         | 0.8        | shadcn Radio Group: no size prop; aria-invalid on each item           |
+| [[K-0148-shadcn-ui-switch-sizes-sm-default-and-invalid-classes]]                        | 0.8        | shadcn Switch: sm, default; aria-invalid; no class in new-york-v4     |
+| [[K-0149-shadcn-ui-field-around-radio-and-switch-is-manual-wiring]]                     | 0.8        | shadcn Field: role group div, no context; wiring by hand              |
+| [[K-0150-radix-radio-group-parts-props-and-keyboard-docs]]                              | 0.8        | Radix Radio Group docs: parts, props, keys; ArrowUp row omits check   |
+| [[K-0151-radix-radio-group-1-5-1-aria-wiring-arrows-check-enter-blocked]]               | 0.8        | Radix radio 1.5.1: arrows check (own reading); Enter blocked          |
+| [[K-0152-radix-switch-parts-keyboard-and-1-4-1-aria-wiring]]                            | 0.8        | Radix Switch 1.4.1: button role switch; Space, Enter; two states      |
+| [[K-0153-wai-aria-apg-radio-group-roles-keyboard-labelling]]                            | 0.8        | APG radio group: roles, Tab and arrows, group and item labels         |
+| [[K-0154-wai-aria-apg-switch-roles-keyboard-fixed-label]]                               | 0.8        | APG switch: Space, Enter optional; label must not change with state   |
+| [[K-0155-wai-aria-1-2-invalid-on-radiogroup-and-switch-deprecated-on-radio]]            | 0.8        | ARIA 1.2: aria-invalid on radiogroup, switch; deprecated on radio     |
+| [[K-0156-html-label-for-names-labelable-elements-only]]                                 | 0.8        | HTML: label for must name a labelable element; a div is not one       |
+| [[K-0157-synthesis-radio-group-and-switch-benchmark]]                                   | 0.75       | Synthesis: RadioGroup and Switch benchmark, audit B form              |
 | [[K-0158-untitled-ui-alerts-floating-full-width-no-size-no-role]]                       | 0.75       | Untitled alerts: floating, full-width; no size; no role on the page   |
 | [[K-0159-untitled-ui-featured-icon-themes-colors-sizes-no-aria]]                        | 0.8        | Untitled FeaturedIcon: themes, colours, sizes sm to xl; sets no aria  |
 | [[K-0160-shadcn-ui-alert-two-variants-role-alert-in-source-only]]                       | 0.8        | shadcn Alert: default, destructive; role alert in source, not docs    |
@@ -251,6 +265,20 @@ Keep this table in step with the folder when you add an entry.
 | [[K-0168-wcag-f81-error-fields-by-color-alone]]                                         | 0.8        | F81: error fields marked by colour alone fail SC 1.4.1                |
 | [[K-0169-wcag-2-2-non-text-contrast-graphics-for-understanding]]                        | 0.8        | SC 1.4.11 (AA): 3:1 for graphics required for understanding           |
 | [[K-0170-synthesis-alert-and-featured-icon-benchmark]]                                  | 0.75       | Synthesis: Alert and FeaturedIcon benchmark table, audit B form       |
+| [[K-0171-untitled-ui-empty-state-sizes-parts-and-header-visuals]]                       | 0.8        | Untitled EmptyState: sm, md, lg; Footer actions; no variant prop      |
+| [[K-0172-untitled-ui-empty-state-h1-main-and-no-live-region]]                           | 0.8        | Untitled EmptyState: h1 and main by default; no status role found     |
+| [[K-0173-untitled-ui-has-no-page-loading-pattern]]                                      | 0.75       | Untitled UI React: no page-loading pattern found; spinner nearest     |
+| [[K-0174-shadcn-ui-empty-parts-one-media-variant-no-size]]                              | 0.8        | shadcn Empty: six parts, EmptyMedia variant, no size, page silent     |
+| [[K-0175-shadcn-ui-empty-source-div-title-and-two-style-sets]]                          | 0.8        | shadcn Empty source: title is a div, no aria, two style sets differ   |
+| [[K-0176-shadcn-ui-spinner-inside-empty-as-the-loading-example]]                        | 0.8        | shadcn loading: Spinner in EmptyMedia, Cancel button, no aria-busy    |
+| [[K-0177-shadcn-ui-no-results-text-in-data-table-and-command]]                          | 0.8        | shadcn no results: table cell text; CommandEmpty, role presentation   |
+| [[K-0178-wcag-2-2-no-results-text-is-a-status-message]]                                 | 0.8        | SC 4.1.3: "No results returned" is a status update; result list isn't |
+| [[K-0179-wai-aria-1-2-progressbar-for-a-loading-region]]                                | 0.8        | ARIA 1.2: progressbar on a loading region, aria-busy until it is done |
+| [[K-0180-wai-aria-apg-feed-aria-busy-back-to-false]]                                    | 0.8        | APG Feed: aria-busy true in updates; false after or changes may hide  |
+| [[K-0181-wai-aria-1-2-one-main-role-and-required-heading-level]]                        | 0.8        | ARIA 1.2: at most one main role (SHOULD); heading needs aria-level    |
+| [[K-0182-whatwg-html-one-visible-main-element]]                                         | 0.8        | WHATWG: one main without hidden; ancestors limited                    |
+| [[K-0183-aria-in-html-main-takes-no-other-role]]                                        | 0.8        | ARIA in HTML: main takes no other role; heading on h1 not recommended |
+| [[K-0184-synthesis-empty-state-and-loading-state-benchmark]]                            | 0.75       | Synthesis: empty state and loading state benchmark, audit B form      |
 | [[K-0185-untitled-ui-avatar-sizes-props-and-slots]]                                     | 0.8        | Untitled Avatar: size xs to 2xl, no variant; slots and option props   |
 | [[K-0186-untitled-ui-avatar-fallback-chain-and-sticky-load-failure]]                    | 0.8        | Untitled: initials, icons, User01; a failed image stays failed        |
 | [[K-0187-untitled-ui-avatar-one-indicator-and-unnamed-status-dot]]                      | 0.8        | Untitled: one indicator at a time; dot differs by colour, no text     |
@@ -270,6 +298,39 @@ Keep this table in step with the folder when you add an entry.
 | [[K-0201-wcag-2-2-use-of-color-and-non-text-contrast-for-a-dot]]                        | 0.8        | SC 1.4.1 and 1.4.11: colour alone, status icon contrast; no dot named |
 | [[K-0202-initials-for-thai-silence-and-charat]]                                         | 0.75       | Sources silent on Thai initials; getInitials uses charAt(0)           |
 | [[K-0203-synthesis-avatar-benchmark]]                                                   | 0.75       | Synthesis: Avatar benchmark table, audit B form                       |
+| [[K-0204-untitled-ui-sidebar-five-variants-and-item-shape]]                             | 0.75       | Untitled sidebars: 5 variants; widths 280, 280, 68, 276, 276 px       |
+| [[K-0205-untitled-ui-sidebar-nested-details-and-aria-current]]                          | 0.8        | Untitled NavList: details nesting, aria-current, aside with no nav    |
+| [[K-0206-untitled-ui-slim-rail-nav-button-and-hover-panel]]                             | 0.8        | Untitled Slim: NavButton has no aria-current, panel on hover only     |
+| [[K-0207-untitled-ui-mobile-navigation-header-below-lg]]                                | 0.8        | Untitled below lg: header bar and modal; Slim list has no activeUrl   |
+| [[K-0208-untitled-ui-header-navigation-variants-and-active-match]]                      | 0.8        | Untitled header: Simple, Dual-tier; active by exact or prefix match   |
+| [[K-0209-untitled-ui-header-navigation-landmarks-and-drawer]]                           | 0.8        | Untitled header: unnamed nav, no aria-current, drawer below lg        |
+| [[K-0210-untitled-ui-page-header-six-variants-no-props-h1]]                             | 0.8        | Untitled Page headers: 6 compositions, no props, real h1              |
+| [[K-0211-untitled-ui-section-header-parts-h2-and-section-label]]                        | 0.8        | Untitled SectionHeader: 5 parts, 6 examples (own count), h2           |
+| [[K-0212-untitled-ui-breadcrumbs-types-collapse-and-current]]                           | 0.8        | Untitled Breadcrumbs: maxVisibleItems 4, last item aria-current       |
+| [[K-0213-shadcn-ui-sidebar-parts-variants-and-collapsible-modes]]                       | 0.8        | shadcn Sidebar: sidebar, floating, inset; offcanvas, icon or none     |
+| [[K-0214-shadcn-ui-sidebar-state-cookie-shortcut-and-widths]]                           | 0.8        | shadcn Sidebar: 16, 18, 3rem; cookie 7 days; Cmd/Ctrl+b; 768 px       |
+| [[K-0215-shadcn-ui-sidebar-menu-button-sizes-and-data-active]]                          | 0.8        | shadcn MenuButton: sm, default, lg; data-active, no aria-current      |
+| [[K-0216-shadcn-ui-sidebar-source-landmarks-and-collapse-mechanism]]                    | 0.8        | shadcn sidebar.tsx: no nav, no aside; offcanvas moves off screen      |
+| [[K-0217-shadcn-ui-sidebar-mobile-sheet-on-radix-dialog]]                               | 0.8        | shadcn mobile sidebar: Sheet on Radix Dialog, sr-only English title   |
+| [[K-0218-shadcn-ui-sidebar-nested-collapsible-and-icon-mode]]                           | 0.8        | shadcn nesting: Collapsible, defaultOpen from isActive, icon hides    |
+| [[K-0219-shadcn-ui-navigation-menu-parts-and-viewport]]                                 | 0.8        | shadcn Navigation Menu: viewport prop, data-active, md classes        |
+| [[K-0220-radix-navigation-menu-api-keyboard-and-not-a-menu-role]]                       | 0.8        | Radix Navigation Menu: delays 200 and 300, not the menu role          |
+| [[K-0221-radix-navigation-menu-source-aria-and-mouse-only-hover]]                       | 0.8        | Radix source: nav named Main, Link sets aria-current, mouse hover     |
+| [[K-0222-shadcn-ui-breadcrumb-current-page-span-role-link]]                             | 0.8        | shadcn Breadcrumb: nav, ol; current page a span with role link        |
+| [[K-0223-shadcn-ui-no-page-header-and-radix-no-sidebar]]                                | 0.75       | shadcn: no page header entry; Radix: no Sidebar primitive found       |
+| [[K-0224-wai-aria-apg-landmark-regions-and-labels]]                                     | 0.8        | APG landmarks: unique labels, one main, seven or fewer as a guide     |
+| [[K-0225-html-aria-header-nav-aside-roles-and-h97]]                                     | 0.8        | ARIA in HTML: header is banner at top level, aside complementary      |
+| [[K-0226-wai-aria-1-2-aria-current-values-and-one-per-set]]                             | 0.8        | WAI-ARIA 1.2: aria-current values, one element per set                |
+| [[K-0227-wcag-2-2-location-aria26-and-g128]]                                            | 0.8        | WCAG SC 2.4.8 Location (AAA): G65, G63, G128, ARIA26                  |
+| [[K-0228-wai-aria-apg-breadcrumb-current-page]]                                         | 0.8        | APG Breadcrumb: named nav, aria-current optional on a non-link        |
+| [[K-0229-wai-aria-apg-disclosure-navigation-not-menu-role]]                             | 0.8        | APG disclosure navigation: buttons with aria-expanded, no menu role   |
+| [[K-0230-wcag-2-2-heading-order-advisory-not-required]]                                 | 0.8        | WCAG 2.2 pages read: heading order is guidance, not a criterion       |
+| [[K-0231-whatwg-heading-levels-and-wai-tutorial-fixed-sections]]                        | 0.8        | WHATWG: heading one level deeper at most; WAI: fixed sections         |
+| [[K-0232-wcag-2-2-bypass-blocks-techniques]]                                            | 0.8        | WCAG SC 2.4.1 Bypass Blocks (A): skip link, landmarks, headings       |
+| [[K-0233-wcag-2-2-reflow-and-consistent-navigation]]                                    | 0.8        | WCAG Reflow at 320 px (AA); Consistent Navigation (AA)                |
+| [[K-0234-wcag-2-2-focus-order-and-focus-not-obscured]]                                  | 0.8        | WCAG Focus Order (A), Focus Not Obscured (AA): modal, sticky header   |
+| [[K-0235-wcag-2-2-target-size-minimum-for-nav-items]]                                   | 0.8        | WCAG SC 2.5.8 (AA): 24 by 24 CSS px targets, with exceptions          |
+| [[K-0236-synthesis-app-navigation-and-headers-benchmark]]                               | 0.75       | Synthesis: app navigation and headers benchmark, four audit B tables  |
 | [[K-0260-untitled-ui-file-uploaders-examples-and-props]]                                | 0.75       | Untitled uploader: 5 examples (own count), DropZone props, no size    |
 | [[K-0261-untitled-ui-list-progress-bar-and-fill-items]]                                 | 0.8        | Untitled list: name, size, progress 0 to 100; bar or fill item        |
 | [[K-0262-untitled-ui-failed-item-try-again-and-delete]]                                 | 0.8        | Untitled failed: boolean, error ring, Try again; no reason field      |

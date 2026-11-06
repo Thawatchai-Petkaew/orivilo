@@ -46,6 +46,20 @@ Facts from outside design systems and standards that inform ORIVILO's own design
 | [[K-0133-wai-aria-apg-no-non-modal-dialog-pattern-tooltip-note]]               | WAI-ARIA APG: popover and non-modal dialog guidance, Tooltip note      |
 | [[K-0134-wcag-2-2-content-on-hover-or-focus-dismissible-hoverable-persistent]] | WCAG 2.2 SC 1.4.13 Content on Hover or Focus                           |
 | [[K-0135-synthesis-evidence-span-and-evidence-list-benchmark]]                 | Synthesis of K-0127 to K-0134: EvidenceSpan and EvidenceList table     |
+| [[K-0144-untitled-ui-radio-buttons-two-sizes-label-hint-no-invalid]]           | Untitled UI Radio buttons: sizes, props, states, keyboard              |
+| [[K-0145-untitled-ui-radio-groups-card-forms-and-no-group-label]]              | Untitled UI Radio groups: card forms, item shape, group label          |
+| [[K-0146-untitled-ui-toggle-base-and-slim-two-sizes-no-invalid]]               | Untitled UI Toggles: base, slim, sizes, states, label                  |
+| [[K-0147-shadcn-ui-radio-group-two-parts-item-invalid-no-size]]                | shadcn/ui Radio Group: parts, examples, invalid, registry classes      |
+| [[K-0148-shadcn-ui-switch-sizes-sm-default-and-invalid-classes]]               | shadcn/ui Switch: sizes, examples, invalid, registry classes           |
+| [[K-0149-shadcn-ui-field-around-radio-and-switch-is-manual-wiring]]            | shadcn/ui Field around a radio or switch: how it is wired              |
+| [[K-0150-radix-radio-group-parts-props-and-keyboard-docs]]                     | Radix Radio Group docs: parts, props, data attributes, keyboard        |
+| [[K-0151-radix-radio-group-1-5-1-aria-wiring-arrows-check-enter-blocked]]      | Radix Radio Group 1.5.1 build: roles, arrows, Enter, hidden input      |
+| [[K-0152-radix-switch-parts-keyboard-and-1-4-1-aria-wiring]]                   | Radix Switch: parts, keyboard, 1.4.1 build wiring                      |
+| [[K-0153-wai-aria-apg-radio-group-roles-keyboard-labelling]]                   | WAI-ARIA APG Radio Group: roles, keyboard, labelling, toolbar          |
+| [[K-0154-wai-aria-apg-switch-roles-keyboard-fixed-label]]                      | WAI-ARIA APG Switch: roles, keyboard, labelling, groups                |
+| [[K-0155-wai-aria-1-2-invalid-on-radiogroup-and-switch-deprecated-on-radio]]   | WAI-ARIA 1.2: where aria-invalid and aria-required are allowed         |
+| [[K-0156-html-label-for-names-labelable-elements-only]]                        | HTML: what a label's for attribute may point at                        |
+| [[K-0157-synthesis-radio-group-and-switch-benchmark]]                          | Synthesis of K-0144 to K-0156: RadioGroup and Switch benchmark table   |
 | [[K-0158-untitled-ui-alerts-floating-full-width-no-size-no-role]]              | Untitled UI Alerts: forms, colours, slots, what the page leaves out    |
 | [[K-0159-untitled-ui-featured-icon-themes-colors-sizes-no-aria]]               | Untitled UI FeaturedIcon: themes, colours, sizes, page and source      |
 | [[K-0160-shadcn-ui-alert-two-variants-role-alert-in-source-only]]              | shadcn/ui Alert: parts, variants, role, classes by style               |
@@ -59,6 +73,20 @@ Facts from outside design systems and standards that inform ORIVILO's own design
 | [[K-0168-wcag-f81-error-fields-by-color-alone]]                                | WCAG failure F81: required or error fields by colour only              |
 | [[K-0169-wcag-2-2-non-text-contrast-graphics-for-understanding]]               | WCAG 2.2 SC 1.4.11: which graphics need 3:1                            |
 | [[K-0170-synthesis-alert-and-featured-icon-benchmark]]                         | Synthesis of K-0158 to K-0169: Alert and FeaturedIcon table            |
+| [[K-0171-untitled-ui-empty-state-sizes-parts-and-header-visuals]]              | Untitled UI EmptyState: sizes, parts, header visuals, demos            |
+| [[K-0172-untitled-ui-empty-state-h1-main-and-no-live-region]]                  | Untitled UI EmptyState: elements, overrides, announcing, motion        |
+| [[K-0173-untitled-ui-has-no-page-loading-pattern]]                             | Does Untitled UI React have a page-loading pattern                     |
+| [[K-0174-shadcn-ui-empty-parts-one-media-variant-no-size]]                     | shadcn/ui Empty page: parts, variant, examples, accessibility          |
+| [[K-0175-shadcn-ui-empty-source-div-title-and-two-style-sets]]                 | shadcn/ui Empty source: elements, ARIA, values in two style sets       |
+| [[K-0176-shadcn-ui-spinner-inside-empty-as-the-loading-example]]               | shadcn/ui loading state: the Spinner page's Empty example              |
+| [[K-0177-shadcn-ui-no-results-text-in-data-table-and-command]]                 | shadcn/ui and cmdk: no-results text in Data Table and Command          |
+| [[K-0178-wcag-2-2-no-results-text-is-a-status-message]]                        | WCAG 2.2 SC 4.1.3 and ARIA22: search and no-results messages           |
+| [[K-0179-wai-aria-1-2-progressbar-for-a-loading-region]]                       | WAI-ARIA 1.2 progressbar and aria-busy on a loading region             |
+| [[K-0180-wai-aria-apg-feed-aria-busy-back-to-false]]                           | WAI-ARIA APG Feed: aria-busy during an update                          |
+| [[K-0181-wai-aria-1-2-one-main-role-and-required-heading-level]]               | WAI-ARIA 1.2 role main and role heading                                |
+| [[K-0182-whatwg-html-one-visible-main-element]]                                | WHATWG HTML: how many main elements, and where                         |
+| [[K-0183-aria-in-html-main-takes-no-other-role]]                               | ARIA in HTML: allowed roles on main, h1 to h6, header, footer          |
+| [[K-0184-synthesis-empty-state-and-loading-state-benchmark]]                   | Synthesis of K-0171 to K-0183: empty and loading benchmark table       |
 | [[K-0185-untitled-ui-avatar-sizes-props-and-slots]]                            | Untitled UI Avatar: sizes, props, slots, related components            |
 | [[K-0186-untitled-ui-avatar-fallback-chain-and-sticky-load-failure]]           | Untitled UI Avatar: fallback order and what a load failure does        |
 | [[K-0187-untitled-ui-avatar-one-indicator-and-unnamed-status-dot]]             | Untitled UI Avatar: indicators and what the status dot is              |
@@ -78,6 +106,39 @@ Facts from outside design systems and standards that inform ORIVILO's own design
 | [[K-0201-wcag-2-2-use-of-color-and-non-text-contrast-for-a-dot]]               | WCAG 2.2 SC 1.4.1 and 1.4.11 as they bear on a status dot              |
 | [[K-0202-initials-for-thai-silence-and-charat]]                                | Do the sources say how to make Thai initials; what getInitials does    |
 | [[K-0203-synthesis-avatar-benchmark]]                                          | Synthesis of K-0185 to K-0202: Avatar benchmark table                  |
+| [[K-0204-untitled-ui-sidebar-five-variants-and-item-shape]]                    | Untitled sidebars: 5 variants; widths 280, 280, 68, 276, 276 px        |
+| [[K-0205-untitled-ui-sidebar-nested-details-and-aria-current]]                 | Untitled NavList: details nesting, aria-current, aside with no nav     |
+| [[K-0206-untitled-ui-slim-rail-nav-button-and-hover-panel]]                    | Untitled Slim: NavButton has no aria-current, panel on hover only      |
+| [[K-0207-untitled-ui-mobile-navigation-header-below-lg]]                       | Untitled below lg: header bar and modal; Slim list has no activeUrl    |
+| [[K-0208-untitled-ui-header-navigation-variants-and-active-match]]             | Untitled header: Simple, Dual-tier; active by exact or prefix match    |
+| [[K-0209-untitled-ui-header-navigation-landmarks-and-drawer]]                  | Untitled header: unnamed nav, no aria-current, drawer below lg         |
+| [[K-0210-untitled-ui-page-header-six-variants-no-props-h1]]                    | Untitled Page headers: 6 compositions, no props, real h1               |
+| [[K-0211-untitled-ui-section-header-parts-h2-and-section-label]]               | Untitled SectionHeader: 5 parts, 6 examples (own count), h2            |
+| [[K-0212-untitled-ui-breadcrumbs-types-collapse-and-current]]                  | Untitled Breadcrumbs: maxVisibleItems 4, last item aria-current        |
+| [[K-0213-shadcn-ui-sidebar-parts-variants-and-collapsible-modes]]              | shadcn Sidebar: sidebar, floating, inset; offcanvas, icon or none      |
+| [[K-0214-shadcn-ui-sidebar-state-cookie-shortcut-and-widths]]                  | shadcn Sidebar: 16, 18, 3rem; cookie 7 days; Cmd/Ctrl+b; 768 px        |
+| [[K-0215-shadcn-ui-sidebar-menu-button-sizes-and-data-active]]                 | shadcn MenuButton: sm, default, lg; data-active, no aria-current       |
+| [[K-0216-shadcn-ui-sidebar-source-landmarks-and-collapse-mechanism]]           | shadcn sidebar.tsx: no nav, no aside; offcanvas moves off screen       |
+| [[K-0217-shadcn-ui-sidebar-mobile-sheet-on-radix-dialog]]                      | shadcn mobile sidebar: Sheet on Radix Dialog, sr-only English title    |
+| [[K-0218-shadcn-ui-sidebar-nested-collapsible-and-icon-mode]]                  | shadcn nesting: Collapsible, defaultOpen from isActive, icon hides     |
+| [[K-0219-shadcn-ui-navigation-menu-parts-and-viewport]]                        | shadcn Navigation Menu: viewport prop, data-active, md classes         |
+| [[K-0220-radix-navigation-menu-api-keyboard-and-not-a-menu-role]]              | Radix Navigation Menu: delays 200 and 300, not the menu role           |
+| [[K-0221-radix-navigation-menu-source-aria-and-mouse-only-hover]]              | Radix source: nav named Main, Link sets aria-current, mouse hover      |
+| [[K-0222-shadcn-ui-breadcrumb-current-page-span-role-link]]                    | shadcn Breadcrumb: nav, ol; current page a span with role link         |
+| [[K-0223-shadcn-ui-no-page-header-and-radix-no-sidebar]]                       | shadcn: no page header entry; Radix: no Sidebar primitive found        |
+| [[K-0224-wai-aria-apg-landmark-regions-and-labels]]                            | APG landmarks: unique labels, one main, seven or fewer as a guide      |
+| [[K-0225-html-aria-header-nav-aside-roles-and-h97]]                            | ARIA in HTML: header is banner at top level, aside complementary       |
+| [[K-0226-wai-aria-1-2-aria-current-values-and-one-per-set]]                    | WAI-ARIA 1.2: aria-current values, one element per set                 |
+| [[K-0227-wcag-2-2-location-aria26-and-g128]]                                   | WCAG SC 2.4.8 Location (AAA): G65, G63, G128, ARIA26                   |
+| [[K-0228-wai-aria-apg-breadcrumb-current-page]]                                | APG Breadcrumb: named nav, aria-current optional on a non-link         |
+| [[K-0229-wai-aria-apg-disclosure-navigation-not-menu-role]]                    | APG disclosure navigation: buttons with aria-expanded, no menu role    |
+| [[K-0230-wcag-2-2-heading-order-advisory-not-required]]                        | WCAG 2.2 pages read: heading order is guidance, not a criterion        |
+| [[K-0231-whatwg-heading-levels-and-wai-tutorial-fixed-sections]]               | WHATWG: heading one level deeper at most; WAI: fixed sections          |
+| [[K-0232-wcag-2-2-bypass-blocks-techniques]]                                   | WCAG SC 2.4.1 Bypass Blocks (A): skip link, landmarks, headings        |
+| [[K-0233-wcag-2-2-reflow-and-consistent-navigation]]                           | WCAG Reflow at 320 px (AA); Consistent Navigation (AA)                 |
+| [[K-0234-wcag-2-2-focus-order-and-focus-not-obscured]]                         | WCAG Focus Order (A), Focus Not Obscured (AA): modal, sticky header    |
+| [[K-0235-wcag-2-2-target-size-minimum-for-nav-items]]                          | WCAG SC 2.5.8 (AA): 24 by 24 CSS px targets, with exceptions           |
+| [[K-0236-synthesis-app-navigation-and-headers-benchmark]]                      | Synthesis of K-0204 to K-0235: app navigation and headers, four tables |
 | [[K-0260-untitled-ui-file-uploaders-examples-and-props]]                       | Untitled UI file uploaders: examples, parts, props, sizes, variants    |
 | [[K-0261-untitled-ui-list-progress-bar-and-fill-items]]                        | Untitled UI upload list: progress, complete, item forms                |
 | [[K-0262-untitled-ui-failed-item-try-again-and-delete]]                        | Untitled UI failed item: text, retry, delete                           |

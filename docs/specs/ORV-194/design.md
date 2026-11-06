@@ -174,7 +174,7 @@ Recommended: **A**. The same defect sits in every label and heading of these siz
 1. Insert a shallow clone of `el` (`cloneNode(false)`, so the same classes, recipe and line height) right after `el`, at `el`'s width.
 2. Fill it with two forced lines: `<span>ฟูฟูฟูปู่ปู่ฟูฟู</span><br><span>ฟื้ฟื้ฟื้ปี๊ปี๊ฟื้ฟื้</span>`. The first span is coloured `rgb(224, 0, 0)` and the second `rgb(0, 0, 224)`, inline; this is test paint and is never shipped.
 3. Take one screenshot of the clone with the internal `shoot`.
-4. In each pixel column, take the rows between the lowest red pixel (red channel above both others by more than 40) and the highest blue pixel (blue above both others by more than 40). The gap is the smallest over all columns, in CSS px.
+4. In each pixel column, take the rows between the lowest red pixel (red channel above both others by more than 40) and the highest blue pixel (blue above both others by more than 40). The gap is the smallest over all columns, in CSS px. Changed by ORV-221 (PR 187): the helper now reads each ink edge inside its pixel row from the share of ink and paints the clone in grey antialiasing, because whole rows read 0 for a true gap of 0.71 px on Linux at device scale 1. The floor is unchanged.
 5. Assert `gap >= px - 1 / devicePixelRatio`, then remove the clone in `finally`.
 
 Why the floor subtracts one device pixel: antialiasing. The same rendered gap reads 1 at scale 1 and 1.5 to 2 at scale 4 (`r6/gap-dsf.txt`). The check fails today: 0 or less at scale 1, and under 1 at scale 2. It passes after route A.

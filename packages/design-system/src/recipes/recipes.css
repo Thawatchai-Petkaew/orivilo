@@ -788,6 +788,139 @@
   letter-spacing: var(--cmp-checkbox-label-type-sm-letter-spacing);
 }
 
+/* RadioGroup (ORV-221): one of a short list, every option in view. The circle is round in every
+   profile (shape.round.radius). Checked reads the selection tokens, not action.primary. ------- */
+
+.ds-radio-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--cmp-radio-group-gap);
+  min-inline-size: 0;
+}
+.ds-radio-group[data-layout="horizontal"] {
+  flex-direction: row;
+  flex-wrap: wrap;
+  column-gap: var(--ds-space-stack-md);
+}
+/* The group draws no focus: the radios do. The root takes programmatic focus (a click on a
+   description, then a key), and the global :focus-visible band would wrap the whole group. */
+.ds-radio-group:focus-visible {
+  outline: none;
+  box-shadow: var(--_focus-shadow-none);
+}
+.ds-radio {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--cmp-radio-gap);
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+.ds-radio__control {
+  --_size: var(--cmp-radio-size);
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: var(--_size);
+  block-size: var(--_size);
+  padding: 0;
+  /* The circle takes the label's type so 1lh is the label's first line: it centres on it, as
+     .ds-checkbox__box does. */
+  font-size: var(--cmp-radio-label-type-font-size);
+  line-height: var(--cmp-radio-label-type-line-height);
+  margin-block-start: calc((1lh - var(--_size)) / 2);
+  border: 1px solid var(--cmp-radio-border);
+  border-radius: var(--cmp-radio-radius);
+  background: var(--cmp-radio-bg);
+  color: var(--cmp-radio-dot);
+  cursor: pointer;
+  transition:
+    background-color var(--ds-motion-feedback-duration) var(--ds-motion-easing),
+    border-color var(--ds-motion-feedback-duration) var(--ds-motion-easing);
+}
+/* A transparent extension keeps a 24 px target around the circle (WCAG 2.5.8). Inset from the
+   padding box, so the 1px border is added back. */
+.ds-radio__control::after {
+  content: "";
+  position: absolute;
+  inset: calc((var(--_size) - var(--cmp-radio-target-min)) / 2 - 1px);
+}
+.ds-radio__control[data-state="checked"] {
+  background: var(--cmp-radio-bg-checked);
+  border-color: var(--cmp-radio-border-checked);
+}
+/* Row hover lights the edge from the row's content only (the group's align-items keeps a row as
+   wide as its content). An invalid group does not take it: the error edge stays through hover. */
+.ds-radio-group:not([aria-invalid="true"])
+  .ds-radio:hover
+  .ds-radio__control[data-state="unchecked"]:not([data-disabled]):not(:focus-visible) {
+  border-color: var(--cmp-radio-border-hover);
+}
+.ds-radio-group:not([aria-invalid="true"])
+  .ds-radio:hover
+  .ds-radio__control[data-state="checked"]:not([data-disabled]):not(:focus-visible) {
+  border-color: var(--cmp-radio-border-checked-hover);
+}
+.ds-radio-group[aria-invalid="true"] .ds-radio__control {
+  border-color: var(--cmp-radio-border-error);
+}
+/* Focus (ORV-192 row 9): the circle's border turns to focus.ring with the halo on it. A checked
+   radio adds a 1 px inner line through --_inner (as .ds-checkbox__box), so its border reads twice
+   as wide as the rest line. Invalid keeps its red, on the border and on the inner line. */
+.ds-radio__control:focus-visible {
+  border-color: var(--ds-focus-ring);
+  outline: 1px solid transparent;
+  outline-offset: 0;
+  box-shadow: var(--_focus-shadow-border);
+}
+.ds-radio__control[data-state="checked"]:focus-visible {
+  --_inner: inset 0 0 0 1px var(--ds-focus-ring);
+  box-shadow: var(--_inner), var(--_focus-shadow-border);
+}
+.ds-radio-group[aria-invalid="true"] .ds-radio__control:focus-visible {
+  border-color: var(--cmp-radio-border-error);
+}
+.ds-radio-group[aria-invalid="true"] .ds-radio__control[data-state="checked"]:focus-visible {
+  --_inner: inset 0 0 0 1px var(--cmp-radio-border-error);
+}
+.ds-radio-group .ds-radio__control[data-disabled] {
+  background: var(--cmp-radio-bg-disabled);
+  border-color: var(--cmp-radio-border-disabled);
+  color: var(--cmp-radio-dot-disabled);
+  cursor: not-allowed;
+}
+.ds-radio__label {
+  color: var(--cmp-field-label);
+  font-family: var(--cmp-radio-label-type-font-family);
+  font-size: var(--cmp-radio-label-type-font-size);
+  line-height: var(--cmp-radio-label-type-line-height);
+  font-weight: var(--cmp-radio-label-type-font-weight);
+  letter-spacing: var(--cmp-radio-label-type-letter-spacing);
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.ds-radio[data-disabled] .ds-radio__label,
+.ds-radio[data-disabled] .ds-field__description {
+  color: var(--ds-text-disabled);
+}
+.ds-radio[data-disabled] .ds-radio__label {
+  cursor: not-allowed;
+}
+.ds-radio-group[data-size="sm"] .ds-radio__control {
+  --_size: var(--cmp-radio-size-sm);
+  font-size: var(--cmp-radio-label-type-sm-font-size);
+  line-height: var(--cmp-radio-label-type-sm-line-height);
+}
+.ds-radio-group[data-size="sm"] .ds-radio__label {
+  font-family: var(--cmp-radio-label-type-sm-font-family);
+  font-size: var(--cmp-radio-label-type-sm-font-size);
+  line-height: var(--cmp-radio-label-type-sm-line-height);
+  font-weight: var(--cmp-radio-label-type-sm-font-weight);
+  letter-spacing: var(--cmp-radio-label-type-sm-letter-spacing);
+}
+
 /* Field: label, description, error around a control --------------------------------------- */
 
 .ds-field {
@@ -1610,6 +1743,81 @@
   min-inline-size: 0;
 }
 
+/* Empty state (ORV-223): md is a centred column, sm starts at the line's start. */
+.ds-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--cmp-empty-state-gap-md);
+  min-inline-size: 0;
+  max-inline-size: var(--cmp-empty-state-max-width);
+  margin-inline: auto;
+  text-align: center;
+}
+.ds-empty-state__body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--cmp-empty-state-gap-md);
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+.ds-empty-state__text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmp-empty-state-text-gap);
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+.ds-empty-state__title,
+.ds-empty-state__description {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.ds-empty-state__title {
+  color: var(--cmp-empty-state-title);
+  font-family: var(--cmp-empty-state-title-type-font-family);
+  font-size: var(--cmp-empty-state-title-type-font-size);
+  line-height: var(--cmp-empty-state-title-type-line-height);
+  font-weight: var(--cmp-empty-state-title-type-font-weight);
+  letter-spacing: var(--cmp-empty-state-title-type-letter-spacing);
+}
+.ds-empty-state__description {
+  color: var(--cmp-empty-state-description);
+  font-family: var(--cmp-empty-state-body-type-font-family);
+  font-size: var(--cmp-empty-state-body-type-font-size);
+  line-height: var(--cmp-empty-state-body-type-line-height);
+  font-weight: var(--cmp-empty-state-body-type-font-weight);
+  letter-spacing: var(--cmp-empty-state-body-type-letter-spacing);
+}
+.ds-empty-state__action {
+  display: flex;
+  max-inline-size: 100%;
+}
+.ds-empty-state[data-size="sm"] {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: var(--cmp-empty-state-gap-sm);
+  max-inline-size: none;
+  margin-inline: 0;
+  text-align: start;
+}
+.ds-empty-state[data-size="sm"] > .ds-empty-state__body {
+  flex: 1 1 auto;
+  align-items: flex-start;
+  gap: var(--cmp-empty-state-action-gap);
+}
+/* with a tile, the title's first line centres on it; later lines flow under it */
+.ds-empty-state[data-size="sm"] > .ds-featured-icon + .ds-empty-state__body {
+  padding-block-start: calc(
+    (
+        var(--cmp-featured-icon-size-sm) - var(--cmp-empty-state-title-type-font-size) *
+          var(--cmp-empty-state-title-type-line-height)
+      ) /
+      2
+  );
+}
+
 /* Avatar (ORV-224). Round under each profile by clip, the form Skeleton's circle uses. No border,
  * no shadow, no motion. `overflow` adds no look; the clip checks read it. `contain: paint` keeps
  * the round edge at a sub-pixel position, where the clip alone leaves a flat top (R1). */
@@ -1753,7 +1961,7 @@
 .ds-board__overlay > * {
   pointer-events: auto;
 }
-.ds-board__overlay p {
+.ds-board__overlay > p {
   margin: 0;
 }
 .ds-board__spinner {
@@ -4010,6 +4218,10 @@
   background: var(--cmp-featured-icon-info-bg);
   color: var(--cmp-featured-icon-info-fg);
 }
+.ds-featured-icon[data-variant="neutral"] {
+  background: var(--cmp-featured-icon-neutral-bg);
+  color: var(--cmp-featured-icon-neutral-fg);
+}
 
 /* Alert (ORV-222) ---------------------------------------------------------------------------- */
 
@@ -4576,8 +4788,7 @@ button.ds-tag__main {
   font-weight: var(--cmp-taskbar-meta-type-font-weight);
   letter-spacing: var(--cmp-taskbar-meta-type-letter-spacing);
 }
-.ds-taskbar__reason,
-.ds-taskbar__empty {
+.ds-taskbar__reason {
   margin: 0;
   overflow-wrap: anywhere;
   font-family: var(--cmp-taskbar-body-type-font-family);
@@ -4585,15 +4796,12 @@ button.ds-tag__main {
   line-height: var(--cmp-taskbar-body-type-line-height);
   font-weight: var(--cmp-taskbar-body-type-font-weight);
   letter-spacing: var(--cmp-taskbar-body-type-letter-spacing);
-}
-.ds-taskbar__reason {
   grid-area: reason;
   margin-block-start: var(--cmp-taskbar-line-gap);
   color: var(--cmp-taskbar-reason-fg);
 }
 .ds-taskbar__empty {
   padding: var(--cmp-taskbar-row-block) var(--cmp-taskbar-padding-x);
-  color: var(--cmp-taskbar-muted-fg);
 }
 .ds-taskbar__actions {
   grid-area: actions;
@@ -4631,6 +4839,7 @@ button.ds-tag__main {
   inset-block-end: var(--ds-space-inset-md);
   z-index: var(--cmp-taskbar-layer);
   box-shadow: var(--cmp-taskbar-shadow);
+  anchor-name: --ds-board-taskbar;
 }
 .ds-board:has(.ds-taskbar) {
   --_lift: calc(
@@ -4679,6 +4888,68 @@ button.ds-tag__main {
   .ds-board:has(.ds-shelf) .ds-board__status {
     position-anchor: --ds-board-shelf;
     bottom: calc(anchor(top) + var(--ds-space-inset-md));
+  }
+}
+/* The empty form never sits under the toolbar (ORV-223 D15). Without anchor positioning it starts at
+ * the top: the toolbar's height cannot be read, and clear beats centred. */
+.ds-board:has(.ds-controls) .ds-board__overlay:has(> .ds-empty-state) {
+  justify-content: flex-start;
+}
+/* The box is symmetric about the board's centre while there is room, so the form stays centred. When
+ * the form outgrows it, the auto margins fall to 0 and the reversed column grows it upward, away from
+ * the toolbar. A status line adds its own height: 41.8 px of padding, line and border, then 8 px. It
+ * is summed from the tokens that draw `.ds-board__status` (the pill comes after the overlay in the
+ * DOM, so the overlay cannot anchor to it); change its padding, type or border and this changes too. */
+@supports (anchor-name: --a) {
+  .ds-board:has(.ds-controls) .ds-board__overlay:has(> .ds-empty-state) {
+    --_clear: var(--ds-space-inset-md);
+    position-anchor: --ds-board-controls;
+    top: min(calc(anchor(top) - var(--_clear)), calc(100% - anchor(top) + var(--_clear)));
+    bottom: calc(anchor(top) + var(--_clear));
+    flex-direction: column-reverse;
+    padding-block: 0;
+  }
+  .ds-board:has(.ds-shelf) .ds-board__overlay:has(> .ds-empty-state) {
+    position-anchor: --ds-board-shelf;
+  }
+  .ds-board:has(.ds-board__status:not(:empty)) .ds-board__overlay:has(> .ds-empty-state) {
+    --_clear: calc(
+      var(--ds-space-inset-md) + 2 * var(--ds-space-inset-sm) +
+        var(--cmp-node-body-type-font-size) * var(--cmp-node-body-type-line-height) + 2px +
+        var(--ds-space-stack-sm)
+    );
+  }
+  .ds-board:has(.ds-controls) .ds-board__overlay > .ds-empty-state {
+    margin-block: auto;
+  }
+}
+/* With the bar's panel open the card covers the toolbar, so the form clears the higher of the two
+ * (ORV-223 D16). The pill has gone up to the board's start edge, so it adds nothing to the clear.
+ * The action stops rising one inset under the board's top: a full list must not push it off the
+ * board, where neither a pointer nor the focus line can reach it. */
+@supports (anchor-name: --a) {
+  .ds-board:has(.ds-controls):has(.ds-taskbar__panel:not([hidden]))
+    .ds-board__overlay:has(> .ds-empty-state) {
+    --_clear: var(--ds-space-inset-md);
+    --_floor: calc(var(--cmp-button-height-md) + var(--ds-space-inset-md));
+    top: min(
+      max(
+        min(
+          calc(anchor(top) - var(--_clear)),
+          calc(anchor(--ds-board-taskbar top) - var(--_clear))
+        ),
+        var(--_floor)
+      ),
+      max(
+        calc(100% - anchor(top) + var(--_clear)),
+        calc(100% - anchor(--ds-board-taskbar top) + var(--_clear))
+      ),
+      calc(100% - var(--_floor))
+    );
+    bottom: min(
+      max(calc(anchor(top) + var(--_clear)), calc(anchor(--ds-board-taskbar top) + var(--_clear))),
+      calc(100% - var(--_floor))
+    );
   }
 }
 /* An open list adds up to its capped height to the bar. Only the status line clears it, and never
@@ -5449,4 +5720,87 @@ button.ds-tag__main {
   outline: 1px solid transparent;
   outline-offset: 0;
   box-shadow: var(--_focus-shadow-border);
+}
+
+/* Page header (ORV-225, page-header-slots-1, header-type-1, header-stack-1): a title, a line of
+ * description, a row of labels and the page's actions. The root is a size container named
+ * ds-page-header, because the parts nest in each other and in the screen's own container; a
+ * container cannot be styled by its own query, so the row is the child that changes. The title
+ * takes the size, weight and family of type.display.md, the 1.7 line of type.heading.sm so wrapped
+ * Thai lines clear (ORV-194) and 8 px of top padding, where the 1.7 line already lowers the ink. */
+
+.ds-page-header {
+  container: ds-page-header / inline-size;
+  inline-size: 100%;
+  min-inline-size: 0;
+}
+/* From 480 up the title block keeps nine title sizes (288 px under neutral) and the actions wrap
+ * under it, on the same start edge, when they would leave it less (header-stack-1). The basis sits
+ * here, above the @container block, which stays last: at 479 and below its flex: none must win,
+ * because in a column the basis would be a height. */
+.ds-page-header__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--ds-space-inset-md);
+}
+.ds-page-header__text {
+  display: flex;
+  flex: 1 1 calc(9 * var(--ds-type-display-md-font-size));
+  flex-direction: column;
+  gap: var(--ds-space-stack-sm);
+  min-inline-size: 0;
+}
+.ds-page-header__title {
+  margin: 0;
+  padding-block-start: var(--ds-space-stack-sm);
+  color: var(--ds-text-primary);
+  font-family: var(--ds-type-display-md-font-family);
+  font-size: var(--ds-type-display-md-font-size);
+  line-height: var(--ds-type-heading-sm-line-height);
+  font-weight: var(--ds-type-display-md-font-weight);
+  letter-spacing: var(--ds-type-display-md-letter-spacing);
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+.ds-page-header__description {
+  margin: 0;
+  max-inline-size: 65ch;
+  color: var(--ds-text-secondary);
+  font-family: var(--ds-type-body-md-font-family);
+  font-size: var(--ds-type-body-md-font-size);
+  line-height: var(--ds-type-body-md-line-height);
+  font-weight: var(--ds-type-body-md-font-weight);
+  letter-spacing: var(--ds-type-body-md-letter-spacing);
+}
+.ds-page-header__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ds-space-inline-md);
+  margin: 0;
+  color: var(--ds-text-secondary);
+  font-family: var(--ds-type-body-sm-font-family);
+  font-size: var(--ds-type-body-sm-font-size);
+  line-height: var(--ds-type-body-sm-line-height);
+  font-weight: var(--ds-type-body-sm-font-weight);
+}
+.ds-page-header__actions {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ds-space-inline-md);
+  max-inline-size: 100%;
+}
+@container ds-page-header (max-width: 479px) {
+  .ds-page-header__row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .ds-page-header__text {
+    flex: none;
+    inline-size: 100%;
+  }
 }

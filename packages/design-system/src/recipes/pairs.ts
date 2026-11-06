@@ -24,7 +24,9 @@
  * `featured-icon.<kind>.bg`, a filled `feedback.<kind>.surface` tile against the page: the glyph on
  * it is the graphic and is listed at 3.0 for the four kinds; the tile ground is decoration, and the
  * words beside the tile say the same thing (ORV-222, `fi-colour-1`). WCAG 1.4.11 does not apply to
- * the ground.
+ * the ground. The same holds for `featured-icon.neutral.bg`, a filled `border.subtle` tile
+ * (ORV-223, `fi-neutral-colour-1`): against its ground it measures 1.15 at the lowest (the board in
+ * neutral light), the glyph on it is listed at 3.0, and the words beside it carry the meaning.
  *
  * `file-upload.zone-border-disabled`, a `border.disabled` edge: like `border.disabled` on any control
  * it does not carry the state, the disabled button and the disabled text do. `file-upload.item-border`,
@@ -380,6 +382,53 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     floor: UI,
   },
   { recipe: "checkbox", slot: "label", fg: "field.label", bg: "ds:surface.canvas", floor: TEXT },
+  // RadioGroup (ORV-221, control-pairs-1)
+  { recipe: "radio", slot: "edge", fg: "radio.border", bg: "radio.bg", floor: UI },
+  {
+    recipe: "radio",
+    slot: "edge on canvas",
+    fg: "radio.border",
+    bg: "ds:surface.canvas",
+    floor: UI,
+  },
+  {
+    recipe: "radio",
+    slot: "checked edge on canvas",
+    fg: "radio.border-checked",
+    bg: "ds:surface.canvas",
+    floor: UI,
+  },
+  {
+    recipe: "radio",
+    slot: "checked edge on card",
+    fg: "radio.border-checked",
+    bg: "ds:surface.card",
+    floor: UI,
+  },
+  { recipe: "radio", slot: "dot", fg: "radio.dot", bg: "radio.bg-checked", floor: UI },
+  { recipe: "radio", slot: "edge error", fg: "radio.border-error", bg: "radio.bg", floor: UI },
+  // The inner line of a focused checked radio sits on the checked ground (D22, D23)
+  {
+    recipe: "radio",
+    slot: "focus line on checked",
+    fg: "ds:focus.ring",
+    bg: "radio.bg-checked",
+    floor: UI,
+  },
+  {
+    recipe: "radio",
+    slot: "error line on checked",
+    fg: "radio.border-error",
+    bg: "radio.bg-checked",
+    floor: UI,
+  },
+  {
+    recipe: "radio",
+    slot: "disabled dot",
+    fg: "radio.dot-disabled",
+    bg: "radio.bg-disabled",
+    floor: UI,
+  },
   // Field
   { recipe: "field", slot: "label", fg: "field.label", bg: "ds:surface.canvas", floor: TEXT },
   { recipe: "field", slot: "label on card", fg: "field.label", bg: "ds:surface.card", floor: TEXT },
@@ -942,6 +991,56 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     bg: "featured-icon.info.bg",
     floor: UI,
   },
+  {
+    recipe: "featured-icon",
+    slot: "neutral glyph",
+    fg: "featured-icon.neutral.fg",
+    bg: "featured-icon.neutral.bg",
+    floor: UI,
+  },
+  // EmptyState (ORV-223): title and description on the three grounds the form sits on.
+  {
+    recipe: "empty-state",
+    slot: "title on canvas",
+    fg: "empty-state.title",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
+  {
+    recipe: "empty-state",
+    slot: "title on card",
+    fg: "empty-state.title",
+    bg: "ds:surface.card",
+    floor: TEXT,
+  },
+  {
+    recipe: "empty-state",
+    slot: "title on board",
+    fg: "empty-state.title",
+    bg: "board.bg",
+    floor: TEXT,
+  },
+  {
+    recipe: "empty-state",
+    slot: "description on canvas",
+    fg: "empty-state.description",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
+  {
+    recipe: "empty-state",
+    slot: "description on card",
+    fg: "empty-state.description",
+    bg: "ds:surface.card",
+    floor: TEXT,
+  },
+  {
+    recipe: "empty-state",
+    slot: "description on board",
+    fg: "empty-state.description",
+    bg: "board.bg",
+    floor: TEXT,
+  },
   // Alert (ORV-222, alert-look-1): the title and description on the card ground, and the danger edge.
   { recipe: "alert", slot: "title", fg: "alert.title", bg: "alert.bg", floor: TEXT },
   { recipe: "alert", slot: "description", fg: "alert.description", bg: "alert.bg", floor: TEXT },
@@ -1135,6 +1234,21 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
   {
     recipe: "evidence",
     slot: "secondary text on the page",
+    fg: "ds:text.secondary",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
+  // Page header (ORV-225): the title and the description and meta row on the page ground.
+  {
+    recipe: "page-header",
+    slot: "title",
+    fg: "ds:text.primary",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
+  {
+    recipe: "page-header",
+    slot: "description and meta",
     fg: "ds:text.secondary",
     bg: "ds:surface.canvas",
     floor: TEXT,

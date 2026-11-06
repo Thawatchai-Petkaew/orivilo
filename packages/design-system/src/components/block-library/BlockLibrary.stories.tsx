@@ -463,6 +463,36 @@ export const EmptyBoard: Story = {
   },
 };
 
+/** The length a token resolves to at `el`, in px, as the browser computes it. */
+function resolvedLength(el: Element, token: string): number {
+  const probe = document.createElement("span");
+  probe.style.display = "block";
+  probe.style.width = `var(${token})`;
+  el.append(probe);
+  const px = parseFloat(getComputedStyle(probe).width);
+  probe.remove();
+  return px;
+}
+
+/**
+ * An empty board 640 tall in a 360 px frame with the shelf mounted: the form's bottom stands at
+ * least `space.inset.md` above the shelf's top, not over its tiles (ORV-223 D15, row 46).
+ */
+export const EmptyBoardShort: Story = {
+  render: () => (
+    <div className="w-[360px] max-w-full">
+      <ShelfBoard initial={{ nodes: [], edges: [] }} height={640} fixed />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const form = part(canvasElement, ".ds-empty-state");
+    const clear = resolvedLength(shelf(canvasElement), "--ds-space-inset-md");
+    await expect(
+      shelf(canvasElement).getBoundingClientRect().top - form.bottom,
+    ).toBeGreaterThanOrEqual(clear - 0.5);
+  },
+};
+
 export const RecipesAndModes: Story = {
   render: () => (
     <Matrix>

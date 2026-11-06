@@ -959,6 +959,86 @@
       "$description": "WCAG 2.5.8: the small box keeps a 24 px target when its label is visually hidden. Borrows size.icon.lg (24) because no semantic target size exists; retuning icon sizes moves this floor"
     }
   },
+  "radio": {
+    "bg": {
+      "$type": "color",
+      "$value": "{surface.card}"
+    },
+    "border": {
+      "$type": "color",
+      "$value": "{border.control}"
+    },
+    "border-hover": {
+      "$type": "color",
+      "$value": "{border.control-hover}"
+    },
+    "bg-checked": {
+      "$type": "color",
+      "$value": "{surface.selected}",
+      "$description": "A checked radio reads the selection tokens, not action.primary (DESIGN.md section 8)"
+    },
+    "border-checked": {
+      "$type": "color",
+      "$value": "{selection.fg}"
+    },
+    "dot": {
+      "$type": "color",
+      "$value": "{selection.fg}"
+    },
+    "border-checked-hover": {
+      "$type": "color",
+      "$value": "{border.strong}"
+    },
+    "border-error": {
+      "$type": "color",
+      "$value": "{border.error}"
+    },
+    "bg-disabled": {
+      "$type": "color",
+      "$value": "{surface.disabled}"
+    },
+    "border-disabled": {
+      "$type": "color",
+      "$value": "{border.disabled}"
+    },
+    "dot-disabled": {
+      "$type": "color",
+      "$value": "{text.secondary}"
+    },
+    "size": {
+      "$type": "dimension",
+      "$value": "{size.icon.md}"
+    },
+    "size-sm": {
+      "$type": "dimension",
+      "$value": "{size.icon.sm}"
+    },
+    "target-min": {
+      "$type": "dimension",
+      "$value": "{size.icon.lg}",
+      "$description": "WCAG 2.5.8: the sm circle keeps a 24 px target. Borrows size.icon.lg (24) because no semantic target size exists"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.round.radius}"
+    },
+    "label-type": {
+      "$type": "typography",
+      "$value": "{type.body.md}"
+    },
+    "label-type-sm": {
+      "$type": "typography",
+      "$value": "{type.body.sm}"
+    },
+    "gap": {
+      "$type": "dimension",
+      "$value": "{space.inline.md}"
+    },
+    "group-gap": {
+      "$type": "dimension",
+      "$value": "{space.stack.sm}"
+    }
+  },
   "menu": {
     "bg": {
       "$type": "color",
@@ -2594,7 +2674,7 @@
     }
   },
   "featured-icon": {
-    "$description": "A glyph on a tinted tile for one feedback kind (ORV-222): the kind's surface and foreground, one media radius, a size scale on the control and icon sizes",
+    "$description": "A glyph on a tinted tile for one feedback kind (ORV-222) or a neutral tile (ORV-223): the kind's surface and foreground, one media radius, a size scale on the control and icon sizes",
     "success": {
       "bg": {
         "$type": "color",
@@ -2633,6 +2713,16 @@
       "fg": {
         "$type": "color",
         "$value": "{feedback.info.fg}"
+      }
+    },
+    "neutral": {
+      "bg": {
+        "$type": "color",
+        "$value": "{border.subtle}"
+      },
+      "fg": {
+        "$type": "color",
+        "$value": "{text.secondary}"
       }
     },
     "radius": {
@@ -2718,6 +2808,45 @@
     "body-type": {
       "$type": "typography",
       "$value": "{type.body.sm}"
+    }
+  },
+  "empty-state": {
+    "$description": "A tile, a title over text and one action for a region with nothing in it (ORV-223): compact title over text at both sizes, md a centred column capped at the panel width, sm starting at the line's start",
+    "title": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    },
+    "description": {
+      "$type": "color",
+      "$value": "{text.secondary}"
+    },
+    "title-type": {
+      "$type": "typography",
+      "$value": "{type.label.md}"
+    },
+    "body-type": {
+      "$type": "typography",
+      "$value": "{type.body.sm}"
+    },
+    "text-gap": {
+      "$type": "dimension",
+      "$value": "{space.inline.sm}"
+    },
+    "gap-md": {
+      "$type": "dimension",
+      "$value": "{space.stack.md}"
+    },
+    "gap-sm": {
+      "$type": "dimension",
+      "$value": "{space.inline.lg}"
+    },
+    "action-gap": {
+      "$type": "dimension",
+      "$value": "{space.stack.sm}"
+    },
+    "max-width": {
+      "$type": "dimension",
+      "$value": "{size.panel.default}"
     }
   },
   "logo": {
