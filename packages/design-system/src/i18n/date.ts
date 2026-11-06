@@ -24,8 +24,12 @@ function parts(value: IsoDate): [number, number, number] | undefined {
   const d = Number(m[3]);
   const probe = new Date(Date.UTC(2000, mo - 1, d));
   probe.setUTCFullYear(y);
-  // A day past the month's end rolls into the next month, so the year and month tell a false date.
-  if (probe.getUTCFullYear() !== y || probe.getUTCMonth() !== mo - 1) return undefined;
+  // A real date reads back its year, month and day. A day past the month's end rolls into the next
+  // month, and a day of 00 rolls back onto 29 February 2000, which setUTCFullYear then moves to 1 March
+  // in a year that is not a leap year, keeping the month; only the day tells that one (date-value-1).
+  if (probe.getUTCFullYear() !== y || probe.getUTCMonth() !== mo - 1 || probe.getUTCDate() !== d) {
+    return undefined;
+  }
   return [y, mo, d];
 }
 

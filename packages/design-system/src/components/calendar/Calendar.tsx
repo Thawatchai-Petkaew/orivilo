@@ -19,7 +19,7 @@ import { ChevronLeftIcon, ChevronRightIcon } from "../icons";
 export interface CalendarProps {
   /** One date. A range comes with its own story. */
   mode?: "single" | undefined;
-  /** A `YYYY-MM-DD` Gregorian date, never a `Date` and never a Buddhist year (`date-value-1`). Controlled. */
+  /** A `YYYY-MM-DD` Gregorian date, never a `Date` and never a Buddhist year (`date-value-1`). The calendar is controlled when this key is present, even as `undefined`, which shows no selected day. */
   value?: IsoDate | undefined;
   /** The date an uncontrolled calendar starts on. */
   defaultValue?: IsoDate | undefined;
@@ -108,6 +108,10 @@ function Weekdays(props: WeekdaysProps) {
 
 const COMPONENTS = { Nav, Weekdays };
 
+/** A date prop read once: the date, or undefined when it is absent or not a real date (`date-value-1`). */
+const dateOf = (value: IsoDate | undefined) =>
+  value === undefined ? undefined : fromIsoDate(value);
+
 /** A clock that never ticks: the server snapshot is undefined, so a hydrated page marks no day until mount. */
 const subscribeNever = () => () => {};
 const readLocalToday = () => toIsoDate(new Date());
@@ -119,24 +123,29 @@ const readNoToday = () => undefined;
  * date in and out is an `IsoDate`, Gregorian; Thai shows the Buddhist Era year only in the text it
  * draws. The dates in the stories are mock.
  */
-export function Calendar({
-  value,
-  defaultValue,
-  onChange,
-  min,
-  max,
-  isDateDisabled,
-  today,
-  defaultMonth,
-  months = 1,
-  className,
-}: CalendarProps) {
+export function Calendar(props: CalendarProps) {
+  const {
+    value,
+    defaultValue,
+    onChange,
+    min,
+    max,
+    isDateDisabled,
+    today,
+    defaultMonth,
+    months = 1,
+    className,
+  } = props;
   const locale = useLocale();
   const m = useMessages();
+  // Controlled when the `value` key is present, even as `undefined`: the caller then clears the date
+  // by passing `undefined`, and a press calls `onChange` and keeps nothing (cal-api-1).
+  const controlled = "value" in props;
   const [own, setOwn] = useState(defaultValue);
-  const current = value !== undefined ? value : own;
+  const current = controlled ? value : own;
   const clock = useSyncExternalStore(subscribeNever, readLocalToday, readNoToday);
-  const todayIso = today ?? clock;
+  // A false `today` gives way to the viewer's local date (cal-today-1).
+  const todayDate = dateOf(today) ?? dateOf(clock);
 
   const weekdays = useMemo(() => {
     const c = m.calendar;
@@ -188,8 +197,19 @@ export function Calendar({
     [locale, m, weekdays],
   );
 
+  // A bound is read as a date before it is compared (cal-bounds-1). One that is present and not a
+  // real date cannot be read, so no day can be pressed: access defaults to deny. It gives the month
+  // buttons no limit, since there is no month to stop at.
+  const startMonth = dateOf(min);
+  const endMonth = dateOf(max);
+  const unreadable =
+    (min !== undefined && startMonth === undefined) ||
+    (max !== undefined && endMonth === undefined);
+
   const disabled = useCallback(
     (date: Date) => {
+      if (unreadable) return true;
+      // Past the check above every bound that is set is a real `YYYY-MM-DD`, so a string compare is a date compare.
       const iso = toIsoDate(date);
       return (
         (min !== undefined && iso < min) ||
@@ -197,19 +217,18 @@ export function Calendar({
         isDateDisabled?.(iso) === true
       );
     },
-    [min, max, isDateDisabled],
+    [unreadable, min, max, isDateDisabled],
   );
 
   // The engine's own props refuse an explicit undefined, so a missing bound is a missing key.
-  const startMonth = min === undefined ? undefined : fromIsoDate(min);
-  const endMonth = max === undefined ? undefined : fromIsoDate(max);
   const bounds = {
     ...(startMonth && { startMonth }),
     ...(endMonth && { endMonth }),
   };
 
-  const selected = current === undefined ? undefined : fromIsoDate(current);
-  const opensOn = selected ?? fromIsoDate(defaultMonth ?? todayIso ?? "");
+  const selected = dateOf(current);
+  // A false `defaultMonth` gives way to `today` (cal-today-1).
+  const opensOn = selected ?? dateOf(defaultMonth) ?? todayDate;
   // Nothing says which month to open on until the clock is read: draw the empty tile and wait.
   if (!opensOn) return <div className={cx("ds-calendar", className)} />;
 
@@ -221,14 +240,14 @@ export function Calendar({
       onSelect={(next) => {
         const iso = toIsoDate(next);
         if (iso === current) return;
-        setOwn(iso);
+        if (!controlled) setOwn(iso);
         onChange?.(iso);
       }}
       disabled={disabled}
       {...bounds}
       defaultMonth={opensOn}
       // No library clock: before the clock is read the engine gets a day no calendar shows, so none is marked.
-      today={fromIsoDate(todayIso ?? "") ?? new Date(0)}
+      today={todayDate ?? new Date(0)}
       numberOfMonths={months}
       weekStartsOn={WEEK_START[locale]}
       captionLayout="label"

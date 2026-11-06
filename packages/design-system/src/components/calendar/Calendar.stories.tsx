@@ -1,15 +1,19 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { useState } from "react";
 import { expect, fn, userEvent, waitFor, within } from "storybook/test";
-import { formatDate } from "../../i18n/date";
+import { type IsoDate, formatDate, toIsoDate } from "../../i18n/date";
 import { LocaleProvider } from "../../i18n/LocaleProvider";
+import { fill, messagesFor } from "../../i18n/messages/index";
 import {
   expectFocusBorderForm,
+  expectFrameCutsNoInk,
   expectLabelInkWhole,
   expectSameHeight,
   inVitest,
   resolvedColor,
 } from "../../testing/visual-asserts";
 import { calendarFixtures as c } from "../fixtures";
+import { Button } from "../button/Button";
 import { Matrix, Narrow } from "../matrix";
 import { Calendar } from "./Calendar";
 
@@ -53,6 +57,27 @@ function disabledDays(scope: HTMLElement): number[] {
     .filter((b) => b.disabled)
     .map((b) => Number(b.textContent));
 }
+
+/** The day buttons of the grid under `scope`. */
+const dayButtons = (scope: HTMLElement) =>
+  Array.from(scope.querySelectorAll<HTMLButtonElement>("td[data-day] > button"));
+
+/** The day buttons under `scope` that are drawn underlined, which is how today shows. */
+const underlinedDays = (scope: HTMLElement) =>
+  dayButtons(scope).filter((b) => getComputedStyle(b).textDecorationLine.includes("underline"));
+
+/** How many days under `scope` are the one tab stop. */
+const tabStops = (scope: HTMLElement) =>
+  scope.querySelectorAll('td[data-day] > button[tabindex="0"]').length;
+
+/** The Previous month and Next month buttons of one calendar. */
+const previous = (root: HTMLElement) =>
+  within(root).getByRole<HTMLButtonElement>("button", { name: "เดือนก่อนหน้า" });
+const next = (root: HTMLElement) =>
+  within(root).getByRole<HTMLButtonElement>("button", { name: "เดือนถัดไป" });
+
+/** The cells under `scope` that say they are selected. */
+const selectedCells = (scope: HTMLElement) => scope.querySelectorAll('[aria-selected="true"]');
 
 /** The CSS length a dimension token resolves to at `el`, in px. */
 function dimension(el: Element, token: string): number {
@@ -451,14 +476,14 @@ export const At360: Story = {
     await expect(cell).toBe(44);
     const day = dayButton(framed, c.selected).getBoundingClientRect();
     await expect(day.width).toBe(cell);
-    expectFrameRule(
-      framed.querySelector<HTMLElement>(".ds-calendar__heading") as HTMLElement,
-      frame,
-    );
+    const heading = framed.querySelector<HTMLElement>(".ds-calendar__heading") as HTMLElement;
+    // The frame rule (row 12): the overflow clause, the ink clause, and the pixels from the heading up.
+    expectFrameRule(heading, frame);
     if (inVitest) {
-      await expectLabelInkWhole(
-        framed.querySelector<HTMLElement>(".ds-calendar__heading") as HTMLElement,
-      );
+      await expectLabelInkWhole(heading);
+      // Nothing from the heading up to the frame clips it. It sits last among the heading checks,
+      // so the overflow loop above is not what stops the play.
+      await expectFrameCutsNoInk(heading, frame);
     }
 
     // In the column the days narrow, keep their height and do not touch.
@@ -518,6 +543,256 @@ export const TwoMonths: Story = {
     const months = canvasElement.querySelector(".ds-calendar__months") as HTMLElement;
     // W4: two grids of seven 44 px cells and the 24 px between them.
     await expect(months.getBoundingClientRect().width).toBe(640);
+  },
+};
+
+/** One `onChange` spy for each caller of `ControlledClear`; module level so the play can read them. */
+const clearChanges = [fn(), fn(), fn()] as const;
+
+/**
+ * A caller of the controlled Calendar. `value` is always passed, even as `undefined`, so the
+ * Calendar is controlled (`cal-api-1`). A caller that `stores` keeps what `onChange` gives and can
+ * clear it; the other keeps `value={undefined}` and stores nothing.
+ */
+function ControlledCaller({
+  start,
+  stores,
+  onChange,
+}: {
+  start: IsoDate | undefined;
+  stores: boolean;
+  onChange: (value: IsoDate) => void;
+}) {
+  const [held, setHeld] = useState(start);
+  return (
+    <div className="flex flex-col items-start gap-2">
+      <Calendar
+        today={c.today}
+        value={stores ? held : undefined}
+        onChange={(next) => {
+          if (stores) setHeld(next);
+          onChange(next);
+        }}
+      />
+      {stores && <Button onClick={() => setHeld(undefined)}>{c.clear.th}</Button>}
+    </div>
+  );
+}
+
+/**
+ * Row 50 (`cal-api-1`): a controlled Calendar shows the caller's `value` and nothing else. Two
+ * callers store what `onChange` gives and clear it through a button; the third keeps
+ * `value={undefined}` and stores nothing, so no press ever selects a day.
+ */
+export const ControlledClear: Story = {
+  render: () => (
+    <div className="flex flex-wrap items-start gap-4">
+      <ControlledCaller start={c.selected} stores onChange={clearChanges[0]} />
+      <ControlledCaller start={undefined} stores onChange={clearChanges[1]} />
+      <ControlledCaller start={undefined} stores={false} onChange={clearChanges[2]} />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    for (const spy of clearChanges) spy.mockClear();
+    const roots = calendars(canvasElement);
+    await expect(roots).toHaveLength(3);
+    const selectedCounts = () => roots.map((r) => selectedCells(r).length);
+    await expect(selectedCounts()).toEqual([1, 0, 0]);
+
+    for (const root of roots) await userEvent.click(dayButton(root, "2026-11-14"));
+    await expect(selectedCounts()).toEqual([1, 1, 0]);
+    for (const root of roots.slice(0, 2)) {
+      await expect(
+        within(root).getByRole("button", { name: "วันเสาร์ที่ 14 พฤศจิกายน พ.ศ. 2569 เลือกแล้ว" }),
+      ).toBeVisible();
+    }
+    for (const spy of clearChanges) {
+      await expect(spy).toHaveBeenCalledTimes(1);
+      await expect(spy).toHaveBeenCalledWith("2026-11-14");
+    }
+
+    for (const root of roots.slice(0, 2)) {
+      const caller = root.parentElement as HTMLElement;
+      await userEvent.click(within(caller).getByRole("button", { name: c.clear.th }));
+    }
+    await expect(selectedCounts()).toEqual([0, 0, 0]);
+    // The button calls nothing, and no press called twice.
+    for (const spy of clearChanges) await expect(spy).toHaveBeenCalledTimes(1);
+  },
+};
+
+/** The ways a bound is not a real date: the word, nothing, and a day written with one digit. */
+const FALSE_BOUNDS = ["not a date", "", "2026-11-3"] as const;
+
+/**
+ * Row 51 (`cal-bounds-1`): a `min` that is not a real date disables every day in every month and
+ * leaves the month buttons free on that side. A real `max` still stops its own side.
+ */
+export const FalseMin: Story = {
+  args: { onChange: fn() },
+  render: (args) => (
+    <div className="flex flex-wrap items-start gap-4">
+      {FALSE_BOUNDS.map((min) => (
+        <Calendar key={min} {...args} min={min} />
+      ))}
+      <Calendar {...args} min="not a date" max={c.max} />
+      <Calendar {...args} min={undefined} max={undefined} />
+    </div>
+  ),
+  play: async ({ canvasElement, args }) => {
+    const roots = calendars(canvasElement);
+    await expect(roots).toHaveLength(5);
+    const [first, ...others] = roots as [HTMLElement, ...HTMLElement[]];
+    await expect(roots.map((r) => disabledDays(r).length)).toEqual([30, 30, 30, 30, 0]);
+    await expect(roots.map(tabStops)).toEqual([0, 0, 0, 0, 1]);
+    await expect(roots.slice(0, 4).map((r) => previous(r).disabled)).toEqual([
+      false,
+      false,
+      false,
+      false,
+    ]);
+    // Only the fourth has a real `max`, so only its Next month stops.
+    await expect(roots.slice(0, 4).map((r) => next(r).disabled)).toEqual([
+      false,
+      false,
+      false,
+      true,
+    ]);
+    await expect(others).toHaveLength(4);
+
+    await userEvent.click(dayButton(first, "2026-11-12"));
+    await userEvent.click(previous(first));
+    await waitFor(() =>
+      expect(first.querySelector(".ds-calendar__heading")?.textContent).toBe("ตุลาคม 2569"),
+    );
+    await expect(disabledDays(first)).toHaveLength(31);
+    await expect(args.onChange).not.toHaveBeenCalled();
+  },
+};
+
+/** Row 52 (`cal-bounds-1`): the mirror of `FalseMin`, for `max` and the Next month button. */
+export const FalseMax: Story = {
+  args: { onChange: fn() },
+  render: (args) => (
+    <div className="flex flex-wrap items-start gap-4">
+      {FALSE_BOUNDS.map((max) => (
+        <Calendar key={max} {...args} max={max} />
+      ))}
+      <Calendar {...args} max="not a date" min={c.min} />
+    </div>
+  ),
+  play: async ({ canvasElement, args }) => {
+    const roots = calendars(canvasElement);
+    await expect(roots).toHaveLength(4);
+    const [first] = roots as [HTMLElement, ...HTMLElement[]];
+    await expect(roots.map((r) => disabledDays(r).length)).toEqual([30, 30, 30, 30]);
+    await expect(roots.map(tabStops)).toEqual([0, 0, 0, 0]);
+    await expect(roots.map((r) => next(r).disabled)).toEqual([false, false, false, false]);
+    // Only the fourth has a real `min`, so only its Previous month stops.
+    await expect(roots.map((r) => previous(r).disabled)).toEqual([false, false, false, true]);
+
+    await userEvent.click(dayButton(first, "2026-11-12"));
+    await userEvent.click(next(first));
+    await waitFor(() =>
+      expect(first.querySelector(".ds-calendar__heading")?.textContent).toBe("ธันวาคม 2569"),
+    );
+    await expect(disabledDays(first)).toHaveLength(31);
+    await expect(args.onChange).not.toHaveBeenCalled();
+  },
+};
+
+/** Tells `FalseToday` which day the clock showed when the calendars mounted. */
+function FalseTodayRows() {
+  const [readOn] = useState(() => toIsoDate(new Date()));
+  return (
+    <div data-read-on={readOn} className="flex flex-wrap items-start gap-4">
+      <Calendar today="not a date" />
+      <Calendar today="2026-02-30" />
+    </div>
+  );
+}
+
+/**
+ * Row 53 (`cal-today-1`): a `today` that is not a real date gives way to the viewer's local date,
+ * so there is a month and not an empty tile. This is the one story that reads the real clock.
+ * Near midnight the calendar may have read either side of it, so the play brackets it: the day
+ * `FalseTodayRows` read just before the calendars mounted, and the day read when the play starts.
+ * The marked day must be one of those two, and the heading and the name follow the marked day.
+ */
+export const FalseToday: Story = {
+  render: () => <FalseTodayRows />,
+  play: async ({ canvasElement }) => {
+    const mountedOn = canvasElement.querySelector<HTMLElement>("[data-read-on]")?.dataset["readOn"];
+    const playedOn = toIsoDate(new Date());
+    const roots = calendars(canvasElement);
+    await expect(roots).toHaveLength(2);
+    for (const root of roots) {
+      await waitFor(() => expect(within(root).getAllByRole("grid")).toHaveLength(1));
+      const marked = underlinedDays(root);
+      await expect(marked).toHaveLength(1);
+      const day = (marked[0] as HTMLElement).closest<HTMLElement>("[data-day]")?.dataset["day"];
+      await expect([mountedOn, playedOn]).toContain(day);
+      const iso = day as string;
+      await expect(root.querySelector(".ds-calendar__heading")?.textContent).toBe(
+        formatDate(iso, "monthYear", "th"),
+      );
+      await expect(marked[0]?.getAttribute("aria-label")).toBe(
+        fill(messagesFor("th").calendar.dayToday, { date: formatDate(iso, "full", "th") }),
+      );
+    }
+  },
+};
+
+/** Row 54 (`cal-today-1`): a `defaultMonth` that is not a real date gives way to `today`. */
+export const FalseDefaultMonth: Story = {
+  render: (args) => (
+    <div className="flex flex-wrap items-start gap-4">
+      <Calendar {...args} defaultMonth="2026-02-30" />
+      <Calendar {...args} defaultMonth="2026-03-00" />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const roots = calendars(canvasElement);
+    await expect(roots).toHaveLength(2);
+    for (const root of roots) {
+      await expect(root.querySelector(".ds-calendar__heading")?.textContent).toBe("พฤศจิกายน 2569");
+      await expect(dayButtons(root)).toHaveLength(30);
+      await expect(underlinedDays(root).map((b) => b.textContent)).toEqual(["6"]);
+    }
+  },
+};
+
+const falseValueChange = fn();
+const falseDefaultChange = fn();
+
+/**
+ * Row 55 (`date-value-1`): a `value` or `defaultValue` that is not a real date selects nothing and
+ * the calendar opens on `today`. `YYYY-03-00` is the form a check of year and month alone lets
+ * through as 1 March.
+ */
+export const FalseValue: Story = {
+  render: (args) => (
+    <div className="flex flex-wrap items-start gap-4">
+      <Calendar {...args} value="2026-03-00" onChange={falseValueChange} />
+      <Calendar {...args} defaultValue="2100-03-00" onChange={falseDefaultChange} />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    falseValueChange.mockClear();
+    falseDefaultChange.mockClear();
+    const [controlled, uncontrolled] = calendars(canvasElement) as [HTMLElement, HTMLElement];
+    for (const root of [controlled, uncontrolled]) {
+      await expect(root.querySelector(".ds-calendar__heading")?.textContent).toBe("พฤศจิกายน 2569");
+      await expect(selectedCells(root)).toHaveLength(0);
+      await userEvent.click(dayButton(root, "2026-11-12"));
+    }
+    // The controlled one shows the caller's false value, which is nothing; the other keeps the press.
+    await expect(selectedCells(controlled)).toHaveLength(0);
+    await expect(selectedCells(uncontrolled)).toHaveLength(1);
+    for (const spy of [falseValueChange, falseDefaultChange]) {
+      await expect(spy).toHaveBeenCalledTimes(1);
+      await expect(spy).toHaveBeenCalledWith("2026-11-12");
+    }
   },
 };
 

@@ -445,4 +445,6 @@ export const calendarFixtures = {
   max: "2026-11-24",
   /** A day inside the bounds that the caller blocks. */
   blocked: "2026-11-18",
+  /** The caller's own button in the controlled-clear story: caller text, not a catalog key. */
+  clear: { th: "ล้างวันที่", en: "Clear date" },
 } as const;

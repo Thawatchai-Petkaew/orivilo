@@ -66,8 +66,31 @@ describe("formatDate (date-format-1, date-year-1, worked example W1)", () => {
     },
   );
 
-  it("returns an empty string for a value that is not a real date", () => {
-    expect(formatDate("2026-02-30", "medium", "th")).toBe("");
+  it("prints W12 line for line: a day of 00 is no date, in any year that is not a leap year", () => {
+    const lines = [
+      "2026-11-12",
+      "2026-02-30",
+      "2026-03-00",
+      "2100-03-00",
+      "2026-13-01",
+      "not a date",
+    ].map((v) => `${JSON.stringify(v)} ${JSON.stringify(formatDate(v, "medium", "th"))}`);
+    expect(lines).toEqual([
+      '"2026-11-12" "12 พ.ย. 2569"',
+      '"2026-02-30" ""',
+      '"2026-03-00" ""',
+      '"2100-03-00" ""',
+      '"2026-13-01" ""',
+      '"not a date" ""',
+    ]);
+  });
+
+  it("gives an empty string in every style for a false date", () => {
+    for (const style of ["medium", "full", "monthYear"] as const) {
+      for (const v of ["2026-02-30", "2026-03-00", "2100-03-00"]) {
+        expect(formatDate(v, style, "en")).toBe("");
+      }
+    }
   });
 
   it("builds one formatter per locale and style", async () => {
@@ -124,6 +147,28 @@ describe("fromIsoDate and toIsoDate (date-value-1, worked example W2)", () => {
     expect(fromIsoDate("not a date")).toBeUndefined();
     expect(fromIsoDate("2026-1-2")).toBeUndefined();
     expect(fromIsoDate("")).toBeUndefined();
+  });
+
+  it("reads a day of 00 as no value in every year, leap or not (review F1, security S1)", () => {
+    // 2026 and 2100 are not leap years: a check of the year and month alone lets them through as 1 March.
+    for (const v of ["2026-03-00", "2100-03-00", "2025-03-00", "2027-03-00", "2024-03-00"]) {
+      expect(fromIsoDate(v), v).toBeUndefined();
+    }
+    expect(fromIsoDate("2026-01-00")).toBeUndefined();
+    expect(fromIsoDate("2026-12-00")).toBeUndefined();
+  });
+
+  it("reads exactly the real dates of 2024 to 2028, months 0 to 13 and days 0 to 33", () => {
+    for (let y = 2024; y <= 2028; y++) {
+      for (let mo = 0; mo <= 13; mo++) {
+        for (let d = 0; d <= 33; d++) {
+          const v = `${y}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+          const real =
+            mo >= 1 && mo <= 12 && d >= 1 && d <= new Date(Date.UTC(y, mo, 0)).getUTCDate();
+          expect(fromIsoDate(v) !== undefined, v).toBe(real);
+        }
+      }
+    }
   });
 
   it("accepts 29 February only in a leap year", () => {
