@@ -1,7 +1,7 @@
 ---
 issue: ORV-223
 spec: docs/specs/ORV-223/spec.md v1.5
-task: ORV-223-design-1, ORV-223-design-2
+task: ORV-223-design-1, ORV-223-design-2, ORV-223-design-3
 date: 2026-11-06
 ---
 
@@ -13,10 +13,12 @@ Open question 7 keeps its default. Open question 9 keeps its default on the boar
 
 Finding F1 of the sign-off `ORV-223-signoff-1` changes how the form sits on a short board: row D15 and the section "Rework F1". That section lists the spec changes it needs as amendments A1 to A8, which ask for spec v1.5.
 
+Finding F2 of the sign-off `ORV-223-signoff-2` extends that rule to the open task bar: row D16 and the section "Rework F2". That section lists amendments A9 to A16, which ask for spec v1.6.
+
 ## Flow
 
 1. A person opens a board with no nodes. CanvasBoard's overlay shows the tile, the title and the host's action, centred on the board, and on a short board raised just enough to stay clear of the toolbar (D15). Nothing is spoken: the words are read in page order (`empty-live-1`).
-2. The person opens the task bar with no jobs. The panel shows the tile at the bar's start edge, the title over the description, and the action under them. The header still reads "ยังไม่มีงาน".
+2. The person opens the task bar with no jobs. The panel shows the tile at the bar's start edge, the title over the description, and the action under them. The header still reads "ยังไม่มีงาน". If the board is empty too and short, the board's form rises clear of the card in the same frame (D16), and goes back when the panel closes.
 3. The person presses the action. What it does is the host's; every action in the stories is mock.
 4. The last item leaves. The bar's own status says `taskBar.none` and the toggle takes focus. The board's status line says what was deleted and the region takes focus, and the action is reached by Tab in page order after the toolbar (`empty-board-1`, spec row 20).
 5. A wait starts. The board's overlay shows the ring and the words once, and the always-mounted status line carries the same words out of sight. When the wait ends the overlay goes and the line returns to `message || status || ""` (`load-board-1`).
@@ -62,7 +64,8 @@ Impact list of C2, as `AGENTS.md` rule 2 asks: `component.json` two tokens, `gen
 | D12 | LoadingState column, confirmed | Ring 24, 8, label, 16, action. Both forms measure the same: ring 24, 8 px to the label, 14 / 23.8, the same ink, centred to 0.01 px | `load-live-1`. The 8 is `.ds-spinner[data-size="lg"]`'s own gap, so ring and label stay one unit and the action stands apart at 16 |
 | D13 | Loading against empty | The same centred column, the same cap, the same 16 before the action, the ring in the tile's place | AC row 42: one product. No tile around the ring: the ring is the thing to look at, and a tile would make a wait look like a state |
 | D14 | Motion | None added. EmptyState has no animation or transition; the ring follows `spin-motion-1`. The panel's existing fade is the bar's, not EmptyState's | `empty-look-1`, `load-use-1` |
-| D15 | The form on a short board (F1) | Target: the form stays on the board's centre and rises only as far as it must. The action's bottom stays at least 16 px (`space.inset.md`) above the toolbar's top, or the shelf's top when one is mounted; with a one line status showing, at least 8 px (`space.stack.sm`) above the pill. The horizontal centre never moves. There is no px threshold: the limit is the toolbar's own top edge, read live through `anchor()`. No new token. Proved by rows 44, 45 and 46 (`EmptyShort`, `EmptyShortInEnglish`, `EmptyBoardShort`, amendment A4) | F1: on a 294 by 360 board the form sat 25.9 px into the toolbar and 3 of its 14 buttons could not be pressed. 16 is the distance every piece of board furniture already keeps. Exact CSS in "Rework F1" |
+| D15 | The form on a short board (F1) | Target: the form stays on the board's centre and rises only as far as it must. The action's bottom stays at least 16 px (`space.inset.md`) above the toolbar's top, or the shelf's top when one is mounted; with a one line status showing, at least 8 px (`space.stack.sm`) above the pill. The horizontal centre never moves. There is no px threshold: the limit is the toolbar's own top edge, read live through `anchor()`. No new token. Proved by rows 44, 45 and 46 (`EmptyShort`, `EmptyShortInEnglish`, `EmptyBoardShort`, amendment A4) | F1: on a 294 by 360 board the form sat 25.9 px into the toolbar and 3 of its 14 buttons could not be pressed. 16 is the distance every piece of board furniture already keeps. Exact CSS in "Rework F1". D16 extends this row to the open bar |
+| D16 | The form and the open bar (F2) | Target: with the bar's panel open, the action's bottom also stays at least 16 px (`space.inset.md`) above the bar's top, read live through `anchor()`, so the form clears the higher of the bar and the toolbar or shelf. A status adds nothing to that clear with the panel open, since the pill stands at the board's top. The action never rises past 16 px under the board's top: 56 px is the lowest the form's bottom goes, 60 under Friendly (`--cmp-button-height-md` plus `space.inset.md`). The horizontal centre never moves. Tall boards and the closed panel do not change. No new token. Proved by rows 47 to 50 (`EmptyBarOpen`, `EmptyBarOpenInEnglish`, `EmptyJobsOpen`, `EmptyBarOpenWithStatus`, amendment A11) | F2, AC row 25: on a 900 by 420 board with the empty bar open the form sat 38.7 px into the card, so the card's edge cut one form in two and the board's action read as the bar's second button. D15 cleared the toolbar, which the card hides, and not the card on top of it. Exact CSS in "Rework F2" |
 
 ## States
 
@@ -96,7 +99,7 @@ The recipe text follows the table. `load-use-1` is a docs row and draws nothing.
 | empty-live-1 | No role on any part. The `NoResults` story's host owns the empty `role="status"` container and keeps it mounted | None |
 | empty-focus-1 | No `tabIndex`, `autoFocus` or `focus()` in `EmptyState.tsx` | No `:focus` rule on `.ds-empty-state` |
 | empty-bar-1 | The `p` at `TaskBar.tsx` line 224 becomes a `div`, since a `div` cannot sit in a `p`: `<div className="ds-taskbar__empty"><EmptyState size="sm" level={3} icon={JobsIcon} title={m.taskBar.emptyTitle} description={m.taskBar.empty} action={emptyAction} /></div>` | `.ds-taskbar__empty` leaves the shared rule at lines 4171 to 4180, which stays for `.ds-taskbar__reason`, and its own rule drops `color` and keeps `padding` |
-| empty-board-1 | `<div className="ds-board__overlay"><EmptyState size="md" level={2} icon={ArtifactIcon} title={emptyText ?? m.board.empty} action={emptyAction} /></div>`; the focus fallback as the rule says | `.ds-board__overlay p` (line 1596) leaves. The rest of `.ds-board__overlay` stays: it is what these screens rendered, and its `> *` still gives the form its pointer events. The block in "Rework F1" is added after the status line's anchored rules (D15) |
+| empty-board-1 | `<div className="ds-board__overlay"><EmptyState size="md" level={2} icon={ArtifactIcon} title={emptyText ?? m.board.empty} action={emptyAction} /></div>`; the focus fallback as the rule says | `.ds-board__overlay p` (line 1596) leaves. The rest of `.ds-board__overlay` stays: it is what these screens rendered, and its `> *` still gives the form its pointer events. The blocks in "Rework F1" and "Rework F2" are added after the status line's anchored rules (D15, D16) |
 | load-api-1 | Block below | `.ds-loading-state`. Exports from `src/components/index.ts` |
 | load-live-1 | Block below. `status`: `<Spinner size="lg" label={text} />`. `off`: `.ds-loading-state__quiet` holding `<Spinner decorative size="lg" />` and `<p className="ds-loading-state__label">`. The action sits outside both | `.ds-loading-state__quiet`, `__label`, `__action`. `pairs.ts`: `spinner.fg` on `board.bg` at floor 4.5 in the place of "overlay text" (line 667) |
 | load-busy-1 | No `aria-busy` in `LoadingState.tsx`. `InRegion` story's host sets it on itself | None |
@@ -529,6 +532,297 @@ Numbers: `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVIL
 
 I saw every family on its sheet, in `sheets/`, and the contact sheet. Full size and alone I opened `matrix-360-th.png`, `matrix-360-en.png`, `matrix-1440-th.png` and `matrix-1440-en.png`, not the other 131. `matrix-narrow.png` and `matrix-wide.png`, the sheets of those four, I did not open.
 
+## Rework F2: the form and the open bar
+
+Task `ORV-223-design-3`, for finding F2 of `ORV-223-signoff-2`. Rendered on 2026-11-06 at head `13db7b0`, Storybook on port 6474 from a scratch copy of that head, Chromium through Playwright, reduced motion on, with the CSS below injected by `addStyleTag`. No built story shows the board and the open bar together, so the screens come from probe stories in the scratch copy, of the same composition as the stories under "The stories and their plays". No file under `packages/` changed. Sizes other than a story's own were set by resizing the board's host in the page. Firefox and WebKit are not installed here, so nothing below was rendered in them.
+
+### What the sign-off's candidate left open
+
+The candidate holds on the look F2 names: gap 16 at 900 by 420, tall boards as they were. Rendered further, it fails three ways, so D16 is the candidate plus three things.
+
+<!-- prettier-ignore -->
+| Case, neutral | Head | Candidate | D16 |
+| --- | --- | --- | --- |
+| 900 by 420, empty bar open, form and gap to the bar | 128.2 to 264, -38.7 | 73.5 to 209.3, 16 | 73.5 to 209.3, 16 |
+| Open bar on a board with no toolbar (`chrome={false}`), 900 by 420 | 142.1 to 277.9 | 444 to 579.8: `anchor(top)` has no default anchor, `top` falls back and the form leaves the board | 142.1 to 277.9, as head |
+| 12 jobs open, 900 by 420, action | 224 to 264, the whole form on the rows | -31 to 9: cut, its centre outside the board, off the board in 98 of 134 sizes | 16 to 56, whole and pressable, off the board in 0 of 134 |
+| Status with the panel open, 900 by 420, form | 78.4 to 214.2, gap 11.1 | 23.7 to 159.5, gap 65.8: it keeps a clear for a pill that is not there | 73.5 to 209.3, gap 16 |
+| Status with the panel open, 900 by 640, form | 252.1 to 387.9 | 243.7 to 379.5: a tall board leaves the centre | 252.1 to 387.9, as head |
+| Status with the panel open, 360 by 420 English, form top | 6.4 | 6.4 | 49.7 |
+
+With the panel open the pill does not stand on the toolbar. The open list rule at `recipes.css` line 4557 sends it high on the start edge, 14.2 to 56 on a short board, so the 49.8 px the status adds to `--_clear` holds nothing apart. D16 sets `--_clear` back, which also removes one cost: with the panel open a status no longer moves the form (268 of 268 rows read the same top with and without one).
+
+### The CSS
+
+Two changes in `recipes.css`, nothing else. First, one line in the existing `.ds-board .ds-taskbar` rule (line 4466):
+
+```css
+anchor-name: --ds-board-taskbar;
+```
+
+Second, this block after the `@supports` block of D15, before the comment that starts "An open list adds up":
+
+```css
+/* With the bar's panel open the card covers the toolbar, so the form clears the higher of the two
+ * (ORV-223 D16). The pill has gone up to the board's start edge, so it adds nothing to the clear.
+ * The action stops rising one inset under the board's top: a full list must not push it off the
+ * board, where neither a pointer nor the focus line can reach it. */
+@supports (anchor-name: --a) {
+  .ds-board:has(.ds-controls):has(.ds-taskbar__panel:not([hidden]))
+    .ds-board__overlay:has(> .ds-empty-state) {
+    --_clear: var(--ds-space-inset-md);
+    --_floor: calc(var(--cmp-button-height-md) + var(--ds-space-inset-md));
+    top: min(
+      max(
+        min(
+          calc(anchor(top) - var(--_clear)),
+          calc(anchor(--ds-board-taskbar top) - var(--_clear))
+        ),
+        var(--_floor)
+      ),
+      max(
+        calc(100% - anchor(top) + var(--_clear)),
+        calc(100% - anchor(--ds-board-taskbar top) + var(--_clear))
+      ),
+      calc(100% - var(--_floor))
+    );
+    bottom: min(
+      max(calc(anchor(top) + var(--_clear)), calc(anchor(--ds-board-taskbar top) + var(--_clear))),
+      calc(100% - var(--_floor))
+    );
+  }
+}
+```
+
+Notes for the builder:
+
+- Read as one limit: `L` is the higher of the toolbar's (or shelf's) top and the bar's top, less the clear, and never under the floor. The box is `min(L, 100% - L)` to `L`, the box of D15 with `L` in place of the toolbar. `anchor(top)` reads the distance from the side its own property names, so in `bottom` it is already `100% - top`, and one custom property cannot serve both.
+- `:has(.ds-controls)` stays in the selector. Without it a board with no toolbar has no default anchor and the form leaves the board (table above).
+- Specificity is 0,6,0 against 0,5,0 for the status rule of D15, so this `--_clear` wins wherever the block sits in the file.
+- `anchor(top)` is the shelf when one is mounted, through the `position-anchor` of D15, so the shelf needs no rule of its own.
+- The anchor holds because `{children}` sits inside React Flow, ahead of the overlay in the DOM (`CanvasBoard.tsx` lines 1146 and 1211). An anchor that came later would not resolve. Keep the bar a child of the board.
+- The form's ancestors up to `.ds-board` keep visible overflow: this block sets none, and `.ds-board__overlay` stays free of it. The column grows upward out of a box that can be 0 tall, so a clip on the overlay would cut the whole form.
+- `--_floor` is a local name like `--_clear`. `--cmp-button-height-md` is the board's action in D10, and it reads 44 under Friendly. No new token, no pair, no prop.
+- Browsers without anchor positioning skip the block and `anchor-name`, and keep D15's top aligned form.
+
+### The stories and their plays
+
+Three things change in `CanvasBoard.stories.tsx`, which gains the imports of `TaskBar`, `fixtureManyJobs`, `expectFrameCutsNoInk`, `expectLabelInkWhole` and `inVitest`.
+
+`expectFormClearOfToolbar` must select `.ds-board__overlay .ds-empty-state`, not `.ds-empty-state`. With a panel open the bar's own form comes first in the DOM, and the helper would measure that one.
+
+```tsx
+/** The bar's mock action (D10): it names its outcome and starts nothing. */
+const startFirst = (label: string) => (
+  <Button variant="secondary" size="sm">
+    {label}
+  </Button>
+);
+
+/** The action answers a hit test at its own centre. */
+async function expectAnswers(el: HTMLElement) {
+  const r = el.getBoundingClientRect();
+  const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+  await expect(hit !== null && el.contains(hit)).toBe(true);
+}
+
+/**
+ * Rows 47 and 48: the form clears the open bar as it clears the toolbar, no ink is cut, and closing
+ * the panel gives the form back to the toolbar's rule (ORV-223 D16).
+ */
+async function expectFormClearOfOpenBar(root: HTMLElement, actionName: string) {
+  const board = part(root, ".ds-board");
+  const form = part(board, ".ds-board__overlay .ds-empty-state");
+  const action = within(form).getByRole("button", { name: actionName });
+  const clear = resolvedLength(board, "--ds-space-inset-md");
+  await expectFormClearOfToolbar(root, actionName);
+  await expect(
+    part(board, ".ds-taskbar").getBoundingClientRect().top - action.getBoundingClientRect().bottom,
+  ).toBeGreaterThanOrEqual(clear - HALF_PX);
+  await expectAnswers(action);
+  if (inVitest) {
+    await expectFrameCutsNoInk(form, board);
+    await expectLabelInkWhole(part(form, ".ds-empty-state__title"));
+  }
+  await userEvent.click(part(board, ".ds-taskbar button[aria-expanded='true']"));
+  await waitFor(() =>
+    expect(part(board, ".ds-taskbar button[aria-expanded='false']")).toBeVisible(),
+  );
+  await expectFormClearOfToolbar(root, actionName);
+  await expectAnswers(action);
+}
+```
+
+<!-- prettier-ignore -->
+| Story | Render, inside `<div className="w-[900px] max-w-full">` | Play |
+| --- | --- | --- |
+| `EmptyBarOpen` | `<Stateful {...args} height={420} fill={false}><TaskBar jobs={[]} defaultExpanded emptyAction={startFirst("เริ่มงานแรก")} /></Stateful>`, args `emptyAction: addFirst("เพิ่ม node แรก")` | `expectFormClearOfOpenBar(canvasElement, "เพิ่ม node แรก")` |
+| `EmptyBarOpenInEnglish` | The same under `LocaleProvider locale="en"`, "Add your first node", "Start the first job" | `expectFormClearOfOpenBar(canvasElement, "Add your first node")` |
+| `EmptyJobsOpen` | The same with `jobs={fixtureManyJobs}` | The action's top at least the resolved `--ds-space-inset-md` less 0.5 px under the board's top, and `expectAnswers(action)` |
+| `EmptyBarOpenWithStatus` | `EmptyBarOpen` with `status="ซูมเข้า"` on `Stateful` | The action's bottom stands the resolved `--ds-space-inset-md` above the higher of the bar's and the toolbar's tops, to 0.5 px: `Math.abs(Math.min(bar.top, toolbar.top) - action.bottom - clear) <= 0.5` |
+
+Each story was run as a play in the scratch copy, Vitest browser mode, Chromium, with no a11y parameter on the stories, so the project's default applied, in a 1200 px wide page, so the board is 900:
+
+<!-- prettier-ignore -->
+| Play | Today's CSS | The candidate | D16 |
+| --- | --- | --- | --- |
+| `EmptyBarOpen` | Red: expected -38.6875 to be at least 15.5 | Green | Green, with `expectFrameCutsNoInk` and `expectLabelInkWhole` run |
+| `EmptyBarOpenInEnglish` | Red: expected -38.6875 to be at least 15.5 | Not run | Green |
+| `EmptyJobsOpen` | Green: head keeps the action on the board | Red: expected -31 to be at least 15.5 | Green |
+| `EmptyBarOpenWithStatus` | Red: 11.1 from the bar, 4.89 off, at most 0.5 allowed | Red: 65.8 from the bar, 49.8 off | Green |
+
+So the first two go red on today's CSS. The third is the guard on `--_floor` and the fourth on the `--_clear` line: each goes red if that line of D16 is left out. All four also finish without error in a static page at 360 and 1440 px, neutral and Friendly, with no sideways scroll, so the plays hold at the story's narrowest width.
+
+### Measured with D16
+
+3,484 rows for each of head, candidate and D16: 13 probe stories, neutral and Friendly, Thai and English, 67 board sizes (widths 360 to 1000 at 420 tall, heights 240 to 620 at 900 wide, and 360 and 1440 wide up to 900 tall).
+
+<!-- prettier-ignore -->
+| Check | Result |
+| --- | --- |
+| Closed panel, no bar, closed panel with a status, shelf with the panel closed, shelf with no bar | 0 of 268 rows differ from head in each, on form, action, bar, toolbar, shelf and pill |
+| Tall boards, panel open | Every row where head already stood 16 or more above the bar reads the same under D16: 36 of 36 one line, 29 of 29 two lines, 22 of 22 three lines, 108 of 108 one job, 66 of 66 no action. 1440 by 900 stays 382.1 to 517.9, offset 0, Friendly 378.1 to 521.9 |
+| The 420 tall sweep, empty bar, all widths | Gap to the bar 16 or more in 136 of 136 rows, both profiles, both locales |
+| Gap under 16 anywhere, empty bar | 4 of 134 per profile, all at 240 and 260 tall, where the floor binds (limits below) |
+| Action pressable | Not blocked in any row of D16 where it could be read. 152 reads were skipped, the action lying outside the 900 px page |
+| Action on the bar's words | 0 rows in any story. The fixture's job names are short: see the costs |
+| Horizontal centre | 0 on all 208 screens |
+| Title lines, 900 by 420 | One line 73.5, two 49.7, three 25.9 (Friendly 61.5, 37.7, 13.9) to 209.3 (205.3). Tile whole, gap 16 |
+| Title lines, 360 by 420 | Three lines 8.6 Thai, 2.1 English. Friendly -3.4 and -9.9, tile cut, the same limit as D15 with one more title line |
+| The real toggle at 900 by 420 | Closed 128.2, open 73.5 with gap 16, closed again 128.2. Focus stays on the toggle |
+| Focus on the action | 16 screens, line and halo in the profile's focus colour, gap to the card at least 16, so the 3 px halo stays at least 13 px clear of it |
+| Shelf with the panel open | Unchanged while the shelf's limit stays over the floor: 900 by 640 is 153.4 to 289.2, 900 by 520 is 33.4 to 169.2, 360 by 640 is 81.4 to 217.2, gap to the shelf 16. The candidate changes nothing here because the shelf stands above the card. D16 differs from head in 120 of 268 rows, all where head's action reached above the floor (its top at most 9.2): there the floor brings it back |
+| A read-only board (`variant="present"`), 900 by 420 | Form 129.5 to 209.3, clear of the mode pill at 16 to 57.8 on the end edge |
+
+### What D16 costs, and its limits
+
+In px, Thai, 900 wide, one row toolbar, neutral then Friendly. Thresholds lie between two measured rows and are worked out from the card's top, H - 194.7 (H - 198.7 Friendly).
+
+- Opening the panel moves the form, in one step, with no transition (D14). It moves 54.7 on a board from 280 to 440 tall (54.7 from 280 to 460 Friendly), then less, and 0 from about 557 tall (573 Friendly). At 420 tall it is 54.7 with a one row toolbar, 18.7 with two, and 0 Thai or 6.5 English with three. One job moves it 34.1 at 900 by 420, and a full list up to 241.9 (246.9). Closing the panel gives back the same distance. No rule avoids this: the card is not there while closed, so reserving its room would change the closed board, which stays as it is, and a transition would break D14 and slide the form while the card fades in. It is bearable because it follows one deliberate press, with the pointer and focus on the toggle at the far end of the bar, and the form moves in the frame the card appears.
+- A short board cuts the tile. With the empty bar open the tile passes the board's top under 346.5 tall (358.5): at 340 it reads -6.5 (-18.5), at 300 -46.5 (-58.5), against head's 8.2 (-3.8) at 300. The title follows under 290.5 (298.5). Three title lines at 900 reach this about 48 px higher. This is D15's trade with the bar in the toolbar's place: the action stays clear and whole, the decorative tile goes first. Holding the tile whole instead puts the action back on the card, which is F2. On the 300 tall screens the tile is gone altogether, and title and action read as a shorter form.
+- The floor gives up the gap on the shortest boards. Under 266.7 tall (274.7) the action stops at 16 under the board's top, and the gap to the card falls: 9.3 at 260 (1.3), -10.7 at 240 (-18.7). By then only the action is left on the board.
+- A list that fills the board puts the action on the card. Twelve jobs make the card 379 tall (383). The tile stays whole only from 546.8 tall (558.8), and the title from 490.8 (498.8). Under 467 (475) the action sits at the floor, so at 900 by 420 it stands at 16 to 56 across the card's top edge at 25, with 31 px on the card. This is the look of F2 on the action alone, kept on purpose: it stays whole, pressable and in reach of the keyboard, where the candidate lost it, and head put the whole form on the rows (`beforejobs-*`). At 360 wide the action ends just beside the first job's name, so a long name would run under it; the list scrolls and the panel closes, so the name can still be read. The fix is a list that caps itself to leave the form room, a change to the bar that this task leaves alone (open points).
+- A board with no toolbar keeps the old centre with the panel open: 142.1 to 277.9 at 900 by 420 against a card top of 225.3, so F2's overlap stays there. D15 does not apply to that board either, and no screen pairs `chrome={false}` with a bar today.
+- At 360 wide in English the pill's box meets the form's root box beside the tile, ink apart, as on head and the candidate (4 of 134 rows per profile; head reads 5 neutral and 4 Friendly). Under Friendly at 360 by 420 Thai the form's top of 44.2 lies above the pill's bottom of 60 with the pill on the start edge, ink apart (`status-friendly-*-360x420-th.png`).
+- Browsers without anchor positioning keep D15's fallback, unproven in Firefox and WebKit as before.
+
+### Amendments to the spec (ask v1.6)
+
+The main session decides these; this file does not change `spec.md`. Numbers go on from "Rework F1".
+
+**A9. `empty-board-1`, last paragraph.**
+
+Old: "The form sits on the board's centre and rises only as far as it must to stay `space.inset.md` above the toolbar, or above the shelf when one is mounted, and `space.stack.sm` above a one line status. The rule applies to the empty form only; the Loading overlay keeps the board's centre (design.md D15). `empty-board-short-1` holds what this costs."
+
+New: "The form sits on the board's centre and rises only as far as it must to stay `space.inset.md` above the toolbar, or above the shelf when one is mounted, and `space.stack.sm` above a one line status. With the task bar's panel open it also stays `space.inset.md` above the bar's top, a status adds nothing to that clear because the pill has gone to the board's top, and the action stops rising `space.inset.md` under the board's top. The rule applies to the empty form only; the Loading overlay keeps the board's centre (design.md D15, D16). `empty-board-short-1` holds what this costs."
+
+**A10. `empty-board-short-1`.**
+
+Old, opening: "... Their cause is finding F1 of `ORV-223-signoff-1` (ORV-223 comment 10545)."
+
+New, opening: the same, then "The costs of D16 have their cause in finding F2 of `ORV-223-signoff-2`."
+
+Old: none. New, four bullets after "Cost, no room on a very short board":
+
+- "Cost, opening the panel moves the form. On a board where the open card stands above the toolbar the form rises in one step, with no transition: 54.7 px with a one row toolbar, 18.7 with two, up to 246.9 with a full list. Closing gives it back. From about 557 px tall (573 under Friendly) nothing moves with the empty bar."
+- "Cost, no room above the open bar. With the empty bar open and a one row toolbar the tile passes the board's top under 346.5 px tall (358.5 under Friendly) and the title under 290.5 (298.5). The action stays clear and whole."
+- "Cost, a list that fills the board. The action stops `space.inset.md` under the board's top and no higher, so under 467 px tall (475 under Friendly) with a full list it stands on the card, whole and pressable, and a long first job name can run under it. The same stop takes the gap to the empty card below 16 under 266.7 px tall (274.7)."
+- "Open limit, a board with no toolbar. It keeps the board's centre with the panel open, so the form can overlap the card. No screen pairs them."
+
+Old, Proof: "Every measure comes from CSS injected into the built stories at head `12afffe`, in Chromium only, ..."
+
+New, Proof: "Every measure comes from CSS injected into the built stories at head `12afffe`, and for D16 into probe stories at head `13db7b0`, in Chromium only, ..." The rest stands, and "rows 19, 22 and 44 to 46" becomes "rows 19, 22 and 44 to 50".
+
+**A11. Four new rows, after row 46.**
+
+Old: none.
+
+New:
+
+<!-- prettier-ignore -->
+| # | Given | When | User sees | Data | Check |
+| --- | --- | --- | --- | --- | --- |
+| 47 | Storybook, a 900 px frame, board 420 tall, the empty bar open, Thai | CanvasBoard `EmptyBarOpen` renders (`w-[900px] max-w-full` frame, `Stateful height={420} fill={false}`, `TaskBar jobs={[]} defaultExpanded`) | The form with "กระดานยังว่าง" and "เพิ่ม node แรก" whole on the board, clear of the bar's card, and back on the toolbar's rule once the panel closes | None | `EmptyBarOpen` play: the form read as `.ds-board__overlay .ds-empty-state`; action's bottom above the bar's top and above the toolbar's top by at least the resolved `--ds-space-inset-md` less 0.5 px; tile's top inside the board; form's centre on the board's centre line to 0.5 px across; `document.elementFromPoint` at the action's centre lies inside it; under `inVitest`, `expectFrameCutsNoInk(form, board)` and `expectLabelInkWhole(title)`. Then `userEvent` presses the toggle, `waitFor` it reads collapsed, and the action stands above the toolbar by the same clear and still answers |
+| 48 | The same, English | `EmptyBarOpenInEnglish` renders under `LocaleProvider locale="en"` | The same in English: "The board is empty", "Add your first node", "Start the first job" | None | `EmptyBarOpenInEnglish` play: row 47's check |
+| 49 | The same, a list that fills the board | `EmptyJobsOpen` renders with `jobs={fixtureManyJobs}` | "เพิ่ม node แรก" whole on the board and pressable | None | `EmptyJobsOpen` play: action's top under the board's top by at least the resolved `--ds-space-inset-md` less 0.5 px; `document.elementFromPoint` at its centre lies inside it |
+| 50 | The same as row 47, with a status | `EmptyBarOpenWithStatus` renders with `status="ซูมเข้า"` | The form where it stands with no status, the pill at the board's top | None | `EmptyBarOpenWithStatus` play: the action's bottom stands the resolved `--ds-space-inset-md` above the higher of the bar's and the toolbar's tops, to 0.5 px |
+
+The builder proves rows 47 and 48 red on the head before the CSS goes in: expected -38.6875 to be at least 15.5. Row 50 reads red on the head too, 4.89 off. Row 49 is green on the head: its proof is that it reads -31 with the `--_floor` lines left out. Row 47 needs `.ds-board__overlay` in `expectFormClearOfToolbar`, or the play measures the bar's own form.
+
+**A12. Rows per PR.**
+
+Old: `- PR 190: rows 1-26, 44-46`
+
+New: `- PR 190: rows 1-26, 44-50`
+
+**A13. The row guide, row 25 and the lists that name the rows.**
+
+Old, guide: "... rows 44 to 46 the empty form on a short board."
+
+New, guide: "... rows 44 to 46 the empty form on a short board, rows 47 to 50 the empty form with the bar open."
+
+Old, row 25, When: "... CanvasBoard `Empty`, `EmptyShort`, `EmptyShortInEnglish`, BlockLibrary `EmptyBoardShort`"
+
+New, row 25, When: "... CanvasBoard `Empty`, `EmptyShort`, `EmptyShortInEnglish`, `EmptyBarOpen`, `EmptyBarOpenInEnglish`, `EmptyJobsOpen`, BlockLibrary `EmptyBoardShort`". This closes the gap F2 names: row 25's Given now names a story that shows both together.
+
+Old, open question 10 and Depends on: "rows 1 to 26 and 44 to 46"
+
+New, both: "rows 1 to 26 and 44 to 50"
+
+**A14. The impact list and the catalog.**
+
+Old, recipe row: "the block of design.md D15 is new, after the status line's anchored rules;"
+
+New, recipe row: "the blocks of design.md D15 and D16 are new, after the status line's anchored rules, and `.ds-board .ds-taskbar` gains `anchor-name`;"
+
+Old, CanvasBoard row: "the `EmptyAt360` play and its comment, new `EmptyShort` and `EmptyShortInEnglish`;"
+
+New, CanvasBoard row: "the `EmptyAt360` play and its comment, the selector in `expectFormClearOfToolbar`, new `EmptyShort`, `EmptyShortInEnglish`, `EmptyBarOpen`, `EmptyBarOpenInEnglish`, `EmptyJobsOpen` and `EmptyBarOpenWithStatus`;"
+
+Old, `canvas-board.yaml` rule: "... and `space.stack.sm` above a one line status; a host `status` that wraps still reaches the action, ..."
+
+New: "... and `space.stack.sm` above a one line status, and with the task bar's panel open `space.inset.md` above the bar, the action stopping `space.inset.md` under the board's top; a host `status` that wraps still reaches the action, ..."
+
+No token and no prop changes. `--ds-board-taskbar` is an anchor name, as `--ds-board-controls` is, not a token.
+
+**A15. A new worked example, after W8.**
+
+Old: none.
+
+New: "W9. The heights of D16, with the empty bar open and a one row toolbar. Input, from `design.md` "Rework F2" and D3: a one line form 135.8 px tall, 143.8 under Friendly; the card's top at H - 194.7, H - 198.7 under Friendly; a clear of 16; a Button 40 tall, 44 under Friendly. `tile` is the height under which the tile passes the board's top, `form + 16 + the card's offset`. `action` is the height under which the action sits at the floor, `Button + 16 + 16 + the card's offset`. Expected output, rounded to one decimal: `tile 346.5 friendly 358.5 action 266.7 friendly 274.7`."
+
+**A16. Version.**
+
+Old: frontmatter `version: 1.5`, changelog ending at v1.5.
+
+New: `version: 1.6`, with a changelog line naming F2, D16 and rows 47 to 50. Downstream, the builder's envelope takes this section (`recipes.css`, `CanvasBoard.stories.tsx`, `canvas-board.yaml`) and the qa envelope takes rows 25 and 47 to 50.
+
+### Rework screens
+
+All paths sit under `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-223-design-3/`. The 208 screens are in its `shots/` folder, named `<family>-<profile>-<mode>-<width>x<height>-<locale>.png`, for example `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-223-design-3/shots/open-friendly-dark-900x420-th.png`. Each size has eight: neutral and Friendly, light and dark, Thai and English. Each shot is the board alone at 2x. 0 page errors, 0 sideways scroll.
+
+Contact sheet, all 208: `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-223-design-3/contact-sheet.png`
+
+Sheets, one per family and size: `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-223-design-3/sheets/`
+
+Numbers: `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-223-design-3/manifest.json` and `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-223-design-3/sweep.json`. Play output: `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-223-design-3/tools/plays.log`. The probe stories stay in `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-223-signoff-2-tools/head/packages/design-system/src/components/canvas-board/`, files `Design3.stories.tsx` and `Design3Play.stories.tsx`.
+
+<!-- prettier-ignore -->
+| Family, sizes | What it shows |
+| --- | --- |
+| `open-*`: 900 by 420, 360 by 420, 1440 by 420, 1440 by 900 | The form whole on the dots, 16 above the card, the card one piece. At 360 the toolbar limits the form and the stub of sign-off 2's S1 shows behind the card in Thai, unchanged. At 1440 by 900 it sits on the board's centre |
+| `closed-*`: 900 by 420, 360 by 420 | The closed panel as sign-off 2 measured it |
+| `shelf-*`: 900 by 640, 900 by 520, 360 by 640 | The form above the shelf, the bar over the shelf's foot as on head |
+| `short-*`: 900 by 340, 300, 260 | The named limits: tile cut at 340, gone at 300 with the title and action whole, the action alone at 260 |
+| `status-*`: 900 by 420, 360 by 420 | The pill at the top start edge, the form where it stands with no status |
+| `lines2-*`, `lines3-*`: 900 by 420, 360 by 420 | Longer titles. The shape holds, Thai marks whole. Friendly at 360 cuts the tile with three lines |
+| `jobone-*`: 900 by 420 | One job, form above the card |
+| `jobmany-*`: 900 by 420, 900 by 560, 360 by 420 | A full list: the action alone on the card's top edge at 420, the whole form above it at 560 |
+| `focus-*`: 900 by 420, 360 by 420 | The action's line and halo, clear of the card |
+| `before-*`, `beforejobs-*`: 900 by 420 | Head, no CSS injected: the action inside the card, and the whole form on the rows |
+
+I opened the sheets of `open` at 900 by 420 and 360 by 420, `short` at 300 and 260, `status` at 360 by 420, `lines3` at both sizes, `jobmany` at all three, `beforejobs`, `focus` at 900 by 420, and `shelf` at 900 by 640, 900 by 520 and 360 by 640, and the contact sheet. Alone at full size I opened `open-friendly-dark-900x420-th.png` only. The other 11 of the 26 sheets I saw only on the contact sheet, and the numbers in `manifest.json` cover them. What I saw: at 900 by 420 the tile, title and action make one column on the dots, with a clear band over the card, and the bar reads as one card with one action of its own, in both profiles and both modes. Thai marks in กระดานยังว่าง and เพิ่ม node แรก are whole at full size, and those of the three line title read whole at sheet size; `expectLabelInkWhole` is the proof the play adds. The look that is not good, and is named above, is `jobmany` at 420: the action straddles the card's edge.
+
 ## Evidence
 
 Rendered on 2026-11-06 in Storybook dev on port 6423, Chromium through Playwright, reduced motion on, at head `fe898b8`. EmptyState, LoadingState and FeaturedIcon are not built on this branch, so this is the recipe text above with its tokens, plus ORV-222's tile recipe, injected by `addStyleTag`, with markup of the shape above and real Lucide glyphs. The board and bar screens are the real stories `application-canvas-board--empty`, `application-canvas-board--loading` and `application-task-bar--empty` with the overlay or the empty `p` swapped in place, so the real boundary, toolbar, status line, fonts and Button recipe are on screen. The sheets are `base-badge--variants`, and the six boundaries are `base-badge--recipes-and-modes`. Copy is the spec's. The status line's text on the loading screens was set by hand, as `load-board-1` will set it.
@@ -570,7 +864,7 @@ The glyph's lowest is 3.94 against a floor of 3, and W2's 5.22 and 5.96 match th
 
 ## Screens
 
-These are the screens of `ORV-223-design-1`. The screens of F1 are listed under "Rework screens".
+These are the screens of `ORV-223-design-1`. The screens of F1 and F2 are listed under the two "Rework screens" sections.
 
 All paths sit under `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-223-design-1/`. Each family below is named `<family>-<profile>-<mode>-<width>-<locale>.png`, for example `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-223-design-1/board-empty-professional-dark-1440-th.png`, and each has twelve files: neutral and professional, light and dark, 360 and 1440, in Thai, and neutral in English.
 
@@ -607,6 +901,7 @@ AC rows 25 and 42, on the built stories, at 360 and 1440, light and dark, Thai a
 - `application-empty-state`: `Default`, `Sizes`, `NoResults`, `LongAt360`, `RecipesAndModes`. One centre at `md`. At `sm`, one start edge for title, description and action, the first line on the tile's centre at every line count. The tile never louder than the action.
 - `application-task-bar`: `EmptyWithAction`, `EmptyAt360`. The tile's start on the header label's start. No clock in the tile (C1).
 - `application-canvas-board`: `Empty`, `EmptyAt360`, `EmptyShort`, `EmptyShortInEnglish`, `TurnsEmpty`, `Loading`, `LoadingAt360`. The form clear of the toolbar by 16 px at every size, centred on tall boards, no status pill while loading. On `EmptyShort`, press a toolbar button and shoot the pill between the action and the toolbar.
+- `application-canvas-board`: `EmptyBarOpen`, `EmptyBarOpenInEnglish`, `EmptyBarOpenWithStatus`, `EmptyJobsOpen`. One form on the dots, 16 px above the bar's card, the card whole, the bar's action the only action on it. Press the toggle and shoot the form back on the toolbar's rule. `EmptyJobsOpen` shows the named cost: the action whole on the card's top edge.
 - `application-block-library`: `EmptyBoard`, `EmptyBoardShort`. The form clear of the shelf.
 - `application-loading-state`: `Default`, `WithAction`, `LiveOff`, `LongAt360`, `RecipesAndModes`. The two halves of `LiveOff` must be indistinguishable.
 - Focus on the action, by keyboard, in both modes. The form itself never shows focus.
@@ -616,6 +911,9 @@ AC rows 25 and 42, on the built stories, at 360 and 1440, light and dark, Thai a
 
 - A short board at 360. Closed by D15: a one line status now sits 8 px under the action at any board height, so the point about a two digit count falls away. What stays open is a host's own `status` that wraps to two lines or more, which still reaches the action, as "Rework F1" measures. A fix needs the overlay to anchor to the status, so the status must come first in the DOM, which moves the overlay's order and belongs in its own card if a host shows it.
 - The form's move when a status appears, and a board too short for the form (tile cut first). Both are named under "What D15 costs, and its limits" and accepted there. The owner may ask for a different trade.
+- The bar's list against a short board. A full list is 320 px whatever the board's height, so under 467 px tall the action lands on the card (D16). A list that caps itself to leave the form room would end that cost, and it is a change to the bar for its own card.
+- Loading with the bar open. `load-board-1` keeps the board's centre, so at 900 by 420 the label reads 216.4 to 243.6 against a card top of 225.3 on the head's overlay: the same overlap as F2, 18.3 px deep. The loading half is not built on this head, so it was not rendered with LoadingState. The loading PR decides whether D16 widens to it, and until then D15's note not to widen the selector stands.
+- A shelf board with the panel closed has no floor. With a shelf, the action leaves the board in 116 of 268 rows, up to 420 tall, as on head, and the closed board was to stay as sign-off 2 measured it. D16's floor would cure it if it moved up to D15's rule.
 - Two things on head that show on these screens and that this story leaves alone: at 662 px the toolbar's keyboard button drops alone to a second row, with a trailing divider before it, and the toolbar covers the lower part of the React Flow attribution at the board's corner.
 - A long action label. `ds-button` sets `white-space: nowrap`, so a label wider than the column overflows, as ORV-222 noted for Alert. Every fixture fits. `empty-state.yaml` and `loading-state.yaml` should say the label stays short.
 - Target size. The bar's action is Button `sm`, 32 px, under `size.touch` 44, as with Alert and Toast. A fix belongs to Button across the set.
