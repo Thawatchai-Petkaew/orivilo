@@ -11,6 +11,9 @@ export const en: Messages = {
   skeleton: {
     loading: "Loading content",
   },
+  avatar: {
+    noName: "Name not shown",
+  },
   dialog: {
     close: "Close",
   },

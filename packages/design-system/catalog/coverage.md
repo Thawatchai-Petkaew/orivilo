@@ -21,7 +21,7 @@ Legend: `none` not started, `planned` entry exists, no code, `draft` code and st
 | Combobox      | none   |                     |
 | Badge         | stable | base-badge          |
 | Tag           | draft  | base-tag            |
-| Avatar        | none   |                     |
+| Avatar        | draft  | base-avatar         |
 | Tooltip       | stable | E2-4                |
 | Dropdown menu | stable | base-dropdown-menu  |
 | Tabs          | stable | base-tabs           |
