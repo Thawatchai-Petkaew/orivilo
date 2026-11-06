@@ -1,6 +1,6 @@
 ---
 issue: ORV-223
-spec: docs/specs/ORV-223/spec.md v1.5
+spec: docs/specs/ORV-223/spec.md v1.6
 task: ORV-223-design-1, ORV-223-design-2, ORV-223-design-3
 date: 2026-11-06
 ---
