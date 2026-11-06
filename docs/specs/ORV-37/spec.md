@@ -2,7 +2,7 @@
 issue: ORV-37 (https://tpetkaew.atlassian.net/browse/ORV-37)
 lane: M (no risk flag, no contract changes)
 mode: POC mode short spec (`.claude/skills/ovl/SKILL.md`, section "POC mode")
-version: 1.0
+version: 1.2
 depends on: ORV-30 (E2-7, the page examples), ORV-31 (E2-8, the reference screen)
 ---
 
@@ -74,7 +74,7 @@ The counts of c-2: `{active}` is the rows in state active, `{invited}` the rows 
 | 2 | Story `FilterInvited` | The people are ordered by date, then by name; then the invited choice of c-6 is taken | All three choices of c-6 at once; the order changes; only invited people; c-2 unchanged | None, the screen's own state only | Play `FilterInvited` in `S`: first row equals the first of `MEMBERS` sorted by date; the order changes on the name sort; row count equals `MEMBERS` filtered by state; the c-2 line reads as before |
 | 3 | Story `InviteMember` | c-9 is opened; submit with an empty email, then with no `@`; then a valid email with the copy choice off; then again with it on | c-11 on the email entry, no new person; pending; the form closes; the new person first, invited; c-12, then c-12 with c-13; the note of N8 | One new row in the screen's own state per valid invite; nothing saved or sent | Play `InviteMember` in `S`: the `alert` text, row count unchanged, then the new first row, its state, c-2 raised by one invited person, the status text and the note of N8, each waited for by condition |
 | 4 | Story `RemoveMember` | The row trigger of a person who is not admin is opened; make admin; then remove, cancel, remove, confirm | The trigger named c-8; remove last and destructive; the role reads the admin word; c-14 names the person and the consequence; after cancel nothing changes; after confirm the person is gone and c-15 is announced | The row's role changes; the row leaves the screen's own state on confirm only | Play `RemoveMember` in `S`: item order, the role cell, the name and text of the confirmation, row count before and after, c-15; the cancel path first |
-| 5 | Stories `At360` (through `Narrow`) and `FriendlyDark` (through `Under`) | They render | No sideways scroll at 360 px; the screen under Friendly dark | None | Play `At360` in `S` asserts the frame's `scrollWidth` equals its `clientWidth`; `FriendlyDark` runs with the a11y addon; designer visual sign-off on the head (`orv37-rework-1`); qa takes a light and a dark screenshot of the story |
+| 5 | Stories `At360` (through `Narrow`) and `FriendlyDark` (through `Under`) | They render | No sideways scroll at 360 px; the screen under Friendly dark | None | Play `At360` in `S` asserts the 360 px `Narrow` frame's `scrollWidth` equals its `clientWidth`; `FriendlyDark` runs with the a11y addon; designer visual sign-off on the head (`orv37-rework-1`); qa takes a light and a dark screenshot of the story |
 | 6 | The screen and story files | `J` runs | Nothing | None | `J` green: `orv37-i1`, `orv37-s1` and `orv37-t1` hold on the target; `-t controls` holds one red sample per import form |
 | 7 | The screen file | `J` runs | Nothing | None | `J` green: `orv37-i2` and `orv37-stable-1` hold on the target. qa opens two used entries and reads the status line |
 | 8 | The screen file | `J` runs | Nothing | None | `J` green: `orv37-i3` holds on the target. qa runs `grep -c "src/examples"` by hand on two used entries with no example and reads 0 (it exits 1, so it is never a `done_when` or a fact). Rows of the selection table equal the entries the screen uses (`orv37-record-1`) |
@@ -190,8 +190,10 @@ Three tasks, in this order, on one branch. One deliverable each. Do not run `pnp
    pnpm lint
    pnpm typecheck
    pnpm test
-   pnpm --filter @orivilo/design-system exec vitest run --testTimeout=400
+   pnpm --filter @orivilo/design-system exec vitest run --project checks --testTimeout=400
    ```
+
+   The timeout run is scoped to the `checks` project because an unscoped run also runs the browser story plays, which have no per-test timeout argument, and 158 of its failures sit in existing story files.
 
 3. The record. Write set: `packages/design-system/catalog/coverage.md` and `DESIGN.md`, written after task 2 so the row names a story that exists. No other row changes. In `catalog/coverage.md`, under Page examples, exactly this row, which fits the padded columns (worked example 1):
 
@@ -199,7 +201,7 @@ Three tasks, in this order, on one branch. One deliverable each. Do not run `pnp
    | Members (agent, ORV-37)        | application | draft  | examples-application-members-agent       |
    ```
 
-   In `DESIGN.md`: one row in section 12, item `Agent catalog exercise (ORV-37)`, saying it is real for one screen composed in one run by one model, naming `src/examples/members.tsx` and `tests/check-agent-composition.test.ts`, the number of gaps, the number of rework rounds, and that reads are self reported and not machine checked; the title bumped to the next version (today v1.60 becomes v1.61); one `Change log: v<n> (date) ORV-37: ...` line. After the commit the two numstat commands print `1 0` and `3 1`. Done when:
+   In `DESIGN.md`: one row in section 12, item `Agent catalog exercise (ORV-37)`, saying it is real for one screen composed in one run by one model, naming `src/examples/members.tsx` and `tests/check-agent-composition.test.ts`, the number of gaps, the number of rework rounds, and that reads are self reported and not machine checked; the title bumped to the next version (today v1.60 becomes v1.61); one `Change log: v<n> (date) ORV-37: ...` line. After the commit the two numstat commands print `1 0` and `4 1`. Done when:
 
    ```bash
    pnpm --filter @orivilo/design-system exec vitest run --project checks tests/check-catalog.test.ts
@@ -276,3 +278,5 @@ None blocks the work. Each runs on its default unless the main session or the ow
 ## Changelog
 
 - 1.0 (2026-11-06): first version, from the design panel's brief with the fact-check's corrections and false-pass routes applied.
+- 1.1 (2026-11-06): the last `done_when` of task 2 is scoped to the `checks` project, with its reason in task 2, and row 5 names the 360 px `Narrow` frame. Downstream review: the `done_when` of any later task 2 envelope, and qa's and the reviewer's reading of row 5.
+- 1.2 (2026-11-06): the `DESIGN.md` count of task 3 is `4 1`, not `3 1`: the title replaces one line, the row adds one, and the change log entry adds two, its line and the blank line before it, as v1.44 to v1.60 do. The three changes of row 13 stand. Downstream review: the expected counts in any later task 3 envelope, and qa's and the reviewer's reading of row 13.
