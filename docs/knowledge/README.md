@@ -270,6 +270,35 @@ Keep this table in step with the folder when you add an entry.
 | [[K-0201-wcag-2-2-use-of-color-and-non-text-contrast-for-a-dot]]                        | 0.8        | SC 1.4.1 and 1.4.11: colour alone, status icon contrast; no dot named |
 | [[K-0202-initials-for-thai-silence-and-charat]]                                         | 0.75       | Sources silent on Thai initials; getInitials uses charAt(0)           |
 | [[K-0203-synthesis-avatar-benchmark]]                                                   | 0.75       | Synthesis: Avatar benchmark table, audit B form                       |
+| [[K-0260-untitled-ui-file-uploaders-examples-and-props]]                                | 0.75       | Untitled uploader: 5 examples (own count), DropZone props, no size    |
+| [[K-0261-untitled-ui-list-progress-bar-and-fill-items]]                                 | 0.8        | Untitled list: name, size, progress 0 to 100; bar or fill item        |
+| [[K-0262-untitled-ui-failed-item-try-again-and-delete]]                                 | 0.8        | Untitled failed: boolean, error ring, Try again; no reason field      |
+| [[K-0263-untitled-ui-size-and-type-limits-and-silent-drop]]                             | 0.8        | Untitled limits: accept, maxSize bytes; no callback, silent drop      |
+| [[K-0264-untitled-ui-drop-zone-keyboard-and-screen-reader]]                             | 0.8        | Untitled zone: sr-only input, no ARIA or live region, no focus class  |
+| [[K-0265-untitled-ui-progress-indicators-no-accessible-name]]                           | 0.8        | Untitled ProgressBar: progressbar role, value attributes, no name     |
+| [[K-0266-untitled-ui-file-trigger-and-inputs-file-upload-example]]                      | 0.75       | Untitled FileTrigger: any child opens a display none file input       |
+| [[K-0267-shadcn-ui-no-dropzone-input-type-file-example]]                                | 0.75       | shadcn: no dropzone; Input type file example, file: classes only      |
+| [[K-0268-shadcn-ui-attachment-parts-sizes-and-props]]                                   | 0.8        | shadcn Attachment: 3 sizes, 2 orientations, media, actions, group     |
+| [[K-0269-shadcn-ui-attachment-states-retry-and-cancel-samples]]                         | 0.8        | shadcn Attachment: 5 states, retry and cancel as sample actions       |
+| [[K-0270-shadcn-ui-attachment-accessibility-and-no-aria-in-source]]                     | 0.8        | shadcn Attachment: label actions, reason in text; no ARIA in source   |
+| [[K-0271-shadcn-ui-progress-upload-label-and-field-error-alert]]                        | 0.8        | shadcn: Upload progress label sample; FieldError has role alert       |
+| [[K-0272-radix-has-no-file-or-dropzone-primitive]]                                      | 0.8        | Radix: no file, upload or dropzone primitive; 54 deps (own count)     |
+| [[K-0273-radix-progress-api-and-source-no-accessible-name]]                             | 0.8        | Radix Progress: null is indeterminate, 3 data states, no name set     |
+| [[K-0274-radix-form-message-and-focus-first-invalid]]                                   | 0.8        | Radix Form: message wired to control, focus to first invalid          |
+| [[K-0275-wcag-2-2-dragging-movements-single-pointer-alternative]]                       | 0.8        | SC 2.5.7 (AA): single pointer without dragging; keyboard is separate  |
+| [[K-0276-wcag-2-2-keyboard-and-the-drag-and-drop-example]]                              | 0.8        | SC 2.1.1 (A): drag and drop example adds cut, paste or form controls  |
+| [[K-0277-wcag-2-2-status-messages-progress-and-error-techniques]]                       | 0.8        | SC 4.1.3: errors by ARIA19; progress by ARIA22, 23, 25 or 27          |
+| [[K-0278-wcag-2-2-aria25-aria27-file-upload-progress-announcing]]                       | 0.8        | ARIA25: hidden polite text speaks upload progress; ARIA27 add-on      |
+| [[K-0279-wcag-2-2-error-identification-in-text]]                                        | 0.8        | SC 3.3.1 (A): identify the item, describe the error in text           |
+| [[K-0280-wcag-2-2-error-suggestion-for-allowed-values]]                                 | 0.8        | SC 3.3.3 (AA): give known corrections, such as allowed values         |
+| [[K-0281-wcag-2-2-labels-or-instructions-expected-format]]                              | 0.8        | SC 3.3.2 (A): labels or instructions; may specify data formats        |
+| [[K-0282-wai-aria-apg-no-file-or-drag-pattern-meter-note]]                              | 0.8        | APG: no file or drag pattern; meter is not for progress               |
+| [[K-0283-wai-aria-1-2-progressbar-role-and-region-loading]]                             | 0.8        | ARIA progressbar: name required, omit valuenow when indeterminate     |
+| [[K-0284-wai-aria-1-2-grabbed-and-dropeffect-deprecated]]                               | 0.8        | aria-grabbed and aria-dropeffect are deprecated since ARIA 1.1        |
+| [[K-0285-aria-in-html-input-file-takes-no-role]]                                        | 0.8        | ARIA in HTML: input type file has no role, none allowed               |
+| [[K-0286-html-accept-is-a-hint-back-it-on-the-server]]                                  | 0.8        | HTML accept is a hint; MDN: back it with server-side validation       |
+| [[K-0287-react-aria-dropzone-takes-a-file-trigger-child]]                               | 0.75       | React Aria DropZone: FileTrigger as a child; no keyboard drop text    |
+| [[K-0288-synthesis-file-upload-benchmark]]                                              | 0.75       | Synthesis: file upload benchmark table, audit B form                  |
 | [[K-0290-untitled-ui-select-sizes-states-and-item-slots]]                               | 0.8        | Untitled Select: sizes, states, item slots; no loading or empty       |
 | [[K-0291-untitled-ui-select-combobox-opens-on-focus-visual-hint]]                       | 0.8        | Untitled ComboBox: menuTrigger focus, visual-only key hint            |
 | [[K-0292-untitled-ui-multi-select-count-trigger-footer-and-search-dialog]]              | 0.8        | Untitled MultiSelect: count trigger, footer, search dialog, empty     |

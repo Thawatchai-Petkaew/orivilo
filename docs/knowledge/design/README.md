@@ -78,6 +78,35 @@ Facts from outside design systems and standards that inform ORIVILO's own design
 | [[K-0201-wcag-2-2-use-of-color-and-non-text-contrast-for-a-dot]]               | WCAG 2.2 SC 1.4.1 and 1.4.11 as they bear on a status dot              |
 | [[K-0202-initials-for-thai-silence-and-charat]]                                | Do the sources say how to make Thai initials; what getInitials does    |
 | [[K-0203-synthesis-avatar-benchmark]]                                          | Synthesis of K-0185 to K-0202: Avatar benchmark table                  |
+| [[K-0260-untitled-ui-file-uploaders-examples-and-props]]                       | Untitled UI file uploaders: examples, parts, props, sizes, variants    |
+| [[K-0261-untitled-ui-list-progress-bar-and-fill-items]]                        | Untitled UI upload list: progress, complete, item forms                |
+| [[K-0262-untitled-ui-failed-item-try-again-and-delete]]                        | Untitled UI failed item: text, retry, delete                           |
+| [[K-0263-untitled-ui-size-and-type-limits-and-silent-drop]]                    | Untitled UI size and type limits: checks, callbacks, rejection         |
+| [[K-0264-untitled-ui-drop-zone-keyboard-and-screen-reader]]                    | Untitled UI drop zone for keyboard and screen reader users             |
+| [[K-0265-untitled-ui-progress-indicators-no-accessible-name]]                  | Untitled UI progress indicators: role, value, accessible name          |
+| [[K-0266-untitled-ui-file-trigger-and-inputs-file-upload-example]]             | Untitled UI FileTrigger and the Inputs file upload example             |
+| [[K-0267-shadcn-ui-no-dropzone-input-type-file-example]]                       | Does shadcn/ui have a dropzone; its Input type file example            |
+| [[K-0268-shadcn-ui-attachment-parts-sizes-and-props]]                          | shadcn/ui Attachment: parts, props, sizes, orientation                 |
+| [[K-0269-shadcn-ui-attachment-states-retry-and-cancel-samples]]                | shadcn/ui Attachment: states, retry, cancel, progress text             |
+| [[K-0270-shadcn-ui-attachment-accessibility-and-no-aria-in-source]]            | shadcn/ui Attachment: accessibility guidance and ARIA in the source    |
+| [[K-0271-shadcn-ui-progress-upload-label-and-field-error-alert]]               | shadcn/ui Progress upload label, FieldError and invalid styling        |
+| [[K-0272-radix-has-no-file-or-dropzone-primitive]]                             | Does Radix have a file input, upload or dropzone primitive             |
+| [[K-0273-radix-progress-api-and-source-no-accessible-name]]                    | Radix Progress: props, data states, ARIA in the source                 |
+| [[K-0274-radix-form-message-and-focus-first-invalid]]                          | Radix Form: validation message, focus on an invalid submit             |
+| [[K-0275-wcag-2-2-dragging-movements-single-pointer-alternative]]              | WCAG 2.2 SC 2.5.7 Dragging Movements and its scope                     |
+| [[K-0276-wcag-2-2-keyboard-and-the-drag-and-drop-example]]                     | WCAG 2.2 SC 2.1.1 Keyboard and its drag and drop example               |
+| [[K-0277-wcag-2-2-status-messages-progress-and-error-techniques]]              | WCAG 2.2 SC 4.1.3 techniques for errors and for progress               |
+| [[K-0278-wcag-2-2-aria25-aria27-file-upload-progress-announcing]]              | WCAG techniques ARIA25 and ARIA27: file upload progress                |
+| [[K-0279-wcag-2-2-error-identification-in-text]]                               | WCAG 2.2 SC 3.3.1 Error Identification                                 |
+| [[K-0280-wcag-2-2-error-suggestion-for-allowed-values]]                        | WCAG 2.2 SC 3.3.3 Error Suggestion                                     |
+| [[K-0281-wcag-2-2-labels-or-instructions-expected-format]]                     | WCAG 2.2 SC 3.3.2 Labels or Instructions                               |
+| [[K-0282-wai-aria-apg-no-file-or-drag-pattern-meter-note]]                     | WAI-ARIA APG: file or drag pattern, meter against progress             |
+| [[K-0283-wai-aria-1-2-progressbar-role-and-region-loading]]                    | WAI-ARIA 1.2 role progressbar                                          |
+| [[K-0284-wai-aria-1-2-grabbed-and-dropeffect-deprecated]]                      | WAI-ARIA 1.2 aria-grabbed and aria-dropeffect                          |
+| [[K-0285-aria-in-html-input-file-takes-no-role]]                               | ARIA in HTML: input type file and the progress element                 |
+| [[K-0286-html-accept-is-a-hint-back-it-on-the-server]]                         | HTML and MDN: accept, multiple, hiding a file input                    |
+| [[K-0287-react-aria-dropzone-takes-a-file-trigger-child]]                      | React Aria DropZone: file picking, labels, keyboard text               |
+| [[K-0288-synthesis-file-upload-benchmark]]                                     | Synthesis of K-0260 to K-0287: file upload benchmark table             |
 | [[K-0290-untitled-ui-select-sizes-states-and-item-slots]]                      | Untitled UI Select: examples, sizes, states, item slots                |
 | [[K-0291-untitled-ui-select-combobox-opens-on-focus-visual-hint]]              | Untitled UI Select.ComboBox: when it opens, key hint, empty, loading   |
 | [[K-0292-untitled-ui-multi-select-count-trigger-footer-and-search-dialog]]     | Untitled UI MultiSelect: trigger, footer, search, empty, removal       |
