@@ -1,6 +1,6 @@
 ---
 issue: ORV-231
-spec: docs/specs/ORV-231/spec.md v1.0
+spec: docs/specs/ORV-231/spec.md v1.2
 task: ORV-231-design-1
 date: 2026-11-06
 ---
@@ -290,7 +290,7 @@ Order matters. The focus and disabled selectors are raised to `.ds-calendar__day
   border: 1px solid transparent;
   border-radius: var(--cmp-calendar-day-radius);
   background: transparent;
-  color: inherit;
+  color: var(--cmp-calendar-fg);
   font-family: var(--cmp-calendar-day-type-font-family);
   font-size: var(--cmp-calendar-day-type-font-size);
   line-height: var(--cmp-calendar-day-type-line-height);
@@ -366,7 +366,7 @@ The ground sits on the cell, so it runs edge to edge across a row. The line sits
   inset: 0;
   box-sizing: border-box;
   border-block: 1px solid var(--cmp-calendar-day-selected-edge);
-  border-radius: inherit;
+  /* the cell's two rounded corners, from --cmp-calendar-day-radius through logical corner properties (spec cal-look-1) */
   pointer-events: none;
 }
 .ds-calendar[data-range-open] .ds-calendar__day[data-range-start]::before {
@@ -461,7 +461,7 @@ For product to take in. The rule or row each one touches is named.
 | 17 | `cal-look-1` | "The recipe `ds-calendar` reads only these new component tokens:" | "The recipe `ds-calendar` reads these new component tokens, and from existing names only `--ds-focus-ring`, `--ds-space-gutter` and `--cmp-button-height-sm`:" | The focus form, the viewport cap and the nav's height. `ds-date-trigger` reads `--ds-space-inline-sm` and `--cmp-input-border-hover` |
 | 18 | `cal-look-1` | "Disabled: `calendar.day-disabled-fg` and a line through the number. No opacity." | Adds: "A disabled today shows both lines." | Keeps today findable when it is blocked. AC row 7 is unaffected, since day 6 is not disabled in `Today` |
 
-AC rows 17, 30, 41 and 48 stand as written, and so do W1 to W9. Reruns matched: W1 all nine lines, W4 `cell 44 grid 308 cap 328 at16 342 at8 326 two 640`, W7 `31 มี.ค. 2569 ถึง 31 มี.ค. 2569 31`.
+AC rows 30, 41 and 48 stand as written, and so do W1 to W6, W8 and W9. Spec v1.1 changed the last clause of row 17 and one sentence of W7 on AC row 39. Reruns matched: W1 all nine lines, W4 `cell 44 grid 308 cap 328 at16 342 at8 326 two 640`, W7 `31 มี.ค. 2569 ถึง 31 มี.ค. 2569 31`.
 
 ## If the owner chooses otherwise
 
