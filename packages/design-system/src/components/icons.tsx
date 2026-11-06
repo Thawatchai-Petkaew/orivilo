@@ -9,6 +9,8 @@ import {
   Clock,
   Compass,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   ChevronUp,
   CircleCheck,
   CircleSmall,
@@ -62,7 +64,7 @@ import {
  * icons from this file only, never from `lucide-react` directly (lint), so the defaults below
  * hold everywhere and only the named glyphs reach the bundle.
  *
- * All 54 glyphs are Lucide today. A glyph Lucide lacks is drawn here as inline SVG on a 20 grid,
+ * All 56 glyphs are Lucide today. A glyph Lucide lacks is drawn here as inline SVG on a 20 grid,
  * stroke 2, round caps and joins, `currentColor`, `aria-hidden`.
  */
 type IconProps = Omit<SVGProps<SVGSVGElement>, "children">;
@@ -86,6 +88,10 @@ export const MinusIcon = lucide(Minus, "MinusIcon");
 /** The chosen radio item in a menu (ORV-78): a small disc in the current ink. */
 export const RadioDotIcon = lucide(CircleSmall, "RadioDotIcon");
 export const ChevronDownIcon = lucide(ChevronDown, "ChevronDownIcon");
+/** Previous month in a calendar (ORV-231); the order of DESIGN.md §6 puts Lucide first. */
+export const ChevronLeftIcon = lucide(ChevronLeft, "ChevronLeftIcon");
+/** Next month in a calendar (ORV-231). */
+export const ChevronRightIcon = lucide(ChevronRight, "ChevronRightIcon");
 /** A three-quarter ring; the `ds-spin` recipe class turns it. */
 export const SpinnerIcon = lucide(LoaderCircle, "SpinnerIcon");
 export const CloseIcon = lucide(X, "CloseIcon");

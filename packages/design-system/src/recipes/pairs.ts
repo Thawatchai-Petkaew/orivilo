@@ -1059,4 +1059,86 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
   // Avatar (ORV-224): the initials and the glyph share one ink on the disc. TEXT also covers the
   // glyph, which needs only the UI floor.
   { recipe: "avatar", slot: "fallback", fg: "avatar.fg", bg: "avatar.bg", floor: TEXT },
+  // Calendar (ORV-231, cal-look-1): the text pairs at 4.5, then every edge, line and ring a day state
+  // draws against the ground it sits on, at 3.0. The refused pairs (the selected ground on the card,
+  // the selected ink against the card ink) are no state's only carrier, so they are not listed.
+  { recipe: "calendar", slot: "day", fg: "calendar.fg", bg: "calendar.bg", floor: TEXT },
+  {
+    recipe: "calendar",
+    slot: "weekday",
+    fg: "calendar.weekday-fg",
+    bg: "calendar.bg",
+    floor: TEXT,
+  },
+  {
+    recipe: "calendar",
+    slot: "hover",
+    fg: "calendar.fg",
+    bg: "calendar.day-hover-bg",
+    floor: TEXT,
+  },
+  {
+    recipe: "calendar",
+    slot: "selected",
+    fg: "calendar.day-selected-fg",
+    bg: "calendar.day-selected-bg",
+    floor: TEXT,
+  },
+  {
+    recipe: "calendar",
+    slot: "selected edge",
+    fg: "calendar.day-selected-edge",
+    bg: "calendar.bg",
+    floor: UI,
+  },
+  {
+    recipe: "calendar",
+    slot: "hover edge",
+    fg: "calendar.day-hover-edge",
+    bg: "calendar.bg",
+    floor: UI,
+  },
+  {
+    recipe: "calendar",
+    slot: "disabled",
+    fg: "calendar.day-disabled-fg",
+    bg: "calendar.bg",
+    floor: UI,
+  },
+  {
+    recipe: "calendar",
+    slot: "selected edge on selected",
+    fg: "calendar.day-selected-edge",
+    bg: "calendar.day-selected-bg",
+    floor: UI,
+  },
+  {
+    recipe: "calendar",
+    slot: "hover edge on hover",
+    fg: "calendar.day-hover-edge",
+    bg: "calendar.day-hover-bg",
+    floor: UI,
+  },
+  {
+    recipe: "calendar",
+    slot: "hover edge on selected",
+    fg: "calendar.day-hover-edge",
+    bg: "calendar.day-selected-bg",
+    floor: UI,
+  },
+  {
+    recipe: "calendar",
+    slot: "disabled on selected",
+    fg: "calendar.day-disabled-fg",
+    bg: "calendar.day-selected-bg",
+    floor: UI,
+  },
+  { recipe: "calendar", slot: "focus", fg: "ds:focus.ring", bg: "calendar.bg", floor: UI },
+  {
+    recipe: "calendar",
+    slot: "focus on selected",
+    fg: "ds:focus.ring",
+    bg: "calendar.day-selected-bg",
+    floor: UI,
+  },
 ];

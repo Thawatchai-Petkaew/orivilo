@@ -2651,5 +2651,86 @@
       "$type": "color",
       "$value": "{brand.dot-small}"
     }
+  },
+  "calendar": {
+    "$description": "A month grid for one date (ORV-231, cal-look-1): selected is surface.selected with an edge, never the brand; every state has a carrier beyond colour",
+    "bg": {
+      "$type": "color",
+      "$value": "{surface.raised}"
+    },
+    "fg": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    },
+    "weekday-fg": {
+      "$type": "color",
+      "$value": "{text.secondary}"
+    },
+    "heading-type": {
+      "$type": "typography",
+      "$value": "{type.label.md}"
+    },
+    "weekday-type": {
+      "$type": "typography",
+      "$value": "{type.body.xs}"
+    },
+    "day-type": {
+      "$type": "typography",
+      "$value": "{type.control.md}"
+    },
+    "cell-size": {
+      "$type": "dimension",
+      "$value": "{size.touch}"
+    },
+    "gap": {
+      "$type": "dimension",
+      "$value": "{space.stack.sm}"
+    },
+    "months-gap": {
+      "$type": "dimension",
+      "$value": "{space.stack.lg}"
+    },
+    "row-gap": {
+      "$type": "dimension",
+      "$value": "{space.inline.sm}",
+      "$description": "The gap between day rows, so the lines of stacked range rows stay two and a focus halo clears the next row"
+    },
+    "padding": {
+      "$type": "dimension",
+      "$value": "{space.inset.sm}",
+      "$description": "A calendar on a page is a padded tile; seven touch cells plus this padding fit a popover under 360 px"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.container.radius}"
+    },
+    "day-radius": {
+      "$type": "dimension",
+      "$value": "{shape.control.radius}"
+    },
+    "day-hover-bg": {
+      "$type": "color",
+      "$value": "{surface.hover}"
+    },
+    "day-hover-edge": {
+      "$type": "color",
+      "$value": "{border.control-hover}"
+    },
+    "day-selected-bg": {
+      "$type": "color",
+      "$value": "{surface.selected}"
+    },
+    "day-selected-fg": {
+      "$type": "color",
+      "$value": "{selection.fg}"
+    },
+    "day-selected-edge": {
+      "$type": "color",
+      "$value": "{selection.fg}"
+    },
+    "day-disabled-fg": {
+      "$type": "color",
+      "$value": "{text.disabled}"
+    }
   }
 }

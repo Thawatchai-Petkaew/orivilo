@@ -1,4 +1,4 @@
-# DESIGN.md: ORIVILO (agent-readable, v1.61)
+# DESIGN.md: ORIVILO (agent-readable, v1.63)
 
 Read this before any UI work: a Studio screen, a shared component, a story, a recipe, a preview, or a review of generated output. It is the design contract the `frontend-design` skill critiques against and the **design gate** (§11) that blocks G3. Rules that enforce it live in `.claude/rules/design-system.md`; the component registry lives in `packages/design-system/catalog/`.
 
@@ -147,7 +147,7 @@ Rules (from the specimen run, brand spec §6 and §8):
 - No letter-spacing and no text-transform on Thai, ever. Latin eyebrows in tracked caps are anti-pattern 5.
 - A mixed line takes the body line-height; Thai must not look smaller or lighter than the Latin beside it.
 - A single-line control centres the label's body: Thai marks above and below the consonant rise and fall outside it, as Latin accents and descenders do (ORV-111).
-- Title over supporting text (ORV-192 row 17): in a compact component (Toast, Tooltip, Field, a table empty state, the missing-inputs prompt, a block library tile) both lines have one size, the title is 500 in the ground's primary ink and the text 400 in its secondary ink, 4 px apart; a header (Dialog, Sheet, Inspector) is a 20 / 500 primary title over a 16 / 400 secondary description, 8 px apart; a choice row (Checkbox, Select option) keeps its own label and a smaller secondary description at 0 px. On `surface.inverse` the secondary ink is `text.on-inverse-secondary`.
+- Title over supporting text (ORV-192 row 17): in a compact component (Toast, Alert, Tooltip, Field, a table empty state, the missing-inputs prompt, a block library tile) both lines have one size, the title is 500 in the ground's primary ink and the text 400 in its secondary ink, 4 px apart; a header (Dialog, Sheet, Inspector) is a 20 / 500 primary title over a 16 / 400 secondary description, 8 px apart; a choice row (Checkbox, Select option) keeps its own label and a smaller secondary description at 0 px. On `surface.inverse` the secondary ink is `text.on-inverse-secondary`.
 - Fixture content for every component includes Thai, Latin, a long Thai name without spaces, and a missing value.
 - Fonts load self-hosted from `apps/web` (OFL); no runtime fetch from Google Fonts in product code.
 
@@ -179,6 +179,8 @@ Order of evidence: requirement and data → catalog (`packages/design-system/cat
 | Secondary task without leaving the page                   | Dialog (small) or Sheet (long form) | Portal receives the profile; focus returns  |
 | Compare rows of the same shape                            | Table                               | Long Thai names, missing cells, small width |
 | One primary action per view                               | Button `primary`                    | Everything else `secondary` or `ghost`      |
+| A message tied to a place that stays true (`alert-use-1`) | Alert                               | Toast: no place. Field, Dialog. Live role   |
+| Pick one date from a month grid (`cal-api-1`)             | Calendar                            | Bounds, 360 px, Thai year in text only      |
 
 A pattern that already exists comes before composing new base components, but only when the task matches, not when the name is close. If nothing fits, propose an extension (variant, recipe slot, or pattern) in the PR with scope and reason; do not fork a component.
 
@@ -347,3 +349,7 @@ Change log: v1.59 (2026-11-01) ORV-199: the semantic token `type.field.sm` (14 /
 Change log: v1.60 (2026-11-06) ORV-216: §2 and §8 name the set where `brand.signature` and `action.primary` share one violet by its id, neutral, the base set, since ORV-52 added a brand profile with the id `orivilo`. Wording only: no token, value, contrast pair, component or profile file changes.
 
 Change log: v1.61 (2026-11-06) ORV-37: section 12 gains the Agent catalog exercise row, one members screen composed from the public entry by a builder agent in one run (2 gaps, 2 rework rounds, 3 composing rounds), judged by `tests/check-agent-composition.test.ts`. Wording and a record only: no token, value, contrast pair, component or profile file changes.
+
+Change log: v1.62 (2026-11-06) ORV-240 (the Alert slice of ORV-222): section 6 gains a row, Alert for a message that belongs to a place on the page and stays true until the state changes, with Toast, Field and Dialog named for the other cases (`alert-use-1`), and section 4's compact list gains Alert (title over supporting text). New component `Alert` with component tokens `alert.*` (`surface.card`, `feedback.<kind>.border`, `feedback.danger.fg` for the danger edge, `shape.container.radius`, `space.inset.md`, `space.inline.lg`, `text.primary`, `text.secondary`, `type.label.md`, `type.body.sm`), the recipe `ds-alert` and the locale key `alert.dismiss`. Impact: no semantic token, value or profile changes; Toast's code and stories do not change.
+
+Change log: v1.63 (2026-11-06) ORV-231 (the single-date Calendar of D.3 row 28): section 6 gains a row, Calendar for one date chosen from a month grid, with its bounds, its 360 px fit and the Thai year drawn in text only (`cal-api-1`, `date-value-1`). New component `Calendar` over `react-day-picker` 10.0.2 for behaviour only (ADR 0020), with component tokens `calendar.*` (`surface.raised`, `surface.hover`, `surface.selected`, `text.primary`, `text.secondary`, `text.disabled`, `selection.fg`, `border.control-hover`, `type.label.md`, `type.body.xs`, `type.control.md`, `size.touch`, `space.stack.sm`, `space.stack.lg`, `space.inline.sm`, `space.inset.sm`, `shape.control.radius`, `shape.container.radius`), the recipe `ds-calendar`, the glyphs `ChevronLeftIcon` and `ChevronRightIcon`, the locale group `calendar.*`, and 13 pairs in `pairs.ts` (4 at 4.5, 9 at 3.0) under every profile in both modes. Impact: no semantic token, value or profile changes; Button, Popover and Toast do not change.

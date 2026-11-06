@@ -1,5 +1,6 @@
 export { Badge, type BadgeProps, type BadgeVariant } from "./badge/Badge";
 export { Button, type ButtonProps, type ButtonVariant, type ControlSize } from "./button/Button";
+export { Calendar, type CalendarProps } from "./calendar/Calendar";
 export {
   Card,
   type CardButtonProps,

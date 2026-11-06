@@ -1,0 +1,30 @@
+name: Calendar
+tier: base
+status: draft
+since: ORV-231
+import: "@orivilo/design-system"
+story: base-calendar
+useWhen:
+  - "Choosing one date from a month grid in Thai or English, by pointer, touch or keyboard: a decision-log filter, a form field (inside the Date picker once it ships)"
+avoidWhen:
+  - "A span of dates: the range mode comes with its own story"
+  - "A date and time, several separate dates, week numbers or an event schedule: none ships"
+  - "A far-off date such as a birth date: no month or year control ships, and Shift with Page Up or Page Down moves a year at a time"
+contract: CalendarProps
+variants: []
+sizes: []
+states: [default, hover, focus-visible, selected, today, disabled]
+recipes: [neutral, professional, friendly]
+examples: []
+rules:
+  - "Behaviour only comes from `react-day-picker` 10.0.2 (ADR 0020): the grid, the roving focus and the keys. No library stylesheet is loaded; `classNames` maps its slots to `ds-calendar__*`, and only `src/components/calendar/` imports it"
+  - "Every date in a prop or a callback is a `YYYY-MM-DD` Gregorian string (`IsoDate`), never a `Date` and never a Buddhist year. A string that is not a real date, such as `2026-02-30`, reads as no value. Thai shows the Buddhist Era year only in the text it draws, through `formatDate`; the dates in the stories are mock"
+  - "Selected is `surface.selected` with a 1 px edge, never the brand colour. Every state differs by more than colour: hover has an edge, selected has an edge, today is an underlined number, a disabled day is struck through with no opacity, and focus is the border form with a halo"
+  - "Pressing the selected date again changes nothing and calls nothing; clearing a date is the caller's job. `min` and `max` are inclusive, and Previous month and Next month stop at their months"
+  - "Today defaults to the viewer's local date, read after mount, so no day is marked until then; a story passes `calendarFixtures.today`. Outside days are hidden, and a month reserves six rows of height so the Next button holds at four, five and six rows"
+  - "The week starts on Sunday in both locales. Pass `months={1}` below the `md` breakpoint: two months need a viewport of about 690 px and stack under it"
+a11y:
+  - "Each month is a `grid` named by its heading, days are `gridcell` with `aria-selected` on the selected day only, and exactly one day is tabbable. The heading is a polite `status`"
+  - "A day is named by its full date, with today and selected said in words, in the catalog's Thai or English. Each weekday column carries its full name and shows its short one"
+  - "Arrow keys move a day or a week, Home and End go to the week's ends, Page Up and Page Down a month, Shift with Page keys a year, Enter and Space select; a disabled day is passed over"
+  - "Previous month and Next month are icon-only buttons named from the catalog, with a press area of `size.touch`. No screen reader test has been run; names and roles are asserted"
