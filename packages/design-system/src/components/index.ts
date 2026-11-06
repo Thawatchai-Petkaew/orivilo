@@ -1,3 +1,4 @@
+export { Alert, type AlertProps } from "./alert/Alert";
 export { Badge, type BadgeProps, type BadgeVariant } from "./badge/Badge";
 export {
   Breadcrumb,
@@ -49,6 +50,8 @@ export {
   type FeaturedIconSize,
   type FeaturedIconVariant,
 } from "./featured-icon/FeaturedIcon";
+export { FileUpload, type FileUploadItem, type FileUploadProps } from "./file-upload/FileUpload";
+export { IMAGE_UPLOAD_LIMITS, type FileUploadLimits } from "./file-upload/limits";
 export { Input, type InputProps } from "./input/Input";
 export { InputGroup, type InputGroupProps } from "./input-group/InputGroup";
 export { PasswordInput, type PasswordInputProps } from "./password-input/PasswordInput";
@@ -60,6 +63,7 @@ export {
   type PopoverProps,
   PopoverTrigger,
 } from "./popover/Popover";
+export { Avatar, type AvatarProps, type AvatarSize } from "./avatar/Avatar";
 export { Logo, type LogoKind, type LogoProps, type LogoTone } from "./logo/Logo";
 export { Progress, type ProgressProps, type ProgressStatus } from "./progress/Progress";
 export {

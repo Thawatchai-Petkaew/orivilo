@@ -2156,6 +2156,17 @@
       "$value": "{border.subtle}"
     }
   },
+  "avatar": {
+    "$description": "A person's disc (ORV-224): the ground of Skeleton's circle, so one replaces the other",
+    "bg": {
+      "$type": "color",
+      "$value": "{border.subtle}"
+    },
+    "fg": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    }
+  },
   "progress": {
     "$description": "How far a job has got (E4-5): a bar, a label and the value as text",
     "track": {
@@ -2199,6 +2210,37 @@
     "value-type": {
       "$type": "typography",
       "$value": "{type.label.md}"
+    }
+  },
+  "file-upload": {
+    "$description": "A picker with a list of files (ORV-227). One radius for the zone and its rows: siblings, and a control box like Textarea",
+    "zone-border": {
+      "$type": "color",
+      "$value": "{border.control}"
+    },
+    "zone-border-invalid": {
+      "$type": "color",
+      "$value": "{border.error}"
+    },
+    "zone-border-disabled": {
+      "$type": "color",
+      "$value": "{border.disabled}"
+    },
+    "item-border": {
+      "$type": "color",
+      "$value": "{border.subtle}"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.media.radius}"
+    },
+    "padding": {
+      "$type": "dimension",
+      "$value": "{space.inset.md}"
+    },
+    "gap": {
+      "$type": "dimension",
+      "$value": "{space.inline.md}"
     }
   },
   "tag": {
@@ -2624,6 +2666,58 @@
         "$type": "dimension",
         "$value": "{size.icon.lg}"
       }
+    }
+  },
+  "alert": {
+    "$description": "An inline message for one feedback kind (ORV-222, alert-look-1): a card ground, a 1 px edge per kind (danger takes the foreground ink), a title over a description",
+    "bg": {
+      "$type": "color",
+      "$value": "{surface.card}"
+    },
+    "success-edge": {
+      "$type": "color",
+      "$value": "{feedback.success.border}"
+    },
+    "warning-edge": {
+      "$type": "color",
+      "$value": "{feedback.warning.border}"
+    },
+    "danger-edge": {
+      "$type": "color",
+      "$value": "{feedback.danger.fg}",
+      "$description": "The one strong edge: a failed job is drawn at full strength (design.md C2)"
+    },
+    "info-edge": {
+      "$type": "color",
+      "$value": "{feedback.info.border}"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.container.radius}"
+    },
+    "padding": {
+      "$type": "dimension",
+      "$value": "{space.inset.md}"
+    },
+    "gap": {
+      "$type": "dimension",
+      "$value": "{space.inline.lg}"
+    },
+    "title": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    },
+    "description": {
+      "$type": "color",
+      "$value": "{text.secondary}"
+    },
+    "title-type": {
+      "$type": "typography",
+      "$value": "{type.label.md}"
+    },
+    "body-type": {
+      "$type": "typography",
+      "$value": "{type.body.sm}"
     }
   },
   "logo": {

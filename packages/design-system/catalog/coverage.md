@@ -21,7 +21,7 @@ Legend: `none` not started, `planned` entry exists, no code, `draft` code and st
 | Combobox      | none   |                     |
 | Badge         | stable | base-badge          |
 | Tag           | draft  | base-tag            |
-| Avatar        | none   |                     |
+| Avatar        | draft  | base-avatar         |
 | Tooltip       | stable | E2-4                |
 | Dropdown menu | stable | base-dropdown-menu  |
 | Tabs          | stable | base-tabs           |
@@ -35,7 +35,8 @@ Legend: `none` not started, `planned` entry exists, no code, `draft` code and st
 | RangeSlider   | draft  | base-range-slider   |
 | Toast         | draft  | base-toast          |
 | FeaturedIcon  | draft  | base-featured-icon  |
-| File upload   | none   |                     |
+| Alert         | draft  | base-alert          |
+| File upload   | draft  | base-file-upload    |
 | Date picker   | none   |                     |
 | Popover       | stable | E2-4                |
 | ContextMenu   | stable | base-context-menu   |
