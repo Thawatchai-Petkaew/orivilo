@@ -811,6 +811,9 @@ describe("linesGap", () => {
   const g: Rgb = [250, 250, 250];
   const red: Rgb = [224, 0, 0];
   const blu: Rgb = [0, 0, 224];
+  // A red pixel a third covered and a blue pixel 45 percent covered, over a ground of 250.
+  const part: Rgb = [241, 163, 163];
+  const blue45: Rgb = [138, 138, 238];
 
   it("counts the ground rows between the lowest red and the highest blue", () => {
     expect(linesGap([[red], [g], [g], [blu]], 1)).toBe(2);
@@ -839,14 +842,26 @@ describe("linesGap", () => {
     ).toBe(1);
   });
 
-  it("does not count a faint antialiasing pixel as ink", () => {
-    expect(linesGap([[red], [[250, 220, 220]], [g], [blu]], 1)).toBe(2);
-    expect(linesGap([[red], [g], [[220, 220, 250]], [g], [blu]], 1)).toBe(3);
+  it("reads an edge inside its pixel row from the share of ink the pixel holds", () => {
+    // A red row a third covered ends the red at 1.35, a blue row 0.45 covered starts the blue at 2.55.
+    expect(linesGap([[red], [part], [blue45], [blu]], 1)).toBeCloseTo(1.2, 1);
   });
 
-  it("counts a pixel as red or blue only when its channel stands more than 40 above both others", () => {
-    expect(linesGap([[[81, 40, 40]], [g], [[40, 40, 81]]], 1)).toBe(1);
-    expect(linesGap([[[80, 40, 40]], [g], [[40, 40, 80]]], 1)).toBeNull();
+  it("does not read a gap of a pixel and a fifth as 0 (the ORV-221 reading on the Linux runner)", () => {
+    // Whole rows read this column as 0 px: each edge row passed the old mark of 40 over both others.
+    expect(linesGap([[red], [part], [blue45], [blu]], 1)).toBeGreaterThan(1);
+  });
+
+  it("counts a faint antialiasing pixel as the sliver of ink it is, and noise under 5 percent as ground", () => {
+    expect(linesGap([[red], [[250, 220, 220]], [g], [blu]], 1)).toBeCloseTo(1.87, 2);
+    expect(linesGap([[red], [g], [g], [[220, 220, 250]], [blu]], 1)).toBeCloseTo(2.87, 2);
+    expect(linesGap([[red], [[250, 240, 240]], [g], [blu]], 1)).toBe(2);
+  });
+
+  it("takes the share of ink from the channel over both others, whatever the ground", () => {
+    // 224 over a dark ground of 20: a half covered pixel is (122, 10, 10).
+    const half: Rgb = [122, 10, 10];
+    expect(linesGap([[half], [[20, 20, 20]], [blu]], 1)).toBeCloseTo(1.5, 1);
   });
 
   it("skips a column with only one colour and gives null when none has both", () => {

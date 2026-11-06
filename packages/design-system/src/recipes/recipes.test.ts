@@ -1,14 +1,15 @@
 /**
  * The recipe layer (ADR 0003 item 2, DESIGN.md §5 and §11, spec E2-4). Fails when a recipe writes
  * a raw value, reads a custom property no token declares or a primitive directly, or when any pair
- * in `pairs.ts` is under its floor under any profile in either mode.
+ * in `pairs.ts` is under its floor under any set of `CONTRAST_SETS` (neutral, the profiles and the
+ * brand profiles, orivilo among them) in either mode.
  */
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { contrastRatio } from "../foundations/contrast";
-import { profiles } from "../profiles/index";
-import { MODES, type Mode, TokenSet, tokens } from "../tokens/index";
+import { CONTRAST_SETS } from "../profiles/index";
+import { MODES, type Mode, TokenSet } from "../tokens/index";
 import { RECIPE_PAIRS } from "./pairs";
 
 const here = import.meta.dirname;
@@ -17,11 +18,6 @@ const generated = readFileSync(path.join(here, "../tokens/generated.css"), "utf8
 
 /** Every custom property the token build declares. */
 const declared = new Set([...generated.matchAll(/^\s*(--[a-z0-9-]+):/gm)].map((m) => m[1]));
-
-const sets: { id: string; set: TokenSet }[] = [
-  { id: "neutral", set: tokens },
-  ...profiles.map((p) => ({ id: p.id, set: p.tokens })),
-];
 
 function hexOf(set: TokenSet, ref: string, mode: Mode): string {
   const [layer, p] = ref.startsWith("ds:")
@@ -204,7 +200,7 @@ describe("the radio focus line (ORV-221, control-tokens-1, control-pairs-1, radi
 });
 
 describe("recipe contrast pairs", () => {
-  for (const { id, set } of sets) {
+  for (const { id, set } of CONTRAST_SETS) {
     for (const mode of MODES) {
       for (const pair of RECIPE_PAIRS) {
         it(`${pair.recipe} ${pair.slot}: ${pair.fg} on ${pair.bg} ≥ ${pair.floor} under ${id} in ${mode}`, () => {

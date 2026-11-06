@@ -413,12 +413,16 @@ export const Horizontal: Story = {
 export const HorizontalAt360: Story = {
   render: () => (
     <Narrow>
-      <Access defaultValue="members" orientation="horizontal" />
+      <div data-testid="narrow">
+        <Access defaultValue="members" orientation="horizontal" />
+      </div>
     </Narrow>
   ),
   play: async ({ canvasElement }) => {
-    const frame = canvasElement.firstElementChild as HTMLElement;
-    await expect(frame.scrollWidth).toBe(frame.clientWidth);
+    // The 360 px column, not the story surface around it, which is 1200 px and cannot overflow.
+    const narrow = within(canvasElement).getByTestId("narrow");
+    await expect(narrow.clientWidth).toBe(360);
+    await expect(narrow.scrollWidth).toBe(narrow.clientWidth);
     const tops = within(canvasElement)
       .getAllByRole("radio")
       .map((radio) => radio.getBoundingClientRect().top);
@@ -430,18 +434,30 @@ export const HorizontalAt360: Story = {
 export const LongContentAt360: Story = {
   render: () => (
     <Narrow>
-      <RadioGroup aria-label={w.label} defaultValue="long">
-        <RadioGroupItem value="long" label={fixtures.longThai} description={fixtures.longLatin} />
-        <RadioGroupItem value="marks" label={fixtures.thaiMarks} description={fixtures.thaiMarks} />
-      </RadioGroup>
+      <div data-testid="narrow">
+        <RadioGroup aria-label={w.label} defaultValue="long">
+          <RadioGroupItem value="long" label={fixtures.longThai} description={fixtures.longLatin} />
+          <RadioGroupItem
+            value="marks"
+            label={fixtures.thaiMarks}
+            description={fixtures.thaiMarks}
+          />
+        </RadioGroup>
+      </div>
     </Narrow>
   ),
   play: async ({ canvasElement }) => {
-    const frame = canvasElement.firstElementChild as HTMLElement;
-    await expect(frame.scrollWidth).toBe(frame.clientWidth);
-    // Nothing clips a label, so no mark can be cut; the wrapped Thai lines keep clear of each other.
+    // The 360 px column, not the story surface around it, which is 1200 px and cannot overflow.
+    const narrow = within(canvasElement).getByTestId("narrow");
+    await expect(narrow.clientWidth).toBe(360);
+    await expect(narrow.scrollWidth).toBe(narrow.clientWidth);
+    // Nothing clips a label up to the column, so no mark can be cut; the wrapped Thai lines keep clear of each other.
     for (const label of canvasElement.querySelectorAll<HTMLElement>(".ds-radio__label")) {
-      for (let up: HTMLElement | null = label; up && up !== frame; up = up.parentElement) {
+      for (
+        let up: HTMLElement | null = label;
+        up && up !== narrow.parentElement;
+        up = up.parentElement
+      ) {
         await expect(getComputedStyle(up).overflow, "an ancestor clips the label").toBe("visible");
       }
     }
@@ -450,7 +466,6 @@ export const LongContentAt360: Story = {
     // The frame clip: expectLabelInkWhole reads only its own clone, so it cannot see this one.
     const marks = canvasElement.querySelectorAll<HTMLElement>(".ds-radio__label")[1] as HTMLElement;
     await expect(marks).toHaveTextContent(fixtures.thaiMarks);
-    const narrow = marks.closest<HTMLElement>('[role="radiogroup"]')?.parentElement as HTMLElement;
     if (inVitest) await expectFrameCutsNoInk(marks, narrow);
   },
 };
@@ -673,6 +688,22 @@ export const InEnglish: Story = {
       within(canvas.getByTestId("disabled-item")).getByRole("radio", { name: t.link }),
     ).toBeDisabled();
     await expect(canvas.getByTestId("states").querySelectorAll("[role=radio]")).toHaveLength(6);
+    // The two focus rows hold the halo and the focus line at rest, as InteractionStates reads them.
+    for (const id of ["rg-focus", "rg-focus-on"]) {
+      const circle = canvasElement.querySelector(`#${id}`) as HTMLElement;
+      await waitFor(() =>
+        expect(getComputedStyle(circle).boxShadow, `${id} holds the halo`).toMatch(
+          / 0px 0px 0px 3px$/,
+        ),
+      );
+      await expect(circle).not.toHaveFocus();
+      // The border eases to the focus line, so it is read once the transition ends. The colour is
+      // resolved outside the wait: resolvedColor adds a node, and waitFor re-runs on every added node.
+      const ring = resolvedColor(circle, "--ds-focus-ring");
+      await waitFor(() =>
+        expect(getComputedStyle(circle).borderTopColor, `${id} holds the focus line`).toBe(ring),
+      );
+    }
     const on = within(canvas.getByTestId("invalid-checked")).getByRole("radio", {
       name: t.members,
     });

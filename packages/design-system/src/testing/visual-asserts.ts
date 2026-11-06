@@ -1080,32 +1080,48 @@ export async function expectInkClearsAbove(el: Element, above: Element, px = 4) 
   }
 }
 
-/** A pixel whose channel `main` (0 red, 2 blue) stands more than 40 above both others: the test paint of `expectLinesClear`. */
-const dominant = (px: Rgb, main: 0 | 2) => {
+/** The strength of the test paint of `expectLinesClear`: its red is rgb(224, 0, 0), its blue rgb(0, 0, 224). */
+const LINES_INK = 224;
+
+/** Below this share of a pixel covered, the pixel is ground: raster noise, not ink. */
+const LINES_MIN_COVERAGE = 0.05;
+
+/**
+ * The share of a pixel the test paint covers, 0 to 1, from how far its channel `main` (0 red, 2
+ * blue) stands above both others. A red of 224 over any ground gives the difference `224 * share`
+ * with the others at `ground * (1 - share)`, so the share needs no ground colour.
+ */
+const coverage = (px: Rgb, main: 0 | 2) => {
   const others = main === 0 ? [px[1], px[2]] : [px[0], px[1]];
-  return others.every((o) => px[main] - o > 40);
+  return Math.min(1, Math.max(0, (px[main] - Math.max(...others)) / LINES_INK));
 };
 
 /**
- * The smallest gap, over every pixel column, from the lowest red pixel to the highest blue pixel,
- * in CSS px (the device rows between them divided by the device pixel ratio). A negative value
- * means the two inks overlap. A column with only one of the two colours is skipped; null when no
- * column has both.
+ * The smallest gap, over every pixel column, from the bottom edge of the lowest red ink to the top
+ * edge of the highest blue ink, in CSS px. An edge is read inside its pixel row from the share the
+ * ink covers: the lowest red row holds ink down to `row + share`, the highest blue row from
+ * `row + 1 - share`. Whole rows would not do. Counting a row as ink from a fifth of coverage, they
+ * read a gap of 0.7 px as 0 where the rasteriser hints a face, so a gap that clears the floor failed
+ * it (ORV-221: Linux, device scale 1, 0.71 px read as 0, the Mac read 1.8). A negative value means
+ * the two inks overlap. A column with only one of the two colours is skipped; null when no column
+ * has both.
  */
 export function linesGap(rows: readonly (readonly Rgb[])[], devicePixelRatio: number) {
   const width = rows[0]?.length ?? 0;
   let smallest: number | null = null;
   for (let x = 0; x < width; x++) {
-    let lowestRed = -1;
-    let highestBlue = -1;
+    let redBottom: number | null = null;
+    let blueTop: number | null = null;
     for (let y = 0; y < rows.length; y++) {
       const px = rows[y]?.[x];
       if (!px) continue;
-      if (dominant(px, 0)) lowestRed = y;
-      else if (dominant(px, 2) && highestBlue < 0) highestBlue = y;
+      const red = coverage(px, 0);
+      const blue = coverage(px, 2);
+      if (red > LINES_MIN_COVERAGE) redBottom = y + red;
+      else if (blue > LINES_MIN_COVERAGE && blueTop === null) blueTop = y + 1 - blue;
     }
-    if (lowestRed < 0 || highestBlue < 0) continue;
-    const gap = (highestBlue - lowestRed - 1) / devicePixelRatio;
+    if (redBottom === null || blueTop === null) continue;
+    const gap = (blueTop - redBottom) / devicePixelRatio;
     if (smallest === null || gap < smallest) smallest = gap;
   }
   return smallest;
@@ -1119,13 +1135,18 @@ export const linesFloor = (px: number, devicePixelRatio: number) => px - 1 / dev
  * highest ink of the next (ORV-194 row 6, rule `lines-clear-1`), within one device pixel. A shallow
  * clone of `el` (same classes, recipe and line height, same width) is put after it and filled with
  * two forced lines of the tallest Thai stacks, the first in red and the second in blue (test paint,
- * never shipped). One screenshot of the clone is read; the clone is taken out in `finally`. It runs
- * where Vitest browser mode runs; a play guards the call with `inVitest`.
+ * never shipped), painted in grey antialiasing. One screenshot of the clone is read; the clone is
+ * taken out in `finally`. It runs where Vitest browser mode runs; a play guards the call with
+ * `inVitest`.
  */
 export async function expectLinesClear(el: HTMLElement, px = 1.5) {
   const clone = el.cloneNode(false) as HTMLElement;
   clone.removeAttribute("id");
   clone.style.width = `${el.getBoundingClientRect().width}px`;
+  // A composited layer with no opaque ground is painted in grey antialiasing. Without it the Linux
+  // runner paints coloured subpixel fringes (715 fringed pixels in this clone, 0 with it), and the
+  // reading takes its share of ink from the colour channels.
+  clone.style.willChange = "transform";
   const line = (text: string, color: string) => {
     const span = document.createElement("span");
     span.style.color = color;
@@ -1155,7 +1176,7 @@ export async function expectLinesClear(el: HTMLElement, px = 1.5) {
     const floor = linesFloor(px, scale);
     expect(
       gap ?? 0,
-      `${label(el)} lines are ${gap} px apart, expected at least ${floor} px (${px} px less one device pixel)`,
+      `${label(el)} lines are ${Math.round((gap ?? 0) * 100) / 100} px apart, expected at least ${floor} px (${px} px less one device pixel)`,
     ).toBeGreaterThanOrEqual(floor);
   } finally {
     clone.remove();
