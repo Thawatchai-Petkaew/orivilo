@@ -1,6 +1,6 @@
 ---
 issue: ORV-231
-spec: docs/specs/ORV-231/spec.md v1.2
+spec: docs/specs/ORV-231/spec.md v1.3
 task: ORV-231-design-1
 date: 2026-11-06
 ---
@@ -143,7 +143,7 @@ Every value below is a `--cmp-*` or `--ds-*` name, a private `--_*` local, or `c
 | `cal-engine-1` | Slot map below. `showOutsideDays={false}` leaves leading and trailing cells empty; the cell keeps its size so the columns hold | Block "Slots" | `Default`, `MonthShapes`: 30 day buttons, lead cells of W3 |
 | `cal-look-1` | Root `div.ds-calendar[lang][data-months]`. Each cell a `td.ds-calendar__day` holding `button.ds-calendar__day-button` | Blocks "Tokens", "Frame", "Day" | `States`, `Today`, `Bounds`, `At360`, `MonthShapes`: calendar height equal across rows 4, 5, 6 |
 | `cal-range-1` | Cell attributes `data-range-start`, `data-range-middle`, `data-range-end`; root `data-range-open` while the second press is pending | Block "Band" | `RangeStates`, `Range`, `RangeOrder` |
-| `cal-names-1` | Heading `span.ds-calendar__heading[role=status][aria-live=polite]`. Nav `nav.ds-calendar__nav` with two `Button variant="ghost" size="sm" iconOnly` | Block "Frame", the nav rules | `Names`; a nav play reads `document.elementFromPoint` 5 px outside the button and finds it |
+| `cal-names-1` | Heading `span.ds-calendar__heading[role=status][aria-live=polite]`. Nav `div[role=group].ds-calendar__nav` with two `Button variant="ghost" size="sm" iconOnly` | Block "Frame", the nav rules | `Names`; a nav play reads `document.elementFromPoint` 5 px outside the button and finds it |
 | `cal-bounds-1` | Nav buttons take Button's own `disabled` | Block "Day", disabled rules | `Bounds` |
 | `dp-api-1` | `button.ds-control.ds-date-trigger[data-size]`, no `data-trigger`, then `span` (value, `data-placeholder` when empty) and `CalendarIcon.ds-control__icon.size-5` at the end. Read-only: `Input readOnly` | Block "Trigger" | `Sizes`: 32, 40, 48 to 0.5 px; `Invalid`; `RangeAt360` |
 | `dp-names-1` | The full date sits in a `span.sr-only` whose id joins the trigger's `aria-describedby` | None | `Filled`, `Range` |
@@ -159,7 +159,7 @@ The selectors read `data-*` on the cell. Where the pinned engine sets a modifier
 | --- | --- |
 | `root` | `ds-calendar`, plus `data-range-open` from our wrapper |
 | `months` | `ds-calendar__months` |
-| `nav` | `ds-calendar__nav`, a child of `months` and absolutely placed, so it spans both months |
+| `nav` | `ds-calendar__nav`, drawn by `components.Nav` as a `div` with `role="group"` and that class, a child of `months` and absolutely placed, so it spans both months |
 | `month` | `ds-calendar__month` |
 | `month_caption`, `caption_label` | `ds-calendar__caption`, `ds-calendar__heading` |
 | `month_grid` | `ds-calendar__grid` |

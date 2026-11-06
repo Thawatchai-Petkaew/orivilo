@@ -4,7 +4,7 @@ lane: L (a new component public API is an L-lane risk flag, AGENTS.md "Lanes and
 mode: POC mode short spec (`.claude/skills/ovl/SKILL.md`, section "POC mode")
 source_row: docs/specs/ORV-64/audit.md section D.3 row 28 ("Calendar and Date picker")
 design: docs/specs/ORV-231/design.md (task ORV-231-design-1, amendments 1 to 18 folded in v1.1)
-version: 1.2
+version: 1.3
 ---
 
 # ORV-231: Calendar and Date picker (base)
@@ -60,7 +60,7 @@ Every date in a public prop or callback of `Calendar` and `DatePicker` is `IsoDa
 - `th`: `th-TH-u-ca-buddhist-nu-latn`
 - `en`: `en-US-u-ca-gregory-nu-latn`
 
-Styles: `medium` (`dateStyle: "medium"`), `full` (`dateStyle: "full"`), `monthYear` (`month: "long"`, `year: "numeric"`, then only the `month` and `year` parts of `formatToParts`, joined by one space, so the heading never depends on a pattern K-0405 did not find under `availableFormats`). It formats a `Date.UTC` instant with `timeZone: "UTC"`, so the viewer's zone cannot move a plain date. W1 prints the output. Formatters are cached per locale and style, as `format.ts` does.
+Styles: `medium` (`dateStyle: "medium"`), `full` (`dateStyle: "full"`), `monthYear` (`month: "long"`, `year: "numeric"`, then only the `month` and `year` parts of `formatToParts`, joined by one space, so the heading never depends on a pattern K-0405 did not find under `availableFormats`). It formats a `Date.UTC` instant with `timeZone: "UTC"`, so the viewer's zone cannot move a plain date. W1 prints the output. Formatters are cached per locale and style, as `format.ts` does. A value that is not a real date gives an empty string: `date-value-1` reads it as no value, so it has no text, and without this check `Date.UTC` would roll `2026-02-30` into March and show a date nobody chose. W12 prints it.
 
 ### date-year-1
 
@@ -74,18 +74,25 @@ Digits are Arabic (0 to 9, the `latn` of `DATE_TAGS`) in both locales. Open ques
 
 `Calendar` wraps `DayPicker` from `react-day-picker`, pinned exactly at 10.0.2 in `packages/design-system/package.json`, for behaviour only, in the split of ADR 0003 decision 1 and ADR 0004 decision 1.
 
-- No library stylesheet is loaded; `classNames` maps its slots to `ds-calendar__*`, and `components` overrides `Chevron` and `DayButton` (K-0390), and `Day` if the pinned engine sets no range modifier on the cell.
+- No library stylesheet is loaded; `classNames` maps its slots to `ds-calendar__*`, and `components` overrides `Nav` and `Weekdays` (below), and `Day` if the pinned engine sets no range modifier on the cell.
 - Every word reaches it from us: `formatters` take `formatDate`, `labels` take the catalog, with `numerals="latn"` and `lang` set (K-0395, K-0399). Thai-run output holds no Latin letter (AC row 3).
-- It gets `weekStartsOn` from `cal-week-1`, `today` from `cal-today-1`, `showOutsideDays={false}` and `captionLayout="label"` (K-0395). It gets no `timeZone` and no `role`.
+- It gets `weekStartsOn` from `cal-week-1`, `today` from `cal-today-1`, `showOutsideDays={false}` and `captionLayout="label"` (K-0395). It gets no `timeZone` prop and no `role` prop.
 - `@daypicker/buddhist` is not added, and our code imports nothing from `date-fns` directly.
 
 K-0395 names `formatters` and not its key names, so the builder reads them in the pinned source. If a formatter cannot reach the heading or a day's name, the builder returns `blocked` and never replaces a year inside a string.
 
 The slot map and cell attributes in `design.md` come from K-0390, K-0395 and memory of the engine's v9, not from 10.0.2, so they stay an assumption until the builder reads the pinned source. The builder keeps the rule and changes the mapping, through `classNames`, `components` or the wrapper, and that includes the `components` keys that put our `Button` in the nav (`cal-names-1`). "Design amendments" names the row that proves each one on the pinned engine.
 
+PR 198 read the pinned source and maps it this way. The engine keeps the grid, the roving focus and the keys. `Calendar` draws two parts itself through `components`, because the engine's own form of each does not hold here:
+
+- `Nav` is a `div` with `role="group"`, named `calendar.navigation`, which keeps the `ds-calendar__nav` class and holds the two buttons of `cal-names-1`. The engine draws a `nav` landmark there. Two calendars on one page then carry two landmarks of one name, which axe fails as `landmark-unique` (ORV-231-build-2), and a month grid is not site navigation. The buttons take the native `disabled` of `cal-bounds-1`, where the engine's own buttons use `aria-disabled`.
+- `Weekdays` is a `thead` with no `aria-hidden`. The engine hides that row from assistive technology, so its columns could not carry the full names `cal-names-1` asks for.
+
+`Chevron` and `DayButton` are not overridden: our `Nav` draws its own glyphs, and the engine's day button takes its class through `classNames`.
+
 ### cal-api-1
 
-`Calendar` is a new public component (`src/components/calendar/Calendar.tsx`), exported from `@orivilo/design-system`, with the contract type `CalendarProps`, a union on `mode`:
+`Calendar` is a new public component (`src/components/calendar/Calendar.tsx`), exported from `@orivilo/design-system`, with the contract type `CalendarProps`, a union on `mode` once the range PR lands:
 
 - `mode`: `single` (default) or `range` (`cal-range-1`).
 - `value`, `defaultValue`, `onChange`: `IsoDate` in `single`, `DateRange` in `range` (`date-value-1`). Controlled and uncontrolled, as Radix parts are.
@@ -96,6 +103,8 @@ The slot map and cell attributes in `design.md` come from K-0390, K-0395 and mem
 - `className` for layout only.
 
 In `single`, pressing the selected day again changes nothing and calls nothing. Clearing a date is the caller's job. There is no `size`, `footer`, `children` or week-number prop.
+
+Until the range PR, `CalendarProps` is single mode only: `mode` is `single` or left out, and the value is an `IsoDate`. The range arm, the `DateRange` value and the range modifiers land with that PR's rows, since a type that accepts `range` with no behaviour behind it would promise what the build does not do. AC row 14's four lines hold under both forms.
 
 ### cal-week-1
 
@@ -116,11 +125,18 @@ W5 prints the landing dates. Escape belongs to the wrapper (`dp-commit-1`). Key 
 
 ### cal-names-1
 
-Each month is a `grid` named by its `monthYear` text, days are `gridcell` with `aria-selected` on selected days only, exactly one day has `tabIndex` 0, and the heading is a polite `status` (K-0397). Each weekday column carries its full name from the catalog and shows its short one (K-0401). A day's name is its `full` date, wrapped in the catalog forms for today, selected and range (Copy). A one-day range takes `calendar.dayRangeSingle`. Today inside a range nests: `calendar.dayToday` wraps the range form, as in วันนี้ {date} วันเริ่มต้น and Today, {date}, start of the range. Previous and next are `Button` `variant="ghost"`, `size="sm"`, `iconOnly`, named from the catalog. A `::after` gives each a press area of `size.touch`, while the look stays `sm`.
+Each month is a `grid` named by its `monthYear` text, days are `gridcell` with `aria-selected` on selected days only, exactly one day has `tabIndex` 0, and the heading is a polite `status` (K-0397). Each weekday column carries its full name from the catalog and shows its short one (K-0401). A day's name is its `full` date, wrapped in the catalog forms for today, selected and range (Copy). A one-day range takes `calendar.dayRangeSingle`. Today inside a range nests: `calendar.dayToday` wraps the range form, as in วันนี้ {date} วันเริ่มต้น and Today, {date}, start of the range. Previous and next are `Button` `variant="ghost"`, `size="sm"`, `iconOnly`, named from the catalog, inside the group of `cal-engine-1`. A `::after` gives each a press area of `size.touch`, while the look stays `sm`.
 
 ### cal-today-1
 
 `today` defaults to the viewer's local date, read after mount with `toIsoDate(new Date())`, since a server render cannot know it (K-0389). Until then no day is marked. A story passes `calendarFixtures.today`, so no play depends on the clock. With no value, the calendar opens on `defaultMonth`, else on `today`, and a month outside `min` and `max` gives way to the nearest month inside them.
+
+The build reads the clock through `useSyncExternalStore` with a server snapshot of `undefined`, so a server render and the render that hydrates it agree and React reports no mismatch. A mount with no server render reads the clock on its first render. Until the clock is read:
+
+- The engine's `today` prop gets `new Date(0)`, since left out it would read its own clock and mark a day the server chose. That instant is a real day: a month showing it, January 1970 (December 1969 west of UTC), would mark it until the clock is read.
+- With no `value` and no `defaultMonth`, nothing says which month to open on, so `Calendar` draws an empty `ds-calendar` tile. The tile holds only its padding, so the month arriving moves the page.
+
+No AC row runs a server render, since row 7 passes `calendarFixtures.today`, so this paragraph is read from `Calendar.tsx` and no play proves it.
 
 ### cal-bounds-1
 
@@ -289,7 +305,7 @@ Stories: `Base/Calendar` (id `base-calendar`) and `Base/Date picker` (id `base-d
 <!-- prettier-ignore -->
 | # | Given | When | User sees | Data effect | Check |
 | --- | --- | --- | --- | --- | --- |
-| 1 | Node, `src/i18n/date.test.ts` | `formatDate` runs on `2026-11-12` and `2020-09-29` in the three styles and two locales | Not a screen | Output equals W1 line for line (`date-format-1`) | Unit test, exact strings; `resolvedOptions()` reads calendar `buddhist` and numbering `latn` for `th`; `grep -n "LOCALE_TAGS" packages/design-system/src/i18n/date.ts` prints nothing |
+| 1 | Node, `src/i18n/date.test.ts` | `formatDate` runs on `2026-11-12` and `2020-09-29` in the three styles and two locales | Not a screen | Output equals W1 line for line (`date-format-1`) | Unit test, exact strings; `resolvedOptions()` reads calendar `buddhist` and numbering `latn` for `th`; `2026-02-30` gives W12's output; `grep -n "LOCALE_TAGS" packages/design-system/src/i18n/date.ts` prints nothing |
 | 2 | Node, same file, `process.env.TZ` set in turn to `Asia/Bangkok`, `Pacific/Honolulu` and `UTC` | `toIsoDate(fromIsoDate("2026-11-12"))` runs; `fromIsoDate("2026-02-30")` runs | Not a screen | `2026-11-12` in the three zones; `undefined` for the false date (`date-value-1`, W2) | Unit test |
 | 3 | Storybook test project, neutral, light, Thai | Calendar `Default` renders November 2026 | The heading "พฤศจิกายน 2569", weekdays "อา." to "ส." in order from Sunday, days 1 to 30 in five rows, nothing from October or December | None | `Default` play: heading text equals W1's in the browser; the seven headers in order; 30 day buttons; no Latin letter in any text node or `aria-label` under the root (`cal-engine-1`) |
 | 4 | Same, English | Calendar `InEnglish` renders the states of rows 3, 6, 7, 8 and 11 | "November 2026", "Su" to "Sa", and the day named "Thursday, November 12, 2026, selected" | None | `InEnglish` play: heading, seven headers, `Today, Friday, November 6, 2026` and the selected name found |
@@ -298,12 +314,12 @@ Stories: `Base/Calendar` (id `base-calendar`) and `Base/Date picker` (id `base-d
 | 7 | Same | Calendar `Today` renders with `calendarFixtures.today` | Day 6 underlined and named "วันนี้ วันศุกร์ที่ 6 พฤศจิกายน พ.ศ. 2569" | None | `Today` play: computed `textDecorationLine` includes `underline` on day 6 and on no other day; name found (`cal-look-1`) |
 | 8 | Same | Calendar `Bounds` renders `min`, `max` and `blocked`; the person presses day 18 and day 2 | Days 1, 2, 18 and 25 to 30 struck through and not pressable; Previous month and Next month disabled | `onChange` not called (`cal-bounds-1`) | `Bounds` play: the nine day buttons listed are disabled; both nav buttons disabled; `fn()` count 0 |
 | 9 | Same | Calendar `Keyboard` starts on `2026-11-12`; the person presses in turn each key W5 names; a second run starts on `2026-01-31` and presses Page Down; a third, in `Bounds`, starts on day 17 and presses Right Arrow | Focus lands on each date W5 prints; in `Bounds` on day 19 | None until Enter; Enter calls `onChange` once (`cal-keys-1`) | `Keyboard` play: `document.activeElement` holds the expected day after each key |
-| 10 | Same | Calendar `Names` renders November 2026 with day 12 selected | Nothing new | Roles and names of `cal-names-1`: one `grid` named "พฤศจิกายน 2569", the heading with `role="status"` and `aria-live="polite"`, exactly one day with `tabIndex` 0, weekday headers named "วันอาทิตย์" to "วันเสาร์", buttons named "เดือนก่อนหน้า" and "เดือนถัดไป" | `Names` play: `document.elementFromPoint` 5 px outside the Next month button's look finds that button (`cal-names-1`); a11y addon reports zero violations |
+| 10 | Same | Calendar `Names` renders November 2026 with day 12 selected | Nothing new | Roles and names of `cal-names-1`: one `grid` named "พฤศจิกายน 2569", the heading with `role="status"` and `aria-live="polite"`, exactly one day with `tabIndex` 0, weekday headers named "วันอาทิตย์" to "วันเสาร์", a `group` named "เปลี่ยนเดือน" (`cal-engine-1`), buttons named "เดือนก่อนหน้า" and "เดือนถัดไป" | `Names` play: `document.elementFromPoint` 5 px outside the Next month button's look finds that button (`cal-names-1`); a11y addon reports zero violations |
 | 11 | Same | Calendar `States`: the person hovers day 10, a disabled day and selected day 12, then tabs to day 12 and hovers it again; a second calendar blocks `today` through `isDateDisabled` | Each state of `cal-look-1` as listed there | None | `States` play: selected computed `backgroundColor`, `color` and `borderColor` equal the resolved `--cmp-calendar-day-selected-*`; hover edge and ground equal theirs; hovered, selected day 12 keeps `--cmp-calendar-day-selected-bg` with the edge `--cmp-calendar-day-hover-edge`, and the disabled day keeps a transparent ground; disabled `textDecorationLine` is `line-through` and `opacity` is `1`; the blocked today's `textDecorationLine` includes `underline` and `line-through`; `expectFocusBorderForm` on focused day 12, without the pointer and with it |
 | 12 | Storybook, a 360 px frame | Calendar `At360` renders November 2026, Thai; a second Calendar sits in a 280 px column; the play then sets a 320 px viewport through `page.viewport`, as `atPhoneSize` in `Select.stories.tsx` does | Seven columns of cells at W4's size, nothing cut, no horizontal scroll. In the column the days narrow, keep their height and do not touch. At 320 the cells shrink and the page does not scroll sideways | None | `At360` play: frame `scrollWidth` not above 360; a day's computed width equals W4; the frame rule on the heading with `expectLabelInkWhole`; in the column no day button overlaps the next and a day's height equals W4's `cell`; at 320 a day's width equals W10's `cell320` to 0.5 px and the document's `scrollWidth` is not above 320 |
 | 13 | Storybook test project | Calendar `RecipesAndModes` renders through `Matrix` | The selected, today and disabled days in the six boundaries | None. The pairs of `cal-look-1` pass at their floor under the six boundaries | `RecipesAndModes` play: counts equal W9; `recipes.test.ts` proves the contrast, and a new test there finds no `var()` in the `ds-calendar` rules outside the list that opens `cal-look-1` |
 | 14 | The PR head | `pnpm typecheck` runs on the story file | Not a screen | `@ts-expect-error` lines hold for `value={new Date()}`, a `DateRange` value with no `mode`, an `IsoDate` value with `mode="range"`, and `months={3}` | `pnpm --filter @orivilo/design-system typecheck` output |
-| 15 | The PR head | `check-catalog` and the i18n checks run | Not a screen | `catalog/base/calendar.yaml` (story `base-calendar`, status `draft`, states `[default, hover, focus-visible, selected, today, disabled]`, recipes neutral, professional, friendly) resolves; `coverage.md` has the row; the `calendar.*` keys of "Copy" exist in Thai and English; the story docs say the dates are mock and tell callers to pass `months={1}` below `md`; no middot or em dash in those files | `pnpm --filter @orivilo/design-system test` output (check-catalog, `i18n.test.ts`, `check-i18n`) |
+| 15 | The PR head | `check-catalog` and the i18n checks run | Not a screen | `catalog/base/calendar.yaml` (story `base-calendar`, status `draft`, states `[default, hover, focus-visible, selected, today, disabled]`, recipes neutral, professional, friendly) resolves; `coverage.md` has the row; the `calendar.*` keys of "Copy", except the `calendar.dayRange*` keys of row 40, exist in Thai and English; the story docs say the dates are mock and tell callers to pass `months={1}` below `md`; no middot or em dash in those files | `pnpm --filter @orivilo/design-system test` output (check-catalog, `i18n.test.ts`, `check-i18n`) |
 | 16 | The PR head | The dependency is read | Not a screen | `react-day-picker` pinned at 10.0.2; no `react-aria`, `@internationalized/date` or `@daypicker/buddhist` added; no import from `date-fns` and no library stylesheet in our source (`cal-engine-1`) | `grep -n '"react-day-picker": "10.0.2"' packages/design-system/package.json` prints one line; `grep -n -e "react-aria" -e "@daypicker/buddhist" -e "internationalized" packages/design-system/package.json` prints nothing; `grep -rn -e "from \"date-fns" -e "react-day-picker/" packages/design-system/src` prints nothing; `grep -rl 'react-day-picker' packages/design-system/src` prints only files under `src/components/calendar/` (ADR 0020 decision 3); the `security` approve on the head |
 | 17 | Storybook at 360 and 1440 px, light and dark, Thai and English | The designer opens Calendar `Default`, `States`, `Bounds`, `At360`, `RecipesAndModes` | A selected, a today and a disabled day that read apart with the colour taken away | None | Designer visual sign-off, its PNG paths posted on the issue as a Jira comment, since a sign-off has an empty `write_set` and cannot write design.md; the same comment says the built stories hold `design.md`'s answers to open questions 14, 16 and 17 |
 | 18 | Storybook test project, neutral, light, Thai | Date picker `Empty` renders in a Field labelled "วันที่ตัดสินใจ", and once with `value="2026-02-30"` | The trigger reads "เลือกวันที่" with its calendar icon | None. The false value shows as empty (`date-value-1`) | `Empty` play: trigger named "วันที่ตัดสินใจ", text "เลือกวันที่" in both renders; a second trigger outside a Field is named "เลือกวันที่" (`dp-names-1`) |
@@ -349,7 +365,11 @@ Rows 1, 2 and 42 are unit tests, rows 14, 28, 40 and 47 type and catalog checks,
 
 ## Rows per PR
 
-No PR exists yet, so this section holds prose and no list line; open question 18 says who adds the lines. By open question 12: the first PR covers rows 1 to 17, the second rows 18 to 30, the third rows 31 to 41, the fourth rows 42 to 48, and each of them row 49.
+Open question 18 says who adds the lines, and a line is added when its PR opens. By open question 12: the first PR covers rows 1 to 17, the second rows 18 to 30, the third rows 31 to 41, the fourth rows 42 to 48, and each of them row 49.
+
+PR 198 is the first PR. The contract table lands by PR, so it has no `CalendarIcon`, no `datePicker.*` key and no `calendar.dayRange*` key; each comes with the PR whose rows name it. It does carry the `TwoMonths` story, since `months` is part of `cal-api-1`, and row 35 stays with the third PR.
+
+- PR 198: rows 1-17, 49
 
 ## Design amendments
 
@@ -368,7 +388,7 @@ Where each of the 18 amendments of `design.md` lives now. The design proof was m
 | Amendment 8 | `cal-range-1`, AC rows 31 and 32 | Engine: the marks on an open start and on a day that is both start and end | Row 31, `Range`; row 32, `RangeOrder` |
 | Amendment 9 | Copy, `cal-names-1`, AC rows 32, 33, 38 and 44 | Engine: a day's label can read its modifiers. The `errorYear` text is ours | Rows 32, 33 and 38 for the names; row 44, `TypedErrors`, for the text |
 | Amendment 10 | W7, W11, Fixtures, AC row 39 | Ours. The widths were measured on the real fonts, in the mock | Row 39, `RangeAt360` |
-| Amendment 11 | `cal-names-1`, AC row 10 | Engine: our `Button` is a direct child of the `nav` slot | Row 10, `Names` |
+| Amendment 11 | `cal-names-1`, AC row 10 | Engine: the `Nav` key of `components` hands our group the `nav` slot's class, and our `Button` is its direct child (`cal-engine-1`) | Row 10, `Names` |
 | Amendment 12 | `cal-api-1`, `cal-look-1`, AC rows 15 and 26 | Popover: Radix sets `--radix-popover-content-available-height` on the panel | Row 26, `TwoMonthsPanel`; row 15 for the story docs |
 | Amendment 13 | `cal-look-1`, AC rows 11 and 33 | Engine: a disabled day's button has `disabled`, which `:not(:disabled)` reads | Row 8, `Bounds`; row 11, `States`; row 33, `RangeStates` |
 | Amendment 14 | `cal-look-1`, AC row 12 | Engine: the `day` and `day_button` slots, and a fixed-layout grid | Row 12, `At360` |
@@ -513,8 +533,15 @@ W11. The widest range values of AC row 39. Input: `calendarFixtures.widestTh` an
 node -e 'const f=(t,d)=>new Intl.DateTimeFormat(t,{dateStyle:"medium",timeZone:"UTC"}).format(new Date(d+"T00:00:00Z")),a=f("th-TH-u-ca-buddhist-nu-latn","2026-04-28"),b=f("en-US-u-ca-gregory-nu-latn","2026-05-28");console.log(a+" ถึง "+a);console.log(b+" to "+b)'
 ```
 
+W12. The empty string of `date-format-1`. Input: `2026-11-12` from `calendarFixtures`, `2026-02-30` from AC row 2, and two more values that are not real dates, through the check of `src/i18n/date.ts`, copied, in the `medium` style in `th`. Expected output, four lines, exact strings, no rounding: `"2026-11-12" "12 พ.ย. 2569"`, `"2026-02-30" ""`, `"2026-13-01" ""`, `"not a date" ""`.
+
+```bash
+node -e 'const parts=v=>{const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(v);if(!m)return;const y=+m[1],o=+m[2],d=+m[3],t=new Date(Date.UTC(2000,o-1,d));t.setUTCFullYear(y);if(t.getUTCFullYear()!==y||t.getUTCMonth()!==o-1)return;return[y,o,d]},f=v=>{const p=parts(v);if(!p)return"";const t=new Date(Date.UTC(2000,p[1]-1,p[2]));t.setUTCFullYear(p[0]);return new Intl.DateTimeFormat("th-TH-u-ca-buddhist-nu-latn",{dateStyle:"medium",timeZone:"UTC"}).format(t)};for(const v of["2026-11-12","2026-02-30","2026-13-01","not a date"])console.log(JSON.stringify(v),JSON.stringify(f(v)))'
+```
+
 ## Changelog
 
 - v1.0 (2026-11-06): first version, from K-0380 to K-0409 and audit D.3 row 28. Downstream to review: `architect` (the new ADR and `.claude/rules/design-system.md` line 23, open question 1), the owner (open questions 1 to 4), the designer (open questions 14, 16 and 17), the builder envelopes (rows per open question 12), the `security` envelope on the first PR, the qa envelope (Rows per PR lines once the PRs exist), `catalog/coverage.md`.
 - v1.1 (2026-11-06): takes in amendments 1 to 18 of `design.md` ("Design amendments" places each), the owner's answers to open questions 1 to 4 (ORV-231 comment 10548) and the designer's to 14, 16 and 17. Tokens: `calendar.padding` replaces `calendar.popover-padding`, and `calendar.radius` and `calendar.row-gap` are new. New class `ds-date-trigger`, new key `calendar.dayRangeSingle`, new fixtures `widestTh` and `widestEn`, new examples W10 and W11, two lines of `design.md`'s CSS replaced (`cal-look-1`). No AC row number changes; rows 5, 10 to 13, 15, 17, 22, 23, 26, 31 to 33, 35, 38, 39 and 44 change their text. Downstream to review: `architect` (the pending ADR, written on v1.0), `designer` (`design.md` lines 293 and 369), the builder envelopes (the proving rows of "Design amendments"), the `security` envelope on the first PR, the qa envelope (the changed rows), the sign-offs of rows 17, 30, 41 and 48 (design.md's visual QA table).
 - v1.2 (2026-11-06): points at ADR 0020 where v1.1 said the pending ADR, and adds to AC row 16 the check that only `src/components/calendar/` imports the engine (ADR 0020 decision 3). No AC row number changes. Downstream to review: the builder envelope of PR 1, the `security` envelope.
+- v1.3 (2026-11-06): records what ORV-231-build-1 and ORV-231-build-2 built, with no new requirement. `cal-engine-1`: the engine keeps the grid, the roving focus and the keys, while `Calendar` draws its own nav group and weekday row, and why; `Chevron` and `DayButton` are not overridden. `date-format-1`: an empty string for a value that is not a real date, new example W12. `cal-today-1`: how the clock is read after mount, and that no play proves a server render. `cal-api-1`: `CalendarProps` is single mode until the range PR. "Rows per PR" gains the PR 198 line. No AC row number changes; rows 1, 10 and 15 change their text to match what the build already asserts, and Amendment 11's "Rests on" follows the group. Downstream to review: `architect` (ADR 0020 decision 7 and its Consequences line on inherited roles), `designer` (`design.md` lines 3, 146 and 162), the qa envelope (the PR 198 line and rows 1, 10 and 15), the builder envelopes of the later PRs (the range arm, `CalendarIcon`, the `datePicker.*` and `calendar.dayRange*` keys).
