@@ -46,3 +46,17 @@ Facts from outside design systems and standards that inform ORIVILO's own design
 | [[K-0133-wai-aria-apg-no-non-modal-dialog-pattern-tooltip-note]]               | WAI-ARIA APG: popover and non-modal dialog guidance, Tooltip note      |
 | [[K-0134-wcag-2-2-content-on-hover-or-focus-dismissible-hoverable-persistent]] | WCAG 2.2 SC 1.4.13 Content on Hover or Focus                           |
 | [[K-0135-synthesis-evidence-span-and-evidence-list-benchmark]]                 | Synthesis of K-0127 to K-0134: EvidenceSpan and EvidenceList table     |
+| [[K-0171-untitled-ui-empty-state-sizes-parts-and-header-visuals]]              | Untitled UI EmptyState: sizes, parts, header visuals, demos            |
+| [[K-0172-untitled-ui-empty-state-h1-main-and-no-live-region]]                  | Untitled UI EmptyState: elements, overrides, announcing, motion        |
+| [[K-0173-untitled-ui-has-no-page-loading-pattern]]                             | Does Untitled UI React have a page-loading pattern                     |
+| [[K-0174-shadcn-ui-empty-parts-one-media-variant-no-size]]                     | shadcn/ui Empty page: parts, variant, examples, accessibility          |
+| [[K-0175-shadcn-ui-empty-source-div-title-and-two-style-sets]]                 | shadcn/ui Empty source: elements, ARIA, values in two style sets       |
+| [[K-0176-shadcn-ui-spinner-inside-empty-as-the-loading-example]]               | shadcn/ui loading state: the Spinner page's Empty example              |
+| [[K-0177-shadcn-ui-no-results-text-in-data-table-and-command]]                 | shadcn/ui and cmdk: no-results text in Data Table and Command          |
+| [[K-0178-wcag-2-2-no-results-text-is-a-status-message]]                        | WCAG 2.2 SC 4.1.3 and ARIA22: search and no-results messages           |
+| [[K-0179-wai-aria-1-2-progressbar-for-a-loading-region]]                       | WAI-ARIA 1.2 progressbar and aria-busy on a loading region             |
+| [[K-0180-wai-aria-apg-feed-aria-busy-back-to-false]]                           | WAI-ARIA APG Feed: aria-busy during an update                          |
+| [[K-0181-wai-aria-1-2-one-main-role-and-required-heading-level]]               | WAI-ARIA 1.2 role main and role heading                                |
+| [[K-0182-whatwg-html-one-visible-main-element]]                                | WHATWG HTML: how many main elements, and where                         |
+| [[K-0183-aria-in-html-main-takes-no-other-role]]                               | ARIA in HTML: allowed roles on main, h1 to h6, header, footer          |
+| [[K-0184-synthesis-empty-state-and-loading-state-benchmark]]                   | Synthesis of K-0171 to K-0183: empty and loading benchmark table       |
