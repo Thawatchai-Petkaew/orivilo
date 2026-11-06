@@ -46,3 +46,17 @@ Facts from outside design systems and standards that inform ORIVILO's own design
 | [[K-0133-wai-aria-apg-no-non-modal-dialog-pattern-tooltip-note]]               | WAI-ARIA APG: popover and non-modal dialog guidance, Tooltip note      |
 | [[K-0134-wcag-2-2-content-on-hover-or-focus-dismissible-hoverable-persistent]] | WCAG 2.2 SC 1.4.13 Content on Hover or Focus                           |
 | [[K-0135-synthesis-evidence-span-and-evidence-list-benchmark]]                 | Synthesis of K-0127 to K-0134: EvidenceSpan and EvidenceList table     |
+| [[K-0144-untitled-ui-radio-buttons-two-sizes-label-hint-no-invalid]]           | Untitled UI Radio buttons: sizes, props, states, keyboard              |
+| [[K-0145-untitled-ui-radio-groups-card-forms-and-no-group-label]]              | Untitled UI Radio groups: card forms, item shape, group label          |
+| [[K-0146-untitled-ui-toggle-base-and-slim-two-sizes-no-invalid]]               | Untitled UI Toggles: base, slim, sizes, states, label                  |
+| [[K-0147-shadcn-ui-radio-group-two-parts-item-invalid-no-size]]                | shadcn/ui Radio Group: parts, examples, invalid, registry classes      |
+| [[K-0148-shadcn-ui-switch-sizes-sm-default-and-invalid-classes]]               | shadcn/ui Switch: sizes, examples, invalid, registry classes           |
+| [[K-0149-shadcn-ui-field-around-radio-and-switch-is-manual-wiring]]            | shadcn/ui Field around a radio or switch: how it is wired              |
+| [[K-0150-radix-radio-group-parts-props-and-keyboard-docs]]                     | Radix Radio Group docs: parts, props, data attributes, keyboard        |
+| [[K-0151-radix-radio-group-1-5-1-aria-wiring-arrows-check-enter-blocked]]      | Radix Radio Group 1.5.1 build: roles, arrows, Enter, hidden input      |
+| [[K-0152-radix-switch-parts-keyboard-and-1-4-1-aria-wiring]]                   | Radix Switch: parts, keyboard, 1.4.1 build wiring                      |
+| [[K-0153-wai-aria-apg-radio-group-roles-keyboard-labelling]]                   | WAI-ARIA APG Radio Group: roles, keyboard, labelling, toolbar          |
+| [[K-0154-wai-aria-apg-switch-roles-keyboard-fixed-label]]                      | WAI-ARIA APG Switch: roles, keyboard, labelling, groups                |
+| [[K-0155-wai-aria-1-2-invalid-on-radiogroup-and-switch-deprecated-on-radio]]   | WAI-ARIA 1.2: where aria-invalid and aria-required are allowed         |
+| [[K-0156-html-label-for-names-labelable-elements-only]]                        | HTML: what a label's for attribute may point at                        |
+| [[K-0157-synthesis-radio-group-and-switch-benchmark]]                          | Synthesis of K-0144 to K-0156: RadioGroup and Switch benchmark table   |
