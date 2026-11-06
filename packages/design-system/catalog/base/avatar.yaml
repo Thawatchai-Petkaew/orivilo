@@ -1,0 +1,30 @@
+name: Avatar
+tier: base
+status: draft
+since: ORV-224
+import: "@orivilo/design-system"
+story: base-avatar
+useWhen:
+  - "Who is on a team or who wrote a comment: a person's picture, with a name the data holds"
+avoidWhen:
+  - "A company logo or a product image (use Logo or the image itself)"
+  - "Online, verified or unread marks: the repo holds no data for them, and no status, tick or count ships"
+  - "A group of people with a total: no group part ships"
+contract: AvatarProps
+variants: []
+sizes: [sm, md]
+states: [picture, initials, icon, failed, loading]
+recipes: [neutral, professional, friendly]
+examples: []
+rules:
+  - "One chain on the Radix primitive: the picture once it has loaded, else the initials of `name`, else the person glyph. A missing, null or empty `src`, a slow load and a failed load all show the fallback at once, and a new `src` starts over. Avatar never retries a failed `src` itself"
+  - "Initials are rule-based, not read by a model: the first letter of the first word and of the last word, upper-cased in code, for a Latin name; one Thai consonant, with no vowel and no mark, for a Thai name; nothing when the name holds no letter. No second letter follows a Thai first word. A Thai reader confirms the Thai rule at sign-off"
+  - "Round under each profile by `clip-path: circle(50%)`, the form Skeleton's circle uses, so a loading shape and the Avatar that replaces it match. The ground is `avatar.bg` (`border.subtle`, the colour of `skeleton.bg`) and the ink is `avatar.fg` (`text.primary`), one ink for the initials and the glyph. No border, no shadow, no hover, no motion"
+  - "Sizes: `sm` 32 px with a 16 px glyph, `md` 40 px with a 20 px glyph (default); the initials take `type.control.md` at both sizes. The disc never shrinks in a flex row"
+  - "Two forms. Named (default): the root is `role=img` with `aria-label` set to the trimmed name, or `avatar.noName` when the name is missing or blank. Decorative: `aria-hidden`, no role, no label. Beside a visible name, or inside a link or row button with that name: decorative. Alone as a control: decorative inside a Button with `iconOnly`, whose `aria-label` states the action and the person. Alone with no control: named"
+  - "No status, verified, count or badge prop, no slot for one, and no group part. A later story that holds the data adds one with its own spec"
+  - "Avatar renders what it is given and decides nothing about who may see what. The server masks before props are built; a person the viewer may not see reaches Avatar with no name and no src. Initials derive from a personal field, so they count as personal. No `title`, `data-name` or `data-src` carries the name or the URL"
+a11y:
+  - "The accessible name sits on the root, not on the `img`, so it survives a failed picture. The `img` has an empty `alt` and no `title`; the initials and the glyph carry no label of their own"
+  - "A screen reader gives the person's name once: the decorative form beside a visible name adds nothing, and the named form is used only where the name text is not in the page"
+  - "Avatar takes no focus and has no focus style; the ring is the control's (a Button with `iconOnly`)"

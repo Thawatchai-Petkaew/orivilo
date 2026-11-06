@@ -46,6 +46,7 @@ export {
   type PopoverProps,
   PopoverTrigger,
 } from "./popover/Popover";
+export { Avatar, type AvatarProps, type AvatarSize } from "./avatar/Avatar";
 export { Logo, type LogoKind, type LogoProps, type LogoTone } from "./logo/Logo";
 export { Progress, type ProgressProps, type ProgressStatus } from "./progress/Progress";
 export {

@@ -1021,4 +1021,7 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     bg: "ds:surface.canvas",
     floor: TEXT,
   },
+  // Avatar (ORV-224): the initials and the glyph share one ink on the disc. TEXT also covers the
+  // glyph, which needs only the UI floor.
+  { recipe: "avatar", slot: "fallback", fg: "avatar.fg", bg: "avatar.bg", floor: TEXT },
 ];

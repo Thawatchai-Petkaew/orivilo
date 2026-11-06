@@ -15,6 +15,9 @@ export const th = {
   skeleton: {
     loading: "กำลังโหลดเนื้อหา",
   },
+  avatar: {
+    noName: "ไม่แสดงชื่อ",
+  },
   dialog: {
     close: "ปิด",
   },
