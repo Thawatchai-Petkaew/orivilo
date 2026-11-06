@@ -20,6 +20,7 @@ import {
   Group,
   Hand,
   History,
+  Info,
   Keyboard,
   Link,
   LoaderCircle,
@@ -32,6 +33,7 @@ import {
   Minus,
   PenLine,
   MousePointer2,
+  OctagonX,
   PanelLeftOpen,
   PanelRightOpen,
   Plus,
@@ -59,7 +61,7 @@ import {
  * icons from this file only, never from `lucide-react` directly (lint), so the defaults below
  * hold everywhere and only the named glyphs reach the bundle.
  *
- * All 46 glyphs are Lucide today. A glyph Lucide lacks is drawn here as inline SVG on a 20 grid,
+ * All 53 glyphs are Lucide today. A glyph Lucide lacks is drawn here as inline SVG on a 20 grid,
  * stroke 2, round caps and joins, `currentColor`, `aria-hidden`.
  */
 type IconProps = Omit<SVGProps<SVGSVGElement>, "children">;
@@ -87,6 +89,10 @@ export const ChevronDownIcon = lucide(ChevronDown, "ChevronDownIcon");
 export const SpinnerIcon = lucide(LoaderCircle, "SpinnerIcon");
 export const CloseIcon = lucide(X, "CloseIcon");
 export const WarningIcon = lucide(TriangleAlert, "WarningIcon");
+/** An octagon with an X: a failure, drawn apart from the triangle of a warning and the circle of info (ORV-222). */
+export const DangerIcon = lucide(OctagonX, "DangerIcon");
+/** A circle with an i: neutral information, drawn apart from the failure glyph (ORV-222). */
+export const InfoIcon = lucide(Info, "InfoIcon");
 export const LockIcon = lucide(Lock, "LockIcon");
 export const UnlockIcon = lucide(LockOpen, "UnlockIcon");
 /** A clock turning back: a result older than its source. */

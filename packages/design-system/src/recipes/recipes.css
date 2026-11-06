@@ -3800,6 +3800,57 @@
   }
 }
 
+/* FeaturedIcon (ORV-222) --------------------------------------------------------------------- */
+
+.ds-featured-icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  inline-size: var(--cmp-featured-icon-size-sm);
+  block-size: var(--cmp-featured-icon-size-sm);
+  border-radius: var(--cmp-featured-icon-radius);
+  /* forced colours drop the ground; this line keeps the tile's shape */
+  outline: 1px solid transparent;
+  outline-offset: -1px;
+}
+.ds-featured-icon > svg {
+  inline-size: var(--cmp-featured-icon-icon-size-sm);
+  block-size: var(--cmp-featured-icon-icon-size-sm);
+}
+.ds-featured-icon[data-size="md"] {
+  inline-size: var(--cmp-featured-icon-size-md);
+  block-size: var(--cmp-featured-icon-size-md);
+}
+.ds-featured-icon[data-size="md"] > svg {
+  inline-size: var(--cmp-featured-icon-icon-size-md);
+  block-size: var(--cmp-featured-icon-icon-size-md);
+}
+.ds-featured-icon[data-size="lg"] {
+  inline-size: var(--cmp-featured-icon-size-lg);
+  block-size: var(--cmp-featured-icon-size-lg);
+}
+.ds-featured-icon[data-size="lg"] > svg {
+  inline-size: var(--cmp-featured-icon-icon-size-lg);
+  block-size: var(--cmp-featured-icon-icon-size-lg);
+}
+.ds-featured-icon[data-variant="success"] {
+  background: var(--cmp-featured-icon-success-bg);
+  color: var(--cmp-featured-icon-success-fg);
+}
+.ds-featured-icon[data-variant="warning"] {
+  background: var(--cmp-featured-icon-warning-bg);
+  color: var(--cmp-featured-icon-warning-fg);
+}
+.ds-featured-icon[data-variant="danger"] {
+  background: var(--cmp-featured-icon-danger-bg);
+  color: var(--cmp-featured-icon-danger-fg);
+}
+.ds-featured-icon[data-variant="info"] {
+  background: var(--cmp-featured-icon-info-bg);
+  color: var(--cmp-featured-icon-info-fg);
+}
+
 /* Progress (E4-5) ---------------------------------------------------------------------------- */
 
 .ds-progress {
