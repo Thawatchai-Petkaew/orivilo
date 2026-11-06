@@ -1505,6 +1505,56 @@
   min-inline-size: 0;
 }
 
+/* Avatar (ORV-224). Round under each profile by clip, the form Skeleton's circle uses. No border,
+ * no shadow, no motion. `overflow` adds no look; the clip checks read it. `contain: paint` keeps
+ * the round edge at a sub-pixel position, where the clip alone leaves a flat top (R1). */
+.ds-avatar {
+  display: inline-block;
+  flex: none;
+  vertical-align: middle;
+  inline-size: var(--ds-size-control-md);
+  block-size: var(--ds-size-control-md);
+  overflow: hidden;
+  clip-path: circle(50%);
+  contain: paint;
+  background: var(--cmp-avatar-bg);
+}
+.ds-avatar[data-size="sm"] {
+  inline-size: var(--ds-size-control-sm);
+  block-size: var(--ds-size-control-sm);
+}
+.ds-avatar__image {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+/* An atomic inline: a line a flex or grid link draws does not enter it (R2). */
+.ds-avatar__fallback {
+  display: inline-flex;
+  vertical-align: top;
+  align-items: center;
+  justify-content: center;
+  inline-size: 100%;
+  block-size: 100%;
+  color: var(--cmp-avatar-fg);
+  font-family: var(--ds-type-control-md-font-family);
+  font-size: var(--ds-type-control-md-font-size);
+  line-height: var(--ds-type-control-md-line-height);
+  font-weight: var(--ds-type-control-md-font-weight);
+  letter-spacing: var(--ds-type-control-md-letter-spacing);
+  white-space: nowrap;
+  user-select: none;
+}
+.ds-avatar__fallback > svg {
+  inline-size: var(--ds-size-icon-md);
+  block-size: var(--ds-size-icon-md);
+}
+.ds-avatar[data-size="sm"] .ds-avatar__fallback > svg {
+  inline-size: var(--ds-size-icon-sm);
+  block-size: var(--ds-size-icon-sm);
+}
+
 /* Canvas (ADR 0004, E4-2): React Flow for behaviour, every value from the board, node, port and
  * edge tokens (E4-1). The base stylesheet (imported in orivilo.css) reads `--xy-*` properties; each
  * one it reads is set here from a component token, so no React Flow default colour reaches the
@@ -3854,6 +3904,76 @@
 .ds-featured-icon[data-variant="info"] {
   background: var(--cmp-featured-icon-info-bg);
   color: var(--cmp-featured-icon-info-fg);
+}
+
+/* Alert (ORV-222) ---------------------------------------------------------------------------- */
+
+.ds-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--cmp-alert-gap);
+  box-sizing: border-box;
+  inline-size: 100%;
+  padding: var(--cmp-alert-padding);
+  border: 1px solid transparent;
+  border-radius: var(--cmp-alert-radius);
+  background: var(--cmp-alert-bg);
+  color: var(--cmp-alert-description);
+  font-family: var(--cmp-alert-body-type-font-family);
+  font-size: var(--cmp-alert-body-type-font-size);
+  line-height: var(--cmp-alert-body-type-line-height);
+  font-weight: var(--cmp-alert-body-type-font-weight);
+  letter-spacing: var(--cmp-alert-body-type-letter-spacing);
+}
+.ds-alert[data-variant="success"] {
+  border-color: var(--cmp-alert-success-edge);
+}
+.ds-alert[data-variant="warning"] {
+  border-color: var(--cmp-alert-warning-edge);
+}
+.ds-alert[data-variant="danger"] {
+  border-color: var(--cmp-alert-danger-edge);
+}
+.ds-alert[data-variant="info"] {
+  border-color: var(--cmp-alert-info-edge);
+}
+.ds-alert__content {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: flex-start;
+  /* title and description are one block, 4 px apart (DESIGN.md section 4) */
+  gap: var(--ds-space-inline-sm);
+  min-inline-size: 0;
+  /* the title's first line centres on the tile and the close; later lines flow under it */
+  padding-block-start: calc(
+    (
+        var(--cmp-featured-icon-size-sm) - var(--cmp-alert-title-type-font-size) *
+          var(--cmp-alert-title-type-line-height)
+      ) /
+      2
+  );
+}
+.ds-alert__title,
+.ds-alert__description {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.ds-alert__title {
+  color: var(--cmp-alert-title);
+  font-family: var(--cmp-alert-title-type-font-family);
+  font-size: var(--cmp-alert-title-type-font-size);
+  line-height: var(--cmp-alert-title-type-line-height);
+  font-weight: var(--cmp-alert-title-type-font-weight);
+  letter-spacing: var(--cmp-alert-title-type-letter-spacing);
+}
+/* with the content gap of 4, an action keeps 8 px above it */
+.ds-alert__action {
+  display: flex;
+  margin-block-start: var(--ds-space-inline-sm);
+}
+.ds-alert__close {
+  flex: none;
 }
 
 /* Progress (E4-5) ---------------------------------------------------------------------------- */

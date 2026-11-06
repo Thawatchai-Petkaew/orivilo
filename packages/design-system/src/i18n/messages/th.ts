@@ -15,6 +15,9 @@ export const th = {
   skeleton: {
     loading: "กำลังโหลดเนื้อหา",
   },
+  avatar: {
+    noName: "ไม่แสดงชื่อ",
+  },
   dialog: {
     close: "ปิด",
   },
@@ -37,6 +40,9 @@ export const th = {
     arrowDown: "ลูกศรลง",
     arrowLeft: "ลูกศรซ้าย",
     arrowRight: "ลูกศรขวา",
+  },
+  alert: {
+    dismiss: "ปิดข้อความนี้",
   },
   toast: {
     region: "การแจ้งเตือน",

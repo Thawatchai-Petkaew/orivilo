@@ -1,0 +1,35 @@
+name: Alert
+tier: base
+status: draft
+since: ORV-222
+import: "@orivilo/design-system"
+story: base-alert
+useWhen:
+  - "A message that belongs to a place on the page and stays true until the state changes: a failed job shown where the job lives, a stale result, a rule-based note"
+avoidWhen:
+  - "A short notice with no place on the current screen, such as saved or generation failed away from the job (use Toast)"
+  - "An error tied to one field (stays in Field)"
+  - "A message that needs a decision or must move focus (use Dialog)"
+  - "A status with no sentence next to it (use Badge)"
+contract: AlertProps
+variants: [success, warning, danger, info]
+sizes: []
+states: [default, with-action, dismissible, static]
+recipes: [neutral, professional, friendly]
+examples: []
+rules:
+  - "`variant`, `title` and `description` are required, with no default kind. `title` says what happened; `description` says the fix on danger and warning and the next step on success and info. Neither is cut: no line clamp, a long word breaks by overflow-wrap anywhere"
+  - "Brand is not a kind, and the props `size`, `icon`, `duration` and `actionType` do not exist (a type error)"
+  - '`action` is the caller''s own `<Button size="sm" variant="secondary">`, one at most, under the text; keep its label short, since a Button does not wrap. `onDismiss`, when given, shows a close named from the catalog key `alert.dismiss`; no kind requires it'
+  - "The live role is set by what the message says and nothing else: danger is an alert, success, warning and info are a status. `live` can raise warning and info to `alert` or switch any kind to `off`; the type refuses `alert` on success and `status` on danger (`alert-live-1`)"
+  - '`alert-mount-1`: a message that arrives while the person is on the screen goes into a container the screen keeps mounted from its first render, with that container''s role (`alert` or `status`, exactly one live role per container), and the Alert inside takes `live="off"`. Alert adds no region component and no two-step mount'
+  - '`alert-load-1`: a message already in the screen''s first render takes `live="off"`, so it reads in page order and nothing is spoken; the caller sets it from its own data and `live` does not change while the Alert is mounted'
+  - "Alert has no timer and stays until the caller removes it. Close calls `onDismiss` once and removes nothing itself: the caller unmounts the Alert and moves focus to the next control. Escape does nothing"
+  - "A card ground, a 1 px edge round the block and the tinted FeaturedIcon tile; danger takes the foreground ink of its kind as the one strong edge, the other three keep the pale feedback border. The tile and the words say the kind, never the edge or the colour"
+  - "A success Alert is shown only with backing data (AGENTS.md rule 4). The jobs in the stories are mock data"
+  - "Alert is for a failed job where the job lives; Toast is for a notice with no place on the screen. Never both for the same event"
+a11y:
+  - "Alert never takes or moves focus: no tabindex on the root, no autofocus, no focus call. A message that must move focus is a Dialog"
+  - "The tile is hidden from assistive technology; the title and description carry the message, with no hidden prefix"
+  - "The close and the action are Buttons with their own focus line and halo, inside the block"
+  - "No screen reader test has been run: `alert-mount-1` and `alert-load-1` rest on the W3C techniques read, not on a measured announcement. A role=alert is atomic, so the action's and the close's names may be read with the message"

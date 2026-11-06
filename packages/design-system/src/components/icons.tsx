@@ -51,6 +51,7 @@ import {
   Undo2,
   Unlink,
   Upload,
+  UserRound,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -62,7 +63,7 @@ import {
  * icons from this file only, never from `lucide-react` directly (lint), so the defaults below
  * hold everywhere and only the named glyphs reach the bundle.
  *
- * All 54 glyphs are Lucide today. A glyph Lucide lacks is drawn here as inline SVG on a 20 grid,
+ * All 55 glyphs are Lucide today. A glyph Lucide lacks is drawn here as inline SVG on a 20 grid,
  * stroke 2, round caps and joins, `currentColor`, `aria-hidden`.
  */
 type IconProps = Omit<SVGProps<SVGSVGElement>, "children">;
@@ -140,6 +141,8 @@ export const ReferenceIcon = lucide(Link, "ReferenceIcon");
 export const DirectionIcon = lucide(Compass, "DirectionIcon");
 export const NoteIcon = lucide(StickyNote, "NoteIcon");
 export const GroupIcon = lucide(Group, "GroupIcon");
+/** A person: the last step of an Avatar when there is no picture and no initials (ORV-224). */
+export const PersonIcon = lucide(UserRound, "PersonIcon");
 
 /* Run steps: what the engine is doing in each step of a running node (ORV-57). */
 export const ReadStepIcon = lucide(BookOpen, "ReadStepIcon");

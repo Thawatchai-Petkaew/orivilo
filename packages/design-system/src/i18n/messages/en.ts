@@ -11,6 +11,9 @@ export const en: Messages = {
   skeleton: {
     loading: "Loading content",
   },
+  avatar: {
+    noName: "Name not shown",
+  },
   dialog: {
     close: "Close",
   },
@@ -33,6 +36,9 @@ export const en: Messages = {
     arrowDown: "Arrow down",
     arrowLeft: "Arrow left",
     arrowRight: "Arrow right",
+  },
+  alert: {
+    dismiss: "Dismiss this message",
   },
   toast: {
     region: "Notifications",

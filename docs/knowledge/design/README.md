@@ -59,6 +59,25 @@ Facts from outside design systems and standards that inform ORIVILO's own design
 | [[K-0168-wcag-f81-error-fields-by-color-alone]]                                | WCAG failure F81: required or error fields by colour only              |
 | [[K-0169-wcag-2-2-non-text-contrast-graphics-for-understanding]]               | WCAG 2.2 SC 1.4.11: which graphics need 3:1                            |
 | [[K-0170-synthesis-alert-and-featured-icon-benchmark]]                         | Synthesis of K-0158 to K-0169: Alert and FeaturedIcon table            |
+| [[K-0185-untitled-ui-avatar-sizes-props-and-slots]]                            | Untitled UI Avatar: sizes, props, slots, related components            |
+| [[K-0186-untitled-ui-avatar-fallback-chain-and-sticky-load-failure]]           | Untitled UI Avatar: fallback order and what a load failure does        |
+| [[K-0187-untitled-ui-avatar-one-indicator-and-unnamed-status-dot]]             | Untitled UI Avatar: indicators and what the status dot is              |
+| [[K-0188-untitled-ui-avatar-alt-repeats-visible-name-no-aria]]                 | Untitled UI Avatar: alt, aria, focus ring                              |
+| [[K-0189-shadcn-ui-avatar-parts-sizes-and-classes]]                            | shadcn/ui Avatar: parts, sizes, registry classes                       |
+| [[K-0190-shadcn-ui-avatar-fallback-text-children-no-icon-example]]             | shadcn/ui Avatar: what the fallback holds, alt in the samples          |
+| [[K-0191-shadcn-ui-avatar-badge-empty-span-no-status-meaning]]                 | shadcn/ui AvatarBadge: what it is and what it means                    |
+| [[K-0192-radix-avatar-three-parts-no-accessibility-text]]                      | Radix Avatar page: parts, props, what it does not state                |
+| [[K-0193-radix-avatar-source-preload-fallback-and-lost-alt]]                   | Radix Avatar source: load statuses, fallback timing, where alt goes    |
+| [[K-0194-base-ui-avatar-keep-mounted-and-broken-image-note]]                   | Base UI Avatar: fallback, keepMounted, accessible name note            |
+| [[K-0195-wcag-2-2-non-text-content-decoration-and-null-alt]]                   | WCAG 2.2 SC 1.1.1 and H67: text alternative or ignored                 |
+| [[K-0196-wai-images-tutorial-image-described-by-adjacent-text]]                | WAI tutorial: image described by adjacent text                         |
+| [[K-0197-wcag-2-2-h2-image-and-text-in-one-link]]                              | H2 and the WAI tutorial: image with text in a link, image alone        |
+| [[K-0198-whatwg-html-alt-for-a-face-beside-text]]                              | WHATWG HTML: alt for a face beside text, in a caption, in a control    |
+| [[K-0199-wai-aria-1-2-img-name-presentation-and-aria-label]]                   | WAI-ARIA 1.2: role img, role presentation, aria-hidden, aria-label     |
+| [[K-0200-aria-in-html-img-rows]]                                               | ARIA in HTML: which roles and attributes an img may take               |
+| [[K-0201-wcag-2-2-use-of-color-and-non-text-contrast-for-a-dot]]               | WCAG 2.2 SC 1.4.1 and 1.4.11 as they bear on a status dot              |
+| [[K-0202-initials-for-thai-silence-and-charat]]                                | Do the sources say how to make Thai initials; what getInitials does    |
+| [[K-0203-synthesis-avatar-benchmark]]                                          | Synthesis of K-0185 to K-0202: Avatar benchmark table                  |
 | [[K-0260-untitled-ui-file-uploaders-examples-and-props]]                       | Untitled UI file uploaders: examples, parts, props, sizes, variants    |
 | [[K-0261-untitled-ui-list-progress-bar-and-fill-items]]                        | Untitled UI upload list: progress, complete, item forms                |
 | [[K-0262-untitled-ui-failed-item-try-again-and-delete]]                        | Untitled UI failed item: text, retry, delete                           |
