@@ -46,6 +46,19 @@ Facts from outside design systems and standards that inform ORIVILO's own design
 | [[K-0133-wai-aria-apg-no-non-modal-dialog-pattern-tooltip-note]]               | WAI-ARIA APG: popover and non-modal dialog guidance, Tooltip note      |
 | [[K-0134-wcag-2-2-content-on-hover-or-focus-dismissible-hoverable-persistent]] | WCAG 2.2 SC 1.4.13 Content on Hover or Focus                           |
 | [[K-0135-synthesis-evidence-span-and-evidence-list-benchmark]]                 | Synthesis of K-0127 to K-0134: EvidenceSpan and EvidenceList table     |
+| [[K-0158-untitled-ui-alerts-floating-full-width-no-size-no-role]]              | Untitled UI Alerts: forms, colours, slots, what the page leaves out    |
+| [[K-0159-untitled-ui-featured-icon-themes-colors-sizes-no-aria]]               | Untitled UI FeaturedIcon: themes, colours, sizes, page and source      |
+| [[K-0160-shadcn-ui-alert-two-variants-role-alert-in-source-only]]              | shadcn/ui Alert: parts, variants, role, classes by style               |
+| [[K-0161-shadcn-ui-no-featured-icon-empty-and-item-media-nearest]]             | Does shadcn/ui have a featured icon; what comes nearest                |
+| [[K-0162-wai-aria-1-2-alert-role-assertive-focus-not-required]]                | WAI-ARIA 1.2 role alert and role alertdialog                           |
+| [[K-0163-wai-aria-apg-alert-no-focus-no-auto-dismiss-load-silent]]             | WAI-ARIA APG Alert pattern: focus, timing, alerts at page load         |
+| [[K-0164-wcag-2-2-status-messages-alert-for-errors-status-for-results]]        | WCAG 2.2 SC 4.1.3: role alert, role status, errors, dialogs            |
+| [[K-0165-wcag-aria19-empty-alert-container-before-the-error]]                  | WCAG technique ARIA19: role alert for errors, container at load        |
+| [[K-0166-wcag-aria22-status-role-before-the-message]]                          | WCAG technique ARIA22: role status, container test                     |
+| [[K-0167-wcag-2-2-use-of-color-visible-alternative]]                           | WCAG 2.2 SC 1.4.1 Use of Color: text, note and techniques              |
+| [[K-0168-wcag-f81-error-fields-by-color-alone]]                                | WCAG failure F81: required or error fields by colour only              |
+| [[K-0169-wcag-2-2-non-text-contrast-graphics-for-understanding]]               | WCAG 2.2 SC 1.4.11: which graphics need 3:1                            |
+| [[K-0170-synthesis-alert-and-featured-icon-benchmark]]                         | Synthesis of K-0158 to K-0169: Alert and FeaturedIcon table            |
 | [[K-0340-untitled-ui-react-lists-no-accordion-component]]                      | Does Untitled UI React have an accordion component                     |
 | [[K-0341-shadcn-ui-accordion-docs-parts-examples-and-versions]]                | shadcn/ui Accordion docs: parts, examples, versions                    |
 | [[K-0342-shadcn-ui-accordion-registry-classes-chevron-and-no-aria]]            | shadcn/ui Accordion registry files: classes, icon, ARIA                |
