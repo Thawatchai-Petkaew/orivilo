@@ -4,7 +4,7 @@ lane: L (a new component public API is an L-lane risk flag, AGENTS.md "Lanes and
 mode: POC mode short spec (`.claude/skills/ovl/SKILL.md`, section "POC mode")
 source_row: docs/specs/ORV-64/audit.md section D.3 row 27 ("Accordion, Separator, Metric, Filters": Inspector groups, overview; each has a story and catalog entry)
 design: docs/specs/ORV-230/design.md
-version: 1.1
+version: 1.2
 ---
 
 # ORV-230: Accordion, Separator, Metric and Filter bar
@@ -368,7 +368,9 @@ Rows 7, 21 and 43 are type, catalog and copy checks, row 33 adds the unit test o
 
 ## Rows per PR
 
-Four PRs are planned in the order of open question 16: Separator with rows 1 to 8 and 45, then Accordion with rows 9 to 22 and 45, then Metric with rows 23 to 34 and 45, then Filter bar with rows 35 to 45. No PR exists yet, so this section holds no list line. The main session adds each line, in the form `qa-scope-1` reads, with a changelog line when its PR opens (open question 17).
+Four PRs are planned in the order of open question 16: Separator with rows 1 to 8 and 45, then Accordion with rows 9 to 22 and 45, then Metric with rows 23 to 34 and 45, then Filter bar with rows 35 to 45. The main session adds each line, in the form `qa-scope-1` reads, with a changelog line when its PR opens (open question 17).
+
+- PR 195: rows 1-8, 45
 
 ## Out of scope
 
@@ -489,3 +491,4 @@ node -e 'const slot=32*1,missing=16*1.7;console.log("slot",slot.toFixed(1),"miss
 
 - v1.0 (2026-11-06): first version, from K-0340 to K-0369 and audit D.3 row 27. Downstream to review: the designer envelope (design.md, open questions 2, 3, 7, 8, 10 and 14, and any change to the rules they hold), the builder envelopes (one per PR, per open question 16), the qa envelopes (the Rows per PR lines once the PRs exist), `catalog/coverage.md`, `catalog/base/collapsible.yaml` and the decision log example with its stories.
 - v1.1 (2026-11-06): takes in the amendments of `design.md`: A1, A2 and A3 in `acc-look-1`, A4 in `sep-look-1`, A5 in `metric-tone-1`, A6 in `metric-look-1`, A7 in `metric-data-1`, A8 in `filter-look-1`, A9 in `filter-api-1`, A10 in "Contract changes and impact", A11 in AC row 15, A12 in AC row 19. Front matter points at `design.md`; "Open questions" opens with its answers, and the main session takes questions 2 and 10 under the owner's delegation; W8 and W9 are new. AC rows 1, 2, 8, 10, 14, 19, 22, 25, 26, 27, 28, 34, 35, 36 and 41 gain the proof of an amendment that rests on the built component, and rows 8, 22, 34 and 44 now point at the answers, with row numbers, "Rows that render nothing" and "Rows per PR" unchanged. Downstream to review: the builder envelopes (one per PR), the qa envelopes, the designer sign-offs of rows 8, 22, 34 and 44, and the `spec:` line of `design.md`, which names v1.0.
+- v1.2 (2026-11-06): by the main session. "Rows per PR" gains the line for PR 195.
