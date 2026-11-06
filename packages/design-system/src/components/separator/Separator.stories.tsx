@@ -187,7 +187,7 @@ export const InEnglish: Story = {
 
 /**
  * In a 360 px frame two long Thai names wrap and the line spans the frame. The frame clips nothing:
- * the overflow loop reads the computed style of the paragraph and every ancestor up to the frame,
+ * the overflow loop reads the computed style of each paragraph and every ancestor up to the frame,
  * and `expectFrameCutsNoInk` reads the pixels, so a clip by the frame or any ancestor goes red.
  */
 export const At360: Story = {
@@ -214,11 +214,17 @@ export const At360: Story = {
     for (const paragraph of frame.querySelectorAll("p")) {
       await expect(paragraph.getBoundingClientRect().height).toBeGreaterThan(24);
     }
-    // Every ancestor of the paragraph up to and including the frame clips nothing.
-    for (let el: HTMLElement | null = first; el; el = el === frame ? null : el.parentElement) {
-      const style = getComputedStyle(el);
-      await expect(style.overflowX, `${el.localName} clips on x`).toBe("visible");
-      await expect(style.overflowY, `${el.localName} clips on y`).toBe("visible");
+    // Each paragraph and every ancestor of it up to and including the frame clips nothing.
+    for (const paragraph of frame.querySelectorAll("p")) {
+      for (
+        let el: HTMLElement | null = paragraph;
+        el;
+        el = el === frame ? null : el.parentElement
+      ) {
+        const style = getComputedStyle(el);
+        await expect(style.overflowX, `${el.localName} clips on x`).toBe("visible");
+        await expect(style.overflowY, `${el.localName} clips on y`).toBe("visible");
+      }
     }
     if (inVitest) {
       await expectLinesClear(first);
