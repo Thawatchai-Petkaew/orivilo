@@ -1,6 +1,6 @@
 ---
 issue: ORV-229
-spec: docs/specs/ORV-229/spec.md v1.0
+spec: docs/specs/ORV-229/spec.md v1.1
 task: ORV-229-design-1
 date: 2026-11-06
 ---
@@ -216,7 +216,7 @@ New: "Sixteen colour pairs", with these four added after the list: "Breadcrumb, 
 
 Old, in the pagination recipe row: "Other Button recipes untouched: Previous and Next are plain Buttons".
 
-New: "Other Button recipes untouched: Previous and Next are Buttons, and the only rules on them are scoped to `.ds-pagination` (`design.md` D11, D20)". The breadcrumb recipe row adds: "One scoped rule on the ghost Button inside the trail (`design.md` D10, D11)".
+New: "Other Button recipes untouched: Previous and Next are Buttons, and the only rules on them are scoped to `.ds-pagination` (`design.md` D11, D20)". The breadcrumb recipe row adds: "Two scoped rules on the ghost Button inside the trail (`design.md` D10, D11)".
 
 ### A7. A glyph size and a wrap the spec leaves unsaid (`nav-glyphs-1`, `page-markup-1`, `page-form-1`)
 
