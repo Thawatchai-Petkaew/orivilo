@@ -1,6 +1,6 @@
 ---
 issue: ORV-226 (https://tpetkaew.atlassian.net/browse/ORV-226)
-spec: docs/specs/ORV-226/spec.md v1.0
+spec: docs/specs/ORV-226/spec.md v1.1
 task: ORV-226-design-1
 version: 1.0
 ---
@@ -72,14 +72,14 @@ Values are the rendered px with the tokens that give them: `--cmp-dialog-padding
 | D16 | `confirm-focus-1` | Button's line and halo, whole on every side. No clip by the scroller | None. The halo stays inside the 24 of inline padding and the footer's 16 above | AC 3; `-open` shots |
 | D17 | `confirm-dismiss-1` | Close control at 16 from the top and the end, unchanged. It scrolls with the content in a short panel, and Tab brings it into view | None | Row 28 |
 | D18 | `confirm-pending-1` | Spinner before the kept label; panel height and footer rows equal to rest in all 49 cases measured. Stacked, the label's group re-centres, 12 to the side; the box does not move | `loading`, `loadingLabel`, `disabled` as the spec says, with D8 | A7 |
-| D19 | `confirm-pending-1` | Focus on the confirm while pending, on every browser | In the press handler, before cancel is disabled: `if (document.activeElement !== confirm) confirm.focus({ preventScroll: true })` (A2) | AC 7 `toHaveFocus()` in Chromium; see "Bounds" |
+| D19 | `confirm-pending-1` | Focus on the confirm while pending, on every browser | In the press handler, before cancel is disabled: `if (document.activeElement !== confirm) confirm.focus({ preventScroll: true })` (A2) | AC 7, story `PressFocus`; see "Bounds" |
 | D20 | `confirm-outcome-1` | Done: the panel closes with the recipe's motion, nothing more | None | AC 10 |
 | D21 | `confirm-failure-1` | Message in the error slot, 14 px, danger colour, directly above the actions. Adds 63.6 to a delete or accept panel at 360 with the two-line fixture. Its wording says it failed and a new line appears, so it is not colour alone (`DESIGN.md` section 7) | None; `.ds-dialog__error` stands | AC 11, 14 |
 | D22 | `confirm-failure-1` | In an overflowing panel the message is whole above the footer after the failure, focus unmoved. Five cases measured, 320 by 256 to 640 by 360 | After the message is in the DOM, `panel.scrollTop = panel.scrollHeight`. Instant, no `scrollIntoView`, no smooth scroll. The prototype used `flushSync`; a layout effect keyed on the message serves as well | A3, row 28 |
 | D23 | `confirm-failure-1` | The message's arrival and removal re-centre the panel, about 32 each way, with no animation. Accepted: the top of the panel moves, the words do not jump under the pointer | None | AC 12 |
 | D24 | `confirm-status-1` | No look. `sr-only` is absolutely placed, so it is no flex item and takes no row | `<span role="status" className="sr-only">` last in the footer | AC 8 |
 | D25 | `confirm-return-1` | No look | None | AC 16, 17 |
-| D26 | `confirm-copy-1` | A `confirmLabel` is a short verb phrase of one line; a name belongs in `title` | Catalog `usage` line (A10) | AC 25 |
+| D26 | `confirm-copy-1` | A `confirmLabel` is a short verb phrase of one line; a name belongs in `title` | Catalog `rules` line (A10) | AC 25 |
 | D27 | `confirm-honest-1` | No tick, no success colour, no toast anywhere in the pattern | None | AC 10 |
 | D28 | Long content | Long Thai title and impact wrap at 360 with no clipped mark. Failed at 360 by 560: panel 328 by 489.5, content 488 in 488, so it does not scroll | D3 and D4; the recipe's `overflow-wrap: anywhere` stands | A5 (AC 20) |
 | D29 | Long content | Past the panel's height (640 by 360 long, 320 by 256, 360 by 560 with the longest fixture): text scrolls by arrow keys, wheel and touch, actions stay in reach. No divider: the cut line of the text is the cue, so the panel keeps one line per edge | D3 and D4 | Row 28 |
@@ -206,12 +206,12 @@ For the main session or product to take into `spec.md` with a version bump. The 
 | A2 | `confirm-pending-1` | On a press, before cancel is disabled, the pattern focuses the confirm if it is not the active element, with `preventScroll` | Safari and Firefox on macOS may not focus a clicked button, and disabling cancel could then drop focus. General browser knowledge, not run and not in a K entry |
 | A3 | `confirm-failure-1` | Add: when the panel overflows, it scrolls to its end after the message renders; focus does not move | Without it the message can sit under the sticky footer |
 | A4 | `confirm-focus-1` | The first focus call passes `preventScroll: true` | A short panel must open at its title |
-| A5 | AC 20 | Replace "every ancestor ... up to but not including the frame ... `visible`" with: the walk stops before `.ds-confirm`; the panel's computed `overflow-y` is `auto` and its `scrollHeight` is not above its `clientHeight` for this fixture. Add `expectNoGlyphClip` on the title, the impact and the failure line, and both buttons 278 wide, stacked, 8 apart | The panel is now the scroller on purpose. The check still proves nothing is clipped at this size |
+| A5 | AC 20 | Replace "every ancestor ... up to but not including the frame ... `visible`" with: the walk runs to the frame with the panel as its one named exception; the panel's computed `overflow-y` is `auto` and its `scrollHeight` is not above its `clientHeight` for this fixture. Add `expectFrameCutsNoInk(el, frame)` on the title, the impact and the failure line, ink proved as spec row 20 says, and both buttons 278 wide, stacked, 8 apart | The panel is now the scroller on purpose. The check still proves nothing is clipped at this size |
 | A6 | AC 2 | Add: glyph, title and impact left edges equal within 0.5; glyph centre equals the close control's centre within 0.5; footer `top` at or below the impact's `bottom`. Keep "a danger glyph before": it holds in reading order | D4, D10, D11. The last check is the one that catches the sticky-padding fault; opening a PNG found it, the overflow numbers did not |
 | A7 | AC 7 and 9 | Add: panel height and footer height equal before and during pending; `expectSameHeight` on the two buttons. The row form is proved in a frame, row 30 | D8, D18 |
 | A8 | AC 11 and 14 | "its `bottom` is at or above the footer's `top`" takes a tolerance of 0.5. The footer's `top` now includes its 16 padding | Measured 263.3 against 263 when scrolled |
 | A9 | AC 26 | Add `ShortPanel`, `LongLabel`, `ShapeHolds` to the designer's list. "Keeps the label in place" means the same words, with no change of footer height or rows; the row form also holds the label's x, the stacked form re-centres it 12 | D18 |
-| A10 | Contract table, catalog entry | The `usage` lines add: `confirmLabel` is a short verb phrase that fits one line; names go in `title` | D26 |
+| A10 | Contract table, catalog entry | The `rules` lines add: `confirmLabel` is a short verb phrase that fits one line; names go in `title` | D26 |
 | A11 | New row 28 | Story `ShortPanel`: frame 640 by 360, `modal={false}`, long content, failed. Footer inside the panel and the frame; the alert whole above the footer; `scrollTop` 0 on open; ArrowDown on the focused cancel scrolls the panel; focus unmoved after the failure | D3, D4, D15, D22, D29 |
 | A12 | New rows 29 and 30 | 29, story `LongLabel`: frames 360 and 416 wide, a confirm label of `fixtures.longThai`. The confirm stays inside the panel, frame `scrollWidth` not above its width, the label wraps. 30, story `ShapeHolds`: frames 412 and 416 wide, English accept, press the confirm. At 412 stacked, at 416 one row; rows, footer height and panel height the same at rest and pending; at 416 the cancel's `left` and the confirm's `right` unchanged within 0.5 | D5 to D8. "Rows per PR" and the row 26 count change with these |
 
