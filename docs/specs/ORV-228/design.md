@@ -1,13 +1,13 @@
 ---
 issue: ORV-228
-spec: docs/specs/ORV-228/spec.md v1.2
+spec: docs/specs/ORV-228/spec.md v1.3
 task: ORV-228-design-1, reworked by ORV-228-design-2
 date: 2026-11-06
 ---
 
 # ORV-228 design: Combobox and Multi-select
 
-This file sets the look of `cbx-recipe-1` and `ms-recipe-1`, answers open questions 3, 8, 9 and 13, and gives the builder the CSS and markup per named rule. No answer differs from its default. The look adds no token. Two contrast pairs come with the scroll cue of D17. Amendments A1 to A9 are taken in by spec v1.1; A10 to A16 come from the rework of sign-off 1 and are listed for product to take in. Section "Rework from sign-off 1" holds findings F1 and F2.
+This file sets the look of `cbx-recipe-1` and `ms-recipe-1`, answers open questions 3, 8, 9 and 13, and gives the builder the CSS and markup per named rule. No answer differs from its default. The look adds no token. Two contrast pairs come with the scroll cue of D17. Amendments A1 to A9 are taken in by spec v1.1; A10 to A16 come from the rework of sign-off 1 and are taken in by spec v1.3. Section "Rework from sign-off 1" holds findings F1 and F2.
 
 How the look was proven: no Combobox exists yet, so the proposed CSS and static markup were injected into the `base-select--default` story on Storybook (port 6440), under the real tokens, profiles, modes, fonts and locale. Hover and focus are the browser's own states, forced through the Chrome DevTools Protocol. What this does not prove: real Radix positioning and collision (the popup sits in the flow, 4 px under the field, with the three `--radix-popover-*` values set by script), any key or pointer behaviour, any browser but Chromium, and any screen reader.
 
@@ -580,7 +580,7 @@ New: "`.ds-combobox__scroll` (Radix `ScrollArea.Root`, `type="auto"`): flex colu
 
 **A12, `cbx-recipe-1`, the pairs (D17).**
 Old: "No new token and no new contrast pair: option, highlighted, selected, description, disabled, empty line, destructive and "checked highlighted ring" are existing `menu` pairs (`pairs.ts` lines 269 to 312, 671 to 692), and the slot buttons' ink is the existing `control` pair `input.icon` on `input.bg` (`pairs.ts` line 253)."
-New: "No new token. Option, highlighted, selected, description, disabled, empty line, destructive and "checked highlighted ring" are existing `menu` pairs (`pairs.ts` lines 269 to 312, 671 to 692), and the slot buttons' ink is the existing `control` pair `input.icon` on `input.bg` (`pairs.ts` line 253). Two new `menu` pairs at the UI floor: `scroll-area.thumb-hover` and `scroll-area.thumb` on `menu.bg`."
+New: "No new token. Option, highlighted, selected, description, disabled, empty line, destructive and "checked highlighted ring" are existing `menu` pairs (`pairs.ts` lines 273 to 318, 676 to 698), and the slot buttons' ink is the existing `control` pair `input.icon` on `input.bg` (`pairs.ts` line 258). Two new `menu` pairs at the UI floor: `scroll-area.thumb-hover` and `scroll-area.thumb` on `menu.bg`."
 The same change in "Contract changes and impact", row "Recipe classes", old: "They read `ds-menu__option`, `ds-menu__empty` and `ds-input-group`, so a change to those recipes moves both components. No token in any layer, no profile". New: "They read `ds-menu__option`, `ds-menu__empty`, `ds-input-group` and `ds-scroll__bar`, so a change to those recipes moves both components. Two new pairs in `pairs.ts` (A12). No token in any layer, no profile".
 
 **A13, row 12, the cue (D17).**
