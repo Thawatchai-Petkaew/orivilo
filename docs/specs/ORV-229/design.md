@@ -1,7 +1,7 @@
 ---
 issue: ORV-229
 spec: docs/specs/ORV-229/spec.md v1.2
-task: ORV-229-design-1, ORV-229-design-2
+task: ORV-229-design-1, ORV-229-design-2, ORV-229-design-3
 date: 2026-11-06
 ---
 
@@ -9,7 +9,7 @@ date: 2026-11-06
 
 The look of the trail and the page row, the answers to open questions 1 to 11, the proof of the colour pairs, the Copy table read aloud, and one row of CSS and markup per rule for the builder. Every value is an existing `--ds-*` or `--cmp-*` property; this design adds no token.
 
-All eleven open questions stay on their defaults. The render still found five things the spec needs changed: one Thai name, the focus shape of a crumb, the height of a wrapped line, the ink and spacing of the ellipsis, and the ink of a disabled chevron. Those are amendments A1 to A5; A6 counts the pairs, and A7 writes down a glyph size and a wrap the spec leaves unsaid. Each has its old and new text, and the tables below assume they are taken. A8 came later, from the built component: it withdraws the cut accepted on the analogue and replaces the focus pill (see "Row 15, the focus step"). No colour pair is refused. Four pairs are added, so the count goes from twelve to sixteen.
+All eleven open questions stay on their defaults. The render still found five things the spec needs changed: one Thai name, the focus shape of a crumb, the height of a wrapped line, the ink and spacing of the ellipsis, and the ink of a disabled chevron. Those are amendments A1 to A5; A6 counts the pairs, and A7 writes down a glyph size and a wrap the spec leaves unsaid. Each has its old and new text, and the tables below assume they are taken. A8 came later, from the built component: it withdraws the cut accepted on the analogue and replaces the focus pill (see "Row 15, the focus step"). A9 came from the visual sign-off: finding F1 of ORV-229-signoff-1 refuses "No padding-inline" in row D8, so the current crumb now pads its inline sides as a link does (see "The current crumb's ink, F1"). A10 takes sign-off suggestion S1 into row 20. No colour pair is refused. Four pairs are added, so the count goes from twelve to sixteen.
 
 ## Flow
 
@@ -119,10 +119,10 @@ Add the rows to `recipes.css` in this order: D17 has the specificity of D16 and 
 | D2 | `crumb-cut-1`, A3 | `.ds-breadcrumb__item` | `display: flex; align-items: center; min-inline-size: 0; max-inline-size: 100%; min-block-size: var(--ds-size-control-sm);` | Every line 32 px, with or without the ellipsis | Row 1 with A3's check, row 15 |
 | D3 | `crumb-cut-1` | `.ds-breadcrumb__link, .ds-breadcrumb__page` | `min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;` and both selectors join the clip-box list in `recipes.css` (lines 4767 to 4782), which gives `padding-block: var(--ds-space-inline-sm); margin-block: calc(-1 * var(--ds-space-inline-sm));` | Box 31.8 px high in a 32 px line, so the link's hit area is 31.8 px, not 23.8 | Rows 15, 16 |
 | D4 | `crumb-look-1`, A2 | `.ds-breadcrumb__link` | `padding-inline: var(--ds-space-inline-sm); margin-inline: calc(-1 * var(--ds-space-inline-sm)); color: var(--cmp-nav-item-fg); text-decoration: none; text-underline-offset: 0.2em;` | Ink stays where it was, the focus line clears the glyphs by 4 px, the first crumb's ink sits on the start edge | Row 4 with A2's check |
-| D5 | `crumb-cut-1`, A2 | `.ds-breadcrumb__item:last-child > .ds-breadcrumb__link` | `margin-inline-end: 0;` | A last crumb that is a long link leaves the frame at 360, not 364, in Thai and English | Row 15 with A2's second trail |
+| D5 | `crumb-cut-1`, A2, A9 | `.ds-breadcrumb__item:last-child > .ds-breadcrumb__link, .ds-breadcrumb__item:last-child > .ds-breadcrumb__page` | `margin-inline-end: 0;` | A last crumb that is long, link or current, leaves the frame at 360, not 364, in Thai and English, and the two end on one edge | Row 15 with A2's second trail and A9's check |
 | D6 | `crumb-look-1` | `.ds-breadcrumb__link:hover` | `color: var(--cmp-nav-item-fg-hover); text-decoration: underline;` No transition, so row 5 reads the end state at once | Ink and underline | Rows 5, 12 |
 | D7 | `crumb-look-1`, A2, A8 | `.ds-breadcrumb__link:focus-visible` | `border-radius: var(--ds-shape-check-radius);` Line and halo stay global. The radius is on focus only, and it rounds the box that clips the text, so it must stay at 8 px or under (A8) | 4 px in neutral, `orivilo` and Professional, 6 px in Friendly | Row 4 with A8's check, row 15 |
-| D8 | `crumb-look-1`, `crumb-current-1` | `.ds-breadcrumb__page` | `color: var(--cmp-nav-item-fg-active);` and the `--ds-type-label-md-*` set. No padding-inline, no hover rule | Weight 500 against 400 | Row 2 |
+| D8 | `crumb-look-1`, `crumb-current-1`, `crumb-cut-1`, A9 (F1 of ORV-229-signoff-1) | `.ds-breadcrumb__page` | `padding-inline: var(--ds-space-inline-sm); margin-inline: calc(-1 * var(--ds-space-inline-sm)); color: var(--cmp-nav-item-fg-active);` and the `--ds-type-label-md-*` set. No hover rule and no fill, so the padding never shows. D5 ends the margin on the last crumb | Weight 500 against 400. No Thai ink cut at either end: 0 of 4416 labels, against 2698 to 2820 as built. Ink does not move: 32 px item, 8 px from slash to ink. A cut crumb keeps its ellipsis and ends 4 px inside the frame | Row 2 with A9's check, rows 11, 15, 16, 45 |
 | D9 | `crumb-markup-1` | `.ds-breadcrumb__separator` | `flex: none; margin-inline: var(--ds-space-inline-md); color: var(--cmp-nav-item-fg);` | 8 px from a crumb to its slash on each side | Row 3 for the markup, row 20's sign-off for the spacing |
 | D10 | `crumb-expand-1`, A4 | `.ds-breadcrumb__item > .ds-button[data-variant="ghost"]` | `margin-inline: calc(-1 * var(--ds-space-inline-md)); color: var(--cmp-nav-item-fg);` and, on `:hover` and `:active`, `color: var(--cmp-nav-item-fg-hover);` | The dots sit 10 px from each slash, where the spec as written leaves 15 | Row 6 with A4's check |
 | D11 | `nav-glyphs-1`, A7 | `.ds-breadcrumb .ds-button[data-icon-only] > svg, .ds-pagination .ds-button[data-icon-only] > svg, .ds-pagination__gap > svg` | `inline-size: var(--cmp-button-icon-size-md); block-size: var(--cmp-button-icon-size-md);` The form of `.ds-chat .ds-button[data-icon-only] > svg` (`recipes.css` line 4392) | 16 px, where `iconOnly` alone leaves Lucide's 24 | Rows 6, 22 with A7's check |
@@ -264,6 +264,76 @@ Row 15's check is not changed: "Under keyboard focus on the first link of the se
 
 Why: see "Row 15, the focus step".
 
+### A9. The current crumb's inline clip (`crumb-look-1`, `crumb-cut-1`, Fixtures, rows 2, 11, 15, 16, 19, 20, new row 45, Rows per PR)
+
+`crumb-look-1` old: "A link takes `--ds-space-inline-sm` of inline padding, cancelled by a negative margin so no ink moves, and `--ds-shape-check-radius` while focused, so the line clears the glyphs."
+
+New: "A link takes `--ds-space-inline-sm` of inline padding, cancelled by a negative margin so no ink moves, and `--ds-shape-check-radius` while focused, so the line clears the glyphs. The current crumb takes the same padding and margin, because its box clips its text too and Thai marks overhang both ends of a label; it has no fill, so the padding never shows."
+
+`crumb-look-1` old: "A link that ends the trail keeps no negative end margin, so it cannot leave its frame."
+
+New: "A link or a current crumb that ends the trail keeps no negative end margin, so it cannot leave its frame."
+
+`crumb-cut-1` old: "A link's inline padding and its end margin are in `crumb-look-1`."
+
+New: "The inline padding and the end margin of a link and of the current crumb are in `crumb-look-1`."
+
+`crumb-cut-1` adds, after "so the call goes back to the designer.": "`expectLabelInkWhole` reads ink above the box only, and row 15's `expectFrameCutsNoInk(item, frame)` leaves the crumb's own clip on, so neither sees a cut at an inline end. Rows 11 and 45 read that cut: `expectFrameCutsNoInk(current, nav)` on a current crumb that is whole, since on a cut crumb the helper would draw the rest of the label."
+
+Fixtures old: "a stack at the start corner and `กี๊` at the end corner: a test string, shown in that story only."
+
+New: "a stack at the start corner and `กี๊` at the end corner: a test string, shown in that story only. `CurrentInk` shows `ไปให้` as its current crumb, a word whose marks overhang both ends of its box: a test string, shown in that story only."
+
+Row 2 old: "its computed `fontWeight` is 500 and a link's is 400"
+
+New: "its computed `fontWeight` is 500 and a link's is 400; its computed `paddingInlineStart` is `4px` and `marginInlineStart` is `-4px`"
+
+Row 11 old: "the current crumb reads "ไม่มีชื่อ" with `aria-current="page"`"
+
+New: "the current crumb reads "ไม่มีชื่อ" with `aria-current="page"`; `expectFrameCutsNoInk(current, nav)` passes, with `current` the crumb itself, which is not cut, and the step guarded by `inVitest`"
+
+Row 15 old: "The last link of the second trail has computed `marginInlineEnd` `0px`."
+
+New: "The last link of the second trail and the current crumb each have computed `marginInlineEnd` `0px`."
+
+Row 16 stands: "The same checks as row 15" takes this in.
+
+Row 19 old: "zero a11y violations in the twelve Breadcrumb stories listed above"
+
+New: "zero a11y violations in the thirteen Breadcrumb stories listed above"
+
+Row 20 Expected adds, after "the cut reads as a cut;": "no mark of the current crumb is cut at either end;"
+
+New row 45, in the same table after row 44:
+
+"| 45 | Storybook test project | `CurrentInk` renders through `Matrix`, in each cell a link and a current crumb reading `ไปให้`, in a `Cell` named from `useDesignProfile()` | Six boundaries; in each, no mark of `ไปให้` is cut at its start or its end | None. Six `navigation`s; on each current crumb `scrollWidth` is not above `clientWidth`, and `expectFrameCutsNoInk(current, nav)` passes, the step guarded by `inVitest`. Red on a current crumb with no end padding, which row 11's label cannot show (`crumb-look-1`, `crumb-cut-1`) | `CurrentInk` play |"
+
+Rows per PR old: "The first carries rows 1 to 21 and the second rows 22 to 44."
+
+New: "The first carries rows 1 to 21 and row 45, and the second rows 22 to 44."
+
+Rows per PR old: "- PR 196: rows 1-21"
+
+New: "- PR 196: rows 1-21, 45"
+
+Why: see "The current crumb's ink, F1".
+
+### A10. What row 20 confirms (rows 20 and 43, from sign-off suggestion S1)
+
+Row 20 old, in the action: "The designer opens `Default`, `Collapsed` (closed and opened), `Missing`, `At360`, `At360InEnglish`, `RecipesAndModes`"
+
+New: "The designer opens `Default`, `Collapsed` (closed and opened), `Missing`, `NoCollapse`, `At360`, `At360InEnglish`, `RecipesAndModes`, `CurrentInk`"
+
+Row 20 old, at its end: "confirms on the built component the answers to open questions 1, 2, 3, 5, 7 and 9 and the `design.md` visual QA screens 1, 2, 6 and 8"
+
+New: "confirms on the built component the answers to open questions 1, 3, 5, 7 and 9 and the `design.md` visual QA screens 1, 2, 6, 8, 9 and 10"
+
+Row 43 old, at its end: "confirms on the built component the answers to open questions 2, 4, 10 and 11"
+
+New: "confirms on the built component the answers to open questions 2, 3, 4, 10 and 11"
+
+Why: screen 9 is the cost A8 added, and row 20 never named it. Screen 10 is the cost A9 adds. Open question 2 is the current page's look, which only the Pagination PR can show: row 43 already holds it, so it leaves row 20 and nothing is added for it. Question 3 covers a crumb link and a page number, so it stays in row 20 for the crumb and joins row 43 for the number, which row 43 left out.
+
 ### Facts in the spec that have moved
 
 Develop merged after v1.0. None of these changes a rule; product can correct them with the amendments.
@@ -312,6 +382,73 @@ What the builder changes, nothing else:
 
 Impact: Breadcrumb only. No token, no recipe of another component, no public API. Pagination's numbers are not affected: a page link does not clip its text.
 
+## The current crumb's ink, F1
+
+Finding F1 of ORV-229-signoff-1 stands, and it is a finding against this design: row D8 said "No padding-inline". The current crumb clips at its padding box, and with no padding that box is the text's own edge, so the flag of ไ, the head of โ and a tone mark at the end of a label are sliced straight, at rest, in every profile and mode.
+
+**Decision.** Rows D8 and D5 change. The current crumb takes the link's inline padding and negative margin, and, as the last crumb, drops its end margin. No token is added: `--ds-space-inline-sm` is the value the link already reads. The ellipsis, the `overflow` and the clip-box list stay as they are, so a cut crumb still ends in an ellipsis.
+
+Measured on the same 4416 labels as row 15's study (cluster, ก, cluster), each in a real `.ds-breadcrumb__page` box under the real boundary, shot clipped and unclipped with the helper's threshold (`INK_DISTANCE` 48). Neutral, Professional and Friendly in both modes, `orivilo` in light, at 1x and 2x: 14 runs per row.
+
+<!-- prettier-ignore -->
+| Inline padding | Labels cut, light, 1x and 2x | Labels cut, dark, 1x and 2x | Cut at the start, most | Cut at the end, most | Verdict |
+| --- | --- | --- | --- | --- | --- |
+| None, as built | 2698, 2802 | 2739, 2820 | 1524 | 1979 | Refused: about six labels in ten |
+| 2 px, no token | 0 | 0 | 0 | 0 | Refused: clear in Chromium, but the widest ink, about 2 px past the box, meets it exactly, so nothing is left for another browser, and no inline token is this small |
+| 4 px, `space.inline.sm` | 0 | 0 | 0 | 0 | Taken: about 2 px to spare, the link's own value |
+
+The counts are the same in every profile because `type.label.md` is the same in every profile; only mode moves them, through the ink against the ground.
+
+**What holds.** Shipped against proposed on one page: 10 stories, viewports 360, 392 and 1440, neutral and Friendly, light and dark, 120 runs.
+
+<!-- prettier-ignore -->
+| Measure | Sign-off 1 | With D8 |
+| --- | --- | --- |
+| Item height | 32 px | 32 px in all 120 runs |
+| Ink to slash, whole crumb | 8 px | 8 px, and 8 px from a slash to the next crumb's ink |
+| `At360` frame `scrollWidth` | 360 in a 360 frame | 360, Thai and English, and 328 in the 328 frame a 360 viewport gives |
+| Page scroll | 0 | 0 in all 120 runs |
+| Start edge | One | One, at one, two, three and four lines, each with 0 ink cut in all four cells |
+
+**A cut crumb still reads as a cut.** A long label that opens on `ไปให้`, in the frame of `At360`, keeps its ellipsis in all four cells. Its start was sliced as built, 52 pixels in the first 60 px at 4x, and is whole now, 0 pixels. Only the end of the line moves: the text of a cut current crumb now ends 4 px inside the 360 px frame, on the same edge as the cut last link of the second trail, which it did not share before (`at360-neutral-light-th-360.png`).
+
+**The cost.** The padding is real width at the end of a line. D5 keeps the frame at 360 by leaving the end padding inside the item, so the last item is 4 px wider than its text. Two things follow, both already true of a last link:
+
+- A current crumb that fits its line with under 4 px to spare wraps to the next line. This is on a fixture: `NoCollapse` in a 360 px frame goes from three lines to four, with "ใช้ Orbit violet เป็นสีของการกระทำหลัก" alone on the last. It was the only change in the 120 runs: `NoCollapse` at viewport 392, in all four cells. It reads cleanly, with one start edge (`nocollapse-neutral-light-th-360.png`), and it is QA screen 10.
+- A label over 356 px wide and up to 360 px, alone on its line, is cut in a 360 px frame, where it was whole. Measured with a sized label: whole with 4 px of slack, cut with 3.
+
+A hanging mark also shows now where it was sliced: ink reaches about 2 px past the box at either end, so the flag of ใ at a line start sits just past the start edge. The text still starts on the edge, as a link's does.
+
+**Refused and not tried.** Keeping the end margin on the last crumb removes the wrap cost and puts the frame at 364 (mutant M3 below), which is what D5 exists to stop. `overflow-clip-margin` might carry no wrap cost, but it was not tried: it would be a second clip form beside the link's, and F1 asks for one form.
+
+**The play.** Two steps read the cut, and each needs its own label. `ไม่มีชื่อ` overhangs at the start only, so `Missing` alone stays green with no end padding. `ไปให้` overhangs at both ends, so `CurrentInk` carries the end and, through `Matrix`, all six boundaries. The real helpers ran on these plays, in a scratch copy of the packages, with this CSS and these mutants:
+
+<!-- prettier-ignore -->
+| CSS | Breadcrumb stories passing | Red |
+| --- | --- | --- |
+| Today's, head a35da46 | 10 of 13 | `Missing`: "cuts ink: the pixel at x 60, y 5". `CurrentInk`: "the pixel at x 68, y 5". `Default`: `0px` against `4px` |
+| D8 and D5 | 13 of 13 | None |
+| M1, no start padding | 10 of 13 | The same three |
+| M2, no end padding | 12 of 13 | `CurrentInk` only: "the pixel at x 98, y 6" |
+| M3, D5's page selector dropped | 11 of 13 | `At360` and `At360InEnglish`: frame `scrollWidth` 364 |
+| M4, start margin dropped, ink moves | 12 of 13 | `Default`: `0px` against `-4px` |
+| M5, `overflow: visible`, the cut is gone | 11 of 13 | `At360` 511 and `At360InEnglish` 466 against 360 |
+
+With the exact edits below in the copy, in place and not appended: 13 of 13 stories, and `--project checks` on `src/recipes` and `tests` 1893 of 1893, `recipes.test.ts` and `check-i18n` among them.
+
+What the builder changes, nothing else:
+
+1. `packages/design-system/src/recipes/recipes.css`, the `.ds-breadcrumb__item:last-child > .ds-breadcrumb__link` rule: D5's two selectors.
+2. Same file, the `.ds-breadcrumb__page` rule: D8's two new lines first, and above the rule the comment "The current crumb pads its inline sides as a link does: its box clips its text, and Thai marks overhang both ends of a label. The margin keeps the ink where it was."
+3. `Breadcrumb.stories.tsx`, `Default`, after the `fontWeight` lines of row 2: `await expect(getComputedStyle(current).paddingInlineStart).toBe("4px");` and `await expect(getComputedStyle(current).marginInlineStart).toBe("-4px");`
+4. `Breadcrumb.stories.tsx`, `Missing`, as its last line: `if (inVitest) await expectFrameCutsNoInk(current, current.closest("nav") as HTMLElement);`
+5. `Breadcrumb.stories.tsx`, `playAt360`, after the `lastLink` margin line: `await expect(getComputedStyle(page).marginInlineEnd).toBe("0px");`
+6. `Breadcrumb.stories.tsx`, a new story `CurrentInk`, after `RecipesAndModes`, in the form of `Cell` and `RecipesAndModes`: a cell with `<Breadcrumb aria-label={...}>`, a `BreadcrumbLink` on `trail[0].th` and `<BreadcrumbPage>ไปให้</BreadcrumbPage>`, inside `Matrix`. Its play: six `navigation`s, and for each `const current = currentOf(nav) as HTMLElement;`, `await expect(current.scrollWidth).toBeLessThanOrEqual(current.clientWidth);` and `if (inVitest) await expectFrameCutsNoInk(current, nav);`
+
+Row 15's `expectCutCrumb` keeps passing the `li`: on a cut crumb the crumb itself would draw the rest of the label. If a new step goes red, the builder reports the pixel and sends the call back here, as row 15 says.
+
+Impact: Breadcrumb only. No token, no public API, no colour pair, no catalog line: `catalog/base/breadcrumb.yaml` says nothing about the padding.
+
 ## Screens to check in visual QA
 
 Rows 20 and 43 name the stories, and screen 7 adds `FormEdge`. Look hard at these:
@@ -325,6 +462,7 @@ Rows 20 and 43 name the stories, and screen 7 adds `FormEdge`. Look hard at thes
 7. `FormEdge`: the jump at 479 and 480 px, with the chevrons at the ends in the first and beside the numbers in the second.
 8. `RecipesAndModes`: Friendly has no screenshot here, so this is its first look.
 9. `RecipesAndModes` under Tab: a focused crumb beside the focused ellipsis's shape. In neutral and Friendly the crumb has a small corner and the ellipsis is a circle; in Professional it is 4 px against 6 px. This is A8's cost, and the closed-trail sheet shows it.
+10. `NoCollapse` and `At360` in a 360 px frame, Thai: A9's cost. In `NoCollapse` the current crumb sits alone on a fourth line, where it fit on the third with under 4 px to spare. In `At360` the cut current crumb and the cut last link end on one edge, 4 px inside the frame, each with its ellipsis.
 
 ## Screenshots
 
@@ -376,16 +514,39 @@ Contact sheet: `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-
 
 Each sheet is built from the single shots in `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-229-design-2/shots/` and `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-229-design-2/shots/closed/`. In the `Default` sheets "หน้าแรก" and "Home" are underlined because the play leaves its forced hover on them; that is not part of the proposal.
 
+The current crumb's ink (ORV-229-design-3): the real Breadcrumb stories on head a35da46 in Storybook, with D8 and D5 added by `page.addStyleTag`. Neutral and Friendly, light and dark, Thai and English, in a 360 px and a 1440 px frame, plus the 328 px frame of a 360 viewport for `At360`. `RecipesAndModes` shows all six cells, Professional among them. The label `ไปให้` of `CurrentInk` is shown by swapping the text of `Missing` in the browser, since that story is not built yet. Console and page errors over the run: 0.
+
+Contact sheet: `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-229-design-3/contact-sheet.png`
+
+<!-- prettier-ignore -->
+| Screen | Path |
+| --- | --- |
+| F1 at 6x, as built against the proposal, each cell | `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-229-design-3/sheets/ink.png` |
+| A cut crumb at 4x, its start and its end, as built against the proposal | `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-229-design-3/sheets/cut.png` |
+| Neutral, light | `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-229-design-3/sheets/neutral-light.png` |
+| Neutral, dark | `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-229-design-3/sheets/neutral-dark.png` |
+| Friendly, light | `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-229-design-3/sheets/friendly-light.png` |
+| Friendly, dark | `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-229-design-3/sheets/friendly-dark.png` |
+| One to four lines, the current crumb at the end of each | `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-229-design-3/sheets/lines.png` |
+| `RecipesAndModes`, all six cells, 360 and 1440 | `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-229-design-3/sheets/matrix.png` |
+
+Each sheet is built from the single shots in `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-229-design-3/shots/` and its `study/` folder, 154 PNGs, listed in `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-229-design-3/png-list.txt`. The figures are in `exhaust.json`, `holds.json`, `words.json`, `shots.json`, `lines.json` and `realplay-all.json` in the same folder.
+
 The scratchpad is not kept. The main session copies these under `.orivilo/runs/` if they are to outlive the session.
 
 ## What this does not prove
 
 - No component exists, so no play or acceptance row ran. The sizes above come from the injected markup, and Button is real only as its recipe, not its React.
 - ORV-229-design-1 did not render Friendly; its colours are in the pair table. ORV-229-design-2 rendered it, with a 6 px crumb corner, so `RecipesAndModes` is its first look on the built component (QA screen 8).
-- The clip was first measured by comparing `overflow: hidden` with `visible` on the worst sample in `expectLabelInkWhole` ("ฟื้ปั้ปี๊ฟื้"), at 2x, in neutral and Professional. At rest: 0 pixels cut on the link and on the current crumb. Under real keyboard focus: 0 in Professional, and 3 device pixels in neutral, from the pill's corner. That cut was accepted here, and the acceptance is withdrawn: see "Row 15, the focus step".
+- The clip was first measured by comparing `overflow: hidden` with `visible` on the worst sample in `expectLabelInkWhole` ("ฟื้ปั้ปี๊ฟื้"), at 2x, in neutral and Professional. At rest: 0 pixels cut on the link and on the current crumb. Under real keyboard focus: 0 in Professional, and 3 device pixels in neutral, from the pill's corner. That cut was accepted here, and the acceptance is withdrawn: see "Row 15, the focus step". The reading of 0 on the current crumb did not hold either: that one sample showed no cut, and the current crumb cuts ordinary labels at rest (see "The current crumb's ink, F1").
 - Row 15's figures come from a Playwright port of `expectFrameCutsNoInk`, not from the helper. Against the built component the port is red at the pixel the builder reported, x 3, y 146, at 1x, so it reads what the helper reads. The helper itself runs on this only when the builder restores the step.
 - The 4416 labels are Thai, in Chromium, in boxes that carry the crumb's recipe and an inline radius, not in a trail under real focus. Fifty-four real words and samples, Latin among them, ran in the story under real focus: 0 cut at radius 8 and under. Safari and Firefox draw marks a little differently, and radius 6 and 4 leave 2 px and more below the bound for that.
 - Nothing guards the bound in a profile. A profile that sets `shape.check.radius` above 8 px brings the cut back, and row 15 runs only under neutral in Vitest. Friendly at 6 px was measured here, not by the play.
+- F1's plays ran on a scratch copy of `packages/design-system` and `packages/intent-engine` with the worktree's dependencies linked in, not on a branch, and only in Chromium on the Mac. CI has not run them. The worktree holds no change under `packages/`.
+- The end of a cut crumb is judged by eye, in the 4x crops. The helper cannot read it, since `overflow: visible` draws the rest of the name, so no play guards that end. The padding box and the whole-crumb plays guard the same clip.
+- The 4416 labels ran in Chromium only. Safari and Firefox draw marks a little differently; 4 px leaves about 2 px past the widest ink measured.
+- `CurrentInk` was not rendered in Storybook here, since it does not exist yet. Its look comes from `Missing` with the text swapped, and its play ran in the scratch copy.
+- Open class: 16 other selectors in the clip-box list (`recipes.css` lines 4767 to 4782) pad only the block axis, as this crumb did. They were not measured here, and `expectLabelInkWhole` would not see an inline cut on any of them. DESIGN.md section 4 says a truncating label joins that list, which covers the block axis only.
 - The 16 pairs were read from the token source with a scratch script, not from `pnpm contrast` or `recipes.test.ts`, since the pairs are not in `pairs.ts` yet.
 - Target size: a crumb is 31.8 px high and a page link 40 px, under `size.touch` 44. A page link matches Button md, and the spec sets both, so neither is changed here.
 - Frame edge: a first crumb's focus line overhangs the start edge by 4 px, plus the halo. A parent that clips flush with the trail cuts it, as it would cut any control's halo.
