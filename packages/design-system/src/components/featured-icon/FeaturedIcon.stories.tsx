@@ -1,8 +1,16 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { flushSync } from "react-dom";
+import { createRoot } from "react-dom/client";
 import { expect, within } from "storybook/test";
 import { LocaleProvider } from "../../i18n/LocaleProvider";
-import { expectLabelInkWhole, inVitest, resolvedColor } from "../../testing/visual-asserts";
+import {
+  expectFrameCutsNoInk,
+  expectLabelInkWhole,
+  inVitest,
+  resolvedColor,
+} from "../../testing/visual-asserts";
 import { featuredIconFixtures, fixtures } from "../fixtures";
+import { CheckIcon, DangerIcon, InfoIcon, WarningIcon } from "../icons";
 import { Matrix } from "../matrix";
 import { FeaturedIcon, type FeaturedIconSize, type FeaturedIconVariant } from "./FeaturedIcon";
 
@@ -55,6 +63,31 @@ function Rows({
   );
 }
 
+/**
+ * The glyph `fi-glyph-1` names for each kind, taken from `icons.tsx` and not through
+ * `FeaturedIcon.tsx`, so a swapped map in the component goes red.
+ */
+const GLYPH_OF = {
+  success: CheckIcon,
+  warning: WarningIcon,
+  danger: DangerIcon,
+  info: InfoIcon,
+} as const satisfies Record<FeaturedIconVariant, unknown>;
+
+/** The drawing inside an svg, as markup; the svg's own attributes (class, size) are left out. */
+const drawingOf = (svg: SVGSVGElement) => svg.innerHTML;
+
+/** The glyph alone, mounted in a detached node (not in the story), then read and unmounted. */
+const drawingOfGlyph = (variant: FeaturedIconVariant) => {
+  const Glyph = GLYPH_OF[variant];
+  const holder = document.createElement("div");
+  const root = createRoot(holder);
+  flushSync(() => root.render(<Glyph />));
+  const drawing = drawingOf(holder.querySelector("svg") as SVGSVGElement);
+  root.unmount();
+  return drawing;
+};
+
 const tilesOf = (root: Element) =>
   Array.from(root.querySelectorAll<HTMLElement>(".ds-featured-icon"));
 
@@ -78,13 +111,17 @@ export const Variants: Story = {
     }
     const tiles = tilesOf(canvasElement);
     await expect(tiles).toHaveLength(4);
-    const drawings = tiles.map((tile) => (tile.querySelector("svg") as SVGSVGElement).innerHTML);
+    const drawings = tiles.map((tile) => drawingOf(tile.querySelector("svg") as SVGSVGElement));
     await expect(new Set(drawings).size).toBe(4);
     for (const [i, tile] of tiles.entries()) {
       const variant = VARIANTS[i] as FeaturedIconVariant;
       await expect(tile).toHaveAttribute("data-variant", variant);
       await expectHiddenTile(tile);
       const glyph = tile.querySelector("svg") as SVGSVGElement;
+      // Each kind draws its own glyph (fi-glyph-1), not only a different one from the others.
+      await expect(drawingOf(glyph), `the ${variant} tile draws the wrong glyph`).toBe(
+        drawingOfGlyph(variant),
+      );
       await expect(getComputedStyle(glyph).color).toBe(
         resolvedColor(tile, `--cmp-featured-icon-${variant}-fg`),
       );
@@ -95,9 +132,9 @@ export const Variants: Story = {
   },
 };
 
-/** Sm 32, md 40 and lg 48 px for each kind, the glyph half the tile and centred in it. */
-export const Sizes: Story = {
-  render: () => (
+/** The four kinds at sm, md and lg: one row per size, the kinds in order. */
+function SizeRows() {
+  return (
     <div className="flex flex-col gap-4">
       {SIZES.map((size) => (
         <div key={size} className="flex items-center gap-3">
@@ -107,7 +144,12 @@ export const Sizes: Story = {
         </div>
       ))}
     </div>
-  ),
+  );
+}
+
+/** Sm 32, md 40 and lg 48 px for each kind, the glyph half the tile and centred in it. */
+export const Sizes: Story = {
+  render: () => <SizeRows />,
   play: async ({ canvasElement }) => {
     const tiles = tilesOf(canvasElement);
     await expect(tiles).toHaveLength(12);
@@ -143,17 +185,13 @@ export const Sizes: Story = {
   },
 };
 
-/** English: the four kinds at every size, beside the English words. */
+/** English: the four kinds beside the English words (as `Variants`), then at sm, md and lg (as `Sizes`). */
 export const InEnglish: Story = {
   decorators: [(Story) => <LocaleProvider locale="en">{Story()}</LocaleProvider>],
   render: () => (
     <div className="flex flex-col gap-6">
       <Rows copy={featuredIconFixtures.en} />
-      <div className="flex items-center gap-3">
-        {SIZES.map((size) => (
-          <FeaturedIcon key={size} variant="danger" size={size} />
-        ))}
-      </div>
+      <SizeRows />
     </div>
   ),
   play: async ({ canvasElement }) => {
@@ -162,16 +200,25 @@ export const InEnglish: Story = {
       await expect(canvas.getByText(featuredIconFixtures.en[variant])).toBeVisible();
     }
     const tiles = tilesOf(canvasElement);
-    await expect(tiles).toHaveLength(7);
-    for (const tile of tiles) await expectHiddenTile(tile);
-    const sized = tiles.slice(4).map((tile) => tile.getAttribute("data-size"));
-    await expect(sized).toEqual(["sm", "md", "lg"]);
+    // Four tiles beside the words, then twelve: the four kinds at each of the three sizes.
+    await expect(tiles).toHaveLength(16);
+    for (const [i, tile] of tiles.entries()) {
+      await expectHiddenTile(tile);
+      const variant = VARIANTS[i % VARIANTS.length] as FeaturedIconVariant;
+      await expect(tile).toHaveAttribute("data-variant", variant);
+      if (i >= VARIANTS.length) {
+        const size = SIZES[Math.floor((i - VARIANTS.length) / VARIANTS.length)] as FeaturedIconSize;
+        await expect(tile).toHaveAttribute("data-size", size);
+      }
+    }
   },
 };
 
 /**
  * In a 360 px frame each tile keeps its 48 px and a long name wraps beside it. The frame clips
- * nothing (spec ORV-222 v1.2, row 4): a frame that clips would hide the Thai marks the check looks for.
+ * nothing (spec ORV-222 v1.3, row 4): the overflow loop reads the computed style of the name and
+ * every ancestor up to the frame, and `expectFrameCutsNoInk` reads the pixels, so a clip from the
+ * frame or any ancestor goes red by ink as well.
  */
 export const At360: Story = {
   render: () => (
@@ -210,8 +257,14 @@ export const At360: Story = {
         await expect(style.overflowY, `${el.localName} clips on y`).toBe("visible");
       }
     }
-    // The first name shows the whole stack of Thai marks, so the long name can be read whole.
-    if (inVitest) await expectLabelInkWhole(names[0] as HTMLElement);
+    if (inVitest) {
+      // The name's own box cuts none of the Thai stack: this reads the name's clone only.
+      await expectLabelInkWhole(names[0] as HTMLElement);
+      // Nothing from the name up to the frame clips ink: the frame shipped against the same frame
+      // with every one of those ancestors forced to overflow visible. Last, so the overflow loop
+      // above is not what stops the play (spec row 4).
+      await expectFrameCutsNoInk(names[0] as HTMLElement, frame);
+    }
   },
 };
 
