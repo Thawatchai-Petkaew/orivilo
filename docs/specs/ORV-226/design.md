@@ -1,6 +1,6 @@
 ---
 issue: ORV-226 (https://tpetkaew.atlassian.net/browse/ORV-226)
-spec: docs/specs/ORV-226/spec.md v1.1
+spec: docs/specs/ORV-226/spec.md v1.2
 task: ORV-226-design-1
 version: 1.0
 ---
@@ -206,7 +206,7 @@ For the main session or product to take into `spec.md` with a version bump. The 
 | A2 | `confirm-pending-1` | On a press, before cancel is disabled, the pattern focuses the confirm if it is not the active element, with `preventScroll` | Safari and Firefox on macOS may not focus a clicked button, and disabling cancel could then drop focus. General browser knowledge, not run and not in a K entry |
 | A3 | `confirm-failure-1` | Add: when the panel overflows, it scrolls to its end after the message renders; focus does not move | Without it the message can sit under the sticky footer |
 | A4 | `confirm-focus-1` | The first focus call passes `preventScroll: true` | A short panel must open at its title |
-| A5 | AC 20 | Replace "every ancestor ... up to but not including the frame ... `visible`" with: the walk runs to the frame with the panel as its one named exception; the panel's computed `overflow-y` is `auto` and its `scrollHeight` is not above its `clientHeight` for this fixture. Add `expectFrameCutsNoInk(el, frame)` on the title, the impact and the failure line, ink proved as spec row 20 says, and both buttons 278 wide, stacked, 8 apart | The panel is now the scroller on purpose. The check still proves nothing is clipped at this size |
+| A5 | AC 20 | Replace "every ancestor ... up to but not including the frame ... `visible`" with: the walk runs to the frame with the panel as its one named exception; the panel's computed `overflow-y` is `auto` and its `scrollHeight` is not above its `clientHeight` for this fixture. Add `expectNoInkCut(el, frame, panel)`, the story-local wrapper around `expectFrameCutsNoInk`, on the title, the impact and the failure line, ink proved as spec row 20 says, and both buttons 278 wide, stacked, 8 apart | The panel is now the scroller on purpose. The check still proves nothing is clipped at this size |
 | A6 | AC 2 | Add: glyph, title and impact left edges equal within 0.5; glyph centre equals the close control's centre within 0.5; footer `top` at or below the impact's `bottom`. Keep "a danger glyph before": it holds in reading order | D4, D10, D11. The last check is the one that catches the sticky-padding fault; opening a PNG found it, the overflow numbers did not |
 | A7 | AC 7 and 9 | Add: panel height and footer height equal before and during pending; `expectSameHeight` on the two buttons. The row form is proved in a frame, row 30 | D8, D18 |
 | A8 | AC 11 and 14 | "its `bottom` is at or above the footer's `top`" takes a tolerance of 0.5. The footer's `top` now includes its 16 padding | Measured 263.3 against 263 when scrolled |
