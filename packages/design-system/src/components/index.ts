@@ -41,6 +41,8 @@ export {
   type FeaturedIconSize,
   type FeaturedIconVariant,
 } from "./featured-icon/FeaturedIcon";
+export { FileUpload, type FileUploadItem, type FileUploadProps } from "./file-upload/FileUpload";
+export { IMAGE_UPLOAD_LIMITS, type FileUploadLimits } from "./file-upload/limits";
 export { Input, type InputProps } from "./input/Input";
 export { InputGroup, type InputGroupProps } from "./input-group/InputGroup";
 export { PasswordInput, type PasswordInputProps } from "./password-input/PasswordInput";

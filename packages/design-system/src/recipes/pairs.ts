@@ -26,6 +26,11 @@
  * words beside the tile say the same thing (ORV-222, `fi-colour-1`). WCAG 1.4.11 does not apply to
  * the ground.
  *
+ * `file-upload.zone-border-disabled`, a `border.disabled` edge: like `border.disabled` on any control
+ * it does not carry the state, the disabled button and the disabled text do. `file-upload.item-border`,
+ * a `border.subtle` hairline that carries no state: a row is identified by its text and its Remove
+ * button (ORV-227).
+ *
  * Paths are component-token paths (`button.primary.fg`) or semantic paths prefixed `ds:` where a
  * recipe sits on a page ground rather than its own (`ds:surface.canvas`).
  */
@@ -944,6 +949,59 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     recipe: "progress",
     slot: "failed word",
     fg: "progress.failed",
+    bg: "ds:surface.card",
+    floor: TEXT,
+  },
+  // FileUpload (ORV-227): the zone's edge and its invalid edge on the canvas and on a card (UI floor),
+  // and the done and failed words on the canvas, where a row sits (the card pairs are under `progress`).
+  // The limits line and the hint read `field.description`, whose card pair was not listed before.
+  // Not listed: see "Not listed" above for `file-upload.zone-border-disabled` and `file-upload.item-border`.
+  {
+    recipe: "file-upload",
+    slot: "zone edge",
+    fg: "file-upload.zone-border",
+    bg: "ds:surface.canvas",
+    floor: UI,
+  },
+  {
+    recipe: "file-upload",
+    slot: "zone edge on card",
+    fg: "file-upload.zone-border",
+    bg: "ds:surface.card",
+    floor: UI,
+  },
+  {
+    recipe: "file-upload",
+    slot: "invalid edge",
+    fg: "file-upload.zone-border-invalid",
+    bg: "ds:surface.canvas",
+    floor: UI,
+  },
+  {
+    recipe: "file-upload",
+    slot: "invalid edge on card",
+    fg: "file-upload.zone-border-invalid",
+    bg: "ds:surface.card",
+    floor: UI,
+  },
+  {
+    recipe: "file-upload",
+    slot: "done word",
+    fg: "progress.done",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
+  {
+    recipe: "file-upload",
+    slot: "failed word",
+    fg: "progress.failed",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
+  {
+    recipe: "file-upload",
+    slot: "limits line on card",
+    fg: "field.description",
     bg: "ds:surface.card",
     floor: TEXT,
   },
