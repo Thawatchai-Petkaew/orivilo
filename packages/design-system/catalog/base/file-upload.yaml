@@ -1,0 +1,31 @@
+name: FileUpload
+tier: base
+status: draft
+since: ORV-227
+import: "@orivilo/design-system"
+story: base-file-upload
+useWhen:
+  - "A person hands the product pictures or files and needs to see the limits before choosing, each file's progress, and why a file was refused"
+avoidWhen:
+  - "A real upload path is needed today (none exists: the control shows limits and state only)"
+  - "A file kind other than images (the limits are a prop, but no other kind has a cap yet)"
+  - "A thumbnail or preview of the chosen file (not built; the control never reads a file)"
+contract: FileUploadProps
+variants: [default]
+sizes: [md]
+states: [default, uploading, done, failed, rejected, full, disabled, invalid]
+recipes: [neutral, professional, friendly]
+examples: []
+rules:
+  - "Shows limits and state only; real file checks stay on the server: the control reads no file, calls no network and uploads nothing. `judgeFiles` saves a person a wait and is not a security check (the type by magic bytes, the size and the count are the server's)"
+  - "The limits are text before any choice, built from the `limits` prop (`IMAGE_UPLOAD_LIMITS`: 5 files, 4,000,000 bytes, PNG, JPEG, WebP; ADR 0009 point 5), never typed; every size on screen rounds up to one decimal so a file over the limit never reads at or under it"
+  - "A refused file is named with its reason and its fix in text, in the Field's alert; the next pick replaces the lines and a press on Remove clears them"
+  - "A file name is untrusted input: it renders as a text child only, never as markup, a URL or a storage key"
+  - "The caller owns `items` and each status: done shows only when the caller sets `done`, and an uploading item at 100 stays uploading; every failed item offers Try again, with a `reason` that says what to do"
+  - "The list is full at `maxFiles` whatever each status: Choose stays focusable and opens nothing, and the hint says what to do"
+  - "No drop target yet: dropping files is the second PR of ORV-227, and until then the zone's edge is solid"
+  - "Progress, done and failed in the stories are mock data moved by a story driver"
+a11y:
+  - "One Tab stop: a visible Choose button over a native file input that is hidden with sr-only, tabindex -1 and aria-hidden; its name starts with its visible text; a press on the label opens the picker"
+  - "Each uploading row has a progressbar named by its file; progress and results reach a screen reader through one polite status region (a percent only at each quarter, and only while one file is uploading), never through role alert"
+  - "Try again and Remove name the file; after Try again focus goes to the row's Remove, and after a row leaves focus goes to Choose, never to the page"

@@ -250,6 +250,48 @@ describe("the menu listbox (ORV-204, menu-separator-1, menu-label-1, menu-disabl
   });
 });
 
+describe("the file upload recipe (ORV-227)", () => {
+  const mine = RECIPE_PAIRS.filter((p) => p.recipe === "file-upload").map((p) => [
+    p.fg,
+    p.bg,
+    p.floor,
+  ]);
+
+  it("lists the zone edge and the invalid edge on the canvas and a card at 3, the words at 4.5", () => {
+    expect(mine).toEqual([
+      ["file-upload.zone-border", "ds:surface.canvas", 3],
+      ["file-upload.zone-border", "ds:surface.card", 3],
+      ["file-upload.zone-border-invalid", "ds:surface.canvas", 3],
+      ["file-upload.zone-border-invalid", "ds:surface.card", 3],
+      ["progress.done", "ds:surface.canvas", 4.5],
+      ["progress.failed", "ds:surface.canvas", 4.5],
+      ["field.description", "ds:surface.card", 4.5],
+    ]);
+  });
+
+  it("leaves the disabled edge and the row hairline out of the list, as pairs.ts says", () => {
+    const listed = RECIPE_PAIRS.flatMap((p) => [p.fg, p.bg]);
+    expect(listed).not.toContain("file-upload.zone-border-disabled");
+    expect(listed).not.toContain("file-upload.item-border");
+  });
+
+  it("reads each of its component tokens in the recipe", () => {
+    const names = [...generated.matchAll(/^\s*(--cmp-file-upload-[a-z-]+):/gm)].map((m) => m[1]);
+    expect(names.sort()).toEqual(
+      [
+        "--cmp-file-upload-gap",
+        "--cmp-file-upload-item-border",
+        "--cmp-file-upload-padding",
+        "--cmp-file-upload-radius",
+        "--cmp-file-upload-zone-border",
+        "--cmp-file-upload-zone-border-disabled",
+        "--cmp-file-upload-zone-border-invalid",
+      ].sort(),
+    );
+    for (const name of names) expect(css, name).toContain(`var(${name})`);
+  });
+});
+
 describe("the alert recipe (ORV-222, alert-look-1)", () => {
   const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
   const rules = [...bare.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => ({

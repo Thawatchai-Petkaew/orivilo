@@ -36,7 +36,7 @@ Legend: `none` not started, `planned` entry exists, no code, `draft` code and st
 | Toast         | draft  | base-toast          |
 | FeaturedIcon  | draft  | base-featured-icon  |
 | Alert         | draft  | base-alert          |
-| File upload   | none   |                     |
+| File upload   | draft  | base-file-upload    |
 | Calendar      | draft  | base-calendar       |
 | Date picker   | none   |                     |
 | Popover       | stable | E2-4                |
