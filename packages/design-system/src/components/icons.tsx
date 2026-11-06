@@ -17,6 +17,7 @@ import {
   CircleDashed,
   CircleDotDashed,
   Copy,
+  Ellipsis,
   Eye,
   EyeOff,
   Group,
@@ -66,7 +67,7 @@ import {
  * icons from this file only, never from `lucide-react` directly (lint), so the defaults below
  * hold everywhere and only the named glyphs reach the bundle.
  *
- * All 58 glyphs are Lucide today. A glyph Lucide lacks is drawn here as inline SVG on a 20 grid,
+ * All 59 glyphs are Lucide today. A glyph Lucide lacks is drawn here as inline SVG on a 20 grid,
  * stroke 2, round caps and joins, `currentColor`, `aria-hidden`.
  */
 export type IconProps = Omit<SVGProps<SVGSVGElement>, "children">;
@@ -124,6 +125,8 @@ export const CopyIcon = lucide(Copy, "CopyIcon");
 export const TrashIcon = lucide(Trash, "TrashIcon");
 export const CollapseIcon = lucide(ChevronUp, "CollapseIcon");
 export const ExpandIcon = lucide(ChevronDown, "ExpandIcon");
+/** Three dots in a row: the crumbs a trail holds back (ORV-229). */
+export const EllipsisIcon = lucide(Ellipsis, "EllipsisIcon");
 
 // File upload (ORV-227): the picker button.
 export const UploadIcon = lucide(Upload, "UploadIcon");

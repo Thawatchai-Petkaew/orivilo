@@ -390,6 +390,26 @@ Keep this table in step with the folder when you add an entry.
 | [[K-0317-wcag-2-2-on-input-and-name-role-value-for-a-custom-list]]                      | 0.8        | WCAG SC 3.2.2 and 4.1.2 for a custom list and its chosen value        |
 | [[K-0318-wcag-2-2-keyboard-and-focus-order-no-rule-after-removal]]                      | 0.75       | WCAG SC 2.1.1 and 2.4.3: no rule for focus after a removal            |
 | [[K-0319-synthesis-combobox-and-multi-select-benchmark]]                                | 0.75       | Synthesis: Combobox and Multi-select benchmark, audit B form          |
+| [[K-0320-untitled-ui-breadcrumbs-types-dividers-and-item-slots]]                        | 0.8        | Untitled trail: 3 types, 2 dividers, icon and avatar slots, no size   |
+| [[K-0321-untitled-ui-breadcrumbs-collapse-max-visible-items]]                           | 0.8        | Untitled collapse: maxVisibleItems 4, ellipsis expands in place       |
+| [[K-0322-untitled-ui-breadcrumbs-accessibility-and-no-open-source]]                     | 0.75       | Untitled last crumb: disabled link, aria-current; no open source file |
+| [[K-0323-shadcn-ui-breadcrumb-parts-classes-and-link-routing]]                          | 0.8        | shadcn Breadcrumb: parts over nav and ol; no variant or size prop     |
+| [[K-0324-shadcn-ui-breadcrumb-current-page-span-and-hidden-separator]]                  | 0.8        | shadcn current crumb: span, role link, aria-disabled, aria-current    |
+| [[K-0325-shadcn-ui-breadcrumb-collapse-is-composed-by-hand]]                            | 0.8        | shadcn collapse: hand-placed ellipsis; responsive example keeps 3     |
+| [[K-0326-untitled-ui-pagination-forms-props-and-controls]]                              | 0.8        | Untitled Pagination: 6 forms, rows select, page input, mobile form    |
+| [[K-0327-untitled-ui-pagination-sibling-count-range]]                                   | 0.8        | Untitled range: all pages to 7 (own arithmetic), else ellipses        |
+| [[K-0328-untitled-ui-pagination-names-and-button-items]]                                | 0.8        | Untitled names: nav label, Page N; button role listitem, no list      |
+| [[K-0329-untitled-ui-pagination-dot-and-line]]                                          | 0.8        | Untitled dot and line: carousel-style, md or lg, brand fill, no aria  |
+| [[K-0330-shadcn-ui-pagination-parts-active-link-and-text-prop]]                         | 0.8        | shadcn Pagination: anchors, outline when active, text prop in bases   |
+| [[K-0331-shadcn-ui-pagination-has-no-range-logic]]                                      | 0.75       | shadcn Pagination computes no range; pages written by hand            |
+| [[K-0332-shadcn-ui-pagination-names-and-hidden-ellipsis]]                               | 0.8        | shadcn Pagination names; sr-only More pages inside aria-hidden        |
+| [[K-0333-wai-aria-apg-breadcrumb-pattern]]                                              | 0.8        | APG Breadcrumb: labelled nav, aria-current page; optional on non-link |
+| [[K-0334-wai-aria-apg-breadcrumb-example]]                                              | 0.8        | APG example: nav, ordered list, last link current, CSS separators     |
+| [[K-0335-wai-aria-apg-landmark-labels-and-no-pagination-pattern]]                       | 0.8        | APG: unique nav labels, no role word; no Pagination pattern           |
+| [[K-0336-wai-aria-1-2-aria-current-values]]                                             | 0.8        | aria-current: seven values, one per set, not for aria-selected        |
+| [[K-0337-wcag-2-2-location-and-g65-breadcrumb-trail]]                                   | 0.8        | G65 sufficient for SC 2.4.8 (AAA); tests link and non-link current    |
+| [[K-0338-wcag-2-2-aria26-aria11-and-h97]]                                               | 0.8        | ARIA26 for current item; ARIA11 and H97 label repeated nav regions    |
+| [[K-0339-synthesis-breadcrumb-and-pagination-benchmark]]                                | 0.75       | Synthesis: Breadcrumb and Pagination benchmark tables, audit B form   |
 | [[K-0380-untitled-ui-date-picker-forms-and-react-aria]]                                 | 0.8        | Untitled date pickers: seven examples (own count), React Aria base    |
 | [[K-0381-untitled-ui-date-picker-trigger-apply-and-cancel]]                             | 0.8        | Untitled picker: Apply and Cancel; value changes before Apply         |
 | [[K-0382-untitled-ui-date-range-presets-and-breakpoints]]                               | 0.8        | Untitled range: nine presets (page figure), sidebar from lg           |

@@ -113,6 +113,26 @@ export const pageHeaderFixtures = {
 } as const;
 
 /**
+ * Breadcrumb story trail (ORV-229): six crumbs, each with a `#` link, in both languages. They are the
+ * caller's text, not catalog keys, and they are mock. Crumb 6 is the title of the first decision of
+ * the decision-log example.
+ */
+export const breadcrumbFixtures = {
+  trail: [
+    { href: "#", th: "หน้าแรก", en: "Home" },
+    { href: "#", th: "โปรเจกต์ทั้งหมด", en: "All projects" },
+    { href: "#", th: fixtures.mixed, en: "The team's Brand Canvas project" },
+    { href: "#", th: "บอร์ด", en: "Board" },
+    { href: "#", th: "บันทึกการตัดสินใจ", en: "Decision log" },
+    {
+      href: "#",
+      th: "ใช้ Orbit violet เป็นสีของการกระทำหลัก",
+      en: "Use Orbit violet as the main action colour",
+    },
+  ],
+} as const;
+
+/**
  * FileUpload story content (ORV-227): MOCK. No upload path exists, so no file named here was sent
  * anywhere and every progress, done and failed state in a story comes from a story driver. The
  * label, the caller's error and the failure reason are the caller's text, not catalog keys. File

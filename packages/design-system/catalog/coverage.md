@@ -25,7 +25,7 @@ Legend: `none` not started, `planned` entry exists, no code, `draft` code and st
 | Tooltip       | stable | E2-4                |
 | Dropdown menu | stable | base-dropdown-menu  |
 | Tabs          | stable | base-tabs           |
-| Breadcrumb    | none   |                     |
+| Breadcrumb    | draft  | base-breadcrumb     |
 | Pagination    | none   |                     |
 | Progress      | draft  | base-progress       |
 | Spinner       | draft  | base-spinner        |

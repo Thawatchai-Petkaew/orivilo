@@ -198,6 +198,26 @@ Facts from outside design systems and standards that inform ORIVILO's own design
 | [[K-0317-wcag-2-2-on-input-and-name-role-value-for-a-custom-list]]             | WCAG 2.2 SC 3.2.2 and 4.1.2 for a custom list                          |
 | [[K-0318-wcag-2-2-keyboard-and-focus-order-no-rule-after-removal]]             | WCAG 2.2 SC 2.1.1 and 2.4.3 and focus after a removal                  |
 | [[K-0319-synthesis-combobox-and-multi-select-benchmark]]                       | Synthesis of K-0290 to K-0318: Combobox and Multi-select tables        |
+| [[K-0320-untitled-ui-breadcrumbs-types-dividers-and-item-slots]]               | Untitled UI Breadcrumbs: types, dividers, slots, what the page omits   |
+| [[K-0321-untitled-ui-breadcrumbs-collapse-max-visible-items]]                  | Untitled UI Breadcrumbs: how a long trail collapses                    |
+| [[K-0322-untitled-ui-breadcrumbs-accessibility-and-no-open-source]]            | Untitled UI Breadcrumbs: current crumb, nav label, unread source       |
+| [[K-0323-shadcn-ui-breadcrumb-parts-classes-and-link-routing]]                 | shadcn/ui Breadcrumb: parts, classes, router link                      |
+| [[K-0324-shadcn-ui-breadcrumb-current-page-span-and-hidden-separator]]         | shadcn/ui Breadcrumb: current crumb, separator, nav label              |
+| [[K-0325-shadcn-ui-breadcrumb-collapse-is-composed-by-hand]]                   | shadcn/ui Breadcrumb: how a long trail collapses                       |
+| [[K-0326-untitled-ui-pagination-forms-props-and-controls]]                     | Untitled UI Pagination: forms, props, small screens, page controls     |
+| [[K-0327-untitled-ui-pagination-sibling-count-range]]                          | Untitled UI Pagination: how a long page range shortens                 |
+| [[K-0328-untitled-ui-pagination-names-and-button-items]]                       | Untitled UI Pagination: names, current page, item markup               |
+| [[K-0329-untitled-ui-pagination-dot-and-line]]                                 | Untitled UI PaginationDot and PaginationLine                           |
+| [[K-0330-shadcn-ui-pagination-parts-active-link-and-text-prop]]                | shadcn/ui Pagination: parts, active link, sizes, text prop             |
+| [[K-0331-shadcn-ui-pagination-has-no-range-logic]]                             | shadcn/ui Pagination: does it shorten a long page range                |
+| [[K-0332-shadcn-ui-pagination-names-and-hidden-ellipsis]]                      | shadcn/ui Pagination: names, current page, ellipsis                    |
+| [[K-0333-wai-aria-apg-breadcrumb-pattern]]                                     | WAI-ARIA APG Breadcrumb pattern: landmark, aria-current, keyboard      |
+| [[K-0334-wai-aria-apg-breadcrumb-example]]                                     | WAI-ARIA APG Breadcrumb example: list, label, separators               |
+| [[K-0335-wai-aria-apg-landmark-labels-and-no-pagination-pattern]]              | WAI-ARIA APG: nav labels, and whether a Pagination pattern exists      |
+| [[K-0336-wai-aria-1-2-aria-current-values]]                                    | WAI-ARIA 1.2 aria-current: values and limits                           |
+| [[K-0337-wcag-2-2-location-and-g65-breadcrumb-trail]]                          | WCAG 2.2 SC 2.4.8 and technique G65: the current location              |
+| [[K-0338-wcag-2-2-aria26-aria11-and-h97]]                                      | WCAG 2.2 techniques ARIA26, ARIA11 and H97: current item, nav labels   |
+| [[K-0339-synthesis-breadcrumb-and-pagination-benchmark]]                       | Synthesis of K-0320 to K-0338: Breadcrumb and Pagination tables        |
 | [[K-0380-untitled-ui-date-picker-forms-and-react-aria]]                        | Untitled UI date pickers: examples, React Aria base, props             |
 | [[K-0381-untitled-ui-date-picker-trigger-apply-and-cancel]]                    | Untitled UI DatePicker trigger, Apply and Cancel                       |
 | [[K-0382-untitled-ui-date-range-presets-and-breakpoints]]                      | Untitled UI DateRangePicker presets and breakpoints                    |
