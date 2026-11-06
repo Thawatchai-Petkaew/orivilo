@@ -101,7 +101,7 @@ Section 13 changes the neutral dark value from lime.300 to violet.400 and keeps 
 "dot-small": {
   "$type": "color",
   "$value": { "light": "{color.violet.600}", "dark": "{color.violet.400}" },
-  "$description": "The mark's dot at 24 px and below (logo forms 16 and 24), at least 3.0 on the canvas under every profile; equal to brand.signature in the ORIVILO profile; read by logo.dot-small and badge.dot.brand (the brand badge's bead)",
+  "$description": "The mark's dot at 24 px and below (logo forms 16 and 24), at least 3.0 on the canvas under every profile; equal to brand.signature in the base set (neutral); read by logo.dot-small and badge.dot.brand (the brand badge's bead)",
   "$extensions": {
     "orivilo": {
       "contrast": { "against": "surface.canvas", "floor": 3 },
@@ -111,7 +111,7 @@ Section 13 changes the neutral dark value from lime.300 to violet.400 and keeps 
 }
 ```
 
-- The `brand.signature` description becomes "The signature colour: the mark dot above 24 px, a bead, one highlight plane; never text and never an action; shares violet with action.primary in the ORIVILO profile only (ORV-118)" (section 13).
+- The `brand.signature` description becomes "The signature colour: the mark dot above 24 px, a bead, one highlight plane; never text and never an action; shares violet with action.primary only in the base set (neutral) and in orivilo, the brand profile that copies its values (ORV-118, ORV-52)" (section 13).
 - `professional.json`, `semantic.brand`: `"dot-small": { "$value": { "light": "{color.navy.700}", "dark": "{color.navy.400}" } }`.
 - `friendly.json`, `semantic.brand`: the same with `{color.coral.700}` and `{color.coral.400}`.
 
@@ -570,7 +570,7 @@ Only `src/tokens/source/semantic.json` changes. Professional and Friendly overri
 
 Descriptions:
 
-- `brand.signature`: "The signature colour: the mark dot above 24 px, a bead, one highlight plane; never text and never an action; shares violet with action.primary in the ORIVILO profile only (ORV-118)".
+- `brand.signature`: "The signature colour: the mark dot above 24 px, a bead, one highlight plane; never text and never an action; shares violet with action.primary only in the base set (neutral) and in orivilo, the brand profile that copies its values (ORV-118, ORV-52)".
 - `brand.dot-small`: the text in section 2.
 - `brand.ink` keeps "Ink on the signature".
 
@@ -681,13 +681,13 @@ Red proofs (L-0042), one per case, each restored afterwards:
 <!-- prettier-ignore -->
 | Line | Today | After |
 | --- | --- | --- |
-| 21 (§2) | "Lime is the signature; it appears as a bead, a highlight plane, or the one Intent Engine button per screen, never as body text on light ground and never as a status colour. Orbit violet does the work of action, selection and links (brand case study board 06); it is never a tint or a wash." | "Violet is the signature (owner, ORV-118): the mark's dot, a bead and one highlight plane (`brand.signature`), the same value as the one primary action (`action.primary`) in the ORIVILO profile, and still a separate token. Lime is spent once, on the one Intent Engine button per screen (`action.intent`), never as body text on light ground and never as a status colour. Orbit violet also does the work of selection and links (brand case study board 06); apart from the one signature glow it is never a tint or a wash." |
+| 21 (§2) | "Lime is the signature; it appears as a bead, a highlight plane, or the one Intent Engine button per screen, never as body text on light ground and never as a status colour. Orbit violet does the work of action, selection and links (brand case study board 06); it is never a tint or a wash." | "Violet is the signature (owner, ORV-118): the mark's dot, a bead and one highlight plane (`brand.signature`), the same value as the one primary action (`action.primary`) in the base set (neutral), and still a separate token. Lime is spent once, on the one Intent Engine button per screen (`action.intent`), never as body text on light ground and never as a status colour. Orbit violet also does the work of selection and links (brand case study board 06); apart from the one signature glow it is never a tint or a wash." |
 | 22 (§2) | "at most one soft lime glow per screen"; "with the lime limited to one button and one bead" | "at most one soft signature glow per screen"; "with the lime limited to one button" |
 | 78 (§3.1) | `brand.signature`: lime.300 #D9F66F, lime.300 #D9F66F, "Mark dot above 24 px, one highlight plane; never text on light ground" | violet.600 #7A22C7, violet.400 #B07FEE, "Mark dot above 24 px, a bead, one highlight plane; never text, never an action" |
 | 79 (§3.1) | `brand.ink`: gray.900 #16151D in light | white #FFFFFF in light; dark stays gray.900 #16151D |
 | 80 (§3.1) | `brand.dot-small`: lime.300 #D9F66F in dark | violet.400 #B07FEE in dark |
 | 121 (§3.5, Depth) | "a soft lime glow (radial, 35% light, 14% dark)" | "a soft signature glow (radial, 35% light, 14% dark)" |
-| After 214 (§8, below the table) | No text | "Brand presence and Act share one value in the ORIVILO profile (violet.600 and violet.400, owner, ORV-118) and stay two tokens: no component reads both, and `tokens.test.ts` fails when they drift apart." |
+| After 214 (§8, below the table) | No text | "Brand presence and Act share one value in the base set (neutral), violet.600 and violet.400 (owner, ORV-118), and stay two tokens: no component reads both, and `tokens.test.ts` fails when they drift apart." |
 | 222 (§9 item 1) | "in dark mode lime stays at one button and one bead and the glow at 14%" | "in dark mode lime stays at one button, and the signature glow at 14%" |
 | After 300 (change log) | No entry | v1.43: the ORIVILO signature becomes violet (ORV-118, comment 10336): `brand.signature` violet.600 and violet.400, `brand.ink` white in light, `brand.dot-small` violet.400 in dark; lime is `action.intent` only. Downstream: the brand badge, the glow and the bead turn violet under neutral; Professional and Friendly unchanged |
 
@@ -713,7 +713,7 @@ The file name keeps `v1.1`, because six files link to it: `DESIGN.md`, `docs/con
 
 ### Other documents
 
-- `packages/design-system/catalog/base/logo.yaml:24`: "(violet on the light canvas, lime on the dark one)" becomes "(violet in both modes under the ORIVILO profile; another profile sets its own)".
+- `packages/design-system/catalog/base/logo.yaml:24`: "(violet on the light canvas, lime on the dark one)" becomes "(violet in both modes in the base set (neutral); another profile sets its own)".
 - `src/recipes/pairs.ts:13` (code comment): the change in section 3.
 - The spec: findings F7 to F11.
 

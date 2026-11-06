@@ -564,7 +564,7 @@
         "light": "{color.violet.600}",
         "dark": "{color.violet.400}"
       },
-      "$description": "The signature colour: the mark dot above 24 px, a bead, one highlight plane; never text and never an action; shares violet with action.primary in the ORIVILO profile only (ORV-118)",
+      "$description": "The signature colour: the mark dot above 24 px, a bead, one highlight plane; never text and never an action; shares violet with action.primary only in the base set (neutral) and in orivilo, the brand profile that copies its values (ORV-118, ORV-52)",
       "$extensions": {
         "orivilo": {
           "scope": "identity"
@@ -594,7 +594,7 @@
         "light": "{color.violet.600}",
         "dark": "{color.violet.400}"
       },
-      "$description": "The mark's dot at 24 px and below (logo forms 16 and 24), at least 3.0 on the canvas under every profile; equal to brand.signature in the ORIVILO profile; read by logo.dot-small and badge.dot.brand (the brand badge's bead)",
+      "$description": "The mark's dot at 24 px and below (logo forms 16 and 24), at least 3.0 on the canvas under every profile; equal to brand.signature in the base set (neutral); read by logo.dot-small and badge.dot.brand (the brand badge's bead)",
       "$extensions": {
         "orivilo": {
           "contrast": {

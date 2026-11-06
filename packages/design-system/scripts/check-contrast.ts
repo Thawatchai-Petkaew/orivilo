@@ -1,8 +1,8 @@
-// Computes every text and UI contrast pair of the semantic layer under the neutral set and every
-// profile, in both modes, and exits 1 when any pair is under its floor or any colour token is
-// neither paired nor exempt (spec E0-5). Run: pnpm contrast (also a CI step). `--all` lists
-// passing pairs too.
-import { profiles } from "../src/profiles/index.ts";
+// Computes every text and UI contrast pair of the semantic layer under the neutral set, every
+// profile and every brand profile, in both modes, and exits 1 when any pair is under its floor or
+// any colour token is neither paired nor exempt (spec E0-5). Run: pnpm contrast (also a CI step).
+// `--all` lists passing pairs too.
+import { CONTRAST_SETS } from "../src/profiles/index.ts";
 import {
   checkContrast,
   semanticPairs,
@@ -12,11 +12,7 @@ import {
 import { tokens } from "../src/tokens/index.ts";
 
 const all = process.argv.includes("--all");
-const sets = [
-  { id: "neutral", set: tokens },
-  ...profiles.map((p) => ({ id: p.id, set: p.tokens })),
-];
-const results = checkContrast(sets);
+const results = checkContrast(CONTRAST_SETS);
 const failures = results.filter((r) => !r.pass);
 
 const line = (r: (typeof results)[number]) =>
@@ -25,7 +21,7 @@ const line = (r: (typeof results)[number]) =>
 for (const r of all ? results : failures) console.log(line(r));
 
 const problems: string[] = [];
-for (const { id, set } of sets) {
+for (const { id, set } of CONTRAST_SETS) {
   for (const path of unexplainedColours(set))
     problems.push(`${id}: ${path} is in no pair and not exempt`);
   for (const path of staleExemptions(set)) problems.push(`${id}: exemption for ${path} is stale`);
@@ -41,6 +37,6 @@ const lowest = results.reduce(
   },
 );
 console.log(
-  `\n${pairs} pairs x ${sets.length} sets x 2 modes = ${results.length} checks, ${failures.length} under floor, ${problems.length} unexplained; lowest ${lowest.ratio} (${lowest.r?.fg} on ${lowest.r?.bg}, ${lowest.r?.profile} ${lowest.r?.mode})`,
+  `\n${pairs} pairs x ${CONTRAST_SETS.length} sets x 2 modes = ${results.length} checks, ${failures.length} under floor, ${problems.length} unexplained; lowest ${lowest.ratio} (${lowest.r?.fg} on ${lowest.r?.bg}, ${lowest.r?.profile} ${lowest.r?.mode})`,
 );
 if (failures.length > 0 || problems.length > 0) process.exit(1);
