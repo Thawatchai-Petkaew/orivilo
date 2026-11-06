@@ -185,6 +185,11 @@
 .ds-button[data-variant="intent"]:focus-visible {
   box-shadow: var(--_focus-shadow-fill);
 }
+/* An inert but focusable Button (aria-disabled) stays dimmed, and its focus still draws the line:
+ * the disabled border rule above has the same weight, so this one sits after it (ORV-227 F1). */
+.ds-button[data-variant][aria-disabled="true"]:focus-visible {
+  border-color: var(--ds-focus-ring);
+}
 
 /* Icon slot: before or after the label, at the icon size of the button's size. */
 .ds-button__icon {
@@ -4057,6 +4062,133 @@
   .ds-progress[data-indeterminate] .ds-progress__fill {
     animation: none;
   }
+}
+
+/* File upload (ORV-227) ---------------------------------------------------------------------- */
+
+.ds-file-upload {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmp-file-upload-gap);
+  min-inline-size: 0;
+}
+/* The zone's edge is solid until the drop target lands (second PR of ORV-227). */
+.ds-file-upload__zone {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--cmp-file-upload-gap);
+  padding: var(--cmp-file-upload-padding);
+  border: 1px solid var(--cmp-file-upload-zone-border);
+  border-radius: var(--cmp-file-upload-radius);
+}
+.ds-file-upload__zone[data-full] {
+  border-color: var(--cmp-file-upload-zone-border-disabled);
+}
+.ds-file-upload__zone[data-invalid] {
+  border-color: var(--cmp-file-upload-zone-border-invalid);
+}
+.ds-field[data-disabled] .ds-file-upload__zone {
+  border-color: var(--cmp-file-upload-zone-border-disabled);
+}
+.ds-file-upload__hint {
+  min-inline-size: 0;
+  margin: 0;
+  color: var(--cmp-field-description);
+  font-family: var(--cmp-field-text-type-font-family);
+  font-size: var(--cmp-field-text-type-font-size);
+  line-height: var(--cmp-field-text-type-line-height);
+  font-weight: var(--cmp-field-text-type-font-weight);
+  letter-spacing: var(--cmp-field-text-type-letter-spacing);
+  overflow-wrap: anywhere;
+}
+.ds-field[data-disabled] .ds-file-upload__hint {
+  color: var(--ds-text-disabled);
+}
+.ds-file-upload .ds-field__error > span {
+  display: block;
+}
+.ds-file-upload .ds-field__error > span + span {
+  margin-block-start: var(--ds-space-inline-sm);
+}
+.ds-file-upload__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmp-file-upload-gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ds-file-upload__item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--cmp-file-upload-gap);
+  padding-block: var(--ds-space-inline-lg);
+  padding-inline: var(--cmp-file-upload-padding);
+  border: 1px solid var(--cmp-file-upload-item-border);
+  border-radius: var(--cmp-file-upload-radius);
+}
+.ds-file-upload__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--ds-space-inline-sm);
+  min-inline-size: 0;
+}
+.ds-file-upload__name {
+  margin: 0;
+  color: var(--cmp-field-label);
+  font-family: var(--cmp-field-label-type-font-family);
+  font-size: var(--cmp-field-label-type-font-size);
+  line-height: var(--cmp-field-label-type-line-height);
+  font-weight: var(--cmp-field-label-type-font-weight);
+  letter-spacing: var(--cmp-field-label-type-letter-spacing);
+  overflow-wrap: anywhere;
+}
+.ds-file-upload__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--ds-space-inline-lg);
+  margin: 0;
+  color: var(--cmp-field-description);
+  font-family: var(--cmp-field-text-type-font-family);
+  font-size: var(--cmp-field-text-type-font-size);
+  line-height: var(--cmp-field-text-type-line-height);
+  font-weight: var(--cmp-field-text-type-font-weight);
+  letter-spacing: var(--cmp-field-text-type-letter-spacing);
+}
+.ds-file-upload__word {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-space-inline-sm);
+}
+.ds-file-upload__item[data-status="done"] .ds-file-upload__word {
+  color: var(--cmp-progress-done);
+}
+.ds-file-upload__item[data-status="failed"] .ds-file-upload__word {
+  color: var(--cmp-progress-failed);
+}
+.ds-file-upload__reason {
+  margin: 0;
+  color: var(--cmp-field-error);
+  font-family: var(--cmp-field-text-type-font-family);
+  font-size: var(--cmp-field-text-type-font-size);
+  line-height: var(--cmp-field-text-type-line-height);
+  font-weight: var(--cmp-field-text-type-font-weight);
+  letter-spacing: var(--cmp-field-text-type-letter-spacing);
+  overflow-wrap: anywhere;
+}
+.ds-file-upload__retry {
+  align-self: flex-start;
+  margin-block-start: var(--ds-space-inline-sm);
+}
+.ds-file-upload__actions {
+  display: flex;
+  flex: none;
+  margin-block-start: calc(-1 * var(--ds-space-inline-sm));
 }
 
 /* Tag (E4-5) --------------------------------------------------------------------------------- */
