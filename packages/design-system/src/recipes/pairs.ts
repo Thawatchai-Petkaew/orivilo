@@ -21,6 +21,11 @@
  * Friendly): a logotype's accent is decoration and the ring carries the shape; WCAG 1.4.11 does
  * not apply to a logotype. It stays out of the list because Friendly's master dot is under 3.0.
  *
+ * `featured-icon.<kind>.bg`, a filled `feedback.<kind>.surface` tile against the page: the glyph on
+ * it is the graphic and is listed at 3.0 for the four kinds; the tile ground is decoration, and the
+ * words beside the tile say the same thing (ORV-222, `fi-colour-1`). WCAG 1.4.11 does not apply to
+ * the ground.
+ *
  * Paths are component-token paths (`button.primary.fg`) or semantic paths prefixed `ds:` where a
  * recipe sits on a page ground rather than its own (`ds:surface.canvas`).
  */
@@ -912,6 +917,36 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     fg: "spinner.fg",
     bg: "ds:surface.card",
     floor: TEXT,
+  },
+  // FeaturedIcon (ORV-222): the glyph on its tile, the graphic of the tile. The tile's own edge against the
+  // page is not listed: the tile ground is decoration and the glyph carries the kind (see "Not listed" above).
+  {
+    recipe: "featured-icon",
+    slot: "success glyph",
+    fg: "featured-icon.success.fg",
+    bg: "featured-icon.success.bg",
+    floor: UI,
+  },
+  {
+    recipe: "featured-icon",
+    slot: "warning glyph",
+    fg: "featured-icon.warning.fg",
+    bg: "featured-icon.warning.bg",
+    floor: UI,
+  },
+  {
+    recipe: "featured-icon",
+    slot: "danger glyph",
+    fg: "featured-icon.danger.fg",
+    bg: "featured-icon.danger.bg",
+    floor: UI,
+  },
+  {
+    recipe: "featured-icon",
+    slot: "info glyph",
+    fg: "featured-icon.info.fg",
+    bg: "featured-icon.info.bg",
+    floor: UI,
   },
   // Progress (E4-5): the value text, the bar against its track, the track against the card.
   {

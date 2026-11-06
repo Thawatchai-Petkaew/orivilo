@@ -2631,6 +2631,81 @@
       "$description": "Tallest the mention picker grows before it scrolls, 240 (slice C)"
     }
   },
+  "featured-icon": {
+    "$description": "A glyph on a tinted tile for one feedback kind (ORV-222): the kind's surface and foreground, one media radius, a size scale on the control and icon sizes",
+    "success": {
+      "bg": {
+        "$type": "color",
+        "$value": "{feedback.success.surface}"
+      },
+      "fg": {
+        "$type": "color",
+        "$value": "{feedback.success.fg}"
+      }
+    },
+    "warning": {
+      "bg": {
+        "$type": "color",
+        "$value": "{feedback.warning.surface}"
+      },
+      "fg": {
+        "$type": "color",
+        "$value": "{feedback.warning.fg}"
+      }
+    },
+    "danger": {
+      "bg": {
+        "$type": "color",
+        "$value": "{feedback.danger.surface}"
+      },
+      "fg": {
+        "$type": "color",
+        "$value": "{feedback.danger.fg}"
+      }
+    },
+    "info": {
+      "bg": {
+        "$type": "color",
+        "$value": "{feedback.info.surface}"
+      },
+      "fg": {
+        "$type": "color",
+        "$value": "{feedback.info.fg}"
+      }
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.media.radius}"
+    },
+    "size": {
+      "sm": {
+        "$type": "dimension",
+        "$value": "{size.control.sm}"
+      },
+      "md": {
+        "$type": "dimension",
+        "$value": "{size.control.md}"
+      },
+      "lg": {
+        "$type": "dimension",
+        "$value": "{size.control.lg}"
+      }
+    },
+    "icon-size": {
+      "sm": {
+        "$type": "dimension",
+        "$value": "{size.icon.sm}"
+      },
+      "md": {
+        "$type": "dimension",
+        "$value": "{size.icon.md}"
+      },
+      "lg": {
+        "$type": "dimension",
+        "$value": "{size.icon.lg}"
+      }
+    }
+  },
   "logo": {
     "$description": "The ORIVILO mark, wordmark and lockups (ORV-118, logo-colour-1)",
     "ink": {

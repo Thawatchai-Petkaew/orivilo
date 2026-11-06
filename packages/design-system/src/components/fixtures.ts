@@ -22,6 +22,25 @@ export const fixtures = {
   missingLabel: "ไม่มีข้อมูล",
 } as const;
 
+/**
+ * FeaturedIcon story copy (ORV-222): the words that stand beside each tile, one per feedback kind.
+ * They are the caller's text, not catalog keys, and they are mock.
+ */
+export const featuredIconFixtures = {
+  th: {
+    success: "สร้างหน้าแรกเสร็จแล้ว",
+    warning: "ผลนี้เก่ากว่าข้อมูลต้นทาง",
+    danger: "สร้างหน้าแรกไม่สำเร็จ",
+    info: "ผลนี้มาจากกฎ ไม่ได้มาจากโมเดล",
+  },
+  en: {
+    success: "Home page built",
+    warning: "This result is older than its source",
+    danger: "Couldn't build the home page",
+    info: "This result comes from rules, not a model",
+  },
+} as const;
+
 /** Collapsible story copy (ORV-203): the caller's label and content, not catalog keys. */
 export const collapsibleFixtures = {
   trigger: "รายละเอียดโปรเจกต์",

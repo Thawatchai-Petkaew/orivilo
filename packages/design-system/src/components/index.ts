@@ -35,6 +35,12 @@ export { EvidenceList, type EvidenceListProps } from "./evidence-list/EvidenceLi
 export { EvidenceSpan, type EvidenceSpanProps } from "./evidence-span/EvidenceSpan";
 export type { EvidenceItem } from "./evidence-span/span";
 export { Field, type FieldProps, useFieldControl } from "./field/Field";
+export {
+  FeaturedIcon,
+  type FeaturedIconProps,
+  type FeaturedIconSize,
+  type FeaturedIconVariant,
+} from "./featured-icon/FeaturedIcon";
 export { Input, type InputProps } from "./input/Input";
 export {
   RadioGroup,
