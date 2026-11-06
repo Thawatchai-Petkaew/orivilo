@@ -1,0 +1,28 @@
+name: Separator
+tier: base
+status: draft
+since: ORV-230
+import: "@orivilo/design-system"
+story: base-separator
+useWhen:
+  - "A thin line between two blocks that belong to one surface: a list of settings, the items of a toolbar"
+  - "A real break between sections of content, with `decorative={false}`"
+avoidWhen:
+  - "A line with a label or a button on it (not built: a labelled divider waits for a story that needs one, and then is its own component with a real heading)"
+  - "A handle the person drags or focuses (Resizable owns the focusable separator)"
+  - "A filled bar or a second line (it is one bare line and nothing else)"
+contract: SeparatorProps
+variants: [horizontal, vertical]
+sizes: []
+states: [decorative, semantic]
+recipes: [neutral, professional, friendly]
+examples: []
+rules:
+  - "Props: `orientation` (horizontal by default, or vertical), `decorative` (true by default) and `className`, which is layout only. There is no `children`, `asChild`, variant or size (a type error)"
+  - "The line is a 1 px border on `separator.line` (`border.subtle`) and never a background, because forced colours paint a background out; one line is drawn there, not a hollow double line"
+  - "A horizontal line is at its parent's width; a vertical line stretches to its parent's height and is at least one line of text tall, so it never vanishes in a block parent; neither shrinks"
+  - "The recipe sets no margin: the space beside the line is the caller's, with layout utilities"
+  - "Pass `decorative={false}` for a real break between sections of content; most lines only divide, so the default is silent"
+a11y:
+  - 'Decorative (the default) renders `role="none"`; with `decorative={false}` it renders `role="separator"`, and `aria-orientation="vertical"` only on a vertical one (horizontal is the implicit value). All of it comes from Radix; `data-orientation` is always set'
+  - "A separator never takes focus and has no tab stop"

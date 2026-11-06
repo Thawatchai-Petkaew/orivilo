@@ -4346,6 +4346,25 @@
   flex: none;
 }
 
+/* Separator (ORV-230) ------------------------------------------------------------------------ */
+
+/* The line is a 1 px border and never a background, because forced colours paint a background out. */
+.ds-separator {
+  flex: none;
+}
+.ds-separator[data-orientation="horizontal"] {
+  inline-size: 100%;
+  block-size: 0;
+  border-block-start: 1px solid var(--cmp-separator-line);
+}
+/* At least one line of text tall, so the line never vanishes in a block parent. */
+.ds-separator[data-orientation="vertical"] {
+  align-self: stretch;
+  inline-size: 0;
+  min-block-size: 1lh;
+  border-inline-start: 1px solid var(--cmp-separator-line);
+}
+
 /* Progress (E4-5) ---------------------------------------------------------------------------- */
 
 .ds-progress {

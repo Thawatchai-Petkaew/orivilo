@@ -275,6 +275,53 @@ describe("the menu listbox (ORV-204, menu-separator-1, menu-label-1, menu-disabl
   });
 });
 
+describe("the separator recipe (ORV-230, sep-look-1)", () => {
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  const rules = [...bare.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    .map((m) => ({
+      selector: (m[1] ?? "").trim().replace(/\s+/g, " "),
+      body: (m[2] ?? "").trim().replace(/\s+/g, " "),
+    }))
+    .filter((r) => r.selector.includes(".ds-separator"));
+  const body = (selector: string) => rules.find((r) => r.selector === selector)?.body;
+
+  it("draws the horizontal line as a 1 px block-start border at the parent's width", () => {
+    expect(body('.ds-separator[data-orientation="horizontal"]')).toBe(
+      "inline-size: 100%; block-size: 0; border-block-start: 1px solid var(--cmp-separator-line);",
+    );
+  });
+
+  it("draws the vertical line as a 1 px inline-start border, stretched and at least 1lh tall", () => {
+    expect(body('.ds-separator[data-orientation="vertical"]')).toBe(
+      "align-self: stretch; inline-size: 0; min-block-size: 1lh; border-inline-start: 1px solid var(--cmp-separator-line);",
+    );
+  });
+
+  it("never shrinks", () => {
+    expect(body(".ds-separator")).toBe("flex: none;");
+  });
+
+  it("paints no background and sets no margin, so forced colours draw one line and the space is the caller's", () => {
+    expect(rules).toHaveLength(3);
+    for (const rule of rules) {
+      expect(rule.body, rule.selector).not.toMatch(/\bbackground|\bmargin|\boutline|box-shadow/);
+    }
+  });
+
+  it("reads its ink from border.subtle through the one token separator.line", () => {
+    const source = JSON.parse(
+      readFileSync(path.join(here, "../tokens/source/component.json"), "utf8"),
+    ) as { separator: Record<string, { $value?: string }> };
+    const names = Object.keys(source.separator).filter((key) => !key.startsWith("$"));
+    expect(names).toEqual(["line"]);
+    expect(source.separator["line"]?.$value).toBe("{border.subtle}");
+  });
+
+  it("lists no contrast pair: the line is decoration and the role speaks", () => {
+    expect(RECIPE_PAIRS.filter((p) => p.recipe === "separator")).toEqual([]);
+  });
+});
+
 describe("the radio focus line (ORV-221, control-tokens-1, control-pairs-1, radio-api-1)", () => {
   const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
   const body = (selector: string) =>

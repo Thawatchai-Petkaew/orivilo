@@ -1,4 +1,4 @@
-# DESIGN.md: ORIVILO (agent-readable, v1.67)
+# DESIGN.md: ORIVILO (agent-readable, v1.68)
 
 Read this before any UI work: a Studio screen, a shared component, a story, a recipe, a preview, or a review of generated output. It is the design contract the `frontend-design` skill critiques against and the **design gate** (§11) that blocks G3. Rules that enforce it live in `.claude/rules/design-system.md`; the component registry lives in `packages/design-system/catalog/`.
 
@@ -363,3 +363,5 @@ Change log: v1.65 (2026-11-06) ORV-223, the empty half: section 4's compact titl
 Change log: v1.66 (2026-11-06) ORV-231 (the single-date Calendar of D.3 row 28): section 6 gains a row, Calendar for one date chosen from a month grid, with its bounds, its 360 px fit and the Thai year drawn in text only (`cal-api-1`, `date-value-1`). New component `Calendar` over `react-day-picker` 10.0.2 for behaviour only (ADR 0020), with component tokens `calendar.*` (`surface.raised`, `surface.hover`, `surface.selected`, `text.primary`, `text.secondary`, `text.disabled`, `selection.fg`, `border.control-hover`, `type.label.md`, `type.body.xs`, `type.control.md`, `size.touch`, `space.stack.sm`, `space.stack.lg`, `space.inline.sm`, `space.inset.sm`, `shape.control.radius`, `shape.container.radius`), the recipe `ds-calendar`, the glyphs `ChevronLeftIcon` and `ChevronRightIcon`, the locale group `calendar.*`, and 13 pairs in `pairs.ts` (4 at 4.5, 9 at 3.0) under every profile in both modes. Impact: no semantic token, value or profile changes; Button, Popover and Toast do not change.
 
 Change log: v1.67 (2026-11-06) ORV-226: §6 widens the ConfirmDialog task to "Confirm a destructive action, or accepting proposed changes"; the pattern is built (catalog entry `application-confirm-dialog`, draft). No token, value, contrast pair or profile file changes.
+
+Change log: v1.68 (2026-11-06) ORV-230 PR 1: the Separator component (`sep-api-1` to `sep-scope-1`), a bare 1 px line between two blocks. One new component token, `separator.line` from `border.subtle`, read as a border and never a background so forced colours draw one line. It lists no contrast pair: the space around the line separates and the role tells a screen reader. No semantic token, profile or existing component changes.

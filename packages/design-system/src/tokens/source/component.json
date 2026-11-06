@@ -2758,6 +2758,14 @@
       }
     }
   },
+  "separator": {
+    "$description": "A bare line between two blocks (ORV-230, sep-look-1): the hairline colour, read as a border and never a fill",
+    "line": {
+      "$type": "color",
+      "$value": "{border.subtle}",
+      "$description": "The 1 px line of both orientations"
+    }
+  },
   "alert": {
     "$description": "An inline message for one feedback kind (ORV-222, alert-look-1): a card ground, a 1 px edge per kind (danger takes the foreground ink), a title over a description",
     "bg": {

@@ -433,6 +433,36 @@ Keep this table in step with the folder when you add an entry.
 | [[K-0337-wcag-2-2-location-and-g65-breadcrumb-trail]]                                   | 0.8        | G65 sufficient for SC 2.4.8 (AAA); tests link and non-link current    |
 | [[K-0338-wcag-2-2-aria26-aria11-and-h97]]                                               | 0.8        | ARIA26 for current item; ARIA11 and H97 label repeated nav regions    |
 | [[K-0339-synthesis-breadcrumb-and-pagination-benchmark]]                                | 0.75       | Synthesis: Breadcrumb and Pagination benchmark tables, audit B form   |
+| [[K-0340-untitled-ui-react-lists-no-accordion-component]]                               | 0.75       | Untitled UI React: no accordion; eight FAQ names (own count)          |
+| [[K-0341-shadcn-ui-accordion-docs-parts-examples-and-versions]]                         | 0.8        | shadcn Accordion: 4 parts, 6 examples, 3 versions, API sent out       |
+| [[K-0342-shadcn-ui-accordion-registry-classes-chevron-and-no-aria]]                     | 0.8        | shadcn Accordion file: border, chevron, animate; no aria of its own   |
+| [[K-0343-radix-accordion-parts-props-and-data-attributes]]                              | 0.8        | Radix Accordion: type, collapsible false, vertical, data attributes   |
+| [[K-0344-radix-accordion-keyboard-adds-arrows-home-end]]                                | 0.8        | Radix keys add arrows, Home, End; skip disabled, wrap, RTL swap       |
+| [[K-0345-radix-accordion-source-h3-header-aria-disabled-and-region]]                    | 0.8        | Radix source: h3 default, aria-disabled, region on every panel        |
+| [[K-0346-radix-accordion-animation-height-variable-no-reduced-motion]]                  | 0.8        | Radix height variable, 300ms docs example, no reduced-motion rule     |
+| [[K-0347-wai-aria-apg-accordion-keyboard-enter-space-tab]]                              | 0.8        | APG keys: Enter, Space, Tab, Shift + Tab; no arrows, Home or End      |
+| [[K-0348-wai-aria-apg-accordion-heading-button-expanded-and-controls]]                  | 0.8        | APG: button alone in a heading, aria-expanded, aria-controls          |
+| [[K-0349-wai-aria-apg-accordion-aria-disabled-and-optional-region]]                     | 0.8        | APG: aria-disabled if it cannot collapse; region optional             |
+| [[K-0350-wai-aria-apg-accordion-example-h3-region-and-no-key-handler]]                  | 0.8        | APG example: h3, button, region; click only, no key handler           |
+| [[K-0351-wai-aria-1-2-aria-expanded-values]]                                            | 0.8        | aria-expanded: false, true, undefined by default                      |
+| [[K-0352-untitled-ui-content-divider-types-children-and-classname]]                     | 0.8        | Untitled Content divider: 3 types, required, children, no size        |
+| [[K-0353-untitled-ui-content-divider-plain-div-not-a-separator]]                        | 0.8        | Untitled Content divider: plain div, not exposed as a separator       |
+| [[K-0354-untitled-ui-section-divider-hr-in-shared-assets]]                              | 0.8        | Untitled SectionDivider: one hr in shared-assets, not on index        |
+| [[K-0355-shadcn-ui-separator-docs-and-registry-decorative-by-default]]                  | 0.8        | shadcn Separator: decorative default true, 1 px bg-border line        |
+| [[K-0356-radix-separator-decorative-role-none-and-vertical-orientation]]                | 0.8        | Radix Separator: decorative gives role none; vertical written         |
+| [[K-0357-wai-aria-1-2-separator-static-or-focusable]]                                   | 0.8        | separator role: static structure or moveable widget with value        |
+| [[K-0358-wai-aria-1-2-separator-orientation-and-presentational-children]]               | 0.8        | separator: implicit horizontal; children presentational               |
+| [[K-0359-untitled-ui-metrics-nine-cards-and-eighteen-examples]]                         | 0.8        | Untitled Metrics: nine cards, 18 examples (own count)                 |
+| [[K-0360-untitled-ui-metrics-change-indicator-and-trend-props]]                         | 0.8        | Untitled trend and changeTrend swap success and error; 3 types        |
+| [[K-0361-untitled-ui-metrics-footer-actions-icon-and-chart-props]]                      | 0.8        | Untitled Metrics slots: footer, actions, icon, chart props            |
+| [[K-0362-untitled-ui-metrics-no-state-size-or-accessibility-text]]                      | 0.75       | Untitled Metrics: no state, size or accessibility text                |
+| [[K-0363-shadcn-ui-lists-no-metric-or-filter-bar-component]]                            | 0.75       | shadcn list: no Metric or Filter bar (66 names, own count)            |
+| [[K-0364-untitled-ui-filter-bars-examples-and-listed-states]]                           | 0.8        | Untitled Filter bars: 13 examples (own count); states by title        |
+| [[K-0365-untitled-ui-filter-bar-layout-parts-hold-no-state]]                            | 0.8        | Untitled FilterBar: five layout parts, hold no filter state           |
+| [[K-0366-untitled-ui-filter-dropdown-props-and-advanced-filter]]                        | 0.8        | Untitled FilterDropdown: caller rows, onApply, count, placement       |
+| [[K-0367-untitled-ui-filter-bar-small-screens-and-accessible-names]]                    | 0.8        | Untitled filters: hide or swap on small screens; label names          |
+| [[K-0368-untitled-ui-open-repo-has-no-divider-metrics-or-filter-bar-code]]              | 0.75       | Untitled open repo: no divider, metrics or filter bar code            |
+| [[K-0369-synthesis-accordion-separator-metric-and-filter-bar-benchmark]]                | 0.75       | Synthesis: accordion, separator, metric, filter bar benchmark         |
 | [[K-0380-untitled-ui-date-picker-forms-and-react-aria]]                                 | 0.8        | Untitled date pickers: seven examples (own count), React Aria base    |
 | [[K-0381-untitled-ui-date-picker-trigger-apply-and-cancel]]                             | 0.8        | Untitled picker: Apply and Cancel; value changes before Apply         |
 | [[K-0382-untitled-ui-date-range-presets-and-breakpoints]]                               | 0.8        | Untitled range: nine presets (page figure), sidebar from lg           |

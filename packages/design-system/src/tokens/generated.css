@@ -1706,6 +1706,7 @@
   --cmp-featured-icon-icon-size-sm: var(--ds-size-icon-sm);
   --cmp-featured-icon-icon-size-md: var(--ds-size-icon-md);
   --cmp-featured-icon-icon-size-lg: var(--ds-size-icon-lg);
+  --cmp-separator-line: var(--ds-border-subtle);
   --cmp-alert-bg: var(--ds-surface-card);
   --cmp-alert-success-edge: var(--ds-feedback-success-border);
   --cmp-alert-warning-edge: var(--ds-feedback-warning-border);
