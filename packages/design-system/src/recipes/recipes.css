@@ -788,6 +788,139 @@
   letter-spacing: var(--cmp-checkbox-label-type-sm-letter-spacing);
 }
 
+/* RadioGroup (ORV-221): one of a short list, every option in view. The circle is round in every
+   profile (shape.round.radius). Checked reads the selection tokens, not action.primary. ------- */
+
+.ds-radio-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--cmp-radio-group-gap);
+  min-inline-size: 0;
+}
+.ds-radio-group[data-layout="horizontal"] {
+  flex-direction: row;
+  flex-wrap: wrap;
+  column-gap: var(--ds-space-stack-md);
+}
+/* The group draws no focus: the radios do. The root takes programmatic focus (a click on a
+   description, then a key), and the global :focus-visible band would wrap the whole group. */
+.ds-radio-group:focus-visible {
+  outline: none;
+  box-shadow: var(--_focus-shadow-none);
+}
+.ds-radio {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--cmp-radio-gap);
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+.ds-radio__control {
+  --_size: var(--cmp-radio-size);
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: var(--_size);
+  block-size: var(--_size);
+  padding: 0;
+  /* The circle takes the label's type so 1lh is the label's first line: it centres on it, as
+     .ds-checkbox__box does. */
+  font-size: var(--cmp-radio-label-type-font-size);
+  line-height: var(--cmp-radio-label-type-line-height);
+  margin-block-start: calc((1lh - var(--_size)) / 2);
+  border: 1px solid var(--cmp-radio-border);
+  border-radius: var(--cmp-radio-radius);
+  background: var(--cmp-radio-bg);
+  color: var(--cmp-radio-dot);
+  cursor: pointer;
+  transition:
+    background-color var(--ds-motion-feedback-duration) var(--ds-motion-easing),
+    border-color var(--ds-motion-feedback-duration) var(--ds-motion-easing);
+}
+/* A transparent extension keeps a 24 px target around the circle (WCAG 2.5.8). Inset from the
+   padding box, so the 1px border is added back. */
+.ds-radio__control::after {
+  content: "";
+  position: absolute;
+  inset: calc((var(--_size) - var(--cmp-radio-target-min)) / 2 - 1px);
+}
+.ds-radio__control[data-state="checked"] {
+  background: var(--cmp-radio-bg-checked);
+  border-color: var(--cmp-radio-border-checked);
+}
+/* Row hover lights the edge from the row's content only (the group's align-items keeps a row as
+   wide as its content). An invalid group does not take it: the error edge stays through hover. */
+.ds-radio-group:not([aria-invalid="true"])
+  .ds-radio:hover
+  .ds-radio__control[data-state="unchecked"]:not([data-disabled]):not(:focus-visible) {
+  border-color: var(--cmp-radio-border-hover);
+}
+.ds-radio-group:not([aria-invalid="true"])
+  .ds-radio:hover
+  .ds-radio__control[data-state="checked"]:not([data-disabled]):not(:focus-visible) {
+  border-color: var(--cmp-radio-border-checked-hover);
+}
+.ds-radio-group[aria-invalid="true"] .ds-radio__control {
+  border-color: var(--cmp-radio-border-error);
+}
+/* Focus (ORV-192 row 9): the circle's border turns to focus.ring with the halo on it. A checked
+   radio adds a 1 px inner line through --_inner (as .ds-checkbox__box), so its border reads twice
+   as wide as the rest line. Invalid keeps its red, on the border and on the inner line. */
+.ds-radio__control:focus-visible {
+  border-color: var(--ds-focus-ring);
+  outline: 1px solid transparent;
+  outline-offset: 0;
+  box-shadow: var(--_focus-shadow-border);
+}
+.ds-radio__control[data-state="checked"]:focus-visible {
+  --_inner: inset 0 0 0 1px var(--ds-focus-ring);
+  box-shadow: var(--_inner), var(--_focus-shadow-border);
+}
+.ds-radio-group[aria-invalid="true"] .ds-radio__control:focus-visible {
+  border-color: var(--cmp-radio-border-error);
+}
+.ds-radio-group[aria-invalid="true"] .ds-radio__control[data-state="checked"]:focus-visible {
+  --_inner: inset 0 0 0 1px var(--cmp-radio-border-error);
+}
+.ds-radio-group .ds-radio__control[data-disabled] {
+  background: var(--cmp-radio-bg-disabled);
+  border-color: var(--cmp-radio-border-disabled);
+  color: var(--cmp-radio-dot-disabled);
+  cursor: not-allowed;
+}
+.ds-radio__label {
+  color: var(--cmp-field-label);
+  font-family: var(--cmp-radio-label-type-font-family);
+  font-size: var(--cmp-radio-label-type-font-size);
+  line-height: var(--cmp-radio-label-type-line-height);
+  font-weight: var(--cmp-radio-label-type-font-weight);
+  letter-spacing: var(--cmp-radio-label-type-letter-spacing);
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.ds-radio[data-disabled] .ds-radio__label,
+.ds-radio[data-disabled] .ds-field__description {
+  color: var(--ds-text-disabled);
+}
+.ds-radio[data-disabled] .ds-radio__label {
+  cursor: not-allowed;
+}
+.ds-radio-group[data-size="sm"] .ds-radio__control {
+  --_size: var(--cmp-radio-size-sm);
+  font-size: var(--cmp-radio-label-type-sm-font-size);
+  line-height: var(--cmp-radio-label-type-sm-line-height);
+}
+.ds-radio-group[data-size="sm"] .ds-radio__label {
+  font-family: var(--cmp-radio-label-type-sm-font-family);
+  font-size: var(--cmp-radio-label-type-sm-font-size);
+  line-height: var(--cmp-radio-label-type-sm-line-height);
+  font-weight: var(--cmp-radio-label-type-sm-font-weight);
+  letter-spacing: var(--cmp-radio-label-type-sm-letter-spacing);
+}
+
 /* Field: label, description, error around a control --------------------------------------- */
 
 .ds-field {

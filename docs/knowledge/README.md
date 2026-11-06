@@ -238,6 +238,20 @@ Keep this table in step with the folder when you add an entry.
 | [[K-0141-ai-elements-message-action-label-tooltip-and-copy-without-result-state]]       | 0.8        | AI Elements MessageAction: ghost icon-sm, sr-only label; no copied UI |
 | [[K-0142-ai-elements-conversation-scroll-button-unmounts-at-bottom-no-accessible-name]] | 0.8        | AI Elements scroll button: unmounts at bottom, smooth, no name        |
 | [[K-0143-synthesis-chat-copy-action-and-scroll-to-latest-benchmark]]                    | 0.75       | Synthesis: chat copy action and scroll-to-latest benchmark table      |
+| [[K-0144-untitled-ui-radio-buttons-two-sizes-label-hint-no-invalid]]                    | 0.8        | Untitled radio: sm, md; label, hint; group disable; no invalid state  |
+| [[K-0145-untitled-ui-radio-groups-card-forms-and-no-group-label]]                       | 0.75       | Untitled radio groups: card forms, item disable; source files unread  |
+| [[K-0146-untitled-ui-toggle-base-and-slim-two-sizes-no-invalid]]                        | 0.8        | Untitled Toggle: sm, md; slim form; hover only when on; no invalid    |
+| [[K-0147-shadcn-ui-radio-group-two-parts-item-invalid-no-size]]                         | 0.8        | shadcn Radio Group: no size prop; aria-invalid on each item           |
+| [[K-0148-shadcn-ui-switch-sizes-sm-default-and-invalid-classes]]                        | 0.8        | shadcn Switch: sm, default; aria-invalid; no class in new-york-v4     |
+| [[K-0149-shadcn-ui-field-around-radio-and-switch-is-manual-wiring]]                     | 0.8        | shadcn Field: role group div, no context; wiring by hand              |
+| [[K-0150-radix-radio-group-parts-props-and-keyboard-docs]]                              | 0.8        | Radix Radio Group docs: parts, props, keys; ArrowUp row omits check   |
+| [[K-0151-radix-radio-group-1-5-1-aria-wiring-arrows-check-enter-blocked]]               | 0.8        | Radix radio 1.5.1: arrows check (own reading); Enter blocked          |
+| [[K-0152-radix-switch-parts-keyboard-and-1-4-1-aria-wiring]]                            | 0.8        | Radix Switch 1.4.1: button role switch; Space, Enter; two states      |
+| [[K-0153-wai-aria-apg-radio-group-roles-keyboard-labelling]]                            | 0.8        | APG radio group: roles, Tab and arrows, group and item labels         |
+| [[K-0154-wai-aria-apg-switch-roles-keyboard-fixed-label]]                               | 0.8        | APG switch: Space, Enter optional; label must not change with state   |
+| [[K-0155-wai-aria-1-2-invalid-on-radiogroup-and-switch-deprecated-on-radio]]            | 0.8        | ARIA 1.2: aria-invalid on radiogroup, switch; deprecated on radio     |
+| [[K-0156-html-label-for-names-labelable-elements-only]]                                 | 0.8        | HTML: label for must name a labelable element; a div is not one       |
+| [[K-0157-synthesis-radio-group-and-switch-benchmark]]                                   | 0.75       | Synthesis: RadioGroup and Switch benchmark, audit B form              |
 | [[K-0158-untitled-ui-alerts-floating-full-width-no-size-no-role]]                       | 0.75       | Untitled alerts: floating, full-width; no size; no role on the page   |
 | [[K-0159-untitled-ui-featured-icon-themes-colors-sizes-no-aria]]                        | 0.8        | Untitled FeaturedIcon: themes, colours, sizes sm to xl; sets no aria  |
 | [[K-0160-shadcn-ui-alert-two-variants-role-alert-in-source-only]]                       | 0.8        | shadcn Alert: default, destructive; role alert in source, not docs    |
