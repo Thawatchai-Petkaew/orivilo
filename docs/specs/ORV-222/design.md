@@ -1,6 +1,6 @@
 ---
 issue: ORV-222
-spec: docs/specs/ORV-222/spec.md v1.0
+spec: docs/specs/ORV-222/spec.md v1.2
 task: ORV-222-design-1
 date: 2026-11-06
 ---
@@ -88,7 +88,7 @@ The recipe text follows the table. Insert it in `packages/design-system/src/reci
 | fi-colour-1 | None | `[data-variant="<kind>"]`, `background` and `color` from the tokens. Tokens below; four pair rows at floor 3 and the "Not listed" line for the tile against the page, in `pairs.ts` |
 | fi-a11y-1 | `aria-hidden="true"` on the root; no `role`, no name, no `tabIndex`. The glyph is hidden already (`lucide()` in `icons.tsx`) | None |
 | alert-api-1 | See the block under this table | `.ds-alert`, `.ds-alert__content`, `.ds-alert__close` |
-| alert-copy-1 | `<p className="ds-alert__title">`, `<p className="ds-alert__description">`; a `p` and not a heading, since Alert does not know the page's outline. No hidden prefix | `.ds-alert__title, .ds-alert__description { overflow-wrap: anywhere; }`; no `line-clamp`, no `overflow: hidden`, no `text-overflow`, so `expectNoGlyphClip` has no clip to read |
+| alert-copy-1 | `<p className="ds-alert__title">`, `<p className="ds-alert__description">`; a `p` and not a heading, since Alert does not know the page's outline. No hidden prefix | `.ds-alert__title, .ds-alert__description { overflow-wrap: anywhere; }`; no `line-clamp`, no `overflow: hidden`, no `text-overflow`, so nothing clips the ink `expectLabelInkWhole` reads |
 | alert-live-1 | `const DEFAULT_LIVE = { success: "status", info: "status", warning: "status", danger: "alert" } as const`; `const value = live ?? DEFAULT_LIVE[variant]`; `role={value === "off" ? undefined : value}` on the root; no `aria-live`. Type block below | None |
 | alert-mount-1 | No code in Alert. `ContainerFirst` story: `<div role="alert">{shown ? <Alert live="off" ... /> : null}</div>`, the same with `role="status"`, each mounted from the first render and truly empty before the press | None. An empty container draws nothing, so the story's stack may show a gap until the press, which is fine |
 | alert-load-1 | No code in Alert. `AtLoad` passes `live="off"` | None |
