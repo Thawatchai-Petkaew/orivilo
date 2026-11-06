@@ -16,7 +16,9 @@ Read on 2026-11-06 through a fetch tool that returns a summary with quotes of at
 > Update `progress` as your upload reports it.
 
 ```tsx
-{!isComplete && !failed && <p className="text-sm font-medium text-quaternary">Uploading...</p>}
+{
+  !isComplete && !failed && <p className="text-sm font-medium text-quaternary">Uploading...</p>;
+}
 ```
 
 - Page: the list is controlled, so files stay in the caller's state. At 100 the bar item shows a "Complete" label and the fill item a check icon.

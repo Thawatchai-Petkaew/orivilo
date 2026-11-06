@@ -16,7 +16,7 @@ Read on 2026-11-06 through a fetch tool that returns a summary with quotes of at
 > Adheres to the `progressbar` role requirements
 
 ```tsx
-return value == null ? 'indeterminate' : value === maxValue ? 'complete' : 'loading';
+return value == null ? "indeterminate" : value === maxValue ? "complete" : "loading";
 ```
 
 ```tsx

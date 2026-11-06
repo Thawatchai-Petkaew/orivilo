@@ -22,7 +22,7 @@ Read on 2026-11-06 through a fetch tool that returns a summary with quotes of at
 > Pass the `accept` prop to `FileUpload.DropZone`.
 
 ```tsx
-isInvalid && "text-error-primary"
+isInvalid && "text-error-primary";
 ```
 
 - Page: `accept` takes the same comma-separated string as a native file input and is checked for both dropped and picked files. Files that do not match go to `onDropUnacceptedFiles`. With `allowsMultiple={false}` only the first file is processed.
