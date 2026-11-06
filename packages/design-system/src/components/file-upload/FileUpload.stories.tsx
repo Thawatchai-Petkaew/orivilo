@@ -8,6 +8,7 @@ import {
   expectLabelInkWhole,
   expectLinesClear,
   inVitest,
+  resolvedColor,
 } from "../../testing/visual-asserts";
 import { fileUploadFixtures, fixtures } from "../fixtures";
 import { Matrix } from "../matrix";
@@ -669,6 +670,20 @@ const playInvalid =
     ).toHaveAccessibleDescription(expect.stringContaining(error));
     await expect(zoneOf(canvasElement)).toHaveAttribute("data-invalid");
     await expect(inputOf(canvasElement)).toHaveAttribute("aria-invalid", "true");
+
+    // The zone's error edge: all four sides read the invalid border colour, which is not the colour
+    // at rest, so the rule behind `data-invalid` has to paint (a deleted rule leaves the rest edge).
+    const zone = zoneOf(canvasElement);
+    const invalidEdge = resolvedColor(zone, "--cmp-file-upload-zone-border-invalid");
+    const restEdge = resolvedColor(zone, "--cmp-file-upload-zone-border");
+    await expect(invalidEdge).not.toBe(restEdge);
+    const edge = getComputedStyle(zone);
+    for (const side of ["Top", "Right", "Bottom", "Left"] as const) {
+      await expect(
+        edge.getPropertyValue(`border-${side.toLowerCase()}-color`),
+        `${side} edge`,
+      ).toBe(invalidEdge);
+    }
 
     // A refused file adds its line after the caller's error and never replaces it.
     const input = inputOf(canvasElement);
