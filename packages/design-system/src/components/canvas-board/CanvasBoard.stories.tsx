@@ -1,10 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { useEffect, useState } from "react";
 import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { LocaleProvider } from "../../i18n/LocaleProvider";
 import { Button } from "../button/Button";
 import { fixtures } from "../fixtures";
 import { Matrix, Narrow } from "../matrix";
-import { GRID_UNIT } from "./CanvasBoard";
+import { CanvasBoard, GRID_UNIT } from "./CanvasBoard";
+import type { Graph } from "./graph";
 import { BOARD, BOARD_NODES, LONG_NODE } from "./fixtures";
 import { MatrixBoard, Stateful } from "./story-shell";
 import { MOD } from "../story-keys";
@@ -228,6 +230,107 @@ export const TurnsEmpty: Story = {
     const action = canvas.getByRole("button", { name: "เพิ่ม node แรก" });
     for (let i = 0; i < 14 && document.activeElement !== action; i++) await userEvent.tab();
     await expect(document.activeElement).toBe(action);
+  },
+};
+
+/**
+ * A host that does not write the board's change at once: `apply` decides when the graph the board
+ * emitted reaches the `graph` prop. `late` writes a deletion in a later task, after the board's own
+ * commit; `refuse` never writes it; `swap` refuses it, then the host puts another node on the
+ * board and later takes it away on its own.
+ */
+function ControlledHost({ apply }: { apply: "late" | "refuse" | "swap" }) {
+  const [graph, setGraph] = useState<Graph>({
+    nodes: [BOARD_NODES[0] as (typeof BOARD_NODES)[number]],
+    edges: [],
+  });
+  // A parent's effect runs after its child's in the same commit: once this is set, the board's own
+  // effect for the empty graph has run, so a play can assert on what it did or did not do.
+  const [emptied, setEmptied] = useState(false);
+  useEffect(() => {
+    if (graph.nodes.length === 0) setEmptied(true);
+  }, [graph]);
+  return (
+    <div style={{ height: 520 }} className="relative" data-emptied={emptied}>
+      <CanvasBoard
+        graph={graph}
+        label="กระดานแบรนด์ (ข้อมูลตัวอย่าง)"
+        emptyAction={addFirst("เพิ่ม node แรก")}
+        onChange={(next) => {
+          // Selection and moves are written at once; only a change that drops a node is held.
+          if (next.nodes.length >= graph.nodes.length) setGraph(next);
+          else if (apply === "late") setTimeout(() => setGraph(next), 50);
+          else if (apply === "swap") {
+            const other = BOARD_NODES[1] as (typeof BOARD_NODES)[number];
+            setTimeout(() => setGraph({ nodes: [other], edges: [] }), 50);
+            setTimeout(() => setGraph({ nodes: [], edges: [] }), 400);
+          }
+        }}
+      />
+    </div>
+  );
+}
+
+/**
+ * `empty-focus-1` and `empty-board-1` for a host that applies the delete after the board's own
+ * commit (a save, a transition): the board's status line renders first with the node still in the
+ * graph, the node leaves later, and the region still takes the keyboard.
+ */
+export const TurnsEmptyLater: Story = {
+  render: () => <ControlledHost apply="late" />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const region = canvas.getByRole("region");
+    const node = await waitFor(() => nodeByTitle(region, "บรีฟ"));
+    await focusOn(() => node);
+    await userEvent.keyboard("{Enter}");
+    await userEvent.keyboard("{Delete}");
+    // The status line comes first, with the node still on the board: the host has not written yet.
+    await waitFor(() => expect(status(region)).toHaveTextContent("ลบ 1 node"));
+    await waitFor(() => expect(nodeEls(region)).toHaveLength(0));
+    await waitFor(() => expect(canvas.getByRole("heading", { level: 2 })).toBeVisible());
+    await waitFor(() => expect(document.activeElement).toBe(region));
+  },
+};
+
+/** A delete the host refuses leaves the node and the keyboard where they were. */
+export const DeleteRefused: Story = {
+  render: () => <ControlledHost apply="refuse" />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const region = canvas.getByRole("region");
+    const node = await waitFor(() => nodeByTitle(region, "บรีฟ"));
+    await focusOn(() => node);
+    await userEvent.keyboard("{Enter}");
+    await userEvent.keyboard("{Delete}");
+
+    await waitFor(() => expect(status(region)).toHaveTextContent("ลบ 1 node"));
+    await expect(nodeEls(region)).toHaveLength(1);
+    await expect(canvas.queryByRole("heading", { level: 2 })).toBeNull();
+    await expect(document.activeElement).not.toBe(region);
+    await expect(document.activeElement).not.toBe(document.body);
+    await expect(node.contains(document.activeElement)).toBe(true);
+  },
+};
+
+/**
+ * A refused delete is over once the host changes the graph: the later empty graph is the host's
+ * own doing, so focus is not moved by the stale delete.
+ */
+export const DeleteRefusedThenSwapped: Story = {
+  render: () => <ControlledHost apply="swap" />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const region = canvas.getByRole("region");
+    const node = await waitFor(() => nodeByTitle(region, "บรีฟ"));
+    await focusOn(() => node);
+    await userEvent.keyboard("{Enter}");
+    await userEvent.keyboard("{Delete}");
+    await waitFor(() =>
+      expect(canvasElement.querySelector('[data-emptied="true"]')).not.toBeNull(),
+    );
+    await expect(canvas.getByRole("heading", { level: 2 })).toBeVisible();
+    await expect(document.activeElement).toBe(document.body);
   },
 };
 

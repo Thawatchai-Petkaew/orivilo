@@ -304,8 +304,9 @@ function Board({
   graphRef.current = graph;
   const rendered = useRef(graph);
   rendered.current = graph;
-  // Set when a delete leaves no node; the effect below moves focus off the vanished node.
-  const focusWhenEmpty = useRef(false);
+  // Set when a delete leaves no node, to the ids that were on the board; the effect below moves
+  // focus off the vanished node once the host's graph has none, in whichever commit that is.
+  const focusWhenEmpty = useRef<ReadonlySet<string> | null>(null);
   const [message, setMessage] = useState("");
   const [connecting, setConnecting] = useState<KeyboardConnecting | null>(null);
   const [tool, setTool] = useState<BoardTool>("select");
@@ -319,11 +320,18 @@ function Board({
 
   // When a delete leaves no node and focus fell to the body, the board keeps the keyboard (the
   // form line of a cut) and Tab reaches the empty form's action in page order, after the toolbar
-  // and the attribution link (`empty-board-1`).
+  // and the attribution link (`empty-board-1`). A host may apply the delete after the board's own
+  // commit, so the flag waits while the graph holds only nodes it was set from, and clears when
+  // the graph has no node (the move runs) or gains a node it did not have (the host went its own
+  // way, as after a refused delete).
   useEffect(() => {
-    if (!focusWhenEmpty.current) return;
-    focusWhenEmpty.current = false;
-    if (graph.nodes.length > 0) return;
+    const pending = focusWhenEmpty.current;
+    if (!pending) return;
+    if (graph.nodes.length > 0) {
+      if (graph.nodes.some((n) => !pending.has(n.id))) focusWhenEmpty.current = null;
+      return;
+    }
+    focusWhenEmpty.current = null;
     // Focus is on the body, or still on a node element that React Flow is about to take out.
     const active = document.activeElement;
     if (active === null || active === document.body || active.closest(".react-flow__node")) {
@@ -443,7 +451,9 @@ function Board({
       // The delete leaves no node (read from the last render, whatever the order of the changes):
       // the board keeps the keyboard once the node's element is gone.
       const gone = new Set(n.map((x) => x.id));
-      if (rendered.current.nodes.every((x) => gone.has(x.id))) focusWhenEmpty.current = true;
+      focusWhenEmpty.current = rendered.current.nodes.every((x) => gone.has(x.id))
+        ? new Set(rendered.current.nodes.map((x) => x.id))
+        : null;
     },
     [m],
   );
