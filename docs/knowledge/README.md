@@ -265,6 +265,20 @@ Keep this table in step with the folder when you add an entry.
 | [[K-0168-wcag-f81-error-fields-by-color-alone]]                                         | 0.8        | F81: error fields marked by colour alone fail SC 1.4.1                |
 | [[K-0169-wcag-2-2-non-text-contrast-graphics-for-understanding]]                        | 0.8        | SC 1.4.11 (AA): 3:1 for graphics required for understanding           |
 | [[K-0170-synthesis-alert-and-featured-icon-benchmark]]                                  | 0.75       | Synthesis: Alert and FeaturedIcon benchmark table, audit B form       |
+| [[K-0171-untitled-ui-empty-state-sizes-parts-and-header-visuals]]                       | 0.8        | Untitled EmptyState: sm, md, lg; Footer actions; no variant prop      |
+| [[K-0172-untitled-ui-empty-state-h1-main-and-no-live-region]]                           | 0.8        | Untitled EmptyState: h1 and main by default; no status role found     |
+| [[K-0173-untitled-ui-has-no-page-loading-pattern]]                                      | 0.75       | Untitled UI React: no page-loading pattern found; spinner nearest     |
+| [[K-0174-shadcn-ui-empty-parts-one-media-variant-no-size]]                              | 0.8        | shadcn Empty: six parts, EmptyMedia variant, no size, page silent     |
+| [[K-0175-shadcn-ui-empty-source-div-title-and-two-style-sets]]                          | 0.8        | shadcn Empty source: title is a div, no aria, two style sets differ   |
+| [[K-0176-shadcn-ui-spinner-inside-empty-as-the-loading-example]]                        | 0.8        | shadcn loading: Spinner in EmptyMedia, Cancel button, no aria-busy    |
+| [[K-0177-shadcn-ui-no-results-text-in-data-table-and-command]]                          | 0.8        | shadcn no results: table cell text; CommandEmpty, role presentation   |
+| [[K-0178-wcag-2-2-no-results-text-is-a-status-message]]                                 | 0.8        | SC 4.1.3: "No results returned" is a status update; result list isn't |
+| [[K-0179-wai-aria-1-2-progressbar-for-a-loading-region]]                                | 0.8        | ARIA 1.2: progressbar on a loading region, aria-busy until it is done |
+| [[K-0180-wai-aria-apg-feed-aria-busy-back-to-false]]                                    | 0.8        | APG Feed: aria-busy true in updates; false after or changes may hide  |
+| [[K-0181-wai-aria-1-2-one-main-role-and-required-heading-level]]                        | 0.8        | ARIA 1.2: at most one main role (SHOULD); heading needs aria-level    |
+| [[K-0182-whatwg-html-one-visible-main-element]]                                         | 0.8        | WHATWG: one main without hidden; ancestors limited                    |
+| [[K-0183-aria-in-html-main-takes-no-other-role]]                                        | 0.8        | ARIA in HTML: main takes no other role; heading on h1 not recommended |
+| [[K-0184-synthesis-empty-state-and-loading-state-benchmark]]                            | 0.75       | Synthesis: empty state and loading state benchmark, audit B form      |
 | [[K-0185-untitled-ui-avatar-sizes-props-and-slots]]                                     | 0.8        | Untitled Avatar: size xs to 2xl, no variant; slots and option props   |
 | [[K-0186-untitled-ui-avatar-fallback-chain-and-sticky-load-failure]]                    | 0.8        | Untitled: initials, icons, User01; a failed image stays failed        |
 | [[K-0187-untitled-ui-avatar-one-indicator-and-unnamed-status-dot]]                      | 0.8        | Untitled: one indicator at a time; dot differs by colour, no text     |
@@ -284,6 +298,39 @@ Keep this table in step with the folder when you add an entry.
 | [[K-0201-wcag-2-2-use-of-color-and-non-text-contrast-for-a-dot]]                        | 0.8        | SC 1.4.1 and 1.4.11: colour alone, status icon contrast; no dot named |
 | [[K-0202-initials-for-thai-silence-and-charat]]                                         | 0.75       | Sources silent on Thai initials; getInitials uses charAt(0)           |
 | [[K-0203-synthesis-avatar-benchmark]]                                                   | 0.75       | Synthesis: Avatar benchmark table, audit B form                       |
+| [[K-0204-untitled-ui-sidebar-five-variants-and-item-shape]]                             | 0.75       | Untitled sidebars: 5 variants; widths 280, 280, 68, 276, 276 px       |
+| [[K-0205-untitled-ui-sidebar-nested-details-and-aria-current]]                          | 0.8        | Untitled NavList: details nesting, aria-current, aside with no nav    |
+| [[K-0206-untitled-ui-slim-rail-nav-button-and-hover-panel]]                             | 0.8        | Untitled Slim: NavButton has no aria-current, panel on hover only     |
+| [[K-0207-untitled-ui-mobile-navigation-header-below-lg]]                                | 0.8        | Untitled below lg: header bar and modal; Slim list has no activeUrl   |
+| [[K-0208-untitled-ui-header-navigation-variants-and-active-match]]                      | 0.8        | Untitled header: Simple, Dual-tier; active by exact or prefix match   |
+| [[K-0209-untitled-ui-header-navigation-landmarks-and-drawer]]                           | 0.8        | Untitled header: unnamed nav, no aria-current, drawer below lg        |
+| [[K-0210-untitled-ui-page-header-six-variants-no-props-h1]]                             | 0.8        | Untitled Page headers: 6 compositions, no props, real h1              |
+| [[K-0211-untitled-ui-section-header-parts-h2-and-section-label]]                        | 0.8        | Untitled SectionHeader: 5 parts, 6 examples (own count), h2           |
+| [[K-0212-untitled-ui-breadcrumbs-types-collapse-and-current]]                           | 0.8        | Untitled Breadcrumbs: maxVisibleItems 4, last item aria-current       |
+| [[K-0213-shadcn-ui-sidebar-parts-variants-and-collapsible-modes]]                       | 0.8        | shadcn Sidebar: sidebar, floating, inset; offcanvas, icon or none     |
+| [[K-0214-shadcn-ui-sidebar-state-cookie-shortcut-and-widths]]                           | 0.8        | shadcn Sidebar: 16, 18, 3rem; cookie 7 days; Cmd/Ctrl+b; 768 px       |
+| [[K-0215-shadcn-ui-sidebar-menu-button-sizes-and-data-active]]                          | 0.8        | shadcn MenuButton: sm, default, lg; data-active, no aria-current      |
+| [[K-0216-shadcn-ui-sidebar-source-landmarks-and-collapse-mechanism]]                    | 0.8        | shadcn sidebar.tsx: no nav, no aside; offcanvas moves off screen      |
+| [[K-0217-shadcn-ui-sidebar-mobile-sheet-on-radix-dialog]]                               | 0.8        | shadcn mobile sidebar: Sheet on Radix Dialog, sr-only English title   |
+| [[K-0218-shadcn-ui-sidebar-nested-collapsible-and-icon-mode]]                           | 0.8        | shadcn nesting: Collapsible, defaultOpen from isActive, icon hides    |
+| [[K-0219-shadcn-ui-navigation-menu-parts-and-viewport]]                                 | 0.8        | shadcn Navigation Menu: viewport prop, data-active, md classes        |
+| [[K-0220-radix-navigation-menu-api-keyboard-and-not-a-menu-role]]                       | 0.8        | Radix Navigation Menu: delays 200 and 300, not the menu role          |
+| [[K-0221-radix-navigation-menu-source-aria-and-mouse-only-hover]]                       | 0.8        | Radix source: nav named Main, Link sets aria-current, mouse hover     |
+| [[K-0222-shadcn-ui-breadcrumb-current-page-span-role-link]]                             | 0.8        | shadcn Breadcrumb: nav, ol; current page a span with role link        |
+| [[K-0223-shadcn-ui-no-page-header-and-radix-no-sidebar]]                                | 0.75       | shadcn: no page header entry; Radix: no Sidebar primitive found       |
+| [[K-0224-wai-aria-apg-landmark-regions-and-labels]]                                     | 0.8        | APG landmarks: unique labels, one main, seven or fewer as a guide     |
+| [[K-0225-html-aria-header-nav-aside-roles-and-h97]]                                     | 0.8        | ARIA in HTML: header is banner at top level, aside complementary      |
+| [[K-0226-wai-aria-1-2-aria-current-values-and-one-per-set]]                             | 0.8        | WAI-ARIA 1.2: aria-current values, one element per set                |
+| [[K-0227-wcag-2-2-location-aria26-and-g128]]                                            | 0.8        | WCAG SC 2.4.8 Location (AAA): G65, G63, G128, ARIA26                  |
+| [[K-0228-wai-aria-apg-breadcrumb-current-page]]                                         | 0.8        | APG Breadcrumb: named nav, aria-current optional on a non-link        |
+| [[K-0229-wai-aria-apg-disclosure-navigation-not-menu-role]]                             | 0.8        | APG disclosure navigation: buttons with aria-expanded, no menu role   |
+| [[K-0230-wcag-2-2-heading-order-advisory-not-required]]                                 | 0.8        | WCAG 2.2 pages read: heading order is guidance, not a criterion       |
+| [[K-0231-whatwg-heading-levels-and-wai-tutorial-fixed-sections]]                        | 0.8        | WHATWG: heading one level deeper at most; WAI: fixed sections         |
+| [[K-0232-wcag-2-2-bypass-blocks-techniques]]                                            | 0.8        | WCAG SC 2.4.1 Bypass Blocks (A): skip link, landmarks, headings       |
+| [[K-0233-wcag-2-2-reflow-and-consistent-navigation]]                                    | 0.8        | WCAG Reflow at 320 px (AA); Consistent Navigation (AA)                |
+| [[K-0234-wcag-2-2-focus-order-and-focus-not-obscured]]                                  | 0.8        | WCAG Focus Order (A), Focus Not Obscured (AA): modal, sticky header   |
+| [[K-0235-wcag-2-2-target-size-minimum-for-nav-items]]                                   | 0.8        | WCAG SC 2.5.8 (AA): 24 by 24 CSS px targets, with exceptions          |
+| [[K-0236-synthesis-app-navigation-and-headers-benchmark]]                               | 0.75       | Synthesis: app navigation and headers benchmark, four audit B tables  |
 | [[K-0260-untitled-ui-file-uploaders-examples-and-props]]                                | 0.75       | Untitled uploader: 5 examples (own count), DropZone props, no size    |
 | [[K-0261-untitled-ui-list-progress-bar-and-fill-items]]                                 | 0.8        | Untitled list: name, size, progress 0 to 100; bar or fill item        |
 | [[K-0262-untitled-ui-failed-item-try-again-and-delete]]                                 | 0.8        | Untitled failed: boolean, error ring, Try again; no reason field      |
@@ -363,3 +410,33 @@ Keep this table in step with the folder when you add an entry.
 | [[K-0337-wcag-2-2-location-and-g65-breadcrumb-trail]]                                   | 0.8        | G65 sufficient for SC 2.4.8 (AAA); tests link and non-link current    |
 | [[K-0338-wcag-2-2-aria26-aria11-and-h97]]                                               | 0.8        | ARIA26 for current item; ARIA11 and H97 label repeated nav regions    |
 | [[K-0339-synthesis-breadcrumb-and-pagination-benchmark]]                                | 0.75       | Synthesis: Breadcrumb and Pagination benchmark tables, audit B form   |
+| [[K-0380-untitled-ui-date-picker-forms-and-react-aria]]                                 | 0.8        | Untitled date pickers: seven examples (own count), React Aria base    |
+| [[K-0381-untitled-ui-date-picker-trigger-apply-and-cancel]]                             | 0.8        | Untitled picker: Apply and Cancel; value changes before Apply         |
+| [[K-0382-untitled-ui-date-range-presets-and-breakpoints]]                               | 0.8        | Untitled range: nine presets (page figure), sidebar from lg           |
+| [[K-0383-untitled-ui-calendar-props-header-and-today-button]]                           | 0.8        | Untitled Calendar: children slot, Today button, two months from md    |
+| [[K-0384-untitled-ui-calendar-cell-states]]                                             | 0.8        | Untitled day cell: state list, brand fill, opacity-50 outside days    |
+| [[K-0385-untitled-ui-calendars-page-is-an-event-calendar]]                              | 0.8        | Untitled Calendars page: an event schedule, not a date picker         |
+| [[K-0386-untitled-ui-libraries-versions-and-licenses]]                                  | 0.8        | Untitled MIT; React Aria 1.22.1 and date 3.12.4 Apache-2.0 on main    |
+| [[K-0387-react-aria-calendar-grid-keys-and-names]]                                      | 0.8        | React Aria calendar: roles, Home and End by month, announcements      |
+| [[K-0388-react-aria-calendar-system-and-week-start-from-locale]]                        | 0.8        | React Aria: calendar and week start from locale; Sunday by default    |
+| [[K-0389-shadcn-ui-calendar-page-props-and-versions]]                                   | 0.8        | shadcn Calendar page: on React DayPicker, no word Buddhist            |
+| [[K-0390-shadcn-ui-calendar-source-defaults-and-day-button]]                            | 0.8        | shadcn calendar.tsx: ghost day button, bg-primary, bg-muted           |
+| [[K-0391-shadcn-ui-date-picker-is-popover-plus-calendar]]                               | 0.8        | shadcn Date Picker: no root component, Popover plus Calendar          |
+| [[K-0392-shadcn-ui-date-picker-examples-range-input-and-presets]]                       | 0.8        | shadcn picker samples: range, date of birth, input, presets           |
+| [[K-0393-shadcn-ui-registry-dependency-and-persian-path]]                               | 0.8        | shadcn MIT; installs DayPicker @latest; Persian path is v9            |
+| [[K-0394-react-day-picker-package-version-and-license]]                                 | 0.8        | DayPicker 10.0.2 MIT on date-fns; radix-ui has no date package        |
+| [[K-0395-react-day-picker-props-modes-and-day-states]]                                  | 0.8        | DayPicker props: three modes, four caption layouts, day states        |
+| [[K-0396-react-day-picker-range-mode-props]]                                            | 0.8        | DayPicker range: min and max in nights, 0-night default               |
+| [[K-0397-react-day-picker-keys-grid-and-names]]                                         | 0.8        | DayPicker keys: follows APG, Home and End by week, 365 tries          |
+| [[K-0398-react-day-picker-buddhist-build]]                                              | 0.8        | DayPicker Buddhist add-on: +543 on listed formats, Thai digits        |
+| [[K-0399-react-day-picker-week-start-locale-and-thai-labels]]                           | 0.8        | DayPicker week start from locale or weekStartsOn; Thai labels         |
+| [[K-0400-wai-aria-apg-date-picker-dialog-keys]]                                         | 0.8        | APG date picker keys: Home and End by week, Cancel keeps date         |
+| [[K-0401-wai-aria-apg-date-picker-dialog-names-and-roles]]                              | 0.8        | APG date picker names: Change Date, abbr, polite month heading        |
+| [[K-0402-wai-aria-apg-grid-pattern-keys-and-roles]]                                     | 0.8        | APG Grid: one tab stop, Home and End per row, no calendar text        |
+| [[K-0403-wai-aria-apg-modal-dialog-keys-and-roles]]                                     | 0.8        | APG Modal Dialog: Tab wraps; mark modal only if outside blocked       |
+| [[K-0404-intl-datetimeformat-calendar-option-and-ca-key]]                               | 0.8        | Intl: calendar option beats ca key; default is locale dependent       |
+| [[K-0405-cldr-thailand-prefers-buddhist-and-thai-formats]]                              | 0.8        | CLDR: Thailand Buddhist first; era in full date; Latin digits         |
+| [[K-0406-runtime-default-calendar-for-thai-can-differ]]                                 | 0.7        | Thai year: explicit calendar works; plain th-TH output not read       |
+| [[K-0407-cldr-thailand-week-starts-sunday-and-getweekinfo]]                             | 0.8        | CLDR: Thailand week starts Sunday; getWeekInfo newly available        |
+| [[K-0408-date-fns-thai-locale-sunday-gregorian-year]]                                   | 0.8        | date-fns Thai locale: Sunday, no 543, Gregorian year (own reading)    |
+| [[K-0409-synthesis-calendar-and-date-picker-benchmark]]                                 | 0.75       | Synthesis: Calendar and Date picker benchmark tables                  |

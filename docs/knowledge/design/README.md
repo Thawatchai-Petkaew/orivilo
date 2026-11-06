@@ -73,6 +73,20 @@ Facts from outside design systems and standards that inform ORIVILO's own design
 | [[K-0168-wcag-f81-error-fields-by-color-alone]]                                | WCAG failure F81: required or error fields by colour only              |
 | [[K-0169-wcag-2-2-non-text-contrast-graphics-for-understanding]]               | WCAG 2.2 SC 1.4.11: which graphics need 3:1                            |
 | [[K-0170-synthesis-alert-and-featured-icon-benchmark]]                         | Synthesis of K-0158 to K-0169: Alert and FeaturedIcon table            |
+| [[K-0171-untitled-ui-empty-state-sizes-parts-and-header-visuals]]              | Untitled UI EmptyState: sizes, parts, header visuals, demos            |
+| [[K-0172-untitled-ui-empty-state-h1-main-and-no-live-region]]                  | Untitled UI EmptyState: elements, overrides, announcing, motion        |
+| [[K-0173-untitled-ui-has-no-page-loading-pattern]]                             | Does Untitled UI React have a page-loading pattern                     |
+| [[K-0174-shadcn-ui-empty-parts-one-media-variant-no-size]]                     | shadcn/ui Empty page: parts, variant, examples, accessibility          |
+| [[K-0175-shadcn-ui-empty-source-div-title-and-two-style-sets]]                 | shadcn/ui Empty source: elements, ARIA, values in two style sets       |
+| [[K-0176-shadcn-ui-spinner-inside-empty-as-the-loading-example]]               | shadcn/ui loading state: the Spinner page's Empty example              |
+| [[K-0177-shadcn-ui-no-results-text-in-data-table-and-command]]                 | shadcn/ui and cmdk: no-results text in Data Table and Command          |
+| [[K-0178-wcag-2-2-no-results-text-is-a-status-message]]                        | WCAG 2.2 SC 4.1.3 and ARIA22: search and no-results messages           |
+| [[K-0179-wai-aria-1-2-progressbar-for-a-loading-region]]                       | WAI-ARIA 1.2 progressbar and aria-busy on a loading region             |
+| [[K-0180-wai-aria-apg-feed-aria-busy-back-to-false]]                           | WAI-ARIA APG Feed: aria-busy during an update                          |
+| [[K-0181-wai-aria-1-2-one-main-role-and-required-heading-level]]               | WAI-ARIA 1.2 role main and role heading                                |
+| [[K-0182-whatwg-html-one-visible-main-element]]                                | WHATWG HTML: how many main elements, and where                         |
+| [[K-0183-aria-in-html-main-takes-no-other-role]]                               | ARIA in HTML: allowed roles on main, h1 to h6, header, footer          |
+| [[K-0184-synthesis-empty-state-and-loading-state-benchmark]]                   | Synthesis of K-0171 to K-0183: empty and loading benchmark table       |
 | [[K-0185-untitled-ui-avatar-sizes-props-and-slots]]                            | Untitled UI Avatar: sizes, props, slots, related components            |
 | [[K-0186-untitled-ui-avatar-fallback-chain-and-sticky-load-failure]]           | Untitled UI Avatar: fallback order and what a load failure does        |
 | [[K-0187-untitled-ui-avatar-one-indicator-and-unnamed-status-dot]]             | Untitled UI Avatar: indicators and what the status dot is              |
@@ -92,6 +106,39 @@ Facts from outside design systems and standards that inform ORIVILO's own design
 | [[K-0201-wcag-2-2-use-of-color-and-non-text-contrast-for-a-dot]]               | WCAG 2.2 SC 1.4.1 and 1.4.11 as they bear on a status dot              |
 | [[K-0202-initials-for-thai-silence-and-charat]]                                | Do the sources say how to make Thai initials; what getInitials does    |
 | [[K-0203-synthesis-avatar-benchmark]]                                          | Synthesis of K-0185 to K-0202: Avatar benchmark table                  |
+| [[K-0204-untitled-ui-sidebar-five-variants-and-item-shape]]                    | Untitled sidebars: 5 variants; widths 280, 280, 68, 276, 276 px        |
+| [[K-0205-untitled-ui-sidebar-nested-details-and-aria-current]]                 | Untitled NavList: details nesting, aria-current, aside with no nav     |
+| [[K-0206-untitled-ui-slim-rail-nav-button-and-hover-panel]]                    | Untitled Slim: NavButton has no aria-current, panel on hover only      |
+| [[K-0207-untitled-ui-mobile-navigation-header-below-lg]]                       | Untitled below lg: header bar and modal; Slim list has no activeUrl    |
+| [[K-0208-untitled-ui-header-navigation-variants-and-active-match]]             | Untitled header: Simple, Dual-tier; active by exact or prefix match    |
+| [[K-0209-untitled-ui-header-navigation-landmarks-and-drawer]]                  | Untitled header: unnamed nav, no aria-current, drawer below lg         |
+| [[K-0210-untitled-ui-page-header-six-variants-no-props-h1]]                    | Untitled Page headers: 6 compositions, no props, real h1               |
+| [[K-0211-untitled-ui-section-header-parts-h2-and-section-label]]               | Untitled SectionHeader: 5 parts, 6 examples (own count), h2            |
+| [[K-0212-untitled-ui-breadcrumbs-types-collapse-and-current]]                  | Untitled Breadcrumbs: maxVisibleItems 4, last item aria-current        |
+| [[K-0213-shadcn-ui-sidebar-parts-variants-and-collapsible-modes]]              | shadcn Sidebar: sidebar, floating, inset; offcanvas, icon or none      |
+| [[K-0214-shadcn-ui-sidebar-state-cookie-shortcut-and-widths]]                  | shadcn Sidebar: 16, 18, 3rem; cookie 7 days; Cmd/Ctrl+b; 768 px        |
+| [[K-0215-shadcn-ui-sidebar-menu-button-sizes-and-data-active]]                 | shadcn MenuButton: sm, default, lg; data-active, no aria-current       |
+| [[K-0216-shadcn-ui-sidebar-source-landmarks-and-collapse-mechanism]]           | shadcn sidebar.tsx: no nav, no aside; offcanvas moves off screen       |
+| [[K-0217-shadcn-ui-sidebar-mobile-sheet-on-radix-dialog]]                      | shadcn mobile sidebar: Sheet on Radix Dialog, sr-only English title    |
+| [[K-0218-shadcn-ui-sidebar-nested-collapsible-and-icon-mode]]                  | shadcn nesting: Collapsible, defaultOpen from isActive, icon hides     |
+| [[K-0219-shadcn-ui-navigation-menu-parts-and-viewport]]                        | shadcn Navigation Menu: viewport prop, data-active, md classes         |
+| [[K-0220-radix-navigation-menu-api-keyboard-and-not-a-menu-role]]              | Radix Navigation Menu: delays 200 and 300, not the menu role           |
+| [[K-0221-radix-navigation-menu-source-aria-and-mouse-only-hover]]              | Radix source: nav named Main, Link sets aria-current, mouse hover      |
+| [[K-0222-shadcn-ui-breadcrumb-current-page-span-role-link]]                    | shadcn Breadcrumb: nav, ol; current page a span with role link         |
+| [[K-0223-shadcn-ui-no-page-header-and-radix-no-sidebar]]                       | shadcn: no page header entry; Radix: no Sidebar primitive found        |
+| [[K-0224-wai-aria-apg-landmark-regions-and-labels]]                            | APG landmarks: unique labels, one main, seven or fewer as a guide      |
+| [[K-0225-html-aria-header-nav-aside-roles-and-h97]]                            | ARIA in HTML: header is banner at top level, aside complementary       |
+| [[K-0226-wai-aria-1-2-aria-current-values-and-one-per-set]]                    | WAI-ARIA 1.2: aria-current values, one element per set                 |
+| [[K-0227-wcag-2-2-location-aria26-and-g128]]                                   | WCAG SC 2.4.8 Location (AAA): G65, G63, G128, ARIA26                   |
+| [[K-0228-wai-aria-apg-breadcrumb-current-page]]                                | APG Breadcrumb: named nav, aria-current optional on a non-link         |
+| [[K-0229-wai-aria-apg-disclosure-navigation-not-menu-role]]                    | APG disclosure navigation: buttons with aria-expanded, no menu role    |
+| [[K-0230-wcag-2-2-heading-order-advisory-not-required]]                        | WCAG 2.2 pages read: heading order is guidance, not a criterion        |
+| [[K-0231-whatwg-heading-levels-and-wai-tutorial-fixed-sections]]               | WHATWG: heading one level deeper at most; WAI: fixed sections          |
+| [[K-0232-wcag-2-2-bypass-blocks-techniques]]                                   | WCAG SC 2.4.1 Bypass Blocks (A): skip link, landmarks, headings        |
+| [[K-0233-wcag-2-2-reflow-and-consistent-navigation]]                           | WCAG Reflow at 320 px (AA); Consistent Navigation (AA)                 |
+| [[K-0234-wcag-2-2-focus-order-and-focus-not-obscured]]                         | WCAG Focus Order (A), Focus Not Obscured (AA): modal, sticky header    |
+| [[K-0235-wcag-2-2-target-size-minimum-for-nav-items]]                          | WCAG SC 2.5.8 (AA): 24 by 24 CSS px targets, with exceptions           |
+| [[K-0236-synthesis-app-navigation-and-headers-benchmark]]                      | Synthesis of K-0204 to K-0235: app navigation and headers, four tables |
 | [[K-0260-untitled-ui-file-uploaders-examples-and-props]]                       | Untitled UI file uploaders: examples, parts, props, sizes, variants    |
 | [[K-0261-untitled-ui-list-progress-bar-and-fill-items]]                        | Untitled UI upload list: progress, complete, item forms                |
 | [[K-0262-untitled-ui-failed-item-try-again-and-delete]]                        | Untitled UI failed item: text, retry, delete                           |
@@ -171,3 +218,33 @@ Facts from outside design systems and standards that inform ORIVILO's own design
 | [[K-0337-wcag-2-2-location-and-g65-breadcrumb-trail]]                          | WCAG 2.2 SC 2.4.8 and technique G65: the current location              |
 | [[K-0338-wcag-2-2-aria26-aria11-and-h97]]                                      | WCAG 2.2 techniques ARIA26, ARIA11 and H97: current item, nav labels   |
 | [[K-0339-synthesis-breadcrumb-and-pagination-benchmark]]                       | Synthesis of K-0320 to K-0338: Breadcrumb and Pagination tables        |
+| [[K-0380-untitled-ui-date-picker-forms-and-react-aria]]                        | Untitled UI date pickers: examples, React Aria base, props             |
+| [[K-0381-untitled-ui-date-picker-trigger-apply-and-cancel]]                    | Untitled UI DatePicker trigger, Apply and Cancel                       |
+| [[K-0382-untitled-ui-date-range-presets-and-breakpoints]]                      | Untitled UI DateRangePicker presets and breakpoints                    |
+| [[K-0383-untitled-ui-calendar-props-header-and-today-button]]                  | Untitled UI Calendar props, header and Today button                    |
+| [[K-0384-untitled-ui-calendar-cell-states]]                                    | Untitled UI calendar cell states and looks                             |
+| [[K-0385-untitled-ui-calendars-page-is-an-event-calendar]]                     | Is Untitled UI's Calendars page a date picker                          |
+| [[K-0386-untitled-ui-libraries-versions-and-licenses]]                         | Untitled UI libraries: versions and licenses                           |
+| [[K-0387-react-aria-calendar-grid-keys-and-names]]                             | React Aria calendar: grid roles, keys and names                        |
+| [[K-0388-react-aria-calendar-system-and-week-start-from-locale]]               | React Aria calendar system and week start from the locale              |
+| [[K-0389-shadcn-ui-calendar-page-props-and-versions]]                          | shadcn/ui Calendar page: props, sections and versions                  |
+| [[K-0390-shadcn-ui-calendar-source-defaults-and-day-button]]                   | shadcn/ui calendar.tsx defaults and day button                         |
+| [[K-0391-shadcn-ui-date-picker-is-popover-plus-calendar]]                      | shadcn/ui Date Picker: Popover plus Calendar                           |
+| [[K-0392-shadcn-ui-date-picker-examples-range-input-and-presets]]              | shadcn/ui date picker samples: range, input and presets                |
+| [[K-0393-shadcn-ui-registry-dependency-and-persian-path]]                      | shadcn/ui registry dependency and the Persian path                     |
+| [[K-0394-react-day-picker-package-version-and-license]]                        | React DayPicker package: version, license and dependencies             |
+| [[K-0395-react-day-picker-props-modes-and-day-states]]                         | React DayPicker props, modes and day states                            |
+| [[K-0396-react-day-picker-range-mode-props]]                                   | React DayPicker range mode props                                       |
+| [[K-0397-react-day-picker-keys-grid-and-names]]                                | React DayPicker keys, grid roles and names                             |
+| [[K-0398-react-day-picker-buddhist-build]]                                     | React DayPicker Buddhist build                                         |
+| [[K-0399-react-day-picker-week-start-locale-and-thai-labels]]                  | React DayPicker week start, locale and Thai labels                     |
+| [[K-0400-wai-aria-apg-date-picker-dialog-keys]]                                | WAI-ARIA APG Date Picker Dialog: keys                                  |
+| [[K-0401-wai-aria-apg-date-picker-dialog-names-and-roles]]                     | WAI-ARIA APG Date Picker Dialog: names and roles                       |
+| [[K-0402-wai-aria-apg-grid-pattern-keys-and-roles]]                            | WAI-ARIA APG Grid pattern: keys and roles                              |
+| [[K-0403-wai-aria-apg-modal-dialog-keys-and-roles]]                            | WAI-ARIA APG Modal Dialog pattern: keys and roles                      |
+| [[K-0404-intl-datetimeformat-calendar-option-and-ca-key]]                      | Intl.DateTimeFormat calendar option and ca key                         |
+| [[K-0405-cldr-thailand-prefers-buddhist-and-thai-formats]]                     | CLDR: Thailand's calendar preference and Thai date formats             |
+| [[K-0406-runtime-default-calendar-for-thai-can-differ]]                        | Does a runtime's default calendar for Thai differ                      |
+| [[K-0407-cldr-thailand-week-starts-sunday-and-getweekinfo]]                    | CLDR Thailand week start and Intl getWeekInfo                          |
+| [[K-0408-date-fns-thai-locale-sunday-gregorian-year]]                          | date-fns Thai locale: week start and year                              |
+| [[K-0409-synthesis-calendar-and-date-picker-benchmark]]                        | Synthesis of K-0380 to K-0408: Calendar and Date picker tables         |

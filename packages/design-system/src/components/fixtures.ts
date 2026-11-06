@@ -33,12 +33,82 @@ export const featuredIconFixtures = {
     warning: "ผลนี้เก่ากว่าข้อมูลต้นทาง",
     danger: "สร้างหน้าแรกไม่สำเร็จ",
     info: "ผลนี้มาจากกฎ ไม่ได้มาจากโมเดล",
+    neutral: "ยังไม่มีงานบนบอร์ดนี้",
   },
   en: {
     success: "Home page built",
     warning: "This result is older than its source",
     danger: "Couldn't build the home page",
     info: "This result comes from rules, not a model",
+    neutral: "No jobs on this board yet",
+  },
+} as const;
+
+/**
+ * EmptyState story copy (ORV-223): the caller's words for a first use and a no-results form, and
+ * the actions' names. They are caller text, not catalog keys, and they are mock: no press runs
+ * anything.
+ */
+export const emptyStateFixtures = {
+  th: {
+    firstUse: {
+      title: "ยังไม่มีบรีฟ",
+      description: "เพิ่มบรีฟเพื่อเริ่มอ่านข้อมูลแบรนด์ด้วยกฎ",
+      action: "เพิ่มบรีฟ",
+    },
+    noResults: {
+      title: 'ไม่พบงานที่ตรงกับ "โลโก้"',
+      description: "ลองคำอื่น หรือล้างคำค้นหา",
+      action: "ล้างคำค้นหา",
+      trigger: "ค้นหา",
+    },
+    barAction: "เริ่มงานแรก",
+    boardAction: "เพิ่ม node แรก",
+  },
+  en: {
+    firstUse: {
+      title: "No brief yet",
+      description: "Add a brief so the rules can read your brand",
+      action: "Add a brief",
+    },
+    noResults: {
+      title: 'No job matches "logo"',
+      description: "Try another word, or clear the search",
+      action: "Clear the search",
+      trigger: "Search",
+    },
+    barAction: "Start the first job",
+    boardAction: "Add your first node",
+  },
+} as const;
+
+/**
+ * PageHeader story copy (ORV-225): the caller's text, not catalog keys, and it is mock. The two
+ * long titles are the sample for the wrapping and clip checks: a long name without spaces, and a
+ * title that opens on stacked marks (a vowel and a tone mark on one letter).
+ */
+export const pageHeaderFixtures = {
+  th: {
+    title: "ทีมออกแบบ Brand Canvas",
+    description: "6 โปรเจกต์, สมาชิก 4 คน",
+    meta: "ข้อมูลตัวอย่าง",
+    metaNote: "สิ่งที่สร้างในหน้านี้ยังไม่ได้บันทึกจริง",
+    action: "สร้างโปรเจกต์",
+    moreActions: ["นำเข้าแบรนด์", "เชิญสมาชิกทีม", "ส่งออกรายงาน"],
+    longAction: "บันทึกการตัดสินใจใหม่",
+    longTitle: fixtures.longThai,
+    marksTitle: "ฟื้ปั้ปี๊ฟื้ ปิ่นโต้ โลโก้",
+  },
+  en: {
+    title: "Brand Canvas design team",
+    description: "6 projects, 4 members",
+    meta: "Sample data",
+    metaNote: "Nothing made on this page is saved yet",
+    action: "Create project",
+    moreActions: ["Import brand", "Invite team members", "Export report"],
+    longAction: "Add a new decision",
+    longTitle: `${fixtures.longLatin} and a very long name for a design team that keeps growing`,
+    marksTitle: "Brand Canvas design team of the year",
   },
 } as const;
 
@@ -555,4 +625,20 @@ export const chatFixtures = {
   } as ChatHost,
   /** Ends without a snapshot. */
   hostEmpty: async function* (): AsyncGenerator<ChatReply> {} as ChatHost,
+} as const;
+
+/**
+ * Calendar story dates (ORV-231): mock `IsoDate`s around one fixed "today", so no play reads the
+ * clock. November 2026 has 30 days over five rows with a Sunday start.
+ */
+export const calendarFixtures = {
+  today: "2026-11-06",
+  selected: "2026-11-12",
+  /** The first and last day that can be pressed in the bounds stories. */
+  min: "2026-11-03",
+  max: "2026-11-24",
+  /** A day inside the bounds that the caller blocks. */
+  blocked: "2026-11-18",
+  /** The caller's own button in the controlled-clear story: caller text, not a catalog key. */
+  clear: { th: "ล้างวันที่", en: "Clear date" },
 } as const;

@@ -9,6 +9,7 @@ export {
   type BreadcrumbProps,
 } from "./breadcrumb/Breadcrumb";
 export { Button, type ButtonProps, type ButtonVariant, type ControlSize } from "./button/Button";
+export { Calendar, type CalendarProps } from "./calendar/Calendar";
 export {
   Card,
   type CardButtonProps,
@@ -46,12 +47,14 @@ export {
   DialogTrigger,
   type DialogVariant,
 } from "./dialog/Dialog";
+export { EmptyState, type EmptyStateProps } from "./empty-state/EmptyState";
 export { EvidenceList, type EvidenceListProps } from "./evidence-list/EvidenceList";
 export { EvidenceSpan, type EvidenceSpanProps } from "./evidence-span/EvidenceSpan";
 export type { EvidenceItem } from "./evidence-span/span";
 export { Field, type FieldProps, useFieldControl } from "./field/Field";
 export {
   FeaturedIcon,
+  type FeaturedIconGlyph,
   type FeaturedIconProps,
   type FeaturedIconSize,
   type FeaturedIconVariant,
@@ -59,6 +62,7 @@ export {
 export { FileUpload, type FileUploadItem, type FileUploadProps } from "./file-upload/FileUpload";
 export { IMAGE_UPLOAD_LIMITS, type FileUploadLimits } from "./file-upload/limits";
 export { Input, type InputProps } from "./input/Input";
+export { type HeadingLevel, PageHeader, type PageHeaderProps } from "./page-header/PageHeader";
 export {
   RadioGroup,
   RadioGroupItem,

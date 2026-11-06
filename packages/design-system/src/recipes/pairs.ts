@@ -24,7 +24,9 @@
  * `featured-icon.<kind>.bg`, a filled `feedback.<kind>.surface` tile against the page: the glyph on
  * it is the graphic and is listed at 3.0 for the four kinds; the tile ground is decoration, and the
  * words beside the tile say the same thing (ORV-222, `fi-colour-1`). WCAG 1.4.11 does not apply to
- * the ground.
+ * the ground. The same holds for `featured-icon.neutral.bg`, a filled `border.subtle` tile
+ * (ORV-223, `fi-neutral-colour-1`): against its ground it measures 1.15 at the lowest (the board in
+ * neutral light), the glyph on it is listed at 3.0, and the words beside it carry the meaning.
  *
  * `file-upload.zone-border-disabled`, a `border.disabled` edge: like `border.disabled` on any control
  * it does not carry the state, the disabled button and the disabled text do. `file-upload.item-border`,
@@ -989,6 +991,56 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     bg: "featured-icon.info.bg",
     floor: UI,
   },
+  {
+    recipe: "featured-icon",
+    slot: "neutral glyph",
+    fg: "featured-icon.neutral.fg",
+    bg: "featured-icon.neutral.bg",
+    floor: UI,
+  },
+  // EmptyState (ORV-223): title and description on the three grounds the form sits on.
+  {
+    recipe: "empty-state",
+    slot: "title on canvas",
+    fg: "empty-state.title",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
+  {
+    recipe: "empty-state",
+    slot: "title on card",
+    fg: "empty-state.title",
+    bg: "ds:surface.card",
+    floor: TEXT,
+  },
+  {
+    recipe: "empty-state",
+    slot: "title on board",
+    fg: "empty-state.title",
+    bg: "board.bg",
+    floor: TEXT,
+  },
+  {
+    recipe: "empty-state",
+    slot: "description on canvas",
+    fg: "empty-state.description",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
+  {
+    recipe: "empty-state",
+    slot: "description on card",
+    fg: "empty-state.description",
+    bg: "ds:surface.card",
+    floor: TEXT,
+  },
+  {
+    recipe: "empty-state",
+    slot: "description on board",
+    fg: "empty-state.description",
+    bg: "board.bg",
+    floor: TEXT,
+  },
   // Breadcrumb (ORV-229): the nav item inks on the page grounds, and the ellipsis ink on the ghost Button's hover and press grounds.
   {
     recipe: "breadcrumb",
@@ -1243,7 +1295,104 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     bg: "ds:surface.canvas",
     floor: TEXT,
   },
+  // Page header (ORV-225): the title and the description and meta row on the page ground.
+  {
+    recipe: "page-header",
+    slot: "title",
+    fg: "ds:text.primary",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
+  {
+    recipe: "page-header",
+    slot: "description and meta",
+    fg: "ds:text.secondary",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
   // Avatar (ORV-224): the initials and the glyph share one ink on the disc. TEXT also covers the
   // glyph, which needs only the UI floor.
   { recipe: "avatar", slot: "fallback", fg: "avatar.fg", bg: "avatar.bg", floor: TEXT },
+  // Calendar (ORV-231, cal-look-1): the text pairs at 4.5, then every edge, line and ring a day state
+  // draws against the ground it sits on, at 3.0. The refused pairs (the selected ground on the card,
+  // the selected ink against the card ink) are no state's only carrier, so they are not listed.
+  { recipe: "calendar", slot: "day", fg: "calendar.fg", bg: "calendar.bg", floor: TEXT },
+  {
+    recipe: "calendar",
+    slot: "weekday",
+    fg: "calendar.weekday-fg",
+    bg: "calendar.bg",
+    floor: TEXT,
+  },
+  {
+    recipe: "calendar",
+    slot: "hover",
+    fg: "calendar.fg",
+    bg: "calendar.day-hover-bg",
+    floor: TEXT,
+  },
+  {
+    recipe: "calendar",
+    slot: "selected",
+    fg: "calendar.day-selected-fg",
+    bg: "calendar.day-selected-bg",
+    floor: TEXT,
+  },
+  {
+    recipe: "calendar",
+    slot: "selected edge",
+    fg: "calendar.day-selected-edge",
+    bg: "calendar.bg",
+    floor: UI,
+  },
+  {
+    recipe: "calendar",
+    slot: "hover edge",
+    fg: "calendar.day-hover-edge",
+    bg: "calendar.bg",
+    floor: UI,
+  },
+  {
+    recipe: "calendar",
+    slot: "disabled",
+    fg: "calendar.day-disabled-fg",
+    bg: "calendar.bg",
+    floor: UI,
+  },
+  {
+    recipe: "calendar",
+    slot: "selected edge on selected",
+    fg: "calendar.day-selected-edge",
+    bg: "calendar.day-selected-bg",
+    floor: UI,
+  },
+  {
+    recipe: "calendar",
+    slot: "hover edge on hover",
+    fg: "calendar.day-hover-edge",
+    bg: "calendar.day-hover-bg",
+    floor: UI,
+  },
+  {
+    recipe: "calendar",
+    slot: "hover edge on selected",
+    fg: "calendar.day-hover-edge",
+    bg: "calendar.day-selected-bg",
+    floor: UI,
+  },
+  {
+    recipe: "calendar",
+    slot: "disabled on selected",
+    fg: "calendar.day-disabled-fg",
+    bg: "calendar.day-selected-bg",
+    floor: UI,
+  },
+  { recipe: "calendar", slot: "focus", fg: "ds:focus.ring", bg: "calendar.bg", floor: UI },
+  {
+    recipe: "calendar",
+    slot: "focus on selected",
+    fg: "ds:focus.ring",
+    bg: "calendar.day-selected-bg",
+    floor: UI,
+  },
 ];
