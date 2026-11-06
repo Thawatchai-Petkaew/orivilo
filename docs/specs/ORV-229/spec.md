@@ -1,0 +1,336 @@
+---
+issue: ORV-229 (https://tpetkaew.atlassian.net/browse/ORV-229)
+lane: as set on ORV-229 in Jira (not read in this role); a new component public API is an L-lane risk flag (AGENTS.md, "Lanes and gates"), so G1 and G2 apply, passed by Claude under the owner's delegation during the POC (ADR 0012 decision 4)
+mode: POC mode short spec (`.claude/skills/ovl/SKILL.md`, section "POC mode")
+source_row: docs/specs/ORV-64/audit.md section D.3 row 26 ("Breadcrumb, Pagination")
+version: 1.0
+---
+
+# ORV-229: Breadcrumb and Pagination (base)
+
+## Benchmark
+
+Two comparison tables in the form of `docs/specs/ORV-64/audit.md` section B, with the rows `.claude/rules/design-system.md` names (owner, ORV-137 comment 10247). The Untitled UI and shadcn/ui cells come from K-0320 to K-0332, as K-0339 sums them up, and each cell names its entry. The Ours row is K-0339's reading of the repo on 2026-11-06, rechecked in this worktree, plus the facts marked "read for this spec". The Add and Do not copy rows are this spec's choices; each points to the rule in "Rules" that holds it, and open questions 1 to 11 keep the choice open for the designer and the owner.
+
+### Breadcrumb
+
+<!-- prettier-ignore -->
+| Item | Detail |
+| --- | --- |
+| Untitled UI | <https://www.untitledui.com/react/components/breadcrumbs.md>. Variants: `type` text (default), text-line, button; `divider` chevron (default), slash, with a per-item override (K-0320). Sizes: none on the page (K-0320). States: current only, the last item through the `isCurrent` render prop, a link with `aria-current="page"`, disabled and not focusable; no disabled item, loading or mobile rule on the page (K-0320, K-0322). Slots: `icon` (icon-only crumb when children are left out), `avatarSrc`, `Breadcrumbs.AccountItem` (K-0320). Collapse: `maxVisibleItems` default 4, 0 turns it off, a clickable ellipsis labelled "See all breadcrumb items" expands the trail in place; which crumbs stay is not stated (K-0321, K-0322). Landmark: `<nav aria-label="Breadcrumbs">` (K-0322). No code read (K-0322). |
+| shadcn/ui | <https://ui.shadcn.com/docs/components/radix/breadcrumb>. Parts `Breadcrumb`, `BreadcrumbList`, `BreadcrumbItem`, `BreadcrumbLink`, `BreadcrumbPage`, `BreadcrumbSeparator`, `BreadcrumbEllipsis` over `nav`, `ol`, `li`; no variant, size, disabled or loading state named (K-0323). Slots: separator `children`, link `asChild` (Radix) or `render` (Base UI) (K-0323). Current: `span` with `role="link"`, `aria-disabled="true"`, `aria-current="page"` (K-0324). Collapse: none built in, `BreadcrumbEllipsis` placed by hand; registry examples: static, inside a `DropdownMenuTrigger` named by sr-only "Toggle menu", and responsive (keeps 3 items, `DropdownMenu` from 768 px, `Drawer` below, labels `max-w-20 truncate md:max-w-none`) (K-0325). Landmark: `nav aria-label="breadcrumb"`, overridable; separator and ellipsis `role="presentation"` and `aria-hidden="true"` (K-0324). |
+| Ours | None: `coverage.md` line 28 lists Breadcrumb as `none`, and no component, story or catalog entry exists (K-0339). Nearest parts: Button `variant="link"` with `asChild` on a real anchor, and `iconOnly` with a required `aria-label` (`Button.tsx`, `button.yaml`); DropdownMenu (stable, a list of actions, named by its trigger, `dropdown-menu.yaml`); `--cmp-nav-item-*` tokens (`fg`, `fg-hover`, `fg-active`, `bg-hover`, `bg-active`, `bead`, `radius`, `height`, `component.json` lines 398 to 431), read today only by a foundations sample (`spec-sheet.tsx`, which also holds the one `aria-current="page"`). `icons.tsx` has no ChevronRight, ChevronLeft or MoreHorizontal glyph. `en.ts` has no breadcrumb group. DESIGN.md section 10 names breadcrumbs: no middot and no em dash; separate with a comma, colon, slash with spaces, or a line break (K-0339). Read for this spec: `DropdownMenuItem` takes no `asChild` and no `href` (`MenuItemProps`, `DropdownMenu.tsx` lines 64 to 73), so a menu item cannot be a real link today. |
+| Add | A native `nav` with a localised, replaceable name: `nav-name-1`. An ordered list with hidden separators: `crumb-markup-1`. One current crumb: `crumb-current-1`. A router link through `asChild`: `crumb-api-1`. A look from the nav item tokens: `crumb-look-1`. A collapse by count, with the hidden crumbs reachable through a named control: `crumb-collapse-1`, `crumb-expand-1`. A cut for long labels as its own rule (K-0325): `crumb-cut-1`. A word for a missing name: `crumb-missing-1`. The collapsed trail story of audit D.3 row 26: AC rows 6 to 8. |
+| Do not copy | English strings in the component ("Breadcrumbs", "See all breadcrumb items", `breadcrumb`, "More", "Toggle menu") (K-0322, K-0324, K-0325): every UI string comes from the locale catalog (AGENTS.md). `avatarSrc` and `AccountItem` (K-0320): Avatar is `none` in `coverage.md`, and an account switcher is a different job from a trail. `type="button"` padded crumbs (K-0320): DESIGN.md section 8 keeps "go somewhere" apart from buttons. `type="text-line"` (K-0320): rules around the trail are decoration no screen asks for. A static ellipsis with no control (K-0325): by our reading the hidden crumbs cannot be reached. The sr-only "More" inside an `aria-hidden` part (K-0324): by our reading it is never exposed. `span` with `role="link"` and `aria-disabled` (K-0324): by our reading neither the APG nor G65 names this form (K-0333, K-0337). A link that is disabled and cannot be focused (K-0322): the Untitled page gives no reason, and a non-link says the same with less (open question 1). A `DropdownMenu` or `Drawer` of hidden crumbs (K-0325): open question 5. |
+
+### Pagination
+
+<!-- prettier-ignore -->
+| Item | Detail |
+| --- | --- |
+| Untitled UI | <https://www.untitledui.com/react/components/pagination.md>. Variants: six forms (`PaginationPageDefault`, `PaginationPageMinimalCenter`, `PaginationCardDefault`, `PaginationCardMinimal`, `PaginationButtonGroup`, `PaginationCardAdvanced`), `rounded`, `align` (K-0326); carousel-style indicators `PaginationDot`, `PaginationLine` (K-0329). Sizes: `size` md (default), lg on the indicators only; none on the number forms (K-0326, K-0329). States: current (`aria-current="page"`, name "Page {value}"), Previous and Next disabled at the ends; no disabled page or loading on the page (K-0326, K-0328). Slots: Root, PrevTrigger, NextTrigger, Item, Ellipsis, Context; Item takes `asChild` or a render function (K-0326). Extras: rows per page Select 10, 25, 50, 100, a page input, first and last jumps (K-0326). Range: `siblingCount` default 1; every page listed while `siblingCount * 2 + 5` is at least `total` (7 at the default, own arithmetic), else ellipses with first and last kept (K-0327). Small screens: `Page {page} of {total}` between Previous and Next, from source only (K-0326). Landmark: `nav` "Pagination Navigation", hard-coded; `PaginationCardMinimal` "Pagination" (K-0328). Items: `<button role="listitem">`, no list, no `href` (K-0328). |
+| shadcn/ui | <https://ui.shadcn.com/docs/components/radix/pagination>. Parts `Pagination`, `PaginationContent`, `PaginationItem`, `PaginationLink`, `PaginationPrevious`, `PaginationNext`, `PaginationEllipsis` over `nav`, `ul`, `li` (K-0330). Variants: link is `outline` when `isActive`, else `ghost` (K-0330). Sizes: Button `size`, `icon` on links, `default` on previous and next (K-0330). States: `isActive`; no disabled prop in the lines read (K-0330). Slots: `text` on previous and next in `bases/radix`, not in `new-york-v4` as read; the anchor is swapped by editing the file (K-0330). Range: none computed; pages and ellipsis written by hand; Icons Only drops numbers (K-0331). Small screens: the word hides below `sm` (K-0330). Landmark: `role="navigation"`, `aria-label="pagination"`, overridable; names "Go to previous page", "Go to next page"; `aria-hidden` ellipsis holding sr-only "More pages" (K-0332). |
+| Ours | None: `coverage.md` line 29 lists Pagination as `none`, and no component, story or catalog entry exists (K-0339). Nearest parts: Button with variants `ghost`, `secondary`, `link`, sizes sm, md, lg, `asChild`, `iconOnly` (`Button.tsx`, `button.yaml`); Select and Input (stable) for rows per page and a page field; `--cmp-nav-item-*` tokens with `fg-active` and `bg-active` (`component.json`). Card uses `aria-current="true"` for a selected card (`Card.tsx`). `icons.tsx` has no ChevronLeft or ChevronRight glyph. `en.ts` has a `table` group and no pagination one. Tabs is not for this job: its catalog entry avoids "Navigation that changes the URL" (`tabs.yaml`). Audit D.3 row 26 scopes it to project and decision-log navigation (K-0339). Read for this spec: `apps/web/app` has four page routes (`/`, `/account`, `/directions`, `/workspace`), none for a project or a decision log; `src/examples/decision-log.tsx` holds five fixture rows in client state with no paging; `--cmp-nav-item-bg-active` is `surface.card` (`component.json` line 417); the Table already has a narrow form on a named container (`recipes.css` line 1340). |
+| Add | A native `nav` with a localised, replaceable name: `nav-name-1`. A real list: `page-markup-1`. A computed range: `page-range-1`. Safe handling of a page number that comes from a URL: `page-bounds-1`. One current page with a mark that does not rely on colour alone: `page-current-1`. A rule for the ends: `page-ends-1`. A small-frame form: `page-form-1`. Page items as links: `page-api-1`, open question 4. Names in both locales: `nav-copy-1`. |
+| Do not copy | `<button role="listitem">` with no list (K-0328): WAI-ARIA 1.2 requires a list parent, and ARIA in HTML does not allow the role on a button. The label "Pagination Navigation" (K-0328): the APG says not to use the role in the label (K-0335). `role="navigation"` on `nav` (K-0332): ARIA in HTML marks it NOT RECOMMENDED. English strings in the component (K-0328, K-0332): every UI string comes from the locale catalog (AGENTS.md). sr-only "More pages" inside `aria-hidden` (K-0332): by our reading it is never exposed. Previous and Next names that change between forms (K-0328): one control reads two ways. First and last jumps with no `aria-label` (K-0326): icon-only controls need a name (`button.yaml`). A page input that commits on every change (K-0326): by our reading each keystroke would navigate. Brand fill on the current dot and `isBrand` (K-0329): DESIGN.md section 8 keeps selected and brand apart. Dot and line forms for a list of pages (K-0329): the page calls them carousel-style indicators, and they show no number, while DESIGN.md section 7 asks for a difference that does not rely on colour alone. Hand-placed pages and ellipses (K-0331): each caller would redo the range. Rows per page and `rounded`, `align` (K-0326): no screen needs them (Out of scope). |
+
+### Not read
+
+K-0339 lists what no entry read, and this spec does not fill any of it from memory: the Untitled UI API tables for both pages (slug placeholders) and any breadcrumbs code (K-0320, K-0322, K-0326); Untitled's rule for which crumbs stay when collapsed (K-0321); the child element of `pagination-line.tsx` (K-0329); shadcn's Base UI and React Aria Pagination pages and its React Aria Breadcrumb page (K-0330); which registry example the shadcn Collapsed section renders (K-0325); the APG example's HTML and `breadcrumb.css` (K-0334). Where a rule below needs one of these, it says the rule is ours.
+
+## Goal
+
+Studio screens are about to need two ways to say where the person is: a trail from the project down to the page, and a way through a long list of decisions (audit D.3 row 26: "Project and decision-log navigation"). Neither component exists, so each screen would hand-build its own `nav`, its own current mark and its own Thai names. This story gives the design system one Breadcrumb and one Pagination, with the current page marked `aria-current` and a collapsed trail story, the audit's two done-when lines.
+
+What is simulated: nothing in the components. They render real markup. No route uses them yet: the stories run on fixture trails and fixture links (`#page-5`), labelled as fixtures, and `page` and `total` are props the caller passes, not data this story reads.
+
+## Story
+
+As a person working in a project, I see where I am as a short trail of places I can go back to, with the page I am on marked as the current one. On a long list, I move page by page, or jump to a page number, and I can always tell which page I am on, on a phone too.
+
+## Rules
+
+### nav-name-1
+
+Both components render a native `nav`, never `role="navigation"` (K-0332), named by `aria-label`. The name defaults to the catalog's `breadcrumb.label` or `pagination.label`, and a caller's `aria-label` prop replaces it, because each navigation landmark on a page takes a unique label without the role word (K-0335, K-0338). A story with several copies in one document names each copy after its cell, in the form of `Cell` in `ScrollArea.stories.tsx` (lines 54 to 62), so axe's `landmark-unique` rule stays on. `matrix.tsx` lines 68 and 69 say a component has no landmark; these two have one.
+
+### nav-glyphs-1
+
+Three exports go in `src/components/icons.tsx` through its `lucide()` helper: `EllipsisIcon` (Lucide `Ellipsis`), `ChevronLeftIcon` (`ChevronLeft`) and `ChevronRightIcon` (`ChevronRight`). DESIGN.md section 6 puts Lucide first, and the installed `lucide-react.d.ts` exports all three (lines 26525, 26526, 26776). Nothing is drawn. The Breadcrumb PR adds `EllipsisIcon`; the Pagination PR adds the two chevrons. No new runtime dependency comes with this story, so it brings no dependency security review.
+
+### nav-copy-1
+
+Eight keys go in two new groups, `breadcrumb` and `pagination`, in `src/i18n/messages/th.ts` and `en.ts` (table "Copy"). A page number prints as `String(n)`, Arabic digits with no grouping, in both locales. The Thai `pagination.page` keeps its space, so axe `label-content-name-mismatch` finds the digit as a word of the name (the finding of ORV-217 `copy-name-1`). The components hold no other string; the separator slash of `crumb-markup-1` is punctuation, not copy.
+
+### crumb-api-1
+
+Three new public parts in `src/components/breadcrumb/Breadcrumb.tsx`, exported from `@orivilo/design-system`:
+
+- `Breadcrumb` (contract type `BreadcrumbProps`): `children`, `maxVisible` (`crumb-collapse-1`), `aria-label` (`nav-name-1`), `className` for layout only. A client component: it holds the expand state.
+- `BreadcrumbLink` (`BreadcrumbLinkProps`): `href`, `asChild`, `children`, `className` for layout only. An `a`, or with `asChild` the child through Radix Slot, as Button does (`Button.tsx` line 59, K-0323).
+- `BreadcrumbPage` (`BreadcrumbPageProps`): `children`, `className` for layout only.
+
+`BreadcrumbLink` and `BreadcrumbPage` read the catalog (`crumb-missing-1`), so all three are client components. The caller writes the crumbs as direct children, in trail order. `Breadcrumb` counts them with `Children.toArray` (an array flattens; a Fragment counts as one crumb), wraps each in its `li`, and adds the separators and the ellipsis itself, so shadcn's `BreadcrumbList`, `BreadcrumbItem`, `BreadcrumbSeparator` and `BreadcrumbEllipsis` are not public parts. There is no variant and no size. A label is a React text child, never HTML. An `href` comes from route code, never from user text.
+
+### crumb-markup-1
+
+`nav.ds-breadcrumb` holds `ol.ds-breadcrumb__list` (K-0334), which holds one `li.ds-breadcrumb__item` per shown crumb and one for the ellipsis. An item that is not the last ends in `span.ds-breadcrumb__separator` with `aria-hidden="true"`, holding a slash, with `--ds-space-inline-md` on each side: DESIGN.md section 10 names a slash with spaces for breadcrumbs. No part sets a `role`. The list wraps between items. The trail adds no key handling (K-0333, K-0334): its links and its button are native.
+
+### crumb-current-1
+
+`BreadcrumbPage` renders `span.ds-breadcrumb__page` with `aria-current="page"`, and no `href`, `role`, `tabindex` or `aria-disabled`, so it is not a Tab stop (G65 step 5 and Example 1, K-0337). `aria-current` is optional on a non-link (K-0333); it is set here because audit row 26 asks for it and ARIA26 exposes the visual mark (K-0338). The caller places one `BreadcrumbPage`, last (K-0336), and the catalog entry says so. A trail with none is all links, which G65 step 4 accepts (K-0337).
+
+### crumb-look-1
+
+The trail reads the nav item tokens. A link sets `--cmp-nav-item-fg` in `type.body.sm` (the `--ds-type-body-sm-*` properties), with no underline at rest. On hover it sets `--cmp-nav-item-fg-hover` and an underline, an ink and shape change (DESIGN.md section 7). The current crumb sets `--cmp-nav-item-fg-active` in `type.label.md` (the `--ds-type-label-md-*` properties, weight 500), with no fill, no underline and no hover change, so it differs from a link by weight and behaviour, not by colour alone. The separator sets `--cmp-nav-item-fg`. Focus is the global `:focus-visible` line and halo (`orivilo.css` lines 74 to 78); no breadcrumb class sets its own. The list keeps `min-block-size: var(--ds-size-control-sm)`, so a press on the ellipsis does not change the height of a one-line trail. Open questions 2 and 3 hold the choice of tokens.
+
+### crumb-collapse-1
+
+`maxVisible` defaults to 4 (K-0321), and 0 turns collapsing off (K-0321). It counts crumbs, not the ellipsis. A value that is not a whole number, or is below 0, reads as the default; 1 reads as 2. When the crumbs number more than `maxVisible`, the first crumb stays, the ellipsis follows it, and the last `maxVisible - 1` crumbs stay. Hidden crumbs are not rendered. Which crumbs stay is this spec's rule: Untitled's was not read (K-0321), and shadcn's example keeps 3 by hand (K-0325). The method is `collapseTrail(count, maxVisible)` in `src/components/breadcrumb/collapse.ts`, a pure function, not a package export. Worked example W1.
+
+### crumb-expand-1
+
+The ellipsis is a `Button` `variant="ghost"` `size="sm"` `iconOnly` with `EllipsisIcon`, named `breadcrumb.showAll`. A press (mouse, Enter or Space, Button's own) renders the hidden crumbs in place and in order, and removes the button (K-0321). Focus then moves to the link of the first crumb revealed, because the control that held it is gone. The trail stays expanded until the component unmounts, so the control carries no `aria-expanded`. It adds no live region: the focus move speaks. There is no menu and no portal, so no `PortalScope` and no `InsideProfile` story apply. The sources set out no keyboard rule for this control, and word searches of the APG pattern and G65 found nothing on collapsing a trail (K-0339); this rule is ours.
+
+### crumb-cut-1
+
+A crumb's label stays on one line. `.ds-breadcrumb__item` is a flex row with `min-inline-size: 0` and `max-inline-size: 100%`. `.ds-breadcrumb__link` and `.ds-breadcrumb__page` take `min-inline-size: 0`, `overflow: hidden`, `text-overflow: ellipsis` and `white-space: nowrap`, and the separator takes `flex: none`. So the trail wraps first, and only a crumb wider than a whole line is cut, at the end of its line, with no new value and no token. Both classes join the clip-box selector list in `recipes.css` (line 4716, DESIGN.md section 4). The whole text stays in the DOM, so the accessible name is never cut. `li`, `ol` and `nav` keep `overflow: visible`, so a focus halo is not clipped.
+
+### crumb-missing-1
+
+A `BreadcrumbLink` without `asChild`, or a `BreadcrumbPage`, whose `children` are `undefined`, `null` or `""` shows `breadcrumb.missing`. DESIGN.md section 4 lists a missing value among the fixtures of every component, and a blank crumb would be a link with no name. The link still goes to its `href`. With `asChild` the child owns its text.
+
+### page-api-1
+
+One new public part in `src/components/pagination/Pagination.tsx`, exported from `@orivilo/design-system`: `Pagination` (contract type `PaginationProps`), since a computed range leaves nothing for a caller to compose. Props: `page` (1 is the first page), `total` (a count of pages; the caller computes it, as `Math.ceil(totalItems / pageSize)` in K-0326), `hrefPattern`, `siblingCount` (`page-range-1`), `linkAs`, `aria-label` (`nav-name-1`), `className` for layout only. It holds no state: the URL owns the page.
+
+`hrefPattern` is a string that holds `{page}`, filled by `fill` from `src/i18n/messages/index.ts` (W5). It is a string so that a server page can pass it to this client component, where a function prop could not cross. It comes from route code, never from user text. `linkAs` is the element type that renders each link, default `"a"`; a router passes its own client link there.
+
+### page-markup-1
+
+`nav.ds-pagination` is a block that fills its parent and the named container `ds-pagination` (`container-type: inline-size`). In a flex parent the caller gives it a width, and the catalog entry says so. It holds `ul.ds-pagination__list` (K-0330), with `li` items in this order: Previous, the slots of `page-range-1`, `li.ds-pagination__status`, Next. A page slot is `li.ds-pagination__page` holding `a.ds-pagination__link` through `linkAs`, with the digit as its text and `pagination.page` as its `aria-label`. A gap slot is `li.ds-pagination__gap` with `aria-hidden="true"`, holding `EllipsisIcon` and no text, sr-only text included (K-0328, K-0332).
+
+### page-range-1
+
+The method is `pageRange(page, total, siblingCount)` in `src/components/pagination/range.ts`, a pure function, not a package export. `siblingCount` defaults to 1 (K-0327); a value that is not a whole number, or is below 0, reads as 1. With `s` for `siblingCount`: while `2s + 5` is at least `total`, every page is listed. Otherwise the row keeps the first and the last page, and `left = max(page - s, 1)`, `right = min(page + s, total)`. When `left` is 2 or less, the row is pages 1 to `2s + 3`, a gap, `total`. When `right` is `total - 1` or more, it is 1, a gap, the last `2s + 3` pages. Otherwise it is 1, a gap, `left` to `right`, a gap, `total`. K-0327 gives the threshold and the three cases; the block length `2s + 3` is this spec's, chosen so that the row always holds `2s + 5` slots and does not change width between pages. Worked example W2.
+
+### page-bounds-1
+
+A `total` that is not a whole number, or is below 2, renders nothing: no `nav`, since there is nowhere to go. A `page` that is not a whole number reads as 1; below 1 reads as 1; above `total` reads as `total`. The method is `clampPage(page, total)` in `src/components/pagination/range.ts`, a pure function, not a package export. The component never throws on these values, because they come from a URL. Worked example W4.
+
+### page-current-1
+
+The slot of `page` has `aria-current="page"` (K-0328, K-0332, K-0336) and stays a real link with its `href`: both libraries read keep the item interactive. At rest a link sets `--cmp-nav-item-fg`, a transparent 1 px border, `--cmp-nav-item-radius`, `min-block-size` and `min-inline-size` of `--cmp-nav-item-height`, and the `--ds-type-control-md-*` properties. On hover a link that is not current sets `--cmp-nav-item-fg-hover` on `--cmp-nav-item-bg-hover`. The current page sets `--cmp-nav-item-fg-active` on `--cmp-nav-item-bg-active`, with its border in `--ds-border-strong` and no hover change. The border is the mark that does not rely on colour: `bg-active` is `surface.card`, so on a card the fill vanishes and only ink would be left (DESIGN.md section 7). It is neutral ink, so it reads neither as `focus.ring` nor as `surface.selected` (open question 2). Focus turns the link's own border to `--ds-focus-ring` with `--_focus-shadow-border` (`recipes.css` lines 177 to 182, the Button form).
+
+### page-ends-1
+
+Previous and Next are `Button` `variant="ghost"` `size="md"` `iconOnly` with `ChevronLeftIcon` and `ChevronRightIcon`, named `pagination.previous` and `pagination.next` in every form. Between the ends each is `Button asChild` over `linkAs`, with the `href` of `page - 1` or `page + 1`. On the first page Previous, and on the last page Next, is a native `<Button disabled>`: not a link, not a Tab stop, still in its place, so the row does not shift (K-0328).
+
+### page-form-1
+
+Inside `@container ds-pagination (max-width: 479px)`, the form and the 480 px edge the Table and the task bar use, `.ds-pagination__page` and `.ds-pagination__gap` take `display: none`, so no empty `li` stays in the list, and `li.ds-pagination__status` shows `pagination.status`, in `type.body.sm` and `--cmp-nav-item-fg`, between Previous and Next (K-0326). From 480 px up the status takes `display: none`. In the narrow form no page link is in the accessibility tree and the status says the page in plain text. It is not a live region, because a page change is a navigation. Worked example W3 gives the width that sets this.
+
+## Contract changes and impact
+
+<!-- prettier-ignore -->
+| Change | Layer | Impact |
+| --- | --- | --- |
+| `Breadcrumb`, `BreadcrumbLink`, `BreadcrumbPage` and their `*Props` types (`crumb-api-1`) | Component API | New exports in `src/components/index.ts`; new `catalog/base/breadcrumb.yaml` (story `base-breadcrumb`, status `draft`, recipes neutral, professional, friendly, states default, hover, focus-visible, current, collapsed, expanded); `catalog/coverage.md` line 28 goes to `draft` and `base-breadcrumb` |
+| `Pagination` and `PaginationProps` (`page-api-1`) | Component API | New export in `src/components/index.ts`; new `catalog/base/pagination.yaml` (story `base-pagination`, status `draft`, recipes as above, states default, hover, focus-visible, current, disabled); `catalog/coverage.md` line 29 goes to `draft` and `base-pagination` |
+| Recipe classes `ds-breadcrumb`, `ds-breadcrumb__list`, `__item`, `__link`, `__page`, `__separator` | Recipe | `recipes.css`, values from existing `--cmp-nav-item-*` and `--ds-*` properties (`crumb-look-1`, `crumb-markup-1`); `__link` and `__page` join the clip-box list (`crumb-cut-1`). `recipes.test.ts` checks the file |
+| Recipe classes `ds-pagination`, `ds-pagination__list`, `__page`, `__link`, `__gap`, `__status` and one `@container ds-pagination` block | Recipe | `recipes.css`, values from existing properties (`page-current-1`, `page-form-1`). Other Button recipes untouched: Previous and Next are plain Buttons |
+| Twelve colour pairs | Recipe pairs | `pairs.ts`. Breadcrumb, text 4.5: `nav-item.fg`, `nav-item.fg-hover`, `nav-item.fg-active`, each on `ds:surface.canvas` and on `ds:surface.card`. Pagination, text 4.5: `nav-item.fg` on `ds:surface.canvas` and on `ds:surface.card`, `nav-item.fg-hover` on `nav-item.bg-hover`, `nav-item.fg-active` on `nav-item.bg-active`. Pagination, UI 3.0: `ds:border.strong` on `ds:surface.canvas` and on `ds:surface.card`. No `nav-item` pair is listed today, so `recipes.test.ts` proves these under three profiles and both modes for the first time; a pair under its floor is a token finding, which the builder reports and does not patch with a raw value |
+| Eight locale keys in two new groups (`nav-copy-1`) | Locale catalog | `th.ts`, `en.ts`; `check-i18n` and `i18n.test.ts` check key and placeholder parity |
+| Three icon exports (`nav-glyphs-1`) | Icon module | `icons.tsx` only. Its comment at line 62 counts 46 glyphs while the file imports 49 today; the builder sets the count right in the same edit |
+| `breadcrumbFixtures`, `paginationFixtures` | Fixture | `src/components/fixtures.ts` only |
+
+Not changed: no token in any layer, no profile, `Button`, `DropdownMenu`, `Matrix`, `Table`, `DESIGN.md`, `apps/web`, `src/examples/decision-log.tsx`. No new runtime dependency.
+
+## Copy
+
+<!-- prettier-ignore -->
+| Key | Thai | English |
+| --- | --- | --- |
+| `breadcrumb.label` | เส้นทางถึงหน้านี้ | Breadcrumb |
+| `breadcrumb.showAll` | แสดงเส้นทางทั้งหมด | Show the full path |
+| `breadcrumb.missing` | ไม่มีชื่อ | No name |
+| `pagination.label` | หน้าของรายการ | Pages |
+| `pagination.page` | หน้า {page} | Page {page} |
+| `pagination.previous` | หน้าก่อนหน้า | Previous page |
+| `pagination.next` | หน้าถัดไป | Next page |
+| `pagination.status` | หน้า {page} จาก {total} | Page {page} of {total} |
+
+Fixture copy for the stories, not catalog keys. `breadcrumbFixtures.trail` holds six crumbs, each with a `#` link; `Default` uses the first three, the third as the current crumb. `paginationFixtures` holds `hrefPattern` `#page-{page}`, `page` 5 and `total` 12.
+
+<!-- prettier-ignore -->
+| Crumb | Thai | English |
+| --- | --- | --- |
+| 1 | หน้าแรก | Home |
+| 2 | โปรเจกต์ทั้งหมด | All projects |
+| 3 | โปรเจกต์ Brand Canvas ของทีม (`fixtures.mixed`) | The team's Brand Canvas project |
+| 4 | บอร์ด | Board |
+| 5 | บันทึกการตัดสินใจ | Decision log |
+| 6 | ใช้ Orbit violet เป็นสีของการกระทำหลัก (`DECISIONS[0].title`) | Use Orbit violet as the main action colour |
+
+## Acceptance criteria
+
+Stories: `Base/Breadcrumb` (id `base-breadcrumb`) and `Base/Pagination` (id `base-pagination`), each a new `*.stories.tsx` beside its component. Plays run in Thai; an `InEnglish` story nests `LocaleProvider locale="en"` and the English fixtures. Hover and focus are play steps, not props. English covers each catalog state: default, current, hover and focus (rows 12 and 34), collapsed and expanded (row 13), disabled (rows 35 and 36). Breadcrumb stories: `Default`, `DefaultInEnglish`, `Collapsed`, `CollapsedInEnglish`, `CollapsedKeyboard`, `NoCollapse`, `RouterLink`, `Missing`, `MissingInEnglish`, `At360`, `At360InEnglish`, `RecipesAndModes`. Pagination stories: `Default`, `DefaultInEnglish`, `FirstPage`, `FirstPageInEnglish`, `LastPage`, `LastPageInEnglish`, `FewPages`, `SinglePage`, `OutOfRange`, `OnCard`, `RouterLink`, `FormEdge`, `At360`, `At360InEnglish`, `RecipesAndModes`.
+
+`expectFrameCutsNoInk(el, frame)` arrives with PR 186 and is not in this worktree yet. Rows 15, 16, 37 and 38 need it: the builder starts from a `develop` that holds PR 186, and reports `blocked` if it does not.
+
+<!-- prettier-ignore -->
+| # | Given | When | User sees | Data effect | Check |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Storybook test project, neutral, light, Thai | `Default` renders | One line: "หน้าแรก / โปรเจกต์ทั้งหมด / โปรเจกต์ Brand Canvas ของทีม" | None. `getByRole("navigation", { name: "เส้นทางถึงหน้านี้" })` holds one `list` of three `listitem`s and two `link`s, in that order; the list's computed `minHeight` is `32px` (`nav-name-1`, `crumb-markup-1`, `crumb-look-1`) | `Default` play |
+| 2 | Same | `Default` renders | "โปรเจกต์ Brand Canvas ของทีม" in the heavier weight and darker ink, not a link | None. `querySelectorAll("[aria-current]")` has length 1, its element reads `aria-current="page"` and that text; `queryByRole("link", { name: "โปรเจกต์ Brand Canvas ของทีม" })` is null; the element has no `role`, `tabindex` or `aria-disabled`; its computed `fontWeight` is 500 and a link's is 400 (`crumb-current-1`, `crumb-look-1`) | `Default` play step |
+| 3 | Same | `Default` renders | A slash between two crumbs, none after the last | None. Two `.ds-breadcrumb__separator`, both `aria-hidden="true"`; `getByRole("link", { name: "หน้าแรก" })` matches exactly, with no slash in the name (`crumb-markup-1`) | `Default` play step |
+| 4 | Same | Tab, Tab, Tab | Focus lands on "หน้าแรก", then "โปรเจกต์ทั้งหมด", then leaves the trail; the focused link shows the focus line and halo | None. `toHaveFocus()` in that order; after the third Tab `nav.contains(document.activeElement)` is false; on a focused link computed `outlineColor` equals `resolvedColor(link, "--ds-focus-ring")`, `outlineWidth` is `1px`, `boxShadow` ends in `0px 0px 0px 4px` (`crumb-current-1`, `crumb-look-1`) | `Default` play step |
+| 5 | Same | The pointer rests on "หน้าแรก", then on the current crumb | The link darkens and gains an underline; the current crumb does not change | None. Link `color` equals `resolvedColor(link, "--cmp-nav-item-fg-hover")`, `textDecorationLine` is `underline`; the current crumb's `color` and `textDecorationLine` are the same before and after `userEvent.hover` (`crumb-look-1`) | `Default` play step |
+| 6 | Same | `Collapsed` renders the six crumbs at the default `maxVisible` | "หน้าแรก / ... / บอร์ด / บันทึกการตัดสินใจ / ใช้ Orbit violet เป็นสีของการกระทำหลัก", with "..." an ellipsis button | None. Five `listitem`s, three `link`s, and `getByRole("button", { name: "แสดงเส้นทางทั้งหมด" })`; `queryByRole("link", { name: "โปรเจกต์ทั้งหมด" })` and the crumb 3 link are null (`crumb-collapse-1`, W1 row `6 4`) | `Collapsed` play |
+| 7 | Same, after row 6 | The ellipsis button is clicked | Six crumbs in order; the button is gone; focus is on "โปรเจกต์ทั้งหมด" | None. Six `listitem`s, five `link`s, `queryByRole("button")` is null, the "โปรเจกต์ทั้งหมด" link `toHaveFocus()`, not `document.body` (`crumb-expand-1`) | `Collapsed` play step |
+| 8 | Same | `CollapsedKeyboard`: Tab, Tab, Enter | Focus goes "หน้าแรก", the ellipsis button, then the trail opens with focus on "โปรเจกต์ทั้งหมด" | None. `toHaveFocus()` in that order; six `listitem`s after Enter (`crumb-expand-1`) | `CollapsedKeyboard` play |
+| 9 | Same | `NoCollapse` renders a six-crumb trail with `maxVisible={0}` and a four-crumb trail at the default, with the `aria-label`s "เส้นทาง ก" and "เส้นทาง ข" | Both trails whole, no ellipsis | None. Two `navigation`s, each found by its own name; no `button` in the canvas; 6 and 4 `listitem`s (`crumb-collapse-1`, `nav-name-1`, W1 rows `6 0` and `4 4`) | `NoCollapse` play |
+| 10 | Same | `RouterLink` renders a `BreadcrumbLink asChild` over a story `StoryLink` that sets `data-router` | The same trail | None. The link is one anchor with `data-router`, the class `ds-breadcrumb__link` and its `href`; `querySelectorAll("a a")` has length 0 (`crumb-api-1`) | `RouterLink` play |
+| 11 | Same | `Missing` renders a link crumb and a current crumb with `fixtures.missing` | "ไม่มีชื่อ" in both places, never a blank | None. `getByRole("link", { name: "ไม่มีชื่อ" })` keeps its `href`; the current crumb reads "ไม่มีชื่อ" with `aria-current="page"` (`crumb-missing-1`) | `Missing` play |
+| 12 | Same, English | `DefaultInEnglish` renders, then Tab, then the pointer rests on "Home" | "Home / All projects / The team's Brand Canvas project"; "Home" takes the focus line and halo, then an underline | None. `navigation` named "Breadcrumb"; two `link`s; the current crumb has `aria-current="page"`; the "Home" link `toHaveFocus()`, and under `userEvent.hover` its `textDecorationLine` is `underline` (`nav-copy-1`, `crumb-current-1`, `crumb-look-1`) | `DefaultInEnglish` play |
+| 13 | Same, English | `CollapsedInEnglish` renders, then the ellipsis button is clicked | "Home / ... / Board / Decision log / Use Orbit violet as the main action colour", then six crumbs | None. `button` named "Show the full path"; after the click the "All projects" link `toHaveFocus()` (`crumb-expand-1`) | `CollapsedInEnglish` play |
+| 14 | Same, English | `MissingInEnglish` renders | "No name" in both places | None. `link` named "No name" (`crumb-missing-1`) | `MissingInEnglish` play |
+| 15 | Storybook, a 360 px `Narrow` frame, Thai | `At360` renders a four-crumb trail with `fixtures.longThai` as crumb 2 and as the current crumb | Short crumbs stay whole; each long Thai name sits on its own line, cut with an ellipsis at the line's end; no horizontal scroll; no Thai mark is cut | None. Frame `scrollWidth` not above 360. Every ancestor of each long crumb up to the frame has computed `overflow` `visible`. On each long crumb: `scrollWidth` above `clientWidth`; `expectLabelInkWhole(el)` passes; `expectFrameCutsNoInk(el, frame)` passes. `getByRole("link", { name: fixtures.longThai })` finds the whole name (`crumb-cut-1`) | `At360` play, the ink steps guarded by `inVitest` |
+| 16 | Same, English | `At360InEnglish` renders with `fixtures.longLatin` as crumb 2 and as the current crumb | The same, in English | None. The same checks as row 15 on `fixtures.longLatin` (`crumb-cut-1`) | `At360InEnglish` play |
+| 17 | Storybook test project | `RecipesAndModes` renders through `Matrix`, one collapsed trail per cell, in a `Cell` named from `useDesignProfile()` | Six boundaries (neutral, professional, friendly, each light and dark), each with a trail | None. Six `navigation`s with six different names; six `[aria-current="page"]`; `landmark-unique` not turned off (`nav-name-1`); colours from the pairs of the contract table, proven by `recipes.test.ts` and `pnpm contrast` | `RecipesAndModes` play count |
+| 18 | Vitest, node | `collapse.test.ts` runs the six cases of W1 | Not a screen | `collapseTrail` returns W1's kept and hidden lists; a mutant that keeps `maxVisible` crumbs after the first goes red (`crumb-collapse-1`) | `collapse.test.ts` |
+| 19 | The Breadcrumb PR head | `check-catalog`, `check-i18n`, `i18n.test.ts`, the copy check, `recipes.test.ts` and the a11y addon run | Not a screen | `catalog/base/breadcrumb.yaml` resolves to `base-breadcrumb`; the three `breadcrumb` keys exist in Thai and English; no middot or em dash in new files; zero a11y violations in the twelve Breadcrumb stories listed above | `pnpm --filter @orivilo/design-system test`, `pnpm contrast` |
+| 20 | Storybook at 360 and 1440 px, light and dark, Thai and English | The designer opens `Default`, `Collapsed` (closed and opened), `Missing`, `At360`, `At360InEnglish`, `RecipesAndModes` | The trail reads as quiet navigation; the current crumb reads as "here" and not as a link or a selected row; the slash spacing is even in Thai and Latin; the cut reads as a cut | None | Designer visual sign-off. A sign-off has an empty `write_set`, so its PNG paths are posted as a Jira comment on ORV-229, including the answers to open questions 1, 2, 3, 5, 7 and 9 |
+| 21 | The Breadcrumb PR head | The affected suites run | Every play and test passes | None | `pnpm --filter @orivilo/design-system exec vitest run --project storybook src/components/breadcrumb`; `pnpm lint && pnpm typecheck && pnpm test && pnpm build` at the G3 gate |
+| 22 | Storybook test project, neutral, light, Thai, a frame of 720 px | `Default` renders page 5 of 12 | A chevron left, "1 ... 4 5 6 ... 12", a chevron right | None. `getByRole("navigation", { name: "หน้าของรายการ" })` holds one `list` of seven `listitem`s (Previous, five pages, Next); page links named "หน้า 1", "หน้า 4", "หน้า 5", "หน้า 6", "หน้า 12" with `href`s `#page-1`, `#page-4`, `#page-5`, `#page-6`, `#page-12` (`page-markup-1`, `page-range-1`, W2 row `5/12`, W5) | `Default` play |
+| 23 | Same | `Default` renders | "5" stands out in dark ink inside a thin dark edge; the other numbers have no edge | None. `querySelectorAll("[aria-current]")` has length 1: the link "หน้า 5", with `aria-current="page"`, `href` `#page-5` and text "5" (`page-current-1`) | `Default` play step |
+| 24 | Same | `Default` renders | Two ellipsis marks | None. Two `.ds-pagination__gap`, both `aria-hidden="true"`, with empty `textContent`, no `.sr-only` inside (`page-markup-1`) | `Default` play step |
+| 25 | Same | `Default` renders | Both chevrons are live | None. `link` named "หน้าก่อนหน้า" has `href` `#page-4`, `link` named "หน้าถัดไป" has `href` `#page-6` (`page-ends-1`, `nav-copy-1`) | `Default` play step |
+| 26 | Same | `FirstPage` renders page 1 of 12 | "1 2 3 4 5 ... 12"; the left chevron is greyed out and does nothing | None. `getByRole("button", { name: "หน้าก่อนหน้า" })` `toBeDisabled()`; no `link` of that name; the first Tab lands on "หน้า 1" (`page-ends-1`, W2 row `1/12`) | `FirstPage` play |
+| 27 | Same | `LastPage` renders page 12 of 12 | "1 ... 8 9 10 11 12"; the right chevron is greyed out and does nothing | None. `getByRole("button", { name: "หน้าถัดไป" })` `toBeDisabled()`; no `link` of that name; its `getBoundingClientRect().width` equals that of the "หน้าก่อนหน้า" link, so the row keeps its shape (`page-ends-1`, W2 row `12/12`) | `LastPage` play |
+| 28 | Same | `FewPages` renders page 3 of 7 | "1 2 3 4 5 6 7", no ellipsis | None. Seven page links, no `.ds-pagination__gap` (`page-range-1`, W2 row `3/7`) | `FewPages` play |
+| 29 | Same | `SinglePage` renders `total` 1 | Nothing | None. `queryByRole("navigation")` is null and the canvas has no `.ds-pagination` (`page-bounds-1`) | `SinglePage` play |
+| 30 | Same | `OutOfRange` renders `page` 99 of 12 and `page` `NaN` of 12, with `aria-label`s "ช่วง ก" and "ช่วง ข" | The first row marks 12, the second marks 1; no error | None. In the first nav `[aria-current]` reads "12", and Next is the disabled button; in the second it reads "1", and Previous is the disabled button (`page-bounds-1`, `nav-name-1`, W4) | `OutOfRange` play |
+| 31 | Same | Tab through `Default`, and hold the pointer on "4" | Focus moves left to right through the chevrons and numbers, skipping the ellipses; a focused number shows the focus line and halo; "4" takes a hover ground | None. Tab order: "หน้าก่อนหน้า", "หน้า 1", "หน้า 4", "หน้า 5", "หน้า 6", "หน้า 12", "หน้าถัดไป"; `expectFocusBorderForm(link)` passes on "หน้า 4" and on "หน้า 5"; under `userEvent.hover`, "หน้า 4" `backgroundColor` equals `resolvedColor(link, "--cmp-nav-item-bg-hover")` and its `color` equals `resolvedColor(link, "--cmp-nav-item-fg-hover")` (`page-current-1`) | `Default` play step |
+| 32 | Same | `OnCard` renders the row inside a `Card`, and `Default` on the canvas | The current page reads as current on both grounds, by its edge and not by a fill | None. On both, `expectEdgeInk(current, ["top", "right", "bottom", "left"], 1)` and `expectEdgeInk(rest, "top", 0)` on "หน้า 4", guarded by `inVitest`; `expectInkCentred(list, pageLinks, { measure: "body" })` (`page-current-1`) | `OnCard` play, `Default` play step |
+| 33 | Same | `RouterLink` renders with `linkAs={StoryLink}` | The same row | None. The page links, Previous and Next each have `data-router`; `querySelectorAll("a a")` has length 0 (`page-api-1`) | `RouterLink` play |
+| 34 | Same, English | `DefaultInEnglish` renders, then Tab twice, then the pointer rests on "4" | The same row; "1" takes the focus line and halo; "4" takes a hover ground | None. `navigation` named "Pages"; links named "Page 1", "Page 5", "Previous page", "Next page"; `expectFocusBorderForm(link)` passes on "Page 1"; under `userEvent.hover`, "Page 4" `backgroundColor` equals `resolvedColor(link, "--cmp-nav-item-bg-hover")` (`nav-copy-1`, `page-current-1`) | `DefaultInEnglish` play |
+| 35 | Same, English | `FirstPageInEnglish` renders | The left chevron is greyed out | None. `button` named "Previous page" `toBeDisabled()` (`page-ends-1`) | `FirstPageInEnglish` play |
+| 36 | Same, English | `LastPageInEnglish` renders | The right chevron is greyed out | None. `button` named "Next page" `toBeDisabled()` (`page-ends-1`) | `LastPageInEnglish` play |
+| 37 | Storybook, a 360 px `Narrow` frame, Thai | `At360` renders page 5 of 12 | A chevron left, "หน้า 5 จาก 12", a chevron right on one line; no number row; no horizontal scroll | None. `queryByRole("link", { name: "หน้า 5" })` is null; `getByText("หน้า 5 จาก 12")` visible; the links "หน้าก่อนหน้า" and "หน้าถัดไป" keep their names; frame `scrollWidth` not above 360. Every ancestor of the status up to the frame has computed `overflow` `visible`; `expectLabelInkWhole(status)` and `expectFrameCutsNoInk(status, frame)` pass (`page-form-1`, W3, W5) | `At360` play, the ink steps guarded by `inVitest` |
+| 38 | Same, English | `At360InEnglish` renders | "Page 5 of 12" between the chevrons | None. The same checks as row 37 on "Page 5 of 12", with the links "Previous page" and "Next page" (`page-form-1`) | `At360InEnglish` play |
+| 39 | Storybook test project | `FormEdge` renders the row in a frame of 479 px and in a frame of 480 px, with `aria-label`s "กรอบ ก" and "กรอบ ข" | The status at 479, the number row at 480 | None. In the first nav the status is visible and `queryByRole("link", { name: "หน้า 5" })` is null; in the second the link exists and the status has computed `display` `none`; each row's `scrollWidth` is not above its frame (`page-form-1`, W3) | `FormEdge` play |
+| 40 | Storybook test project | `RecipesAndModes` renders through `Matrix`, in a `Cell` named from `useDesignProfile()` | Six boundaries (neutral, professional, friendly, each light and dark), each with a row | None. Six `navigation`s with six different names; `landmark-unique` not turned off (`nav-name-1`); colours from the pairs of the contract table, proven by `recipes.test.ts` and `pnpm contrast` | `RecipesAndModes` play count |
+| 41 | Vitest, node | `range.test.ts` runs the ten cases of W2 and the five of W4 | Not a screen | `pageRange` returns W2's rows; `clampPage` returns W4's values; a mutant with `2s + 4` as the threshold goes red (`page-range-1`, `page-bounds-1`) | `range.test.ts` |
+| 42 | The Pagination PR head | `check-catalog`, `check-i18n`, `i18n.test.ts`, the copy check, `recipes.test.ts` and the a11y addon run | Not a screen | `catalog/base/pagination.yaml` resolves to `base-pagination`; the five `pagination` keys exist in Thai and English with matching placeholders; no middot or em dash in new files; zero a11y violations in the fifteen Pagination stories listed above | `pnpm --filter @orivilo/design-system test`, `pnpm contrast` |
+| 43 | Storybook at 360 and 1440 px, light and dark, Thai and English | The designer opens `Default`, `FirstPage`, `LastPage`, `OnCard`, `At360`, `At360InEnglish`, `RecipesAndModes` | The current page reads as "here" on the canvas and on a card, and apart from focus; a disabled chevron reads as an end; the narrow form reads as one line | None | Designer visual sign-off. A sign-off has an empty `write_set`, so its PNG paths are posted as a Jira comment on ORV-229, including the answers to open questions 2, 4, 10 and 11 |
+| 44 | The Pagination PR head | The affected suites run | Every play and test passes | None | `pnpm --filter @orivilo/design-system exec vitest run --project storybook src/components/pagination`; `pnpm lint && pnpm typecheck && pnpm test && pnpm build` at the G3 gate |
+
+## Rows that render nothing
+
+- Rows: 18, 19, 21, 29, 41, 42, 44
+
+## Rows per PR
+
+Two PRs are planned, Breadcrumb first (open question 8). The first carries rows 1 to 21 and the second rows 22 to 44. Each holds its component, recipe, pairs, locale keys, fixtures, stories, catalog entry and coverage line, since an entry, a story and its code land together. Each is estimated at 400 to 500 changed lines, about half of them stories, a little over the 400-line guide; open question 8 holds the smaller split. The main session adds the PR lines, in the form `qa-scope-1` reads (`scripts/ovl/result-recorder.mjs`), with a changelog line, once each PR number exists.
+
+## Out of scope
+
+- Wiring either component into `apps/web` or `src/examples/decision-log.tsx`. No project or decision-log route exists yet; the screen that needs one uses these with its own story.
+- A home crumb with an icon, and any `icon` slot (K-0320). A Tooltip on a cut crumb.
+- Collapsing the trail again after it expands, and a controlled `expanded` prop.
+- Page size, rows per page, a page input, first and last jumps, `rounded`, `align`, dot and line forms (K-0326, K-0329).
+- Button page items with `onPageChange` (open question 4).
+- A loading state on either component: none is read in the sources, and each is a navigation to a new page.
+- Any token, profile, `Button`, `DropdownMenu` or `Matrix` change.
+- Visual regression baselines (`.claude/rules/testing.md`).
+
+## Worked examples
+
+None is run here (no shell in this role); each runs from the repo root with `node -e`.
+
+W1. The method of `crumb-collapse-1`. Input: the crumb count and `maxVisible` as `[count, maxVisible]`: `[3, 4]`, `[4, 4]`, `[6, 4]` (the six crumbs of `breadcrumbFixtures.trail`), `[6, 0]`, `[6, 1]`, `[5, 2.5]`. Expected output, zero-based indexes, no rounding:
+
+```text
+3 4 kept 0 1 2 hidden none
+4 4 kept 0 1 2 3 hidden none
+6 4 kept 0 3 4 5 hidden 1 2
+6 0 kept 0 1 2 3 4 5 hidden none
+6 1 kept 0 5 hidden 1 2 3 4
+5 2.5 kept 0 2 3 4 hidden 1
+```
+
+```bash
+node -e 'const keep=(n,max=4)=>{let m=Number.isInteger(max)&&max>=0?max:4;if(m!==0)m=Math.max(m,2);const all=[...Array(n).keys()];if(m===0||n<=m)return {kept:all,hidden:[]};const kept=[0,...all.slice(n-(m-1))];return {kept,hidden:all.filter(i=>!kept.includes(i))}};for(const [n,m] of [[3,4],[4,4],[6,4],[6,0],[6,1],[5,2.5]]){const r=keep(n,m);console.log(n,m,"kept",r.kept.join(" "),"hidden",r.hidden.join(" ")||"none")}'
+```
+
+W2. The method of `page-range-1`. Input: `[page, total, siblingCount]`: `paginationFixtures` (`[5, 12, 1]`), then the edge cases around K-0327's three branches and its threshold of 7. Expected output, `...` standing for a gap slot, no rounding:
+
+```text
+5/12 s1: 1 ... 4 5 6 ... 12
+1/12 s1: 1 2 3 4 5 ... 12
+3/12 s1: 1 2 3 4 5 ... 12
+4/12 s1: 1 ... 3 4 5 ... 12
+9/12 s1: 1 ... 8 9 10 ... 12
+10/12 s1: 1 ... 8 9 10 11 12
+12/12 s1: 1 ... 8 9 10 11 12
+3/7 s1: 1 2 3 4 5 6 7
+3/8 s1: 1 2 3 4 5 ... 8
+1/8 s0: 1 2 3 ... 8
+```
+
+```bash
+node -e 'const seq=(a,b)=>Array.from({length:b-a+1},(_,i)=>a+i);const range=(p,t,s=1)=>{if(2*s+5>=t)return seq(1,t);const l=Math.max(p-s,1),r=Math.min(p+s,t),b=2*s+3;if(l<=2)return [...seq(1,b),"...",t];if(r>=t-1)return [1,"...",...seq(t-b+1,t)];return [1,"...",...seq(l,r),"...",t]};for(const [p,t,s] of [[5,12,1],[1,12,1],[3,12,1],[4,12,1],[9,12,1],[10,12,1],[12,12,1],[3,7,1],[3,8,1],[1,8,0]])console.log(p+"/"+t+" s"+s+":",range(p,t,s).join(" "))'
+```
+
+W3. The width behind `page-form-1`. Input: `nav-item.height` references `{size.control.md}` (`component.json` line 429), which references `{size.10}` (`semantic.json` line 857), value `40px` (`primitives.json` line 531); `space.inline.sm` references `{space.1}` (`semantic.json` line 812), value `4px` (`primitives.json` line 465). The row at `siblingCount` 1 holds 7 slots (`page-range-1`) plus Previous and Next: 9 controls with 8 gaps between them, at the digit widths of one or two digits. Expected output, px, no rounding: `40 4 392 false true`: control, gap, row, whether it fits a 360 px frame, whether it fits a 480 px one. The row does not fit at 360, so a narrow form is needed; it fits at the 480 px edge, with 88 px spare for wider digits.
+
+```bash
+node -e 'const c=require("./packages/design-system/src/tokens/source/component.json"),s=require("./packages/design-system/src/tokens/source/semantic.json"),p=require("./packages/design-system/src/tokens/source/primitives.json");const at=(o,r)=>r.replace(/[{}]/g,"").split(".").reduce((a,k)=>a[k],o).$value;const h=parseFloat(at(p,at(s,c["nav-item"].height.$value)));const g=parseFloat(at(p,s.space.inline.sm.$value));const row=9*h+8*g;console.log(h,g,row,row<=360,row<=480)'
+```
+
+W4. The method `clampPage` of `page-bounds-1`. Input: `[page, total]`: `[5, 12]`, `[0, 12]`, `[99, 12]`, `[NaN, 12]`, `[2.5, 12]`. Expected output, one line per case as `page total shown`, no rounding: `5 12 5`, `0 12 1`, `99 12 12`, `NaN 12 1`, `2.5 12 1`.
+
+```bash
+node -e 'const clamp=(p,t)=>Number.isInteger(p)?Math.min(Math.max(p,1),t):1;for(const [p,t] of [[5,12],[0,12],[99,12],[NaN,12],[2.5,12]])console.log(p,t,clamp(p,t))'
+```
+
+W5. The strings of `page-api-1` and `nav-copy-1`. Input: `fill` as `src/i18n/messages/index.ts` lines 29 to 35 writes it, `paginationFixtures.hrefPattern` and the `pagination.page` and `pagination.status` rows of the Copy table. Expected output, five lines: `#page-6`, `หน้า 6`, `Page 6`, `หน้า 5 จาก 12`, `Page 5 of 12`.
+
+```bash
+node -e 'const fill=(t,p={})=>t.replace(/\{([a-zA-Z0-9_]+)\}/g,(_,n)=>{const v=p[n];if(v===undefined)throw new Error(n);return String(v)});console.log(fill("#page-{page}",{page:6}));console.log(fill("หน้า {page}",{page:6}));console.log(fill("Page {page}",{page:6}));console.log(fill("หน้า {page} จาก {total}",{page:5,total:12}));console.log(fill("Page {page} of {total}",{page:5,total:12}))'
+```
+
+## Open questions (each with a default)
+
+The rules above are written at these defaults. Each is for the designer, with G2 passed under the owner's delegation (ADR 0012 decision 4); a default that changes bumps this spec, and the Impact cell says what moves.
+
+<!-- prettier-ignore -->
+| # | Question | Options | Default | Impact if another option wins |
+| --- | --- | --- | --- | --- |
+| 1 | The current crumb | (a) a non-link with `aria-current="page"` (K-0333, K-0337 step 5 and Example 1); (b) a real link with `aria-current="page"`, as the APG example does (K-0334, K-0337 step 6); (c) Untitled's link that is disabled and cannot be focused (K-0322), for which the page gives no reason, so this is a question and not a fault found (K-0339); (d) shadcn's `span` with `role="link"` (K-0324) | (a), `crumb-current-1`: the page goes nowhere, so it costs no Tab stop | (b) adds a Tab stop and an `href` on `BreadcrumbPage`: rows 2, 4, 12 |
+| 2 | The current page's look | (a) `--cmp-nav-item-*-active` plus a neutral edge; (b) `surface.selected` and `selection.fg`. DESIGN.md section 7 lists `selected` for options, rows and tabs, and ARIA says `aria-current` is not a substitute for `aria-selected` (K-0336, K-0339) | (a), `crumb-look-1`, `page-current-1` | (b) changes the pairs and needs a DESIGN.md section 7 line: rows 2, 23, 32 |
+| 3 | The ink of a crumb link and a page number | (a) `--cmp-nav-item-fg`, the token family made for navigation; (b) `text.link`, which DESIGN.md section 8 names for "go somewhere" and section 3.1 for "links in running text" (K-0339) | (a), `crumb-look-1`: a trail is not running text. DESIGN.md section 2 says violet also does the work of links, so (b) stays a real option | (b) changes the pairs: rows 2, 5 |
+| 4 | Pagination items | (a) links through a URL (K-0330, K-0335 "groups (e.g. lists) of links", H97 in K-0338); (b) real `button`s with `onPageChange`, in a real list (K-0326, K-0328); (c) both. Whether decision-log pages have URLs is not settled by any source (K-0339), and no such route exists yet | (a), `page-api-1`: the page is a place you can link to and go back to | (b) replaces `hrefPattern` and `linkAs`: `page-api-1`, `page-ends-1`, rows 22, 25, 33. A list screen with no URL would need (b) or (c) |
+| 5 | Collapse, and what the ellipsis opens | (a) a count prop, expanding in place (K-0321); (b) a count prop opening a `DropdownMenu` (K-0325); (c) hand composition, with the caller placing the ellipsis (K-0325) | (a), `crumb-collapse-1`, `crumb-expand-1`: real links stay real, and no portal comes in | (b) needs `DropdownMenuItem` to render a link, a public API change to a stable component, with `InsideProfile` and a Drawer question below it: rows 6 to 8 |
+| 6 | The missing glyphs | (a) add Lucide `Ellipsis`, `ChevronLeft`, `ChevronRight` to `icons.tsx` (DESIGN.md section 6, K-0339); (b) draw them | (a), `nav-glyphs-1` | (b) is against section 6's order while Lucide has them |
+| 7 | The separator | (a) a slash with spaces (K-0320 `divider="slash"`, DESIGN.md section 10); (b) a chevron, Untitled's default (K-0320) and shadcn's (K-0323), which needs a reading that section 10 covers text only | (a), `crumb-markup-1` | (b) adds `ChevronRightIcon` to the first PR: rows 1, 3 |
+| 8 | How the work splits | (a) two PRs, Breadcrumb first, since it carries the collapsed trail story the audit names (K-0321) and Pagination's range is separate work (K-0327); (b) one PR; (c) three PRs, the trail, then its collapse, then Pagination | (a), "Rows per PR" | (c) brings each near the 400-line guide, at the cost of one more review pass; rows move, none changes |
+| 9 | A long crumb | (a) cut at the end of its line (K-0325); (b) wrap with the text whole, as shadcn's list does for a trail (K-0323) | (a), `crumb-cut-1` | (b) swaps the check to `expectLinesClear`: rows 15, 16 |
+| 10 | Previous and Next at the ends | (a) disabled in place (K-0328); (b) left as links, as the shadcn lines read name no disabled prop (K-0330); (c) removed | (a), `page-ends-1`: the row does not shift, and a link to nowhere is not offered | (c) moves the row between pages: rows 26, 27, 35, 36 |
+| 11 | The small-frame form, and words on Previous and Next | (a) the status replaces the numbers (K-0326), with chevrons alone at every width; (b) the same, with the words shown at 480 px and up (K-0326, K-0330); (c) a smaller `siblingCount` at narrow widths | (a), `page-form-1`, `page-ends-1`: W3's sum holds. No word width was measured | (b) widens the row past W3's sum, so its edge moves: W3, rows 22, 39 |
+
+## Depends on
+
+- `docs/knowledge/design/K-0320` to `K-0338` and their synthesis K-0339 (benchmark, standards, open points, what was not read).
+- `docs/specs/ORV-64/audit.md` section B (table form) and section D.3 row 26 (the story and its done-when).
+- `DESIGN.md` section 4 (Thai, clip-box rule), section 6 (icons), section 7 (states), section 8 (colour roles), section 10 (separators, copy), section 11 (design gate).
+- `.claude/rules/design-system.md` ("Components": benchmark table, Thai and English stories, Recipes and modes, sign-off; "Tokens and layers"); `.claude/rules/testing.md` (visual helpers).
+- ORV-137 comment 10247 (the benchmark table in POC mode); ORV-138 `qa-scope-1` (the Rows per PR form).
+- ADR 0003 (behaviour layer, own recipes, Storybook as the catalog), ADR 0012 (gates). shadcn's Breadcrumb and Pagination wrap no Radix primitive beyond Slot (K-0323, K-0330), so native `nav`, `ol`, `ul` and `a` plus Slot are the behaviour layer here.
+- PR 186 (`expectFrameCutsNoInk`), for rows 15, 16, 37 and 38.
+- `docs/specs/ORV-203/spec.md` and `docs/specs/ORV-217/spec.md` (the spec shape; `copy-name-1` on the Thai name).
+
+## Changelog
+
+- v1.0 (2026-11-06): first version, from K-0320 to K-0339 and audit D.3 row 26. Downstream to review: the designer envelope (open questions 1 to 11, the Copy table read aloud), the builder envelopes (rows 1 to 21, then rows 22 to 44), the qa envelopes (the Rows per PR lines once each PR exists), `catalog/coverage.md`.
