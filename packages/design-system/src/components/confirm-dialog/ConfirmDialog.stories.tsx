@@ -60,6 +60,8 @@ function gate() {
   );
   return {
     onConfirm,
+    /** How many presses wait for an answer: a story that lands on pending leaves them all waiting. */
+    held: () => waiting.length,
     settle: (result: ConfirmResult) => waiting.shift()?.resolve(result),
     fail: (error: unknown) => waiting.shift()?.reject(error),
     reset: () => {
@@ -321,6 +323,16 @@ const sizesOf = (panel: HTMLElement) => ({
   footer: rect(partsOf(panel).footer).height,
 });
 
+/**
+ * The trigger behind an open panel is named after the outcome of the same kind (accept words behind
+ * an accept panel, never "delete" behind it). The modal hides it from the tree, so `hidden` reads it.
+ */
+async function expectTriggerNamed(canvasElement: HTMLElement, name: string) {
+  await expect(
+    within(canvasElement).getByRole("button", { name, hidden: true }),
+  ).toBeInTheDocument();
+}
+
 /** The status line outside every button and every `aria-busy` (AC 8). */
 async function expectStatus(panel: HTMLElement, text: string) {
   const { status } = partsOf(panel);
@@ -362,8 +374,9 @@ export const Pending: Story = {
     await expect(sizesOf(panel)).toEqual(before);
     expectSameHeight(cancel, confirm);
     await expectStatus(panel, copy.pending);
-    held.settle(failed("delete"));
-    await waitFor(() => expect(status).toBeEmptyDOMElement());
+    // The promise stays held: the spinner is what the story shows when it is opened. `Failed` checks
+    // the status line after the promise settles.
+    await expect(held.held()).toBe(1);
   },
 };
 
@@ -392,11 +405,17 @@ export const PressFocus: Story = {
 
 /** Accept, pending: as `Pending`, with the accept words (AC 9). */
 export const AcceptPending: Story = {
-  args: { ...copyFor("accept"), defaultOpen: true, onConfirm: held.onConfirm },
-  play: async ({ args }) => {
+  args: {
+    ...copyFor("accept"),
+    trigger: triggerOf("accept"),
+    defaultOpen: true,
+    onConfirm: held.onConfirm,
+  },
+  play: async ({ canvasElement, args }) => {
     held.reset();
     const copy = confirmFixtures.th.accept;
     const panel = await openPanel();
+    await expectTriggerNamed(canvasElement, copy.confirm);
     const { cancel, confirm, close, status } = partsOf(panel);
     const before = sizesOf(panel);
     await expect(status).toBeEmptyDOMElement();
@@ -413,7 +432,8 @@ export const AcceptPending: Story = {
     await expect(sizesOf(panel)).toEqual(before);
     expectSameHeight(cancel, confirm);
     await expectStatus(panel, copy.pending);
-    held.settle(failed("accept"));
+    // The promise stays held, as in `Pending`; `AcceptFailed` checks the status line after it settles.
+    await expect(held.held()).toBe(1);
   },
 };
 
@@ -484,6 +504,8 @@ export const Failed: Story = {
     held.reset();
     const panel = await pressAndFail("delete", failed("delete"));
     await expectFailed(panel, confirmFixtures.th.delete.failed, args);
+    // Row 8: once the promise settles the status line is empty again.
+    await waitFor(() => expect(partsOf(panel).status).toBeEmptyDOMElement());
   },
 };
 
@@ -530,11 +552,19 @@ export const FailureClears: Story = {
 
 /** Accept, failed: as `Failed`, with the accept words (AC 14). */
 export const AcceptFailed: Story = {
-  args: { ...copyFor("accept"), defaultOpen: true, onConfirm: held.onConfirm },
-  play: async ({ args }) => {
+  args: {
+    ...copyFor("accept"),
+    trigger: triggerOf("accept"),
+    defaultOpen: true,
+    onConfirm: held.onConfirm,
+  },
+  play: async ({ canvasElement, args }) => {
     held.reset();
     const panel = await pressAndFail("accept", failed("accept"));
+    await expectTriggerNamed(canvasElement, confirmFixtures.th.accept.confirm);
     await expectFailed(panel, confirmFixtures.th.accept.failed, args);
+    // Row 9: once the promise settles the status line is empty again.
+    await waitFor(() => expect(partsOf(panel).status).toBeEmptyDOMElement());
   },
 };
 
@@ -694,6 +724,26 @@ export const MissingValue: Story = {
   },
 };
 
+/** The English twin of `MissingValue`: the same state, the English line in the description (AC 18, 19). */
+export const MissingValueEn: Story = {
+  decorators: [(Story) => <LocaleProvider locale="en">{Story()}</LocaleProvider>],
+  args: {
+    ...copyFor("delete", "en"),
+    trigger: triggerOf("delete", "en"),
+    impact: fixtures.missing,
+  },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(
+      within(canvasElement).getByRole("button", { name: confirmFixtures.en.delete.confirm }),
+    );
+    const panel = await openPanel();
+    await expect(panel).toHaveAccessibleDescription(
+      "No details on what this affects. Check before you confirm",
+    );
+    await expect(panel.textContent).not.toMatch(/[฀-๿]/);
+  },
+};
+
 const ENGLISH = [
   ["delete", "open"],
   ["delete", "pending"],
@@ -832,8 +882,10 @@ export const LongContentAt360: Story = {
     await expect(Math.abs(rect(confirm).top - rect(cancel).bottom - 8)).toBeLessThanOrEqual(0.5);
     await expect(Math.abs(rect(confirm).left - rect(cancel).left)).toBeLessThanOrEqual(0.5);
     if (inVitest) {
-      // Not the failure line: `.ds-dialog__error` is 14 / 1.7 and its Thai stacks touch (0 px apart),
-      // as the Dialog `ErrorState` does too. A type fix, reported apart from this story.
+      // Not the failure line: `expectLinesClear` reads the Thai stacks of `.ds-dialog__error` (14 / 1.7)
+      // as 0 px apart, but the designer's ink probe (ORV-226-signoff-1, DPR 1, 2 and 4) found at least
+      // 5.5 px clear between its two lines. The touch is a reading of the helper, not shown in ink,
+      // so the line is left out here and not claimed as a defect.
       for (const el of [title, impact]) await expectLinesClear(el);
       for (const el of [cancel, confirm]) await expectLabelInkWhole(el);
       for (const el of [title, impact, alert, cancel, confirm]) {
@@ -1065,6 +1117,13 @@ export const ShapeHolds: Story = {
         ).toBeLessThanOrEqual(0.5);
       }
     }
-    frames.forEach(() => held.settle({ status: "done" }));
+    // The promises stay held: every panel is open and pending when the story is opened, so the
+    // shape shows. Settling them done would close all three.
+    await expect(held.held()).toBe(frames.length);
+    for (const frame of frames) {
+      const panel = within(frame).getByRole("alertdialog");
+      await expect(panel).toBeVisible();
+      await expect(partsOf(panel).confirm).toHaveAttribute("aria-busy", "true");
+    }
   },
 };
