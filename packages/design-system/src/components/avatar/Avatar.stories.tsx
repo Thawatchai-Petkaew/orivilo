@@ -6,6 +6,8 @@ import {
   expectInkCentred,
   expectLinesClear,
   expectNoGlyphClip,
+  expectPaintHolds,
+  expectSamePaint,
   inVitest,
 } from "../../testing/visual-asserts";
 import { Button } from "../button/Button";
@@ -286,6 +288,12 @@ export const Sizes: Story = {
     await expectInkCentred(canvasElement, initialBoxes(canvas.getByTestId("row-initials")), {
       measure: "body",
     });
+    // The edge holds at sub-pixel positions (R1). It moves the discs, so it runs last.
+    await expectPaintHolds(
+      canvas.getByTestId("row-picture").parentElement as HTMLElement,
+      discs(canvasElement),
+      [0.25, 0.5, 0.75],
+    );
   },
 };
 
@@ -312,7 +320,12 @@ export const BesideName: Story = {
     }
     await expect(canvas.queryByRole("img")).toBeNull();
     await expect(canvas.getAllByText(a.name)).toHaveLength(3);
-    await expect(canvas.getByRole("link", { name: a.name })).toBeInTheDocument();
+    const link = canvas.getByRole("link", { name: a.name });
+    await expect(link).toBeInTheDocument();
+    // The link draws a line; the name keeps it and the letter in the disc does not (R2).
+    await expect(getComputedStyle(link).textDecorationLine).toBe("underline");
+    if (!inVitest) return; // the screenshot needs Vitest browser mode
+    await expectSamePaint(canvasElement, roots[1] as HTMLElement, roots[2] as HTMLElement);
   },
 };
 

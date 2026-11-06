@@ -1501,7 +1501,8 @@
 }
 
 /* Avatar (ORV-224). Round under each profile by clip, the form Skeleton's circle uses. No border,
- * no shadow, no motion. `overflow` adds no look; the clip checks read it. */
+ * no shadow, no motion. `overflow` adds no look; the clip checks read it. `contain: paint` keeps
+ * the round edge at a sub-pixel position, where the clip alone leaves a flat top (R1). */
 .ds-avatar {
   display: inline-block;
   flex: none;
@@ -1510,6 +1511,7 @@
   block-size: var(--ds-size-control-md);
   overflow: hidden;
   clip-path: circle(50%);
+  contain: paint;
   background: var(--cmp-avatar-bg);
 }
 .ds-avatar[data-size="sm"] {
@@ -1522,8 +1524,10 @@
   block-size: 100%;
   object-fit: cover;
 }
+/* An atomic inline: a line a flex or grid link draws does not enter it (R2). */
 .ds-avatar__fallback {
-  display: flex;
+  display: inline-flex;
+  vertical-align: top;
   align-items: center;
   justify-content: center;
   inline-size: 100%;

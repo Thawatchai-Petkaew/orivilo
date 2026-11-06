@@ -1,8 +1,8 @@
 /**
  * The initials of a person's name (spec ORV-224, `avatar-initials-1`). Rule-based and pure; an
  * empty string means no initials. No read source gives a rule for Thai (K-0202): this is the
- * spec's default, and a Thai reader confirms it at sign-off. Thai ranges are written as escapes
- * because `check-i18n` fails on a Thai character outside the catalog.
+ * spec's default, and the owner accepted it as built (ORV-224 comment 10529). Thai ranges are
+ * written as escapes because `check-i18n` fails on a Thai character outside the catalog.
  */
 const LETTER = /\p{L}/u;
 const THAI_SCRIPT = /\p{Script=Thai}/u;
