@@ -1257,3 +1257,77 @@ export async function expectLabelInkWhole(el: HTMLElement, sample = "ฟื้�
     clone.remove();
   }
 }
+
+/**
+ * The first pixel of `a` more than `INK_DISTANCE` from the same pixel of `b`, as `[x, y]` in
+ * device pixels, or null when the two shots show the same ink. Both must cover the same region.
+ */
+export function firstInkDifference(
+  a: readonly (readonly Rgb[])[],
+  b: readonly (readonly Rgb[])[],
+): readonly [x: number, y: number] | null {
+  for (let y = 0; y < Math.min(a.length, b.length); y++) {
+    const rowA = a[y] ?? [];
+    const rowB = b[y] ?? [];
+    const x = rowB.findIndex((px, i) => rowA[i] && distance(px, rowA[i] as Rgb) > INK_DISTANCE);
+    if (x !== -1) return [x, y];
+  }
+  return null;
+}
+
+/**
+ * Asserts nothing from `el` up to and including `frame` clips ink (ORV-222 rows 4 and 18): the
+ * frame is shot twice over its box and 8 CSS px past it on every side, once as shipped and once
+ * with `overflow: visible` set inline on `el` and on every ancestor up to `frame`. Any pixel more
+ * than `INK_DISTANCE` from the same pixel of the other shot is ink a clip cut. The region reaches
+ * past the frame because a clip cuts ink outside its own box, so a shot of the frame alone would
+ * match. `expectLabelInkWhole` cannot see this: it forces only its own clone visible, so a clip
+ * from an ancestor cuts both its shots alike. The inline values are put back in `finally`. It runs
+ * where Vitest browser mode runs; a play guards the call with `inVitest`.
+ */
+export async function expectFrameCutsNoInk(el: HTMLElement, frame: HTMLElement) {
+  const reach = 8;
+  const chain: HTMLElement[] = [];
+  for (let node: HTMLElement | null = el; node; node = node === frame ? null : node.parentElement) {
+    chain.push(node);
+  }
+  if (!chain.includes(frame)) throw new Error(`${label(frame)} is not an ancestor of ${label(el)}`);
+  const region = async () => {
+    const scope = scopeHolding(frame, reach);
+    const { data, width } = await shoot(scope);
+    const origin = scope.getBoundingClientRect();
+    const rect = frame.getBoundingClientRect();
+    const scale = width / origin.width;
+    const top = Math.round((rect.top - reach - origin.top) * scale);
+    const bottom = Math.round((rect.bottom + reach - origin.top) * scale);
+    const left = Math.round((rect.left - reach - origin.left) * scale);
+    const right = Math.round((rect.right + reach - origin.left) * scale);
+    const rows: Rgb[][] = [];
+    for (let y = top; y < bottom; y++) {
+      const row: Rgb[] = [];
+      for (let x = left; x < right; x++) {
+        const at = (y * width + x) * 4;
+        row.push([data[at] ?? 0, data[at + 1] ?? 0, data[at + 2] ?? 0]);
+      }
+      rows.push(row);
+    }
+    return { rows, scale };
+  };
+  const shipped = await region();
+  const inline = chain.map((node) => node.style.overflow);
+  try {
+    for (const node of chain) node.style.overflow = "visible";
+    const visible = await region();
+    const at = firstInkDifference(shipped.rows, visible.rows);
+    const x = at ? Math.round((at[0] / shipped.scale - reach) * 100) / 100 : 0;
+    const y = at ? Math.round((at[1] / shipped.scale - reach) * 100) / 100 : 0;
+    expect(
+      at,
+      `${label(frame)} or an ancestor of ${label(el)} cuts ink: the pixel at x ${x}, y ${y} px from the frame's top left shows with overflow visible and not as shipped`,
+    ).toBeNull();
+  } finally {
+    chain.forEach((node, i) => {
+      node.style.overflow = inline[i] ?? "";
+    });
+  }
+}
