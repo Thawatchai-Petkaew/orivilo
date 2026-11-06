@@ -16,6 +16,12 @@ export {
 } from "./card/Card";
 export { Checkbox, type CheckboxProps, type CheckedState } from "./checkbox/Checkbox";
 export {
+  Combobox,
+  type ComboboxGroup,
+  type ComboboxOption,
+  type ComboboxProps,
+} from "./combobox/Combobox";
+export {
   Collapsible,
   CollapsibleContent,
   type CollapsibleContentProps,

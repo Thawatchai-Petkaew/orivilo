@@ -21,6 +21,16 @@ export const en: Messages = {
     placeholder: "Choose",
     empty: "No options",
   },
+  combobox: {
+    prompt: "Type to search",
+    list: "Options",
+    open: "Show options",
+    close: "Hide options",
+    clear: "Clear the choice",
+    countOne: "1 result",
+    count: "{count} results",
+    empty: 'No match for "{query}". Try another word.',
+  },
   table: {
     loading: "Loading",
     missing: "No data",
