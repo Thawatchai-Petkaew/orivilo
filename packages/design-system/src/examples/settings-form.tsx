@@ -10,6 +10,8 @@ import {
   PopoverClose,
   PopoverContent,
   PopoverTrigger,
+  RadioGroup,
+  RadioGroupItem,
   Select,
   Tabs,
   TabsContent,
@@ -18,7 +20,7 @@ import {
   Textarea,
   Tooltip,
 } from "../components/index";
-import { fixtureOptions, fixtures } from "../components/fixtures";
+import { fixtureOptions, fixtures, radioFixtures } from "../components/fixtures";
 
 /**
  * Base tier page example (E2-7): a settings form composed from the public components only.
@@ -26,7 +28,9 @@ import { fixtureOptions, fixtures } from "../components/fixtures";
  */
 export interface SettingsFormProps {
   /** Messages from a failed save; each sits on its field and says how to fix it. */
-  errors?: { name?: string | undefined; profile?: string | undefined } | undefined;
+  errors?:
+    | { name?: string | undefined; profile?: string | undefined; access?: string | undefined }
+    | undefined;
   /** The save is in flight: the primary shows loading and every control is disabled. */
   saving?: boolean | undefined;
 }
@@ -135,6 +139,31 @@ export function SettingsForm({ errors, saving = false }: SettingsFormProps) {
               required
             >
               <Select options={fixtureOptions} placeholder="เลือก profile" disabled={saving} />
+            </Field>
+
+            <Field
+              group
+              label={radioFixtures.label}
+              description={radioFixtures.help}
+              error={errors?.access}
+            >
+              <RadioGroup defaultValue="members" disabled={saving}>
+                <RadioGroupItem
+                  value="members"
+                  label={radioFixtures.members}
+                  description={radioFixtures.membersHelp}
+                />
+                <RadioGroupItem
+                  value="organization"
+                  label={radioFixtures.organization}
+                  description={radioFixtures.organizationHelp}
+                />
+                <RadioGroupItem
+                  value="link"
+                  label={radioFixtures.link}
+                  description={radioFixtures.linkHelp}
+                />
+              </RadioGroup>
             </Field>
 
             <Checkbox

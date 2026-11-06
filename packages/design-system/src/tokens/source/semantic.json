@@ -771,6 +771,13 @@
         "$value": "{radius.4}",
         "$description": "Checkboxes and small chips inside controls"
       }
+    },
+    "round": {
+      "radius": {
+        "$type": "dimension",
+        "$value": "{radius.full}",
+        "$description": "A radio circle: round in every profile, because a rounded square reads as a checkbox. No profile overrides it"
+      }
     }
   },
   "space": {
