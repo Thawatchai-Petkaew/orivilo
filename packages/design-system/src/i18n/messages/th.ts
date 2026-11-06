@@ -38,6 +38,9 @@ export const th = {
     arrowLeft: "ลูกศรซ้าย",
     arrowRight: "ลูกศรขวา",
   },
+  alert: {
+    dismiss: "ปิดข้อความนี้",
+  },
   toast: {
     region: "การแจ้งเตือน",
     dismiss: "ปิดการแจ้งเตือน",

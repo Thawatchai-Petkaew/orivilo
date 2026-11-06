@@ -34,6 +34,9 @@ export const en: Messages = {
     arrowLeft: "Arrow left",
     arrowRight: "Arrow right",
   },
+  alert: {
+    dismiss: "Dismiss this message",
+  },
   toast: {
     region: "Notifications",
     dismiss: "Dismiss",

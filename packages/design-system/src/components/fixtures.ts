@@ -219,6 +219,66 @@ export const fixtureTaskJobsEn: readonly TaskJob[] = [
   { id: "job-done", name: "Summarise the client brief", basis: "rules", state: "done" },
 ];
 
+/** The failed job of the English task-bar fixtures: its reason is the `danger` Alert description. */
+const failedJobEn = fixtureTaskJobsEn[0];
+
+/**
+ * Alert story copy (ORV-222): the caller's title, description and action per feedback kind, in Thai
+ * and English, and the two controls the interaction stories use. They are not catalog keys, and the
+ * jobs they describe are mock: nothing here ran. The `danger` description is the failed task-bar
+ * job's reason, so the two components say the same thing.
+ */
+export const alertFixtures = {
+  th: {
+    success: {
+      title: featuredIconFixtures.th.success,
+      description: "ดูผลลัพธ์ได้ที่โหนดหน้าแรก",
+      action: "ดูผลลัพธ์",
+    },
+    warning: {
+      title: featuredIconFixtures.th.warning,
+      description: "โหนดแบรนด์เปลี่ยนแล้ว รันโหนดนี้อีกครั้งเพื่ออัปเดตผล",
+      action: "รันอีกครั้ง",
+    },
+    danger: {
+      title: featuredIconFixtures.th.danger,
+      description: fixtureJobs.failed.reason,
+      action: "ลองอีกครั้ง",
+    },
+    info: {
+      title: featuredIconFixtures.th.info,
+      description: "แก้ข้อมูลในโหนดแบรนด์ แล้วรันอีกครั้งเพื่อเปลี่ยนผล",
+      action: "เปิดโหนดแบรนด์",
+    },
+    trigger: "แสดงข้อความ",
+    next: "งานถัดไป",
+  },
+  en: {
+    success: {
+      title: featuredIconFixtures.en.success,
+      description: "See the result in the home page node",
+      action: "View the result",
+    },
+    warning: {
+      title: featuredIconFixtures.en.warning,
+      description: "The brand node changed. Run this node again to update the result",
+      action: "Run again",
+    },
+    danger: {
+      title: featuredIconFixtures.en.danger,
+      description: failedJobEn?.state === "failed" ? failedJobEn.reason : "",
+      action: "Retry",
+    },
+    info: {
+      title: featuredIconFixtures.en.info,
+      description: "Edit the brand node, then run it again to change the result",
+      action: "Open the brand node",
+    },
+    trigger: "Show the message",
+    next: "Next job",
+  },
+} as const;
+
 /** Twelve jobs so the list has to scroll inside the bar. */
 export const fixtureManyJobs: readonly TaskJob[] = Array.from({ length: 12 }, (_, i): TaskJob => ({
   id: `job-many-${i}`,
