@@ -2,7 +2,7 @@
 issue: ORV-216 (https://tpetkaew.atlassian.net/browse/ORV-216)
 lane: S (no risk flag: no token name or value, no component API, no resolver logic changes)
 mode: POC mode short spec (`.claude/skills/ovl/SKILL.md`, section "POC mode")
-version: 1.1
+version: 1.2
 depends on: ORV-52 (PR 180, the `orivilo` brand profile and `BRAND_PROFILES`)
 ---
 
@@ -44,13 +44,13 @@ No product UI changes, so no new copy. `P` is the pair count `pnpm contrast` pri
 
 ## Rows per PR
 
-- PR 183: rows 1 to 9
+- PR 183: rows 1-9
 
 ## Rows that render nothing
 
-- Rows: 1 to 9 (this PR renders nothing: a script, a test, token descriptions, a catalog note, a rules line and docs)
+- Rows: 1-9
 
-The only text that changes where a person can read it is Storybook docs text: the two `$description` strings show in the Semantic foundations table, read from `semantic.json`, so no stories file changes. No layout, colour, component or app page changes; row 8 checks the text by command.
+This PR renders nothing: a script, a test, token descriptions, a catalog note, a rules line and docs. The only text that changes where a person can read it is Storybook docs text: the two `$description` strings show in the Semantic foundations table, read from `semantic.json`, so no stories file changes. No layout, colour, component or app page changes; row 8 checks the text by command.
 
 ## Rewording list (`orv216-words-1`)
 
@@ -119,3 +119,4 @@ None open.
 
 - 1.0 (2026-11-06): first version.
 - 1.1 (2026-11-06): two main-session decisions on ORV-216-spec-1. w-13 (`Logo.stories.tsx:18`) leaves this PR for one follow-up issue with `profiles.stories.tsx:212`, so the PR changes no stories file: the rewording list holds w-1 to w-12, row 8 expects the one w-13 line and 12 places, Rows that render nothing drops the story text. `.claude/rules/design-system.md:20` is fixed in this PR: row 7 gains its check and new sentence, and the rules file joins the files this PR changes. Open question 1 closes on (a). Rows 1 to 6 and `orv216-sets-1` are unchanged. Review downstream: the builder envelope for rows 7 and 8 (add the rules line, do not edit `Logo.stories.tsx`), the qa walk of rows 7 and 8, and the follow-up issue to be raised for the two stories files.
+- 1.2 (2026-11-06): form only, by the main session. The two row lists take the form the result recorder reads (numbers and `a-b` ranges split by commas): "rows 1 to 9" becomes "rows 1-9", and the note that followed the Rows list moves into the paragraph under it. No row, rule or check changes.
