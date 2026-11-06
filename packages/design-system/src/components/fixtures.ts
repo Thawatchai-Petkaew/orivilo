@@ -51,6 +51,28 @@ export const collapsibleFixtures = {
 } as const;
 
 /**
+ * Avatar story content (ORV-224): MOCK people. The names are invented and no real person's photo
+ * is used. `picture` is a drawn stand-in (a head and shoulders of two flat shapes) as an inline
+ * SVG `data:` URI; its colours are picture content, not style values. `brokenPicture` is a PNG
+ * `data:` URI that cannot decode, so a failed load needs no network. Both pass the CSP `img-src`.
+ */
+const PICTURE_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><rect width="96" height="96" fill="#2F6F73"/><circle cx="48" cy="38" r="18" fill="#DCE9E4"/><path d="M12 96a36 34 0 0 1 72 0z" fill="#DCE9E4"/></svg>';
+
+export const avatarFixtures = {
+  name: "สมชาย ใจดี",
+  nameEn: "Anong Srisuk",
+  /** Opens with a leading vowel before its consonant, a name whose first letter is not its first character. */
+  namePreBase: "ไพลิน ศรีสุข",
+  menuLabel: "เปิดเมนูบัญชีของสมชาย ใจดี",
+  menuLabelEn: "Open the account menu for Anong Srisuk",
+  newPicture: "โหลดรูปใหม่",
+  newPictureEn: "Load a new picture",
+  picture: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(PICTURE_SVG)}`,
+  brokenPicture: "data:image/png;base64,AAAA",
+} as const;
+
+/**
  * EvidenceSpan and EvidenceList story content (ORV-211): MOCK evidence items. No brief analyser
  * exists yet, so nothing here was read from a brief by a rule or a model; the `fromModel` flag is a
  * fixture value. A text locator points at the quote's place in `brief` (0 when the quote is not in it).
@@ -254,6 +276,66 @@ export const fixtureTaskJobsEn: readonly TaskJob[] = [
   { id: "job-queued", name: "Build the main palette", basis: "rules", state: "queued" },
   { id: "job-done", name: "Summarise the client brief", basis: "rules", state: "done" },
 ];
+
+/** The failed job of the English task-bar fixtures: its reason is the `danger` Alert description. */
+const failedJobEn = fixtureTaskJobsEn[0];
+
+/**
+ * Alert story copy (ORV-222): the caller's title, description and action per feedback kind, in Thai
+ * and English, and the two controls the interaction stories use. They are not catalog keys, and the
+ * jobs they describe are mock: nothing here ran. The `danger` description is the failed task-bar
+ * job's reason, so the two components say the same thing.
+ */
+export const alertFixtures = {
+  th: {
+    success: {
+      title: featuredIconFixtures.th.success,
+      description: "ดูผลลัพธ์ได้ที่โหนดหน้าแรก",
+      action: "ดูผลลัพธ์",
+    },
+    warning: {
+      title: featuredIconFixtures.th.warning,
+      description: "โหนดแบรนด์เปลี่ยนแล้ว รันโหนดนี้อีกครั้งเพื่ออัปเดตผล",
+      action: "รันอีกครั้ง",
+    },
+    danger: {
+      title: featuredIconFixtures.th.danger,
+      description: fixtureJobs.failed.reason,
+      action: "ลองอีกครั้ง",
+    },
+    info: {
+      title: featuredIconFixtures.th.info,
+      description: "แก้ข้อมูลในโหนดแบรนด์ แล้วรันอีกครั้งเพื่อเปลี่ยนผล",
+      action: "เปิดโหนดแบรนด์",
+    },
+    trigger: "แสดงข้อความ",
+    next: "งานถัดไป",
+  },
+  en: {
+    success: {
+      title: featuredIconFixtures.en.success,
+      description: "See the result in the home page node",
+      action: "View the result",
+    },
+    warning: {
+      title: featuredIconFixtures.en.warning,
+      description: "The brand node changed. Run this node again to update the result",
+      action: "Run again",
+    },
+    danger: {
+      title: featuredIconFixtures.en.danger,
+      description: failedJobEn?.state === "failed" ? failedJobEn.reason : "",
+      action: "Retry",
+    },
+    info: {
+      title: featuredIconFixtures.en.info,
+      description: "Edit the brand node, then run it again to change the result",
+      action: "Open the brand node",
+    },
+    trigger: "Show the message",
+    next: "Next job",
+  },
+} as const;
 
 /** Twelve jobs so the list has to scroll inside the bar. */
 export const fixtureManyJobs: readonly TaskJob[] = Array.from({ length: 12 }, (_, i): TaskJob => ({
