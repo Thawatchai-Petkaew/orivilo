@@ -26,6 +26,6 @@ rules:
   - "Invalid and required sit on the group, never on an item; the error edge stays through hover and focus"
   - "Disabled reads tokens, never opacity; one item can be disabled alone and the arrow keys skip it"
 a11y:
-  - "Role radiogroup with `aria-invalid`, `aria-required` and `aria-disabled` on the group only; each radio is described by its own line"
+  - "Role radiogroup with `aria-invalid` and `aria-required` on the group only; `aria-disabled` sits on the group when it is disabled and on each disabled row (`.ds-radio`), never on a radio; each radio is described by its own line"
   - "Tab enters on the checked radio or the first one; Space checks; ArrowDown and ArrowRight go to the next, ArrowUp and ArrowLeft to the previous, check it and wrap; Enter does nothing"
   - "`sm` keeps a 24 px target around its 16 px circle (WCAG 2.5.8)"
