@@ -128,14 +128,14 @@ All CSS goes in `recipes.css`, after `.ds-menu`, in the block at the end of this
 | `cbx-keys-1` | `scrollIntoView({ block: "nearest" })` on the active option, so the list moves only as far as it must | `.ds-combobox__list` | Row 12 |
 | `cbx-pointer-1` | The hover mark is `data-highlighted`, no separate `:hover` look | None new | Row 10 |
 | `cbx-aria-1` | Option mirrors `Select`: first child `<span>` label; with an icon `<span><span class="ds-menu__option-line"><span class="ds-menu__option-icon" aria-hidden="true">...</span><span class="ds-menu__option-label">...</span></span></span>`; with a description `.ds-menu__option-body` holding the label and `.ds-menu__option-description`; then `<CheckIcon className="size-4 shrink-0" />` when chosen | Chosen and active rule | Rows 5, 11, 16 |
-| `cbx-status-1` | `<div class="ds-menu__empty">{text}</div>` in the popup after the list, with no role. Live region stays as the rule says | `.ds-menu__empty` rules | Rows 14, 15 |
-| `cbx-async-1` | Pending: `<div class="ds-menu__empty"><Spinner decorative size="sm" />{text}</div>`. Error: `<div class="ds-menu__empty" data-tone="error"><WarningIcon aria-hidden />{text}</div>` | `.ds-menu__empty > svg`, `[data-tone="error"]` | Rows 31, 35, 37 |
+| `cbx-status-1` | `<div class="ds-menu__empty"><span>{text}</span></div>` in the popup after the list, with no role. Live region stays as the rule says | `.ds-menu__empty` rules | Rows 14, 15 |
+| `cbx-async-1` | Pending: `<div class="ds-menu__empty"><Spinner decorative size="sm" /><span>{text}</span></div>`. Error: `<div class="ds-menu__empty" data-tone="error"><WarningIcon aria-hidden /><span>{text}</span></div>` | `.ds-menu__empty > svg`, `[data-tone="error"]` | Rows 31, 35, 37 |
 | `cbx-api-1` | Clear: `<Button variant="ghost" size="sm" iconOnly aria-label={...}><CloseIcon className="size-4" /></Button>` before the chevron, tabbable, only with a value and not disabled | Slot rules | Rows 17, 18 |
 | `cbx-target-1` | None | `--_b` | Row 17: 24, 30, 38 px square |
 | `cbx-recipe-1` | As anatomy | Combobox part of the block | Rows 11, 17, 22 |
 | `cbx-stories-1` | Mock note: `<p class="ds-field__description">` as a `Field` child after the control | None | Row 30 |
 | `cbx-ink-1` | Frames as its table says | `.ds-combobox__list` is the clip frame through `overflow-y: auto`. No class in the block adds a clip between a frame and its element | Rows 22, 37, 56 |
-| `ms-api-1` | As anatomy. No `ul` at zero tags. `placeholder` only at zero tags. `onMouseDown` on `.ds-combobox__values`: when `event.target === event.currentTarget`, `preventDefault` and focus the input, since `cursor: text` promises it. Tag size sm in a sm field, md otherwise | MultiSelect part of the block | Rows 43, 54, 56 |
+| `ms-api-1` | As anatomy. No `ul` at zero tags. `placeholder` only at zero tags. `onMouseDown` on `.ds-combobox__values`: when `event.target === event.currentTarget`, `preventDefault` and focus the input, since `cursor: text` promises it. Tag size sm in a sm field, md otherwise | MultiSelect part of the block | Rows 43, 44, 48, 54, 56 |
 | `ms-choose-1` | `aria-multiselectable="true"`. Keep `scrollTop` when the text was already empty (A8) | None | Rows 44, 45 |
 | `ms-keys-1`, `ms-focus-1` | Focus lands on `.ds-tag__remove`, whose own ring shows it. No extra mark on the field | None new | Rows 46 to 48 |
 | `ms-target-1` | `Tag` unchanged | None | Row 54 |
@@ -329,9 +329,9 @@ New: "the input's height equals the tag's: 24, 32 and 32 px".
 
 - A choice that adds a row moves the popup down about 36 px under a resting pointer. It is honest to the layout, and the pointer lands on another row. Multi-row picks by pointer will feel this. Left as it is, since moving the popup above the field or pinning it would hide the field that just changed.
 - Tags grow the field without bound. A limit on visible tags stays with open question 10.
-- `display: contents` on the `ul`: Chromium's accessibility tree keeps the named list and its items (read from an aria snapshot of the render). WebKit was not run. Row 60's addon does not prove this for Safari, so the first Safari run should read it.
+- `display: contents` on the `ul`: Chromium's accessibility tree keeps the named list and its items (read from an aria snapshot of the render). WebKit was not run. Row 60's addon does not prove this for Safari, so `ms-webkit-1` reads it in WebKit before PR C.
 - `field-sizing`: only Chromium was rendered. Without it, by the CSS, the input keeps its least basis and long text scrolls inside it.
-- Static injection means popup collision at the screen's bottom edge was not seen. Row 22 proves the sides at 360 px on the real component.
+- Static injection means popup collision at the screen's bottom edge was not seen. Row 22 proves the sides and the room left at 360 px on the real component.
 
 ## Screens to check in visual QA
 
