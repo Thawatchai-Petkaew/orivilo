@@ -47,6 +47,8 @@ type Story = StoryObj<typeof meta>;
 interface Copy {
   locale: "th" | "en";
   label: string;
+  /** The label of the second field of `Disabled`. */
+  multiLabel: string;
   error: string;
   options: readonly ComboboxOption[];
   prompt: string;
@@ -74,6 +76,7 @@ interface Copy {
 const TH: Copy = {
   locale: "th",
   label: comboboxFixtures.label,
+  multiLabel: comboboxFixtures.multiLabel,
   error: comboboxFixtures.error,
   options: comboboxFixtures.options,
   prompt: "พิมพ์เพื่อค้นหา",
@@ -98,6 +101,7 @@ const TH: Copy = {
 const EN: Copy = {
   locale: "en",
   label: comboboxFixtures.labelEn,
+  multiLabel: comboboxFixtures.multiLabelEn,
   error: comboboxFixtures.errorEn,
   options: comboboxFixtures.optionsEn,
   prompt: "Type to search",
@@ -701,15 +705,36 @@ export const Invalid: Story = invalid.th;
 export const InvalidInEnglish: Story = invalid.en;
 
 const disabled = twin((c) => ({
-  render: (args) =>
-    inField(c, <Combobox {...args} options={c.options} defaultValue={opt(c, "latin")} disabled />),
+  // One form, two disabled fields: by its own prop, and through `Field` (cbx-value-1).
+  render: (args) => (
+    <form className="max-w-md space-y-4">
+      <Field label={c.label}>
+        <Combobox
+          {...args}
+          options={c.options}
+          defaultValue={opt(c, "latin")}
+          name="topic"
+          disabled
+        />
+      </Field>
+      <Field label={c.multiLabel} disabled>
+        <Combobox {...args} options={c.options} defaultValue={opt(c, "latin")} name="topic2" />
+      </Field>
+    </form>
+  ),
   play: async ({ canvasElement }) => {
-    const input = inputOf(canvasElement, c);
-    await expect(input).toBeDisabled();
-    await expect(within(canvasElement).getByRole("button", { name: c.open })).toBeDisabled();
-    await userEvent.click(input);
-    await userEvent.keyboard("{ArrowDown}");
-    await expect(body().queryByRole("listbox")).toBeNull();
+    for (const label of [c.label, c.multiLabel]) {
+      const input = within(canvasElement).getByRole("combobox", { name: label });
+      await expect(input).toBeDisabled();
+      const chevron = input.closest<HTMLElement>(".ds-input-group")?.querySelector("button");
+      await expect(chevron).toBeDisabled();
+      await userEvent.click(input);
+      await userEvent.keyboard("{ArrowDown}");
+      await expect(body().queryByRole("listbox")).toBeNull();
+    }
+    // A disabled field adds no entry to the form's data.
+    const form = canvasElement.querySelector("form") as HTMLFormElement;
+    await expect([...new FormData(form)]).toEqual([]);
   },
 }));
 export const Disabled: Story = disabled.th;

@@ -176,6 +176,8 @@ export const fixtureOptions: readonly FixtureOption[] = [
 export const comboboxFixtures = {
   label: "หัวข้อ",
   labelEn: "Topic",
+  multiLabel: "หัวข้อที่สนใจ",
+  multiLabelEn: "Topics",
   error: "เลือกหัวข้อที่งานนี้สังกัด",
   errorEn: "Choose the topic this work belongs to",
   options: [

@@ -232,7 +232,9 @@ export function Combobox({
               </>
             }
           />
-          {name && current ? <input type="hidden" name={name} value={current.value} /> : null}
+          {name && current && !field.disabled ? (
+            <input type="hidden" name={name} value={current.value} />
+          ) : null}
           <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">
             {text}
           </p>
