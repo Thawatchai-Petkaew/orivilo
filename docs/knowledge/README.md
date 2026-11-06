@@ -238,6 +238,19 @@ Keep this table in step with the folder when you add an entry.
 | [[K-0141-ai-elements-message-action-label-tooltip-and-copy-without-result-state]]       | 0.8        | AI Elements MessageAction: ghost icon-sm, sr-only label; no copied UI |
 | [[K-0142-ai-elements-conversation-scroll-button-unmounts-at-bottom-no-accessible-name]] | 0.8        | AI Elements scroll button: unmounts at bottom, smooth, no name        |
 | [[K-0143-synthesis-chat-copy-action-and-scroll-to-latest-benchmark]]                    | 0.75       | Synthesis: chat copy action and scroll-to-latest benchmark table      |
+| [[K-0158-untitled-ui-alerts-floating-full-width-no-size-no-role]]                       | 0.75       | Untitled alerts: floating, full-width; no size; no role on the page   |
+| [[K-0159-untitled-ui-featured-icon-themes-colors-sizes-no-aria]]                        | 0.8        | Untitled FeaturedIcon: themes, colours, sizes sm to xl; sets no aria  |
+| [[K-0160-shadcn-ui-alert-two-variants-role-alert-in-source-only]]                       | 0.8        | shadcn Alert: default, destructive; role alert in source, not docs    |
+| [[K-0161-shadcn-ui-no-featured-icon-empty-and-item-media-nearest]]                      | 0.75       | shadcn lists no featured icon; EmptyMedia, ItemMedia are nearest      |
+| [[K-0162-wai-aria-1-2-alert-role-assertive-focus-not-required]]                         | 0.8        | role alert: assertive, atomic; focus not required; no forced close    |
+| [[K-0163-wai-aria-apg-alert-no-focus-no-auto-dismiss-load-silent]]                      | 0.8        | APG Alert: no focus change, no auto-dismiss, silent before load ends  |
+| [[K-0164-wcag-2-2-status-messages-alert-for-errors-status-for-results]]                 | 0.8        | SC 4.1.3: status for results, alert for errors; dialogs excluded      |
+| [[K-0165-wcag-aria19-empty-alert-container-before-the-error]]                           | 0.8        | ARIA19: empty role alert container present before the error           |
+| [[K-0166-wcag-aria22-status-role-before-the-message]]                                   | 0.8        | ARIA22: role status set on the container before the message           |
+| [[K-0167-wcag-2-2-use-of-color-visible-alternative]]                                    | 0.8        | SC 1.4.1 (A): colour needs a visible alternative; AT is out of scope  |
+| [[K-0168-wcag-f81-error-fields-by-color-alone]]                                         | 0.8        | F81: error fields marked by colour alone fail SC 1.4.1                |
+| [[K-0169-wcag-2-2-non-text-contrast-graphics-for-understanding]]                        | 0.8        | SC 1.4.11 (AA): 3:1 for graphics required for understanding           |
+| [[K-0170-synthesis-alert-and-featured-icon-benchmark]]                                  | 0.75       | Synthesis: Alert and FeaturedIcon benchmark table, audit B form       |
 | [[K-0204-untitled-ui-sidebar-five-variants-and-item-shape]]                             | 0.75       | Untitled sidebars: 5 variants; widths 280, 280, 68, 276, 276 px       |
 | [[K-0205-untitled-ui-sidebar-nested-details-and-aria-current]]                          | 0.8        | Untitled NavList: details nesting, aria-current, aside with no nav    |
 | [[K-0206-untitled-ui-slim-rail-nav-button-and-hover-panel]]                             | 0.8        | Untitled Slim: NavButton has no aria-current, panel on hover only     |
