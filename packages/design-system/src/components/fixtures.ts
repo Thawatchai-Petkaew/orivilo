@@ -31,6 +31,31 @@ export const collapsibleFixtures = {
 } as const;
 
 /**
+ * RadioGroup story content (ORV-221): the Thai column plays, the `En` keys feed the `InEnglish`
+ * story. Copy is the caller's, not a catalog key.
+ */
+export const radioFixtures = {
+  label: "ใครเข้าเวิร์กสเปซนี้ได้",
+  help: "มีผลกับทุกโปรเจกต์ในเวิร์กสเปซนี้",
+  members: "เฉพาะสมาชิก",
+  membersHelp: "คนที่ทีมเชิญเท่านั้น",
+  organization: "ทุกคนในองค์กร",
+  organizationHelp: "ทุกคนที่ใช้อีเมลขององค์กร",
+  link: "ทุกคนที่มีลิงก์",
+  linkHelp: "ใครก็ตามที่ได้รับลิงก์นี้",
+  error: "เลือกว่าใครเข้าเวิร์กสเปซนี้ได้ก่อนบันทึก",
+  labelEn: "Who can open this workspace",
+  helpEn: "Applies to every project in this workspace",
+  membersEn: "Members only",
+  membersHelpEn: "Only people the team invited",
+  organizationEn: "Everyone in the organization",
+  organizationHelpEn: "Anyone with an organization email",
+  linkEn: "Anyone with the link",
+  linkHelpEn: "Anyone who receives this link",
+  errorEn: "Choose who can open this workspace before you save",
+} as const;
+
+/**
  * EvidenceSpan and EvidenceList story content (ORV-211): MOCK evidence items. No brief analyser
  * exists yet, so nothing here was read from a brief by a rule or a model; the `fromModel` flag is a
  * fixture value. A text locator points at the quote's place in `brief` (0 when the quote is not in it).

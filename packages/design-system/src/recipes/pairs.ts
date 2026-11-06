@@ -349,6 +349,38 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     floor: UI,
   },
   { recipe: "checkbox", slot: "label", fg: "field.label", bg: "ds:surface.canvas", floor: TEXT },
+  // RadioGroup (ORV-221, control-pairs-1)
+  { recipe: "radio", slot: "edge", fg: "radio.border", bg: "radio.bg", floor: UI },
+  {
+    recipe: "radio",
+    slot: "edge on canvas",
+    fg: "radio.border",
+    bg: "ds:surface.canvas",
+    floor: UI,
+  },
+  {
+    recipe: "radio",
+    slot: "checked edge on canvas",
+    fg: "radio.border-checked",
+    bg: "ds:surface.canvas",
+    floor: UI,
+  },
+  {
+    recipe: "radio",
+    slot: "checked edge on card",
+    fg: "radio.border-checked",
+    bg: "ds:surface.card",
+    floor: UI,
+  },
+  { recipe: "radio", slot: "dot", fg: "radio.dot", bg: "radio.bg-checked", floor: UI },
+  { recipe: "radio", slot: "edge error", fg: "radio.border-error", bg: "radio.bg", floor: UI },
+  {
+    recipe: "radio",
+    slot: "disabled dot",
+    fg: "radio.dot-disabled",
+    bg: "radio.bg-disabled",
+    floor: UI,
+  },
   // Field
   { recipe: "field", slot: "label", fg: "field.label", bg: "ds:surface.canvas", floor: TEXT },
   { recipe: "field", slot: "label on card", fg: "field.label", bg: "ds:surface.card", floor: TEXT },

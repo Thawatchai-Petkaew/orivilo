@@ -1,0 +1,31 @@
+name: RadioGroup
+tier: base
+status: draft
+since: ORV-221
+import: "@orivilo/design-system"
+story: base-radio-group
+useWhen:
+  - "Exactly one of a short list where every option should be seen, applied on submit"
+avoidWhen:
+  - "Six or more options (use Select)"
+  - "Zero or more of a list (use Checkbox)"
+  - "An on/off setting that applies immediately (Switch)"
+  - "A choice that should look like a card with an icon or a picture (no card form exists yet)"
+contract: RadioGroupProps
+variants: []
+sizes: [sm, md]
+states: [default, hover, focus-visible, checked, disabled, disabled-item, invalid, required]
+recipes: [neutral, professional, friendly]
+examples:
+  - src/examples/settings-form.tsx
+rules:
+  - "The group's name comes from `Field group`, or from aria-label or aria-labelledby outside a Field; an item has no size prop, the group's size wins"
+  - "Each `RadioGroupItem` carries its own label and optional description; the label is a real `<label for>` and part of the hit area, a click on the description does not select"
+  - "`orientation` is layout only (vertical or horizontal) and is not passed to Radix, so all four arrow keys keep working"
+  - "The circle is round under every profile (`shape.round.radius`); checked reads the selection tokens, never action.primary"
+  - "Invalid and required sit on the group, never on an item; the error edge stays through hover and focus"
+  - "Disabled reads tokens, never opacity; one item can be disabled alone and the arrow keys skip it"
+a11y:
+  - "Role radiogroup with `aria-invalid`, `aria-required` and `aria-disabled` on the group only; each radio is described by its own line"
+  - "Tab enters on the checked radio or the first one; Space checks; ArrowDown and ArrowRight go to the next, ArrowUp and ArrowLeft to the previous, check it and wrap; Enter does nothing"
+  - "`sm` keeps a 24 px target around its 16 px circle (WCAG 2.5.8)"

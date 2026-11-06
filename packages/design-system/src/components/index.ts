@@ -36,6 +36,12 @@ export { EvidenceSpan, type EvidenceSpanProps } from "./evidence-span/EvidenceSp
 export type { EvidenceItem } from "./evidence-span/span";
 export { Field, type FieldProps, useFieldControl } from "./field/Field";
 export { Input, type InputProps } from "./input/Input";
+export {
+  RadioGroup,
+  RadioGroupItem,
+  type RadioGroupItemProps,
+  type RadioGroupProps,
+} from "./radio-group/RadioGroup";
 export { InputGroup, type InputGroupProps } from "./input-group/InputGroup";
 export { PasswordInput, type PasswordInputProps } from "./password-input/PasswordInput";
 export {
