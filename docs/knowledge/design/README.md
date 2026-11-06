@@ -46,3 +46,33 @@ Facts from outside design systems and standards that inform ORIVILO's own design
 | [[K-0133-wai-aria-apg-no-non-modal-dialog-pattern-tooltip-note]]               | WAI-ARIA APG: popover and non-modal dialog guidance, Tooltip note      |
 | [[K-0134-wcag-2-2-content-on-hover-or-focus-dismissible-hoverable-persistent]] | WCAG 2.2 SC 1.4.13 Content on Hover or Focus                           |
 | [[K-0135-synthesis-evidence-span-and-evidence-list-benchmark]]                 | Synthesis of K-0127 to K-0134: EvidenceSpan and EvidenceList table     |
+| [[K-0380-untitled-ui-date-picker-forms-and-react-aria]]                        | Untitled UI date pickers: examples, React Aria base, props             |
+| [[K-0381-untitled-ui-date-picker-trigger-apply-and-cancel]]                    | Untitled UI DatePicker trigger, Apply and Cancel                       |
+| [[K-0382-untitled-ui-date-range-presets-and-breakpoints]]                      | Untitled UI DateRangePicker presets and breakpoints                    |
+| [[K-0383-untitled-ui-calendar-props-header-and-today-button]]                  | Untitled UI Calendar props, header and Today button                    |
+| [[K-0384-untitled-ui-calendar-cell-states]]                                    | Untitled UI calendar cell states and looks                             |
+| [[K-0385-untitled-ui-calendars-page-is-an-event-calendar]]                     | Is Untitled UI's Calendars page a date picker                          |
+| [[K-0386-untitled-ui-libraries-versions-and-licenses]]                         | Untitled UI libraries: versions and licenses                           |
+| [[K-0387-react-aria-calendar-grid-keys-and-names]]                             | React Aria calendar: grid roles, keys and names                        |
+| [[K-0388-react-aria-calendar-system-and-week-start-from-locale]]               | React Aria calendar system and week start from the locale              |
+| [[K-0389-shadcn-ui-calendar-page-props-and-versions]]                          | shadcn/ui Calendar page: props, sections and versions                  |
+| [[K-0390-shadcn-ui-calendar-source-defaults-and-day-button]]                   | shadcn/ui calendar.tsx defaults and day button                         |
+| [[K-0391-shadcn-ui-date-picker-is-popover-plus-calendar]]                      | shadcn/ui Date Picker: Popover plus Calendar                           |
+| [[K-0392-shadcn-ui-date-picker-examples-range-input-and-presets]]              | shadcn/ui date picker samples: range, input and presets                |
+| [[K-0393-shadcn-ui-registry-dependency-and-persian-path]]                      | shadcn/ui registry dependency and the Persian path                     |
+| [[K-0394-react-day-picker-package-version-and-license]]                        | React DayPicker package: version, license and dependencies             |
+| [[K-0395-react-day-picker-props-modes-and-day-states]]                         | React DayPicker props, modes and day states                            |
+| [[K-0396-react-day-picker-range-mode-props]]                                   | React DayPicker range mode props                                       |
+| [[K-0397-react-day-picker-keys-grid-and-names]]                                | React DayPicker keys, grid roles and names                             |
+| [[K-0398-react-day-picker-buddhist-build]]                                     | React DayPicker Buddhist build                                         |
+| [[K-0399-react-day-picker-week-start-locale-and-thai-labels]]                  | React DayPicker week start, locale and Thai labels                     |
+| [[K-0400-wai-aria-apg-date-picker-dialog-keys]]                                | WAI-ARIA APG Date Picker Dialog: keys                                  |
+| [[K-0401-wai-aria-apg-date-picker-dialog-names-and-roles]]                     | WAI-ARIA APG Date Picker Dialog: names and roles                       |
+| [[K-0402-wai-aria-apg-grid-pattern-keys-and-roles]]                            | WAI-ARIA APG Grid pattern: keys and roles                              |
+| [[K-0403-wai-aria-apg-modal-dialog-keys-and-roles]]                            | WAI-ARIA APG Modal Dialog pattern: keys and roles                      |
+| [[K-0404-intl-datetimeformat-calendar-option-and-ca-key]]                      | Intl.DateTimeFormat calendar option and ca key                         |
+| [[K-0405-cldr-thailand-prefers-buddhist-and-thai-formats]]                     | CLDR: Thailand's calendar preference and Thai date formats             |
+| [[K-0406-runtime-default-calendar-for-thai-can-differ]]                        | Does a runtime's default calendar for Thai differ                      |
+| [[K-0407-cldr-thailand-week-starts-sunday-and-getweekinfo]]                    | CLDR Thailand week start and Intl getWeekInfo                          |
+| [[K-0408-date-fns-thai-locale-sunday-gregorian-year]]                          | date-fns Thai locale: week start and year                              |
+| [[K-0409-synthesis-calendar-and-date-picker-benchmark]]                        | Synthesis of K-0380 to K-0408: Calendar and Date picker tables         |
