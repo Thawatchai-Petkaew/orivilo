@@ -26,8 +26,8 @@ const DEFAULT_ORIENTATION = Orientation.Horizontal;
 const { decorative, orientation: orientationProp = DEFAULT_ORIENTATION, ...domProps } = props;
 const ariaOrientation = orientation === Orientation.Vertical ? orientation : undefined;
 const semanticProps = decorative
-  ? { role: 'none' }
-  : { 'aria-orientation': ariaOrientation, role: 'separator' };
+  ? { role: "none" }
+  : { "aria-orientation": ariaOrientation, role: "separator" };
 ```
 
 `data-orientation={orientation}` is set in both cases. Docs table: `asChild` boolean `false`, `orientation` enum `"horizontal"`, `decorative` boolean with no default.

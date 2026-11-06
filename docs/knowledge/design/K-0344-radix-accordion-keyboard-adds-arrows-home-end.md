@@ -30,7 +30,7 @@ Read on 2026-11-06 through a fetch tool, `main` branch of `radix-ui/primitives` 
 ### Source
 
 ```tsx
-const ACCORDION_KEYS = ['Home', 'End', 'ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight'];
+const ACCORDION_KEYS = ["Home", "End", "ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight"];
 const triggerCollection = collection.filter(([, item]) => !item.element.disabled);
 const isDirectionLTR = direction === Direction.LTR;
 const clampedIndex = nextIndex % triggerCount;

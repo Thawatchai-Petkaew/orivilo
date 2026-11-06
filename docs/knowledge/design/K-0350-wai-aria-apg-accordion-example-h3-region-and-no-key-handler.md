@@ -18,7 +18,13 @@ Read on 2026-11-06 through a fetch tool: the published page, its HTML and its sc
 ### Markup and table rows
 
 ```html
-<button type="button" aria-expanded="true" class="accordion-trigger" aria-controls="sect1" id="accordion1id">
+<button
+  type="button"
+  aria-expanded="true"
+  class="accordion-trigger"
+  aria-controls="sect1"
+  id="accordion1id"
+></button>
 ```
 
 - `h3`: "Element that serves as an accordion header."
@@ -32,10 +38,10 @@ Keyboard rows: Space or Enter "When focus is on the accordion header of a collap
 ### Script
 
 ```js
-this.buttonEl.addEventListener('click', this.onButtonClick.bind(this));
+this.buttonEl.addEventListener("click", this.onButtonClick.bind(this));
 this.toggle(!this.open);
-this.buttonEl.setAttribute('aria-expanded', `${open}`);
-this.contentEl.setAttribute('hidden', '');
+this.buttonEl.setAttribute("aria-expanded", `${open}`);
+this.contentEl.setAttribute("hidden", "");
 ```
 
 The fetch tool found no key handler, no `aria-disabled` line and nothing that keeps a panel open.

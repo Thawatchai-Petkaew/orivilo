@@ -15,11 +15,11 @@ Read on 2026-11-06 through a fetch tool, `main` branch (no commit hash shown). C
 
 ```tsx
 export const SectionDivider = (props: HTMLAttributes<HTMLDivElement>) => {
-    return (
-        <div {...props} className={cx("mx-auto max-w-container px-4 md:px-8", props.className)}>
-            <hr className="h-px w-full border-none bg-border-secondary" />
-        </div>
-    );
+  return (
+    <div {...props} className={cx("mx-auto max-w-container px-4 md:px-8", props.className)}>
+      <hr className="h-px w-full border-none bg-border-secondary" />
+    </div>
+  );
 };
 ```
 
