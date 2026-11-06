@@ -1,6 +1,6 @@
 ---
 issue: ORV-225 (https://tpetkaew.atlassian.net/browse/ORV-225)
-spec: docs/specs/ORV-225/spec.md v1.0
+spec: docs/specs/ORV-225/spec.md v1.1
 task: ORV-225-design-1
 version: 1
 ---
@@ -9,7 +9,7 @@ version: 1
 
 This file covers slices A to F. It answers open questions 3, 6 and 9, gives the builders one numbered table of CSS and markup per rule, and holds the recipe blocks. Every look below was rendered: the CSS in "Recipe blocks" was injected into the real Storybook bundle on port 6433 with the real `recipes.css` and tokens, on markup built from the component classes. Nothing under `packages/` or `apps/` changed. No component exists yet, so these are proposals on real tokens, not proofs of a build.
 
-Where this file and the spec differ, the table "Amendments to the spec" says so by rule and row number. Open question 9 is the one answer that leaves its default, so it waits for a decision. The other amendments are corrections the renders forced.
+Where this file and the spec differ, the table "Amendments to the spec" says so by rule and row number. Open question 9 is the one answer that leaves its default, decided at G2, ORV-225 comment 10532. The other amendments are corrections the renders forced.
 
 ## Answers to the open questions
 
@@ -17,8 +17,8 @@ Where this file and the spec differ, the table "Amendments to the spec" says so 
 | Question | Answer | Why |
 | --- | --- | --- |
 | 3, the current page look | Default a) confirmed. `bg-active` to `surface.selected`, `fg-active` and `bead` to `selection.fg`, bead shape kept | `surface.selected` on the canvas measures 1.00 at worst (neutral light) and 1.10 on raised, so the fill is a soft ground and never the only mark. Ink and bead carry it, and every pair passes in all four sets (table below). Shot under neutral, friendly and professional in both modes |
-| 6, a wrapping Page header title | Default a) confirmed, line height 1.7, with one amendment: top padding `space.stack.sm` (8), not the 16 of `text-display-md` | Measured below. At 1.25 lines collide (gap -11.50). At 1.7 they clear (gap 2.50). At 1.7 the ink sits lower in its box, so 16 px of padding is more than the mark needs: 8 px keeps the 6.5 px of DESIGN.md section 4, the title stays where it is, and a one-line title grows by 6.4 px, not W7's 14.4 |
-| 9, the top row's `max-w-2xl` beside a full-width Sidebar | Differs from default a). A third option: full width on Sidebar routes only, `max-w-2xl` stays on `/` and `/account` | The default render has three start edges at 1440: logo about 400, Sidebar 24, title 352, and the locale switch ends on no edge. The third option puts the logo on the Sidebar's icon edge, 24 px, and on the screen's `p-6` at 360. `header.spec.ts` reads `/` only, so none of its numbers change. Needs a decision: changes `top-nav-1` and `shell-ia-1` |
+| 6, a wrapping Page header title | Default a) confirmed, line height 1.7, with one amendment: top padding `space.stack.sm` (8), not the 16 of `text-display-md` | Measured below. At 1.25 lines collide (gap -11.50). At 1.7 they clear (gap 2.50). At 1.7 the ink sits lower in its box, so 16 px of padding is more than the mark needs: 8 px keeps the 6.5 px of DESIGN.md section 4, the title stays where it is, and a one-line title grows by 6.39 px |
+| 9, the top row's `max-w-2xl` beside a full-width Sidebar | Differs from default a). A third option: full width on Sidebar routes only, `max-w-2xl` stays on `/` and `/account` | The default render has three start edges at 1440: logo about 400, Sidebar 24, title 352, and the locale switch ends on no edge. The third option puts the logo on the Sidebar's icon edge, 24 px, and on the screen's `p-6` at 360. `header.spec.ts` reads `/` only, so none of its numbers change. Decided at G2: changes `top-nav-1` and `shell-ia-1` |
 
 Worst contrast pairs across neutral, professional, friendly and orivilo in both modes, computed with `pairs-check.ts` from the token build. None fails.
 
@@ -136,11 +136,9 @@ Sizes are CSS px under neutral. A profile moves them through its tokens: friendl
 <!-- prettier-ignore -->
 | # | Rule | Target | Tokens | Markup or CSS | Proof |
 | --- | --- | --- | --- | --- | --- |
-| 37 | Question 9, needs a decision | On `/directions` and `/workspace` the row is full width with padding 24, so logo, Sidebar icons and, at 360, the screen's title share one edge. Row height and logo top stay 48 and 20 | None | `AppNav` picks `contentClassName` from `usePathname`: `px-6 pt-4` on Sidebar routes, `mx-auto max-w-2xl px-4 pt-4` elsewhere | Rows 64, 65, 68 |
+| 37 | Question 9, decided | On `/directions` and `/workspace` the row is full width with padding 24, so logo, Sidebar icons and, at 360, the screen's title share one edge. Row height and logo top stay 48 and 20 | None | `AppNav` picks `contentClassName` from `usePathname`: `px-6 pt-4` on Sidebar routes, `mx-auto max-w-2xl px-4 pt-4` elsewhere | Rows 64, 65, 68 |
 | 38 | `reference-adopt-1` | `InShell` passes the Sidebar-route form | None | Fullscreen story, see builder notes | Row 73 |
 | 39 | `top-skip-1` | The skip bar covers the first row on every route | None | Row 22 | Row 70 |
-
-If the owner keeps default a), row 37 falls away: `contentClassName` is always the `max-w-2xl` form and everything else stands.
 
 ### Builder notes
 
@@ -687,9 +685,7 @@ Impact of `nav-item.row-radius`: `component.json` gains one key, `generated.css`
 | 9 | `top-skip-1`, row 38 | "sits above the row" | Reads as over the row: an opaque bar covers the header while it has focus, and leaves with the next Tab | The pill left a cut word beside it. Focus sits on the bar, so SC 2.4.11 holds. Row 38's data checks stand |
 | 10 | `nav-narrow-1`, contract row of icons | The icon of the opener is not named | Top navigation `MenuIcon`, Sidebar `PanelStartOpenIcon` (reused) | On `/workspace` at 360 both openers show, and each needs its own shape |
 | 11 | `sidebar-rail-1`, rows 59, 60 | Silent on an open group in the rail | A group renders closed in the rail and keeps its open state for when the Sidebar widens. A marked group in the rail takes the full look | Children have no icon, so they cannot stand in a rail |
-| 12 | `top-nav-1`, `shell-ia-1`, open question 9 | The shell keeps its `max-w-2xl` row | Rules row 37. Waits for a decision | See "Answers" |
-
-The spec's front matter still says "design: none yet". The next spec version picks this file up, with these rows.
+| 12 | `top-nav-1`, `shell-ia-1`, open question 9 | The shell keeps its `max-w-2xl` row | Rules row 37. Decided at G2 | See "Answers" |
 
 ## States
 

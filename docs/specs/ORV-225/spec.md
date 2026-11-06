@@ -3,8 +3,8 @@ issue: ORV-225 (https://tpetkaew.atlassian.net/browse/ORV-225)
 lane: as set on ORV-225 in Jira (not read in this role). By this spec's reading the risk flag "component public API" applies (AGENTS.md, "Lanes and gates"): four new public components, a new prop on `CollapsibleTrigger` and on `WorkspaceScreen`, and three repointed component tokens ("Contract changes and impact"), so lane L
 mode: POC mode short spec (`.claude/skills/ovl/SKILL.md`, section "POC mode")
 source_rows: docs/specs/ORV-64/audit.md section D.3 row 22
-version: 1
-design: none yet; the designer's pass answers open questions 3 and 6 and signs the rows named in `stories-1`
+version: 1.1
+design: docs/specs/ORV-225/design.md, version 1, at 9fe740e. It answers open questions 3, 6 and 9 and gives the builders the CSS and markup per rule; its "Amendments to the spec" rows 1 to 12 are in this version. The designer still signs the rows named in `stories-1`
 ---
 
 # ORV-225: Sidebar navigation, Top navigation, Page header and Section header
@@ -94,7 +94,9 @@ Item colours come from `--cmp-nav-item-*` only. At rest `fg` on no fill. On hove
 
 ### nav-focus-1
 
-`ds-nav-item` draws its focus inside its box, in the Tabs form (`recipes.css` lines 919 to 923), so a scroll box such as `.ds-side-sheet__body` cannot clip it. It keeps its line and halo on a marked item, so focus never reads as selection (DESIGN.md section 8).
+`ds-nav-item` draws its focus inside its box, in the Tabs form (`recipes.css` lines 919 to 923), so a scroll box such as `.ds-side-sheet__body` cannot clip it: outline 1 px in `focus.ring`, offset -1px, inset halo. It keeps its line and halo on a marked item, so focus never reads as selection (DESIGN.md section 8).
+
+The play proves this inset form by a computed read, or by a new `expectFocusInsetForm`. `expectFocusBorderForm` cannot pass here: it needs a 1 px ring border, a transparent outline and an outer halo.
 
 ### nav-size-1
 
@@ -108,9 +110,11 @@ The root of each navigation is a `nav` with an `aria-label` from its `name` prop
 
 ### nav-narrow-1
 
-Both navigations switch by container, so the 360 px `Narrow` frame proves them. The query is `@container (max-width: 767px)`, from `--op-breakpoint-md` (a query cannot read a custom property; `@container ds-table` at `recipes.css` line 1340 is the precedent). Worked example W4.
+Both navigations switch by container, so the 360 px `Narrow` frame proves them. The queries are named, `@container ds-top-nav (max-width: 767px)` and `@container ds-sidebar (max-width: 767px)`, because the parts nest and an unnamed query reads the wrong container. The value comes from `--op-breakpoint-md` (a query cannot read a custom property; `@container ds-table` at `recipes.css` line 1340 is the precedent).
 
-Below it the item list hides (`display: none`) and an icon-only `Button` opens a `Sheet` `side="start"`. The button's name is `fill(m.nav.open, { name })`, worked example W8. The Sheet's `title` is `name`. The drawer lists the same items in the same order (SC 3.2.3, K-0233) with `nav-current-1` applied (K-0227). A press on a drawer link closes the drawer. Esc and the close button close it and focus returns to the opener. The opener is `sm` in Top navigation (`nav-size-1`) and `md` in the Sidebar. Both forms render on the server, so links stay in the HTML.
+Above it the Sidebar takes room from the content, so the Table takes its narrow form at containers 768 and 769 and is a table from 770: `.ds-table__frame` has 1 px borders, so at container 768 its measured width is 480 and its `clientWidth` 478. The narrow form shows the same data, and no CSS changes for this. Worked example W4.
+
+Below it the item list hides (`display: none`) and an icon-only `Button` opens a `Sheet` `side="start"`. The button's name is `fill(m.nav.open, { name })`, worked example W8. The Sheet's `title` is `name`. The drawer lists the same items in the same order (SC 3.2.3, K-0233) with `nav-current-1` applied (K-0227). A press on a drawer link closes the drawer. Esc and the close button close it and focus returns to the opener. The opener is `sm` with `MenuIcon` in Top navigation (`nav-size-1`) and `md` with `PanelStartOpenIcon` in the Sidebar: on `/workspace` at 360 both show, and each needs its own shape. Both forms render on the server, so links stay in the HTML.
 
 ### nav-shortcut-1
 
@@ -118,11 +122,11 @@ No keyboard shortcut in this story: the visible toggle in `sidebar-rail-1` is th
 
 ### top-nav-1
 
-`TopNavigation` root is a full-width `header` and the container for `nav-narrow-1`. Its row holds `nav` (with `brand`, then the items) and then `actions`, after the `nav` and outside it. `contentClassName` sets the row's width and padding, so the shell keeps its `max-w-2xl` row while the root stays full width. The items are links only. `subItems` adds a second row, its own `nav` named by `subName`, and it renders only when `subItems` has an item (K-0208). In the drawer the second row is a second list after the first, labelled by `subName`. With no items the row shows `brand` and `actions` and no opener. The shell uses the one-row form; the two-row form has no route yet, and the catalog entry says so.
+`TopNavigation` root is a full-width `header` and the container for `nav-narrow-1`. Its row holds `nav` (with `brand`, then the items) and then `actions`, after the `nav` and outside it. `contentClassName` sets the row's width and padding, so the shell sets its row per route (`shell-ia-1`) while the root stays full width. The items are links only. `subItems` adds a second row, its own `nav` named by `subName`, and it renders only when `subItems` has an item (K-0208). In the drawer the second row is a second list after the first, labelled by `subName`. With no items the row shows `brand` and `actions` and no opener. The shell uses the one-row form; the two-row form has no route yet, and the catalog entry says so.
 
 ### top-skip-1
 
-With `skipHref` and `skipLabel` set, the `header`'s first child is a link, out of view until focused. In view it sits above the row and covers nothing the focus is on (SC 2.4.11, K-0234). The shell passes `#main` and `m.app.skip`. The target is the `main` of every route: `apps/web/app/page.tsx`, `workspace/page.tsx`, `directions/page.tsx`, `account/page.tsx`, `not-found.tsx`. Each gets `id="main"` and `tabIndex={-1}`, after its `className` where it has one. This is the default of open question 7.
+With `skipHref` and `skipLabel` set, the `header`'s first child is a link, out of view until focused. In view it is an opaque bar over the row: it covers the header while it has focus and leaves with the next Tab. Focus sits on the bar, so SC 2.4.11 holds (K-0234). The shell passes `#main` and `m.app.skip`. The target is the `main` of every route: `apps/web/app/page.tsx`, `workspace/page.tsx`, `directions/page.tsx`, `account/page.tsx`, `not-found.tsx`. Each gets `id="main"` and `tabIndex={-1}`, after its `className` where it has one. This is the default of open question 7.
 
 ### sidebar-groups-1
 
@@ -145,6 +149,7 @@ The rail is the Sidebar's `collapsed` state, and it applies above the breakpoint
 - Labels hide from view and stay in the accessible name, with the badge text after them. A `Tooltip` `side="right"` shows the label on hover and focus. There is no hover panel (K-0206).
 - `nav-current-1` and `nav-look-1` hold.
 - Group labels hide; dividers stay. A press on a group's button expands the Sidebar, opens the group and leaves focus on that button.
+- A group renders closed in the rail and keeps its open state for when the Sidebar widens, because its children have no icon and cannot stand in a rail. A marked group in the rail takes the full look.
 
 ### sidebar-memory-1
 
@@ -156,9 +161,10 @@ Only built routes are listed.
 
 - Top navigation, `name` `m.app.nav`: `brand` is the Logo link to `/`, then `m.app.studio` to `/directions` and `m.app.account` to `/account`, then `LocaleSwitch` as `actions`. Studio takes `current: true` on `/workspace`, its other section route.
 - Sidebar, `name` `m.app.sideNav`, on `/directions` and `/workspace` only, through `apps/web/app/directions/layout.tsx` and `apps/web/app/workspace/layout.tsx`: `m.app.sideDirections` to `/directions`, `m.app.sideWorkspace` to `/workspace`. It renders on no other route.
+- The top row, by `contentClassName`, which `AppNav` picks from `usePathname`: `px-6 pt-4` on the two Sidebar routes, so the row is full width and the logo, the Sidebar's icons and, at 360, the screen's title share one start edge at 24; `mx-auto max-w-2xl px-4 pt-4` elsewhere. Row height and logo top stay 48 and 20 (W2). `header.spec.ts` reads `/` only, so none of its numbers change.
 - `next/link` reaches the components through `linkComponent` in client wrappers (`apps/web/app/AppNav.tsx`, `apps/web/app/StudioSidebar.tsx`), which read `usePathname`. The package has no Next import.
 
-This is the default of open question 8.
+This is the default of open question 8, and the top row is the answer to open question 9.
 
 ### page-header-root-1
 
@@ -170,7 +176,7 @@ Props: `title`, `description`, `meta`, `actions`, `level`. `title` is required. 
 
 ### section-header-1
 
-Props: `title`, `description`, `actions`, `level`, `id`, `divider`, `children`. `id` goes on the heading, for a caller's `aria-labelledby` (K-0224). `divider` is off by default and draws one edge under the block. `children` render after the title row as a following sibling, the place for `Tabs` (K-0211).
+Props: `title`, `description`, `actions`, `level`, `id`, `divider`, `children`. `id` goes on the heading, for a caller's `aria-labelledby` (K-0224). `divider` is off by default and draws one edge under the block. It does not draw when `children` render: Tabs draws its own line, and one edge takes one line. `children` render after the title row as a following sibling, the place for `Tabs` (K-0211).
 
 ### heading-level-1
 
@@ -178,16 +184,18 @@ The contract holds the WHATWG bar (K-0231): a heading is at most one level deepe
 
 ### header-type-1
 
-- Page header title: `text-display-md` with its top padding, and line height from `--ds-type-heading-sm-line-height`, so wrapped lines stay clear under `lines-clear-1` (ORV-194). Worked example W7. This is the default of open question 6.
+- Page header title: the size, weight, family and spacing of `type.display.md`, top padding `space.stack.sm`, and line height from `--ds-type-heading-sm-line-height`, so wrapped lines stay clear under `lines-clear-1` (ORV-194). `.text-display-md` is not used: it brings a 16 px top padding and the 1.25 line. Slice A adds one sentence for this title form to DESIGN.md section 4 line 141. Worked example W7. This is the answer to open question 6.
 - Section header title: `type.heading.sm` in `text.primary`, over a `text-body-md` description in `text.secondary`, `--ds-space-inline-md` apart: the header form `expectTitleOverText` reads. Above a section header the content leaves the room DESIGN.md section 4 gives a heading.
 
 ### header-stack-1
 
-`ds-page-header` and `ds-section-header` are containers. At `@container (max-width: 479px)`, the Table's value, the title block and `actions` stack, title first, on one start edge. Wider, they share a row with `actions` on the end edge. Neither scrolls sideways.
+`ds-page-header` and `ds-section-header` are containers. At `@container ds-page-header (max-width: 479px)` and `@container ds-section-header (max-width: 479px)`, named by the rule in `nav-narrow-1` and at the Table's value, the title block and `actions` stack, title first, on one start edge. Wider, they share a row with `actions` on the end edge. Neither scrolls sideways.
 
 ### frame-ink-1
 
 Text in a frame is proved by ink, in Thai with stacked marks, and the play first walks from the text's parent up to the frame and asserts each one's overflow computes to `visible`.
+
+For the frame clip each form below also calls `expectFrameCutsNoInk(el, frame)` under `inVitest`, with `el` the text in stacked marks and `frame` the form's frame, because `expectLabelInkWhole` reads only its own clone and cannot see a clip on an ancestor. The helper sets `overflow: visible` on `el` too, so on the Top navigation label `el` is a label that fits: a truncated label would read its own ellipsis as a cut.
 
 - Top navigation label, one line, frame `.ds-nav-item`: `expectLabelInkWhole`.
 - Sidebar and drawer label, wrapping, frame `.ds-nav-item`: `expectLinesClear`.
@@ -200,7 +208,7 @@ D.3 row 22's reference screen is `packages/design-system/src/examples/workspace.
 
 ### stories-1
 
-Every story below has a Thai form and an English twin named with the suffix `En`, except `RecipesAndModes` and `InsideProfile`, which render Thai. `RecipesAndModes` goes through `Matrix` (three profiles, two modes). `Narrow` goes through the 360 px frame. A designer signs each component's stories at 360 and 1280 before its PR's G3.
+Every story below has a Thai form and an English twin named with the suffix `En`, except `RecipesAndModes` and `InsideProfile`, which render Thai. `RecipesAndModes` goes through `Matrix` (three profiles, two modes). `Narrow` goes through the 360 px frame. A designer signs each component's stories at 360 and 1280 before its PR's G3. A sign-off has an empty `write_set` and cannot write design.md, so its PNG paths are posted on the issue as a Jira comment.
 
 - `Application/Top navigation` (id `application-top-navigation`): `Default`, `WithCurrent`, `ParentCurrent`, `WithBadge`, `WithIcons`, `TwoRows`, `NoItems`, `Hover`, `FocusVisible`, `LongLabels`, `Narrow`, `DrawerOpen`, `SkipLink`, `RecipesAndModes`, `InsideProfile`.
 - `Application/Sidebar navigation` (id `application-sidebar-navigation`): `Simple`, `SectionDividers`, `SectionLabels`, `Nested`, `NestedCurrent`, `WithBadges`, `HeaderFooter`, `Empty`, `Hover`, `FocusVisible`, `LongLabels`, `LongPage`, `Narrow`, `DrawerOpen`, `Rail`, `RailTooltip`, `RailNested`, `RailNoIcons`, `RecipesAndModes`, `InsideProfile`.
@@ -215,16 +223,17 @@ Every story below has a Thai form and an English twin named with the suffix `En`
 | --- | --- | --- |
 | `nav-item.bg-active` from `{surface.card}` to `{surface.selected}`; `nav-item.fg-active` from `{text.primary}` to `{selection.fg}`; `nav-item.bead` from `{brand.signature}` to `{selection.fg}` (open question 3) | Component token, `component.json`, `generated.css` | `tokens.test.ts` line 168: the readers of `brand.signature` become `["logo", "tile"]`. `spec-sheet.tsx` lines 104 to 139 sample repaints. No other reader of `--cmp-nav-item-*`. `DESIGN.md` line 79's "a bead" and line 21 lose the nav item as their case, so slice C checks that wording; line 314 is change-log history and stays |
 | New `nav-item.bead-size`, `{space.inline.md}` | Component token | `spec-sheet.tsx` replaces its raw `width: 6` and `borderRadius: 999` with the tokens. Value matches `badge.dot-size` |
+| New `nav-item.row-radius`, `{shape.media.radius}` | Component token | `component.json` gains one key, `generated.css` regenerates, and `.ds-nav-item` reads it on Sidebar, drawer and rail rows; `sm` stays on `nav-item.radius`. Nothing else reads it, and no value moves on an existing reader. No semantic token, primitive or profile changes. `spec-sheet.tsx` keeps `nav-item.radius` on its one-line sample, so it needs no edit for this token |
 | `ds-nav-item` with `__label`, `__bead`, `__badge`, and `data-size` `sm`, `md` | Recipe, `recipes.css` | New. Holds `nav-look-1`, `nav-focus-1`, `nav-size-1` |
-| `ds-top-nav`, `ds-top-nav__row`, `ds-top-nav__list`, `ds-top-nav__skip`, `ds-sidebar`, `ds-sidebar__panel`, `ds-sidebar__label`, `ds-sidebar__toggle`, `ds-nav-drawer__list`, `ds-page-header`, `ds-page-header__title`, `ds-section-header`, `ds-section-header__title` | Recipe | New. Layout from tokens only. Raw container widths have the `ds-table` precedent; if `recipes.test.ts` rejects `calc` with a literal 2, that is a contract change to raise, not to work around |
-| `pairs.ts`: `nav-item.fg` on `ds:surface.canvas` TEXT; `nav-item.fg` on `side-sheet.bg` TEXT; `nav-item.fg-hover` on `nav-item.bg-hover` TEXT; `nav-item.fg-active` on `nav-item.bg-active` TEXT; `nav-item.bead` on `nav-item.bg-active` UI | Recipe pairs | `recipes.test.ts` and `pnpm contrast` check each under every profile in both modes. A failing pair stops slice C |
+| `ds-top-nav`, `ds-top-nav__row` (with `data-row="sub"` on the second row), `ds-top-nav__list`, `ds-top-nav__skip`, `ds-top-nav__nav`, `ds-top-nav__actions`, `ds-top-nav__opener`, `ds-sidebar`, `ds-sidebar__panel`, `ds-sidebar__label`, `ds-sidebar__toggle`, `ds-sidebar__content`, `ds-sidebar__groups`, `ds-sidebar__group`, `ds-sidebar__list`, `ds-sidebar__opener`, `ds-nav-item__icon`, `ds-nav-group`, `ds-nav-group__trigger`, `ds-nav-group__content`, `ds-nav-drawer`, `ds-nav-drawer__list`, `ds-nav-drawer__label`, `ds-page-header`, `ds-page-header__title`, `ds-page-header__row`, `ds-page-header__text`, `ds-page-header__description`, `ds-page-header__meta`, `ds-page-header__actions`, `ds-section-header`, `ds-section-header__title`, `ds-section-header__row`, `ds-section-header__text`, `ds-section-header__description`, `ds-section-header__actions` | Recipe | New. Layout from tokens only. Raw container widths have the `ds-table` precedent; if `recipes.test.ts` rejects `calc` with a literal 2, that is a contract change to raise, not to work around |
+| `pairs.ts`: `nav-item.fg` on `ds:surface.canvas` TEXT; `nav-item.fg` on `side-sheet.bg` TEXT; `nav-item.fg-hover` on `nav-item.bg-hover` TEXT; `nav-item.fg-active` on `nav-item.bg-active` TEXT; `nav-item.bead` on `nav-item.bg-active` UI; `nav-item.fg-active` on `ds:surface.canvas` TEXT; `nav-item.fg-active` on `side-sheet.bg` TEXT; `nav-item.fg-active` on `nav-item.bg-hover` TEXT; `ds:text.primary` on `ds:surface.card` TEXT, for the skip link | Recipe pairs | Nine new pairs. An open marked group shows `fg-active` on no fill and on hover, and a drawer sits on `side-sheet.bg`. `pairs.ts` holds no `ds:text.primary` row today, so the skip link's pair is new. `recipes.test.ts` and `pnpm contrast` check each under every profile in both modes. A failing pair stops slice C |
 | New public `TopNavigation`, `TopNavigationProps`: `name`, `brand`, `items`, `subItems`, `subName`, `actions`, `currentPath`, `linkComponent` (default `a`), `contentClassName`, `skipHref`, `skipLabel` | Component API | New, `src/components/top-navigation/`. Built on `Sheet` |
 | New public `SidebarNavigation`, `SidebarNavigationProps`: `name`, `groups`, `header`, `footer`, `children`, `currentPath`, `linkComponent`, `collapsed`, `defaultCollapsed`, `onCollapsedChange` | Component API | New, `src/components/sidebar-navigation/`. Built on `Sheet`, `Collapsible`, `Tooltip` |
 | New public `PageHeader`, `SectionHeader` and props, by `page-header-slots-1` and `section-header-1` | Component API | New, `src/components/page-header/`, `src/components/section-header/`. No primitive exists to build on (K-0223): plain elements on a recipe |
 | Internal `src/components/nav-item/`: `NavItem`, `current.ts`, types | Internal | Not in the public index, so no catalog entry; its states show in the parents' stories |
 | `CollapsibleTriggerProps` gains `"aria-current"` and passes it to the button | Component API | Stories of `Collapsible`, and every caller, keep their output when it is not passed |
 | `WorkspaceScreenProps` gains `headingLevel`, 1 to 5, default 1 | Example API | `apps/web/app/directions/page.tsx` and `DirectionStudio.stories.tsx` line 39 pass 4 (W6). `apps/web/app/workspace/page.tsx` unchanged |
-| Icons `MenuIcon` (Lucide Menu), `PanelStartCloseIcon` (Lucide PanelLeftClose) | `icons.tsx` | New. `PanelStartOpenIcon` is reused for expand. The shell's Sidebar reuses `DirectionIcon` and `GroupIcon` |
+| Icons `MenuIcon` (Lucide Menu), `PanelStartCloseIcon` (Lucide PanelLeftClose) | `icons.tsx` | New. `MenuIcon` is the Top navigation opener. `PanelStartOpenIcon` is reused for expand and for the Sidebar opener (`nav-narrow-1`). The shell's Sidebar reuses `DirectionIcon` and `GroupIcon` |
 | `navFixtures` in `src/components/fixtures.ts` | Fixtures | New, Acceptance criteria intro |
 | Locale group `nav`, and web keys in "Copy" | i18n | `check-i18n`, `apps/web/i18n/messages.test.ts` |
 | Cookie `orv-sidebar` | App | `sidebar-memory-1`. New name, read and written only by `apps/web` |
@@ -232,6 +241,7 @@ Every story below has a Thai form and an English twin named with the suffix `En`
 | Skip link and `id="main"` on five `main` elements | App | `top-skip-1`. `account/page.test.tsx` line 45's regex needs `class` first, so `id` follows it |
 | `apps/web/app/layout.tsx` moves its header into `AppNav` | App | `layout.test.tsx` mocks `next/navigation`. `header.spec.ts`: the content edge at lines 53, 54 and 66 reads `.ds-top-nav__row`, because the root is full width now; line 87 takes one more Tab. Lines 83 and 108 to 109 hold their numbers (W2) |
 | `DESIGN.md` section 12 reference screen row | Doc | Slice F updates it |
+| `DESIGN.md` section 4 line 141, one sentence for the Page header title form | Doc | Slice A adds it (`header-type-1`) |
 
 ### Copy
 
@@ -260,63 +270,63 @@ Stories are those of `stories-1`. Plays run in Thai; each `En` twin runs the sam
 | 4 | `WithActions` at 1280 | Rendering | The action button in position at the row's end edge, the title at the start edge | Button `right` equals the root's `right`, title `left` equals the root's `left`, within 0.5 (`header-stack-1`) | `WithActions` play |
 | 5 | `Narrow` with an action, 360 px | Rendering | The action's position is under the title, on the same start edge, and nothing scrolls sideways | Button `top` at or below the title block's `bottom`; the two `left` values equal within 0.5; root `scrollWidth` equals `clientWidth` (`header-stack-1`) | `Narrow` play |
 | 6 | `WithMeta` | Rendering | "ข้อมูลตัวอย่าง" as a label under the description | The `meta` node follows the description in DOM order (`page-header-slots-1`) | `WithMeta` play |
-| 7 | `LongTitle`, `fixtures.longThai` and a title of stacked marks, 360 px | Rendering | The title wraps; no line's marks overlap the line above | The text proof for the page header title passes (`frame-ink-1`, `header-type-1`, W7) | `LongTitle` play |
+| 7 | `LongTitle`, `fixtures.longThai` and a title of stacked marks, 360 px | Rendering | The title wraps; no line's marks overlap the line above | The text proof for the page header title passes, with `expectFrameCutsNoInk(el, frame)` for the frame clip, `frame` the `.ds-page-header` (`frame-ink-1`, `header-type-1`, W7) | `LongTitle` play |
 | 8 | `HeadingLevel`, level 4 beside level 1 | Rendering | Two titles at one size | First heading is `h4`; both `font-size` values are equal (`heading-level-1`) | `HeadingLevel` play |
 | 9 | Stories of `workspace.tsx`, `decision-log.tsx`, `settings-form.tsx` | Rendering | Each screen's title, description and action as before; "ข้อมูลตัวอย่าง" stays on the workspace screen | One `.ds-page-header` per screen; no `header` element left in the three files; existing plays pass unchanged (`reference-adopt-1`) | Plays of the three story files |
 | 10 | `DirectionStudio` story with the embedded screen | Rendering | The preview shows the title as before | No `h1` inside the preview; the screen's title is `h4` (`heading-level-1`, W6) | `DirectionStudio.stories.tsx` play |
 | 11 | Page header `RecipesAndModes` | Rendering | Six boundaries, the title and description readable in each colour set | Six `data-design-profile` frames render; `recipes.test.ts` passes (`stories-1`) | `RecipesAndModes` play |
-| 12 | Slice A's PR | The gate runs and the designer reads the stories | Nothing new | `catalog/application/page-header.yaml` and the coverage row in the same PR, status `draft`; `check-catalog` passes; designer sign-off recorded in the PR (`stories-1`) | `check-catalog`, PR comment |
+| 12 | Slice A's PR | The gate runs and the designer reads the stories | Nothing new | `catalog/application/page-header.yaml` and the coverage row in the same PR, status `draft`; `check-catalog` passes; designer sign-off recorded, its PNG paths posted as a Jira comment (`stories-1`) | `check-catalog`, Jira comment |
 | 13 | Section header `Default`, Thai | Rendering | "โปรเจกต์ในเวิร์กสเปซ" as a section title with a description under it, the header form's gap between them | One `getByRole("heading", { level: 2 })`; `expectTitleOverText(title, description, { gap: 8, header: true })` passes (`header-type-1`) | `Default` play |
 | 14 | `DefaultEn`, `TitleOnly` | Rendering | "Projects in this workspace"; then the title alone | English title; no description node in `TitleOnly` (`section-header-1`) | `DefaultEn`, `TitleOnly` plays |
 | 15 | `WithActions` at 1280; `Narrow` at 360 px | Rendering | Wide: the action in position at the end edge. Narrow: under the title on one start edge | As rows 4 and 5, on `.ds-section-header` (`header-stack-1`) | `WithActions`, `Narrow` plays |
 | 16 | `WithTabs` | Rendering, then pressing the second tab | A tab row under the title; the second tab selected | The tablist follows the title row in DOM order; the title row keeps its height after the press (`section-header-1`) | `WithTabs` play |
 | 17 | `WithDivider`; `Default` | Rendering | A line under the block in `WithDivider`, no line in `Default` | `expectEdgeInk` finds the edge in `WithDivider` and not in `Default` (`section-header-1`) | `WithDivider` play |
-| 18 | `LongTitle`, 360 px | Rendering | The title wraps; no line's marks overlap the line above | The text proof for the section header title passes (`frame-ink-1`, W7) | `LongTitle` play |
+| 18 | `LongTitle`, 360 px | Rendering | The title wraps; no line's marks overlap the line above | The text proof for the section header title passes, with `expectFrameCutsNoInk(el, frame)` for the frame clip, `frame` the `.ds-section-header` (`frame-ink-1`, W7) | `LongTitle` play |
 | 19 | `HeadingLevel`, level 5, `id="s1"`, a region with `aria-labelledby="s1"` | Rendering | The title at its usual size | Heading is `h5` with `id` `s1`; `getByRole("region", { name })` finds the region (`section-header-1`, `heading-level-1`) | `HeadingLevel` play |
 | 20 | Workspace `Default` and `ArchiveSelected` | Rendering, then selecting a row | "โปรเจกต์ในเวิร์กสเปซ" as a section title over the table, in position under the page header; the selection count and archive button on its end edge | `getByRole("table", { name: "โปรเจกต์ในเวิร์กสเปซ" })` still finds the table; the count's wrapper keeps `aria-live="polite"`; `expectInkClearsAbove(title, pageHeader)` passes; existing plays pass (`reference-adopt-1`) | Workspace plays |
 | 21 | Section header `RecipesAndModes` | Rendering | Six boundaries, title and description readable in each colour set | As row 11 | `RecipesAndModes` play |
-| 22 | Slice B's PR | The gate runs and the designer reads the stories | Nothing new | As row 12, `section-header.yaml` | `check-catalog`, PR comment |
+| 22 | Slice B's PR | The gate runs and the designer reads the stories | Nothing new | As row 12, `section-header.yaml`, with the sign-off's PNG paths posted as a Jira comment | `check-catalog`, Jira comment |
 | 23 | `current.test.ts` | The cases of W1 run | Nothing | Each case gives W1's result (`nav-current-1`) | Unit test |
 | 24 | Top navigation `Default`, 1280, Thai | Rendering | Logo, "ภาพรวม", "โปรเจกต์", "สมาชิก", then the actions in position at the end of one row | `getByRole("navigation", { name: "เมนูหลัก" })` holds the logo and three links; the actions sit after the `nav` and outside it; no opener in view; item height per `nav-size-1` (`top-nav-1`) | `Default` play |
 | 25 | `DefaultEn` | Rendering | "Overview", "Projects", "Members" | Name "Main", three links (`stories-1`) | `DefaultEn` play |
 | 26 | `WithCurrent`, `currentPath="/projects"` | Rendering | "โปรเจกต์" filled with the current colour and a bead at its start edge; the others at rest | `aria-current="page"` on that link only; computed fill and bead equal `nav-item.bg-active` and `nav-item.bead` probes; the bead has ink (`nav-current-1`, `nav-look-1`) | `WithCurrent` play |
 | 27 | `ParentCurrent`, `currentPath="/projects/brand"`, then an item with `current: true` | Rendering | "โปรเจกต์" with the current look | `aria-current="true"` on that link, none on the others; the override gives the same value (`nav-current-1`) | `ParentCurrent` play |
 | 28 | `Hover` | The pointer enters an item at rest | The item takes the hover colour | Computed fill equals a `nav-item.bg-hover` probe (`nav-look-1`) | `Hover` play |
-| 29 | `FocusVisible`, on a marked and an unmarked item | Tab reaches each; Enter on the first | A focus line and halo inside the item, distinct from the current colour | `expectFocusBorderForm` passes on both; the fixture link records one press (`nav-focus-1`) | `FocusVisible` play |
-| 30 | `LongLabels`, `fixtures.longThai` and a label of stacked marks | Rendering | The label stays on one line and truncates; its marks stay whole, with no overlap of the row's edge; the row's height does not change | The text proof for the Top navigation label passes; item height per `nav-size-1` (`frame-ink-1`) | `LongLabels` play |
+| 29 | `FocusVisible`, on a marked and an unmarked item | Tab reaches each; Enter on the first | A focus line and halo inside the item, distinct from the current colour | The inset focus form reads true on both, by the computed read or `expectFocusInsetForm`; the fixture link records one press (`nav-focus-1`) | `FocusVisible` play |
+| 30 | `LongLabels`, `fixtures.longThai` and a label of stacked marks | Rendering | The label stays on one line and truncates; its marks stay whole, with no overlap of the row's edge; the row's height does not change | The text proof for the Top navigation label passes, with `expectFrameCutsNoInk(el, frame)` for the frame clip on the stacked marks label, `frame` its `.ds-nav-item`; item height per `nav-size-1` (`frame-ink-1`) | `LongLabels` play |
 | 31 | `WithBadge`, `WithIcons` | Rendering | "โปรเจกต์" with a "4" badge after it; icons before labels; an item with no badge shows none | One `.ds-badge` in the row; the link's name starts with its label (`nav-item-1`) | `WithBadge`, `WithIcons` plays |
 | 32 | `TwoRows`; `Default` | Rendering | A second row of links under the first in `TwoRows`, none in `Default` | Two `navigation` roles, "เมนูหลัก" and "เมนูย่อย", each with one marked link at most; one `navigation` role in `Default` (`top-nav-1`, `nav-landmark-1`) | `TwoRows` play |
 | 33 | `NoItems` at 1280 and 360 px | Rendering | The logo and the actions, no list, no menu button | No `button` named by `nav.open` (`top-nav-1`) | `NoItems` play |
 | 34 | `Narrow`, 360 px, `currentPath="/projects"` | Rendering | Logo, an icon button, the actions on one row; the links are out of view | `getByRole("button", { name: "เปิดเมนูหลัก", exact: true })` exists; `En` twin "Open Main menu"; root `scrollWidth` equals `clientWidth` (`nav-narrow-1`, W8) | `Narrow` play |
-| 35 | `DrawerOpen`, same | The button is pressed | A drawer in position at the start edge, titled "เมนูหลัก": the items in their order, "โปรเจกต์" with the current look | `getByRole("dialog", { name: "เมนูหลัก" })`; link order equals `items`; `aria-current="page"` on "โปรเจกต์"; no `nav` in the dialog; items at the drawer height of `nav-size-1`; the text proof for a drawer label passes (`nav-narrow-1`, `nav-landmark-1`, `frame-ink-1`) | `DrawerOpen` play |
+| 35 | `DrawerOpen`, same | The button is pressed | A drawer in position at the start edge, titled "เมนูหลัก": the items in their order, "โปรเจกต์" with the current look | `getByRole("dialog", { name: "เมนูหลัก" })`; link order equals `items`; `aria-current="page"` on "โปรเจกต์"; no `nav` in the dialog; items at the drawer height of `nav-size-1`; the text proof for a drawer label passes, with `expectFrameCutsNoInk(el, frame)` for the frame clip, `frame` its `.ds-nav-item` (`nav-narrow-1`, `nav-landmark-1`, `frame-ink-1`) | `DrawerOpen` play |
 | 36 | `DrawerOpen`, open | "สมาชิก" is pressed; reopen; Esc | The drawer closes each time | The fixture link records one press; after Esc `document.activeElement` is the opener (`nav-narrow-1`) | `DrawerOpen` play step |
 | 37 | `InsideProfile`, friendly boundary, drawer open | Rendering | The drawer in the friendly profile's colours | The dialog's `closest("[data-design-profile]")` reads `friendly` (`.claude/rules/design-system.md`) | `InsideProfile` play |
-| 38 | `SkipLink`, with `skipHref` and `skipLabel` | Tab once, then Enter | "ข้ามไปเนื้อหาหลัก" comes into view, in position above the row; then focus moves to the target | The link is the first focusable in the `header`; out of view before Tab; `document.activeElement` is the target after Enter (`top-skip-1`) | `SkipLink` play |
-| 39 | Slice C's token and pair changes | `pnpm --filter @orivilo/design-system tokens`, `pnpm test`, `pnpm contrast` | Nothing | `generated.css` is fresh; `tokens.test.ts` line 168 reads `["logo", "tile"]`; the five new pairs pass under every profile in both modes ("Contract changes and impact") | `tokens.test.ts`, `recipes.test.ts`, `pnpm contrast` |
+| 38 | `SkipLink`, with `skipHref` and `skipLabel` | Tab once, then Enter | "ข้ามไปเนื้อหาหลัก" comes into view as an opaque bar over the row; then focus moves to the target | The link is the first focusable in the `header`; out of view before Tab; `document.activeElement` is the target after Enter (`top-skip-1`) | `SkipLink` play |
+| 39 | Slice C's token and pair changes | `pnpm --filter @orivilo/design-system tokens`, `pnpm test`, `pnpm contrast` | Nothing | `generated.css` is fresh; `tokens.test.ts` line 168 reads `["logo", "tile"]`; the nine new pairs pass under every profile in both modes ("Contract changes and impact", row `pairs.ts`) | `tokens.test.ts`, `recipes.test.ts`, `pnpm contrast` |
 | 40 | Top navigation `RecipesAndModes` | Rendering | Six boundaries; the current item keeps a visible fill and bead colour in each | Six frames; the bead has ink on `bg-active` in each (`stories-1`, `nav-look-1`) | `RecipesAndModes` play |
-| 41 | Slice C's PR | The gate runs and the designer reads the stories | Nothing new | As row 12, `top-navigation.yaml`; the entry says the two-row form has no route yet | `check-catalog`, PR comment |
+| 41 | Slice C's PR | The gate runs and the designer reads the stories | Nothing new | As row 12, `top-navigation.yaml`, with the sign-off's PNG paths posted as a Jira comment; the entry says the two-row form has no route yet | `check-catalog`, Jira comment |
 | 42 | Sidebar `Simple`, 1280, Thai | Rendering | A panel in position at the page's start with "ภาพรวม", "โปรเจกต์", "สมาชิก", content beside it | `getByRole("navigation", { name: "เมนูหลัก" })`; no `aside` and no `complementary` role; panel width per `sidebar-flow-1`; item height per `nav-size-1` (`nav-landmark-1`) | `Simple` play |
 | 43 | `SectionLabels` | Rendering | A group label over each list | No heading role in the `nav`; `getByRole("list", { name })` finds each group by its label (`sidebar-groups-1`) | `SectionLabels` play |
 | 44 | `SectionDividers` | Rendering | A line between groups, no labels | `expectEdgeInk` finds the line (`sidebar-groups-1`) | `SectionDividers` play |
 | 45 | `Nested`, `currentPath="/overview"` | Enter on "ตั้งค่า", then Space | The group opens under its button with "ทั่วไป" and "ความปลอดภัย", then closes | The button has no `href`; `aria-expanded` goes true, then false; children absent while closed (`nav-group-1`, `nav-item-1`) | `Nested` play |
 | 46 | `NestedCurrent`, `currentPath="/settings/general"` | Rendering | "ตั้งค่า" open with its ink current; "ทั่วไป" filled with the current colour and a bead | Button `aria-current="true"`, link `aria-current="page"`; the button has no fill (`nav-current-1`, `nav-look-1`, `nav-group-1`) | `NestedCurrent` play |
 | 47 | `NestedCurrent` | The person closes the group; `currentPath` becomes `/overview`, then `/settings/security` | Closed; closed; open again | Closed "ตั้งค่า" takes the full look before the route moves; `aria-expanded` true after the route enters (`nav-group-1`, `nav-look-1`) | `NestedCurrent` play step |
-| 48 | `WithBadges`, `Hover`, `FocusVisible` | Rendering; pointer; Tab | Badge after the label; hover colour; focus line and halo inside the item | As rows 28, 29 and 31, on `.ds-sidebar` | Three plays |
-| 49 | `LongLabels`, 1280 | Rendering | The label wraps inside the item, the item grows, no line's marks overlap the line above | The text proof for the Sidebar label passes (`frame-ink-1`, W7) | `LongLabels` play |
+| 48 | `WithBadges`, `Hover`, `FocusVisible` | Rendering; pointer; Tab | Badge after the label; hover colour; focus line and halo inside the item | As rows 28, 29 and 31, on `.ds-sidebar`; the inset focus form reads true by the computed read or `expectFocusInsetForm` (`nav-focus-1`) | Three plays |
+| 49 | `LongLabels`, 1280 | Rendering | The label wraps inside the item, the item grows, no line's marks overlap the line above | The text proof for the Sidebar label passes, with `expectFrameCutsNoInk(el, frame)` for the frame clip, `frame` its `.ds-nav-item` (`frame-ink-1`, W7) | `LongLabels` play |
 | 50 | `HeaderFooter` | Rendering | The `header` slot above the list and the `footer` slot in position under it | DOM order header, list, footer inside the `nav` (`sidebar-groups-1`) | `HeaderFooter` play |
 | 51 | `Empty`, no groups | Rendering | The page content alone | No `navigation` role; `children` render (`sidebar-groups-1`) | `Empty` play |
 | 52 | `LongPage`, content taller than the frame | The page scrolls down | The panel leaves with the page | Panel `top` falls by the scroll distance; every ancestor up to the frame computes overflow `visible` (`sidebar-flow-1`) | `LongPage` play |
 | 53 | `Narrow` and `DrawerOpen`, 360 px, `currentPath="/settings/general"` | Rendering; the button is pressed | Content at full width under a row with an icon button; then a drawer with the group open and "ทั่วไป" with the current look | `nav` still in the DOM holding `getByRole("button", { name: "เปิดเมนูหลัก", exact: true })`; the dialog holds the same order; `aria-current="page"` on "ทั่วไป"; Esc returns focus (`nav-narrow-1`, `nav-landmark-1`) | `Narrow`, `DrawerOpen` plays |
 | 54 | `InsideProfile`, drawer open | Rendering | The drawer in the friendly profile's colours | As row 37 | `InsideProfile` play |
 | 55 | Sidebar `RecipesAndModes` | Rendering | Six boundaries; the current item keeps a visible fill and bead colour in each | As row 40 | `RecipesAndModes` play |
-| 56 | Slice D's PR | The gate runs and the designer reads the stories | Nothing new | As row 12, `sidebar-navigation.yaml` | `check-catalog`, PR comment |
+| 56 | Slice D's PR | The gate runs and the designer reads the stories | Nothing new | As row 12, `sidebar-navigation.yaml`, with the sign-off's PNG paths posted as a Jira comment | `check-catalog`, Jira comment |
 | 57 | `Rail`, Thai, `currentPath="/projects"` | "ย่อเมนู" is pressed, then the same button | The layout changes: the panel narrows to icons and the content fills the room, then the panel widens; "ขยายเมนู" names the button in between ("Collapse menu", "Expand menu" in `RailEn`) | Width per `sidebar-rail-1` (W3); `getByRole("link", { name: "โปรเจกต์ 4" })` stays; `aria-current="page"` stays; focus stays on the toggle; `onCollapsedChange` fires once per press | `Rail` play |
 | 58 | `RailTooltip`, collapsed | The pointer rests on an item, then Tab reaches another | The label beside the rail in a tooltip, one at a time | `role="tooltip"` holds the label; no other new node, so no panel (`sidebar-rail-1`) | `RailTooltip` play |
-| 59 | `Rail`, collapsed | Rendering | Square icon targets, group labels gone, dividers kept, the current item with its fill and bead colour | Each link's width equals its height, per `sidebar-rail-1`; `expectEdgeInk` finds the divider; `nav-look-1` as row 26 | `Rail` play step |
-| 60 | `RailNested`, collapsed | The "ตั้งค่า" button is pressed | The Sidebar widens and the group opens | `collapsed` false, `aria-expanded` true, `document.activeElement` is that button (`sidebar-rail-1`) | `RailNested` play |
+| 59 | `Rail`, collapsed | Rendering | Square icon targets, group labels gone, dividers kept, groups closed, the current item with its fill and bead colour | Each link's width equals its height, per `sidebar-rail-1`; `expectEdgeInk` finds the divider; the group's button reads `aria-expanded` false and its children are absent; `nav-look-1` as row 26 | `Rail` play step |
+| 60 | `RailNested`, collapsed, `currentPath="/settings/general"` | The "ตั้งค่า" button is pressed | Before the press the group is closed with the full look; then the Sidebar widens and the group opens | Before the press `aria-expanded` false and the marked button takes the fill and the bead; after it `collapsed` false, `aria-expanded` true, `document.activeElement` is that button (`sidebar-rail-1`) | `RailNested` play |
 | 61 | `RailNoIcons`, one first-level item with no `icon` | Rendering | The wide Sidebar and no toggle | No button named by `nav.collapse` (`sidebar-rail-1`) | `RailNoIcons` play |
 | 62 | `Rail` at 360 px, `collapsed` true | Rendering | The drawer form, not the rail | The opener exists; no toggle in view (`sidebar-rail-1`, `nav-narrow-1`) | `Rail` play step |
-| 63 | Slice E's PR | The gate runs and the designer reads the stories | Nothing new | `sidebar-navigation.yaml` lists the rail state; designer sign-off recorded (`stories-1`) | `check-catalog`, PR comment |
+| 63 | Slice E's PR | The gate runs and the designer reads the stories | Nothing new | `sidebar-navigation.yaml` lists the rail state; designer sign-off recorded, its PNG paths posted as a Jira comment (`stories-1`) | `check-catalog`, Jira comment |
 | 64 | `/directions`, Thai and English | Loading the page | "สตูดิโอ" marked in the top menu; "สองทิศทาง" marked in the side menu ("Studio", "Two directions") | `aria-current="page"` on both (`shell-ia-1`, `nav-current-1`) | New `apps/web/e2e/shell.spec.ts` |
 | 65 | `/workspace` | Loading the page | "สตูดิโอ" marked; "เวิร์กสเปซ" marked in the side menu | `aria-current="true"` on Studio, `aria-current="page"` on Workspace (`shell-ia-1`) | `shell.spec.ts` |
 | 66 | `/account`, then `/` | Loading the page | "บัญชี" marked on `/account`; nothing marked on `/`; no side menu on either | `aria-current="page"` on Account; no `[aria-current]` on `/`; one `navigation` role on each (`shell-ia-1`) | `shell.spec.ts` |
@@ -326,7 +336,7 @@ Stories are those of `stories-1`. Plays run in Thai; each `En` twin runs the sam
 | 70 | Each route of `top-skip-1` | Tab, then Enter | "ข้ามไปเนื้อหาหลัก" shows; focus moves to the content | `document.activeElement.id` is `main` on each of the five routes ("Skip to main content" in English) | `shell.spec.ts` |
 | 71 | `/workspace` at 1280 | "ย่อเมนู" is pressed, then reload | The rail stays after the reload, with no wide panel first | Cookie `orv-sidebar=collapsed` with W9's max age; first HTML already has the collapsed state (`sidebar-memory-1`) | `shell.spec.ts` |
 | 72 | `layout.test.tsx` | It renders `RootLayout` | Nothing | The header holds the home link with its svg, Studio and Account links in that order in the server HTML (`nav-narrow-1`) | Unit test |
-| 73 | Workspace `InShell`, `InShellNarrow` | Rendering | Top menu, side menu and the reference screen in position in one page; at 360 px both menus as icon buttons and the table in its narrow form | `WorkspaceScreen` itself holds no landmark; `getByRole("main")` is the story's; one `h1` (`reference-adopt-1`, W4) | `InShell`, `InShellNarrow` plays |
+| 73 | Workspace `InShell`, `InShellNarrow` | Rendering | Top menu, side menu and the reference screen in position in one page; at 360 px both menus as icon buttons and the table in its narrow form; beside the wide Sidebar the table turns where `nav-narrow-1` says | `WorkspaceScreen` itself holds no landmark; `getByRole("main")` is the story's; one `h1`; under neutral `.ds-table__frame` `clientWidth` and the table's form at containers 768, 769 and 770 match W4 (`reference-adopt-1`, `nav-narrow-1`) | `InShell`, `InShellNarrow` plays |
 | 74 | Slice F's copy and docs | `check-i18n` and `messages.test.ts` run | Nothing | Every key of "Copy" has Thai and English; no middot and no em dash; `DESIGN.md` section 12 and `coverage.md` name the four parts | `check-i18n`, `messages.test.ts`, `check-catalog` |
 | 75 | Each slice's PR | `pnpm lint && pnpm typecheck && pnpm test && pnpm build` runs | Nothing | All four pass, real output in the PR | CI and the G3 gate |
 
@@ -356,7 +366,7 @@ No PR exists yet, so this section has no PR lines. The main session adds one lin
 - Permissions, roles or per-workspace items in any menu. The shell's items are static.
 - `landing.tsx`'s own header and `nav`, the home page's headings, `/directions`' own `h1` and the `DirectionStudio` `h3` headings, `ds-inspector__header` and `ds-chat__header`.
 - A global search, a notification bell, feature cards.
-- The screen flow and final look of the shell beyond these parts. The POC's focus is function, so the top row's `max-w-2xl` beside a full-width Sidebar is open question 9, not a redesign.
+- The screen flow and final look of the shell beyond these parts. The POC's focus is function, so the top row's width beside a Sidebar is open question 9's answer, not a redesign.
 - A screen reader run.
 
 ## Open questions (each with a default)
@@ -366,13 +376,24 @@ No PR exists yet, so this section has no PR lines. The main session adds one lin
 | --- | --- | --- | --- |
 | 1 | Which landmark is the side navigation? (K-0224, K-0225; neither sidebar read has `nav`, K-0205, K-0216) | a) `nav` with its own name. b) `aside`, a complementary landmark, holding a `nav`: two landmarks for one panel, and `aside` must stay top level. c) `aside` alone, as Untitled UI: no navigation landmark at all | a), in `nav-landmark-1`: the panel is navigation, and one named landmark keeps the count low (W5) |
 | 2 | Which heading order bar do Page header and Section header hold to? (K-0230, K-0231, K-0210) | a) WHATWG's "must", at most one level deeper, plus one `h1` per page. b) WCAG's reading only, order is advisory and SC 2.4.10 is AAA, so the contract states nothing and axe `heading-order` stays the only check | a), in `heading-level-1`: it costs one prop, and the scan already reads order. It is what forces `headingLevel` on the workspace screen |
-| 3 | How does the current page look, given DESIGN.md section 8 gives Selected to `surface.selected` and limits `brand.signature`? Section 8's Brand presence row names "the brand badge's bead only", while section 3.1's `brand.signature` row says "a bead" with no owner, so the two read differently. (K-0204, K-0205) | a) Repoint: `bg-active` to `surface.selected`, `fg-active` and `bead` to `selection.fg`, bead shape kept as the non-colour cue. b) Keep `surface.card` and a `brand.signature` bead: `surface.card` is not Selected by section 8, and a card fill vanishes on a card ground. c) `surface.selected` with a `brand.signature` bead: section 3.1 would allow it, but the bead is here part of the selection cue, and brand accent never replaces selection semantics (AGENTS.md). d) No bead: colour alone fails section 7 | a), in "Contract changes and impact" and `nav-look-1`. The designer confirms it in slice C |
+| 3 | How does the current page look, given DESIGN.md section 8 gives Selected to `surface.selected` and limits `brand.signature`? Section 8's Brand presence row names "the brand badge's bead only", while section 3.1's `brand.signature` row says "a bead" with no owner, so the two read differently. (K-0204, K-0205) | a) Repoint: `bg-active` to `surface.selected`, `fg-active` and `bead` to `selection.fg`, bead shape kept as the non-colour cue. b) Keep `surface.card` and a `brand.signature` bead: `surface.card` is not Selected by section 8, and a card fill vanishes on a card ground. c) `surface.selected` with a `brand.signature` bead: section 3.1 would allow it, but the bead is here part of the selection cue, and brand accent never replaces selection semantics (AGENTS.md). d) No bead: colour alone fails section 7 | a), in "Contract changes and impact" and `nav-look-1`. Answered below |
 | 4 | What is the collapse shortcut, since Mod+B is `panel.toggle-library`, scope app (DESIGN.md section 12, K-0214)? | a) None; the visible toggle is the keyboard path. b) Mod+\, free in `catalog/commands/canvas.yaml` by search: a new command entry, a focus check in text fields (shadcn's listener has none, K-0214), and a catalog change. c) Move `panel.toggle-library`: rejected, it changes a shipped binding for a two-item menu | a), in `nav-shortcut-1`. b) can follow when the Sidebar has more items |
 | 5 | Does a rail ship at all? (K-0206, K-0235; K-0214 for shadcn's `collapsible="icon"`) | a) Ships, as slice E, on `sidebar-rail-1`: keyboard reachable, marked, no hover panel. b) No rail: the shell has two items, and AGENTS.md rule 6 says lean | a), because the owner asks for variant depth comparable to Untitled UI (`component-benchmark`) and both libraries read have an icon form. Slice E is its own PR, so dropping it removes rows 57 to 63, row 71 and `sidebar-memory-1`, and nothing else |
-| 6 | Does a wrapping Page header title take a taller line? (K-0210; DESIGN.md section 4; W7) | a) Line height from `--ds-type-heading-sm-line-height`, so wrapped lines clear; a one-line title grows by W7's figure. b) Keep 1.25 and accept touching marks on wrap | a), in `header-type-1`. A designer's call in slice A |
+| 6 | Does a wrapping Page header title take a taller line? (K-0210; DESIGN.md section 4; W7) | a) Line height from `--ds-type-heading-sm-line-height`, so wrapped lines clear; a one-line title grows by W7's figure. b) Keep 1.25 and accept touching marks on wrap | a), in `header-type-1`. Answered below |
 | 7 | Does the shell gain a skip link? (K-0232; SC 2.4.1) | a) Yes, on `TopNavigation`, in this story. b) Leave it: landmarks and headings also meet SC 2.4.1 by ARIA11 and H69, and the header is short | a), in `top-skip-1`: the Sidebar adds stops ahead of the content on two routes |
 | 8 | Which items go where, with four routes? (K-0208, K-0233) | a) Top holds Studio and Account; Sidebar holds Two directions and Workspace on those two routes. b) No Sidebar in the app yet, stories only: D.3 row 22 names the Studio shell, so the row would stay half done. c) Sidebar on every route: it would repeat Top's items | a), in `shell-ia-1` |
-| 9 | Does the top row's `max-w-2xl` stay on routes with a Sidebar? (ORV-194 rows 12, 13) | a) Stay: `header.spec.ts` numbers hold, and the row's start edge differs from the panel's at wide widths. b) Full width on all routes: `header.spec.ts` line 108 changes, a new number for the owner to see | a), in `top-nav-1`, flagged for the designer's sign-off in slice F |
+| 9 | Does the top row's `max-w-2xl` stay on routes with a Sidebar? (ORV-194 rows 12, 13) | a) Stay: `header.spec.ts` numbers hold, and the row's start edge differs from the panel's at wide widths. b) Full width on all routes: `header.spec.ts` line 108 changes, a new number for the owner to see | a). Not taken, answered below |
+
+### Answers
+
+G2 passed under delegation (ORV-225 comment 10532) on the designer's answers in `design.md`, section "Answers to the open questions". The other questions stand on their defaults. Each value lives in the rule named here.
+
+<!-- prettier-ignore -->
+| # | Answer | Why | Home |
+| --- | --- | --- | --- |
+| 3 | Default a), confirmed | Ink and bead carry the mark, and the fill is a soft ground, never the only mark. Every pair passes in the four colour sets (`design.md`, worst contrast pairs). Shot under neutral, friendly and professional in both modes | `nav-look-1`, "Contract changes and impact" |
+| 6 | Default a), with the changed padding | At 1.25 wrapped lines collide; at 1.7 they clear, and the ink sits lower in its box, so a smaller top padding still gives the mark its room (`design.md`, Page header title table) | `header-type-1`, W7 |
+| 9 | Neither a) nor b): the designer's proposal, a third option, the per-route top row | Default a) renders three start edges at 1440. The proposal puts the logo on the Sidebar's icon edge | `shell-ia-1` |
 
 ## Depends on
 
@@ -381,6 +402,8 @@ No PR exists yet, so this section has no PR lines. The main session adds one lin
 - `DESIGN.md` sections 3.1, 4, 6, 7, 8, 12.
 - `.claude/rules/design-system.md`, `.claude/rules/testing.md`.
 - ORV-161 (the screen stays landmark-free), ORV-194 (rows 7, 12, 13, `lines-clear-1`).
+- `docs/specs/ORV-225/design.md` and G2, ORV-225 comment 10532 (the comment taken from this task's facts; Jira itself not read in this role).
+- ORV-222 PR 186 (the helper `expectFrameCutsNoInk`, which `frame-ink-1` calls). It merges before any slice of this issue is built.
 - ORV-137 comment 10247 (benchmark table, as read through `.claude/rules/design-system.md`; Jira itself not read in this role).
 
 ## Knowledge
@@ -412,10 +435,10 @@ W3, `sidebar-rail-1`: `--cmp-nav-item-height` (40), `--ds-space-inset-sm` (8), t
 node -e 'const item=40,inset=8;console.log(item+2*inset,item>=24)'
 ```
 
-W4, `nav-narrow-1`: `--op-breakpoint-md` (768), `--ds-size-panel-min` (240), the screen's `p-6` (24 each side, `workspace.tsx` line 332), and the Table's narrow query (479). Expected `767 480 false`: at the narrowest wide form the table stays a table, so the Sidebar does not turn it into its narrow form. No rounding.
+W4, `nav-narrow-1`: `--op-breakpoint-md` (768), `--ds-size-panel-min` (240), the screen's `p-6` (24 each side, `workspace.tsx` line 332), the 1 px borders of `.ds-table__frame` (`recipes.css` line 1192, 2 in all), and the Table's narrow query (479). Expected `767 478 true`: at the narrowest wide form the table takes its narrow form. Then `479 true 480 false`: at containers 769 and 770, so it is a table from 770. No rounding.
 
 ```bash
-node -e 'const bp=768,panel=240,pad=24,table=479;const w=bp-panel-2*pad;console.log(bp-1,w,w<=table)'
+node -e 'const bp=768,panel=240,pad=24,border=2,table=479;const f=c=>c-panel-2*pad-border;const w=f(bp);console.log(bp-1,w,w<=table);console.log(f(769),f(769)<=table,f(770),f(770)<=table)'
 ```
 
 W5, `nav-landmark-1`: landmarks on `/workspace` and the bound of seven (K-0224). Expected `4 true`.
@@ -430,10 +453,10 @@ W6, `heading-level-1`: the path through `/directions` to the embedded screen, pa
 node -e 'const deep=o=>o.every((l,i)=>i===0||l<=o[i-1]+1);const h1=o=>o.filter(l=>l===1).length;for(const o of [[1,2,3,1,2],[1,2,3,4,5]])console.log(deep(o),h1(o))'
 ```
 
-W7, `header-type-1`: the gap between lines is size times (line height minus 1.58), from DESIGN.md section 4 (1.25 em above, 0.33 em below). Inputs in order: display-md at 1.25, heading-md at 1.3, heading-sm at 1.7, label-md at 1.7, display size at 1.7. Then the growth of a one-line title at 32 px from 1.25 to 1.7. Expected `-10.56 -6.72 2.40 1.68 3.84 14.40`, two places. Against the `lines-clear-1` floor of 1.5 less one device pixel, 1.25 fails and 1.7 passes.
+W7, `header-type-1`: the gap between lines is size times (line height minus 1.58), from DESIGN.md section 4 (1.25 em above, 0.33 em below). Inputs in order: display-md at 1.25, heading-md at 1.3, heading-sm at 1.7, label-md at 1.7, display size at 1.7. Then the growth of a one-line title at 32 px, from the box height of 1.25 with top padding 16 (56) to that of 1.7 with top padding 8 (62.39). Both boxes are the measured ones of `design.md`'s Page header title table, in Chromium at DPR 2; the plain sum for the second is 62.40. Expected `-10.56 -6.72 2.40 1.68 3.84 6.39`, two places. Against the `lines-clear-1` floor of 1.5 less one device pixel, 1.25 fails and 1.7 passes.
 
 ```bash
-node -e 'const g=(s,l)=>(s*(l-1.58)).toFixed(2);console.log(g(32,1.25),g(24,1.3),g(20,1.7),g(14,1.7),g(32,1.7),(32*(1.7-1.25)).toFixed(2))'
+node -e 'const g=(s,l)=>(s*(l-1.58)).toFixed(2);console.log(g(32,1.25),g(24,1.3),g(20,1.7),g(14,1.7),g(32,1.7),(62.39-56).toFixed(2))'
 ```
 
 W8, `nav-narrow-1`: `fill` on `nav.open`. Expected `เปิดเมนูหลัก, Open Main menu, เปิดเมนูสตูดิโอ, Open Studio menu`.
@@ -451,3 +474,4 @@ node -e 'console.log(60*60*24*365)'
 ## Changelog
 
 - 1: first version, from K-0204 to K-0236 and the repo on this branch.
+- 1.1: takes in `design.md` amendments 1 to 12 and its answers to open questions 3, 6 and 9, with question 9 on the designer's proposal (G2, ORV-225 comment 10532). Rules changed: `nav-focus-1`, `nav-narrow-1`, `top-nav-1`, `top-skip-1`, `sidebar-rail-1`, `shell-ia-1`, `section-header-1`, `header-type-1`, `header-stack-1`. Rows 12, 22, 41, 56 and 63 post the sign-off's PNG paths as a Jira comment (`stories-1`). `frame-ink-1` and rows 7, 18, 30, 35 and 49 name `expectFrameCutsNoInk(el, frame)` for the frame clip, because `expectLabelInkWhole` reads only its own clone, and Depends on gains PR 186. Rows 29, 38, 39, 48, 59, 60 and 73 and W4 and W7 follow the amendments, and the front matter points to `design.md`. No row number changes, so "Rows per PR" stands. Downstream to review: `design.md` (it still reads "Waits for a decision" on question 9), the slice A to F builder envelopes, the designer's sign-off list and the qa envelopes.
