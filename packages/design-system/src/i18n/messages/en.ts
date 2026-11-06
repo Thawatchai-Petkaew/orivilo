@@ -11,6 +11,9 @@ export const en: Messages = {
   skeleton: {
     loading: "Loading content",
   },
+  avatar: {
+    noName: "Name not shown",
+  },
   dialog: {
     close: "Close",
   },
@@ -34,6 +37,9 @@ export const en: Messages = {
     arrowLeft: "Arrow left",
     arrowRight: "Arrow right",
   },
+  alert: {
+    dismiss: "Dismiss this message",
+  },
   toast: {
     region: "Notifications",
     dismiss: "Dismiss",
@@ -42,6 +48,33 @@ export const en: Messages = {
     working: "Working",
     done: "Done",
     failed: "Failed",
+  },
+  fileUpload: {
+    choose: "Choose files",
+    chooseLabel: "Choose files for {label}",
+    limits: "{types} files, up to {size} each. At most {count} files",
+    dropHint: "or drag files here",
+    dropNow: "Drop to add the files",
+    full: "{count} files added. Remove one to add another",
+    listLabel: "Chosen files",
+    sizeKb: "{size} KB",
+    sizeMb: "{size} MB",
+    sizeMissing: "Size unknown",
+    done: "Uploaded",
+    failed: "Upload failed",
+    retry: "Try again",
+    retryLabel: "Try again to upload {name}",
+    removeLabel: "Remove {name} from the list",
+    rejectType: "{name}: this file type is not accepted. Choose one of these: {types}",
+    rejectSize:
+      "{name}: this file is {size}, over the {max} limit. Make it smaller and choose it again",
+    rejectCount:
+      "{name}: over the limit of {count} files. Remove a file from the list and choose this one again",
+    rejectMore: "and {count} more files not added",
+    announceStart: "Uploading {name}",
+    announceProgress: "{name}: {percent} uploaded",
+    announceDone: "{name} uploaded",
+    announceFailed: "{name} failed to upload: {reason}",
   },
   logo: {
     name: "ORIVILO",

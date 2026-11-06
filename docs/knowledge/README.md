@@ -251,6 +251,25 @@ Keep this table in step with the folder when you add an entry.
 | [[K-0168-wcag-f81-error-fields-by-color-alone]]                                         | 0.8        | F81: error fields marked by colour alone fail SC 1.4.1                |
 | [[K-0169-wcag-2-2-non-text-contrast-graphics-for-understanding]]                        | 0.8        | SC 1.4.11 (AA): 3:1 for graphics required for understanding           |
 | [[K-0170-synthesis-alert-and-featured-icon-benchmark]]                                  | 0.75       | Synthesis: Alert and FeaturedIcon benchmark table, audit B form       |
+| [[K-0185-untitled-ui-avatar-sizes-props-and-slots]]                                     | 0.8        | Untitled Avatar: size xs to 2xl, no variant; slots and option props   |
+| [[K-0186-untitled-ui-avatar-fallback-chain-and-sticky-load-failure]]                    | 0.8        | Untitled: initials, icons, User01; a failed image stays failed        |
+| [[K-0187-untitled-ui-avatar-one-indicator-and-unnamed-status-dot]]                      | 0.8        | Untitled: one indicator at a time; dot differs by colour, no text     |
+| [[K-0188-untitled-ui-avatar-alt-repeats-visible-name-no-aria]]                          | 0.8        | Untitled: alt repeats the visible name; no aria; ring via parent link |
+| [[K-0189-shadcn-ui-avatar-parts-sizes-and-classes]]                                     | 0.8        | shadcn Avatar: six parts (own count), default sm lg, no variant       |
+| [[K-0190-shadcn-ui-avatar-fallback-text-children-no-icon-example]]                      | 0.8        | shadcn fallback: caller's text, no icon sample; alt is a handle       |
+| [[K-0191-shadcn-ui-avatar-badge-empty-span-no-status-meaning]]                          | 0.8        | shadcn AvatarBadge: empty span, green by caller, no status meaning    |
+| [[K-0192-radix-avatar-three-parts-no-accessibility-text]]                               | 0.8        | Radix page: Root, Image, Fallback; no alt or accessibility text       |
+| [[K-0193-radix-avatar-source-preload-fallback-and-lost-alt]]                            | 0.8        | Radix 1.3.1: preload, img once loaded; alt gone while Fallback shows  |
+| [[K-0194-base-ui-avatar-keep-mounted-and-broken-image-note]]                            | 0.8        | Base UI: data-error, keepMounted; fallback gives the accessible name  |
+| [[K-0195-wcag-2-2-non-text-content-decoration-and-null-alt]]                            | 0.8        | SC 1.1.1 (A) and H67: text alternative, or ignored; no avatar named   |
+| [[K-0196-wai-images-tutorial-image-described-by-adjacent-text]]                         | 0.8        | WAI tutorial: image described by adjacent text takes empty alt        |
+| [[K-0197-wcag-2-2-h2-image-and-text-in-one-link]]                                       | 0.8        | H2: image and text in one link, empty alt; image alone names action   |
+| [[K-0198-whatwg-html-alt-for-a-face-beside-text]]                                       | 0.8        | WHATWG: face beside text is the author's call; example has empty alt  |
+| [[K-0199-wai-aria-1-2-img-name-presentation-and-aria-label]]                            | 0.8        | ARIA 1.2: role img needs a name; aria-labelledby over aria-label      |
+| [[K-0200-aria-in-html-img-rows]]                                                        | 0.8        | ARIA in HTML: img roles by alt; empty alt takes only aria-hidden      |
+| [[K-0201-wcag-2-2-use-of-color-and-non-text-contrast-for-a-dot]]                        | 0.8        | SC 1.4.1 and 1.4.11: colour alone, status icon contrast; no dot named |
+| [[K-0202-initials-for-thai-silence-and-charat]]                                         | 0.75       | Sources silent on Thai initials; getInitials uses charAt(0)           |
+| [[K-0203-synthesis-avatar-benchmark]]                                                   | 0.75       | Synthesis: Avatar benchmark table, audit B form                       |
 | [[K-0204-untitled-ui-sidebar-five-variants-and-item-shape]]                             | 0.75       | Untitled sidebars: 5 variants; widths 280, 280, 68, 276, 276 px       |
 | [[K-0205-untitled-ui-sidebar-nested-details-and-aria-current]]                          | 0.8        | Untitled NavList: details nesting, aria-current, aside with no nav    |
 | [[K-0206-untitled-ui-slim-rail-nav-button-and-hover-panel]]                             | 0.8        | Untitled Slim: NavButton has no aria-current, panel on hover only     |
@@ -284,3 +303,32 @@ Keep this table in step with the folder when you add an entry.
 | [[K-0234-wcag-2-2-focus-order-and-focus-not-obscured]]                                  | 0.8        | WCAG Focus Order (A), Focus Not Obscured (AA): modal, sticky header   |
 | [[K-0235-wcag-2-2-target-size-minimum-for-nav-items]]                                   | 0.8        | WCAG SC 2.5.8 (AA): 24 by 24 CSS px targets, with exceptions          |
 | [[K-0236-synthesis-app-navigation-and-headers-benchmark]]                               | 0.75       | Synthesis: app navigation and headers benchmark, four audit B tables  |
+| [[K-0260-untitled-ui-file-uploaders-examples-and-props]]                                | 0.75       | Untitled uploader: 5 examples (own count), DropZone props, no size    |
+| [[K-0261-untitled-ui-list-progress-bar-and-fill-items]]                                 | 0.8        | Untitled list: name, size, progress 0 to 100; bar or fill item        |
+| [[K-0262-untitled-ui-failed-item-try-again-and-delete]]                                 | 0.8        | Untitled failed: boolean, error ring, Try again; no reason field      |
+| [[K-0263-untitled-ui-size-and-type-limits-and-silent-drop]]                             | 0.8        | Untitled limits: accept, maxSize bytes; no callback, silent drop      |
+| [[K-0264-untitled-ui-drop-zone-keyboard-and-screen-reader]]                             | 0.8        | Untitled zone: sr-only input, no ARIA or live region, no focus class  |
+| [[K-0265-untitled-ui-progress-indicators-no-accessible-name]]                           | 0.8        | Untitled ProgressBar: progressbar role, value attributes, no name     |
+| [[K-0266-untitled-ui-file-trigger-and-inputs-file-upload-example]]                      | 0.75       | Untitled FileTrigger: any child opens a display none file input       |
+| [[K-0267-shadcn-ui-no-dropzone-input-type-file-example]]                                | 0.75       | shadcn: no dropzone; Input type file example, file: classes only      |
+| [[K-0268-shadcn-ui-attachment-parts-sizes-and-props]]                                   | 0.8        | shadcn Attachment: 3 sizes, 2 orientations, media, actions, group     |
+| [[K-0269-shadcn-ui-attachment-states-retry-and-cancel-samples]]                         | 0.8        | shadcn Attachment: 5 states, retry and cancel as sample actions       |
+| [[K-0270-shadcn-ui-attachment-accessibility-and-no-aria-in-source]]                     | 0.8        | shadcn Attachment: label actions, reason in text; no ARIA in source   |
+| [[K-0271-shadcn-ui-progress-upload-label-and-field-error-alert]]                        | 0.8        | shadcn: Upload progress label sample; FieldError has role alert       |
+| [[K-0272-radix-has-no-file-or-dropzone-primitive]]                                      | 0.8        | Radix: no file, upload or dropzone primitive; 54 deps (own count)     |
+| [[K-0273-radix-progress-api-and-source-no-accessible-name]]                             | 0.8        | Radix Progress: null is indeterminate, 3 data states, no name set     |
+| [[K-0274-radix-form-message-and-focus-first-invalid]]                                   | 0.8        | Radix Form: message wired to control, focus to first invalid          |
+| [[K-0275-wcag-2-2-dragging-movements-single-pointer-alternative]]                       | 0.8        | SC 2.5.7 (AA): single pointer without dragging; keyboard is separate  |
+| [[K-0276-wcag-2-2-keyboard-and-the-drag-and-drop-example]]                              | 0.8        | SC 2.1.1 (A): drag and drop example adds cut, paste or form controls  |
+| [[K-0277-wcag-2-2-status-messages-progress-and-error-techniques]]                       | 0.8        | SC 4.1.3: errors by ARIA19; progress by ARIA22, 23, 25 or 27          |
+| [[K-0278-wcag-2-2-aria25-aria27-file-upload-progress-announcing]]                       | 0.8        | ARIA25: hidden polite text speaks upload progress; ARIA27 add-on      |
+| [[K-0279-wcag-2-2-error-identification-in-text]]                                        | 0.8        | SC 3.3.1 (A): identify the item, describe the error in text           |
+| [[K-0280-wcag-2-2-error-suggestion-for-allowed-values]]                                 | 0.8        | SC 3.3.3 (AA): give known corrections, such as allowed values         |
+| [[K-0281-wcag-2-2-labels-or-instructions-expected-format]]                              | 0.8        | SC 3.3.2 (A): labels or instructions; may specify data formats        |
+| [[K-0282-wai-aria-apg-no-file-or-drag-pattern-meter-note]]                              | 0.8        | APG: no file or drag pattern; meter is not for progress               |
+| [[K-0283-wai-aria-1-2-progressbar-role-and-region-loading]]                             | 0.8        | ARIA progressbar: name required, omit valuenow when indeterminate     |
+| [[K-0284-wai-aria-1-2-grabbed-and-dropeffect-deprecated]]                               | 0.8        | aria-grabbed and aria-dropeffect are deprecated since ARIA 1.1        |
+| [[K-0285-aria-in-html-input-file-takes-no-role]]                                        | 0.8        | ARIA in HTML: input type file has no role, none allowed               |
+| [[K-0286-html-accept-is-a-hint-back-it-on-the-server]]                                  | 0.8        | HTML accept is a hint; MDN: back it with server-side validation       |
+| [[K-0287-react-aria-dropzone-takes-a-file-trigger-child]]                               | 0.75       | React Aria DropZone: FileTrigger as a child; no keyboard drop text    |
+| [[K-0288-synthesis-file-upload-benchmark]]                                              | 0.75       | Synthesis: file upload benchmark table, audit B form                  |

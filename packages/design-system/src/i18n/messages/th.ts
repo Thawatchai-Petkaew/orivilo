@@ -15,6 +15,9 @@ export const th = {
   skeleton: {
     loading: "กำลังโหลดเนื้อหา",
   },
+  avatar: {
+    noName: "ไม่แสดงชื่อ",
+  },
   dialog: {
     close: "ปิด",
   },
@@ -38,6 +41,9 @@ export const th = {
     arrowLeft: "ลูกศรซ้าย",
     arrowRight: "ลูกศรขวา",
   },
+  alert: {
+    dismiss: "ปิดข้อความนี้",
+  },
   toast: {
     region: "การแจ้งเตือน",
     dismiss: "ปิดการแจ้งเตือน",
@@ -46,6 +52,31 @@ export const th = {
     working: "กำลังทำงาน",
     done: "เสร็จแล้ว",
     failed: "ไม่สำเร็จ",
+  },
+  fileUpload: {
+    choose: "เลือกไฟล์",
+    chooseLabel: "เลือกไฟล์ สำหรับ{label}",
+    limits: "ไฟล์ {types} ขนาดไม่เกิน {size} ต่อไฟล์ เลือกได้สูงสุด {count} ไฟล์",
+    dropHint: "หรือลากไฟล์มาวางที่นี่",
+    dropNow: "ปล่อยเพื่อเพิ่มไฟล์",
+    full: "ครบ {count} ไฟล์แล้ว นำไฟล์ออกก่อนจึงจะเพิ่มได้",
+    listLabel: "ไฟล์ที่เลือก",
+    sizeKb: "{size} KB",
+    sizeMb: "{size} MB",
+    sizeMissing: "ไม่ทราบขนาด",
+    done: "อัปโหลดแล้ว",
+    failed: "อัปโหลดไม่สำเร็จ",
+    retry: "ลองอีกครั้ง",
+    retryLabel: "ลองอีกครั้ง อัปโหลด {name}",
+    removeLabel: "นำ {name} ออกจากรายการ",
+    rejectType: "{name}: ไฟล์ชนิดนี้ใช้ไม่ได้ เลือกไฟล์ชนิด {types} แทน",
+    rejectSize: "{name}: ไฟล์ขนาด {size} เกิน {max} ย่อไฟล์แล้วเลือกอีกครั้ง",
+    rejectCount: "{name}: เกิน {count} ไฟล์ นำไฟล์ออกจากรายการก่อนแล้วเลือกอีกครั้ง",
+    rejectMore: "และอีก {count} ไฟล์ที่เพิ่มไม่ได้",
+    announceStart: "กำลังอัปโหลด {name}",
+    announceProgress: "{name} อัปโหลดไปแล้ว {percent}",
+    announceDone: "อัปโหลด {name} แล้ว",
+    announceFailed: "อัปโหลด {name} ไม่สำเร็จ: {reason}",
   },
   logo: {
     name: "ORIVILO",
