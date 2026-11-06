@@ -331,6 +331,29 @@ Keep this table in step with the folder when you add an entry.
 | [[K-0234-wcag-2-2-focus-order-and-focus-not-obscured]]                                  | 0.8        | WCAG Focus Order (A), Focus Not Obscured (AA): modal, sticky header   |
 | [[K-0235-wcag-2-2-target-size-minimum-for-nav-items]]                                   | 0.8        | WCAG SC 2.5.8 (AA): 24 by 24 CSS px targets, with exceptions          |
 | [[K-0236-synthesis-app-navigation-and-headers-benchmark]]                               | 0.75       | Synthesis: app navigation and headers benchmark, four audit B tables  |
+| [[K-0237-untitled-ui-react-modal-parts-dismissal-and-focus]]                            | 0.8        | Untitled Modal: backdrop off by default; no size, role or state prop  |
+| [[K-0238-untitled-ui-react-warning-and-destructive-modals-are-pro-examples]]            | 0.75       | Untitled React: warning and destructive modals are PRO, source unread |
+| [[K-0239-untitled-ui-figma-modals-destructive-confirmation-treatment]]                  | 0.8        | Untitled Figma: red primary, icon, title naming the consequence       |
+| [[K-0240-untitled-ui-button-destructive-colors-and-loading-state]]                      | 0.8        | Untitled Button: 3 destructive variants; isLoading stops presses      |
+| [[K-0241-untitled-ui-alerts-confirm-action-and-no-confirmation-page]]                   | 0.75       | Untitled: no confirmation page; alerts take onConfirm, inline         |
+| [[K-0242-react-aria-modal-dialog-role-prop-and-dismiss-defaults]]                       | 0.8        | React Aria: role alertdialog is a prop; no outside close by default   |
+| [[K-0243-shadcn-ui-alert-dialog-parts-sizes-and-registry-classes]]                      | 0.8        | shadcn Alert Dialog: default and sm, Media slot, no aria or pending   |
+| [[K-0244-shadcn-ui-alert-dialog-destructive-example-and-impact-text]]                   | 0.8        | shadcn Destructive: destructive action, outline cancel, tinted media  |
+| [[K-0245-shadcn-ui-base-version-plain-action-and-base-ui-focus]]                        | 0.8        | shadcn Base UI: Action a plain Button; first tabbable gets focus      |
+| [[K-0246-radix-alert-dialog-docs-parts-keyboard-and-api]]                               | 0.8        | Radix Alert Dialog: parts, API, Esc to trigger, alert pattern         |
+| [[K-0247-radix-alert-dialog-source-cancel-first-no-outside-close]]                      | 0.8        | Radix source: Cancel takes focus; no outside close; Esc still closes  |
+| [[K-0248-radix-alert-dialog-action-closes-on-click-no-pending-state]]                   | 0.8        | Radix Action closes on click; async needs controlled open             |
+| [[K-0249-radix-dialog-wiring-and-focus-scope-first-tabbable]]                           | 0.8        | Radix Dialog 1.3.1: hideOthers, no aria-modal; first tabbable focus   |
+| [[K-0250-wai-aria-1-2-alertdialog-role-focus-and-modality]]                             | 0.8        | ARIA 1.2 alertdialog: modal, focus inside, name required              |
+| [[K-0251-wai-aria-apg-alert-dialog-pattern-roles-and-keyboard]]                         | 0.8        | APG Alert Dialog: confirmation prompts, aria-modal, describedby       |
+| [[K-0252-wai-aria-apg-modal-dialog-initial-focus-and-return]]                           | 0.8        | APG Modal Dialog: least destructive action may take first focus       |
+| [[K-0253-wai-aria-apg-alert-dialog-example-no-first-aria-disabled]]                     | 0.8        | APG example: focus on No; aria-disabled keeps buttons in Tab order    |
+| [[K-0254-wcag-2-2-error-prevention-legal-financial-data-aa]]                            | 0.8        | SC 3.3.4 (AA): reversible, checked or confirmed; not every save       |
+| [[K-0255-wcag-2-2-error-prevention-all-aaa]]                                            | 0.8        | SC 3.3.6 (AAA): the same three options for all submissions            |
+| [[K-0256-wcag-2-2-g168-confirm-and-g99-recover-deleted]]                                | 0.8        | G168 confirm, then confirm or cancel; G99 recover deleted data        |
+| [[K-0257-wcag-2-2-error-identification-and-suggestion-input-errors]]                    | 0.8        | SC 3.3.1 (A) and 3.3.3 (AA) cover input errors, failure unstated      |
+| [[K-0258-wcag-2-2-focus-order-modal-dialog-example]]                                    | 0.8        | SC 2.4.3 (A) example: focus in dialog, back to button on dismiss      |
+| [[K-0259-synthesis-confirm-dialog-benchmark]]                                           | 0.75       | Synthesis: ConfirmDialog benchmark table, audit B form                |
 | [[K-0260-untitled-ui-file-uploaders-examples-and-props]]                                | 0.75       | Untitled uploader: 5 examples (own count), DropZone props, no size    |
 | [[K-0261-untitled-ui-list-progress-bar-and-fill-items]]                                 | 0.8        | Untitled list: name, size, progress 0 to 100; bar or fill item        |
 | [[K-0262-untitled-ui-failed-item-try-again-and-delete]]                                 | 0.8        | Untitled failed: boolean, error ring, Try again; no reason field      |

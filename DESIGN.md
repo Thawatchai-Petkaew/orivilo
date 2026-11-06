@@ -1,4 +1,4 @@
-# DESIGN.md: ORIVILO (agent-readable, v1.66)
+# DESIGN.md: ORIVILO (agent-readable, v1.67)
 
 Read this before any UI work: a Studio screen, a shared component, a story, a recipe, a preview, or a review of generated output. It is the design contract the `frontend-design` skill critiques against and the **design gate** (§11) that blocks G3. Rules that enforce it live in `.claude/rules/design-system.md`; the component registry lives in `packages/design-system/catalog/`.
 
@@ -169,18 +169,18 @@ The three files compile to `generated.css` and the profiles to `src/profiles/gen
 
 Order of evidence: requirement and data → catalog (`packages/design-system/catalog/`) → the entry's contract and example → the active profile → shadcn, Radix, Tailwind docs last.
 
-| Task                                                      | Start with                          | Then check                                  |
-| --------------------------------------------------------- | ----------------------------------- | ------------------------------------------- |
-| Pick one of a short list where all options should be seen | RadioGroup                          | Count and space; ≥ 6 options → Select       |
-| Pick one of a long list, needs search                     | Combobox                            | Async data, empty, keyboard                 |
-| On/off setting that applies immediately                   | Switch                              | Save feedback and error recovery            |
-| On/off that applies on submit                             | Checkbox                            |                                             |
-| Confirm a destructive action                              | ConfirmDialog pattern (ours)        | Impact text, pending, failure               |
-| Secondary task without leaving the page                   | Dialog (small) or Sheet (long form) | Portal receives the profile; focus returns  |
-| Compare rows of the same shape                            | Table                               | Long Thai names, missing cells, small width |
-| One primary action per view                               | Button `primary`                    | Everything else `secondary` or `ghost`      |
-| A message tied to a place that stays true (`alert-use-1`) | Alert                               | Toast: no place. Field, Dialog. Live role   |
-| Pick one date from a month grid (`cal-api-1`)             | Calendar                            | Bounds, 360 px, Thai year in text only      |
+| Task                                                        | Start with                          | Then check                                  |
+| ----------------------------------------------------------- | ----------------------------------- | ------------------------------------------- |
+| Pick one of a short list where all options should be seen   | RadioGroup                          | Count and space; ≥ 6 options → Select       |
+| Pick one of a long list, needs search                       | Combobox                            | Async data, empty, keyboard                 |
+| On/off setting that applies immediately                     | Switch                              | Save feedback and error recovery            |
+| On/off that applies on submit                               | Checkbox                            |                                             |
+| Confirm a destructive action, or accepting proposed changes | ConfirmDialog pattern (ours)        | Impact text, pending, failure               |
+| Secondary task without leaving the page                     | Dialog (small) or Sheet (long form) | Portal receives the profile; focus returns  |
+| Compare rows of the same shape                              | Table                               | Long Thai names, missing cells, small width |
+| One primary action per view                                 | Button `primary`                    | Everything else `secondary` or `ghost`      |
+| A message tied to a place that stays true (`alert-use-1`)   | Alert                               | Toast: no place. Field, Dialog. Live role   |
+| Pick one date from a month grid (`cal-api-1`)               | Calendar                            | Bounds, 360 px, Thai year in text only      |
 
 A pattern that already exists comes before composing new base components, but only when the task matches, not when the name is close. If nothing fits, propose an extension (variant, recipe slot, or pattern) in the PR with scope and reason; do not fork a component.
 
@@ -361,3 +361,5 @@ Change log: v1.64 (2026-11-06) ORV-221 part 1, RadioGroup with `Field group` (sp
 Change log: v1.65 (2026-11-06) ORV-223, the empty half: section 4's compact title over text names "an empty state" in place of "a table empty state", since EmptyState draws it at both of its sizes (title 14 / 500 in `text.primary` over text 14 / 400 in `text.secondary`, 4 px apart). New component tokens `featured-icon.neutral.bg` and `.fg` (`border.subtle`, `text.secondary`) and the `empty-state.*` set (`title`, `description`, `title-type`, `body-type`, `text-gap`, `gap-md`, `gap-sm`, `action-gap`, `max-width`), all component layer, with new contrast pairs: the neutral glyph on its tile at 3.0 and the title and description on the canvas, the card and the board ground at 4.5. Impact: the empty CanvasBoard and the empty TaskBar panel change from one line of text to a tile, a title and the words; `taskBar.empty` now holds the words only and `taskBar.emptyTitle` is new. FeaturedIcon gains the `neutral` kind and an `icon` prop that only it takes. No semantic token or profile file changes.
 
 Change log: v1.66 (2026-11-06) ORV-231 (the single-date Calendar of D.3 row 28): section 6 gains a row, Calendar for one date chosen from a month grid, with its bounds, its 360 px fit and the Thai year drawn in text only (`cal-api-1`, `date-value-1`). New component `Calendar` over `react-day-picker` 10.0.2 for behaviour only (ADR 0020), with component tokens `calendar.*` (`surface.raised`, `surface.hover`, `surface.selected`, `text.primary`, `text.secondary`, `text.disabled`, `selection.fg`, `border.control-hover`, `type.label.md`, `type.body.xs`, `type.control.md`, `size.touch`, `space.stack.sm`, `space.stack.lg`, `space.inline.sm`, `space.inset.sm`, `shape.control.radius`, `shape.container.radius`), the recipe `ds-calendar`, the glyphs `ChevronLeftIcon` and `ChevronRightIcon`, the locale group `calendar.*`, and 13 pairs in `pairs.ts` (4 at 4.5, 9 at 3.0) under every profile in both modes. Impact: no semantic token, value or profile changes; Button, Popover and Toast do not change.
+
+Change log: v1.67 (2026-11-06) ORV-226: §6 widens the ConfirmDialog task to "Confirm a destructive action, or accepting proposed changes"; the pattern is built (catalog entry `application-confirm-dialog`, draft). No token, value, contrast pair or profile file changes.

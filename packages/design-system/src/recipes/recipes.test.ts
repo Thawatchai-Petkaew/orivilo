@@ -92,6 +92,35 @@ describe("recipes.css", () => {
   });
 });
 
+describe("the confirm dialog recipe (ORV-226, A1)", () => {
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  const start = bare.indexOf(".ds-confirm {");
+  const end = bare.indexOf("@keyframes ds-fade-in");
+  const block = bare.slice(start, end);
+  const selectors = [...block.matchAll(/([^{}]+)\{/g)]
+    .map((m) => (m[1] ?? "").trim())
+    .filter((selector) => !selector.startsWith("@"));
+
+  it("has a block, placed after the dialog rules", () => {
+    expect(start).toBeGreaterThan(bare.indexOf(".ds-dialog__close {"));
+    expect(selectors.length).toBeGreaterThan(0);
+  });
+
+  it("starts every selector at .ds-confirm, so no .ds-dialog caller changes", () => {
+    expect(selectors.filter((selector) => !selector.startsWith(".ds-confirm"))).toEqual([]);
+  });
+
+  it("stacks below the 333 px content box, the cap of 384 less padding and border, less 1", () => {
+    expect(block).toContain("@container (max-width: 333px) {");
+  });
+
+  it("makes the panel the one scroller and the footer sticky", () => {
+    expect(block).toMatch(/\.ds-confirm \{[^}]*overflow: hidden auto;/);
+    expect(block).toMatch(/\.ds-confirm \{[^}]*container-type: inline-size;/);
+    expect(block).toMatch(/\.ds-confirm \.ds-dialog__footer \{[^}]*position: sticky;/);
+  });
+});
+
 describe("the logo recipe (ORV-118, logo-colour-1)", () => {
   const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
   const rules = [...bare.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => ({

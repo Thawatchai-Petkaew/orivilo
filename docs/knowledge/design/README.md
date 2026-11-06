@@ -139,6 +139,29 @@ Facts from outside design systems and standards that inform ORIVILO's own design
 | [[K-0234-wcag-2-2-focus-order-and-focus-not-obscured]]                         | WCAG Focus Order (A), Focus Not Obscured (AA): modal, sticky header    |
 | [[K-0235-wcag-2-2-target-size-minimum-for-nav-items]]                          | WCAG SC 2.5.8 (AA): 24 by 24 CSS px targets, with exceptions           |
 | [[K-0236-synthesis-app-navigation-and-headers-benchmark]]                      | Synthesis of K-0204 to K-0235: app navigation and headers, four tables |
+| [[K-0237-untitled-ui-react-modal-parts-dismissal-and-focus]]                   | Untitled UI React Modal: parts, dismissal, focus, no role              |
+| [[K-0238-untitled-ui-react-warning-and-destructive-modals-are-pro-examples]]   | Untitled UI React warning and destructive modal examples (PRO)         |
+| [[K-0239-untitled-ui-figma-modals-destructive-confirmation-treatment]]         | Untitled UI Figma modals: destructive confirmation treatment           |
+| [[K-0240-untitled-ui-button-destructive-colors-and-loading-state]]             | Untitled UI Button: destructive colours and the loading state          |
+| [[K-0241-untitled-ui-alerts-confirm-action-and-no-confirmation-page]]          | Is there an Untitled UI confirmation page; Alerts confirm action       |
+| [[K-0242-react-aria-modal-dialog-role-prop-and-dismiss-defaults]]              | React Aria Modal: Dialog role prop and dismissal defaults              |
+| [[K-0243-shadcn-ui-alert-dialog-parts-sizes-and-registry-classes]]             | shadcn/ui Alert Dialog: parts, sizes, examples, registry classes       |
+| [[K-0244-shadcn-ui-alert-dialog-destructive-example-and-impact-text]]          | shadcn/ui Alert Dialog Destructive example and impact text             |
+| [[K-0245-shadcn-ui-base-version-plain-action-and-base-ui-focus]]               | shadcn/ui Base UI version: action, close and initial focus             |
+| [[K-0246-radix-alert-dialog-docs-parts-keyboard-and-api]]                      | Radix Alert Dialog docs: parts, API, keyboard, async example           |
+| [[K-0247-radix-alert-dialog-source-cancel-first-no-outside-close]]             | Radix Alert Dialog source: first focus, outside press, Escape          |
+| [[K-0248-radix-alert-dialog-action-closes-on-click-no-pending-state]]          | Radix Alert Dialog Action: closing, pending and failure                |
+| [[K-0249-radix-dialog-wiring-and-focus-scope-first-tabbable]]                  | Radix Dialog 1.3.1 and FocusScope 1.3.1: wiring and focus              |
+| [[K-0250-wai-aria-1-2-alertdialog-role-focus-and-modality]]                    | WAI-ARIA 1.2 alertdialog role                                          |
+| [[K-0251-wai-aria-apg-alert-dialog-pattern-roles-and-keyboard]]                | WAI-ARIA APG Alert Dialog pattern                                      |
+| [[K-0252-wai-aria-apg-modal-dialog-initial-focus-and-return]]                  | WAI-ARIA APG Modal Dialog: initial focus and focus on close            |
+| [[K-0253-wai-aria-apg-alert-dialog-example-no-first-aria-disabled]]            | WAI-ARIA APG alert dialog example: first focus, aria-disabled          |
+| [[K-0254-wcag-2-2-error-prevention-legal-financial-data-aa]]                   | WCAG 2.2 SC 3.3.4 Error Prevention (Legal, Financial, Data)            |
+| [[K-0255-wcag-2-2-error-prevention-all-aaa]]                                   | WCAG 2.2 SC 3.3.6 Error Prevention (All)                               |
+| [[K-0256-wcag-2-2-g168-confirm-and-g99-recover-deleted]]                       | WCAG 2.2 techniques G168 (confirm) and G99 (recover)                   |
+| [[K-0257-wcag-2-2-error-identification-and-suggestion-input-errors]]           | WCAG 2.2 SC 3.3.1 and 3.3.3: what an input error is                    |
+| [[K-0258-wcag-2-2-focus-order-modal-dialog-example]]                           | WCAG 2.2 SC 2.4.3 Focus Order: the modal dialog example                |
+| [[K-0259-synthesis-confirm-dialog-benchmark]]                                  | Synthesis of K-0237 to K-0258: ConfirmDialog benchmark table           |
 | [[K-0260-untitled-ui-file-uploaders-examples-and-props]]                       | Untitled UI file uploaders: examples, parts, props, sizes, variants    |
 | [[K-0261-untitled-ui-list-progress-bar-and-fill-items]]                        | Untitled UI upload list: progress, complete, item forms                |
 | [[K-0262-untitled-ui-failed-item-try-again-and-delete]]                        | Untitled UI failed item: text, retry, delete                           |
