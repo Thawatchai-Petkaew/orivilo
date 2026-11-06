@@ -9,6 +9,7 @@ import { Tag } from "../components/tag/Tag";
 import { CloseIcon, WarningIcon } from "../components/icons";
 import {
   expectEdgeInk,
+  expectFrameCutsNoInk,
   expectInkClearsAbove,
   expectLabelInkWhole,
   expectNoGlyphClip,
@@ -276,6 +277,54 @@ export const LabelPaddingNoise: Story = {
     await document.fonts.load("500 14px Sarabun", "ฟื้ปั้ปี๊");
     await document.fonts.ready;
     await expectLabelInkWhole(label);
+  },
+};
+
+/**
+ * ORV-222 rows 4 and 18: `expectFrameCutsNoInk` reads a clip that sits on the frame or on any
+ * ancestor between the name and the frame, which `expectLabelInkWhole` cannot (it forces only its
+ * own clone visible, so such a clip cuts both its shots alike). The name sits at the top of the
+ * frame with a tight line, so its Thai tone marks draw above the frame's box. With the frame clip
+ * on, the helper throws; with an `overflow: hidden` on the wrapper between them, it throws; with
+ * nothing clipping, it passes. A frame that is not an ancestor of the name throws, and the inline
+ * overflow values are back after every call.
+ */
+export const FrameCutsNoInk: Story = {
+  render: () => (
+    <DesignProfileBoundary mode="light" profile="neutral">
+      <div style={{ padding: 16, background: "var(--ds-surface-canvas)" }}>
+        <div data-case="frame" style={{ width: 240 }}>
+          <div data-case="wrapper">
+            <span
+              data-case="name"
+              className="font-body"
+              style={{ display: "block", fontSize: 14, fontWeight: 500, lineHeight: 1 }}
+            >
+              ฟื้นฟูปั้นปี๊บ
+            </span>
+          </div>
+        </div>
+      </div>
+    </DesignProfileBoundary>
+  ),
+  play: async ({ canvasElement }) => {
+    if (!inVitest) return;
+    const frame = q(canvasElement, "[data-case='frame']");
+    const wrapper = q(canvasElement, "[data-case='wrapper']");
+    const name = q(canvasElement, "[data-case='name']");
+    await document.fonts.load("500 14px Sarabun", "ฟื้ปั้ปี๊");
+    await document.fonts.ready;
+    await expectFrameCutsNoInk(name, frame);
+    frame.style.overflow = "hidden";
+    await expect(expectFrameCutsNoInk(name, frame)).rejects.toThrow(/cuts ink: the pixel at x/);
+    await expect(frame.style.overflow).toBe("hidden");
+    frame.style.overflow = "";
+    wrapper.style.overflow = "hidden";
+    await expect(expectFrameCutsNoInk(name, frame)).rejects.toThrow(/cuts ink: the pixel at x/);
+    await expect(wrapper.style.overflow).toBe("hidden");
+    wrapper.style.overflow = "";
+    await expectFrameCutsNoInk(name, frame);
+    await expect(expectFrameCutsNoInk(frame, name)).rejects.toThrow(/is not an ancestor of/);
   },
 };
 

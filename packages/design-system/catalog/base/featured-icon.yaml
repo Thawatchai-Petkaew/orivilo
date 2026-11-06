@@ -1,0 +1,26 @@
+name: FeaturedIcon
+tier: base
+status: draft
+since: ORV-222
+import: "@orivilo/design-system"
+story: base-featured-icon
+useWhen:
+  - "A feedback kind needs a larger mark beside words that say the same thing: the tile of an inline message"
+avoidWhen:
+  - "A status with no words next to it (use Badge, whose word carries the meaning)"
+  - "A neutral or brand mark, or a glyph the caller picks (not built; the Empty state story adds both)"
+  - "A control or a link (the tile is hidden from assistive tech and never takes focus)"
+contract: FeaturedIconProps
+variants: [success, warning, danger, info]
+sizes: [sm, md, lg]
+states: [default]
+recipes: [neutral, professional, friendly]
+examples: []
+rules:
+  - "`variant` is required, with no default, and sets both the tint and the glyph: success is Check, warning is TriangleAlert, danger is OctagonX, info is Info; the four drawings differ, so the kind never rests on colour alone"
+  - "Brand is not a kind: brand accent never replaces error or warning semantics, and there is no `icon`, `children` or `theme` prop (a type error)"
+  - "The tile is 32, 40 or 48 px (`size.control.sm`, `.md`, `.lg`) with the glyph at 16, 20 or 24 px (`size.icon.sm`, `.md`, `.lg`), one `shape.media.radius` at every size"
+  - "The tint is `feedback.<kind>.surface` and the glyph `feedback.<kind>.fg`, read through `featured-icon.<kind>.bg` and `.fg`; the glyph on its tile is listed at the UI floor 3.0, the tile ground against the page is decoration"
+  - "Forced colours keep the tile's shape with a transparent 1 px outline"
+a11y:
+  - "The tile root is aria-hidden with no role, no name and no tab stop; place it only beside words that say the same thing"
