@@ -1,8 +1,8 @@
 ---
 issue: ORV-225 (https://tpetkaew.atlassian.net/browse/ORV-225)
-spec: docs/specs/ORV-225/spec.md v1.1
-task: ORV-225-design-1
-version: 1
+spec: docs/specs/ORV-225/spec.md v1.2
+task: ORV-225-design-2
+version: 2
 ---
 
 # ORV-225 design: Sidebar navigation, Top navigation, Page header and Section header
@@ -10,6 +10,8 @@ version: 1
 This file covers slices A to F. It answers open questions 3, 6 and 9, gives the builders one numbered table of CSS and markup per rule, and holds the recipe blocks. Every look below was rendered: the CSS in "Recipe blocks" was injected into the real Storybook bundle on port 6433 with the real `recipes.css` and tokens, on markup built from the component classes. Nothing under `packages/` or `apps/` changed. No component exists yet, so these are proposals on real tokens, not proofs of a build.
 
 Where this file and the spec differ, the table "Amendments to the spec" says so by rule and row number. Open question 9 is the one answer that leaves its default, decided at G2, ORV-225 comment 10532. The other amendments are corrections the renders forced.
+
+Version 2 answers finding F1 of ORV-225-signoff-1 on head 787ee7f: rows 4a and 8a, the section "Finding F1", and amendments 13 to 21. That proposal was injected into the built PageHeader stories on port 6446, not into hand-made markup. Section header is not built on that head, so its half ran on the same stories with the class names changed.
 
 ## Answers to the open questions
 
@@ -51,7 +53,7 @@ Other line gaps under the `lines-clear-1` floor of 1.0 at DPR 2: section title 1
 3. The first Tab shows the skip link over the top row. Enter moves focus to `main`. A second Tab hides it and reaches the home link.
 4. Pressing the Sidebar toggle narrows the panel to a rail and the content takes the room, with no animation. Each icon shows its label in a tooltip on hover and focus. The cookie keeps the state.
 5. Below 768 px each navigation becomes an icon button. The button opens a drawer at the start edge with the same items in the same order and the current item marked. A press on a link closes it, and Esc returns focus to the opener.
-6. On a screen, Page header opens the content and Section header opens each block. Below 480 px the action moves under the title, on the same start edge.
+6. On a screen, Page header opens the content and Section header opens each block. Below 480 px the action moves under the title, on the same start edge. From 480 up the actions stay beside the text while the text keeps a readable width, and move under it, on the same start edge, when it would not (rows 4a and 8a).
 
 ## Source intent
 
@@ -73,7 +75,8 @@ Sizes are CSS px under neutral. A profile moves them through its tokens: friendl
 | 1 | `page-header-root-1`, `page-header-slots-1` | A `div` root, a missing slot renders no node | None | `div.ds-page-header > div.ds-page-header__row > (div.ds-page-header__text > (hN.ds-page-header__title, p.ds-page-header__description, div.ds-page-header__meta), div.ds-page-header__actions)` | Rows 1, 3, 6 |
 | 2 | `header-type-1` | 32 px title, line height 1.7, top padding 8, box 62.39, ink top 6.5 | `type.display.md` size, weight, family, spacing; `type.heading.sm` line height; `space.stack.sm` | Own recipe `.ds-page-header__title`. Do not add `.text-display-md`: it brings the 16 px padding and the 1.25 line | Row 7, gap 2.50 at DPR 2 |
 | 3 | `page-header-slots-1` | Text block gap 8, description at most 65ch, meta row gap 8 | `space.stack.sm`, `type.body.md`, `type.body.sm`, `text.secondary`, `space.inline.md` | `.ds-page-header__text`, `__description`, `__meta` | Row 6 |
-| 4 | `header-stack-1` | Wide: one row, bottom aligned, gap 16. At 479 and below: a column on one start edge | `space.inset.md` | `@container ds-page-header (max-width: 479px)` on `__row`; a container cannot be styled by its own query, so `__row` is the child that changes | Rows 4, 5 |
+| 4 | `header-stack-1` | Wide: one row, bottom aligned, gap 16. At 479 and below: a column on one start edge | `space.inset.md` | `@container ds-page-header (max-width: 479px)` on `__row`; a container cannot be styled by its own query, so `__row` is the child that changes. From 480 up, row 4a decides whether the actions share the row | Rows 4, 5 |
+| 4a | `header-stack-1`, finding F1 | From 480 up the text block keeps at least 288 px, nine title sizes. Actions of width W sit beside it from container W + 304 (288 + the 16 gap); below that they move under it, on the same start edge, 16 under the last text line, and wrap there. One action at the decision log's length (162.1) stays beside at 480. Nothing changes at 479 and below | `type.display.md` size, `space.inset.md`, `space.inline.md`. No new token | `.ds-page-header__row` gains `flex-wrap: wrap`. `.ds-page-header__text` takes `flex: 1 1 calc(9 * var(--ds-type-display-md-font-size))`, was `flex: 1 1 auto`. `__actions` stays as it is. Edit both rules in place, above the `@container` block, which stays last in the recipe: it must beat the new basis at 479 and below | Spec row 76, plays `ManyActions` and `ManyActionsEn`; spec row 5 gains the gap check |
 | 5 | `reference-adopt-1` | The three inline headers go; the screen's `p-6` and `gap-4` stay | None | `meta` on the workspace screen holds `Badge size="sm"` and its sentence | Row 9 |
 
 ### Slice B, Section header
@@ -84,6 +87,7 @@ Sizes are CSS px under neutral. A profile moves them through its tokens: friendl
 | 6 | `section-header-1` | Title row, then `children` 16 below | `space.stack.md` | `div.ds-section-header > (div.ds-section-header__row > (div.ds-section-header__text > (hN.ds-section-header__title, p.ds-section-header__description), div.ds-section-header__actions), children)` | Rows 14, 16 |
 | 7 | `header-type-1` | 20 / 1.7 title over 16 / 1.7 description, 8 apart | `type.heading.sm`, `type.body.md`, `space.inline.md` | `.ds-section-header__title`, `__text`, shared `__description` | Rows 13, 18, gap 1.50 at DPR 2 |
 | 8 | `header-stack-1` | As row 4 | `space.inset.md` | `@container ds-section-header (max-width: 479px)` | Row 15 |
+| 8a | `header-stack-1`, finding F1 | The rule of row 4a with its own floor: from 480 up the text block keeps at least 240 px, twelve title sizes at 20 px. Actions of width W sit beside it from container W + 256. The live wrapper of row 10 (206.8 wide) stays beside at 480 | `size.panel.min`, `space.inset.md`, `space.inline.md`. No new token | The shared `__row` selector already wraps once row 4a lands. `.ds-section-header__text` takes `flex: 1 1 var(--ds-size-panel-min)`, not `flex: 1 1 auto`. The shared `__actions` stays as it is. `@container ds-section-header` stays last in the recipe | Spec row 77, plays `ManyActions` and `ManyActionsEn` on Section header |
 | 9 | `section-header-1` | With `divider`: 16 below the block, one 1 px line. With `children` the divider does not draw, because Tabs draws its own line and an edge takes one line | `space.stack.md`, `border.subtle` | The component sets `data-divider` only when `divider` is true and `children` is empty | Row 17, plus amendment 7 |
 | 10 | `reference-adopt-1` | `actions` holds the live wrapper; the table keeps its name through `captionHidden`; 16 above the title, above the 8 of DESIGN.md section 4 | None | The wrapper keeps `flex min-h-9 flex-wrap items-center gap-3` and `aria-live="polite"`. `actions` always renders here, so the live region stays mounted | Row 20 |
 
@@ -540,13 +544,14 @@ Add these at the end of `recipes.css`, after the Collapsible block. The order in
 .ds-page-header__row,
 .ds-section-header__row {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-end;
   justify-content: space-between;
   gap: var(--ds-space-inset-md);
 }
 .ds-page-header__text {
   display: flex;
-  flex: 1 1 auto;
+  flex: 1 1 calc(9 * var(--ds-type-display-md-font-size));
   flex-direction: column;
   gap: var(--ds-space-stack-sm);
   min-inline-size: 0;
@@ -624,7 +629,7 @@ Add these at the end of `recipes.css`, after the Collapsible block. The order in
 }
 .ds-section-header__text {
   display: flex;
-  flex: 1 1 auto;
+  flex: 1 1 var(--ds-size-panel-min);
   flex-direction: column;
   gap: var(--ds-space-inline-md);
   min-inline-size: 0;
@@ -653,6 +658,97 @@ Add these at the end of `recipes.css`, after the Collapsible block. The order in
 ```
 
 The Page header block holds the shared `__row`, `__description` and `__actions` selectors. Slice A lands them with the Section header names already listed, or slice B adds its names to the three selectors. Either order gives this CSS.
+
+Order matters in both blocks. Each `@container` block comes after the base rules, at equal specificity, so at 479 and below its `flex: none` replaces the new basis. A rule appended after it would win there, and in a column the basis is a height (see "Finding F1").
+
+## Finding F1: several actions at a narrow width
+
+Sign-off ORV-225-signoff-1 rejected head 787ee7f on this look: at container 480 with three or four actions, `__actions` keeps its full width and `__text` shrinks to what is left. Measured on that head: text 106.3 Thai and 31.7 English at three actions; 0 at four, with 19 and 21 title lines, and the row overflows by 16. The rule is row 4a and row 8a. This section holds why it has this form.
+
+Source intent: the title names the screen, so it stays readable before the actions stay on its row. The fallback is the place the action already takes at 479, not a new one, so a screen has one start edge and one stacked form at every width.
+
+Why this form and not the sign-off's candidate, which was `flex-wrap: wrap` on `__row`, `flex: 1 1 var(--ds-size-panel-min)` on `__text` and `flex: 0 1 auto` on `__actions`:
+
+<!-- prettier-ignore -->
+| Form tried | What it did | Verdict |
+| --- | --- | --- |
+| Candidate as injected, after the `@container` block | At 479 and below the basis is a height: 24 one-action cells differ from the build, up to 110.6 blank inside the text block, and 126.6 between text and action, not 16. "Identical at every width" holds only from 480. The existing `Narrow` play stays green under it | Rejected. Hence "edit in place" and the gap check in amendment 15 |
+| `__actions` `flex: 0 1 auto` | 0 of 360 cells differ from leaving `flex: none`, because `max-inline-size: 100%` already clamps it | Dropped, it does nothing |
+| `min-inline-size` on `__text` with a content basis | 14 one-action cells differ from the build, one action moves under at 480 and 481, and it reads the title's width rather than a floor | Rejected |
+| Floor 240, `size.panel.min`, on Page header | Fixes 3 and 4 actions, but two actions at 520 keep text of 251.4 to 271.8: a long title runs to five lines, the Badge and its note split, and the buttons float low with blank above them | Rejected for Page header. `floor-compare.png` |
+| Floor 320, `size.panel.default`, on Page header | The decision log's real action (162.1) goes under at containers 480 to 498, leaves the orphan word "เหตุผล", and the header grows 56 px (60 friendly) | Rejected. `sheet-dlog.png` |
+| Floor 288, nine title sizes, on Page header | The window is above 272 and at most 301.9: above what two actions leave at 520, and within what the decision log's action leaves at 480. 288 sits in it, and reads the title's own size | Chosen |
+| Floor 240 on Section header | At floor 320 the live row (206.8) goes under at containers 480 and 520 and the table moves 56 px (69.2 to 125.2) on the first selection, a shift under the pointer. At 240 it stays beside from 480 to 800, shift 0, margin 17.2. A 20 px title reads at a smaller width than a 32 px one, so the smaller heading can take the smaller floor: twelve of its sizes | Chosen. The live row was measured Thai, neutral light only, on injected markup, so slice B proves it on the real wrapper. A tablet with the Sidebar lands on container 480 (W4) |
+
+No size token holds 288 (`size.panel.min` 240 and `size.panel.default` 320 are the only sizes between 200 and 420, beside `size.node.*`), so the floor is written as a multiple of the title's size. `calc(N * var(...))` has precedent in `recipes.css`, and `recipes.test.ts` passes it.
+
+The rule reads widths, never line count, so the form does not change as a title wraps. With the fixture's labels:
+
+<!-- prettier-ignore -->
+| Actions | First sampled container with the actions beside, Thai | English | At 480 |
+| --- | --- | --- | --- |
+| 1 | 480 | 480 | Beside, as built |
+| 2 | 560 | 560 | Under, text 480, title one line, actions on one line |
+| 3 | 700 | 760 | Under, text 480, title one line, actions on one line |
+| 4 | 840 | 976 | Under, text 480, title one line, actions on two lines |
+
+The sampled containers are 328, 360, 400, 479, 480, 481, 520, 560, 600, 640, 700, 760, 840, 976 and 1280, so the true edge sits between two of them and is W + 304: 536.2 for two Thai actions, 556.6 for two English. The thresholds are the same under neutral, friendly and professional.
+
+The play, per locale. `ManyActions` and `ManyActionsEn` render seven fixed frames, one `PageHeader` each, every slot filled, first action `primary`, the rest `secondary`:
+
+<!-- prettier-ignore -->
+| Frame | Container | Actions | Expected | Which wrong form it catches |
+| --- | --- | --- | --- | --- |
+| 1 | 480 | 3 | Under | The build, basis alone |
+| 2 | 480 | 4 | Under, second line of actions on the same start edge | The build, basis alone |
+| 3 | 480 | 1, `action` | Beside | Wrap alone |
+| 4 | 480 | 1, `longAction` | Beside | Wrap alone, floor 320 |
+| 5 | 479 | 1, `action` | Under | The candidate as injected, the proposal appended after the `@container` block |
+| 6 | 520 | 2 | Under | The build, basis alone, the candidate, floor 240 |
+| 7 | 640 | 2 | Beside | Wrap alone, in English only. In Thai it holds the beside form and catches none of the mutants below |
+
+Frame checks read tokens, never neutral numbers. The floor is `9 * tokenPx(root, "--ds-type-display-md-font-size")`.
+
+- Under, `expectActionsUnder`: text width at or above the floor; every button `top` at or below the text block's `bottom`; every button `right` inside the root; the least button `left` equals the title's `left`; the first button's `top` minus the last text child's `bottom` equals `--ds-space-inset-md`; root `scrollWidth` equals `clientWidth`; `expectSameHeight` across the buttons of one line.
+- Beside, `expectActionsBeside`: the last button's `right` equals the root's `right`; button `bottom` equals the text block's `bottom`; title `left` equals the root's `left`; text width at or above the floor; root `scrollWidth` equals `clientWidth`.
+- Under Vitest, as `expectLongTitle` does: `expectLinesClear` and `expectFrameCutsNoInk` on each title.
+
+Each mutant below went through these checks as injected CSS, in Thai and English, neutral and friendly. Reds are failed checks, per run:
+
+<!-- prettier-ignore -->
+| CSS | Thai, neutral and friendly | English, neutral and friendly |
+| --- | --- | --- |
+| Proposal | Green | Green |
+| As built | Red 19 | Red 19 |
+| Candidate as injected | Red 6 | Red 6 |
+| Proposal appended after the `@container` block | Red 1 | Red 1 |
+| `flex-wrap` alone | Red 4 | Red 6 |
+| Basis alone | Red 19 | Red 19 |
+| Floor 240 | Red 5 | Red 5 |
+| Floor 320 | Red 2 | Red 2 |
+
+Section header takes the same play, with the same names, and frames that pin its floor. Forms below were measured on injected markup; the play itself runs when slice B exists.
+
+<!-- prettier-ignore -->
+| Frame | Container | Actions | Expected |
+| --- | --- | --- | --- |
+| 1 | 480 | 3 | Under |
+| 2 | 480 | 4 | Under |
+| 3 | 480 | 1 | Beside |
+| 4 | 479 | 1 | Under |
+| 5 | 480 | 2 | Under |
+| 6 | 520 | 2 | Beside |
+
+Its floor is `tokenPx(root, "--ds-size-panel-min")`. Measured over 100 cells (1 to 4 actions at 328, 479, 480, 520, 640 and 976, Thai and English, neutral and friendly, light and dark, plus long titles): overflow 0, gap under 16, start edge 0, least text beside 251.4, end edge 0, bottom edge 0.
+
+What the proposal was held against, all on the head's built stories at floor 288:
+
+- Sweep, 360 cells (15 containers from 328 to 1280, 1 to 4 actions, Thai and English, neutral, friendly, professional): overflow 0, no button past the root, none over the meta row. Beside, 156 cells: least text 291.4, at most 2 title lines, end edge 0, bottom edge 0, one action line. Under, 204 cells: start edge 0, gap 16, blank 0, at most 2 action lines. One action against the build: 0 of 90 differ.
+- Shots, 222 at DPR 2, line counts from 1 to 21: overflow 0, under gap 16, blank 0. Focus on the wrapped fourth action, 8 combinations: the solid line with its 3 px halo in the profile's hue, whole, on the start edge.
+- Existing stories and screens, 460 pixel compares (15 Page header stories, plus workspace, decision log, settings form and Direction Studio in both locales, 4 combinations, viewports 360, 528, 544, 560, 1440): 450 the same, 10 differ, all on the decision log at 360 and 560. A control run of the build against itself differs in 8 of 24 such shots, by 1 to 2 colour levels near y 830 to 910, and the proposal against the build in 0 of 24, with geometry the same in 24 of 24. So those 10 are run noise in that story, not the change.
+- Real plays, 60 of 60 pass (15 stories, 4 combinations), and a `row-reverse` mutant on `WithActions` turns the runner red. Geometry at viewports 528 and 544 on the four screens: 0 of 32 differ.
+
+Limits of this proof. The sweep's extra buttons are DOM clones of the first, not `Button` elements from a render. `inVitest` parts of the plays did not run, since this was the static build. Professional was measured, not shot. `expectSameHeight` was not run; heights were read off the sheets. The decision log and workspace stories keep their language whatever the toolbar says.
 
 ## Tokens
 
@@ -686,6 +782,27 @@ Impact of `nav-item.row-radius`: `component.json` gains one key, `generated.css`
 | 10 | `nav-narrow-1`, contract row of icons | The icon of the opener is not named | Top navigation `MenuIcon`, Sidebar `PanelStartOpenIcon` (reused) | On `/workspace` at 360 both openers show, and each needs its own shape |
 | 11 | `sidebar-rail-1`, rows 59, 60 | Silent on an open group in the rail | A group renders closed in the rail and keeps its open state for when the Sidebar widens. A marked group in the rail takes the full look | Children have no icon, so they cannot stand in a rail |
 | 12 | `top-nav-1`, `shell-ia-1`, open question 9 | The shell keeps its `max-w-2xl` row | Rules row 37. Decided at G2 | See "Answers" |
+| 13 | `header-stack-1` | "`ds-page-header` and `ds-section-header` are containers. At `@container ds-page-header (max-width: 479px)` and `@container ds-section-header (max-width: 479px)`, named by the rule in `nav-narrow-1` and at the Table's value, the title block and `actions` stack, title first, on one start edge. Wider, they share a row with `actions` on the end edge. Neither scrolls sideways." | "`ds-page-header` and `ds-section-header` are containers. At `@container ds-page-header (max-width: 479px)` and `@container ds-section-header (max-width: 479px)`, named by the rule in `nav-narrow-1` and at the Table's value, the title block and `actions` stack, title first, on one start edge. Wider, they share a row with `actions` on the end edge while the title block keeps its floor: nine title sizes on Page header (288 px under neutral), `size.panel.min` on Section header (240 px). When `actions` leaves the title block less than its floor, `actions` moves under the block on the same start edge, `space.inset.md` under its last line, and wraps there. Neither scrolls sideways." | F1: `__actions` is `flex: none`, so at 480 three actions left the title 106.3 Thai and 31.7 English, and four left it 0 |
+| 14 | `page-header-slots-1` | "`actions` sits at the row's end." | "`actions` sits at the row's end, or under the title block by `header-stack-1`." | F1. The sentence no longer holds at every width |
+| 15 | Row 5, Check cell | "Button `top` at or below the title block's `bottom`; the two `left` values equal within 0.5; root `scrollWidth` equals `clientWidth` (`header-stack-1`)" | "Button `top` at or below the title block's `bottom`; the two `left` values equal within 0.5; the button's `top` minus the last child of the title block's `bottom` equals `--ds-space-inset-md` within 0.5; root `scrollWidth` equals `clientWidth` (`header-stack-1`)". `expectStacked` gains that line. Row 15 says "As rows 4 and 5", so it takes the line on `.ds-section-header` with no edit of its own | With an appended rule the gap is 126.6, and `Narrow` stays green today. A play must go red on the defect (`testing.md`) |
+| 16 | New row 76, Page header | None | "\| 76 \| `ManyActions`, `ManyActionsEn`, seven frames at containers 479, 480, 520 and 640 \| Rendering \| At 480 three and four actions in position under the title block, on the same start edge, the title on one line; one action, at both lengths, beside it at the end edge; at 479 one action under; two actions under at 520 and beside at 640 \| Under: `expectActionsUnder`. Beside: `expectActionsBeside`. The floor reads `--ds-type-display-md-font-size` (`header-stack-1`) \| `ManyActions`, `ManyActionsEn` plays \|" | F1. Frames and helpers in "Finding F1". Numbered 76, not 5a, because "Rows per PR" takes numbers and ranges only (`qa-scope-1`) |
+| 17 | New row 77, Section header | None | "\| 77 \| `ManyActions`, `ManyActionsEn`, six frames at containers 479, 480 and 520 \| Rendering \| At 480 two, three and four actions in position under the title block, on the same start edge; one action beside it at the end edge; at 479 one action under; two actions beside at 520 \| As row 76 on `.ds-section-header`, the floor reading `--ds-size-panel-min` (`header-stack-1`) \| `ManyActions`, `ManyActionsEn` plays \|" | Shared selector, same rule, own floor |
+| 18 | "Rows per PR", slice table | "- PR 189: rows 1-12, 75"; slice A rows "1 to 12"; slice B rows "13 to 22" | "- PR 189: rows 1-12, 75-76"; slice A rows "1 to 12, 76"; slice B rows "13 to 22, 77" | Rows 76 and 77 land with their slices |
+| 19 | `stories-1` | "`Application/Page header` (id `application-page-header`): `Default`, `TitleOnly`, `WithActions`, `WithMeta`, `LongTitle`, `HeadingLevel`, `Narrow`, `RecipesAndModes`."; "`Application/Section header` (id `application-section-header`): `Default`, `TitleOnly`, `WithActions`, `WithTabs`, `WithDivider`, `LongTitle`, `HeadingLevel`, `Narrow`, `RecipesAndModes`." | Each list gains `ManyActions` after `WithActions` | Rows 76 and 77. The `En` twin follows the pattern of the file |
+| 20 | Fixtures, `fixtures.ts` | `pageHeaderFixtures` has `action` only | Adds `moreActions` and `longAction`. Thai: "นำเข้าแบรนด์", "เชิญสมาชิกทีม", "ส่งออกรายงาน"; "บันทึกการตัดสินใจใหม่". English: "Import brand", "Invite team members", "Export report"; "Add a new decision". Both are mock, like the file's other copy | Frame 4 pins the floor only if `longAction` measures between 144 and 176 at container 480. Thai 162.1, English 157.9. "Record a new decision" measured 177.3 and was too long |
+| 21 | Catalog `page-header.yaml`, story docs | Line 27: "The root is a size container named ds-page-header. At 479 px and below the actions stack under the title on the same start edge; wider they share the row at its end edge. Neither scrolls sideways (header-stack-1)". States: `[default, title-only, with-actions, with-meta, long-title, narrow]`. Docs: "Under 480 px the actions stack under the title on the same start edge." | Line 27: "The root is a size container named ds-page-header. At 479 px and below the actions stack under the title on the same start edge; wider they share the row at its end edge while the title block keeps nine title sizes, and move under it on the same start edge when it would not. Neither scrolls sideways (header-stack-1)". States gain `many-actions`. Docs: "Under 480 px the actions stack under the title on the same start edge, and from 480 they do the same when they would leave the title less than nine title sizes." `section-header.yaml`, not yet written, takes the same sentence with `size.panel.min` and the same state | The catalog and docs state the rule, so they follow it |
+
+Impact of amendments 13 to 21. Contract: no new token, no change to a token's value, no change to `PageHeaderProps`. `type.display.md` size and `size.panel.min` gain one new reader each.
+
+<!-- prettier-ignore -->
+| File | Change |
+| --- | --- |
+| `packages/design-system/src/recipes/recipes.css` | Two declarations in the Page header recipe; slice B lands its own with the shared names |
+| `packages/design-system/src/components/page-header/PageHeader.stories.tsx` | `ManyActions`, `ManyActionsEn`, `expectActionsUnder`, `expectActionsBeside`, one line in `expectStacked`, the docs sentence |
+| `packages/design-system/src/components/fixtures.ts` | `moreActions`, `longAction` |
+| `packages/design-system/catalog/application/page-header.yaml` | Line 27 and `states` |
+| `docs/specs/ORV-225/spec.md` | Amendments 13 to 19, the `design:` line, and a changelog line |
+| Example screens | No edit. Workspace, decision log, settings form and Direction Studio render the same, by the compares in "Finding F1" |
 
 ## States
 
@@ -703,7 +820,7 @@ Selected and focused are different states. Here selected is the current page, sh
 | Empty | Missing icon or badge renders no node | No items: logo and actions, no opener | No groups: no `nav`, `children` only | Title only | Title only |
 | Error | None: a link has no failure of its own | None | None | Caller's meta row | Caller's |
 | Success | None | None | None | None | None |
-| Narrow | Drawer height 44 | Opener and drawer | Opener and drawer | Column at 479 | Column at 479 |
+| Narrow | Drawer height 44 | Opener and drawer | Opener and drawer | Column at 479. From 480, actions under the text when they would leave it under 288 | Column at 479. From 480, actions under the text when they would leave it under 240 |
 | Rail | 40 by 40, label in the name, tooltip | Not applicable | 56 wide | Not applicable | Not applicable |
 
 ## Content that decides the shape
@@ -713,6 +830,7 @@ Selected and focused are different states. Here selected is the current page, sh
 | --- | --- | --- |
 | Thai stacked marks | 1.7 lines; clip list on `sm`; no `overflow` on a wrapping label | `sheet-page-header-360.png`, `sheet-sidebar-1440.png`, `sheet-section-header-360.png` |
 | Line counts | Sidebar item at one, two, four and six lines with its icon, bead and badge on the first line; title at one to ten lines at 360; `sm` always one | `sheet-sidebar-1440.png`, `sheet-page-header-360.png` |
+| Action count and length | One to four actions, Thai and English: beside while the text keeps its floor, under it on the start edge otherwise, wrapping to a second line of actions there. The title's line count never changes the form (rows 4a, 8a) | `sheet-480.png`, `sheet-edges.png`, `sheet-lines.png` in the F1 list below |
 | Long name, no spaces | `overflow-wrap: anywhere` on wrapping text; ellipsis on `sm` | `sheet-top-nav-1440.png`, `sheet-sidebar-1440.png` |
 | Latin twin | Same blocks, shot in English | Files with `-en-` in the name |
 | Missing data | No badge, no icon, no description, no actions, no items: no node, no gap | First rows of each sheet |
@@ -747,6 +865,26 @@ Single shots are named `<scene>-<profile>-<mode>-<locale>-<width>.png` in that f
 
 For each story of `stories-1`, sign-off checks at 360 and 1280: one start edge per block; marked labels on the same edge as their siblings; rows that hold their radius at six lines; no cut Thai mark, above or below; one line per edge (`WithTabs`, dividers); focus on marked and unmarked rows; the skip bar with nothing showing beside it; `InShell` at containers 768, 769 and 770, where the table turns (amendment 3).
 
+For finding F1, the shots of version 2 are under `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-225-design-2/`, singles in `shots/`, and the injected CSS and the play in `rig/lib.mjs` and `rig/plays.mjs` there. Neutral and friendly, light and dark, Thai and English, unless the row says otherwise.
+
+<!-- prettier-ignore -->
+| Sheet | Shows |
+| --- | --- |
+| /private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-225-design-2/contact-sheet.png | The build's failure first, then the proposal at 328 to 1280, focus, and the existing stories. Too small to judge glyphs; use the sheets below |
+| /private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-225-design-2/sheet-480.png | Three and four actions at 480, the finding's case |
+| /private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-225-design-2/sheet-edges.png | One action at 479 and 480, two actions at 480 |
+| /private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-225-design-2/sheet-narrow.png | One action at 328, the narrowest container |
+| /private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-225-design-2/sheet-wide.png | Two actions at 640, four at 1280 |
+| /private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-225-design-2/sheet-lines.png | One, two, three, five and ten line titles, a name without spaces, stacked marks, at 328, 480 and 640 |
+| /private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-225-design-2/sheet-lines-wide.png | One, three, five and ten line titles with four actions at 1280, neutral light Thai and friendly dark English |
+| /private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-225-design-2/sheet-focus.png | Focus on the wrapped fourth action at 480 |
+| /private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-225-design-2/sheet-slots.png | No meta, title only, at 480 and 760, neutral light |
+| /private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-225-design-2/floor-compare.png | Floors 240, 288 and 320 side by side where they differ, neutral light |
+| /private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-225-design-2/sheet-dlog.png | The decision log's real action at viewport 528: built, 288, 320, 240 |
+| /private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/4c42d0ab-c7b3-4866-8936-343e8f35297b/scratchpad/orv-225-design-2/sheet-section.png | Section header at floors 240 and 320, two actions at 520, a long title at 640 |
+
+Sign-off of F1 shoots again from the built `ManyActions` stories and checks: at 480 the title on one line and the actions under it on its start edge; a second line of actions on that same edge; buttons of one line at one height; 16 between the last text line and the actions; focus whole on a wrapped action; `Narrow` and `WithActions` as before.
+
 ## Seen but out of scope
 
 - The empty `min-h-9` live wrapper leaves 36 px of blank above the table at 360, as it does today. Removing it would push the table down under a person's thumb on their first selection, so it stays.
@@ -754,3 +892,6 @@ For each story of `stories-1`, sign-off checks at 360 and 1280: one start edge p
 - `selection.fg` on hover is exactly 4.50 under professional dark, and the Sidebar label's line gap is exactly 1.00. Both pass with no margin, so a later token change can fail them.
 - In forced colours the fill and the bead's background drop out, so the current item would show no mark. Not rendered here. It needs its own look at the whole system, not one component.
 - The second row's labels start 16 past the logo, because its fill starts on the logo's edge. No route uses the two-row form yet.
+- On the workspace screen the live row grows from nothing to 206.8 wide on the first selection. Row 8a keeps it beside at 480 with 17.2 to spare, so a longer selection label, or a third control, moves it under and shifts the table. Slice B's sign-off should read this on the real wrapper.
+- A very long title beside two actions at 640 runs to 17 lines in Thai and 19 in English, on text 391.8 and 371.4 wide, with the buttons at its foot. The text width is the build's. The rule reads widths, so this form holds at every line count; a title of that length is a content problem, not one this rule should answer.
+- English `TitleOnly` with three actions at 760 sits beside on a two-line title, though under would give one line. That is the price of a rule that never reads line count, and it stays calm on the sheet.
