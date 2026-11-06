@@ -19,7 +19,6 @@ import {
   Select,
   Table,
   type TableColumn,
-  type TableSort,
   ToggleGroup,
   ToggleGroupItem,
 } from "../index";
@@ -127,6 +126,23 @@ const toRole = (value: string): MemberRole | undefined =>
 const toFilter = (value: string): StateFilter | undefined =>
   STATE_CHOICES.find((entry) => entry.value === value)?.value;
 
+/** The two orders a person can pick; no pick keeps the list as it came. */
+type MemberOrder = "name" | "joined";
+
+const ORDER_CHOICES: readonly { value: MemberOrder; label: string }[] = [
+  { value: "name", label: "ชื่อ" },
+  { value: "joined", label: "วันที่เข้าร่วม" },
+];
+
+const toOrder = (value: string): MemberOrder | undefined =>
+  ORDER_CHOICES.find((entry) => entry.value === value)?.value;
+
+const ordered = (rows: readonly Member[], order: MemberOrder | undefined): readonly Member[] => {
+  if (order === "name") return [...rows].sort((a, b) => a.name.localeCompare(b.name, "th"));
+  if (order === "joined") return [...rows].sort((a, b) => a.joined.localeCompare(b.joined));
+  return rows;
+};
+
 function RowActions({
   member,
   onMakeAdmin,
@@ -161,7 +177,7 @@ export function MembersScreen() {
   const formId = useId();
   const [members, setMembers] = useState<readonly Member[]>(MEMBERS);
   const [filter, setFilter] = useState<StateFilter>("all");
-  const [sort, setSort] = useState<TableSort | null>(null);
+  const [order, setOrder] = useState<MemberOrder | undefined>(undefined);
   const [message, setMessage] = useState("");
 
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -221,7 +237,7 @@ export function MembersScreen() {
         ...rows,
       ]);
       setFilter("all");
-      setSort(null);
+      setOrder(undefined);
       const sent = `เชิญ ${email} แล้ว เป็นข้อมูลตัวอย่าง ไม่ได้ส่งจริง`;
       setMessage(sendCopy ? `${sent} สำเนาก็ไม่ได้ส่งเช่นกัน` : sent);
       setPending(false);
@@ -230,8 +246,16 @@ export function MembersScreen() {
   };
 
   const columns: readonly TableColumn<Member>[] = [
-    { key: "name", header: "ชื่อ", sortable: true },
-    { key: "email", header: "อีเมล" },
+    {
+      key: "name",
+      header: "ชื่อ",
+      cell: (row) => <span className="wrap-anywhere">{row.name}</span>,
+    },
+    {
+      key: "email",
+      header: "อีเมล",
+      cell: (row) => (row.email ? <span className="wrap-anywhere">{row.email}</span> : undefined),
+    },
     { key: "role", header: "บทบาท", cell: (row) => roleLabel(row.role) },
     {
       key: "state",
@@ -246,7 +270,6 @@ export function MembersScreen() {
       key: "joined",
       header: "วันที่เข้าร่วม",
       numeric: true,
-      sortable: true,
       cell: (row) => <time dateTime={row.joined}>{row.joined}</time>,
     },
     {
@@ -348,20 +371,30 @@ export function MembersScreen() {
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
+        <ToggleGroup
+          type="single"
+          aria-label="เรียงตาม"
+          value={order ?? ""}
+          onValueChange={(value) => setOrder(toOrder(value))}
+        >
+          {ORDER_CHOICES.map((entry) => (
+            <ToggleGroupItem key={entry.value} value={entry.value}>
+              {entry.label}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
       </div>
 
       <Table
         caption="ทีมออกแบบ Brand Canvas"
         captionHidden
         columns={columns}
-        rows={visible}
+        rows={ordered(visible, order)}
         rowKey={(row) => row.id}
-        sort={sort}
-        onSortChange={setSort}
         missingLabel="ไม่มีข้อมูล"
       />
 
-      <p role="status" className="min-h-6 text-body-sm text-text-secondary">
+      <p role="status" className="min-h-6 text-body-sm text-text-secondary wrap-anywhere">
         {message}
       </p>
 

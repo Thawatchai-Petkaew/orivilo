@@ -95,11 +95,15 @@ export const FilterInvited: Story = {
       await expect(within(group).getByRole("radio", { name })).toBeVisible();
     }
 
+    const order = canvas.getByRole("radiogroup", { name: "เรียงตาม" });
+    await expect(within(order).getAllByRole("radio")).toHaveLength(2);
     const byDate = [...MEMBERS].sort((a, b) => a.joined.localeCompare(b.joined));
-    await userEvent.click(canvas.getByRole("button", { name: "วันที่เข้าร่วม" }));
+    await userEvent.click(within(order).getByRole("radio", { name: "วันที่เข้าร่วม" }));
     await expect(firstRow(canvasElement)).toHaveTextContent(byDate[0]?.name ?? "");
 
-    await userEvent.click(canvas.getByRole("button", { name: "ชื่อ" }));
+    const byName = [...MEMBERS].sort((a, b) => a.name.localeCompare(b.name, "th"));
+    await userEvent.click(within(order).getByRole("radio", { name: "ชื่อ" }));
+    await expect(firstRow(canvasElement)).toHaveTextContent(byName[0]?.name ?? "");
     await expect(firstRow(canvasElement)).not.toHaveTextContent(byDate[0]?.name ?? "");
 
     await userEvent.click(within(group).getByRole("radio", { name: "รอตอบรับ" }));
@@ -202,7 +206,54 @@ export const RemoveMember: Story = {
   },
 };
 
-/** 360 px: the header stacks, the table becomes blocks, nothing scrolls sideways (row 5). */
+/** An address with no space and no hyphen, so no line can break inside it (N9). */
+const LONG_ADDRESS = `${"a".repeat(64)}@example.com`;
+
+/** The frame is every ancestor of the table that is 360 px wide; none may scroll sideways. */
+function framesOf(canvasElement: HTMLElement) {
+  const table = within(canvasElement).getByRole("table");
+  const frames: HTMLElement[] = [];
+  for (let up = table.parentElement; up && canvasElement.contains(up); up = up.parentElement) {
+    if (Math.round(up.getBoundingClientRect().width) === 360) frames.push(up);
+  }
+  return frames;
+}
+
+async function expectNoSideScroll(canvasElement: HTMLElement) {
+  const frames = framesOf(canvasElement);
+  await expect(frames.length).toBeGreaterThan(1);
+  for (const frame of frames) await expect(frame.scrollWidth).toBe(frame.clientWidth);
+}
+
+/**
+ * Every keyboard stop inside the screen is drawn: a box wider and taller than a pixel, inside the
+ * 360 px frame, matching :focus-visible, with its centre not clipped away. Returns what each stop is called.
+ */
+async function expectDrawnStops(canvasElement: HTMLElement) {
+  const frame = framesOf(canvasElement)[0];
+  if (!frame) throw new Error("no 360 px frame");
+  const box = frame.getBoundingClientRect();
+  const names: string[] = [];
+  if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+  for (let stop = 0; stop < 30; stop += 1) {
+    await userEvent.tab();
+    const el = document.activeElement;
+    if (!(el instanceof HTMLElement) || !canvasElement.contains(el)) break;
+    const rect = el.getBoundingClientRect();
+    await expect(rect.width).toBeGreaterThan(8);
+    await expect(rect.height).toBeGreaterThan(8);
+    await expect(rect.left).toBeGreaterThanOrEqual(box.left);
+    await expect(rect.right).toBeLessThanOrEqual(box.right);
+    await expect(el.matches(":focus-visible")).toBe(true);
+    // A stop clipped away by an ancestor has a box but no pixels: the point at its centre hits something else.
+    const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+    await expect(el.contains(hit)).toBe(true);
+    names.push(el.getAttribute("aria-label") ?? el.textContent ?? "");
+  }
+  return names;
+}
+
+/** 360 px: the header stacks, the table becomes blocks, nothing scrolls sideways, before and after a long address is invited (row 5). */
 export const At360: Story = {
   render: () => (
     <Narrow>
@@ -210,15 +261,31 @@ export const At360: Story = {
     </Narrow>
   ),
   play: async ({ canvasElement }) => {
-    // The story's outer wrappers are as wide as the viewport; the frame is every ancestor 360 px wide.
-    const table = within(canvasElement).getByRole("table");
-    const frames: HTMLElement[] = [];
-    for (let up = table.parentElement; up && canvasElement.contains(up); up = up.parentElement) {
-      if (Math.round(up.getBoundingClientRect().width) === 360) frames.push(up);
+    const canvas = within(canvasElement);
+    await expectNoSideScroll(canvasElement);
+    await expect(getComputedStyle(canvas.getByRole("table")).display).toBe("block");
+
+    // The order by name and by date is in sight and reachable, and no stop is hidden (N2).
+    const order = canvas.getByRole("radiogroup", { name: "เรียงตาม" });
+    for (const name of ["ชื่อ", "วันที่เข้าร่วม"]) {
+      const radio = within(order).getByRole("radio", { name });
+      await expect(radio).toBeVisible();
+      await expect(radio.getBoundingClientRect().right).toBeLessThanOrEqual(
+        framesOf(canvasElement)[0]?.getBoundingClientRect().right ?? 0,
+      );
     }
-    await expect(frames.length).toBeGreaterThan(1);
-    for (const frame of frames) await expect(frame.scrollWidth).toBe(frame.clientWidth);
-    await expect(getComputedStyle(table).display).toBe("block");
+    const stops = await expectDrawnStops(canvasElement);
+    await expect(stops.slice(0, 3)).toEqual([INVITE, "ทั้งหมด", "ชื่อ"]);
+    await expect(stops.slice(3)).toEqual(MEMBERS.map((member) => `จัดการ ${member.name}`));
+
+    await userEvent.click(canvas.getByRole("button", { name: INVITE }));
+    const dialog = await body().findByRole("dialog", { name: INVITE });
+    await userEvent.type(within(dialog).getByLabelText(/อีเมล/), LONG_ADDRESS);
+    await userEvent.click(within(dialog).getByRole("button", { name: INVITE }));
+    await waitFor(() => expect(body().queryByRole("dialog")).toBeNull());
+    await waitFor(() => expect(firstRow(canvasElement)).toHaveTextContent(LONG_ADDRESS));
+    await expect(canvas.getByText(invitedMessage(LONG_ADDRESS))).toBeVisible();
+    await expectNoSideScroll(canvasElement);
   },
 };
 
