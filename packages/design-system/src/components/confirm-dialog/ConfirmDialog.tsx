@@ -1,6 +1,13 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type MouseEvent,
+  type ReactNode,
+} from "react";
 import { useMessages } from "../../i18n/LocaleProvider";
 import { Button } from "../button/Button";
 import {
@@ -104,6 +111,30 @@ export function ConfirmDialog({
   useLayoutEffect(() => {
     if (failure && panel.current) panel.current.scrollTop = panel.current.scrollHeight;
   }, [failure]);
+
+  // While pending, a press on the scrim or anywhere in the panel but the confirm must not take
+  // focus off the confirm: `onPointerDownOutside` only stops the close, and the browser moves focus
+  // on a press (to the body for the scrim, to the panel for its ground, text and disabled buttons),
+  // so a failure settling later would find focus gone and Enter would not retry. Cancelling the
+  // pointerdown stops that move; a disabled button gets a pointerdown but no mousedown, so the
+  // pointerdown is the event to cancel. A press outside both, on the host page under
+  // `modal={false}`, is left alone. A text selection that starts in the panel is stopped too, for
+  // the time the action runs.
+  useEffect(() => {
+    const frame = panel.current;
+    if (!pending || !frame) return;
+    const doc = frame.ownerDocument;
+    const keepFocus = (event: Event) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      // The scrim is drawn by Dialog right before its panel.
+      const onScrim = target === frame.previousElementSibling;
+      const onConfirm = frame.querySelector(`[${PART}="confirm"]`)?.contains(target);
+      if ((onScrim || frame.contains(target)) && !onConfirm) event.preventDefault();
+    };
+    doc.addEventListener("pointerdown", keepFocus, true);
+    return () => doc.removeEventListener("pointerdown", keepFocus, true);
+  }, [pending]);
 
   const press = async (event: MouseEvent<HTMLButtonElement>) => {
     if (running.current) return;

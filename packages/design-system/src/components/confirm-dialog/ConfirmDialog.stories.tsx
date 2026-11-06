@@ -367,6 +367,10 @@ export const Pending: Story = {
     const scrim = document.querySelector(".ds-dialog__scrim");
     if (!scrim) throw new Error("no scrim");
     await userEvent.click(scrim);
+    // Right after the press, before any Tab: the press on the scrim moves no focus (confirm-pending-1).
+    await expect(confirm).toHaveFocus();
+    await userEvent.click(partsOf(panel).impact);
+    await expect(confirm).toHaveFocus();
     await userEvent.tab();
     await expect(held.onConfirm).toHaveBeenCalledTimes(1);
     await expect(confirm).toHaveAttribute("aria-disabled", "true");
@@ -591,6 +595,104 @@ export const ThrownFailure: Story = {
     await expect(document.body.textContent).not.toContain("secret-internal");
     await expect(body().getByRole("alertdialog")).toBe(panel);
     await expect(args.onOpenChange).not.toHaveBeenCalledWith(false);
+  },
+};
+
+/**
+ * A press on the scrim and one on the panel's own text while pending, then a failure: focus is on
+ * the confirm the whole way, so Enter is the retry (AC 7, 11; confirm-pending-1, confirm-failure-1).
+ * Asserted right after each press, before any Tab, since a Tab puts focus back by itself.
+ */
+export const FailsAfterOutsidePress: Story = {
+  args: { defaultOpen: true, onConfirm: held.onConfirm },
+  play: async ({ args }) => {
+    held.reset();
+    const panel = await openPanel();
+    const { confirm, impact, title } = partsOf(panel);
+    await userEvent.click(confirm);
+    await waitFor(() => expect(confirm).toHaveAttribute("aria-busy", "true"));
+    const scrim = document.querySelector(".ds-dialog__scrim");
+    if (!scrim) throw new Error("no scrim");
+    await userEvent.click(scrim);
+    await expect(confirm).toHaveFocus();
+    await userEvent.click(impact);
+    await expect(confirm).toHaveFocus();
+    await userEvent.click(title);
+    await expect(confirm).toHaveFocus();
+    held.settle(failed("delete"));
+    await within(panel).findByRole("alert");
+    await waitFor(() => expect(confirm).not.toHaveAttribute("aria-disabled"));
+    await expect(confirm).toHaveFocus();
+    await userEvent.keyboard("{Enter}");
+    await waitFor(() => expect(confirm).toHaveAttribute("aria-busy", "true"));
+    await expect(held.onConfirm).toHaveBeenCalledTimes(2);
+    await expect(within(panel).queryByRole("alert")).toBeNull();
+    await expect(confirm).toHaveFocus();
+    await expect(args.onOpenChange).not.toHaveBeenCalledWith(false);
+    held.settle(failed("delete"));
+    await within(panel).findByRole("alert");
+    await waitFor(() => expect(confirm).not.toHaveAttribute("aria-disabled"));
+    // Once the action has settled the guard is gone: a press on the panel is the browser's again.
+    let cancelled = false;
+    const watch = (event: Event) => {
+      cancelled = cancelled || event.defaultPrevented;
+    };
+    document.addEventListener("pointerdown", watch);
+    await userEvent.click(impact);
+    document.removeEventListener("pointerdown", watch);
+    await expect(cancelled).toBe(false);
+    await userEvent.click(confirm);
+    await waitFor(() => expect(confirm).toHaveAttribute("aria-busy", "true"));
+    held.settle({ status: "done" });
+    await waitFor(() => expect(body().queryByRole("alertdialog")).toBeNull());
+  },
+};
+
+/**
+ * Pending without a scrim (`modal={false}`, as a preview does): a press on the host page is not
+ * swallowed, so the field beside the panel takes focus and its press is not default-prevented,
+ * while a press on the panel's own text still moves nothing (confirm-pending-1).
+ */
+export const PendingBesideHost: Story = {
+  render: (args) => (
+    <div className="flex flex-col gap-4">
+      <label className="flex flex-col gap-1">
+        {"Host field"}
+        <input data-host-field="" className="border" />
+      </label>
+      <Frame className="h-[560px] w-[412px]">
+        {(container) => <ConfirmDialog {...args} defaultOpen modal={false} container={container} />}
+      </Frame>
+    </div>
+  ),
+  args: { trigger: undefined, onConfirm: held.onConfirm },
+  play: async ({ canvasElement, args }) => {
+    held.reset();
+    const panel = await openPanel();
+    const { confirm, impact } = partsOf(panel);
+    const field = canvasElement.querySelector<HTMLInputElement>("[data-host-field]");
+    if (!field) throw new Error("no host field");
+    await userEvent.click(confirm);
+    await waitFor(() => expect(confirm).toHaveAttribute("aria-busy", "true"));
+    const swallowed: string[] = [];
+    const watch = (event: Event) => {
+      if (event.defaultPrevented) swallowed.push(event.type);
+    };
+    document.addEventListener("pointerdown", watch);
+    document.addEventListener("mousedown", watch);
+    await userEvent.click(field);
+    document.removeEventListener("pointerdown", watch);
+    document.removeEventListener("mousedown", watch);
+    await expect(swallowed).toEqual([]);
+    await expect(field).toHaveFocus();
+    await userEvent.click(impact);
+    await expect(field).toHaveFocus();
+    // A press on the confirm itself still takes focus back: the guard leaves it alone.
+    await userEvent.click(confirm);
+    await expect(confirm).toHaveFocus();
+    await expect(held.onConfirm).toHaveBeenCalledTimes(1);
+    await expect(args.onOpenChange).not.toHaveBeenCalledWith(false);
+    await expect(held.held()).toBe(1);
   },
 };
 
