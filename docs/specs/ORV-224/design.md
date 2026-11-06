@@ -1,6 +1,6 @@
 ---
 issue: ORV-224
-spec: docs/specs/ORV-224/spec.md v1.0
+spec: docs/specs/ORV-224/spec.md v1.1
 task: ORV-224-design-1
 date: 2026-11-06
 ---
@@ -165,7 +165,7 @@ Encode the SVG part with `encodeURIComponent`. Label it mock in a comment.
 1. `avatar-look-1` and the contract row "Component tokens": `avatar.bg` references `border.subtle`, not `surface.sunken`, and `avatar.fg` references `text.primary`, not `text.secondary` (D3, D4). The row's reason changes from "the values of `badge.neutral`" to "the ground of `skeleton.bg`, and the ink that clears 4.5 on it". The `pairs.ts` row keeps its form and floor.
 2. `avatar-size-1`: the `sm` row reads `type.control.md`, not `type.label.sm` (D5). The contract row "Recipe classes" loses `--ds-type-label-sm-*`.
 3. AC 2 and AC 7: `expectInkCentred` takes `.ds-avatar__initials` as its boxes, not `.ds-avatar__fallback`. With the disc as the box, the rows reach past the circle, and the page outside it differs from the disc by more than the ink threshold, so the reading is the circle and not the letter. Measured at device scale 1, whole y: on the disc box the Latin labels read -0.5 to 0 where the same labels on their span read -2.5 to 1.51, a pass that proves nothing, and some Thai labels read -7.5.
-4. AC 2 and AC 11: `expectNoGlyphClip` takes the `.ds-avatar` root in AC 2, not the initials span. It walks up from the text and stops at the element it is given, and it counts only `overflow` as a clip, not `clip-path`. Without `overflow: hidden` on the root and the root as argument, it throws "has no text under a clipping ancestor". AC 11 has the same gap on the name: follow `Collapsible.stories.tsx` lines 265 and 287, a frame with `overflow-hidden` inside `Narrow`, and pass the frame. The helper's box is square, so it does not prove a fit inside the circle; the screenshots do.
+4. AC 2 and AC 11: `expectNoGlyphClip` takes the `.ds-avatar` root in AC 2, not the initials span. It walks up from the text and stops at the element it is given, and it counts only `overflow` as a clip, not `clip-path`. Without `overflow: hidden` on the root and the root as argument, it throws "has no text under a clipping ancestor". AC 11: every ancestor of the name up to the frame keeps visible overflow, and `expectLinesClear` proves the ink (spec v1.1). The helper's box is square, so it does not prove a fit inside the circle; the screenshots do.
 5. Contract row "Recipe classes": add `ds-avatar__initials`, and add `overflow: hidden` to `avatar-look-1`, which says nothing against it.
 6. AC 9: name Button `size="md"` (D13).
 
