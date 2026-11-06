@@ -61,6 +61,7 @@ export {
   type SkeletonProps,
   type SkeletonShape,
 } from "./skeleton/Skeleton";
+export { Separator, type SeparatorProps } from "./separator/Separator";
 export { Spinner, type SpinnerProps, type SpinnerSize } from "./spinner/Spinner";
 export { Resizable, type ResizableProps } from "./resizable/Resizable";
 export { ScrollArea, type ScrollAreaProps } from "./scroll-area/ScrollArea";

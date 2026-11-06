@@ -21,6 +21,10 @@
  * Friendly): a logotype's accent is decoration and the ring carries the shape; WCAG 1.4.11 does
  * not apply to a logotype. It stays out of the list because Friendly's master dot is under 3.0.
  *
+ * `separator.line`, a `border.subtle` divider, for both values of `decorative`: the space around the
+ * line separates on screen and the role tells a screen reader, so the line is decoration and WCAG
+ * 1.4.11 does not apply to it (ORV-230, `sep-look-1`).
+ *
  * `featured-icon.<kind>.bg`, a filled `feedback.<kind>.surface` tile against the page: the glyph on
  * it is the graphic and is listed at 3.0 for the four kinds; the tile ground is decoration, and the
  * words beside the tile say the same thing (ORV-222, `fi-colour-1`). WCAG 1.4.11 does not apply to

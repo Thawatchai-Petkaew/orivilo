@@ -1665,6 +1665,7 @@
   --cmp-featured-icon-icon-size-sm: var(--ds-size-icon-sm);
   --cmp-featured-icon-icon-size-md: var(--ds-size-icon-md);
   --cmp-featured-icon-icon-size-lg: var(--ds-size-icon-lg);
+  --cmp-separator-line: var(--ds-border-subtle);
   --cmp-logo-ink: var(--ds-text-primary);
   --cmp-logo-dot: var(--ds-brand-signature);
   --cmp-logo-dot-small: var(--ds-brand-dot-small);

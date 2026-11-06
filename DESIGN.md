@@ -1,4 +1,4 @@
-# DESIGN.md: ORIVILO (agent-readable, v1.61)
+# DESIGN.md: ORIVILO (agent-readable, v1.62)
 
 Read this before any UI work: a Studio screen, a shared component, a story, a recipe, a preview, or a review of generated output. It is the design contract the `frontend-design` skill critiques against and the **design gate** (§11) that blocks G3. Rules that enforce it live in `.claude/rules/design-system.md`; the component registry lives in `packages/design-system/catalog/`.
 
@@ -347,3 +347,5 @@ Change log: v1.59 (2026-11-01) ORV-199: the semantic token `type.field.sm` (14 /
 Change log: v1.60 (2026-11-06) ORV-216: §2 and §8 name the set where `brand.signature` and `action.primary` share one violet by its id, neutral, the base set, since ORV-52 added a brand profile with the id `orivilo`. Wording only: no token, value, contrast pair, component or profile file changes.
 
 Change log: v1.61 (2026-11-06) ORV-37: section 12 gains the Agent catalog exercise row, one members screen composed from the public entry by a builder agent in one run (2 gaps, 2 rework rounds, 3 composing rounds), judged by `tests/check-agent-composition.test.ts`. Wording and a record only: no token, value, contrast pair, component or profile file changes.
+
+Change log: v1.62 (2026-11-06) ORV-230 PR 1: the Separator component (`sep-api-1` to `sep-scope-1`), a bare 1 px line between two blocks. One new component token, `separator.line` from `border.subtle`, read as a border and never a background so forced colours draw one line. It lists no contrast pair: the space around the line separates and the role tells a screen reader. No semantic token, profile or existing component changes.

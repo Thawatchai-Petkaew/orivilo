@@ -2626,6 +2626,14 @@
       }
     }
   },
+  "separator": {
+    "$description": "A bare line between two blocks (ORV-230, sep-look-1): the hairline colour, read as a border and never a fill",
+    "line": {
+      "$type": "color",
+      "$value": "{border.subtle}",
+      "$description": "The 1 px line of both orientations"
+    }
+  },
   "logo": {
     "$description": "The ORIVILO mark, wordmark and lockups (ORV-118, logo-colour-1)",
     "ink": {

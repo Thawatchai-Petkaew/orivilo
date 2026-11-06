@@ -23,6 +23,16 @@ export const fixtures = {
 } as const;
 
 /**
+ * Separator story copy (ORV-230): the words either side of a line, `above` and `below` for a
+ * horizontal line, `start` and `end` for a vertical one. They are the caller's text, not catalog
+ * keys, and they are mock.
+ */
+export const separatorFixtures = {
+  th: { above: "โปรไฟล์", below: "การแจ้งเตือน", start: "แก้ไข", end: "ดูตัวอย่าง" },
+  en: { above: "Profile", below: "Notifications", start: "Edit", end: "Preview" },
+} as const;
+
+/**
  * FeaturedIcon story copy (ORV-222): the words that stand beside each tile, one per feedback kind.
  * They are the caller's text, not catalog keys, and they are mock.
  */
