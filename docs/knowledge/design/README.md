@@ -92,3 +92,62 @@ Facts from outside design systems and standards that inform ORIVILO's own design
 | [[K-0201-wcag-2-2-use-of-color-and-non-text-contrast-for-a-dot]]               | WCAG 2.2 SC 1.4.1 and 1.4.11 as they bear on a status dot              |
 | [[K-0202-initials-for-thai-silence-and-charat]]                                | Do the sources say how to make Thai initials; what getInitials does    |
 | [[K-0203-synthesis-avatar-benchmark]]                                          | Synthesis of K-0185 to K-0202: Avatar benchmark table                  |
+| [[K-0260-untitled-ui-file-uploaders-examples-and-props]]                       | Untitled UI file uploaders: examples, parts, props, sizes, variants    |
+| [[K-0261-untitled-ui-list-progress-bar-and-fill-items]]                        | Untitled UI upload list: progress, complete, item forms                |
+| [[K-0262-untitled-ui-failed-item-try-again-and-delete]]                        | Untitled UI failed item: text, retry, delete                           |
+| [[K-0263-untitled-ui-size-and-type-limits-and-silent-drop]]                    | Untitled UI size and type limits: checks, callbacks, rejection         |
+| [[K-0264-untitled-ui-drop-zone-keyboard-and-screen-reader]]                    | Untitled UI drop zone for keyboard and screen reader users             |
+| [[K-0265-untitled-ui-progress-indicators-no-accessible-name]]                  | Untitled UI progress indicators: role, value, accessible name          |
+| [[K-0266-untitled-ui-file-trigger-and-inputs-file-upload-example]]             | Untitled UI FileTrigger and the Inputs file upload example             |
+| [[K-0267-shadcn-ui-no-dropzone-input-type-file-example]]                       | Does shadcn/ui have a dropzone; its Input type file example            |
+| [[K-0268-shadcn-ui-attachment-parts-sizes-and-props]]                          | shadcn/ui Attachment: parts, props, sizes, orientation                 |
+| [[K-0269-shadcn-ui-attachment-states-retry-and-cancel-samples]]                | shadcn/ui Attachment: states, retry, cancel, progress text             |
+| [[K-0270-shadcn-ui-attachment-accessibility-and-no-aria-in-source]]            | shadcn/ui Attachment: accessibility guidance and ARIA in the source    |
+| [[K-0271-shadcn-ui-progress-upload-label-and-field-error-alert]]               | shadcn/ui Progress upload label, FieldError and invalid styling        |
+| [[K-0272-radix-has-no-file-or-dropzone-primitive]]                             | Does Radix have a file input, upload or dropzone primitive             |
+| [[K-0273-radix-progress-api-and-source-no-accessible-name]]                    | Radix Progress: props, data states, ARIA in the source                 |
+| [[K-0274-radix-form-message-and-focus-first-invalid]]                          | Radix Form: validation message, focus on an invalid submit             |
+| [[K-0275-wcag-2-2-dragging-movements-single-pointer-alternative]]              | WCAG 2.2 SC 2.5.7 Dragging Movements and its scope                     |
+| [[K-0276-wcag-2-2-keyboard-and-the-drag-and-drop-example]]                     | WCAG 2.2 SC 2.1.1 Keyboard and its drag and drop example               |
+| [[K-0277-wcag-2-2-status-messages-progress-and-error-techniques]]              | WCAG 2.2 SC 4.1.3 techniques for errors and for progress               |
+| [[K-0278-wcag-2-2-aria25-aria27-file-upload-progress-announcing]]              | WCAG techniques ARIA25 and ARIA27: file upload progress                |
+| [[K-0279-wcag-2-2-error-identification-in-text]]                               | WCAG 2.2 SC 3.3.1 Error Identification                                 |
+| [[K-0280-wcag-2-2-error-suggestion-for-allowed-values]]                        | WCAG 2.2 SC 3.3.3 Error Suggestion                                     |
+| [[K-0281-wcag-2-2-labels-or-instructions-expected-format]]                     | WCAG 2.2 SC 3.3.2 Labels or Instructions                               |
+| [[K-0282-wai-aria-apg-no-file-or-drag-pattern-meter-note]]                     | WAI-ARIA APG: file or drag pattern, meter against progress             |
+| [[K-0283-wai-aria-1-2-progressbar-role-and-region-loading]]                    | WAI-ARIA 1.2 role progressbar                                          |
+| [[K-0284-wai-aria-1-2-grabbed-and-dropeffect-deprecated]]                      | WAI-ARIA 1.2 aria-grabbed and aria-dropeffect                          |
+| [[K-0285-aria-in-html-input-file-takes-no-role]]                               | ARIA in HTML: input type file and the progress element                 |
+| [[K-0286-html-accept-is-a-hint-back-it-on-the-server]]                         | HTML and MDN: accept, multiple, hiding a file input                    |
+| [[K-0287-react-aria-dropzone-takes-a-file-trigger-child]]                      | React Aria DropZone: file picking, labels, keyboard text               |
+| [[K-0288-synthesis-file-upload-benchmark]]                                     | Synthesis of K-0260 to K-0287: file upload benchmark table             |
+| [[K-0290-untitled-ui-select-sizes-states-and-item-slots]]                      | Untitled UI Select: examples, sizes, states, item slots                |
+| [[K-0291-untitled-ui-select-combobox-opens-on-focus-visual-hint]]              | Untitled UI Select.ComboBox: when it opens, key hint, empty, loading   |
+| [[K-0292-untitled-ui-multi-select-count-trigger-footer-and-search-dialog]]     | Untitled UI MultiSelect: trigger, footer, search, empty, removal       |
+| [[K-0293-untitled-ui-tag-select-removal-keys-and-focus]]                       | Untitled UI TagSelect: tag keys, removal, focus after removal          |
+| [[K-0294-untitled-ui-tag-close-x-size-and-one-fixed-name]]                     | Untitled UI TagCloseX: size, name, keys on the Tags page               |
+| [[K-0295-untitled-ui-input-tags-silent-rejection-and-focus]]                   | Untitled UI InputTags: adding, refusal, focus, Backspace               |
+| [[K-0296-untitled-ui-command-menu-filter-false-and-empty-state]]               | Untitled UI Command menu: async search and the empty state             |
+| [[K-0297-react-aria-combobox-menu-trigger-empty-and-count-announcement]]       | React Aria ComboBox: menuTrigger, empty list, count announcement       |
+| [[K-0298-shadcn-ui-combobox-is-built-on-base-ui-on-the-radix-tab]]             | Which primitive does shadcn/ui Combobox use on the Radix URL           |
+| [[K-0299-shadcn-ui-combobox-parts-props-and-examples]]                         | shadcn/ui Combobox: parts, props, examples, what the page omits        |
+| [[K-0300-shadcn-ui-combobox-chips-remove-button-has-no-name]]                  | shadcn/ui Combobox chips: markup, remove button size and name          |
+| [[K-0301-shadcn-ui-command-on-cmdk-and-the-popover-combobox-sample]]           | shadcn/ui Command, components list, the Popover combobox sample        |
+| [[K-0302-cmdk-roles-keys-empty-and-loading]]                                   | cmdk: roles, keys, Empty, Loading, IME                                 |
+| [[K-0303-base-ui-combobox-status-and-empty-are-live-regions]]                  | Base UI Combobox: Status, Empty, list roles, root props                |
+| [[K-0304-base-ui-combobox-async-search-sample]]                                | Base UI Async search: status text, stale requests, chosen items        |
+| [[K-0305-base-ui-combobox-chip-keys-and-focus-after-removal]]                  | Base UI chips: tab order, keys, focus after removal, IME               |
+| [[K-0306-base-ui-combobox-multiple-mode-strings-left-to-the-author]]           | Base UI multiple mode: strings, filter reset, limiting chips           |
+| [[K-0307-radix-has-no-combobox-and-select-is-one-value-without-search]]        | Does Radix have a combobox; Radix Select's value and search            |
+| [[K-0308-wai-aria-apg-combobox-kinds-and-autocomplete-forms]]                  | WAI-ARIA APG Combobox: kinds, popups, autocomplete forms               |
+| [[K-0309-wai-aria-apg-combobox-keyboard-and-listbox-popup-keys]]               | WAI-ARIA APG Combobox: keyboard, listbox popup keys, no match          |
+| [[K-0310-wai-aria-apg-combobox-roles-states-and-aria-busy]]                    | WAI-ARIA APG and 1.2: combobox roles, states, aria-busy                |
+| [[K-0311-wai-aria-apg-listbox-multi-select-keys-and-state]]                    | WAI-ARIA APG Listbox: multi-select keys and state                      |
+| [[K-0312-wai-aria-apg-listbox-cautions-select-all-and-delete-example]]         | WAI-ARIA APG Listbox: cautions, Select All, Delete in an example       |
+| [[K-0313-wai-aria-apg-has-no-tag-or-multi-value-combobox-pattern]]             | Does the APG have a tag or multi-value combobox pattern                |
+| [[K-0314-wcag-2-2-status-message-result-count]]                                | WCAG 2.2 SC 4.1.3 and a result count                                   |
+| [[K-0315-wcag-2-2-target-size-minimum-and-spacing]]                            | WCAG 2.2 SC 2.5.8: size, spacing, a combobox's list                    |
+| [[K-0316-wcag-2-2-popup-opened-by-focus]]                                      | WCAG 2.2 SC 3.2.1, 1.4.13 and 2.4.11 for a list opened on focus        |
+| [[K-0317-wcag-2-2-on-input-and-name-role-value-for-a-custom-list]]             | WCAG 2.2 SC 3.2.2 and 4.1.2 for a custom list                          |
+| [[K-0318-wcag-2-2-keyboard-and-focus-order-no-rule-after-removal]]             | WCAG 2.2 SC 2.1.1 and 2.4.3 and focus after a removal                  |
+| [[K-0319-synthesis-combobox-and-multi-select-benchmark]]                       | Synthesis of K-0290 to K-0318: Combobox and Multi-select tables        |

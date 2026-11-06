@@ -28,6 +28,11 @@
  * (ORV-223, `fi-neutral-colour-1`): against its ground it measures 1.15 at the lowest (the board in
  * neutral light), the glyph on it is listed at 3.0, and the words beside it carry the meaning.
  *
+ * `file-upload.zone-border-disabled`, a `border.disabled` edge: like `border.disabled` on any control
+ * it does not carry the state, the disabled button and the disabled text do. `file-upload.item-border`,
+ * a `border.subtle` hairline that carries no state: a row is identified by its text and its Remove
+ * button (ORV-227).
+ *
  * `alert.success-edge`, `alert.warning-edge` and `alert.info-edge`, a 1 px `feedback.<kind>.border`
  * line round the block: `contrast-pairs.ts` holds `feedback.*.border` as decoration, and the tile
  * and the words say the kind, so WCAG 1.4.11 does not apply to them. `alert.danger-edge`, the
@@ -322,6 +327,21 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     slot: "checked highlighted ring",
     fg: "ds:focus.ring",
     bg: "menu.option.bg-selected",
+    floor: UI,
+  },
+  // Combobox list (ORV-228, D17): the ScrollArea thumb sits in the popup's end padding, on the menu ground
+  {
+    recipe: "menu",
+    slot: "scroll thumb at rest",
+    fg: "scroll-area.thumb-hover",
+    bg: "menu.bg",
+    floor: UI,
+  },
+  {
+    recipe: "menu",
+    slot: "scroll thumb on hover",
+    fg: "scroll-area.thumb",
+    bg: "menu.bg",
     floor: UI,
   },
   // Checkbox
@@ -1006,6 +1026,59 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     recipe: "progress",
     slot: "failed word",
     fg: "progress.failed",
+    bg: "ds:surface.card",
+    floor: TEXT,
+  },
+  // FileUpload (ORV-227): the zone's edge and its invalid edge on the canvas and on a card (UI floor),
+  // and the done and failed words on the canvas, where a row sits (the card pairs are under `progress`).
+  // The limits line and the hint read `field.description`, whose card pair was not listed before.
+  // Not listed: see "Not listed" above for `file-upload.zone-border-disabled` and `file-upload.item-border`.
+  {
+    recipe: "file-upload",
+    slot: "zone edge",
+    fg: "file-upload.zone-border",
+    bg: "ds:surface.canvas",
+    floor: UI,
+  },
+  {
+    recipe: "file-upload",
+    slot: "zone edge on card",
+    fg: "file-upload.zone-border",
+    bg: "ds:surface.card",
+    floor: UI,
+  },
+  {
+    recipe: "file-upload",
+    slot: "invalid edge",
+    fg: "file-upload.zone-border-invalid",
+    bg: "ds:surface.canvas",
+    floor: UI,
+  },
+  {
+    recipe: "file-upload",
+    slot: "invalid edge on card",
+    fg: "file-upload.zone-border-invalid",
+    bg: "ds:surface.card",
+    floor: UI,
+  },
+  {
+    recipe: "file-upload",
+    slot: "done word",
+    fg: "progress.done",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
+  {
+    recipe: "file-upload",
+    slot: "failed word",
+    fg: "progress.failed",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
+  {
+    recipe: "file-upload",
+    slot: "limits line on card",
+    fg: "field.description",
     bg: "ds:surface.card",
     floor: TEXT,
   },

@@ -18,7 +18,7 @@ Legend: `none` not started, `planned` entry exists, no code, `draft` code and st
 | RadioGroup    | none   |                     |
 | Switch        | none   |                     |
 | Textarea      | stable | base-textarea       |
-| Combobox      | none   |                     |
+| Combobox      | draft  | base-combobox       |
 | Badge         | stable | base-badge          |
 | Tag           | draft  | base-tag            |
 | Avatar        | draft  | base-avatar         |
@@ -36,7 +36,7 @@ Legend: `none` not started, `planned` entry exists, no code, `draft` code and st
 | Toast         | draft  | base-toast          |
 | FeaturedIcon  | draft  | base-featured-icon  |
 | Alert         | draft  | base-alert          |
-| File upload   | none   |                     |
+| File upload   | draft  | base-file-upload    |
 | Date picker   | none   |                     |
 | Popover       | stable | E2-4                |
 | ContextMenu   | stable | base-context-menu   |

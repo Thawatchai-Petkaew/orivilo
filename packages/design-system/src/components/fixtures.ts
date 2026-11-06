@@ -1,5 +1,6 @@
 import type { ChatBasis, ChatReply, ChatRequest } from "./canvas-chat/CanvasChat";
 import type { EvidenceItem } from "./evidence-span/span";
+import type { SelectOption } from "./select/Select";
 import type { TaskJob } from "./task-bar/TaskBar";
 
 /**
@@ -79,6 +80,47 @@ export const emptyStateFixtures = {
     barAction: "Start the first job",
     boardAction: "Add your first node",
   },
+} as const;
+
+/**
+ * FileUpload story content (ORV-227): MOCK. No upload path exists, so no file named here was sent
+ * anywhere and every progress, done and failed state in a story comes from a story driver. The
+ * label, the caller's error and the failure reason are the caller's text, not catalog keys. File
+ * names are Thai, Thai with stacked marks, Latin, and the long Thai and long Latin names of
+ * `fixtures` with an extension; a size of `undefined` is the missing value.
+ */
+export const fileUploadFixtures = {
+  th: {
+    label: "ภาพอ้างอิงแบรนด์",
+    error: "เพิ่มภาพอย่างน้อยหนึ่งภาพ",
+    reason: "การเชื่อมต่อหลุดระหว่างอัปโหลด ลองอีกครั้ง",
+  },
+  en: {
+    label: "Brand reference images",
+    error: "Add at least one image",
+    reason: "The connection dropped during the upload. Try again",
+  },
+  names: {
+    thai: "ภาพหน้าร้านบ้านกาแฟ.png",
+    thaiMarks: "โลโก้ปิ่นโต้.png",
+    latin: "shop-front.png",
+    longThai: `${fixtures.longThai}.png`,
+    longLatin: `${fixtures.longLatin}.png`,
+  },
+  /** Five distinct names per language: a Thai set (stacked marks in the second) and a Latin set. */
+  nameSets: {
+    th: [
+      "ภาพหน้าร้านบ้านกาแฟ.png",
+      "โลโก้ปิ่นโต้.png",
+      "ป้ายร้าน.png",
+      "เมนูกาแฟ.png",
+      "โต๊ะริมหน้าต่าง.png",
+    ],
+    en: ["shop-front.png", "logo-mark.png", "signboard.png", "coffee-menu.png", "window-table.png"],
+  },
+  /** 1,843,200 bytes reads "1.9 MB" (worked example W1). */
+  bytes: 1_843_200,
+  missingSize: fixtures.missing,
 } as const;
 
 /** Collapsible story copy (ORV-203): the caller's label and content, not catalog keys. */
@@ -205,6 +247,43 @@ export const fixtureOptions: readonly FixtureOption[] = [
   { value: "long", label: fixtures.longThai },
   { value: "archived", label: "เก็บถาวรแล้ว", disabled: true },
 ];
+
+/**
+ * Combobox story content (ORV-228): the caller's labels and options, not catalog keys. Mock: the
+ * options are fixtures, and no server or search source stands behind them. `options` and
+ * `optionsEn` list the same seven values in the same order (stacked Thai marks on `pinto` and
+ * `logo`, a disabled `closed`, and `long` with no spaces); `long` is 40 options to scroll.
+ */
+export const comboboxFixtures = {
+  label: "หัวข้อ",
+  labelEn: "Topic",
+  multiLabel: "หัวข้อที่สนใจ",
+  multiLabelEn: "Topics",
+  error: "เลือกหัวข้อที่งานนี้สังกัด",
+  errorEn: "Choose the topic this work belongs to",
+  options: [
+    { value: "save", label: fixtures.thai },
+    { value: "latin", label: fixtures.latin },
+    { value: "closed", label: "ปิดรับแล้ว", disabled: true },
+    { value: "canvas", label: fixtures.mixed },
+    { value: "pinto", label: fixtures.thaiMarks },
+    { value: "logo", label: fixtures.thaiMarks2 },
+    { value: "long", label: fixtures.longThai },
+  ] satisfies readonly SelectOption[],
+  optionsEn: [
+    { value: "save", label: "Save changes" },
+    { value: "latin", label: "Brand guide" },
+    { value: "closed", label: "Closed", disabled: true },
+    { value: "canvas", label: "The team's Brand Canvas project" },
+    { value: "pinto", label: "Pinto" },
+    { value: "logo", label: "Logo" },
+    { value: "long", label: fixtures.longLatin },
+  ] satisfies readonly SelectOption[],
+  long: Array.from({ length: 40 }, (_, i): SelectOption => ({
+    value: `item-${i + 1}`,
+    label: `ตัวเลือกที่ ${i + 1}`,
+  })),
+} as const;
 
 /**
  * Task bar jobs (ORV-100): mock data for stories, one per state. A failed job's reason says what

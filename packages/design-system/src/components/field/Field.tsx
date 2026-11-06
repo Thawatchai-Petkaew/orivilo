@@ -60,7 +60,7 @@ export interface FieldProps {
   /** Own id for the control; generated when absent. */
   id?: string | undefined;
   className?: string | undefined;
-  /** One control: Input, Textarea or Select. */
+  /** One control: Input, Textarea, Select, or the file input inside FileUpload. */
   children: ReactNode;
 }
 

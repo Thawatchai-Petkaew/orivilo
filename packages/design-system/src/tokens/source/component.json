@@ -2212,6 +2212,37 @@
       "$value": "{type.label.md}"
     }
   },
+  "file-upload": {
+    "$description": "A picker with a list of files (ORV-227). One radius for the zone and its rows: siblings, and a control box like Textarea",
+    "zone-border": {
+      "$type": "color",
+      "$value": "{border.control}"
+    },
+    "zone-border-invalid": {
+      "$type": "color",
+      "$value": "{border.error}"
+    },
+    "zone-border-disabled": {
+      "$type": "color",
+      "$value": "{border.disabled}"
+    },
+    "item-border": {
+      "$type": "color",
+      "$value": "{border.subtle}"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.media.radius}"
+    },
+    "padding": {
+      "$type": "dimension",
+      "$value": "{space.inset.md}"
+    },
+    "gap": {
+      "$type": "dimension",
+      "$value": "{space.inline.md}"
+    }
+  },
   "tag": {
     "$description": "A removable or selectable label the user chose (E4-5): a reference, a filter, a mention. Style A, soft pill (ORV-192 row 13): sunken fill, hairline edge, regular-weight label, the remove a circle inside the pill",
     "bg": {

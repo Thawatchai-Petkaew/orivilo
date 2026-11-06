@@ -1534,6 +1534,13 @@
   --cmp-progress-value-type-line-height: var(--ds-type-label-md-line-height);
   --cmp-progress-value-type-font-weight: var(--ds-type-label-md-font-weight);
   --cmp-progress-value-type-letter-spacing: var(--ds-type-label-md-letter-spacing);
+  --cmp-file-upload-zone-border: var(--ds-border-control);
+  --cmp-file-upload-zone-border-invalid: var(--ds-border-error);
+  --cmp-file-upload-zone-border-disabled: var(--ds-border-disabled);
+  --cmp-file-upload-item-border: var(--ds-border-subtle);
+  --cmp-file-upload-radius: var(--ds-shape-media-radius);
+  --cmp-file-upload-padding: var(--ds-space-inset-md);
+  --cmp-file-upload-gap: var(--ds-space-inline-md);
   --cmp-tag-bg: var(--ds-surface-sunken);
   --cmp-tag-fg: var(--ds-text-primary);
   --cmp-tag-border: var(--ds-border-subtle);

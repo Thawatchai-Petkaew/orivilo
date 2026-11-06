@@ -51,6 +51,7 @@ import {
   TriangleAlert,
   Undo2,
   Unlink,
+  Upload,
   UserRound,
   X,
   type LucideIcon,
@@ -63,7 +64,7 @@ import {
  * icons from this file only, never from `lucide-react` directly (lint), so the defaults below
  * hold everywhere and only the named glyphs reach the bundle.
  *
- * All 54 glyphs are Lucide today. A glyph Lucide lacks is drawn here as inline SVG on a 20 grid,
+ * All 55 glyphs are Lucide today. A glyph Lucide lacks is drawn here as inline SVG on a 20 grid,
  * stroke 2, round caps and joins, `currentColor`, `aria-hidden`.
  */
 export type IconProps = Omit<SVGProps<SVGSVGElement>, "children">;
@@ -117,6 +118,9 @@ export const CopyIcon = lucide(Copy, "CopyIcon");
 export const TrashIcon = lucide(Trash, "TrashIcon");
 export const CollapseIcon = lucide(ChevronUp, "CollapseIcon");
 export const ExpandIcon = lucide(ChevronDown, "ExpandIcon");
+
+// File upload (ORV-227): the picker button.
+export const UploadIcon = lucide(Upload, "UploadIcon");
 
 // Task bar (ORV-100)
 export const QueuedIcon = lucide(Clock, "QueuedIcon");

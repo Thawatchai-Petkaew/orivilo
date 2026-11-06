@@ -185,6 +185,11 @@
 .ds-button[data-variant="intent"]:focus-visible {
   box-shadow: var(--_focus-shadow-fill);
 }
+/* An inert but focusable Button (aria-disabled) stays dimmed, and its focus still draws the line:
+ * the disabled border rule above has the same weight, so this one sits after it (ORV-227 F1). */
+.ds-button[data-variant][aria-disabled="true"]:focus-visible {
+  border-color: var(--ds-focus-ring);
+}
 
 /* Icon slot: before or after the label, at the icon size of the button's size. */
 .ds-button__icon {
@@ -573,6 +578,111 @@
   font-family: var(--cmp-menu-option-type-font-family);
   font-size: var(--cmp-menu-option-type-font-size);
   line-height: var(--cmp-menu-option-type-line-height);
+}
+
+/* Combobox (ORV-228): an InputGroup field and a Radix Popover list. Placed after .ds-menu so these win. */
+
+.ds-combobox {
+  display: block;
+  width: 100%;
+}
+/* D15: with one field the root never goes under its content, and the root is the popup's anchor, so
+   the popup keeps the field's width. The input has a least width, so the slot never leaves the field
+   and the chevron keeps Select's place in any container. */
+.ds-combobox:has(> .ds-input-group > .ds-input-group__input) {
+  min-width: min-content;
+}
+.ds-combobox .ds-input-group > .ds-input-group__input {
+  width: var(--ds-size-control-lg);
+  min-width: var(--ds-size-control-lg);
+}
+.ds-combobox .ds-input-group__slot {
+  gap: var(--cmp-input-group-inset);
+}
+/* Slot buttons are square, so the hover ground has no odd corner; sm takes the 24 px target floor. */
+.ds-combobox .ds-input-group__slot > .ds-button {
+  --_b: calc(var(--_h) - 2px - 2 * var(--cmp-input-group-inset));
+  width: var(--_b);
+  min-height: var(--_b);
+}
+.ds-combobox .ds-input-group[data-size="sm"] .ds-input-group__slot > .ds-button {
+  --_b: var(--ds-size-icon-lg);
+}
+/* Only the last button takes the end margin, which puts its glyph where Select's chevron sits. */
+.ds-combobox .ds-input-group__slot[data-slot="end"] > .ds-button {
+  margin-inline-end: 0;
+}
+.ds-combobox .ds-input-group__slot[data-slot="end"] > .ds-button:last-child {
+  margin-inline-end: calc((var(--ds-size-icon-md) - var(--_b)) / 2);
+}
+.ds-combobox .ds-input-group__slot > .ds-button:not(:hover):not(:disabled) {
+  color: var(--cmp-input-icon);
+}
+/* The popup is the field's width, so it does not jump with each letter, and capped so a long list scrolls. */
+.ds-combobox__popup {
+  display: flex;
+  flex-direction: column;
+  width: var(--radix-popover-trigger-width);
+  min-width: var(--radix-popover-trigger-width);
+  max-width: var(--radix-popover-content-available-width);
+  max-height: min(var(--radix-popover-content-available-height), var(--ds-size-panel-default));
+}
+/* D17: a list that overflows shows the ScrollArea thumb in the popup's end padding, off the rows. The
+   bar's selector carries the attribute to outrank `.ds-scroll__bar[data-orientation]`, which comes later. */
+.ds-combobox__scroll {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.ds-combobox__list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+/* Radix wraps the options in a `display: table` div that grows to the widest label. A block keeps
+   long labels on their ellipsis, as `.ds-taskbar__scroll` does. The `LongList` play goes red if Radix changes it. */
+.ds-combobox__list > div {
+  display: block !important;
+}
+.ds-combobox__scroll > .ds-scroll__bar[data-orientation="vertical"] {
+  width: var(--cmp-menu-padding);
+  margin-block: calc(var(--cmp-menu-radius) / 2);
+  margin-inline-end: calc(-1 * var(--cmp-menu-padding));
+}
+.ds-combobox__scroll .ds-scroll__thumb {
+  background: var(--cmp-scroll-area-thumb-hover);
+}
+.ds-combobox__scroll .ds-scroll__thumb:hover {
+  background: var(--cmp-scroll-area-thumb);
+}
+.ds-combobox__popup .ds-menu__empty {
+  align-items: flex-start;
+  gap: var(--cmp-button-gap);
+  padding-block: var(--cmp-menu-padding);
+  overflow-wrap: anywhere;
+}
+.ds-combobox__popup .ds-menu__empty[data-tone="error"] {
+  color: var(--cmp-menu-option-fg-destructive);
+}
+.ds-combobox__popup .ds-menu__empty > svg {
+  flex: none;
+  inline-size: var(--cmp-menu-option-icon-size);
+  block-size: var(--cmp-menu-option-icon-size);
+  margin-block-start: calc(
+    (
+        var(--cmp-menu-option-type-font-size) * var(--cmp-menu-option-type-line-height) -
+          var(--cmp-menu-option-icon-size)
+      ) /
+      2
+  );
+}
+/* Chosen and active: the selected fill stays and a focus line shows where the keys are, so
+   selection and focus never read the same (DESIGN.md section 7). */
+.ds-combobox__popup .ds-menu__option[data-state="checked"][data-highlighted]:not([data-disabled]) {
+  outline: 1px solid var(--ds-focus-ring);
+  outline-offset: -1px;
+  box-shadow: var(--_focus-shadow-inset);
 }
 
 /* Checkbox ---------------------------------------------------------------------------------- */
@@ -4136,6 +4246,133 @@
   .ds-progress[data-indeterminate] .ds-progress__fill {
     animation: none;
   }
+}
+
+/* File upload (ORV-227) ---------------------------------------------------------------------- */
+
+.ds-file-upload {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmp-file-upload-gap);
+  min-inline-size: 0;
+}
+/* The zone's edge is solid until the drop target lands (second PR of ORV-227). */
+.ds-file-upload__zone {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--cmp-file-upload-gap);
+  padding: var(--cmp-file-upload-padding);
+  border: 1px solid var(--cmp-file-upload-zone-border);
+  border-radius: var(--cmp-file-upload-radius);
+}
+.ds-file-upload__zone[data-full] {
+  border-color: var(--cmp-file-upload-zone-border-disabled);
+}
+.ds-file-upload__zone[data-invalid] {
+  border-color: var(--cmp-file-upload-zone-border-invalid);
+}
+.ds-field[data-disabled] .ds-file-upload__zone {
+  border-color: var(--cmp-file-upload-zone-border-disabled);
+}
+.ds-file-upload__hint {
+  min-inline-size: 0;
+  margin: 0;
+  color: var(--cmp-field-description);
+  font-family: var(--cmp-field-text-type-font-family);
+  font-size: var(--cmp-field-text-type-font-size);
+  line-height: var(--cmp-field-text-type-line-height);
+  font-weight: var(--cmp-field-text-type-font-weight);
+  letter-spacing: var(--cmp-field-text-type-letter-spacing);
+  overflow-wrap: anywhere;
+}
+.ds-field[data-disabled] .ds-file-upload__hint {
+  color: var(--ds-text-disabled);
+}
+.ds-file-upload .ds-field__error > span {
+  display: block;
+}
+.ds-file-upload .ds-field__error > span + span {
+  margin-block-start: var(--ds-space-inline-sm);
+}
+.ds-file-upload__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmp-file-upload-gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ds-file-upload__item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--cmp-file-upload-gap);
+  padding-block: var(--ds-space-inline-lg);
+  padding-inline: var(--cmp-file-upload-padding);
+  border: 1px solid var(--cmp-file-upload-item-border);
+  border-radius: var(--cmp-file-upload-radius);
+}
+.ds-file-upload__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--ds-space-inline-sm);
+  min-inline-size: 0;
+}
+.ds-file-upload__name {
+  margin: 0;
+  color: var(--cmp-field-label);
+  font-family: var(--cmp-field-label-type-font-family);
+  font-size: var(--cmp-field-label-type-font-size);
+  line-height: var(--cmp-field-label-type-line-height);
+  font-weight: var(--cmp-field-label-type-font-weight);
+  letter-spacing: var(--cmp-field-label-type-letter-spacing);
+  overflow-wrap: anywhere;
+}
+.ds-file-upload__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--ds-space-inline-lg);
+  margin: 0;
+  color: var(--cmp-field-description);
+  font-family: var(--cmp-field-text-type-font-family);
+  font-size: var(--cmp-field-text-type-font-size);
+  line-height: var(--cmp-field-text-type-line-height);
+  font-weight: var(--cmp-field-text-type-font-weight);
+  letter-spacing: var(--cmp-field-text-type-letter-spacing);
+}
+.ds-file-upload__word {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-space-inline-sm);
+}
+.ds-file-upload__item[data-status="done"] .ds-file-upload__word {
+  color: var(--cmp-progress-done);
+}
+.ds-file-upload__item[data-status="failed"] .ds-file-upload__word {
+  color: var(--cmp-progress-failed);
+}
+.ds-file-upload__reason {
+  margin: 0;
+  color: var(--cmp-field-error);
+  font-family: var(--cmp-field-text-type-font-family);
+  font-size: var(--cmp-field-text-type-font-size);
+  line-height: var(--cmp-field-text-type-line-height);
+  font-weight: var(--cmp-field-text-type-font-weight);
+  letter-spacing: var(--cmp-field-text-type-letter-spacing);
+  overflow-wrap: anywhere;
+}
+.ds-file-upload__retry {
+  align-self: flex-start;
+  margin-block-start: var(--ds-space-inline-sm);
+}
+.ds-file-upload__actions {
+  display: flex;
+  flex: none;
+  margin-block-start: calc(-1 * var(--ds-space-inline-sm));
 }
 
 /* Tag (E4-5) --------------------------------------------------------------------------------- */
