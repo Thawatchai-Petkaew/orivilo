@@ -2,7 +2,7 @@
 issue: ORV-227 (https://tpetkaew.atlassian.net/browse/ORV-227)
 spec: docs/specs/ORV-227/spec.md v1.1 (open questions 1 to 13 at their defaults, AC rows 1 to 35)
 role: designer (task ORV-227-design-1)
-version: 1.0
+version: 1.1
 ---
 
 # ORV-227 design: File upload, the zone, the list and the two PRs
