@@ -1,9 +1,14 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { useEffect, useState } from "react";
 import { expect, fn, userEvent, waitFor, within } from "storybook/test";
+import { LocaleProvider } from "../../i18n/LocaleProvider";
+import { expectFrameCutsNoInk, expectLabelInkWhole, inVitest } from "../../testing/visual-asserts";
 import { Button } from "../button/Button";
-import { fixtures } from "../fixtures";
+import { fixtureManyJobs, fixtures } from "../fixtures";
 import { Matrix, Narrow } from "../matrix";
-import { GRID_UNIT } from "./CanvasBoard";
+import { TaskBar } from "../task-bar/TaskBar";
+import { CanvasBoard, GRID_UNIT } from "./CanvasBoard";
+import type { Graph } from "./graph";
 import { BOARD, BOARD_NODES, LONG_NODE } from "./fixtures";
 import { MatrixBoard, Stateful } from "./story-shell";
 import { MOD } from "../story-keys";
@@ -95,17 +100,477 @@ export const Default: Story = {
   },
 };
 
-/** No node: the empty text and the consumer's action; nothing else claims content (AC 12). */
+/** The empty board's mock action: it names its outcome and starts nothing. */
+const addFirst = (label: string) => <Button variant="secondary">{label}</Button>;
+
+/** The length a token resolves to at `el`, in px, as the browser computes it. */
+function resolvedLength(el: Element, token: string): number {
+  const probe = document.createElement("span");
+  probe.style.display = "block";
+  probe.style.width = `var(${token})`;
+  el.append(probe);
+  const px = parseFloat(getComputedStyle(probe).width);
+  probe.remove();
+  return px;
+}
+
+/** The first match of `selector` under `root`; a missing part fails the play with its name. */
+function part(root: ParentNode, selector: string): HTMLElement {
+  const el = root.querySelector<HTMLElement>(selector);
+  if (el === null) throw new Error(`No element matches ${selector}`);
+  return el;
+}
+
+/** Half a pixel: the browser lays boxes on a 1/64 px grid and the form is centred by halves. */
+const HALF_PX = 0.5;
+
+/**
+ * The empty form on a board with a toolbar (ORV-223 D15, rows 22, 44 and 45): the form's centre is
+ * on the board's centre line across, the action stands at least `space.inset.md` above the toolbar,
+ * and the tile is inside the board. Lengths are the resolved tokens, so the play holds under any
+ * profile the boundary sets.
+ */
+async function expectFormClearOfToolbar(root: HTMLElement, actionName: string) {
+  const board = part(root, ".ds-board");
+  const bar = part(board, ".ds-controls");
+  const form = part(board, ".ds-board__overlay .ds-empty-state");
+  const tile = part(form, ".ds-featured-icon");
+  const action = within(form).getByRole("button", { name: actionName });
+  const clear = resolvedLength(board, "--ds-space-inset-md");
+  const b = board.getBoundingClientRect();
+  const f = form.getBoundingClientRect();
+  await expect(Math.abs(f.left + f.width / 2 - (b.left + b.width / 2))).toBeLessThanOrEqual(
+    HALF_PX,
+  );
+  await expect(
+    bar.getBoundingClientRect().top - action.getBoundingClientRect().bottom,
+  ).toBeGreaterThanOrEqual(clear - HALF_PX);
+  await expect(tile.getBoundingClientRect().top).toBeGreaterThanOrEqual(b.top);
+}
+
+/**
+ * Rows 44 and 45: a 294 px board 360 tall wraps its toolbar, and the form still clears it, every
+ * button of the toolbar answers a hit test at its own centre, and a status from the first command
+ * leaves the pill 8 px under the form. Each button is scrolled into view first, because
+ * `elementFromPoint` returns null outside the viewport.
+ */
+async function expectShortBoardClear(root: HTMLElement, actionName: string, statusText: string) {
+  const board = part(root, ".ds-board");
+  const bar = part(board, ".ds-controls");
+  const buttonHeight = resolvedLength(board, "--cmp-button-height-sm");
+  await expect(bar.getBoundingClientRect().height).toBeGreaterThan(2 * buttonHeight);
+  await expectFormClearOfToolbar(root, actionName);
+  const buttons = [...bar.querySelectorAll<HTMLElement>("button")];
+  await expect(buttons).toHaveLength(14);
+  for (const button of buttons) {
+    button.scrollIntoView({ block: "center", inline: "center" });
+    const r = button.getBoundingClientRect();
+    const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    await expect(hit !== null && button.contains(hit)).toBe(true);
+  }
+  await userEvent.click(part(bar, '[data-command="board.zoom-in"]'));
+  await waitFor(() => expect(within(root).getByRole("status")).toHaveTextContent(statusText));
+  const pill = part(board, ".ds-board__status");
+  const action = within(root).getByRole("button", { name: actionName });
+  const stack = resolvedLength(board, "--ds-space-stack-sm");
+  await expect(
+    pill.getBoundingClientRect().top - action.getBoundingClientRect().bottom,
+  ).toBeGreaterThanOrEqual(stack - HALF_PX);
+  await expectFormClearOfToolbar(root, actionName);
+}
+
+/** No node: a tile, the empty title as a level 2 heading and the consumer's action; nothing else claims content (AC 12). */
 export const Empty: Story = {
   args: {
     initial: { nodes: [], edges: [] },
-    emptyAction: <Button variant="secondary">เพิ่ม node แรก</Button>,
+    emptyAction: addFirst("เพิ่ม node แรก"),
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("กระดานยังว่าง")).toBeVisible();
     await expect(canvas.getByRole("button", { name: "เพิ่ม node แรก" })).toBeVisible();
     await expect(nodeEls(canvasElement)).toHaveLength(0);
+    await expect(canvas.getByRole("heading", { level: 2 })).toHaveTextContent("กระดานยังว่าง");
+    await expect(status(canvasElement)).toHaveTextContent("");
+    // Row 19: on a board at least 520 px tall the form's centre is the board's centre.
+    const board = part(canvasElement, ".ds-board").getBoundingClientRect();
+    await expect(board.height).toBeGreaterThanOrEqual(520);
+    const form = part(canvasElement, ".ds-empty-state").getBoundingClientRect();
+    await expect(
+      Math.abs(form.left + form.width / 2 - (board.left + board.width / 2)),
+    ).toBeLessThanOrEqual(HALF_PX);
+    await expect(
+      Math.abs(form.top + form.height / 2 - (board.top + board.height / 2)),
+    ).toBeLessThanOrEqual(HALF_PX);
+  },
+};
+
+/**
+ * The last node is deleted by keyboard: the status line says what went, the region keeps the
+ * keyboard (focus does not fall to the body) and Tab reaches the empty form's action after the
+ * toolbar.
+ */
+export const TurnsEmpty: Story = {
+  args: {
+    initial: { nodes: [BOARD_NODES[0] as (typeof BOARD_NODES)[number]], edges: [] },
+    emptyAction: addFirst("เพิ่ม node แรก"),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const region = canvas.getByRole("region");
+    await waitFor(() => expect(nodeEls(region)).toHaveLength(1));
+    const node = await waitFor(() => nodeByTitle(region, "บรีฟ"));
+    await focusOn(() => node);
+    await userEvent.keyboard("{Enter}");
+    await userEvent.keyboard("{Delete}");
+    await waitFor(() => expect(nodeEls(region)).toHaveLength(0));
+    await waitFor(() => expect(status(region)).toHaveTextContent("ลบ 1 node"));
+    await waitFor(() => expect(canvas.getByRole("heading", { level: 2 })).toBeVisible());
+    await waitFor(() => expect(document.activeElement).toBe(region));
+    // The toolbar and the attribution link come first in the page order, so the action is the
+    // twelfth stop from the region, not the first: Tab until it, with a bound.
+    const action = canvas.getByRole("button", { name: "เพิ่ม node แรก" });
+    for (let i = 0; i < 14 && document.activeElement !== action; i++) await userEvent.tab();
+    await expect(document.activeElement).toBe(action);
+  },
+};
+
+/**
+ * A host that does not write the board's change at once: `apply` decides when the graph the board
+ * emitted reaches the `graph` prop. `late` writes a deletion in a later task, after the board's own
+ * commit; `refuse` never writes it; `swap` refuses it, then the host puts another node on the
+ * board and later takes it away on its own.
+ */
+function ControlledHost({ apply }: { apply: "late" | "refuse" | "swap" }) {
+  const [graph, setGraph] = useState<Graph>({
+    nodes: [BOARD_NODES[0] as (typeof BOARD_NODES)[number]],
+    edges: [],
+  });
+  // A parent's effect runs after its child's in the same commit: once this is set, the board's own
+  // effect for the empty graph has run, so a play can assert on what it did or did not do.
+  const [emptied, setEmptied] = useState(false);
+  useEffect(() => {
+    if (graph.nodes.length === 0) setEmptied(true);
+  }, [graph]);
+  return (
+    <div style={{ height: 520 }} className="relative" data-emptied={emptied}>
+      <CanvasBoard
+        graph={graph}
+        label="กระดานแบรนด์ (ข้อมูลตัวอย่าง)"
+        emptyAction={addFirst("เพิ่ม node แรก")}
+        onChange={(next) => {
+          // Selection and moves are written at once; only a change that drops a node is held.
+          if (next.nodes.length >= graph.nodes.length) setGraph(next);
+          else if (apply === "late") setTimeout(() => setGraph(next), 50);
+          else if (apply === "swap") {
+            const other = BOARD_NODES[1] as (typeof BOARD_NODES)[number];
+            setTimeout(() => setGraph({ nodes: [other], edges: [] }), 50);
+            setTimeout(() => setGraph({ nodes: [], edges: [] }), 400);
+          }
+        }}
+      />
+    </div>
+  );
+}
+
+/**
+ * `empty-focus-1` and `empty-board-1` for a host that applies the delete after the board's own
+ * commit (a save, a transition): the board's status line renders first with the node still in the
+ * graph, the node leaves later, and the region still takes the keyboard.
+ */
+export const TurnsEmptyLater: Story = {
+  render: () => <ControlledHost apply="late" />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const region = canvas.getByRole("region");
+    const node = await waitFor(() => nodeByTitle(region, "บรีฟ"));
+    await focusOn(() => node);
+    await userEvent.keyboard("{Enter}");
+    await userEvent.keyboard("{Delete}");
+    // The status line comes first, with the node still on the board: the host has not written yet.
+    await waitFor(() => expect(status(region)).toHaveTextContent("ลบ 1 node"));
+    await waitFor(() => expect(nodeEls(region)).toHaveLength(0));
+    await waitFor(() => expect(canvas.getByRole("heading", { level: 2 })).toBeVisible());
+    await waitFor(() => expect(document.activeElement).toBe(region));
+  },
+};
+
+/** A delete the host refuses leaves the node and the keyboard where they were. */
+export const DeleteRefused: Story = {
+  render: () => <ControlledHost apply="refuse" />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const region = canvas.getByRole("region");
+    const node = await waitFor(() => nodeByTitle(region, "บรีฟ"));
+    await focusOn(() => node);
+    await userEvent.keyboard("{Enter}");
+    await userEvent.keyboard("{Delete}");
+
+    await waitFor(() => expect(status(region)).toHaveTextContent("ลบ 1 node"));
+    await expect(nodeEls(region)).toHaveLength(1);
+    await expect(canvas.queryByRole("heading", { level: 2 })).toBeNull();
+    await expect(document.activeElement).not.toBe(region);
+    await expect(document.activeElement).not.toBe(document.body);
+    await expect(node.contains(document.activeElement)).toBe(true);
+  },
+};
+
+/**
+ * A refused delete is over once the host changes the graph: the later empty graph is the host's
+ * own doing, so focus is not moved by the stale delete.
+ */
+export const DeleteRefusedThenSwapped: Story = {
+  render: () => <ControlledHost apply="swap" />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const region = canvas.getByRole("region");
+    const node = await waitFor(() => nodeByTitle(region, "บรีฟ"));
+    await focusOn(() => node);
+    await userEvent.keyboard("{Enter}");
+    await userEvent.keyboard("{Delete}");
+    await waitFor(() =>
+      expect(canvasElement.querySelector('[data-emptied="true"]')).not.toBeNull(),
+    );
+    await expect(canvas.getByRole("heading", { level: 2 })).toBeVisible();
+    await expect(document.activeElement).toBe(document.body);
+  },
+};
+
+/** The empty board in English. */
+export const EmptyInEnglish: Story = {
+  args: {
+    initial: { nodes: [], edges: [] },
+    emptyAction: addFirst("Add your first node"),
+  },
+  decorators: [(Story) => <LocaleProvider locale="en">{Story()}</LocaleProvider>],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(
+      canvas.getByRole("heading", { level: 2, name: "The board is empty" }),
+    ).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "Add your first node" })).toBeVisible();
+  },
+};
+
+/** The empty board in a 360 px frame: the form is centred across, clear of the toolbar, and nothing is cut. */
+export const EmptyAt360: Story = {
+  args: {
+    initial: { nodes: [], edges: [] },
+    emptyAction: addFirst("เพิ่ม node แรก"),
+  },
+  render: (args) => (
+    <div data-testid="frame" className="w-[360px] max-w-full">
+      <Stateful {...args} height={420} fill={false} />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const frame = canvas.getByTestId("frame");
+    await expect(frame.scrollWidth).toBeLessThanOrEqual(360);
+    const frameBox = frame.getBoundingClientRect();
+    const action = canvas.getByRole("button", { name: "เพิ่ม node แรก" }).getBoundingClientRect();
+    await expect(action.left).toBeGreaterThanOrEqual(frameBox.left);
+    await expect(action.right).toBeLessThanOrEqual(frameBox.right);
+    const title = canvas.getByRole("heading", { level: 2 }).getBoundingClientRect();
+    await expect(title.left).toBeGreaterThanOrEqual(frameBox.left);
+    await expect(title.right).toBeLessThanOrEqual(frameBox.right);
+    await expectFormClearOfToolbar(canvasElement, "เพิ่ม node แรก");
+  },
+};
+
+/**
+ * The empty board in a 294 px frame, 360 tall: the toolbar wraps and the form rises clear of it,
+ * every button stays reachable, and a status from the first command stands under the form
+ * (`empty-board-1`, ORV-223 D15).
+ */
+export const EmptyShort: Story = {
+  args: {
+    initial: { nodes: [], edges: [] },
+    emptyAction: addFirst("เพิ่ม node แรก"),
+  },
+  render: (args) => (
+    <div className="w-[294px]">
+      <Stateful {...args} height={360} fill={false} />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    await expectShortBoardClear(canvasElement, "เพิ่ม node แรก", "ซูมเข้า");
+  },
+};
+
+/** The short empty board in English. */
+export const EmptyShortInEnglish: Story = {
+  args: {
+    initial: { nodes: [], edges: [] },
+    emptyAction: addFirst("Add your first node"),
+  },
+  decorators: [(Story) => <LocaleProvider locale="en">{Story()}</LocaleProvider>],
+  render: (args) => (
+    <div className="w-[294px]">
+      <Stateful {...args} height={360} fill={false} />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    await expect(
+      within(canvasElement).getByRole("heading", { level: 2, name: "The board is empty" }),
+    ).toBeVisible();
+    await expectShortBoardClear(canvasElement, "Add your first node", "Zoomed in");
+  },
+};
+
+/** The bar's mock action (D10): it names its outcome and starts nothing. */
+const startFirst = (label: string) => (
+  <Button variant="secondary" size="sm">
+    {label}
+  </Button>
+);
+
+/** The action answers a hit test at its own centre. */
+async function expectAnswers(el: HTMLElement) {
+  const r = el.getBoundingClientRect();
+  const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+  await expect(hit !== null && el.contains(hit)).toBe(true);
+}
+
+/**
+ * Rows 47 and 48: the form clears the open bar as it clears the toolbar, no ink is cut, and closing
+ * the panel gives the form back to the toolbar's rule (ORV-223 D16).
+ */
+async function expectFormClearOfOpenBar(root: HTMLElement, actionName: string) {
+  const board = part(root, ".ds-board");
+  const form = part(board, ".ds-board__overlay .ds-empty-state");
+  const action = within(form).getByRole("button", { name: actionName });
+  const clear = resolvedLength(board, "--ds-space-inset-md");
+  await expectFormClearOfToolbar(root, actionName);
+  await expect(
+    part(board, ".ds-taskbar").getBoundingClientRect().top - action.getBoundingClientRect().bottom,
+  ).toBeGreaterThanOrEqual(clear - HALF_PX);
+  await expectAnswers(action);
+  if (inVitest) {
+    await expectFrameCutsNoInk(form, board);
+    await expectLabelInkWhole(part(form, ".ds-empty-state__title"));
+  }
+  await userEvent.click(part(board, ".ds-taskbar button[aria-expanded='true']"));
+  await waitFor(() =>
+    expect(part(board, ".ds-taskbar button[aria-expanded='false']")).toBeVisible(),
+  );
+  await expectFormClearOfToolbar(root, actionName);
+  await expectAnswers(action);
+}
+
+/**
+ * The empty board with the task bar's panel open, 900 px wide and 420 tall: the form stands above
+ * the bar's card, not on it (`empty-board-1`, ORV-223 D16), and goes back to the toolbar's rule
+ * when the panel closes.
+ */
+export const EmptyBarOpen: Story = {
+  args: {
+    initial: { nodes: [], edges: [] },
+    emptyAction: addFirst("เพิ่ม node แรก"),
+  },
+  render: (args) => (
+    <div className="w-[900px] max-w-full">
+      <Stateful {...args} height={420} fill={false}>
+        <TaskBar jobs={[]} defaultExpanded emptyAction={startFirst("เริ่มงานแรก")} />
+      </Stateful>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    await expectFormClearOfOpenBar(canvasElement, "เพิ่ม node แรก");
+  },
+};
+
+/** The same board with the open bar, in English. */
+export const EmptyBarOpenInEnglish: Story = {
+  args: {
+    initial: { nodes: [], edges: [] },
+    emptyAction: addFirst("Add your first node"),
+  },
+  decorators: [(Story) => <LocaleProvider locale="en">{Story()}</LocaleProvider>],
+  render: (args) => (
+    <div className="w-[900px] max-w-full">
+      <Stateful {...args} height={420} fill={false}>
+        <TaskBar jobs={[]} defaultExpanded emptyAction={startFirst("Start the first job")} />
+      </Stateful>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    await expectFormClearOfOpenBar(canvasElement, "Add your first node");
+  },
+};
+
+/**
+ * A list that fills the board: the action stops one inset under the board's top, whole and
+ * pressable, though it then stands on the card (ORV-223 D16, row 49).
+ */
+export const EmptyJobsOpen: Story = {
+  args: {
+    initial: { nodes: [], edges: [] },
+    emptyAction: addFirst("เพิ่ม node แรก"),
+  },
+  render: (args) => (
+    <div className="w-[900px] max-w-full">
+      <Stateful {...args} height={420} fill={false}>
+        <TaskBar jobs={fixtureManyJobs} defaultExpanded />
+      </Stateful>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const board = part(canvasElement, ".ds-board");
+    const form = part(board, ".ds-board__overlay .ds-empty-state");
+    const action = within(form).getByRole("button", { name: "เพิ่ม node แรก" });
+    const clear = resolvedLength(board, "--ds-space-inset-md");
+    await expect(
+      action.getBoundingClientRect().top - board.getBoundingClientRect().top,
+    ).toBeGreaterThanOrEqual(clear - HALF_PX);
+    await expectAnswers(action);
+  },
+};
+
+/**
+ * Row 50: with the panel open a status adds nothing to the clear, because the pill stands at the
+ * board's top; the action stays one inset above the higher of the bar and the toolbar.
+ */
+export const EmptyBarOpenWithStatus: Story = {
+  args: {
+    initial: { nodes: [], edges: [] },
+    emptyAction: addFirst("เพิ่ม node แรก"),
+    status: "ซูมเข้า",
+  },
+  render: (args) => (
+    <div className="w-[900px] max-w-full">
+      <Stateful {...args} height={420} fill={false}>
+        <TaskBar jobs={[]} defaultExpanded emptyAction={startFirst("เริ่มงานแรก")} />
+      </Stateful>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const board = part(canvasElement, ".ds-board");
+    const form = part(board, ".ds-board__overlay .ds-empty-state");
+    const action = within(form).getByRole("button", { name: "เพิ่ม node แรก" });
+    const clear = resolvedLength(board, "--ds-space-inset-md");
+    const bar = part(board, ".ds-taskbar").getBoundingClientRect();
+    const toolbar = part(board, ".ds-controls").getBoundingClientRect();
+    await expect(
+      Math.abs(Math.min(bar.top, toolbar.top) - action.getBoundingClientRect().bottom - clear),
+    ).toBeLessThanOrEqual(HALF_PX);
+  },
+};
+
+/** The empty board under the three profiles in both modes, one board per cell. */
+export const EmptyRecipesAndModes: Story = {
+  args: {
+    initial: { nodes: [], edges: [] },
+    emptyAction: addFirst("เพิ่ม node แรก"),
+  },
+  render: (args) => (
+    <Matrix>
+      <MatrixBoard {...args} height={360} />
+    </Matrix>
+  ),
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelectorAll("[data-matrix-cell]")).toHaveLength(6);
+    await expect(within(canvasElement).getAllByRole("heading", { level: 2 })).toHaveLength(6);
   },
 };
 

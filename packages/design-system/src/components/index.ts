@@ -38,12 +38,14 @@ export {
   DialogTrigger,
   type DialogVariant,
 } from "./dialog/Dialog";
+export { EmptyState, type EmptyStateProps } from "./empty-state/EmptyState";
 export { EvidenceList, type EvidenceListProps } from "./evidence-list/EvidenceList";
 export { EvidenceSpan, type EvidenceSpanProps } from "./evidence-span/EvidenceSpan";
 export type { EvidenceItem } from "./evidence-span/span";
 export { Field, type FieldProps, useFieldControl } from "./field/Field";
 export {
   FeaturedIcon,
+  type FeaturedIconGlyph,
   type FeaturedIconProps,
   type FeaturedIconSize,
   type FeaturedIconVariant,

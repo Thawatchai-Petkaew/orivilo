@@ -73,6 +73,20 @@ Facts from outside design systems and standards that inform ORIVILO's own design
 | [[K-0168-wcag-f81-error-fields-by-color-alone]]                                | WCAG failure F81: required or error fields by colour only              |
 | [[K-0169-wcag-2-2-non-text-contrast-graphics-for-understanding]]               | WCAG 2.2 SC 1.4.11: which graphics need 3:1                            |
 | [[K-0170-synthesis-alert-and-featured-icon-benchmark]]                         | Synthesis of K-0158 to K-0169: Alert and FeaturedIcon table            |
+| [[K-0171-untitled-ui-empty-state-sizes-parts-and-header-visuals]]              | Untitled UI EmptyState: sizes, parts, header visuals, demos            |
+| [[K-0172-untitled-ui-empty-state-h1-main-and-no-live-region]]                  | Untitled UI EmptyState: elements, overrides, announcing, motion        |
+| [[K-0173-untitled-ui-has-no-page-loading-pattern]]                             | Does Untitled UI React have a page-loading pattern                     |
+| [[K-0174-shadcn-ui-empty-parts-one-media-variant-no-size]]                     | shadcn/ui Empty page: parts, variant, examples, accessibility          |
+| [[K-0175-shadcn-ui-empty-source-div-title-and-two-style-sets]]                 | shadcn/ui Empty source: elements, ARIA, values in two style sets       |
+| [[K-0176-shadcn-ui-spinner-inside-empty-as-the-loading-example]]               | shadcn/ui loading state: the Spinner page's Empty example              |
+| [[K-0177-shadcn-ui-no-results-text-in-data-table-and-command]]                 | shadcn/ui and cmdk: no-results text in Data Table and Command          |
+| [[K-0178-wcag-2-2-no-results-text-is-a-status-message]]                        | WCAG 2.2 SC 4.1.3 and ARIA22: search and no-results messages           |
+| [[K-0179-wai-aria-1-2-progressbar-for-a-loading-region]]                       | WAI-ARIA 1.2 progressbar and aria-busy on a loading region             |
+| [[K-0180-wai-aria-apg-feed-aria-busy-back-to-false]]                           | WAI-ARIA APG Feed: aria-busy during an update                          |
+| [[K-0181-wai-aria-1-2-one-main-role-and-required-heading-level]]               | WAI-ARIA 1.2 role main and role heading                                |
+| [[K-0182-whatwg-html-one-visible-main-element]]                                | WHATWG HTML: how many main elements, and where                         |
+| [[K-0183-aria-in-html-main-takes-no-other-role]]                               | ARIA in HTML: allowed roles on main, h1 to h6, header, footer          |
+| [[K-0184-synthesis-empty-state-and-loading-state-benchmark]]                   | Synthesis of K-0171 to K-0183: empty and loading benchmark table       |
 | [[K-0185-untitled-ui-avatar-sizes-props-and-slots]]                            | Untitled UI Avatar: sizes, props, slots, related components            |
 | [[K-0186-untitled-ui-avatar-fallback-chain-and-sticky-load-failure]]           | Untitled UI Avatar: fallback order and what a load failure does        |
 | [[K-0187-untitled-ui-avatar-one-indicator-and-unnamed-status-dot]]             | Untitled UI Avatar: indicators and what the status dot is              |

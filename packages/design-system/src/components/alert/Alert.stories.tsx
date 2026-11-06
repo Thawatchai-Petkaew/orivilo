@@ -513,6 +513,8 @@ export const TypeContract: Story = {
       <Alert variant="success" title="t" />,
       // @ts-expect-error brand is not a feedback kind
       <Alert variant="brand" {...base} />,
+      // @ts-expect-error neutral is a FeaturedIcon kind only: Alert keeps its four (fi-neutral-1)
+      <Alert variant="neutral" {...base} />,
       // @ts-expect-error success cannot be raised to an alert (SC 4.1.3 lists it as a failure)
       <Alert variant="success" live="alert" {...base} />,
       // @ts-expect-error danger cannot drop to a status

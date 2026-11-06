@@ -2674,7 +2674,7 @@
     }
   },
   "featured-icon": {
-    "$description": "A glyph on a tinted tile for one feedback kind (ORV-222): the kind's surface and foreground, one media radius, a size scale on the control and icon sizes",
+    "$description": "A glyph on a tinted tile for one feedback kind (ORV-222) or a neutral tile (ORV-223): the kind's surface and foreground, one media radius, a size scale on the control and icon sizes",
     "success": {
       "bg": {
         "$type": "color",
@@ -2713,6 +2713,16 @@
       "fg": {
         "$type": "color",
         "$value": "{feedback.info.fg}"
+      }
+    },
+    "neutral": {
+      "bg": {
+        "$type": "color",
+        "$value": "{border.subtle}"
+      },
+      "fg": {
+        "$type": "color",
+        "$value": "{text.secondary}"
       }
     },
     "radius": {
@@ -2798,6 +2808,45 @@
     "body-type": {
       "$type": "typography",
       "$value": "{type.body.sm}"
+    }
+  },
+  "empty-state": {
+    "$description": "A tile, a title over text and one action for a region with nothing in it (ORV-223): compact title over text at both sizes, md a centred column capped at the panel width, sm starting at the line's start",
+    "title": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    },
+    "description": {
+      "$type": "color",
+      "$value": "{text.secondary}"
+    },
+    "title-type": {
+      "$type": "typography",
+      "$value": "{type.label.md}"
+    },
+    "body-type": {
+      "$type": "typography",
+      "$value": "{type.body.sm}"
+    },
+    "text-gap": {
+      "$type": "dimension",
+      "$value": "{space.inline.sm}"
+    },
+    "gap-md": {
+      "$type": "dimension",
+      "$value": "{space.stack.md}"
+    },
+    "gap-sm": {
+      "$type": "dimension",
+      "$value": "{space.inline.lg}"
+    },
+    "action-gap": {
+      "$type": "dimension",
+      "$value": "{space.stack.sm}"
+    },
+    "max-width": {
+      "$type": "dimension",
+      "$value": "{size.panel.default}"
     }
   },
   "logo": {

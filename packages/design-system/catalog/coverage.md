@@ -58,7 +58,7 @@ Legend: `none` not started, `planned` entry exists, no code, `draft` code and st
 | Sidebar navigation      | none   |                            |
 | Page header             | draft  | application-page-header    |
 | Section header          | none   |                            |
-| Empty state             | none   |                            |
+| Empty state             | draft  | application-empty-state    |
 | Loading state           | none   |                            |
 | Command menu            | stable | application-command-menu   |
 | Shortcut sheet          | stable | application-shortcut-sheet |

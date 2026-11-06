@@ -265,6 +265,20 @@ Keep this table in step with the folder when you add an entry.
 | [[K-0168-wcag-f81-error-fields-by-color-alone]]                                         | 0.8        | F81: error fields marked by colour alone fail SC 1.4.1                |
 | [[K-0169-wcag-2-2-non-text-contrast-graphics-for-understanding]]                        | 0.8        | SC 1.4.11 (AA): 3:1 for graphics required for understanding           |
 | [[K-0170-synthesis-alert-and-featured-icon-benchmark]]                                  | 0.75       | Synthesis: Alert and FeaturedIcon benchmark table, audit B form       |
+| [[K-0171-untitled-ui-empty-state-sizes-parts-and-header-visuals]]                       | 0.8        | Untitled EmptyState: sm, md, lg; Footer actions; no variant prop      |
+| [[K-0172-untitled-ui-empty-state-h1-main-and-no-live-region]]                           | 0.8        | Untitled EmptyState: h1 and main by default; no status role found     |
+| [[K-0173-untitled-ui-has-no-page-loading-pattern]]                                      | 0.75       | Untitled UI React: no page-loading pattern found; spinner nearest     |
+| [[K-0174-shadcn-ui-empty-parts-one-media-variant-no-size]]                              | 0.8        | shadcn Empty: six parts, EmptyMedia variant, no size, page silent     |
+| [[K-0175-shadcn-ui-empty-source-div-title-and-two-style-sets]]                          | 0.8        | shadcn Empty source: title is a div, no aria, two style sets differ   |
+| [[K-0176-shadcn-ui-spinner-inside-empty-as-the-loading-example]]                        | 0.8        | shadcn loading: Spinner in EmptyMedia, Cancel button, no aria-busy    |
+| [[K-0177-shadcn-ui-no-results-text-in-data-table-and-command]]                          | 0.8        | shadcn no results: table cell text; CommandEmpty, role presentation   |
+| [[K-0178-wcag-2-2-no-results-text-is-a-status-message]]                                 | 0.8        | SC 4.1.3: "No results returned" is a status update; result list isn't |
+| [[K-0179-wai-aria-1-2-progressbar-for-a-loading-region]]                                | 0.8        | ARIA 1.2: progressbar on a loading region, aria-busy until it is done |
+| [[K-0180-wai-aria-apg-feed-aria-busy-back-to-false]]                                    | 0.8        | APG Feed: aria-busy true in updates; false after or changes may hide  |
+| [[K-0181-wai-aria-1-2-one-main-role-and-required-heading-level]]                        | 0.8        | ARIA 1.2: at most one main role (SHOULD); heading needs aria-level    |
+| [[K-0182-whatwg-html-one-visible-main-element]]                                         | 0.8        | WHATWG: one main without hidden; ancestors limited                    |
+| [[K-0183-aria-in-html-main-takes-no-other-role]]                                        | 0.8        | ARIA in HTML: main takes no other role; heading on h1 not recommended |
+| [[K-0184-synthesis-empty-state-and-loading-state-benchmark]]                            | 0.75       | Synthesis: empty state and loading state benchmark, audit B form      |
 | [[K-0185-untitled-ui-avatar-sizes-props-and-slots]]                                     | 0.8        | Untitled Avatar: size xs to 2xl, no variant; slots and option props   |
 | [[K-0186-untitled-ui-avatar-fallback-chain-and-sticky-load-failure]]                    | 0.8        | Untitled: initials, icons, User01; a failed image stays failed        |
 | [[K-0187-untitled-ui-avatar-one-indicator-and-unnamed-status-dot]]                      | 0.8        | Untitled: one indicator at a time; dot differs by colour, no text     |
