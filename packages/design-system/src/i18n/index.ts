@@ -1,8 +1,11 @@
 export {
+  DATE_TAGS,
   DEFAULT_LOCALE,
   LOCALES,
   LOCALE_NAMES,
   LOCALE_TAGS,
+  WEEK_START,
+  YEAR_OFFSET,
   isLocale,
   pick,
   type Locale,
@@ -15,6 +18,14 @@ export {
   type FillParams,
   type Messages,
 } from "./messages/index";
+export {
+  formatDate,
+  fromIsoDate,
+  toIsoDate,
+  type DateRange,
+  type DateStyle,
+  type IsoDate,
+} from "./date";
 export { collatorFor, formatNumber, formatPercent } from "./format";
 export {
   LocaleProvider,

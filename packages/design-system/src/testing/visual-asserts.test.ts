@@ -14,7 +14,9 @@ import {
   lastShadowColor,
   offCentreReport,
   outsideCorner,
+  paintDifference,
   paintMatches,
+  paintRegion,
   parseCssColor,
   readGeometries,
   viewBoxToBox,
@@ -811,6 +813,9 @@ describe("linesGap", () => {
   const g: Rgb = [250, 250, 250];
   const red: Rgb = [224, 0, 0];
   const blu: Rgb = [0, 0, 224];
+  // A red pixel a third covered and a blue pixel 45 percent covered, over a ground of 250.
+  const part: Rgb = [241, 163, 163];
+  const blue45: Rgb = [138, 138, 238];
 
   it("counts the ground rows between the lowest red and the highest blue", () => {
     expect(linesGap([[red], [g], [g], [blu]], 1)).toBe(2);
@@ -839,14 +844,26 @@ describe("linesGap", () => {
     ).toBe(1);
   });
 
-  it("does not count a faint antialiasing pixel as ink", () => {
-    expect(linesGap([[red], [[250, 220, 220]], [g], [blu]], 1)).toBe(2);
-    expect(linesGap([[red], [g], [[220, 220, 250]], [g], [blu]], 1)).toBe(3);
+  it("reads an edge inside its pixel row from the share of ink the pixel holds", () => {
+    // A red row a third covered ends the red at 1.35, a blue row 0.45 covered starts the blue at 2.55.
+    expect(linesGap([[red], [part], [blue45], [blu]], 1)).toBeCloseTo(1.2, 1);
   });
 
-  it("counts a pixel as red or blue only when its channel stands more than 40 above both others", () => {
-    expect(linesGap([[[81, 40, 40]], [g], [[40, 40, 81]]], 1)).toBe(1);
-    expect(linesGap([[[80, 40, 40]], [g], [[40, 40, 80]]], 1)).toBeNull();
+  it("does not read a gap of a pixel and a fifth as 0 (the ORV-221 reading on the Linux runner)", () => {
+    // Whole rows read this column as 0 px: each edge row passed the old mark of 40 over both others.
+    expect(linesGap([[red], [part], [blue45], [blu]], 1)).toBeGreaterThan(1);
+  });
+
+  it("counts a faint antialiasing pixel as the sliver of ink it is, and noise under 5 percent as ground", () => {
+    expect(linesGap([[red], [[250, 220, 220]], [g], [blu]], 1)).toBeCloseTo(1.87, 2);
+    expect(linesGap([[red], [g], [g], [[220, 220, 250]], [blu]], 1)).toBeCloseTo(2.87, 2);
+    expect(linesGap([[red], [[250, 240, 240]], [g], [blu]], 1)).toBe(2);
+  });
+
+  it("takes the share of ink from the channel over both others, whatever the ground", () => {
+    // 224 over a dark ground of 20: a half covered pixel is (122, 10, 10).
+    const half: Rgb = [122, 10, 10];
+    expect(linesGap([[half], [[20, 20, 20]], [blu]], 1)).toBeCloseTo(1.5, 1);
   });
 
   it("skips a column with only one colour and gives null when none has both", () => {
@@ -928,5 +945,74 @@ describe("clipEdgeRow", () => {
     expect(inkCutAbove(shot(null), shot(10), clipEdgeRow(12, 0, 1), 1)).toBe(2);
     // A row above the clip edge is a real cut with padding too.
     expect(inkCutAbove(shot(null), shot(6), edge, 1)).toBe(2);
+  });
+});
+
+describe("paintDifference", () => {
+  const row = (...px: Rgb[]) => px;
+
+  it("reads two equal regions as 0", () => {
+    expect(paintDifference([row(white, blue)], [row(white, blue)])).toBe(0);
+  });
+
+  it("counts each pixel that is over the tolerance of 12", () => {
+    expect(paintDifference([row(white, white, blue)], [row(white, blue, white)])).toBe(2);
+  });
+
+  it("reads a pixel 12 apart as the same and 13 apart as different", () => {
+    expect(paintDifference([row([100, 100, 100])], [row([104, 104, 104])])).toBe(0);
+    expect(paintDifference([row([100, 100, 100])], [row([104, 104, 105])])).toBe(1);
+  });
+
+  it("sees a faint fault that the ink distance of 48 would pass", () => {
+    expect(paintDifference([row([240, 240, 240])], [row([220, 240, 240])])).toBe(1);
+  });
+
+  it("throws on two regions of different sizes, in rows and in columns", () => {
+    expect(() => paintDifference([row(white)], [row(white), row(white)])).toThrow(/same size/);
+    expect(() => paintDifference([row(white)], [row(white, white)])).toThrow(/same size/);
+  });
+});
+
+describe("paintRegion", () => {
+  /** A 10 by 10 shot whose red channel holds the column and green the row. */
+  const shot = (() => {
+    const data = new Uint8ClampedArray(10 * 10 * 4);
+    for (let y = 0; y < 10; y++) {
+      for (let x = 0; x < 10; x++) data.set([x, y, 0, 255], (y * 10 + x) * 4);
+    }
+    return { data, width: 10 };
+  })();
+  const frame = { left: 100, top: 50, width: 10 };
+
+  it("reads the box plus 2 px on every side", () => {
+    const rows = paintRegion(shot, frame, { left: 103, top: 53, width: 2, height: 2 });
+    expect(rows).toHaveLength(6);
+    expect(rows[0]).toHaveLength(6);
+    expect(rows[0]?.[0]).toEqual([1, 1, 0]);
+    expect(rows[5]?.[5]).toEqual([6, 6, 0]);
+  });
+
+  it("anchors at the rounded position: a quarter stays, a half and three quarters go on", () => {
+    const at = (offset: number) =>
+      paintRegion(shot, frame, {
+        left: 103 + offset,
+        top: 53 + offset,
+        width: 2,
+        height: 2,
+      })[0]?.[0];
+    expect(at(0.25)).toEqual([1, 1, 0]);
+    expect(at(0.5)).toEqual([2, 2, 0]);
+    expect(at(0.75)).toEqual([2, 2, 0]);
+  });
+
+  it("reads a shot at twice the scale in device pixels", () => {
+    const wide = { data: new Uint8ClampedArray(20 * 20 * 4), width: 20 };
+    for (let y = 0; y < 20; y++) {
+      for (let x = 0; x < 20; x++) wide.data.set([x, y, 0, 255], (y * 20 + x) * 4);
+    }
+    const rows = paintRegion(wide, frame, { left: 103, top: 53, width: 2, height: 2 });
+    expect(rows).toHaveLength(12);
+    expect(rows[0]?.[0]).toEqual([2, 2, 0]);
   });
 });

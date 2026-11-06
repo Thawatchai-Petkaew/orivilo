@@ -32,6 +32,22 @@ describe("TaskBar", () => {
     expect(html).toMatch(/class="ds-taskbar__panel" hidden/);
   });
 
+  it("draws the empty form as a level 3 title over the words, with the host's action only when given", () => {
+    const bare = render({ jobs: [], defaultExpanded: true });
+    expect(bare).toContain("<h3");
+    expect(bare).toContain("ยังไม่มีงานบนบอร์ดนี้");
+    expect(bare).toContain("งานที่เริ่มบนบอร์ดจะแสดงที่นี่");
+    expect(bare).not.toContain("ds-empty-state__action");
+    expect(bare).not.toContain('<p class="ds-taskbar__empty"');
+    const withAction = render({
+      jobs: [],
+      defaultExpanded: true,
+      emptyAction: createElement("button", null, "เริ่มงานแรก"),
+    });
+    expect(withAction).toContain("ds-empty-state__action");
+    expect(withAction).toContain("เริ่มงานแรก");
+  });
+
   it("shows no Go to node button off a board, even for a job with a node (AC 15)", () => {
     const html = render({ jobs: [fixtureJobs.done], defaultExpanded: true });
     expect(html).toContain(fixtureJobs.done.name);

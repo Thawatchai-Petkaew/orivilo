@@ -48,7 +48,8 @@ import { CanvasNode } from "../canvas-node/CanvasNode";
 import { CommandMenu, type CommandMenuMode } from "../command-menu/CommandMenu";
 import { openContextMenuAt } from "../context-menu/ContextMenu";
 import { cx } from "../cx";
-import { SpinnerIcon } from "../icons";
+import { EmptyState } from "../empty-state/EmptyState";
+import { ArtifactIcon, SpinnerIcon } from "../icons";
 import { MiniMap } from "../mini-map/MiniMap";
 import { NodeGroup } from "../node-group/NodeGroup";
 import { ShortcutSheet } from "../shortcut-sheet/ShortcutSheet";
@@ -303,6 +304,9 @@ function Board({
   graphRef.current = graph;
   const rendered = useRef(graph);
   rendered.current = graph;
+  // Set when a delete leaves no node, to the ids that were on the board; the effect below moves
+  // focus off the vanished node once the host's graph has none, in whichever commit that is.
+  const focusWhenEmpty = useRef<ReadonlySet<string> | null>(null);
   const [message, setMessage] = useState("");
   const [connecting, setConnecting] = useState<KeyboardConnecting | null>(null);
   const [tool, setTool] = useState<BoardTool>("select");
@@ -313,6 +317,27 @@ function Board({
   const [menuTarget, setMenuTarget] = useState<ContextTarget>({ kind: "board" });
   // The board's own clipboard (spec AC 12): never the system clipboard.
   const [clipboard, setClipboard] = useState<Clipboard | null>(null);
+
+  // When a delete leaves no node and focus fell to the body, the board keeps the keyboard (the
+  // form line of a cut) and Tab reaches the empty form's action in page order, after the toolbar
+  // and the attribution link (`empty-board-1`). A host may apply the delete after the board's own
+  // commit, so the flag waits while the graph holds only nodes it was set from, and clears when
+  // the graph has no node (the move runs) or gains a node it did not have (the host went its own
+  // way, as after a refused delete).
+  useEffect(() => {
+    const pending = focusWhenEmpty.current;
+    if (!pending) return;
+    if (graph.nodes.length > 0) {
+      if (graph.nodes.some((n) => !pending.has(n.id))) focusWhenEmpty.current = null;
+      return;
+    }
+    focusWhenEmpty.current = null;
+    // Focus is on the body, or still on a node element that React Flow is about to take out.
+    const active = document.activeElement;
+    if (active === null || active === document.body || active.closest(".react-flow__node")) {
+      wrapper.current?.focus();
+    }
+  });
 
   // A new status from the shell replaces whatever the board last said.
   useEffect(() => {
@@ -423,6 +448,12 @@ function Board({
       if (n.length === 0 && e.length === 0) return;
       const stale = graphRef.current.nodes.filter((x) => x.data.status === "stale").length;
       setMessage(deleteMessage(m, { nodes: n.length, edges: e.length, stale }));
+      // The delete leaves no node (read from the last render, whatever the order of the changes):
+      // the board keeps the keyboard once the node's element is gone.
+      const gone = new Set(n.map((x) => x.id));
+      focusWhenEmpty.current = rendered.current.nodes.every((x) => gone.has(x.id))
+        ? new Set(rendered.current.nodes.map((x) => x.id))
+        : null;
     },
     [m],
   );
@@ -1178,8 +1209,13 @@ function Board({
       ) : null}
       {empty ? (
         <div className="ds-board__overlay">
-          <p>{emptyText ?? m.board.empty}</p>
-          {emptyAction}
+          <EmptyState
+            size="md"
+            level={2}
+            icon={ArtifactIcon}
+            title={emptyText ?? m.board.empty}
+            action={emptyAction}
+          />
         </div>
       ) : null}
       <p className="ds-board__status" role="status" aria-live="polite">

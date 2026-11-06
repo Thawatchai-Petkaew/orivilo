@@ -46,6 +46,16 @@ describe("token layers", () => {
   });
 });
 
+// ORV-221 control-shape-1: a radio is round whatever a profile's control shape is.
+describe("shape.round.radius", () => {
+  it("is the full radius and the radio component token reads it", () => {
+    const round = tokens.get("semantic", "shape.round.radius");
+    expect(round?.raw).toBe("{radius.full}");
+    const radio = tokens.get("component", "radio.radius");
+    expect(radio?.raw).toBe("{shape.round.radius}");
+  });
+});
+
 describe("generated.css", () => {
   it("matches the source files (run `pnpm --filter @orivilo/design-system tokens`)", () => {
     const committed = readFileSync(path.join(import.meta.dirname, "generated.css"), "utf8");

@@ -185,6 +185,11 @@
 .ds-button[data-variant="intent"]:focus-visible {
   box-shadow: var(--_focus-shadow-fill);
 }
+/* An inert but focusable Button (aria-disabled) stays dimmed, and its focus still draws the line:
+ * the disabled border rule above has the same weight, so this one sits after it (ORV-227 F1). */
+.ds-button[data-variant][aria-disabled="true"]:focus-visible {
+  border-color: var(--ds-focus-ring);
+}
 
 /* Icon slot: before or after the label, at the icon size of the button's size. */
 .ds-button__icon {
@@ -575,6 +580,111 @@
   line-height: var(--cmp-menu-option-type-line-height);
 }
 
+/* Combobox (ORV-228): an InputGroup field and a Radix Popover list. Placed after .ds-menu so these win. */
+
+.ds-combobox {
+  display: block;
+  width: 100%;
+}
+/* D15: with one field the root never goes under its content, and the root is the popup's anchor, so
+   the popup keeps the field's width. The input has a least width, so the slot never leaves the field
+   and the chevron keeps Select's place in any container. */
+.ds-combobox:has(> .ds-input-group > .ds-input-group__input) {
+  min-width: min-content;
+}
+.ds-combobox .ds-input-group > .ds-input-group__input {
+  width: var(--ds-size-control-lg);
+  min-width: var(--ds-size-control-lg);
+}
+.ds-combobox .ds-input-group__slot {
+  gap: var(--cmp-input-group-inset);
+}
+/* Slot buttons are square, so the hover ground has no odd corner; sm takes the 24 px target floor. */
+.ds-combobox .ds-input-group__slot > .ds-button {
+  --_b: calc(var(--_h) - 2px - 2 * var(--cmp-input-group-inset));
+  width: var(--_b);
+  min-height: var(--_b);
+}
+.ds-combobox .ds-input-group[data-size="sm"] .ds-input-group__slot > .ds-button {
+  --_b: var(--ds-size-icon-lg);
+}
+/* Only the last button takes the end margin, which puts its glyph where Select's chevron sits. */
+.ds-combobox .ds-input-group__slot[data-slot="end"] > .ds-button {
+  margin-inline-end: 0;
+}
+.ds-combobox .ds-input-group__slot[data-slot="end"] > .ds-button:last-child {
+  margin-inline-end: calc((var(--ds-size-icon-md) - var(--_b)) / 2);
+}
+.ds-combobox .ds-input-group__slot > .ds-button:not(:hover):not(:disabled) {
+  color: var(--cmp-input-icon);
+}
+/* The popup is the field's width, so it does not jump with each letter, and capped so a long list scrolls. */
+.ds-combobox__popup {
+  display: flex;
+  flex-direction: column;
+  width: var(--radix-popover-trigger-width);
+  min-width: var(--radix-popover-trigger-width);
+  max-width: var(--radix-popover-content-available-width);
+  max-height: min(var(--radix-popover-content-available-height), var(--ds-size-panel-default));
+}
+/* D17: a list that overflows shows the ScrollArea thumb in the popup's end padding, off the rows. The
+   bar's selector carries the attribute to outrank `.ds-scroll__bar[data-orientation]`, which comes later. */
+.ds-combobox__scroll {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.ds-combobox__list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+/* Radix wraps the options in a `display: table` div that grows to the widest label. A block keeps
+   long labels on their ellipsis, as `.ds-taskbar__scroll` does. The `LongList` play goes red if Radix changes it. */
+.ds-combobox__list > div {
+  display: block !important;
+}
+.ds-combobox__scroll > .ds-scroll__bar[data-orientation="vertical"] {
+  width: var(--cmp-menu-padding);
+  margin-block: calc(var(--cmp-menu-radius) / 2);
+  margin-inline-end: calc(-1 * var(--cmp-menu-padding));
+}
+.ds-combobox__scroll .ds-scroll__thumb {
+  background: var(--cmp-scroll-area-thumb-hover);
+}
+.ds-combobox__scroll .ds-scroll__thumb:hover {
+  background: var(--cmp-scroll-area-thumb);
+}
+.ds-combobox__popup .ds-menu__empty {
+  align-items: flex-start;
+  gap: var(--cmp-button-gap);
+  padding-block: var(--cmp-menu-padding);
+  overflow-wrap: anywhere;
+}
+.ds-combobox__popup .ds-menu__empty[data-tone="error"] {
+  color: var(--cmp-menu-option-fg-destructive);
+}
+.ds-combobox__popup .ds-menu__empty > svg {
+  flex: none;
+  inline-size: var(--cmp-menu-option-icon-size);
+  block-size: var(--cmp-menu-option-icon-size);
+  margin-block-start: calc(
+    (
+        var(--cmp-menu-option-type-font-size) * var(--cmp-menu-option-type-line-height) -
+          var(--cmp-menu-option-icon-size)
+      ) /
+      2
+  );
+}
+/* Chosen and active: the selected fill stays and a focus line shows where the keys are, so
+   selection and focus never read the same (DESIGN.md section 7). */
+.ds-combobox__popup .ds-menu__option[data-state="checked"][data-highlighted]:not([data-disabled]) {
+  outline: 1px solid var(--ds-focus-ring);
+  outline-offset: -1px;
+  box-shadow: var(--_focus-shadow-inset);
+}
+
 /* Checkbox ---------------------------------------------------------------------------------- */
 
 .ds-checkbox {
@@ -676,6 +786,139 @@
   line-height: var(--cmp-checkbox-label-type-sm-line-height);
   font-weight: var(--cmp-checkbox-label-type-sm-font-weight);
   letter-spacing: var(--cmp-checkbox-label-type-sm-letter-spacing);
+}
+
+/* RadioGroup (ORV-221): one of a short list, every option in view. The circle is round in every
+   profile (shape.round.radius). Checked reads the selection tokens, not action.primary. ------- */
+
+.ds-radio-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--cmp-radio-group-gap);
+  min-inline-size: 0;
+}
+.ds-radio-group[data-layout="horizontal"] {
+  flex-direction: row;
+  flex-wrap: wrap;
+  column-gap: var(--ds-space-stack-md);
+}
+/* The group draws no focus: the radios do. The root takes programmatic focus (a click on a
+   description, then a key), and the global :focus-visible band would wrap the whole group. */
+.ds-radio-group:focus-visible {
+  outline: none;
+  box-shadow: var(--_focus-shadow-none);
+}
+.ds-radio {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--cmp-radio-gap);
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+.ds-radio__control {
+  --_size: var(--cmp-radio-size);
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: var(--_size);
+  block-size: var(--_size);
+  padding: 0;
+  /* The circle takes the label's type so 1lh is the label's first line: it centres on it, as
+     .ds-checkbox__box does. */
+  font-size: var(--cmp-radio-label-type-font-size);
+  line-height: var(--cmp-radio-label-type-line-height);
+  margin-block-start: calc((1lh - var(--_size)) / 2);
+  border: 1px solid var(--cmp-radio-border);
+  border-radius: var(--cmp-radio-radius);
+  background: var(--cmp-radio-bg);
+  color: var(--cmp-radio-dot);
+  cursor: pointer;
+  transition:
+    background-color var(--ds-motion-feedback-duration) var(--ds-motion-easing),
+    border-color var(--ds-motion-feedback-duration) var(--ds-motion-easing);
+}
+/* A transparent extension keeps a 24 px target around the circle (WCAG 2.5.8). Inset from the
+   padding box, so the 1px border is added back. */
+.ds-radio__control::after {
+  content: "";
+  position: absolute;
+  inset: calc((var(--_size) - var(--cmp-radio-target-min)) / 2 - 1px);
+}
+.ds-radio__control[data-state="checked"] {
+  background: var(--cmp-radio-bg-checked);
+  border-color: var(--cmp-radio-border-checked);
+}
+/* Row hover lights the edge from the row's content only (the group's align-items keeps a row as
+   wide as its content). An invalid group does not take it: the error edge stays through hover. */
+.ds-radio-group:not([aria-invalid="true"])
+  .ds-radio:hover
+  .ds-radio__control[data-state="unchecked"]:not([data-disabled]):not(:focus-visible) {
+  border-color: var(--cmp-radio-border-hover);
+}
+.ds-radio-group:not([aria-invalid="true"])
+  .ds-radio:hover
+  .ds-radio__control[data-state="checked"]:not([data-disabled]):not(:focus-visible) {
+  border-color: var(--cmp-radio-border-checked-hover);
+}
+.ds-radio-group[aria-invalid="true"] .ds-radio__control {
+  border-color: var(--cmp-radio-border-error);
+}
+/* Focus (ORV-192 row 9): the circle's border turns to focus.ring with the halo on it. A checked
+   radio adds a 1 px inner line through --_inner (as .ds-checkbox__box), so its border reads twice
+   as wide as the rest line. Invalid keeps its red, on the border and on the inner line. */
+.ds-radio__control:focus-visible {
+  border-color: var(--ds-focus-ring);
+  outline: 1px solid transparent;
+  outline-offset: 0;
+  box-shadow: var(--_focus-shadow-border);
+}
+.ds-radio__control[data-state="checked"]:focus-visible {
+  --_inner: inset 0 0 0 1px var(--ds-focus-ring);
+  box-shadow: var(--_inner), var(--_focus-shadow-border);
+}
+.ds-radio-group[aria-invalid="true"] .ds-radio__control:focus-visible {
+  border-color: var(--cmp-radio-border-error);
+}
+.ds-radio-group[aria-invalid="true"] .ds-radio__control[data-state="checked"]:focus-visible {
+  --_inner: inset 0 0 0 1px var(--cmp-radio-border-error);
+}
+.ds-radio-group .ds-radio__control[data-disabled] {
+  background: var(--cmp-radio-bg-disabled);
+  border-color: var(--cmp-radio-border-disabled);
+  color: var(--cmp-radio-dot-disabled);
+  cursor: not-allowed;
+}
+.ds-radio__label {
+  color: var(--cmp-field-label);
+  font-family: var(--cmp-radio-label-type-font-family);
+  font-size: var(--cmp-radio-label-type-font-size);
+  line-height: var(--cmp-radio-label-type-line-height);
+  font-weight: var(--cmp-radio-label-type-font-weight);
+  letter-spacing: var(--cmp-radio-label-type-letter-spacing);
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.ds-radio[data-disabled] .ds-radio__label,
+.ds-radio[data-disabled] .ds-field__description {
+  color: var(--ds-text-disabled);
+}
+.ds-radio[data-disabled] .ds-radio__label {
+  cursor: not-allowed;
+}
+.ds-radio-group[data-size="sm"] .ds-radio__control {
+  --_size: var(--cmp-radio-size-sm);
+  font-size: var(--cmp-radio-label-type-sm-font-size);
+  line-height: var(--cmp-radio-label-type-sm-line-height);
+}
+.ds-radio-group[data-size="sm"] .ds-radio__label {
+  font-family: var(--cmp-radio-label-type-sm-font-family);
+  font-size: var(--cmp-radio-label-type-sm-font-size);
+  line-height: var(--cmp-radio-label-type-sm-line-height);
+  font-weight: var(--cmp-radio-label-type-sm-font-weight);
+  letter-spacing: var(--cmp-radio-label-type-sm-letter-spacing);
 }
 
 /* Field: label, description, error around a control --------------------------------------- */
@@ -1093,6 +1336,59 @@
   top: var(--ds-space-inset-md);
   inset-inline-end: var(--ds-space-inset-md);
 }
+/* Confirm dialog (ORV-226): the panel is its own scroller, so the actions stay in reach. */
+.ds-confirm {
+  container-type: inline-size;
+  overflow: hidden auto;
+  overscroll-behavior: contain;
+  /* The footer owns the foot padding: a sticky box is held inside its scroller's padding. */
+  padding-block-end: 0;
+}
+/* One start edge: the glyph takes its own row, beside the close control, and the title the full width. */
+.ds-confirm[data-variant="destructive"] .ds-dialog__header {
+  flex-direction: column;
+  gap: var(--ds-space-stack-sm);
+  padding-inline-end: 0;
+}
+.ds-confirm[data-variant="destructive"] .ds-dialog__glyph {
+  margin-block-start: calc(
+    (var(--cmp-button-height-sm) - var(--ds-size-icon-md)) / 2 + var(--ds-space-inset-md) -
+      var(--cmp-dialog-padding)
+  );
+}
+/* The actions stick to the panel's foot. The box takes the gap above them and the padding below, so
+ * at rest nothing moves, and scrolled text passes under it. */
+.ds-confirm .ds-dialog__footer {
+  position: sticky;
+  inset-block-end: 0;
+  margin-block-start: calc(-1 * var(--cmp-dialog-gap));
+  padding-block: var(--cmp-dialog-gap) var(--cmp-dialog-padding);
+  background: var(--cmp-dialog-bg);
+}
+/* The shape follows the panel, not the viewport. A caller's long label wraps inside the panel; it
+ * never leaves it. */
+.ds-confirm .ds-dialog__footer > .ds-button {
+  flex: 0 0 auto;
+  min-width: 0;
+  max-width: 100%;
+  padding-block: var(--ds-space-inline-sm);
+  white-space: normal;
+}
+/* The confirm holds the room its spinner takes, so a press moves neither button and changes no row. */
+.ds-confirm .ds-dialog__footer > .ds-button + .ds-button:not([data-loading]) {
+  max-width: calc(100% - var(--cmp-button-icon-size-md) - var(--cmp-button-gap));
+  margin-inline-start: calc(var(--cmp-button-icon-size-md) + var(--cmp-button-gap));
+}
+/* Below its cap the panel always stacks, so no label, language or spinner can change the shape. */
+@container (max-width: 333px) {
+  .ds-confirm .ds-dialog__footer > .ds-button {
+    flex: 1 0 100%;
+  }
+  .ds-confirm .ds-dialog__footer > .ds-button + .ds-button:not([data-loading]) {
+    max-width: 100%;
+    margin-inline-start: 0;
+  }
+}
 @keyframes ds-fade-in {
   from {
     opacity: 0;
@@ -1500,6 +1796,131 @@
   min-inline-size: 0;
 }
 
+/* Empty state (ORV-223): md is a centred column, sm starts at the line's start. */
+.ds-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--cmp-empty-state-gap-md);
+  min-inline-size: 0;
+  max-inline-size: var(--cmp-empty-state-max-width);
+  margin-inline: auto;
+  text-align: center;
+}
+.ds-empty-state__body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--cmp-empty-state-gap-md);
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+.ds-empty-state__text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmp-empty-state-text-gap);
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+.ds-empty-state__title,
+.ds-empty-state__description {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.ds-empty-state__title {
+  color: var(--cmp-empty-state-title);
+  font-family: var(--cmp-empty-state-title-type-font-family);
+  font-size: var(--cmp-empty-state-title-type-font-size);
+  line-height: var(--cmp-empty-state-title-type-line-height);
+  font-weight: var(--cmp-empty-state-title-type-font-weight);
+  letter-spacing: var(--cmp-empty-state-title-type-letter-spacing);
+}
+.ds-empty-state__description {
+  color: var(--cmp-empty-state-description);
+  font-family: var(--cmp-empty-state-body-type-font-family);
+  font-size: var(--cmp-empty-state-body-type-font-size);
+  line-height: var(--cmp-empty-state-body-type-line-height);
+  font-weight: var(--cmp-empty-state-body-type-font-weight);
+  letter-spacing: var(--cmp-empty-state-body-type-letter-spacing);
+}
+.ds-empty-state__action {
+  display: flex;
+  max-inline-size: 100%;
+}
+.ds-empty-state[data-size="sm"] {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: var(--cmp-empty-state-gap-sm);
+  max-inline-size: none;
+  margin-inline: 0;
+  text-align: start;
+}
+.ds-empty-state[data-size="sm"] > .ds-empty-state__body {
+  flex: 1 1 auto;
+  align-items: flex-start;
+  gap: var(--cmp-empty-state-action-gap);
+}
+/* with a tile, the title's first line centres on it; later lines flow under it */
+.ds-empty-state[data-size="sm"] > .ds-featured-icon + .ds-empty-state__body {
+  padding-block-start: calc(
+    (
+        var(--cmp-featured-icon-size-sm) - var(--cmp-empty-state-title-type-font-size) *
+          var(--cmp-empty-state-title-type-line-height)
+      ) /
+      2
+  );
+}
+
+/* Avatar (ORV-224). Round under each profile by clip, the form Skeleton's circle uses. No border,
+ * no shadow, no motion. `overflow` adds no look; the clip checks read it. `contain: paint` keeps
+ * the round edge at a sub-pixel position, where the clip alone leaves a flat top (R1). */
+.ds-avatar {
+  display: inline-block;
+  flex: none;
+  vertical-align: middle;
+  inline-size: var(--ds-size-control-md);
+  block-size: var(--ds-size-control-md);
+  overflow: hidden;
+  clip-path: circle(50%);
+  contain: paint;
+  background: var(--cmp-avatar-bg);
+}
+.ds-avatar[data-size="sm"] {
+  inline-size: var(--ds-size-control-sm);
+  block-size: var(--ds-size-control-sm);
+}
+.ds-avatar__image {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+/* An atomic inline: a line a flex or grid link draws does not enter it (R2). */
+.ds-avatar__fallback {
+  display: inline-flex;
+  vertical-align: top;
+  align-items: center;
+  justify-content: center;
+  inline-size: 100%;
+  block-size: 100%;
+  color: var(--cmp-avatar-fg);
+  font-family: var(--ds-type-control-md-font-family);
+  font-size: var(--ds-type-control-md-font-size);
+  line-height: var(--ds-type-control-md-line-height);
+  font-weight: var(--ds-type-control-md-font-weight);
+  letter-spacing: var(--ds-type-control-md-letter-spacing);
+  white-space: nowrap;
+  user-select: none;
+}
+.ds-avatar__fallback > svg {
+  inline-size: var(--ds-size-icon-md);
+  block-size: var(--ds-size-icon-md);
+}
+.ds-avatar[data-size="sm"] .ds-avatar__fallback > svg {
+  inline-size: var(--ds-size-icon-sm);
+  block-size: var(--ds-size-icon-sm);
+}
+
 /* Canvas (ADR 0004, E4-2): React Flow for behaviour, every value from the board, node, port and
  * edge tokens (E4-1). The base stylesheet (imported in orivilo.css) reads `--xy-*` properties; each
  * one it reads is set here from a component token, so no React Flow default colour reaches the
@@ -1593,7 +2014,7 @@
 .ds-board__overlay > * {
   pointer-events: auto;
 }
-.ds-board__overlay p {
+.ds-board__overlay > p {
   margin: 0;
 }
 .ds-board__spinner {
@@ -3850,6 +4271,80 @@
   background: var(--cmp-featured-icon-info-bg);
   color: var(--cmp-featured-icon-info-fg);
 }
+.ds-featured-icon[data-variant="neutral"] {
+  background: var(--cmp-featured-icon-neutral-bg);
+  color: var(--cmp-featured-icon-neutral-fg);
+}
+
+/* Alert (ORV-222) ---------------------------------------------------------------------------- */
+
+.ds-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--cmp-alert-gap);
+  box-sizing: border-box;
+  inline-size: 100%;
+  padding: var(--cmp-alert-padding);
+  border: 1px solid transparent;
+  border-radius: var(--cmp-alert-radius);
+  background: var(--cmp-alert-bg);
+  color: var(--cmp-alert-description);
+  font-family: var(--cmp-alert-body-type-font-family);
+  font-size: var(--cmp-alert-body-type-font-size);
+  line-height: var(--cmp-alert-body-type-line-height);
+  font-weight: var(--cmp-alert-body-type-font-weight);
+  letter-spacing: var(--cmp-alert-body-type-letter-spacing);
+}
+.ds-alert[data-variant="success"] {
+  border-color: var(--cmp-alert-success-edge);
+}
+.ds-alert[data-variant="warning"] {
+  border-color: var(--cmp-alert-warning-edge);
+}
+.ds-alert[data-variant="danger"] {
+  border-color: var(--cmp-alert-danger-edge);
+}
+.ds-alert[data-variant="info"] {
+  border-color: var(--cmp-alert-info-edge);
+}
+.ds-alert__content {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: flex-start;
+  /* title and description are one block, 4 px apart (DESIGN.md section 4) */
+  gap: var(--ds-space-inline-sm);
+  min-inline-size: 0;
+  /* the title's first line centres on the tile and the close; later lines flow under it */
+  padding-block-start: calc(
+    (
+        var(--cmp-featured-icon-size-sm) - var(--cmp-alert-title-type-font-size) *
+          var(--cmp-alert-title-type-line-height)
+      ) /
+      2
+  );
+}
+.ds-alert__title,
+.ds-alert__description {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.ds-alert__title {
+  color: var(--cmp-alert-title);
+  font-family: var(--cmp-alert-title-type-font-family);
+  font-size: var(--cmp-alert-title-type-font-size);
+  line-height: var(--cmp-alert-title-type-line-height);
+  font-weight: var(--cmp-alert-title-type-font-weight);
+  letter-spacing: var(--cmp-alert-title-type-letter-spacing);
+}
+/* with the content gap of 4, an action keeps 8 px above it */
+.ds-alert__action {
+  display: flex;
+  margin-block-start: var(--ds-space-inline-sm);
+}
+.ds-alert__close {
+  flex: none;
+}
 
 /* Separator (ORV-230) ------------------------------------------------------------------------ */
 
@@ -3956,6 +4451,133 @@
   .ds-progress[data-indeterminate] .ds-progress__fill {
     animation: none;
   }
+}
+
+/* File upload (ORV-227) ---------------------------------------------------------------------- */
+
+.ds-file-upload {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmp-file-upload-gap);
+  min-inline-size: 0;
+}
+/* The zone's edge is solid until the drop target lands (second PR of ORV-227). */
+.ds-file-upload__zone {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--cmp-file-upload-gap);
+  padding: var(--cmp-file-upload-padding);
+  border: 1px solid var(--cmp-file-upload-zone-border);
+  border-radius: var(--cmp-file-upload-radius);
+}
+.ds-file-upload__zone[data-full] {
+  border-color: var(--cmp-file-upload-zone-border-disabled);
+}
+.ds-file-upload__zone[data-invalid] {
+  border-color: var(--cmp-file-upload-zone-border-invalid);
+}
+.ds-field[data-disabled] .ds-file-upload__zone {
+  border-color: var(--cmp-file-upload-zone-border-disabled);
+}
+.ds-file-upload__hint {
+  min-inline-size: 0;
+  margin: 0;
+  color: var(--cmp-field-description);
+  font-family: var(--cmp-field-text-type-font-family);
+  font-size: var(--cmp-field-text-type-font-size);
+  line-height: var(--cmp-field-text-type-line-height);
+  font-weight: var(--cmp-field-text-type-font-weight);
+  letter-spacing: var(--cmp-field-text-type-letter-spacing);
+  overflow-wrap: anywhere;
+}
+.ds-field[data-disabled] .ds-file-upload__hint {
+  color: var(--ds-text-disabled);
+}
+.ds-file-upload .ds-field__error > span {
+  display: block;
+}
+.ds-file-upload .ds-field__error > span + span {
+  margin-block-start: var(--ds-space-inline-sm);
+}
+.ds-file-upload__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmp-file-upload-gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ds-file-upload__item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--cmp-file-upload-gap);
+  padding-block: var(--ds-space-inline-lg);
+  padding-inline: var(--cmp-file-upload-padding);
+  border: 1px solid var(--cmp-file-upload-item-border);
+  border-radius: var(--cmp-file-upload-radius);
+}
+.ds-file-upload__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--ds-space-inline-sm);
+  min-inline-size: 0;
+}
+.ds-file-upload__name {
+  margin: 0;
+  color: var(--cmp-field-label);
+  font-family: var(--cmp-field-label-type-font-family);
+  font-size: var(--cmp-field-label-type-font-size);
+  line-height: var(--cmp-field-label-type-line-height);
+  font-weight: var(--cmp-field-label-type-font-weight);
+  letter-spacing: var(--cmp-field-label-type-letter-spacing);
+  overflow-wrap: anywhere;
+}
+.ds-file-upload__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--ds-space-inline-lg);
+  margin: 0;
+  color: var(--cmp-field-description);
+  font-family: var(--cmp-field-text-type-font-family);
+  font-size: var(--cmp-field-text-type-font-size);
+  line-height: var(--cmp-field-text-type-line-height);
+  font-weight: var(--cmp-field-text-type-font-weight);
+  letter-spacing: var(--cmp-field-text-type-letter-spacing);
+}
+.ds-file-upload__word {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-space-inline-sm);
+}
+.ds-file-upload__item[data-status="done"] .ds-file-upload__word {
+  color: var(--cmp-progress-done);
+}
+.ds-file-upload__item[data-status="failed"] .ds-file-upload__word {
+  color: var(--cmp-progress-failed);
+}
+.ds-file-upload__reason {
+  margin: 0;
+  color: var(--cmp-field-error);
+  font-family: var(--cmp-field-text-type-font-family);
+  font-size: var(--cmp-field-text-type-font-size);
+  line-height: var(--cmp-field-text-type-line-height);
+  font-weight: var(--cmp-field-text-type-font-weight);
+  letter-spacing: var(--cmp-field-text-type-letter-spacing);
+  overflow-wrap: anywhere;
+}
+.ds-file-upload__retry {
+  align-self: flex-start;
+  margin-block-start: var(--ds-space-inline-sm);
+}
+.ds-file-upload__actions {
+  display: flex;
+  flex: none;
+  margin-block-start: calc(-1 * var(--ds-space-inline-sm));
 }
 
 /* Tag (E4-5) --------------------------------------------------------------------------------- */
@@ -4238,8 +4860,7 @@ button.ds-tag__main {
   font-weight: var(--cmp-taskbar-meta-type-font-weight);
   letter-spacing: var(--cmp-taskbar-meta-type-letter-spacing);
 }
-.ds-taskbar__reason,
-.ds-taskbar__empty {
+.ds-taskbar__reason {
   margin: 0;
   overflow-wrap: anywhere;
   font-family: var(--cmp-taskbar-body-type-font-family);
@@ -4247,15 +4868,12 @@ button.ds-tag__main {
   line-height: var(--cmp-taskbar-body-type-line-height);
   font-weight: var(--cmp-taskbar-body-type-font-weight);
   letter-spacing: var(--cmp-taskbar-body-type-letter-spacing);
-}
-.ds-taskbar__reason {
   grid-area: reason;
   margin-block-start: var(--cmp-taskbar-line-gap);
   color: var(--cmp-taskbar-reason-fg);
 }
 .ds-taskbar__empty {
   padding: var(--cmp-taskbar-row-block) var(--cmp-taskbar-padding-x);
-  color: var(--cmp-taskbar-muted-fg);
 }
 .ds-taskbar__actions {
   grid-area: actions;
@@ -4293,6 +4911,7 @@ button.ds-tag__main {
   inset-block-end: var(--ds-space-inset-md);
   z-index: var(--cmp-taskbar-layer);
   box-shadow: var(--cmp-taskbar-shadow);
+  anchor-name: --ds-board-taskbar;
 }
 .ds-board:has(.ds-taskbar) {
   --_lift: calc(
@@ -4341,6 +4960,68 @@ button.ds-tag__main {
   .ds-board:has(.ds-shelf) .ds-board__status {
     position-anchor: --ds-board-shelf;
     bottom: calc(anchor(top) + var(--ds-space-inset-md));
+  }
+}
+/* The empty form never sits under the toolbar (ORV-223 D15). Without anchor positioning it starts at
+ * the top: the toolbar's height cannot be read, and clear beats centred. */
+.ds-board:has(.ds-controls) .ds-board__overlay:has(> .ds-empty-state) {
+  justify-content: flex-start;
+}
+/* The box is symmetric about the board's centre while there is room, so the form stays centred. When
+ * the form outgrows it, the auto margins fall to 0 and the reversed column grows it upward, away from
+ * the toolbar. A status line adds its own height: 41.8 px of padding, line and border, then 8 px. It
+ * is summed from the tokens that draw `.ds-board__status` (the pill comes after the overlay in the
+ * DOM, so the overlay cannot anchor to it); change its padding, type or border and this changes too. */
+@supports (anchor-name: --a) {
+  .ds-board:has(.ds-controls) .ds-board__overlay:has(> .ds-empty-state) {
+    --_clear: var(--ds-space-inset-md);
+    position-anchor: --ds-board-controls;
+    top: min(calc(anchor(top) - var(--_clear)), calc(100% - anchor(top) + var(--_clear)));
+    bottom: calc(anchor(top) + var(--_clear));
+    flex-direction: column-reverse;
+    padding-block: 0;
+  }
+  .ds-board:has(.ds-shelf) .ds-board__overlay:has(> .ds-empty-state) {
+    position-anchor: --ds-board-shelf;
+  }
+  .ds-board:has(.ds-board__status:not(:empty)) .ds-board__overlay:has(> .ds-empty-state) {
+    --_clear: calc(
+      var(--ds-space-inset-md) + 2 * var(--ds-space-inset-sm) +
+        var(--cmp-node-body-type-font-size) * var(--cmp-node-body-type-line-height) + 2px +
+        var(--ds-space-stack-sm)
+    );
+  }
+  .ds-board:has(.ds-controls) .ds-board__overlay > .ds-empty-state {
+    margin-block: auto;
+  }
+}
+/* With the bar's panel open the card covers the toolbar, so the form clears the higher of the two
+ * (ORV-223 D16). The pill has gone up to the board's start edge, so it adds nothing to the clear.
+ * The action stops rising one inset under the board's top: a full list must not push it off the
+ * board, where neither a pointer nor the focus line can reach it. */
+@supports (anchor-name: --a) {
+  .ds-board:has(.ds-controls):has(.ds-taskbar__panel:not([hidden]))
+    .ds-board__overlay:has(> .ds-empty-state) {
+    --_clear: var(--ds-space-inset-md);
+    --_floor: calc(var(--cmp-button-height-md) + var(--ds-space-inset-md));
+    top: min(
+      max(
+        min(
+          calc(anchor(top) - var(--_clear)),
+          calc(anchor(--ds-board-taskbar top) - var(--_clear))
+        ),
+        var(--_floor)
+      ),
+      max(
+        calc(100% - anchor(top) + var(--_clear)),
+        calc(100% - anchor(--ds-board-taskbar top) + var(--_clear))
+      ),
+      calc(100% - var(--_floor))
+    );
+    bottom: min(
+      max(calc(anchor(top) + var(--_clear)), calc(anchor(--ds-board-taskbar top) + var(--_clear))),
+      calc(100% - var(--_floor))
+    );
   }
 }
 /* An open list adds up to its capped height to the bar. Only the status line clears it, and never
@@ -4798,7 +5479,9 @@ button.ds-tag__main {
 .ds-taskbar__summary,
 .ds-taskbar__name,
 .ds-taskbar__progress .ds-progress__label,
-.ds-chat__option > span:first-child {
+.ds-chat__option > span:first-child,
+.ds-breadcrumb__link,
+.ds-breadcrumb__page {
   padding-block: var(--ds-space-inline-sm);
   margin-block: calc(-1 * var(--ds-space-inline-sm));
 }
@@ -4952,4 +5635,330 @@ button.ds-tag__main {
   line-height: var(--ds-type-body-sm-line-height);
   font-weight: var(--ds-type-body-sm-font-weight);
   letter-spacing: var(--ds-type-body-sm-letter-spacing);
+}
+
+/* Calendar (ORV-231, cal-look-1) ------------------------------------------------------------ */
+/*
+ * A month grid for one date. Selected is the selection ground with an edge, never the brand; every
+ * state differs by more than colour: hover has an edge, selected has an edge, today is underlined,
+ * disabled is struck through, focus is the border form. No opacity and no animation. The recipe
+ * sets no overflow on the calendar, the grid or the heading, so a Thai mark or a focus halo is
+ * never cut. `--_cell` is the cell size from a 360 px viewport up and shrinks under it so the
+ * seven columns still fit (the 2px is a popover's two borders).
+ */
+.ds-calendar {
+  --_cell: min(
+    var(--cmp-calendar-cell-size),
+    calc((100vw - 2 * var(--ds-space-gutter) - 2 * var(--cmp-calendar-padding) - 2px) / 7)
+  );
+  position: relative;
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  padding: var(--cmp-calendar-padding);
+  border-radius: var(--cmp-calendar-radius);
+  background: var(--cmp-calendar-bg);
+  color: var(--cmp-calendar-fg);
+}
+.ds-calendar__months {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cmp-calendar-months-gap);
+}
+/* The two month buttons float over the captions, so they span both months. */
+.ds-calendar__nav {
+  position: absolute;
+  inset-block-start: var(--cmp-calendar-padding);
+  inset-inline: calc(
+    var(--cmp-calendar-padding) + (var(--_cell) - var(--cmp-button-height-sm)) / 2
+  );
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+}
+.ds-calendar__nav > .ds-button {
+  position: relative;
+  pointer-events: auto;
+}
+/* The look stays sm; the press area reaches size.touch. */
+.ds-calendar__nav > .ds-button::after {
+  content: "";
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  inline-size: var(--cmp-calendar-cell-size);
+  block-size: var(--cmp-calendar-cell-size);
+  translate: -50% -50%;
+}
+/* A month reserves six rows, so the panel and the Next button hold at four, five and six rows. */
+.ds-calendar__month {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmp-calendar-gap);
+  inline-size: calc(7 * var(--_cell));
+  min-block-size: calc(
+    2 * var(--cmp-button-height-sm) + var(--cmp-calendar-gap) + 6 *
+      (var(--_cell) + var(--cmp-calendar-row-gap))
+  );
+}
+.ds-calendar__caption {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: var(--cmp-button-height-sm);
+}
+.ds-calendar__heading {
+  font-family: var(--cmp-calendar-heading-type-font-family);
+  font-size: var(--cmp-calendar-heading-type-font-size);
+  line-height: var(--cmp-calendar-heading-type-line-height);
+  font-weight: var(--cmp-calendar-heading-type-font-weight);
+  letter-spacing: var(--cmp-calendar-heading-type-letter-spacing);
+}
+.ds-calendar__grid {
+  inline-size: 100%;
+  margin-block: calc(-1 * var(--cmp-calendar-row-gap));
+  border-collapse: separate;
+  border-spacing: 0 var(--cmp-calendar-row-gap);
+  table-layout: fixed;
+}
+.ds-calendar__weekday {
+  block-size: var(--cmp-button-height-sm);
+  padding: 0;
+  color: var(--cmp-calendar-weekday-fg);
+  font-family: var(--cmp-calendar-weekday-type-font-family);
+  font-size: var(--cmp-calendar-weekday-type-font-size);
+  line-height: var(--cmp-calendar-weekday-type-line-height);
+  font-weight: var(--cmp-calendar-weekday-type-font-weight);
+  letter-spacing: var(--cmp-calendar-weekday-type-letter-spacing);
+  text-align: center;
+}
+.ds-calendar__day {
+  position: relative;
+  inline-size: var(--_cell);
+  block-size: var(--_cell);
+  padding: 0;
+}
+/* The button fills its cell's width, so a calendar in a narrow column narrows its days and keeps their height. */
+.ds-calendar__day-button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  inline-size: 100%;
+  block-size: var(--_cell);
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--cmp-calendar-day-radius);
+  background: transparent;
+  color: var(--cmp-calendar-fg);
+  font-family: var(--cmp-calendar-day-type-font-family);
+  font-size: var(--cmp-calendar-day-type-font-size);
+  line-height: var(--cmp-calendar-day-type-line-height);
+  font-weight: var(--cmp-calendar-day-type-font-weight);
+  letter-spacing: var(--cmp-calendar-day-type-letter-spacing);
+  text-decoration-skip-ink: none;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.25em;
+  cursor: pointer;
+}
+/* Hover never reaches a disabled day (its ink falls under 3.0 on the hover ground) or a focused one. */
+.ds-calendar__day-button:hover:not(:disabled):not([aria-disabled="true"]):not(:focus-visible) {
+  border-color: var(--cmp-calendar-day-hover-edge);
+  background: var(--cmp-calendar-day-hover-bg);
+}
+.ds-calendar__day[data-today] > .ds-calendar__day-button {
+  text-decoration-line: underline;
+}
+.ds-calendar__day[data-selected] > .ds-calendar__day-button {
+  border-color: var(--cmp-calendar-day-selected-edge);
+  background: var(--cmp-calendar-day-selected-bg);
+  color: var(--cmp-calendar-day-selected-fg);
+}
+.ds-calendar__day[data-selected]
+  > .ds-calendar__day-button:hover:not(:disabled):not([aria-disabled="true"]):not(:focus-visible) {
+  border-color: var(--cmp-calendar-day-hover-edge);
+  background: var(--cmp-calendar-day-selected-bg);
+}
+/* Disabled and focus are raised to the cell's child so they beat the selected rule above. */
+.ds-calendar__day > .ds-calendar__day-button:is(:disabled, [aria-disabled="true"]) {
+  color: var(--cmp-calendar-day-disabled-fg);
+  text-decoration-line: line-through;
+  text-decoration-thickness: 1px;
+  cursor: not-allowed;
+}
+.ds-calendar__day[data-today] > .ds-calendar__day-button:is(:disabled, [aria-disabled="true"]) {
+  text-decoration-line: underline line-through;
+}
+.ds-calendar__day > .ds-calendar__day-button:focus-visible {
+  z-index: 1;
+  border-color: var(--ds-focus-ring);
+  outline: 1px solid transparent;
+  outline-offset: 0;
+  box-shadow: var(--_focus-shadow-border);
+}
+
+/* Page header (ORV-225, page-header-slots-1, header-type-1, header-stack-1): a title, a line of
+ * description, a row of labels and the page's actions. The root is a size container named
+ * ds-page-header, because the parts nest in each other and in the screen's own container; a
+ * container cannot be styled by its own query, so the row is the child that changes. The title
+ * takes the size, weight and family of type.display.md, the 1.7 line of type.heading.sm so wrapped
+ * Thai lines clear (ORV-194) and 8 px of top padding, where the 1.7 line already lowers the ink. */
+
+.ds-page-header {
+  container: ds-page-header / inline-size;
+  inline-size: 100%;
+  min-inline-size: 0;
+}
+/* From 480 up the title block keeps nine title sizes (288 px under neutral) and the actions wrap
+ * under it, on the same start edge, when they would leave it less (header-stack-1). The basis sits
+ * here, above the @container block, which stays last: at 479 and below its flex: none must win,
+ * because in a column the basis would be a height. */
+.ds-page-header__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--ds-space-inset-md);
+}
+.ds-page-header__text {
+  display: flex;
+  flex: 1 1 calc(9 * var(--ds-type-display-md-font-size));
+  flex-direction: column;
+  gap: var(--ds-space-stack-sm);
+  min-inline-size: 0;
+}
+.ds-page-header__title {
+  margin: 0;
+  padding-block-start: var(--ds-space-stack-sm);
+  color: var(--ds-text-primary);
+  font-family: var(--ds-type-display-md-font-family);
+  font-size: var(--ds-type-display-md-font-size);
+  line-height: var(--ds-type-heading-sm-line-height);
+  font-weight: var(--ds-type-display-md-font-weight);
+  letter-spacing: var(--ds-type-display-md-letter-spacing);
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+.ds-page-header__description {
+  margin: 0;
+  max-inline-size: 65ch;
+  color: var(--ds-text-secondary);
+  font-family: var(--ds-type-body-md-font-family);
+  font-size: var(--ds-type-body-md-font-size);
+  line-height: var(--ds-type-body-md-line-height);
+  font-weight: var(--ds-type-body-md-font-weight);
+  letter-spacing: var(--ds-type-body-md-letter-spacing);
+}
+.ds-page-header__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ds-space-inline-md);
+  margin: 0;
+  color: var(--ds-text-secondary);
+  font-family: var(--ds-type-body-sm-font-family);
+  font-size: var(--ds-type-body-sm-font-size);
+  line-height: var(--ds-type-body-sm-line-height);
+  font-weight: var(--ds-type-body-sm-font-weight);
+}
+.ds-page-header__actions {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ds-space-inline-md);
+  max-inline-size: 100%;
+}
+@container ds-page-header (max-width: 479px) {
+  .ds-page-header__row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .ds-page-header__text {
+    flex: none;
+    inline-size: 100%;
+  }
+}
+
+/* Breadcrumb (ORV-229): a trail of places, quiet navigation. The nav item tokens give the ink; the
+ * current crumb differs from a link by weight and behaviour, not by colour alone. Every item keeps
+ * the control-sm height so each line of a wrapped trail, with or without the ellipsis, is one height. */
+.ds-breadcrumb__list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  min-block-size: var(--ds-size-control-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--cmp-nav-item-fg);
+  font-family: var(--ds-type-body-sm-font-family);
+  font-size: var(--ds-type-body-sm-font-size);
+  line-height: var(--ds-type-body-sm-line-height);
+  font-weight: var(--ds-type-body-sm-font-weight);
+  letter-spacing: var(--ds-type-body-sm-letter-spacing);
+}
+.ds-breadcrumb__item {
+  display: flex;
+  align-items: center;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  min-block-size: var(--ds-size-control-sm);
+}
+/* A label stays on one line: the trail wraps first, and only a crumb wider than a whole line is cut at the end of its line. The clip box and its Thai padding come from the shared list above. */
+.ds-breadcrumb__link,
+.ds-breadcrumb__page {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* A link pads its inline sides and cancels the padding with a margin, so no ink moves and the focus line clears the glyphs. */
+.ds-breadcrumb__link {
+  padding-inline: var(--ds-space-inline-sm);
+  margin-inline: calc(-1 * var(--ds-space-inline-sm));
+  color: var(--cmp-nav-item-fg);
+  text-decoration: none;
+  text-underline-offset: 0.2em;
+}
+.ds-breadcrumb__item:last-child > .ds-breadcrumb__link,
+.ds-breadcrumb__item:last-child > .ds-breadcrumb__page {
+  margin-inline-end: 0;
+}
+.ds-breadcrumb__link:hover {
+  color: var(--cmp-nav-item-fg-hover);
+  text-decoration: underline;
+}
+/* The focus corner rounds the box that clips the text, so it stays small: a pill cuts Thai marks at both ends of a label. The line and the halo stay global. */
+.ds-breadcrumb__link:focus-visible {
+  border-radius: var(--ds-shape-check-radius);
+}
+/* The current crumb pads its inline sides as a link does: its box clips its text, and Thai marks overhang both ends of a label. The margin keeps the ink where it was. */
+.ds-breadcrumb__page {
+  padding-inline: var(--ds-space-inline-sm);
+  margin-inline: calc(-1 * var(--ds-space-inline-sm));
+  color: var(--cmp-nav-item-fg-active);
+  font-family: var(--ds-type-label-md-font-family);
+  font-size: var(--ds-type-label-md-font-size);
+  line-height: var(--ds-type-label-md-line-height);
+  font-weight: var(--ds-type-label-md-font-weight);
+  letter-spacing: var(--ds-type-label-md-letter-spacing);
+}
+.ds-breadcrumb__separator {
+  flex: none;
+  margin-inline: var(--ds-space-inline-md);
+  color: var(--cmp-nav-item-fg);
+}
+/* The ellipsis is a ghost Button: it reads the trail's ink, and a negative margin takes back the empty part of its square. */
+.ds-breadcrumb__item > .ds-button[data-variant="ghost"] {
+  margin-inline: calc(-1 * var(--ds-space-inline-md));
+  color: var(--cmp-nav-item-fg);
+}
+.ds-breadcrumb__item > .ds-button[data-variant="ghost"]:hover,
+.ds-breadcrumb__item > .ds-button[data-variant="ghost"]:active {
+  color: var(--cmp-nav-item-fg-hover);
+}
+/* An icon-only Button gives its child no size; the glyph draws at the button icon size. */
+.ds-breadcrumb .ds-button[data-icon-only] > svg {
+  inline-size: var(--cmp-button-icon-size-md);
+  block-size: var(--cmp-button-icon-size-md);
 }

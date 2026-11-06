@@ -26,7 +26,11 @@ vi.mock("./actions", () => ({
   readBriefWithAi: vi.fn(),
   saveDirection: vi.fn(),
 }));
-vi.mock("@orivilo/design-system/examples", () => ({ WorkspaceScreen: () => null }));
+vi.mock("@orivilo/design-system/examples", () => ({
+  WorkspaceScreen: ({ headingLevel }: { headingLevel?: number }) => (
+    <i data-screen-heading-level={headingLevel} />
+  ),
+}));
 
 const { default: DirectionsPage } = await import("./page");
 
@@ -52,4 +56,15 @@ describe("/directions with a workspace the person is not in", () => {
       ]);
     },
   );
+});
+
+// ORV-225 row 10 (heading-level-1, W6): the page owns the one h1, the studio an h2 and the
+// preview an h3, so the embedded screen opens its title one level deeper, at h4.
+describe("/directions heading order", () => {
+  it("embeds the reference screen with its title at level 4", async () => {
+    page.locale = "en";
+    const html = renderToStaticMarkup(await DirectionsPage());
+    expect(html).toContain('data-screen-heading-level="4"');
+    expect(html.match(/<h1[ >]/g)).toHaveLength(1);
+  });
 });

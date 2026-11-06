@@ -23,10 +23,19 @@ type Story = StoryObj<typeof meta>;
 const body = () => within(document.body);
 const REVIEW = DECISIONS.filter((d) => d.status === "review").length;
 
+/** One page header per screen: its own root, no header element or banner, one level 1 heading (ORV-225 AC 9). */
+async function expectOnePageHeader(root: HTMLElement) {
+  await expect(root.querySelectorAll(".ds-page-header")).toHaveLength(1);
+  await expect(root.querySelector("header")).toBeNull();
+  await expect(within(root).queryByRole("banner")).toBeNull();
+  await expect(within(root).getAllByRole("heading", { level: 1 })).toHaveLength(1);
+}
+
 /** Three metric tiles computed from the rows, one primary, and the tab filters the table (AC 3). */
 export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+    await expectOnePageHeader(canvasElement);
     await expect(canvas.getAllByRole("article")).toHaveLength(3);
     await expect(canvas.getByText(String(DECISIONS.length))).toBeInTheDocument();
     await expect(canvas.getByText("80%")).toBeInTheDocument();

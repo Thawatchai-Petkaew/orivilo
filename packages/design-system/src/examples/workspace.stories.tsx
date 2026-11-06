@@ -26,10 +26,19 @@ const body = () => within(document.body);
 const rowCount = (root: HTMLElement) =>
   within(within(root).getByRole("table")).getAllByRole("row").length - 1;
 
+/** One page header per screen: its own root, no header element or banner, one level 1 heading (ORV-225 AC 9). */
+async function expectOnePageHeader(root: HTMLElement) {
+  await expect(root.querySelectorAll(".ds-page-header")).toHaveLength(1);
+  await expect(root.querySelector("header")).toBeNull();
+  await expect(within(root).queryByRole("banner")).toBeNull();
+  await expect(within(root).getAllByRole("heading", { level: 1 })).toHaveLength(1);
+}
+
 /** Six fixture projects, the long name inside its cell, one missing owner, one primary, the fixture label (AC 1, 2). */
 export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+    await expectOnePageHeader(canvasElement);
     await expect(rowCount(canvasElement)).toBe(PROJECTS.length);
     const table = canvas.getByRole("table", { name: "โปรเจกต์ในเวิร์กสเปซ" });
     await expect(within(table).getAllByText(fixtures.missingLabel)).toHaveLength(1);

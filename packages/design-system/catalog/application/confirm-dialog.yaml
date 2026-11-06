@@ -1,0 +1,36 @@
+name: ConfirmDialog
+tier: application
+status: draft
+since: ORV-226
+import: "@orivilo/design-system"
+story: application-confirm-dialog
+useWhen:
+  - "Before a step that deletes something or takes on proposed changes: the person reads what will happen, then chooses"
+  - "A step that runs on a server and can fail: the pattern owns pending, the failure and the retry"
+avoidWhen:
+  - "A task with fields or a form (Dialog)"
+  - "A change the person can undo at once from the page (do it, and offer undo)"
+  - "A confirm on every save: it is not the intent of the rule, and people stop reading it"
+contract: ConfirmDialogProps
+variants: [destructive, default]
+sizes: [sm]
+states: [closed, open, pending, failed]
+recipes: [neutral, professional, friendly]
+examples: []
+rules:
+  - "Choose the variant: `destructive` when the step is not easily reversed (first focus goes to the cancel, the confirm is a destructive Button), `default` when it can be undone (first focus goes to the confirm). A caller whose step cannot be undone takes `destructive`"
+  - "`title` names the consequence; `impact` is one or two sentences of plain text with no list, no link and no other control. A missing impact shows a catalog line, never a blank description"
+  - "`confirmLabel` is a short verb phrase that fits one line and names the outcome; names go in `title`. `cancelLabel` names what stays"
+  - "The panel closes only when `onConfirm` resolves `done`. It never shows a success state: any success message is the caller's, with backing data"
+  - "`onConfirm` must settle. A server action that can hang brings its own timeout and returns `failed`; the pattern adds no time limit"
+  - "`failed` carries a `message` that says what went wrong and how to fix it. A rejection shows the catalog's own line and never the thrown text. The same button is the retry"
+  - "Pass `returnFocus` whenever the action takes the trigger away or there is no trigger; otherwise focus goes to the trigger. With neither, focus falls to the page"
+  - "A press outside never closes it. Escape, the cancel and the close control close it with outcome `cancelled`, except while pending"
+  - "The panel is the one scroller, the actions stick to its foot, and the shape follows the panel: one row at its cap, stacked below it"
+  - "The look is the `.ds-confirm` recipe block over Dialog; no colour, radius, shadow or font is set by the component"
+  - "Stories, fixtures and failures are mock: nothing is deleted, no model or rule proposes the changes, no server answers"
+a11y:
+  - "Role alertdialog with `aria-modal` when modal; the title is the name and the impact the description. Proved as DOM roles and attributes, not by a screen reader"
+  - "First focus is set by the pattern from the variant, with Tab running cancel, confirm, close and wrapping"
+  - "While pending the confirm keeps focus and its name, is `aria-disabled`, and a status line outside any `aria-busy` reads the pending label"
+  - "The failure has role alert above the actions and focus does not move"

@@ -9,12 +9,15 @@ import {
   Clock,
   Compass,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   ChevronUp,
   CircleCheck,
   CircleSmall,
   CircleDashed,
   CircleDotDashed,
   Copy,
+  Ellipsis,
   Eye,
   EyeOff,
   Group,
@@ -23,6 +26,7 @@ import {
   Info,
   Keyboard,
   Link,
+  ListTodo,
   LoaderCircle,
   Lock,
   LocateFixed,
@@ -50,6 +54,8 @@ import {
   TriangleAlert,
   Undo2,
   Unlink,
+  Upload,
+  UserRound,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -61,10 +67,10 @@ import {
  * icons from this file only, never from `lucide-react` directly (lint), so the defaults below
  * hold everywhere and only the named glyphs reach the bundle.
  *
- * All 53 glyphs are Lucide today. A glyph Lucide lacks is drawn here as inline SVG on a 20 grid,
+ * All 59 glyphs are Lucide today. A glyph Lucide lacks is drawn here as inline SVG on a 20 grid,
  * stroke 2, round caps and joins, `currentColor`, `aria-hidden`.
  */
-type IconProps = Omit<SVGProps<SVGSVGElement>, "children">;
+export type IconProps = Omit<SVGProps<SVGSVGElement>, "children">;
 
 /**
  * Lucide draws on a 24 grid; ours used a 20 grid at stroke 2. Stroke 2.4 on 24 keeps the same
@@ -85,6 +91,10 @@ export const MinusIcon = lucide(Minus, "MinusIcon");
 /** The chosen radio item in a menu (ORV-78): a small disc in the current ink. */
 export const RadioDotIcon = lucide(CircleSmall, "RadioDotIcon");
 export const ChevronDownIcon = lucide(ChevronDown, "ChevronDownIcon");
+/** Previous month in a calendar (ORV-231); the order of DESIGN.md §6 puts Lucide first. */
+export const ChevronLeftIcon = lucide(ChevronLeft, "ChevronLeftIcon");
+/** Next month in a calendar (ORV-231). */
+export const ChevronRightIcon = lucide(ChevronRight, "ChevronRightIcon");
 /** A three-quarter ring; the `ds-spin` recipe class turns it. */
 export const SpinnerIcon = lucide(LoaderCircle, "SpinnerIcon");
 export const CloseIcon = lucide(X, "CloseIcon");
@@ -115,10 +125,17 @@ export const CopyIcon = lucide(Copy, "CopyIcon");
 export const TrashIcon = lucide(Trash, "TrashIcon");
 export const CollapseIcon = lucide(ChevronUp, "CollapseIcon");
 export const ExpandIcon = lucide(ChevronDown, "ExpandIcon");
+/** Three dots in a row: the crumbs a trail holds back (ORV-229). */
+export const EllipsisIcon = lucide(Ellipsis, "EllipsisIcon");
+
+// File upload (ORV-227): the picker button.
+export const UploadIcon = lucide(Upload, "UploadIcon");
 
 // Task bar (ORV-100)
 export const QueuedIcon = lucide(Clock, "QueuedIcon");
 export const RunningIcon = lucide(Activity, "RunningIcon");
+/** A list of to-dos: the jobs panel with nothing in it, as the tile of its empty form (ORV-223). QueuedIcon marks one state, so it would say a job waits. */
+export const JobsIcon = lucide(ListTodo, "JobsIcon");
 export const RetryIcon = lucide(RotateCcw, "RetryIcon");
 export const JumpIcon = lucide(LocateFixed, "JumpIcon");
 
@@ -136,6 +153,8 @@ export const ReferenceIcon = lucide(Link, "ReferenceIcon");
 export const DirectionIcon = lucide(Compass, "DirectionIcon");
 export const NoteIcon = lucide(StickyNote, "NoteIcon");
 export const GroupIcon = lucide(Group, "GroupIcon");
+/** A person: the last step of an Avatar when there is no picture and no initials (ORV-224). */
+export const PersonIcon = lucide(UserRound, "PersonIcon");
 
 /* Run steps: what the engine is doing in each step of a running node (ORV-57). */
 export const ReadStepIcon = lucide(BookOpen, "ReadStepIcon");
