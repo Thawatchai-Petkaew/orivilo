@@ -1056,4 +1056,19 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     bg: "ds:surface.canvas",
     floor: TEXT,
   },
+  // Page header (ORV-225): the title and the description and meta row on the page ground.
+  {
+    recipe: "page-header",
+    slot: "title",
+    fg: "ds:text.primary",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
+  {
+    recipe: "page-header",
+    slot: "description and meta",
+    fg: "ds:text.secondary",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
 ];

@@ -1,0 +1,31 @@
+name: PageHeader
+tier: application
+status: draft
+since: ORV-225
+import: "@orivilo/design-system"
+story: application-page-header
+useWhen:
+  - "The opening of a screen: its title, one line saying what it holds, and the screen's own actions"
+avoidWhen:
+  - "Naming a block inside a screen (use Section header, ORV-225 slice B)"
+  - "A banner or a cover with a picture, an avatar or a breadcrumb (not built; Breadcrumb is D.3 row 26)"
+contract: PageHeaderProps
+variants: [default]
+sizes: [md]
+states: [default, title-only, with-actions, with-meta, long-title, narrow]
+recipes: [neutral, professional, friendly]
+examples:
+  - src/examples/decision-log.tsx
+  - src/examples/settings-form.tsx
+  - src/examples/workspace.tsx
+rules:
+  - "The root is a div with class ds-page-header, never a header element: outside main, article, aside, nav and section a header is a banner (page-header-root-1)"
+  - "Slots are title, description, meta and actions; a missing slot renders no node, so a title-only header holds one child (page-header-slots-1)"
+  - "level is 1 to 6, default 1, and changes the element only, never the size. The caller passes it so a page keeps one h1 and no skipped level; WorkspaceScreen takes headingLevel for this (heading-level-1)"
+  - "Title: type.display.md size, weight and family, the 1.7 line of type.heading.sm so wrapped Thai lines clear, and space.stack.sm of top padding. text-display-md is not used, it brings 16 px and a 1.25 line (header-type-1)"
+  - "Description is one line of text.secondary at body.md, at most 65ch. Meta is a wrapping row of labels at body.sm, 8 px apart"
+  - "The root is a size container named ds-page-header. At 479 px and below the actions stack under the title on the same start edge; wider they share the row at its end edge. Neither scrolls sideways (header-stack-1)"
+  - "No breadcrumb, back link, avatar or banner slot yet"
+a11y:
+  - "The title is a real heading; the page's one h1 is the page header at level 1"
+  - "The part adds no landmark and no role"

@@ -6,6 +6,7 @@ import {
   Checkbox,
   Field,
   Input,
+  PageHeader,
   Popover,
   PopoverClose,
   PopoverContent,
@@ -54,12 +55,10 @@ export function SettingsForm({ errors, saving = false }: SettingsFormProps) {
   const formId = useId();
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6">
-      <header className="flex flex-col gap-2">
-        <h1 className="font-display text-display-md text-balance">ตั้งค่าเวิร์กสเปซ</h1>
-        <p className="max-w-prose text-body-md text-text-secondary">
-          ชื่อ ลิงก์ และ profile เริ่มต้นที่ทุกโปรเจกต์ในเวิร์กสเปซนี้ใช้
-        </p>
-      </header>
+      <PageHeader
+        title="ตั้งค่าเวิร์กสเปซ"
+        description="ชื่อ ลิงก์ และ profile เริ่มต้นที่ทุกโปรเจกต์ในเวิร์กสเปซนี้ใช้"
+      />
 
       <Tabs defaultValue="general">
         <TabsList aria-label="ส่วนของการตั้งค่า">

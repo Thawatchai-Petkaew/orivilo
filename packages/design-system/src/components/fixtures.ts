@@ -41,6 +41,32 @@ export const featuredIconFixtures = {
   },
 } as const;
 
+/**
+ * PageHeader story copy (ORV-225): the caller's text, not catalog keys, and it is mock. The two
+ * long titles are the sample for the wrapping and clip checks: a long name without spaces, and a
+ * title that opens on stacked marks (a vowel and a tone mark on one letter).
+ */
+export const pageHeaderFixtures = {
+  th: {
+    title: "ทีมออกแบบ Brand Canvas",
+    description: "6 โปรเจกต์, สมาชิก 4 คน",
+    meta: "ข้อมูลตัวอย่าง",
+    metaNote: "สิ่งที่สร้างในหน้านี้ยังไม่ได้บันทึกจริง",
+    action: "สร้างโปรเจกต์",
+    longTitle: fixtures.longThai,
+    marksTitle: "ฟื้ปั้ปี๊ฟื้ ปิ่นโต้ โลโก้",
+  },
+  en: {
+    title: "Brand Canvas design team",
+    description: "6 projects, 4 members",
+    meta: "Sample data",
+    metaNote: "Nothing made on this page is saved yet",
+    action: "Create project",
+    longTitle: `${fixtures.longLatin} and a very long name for a design team that keeps growing`,
+    marksTitle: "Brand Canvas design team of the year",
+  },
+} as const;
+
 /** Collapsible story copy (ORV-203): the caller's label and content, not catalog keys. */
 export const collapsibleFixtures = {
   trigger: "รายละเอียดโปรเจกต์",

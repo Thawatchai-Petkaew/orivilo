@@ -42,6 +42,7 @@ export {
   type FeaturedIconVariant,
 } from "./featured-icon/FeaturedIcon";
 export { Input, type InputProps } from "./input/Input";
+export { type HeadingLevel, PageHeader, type PageHeaderProps } from "./page-header/PageHeader";
 export { InputGroup, type InputGroupProps } from "./input-group/InputGroup";
 export { PasswordInput, type PasswordInputProps } from "./password-input/PasswordInput";
 export {

@@ -13,6 +13,7 @@ import {
   DialogTrigger,
   Field,
   Input,
+  PageHeader,
   Select,
   Table,
   type TableColumn,
@@ -203,15 +204,11 @@ export function DecisionLog({
 
   return (
     <div className="@container mx-auto flex w-full max-w-5xl flex-col gap-8 p-6">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div className="flex flex-col gap-2">
-          <h1 className="font-display text-display-md text-balance">บันทึกการตัดสินใจ</h1>
-          <p className="max-w-prose text-body-md text-text-secondary">
-            ทุกการตัดสินใจใน {fixtures.mixed} พร้อมแหล่งที่มาและเหตุผล
-          </p>
-        </div>
-        <NewDecisionDialog open={open} onOpenChange={setOpen} />
-      </header>
+      <PageHeader
+        title="บันทึกการตัดสินใจ"
+        description={`ทุกการตัดสินใจใน ${fixtures.mixed} พร้อมแหล่งที่มาและเหตุผล`}
+        actions={<NewDecisionDialog open={open} onOpenChange={setOpen} />}
+      />
 
       <div className="grid gap-4 @2xl:grid-cols-3">
         <Metric title="ทั้งหมด" value={String(rows.length)} note="รายการในโปรเจกต์นี้" />
