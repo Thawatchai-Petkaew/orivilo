@@ -418,3 +418,46 @@ describe("A6: url-input-1", () => {
     expect(portCalls()).toBe(0);
   });
 });
+
+describe("credentials before url-input-1", () => {
+  const typed = "https:/user:secret@example.com/";
+
+  it.each(["own", "competitor"] as const)(
+    "role %s: the text reaches the read and the report as written, and the view is a refused address",
+    async (role) => {
+      const view = viewOf(await analysePage({ url: `  ${typed}  `, role }));
+      expect(vi.mocked(engine.readUrlInput).mock.calls[0]?.[0]).toEqual({ url: typed, role });
+      expect(vi.mocked(engine.reportOf).mock.calls[0]?.[0]).toBe(typed);
+      expect(view).toEqual({
+        status: "refused",
+        url: "https://example.com/",
+        urlCut: false,
+        line: "read.refused.address",
+      });
+      expect(JSON.stringify(view)).not.toContain("secret");
+      expect(portCalls()).toBe(0);
+    },
+  );
+
+  it("a username alone or a password alone is enough to keep the text as written", async () => {
+    for (const text of ["https:/user@example.com/", "https:/:secret@example.com/"]) {
+      vi.mocked(engine.readUrlInput).mockClear();
+      const view = viewOf(await analysePage({ url: text, role: "own" }));
+      expect(vi.mocked(engine.readUrlInput).mock.calls[0]?.[0].url).toBe(text);
+      expect(view).toMatchObject({ status: "refused", line: "read.refused.address" });
+      expect(JSON.stringify(view)).not.toContain("secret");
+    }
+  });
+
+  it("text the parser rejects, or reads with no credentials, still gets https:// in front", async () => {
+    for (const [text, given] of [
+      ["example.com", "https://example.com"],
+      ["localhost:3000", "https://localhost:3000"],
+      ["https://example.com/@brand", "https://example.com/@brand"],
+    ] as const) {
+      vi.mocked(engine.readUrlInput).mockClear();
+      await analysePage({ url: text, role: "own" });
+      expect(vi.mocked(engine.readUrlInput).mock.calls[0]?.[0].url).toBe(given);
+    }
+  });
+});

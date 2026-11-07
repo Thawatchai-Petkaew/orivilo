@@ -47,8 +47,23 @@ const inputSchema = z.strictObject({
 
 const HAS_SCHEME = /^[a-z][a-z0-9+.-]*:\/\//i;
 
-/** `url-input-1`: text with no scheme and `://` gets `https://` in front. Nothing else changes. */
-const urlOf = (text: string): string => (HAS_SCHEME.test(text) ? text : `https://${text}`);
+/** True when the URL parser reads a username or a password in the text. Text it rejects has none. */
+function hasCredentials(text: string): boolean {
+  try {
+    const parsed = new URL(text);
+    return parsed.username !== "" || parsed.password !== "";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * `url-input-1`: text with no scheme and `://` gets `https://` in front. Nothing else changes. Text
+ * the parser reads with a username or a password is checked first and stays as written, so the
+ * prefix never turns credentials into a path that no later check sees (row 37, SEC-266-9).
+ */
+const urlOf = (text: string): string =>
+  hasCredentials(text) || HAS_SCHEME.test(text) ? text : `https://${text}`;
 
 /** The step outcome of a read that gave a report (`STEP_OUTCOMES["page-read"]`). */
 const STEP_OF = {
