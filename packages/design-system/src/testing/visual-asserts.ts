@@ -1223,7 +1223,27 @@ type Settled = {
   animations: number;
   box: string;
   frames: number;
+  control: string;
 };
+
+/**
+ * The state of the control that holds a label, as one line: its computed `border-top-color`, and
+ * whether it matches `:hover` and `:focus-visible`. A control that changes its border on hover
+ * (`.ds-control:hover`, `recipes.css`) draws a different row at its top edge in two shots taken
+ * under a pointer that did not move while the first shot scrolled the scope (ORV-269 cause (e)).
+ */
+const controlState = (control: Element | null) =>
+  control
+    ? `border-top-color ${getComputedStyle(control).borderTopColor}, hover ${control.matches(":hover")}, focus-visible ${control.matches(":focus-visible")}`
+    : "no .ds-control";
+
+/**
+ * True while `control` still matches `:hover` or `:focus-visible`: the two states that change a
+ * control's border and that a scroll of the scope can start under a pointer or a focus that does
+ * not move.
+ */
+const stirred = (control: Element | null) =>
+  Boolean(control?.matches(":hover") || control?.matches(":focus-visible"));
 
 /**
  * The clone's box in the scope's own frame, then the scope's size. A screenshot scrolls the scope
@@ -1246,14 +1266,48 @@ const finiteAnimations = (scope: Element) =>
 const SETTLE_FRAMES = 120;
 
 /**
+ * Takes the pointer and the focus off the scope, so that `:hover` and `:focus-visible` of the
+ * control are false before the first shot and a scroll of the scope cannot start them between the
+ * two shots (ORV-269 cause (e), rule `settle-wait-1`). Focus inside the scope is blurred; the
+ * pointer is moved, by the browser, onto a 4 px probe fixed in the top left corner of the viewport,
+ * which is taken out again at once. The wait is the state read: it ends when the control reports
+ * neither state, or after `SETTLE_FRAMES` frames, so a page that never lets go fails on its
+ * assertion with the state in its message.
+ */
+async function standApart(scope: Element, control: Element | null) {
+  const active = document.activeElement;
+  if (active instanceof HTMLElement && scope.contains(active)) active.blur();
+  // Always move the pointer: one that rests elsewhere now can sit over the control after a scroll.
+  const { userEvent } = await import("vitest/browser");
+  const probe = document.createElement("div");
+  probe.style.cssText =
+    "position:fixed;left:0;top:0;width:4px;height:4px;z-index:2147483647;pointer-events:auto";
+  document.body.append(probe);
+  try {
+    await userEvent.hover(probe);
+  } finally {
+    probe.remove();
+  }
+  for (let frames = 0; stirred(control) && frames < SETTLE_FRAMES; frames++) {
+    await new Promise<void>((done) => requestAnimationFrame(() => done()));
+  }
+}
+
+/**
  * Waits for the page to report that the clone is ready to be shot (ORV-269, rule `settle-wait-1`),
- * never for a fixed time: every animation under `scope` that ends has ended, and the box of the
- * clone in the scope and the size of the scope are the same across two animation frames. A
+ * never for a fixed time: the pointer and the focus are off the control (see `standApart`), every
+ * animation under `scope` that ends has ended, and the box of the clone in the scope and the size
+ * of the scope are the same across two animation frames. A
  * transition still running or a box still moving between the two shots of `expectLabelInkWhole`
  * makes the shots differ with no clip involved. A face still loading needs no wait here: the
  * screenshot itself waits for it (ORV-269, probed with a face that loads 1.5 s late).
  */
-async function settle(scope: Element, clone: HTMLElement): Promise<Settled> {
+async function settle(
+  scope: Element,
+  clone: HTMLElement,
+  control: Element | null,
+): Promise<Settled> {
+  await standApart(scope, control);
   const frame = () => new Promise<void>((done) => requestAnimationFrame(() => done()));
   let box = boxOf(clone, scope);
   let still = 0;
@@ -1271,6 +1325,7 @@ async function settle(scope: Element, clone: HTMLElement): Promise<Settled> {
     animations: finiteAnimations(scope).length,
     box,
     frames,
+    control: controlState(control),
   };
 }
 
@@ -1282,8 +1337,9 @@ async function settle(scope: Element, clone: HTMLElement): Promise<Settled> {
  * differ between the two shots, so the clip cuts no mark. Rows in the padding below that edge are
  * not read (ORV-205): the clip never touches them, and Chromium on Linux sometimes leaves the faint
  * top row of a tone mark out of the `overflow: visible` raster, which read as a 2 px cut. Before
- * each shot the page is waited for (see `settle`), and a failure names the differing row, the state
- * of the page before each shot and the mode (ORV-269). The clone is taken out in `finally`. It runs
+ * each shot the pointer and the focus are taken off the control and the page is waited for (see
+ * `settle`), and a failure names the differing row, the state of the page and of the control before
+ * and after each shot, and the mode (ORV-269). The clone is taken out in `finally`. It runs
  * where Vitest browser mode runs; a play guards the call with `inVitest`. `expectNoGlyphClip`
  * cannot do this: it cannot see marks above the font ascent.
  */
@@ -1293,10 +1349,11 @@ export async function expectLabelInkWhole(el: HTMLElement, sample = "ฟื้�
   clone.removeAttribute("id");
   clone.textContent = sample;
   el.after(clone);
+  const control = el.closest(".ds-control");
   try {
     const region = async () => {
       const scope = scopeHolding(clone, reach);
-      const before = await settle(scope, clone);
+      const before = await settle(scope, clone, control);
       const { data, width } = await shoot(scope);
       const frame = scope.getBoundingClientRect();
       const rect = clone.getBoundingClientRect();
@@ -1315,7 +1372,7 @@ export async function expectLabelInkWhole(el: HTMLElement, sample = "ฟื้�
         rows.push(row);
       }
       const movedBy = boxOf(clone, scope) !== before.box;
-      return { rows, scale, before, movedBy };
+      return { rows, scale, before, movedBy, after: controlState(control) };
     };
     const shipped = await region();
     clone.style.overflow = "visible";
@@ -1336,7 +1393,7 @@ export async function expectLabelInkWhole(el: HTMLElement, sample = "ฟื้�
     const cut = inkCutAbove(shipped.rows, visible.rows, edge, shipped.scale);
     const boundary = el.closest("[data-design-profile]");
     const evidence = (shot: typeof shipped) =>
-      `fonts ${shot.before.fonts}, ${shot.before.animations} running animations, ${shot.before.frames} frames, clone ${shot.before.box}${shot.movedBy ? ", moved during the shot" : ""}`;
+      `fonts ${shot.before.fonts}, ${shot.before.animations} running animations, ${shot.before.frames} frames, clone ${shot.before.box}${shot.movedBy ? ", moved during the shot" : ""}, control before the shot (${shot.before.control}), after (${shot.after})`;
     expect(
       cut,
       `${label(el)} cuts ${cut} px of its Thai stack above the clip box (row ${edge - Math.round(cut * shipped.scale)} of the region, edge row ${edge}, ${boundary?.getAttribute("data-design-profile")} ${boundary?.getAttribute("data-mode")}; shipped shot: ${evidence(shipped)}; visible shot: ${evidence(visible)})`,
