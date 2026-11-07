@@ -3,7 +3,7 @@ issue: ORV-249 (https://tpetkaew.atlassian.net/browse/ORV-249), the Switch slice
 lane: L (as ORV-221)
 mode: POC mode short spec (`.claude/skills/ovl/SKILL.md`, section "POC mode")
 parent: docs/specs/ORV-221/spec.md v1.3, with docs/specs/ORV-221/design.md
-version: 1.0
+version: 1.1
 ---
 
 # ORV-249: Switch (ORV-221 slice)
@@ -23,7 +23,7 @@ As a person changing workspace settings, I flip a setting and see whether it too
 ## What this story uses from ORV-221 (linked, not copied)
 
 - **Spec:** `docs/specs/ORV-221/spec.md` v1.3: the Switch benchmark, the Switch rows of "Contract changes and impact", the `switch` list of `control-pairs-1`, the Switch rows of "Copy", and W1 and W3 of "Worked examples".
-- **Design:** `docs/specs/ORV-221/design.md` (its `spec:` line reads v1.3): the Switch flow, the answers to open questions 1, 3 and 5, D6 to D20, the rule on `focusVisible` in D25, the Switch table of "States", "Thai, long content, small screens, motion", recipes R2 and R3, the Switch and Field rows of the builder table, the `settings-example-1` paragraph after it, amendments A1 to A4, and the Switch, Field and settings form lines of "Screens to check in visual QA".
+- **Design:** `docs/specs/ORV-221/design.md` (its `spec:` line reads v1.3): the Switch flow, the answers to open questions 1, 3 and 5, D6 to D20, the rule on `focusVisible` in D25, D26, the Switch table of "States", "Thai, long content, small screens, motion", recipes R2 and R3, the Switch and Field rows of the builder table, the `settings-example-1` paragraph after it, amendments A1 to A4 and A10, and the Switch, Field and settings form lines of "Screens to check in visual QA".
 - **Gates:** G1 and G2 passed under the owner's delegation in ORV-221 comment 10512, and they cover this slice. G3 is raised on this issue.
 - **Already on `develop` from PR 187:**
   - `RadioGroup`, `RadioGroupItem` and their types, with `packages/design-system/catalog/base/radio-group.yaml` and line 18 of `packages/design-system/catalog/coverage.md`.
@@ -39,6 +39,7 @@ As a person changing workspace settings, I flip a setting and see whether it too
   - The locale key `switch.saving` in `packages/design-system/src/i18n/messages/th.ts` and `packages/design-system/src/i18n/messages/en.ts`, and `switchFixtures` in `packages/design-system/src/components/fixtures.ts`.
   - `packages/design-system/catalog/base/switch.yaml` and line 19 of `packages/design-system/catalog/coverage.md`, which reads `none` today.
   - The notifications panel of `packages/design-system/src/examples/settings-form.tsx`, which replaces `fixtures.missingLabel` at lines 180 to 182 today (the parent's `settings-example-1` read lines 152 to 154 before PR 187), and the `Notifications` and `NotificationsAt360` stories in `packages/design-system/src/examples/settings-form.stories.tsx`.
+  - The action row of `packages/design-system/src/examples/settings-form.tsx`, which moves from under `Tabs` into the general tab's form, by the lines named under D26 in `docs/specs/ORV-221/design.md`.
   - The Switch text of `DESIGN.md` section 12, which says Switch follows at lines 286 and 359 today, and its version line.
 - **Order:** the PR title starts `ORV-249: ...`.
 
@@ -46,7 +47,8 @@ As a person changing workspace settings, I flip a setting and see whether it too
 
 Rows 21 to 39 keep their numbers from the parent at v1.3. Each row, one by one:
 
-- Rows 21 to 38: the parent's wording, unchanged.
+- Rows 21 to 36 and row 38: the parent's wording, unchanged.
+- Row 37: the parent's wording, plus D26 of `docs/specs/ORV-221/design.md`: no Save or Cancel on a tab without a form. The parent takes this through A10 of that file.
 - Row 39: one change, in the Check cell. It says ORV-249 where the parent says "the issue", since this is the issue the sign-off reports on.
 
 No row drops anything: none of rows 21 to 39 names what PR 187 merged. Row 40 stays out, see S1 under "Open questions".
@@ -82,7 +84,7 @@ The opening paragraph of the parent's "Acceptance criteria" gives the story titl
 | 34 | Same as row 21, English | `InEnglish` renders Default, InteractionStates, Sizes `sm` and `md`, off and on, Disabled, Invalid, Saving and SaveFails | The English column of "Copy": "Notify me about new comments", "Saving", "We could not save this setting. Check your connection, then try again" | None. The status holds "Saving" | `InEnglish` play |
 | 35 | Storybook test project | `RecipesAndModes` renders through `Matrix` | Off, on, invalid, disabled, saving and `sm` rows in six boundaries: neutral, professional, friendly, each in light and dark | None | `RecipesAndModes` play: six cells; contrast is row 38 |
 | 36 | `Base/Field`, Thai | `Horizontal` renders a Switch and `HorizontalInvalid` adds an error | The row of row 21, and the error under both columns | None. DOM order label, description, control, error (`field-row-1`) | `Horizontal` and `HorizontalInvalid` plays |
-| 37 | `Examples/Base: Settings form` | `Notifications` opens the tab, and the play toggles one Switch; `NotificationsAt360` renders it in `Narrow` | "อีเมลแจ้งเตือน" (Email notifications), "การเปลี่ยนแปลงในหน้านี้มีผลทันที ไม่ต้องกดบันทึก" (Changes here apply right away, with no need to save) and two Switch rows; no "ไม่มีข้อมูล" in the tab; no sideways scroll at 360 px | None. Fixture, nothing saved. One `role="group"` named by the heading; two switches inside it (`settings-example-1`) | `Notifications` and `NotificationsAt360` plays |
+| 37 | `Examples/Base: Settings form` | `Notifications` opens the members tab, then the notifications tab, and the play toggles one Switch; `NotificationsAt360` renders it in `Narrow` | "อีเมลแจ้งเตือน" (Email notifications), "การเปลี่ยนแปลงในหน้านี้มีผลทันที ไม่ต้องกดบันทึก" (Changes here apply right away, with no need to save) and two Switch rows; no "ไม่มีข้อมูล" in the tab; no "บันทึกการเปลี่ยนแปลง" (Save changes) or "ยกเลิก" (Cancel) on the members or notifications tab, because both sit in the general tab's form (D26); no sideways scroll at 360 px | None. Fixture, nothing saved. One `role="group"` named by the heading; two switches inside it (`settings-example-1`); on each of the two tabs no primary button and no button named "ยกเลิก" in the canvas | `Notifications` and `NotificationsAt360` plays; the `Notifications` play queries the action row on `canvasElement`, not on the panel (D26) |
 | 38 | The PR head | `check-catalog`, the i18n checks, `recipes.test.ts`, `tokens.test.ts` and `pnpm contrast` run | Not a screen | `catalog/base/switch.yaml` resolves its story; `coverage.md` line 19 reads `draft`, `base-switch`; `switch.saving` exists in Thai and English; every `switch` pair of `control-pairs-1` passes under each set of `CONTRAST_SETS` (neutral, professional, friendly, orivilo) in both modes; no middot or em dash in either locale file | `pnpm --filter @orivilo/design-system test` and `pnpm contrast` output |
 | 39 | Storybook at 360 and 1440 px, light and dark, Thai and English | The designer opens `Default`, `Sizes`, `InteractionStates`, `Disabled`, `Invalid`, `Saving`, `SaveFails` and Settings form `Notifications` | A clear off and on in each profile, the ring legible in the thumb, Thai that reads as Thai | None | Designer visual sign-off, its PNG paths posted on ORV-249 as a Jira comment, since a sign-off has an empty `write_set` and cannot write design.md; the answers to open questions 1, 3 and 5 in design.md |
 
@@ -119,7 +121,7 @@ This story adds no rule. Each rule keeps its one home in the "Rules" of `docs/sp
 - All of the parent's "Out of scope", as written.
 - Rows 1 to 20 and row 40, which merged in PR 187.
 - Any change to `RadioGroup`, `Field group`, their tokens or their recipe.
-- The members tab of the settings form, which `settings-example-1` leaves unchanged.
+- The content of the members tab of the settings form, which `settings-example-1` leaves unchanged. The tab loses the action row through D26 and changes in nothing else (A10).
 
 ## Open questions (with defaults)
 
@@ -154,3 +156,4 @@ This story derives no number and adds no method. W1 (row 24) and W3 (the margin 
 ## Changelog
 
 - v1.0 (2026-11-07): slice spec split from ORV-221 spec v1.3 (L-0016). Rows 21 to 39 copied with their numbers and no new requirement; row 39 names ORV-249 for its Jira comment. Downstream to review: the builder envelope (rows 21 to 39, one PR), the qa envelope (the Rows per PR line once the PR exists), and the parent spec, which does not name ORV-249 yet.
+- v1.1 (2026-11-07): row 37 names D26 of `docs/specs/ORV-221/design.md`, from F1 of `ORV-249-signoff-1`: the action row moves into the general tab's form, so the members and notifications tabs show no Save or Cancel. Row numbers, the other rows' wording and the Rows per PR line are unchanged. The list of what this story adds and the members line of "Out of scope" follow it. Downstream to review: the builder envelope (`settings-form.tsx` and `settings-form.stories.tsx`, by the D26 lines), the qa walk of row 37, the sign-off of row 39, and A10 for the parent spec.
