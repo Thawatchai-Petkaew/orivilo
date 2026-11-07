@@ -271,6 +271,27 @@ export const radioFixtures = {
 } as const;
 
 /**
+ * Switch story content (ORV-249): the Thai column plays, the `En` keys feed the `InEnglish` story.
+ * Copy is the caller's, not a catalog key (the saving word is the catalog's `switch.saving`).
+ */
+export const switchFixtures = {
+  setLabel: "อีเมลแจ้งเตือน",
+  setHelp: "การเปลี่ยนแปลงในหน้านี้มีผลทันที ไม่ต้องกดบันทึก",
+  comments: "แจ้งเตือนเมื่อมีความเห็นใหม่",
+  commentsHelp: "ส่งอีเมลเมื่อมีคนแสดงความเห็นในโปรเจกต์ของคุณ",
+  jobs: "แจ้งเตือนเมื่องานเสร็จ",
+  jobsHelp: "ส่งอีเมลเมื่องานที่คุณเริ่มเสร็จหรือล้มเหลว",
+  saveError: "บันทึกการตั้งค่าไม่สำเร็จ ตรวจการเชื่อมต่อแล้วลองอีกครั้ง",
+  setLabelEn: "Email notifications",
+  setHelpEn: "Changes here apply right away, with no need to save",
+  commentsEn: "Notify me about new comments",
+  commentsHelpEn: "Sends an email when someone comments on your project",
+  jobsEn: "Notify me when a job finishes",
+  jobsHelpEn: "Sends an email when a job you started finishes or fails",
+  saveErrorEn: "We could not save this setting. Check your connection, then try again",
+} as const;
+
+/**
  * Avatar story content (ORV-224): MOCK people. The names are invented and no real person's photo
  * is used. `picture` is a drawn stand-in (a head and shoulders of two flat shapes) as an inline
  * SVG `data:` URI; its colours are picture content, not style values. `brokenPicture` is a PNG

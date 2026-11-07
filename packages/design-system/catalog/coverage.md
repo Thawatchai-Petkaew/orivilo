@@ -16,7 +16,7 @@ Legend: `none` not started, `planned` entry exists, no code, `draft` code and st
 | Select        | stable | base-select         |
 | Checkbox      | stable | base-checkbox       |
 | RadioGroup    | draft  | base-radio-group    |
-| Switch        | none   |                     |
+| Switch        | draft  | base-switch         |
 | Textarea      | stable | base-textarea       |
 | Combobox      | draft  | base-combobox       |
 | Badge         | stable | base-badge          |

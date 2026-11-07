@@ -964,6 +964,160 @@
   color: var(--ds-text-disabled);
 }
 
+/* Horizontal Field (ORV-249, field-row-1): the label and description in the first column, the
+   control at the inline end of the first line, the error across both. The DOM order is unchanged. */
+.ds-field[data-orientation="horizontal"] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: var(--ds-space-stack-md);
+  row-gap: var(--cmp-field-gap);
+}
+.ds-field[data-orientation="horizontal"] > * {
+  grid-column: 1;
+  min-inline-size: 0;
+}
+.ds-field[data-orientation="horizontal"]
+  > :not(.ds-field__label, .ds-field__description, .ds-field__error) {
+  grid-column: 2;
+  grid-row: 1;
+}
+/* The switch centres on the label's first line: the track takes the label's type so 1lh is that line. */
+.ds-field[data-orientation="horizontal"] .ds-switch__track {
+  font-size: var(--cmp-field-label-type-font-size);
+  line-height: var(--cmp-field-label-type-line-height);
+  margin-block-start: calc((1lh - var(--_h)) / 2);
+}
+.ds-field[data-orientation="horizontal"] > .ds-field__error {
+  grid-column: 1 / -1;
+}
+.ds-field[data-orientation="horizontal"] > label.ds-field__label {
+  cursor: pointer;
+}
+.ds-field[data-orientation="horizontal"][data-disabled] > label.ds-field__label {
+  cursor: not-allowed;
+}
+
+/* Switch (ORV-249): on or off, applied at once. On reads the selection tokens, not action.primary.
+   The track is the height plus the thumb wide and the thumb travels its own width (W1). The
+   transparent outlines keep both visible in forced colours, where the thumb's place shows the state. */
+.ds-switch {
+  --_h: var(--cmp-switch-height);
+  --_t: var(--cmp-switch-thumb-size);
+  --_inset: calc((var(--_h) - var(--_t)) / 2);
+  display: inline-flex;
+  flex: none;
+  vertical-align: middle;
+}
+.ds-switch[data-size="sm"] {
+  --_h: var(--cmp-switch-height-sm);
+  --_t: var(--cmp-switch-thumb-size-sm);
+}
+.ds-switch__track {
+  position: relative;
+  flex: none;
+  inline-size: calc(var(--_h) + var(--_t));
+  block-size: var(--_h);
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--cmp-switch-radius);
+  background: var(--cmp-switch-track);
+  color: var(--cmp-switch-thumb);
+  outline: 1px solid transparent;
+  outline-offset: -1px;
+  cursor: pointer;
+  transition:
+    background-color var(--ds-motion-feedback-duration) var(--ds-motion-easing),
+    border-color var(--ds-motion-feedback-duration) var(--ds-motion-easing);
+}
+/* A transparent extension keeps a 24 px target around the track (WCAG 2.5.8). Inset from the
+   padding box, so the 1px border is added back. */
+.ds-switch__track::after {
+  content: "";
+  position: absolute;
+  inset-inline: -1px;
+  inset-block: calc((var(--_h) - var(--cmp-switch-target-min)) / 2 - 1px);
+}
+.ds-switch__thumb {
+  position: absolute;
+  inset-block-start: calc(var(--_inset) - 1px);
+  inset-inline-start: calc(var(--_inset) - 1px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: var(--_t);
+  block-size: var(--_t);
+  /* Concentric with the track, so the gap stays even at the corners (A3). The calc goes through a
+     local property because recipes.test.ts reads a radius that is not a var() as a literal. */
+  --_thumb-radius: calc(var(--cmp-switch-radius) - var(--_inset));
+  border-radius: var(--_thumb-radius);
+  background: var(--cmp-switch-thumb);
+  color: var(--cmp-switch-ring);
+  outline: 1px solid transparent;
+  outline-offset: -1px;
+  transition: transform var(--ds-motion-feedback-duration) var(--ds-motion-easing);
+}
+.ds-switch__track[data-state="checked"] {
+  background: var(--cmp-switch-track-on);
+  color: var(--cmp-switch-thumb-on);
+}
+.ds-switch__track[data-state="checked"] .ds-switch__thumb {
+  background: var(--cmp-switch-thumb-on);
+  transform: translateX(var(--_t));
+}
+/* Hover and press set one property each, so neither takes away an edge set by invalid or focus.
+   Off hover changes the track; on hover changes the edge and keeps the selection fill. */
+.ds-switch__track[data-state="unchecked"]:hover:not([data-disabled]):not([aria-busy="true"]) {
+  background: var(--cmp-switch-track-hover);
+}
+.ds-switch__track[data-state="checked"]:hover:not([data-disabled]):not([aria-busy="true"]):not(
+    [aria-invalid="true"]
+  ):not(:focus-visible) {
+  border-color: var(--cmp-switch-edge-on-hover);
+}
+/* [data-state] is on purpose: without it the hover rule beats this one and a press off shows hover. */
+.ds-switch__track[data-state]:active:not([data-disabled]):not([aria-busy="true"]) {
+  background: var(--cmp-switch-track-press);
+}
+.ds-switch__track[aria-invalid="true"]:not([data-disabled]) {
+  border-color: var(--cmp-switch-edge-error);
+}
+/* Focus (ORV-192 row 9): the track's border turns to focus.ring with the halo on it. An on track
+   draws the fill form instead, since its border equals its fill (A2). Invalid keeps its red. */
+.ds-switch__track:focus-visible {
+  border-color: var(--ds-focus-ring);
+  outline: 1px solid transparent;
+  outline-offset: 0;
+  box-shadow: var(--_focus-shadow-border);
+}
+.ds-switch__track[data-state="checked"]:focus-visible {
+  box-shadow: var(--_focus-shadow-fill);
+}
+.ds-switch__track[aria-invalid="true"]:focus-visible {
+  border-color: var(--cmp-switch-edge-error);
+}
+.ds-switch__track[aria-busy="true"] {
+  cursor: progress;
+}
+.ds-switch__track[data-disabled] {
+  background: var(--cmp-switch-track-disabled);
+  color: var(--cmp-switch-thumb-disabled);
+  cursor: not-allowed;
+}
+.ds-switch__track[data-disabled] .ds-switch__thumb {
+  background: var(--cmp-switch-thumb-disabled);
+}
+/* The saving ring is the thumb less space.inline.sm: 16 at md, 12 at sm (A1). */
+.ds-switch__thumb > .ds-spinner__ring {
+  inline-size: calc(var(--_t) - var(--ds-space-inline-sm));
+  block-size: calc(var(--_t) - var(--ds-space-inline-sm));
+}
+@media (prefers-reduced-motion: reduce) {
+  .ds-switch__track,
+  .ds-switch__thumb {
+    transition: none;
+  }
+}
+
 /* Tooltip ----------------------------------------------------------------------------------- */
 
 .ds-tooltip {
