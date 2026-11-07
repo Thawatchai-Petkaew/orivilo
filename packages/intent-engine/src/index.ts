@@ -23,3 +23,4 @@ export type { ReadPorts, ReadResult, Fetched, RobotsRules, RobotsCache } from ".
 export { checkAddress, parseRobots, robotsAllows } from "./read-page";
 export * from "./url-analyser";
 export * from "./report";
+export * from "./report-view";
