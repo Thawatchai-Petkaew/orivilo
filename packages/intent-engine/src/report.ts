@@ -2,7 +2,8 @@ import { z } from "zod";
 import { URL_MAX_CHARS, inputEvidenceSchema } from "./evidence";
 import { PERSONALITY_AXES, personalityAxisSchema } from "./knowledge";
 import { rendererBuildSchema } from "./render-snapshot";
-import { notMeasuredSchema } from "./url-analyser";
+import type { ReadResult } from "./read-page";
+import { analyseUrl, notMeasuredSchema, type AnalyserContext, type NotRead } from "./url-analyser";
 
 /** The command's `--json` contract (tech notes section 7, "The report schema"). A minor bump for each member a later slice adds. */
 export const REPORT_SCHEMA_VERSION = "1.0";
@@ -103,3 +104,95 @@ export const reportSchema = z.discriminatedUnion("status", [
   refusedReportSchema,
 ]);
 export type Report = z.infer<typeof reportSchema>;
+
+/**
+ * The authority of a URL as given, userinfo included: from after an optional `scheme://` to the first
+ * `/`, `?` or `#`. Textual, so it holds for text no URL parser accepts. A backslash is not a stop, so
+ * `https://a:b\@host/` loses `a:b\` as well: it drops too much, never too little.
+ */
+const AUTHORITY = /^([a-z][a-z0-9+.-]*:\/\/)?([^/?#]*)/i;
+
+/** report-outcome-1, the two steps on `url` of a refused member: userinfo dropped, then cut at URL_MAX_CHARS. */
+function refusedUrlOf(given: string): { url: string; urlCut: boolean } {
+  const m = AUTHORITY.exec(given);
+  const scheme = m?.[1] ?? "";
+  const authority = m?.[2] ?? "";
+  const rest = given.slice(scheme.length + authority.length);
+  const bare = scheme + authority.slice(authority.lastIndexOf("@") + 1) + rest;
+  if (bare.length <= URL_MAX_CHARS) return { url: bare, urlCut: false };
+  let end = URL_MAX_CHARS;
+  const last = bare.charCodeAt(end - 1);
+  if (last >= 0xd800 && last <= 0xdbff) end -= 1; // never end on half a surrogate pair
+  return { url: bare.slice(0, end), urlCut: true };
+}
+
+type ReportMemberBuilt =
+  | { ok: true; report: Report }
+  | { ok: false; error: "id-collision" | "competitor-not-read" | "report-invalid" };
+
+/**
+ * Rule report-outcome-1 (ORV-266 spec, without the command's exit codes): one member of
+ * `reportSchema` for each read outcome. `given` is the URL as the person gave it; `outcome` is what
+ * `readUrlInput` returned. A `read` is analysed with `analyseUrl`; its personality entries hold the
+ * readings that are not below the floor, in axis order, none picked. A result no report fits (the
+ * analyser's refusal, or a report `reportSchema` rejects) is `ok: false`, never a throw. Pure:
+ * `ctx.retrievedAt` is the caller's clock reading.
+ */
+export function reportOf(
+  given: string,
+  outcome: ReadResult | NotRead,
+  snapshot: unknown | null,
+  ctx: AnalyserContext,
+): ReportMemberBuilt {
+  let candidate: unknown;
+  if (outcome.status === "not-read") {
+    candidate = {
+      version: REPORT_SCHEMA_VERSION,
+      status: "not-read",
+      url: outcome.url,
+      line: outcome.line,
+    };
+  } else if (outcome.status === "read") {
+    const analysis = analyseUrl(outcome, snapshot, ctx);
+    if (!analysis.ok) return { ok: false, error: analysis.error };
+    candidate = {
+      version: REPORT_SCHEMA_VERSION,
+      status: "analysed",
+      url: outcome.url,
+      renderer: analysis.renderer,
+      evidence: analysis.evidence,
+      notMeasured: analysis.notMeasured,
+      personality: PERSONALITY_AXES.map((axis) => ({
+        axis,
+        leans: analysis.evidence.flatMap((item) =>
+          item.reading !== null &&
+          item.reading.target === `identity-frame.personality.${axis}` &&
+          "lean" in item.reading.value &&
+          !item.belowFloor
+            ? [
+                {
+                  lean: item.reading.value.lean,
+                  evidenceId: item.id,
+                  confidence: item.confidence.value,
+                },
+              ]
+            : [],
+        ),
+      })),
+      lines: [...REPORT_LINES],
+    };
+  } else {
+    const key = outcome.reason;
+    candidate = {
+      version: REPORT_SCHEMA_VERSION,
+      status: "refused",
+      ...refusedUrlOf(given),
+      key,
+      line: REFUSED_LINES[key],
+    };
+  }
+  const parsed = reportSchema.safeParse(candidate);
+  return parsed.success
+    ? { ok: true, report: parsed.data }
+    : { ok: false, error: "report-invalid" };
+}

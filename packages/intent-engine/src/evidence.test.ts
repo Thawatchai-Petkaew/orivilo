@@ -810,7 +810,7 @@ function stringProblems(table: Record<string, Entry>, questionKeys: readonly str
 }
 
 // The keys of the ORV-128 spec "Strings" section, with the four {what} labels and read.notMeasured.noFlatPair of slice 1c,
-// and the four read.failed.* keys of the ORV-135 spec "Strings this slice adds".
+// and the four read.failed.* keys of the ORV-266 spec "Strings".
 const SPEC_KEYS = [
   "evidence.fromModel",
   "evidence.measured",
@@ -859,22 +859,22 @@ describe("evidence strings", () => {
     ]);
   });
 
-  it("the four read.failed.* keys hold the copy the ORV-135 spec drafts", () => {
+  it("the four read.failed.* keys hold the copy of the ORV-266 spec Strings table", () => {
     expect(EVIDENCE_STRINGS["read.failed.timeout"]).toEqual({
-      th: "หน้านี้ใช้เวลาอ่านนานเกินไป เราจึงหยุดอ่าน",
-      en: "The page took too long to read, so we stopped.",
+      th: "หน้านี้ตอบช้าเกินไป เราจึงหยุดอ่าน ลองใหม่ภายหลัง",
+      en: "This page took too long to answer, so we stopped. Try again later.",
     });
     expect(EVIDENCE_STRINGS["read.failed.network"]).toEqual({
-      th: "เราดึงหน้านี้ไม่ได้ เว็บไซต์ไม่ตอบหรือส่งข้อผิดพลาดกลับมา",
-      en: "We could not get this page. The site did not answer or sent an error.",
+      th: "เราเปิดหน้านี้ไม่ได้ ตรวจที่อยู่เว็บแล้วลองใหม่",
+      en: "We could not open this page. Check the address, then try again.",
     });
     expect(EVIDENCE_STRINGS["read.failed.redirects"]).toEqual({
-      th: "ที่อยู่นี้ส่งต่อไปยังที่อยู่อื่นหลายครั้งเกินไป เราจึงหยุดอ่าน",
-      en: "This address sent us on to other addresses too many times, so we stopped.",
+      th: "ที่อยู่นี้ส่งต่อไปยังที่อยู่อื่นหลายทอดเกินไป เราจึงหยุดอ่าน",
+      en: "This address sends readers on through too many other addresses, so we stopped.",
     });
     expect(EVIDENCE_STRINGS["read.failed.notHtml"]).toEqual({
-      th: "ที่อยู่นี้ไม่ใช่หน้าเว็บที่เราอ่านได้",
-      en: "This address is not a web page we can read.",
+      th: "ที่อยู่นี้ไม่ใช่หน้าเว็บ เราจึงไม่มีอะไรให้อ่าน",
+      en: "This address is not a web page, so there is nothing for us to read.",
     });
   });
 
