@@ -35,7 +35,7 @@ export function markCurrent(
   const hits = items.flatMap((item, index) => {
     if (item.current === false) return [];
     const mark = markOf(item.href, path) ?? (item.current === true ? "true" : null);
-    return mark ? [{ index, mark, length: item.href.length }] : [];
+    return mark ? [{ index, mark, length: normalizePath(item.href).length }] : [];
   });
   const winner =
     hits.find((hit) => hit.mark === "page") ?? [...hits].sort((a, b) => b.length - a.length)[0];

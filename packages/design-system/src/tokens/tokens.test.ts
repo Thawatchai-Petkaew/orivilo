@@ -288,6 +288,24 @@ describe("the violet signature (ORV-118, comment 10336)", () => {
   });
 });
 
+// ORV-252 (parent open question 3): a current link is a selection and not the brand, so the nav
+// item's active fill reads the selected ground and its active ink and bead read the selection ink.
+describe("the nav item's active tokens read the selection (ORV-252)", () => {
+  const raw = (name: string) => tokens.get("component", name)?.raw;
+
+  it("reads nav-item.bg-active from surface.selected", () => {
+    expect(raw("nav-item.bg-active")).toBe("{surface.selected}");
+  });
+
+  it("reads nav-item.fg-active from selection.fg", () => {
+    expect(raw("nav-item.fg-active")).toBe("{selection.fg}");
+  });
+
+  it("reads nav-item.bead from selection.fg", () => {
+    expect(raw("nav-item.bead")).toBe("{selection.fg}");
+  });
+});
+
 describe("focus follows the brand (ORV-192 row 9)", () => {
   const read = (path: string, mode: (typeof MODES)[number]) => {
     const token = tokens.get("semantic", path);

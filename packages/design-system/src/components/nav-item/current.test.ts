@@ -82,6 +82,18 @@ describe("markCurrent, clause by clause", () => {
     expect(markCurrent([{ href: "/a/b" }, { href: "/a" }], "/a/b/c")).toEqual(["true", null]);
   });
 
+  it("step 5: the length compared is the normalised href, so a query or a hash adds nothing", () => {
+    // "/a?tab=overview" is 15 long raw and "/a" is 2 once normalised; "/a/b" is 4.
+    expect(markCurrent([{ href: "/a/b" }, { href: "/a?tab=overview" }], "/a/b/c")).toEqual([
+      "true",
+      null,
+    ]);
+    expect(markCurrent([{ href: "/a/b#top" }, { href: "/a/?x=1" }], "/a/b/c")).toEqual([
+      "true",
+      null,
+    ]);
+  });
+
   it("step 5: at most one item is marked", () => {
     const items = [{ href: "/a" }, { href: "/a/b" }, { href: "/c", current: true }];
     expect(markCurrent(items, "/a/b/c").filter((mark) => mark !== null)).toHaveLength(1);

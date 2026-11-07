@@ -346,6 +346,10 @@ async function expectHover(canvasElement: HTMLElement, { copy }: Setup) {
   await waitFor(() => expect(getComputedStyle(rest).backgroundColor).toBe(fill));
   await expect(getComputedStyle(rest).color).toBe(ink);
   forceHover(marked);
+  // `.ds-nav-item` transitions its colours over 120 ms: read the marked link only once its
+  // transitions are done (`getAnimations` flushes style, so a started one is already listed), or a
+  // rule that lets the hover win would still read the old colours at the start of its transition.
+  await waitFor(() => expect(marked.getAnimations()).toHaveLength(0));
   await expect(getComputedStyle(marked).backgroundColor).toBe(activeFill);
   await expect(getComputedStyle(marked).color).toBe(activeInk);
 }
@@ -690,6 +694,18 @@ async function expectDrawer(canvasElement: HTMLElement, setup: Setup) {
   presses.length = 0;
   const { opener, dialog } = await openDrawer(canvasElement, setup);
   const items = drawerItems(setup);
+  // Row 35: the settled drawer sits on the start edge of the viewport and stops short of the end edge.
+  const box = rect(dialog);
+  const viewport = document.documentElement.clientWidth;
+  if (getComputedStyle(dialog).direction === "rtl") {
+    near(box.right, viewport, "the drawer's end edge against the viewport's right");
+    await expect(box.left, "the drawer stops short of the left edge").toBeGreaterThan(0.5);
+  } else {
+    near(box.left, 0, "the drawer's start edge against the viewport's left");
+    await expect(box.right, "the drawer stops short of the right edge").toBeLessThan(
+      viewport - 0.5,
+    );
+  }
   const scope = within(dialog);
   await expect(scope.queryByRole("navigation")).toBeNull();
   const lists = scope.getAllByRole("list");
