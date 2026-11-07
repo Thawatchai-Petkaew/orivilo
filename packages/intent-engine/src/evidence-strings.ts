@@ -66,6 +66,23 @@ export const EVIDENCE_STRINGS = {
     th: "ไม่ได้วัด: {what} เพราะไม่ได้แสดงผลหน้าเว็บ ({reason})",
     en: "Not measured: {what}. The page was not rendered ({reason}).",
   },
+  // a failed read, one per ReadResult failed reason (ORV-266 spec "Strings", rule report-outcome-1; words from that table)
+  "read.failed.timeout": {
+    th: "หน้านี้ตอบช้าเกินไป เราจึงหยุดอ่าน ลองใหม่ภายหลัง",
+    en: "This page took too long to answer, so we stopped. Try again later.",
+  },
+  "read.failed.network": {
+    th: "เราเปิดหน้านี้ไม่ได้ ตรวจที่อยู่เว็บแล้วลองใหม่",
+    en: "We could not open this page. Check the address, then try again.",
+  },
+  "read.failed.redirects": {
+    th: "ที่อยู่นี้ส่งต่อไปยังที่อยู่อื่นหลายทอดเกินไป เราจึงหยุดอ่าน",
+    en: "This address sends readers on through too many other addresses, so we stopped.",
+  },
+  "read.failed.notHtml": {
+    th: "ที่อยู่นี้ไม่ใช่หน้าเว็บ เราจึงไม่มีอะไรให้อ่าน",
+    en: "This address is not a web page, so there is nothing for us to read.",
+  },
   // reason no-renderer
   "read.notRendered.none": {
     th: "ยังไม่ได้ตั้งค่าตัวแสดงผล",
