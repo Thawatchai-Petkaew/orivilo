@@ -3,7 +3,7 @@ issue: ORV-250 (https://tpetkaew.atlassian.net/browse/ORV-250), the loading half
 lane: L (as ORV-223)
 mode: POC mode short spec (`.claude/skills/ovl/SKILL.md`, section "POC mode")
 parent: docs/specs/ORV-223/spec.md v1.6, with docs/specs/ORV-223/design.md
-version: 1.0
+version: 1.1
 ---
 
 # ORV-250: Loading state (ORV-223 slice)
@@ -12,7 +12,7 @@ version: 1.0
 
 ORV-223 asks for one Empty state and one Loading state pattern, so a region with nothing in it and a region that waits read as the same product. The full reasoning is in the Goal of `docs/specs/ORV-223/spec.md` and applies here as written.
 
-Open question 10 of the parent split that story into two PRs by default: the empty half first, then the loading half. PR 190 carried the first half and merged into `develop` (rows 1 to 26 and 44 to 50, `docs/specs/ORV-223/spec.md` "Rows per PR"). This issue is the second half, split out so LoadingState has its own acceptance, its own PR and its own qa walk (L-0016). It adds no requirement and no gate.
+Open question 10 of the parent split that story into two PRs by default: the empty half first, then the loading half. PR 190 carried the first half and merged into `develop` (rows 1 to 26 and 44 to 50, `docs/specs/ORV-223/spec.md` "Rows per PR"). This issue is the second half, split out so LoadingState has its own acceptance, its own PR and its own qa walk (L-0016). It adds no gate. Its one requirement beyond the parent is the board's plate in rows 35 and 36, which settles finding F1 of the sign-off `ORV-250-signoff-1` (`docs/specs/ORV-250/design.md`).
 
 What is real and what is not, as the parent's Goal says it: LoadingState renders real markup and reads the locale catalog. Every stop action in the stories is mock, and no press in them runs anything. No screen in `apps/web` mounts CanvasBoard or LoadingState, so no Studio screen changes when this story ends. No screen reader test has been run, so `load-mount-1` and `load-board-1` rest on the W3C pages read, not on a measured announcement.
 
@@ -24,6 +24,7 @@ As a person using ORIVILO, when a region is waiting I see and hear that it is wa
 
 - **Spec:** `docs/specs/ORV-223/spec.md` v1.6: the Loading state benchmark, the `load-*` rules, the LoadingState, CanvasBoard, recipe, token and `decorative` rows of "Contract changes and impact", the `board.loading` and `spinner.loading` rows and the four loading fixture rows of "Copy", and W1, W3, W4, W5 and W6 of "Worked examples".
 - **Design:** `docs/specs/ORV-223/design.md` (its `spec:` line reads v1.6): step 5 of the Flow, C2 for `loading-state.max-width`, C4, D12 to D14, the LoadingState column of the States table, the `load-*` rows of the builder table, LoadingState's markup, the `.ds-loading-state` and `.ds-board[data-loading] .ds-board__status` recipe text, the `loading-state.*` tokens, the story notes, the `application-loading-state` and `Loading` lines of "Screens to check in visual QA", and the Open points "Loading with the bar open", "A long action label" and "Screen reader". That screens list adds `LiveOff` and `LoadingAt360` to the screens of row 42, and the row stays as copied.
+- **Design of this issue:** `docs/specs/ORV-250/design.md`: D17 to D20, "The change for the builder" and "What the plate costs". D11 of `docs/specs/ORV-223/design.md` is used as amended by D17: it holds for the empty form and not for the wait. In this spec a bare `design.md` still means the parent's.
 - **Gates:** G1 and G2 passed in ORV-223 comment 10514 and cover this slice, and C1 to C4 of design.md were accepted in ORV-223 comment 10520. G3 is raised on this issue.
 - **Already on `develop` from PR 190:**
   - `EmptyState` and `EmptyStateProps`, the `ds-empty-state` recipe, the `empty-state.*` tokens, and `packages/design-system/catalog/application/empty-state.yaml`, whose rules already name `load-use-1`.
@@ -39,6 +40,7 @@ As a person using ORIVILO, when a region is waiting I see and hear that it is wa
   - CanvasBoard's loading overlay on LoadingState, its status line text, and the rule that hides that line while the board loads.
   - The leaving of `.ds-board__overlay > p`, `.ds-board__spinner` and the `SpinnerIcon` import of `CanvasBoard.tsx`.
   - The `decorative` wording in `Spinner.tsx` and `spinner.yaml`, and the `canvas-board.yaml` a11y line.
+  - The board's plate (`docs/specs/ORV-250/design.md` D17 to D20): its rule in `recipes.css`, its row in `packages/design-system/src/recipes/pairs.ts`, `expectCoversInk` in `packages/design-system/src/testing/visual-asserts.ts`, the `Loading` and `LoadingFinishes` plays, the `loading` rule of `canvas-board.yaml`, and a `DESIGN.md` change log line. "The change for the builder" in that file holds the change to each.
 - **Order:** the PR title starts `ORV-250: ...`.
 
 ### Line numbers that moved
@@ -68,12 +70,15 @@ Those five status rules still set only `bottom` and `position-anchor`, so the bu
 
 Rows 27 to 43 keep their numbers from the parent at v1.6. Row by row:
 
-- Rows 27 to 41 and row 43 keep the parent's wording, with no change. None of them asks for a part PR 190 already delivered, so no row drops anything.
+- Rows 27 to 34, rows 37 to 41 and row 43 keep the parent's wording, with no change. None of them asks for a part PR 190 already delivered, so no row drops anything.
+- Rows 35 and 36 differ in their User sees and Check cells: they carry A1 and A2 of `docs/specs/ORV-250/design.md`. For this PR these two rows rule, and the parent's rows stay as they are.
 - Row 42 differs in its Check cell only: it says ORV-250 where the parent says ORV-223, since this is the issue the sign-off reports on.
 
 Rows 38 and 41 keep the parent's line numbers as copied. "Line numbers that moved" gives the lines on `develop`.
 
 Everything these rows name from outside them is the parent's: row 5, named by row 27, is `docs/specs/ORV-223/spec.md` row 5, and W1, W3, W4, W5 and W6 are the parent's. The opening paragraph of the parent's Acceptance criteria gives the story ids, the locale of the plays, the rule on waits, what "the six boundaries" means, and what a 360 px frame is.
+
+Rows 35 and 36 also name what is not the parent's. The plate and `expectCoversInk` are `docs/specs/ORV-250/design.md`'s, `withRingsStill` is the function at `packages/design-system/src/components/canvas-board/CanvasBoard.stories.tsx` line 582, and `inVitest` is the export of `packages/design-system/src/testing/visual-asserts.ts`. "The root" in those two rows is the form's root, `.ds-loading-state`; in row 38 it stays `.ds-board`.
 
 The rows keep the parent's short names. In full, from the repo root:
 
@@ -93,8 +98,8 @@ The rows keep the parent's short names. In full, from the repo root:
 | 32 | Storybook, a 360 px frame | LoadingState `LongAt360` renders `fixtures.longThai` as `label` with the action | The label wraps under the ring, centred, nothing cut | None | `LongAt360` play: frame `scrollWidth` not above 360; every ancestor of the label up to the frame (`.ds-spinner`, `.ds-loading-state`, any story wrapper) has computed `overflowX` and `overflowY` `visible`; `expectLinesClear` on the label, which wraps; `expectFrameCutsNoInk(label, frame)` |
 | 33 | Storybook test project | LoadingState `RecipesAndModes` renders through `Matrix` | The ring, the label and the action in the six boundaries | None. The pair of `load-live-1` passes at its floor | `RecipesAndModes` play: counts as W4; `recipes.test.ts` proves the contrast |
 | 34 | The PR head | `pnpm typecheck` runs on the story file | Not a screen | `@ts-expect-error` lines hold for `live="alert"`, a `size` prop and a `children` prop (`load-api-1`) | `pnpm --filter @orivilo/design-system typecheck` output |
-| 35 | Storybook test project, neutral profile, light, Thai | CanvasBoard `Loading` renders | The ring and "กำลังโหลดกระดาน" once, centred on the board, with no status pill | None. Region `aria-busy="true"`; exactly one `role="status"` in the region, holding "กำลังโหลดกระดาน", at the hidden box of `load-board-1` | `Loading` play (updated): `getAllByRole("status")` length 1 and its text; its bounding box 1 by 1 px; the overlay label visible |
-| 36 | Same | CanvasBoard `LoadingFinishes`: a host outside the region starts with `loading`; the person presses "โหลดเสร็จ" | The overlay goes and the board shows its fixture nodes | None. The status node is the same DOM node before and after; its text is empty after; `aria-busy` is absent (W6) | `LoadingFinishes` play: node identity, `textContent`, attribute |
+| 35 | Storybook test project, neutral profile, light, Thai | CanvasBoard `Loading` renders | The ring and "กำลังโหลดกระดาน" once, on the plate, centred on the board, with no status pill | None. Region `aria-busy="true"`; exactly one `role="status"` in the region, holding "กำลังโหลดกระดาน", at the hidden box of `load-board-1` | `Loading` play (updated): `getAllByRole("status")` length 1 and its text; its bounding box 1 by 1 px; the overlay label visible; the form's centre on the board's centre to 0.5 px on both axes; the ring's and the label's boxes inside the root's padding box by at least the resolved `--ds-space-inset-md` less 0.5 px above and below |
+| 36 | Same | CanvasBoard `LoadingFinishes`: a host outside the region starts with `loading`; the person presses "โหลดเสร็จ" | While the wait runs, the ring and the words sit on the plate over the nodes and nothing of the nodes shows through them. Then the overlay goes and the board shows its fixture nodes | None. The status node is the same DOM node before and after; its text is empty after; `aria-busy` is absent (W6) | `LoadingFinishes` play: before the press, the box of at least one `.react-flow__node` overlaps the root's box, and `expectCoversInk` on the board with the ring and the label as parts and `.react-flow__viewport` as the layer, inside `withRingsStill` and guarded by `inVitest`; then node identity, `textContent`, attribute |
 | 37 | Same, English | CanvasBoard `LoadingInEnglish` renders row 35 | "Loading the board" under the ring | None. The status holds the same words | `LoadingInEnglish` play |
 | 38 | Storybook, a 360 px frame | CanvasBoard `LoadingAt360` renders row 35 | The ring and words centred in the frame | None | `LoadingAt360` play: frame `scrollWidth` not above 360; every ancestor of the label up to the board root (`.ds-loading-state__quiet`, `.ds-loading-state`, `.ds-board__overlay`) has computed `overflowX` and `overflowY` `visible`; the root `.ds-board` is the one clip inside the frame (`recipes.css` line 1514), so the label's box lies inside its padding box; `expectLabelInkWhole` on the label, which is one line at this width; `expectFrameCutsNoInk(label, root)` |
 | 39 | Storybook test project | CanvasBoard `LoadingRecipesAndModes` renders row 35 through `Matrix` and `MatrixBoard` | The loading board in the six boundaries | None | `LoadingRecipesAndModes` play: counts as W4 |
@@ -115,7 +120,7 @@ Row 34 is a type check, row 40 is a diff, row 41 is catalog and copy checks, and
 
 ## Rules and bounds
 
-This story adds no rule. Each loading rule keeps its one home in "Rules" of `docs/specs/ORV-223/spec.md`, and the list names what each one covers:
+This story adds no rule. The plate is a design decision: its home is D17 to D20 of `docs/specs/ORV-250/design.md`, and rows 35 and 36 check it. Each loading rule keeps its one home in "Rules" of `docs/specs/ORV-223/spec.md`, and the list names what each one covers:
 
 - `load-api-1`: the public component and its props.
 - `load-live-1`: who speaks, and the recipe, tokens and pair of the column.
@@ -132,10 +137,12 @@ The rows also read `spin-live-1` and `spin-motion-1` of ORV-201, which this stor
 - Rows 1 to 26 and 44 to 50, which merged in PR 190.
 - Any change to `EmptyState`, `FeaturedIcon`, `TaskBar`, or the empty form's rules in `recipes.css`.
 - The loading overlay's place with the task bar's panel open: open question 1 below.
+- A flow left tabbable under the plate during a wait: open question 2 below.
 
 ## Open questions (with defaults)
 
-1. Loading with the bar open. design.md's Open points leave this to the loading PR: `load-board-1` keeps the board's centre, so at 900 by 420 the label would overlap the open card, by the 18.3 px design.md measured on the head's overlay and not on LoadingState. Options: (a) leave the loading overlay as `load-board-1` and `empty-board-1` have it, and take the overlap as a named cost, with no row; (b) widen design.md D16 to the loading overlay, which is a new requirement with new rows, so it needs a parent spec change and a card of its own. Default: (a), since this issue adds no requirement, D15's note not to widen the selector stands, and no story or screen pairs a loading board with an open bar.
+1. Loading with the bar open. design.md's Open points leave this to the loading PR: `load-board-1` keeps the board's centre, so at 900 by 420 the plate lies over the open card's top (`docs/specs/ORV-250/design.md` D20). Options: (a) leave the loading overlay as `load-board-1` and `empty-board-1` have it, and take the overlap as a named cost, with no row; (b) widen design.md D16 to the loading overlay, which is a new requirement with new rows, so it needs a parent spec change and a card of its own. Default: (a), since this issue adds no requirement on the overlay's place, D15's note not to widen the selector stands, and no story or screen pairs a loading board with an open bar. The default (a) stands, with the named cost now the plate's. On the words themselves the overlap is gone.
+2. A flow left tabbable under the plate during a wait. The flow stays tabbable while the board loads, so a keyboard person can land under the plate; the form before the plate was see through and did not have this cost. WCAG 2.2 SC 2.4.11 asks that focus is not entirely hidden. "What the plate costs" in `docs/specs/ORV-250/design.md` gives the box measures, and no focused stop was rendered. Options: (a) accept the cost for this PR, with no row, and send the answer to a follow-up; (b) `inert` on the flow while `loading` in this PR, which is a behaviour change to CanvasBoard with its own rows. Default: (a). A flow left tabbable under the plate during a wait is accepted for this PR and goes to a follow-up.
 
 The rest stay in the parent's Open questions, and their defaults hold:
 
@@ -147,6 +154,7 @@ The rest stay in the parent's Open questions, and their defaults hold:
 ## Depends on
 
 - `docs/specs/ORV-223/spec.md` v1.6 and `docs/specs/ORV-223/design.md`, with the K entries, `DESIGN.md` sections and rule files listed in the parent's Depends on.
+- `docs/specs/ORV-250/design.md` D17 to D20, which amend D11 of the parent's design.
 - ORV-223 comment 10514 (G1 and G2) and comment 10520 (C1 to C4 accepted).
 - PR 190 (`EmptyState`, the board's empty overlay and its rise), merged into `develop`.
 - ORV-201 (Spinner and Skeleton): `spin-live-1`, `spin-motion-1`.
@@ -156,8 +164,21 @@ The rest stay in the parent's Open questions, and their defaults hold:
 
 ## Worked examples
 
-This story derives no number and adds no method. W1 (row 27), W3 (row 29), W4 (rows 33 and 39), W5 (row 28) and W6 (row 36) stay in "Worked examples" of `docs/specs/ORV-223/spec.md`.
+W1 (row 27), W3 (row 29), W4 (rows 33 and 39), W5 (row 28) and W6 (row 36) stay in "Worked examples" of `docs/specs/ORV-223/spec.md`. Rows 35 and 36 bring one number and one method, and they take the names after the parent's W9. Each line runs from the repo root.
+
+W10. The floor of row 35. Input: `space.inset.md` references `space.4` (`semantic.json` lines 789 to 792), whose value is at `primitives.json` lines 475 to 478, and row 35 takes 0.5 px off. Expected output, no rounding: `inset 16 floor 15.5`.
+
+```bash
+node -e 'const r="./packages/design-system/src/tokens/source/";const k=require(r+"semantic.json").space.inset.md.$value.slice(1,-1).split(".")[1];const v=parseInt(require(r+"primitives.json").space[k].$value);console.log("inset",v,"floor",v-0.5)'
+```
+
+W11. The pixel count `expectCoversInk` of row 36 reads, as `paintDifference` makes it. Input: `PAINT_TOLERANCE` 12 and the summed RGB `distance` (`packages/design-system/src/testing/visual-asserts.ts` lines 217 and 18), and two plates from the table in `docs/specs/ORV-250/design.md`: `rgb(255, 255, 255)` as the plate, and `rgb(30, 29, 38)` standing in for a node's ink. A pair of shots with nothing shown through counts 0, a pixel off by exactly 12 counts 0, and one pixel of ink counts 1, which fails the row. Expected output, integers, no rounding: `solid 0 at-tolerance 0 through 1`.
+
+```bash
+node -e 'const T=12,d=(a,b)=>a.reduce((s,v,i)=>s+Math.abs(v-b[i]),0),diff=(x,y)=>x.filter((p,i)=>d(p,y[i])>T).length;const w=[255,255,255],k=[30,29,38];console.log("solid",diff([w,k],[w,k]),"at-tolerance",diff([w],[[251,251,251]]),"through",diff([w,w],[w,k]))'
+```
 
 ## Changelog
 
 - v1.0 (2026-11-07): slice spec split from ORV-223 spec v1.6 (L-0016). Rows 27 to 43 copied with their numbers and no new requirement; row 42 names ORV-250 for its Jira comment. "Line numbers that moved" maps the parent's pointers to `develop` at `e7c4b6d`. Open question 1 records the point design.md left to the loading PR, with the default of no change. No Jira tool in this role, so ORV-250 and the G1 and G2 comments were not read; their content comes from the envelope facts and the parent. Downstream to review: the builder envelope (rows 27 to 43, one PR), the qa envelope (the Rows per PR line once the PR exists), and the parent spec, which does not name ORV-250 yet.
+- v1.1 (2026-11-07): settles finding F1 of the sign-off `ORV-250-signoff-1` with the plate of `docs/specs/ORV-250/design.md` D17 to D20, which amends D11 of `docs/specs/ORV-223/design.md`. Rows 35 and 36 change as that file's A1 and A2; every other row keeps its number and wording. Open question 1 takes A3 and "What this story uses" takes A4. Open question 2 records that a flow left tabbable under the plate during a wait is accepted for this PR and goes to a follow-up. To match, "Why", the row by row list, the note on what the rows name, "Rules and bounds", "Out of scope" and "Depends on" name the plate, and W10 and W11 are new. Rows per PR do not change. Downstream to review: the builder envelope takes "The change for the builder", the qa envelope takes rows 35 and 36, and `docs/specs/ORV-250/design.md` line 3 still names v1.0.
