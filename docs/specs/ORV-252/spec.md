@@ -3,7 +3,7 @@ issue: ORV-252 (https://tpetkaew.atlassian.net/browse/ORV-252), the Top navigati
 lane: L (as ORV-225, by that spec's reading of the risk flags; Jira not read in this role)
 mode: POC mode short spec (`.claude/skills/ovl/SKILL.md`, section "POC mode")
 parent: docs/specs/ORV-225/spec.md v1.3, with docs/specs/ORV-225/design.md version 2
-version: 1.1
+version: 1.2
 ---
 
 # ORV-252: Top navigation (ORV-225 slice C)
@@ -14,7 +14,7 @@ ORV-225 asks for four named parts, so the Studio shell and the reference screen 
 
 The parent plans six PRs, slices A to F. PR 189 carried slice A, Page header, and merged into `develop`. This issue is slice C, split out so Top navigation has its own acceptance, its own PR and its own qa walk (L-0016). It adds no gate and one requirement, row 78: Breadcrumb merged after the parent was written and reads a token the parent repoints, so its current crumb has to keep its ink.
 
-What is real and what is not, as the parent's Goal says it: Top navigation renders real markup and real links and reads the locale catalog. `navFixtures` is mock story data, and its routes do not exist. No route in `apps/web` shows Top navigation when this story ends, because the shell moves onto it in slice F. Nothing checks a permission. No screen reader test has been run, and accessibility claims stop at the plays below.
+What is real and what is not, as the parent's Goal says it: Top navigation renders real markup and real links and reads the locale catalog. `navFixtures` is mock story data, and its routes do not exist. No route in `apps/web` shows Top navigation when this story ends, because the shell moves onto it in slice F. Nothing checks a permission. No screen reader test has been run, and accessibility claims stop at the plays below and row 38's probe.
 
 ## Story
 
@@ -49,8 +49,9 @@ As a person working in the Studio, I see which section I am on in the top menu, 
 
 ## Acceptance criteria
 
-Rows 23 to 41 and 75 keep their numbers from the parent at v1.3. Rows 23 to 40 and 75 keep its wording. One row differs:
+Rows 23 to 41 and 75 keep their numbers from the parent at v1.3. Rows 23 to 37, 39, 40 and 75 keep its wording. Two rows differ:
 
+- Row 38 changes in its Check cell only. The proof that focus lands on the target after Enter moves from the `SkipLink` play to a Playwright probe, because a real hash change reloads the Vitest browser tester page (builder report of `ORV-252-build-1`). Its Given, When, User sees and Data effect cells keep the parent's words, so the behaviour asked for does not change. The builder runs the probe on the Storybook build, puts the read in a `verified` row, and shows it red with `tabIndex` off the target. The probe is a one-time read and not a CI test, so CI holds no proof of this focus move until row 70's `shell.spec.ts` in slice F.
 - Row 41 adds "on ORV-252" after "a Jira comment", in its Data effect cell only, since this is the issue the sign-off reports on.
 
 Row 78 is this story's own, from open question 1. The parent's rows end at 77, so the number takes none of them.
@@ -86,7 +87,7 @@ The file names in the rows stand for these paths:
 | 35 | `DrawerOpen`, same | The button is pressed | A drawer in position at the start edge, titled "เมนูหลัก": the items in their order, "โปรเจกต์" with the current look | `getByRole("dialog", { name: "เมนูหลัก" })`; link order equals `items`; `aria-current="page"` on "โปรเจกต์"; no `nav` in the dialog; items at the drawer height of `nav-size-1`; the text proof for a drawer label passes, with `expectFrameCutsNoInk(el, frame)` for the frame clip, `frame` its `.ds-nav-item` (`nav-narrow-1`, `nav-landmark-1`, `frame-ink-1`) | `DrawerOpen` play |
 | 36 | `DrawerOpen`, open | "สมาชิก" is pressed; reopen; Esc | The drawer closes each time | The fixture link records one press; after Esc `document.activeElement` is the opener (`nav-narrow-1`) | `DrawerOpen` play step |
 | 37 | `InsideProfile`, friendly boundary, drawer open | Rendering | The drawer in the friendly profile's colours | The dialog's `closest("[data-design-profile]")` reads `friendly` (`.claude/rules/design-system.md`) | `InsideProfile` play |
-| 38 | `SkipLink`, with `skipHref` and `skipLabel` | Tab once, then Enter | "ข้ามไปเนื้อหาหลัก" comes into view as an opaque bar over the row; then focus moves to the target | The link is the first focusable in the `header`; out of view before Tab; `document.activeElement` is the target after Enter (`top-skip-1`) | `SkipLink` play |
+| 38 | `SkipLink`, with `skipHref` and `skipLabel` | Tab once, then Enter | "ข้ามไปเนื้อหาหลัก" comes into view as an opaque bar over the row; then focus moves to the target | The link is the first focusable in the `header`; out of view before Tab; `document.activeElement` is the target after Enter (`top-skip-1`) | `SkipLink` play: the first focusable in the `header`, out of view before Tab, the opaque bar after Tab, and the target's `id` and `tabIndex`. Playwright probe on the built story `application-top-navigation--skip-link`: `document.activeElement` is the target after Tab and a real Enter |
 | 39 | Slice C's token and pair changes | `pnpm --filter @orivilo/design-system tokens`, `pnpm test`, `pnpm contrast` | Nothing | `generated.css` is fresh; `tokens.test.ts` line 168 reads `["logo", "tile"]`; the nine new pairs pass under every profile in both modes ("Contract changes and impact", row `pairs.ts`) | `tokens.test.ts`, `recipes.test.ts`, `pnpm contrast` |
 | 40 | Top navigation `RecipesAndModes` | Rendering | Six boundaries; the current item keeps a visible fill and bead colour in each | Six frames; the bead has ink on `bg-active` in each (`stories-1`, `nav-look-1`) | `RecipesAndModes` play |
 | 41 | Slice C's PR | The gate runs and the designer reads the stories | Nothing new | As row 12, `top-navigation.yaml`, with the sign-off's PNG paths posted as a Jira comment on ORV-252; the entry says the two-row form has no route yet | `check-catalog`, Jira comment |
@@ -101,7 +102,7 @@ Row 23 is a unit test, row 39 is token and contrast checks, row 41 is the catalo
 
 ## Rows per PR
 
-No PR exists yet. The main session adds the line once it does, with rows 23-41, 75 and 78, in the form `qa-scope-1` reads, and a changelog line.
+- PR 202: rows 23-41, 75, 78
 
 ## Where `develop` has moved
 
@@ -170,6 +171,7 @@ Those of the parent that bear on this story keep their answers:
 - PR 189 (slice A) and PR 186 (`expectFrameCutsNoInk`), merged into `develop`.
 - PR 196 (Breadcrumb), `docs/specs/ORV-229/spec.md` and `docs/specs/ORV-229/design.md`, for open question 1 and row 78.
 - ORV-252 comment 10601 (the answer to open question 1), taken from the envelope facts of `ORV-252-tokens-1`; Jira itself not read in this role.
+- The builder report of `ORV-252-build-1` (row 38's Check cell), taken from `.orivilo/runs/ORV-252/ORV-252-build-1/result.json`; the reload itself not reproduced in this role.
 - ORV-138 `qa-scope-1` and `qa-scope-2` (the Rows per PR and Rows that render nothing forms).
 - L-0016 (a slice with its own issue has its own spec).
 - ADR 0003 (Radix behaviour, own visual layer), ADR 0012 (gates), ADR 0013 (qa approve on a code PR).
@@ -182,3 +184,4 @@ This story derives no number and adds no method. W1 (row 23), W2 (`nav-size-1`) 
 
 - v1.0 (2026-11-07): slice spec split from ORV-225 spec v1.3 (L-0016). Rows 23 to 41 and 75 copied with their numbers and no new requirement; row 41 names ORV-252 for its Jira comment. Open question 1 and "Where `develop` has moved" record what merged after v1.3. Downstream to review: the builder envelope (rows 23 to 41 and 75, one PR, after open question 1), the qa envelope (the Rows per PR line once the PR exists), the parent spec, which does not name ORV-252 yet and whose first contract row needs the Breadcrumb reader, and `docs/specs/ORV-229/spec.md` if open question 1 leaves its default.
 - v1.1 (2026-11-07): open question 1 closed on b) (ORV-252 comment 10601). The repoints go ahead, and the current crumb reads `text.primary` directly, with no new token. "Not there yet" gains the current crumb's ink: file edits, the two pair rows, Pagination's line and the impact list. New row 78, with `pairs.ts` in the file names and in the Rows per PR note; "Why", "Where `develop` has moved", "Rules and bounds", "Out of scope" and "Depends on" follow. Rows 23 to 41 and 75 are unchanged, and "Rows that render nothing" stands, because row 78 renders. Downstream to review: the builder envelope (rows 23 to 41, 75 and 78), the qa envelope (row 78 is visual by `qa-scope-2`, so it needs a computed style reference), the first contract row of `docs/specs/ORV-225/spec.md`, and `crumb-look-1`, `page-current-1` and the pairs row of `docs/specs/ORV-229/spec.md` with their rows in `docs/specs/ORV-229/design.md`.
+- v1.2 (2026-11-07): row 38's Check cell moves the proof that focus lands on the target after Enter from the `SkipLink` play to a Playwright probe on the built story, and the play keeps its other proofs plus the target's `id` and `tabIndex`. The behaviour row 38 asks for is unchanged, word for word, and it stays out of "Rows that render nothing". "Acceptance criteria" says why and names who runs the probe, "Why" counts the probe among the accessibility claims, "Depends on" names the builder report, and Rows per PR gains the line for PR 202. Downstream to review: the builder envelope (the probe has not run yet, so row 38 is not met until its `verified` row exists, and the play's `target.focus()` step and its comments should stop reading as this proof), the qa envelope (row 38's focus move is read from the probe, and PR 202 lists rows 23-41, 75 and 78), and row 38's Check cell in `docs/specs/ORV-225/spec.md`.
