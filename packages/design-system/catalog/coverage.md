@@ -61,7 +61,7 @@ Legend: `none` not started, `planned` entry exists, no code, `draft` code and st
 | Page header             | draft  | application-page-header    |
 | Section header          | draft  | application-section-header |
 | Empty state             | draft  | application-empty-state    |
-| Loading state           | none   |                            |
+| Loading state           | draft  | application-loading-state  |
 | Command menu            | stable | application-command-menu   |
 | Shortcut sheet          | stable | application-shortcut-sheet |
 | Metric                  | none   |                            |

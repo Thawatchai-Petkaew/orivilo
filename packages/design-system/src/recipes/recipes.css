@@ -2025,6 +2025,39 @@
   );
 }
 
+/* Loading state (ORV-223): the off form takes the ink, type and gap of .ds-spinner[data-size="lg"]. */
+.ds-loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--cmp-loading-state-gap);
+  min-inline-size: 0;
+  max-inline-size: var(--cmp-loading-state-max-width);
+  margin-inline: auto;
+  text-align: center;
+}
+.ds-loading-state__quiet {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ds-space-stack-sm);
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  color: var(--cmp-spinner-fg);
+}
+.ds-loading-state__label {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-family: var(--ds-type-body-sm-font-family);
+  font-size: var(--ds-type-body-sm-font-size);
+  line-height: var(--ds-type-body-sm-line-height);
+  font-weight: var(--ds-type-body-sm-font-weight);
+}
+.ds-loading-state__action {
+  display: flex;
+  max-inline-size: 100%;
+}
+
 /* Avatar (ORV-224). Round under each profile by clip, the form Skeleton's circle uses. No border,
  * no shadow, no motion. `overflow` adds no look; the clip checks read it. `contain: paint` keeps
  * the round edge at a sub-pixel position, where the clip alone leaves a flat top (R1). */
@@ -2168,12 +2201,15 @@
 .ds-board__overlay > * {
   pointer-events: auto;
 }
-.ds-board__overlay > p {
-  margin: 0;
-}
-.ds-board__spinner {
-  width: var(--ds-size-icon-lg);
-  height: var(--ds-size-icon-lg);
+/* The wait can land on nodes, the toolbar, the shelf or the open bar, so it brings its own ground: the
+ * status pill's form, which is hidden while the board loads (ORV-250 D17). Solid, so nothing shows through. */
+.ds-board__overlay > .ds-loading-state {
+  padding-block: var(--ds-space-inset-md);
+  padding-inline: var(--ds-space-inset-lg);
+  border: 1px solid var(--cmp-toolbar-border);
+  border-radius: var(--cmp-toolbar-radius);
+  background: var(--cmp-toolbar-bg);
+  box-shadow: var(--cmp-toolbar-shadow);
 }
 .ds-board__status {
   position: absolute;
@@ -2198,6 +2234,16 @@
   padding: 0;
   border: 0;
   background: transparent;
+}
+/* While the board loads the overlay shows the words; the line keeps them for assistive technology. */
+.ds-board[data-loading] .ds-board__status {
+  inline-size: 1px;
+  block-size: 1px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  white-space: nowrap;
+  clip-path: inset(50%);
 }
 
 /* Node: header, body, missing-inputs row, error row, ports (catalog CanvasNode). --------------- */

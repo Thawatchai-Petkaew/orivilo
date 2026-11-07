@@ -823,7 +823,6 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     floor: TEXT,
   },
   { recipe: "board", slot: "status line", fg: "ds:text.secondary", bg: "toolbar.bg", floor: TEXT },
-  { recipe: "board", slot: "overlay text", fg: "ds:text.secondary", bg: "board.bg", floor: TEXT },
   // Kbd, menus, toggle, toolbar, command menu, minimap, group (E4-3)
   { recipe: "kbd", slot: "key", fg: "kbd.fg", bg: "kbd.bg", floor: TEXT },
   { recipe: "kbd", slot: "key on menu", fg: "kbd.fg", bg: "menu.bg", floor: TEXT },
@@ -1038,6 +1037,22 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     slot: "ring and label",
     fg: "spinner.fg",
     bg: "ds:surface.card",
+    floor: TEXT,
+  },
+  // LoadingState on the board's overlay (ORV-223, load-live-1), in the place of the board's old "overlay text" pair.
+  {
+    recipe: "spinner",
+    slot: "ring and label on board",
+    fg: "spinner.fg",
+    bg: "board.bg",
+    floor: TEXT,
+  },
+  // The plate the board puts under the wait (ORV-250 D17): the same ring and words on the toolbar's solid ground.
+  {
+    recipe: "spinner",
+    slot: "ring and label on the board's plate",
+    fg: "spinner.fg",
+    bg: "toolbar.bg",
     floor: TEXT,
   },
   // FeaturedIcon (ORV-222): the glyph on its tile, the graphic of the tile. The tile's own edge against the

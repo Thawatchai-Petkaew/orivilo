@@ -147,6 +147,26 @@ export const emptyStateFixtures = {
 } as const;
 
 /**
+ * LoadingState story copy (ORV-223): the caller's words for a wait, the stop action's name, the
+ * name of the trigger that ends the wait, and the content that arrives. They are caller text, not
+ * catalog keys, and they are mock: no press stops a job or loads a brief.
+ */
+export const loadingStateFixtures = {
+  th: {
+    label: "กำลังอ่านบรีฟ",
+    action: "หยุดโหลด",
+    done: "โหลดเสร็จ",
+    loaded: "บรีฟพร้อมแล้ว",
+  },
+  en: {
+    label: "Reading the brief",
+    action: "Stop loading",
+    done: "Finish loading",
+    loaded: "The brief is ready",
+  },
+} as const;
+
+/**
  * PageHeader story copy (ORV-225): the caller's text, not catalog keys, and it is mock. The two
  * long titles are the sample for the wrapping and clip checks: a long name without spaces, and a
  * title that opens on stacked marks (a vowel and a tone mark on one letter).
