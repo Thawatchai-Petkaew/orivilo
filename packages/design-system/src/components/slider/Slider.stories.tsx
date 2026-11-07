@@ -1,8 +1,16 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useState } from "react";
+import { type ComponentType, useState } from "react";
 import { expect, fireEvent, userEvent, within } from "storybook/test";
 import { Matrix } from "../matrix";
 import { Slider } from "./Slider";
+
+/** A width cap around the story. Storybook adds a meta decorator to every story (a story's
+ * `decorators: []` does not drop it), so each story that wants it names it. */
+const inWidth = (Story: ComponentType) => (
+  <div className="max-w-sm">
+    <Story />
+  </div>
+);
 
 const meta = {
   title: "Base/Slider",
@@ -17,7 +25,6 @@ const meta = {
     },
   },
   args: { label: "ความหนาแน่น", defaultValue: 40, format: (v: number) => `${v}%` },
-  decorators: [(Story) => <div className="max-w-sm">{Story()}</div>],
 } satisfies Meta<typeof Slider>;
 
 export default meta;
@@ -25,6 +32,7 @@ type Story = StoryObj<typeof meta>;
 
 /** Arrows step by 1, Page keys by 10, Home and End jump to the bounds; the text follows. */
 export const Default: Story = {
+  decorators: [inWidth],
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const thumb = canvas.getByRole("slider", { name: "ความหนาแน่น" });
@@ -61,6 +69,7 @@ function Committed() {
 
 /** Controlled, with the commit fired once on release (dragging state while the pointer is down). */
 export const Dragging: Story = {
+  decorators: [inWidth],
   render: () => <Committed />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -75,6 +84,7 @@ export const Dragging: Story = {
 };
 
 export const Disabled: Story = {
+  decorators: [inWidth],
   args: { disabled: true },
   play: async ({ canvasElement }) => {
     const thumb = within(canvasElement).getByRole("slider");
@@ -89,5 +99,10 @@ export const RecipesAndModes: Story = {
       <Slider {...args} label="ปิดอยู่" disabled />
     </Matrix>
   ),
-  decorators: [],
+  play: async ({ canvasElement }) => {
+    // No Field nested in a Field: a meta decorator wrapping this story would break its labels.
+    await expect(canvasElement.querySelectorAll(".ds-field .ds-field")).toHaveLength(0);
+    // The matrix is not inside the width cap: a meta decorator wrapping this story would narrow it.
+    await expect(canvasElement.querySelector(".max-w-sm")).toBeNull();
+  },
 };

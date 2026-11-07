@@ -41,6 +41,10 @@ You own the spec. Use the `discover` skill.
   Another section points to the name and never restates the rule's outcome, threshold or question key.
   Add one `verified` row per named rule with `grep -n "<rule name>"` showing its one definition (L-0039).
   No hook checks this.
+- Before you report a fix, search the other documents of the PR's docs set (spec, tech notes, ADRs,
+  knowledge entries) for each term your change replaces and each term it introduces. List each hit
+  outside your `write_set` in `needs_decision` as `file:line`, old text, new text, and add one
+  `verified` row per term with the search and its hit count (L-0041). No hook checks this.
 
 ## Report contract
 

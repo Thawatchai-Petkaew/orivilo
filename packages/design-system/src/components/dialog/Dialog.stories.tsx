@@ -6,6 +6,15 @@ import { Button } from "../button/Button";
 import { Field } from "../field/Field";
 import { fixtures } from "../fixtures";
 import { Input } from "../input/Input";
+import { contrastRatio } from "../../foundations/contrast";
+import {
+  cssColorToHex,
+  expectFocusBorderForm,
+  expectLinesClear,
+  expectTitleOverText,
+  inVitest,
+  resolvedColor,
+} from "../../testing/visual-asserts";
 import { Matrix } from "../matrix";
 import {
   Dialog,
@@ -107,6 +116,8 @@ export const Closed: Story = {
       await userEvent.tab();
       await expect(dialog.contains(document.activeElement)).toBe(true);
     }
+    // Border form (ORV-192 row 9): the panel's border turns focus.ring and its elevation stays.
+    await expectFocusBorderForm(dialog);
     await userEvent.keyboard("{Escape}");
     await waitFor(() => expect(body().queryByRole("dialog")).toBeNull());
     await expect(button).toHaveFocus();
@@ -116,7 +127,7 @@ export const Closed: Story = {
 /**
  * Open with first focus on the name field. The play proves the focus ring is whole: the scrolling
  * body is a scroll container, which clips what draws outside a control, so the body bleeds the
- * ring's distance (2 px ring plus 2 px gap) on every side.
+ * reach (the 1 px line plus the 3 px halo, ORV-192 row 9) on every side.
  */
 export const Open: Story = {
   args: { defaultOpen: true },
@@ -137,6 +148,20 @@ export const Open: Story = {
     await expect(outer.right).toBeGreaterThanOrEqual(inner.right + ring);
     await expect(outer.top).toBeLessThanOrEqual(inner.top - ring);
     await expect(outer.bottom).toBeGreaterThanOrEqual(inner.bottom + ring);
+    // ORV-192 row 17: the header pair, 20 / 500 title over 16 / 400 description, 8 px apart.
+    const title = dialog?.querySelector(".ds-dialog__title");
+    const text = dialog?.querySelector(".ds-dialog__description");
+    if (!title || !text) throw new Error("the dialog has no title or description");
+    expectTitleOverText(title, text, { gap: 8, header: true });
+    // ORV-194 row 9: selected text takes the selection pair and reads at 4.5 or more on its highlight.
+    const selected = getComputedStyle(input, "::selection");
+    const ink = cssColorToHex(selected.color);
+    const highlight = cssColorToHex(selected.backgroundColor);
+    await expect(ink).toBe(cssColorToHex(resolvedColor(scroller, "--ds-selection-fg")));
+    await expect(highlight).toBe(cssColorToHex(resolvedColor(scroller, "--ds-selection-bg")));
+    await expect(ink && highlight ? contrastRatio(ink, highlight) : null).toBeGreaterThanOrEqual(
+      4.5,
+    );
   },
 };
 
@@ -248,7 +273,11 @@ function Frame({
   );
 }
 
-/** 360 px with long Thai content: the panel fills the width minus the gutter, the body scrolls, the actions stack (AC 7). */
+/**
+ * 360 px with long Thai content: the panel fills the width minus the gutter, the body scrolls, the
+ * actions stack (AC 7). The 360 x 560 frame is a phone, not a board or a panel, so it keeps its
+ * height (spec ORV-189, `exempt-1`).
+ */
 export const LongContentAt360: Story = {
   render: () => (
     <Frame className="h-[560px] w-[360px] max-w-full">
@@ -271,6 +300,14 @@ export const LongContentAt360: Story = {
       )}
     </Frame>
   ),
+  play: async ({ canvasElement }) => {
+    const panel = await within(canvasElement).findByRole("dialog");
+    await Promise.all(panel.getAnimations().map((a) => a.finished));
+    const title = panel.querySelector<HTMLElement>(".ds-dialog__title");
+    if (!title) throw new Error("the dialog has no title");
+    // ORV-194 row 6: the title's wrapped Thai lines keep 1.5 px of ground between them.
+    if (inVitest) await expectLinesClear(title);
+  },
 };
 
 /** The content is rendered in a portal and still carries the trigger's profile and mode (AC 3). */

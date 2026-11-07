@@ -2,7 +2,7 @@
 id: K-0001
 topic: enforcement
 claim: In Allkons, rules written as prose caught 0 of 83 recorded gaps, while gates that actually ran caught 7 of 7.
-source: "~/My Work/TechFlow/AI-First/allkons-marketplace/.claude/hooks/require-checked-by.py:13 (also .claude/skills/atlas/references/tiered-routing.md §5)"
+source: "https://bitbucket.org/ThammasornDEV/allkons-marketplace .claude/hooks/require-checked-by.py:13 (also .claude/skills/atlas/references/tiered-routing.md §5)"
 retrieved: 2026-10-23
 confidence: 0.65
 applies_to: [ORV-81, ORV-82]

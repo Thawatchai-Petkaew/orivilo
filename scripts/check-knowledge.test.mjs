@@ -50,6 +50,13 @@ function run(files, now) {
 const kPath = "docs/knowledge/contrast/K-0001-text-ratio.md";
 const lPath = "docs/lessons/L-0001-broke.md";
 
+/** A README holding an `## Index` table with one row per [name, confidence] pair. */
+const indexReadme = (rows) =>
+  `# Knowledge\n\n## Index\n\n| Entry | Confidence | In short |\n| --- | --- | --- |\n${rows
+    .map(([name, confidence]) => `| [[${name}]] | ${confidence} | x |`)
+    .join("\n")}\n\n## Other\n`;
+const readmePath = "docs/knowledge/README.md";
+
 test("parseFrontmatter reads scalars, quoted strings and lists", () => {
   const data = parseFrontmatter('---\na: plain\nb: "quoted: yes"\nc: [x, "y, z"]\n---\nbody');
   assert.deepEqual(data, { a: "plain", b: "quoted: yes", c: ["x", "y, z"] });
@@ -214,7 +221,7 @@ test("topic must equal the parent folder", () => {
 test("license must be on the README list", () => {
   const bad = run({ [kPath]: front({ ...goodK, license: "W3C" }) });
   assert.ok(bad.some((p) => p.includes("license W3C")));
-  const readme = "| `license` | How we may reuse: `internal`, `W3C` | `sources[].license` |\n";
+  const readme = `| \`license\` | How we may reuse: \`internal\`, \`W3C\` | \`sources[].license\` |\n\n${indexReadme([["K-0001-text-ratio", "0.9"]])}`;
   const files = {
     "docs/knowledge/README.md": readme,
     [kPath]: front({ ...goodK, license: "W3C" }),
@@ -449,6 +456,21 @@ test("AC21: a Check that chains, pipes, substitutes or is unclosed fails", () =>
   }
 });
 
+test("ORV-114 scan-unsafe-4: a Check with another command, another script or a stray space fails", () => {
+  for (const check of [
+    "`npx scripts/ovl/metrics.mjs due`",
+    "`node scripts/ovl/other.mjs due`",
+    "`node scripts/ovl/metrics.mjs  due`",
+    "`node scripts/ovl/metrics.mjs due `",
+  ]) {
+    const problems = savingProblems(withSaving({ Check: check }));
+    assert.ok(
+      problems.some((p) => p.includes("collector command")),
+      check,
+    );
+  }
+});
+
 test("a word that merely contains notice is not a notice figure", () => {
   const fine = savingProblems(withSaving({ Target: "a noticeable drop in median tokens.total" }));
   assert.deepEqual(fine, []);
@@ -501,4 +523,132 @@ test("ORV-108 row 56: an ADR numbered 0015 or later needs a Confirmation: line; 
     "docs/adr/0016-ok.md": "# Ok\n\nDecision.\n\nConfirmation: pnpm test covers it.\n",
   };
   assert.deepEqual(run(files), ["docs/adr/0015-new.md: has no Confirmation: line"]);
+});
+
+test("ORV-129 index-row-1: an entry with no Index row is reported", () => {
+  const files = { [kPath]: front(goodK), [readmePath]: indexReadme([]) };
+  assert.deepEqual(run(files), [`${kPath}: has no row in the docs/knowledge/README.md Index`]);
+  files[readmePath] = indexReadme([["K-0001-text-ratio", "0.9"]]);
+  assert.deepEqual(run(files), []);
+});
+
+test("ORV-129 index-row-2: an Index row that names no entry file is reported", () => {
+  const files = {
+    [kPath]: front(goodK),
+    [readmePath]: indexReadme([
+      ["K-0001-text-ratio", "0.9"],
+      ["K-0002-gone", "0.8"],
+    ]),
+  };
+  assert.deepEqual(run(files), [`${readmePath}: Index row [[K-0002-gone]] names no entry file`]);
+});
+
+test("ORV-129 index-row-3: an Index confidence that differs from the entry is reported", () => {
+  const files = {
+    [kPath]: front(goodK),
+    [readmePath]: indexReadme([["K-0001-text-ratio", "0.8"]]),
+  };
+  assert.deepEqual(run(files), [
+    `${readmePath}: Index row [[K-0001-text-ratio]] has confidence 0.8, the entry has 0.9`,
+  ]);
+  files[readmePath] = indexReadme([["K-0001-text-ratio", "0.90"]]);
+  assert.deepEqual(run(files), []);
+  // Equal as numbers but not a bare number in the format: still differs.
+  files[readmePath] = indexReadme([["K-0001-text-ratio", "9e-1"]]);
+  assert.deepEqual(run(files), [
+    `${readmePath}: Index row [[K-0001-text-ratio]] has confidence 9e-1, the entry has 0.9`,
+  ]);
+  files[readmePath] = indexReadme([["K-0001-text-ratio", "high"]]);
+  assert.deepEqual(run(files), [
+    `${readmePath}: Index row [[K-0001-text-ratio]] has confidence high, the entry has 0.9`,
+  ]);
+  // An entry whose own confidence fails the format is reported by the existing rule only.
+  files[kPath] = front({ ...goodK, confidence: "high" });
+  files[readmePath] = indexReadme([["K-0001-text-ratio", "0.8"]]);
+  const problems = run(files);
+  assert.equal(problems.length, 1);
+  assert.ok(problems[0].startsWith(`${kPath}: confidence high`));
+});
+
+test("ORV-129 index-read-1: a README without an Index table is reported, no README skips the Index check", () => {
+  const license = "| `license` | How we may reuse: `internal` | `sources[].license` |\n";
+  assert.deepEqual(run({ [kPath]: front(goodK), [readmePath]: license }), [
+    `${readmePath}: has no ## Index table`,
+  ]);
+  assert.deepEqual(run({ [kPath]: front(goodK) }), []);
+  // No entry file: nothing to compare, so a README without an Index is not reported.
+  assert.deepEqual(run({ [readmePath]: license }), []);
+  // The run ends at the next "## " line: a row below it is not an Index row.
+  const ended = `${indexReadme([["K-0001-text-ratio", "0.9"]])}| [[K-0009-late]] | 0.5 | x |\n`;
+  assert.deepEqual(run({ [kPath]: front(goodK), [readmePath]: ended }), []);
+  // A row whose first cell is not exactly [[name]] is not read.
+  const loose = indexReadme([["K-0001-text-ratio", "0.9"]]).replace(
+    "| --- | --- | --- |",
+    "| --- | --- | --- |\n| see [[K-0009-x]] | 0.5 | x |",
+  );
+  assert.deepEqual(run({ [kPath]: front(goodK), [readmePath]: loose }), []);
+  // An indented line is not a row: it does not start with "|".
+  const indented = indexReadme([["K-0001-text-ratio", "0.9"]]).replace(
+    "| --- | --- | --- |",
+    "| --- | --- | --- |\n  | [[K-0009-x]] | 0.5 | x |",
+  );
+  assert.deepEqual(run({ [kPath]: front(goodK), [readmePath]: indented }), []);
+  // "## Indexes" is not the "## Index" line.
+  const other = indexReadme([["K-0001-text-ratio", "0.9"]]).replace("## Index", "## Indexes");
+  assert.deepEqual(run({ [kPath]: front(goodK), [readmePath]: other }), [
+    `${readmePath}: has no ## Index table`,
+  ]);
+});
+
+const sourceProblems = (source) =>
+  run({ [kPath]: front({ ...goodK, source }) }).filter((p) => p.includes("source holds"));
+
+test("ORV-129 source-path-1: an absolute or session path in source is reported", () => {
+  const cases = [
+    ["/Users/someone/notes.md:3", "/Users/someone/notes.md:3"],
+    ["~/.claude/uploads/<session id>/guide.pdf", "~/.claude/uploads/<session"],
+    ["C:\\Users\\someone\\guide.pdf", "C:\\Users\\someone\\guide.pdf"],
+    ["see (/tmp/x.md)", "/tmp/x.md)"],
+    ['"`~/a.md` and [/b.md]"', "~/a.md`"],
+  ];
+  for (const [source, word] of cases) {
+    const found = sourceProblems(source);
+    assert.ok(found.length >= 1, source);
+    assert.ok(
+      found.includes(
+        `${kPath}: source holds an absolute or session path ${word}; cite a repo-relative path or an https URL (L-0031)`,
+      ),
+      `${source}: ${found.join(" | ")}`,
+    );
+  }
+  assert.equal(sourceProblems("see (/tmp/x.md)").length, 1);
+  // A list is joined with spaces; each refused word is its own problem.
+  assert.equal(sourceProblems("[https://a.example/x, /abs/one, ~/two]").length, 2);
+  assert.equal(sourceProblems("D:/x").length, 1);
+  // Each leading ( [ < " and backtick is stripped before the check, on its own.
+  for (const [source, word] of [
+    ['"[/b.md]"', "/b.md]"],
+    ['"<~/c.md>"', "~/c.md>"],
+    ["'\"/d.md\"'", '/d.md"'],
+    ['"`E:/e.md`"', "E:/e.md`"],
+    ['"(/f.md)"', "/f.md)"],
+  ]) {
+    assert.equal(sourceProblems(source).length, 1, source);
+    assert.ok(sourceProblems(source)[0].includes(` path ${word};`), source);
+  }
+  // Words split on any whitespace, a tab included.
+  assert.equal(sourceProblems('"ok\t/abs/x.md"').length, 1);
+  // Two refused words, two problems.
+  assert.equal(sourceProblems('"/one.md and ~/two.md"').length, 2);
+});
+
+test("ORV-129 source-path-1: an https URL and a repo-relative path pass", () => {
+  for (const source of [
+    "https://www.w3.org/TR/WCAG22/",
+    "scripts/check-knowledge.mjs:23",
+    '"https://github.com/Thawatchai-Petkaew/campvibe lib/delivery/tickets.ts:345-359 (hasPassedVerify in lib/delivery/verify-stage.ts)"',
+    "ab:c.md and ./rel/x.md",
+  ]) {
+    assert.deepEqual(sourceProblems(source), [], source);
+  }
 });

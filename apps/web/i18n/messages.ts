@@ -21,6 +21,7 @@ const th = {
     openWorkspace: "เปิดหน้าอ้างอิง: เวิร์กสเปซของทีม",
     openDirections: "ลองเขียนบรีฟแล้วดูสองทิศทางบนหน้าจอเดียวกัน",
     openAccount: "ลงชื่อเข้าใช้และดูเวิร์กสเปซของคุณ",
+    openBrandReport: "วางที่อยู่เว็บไซต์ แล้วดูรายงานหลักฐานแบรนด์",
     realHeading: "สิ่งที่มีจริงตอนนี้",
     notYetHeading: "สิ่งที่ยังไม่มี",
     schemaLine: "Design Profile schema v{version}. แผนงานทั้งหมดอยู่ใน",
@@ -90,7 +91,9 @@ const th = {
     notConfigured:
       "ยังลงชื่อเข้าใช้ในสภาพแวดล้อมนี้ไม่ได้ เพราะยังไม่ได้ตั้งค่า Google และฐานข้อมูล",
     problem: "ทำไม่สำเร็จ",
-    rateLimited: "มีการลงชื่อเข้าใช้จากเครือข่ายนี้ถี่เกินไป ลองใหม่ได้ในอีก {wait}",
+    failed: "ตอนนี้ยังลงชื่อเข้าใช้ไม่ได้ ลองใหม่อีกครั้ง",
+    limitReason: "มีการลงชื่อเข้าใช้จากเครือข่ายนี้ถี่เกินไป",
+    limitRetry: "ลองใหม่ได้ในอีก {wait}",
   },
   wait: {
     seconds: { one: "{n} วินาที", other: "{n} วินาที" },
@@ -147,6 +150,8 @@ const th = {
     errors: {
       "signed-out": "เซสชันหมดอายุ ลงชื่อเข้าใช้อีกครั้งแล้วลองใหม่",
       forbidden: "บัญชีนี้ไม่มีสิทธิ์ทำสิ่งนี้ในเวิร์กสเปซนี้",
+      "workspace-not-found":
+        "ไม่พบเวิร์กสเปซนี้ในบัญชีของคุณ ลงชื่อเข้าใช้อีกครั้งที่หน้าบัญชีเพื่อเปิดเวิร์กสเปซที่คุณเป็นสมาชิก",
       "not-configured": "ยังบันทึกทิศทางในสภาพแวดล้อมนี้ไม่ได้ เพราะยังไม่ได้ตั้งค่าฐานข้อมูล",
       "not-found": "ไม่พบทิศทางนี้ในเวิร์กสเปซของคุณ",
       "no-draft": "ไม่มีฉบับร่างให้อนุมัติ บันทึกฉบับร่างก่อน",
@@ -161,6 +166,8 @@ const th = {
       "rate-limited": "ส่งคำขอถี่เกินไป จึงยังไม่ได้ทำรายการนี้ ลองใหม่ได้ในอีก {wait}",
       "ai-rate-limited":
         "ใช้ AI อ่านบรีฟครบจำนวนที่กำหนดแล้ว จึงใช้การอ่านตามกฎแทน อ่านด้วย AI ได้อีกครั้งในอีก {wait}",
+      "ai-spend-cap":
+        "เวิร์กสเปซนี้ใช้งบ AI ของเดือนนี้ครบแล้ว จึงใช้การอ่านตามกฎแทน อ่านด้วย AI ได้อีกครั้งเมื่อขึ้นเดือนใหม่",
       failed: "ทำไม่สำเร็จ ลองอีกครั้ง",
     },
     replayReasons: {
@@ -169,9 +176,22 @@ const th = {
       "fingerprint-mismatch": "ผลต่างจากเดิม",
     },
   },
+  failure: {
+    reference: "รหัสอ้างอิง: {requestId}",
+    network: "ติดต่อ ORIVILO ไม่ได้ ตรวจการเชื่อมต่อแล้วลองอีกครั้ง",
+  },
+  brandReport: {
+    title: "รายงานหลักฐานแบรนด์, ORIVILO",
+    description: "วางที่อยู่เว็บไซต์ แล้วดูสิ่งที่หน้านั้นประกาศและเขียนไว้ อ่านตามกฎ ยังไม่ใช้ AI",
+  },
   workspace: {
     title: "เวิร์กสเปซ, ORIVILO",
     description: "หน้าอ้างอิง: เวิร์กสเปซของทีมพร้อมสร้างโปรเจกต์ (E2-8) ข้อมูลตัวอย่างภาษาไทย",
+  },
+  notFound: {
+    heading: "ไม่พบหน้านี้",
+    body: "ไม่มีหน้าใดใน ORIVILO ที่ใช้ที่อยู่นี้ ตรวจที่อยู่อีกครั้ง หรือกลับไปหน้าแรก",
+    home: "ไปหน้าแรก",
   },
 };
 
@@ -193,6 +213,7 @@ const en: WebMessages = {
     openWorkspace: "Open the reference screen: team workspace",
     openDirections: "Write a brief and see two directions on the same screen",
     openAccount: "Sign in and see your workspace",
+    openBrandReport: "Paste a website address and see a brand evidence report",
     realHeading: "What exists today",
     notYetHeading: "What does not exist yet",
     schemaLine: "Design Profile schema v{version}. The whole plan is in the",
@@ -265,7 +286,9 @@ const en: WebMessages = {
     signOut: "Sign out",
     notConfigured: "Sign-in is not available here yet: Google and the database are not set up.",
     problem: "Not done",
-    rateLimited: "Too many sign-in attempts from this network. Try again in {wait}.",
+    failed: "You cannot sign in right now. Try again.",
+    limitReason: "Too many sign-in attempts from this network.",
+    limitRetry: "Try again in {wait}.",
   },
   wait: {
     seconds: { one: "{n} second", other: "{n} seconds" },
@@ -325,6 +348,8 @@ const en: WebMessages = {
     errors: {
       "signed-out": "Your session has ended. Sign in again and retry.",
       forbidden: "This account is not allowed to do this in this workspace.",
+      "workspace-not-found":
+        "This workspace was not found in your account. Sign in again on the Account page to open a workspace you belong to.",
       "not-configured":
         "Directions cannot be saved in this environment yet: the database is not set up.",
       "not-found": "This direction was not found in your workspace.",
@@ -343,6 +368,8 @@ const en: WebMessages = {
         "Too many requests in a short time, so this was not done. Try again in {wait}.",
       "ai-rate-limited":
         "You have reached the limit for AI readings, so the rules' reading is used. AI can read again in {wait}.",
+      "ai-spend-cap":
+        "This workspace has used its AI budget for this month, so the rules' reading is used. AI can read again when the new month starts.",
       failed: "That did not work. Try again.",
     },
     replayReasons: {
@@ -351,10 +378,23 @@ const en: WebMessages = {
       "fingerprint-mismatch": "the result differs",
     },
   },
+  failure: {
+    reference: "Reference: {requestId}",
+    network: "Could not reach ORIVILO. Check your connection, then try again.",
+  },
+  brandReport: {
+    title: "Brand evidence report, ORIVILO",
+    description: "Paste a website address and see what its page declares and says, read by rules.",
+  },
   workspace: {
     title: "Workspace, ORIVILO",
     description:
       "The reference screen: a team workspace with project creation (E2-8). Thai fixture data.",
+  },
+  notFound: {
+    heading: "Page not found",
+    body: "No page in ORIVILO has this address. Check the address, or go back to the home page.",
+    home: "Go to the home page",
   },
 };
 

@@ -17,14 +17,15 @@ async function load(): Promise<SavedView> {
   if (listing.ok) return { kind: "ready", listing: listing.value };
   if (listing.error === "signed-out") return { kind: "signed-out" };
   if (listing.error === "not-configured") return { kind: "not-configured" };
-  return { kind: "error", error: listing.error };
+  return { kind: "error", failure: listing };
 }
 
 /**
  * Two directions on the same task (E2-11), now kept (ORV-35): signed in, the studio's inputs are
  * saved as a draft, approved into a version that never changes, and exported or imported as a
  * file. Signed out, the studio still works and says nothing is saved. The brief is read by rules,
- * and the preview is the reference screen with its Thai fixture data.
+ * and the preview is the reference screen with its Thai fixture data. The page holds the one `h1`
+ * and the studio the `h2` and the preview's `h3`, so the screen's own title is an `h4`.
  */
 export default async function DirectionsPage() {
   const { locale, m } = await getWebMessages();
@@ -35,8 +36,9 @@ export default async function DirectionsPage() {
         view={await load()}
         m={m.saved}
         wait={m.wait}
+        failure={m.failure}
         defaultBrief={messagesFor(locale).direction.preset1Text}
-        preview={<WorkspaceScreen />}
+        preview={<WorkspaceScreen headingLevel={4} />}
       />
     </main>
   );

@@ -156,8 +156,8 @@
     "disabled": {
       "$type": "color",
       "$value": {
-        "light": "{color.gray.400}",
-        "dark": "{color.gray.600}"
+        "light": "{color.gray.500}",
+        "dark": "{color.gray.500}"
       },
       "$description": "Disabled labels"
     },
@@ -217,6 +217,22 @@
         "dark": "{color.gray.900}"
       },
       "$description": "On surface.inverse",
+      "$extensions": {
+        "orivilo": {
+          "contrast": {
+            "against": "surface.inverse",
+            "floor": 4.5
+          }
+        }
+      }
+    },
+    "on-inverse-secondary": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.gray.400}",
+        "dark": "{color.gray.600}"
+      },
+      "$description": "Supporting text on surface.inverse, one step under text.on-inverse (ORV-192 row 17)",
       "$extensions": {
         "orivilo": {
           "contrast": {
@@ -521,36 +537,34 @@
     "ring": {
       "$type": "color",
       "$value": {
-        "light": "{color.gray.900}",
-        "dark": "{color.gray.100}"
+        "light": "{color.violet.600}",
+        "dark": "{color.violet.400}"
       },
-      "$description": "2 px ring with a 2 px gap, on any ground",
+      "$description": "The profile's brand colour on a focused control: its own 1 px border turns to it, or a 1 px line on its edge where it has none; the primitive of action.primary in every set (ORV-192 row 9)",
       "$extensions": {
         "orivilo": {
           "contrast": {
             "against": "surface.canvas",
             "floor": 3
-          }
+          },
+          "scope": "identity"
         }
       }
     },
-    "offset": {
-      "$type": "color",
-      "$value": {
-        "light": "{color.gray.50}",
-        "dark": "{color.gray.900}"
-      },
-      "$description": "The gap colour between ring and control"
+    "halo-opacity": {
+      "$type": "number",
+      "$value": "{opacity.focus-halo}",
+      "$description": "Share of focus.ring in the 3 px halo that touches the focus line, no gap (ORV-192 row 9)"
     }
   },
   "brand": {
     "signature": {
       "$type": "color",
       "$value": {
-        "light": "{color.lime.300}",
-        "dark": "{color.lime.300}"
+        "light": "{color.violet.600}",
+        "dark": "{color.violet.400}"
       },
-      "$description": "Mark dot, one highlight plane; never text on light ground",
+      "$description": "The signature colour: the mark dot above 24 px, a bead, one highlight plane; never text and never an action; shares violet with action.primary only in the base set (neutral) and in orivilo, the brand profile that copies its values (ORV-118, ORV-52)",
       "$extensions": {
         "orivilo": {
           "scope": "identity"
@@ -560,7 +574,7 @@
     "ink": {
       "$type": "color",
       "$value": {
-        "light": "{color.gray.900}",
+        "light": "{color.white}",
         "dark": "{color.gray.900}"
       },
       "$description": "Ink on the signature",
@@ -569,6 +583,23 @@
           "contrast": {
             "against": "brand.signature",
             "floor": 4.5
+          },
+          "scope": "identity"
+        }
+      }
+    },
+    "dot-small": {
+      "$type": "color",
+      "$value": {
+        "light": "{color.violet.600}",
+        "dark": "{color.violet.400}"
+      },
+      "$description": "The mark's dot at 24 px and below (logo forms 16 and 24), at least 3.0 on the canvas under every profile; equal to brand.signature in the base set (neutral); read by logo.dot-small and badge.dot.brand (the brand badge's bead)",
+      "$extensions": {
+        "orivilo": {
+          "contrast": {
+            "against": "surface.canvas",
+            "floor": 3
           },
           "scope": "identity"
         }
@@ -739,6 +770,13 @@
         "$type": "dimension",
         "$value": "{radius.4}",
         "$description": "Checkboxes and small chips inside controls"
+      }
+    },
+    "round": {
+      "radius": {
+        "$type": "dimension",
+        "$value": "{radius.full}",
+        "$description": "A radio circle: round in every profile, because a rounded square reads as a checkbox. No profile overrides it"
       }
     }
   },
@@ -916,20 +954,20 @@
       "lg": {
         "$type": "typography",
         "$value": {
-          "fontFamily": "{font.family.anuphan}",
+          "fontFamily": "{font.family.plex-sans}",
           "fontSize": "{font.size.56}",
           "lineHeight": "{font.line-height.1-2}",
-          "fontWeight": "{font.weight.600}",
+          "fontWeight": "{font.weight.500}",
           "letterSpacing": "{font.letter-spacing.normal}"
         }
       },
       "md": {
         "$type": "typography",
         "$value": {
-          "fontFamily": "{font.family.anuphan}",
+          "fontFamily": "{font.family.plex-sans}",
           "fontSize": "{font.size.32}",
           "lineHeight": "{font.line-height.1-25}",
-          "fontWeight": "{font.weight.600}",
+          "fontWeight": "{font.weight.500}",
           "letterSpacing": "{font.letter-spacing.normal}"
         }
       }
@@ -941,7 +979,7 @@
           "fontFamily": "{font.family.plex-sans}",
           "fontSize": "{font.size.24}",
           "lineHeight": "{font.line-height.1-3}",
-          "fontWeight": "{font.weight.600}",
+          "fontWeight": "{font.weight.500}",
           "letterSpacing": "{font.letter-spacing.normal}"
         }
       },
@@ -950,8 +988,8 @@
         "$value": {
           "fontFamily": "{font.family.plex-sans}",
           "fontSize": "{font.size.20}",
-          "lineHeight": "{font.line-height.1-5}",
-          "fontWeight": "{font.weight.600}",
+          "lineHeight": "{font.line-height.1-7}",
+          "fontWeight": "{font.weight.500}",
           "letterSpacing": "{font.letter-spacing.normal}"
         }
       }
@@ -962,7 +1000,7 @@
         "$value": {
           "fontFamily": "{font.family.plex-sans}",
           "fontSize": "{font.size.20}",
-          "lineHeight": "{font.line-height.1-5}",
+          "lineHeight": "{font.line-height.1-7}",
           "fontWeight": "{font.weight.400}",
           "letterSpacing": "{font.letter-spacing.normal}"
         }
@@ -982,10 +1020,21 @@
         "$value": {
           "fontFamily": "{font.family.plex-sans}",
           "fontSize": "{font.size.14}",
-          "lineHeight": "{font.line-height.1-6}",
+          "lineHeight": "{font.line-height.1-7}",
           "fontWeight": "{font.weight.400}",
           "letterSpacing": "{font.letter-spacing.normal}"
         }
+      },
+      "xs": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "{font.family.plex-sans}",
+          "fontSize": "{font.size.13}",
+          "lineHeight": "{font.line-height.1-7}",
+          "fontWeight": "{font.weight.400}",
+          "letterSpacing": "{font.letter-spacing.normal}"
+        },
+        "$description": "The smallest body size: 13 px regular, for compact chips such as the sm Tag (ORV-192 row 13)"
       }
     },
     "label": {
@@ -994,7 +1043,7 @@
         "$value": {
           "fontFamily": "{font.family.plex-sans}",
           "fontSize": "{font.size.14}",
-          "lineHeight": "{font.line-height.1-6}",
+          "lineHeight": "{font.line-height.1-7}",
           "fontWeight": "{font.weight.500}",
           "letterSpacing": "{font.letter-spacing.normal}"
         }
@@ -1008,6 +1057,32 @@
           "fontWeight": "{font.weight.500}",
           "letterSpacing": "{font.letter-spacing.normal}"
         }
+      }
+    },
+    "control": {
+      "md": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "{font.family.plex-sans}",
+          "fontSize": "{font.size.14}",
+          "lineHeight": "{font.line-height.1-6}",
+          "fontWeight": "{font.weight.500}",
+          "letterSpacing": "{font.letter-spacing.normal}"
+        },
+        "$description": "The label of a single-line control with a height token that never wraps (button md and lg, tab, badge md). Its line height only places the line box: 1.6 keeps the label body on the control centre (ORV-111 ink-centre-1, ORV-194 row 6b). A label that can wrap takes type.label.md."
+      }
+    },
+    "field": {
+      "sm": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "{font.family.plex-sans}",
+          "fontSize": "{font.size.14}",
+          "lineHeight": "{font.line-height.1-6}",
+          "fontWeight": "{font.weight.400}",
+          "letterSpacing": "{font.letter-spacing.normal}"
+        },
+        "$description": "The value of a single-line field at sm (Input, Input group, Password input, Select trigger). Its line height only places the line box: 1.6 keeps the Thai body and the Latin label inside the ORV-111 ink-centre-1 bound at every box position (ORV-199). A field that wraps (Textarea) takes type.body.sm."
       }
     },
     "code": {
@@ -1029,7 +1104,7 @@
           "fontFamily": "{font.family.plex-sans}",
           "fontSize": "{font.size.40}",
           "lineHeight": "{font.line-height.1}",
-          "fontWeight": "{font.weight.600}",
+          "fontWeight": "{font.weight.500}",
           "letterSpacing": "{font.letter-spacing.tight}"
         }
       },
@@ -1039,7 +1114,7 @@
           "fontFamily": "{font.family.plex-sans}",
           "fontSize": "{font.size.32}",
           "lineHeight": "{font.line-height.1}",
-          "fontWeight": "{font.weight.600}",
+          "fontWeight": "{font.weight.500}",
           "letterSpacing": "{font.letter-spacing.tight}"
         }
       }
@@ -1123,8 +1198,8 @@
   "font": {
     "display": {
       "$type": "fontFamily",
-      "$value": "{font.family.anuphan}",
-      "$description": "Display role, loopless Thai at 24 px and above"
+      "$value": "{font.family.plex-sans}",
+      "$description": "Display role: the body family, so a Thai heading is looped Sarabun and Latin is IBM Plex Sans in every profile (owner, ORV-192 rows 15 and 16)"
     },
     "body": {
       "$type": "fontFamily",

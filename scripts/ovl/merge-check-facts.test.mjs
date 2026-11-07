@@ -9,11 +9,14 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   FactsError,
+  fetchBase,
   fetchPrHead,
+  readBaseMerge,
   readChecks,
   readFileAtHead,
   readPr,
 } from "./merge-check-facts.mjs";
+import { commitFile, gitIn, mergeRepo } from "./hook-test-kit.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const fixtureDir = join(here, "fixtures", "gh");
@@ -259,4 +262,110 @@ test("ORV-115 SEC-3: a renamed file returns its previous path too", () => {
   const pr = readPr(87, { env: fixtureGh({ files }).env });
   assert.equal(pr.files.length, 10);
   assert.deepEqual(pr.previousFiles, ["old/ci.yml"]);
+});
+
+// ---- ORV-146: an approve carried across a merge of the base branch ----
+
+test("ORV-146: readBaseMerge returns the files a base merge brought and the files the PR had", () => {
+  const { work, h0, advance, mergeBase } = mergeRepo();
+  advance("c.txt");
+  const h1 = mergeBase();
+  assert.deepEqual(readBaseMerge(h0, h1, "develop", { cwd: work }), {
+    changed: ["c.txt"],
+    approvedFiles: ["f.txt"],
+  });
+});
+
+test("ORV-146: readBaseMerge reports a conflict file as changed and as a file of the PR", () => {
+  const { work, h0, advance } = mergeRepo();
+  advance("f.txt", "from develop\n");
+  gitIn(work, "fetch", "-q", "origin", "develop");
+  try {
+    gitIn(work, "merge", "-q", "--no-ff", "-m", "merge develop", "origin/develop");
+  } catch {
+    writeFileSync(join(work, "f.txt"), "resolved\n");
+    gitIn(work, "add", "f.txt");
+    gitIn(work, "commit", "-q", "-m", "merge develop");
+  }
+  const h1 = gitIn(work, "rev-parse", "HEAD");
+  const merge = readBaseMerge(h0, h1, "develop", { cwd: work });
+  assert.deepEqual(merge.changed, ["f.txt"]);
+  assert.deepEqual(merge.approvedFiles, ["f.txt"]);
+});
+
+test("ORV-146: readBaseMerge is null when the head adds a commit of its own", () => {
+  const { work, h0, advance, mergeBase } = mergeRepo();
+  advance("c.txt");
+  mergeBase();
+  const h2 = commitFile(work, "g.txt");
+  assert.equal(readBaseMerge(h0, h2, "develop", { cwd: work }), null);
+  const own = commitFile(work, "h.txt");
+  assert.equal(readBaseMerge(h2, own, "develop", { cwd: work }), null);
+});
+
+test("ORV-146: readBaseMerge is null for a merge of a branch that is not the base", () => {
+  const { work, h0 } = mergeRepo();
+  gitIn(work, "checkout", "-q", "-b", "side", "origin/develop");
+  commitFile(work, "side.txt");
+  gitIn(work, "checkout", "-q", "feature/ORV-1-x");
+  gitIn(work, "merge", "-q", "--no-ff", "-m", "merge side", "side");
+  const h1 = gitIn(work, "rev-parse", "HEAD");
+  assert.equal(readBaseMerge(h0, h1, "develop", { cwd: work }), null);
+});
+
+test("ORV-146: readBaseMerge is null when the approved commit is not behind the head or not known", () => {
+  const { work, h0, advance, mergeBase } = mergeRepo();
+  advance("c.txt");
+  const h1 = mergeBase();
+  assert.equal(readBaseMerge(h1, h0, "develop", { cwd: work }), null);
+  assert.equal(readBaseMerge("f".repeat(40), h1, "develop", { cwd: work }), null);
+  for (const name of ["not-a-sha", "HEAD", "feature/ORV-1-x", "--all"]) {
+    assert.equal(readBaseMerge(name, h1, "develop", { cwd: work }), null, name);
+  }
+});
+
+test("ORV-146: readBaseMerge fails closed when the head or origin/<base> is not in the repo", () => {
+  const { work, h0 } = mergeRepo();
+  assert.throws(
+    () => readBaseMerge(h0, "f".repeat(40), "develop", { cwd: work }),
+    (e) => e instanceof FactsError && /is-ancestor/.test(e.message),
+  );
+  assert.throws(
+    () => readBaseMerge(h0, h0, "nothere", { cwd: work }),
+    (e) => e instanceof FactsError && /rev-list/.test(e.message),
+  );
+});
+
+test("ORV-146: readBaseMerge lists a renamed file by both paths", () => {
+  const { work, advance, mergeBase } = mergeRepo();
+  gitIn(work, "mv", "a.txt", "b.txt");
+  gitIn(work, "commit", "-q", "-m", "rename");
+  const approved = gitIn(work, "rev-parse", "HEAD");
+  advance("d.txt");
+  const h1 = mergeBase();
+  const merge = readBaseMerge(approved, h1, "develop", { cwd: work });
+  assert.deepEqual(merge.changed, ["d.txt"]);
+  assert.deepEqual(merge.approvedFiles.sort(), ["a.txt", "b.txt", "f.txt"]);
+});
+
+const isPlainNameError = (e) => e instanceof FactsError && /plain branch name/.test(e.message);
+
+test("ORV-146: readBaseMerge refuses a head or base that is not a plain sha or branch name", () => {
+  const { work, h0 } = mergeRepo();
+  assert.throws(
+    () => readBaseMerge(h0, "HEAD", "develop", { cwd: work }),
+    (e) => e instanceof FactsError && /40-hex/.test(e.message),
+  );
+  for (const base of ["--upload-pack=x", "a b", "", "dev;x"]) {
+    assert.throws(() => readBaseMerge(h0, h0, base, { cwd: work }), isPlainNameError, base);
+  }
+});
+
+test("ORV-146: fetchBase brings origin/<base> up to date, and a missing branch fails closed", () => {
+  const { work, advance } = mergeRepo();
+  const sha = advance("c.txt");
+  fetchBase("develop", { cwd: work });
+  assert.equal(gitIn(work, "rev-parse", "origin/develop"), sha);
+  assert.throws(() => fetchBase("nope", { cwd: work }), FactsError);
+  assert.throws(() => fetchBase("--all", { cwd: work }), isPlainNameError);
 });

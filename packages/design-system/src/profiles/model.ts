@@ -2,7 +2,7 @@
  * Profile model (E2-2). A profile is a semantic overlay on the base token set: it changes the
  * value of existing semantic tokens and may add primitive ramps of its own. It never adds a
  * semantic name (components rely on the contract), never changes a base primitive, and never
- * touches feedback or focus (DESIGN.md §8: meaning never moves). Pure TypeScript, shared by the
+ * touches feedback (DESIGN.md §8: meaning never moves). Pure TypeScript, shared by the
  * build script, the tests, and Storybook.
  */
 import {
@@ -19,17 +19,11 @@ type Json = Record<string, unknown>;
 
 /** Groups a profile may not override. Their meaning belongs to the system, not to a brand. */
 /**
- * Groups whose meaning never changes per profile: feedback and focus (DESIGN.md §8), and the canvas
- * groups, which are Studio chrome and never render inside a customer boundary (ADR 0004 item 6).
+ * Groups whose meaning never changes per profile: feedback (DESIGN.md §8), and the canvas groups,
+ * which are Studio chrome and never render inside a customer boundary (ADR 0004 item 6). Focus
+ * follows the profile through the identity-scoped `focus.ring` (ORV-192 row 9).
  */
-export const LOCKED_GROUPS: readonly string[] = [
-  "feedback",
-  "focus",
-  "canvas",
-  "port",
-  "edge",
-  "status",
-];
+export const LOCKED_GROUPS: readonly string[] = ["feedback", "canvas", "port", "edge", "status"];
 
 /**
  * Where each Studio-scoped token points inside a profile boundary (E2-3). The Intent Engine action

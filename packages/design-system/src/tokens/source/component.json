@@ -199,11 +199,11 @@
       },
       "md": {
         "$type": "typography",
-        "$value": "{type.label.md}"
+        "$value": "{type.control.md}"
       },
       "lg": {
         "$type": "typography",
-        "$value": "{type.label.md}"
+        "$value": "{type.control.md}"
       }
     }
   },
@@ -265,7 +265,7 @@
     "type": {
       "sm": {
         "$type": "typography",
-        "$value": "{type.body.sm}"
+        "$value": "{type.field.sm}"
       },
       "md": {
         "$type": "typography",
@@ -406,7 +406,7 @@
     },
     "fg-active": {
       "$type": "color",
-      "$value": "{text.primary}"
+      "$value": "{selection.fg}"
     },
     "bg-hover": {
       "$type": "color",
@@ -414,15 +414,23 @@
     },
     "bg-active": {
       "$type": "color",
-      "$value": "{surface.card}"
+      "$value": "{surface.selected}"
     },
     "bead": {
       "$type": "color",
-      "$value": "{brand.signature}"
+      "$value": "{selection.fg}"
+    },
+    "bead-size": {
+      "$type": "dimension",
+      "$value": "{space.inline.md}"
     },
     "radius": {
       "$type": "dimension",
       "$value": "{shape.control.radius}"
+    },
+    "row-radius": {
+      "$type": "dimension",
+      "$value": "{shape.media.radius}"
     },
     "height": {
       "$type": "dimension",
@@ -515,7 +523,7 @@
     "body-bleed": {
       "$type": "dimension",
       "$value": "{space.inline.sm}",
-      "$description": "How far the scrolling body bleeds past its box so a control's focus ring (2 px plus a 2 px gap) is not clipped"
+      "$description": "How far the scrolling body bleeds past its box so a control's focus line and halo (4 px at most, ORV-192 row 9) are not clipped"
     },
     "title-type": {
       "$type": "typography",
@@ -559,7 +567,7 @@
     "$description": "A short notice that does not block (E4-5): saved, generation failed",
     "description": {
       "$type": "color",
-      "$value": "{text.on-inverse}"
+      "$value": "{text.on-inverse-secondary}"
     },
     "shadow": {
       "$type": "shadow",
@@ -649,12 +657,12 @@
     },
     "description-fg": {
       "$type": "color",
-      "$value": "{text.on-inverse}",
-      "$description": "The second line; the inverse ground has no muted step that keeps 4.5, so it differs by type, not colour"
+      "$value": "{text.on-inverse-secondary}",
+      "$description": "The second line, one step under the content's ink (ORV-192 row 17)"
     },
     "description-type": {
       "$type": "typography",
-      "$value": "{type.body.sm}"
+      "$value": "{type.body.xs}"
     },
     "line-gap": {
       "$type": "dimension",
@@ -724,17 +732,17 @@
       },
       "md": {
         "$type": "typography",
-        "$value": "{type.label.md}"
+        "$value": "{type.control.md}"
       }
     },
     "brand": {
       "bg": {
         "$type": "color",
-        "$value": "{brand.signature}"
+        "$value": "{surface.sunken}"
       },
       "fg": {
         "$type": "color",
-        "$value": "{brand.ink}"
+        "$value": "{text.primary}"
       }
     },
     "padding-x": {
@@ -781,7 +789,7 @@
       },
       "brand": {
         "$type": "color",
-        "$value": "{brand.ink}"
+        "$value": "{brand.dot-small}"
       }
     },
     "dot-size": {
@@ -959,6 +967,158 @@
       "$description": "WCAG 2.5.8: the small box keeps a 24 px target when its label is visually hidden. Borrows size.icon.lg (24) because no semantic target size exists; retuning icon sizes moves this floor"
     }
   },
+  "radio": {
+    "bg": {
+      "$type": "color",
+      "$value": "{surface.card}"
+    },
+    "border": {
+      "$type": "color",
+      "$value": "{border.control}"
+    },
+    "border-hover": {
+      "$type": "color",
+      "$value": "{border.control-hover}"
+    },
+    "bg-checked": {
+      "$type": "color",
+      "$value": "{surface.selected}",
+      "$description": "A checked radio reads the selection tokens, not action.primary (DESIGN.md section 8)"
+    },
+    "border-checked": {
+      "$type": "color",
+      "$value": "{selection.fg}"
+    },
+    "dot": {
+      "$type": "color",
+      "$value": "{selection.fg}"
+    },
+    "border-checked-hover": {
+      "$type": "color",
+      "$value": "{border.strong}"
+    },
+    "border-error": {
+      "$type": "color",
+      "$value": "{border.error}"
+    },
+    "bg-disabled": {
+      "$type": "color",
+      "$value": "{surface.disabled}"
+    },
+    "border-disabled": {
+      "$type": "color",
+      "$value": "{border.disabled}"
+    },
+    "dot-disabled": {
+      "$type": "color",
+      "$value": "{text.secondary}"
+    },
+    "size": {
+      "$type": "dimension",
+      "$value": "{size.icon.md}"
+    },
+    "size-sm": {
+      "$type": "dimension",
+      "$value": "{size.icon.sm}"
+    },
+    "target-min": {
+      "$type": "dimension",
+      "$value": "{size.icon.lg}",
+      "$description": "WCAG 2.5.8: the sm circle keeps a 24 px target. Borrows size.icon.lg (24) because no semantic target size exists"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.round.radius}"
+    },
+    "label-type": {
+      "$type": "typography",
+      "$value": "{type.body.md}"
+    },
+    "label-type-sm": {
+      "$type": "typography",
+      "$value": "{type.body.sm}"
+    },
+    "gap": {
+      "$type": "dimension",
+      "$value": "{space.inline.md}"
+    },
+    "group-gap": {
+      "$type": "dimension",
+      "$value": "{space.stack.sm}"
+    }
+  },
+  "switch": {
+    "$description": "ORV-249 (ORV-221 control-tokens-1): an on switch reads the selection tokens, not action.primary (DESIGN.md section 8). The ring in a saving thumb has no size token: it is the thumb less space.inline.sm",
+    "track": {
+      "$type": "color",
+      "$value": "{border.control}"
+    },
+    "track-hover": {
+      "$type": "color",
+      "$value": "{border.control-hover}"
+    },
+    "track-on": {
+      "$type": "color",
+      "$value": "{selection.fg}"
+    },
+    "track-press": {
+      "$type": "color",
+      "$value": "{border.strong}"
+    },
+    "track-disabled": {
+      "$type": "color",
+      "$value": "{surface.disabled}"
+    },
+    "thumb": {
+      "$type": "color",
+      "$value": "{surface.card}"
+    },
+    "thumb-on": {
+      "$type": "color",
+      "$value": "{selection.bg}"
+    },
+    "thumb-disabled": {
+      "$type": "color",
+      "$value": "{text.secondary}"
+    },
+    "edge-on-hover": {
+      "$type": "color",
+      "$value": "{border.strong}"
+    },
+    "edge-error": {
+      "$type": "color",
+      "$value": "{border.error}"
+    },
+    "ring": {
+      "$type": "color",
+      "$value": "{selection.fg}"
+    },
+    "height": {
+      "$type": "dimension",
+      "$value": "{size.icon.lg}"
+    },
+    "thumb-size": {
+      "$type": "dimension",
+      "$value": "{size.icon.md}"
+    },
+    "height-sm": {
+      "$type": "dimension",
+      "$value": "{size.icon.md}"
+    },
+    "thumb-size-sm": {
+      "$type": "dimension",
+      "$value": "{size.icon.sm}"
+    },
+    "target-min": {
+      "$type": "dimension",
+      "$value": "{size.icon.lg}",
+      "$description": "WCAG 2.5.8: the sm switch keeps a 24 px target. Borrows size.icon.lg (24) because no semantic target size exists"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.control.radius}"
+    }
+  },
   "menu": {
     "bg": {
       "$type": "color",
@@ -970,7 +1130,7 @@
     },
     "radius": {
       "$type": "dimension",
-      "$value": "{shape.media.radius}"
+      "$value": "{shape.overlay.radius}"
     },
     "shadow": {
       "$type": "shadow",
@@ -1003,7 +1163,7 @@
       },
       "radius": {
         "$type": "dimension",
-        "$value": "{shape.control.radius}"
+        "$value": "{shape.media.radius}"
       },
       "height": {
         "$type": "dimension",
@@ -1034,7 +1194,7 @@
       },
       "description-type": {
         "$type": "typography",
-        "$value": "{type.label.sm}"
+        "$value": "{type.body.xs}"
       },
       "icon-size": {
         "$type": "dimension",
@@ -1150,7 +1310,7 @@
     },
     "type": {
       "$type": "typography",
-      "$value": "{type.label.md}"
+      "$value": "{type.control.md}"
     },
     "icon-size": {
       "sm": {
@@ -1614,11 +1774,11 @@
     },
     "padding-x": {
       "$type": "dimension",
-      "$value": "{space.inline.sm}"
+      "$value": "{space.inline.md}"
     }
   },
   "toggle": {
-    "$description": "ToggleGroup, segmented: a sunken track; the pressed item is a raised card chip with a ring and heavier text, never a selection tint or the canvas violet, so it reads the same under every profile (ORV-65)",
+    "$description": "ToggleGroup, segmented: a sunken track; the pressed item is a raised card chip with text.primary ink and a soft lift, no ring, never a selection tint or the canvas violet, so it reads the same under every profile (ORV-65, ORV-192 row 12)",
     "bg": {
       "$type": "color",
       "$value": "{surface.sunken}"
@@ -1646,10 +1806,6 @@
     "fg-pressed": {
       "$type": "color",
       "$value": "{text.primary}"
-    },
-    "border-pressed": {
-      "$type": "color",
-      "$value": "{border.subtle}"
     },
     "fg-disabled": {
       "$type": "color",
@@ -1992,6 +2148,14 @@
       "$value": "{text.secondary}",
       "$description": "The state word under the block name"
     },
+    "tile-name-type": {
+      "$type": "typography",
+      "$value": "{type.label.md}"
+    },
+    "tile-state-type": {
+      "$type": "typography",
+      "$value": "{type.body.sm}"
+    },
     "tile-radius": {
       "$type": "dimension",
       "$value": "{shape.media.radius}"
@@ -2045,6 +2209,10 @@
     "question-type": {
       "$type": "typography",
       "$value": "{type.label.md}"
+    },
+    "note-type": {
+      "$type": "typography",
+      "$value": "{type.body.sm}"
     }
   },
   "inspector": {
@@ -2134,15 +2302,40 @@
       "$value": "{shape.container.radius}"
     }
   },
+  "spinner": {
+    "$description": "The waiting ring and its label (ORV-201): one ink for both",
+    "fg": {
+      "$type": "color",
+      "$value": "{text.secondary}"
+    }
+  },
+  "skeleton": {
+    "$description": "A static placeholder shape (ORV-201): one flat fill",
+    "bg": {
+      "$type": "color",
+      "$value": "{border.subtle}"
+    }
+  },
+  "avatar": {
+    "$description": "A person's disc (ORV-224): the ground of Skeleton's circle, so one replaces the other",
+    "bg": {
+      "$type": "color",
+      "$value": "{border.subtle}"
+    },
+    "fg": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    }
+  },
   "progress": {
     "$description": "How far a job has got (E4-5): a bar, a label and the value as text",
     "track": {
       "$type": "color",
-      "$value": "{surface.sunken}"
+      "$value": "{border.subtle}"
     },
     "fill": {
       "$type": "color",
-      "$value": "{action.primary}"
+      "$value": "{text.brand}"
     },
     "done": {
       "$type": "color",
@@ -2177,27 +2370,54 @@
     "value-type": {
       "$type": "typography",
       "$value": "{type.label.md}"
-    },
-    "track-border": {
+    }
+  },
+  "file-upload": {
+    "$description": "A picker with a list of files (ORV-227). One radius for the zone and its rows: siblings, and a control box like Textarea",
+    "zone-border": {
       "$type": "color",
       "$value": "{border.control}"
+    },
+    "zone-border-invalid": {
+      "$type": "color",
+      "$value": "{border.error}"
+    },
+    "zone-border-disabled": {
+      "$type": "color",
+      "$value": "{border.disabled}"
+    },
+    "item-border": {
+      "$type": "color",
+      "$value": "{border.subtle}"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.media.radius}"
+    },
+    "padding": {
+      "$type": "dimension",
+      "$value": "{space.inset.md}"
+    },
+    "gap": {
+      "$type": "dimension",
+      "$value": "{space.inline.md}"
     }
   },
   "tag": {
-    "$description": "A removable or selectable label the user chose (E4-5): a reference, a filter, a mention",
+    "$description": "A removable or selectable label the user chose (E4-5): a reference, a filter, a mention. Style A, soft pill (ORV-192 row 13): sunken fill, hairline edge, regular-weight label, the remove a circle inside the pill",
     "bg": {
       "$type": "color",
       "$value": "{surface.sunken}"
-    },
-    "bg-hover": {
-      "$type": "color",
-      "$value": "{surface.hover}"
     },
     "fg": {
       "$type": "color",
       "$value": "{text.primary}"
     },
     "border": {
+      "$type": "color",
+      "$value": "{border.subtle}"
+    },
+    "border-hover": {
       "$type": "color",
       "$value": "{border.control}"
     },
@@ -2221,9 +2441,21 @@
       "$type": "color",
       "$value": "{text.secondary}"
     },
+    "remove-fg-hover": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    },
     "remove-bg-hover": {
       "$type": "color",
-      "$value": "{surface.hover}"
+      "$value": "{surface.card}"
+    },
+    "remove-size": {
+      "$type": "dimension",
+      "$value": "{size.icon.lg}"
+    },
+    "remove-radius": {
+      "$type": "dimension",
+      "$value": "{shape.control.radius}"
     },
     "radius": {
       "$type": "dimension",
@@ -2260,11 +2492,11 @@
     "type": {
       "sm": {
         "$type": "typography",
-        "$value": "{type.label.sm}"
+        "$value": "{type.body.xs}"
       },
       "md": {
         "$type": "typography",
-        "$value": "{type.label.md}"
+        "$value": "{type.body.sm}"
       }
     }
   },
@@ -2519,6 +2751,297 @@
       "$type": "dimension",
       "$value": "{size.panel.min}",
       "$description": "Tallest the mention picker grows before it scrolls, 240 (slice C)"
+    }
+  },
+  "featured-icon": {
+    "$description": "A glyph on a tinted tile for one feedback kind (ORV-222) or a neutral tile (ORV-223): the kind's surface and foreground, one media radius, a size scale on the control and icon sizes",
+    "success": {
+      "bg": {
+        "$type": "color",
+        "$value": "{feedback.success.surface}"
+      },
+      "fg": {
+        "$type": "color",
+        "$value": "{feedback.success.fg}"
+      }
+    },
+    "warning": {
+      "bg": {
+        "$type": "color",
+        "$value": "{feedback.warning.surface}"
+      },
+      "fg": {
+        "$type": "color",
+        "$value": "{feedback.warning.fg}"
+      }
+    },
+    "danger": {
+      "bg": {
+        "$type": "color",
+        "$value": "{feedback.danger.surface}"
+      },
+      "fg": {
+        "$type": "color",
+        "$value": "{feedback.danger.fg}"
+      }
+    },
+    "info": {
+      "bg": {
+        "$type": "color",
+        "$value": "{feedback.info.surface}"
+      },
+      "fg": {
+        "$type": "color",
+        "$value": "{feedback.info.fg}"
+      }
+    },
+    "neutral": {
+      "bg": {
+        "$type": "color",
+        "$value": "{border.subtle}"
+      },
+      "fg": {
+        "$type": "color",
+        "$value": "{text.secondary}"
+      }
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.media.radius}"
+    },
+    "size": {
+      "sm": {
+        "$type": "dimension",
+        "$value": "{size.control.sm}"
+      },
+      "md": {
+        "$type": "dimension",
+        "$value": "{size.control.md}"
+      },
+      "lg": {
+        "$type": "dimension",
+        "$value": "{size.control.lg}"
+      }
+    },
+    "icon-size": {
+      "sm": {
+        "$type": "dimension",
+        "$value": "{size.icon.sm}"
+      },
+      "md": {
+        "$type": "dimension",
+        "$value": "{size.icon.md}"
+      },
+      "lg": {
+        "$type": "dimension",
+        "$value": "{size.icon.lg}"
+      }
+    }
+  },
+  "separator": {
+    "$description": "A bare line between two blocks (ORV-230, sep-look-1): the hairline colour, read as a border and never a fill",
+    "line": {
+      "$type": "color",
+      "$value": "{border.subtle}",
+      "$description": "The 1 px line of both orientations"
+    }
+  },
+  "alert": {
+    "$description": "An inline message for one feedback kind (ORV-222, alert-look-1): a card ground, a 1 px edge per kind (danger takes the foreground ink), a title over a description",
+    "bg": {
+      "$type": "color",
+      "$value": "{surface.card}"
+    },
+    "success-edge": {
+      "$type": "color",
+      "$value": "{feedback.success.border}"
+    },
+    "warning-edge": {
+      "$type": "color",
+      "$value": "{feedback.warning.border}"
+    },
+    "danger-edge": {
+      "$type": "color",
+      "$value": "{feedback.danger.fg}",
+      "$description": "The one strong edge: a failed job is drawn at full strength (design.md C2)"
+    },
+    "info-edge": {
+      "$type": "color",
+      "$value": "{feedback.info.border}"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.container.radius}"
+    },
+    "padding": {
+      "$type": "dimension",
+      "$value": "{space.inset.md}"
+    },
+    "gap": {
+      "$type": "dimension",
+      "$value": "{space.inline.lg}"
+    },
+    "title": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    },
+    "description": {
+      "$type": "color",
+      "$value": "{text.secondary}"
+    },
+    "title-type": {
+      "$type": "typography",
+      "$value": "{type.label.md}"
+    },
+    "body-type": {
+      "$type": "typography",
+      "$value": "{type.body.sm}"
+    }
+  },
+  "empty-state": {
+    "$description": "A tile, a title over text and one action for a region with nothing in it (ORV-223): compact title over text at both sizes, md a centred column capped at the panel width, sm starting at the line's start",
+    "title": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    },
+    "description": {
+      "$type": "color",
+      "$value": "{text.secondary}"
+    },
+    "title-type": {
+      "$type": "typography",
+      "$value": "{type.label.md}"
+    },
+    "body-type": {
+      "$type": "typography",
+      "$value": "{type.body.sm}"
+    },
+    "text-gap": {
+      "$type": "dimension",
+      "$value": "{space.inline.sm}"
+    },
+    "gap-md": {
+      "$type": "dimension",
+      "$value": "{space.stack.md}"
+    },
+    "gap-sm": {
+      "$type": "dimension",
+      "$value": "{space.inline.lg}"
+    },
+    "action-gap": {
+      "$type": "dimension",
+      "$value": "{space.stack.sm}"
+    },
+    "max-width": {
+      "$type": "dimension",
+      "$value": "{size.panel.default}"
+    }
+  },
+  "loading-state": {
+    "$description": "A ring with its label and an optional stop action for a region that waits (ORV-223, load-live-1): a centred column capped at the panel width, no pulse",
+    "gap": {
+      "$type": "dimension",
+      "$value": "{space.stack.md}"
+    },
+    "max-width": {
+      "$type": "dimension",
+      "$value": "{size.panel.default}"
+    }
+  },
+  "logo": {
+    "$description": "The ORIVILO mark, wordmark and lockups (ORV-118, logo-colour-1)",
+    "ink": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    },
+    "dot": {
+      "$type": "color",
+      "$value": "{brand.signature}"
+    },
+    "dot-small": {
+      "$type": "color",
+      "$value": "{brand.dot-small}"
+    }
+  },
+  "calendar": {
+    "$description": "A month grid for one date (ORV-231, cal-look-1): selected is surface.selected with an edge, never the brand; every state has a carrier beyond colour",
+    "bg": {
+      "$type": "color",
+      "$value": "{surface.raised}"
+    },
+    "fg": {
+      "$type": "color",
+      "$value": "{text.primary}"
+    },
+    "weekday-fg": {
+      "$type": "color",
+      "$value": "{text.secondary}"
+    },
+    "heading-type": {
+      "$type": "typography",
+      "$value": "{type.label.md}"
+    },
+    "weekday-type": {
+      "$type": "typography",
+      "$value": "{type.body.xs}"
+    },
+    "day-type": {
+      "$type": "typography",
+      "$value": "{type.control.md}"
+    },
+    "cell-size": {
+      "$type": "dimension",
+      "$value": "{size.touch}"
+    },
+    "gap": {
+      "$type": "dimension",
+      "$value": "{space.stack.sm}"
+    },
+    "months-gap": {
+      "$type": "dimension",
+      "$value": "{space.stack.lg}"
+    },
+    "row-gap": {
+      "$type": "dimension",
+      "$value": "{space.inline.sm}",
+      "$description": "The gap between day rows, so the lines of stacked range rows stay two and a focus halo clears the next row"
+    },
+    "padding": {
+      "$type": "dimension",
+      "$value": "{space.inset.sm}",
+      "$description": "A calendar on a page is a padded tile; seven touch cells plus this padding fit a popover under 360 px"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.container.radius}"
+    },
+    "day-radius": {
+      "$type": "dimension",
+      "$value": "{shape.control.radius}"
+    },
+    "day-hover-bg": {
+      "$type": "color",
+      "$value": "{surface.hover}"
+    },
+    "day-hover-edge": {
+      "$type": "color",
+      "$value": "{border.control-hover}"
+    },
+    "day-selected-bg": {
+      "$type": "color",
+      "$value": "{surface.selected}"
+    },
+    "day-selected-fg": {
+      "$type": "color",
+      "$value": "{selection.fg}"
+    },
+    "day-selected-edge": {
+      "$type": "color",
+      "$value": "{selection.fg}"
+    },
+    "day-disabled-fg": {
+      "$type": "color",
+      "$value": "{text.disabled}"
     }
   }
 }

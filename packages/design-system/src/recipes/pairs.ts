@@ -10,6 +10,39 @@
  * its shadow and its options, a tab list by its tabs and the selected edge, a dialog by its scrim
  * and shadow, a card by its ground; the edge is decoration and WCAG 1.4.11 does not apply to it.
  *
+ * `progress.track`, a filled `border.subtle` bar, 1.2 to 2.1 against the page: the value is printed
+ * as text beside every bar, so the track is not the only carrier and WCAG 1.4.11 does not apply to
+ * it (ORV-192 row 14). The fill, done fill and failed fill are listed against the track at 3.0.
+ *
+ * `skeleton.bg`, a filled `border.subtle` shape: it is hidden from assistive technology and the
+ * hidden status of the group carries the state, so WCAG 1.4.11 does not apply to it (ORV-201).
+ *
+ * `logo.dot`, the master dot (`brand.signature`; 6.6 on the light canvas under neutral, 2.3 under
+ * Friendly): a logotype's accent is decoration and the ring carries the shape; WCAG 1.4.11 does
+ * not apply to a logotype. It stays out of the list because Friendly's master dot is under 3.0.
+ *
+ * `separator.line`, a `border.subtle` divider, for both values of `decorative`: the space around the
+ * line separates on screen and the role tells a screen reader, so the line is decoration and WCAG
+ * 1.4.11 does not apply to it (ORV-230, `sep-look-1`).
+ *
+ * `featured-icon.<kind>.bg`, a filled `feedback.<kind>.surface` tile against the page: the glyph on
+ * it is the graphic and is listed at 3.0 for the four kinds; the tile ground is decoration, and the
+ * words beside the tile say the same thing (ORV-222, `fi-colour-1`). WCAG 1.4.11 does not apply to
+ * the ground. The same holds for `featured-icon.neutral.bg`, a filled `border.subtle` tile
+ * (ORV-223, `fi-neutral-colour-1`): against its ground it measures 1.15 at the lowest (the board in
+ * neutral light), the glyph on it is listed at 3.0, and the words beside it carry the meaning.
+ *
+ * `file-upload.zone-border-disabled`, a `border.disabled` edge: like `border.disabled` on any control
+ * it does not carry the state, the disabled button and the disabled text do. `file-upload.item-border`,
+ * a `border.subtle` hairline that carries no state: a row is identified by its text and its Remove
+ * button (ORV-227).
+ *
+ * `alert.success-edge`, `alert.warning-edge` and `alert.info-edge`, a 1 px `feedback.<kind>.border`
+ * line round the block: `contrast-pairs.ts` holds `feedback.*.border` as decoration, and the tile
+ * and the words say the kind, so WCAG 1.4.11 does not apply to them. `alert.danger-edge`, the
+ * foreground ink of the kind, is listed at 3.0 so the strength of a failure's edge is proven
+ * (ORV-222, `alert-look-1`).
+ *
  * Paths are component-token paths (`button.primary.fg`) or semantic paths prefixed `ds:` where a
  * recipe sits on a page ground rather than its own (`ds:surface.canvas`).
  */
@@ -292,12 +325,27 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     floor: TEXT,
   },
   { recipe: "menu", slot: "empty line", fg: "menu.empty", bg: "menu.bg", floor: TEXT },
-  // Checkable menu item (ORV-78): the focus ring on the selected fill when highlighted
+  // Checkable menu item (ORV-78): the focus.ring (the brand) line on the selected fill when highlighted
   {
     recipe: "menu",
     slot: "checked highlighted ring",
     fg: "ds:focus.ring",
     bg: "menu.option.bg-selected",
+    floor: UI,
+  },
+  // Combobox list (ORV-228, D17): the ScrollArea thumb sits in the popup's end padding, on the menu ground
+  {
+    recipe: "menu",
+    slot: "scroll thumb at rest",
+    fg: "scroll-area.thumb-hover",
+    bg: "menu.bg",
+    floor: UI,
+  },
+  {
+    recipe: "menu",
+    slot: "scroll thumb on hover",
+    fg: "scroll-area.thumb",
+    bg: "menu.bg",
     floor: UI,
   },
   // Checkbox
@@ -338,6 +386,128 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     floor: UI,
   },
   { recipe: "checkbox", slot: "label", fg: "field.label", bg: "ds:surface.canvas", floor: TEXT },
+  // RadioGroup (ORV-221, control-pairs-1)
+  { recipe: "radio", slot: "edge", fg: "radio.border", bg: "radio.bg", floor: UI },
+  {
+    recipe: "radio",
+    slot: "edge on canvas",
+    fg: "radio.border",
+    bg: "ds:surface.canvas",
+    floor: UI,
+  },
+  {
+    recipe: "radio",
+    slot: "checked edge on canvas",
+    fg: "radio.border-checked",
+    bg: "ds:surface.canvas",
+    floor: UI,
+  },
+  {
+    recipe: "radio",
+    slot: "checked edge on card",
+    fg: "radio.border-checked",
+    bg: "ds:surface.card",
+    floor: UI,
+  },
+  { recipe: "radio", slot: "dot", fg: "radio.dot", bg: "radio.bg-checked", floor: UI },
+  { recipe: "radio", slot: "edge error", fg: "radio.border-error", bg: "radio.bg", floor: UI },
+  // The inner line of a focused checked radio sits on the checked ground (D22, D23)
+  {
+    recipe: "radio",
+    slot: "focus line on checked",
+    fg: "ds:focus.ring",
+    bg: "radio.bg-checked",
+    floor: UI,
+  },
+  {
+    recipe: "radio",
+    slot: "error line on checked",
+    fg: "radio.border-error",
+    bg: "radio.bg-checked",
+    floor: UI,
+  },
+  {
+    recipe: "radio",
+    slot: "disabled dot",
+    fg: "radio.dot-disabled",
+    bg: "radio.bg-disabled",
+    floor: UI,
+  },
+  // Switch (ORV-249, control-pairs-1): a track is a UI edge or fill on the ground, a thumb sits on its track
+  {
+    recipe: "switch",
+    slot: "track on canvas",
+    fg: "switch.track",
+    bg: "ds:surface.canvas",
+    floor: UI,
+  },
+  { recipe: "switch", slot: "track on card", fg: "switch.track", bg: "ds:surface.card", floor: UI },
+  {
+    recipe: "switch",
+    slot: "on track on canvas",
+    fg: "switch.track-on",
+    bg: "ds:surface.canvas",
+    floor: UI,
+  },
+  {
+    recipe: "switch",
+    slot: "on track on card",
+    fg: "switch.track-on",
+    bg: "ds:surface.card",
+    floor: UI,
+  },
+  { recipe: "switch", slot: "thumb", fg: "switch.thumb", bg: "switch.track", floor: UI },
+  {
+    recipe: "switch",
+    slot: "thumb on hover",
+    fg: "switch.thumb",
+    bg: "switch.track-hover",
+    floor: UI,
+  },
+  {
+    recipe: "switch",
+    slot: "thumb on press",
+    fg: "switch.thumb",
+    bg: "switch.track-press",
+    floor: UI,
+  },
+  { recipe: "switch", slot: "on thumb", fg: "switch.thumb-on", bg: "switch.track-on", floor: UI },
+  {
+    recipe: "switch",
+    slot: "on thumb on press",
+    fg: "switch.thumb-on",
+    bg: "switch.track-press",
+    floor: UI,
+  },
+  {
+    recipe: "switch",
+    slot: "edge error on canvas",
+    fg: "switch.edge-error",
+    bg: "ds:surface.canvas",
+    floor: UI,
+  },
+  {
+    recipe: "switch",
+    slot: "edge error on card",
+    fg: "switch.edge-error",
+    bg: "ds:surface.card",
+    floor: UI,
+  },
+  {
+    recipe: "switch",
+    slot: "disabled thumb",
+    fg: "switch.thumb-disabled",
+    bg: "switch.track-disabled",
+    floor: UI,
+  },
+  { recipe: "switch", slot: "ring on thumb", fg: "switch.ring", bg: "switch.thumb", floor: UI },
+  {
+    recipe: "switch",
+    slot: "ring on on thumb",
+    fg: "switch.ring",
+    bg: "switch.thumb-on",
+    floor: UI,
+  },
   // Field
   { recipe: "field", slot: "label", fg: "field.label", bg: "ds:surface.canvas", floor: TEXT },
   { recipe: "field", slot: "label on card", fg: "field.label", bg: "ds:surface.card", floor: TEXT },
@@ -653,11 +823,17 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     floor: TEXT,
   },
   { recipe: "board", slot: "status line", fg: "ds:text.secondary", bg: "toolbar.bg", floor: TEXT },
-  { recipe: "board", slot: "overlay text", fg: "ds:text.secondary", bg: "board.bg", floor: TEXT },
   // Kbd, menus, toggle, toolbar, command menu, minimap, group (E4-3)
   { recipe: "kbd", slot: "key", fg: "kbd.fg", bg: "kbd.bg", floor: TEXT },
   { recipe: "kbd", slot: "key on menu", fg: "kbd.fg", bg: "menu.bg", floor: TEXT },
   { recipe: "menu", slot: "label", fg: "menu.label-fg", bg: "menu.bg", floor: TEXT },
+  {
+    recipe: "menu",
+    slot: "disabled option",
+    fg: "menu.option.fg-disabled",
+    bg: "menu.bg",
+    floor: UI,
+  },
   { recipe: "menu", slot: "shortcut", fg: "menu.shortcut-fg", bg: "kbd.bg", floor: TEXT },
   {
     recipe: "menu",
@@ -697,6 +873,7 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     floor: TEXT,
   },
   { recipe: "toggle", slot: "disabled", fg: "toggle.fg-disabled", bg: "toggle.bg", floor: UI },
+  { recipe: "toggle", slot: "focus line", fg: "ds:focus.ring", bg: "toggle.bg", floor: UI },
   { recipe: "toolbar", slot: "text", fg: "toolbar.fg", bg: "toolbar.bg", floor: TEXT },
   { recipe: "toolbar", slot: "glyph", fg: "button.ghost.fg", bg: "toolbar.bg", floor: TEXT },
   { recipe: "command", slot: "option", fg: "command.fg", bg: "command.bg", floor: TEXT },
@@ -847,6 +1024,179 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
   { recipe: "toast", slot: "danger icon", fg: "toast.danger-icon", bg: "toast.bg", floor: UI },
   { recipe: "toast", slot: "success edge", fg: "toast.success-edge", bg: "toast.bg", floor: UI },
   { recipe: "toast", slot: "danger edge", fg: "toast.danger-edge", bg: "toast.bg", floor: UI },
+  // Spinner (ORV-201): the ring and its label read one token, so both pairs sit at the text floor.
+  {
+    recipe: "spinner",
+    slot: "ring and label",
+    fg: "spinner.fg",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
+  {
+    recipe: "spinner",
+    slot: "ring and label",
+    fg: "spinner.fg",
+    bg: "ds:surface.card",
+    floor: TEXT,
+  },
+  // LoadingState on the board's overlay (ORV-223, load-live-1), in the place of the board's old "overlay text" pair.
+  {
+    recipe: "spinner",
+    slot: "ring and label on board",
+    fg: "spinner.fg",
+    bg: "board.bg",
+    floor: TEXT,
+  },
+  // The plate the board puts under the wait (ORV-250 D17): the same ring and words on the toolbar's solid ground.
+  {
+    recipe: "spinner",
+    slot: "ring and label on the board's plate",
+    fg: "spinner.fg",
+    bg: "toolbar.bg",
+    floor: TEXT,
+  },
+  // FeaturedIcon (ORV-222): the glyph on its tile, the graphic of the tile. The tile's own edge against the
+  // page is not listed: the tile ground is decoration and the glyph carries the kind (see "Not listed" above).
+  {
+    recipe: "featured-icon",
+    slot: "success glyph",
+    fg: "featured-icon.success.fg",
+    bg: "featured-icon.success.bg",
+    floor: UI,
+  },
+  {
+    recipe: "featured-icon",
+    slot: "warning glyph",
+    fg: "featured-icon.warning.fg",
+    bg: "featured-icon.warning.bg",
+    floor: UI,
+  },
+  {
+    recipe: "featured-icon",
+    slot: "danger glyph",
+    fg: "featured-icon.danger.fg",
+    bg: "featured-icon.danger.bg",
+    floor: UI,
+  },
+  {
+    recipe: "featured-icon",
+    slot: "info glyph",
+    fg: "featured-icon.info.fg",
+    bg: "featured-icon.info.bg",
+    floor: UI,
+  },
+  {
+    recipe: "featured-icon",
+    slot: "neutral glyph",
+    fg: "featured-icon.neutral.fg",
+    bg: "featured-icon.neutral.bg",
+    floor: UI,
+  },
+  // EmptyState (ORV-223): title and description on the three grounds the form sits on.
+  {
+    recipe: "empty-state",
+    slot: "title on canvas",
+    fg: "empty-state.title",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
+  {
+    recipe: "empty-state",
+    slot: "title on card",
+    fg: "empty-state.title",
+    bg: "ds:surface.card",
+    floor: TEXT,
+  },
+  {
+    recipe: "empty-state",
+    slot: "title on board",
+    fg: "empty-state.title",
+    bg: "board.bg",
+    floor: TEXT,
+  },
+  {
+    recipe: "empty-state",
+    slot: "description on canvas",
+    fg: "empty-state.description",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
+  {
+    recipe: "empty-state",
+    slot: "description on card",
+    fg: "empty-state.description",
+    bg: "ds:surface.card",
+    floor: TEXT,
+  },
+  {
+    recipe: "empty-state",
+    slot: "description on board",
+    fg: "empty-state.description",
+    bg: "board.bg",
+    floor: TEXT,
+  },
+  // Breadcrumb (ORV-229): the nav item inks on the page grounds, and the ellipsis ink on the ghost Button's hover and press grounds.
+  // The current crumb reads text.primary, never nav-item.fg-active (a selection ink), so a current place is no selection (ORV-252, crumb-look-1).
+  {
+    recipe: "breadcrumb",
+    slot: "link on canvas",
+    fg: "nav-item.fg",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
+  {
+    recipe: "breadcrumb",
+    slot: "link on card",
+    fg: "nav-item.fg",
+    bg: "ds:surface.card",
+    floor: TEXT,
+  },
+  {
+    recipe: "breadcrumb",
+    slot: "link hover on canvas",
+    fg: "nav-item.fg-hover",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
+  {
+    recipe: "breadcrumb",
+    slot: "link hover on card",
+    fg: "nav-item.fg-hover",
+    bg: "ds:surface.card",
+    floor: TEXT,
+  },
+  {
+    recipe: "breadcrumb",
+    slot: "current on canvas",
+    fg: "ds:text.primary",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
+  {
+    recipe: "breadcrumb",
+    slot: "current on card",
+    fg: "ds:text.primary",
+    bg: "ds:surface.card",
+    floor: TEXT,
+  },
+  {
+    recipe: "breadcrumb",
+    slot: "ellipsis hover",
+    fg: "nav-item.fg-hover",
+    bg: "button.ghost.bg-hover",
+    floor: TEXT,
+  },
+  {
+    recipe: "breadcrumb",
+    slot: "ellipsis press",
+    fg: "nav-item.fg-hover",
+    bg: "button.ghost.bg-press",
+    floor: TEXT,
+  },
+  // Alert (ORV-222, alert-look-1): the title and description on the card ground, and the danger edge.
+  { recipe: "alert", slot: "title", fg: "alert.title", bg: "alert.bg", floor: TEXT },
+  { recipe: "alert", slot: "description", fg: "alert.description", bg: "alert.bg", floor: TEXT },
+  { recipe: "alert", slot: "danger edge", fg: "alert.danger-edge", bg: "alert.bg", floor: UI },
   // Progress (E4-5): the value text, the bar against its track, the track against the card.
   {
     recipe: "progress",
@@ -854,13 +1204,6 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     fg: "progress.value-fg",
     bg: "ds:surface.card",
     floor: TEXT,
-  },
-  {
-    recipe: "progress",
-    slot: "track edge",
-    fg: "progress.track-border",
-    bg: "ds:surface.card",
-    floor: UI,
   },
   { recipe: "progress", slot: "fill", fg: "progress.fill", bg: "progress.track", floor: UI },
   { recipe: "progress", slot: "done fill", fg: "progress.done", bg: "progress.track", floor: UI },
@@ -885,11 +1228,64 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     bg: "ds:surface.card",
     floor: TEXT,
   },
+  // FileUpload (ORV-227): the zone's edge and its invalid edge on the canvas and on a card (UI floor),
+  // and the done and failed words on the canvas, where a row sits (the card pairs are under `progress`).
+  // The limits line and the hint read `field.description`, whose card pair was not listed before.
+  // Not listed: see "Not listed" above for `file-upload.zone-border-disabled` and `file-upload.item-border`.
+  {
+    recipe: "file-upload",
+    slot: "zone edge",
+    fg: "file-upload.zone-border",
+    bg: "ds:surface.canvas",
+    floor: UI,
+  },
+  {
+    recipe: "file-upload",
+    slot: "zone edge on card",
+    fg: "file-upload.zone-border",
+    bg: "ds:surface.card",
+    floor: UI,
+  },
+  {
+    recipe: "file-upload",
+    slot: "invalid edge",
+    fg: "file-upload.zone-border-invalid",
+    bg: "ds:surface.canvas",
+    floor: UI,
+  },
+  {
+    recipe: "file-upload",
+    slot: "invalid edge on card",
+    fg: "file-upload.zone-border-invalid",
+    bg: "ds:surface.card",
+    floor: UI,
+  },
+  {
+    recipe: "file-upload",
+    slot: "done word",
+    fg: "progress.done",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
+  {
+    recipe: "file-upload",
+    slot: "failed word",
+    fg: "progress.failed",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
+  {
+    recipe: "file-upload",
+    slot: "limits line on card",
+    fg: "field.description",
+    bg: "ds:surface.card",
+    floor: TEXT,
+  },
   // Tag (E4-5): the label on its ground in each state, the edge against the card, the remove glyph.
   { recipe: "tag", slot: "label", fg: "tag.fg", bg: "tag.bg", floor: TEXT },
-  { recipe: "tag", slot: "label hover", fg: "tag.fg", bg: "tag.bg-hover", floor: TEXT },
   { recipe: "tag", slot: "label selected", fg: "tag.fg", bg: "tag.bg-selected", floor: TEXT },
-  { recipe: "tag", slot: "edge", fg: "tag.border", bg: "ds:surface.card", floor: UI },
+  // The resting hairline is decorative; hover and focus carry the edge (ORV-192 row 13).
+  { recipe: "tag", slot: "hover edge", fg: "tag.border-hover", bg: "ds:surface.card", floor: UI },
   {
     recipe: "tag",
     slot: "selected edge",
@@ -898,14 +1294,15 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     floor: UI,
   },
   { recipe: "tag", slot: "remove", fg: "tag.remove-fg", bg: "tag.bg", floor: TEXT },
+  { recipe: "tag", slot: "remove focus", fg: "ds:focus.ring", bg: "tag.bg", floor: UI },
   {
     recipe: "tag",
     slot: "remove hover",
-    fg: "tag.remove-fg",
+    fg: "tag.remove-fg-hover",
     bg: "tag.remove-bg-hover",
     floor: TEXT,
   },
-  // TaskBar (ORV-100): text and marks on the bar's ground, the row focus ring against it. Not listed:
+  // TaskBar (ORV-100): text and marks on the bar's ground, the row focus line (focus.ring, the brand) against it. Not listed:
   // `taskbar.border` and `taskbar.divider` are `border.subtle` dividers (the bar is identified by its
   // ground and, on the board, its shadow). Progress and Button inside the bar sit on `taskbar.bg`,
   // which reads `surface.card`; their pairs exist on `ds:surface.card`. If `taskbar.bg` stops
@@ -925,7 +1322,7 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
   { recipe: "taskbar", slot: "reason", fg: "taskbar.reason-fg", bg: "taskbar.bg", floor: TEXT },
   { recipe: "taskbar", slot: "row focus", fg: "ds:focus.ring", bg: "taskbar.bg", floor: UI },
   // CanvasChat (ORV-105): text and marks on the panel ground and on the question well, the
-  // transcript focus ring against the panel. Not listed: the panel edge (`chat.border`) and
+  // transcript focus line (focus.ring, the brand) against the panel. Not listed: the panel edge (`chat.border`) and
   // shadow, which the content does not depend on (WCAG 1.4.11 does not apply), and the question well's edge is not a
   // boundary anyone must perceive to operate anything. Textarea, Button and ScrollArea inside sit
   // on `chat.bg`, which reads `surface.card`, where their pairs exist. If `chat.bg` stops reading
@@ -944,7 +1341,7 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
   { recipe: "chat", slot: "streaming", fg: "chat.streaming-fg", bg: "chat.bg", floor: TEXT },
   { recipe: "chat", slot: "failed", fg: "chat.failed-fg", bg: "chat.bg", floor: TEXT },
   { recipe: "chat", slot: "transcript focus", fg: "ds:focus.ring", bg: "chat.bg", floor: UI },
-  // The composer box's focus line is its 1 px border in the focus ink (ORV-107 comment 10154), on the chat ground and on the box fill.
+  // The composer box's focus line is its 1 px border in focus.ring, the brand (ORV-107 comment 10154), on the chat ground and on the box fill.
   { recipe: "chat", slot: "composer focus", fg: "input.border-focus", bg: "chat.bg", floor: UI },
   {
     recipe: "chat",
@@ -972,6 +1369,202 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     slot: "composer error edge",
     fg: "input.border-error",
     bg: "chat.bg",
+    floor: UI,
+  },
+  // Logo (ORV-118)
+  { recipe: "logo", slot: "ink", fg: "logo.ink", bg: "ds:surface.canvas", floor: UI },
+  { recipe: "logo", slot: "small dot", fg: "logo.dot-small", bg: "ds:surface.canvas", floor: UI },
+  // EvidenceSpan and EvidenceList (ORV-211): the source line in the card, and the secondary text
+  // on the page (the two missing texts and the list's source line).
+  {
+    recipe: "evidence",
+    slot: "source line",
+    fg: "ds:text.secondary",
+    bg: "popover.bg",
+    floor: TEXT,
+  },
+  {
+    recipe: "evidence",
+    slot: "secondary text on the page",
+    fg: "ds:text.secondary",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
+  // Page header (ORV-225): the title and the description and meta row on the page ground.
+  {
+    recipe: "page-header",
+    slot: "title",
+    fg: "ds:text.primary",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
+  {
+    recipe: "page-header",
+    slot: "description and meta",
+    fg: "ds:text.secondary",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
+  // Nav item (ORV-252, nav-look-1): the rest ink on the page and on the drawer, the hover pair, the
+  // marked row (ink on the selected ground, bead on it at the UI floor), and the active ink where
+  // an open marked group shows it with no fill: on the page, on the drawer and on hover.
+  {
+    recipe: "nav-item",
+    slot: "rest on canvas",
+    fg: "nav-item.fg",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
+  {
+    recipe: "nav-item",
+    slot: "rest on drawer",
+    fg: "nav-item.fg",
+    bg: "side-sheet.bg",
+    floor: TEXT,
+  },
+  {
+    recipe: "nav-item",
+    slot: "hover",
+    fg: "nav-item.fg-hover",
+    bg: "nav-item.bg-hover",
+    floor: TEXT,
+  },
+  {
+    recipe: "nav-item",
+    slot: "current",
+    fg: "nav-item.fg-active",
+    bg: "nav-item.bg-active",
+    floor: TEXT,
+  },
+  { recipe: "nav-item", slot: "bead", fg: "nav-item.bead", bg: "nav-item.bg-active", floor: UI },
+  {
+    recipe: "nav-item",
+    slot: "active ink on canvas",
+    fg: "nav-item.fg-active",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
+  {
+    recipe: "nav-item",
+    slot: "active ink on drawer",
+    fg: "nav-item.fg-active",
+    bg: "side-sheet.bg",
+    floor: TEXT,
+  },
+  {
+    recipe: "nav-item",
+    slot: "active ink on hover",
+    fg: "nav-item.fg-active",
+    bg: "nav-item.bg-hover",
+    floor: TEXT,
+  },
+  // Top navigation (ORV-252, top-skip-1): the skip link is an opaque card-ground bar over the header.
+  {
+    recipe: "top-nav",
+    slot: "skip link",
+    fg: "ds:text.primary",
+    bg: "ds:surface.card",
+    floor: TEXT,
+  },
+  // Section header (ORV-251): the title and the description on the page ground. The divider is a
+  // decorative line under the block, so it lists no pair, as the Separator does.
+  {
+    recipe: "section-header",
+    slot: "title",
+    fg: "ds:text.primary",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
+  {
+    recipe: "section-header",
+    slot: "description",
+    fg: "ds:text.secondary",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
+  // Avatar (ORV-224): the initials and the glyph share one ink on the disc. TEXT also covers the
+  // glyph, which needs only the UI floor.
+  { recipe: "avatar", slot: "fallback", fg: "avatar.fg", bg: "avatar.bg", floor: TEXT },
+  // Calendar (ORV-231, cal-look-1): the text pairs at 4.5, then every edge, line and ring a day state
+  // draws against the ground it sits on, at 3.0. The refused pairs (the selected ground on the card,
+  // the selected ink against the card ink) are no state's only carrier, so they are not listed.
+  { recipe: "calendar", slot: "day", fg: "calendar.fg", bg: "calendar.bg", floor: TEXT },
+  {
+    recipe: "calendar",
+    slot: "weekday",
+    fg: "calendar.weekday-fg",
+    bg: "calendar.bg",
+    floor: TEXT,
+  },
+  {
+    recipe: "calendar",
+    slot: "hover",
+    fg: "calendar.fg",
+    bg: "calendar.day-hover-bg",
+    floor: TEXT,
+  },
+  {
+    recipe: "calendar",
+    slot: "selected",
+    fg: "calendar.day-selected-fg",
+    bg: "calendar.day-selected-bg",
+    floor: TEXT,
+  },
+  {
+    recipe: "calendar",
+    slot: "selected edge",
+    fg: "calendar.day-selected-edge",
+    bg: "calendar.bg",
+    floor: UI,
+  },
+  {
+    recipe: "calendar",
+    slot: "hover edge",
+    fg: "calendar.day-hover-edge",
+    bg: "calendar.bg",
+    floor: UI,
+  },
+  {
+    recipe: "calendar",
+    slot: "disabled",
+    fg: "calendar.day-disabled-fg",
+    bg: "calendar.bg",
+    floor: UI,
+  },
+  {
+    recipe: "calendar",
+    slot: "selected edge on selected",
+    fg: "calendar.day-selected-edge",
+    bg: "calendar.day-selected-bg",
+    floor: UI,
+  },
+  {
+    recipe: "calendar",
+    slot: "hover edge on hover",
+    fg: "calendar.day-hover-edge",
+    bg: "calendar.day-hover-bg",
+    floor: UI,
+  },
+  {
+    recipe: "calendar",
+    slot: "hover edge on selected",
+    fg: "calendar.day-hover-edge",
+    bg: "calendar.day-selected-bg",
+    floor: UI,
+  },
+  {
+    recipe: "calendar",
+    slot: "disabled on selected",
+    fg: "calendar.day-disabled-fg",
+    bg: "calendar.day-selected-bg",
+    floor: UI,
+  },
+  { recipe: "calendar", slot: "focus", fg: "ds:focus.ring", bg: "calendar.bg", floor: UI },
+  {
+    recipe: "calendar",
+    slot: "focus on selected",
+    fg: "ds:focus.ring",
+    bg: "calendar.day-selected-bg",
     floor: UI,
   },
 ];

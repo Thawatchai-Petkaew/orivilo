@@ -1,12 +1,18 @@
 import { useState } from "react";
 import { useDesignProfile } from "../../boundary/DesignProfileBoundary";
 import type { CommandId } from "../../commands/index";
+import { fillHeight } from "../matrix";
 import { CanvasBoard, type CanvasBoardProps, type CommandContext } from "./CanvasBoard";
 import type { BoardNode, Graph } from "./graph";
 
 export interface StatefulProps extends Omit<CanvasBoardProps, "graph" | "onChange"> {
   initial: Graph;
   height?: number | undefined;
+  /**
+   * The board fills the viewport height when it is taller than `height` (spec ORV-189,
+   * `fill-height-1`); `false` keeps `height`, for a story that proves a bound on the height.
+   */
+  fill?: boolean | undefined;
   /** Called with every graph the board emits, for play functions that read positions. */
   onGraph?: ((graph: Graph) => void) | undefined;
 }
@@ -16,7 +22,7 @@ export interface StatefulProps extends Omit<CanvasBoardProps, "graph" | "onChang
  * it back, `board.add-node` adding a note where asked and `node.rename` renaming in place.
  * Undo and redo are reported to `onCommand` only; a real history is the shell's (E4-6).
  */
-export function Stateful({ initial, height = 520, onGraph, ...rest }: StatefulProps) {
+export function Stateful({ initial, height = 520, fill = true, onGraph, ...rest }: StatefulProps) {
   const [graph, setGraph] = useState(initial);
   const update = (next: Graph) => {
     setGraph(next);
@@ -45,7 +51,7 @@ export function Stateful({ initial, height = 520, onGraph, ...rest }: StatefulPr
     }
   };
   return (
-    <div style={{ height }} className="relative">
+    <div style={{ height: fill ? fillHeight(height) : height }} className="relative">
       <CanvasBoard {...rest} graph={graph} onChange={update} onCommand={onCommand} />
     </div>
   );

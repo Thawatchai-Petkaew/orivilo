@@ -259,8 +259,10 @@ test("the exact label closes when trimmed or in any case of the English phrase",
 
 test("AC 34: a builder envelope closed by the form counts as a rework round", () => {
   const root = makeRepo();
+  seedBoundBuilder(root, "ORV-1", "ORV-1-b0", "2026-10-23T07:30:00.000Z");
   seedVerdict(root, "ORV-1", "ORV-1-rev", "request_changes", "2026-10-23T08:00:00.000Z");
   seedBoundBuilder(root, "ORV-1", "ORV-1-r1", "2026-10-23T08:30:00.000Z");
+  seedVerdict(root, "ORV-1", "ORV-1-revb", "request_changes", "2026-10-23T08:45:00.000Z");
   stuck(root);
   assert.equal(reworkState(readIssue(root, "ORV-1")).rounds, 2);
   assert.equal(runNode(closeHook, form(root)).code, 0);

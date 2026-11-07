@@ -1,0 +1,32 @@
+name: EvidenceSpan
+tier: application
+status: draft
+since: ORV-211
+import: "@orivilo/design-system"
+story: application-evidence-span
+useWhen:
+  - "A fact ORIVILO took from the brief, followed by a control that opens the exact words it came from"
+avoidWhen:
+  - "Evidence from a website, a photo or another brand's CI (the item is narrowed to the brief)"
+  - "Several quotes behind one fact or one count (use EvidenceList)"
+  - "A card that must open on hover: it opens on a press only"
+contract: EvidenceSpanProps
+variants: []
+sizes: []
+states: [closed, open, by-model, missing]
+recipes: [neutral, professional, friendly]
+examples: []
+rules:
+  - "Props: children (the fact, the caller's node), item (EvidenceItem or undefined), open, defaultOpen, onOpenChange; no size, variant or className"
+  - "The pill is a Tag toggle form at sm (`ds-tag`, `ds-tag__main`, `ds-tag__label`), so a change to the Tag recipe moves it; open is never shown as selected"
+  - "The card is our Popover, non-modal, with `collisionPadding` equal to `space.gutter` and a 320 px cap (`size.panel.default`)"
+  - "The quote is a `blockquote` text child, never HTML, with a start line in `border.control` (decoration); under it a source line in `text.secondary` says whether a rule or an AI model read it, from the item's `fromModel`"
+  - "No usable quote (no item, no quote, a locator that is not text, or white space only) renders the fact, then plain text from `evidence.missing` in `text.secondary`; no button, no popover"
+  - "No link, and `source.ref` and `source.locator` are never shown; the component renders no `<a>`"
+  - "The seven `evidence.*` keys are in Thai and English; the fact is the caller's text"
+  - "Mock evidence in stories: no brief analyser exists yet, and no story claims a rule or a model read a brief"
+a11y:
+  - 'The pill is a button named by its label, then the fact, through `aria-labelledby` ("Evidence Brand name: Baan Coffee"), so it starts with its visible text (SC 2.5.3) and each pill in a reading has its own name'
+  - '`aria-haspopup="dialog"`, `aria-expanded` and `aria-controls` on the pill and `role="dialog"` on the card are Radix''s; the card is named by `evidence.cardLabel`'
+  - "Click, Enter and Space open it; Esc closes it and returns focus to the pill; a click outside closes it; hover and focus alone open nothing"
+  - "Radix moves focus to the card on open; the card has no focusable child and shows the focus border and halo"

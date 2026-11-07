@@ -2,7 +2,7 @@
 id: K-0012
 topic: enforcement
 claim: Camp Vibes and Allkons both say in prose which skill each role must run, and neither has a hook or script that checks a skill was used.
-source: "~/My Work/TechFlow/AI-First/allkons-marketplace/.claude/skills/atlas/SKILL.md:229-237; ~/Claude/Projects/CAMPVIBE/.claude/agents/orchestrator.md:64"
+source: "https://bitbucket.org/ThammasornDEV/allkons-marketplace .claude/skills/atlas/SKILL.md:229-237; https://github.com/Thawatchai-Petkaew/campvibe .claude/agents/orchestrator.md:64"
 retrieved: 2026-10-23
 confidence: 0.75
 applies_to: [ORV-81]

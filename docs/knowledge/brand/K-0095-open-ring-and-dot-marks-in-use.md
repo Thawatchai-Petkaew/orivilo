@@ -1,0 +1,85 @@
+---
+id: K-0095
+topic: brand
+claim: A text-only scan on 2026-10-31, in which no trademark register's figurative search and no reverse image search could be run, read six ring-and-dot or open-ring placements in use (the IEC standby symbol's line in a top gap, Wikimedia's dot over arcs inside an incomplete circle, Gojek's dot centred in a ring open at the bottom, smart's cut-circle "C" and triangle forming an arrow pointing east, OpenTable's closed ring with a disc to its left, Target's closed ring round a dot) and, among the pages read, none that sets a stroke-wide dot on the ring line in an opening centred at the upper right; no page read states an opening angle, so the scan cannot rank ORIVILO's 100, 110 and 120 degree openings against these marks.
+source: "docs/specs/ORV-118/design.md row 2 (ORV-118 branch); docs/context/brand/orivilo-brand-spec-v1.1.md lines 16, 23 and 92; https://en.wikipedia.org/wiki/Power_symbol; https://www.pcworld.com/article/2590354/what-does-the-symbol-on-a-power-button-mean-how-did-it-come-about.html; https://search.ipaustralia.gov.au/trademarks/search/view/1667063; https://meta.wikimedia.org/wiki/Brand/logo/en; https://meta.wikimedia.org/wiki/Logo_specifications; https://www.marketing-interactive.com/gojek-revamps-logo-shares-insights-to-new-look-and-creative-challenges/; https://vulcanpost.com/670118/gojek-rebrand-food-delivery-singapore/; https://1000logos.net/gojek-logo/; https://en.wikipedia.org/wiki/Gojek; https://www.thejakartapost.com/news/2019/07/23/go-jek-s-new-logo-signifies-fresh-ambitions; https://1000logos.net/smart-logo/; https://prnewswire.co.uk/news-releases/opentable-unveils-rebrand-to-deepen-connection-with-diners-and-restaurants-294809861.html; https://1000logos.net/top-60-most-famous-logos-with-a-circle/; https://www.ryt9.com/s/iq05/1766352; https://webharvest.gov/peth04/20041016100627/http://tess2.uspto.gov/tmdb/dscm/dsc_26.htm; https://www.uspto.gov/trademarks/search/design-search-codes; https://www.jdsupra.com/legalnews/uspto-launches-ai-powered-image-search-1791226/; https://www.dailynews.co.th/news/5613497/; https://www.thansettakij.com/economy/651942; https://www.lawplusltd.com/2026/03/thailand-launches-ai-powered-trademark-search-tools-our-assessment-of-their-impacts-on-professional-search-services/; https://branddb.wipo.int/en/; https://search.ipthailand.go.th/; https://euipo.europa.eu/eSearch/; https://www.tmdn.org/tmview/; https://tmsearch.uspto.gov/search/search-information; https://tmdesigncodes.uspto.gov/"
+retrieved: 2026-10-31
+confidence: 0.6
+applies_to: [ORV-118]
+license: link-only
+---
+
+## What this is and is not
+
+A similarity scan to guide the choice of the opening angle (ORV-118 design notes, row 2), asked for by the owner before choosing. It is not a legal clearance and not a trademark search: the formal screening is `logo-screen-1` before G5. No logo image is copied or embedded here; each mark is named with a link and a one-line comparison in our own words.
+
+Confidence 0.6, a lead: each mark below is described from one gallery, press or register page, the registers' figurative searches could not be read, and no image comparison was run, so the absence of a closer match is not evidence that none exists.
+
+## The ORIVILO mark being compared
+
+From `docs/specs/ORV-118/design.md` row 2 (ORV-118 branch): ring centre (75, 77.5), radius 52.5, round caps, stroke 34 / 32 / 30 by form, dot centre (105.11, 34.49) "on the centreline", "the opening centred at 55 degrees", and in G2 "the dot's radius is half the stroke in each form". Brand spec v1.1 line 23: "Why 55°, not 20°: with the opening on the right the ring read as a "c". Moving it to the upper right and filling it with the dot keeps it an "o"." Line 92 had recorded "Mark similarity ... Not run. Open-ring-with-dot marks are a common family".
+
+Own arithmetic, angles counted anticlockwise from the horizontal on the right, from the arc ends in that row's table (start point, end point, centre (75, 77.5)):
+
+| Row | Opening     | Upper cap end | Lower cap end | Dot  |
+| --- | ----------- | ------------- | ------------- | ---- |
+| Now | 80 degrees  | 95.0          | 15.0          | 55.0 |
+| G1  | 100 degrees | 105.0         | 5.0           | 55.0 |
+| G2  | 110 degrees | 110.0         | 0.0           | 55.0 |
+| G3  | 120 degrees | 115.0         | minus 5.0     | 55.0 |
+
+Each 10 degrees of opening moves each cap 5 degrees away from 55. Every row's opening spans the top of the ring (90 degrees). Only G3 puts the lower cap below the horizontal through the centre.
+
+## Marks found, closest placement first
+
+| Mark                                           | Owner, sector, country                                                                                                                          | Opening and element, as the source puts it                                                                                                                                                                      | Against ORIVILO (one line, own words)                                                                                                                                                                                     |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Standby symbol, IEC 60417-5009                 | A standard equipment sign, not one owner's mark; used in Gateway, Inc.'s corporate logo (Wikipedia)                                             | "line partially within a broken circle" (Wikipedia); "a broken circle with a vertical line down the top" (PCWorld)                                                                                              | Gap centred at the top (90 degrees), a line that runs into the ring, not a dot; ORIVILO's gap is centred 35 degrees to the right of it and holds a dot on the ring line                                                   |
+| Wikimedia community logo, IP Australia 1667063 | Wikimedia Foundation, Inc. (named in the record's 2018 history); "Currently registered" in Australia, classes 9, 16, 18, 25, 35, 36, 38, 41, 42 | "a dot located above two incomplete half circles; the dot and incomplete half circles are surrounded by a larger incomplete outer circle"; image description "DISC-HEAD,ARMS OUTSTRETCHED IN CIRCLE,INCOMPLETE" | An incomplete outer circle with a dot, the nearest registered record read; the dot sits over inner arcs and reads as a head, not as a bead on the ring line                                                               |
+| Gojek "Solv"                                   | Gojek, Jakarta, Indonesia, on-demand multi-service and payments; operated in Thailand                                                           | "a nearly-rounded ring encircling a dot" (Marketing-Interactive, press); frame "open at its bottom point" (1000logos)                                                                                           | Dot in the centre, opening at the bottom: the opposite side from ORIVILO's gap, and the dot is not in the gap                                                                                                             |
+| smart, emblem 2002 to 2022                     | Owner, sector and country not stated on the page read                                                                                           | "a cut circle of the letter “C” (stands for “compact”) in silver-gray" with "a yellow triangle with two curved sides"; together "some kind of arrow, pointing East"                                             | A "C" with a coloured shape, read as an arrow pointing east (the page does not say which side is cut): the "c" read brand spec line 23 moved away from; own reading, nearest to G3, whose lower cap passes the horizontal |
+| OpenTable (2015)                               | OpenTable, Inc., connects diners and restaurants; country not stated in the release (datelined London, 3 March 2015)                            | "a large vivid red circle with a central small circular cutout"; "The smaller cut out red circle lies immediately to the left of the larger icon"                                                               | Closed ring, disc beside it on the left; no opening                                                                                                                                                                       |
+| Target                                         | Target; sector and country not stated on the page read                                                                                          | "a solid red dot placed on a transparent background and enclosed into a thick circular frame"                                                                                                                   | Closed ring, dot centred; no opening                                                                                                                                                                                      |
+
+Also read and further away: LG ("a little dot somewhat to the left of the central letter", inside a circle), Nissan ("a thin ring that breaks near the lettering"), Timberland ("an incomplete ring (only absent above the branches)"), all from the 1000logos circle list; and TISCO, Thailand, finance: "เครื่องหมายวงแหวนสีน้ำเงิน" with "เส้นโค้งสีแดงภายในวงแหวน" (a blue ring with a red curve inside, rebrand from 1 November 2013, ryt9 press); the article does not say whether the ring is open and names no dot. TISCO is the only Thai ring mark the scan found.
+
+Thailand first: the Thai searches (Thai and English queries) found TISCO and no Thai open ring with a dot. Gojek is the one mark above with a Thai presence: Wikipedia says "Gojek operates in 4 countries: Indonesia, Singapore, Thailand, and the Philippines" and that in July 2021 AirAsia "will be acquiring Gojek's business in Thailand via an all-stock deal"; the page read does not say whether the deal closed, so whether Gojek still trades in Thailand is an open point.
+
+Stroke weight and opening angle: no page read gives either for any mark above.
+
+Marketing-Interactive (press, reporting the company's account) lists a power button among the readings of Solv: it "bears resemblance to a power button, which identifies with its mission to empower people". The Jakarta Post (press): "it symbolizes a map pin, a motorcycle wheel and an eagle-eye view of a driver straddling a motorcycle".
+
+## Options the sources leave open (no choice made here)
+
+- Keep the centre at 55 degrees (every candidate does). The dot on the ring line differs from every placement in the table. The off-axis gap differs from each mark whose gap position a page states (standby at the top, Gojek at the bottom; for smart the page gives only the arrow "pointing East", not the cut side); the Wikimedia record does not state where its opening is, and OpenTable and Target have none. The pages read give no measure of how far off-axis is enough.
+- A narrower opening (G1, 5 to 105 degrees) keeps both caps closer to the dot and the lower cap above the horizontal; a wider one (G3, minus 5 to 115) carries the upper cap 25 degrees past the top and the lower cap below the horizontal, toward the smart-like "c" read. G2 (0 to 110) puts the lower cap on the horizontal.
+- None of the sources tests a reader's confusion between these marks; the lineup test in brand spec section 8 and `logo-screen-1` are where that is measured.
+
+## Where the scan could and could not look
+
+| Source                                        | Read?                                                                                                                                                 |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| WIPO Global Brand Database                    | No: `branddb.wipo.int/en/` returned a bot-check widget only, no search fields                                                                         |
+| WIPO Vienna Classification page               | No: the page came back empty                                                                                                                          |
+| Thai DIP trademark search                     | No: `search.ipthailand.go.th` returned HTTP 403; the AI Image Search host `tm-imagesearch.ipthailand.go.th` did not resolve from here                 |
+| EUIPO eSearch                                 | No: the connection was reset twice                                                                                                                    |
+| TMview                                        | No: the page came back empty                                                                                                                          |
+| USPTO Trademark Search and design-code manual | No: `tmsearch.uspto.gov` showed only "Trademark search"; `tmdesigncodes.uspto.gov` only its title. The 2004 archived manual (webharvest.gov) was read |
+| IP Australia record pages                     | Yes, one record by URL (1667063); its search form was not tried                                                                                       |
+| Justia mirror of USPTO records                | No: the record pages returned HTTP 403                                                                                                                |
+| Reverse image search                          | Not possible for an agent; not run                                                                                                                    |
+
+The codes a person would search in the USPTO system, from the 2004 archived manual: 26.01.03 "Incomplete circles (more than semi-circles)" (and "circles whose borders are broken by words, letters or design elements are not incomplete"), 26.01.04 "Circles with two breaks or divided in the middle", 26.01.05 "Circles made of broken or dotted lines". The current manual could not be read, so these numbers may have moved.
+
+Image search a person can run: the DIP offers "AI Image Search" where you "อัปโหลดภาพเครื่องหมายที่ต้องการตรวจสอบ" (upload the image of the mark), "ตลอด 24 ชั่วโมง โดยไม่มีค่าใช้จ่าย" (24 hours, free), at `https://tm-imagesearch.ipthailand.go.th`, as "เครื่องมือช่วยตรวจค้นความเหมือนหรือคล้ายในเบื้องต้น" (a preliminary similarity check) (Thansettakij, press; Daily News dates the pilot from 1 February 2026). Daily News reports, as the DIP's figure, that "4,484 คำขอที่ไม่ได้รับจดทะเบียน" (4,484 applications not registered) because their images duplicated registered marks (press, DIP-reported). A Thai law firm says such tools "serve as preliminary screening mechanisms and do not replace comprehensive clearance searches" (LawPlus). For the USPTO, JD Supra (press) reports a beta image search, "available to anyone with a USPTO.gov account", while the USPTO's own design-codes page as read says "Currently, our search system doesn't allow reverse image searching"; the two disagree, an open point.
+
+### Claims that did not re-check
+
+- That the Wikimedia logo's outer circle opens at the top with the dot in the opening: the IP Australia record and the two meta.wikimedia.org pages read (Brand/logo/en, Logo_specifications) do not say where the opening is.
+- That smart is a car brand, and its owner and country: the search summary that found it said "Smart (cars)"; the smart page read on 1000logos does not say.
+- That Target and OpenTable are US companies: neither page read says so.
+- Search-engine summaries of USPTO records seen through Justia, whose pages returned 403: serial 78734061, "a black circle with a blue dot at the lower left-hand bend of the circle" (software services), and serial 87010421, "A blue circular line with an approximate 10 degree cut in the right side" with arcs ending in dots. No first-party page in `source:` carries them.
+
+## Why it matters for ORIVILO
+
+The owner's concern in comment 10374 was that the mark reads as a refresh, loading or power icon; the nearest placement read is the standby symbol's top gap, and Gojek, which its owner itself says resembles a power button. The pages read cannot choose between 100, 110 and 120 degrees; that choice is the owner's, and `logo-screen-1` is still owed before G5.

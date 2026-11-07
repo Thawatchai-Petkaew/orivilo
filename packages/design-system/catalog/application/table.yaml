@@ -24,6 +24,7 @@ rules:
   - Loading, empty and error are rows inside the table; the surface never disappears under the user
   - A row is selected through its checkbox; a row is never a link
   - Density comes from the profile, not from the page
+  - "Title over supporting text (ORV-192 row 17): one size, title 500 in the ground's primary ink, text 400 in its secondary ink, 4 px apart"
 a11y:
   - Proper table semantics kept by explicit roles when cells become blocks; the caption names the table
   - Sortable headers are buttons; aria-sort on the header cell and a status text announce the sort

@@ -15,23 +15,30 @@ Legend: `none` not started, `planned` entry exists, no code, `draft` code and st
 | Field         | stable | E2-4                |
 | Select        | stable | base-select         |
 | Checkbox      | stable | base-checkbox       |
-| RadioGroup    | none   |                     |
-| Switch        | none   |                     |
+| RadioGroup    | draft  | base-radio-group    |
+| Switch        | draft  | base-switch         |
 | Textarea      | stable | base-textarea       |
-| Combobox      | none   |                     |
+| Combobox      | draft  | base-combobox       |
 | Badge         | stable | base-badge          |
 | Tag           | draft  | base-tag            |
-| Avatar        | none   |                     |
+| Avatar        | draft  | base-avatar         |
 | Tooltip       | stable | E2-4                |
 | Dropdown menu | stable | base-dropdown-menu  |
 | Tabs          | stable | base-tabs           |
-| Breadcrumb    | none   |                     |
+| Breadcrumb    | draft  | base-breadcrumb     |
 | Pagination    | none   |                     |
 | Progress      | draft  | base-progress       |
+| Spinner       | draft  | base-spinner        |
+| Skeleton      | draft  | base-skeleton       |
+| Collapsible   | draft  | base-collapsible    |
+| Separator     | draft  | base-separator      |
 | Slider        | draft  | base-slider         |
 | RangeSlider   | draft  | base-range-slider   |
 | Toast         | draft  | base-toast          |
-| File upload   | none   |                     |
+| FeaturedIcon  | draft  | base-featured-icon  |
+| Alert         | draft  | base-alert          |
+| File upload   | draft  | base-file-upload    |
+| Calendar      | draft  | base-calendar       |
 | Date picker   | none   |                     |
 | Popover       | stable | E2-4                |
 | ContextMenu   | stable | base-context-menu   |
@@ -39,6 +46,7 @@ Legend: `none` not started, `planned` entry exists, no code, `draft` code and st
 | ScrollArea    | draft  | base-scroll-area    |
 | Kbd           | stable | base-kbd            |
 | Resizable     | draft  | base-resizable      |
+| Logo          | stable | base-logo           |
 
 ## Application
 
@@ -48,18 +56,18 @@ Legend: `none` not started, `planned` entry exists, no code, `draft` code and st
 | Card                    | stable | application-card           |
 | Table                   | stable | application-table          |
 | Sheet                   | draft  | application-sheet          |
-| Top navigation          | none   |                            |
+| Top navigation          | draft  | application-top-navigation |
 | Sidebar navigation      | none   |                            |
-| Page header             | none   |                            |
-| Section header          | none   |                            |
-| Empty state             | none   |                            |
-| Loading state           | none   |                            |
+| Page header             | draft  | application-page-header    |
+| Section header          | draft  | application-section-header |
+| Empty state             | draft  | application-empty-state    |
+| Loading state           | draft  | application-loading-state  |
 | Command menu            | stable | application-command-menu   |
 | Shortcut sheet          | stable | application-shortcut-sheet |
 | Metric                  | none   |                            |
 | Filters                 | none   |                            |
 | Settings layout         | none   |                            |
-| ConfirmDialog (pattern) | none   |                            |
+| ConfirmDialog (pattern) | draft  | application-confirm-dialog |
 
 ## Application, canvas set (ADR 0004)
 
@@ -80,6 +88,8 @@ Legend: `none` not started, `planned` entry exists, no code, `draft` code and st
 | DirectionStudio     | draft   | application-direction-studio      |
 | CanvasChat          | draft   | application-canvas-chat           |
 | TaskBar             | draft   | application-task-bar              |
+| EvidenceSpan        | draft   | application-evidence-span         |
+| EvidenceList        | draft   | application-evidence-list         |
 | CompareStrip        | planned | E4-6                              |
 | VersionBadge        | planned | E4-6                              |
 
@@ -109,5 +119,6 @@ Commands and shortcuts for the set: `commands/canvas.yaml` (checked by `check-co
 | Landing page                   | marketing   | draft  | examples-marketing-landing-page          |
 | Reference screen (handoff §19) | application | stable | examples-application-workspace-reference |
 | Tokens and type specimen       | foundation  | stable | foundations-typography                   |
+| Members (agent, ORV-37)        | application | draft  | examples-application-members-agent       |
 
-Marketing has no section entries yet and will not until a story needs a generated landing page; the gap is intentional and reported here rather than implied. Its page example (E2-7) is `draft` for that reason: it is composed from Base and Application components only, and becomes `stable` when a marketing section lands with its own entry. A page example lists only the public components it uses; an inline page header, metric or empty state in an example does not make that row above real.
+Marketing has no section entries yet and will not until a story needs a generated landing page; the gap is intentional and reported here rather than implied. Its page example (E2-7) is `draft` for that reason: it is composed from Base and Application components only, and becomes `stable` when a marketing section lands with its own entry. A page example lists only the public components it uses; an inline metric or empty state in an example does not make that row above real.

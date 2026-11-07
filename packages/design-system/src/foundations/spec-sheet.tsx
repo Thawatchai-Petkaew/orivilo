@@ -113,7 +113,7 @@ export function SpecSheet({ scope }: { scope: string }) {
                   gap: "var(--ds-space-inline-md)",
                   height: "var(--cmp-nav-item-height)",
                   paddingInline: "var(--ds-space-inset-md)",
-                  borderRadius: "var(--cmp-nav-item-radius)",
+                  borderRadius: "var(--cmp-nav-item-row-radius)",
                   color: i === 2 ? "var(--cmp-nav-item-fg-active)" : "var(--cmp-nav-item-fg)",
                   background: i === 2 ? "var(--cmp-nav-item-bg-active)" : "transparent",
                   textDecoration: "none",
@@ -126,9 +126,9 @@ export function SpecSheet({ scope }: { scope: string }) {
                   <span
                     aria-hidden="true"
                     style={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: 999,
+                      width: "var(--cmp-nav-item-bead-size)",
+                      height: "var(--cmp-nav-item-bead-size)",
+                      borderRadius: "var(--cmp-nav-item-radius)",
                       background: "var(--cmp-nav-item-bead)",
                     }}
                   />

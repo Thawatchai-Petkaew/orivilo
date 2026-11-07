@@ -27,6 +27,15 @@ Read `docs/context/intent-studio-handoff.md` §6, §9-§16, the current schemas 
 
 `docs/specs/<KEY>/tech.md` with the schema or contract change, the impact list, and the tests that prove determinism and conflicts.
 
+tech.md names the spec version once, in its `spec:` front matter; an ADR names it once, in its Status
+line. Everywhere else cite the spec by section name and row number, never "spec v1.N". A changelog or
+findings-status row may name the version it was applied in, because that is history (L-0040).
+
+- Before you report a fix, search the other documents of the PR's docs set (spec, tech notes, ADRs,
+  knowledge entries) for each term your change replaces and each term it introduces. List each hit
+  outside your `write_set` in `needs_decision` as `file:line`, old text, new text, and add one
+  `verified` row per term with the search and its hit count (L-0041). No hook checks this.
+
 ## Report contract
 
 Your final message is one JSON object with exactly these fields and no others: `{"task_id": "<the envelope task_id>", "result": "done" or "blocked", "changed": [{"file": "...", "note": "..."}], "verified": [{"check": "...", "evidence": "..."}], "skills_used": [], "deviations": [], "needs_decision": [], "blocked_on": null}`. When `result` is `done`, `verified` has at least one row and `blocked_on` is `null`. When `blocked`, `blocked_on` is a non-empty string. Any other field (`contract`, `summary`, `tests`, `files_changed`, `open`) makes the report invalid, and it is sent back. Check it with `node scripts/ovl/validate.mjs implementer.v1 <file>` before you send it.

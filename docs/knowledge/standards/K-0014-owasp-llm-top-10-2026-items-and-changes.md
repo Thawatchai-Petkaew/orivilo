@@ -53,3 +53,7 @@ The 2025 column comes from K-0013 section 2 (read on genai.owasp.org/llm-top-10/
 ## Why it matters for ORIVILO
 
 ADR 0015 lists the 2025 names. If it pins the 2026 edition, the ids change for eight of the ten items and LLM07 System Prompt Leakage becomes LLM08 Hidden Context Exposure, so any control or test that cites an LLM Top 10 id needs the new number. Whether to pin 2026, and which date to cite, is for the architect or the owner. This entry does not decide it. Builds on [[K-0013-pinned-standards-versions-and-sources]].
+
+## Added 2026-10-30 (ORV-160)
+
+For the attack classes and the prevention measures each 2026 entry names, and a reading of which entries reach the ORIVILO interpreter path, see [[K-0093-owasp-llm-top-10-2026-attack-classes-and-prevention]]. That entry builds on this one; nothing above changes.

@@ -2,7 +2,7 @@
 id: K-0005
 topic: verification
 claim: A check counts only when its kind matches the claim; for anything visual that means computed style on the rendered element or a screenshot someone looked at, never a grep of the class name.
-source: "~/My Work/TechFlow/AI-First/allkons-marketplace/.claude/skills/atlas/references/tiered-routing.md:30-38 (also acceptance.md:73-80)"
+source: "https://bitbucket.org/ThammasornDEV/allkons-marketplace .claude/skills/atlas/references/tiered-routing.md:30-38 (also acceptance.md:73-80)"
 retrieved: 2026-10-23
 confidence: 0.8
 applies_to: [ORV-81, ORV-80]

@@ -6,6 +6,8 @@ import: "@orivilo/design-system"
 story: base-field
 useWhen:
   - "Any Input, Textarea or Select on a form: it supplies the visible label, the help text and the error"
+  - "A RadioGroup, with `group`: the label becomes a span and the group names itself by aria-labelledby"
+  - 'A Switch, with `orientation="horizontal"`: the label and description in the first column and the switch at the end of the first line'
 avoidWhen:
   - "A Checkbox (it carries its own label and error)"
   - "A control whose label is a table header or a dialog title (link it with aria-labelledby instead)"
@@ -19,6 +21,11 @@ examples:
   - src/examples/workspace.tsx
 rules:
   - "Exactly one control as children; it reads the wiring through context (useFieldControl)"
+  - "`group` is for a control that is a div, such as RadioGroup: the label renders as a span with an id, never a label with `for`; without `group` the markup is unchanged"
+  - '`orientation="horizontal"` is for a Switch: label and description in one column, the control at the inline end of the first line, the error under both; the DOM order is unchanged, and the row needs a width, such as a form column, or the control sits at the far end of the line'
   - "Error copy says what went wrong and how to fix it"
+  - "Title over supporting text (ORV-192 row 17): one size, title 500 in the ground's primary ink, text 400 in its secondary ink, 4 px apart"
 a11y:
+  - "With `group` the label is a span; the control reads it as `labelledBy` and sets aria-labelledby, and a group outside a Field needs aria-label or aria-labelledby"
+  - 'With `orientation="horizontal"` the label keeps `for`, so a click on it toggles the Switch, and a click on the description does not; the error stays an alert under both columns'
   - "Label linked by for/id; description and error by aria-describedby; error sets aria-invalid and is announced as an alert"

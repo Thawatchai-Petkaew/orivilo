@@ -117,3 +117,79 @@ test("an unknown task, a closed task and bad usage exit 2", () => {
   assert.equal(close(root).code, 2);
   assert.equal(close(root, "ORV-1-a", "--force").code, 2);
 });
+
+// close-1 (ORV-138): a role that writes nothing also closes after a block or error SubagentStop.
+const qaEnvelope = (root) =>
+  seedTask(root, "ORV-1", "ORV-1-a", {
+    envelope: validEnvelope(root, { role: "qa", write_set: [] }),
+    agent: { agent_id: "agent-1", agent_type: "qa", started_at: "2026-10-23T09:00:00.000Z" },
+  });
+
+test("ORV-138 row 9: a qa envelope with an error SubagentStop closes as abandoned", () => {
+  const root = makeRepo();
+  qaEnvelope(root);
+  beat(root, { decision: "error" });
+  const r = close(root, "ORV-1-a");
+  assert.equal(r.code, 0, r.stderr);
+  assert.deepEqual([closedOf(root).reason, closedOf(root).by], ["abandoned", undefined]);
+});
+
+test("ORV-138 row 9: a qa envelope with a block SubagentStop closes as abandoned", () => {
+  const root = makeRepo();
+  qaEnvelope(root);
+  beat(root, { decision: "block" });
+  assert.equal(close(root, "ORV-1-a").code, 0);
+  assert.equal(closedOf(root).reason, "abandoned");
+});
+
+test("ORV-138 row 9: a qa envelope with no SubagentStop line, or only another agent's, is not closed", () => {
+  const root = makeRepo();
+  qaEnvelope(root);
+  assert.equal(close(root, "ORV-1-a").code, 2);
+  beat(root, { decision: "error", agent_id: "agent-other" });
+  beat(root, { decision: "error", event: "SubagentStart" });
+  assert.equal(close(root, "ORV-1-a").code, 2);
+  assert.equal(existsSync(join(root, ".orivilo/runs/ORV-1/ORV-1-a/closed.json")), false);
+});
+
+test("ORV-138 row 9: a reviewer-judging designer closes after an error stop, a writing designer does not", () => {
+  const root = makeRepo();
+  seedTask(root, "ORV-1", "ORV-1-a", {
+    envelope: validEnvelope(root, {
+      role: "designer",
+      write_set: [],
+      report_contract: "reviewer.v1",
+    }),
+    agent: { agent_id: "agent-1", agent_type: "designer", started_at: "2026-10-23T09:00:00.000Z" },
+  });
+  beat(root, { decision: "error" });
+  assert.equal(close(root, "ORV-1-a").code, 0);
+  const other = makeRepo();
+  seedTask(other, "ORV-1", "ORV-1-a", {
+    envelope: validEnvelope(other, { role: "designer" }),
+    agent: { agent_id: "agent-1", agent_type: "designer", started_at: "2026-10-23T09:00:00.000Z" },
+  });
+  beat(other, { decision: "error" });
+  assert.equal(close(other, "ORV-1-a").code, 2);
+});
+
+test("ORV-138 row 9: a builder envelope with an error or block SubagentStop is not closed", () => {
+  const root = makeRepo();
+  boundEnvelope(root);
+  beat(root, { decision: "error" });
+  beat(root, { decision: "block" });
+  const r = close(root, "ORV-1-a");
+  assert.equal(r.code, 2);
+  assert.match(r.stderr, /may still run/);
+  assert.equal(existsSync(join(root, ".orivilo/runs/ORV-1/ORV-1-a/closed.json")), false);
+});
+
+test("ORV-138 row 9: --owner closes a qa envelope and a builder envelope with no heartbeat", () => {
+  for (const make of [qaEnvelope, boundEnvelope]) {
+    const root = makeRepo();
+    make(root);
+    const r = close(root, "ORV-1-a", "--owner");
+    assert.equal(r.code, 0, r.stderr);
+    assert.deepEqual([closedOf(root).reason, closedOf(root).by], ["abandoned", "owner"]);
+  }
+});

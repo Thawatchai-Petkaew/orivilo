@@ -4,8 +4,6 @@ import { cx } from "../cx";
 export type BadgeVariant = "neutral" | "success" | "warning" | "danger" | "info" | "brand";
 
 type BadgeBase = Omit<ComponentPropsWithoutRef<"span">, "children"> & {
-  /** Status colours come from feedback tokens; `brand` is presence, never a status (DESIGN.md §8). */
-  variant?: BadgeVariant | undefined;
   size?: "sm" | "md" | undefined;
   children?: ReactNode;
 };
@@ -23,7 +21,13 @@ type BadgeMark =
       dot?: undefined;
     };
 
-export type BadgeProps = BadgeBase & BadgeMark;
+/** Status colours come from feedback tokens; `brand` is presence, never a status (DESIGN.md §8). */
+type StatusBadge = BadgeBase & BadgeMark & { variant?: Exclude<BadgeVariant, "brand"> | undefined };
+
+/** The brand badge always shows the mark's bead and takes no icon: the bead tells it from a neutral badge. */
+type BrandBadge = BadgeBase & { variant: "brand"; dot?: boolean | undefined; icon?: undefined };
+
+export type BadgeProps = StatusBadge | BrandBadge;
 
 /**
  * A short status word next to a title. The word carries the meaning; colour never does alone, so
@@ -40,8 +44,8 @@ export function Badge({
 }: BadgeProps) {
   return (
     <span {...rest} className={cx("ds-badge", className)} data-variant={variant} data-size={size}>
-      {dot ? <span className="ds-badge__dot" aria-hidden="true" /> : null}
-      {!dot && icon ? (
+      {dot || variant === "brand" ? <span className="ds-badge__dot" aria-hidden="true" /> : null}
+      {!dot && variant !== "brand" && icon ? (
         <span className="ds-badge__icon" aria-hidden="true">
           {icon}
         </span>

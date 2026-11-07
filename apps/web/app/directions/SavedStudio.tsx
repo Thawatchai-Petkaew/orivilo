@@ -15,10 +15,10 @@ import {
 import type { Interpretation } from "@orivilo/intent-engine";
 import { type ReactNode, useId, useMemo, useRef, useState, useTransition } from "react";
 import type { WebMessages } from "../../i18n/messages";
-import { errorLine as errorLineOf } from "../../i18n/wait";
 import { readingResult } from "./read-outcome";
+import { failureNotice, type Notice, refreshList, runCall } from "./studio-calls";
 import {
-  type ActionError,
+  type ActionFailure,
   approveDirection,
   exportVersion,
   importDirection,
@@ -32,13 +32,10 @@ import {
 
 type M = WebMessages["saved"];
 
-const errorLine = (m: M, wait: WebMessages["wait"], error: ActionError, retryAfter?: number) =>
-  errorLineOf(m.errors, wait, error, retryAfter);
-
 export type SavedView =
   | { kind: "signed-out" }
   | { kind: "not-configured" }
-  | { kind: "error"; error: ActionError }
+  | { kind: "error"; failure: ActionFailure }
   | { kind: "ready"; listing: Listing };
 
 /** The direction being edited: where it is saved, and what was last saved or opened. */
@@ -48,11 +45,6 @@ interface Current {
   opened: DirectionStudioState | null;
   savedState: DirectionStudioState | null;
   savedName: string;
-}
-
-interface Notice {
-  tone: "info" | "warning" | "danger";
-  lines: string[];
 }
 
 const MAX_FILE_BYTES = 256_000;
@@ -103,16 +95,19 @@ export function SavedStudio({
   view,
   m,
   wait,
+  failure,
   defaultBrief,
   preview,
 }: {
   view: SavedView;
   m: M;
   wait: WebMessages["wait"];
+  failure: WebMessages["failure"];
   defaultBrief: string;
   preview: ReactNode;
 }) {
   const nameId = useId();
+  const labels = { errors: m.errors, wait, failure };
   const fileRef = useRef<HTMLInputElement>(null);
   const [listing, setListing] = useState(view.kind === "ready" ? view.listing : null);
   const [name, setName] = useState(m.defaultName);
@@ -125,7 +120,7 @@ export function SavedStudio({
     savedName: m.defaultName,
   });
   const [notice, setNotice] = useState<Notice | null>(
-    view.kind === "error" ? { tone: "danger", lines: [errorLine(m, wait, view.error)] } : null,
+    view.kind === "error" ? failureNotice(labels, view.failure) : null,
   );
   const [busy, setBusy] = useState<"save" | "approve" | "import" | null>(null);
   const [, startTransition] = useTransition();
@@ -133,10 +128,10 @@ export function SavedStudio({
   const seals = useRef(new WeakMap<Interpretation, string>());
 
   const readWithAi = async (brief: string) => {
-    const result = readingResult(await readBriefWithAi(brief), m.errors, wait);
+    const result = readingResult(await readBriefWithAi(brief), m.errors, wait, failure);
     if ("notice" in result) return result;
     if (result.reading === null) {
-      if (result.cardNotice) setNotice({ tone: "warning", lines: [result.cardNotice] });
+      if (result.cardLines) setNotice({ tone: "warning", lines: result.cardLines });
       return null;
     }
     seals.current.set(result.reading, result.seal);
@@ -161,21 +156,15 @@ export function SavedStudio({
     call: () => Promise<Outcome<T>>,
     done: (value: T) => Promise<void> | void,
   ) =>
-    startTransition(async () => {
-      setBusy(kind);
-      const result = await call();
-      if (result.ok) await done(result.value);
-      else {
-        const retryAfter = result.error === "rate-limited" ? result.retryAfter : undefined;
-        setNotice({ tone: "danger", lines: [errorLine(m, wait, result.error, retryAfter)] });
-      }
-      setBusy(null);
-    });
+    startTransition(() =>
+      runCall(call, done, {
+        labels,
+        setNotice,
+        setBusy: (on) => setBusy(on ? kind : null),
+      }),
+    );
 
-  const refresh = async () => {
-    const next = await listDirections();
-    if (next.ok) setListing(next.value);
-  };
+  const refresh = () => refreshList(listDirections, setListing);
 
   const open = (versionId: string) =>
     act(

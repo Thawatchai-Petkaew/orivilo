@@ -7,6 +7,7 @@ import {
   mkdirSync,
   readdirSync,
   readFileSync,
+  realpathSync,
   unlinkSync,
   writeFileSync,
 } from "node:fs";
@@ -75,8 +76,11 @@ function verdicts(data) {
 
 /**
  * {hasVerdict, rounds, allowance, roundsUsed, escalated}. hasVerdict: a negative verdict exists.
- * rounds: builder envelopes that were bound (have agent.json) and started after the first negative
- * verdict, however they ended. allowance: two plus one per owner-grant record. roundsUsed: the
+ * rounds: bound builder envelopes (have agent.json), however they ended, that count as a rework round
+ * (rule rework-1, ORV-138): a builder counts only when a negative verdict was recorded after the start
+ * of the latest earlier bound builder and before it started. The first builder never counts, and a
+ * builder that follows another builder with no verdict between them is a continuation, not a round.
+ * allowance: two plus one per owner-grant record. roundsUsed: the
  * allowance is spent, so no builder envelope may be saved. escalated: roundsUsed and the latest
  * negative verdict is newer than the last bound builder, so the owner is asked; a later approve does
  * not undo it. This is the one place that decides; envelope-guard blocks on roundsUsed and
@@ -89,7 +93,10 @@ export function reworkState(data) {
   const builders = data.tasks
     .filter((t) => t.envelope?.role === "builder" && t.agent)
     .map((t) => time(t.agent.started_at, `agent.json of ${t.id}`));
-  const rounds = first === undefined ? 0 : builders.filter((at) => at > first.at).length;
+  const sorted = [...builders].sort((a, b) => a - b);
+  const rounds = sorted.filter(
+    (at, i) => i > 0 && negatives.some((n) => n.at > sorted[i - 1] && n.at < at),
+  ).length;
   const allowance = 2 + data.grants;
   const roundsUsed = first !== undefined && rounds >= allowance;
   const lastBuilder = Math.max(-Infinity, ...builders);
@@ -154,3 +161,27 @@ export function writeClosed(root, task, reason, extra = {}) {
 /** The checkout's current branch name ("" when detached). */
 export const branchOf = (root) =>
   execFileSync("git", ["branch", "--show-current"], { cwd: root, encoding: "utf8" }).trim();
+
+/**
+ * Every git worktree of the repo that `root` belongs to, as {path, branch}: the real path, and the
+ * branch name ("" when the head is detached). A worktree whose folder is gone is left out.
+ */
+export function worktreesOf(root) {
+  const listing = execFileSync("git", ["worktree", "list", "--porcelain"], {
+    cwd: root,
+    encoding: "utf8",
+  });
+  const found = [];
+  for (const block of listing.split("\n\n")) {
+    const lines = block.split("\n");
+    const path = lines.find((l) => l.startsWith("worktree "))?.slice("worktree ".length);
+    if (path === undefined || lines.includes("bare")) continue;
+    const ref = lines.find((l) => l.startsWith("branch "))?.slice("branch ".length) ?? "";
+    try {
+      found.push({ path: realpathSync(path), branch: ref.replace(/^refs\/heads\//, "") });
+    } catch {
+      // The folder is gone but git still lists it: it cannot hold an envelope.
+    }
+  }
+  return found;
+}

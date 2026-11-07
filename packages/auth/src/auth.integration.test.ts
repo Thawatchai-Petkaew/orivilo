@@ -2,11 +2,12 @@ import { eq, member, organization, project, rateLimitCounter, verification } fro
 import { createDb, type Db } from "@orivilo/db/client";
 import { createTestDatabase, HAS_TEST_DATABASE, type TestDatabase } from "@orivilo/db/testing";
 import { testUtils } from "better-auth/plugins";
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { withWorkspace } from "./access.ts";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { Denied, withWorkspace } from "./access.ts";
 import { authRoute } from "./auth-route.ts";
 import { hashIp } from "./client-ip.ts";
 import { createAuth } from "./config.ts";
+import { captureLines, expectLineShape } from "./log-testing.ts";
 import { createRateLimiter, LIMITS } from "./rate-limit.ts";
 
 interface Body {
@@ -115,7 +116,31 @@ describe.runIf(HAS_TEST_DATABASE)("Better Auth and the authorization helper", ()
       withWorkspace(deps(), c.headers, d.workspaceId, "member", async () => {
         ran = true;
       }),
-    ).rejects.toMatchObject({ status: 403, reason: "not-a-member" });
+    ).rejects.toMatchObject({ status: 404, reason: "not-a-member" });
+    expect(ran).toBe(false);
+  });
+
+  // ORV-159 row 4: asking for a workspace that exists and one that does not gives one answer.
+  it("denies a missing workspace id like a foreign one (ORV-159 row 4)", async () => {
+    const m = await signIn("m@example.com", "Mali");
+    const n = await signIn("n@example.com", "Nok");
+    const missing = "9f1c2d3e-0000-4000-8000-000000000000";
+    let ran = false;
+    const answers = await Promise.all(
+      [n.workspaceId, missing].map((id) =>
+        withWorkspace(deps(), m.headers, id, "member", async () => {
+          ran = true;
+        }).catch((error: unknown) => error),
+      ),
+    );
+    for (const answer of answers) {
+      expect(answer).toBeInstanceOf(Denied);
+      expect(answer).toMatchObject({
+        status: 404,
+        reason: "not-a-member",
+        message: "access denied: not-a-member",
+      });
+    }
     expect(ran).toBe(false);
   });
 
@@ -233,7 +258,7 @@ describe.runIf(HAS_TEST_DATABASE)("Better Auth and the authorization helper", ()
     it("a store failure answers 503 through the handler", async () => {
       const dead = createDb(t.appUrl);
       await dead.$client.end();
-      const log = vi.spyOn(console, "error").mockImplementation(() => {});
+      const log = captureLines();
       try {
         const route = authRoute(
           (r) =>
@@ -251,9 +276,17 @@ describe.runIf(HAS_TEST_DATABASE)("Better Auth and the authorization helper", ()
         const body = (await res.json()) as Body;
         expect(body).toMatchObject({ error: { code: "SERVICE_UNAVAILABLE" } });
         expect(res.headers.get("x-request-id")).toBe(body.error.requestId);
-        expect(log).toHaveBeenCalledTimes(1);
+        expect(log.lines).toHaveLength(1);
+        expect(log.lines.map((l) => expectLineShape(l))[0]).toMatchObject({
+          level: "error",
+          requestId: body.error.requestId,
+          route: "api/auth",
+          outcome: "unavailable",
+          reason: "rate-limit",
+          status: 503,
+        });
       } finally {
-        log.mockRestore();
+        log.restore();
       }
     });
 
@@ -262,14 +295,15 @@ describe.runIf(HAS_TEST_DATABASE)("Better Auth and the authorization helper", ()
       await dead.$client.end();
       const route = build(t.app, dead);
       const before = (await t.admin.select().from(verification)).length;
-      const log = vi.spyOn(console, "error").mockImplementation(() => {});
+      const log = captureLines();
       try {
         const res = await route(signInRequest(1, "203.0.113.51"));
         expect(res.status).toBe(503);
         expect(res.headers.get("x-request-id")).toBe(((await res.json()) as Body).error.requestId);
-        expect(log).toHaveBeenCalledTimes(1);
+        expect(log.lines).toHaveLength(1);
+        log.lines.forEach((l) => expectLineShape(l));
       } finally {
-        log.mockRestore();
+        log.restore();
       }
       expect((await t.admin.select().from(verification)).length).toBe(before);
     });
@@ -301,7 +335,10 @@ describe.runIf(HAS_TEST_DATABASE)("Better Auth and the authorization helper", ()
         );
         expect(res.status).not.toBe(200);
         expect(await res.text()).not.toContain("RATE_LIMITED");
-        expect(res.headers.get("x-request-id")).toBeNull();
+        // Better Auth refused it; the route still gives the answer the request's id (ORV-141).
+        expect(res.headers.get("x-request-id")).toMatch(
+          /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+        );
       }
       expect(await counted()).toHaveLength(0);
       expect(await verificationRows()).toBe(before);

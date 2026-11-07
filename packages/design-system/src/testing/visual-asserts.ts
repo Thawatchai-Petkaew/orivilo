@@ -3,11 +3,13 @@ import { expect } from "storybook/test";
 /**
  * Shared play helpers that assert what the user sees (L-0018, ORV-108). A play that checks the one
  * CSS property a fix sets passes whenever the CSS is as written; these read the rendered result:
- * the ink drawn at an edge, the height of siblings in a row, and glyph boxes inside a rounded clip.
- * The pure parts (`inkWidth`, `insideRoundedRect`) take plain numbers so they are tested in node.
+ * the ink drawn at an edge, the height of siblings in a row, glyph boxes inside a rounded clip, and
+ * where a label sits in its control. The pure parts (`inkWidth`, `outsideCorner`, `inkCentreOf`,
+ * `bodyOf`, `offCentreReport`) take plain numbers or strings so they are tested in node.
  */
 
 export type Side = "top" | "right" | "bottom" | "left";
+type Side4 = "Top" | "Right" | "Bottom" | "Left";
 export type Rgb = readonly [number, number, number];
 
 /** A pixel counts as ink when it differs from both backgrounds by more than this (sum over RGB). */
@@ -29,6 +31,15 @@ export function inkWidth(line: readonly Rgb[], devicePixelRatio: number): number
     (px) => distance(px, outside) > INK_DISTANCE && distance(px, inside) > INK_DISTANCE,
   );
   return ink.length / devicePixelRatio;
+}
+
+/**
+ * The index of the first row that holds a pixel more than `INK_DISTANCE` from `ground`, or null
+ * when every row is plain ground. Used to find where a line of text starts to draw.
+ */
+export function firstInkRow(rows: readonly (readonly Rgb[])[], ground: Rgb): number | null {
+  const at = rows.findIndex((row) => row.some((px) => distance(px, ground) > INK_DISTANCE));
+  return at === -1 ? null : at;
 }
 
 export interface Corner {
@@ -99,17 +110,56 @@ async function pixelsOf(
   canvas.width = bitmap.width;
   canvas.height = bitmap.height;
   const context = canvas.getContext("2d");
-  if (!context) throw new Error("expectEdgeInk: no 2d canvas to read the screenshot");
+  if (!context) throw new Error("no 2d canvas to read the screenshot");
   context.drawImage(bitmap, 0, 0);
   const { data } = context.getImageData(0, 0, bitmap.width, bitmap.height);
   return { data, width: bitmap.width, height: bitmap.height };
+}
+
+/**
+ * One screenshot of `el`, decoded to pixels. Vitest runs story files in parallel iframes and a
+ * screenshot waits on the page, so concurrent shots starve each other. One lock across the iframes
+ * takes them one at a time. It needs Vitest browser mode (see `inVitest`).
+ */
+async function shoot(el: Element) {
+  const { page } = await import("vitest/browser");
+  const shot = await navigator.locks.request("orivilo-screenshot", () =>
+    page.screenshot({ element: el, save: false }),
+  );
+  return pixelsOf(shot);
+}
+
+/** One screenshot of `scope` with its frame and `scale`, the screenshot width over the element's CSS width. */
+async function screenshotOf(scope: Element) {
+  const { data, width } = await shoot(scope);
+  const frame = scope.getBoundingClientRect();
+  return { data, width, frame, scale: width / frame.width };
 }
 
 const label = (el: Element) =>
   `<${el.localName}${el.className && typeof el.className === "string" ? `.${el.className.split(" ").join(".")}` : ""}>`;
 
 /** True under Vitest browser mode; false on the static Storybook, where `vitest/browser` is missing. */
-export const inVitest = Boolean((import.meta as { env?: Record<string, unknown> }).env?.["VITEST"]);
+export const inVitest = Boolean(
+  (globalThis as Record<string, unknown>)["__vitest_browser__"] === true,
+);
+
+/**
+ * The screenshot clips to one element, so this returns the nearest ancestor (or `el` itself) whose
+ * box holds the box of `el` and `reach` CSS px of margin on every side.
+ */
+function scopeHolding(el: Element, reach: number): Element {
+  const holds = (a: DOMRect, r: DOMRect) =>
+    a.left <= r.left - reach &&
+    a.top <= r.top - reach &&
+    a.right >= r.right + reach &&
+    a.bottom >= r.bottom + reach;
+  let scope: Element = el;
+  while (scope.parentElement && !holds(scope.getBoundingClientRect(), el.getBoundingClientRect())) {
+    scope = scope.parentElement;
+  }
+  return scope;
+}
 
 /**
  * Asserts the ink drawn at one edge of `el` (or at each of several, from one screenshot) is `px` CSS px wide, read from a screenshot (a pixel
@@ -124,26 +174,9 @@ export async function expectEdgeInk(
   px: number,
   reach = 4,
 ) {
-  const { page } = await import("vitest/browser");
-  // The screenshot clips to one element, so shoot the nearest ancestor that holds the edge and its margin.
-  const holds = (a: DOMRect, r: DOMRect) =>
-    a.left <= r.left - reach &&
-    a.top <= r.top - reach &&
-    a.right >= r.right + reach &&
-    a.bottom >= r.bottom + reach;
-  let scope: Element = el;
-  while (scope.parentElement && !holds(scope.getBoundingClientRect(), el.getBoundingClientRect())) {
-    scope = scope.parentElement;
-  }
-  // Vitest runs story files in parallel iframes and a screenshot waits on the page, so concurrent shots
-  // starve each other. One lock across the iframes takes them one at a time.
-  const shot = await navigator.locks.request("orivilo-screenshot", () =>
-    page.screenshot({ element: scope, save: false }),
-  );
-  const { data, width } = await pixelsOf(shot);
-  const frame = scope.getBoundingClientRect();
+  const scope = scopeHolding(el, reach);
+  const { data, width, frame, scale } = await screenshotOf(scope);
   const rect = el.getBoundingClientRect();
-  const scale = width / frame.width;
   for (const side of typeof sides === "string" ? [sides] : sides) {
     const horizontal = side === "left" || side === "right";
     const edge = { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right }[side];
@@ -171,6 +204,119 @@ export async function expectEdgeInk(
   }
 }
 
+export type ViewBox = readonly [minX: number, minY: number, width: number, height: number];
+export interface PaintProbe {
+  /** A point in the svg's `viewBox` units. */
+  x: number;
+  y: number;
+  /** The colour the pixel there must be, as `#rrggbb`. */
+  hex: string;
+}
+
+/** A pixel passes when the summed RGB difference from the expected colour is at most this. */
+const PAINT_TOLERANCE = 12;
+
+/** `#rrggbb` as RGB. Throws on anything else, so a mistyped expectation is not read as black. */
+export function hexToRgb(hex: string): Rgb {
+  const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex);
+  if (!m) throw new Error(`hexToRgb needs #rrggbb, got "${hex}"`);
+  return [parseInt(m[1] as string, 16), parseInt(m[2] as string, 16), parseInt(m[3] as string, 16)];
+}
+
+/** True when the pixel is within the paint tolerance (a summed RGB difference of 12) of the hex colour. */
+export function paintMatches(pixel: Rgb, hex: string): boolean {
+  return distance(pixel, hexToRgb(hex)) <= PAINT_TOLERANCE;
+}
+
+/**
+ * Maps a point in `viewBox` units to CSS px from the top left of the svg's box. The svg draws with
+ * `preserveAspectRatio="xMidYMid meet"` (the default): one uniform scale, the drawing centred in
+ * the box. Parameters are plain numbers so the mapping is tested in node.
+ */
+export function viewBoxToBox(
+  point: { x: number; y: number },
+  viewBox: ViewBox,
+  size: { width: number; height: number },
+): { x: number; y: number } {
+  const [minX, minY, vbWidth, vbHeight] = viewBox;
+  if (vbWidth <= 0 || vbHeight <= 0) throw new Error("viewBoxToBox needs a viewBox with a size");
+  const scale = Math.min(size.width / vbWidth, size.height / vbHeight);
+  return {
+    x: (size.width - vbWidth * scale) / 2 + (point.x - minX) * scale,
+    y: (size.height - vbHeight * scale) / 2 + (point.y - minY) * scale,
+  };
+}
+
+const hexOf = (px: Rgb) =>
+  `#${px
+    .map((v) => v.toString(16).padStart(2, "0"))
+    .join("")
+    .toUpperCase()}`;
+
+export interface SvgPaint {
+  svg: SVGSVGElement;
+  probes: readonly PaintProbe[];
+}
+
+/** The nearest element that holds every one of `els` (the element itself when there is one). */
+function commonAncestor(els: readonly Element[]): Element {
+  let scope: Element | null = els[0] ?? null;
+  while (scope && !els.every((el) => scope?.contains(el))) scope = scope.parentElement;
+  if (!scope) throw new Error("expectPaintsAt needs svgs that share an ancestor");
+  return scope;
+}
+
+/** Moves `el` by less than a pixel so its box starts on the pixel grid; it moves nothing else. */
+function snapToGrid(el: HTMLElement | SVGElement) {
+  el.style.translate = "none";
+  const box = el.getBoundingClientRect();
+  el.style.translate = `${Math.round(box.x) - box.x}px ${Math.round(box.y) - box.y}px`;
+}
+
+/**
+ * Asserts the rendered pixel at each probe point of each svg is the expected colour, within a
+ * summed RGB difference of 12, from ONE screenshot of the nearest ancestor that holds all the svgs.
+ * Each screenshot queues on the shared lock behind every other story file, so a play with many svgs
+ * takes one shot rather than one per svg (ORV-118 R2). A box at a half pixel is painted snapped to
+ * the grid but screenshotted from its floor, so the scope and then each svg are moved by less than
+ * a pixel onto the grid first. Probe points are in `viewBox` units; they must sit wholly inside the
+ * part they probe (further than a pixel's diagonal from its edge), so no antialiasing reaches them.
+ * It reads a screenshot, so computed style does not decide the result. It runs where Vitest browser
+ * mode runs; a play guards the call with `inVitest`.
+ */
+export async function expectPaintsAt(entries: readonly SvgPaint[]) {
+  const scope = commonAncestor(entries.map((entry) => entry.svg));
+  if (scope instanceof HTMLElement || scope instanceof SVGElement) snapToGrid(scope);
+  for (const { svg } of entries) if (svg !== scope) snapToGrid(svg);
+  const { data, width, height } = await shoot(scope);
+  const frame = scope.getBoundingClientRect();
+  const scale = scope === entries[0]?.svg ? width / frame.width : window.devicePixelRatio;
+  for (const { svg, probes } of entries) {
+    const viewBox = svg.viewBox.baseVal;
+    const rect = svg.getBoundingClientRect();
+    for (const probe of probes) {
+      const at = viewBoxToBox(probe, [viewBox.x, viewBox.y, viewBox.width, viewBox.height], rect);
+      const x = Math.floor((rect.x - frame.x + at.x) * scale);
+      const y = Math.floor((rect.y - frame.y + at.y) * scale);
+      expect(
+        x >= 0 && y >= 0 && x < width && y < height,
+        `probe (${probe.x}, ${probe.y}) of ${label(svg)} falls outside the screenshot`,
+      ).toBe(true);
+      const i = (y * width + x) * 4;
+      const pixel: Rgb = [data[i] ?? 0, data[i + 1] ?? 0, data[i + 2] ?? 0];
+      expect(
+        paintMatches(pixel, probe.hex),
+        `${label(svg)} paints ${hexOf(pixel)} at (${probe.x}, ${probe.y}), expected ${probe.hex.toUpperCase()}`,
+      ).toBe(true);
+    }
+  }
+}
+
+/** One svg of `expectPaintsAt`. */
+export function expectPaintAt(svg: SVGSVGElement, probes: readonly PaintProbe[]) {
+  return expectPaintsAt([{ svg, probes }]);
+}
+
 /** Asserts chips, tags or controls in one row have the same rendered height, within 0.5 px. */
 export function expectSameHeight(el: Element, ...siblings: Element[]) {
   const height = el.getBoundingClientRect().height;
@@ -181,6 +327,195 @@ export function expectSameHeight(el: Element, ...siblings: Element[]) {
       `${label(el)} is ${height} px tall but ${label(other)} is ${otherHeight} px`,
     ).toBeLessThanOrEqual(0.5);
   }
+}
+
+/**
+ * Asserts a title over its supporting text (ORV-192 row 17): the text starts `gap` px under the
+ * title (within 0.5), the title is 500 and the text 400, and their inks differ. A compact pair has
+ * one size; a header pair (`header: true`) has a 20 px title over 16 px text. `titleBottom` is for a
+ * title that is a bare text node (the Tooltip's content): pass the bottom of its line box.
+ */
+export function expectTitleOverText(
+  title: Element,
+  text: Element,
+  { gap, header = false, titleBottom }: { gap: number; header?: boolean; titleBottom?: number },
+) {
+  // A one-line label pads its clip box and cancels it with a negative margin (ORV-194 row 7), so
+  // its border box reaches past its line: read the gap between the two lines, inside the padding.
+  const bottom =
+    titleBottom ??
+    title.getBoundingClientRect().bottom - parseFloat(getComputedStyle(title).paddingBottom);
+  const actual =
+    text.getBoundingClientRect().top + parseFloat(getComputedStyle(text).paddingTop) - bottom;
+  expect(
+    Math.abs(actual - gap),
+    `${label(text)} starts ${actual} px under its title, not ${gap} px`,
+  ).toBeLessThanOrEqual(0.5);
+  const t = getComputedStyle(title);
+  const x = getComputedStyle(text);
+  expect(t.fontWeight, `${label(title)} weight`).toBe("500");
+  expect(x.fontWeight, `${label(text)} weight`).toBe("400");
+  if (header) {
+    expect(parseFloat(t.fontSize), `${label(title)} size`).toBe(20);
+    expect(parseFloat(x.fontSize), `${label(text)} size`).toBe(16);
+  } else {
+    expect(x.fontSize, `${label(text)} is the size of its title`).toBe(t.fontSize);
+  }
+  expect(x.color, `${label(text)} reads in a different ink than its title`).not.toBe(t.color);
+}
+
+/** The colour a semantic token resolves to at `el`, as the browser computes it (`rgb(...)`). */
+export function resolvedColor(el: Element, token: string): string {
+  const probe = document.createElement("span");
+  probe.style.color = `var(${token})`;
+  el.append(probe);
+  const color = getComputedStyle(probe).color;
+  probe.remove();
+  return color;
+}
+
+/**
+ * The border form of focus (ORV-192 row 9, DESIGN.md "Every focusable control"): under keyboard
+ * focus the element's own border turns `focus.ring` on each of `sides` (all four by default), the
+ * other sides stay 0 px wide so no second line sits anywhere (the side sheet has one border, on its
+ * open edge: `["Left"]` in a left-to-right page), the outline stays transparent so no line sits
+ * beside the border, and a 3 px halo touches the border. The element's rest elevation, if it has
+ * one, stays first in the shadow list. Puts focus back where it was.
+ */
+export async function expectFocusBorderForm(
+  el: HTMLElement,
+  sides: readonly Side4[] = ["Top", "Right", "Bottom", "Left"],
+) {
+  const rest = getComputedStyle(el).boxShadow;
+  const before = document.activeElement;
+  el.focus();
+  expect(el.matches(":focus-visible"), `${label(el)} matches :focus-visible`).toBe(true);
+  // A border-color transition (Card) is still running right after focus; read the settled look.
+  await Promise.all(el.getAnimations().map((a) => a.finished));
+  const style = getComputedStyle(el);
+  const ring = resolvedColor(el, "--ds-focus-ring");
+  for (const side of ["Top", "Right", "Bottom", "Left"] as const) {
+    if (sides.includes(side)) {
+      expect(style[`border${side}Color`], `${label(el)} border ${side} is focus.ring`).toBe(ring);
+      expect(parseFloat(style[`border${side}Width`]), `${label(el)} border ${side} width`).toBe(1);
+    } else {
+      expect(parseFloat(style[`border${side}Width`]), `${label(el)} border ${side} width`).toBe(0);
+    }
+  }
+  // No second line beside the border: the outline is transparent, or a library already set it to none.
+  if (style.outlineStyle !== "none") {
+    expect(style.outlineColor, `${label(el)} outline is transparent`).toBe("rgba(0, 0, 0, 0)");
+  }
+  expect(style.boxShadow, `${label(el)} halo is 3 px`).toMatch(/ 0px 0px 0px 3px$/);
+  if (rest !== "none")
+    expect(style.boxShadow.startsWith(rest), `${label(el)} keeps its elevation`).toBe(true);
+  if (before instanceof HTMLElement && before !== document.body) before.focus();
+  else el.blur();
+}
+
+export type Rgba = readonly [r: number, g: number, b: number, a: number];
+
+/**
+ * A computed CSS colour as red, green and blue on 0 to 255 and alpha on 0 to 1. Reads the forms a
+ * browser serialises: `rgb(...)`, `rgba(...)` (comma or space separated) and `color(srgb ...)`.
+ */
+export function parseCssColor(value: string): Rgba {
+  const text = value.trim();
+  const srgb = /^color\(srgb\s+([^)]+)\)$/.exec(text);
+  const legacy = /^rgba?\(([^)]+)\)$/.exec(text);
+  const body = (srgb ?? legacy)?.[1];
+  if (!body) throw new Error(`Not a colour the helper reads: ${value}`);
+  const [channels = "", alpha] = body.split("/");
+  const parts = channels.split(/[\s,]+/).filter(Boolean);
+  const alphaText = alpha ?? (legacy && parts.length === 4 ? parts.pop() : undefined);
+  if (parts.length !== 3) throw new Error(`Not a colour the helper reads: ${value}`);
+  const scale = srgb ? 255 : 1;
+  const [r, g, b] = parts.map((part) => parseFloat(part) * scale) as [number, number, number];
+  const a =
+    alphaText === undefined ? 1 : parseFloat(alphaText) / (alphaText.includes("%") ? 100 : 1);
+  return [r, g, b, a];
+}
+
+/**
+ * A computed CSS colour as `#rrggbb` (the form `contrastRatio` takes), or `null` when its alpha is
+ * under 1: a colour that lets the ground through has no single hex, so a transparent highlight
+ * fails the play that compares it (ORV-194 row 9).
+ */
+export function cssColorToHex(value: string): string | null {
+  const [r, g, b, a] = parseCssColor(value);
+  if (a < 1) return null;
+  return `#${[r, g, b]
+    .map((channel) => Math.round(channel).toString(16).padStart(2, "0"))
+    .join("")}`;
+}
+
+/** The colour of the last shadow in a computed `box-shadow` list (the colour comes first in it). */
+export function lastShadowColor(boxShadow: string): string {
+  const shadows: string[] = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < boxShadow.length; i += 1) {
+    const ch = boxShadow[i];
+    if (ch === "(") depth += 1;
+    else if (ch === ")") depth -= 1;
+    else if (ch === "," && depth === 0) {
+      shadows.push(boxShadow.slice(start, i));
+      start = i + 1;
+    }
+  }
+  shadows.push(boxShadow.slice(start));
+  const last = shadows[shadows.length - 1]?.trim() ?? "";
+  const colour = /^(?:rgba?|color)\([^)]*\)/.exec(last);
+  if (!colour) throw new Error(`No colour leads the last shadow: ${boxShadow}`);
+  return colour[0];
+}
+
+/** Two colours within 1.5 on a 0 to 255 channel (serialisation rounding) and 0.015 on alpha. */
+export function colorsMatch(a: Rgba, b: Rgba): boolean {
+  return (
+    Math.abs(a[0] - b[0]) <= 1.5 &&
+    Math.abs(a[1] - b[1]) <= 1.5 &&
+    Math.abs(a[2] - b[2]) <= 1.5 &&
+    Math.abs(a[3] - b[3]) <= 0.015
+  );
+}
+
+/**
+ * The elevation form of focus (ORV-192 row 9): the element keeps its rest shadow, first in the list,
+ * and gains a 4 px halo after it, with a 1 px outline in `ink` (`focus.ring` unless the element sits
+ * on a ground where the brand is not readable). The halo's colour is that `ink` at
+ * `focus.halo-opacity` (ORV-194 row 2), so a halo drawn in another ink is red. Puts focus back where
+ * it was.
+ */
+export async function expectFocusElevationForm(
+  el: HTMLElement,
+  ink = resolvedColor(el, "--ds-focus-ring"),
+) {
+  const rest = getComputedStyle(el).boxShadow;
+  expect(rest, `${label(el)} has an elevation at rest`).not.toBe("none");
+  const before = document.activeElement;
+  el.focus();
+  expect(el.matches(":focus-visible"), `${label(el)} matches :focus-visible`).toBe(true);
+  // A border-color transition (Card) is still running right after focus; read the settled look.
+  await Promise.all(el.getAnimations().map((a) => a.finished));
+  const style = getComputedStyle(el);
+  expect(style.boxShadow.startsWith(rest), `${label(el)} keeps its elevation`).toBe(true);
+  expect(style.boxShadow, `${label(el)} adds the halo`).toMatch(/ 0px 0px 0px 4px$/);
+  const probe = document.createElement("span");
+  probe.style.color = `color-mix(in srgb, ${ink} calc(var(--ds-focus-halo-opacity) * 100%), transparent)`;
+  el.append(probe);
+  const haloInk = getComputedStyle(probe).color;
+  probe.remove();
+  const halo = lastShadowColor(style.boxShadow);
+  expect(
+    colorsMatch(parseCssColor(halo), parseCssColor(haloInk)),
+    `${label(el)} halo is ${ink} at focus.halo-opacity (${haloInk}), not ${halo}`,
+  ).toBe(true);
+  expect(style.outlineWidth, `${label(el)} outline width`).toBe("1px");
+  expect(style.outlineStyle, `${label(el)} outline style`).toBe("solid");
+  expect(style.outlineColor, `${label(el)} outline colour`).toBe(ink);
+  if (before instanceof HTMLElement && before !== document.body) before.focus();
+  else el.blur();
 }
 
 const px = (value: string, basis: number) => {
@@ -281,4 +616,979 @@ export function expectNoGlyphClip(el: Element) {
     }
   }
   expect(checked, `${label(el)} has no text under a clipping ancestor to check`).toBeGreaterThan(0);
+}
+
+/**
+ * Pass bound of ink-centre-1 (spec ORV-111 v1.1, clause 9): the body's ink centre is this close to
+ * the control centre, in CSS px. It is the 1 px target plus the half device pixel that text snaps
+ * to at device scale factor 1 while the box may sit at a fractional y.
+ */
+const INK_CENTRE_BOUND = 1.5;
+
+/**
+ * The body of a label (ink-centre-1): the label with the Thai marks above and below the consonant
+ * removed, U+0E31, U+0E34 to U+0E3A and U+0E47 to U+0E4E. A Latin label is its own body.
+ */
+export const bodyOf = (text: string) => text.replace(/[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]/g, "");
+
+const round2 = (n: number) => Math.round(n * 100) / 100;
+
+/**
+ * One control box and its label, in CSS px from the top-left corner of the screenshot. The label
+ * columns and the padding box rows make the region that is read (clause 3).
+ */
+export interface InkBox {
+  /** The border box: its top edge and its height. */
+  top: number;
+  height: number;
+  /** The widths of the top and bottom borders; the rows between them are the padding box. */
+  borderTop: number;
+  borderBottom: number;
+  /** The columns of the label text, from its left edge to its right edge. */
+  textLeft: number;
+  textRight: number;
+  /**
+   * The box's left edge and width with its border-box corner radii (ink-corner-1). Absent for a box
+   * with square corners. The columns a corner curve reaches are not read.
+   */
+  corners?: { left: number; width: number; radii: Radii };
+}
+
+export interface InkCentre {
+  /** Top of the ink band, in CSS px below the top of the border box. */
+  inkTop: number;
+  /** Bottom of the ink band, one row past the last ink row, in CSS px below the top of the border box. */
+  inkBottom: number;
+  /** Ink centre minus control centre, in CSS px to 2 decimals. A negative offset is above the centre. */
+  offset: number;
+  /** True when the offset, as reported, is at most `INK_CENTRE_BOUND` (1.5) CSS px either way. */
+  centred: boolean;
+}
+
+/**
+ * Where the ink of a label sits in its control box, read from a decoded screenshot (RGBA bytes,
+ * `width` px wide, at `scale` device px per CSS px). This is ink-centre-1 of the ORV-111 spec,
+ * clauses 3 to 9, with the region cut at the corner curves by ink-corner-1 of the ORV-198 spec, on whatever ink the region holds (the caller decides whether that is the body or
+ * the whole label); null when the region holds no ink.
+ */
+export function inkCentreOf(
+  image: { data: ArrayLike<number>; width: number },
+  scale: number,
+  box: InkBox,
+): InkCentre | null {
+  const { data, width } = image;
+  const height = data.length / 4 / width;
+  // Clause 3: the columns of the label, rounded outward, and the rows of the padding box, rounded
+  // inward so a row that is half border is not read; all of it inside the image.
+  let leftColumn = Math.floor(box.textLeft * scale);
+  let rightColumn = Math.ceil(box.textRight * scale);
+  // ink-corner-1: a bound a cut sets rounds inward, so a column the curve's antialiasing touches
+  // is not read. A side with no radius has no cut and keeps the label's bound.
+  if (box.corners) {
+    const { left: edge, width: span, radii } = box.corners;
+    const leftRadius = Math.max(radii.topLeft.x, radii.bottomLeft.x);
+    const rightRadius = Math.max(radii.topRight.x, radii.bottomRight.x);
+    if (leftRadius > 0) leftColumn = Math.max(leftColumn, Math.ceil((edge + leftRadius) * scale));
+    if (rightRadius > 0) {
+      rightColumn = Math.min(rightColumn, Math.floor((edge + span - rightRadius) * scale));
+    }
+  }
+  const left = Math.max(0, leftColumn);
+  const right = Math.min(width, rightColumn);
+  const top = Math.max(0, Math.ceil((box.top + box.borderTop) * scale));
+  const bottom = Math.min(height, Math.floor((box.top + box.height - box.borderBottom) * scale));
+  const at = (x: number, y: number): Rgb => {
+    const i = (y * width + x) * 4;
+    return [data[i] ?? 0, data[i + 1] ?? 0, data[i + 2] ?? 0];
+  };
+  // Clause 4: the ground is the most frequent colour of the region (a tie goes to the colour that
+  // reaches the top count first).
+  const counts = new Map<number, number>();
+  let ground: Rgb | undefined;
+  let most = 0;
+  for (let y = top; y < bottom; y++) {
+    for (let x = left; x < right; x++) {
+      const px = at(x, y);
+      const key = (px[0] << 16) | (px[1] << 8) | px[2];
+      const n = (counts.get(key) ?? 0) + 1;
+      counts.set(key, n);
+      if (n > most) {
+        most = n;
+        ground = px;
+      }
+    }
+  }
+  if (!ground) return null;
+  // Clauses 5 and 6: ink is a pixel over INK_DISTANCE from the ground; the band runs from the first
+  // row that holds ink to the last such row, plus one row.
+  let first: number | undefined;
+  let last = 0;
+  for (let y = top; y < bottom; y++) {
+    for (let x = left; x < right; x++) {
+      if (distance(at(x, y), ground) > INK_DISTANCE) {
+        first ??= y;
+        last = y;
+        break;
+      }
+    }
+  }
+  if (first === undefined) return null;
+  // Clauses 7 and 8: the control centre is the top of the border box plus half its height. The
+  // offset is reported to 2 decimals, and clause 9 judges it as reported.
+  const inkTop = first / scale - box.top;
+  const inkBottom = (last + 1) / scale - box.top;
+  const offset = round2((inkTop + inkBottom) / 2 - box.height / 2);
+  return {
+    inkTop: round2(inkTop),
+    inkBottom: round2(inkBottom),
+    offset,
+    centred: Math.abs(offset) <= INK_CENTRE_BOUND,
+  };
+}
+
+/** What a label is judged by: its body (the rule), or its whole ink. */
+export type InkMeasure = "body" | "ink";
+
+export interface InkReading {
+  /** The box, its label and its height, so a failure line names it. */
+  name: string;
+  /** The reading of the label's body (clause 9 judges this one). */
+  body: InkCentre;
+  /** The reading of the whole ink, Thai marks included: reported beside the body. */
+  ink: InkCentre;
+}
+
+/**
+ * The failure message of `expectInkCentred`: each box whose `measure` reading is off the centre,
+ * with the body offset and the whole-ink offset beside it. Empty when none is.
+ */
+export function offCentreReport(readings: readonly InkReading[], measure: InkMeasure): string {
+  const off = readings.filter((reading) => !reading[measure].centred);
+  if (off.length === 0) return "";
+  return [
+    `${off.length} of ${readings.length} labels have a ${measure === "body" ? "body" : "whole ink"} more than ${INK_CENTRE_BOUND} px from the centre of their control (a negative offset is above it):`,
+    ...off.map(
+      (r) =>
+        `${r.name}: body offset ${r.body.offset.toFixed(2)} px, whole-ink offset ${r.ink.offset.toFixed(2)} px`,
+    ),
+  ].join("\n");
+}
+
+/** The text nodes under `box` that hold characters. */
+function textNodesOf(box: Element): Text[] {
+  const walker = document.createTreeWalker(box, NodeFilter.SHOW_TEXT);
+  const nodes: Text[] = [];
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    if (node.textContent?.trim()) nodes.push(node as Text);
+  }
+  return nodes;
+}
+
+/**
+ * The element whose text is the label of `box` (ink-group-1): an `<input>` is read by its own value;
+ * a box that holds exactly one `<input>` is read by that input, whatever text its other descendants
+ * hold (an addon such as "THB"); a box that holds more than one `<input>` throws; a box that holds
+ * none is `box` itself.
+ */
+function labelHolder(box: Element): Element {
+  if (box instanceof HTMLInputElement) return box;
+  const inputs = box.querySelectorAll("input");
+  if (inputs.length > 1) throw new Error(`${label(box)}: holds more than one input to measure`);
+  return inputs[0] ?? box;
+}
+
+/** The runs of label text in `box`, each with the font that sets it. An `<input>` has one run: its value. */
+function runsOf(container: Element): { text: string; font: string }[] {
+  const box = labelHolder(container);
+  const fontOf = (el: Element) => {
+    const style = getComputedStyle(el);
+    return `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+  };
+  if (box instanceof HTMLInputElement) return [{ text: box.value, font: fontOf(box) }];
+  return textNodesOf(box).map((node) => ({
+    text: node.data,
+    font: fontOf(node.parentElement ?? box),
+  }));
+}
+
+/** The columns of the label (clause 3): the client rects of a Range over its text, or an `<input>`'s content box. */
+function columnsOf(container: Element): { left: number; right: number } {
+  const box = labelHolder(container);
+  if (box instanceof HTMLInputElement) {
+    const style = getComputedStyle(box);
+    const rect = box.getBoundingClientRect();
+    return {
+      left: rect.left + parseFloat(style.borderLeftWidth) + parseFloat(style.paddingLeft),
+      right: rect.right - parseFloat(style.borderRightWidth) - parseFloat(style.paddingRight),
+    };
+  }
+  let left = Infinity;
+  let right = -Infinity;
+  for (const node of textNodesOf(box)) {
+    const range = document.createRange();
+    range.selectNodeContents(node);
+    for (const part of range.getClientRects()) {
+      left = Math.min(left, part.left);
+      right = Math.max(right, part.right);
+    }
+  }
+  if (left > right) throw new Error(`${label(box)} has no text to measure`);
+  return { left, right };
+}
+
+/** The label of `box` as the screenshot shows it, with the text nodes (or the input value) set by `text`. */
+function setLabelText(container: Element, text: (current: string) => string): () => void {
+  const box = labelHolder(container);
+  if (box instanceof HTMLInputElement) {
+    const before = box.value;
+    box.value = text(before);
+    return () => {
+      box.value = before;
+    };
+  }
+  const nodes = textNodesOf(box).map((node) => ({ node, before: node.data }));
+  for (const { node, before } of nodes) node.data = text(before);
+  return () => {
+    for (const { node, before } of nodes) node.data = before;
+  };
+}
+
+/** The border-box corner radii of a box as the browser draws them (ink-corner-1 clause 1). */
+function borderRadiiOf(rect: DOMRect, style: CSSStyleDeclaration): Radii {
+  const corner = (value: string): Corner => {
+    const [rx = "0", ry = rx] = value.split(" ");
+    return { x: Math.max(0, px(rx, rect.width)), y: Math.max(0, px(ry, rect.height)) };
+  };
+  const radii: Radii = {
+    topLeft: corner(style.borderTopLeftRadius),
+    topRight: corner(style.borderTopRightRadius),
+    bottomRight: corner(style.borderBottomRightRadius),
+    bottomLeft: corner(style.borderBottomLeftRadius),
+  };
+  // Radii that overlap are scaled down together, as the browser does (a pill reads half the height).
+  const scale = Math.min(
+    1,
+    rect.width / Math.max(1, radii.topLeft.x + radii.topRight.x),
+    rect.width / Math.max(1, radii.bottomLeft.x + radii.bottomRight.x),
+    rect.height / Math.max(1, radii.topLeft.y + radii.bottomLeft.y),
+    rect.height / Math.max(1, radii.topRight.y + radii.bottomRight.y),
+  );
+  if (scale < 1) {
+    for (const c of Object.values(radii)) {
+      c.x *= scale;
+      c.y *= scale;
+    }
+  }
+  return radii;
+}
+
+/** One box as the page lays it out, in CSS px from the top-left corner of the viewport. */
+export interface BoxGeometry {
+  /** The border box. */
+  rect: { left: number; top: number; width: number; height: number };
+  borderTop: number;
+  borderBottom: number;
+  /** The columns of the label. */
+  textLeft: number;
+  textRight: number;
+  radii: Radii;
+}
+
+/**
+ * The pure part of one pass (clauses 3 to 8 with ink-corner-1): the ink of each box in a decoded
+ * screenshot whose top-left corner is `frame`. The scale is the window's `devicePixelRatio`, chosen
+ * here and not the screenshot width over `frame.width`, which drifts off the ratio when the frame
+ * has a fractional width (clause 2). A box whose region holds no ink reads null.
+ */
+export function readGeometries(
+  image: { data: ArrayLike<number>; width: number },
+  frame: Pick<DOMRect, "left" | "top" | "width">,
+  geometries: readonly BoxGeometry[],
+  view: { devicePixelRatio: number },
+): (InkCentre | null)[] {
+  const scale = view.devicePixelRatio;
+  return geometries.map((g) =>
+    inkCentreOf(image, scale, {
+      top: g.rect.top - frame.top,
+      height: g.rect.height,
+      borderTop: g.borderTop,
+      borderBottom: g.borderBottom,
+      textLeft: g.textLeft - frame.left,
+      textRight: g.textRight - frame.left,
+      corners: { left: g.rect.left - frame.left, width: g.rect.width, radii: g.radii },
+    }),
+  );
+}
+
+/** One pass of clauses 2 to 8: a screenshot of `scope`, then the ink of each box as it renders now. */
+async function readBoxes(scope: Element, boxes: readonly Element[], names: readonly string[]) {
+  const { data, width, frame } = await screenshotOf(scope);
+  const geometries = boxes.map((box): BoxGeometry => {
+    const rect = box.getBoundingClientRect();
+    const style = getComputedStyle(box);
+    const columns = columnsOf(box);
+    return {
+      rect,
+      borderTop: parseFloat(style.borderTopWidth),
+      borderBottom: parseFloat(style.borderBottomWidth),
+      textLeft: columns.left,
+      textRight: columns.right,
+      radii: borderRadiiOf(rect, style),
+    };
+  });
+  return readGeometries({ data, width }, frame, geometries, window).map((found, i) => {
+    if (!found) throw new Error(`${names[i]}: the region of its label holds no ink to measure`);
+    return found;
+  });
+}
+
+/**
+ * Where the ink of each label sits in its control (spec ORV-111 v1.1, rule ink-centre-1), from a
+ * screenshot of `scope`, which holds every box. It waits for the faces of the labels first (clause
+ * 1), shoots `scope` the way `expectEdgeInk` does (clause 2) and reads each box (clauses 3 to 8):
+ * that is the whole-ink reading. When a label holds Thai marks, it then takes the marks out of the
+ * text, shoots again, reads the body, and puts the label back; a label with no marks has the one
+ * reading for both. A rounded box loses the columns its corner curves reach, and a box that holds one
+ * `<input>` is read by that input (ORV-198 ink-corner-1, ORV-199 ink-group-1). It runs where Vitest
+ * browser mode runs; a play guards the call with `inVitest`.
+ */
+export async function measureInkCentre(
+  scope: Element,
+  boxes: readonly Element[],
+): Promise<InkReading[]> {
+  const runs = boxes.map(runsOf);
+  await Promise.all(
+    runs
+      .flat()
+      .flatMap(({ font, text }) => [
+        document.fonts.load(font, text),
+        document.fonts.load(font, bodyOf(text)),
+      ]),
+  );
+  await document.fonts.ready;
+  const names = boxes.map((box, i) => {
+    const boundary = box.closest("[data-design-profile]");
+    return `${label(box)} "${(runs[i] ?? []).map((run) => run.text.trim()).join(" ")}", ${box.getBoundingClientRect().height} px tall${
+      boundary
+        ? `, in ${boundary.getAttribute("data-design-profile")} ${boundary.getAttribute("data-mode")}`
+        : ""
+    }`;
+  });
+  const whole = await readBoxes(scope, boxes, names);
+  const marked = runs.map((box) => box.some(({ text }) => bodyOf(text) !== text));
+  let stripped = whole;
+  if (marked.some(Boolean)) {
+    const restores = boxes.map((box) => setLabelText(box, bodyOf));
+    try {
+      stripped = await readBoxes(scope, boxes, names);
+    } finally {
+      for (const restore of restores) restore();
+    }
+  }
+  return boxes.map((_, i) => ({
+    name: names[i] ?? "",
+    body: marked[i] ? (stripped[i] as InkCentre) : (whole[i] as InkCentre),
+    ink: whole[i] as InkCentre,
+  }));
+}
+
+/**
+ * Asserts the label of each of `boxes` sits at the vertical centre of its control (ink-centre-1),
+ * read from screenshots of `scope`, the element that holds them all: one for the whole ink and one
+ * for the body. `measure` names the reading that is judged, within 1.5 CSS px: `"body"` for a
+ * Thai label whose marks rise freely above the consonants, `"ink"` for the whole ink. Each box is
+ * one assertion, and a failure lists every box that is off with its body offset and its whole-ink
+ * offset. Computed style does not decide the result, so a face whose glyphs ride high in its line
+ * shows. Use it with the Thai and the English sample of `fixtures.ts`. It runs where Vitest browser
+ * mode runs; a play guards the call with `inVitest`.
+ */
+export async function expectInkCentred(
+  scope: Element,
+  boxes: readonly Element[],
+  { measure }: { measure: InkMeasure },
+) {
+  expect(boxes.length, `${label(scope)} has no box to measure`).toBeGreaterThan(0);
+  const readings = await measureInkCentre(scope, boxes);
+  const report = offCentreReport(readings, measure);
+  for (const reading of readings) expect(reading[measure].centred, report).toBe(true);
+}
+
+/**
+ * Asserts the first ink of `el`'s first line starts at least `px` CSS px below the bottom of
+ * `above` (ORV-192 row 19). Thai marks such as the ฟื้ stack rise above the line box, so a box
+ * check cannot see them; this reads them. `above` is hidden while one screenshot of the nearest
+ * ancestor holding both boxes is taken (restored in `finally`), the ground is the pixel 1 CSS px
+ * inside the top left of `above`, and the rows from the top of `above` down to the bottom of
+ * `el`'s first line are scanned over `el`'s columns. It runs where Vitest browser mode runs; a play
+ * guards the call with `inVitest`.
+ */
+export async function expectInkClearsAbove(el: Element, above: Element, px = 4) {
+  const holds = (a: DOMRect, r: DOMRect) =>
+    a.left <= r.left && a.top <= r.top && a.right >= r.right && a.bottom >= r.bottom;
+  const aboveRect = above.getBoundingClientRect();
+  const rect = el.getBoundingClientRect();
+  const both = new DOMRect(
+    Math.min(rect.left, aboveRect.left),
+    Math.min(rect.top, aboveRect.top),
+    Math.max(rect.right, aboveRect.right) - Math.min(rect.left, aboveRect.left),
+    Math.max(rect.bottom, aboveRect.bottom) - Math.min(rect.top, aboveRect.top),
+  );
+  let scope: Element = el;
+  while (scope.parentElement && !holds(scope.getBoundingClientRect(), both)) {
+    scope = scope.parentElement;
+  }
+  const hidden = above as HTMLElement;
+  const previous = hidden.style.visibility;
+  hidden.style.visibility = "hidden";
+  try {
+    const { data, width } = await shoot(scope);
+    const frame = scope.getBoundingClientRect();
+    const scale = width / frame.width;
+    const style = getComputedStyle(el);
+    const lineHeight = parseFloat(style.lineHeight);
+    const firstLineBottom = Number.isNaN(lineHeight)
+      ? rect.bottom
+      : Math.min(rect.bottom, rect.top + parseFloat(style.paddingTop) + lineHeight);
+    const pixel = (x: number, y: number): Rgb => {
+      const at = (y * width + x) * 4;
+      return [data[at] ?? 0, data[at + 1] ?? 0, data[at + 2] ?? 0];
+    };
+    const ground = pixel(
+      Math.round((aboveRect.left + 1 - frame.left) * scale),
+      Math.round((aboveRect.top + 1 - frame.top) * scale),
+    );
+    const top = Math.round((aboveRect.top - frame.top) * scale);
+    const bottom = Math.round((firstLineBottom - frame.top) * scale);
+    const left = Math.round((rect.left - frame.left) * scale);
+    const right = Math.round((rect.right - frame.left) * scale);
+    const rows: Rgb[][] = [];
+    for (let y = top; y < bottom; y++) {
+      const row: Rgb[] = [];
+      for (let x = left; x < right; x++) row.push(pixel(x, y));
+      rows.push(row);
+    }
+    const found = firstInkRow(rows, ground);
+    expect(found, `${label(el)} draws no ink in its first line`).not.toBeNull();
+    const gap = (top + (found ?? 0)) / scale + frame.top - aboveRect.bottom;
+    const read = Math.round(gap * 10) / 10;
+    expect(
+      read,
+      `${label(el)} ink starts ${read} px under ${label(above)}, expected at least ${px} px`,
+    ).toBeGreaterThanOrEqual(px);
+  } finally {
+    hidden.style.visibility = previous;
+  }
+}
+
+/** The strength of the test paint of `expectLinesClear`: its red is rgb(224, 0, 0), its blue rgb(0, 0, 224). */
+const LINES_INK = 224;
+
+/** Below this share of a pixel covered, the pixel is ground: raster noise, not ink. */
+const LINES_MIN_COVERAGE = 0.05;
+
+/**
+ * The share of a pixel the test paint covers, 0 to 1, from how far its channel `main` (0 red, 2
+ * blue) stands above both others. A red of 224 over any ground gives the difference `224 * share`
+ * with the others at `ground * (1 - share)`, so the share needs no ground colour.
+ */
+const coverage = (px: Rgb, main: 0 | 2) => {
+  const others = main === 0 ? [px[1], px[2]] : [px[0], px[1]];
+  return Math.min(1, Math.max(0, (px[main] - Math.max(...others)) / LINES_INK));
+};
+
+/**
+ * The smallest gap, over every pixel column, from the bottom edge of the lowest red ink to the top
+ * edge of the highest blue ink, in CSS px. An edge is read inside its pixel row from the share the
+ * ink covers: the lowest red row holds ink down to `row + share`, the highest blue row from
+ * `row + 1 - share`. Whole rows would not do. Counting a row as ink from a fifth of coverage, they
+ * read a gap of 0.7 px as 0 where the rasteriser hints a face, so a gap that clears the floor failed
+ * it (ORV-221: Linux, device scale 1, 0.71 px read as 0, the Mac read 1.8). A negative value means
+ * the two inks overlap. A column with only one of the two colours is skipped; null when no column
+ * has both.
+ */
+export function linesGap(rows: readonly (readonly Rgb[])[], devicePixelRatio: number) {
+  const width = rows[0]?.length ?? 0;
+  let smallest: number | null = null;
+  for (let x = 0; x < width; x++) {
+    let redBottom: number | null = null;
+    let blueTop: number | null = null;
+    for (let y = 0; y < rows.length; y++) {
+      const px = rows[y]?.[x];
+      if (!px) continue;
+      const red = coverage(px, 0);
+      const blue = coverage(px, 2);
+      if (red > LINES_MIN_COVERAGE) redBottom = y + red;
+      else if (blue > LINES_MIN_COVERAGE && blueTop === null) blueTop = y + 1 - blue;
+    }
+    if (redBottom === null || blueTop === null) continue;
+    const gap = (blueTop - redBottom) / devicePixelRatio;
+    if (smallest === null || gap < smallest) smallest = gap;
+  }
+  return smallest;
+}
+
+/** The floor of `lines-clear-1`: `px` less one device pixel, which antialiasing may take. */
+export const linesFloor = (px: number, devicePixelRatio: number) => px - 1 / devicePixelRatio;
+
+/**
+ * Asserts a wrapped title keeps at least `px` CSS px between the lowest ink of one line and the
+ * highest ink of the next (ORV-194 row 6, rule `lines-clear-1`), within one device pixel. A shallow
+ * clone of `el` (same classes, recipe and line height, same width) is put after it and filled with
+ * two forced lines of the tallest Thai stacks, the first in red and the second in blue (test paint,
+ * never shipped), painted in grey antialiasing. One screenshot of the clone is read; the clone is
+ * taken out in `finally`. It runs where Vitest browser mode runs; a play guards the call with
+ * `inVitest`.
+ */
+export async function expectLinesClear(el: HTMLElement, px = 1.5) {
+  const clone = el.cloneNode(false) as HTMLElement;
+  clone.removeAttribute("id");
+  clone.style.width = `${el.getBoundingClientRect().width}px`;
+  // A composited layer with no opaque ground is painted in grey antialiasing. Without it the Linux
+  // runner paints coloured subpixel fringes (715 fringed pixels in this clone, 0 with it), and the
+  // reading takes its share of ink from the colour channels.
+  clone.style.willChange = "transform";
+  const line = (text: string, color: string) => {
+    const span = document.createElement("span");
+    span.style.color = color;
+    span.textContent = text;
+    return span;
+  };
+  clone.append(
+    line("ฟูฟูฟูปู่ปู่ฟูฟู", "rgb(224, 0, 0)"),
+    document.createElement("br"),
+    line("ฟื้ฟื้ฟื้ปี๊ปี๊ฟื้ฟื้", "rgb(0, 0, 224)"),
+  );
+  el.after(clone);
+  try {
+    const { data, width, height } = await shoot(clone);
+    const scale = width / clone.getBoundingClientRect().width;
+    const rows: Rgb[][] = [];
+    for (let y = 0; y < height; y++) {
+      const row: Rgb[] = [];
+      for (let x = 0; x < width; x++) {
+        const at = (y * width + x) * 4;
+        row.push([data[at] ?? 0, data[at + 1] ?? 0, data[at + 2] ?? 0]);
+      }
+      rows.push(row);
+    }
+    const gap = linesGap(rows, scale);
+    expect(gap, `${label(el)} draws no red line above a blue line`).not.toBeNull();
+    const floor = linesFloor(px, scale);
+    expect(
+      gap ?? 0,
+      `${label(el)} lines are ${Math.round((gap ?? 0) * 100) / 100} px apart, expected at least ${floor} px (${px} px less one device pixel)`,
+    ).toBeGreaterThanOrEqual(floor);
+  } finally {
+    clone.remove();
+  }
+}
+
+/**
+ * How far, in CSS px, the highest ink that `visible` draws above row `aboveRow` and `shipped` does
+ * not, measured up from that row (ORV-194 row 7). Both shots cover the same region, so a row index
+ * in one is the same place in the other. A row differs when a pixel in it is more than
+ * `INK_DISTANCE` from the same pixel of the other shot. 0 means the shipped label cuts nothing
+ * above `aboveRow`. Anything the two shots share (a tag's border, a tile's edge) never counts.
+ */
+export function inkCutAbove(
+  shipped: readonly (readonly Rgb[])[],
+  visible: readonly (readonly Rgb[])[],
+  aboveRow: number,
+  devicePixelRatio: number,
+) {
+  for (let y = 0; y < Math.min(aboveRow, shipped.length, visible.length); y++) {
+    const a = shipped[y] ?? [];
+    const b = visible[y] ?? [];
+    if (b.some((px, x) => a[x] && distance(px, a[x]) > INK_DISTANCE)) {
+      return (aboveRow - y) / devicePixelRatio;
+    }
+  }
+  return 0;
+}
+
+/**
+ * The row of a region shot, counted from its top, where the clip box of a label starts: the
+ * region reaches `reach` CSS px above the border box, and `overflow: hidden` clips at the padding
+ * box, `borderTop` CSS px inside it. Rows above this one are the only rows the clip can change; a
+ * row below it, in the label's own block padding, shows the same in both shots by CSS and can
+ * differ only by raster noise (ORV-205).
+ */
+export function clipEdgeRow(reach: number, borderTop: number, devicePixelRatio: number) {
+  return Math.round((reach + borderTop) * devicePixelRatio);
+}
+
+/**
+ * Asserts a one-line label shows the whole stack of Thai marks (ORV-194 row 7): a shallow clone of
+ * `el` (same classes, same parent, so the same recipe applies) holding `sample` is put after it and
+ * shot twice over a region from 8 px above to 8 px below its border box, once as shipped and once
+ * with `overflow: visible` set inline. No row above the clone's clip box (its padding box) may
+ * differ between the two shots, so the clip cuts no mark. Rows in the padding below that edge are
+ * not read (ORV-205): the clip never touches them, and Chromium on Linux sometimes leaves the faint
+ * top row of a tone mark out of the `overflow: visible` raster, which read as a 2 px cut. The clone
+ * is taken out in `finally`. It runs where Vitest browser mode runs; a play guards the call with
+ * `inVitest`. `expectNoGlyphClip` cannot do this: it cannot see marks above the font ascent.
+ */
+export async function expectLabelInkWhole(el: HTMLElement, sample = "ฟื้ปั้ปี๊ฟื้") {
+  const reach = 8;
+  const clone = el.cloneNode(false) as HTMLElement;
+  clone.removeAttribute("id");
+  clone.textContent = sample;
+  el.after(clone);
+  try {
+    const region = async () => {
+      const scope = scopeHolding(clone, reach);
+      const { data, width } = await shoot(scope);
+      const frame = scope.getBoundingClientRect();
+      const rect = clone.getBoundingClientRect();
+      const scale = width / frame.width;
+      const top = Math.round((rect.top - reach - frame.top) * scale);
+      const bottom = Math.round((rect.bottom + reach - frame.top) * scale);
+      const left = Math.round((rect.left - frame.left) * scale);
+      const right = Math.round((rect.right - frame.left) * scale);
+      const rows: Rgb[][] = [];
+      for (let y = top; y < bottom; y++) {
+        const row: Rgb[] = [];
+        for (let x = left; x < right; x++) {
+          const at = (y * width + x) * 4;
+          row.push([data[at] ?? 0, data[at + 1] ?? 0, data[at + 2] ?? 0]);
+        }
+        rows.push(row);
+      }
+      return { rows, scale };
+    };
+    const shipped = await region();
+    clone.style.overflow = "visible";
+    const visible = await region();
+    const line = Math.round(
+      (reach + parseFloat(getComputedStyle(clone).paddingTop)) * shipped.scale,
+    );
+    const edge = clipEdgeRow(
+      reach,
+      parseFloat(getComputedStyle(clone).borderTopWidth),
+      shipped.scale,
+    );
+    const ground = visible.rows[line]?.[0];
+    expect(
+      ground && firstInkRow(visible.rows.slice(line), ground),
+      `${label(el)} draws no ink for the sample ${sample}`,
+    ).not.toBeNull();
+    const cut = inkCutAbove(shipped.rows, visible.rows, edge, shipped.scale);
+    expect(cut, `${label(el)} cuts ${cut} px of its Thai stack above the clip box`).toBe(0);
+  } finally {
+    clone.remove();
+  }
+}
+
+/**
+ * A speck is faint: no pixel of it differs from the other shot by more than this (twice
+ * `INK_DISTANCE`). The Linux speck of ORV-252 read 75; the ink of a mark cut by 2 px read up to 433.
+ */
+const SPECK_DISTANCE = 2 * INK_DISTANCE;
+
+/** A speck is small: at most this many pixels that touch, edges and corners. The one of ORV-252 was 1. */
+const SPECK_PIXELS = 3;
+
+/**
+ * The first pixel of `a` that a clip cut, as `[x, y]` in device pixels, or null when the two shots
+ * show the same ink. Both must cover the same region. A pixel differs when it is more than
+ * `INK_DISTANCE` from the same pixel of `b`; the differing pixels that touch (edges and corners)
+ * form one group. A group of at most `SPECK_PIXELS` pixels, none over `SPECK_DISTANCE`, is a speck
+ * and is not a cut (ORV-205, ORV-252): Chromium on Linux rasters the faint top row of a Thai tone
+ * mark one pixel differently between `overflow: hidden` and `overflow: visible`, and no clip is
+ * there. A mark cut by 2 px differs in two rows, 21 pixels in ORV-252, and the ink of its lower row
+ * is far over `SPECK_DISTANCE`; a line cut in a row is wider than a speck.
+ */
+export function firstInkCut(
+  a: readonly (readonly Rgb[])[],
+  b: readonly (readonly Rgb[])[],
+): readonly [x: number, y: number] | null {
+  const width = Math.max(0, ...a.map((row) => row.length));
+  const key = (x: number, y: number) => y * width + x;
+  const differing = new Map<number, number>();
+  for (let y = 0; y < Math.min(a.length, b.length); y++) {
+    const rowA = a[y] ?? [];
+    const rowB = b[y] ?? [];
+    rowB.forEach((px, x) => {
+      const other = rowA[x];
+      const apart = other ? distance(px, other) : 0;
+      if (apart > INK_DISTANCE) differing.set(key(x, y), apart);
+    });
+  }
+  const seen = new Set<number>();
+  // Map keeps insertion order, which is row by row, so the first group found starts the earliest row.
+  for (const [start, apart] of differing) {
+    if (seen.has(start)) continue;
+    seen.add(start);
+    const group = [{ at: start, apart }];
+    for (let next = 0; next < group.length; next++) {
+      const x = (group[next] as { at: number }).at % width;
+      const y = Math.floor((group[next] as { at: number }).at / width);
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          const near = key(x + dx, y + dy);
+          const nearApart = differing.get(near);
+          if (x + dx < 0 || x + dx >= width || nearApart === undefined || seen.has(near)) continue;
+          seen.add(near);
+          group.push({ at: near, apart: nearApart });
+        }
+      }
+    }
+    const speck =
+      group.length <= SPECK_PIXELS && group.every(({ apart: far }) => far <= SPECK_DISTANCE);
+    if (!speck) {
+      const first = group.reduce((lowest, px) => (px.at < lowest.at ? px : lowest));
+      return [first.at % width, Math.floor(first.at / width)];
+    }
+  }
+  return null;
+}
+
+/**
+ * Asserts nothing from `el` up to and including `frame` clips ink (ORV-222 rows 4 and 18): the
+ * frame is shot twice over its box and 8 CSS px past it on every side, once as shipped and once
+ * with `overflow: visible` set inline on `el` and on every ancestor up to `frame`. Any pixel more
+ * than `INK_DISTANCE` from the same pixel of the other shot is ink a clip cut, except a speck:
+ * a group of up to three touching pixels, none over twice that distance, is ignored (see
+ * `firstInkCut`, ORV-205). Chromium on Linux rasters the faint top row of a Thai tone mark one
+ * pixel differently between the two overflow modes, in a shot where no clip touches the mark, and
+ * that read as a cut (ORV-252); a mark really cut by 2 px or more differs in far more pixels, and
+ * strongly. The region reaches past the frame because a clip cuts ink outside its own box, so a
+ * shot of the frame alone would match. `expectLabelInkWhole` cannot see this: it forces only its
+ * own clone visible, so a clip from an ancestor cuts both its shots alike. The inline values are
+ * put back in `finally`. It runs where Vitest browser mode runs; a play guards the call with
+ * `inVitest`.
+ */
+export async function expectFrameCutsNoInk(el: HTMLElement, frame: HTMLElement) {
+  const reach = 8;
+  const chain: HTMLElement[] = [];
+  for (let node: HTMLElement | null = el; node; node = node === frame ? null : node.parentElement) {
+    chain.push(node);
+  }
+  if (!chain.includes(frame)) throw new Error(`${label(frame)} is not an ancestor of ${label(el)}`);
+  const region = async () => {
+    const scope = scopeHolding(frame, reach);
+    const { data, width } = await shoot(scope);
+    const origin = scope.getBoundingClientRect();
+    const rect = frame.getBoundingClientRect();
+    const scale = width / origin.width;
+    const top = Math.round((rect.top - reach - origin.top) * scale);
+    const bottom = Math.round((rect.bottom + reach - origin.top) * scale);
+    const left = Math.round((rect.left - reach - origin.left) * scale);
+    const right = Math.round((rect.right + reach - origin.left) * scale);
+    const rows: Rgb[][] = [];
+    for (let y = top; y < bottom; y++) {
+      const row: Rgb[] = [];
+      for (let x = left; x < right; x++) {
+        const at = (y * width + x) * 4;
+        row.push([data[at] ?? 0, data[at + 1] ?? 0, data[at + 2] ?? 0]);
+      }
+      rows.push(row);
+    }
+    return { rows, scale };
+  };
+  const shipped = await region();
+  const inline = chain.map((node) => node.style.overflow);
+  try {
+    for (const node of chain) node.style.overflow = "visible";
+    const visible = await region();
+    const at = firstInkCut(shipped.rows, visible.rows);
+    const x = at ? Math.round((at[0] / shipped.scale - reach) * 100) / 100 : 0;
+    const y = at ? Math.round((at[1] / shipped.scale - reach) * 100) / 100 : 0;
+    expect(
+      at,
+      `${label(frame)} or an ancestor of ${label(el)} cuts ink: the pixel at x ${x}, y ${y} px from the frame's top left shows with overflow visible and not as shipped`,
+    ).toBeNull();
+  } finally {
+    chain.forEach((node, i) => {
+      node.style.overflow = inline[i] ?? "";
+    });
+  }
+}
+
+/** CSS px of page read around a disc's box, so ink that strays past the edge shows. */
+const PAINT_MARGIN = 2;
+
+export interface PaintShot {
+  data: Uint8ClampedArray;
+  width: number;
+}
+
+/**
+ * The pixel rows of `rect` plus `PAINT_MARGIN` CSS px on every side, read from a shot of the box
+ * `frame`. The box paints on the rounded pixel, so the region is anchored at `Math.round` of the
+ * box's position in the frame: `Math.floor` reads one row off at a half or three quarters of a
+ * pixel and goes red on good CSS. Plain numbers, so the anchor is tested in node.
+ */
+export function paintRegion(
+  shot: PaintShot,
+  frame: { left: number; top: number; width: number },
+  rect: { left: number; top: number; width: number; height: number },
+): Rgb[][] {
+  const scale = shot.width / frame.width;
+  const margin = Math.round(PAINT_MARGIN * scale);
+  const left = Math.round((rect.left - frame.left) * scale) - margin;
+  const top = Math.round((rect.top - frame.top) * scale) - margin;
+  const width = Math.round(rect.width * scale) + 2 * margin;
+  const height = Math.round(rect.height * scale) + 2 * margin;
+  const rows: Rgb[][] = [];
+  for (let y = top; y < top + height; y++) {
+    const row: Rgb[] = [];
+    for (let x = left; x < left + width; x++) {
+      const at = (y * shot.width + x) * 4;
+      row.push([shot.data[at] ?? 0, shot.data[at + 1] ?? 0, shot.data[at + 2] ?? 0]);
+    }
+    rows.push(row);
+  }
+  return rows;
+}
+
+/**
+ * How many pixels of `a` differ from the same pixel of `b` by more than `PAINT_TOLERANCE` (the
+ * summed RGB distance). It is not `INK_DISTANCE`: at 48 a faint fault in a light disc reads 0 and
+ * the play passes on it. Both regions must be the same size.
+ */
+export function paintDifference(
+  a: readonly (readonly Rgb[])[],
+  b: readonly (readonly Rgb[])[],
+): number {
+  if (a.length !== b.length || a.some((row, y) => row.length !== b[y]?.length)) {
+    throw new Error("paintDifference needs two regions of the same size");
+  }
+  let differing = 0;
+  a.forEach((row, y) => {
+    row.forEach((px, x) => {
+      if (distance(px, b[y]?.[x] as Rgb) > PAINT_TOLERANCE) differing++;
+    });
+  });
+  return differing;
+}
+
+/** The part of `n` after the point, 0 to under 1. */
+const fractionOf = (n: number) => n - Math.floor(n);
+
+/** True when `n` sits within 0.02 px of a position that is `offset` after a whole pixel. */
+function sitsAt(n: number, offset: number): boolean {
+  const gap = Math.abs(fractionOf(n) - offset);
+  return Math.min(gap, 1 - gap) <= 0.02;
+}
+
+/**
+ * Asserts each of `discs` keeps the paint it has on a whole pixel when it sits `offsets` of a
+ * pixel off the grid in both axes (ORV-224 row R1). `frame` is shot at offset 0, then once per
+ * offset; the discs move by layout, with `padding-block-start` and `padding-inline-start` of
+ * `4 + offset` px and `padding-block-end` of `4 - offset` px, so the shot keeps its size. A
+ * transform would carry the box and its clip together and show no fault, so none is used. The
+ * frame must start on a whole pixel and each disc must sit at `offset` after one, so an offset that
+ * did nothing is red. Every disc, plus a margin, must differ from its offset-0 region by no pixel
+ * over `PAINT_TOLERANCE`. The inline padding is put back in `finally`. It reads device scale 1, the
+ * Storybook project's. It runs where Vitest browser mode runs; a play guards the call with `inVitest`.
+ */
+export async function expectPaintHolds(
+  frame: HTMLElement,
+  discs: readonly HTMLElement[],
+  offsets: readonly number[],
+) {
+  expect(discs.length, `${label(frame)} holds no disc to read`).toBeGreaterThan(0);
+  const saved = {
+    paddingBlockStart: frame.style.paddingBlockStart,
+    paddingInlineStart: frame.style.paddingInlineStart,
+    paddingBlockEnd: frame.style.paddingBlockEnd,
+  };
+  const read = async (offset: number) => {
+    frame.style.paddingBlockStart = `${4 + offset}px`;
+    frame.style.paddingInlineStart = `${4 + offset}px`;
+    frame.style.paddingBlockEnd = `${4 - offset}px`;
+    const box = frame.getBoundingClientRect();
+    expect(
+      sitsAt(box.left, 0) && sitsAt(box.top, 0),
+      `${label(frame)} sits at ${box.left}, ${box.top}, not on a whole pixel`,
+    ).toBe(true);
+    for (const disc of discs) {
+      const at = disc.getBoundingClientRect();
+      expect(
+        sitsAt(at.left, offset) && sitsAt(at.top, offset),
+        `${label(disc)} sits at ${at.left}, ${at.top}, not ${offset} px after a whole pixel`,
+      ).toBe(true);
+    }
+    const shot = await shoot(frame);
+    return discs.map((disc) => paintRegion(shot, box, disc.getBoundingClientRect()));
+  };
+  try {
+    const whole = await read(0);
+    for (const offset of offsets) {
+      const moved = await read(offset);
+      moved.forEach((region, i) => {
+        const differing = paintDifference(whole[i] ?? [], region);
+        expect(
+          differing,
+          `${label(discs[i] as HTMLElement)} paints ${differing} px unlike its whole-pixel paint at an offset of ${offset} px`,
+        ).toBe(0);
+      });
+    }
+  } finally {
+    Object.assign(frame.style, saved);
+  }
+}
+
+/**
+ * Asserts `a` and `b` paint the same, disc and margin, from one shot of `scope` (ORV-224 row R2):
+ * a line a link draws through the letter in `b` and not in `a` shows as differing pixels. Each
+ * region is anchored as `paintRegion` does. It runs where Vitest browser mode runs; a play guards
+ * the call with `inVitest`.
+ */
+export async function expectSamePaint(scope: Element, a: Element, b: Element) {
+  const shot = await shoot(scope);
+  const frame = scope.getBoundingClientRect();
+  const differing = paintDifference(
+    paintRegion(shot, frame, a.getBoundingClientRect()),
+    paintRegion(shot, frame, b.getBoundingClientRect()),
+  );
+  expect(differing, `${label(b)} paints ${differing} px unlike ${label(a)}`).toBe(0);
+}
+
+/** A part `expectCoversInk` reads: an element, or a `Range` over text that has a box and no element of its own. */
+export type PaintPart = Element | Pick<Range, "getBoundingClientRect">;
+
+/** The name of a part in a failure message: an element by its tag and classes, a range as a text range. */
+export const partLabel = (part: PaintPart) =>
+  "localName" in part ? label(part) : "the text range";
+
+/**
+ * Asserts nothing of `layer` shows through `parts` (ORV-250 row 36): `scope` is shot as shipped and
+ * with `layer` at `opacity: 0`, and each part's region (`paintRegion`) must differ by no pixel
+ * (`paintDifference`). The layer is hidden by opacity and never by `visibility`, because React Flow
+ * writes `visibility: visible` on every node, so a hidden viewport would leave the nodes shown and
+ * the two shots would match on the defect. The caller holds any ring still (`withRingsStill`), or the
+ * shots differ by its angle. The inline value is put back in `finally`. It runs where Vitest browser
+ * mode runs; a play guards the call with `inVitest`. A part may be a `Range` over text, which
+ * is how a play asks whether the words of a clipped line paint (`Range.getBoundingClientRect` reads
+ * the text's layout box, whatever clips it).
+ */
+export async function expectCoversInk(
+  scope: Element,
+  parts: readonly PaintPart[],
+  layer: HTMLElement,
+) {
+  const saved = layer.style.opacity;
+  try {
+    const shipped = await shoot(scope);
+    layer.style.opacity = "0";
+    const bare = await shoot(scope);
+    // The second shot must be of a layer that is really hidden, or two equal shots prove nothing.
+    expect(getComputedStyle(layer).opacity, `${label(layer)} is hidden by opacity`).toBe("0");
+    const frame = scope.getBoundingClientRect();
+    for (const part of parts) {
+      const box = part.getBoundingClientRect();
+      const differing = paintDifference(
+        paintRegion(shipped, frame, box),
+        paintRegion(bare, frame, box),
+      );
+      expect(
+        differing,
+        `${differing} px of ${label(layer)} show through ${partLabel(part)}: the shots with and without it differ`,
+      ).toBe(0);
+    }
+  } finally {
+    layer.style.opacity = saved;
+  }
 }

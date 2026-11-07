@@ -1,7 +1,9 @@
+import { tokens } from "../tokens/index.ts";
 import component from "../tokens/source/component.json" with { type: "json" };
 import primitives from "../tokens/source/primitives.json" with { type: "json" };
 import semantic from "../tokens/source/semantic.json" with { type: "json" };
 import friendly from "./source/friendly.json" with { type: "json" };
+import orivilo from "./source/orivilo.json" with { type: "json" };
 import professional from "./source/professional.json" with { type: "json" };
 import type { CuratedProfile } from "@orivilo/intent-engine";
 import { type BaseSources, Profile, type ProfileSource } from "./model.ts";
@@ -28,7 +30,27 @@ export const CURATED_PROFILES: readonly CuratedProfile[] = profiles.map((p) => (
   decisions: p.decisions as CuratedProfile["decisions"],
 }));
 
+/**
+ * ORIVILO's own brand as a profile (ORV-52). It is not a customer direction, so it stays out of
+ * `profiles`, `PROFILE_IDS` and `CURATED_PROFILES`: the toolbar, the `Matrix` cells, the Studio's
+ * directions and every saved snapshot's fingerprint are unchanged. The resolver chooses it only
+ * when a caller passes it in, through ORIVILO's brand locks (`orivilo.test.ts`).
+ */
+export const BRAND_PROFILES: readonly Profile[] = [new Profile(base, orivilo as ProfileSource)];
+
 export const PROFILE_IDS = ["neutral", ...profiles.map((p) => p.id)] as const;
+
+/**
+ * The token sets the contrast check runs over (ORV-216): the neutral set, every profile and every
+ * brand profile, in that order. `scripts/check-contrast.ts` and `contrast-pairs.test.ts` both read
+ * this one list, so a profile added above is inside the floor, `unexplainedColours` and
+ * `staleExemptions` checks without a second edit.
+ */
+export const CONTRAST_SETS = [
+  { id: "neutral", set: tokens },
+  ...profiles.map((p) => ({ id: p.id, set: p.tokens })),
+  ...BRAND_PROFILES.map((p) => ({ id: p.id, set: p.tokens })),
+];
 
 export function profileById(id: string): Profile | undefined {
   return profiles.find((p) => p.id === id);

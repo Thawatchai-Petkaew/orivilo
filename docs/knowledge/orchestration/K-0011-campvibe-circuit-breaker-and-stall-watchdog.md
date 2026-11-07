@@ -2,7 +2,7 @@
 id: K-0011
 topic: orchestration
 claim: Camp Vibes sends a story back to Discovery after 2 gate rejections, and presumes a build dispatch stalled after about 15 minutes with no completion and no new commits or file changes.
-source: "~/Claude/Projects/CAMPVIBE/.claude/agents/orchestrator.md:131 and 143-145"
+source: "https://github.com/Thawatchai-Petkaew/campvibe .claude/agents/orchestrator.md:131 and 143-145"
 retrieved: 2026-10-23
 confidence: 0.8
 applies_to: [ORV-81]

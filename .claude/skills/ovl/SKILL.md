@@ -22,7 +22,7 @@ Before planning, read `AGENTS.md`, `docs/context/orivilo-brief.md`, the relevant
    and G2 under the owner's delegation (ADR 0012 decision 4), and the packet says so.
 5. **Build.** Dispatch `builder` per task, each in its own worktree. A blocker comes back in `blocked_on`.
    After a builder result, read its `deviations`. A line that names a spec row, an AC or a spec statement as wrong, or as not met by design, goes to `product` in a revision envelope that cites the line, the row and the ADR. That revision runs before the review envelope, and the review envelope carries a fact for the new spec version (`checked_by` `grep -n "^- v<version>" docs/specs/<KEY>/spec.md`) (L-0025). No hook checks this; it is the main session's duty.
-6. **Review and qa.** Round 0 (when the PR changes no rendered component; otherwise follow the Visual sign-off paragraph below, where the sign-off goes first and `qa` waits for both approves): dispatch `qa` (`qa.v1`) and `reviewer` (`reviewer.v1`) on the same head SHA. In round 0 also dispatch `security` (`reviewer.v1`) on the same head when the lane is L with the auth or data-access risk flag, the diff touches a path in `.claude/rules/security.md`, the diff changes a model call or a prompt, or the diff adds a runtime dependency; its `request_changes` is a verdict like the reviewer's (findings go back to `builder` with `rework_of`, and round 1 or more re-checks with a new `security` envelope), and it does not replace the reviewer. Round 1 or more: dispatch the reviewer re-check first, and `qa` only on a head that re-check approved; a re-check that requests changes sends the head back with no qa walk on it (L-0014).
+6. **Review and qa.** Round 0 (when the PR changes no rendered component; otherwise follow the Visual sign-off paragraph below, where the sign-off goes first and `qa` waits for both approves): dispatch `qa` (`qa.v1`) and `reviewer` (`reviewer.v1`) on the same head SHA. The qa walk covers the rows that the spec's `## Rows per PR` line names for the PR (else every row), and a row listed under `## Rows that render nothing` needs no screenshot unless qa marks it visual; the recorder reads that spec as committed at the report's head. In round 0 also dispatch `security` (`reviewer.v1`) on the same head when the lane is L with the auth or data-access risk flag, the diff touches a path in `.claude/rules/security.md`, the diff changes a model call or a prompt, or the diff adds a runtime dependency; its `request_changes` is a verdict like the reviewer's (findings go back to `builder` with `rework_of`, and round 1 or more re-checks with a new `security` envelope), and it does not replace the reviewer. Round 1 or more: dispatch the reviewer re-check first, and `qa` only on a head that re-check approved; a re-check that requests changes sends the head back with no qa walk on it (L-0014).
    **Visual sign-off** (L-0019). When the PR changes a rendered component (a changed `*.stories.tsx`, or a changed file under `packages/design-system/src/components/` or `packages/design-system/src/recipes/`), dispatch `designer` with `report_contract` `reviewer.v1` and an empty `write_set` to judge the look of the head. Round 0: the sign-off goes first; when it returns, post its PNG paths (the contact sheet, absolute paths) on the Jira issue, then dispatch `reviewer` (and `security` when its cases hold) on the same head. Round 1 or more: the reviewer re-check first, then a new sign-off on the head the re-check approved, then `qa`. `qa` goes only to a head with both a sign-off approve and a reviewer approve. A sign-off's `request_changes` is a verdict: the fix goes to `builder` with `rework_of`. A docs-only PR has no sign-off.
    **A look change in rework** (L-0017). A finding or an owner comment whose fix changes how something looks goes to `designer` before any builder envelope. The designer records the change in `docs/specs/<KEY>/design.md` and screenshots it rendered, with the proposed CSS injected into the story, light and dark. The builder envelope then carries that design.md section in `context_pointers` and one fact per screenshot (`checked_by` `test -f <absolute path>`). Findings go back to `builder` as a new envelope; after round 2, ask the form (section 3). A docs-only PR has no qa; the reviewer walks its AC rows.
 7. **G3.** Merge into `develop` through `merge-guard` (section 6), move the issue through `g3-check` (section 7), and post the G3 packet. For a PR that changed a rendered component, the packet lists the PNG paths of the latest designer sign-off approve for the merged head.
@@ -36,6 +36,103 @@ Rules:
 - If the owner requests changes, read the comment, dispatch the right role, and re-raise the same gate.
 - Any action that costs money, touches production or deletes data: stop and ask.
 - Report in the handoff shape: `{ issue, lane, gate, artifacts, checks, summary, next }`.
+
+## POC mode
+
+The owner switched the POC to lean delivery on 2026-10-28 (ORV-137; spec
+`docs/specs/ORV-137/spec.md`). POC mode is in effect until the owner says the POC is over. Until
+then, where this section and the loop above or section 2 disagree, this section holds. Hooks and
+guards run unchanged: every block in sections 2 to 7 still applies, and a guard changes only through a
+PR merged with the owner approval line (ORV-137 comment 10246).
+
+Rules:
+
+- One short spec per issue: goal, AC rows, out of scope. Tech notes only when a contract changes; no
+  findings tables or status cells.
+- No doc review before code; G1 and G2 pass under delegation with a short comment.
+- A review finding that changes no contract: the builder fixes it in code, the PR body notes it. No
+  architect, product and bookkeeping chain.
+- A contract-changing finding: one spec fix, then the builder.
+- Cross-reference and status bookkeeping: once before merge, or dropped.
+- One reviewer pass, plus `security` whenever step 6 calls for it (untrusted input, auth or data
+  access, a path in `.claude/rules/security.md`, a model call or prompt, a new runtime dependency); a
+  re-check only for Critical or Important findings. `merge-check` still needs a reviewer approve on
+  the merged head, and for a code PR the qa approve and the gate record on it (section 6); a fix
+  pushed after the approve needs a reviewer pass on the new head.
+- G3 evidence: in POC mode, "two reviewer passes" in `AGENTS.md` rule 5, ADR 0012 decision 2, the
+  `gate-packet` G3 row and section 2 ("Builder envelope: one deliverable") reads as the reviewer
+  approve on the merged head (with, for a code PR, the qa approve on it, ADR 0013), plus a re-check
+  for Critical or Important findings. The G3 packet reports the passes that actually ran.
+- Kept: tests, security on untrusted input, no secrets, honesty labels, the quality gate, CI,
+  merge-check.
+- One review round (ORV-146): the reviewer, and `qa` when the PR needs it, pass once on the head. A
+  Suggestion never goes back to a builder: it becomes a follow-up Jira issue and is listed in the PR
+  body. Only a Critical or Important finding goes back with `rework_of`, followed by one re-check.
+- Review by size (ORV-146): a PR whose files are all test files or docs needs the reviewer approve,
+  the gate record and green CI, and no `qa` (section 6). Do not dispatch `qa` for it.
+- Parallel issues (ORV-146): one session dispatches for several issues at once, each in its own git
+  worktree under `.claude/worktrees/<name>` on a branch named for the issue (section 2). Run the gate
+  for an issue with the Bash `cwd` in that issue's worktree, because the gate record is read from the
+  checkout of the call's `cwd` (section 6). Dispatch two envelopes of one role in separate messages,
+  each after the previous one is bound. A reviewer or qa approve survives a merge of `develop` that
+  touches no file of the PR (section 6).
+- Aim: a demo the owner runs, a URL in and a brand evidence report out.
+
+Main-session duties POC mode suspends:
+
+- L-0037 and L-0008 (step 4): the `reviewer` on the spec before the G1 packet, and the G3 re-check
+  from the reviewed sha.
+- L-0013 (section 2, "Contract change from a review"): the revision's record of every finding id. The
+  order of L-0011 is kept.
+- L-0033 ("Fixes across documents that cite each other"): research, architect and product fixes in
+  turn.
+- L-0039 ("A finding that two sections disagree"): the pointer fix envelope.
+- L-0035 ("Before a re-check"): the grep of corrected values and the fix envelopes before the
+  re-check.
+- L-0040 ("Bookkeeping after the content fixes"): replaced by the bookkeeping rule above.
+- L-0041 ("A fix greps the other documents").
+
+Main-session duties POC mode keeps:
+
+- Tests, `security` whenever step 6 calls for it (untrusted input, auth or data access, a path in
+  `.claude/rules/security.md`, a model call or prompt, a new runtime dependency), no secrets, honesty
+  labels, the quality gate, CI and `merge-check`.
+- L-0025 (step 5): a builder deviation that names a spec row, an AC or a spec statement as wrong, or
+  as not met by design, goes to `product` in a revision before the review envelope, and the review
+  envelope carries the new spec version as a fact.
+- L-0029 ("Fix for a rule finding"): the fix envelope lists every line the rule governs, and the fix
+  adds one `verified` row per governed line.
+- L-0045 ("A risk-class finding"): survey every route of the class before one design and one builder
+  round.
+- L-0046 (`.claude/rules/testing.md`): time guards sized for CI.
+- L-0047 and L-0026 ("A fact that the gate passed"): the gate runs after `export`, and the fact names
+  the run.
+- L-0011: a contract change from a review gets the spec fix first and the builder after it.
+- L-0010 and L-0043 ("Builder envelope: one deliverable"): one deliverable per builder task, every
+  named test file in the `write_set`; `merge-check` reads the `write_set` union.
+- L-0044 ("Builder objective points to the design"): the objective cites the short spec's AC rows, or
+  the tech notes when a contract change has them.
+- L-0016 (step 2): a slice issue gets its own short spec.
+- L-0030 ("Owner decisions reach every document they change"): the owner's decision comments reach
+  the spec.
+- L-0012 ("Review of a guard-rail spec").
+- L-0014, L-0017 and L-0019 (step 6): qa only on a head the reviewer approved; a look change goes to
+  `designer` first; a visual sign-off on every changed rendered component.
+- L-0020 and L-0031 ("Research envelope that adds a knowledge entry").
+- L-0034 ("A count in an envelope", "A primary file research could not read").
+- L-0027 ("Stall check before each dispatch") and L-0032 ("One issue per checkout at a time").
+- L-0048 (section 3): the grant form only after every verdict on the last builder head is in.
+- L-0023 and L-0038 (section 4): run research's `done_when` and a spec's worked examples, when it has
+  them.
+- The component benchmark (ORV-137 comment 10247). Before a component story is built, its spec opens
+  with a comparison table in the form of `docs/specs/ORV-64/audit.md` section B, with these rows:
+  Untitled UI (variants, sizes, states and slots, read from its page, with the URL), shadcn/ui, Ours,
+  Add, and Do not copy (with the reason). The story ships with Thai and English stories for every
+  variant and state, the Recipes and modes matrix, and a designer visual sign-off. The same rule is in
+  `.claude/rules/design-system.md`.
+
+POC mode ends when the owner says the POC is over. A docs PR then removes this section and its
+pointer in `AGENTS.md`, and the suspended duties apply again.
 
 ## 1. Start of a run: doctor
 
@@ -51,7 +148,7 @@ If the doctor says a dependency is missing, run `pnpm install` and start again. 
 
 An Agent call needs a `prompt` that is exactly one `envelope.v1` JSON object (no prose, no code fence), with `subagent_type` equal to the envelope `role`. Only the built-in `Explore` agent runs without one.
 
-Do not set `model`, `isolation` or `run_in_background` on the call. `cwd`, if given, must equal the envelope `worktree`, which must be the checkout this session runs in.
+Do not set `model`, `isolation` or `run_in_background` on the call. `cwd`, if given, must equal the envelope `worktree`; the Agent call in this session has no `cwd` parameter, so a subagent whose envelope `worktree` is not the session's own checkout starts in the session's checkout and works by absolute paths in its envelope `worktree`. For `builder`, `reviewer`, `qa`, `designer` and `security` the `worktree` is the main working tree or a git worktree of this repo directly under `<main>/.claude/worktrees/<name>` (the paths `write-guard` judges), whose branch names the envelope `issue`, so one session can serve several issues, each in its own worktree. Make a parallel worktree there, for example `git worktree add .claude/worktrees/<name> -b <type>/ORV-<n>-<slug> origin/develop`; one made elsewhere (`../x`) or nested deeper blocks. For every other role the `worktree` must be the checkout this session runs in.
 
 ```json
 {
@@ -70,7 +167,7 @@ Do not set `model`, `isolation` or `run_in_background` on the call. `cwd`, if gi
 }
 ```
 
-- **QA envelope** (G3 acceptance). `role` `qa`, `subagent_type` `qa`, `write_set` `[]`, `skills` `["quality-gate", "webapp-testing"]`, `context_pointers` the spec, and one fact with the PR number, `checked_by` `gh pr view <n>`. The qa runs the full gate in its checkout and writes its screenshots into the main checkout's `.orivilo/runs/<ISSUE>/<task_id>/screenshots/`.
+- **QA envelope** (G3 acceptance). `role` `qa`, `subagent_type` `qa`, `write_set` `[]`, `skills` `["quality-gate", "webapp-testing"]`, `context_pointers` the spec, and one fact with the PR number, `checked_by` `gh pr view <n>`. The qa runs the full gate in its checkout and writes its screenshots into the main checkout's `.orivilo/runs/<ISSUE>/<task_id>/screenshots/`. Every issue a qa envelope walks needs `docs/specs/<issue>/spec.md` with an acceptance table (a table whose header row starts with `#`), lane S and slice issues included (L-0016): `result-recorder` reads that spec and refuses a qa report with the one problem `no acceptance table in docs/specs/<issue>/spec.md` when the file is missing, unreadable or holds no such table, and the envelope closes as `no_report`.
 - **Re-check envelope** (reviewer, round 1 or more). `context_pointers` name the absolute paths of the
   previous review's `result.json` and the rework task's `result.json`, both under the main checkout's
   `.orivilo/runs/<ISSUE>/<task_id>/` (found through `git rev-parse --git-common-dir`; a relative
@@ -82,7 +179,17 @@ Do not set `model`, `isolation` or `run_in_background` on the call. `cwd`, if gi
   builder task per deliverable, dispatched in build order, each with only the `context_pointers` and
   `write_set` that deliverable needs. A builder envelope with more than 8 `context_pointers` is split
   before dispatch, unless one fact says why its parts cannot be built apart. The PR still gets one
-  full gate, two reviewer passes and the qa walk (L-0010).
+  full gate, two reviewer passes and the qa walk (L-0010). The `write_set` holds every test file the
+  spec's Tests cell names for the deliverable, even when an earlier or later envelope also writes it;
+  the envelopes run one at a time. Before the first code review, each builder deviation that names a
+  file outside its `write_set` gets a fix envelope or a spec revision that records it (L-0043). No
+  hook checks this; it is the main session's duty.
+- **Builder objective points to the design.** A builder objective names the tech notes section, the
+  clause numbers and the spec rows it builds, by number. It does not restate a signature, return
+  shape, constant, threshold or list. When it must state one (a value the tech notes leave open), it
+  copies the tech notes text word for word and adds a fact whose `checked_by` is
+  `grep -n -F '<text>' docs/specs/<KEY>/tech.md` (L-0044). No hook checks this; it is the main
+  session's duty.
 - **Contract change from a review.** When a review's findings or the owner's answers change the
   spec's contract, dispatch the `product` revision first and the builder fix only after it returns;
   never both from one review at once. When a reviewer and a qa judged the same head in parallel, the
@@ -119,12 +226,41 @@ Do not set `model`, `isolation` or `run_in_background` on the call. `cwd`, if gi
   fixes, read every fix report's `deviations` and `needs_decision`; a line that names a file, a line
   or a value still out of step goes to a new fix envelope before the re-check is dispatched, whatever
   the role (L-0035). No hook checks this; it is the main session's duty.
+- **Bookkeeping after the content fixes.** A report line (`needs_decision` or `deviations`) that only
+  brings a reference, a version number, a status or findings row, or a pointer in another document up to
+  date is bookkeeping. Do not dispatch it alone. Hold it until every content fix of the round is back,
+  then send one envelope per role in the L-0033 order that owns a named document, with every held line as a fact
+  (`file:line`, old text, new text), before the re-check (L-0035 still applies). A line that changes a
+  rule, a field, a closed list or a number a test asserts is a content fix and is dispatched as now. A
+  finding whose spots sit in two roles' sections of one file goes to one envelope whose `write_set`
+  covers every spot (L-0040). No hook checks this; it is the main session's duty.
+- **A fix greps the other documents.** For each name, value, rule or row the fix adds, removes,
+  renames or narrows (from the finding's `expected` and the objective), the fix envelope gets one
+  `done_when` `git grep -n -F '<term>' -- <each other document of the PR's docs set>` for the old term
+  and one for the new term, and its objective asks the role to do the same for every term its own
+  design introduces. Each hit outside the `write_set` goes in the report's `needs_decision` as
+  `file:line`, old text, new text, and the main session sends it with the round's bookkeeping (L-0040)
+  or as a content fix. For `product`, which has no shell, the main session runs these `done_when`
+  lines after the task (L-0041). No hook checks this; it is the main session's duty.
 - **Review of a guard-rail spec.** When the spec frames a guard as a guard rail, the reviewer
   envelope's objective names the frame and asks for (a) forms a rule-following agent uses that pass
   the guard and (b) bypass classes, each reported once with one probe. A finding of kind (a) goes to
   rework as usual. A finding of kind (b) goes to the spec's Honest limits in the next revision, with no
   builder round, unless the owner decides otherwise in the question form. A re-check envelope says
   that a bypass of a class already named in Honest limits is not a new finding (L-0012).
+- **A risk-class finding.** When a `security` or reviewer finding of Critical or Important severity
+  is one route of a risk class (resource exhaustion: a cost that grows faster than the input or with
+  an uncapped count; injection; auth bypass; path or address escape) in code the spec does not frame
+  as a guard rail, the next envelope is `research`, before any spec, design or builder envelope. Its
+  objective asks for every route of the class in the code the slice runs on (the pinned dependency
+  included), each with file, line and a quote, and the
+  search method that found them (the patterns run and their hit counts), recorded in one knowledge
+  section. Then one design task covers every listed route with one bound or a named set of bounds,
+  one spec revision carries the findings and the design's spec findings, and one builder round builds
+  it. Every later reviewer and `security` envelope names that knowledge section as a context pointer
+  and says a route outside the list is a new finding that also names the search that missed it
+  (L-0045). A bypass class of kind (b) in a guard-rail spec follows the "Review of a guard-rail spec"
+  bullet instead (L-0012). No hook checks this; it is the main session's duty.
 - **Visual fix from a finding.** See step 6, "A look change in rework": the designer decides and screenshots the look first; the builder envelope carries the design.md section and one `test -f <absolute path>` fact per screenshot, and states no CSS value that design.md does not hold.
 - **Never resume.** A re-check, a follow-up question or a fix is a new envelope with a new `task_id`, never a `SendMessage`. A builder rework names `rework_of`; a reviewer re-check does not (`rework_of` is read on builder envelopes only) and puts the earlier `result.json` absolute paths in `context_pointers`. `resume-guard` (PreToolUse `SendMessage`) blocks every `SendMessage`, from the main session and from a subagent, whatever `to` names; it never echoes `to` or the message. When `to` is a recorded agent's id, the stderr names that task, as a hint for the fresh envelope. A subagent that needs a decision reports `blocked` with `needs_decision`, and the answer goes out in a fresh envelope.
 - **Research envelope that adds a knowledge entry.** The main session lists `docs/knowledge/README.md` in its `write_set` and gives it one `done_when` entry `grep -q <K id> docs/knowledge/README.md` per new entry. A `needs_decision` or deviation about a file outside the `write_set` is answered by a new envelope before the review is dispatched. After the task, the main session runs `{ git diff --name-only --diff-filter=d HEAD -- docs/knowledge; git ls-files -o --exclude-standard -- docs/knowledge; } | xargs grep -n -E '^source: "?([^"]*; )?(/Users/|/home/|/private/|/tmp/|~/)'` from the repo root, on the files the task changed or added, and expects no output (L-0031); it stops when ORV-129 makes `pnpm check:knowledge` refuse an absolute `source:` path. No hook checks this; it is the main session's duty (L-0020, L-0031).
@@ -139,12 +275,53 @@ Do not set `model`, `isolation` or `run_in_background` on the call. `cwd`, if gi
   the document) and dispatches research again with the absolute text path in `context_pointers`.
   Research counts and quotes from that text and records the pattern it counted with (L-0034). No hook
   checks this; it is the main session's duty.
-- **A fact that the gate passed.** Its `checked_by` names the run: `TEST_DATABASE_URL=<url> REQUIRE_DB_TESTS=1 pnpm quality-gate`, with the URL the main session used. That URL is a local database with no password, never a secret (L-0026). No hook checks this; it is the main session's duty.
+- **A fact that the gate passed.** Its `checked_by` names the run: `export TEST_DATABASE_URL=<url> REQUIRE_DB_TESTS=1; pnpm quality-gate`, with the URL the main session used. That URL is a local database with no password, never a secret (L-0026, L-0047). No hook checks this; it is the main session's duty.
 - **Stall check before each dispatch.** Before each Agent call, and as the first step after a context compaction or a resumed session, list every task folder under the main checkout's `.orivilo/runs/` with `agent.json`, no `result.json`, no `closed.json`, and no heartbeat line for its `agent_id` in the last 20 minutes. Each listed envelope goes to the owner close form (section 4) in the same turn, and no other dispatch of that role happens until the owner answers. Until a script does the check, list those folders with a one-off `ls` and `jq`; a `doctor.mjs stalled` command is a later builder task under its own Jira issue (L-0027). No hook checks this; it is the main session's duty.
 - **One issue per checkout at a time.** Do not run `git checkout` or `git switch` in the session's
   checkout while any envelope there is bound with no `result.json` and no `closed.json` (the stall list
-  above shows them). To work on a second issue at the same time, start a `claude --worktree` session
-  for it (L-0032). No hook checks this; it is the main session's duty.
+  above shows them). To work on a second issue at the same time, make a git worktree for it under
+  `.claude/worktrees/<name>` and dispatch its envelopes there (section 2, ORV-146); the session's
+  checkout stays on its own branch (L-0032). The `worktree-guard` hook blocks the switch: a main-session Bash call with `git switch`,
+  `git checkout` (also after git's global options, `-C <path>` and `-c <key=value>` among them, or
+  after `env`, `command` and a variable prefix) or `gh pr checkout`, in a checkout that has a bound
+  open envelope, exits 2 and names the task ids. It reads the call with the one shell reader
+  `scripts/ovl/shell-words.mjs` (the same reader `write-guard` uses), so a switch in a group, after `&`
+  or `;`, in `if` or in a substitution is seen, and `cd <path> && git switch x` is judged in `<path>`.
+  The reader looks through the runners that wrap a command (`nice`, `time`, `stdbuf`, `caffeinate`,
+  `ionice`, `setsid`, `chrt`, `taskset`, `flock`, `lockf`, `sudo`, `doas`, `chronic`, `unbuffer`,
+  `script`, `nohup`, `timeout`, `env`, `chroot`, `prlimit`, `arch`, `xcrun`, `sandbox-exec`,
+  `pnpm exec` and `npx`) to the command after them. The envelopes come from the records of
+  `CLAUDE_PROJECT_DIR` when it is set, else of the call's cwd, so a call whose cwd is in another
+  repository hides none. The hook blocks too when it cannot read the records or the checkout, and when
+  the checkout is unknown while any envelope is bound: after `cd -`, a bare `cd` or a `cd` to an
+  expansion, in a call whose cwd no longer exists, with `env -C`, `--git-dir`, `--work-tree`, a `GIT_DIR` or `GIT_WORK_TREE` prefix, or a
+  `-C` value that is an expansion. Name the checkout with a literal `git -C <path> switch x`; a switch
+  after a `cd` that may be skipped (after `;`, `||`, `&`) is judged against both folders, so join the
+  steps with `&&`. While any envelope is bound it blocks, too, a call that could not be read
+  (unknown-1), whether or not a switch is in it: an array assignment or a function definition, a glob
+  qualifier or an extglob pattern with `(`, a here-document in a substitution that closes on its own
+  line, `env -S`, `sudo -s`, `flock -c`, `watch`, a runner option its grammar does not give, and a
+  call of more than 200,000 characters. The stderr says the call could not be read and names the task
+  ids; split the call into simpler ones. It is a text rule and a guard rail, and it does not see (each
+  class named once): the shell (Claude Code runs the call in the user's shell, zsh on the owner's
+  machine, with the profile's aliases and functions; the reader reads the forms bash and zsh share and
+  the zsh forms it models, so a zsh-only form it does not model is a bypass); a desync, where the
+  reader's quote, brace, arithmetic or here-document state parts from the shell's, so the reader
+  reads a wrong list of segments instead of marking the call unknown and the lines the shell runs and
+  the reader swallows are not judged (a single quote inside a `${ }` default value under zsh, an
+  assignment before `[[` under bash 3.2, a quoted here-document delimiter line with trailing text such
+  as `E)`, a quoted `))` inside `$(( ))`; a follow-up issue, ORV-166, surveys the class); an interpreter or a
+  script (`eval`, `sh -c`, `xargs`, a script a session wrote); a variable, alias or function that
+  holds `git` or the switch (`$G switch x`), a git alias (`git co x`) and `git --exec-path`; a runner
+  the reader does not skip (`ssh`, `strace`, `docker exec`, `uv run`, `bundle exec`, `pnpm` with an
+  option before `exec`), after which the command is not judged; state from before the call (an
+  exported `GIT_DIR` or `GIT_WORK_TREE`, `core.worktree`, `CDPATH`). A subagent's switch is not judged.
+  Close a stuck envelope (section 4) to switch.
+- **At most one open unbound envelope per role.** `SubagentStart` binds a subagent only when exactly one
+  open unbound envelope of its role exists; with two (the same role on two issues dispatched at once,
+  say) neither binds and neither report is recorded. The envelope guard blocks the second one (see
+  "Open envelope" below): dispatch the next envelope of a role in a separate message, after the last
+  one is bound or closed.
 
 The guard blocks, with exit 2 and a reason on stderr, when:
 
@@ -153,13 +330,13 @@ The guard blocks, with exit 2 and a reason on stderr, when:
 - **`done_when`** is not a check. Each entry is a command with those prefixes, or a `path:line` reference. `pnpm test` passes; "tests pass" does not.
 - **`write_set`** is too broad. Each entry is an exact file or a glob under at least two fixed folders (`scripts/ovl/*.mjs` passes; `packages/`, `apps/**` and `**` do not). No `.` or `..` segment, no leading `./`, no empty segment, and no brace or extglob character (`{ ( ! + @ [`) before the second folder. It is empty for `reviewer`, `qa`, `release` and `security`, and for a `designer` envelope with `report_contract` `reviewer.v1` (a visual sign-off); it is not empty for the other roles. `architect` and `research` write only ADRs and `tech.md`, and `docs/knowledge/` entries, in that order.
 - **`skills`** misses a required one: `product` needs `discover`; `designer` needs `frontend-design` and `webapp-testing`; `builder` needs `quality-gate`; `qa` needs `quality-gate` and `webapp-testing`; `release` needs `gate-packet`; `security` needs `quality-gate`; `ds-architect`, `reviewer`, `architect` and `research` need none.
-- **Issue.** For every role with a non-empty `write_set`, and for reviewer, qa, designer and security, the envelope `issue` must equal the key in the checkout's branch name (`<type>/ORV-<n>-<slug>`); a branch without a key blocks (L-0032). Not enforced yet for product, architect, research and ds-architect: `scripts/ovl/envelope-guard.mjs` (`ISSUE_ROLES`) checks builder, reviewer, qa, designer and security only, and extending it is the builder follow-up ORV-130. Until then no hook checks those four roles; the main session compares the envelope `issue` with the branch key before it dispatches them.
+- **Issue.** For every role but release (builder, reviewer, qa, designer, security, product, architect, ds-architect and research), the envelope `issue` must equal the key in the branch name (`<type>/ORV-<n>-<slug>`) of the envelope `worktree`, read from that worktree and not from the session's checkout; a worktree that is not one of this repo's, one outside the main working tree and `<main>/.claude/worktrees/<name>`, a detached head and a branch without a key block (L-0032, ORV-146). `scripts/ovl/envelope-guard.mjs` (`ISSUE_ROLES`) checks these nine. A release envelope is not checked: its `write_set` is empty and its G5 packet spans a batch. A retro envelope (role `ds-architect`, skill `retro`) runs on `chore/<slice key>-retro-lessons` with `issue` set to that slice key.
 - **Resume.** Not an Agent call: `resume-guard` blocks every `SendMessage` (see "Never resume" above).
 - **Background, model, isolation.** Blocked for every agent, Explore included.
-- **Open envelope.** One envelope per role is open across the whole repo, all issues and worktrees included. A second one is blocked until the first has a report or is closed (see step 4).
-- **Rework rules** (builder only). After a `request_changes` verdict or a failed gate record for the issue, the envelope must name `rework_of`, a task of the same issue that started. After two rework rounds, a builder envelope is blocked: first get a verdict on the last builder round (qa, reviewer or the gate); only if that verdict requests changes, the owner must grant another (step 3).
+- **Open envelope.** One envelope per role and issue is open across the whole repo, worktrees included (ORV-146). A second one for the same role and issue is blocked until the first has a report or is closed (see step 4). The same role on another issue is blocked while an envelope of that role, of any issue, is open and has no `agent.json` yet, because the start hook binds a starting subagent to the one open unbound envelope of its role: dispatch the second in a separate message, after the first subagent has started and is bound. A bound open envelope of another issue does not block. Two calls made at the same moment for one role never both run.
+- **Rework rules** (builder only). After a `request_changes` verdict or a failed gate record for the issue, the envelope must name `rework_of`, a task of the same issue that started. A bound builder envelope is a rework round only when a negative verdict was recorded after the latest earlier bound builder started and before it started (the first builder never counts; a builder that continues another with no verdict between them is not a round). After two rework rounds, a builder envelope is blocked: first get a verdict on the last builder round (qa, reviewer or the gate); only if that verdict requests changes, the owner must grant another (step 3).
 
-A valid call is saved as `.orivilo/runs/<ISSUE>/<task_id>/envelope.json`. Records are local and are not committed. They live in one place for the whole repo, the main checkout's `.orivilo/` (found through `git rev-parse --git-common-dir`), so every worktree shares them and removing a worktree keeps them. A hook whose working directory no longer exists fails closed with a clear message. A `.orivilo` that leads outside the main checkout (a link) is refused. The `worktree-guard` hook (PreToolUse Bash) blocks a subagent Bash call whose text (quotes and backslashes removed) holds both "worktree" and "remove" or "prune"; it allows every other call whatever the working directory is, and the main session is never judged. It writes its heartbeat only when the call's directory belongs to this project's repo, so a session in an unrelated repo leaves nothing there. It is a text rule, not a shield: `rm -rf` and a script are not seen. The orchestrator removes a worktree after the agent stops.
+A valid call is saved as `.orivilo/runs/<ISSUE>/<task_id>/envelope.json`. Records are local and are not committed. They live in one place for the whole repo, the main checkout's `.orivilo/` (found through `git rev-parse --git-common-dir`), so every worktree shares them and removing a worktree keeps them. A hook whose working directory no longer exists fails closed with a clear message. A `.orivilo` that leads outside the main checkout (a link) is refused. The `worktree-guard` hook (PreToolUse Bash) blocks a subagent Bash call whose text (quotes and backslashes removed) holds both "worktree" and "remove" or "prune"; it allows every other call whatever the working directory is, and judges the main session only for a branch switch (see "One issue per checkout" in section 2). It writes its heartbeat only when the call's directory belongs to this project's repo, so a session in an unrelated repo leaves nothing there. It is a text rule, not a shield: `rm -rf` and a script are not seen. The orchestrator removes a worktree after the agent stops.
 
 ## 3. Rework round after round 2: ask the form
 
@@ -168,13 +345,19 @@ When the work stops for the owner, post both reports on the Jira issue, then ask
 - the grant option, whose whole label is exactly `อนุญาตรอบ ORV-<n>` or `Grant round ORV-<n>`, naming the escalated issue key, with nothing before or after it
 - a decline option, worded without the grant phrase (`Decline`, `ไม่อนุญาต`, never `Do not grant round ORV-<n>`)
 
+Ask the form only after every verdict dispatched on the last builder head is in and one of them
+requests changes, or a gate record on it failed. A red CI on that head is not a verdict: dispatch the
+reviewer re-check (and `security` when its cases hold) on the head first, with the failing CI run id
+as a fact; `owner-grant` writes no grant while the issue is not escalated. The question names the
+verdict task ids and the finding ids the round will fix, and nothing else (L-0048).
+
 When the round is for a look change, the question names the designer's screenshot paths, so the owner grants a look and not a sentence (L-0017).
 
 Only the grant option the owner clicks counts. Text typed in chat never grants a round, and neither does text typed under Other. If the owner types a grant in chat, say it does not count and ask the form. The `owner-grant` hook writes the record `.orivilo/runs/<ISSUE>/owner-grant-<n>.json`; it quotes the question, the options and the answer.
 
 ## 4. After the call: records and closing
 
-Hooks write the records; the main session never does. `write-guard` (PreToolUse on Write, Edit, MultiEdit, NotebookEdit and Bash) blocks the main session from a deliverable (`packages/`, `apps/`), a guard file (`.claude/hooks/`, `.claude/settings*.json`, `scripts/ovl/`, `scripts/quality-gate.mjs`, `.github/workflows/`, the root `.gitignore`) and a record (`.orivilo/`, `.quality-gate/`). The main session's one write under `.orivilo/` is `.orivilo/handoff.md`, by Write or Edit; everything else under `.orivilo/` is written by hooks and by `node scripts/ovl/*.mjs` runs, which are allowed as whole commands (`doctor.mjs`, `metrics.mjs collect|report|session --out`, `close-envelope.mjs`, `pnpm quality-gate`). A redirect, a chain or a pipe makes the run a normal command, judged by the path rules. The main session may still run one whole `git add`, `git commit` or `git push`. A builder changes a guard file only when its open envelope lists the exact path, and only by Write or Edit. A subagent's final message must be exactly one JSON object in its contract (`implementer.v1`, `reviewer.v1` or `qa.v1`), and the same JSON object is what the Agent call returns. Prose is sent back to the subagent. A valid report becomes `result.json` in the task folder; a `reviewer.v1` or `qa.v1` finding with no evidence that can be run again moves to `dropped` and does not count. A call that returns no valid report closes the envelope as `no_report`. A background Agent call (`async_launched`) records nothing when it launches; its report is checked and recorded as `result.json` when the subagent stops (`SubagentStop`, matched by `agent_id`), once, and a report that stays invalid after one send-back closes the envelope as `no_report`. An Agent call that fails or is interrupted (`PostToolUseFailure`) closes its bound envelope as `no_report` too.
+Hooks write the records; the main session never does. `write-guard` (PreToolUse on Write, Edit, MultiEdit, NotebookEdit and Bash) blocks the main session from a deliverable (`packages/`, `apps/`), a guard file (`.claude/hooks/`, `.claude/settings*.json`, `scripts/ovl/`, `scripts/quality-gate.mjs`, `.github/workflows/`, the root `.gitignore`) and a record (`.orivilo/`, `.quality-gate/`). The main session's one write under `.orivilo/` is `.orivilo/handoff.md`, by Write or Edit; everything else under `.orivilo/` is written by hooks and by `node scripts/ovl/*.mjs` runs, which are allowed as whole commands (`doctor.mjs`, `metrics.mjs collect|report|session --out`, `close-envelope.mjs`, `pnpm quality-gate`). A redirect, a chain or a pipe makes the run a normal command, judged by the path rules. The main session may still run one whole `git add`, `git commit` or `git push`. A builder changes a guard file only when its open envelope lists the exact path, and only by a tool write (Write, Edit, MultiEdit or NotebookEdit). A subagent's final message must be exactly one JSON object in its contract (`implementer.v1`, `reviewer.v1` or `qa.v1`), and the same JSON object is what the Agent call returns. Prose is sent back to the subagent. A valid report becomes `result.json` in the task folder; a `reviewer.v1` or `qa.v1` finding with no evidence that can be run again moves to `dropped` and does not count. A call that returns no valid report closes the envelope as `no_report`. A background Agent call (`async_launched`) records nothing when it launches; its report is checked and recorded as `result.json` when the subagent stops (`SubagentStop`, matched by `agent_id`), once, and a report that stays invalid after one send-back closes the envelope as `no_report`. An Agent call that fails or is interrupted (`PostToolUseFailure`) closes its bound envelope as `no_report` too.
 
 A `research` or `product` result is followed by the main session running that envelope's `done_when` commands, and for `product` every line under the spec's `## Worked examples`, in the worktree, before any review or gate packet. An output that differs from the one the spec states goes back to `product` in a new envelope that names it (L-0038). No hook checks this; it is the main session's duty. A failing command goes back to `research` in a new envelope that names the output; a passing run goes into the reviewer envelope as one fact per command (`checked_by` the command itself) (L-0023).
 
@@ -184,7 +367,7 @@ If the Agent call was refused at the permission prompt, the envelope never start
 node scripts/ovl/close-envelope.mjs <task_id>
 ```
 
-For an envelope whose subagent has already stopped, the same command closes it as `abandoned`. It refuses (exit 2) while the subagent may still run. If a session ended while its subagent ran, the envelope is stuck: it is bound and has no final `SubagentStop`. Only the owner closes it, in one of two ways. Never run `--owner` yourself. A bound envelope that has gone silent is found by the stall check (section 2) before each dispatch and after a compaction or a resumed session, and is raised in the close form in the same turn (L-0027).
+For an envelope whose subagent has already stopped, the same command closes it as `abandoned`. It refuses (exit 2) while the subagent may still run. The stop it needs depends on the role (rule `close-1`). A role that writes nothing (qa, reviewer, security, release, or a designer whose `report_contract` is `reviewer.v1`) closes once `.orivilo/heartbeat.jsonl` holds a `result-recorder` `SubagentStop` line for its `agent_id` with decision `allow`, `block` or `error`, because no write can follow. Any other role (builder, product, architect, ds-architect, research, a writing designer) needs a final `allow` stop. `--owner` is unchanged. If a session ended while its subagent ran, the envelope is stuck: it is bound and has no such stop. Only the owner closes it, in one of two ways. Never run `--owner` yourself. A bound envelope that has gone silent is found by the stall check (section 2) before each dispatch and after a compaction or a resumed session, and is raised in the close form in the same turn (L-0027).
 
 1. The close form (first choice, works from the phone). Ask one `AskUserQuestion` that names the task id, its role, its `agent_id` and its `started_at`, and warns that a builder envelope closed this way still counts as a rework round. The options are:
    - the close option, whose whole label is exactly `ปิดงาน <task_id>` or `Close envelope <task_id>`, with nothing before or after it
@@ -194,9 +377,11 @@ For an envelope whose subagent has already stopped, the same command closes it a
 
 2. From a terminal outside Claude Code: `node scripts/ovl/close-envelope.mjs <task_id> --owner`.
 
-A builder envelope that was bound counts as a rework round after the first verdict, however it ended. Only `denied` and `pre_a3` do not.
+A bound builder envelope counts as a rework round, however it ended, only when a negative verdict (a `request_changes` result or a failed gate record) was recorded after the start of the latest earlier bound builder and before it started; the first bound builder never counts. Only `denied` and `pre_a3` do not.
 
 Running `pnpm quality-gate` in the main session writes a gate record from `.quality-gate/report.json`, whether the run passes (`PostToolUse`) or fails (`PostToolUseFailure`; a failing gate exits 1). A record is written only when the report started after the command started, finished no later than now, and is for the commit now checked out. The same run inside a subagent writes none, an interrupted run writes none, and a partial run (`--only`) writes none.
+A run behind an inline variable prefix (`VAR=... pnpm quality-gate` or `env ... pnpm quality-gate`)
+writes none either: set the variables with `export` in an earlier segment (L-0047).
 
 ## 5. After a merge: measure and improve
 
@@ -248,12 +433,16 @@ node scripts/ovl/merge-check.mjs <n> --head <sha>
 - the latest `reviewer.v1` result from a `reviewer` envelope for that head is an approve;
 - the latest gate record for that head has `ok: true`, `dirty: false` and `steps_source: "gate"`, so run `pnpm quality-gate` in the main session on the pushed head;
 - every check from `gh pr checks` has bucket `pass`;
-- the head branch key and the PR title key name the same issue, and every changed file is in the `write_set` union of the issue's bound envelopes (plus `docs/context/handoff.md`, `docs/plans/*.md` and the issue's `jira-issue.md`);
+- the head branch key and the PR title key name the same issue, and every changed file is in the `write_set` union of the issue's bound envelopes (plus `docs/context/handoff.md`, `docs/plans/*.md`, the issue's `jira-issue.md` and `DESIGN.md`, the whole file);
 - a guard file in the PR also needs the owner approval record (below).
 
 A push after the checks changes the head: run the gate again and get new records for the new SHA.
 
-**Docs-only PRs.** When every changed file ends in `.md` and is in no protected set (so an improvement run, a handoff or plan update, a spec revision, or a rule, agent or skill file), the PR needs no `qa.json`, no gate record and no screenshots. It needs a `reviewer.v1` approve on the head or the owner approval record, and every other check above. One file outside that definition, a `.md` under `packages/` included, needs the full set.
+**Docs-only PRs.** When every changed file ends in `.md` and is in no protected set (so an improvement run, a handoff or plan update, a spec revision, or a rule, agent or skill file), the PR needs no `qa.json`, no gate record and no screenshots. It needs a `reviewer.v1` approve on the head or the owner approval record, and every other check above. One file outside that definition, a `.md` under `packages/` included, needs the full set unless the next paragraph applies.
+
+**Test-only and docs PRs** (ORV-146). When every changed file is a test file (a basename ending in `.test.ts`, `.test.tsx`, `.test.js`, `.test.mjs`, `.test.cjs`, `.test.mts` or `.test.cts` with no `.stories.` segment, outside `.orivilo/` and `.quality-gate/`) or docs (anything under `docs/`, or a `.md` outside the protected sets), the PR needs no `qa.json` and no screenshots. It still needs a `reviewer.v1` approve on the head, the gate record for the head, green checks and the rest above; a test file in a guard path (`scripts/ovl/` and the other guard files) also needs the owner approval record. One file that is neither (a source file, a `*.stories.tsx` or `*.test.stories.tsx`, a `*.test.json`, a `.env.test.local`, a `.md` under `packages/`) gives the full set. A test-only PR under an auth or data-access path may skip the qa too (the reviewer approve and the gate still apply). A PR of `.md` files alone stays the docs-only case above, with no gate record.
+
+**An approve across a merge of `develop`** (ORV-146). A reviewer or qa approve given on an older head still counts for the head when the older head is its ancestor, every commit between them that `origin/<base>` lacks is a merge commit, and the files that differ between the two commits include no file the PR changes now, changed at the older head, or renamed from. `merge-check` fetches the PR head and the base and reads this with git, for the reviewer and the qa approve only. A verdict on the exact head wins over any carried one, whatever the recording order: a `request_changes` on the head blocks an approve carried from an older head, and an approve on the head stands over a carried `request_changes`. With no verdict on the head, the latest carried verdict counts, but a carried approve does not hold while another carried head holds a `request_changes`. The gate record and the owner approval stay bound to the exact head, so run the gate again on the merged head, with the Bash `cwd` in the issue's worktree.
 
 **A merge into `main`** is allowed only for the staging release PR (head branch `develop`), with every check green and a passing check of the `CI` workflow among them (ADR 0016). It needs no owner approval record, no gate record, no `qa.json` and no reviewer result: the green CI checks are the evidence, and each guard file in it was judged when its own PR merged into `develop`. Claude may open the release PR and merge it. The form is a merge commit that keeps `develop`:
 
@@ -298,10 +487,11 @@ When the guard blocks, fix the missing record or the PR, or ask the owner. A PR 
 
 ## Honest limits
 
-- `SubagentStart` cannot block (exit 2 only shows stderr). If a subagent starts with no single open envelope to bind to, it runs unbound: no `agent.json`, no round counted, no `result.json`. The guard at dispatch time (one open envelope per role, checked again after the envelope is saved, so two same-role calls made at once never both run: at most one is allowed and the others close as denied) is what prevents this, not the start hook. Every record is written whole (aside, then linked into place), so a start hook running at the same moment as another never reads half a record. One residual window remains: a losing envelope of a same-role race stays visible as open and unbound until its `closed.json` is written, and on a very slow filesystem the winner's start hook could scan inside that span, see two candidates and run unbound. It was not reproduced in 31 trials.
+- Parallel issues (ORV-146) have two limits. A bound subagent's deliverable write (a file under `packages/` or `apps/`) is allowed in any checkout of the project: `write-guard` does not compare the written path's checkout with the envelope `worktree`, so a builder bound to issue A can write a deliverable into issue B's worktree; `merge-check` still holds B's PR to B's own `write_set` union (review F3). `envelope-guard` requires `cwd` equal to the envelope `worktree` only when `cwd` is given, and the Agent call in this session has no `cwd`, so a subagent for another issue's worktree starts in the session's checkout and relies on the absolute paths in its envelope (security SEC-5); requiring `cwd` would block every cross-worktree dispatch.
+- `SubagentStart` cannot block (exit 2 only shows stderr). If a subagent starts with no single open envelope to bind to, it runs unbound: no `agent.json`, no round counted, no `result.json`. The guard at dispatch time (one open envelope per role and issue, and one unbound open envelope per role across issues, checked again after the envelope is saved, so two same-role calls made at once never both run: at most one is allowed and the others close as denied) is what prevents this, not the start hook. Every record is written whole (aside, then linked into place), so a start hook running at the same moment as another never reads half a record. One residual window remains: a losing envelope of a same-role race stays visible as open and unbound until its `closed.json` is written, and on a very slow filesystem the winner's start hook could scan inside that span, see two candidates and run unbound. It was not reproduced in 31 trials.
 - Hooks cannot run once the session's own worktree is removed. When `CLAUDE_PROJECT_DIR` is a removed worktree (`claude --worktree`), the hook files are gone with it: `/bin/sh` cannot find `result-recorder.sh`, `|| exit 2` fires even when `stop_hook_active` is true, and nothing is recorded. `worktree-guard` blocks a subagent Bash command whose text, with quotes and backslashes stripped, holds the word `worktree` together with `remove` or `prune`. It misses a word built by shell expansion (an empty `$()` or `${VAR}` inside it) and an encoded command piped to a shell. The main session, `rm -rf`, a shell script or a tool outside Bash can still delete the worktree. Remove a worktree only after the run, from outside it.
 - `resume-guard` sees the `SendMessage` tool only. A Claude Code version that adds a resume field to the Agent tool would pass `envelope-guard` with a valid envelope, and a session without these hooks escapes it. It blocks all messaging: a subagent cannot ask the main session anything through `SendMessage`, and a stale task hint (an agent recorded in a stray worktree folder before `doctor.mjs migrate`) still gets the same block.
-- `write-guard` is a path and text rule, not a sandbox. A script written to a scratchpad and run with `node /tmp/x.mjs` names no protected path and can still write a record; a path built by `cd`, expansion or a glob is not seen; and a harmless command that names a protected path in a message is blocked too. A whole `git commit` still moves a protected change, so the reviewer and the qa check what gets committed. A builder whose `write_set` lists `scripts/ovl/write-guard.mjs` can weaken the guard for its own worktree until the merge. A session without these hooks escapes it.
+- `write-guard` is a path and text rule, not a sandbox, and a guard rail (ORV-96): each bypass class below is named once, and a bypass of a named class is not a new finding. It reads a Bash call with one shell reader, `scripts/ovl/shell-words.mjs` (the same reader `worktree-guard` uses for a branch switch), and judges the write targets: each redirect target and the path arguments of `tee`, `cp`, `mv`, `rm`, `ln`, `touch`, `sed -i` and `git` `apply`, `restore`, `checkout`, `switch`, `stash`, `reset`. It follows `cd`, `pushd`, `popd`, `env -C` and `git -C` to the folder a target resolves from (a folder it cannot know blocks a relative target), collapses `.` and `..`, follows a link, and judges a glob or an expansion word by its fixed part. It skips the runners that wrap a command (`nice`, `time`, `stdbuf`, `caffeinate`, `ionice`, `setsid`, `chrt`, `taskset`, `flock`, `lockf`, `sudo`, `doas`, `chronic`, `unbuffer`, `script`, `nohup`, `timeout`, `env`, `chroot`, `prlimit`, `arch`, `xcrun`, `sandbox-exec`, `pnpm exec` and `npx`) and judges the command after them. A here-document body after a quoted delimiter is text, not a command. A call that could not be read is blocked, as the main session and as a subagent (unknown-1), and its stderr says so: an array assignment or a function definition, a glob qualifier or an extglob pattern with `(`, a here-document in a substitution that closes on its own line, `env -S`, `sudo -s`, `flock -c`, `watch`, a runner option its grammar does not give, and a call of more than 200,000 characters. It does not see (each class is named once): the shell. Claude Code runs the call in the user's shell, zsh on the owner's machine, with the profile's aliases and functions; the reader reads the forms bash and zsh share and the zsh forms it models, and a `#` word starts a comment because the call's shell is not interactive; a zsh-only form it does not model is a bypass (`=name` expansion outside command position, `${~X}` and the other expansion flags, an alias, a profile option that changes how a word expands). A desync, where the reader's quote, brace, arithmetic or here-document state parts from the shell's: the reader then reads a wrong list of segments instead of marking the call unknown (unknown-1 holds only the members it lists), so the lines the shell runs and the reader swallows are not judged; the forms found are a single quote inside a `${ }` default value under zsh, an assignment before `[[` under bash 3.2, a quoted here-document delimiter line with trailing text such as `E)`, and a quoted `))` inside `$(( ))`, and the follow-up issue ORV-166 surveys the class. An interpreter or a script that writes with no write form in the text (`eval`, `sh -c`, `bash -c`, `zsh -c`, `node -e`, `python3 -c`, `perl -e`, a program in a quoted here-document such as `sh <<'EOF'` or `python3 - <<'PY'`, whose body the text rules do not read, `source` or `.` of a file, or a script a session wrote and then runs, `node /tmp/x.mjs`); an encoded command piped to a shell (`base64 -d | sh`); a program that takes its paths from input (`xargs`, `find -exec`); a write program whose targets come from the content it reads, not from its words (`git apply` with a patch from a quoted here-document or from a file); a command in a variable, a substitution, an alias or a function (`$W x`), a git alias, and `git --exec-path`; a runner the reader does not skip, so the command after it is not judged (`strace`, `ltrace`, `valgrind`, `gdb --args`, `nsenter`, `unshare`, `runuser`, `su -c`, `systemd-run`, `firejail`, `bwrap`, `fakeroot`, `faketime`, `eatmydata`, `ssh`, `docker exec`, `kubectl exec`, `direnv exec`, `mise exec`, `asdf exec`, `uv run`, `poetry run`, `bundle exec`, macOS `taskpolicy`, `ktrace` and `dtruss`, `busybox`, and `pnpm` with an option before `exec`); a link into a protected folder made by one of those routes and then written through by a plain path, a fixed part under a folder outside every checkout (`/tmp/x*`) even when a link there leads into a checkout, a `..` after a link, and a `$V` expansion that climbs out of such a folder; state from before the call (`CDPATH`, an exported `GIT_DIR` or `GIT_WORK_TREE`, an interactive shell, an option or `histchars` value set before the call, and which program `xcrun`, `env -P`, `pnpm exec` and `npx` find); a write program outside the list (`dd of=`, `install`, `rsync`, `tar -x`, `unzip -d`, `curl -o`, `wget -O`, `git clone`, `mkdir`, the `nohup.out` that `nohup` writes, and the file a runner writes by its own option or word: the `-o` or `--output` value of `time`, the lock file of `flock` and `lockf`, the file of `script` and its default `typescript`, and the files of `sudo -e`); a literal target that holds a protected set without lying inside one (`rm -r scripts`, `git checkout -- .` in a checkout root); an option word that holds an expansion or carries its value attached (`rm -rf -$X`, `--x$Y=...`, `cp -t<dir>`). Costs: a write form with an unquoted glob in a checkout root (`rm *.tmp`) is blocked, so use a literal path; `printf x > "$f"` and `tee "$OUT"` are blocked from every cwd, and `printf x > logs/$n.txt` inside a checkout too, so write under a literal folder outside every checkout (`/tmp/orv-$n.txt`) or use the Write tool; a relative write target after `cd -`, a bare `cd`, `popd` or a `cd` to an expansion is blocked, and a target after a `cd` that may be skipped (after `;`, `||`, `&`, or across a group) is judged against both folders; and a subagent call that names a protected path in any word and holds a write form by its text is blocked (a `>` inside a quoted program after a `$(` included), a harmless command that names a protected path in a message too, though that rule does not read the body of a quoted-delimiter here-document, so a report written that way passes, and a body after an unquoted delimiter is still read; and a call of the unreadable forms above is blocked whatever it holds, so split it into simpler calls, write a here-document whose substitution closes on a later line, as the commit form does, or use the Write tool. A whole `git commit` still moves a protected change, so the reviewer and the qa check what gets committed. A builder whose `write_set` lists `scripts/ovl/write-guard.mjs` or `scripts/ovl/shell-words.mjs` can weaken the guard for its own worktree until the merge, which needs the owner approval line. A session without these hooks escapes it.
 - The main session can still edit a spec, an ADR, an agent or a skill file: `docs/`, `.claude/agents/`, `.claude/skills/` and `.claude/rules/` are outside every protected set.
 - `merge-guard` is a guard rail for agents that follow the rules, not a boundary (ORV-95 comment 10109). It stops a session that merges or pushes by habit or by mistake from moving `develop` or `main` without the records, and names the missing record. It does not hold against a session that sets out to defeat it, and more ways around it exist than the ones named here. An agent never uses any form below or any other way around the guard; when the guard blocks, fix the record or ask the owner.
 - The planned boundary is GitHub rulesets on `develop` and `main` (ORV-97). They are not available today: on this private repo's plan, rulesets and branch protection return HTTP 403 (ORV-97 comment 10110), so the hooks are the only merge barrier. A merge in the GitHub web UI or from another client is not guarded, and the owner's hand merge of the bootstrap PR is one. Once on, a ruleset holds only against a credential that cannot administer the repo and that no bypass actor matches; a session's `gh` signs in today with the owner's admin token, which can disable the ruleset or merge past it. Even then a ruleset rejects a push or API write that moves `develop` or `main`, but not a PR merge with green checks, which skips the records stage.
@@ -310,7 +500,7 @@ When the guard blocks, fix the missing record or the PR, or ask the owner. A PR 
 - The text rules are text, not a parser. They block an unexpanded push target (`git push origin HEAD:$B`) and a `cd` before a push of `HEAD`, but not a `git` or `gh` word the shell builds (`$G push`), an encoded command piped to a shell, a script file a session wrote and then runs, or an alias a Write puts in a config file. A config file written by a tool (`~/.gitconfig`, `.git/config`) is not seen either; the origin URL check catches a rewrite of origin's URL, not `http.proxy`, `core.sshCommand` or `credential.helper`.
 - Only `gh api`, `gh pr merge`, `gh repo sync` and `gh release create` have rules; `gh pr edit --base`, `gh workflow run`, `gh secret set` and `gh repo edit` are allowed. The token rule sees only the names `gh auth token`, `GH_TOKEN` and `GITHUB_TOKEN`: it does not see the token read another way (`gh auth status --show-token`, `git credential fill`, the `gh` config file, the keychain), a host or token name the shell builds (`api.$H`, `${P}_TOKEN`), or a program that sends a method or body without the named options.
 - The export tree is checked right before `merge-check.mjs` starts, so a change in the short window between the two is not caught. The expected origin URL is a constant: a rename or move of the GitHub repo blocks every guarded merge until `develop-export.mjs` changes.
-- The owner approval and waiver are files. `write-guard` blocks a tool write that names `.orivilo`, but until ORV-96 lands a Bash call that hides the folder name (`cd .oriv?lo/owner-approvals && printf ... > 7.json`), or a script a session runs, writes a valid approval or waiver and so can forge the owner's approval for a guard-file PR into `develop` (a release into `main` reads no approval record). The waiver covers only a rate-limited Vercel check on one head, never a failed build or a failed Actions check.
+- The owner approval and waiver are files. `write-guard` blocks a tool write that names `.orivilo`, and a Bash call that hides the folder name (`cd .oriv?lo/owner-approvals && printf ... > 7.json`) is blocked too; but a bypass class named under `write-guard` above (a script a session runs, an interpreter, an encoded command, a write program outside the list) writes a valid approval or waiver and so can forge the owner's approval for a guard-file PR into `develop` (a release into `main` reads no approval record). The waiver covers only a rate-limited Vercel check on one head, never a failed build or a failed Actions check.
 - Docs-only PRs skip the qa and the gate record: CI is the only check that runs, and a rule, agent or skill file merges on a reviewer's or the owner's approve.
 - A merge needs the network (`gh` and `git ls-remote`); offline, every `gh pr merge` is blocked. The changed files come from `gh api repos/{owner}/{repo}/pulls/<n>/files --paginate`; a PR whose list length differs from `changedFiles` (GitHub stops the list at 3000 files) is blocked, not judged. A renamed file counts by both its previous and its new path in the guard-file check. A release into `main` rests on CI alone: a change CI does not cover reaches staging, and the guard is a rail, not a boundary, so another route to `main` or a tag is not stopped (ORV-97, ORV-96).
 - The records stage checks that the qa's screenshots exist for each story title, not what they show.
@@ -319,7 +509,7 @@ When the guard blocks, fix the missing record or the PR, or ask the owner. A PR 
 - `g3-check`'s call stage and its id list run from the session's checkout. A builder whose `write_set` lists `scripts/ovl/g3-check.mjs`, `scripts/ovl/jira-transitions.json`, `.claude/hooks/g3-check.mjs` or `.claude/settings.json` can weaken it (remap id `4`, for example) for its own worktree until the merge; the merge of such a PR needs the owner approval record. The records stage always runs from develop's export, never from the branch.
 - Only the G3 move is guarded. Moves to Staging, G4, Release, G5 and Done pass with any known id or name.
 - Only the issue's latest merged PR is judged; an earlier one was judged by `merge-guard` at its own merge, or merged by hand before slice C1.
-- Records forged by a Bash call that hides `.orivilo` (ORV-96) pass the G3 move as they would pass a merge.
+- Records forged by a bypass class named under `write-guard` above (ORV-96) pass the G3 move as they would pass a merge.
 - The transition ids and names are this project's, recorded once (`listJiraIssueTransitions` on ORV-98, ORV-97 and ORV-93). A Jira workflow change makes a new id or name block, and a reused id or a renamed transition maps to its old status, until `jira-transitions.json` is recorded again.
 - A name is matched exactly. If Jira accepts a case variant or a trimmed name, `g3-check` blocks it as unknown; retry with the exact name or the id. When a call holds both an id and a name, which one Jira uses is not recorded, so both must name the same transition.
 - The `executeWrite` and `executeDestructive` routes are judged as the model sent them; the Jira server may refuse a transition through them.

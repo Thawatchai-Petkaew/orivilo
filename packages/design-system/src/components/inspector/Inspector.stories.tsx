@@ -7,11 +7,12 @@ import { BlockLibrary } from "../block-library/BlockLibrary";
 import { blockNode, feed, MIDWAY } from "../block-library/fixtures";
 import { CanvasBoard } from "../canvas-board/CanvasBoard";
 import type { Graph } from "../canvas-board/graph";
-import { Matrix, Narrow } from "../matrix";
+import { fillHeight, Matrix, Narrow } from "../matrix";
 import { Resizable } from "../resizable/Resizable";
 import { Sheet, SheetContent } from "../sheet/Sheet";
 import { Inspector } from "./Inspector";
 import { MOD } from "../story-keys";
+import { expectTitleOverText } from "../../testing/visual-asserts";
 
 function select(graph: Graph, ids: readonly string[]): Graph {
   return {
@@ -57,7 +58,10 @@ function Panel({ initial, label }: { initial: Graph; label?: string }) {
   const scope = useDesignProfile();
   const id = typeof scope?.profile === "string" ? scope.profile : scope?.profile.id;
   return (
-    <div className="h-[520px] max-w-sm rounded-container border border-border-card">
+    <div
+      style={{ height: fillHeight(520) }}
+      className="max-w-sm overflow-hidden rounded-container border border-border-card"
+    >
       <Inspector
         label={label ?? (scope ? `แผงรายละเอียด, ${id} ${scope.mode}` : undefined)}
         graph={graph}
@@ -84,7 +88,7 @@ function Studio({ initial = MIDWAY }: { initial?: Graph }) {
     if (focusPanel > 0) panel.current?.focus();
   }, [focusPanel]);
   return (
-    <div ref={area} className="flex h-[640px] min-w-0">
+    <div ref={area} style={{ height: fillHeight(640) }} className="flex min-w-0">
       <div className="min-w-0 flex-1">
         <CanvasBoard
           label="กระดาน Intent Studio"
@@ -158,6 +162,11 @@ export const NoSelection: Story = {
     await expect(p.getByText("บนกระดานมี 6 node")).toBeVisible();
     const rows = p.getAllByRole("listitem").map((li) => li.textContent);
     await expect(rows).toEqual(["ยังว่าง2", "ตอบยังไม่ครบ1", "สรุปแล้ว2", "ยังไม่เชื่อม1"]);
+    // ORV-192 row 17: the header pair, 20 / 500 title over 16 / 400 text, 8 px apart.
+    const title = canvasElement.querySelector(".ds-inspector__empty > .ds-inspector__title");
+    const text = canvasElement.querySelector(".ds-inspector__empty > .ds-inspector__muted");
+    if (!title || !text) throw new Error("the empty inspector has no title or text");
+    expectTitleOverText(title, text, { gap: 8, header: true });
   },
 };
 
@@ -175,6 +184,13 @@ export const Selected: Story = {
   render: () => <Panel initial={select(MIDWAY, ["starter"])} />,
   play: async ({ canvasElement }) => {
     const p = panelOf(canvasElement);
+    // The panel fills the padded frame and is never shorter than its 520 px (spec ORV-189, `fill-height-1`).
+    const wrapper = canvasElement.querySelector(".ds-inspector")?.parentElement;
+    await expect(wrapper?.getBoundingClientRect().height).toBe(
+      Math.max(520, window.innerHeight - 32),
+    );
+    // The wrapper is rounded and the panel paints square to its edge, so the wrapper must clip (spec ORV-192, row 1).
+    await expect(getComputedStyle(wrapper as Element).overflow).toBe("hidden");
     await expect(p.getByRole("heading", { name: "สีตั้งต้น" })).toBeVisible();
     await expect(p.getByText("ทิศทาง")).toBeVisible();
     await expect(p.getByText("สรุปแล้ว")).toBeVisible();

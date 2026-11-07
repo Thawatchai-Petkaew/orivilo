@@ -6,11 +6,15 @@ import {
   Checkbox,
   Field,
   Input,
+  PageHeader,
   Popover,
   PopoverClose,
   PopoverContent,
   PopoverTrigger,
+  RadioGroup,
+  RadioGroupItem,
   Select,
+  Switch,
   Tabs,
   TabsContent,
   TabsList,
@@ -18,7 +22,7 @@ import {
   Textarea,
   Tooltip,
 } from "../components/index";
-import { fixtureOptions, fixtures } from "../components/fixtures";
+import { fixtureOptions, fixtures, radioFixtures, switchFixtures } from "../components/fixtures";
 
 /**
  * Base tier page example (E2-7): a settings form composed from the public components only.
@@ -26,7 +30,9 @@ import { fixtureOptions, fixtures } from "../components/fixtures";
  */
 export interface SettingsFormProps {
   /** Messages from a failed save; each sits on its field and says how to fix it. */
-  errors?: { name?: string | undefined; profile?: string | undefined } | undefined;
+  errors?:
+    | { name?: string | undefined; profile?: string | undefined; access?: string | undefined }
+    | undefined;
   /** The save is in flight: the primary shows loading and every control is disabled. */
   saving?: boolean | undefined;
 }
@@ -51,15 +57,13 @@ function LinkGlyph() {
 const SLUG = "brand-canvas-team";
 
 export function SettingsForm({ errors, saving = false }: SettingsFormProps) {
-  const formId = useId();
+  const notifyHeadingId = useId();
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6">
-      <header className="flex flex-col gap-2">
-        <h1 className="font-display text-display-md text-balance">ตั้งค่าเวิร์กสเปซ</h1>
-        <p className="max-w-prose text-body-md text-text-secondary">
-          ชื่อ ลิงก์ และ profile เริ่มต้นที่ทุกโปรเจกต์ในเวิร์กสเปซนี้ใช้
-        </p>
-      </header>
+      <PageHeader
+        title="ตั้งค่าเวิร์กสเปซ"
+        description="ชื่อ ลิงก์ และ profile เริ่มต้นที่ทุกโปรเจกต์ในเวิร์กสเปซนี้ใช้"
+      />
 
       <Tabs defaultValue="general">
         <TabsList aria-label="ส่วนของการตั้งค่า">
@@ -69,11 +73,7 @@ export function SettingsForm({ errors, saving = false }: SettingsFormProps) {
         </TabsList>
 
         <TabsContent value="general" className="pt-6">
-          <form
-            id={formId}
-            className="flex flex-col gap-6"
-            onSubmit={(event) => event.preventDefault()}
-          >
+          <form className="flex flex-col gap-6" onSubmit={(event) => event.preventDefault()}>
             <Field
               label="ชื่อเวิร์กสเปซ"
               description="ชื่อที่ทีมเห็นในทุกหน้า"
@@ -137,12 +137,46 @@ export function SettingsForm({ errors, saving = false }: SettingsFormProps) {
               <Select options={fixtureOptions} placeholder="เลือก profile" disabled={saving} />
             </Field>
 
+            <Field
+              group
+              label={radioFixtures.label}
+              description={radioFixtures.help}
+              error={errors?.access}
+            >
+              <RadioGroup defaultValue="members" disabled={saving}>
+                <RadioGroupItem
+                  value="members"
+                  label={radioFixtures.members}
+                  description={radioFixtures.membersHelp}
+                />
+                <RadioGroupItem
+                  value="organization"
+                  label={radioFixtures.organization}
+                  description={radioFixtures.organizationHelp}
+                />
+                <RadioGroupItem
+                  value="link"
+                  label={radioFixtures.link}
+                  description={radioFixtures.linkHelp}
+                />
+              </RadioGroup>
+            </Field>
+
             <Checkbox
               label="ส่งสรุปรายสัปดาห์ให้ทุกคนในเวิร์กสเปซ"
               description="สรุปการตัดสินใจและโปรเจกต์ที่เปลี่ยนในสัปดาห์นั้น"
               defaultChecked
               disabled={saving}
             />
+
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button variant="ghost" disabled={saving}>
+                ยกเลิก
+              </Button>
+              <Button variant="primary" type="submit" loading={saving} loadingLabel="กำลังบันทึก">
+                บันทึกการเปลี่ยนแปลง
+              </Button>
+            </div>
           </form>
         </TabsContent>
 
@@ -150,24 +184,32 @@ export function SettingsForm({ errors, saving = false }: SettingsFormProps) {
           <p className="text-body-md text-text-secondary">{fixtures.missingLabel}</p>
         </TabsContent>
         <TabsContent value="notifications" className="pt-6">
-          <p className="text-body-md text-text-secondary">{fixtures.missingLabel}</p>
+          {/* Each switch applies at once, so this tab has no form and no save. Each flips locally here;
+              the proof of a save and of a failure lives in the Base/Switch stories. */}
+          <div className="flex flex-col gap-6" role="group" aria-labelledby={notifyHeadingId}>
+            <div className="flex flex-col gap-1">
+              <h2 className="text-label-md text-text-primary" id={notifyHeadingId}>
+                {switchFixtures.setLabel}
+              </h2>
+              <p className="text-body-sm text-text-secondary">{switchFixtures.setHelp}</p>
+            </div>
+            <Field
+              orientation="horizontal"
+              label={switchFixtures.comments}
+              description={switchFixtures.commentsHelp}
+            >
+              <Switch defaultChecked />
+            </Field>
+            <Field
+              orientation="horizontal"
+              label={switchFixtures.jobs}
+              description={switchFixtures.jobsHelp}
+            >
+              <Switch />
+            </Field>
+          </div>
         </TabsContent>
       </Tabs>
-
-      <div className="flex flex-wrap justify-end gap-2">
-        <Button variant="ghost" disabled={saving}>
-          ยกเลิก
-        </Button>
-        <Button
-          variant="primary"
-          type="submit"
-          form={formId}
-          loading={saving}
-          loadingLabel="กำลังบันทึก"
-        >
-          บันทึกการเปลี่ยนแปลง
-        </Button>
-      </div>
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useDesignProfile } from "../../boundary/DesignProfileBoundary";
 import { CanvasBoard, type CanvasBoardProps } from "../canvas-board/CanvasBoard";
 import type { BoardEdge, BoardNode, EdgeContent, Graph } from "../canvas-board/graph";
-import { Matrix } from "../matrix";
+import { fillHeight, Matrix } from "../matrix";
 
 const text = { id: "text", kind: "text", label: "ข้อความ" } as const;
 
@@ -65,7 +65,7 @@ function EdgeBoard({
   const scope = useDesignProfile();
   const id = typeof scope?.profile === "string" ? scope.profile : scope?.profile.id;
   return (
-    <div style={{ height }}>
+    <div style={{ height: fillHeight(height) }}>
       <CanvasBoard
         label={`ตัวอย่างสาย${scope ? `, ${id} ${scope.mode}` : ""}`}
         {...rest}
@@ -126,15 +126,20 @@ export const Meanings: Story = {
   },
 };
 
-/** Rest, hover, selected and focus-visible: hover darkens, selected and focus take the violet stroke and the wider width. */
+/**
+ * Rest, hover, selected and focus-visible: hover darkens, selected and focus take the violet stroke
+ * and the wider width. A synthetic pointer sets no `:hover`, so `parameters.pseudo` forces the hover
+ * look on edge 2 (spec ORV-84, `hover-force-1`).
+ */
 export const InteractionStates: Story = {
+  parameters: { pseudo: { rootSelector: "body", hover: ['.react-flow__edge[data-id="e1"]'] } },
   render: () => (
     <EdgeBoard
       initial={pairs(
         [{ meaning: "input" }, { meaning: "input" }, { meaning: "input" }, { meaning: "input" }],
         [2],
       )}
-      height={560}
+      height={900}
     />
   ),
   play: async ({ canvasElement }) => {
@@ -152,10 +157,22 @@ export const InteractionStates: Story = {
     // The stroke transitions over the feedback duration once the class lands.
     await waitFor(() => expect(strokeOf(selected)).not.toBe(strokeOf(rest)));
     await expect(widthOf(selected)).not.toBe(widthOf(rest));
-    // Synthetic pointer events never set :hover, so the hover stroke is checked by eye in the story.
     await userEvent.hover(hover.querySelector(".react-flow__edge-interaction") as Element);
     focus.focus();
     await expect(focus).toHaveFocus();
+    // The focused edge's reach is the 1 px line (outline width plus offset; an SVG edge gets no halo) and ends above the controls bar (design.md
+    // row 1): the board is tall enough that the fit leaves the bottom pair clear of the bar.
+    const ring = getComputedStyle(focus);
+    await expect(ring.outlineStyle).not.toBe("none");
+    const reach = parseFloat(ring.outlineWidth) + parseFloat(ring.outlineOffset);
+    const bar = canvasElement.querySelector(".ds-controls") as HTMLElement;
+    await waitFor(() =>
+      expect(focus.getBoundingClientRect().bottom + reach).toBeLessThanOrEqual(
+        bar.getBoundingClientRect().top,
+      ),
+    );
+    // The forced hover look: the hover edge strokes differently from the edge at rest.
+    await waitFor(() => expect(strokeOf(hover)).not.toBe(strokeOf(rest)));
   },
 };
 

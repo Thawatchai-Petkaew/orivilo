@@ -7,7 +7,8 @@
  *
  * Variants and sizes are data attributes (`data-variant`, `data-size`) so a component sets one
  * attribute instead of composing class strings. Interaction states are pseudo-classes; Radix state
- * is `data-state` and `data-disabled`. Focus comes from the global `:focus-visible` rule.
+ * is `data-state` and `data-disabled`. Focus comes from the global `:focus-visible` rule (orivilo.css): a 1 px `focus.ring` line and its
+ * halo; a recipe with its own border turns that border instead (ORV-192 row 9).
  */
 
 /* Button ------------------------------------------------------------------------------------ */
@@ -170,6 +171,26 @@
   text-decoration: none;
 }
 
+/* Focus (ORV-192 row 9): the button's own 1 px border turns to focus.ring with the halo on it; a
+ * filled button adds a 1 px line in its own ink inside the border, which alone would not show on
+ * the brand or red fill. */
+.ds-button[data-variant]:focus-visible {
+  border-color: var(--ds-focus-ring);
+  outline: 1px solid transparent;
+  outline-offset: 0;
+  box-shadow: var(--_focus-shadow-border);
+}
+.ds-button[data-variant="primary"]:focus-visible,
+.ds-button[data-variant="destructive"]:focus-visible,
+.ds-button[data-variant="intent"]:focus-visible {
+  box-shadow: var(--_focus-shadow-fill);
+}
+/* An inert but focusable Button (aria-disabled) stays dimmed, and its focus still draws the line:
+ * the disabled border rule above has the same weight, so this one sits after it (ORV-227 F1). */
+.ds-button[data-variant][aria-disabled="true"]:focus-visible {
+  border-color: var(--ds-focus-ring);
+}
+
 /* Icon slot: before or after the label, at the icon size of the button's size. */
 .ds-button__icon {
   display: inline-flex;
@@ -239,14 +260,22 @@
 .ds-control [data-placeholder] {
   color: var(--cmp-input-placeholder);
 }
-.ds-control:hover:not(:disabled):not([data-disabled]):not([readonly]) {
+.ds-control:hover:not(:disabled):not([data-disabled]):not([readonly]):not(:focus-visible):not(
+    :focus-within
+  ) {
   border-color: var(--cmp-input-border-hover);
 }
-.ds-control:focus-visible,
-.ds-control:focus-within {
+.ds-control:focus-visible:not([readonly]),
+.ds-control:focus-within:not([readonly]) {
   border-color: var(--cmp-input-border-focus);
+  outline: 1px solid transparent;
+  outline-offset: 0;
+  box-shadow: var(--_focus-shadow-border);
 }
-.ds-control[aria-invalid="true"] {
+/* Invalid keeps its red border while focused; the halo shows the focus. */
+.ds-control[aria-invalid="true"],
+.ds-control[aria-invalid="true"]:focus-visible,
+.ds-control[aria-invalid="true"]:focus-within {
   border-color: var(--cmp-input-border-error);
 }
 .ds-control:disabled,
@@ -277,6 +306,10 @@
   border-radius: var(--cmp-textarea-radius);
   resize: none;
   overflow-y: auto;
+}
+/* Textarea sm wraps: it keeps body.sm 14 / 1.7 for Thai line clearance (ORV-192 row 18); single-line sm fields read type.field.sm at 1.6 (ORV-199). */
+.ds-control[data-multiline][data-size="sm"] {
+  line-height: var(--ds-type-body-sm-line-height);
 }
 
 /* Textarea counter (ORV-72): graphemes against the limit, under the box at the end edge. */
@@ -353,13 +386,15 @@
 .ds-input-group:hover:not([data-disabled]) {
   border-color: var(--cmp-input-border-hover);
 }
-/* The ring goes around the whole group, drawn when the input has keyboard focus; a Button in a slot keeps its own ring. */
+/* The group is the field (ORV-192 row 9): its border turns to focus.ring with the halo on it; a Button in a slot keeps its own. */
 .ds-input-group:has(.ds-input-group__input:focus-visible) {
   border-color: var(--cmp-input-border-focus);
-  outline: 2px solid var(--ds-focus-ring);
-  outline-offset: 2px;
+  outline: 1px solid transparent;
+  outline-offset: 0;
+  box-shadow: var(--_focus-shadow-border);
 }
-.ds-input-group[data-invalid] {
+.ds-input-group[data-invalid],
+.ds-input-group[data-invalid]:has(.ds-input-group__input:focus-visible) {
   border-color: var(--cmp-input-border-error);
 }
 .ds-input-group[data-disabled] {
@@ -381,9 +416,10 @@
   letter-spacing: inherit;
   text-overflow: ellipsis;
 }
-/* The group draws the ring; the global :focus-visible ring would only surround the input. */
+/* The group draws the focus; the global :focus-visible line would only surround the input. */
 .ds-input-group__input:focus-visible {
   outline: none;
+  box-shadow: var(--_focus-shadow-none);
 }
 .ds-input-group__input::placeholder {
   color: var(--cmp-input-placeholder);
@@ -422,6 +458,7 @@
 .ds-menu {
   min-width: var(--radix-select-trigger-width);
   max-height: var(--radix-select-content-available-height);
+  max-width: var(--radix-select-content-available-width);
   padding: var(--cmp-menu-padding);
   border: 1px solid var(--cmp-menu-border);
   border-radius: var(--cmp-menu-radius);
@@ -429,6 +466,14 @@
   box-shadow: var(--cmp-menu-shadow);
   overflow: hidden;
   z-index: var(--cmp-menu-layer);
+}
+/* Focus on the panel itself (Radix focuses it when nothing inside takes focus): the border form of
+   ORV-192 row 9, the elevation kept under the halo. */
+.ds-menu:focus-visible {
+  border-color: var(--ds-focus-ring);
+  outline: 1px solid transparent;
+  outline-offset: 0;
+  box-shadow: var(--cmp-menu-shadow), var(--_focus-shadow-border);
 }
 .ds-menu__option {
   display: flex;
@@ -458,7 +503,7 @@
   color: var(--cmp-menu-option-fg-disabled);
   cursor: not-allowed;
 }
-.ds-menu__option > span:first-child {
+.ds-menu__option > span:first-child:not(.ds-menu__option-body) {
   min-width: 0;
   flex: 1;
   overflow: hidden;
@@ -495,7 +540,9 @@
 }
 .ds-menu__option-body {
   display: flex;
+  flex: 1;
   flex-direction: column;
+  min-width: 0;
   white-space: normal;
 }
 .ds-menu__option-body > span:first-child {
@@ -533,6 +580,111 @@
   line-height: var(--cmp-menu-option-type-line-height);
 }
 
+/* Combobox (ORV-228): an InputGroup field and a Radix Popover list. Placed after .ds-menu so these win. */
+
+.ds-combobox {
+  display: block;
+  width: 100%;
+}
+/* D15: with one field the root never goes under its content, and the root is the popup's anchor, so
+   the popup keeps the field's width. The input has a least width, so the slot never leaves the field
+   and the chevron keeps Select's place in any container. */
+.ds-combobox:has(> .ds-input-group > .ds-input-group__input) {
+  min-width: min-content;
+}
+.ds-combobox .ds-input-group > .ds-input-group__input {
+  width: var(--ds-size-control-lg);
+  min-width: var(--ds-size-control-lg);
+}
+.ds-combobox .ds-input-group__slot {
+  gap: var(--cmp-input-group-inset);
+}
+/* Slot buttons are square, so the hover ground has no odd corner; sm takes the 24 px target floor. */
+.ds-combobox .ds-input-group__slot > .ds-button {
+  --_b: calc(var(--_h) - 2px - 2 * var(--cmp-input-group-inset));
+  width: var(--_b);
+  min-height: var(--_b);
+}
+.ds-combobox .ds-input-group[data-size="sm"] .ds-input-group__slot > .ds-button {
+  --_b: var(--ds-size-icon-lg);
+}
+/* Only the last button takes the end margin, which puts its glyph where Select's chevron sits. */
+.ds-combobox .ds-input-group__slot[data-slot="end"] > .ds-button {
+  margin-inline-end: 0;
+}
+.ds-combobox .ds-input-group__slot[data-slot="end"] > .ds-button:last-child {
+  margin-inline-end: calc((var(--ds-size-icon-md) - var(--_b)) / 2);
+}
+.ds-combobox .ds-input-group__slot > .ds-button:not(:hover):not(:disabled) {
+  color: var(--cmp-input-icon);
+}
+/* The popup is the field's width, so it does not jump with each letter, and capped so a long list scrolls. */
+.ds-combobox__popup {
+  display: flex;
+  flex-direction: column;
+  width: var(--radix-popover-trigger-width);
+  min-width: var(--radix-popover-trigger-width);
+  max-width: var(--radix-popover-content-available-width);
+  max-height: min(var(--radix-popover-content-available-height), var(--ds-size-panel-default));
+}
+/* D17: a list that overflows shows the ScrollArea thumb in the popup's end padding, off the rows. The
+   bar's selector carries the attribute to outrank `.ds-scroll__bar[data-orientation]`, which comes later. */
+.ds-combobox__scroll {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.ds-combobox__list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+/* Radix wraps the options in a `display: table` div that grows to the widest label. A block keeps
+   long labels on their ellipsis, as `.ds-taskbar__scroll` does. The `LongList` play goes red if Radix changes it. */
+.ds-combobox__list > div {
+  display: block !important;
+}
+.ds-combobox__scroll > .ds-scroll__bar[data-orientation="vertical"] {
+  width: var(--cmp-menu-padding);
+  margin-block: calc(var(--cmp-menu-radius) / 2);
+  margin-inline-end: calc(-1 * var(--cmp-menu-padding));
+}
+.ds-combobox__scroll .ds-scroll__thumb {
+  background: var(--cmp-scroll-area-thumb-hover);
+}
+.ds-combobox__scroll .ds-scroll__thumb:hover {
+  background: var(--cmp-scroll-area-thumb);
+}
+.ds-combobox__popup .ds-menu__empty {
+  align-items: flex-start;
+  gap: var(--cmp-button-gap);
+  padding-block: var(--cmp-menu-padding);
+  overflow-wrap: anywhere;
+}
+.ds-combobox__popup .ds-menu__empty[data-tone="error"] {
+  color: var(--cmp-menu-option-fg-destructive);
+}
+.ds-combobox__popup .ds-menu__empty > svg {
+  flex: none;
+  inline-size: var(--cmp-menu-option-icon-size);
+  block-size: var(--cmp-menu-option-icon-size);
+  margin-block-start: calc(
+    (
+        var(--cmp-menu-option-type-font-size) * var(--cmp-menu-option-type-line-height) -
+          var(--cmp-menu-option-icon-size)
+      ) /
+      2
+  );
+}
+/* Chosen and active: the selected fill stays and a focus line shows where the keys are, so
+   selection and focus never read the same (DESIGN.md section 7). */
+.ds-combobox__popup .ds-menu__option[data-state="checked"][data-highlighted]:not([data-disabled]) {
+  outline: 1px solid var(--ds-focus-ring);
+  outline-offset: -1px;
+  box-shadow: var(--_focus-shadow-inset);
+}
+
 /* Checkbox ---------------------------------------------------------------------------------- */
 
 .ds-checkbox {
@@ -563,7 +715,7 @@
     background-color var(--ds-motion-feedback-duration) var(--ds-motion-easing),
     border-color var(--ds-motion-feedback-duration) var(--ds-motion-easing);
 }
-.ds-checkbox:hover .ds-checkbox__box:not([data-disabled]) {
+.ds-checkbox:hover .ds-checkbox__box:not([data-disabled]):not(:focus-visible) {
   border-color: var(--cmp-checkbox-border-hover);
 }
 .ds-checkbox__box[data-state="checked"],
@@ -572,6 +724,22 @@
   border-color: var(--cmp-checkbox-bg-checked);
 }
 .ds-checkbox__box[aria-invalid="true"] {
+  border-color: var(--cmp-checkbox-border-error);
+}
+/* Focus (ORV-192 row 9): the box's border turns to focus.ring with the halo on it; a checked box adds
+ * a 1 px line in the check ink inside, because its border equals its fill. Invalid keeps its red. */
+.ds-checkbox__box:focus-visible {
+  border-color: var(--ds-focus-ring);
+  outline: 1px solid transparent;
+  outline-offset: 0;
+  box-shadow: var(--_focus-shadow-border);
+}
+.ds-checkbox__box[data-state="checked"]:focus-visible,
+.ds-checkbox__box[data-state="indeterminate"]:focus-visible {
+  --_inner: inset 0 0 0 1px var(--cmp-checkbox-fg-checked);
+  box-shadow: var(--_inner), var(--_focus-shadow-border);
+}
+.ds-checkbox__box[aria-invalid="true"]:focus-visible {
   border-color: var(--cmp-checkbox-border-error);
 }
 .ds-checkbox__box[data-disabled] {
@@ -620,6 +788,139 @@
   letter-spacing: var(--cmp-checkbox-label-type-sm-letter-spacing);
 }
 
+/* RadioGroup (ORV-221): one of a short list, every option in view. The circle is round in every
+   profile (shape.round.radius). Checked reads the selection tokens, not action.primary. ------- */
+
+.ds-radio-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--cmp-radio-group-gap);
+  min-inline-size: 0;
+}
+.ds-radio-group[data-layout="horizontal"] {
+  flex-direction: row;
+  flex-wrap: wrap;
+  column-gap: var(--ds-space-stack-md);
+}
+/* The group draws no focus: the radios do. The root takes programmatic focus (a click on a
+   description, then a key), and the global :focus-visible band would wrap the whole group. */
+.ds-radio-group:focus-visible {
+  outline: none;
+  box-shadow: var(--_focus-shadow-none);
+}
+.ds-radio {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--cmp-radio-gap);
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+.ds-radio__control {
+  --_size: var(--cmp-radio-size);
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: var(--_size);
+  block-size: var(--_size);
+  padding: 0;
+  /* The circle takes the label's type so 1lh is the label's first line: it centres on it, as
+     .ds-checkbox__box does. */
+  font-size: var(--cmp-radio-label-type-font-size);
+  line-height: var(--cmp-radio-label-type-line-height);
+  margin-block-start: calc((1lh - var(--_size)) / 2);
+  border: 1px solid var(--cmp-radio-border);
+  border-radius: var(--cmp-radio-radius);
+  background: var(--cmp-radio-bg);
+  color: var(--cmp-radio-dot);
+  cursor: pointer;
+  transition:
+    background-color var(--ds-motion-feedback-duration) var(--ds-motion-easing),
+    border-color var(--ds-motion-feedback-duration) var(--ds-motion-easing);
+}
+/* A transparent extension keeps a 24 px target around the circle (WCAG 2.5.8). Inset from the
+   padding box, so the 1px border is added back. */
+.ds-radio__control::after {
+  content: "";
+  position: absolute;
+  inset: calc((var(--_size) - var(--cmp-radio-target-min)) / 2 - 1px);
+}
+.ds-radio__control[data-state="checked"] {
+  background: var(--cmp-radio-bg-checked);
+  border-color: var(--cmp-radio-border-checked);
+}
+/* Row hover lights the edge from the row's content only (the group's align-items keeps a row as
+   wide as its content). An invalid group does not take it: the error edge stays through hover. */
+.ds-radio-group:not([aria-invalid="true"])
+  .ds-radio:hover
+  .ds-radio__control[data-state="unchecked"]:not([data-disabled]):not(:focus-visible) {
+  border-color: var(--cmp-radio-border-hover);
+}
+.ds-radio-group:not([aria-invalid="true"])
+  .ds-radio:hover
+  .ds-radio__control[data-state="checked"]:not([data-disabled]):not(:focus-visible) {
+  border-color: var(--cmp-radio-border-checked-hover);
+}
+.ds-radio-group[aria-invalid="true"] .ds-radio__control {
+  border-color: var(--cmp-radio-border-error);
+}
+/* Focus (ORV-192 row 9): the circle's border turns to focus.ring with the halo on it. A checked
+   radio adds a 1 px inner line through --_inner (as .ds-checkbox__box), so its border reads twice
+   as wide as the rest line. Invalid keeps its red, on the border and on the inner line. */
+.ds-radio__control:focus-visible {
+  border-color: var(--ds-focus-ring);
+  outline: 1px solid transparent;
+  outline-offset: 0;
+  box-shadow: var(--_focus-shadow-border);
+}
+.ds-radio__control[data-state="checked"]:focus-visible {
+  --_inner: inset 0 0 0 1px var(--ds-focus-ring);
+  box-shadow: var(--_inner), var(--_focus-shadow-border);
+}
+.ds-radio-group[aria-invalid="true"] .ds-radio__control:focus-visible {
+  border-color: var(--cmp-radio-border-error);
+}
+.ds-radio-group[aria-invalid="true"] .ds-radio__control[data-state="checked"]:focus-visible {
+  --_inner: inset 0 0 0 1px var(--cmp-radio-border-error);
+}
+.ds-radio-group .ds-radio__control[data-disabled] {
+  background: var(--cmp-radio-bg-disabled);
+  border-color: var(--cmp-radio-border-disabled);
+  color: var(--cmp-radio-dot-disabled);
+  cursor: not-allowed;
+}
+.ds-radio__label {
+  color: var(--cmp-field-label);
+  font-family: var(--cmp-radio-label-type-font-family);
+  font-size: var(--cmp-radio-label-type-font-size);
+  line-height: var(--cmp-radio-label-type-line-height);
+  font-weight: var(--cmp-radio-label-type-font-weight);
+  letter-spacing: var(--cmp-radio-label-type-letter-spacing);
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.ds-radio[data-disabled] .ds-radio__label,
+.ds-radio[data-disabled] .ds-field__description {
+  color: var(--ds-text-disabled);
+}
+.ds-radio[data-disabled] .ds-radio__label {
+  cursor: not-allowed;
+}
+.ds-radio-group[data-size="sm"] .ds-radio__control {
+  --_size: var(--cmp-radio-size-sm);
+  font-size: var(--cmp-radio-label-type-sm-font-size);
+  line-height: var(--cmp-radio-label-type-sm-line-height);
+}
+.ds-radio-group[data-size="sm"] .ds-radio__label {
+  font-family: var(--cmp-radio-label-type-sm-font-family);
+  font-size: var(--cmp-radio-label-type-sm-font-size);
+  line-height: var(--cmp-radio-label-type-sm-line-height);
+  font-weight: var(--cmp-radio-label-type-sm-font-weight);
+  letter-spacing: var(--cmp-radio-label-type-sm-letter-spacing);
+}
+
 /* Field: label, description, error around a control --------------------------------------- */
 
 .ds-field {
@@ -651,12 +952,170 @@
 .ds-field__description {
   color: var(--cmp-field-description);
 }
+/* Compact pair: 4 px under its label (ORV-192 row 17). */
+.ds-field__label + .ds-field__description {
+  margin-block-start: calc(var(--ds-space-inline-sm) - var(--cmp-field-gap));
+}
 .ds-field__error {
   color: var(--cmp-field-error);
 }
 .ds-field[data-disabled] .ds-field__label,
 .ds-field[data-disabled] .ds-field__description {
   color: var(--ds-text-disabled);
+}
+
+/* Horizontal Field (ORV-249, field-row-1): the label and description in the first column, the
+   control at the inline end of the first line, the error across both. The DOM order is unchanged. */
+.ds-field[data-orientation="horizontal"] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: var(--ds-space-stack-md);
+  row-gap: var(--cmp-field-gap);
+}
+.ds-field[data-orientation="horizontal"] > * {
+  grid-column: 1;
+  min-inline-size: 0;
+}
+.ds-field[data-orientation="horizontal"]
+  > :not(.ds-field__label, .ds-field__description, .ds-field__error) {
+  grid-column: 2;
+  grid-row: 1;
+}
+/* The switch centres on the label's first line: the track takes the label's type so 1lh is that line. */
+.ds-field[data-orientation="horizontal"] .ds-switch__track {
+  font-size: var(--cmp-field-label-type-font-size);
+  line-height: var(--cmp-field-label-type-line-height);
+  margin-block-start: calc((1lh - var(--_h)) / 2);
+}
+.ds-field[data-orientation="horizontal"] > .ds-field__error {
+  grid-column: 1 / -1;
+}
+.ds-field[data-orientation="horizontal"] > label.ds-field__label {
+  cursor: pointer;
+}
+.ds-field[data-orientation="horizontal"][data-disabled] > label.ds-field__label {
+  cursor: not-allowed;
+}
+
+/* Switch (ORV-249): on or off, applied at once. On reads the selection tokens, not action.primary.
+   The track is the height plus the thumb wide and the thumb travels its own width (W1). The
+   transparent outlines keep both visible in forced colours, where the thumb's place shows the state. */
+.ds-switch {
+  --_h: var(--cmp-switch-height);
+  --_t: var(--cmp-switch-thumb-size);
+  --_inset: calc((var(--_h) - var(--_t)) / 2);
+  display: inline-flex;
+  flex: none;
+  vertical-align: middle;
+}
+.ds-switch[data-size="sm"] {
+  --_h: var(--cmp-switch-height-sm);
+  --_t: var(--cmp-switch-thumb-size-sm);
+}
+.ds-switch__track {
+  position: relative;
+  flex: none;
+  inline-size: calc(var(--_h) + var(--_t));
+  block-size: var(--_h);
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--cmp-switch-radius);
+  background: var(--cmp-switch-track);
+  color: var(--cmp-switch-thumb);
+  outline: 1px solid transparent;
+  outline-offset: -1px;
+  cursor: pointer;
+  transition:
+    background-color var(--ds-motion-feedback-duration) var(--ds-motion-easing),
+    border-color var(--ds-motion-feedback-duration) var(--ds-motion-easing);
+}
+/* A transparent extension keeps a 24 px target around the track (WCAG 2.5.8). Inset from the
+   padding box, so the 1px border is added back. */
+.ds-switch__track::after {
+  content: "";
+  position: absolute;
+  inset-inline: -1px;
+  inset-block: calc((var(--_h) - var(--cmp-switch-target-min)) / 2 - 1px);
+}
+.ds-switch__thumb {
+  position: absolute;
+  inset-block-start: calc(var(--_inset) - 1px);
+  inset-inline-start: calc(var(--_inset) - 1px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: var(--_t);
+  block-size: var(--_t);
+  /* Concentric with the track, so the gap stays even at the corners (A3). The calc goes through a
+     local property because recipes.test.ts reads a radius that is not a var() as a literal. */
+  --_thumb-radius: calc(var(--cmp-switch-radius) - var(--_inset));
+  border-radius: var(--_thumb-radius);
+  background: var(--cmp-switch-thumb);
+  color: var(--cmp-switch-ring);
+  outline: 1px solid transparent;
+  outline-offset: -1px;
+  transition: transform var(--ds-motion-feedback-duration) var(--ds-motion-easing);
+}
+.ds-switch__track[data-state="checked"] {
+  background: var(--cmp-switch-track-on);
+  color: var(--cmp-switch-thumb-on);
+}
+.ds-switch__track[data-state="checked"] .ds-switch__thumb {
+  background: var(--cmp-switch-thumb-on);
+  transform: translateX(var(--_t));
+}
+/* Hover and press set one property each, so neither takes away an edge set by invalid or focus.
+   Off hover changes the track; on hover changes the edge and keeps the selection fill. */
+.ds-switch__track[data-state="unchecked"]:hover:not([data-disabled]):not([aria-busy="true"]) {
+  background: var(--cmp-switch-track-hover);
+}
+.ds-switch__track[data-state="checked"]:hover:not([data-disabled]):not([aria-busy="true"]):not(
+    [aria-invalid="true"]
+  ):not(:focus-visible) {
+  border-color: var(--cmp-switch-edge-on-hover);
+}
+/* [data-state] is on purpose: without it the hover rule beats this one and a press off shows hover. */
+.ds-switch__track[data-state]:active:not([data-disabled]):not([aria-busy="true"]) {
+  background: var(--cmp-switch-track-press);
+}
+.ds-switch__track[aria-invalid="true"]:not([data-disabled]) {
+  border-color: var(--cmp-switch-edge-error);
+}
+/* Focus (ORV-192 row 9): the track's border turns to focus.ring with the halo on it. An on track
+   draws the fill form instead, since its border equals its fill (A2). Invalid keeps its red. */
+.ds-switch__track:focus-visible {
+  border-color: var(--ds-focus-ring);
+  outline: 1px solid transparent;
+  outline-offset: 0;
+  box-shadow: var(--_focus-shadow-border);
+}
+.ds-switch__track[data-state="checked"]:focus-visible {
+  box-shadow: var(--_focus-shadow-fill);
+}
+.ds-switch__track[aria-invalid="true"]:focus-visible {
+  border-color: var(--cmp-switch-edge-error);
+}
+.ds-switch__track[aria-busy="true"] {
+  cursor: progress;
+}
+.ds-switch__track[data-disabled] {
+  background: var(--cmp-switch-track-disabled);
+  color: var(--cmp-switch-thumb-disabled);
+  cursor: not-allowed;
+}
+.ds-switch__track[data-disabled] .ds-switch__thumb {
+  background: var(--cmp-switch-thumb-disabled);
+}
+/* The saving ring is the thumb less space.inline.sm: 16 at md, 12 at sm (A1). */
+.ds-switch__thumb > .ds-spinner__ring {
+  inline-size: calc(var(--_t) - var(--ds-space-inline-sm));
+  block-size: calc(var(--_t) - var(--ds-space-inline-sm));
+}
+@media (prefers-reduced-motion: reduce) {
+  .ds-switch__track,
+  .ds-switch__thumb {
+    transition: none;
+  }
 }
 
 /* Tooltip ----------------------------------------------------------------------------------- */
@@ -785,6 +1244,13 @@
   box-shadow: var(--cmp-popover-shadow);
   z-index: var(--cmp-popover-layer);
 }
+/* Focus on the panel itself: the border form of ORV-192 row 9, the elevation kept under the halo. */
+.ds-popover:focus-visible {
+  border-color: var(--ds-focus-ring);
+  outline: 1px solid transparent;
+  outline-offset: 0;
+  box-shadow: var(--cmp-popover-shadow), var(--_focus-shadow-border);
+}
 
 /* Tabs -------------------------------------------------------------------------------------- */
 
@@ -847,11 +1313,10 @@
   background: transparent;
   cursor: not-allowed;
 }
+/* Inside the trigger (ORV-192 row 9): the list scrolls and would clip an outside halo. */
 .ds-tabs__trigger:focus-visible {
-  outline-offset: -2px;
-}
-.ds-tabs__panel {
-  outline-offset: 2px;
+  outline-offset: -1px;
+  box-shadow: var(--_focus-shadow-inset);
 }
 .ds-tabs[data-orientation="vertical"] .ds-tabs__panel {
   flex: 1;
@@ -952,6 +1417,13 @@
   z-index: var(--cmp-dialog-layer);
   animation: ds-dialog-in var(--ds-motion-overlay-duration) var(--ds-motion-easing);
 }
+/* Focus on the panel itself: the border form of ORV-192 row 9, the elevation kept under the halo. */
+.ds-dialog:focus-visible {
+  border-color: var(--ds-focus-ring);
+  outline: 1px solid transparent;
+  outline-offset: 0;
+  box-shadow: var(--cmp-dialog-shadow), var(--_focus-shadow-border);
+}
 .ds-dialog__header {
   display: flex;
   align-items: flex-start;
@@ -975,6 +1447,10 @@
 .ds-dialog__description {
   margin: 0;
   color: var(--cmp-dialog-description);
+}
+/* Header pair: 8 px under the title, the body gap after it (ORV-192 row 17). */
+.ds-dialog__header + .ds-dialog__description {
+  margin-block-start: calc(var(--ds-space-stack-sm) - var(--cmp-dialog-gap));
 }
 /* The body scrolls, and a scroll container clips what draws outside a control, such as the focus
  * ring and its gap. The body bleeds that distance and pads it back, so the ring stays whole. */
@@ -1013,6 +1489,59 @@
   position: absolute;
   top: var(--ds-space-inset-md);
   inset-inline-end: var(--ds-space-inset-md);
+}
+/* Confirm dialog (ORV-226): the panel is its own scroller, so the actions stay in reach. */
+.ds-confirm {
+  container-type: inline-size;
+  overflow: hidden auto;
+  overscroll-behavior: contain;
+  /* The footer owns the foot padding: a sticky box is held inside its scroller's padding. */
+  padding-block-end: 0;
+}
+/* One start edge: the glyph takes its own row, beside the close control, and the title the full width. */
+.ds-confirm[data-variant="destructive"] .ds-dialog__header {
+  flex-direction: column;
+  gap: var(--ds-space-stack-sm);
+  padding-inline-end: 0;
+}
+.ds-confirm[data-variant="destructive"] .ds-dialog__glyph {
+  margin-block-start: calc(
+    (var(--cmp-button-height-sm) - var(--ds-size-icon-md)) / 2 + var(--ds-space-inset-md) -
+      var(--cmp-dialog-padding)
+  );
+}
+/* The actions stick to the panel's foot. The box takes the gap above them and the padding below, so
+ * at rest nothing moves, and scrolled text passes under it. */
+.ds-confirm .ds-dialog__footer {
+  position: sticky;
+  inset-block-end: 0;
+  margin-block-start: calc(-1 * var(--cmp-dialog-gap));
+  padding-block: var(--cmp-dialog-gap) var(--cmp-dialog-padding);
+  background: var(--cmp-dialog-bg);
+}
+/* The shape follows the panel, not the viewport. A caller's long label wraps inside the panel; it
+ * never leaves it. */
+.ds-confirm .ds-dialog__footer > .ds-button {
+  flex: 0 0 auto;
+  min-width: 0;
+  max-width: 100%;
+  padding-block: var(--ds-space-inline-sm);
+  white-space: normal;
+}
+/* The confirm holds the room its spinner takes, so a press moves neither button and changes no row. */
+.ds-confirm .ds-dialog__footer > .ds-button + .ds-button:not([data-loading]) {
+  max-width: calc(100% - var(--cmp-button-icon-size-md) - var(--cmp-button-gap));
+  margin-inline-start: calc(var(--cmp-button-icon-size-md) + var(--cmp-button-gap));
+}
+/* Below its cap the panel always stacks, so no label, language or spinner can change the shape. */
+@container (max-width: 333px) {
+  .ds-confirm .ds-dialog__footer > .ds-button {
+    flex: 1 0 100%;
+  }
+  .ds-confirm .ds-dialog__footer > .ds-button + .ds-button:not([data-loading]) {
+    max-width: 100%;
+    margin-inline-start: 0;
+  }
 }
 @keyframes ds-fade-in {
   from {
@@ -1065,6 +1594,15 @@
 .ds-card[data-selected] {
   background: var(--cmp-card-bg-selected);
   border-color: var(--cmp-card-border-selected);
+}
+/* Focus (ORV-192 row 9): the border form. The card's own border turns focus.ring, selected or not, and
+   no outline sits beside it. Its rest shadow is the shell elevation, which is none under every profile,
+   so the halo stands alone. */
+.ds-card[data-interactive]:focus-visible {
+  border-color: var(--ds-focus-ring);
+  outline: 1px solid transparent;
+  outline-offset: 0;
+  box-shadow: var(--_focus-shadow-border);
 }
 .ds-card__title {
   margin: 0;
@@ -1245,6 +1783,10 @@
 .ds-table__status-text {
   margin: 0;
 }
+/* Compact pair: 4 px under its title (ORV-192 row 17). */
+.ds-table__status-title + .ds-table__status-text {
+  margin-block-start: calc(var(--ds-space-inline-sm) - var(--ds-space-stack-sm));
+}
 @container ds-table (max-width: 479px) {
   .ds-table,
   .ds-table__caption,
@@ -1321,6 +1863,251 @@
   }
 }
 
+/* Spinner (ORV-201): the ring and its status label. No reduced-motion rule names .ds-spin,
+ * .ds-spinner or .ds-spinner__ring (spin-motion-1). Ring sizes sit under :where() so a slot that
+ * sizes its svg (.ds-button__icon > svg) wins. */
+.ds-spinner {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: var(--ds-space-inline-md);
+  max-inline-size: 100%;
+  color: var(--cmp-spinner-fg);
+  font-family: var(--ds-type-body-sm-font-family);
+  font-size: var(--ds-type-body-sm-font-size);
+  line-height: var(--ds-type-body-sm-line-height);
+  font-weight: var(--ds-type-body-sm-font-weight);
+}
+:where(.ds-spinner__ring) {
+  --_ring: var(--ds-size-icon-md);
+  flex: none;
+  inline-size: var(--_ring);
+  block-size: var(--_ring);
+}
+:where(.ds-spinner__ring[data-size="sm"]) {
+  --_ring: var(--ds-size-icon-sm);
+}
+:where(.ds-spinner__ring[data-size="lg"]) {
+  --_ring: var(--ds-size-icon-lg);
+}
+.ds-spinner > .ds-spinner__ring {
+  margin-block-start: calc(
+    (var(--ds-type-body-sm-font-size) * var(--ds-type-body-sm-line-height) - var(--_ring)) / 2
+  );
+}
+.ds-spinner__label {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+.ds-spinner[data-size="lg"] {
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ds-space-stack-sm);
+  text-align: center;
+}
+.ds-spinner[data-size="lg"] > .ds-spinner__ring,
+.ds-spinner[data-label-hidden] > .ds-spinner__ring {
+  margin-block-start: 0;
+}
+
+/* Skeleton (ORV-201): static placeholder shapes, no animation and no transition (skel-pulse-1).
+ * The outline is transparent: in forced colours it draws in the system ink, so a shape stays
+ * visible when the background is dropped. */
+.ds-skeleton {
+  display: block;
+  background: var(--cmp-skeleton-bg);
+  outline: 1px solid transparent;
+  outline-offset: -1px;
+}
+.ds-skeleton[data-shape="text"] {
+  position: relative;
+  block-size: calc(var(--ds-type-body-sm-font-size) * var(--ds-type-body-sm-line-height));
+  background: transparent;
+  outline: 0;
+}
+.ds-skeleton[data-shape="text"]::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block: calc(
+    var(--ds-type-body-sm-font-size) * (var(--ds-type-body-sm-line-height) - 1) / 2
+  );
+  background: var(--cmp-skeleton-bg);
+  border-radius: var(--ds-shape-control-radius);
+  outline: 1px solid transparent;
+  outline-offset: -1px;
+}
+.ds-skeleton[data-shape="block"] {
+  border-radius: var(--ds-shape-media-radius);
+}
+.ds-skeleton[data-shape="circle"] {
+  aspect-ratio: 1;
+  clip-path: circle(50%);
+}
+.ds-skeleton-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-stack-sm);
+  min-inline-size: 0;
+}
+
+/* Empty state (ORV-223): md is a centred column, sm starts at the line's start. */
+.ds-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--cmp-empty-state-gap-md);
+  min-inline-size: 0;
+  max-inline-size: var(--cmp-empty-state-max-width);
+  margin-inline: auto;
+  text-align: center;
+}
+.ds-empty-state__body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--cmp-empty-state-gap-md);
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+.ds-empty-state__text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmp-empty-state-text-gap);
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+.ds-empty-state__title,
+.ds-empty-state__description {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.ds-empty-state__title {
+  color: var(--cmp-empty-state-title);
+  font-family: var(--cmp-empty-state-title-type-font-family);
+  font-size: var(--cmp-empty-state-title-type-font-size);
+  line-height: var(--cmp-empty-state-title-type-line-height);
+  font-weight: var(--cmp-empty-state-title-type-font-weight);
+  letter-spacing: var(--cmp-empty-state-title-type-letter-spacing);
+}
+.ds-empty-state__description {
+  color: var(--cmp-empty-state-description);
+  font-family: var(--cmp-empty-state-body-type-font-family);
+  font-size: var(--cmp-empty-state-body-type-font-size);
+  line-height: var(--cmp-empty-state-body-type-line-height);
+  font-weight: var(--cmp-empty-state-body-type-font-weight);
+  letter-spacing: var(--cmp-empty-state-body-type-letter-spacing);
+}
+.ds-empty-state__action {
+  display: flex;
+  max-inline-size: 100%;
+}
+.ds-empty-state[data-size="sm"] {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: var(--cmp-empty-state-gap-sm);
+  max-inline-size: none;
+  margin-inline: 0;
+  text-align: start;
+}
+.ds-empty-state[data-size="sm"] > .ds-empty-state__body {
+  flex: 1 1 auto;
+  align-items: flex-start;
+  gap: var(--cmp-empty-state-action-gap);
+}
+/* with a tile, the title's first line centres on it; later lines flow under it */
+.ds-empty-state[data-size="sm"] > .ds-featured-icon + .ds-empty-state__body {
+  padding-block-start: calc(
+    (
+        var(--cmp-featured-icon-size-sm) - var(--cmp-empty-state-title-type-font-size) *
+          var(--cmp-empty-state-title-type-line-height)
+      ) /
+      2
+  );
+}
+
+/* Loading state (ORV-223): the off form takes the ink, type and gap of .ds-spinner[data-size="lg"]. */
+.ds-loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--cmp-loading-state-gap);
+  min-inline-size: 0;
+  max-inline-size: var(--cmp-loading-state-max-width);
+  margin-inline: auto;
+  text-align: center;
+}
+.ds-loading-state__quiet {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ds-space-stack-sm);
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  color: var(--cmp-spinner-fg);
+}
+.ds-loading-state__label {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-family: var(--ds-type-body-sm-font-family);
+  font-size: var(--ds-type-body-sm-font-size);
+  line-height: var(--ds-type-body-sm-line-height);
+  font-weight: var(--ds-type-body-sm-font-weight);
+}
+.ds-loading-state__action {
+  display: flex;
+  max-inline-size: 100%;
+}
+
+/* Avatar (ORV-224). Round under each profile by clip, the form Skeleton's circle uses. No border,
+ * no shadow, no motion. `overflow` adds no look; the clip checks read it. `contain: paint` keeps
+ * the round edge at a sub-pixel position, where the clip alone leaves a flat top (R1). */
+.ds-avatar {
+  display: inline-block;
+  flex: none;
+  vertical-align: middle;
+  inline-size: var(--ds-size-control-md);
+  block-size: var(--ds-size-control-md);
+  overflow: hidden;
+  clip-path: circle(50%);
+  contain: paint;
+  background: var(--cmp-avatar-bg);
+}
+.ds-avatar[data-size="sm"] {
+  inline-size: var(--ds-size-control-sm);
+  block-size: var(--ds-size-control-sm);
+}
+.ds-avatar__image {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+/* An atomic inline: a line a flex or grid link draws does not enter it (R2). */
+.ds-avatar__fallback {
+  display: inline-flex;
+  vertical-align: top;
+  align-items: center;
+  justify-content: center;
+  inline-size: 100%;
+  block-size: 100%;
+  color: var(--cmp-avatar-fg);
+  font-family: var(--ds-type-control-md-font-family);
+  font-size: var(--ds-type-control-md-font-size);
+  line-height: var(--ds-type-control-md-line-height);
+  font-weight: var(--ds-type-control-md-font-weight);
+  letter-spacing: var(--ds-type-control-md-letter-spacing);
+  white-space: nowrap;
+  user-select: none;
+}
+.ds-avatar__fallback > svg {
+  inline-size: var(--ds-size-icon-md);
+  block-size: var(--ds-size-icon-md);
+}
+.ds-avatar[data-size="sm"] .ds-avatar__fallback > svg {
+  inline-size: var(--ds-size-icon-sm);
+  block-size: var(--ds-size-icon-sm);
+}
+
 /* Canvas (ADR 0004, E4-2): React Flow for behaviour, every value from the board, node, port and
  * edge tokens (E4-1). The base stylesheet (imported in orivilo.css) reads `--xy-*` properties; each
  * one it reads is set here from a component token, so no React Flow default colour reaches the
@@ -1361,15 +2148,18 @@
   width: 100%;
   height: 100%;
 }
-/* React Flow strips the outline from its own node types; ours keep the ring (DESIGN.md §3.1). */
+/* React Flow strips the outline from its own node types; ours keep the focus line and halo (DESIGN.md §3.1).
+   The edge is SVG: the shadow does not paint there, the line does. */
 .ds-board .react-flow__node:focus-visible {
-  outline: 2px solid var(--ds-focus-ring);
-  outline-offset: 2px;
+  outline: 1px solid var(--ds-focus-ring);
+  outline-offset: 0;
+  box-shadow: var(--_focus-shadow);
   border-radius: var(--cmp-node-radius);
 }
 .ds-board .react-flow__edge:focus-visible {
-  outline: 2px solid var(--ds-focus-ring);
-  outline-offset: 2px;
+  outline: 1px solid var(--ds-focus-ring);
+  outline-offset: 0;
+  box-shadow: var(--_focus-shadow);
 }
 .ds-board .react-flow__attribution {
   color: var(--ds-text-secondary);
@@ -1411,12 +2201,15 @@
 .ds-board__overlay > * {
   pointer-events: auto;
 }
-.ds-board__overlay p {
-  margin: 0;
-}
-.ds-board__spinner {
-  width: var(--ds-size-icon-lg);
-  height: var(--ds-size-icon-lg);
+/* The wait can land on nodes, the toolbar, the shelf or the open bar, so it brings its own ground: the
+ * status pill's form, which is hidden while the board loads (ORV-250 D17). Solid, so nothing shows through. */
+.ds-board__overlay > .ds-loading-state {
+  padding-block: var(--ds-space-inset-md);
+  padding-inline: var(--ds-space-inset-lg);
+  border: 1px solid var(--cmp-toolbar-border);
+  border-radius: var(--cmp-toolbar-radius);
+  background: var(--cmp-toolbar-bg);
+  box-shadow: var(--cmp-toolbar-shadow);
 }
 .ds-board__status {
   position: absolute;
@@ -1441,6 +2234,16 @@
   padding: 0;
   border: 0;
   background: transparent;
+}
+/* While the board loads the overlay shows the words; the line keeps them for assistive technology. */
+.ds-board[data-loading] .ds-board__status {
+  inline-size: 1px;
+  block-size: 1px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  white-space: nowrap;
+  clip-path: inset(50%);
 }
 
 /* Node: header, body, missing-inputs row, error row, ports (catalog CanvasNode). --------------- */
@@ -1502,7 +2305,7 @@
   border-color: var(--cmp-node-border-hover);
 }
 /* Selected and the keyboard-connect candidate: a 2 px violet edge (border plus an inset outline),
- * distinct from the ink focus ring the React Flow wrapper draws outside the node. */
+ * distinct from the brand focus line the React Flow wrapper draws outside the node. */
 .ds-node[data-selected],
 .ds-node[data-connect-candidate] {
   border-color: var(--cmp-node-border-selected);
@@ -2030,10 +2833,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 1.5em;
+  min-width: 2.25em;
   padding-inline: var(--cmp-kbd-padding-x);
   border: 1px solid var(--cmp-kbd-border);
-  border-bottom-width: 2px;
   border-radius: var(--cmp-kbd-radius);
   background: var(--cmp-kbd-bg);
   color: var(--cmp-kbd-fg);
@@ -2093,6 +2895,14 @@
   color: var(--cmp-menu-option-fg-disabled);
   cursor: not-allowed;
 }
+/* The highlight ground is the focus mark in a list; this outweighs the global rule, which the plain
+   `outline: none` never did (ORV-192 row 9). */
+.ds-menu__option:focus-visible,
+.ds-menu__item:focus-visible,
+.ds-command__input:focus-visible {
+  outline: none;
+  box-shadow: var(--_focus-shadow-none);
+}
 /* Checkable items (ORV-78): a glyph column kept when unchecked, and glyph plus fill when checked,
    the same selected pair as a Select option. */
 .ds-menu__indicator {
@@ -2110,8 +2920,9 @@
 /* Highlighted and checked: the selected fill stays and a focus ring shows where the pointer or
    keyboard is, so the two never read the same (DESIGN.md §7). */
 .ds-menu__item[data-checkable][data-state="checked"][data-highlighted]:not([data-disabled]) {
-  outline: 2px solid var(--ds-focus-ring);
-  outline-offset: -2px;
+  outline: 1px solid var(--ds-focus-ring);
+  outline-offset: -1px;
+  box-shadow: var(--_focus-shadow-inset);
 }
 .ds-menu__shortcut {
   margin-left: auto;
@@ -2125,12 +2936,12 @@
 }
 .ds-menu__separator {
   height: 1px;
-  margin-block: var(--cmp-menu-padding);
+  margin-block: var(--ds-space-inline-lg);
   background: var(--cmp-menu-separator);
 }
 .ds-menu__label {
   padding-inline: var(--cmp-menu-option-padding-x);
-  padding-block: var(--cmp-menu-padding);
+  padding-block: var(--ds-space-inline-sm);
   color: var(--cmp-menu-label-fg);
   font-family: var(--cmp-kbd-type-font-family);
   font-size: var(--cmp-kbd-type-font-size);
@@ -2140,16 +2951,17 @@
 }
 
 /* ToggleGroup, segmented (ORV-65): a sunken track; the pressed item is a raised card chip with a
- * ring and heavier text. No selection tint and no canvas violet, so the pressed item reads the same
+ * soft lift, no ring. No selection tint and no canvas violet, so the pressed item reads the same
  * under every profile. No bottom edge either: a transparent 2px edge lifted Thai labels off centre.
  * Inner items take the track's radius minus its padding, so pill and square profiles both nest. */
 
 .ds-toggle {
   --_pad: 3px;
-  /* Inner radius, the hover wash and the pressed ring, each built only from tokens. */
+  /* Inner radius, the hover wash and the pressed lift, each built only from tokens. */
   --_item-radius: max(0px, calc(var(--cmp-toggle-radius) - var(--_pad)));
   --_hover: color-mix(in srgb, var(--cmp-toggle-bg-hover) 55%, transparent);
-  --_ring: 0 0 0 1px var(--cmp-toggle-border-pressed);
+  --_lift: 0 1px 3px
+    color-mix(in srgb, var(--ds-surface-scrim) calc(var(--ds-opacity-scrim) * 50%), transparent);
   display: inline-flex;
   align-items: center;
   gap: 2px;
@@ -2191,22 +3003,32 @@
   background: var(--_hover);
   color: var(--cmp-toggle-fg-hover);
 }
-/* Pressed: the chip, its ring and a heavier weight (catalog rule: never a tint alone). */
+/* Pressed: the card chip and its lift, no ring (catalog rule: never a tint alone). */
 .ds-toggle__item[data-state="on"] {
   background: var(--cmp-toggle-bg-pressed);
   color: var(--cmp-toggle-fg-pressed);
-  font-weight: var(--ds-type-heading-sm-font-weight);
-  box-shadow: var(--_ring);
+  box-shadow: var(--_lift);
+}
+/* A pressed chip keeps its look under the pointer. */
+.ds-toggle__item[data-state="on"]:hover:not(:disabled) {
+  background: var(--cmp-toggle-bg-pressed);
+  color: var(--cmp-toggle-fg-pressed);
 }
 .ds-toggle__item:focus-visible {
-  outline: 2px solid var(--ds-focus-ring);
-  outline-offset: 1px;
+  outline: 1px solid var(--ds-focus-ring);
+  outline-offset: 0;
+  box-shadow: var(--_focus-shadow);
+}
+/* A focused pressed chip keeps its lift under the halo: the lift is the pressed cue other than
+ * colour, so keyboard focus must not take it away (ORV-192 review F4). */
+.ds-toggle__item[data-state="on"]:focus-visible {
+  box-shadow: var(--_lift), var(--_focus-shadow);
 }
 .ds-toggle__item:disabled {
   color: var(--cmp-toggle-fg-disabled);
   cursor: not-allowed;
 }
-/* A disabled pressed item keeps its chip but drops the ring, so it does not read as live. */
+/* A disabled pressed item keeps its chip but drops the lift, so it does not read as live. */
 .ds-toggle__item[data-state="on"]:disabled {
   box-shadow: var(--ds-elevation-shell);
 }
@@ -2246,6 +3068,7 @@
   opacity: var(--ds-opacity-disabled);
 }
 .ds-board .react-flow__panel.ds-controls {
+  anchor-name: --ds-board-controls;
   margin: var(--ds-space-inset-md);
   flex-wrap: wrap;
   max-width: calc(100% - 2 * var(--ds-space-inset-md));
@@ -2276,8 +3099,9 @@
   background: var(--cmp-button-ghost-bg-hover);
 }
 .ds-controls__zoom:focus-visible {
-  outline: 2px solid var(--ds-focus-ring);
-  outline-offset: 2px;
+  outline: 1px solid var(--ds-focus-ring);
+  outline-offset: 0;
+  box-shadow: var(--_focus-shadow);
 }
 .ds-controls__zoom:disabled {
   color: var(--cmp-button-ghost-fg-disabled);
@@ -2360,6 +3184,13 @@
   overflow: hidden;
   z-index: var(--cmp-command-layer);
   animation: ds-dialog-in var(--ds-motion-overlay-duration) var(--ds-motion-easing);
+}
+/* Focus on the panel itself: the border form of ORV-192 row 9, the elevation kept under the halo. */
+.ds-command:focus-visible {
+  border-color: var(--ds-focus-ring);
+  outline: 1px solid transparent;
+  outline-offset: 0;
+  box-shadow: var(--cmp-command-shadow), var(--_focus-shadow-border);
 }
 @media (prefers-reduced-transparency: reduce) {
   .ds-command {
@@ -2594,9 +3425,14 @@
   width: auto;
   height: auto;
 }
-.ds-board .react-flow__node-group.selected,
 .ds-board .react-flow__node-group:focus-visible {
-  outline: 2px solid var(--ds-focus-ring);
+  outline: 1px solid var(--ds-focus-ring);
+  outline-offset: 0;
+  box-shadow: var(--_focus-shadow);
+}
+/* Selected is distinct from focus (DESIGN.md §7): a selected group takes the canvas selection, not the focus line. */
+.ds-board .react-flow__node-group.selected {
+  outline: 2px solid var(--cmp-node-border-selected);
   outline-offset: 2px;
 }
 
@@ -2610,8 +3446,11 @@
 .ds-scroll__viewport {
   width: 100%;
   height: 100%;
-  /* The focus ring of the region itself draws inside, where the scroll container cannot clip it. */
-  outline-offset: -2px;
+  /* The focus line of the region itself draws inside, where the scroll container cannot clip it. */
+  outline-offset: -1px;
+}
+.ds-scroll__viewport:focus-visible {
+  box-shadow: var(--_focus-shadow-inset);
 }
 .ds-scroll__bar {
   display: flex;
@@ -2787,6 +3626,15 @@
   overflow-wrap: anywhere;
   z-index: var(--cmp-side-sheet-layer);
 }
+/* Focus on the panel itself: its one border, on the open edge, turns brand; the border form of
+   ORV-192 row 9 on that edge (row 19, sign-off 2 F2). The weight beats the data-side border
+   shorthands below, and only the open edge has a width, so only it shows. */
+.ds-side-sheet[data-side]:focus-visible {
+  border-color: var(--ds-focus-ring);
+  outline: 1px solid transparent;
+  outline-offset: 0;
+  box-shadow: var(--cmp-side-sheet-shadow), var(--_focus-shadow-border);
+}
 .ds-side-sheet[data-size="lg"] {
   width: min(var(--cmp-side-sheet-width-lg), calc(100% - var(--ds-space-gutter)));
 }
@@ -2885,11 +3733,16 @@
 .ds-prompt__upload {
   display: flex;
   flex-direction: column;
-  gap: var(--ds-space-stack-sm);
+  gap: var(--ds-space-inline-sm);
 }
 .ds-prompt__note {
   margin: 0;
   color: var(--cmp-prompt-progress-fg);
+  font-family: var(--cmp-prompt-note-type-font-family);
+  font-size: var(--cmp-prompt-note-type-font-size);
+  line-height: var(--cmp-prompt-note-type-line-height);
+  font-weight: var(--cmp-prompt-note-type-font-weight);
+  letter-spacing: var(--cmp-prompt-note-type-letter-spacing);
 }
 .ds-prompt__actions {
   display: flex;
@@ -2919,9 +3772,10 @@
   white-space: nowrap;
 }
 
-/* BlockLibrary (ORV-44 part 2): a glass shelf at the bottom of the board, above the controls.
+/* BlockLibrary (ORV-44 part 2): a glass shelf at the bottom of the board, 16 px above the controls at any row count.
  * A tile not on the board has a dashed edge; on the board, solid, with its fill word and mark. */
 .ds-board .react-flow__panel.ds-shelf {
+  anchor-name: --ds-board-shelf;
   --_glass: color-mix(
     in srgb,
     var(--cmp-shelf-bg) calc(var(--cmp-shelf-opacity) * 100%),
@@ -2933,6 +3787,10 @@
   width: max-content;
   max-width: calc(100% - 2 * var(--ds-space-inset-md));
   margin: 0 0 calc(var(--ds-size-control-md) + 3 * var(--ds-space-inset-md));
+  /* xyflow centres a bottom-center panel with translateX(-15px) translateX(-50%), the first step
+   * undoing its own 15px margin. This recipe sets no inline margin, so only the plain half-width
+   * shift is left (ORV-190). */
+  transform: translateX(-50%);
   padding: var(--cmp-shelf-padding);
   border: 1px solid var(--cmp-shelf-border);
   border-radius: var(--cmp-shelf-radius);
@@ -2990,6 +3848,12 @@
   gap: var(--ds-space-inline-lg);
   overflow-x: auto;
   overscroll-behavior-x: contain;
+  /* The row clips both axes at its padding box, so the focus ring (reach 4) of the first and last
+   * tile was cut. Bleed the box out by the ring and pad it back: the tiles keep their place
+   * (ORV-190, as .ds-dialog__body does). */
+  margin: calc(-1 * var(--ds-space-inline-sm));
+  padding: var(--ds-space-inline-sm);
+  scroll-padding: var(--ds-space-inline-sm);
 }
 .ds-shelf__group {
   display: flex;
@@ -3009,7 +3873,7 @@
   flex-direction: column;
   align-items: stretch;
   justify-content: space-between;
-  gap: var(--ds-space-stack-sm);
+  gap: var(--ds-space-inline-sm);
   width: var(--cmp-shelf-tile-width);
   height: 100%;
   padding: var(--ds-space-inset-sm);
@@ -3049,6 +3913,14 @@
 .ds-shelf__tile:hover:not(:disabled) {
   background: var(--cmp-shelf-tile-bg-hover);
 }
+/* Focus (ORV-192 row 9): the tile's border turns to focus.ring, solid, with the halo on it. */
+.ds-shelf__tile:focus-visible {
+  border-color: var(--ds-focus-ring);
+  border-style: solid;
+  outline: 1px solid transparent;
+  outline-offset: 0;
+  box-shadow: var(--_focus-shadow-border);
+}
 .ds-shelf__tile:disabled {
   cursor: default;
 }
@@ -3058,6 +3930,13 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.ds-shelf__name {
+  font-family: var(--cmp-shelf-tile-name-type-font-family);
+  font-size: var(--cmp-shelf-tile-name-type-font-size);
+  line-height: var(--cmp-shelf-tile-name-type-line-height);
+  font-weight: var(--cmp-shelf-tile-name-type-font-weight);
+  letter-spacing: var(--cmp-shelf-tile-name-type-letter-spacing);
 }
 /* State word and, for colour blocks, the swatches share one row, so every tile is the same height. */
 .ds-shelf__meta {
@@ -3076,6 +3955,11 @@
   align-items: center;
   gap: var(--ds-space-inline-sm);
   color: var(--cmp-shelf-tile-state-fg);
+  font-family: var(--cmp-shelf-tile-state-type-font-family);
+  font-size: var(--cmp-shelf-tile-state-type-font-size);
+  line-height: var(--cmp-shelf-tile-state-type-line-height);
+  font-weight: var(--cmp-shelf-tile-state-type-font-weight);
+  letter-spacing: var(--cmp-shelf-tile-state-type-letter-spacing);
 }
 .ds-shelf__state svg {
   flex: 0 0 auto;
@@ -3156,6 +4040,10 @@
   display: flex;
   flex-direction: column;
   gap: var(--cmp-inspector-gap);
+}
+/* Header pair: 8 px under the title (ORV-192 row 17). */
+.ds-inspector__empty > .ds-inspector__title + .ds-inspector__muted {
+  margin-block-start: calc(var(--ds-space-stack-sm) - var(--cmp-inspector-gap));
 }
 .ds-inspector__body {
   padding-block-start: var(--cmp-inspector-gap);
@@ -3441,6 +4329,10 @@
 }
 .ds-toast__icon {
   flex: none;
+  /* the icon's centre on the close button's centre */
+  width: var(--ds-size-icon-md);
+  height: var(--ds-size-icon-md);
+  margin-block-start: calc((var(--cmp-button-height-sm) - var(--ds-size-icon-md)) / 2);
   color: var(--cmp-toast-success-icon);
 }
 .ds-toast[data-variant="danger"] .ds-toast__icon {
@@ -3449,10 +4341,19 @@
 .ds-toast__content {
   flex: 1 1 auto;
   min-width: 0;
+  /* the title's first line centres on the close button; later lines flow under it */
+  padding-block-start: calc(
+    (
+        var(--cmp-button-height-sm) - var(--cmp-toast-title-type-font-size) *
+          var(--cmp-toast-title-type-line-height)
+      ) /
+      2
+  );
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: var(--ds-space-stack-sm);
+  /* title and description are one block, 4 px apart (ORV-192 row 17) */
+  gap: var(--ds-space-inline-sm);
 }
 .ds-toast__title {
   font-family: var(--cmp-toast-title-type-font-family);
@@ -3480,6 +4381,8 @@
 }
 .ds-toast__action {
   padding-inline: var(--cmp-button-padding-x-sm);
+  /* with the content gap of 4, an action keeps 8 px above it (ORV-192 row 17) */
+  margin-block-start: var(--ds-space-inline-sm);
 }
 .ds-toast__close {
   flex: none;
@@ -3489,17 +4392,177 @@
 .ds-toast__close:hover {
   border-color: currentColor;
 }
-/* The global ring is not readable on the inverse ground, so the outline takes the toast's text. */
+/* The action and close sit on the inverse ground, where the brand is not readable, so their line
+   and halo take the toast's text. The root's line and halo sit outside the toast, on the page, so
+   they take focus.ring as Dialog and Popover do (ORV-192 row 19, sign-off 2 F1). */
+.ds-toast {
+  --_toast-halo: color-mix(
+    in srgb,
+    var(--cmp-toast-fg) calc(var(--ds-focus-halo-opacity) * 100%),
+    transparent
+  );
+  --_toast-shadow: 0 0 0 4px var(--_toast-halo);
+}
+.ds-toast:focus-visible {
+  outline: 1px solid var(--ds-focus-ring);
+  outline-offset: 0;
+  box-shadow: var(--cmp-toast-shadow), var(--_focus-shadow);
+}
 .ds-toast__action:focus-visible,
 .ds-toast__close:focus-visible {
-  outline: 2px solid var(--cmp-toast-fg);
-  outline-offset: 2px;
+  outline: 1px solid var(--cmp-toast-fg);
+  outline-offset: 0;
+  box-shadow: var(--_toast-shadow);
 }
 @keyframes ds-toast-in {
   from {
     opacity: 0;
     transform: translateY(100%);
   }
+}
+
+/* FeaturedIcon (ORV-222) --------------------------------------------------------------------- */
+
+.ds-featured-icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  inline-size: var(--cmp-featured-icon-size-sm);
+  block-size: var(--cmp-featured-icon-size-sm);
+  border-radius: var(--cmp-featured-icon-radius);
+  /* forced colours drop the ground; this line keeps the tile's shape */
+  outline: 1px solid transparent;
+  outline-offset: -1px;
+}
+.ds-featured-icon > svg {
+  inline-size: var(--cmp-featured-icon-icon-size-sm);
+  block-size: var(--cmp-featured-icon-icon-size-sm);
+}
+.ds-featured-icon[data-size="md"] {
+  inline-size: var(--cmp-featured-icon-size-md);
+  block-size: var(--cmp-featured-icon-size-md);
+}
+.ds-featured-icon[data-size="md"] > svg {
+  inline-size: var(--cmp-featured-icon-icon-size-md);
+  block-size: var(--cmp-featured-icon-icon-size-md);
+}
+.ds-featured-icon[data-size="lg"] {
+  inline-size: var(--cmp-featured-icon-size-lg);
+  block-size: var(--cmp-featured-icon-size-lg);
+}
+.ds-featured-icon[data-size="lg"] > svg {
+  inline-size: var(--cmp-featured-icon-icon-size-lg);
+  block-size: var(--cmp-featured-icon-icon-size-lg);
+}
+.ds-featured-icon[data-variant="success"] {
+  background: var(--cmp-featured-icon-success-bg);
+  color: var(--cmp-featured-icon-success-fg);
+}
+.ds-featured-icon[data-variant="warning"] {
+  background: var(--cmp-featured-icon-warning-bg);
+  color: var(--cmp-featured-icon-warning-fg);
+}
+.ds-featured-icon[data-variant="danger"] {
+  background: var(--cmp-featured-icon-danger-bg);
+  color: var(--cmp-featured-icon-danger-fg);
+}
+.ds-featured-icon[data-variant="info"] {
+  background: var(--cmp-featured-icon-info-bg);
+  color: var(--cmp-featured-icon-info-fg);
+}
+.ds-featured-icon[data-variant="neutral"] {
+  background: var(--cmp-featured-icon-neutral-bg);
+  color: var(--cmp-featured-icon-neutral-fg);
+}
+
+/* Alert (ORV-222) ---------------------------------------------------------------------------- */
+
+.ds-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--cmp-alert-gap);
+  box-sizing: border-box;
+  inline-size: 100%;
+  padding: var(--cmp-alert-padding);
+  border: 1px solid transparent;
+  border-radius: var(--cmp-alert-radius);
+  background: var(--cmp-alert-bg);
+  color: var(--cmp-alert-description);
+  font-family: var(--cmp-alert-body-type-font-family);
+  font-size: var(--cmp-alert-body-type-font-size);
+  line-height: var(--cmp-alert-body-type-line-height);
+  font-weight: var(--cmp-alert-body-type-font-weight);
+  letter-spacing: var(--cmp-alert-body-type-letter-spacing);
+}
+.ds-alert[data-variant="success"] {
+  border-color: var(--cmp-alert-success-edge);
+}
+.ds-alert[data-variant="warning"] {
+  border-color: var(--cmp-alert-warning-edge);
+}
+.ds-alert[data-variant="danger"] {
+  border-color: var(--cmp-alert-danger-edge);
+}
+.ds-alert[data-variant="info"] {
+  border-color: var(--cmp-alert-info-edge);
+}
+.ds-alert__content {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: flex-start;
+  /* title and description are one block, 4 px apart (DESIGN.md section 4) */
+  gap: var(--ds-space-inline-sm);
+  min-inline-size: 0;
+  /* the title's first line centres on the tile and the close; later lines flow under it */
+  padding-block-start: calc(
+    (
+        var(--cmp-featured-icon-size-sm) - var(--cmp-alert-title-type-font-size) *
+          var(--cmp-alert-title-type-line-height)
+      ) /
+      2
+  );
+}
+.ds-alert__title,
+.ds-alert__description {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.ds-alert__title {
+  color: var(--cmp-alert-title);
+  font-family: var(--cmp-alert-title-type-font-family);
+  font-size: var(--cmp-alert-title-type-font-size);
+  line-height: var(--cmp-alert-title-type-line-height);
+  font-weight: var(--cmp-alert-title-type-font-weight);
+  letter-spacing: var(--cmp-alert-title-type-letter-spacing);
+}
+/* with the content gap of 4, an action keeps 8 px above it */
+.ds-alert__action {
+  display: flex;
+  margin-block-start: var(--ds-space-inline-sm);
+}
+.ds-alert__close {
+  flex: none;
+}
+
+/* Separator (ORV-230) ------------------------------------------------------------------------ */
+
+/* The line is a 1 px border and never a background, because forced colours paint a background out. */
+.ds-separator {
+  flex: none;
+}
+.ds-separator[data-orientation="horizontal"] {
+  inline-size: 100%;
+  block-size: 0;
+  border-block-start: 1px solid var(--cmp-separator-line);
+}
+/* At least one line of text tall, so the line never vanishes in a block parent. */
+.ds-separator[data-orientation="vertical"] {
+  align-self: stretch;
+  inline-size: 0;
+  min-block-size: 1lh;
+  border-inline-start: 1px solid var(--cmp-separator-line);
 }
 
 /* Progress (E4-5) ---------------------------------------------------------------------------- */
@@ -3553,7 +4616,6 @@
   position: relative;
   overflow: hidden;
   height: var(--cmp-progress-height-md);
-  border: 1px solid var(--cmp-progress-track-border);
   border-radius: var(--cmp-progress-radius);
   background: var(--cmp-progress-track);
 }
@@ -3591,12 +4653,141 @@
   }
 }
 
+/* File upload (ORV-227) ---------------------------------------------------------------------- */
+
+.ds-file-upload {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmp-file-upload-gap);
+  min-inline-size: 0;
+}
+/* The zone's edge is solid until the drop target lands (second PR of ORV-227). */
+.ds-file-upload__zone {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--cmp-file-upload-gap);
+  padding: var(--cmp-file-upload-padding);
+  border: 1px solid var(--cmp-file-upload-zone-border);
+  border-radius: var(--cmp-file-upload-radius);
+}
+.ds-file-upload__zone[data-full] {
+  border-color: var(--cmp-file-upload-zone-border-disabled);
+}
+.ds-file-upload__zone[data-invalid] {
+  border-color: var(--cmp-file-upload-zone-border-invalid);
+}
+.ds-field[data-disabled] .ds-file-upload__zone {
+  border-color: var(--cmp-file-upload-zone-border-disabled);
+}
+.ds-file-upload__hint {
+  min-inline-size: 0;
+  margin: 0;
+  color: var(--cmp-field-description);
+  font-family: var(--cmp-field-text-type-font-family);
+  font-size: var(--cmp-field-text-type-font-size);
+  line-height: var(--cmp-field-text-type-line-height);
+  font-weight: var(--cmp-field-text-type-font-weight);
+  letter-spacing: var(--cmp-field-text-type-letter-spacing);
+  overflow-wrap: anywhere;
+}
+.ds-field[data-disabled] .ds-file-upload__hint {
+  color: var(--ds-text-disabled);
+}
+.ds-file-upload .ds-field__error > span {
+  display: block;
+}
+.ds-file-upload .ds-field__error > span + span {
+  margin-block-start: var(--ds-space-inline-sm);
+}
+.ds-file-upload__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmp-file-upload-gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ds-file-upload__item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--cmp-file-upload-gap);
+  padding-block: var(--ds-space-inline-lg);
+  padding-inline: var(--cmp-file-upload-padding);
+  border: 1px solid var(--cmp-file-upload-item-border);
+  border-radius: var(--cmp-file-upload-radius);
+}
+.ds-file-upload__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--ds-space-inline-sm);
+  min-inline-size: 0;
+}
+.ds-file-upload__name {
+  margin: 0;
+  color: var(--cmp-field-label);
+  font-family: var(--cmp-field-label-type-font-family);
+  font-size: var(--cmp-field-label-type-font-size);
+  line-height: var(--cmp-field-label-type-line-height);
+  font-weight: var(--cmp-field-label-type-font-weight);
+  letter-spacing: var(--cmp-field-label-type-letter-spacing);
+  overflow-wrap: anywhere;
+}
+.ds-file-upload__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--ds-space-inline-lg);
+  margin: 0;
+  color: var(--cmp-field-description);
+  font-family: var(--cmp-field-text-type-font-family);
+  font-size: var(--cmp-field-text-type-font-size);
+  line-height: var(--cmp-field-text-type-line-height);
+  font-weight: var(--cmp-field-text-type-font-weight);
+  letter-spacing: var(--cmp-field-text-type-letter-spacing);
+}
+.ds-file-upload__word {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-space-inline-sm);
+}
+.ds-file-upload__item[data-status="done"] .ds-file-upload__word {
+  color: var(--cmp-progress-done);
+}
+.ds-file-upload__item[data-status="failed"] .ds-file-upload__word {
+  color: var(--cmp-progress-failed);
+}
+.ds-file-upload__reason {
+  margin: 0;
+  color: var(--cmp-field-error);
+  font-family: var(--cmp-field-text-type-font-family);
+  font-size: var(--cmp-field-text-type-font-size);
+  line-height: var(--cmp-field-text-type-line-height);
+  font-weight: var(--cmp-field-text-type-font-weight);
+  letter-spacing: var(--cmp-field-text-type-letter-spacing);
+  overflow-wrap: anywhere;
+}
+.ds-file-upload__retry {
+  align-self: flex-start;
+  margin-block-start: var(--ds-space-inline-sm);
+}
+.ds-file-upload__actions {
+  display: flex;
+  flex: none;
+  margin-block-start: calc(-1 * var(--ds-space-inline-sm));
+}
+
 /* Tag (E4-5) --------------------------------------------------------------------------------- */
 
 .ds-tag {
   display: inline-flex;
   align-items: stretch;
   max-width: min(var(--cmp-tag-max-width), 100%);
+  /* One line by design: a 1.7 label line never grows the tag (ORV-192 row 18). */
+  height: var(--cmp-tag-height-md);
   min-height: var(--cmp-tag-height-md);
   border: 1px solid var(--cmp-tag-border);
   border-radius: var(--cmp-tag-radius);
@@ -3610,6 +4801,7 @@
   overflow: hidden;
 }
 .ds-tag[data-size="sm"] {
+  height: var(--cmp-tag-height-sm);
   min-height: var(--cmp-tag-height-sm);
   font-family: var(--cmp-tag-type-sm-font-family);
   font-size: var(--cmp-tag-type-sm-font-size);
@@ -3632,6 +4824,11 @@
 .ds-tag[data-size="sm"] .ds-tag__main {
   padding-inline: var(--cmp-tag-padding-x-sm);
 }
+/* With a remove, the label stops one gap before it at both sizes (ORV-192 row 13). */
+.ds-tag:has(> .ds-tag__remove) .ds-tag__main,
+.ds-tag[data-size="sm"]:has(> .ds-tag__remove) .ds-tag__main {
+  padding-inline-end: var(--cmp-tag-gap);
+}
 button.ds-tag__main {
   cursor: pointer;
 }
@@ -3644,8 +4841,11 @@ button.ds-tag__main {
 .ds-tag__check {
   flex: none;
 }
-.ds-tag:hover {
-  background: var(--cmp-tag-bg-hover);
+/* Hover (ORV-192 row 13): a selectable tag shows hover on its edge; the fill does not change, and a focused tag keeps its focus edge. */
+.ds-tag:has(> button.ds-tag__main):hover:not([data-selected]):not([data-disabled]):not(
+    :has(> .ds-tag__main:focus-visible)
+  ) {
+  border-color: var(--cmp-tag-border-hover);
 }
 /* Selected: the selection ground and a heavier edge, plus the check; never colour alone. */
 .ds-tag[data-selected] {
@@ -3658,20 +4858,44 @@ button.ds-tag__main {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: var(--cmp-tag-height-sm);
+  align-self: center;
+  width: var(--cmp-tag-remove-size);
+  min-width: var(--cmp-tag-remove-size);
+  height: var(--cmp-tag-remove-size);
+  margin-inline-end: var(--cmp-tag-gap);
   padding: 0;
   border: 0;
+  border-radius: var(--cmp-tag-remove-radius);
   background: transparent;
   color: var(--cmp-tag-remove-fg);
   cursor: pointer;
 }
+/* sm: the remove fills the tag's inner height, flush to the end. */
+.ds-tag[data-size="sm"] .ds-tag__remove {
+  align-self: stretch;
+  height: auto;
+  margin-inline-end: 0;
+}
 .ds-tag__remove:hover {
   background: var(--cmp-tag-remove-bg-hover);
+  color: var(--cmp-tag-remove-fg-hover);
 }
-.ds-tag__main:focus-visible,
+/* Focus (ORV-192 row 9): the label part turns the tag's own border to focus.ring with the halo on it;
+   the remove draws its line on its own edge and the halo inward, inside the pill. */
+.ds-tag:has(> .ds-tag__main:focus-visible) {
+  border-color: var(--ds-focus-ring);
+  outline: 1px solid transparent;
+  outline-offset: 0;
+  box-shadow: var(--_focus-shadow-border);
+}
+.ds-tag__main:focus-visible {
+  outline: none;
+  box-shadow: var(--_focus-shadow-none);
+}
 .ds-tag__remove:focus-visible {
-  outline: 2px solid var(--ds-focus-ring);
-  outline-offset: -2px;
+  outline: 1px solid var(--ds-focus-ring);
+  outline-offset: -1px;
+  box-shadow: var(--_focus-shadow-inset);
 }
 .ds-tag[data-disabled] {
   border-color: var(--cmp-tag-bg-disabled);
@@ -3784,8 +5008,9 @@ button.ds-tag__main {
 }
 /* Programmatic focus after Retry unmounts: inset so the scroll viewport does not clip it. */
 .ds-taskbar__row:focus-visible {
-  outline: 2px solid var(--ds-focus-ring);
-  outline-offset: -2px;
+  outline: 1px solid var(--ds-focus-ring);
+  outline-offset: -1px;
+  box-shadow: var(--_focus-shadow-inset);
 }
 .ds-taskbar__mark {
   grid-area: mark;
@@ -3835,8 +5060,7 @@ button.ds-tag__main {
   font-weight: var(--cmp-taskbar-meta-type-font-weight);
   letter-spacing: var(--cmp-taskbar-meta-type-letter-spacing);
 }
-.ds-taskbar__reason,
-.ds-taskbar__empty {
+.ds-taskbar__reason {
   margin: 0;
   overflow-wrap: anywhere;
   font-family: var(--cmp-taskbar-body-type-font-family);
@@ -3844,15 +5068,12 @@ button.ds-tag__main {
   line-height: var(--cmp-taskbar-body-type-line-height);
   font-weight: var(--cmp-taskbar-body-type-font-weight);
   letter-spacing: var(--cmp-taskbar-body-type-letter-spacing);
-}
-.ds-taskbar__reason {
   grid-area: reason;
   margin-block-start: var(--cmp-taskbar-line-gap);
   color: var(--cmp-taskbar-reason-fg);
 }
 .ds-taskbar__empty {
   padding: var(--cmp-taskbar-row-block) var(--cmp-taskbar-padding-x);
-  color: var(--cmp-taskbar-muted-fg);
 }
 .ds-taskbar__actions {
   grid-area: actions;
@@ -3890,6 +5111,7 @@ button.ds-tag__main {
   inset-block-end: var(--ds-space-inset-md);
   z-index: var(--cmp-taskbar-layer);
   box-shadow: var(--cmp-taskbar-shadow);
+  anchor-name: --ds-board-taskbar;
 }
 .ds-board:has(.ds-taskbar) {
   --_lift: calc(
@@ -3909,6 +5131,98 @@ button.ds-tag__main {
     var(--ds-space-inset-md) * 2 + var(--cmp-button-height-sm) + 2 * var(--cmp-toolbar-padding) +
       2px + var(--_lift)
   );
+}
+/* The shelf sits 16 px above the controls at any row count (ORV-192 row 2). It comes after the task
+ * bar's shelf margin above, which has the same specificity, so the anchor wins with and without a
+ * task bar; the two margins are the fallback where anchor positioning is missing. */
+@supports (anchor-name: --a) {
+  .ds-board .react-flow__panel.ds-shelf,
+  .ds-board:has(.ds-taskbar) .react-flow__panel.ds-shelf {
+    position-anchor: --ds-board-controls;
+    bottom: anchor(top);
+    margin-block-end: var(--ds-space-inset-md);
+  }
+}
+/* The status line also sits 16 px above the controls at any row count, or above the shelf when there
+ * is one (ORV-192 row 2, ORV-194 row 5). It comes after both status rules and wins over them at
+ * equal specificity; the open list rule below is more specific and keeps its own placement. */
+@supports (anchor-name: --a) {
+  .ds-board:has(.ds-controls) .ds-board__status,
+  .ds-board:has(.ds-taskbar) .ds-board__status {
+    position-anchor: --ds-board-controls;
+    bottom: calc(anchor(top) + var(--ds-space-inset-md));
+  }
+}
+/* With a shelf on the board the status line stands 16 px above the shelf, never on a tile (ORV-194 row 5).
+ * Its specificity equals the controls rule above, so it comes after it; the open list rule below is
+ * more specific and still wins. */
+@supports (anchor-name: --a) {
+  .ds-board:has(.ds-shelf) .ds-board__status {
+    position-anchor: --ds-board-shelf;
+    bottom: calc(anchor(top) + var(--ds-space-inset-md));
+  }
+}
+/* The empty form never sits under the toolbar (ORV-223 D15). Without anchor positioning it starts at
+ * the top: the toolbar's height cannot be read, and clear beats centred. */
+.ds-board:has(.ds-controls) .ds-board__overlay:has(> .ds-empty-state) {
+  justify-content: flex-start;
+}
+/* The box is symmetric about the board's centre while there is room, so the form stays centred. When
+ * the form outgrows it, the auto margins fall to 0 and the reversed column grows it upward, away from
+ * the toolbar. A status line adds its own height: 41.8 px of padding, line and border, then 8 px. It
+ * is summed from the tokens that draw `.ds-board__status` (the pill comes after the overlay in the
+ * DOM, so the overlay cannot anchor to it); change its padding, type or border and this changes too. */
+@supports (anchor-name: --a) {
+  .ds-board:has(.ds-controls) .ds-board__overlay:has(> .ds-empty-state) {
+    --_clear: var(--ds-space-inset-md);
+    position-anchor: --ds-board-controls;
+    top: min(calc(anchor(top) - var(--_clear)), calc(100% - anchor(top) + var(--_clear)));
+    bottom: calc(anchor(top) + var(--_clear));
+    flex-direction: column-reverse;
+    padding-block: 0;
+  }
+  .ds-board:has(.ds-shelf) .ds-board__overlay:has(> .ds-empty-state) {
+    position-anchor: --ds-board-shelf;
+  }
+  .ds-board:has(.ds-board__status:not(:empty)) .ds-board__overlay:has(> .ds-empty-state) {
+    --_clear: calc(
+      var(--ds-space-inset-md) + 2 * var(--ds-space-inset-sm) +
+        var(--cmp-node-body-type-font-size) * var(--cmp-node-body-type-line-height) + 2px +
+        var(--ds-space-stack-sm)
+    );
+  }
+  .ds-board:has(.ds-controls) .ds-board__overlay > .ds-empty-state {
+    margin-block: auto;
+  }
+}
+/* With the bar's panel open the card covers the toolbar, so the form clears the higher of the two
+ * (ORV-223 D16). The pill has gone up to the board's start edge, so it adds nothing to the clear.
+ * The action stops rising one inset under the board's top: a full list must not push it off the
+ * board, where neither a pointer nor the focus line can reach it. */
+@supports (anchor-name: --a) {
+  .ds-board:has(.ds-controls):has(.ds-taskbar__panel:not([hidden]))
+    .ds-board__overlay:has(> .ds-empty-state) {
+    --_clear: var(--ds-space-inset-md);
+    --_floor: calc(var(--cmp-button-height-md) + var(--ds-space-inset-md));
+    top: min(
+      max(
+        min(
+          calc(anchor(top) - var(--_clear)),
+          calc(anchor(--ds-board-taskbar top) - var(--_clear))
+        ),
+        var(--_floor)
+      ),
+      max(
+        calc(100% - anchor(top) + var(--_clear)),
+        calc(100% - anchor(--ds-board-taskbar top) + var(--_clear))
+      ),
+      calc(100% - var(--_floor))
+    );
+    bottom: min(
+      max(calc(anchor(top) + var(--_clear)), calc(anchor(--ds-board-taskbar top) + var(--_clear))),
+      calc(100% - var(--_floor))
+    );
+  }
 }
 /* An open list adds up to its capped height to the bar. Only the status line clears it, and never
  * past the board's top edge; the toolbar, minimap and shelf keep their closed-bar places. */
@@ -4132,6 +5446,43 @@ button.ds-tag__main {
   grid-column: 2;
   justify-self: start;
 }
+/* D2: a 12 px column gap, and buttons pulled back by their own 8 px inline padding, so a button that
+ * wraps to the start of a line puts its icon on the basis word's edge; line 1 is unchanged. */
+.ds-chat__meta {
+  column-gap: var(--cmp-chat-turn-gap);
+}
+.ds-chat__meta .ds-button {
+  padding-inline: var(--cmp-chat-inline-gap); /* existing */
+  margin-inline-start: calc(-1 * var(--cmp-chat-inline-gap));
+}
+/* Copied: the muted voice of the basis word, at the end of the row (ORV-217 D1). */
+.ds-chat__copied {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+  color: var(--cmp-chat-muted-fg);
+}
+/* Copy failed: always a line of its own; mark on the row's edge, text hanging after it. */
+.ds-chat__copy-failed {
+  display: grid;
+  grid-template-columns: var(--cmp-chat-icon-size) minmax(0, 1fr);
+  column-gap: var(--cmp-chat-inline-gap);
+  flex-basis: 100%;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+  color: var(--cmp-chat-failed-fg);
+}
+/* Back to latest: shares the transcript's cell, centred at its foot, painted over it (ORV-217 D3). */
+.ds-chat__latest {
+  grid-area: log;
+  align-self: end;
+  justify-self: center;
+  position: relative;
+  display: flex;
+  max-inline-size: calc(100% - 2 * var(--cmp-chat-padding-x));
+  margin-block-end: var(--cmp-chat-padding-x);
+  border-radius: var(--ds-shape-control-radius);
+  box-shadow: var(--ds-elevation-overlay);
+}
 /* The composer: no rule above it. The box, then the honesty line 8 below it. */
 .ds-chat__composer {
   grid-area: composer;
@@ -4171,12 +5522,13 @@ button.ds-tag__main {
 .ds-chat__box:hover {
   border-color: var(--cmp-input-border-hover);
 }
-/* Chat composer only: while the textarea has focus the box's own 1 px border in the focus ink is the single focus line
- * (ORV-107 comments 10153, 10154), with no outline on top of it; a focused Send, Stop, Mention or chip button draws its
- * own 2 px ring and the box none. The field draws none. */
+/* Chat composer only: while the textarea has focus the box's own 1 px border in focus.ring is the focus line and the
+ * halo touches it (ORV-107 comments 10153, 10154; ORV-192 row 9), with no outline on top of it; a focused Send, Stop,
+ * Mention or chip button draws its own 1 px line and halo and the box none. The field draws none. */
 .ds-chat__box:has(textarea:focus) {
   border-color: var(--cmp-input-border-focus);
   outline: none;
+  box-shadow: var(--_focus-shadow-border);
 }
 .ds-chat__box:has(textarea[aria-invalid="true"]) {
   border-color: var(--cmp-input-border-error);
@@ -4195,6 +5547,7 @@ button.ds-tag__main {
 }
 .ds-chat__box .ds-control:focus-visible {
   outline: none;
+  box-shadow: var(--_focus-shadow-none);
 }
 .ds-chat__box .ds-textarea__counter {
   grid-area: count;
@@ -4310,6 +5663,29 @@ button.ds-tag__main {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* One-line labels clip at their padding box, and Sarabun's tallest stack (ปี๊, ฟื้) rises up to 3 px above a label line. Every ellipsis label pads its clip box 4 px out and cancels the space with a negative margin: no layout moves and no mark is cut (ORV-194 row 7). */
+.ds-control[data-trigger] > span:first-child,
+.ds-menu__option > span:first-child:not(.ds-menu__option-body),
+.ds-menu__option-label,
+.ds-menu__option-body > span:first-child,
+.ds-table__td[data-truncate] > .ds-table__cell,
+.ds-menu__item > span:first-child:not(.ds-menu__indicator),
+.ds-menu__item > .ds-menu__indicator + span,
+.ds-command__option > span:first-child,
+.ds-group__title,
+.ds-shelf__name,
+.ds-shelf__state,
+.ds-tag__label,
+.ds-taskbar__summary,
+.ds-taskbar__name,
+.ds-taskbar__progress .ds-progress__label,
+.ds-chat__option > span:first-child,
+.ds-breadcrumb__link,
+.ds-breadcrumb__page,
+.ds-nav-item[data-size="sm"] .ds-nav-item__label {
+  padding-block: var(--ds-space-inline-sm);
+  margin-block: calc(-1 * var(--ds-space-inline-sm));
+}
 .ds-chat__option[data-active] {
   background: var(--cmp-menu-option-bg-hover);
 }
@@ -4337,4 +5713,755 @@ button.ds-tag__main {
   .ds-chat__box {
     transition: none;
   }
+}
+
+/* Logo (ORV-118): colour only. Geometry, stroke widths and size are attributes the component writes. */
+.ds-logo {
+  display: block;
+  flex: none;
+}
+.ds-logo__ring,
+.ds-logo__strokes {
+  stroke: var(--cmp-logo-ink);
+}
+.ds-logo__fills {
+  fill: var(--cmp-logo-ink);
+}
+.ds-logo__dot {
+  fill: var(--cmp-logo-dot);
+}
+.ds-logo:is([data-form="16"], [data-form="24"]) .ds-logo__dot {
+  fill: var(--cmp-logo-dot-small);
+}
+/* Last on purpose: the same specificity as the rule above, so one colour wins in every form. */
+.ds-logo[data-tone="one-colour"] .ds-logo__dot {
+  fill: var(--cmp-logo-ink);
+}
+
+/* Collapsible (ORV-203): a ghost Button over content that is mounted only while open. The trigger
+ * label wraps and keeps the md height at one line; the chevron stays on the first line; the content
+ * starts on the label's start edge (Button padding plus its 1 px border). */
+.ds-collapsible {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-stack-sm);
+  min-inline-size: 0;
+}
+.ds-collapsible__trigger {
+  align-self: flex-start;
+  align-items: flex-start;
+  max-inline-size: 100%;
+  white-space: normal;
+  text-align: start;
+  padding-block: calc((var(--cmp-button-height-md) - 2px - 1lh) / 2);
+}
+.ds-collapsible__trigger .ds-button__icon {
+  margin-block-start: calc((1lh - var(--cmp-button-icon-size-md)) / 2);
+}
+.ds-collapsible__content {
+  min-inline-size: 0;
+  padding-inline: calc(var(--cmp-button-padding-x-md) + 1px);
+  overflow-wrap: break-word;
+  font-family: var(--ds-type-body-sm-font-family);
+  font-size: var(--ds-type-body-sm-font-size);
+  line-height: var(--ds-type-body-sm-line-height);
+  font-weight: var(--ds-type-body-sm-font-weight);
+  letter-spacing: var(--ds-type-body-sm-letter-spacing);
+  animation: ds-fade-in var(--ds-motion-feedback-duration) var(--ds-motion-easing);
+}
+/* Written on the bare class, after the fade, so it wins at the same specificity. */
+@media (prefers-reduced-motion: reduce) {
+  .ds-collapsible__content {
+    animation: none;
+  }
+}
+
+/* EvidenceSpan and EvidenceList (ORV-211): a Tag-form pill after a fact that opens a card with the
+ * quote, and a Collapsible list of quotes. The pill reuses the Tag classes; the quote and its source
+ * line are shared. The quote's start line is decoration (the blockquote carries the meaning). */
+.ds-evidence-span {
+  display: inline;
+}
+.ds-evidence-span__trigger {
+  vertical-align: baseline;
+  margin-inline-start: var(--ds-space-inline-sm);
+}
+.ds-evidence-span__missing {
+  margin-inline-start: var(--ds-space-inline-sm);
+  color: var(--ds-text-secondary);
+}
+.ds-evidence-card {
+  max-inline-size: var(--ds-size-panel-default);
+}
+.ds-evidence-quote__text {
+  margin: 0;
+  padding-inline-start: var(--ds-space-inline-md);
+  border-inline-start: 2px solid var(--ds-border-control);
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+  font-family: var(--ds-type-body-md-font-family);
+  font-size: var(--ds-type-body-md-font-size);
+  line-height: var(--ds-type-body-md-line-height);
+  font-weight: var(--ds-type-body-md-font-weight);
+  letter-spacing: var(--ds-type-body-md-letter-spacing);
+}
+.ds-evidence-quote__meta {
+  margin: 0;
+  margin-block-start: var(--ds-space-inline-sm);
+  color: var(--ds-text-secondary);
+  font-family: var(--ds-type-body-sm-font-family);
+  font-size: var(--ds-type-body-sm-font-size);
+  line-height: var(--ds-type-body-sm-line-height);
+  font-weight: var(--ds-type-body-sm-font-weight);
+  letter-spacing: var(--ds-type-body-sm-letter-spacing);
+}
+.ds-evidence-list__items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-stack-md);
+}
+/* The zero state takes the trigger's place: the same height and the same label edge. */
+.ds-evidence-list__missing {
+  display: flex;
+  align-items: center;
+  min-block-size: var(--cmp-button-height-md);
+  margin: 0;
+  padding-inline: calc(var(--cmp-button-padding-x-md) + 1px);
+  color: var(--ds-text-secondary);
+  font-family: var(--ds-type-body-sm-font-family);
+  font-size: var(--ds-type-body-sm-font-size);
+  line-height: var(--ds-type-body-sm-line-height);
+  font-weight: var(--ds-type-body-sm-font-weight);
+  letter-spacing: var(--ds-type-body-sm-letter-spacing);
+}
+
+/* Calendar (ORV-231, cal-look-1) ------------------------------------------------------------ */
+/*
+ * A month grid for one date. Selected is the selection ground with an edge, never the brand; every
+ * state differs by more than colour: hover has an edge, selected has an edge, today is underlined,
+ * disabled is struck through, focus is the border form. No opacity and no animation. The recipe
+ * sets no overflow on the calendar, the grid or the heading, so a Thai mark or a focus halo is
+ * never cut. `--_cell` is the cell size from a 360 px viewport up and shrinks under it so the
+ * seven columns still fit (the 2px is a popover's two borders).
+ */
+.ds-calendar {
+  --_cell: min(
+    var(--cmp-calendar-cell-size),
+    calc((100vw - 2 * var(--ds-space-gutter) - 2 * var(--cmp-calendar-padding) - 2px) / 7)
+  );
+  position: relative;
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  padding: var(--cmp-calendar-padding);
+  border-radius: var(--cmp-calendar-radius);
+  background: var(--cmp-calendar-bg);
+  color: var(--cmp-calendar-fg);
+}
+.ds-calendar__months {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cmp-calendar-months-gap);
+}
+/* The two month buttons float over the captions, so they span both months. */
+.ds-calendar__nav {
+  position: absolute;
+  inset-block-start: var(--cmp-calendar-padding);
+  inset-inline: calc(
+    var(--cmp-calendar-padding) + (var(--_cell) - var(--cmp-button-height-sm)) / 2
+  );
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+}
+.ds-calendar__nav > .ds-button {
+  position: relative;
+  pointer-events: auto;
+}
+/* The look stays sm; the press area reaches size.touch. */
+.ds-calendar__nav > .ds-button::after {
+  content: "";
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  inline-size: var(--cmp-calendar-cell-size);
+  block-size: var(--cmp-calendar-cell-size);
+  translate: -50% -50%;
+}
+/* A month reserves six rows, so the panel and the Next button hold at four, five and six rows. */
+.ds-calendar__month {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cmp-calendar-gap);
+  inline-size: calc(7 * var(--_cell));
+  min-block-size: calc(
+    2 * var(--cmp-button-height-sm) + var(--cmp-calendar-gap) + 6 *
+      (var(--_cell) + var(--cmp-calendar-row-gap))
+  );
+}
+.ds-calendar__caption {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: var(--cmp-button-height-sm);
+}
+.ds-calendar__heading {
+  font-family: var(--cmp-calendar-heading-type-font-family);
+  font-size: var(--cmp-calendar-heading-type-font-size);
+  line-height: var(--cmp-calendar-heading-type-line-height);
+  font-weight: var(--cmp-calendar-heading-type-font-weight);
+  letter-spacing: var(--cmp-calendar-heading-type-letter-spacing);
+}
+.ds-calendar__grid {
+  inline-size: 100%;
+  margin-block: calc(-1 * var(--cmp-calendar-row-gap));
+  border-collapse: separate;
+  border-spacing: 0 var(--cmp-calendar-row-gap);
+  table-layout: fixed;
+}
+.ds-calendar__weekday {
+  block-size: var(--cmp-button-height-sm);
+  padding: 0;
+  color: var(--cmp-calendar-weekday-fg);
+  font-family: var(--cmp-calendar-weekday-type-font-family);
+  font-size: var(--cmp-calendar-weekday-type-font-size);
+  line-height: var(--cmp-calendar-weekday-type-line-height);
+  font-weight: var(--cmp-calendar-weekday-type-font-weight);
+  letter-spacing: var(--cmp-calendar-weekday-type-letter-spacing);
+  text-align: center;
+}
+.ds-calendar__day {
+  position: relative;
+  inline-size: var(--_cell);
+  block-size: var(--_cell);
+  padding: 0;
+}
+/* The button fills its cell's width, so a calendar in a narrow column narrows its days and keeps their height. */
+.ds-calendar__day-button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  inline-size: 100%;
+  block-size: var(--_cell);
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--cmp-calendar-day-radius);
+  background: transparent;
+  color: var(--cmp-calendar-fg);
+  font-family: var(--cmp-calendar-day-type-font-family);
+  font-size: var(--cmp-calendar-day-type-font-size);
+  line-height: var(--cmp-calendar-day-type-line-height);
+  font-weight: var(--cmp-calendar-day-type-font-weight);
+  letter-spacing: var(--cmp-calendar-day-type-letter-spacing);
+  text-decoration-skip-ink: none;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.25em;
+  cursor: pointer;
+}
+/* Hover never reaches a disabled day (its ink falls under 3.0 on the hover ground) or a focused one. */
+.ds-calendar__day-button:hover:not(:disabled):not([aria-disabled="true"]):not(:focus-visible) {
+  border-color: var(--cmp-calendar-day-hover-edge);
+  background: var(--cmp-calendar-day-hover-bg);
+}
+.ds-calendar__day[data-today] > .ds-calendar__day-button {
+  text-decoration-line: underline;
+}
+.ds-calendar__day[data-selected] > .ds-calendar__day-button {
+  border-color: var(--cmp-calendar-day-selected-edge);
+  background: var(--cmp-calendar-day-selected-bg);
+  color: var(--cmp-calendar-day-selected-fg);
+}
+.ds-calendar__day[data-selected]
+  > .ds-calendar__day-button:hover:not(:disabled):not([aria-disabled="true"]):not(:focus-visible) {
+  border-color: var(--cmp-calendar-day-hover-edge);
+  background: var(--cmp-calendar-day-selected-bg);
+}
+/* Disabled and focus are raised to the cell's child so they beat the selected rule above. */
+.ds-calendar__day > .ds-calendar__day-button:is(:disabled, [aria-disabled="true"]) {
+  color: var(--cmp-calendar-day-disabled-fg);
+  text-decoration-line: line-through;
+  text-decoration-thickness: 1px;
+  cursor: not-allowed;
+}
+.ds-calendar__day[data-today] > .ds-calendar__day-button:is(:disabled, [aria-disabled="true"]) {
+  text-decoration-line: underline line-through;
+}
+.ds-calendar__day > .ds-calendar__day-button:focus-visible {
+  z-index: 1;
+  border-color: var(--ds-focus-ring);
+  outline: 1px solid transparent;
+  outline-offset: 0;
+  box-shadow: var(--_focus-shadow-border);
+}
+
+/* Page header (ORV-225, page-header-slots-1, header-type-1, header-stack-1): a title, a line of
+ * description, a row of labels and the page's actions. The root is a size container named
+ * ds-page-header, because the parts nest in each other and in the screen's own container; a
+ * container cannot be styled by its own query, so the row is the child that changes. The title
+ * takes the size, weight and family of type.display.md, the 1.7 line of type.heading.sm so wrapped
+ * Thai lines clear (ORV-194) and 8 px of top padding, where the 1.7 line already lowers the ink. */
+
+.ds-page-header {
+  container: ds-page-header / inline-size;
+  inline-size: 100%;
+  min-inline-size: 0;
+}
+/* From 480 up the title block keeps nine title sizes (288 px under neutral) and the actions wrap
+ * under it, on the same start edge, when they would leave it less (header-stack-1). The basis sits
+ * here, above the @container block, which stays last: at 479 and below its flex: none must win,
+ * because in a column the basis would be a height. The row, description and actions rules are
+ * shared with Section header (ORV-251), which adds its names to these selectors. */
+.ds-page-header__row,
+.ds-section-header__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--ds-space-inset-md);
+}
+.ds-page-header__text {
+  display: flex;
+  flex: 1 1 calc(9 * var(--ds-type-display-md-font-size));
+  flex-direction: column;
+  gap: var(--ds-space-stack-sm);
+  min-inline-size: 0;
+}
+.ds-page-header__title {
+  margin: 0;
+  padding-block-start: var(--ds-space-stack-sm);
+  color: var(--ds-text-primary);
+  font-family: var(--ds-type-display-md-font-family);
+  font-size: var(--ds-type-display-md-font-size);
+  line-height: var(--ds-type-heading-sm-line-height);
+  font-weight: var(--ds-type-display-md-font-weight);
+  letter-spacing: var(--ds-type-display-md-letter-spacing);
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+.ds-page-header__description,
+.ds-section-header__description {
+  margin: 0;
+  max-inline-size: 65ch;
+  color: var(--ds-text-secondary);
+  font-family: var(--ds-type-body-md-font-family);
+  font-size: var(--ds-type-body-md-font-size);
+  line-height: var(--ds-type-body-md-line-height);
+  font-weight: var(--ds-type-body-md-font-weight);
+  letter-spacing: var(--ds-type-body-md-letter-spacing);
+}
+.ds-page-header__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ds-space-inline-md);
+  margin: 0;
+  color: var(--ds-text-secondary);
+  font-family: var(--ds-type-body-sm-font-family);
+  font-size: var(--ds-type-body-sm-font-size);
+  line-height: var(--ds-type-body-sm-line-height);
+  font-weight: var(--ds-type-body-sm-font-weight);
+}
+.ds-page-header__actions,
+.ds-section-header__actions {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ds-space-inline-md);
+  max-inline-size: 100%;
+}
+@container ds-page-header (max-width: 479px) {
+  .ds-page-header__row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .ds-page-header__text {
+    flex: none;
+    inline-size: 100%;
+  }
+}
+
+/* Section header (ORV-251, section-header-1, header-type-1, header-stack-1): the title of one block
+ * of a screen, with an optional description, actions and a divider. It shares the row, the
+ * description and the actions rules of the Page header above; its own are the column that puts
+ * children 16 under the title row, the 20 / 1.7 title of type.heading.sm and the floor of its
+ * title block, size.panel.min (240 px), twelve of its title sizes. The root is a size container
+ * named ds-section-header; the query below stays last so that at 479 and below its flex: none
+ * replaces the basis, which in a column would be a height. A divider draws one 1 px edge under the
+ * block, and the component sets data-divider only when no children follow, because Tabs draws its
+ * own line and an edge takes one line. */
+
+.ds-section-header {
+  container: ds-section-header / inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-stack-md);
+  inline-size: 100%;
+  min-inline-size: 0;
+}
+.ds-section-header[data-divider] {
+  padding-block-end: var(--ds-space-stack-md);
+  border-block-end: 1px solid var(--ds-border-subtle);
+}
+.ds-section-header__text {
+  display: flex;
+  flex: 1 1 var(--ds-size-panel-min);
+  flex-direction: column;
+  gap: var(--ds-space-inline-md);
+  min-inline-size: 0;
+}
+.ds-section-header__title {
+  margin: 0;
+  color: var(--ds-text-primary);
+  font-family: var(--ds-type-heading-sm-font-family);
+  font-size: var(--ds-type-heading-sm-font-size);
+  line-height: var(--ds-type-heading-sm-line-height);
+  font-weight: var(--ds-type-heading-sm-font-weight);
+  letter-spacing: var(--ds-type-heading-sm-letter-spacing);
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+@container ds-section-header (max-width: 479px) {
+  .ds-section-header__row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .ds-section-header__text {
+    flex: none;
+    inline-size: 100%;
+  }
+}
+
+/* Breadcrumb (ORV-229): a trail of places, quiet navigation. The nav item tokens give the link ink;
+ * the current crumb reads text.primary, not a nav item token, because a current place is never a
+ * selection (ORV-252, crumb-look-1). It differs from a link by weight and behaviour, not by colour
+ * alone. Every item keeps the control-sm height so each line of a wrapped trail, with or without
+ * the ellipsis, is one height. */
+.ds-breadcrumb__list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  min-block-size: var(--ds-size-control-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--cmp-nav-item-fg);
+  font-family: var(--ds-type-body-sm-font-family);
+  font-size: var(--ds-type-body-sm-font-size);
+  line-height: var(--ds-type-body-sm-line-height);
+  font-weight: var(--ds-type-body-sm-font-weight);
+  letter-spacing: var(--ds-type-body-sm-letter-spacing);
+}
+.ds-breadcrumb__item {
+  display: flex;
+  align-items: center;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  min-block-size: var(--ds-size-control-sm);
+}
+/* A label stays on one line: the trail wraps first, and only a crumb wider than a whole line is cut at the end of its line. The clip box and its Thai padding come from the shared list above. */
+.ds-breadcrumb__link,
+.ds-breadcrumb__page {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* A link pads its inline sides and cancels the padding with a margin, so no ink moves and the focus line clears the glyphs. */
+.ds-breadcrumb__link {
+  padding-inline: var(--ds-space-inline-sm);
+  margin-inline: calc(-1 * var(--ds-space-inline-sm));
+  color: var(--cmp-nav-item-fg);
+  text-decoration: none;
+  text-underline-offset: 0.2em;
+}
+.ds-breadcrumb__item:last-child > .ds-breadcrumb__link,
+.ds-breadcrumb__item:last-child > .ds-breadcrumb__page {
+  margin-inline-end: 0;
+}
+.ds-breadcrumb__link:hover {
+  color: var(--cmp-nav-item-fg-hover);
+  text-decoration: underline;
+}
+/* The focus corner rounds the box that clips the text, so it stays small: a pill cuts Thai marks at both ends of a label. The line and the halo stay global. */
+.ds-breadcrumb__link:focus-visible {
+  border-radius: var(--ds-shape-check-radius);
+}
+/* The current crumb pads its inline sides as a link does: its box clips its text, and Thai marks overhang both ends of a label. The margin keeps the ink where it was. */
+.ds-breadcrumb__page {
+  padding-inline: var(--ds-space-inline-sm);
+  margin-inline: calc(-1 * var(--ds-space-inline-sm));
+  color: var(--ds-text-primary);
+  font-family: var(--ds-type-label-md-font-family);
+  font-size: var(--ds-type-label-md-font-size);
+  line-height: var(--ds-type-label-md-line-height);
+  font-weight: var(--ds-type-label-md-font-weight);
+  letter-spacing: var(--ds-type-label-md-letter-spacing);
+}
+.ds-breadcrumb__separator {
+  flex: none;
+  margin-inline: var(--ds-space-inline-md);
+  color: var(--cmp-nav-item-fg);
+}
+/* The ellipsis is a ghost Button: it reads the trail's ink, and a negative margin takes back the empty part of its square. */
+.ds-breadcrumb__item > .ds-button[data-variant="ghost"] {
+  margin-inline: calc(-1 * var(--ds-space-inline-md));
+  color: var(--cmp-nav-item-fg);
+}
+.ds-breadcrumb__item > .ds-button[data-variant="ghost"]:hover,
+.ds-breadcrumb__item > .ds-button[data-variant="ghost"]:active {
+  color: var(--cmp-nav-item-fg-hover);
+}
+/* An icon-only Button gives its child no size; the glyph draws at the button icon size. */
+.ds-breadcrumb .ds-button[data-icon-only] > svg {
+  inline-size: var(--cmp-button-icon-size-md);
+  block-size: var(--cmp-button-icon-size-md);
+}
+
+/* Nav item (ORV-252, nav-item-1, nav-look-1, nav-focus-1, nav-size-1): one link row for Top
+ * navigation and its drawer. Colour comes from the nav-item tokens only. The `sm` size is the Top
+ * navigation pill (one line, 32 tall); the base size is the drawer row (at least --ds-size-touch,
+ * the label wraps). `--_nav-height` and `--_nav-pad` are local properties. A marked row keeps its
+ * active colours under the pointer because [aria-current] follows :hover. */
+.ds-nav-item {
+  --_nav-height: var(--cmp-nav-item-height);
+  --_nav-pad: var(--ds-space-inset-md);
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: var(--ds-space-inline-md);
+  inline-size: 100%;
+  min-block-size: var(--_nav-height);
+  padding-block: calc((var(--_nav-height) - 1lh) / 2);
+  padding-inline: var(--_nav-pad) var(--ds-space-inset-md);
+  border: 0;
+  border-radius: var(--cmp-nav-item-row-radius);
+  background: transparent;
+  color: var(--cmp-nav-item-fg);
+  font-family: var(--ds-type-label-md-font-family);
+  font-size: var(--ds-type-label-md-font-size);
+  line-height: var(--ds-type-label-md-line-height);
+  font-weight: var(--ds-type-label-md-font-weight);
+  letter-spacing: var(--ds-type-label-md-letter-spacing);
+  text-align: start;
+  text-decoration: none;
+  white-space: normal;
+  cursor: pointer;
+  transition:
+    background-color var(--ds-motion-feedback-duration) var(--ds-motion-easing),
+    color var(--ds-motion-feedback-duration) var(--ds-motion-easing);
+}
+.ds-nav-item[data-size="sm"] {
+  --_nav-height: var(--ds-size-control-sm);
+  display: inline-flex;
+  align-items: center;
+  inline-size: auto;
+  max-inline-size: 100%;
+  block-size: var(--_nav-height);
+  min-block-size: 0;
+  padding-block: 0;
+  border-radius: var(--cmp-nav-item-radius);
+  font-family: var(--ds-type-control-md-font-family);
+  font-size: var(--ds-type-control-md-font-size);
+  line-height: var(--ds-type-control-md-line-height);
+  font-weight: var(--ds-type-control-md-font-weight);
+  letter-spacing: var(--ds-type-control-md-letter-spacing);
+  white-space: nowrap;
+}
+.ds-nav-item:hover {
+  background: var(--cmp-nav-item-bg-hover);
+  color: var(--cmp-nav-item-fg-hover);
+}
+.ds-nav-item[aria-current] {
+  background: var(--cmp-nav-item-bg-active);
+  color: var(--cmp-nav-item-fg-active);
+}
+/* Inside the row, like the Tabs trigger: a scroll box such as the drawer body cannot clip it. */
+.ds-nav-item:focus-visible {
+  outline: 1px solid var(--ds-focus-ring);
+  outline-offset: -1px;
+  box-shadow: var(--_focus-shadow-inset);
+}
+.ds-nav-item__bead {
+  position: absolute;
+  inset-inline-start: calc(
+    var(--_nav-pad) - var(--cmp-nav-item-bead-size) - var(--ds-space-inline-sm)
+  );
+  inset-block-start: calc((var(--_nav-height) - var(--cmp-nav-item-bead-size)) / 2);
+  inline-size: var(--cmp-nav-item-bead-size);
+  block-size: var(--cmp-nav-item-bead-size);
+  border-radius: var(--cmp-nav-item-radius);
+  background: var(--cmp-nav-item-bead);
+}
+.ds-nav-item__icon {
+  display: inline-flex;
+  flex: none;
+  inline-size: var(--ds-size-icon-sm);
+  block-size: var(--ds-size-icon-sm);
+  margin-block-start: calc((1lh - var(--ds-size-icon-sm)) / 2);
+}
+.ds-nav-item[data-size="sm"] .ds-nav-item__icon {
+  margin-block-start: 0;
+}
+.ds-nav-item__icon > svg {
+  inline-size: 100%;
+  block-size: 100%;
+}
+.ds-nav-item__label {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+/* One line, cut at its end. The clip box and its block padding come from the shared list above. The
+ * inline sides pad as the Breadcrumb crumb does and the margin cancels it: Thai marks overhang both
+ * ends of a label, and the box that clips the text must not slice them. */
+.ds-nav-item[data-size="sm"] .ds-nav-item__label {
+  flex: 0 1 auto;
+  padding-inline: var(--ds-space-inline-sm);
+  margin-inline: calc(-1 * var(--ds-space-inline-sm));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ds-nav-item__badge {
+  display: inline-flex;
+  flex: none;
+  margin-block-start: calc((1lh - var(--cmp-badge-height-sm)) / 2);
+}
+.ds-nav-item[data-size="sm"] .ds-nav-item__badge {
+  margin-block-start: 0;
+}
+
+.ds-nav-drawer__list,
+.ds-top-nav__list {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-inline-size: 0;
+}
+.ds-nav-drawer__list {
+  flex-direction: column;
+  gap: var(--ds-space-inline-sm);
+}
+
+/* Top navigation (ORV-252, top-nav-1, nav-narrow-1, top-skip-1): the header, a row of the brand,
+ * the section links and the actions. The root is a container named ds-top-nav, because the parts
+ * nest and an unnamed query would read the wrong one. At 767 and below the links and the second row
+ * hide and the opener shows (a query cannot read a custom property; --op-breakpoint-md is 768). */
+.ds-top-nav {
+  container: ds-top-nav / inline-size;
+  position: relative;
+  inline-size: 100%;
+}
+.ds-top-nav__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ds-space-inline-lg);
+  min-inline-size: 0;
+}
+/* Recipes have no layer, so this beats a pt-4 in contentClassName. */
+.ds-top-nav__row[data-row="sub"] {
+  padding-block-start: var(--ds-space-inline-sm);
+}
+.ds-top-nav__nav {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: var(--ds-space-inline-lg);
+  min-inline-size: 0;
+}
+.ds-top-nav__actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--ds-space-inline-md);
+}
+.ds-top-nav__list {
+  align-items: center;
+  gap: var(--ds-space-inline-sm);
+}
+/* The cap sits on the item, not the link, or a capped link leaves a gap. */
+.ds-top-nav__list > li {
+  display: flex;
+  flex: 0 1 auto;
+  min-inline-size: 0;
+  max-inline-size: var(--ds-size-panel-min);
+}
+.ds-top-nav__opener {
+  display: none;
+}
+@container ds-top-nav (max-width: 767px) {
+  .ds-top-nav__list,
+  .ds-top-nav__row[data-row="sub"] {
+    display: none;
+  }
+  .ds-top-nav__opener {
+    display: inline-flex;
+  }
+}
+/* In view it is one opaque bar over the header; out of view while it has no focus. The bar fills the
+ * header and draws its focus inside, because it has no room around it. The hidden form is the base
+ * and focus lifts it: a :not(:focus) selector is rewritten by the pseudo-states addon into one that
+ * always matches, so the story would never see the bar. */
+.ds-top-nav__skip {
+  position: absolute;
+  inset: 0;
+  z-index: var(--ds-layer-overlay);
+  display: flex;
+  align-items: center;
+  border-radius: var(--ds-shape-media-radius);
+  background: var(--ds-surface-card);
+  color: var(--ds-text-primary);
+  font-family: var(--ds-type-control-md-font-family);
+  font-size: var(--ds-type-control-md-font-size);
+  line-height: var(--ds-type-control-md-line-height);
+  font-weight: var(--ds-type-control-md-font-weight);
+  text-decoration: none;
+  white-space: nowrap;
+  clip-path: inset(50%);
+  inline-size: 1px;
+  block-size: 1px;
+  padding: 0;
+  overflow: hidden;
+}
+.ds-top-nav__skip:focus {
+  clip-path: none;
+  inline-size: auto;
+  block-size: auto;
+  padding-inline: var(--ds-space-inset-md);
+  outline: 1px solid var(--ds-focus-ring);
+  outline-offset: -1px;
+  box-shadow: var(--_focus-shadow-inset);
+  overflow: visible;
+}
+/* Opacity, not visibility: the row keeps its Tab stops, and the next Tab must reach them. */
+.ds-top-nav__skip:focus ~ .ds-top-nav__row {
+  opacity: 0;
+}
+
+/* The drawer (ORV-252, nav-narrow-1, nav-size-1): items at least --ds-size-touch tall. The body
+ * bleeds 16 each way so the fill starts at 8 and the labels sit on the 24 edge under the title. */
+.ds-nav-drawer .ds-side-sheet__body {
+  margin-inline: calc(-1 * var(--ds-space-inset-md));
+  padding-inline: 0;
+}
+.ds-nav-drawer .ds-nav-item {
+  --_nav-height: var(--ds-size-touch);
+}
+.ds-nav-drawer__label {
+  margin: 0;
+  padding-block: var(--ds-space-stack-sm) var(--ds-space-inline-sm);
+  padding-inline: var(--ds-space-inset-md);
+  color: var(--cmp-nav-item-fg);
+  font-family: var(--ds-type-body-sm-font-family);
+  font-size: var(--ds-type-body-sm-font-size);
+  line-height: var(--ds-type-body-sm-line-height);
+  font-weight: var(--ds-type-body-sm-font-weight);
 }

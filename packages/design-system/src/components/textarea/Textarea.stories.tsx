@@ -48,9 +48,14 @@ export const Sizes: Story = {
   },
 };
 
+/** A synthetic pointer sets no `:hover`, so `parameters.pseudo` forces the hover look (spec ORV-84, `hover-force-1`). */
 export const InteractionStates: Story = {
+  parameters: { pseudo: { rootSelector: "body", hover: ['[data-testid="hover"]'] } },
   render: (args) => (
     <div className="flex max-w-md flex-col gap-4">
+      <Field label="Default">
+        <Textarea {...args} data-testid="default" />
+      </Field>
       <Field label="Hover">
         <Textarea {...args} data-testid="hover" />
       </Field>
@@ -64,6 +69,11 @@ export const InteractionStates: Story = {
     await userEvent.hover(canvas.getByTestId("hover"));
     canvas.getByTestId("focus").focus();
     await expect(canvas.getByTestId("focus")).toHaveFocus();
+    await waitFor(() =>
+      expect(getComputedStyle(canvas.getByTestId("hover")).borderColor).not.toBe(
+        getComputedStyle(canvas.getByTestId("default")).borderColor,
+      ),
+    );
   },
 };
 

@@ -12,6 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "parse5": "8.0.1",
     "zod": "4.6.6"
   },
   "devDependencies": {

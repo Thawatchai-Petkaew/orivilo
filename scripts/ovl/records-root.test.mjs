@@ -9,6 +9,7 @@ import {
   readdirSync,
   readFileSync,
   realpathSync,
+  rmSync,
   symlinkSync,
   writeFileSync,
 } from "node:fs";
@@ -16,6 +17,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { handle, recordsRoot } from "./hook.mjs";
+import { worktreesOf } from "./records.mjs";
 import {
   agentInput,
   fixture,
@@ -34,24 +36,12 @@ import {
   seedVerdict,
   startInput,
   stopInput,
+  twoCheckouts,
   validEnvelope,
 } from "./hook-test-kit.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const git = (cwd, ...args) => execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
-
-/** A repo with one commit and a second worktree on its own branch. */
-function twoCheckouts(branch = "feature/ORV-1-test") {
-  const main = makeRepo(branch);
-  git(main, "config", "user.email", "t@example.com");
-  git(main, "config", "user.name", "t");
-  git(main, "add", "-A");
-  git(main, "commit", "-q", "-m", "base");
-  const parent = realpathSync(mkdtempSync(join(tmpdir(), "ovl-wt-")));
-  const wt = join(parent, "second");
-  git(main, "worktree", "add", "-q", "-b", "feature/ORV-2-second", wt);
-  return { main, wt };
-}
 
 const runScript = (script, cwd, ...args) => {
   const r = spawnSync(process.execPath, [join(here, script), ...args], { cwd, encoding: "utf8" });
@@ -64,6 +54,33 @@ test("recordsRoot is the main checkout from the main checkout and from a second 
   assert.equal(recordsRoot(wt), main);
   mkdirSync(join(wt, "docs"), { recursive: true });
   assert.equal(recordsRoot(join(wt, "docs")), main);
+});
+
+test("ORV-146: worktreesOf lists every worktree of the repo with its branch, from any of them", () => {
+  const { main, wt } = twoCheckouts();
+  const expected = [
+    { path: main, branch: "feature/ORV-1-test" },
+    { path: wt, branch: "feature/ORV-2-second" },
+  ];
+  assert.deepEqual(worktreesOf(main), expected);
+  assert.deepEqual(worktreesOf(wt), expected);
+  git(wt, "checkout", "-q", "--detach");
+  assert.equal(worktreesOf(main).find((w) => w.path === wt).branch, "");
+});
+
+test("ORV-146: worktreesOf leaves out a worktree whose folder is gone", () => {
+  const { main, wt } = twoCheckouts();
+  rmSync(wt, { recursive: true });
+  assert.deepEqual(worktreesOf(main), [{ path: main, branch: "feature/ORV-1-test" }]);
+});
+
+test("ORV-146: worktreesOf leaves out the bare repo that worktrees hang from", () => {
+  const { main } = twoCheckouts();
+  const bare = join(realpathSync(mkdtempSync(join(tmpdir(), "ovl-bare-"))), "repo.git");
+  git(main, "clone", "-q", "--bare", main, bare);
+  const wt = join(dirname(bare), "wt");
+  git(bare, "worktree", "add", "-q", wt, "feature/ORV-1-test");
+  assert.deepEqual(worktreesOf(wt), [{ path: realpathSync(wt), branch: "feature/ORV-1-test" }]);
 });
 
 test("a cwd that no longer exists fails closed with a clear message, not a raw ENOENT", () => {
@@ -148,13 +165,15 @@ test("metrics collect run from a worktree reads and writes under the main checko
 
 // ---- R89-4: each store redirection is decided by the main checkout, run from a second worktree ----
 
-test("a second builder is blocked by an open builder recorded in the main checkout", () => {
+test("a second builder of one issue is blocked by an open builder recorded in the main checkout", () => {
   const { main, wt } = twoCheckouts();
-  seedTask(main, "ORV-1", "ORV-1-a", { envelope: validEnvelope(main) });
+  seedTask(main, "ORV-2", "ORV-2-first", {
+    envelope: validEnvelope(wt, { task_id: "ORV-2-first", issue: "ORV-2" }),
+  });
   const envelope = validEnvelope(wt, { task_id: "ORV-2-a", issue: "ORV-2" });
   const r = runNode(hook("envelope-guard.mjs"), agentInput(wt, envelope));
   assert.equal(r.code, 2);
-  assert.match(r.stderr, /ORV-1-a is still open/);
+  assert.match(r.stderr, /ORV-2-first is still open/);
 });
 
 test("a builder without rework_of is blocked by a request_changes recorded in the main checkout", () => {

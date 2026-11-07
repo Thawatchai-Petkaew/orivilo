@@ -37,7 +37,9 @@ export const Default: Story = {
     for (const id of ids) {
       const control =
         bar.querySelector(`[data-command="${id}"]`) ??
-        within(bar).queryByRole("radio", { name: new RegExp(commandById(id).label.th) });
+        within(bar).queryByRole("radio", {
+          name: (name: string) => name.includes(commandById(id).label.th),
+        });
       await expect(control, id).not.toBeNull();
     }
     await expect(within(bar).getByRole("button", { name: /ซูม 100/ })).toHaveTextContent("%");

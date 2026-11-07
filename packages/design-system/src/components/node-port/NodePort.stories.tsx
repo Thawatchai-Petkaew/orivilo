@@ -5,7 +5,7 @@ import { useDesignProfile } from "../../boundary/DesignProfileBoundary";
 import { CANVAS_WORDS, PORT_KINDS, portShape } from "../../tokens/canvas";
 import { CanvasBoard, type CanvasBoardProps } from "../canvas-board/CanvasBoard";
 import type { Graph, PortSpec } from "../canvas-board/graph";
-import { Matrix } from "../matrix";
+import { fillHeight, Matrix } from "../matrix";
 import { PortGlyph, type PortState } from "./NodePort";
 
 const ports: PortSpec[] = PORT_KINDS.map((kind) => ({
@@ -76,7 +76,7 @@ function PortBoard({
   const scope = useDesignProfile();
   const id = typeof scope?.profile === "string" ? scope.profile : scope?.profile.id;
   return (
-    <div style={{ height }}>
+    <div style={{ height: fillHeight(height) }}>
       <CanvasBoard
         label={`ตัวอย่างพอร์ต${scope ? `, ${id} ${scope.mode}` : ""}`}
         {...rest}

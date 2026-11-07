@@ -116,7 +116,7 @@ export interface CardValueProps extends ComponentPropsWithoutRef<"p"> {
   children: ReactNode;
 }
 
-/** The big figure of a bento tile: body face at weight 600, tight tracking on digits. */
+/** The big figure of a bento tile: body face at weight 500, tight tracking on digits. */
 export function CardValue({ className, ...rest }: CardValueProps) {
   const { interactive } = useContext(CardContext);
   const Tag = interactive ? "span" : "p";

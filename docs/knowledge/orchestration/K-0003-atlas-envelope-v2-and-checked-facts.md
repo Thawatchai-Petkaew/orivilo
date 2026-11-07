@@ -2,7 +2,7 @@
 id: K-0003
 topic: orchestration
 claim: An Atlas dispatch is one JSON envelope with one objective (version 2 in the Codex port requires role, write set, report contract and model selection), and every fact carries a checked_by, which the require-checked-by hook enforces by blocking bare-string facts.
-source: "~/My Work/TechFlow/AI-First/allkons-marketplace/.codex/references/runtime.md:67-70; .claude/skills/atlas/references/dispatch.md:11-27; .claude/hooks/require-checked-by.py:2-7"
+source: "https://bitbucket.org/ThammasornDEV/allkons-marketplace .codex/references/runtime.md:67-70; .claude/skills/atlas/references/dispatch.md:11-27; .claude/hooks/require-checked-by.py:2-7"
 retrieved: 2026-10-23
 confidence: 0.8
 applies_to: [ORV-81]

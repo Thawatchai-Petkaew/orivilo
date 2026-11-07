@@ -17,7 +17,7 @@ const PATTERNS = [
     why: "a raw Tailwind palette colour",
   },
   {
-    re: /(?<![\w-])rounded(?:-[trblse]{1,2})?-(?:none|xs|sm|md|lg|xl|2xl|3xl|4xl|full|\[)/,
+    re: /(?<![\w-])rounded(?:-[trblse]{1,2}|)-(?:none|xs|sm|md|lg|xl|2xl|3xl|4xl|full|\[)/,
     why: "a raw radius",
   },
   { re: /(?<![\w-])shadow-(?:none|2xs|xs|sm|md|lg|xl|2xl|inner|\[)/, why: "a raw shadow" },

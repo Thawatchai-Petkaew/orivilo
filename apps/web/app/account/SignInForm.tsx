@@ -17,7 +17,16 @@ function SignInNotice({ state, labels }: { state: SignInState; labels: SignInLab
               {labels.account.problem}
             </Badge>
           </span>
-          <p className="text-body-md text-pretty">{line}</p>
+          <p className="text-body-md text-pretty">
+            {line.reason}
+            {line.retry ? (
+              <>
+                {" "}
+                <span className="inline-block">{line.retry}</span>
+              </>
+            ) : null}
+          </p>
+          {line.reference ? <p className="text-body-md">{line.reference}</p> : null}
         </>
       ) : null}
     </div>

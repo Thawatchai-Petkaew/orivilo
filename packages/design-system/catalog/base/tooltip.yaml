@@ -22,6 +22,7 @@ rules:
   - "Never the only way to learn a control's name; the control carries an accessible name itself"
   - "No interactive content inside, the description included"
   - "`align` start or end for a trigger near a panel edge; center otherwise"
+  - "Title over supporting text (ORV-192 row 17): one size, title 500 in the ground's primary ink, text 400 in its secondary ink, 4 px apart"
 a11y:
   - "Opens on focus as well as hover; Escape closes"
   - "Linked to its trigger with aria-describedby"

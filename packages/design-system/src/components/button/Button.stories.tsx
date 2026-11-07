@@ -1,9 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, fn, userEvent, within } from "storybook/test";
+import { expect, fn, userEvent, waitFor, within } from "storybook/test";
+import { DesignProfileBoundary, type Mode } from "../../boundary/DesignProfileBoundary";
+import { expectFocusBorderForm, expectInkCentred, inVitest } from "../../testing/visual-asserts";
 import { fixtures } from "../fixtures";
 import { ChevronDownIcon, PlusIcon } from "../icons";
 import { Matrix, Narrow } from "../matrix";
-import { Button, type ButtonVariant } from "./Button";
+import { Button, type ButtonVariant, type ControlSize } from "./Button";
 
 const VARIANTS: readonly ButtonVariant[] = [
   "primary",
@@ -18,7 +20,7 @@ const meta = {
   title: "Base/Button",
   component: Button,
   args: { children: fixtures.thai, onClick: fn() },
-  parameters: { layout: "padded" },
+  parameters: { layout: "centered" },
 } satisfies Meta<typeof Button>;
 
 export default meta;
@@ -34,6 +36,19 @@ export const Variants: Story = {
       ))}
     </div>
   ),
+  play: async ({ canvasElement }) => {
+    // A small component sits in the middle of the canvas on both axes (spec ORV-189, `centre-1`).
+    const row = within(canvasElement).getAllByRole("button")[0]?.parentElement as HTMLElement;
+    const surface = row.parentElement as HTMLElement;
+    const at = row.getBoundingClientRect();
+    const around = surface.getBoundingClientRect();
+    await expect(
+      Math.abs(at.left + at.width / 2 - (around.left + around.width / 2)),
+    ).toBeLessThanOrEqual(1);
+    await expect(
+      Math.abs(at.top + at.height / 2 - (around.top + around.height / 2)),
+    ).toBeLessThanOrEqual(1);
+  },
 };
 
 export const Sizes: Story = {
@@ -52,10 +67,18 @@ export const Sizes: Story = {
   ),
 };
 
-/** Hover, focus-visible and pressed are interaction states; the play function puts one instance in each. */
+/**
+ * Hover, focus-visible and pressed are interaction states; the play function puts one instance in
+ * each. A synthetic pointer sets no `:hover`, so `parameters.pseudo` forces the hover look on the
+ * hover button (spec ORV-84, `hover-force-1`) and the play asserts it against a default button.
+ */
 export const InteractionStates: Story = {
+  parameters: { pseudo: { rootSelector: "body", hover: ['[data-testid="hover"]'] } },
   render: (args) => (
     <div className="flex flex-wrap items-center gap-3">
+      <Button {...args} variant="primary" data-testid="default">
+        Default
+      </Button>
       <Button {...args} variant="primary" data-testid="hover">
         Hover
       </Button>
@@ -73,6 +96,70 @@ export const InteractionStates: Story = {
     await userEvent.hover(canvas.getByTestId("hover"));
     canvas.getByTestId("focus").focus();
     await expect(canvas.getByTestId("focus")).toHaveFocus();
+    // The hover rule changes the background, and the recipe eases it over the feedback duration.
+    await waitFor(() =>
+      expect(getComputedStyle(canvas.getByTestId("hover")).backgroundColor).not.toBe(
+        getComputedStyle(canvas.getByTestId("default")).backgroundColor,
+      ),
+    );
+    // Focus (ORV-192 row 9): the border turns to the resolved --ds-focus-ring, and a filled button adds
+    // an inset ink line beside the outer halo.
+    const probe = document.createElement("span");
+    probe.style.color = "var(--ds-focus-ring)";
+    canvas.getByTestId("focus").appendChild(probe);
+    const ring = getComputedStyle(probe).color;
+    probe.remove();
+    await waitFor(() =>
+      expect(getComputedStyle(canvas.getByTestId("focus")).borderTopColor).toBe(ring),
+    );
+    await expect(getComputedStyle(canvas.getByTestId("focus")).boxShadow).toContain("inset");
+  },
+};
+
+const SIZES: readonly ControlSize[] = ["sm", "md", "lg"];
+const MODES: readonly Mode[] = ["light", "dark"];
+
+/**
+ * ORV-111: a label sits at the vertical centre of its button, in Thai as in English. Primary
+ * buttons at sm, md and lg, each with `fixtures.thai` and `fixtures.latin`, under the neutral
+ * profile in light and dark. The play reads the rendered pixels (`expectInkCentred`, rule
+ * ink-centre-1) and judges the label's body: Thai marks above and below the consonant rise and
+ * fall outside it, as Latin accents and descenders do. It takes one screenshot per boundary for
+ * the body and one for the whole ink, and makes one assertion per button, so a label whose body
+ * rides high fails with both offsets. The static Storybook shows the story without the check.
+ */
+export const LabelCentre: Story = {
+  render: (args) => (
+    <>
+      {MODES.map((mode) => (
+        <DesignProfileBoundary key={mode} mode={mode} profile="neutral">
+          <div
+            data-testid={`label-centre-${mode}`}
+            className="flex flex-col gap-3 bg-surface-canvas p-4"
+          >
+            {SIZES.map((size) => (
+              <div key={size} className="flex flex-wrap items-center gap-3">
+                {[fixtures.thai, fixtures.latin].map((label) => (
+                  <Button key={label} {...args} variant="primary" size={size}>
+                    {label}
+                  </Button>
+                ))}
+              </div>
+            ))}
+          </div>
+        </DesignProfileBoundary>
+      ))}
+    </>
+  ),
+  play: async ({ canvasElement }) => {
+    if (!inVitest) return; // the screenshot needs Vitest browser mode
+    const canvas = within(canvasElement);
+    for (const mode of MODES) {
+      const cell = canvas.getByTestId(`label-centre-${mode}`);
+      const buttons = within(cell).getAllByRole("button");
+      await expect(buttons).toHaveLength(SIZES.length * 2);
+      await expectInkCentred(cell, buttons, { measure: "body" });
+    }
   },
 };
 
@@ -124,6 +211,11 @@ export const AriaDisabled: Story = {
       getComputedStyle(live).backgroundColor,
     );
     live.remove();
+    // ORV-227 F1: the dimmed button still draws its focus line, equal to focus.ring, in every variant.
+    for (const button of buttons) {
+      await expectFocusBorderForm(button);
+      await expect(button).toHaveAttribute("aria-disabled", "true");
+    }
   },
 };
 
@@ -235,6 +327,8 @@ export const LoadingWithIcons: Story = {
     const button = canvas.getByRole("button", { name: /Save changes/ });
     await expect(button.querySelectorAll(".ds-button__icon")).toHaveLength(2);
     await expect(button.querySelector(".ds-spin")).not.toBeNull();
+    // The spinner is decorative, so the button holds exactly one status, its own (spin-button-1).
+    await expect(button.querySelectorAll('[role="status"]')).toHaveLength(1);
   },
 };
 
@@ -345,6 +439,7 @@ export const LongLabelAt360: Story = {
 };
 
 export const RecipesAndModes: Story = {
+  parameters: { layout: "padded" },
   render: (args) => (
     <Matrix>
       <div className="flex flex-wrap items-center gap-2">
@@ -374,4 +469,14 @@ export const RecipesAndModes: Story = {
       </div>
     </Matrix>
   ),
+  play: async ({ canvasElement }) => {
+    // A Matrix keeps the full width: the surface less its own padding (spec ORV-189, `matrix-keep-1`).
+    const grid = canvasElement.querySelector("[data-matrix-cell]")?.closest(".grid") as HTMLElement;
+    const surface = grid.parentElement as HTMLElement;
+    await expect(grid.getBoundingClientRect().width).toBe(
+      surface.getBoundingClientRect().width - 32,
+    );
+    // The surface pads the grid by 16 on top too: `layout: "padded"` (spec ORV-192, row 10).
+    await expect(grid.getBoundingClientRect().top).toBe(surface.getBoundingClientRect().top + 16);
+  },
 };

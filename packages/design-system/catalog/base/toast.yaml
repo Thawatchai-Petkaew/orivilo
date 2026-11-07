@@ -5,10 +5,11 @@ since: E4-5
 import: "@orivilo/design-system"
 story: base-toast
 useWhen:
-  - "A short confirmation or failure that does not block: saved, generation failed"
+  - "A short confirmation or failure that does not block and has no place on the current screen: saved, generation failed away from the job (`alert-use-1`)"
 avoidWhen:
   - "Anything needing a decision (use Dialog)"
   - "Errors tied to a field (inline)"
+  - "A message that belongs to a place on the page and stays true until the state changes, such as a failed job shown where the job lives (use Alert; never both for the same event)"
 contract: ToastOptions
 variants: [neutral, success, danger]
 sizes: []
@@ -22,6 +23,9 @@ rules:
   - "At most three on screen, the oldest leaves first; 5 seconds for neutral and success, a danger toast stays until dismissed and ignores `duration`"
   - "The region sits at the bottom end corner inside the profile portal scope and clears the safe-area insets"
   - "Status is shown by an icon as well as the edge colour; the toast keeps the inverse ground"
+  - "Title over supporting text (ORV-192 row 17): one size, title 500 in the ground's primary ink, text 400 in its secondary ink, 4 px apart"
+  - "The title's first line and the status icon centre on the close button; a title-only toast is centred on it, further lines flow under the first"
+  - "The description sits 4 px under the title in text.on-inverse-secondary; an action keeps 8 px above it (ORV-192 row 17)"
 a11y:
   - "Polite live region; failure uses assertive; dismissable by keyboard"
   - "The close button is named from the locale catalog; Escape dismisses; focus does not move to a toast when it appears; F8 moves focus into the region"

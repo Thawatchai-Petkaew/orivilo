@@ -2,6 +2,8 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useReactFlow } from "@xyflow/react";
 import { useRef, useState, type ReactNode } from "react";
 import { expect, fn, userEvent, waitFor, within } from "storybook/test";
+import { commandById } from "../../commands/index";
+import { formatNumber } from "../../i18n/format";
 import { DEFAULT_LOCALE, isLocale, pick } from "../../i18n/locale";
 import { LocaleProvider, useLocale } from "../../i18n/LocaleProvider";
 import { fill, messagesFor } from "../../i18n/messages/index";
@@ -10,7 +12,7 @@ import { BOARD } from "../canvas-board/fixtures";
 import type { Graph } from "../canvas-board/graph";
 import { chatFixtures, fixtures, type ChatHost } from "../fixtures";
 import { DesignProfileBoundary } from "../../boundary/DesignProfileBoundary";
-import { Matrix } from "../matrix";
+import { fillHeight, Matrix } from "../matrix";
 import { CanvasChat, type ChatReply, type ChatRequest } from "./CanvasChat";
 import { CANVAS_WORDS } from "../../tokens/canvas";
 import { placeReply, replyTitle } from "./place-reply";
@@ -61,8 +63,24 @@ const WIDTH = {
   max: "w-[480px]",
 } as const;
 
-function Frame({ size, children }: { size: keyof typeof WIDTH; children: ReactNode }) {
-  return <div className={`h-[560px] max-w-full ${WIDTH[size]}`}>{children}</div>;
+/**
+ * A panel frame: 560 px tall, or the viewport frame when that is taller (spec ORV-189,
+ * `fill-height-1`). `fill={false}` keeps the 560 px, for a story that shows several frames at once.
+ */
+function Frame({
+  size,
+  fill: filled = true,
+  children,
+}: {
+  size: keyof typeof WIDTH;
+  fill?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div style={{ height: filled ? fillHeight(560) : 560 }} className={`max-w-full ${WIDTH[size]}`}>
+      {children}
+    </div>
+  );
 }
 
 const chatOf = (root: HTMLElement) => root.querySelector<HTMLElement>(".ds-chat") as HTMLElement;
@@ -165,7 +183,10 @@ const localeOf = (globals: Record<string, unknown>) =>
   isLocale(globals["locale"]) ? globals["locale"] : DEFAULT_LOCALE;
 const catalogOf = (globals: Record<string, unknown>) => messagesFor(localeOf(globals));
 
-/** The field's name in either catalog: a story may sit under a locale decorator that differs from the toolbar. */
+/**
+ * The field's name in either catalog, for `goneStory`, whose own `LocaleProvider` differs from the
+ * toolbar (ORV-119 own-locale-1). Every other play names the field from `catalogOf(globals)`.
+ */
 const inputNames: string[] = [messagesFor("th").chat.input, messagesFor("en").chat.input];
 const input = (
   canvas: ReturnType<typeof within>,
@@ -176,23 +197,13 @@ const input = (
   (canvas.queryByRole("combobox", { name }) ??
     canvas.getByRole("textbox", { name })) as HTMLElement;
 
-/** Types a message and sends it with Enter. */
-async function ask(canvas: ReturnType<typeof within>, text: string, name?: string) {
+/** Types a message and sends it with Enter; `name` is the field's name in the active catalog. */
+async function ask(canvas: ReturnType<typeof within>, text: string, name: string) {
   await userEvent.type(input(canvas, name), `${text}{Enter}`);
 }
 
-/** Send and Stop by their name in either catalog, like the field. */
-type ButtonName = (accessibleName: string) => boolean;
-const nameIn = (pickName: (c: ReturnType<typeof messagesFor>) => string): ButtonName => {
-  const names = [pickName(messagesFor("th")), pickName(messagesFor("en"))];
-  return (accessibleName) => names.includes(accessibleName);
-};
-const SEND = nameIn((c) => c.chat.send);
-const STOP = nameIn((c) => c.chat.stop);
-const YOU = nameIn((c) => c.chat.you);
-
 /** The Stop button (with a stream running) or Send (without one) in the composer. */
-const action = (canvas: ReturnType<typeof within>, name: string | ButtonName) =>
+const action = (canvas: ReturnType<typeof within>, name: string) =>
   canvas.getByRole("button", { name });
 
 /** The signal of the nth `onAsk` call. */
@@ -212,6 +223,8 @@ export const Idle: Story = {
     const canvas = within(canvasElement);
     const chatEl = chatOf(canvasElement);
     const chat = box(chatEl);
+    // The panel fills the padded frame and is never shorter than its 560 px (spec ORV-189, `fill-height-1`).
+    near(chat.height, Math.max(560, window.innerHeight - 32));
     await expect(canvas.getByRole("region", { name: c.label })).toBeVisible();
     await expect(canvas.getByText(c.empty)).toBeVisible();
     await expectNotice(canvasElement, c.noticeRules);
@@ -286,12 +299,14 @@ export const Idle: Story = {
 /** Mock basis: the notice and the reply word both say mock data, and nothing says AI answered. */
 export const Mock: Story = {
   args: { basis: "mock", onAsk: fn(chatFixtures.host(chatFixtures.reply, "mock")) },
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, globals }) => {
+    const m = catalogOf(globals);
+    const c = m.chat;
     const canvas = within(canvasElement);
-    await expectNotice(canvasElement, "คำตอบเป็นข้อมูลจำลอง ยังไม่มี AI");
-    await ask(canvas, chatFixtures.question);
+    await expectNotice(canvasElement, c.noticeMock);
+    await ask(canvas, chatFixtures.question, c.input);
     await waitFor(() =>
-      expect(canvas.getByText("ข้อมูลจำลอง", { selector: ".ds-chat__basis" })).toBeVisible(),
+      expect(canvas.getByText(m.taskBar.basisMock, { selector: ".ds-chat__basis" })).toBeVisible(),
     );
     await expect(chatOf(canvasElement).textContent).not.toMatch(
       /(AI|เอไอ)\s*(answered|replied|ตอบ)|(answered|replied|ตอบ)\s*(by|โดย)\s*(AI|เอไอ)/i,
@@ -301,9 +316,10 @@ export const Mock: Story = {
 
 /** Blank and space-only text: Send is aria-disabled, stays focusable, and nothing is sent. Nothing is asked, so no host answers (a rules host is wired). */
 export const BlankSend: Story = {
-  play: async ({ canvasElement, args }) => {
+  play: async ({ canvasElement, args, globals }) => {
+    const c = catalogOf(globals).chat;
     const canvas = within(canvasElement);
-    const send = action(canvas, SEND);
+    const send = action(canvas, c.send);
     await expect(send).toHaveAttribute("aria-disabled", "true");
     await expect(send).toBeEnabled();
     // The lime appears only once there is something to send.
@@ -311,25 +327,34 @@ export const BlankSend: Story = {
       resolved(send, "--cmp-button-primary-bg-disabled"),
     );
     await userEvent.click(send);
-    await userEvent.type(input(canvas), "   {Enter}");
+    await userEvent.type(input(canvas, c.input), "   {Enter}");
     await expect(send).toHaveAttribute("aria-disabled", "true");
     await userEvent.click(send);
     await expect(args.onAsk).not.toHaveBeenCalled();
-    await expect(canvas.getByText("ยังไม่มีข้อความ ถามเรื่องบนบอร์ดได้เลย")).toBeVisible();
+    await expect(canvas.getByText(c.empty)).toBeVisible();
   },
 };
 
 /** 2,010 graphemes: the counter says by how much, Send is aria-disabled, Enter does nothing. Nothing is asked, so no host answers (a rules host is wired). */
 export const OverLimit: Story = {
-  play: async ({ canvasElement, args }) => {
+  play: async ({ canvasElement, args, globals }) => {
+    const m = catalogOf(globals);
+    const c = m.chat;
+    const locale = localeOf(globals);
     const canvas = within(canvasElement);
-    await userEvent.click(input(canvas));
+    await userEvent.click(input(canvas, c.input));
     await userEvent.paste("ก".repeat(2010));
     await expect(
-      canvas.getByText("ตัวอักษร 2,010 จาก 2,000 เกินมา 10 ตัวอักษร"),
+      canvas.getByText(
+        fill(m.textarea.countOver, {
+          count: formatNumber(2010, locale),
+          max: formatNumber(2000, locale),
+          over: formatNumber(10, locale),
+        }),
+      ),
     ).toBeInTheDocument();
-    await expect(action(canvas, SEND)).toHaveAttribute("aria-disabled", "true");
-    await expect(input(canvas)).toHaveAttribute("aria-invalid", "true");
+    await expect(action(canvas, c.send)).toHaveAttribute("aria-disabled", "true");
+    await expect(input(canvas, c.input)).toHaveAttribute("aria-invalid", "true");
     // The edge eases to the error colour (feedback motion), so wait for it to land.
     // `resolved` adds a node, so it runs outside `waitFor`, whose observer would see it and loop.
     const errorEdge = resolved(chatOf(canvasElement), "--cmp-input-border-error");
@@ -337,55 +362,70 @@ export const OverLimit: Story = {
       expect(getComputedStyle(q(canvasElement, ".ds-chat__box")).borderTopColor).toBe(errorEdge),
     );
     await userEvent.keyboard("{Enter}");
-    await userEvent.click(action(canvas, SEND));
+    await userEvent.click(action(canvas, c.send));
     await expect(args.onAsk).not.toHaveBeenCalled();
   },
 };
 
 /** The counter stays hidden below 1,800 graphemes and shows from 1,800. The fixture host answers by rules. */
 export const CounterThreshold: Story = {
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, globals }) => {
+    const m = catalogOf(globals);
+    const c = m.chat;
+    const locale = localeOf(globals);
     const canvas = within(canvasElement);
     const counter = q(canvasElement, ".ds-textarea__counter");
-    await userEvent.click(input(canvas));
+    await userEvent.click(input(canvas, c.input));
     await userEvent.paste("ก".repeat(1799));
     await expect(getComputedStyle(counter).display).toBe("none");
-    await expect(input(canvas).getAttribute("aria-describedby")).not.toContain(counter.id);
+    await expect(input(canvas, c.input).getAttribute("aria-describedby")).not.toContain(counter.id);
     await userEvent.paste("ก");
     await expect(getComputedStyle(counter).display).not.toBe("none");
-    await expect(input(canvas).getAttribute("aria-describedby")).toContain(counter.id);
-    await expect(canvas.getByText("ตัวอักษร 1,800 จาก 2,000")).toBeInTheDocument();
+    await expect(input(canvas, c.input).getAttribute("aria-describedby")).toContain(counter.id);
+    await expect(
+      canvas.getByText(
+        fill(m.textarea.countOf, {
+          count: formatNumber(1800, locale),
+          max: formatNumber(2000, locale),
+        }),
+      ),
+    ).toBeInTheDocument();
   },
 };
 
 /** Enter and Send both ask once with the trimmed text and a signal; Shift+Enter adds a line. The fixture host answers by rules. */
 export const Send: Story = {
-  play: async ({ canvasElement, args }) => {
+  play: async ({ canvasElement, args, globals }) => {
+    const c = catalogOf(globals).chat;
     const canvas = within(canvasElement);
-    const field = input(canvas) as HTMLTextAreaElement;
+    const field = input(canvas, c.input) as HTMLTextAreaElement;
     await userEvent.type(field, "บรรทัดแรก{Shift>}{Enter}{/Shift}บรรทัดสอง");
     await expect(field.value).toBe("บรรทัดแรก\nบรรทัดสอง");
     await expect(args.onAsk).not.toHaveBeenCalled();
-    // With focus in the textarea the box's 1 px border in the focus ink is the single line: no outline on top of it.
+    // With focus in the textarea the box's 1 px border in focus.ring is the single line, with the halo touching it: no outline on top of it.
     const boxStyle = getComputedStyle(q(canvasElement, ".ds-chat__box"));
     const focusEdge = resolved(chatOf(canvasElement), "--cmp-input-border-focus");
     await waitFor(() => expect(boxStyle.borderTopColor).toBe(focusEdge));
-    // The rendered edge is 1 px of ink on every side, not a border and an outline drawn side by side (L-0018).
+    // The rendered edge is 4 px of ink on every side: the 1 px brand border and the 3 px halo touching it, with no gap
+    // and no second line beside the border (L-0018; a border and an outline side by side would read 2 px at the line).
     if (inVitest) {
-      await expectEdgeInk(q(canvasElement, ".ds-chat__box"), ["top", "right", "bottom", "left"], 1);
+      await expectEdgeInk(q(canvasElement, ".ds-chat__box"), ["top", "right", "bottom", "left"], 4);
     }
     await expect(boxStyle.outlineStyle).toBe("none");
     await expect(boxStyle.borderTopWidth).toBe("1px");
-    await expect(boxStyle.boxShadow).toBe("none");
+    await expect(boxStyle.boxShadow).not.toBe("none");
     await expect(getComputedStyle(field).outlineStyle).toBe("none");
-    await expect(getComputedStyle(action(canvas, SEND)).backgroundColor).toBe(
-      resolved(chatOf(canvasElement), "--cmp-button-intent-bg"),
+    await expect(getComputedStyle(field).boxShadow).toBe("none");
+    // `resolved` adds a node, so it runs outside `waitFor`. The button colour transitions, so wait for the settled value.
+    const sendBg = resolved(chatOf(canvasElement), "--cmp-button-intent-bg");
+    await waitFor(() =>
+      expect(getComputedStyle(action(canvas, c.send)).backgroundColor).toBe(sendBg),
     );
-    // Focus on Send shows Send's own ring and none on the box (one ring at a time).
+    // Focus on Send shows Send's own line and halo and none on the box (one focus mark at a time).
     await userEvent.tab();
-    await expect(action(canvas, SEND)).toHaveFocus();
+    await expect(action(canvas, c.send)).toHaveFocus();
     await expect(getComputedStyle(q(canvasElement, ".ds-chat__box")).outlineStyle).toBe("none");
-    await expect(getComputedStyle(action(canvas, SEND)).outlineWidth).toBe("2px");
+    await expect(getComputedStyle(action(canvas, c.send)).outlineWidth).toBe("1px");
     await userEvent.click(field);
     await userEvent.clear(field);
 
@@ -395,27 +435,28 @@ export const Send: Story = {
       { text: chatFixtures.question, mentions: [] },
       expect.any(AbortSignal),
     );
-    await expect(canvas.getByText(YOU)).toBeVisible();
+    await expect(canvas.getByText(c.you)).toBeVisible();
     await expect(canvas.getByText(chatFixtures.question)).toBeVisible();
     await expect(field.value).toBe("");
     await expect(field).toHaveFocus();
 
     // The first reply must end before a second message can go.
-    await waitFor(() => expect(action(canvas, SEND)).toBeVisible());
+    await waitFor(() => expect(action(canvas, c.send)).toBeVisible());
     await userEvent.type(field, "คำถามที่สอง");
-    await userEvent.click(action(canvas, SEND));
+    await userEvent.click(action(canvas, c.send));
     await expect(args.onAsk).toHaveBeenCalledTimes(2);
     await expect(field.value).toBe("");
     await expect(field).toHaveFocus();
-    await expect(canvas.getAllByText(YOU)).toHaveLength(2);
+    await expect(canvas.getAllByText(c.you)).toHaveLength(2);
   },
 };
 
 /** Enter that commits a Thai IME composition never sends, even when compositionend came first. The fixture host answers by rules. */
 export const ImeCompose: Story = {
-  play: async ({ canvasElement, args }) => {
+  play: async ({ canvasElement, args, globals }) => {
+    const c = catalogOf(globals).chat;
     const canvas = within(canvasElement);
-    const field = input(canvas);
+    const field = input(canvas, c.input);
     const enter = (isComposing: boolean) =>
       field.dispatchEvent(
         new KeyboardEvent("keydown", {
@@ -446,40 +487,42 @@ export const ImeCompose: Story = {
  */
 export const Streaming: Story = {
   args: { onAsk: fn(chatFixtures.hostHold(chatFixtures.reply)) },
-  play: async ({ canvasElement, args }) => {
+  play: async ({ canvasElement, args, globals }) => {
+    const c = catalogOf(globals).chat;
     const canvas = within(canvasElement);
-    const sendBox = box(action(canvas, SEND));
-    await ask(canvas, chatFixtures.question);
+    const sendBox = box(action(canvas, c.send));
+    await ask(canvas, chatFixtures.question, c.input);
     await waitFor(() =>
-      expect(canvas.getByText("กำลังตอบ", { selector: ".ds-chat__progress" })).toBeVisible(),
+      expect(canvas.getByText(c.streaming, { selector: ".ds-chat__progress" })).toBeVisible(),
     );
-    await expect(action(canvas, STOP)).toBeVisible();
+    await expect(action(canvas, c.stop)).toBeVisible();
     // Stop is a round 32 px button in Send's place; the meta row is one 32 px line; the honesty line stays.
-    near(box(action(canvas, STOP)).width, 32);
-    near(box(action(canvas, STOP)).left, sendBox.left);
-    near(box(action(canvas, STOP)).top, sendBox.top);
+    near(box(action(canvas, c.stop)).width, 32);
+    near(box(action(canvas, c.stop)).left, sendBox.left);
+    near(box(action(canvas, c.stop)).top, sendBox.top);
     near(box(q(canvasElement, ".ds-chat__meta")).height, 32);
-    await expectNotice(canvasElement, "คำตอบมาจากกฎที่เขียนไว้ ยังไม่มี AI");
-    await expect(canvas.queryByRole("button", { name: SEND })).toBeNull();
+    await expectNotice(canvasElement, c.noticeRules);
+    await expect(canvas.queryByRole("button", { name: c.send })).toBeNull();
     const reply = canvasElement.querySelector(".ds-chat__reply .ds-chat__text") as HTMLElement;
     await waitFor(() => expect(reply.textContent).not.toBe(""));
     await expect(chatFixtures.reply.startsWith(reply.textContent ?? "x")).toBe(true);
     await expect(reply).toHaveAttribute("aria-live", "polite");
     await expect(reply).toHaveAttribute("aria-busy", "true");
-    await expect(statusOf(canvasElement)).toHaveTextContent("กำลังตอบ");
+    await expect(statusOf(canvasElement)).toHaveTextContent(c.streaming);
     // The box stays editable for the next draft, but Enter sends nothing while a reply streams.
-    await userEvent.type(input(canvas), "ข้อความที่สอง{Enter}");
+    await userEvent.type(input(canvas, c.input), "ข้อความที่สอง{Enter}");
     await expect(args.onAsk).toHaveBeenCalledTimes(1);
-    await expect((input(canvas) as HTMLTextAreaElement).value).toBe("ข้อความที่สอง");
+    await expect((input(canvas, c.input) as HTMLTextAreaElement).value).toBe("ข้อความที่สอง");
   },
 };
 
 /** Under reduced motion the streaming mark stops: the word "Replying" carries the state. The fixture host answers by rules. */
 export const StreamingReducedMotion: Story = {
   args: { onAsk: fn(chatFixtures.hostHold(chatFixtures.reply)) },
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, globals }) => {
+    const c = catalogOf(globals).chat;
     const canvas = within(canvasElement);
-    await ask(canvas, chatFixtures.question);
+    await ask(canvas, chatFixtures.question, c.input);
     await waitFor(() =>
       expect(canvasElement.querySelector(".ds-chat__mark .ds-spin")).not.toBeNull(),
     );
@@ -513,17 +556,19 @@ export const StreamingReducedMotion: Story = {
 
 /** A finished rules reply: full text, its basis word, Send back, onReply once with the last snapshot. The fixture host answers by rules. */
 export const Replied: Story = {
-  play: async ({ canvasElement, args }) => {
+  play: async ({ canvasElement, args, globals }) => {
+    const m = catalogOf(globals);
+    const c = m.chat;
     const canvas = within(canvasElement);
-    await ask(canvas, chatFixtures.question);
+    await ask(canvas, chatFixtures.question, c.input);
     await waitFor(() =>
-      expect(canvas.getByText("ตามกฎ", { selector: ".ds-chat__basis" })).toBeVisible(),
+      expect(canvas.getByText(m.taskBar.basisRules, { selector: ".ds-chat__basis" })).toBeVisible(),
     );
     const reply = canvasElement.querySelector(".ds-chat__reply .ds-chat__text") as HTMLElement;
     await expect(reply).toHaveTextContent(chatFixtures.reply);
     await expect(reply).toHaveAttribute("aria-busy", "false");
-    await expect(action(canvas, SEND)).toBeVisible();
-    await expect(canvas.queryByRole("button", { name: STOP })).toBeNull();
+    await expect(action(canvas, c.send)).toBeVisible();
+    await expect(canvas.queryByRole("button", { name: c.stop })).toBeNull();
     // Changes 4 and 5: a pill bubble at the end edge; "คุณ" is read first but not drawn; 12 px to the reply.
     const exchange = q(canvasElement, ".ds-chat__exchange");
     const question = q(canvasElement, ".ds-chat__question");
@@ -535,15 +580,15 @@ export const Replied: Story = {
     const speaker = q(canvasElement, ".ds-chat__speaker");
     near(box(speaker).width, 1, 0.1);
     near(box(speaker).height, 1, 0.1);
-    await expect(exchange.textContent?.startsWith("คุณ")).toBe(true);
+    await expect(exchange.textContent?.startsWith(c.you)).toBe(true);
     near(box(q(canvasElement, ".ds-chat__reply")).top - box(question).bottom, 12);
     // Change 6: the meta row is one 32 px line and the reply is plain text at the start edge.
     near(box(q(canvasElement, ".ds-chat__meta")).height, 32);
     near(box(reply).left, log.left + 16);
-    await expect(canvas.queryByRole("list", { name: "เริ่มจากคำถามเหล่านี้" })).toBeNull();
+    await expect(canvas.queryByRole("list", { name: c.starters })).toBeNull();
     // The host placed nothing (onReply returns nothing): no jump, no unlinked note, as in slice A.
-    await expect(canvas.queryByRole("button", { name: /^ไปที่โหนดคำตอบ/ })).toBeNull();
-    await expect(canvas.queryByText("ไม่ได้ผูกกับโหนดใด")).toBeNull();
+    await expect(canvas.queryByRole("button", { name: (n) => n.startsWith(c.jump) })).toBeNull();
+    await expect(canvas.queryByText(c.unlinked)).toBeNull();
     await expect(args.onReply).toHaveBeenCalledTimes(1);
     await expect(args.onReply).toHaveBeenCalledWith(
       { text: chatFixtures.reply, basis: "rules" },
@@ -555,11 +600,13 @@ export const Replied: Story = {
 /** A reply with line breaks keeps them: the newlines are in the text and the lines render apart. The fixture host answers by rules. */
 export const RepliedLines: Story = {
   args: { onAsk: fn(chatFixtures.host(chatFixtures.replyLines)) },
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, globals }) => {
+    const m = catalogOf(globals);
+    const c = m.chat;
     const canvas = within(canvasElement);
-    await ask(canvas, chatFixtures.question);
+    await ask(canvas, chatFixtures.question, c.input);
     await waitFor(() =>
-      expect(canvas.getByText("ตามกฎ", { selector: ".ds-chat__basis" })).toBeVisible(),
+      expect(canvas.getByText(m.taskBar.basisRules, { selector: ".ds-chat__basis" })).toBeVisible(),
     );
     const reply = canvasElement.querySelector(".ds-chat__reply .ds-chat__text") as HTMLElement;
     await expect(reply.textContent).toBe(chatFixtures.replyLines);
@@ -580,17 +627,19 @@ export const FocusKeptOnEnd: Story = {
       </Frame>
     );
   },
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, globals }) => {
+    const m = catalogOf(globals);
+    const c = m.chat;
     const canvas = within(canvasElement);
-    await ask(canvas, chatFixtures.question);
-    const stop = await canvas.findByRole("button", { name: STOP });
+    await ask(canvas, chatFixtures.question, c.input);
+    const stop = await canvas.findByRole("button", { name: c.stop });
     stop.focus();
     await expect(stop).toHaveFocus();
     (window as unknown as { __latch: () => void }).__latch();
     await waitFor(() =>
-      expect(canvas.getByText("ตามกฎ", { selector: ".ds-chat__basis" })).toBeVisible(),
+      expect(canvas.getByText(m.taskBar.basisRules, { selector: ".ds-chat__basis" })).toBeVisible(),
     );
-    await expect(input(canvas)).toHaveFocus();
+    await expect(input(canvas, c.input)).toHaveFocus();
   },
 };
 
@@ -605,64 +654,66 @@ export const FocusKeptOnFail: Story = {
       </Frame>
     );
   },
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, globals }) => {
+    const c = catalogOf(globals).chat;
     const canvas = within(canvasElement);
-    await ask(canvas, chatFixtures.question);
-    const stop = await canvas.findByRole("button", { name: STOP });
+    await ask(canvas, chatFixtures.question, c.input);
+    const stop = await canvas.findByRole("button", { name: c.stop });
     stop.focus();
     await expect(stop).toHaveFocus();
     (window as unknown as { __latch: () => void }).__latch();
-    await expect(await failure(canvas)).toBeVisible();
-    await expect(input(canvas)).toHaveFocus();
+    await expect(await failure(canvas, c.failed)).toBeVisible();
+    await expect(input(canvas, c.input)).toHaveFocus();
   },
 };
 
 /** Stop mid-stream: the signal aborts, the partial text stays marked Stopped, nothing is passed on. The fixture host answers by rules. */
 export const Stopped: Story = {
   args: { onAsk: fn(chatFixtures.hostHold(chatFixtures.reply)) },
-  play: async ({ canvasElement, args }) => {
+  play: async ({ canvasElement, args, globals }) => {
+    const c = catalogOf(globals).chat;
     const canvas = within(canvasElement);
-    await ask(canvas, chatFixtures.question);
-    const stop = await canvas.findByRole("button", { name: STOP });
+    await ask(canvas, chatFixtures.question, c.input);
+    const stop = await canvas.findByRole("button", { name: c.stop });
     const reply = canvasElement.querySelector(".ds-chat__reply .ds-chat__text") as HTMLElement;
     await waitFor(() => expect(reply.textContent).not.toBe(""));
     const partial = reply.textContent;
     await userEvent.click(stop);
     await expect(signalOf(args.onAsk as never).aborted).toBe(true);
     await expect(reply).toHaveTextContent(partial ?? "");
-    await expect(canvas.getByText("หยุดแล้ว", { selector: ".ds-chat__stopped" })).toBeVisible();
+    await expect(canvas.getByText(c.stopped, { selector: ".ds-chat__stopped" })).toBeVisible();
     await expect(args.onReply).not.toHaveBeenCalled();
-    await expect(action(canvas, SEND)).toBeVisible();
-    await expect(input(canvas)).toHaveFocus();
+    await expect(action(canvas, c.send)).toBeVisible();
+    await expect(input(canvas, c.input)).toHaveFocus();
     await expect(reply).toHaveAttribute("aria-busy", "false");
-    await expect(statusOf(canvasElement)).toHaveTextContent("หยุดแล้ว");
+    await expect(statusOf(canvasElement)).toHaveTextContent(c.stopped);
   },
 };
 
-const FAILED = "ยังไม่ได้คำตอบ ข้อความของคุณยังอยู่ กดส่งอีกครั้งได้เลย";
-/** The visible failure text; the status region says it too, for screen readers only. */
-const failure = (canvas: ReturnType<typeof within>) =>
-  canvas.findByText(FAILED, { selector: ".ds-chat__failure p" });
+/** The visible failure text (`chat.failed` of the active catalog); the status region says it too, for screen readers only. */
+const failure = (canvas: ReturnType<typeof within>, text: string) =>
+  canvas.findByText(text, { selector: ".ds-chat__failure p" });
 
 /** The host throws at once: the question stays, the thrown text never shows, Send again repeats it. The fixture host throws, so no basis is shown. */
 export const Failed: Story = {
   args: { onAsk: fn(chatFixtures.hostFail("upstream timeout 504")) },
-  play: async ({ canvasElement, args }) => {
+  play: async ({ canvasElement, args, globals }) => {
+    const c = catalogOf(globals).chat;
     const canvas = within(canvasElement);
-    await ask(canvas, chatFixtures.question);
-    await expect(await failure(canvas)).toBeVisible();
+    await ask(canvas, chatFixtures.question, c.input);
+    await expect(await failure(canvas, c.failed)).toBeVisible();
     await expect(canvas.getByText(chatFixtures.question)).toBeVisible();
     await expect(canvas.queryByText(/504/)).toBeNull();
     await expect(args.onReply).not.toHaveBeenCalled();
-    await expect(statusOf(canvasElement)).toHaveTextContent(FAILED);
-    await expectNotice(canvasElement, "คำตอบมาจากกฎที่เขียนไว้ ยังไม่มี AI");
-    await userEvent.click(canvas.getByRole("button", { name: "ส่งอีกครั้ง" }));
+    await expect(statusOf(canvasElement)).toHaveTextContent(c.failed);
+    await expectNotice(canvasElement, c.noticeRules);
+    await userEvent.click(canvas.getByRole("button", { name: c.retry }));
     await expect(args.onAsk).toHaveBeenCalledTimes(2);
     await expect((args.onAsk as ReturnType<typeof fn>).mock.calls[1]?.[0]).toBe(
       (args.onAsk as ReturnType<typeof fn>).mock.calls[0]?.[0],
     );
-    await expect(input(canvas)).toHaveFocus();
-    await expect(await failure(canvas)).toBeVisible();
+    await expect(input(canvas, c.input)).toHaveFocus();
+    await expect(await failure(canvas, c.failed)).toBeVisible();
     await expect(canvas.getAllByText(chatFixtures.question)).toHaveLength(1);
   },
 };
@@ -670,49 +721,53 @@ export const Failed: Story = {
 /** The iterable throws after a snapshot: the partial text is dropped, the failure shows. The fixture host answers by rules. */
 export const FailedMidStream: Story = {
   args: { onAsk: fn(chatFixtures.hostFailMidStream(chatFixtures.reply, "stream reset")) },
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, globals }) => {
+    const m = catalogOf(globals);
+    const c = m.chat;
     const canvas = within(canvasElement);
-    await ask(canvas, chatFixtures.question);
-    await expect(await failure(canvas)).toBeVisible();
+    await ask(canvas, chatFixtures.question, c.input);
+    await expect(await failure(canvas, c.failed)).toBeVisible();
     await expect(canvasElement.querySelectorAll(".ds-chat__reply .ds-chat__text")).toHaveLength(0);
     await expect(canvas.queryByText(/stream reset/)).toBeNull();
-    await expect(canvas.queryByText("ตามกฎ")).toBeNull();
+    await expect(canvas.queryByText(m.taskBar.basisRules)).toBeNull();
   },
 };
 
 /** An iterable that ends with no snapshot is a failure, not an empty reply. The fixture host ends with no reply, so no basis is shown. */
 export const FailedNoReply: Story = {
   args: { onAsk: fn(chatFixtures.hostEmpty) },
-  play: async ({ canvasElement, args }) => {
+  play: async ({ canvasElement, args, globals }) => {
+    const c = catalogOf(globals).chat;
     const canvas = within(canvasElement);
-    await ask(canvas, chatFixtures.question);
-    await expect(await failure(canvas)).toBeVisible();
+    await ask(canvas, chatFixtures.question, c.input);
+    await expect(await failure(canvas, c.failed)).toBeVisible();
     await expect(args.onReply).not.toHaveBeenCalled();
-    await expect(canvas.getByRole("button", { name: "ส่งอีกครั้ง" })).toBeVisible();
+    await expect(canvas.getByRole("button", { name: c.retry })).toBeVisible();
   },
 };
 
 /** Close while streaming: the signal aborts, the status region says Stopped, then onClose runs once. The fixture host answers by rules. */
 export const Close: Story = {
   args: { onAsk: fn(chatFixtures.hostHold(chatFixtures.reply)) },
-  play: async ({ canvasElement, args }) => {
+  play: async ({ canvasElement, args, globals }) => {
+    const c = catalogOf(globals).chat;
     const canvas = within(canvasElement);
-    await ask(canvas, chatFixtures.question);
-    await canvas.findByRole("button", { name: STOP });
+    await ask(canvas, chatFixtures.question, c.input);
+    await canvas.findByRole("button", { name: c.stop });
     const order: string[] = [];
     signalOf(args.onAsk as never).addEventListener("abort", () => order.push("abort"));
     // By the time the host closes the chat, its status region already says Stopped.
     (args.onClose as ReturnType<typeof fn>).mockImplementation(() => {
-      if (statusOf(canvasElement).textContent === "หยุดแล้ว") order.push("status");
+      if (statusOf(canvasElement).textContent === c.stopped) order.push("status");
       order.push("close");
     });
-    await userEvent.click(canvas.getByRole("button", { name: "ปิดแชท" }));
+    await userEvent.click(canvas.getByRole("button", { name: c.close }));
     await expect(args.onClose).toHaveBeenCalledTimes(1);
     await expect(order).toEqual(["abort", "status", "close"]);
-    await expect(statusOf(canvasElement)).toHaveTextContent("หยุดแล้ว");
+    await expect(statusOf(canvasElement)).toHaveTextContent(c.stopped);
     // The host keeps the chat mounted: the reply is stopped, not stuck replying.
-    await expect(canvas.getByText("หยุดแล้ว", { selector: ".ds-chat__stopped" })).toBeVisible();
-    await expect(canvas.queryByRole("button", { name: STOP })).toBeNull();
+    await expect(canvas.getByText(c.stopped, { selector: ".ds-chat__stopped" })).toBeVisible();
+    await expect(canvas.queryByRole("button", { name: c.stop })).toBeNull();
     await expect(chatOf(canvasElement)).toHaveAttribute("data-state", "stopped");
   },
 };
@@ -724,8 +779,9 @@ export const NoClose: Story = {
       <CanvasChat {...args} onClose={undefined} />
     </Frame>
   ),
-  play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).queryByRole("button", { name: "ปิดแชท" })).toBeNull();
+  play: async ({ canvasElement, globals }) => {
+    const c = catalogOf(globals).chat;
+    await expect(within(canvasElement).queryByRole("button", { name: c.close })).toBeNull();
   },
 };
 
@@ -746,15 +802,19 @@ const conversationHost: ChatHost = (request, signal) => {
   );
 };
 
-async function converse(canvasElement: HTMLElement, questions: readonly string[]) {
+async function converse(
+  canvasElement: HTMLElement,
+  questions: readonly string[],
+  c: ReturnType<typeof catalogOf>["chat"],
+) {
   const canvas = within(canvasElement);
   for (const [i, question] of questions.entries()) {
-    await ask(canvas, question);
+    await ask(canvas, question, c.input);
     if (question.startsWith("4")) {
-      await userEvent.click(await canvas.findByRole("button", { name: STOP }));
+      await userEvent.click(await canvas.findByRole("button", { name: c.stop }));
     }
-    await waitFor(() => expect(canvas.queryByRole("button", { name: STOP })).toBeNull());
-    await waitFor(() => expect(canvas.getAllByText(YOU)).toHaveLength(i + 1));
+    await waitFor(() => expect(canvas.queryByRole("button", { name: c.stop })).toBeNull());
+    await waitFor(() => expect(canvas.getAllByText(c.you)).toHaveLength(i + 1));
   }
 }
 
@@ -775,10 +835,11 @@ const SIX = [
  */
 export const Conversation: Story = {
   args: { onAsk: fn(conversationHost) },
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, globals }) => {
+    const c = catalogOf(globals).chat;
     const canvas = within(canvasElement);
-    await converse(canvasElement, SIX);
-    const transcript = canvas.getByRole("region", { name: "บทสนทนา" });
+    await converse(canvasElement, SIX, c);
+    const transcript = canvas.getByRole("region", { name: c.transcript });
     await expect(transcript.scrollHeight).toBeGreaterThan(transcript.clientHeight);
     await waitFor(() =>
       expect(transcript.scrollTop + transcript.clientHeight).toBeGreaterThanOrEqual(
@@ -796,7 +857,7 @@ export const Conversation: Story = {
         box(q(exchanges[0] as HTMLElement, ".ds-chat__meta")).bottom,
       24,
     );
-    await expectNotice(canvasElement, "คำตอบมาจากกฎที่เขียนไว้ ยังไม่มี AI");
+    await expectNotice(canvasElement, c.noticeRules);
     // The transcript sits above the composer, and the composer stays inside the chat.
     const chat = box(chatOf(canvasElement));
     const composer = box(canvasElement.querySelector(".ds-chat__composer") as HTMLElement);
@@ -809,17 +870,19 @@ export const Conversation: Story = {
     await expect(canvasElement.querySelectorAll(".ds-chat [aria-live='polite']")).toHaveLength(1);
     // Keyboard: transcript, textarea, Send, close; the focus ring shows on each.
     transcript.focus();
+    // The transcript's own buttons (Copy on each finished reply) come between it and the textarea.
     const order = [
       transcript,
-      input(canvas),
-      action(canvas, SEND),
-      canvas.getByRole("button", { name: "ปิดแชท" }),
+      ...within(transcript).queryAllByRole("button"),
+      input(canvas, c.input),
+      action(canvas, c.send),
+      canvas.getByRole("button", { name: c.close }),
     ];
     for (const [i, target] of order.entries()) {
       if (i > 0) await userEvent.tab();
       await expect(target).toHaveFocus();
-      if (target === input(canvas)) {
-        // The textarea's single line is the box border in the focus ink, with no outline.
+      if (target === input(canvas, c.input)) {
+        // The textarea's single line is the box border in focus.ring, with its halo and no outline.
         const box = getComputedStyle(q(canvasElement, ".ds-chat__box"));
         const edge = resolved(chatOf(canvasElement), "--cmp-input-border-focus");
         await waitFor(() => expect(box.borderTopColor).toBe(edge));
@@ -829,22 +892,26 @@ export const Conversation: Story = {
       }
     }
     // The older failure keeps its text and has no retry: only the newest exchange can resend.
-    await expect(canvas.getAllByText(FAILED, { selector: ".ds-chat__failure p" })).toHaveLength(1);
-    await expect(canvas.queryByRole("button", { name: "ส่งอีกครั้ง" })).toBeNull();
+    await expect(canvas.getAllByText(c.failed, { selector: ".ds-chat__failure p" })).toHaveLength(
+      1,
+    );
+    await expect(canvas.queryByRole("button", { name: c.retry })).toBeNull();
   },
 };
 
 /** The notice says rules while the reply says mock: each is shown as it is, never corrected. The fixture host answers with mock data under a rules notice. */
 export const BasisMismatch: Story = {
   args: { basis: "rules", onAsk: fn(chatFixtures.host(chatFixtures.reply, "mock")) },
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, globals }) => {
+    const m = catalogOf(globals);
+    const c = m.chat;
     const canvas = within(canvasElement);
-    await expect(canvas.getByText("คำตอบมาจากกฎที่เขียนไว้ ยังไม่มี AI")).toBeVisible();
-    await ask(canvas, chatFixtures.question);
+    await expect(canvas.getByText(c.noticeRules)).toBeVisible();
+    await ask(canvas, chatFixtures.question, c.input);
     await waitFor(() =>
-      expect(canvas.getByText("ข้อมูลจำลอง", { selector: ".ds-chat__basis" })).toBeVisible(),
+      expect(canvas.getByText(m.taskBar.basisMock, { selector: ".ds-chat__basis" })).toBeVisible(),
     );
-    await expect(canvas.queryByText("ตามกฎ")).toBeNull();
+    await expect(canvas.queryByText(m.taskBar.basisRules)).toBeNull();
   },
 };
 
@@ -893,11 +960,13 @@ export const Narrow: Story = {
       <CanvasChat {...args} />
     </Frame>
   ),
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, globals }) => {
+    const m = catalogOf(globals);
+    const c = m.chat;
     const canvas = within(canvasElement);
-    await ask(canvas, chatFixtures.longQuestion);
+    await ask(canvas, chatFixtures.longQuestion, c.input);
     await waitFor(() =>
-      expect(canvas.getByText("ตามกฎ", { selector: ".ds-chat__basis" })).toBeVisible(),
+      expect(canvas.getByText(m.taskBar.basisRules, { selector: ".ds-chat__basis" })).toBeVisible(),
     );
     await expectFits(canvasElement);
     const replyText = canvasElement.querySelector(".ds-chat__reply .ds-chat__text") as HTMLElement;
@@ -913,15 +982,17 @@ export const NarrowestPanel: Story = {
       <CanvasChat {...args} />
     </Frame>
   ),
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, globals }) => {
+    const m = catalogOf(globals);
+    const c = m.chat;
     const canvas = within(canvasElement);
-    await ask(canvas, chatFixtures.longQuestion);
+    await ask(canvas, chatFixtures.longQuestion, c.input);
     await waitFor(() =>
-      expect(canvas.getByText("ตามกฎ", { selector: ".ds-chat__basis" })).toBeVisible(),
+      expect(canvas.getByText(m.taskBar.basisRules, { selector: ".ds-chat__basis" })).toBeVisible(),
     );
     await expectFits(canvasElement);
     // At 240 the row still fits: Send sits inside the box, and the counter is hidden under 1,800.
-    await expect(inside(box(action(canvas, SEND)), box(q(canvasElement, ".ds-chat__box")))).toBe(
+    await expect(inside(box(action(canvas, c.send)), box(q(canvasElement, ".ds-chat__box")))).toBe(
       true,
     );
     await expect(getComputedStyle(q(canvasElement, ".ds-textarea__counter")).display).toBe("none");
@@ -940,15 +1011,17 @@ export const WidestPanel: Story = {
       <CanvasChat {...args} />
     </Frame>
   ),
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, globals }) => {
+    const m = catalogOf(globals);
+    const c = m.chat;
     const canvas = within(canvasElement);
-    await ask(canvas, chatFixtures.question);
+    await ask(canvas, chatFixtures.question, c.input);
     await waitFor(() =>
-      expect(canvas.getByText("ตามกฎ", { selector: ".ds-chat__basis" })).toBeVisible(),
+      expect(canvas.getByText(m.taskBar.basisRules, { selector: ".ds-chat__basis" })).toBeVisible(),
     );
     await expectFits(canvasElement);
     near(box(chatOf(canvasElement)).width, 480);
-    await expect(inside(box(action(canvas, SEND)), box(q(canvasElement, ".ds-chat__box")))).toBe(
+    await expect(inside(box(action(canvas, c.send)), box(q(canvasElement, ".ds-chat__box")))).toBe(
       true,
     );
     await expect(getComputedStyle(q(canvasElement, ".ds-textarea__counter")).display).toBe("none");
@@ -1024,7 +1097,7 @@ export const StartersAtWidths: Story = {
         (["min", "panel", "max"] as const).map((size) => (
           <LocaleProvider key={`${locale}-${size}`} locale={locale}>
             <div data-case={`${locale}-${size}`}>
-              <Frame size={size}>
+              <Frame size={size} fill={false}>
                 <CanvasChat {...args} />
               </Frame>
             </div>
@@ -1066,17 +1139,26 @@ export const RecipesAndModes: Story = {
       </Frame>
     </Matrix>
   ),
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, globals }) => {
+    const m = catalogOf(globals);
     const cells = Array.from(canvasElement.querySelectorAll<HTMLElement>("[data-matrix-cell]"));
     await expect(cells).toHaveLength(6);
-    for (const cell of cells) await ask(within(cell), chatFixtures.question);
+    for (const cell of cells) await ask(within(cell), chatFixtures.question, m.chat.input);
     await waitFor(() =>
       expect(canvasElement.querySelectorAll(".ds-chat__basis")).toHaveLength(cells.length),
     );
     // Each chat shows the panel layout: 320 px wide inside its 322 px frame, with the basis word.
     for (const cell of cells) {
       await expect(box(chatOf(cell)).width).toBeCloseTo(320, 0);
-      await expect(within(cell).getByText("ตามกฎ", { selector: ".ds-chat__basis" })).toBeVisible();
+      // Each reply carries its Copy button (ORV-217 row 17).
+      await expect(
+        within(cell).getAllByRole("button", {
+          name: (name: string) => name.startsWith(m.chat.copy),
+        }),
+      ).toHaveLength(1);
+      await expect(
+        within(cell).getByText(m.taskBar.basisRules, { selector: ".ds-chat__basis" }),
+      ).toBeVisible();
       // In dark the panel's edge is the card border; in light it is transparent.
       if (cell.dataset.matrixMode === "dark") {
         await expect(getComputedStyle(chatOf(cell)).outlineColor).toBe(
@@ -1092,6 +1174,7 @@ function BoardChat({
   selected,
   args,
   height = 560,
+  fill: filled = true,
   controlled = false,
   size = "panel",
 }: {
@@ -1099,6 +1182,8 @@ function BoardChat({
   selected?: string;
   args: Parameters<typeof CanvasChat>[0];
   height?: number;
+  /** The board fills the viewport frame when it is taller than `height`; `false` keeps `height`. */
+  fill?: boolean;
   /** The shell owns the mentions: `node.mention` from the context menu adds the node (ORV-107). */
   controlled?: boolean;
   /** The chat's width, from the panel range. */
@@ -1132,7 +1217,7 @@ function BoardChat({
     return id;
   };
   return (
-    <div style={{ height }} className="relative">
+    <div style={{ height: filled ? fillHeight(height) : height }} className="relative">
       <CanvasBoard
         graph={graph}
         onChange={setGraph}
@@ -1225,11 +1310,11 @@ export const OnBoard: Story = {
     const locale = localeOf(globals);
     const canvas = within(canvasElement);
     await waitFor(() => expect(nodeEl(canvasElement, "brief")).toHaveClass("selected"));
-    // Change 1: the chat floats 12 px from the board's top and end edges and keeps its height (536).
+    // Change 1: the chat floats 12 px from the board's top and end edges and keeps the board's height less 24.
     const floating = box(chatOf(canvasElement));
     near(box(boardEl(canvasElement)).right - floating.right, 12);
     near(floating.top - box(boardEl(canvasElement)).top, 12);
-    near(floating.height, 536);
+    near(floating.height, box(boardEl(canvasElement)).height - 24);
     // Change 13: the quiet header and the one-row box leave the transcript room for the answer.
     await expect(box(viewportOf(canvasElement)).height).toBeGreaterThanOrEqual(349);
     await ask(canvas, chatFixtures.question, c.input);
@@ -1309,7 +1394,9 @@ export const OnBoard: Story = {
  */
 export const Unlinked: Story = {
   render: (args) => <BoardChat args={args} />,
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, globals }) => {
+    const c = catalogOf(globals).chat;
+    const locale = localeOf(globals);
     const canvas = within(canvasElement);
     await waitFor(() => expect(nodeEl(canvasElement, "brief")).toBeTruthy());
     await expect(canvasElement.querySelectorAll(".react-flow__node.selected")).toHaveLength(0);
@@ -1318,13 +1405,13 @@ export const Unlinked: Story = {
     await waitFor(() =>
       expect(canvasElement.querySelectorAll(".react-flow__edge")).toHaveLength(edges),
     );
-    const title = `คำตอบเรื่อง ${chatFixtures.question}`;
-    await ask(canvas, chatFixtures.question);
+    const title = replyTitle(chatFixtures.question, locale);
+    await ask(canvas, chatFixtures.question, c.input);
     await waitFor(() => expect(nodeEl(canvasElement, "reply-1")).toBeTruthy());
     const reply = nodeEl(canvasElement, "reply-1");
     await waitFor(() => expect(within(reply).getByText(title)).toBeVisible());
     await expect(canvasElement.querySelectorAll(".react-flow__edge")).toHaveLength(edges);
-    await expect(canvas.getByText("ไม่ได้ผูกกับโหนดใด")).toBeVisible();
+    await expect(canvas.getByText(c.unlinked)).toBeVisible();
     // Its left edge is the board's centre, snapped to the grid: within half a grid unit. The
     // centre is covered by a node, so the note steps down by whole grid units, never up.
     const board = box(boardEl(canvasElement));
@@ -1343,9 +1430,575 @@ export const Unlinked: Story = {
         inside(box(canvasElement.querySelector(part) as Element), box(chatOf(canvasElement))),
       ).toBe(true);
     }
-    await userEvent.click(canvas.getByRole("button", { name: /^ไปที่โหนดคำตอบ เรื่อง/ }));
+    await userEvent.click(
+      canvas.getByRole("button", { name: fill(c.jumpLabel, { topic: chatFixtures.question }) }),
+    );
     await waitFor(() => expect(reply).toHaveClass("selected"));
     await waitFor(() => expect(reply).toHaveFocus());
+  },
+};
+
+/**
+ * A stand-in for `navigator.clipboard`: no story writes to the real system clipboard (ORV-217).
+ * `writes` holds every `writeText` argument, `write` and `readText` are spies the plays expect never
+ * to be called, and `mode` says how the next `writeText` ends. `restore()` puts the browser's own back.
+ */
+function clipboardStub(mode: "resolve" | "reject" | "hold") {
+  const own = Object.getOwnPropertyDescriptor(navigator, "clipboard");
+  const writes: string[] = [];
+  const held: { resolve: () => void; reject: (error: Error) => void }[] = [];
+  const stub = {
+    mode,
+    write: fn(),
+    readText: fn(),
+    writeText: (text: string): Promise<void> => {
+      writes.push(text);
+      if (stub.mode === "reject") return Promise.reject(new Error("NotAllowedError"));
+      if (stub.mode === "hold") {
+        return new Promise<void>((resolve, reject) => held.push({ resolve, reject }));
+      }
+      return Promise.resolve();
+    },
+  };
+  const install = (value: unknown) =>
+    Object.defineProperty(navigator, "clipboard", { value, configurable: true });
+  install(stub);
+  return {
+    stub,
+    writes,
+    /** Settles the nth held write (the latest by default) as resolved or as rejected. */
+    release: (n = held.length - 1) => held[n]?.resolve(),
+    reject: (n = held.length - 1) => held[n]?.reject(new Error("NotAllowedError")),
+    /** The page has no clipboard at all (an insecure context). */
+    missing: () => install(undefined),
+    restore: () => {
+      if (own) Object.defineProperty(navigator, "clipboard", own);
+      else Reflect.deleteProperty(navigator, "clipboard");
+    },
+  };
+}
+
+/** Runs a play with the stub installed and always puts the browser's clipboard back. */
+async function withClipboard(
+  mode: "resolve" | "reject" | "hold",
+  run: (clip: ReturnType<typeof clipboardStub>) => Promise<void>,
+) {
+  const clip = clipboardStub(mode);
+  try {
+    await run(clip);
+  } finally {
+    clip.restore();
+  }
+}
+
+/** Waits until a reply has ended: the basis word shows only on a finished or stopped reply. */
+const replied = (canvas: ReturnType<typeof within>, basisWord: string) =>
+  waitFor(() => expect(canvas.getByText(basisWord, { selector: ".ds-chat__basis" })).toBeVisible());
+
+/** Two animation frames: React has rendered what an event or a scroll scheduled. */
+const settled = () =>
+  new Promise<void>((resolve) =>
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+  );
+
+/** The copy buttons by their visible word; a name starts with it (SC 2.5.3, copy-name-1). */
+const copyButtons = (canvas: ReturnType<typeof within>, word: string) =>
+  canvas.queryAllByRole("button", { name: (name: string) => name.startsWith(word) });
+
+/** True when the button's glyph is the tick; the copy glyph otherwise. */
+const hasTick = (button: HTMLElement) => button.querySelector("svg.lucide-check") !== null;
+const hasCopyGlyph = (button: HTMLElement) => button.querySelector("svg.lucide-copy") !== null;
+
+/** A finished reply gets Copy beside its basis word; a press writes the text and shows the result (ORV-217 rows 1 to 3). */
+export const CopyReply: Story = {
+  args: { onAsk: fn(chatFixtures.host(chatFixtures.replyLines, "rules", { steps: 2, ms: 10 })) },
+  play: async ({ canvasElement, globals }) => {
+    const m = catalogOf(globals);
+    const c = m.chat;
+    const canvas = within(canvasElement);
+    await withClipboard("resolve", async (clip) => {
+      await ask(canvas, chatFixtures.question, c.input);
+      await replied(canvas, m.taskBar.basisRules);
+      const button = canvas.getByRole("button", {
+        name: fill(c.copyLabel, { topic: chatFixtures.question }),
+      });
+      // Row 1: a ghost button with the copy glyph and its word, after the basis word.
+      await expect(button).toHaveTextContent(c.copy);
+      await expect(button).toHaveAttribute("data-variant", "ghost");
+      await expect(hasCopyGlyph(button)).toBe(true);
+      const basis = q(canvasElement, ".ds-chat__basis");
+      await expect(
+        Boolean(basis.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING),
+      ).toBe(true);
+      await expect(canvasElement.querySelector(".ds-chat__copied")).toBeNull();
+      // Row 2: the text goes to the clipboard whole, then a tick and the note, last in the row.
+      await userEvent.click(button);
+      await waitFor(() => expect(hasTick(button)).toBe(true));
+      const ticked = performance.now();
+      await expect(clip.writes).toEqual([chatFixtures.replyLines]);
+      await expect(clip.writes[0]?.split("\n")).toHaveLength(4);
+      const note = q(canvasElement, ".ds-chat__copied");
+      await expect(note).toHaveTextContent(c.copied);
+      await waitFor(() => expect(statusOf(canvasElement)).toHaveTextContent(c.copied));
+      await expect(q(canvasElement, ".ds-chat__meta").lastElementChild).toBe(note);
+      await expect(button).toHaveFocus();
+      await expect(button.getAttribute("aria-label")).toBe(
+        fill(c.copyLabel, { topic: chatFixtures.question }),
+      );
+      // Row 3: two seconds later the note goes and the copy glyph comes back.
+      await waitFor(() => expect(canvasElement.querySelector(".ds-chat__copied")).toBeNull(), {
+        timeout: 4000,
+      });
+      // The note stays for COPIED_MS (2000 ms); polling can only make the reading a little late.
+      await expect(performance.now() - ticked).toBeGreaterThanOrEqual(1900);
+      await expect(hasCopyGlyph(button)).toBe(true);
+      await expect(hasTick(button)).toBe(false);
+      await expect(button).toHaveFocus();
+    });
+  },
+};
+
+/** The write has not resolved: nothing changes, then it resolves and the tick shows (ORV-217 row 4). */
+export const CopyPending: Story = {
+  args: { onAsk: fn(chatFixtures.host(chatFixtures.replyLines, "rules", { steps: 2, ms: 10 })) },
+  play: async ({ canvasElement, globals }) => {
+    const m = catalogOf(globals);
+    const c = m.chat;
+    const canvas = within(canvasElement);
+    await withClipboard("hold", async (clip) => {
+      await ask(canvas, chatFixtures.question, c.input);
+      await replied(canvas, m.taskBar.basisRules);
+      const button = copyButtons(canvas, c.copy)[0] as HTMLElement;
+      const before = statusOf(canvasElement).textContent;
+      await userEvent.click(button);
+      await waitFor(() => expect(clip.writes).toHaveLength(1));
+      await expect(hasTick(button)).toBe(false);
+      await expect(canvasElement.querySelector(".ds-chat__copied")).toBeNull();
+      await expect(canvasElement.querySelector(".ds-chat__copy-failed")).toBeNull();
+      await expect(statusOf(canvasElement).textContent).toBe(before);
+      // A second press while the first is pending: still nothing, then the later press settles first.
+      await userEvent.click(button);
+      await waitFor(() => expect(clip.writes).toHaveLength(2));
+      await expect(hasTick(button)).toBe(false);
+      clip.release(1);
+      await waitFor(() => expect(hasTick(button)).toBe(true));
+      await expect(q(canvasElement, ".ds-chat__copied")).toHaveTextContent(c.copied);
+      await waitFor(() => expect(statusOf(canvasElement)).toHaveTextContent(c.copied));
+      // The earlier press fails after the later one has shown its result: it is stale and shows nothing.
+      clip.reject(0);
+      await settled();
+      await expect(canvasElement.querySelector(".ds-chat__copy-failed")).toBeNull();
+      await expect(hasTick(button)).toBe(true);
+      await expect(statusOf(canvasElement)).toHaveTextContent(c.copied);
+    });
+  },
+};
+
+/** A rejected write, then no clipboard at all: the failure says so, in the failure colour, on its own line (ORV-217 rows 5 and 6). */
+export const CopyFailed: Story = {
+  args: { onAsk: fn(chatFixtures.host(chatFixtures.replyLines, "rules", { steps: 2, ms: 10 })) },
+  play: async ({ canvasElement, globals }) => {
+    const m = catalogOf(globals);
+    const c = m.chat;
+    const canvas = within(canvasElement);
+    /** What the chat's own failure colour resolves to, read from a probe in the same cascade. */
+    const failureInk = () => {
+      const probe = document.createElement("div");
+      probe.className = "ds-chat__failure";
+      chatOf(canvasElement).appendChild(probe);
+      const ink = getComputedStyle(probe).color;
+      probe.remove();
+      return ink;
+    };
+    const expectFailed = async (button: HTMLElement) => {
+      const note = q(canvasElement, ".ds-chat__copy-failed");
+      await expect(note).toHaveTextContent(c.copyFailed);
+      await waitFor(() => expect(statusOf(canvasElement)).toHaveTextContent(c.copyFailed));
+      await expect(canvasElement).not.toHaveTextContent("NotAllowedError");
+      await expect(hasTick(button)).toBe(false);
+      await expect(hasCopyGlyph(button)).toBe(true);
+      await expect(note.querySelector(".ds-chat__mark svg")).not.toBeNull();
+      await expect(getComputedStyle(note).color).toBe(failureInk());
+      await expect(q(canvasElement, ".ds-chat__meta").lastElementChild).toBe(note);
+      await expect(box(note).top).toBeGreaterThanOrEqual(box(button).bottom - 0.5);
+      await expect(inside(box(note), box(chatOf(canvasElement)))).toBe(true);
+      await expect(canvasElement.querySelector(".ds-chat__copied")).toBeNull();
+    };
+    await withClipboard("reject", async (clip) => {
+      await ask(canvas, chatFixtures.question, c.input);
+      await replied(canvas, m.taskBar.basisRules);
+      const button = copyButtons(canvas, c.copy)[0] as HTMLElement;
+      await userEvent.click(button);
+      await waitFor(() =>
+        expect(canvasElement.querySelector(".ds-chat__copy-failed")).not.toBeNull(),
+      );
+      await expectFailed(button);
+      await expect(button).toHaveFocus();
+      // On its own line at every width, also where the sentence would fit beside the button.
+      const frame = chatOf(canvasElement).parentElement as HTMLElement;
+      frame.style.width = "1100px";
+      await settled();
+      await expect(box(chatOf(canvasElement)).width).toBeGreaterThan(900);
+      await expectFailed(button);
+      frame.style.width = "";
+      // The failure does not clear on a timer: it is still there after the copied note's two seconds.
+      await new Promise((resolve) => setTimeout(resolve, 2300));
+      await expectFailed(button);
+      // The failure stays until the next press; a good write replaces it at once.
+      clip.stub.mode = "resolve";
+      await userEvent.click(button);
+      await waitFor(() => expect(hasTick(button)).toBe(true));
+      await expect(canvasElement.querySelector(".ds-chat__copy-failed")).toBeNull();
+      // Row 6: no clipboard in the page is the same failure.
+      clip.missing();
+      await userEvent.click(button);
+      await waitFor(() =>
+        expect(canvasElement.querySelector(".ds-chat__copy-failed")).not.toBeNull(),
+      );
+      await expectFailed(button);
+    });
+  },
+};
+
+/**
+ * Every settled press is announced once in the polite status region, also when its text equals the
+ * text already there: a second copy inside 2000 ms, and a retry after a failure (ORV-217 copy-status-1).
+ * A MutationObserver records each text the region holds; two results with the same words need two
+ * writes of those words, so a screen reader hears both.
+ */
+export const CopyAnnouncesEachPress: Story = {
+  args: { onAsk: fn(chatFixtures.host(chatFixtures.replyLines, "rules", { steps: 2, ms: 10 })) },
+  play: async ({ canvasElement, globals }) => {
+    const m = catalogOf(globals);
+    const c = m.chat;
+    const canvas = within(canvasElement);
+    const region = statusOf(canvasElement);
+    const seen: string[] = [];
+    const observer = new MutationObserver(() => seen.push(region.textContent ?? ""));
+    const times = (text: string) => seen.filter((t) => t === text).length;
+    await withClipboard("resolve", async (clip) => {
+      await ask(canvas, chatFixtures.question, c.input);
+      await replied(canvas, m.taskBar.basisRules);
+      const button = copyButtons(canvas, c.copy)[0] as HTMLElement;
+      observer.observe(region, { childList: true, characterData: true, subtree: true });
+      try {
+        // Two good copies in a row, well inside the 2000 ms note: the words are written twice.
+        await userEvent.click(button);
+        await waitFor(() => expect(times(c.copied)).toBe(1));
+        await userEvent.click(button);
+        await waitFor(() => expect(times(c.copied)).toBe(2));
+        await expect(region).toHaveTextContent(c.copied);
+        // A failure never clears on a timer, so every retry fails with the same words again.
+        clip.stub.mode = "reject";
+        await userEvent.click(button);
+        await waitFor(() => expect(times(c.copyFailed)).toBe(1));
+        await userEvent.click(button);
+        await waitFor(() => expect(times(c.copyFailed)).toBe(2));
+        await expect(region).toHaveTextContent(c.copyFailed);
+        await expect(clip.writes).toHaveLength(4);
+      } finally {
+        observer.disconnect();
+      }
+    });
+  },
+};
+
+/** The host for `CopyStates`: the first character of the question picks the outcome. */
+const copyStatesHost =
+  (hold: ChatHost): ChatHost =>
+  (request, signal) => {
+    const kind = request.text.charAt(0);
+    if (kind === "1") return chatFixtures.hostHold(chatFixtures.reply)(request, signal);
+    if (kind === "2") return chatFixtures.hostFail()(request, signal);
+    if (kind === "3") return chatFixtures.hostBlank(request, signal);
+    return hold(request, signal);
+  };
+
+/** Copy is for a finished reply with text: not stopped, failed, streaming or empty (ORV-217 rows 7, 21 and 22). */
+export const CopyStates: Story = {
+  render: (args) => {
+    const latch = chatFixtures.hostLatch(chatFixtures.reply);
+    (window as unknown as { __latch: () => void }).__latch = latch.release;
+    return (
+      <Frame size="sheet">
+        <CanvasChat {...args} onAsk={copyStatesHost(latch.host)} />
+      </Frame>
+    );
+  },
+  play: async ({ canvasElement, globals }) => {
+    const m = catalogOf(globals);
+    const c = m.chat;
+    const canvas = within(canvasElement);
+    await ask(canvas, "1 หยุดกลางคัน", c.input);
+    await userEvent.click(await canvas.findByRole("button", { name: c.stop }));
+    await waitFor(() => expect(canvas.queryByRole("button", { name: c.stop })).toBeNull());
+    await ask(canvas, "2 ล้มเหลว", c.input);
+    await waitFor(() =>
+      expect(canvas.getAllByText(c.failed, { selector: ".ds-chat__failure p" })).toHaveLength(1),
+    );
+    await ask(canvas, "3 ตอบว่าง", c.input);
+    await waitFor(() => expect(canvas.getAllByText(c.you)).toHaveLength(3));
+    await waitFor(() => expect(canvasElement.querySelectorAll(".ds-chat__basis")).toHaveLength(2));
+    await ask(canvas, "4 กำลังตอบ", c.input);
+    await canvas.findByRole("button", { name: c.stop });
+    // Stopped, failed, empty done and streaming: no Copy on any.
+    await expect(copyButtons(canvas, c.copy)).toHaveLength(0);
+    // Row 22: the basis word and the stopped word read as two items, 12 px apart.
+    const stopped = q(canvasElement, ".ds-chat__stopped");
+    const basis = q(stopped.closest(".ds-chat__meta") as HTMLElement, ".ds-chat__basis");
+    near(box(stopped).left - box(basis).right, 12);
+    (window as unknown as { __latch: () => void }).__latch();
+    await waitFor(() => expect(copyButtons(canvas, c.copy)).toHaveLength(1));
+    // The empty done reply added none; the one that shows is the last exchange's.
+    const exchanges = [...canvasElement.querySelectorAll<HTMLElement>(".ds-chat__exchange")];
+    await expect(exchanges).toHaveLength(4);
+    await expect(exchanges[2]?.getAttribute("data-state")).toBe("done");
+    await expect(exchanges[2]?.querySelector(".ds-button")).toBeNull();
+    await expect(exchanges[3]?.querySelector(".ds-button")).not.toBeNull();
+  },
+};
+
+/** A reply that holds markup is copied as the same characters: no HTML, no item write (ORV-217 row 8). */
+export const CopyMarkup: Story = {
+  args: { onAsk: fn(chatFixtures.host("<b>ตัวหนา</b> ในคำตอบ", "rules", { steps: 2, ms: 10 })) },
+  play: async ({ canvasElement, globals }) => {
+    const m = catalogOf(globals);
+    const c = m.chat;
+    const canvas = within(canvasElement);
+    await withClipboard("resolve", async (clip) => {
+      await ask(canvas, chatFixtures.question, c.input);
+      await replied(canvas, m.taskBar.basisRules);
+      await expect(q(canvasElement, ".ds-chat__reply .ds-chat__text").textContent).toBe(
+        "<b>ตัวหนา</b> ในคำตอบ",
+      );
+      await expect(canvasElement.querySelector(".ds-chat__reply b")).toBeNull();
+      await userEvent.click(copyButtons(canvas, c.copy)[0] as HTMLElement);
+      await waitFor(() => expect(clip.writes).toHaveLength(1));
+      await expect(clip.writes[0]).toBe("<b>ตัวหนา</b> ในคำตอบ");
+      await expect(clip.stub.write).not.toHaveBeenCalled();
+      await expect(clip.stub.readText).not.toHaveBeenCalled();
+    });
+  },
+};
+
+/** Copy in English: the name starts with the visible word, and the result reads in English (ORV-217 row 9). */
+export const CopyInEnglish: Story = {
+  args: {
+    basis: "mock",
+    onAsk: fn(chatFixtures.host(chatFixtures.replyEn, "mock", { steps: 2, ms: 10 })),
+  },
+  decorators: [(Story) => <LocaleProvider locale="en">{Story()}</LocaleProvider>],
+  play: async ({ canvasElement }) => {
+    const en = messagesFor("en");
+    const canvas = within(canvasElement);
+    await withClipboard("resolve", async (clip) => {
+      await ask(canvas, chatFixtures.questionEn, en.chat.input);
+      await replied(canvas, en.taskBar.basisMock);
+      const button = canvas.getByRole("button", {
+        name: "Copy reply on Summarise the brand node",
+      });
+      await expect(button).toHaveTextContent("Copy");
+      await userEvent.click(button);
+      await waitFor(() => expect(statusOf(canvasElement)).toHaveTextContent("Reply copied"));
+      await expect(clip.writes).toEqual([chatFixtures.replyEn]);
+      await expect(q(canvasElement, ".ds-chat__copied")).toHaveTextContent("Reply copied");
+    });
+  },
+};
+
+/**
+ * The chat on a board at the 240 px panel, with the jump button: the row wraps with Copy on line 1
+ * and the jump on line 2, its glyph on the basis word's edge; the note comes last and moves nothing
+ * (ORV-217 row 23). Fixture host, replies by rules.
+ */
+export const CopyOnBoard: Story = {
+  render: (args) => <BoardChat selected="brief" args={args} size="min" />,
+  play: async ({ canvasElement, globals }) => {
+    const m = catalogOf(globals);
+    const c = m.chat;
+    const canvas = within(canvasElement);
+    await withClipboard("resolve", async () => {
+      await waitFor(() => expect(nodeEl(canvasElement, "brief")).toBeTruthy());
+      await ask(canvas, chatFixtures.question, c.input);
+      const jump = await canvas.findByRole("button", {
+        name: fill(c.jumpLabel, { topic: chatFixtures.question }),
+      });
+      await replied(canvas, m.taskBar.basisRules);
+      const copy = canvas.getByRole("button", {
+        name: fill(c.copyLabel, { topic: chatFixtures.question }),
+      });
+      const basis = box(q(canvasElement, ".ds-chat__basis"));
+      near(box(copy).left - basis.right, 4);
+      await expect(box(jump).top).toBeGreaterThanOrEqual(box(copy).bottom - 0.5);
+      // The button's 1 px transparent border sits between its box and its glyph: the glyph is 1 px in.
+      near(box(q(jump, "svg")).left, basis.left, 1);
+      const before = box(jump);
+      await userEvent.click(copy);
+      await waitFor(() => expect(canvasElement.querySelector(".ds-chat__copied")).not.toBeNull());
+      const after = box(jump);
+      for (const edge of ["left", "top", "right", "bottom"] as const) {
+        near(after[edge], before[edge]);
+      }
+      const note = q(canvasElement, ".ds-chat__copied");
+      await expect(q(canvasElement, ".ds-chat__meta").lastElementChild).toBe(note);
+      await expect(inside(box(note), box(chatOf(canvasElement)))).toBe(true);
+    });
+  },
+};
+
+/** The frame of `BackToLatest`: 360 by 480, so five exchanges overflow the transcript. */
+function LatestFrame({ children }: { children: ReactNode }) {
+  return (
+    <div style={{ height: 480 }} className="w-[360px] max-w-full">
+      {children}
+    </div>
+  );
+}
+
+/** Five quick replies, then a sixth that yields one snapshot per `__next()` call (ORV-217 rows 10 to 16). */
+function PacedChat({ args }: { args: Parameters<typeof CanvasChat>[0] }) {
+  const [paced] = useState(() => chatFixtures.hostPaced(chatFixtures.replyLines));
+  (window as unknown as { __next: () => void }).__next = paced.next;
+  const quick = chatFixtures.host(chatFixtures.reply, "rules", { steps: 2, ms: 10 });
+  const onAsk = (request: ChatRequest, signal: AbortSignal) =>
+    request.text.startsWith("6") ? paced.host(request, signal) : quick(request, signal);
+  return (
+    <LatestFrame>
+      <CanvasChat {...args} onAsk={onAsk} />
+    </LatestFrame>
+  );
+}
+
+const next = () => (window as unknown as { __next: () => void }).__next();
+
+/** Sets the scroll position and waits for the scroll event the chat listens to. */
+async function scrollViewport(el: HTMLElement, top: number) {
+  const scrolled = new Promise<void>((resolve) =>
+    el.addEventListener("scroll", () => resolve(), { once: true }),
+  );
+  el.scrollTop = top;
+  await scrolled;
+  await settled();
+}
+const latestWrapper = (root: HTMLElement) => root.querySelector<HTMLElement>(".ds-chat__latest");
+const distanceToEnd = (el: HTMLElement) => el.scrollHeight - el.scrollTop - el.clientHeight;
+
+/** Five finished exchanges and a sixth streaming; the reader is then scrolled to the top. */
+async function awayFromEnd(canvasElement: HTMLElement, c: ReturnType<typeof catalogOf>["chat"]) {
+  const canvas = within(canvasElement);
+  for (const [i, question] of ["1 หนึ่ง", "2 สอง", "3 สาม", "4 สี่", "5 ห้า"].entries()) {
+    await ask(canvas, question, c.input);
+    await waitFor(() => expect(canvas.getAllByText(c.you)).toHaveLength(i + 1));
+    await waitFor(() => expect(canvas.queryByRole("button", { name: c.stop })).toBeNull());
+    // New text that arrives while the reader is at the end never shows the button.
+    await settled();
+    await expect(canvasElement.querySelector(".ds-chat__latest")).toBeNull();
+  }
+  await ask(canvas, "6 หก", c.input);
+  await canvas.findByRole("button", { name: c.stop });
+  const viewport = viewportOf(canvasElement);
+  await expect(viewport.scrollHeight).toBeGreaterThan(viewport.clientHeight);
+  await waitFor(() => expect(distanceToEnd(viewport)).toBeLessThanOrEqual(32));
+  await scrollViewport(viewport, 0);
+  return viewport;
+}
+
+/**
+ * Back to latest: it shows only when the reader is away from the end and new text arrives, floats
+ * over the foot of the transcript without moving the composer, jumps at once, and leaves nothing
+ * in the DOM when hidden (ORV-217 rows 10 to 15 and 24). Fixture host, replies by rules.
+ */
+export const BackToLatest: Story = {
+  render: (args) => <PacedChat args={args} />,
+  play: async ({ canvasElement, globals }) => {
+    const c = catalogOf(globals).chat;
+    const canvas = within(canvasElement);
+    const viewport = await awayFromEnd(canvasElement, c);
+    const composer = q(canvasElement, ".ds-chat__composer");
+    const composerTop = box(composer).top;
+    // Row 10: away from the end with nothing new, there is no button and no wrapper.
+    await expect(canvas.queryByRole("button", { name: c.toLatest, hidden: true })).toBeNull();
+    await expect(canvasElement.querySelector(".ds-chat__latest")).toBeNull();
+    const statusBefore = statusOf(canvasElement).textContent;
+    next();
+    const button = await canvas.findByRole("button", { name: c.toLatest });
+    await expect(canvas.getByRole("button", { name: c.toLatest })).toBe(button);
+    await expect(button.querySelector("svg.lucide-chevron-down")).not.toBeNull();
+    await expect(button).toHaveAttribute("data-variant", "secondary");
+    near(box(composer).top, composerTop);
+    const scroll = box(q(canvasElement, ".ds-chat__scroll"));
+    await expect(inside(box(button), scroll)).toBe(true);
+    near((box(button).left + box(button).right) / 2, (scroll.left + scroll.right) / 2, 1);
+    // Row 24: 16 px above the composer, a shadow in the button's shape, no motion.
+    const wrapper = latestWrapper(canvasElement) as HTMLElement;
+    near(composerTop - box(button).bottom, 16);
+    await expect(getComputedStyle(wrapper).boxShadow).not.toBe("none");
+    await expect(getComputedStyle(wrapper).borderRadius).toBe(
+      getComputedStyle(button).borderRadius,
+    );
+    await expect(getComputedStyle(wrapper).transitionDuration).toBe("0s");
+    await expect(getComputedStyle(wrapper).animationName).toBe("none");
+    // The button paints over the transcript: the point at its centre is the button.
+    const centre = {
+      x: (box(button).left + box(button).right) / 2,
+      y: (box(button).top + box(button).bottom) / 2,
+    };
+    await expect(button.contains(document.elementFromPoint(centre.x, centre.y))).toBe(true);
+    // Row 15: the button announces nothing; the reply's live region is as it was.
+    await expect(wrapper.querySelectorAll("[aria-live], [role='status']")).toHaveLength(0);
+    await expect(wrapper).not.toHaveAttribute("aria-live");
+    await expect(statusOf(canvasElement).textContent).toBe(statusBefore);
+    const live = canvasElement.querySelector(".ds-chat [aria-live='polite']") as HTMLElement;
+    await expect(live).toHaveAttribute("aria-busy", "true");
+    // Row 14: Tab from the end of the transcript reaches the button, then the textarea.
+    const inTranscript = copyButtons(canvas, catalogOf(globals).chat.copy).at(-1) as HTMLElement;
+    inTranscript.focus({ preventScroll: true });
+    await userEvent.tab();
+    await expect(button).toHaveFocus();
+    await userEvent.tab();
+    await expect(input(canvas, c.input)).toHaveFocus();
+    // Row 11: a press jumps to the end at once (no frame awaited), hides the button, focuses the textarea.
+    button.focus();
+    button.click();
+    await expect(distanceToEnd(viewport)).toBeLessThanOrEqual(32);
+    await expect(canvasElement.querySelector(".ds-chat__latest")).toBeNull();
+    await expect(canvas.queryByRole("button", { name: c.toLatest, hidden: true })).toBeNull();
+    await expect(input(canvas, c.input)).toHaveFocus();
+    await expect(document.body).not.toHaveFocus();
+    // Row 12: shown again, the reader scrolls back to the end by hand: the button goes, Tab skips it.
+    await scrollViewport(viewport, 0);
+    next();
+    await canvas.findByRole("button", { name: c.toLatest });
+    await scrollViewport(viewport, viewport.scrollHeight);
+    await waitFor(() => expect(canvasElement.querySelector(".ds-chat__latest")).toBeNull());
+    const lastCopy = copyButtons(canvas, c.copy).at(-1) as HTMLElement;
+    lastCopy.focus({ preventScroll: true });
+    await userEvent.tab();
+    await expect(input(canvas, c.input)).toHaveFocus();
+    // Row 13: shown once more, the reply ends and a new message is sent: the button goes and the view follows.
+    await scrollViewport(viewport, 0);
+    next();
+    await waitFor(() => expect(copyButtons(canvas, c.copy)).toHaveLength(6));
+    await canvas.findByRole("button", { name: c.toLatest });
+    await ask(canvas, "7 เจ็ด", c.input);
+    await waitFor(() => expect(canvasElement.querySelector(".ds-chat__latest")).toBeNull());
+    await waitFor(() => expect(canvas.getAllByText(c.you)).toHaveLength(7));
+    await waitFor(() => expect(distanceToEnd(viewport)).toBeLessThanOrEqual(32));
+  },
+};
+
+/** Back to latest in English: the button reads "Go to latest" and is shown only after new text (ORV-217 row 16). */
+export const BackToLatestInEnglish: Story = {
+  decorators: [(Story) => <LocaleProvider locale="en">{Story()}</LocaleProvider>],
+  render: (args) => <PacedChat args={args} />,
+  play: async ({ canvasElement }) => {
+    const c = messagesFor("en").chat;
+    const canvas = within(canvasElement);
+    await awayFromEnd(canvasElement, c);
+    await expect(canvasElement.querySelector(".ds-chat__latest")).toBeNull();
+    next();
+    const button = await canvas.findByRole("button", { name: "Go to latest" });
+    await expect(button).toHaveTextContent("Go to latest");
   },
 };
 
@@ -1531,7 +2184,9 @@ export const Mentions: Story = {
 export const MentionFromMenu: Story = {
   args: { onMentionsChange: fn() },
   render: (args) => <BoardChat args={args} controlled />,
-  play: async ({ canvasElement, args }) => {
+  play: async ({ canvasElement, args, globals }) => {
+    const m = catalogOf(globals);
+    const mentionItem = pick(commandById("node.mention").label, localeOf(globals));
     const canvas = within(canvasElement);
     await waitFor(() => expect(nodeEl(canvasElement, "logo")).toBeTruthy());
     await waitFor(() =>
@@ -1539,28 +2194,28 @@ export const MentionFromMenu: Story = {
     );
     await userEvent.pointer({ keys: "[MouseRight]", target: nodeEl(canvasElement, "logo") });
     const menu = await within(document.body).findByRole("menu");
-    await userEvent.click(
-      within(menu).getByRole("menuitem", { name: "อ้างถึง node นี้ใน prompt" }),
-    );
+    await userEvent.click(within(menu).getByRole("menuitem", { name: mentionItem }));
     await waitFor(() => expect(chipsOf(canvasElement)).toEqual(["โลโก้"]));
     // A second use adds a second chip; the same node twice adds none. The shell owns the list.
     await userEvent.pointer({ keys: "[MouseRight]", target: nodeEl(canvasElement, "palette") });
     await userEvent.click(
       within(await within(document.body).findByRole("menu")).getByRole("menuitem", {
-        name: "อ้างถึง node นี้ใน prompt",
+        name: mentionItem,
       }),
     );
     await waitFor(() => expect(chipsOf(canvasElement)).toHaveLength(2));
     await userEvent.pointer({ keys: "[MouseRight]", target: nodeEl(canvasElement, "logo") });
     await userEvent.click(
       within(await within(document.body).findByRole("menu")).getByRole("menuitem", {
-        name: "อ้างถึง node นี้ใน prompt",
+        name: mentionItem,
       }),
     );
     await expect(chipsOf(canvasElement)).toHaveLength(2);
     // A pick through the chat's own picker calls the callback; a shell add does not.
     await expect(args.onMentionsChange).not.toHaveBeenCalled();
-    await userEvent.click(canvas.getAllByRole("button", { name: /^ลบ / })[0] as HTMLElement);
+    await userEvent.click(
+      canvas.getByRole("button", { name: fill(m.tag.remove, { label: "โลโก้" }) }),
+    );
     await expect(args.onMentionsChange).toHaveBeenCalledTimes(1);
     await expect(chipsOf(canvasElement)).toHaveLength(1);
   },
@@ -1677,12 +2332,13 @@ export const MentionGonePanelEnglishDark: Story = goneStory("panel", "en", "dark
  * Fixture host, replies by rules.
  */
 export const NoBoardNoMention: Story = {
-  play: async ({ canvasElement, args }) => {
+  play: async ({ canvasElement, args, globals }) => {
+    const c = catalogOf(globals).chat;
     const canvas = within(canvasElement);
-    await userEvent.type(input(canvas), "@บ");
-    await expect(canvas.queryByRole("button", { name: "อ้างถึงโหนด" })).toBeNull();
+    await userEvent.type(input(canvas, c.input), "@บ");
+    await expect(canvas.queryByRole("button", { name: c.mention })).toBeNull();
     await expect(canvas.queryByRole("listbox")).toBeNull();
-    await expect(input(canvas)).toHaveValue("@บ");
+    await expect(input(canvas, c.input)).toHaveValue("@บ");
     await userEvent.keyboard("{Enter}");
     await expect((args.onAsk as ReturnType<typeof fn>).mock.calls[0]?.[0]).toEqual({
       text: "@บ",
@@ -1738,11 +2394,12 @@ export const MentionsEnglish: Story = {
  */
 export const MentionsSmallest: Story = {
   args: { defaultMentions: ["brief", "logo", "palette"] },
-  render: (args) => <BoardChat args={args} height={380} size="min" />,
-  play: async ({ canvasElement }) => {
+  render: (args) => <BoardChat args={args} height={380} fill={false} size="min" />,
+  play: async ({ canvasElement, globals }) => {
+    const c = catalogOf(globals).chat;
     const canvas = within(canvasElement);
     await waitFor(() => expect(nodeEl(canvasElement, "brief")).toBeTruthy());
-    const field = input(canvas);
+    const field = input(canvas, c.input);
     await userEvent.type(field, "@");
     const picker = canvasElement.querySelector(".ds-chat__picker") as HTMLElement;
     const chat = box(chatOf(canvasElement));

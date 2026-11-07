@@ -3,6 +3,7 @@ import { expect, userEvent, waitFor, within } from "storybook/test";
 import { commandById, surfaceCommands } from "../../commands/index";
 import { BOARD, BOARD_NODES } from "../canvas-board/fixtures";
 import { MatrixBoard, Stateful } from "../canvas-board/story-shell";
+import { expectFocusBorderForm } from "../../testing/visual-asserts";
 import { Matrix } from "../matrix";
 import { MOD } from "../story-keys";
 
@@ -44,6 +45,8 @@ export const Open: Story = {
     const dialog = await open(region);
     const input = within(dialog).getByRole("combobox");
     await expect(input).toHaveFocus();
+    // Border form (ORV-192 row 9): the panel's border turns focus.ring and its elevation stays.
+    await expectFocusBorderForm(dialog);
     const options = within(dialog).getAllByRole("option");
     const commands = surfaceCommands("command-menu");
     await expect(options).toHaveLength(commands.length + BOARD_NODES.length);

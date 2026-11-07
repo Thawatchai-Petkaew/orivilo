@@ -1,0 +1,25 @@
+name: Spinner
+tier: base
+status: draft
+since: ORV-201
+import: "@orivilo/design-system"
+story: base-spinner
+useWhen:
+  - "A small region, a row or a control is waiting and the length is unknown"
+avoidWhen:
+  - "A job with a known length or a value to show (use Progress)"
+  - "A whole region whose layout is known (use Skeleton)"
+contract: SpinnerProps
+variants: []
+sizes: [sm, md, lg]
+states: [labelled, label-hidden, decorative]
+recipes: [neutral, professional, friendly]
+examples: []
+rules:
+  - "One ring drawing at 16, 20 or 24 px (`size.icon.sm`, `.md`, `.lg`); `lg` puts the label under the ring, `sm` and `md` beside it"
+  - "The ring and its label read `spinner.fg` (`text.secondary`), listed at the text floor 4.5; a decorative ring takes the ink of its slot"
+  - "The ring keeps turning under reduced motion (essential motion); the label carries the state, so motion is never the only carrier"
+  - "Button's loading state draws a decorative Spinner and keeps its own status"
+a11y:
+  - "One role status holds the aria-hidden ring and the label text; the svg has no role and no aria-label"
+  - '`decorative` renders no status and no label: only for a control that owns its status, or a region that owns it (LoadingState `live="off"`, CanvasBoard''s status line) (load-live-1)'

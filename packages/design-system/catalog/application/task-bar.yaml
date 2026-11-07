@@ -6,8 +6,7 @@ import: "@orivilo/design-system"
 story: application-task-bar
 useWhen:
   - "Running and finished generation jobs with a jump to their node"
-avoidWhen:
-  - "A board with no jobs (collapsed by default)"
+avoidWhen: []
 contract: TaskBarProps
 variants: []
 sizes: []
@@ -19,5 +18,6 @@ rules:
   - "Jump pans and zooms to the node and selects it (inside a CanvasBoard, for a job whose node is on the board; ORV-101)"
   - "Every job shows its basis, by rules or mock data; nothing claims AI"
   - "Retry waits for the host: the button is loading until the job's state or reason changes"
+  - "With no jobs the bar stays collapsed by default and shows 'ยังไม่มีงาน' in the header; the open panel draws an EmptyState (sm, level 3) with a jobs tile, a title, the words and `emptyAction`, the host's own Button, one at most (`empty-bar-1`). The action shows once the panel is open; pass none when the person cannot start a job. When the last job leaves, the bar's own status says 'ยังไม่มีงาน' and the toggle takes focus. No command starts a job yet, so every action in the stories is mock"
 a11y:
   - "Job status in a live region; the list is keyboard navigable"

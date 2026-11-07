@@ -1,0 +1,18 @@
+/*
+ * Storybook-only (spec ORV-189). Storybook pads the body of a padded story by 1rem and makes the
+ * body of a centred story a flex row with a margin on the root, all outside the mode surface. That
+ * left a white band round a dark surface and a scroll of 32 px. The surface in `preview.tsx` owns
+ * padding and centring, so Storybook's box gives way.
+ */
+body.sb-show-main.sb-main-padded,
+body.sb-show-main.sb-main-centered {
+  margin: 0;
+  padding: 0;
+  display: block;
+  min-height: 0;
+}
+
+body.sb-show-main.sb-main-centered #storybook-root {
+  margin: 0;
+  padding: 0;
+}

@@ -2,7 +2,7 @@
 id: K-0002
 topic: orchestration
 claim: Allkons' orchestrator Atlas runs as a skill in the main loop, not as a subagent; it never calls a skill itself, authors only small Tier A edits since a 2026-09-24 trial, and sends other deliverables to crew agents (directly or through the Workflow harness), with a design-owner exception for quick UI fixes.
-source: "~/My Work/TechFlow/AI-First/allkons-marketplace/.claude/skills/atlas/references/role.md:10-15; .claude/skills/atlas/SKILL.md:9-11 and 70; .claude/skills/atlas/references/tiered-routing.md:59"
+source: "https://bitbucket.org/ThammasornDEV/allkons-marketplace .claude/skills/atlas/references/role.md:10-15; .claude/skills/atlas/SKILL.md:9-11 and 70; .claude/skills/atlas/references/tiered-routing.md:59"
 retrieved: 2026-10-23
 confidence: 0.8
 applies_to: [ORV-81]

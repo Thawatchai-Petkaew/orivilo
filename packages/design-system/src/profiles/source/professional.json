@@ -195,8 +195,8 @@
       },
       "disabled": {
         "$value": {
-          "light": "{color.slate.400}",
-          "dark": "{color.slate.600}"
+          "light": "{color.slate.500}",
+          "dark": "{color.slate.500}"
         }
       },
       "on-action": {
@@ -209,6 +209,12 @@
         "$value": {
           "light": "{color.slate.100}",
           "dark": "{color.slate.900}"
+        }
+      },
+      "on-inverse-secondary": {
+        "$value": {
+          "light": "{color.slate.400}",
+          "dark": "{color.slate.600}"
         }
       },
       "link": {
@@ -320,6 +326,20 @@
           "light": "{color.white}",
           "dark": "{color.slate.900}"
         }
+      },
+      "dot-small": {
+        "$value": {
+          "light": "{color.navy.700}",
+          "dark": "{color.navy.400}"
+        }
+      }
+    },
+    "focus": {
+      "ring": {
+        "$value": {
+          "light": "{color.navy.800}",
+          "dark": "{color.navy.300}"
+        }
       }
     },
     "shape": {
@@ -351,7 +371,7 @@
             "fontFamily": "{font.family.plex-sans}",
             "fontSize": "{font.size.56}",
             "lineHeight": "{font.line-height.1-2}",
-            "fontWeight": "{font.weight.600}",
+            "fontWeight": "{font.weight.500}",
             "letterSpacing": "{font.letter-spacing.tight}"
           }
         },
@@ -360,7 +380,7 @@
             "fontFamily": "{font.family.plex-sans}",
             "fontSize": "{font.size.32}",
             "lineHeight": "{font.line-height.1-25}",
-            "fontWeight": "{font.weight.600}",
+            "fontWeight": "{font.weight.500}",
             "letterSpacing": "{font.letter-spacing.tight}"
           }
         }

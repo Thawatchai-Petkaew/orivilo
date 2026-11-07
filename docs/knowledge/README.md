@@ -37,16 +37,16 @@ license: internal
 One to three sentences.
 ```
 
-| Field        | Meaning                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | In `knowledgeEntrySchema` (ADR 0005) |
-| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| `id`         | `K-NNNN`, unique across topics                                                                                                                                                                                                                                                                                                                                                                                                                                                          | `id` (a slug there)                  |
-| `topic`      | The folder the file sits in                                                                                                                                                                                                                                                                                                                                                                                                                                                             | `appliesTo.topics`                   |
-| `claim`      | One sentence, one fact, in our own words                                                                                                                                                                                                                                                                                                                                                                                                                                                | `statement`                          |
-| `source`     | Where the evidence is: a repo-relative path that exists, or an https URL. An external repo is cited by its https URL plus the path inside it. A file the owner hands over is cited by title, edition, page count and pages, "owner-held, not in the repo", plus a public URL when one is found. Never an absolute path, for entries written or changed from 2026-10-26 on; the entries numbered 0001 to 0012 cite `~/` paths and are known exceptions, rewritten under ORV-129 (L-0031) | `sources[].url` or `title`           |
-| `retrieved`  | ISO date the source was read                                                                                                                                                                                                                                                                                                                                                                                                                                                            | `sources[].retrievedAt`              |
-| `confidence` | 0 to 1. See the rule below                                                                                                                                                                                                                                                                                                                                                                                                                                                              | `confidence`                         |
-| `applies_to` | Jira keys, ADRs or plans the entry informs                                                                                                                                                                                                                                                                                                                                                                                                                                              | (no equivalent)                      |
-| `license`    | How we may reuse the source: `internal`, `own-words`, `link-only`, `MIT`, `CC-BY-4.0`, `CC0-1.0`                                                                                                                                                                                                                                                                                                                                                                                        | `sources[].license`                  |
+| Field        | Meaning                                                                                                                                                                                                                                                                                                                                                             | In `knowledgeEntrySchema` (ADR 0005) |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| `id`         | `K-NNNN`, unique across topics                                                                                                                                                                                                                                                                                                                                      | `id` (a slug there)                  |
+| `topic`      | The folder the file sits in                                                                                                                                                                                                                                                                                                                                         | `appliesTo.topics`                   |
+| `claim`      | One sentence, one fact, in our own words                                                                                                                                                                                                                                                                                                                            | `statement`                          |
+| `source`     | Where the evidence is: a repo-relative path that exists, or an https URL. An external repo is cited by its https URL plus the path inside it. A file the owner hands over is cited by title, edition, page count and pages, "owner-held, not in the repo", plus a public URL when one is found. Never an absolute path; `pnpm check:knowledge` refuses one (L-0031) | `sources[].url` or `title`           |
+| `retrieved`  | ISO date the source was read                                                                                                                                                                                                                                                                                                                                        | `sources[].retrievedAt`              |
+| `confidence` | 0 to 1. See the rule below                                                                                                                                                                                                                                                                                                                                          | `confidence`                         |
+| `applies_to` | Jira keys, ADRs or plans the entry informs                                                                                                                                                                                                                                                                                                                          | (no equivalent)                      |
+| `license`    | How we may reuse the source: `internal`, `own-words`, `link-only`, `MIT`, `CC-BY-4.0`, `CC0-1.0`                                                                                                                                                                                                                                                                    | `sources[].license`                  |
 
 ### Quoting
 
@@ -93,85 +93,403 @@ Open `docs/` (or the repo root) as a vault. The frontmatter reads as Obsidian pr
 
 Keep this table in step with the folder when you add an entry.
 
-| Entry                                                                             | Confidence | In short                                                              |
-| --------------------------------------------------------------------------------- | ---------- | --------------------------------------------------------------------- |
-| [[K-0001-prose-rules-vs-running-gates]]                                           | 0.65       | Prose rules caught 0 of 83 gaps, running gates 7 of 7 (count unshown) |
-| [[K-0002-atlas-orchestrates-from-the-main-loop]]                                  | 0.8        | The orchestrator is a main-loop skill; workers are agents             |
-| [[K-0003-atlas-envelope-v2-and-checked-facts]]                                    | 0.8        | One envelope, one objective; every fact has `checked_by`              |
-| [[K-0004-atlas-report-contracts]]                                                 | 0.8        | implementer.v1, reviewer.v1, explorer.v1: JSON only                   |
-| [[K-0005-proof-must-match-the-claim]]                                             | 0.8        | Visual claims need computed style or a looked-at screenshot           |
-| [[K-0006-finding-without-evidence-is-dropped]]                                    | 0.8        | A finding without re-runnable evidence is dropped                     |
-| [[K-0007-model-review-capped-at-two-rounds]]                                      | 0.8        | Model review stops at 2 rounds, then the human decides                |
-| [[K-0008-hooks-fail-silently-without-a-heartbeat]]                                | 0.85       | Hooks failed silently; a heartbeat proves they fire                   |
-| [[K-0009-campvibe-envelope-done-when-is-an-outcome]]                              | 0.8        | `done_when` is an outcome a command proves                            |
-| [[K-0010-campvibe-done-needs-a-verify-role]]                                      | 0.8        | No Done without a QA or Security role in the history                  |
-| [[K-0011-campvibe-circuit-breaker-and-stall-watchdog]]                            | 0.8        | Back to Discovery after 2 rejections; stall after about 15 minutes    |
-| [[K-0012-skill-use-per-role-is-prose-only]]                                       | 0.75       | Skill use per role is enforced in prose only                          |
-| [[K-0013-pinned-standards-versions-and-sources]]                                  | 0.75       | ASVS 5.0.0, LLM Top 10 2025, WCAG 2.2, CWV, PDPA: versions and URLs   |
-| [[K-0014-owasp-llm-top-10-2026-items-and-changes]]                                | 0.8        | LLM Top 10 2026: same ten risks, one renamed, list reordered          |
-| [[K-0015-vercel-client-ip-headers]]                                               | 0.8        | Vercel overwrites x-forwarded-for; which IP header a proxy can't fake |
-| [[K-0016-openui-litellm-generator-with-judge-model-evals]]                        | 0.8        | A second model judges screenshots on four 1 to 4 criteria             |
-| [[K-0017-screenshot-to-code-variants-and-human-scored-evals]]                     | 0.8        | A person rates outputs 1 to 4, three runs per combination             |
-| [[K-0018-tldraw-make-real-canvas-image-to-html-iframe]]                           | 0.8        | Make Real sends a canvas image to a vision model, gets an iframe      |
-| [[K-0019-v0-composite-model-and-ai-sdk-structured-output]]                        | 0.8        | v0 is a composite model around a swappable base model                 |
-| [[K-0020-style-dictionary-dtcg-token-pipeline]]                                   | 0.8        | Style Dictionary builds tokens in a fixed, model-free pipeline        |
-| [[K-0021-material-color-utilities-hct-deterministic-schemes]]                     | 0.8        | Material derives a whole scheme from one color, no model              |
-| [[K-0022-adobe-leonardo-contrast-targeted-palettes]]                              | 0.8        | Leonardo solves colors from target contrast ratios                    |
-| [[K-0023-radix-colors-step-roles-and-apca-guarantee]]                             | 0.8        | Radix: twelve steps with fixed roles; APCA on steps 11 and 12         |
-| [[K-0024-huemint-ml-palettes-from-a-contrast-graph]]                              | 0.8        | Huemint's own models make palettes; contrast is a loose target        |
-| [[K-0025-penpot-mcp-model-runs-code-in-plugin]]                                   | 0.75       | Penpot MCP lets the model run code in a plugin                        |
-| [[K-0026-hue-agent-skill-design-model-and-validator]]                             | 0.8        | Hue: one design model, person approves, validator gates               |
-| [[K-0027-synthesis-ai-design-system-architecture-patterns]]                       | 0.8        | Six recurring patterns; shipped color is rule-made except Huemint     |
-| [[K-0028-wheeler-five-phase-identity-process]]                                    | 0.8        | Wheeler: research, strategy, identity, touchpoints, managing assets   |
-| [[K-0029-ci-project-entry-points-and-initiative-types]]                           | 0.8        | New, rename, merger, refresh, rebrand; existing brands audit first    |
-| [[K-0030-neumeier-brand-gap-and-zag-checkpoints]]                                 | 0.8        | Five disciplines; 17 checkpoints, naming after onliness; swap test    |
-| [[K-0031-kapferer-brand-identity-prism]]                                          | 0.7        | Prism: six facets on sender/receiver and external/internal axes       |
-| [[K-0032-aaker-core-and-extended-identity]]                                       | 0.8        | Core and extended identity; product, organization, person, symbol     |
-| [[K-0033-brand-archetypes-mark-pearson-weak-evidence]]                            | 0.7        | Twelve archetypes are widely used; empirical support is thin          |
-| [[K-0034-unilever-brand-key-one-page-positioning]]                                | 0.65       | Brand Key: nine-part one-page positioning; no Unilever source found   |
-| [[K-0035-agency-case-studies-idea-before-visuals]]                                | 0.75       | Agencies set a core idea before visuals and deliver a system          |
-| [[K-0036-minimum-inputs-and-what-practitioners-do-when-missing]]                  | 0.75       | Missing strategy is researched or asked, not defaulted                |
-| [[K-0037-logo-types-and-when-a-symbol-is-justified]]                              | 0.85       | Mark types; emphasise the name, add a symbol only with a reason       |
-| [[K-0038-color-meaning-is-learned-and-culture-specific]]                          | 0.7        | Colour shifts brand personality; meanings are culture-bound           |
-| [[K-0039-distinctive-assets-colour-uniqueness-against-category]]                  | 0.75       | Assets judged by fame and uniqueness; choose for contrast             |
-| [[K-0040-thai-colour-culture-day-colours-royal-and-political]]                    | 0.7        | Thai day colours, royal yellow, political red and yellow              |
-| [[K-0041-typeface-design-shapes-brand-impressions]]                               | 0.6        | Typeface design shapes impressions; six dimensions (unread paper)     |
-| [[K-0042-thai-latin-typography-looped-loopless-pairing]]                          | 0.85       | Thai looped for text, loopless for display; pairs with serif or sans  |
-| [[K-0043-brand-guidebook-structure]]                                              | 0.75       | Guidebook: foundation, verbal, visual, applications; last deliverable |
-| [[K-0044-synthesis-ci-process-entry-points-and-node-graph]]                       | 0.75       | CI order, five entry groups, 22-node graph, compared with the method  |
-| [[K-0045-wireflow-third-party-models-in-a-hosted-node-graph]]                     | 0.75       | Wireflow shows only third-party models behind a node graph            |
-| [[K-0046-higgsfield-own-models-plus-resold-third-party-models]]                   | 0.8        | Higgsfield resells third-party models and runs its own                |
-| [[K-0047-isic-rev4-and-rev5-counts-per-level]]                                    | 0.8        | ISIC classes: Rev.4 419, Rev.5 463; 408 and 451 after 3 exclusions    |
-| [[K-0048-tsic-2009-is-isic-rev4-based-at-five-digits]]                            | 0.8        | TSIC 2009 follows ISIC Rev.4; 5 levels, 1,091 five-digit industries   |
-| [[K-0049-dbd-new-registrations-open-data-by-objective-code]]                      | 0.8        | DBD monthly open CSV of new registrations with 5-digit objective code |
-| [[K-0050-gics-classifies-companies-for-investors]]                                | 0.75       | GICS: 163 sub-industries, one code per company, built for investors   |
-| [[K-0051-brand-category-cut-off-options]]                                         | 0.6        | Superseded lead: ISIC Rev.4 class level (408) as the category cut-off |
-| [[K-0052-thai-copyright-excludes-facts-ideas-and-protects-compilation-selection]] | 0.75       | Thai copyright: no ideas, no mere facts; compilation selection only   |
-| [[K-0053-thai-trademark-mark-includes-group-of-colours]]                          | 0.7        | Thai trademark: a group of colours is a mark; registers if uncommon   |
-| [[K-0054-thai-computer-crime-act-access-and-disruption-offences]]                 | 0.7        | Thai CCA: unauthorised access past a block, or disruption, is a crime |
-| [[K-0055-thai-pdpa-covers-natural-persons-not-companies]]                         | 0.7        | PDPA covers natural persons only; brand colours are not personal data |
-| [[K-0056-robots-txt-rfc-9309-is-not-access-authorization]]                        | 0.8        | robots.txt (RFC 9309) is not access authorization; 24 h cache limit   |
-| [[K-0057-eu-database-terms-and-tdm-opt-out]]                                      | 0.7        | EU: terms can limit an unprotected database; TDM has an opt-out       |
-| [[K-0058-us-facts-free-and-scraping-cases]]                                       | 0.75       | US: facts are free (Feist); scraping cases turn on contract terms     |
-| [[K-0059-brand-colour-collection-lawful-vs-prudent-rules]]                        | 0.5        | Lead, not legal advice: hex records likely lawful; risk in collection |
-| [[K-0060-tiktok-for-business-guidelines-sections]]                                | 0.8        | TikTok guide: story, messaging, design system, imagery, advertising   |
-| [[K-0061-tiktok-guidelines-page-layout-and-reasons]]                              | 0.8        | TikTok pages: one 16:9 grid, rule and reason left, visual right       |
-| [[K-0062-brand-guideline-projects-studied]]                                       | 0.75       | 38 projects: 20 from search summaries, 18 read in a browser           |
-| [[K-0063-guidebook-section-frequency-in-the-sample]]                              | 0.7        | Counts in two samples: logo, colour, type, applications seen most     |
-| [[K-0064-mood-and-look-and-feel-section-contents]]                                | 0.75       | Two guides: mood is rule pages (voice, photo, motion), not one board  |
-| [[K-0065-how-guidelines-show-each-elements-reason]]                               | 0.75       | Five kinds of reason, usually one line beside the element             |
-| [[K-0066-guidebook-deliverable-formats-and-layout]]                               | 0.75       | Paged book, web brand site, or Behance showcase case study            |
-| [[K-0067-thai-and-southeast-asian-guideline-traits]]                              | 0.6        | Lead: Thai and regional guides add bilingual type, cultural reasons   |
-| [[K-0068-owner-reference-set-and-hedwig]]                                         | 0.8        | Owner's four references; only Hedwig goes on to app and web screens   |
-| [[K-0069-logo-reason-as-an-equation-of-parts]]                                    | 0.75       | 6 of 18 state a logo reason; 4 as an equation of parts, 2 as text     |
-| [[K-0070-mood-carried-by-applications-in-context]]                                | 0.7        | No mood board page in 18 Behance; mood shown by identity in context   |
-| [[K-0071-thai-and-regional-behance-projects]]                                     | 0.75       | Four Thai and regional projects; one states colour and type reasons   |
-| [[K-0072-openrouter-image-api-request-and-response]]                              | 0.8        | POST /api/v1/images: `b64_json` images, usage cost, no model field    |
-| [[K-0073-openrouter-image-api-has-no-data-policy-fields]]                         | 0.8        | Image API provider options have no `zdr` or `data_collection`         |
-| [[K-0074-gemini-nano-banana-2-1-endpoint-and-price]]                              | 0.8        | Nano Banana 2.1: one endpoint, n=1, 0.00003 USD per image token       |
-| [[K-0075-gemini-api-terms-on-generated-output]]                                   | 0.8        | Gemini: no ownership claim; paid prompts not trained on, but logged   |
-| [[K-0076-openrouter-terms-on-outputs]]                                            | 0.8        | OpenRouter defers output ownership to each model's terms              |
-| [[K-0077-touchpoints-seen-tsic-sections-a-to-f]]                                  | 0.7        | Touchpoints named per TSIC section A to F; B thin, C mixed            |
-| [[K-0078-touchpoints-seen-tsic-sections-g-to-l]]                                  | 0.75       | Touchpoints named per TSIC section G to L; L thin                     |
-| [[K-0079-touchpoints-seen-tsic-sections-m-to-s]]                                  | 0.75       | Touchpoints named per TSIC section M to S; S thin, N and R mixed      |
-| [[K-0080-proposed-touchpoint-sets-by-tsic-section]]                               | 0.6        | Lead: up to four touchpoints and one screen for each of 18 sections   |
+| Entry                                                                                   | Confidence | In short                                                              |
+| --------------------------------------------------------------------------------------- | ---------- | --------------------------------------------------------------------- |
+| [[K-0001-prose-rules-vs-running-gates]]                                                 | 0.65       | Prose rules caught 0 of 83 gaps, running gates 7 of 7 (count unshown) |
+| [[K-0002-atlas-orchestrates-from-the-main-loop]]                                        | 0.8        | The orchestrator is a main-loop skill; workers are agents             |
+| [[K-0003-atlas-envelope-v2-and-checked-facts]]                                          | 0.8        | One envelope, one objective; every fact has `checked_by`              |
+| [[K-0004-atlas-report-contracts]]                                                       | 0.8        | implementer.v1, reviewer.v1, explorer.v1: JSON only                   |
+| [[K-0005-proof-must-match-the-claim]]                                                   | 0.8        | Visual claims need computed style or a looked-at screenshot           |
+| [[K-0006-finding-without-evidence-is-dropped]]                                          | 0.8        | A finding without re-runnable evidence is dropped                     |
+| [[K-0007-model-review-capped-at-two-rounds]]                                            | 0.8        | Model review stops at 2 rounds, then the human decides                |
+| [[K-0008-hooks-fail-silently-without-a-heartbeat]]                                      | 0.85       | Hooks failed silently; a heartbeat proves they fire                   |
+| [[K-0009-campvibe-envelope-done-when-is-an-outcome]]                                    | 0.8        | `done_when` is an outcome a command proves                            |
+| [[K-0010-campvibe-done-needs-a-verify-role]]                                            | 0.8        | No Done without a QA or Security role in the history                  |
+| [[K-0011-campvibe-circuit-breaker-and-stall-watchdog]]                                  | 0.8        | Back to Discovery after 2 rejections; stall after about 15 minutes    |
+| [[K-0012-skill-use-per-role-is-prose-only]]                                             | 0.75       | Skill use per role is enforced in prose only                          |
+| [[K-0013-pinned-standards-versions-and-sources]]                                        | 0.75       | ASVS 5.0.0, LLM Top 10 2025, WCAG 2.2, CWV, PDPA: versions and URLs   |
+| [[K-0014-owasp-llm-top-10-2026-items-and-changes]]                                      | 0.8        | LLM Top 10 2026: same ten risks, one renamed, list reordered          |
+| [[K-0015-vercel-client-ip-headers]]                                                     | 0.8        | Vercel overwrites x-forwarded-for; which IP header a proxy can't fake |
+| [[K-0016-openui-litellm-generator-with-judge-model-evals]]                              | 0.8        | A second model judges screenshots on four 1 to 4 criteria             |
+| [[K-0017-screenshot-to-code-variants-and-human-scored-evals]]                           | 0.8        | A person rates outputs 1 to 4, three runs per combination             |
+| [[K-0018-tldraw-make-real-canvas-image-to-html-iframe]]                                 | 0.8        | Make Real sends a canvas image to a vision model, gets an iframe      |
+| [[K-0019-v0-composite-model-and-ai-sdk-structured-output]]                              | 0.8        | v0 is a composite model around a swappable base model                 |
+| [[K-0020-style-dictionary-dtcg-token-pipeline]]                                         | 0.8        | Style Dictionary builds tokens in a fixed, model-free pipeline        |
+| [[K-0021-material-color-utilities-hct-deterministic-schemes]]                           | 0.8        | Material derives a whole scheme from one color, no model              |
+| [[K-0022-adobe-leonardo-contrast-targeted-palettes]]                                    | 0.8        | Leonardo solves colors from target contrast ratios                    |
+| [[K-0023-radix-colors-step-roles-and-apca-guarantee]]                                   | 0.8        | Radix: twelve steps with fixed roles; APCA on steps 11 and 12         |
+| [[K-0024-huemint-ml-palettes-from-a-contrast-graph]]                                    | 0.8        | Huemint's own models make palettes; contrast is a loose target        |
+| [[K-0025-penpot-mcp-model-runs-code-in-plugin]]                                         | 0.75       | Penpot MCP lets the model run code in a plugin                        |
+| [[K-0026-hue-agent-skill-design-model-and-validator]]                                   | 0.8        | Hue: one design model, person approves, validator gates               |
+| [[K-0027-synthesis-ai-design-system-architecture-patterns]]                             | 0.8        | Six recurring patterns; shipped color is rule-made except Huemint     |
+| [[K-0028-wheeler-five-phase-identity-process]]                                          | 0.8        | Wheeler: research, strategy, identity, touchpoints, managing assets   |
+| [[K-0029-ci-project-entry-points-and-initiative-types]]                                 | 0.8        | New, rename, merger, refresh, rebrand; existing brands audit first    |
+| [[K-0030-neumeier-brand-gap-and-zag-checkpoints]]                                       | 0.8        | Five disciplines; 17 checkpoints, naming after onliness; swap test    |
+| [[K-0031-kapferer-brand-identity-prism]]                                                | 0.7        | Prism: six facets on sender/receiver and external/internal axes       |
+| [[K-0032-aaker-core-and-extended-identity]]                                             | 0.8        | Core and extended identity; product, organization, person, symbol     |
+| [[K-0033-brand-archetypes-mark-pearson-weak-evidence]]                                  | 0.7        | Twelve archetypes are widely used; empirical support is thin          |
+| [[K-0034-unilever-brand-key-one-page-positioning]]                                      | 0.65       | Brand Key: nine-part one-page positioning; no Unilever source found   |
+| [[K-0035-agency-case-studies-idea-before-visuals]]                                      | 0.75       | Agencies set a core idea before visuals and deliver a system          |
+| [[K-0036-minimum-inputs-and-what-practitioners-do-when-missing]]                        | 0.75       | Missing strategy is researched or asked, not defaulted                |
+| [[K-0037-logo-types-and-when-a-symbol-is-justified]]                                    | 0.85       | Mark types; emphasise the name, add a symbol only with a reason       |
+| [[K-0038-color-meaning-is-learned-and-culture-specific]]                                | 0.7        | Colour shifts brand personality; meanings are culture-bound           |
+| [[K-0039-distinctive-assets-colour-uniqueness-against-category]]                        | 0.75       | Assets judged by fame and uniqueness; choose for contrast             |
+| [[K-0040-thai-colour-culture-day-colours-royal-and-political]]                          | 0.7        | Thai day colours, royal yellow, political red and yellow              |
+| [[K-0041-typeface-design-shapes-brand-impressions]]                                     | 0.6        | Typeface design shapes impressions; six dimensions (unread paper)     |
+| [[K-0042-thai-latin-typography-looped-loopless-pairing]]                                | 0.85       | Thai looped for text, loopless for display; pairs with serif or sans  |
+| [[K-0043-brand-guidebook-structure]]                                                    | 0.75       | Guidebook: foundation, verbal, visual, applications; last deliverable |
+| [[K-0044-synthesis-ci-process-entry-points-and-node-graph]]                             | 0.75       | CI order, five entry groups, 22-node graph, compared with the method  |
+| [[K-0045-wireflow-third-party-models-in-a-hosted-node-graph]]                           | 0.75       | Wireflow shows only third-party models behind a node graph            |
+| [[K-0046-higgsfield-own-models-plus-resold-third-party-models]]                         | 0.8        | Higgsfield resells third-party models and runs its own                |
+| [[K-0047-isic-rev4-and-rev5-counts-per-level]]                                          | 0.8        | ISIC classes: Rev.4 419, Rev.5 463; 408 and 451 after 3 exclusions    |
+| [[K-0048-tsic-2009-is-isic-rev4-based-at-five-digits]]                                  | 0.8        | TSIC 2009 follows ISIC Rev.4; 5 levels, 1,091 five-digit industries   |
+| [[K-0049-dbd-new-registrations-open-data-by-objective-code]]                            | 0.8        | DBD monthly open CSV of new registrations with 5-digit objective code |
+| [[K-0050-gics-classifies-companies-for-investors]]                                      | 0.75       | GICS: 163 sub-industries, one code per company, built for investors   |
+| [[K-0051-brand-category-cut-off-options]]                                               | 0.6        | Superseded lead: ISIC Rev.4 class level (408) as the category cut-off |
+| [[K-0052-thai-copyright-excludes-facts-ideas-and-protects-compilation-selection]]       | 0.75       | Thai copyright: no ideas, no mere facts; compilation selection only   |
+| [[K-0053-thai-trademark-mark-includes-group-of-colours]]                                | 0.7        | Thai trademark: a group of colours is a mark; registers if uncommon   |
+| [[K-0054-thai-computer-crime-act-access-and-disruption-offences]]                       | 0.7        | Thai CCA: unauthorised access past a block, or disruption, is a crime |
+| [[K-0055-thai-pdpa-covers-natural-persons-not-companies]]                               | 0.7        | PDPA covers natural persons only; brand colours are not personal data |
+| [[K-0056-robots-txt-rfc-9309-is-not-access-authorization]]                              | 0.8        | robots.txt (RFC 9309) is not access authorization; 24 h cache limit   |
+| [[K-0057-eu-database-terms-and-tdm-opt-out]]                                            | 0.7        | EU: terms can limit an unprotected database; TDM has an opt-out       |
+| [[K-0058-us-facts-free-and-scraping-cases]]                                             | 0.75       | US: facts are free (Feist); scraping cases turn on contract terms     |
+| [[K-0059-brand-colour-collection-lawful-vs-prudent-rules]]                              | 0.5        | Lead, not legal advice: hex records likely lawful; risk in collection |
+| [[K-0060-tiktok-for-business-guidelines-sections]]                                      | 0.8        | TikTok guide: story, messaging, design system, imagery, advertising   |
+| [[K-0061-tiktok-guidelines-page-layout-and-reasons]]                                    | 0.8        | TikTok pages: one 16:9 grid, rule and reason left, visual right       |
+| [[K-0062-brand-guideline-projects-studied]]                                             | 0.75       | 38 projects: 20 from search summaries, 18 read in a browser           |
+| [[K-0063-guidebook-section-frequency-in-the-sample]]                                    | 0.7        | Counts in two samples: logo, colour, type, applications seen most     |
+| [[K-0064-mood-and-look-and-feel-section-contents]]                                      | 0.75       | Two guides: mood is rule pages (voice, photo, motion), not one board  |
+| [[K-0065-how-guidelines-show-each-elements-reason]]                                     | 0.75       | Five kinds of reason, usually one line beside the element             |
+| [[K-0066-guidebook-deliverable-formats-and-layout]]                                     | 0.75       | Paged book, web brand site, or Behance showcase case study            |
+| [[K-0067-thai-and-southeast-asian-guideline-traits]]                                    | 0.6        | Lead: Thai and regional guides add bilingual type, cultural reasons   |
+| [[K-0068-owner-reference-set-and-hedwig]]                                               | 0.8        | Owner's four references; only Hedwig goes on to app and web screens   |
+| [[K-0069-logo-reason-as-an-equation-of-parts]]                                          | 0.75       | 6 of 18 state a logo reason; 4 as an equation of parts, 2 as text     |
+| [[K-0070-mood-carried-by-applications-in-context]]                                      | 0.7        | No mood board page in 18 Behance; mood shown by identity in context   |
+| [[K-0071-thai-and-regional-behance-projects]]                                           | 0.75       | Four Thai and regional projects; one states colour and type reasons   |
+| [[K-0072-openrouter-image-api-request-and-response]]                                    | 0.8        | POST /api/v1/images: `b64_json` images, usage cost, no model field    |
+| [[K-0073-openrouter-image-api-has-no-data-policy-fields]]                               | 0.8        | Image API provider options have no `zdr` or `data_collection`         |
+| [[K-0074-gemini-nano-banana-2-1-endpoint-and-price]]                                    | 0.8        | Nano Banana 2.1: one endpoint, n=1, 0.00003 USD per image token       |
+| [[K-0075-gemini-api-terms-on-generated-output]]                                         | 0.8        | Gemini: no ownership claim; paid prompts not trained on, but logged   |
+| [[K-0076-openrouter-terms-on-outputs]]                                                  | 0.8        | OpenRouter defers output ownership to each model's terms              |
+| [[K-0077-touchpoints-seen-tsic-sections-a-to-f]]                                        | 0.7        | Touchpoints named per TSIC section A to F; B thin, C mixed            |
+| [[K-0078-touchpoints-seen-tsic-sections-g-to-l]]                                        | 0.75       | Touchpoints named per TSIC section G to L; L thin                     |
+| [[K-0079-touchpoints-seen-tsic-sections-m-to-s]]                                        | 0.75       | Touchpoints named per TSIC section M to S; S thin, N and R mixed      |
+| [[K-0080-proposed-touchpoint-sets-by-tsic-section]]                                     | 0.6        | Lead: up to four touchpoints and one screen for each of 18 sections   |
+| [[K-0081-headless-chromium-in-a-vercel-function]]                                       | 0.8        | Headless Chromium on Vercel: 250 MB, Hobby 300 s and 2 GB; unmeasured |
+| [[K-0082-parse5-as-a-pure-html-tokenizer]]                                              | 0.8        | parse5 8.0.1 MIT, one dep; hooks; attribute, re-open, sibling costs   |
+| [[K-0083-whatwg-html-void-optional-end-tag-and-raw-text-elements]]                      | 0.8        | WHATWG 13 void, 19 optional end tags; record of the v1.14 pre-pass    |
+| [[K-0084-wireflow-flat-credit-price-rollover-and-per-node-metering]]                    | 0.8        | Wireflow: flat $0.0135/credit (own arithmetic), rollover, 402 at zero |
+| [[K-0085-higgsfield-tiered-credits-no-rollover-and-separate-api-wallet]]                | 0.8        | Higgsfield: tiered $0.075 to $0.043/credit (own arithmetic), expiring |
+| [[K-0086-reseller-markup-over-model-list-prices]]                                       | 0.7        | Own arithmetic: 0.64 to 6.0 times Google list on Nano Banana images   |
+| [[K-0087-synthesis-prepaid-credits-over-model-costs-and-breakage]]                      | 0.7        | Prepaid credits over bought-in models; plan plus top-ups; breakage    |
+| [[K-0088-material-color-utilities-0-4-0-quantizer-api-and-determinism]]                 | 0.8        | MCU 0.4.0 Apache-2.0; TS Celebi: 20 results in 20 calls (ORV-134 run) |
+| [[K-0089-ovl-qa-walk-refusal-routes]]                                                   | 0.8        | ORV-136 survey: qa refusal routes on f2f5fa2; 5 uncovered (own count) |
+| [[K-0090-bash-forms-for-text-guards]]                                                   | 0.8        | Bash, zsh and git forms a guard reads; reader desyncs; runner options |
+| [[K-0091-openrouter-chat-completions-usage-cost]]                                       | 0.8        | Chat `usage.cost`: number or null, credits (USD base); no flag needed |
+| [[K-0092-better-auth-organization-not-found-vs-forbidden]]                              | 0.8        | Better Auth 1.7.12: get org 400 if missing, 403 if not a member       |
+| [[K-0093-owasp-llm-top-10-2026-attack-classes-and-prevention]]                          | 0.75       | LLM Top 10 2026 attacks and fixes per entry; interpreter reading      |
+| [[K-0094-untitled-ui-react-logo-components]]                                            | 0.8        | Untitled UI logo: 2 components, no props, className size, no name     |
+| [[K-0095-open-ring-and-dot-marks-in-use]]                                               | 0.6        | Lead: ring and dot marks read; none upper right; registers unread     |
+| [[K-0096-untitled-ui-title-and-supporting-text-pair]]                                   | 0.8        | Untitled: weight and colour step; gap 0 to 8 px (own arithmetic)      |
+| [[K-0097-shadcn-ui-title-and-description-pair]]                                         | 0.8        | shadcn: 500 or 600 over muted text-sm; 2 or 8 px gap (own arithmetic) |
+| [[K-0098-material-3-dialog-headline-and-supporting-text]]                               | 0.8        | M3 dialog: 24 over 14 on-surface-variant, no weight step, 16dp gap    |
+| [[K-0099-apple-hig-headline-equals-body-size-weight-step]]                              | 0.8        | Apple: Headline and Body share size and leading; weight step only     |
+| [[K-0100-carbon-notification-title-subtitle-and-body-sets]]                             | 0.8        | Carbon: 14/600 over 14/400, one colour; body 14/20, compact 14/18     |
+| [[K-0101-atlassian-heading-body-pairing-and-paragraph-spacing]]                         | 0.8        | Atlassian: bold heading, body 14/20 and 16/24, paragraph gap 12, 16   |
+| [[K-0102-wcag-2-2-text-spacing-and-line-spacing]]                                       | 0.8        | WCAG 2.2: survive 1.5 line height (AA); 1.5 floor at AAA (1.4.8)      |
+| [[K-0103-ibm-type-scale-thai-at-95-percent-same-line-height]]                           | 0.8        | IBM: Thai at 95% on Latin line height; 1.50 to 1.58 (own arithmetic)  |
+| [[K-0104-thai-is-a-tall-script-with-stacked-marks]]                                     | 0.8        | Thai is tall (Material, no values); W3C: up to 4 glyphs plus tone     |
+| [[K-0105-thai-and-uk-readers-prefer-1-5-or-double-line-spacing]]                        | 0.7        | Thai and UK readers prefer 1.5 or double spacing (abstract only)      |
+| [[K-0106-informal-test-tall-scripts-clip-at-1-1-line-height]]                           | 0.5        | Lead: tall scripts clip at 1.1, fixed at 1.6 (informal test)          |
+| [[K-0107-synthesis-title-supporting-text-and-paragraph-line-height]]                    | 0.75       | Synthesis: weight step 13 of 14; body 1.29 to 1.625 (own arithmetic)  |
+| [[K-0108-untitled-ui-loading-indicator-types-sizes-and-no-announcement]]                | 0.8        | Untitled spinner: 3 types, 32 to 64 px, label; silent, no role        |
+| [[K-0109-untitled-ui-react-lists-no-skeleton-component]]                                | 0.75       | Untitled UI React lists no skeleton component                         |
+| [[K-0110-shadcn-ui-spinner-status-role-on-the-icon]]                                    | 0.8        | shadcn Spinner: role status, aria-label Loading on the icon, size-4   |
+| [[K-0111-shadcn-ui-skeleton-pulse-div-without-aria]]                                    | 0.8        | shadcn Skeleton: pulse div, className only, no aria                   |
+| [[K-0112-tailwind-spin-and-pulse-ignore-reduced-motion-by-default]]                     | 0.8        | Tailwind spin 1s and pulse 2s loop; reduced motion left to the author |
+| [[K-0113-wai-aria-1-2-aria-busy-defers-announcements]]                                  | 0.8        | aria-busy: assistive tech may wait; it does not announce              |
+| [[K-0114-wai-aria-1-2-role-status-is-a-polite-live-region]]                             | 0.8        | role status: polite, atomic, takes no focus                           |
+| [[K-0115-wcag-2-2-status-messages-cover-the-waiting-state]]                             | 0.8        | SC 4.1.3 (AA): the waiting state is a status message                  |
+| [[K-0116-wcag-2-2-animation-from-interactions-and-c39]]                                 | 0.8        | SC 2.3.3 is AAA, interaction-started motion; C39 reduced motion       |
+| [[K-0117-wcag-2-2-pause-stop-hide-and-loading-animations]]                              | 0.8        | SC 2.2.2 (A): over 5 s beside content; preload can be essential       |
+| [[K-0118-synthesis-spinner-and-skeleton-benchmark]]                                     | 0.75       | Synthesis: spinner and skeleton benchmark table, audit B form         |
+| [[K-0119-untitled-ui-react-has-no-collapsible-component]]                               | 0.75       | Untitled UI React: no collapsible; FAQ accordions, tree views nearest |
+| [[K-0120-shadcn-ui-collapsible-three-parts-no-styles]]                                  | 0.8        | shadcn Collapsible: three parts, data-slot only, no class or motion   |
+| [[K-0121-radix-collapsible-api-data-state-and-height-variable]]                         | 0.8        | Radix Collapsible: props, data-state, height variable, Space, Enter   |
+| [[K-0122-radix-collapsible-source-aria-wiring-and-mount-animation]]                     | 0.8        | Radix source: aria-expanded; aria-controls only while open; hidden    |
+| [[K-0123-wai-aria-apg-disclosure-button-expanded-enter-space]]                          | 0.8        | APG Disclosure: button, aria-expanded, optional aria-controls         |
+| [[K-0124-wcag-2-2-motion-animation-excludes-opacity]]                                   | 0.8        | SC 2.3.3 motion animation excludes colour, blur and opacity           |
+| [[K-0125-wcag-2-2-pause-stop-hide-starts-automatically-includes-hover]]                 | 0.8        | SC 2.2.2: a button press is not automatic; hover and focus are        |
+| [[K-0126-synthesis-collapsible-benchmark]]                                              | 0.75       | Synthesis: Collapsible benchmark table, audit B form                  |
+| [[K-0127-ai-elements-inline-citation-hover-card-badge-and-carousel]]                    | 0.8        | AI Elements citation: no-delay hover card, hostname +N pill, carousel |
+| [[K-0128-ai-elements-sources-collapsible-count-trigger-and-links]]                      | 0.8        | AI Elements Sources: Collapsible, "Used {count} sources", no plural   |
+| [[K-0129-radix-hover-card-sighted-users-only-no-keyboard-content]]                      | 0.8        | Hover Card: sighted users only; content out of tab order, no touch    |
+| [[K-0130-radix-popover-dialog-pattern-trigger-wiring-and-focus]]                        | 0.8        | Radix Popover: dialog role, haspopup, Esc to trigger, non-modal       |
+| [[K-0131-untitled-ui-react-has-no-citation-or-source-list-component]]                   | 0.75       | Untitled UI React: no citation, quote or source list; tooltip nearest |
+| [[K-0132-wai-aria-apg-disclosure-and-button-for-a-popover-trigger]]                     | 0.8        | APG Disclosure and Button: what a panel-opening button follows        |
+| [[K-0133-wai-aria-apg-no-non-modal-dialog-pattern-tooltip-note]]                        | 0.8        | APG: no popover pattern; focusable hover content: non-modal dialog    |
+| [[K-0134-wcag-2-2-content-on-hover-or-focus-dismissible-hoverable-persistent]]          | 0.8        | SC 1.4.13 (AA): dismissible, hoverable, persistent on hover or focus  |
+| [[K-0135-synthesis-evidence-span-and-evidence-list-benchmark]]                          | 0.75       | Synthesis: EvidenceSpan and EvidenceList benchmark, audit B form      |
+| [[K-0136-untitled-ui-messaging-no-copy-action-no-scroll-button]]                        | 0.75       | Untitled Messaging: no copy action or scroll button; API table unread |
+| [[K-0137-shadcn-ui-message-footer-holds-actions-icon-buttons-need-aria-label]]          | 0.8        | shadcn Message: actions in MessageFooter, ghost icon, aria-label Copy |
+| [[K-0138-shadcn-ui-bubble-variants-and-no-action-slot]]                                 | 0.8        | shadcn Bubble: 7 variants (own count), no size, no action slot        |
+| [[K-0139-shadcn-ui-message-scroller-button-docs-and-styled-registry]]                   | 0.8        | shadcn scroll button: inert, tabIndex -1 when caught up; sr-only name |
+| [[K-0140-shadcn-react-message-scroller-primitive-smooth-default-8px-edge-blur]]         | 0.8        | @shadcn/react scroller: smooth default, 8 px edge, blur on press      |
+| [[K-0141-ai-elements-message-action-label-tooltip-and-copy-without-result-state]]       | 0.8        | AI Elements MessageAction: ghost icon-sm, sr-only label; no copied UI |
+| [[K-0142-ai-elements-conversation-scroll-button-unmounts-at-bottom-no-accessible-name]] | 0.8        | AI Elements scroll button: unmounts at bottom, smooth, no name        |
+| [[K-0143-synthesis-chat-copy-action-and-scroll-to-latest-benchmark]]                    | 0.75       | Synthesis: chat copy action and scroll-to-latest benchmark table      |
+| [[K-0144-untitled-ui-radio-buttons-two-sizes-label-hint-no-invalid]]                    | 0.8        | Untitled radio: sm, md; label, hint; group disable; no invalid state  |
+| [[K-0145-untitled-ui-radio-groups-card-forms-and-no-group-label]]                       | 0.75       | Untitled radio groups: card forms, item disable; source files unread  |
+| [[K-0146-untitled-ui-toggle-base-and-slim-two-sizes-no-invalid]]                        | 0.8        | Untitled Toggle: sm, md; slim form; hover only when on; no invalid    |
+| [[K-0147-shadcn-ui-radio-group-two-parts-item-invalid-no-size]]                         | 0.8        | shadcn Radio Group: no size prop; aria-invalid on each item           |
+| [[K-0148-shadcn-ui-switch-sizes-sm-default-and-invalid-classes]]                        | 0.8        | shadcn Switch: sm, default; aria-invalid; no class in new-york-v4     |
+| [[K-0149-shadcn-ui-field-around-radio-and-switch-is-manual-wiring]]                     | 0.8        | shadcn Field: role group div, no context; wiring by hand              |
+| [[K-0150-radix-radio-group-parts-props-and-keyboard-docs]]                              | 0.8        | Radix Radio Group docs: parts, props, keys; ArrowUp row omits check   |
+| [[K-0151-radix-radio-group-1-5-1-aria-wiring-arrows-check-enter-blocked]]               | 0.8        | Radix radio 1.5.1: arrows check (own reading); Enter blocked          |
+| [[K-0152-radix-switch-parts-keyboard-and-1-4-1-aria-wiring]]                            | 0.8        | Radix Switch 1.4.1: button role switch; Space, Enter; two states      |
+| [[K-0153-wai-aria-apg-radio-group-roles-keyboard-labelling]]                            | 0.8        | APG radio group: roles, Tab and arrows, group and item labels         |
+| [[K-0154-wai-aria-apg-switch-roles-keyboard-fixed-label]]                               | 0.8        | APG switch: Space, Enter optional; label must not change with state   |
+| [[K-0155-wai-aria-1-2-invalid-on-radiogroup-and-switch-deprecated-on-radio]]            | 0.8        | ARIA 1.2: aria-invalid on radiogroup, switch; deprecated on radio     |
+| [[K-0156-html-label-for-names-labelable-elements-only]]                                 | 0.8        | HTML: label for must name a labelable element; a div is not one       |
+| [[K-0157-synthesis-radio-group-and-switch-benchmark]]                                   | 0.75       | Synthesis: RadioGroup and Switch benchmark, audit B form              |
+| [[K-0158-untitled-ui-alerts-floating-full-width-no-size-no-role]]                       | 0.75       | Untitled alerts: floating, full-width; no size; no role on the page   |
+| [[K-0159-untitled-ui-featured-icon-themes-colors-sizes-no-aria]]                        | 0.8        | Untitled FeaturedIcon: themes, colours, sizes sm to xl; sets no aria  |
+| [[K-0160-shadcn-ui-alert-two-variants-role-alert-in-source-only]]                       | 0.8        | shadcn Alert: default, destructive; role alert in source, not docs    |
+| [[K-0161-shadcn-ui-no-featured-icon-empty-and-item-media-nearest]]                      | 0.75       | shadcn lists no featured icon; EmptyMedia, ItemMedia are nearest      |
+| [[K-0162-wai-aria-1-2-alert-role-assertive-focus-not-required]]                         | 0.8        | role alert: assertive, atomic; focus not required; no forced close    |
+| [[K-0163-wai-aria-apg-alert-no-focus-no-auto-dismiss-load-silent]]                      | 0.8        | APG Alert: no focus change, no auto-dismiss, silent before load ends  |
+| [[K-0164-wcag-2-2-status-messages-alert-for-errors-status-for-results]]                 | 0.8        | SC 4.1.3: status for results, alert for errors; dialogs excluded      |
+| [[K-0165-wcag-aria19-empty-alert-container-before-the-error]]                           | 0.8        | ARIA19: empty role alert container present before the error           |
+| [[K-0166-wcag-aria22-status-role-before-the-message]]                                   | 0.8        | ARIA22: role status set on the container before the message           |
+| [[K-0167-wcag-2-2-use-of-color-visible-alternative]]                                    | 0.8        | SC 1.4.1 (A): colour needs a visible alternative; AT is out of scope  |
+| [[K-0168-wcag-f81-error-fields-by-color-alone]]                                         | 0.8        | F81: error fields marked by colour alone fail SC 1.4.1                |
+| [[K-0169-wcag-2-2-non-text-contrast-graphics-for-understanding]]                        | 0.8        | SC 1.4.11 (AA): 3:1 for graphics required for understanding           |
+| [[K-0170-synthesis-alert-and-featured-icon-benchmark]]                                  | 0.75       | Synthesis: Alert and FeaturedIcon benchmark table, audit B form       |
+| [[K-0171-untitled-ui-empty-state-sizes-parts-and-header-visuals]]                       | 0.8        | Untitled EmptyState: sm, md, lg; Footer actions; no variant prop      |
+| [[K-0172-untitled-ui-empty-state-h1-main-and-no-live-region]]                           | 0.8        | Untitled EmptyState: h1 and main by default; no status role found     |
+| [[K-0173-untitled-ui-has-no-page-loading-pattern]]                                      | 0.75       | Untitled UI React: no page-loading pattern found; spinner nearest     |
+| [[K-0174-shadcn-ui-empty-parts-one-media-variant-no-size]]                              | 0.8        | shadcn Empty: six parts, EmptyMedia variant, no size, page silent     |
+| [[K-0175-shadcn-ui-empty-source-div-title-and-two-style-sets]]                          | 0.8        | shadcn Empty source: title is a div, no aria, two style sets differ   |
+| [[K-0176-shadcn-ui-spinner-inside-empty-as-the-loading-example]]                        | 0.8        | shadcn loading: Spinner in EmptyMedia, Cancel button, no aria-busy    |
+| [[K-0177-shadcn-ui-no-results-text-in-data-table-and-command]]                          | 0.8        | shadcn no results: table cell text; CommandEmpty, role presentation   |
+| [[K-0178-wcag-2-2-no-results-text-is-a-status-message]]                                 | 0.8        | SC 4.1.3: "No results returned" is a status update; result list isn't |
+| [[K-0179-wai-aria-1-2-progressbar-for-a-loading-region]]                                | 0.8        | ARIA 1.2: progressbar on a loading region, aria-busy until it is done |
+| [[K-0180-wai-aria-apg-feed-aria-busy-back-to-false]]                                    | 0.8        | APG Feed: aria-busy true in updates; false after or changes may hide  |
+| [[K-0181-wai-aria-1-2-one-main-role-and-required-heading-level]]                        | 0.8        | ARIA 1.2: at most one main role (SHOULD); heading needs aria-level    |
+| [[K-0182-whatwg-html-one-visible-main-element]]                                         | 0.8        | WHATWG: one main without hidden; ancestors limited                    |
+| [[K-0183-aria-in-html-main-takes-no-other-role]]                                        | 0.8        | ARIA in HTML: main takes no other role; heading on h1 not recommended |
+| [[K-0184-synthesis-empty-state-and-loading-state-benchmark]]                            | 0.75       | Synthesis: empty state and loading state benchmark, audit B form      |
+| [[K-0185-untitled-ui-avatar-sizes-props-and-slots]]                                     | 0.8        | Untitled Avatar: size xs to 2xl, no variant; slots and option props   |
+| [[K-0186-untitled-ui-avatar-fallback-chain-and-sticky-load-failure]]                    | 0.8        | Untitled: initials, icons, User01; a failed image stays failed        |
+| [[K-0187-untitled-ui-avatar-one-indicator-and-unnamed-status-dot]]                      | 0.8        | Untitled: one indicator at a time; dot differs by colour, no text     |
+| [[K-0188-untitled-ui-avatar-alt-repeats-visible-name-no-aria]]                          | 0.8        | Untitled: alt repeats the visible name; no aria; ring via parent link |
+| [[K-0189-shadcn-ui-avatar-parts-sizes-and-classes]]                                     | 0.8        | shadcn Avatar: six parts (own count), default sm lg, no variant       |
+| [[K-0190-shadcn-ui-avatar-fallback-text-children-no-icon-example]]                      | 0.8        | shadcn fallback: caller's text, no icon sample; alt is a handle       |
+| [[K-0191-shadcn-ui-avatar-badge-empty-span-no-status-meaning]]                          | 0.8        | shadcn AvatarBadge: empty span, green by caller, no status meaning    |
+| [[K-0192-radix-avatar-three-parts-no-accessibility-text]]                               | 0.8        | Radix page: Root, Image, Fallback; no alt or accessibility text       |
+| [[K-0193-radix-avatar-source-preload-fallback-and-lost-alt]]                            | 0.8        | Radix 1.3.1: preload, img once loaded; alt gone while Fallback shows  |
+| [[K-0194-base-ui-avatar-keep-mounted-and-broken-image-note]]                            | 0.8        | Base UI: data-error, keepMounted; fallback gives the accessible name  |
+| [[K-0195-wcag-2-2-non-text-content-decoration-and-null-alt]]                            | 0.8        | SC 1.1.1 (A) and H67: text alternative, or ignored; no avatar named   |
+| [[K-0196-wai-images-tutorial-image-described-by-adjacent-text]]                         | 0.8        | WAI tutorial: image described by adjacent text takes empty alt        |
+| [[K-0197-wcag-2-2-h2-image-and-text-in-one-link]]                                       | 0.8        | H2: image and text in one link, empty alt; image alone names action   |
+| [[K-0198-whatwg-html-alt-for-a-face-beside-text]]                                       | 0.8        | WHATWG: face beside text is the author's call; example has empty alt  |
+| [[K-0199-wai-aria-1-2-img-name-presentation-and-aria-label]]                            | 0.8        | ARIA 1.2: role img needs a name; aria-labelledby over aria-label      |
+| [[K-0200-aria-in-html-img-rows]]                                                        | 0.8        | ARIA in HTML: img roles by alt; empty alt takes only aria-hidden      |
+| [[K-0201-wcag-2-2-use-of-color-and-non-text-contrast-for-a-dot]]                        | 0.8        | SC 1.4.1 and 1.4.11: colour alone, status icon contrast; no dot named |
+| [[K-0202-initials-for-thai-silence-and-charat]]                                         | 0.75       | Sources silent on Thai initials; getInitials uses charAt(0)           |
+| [[K-0203-synthesis-avatar-benchmark]]                                                   | 0.75       | Synthesis: Avatar benchmark table, audit B form                       |
+| [[K-0204-untitled-ui-sidebar-five-variants-and-item-shape]]                             | 0.75       | Untitled sidebars: 5 variants; widths 280, 280, 68, 276, 276 px       |
+| [[K-0205-untitled-ui-sidebar-nested-details-and-aria-current]]                          | 0.8        | Untitled NavList: details nesting, aria-current, aside with no nav    |
+| [[K-0206-untitled-ui-slim-rail-nav-button-and-hover-panel]]                             | 0.8        | Untitled Slim: NavButton has no aria-current, panel on hover only     |
+| [[K-0207-untitled-ui-mobile-navigation-header-below-lg]]                                | 0.8        | Untitled below lg: header bar and modal; Slim list has no activeUrl   |
+| [[K-0208-untitled-ui-header-navigation-variants-and-active-match]]                      | 0.8        | Untitled header: Simple, Dual-tier; active by exact or prefix match   |
+| [[K-0209-untitled-ui-header-navigation-landmarks-and-drawer]]                           | 0.8        | Untitled header: unnamed nav, no aria-current, drawer below lg        |
+| [[K-0210-untitled-ui-page-header-six-variants-no-props-h1]]                             | 0.8        | Untitled Page headers: 6 compositions, no props, real h1              |
+| [[K-0211-untitled-ui-section-header-parts-h2-and-section-label]]                        | 0.8        | Untitled SectionHeader: 5 parts, 6 examples (own count), h2           |
+| [[K-0212-untitled-ui-breadcrumbs-types-collapse-and-current]]                           | 0.8        | Untitled Breadcrumbs: maxVisibleItems 4, last item aria-current       |
+| [[K-0213-shadcn-ui-sidebar-parts-variants-and-collapsible-modes]]                       | 0.8        | shadcn Sidebar: sidebar, floating, inset; offcanvas, icon or none     |
+| [[K-0214-shadcn-ui-sidebar-state-cookie-shortcut-and-widths]]                           | 0.8        | shadcn Sidebar: 16, 18, 3rem; cookie 7 days; Cmd/Ctrl+b; 768 px       |
+| [[K-0215-shadcn-ui-sidebar-menu-button-sizes-and-data-active]]                          | 0.8        | shadcn MenuButton: sm, default, lg; data-active, no aria-current      |
+| [[K-0216-shadcn-ui-sidebar-source-landmarks-and-collapse-mechanism]]                    | 0.8        | shadcn sidebar.tsx: no nav, no aside; offcanvas moves off screen      |
+| [[K-0217-shadcn-ui-sidebar-mobile-sheet-on-radix-dialog]]                               | 0.8        | shadcn mobile sidebar: Sheet on Radix Dialog, sr-only English title   |
+| [[K-0218-shadcn-ui-sidebar-nested-collapsible-and-icon-mode]]                           | 0.8        | shadcn nesting: Collapsible, defaultOpen from isActive, icon hides    |
+| [[K-0219-shadcn-ui-navigation-menu-parts-and-viewport]]                                 | 0.8        | shadcn Navigation Menu: viewport prop, data-active, md classes        |
+| [[K-0220-radix-navigation-menu-api-keyboard-and-not-a-menu-role]]                       | 0.8        | Radix Navigation Menu: delays 200 and 300, not the menu role          |
+| [[K-0221-radix-navigation-menu-source-aria-and-mouse-only-hover]]                       | 0.8        | Radix source: nav named Main, Link sets aria-current, mouse hover     |
+| [[K-0222-shadcn-ui-breadcrumb-current-page-span-role-link]]                             | 0.8        | shadcn Breadcrumb: nav, ol; current page a span with role link        |
+| [[K-0223-shadcn-ui-no-page-header-and-radix-no-sidebar]]                                | 0.75       | shadcn: no page header entry; Radix: no Sidebar primitive found       |
+| [[K-0224-wai-aria-apg-landmark-regions-and-labels]]                                     | 0.8        | APG landmarks: unique labels, one main, seven or fewer as a guide     |
+| [[K-0225-html-aria-header-nav-aside-roles-and-h97]]                                     | 0.8        | ARIA in HTML: header is banner at top level, aside complementary      |
+| [[K-0226-wai-aria-1-2-aria-current-values-and-one-per-set]]                             | 0.8        | WAI-ARIA 1.2: aria-current values, one element per set                |
+| [[K-0227-wcag-2-2-location-aria26-and-g128]]                                            | 0.8        | WCAG SC 2.4.8 Location (AAA): G65, G63, G128, ARIA26                  |
+| [[K-0228-wai-aria-apg-breadcrumb-current-page]]                                         | 0.8        | APG Breadcrumb: named nav, aria-current optional on a non-link        |
+| [[K-0229-wai-aria-apg-disclosure-navigation-not-menu-role]]                             | 0.8        | APG disclosure navigation: buttons with aria-expanded, no menu role   |
+| [[K-0230-wcag-2-2-heading-order-advisory-not-required]]                                 | 0.8        | WCAG 2.2 pages read: heading order is guidance, not a criterion       |
+| [[K-0231-whatwg-heading-levels-and-wai-tutorial-fixed-sections]]                        | 0.8        | WHATWG: heading one level deeper at most; WAI: fixed sections         |
+| [[K-0232-wcag-2-2-bypass-blocks-techniques]]                                            | 0.8        | WCAG SC 2.4.1 Bypass Blocks (A): skip link, landmarks, headings       |
+| [[K-0233-wcag-2-2-reflow-and-consistent-navigation]]                                    | 0.8        | WCAG Reflow at 320 px (AA); Consistent Navigation (AA)                |
+| [[K-0234-wcag-2-2-focus-order-and-focus-not-obscured]]                                  | 0.8        | WCAG Focus Order (A), Focus Not Obscured (AA): modal, sticky header   |
+| [[K-0235-wcag-2-2-target-size-minimum-for-nav-items]]                                   | 0.8        | WCAG SC 2.5.8 (AA): 24 by 24 CSS px targets, with exceptions          |
+| [[K-0236-synthesis-app-navigation-and-headers-benchmark]]                               | 0.75       | Synthesis: app navigation and headers benchmark, four audit B tables  |
+| [[K-0237-untitled-ui-react-modal-parts-dismissal-and-focus]]                            | 0.8        | Untitled Modal: backdrop off by default; no size, role or state prop  |
+| [[K-0238-untitled-ui-react-warning-and-destructive-modals-are-pro-examples]]            | 0.75       | Untitled React: warning and destructive modals are PRO, source unread |
+| [[K-0239-untitled-ui-figma-modals-destructive-confirmation-treatment]]                  | 0.8        | Untitled Figma: red primary, icon, title naming the consequence       |
+| [[K-0240-untitled-ui-button-destructive-colors-and-loading-state]]                      | 0.8        | Untitled Button: 3 destructive variants; isLoading stops presses      |
+| [[K-0241-untitled-ui-alerts-confirm-action-and-no-confirmation-page]]                   | 0.75       | Untitled: no confirmation page; alerts take onConfirm, inline         |
+| [[K-0242-react-aria-modal-dialog-role-prop-and-dismiss-defaults]]                       | 0.8        | React Aria: role alertdialog is a prop; no outside close by default   |
+| [[K-0243-shadcn-ui-alert-dialog-parts-sizes-and-registry-classes]]                      | 0.8        | shadcn Alert Dialog: default and sm, Media slot, no aria or pending   |
+| [[K-0244-shadcn-ui-alert-dialog-destructive-example-and-impact-text]]                   | 0.8        | shadcn Destructive: destructive action, outline cancel, tinted media  |
+| [[K-0245-shadcn-ui-base-version-plain-action-and-base-ui-focus]]                        | 0.8        | shadcn Base UI: Action a plain Button; first tabbable gets focus      |
+| [[K-0246-radix-alert-dialog-docs-parts-keyboard-and-api]]                               | 0.8        | Radix Alert Dialog: parts, API, Esc to trigger, alert pattern         |
+| [[K-0247-radix-alert-dialog-source-cancel-first-no-outside-close]]                      | 0.8        | Radix source: Cancel takes focus; no outside close; Esc still closes  |
+| [[K-0248-radix-alert-dialog-action-closes-on-click-no-pending-state]]                   | 0.8        | Radix Action closes on click; async needs controlled open             |
+| [[K-0249-radix-dialog-wiring-and-focus-scope-first-tabbable]]                           | 0.8        | Radix Dialog 1.3.1: hideOthers, no aria-modal; first tabbable focus   |
+| [[K-0250-wai-aria-1-2-alertdialog-role-focus-and-modality]]                             | 0.8        | ARIA 1.2 alertdialog: modal, focus inside, name required              |
+| [[K-0251-wai-aria-apg-alert-dialog-pattern-roles-and-keyboard]]                         | 0.8        | APG Alert Dialog: confirmation prompts, aria-modal, describedby       |
+| [[K-0252-wai-aria-apg-modal-dialog-initial-focus-and-return]]                           | 0.8        | APG Modal Dialog: least destructive action may take first focus       |
+| [[K-0253-wai-aria-apg-alert-dialog-example-no-first-aria-disabled]]                     | 0.8        | APG example: focus on No; aria-disabled keeps buttons in Tab order    |
+| [[K-0254-wcag-2-2-error-prevention-legal-financial-data-aa]]                            | 0.8        | SC 3.3.4 (AA): reversible, checked or confirmed; not every save       |
+| [[K-0255-wcag-2-2-error-prevention-all-aaa]]                                            | 0.8        | SC 3.3.6 (AAA): the same three options for all submissions            |
+| [[K-0256-wcag-2-2-g168-confirm-and-g99-recover-deleted]]                                | 0.8        | G168 confirm, then confirm or cancel; G99 recover deleted data        |
+| [[K-0257-wcag-2-2-error-identification-and-suggestion-input-errors]]                    | 0.8        | SC 3.3.1 (A) and 3.3.3 (AA) cover input errors, failure unstated      |
+| [[K-0258-wcag-2-2-focus-order-modal-dialog-example]]                                    | 0.8        | SC 2.4.3 (A) example: focus in dialog, back to button on dismiss      |
+| [[K-0259-synthesis-confirm-dialog-benchmark]]                                           | 0.75       | Synthesis: ConfirmDialog benchmark table, audit B form                |
+| [[K-0260-untitled-ui-file-uploaders-examples-and-props]]                                | 0.75       | Untitled uploader: 5 examples (own count), DropZone props, no size    |
+| [[K-0261-untitled-ui-list-progress-bar-and-fill-items]]                                 | 0.8        | Untitled list: name, size, progress 0 to 100; bar or fill item        |
+| [[K-0262-untitled-ui-failed-item-try-again-and-delete]]                                 | 0.8        | Untitled failed: boolean, error ring, Try again; no reason field      |
+| [[K-0263-untitled-ui-size-and-type-limits-and-silent-drop]]                             | 0.8        | Untitled limits: accept, maxSize bytes; no callback, silent drop      |
+| [[K-0264-untitled-ui-drop-zone-keyboard-and-screen-reader]]                             | 0.8        | Untitled zone: sr-only input, no ARIA or live region, no focus class  |
+| [[K-0265-untitled-ui-progress-indicators-no-accessible-name]]                           | 0.8        | Untitled ProgressBar: progressbar role, value attributes, no name     |
+| [[K-0266-untitled-ui-file-trigger-and-inputs-file-upload-example]]                      | 0.75       | Untitled FileTrigger: any child opens a display none file input       |
+| [[K-0267-shadcn-ui-no-dropzone-input-type-file-example]]                                | 0.75       | shadcn: no dropzone; Input type file example, file: classes only      |
+| [[K-0268-shadcn-ui-attachment-parts-sizes-and-props]]                                   | 0.8        | shadcn Attachment: 3 sizes, 2 orientations, media, actions, group     |
+| [[K-0269-shadcn-ui-attachment-states-retry-and-cancel-samples]]                         | 0.8        | shadcn Attachment: 5 states, retry and cancel as sample actions       |
+| [[K-0270-shadcn-ui-attachment-accessibility-and-no-aria-in-source]]                     | 0.8        | shadcn Attachment: label actions, reason in text; no ARIA in source   |
+| [[K-0271-shadcn-ui-progress-upload-label-and-field-error-alert]]                        | 0.8        | shadcn: Upload progress label sample; FieldError has role alert       |
+| [[K-0272-radix-has-no-file-or-dropzone-primitive]]                                      | 0.8        | Radix: no file, upload or dropzone primitive; 54 deps (own count)     |
+| [[K-0273-radix-progress-api-and-source-no-accessible-name]]                             | 0.8        | Radix Progress: null is indeterminate, 3 data states, no name set     |
+| [[K-0274-radix-form-message-and-focus-first-invalid]]                                   | 0.8        | Radix Form: message wired to control, focus to first invalid          |
+| [[K-0275-wcag-2-2-dragging-movements-single-pointer-alternative]]                       | 0.8        | SC 2.5.7 (AA): single pointer without dragging; keyboard is separate  |
+| [[K-0276-wcag-2-2-keyboard-and-the-drag-and-drop-example]]                              | 0.8        | SC 2.1.1 (A): drag and drop example adds cut, paste or form controls  |
+| [[K-0277-wcag-2-2-status-messages-progress-and-error-techniques]]                       | 0.8        | SC 4.1.3: errors by ARIA19; progress by ARIA22, 23, 25 or 27          |
+| [[K-0278-wcag-2-2-aria25-aria27-file-upload-progress-announcing]]                       | 0.8        | ARIA25: hidden polite text speaks upload progress; ARIA27 add-on      |
+| [[K-0279-wcag-2-2-error-identification-in-text]]                                        | 0.8        | SC 3.3.1 (A): identify the item, describe the error in text           |
+| [[K-0280-wcag-2-2-error-suggestion-for-allowed-values]]                                 | 0.8        | SC 3.3.3 (AA): give known corrections, such as allowed values         |
+| [[K-0281-wcag-2-2-labels-or-instructions-expected-format]]                              | 0.8        | SC 3.3.2 (A): labels or instructions; may specify data formats        |
+| [[K-0282-wai-aria-apg-no-file-or-drag-pattern-meter-note]]                              | 0.8        | APG: no file or drag pattern; meter is not for progress               |
+| [[K-0283-wai-aria-1-2-progressbar-role-and-region-loading]]                             | 0.8        | ARIA progressbar: name required, omit valuenow when indeterminate     |
+| [[K-0284-wai-aria-1-2-grabbed-and-dropeffect-deprecated]]                               | 0.8        | aria-grabbed and aria-dropeffect are deprecated since ARIA 1.1        |
+| [[K-0285-aria-in-html-input-file-takes-no-role]]                                        | 0.8        | ARIA in HTML: input type file has no role, none allowed               |
+| [[K-0286-html-accept-is-a-hint-back-it-on-the-server]]                                  | 0.8        | HTML accept is a hint; MDN: back it with server-side validation       |
+| [[K-0287-react-aria-dropzone-takes-a-file-trigger-child]]                               | 0.75       | React Aria DropZone: FileTrigger as a child; no keyboard drop text    |
+| [[K-0288-synthesis-file-upload-benchmark]]                                              | 0.75       | Synthesis: file upload benchmark table, audit B form                  |
+| [[K-0290-untitled-ui-select-sizes-states-and-item-slots]]                               | 0.8        | Untitled Select: sizes, states, item slots; no loading or empty       |
+| [[K-0291-untitled-ui-select-combobox-opens-on-focus-visual-hint]]                       | 0.8        | Untitled ComboBox: menuTrigger focus, visual-only key hint            |
+| [[K-0292-untitled-ui-multi-select-count-trigger-footer-and-search-dialog]]              | 0.8        | Untitled MultiSelect: count trigger, footer, search dialog, empty     |
+| [[K-0293-untitled-ui-tag-select-removal-keys-and-focus]]                                | 0.8        | Untitled TagSelect: removal keys, no Delete, focus after removal      |
+| [[K-0294-untitled-ui-tag-close-x-size-and-one-fixed-name]]                              | 0.8        | Untitled TagCloseX: 14 to 20 px (own arithmetic), one fixed name      |
+| [[K-0295-untitled-ui-input-tags-silent-rejection-and-focus]]                            | 0.8        | Untitled InputTags: silent refusal, focus only when none left         |
+| [[K-0296-untitled-ui-command-menu-filter-false-and-empty-state]]                        | 0.75       | Untitled Command menu: filter false for async, emptyState node        |
+| [[K-0297-react-aria-combobox-menu-trigger-empty-and-count-announcement]]                | 0.8        | React Aria ComboBox: menuTrigger values, count announcement           |
+| [[K-0298-shadcn-ui-combobox-is-built-on-base-ui-on-the-radix-tab]]                      | 0.8        | shadcn Combobox: built on Base UI even on the Radix URL               |
+| [[K-0299-shadcn-ui-combobox-parts-props-and-examples]]                                  | 0.8        | shadcn Combobox: parts, examples; no size, Async or keyboard text     |
+| [[K-0300-shadcn-ui-combobox-chips-remove-button-has-no-name]]                           | 0.8        | shadcn chips: 24 px remove (own arithmetic), no name on the button    |
+| [[K-0301-shadcn-ui-command-on-cmdk-and-the-popover-combobox-sample]]                    | 0.8        | shadcn Command on cmdk; Popover sample; no Tag in the list            |
+| [[K-0302-cmdk-roles-keys-empty-and-loading]]                                            | 0.8        | cmdk: aria-expanded fixed true, Empty presentation, Loading, keys     |
+| [[K-0303-base-ui-combobox-status-and-empty-are-live-regions]]                           | 0.8        | Base UI Combobox: Status and Empty are mounted live regions           |
+| [[K-0304-base-ui-combobox-async-search-sample]]                                         | 0.8        | Base UI Async samples: status text, abort, chosen items merged        |
+| [[K-0305-base-ui-combobox-chip-keys-and-focus-after-removal]]                           | 0.8        | Base UI chips: Backspace, Delete, focus after removal                 |
+| [[K-0306-base-ui-combobox-multiple-mode-strings-left-to-the-author]]                    | 0.8        | Base UI multiple: screen reader strings left to the author            |
+| [[K-0307-radix-has-no-combobox-and-select-is-one-value-without-search]]                 | 0.75       | Radix: no combobox package; Select one value, no search               |
+| [[K-0308-wai-aria-apg-combobox-kinds-and-autocomplete-forms]]                           | 0.8        | APG Combobox: select-only, editable, four autocomplete forms          |
+| [[K-0309-wai-aria-apg-combobox-keyboard-and-listbox-popup-keys]]                        | 0.8        | APG Combobox keys, listbox popup keys, popup may close on no match    |
+| [[K-0310-wai-aria-apg-combobox-roles-states-and-aria-busy]]                             | 0.8        | APG and ARIA 1.2: combobox roles, states, aria-busy while loading     |
+| [[K-0311-wai-aria-apg-listbox-multi-select-keys-and-state]]                             | 0.8        | APG Listbox: multi-select keys, aria-selected or aria-checked         |
+| [[K-0312-wai-aria-apg-listbox-cautions-select-all-and-delete-example]]                  | 0.8        | APG Listbox cautions, Select All buttons, Delete in an example        |
+| [[K-0313-wai-aria-apg-has-no-tag-or-multi-value-combobox-pattern]]                      | 0.75       | APG: no pattern for tags or a multi-value combobox                    |
+| [[K-0314-wcag-2-2-status-message-result-count]]                                         | 0.8        | WCAG SC 4.1.3: "5 results returned" as a status message               |
+| [[K-0315-wcag-2-2-target-size-minimum-and-spacing]]                                     | 0.8        | WCAG SC 2.5.8: 24 by 24 CSS pixels, Spacing, combobox list scope      |
+| [[K-0316-wcag-2-2-popup-opened-by-focus]]                                               | 0.75       | WCAG SC 3.2.1, 1.4.13, 2.4.11 for a list opened on focus              |
+| [[K-0317-wcag-2-2-on-input-and-name-role-value-for-a-custom-list]]                      | 0.8        | WCAG SC 3.2.2 and 4.1.2 for a custom list and its chosen value        |
+| [[K-0318-wcag-2-2-keyboard-and-focus-order-no-rule-after-removal]]                      | 0.75       | WCAG SC 2.1.1 and 2.4.3: no rule for focus after a removal            |
+| [[K-0319-synthesis-combobox-and-multi-select-benchmark]]                                | 0.75       | Synthesis: Combobox and Multi-select benchmark, audit B form          |
+| [[K-0320-untitled-ui-breadcrumbs-types-dividers-and-item-slots]]                        | 0.8        | Untitled trail: 3 types, 2 dividers, icon and avatar slots, no size   |
+| [[K-0321-untitled-ui-breadcrumbs-collapse-max-visible-items]]                           | 0.8        | Untitled collapse: maxVisibleItems 4, ellipsis expands in place       |
+| [[K-0322-untitled-ui-breadcrumbs-accessibility-and-no-open-source]]                     | 0.75       | Untitled last crumb: disabled link, aria-current; no open source file |
+| [[K-0323-shadcn-ui-breadcrumb-parts-classes-and-link-routing]]                          | 0.8        | shadcn Breadcrumb: parts over nav and ol; no variant or size prop     |
+| [[K-0324-shadcn-ui-breadcrumb-current-page-span-and-hidden-separator]]                  | 0.8        | shadcn current crumb: span, role link, aria-disabled, aria-current    |
+| [[K-0325-shadcn-ui-breadcrumb-collapse-is-composed-by-hand]]                            | 0.8        | shadcn collapse: hand-placed ellipsis; responsive example keeps 3     |
+| [[K-0326-untitled-ui-pagination-forms-props-and-controls]]                              | 0.8        | Untitled Pagination: 6 forms, rows select, page input, mobile form    |
+| [[K-0327-untitled-ui-pagination-sibling-count-range]]                                   | 0.8        | Untitled range: all pages to 7 (own arithmetic), else ellipses        |
+| [[K-0328-untitled-ui-pagination-names-and-button-items]]                                | 0.8        | Untitled names: nav label, Page N; button role listitem, no list      |
+| [[K-0329-untitled-ui-pagination-dot-and-line]]                                          | 0.8        | Untitled dot and line: carousel-style, md or lg, brand fill, no aria  |
+| [[K-0330-shadcn-ui-pagination-parts-active-link-and-text-prop]]                         | 0.8        | shadcn Pagination: anchors, outline when active, text prop in bases   |
+| [[K-0331-shadcn-ui-pagination-has-no-range-logic]]                                      | 0.75       | shadcn Pagination computes no range; pages written by hand            |
+| [[K-0332-shadcn-ui-pagination-names-and-hidden-ellipsis]]                               | 0.8        | shadcn Pagination names; sr-only More pages inside aria-hidden        |
+| [[K-0333-wai-aria-apg-breadcrumb-pattern]]                                              | 0.8        | APG Breadcrumb: labelled nav, aria-current page; optional on non-link |
+| [[K-0334-wai-aria-apg-breadcrumb-example]]                                              | 0.8        | APG example: nav, ordered list, last link current, CSS separators     |
+| [[K-0335-wai-aria-apg-landmark-labels-and-no-pagination-pattern]]                       | 0.8        | APG: unique nav labels, no role word; no Pagination pattern           |
+| [[K-0336-wai-aria-1-2-aria-current-values]]                                             | 0.8        | aria-current: seven values, one per set, not for aria-selected        |
+| [[K-0337-wcag-2-2-location-and-g65-breadcrumb-trail]]                                   | 0.8        | G65 sufficient for SC 2.4.8 (AAA); tests link and non-link current    |
+| [[K-0338-wcag-2-2-aria26-aria11-and-h97]]                                               | 0.8        | ARIA26 for current item; ARIA11 and H97 label repeated nav regions    |
+| [[K-0339-synthesis-breadcrumb-and-pagination-benchmark]]                                | 0.75       | Synthesis: Breadcrumb and Pagination benchmark tables, audit B form   |
+| [[K-0340-untitled-ui-react-lists-no-accordion-component]]                               | 0.75       | Untitled UI React: no accordion; eight FAQ names (own count)          |
+| [[K-0341-shadcn-ui-accordion-docs-parts-examples-and-versions]]                         | 0.8        | shadcn Accordion: 4 parts, 6 examples, 3 versions, API sent out       |
+| [[K-0342-shadcn-ui-accordion-registry-classes-chevron-and-no-aria]]                     | 0.8        | shadcn Accordion file: border, chevron, animate; no aria of its own   |
+| [[K-0343-radix-accordion-parts-props-and-data-attributes]]                              | 0.8        | Radix Accordion: type, collapsible false, vertical, data attributes   |
+| [[K-0344-radix-accordion-keyboard-adds-arrows-home-end]]                                | 0.8        | Radix keys add arrows, Home, End; skip disabled, wrap, RTL swap       |
+| [[K-0345-radix-accordion-source-h3-header-aria-disabled-and-region]]                    | 0.8        | Radix source: h3 default, aria-disabled, region on every panel        |
+| [[K-0346-radix-accordion-animation-height-variable-no-reduced-motion]]                  | 0.8        | Radix height variable, 300ms docs example, no reduced-motion rule     |
+| [[K-0347-wai-aria-apg-accordion-keyboard-enter-space-tab]]                              | 0.8        | APG keys: Enter, Space, Tab, Shift + Tab; no arrows, Home or End      |
+| [[K-0348-wai-aria-apg-accordion-heading-button-expanded-and-controls]]                  | 0.8        | APG: button alone in a heading, aria-expanded, aria-controls          |
+| [[K-0349-wai-aria-apg-accordion-aria-disabled-and-optional-region]]                     | 0.8        | APG: aria-disabled if it cannot collapse; region optional             |
+| [[K-0350-wai-aria-apg-accordion-example-h3-region-and-no-key-handler]]                  | 0.8        | APG example: h3, button, region; click only, no key handler           |
+| [[K-0351-wai-aria-1-2-aria-expanded-values]]                                            | 0.8        | aria-expanded: false, true, undefined by default                      |
+| [[K-0352-untitled-ui-content-divider-types-children-and-classname]]                     | 0.8        | Untitled Content divider: 3 types, required, children, no size        |
+| [[K-0353-untitled-ui-content-divider-plain-div-not-a-separator]]                        | 0.8        | Untitled Content divider: plain div, not exposed as a separator       |
+| [[K-0354-untitled-ui-section-divider-hr-in-shared-assets]]                              | 0.8        | Untitled SectionDivider: one hr in shared-assets, not on index        |
+| [[K-0355-shadcn-ui-separator-docs-and-registry-decorative-by-default]]                  | 0.8        | shadcn Separator: decorative default true, 1 px bg-border line        |
+| [[K-0356-radix-separator-decorative-role-none-and-vertical-orientation]]                | 0.8        | Radix Separator: decorative gives role none; vertical written         |
+| [[K-0357-wai-aria-1-2-separator-static-or-focusable]]                                   | 0.8        | separator role: static structure or moveable widget with value        |
+| [[K-0358-wai-aria-1-2-separator-orientation-and-presentational-children]]               | 0.8        | separator: implicit horizontal; children presentational               |
+| [[K-0359-untitled-ui-metrics-nine-cards-and-eighteen-examples]]                         | 0.8        | Untitled Metrics: nine cards, 18 examples (own count)                 |
+| [[K-0360-untitled-ui-metrics-change-indicator-and-trend-props]]                         | 0.8        | Untitled trend and changeTrend swap success and error; 3 types        |
+| [[K-0361-untitled-ui-metrics-footer-actions-icon-and-chart-props]]                      | 0.8        | Untitled Metrics slots: footer, actions, icon, chart props            |
+| [[K-0362-untitled-ui-metrics-no-state-size-or-accessibility-text]]                      | 0.75       | Untitled Metrics: no state, size or accessibility text                |
+| [[K-0363-shadcn-ui-lists-no-metric-or-filter-bar-component]]                            | 0.75       | shadcn list: no Metric or Filter bar (66 names, own count)            |
+| [[K-0364-untitled-ui-filter-bars-examples-and-listed-states]]                           | 0.8        | Untitled Filter bars: 13 examples (own count); states by title        |
+| [[K-0365-untitled-ui-filter-bar-layout-parts-hold-no-state]]                            | 0.8        | Untitled FilterBar: five layout parts, hold no filter state           |
+| [[K-0366-untitled-ui-filter-dropdown-props-and-advanced-filter]]                        | 0.8        | Untitled FilterDropdown: caller rows, onApply, count, placement       |
+| [[K-0367-untitled-ui-filter-bar-small-screens-and-accessible-names]]                    | 0.8        | Untitled filters: hide or swap on small screens; label names          |
+| [[K-0368-untitled-ui-open-repo-has-no-divider-metrics-or-filter-bar-code]]              | 0.75       | Untitled open repo: no divider, metrics or filter bar code            |
+| [[K-0369-synthesis-accordion-separator-metric-and-filter-bar-benchmark]]                | 0.75       | Synthesis: accordion, separator, metric, filter bar benchmark         |
+| [[K-0380-untitled-ui-date-picker-forms-and-react-aria]]                                 | 0.8        | Untitled date pickers: seven examples (own count), React Aria base    |
+| [[K-0381-untitled-ui-date-picker-trigger-apply-and-cancel]]                             | 0.8        | Untitled picker: Apply and Cancel; value changes before Apply         |
+| [[K-0382-untitled-ui-date-range-presets-and-breakpoints]]                               | 0.8        | Untitled range: nine presets (page figure), sidebar from lg           |
+| [[K-0383-untitled-ui-calendar-props-header-and-today-button]]                           | 0.8        | Untitled Calendar: children slot, Today button, two months from md    |
+| [[K-0384-untitled-ui-calendar-cell-states]]                                             | 0.8        | Untitled day cell: state list, brand fill, opacity-50 outside days    |
+| [[K-0385-untitled-ui-calendars-page-is-an-event-calendar]]                              | 0.8        | Untitled Calendars page: an event schedule, not a date picker         |
+| [[K-0386-untitled-ui-libraries-versions-and-licenses]]                                  | 0.8        | Untitled MIT; React Aria 1.22.1 and date 3.12.4 Apache-2.0 on main    |
+| [[K-0387-react-aria-calendar-grid-keys-and-names]]                                      | 0.8        | React Aria calendar: roles, Home and End by month, announcements      |
+| [[K-0388-react-aria-calendar-system-and-week-start-from-locale]]                        | 0.8        | React Aria: calendar and week start from locale; Sunday by default    |
+| [[K-0389-shadcn-ui-calendar-page-props-and-versions]]                                   | 0.8        | shadcn Calendar page: on React DayPicker, no word Buddhist            |
+| [[K-0390-shadcn-ui-calendar-source-defaults-and-day-button]]                            | 0.8        | shadcn calendar.tsx: ghost day button, bg-primary, bg-muted           |
+| [[K-0391-shadcn-ui-date-picker-is-popover-plus-calendar]]                               | 0.8        | shadcn Date Picker: no root component, Popover plus Calendar          |
+| [[K-0392-shadcn-ui-date-picker-examples-range-input-and-presets]]                       | 0.8        | shadcn picker samples: range, date of birth, input, presets           |
+| [[K-0393-shadcn-ui-registry-dependency-and-persian-path]]                               | 0.8        | shadcn MIT; installs DayPicker @latest; Persian path is v9            |
+| [[K-0394-react-day-picker-package-version-and-license]]                                 | 0.8        | DayPicker 10.0.2 MIT on date-fns; radix-ui has no date package        |
+| [[K-0395-react-day-picker-props-modes-and-day-states]]                                  | 0.8        | DayPicker props: three modes, four caption layouts, day states        |
+| [[K-0396-react-day-picker-range-mode-props]]                                            | 0.8        | DayPicker range: min and max in nights, 0-night default               |
+| [[K-0397-react-day-picker-keys-grid-and-names]]                                         | 0.8        | DayPicker keys: follows APG, Home and End by week, 365 tries          |
+| [[K-0398-react-day-picker-buddhist-build]]                                              | 0.8        | DayPicker Buddhist add-on: +543 on listed formats, Thai digits        |
+| [[K-0399-react-day-picker-week-start-locale-and-thai-labels]]                           | 0.8        | DayPicker week start from locale or weekStartsOn; Thai labels         |
+| [[K-0400-wai-aria-apg-date-picker-dialog-keys]]                                         | 0.8        | APG date picker keys: Home and End by week, Cancel keeps date         |
+| [[K-0401-wai-aria-apg-date-picker-dialog-names-and-roles]]                              | 0.8        | APG date picker names: Change Date, abbr, polite month heading        |
+| [[K-0402-wai-aria-apg-grid-pattern-keys-and-roles]]                                     | 0.8        | APG Grid: one tab stop, Home and End per row, no calendar text        |
+| [[K-0403-wai-aria-apg-modal-dialog-keys-and-roles]]                                     | 0.8        | APG Modal Dialog: Tab wraps; mark modal only if outside blocked       |
+| [[K-0404-intl-datetimeformat-calendar-option-and-ca-key]]                               | 0.8        | Intl: calendar option beats ca key; default is locale dependent       |
+| [[K-0405-cldr-thailand-prefers-buddhist-and-thai-formats]]                              | 0.8        | CLDR: Thailand Buddhist first; era in full date; Latin digits         |
+| [[K-0406-runtime-default-calendar-for-thai-can-differ]]                                 | 0.7        | Thai year: explicit calendar works; plain th-TH output not read       |
+| [[K-0407-cldr-thailand-week-starts-sunday-and-getweekinfo]]                             | 0.8        | CLDR: Thailand week starts Sunday; getWeekInfo newly available        |
+| [[K-0408-date-fns-thai-locale-sunday-gregorian-year]]                                   | 0.8        | date-fns Thai locale: Sunday, no 543, Gregorian year (own reading)    |
+| [[K-0409-synthesis-calendar-and-date-picker-benchmark]]                                 | 0.75       | Synthesis: Calendar and Date picker benchmark tables                  |

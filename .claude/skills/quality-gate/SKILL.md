@@ -11,6 +11,10 @@ Run from the repo root:
 pnpm quality-gate
 ```
 
+When the run needs variables (the test database URL), export them first:
+`export TEST_DATABASE_URL=<url> REQUIRE_DB_TESTS=1; pnpm quality-gate`. The gate record hook does not
+count `VAR=... pnpm quality-gate` (L-0047).
+
 It runs, in the order CI runs them: `format`, `scripts` (`pnpm test:scripts`), `lint`, `typecheck`, `contrast`, `test` (forced past the turbo cache and `--continue` so every package reports, with `REQUIRE_DB_TESTS=1` so a missing test database fails instead of skipping), `build`, `audit`. A failure does not stop the run; every step reports.
 
 Quote the report, never a summary of it:

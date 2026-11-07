@@ -2,7 +2,7 @@
 id: K-0004
 topic: orchestration
 claim: Allkons subagents return a single JSON object under one of three contracts, implementer.v1 (changed, verified, deviations), reviewer.v1 (verdict and evidenced findings) and explorer.v1 (answer and key findings), with no prose around it.
-source: "~/My Work/TechFlow/AI-First/allkons-marketplace/.claude/skills/atlas/references/report-contracts.md:3-51"
+source: "https://bitbucket.org/ThammasornDEV/allkons-marketplace .claude/skills/atlas/references/report-contracts.md:3-51"
 retrieved: 2026-10-23
 confidence: 0.8
 applies_to: [ORV-81]

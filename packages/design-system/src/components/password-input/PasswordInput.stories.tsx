@@ -1,10 +1,21 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { ComponentType } from "react";
 import { expect, userEvent, within } from "storybook/test";
 import { Field } from "../field/Field";
 import { fixtures } from "../fixtures";
 import { LockIcon } from "../icons";
 import { Matrix, Narrow } from "../matrix";
 import { PasswordInput } from "./PasswordInput";
+
+/** A Field around the story, for stories of one control. Storybook adds a meta decorator to every
+ * story (a story's `decorators: []` does not drop it), so each story that wants it names it. */
+const inField = (Story: ComponentType) => (
+  <div className="max-w-md">
+    <Field label="รหัสผ่าน">
+      <Story />
+    </Field>
+  </div>
+);
 
 const meta = {
   title: "Base/Password input",
@@ -18,15 +29,6 @@ const meta = {
       },
     },
   },
-  decorators: [
-    (Story) => (
-      <div className="max-w-md">
-        <Field label="รหัสผ่าน">
-          <Story />
-        </Field>
-      </div>
-    ),
-  ],
   args: { defaultValue: "correct horse" },
 } satisfies Meta<typeof PasswordInput>;
 
@@ -35,6 +37,7 @@ type Story = StoryObj<typeof meta>;
 
 /** Pressing the button toggles the type, the name and `aria-pressed`; focus stays in the field (AC 5). */
 export const Reveal: Story = {
+  decorators: [inField],
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const input = canvas.getByLabelText("รหัสผ่าน");
@@ -60,6 +63,7 @@ export const Reveal: Story = {
 
 /** Reached by keyboard: Tab from the field lands on the button, and Space reveals. */
 export const Keyboard: Story = {
+  decorators: [inField],
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const input = canvas.getByLabelText("รหัสผ่าน");
@@ -73,11 +77,11 @@ export const Keyboard: Story = {
 };
 
 export const WithStartIcon: Story = {
+  decorators: [inField],
   args: { start: <LockIcon /> },
 };
 
 export const Invalid: Story = {
-  decorators: [],
   render: (args) => (
     <div className="max-w-md">
       <Field label="รหัสผ่าน" error="รหัสผ่านต้องยาวอย่างน้อย 12 ตัวอักษร">
@@ -95,7 +99,6 @@ export const Invalid: Story = {
 
 /** Disabled disables the toggle with the field, including when the Field is the one that is disabled. */
 export const Disabled: Story = {
-  decorators: [],
   render: (args) => (
     <div className="max-w-md">
       <Field label="รหัสผ่าน" disabled>
@@ -111,7 +114,6 @@ export const Disabled: Story = {
 };
 
 export const Sizes: Story = {
-  decorators: [],
   render: (args) => (
     <div className="flex max-w-md flex-col gap-4">
       {(["sm", "md", "lg"] as const).map((size) => (
@@ -121,10 +123,13 @@ export const Sizes: Story = {
       ))}
     </div>
   ),
+  play: async ({ canvasElement }) => {
+    // No Field nested in a Field: a meta decorator wrapping this story would break its labels.
+    await expect(canvasElement.querySelectorAll(".ds-field .ds-field")).toHaveLength(0);
+  },
 };
 
 export const At360: Story = {
-  decorators: [],
   render: (args) => (
     <Narrow>
       <Field label={fixtures.longThai}>
@@ -139,7 +144,6 @@ export const At360: Story = {
 };
 
 export const RecipesAndModes: Story = {
-  decorators: [],
   render: (args) => (
     <Matrix>
       <Field label="รหัสผ่าน">
@@ -154,6 +158,8 @@ export const RecipesAndModes: Story = {
     </Matrix>
   ),
   play: async ({ canvasElement }) => {
+    // No Field nested in a Field: a meta decorator wrapping this story would break its labels.
+    await expect(canvasElement.querySelectorAll(".ds-field .ds-field")).toHaveLength(0);
     await expect(canvasElement.querySelectorAll("[data-matrix-cell]")).toHaveLength(6);
     await expect(canvasElement.querySelectorAll(".ds-input-group")).toHaveLength(6 * 3);
   },

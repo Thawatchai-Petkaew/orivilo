@@ -18,7 +18,7 @@ Role `qa`, skills `quality-gate` and `webapp-testing`, an empty `write_set`, the
 1. Confirm `git rev-parse HEAD` equals the PR's `headRefOid`. If it differs, stop and report `request_changes` with a `command` finding.
 2. Run the full gate in your checkout: `pnpm quality-gate`. Never use `--only`; a partial report never backs an approve.
 3. For each changed `*.stories.tsx` file (`git diff --name-only origin/develop...HEAD`), take a light and a dark screenshot of at least one story under that file's title. Pass Playwright's `page.screenshot` the absolute path `<main>/.orivilo/runs/<ISSUE>/<task_id>/screenshots/<story>-<mode>.png`, where `<main>` is found through `git rev-parse --git-common-dir`. Records live in the main checkout, never in your own. Open each PNG with Read and write in `note` what you saw.
-4. Walk every row of the spec's AC table. A row the recorder's keyword list makes visual needs a screenshot or a computed style. An `owner_verify` row still needs a screenshot.
+4. Walk the rows that the spec's `## Rows per PR` line (`- PR <n>: rows <list>`) names for this PR, else every row of the spec's AC table; your `ac` has one entry for each of those rows and none for another. A row the recorder's keyword list makes visual (the `User sees` cell) needs a screenshot or a computed style, unless the spec lists it under `## Rows that render nothing`; a listed row you mark `visual: true` still needs one. An `owner_verify` row still needs a screenshot.
 
 ## G4 staging walk
 

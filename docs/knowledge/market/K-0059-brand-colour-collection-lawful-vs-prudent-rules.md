@@ -46,7 +46,7 @@ For hand collection (curated):
 
 For automated reading of official websites:
 
-6. Read robots.txt first, honour disallow for the reader's own product token and for `*`, re-read it at most every 24 hours, and stop on a 5xx (K-0056).
+6. Read robots.txt first, obey the group that matches the reader's own product token, or the `*` group when no group matches it (RFC 9309 section 2.2.1, quoted in K-0056), re-read it at most every 24 hours, and stop on a 5xx (K-0056).
 7. Name the reader in its user agent with a contact URL.
 8. Rate-limit per host (for example one request every few seconds and a small cap per site per day; the number is a design choice, not from a source) and back off on 429 or 503.
 9. Read logged-out public pages only. Never log in, make an account, solve a CAPTCHA or rotate IPs to avoid a block.

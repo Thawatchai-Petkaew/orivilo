@@ -6,7 +6,7 @@ import { RESIZE_STEP, Resizable } from "./Resizable";
 
 const content = (
   <div className="flex flex-col gap-2 p-4 text-body-md">
-    <p className="m-0 font-semibold">บล็อกป้อนข้อมูล</p>
+    <p className="m-0 text-label-md">บล็อกป้อนข้อมูล</p>
     <p className="m-0 text-text-secondary">บรีฟ, กลุ่มผู้ใช้, ความรู้สึกที่ต้องการ</p>
   </div>
 );

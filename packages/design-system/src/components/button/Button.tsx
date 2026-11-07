@@ -4,7 +4,7 @@ import { Slot } from "radix-ui";
 import type { ComponentPropsWithoutRef, MouseEvent, ReactNode } from "react";
 import { useMessages } from "../../i18n/LocaleProvider";
 import { cx } from "../cx";
-import { SpinnerIcon } from "../icons";
+import { Spinner } from "../spinner/Spinner";
 
 export type ButtonVariant = "primary" | "secondary" | "ghost" | "destructive" | "intent" | "link";
 export type ControlSize = "sm" | "md" | "lg";
@@ -73,7 +73,7 @@ export function Button({
   );
   // The spinner takes the leading slot (or opens it); the trailing icon stays.
   const leading = loading
-    ? icon(<SpinnerIcon className="ds-spin" />)
+    ? icon(<Spinner decorative />)
     : iconLeading && !iconOnly
       ? icon(iconLeading)
       : null;

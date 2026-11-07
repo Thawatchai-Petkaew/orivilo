@@ -40,14 +40,16 @@ Turborepo + pnpm, Next.js App Router, TypeScript strict, Tailwind CSS v4 + shadc
 
 Each Jira status means where the work is (ADR 0012): G3 PR review = merged into `develop`, Staging = on `main`, Done = the owner signed G5 (on staging until ORV-63). Gate packets use the `gate-packet` skill. Request changes → rework → re-raise the same gate.
 
+During the POC the main session follows the `ovl` skill, section "POC mode" (ORV-137): lean rules until the owner says the POC is over. In POC mode the G3 evidence "two reviewer passes" (rule 5) reads as the reviewer approve on the merged head (with, for a code PR, the qa approve on it, ADR 0013), plus a re-check for Critical or Important findings, and the G3 packet reports the passes that actually ran.
+
 ## Design-system rules (from the handoff §23)
 
 - Read `DESIGN.md` before any UI work; its design gate blocks G3. Read the catalog (`packages/design-system/catalog/`) before composing UI. Use team patterns and components when the requirement matches.
 - Storybook is the catalog's visual half (ADR 0003). No shared component exists without a story and a catalog entry in the same PR; no Studio UI is built before Storybook is set up (E2-0).
 - Read type signatures and an example before using props. Never invent token names or public APIs without adding them to the contract.
 - Recipes use semantic tokens. No per-page hex, radius, or font values to change a mood.
-- Brand accent never replaces error, warning, selection, or focus semantics.
-- Every UI string comes from the locale catalog (`packages/design-system/src/i18n`, `apps/web/i18n`), Thai and English together; no hard-coded copy in a component or a page. `check-i18n` fails the build on it.
+- Brand accent never replaces error, warning or selection semantics. Focus takes the profile's brand hue through its own `focus.*` tokens (owner, ORV-192 comment 10403) and keeps its own shape, a line with a halo, so it never reads as selection.
+- Every UI string comes from the locale catalog (`packages/design-system/src/i18n`, `apps/web/i18n`), Thai and English together; no hard-coded copy in a component or a page. `check-i18n` (`packages/design-system`) and `apps/web/i18n/messages.test.ts` (`apps/web`) fail the build on it.
 - No middot (·) and no em dash (—) in any UI text. Hard rule from the owner; the copy check fails the build on them.
 - Never render trust badges, ratings, discounts, countdowns, or success states without backing data.
 - A profile changes visual expression only. Business logic, permissions, and validation come from the domain.

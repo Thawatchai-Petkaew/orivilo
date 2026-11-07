@@ -1,5 +1,34 @@
 import { describe, expect, it } from "vitest";
-import { inkWidth, outsideCorner, type Radii, type Rgb } from "./visual-asserts";
+import {
+  bodyOf,
+  clipEdgeRow,
+  colorsMatch,
+  cssColorToHex,
+  firstInkCut,
+  firstInkRow,
+  hexToRgb,
+  inkCentreOf,
+  inkCutAbove,
+  inkWidth,
+  linesFloor,
+  linesGap,
+  lastShadowColor,
+  offCentreReport,
+  outsideCorner,
+  paintDifference,
+  paintMatches,
+  paintRegion,
+  parseCssColor,
+  partLabel,
+  readGeometries,
+  viewBoxToBox,
+  type BoxGeometry,
+  type InkBox,
+  type InkCentre,
+  type InkReading,
+  type Radii,
+  type Rgb,
+} from "./visual-asserts";
 
 const white: Rgb = [255, 255, 255];
 const grey: Rgb = [245, 245, 245];
@@ -27,6 +56,49 @@ describe("inkWidth", () => {
   });
 });
 
+describe("firstInkRow", () => {
+  const ground: Rgb = [250, 250, 250];
+  const ink: Rgb = [20, 20, 20];
+
+  it("returns the index of the first row with a pixel far from the ground", () => {
+    const rows = [
+      [ground, ground],
+      [ground, ground],
+      [ground, ink],
+      [ink, ink],
+    ];
+    expect(firstInkRow(rows, ground)).toBe(2);
+  });
+
+  it("returns null for rows of plain ground", () => {
+    expect(
+      firstInkRow(
+        [
+          [ground, ground],
+          [ground, ground],
+        ],
+        ground,
+      ),
+    ).toBeNull();
+  });
+
+  it("does not count a faint antialiasing pixel as ink", () => {
+    expect(
+      firstInkRow(
+        [
+          [ground, [245, 245, 247]],
+          [ground, ink],
+        ],
+        ground,
+      ),
+    ).toBe(1);
+  });
+
+  it("returns null for no rows", () => {
+    expect(firstInkRow([], ground)).toBeNull();
+  });
+});
+
 const pill = (r: number): Radii => ({
   topLeft: { x: r, y: r },
   topRight: { x: r, y: r },
@@ -51,5 +123,1056 @@ describe("outsideCorner", () => {
 
   it("names a point outside the box", () => {
     expect(outsideCorner({ x: 120, y: 5 }, box, pill(0))).toBe("topRight");
+  });
+});
+
+/**
+ * ink-centre-1, clauses 3 to 9 (ORV-111): the pure part, on a decoded screenshot given as RGBA
+ * bytes. The colours are the ones of worked example 1 of the spec: the ground `action.primary`
+ * #7A22C7, the ink `text.on-action` #FFFFFF, a mid-tone pixel over the ink distance and a faint
+ * one under it.
+ */
+const GROUND: Rgb = [122, 34, 199];
+const WHITE: Rgb = [255, 255, 255];
+const MID: Rgb = [189, 145, 227];
+const FAINT: Rgb = [130, 45, 202];
+
+/** An image `width` by `height` px; `paint(x, y)` gives the colour of one pixel, the ground by default. */
+function shot(width: number, height: number, paint: (x: number, y: number) => Rgb | undefined) {
+  const data = new Uint8ClampedArray(width * height * 4);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const [r, g, b] = paint(x, y) ?? GROUND;
+      data.set([r, g, b, 255], (y * width + x) * 4);
+    }
+  }
+  return { data, width };
+}
+
+/** The band of one text column, as the rows of worked example 1: a stand-in for a screenshot. */
+const rowsOf = (rows: Record<number, Rgb>) => (_x: number, y: number) => rows[y];
+
+/** A 40 px tall box with a 1 px border whose label spans the four columns of the image. */
+const control: InkBox = {
+  top: 0,
+  height: 40,
+  borderTop: 1,
+  borderBottom: 1,
+  textLeft: 0,
+  textRight: 4,
+};
+
+/** Worked example 1 of the spec: ink rows 11 to 25 with a faint pixel above and a mid-tone one below. */
+const thaiRows: Record<number, Rgb> = { 10: FAINT, 25: MID };
+for (let y = 11; y <= 24; y++) thaiRows[y] = WHITE;
+/** The English twin: a mid-tone pixel above the ink and a faint one below. */
+const latinRows: Record<number, Rgb> = { 13: MID, 28: FAINT };
+for (let y = 14; y <= 27; y++) latinRows[y] = WHITE;
+
+const read = (image: ReturnType<typeof shot>, at: InkBox = control, scale = 1): InkCentre => {
+  const found = inkCentreOf(image, scale, at);
+  if (!found) throw new Error("the test image holds no ink");
+  return found;
+};
+
+describe("inkCentreOf", () => {
+  it("reads the two columns of worked example 1 as -1.50 above the centre and 0.50 below, 'true true'", () => {
+    const thai = read(shot(4, 40, rowsOf(thaiRows)));
+    const latin = read(shot(4, 40, rowsOf(latinRows)));
+    expect(
+      `${thai.offset.toFixed(2)} ${latin.offset.toFixed(2)} ${thai.centred} ${latin.centred}`,
+    ).toBe("-1.50 0.50 true true");
+  });
+
+  it("gives the ink top and the ink bottom in CSS px below the top of the box (clause 6)", () => {
+    // Ink rows 11 to 25: the band runs from row 11 to row 26, one past the last ink row.
+    expect(read(shot(4, 40, rowsOf(thaiRows)))).toMatchObject({ inkTop: 11, inkBottom: 26 });
+  });
+
+  it("takes the ground as the most frequent colour, not the first pixel of the region (clause 4)", () => {
+    // The first pixel of the region (column 0, row 1) is white. Judged against it, every fill pixel
+    // would be ink and the band would run to the bottom of the box. Judged against the fill, the
+    // white pixel is ink and the band starts at row 1.
+    const image = shot(4, 40, (x, y) => (x === 0 && y === 1 ? WHITE : rowsOf(thaiRows)(x, y)));
+    expect(read(image)).toMatchObject({ inkTop: 1, inkBottom: 26 });
+  });
+
+  it("gives a tie between two colours to the one that reaches the top count first (clause 4)", () => {
+    // Two rows of two pixels: the fill row and a white row, two pixels of each colour.
+    const tiny: InkBox = { ...control, height: 2, borderTop: 0, borderBottom: 0, textRight: 2 };
+    const image = shot(2, 2, (_x, y) => (y === 1 ? WHITE : undefined));
+    expect(read(image, tiny)).toMatchObject({ inkTop: 1, inkBottom: 2 });
+  });
+
+  it("counts a pixel as ink only when its distance from the ground is over 48 (clause 5)", () => {
+    const ground: Rgb = [100, 100, 100];
+    const at = (colours: Record<number, Rgb>) => shot(4, 40, (_x, y) => colours[y] ?? ground);
+    // Row 10 is 48 away (not ink), row 11 is 49 away (ink): the band starts at row 11.
+    expect(read(at({ 10: [148, 100, 100], 11: [149, 100, 100] }))).toMatchObject({ inkTop: 11 });
+    // The distance sums the three channels: 16 + 16 + 17 = 49 is ink, 16 + 16 + 16 = 48 is not.
+    expect(read(at({ 10: [116, 116, 116], 11: [116, 116, 117] }))).toMatchObject({ inkTop: 11 });
+    // Below the ground counts too: the distance is absolute.
+    expect(read(at({ 10: [52, 100, 100], 11: [51, 100, 100] }))).toMatchObject({ inkTop: 11 });
+  });
+
+  it("runs the band from the first ink row to the last, plus one row (clause 6)", () => {
+    const image = shot(4, 40, rowsOf({ 12: WHITE, 20: WHITE }));
+    expect(read(image)).toMatchObject({ inkTop: 12, inkBottom: 21, offset: -3.5 });
+  });
+
+  it("ignores ink outside the columns of the label, such as an icon (clause 3)", () => {
+    // The label spans columns 0 to 3; an icon at columns 6 and 7 reaches from row 3 to row 36.
+    const label = rowsOf(latinRows);
+    const image = shot(8, 40, (x, y) => (x >= 6 && y >= 3 && y <= 36 ? WHITE : label(x, y)));
+    expect(read(image)).toMatchObject({ inkTop: 13, inkBottom: 28 });
+  });
+
+  it("ignores the border rows and reads only the padding box (clause 3)", () => {
+    // White border rows would pull the band to the edges of the box if they were read.
+    const image = shot(4, 40, (x, y) => (y === 0 || y === 39 ? WHITE : rowsOf(latinRows)(x, y)));
+    expect(read(image)).toMatchObject({ inkTop: 13, inkBottom: 28 });
+  });
+
+  it("rounds the columns outward and the rows inward, so no half-covered row is read (clause 3)", () => {
+    // Top 8.5 and a 1 px border put the padding box at 9.5 to 47.5. Rows 9 and 47 are half border.
+    const at: InkBox = { ...control, top: 8.5, textLeft: 10.5, textRight: 20.2 };
+    const ink = (cells: [number, number][]) => {
+      const set = new Set(cells.map(([x, y]) => `${x},${y}`));
+      return shot(30, 60, (x, y) => (set.has(`${x},${y}`) ? WHITE : undefined));
+    };
+    // Inside: row 10 and row 46 are whole padding rows; column 10 and column 20 hold the label.
+    expect(
+      read(
+        ink([
+          [15, 10],
+          [15, 46],
+        ]),
+        at,
+      ),
+    ).toMatchObject({ inkTop: 1.5, inkBottom: 38.5 });
+    // Outside: row 9 and row 47 are half border; columns 9 and 21 lie past the label's columns.
+    expect(
+      inkCentreOf(
+        ink([
+          [15, 9],
+          [15, 47],
+        ]),
+        1,
+        at,
+      ),
+    ).toBeNull();
+    expect(
+      inkCentreOf(
+        ink([
+          [9, 20],
+          [21, 20],
+        ]),
+        1,
+        at,
+      ),
+    ).toBeNull();
+    // The label's own first and last columns are read.
+    expect(read(ink([[10, 20]]), at)).toMatchObject({ inkTop: 11.5 });
+    expect(read(ink([[20, 20]]), at)).toMatchObject({ inkTop: 11.5 });
+  });
+
+  it("does not read past the right edge of the image into the next row (clause 3)", () => {
+    // The label's columns run two past the 4 px image. Read as a flat array, those two columns of
+    // row 19 would be the first two pixels of row 20, where the white pixel is.
+    const image = shot(4, 40, (x, y) => (x === 0 && y === 20 ? WHITE : undefined));
+    expect(read(image, { ...control, textRight: 6 })).toMatchObject({ inkTop: 20, inkBottom: 21 });
+  });
+
+  it("stays inside the image on every side, so no pixel is read from another row (clause 3)", () => {
+    const only = (cells: [number, number][]) => {
+      const set = new Set(cells.map(([x, y]) => `${x},${y}`));
+      return shot(4, 40, (x, y) => (set.has(`${x},${y}`) ? WHITE : undefined));
+    };
+    // Above the image: a box that starts 5 px above it. Rows -4 to -1 would read as black.
+    expect(read(only([[0, 20]]), { ...control, top: -5 })).toMatchObject({
+      inkTop: 25,
+      inkBottom: 26,
+    });
+    // Below the image: a box 60 px tall. Rows 40 to 58 would read as black.
+    expect(read(only([[0, 20]]), { ...control, height: 60 })).toMatchObject({
+      inkTop: 20,
+      inkBottom: 21,
+    });
+    // Left of the image: the last pixel of row 19 would be read as the pixel left of row 20.
+    expect(inkCentreOf(only([[3, 19]]), 1, { ...control, textLeft: -1, textRight: 1 })).toBeNull();
+    // Right of the image: the first pixel of row 21 would be read as the pixel right of row 20.
+    expect(inkCentreOf(only([[0, 21]]), 1, { ...control, textLeft: 3, textRight: 5 })).toBeNull();
+  });
+
+  it("returns null when the region holds no ink", () => {
+    expect(
+      inkCentreOf(
+        shot(4, 40, () => undefined),
+        1,
+        control,
+      ),
+    ).toBeNull();
+  });
+
+  it("returns null when the region has no pixel to read, with no ground to find (clause 4)", () => {
+    const image = shot(4, 40, rowsOf(thaiRows));
+    expect(inkCentreOf(image, 1, { ...control, textRight: 0 })).toBeNull();
+    expect(inkCentreOf(image, 1, { ...control, height: 2 })).toBeNull();
+  });
+
+  it("converts device px to CSS px with the scale (clause 6)", () => {
+    // At scale 2 the box is 80 device rows tall: ink rows 23 to 51 are CSS rows 11.5 to 26.
+    const rows: Record<number, Rgb> = {};
+    for (let y = 23; y <= 51; y++) rows[y] = WHITE;
+    const image = shot(8, 80, rowsOf(rows));
+    expect(read(image, { ...control, textRight: 4 }, 2)).toMatchObject({
+      inkTop: 11.5,
+      inkBottom: 26,
+      offset: -1.25,
+    });
+  });
+
+  it("measures the ink centre against the centre of the box, the top plus half the height (clause 7)", () => {
+    // The same ink in a box that starts 5 px lower and is 50 px tall: its centre is at 5 + 25 = 30.
+    const image = shot(4, 60, rowsOf(thaiRows));
+    const lower: InkBox = { ...control, top: 5, height: 50 };
+    // Ink rows 11 to 25 give a centre at (11 + 26) / 2 = 18.5; the box centre is 30.
+    expect(read(image, lower)).toMatchObject({ inkTop: 6, inkBottom: 21, offset: -11.5 });
+  });
+
+  it("reports the offset to 2 decimals, a negative one above the centre (clause 8)", () => {
+    // A box 0.333 px down: the ink top is 11 - 0.333, the ink bottom 26 - 0.333.
+    const found = read(shot(4, 41, rowsOf(thaiRows)), { ...control, top: 0.333 });
+    expect(found).toMatchObject({ inkTop: 10.67, inkBottom: 25.67, offset: -1.83 });
+  });
+
+  it("passes an offset of 1.5 either way and fails one past it (clause 9)", () => {
+    // Ink rows 10 to 26 centre at 18.5 (offset -1.5), rows 13 to 29 at 21.5 (offset 1.5); one row
+    // more on the far side reads -2 and 2.
+    const band = (first: number, last: number) => {
+      const rows: Record<number, Rgb> = {};
+      for (let y = first; y <= last; y++) rows[y] = WHITE;
+      return read(shot(4, 40, rowsOf(rows)));
+    };
+    expect(band(10, 26)).toMatchObject({ offset: -1.5, centred: true });
+    expect(band(13, 29)).toMatchObject({ offset: 1.5, centred: true });
+    expect(band(10, 25)).toMatchObject({ offset: -2, centred: false });
+    expect(band(14, 29)).toMatchObject({ offset: 2, centred: false });
+  });
+
+  it("judges the offset as reported, to 2 decimals (clause 9)", () => {
+    // 1.504 reports as 1.50, so it passes; 1.51 reports as 1.51, so it fails.
+    const rows: Record<number, Rgb> = {};
+    for (let y = 13; y <= 29; y++) rows[y] = WHITE;
+    const image = shot(4, 41, rowsOf(rows));
+    expect(read(image, { ...control, top: -0.004 })).toMatchObject({ offset: 1.5, centred: true });
+    expect(read(image, { ...control, top: -0.01 })).toMatchObject({ offset: 1.51, centred: false });
+  });
+});
+
+/**
+ * ink-corner-1 (ORV-198): the region of clause 3 loses the columns a corner curve reaches. The
+ * fixtures are those of the spec's worked examples: a 40 px box at left 0 with a 1 px border, the
+ * label columns 8 to 32 and the ink rows of `thaiRows` in column 20. A stand-in canvas colour is
+ * painted where the corner curve leaves the box, as the page behind a rounded control shows there.
+ */
+const CANVAS: Rgb = [240, 240, 240];
+const round = (r: number): Radii => ({
+  topLeft: { x: r, y: r },
+  topRight: { x: r, y: r },
+  bottomRight: { x: r, y: r },
+  bottomLeft: { x: r, y: r },
+});
+const inkColumn = (x: number, y: number) => (x === 20 ? thaiRows[y] : undefined);
+/** True where the padding box curve (border 1, outer radius `r`) leaves the box of side 40. */
+function outsideCurve(x: number, y: number, r: number) {
+  const px = x + 0.5;
+  const py = y + 0.5;
+  if (px < 1 || px > 39 || py < 1 || py > 39) return true;
+  const inner = r - 1;
+  const cx = px < 1 + inner ? 1 + inner : px > 39 - inner ? 39 - inner : null;
+  const cy = py < 1 + inner ? 1 + inner : py > 39 - inner ? 39 - inner : null;
+  return cx !== null && cy !== null && (px - cx) ** 2 + (py - cy) ** 2 > inner * inner;
+}
+const rounded = (radii: Radii, text = { textLeft: 8, textRight: 32 }): InkBox => ({
+  ...control,
+  ...text,
+  corners: { left: 0, width: 40, radii },
+});
+
+describe("inkCentreOf with rounded corners (ink-corner-1)", () => {
+  it("reads -1.50 where the columns of the curve are cut, and 0.00 where they are not (clauses 2, 3, worked example 1)", () => {
+    const image = shot(40, 40, (x, y) => (outsideCurve(x, y, 16) ? CANVAS : inkColumn(x, y)));
+    const cut = read(image, rounded(round(16)));
+    expect(`${cut.offset.toFixed(2)} ${cut.centred}`).toBe("-1.50 true");
+    // The same label columns with no corners: the curve's canvas pixels are ink, so the band takes
+    // the whole padding box and the offset reads 0.00 for any label.
+    expect(read(image, { ...control, textLeft: 8, textRight: 32 }).offset).toBe(0);
+  });
+
+  it("reads -1.50 for a box with square corners, with or without the curve paint (worked example 1)", () => {
+    const image = shot(40, 40, inkColumn);
+    expect(read(image, rounded(round(0))).offset).toBe(-1.5);
+    expect(read(image, { ...control, textLeft: 8, textRight: 32 }).offset).toBe(-1.5);
+  });
+
+  it("rounds a bound a cut sets inward: the left cut up, the right cut down (clause 3, worked example 2)", () => {
+    // Radius 16.5 cuts at 16.5 and 23.5: columns 17 to 22 are read. A canvas pixel in column 16
+    // (row 1) and one in column 23 (row 38) sit just outside the cuts.
+    const image = shot(40, 40, (x, y) =>
+      (x === 16 && y === 1) || (x === 23 && y === 38) ? CANVAS : inkColumn(x, y),
+    );
+    expect(read(image, rounded(round(16.5))).offset).toBe(-1.5);
+  });
+
+  it("cuts at the larger horizontal radius of the two corners on a side (clause 2)", () => {
+    // Left: top-left 4, bottom-left 16, so the left cut is 16 and column 10 is not read. Right:
+    // top-right 16, bottom-right 4, so the right cut is 24 and column 30 is not read.
+    const radii: Radii = {
+      topLeft: { x: 4, y: 4 },
+      topRight: { x: 16, y: 16 },
+      bottomRight: { x: 4, y: 4 },
+      bottomLeft: { x: 16, y: 16 },
+    };
+    const left = shot(40, 40, (x, y) => (x === 10 && y === 1 ? CANVAS : inkColumn(x, y)));
+    const right = shot(40, 40, (x, y) => (x === 30 && y === 38 ? CANVAS : inkColumn(x, y)));
+    expect(read(left, rounded(radii)).offset).toBe(-1.5);
+    expect(read(right, rounded(radii)).offset).toBe(-1.5);
+  });
+
+  it("keeps the label's bound when it is the tighter one, rounding it outward (clause 3)", () => {
+    // Radius 4 cuts at 4 and 36; the label columns 18.5 to 21.2 are inside, read as 18 to 22. A
+    // canvas pixel in column 18 is read (offset -6.50, the band takes row 1); one in column 17 is not.
+    const at = rounded(round(4), { textLeft: 18.5, textRight: 21.2 });
+    const inside = shot(40, 40, (x, y) => (x === 18 && y === 1 ? CANVAS : inkColumn(x, y)));
+    const outside = shot(40, 40, (x, y) => (x === 17 && y === 1 ? CANVAS : inkColumn(x, y)));
+    expect(read(inside, at).offset).toBe(-6.5);
+    expect(read(outside, at).offset).toBe(-1.5);
+  });
+
+  it("cuts nothing on a side with no radius, so a fractional edge keeps the clause 3 columns (clause 3)", () => {
+    // Box left 0.5, no radius, label from 0.5: the label's bound floors to column 0, which a cut
+    // rounded up to column 1 would drop.
+    const image = shot(40, 40, (x, y) => (x === 0 ? thaiRows[y] : undefined));
+    const at: InkBox = {
+      ...control,
+      textLeft: 0.5,
+      textRight: 10,
+      corners: { left: 0.5, width: 39, radii: round(0) },
+    };
+    expect(read(image, at).offset).toBe(-1.5);
+  });
+
+  it("converts the cuts to device px with the scale (clause 3)", () => {
+    // At scale 2 the 16 px cut is device column 32; a canvas pixel in device column 31 is not read.
+    const rows: Record<number, Rgb> = {};
+    for (let y = 23; y <= 51; y++) rows[y] = WHITE;
+    const image = shot(80, 80, (x, y) =>
+      x === 31 && y === 2 ? CANVAS : x === 40 ? rows[y] : undefined,
+    );
+    const at: InkBox = {
+      ...control,
+      textLeft: 8,
+      textRight: 32,
+      corners: { left: 0, width: 40, radii: round(16) },
+    };
+    expect(read(image, at, 2)).toMatchObject({ inkTop: 11.5, inkBottom: 26 });
+  });
+
+  it("measures the cuts from the box's left edge and its width, not from 0 (clause 2)", () => {
+    // A box at left 10, 40 wide, radius 16: the cuts are at 26 and 34, so columns 26 to 33 are read.
+    // Ink in column 30; a canvas pixel in column 20 (between the cuts of a box at 0) is not read.
+    const image = shot(60, 40, (x, y) =>
+      x === 20 && y === 1 ? CANVAS : x === 30 ? thaiRows[y] : undefined,
+    );
+    const at: InkBox = {
+      ...control,
+      textLeft: 12,
+      textRight: 48,
+      corners: { left: 10, width: 40, radii: round(16) },
+    };
+    expect(read(image, at).offset).toBe(-1.5);
+  });
+
+  it("cuts nothing on the right when its corners are square, so a fractional right edge keeps the clause 3 columns (clause 3)", () => {
+    // The box ends at 10.2 and the label at 10.2: the label's bound ceils to column 11, which a cut
+    // rounded down to column 10 would take away.
+    const image = shot(40, 40, (x, y) => (x === 10 ? thaiRows[y] : undefined));
+    const at: InkBox = {
+      ...control,
+      textLeft: 0,
+      textRight: 10.2,
+      corners: { left: 0, width: 10.2, radii: round(0) },
+    };
+    expect(read(image, at).offset).toBe(-1.5);
+  });
+
+  it("returns null when the cuts leave no column (clause 4)", () => {
+    const image = shot(40, 40, inkColumn);
+    // Radius 20 cuts at 20 and 20: no column is left.
+    expect(inkCentreOf(image, 1, rounded(round(20)))).toBeNull();
+    // A pill wider than the label's columns: the cuts pass each other.
+    expect(inkCentreOf(image, 1, rounded(round(25)))).toBeNull();
+  });
+});
+
+/**
+ * The pure part of `readBoxes` (ink-centre-1 clause 2): the scale is `devicePixelRatio`. A scope
+ * with a fractional width gives a screenshot a pixel wider than its CSS width; the screenshot
+ * width over the frame width would then drift off 1.
+ */
+describe("readGeometries", () => {
+  const view = { devicePixelRatio: 1 };
+  const geometry: BoxGeometry = {
+    rect: { left: 0, top: 0, width: 100.5, height: 40 },
+    borderTop: 1,
+    borderBottom: 1,
+    textLeft: 0,
+    textRight: 100.5,
+    radii: round(0),
+  };
+
+  it("takes the scale from devicePixelRatio, not from the screenshot width over the frame width (worked example 3)", () => {
+    const image = shot(101, 40, inkColumn);
+    const [found] = readGeometries(image, { left: 0, top: 0, width: 100.5 }, [geometry], view);
+    expect(`${found?.offset.toFixed(2)} ${found?.centred}`).toBe("-1.50 true");
+  });
+
+  it("measures the frame's origin off the box edges", () => {
+    // The frame starts at (10, 5): the box sits at (10, 5) on the page and at (0, 0) in the image.
+    const moved: BoxGeometry = {
+      ...geometry,
+      rect: { left: 10, top: 5, width: 100.5, height: 40 },
+      textLeft: 10,
+      textRight: 110.5,
+    };
+    const [found] = readGeometries(
+      shot(101, 40, inkColumn),
+      { left: 10, top: 5, width: 100.5 },
+      [moved],
+      view,
+    );
+    expect(found?.offset).toBe(-1.5);
+  });
+
+  it("takes the frame's left off the label and the box edges alike when it cuts the corners", () => {
+    // Frame at left 10: the box starts at 10 on the page and at 0 in the image, the label from 28
+    // to 42 on the page (18 to 32 in the image). The cuts are at 16 and 24; ink in column 20.
+    const image = shot(40, 40, inkColumn);
+    const g: BoxGeometry = {
+      rect: { left: 10, top: 5, width: 40, height: 40 },
+      borderTop: 1,
+      borderBottom: 1,
+      textLeft: 28,
+      textRight: 42,
+      radii: round(16),
+    };
+    expect(readGeometries(image, { left: 10, top: 5, width: 100.5 }, [g], view)[0]?.offset).toBe(
+      -1.5,
+    );
+  });
+
+  it("reads a null for a box whose region holds no ink", () => {
+    const image = shot(101, 40, () => undefined);
+    expect(readGeometries(image, { left: 0, top: 0, width: 100.5 }, [geometry], view)).toEqual([
+      null,
+    ]);
+  });
+
+  it("cuts a rounded geometry at its corners", () => {
+    const image = shot(40, 40, (x, y) => (outsideCurve(x, y, 16) ? CANVAS : inkColumn(x, y)));
+    const g: BoxGeometry = {
+      rect: { left: 0, top: 0, width: 40, height: 40 },
+      borderTop: 1,
+      borderBottom: 1,
+      textLeft: 8,
+      textRight: 32,
+      radii: round(16),
+    };
+    expect(readGeometries(image, { left: 0, top: 0, width: 100.5 }, [g], view)[0]?.offset).toBe(
+      -1.5,
+    );
+  });
+});
+
+/** ink-centre-1, the body: the label with its Thai marks above and below the consonant taken out. */
+describe("bodyOf", () => {
+  const th = (code: number) => String.fromCharCode(code);
+
+  it("prints the body of fixtures.thai and fixtures.latin as worked example 4 does", () => {
+    expect(`${bodyOf("บันทึกการเปลี่ยนแปลง")}|${bodyOf("Save changes")}`).toBe(
+      "บนทกการเปลยนแปลง|Save changes",
+    );
+  });
+
+  it("drops U+0E31 (mai han-akat) and keeps its neighbours U+0E30 and U+0E32", () => {
+    expect(bodyOf(`ก${th(0x0e31)}`)).toBe("ก");
+    expect(bodyOf(`ก${th(0x0e30)}${th(0x0e32)}`)).toBe(`ก${th(0x0e30)}${th(0x0e32)}`);
+  });
+
+  it("keeps U+0E33 (sara am), which lies between the dropped marks", () => {
+    expect(bodyOf(`ก${th(0x0e33)}`)).toBe(`ก${th(0x0e33)}`);
+  });
+
+  it("drops U+0E34 to U+0E3A, both ends included, and keeps U+0E3B", () => {
+    for (let code = 0x0e34; code <= 0x0e3a; code++) expect(bodyOf(`ก${th(code)}`)).toBe("ก");
+    expect(bodyOf(`ก${th(0x0e3b)}`)).toBe(`ก${th(0x0e3b)}`);
+  });
+
+  it("keeps U+0E46 (mai yamok), which lies below the dropped range", () => {
+    expect(bodyOf(`ก${th(0x0e46)}`)).toBe(`ก${th(0x0e46)}`);
+  });
+
+  it("drops U+0E47 to U+0E4E, both ends included, and keeps U+0E4F", () => {
+    for (let code = 0x0e47; code <= 0x0e4e; code++) expect(bodyOf(`ก${th(code)}`)).toBe("ก");
+    expect(bodyOf(`ก${th(0x0e4f)}`)).toBe(`ก${th(0x0e4f)}`);
+  });
+
+  it("drops every mark of a string, not only the first", () => {
+    expect(bodyOf(`ก${th(0x0e34)}ก${th(0x0e34)}`)).toBe("กก");
+  });
+
+  it("leaves a Latin label as it is", () => {
+    expect(bodyOf("Sign up")).toBe("Sign up");
+  });
+});
+
+describe("offCentreReport", () => {
+  const at = (offset: number): InkCentre => ({
+    inkTop: 11,
+    inkBottom: 26,
+    offset,
+    centred: Math.abs(offset) <= 1.5,
+  });
+  const reading = (name: string, body: number, ink: number): InkReading => ({
+    name,
+    body: at(body),
+    ink: at(ink),
+  });
+
+  it("says nothing when every body is centred, however far the whole ink sits", () => {
+    expect(offCentreReport([reading("a", 0.5, -3.5), reading("b", -1.5, -1.5)], "body")).toBe("");
+  });
+
+  it("lists each box whose body is off with the body offset and the whole-ink offset", () => {
+    const report = offCentreReport(
+      [
+        reading('<button.ds-button> "Thai", 32 px tall, in neutral light', -2, -3.5),
+        reading('<button.ds-button> "Latin", 32 px tall, in neutral light', 0.5, 0.5),
+        reading('<button.ds-button> "Thai", 48 px tall, in neutral dark', -2.25, -4),
+      ],
+      "body",
+    );
+    expect(report).toContain("2 of 3");
+    expect(report).toContain("1.5 px");
+    expect(report).toContain(
+      '"Thai", 32 px tall, in neutral light: body offset -2.00 px, whole-ink offset -3.50 px',
+    );
+    expect(report).toContain(
+      '"Thai", 48 px tall, in neutral dark: body offset -2.25 px, whole-ink offset -4.00 px',
+    );
+    expect(report).not.toContain("Latin");
+  });
+
+  it("judges the whole ink when asked to, and then leaves the body alone", () => {
+    const readings = [reading("a", 0.5, -3.5), reading("b", 3, 0.5)];
+    expect(offCentreReport(readings, "ink")).toContain("1 of 2");
+    expect(offCentreReport(readings, "ink")).toContain("a: ");
+    expect(offCentreReport(readings, "ink")).not.toContain("b: ");
+  });
+});
+
+describe("viewBoxToBox", () => {
+  it("scales a point when the box has the viewBox's aspect ratio", () => {
+    expect(viewBoxToBox({ x: 22.5, y: 77.5 }, [0, 0, 128, 128], { width: 64, height: 64 })).toEqual(
+      {
+        x: 11.25,
+        y: 38.75,
+      },
+    );
+  });
+
+  it("subtracts the viewBox origin", () => {
+    expect(
+      viewBoxToBox({ x: 182, y: -25 }, [100, -50, 200, 100], { width: 100, height: 50 }),
+    ).toEqual({
+      x: 41,
+      y: 12.5,
+    });
+  });
+
+  it("centres the drawing when the box is wider than the viewBox (meet)", () => {
+    expect(viewBoxToBox({ x: 0, y: 0 }, [0, 0, 100, 50], { width: 200, height: 50 })).toEqual({
+      x: 50,
+      y: 0,
+    });
+  });
+
+  it("centres the drawing when the box is taller than the viewBox (meet)", () => {
+    expect(viewBoxToBox({ x: 50, y: 25 }, [0, 0, 100, 50], { width: 100, height: 100 })).toEqual({
+      x: 50,
+      y: 50,
+    });
+  });
+
+  it("refuses a viewBox with no size", () => {
+    expect(() => viewBoxToBox({ x: 0, y: 0 }, [0, 0, 0, 10], { width: 10, height: 10 })).toThrow();
+  });
+});
+
+describe("hexToRgb and paintMatches", () => {
+  it("reads #rrggbb in either case", () => {
+    expect(hexToRgb("#D9F66F")).toEqual([217, 246, 111]);
+    expect(hexToRgb("#d9f66f")).toEqual([217, 246, 111]);
+  });
+
+  it("refuses a short or malformed hex", () => {
+    expect(() => hexToRgb("#fff")).toThrow();
+    expect(() => hexToRgb("D9F66F")).toThrow();
+  });
+
+  it("allows a summed difference of 12 and no more", () => {
+    expect(paintMatches([217, 246, 111], "#D9F66F")).toBe(true);
+    expect(paintMatches([229, 246, 111], "#D9F66F")).toBe(true);
+    expect(paintMatches([230, 246, 111], "#D9F66F")).toBe(false);
+    expect(paintMatches([223, 252, 111], "#D9F66F")).toBe(true);
+    expect(paintMatches([224, 252, 111], "#D9F66F")).toBe(false);
+  });
+});
+
+describe("parseCssColor", () => {
+  it("reads rgb and rgba in comma and space forms", () => {
+    expect(parseCssColor("rgb(10, 20, 30)")).toEqual([10, 20, 30, 1]);
+    expect(parseCssColor("rgba(10, 20, 30, 0.25)")).toEqual([10, 20, 30, 0.25]);
+    expect(parseCssColor("rgb(10 20 30 / 0.25)")).toEqual([10, 20, 30, 0.25]);
+  });
+
+  it("reads color(srgb) on 0 to 1 as 0 to 255", () => {
+    expect(parseCssColor("color(srgb 1 0 0.5 / 0.25)")).toEqual([255, 0, 127.5, 0.25]);
+    expect(parseCssColor("color(srgb 0 0 0)")).toEqual([0, 0, 0, 1]);
+  });
+
+  it("refuses a colour it does not read", () => {
+    expect(() => parseCssColor("#fff")).toThrow();
+    expect(() => parseCssColor("color(display-p3 1 0 0)")).toThrow();
+  });
+});
+
+describe("cssColorToHex", () => {
+  it("converts an opaque rgb and rgba to #rrggbb", () => {
+    expect(cssColorToHex("rgb(107, 34, 176)")).toBe("#6b22b0");
+    expect(cssColorToHex("rgba(244, 238, 253, 1)")).toBe("#f4eefd");
+    expect(cssColorToHex("color(srgb 1 0 0.5)")).toBe("#ff0080");
+  });
+
+  it("returns null for any alpha under 1, so a transparent highlight fails the play", () => {
+    expect(cssColorToHex("rgba(0, 0, 0, 0)")).toBeNull();
+    expect(cssColorToHex("rgba(244, 238, 253, 0.99)")).toBeNull();
+    expect(cssColorToHex("rgb(10 20 30 / 0.5)")).toBeNull();
+  });
+});
+
+describe("lastShadowColor", () => {
+  it("returns the colour of the last shadow in the list", () => {
+    expect(
+      lastShadowColor(
+        "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px, color(srgb 0.1 0.2 0.3 / 0.25) 0px 0px 0px 4px",
+      ),
+    ).toBe("color(srgb 0.1 0.2 0.3 / 0.25)");
+    expect(lastShadowColor("rgb(1, 2, 3) 0px 0px 0px 4px")).toBe("rgb(1, 2, 3)");
+  });
+
+  it("refuses a list that has no leading colour", () => {
+    expect(() => lastShadowColor("none")).toThrow();
+  });
+});
+
+describe("colorsMatch", () => {
+  it("allows 1.5 on a channel and 0.015 on alpha, and no more", () => {
+    expect(colorsMatch([10, 20, 30, 0.25], [11.5, 20, 30, 0.26])).toBe(true);
+    expect(colorsMatch([10, 20, 30, 0.25], [11.6, 20, 30, 0.25])).toBe(false);
+    expect(colorsMatch([10, 20, 30, 0.25], [10, 20, 30, 0.27])).toBe(false);
+  });
+
+  it("tells a halo in another ink from the right one", () => {
+    expect(colorsMatch([20, 80, 200, 0.4], [250, 250, 250, 0.4])).toBe(false);
+  });
+});
+
+describe("linesFloor", () => {
+  it("takes one device pixel off the floor (lines-clear-1, worked example 2)", () => {
+    expect([1, 2, 4].map((d) => linesFloor(1.5, d))).toEqual([0.5, 1, 1.25]);
+  });
+
+  it("passes the readings design.md records and fails the one of today", () => {
+    expect(1 >= linesFloor(1.5, 1)).toBe(true);
+    expect(1.5 >= linesFloor(1.5, 4)).toBe(true);
+    expect(0 >= linesFloor(1.5, 1)).toBe(false);
+  });
+});
+
+describe("linesGap", () => {
+  const g: Rgb = [250, 250, 250];
+  const red: Rgb = [224, 0, 0];
+  const blu: Rgb = [0, 0, 224];
+  // A red pixel a third covered and a blue pixel 45 percent covered, over a ground of 250.
+  const part: Rgb = [241, 163, 163];
+  const blue45: Rgb = [138, 138, 238];
+
+  it("counts the ground rows between the lowest red and the highest blue", () => {
+    expect(linesGap([[red], [g], [g], [blu]], 1)).toBe(2);
+  });
+
+  it("divides device rows by the device pixel ratio", () => {
+    expect(linesGap([[red], [g], [g], [g], [g], [g], [g], [blu]], 4)).toBe(1.5);
+  });
+
+  it("reads 0 when the two inks touch and a negative value when they overlap", () => {
+    expect(linesGap([[red], [blu]], 1)).toBe(0);
+    expect(linesGap([[red], [blu], [red], [blu]], 1)).toBe(-2);
+  });
+
+  it("takes the smallest gap over all columns", () => {
+    expect(
+      linesGap(
+        [
+          [red, red],
+          [g, g],
+          [g, blu],
+          [blu, g],
+        ],
+        1,
+      ),
+    ).toBe(1);
+  });
+
+  it("reads an edge inside its pixel row from the share of ink the pixel holds", () => {
+    // A red row a third covered ends the red at 1.35, a blue row 0.45 covered starts the blue at 2.55.
+    expect(linesGap([[red], [part], [blue45], [blu]], 1)).toBeCloseTo(1.2, 1);
+  });
+
+  it("does not read a gap of a pixel and a fifth as 0 (the ORV-221 reading on the Linux runner)", () => {
+    // Whole rows read this column as 0 px: each edge row passed the old mark of 40 over both others.
+    expect(linesGap([[red], [part], [blue45], [blu]], 1)).toBeGreaterThan(1);
+  });
+
+  it("counts a faint antialiasing pixel as the sliver of ink it is, and noise under 5 percent as ground", () => {
+    expect(linesGap([[red], [[250, 220, 220]], [g], [blu]], 1)).toBeCloseTo(1.87, 2);
+    expect(linesGap([[red], [g], [g], [[220, 220, 250]], [blu]], 1)).toBeCloseTo(2.87, 2);
+    expect(linesGap([[red], [[250, 240, 240]], [g], [blu]], 1)).toBe(2);
+  });
+
+  it("takes the share of ink from the channel over both others, whatever the ground", () => {
+    // 224 over a dark ground of 20: a half covered pixel is (122, 10, 10).
+    const half: Rgb = [122, 10, 10];
+    expect(linesGap([[half], [[20, 20, 20]], [blu]], 1)).toBeCloseTo(1.5, 1);
+  });
+
+  it("skips a column with only one colour and gives null when none has both", () => {
+    expect(
+      linesGap(
+        [
+          [red, g],
+          [g, g],
+          [blu, blu],
+        ],
+        1,
+      ),
+    ).toBe(1);
+    expect(linesGap([[red], [g]], 1)).toBeNull();
+    expect(linesGap([], 1)).toBeNull();
+  });
+});
+
+describe("inkCutAbove", () => {
+  const ground: Rgb = [250, 250, 250];
+  const ink: Rgb = [20, 20, 20];
+  const border: Rgb = [227, 227, 227];
+  const shot = (inkAt: number | null, rows = 10) =>
+    Array.from({ length: rows }, (_, y) => (y === inkAt ? [ground, ink] : [ground, ground]));
+
+  it("reads 0 when both shots draw the same rows above the line", () => {
+    expect(inkCutAbove(shot(3), shot(3), 6, 1)).toBe(0);
+  });
+
+  it("reads how high the visible shot draws above the line that the shipped one does not, in CSS px", () => {
+    expect(inkCutAbove(shot(null), shot(4), 6, 1)).toBe(2);
+    expect(inkCutAbove(shot(6), shot(2), 8, 4)).toBe(1.5);
+  });
+
+  it("takes the highest differing row when several differ", () => {
+    const visible = shot(4).map((row, y) => (y === 3 ? [ground, ink] : row));
+    expect(inkCutAbove(shot(null), visible, 6, 1)).toBe(3);
+  });
+
+  it("ignores ink on or below the line, which clipping never cuts", () => {
+    expect(inkCutAbove(shot(null), shot(6), 6, 1)).toBe(0);
+    expect(inkCutAbove(shot(null), shot(8), 6, 1)).toBe(0);
+  });
+
+  it("does not count a line both shots share, such as a tag's border above the label", () => {
+    const withBorder = (rows: Rgb[][]) => rows.map((row, y) => (y === 2 ? [border, border] : row));
+    expect(inkCutAbove(withBorder(shot(null)), withBorder(shot(5)), 6, 1)).toBe(1);
+    expect(inkCutAbove(withBorder(shot(null)), withBorder(shot(null)), 6, 1)).toBe(0);
+  });
+
+  it("does not count a faint antialiasing pixel as a difference", () => {
+    const faint: Rgb = [240, 240, 240];
+    const visible = shot(null).map((row, y) => (y === 4 ? [ground, faint] : row));
+    expect(inkCutAbove(shot(null), visible, 6, 1)).toBe(0);
+  });
+});
+
+describe("clipEdgeRow", () => {
+  it("is the reach above the border box, in device rows", () => {
+    expect(clipEdgeRow(8, 0, 1)).toBe(8);
+    expect(clipEdgeRow(8, 0, 4)).toBe(32);
+  });
+
+  it("moves down by the top border, because the clip is the padding box", () => {
+    expect(clipEdgeRow(8, 1, 1)).toBe(9);
+    expect(clipEdgeRow(8, 1.5, 2)).toBe(19);
+  });
+
+  it("reads a difference inside the label's block padding as no cut (ORV-205)", () => {
+    const ground: Rgb = [250, 250, 250];
+    const ink: Rgb = [20, 20, 20];
+    const shot = (inkAt: number | null) =>
+      Array.from({ length: 24 }, (_, y) => (y === inkAt ? [ground, ink] : [ground, ground]));
+    // Region reach 8, padding 4: the clip edge is row 8 and the label line row 12. A top mark row
+    // that one shot draws and the other does not, at row 10, is inside the padding: no cut.
+    const edge = clipEdgeRow(8, 0, 1);
+    expect(inkCutAbove(shot(null), shot(10), edge, 1)).toBe(0);
+    // With no padding the edge is the line (row 12), and the same row is a real cut.
+    expect(inkCutAbove(shot(null), shot(10), clipEdgeRow(12, 0, 1), 1)).toBe(2);
+    // A row above the clip edge is a real cut with padding too.
+    expect(inkCutAbove(shot(null), shot(6), edge, 1)).toBe(2);
+  });
+});
+
+describe("firstInkCut", () => {
+  // Pixels as the Linux run of ORV-252 read them: the ground, the faint top row of a tone mark that
+  // one overflow mode rasters and the other does not (distance 75), and the ink of a mark cut by 2 px.
+  const ground: Rgb = [244, 244, 240];
+  const faint: Rgb = [224, 215, 214];
+  const strong: Rgb = [95, 94, 106];
+  // A region of `rows` x `columns` ground with the given pixels set: [x, y, pixel].
+  const shot = (set: readonly (readonly [number, number, Rgb])[] = [], rows = 6, columns = 12) => {
+    const grid: Rgb[][] = Array.from({ length: rows }, () =>
+      Array.from({ length: columns }, () => ground),
+    );
+    for (const [x, y, px] of set) (grid[y] as Rgb[])[x] = px;
+    return grid;
+  };
+
+  it("reads two equal shots as no cut", () => {
+    expect(firstInkCut(shot(), shot())).toBeNull();
+    expect(firstInkCut(shot([[3, 2, strong]]), shot([[3, 2, strong]]))).toBeNull();
+  });
+
+  it("reads one faint pixel of the visible shot, the Linux speck of ORV-252, as no cut", () => {
+    expect(firstInkCut(shot(), shot([[1, 3, faint]]))).toBeNull();
+    // The speck can sit in the other shot, and in any column.
+    expect(firstInkCut(shot([[7, 3, faint]]), shot())).toBeNull();
+  });
+
+  it("reads a faint pixel with fainter neighbours below INK_DISTANCE as no cut", () => {
+    const beside: Rgb = [224, 234, 240];
+    expect(
+      firstInkCut(
+        shot(),
+        shot([
+          [0, 3, beside],
+          [1, 3, faint],
+          [2, 3, beside],
+        ]),
+      ),
+    ).toBeNull();
+  });
+
+  it("reads three touching faint pixels as a speck and four as a cut", () => {
+    const row = (n: number) => Array.from({ length: n }, (_, i) => [2 + i, 3, faint] as const);
+    expect(firstInkCut(shot(), shot(row(3)))).toBeNull();
+    expect(firstInkCut(shot(), shot(row(4)))).toEqual([2, 3]);
+  });
+
+  it("joins pixels that touch at a corner", () => {
+    const diagonal = [
+      [2, 2, faint],
+      [3, 3, faint],
+      [4, 4, faint],
+    ] as const;
+    expect(firstInkCut(shot(), shot(diagonal))).toBeNull();
+    expect(firstInkCut(shot(), shot([...diagonal, [5, 5, faint]]))).toEqual([2, 2]);
+  });
+
+  it("reads separate specks as no cut, each judged alone", () => {
+    const far = [
+      [1, 1, faint],
+      [4, 1, faint],
+      [8, 4, faint],
+    ] as const;
+    expect(firstInkCut(shot(), shot(far))).toBeNull();
+  });
+
+  it("does not join the last column of a row to the first column of the next", () => {
+    // Column 11 of row 2 and column 0 of row 3 are a row apart and a whole row of columns away: a
+    // group of one and a group of three, both specks. Joined, they would be four and a cut.
+    const set = [
+      [11, 2, faint],
+      [0, 3, faint],
+      [0, 4, faint],
+      [0, 5, faint],
+    ] as const;
+    expect(firstInkCut(shot(), shot(set))).toBeNull();
+  });
+
+  it("reads one faint pixel just over the speck distance as a cut", () => {
+    // distance 96 is a speck, 97 is a cut
+    const at96: Rgb = [244 - 96, 244, 240];
+    const at97: Rgb = [244 - 97, 244, 240];
+    expect(firstInkCut(shot(), shot([[5, 2, at96]]))).toBeNull();
+    expect(firstInkCut(shot(), shot([[5, 2, at97]]))).toEqual([5, 2]);
+  });
+
+  it("reads a pixel at INK_DISTANCE or under as no difference, and 49 as one inside a group", () => {
+    const at48: Rgb = [244 - 48, 244, 240];
+    const at49: Rgb = [244 - 49, 244, 240];
+    const four = (px: Rgb) => Array.from({ length: 4 }, (_, i) => [2 + i, 3, px] as const);
+    expect(firstInkCut(shot(), shot(four(at48)))).toBeNull();
+    expect(firstInkCut(shot(), shot(four(at49)))).toEqual([2, 3]);
+  });
+
+  it("reads one strong pixel as a cut", () => {
+    expect(firstInkCut(shot(), shot([[6, 4, strong]]))).toEqual([6, 4]);
+  });
+
+  it("reads a mark cut by 2 px, two rows of ink with strong pixels, as a cut at its first pixel", () => {
+    const mark = [
+      [4, 2, faint],
+      [5, 2, faint],
+      [6, 2, faint],
+      [3, 3, strong],
+      [4, 3, strong],
+      [5, 3, strong],
+      [6, 3, strong],
+    ] as const;
+    expect(firstInkCut(shot(), shot(mark))).toEqual([4, 2]);
+  });
+
+  it("reads a line cut in one row, wider than a speck, as a cut even when it is pale", () => {
+    const border: Rgb = [244 - 70, 244 - 70, 240 - 70];
+    const line = Array.from({ length: 10 }, (_, i) => [1 + i, 4, border] as const);
+    expect(firstInkCut(shot(), shot(line))).toEqual([1, 4]);
+  });
+
+  it("names the cut and not an earlier speck", () => {
+    expect(
+      firstInkCut(
+        shot(),
+        shot([
+          [1, 1, faint],
+          [8, 4, strong],
+        ]),
+      ),
+    ).toEqual([8, 4]);
+    // A speck and a cut that touch are one group, and it is a cut.
+    expect(
+      firstInkCut(
+        shot(),
+        shot([
+          [1, 1, faint],
+          [2, 2, strong],
+        ]),
+      ),
+    ).toEqual([1, 1]);
+  });
+});
+
+describe("paintDifference", () => {
+  const row = (...px: Rgb[]) => px;
+
+  it("reads two equal regions as 0", () => {
+    expect(paintDifference([row(white, blue)], [row(white, blue)])).toBe(0);
+  });
+
+  it("counts each pixel that is over the tolerance of 12", () => {
+    expect(paintDifference([row(white, white, blue)], [row(white, blue, white)])).toBe(2);
+  });
+
+  it("reads a pixel 12 apart as the same and 13 apart as different", () => {
+    expect(paintDifference([row([100, 100, 100])], [row([104, 104, 104])])).toBe(0);
+    expect(paintDifference([row([100, 100, 100])], [row([104, 104, 105])])).toBe(1);
+  });
+
+  it("sees a faint fault that the ink distance of 48 would pass", () => {
+    expect(paintDifference([row([240, 240, 240])], [row([220, 240, 240])])).toBe(1);
+  });
+
+  it("reads the plate and the ink under it as W11 does (ORV-250, expectCoversInk)", () => {
+    const plate: Rgb = [255, 255, 255];
+    const ink: Rgb = [30, 29, 38];
+    // Nothing shows through: both shots hold the plate. A pixel exactly 12 off is the same. One pixel of ink counts.
+    expect(paintDifference([row(plate, plate)], [row(plate, plate)])).toBe(0);
+    expect(paintDifference([row(plate)], [row([255, 251, 251])])).toBe(0);
+    expect(paintDifference([row(plate, plate)], [row(plate, ink)])).toBe(1);
+  });
+
+  it("throws on two regions of different sizes, in rows and in columns", () => {
+    expect(() => paintDifference([row(white)], [row(white), row(white)])).toThrow(/same size/);
+    expect(() => paintDifference([row(white)], [row(white, white)])).toThrow(/same size/);
+  });
+});
+
+describe("partLabel", () => {
+  it("names an element by tag and classes and a range as a text range", () => {
+    // The unit project runs in node, so these are the two shapes by their fields, not DOM nodes.
+    const el = { localName: "p", className: "ds-board__status" } as Element;
+    const range = { getBoundingClientRect: () => ({}) as DOMRect };
+    expect(partLabel(el)).toBe("<p.ds-board__status>");
+    expect(partLabel(range)).toBe("the text range");
+  });
+});
+
+describe("paintRegion", () => {
+  /** A 10 by 10 shot whose red channel holds the column and green the row. */
+  const shot = (() => {
+    const data = new Uint8ClampedArray(10 * 10 * 4);
+    for (let y = 0; y < 10; y++) {
+      for (let x = 0; x < 10; x++) data.set([x, y, 0, 255], (y * 10 + x) * 4);
+    }
+    return { data, width: 10 };
+  })();
+  const frame = { left: 100, top: 50, width: 10 };
+
+  it("reads the box plus 2 px on every side", () => {
+    const rows = paintRegion(shot, frame, { left: 103, top: 53, width: 2, height: 2 });
+    expect(rows).toHaveLength(6);
+    expect(rows[0]).toHaveLength(6);
+    expect(rows[0]?.[0]).toEqual([1, 1, 0]);
+    expect(rows[5]?.[5]).toEqual([6, 6, 0]);
+  });
+
+  it("anchors at the rounded position: a quarter stays, a half and three quarters go on", () => {
+    const at = (offset: number) =>
+      paintRegion(shot, frame, {
+        left: 103 + offset,
+        top: 53 + offset,
+        width: 2,
+        height: 2,
+      })[0]?.[0];
+    expect(at(0.25)).toEqual([1, 1, 0]);
+    expect(at(0.5)).toEqual([2, 2, 0]);
+    expect(at(0.75)).toEqual([2, 2, 0]);
+  });
+
+  it("reads a shot at twice the scale in device pixels", () => {
+    const wide = { data: new Uint8ClampedArray(20 * 20 * 4), width: 20 };
+    for (let y = 0; y < 20; y++) {
+      for (let x = 0; x < 20; x++) wide.data.set([x, y, 0, 255], (y * 20 + x) * 4);
+    }
+    const rows = paintRegion(wide, frame, { left: 103, top: 53, width: 2, height: 2 });
+    expect(rows).toHaveLength(12);
+    expect(rows[0]?.[0]).toEqual([2, 2, 0]);
   });
 });

@@ -30,4 +30,4 @@ rules:
   - Only one primary per view
 a11y:
   - Loading prevents repeat submission and announces status, not a spinner alone
-  - Focus ring from focus.ring, never removed
+  - "Focus: the button's border in focus.ring with its halo; a filled button adds a 1 px ink line inside; never removed"

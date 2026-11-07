@@ -4,9 +4,21 @@ import { expect } from "storybook/test";
 import { DesignProfileBoundary } from "../boundary/DesignProfileBoundary";
 import { fixtures } from "../components/fixtures";
 import { LocaleProvider } from "../i18n/LocaleProvider";
+import { InputGroup } from "../components/input-group/InputGroup";
 import { Tag } from "../components/tag/Tag";
 import { CloseIcon, WarningIcon } from "../components/icons";
-import { expectEdgeInk, expectNoGlyphClip, expectSameHeight, inVitest } from "./visual-asserts";
+import {
+  expectEdgeInk,
+  expectFrameCutsNoInk,
+  expectInkClearsAbove,
+  expectLabelInkWhole,
+  expectNoGlyphClip,
+  expectPaintAt,
+  expectPaintsAt,
+  expectSameHeight,
+  inVitest,
+  measureInkCentre,
+} from "./visual-asserts";
 
 const meta = {
   title: "Foundations/Visual asserts",
@@ -15,7 +27,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Proof that the shared play helpers (L-0018) go red on the three ORV-107 defects and green on the fixed render. The edge story renders the defect's CSS beside the fixed CSS. The gone chip stories render the real chip markup and recipe classes with the verbatim ORV-107 c1c9fad gone chip rules, then the shipped chip. These are test fixtures, not components.",
+          "Proof that the shared play helpers (L-0018) go red on the three ORV-107 defects and green on the fixed render, and that the paint helper (ORV-118) goes red on a wrong colour. The edge story renders the defect's CSS beside the fixed CSS. The gone chip stories render the real chip markup and recipe classes with the verbatim ORV-107 c1c9fad gone chip rules, then the shipped chip. These are test fixtures, not components.",
       },
     },
   },
@@ -81,11 +93,14 @@ export const EdgeInkDark: Story = edgeInkStory("dark");
 /**
  * The gone chip rules of ORV-107 `c1c9fad`, verbatim from `recipes.css` at that commit. The shipped
  * recipe no longer has them (v1.6 moved the gone words under the chip row), so the fixture carries them.
+ * The last rule undoes the fixed tag height of ORV-192 row 18, which the defect predates: a wrapped
+ * chip must grow here, or there is no unequal height for `expectSameHeight` to catch.
  */
 const C1C9FAD_CSS = `
 .c1c9fad .ds-chat__gone-label { display: flex; flex-wrap: wrap; column-gap: var(--cmp-tag-gap); white-space: normal; }
 .c1c9fad .ds-chat__gone-title { min-width: 0; max-inline-size: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .c1c9fad .ds-chat__gone-words { min-width: 0; }
+.c1c9fad .ds-tag { height: auto; }
 `;
 
 /** The `c1c9fad` gone chip markup, with the real `.ds-tag` and `.ds-chat__*` recipe classes. */
@@ -135,7 +150,7 @@ export const SameHeight: Story = {
     const gone = q(canvasElement, "[data-case='gone'] .ds-tag");
     const normal = q(canvasElement, "[data-case='normal'] .ds-tag");
     await expect(() => expectSameHeight(gone, normal)).toThrow(
-      /is \d+(\.\d+)? px tall but .* is \d+(\.\d+)? px/,
+      /is \d+(?:\.\d+|) px tall but .* is \d+(?:\.\d+|) px/,
     );
     // Two chips of one height pass.
     expectSameHeight(normal, normal);
@@ -148,6 +163,168 @@ export const GlyphClip: Story = {
   play: async ({ canvasElement }) => {
     const gone = q(canvasElement, "[data-case='gone'] .ds-tag");
     await expect(() => expectNoGlyphClip(gone)).toThrow(/ปิ่นโต้.*outside the clip.*corner/);
+  },
+};
+
+/**
+ * ORV-192 row 19: a caption flush over a 56 px Thai display line. With the top padding set to 0
+ * (the 5e20cf8 look) the stack of ฟื้ rises into the caption and `expectInkClearsAbove` throws;
+ * with the shipped `text-display-lg` padding it passes.
+ */
+export const StackClear: Story = {
+  render: () => (
+    <DesignProfileBoundary mode="light" profile="neutral">
+      <div data-case="caption" className="font-mono text-body-sm">
+        Display 56: 56 / 1.2, weight 500
+      </div>
+      <div data-case="display" className="font-display text-display-lg">
+        ฟื้นฟู
+      </div>
+    </DesignProfileBoundary>
+  ),
+  play: async ({ canvasElement }) => {
+    if (!inVitest) return;
+    const caption = q(canvasElement, "[data-case='caption']");
+    const display = q(canvasElement, "[data-case='display']");
+    display.style.paddingBlockStart = "0";
+    await expect(expectInkClearsAbove(display, caption, 4)).rejects.toThrow(/expected at least 4/);
+    display.style.paddingBlockStart = "";
+    await expectInkClearsAbove(display, caption, 4);
+  },
+};
+
+/**
+ * ORV-205: a one-line ellipsis label as the recipe builds it (a 4 px block padding that a negative
+ * margin cancels) shows the whole stack of Thai marks, and `expectLabelInkWhole` passes; with the
+ * padding taken out (the look before ORV-194 row 7) `overflow: hidden` cuts the stack above the
+ * line and the helper throws. The sample font is loaded first so both shots draw the same face.
+ */
+export const LabelInkWhole: Story = {
+  render: () => (
+    <DesignProfileBoundary mode="light" profile="neutral">
+      <div
+        style={{ display: "flex", gap: 24, padding: 16, background: "var(--ds-surface-canvas)" }}
+      >
+        <span
+          data-case="label"
+          className="font-body"
+          style={{
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            fontSize: 14,
+            fontWeight: 500,
+            lineHeight: 1.7,
+            paddingBlock: 4,
+            marginBlock: -4,
+          }}
+        >
+          ฟื้นฟูปั้นปี๊บ
+        </span>
+      </div>
+    </DesignProfileBoundary>
+  ),
+  play: async ({ canvasElement }) => {
+    if (!inVitest) return;
+    const label = q(canvasElement, "[data-case='label']");
+    await document.fonts.load("500 14px Sarabun", "ฟื้ปั้ปี๊");
+    await document.fonts.ready;
+    await expectLabelInkWhole(label);
+    label.style.paddingBlock = "0";
+    label.style.marginBlock = "0";
+    await expect(expectLabelInkWhole(label)).rejects.toThrow(
+      /cuts [0-9.]+ px of its Thai stack above the clip box/,
+    );
+  },
+};
+
+/**
+ * ORV-205: a difference that only the `overflow: visible` shot has, drawn inside the label's own
+ * block padding (a 2 px stripe, rows 1 to 3 under the top of the border box), is not a cut: the
+ * clip never touches the padding box, and Chromium on Linux drew such a difference by raster noise
+ * in some runs. `expectLabelInkWhole` reads from the clip edge up and passes. Read from the label
+ * line, as it did before, it would see the stripe 3 px above the line and throw.
+ */
+export const LabelPaddingNoise: Story = {
+  render: () => (
+    <DesignProfileBoundary mode="light" profile="neutral">
+      <style>{`[data-case='noisy'][style*='overflow: visible'] { background: linear-gradient(to bottom, transparent 1px, black 1px, black 3px, transparent 3px); }`}</style>
+      <div
+        style={{ display: "flex", gap: 24, padding: 16, background: "var(--ds-surface-canvas)" }}
+      >
+        <span
+          data-case="noisy"
+          className="font-body"
+          style={{
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            fontSize: 14,
+            fontWeight: 500,
+            lineHeight: 1.7,
+            paddingBlock: 4,
+            marginBlock: -4,
+          }}
+        >
+          ฟื้นฟูปั้นปี๊บ
+        </span>
+      </div>
+    </DesignProfileBoundary>
+  ),
+  play: async ({ canvasElement }) => {
+    if (!inVitest) return;
+    const label = q(canvasElement, "[data-case='noisy']");
+    await document.fonts.load("500 14px Sarabun", "ฟื้ปั้ปี๊");
+    await document.fonts.ready;
+    await expectLabelInkWhole(label);
+  },
+};
+
+/**
+ * ORV-222 rows 4 and 18: `expectFrameCutsNoInk` reads a clip that sits on the frame or on any
+ * ancestor between the name and the frame, which `expectLabelInkWhole` cannot (it forces only its
+ * own clone visible, so such a clip cuts both its shots alike). The name sits at the top of the
+ * frame with a tight line, so its Thai tone marks draw above the frame's box. With the frame clip
+ * on, the helper throws; with an `overflow: hidden` on the wrapper between them, it throws; with
+ * nothing clipping, it passes. A frame that is not an ancestor of the name throws, and the inline
+ * overflow values are back after every call.
+ */
+export const FrameCutsNoInk: Story = {
+  render: () => (
+    <DesignProfileBoundary mode="light" profile="neutral">
+      <div style={{ padding: 16, background: "var(--ds-surface-canvas)" }}>
+        <div data-case="frame" style={{ width: 240 }}>
+          <div data-case="wrapper">
+            <span
+              data-case="name"
+              className="font-body"
+              style={{ display: "block", fontSize: 14, fontWeight: 500, lineHeight: 1 }}
+            >
+              ฟื้นฟูปั้นปี๊บ
+            </span>
+          </div>
+        </div>
+      </div>
+    </DesignProfileBoundary>
+  ),
+  play: async ({ canvasElement }) => {
+    if (!inVitest) return;
+    const frame = q(canvasElement, "[data-case='frame']");
+    const wrapper = q(canvasElement, "[data-case='wrapper']");
+    const name = q(canvasElement, "[data-case='name']");
+    await document.fonts.load("500 14px Sarabun", "ฟื้ปั้ปี๊");
+    await document.fonts.ready;
+    await expectFrameCutsNoInk(name, frame);
+    frame.style.overflow = "hidden";
+    await expect(expectFrameCutsNoInk(name, frame)).rejects.toThrow(/cuts ink: the pixel at x/);
+    await expect(frame.style.overflow).toBe("hidden");
+    frame.style.overflow = "";
+    wrapper.style.overflow = "hidden";
+    await expect(expectFrameCutsNoInk(name, frame)).rejects.toThrow(/cuts ink: the pixel at x/);
+    await expect(wrapper.style.overflow).toBe("hidden");
+    wrapper.style.overflow = "";
+    await expectFrameCutsNoInk(name, frame);
+    await expect(expectFrameCutsNoInk(frame, name)).rejects.toThrow(/is not an ancestor of/);
   },
 };
 
@@ -178,6 +355,180 @@ export const ShippedChipPasses: Story = {
       const tag = q(canvasElement, `[data-case='${name}'] .ds-tag`);
       expectSameHeight(tag, normal);
       expectNoGlyphClip(tag);
+    }
+  },
+};
+
+const INK = "#16151D";
+const DOT = "#D9F66F";
+
+/** Two svgs, read together and apart: a square one, and a letterboxed one (a 100 x 50 drawing in a 200 x 50 box, so it is centred). Each draws an ink rect and a lime dot. */
+export const PaintAt: Story = {
+  render: () => (
+    <div style={{ display: "flex", gap: 24, padding: 16 }}>
+      <svg data-case="square" width={64} height={64} viewBox="0 0 128 128" aria-hidden="true">
+        <rect x="0" y="0" width="64" height="128" fill={INK} />
+        <circle cx="96" cy="64" r="16" fill={DOT} />
+      </svg>
+      <svg data-case="letterbox" width={200} height={50} viewBox="0 0 100 50" aria-hidden="true">
+        <rect x="0" y="0" width="50" height="50" fill={INK} />
+        <circle cx="75" cy="25" r="10" fill={DOT} />
+      </svg>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    if (!inVitest) return; // the screenshot needs Vitest browser mode
+    const square = q<SVGSVGElement>(canvasElement, "[data-case='square']");
+    const letterbox = q<SVGSVGElement>(canvasElement, "[data-case='letterbox']");
+    // Green: the right colour at each probe, including through the letterbox offset.
+    await expectPaintAt(square, [
+      { x: 32, y: 64, hex: INK },
+      { x: 96, y: 64, hex: DOT },
+    ]);
+    await expectPaintAt(letterbox, [
+      { x: 25, y: 25, hex: INK },
+      { x: 75, y: 25, hex: DOT },
+    ]);
+    // Red: the dot probed for the ink colour, and the ink probed for the dot colour.
+    await expect(expectPaintAt(square, [{ x: 96, y: 64, hex: INK }])).rejects.toThrow(
+      /paints #D9F66F at \(96, 64\), expected #16151D/,
+    );
+    await expect(expectPaintAt(letterbox, [{ x: 25, y: 25, hex: DOT }])).rejects.toThrow(
+      /paints #16151D at \(25, 25\), expected #D9F66F/,
+    );
+    // Red: a colour a few steps off the right one is still inside the tolerance, a visibly different one is not.
+    await expectPaintAt(square, [{ x: 96, y: 64, hex: "#D9F66A" }]);
+    await expect(expectPaintAt(square, [{ x: 96, y: 64, hex: "#D9F67F" }])).rejects.toThrow(
+      /expected #D9F67F/,
+    );
+    // One screenshot for both svgs (ORV-118 R2): green on the right colours in each, red on the
+    // second svg's wrong colour, which a read of the first svg's origin alone would not catch.
+    const both = [
+      { svg: square, probes: [{ x: 96, y: 64, hex: DOT }] },
+      { svg: letterbox, probes: [{ x: 25, y: 25, hex: INK }] },
+    ];
+    await expectPaintsAt(both);
+    await expect(
+      expectPaintsAt([
+        both[0] as (typeof both)[0],
+        { svg: letterbox, probes: [{ x: 75, y: 25, hex: INK }] },
+      ]),
+    ).rejects.toThrow(/paints #D9F66F at \(75, 25\), expected #16151D/);
+  },
+};
+
+/**
+ * ORV-198, ink-corner-1 clause 5: a box that holds one `<input>` and no text (`.ds-input-group`) is
+ * read by the input's value, over the input's content box, with the group's own border box and
+ * rounded corners. The pixels outside the corner curve are not ink: the band the play reads is the
+ * label's own, not the whole padding box. Before the fix the helper threw "has no text to measure"
+ * on a group, and on a rounded box the curve's pixels took the band to the padding box (offset 0.00).
+ */
+export const InkCentreInputGroup: Story = {
+  render: () => (
+    <>
+      {(["light", "dark"] as const).map((mode) => (
+        <DesignProfileBoundary key={mode} mode={mode} profile="neutral">
+          <div
+            data-case={`input-group-${mode}`}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+              padding: 16,
+              background: "var(--ds-surface-canvas)",
+            }}
+          >
+            {(["md", "lg"] as const).map((size) => (
+              <InputGroup
+                key={size}
+                size={size}
+                aria-label={size}
+                defaultValue={fixtures.thai}
+                groupClassName="w-64"
+              />
+            ))}
+          </div>
+        </DesignProfileBoundary>
+      ))}
+    </>
+  ),
+  play: async ({ canvasElement }) => {
+    if (!inVitest) return; // the screenshot needs Vitest browser mode
+    for (const mode of ["light", "dark"]) {
+      const cell = q(canvasElement, `[data-case='input-group-${mode}']`);
+      const groups = [...cell.querySelectorAll(".ds-input-group")];
+      expect(groups).toHaveLength(2);
+      const readings = await measureInkCentre(cell, groups);
+      for (const [i, reading] of readings.entries()) {
+        const group = groups[i] as Element;
+        const height = group.getBoundingClientRect().height;
+        expect(reading.name, "the group is read by its input's value").toContain(fixtures.thai);
+        // The label's ink sits clear of the border rows: the band is not the whole padding box.
+        expect(reading.ink.inkTop, `${reading.name} top of the band`).toBeGreaterThan(4);
+        expect(reading.ink.inkBottom, `${reading.name} bottom of the band`).toBeLessThan(
+          height - 4,
+        );
+        expect(Number.isFinite(reading.body.offset)).toBe(true);
+      }
+    }
+  },
+};
+
+/**
+ * ORV-199, ink-group-1: a box that holds exactly one `<input>` is read by that input's value, even
+ * when it also holds a text addon. The ORV-198 holder read any box with a text node by itself, so a
+ * group with `end="THB"` was read by "THB" (clause 2). A box that holds two inputs has no one value
+ * to read: the helper rejects and names it, and never falls back to the box's text (clause 3).
+ */
+export const InkCentreGroupAddon: Story = {
+  render: () => (
+    <>
+      {(["light", "dark"] as const).map((mode) => (
+        <DesignProfileBoundary key={mode} mode={mode} profile="neutral">
+          <div
+            data-case={`group-addon-${mode}`}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+              padding: 16,
+              background: "var(--ds-surface-canvas)",
+            }}
+          >
+            <InputGroup
+              aria-label="with addon"
+              defaultValue={fixtures.thai}
+              end="THB"
+              groupClassName="w-64"
+            />
+            <InputGroup aria-label="no addon" defaultValue={fixtures.thai} groupClassName="w-64" />
+            <div data-box="two-inputs" style={{ display: "flex", gap: 8 }}>
+              <input aria-label="first" defaultValue={fixtures.thai} />
+              <input aria-label="second" defaultValue={fixtures.latin} />
+            </div>
+          </div>
+        </DesignProfileBoundary>
+      ))}
+    </>
+  ),
+  play: async ({ canvasElement }) => {
+    if (!inVitest) return; // the screenshot needs Vitest browser mode
+    for (const mode of ["light", "dark"]) {
+      const cell = q(canvasElement, `[data-case='group-addon-${mode}']`);
+      const groups = [...cell.querySelectorAll(".ds-input-group")];
+      expect(groups).toHaveLength(2);
+      const [withAddon, plain] = await measureInkCentre(cell, groups);
+      for (const reading of [withAddon, plain]) {
+        expect(reading?.name, "the group is read by its input's value").toContain(fixtures.thai);
+        expect(reading?.name, "the addon is not the label").not.toContain("THB");
+      }
+      expect(withAddon?.body.offset.toFixed(2), "the addon does not move the body reading").toBe(
+        plain?.body.offset.toFixed(2),
+      );
+      await expect(measureInkCentre(cell, [q(cell, "[data-box='two-inputs']")])).rejects.toThrow(
+        /<div>: holds more than one input to measure/,
+      );
     }
   },
 };

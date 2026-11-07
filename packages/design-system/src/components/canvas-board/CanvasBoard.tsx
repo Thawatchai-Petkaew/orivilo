@@ -48,7 +48,9 @@ import { CanvasNode } from "../canvas-node/CanvasNode";
 import { CommandMenu, type CommandMenuMode } from "../command-menu/CommandMenu";
 import { openContextMenuAt } from "../context-menu/ContextMenu";
 import { cx } from "../cx";
-import { SpinnerIcon } from "../icons";
+import { EmptyState } from "../empty-state/EmptyState";
+import { ArtifactIcon } from "../icons";
+import { LoadingState } from "../loading-state/LoadingState";
 import { MiniMap } from "../mini-map/MiniMap";
 import { NodeGroup } from "../node-group/NodeGroup";
 import { ShortcutSheet } from "../shortcut-sheet/ShortcutSheet";
@@ -128,7 +130,7 @@ export interface CanvasBoardProps {
   emptyAction?: ReactNode;
   /** Rich node body; a node's `summary` renders when this returns nothing. */
   renderBody?: ((node: BoardNode) => ReactNode) | undefined;
-  /** Fit every node into view on mount; on by default. */
+  /** Fit every node into the part of the board no panel covers, on mount; on by default. */
   fitView?: boolean | undefined;
   /** The controls, context menu, command menu and shortcut sheet; on by default (E4-3). */
   chrome?: boolean | undefined;
@@ -303,6 +305,9 @@ function Board({
   graphRef.current = graph;
   const rendered = useRef(graph);
   rendered.current = graph;
+  // Set when a delete leaves no node, to the ids that were on the board; the effect below moves
+  // focus off the vanished node once the host's graph has none, in whichever commit that is.
+  const focusWhenEmpty = useRef<ReadonlySet<string> | null>(null);
   const [message, setMessage] = useState("");
   const [connecting, setConnecting] = useState<KeyboardConnecting | null>(null);
   const [tool, setTool] = useState<BoardTool>("select");
@@ -313,6 +318,27 @@ function Board({
   const [menuTarget, setMenuTarget] = useState<ContextTarget>({ kind: "board" });
   // The board's own clipboard (spec AC 12): never the system clipboard.
   const [clipboard, setClipboard] = useState<Clipboard | null>(null);
+
+  // When a delete leaves no node and focus fell to the body, the board keeps the keyboard (the
+  // form line of a cut) and Tab reaches the empty form's action in page order, after the toolbar
+  // and the attribution link (`empty-board-1`). A host may apply the delete after the board's own
+  // commit, so the flag waits while the graph holds only nodes it was set from, and clears when
+  // the graph has no node (the move runs) or gains a node it did not have (the host went its own
+  // way, as after a refused delete).
+  useEffect(() => {
+    const pending = focusWhenEmpty.current;
+    if (!pending) return;
+    if (graph.nodes.length > 0) {
+      if (graph.nodes.some((n) => !pending.has(n.id))) focusWhenEmpty.current = null;
+      return;
+    }
+    focusWhenEmpty.current = null;
+    // Focus is on the body, or still on a node element that React Flow is about to take out.
+    const active = document.activeElement;
+    if (active === null || active === document.body || active.closest(".react-flow__node")) {
+      wrapper.current?.focus();
+    }
+  });
 
   // A new status from the shell replaces whatever the board last said.
   useEffect(() => {
@@ -423,6 +449,12 @@ function Board({
       if (n.length === 0 && e.length === 0) return;
       const stale = graphRef.current.nodes.filter((x) => x.data.status === "stale").length;
       setMessage(deleteMessage(m, { nodes: n.length, edges: e.length, stale }));
+      // The delete leaves no node (read from the last render, whatever the order of the changes):
+      // the board keeps the keyboard once the node's element is gone.
+      const gone = new Set(n.map((x) => x.id));
+      focusWhenEmpty.current = rendered.current.nodes.every((x) => gone.has(x.id))
+        ? new Set(rendered.current.nodes.map((x) => x.id))
+        : null;
     },
     [m],
   );
@@ -528,6 +560,37 @@ function Board({
     nodeElement(id)?.focus();
   };
 
+  /**
+   * Per-side padding for a fit: xyflow's own for `base` on each side, plus, on the bottom, the board
+   * height that the bottom panels and the task bar cover, so no node lands under them (ORV-194 row
+   * 10). xyflow reads a number padding p as floor((V - V / (1 + p)) / 2) per side.
+   */
+  const freePadding = (base: number) => {
+    const el = wrapper.current;
+    if (!el) return base;
+    const rect = el.getBoundingClientRect();
+    const side = (v: number) => Math.floor((v - v / (1 + base)) / 2);
+    const overlays = [
+      ...el.querySelectorAll<HTMLElement>(".react-flow__panel.bottom, .ds-taskbar"),
+    ];
+    const cover = Math.max(0, ...overlays.map((o) => rect.bottom - o.getBoundingClientRect().top));
+    const y = side(rect.height);
+    const x = side(rect.width);
+    const px = (n: number): `${number}px` => `${n}px`;
+    return { top: px(y), right: px(x), bottom: px(y + Math.ceil(cover)), left: px(x) };
+  };
+
+  /**
+   * The options of xyflow's own first fit. It runs when the nodes are measured, in the same update
+   * that shows them, so no frame shows the graph unfitted. `padding` is read at that moment, so it
+   * sees the panels as laid out then (ORV-194 row 10).
+   */
+  const firstFit = {
+    get padding() {
+      return freePadding(0.2);
+    },
+  };
+
   const jumpToNode = (id: string, options?: JumpOptions) => {
     const g = graphRef.current;
     const node = g.nodes.find((n) => n.id === id);
@@ -536,21 +599,12 @@ function Board({
       const only = node.selected && selectedNodes(g).length === 1;
       if (!only) emit(selectOnly(g, [id]));
     }
-    // xyflow reads a number padding p as floor((H - H / (1 + p)) / 2) per side, so 0.5 is H / 6.
-    // A task bar on the board covers the foot of it: the bar's height above the board's bottom
-    // edge joins the bottom side, in pixels, so the node lands inside the board above the bar.
-    const rect = wrapper.current?.getBoundingClientRect();
-    const bar = wrapper.current?.querySelector<HTMLElement>(".ds-taskbar");
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const side = rect ? Math.floor((rect.height - rect.height / 1.5) / 2) : 0;
-    const cover = rect && bar ? Math.max(0, rect.bottom - bar.getBoundingClientRect().top) : 0;
     void flow.fitView({
       nodes: [{ id }],
       duration: reduced ? 0 : 200,
       maxZoom: 1,
-      padding: bar
-        ? { top: `${side}px`, left: `${side}px`, right: `${side}px`, bottom: `${side + cover}px` }
-        : 0.5,
+      padding: freePadding(0.5),
     });
     focusNode(id);
     setMessage(fill(m.board.jumped, { title: node.data.title }));
@@ -669,13 +723,13 @@ function Board({
         setMessage(m.board.zoom100);
         return true;
       case "board.zoom-to-fit":
-        void flow.fitView({ padding: 0.2, duration: 200 });
+        void flow.fitView({ padding: freePadding(0.2), duration: 200 });
         setMessage(fill(m.board.fitAll, { count: g.nodes.length }));
         return true;
       case "board.zoom-to-selection":
         void flow.fitView({
           nodes: picked.map((n) => ({ id: n.id })),
-          padding: 0.3,
+          padding: freePadding(0.3),
           duration: 200,
         });
         setMessage(fill(m.board.fitSelection, { count: picked.length }));
@@ -1067,7 +1121,7 @@ function Board({
       onNodeDragStop={onNodeDragStop}
       isValidConnection={isValidConnection}
       fitView={fitView}
-      fitViewOptions={{ padding: 0.2 }}
+      fitViewOptions={firstFit}
       minZoom={0.25}
       maxZoom={2}
       snapToGrid={snap}
@@ -1150,18 +1204,22 @@ function Board({
       {readOnly ? <span className="ds-board__mode">{m.board.readOnly}</span> : null}
       {loading ? (
         <div className="ds-board__overlay">
-          <SpinnerIcon className="ds-spin ds-board__spinner" />
-          <p>{m.board.loading}</p>
+          <LoadingState live="off" label={m.board.loading} />
         </div>
       ) : null}
       {empty ? (
         <div className="ds-board__overlay">
-          <p>{emptyText ?? m.board.empty}</p>
-          {emptyAction}
+          <EmptyState
+            size="md"
+            level={2}
+            icon={ArtifactIcon}
+            title={emptyText ?? m.board.empty}
+            action={emptyAction}
+          />
         </div>
       ) : null}
       <p className="ds-board__status" role="status" aria-live="polite">
-        {message || status || ""}
+        {loading ? m.board.loading : message || status || ""}
       </p>
     </section>
   );

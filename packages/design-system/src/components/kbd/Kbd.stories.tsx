@@ -9,7 +9,7 @@ const meta = {
   component: Kbd,
   args: { shortcut: shortcutsOf("board.command-menu")[0] ?? "Mod+K", apple: false },
   parameters: {
-    layout: "padded",
+    layout: "centered",
     docs: {
       description: {
         component:
@@ -82,6 +82,7 @@ export const NamedKeys: Story = {
 
 /** Key caps under every profile in both modes, on the canvas and inside a menu-like ground. */
 export const RecipesAndModes: Story = {
+  parameters: { layout: "padded" },
   render: () => (
     <Matrix>
       <div className="flex flex-wrap items-center gap-3">
@@ -94,6 +95,23 @@ export const RecipesAndModes: Story = {
   ),
   play: async ({ canvasElement }) => {
     await expect(canvasElement.querySelectorAll("[data-matrix-cell]")).toHaveLength(6);
-    await expect(canvasElement.querySelectorAll("kbd")).toHaveLength(6 * 8);
+    const caps = canvasElement.querySelectorAll("kbd");
+    await expect(caps).toHaveLength(6 * 8);
+    // Row 8: one border on all four sides, equal inline padding, and a one-glyph key is a
+    // lozenge wider than it is tall, never a circle (ORV-192).
+    for (const cap of caps) {
+      const style = getComputedStyle(cap);
+      for (const side of ["Top", "Right", "Bottom", "Left"] as const) {
+        await expect(style[`border${side}Width`]).toBe("1px");
+      }
+      await expect(style.paddingLeft).toBe(style.paddingRight);
+      await expect(style.paddingLeft).toBe("8px");
+      const box = cap.getBoundingClientRect();
+      // The shown text: an arrow draws its glyph and keeps its name for screen readers only.
+      const shown = cap.querySelector("[aria-hidden]")?.textContent ?? cap.textContent ?? "";
+      if ([...shown.trim()].length === 1) {
+        await expect(box.width).toBeGreaterThanOrEqual(box.height * 1.3);
+      }
+    }
   },
 };

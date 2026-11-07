@@ -1,10 +1,13 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, within } from "storybook/test";
-import { fixtures, fixtureOptions } from "../fixtures";
+import { expect, userEvent, within } from "storybook/test";
+import { fixtures, fixtureOptions, radioFixtures, switchFixtures } from "../fixtures";
 import { Input } from "../input/Input";
 import { Matrix, Narrow } from "../matrix";
+import { RadioGroup, RadioGroupItem } from "../radio-group/RadioGroup";
 import { Select } from "../select/Select";
+import { Switch } from "../switch/Switch";
 import { Textarea } from "../textarea/Textarea";
+import { expectTitleOverText } from "../../testing/visual-asserts";
 import { Field } from "./Field";
 
 const meta = {
@@ -29,6 +32,11 @@ export const WithDescription: Story = {
   play: async ({ canvasElement }) => {
     const input = within(canvasElement).getByLabelText("ชื่อโปรเจกต์");
     await expect(input).toHaveAccessibleDescription("ชื่อที่ทีมจะเห็นในรายการโปรเจกต์");
+    // ORV-192 row 17: a compact pair, 14 / 500 label over 14 / 400 secondary text, 4 px apart.
+    const label = canvasElement.querySelector(".ds-field__label");
+    const text = canvasElement.querySelector(".ds-field__description");
+    if (!label || !text) throw new Error("the field has no label or description");
+    expectTitleOverText(label, text, { gap: 4 });
   },
 };
 
@@ -84,9 +92,131 @@ export const EveryControl: Story = {
     await expect(canvas.getByLabelText("สรุปงาน")).toHaveAccessibleDescription(
       "สั้นพอที่จะอ่านจบในหนึ่งนาที",
     );
+    // Without `group` the label stays a <label> whose `for` is the control's id (field-group-1).
+    const label = canvasElement.querySelector(".ds-field__label") as HTMLLabelElement;
+    await expect(label.tagName).toBe("LABEL");
+    await expect(label.htmlFor).toBe(canvas.getByLabelText("ชื่อโปรเจกต์").id);
     const trigger = canvas.getByRole("combobox", { name: "โมดูล" });
     await expect(trigger).toHaveAttribute("aria-invalid", "true");
     await expect(trigger).toHaveAccessibleDescription("เลือกโมดูลที่งานนี้สังกัด");
+  },
+};
+
+/**
+ * `group`: the control is a RadioGroup, a `div` that `for` cannot reach, so the label is a `span`
+ * with an id and the group names itself with `aria-labelledby` (field-group-1).
+ */
+export const GroupControl: Story = {
+  args: {
+    group: true,
+    label: radioFixtures.label,
+    description: radioFixtures.help,
+    children: (
+      <RadioGroup defaultValue="members">
+        <RadioGroupItem value="members" label={radioFixtures.members} />
+        <RadioGroupItem value="organization" label={radioFixtures.organization} />
+      </RadioGroup>
+    ),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const label = canvasElement.querySelector(".ds-field__label") as HTMLElement;
+    await expect(label.tagName).toBe("SPAN");
+    await expect(label.hasAttribute("for")).toBe(false);
+    const group = canvas.getByRole("radiogroup", { name: radioFixtures.label });
+    await expect(group).toHaveAttribute("aria-labelledby", label.id);
+    await expect(group).toHaveAccessibleDescription(radioFixtures.help);
+  },
+};
+
+/** The shared check of the two horizontal stories: the order of the DOM, and where each part sits. */
+async function expectHorizontalRow(canvasElement: HTMLElement, withError: boolean) {
+  const field = canvasElement.querySelector(".ds-field") as HTMLElement;
+  await expect(field).toHaveAttribute("data-orientation", "horizontal");
+  // DOM order: label, description, control, error (field-row-1).
+  const order = Array.from(field.children).map((el) =>
+    el.classList.contains("ds-field__label")
+      ? "label"
+      : el.classList.contains("ds-field__description")
+        ? "description"
+        : el.classList.contains("ds-field__error")
+          ? "error"
+          : "control",
+  );
+  await expect(order).toEqual(
+    withError ? ["label", "description", "control", "error"] : ["label", "description", "control"],
+  );
+  const box = (selector: string) =>
+    (field.querySelector(selector) as HTMLElement).getBoundingClientRect();
+  const label = box(".ds-field__label");
+  const description = box(".ds-field__description");
+  const control = box(".ds-switch__track");
+  // The control is at the inline end of the first line, centred on the label's line.
+  await expect(control.left).toBeGreaterThanOrEqual(label.right);
+  await expect(control.left).toBeGreaterThanOrEqual(description.right);
+  await expect(
+    Math.abs(control.top + control.height / 2 - (label.top + label.height / 2)),
+  ).toBeLessThanOrEqual(1);
+  await expect(control.right).toBeLessThanOrEqual(field.getBoundingClientRect().right);
+  if (withError) {
+    // The error sits under both columns and spans them.
+    const error = box(".ds-field__error");
+    await expect(error.top).toBeGreaterThanOrEqual(Math.max(description.bottom, control.bottom));
+    await expect(Math.abs(error.left - label.left)).toBeLessThanOrEqual(0.5);
+    await expect(Math.abs(error.right - control.right)).toBeLessThanOrEqual(0.5);
+  }
+}
+
+/**
+ * `orientation="horizontal"`: the label and description in one column, a Switch at the end of the
+ * first line. The label keeps `for`, so a click on it toggles the switch (field-row-1). The row
+ * needs a width, as a form column gives it.
+ */
+export const Horizontal: Story = {
+  render: () => (
+    <div className="w-[480px] max-w-full">
+      <Field
+        orientation="horizontal"
+        label={switchFixtures.comments}
+        description={switchFixtures.commentsHelp}
+      >
+        <Switch />
+      </Field>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const sw = canvas.getByRole("switch", { name: switchFixtures.comments });
+    await expect(sw).toHaveAccessibleDescription(switchFixtures.commentsHelp);
+    await expectHorizontalRow(canvasElement, false);
+    await userEvent.click(canvas.getByText(switchFixtures.comments));
+    await expect(sw).toHaveAttribute("aria-checked", "true");
+  },
+};
+
+/** The error stays `Field`'s alert, under both columns, and the control reads it in its description. */
+export const HorizontalInvalid: Story = {
+  render: () => (
+    <div className="w-[480px] max-w-full">
+      <Field
+        orientation="horizontal"
+        label={switchFixtures.comments}
+        description={switchFixtures.commentsHelp}
+        error={switchFixtures.saveError}
+      >
+        <Switch />
+      </Field>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const sw = canvas.getByRole("switch", { name: switchFixtures.comments });
+    await expect(sw).toHaveAttribute("aria-invalid", "true");
+    await expect(sw).toHaveAccessibleDescription(
+      `${switchFixtures.saveError} ${switchFixtures.commentsHelp}`,
+    );
+    await expect(canvas.getAllByRole("alert")).toHaveLength(1);
+    await expectHorizontalRow(canvasElement, true);
   },
 };
 

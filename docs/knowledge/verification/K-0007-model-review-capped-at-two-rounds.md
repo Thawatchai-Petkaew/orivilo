@@ -2,7 +2,7 @@
 id: K-0007
 topic: verification
 claim: Allkons caps review judged by a model at 2 rounds; what is still open after round 2 goes to the human as a list, and only drift a script measures loops to zero.
-source: "~/My Work/TechFlow/AI-First/allkons-marketplace/.claude/skills/atlas/references/tiered-routing.md:83 (also SKILL.md:126)"
+source: "https://bitbucket.org/ThammasornDEV/allkons-marketplace .claude/skills/atlas/references/tiered-routing.md:83 (also SKILL.md:126)"
 retrieved: 2026-10-23
 confidence: 0.8
 applies_to: [ORV-81]

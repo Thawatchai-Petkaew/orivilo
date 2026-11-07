@@ -1,10 +1,10 @@
 /**
- * The contrast contract (spec E0-5): every derived pair meets its floor under the neutral set and
- * every profile in both modes, every semantic colour is paired or exempt with a reason, the pairs
+ * The contrast contract (spec E0-5): every derived pair meets its floor under the neutral set, every
+ * profile and every brand profile in both modes, every semantic colour is paired or exempt with a reason, the pairs
  * declared in semantic.json are a subset of the derived set, and a broken value is caught.
  */
 import { describe, expect, it } from "vitest";
-import { profiles } from "../profiles/index";
+import { BRAND_PROFILES, CONTRAST_SETS, PROFILE_IDS } from "../profiles/index";
 import {
   EXEMPT,
   PAIR_RULES,
@@ -18,12 +18,14 @@ import component from "./source/component.json" with { type: "json" };
 import primitives from "./source/primitives.json" with { type: "json" };
 import semantic from "./source/semantic.json" with { type: "json" };
 
-const sets = [
-  { id: "neutral", set: tokens },
-  ...profiles.map((p) => ({ id: p.id, set: p.tokens })),
-];
-
 describe("the pair set", () => {
+  it("the contrast sets are neutral, every profile and every brand profile", () => {
+    expect(CONTRAST_SETS.map((s) => s.id)).toEqual([
+      ...PROFILE_IDS,
+      ...BRAND_PROFILES.map((p) => p.id),
+    ]);
+  });
+
   it("covers text on every surface and the control boundaries", () => {
     const pairs = semanticPairs(tokens);
     expect(pairs.length).toBeGreaterThanOrEqual(60);
@@ -36,7 +38,16 @@ describe("the pair set", () => {
     expect(keys.has("text.on-action|action.primary-press")).toBe(true);
     expect(keys.has("feedback.danger.fg|feedback.danger.surface")).toBe(true);
     expect(keys.has("border.control|surface.card")).toBe(true);
+    expect(keys.has("brand.dot-small|surface.canvas")).toBe(true);
     expect(PAIR_RULES.every((r) => r.floor === 4.5 || r.floor === 3)).toBe(true);
+  });
+
+  it("pairs the small-dot token with the page canvas alone, at the UI floor, under the rule's wording", () => {
+    const own = semanticPairs(tokens).filter((p) => p.fg === "brand.dot-small");
+    expect(own.map((p) => `${p.fg}|${p.bg}|${p.floor}`)).toEqual([
+      "brand.dot-small|surface.canvas|3",
+    ]);
+    expect(own[0]?.where).toBe("the logo's small-form dot on the page");
   });
 
   it("includes every pair semantic.json declares with a floor, at that floor or higher", () => {
@@ -50,7 +61,7 @@ describe("the pair set", () => {
   });
 
   it("names every semantic colour token in a pair or in the exemption list, and nothing else", () => {
-    for (const { id, set } of sets) {
+    for (const { id, set } of CONTRAST_SETS) {
       expect(unexplainedColours(set), `${id}: unexplained`).toEqual([]);
       expect(staleExemptions(set), `${id}: stale exemptions`).toEqual([]);
     }
@@ -59,7 +70,7 @@ describe("the pair set", () => {
 });
 
 describe("every pair meets its floor", () => {
-  for (const r of checkContrast(sets)) {
+  for (const r of checkContrast(CONTRAST_SETS)) {
     it(`${r.profile} ${r.mode}: ${r.fg} on ${r.bg} is at least ${r.floor} (${r.where})`, () => {
       expect(r.ratio, `${r.fgValue} on ${r.bgValue}`).not.toBeNull();
       expect(r.ratio ?? 0, `${r.fgValue} on ${r.bgValue}`).toBeGreaterThanOrEqual(r.floor);

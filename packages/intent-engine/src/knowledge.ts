@@ -10,7 +10,7 @@ import { z } from "zod";
 /** Lowercase words joined by hyphens, optionally grouped with a dot: `color.semantics-separate`. */
 export const slugSchema = z
   .string()
-  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*(?:\.[a-z0-9]+(?:-[a-z0-9]+)*)*$/, "Use a lowercase slug.");
+  .regex(/^(?![.-])(?![\s\S]*[.-](?:[.-]|$))[a-z0-9.-]+$/, "Use a lowercase slug.");
 
 /** The topics a canvas node can be expert in. Adding one is an additive change (ADR 0005). */
 export const KNOWLEDGE_TOPICS = [
