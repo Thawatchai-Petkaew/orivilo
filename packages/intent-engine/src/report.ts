@@ -107,18 +107,74 @@ export type Report = z.infer<typeof reportSchema>;
 
 /**
  * The authority of a URL as given, userinfo included: from after an optional `scheme://` to the first
- * `/`, `?` or `#`. Textual, so it holds for text no URL parser accepts. A backslash is not a stop, so
- * `https://a:b\@host/` loses `a:b\` as well: it drops too much, never too little.
+ * `/`, `?` or `#`. Textual, so it holds for text no URL parser accepts. It is not the only reading:
+ * the WHATWG parser skips extra slashes, reads a backslash as a slash and drops a tab or a newline,
+ * so it can find userinfo where this pattern finds an empty authority. `refusedUrlOf` therefore asks
+ * the parser too, and the parser's own username and password decide.
  */
 const AUTHORITY = /^([a-z][a-z0-9+.-]*:\/\/)?([^/?#]*)/i;
 
-/** report-outcome-1, the two steps on `url` of a refused member: userinfo dropped, then cut at URL_MAX_CHARS. */
-function refusedUrlOf(given: string): { url: string; urlCut: boolean } {
+/** The URL parser's reading of `text` when it holds a username or a password, with both cleared. */
+function withoutParsedCredentials(text: string): string | null {
+  let parsed: URL;
+  try {
+    parsed = new URL(text);
+  } catch {
+    return null; // no parser accepts it: the textual path below decides
+  }
+  if (parsed.username === "" && parsed.password === "") return null;
+  parsed.username = "";
+  parsed.password = "";
+  return parsed.href;
+}
+
+/** True when the parser reads `text` as an http or https URL with no username and no password. */
+function isCleanWebUrl(text: string): boolean {
+  try {
+    const parsed = new URL(text);
+    return (
+      (parsed.protocol === "http:" || parsed.protocol === "https:") &&
+      parsed.username === "" &&
+      parsed.password === ""
+    );
+  } catch {
+    return false;
+  }
+}
+
+/** The text with the userinfo of its textual authority dropped. */
+function withoutTextualUserinfo(given: string): string {
   const m = AUTHORITY.exec(given);
   const scheme = m?.[1] ?? "";
   const authority = m?.[2] ?? "";
   const rest = given.slice(scheme.length + authority.length);
-  const bare = scheme + authority.slice(authority.lastIndexOf("@") + 1) + rest;
+  return scheme + authority.slice(authority.lastIndexOf("@") + 1) + rest;
+}
+
+/**
+ * report-outcome-1, the two steps on `url` of a refused member: userinfo dropped, then cut at
+ * URL_MAX_CHARS. Three cases, in order:
+ *  1. The given text parses as an http or https URL with no username and no password: it stays as
+ *     given, so https://www.tiktok.com/@brand stays whole and http://example.com\@evil.test/ never
+ *     shows a host that was not contacted.
+ *  2. The parser finds a username or a password: they are cleared and the parser's href is shown.
+ *  3. Otherwise the textual authority drops its userinfo, the parser reads that result once more
+ *     (dropping text can leave a form it reads as userinfo), and if the result is still not a clean
+ *     http or https URL, everything up to its last `@` goes. That cut drops too much when unsure:
+ *     text pasted around a URL, a scheme the parser does not know, or a password holding a slash,
+ *     question mark or hash loses its front along with its secret.
+ * The limit: a username and password inside the path or query of a clean http or https URL (a
+ * second URL after the first, or one in `?next=`) are kept, because the text is a valid address and
+ * the parser reads them as path. url-input-1 and the form check the person's text before it gets
+ * here (the next issue).
+ */
+function refusedUrlOf(given: string): { url: string; urlCut: boolean } {
+  let bare = given;
+  if (!isCleanWebUrl(given)) {
+    const textual = withoutTextualUserinfo(given);
+    bare = withoutParsedCredentials(given) ?? withoutParsedCredentials(textual) ?? textual;
+    if (!isCleanWebUrl(bare)) bare = bare.slice(bare.lastIndexOf("@") + 1);
+  }
   if (bare.length <= URL_MAX_CHARS) return { url: bare, urlCut: false };
   let end = URL_MAX_CHARS;
   const last = bare.charCodeAt(end - 1);
