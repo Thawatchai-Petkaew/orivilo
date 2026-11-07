@@ -1,9 +1,9 @@
 ---
 issue: ORV-266 (https://tpetkaew.atlassian.net/browse/ORV-266)
-spec: docs/specs/ORV-266/spec.md v1.3
+spec: docs/specs/ORV-266/spec.md v1.4
 parent: docs/specs/ORV-128/spec.md, "Reading a page the person submits"
 adr: docs/adr/0019-page-renderer-placement.md, decision 7
-task: ORV-266-arch-1, ORV-266-arch-2, ORV-266-spec-2
+task: ORV-266-arch-1, ORV-266-arch-2, ORV-266-spec-2, ORV-267-spec-3
 author: architect
 date: 2026-11-07
 ---
@@ -85,7 +85,7 @@ So `maxDuration` is 60: the 30 s read plus 30 s for everything else, many times 
 2. The limit: `page-read` by session user, or `signed-out` by trusted IP when there is no session. Every call counts, whatever its result. A store failure fails closed with `SERVICE_UNAVAILABLE`.
 3. No session answers `signed-out`. No port has been called.
 4. zod at the boundary: `z.strictObject({ url: z.string().trim().min(1).max(URL_MAX_CHARS), role: z.enum(INPUT_ROLES) })`, a failure being `invalid-input`. `.trim()` runs before the two bounds (probed on zod 4.6.6), so the 2,048 of `url-input-1` counts the trimmed text. Which roles the form offers is the spec's.
-5. `url-input-1`: a private `urlOf(text)` puts `https://` in front of text that does not match `/^[a-z][a-z0-9+.-]*:\/\//i`, and changes nothing else. `readUrlInput` gets the result and `reportOf` gets the same text as `given`, so the checks of `readUrlInput` decide the rest, as the spec's "Worked examples" lists.
+5. `url-input-1`: a private `urlOf(text)` puts `https://` in front of text that does not match `/^[a-z][a-z0-9+.-]*:\/\//i`, unless the URL parser finds a username or password in the text, which then passes as written (ORV-267 row 37), and changes nothing else. `readUrlInput` gets the result and `reportOf` gets the same text as `given`, so the checks of `readUrlInput` decide the rest, as the spec's "Worked examples" lists.
 6. Ports, `readUrlInput`, `reportOf`, `toReportView`, and the `page-read` step line.
 
 `directions/actions.ts` keeps its `run` private and unchanged: this story does not refactor it. A refused, failed or not-read read is a **successful call**: the outcome is `ok: true` with a view that says so, because the report is the answer. `reportOf` returning `ok: false` is the outcome `failed`.
@@ -255,7 +255,7 @@ PR 1 adds no route, so nothing new is reachable. `security` reviews both PRs: PR
 | A3 | `role: "competitor"`: a `not-read` view and zero port calls | Call `readPage` |
 | A4 | Refused and failed reads are `ok: true` views; `report-invalid` is `failed`; extra keys are `invalid-input` | Throw on refusal |
 | A5 | All log lines of a call hold no URL, host, quote or body text, and one `page-read` step line is written | Add the URL to the step |
-| A6 | ` example.com ` reaches `readUrlInput` as `https://example.com`, and `reportOf` gets the same text; each input of the `url-input-1` worked example gives its line; trimmed text of 2,048 characters passes the boundary, and 2,049 is `invalid-input` with no port call | Pass the URL as typed |
+| A6 | ` example.com ` reaches `readUrlInput` as `https://example.com`, and `reportOf` gets the same text; each input of the `url-input-1` worked example gives its line; trimmed text of 2,048 characters passes the boundary, and 2,049 is `invalid-input` with no port call; `https:/user:secret@example.com/` under roles own and competitor makes no port call and leaves no `secret` in the view (ORV-267 row 37) | Pass the URL as typed; drop the parser check |
 | V1 | A worst case `Report` (5,000 items, 10 sheets and a page at the longest URL, 64 colours and 16 fonts on every sheet, more than 12 readings per axis, Thai quotes, paths of 500 characters) gives a view under 262,144 UTF-8 bytes of `JSON.stringify`, with the totals right | Write the URL on each source line; remove a cap |
 | V2 | An `analysed` view holds all four not-measured entries as keys, and its JSON holds no word of `EVIDENCE_STRINGS` and no `hypothesisNote` text | Resolve a line in the view |
 | V3 | Each colour and font source resolves to its item's `source.ref` and `sheet:<offset>`; each reading's `url` is its item's `source.ref`, with its path, rule ids, `hypothesis` and `quality.*` reasons; below-floor items are never leans; a report with no items takes `role` and `readAt` from `ctx` | Drop `at`; read `role` from the first item |

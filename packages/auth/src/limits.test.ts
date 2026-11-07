@@ -12,6 +12,13 @@ describe("LIMITS", () => {
       { seconds: 3_600, max: 10 },
     ]);
   });
+  // page-read-limit-1: the numbers of ai-read, because one call can make dozens of outbound requests.
+  it("page-read-limit-1: page-read is 50 per Bangkok day and 10 per hour", () => {
+    expect(LIMITS["page-read"].windows).toEqual([
+      { seconds: 86_400, max: 50, offsetSeconds: 25_200 },
+      { seconds: 3_600, max: 10 },
+    ]);
+  });
   it("write is 60 per 10 minutes", () => {
     expect(LIMITS.write.windows).toEqual([{ seconds: 600, max: 60 }]);
   });

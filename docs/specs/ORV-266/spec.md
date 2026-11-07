@@ -2,7 +2,7 @@
 issue: ORV-266 (https://tpetkaew.atlassian.net/browse/ORV-266)
 lane: L (reads outside web pages from a deployed server route, a new member set on the report contract, and a session check on a new action)
 mode: POC mode short spec (`.claude/skills/ovl/SKILL.md`, section "POC mode")
-version: 1.3
+version: 1.4
 ---
 
 # ORV-266: paste a website address, see a brand evidence report
@@ -32,7 +32,7 @@ As a founder or designer who is signed in, I want to paste a brand's website add
 
 ### url-input-1
 
-The field is plain text, with `inputMode="url"` and no browser URL validation, which would block `example.com`. The text is trimmed. Text that does not start with a scheme and `://` gets `https://` in front. Nothing else is changed. The server applies this rule and gives the result to `readUrlInput`, whose checks decide the rest ("Worked examples"). Text longer than 2,048 characters (`URL_MAX_CHARS`) is not read, and the form shows `read.refused.address`.
+The field is plain text, with `inputMode="url"` and no browser URL validation, which would block `example.com`. The text is trimmed. Text in which the URL parser reads a username or a password is passed as written (the credentials clause, ORV-267 row 37). Any other text that does not start with a scheme and `://` gets `https://` in front. Nothing else is changed. The server applies this rule and gives the result to `readUrlInput`, whose checks decide the rest ("Worked examples"). Text longer than 2,048 characters (`URL_MAX_CHARS`) is not read, and the form shows `read.refused.address`.
 
 ### role-input-1
 
@@ -252,6 +252,8 @@ node -e "for (const s of ['example.com','  https://clinic.example/  ','HTTP://cl
 
 Expected, then what the address check does with it: `https://example.com` (read), `https://clinic.example/` (read), `HTTP://clinic.example/` (read), `https://localhost:3000` (refused, a port), `https://javascript:alert(1)` (refused, does not parse), `ftp://example.com/` (refused, a scheme).
 
+None of these six holds a username or a password. The example of the credentials clause is in `docs/specs/ORV-267/spec.md`, "Worked examples".
+
 **`report-outcome-1`, the `url` of a refused report.** Input: the forms of row 2, of `report.test.ts` and of the reports ORV-266-security-3 and ORV-266-review-3, each as `reportOf` gets it, so after `url-input-1`. Output: one line each, in order, as JSON text, then one length in whole characters, before the cut.
 
 ```bash
@@ -345,7 +347,7 @@ Expected: `20`.
 8. **The Node line.** ORV-128 asks the route's slice to re-run `word-count-1` on the Node line the route runs, as ICU may segment Thai differently. Default: the live check of tech notes section 10, and `thin-page-1` stands whatever it finds.
 9. **PR size.** PR B holds the page, the action, the catalog copy and about 15 stories, likely past 400 changed lines. Default: accept that for this one PR, since the objective allows two PRs at most.
 10. **Few leans on a real page.** Under ORV-128 "Confidence", a reading from a block under 20 words falls below the floor, and on an incomplete page so does every reading (row 5). Short headings carry most brand words, and one failed stylesheet makes a page incomplete, so many real pages will show `brandReport.noSignal` with their readings listed under the floor. Default: keep the numbers, because the page still shows each reading and why it does not count. Option: change the factor, which is an ORV-128 change.
-11. **Credentials inside the path or query of a clean URL, on the `not-read` member only.** Row 7 keeps the address as given, so `https://a.test/?next=https://user:secret@b.test/` stays in that report and on the screen through `brandReport.address`. The parser reads it as clean, so the check of ORV-267 row 37 does not fire on it (SEC-266-9). The `refused` member no longer has this question, by `report-outcome-1`. Default: keep the text, which goes back only to the person who typed it and is not stored. Option: a rule for this member. The owner decides.
+11. **Credentials inside the path or query of a clean URL.** Row 7 keeps the address as given, so `https://a.test/?next=https://user:secret@b.test/` stays in the `not-read` report and on the screen through `brandReport.address`. Role own or reference reads that page, so the same text stays in the `analysed` report and on the screen through `brandReport.pageRead`. The parser reads it and `https://a.test/ https://user:secret@b.test/` as clean, so the credentials clause of `url-input-1` does not fire on them (SEC-266-9). The `refused` member no longer has this question, by `report-outcome-1`. Default: no rule, as today: keep the text, which goes back only to the person who typed it and is not stored. Option: a rule for these two members. The owner decides.
 
 ## Depends on
 
@@ -361,6 +363,7 @@ Expected: `20`.
 
 ## Changelog
 
+- v1.4 (2026-11-07): requirement change. `url-input-1` now holds the credentials clause, which ORV-267 row 37 proves, and its worked example points to that clause's example in the ORV-267 spec. This is the behaviour of finding SEC-266-9 (ORV-266-security-2), which the ORV-267 spec first held in row 37. Open question 11 is now the one home of the question on credentials inside the path or query of a clean URL: it takes the read case and the second form from the ORV-267 spec, so its title no longer says `not-read` member only, and it now names the `analysed` member, which v1.3 left out. Its default does not change. Rows 1 to 36 do not change, and row 34 stays as it is: changelog v1.1 of the ORV-267 spec records the difference. Task `ORV-267-spec-3`. Downstream to review: `tech.md` (section 5 point 5 and test A6, changed in this task); `docs/specs/ORV-267/spec.md` (v1.2, changed in this task); the ORV-266 branch, whose copy of this file stays at v1.3 until PR 204 merges; the `security` re-check of open question 11.
 - v1.3 (2026-11-07): requirement change. The `url` of the `refused` member of `report-outcome-1` is now the URL parser's origin and nothing else, which closes the class of SEC-266-10 (ORV-266-security-3): the text past the origin can no longer hold a credential in any form. Cost, recorded in the rule: a refused report no longer holds the path of the address. Limit, recorded in the rule: text the parser reads as the host or the port stays. Row 2 gains the expected `url` of each form, with no change to its number. New worked example `report-outcome-1`, not run. New open question 11, for the `not-read` member, which does not change, nor does the `analysed` member. The front matter now gives the version, as F13 of ORV-266-review-3 asks. Rows 1 to 9 keep their numbers and rows 10 to 36 do not change. Task `ORV-266-spec-2`. Downstream to review: `tech.md` (section 7 and test R2, changed here); `packages/intent-engine/src/report.ts` and `report.test.ts` (the builder round); the ORV-135 branch spec, which still holds the older `url`; the ORV-267 branch (rebase on this version; its screen and fixtures need no change); the `security` re-check, whose expected value for SEC-266-10 this rule replaces.
 - v1.2 (2026-11-07): text only, no rule and no acceptance row changes. This edit: the Rows per PR note says the ORV-267 spec arrives with that issue's branch, and the worked-examples line names the `thin-page-1` correction of v1.1. The edit of commit 282fd51: the `- PR B: rows 10-36` line left the Rows per PR list, with a note that rows 10 to 36 moved to their own issue, and the worked-examples line now says the main session ran the examples. Task `ORV-266-build-4`.
 - v1.1 (2026-11-07): the `thin-page-1` worked example now expects `9 true 33 false`, the line the main session printed when it ran the example; the first number was 10 in error, and the page is thin at either. No rule and no acceptance row changes. Task `ORV-266-arch-2`.
