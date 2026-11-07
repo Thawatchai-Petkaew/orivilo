@@ -1280,18 +1280,65 @@ export async function expectLabelInkWhole(el: HTMLElement, sample = "ฟื้�
 }
 
 /**
- * The first pixel of `a` more than `INK_DISTANCE` from the same pixel of `b`, as `[x, y]` in
- * device pixels, or null when the two shots show the same ink. Both must cover the same region.
+ * A speck is faint: no pixel of it differs from the other shot by more than this (twice
+ * `INK_DISTANCE`). The Linux speck of ORV-252 read 75; the ink of a mark cut by 2 px read up to 433.
  */
-export function firstInkDifference(
+const SPECK_DISTANCE = 2 * INK_DISTANCE;
+
+/** A speck is small: at most this many pixels that touch, edges and corners. The one of ORV-252 was 1. */
+const SPECK_PIXELS = 3;
+
+/**
+ * The first pixel of `a` that a clip cut, as `[x, y]` in device pixels, or null when the two shots
+ * show the same ink. Both must cover the same region. A pixel differs when it is more than
+ * `INK_DISTANCE` from the same pixel of `b`; the differing pixels that touch (edges and corners)
+ * form one group. A group of at most `SPECK_PIXELS` pixels, none over `SPECK_DISTANCE`, is a speck
+ * and is not a cut (ORV-205, ORV-252): Chromium on Linux rasters the faint top row of a Thai tone
+ * mark one pixel differently between `overflow: hidden` and `overflow: visible`, and no clip is
+ * there. A mark cut by 2 px differs in two rows, 21 pixels in ORV-252, and the ink of its lower row
+ * is far over `SPECK_DISTANCE`; a line cut in a row is wider than a speck.
+ */
+export function firstInkCut(
   a: readonly (readonly Rgb[])[],
   b: readonly (readonly Rgb[])[],
 ): readonly [x: number, y: number] | null {
+  const width = Math.max(0, ...a.map((row) => row.length));
+  const key = (x: number, y: number) => y * width + x;
+  const differing = new Map<number, number>();
   for (let y = 0; y < Math.min(a.length, b.length); y++) {
     const rowA = a[y] ?? [];
     const rowB = b[y] ?? [];
-    const x = rowB.findIndex((px, i) => rowA[i] && distance(px, rowA[i] as Rgb) > INK_DISTANCE);
-    if (x !== -1) return [x, y];
+    rowB.forEach((px, x) => {
+      const other = rowA[x];
+      const apart = other ? distance(px, other) : 0;
+      if (apart > INK_DISTANCE) differing.set(key(x, y), apart);
+    });
+  }
+  const seen = new Set<number>();
+  // Map keeps insertion order, which is row by row, so the first group found starts the earliest row.
+  for (const [start, apart] of differing) {
+    if (seen.has(start)) continue;
+    seen.add(start);
+    const group = [{ at: start, apart }];
+    for (let next = 0; next < group.length; next++) {
+      const x = (group[next] as { at: number }).at % width;
+      const y = Math.floor((group[next] as { at: number }).at / width);
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          const near = key(x + dx, y + dy);
+          const nearApart = differing.get(near);
+          if (x + dx < 0 || x + dx >= width || nearApart === undefined || seen.has(near)) continue;
+          seen.add(near);
+          group.push({ at: near, apart: nearApart });
+        }
+      }
+    }
+    const speck =
+      group.length <= SPECK_PIXELS && group.every(({ apart: far }) => far <= SPECK_DISTANCE);
+    if (!speck) {
+      const first = group.reduce((lowest, px) => (px.at < lowest.at ? px : lowest));
+      return [first.at % width, Math.floor(first.at / width)];
+    }
   }
   return null;
 }
@@ -1300,11 +1347,16 @@ export function firstInkDifference(
  * Asserts nothing from `el` up to and including `frame` clips ink (ORV-222 rows 4 and 18): the
  * frame is shot twice over its box and 8 CSS px past it on every side, once as shipped and once
  * with `overflow: visible` set inline on `el` and on every ancestor up to `frame`. Any pixel more
- * than `INK_DISTANCE` from the same pixel of the other shot is ink a clip cut. The region reaches
- * past the frame because a clip cuts ink outside its own box, so a shot of the frame alone would
- * match. `expectLabelInkWhole` cannot see this: it forces only its own clone visible, so a clip
- * from an ancestor cuts both its shots alike. The inline values are put back in `finally`. It runs
- * where Vitest browser mode runs; a play guards the call with `inVitest`.
+ * than `INK_DISTANCE` from the same pixel of the other shot is ink a clip cut, except a speck:
+ * a group of up to three touching pixels, none over twice that distance, is ignored (see
+ * `firstInkCut`, ORV-205). Chromium on Linux rasters the faint top row of a Thai tone mark one
+ * pixel differently between the two overflow modes, in a shot where no clip touches the mark, and
+ * that read as a cut (ORV-252); a mark really cut by 2 px or more differs in far more pixels, and
+ * strongly. The region reaches past the frame because a clip cuts ink outside its own box, so a
+ * shot of the frame alone would match. `expectLabelInkWhole` cannot see this: it forces only its
+ * own clone visible, so a clip from an ancestor cuts both its shots alike. The inline values are
+ * put back in `finally`. It runs where Vitest browser mode runs; a play guards the call with
+ * `inVitest`.
  */
 export async function expectFrameCutsNoInk(el: HTMLElement, frame: HTMLElement) {
   const reach = 8;
@@ -1339,7 +1391,7 @@ export async function expectFrameCutsNoInk(el: HTMLElement, frame: HTMLElement) 
   try {
     for (const node of chain) node.style.overflow = "visible";
     const visible = await region();
-    const at = firstInkDifference(shipped.rows, visible.rows);
+    const at = firstInkCut(shipped.rows, visible.rows);
     const x = at ? Math.round((at[0] / shipped.scale - reach) * 100) / 100 : 0;
     const y = at ? Math.round((at[1] / shipped.scale - reach) * 100) / 100 : 0;
     expect(

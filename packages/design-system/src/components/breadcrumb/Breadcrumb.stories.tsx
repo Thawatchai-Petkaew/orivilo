@@ -89,6 +89,16 @@ function startFromTop() {
   (document.activeElement as HTMLElement | null)?.blur();
 }
 
+/**
+ * Row 78: the current crumb reads `text.primary`, and differs from `nav-item.fg-active`, which is
+ * the selection ink since ORV-252. The expected inks are read once, outside any `waitFor`.
+ */
+async function expectNeutralInk(current: HTMLElement) {
+  const ink = getComputedStyle(current).color;
+  await expect(ink).toBe(resolvedColor(current, "--ds-text-primary"));
+  await expect(ink).not.toBe(resolvedColor(current, "--cmp-nav-item-fg-active"));
+}
+
 /** The focus look of `crumb-look-1`: a 1 px line, a 4 px halo, a small corner; the padding cancelled by the margin. */
 async function expectCrumbFocus(link: HTMLElement) {
   const style = getComputedStyle(link);
@@ -149,7 +159,8 @@ export const Default: Story = {
     await expect(getComputedStyle(home).textDecorationLine).toBe("underline");
     const before = getComputedStyle(current);
     const [color, decoration] = [before.color, before.textDecorationLine];
-    await expect(color).toBe(resolvedColor(current, "--cmp-nav-item-fg-active"));
+    // Row 78: the current crumb keeps the neutral ink and takes no selection colour.
+    await expectNeutralInk(current);
     forceHover(current);
     await expect(getComputedStyle(current).color).toBe(color);
     await expect(getComputedStyle(current).textDecorationLine).toBe(decoration);
@@ -459,7 +470,7 @@ function InkCell() {
   );
 }
 
-/** Row 45: in all six boundaries no mark of the current crumb is cut at its start or its end. */
+/** Row 45: in all six boundaries no mark of the current crumb is cut at its start or its end. Row 78: and its ink is the neutral one. */
 export const CurrentInk: Story = {
   render: () => (
     <Matrix>
@@ -471,6 +482,7 @@ export const CurrentInk: Story = {
     await expect(navs).toHaveLength(6);
     for (const nav of navs) {
       const current = currentOf(nav) as HTMLElement;
+      await expectNeutralInk(current);
       await expect(current.scrollWidth).toBeLessThanOrEqual(current.clientWidth);
       if (inVitest) await expectFrameCutsNoInk(current, nav);
     }

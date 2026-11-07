@@ -59,6 +59,9 @@ export const en: Messages = {
     region: "Notifications",
     dismiss: "Dismiss",
   },
+  nav: {
+    open: "Open {name} menu",
+  },
   breadcrumb: {
     label: "Breadcrumb",
     showAll: "Show the full path",

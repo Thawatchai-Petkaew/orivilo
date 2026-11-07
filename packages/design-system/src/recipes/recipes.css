@@ -5681,7 +5681,8 @@ button.ds-tag__main {
 .ds-taskbar__progress .ds-progress__label,
 .ds-chat__option > span:first-child,
 .ds-breadcrumb__link,
-.ds-breadcrumb__page {
+.ds-breadcrumb__page,
+.ds-nav-item[data-size="sm"] .ds-nav-item__label {
   padding-block: var(--ds-space-inline-sm);
   margin-block: calc(-1 * var(--ds-space-inline-sm));
 }
@@ -6134,9 +6135,11 @@ button.ds-tag__main {
   }
 }
 
-/* Breadcrumb (ORV-229): a trail of places, quiet navigation. The nav item tokens give the ink; the
- * current crumb differs from a link by weight and behaviour, not by colour alone. Every item keeps
- * the control-sm height so each line of a wrapped trail, with or without the ellipsis, is one height. */
+/* Breadcrumb (ORV-229): a trail of places, quiet navigation. The nav item tokens give the link ink;
+ * the current crumb reads text.primary, not a nav item token, because a current place is never a
+ * selection (ORV-252, crumb-look-1). It differs from a link by weight and behaviour, not by colour
+ * alone. Every item keeps the control-sm height so each line of a wrapped trail, with or without
+ * the ellipsis, is one height. */
 .ds-breadcrumb__list {
   display: flex;
   flex-wrap: wrap;
@@ -6191,7 +6194,7 @@ button.ds-tag__main {
 .ds-breadcrumb__page {
   padding-inline: var(--ds-space-inline-sm);
   margin-inline: calc(-1 * var(--ds-space-inline-sm));
-  color: var(--cmp-nav-item-fg-active);
+  color: var(--ds-text-primary);
   font-family: var(--ds-type-label-md-font-family);
   font-size: var(--ds-type-label-md-font-size);
   line-height: var(--ds-type-label-md-line-height);
@@ -6216,4 +6219,249 @@ button.ds-tag__main {
 .ds-breadcrumb .ds-button[data-icon-only] > svg {
   inline-size: var(--cmp-button-icon-size-md);
   block-size: var(--cmp-button-icon-size-md);
+}
+
+/* Nav item (ORV-252, nav-item-1, nav-look-1, nav-focus-1, nav-size-1): one link row for Top
+ * navigation and its drawer. Colour comes from the nav-item tokens only. The `sm` size is the Top
+ * navigation pill (one line, 32 tall); the base size is the drawer row (at least --ds-size-touch,
+ * the label wraps). `--_nav-height` and `--_nav-pad` are local properties. A marked row keeps its
+ * active colours under the pointer because [aria-current] follows :hover. */
+.ds-nav-item {
+  --_nav-height: var(--cmp-nav-item-height);
+  --_nav-pad: var(--ds-space-inset-md);
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: var(--ds-space-inline-md);
+  inline-size: 100%;
+  min-block-size: var(--_nav-height);
+  padding-block: calc((var(--_nav-height) - 1lh) / 2);
+  padding-inline: var(--_nav-pad) var(--ds-space-inset-md);
+  border: 0;
+  border-radius: var(--cmp-nav-item-row-radius);
+  background: transparent;
+  color: var(--cmp-nav-item-fg);
+  font-family: var(--ds-type-label-md-font-family);
+  font-size: var(--ds-type-label-md-font-size);
+  line-height: var(--ds-type-label-md-line-height);
+  font-weight: var(--ds-type-label-md-font-weight);
+  letter-spacing: var(--ds-type-label-md-letter-spacing);
+  text-align: start;
+  text-decoration: none;
+  white-space: normal;
+  cursor: pointer;
+  transition:
+    background-color var(--ds-motion-feedback-duration) var(--ds-motion-easing),
+    color var(--ds-motion-feedback-duration) var(--ds-motion-easing);
+}
+.ds-nav-item[data-size="sm"] {
+  --_nav-height: var(--ds-size-control-sm);
+  display: inline-flex;
+  align-items: center;
+  inline-size: auto;
+  max-inline-size: 100%;
+  block-size: var(--_nav-height);
+  min-block-size: 0;
+  padding-block: 0;
+  border-radius: var(--cmp-nav-item-radius);
+  font-family: var(--ds-type-control-md-font-family);
+  font-size: var(--ds-type-control-md-font-size);
+  line-height: var(--ds-type-control-md-line-height);
+  font-weight: var(--ds-type-control-md-font-weight);
+  letter-spacing: var(--ds-type-control-md-letter-spacing);
+  white-space: nowrap;
+}
+.ds-nav-item:hover {
+  background: var(--cmp-nav-item-bg-hover);
+  color: var(--cmp-nav-item-fg-hover);
+}
+.ds-nav-item[aria-current] {
+  background: var(--cmp-nav-item-bg-active);
+  color: var(--cmp-nav-item-fg-active);
+}
+/* Inside the row, like the Tabs trigger: a scroll box such as the drawer body cannot clip it. */
+.ds-nav-item:focus-visible {
+  outline: 1px solid var(--ds-focus-ring);
+  outline-offset: -1px;
+  box-shadow: var(--_focus-shadow-inset);
+}
+.ds-nav-item__bead {
+  position: absolute;
+  inset-inline-start: calc(
+    var(--_nav-pad) - var(--cmp-nav-item-bead-size) - var(--ds-space-inline-sm)
+  );
+  inset-block-start: calc((var(--_nav-height) - var(--cmp-nav-item-bead-size)) / 2);
+  inline-size: var(--cmp-nav-item-bead-size);
+  block-size: var(--cmp-nav-item-bead-size);
+  border-radius: var(--cmp-nav-item-radius);
+  background: var(--cmp-nav-item-bead);
+}
+.ds-nav-item__icon {
+  display: inline-flex;
+  flex: none;
+  inline-size: var(--ds-size-icon-sm);
+  block-size: var(--ds-size-icon-sm);
+  margin-block-start: calc((1lh - var(--ds-size-icon-sm)) / 2);
+}
+.ds-nav-item[data-size="sm"] .ds-nav-item__icon {
+  margin-block-start: 0;
+}
+.ds-nav-item__icon > svg {
+  inline-size: 100%;
+  block-size: 100%;
+}
+.ds-nav-item__label {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+/* One line, cut at its end. The clip box and its block padding come from the shared list above. The
+ * inline sides pad as the Breadcrumb crumb does and the margin cancels it: Thai marks overhang both
+ * ends of a label, and the box that clips the text must not slice them. */
+.ds-nav-item[data-size="sm"] .ds-nav-item__label {
+  flex: 0 1 auto;
+  padding-inline: var(--ds-space-inline-sm);
+  margin-inline: calc(-1 * var(--ds-space-inline-sm));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ds-nav-item__badge {
+  display: inline-flex;
+  flex: none;
+  margin-block-start: calc((1lh - var(--cmp-badge-height-sm)) / 2);
+}
+.ds-nav-item[data-size="sm"] .ds-nav-item__badge {
+  margin-block-start: 0;
+}
+
+.ds-nav-drawer__list,
+.ds-top-nav__list {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-inline-size: 0;
+}
+.ds-nav-drawer__list {
+  flex-direction: column;
+  gap: var(--ds-space-inline-sm);
+}
+
+/* Top navigation (ORV-252, top-nav-1, nav-narrow-1, top-skip-1): the header, a row of the brand,
+ * the section links and the actions. The root is a container named ds-top-nav, because the parts
+ * nest and an unnamed query would read the wrong one. At 767 and below the links and the second row
+ * hide and the opener shows (a query cannot read a custom property; --op-breakpoint-md is 768). */
+.ds-top-nav {
+  container: ds-top-nav / inline-size;
+  position: relative;
+  inline-size: 100%;
+}
+.ds-top-nav__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ds-space-inline-lg);
+  min-inline-size: 0;
+}
+/* Recipes have no layer, so this beats a pt-4 in contentClassName. */
+.ds-top-nav__row[data-row="sub"] {
+  padding-block-start: var(--ds-space-inline-sm);
+}
+.ds-top-nav__nav {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: var(--ds-space-inline-lg);
+  min-inline-size: 0;
+}
+.ds-top-nav__actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--ds-space-inline-md);
+}
+.ds-top-nav__list {
+  align-items: center;
+  gap: var(--ds-space-inline-sm);
+}
+/* The cap sits on the item, not the link, or a capped link leaves a gap. */
+.ds-top-nav__list > li {
+  display: flex;
+  flex: 0 1 auto;
+  min-inline-size: 0;
+  max-inline-size: var(--ds-size-panel-min);
+}
+.ds-top-nav__opener {
+  display: none;
+}
+@container ds-top-nav (max-width: 767px) {
+  .ds-top-nav__list,
+  .ds-top-nav__row[data-row="sub"] {
+    display: none;
+  }
+  .ds-top-nav__opener {
+    display: inline-flex;
+  }
+}
+/* In view it is one opaque bar over the header; out of view while it has no focus. The bar fills the
+ * header and draws its focus inside, because it has no room around it. The hidden form is the base
+ * and focus lifts it: a :not(:focus) selector is rewritten by the pseudo-states addon into one that
+ * always matches, so the story would never see the bar. */
+.ds-top-nav__skip {
+  position: absolute;
+  inset: 0;
+  z-index: var(--ds-layer-overlay);
+  display: flex;
+  align-items: center;
+  border-radius: var(--ds-shape-media-radius);
+  background: var(--ds-surface-card);
+  color: var(--ds-text-primary);
+  font-family: var(--ds-type-control-md-font-family);
+  font-size: var(--ds-type-control-md-font-size);
+  line-height: var(--ds-type-control-md-line-height);
+  font-weight: var(--ds-type-control-md-font-weight);
+  text-decoration: none;
+  white-space: nowrap;
+  clip-path: inset(50%);
+  inline-size: 1px;
+  block-size: 1px;
+  padding: 0;
+  overflow: hidden;
+}
+.ds-top-nav__skip:focus {
+  clip-path: none;
+  inline-size: auto;
+  block-size: auto;
+  padding-inline: var(--ds-space-inset-md);
+  outline: 1px solid var(--ds-focus-ring);
+  outline-offset: -1px;
+  box-shadow: var(--_focus-shadow-inset);
+  overflow: visible;
+}
+/* Opacity, not visibility: the row keeps its Tab stops, and the next Tab must reach them. */
+.ds-top-nav__skip:focus ~ .ds-top-nav__row {
+  opacity: 0;
+}
+
+/* The drawer (ORV-252, nav-narrow-1, nav-size-1): items at least --ds-size-touch tall. The body
+ * bleeds 16 each way so the fill starts at 8 and the labels sit on the 24 edge under the title. */
+.ds-nav-drawer .ds-side-sheet__body {
+  margin-inline: calc(-1 * var(--ds-space-inset-md));
+  padding-inline: 0;
+}
+.ds-nav-drawer .ds-nav-item {
+  --_nav-height: var(--ds-size-touch);
+}
+.ds-nav-drawer__label {
+  margin: 0;
+  padding-block: var(--ds-space-stack-sm) var(--ds-space-inline-sm);
+  padding-inline: var(--ds-space-inset-md);
+  color: var(--cmp-nav-item-fg);
+  font-family: var(--ds-type-body-sm-font-family);
+  font-size: var(--ds-type-body-sm-font-size);
+  line-height: var(--ds-type-body-sm-line-height);
+  font-weight: var(--ds-type-body-sm-font-weight);
 }

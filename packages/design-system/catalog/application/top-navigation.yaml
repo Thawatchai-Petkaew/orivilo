@@ -1,0 +1,54 @@
+name: TopNavigation
+tier: application
+status: draft
+since: ORV-252
+import: "@orivilo/design-system"
+story: application-top-navigation
+useWhen:
+  - "The header of a screen: the brand, the section links, the current section marked, and the screen's global actions"
+  - "Moving between sections of the Studio, by keyboard and on a phone, with a skip link to the main content"
+avoidWhen:
+  - "Moving between the pages of one section from a side panel (Sidebar navigation, ORV-225 slice D, not built)"
+  - "A trail of places down to the current page (use Breadcrumb)"
+  - "Switching views of one screen (use Tabs)"
+  - "A dropdown of links under an item: the part holds links only"
+contract: TopNavigationProps
+variants: [one-row, two-row]
+sizes: [sm]
+states:
+  [
+    default,
+    with-current,
+    parent-current,
+    with-badge,
+    with-icons,
+    two-rows,
+    no-items,
+    hover,
+    focus-visible,
+    long-labels,
+    narrow,
+    drawer-open,
+    skip-link,
+  ]
+recipes: [neutral, professional, friendly]
+examples: []
+rules:
+  - "The root is a full-width header and a size container named ds-top-nav. Its row holds one nav, with the brand then the items, and then the actions, after the nav and outside it. contentClassName sets the width and padding of each row, so a shell sets its row per route (top-nav-1)"
+  - "Items are links only, { label, href, icon?, badge?, current? }. A badge is a string from the caller's data and a missing one renders no node. There is no disabled item, because a route that is not built is not listed (nav-item-1)"
+  - "The component marks the current link from currentPath: an equal path is aria-current page, a path under the href is true, current true marks when the path did not, current false never marks. One link at most is marked in a list, the exact match first and then the longest href. With no currentPath nothing is marked (nav-current-1)"
+  - "A marked link takes nav-item.fg-active on nav-item.bg-active, plus a bead of nav-item.bead-size on its start edge, drawn in the padding so the label keeps its edge. Hover takes nav-item.bg-hover and a marked link keeps its own colours under the pointer (nav-look-1)"
+  - "Focus is a 1 px line in focus.ring inside the link with an inset halo, on marked and unmarked links, so it never reads as selection (nav-focus-1)"
+  - "Each link is size.control.sm tall on one line in type.control.md; a label that does not fit is cut with an ellipsis, a link is at most size.panel.min wide, and Thai marks stay whole (nav-size-1)"
+  - "subItems adds a second row under the first, its own nav named by subName, only when it has an item. It has no route in the app yet; the two-row form is shown in Storybook only (top-nav-1)"
+  - "Each nav is named by name or subName, from the locale catalog, and each nav on a page has its own name. The drawer's list has no nav of its own because its title carries the name (nav-landmark-1)"
+  - "At 767 px of the header's own width and below the links and the second row hide and an icon button named by nav.open opens a drawer on the start edge, titled by name, with the same links in the same order and the current one marked. A press on a link closes it; Esc and the close button close it and focus returns to the button. With no items there is no button (nav-narrow-1)"
+  - "skipHref with skipLabel makes the header's first child a link that is out of view until it has focus, then an opaque bar over the row. The five main elements of the app take id main with the shell, in a later slice (top-skip-1)"
+  - "linkComponent takes a router's link; a is the default. The package imports no router"
+  - "The links in the stories go nowhere: the routes are mock. No route in the app shows this part yet"
+a11y:
+  - "A header with a nav, named; with a second row, two navs with different names"
+  - "The current link has aria-current page or true, and a bead and a fill as well, so the mark is more than colour"
+  - "The icon button has an accessible name that includes the navigation's name"
+  - "The drawer is a dialog named by the same name, with focus kept in it while open and returned to the button on close"
+  - "Every link is a Tab stop in order; the skip link is the first. No screen reader test has been run"

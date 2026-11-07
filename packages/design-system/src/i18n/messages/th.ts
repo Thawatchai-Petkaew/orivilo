@@ -63,6 +63,9 @@ export const th = {
     region: "การแจ้งเตือน",
     dismiss: "ปิดการแจ้งเตือน",
   },
+  nav: {
+    open: "เปิด{name}",
+  },
   breadcrumb: {
     label: "เส้นทางถึงหน้านี้",
     showAll: "แสดงเส้นทางทั้งหมด",

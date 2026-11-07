@@ -406,7 +406,7 @@
     },
     "fg-active": {
       "$type": "color",
-      "$value": "{text.primary}"
+      "$value": "{selection.fg}"
     },
     "bg-hover": {
       "$type": "color",
@@ -414,15 +414,23 @@
     },
     "bg-active": {
       "$type": "color",
-      "$value": "{surface.card}"
+      "$value": "{surface.selected}"
     },
     "bead": {
       "$type": "color",
-      "$value": "{brand.signature}"
+      "$value": "{selection.fg}"
+    },
+    "bead-size": {
+      "$type": "dimension",
+      "$value": "{space.inline.md}"
     },
     "radius": {
       "$type": "dimension",
       "$value": "{shape.control.radius}"
+    },
+    "row-radius": {
+      "$type": "dimension",
+      "$value": "{shape.media.radius}"
     },
     "height": {
       "$type": "dimension",

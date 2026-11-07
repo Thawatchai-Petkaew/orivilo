@@ -1136,6 +1136,7 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     floor: TEXT,
   },
   // Breadcrumb (ORV-229): the nav item inks on the page grounds, and the ellipsis ink on the ghost Button's hover and press grounds.
+  // The current crumb reads text.primary, never nav-item.fg-active (a selection ink), so a current place is no selection (ORV-252, crumb-look-1).
   {
     recipe: "breadcrumb",
     slot: "link on canvas",
@@ -1167,14 +1168,14 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
   {
     recipe: "breadcrumb",
     slot: "current on canvas",
-    fg: "nav-item.fg-active",
+    fg: "ds:text.primary",
     bg: "ds:surface.canvas",
     floor: TEXT,
   },
   {
     recipe: "breadcrumb",
     slot: "current on card",
-    fg: "nav-item.fg-active",
+    fg: "ds:text.primary",
     bg: "ds:surface.card",
     floor: TEXT,
   },
@@ -1402,6 +1403,67 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     slot: "description and meta",
     fg: "ds:text.secondary",
     bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
+  // Nav item (ORV-252, nav-look-1): the rest ink on the page and on the drawer, the hover pair, the
+  // marked row (ink on the selected ground, bead on it at the UI floor), and the active ink where
+  // an open marked group shows it with no fill: on the page, on the drawer and on hover.
+  {
+    recipe: "nav-item",
+    slot: "rest on canvas",
+    fg: "nav-item.fg",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
+  {
+    recipe: "nav-item",
+    slot: "rest on drawer",
+    fg: "nav-item.fg",
+    bg: "side-sheet.bg",
+    floor: TEXT,
+  },
+  {
+    recipe: "nav-item",
+    slot: "hover",
+    fg: "nav-item.fg-hover",
+    bg: "nav-item.bg-hover",
+    floor: TEXT,
+  },
+  {
+    recipe: "nav-item",
+    slot: "current",
+    fg: "nav-item.fg-active",
+    bg: "nav-item.bg-active",
+    floor: TEXT,
+  },
+  { recipe: "nav-item", slot: "bead", fg: "nav-item.bead", bg: "nav-item.bg-active", floor: UI },
+  {
+    recipe: "nav-item",
+    slot: "active ink on canvas",
+    fg: "nav-item.fg-active",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
+  {
+    recipe: "nav-item",
+    slot: "active ink on drawer",
+    fg: "nav-item.fg-active",
+    bg: "side-sheet.bg",
+    floor: TEXT,
+  },
+  {
+    recipe: "nav-item",
+    slot: "active ink on hover",
+    fg: "nav-item.fg-active",
+    bg: "nav-item.bg-hover",
+    floor: TEXT,
+  },
+  // Top navigation (ORV-252, top-skip-1): the skip link is an opaque card-ground bar over the header.
+  {
+    recipe: "top-nav",
+    slot: "skip link",
+    fg: "ds:text.primary",
+    bg: "ds:surface.card",
     floor: TEXT,
   },
   // Section header (ORV-251): the title and the description on the page ground. The divider is a

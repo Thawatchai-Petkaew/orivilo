@@ -197,6 +197,50 @@ export const pageHeaderFixtures = {
 } as const;
 
 /**
+ * Top navigation story data (ORV-252): MOCK. None of these routes exists, so a link goes nowhere
+ * and the story's own `linkComponent` records the press. Three section links (the second with a
+ * badge from the caller's data), a second row of two, the skip link's label and an action, in both
+ * languages. The long label is a name without spaces and truncates, the marks label stacks Thai marks above
+ * the line and fits its row, for the clip checks. They are the caller's text, not catalog keys.
+ */
+export const navFixtures = {
+  th: {
+    name: "เมนูหลัก",
+    subName: "เมนูย่อย",
+    items: [
+      { label: "ภาพรวม", href: "/overview" },
+      { label: "โปรเจกต์", href: "/projects", badge: "4" },
+      { label: "สมาชิก", href: "/members" },
+    ],
+    subItems: [
+      { label: "ทั่วไป", href: "/settings/general" },
+      { label: "ความปลอดภัย", href: "/settings/security" },
+    ],
+    skip: "ข้ามไปเนื้อหาหลัก",
+    action: "สร้างโปรเจกต์",
+    longLabel: fixtures.longThai,
+    marksLabel: "ฟื้ปั้ปี๊ฟื้ ปิ่นโต้ โลโก้",
+  },
+  en: {
+    name: "Main",
+    subName: "Section",
+    items: [
+      { label: "Overview", href: "/overview" },
+      { label: "Projects", href: "/projects", badge: "4" },
+      { label: "Members", href: "/members" },
+    ],
+    subItems: [
+      { label: "General", href: "/settings/general" },
+      { label: "Security", href: "/settings/security" },
+    ],
+    skip: "Skip to main content",
+    action: "Create project",
+    longLabel: fixtures.longLatin,
+    marksLabel: "Brand Canvas team",
+  },
+} as const;
+
+/**
  * Breadcrumb story trail (ORV-229): six crumbs, each with a `#` link, in both languages. They are the
  * caller's text, not catalog keys, and they are mock. Crumb 6 is the title of the first decision of
  * the decision-log example.
