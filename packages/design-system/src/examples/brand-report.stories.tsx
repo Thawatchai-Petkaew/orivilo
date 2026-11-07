@@ -1,6 +1,6 @@
 import type { PersonalityAxis, QualityKey, ReportView, ViewReading } from "@orivilo/intent-engine";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { expect, fn, userEvent, within } from "storybook/test";
 import { fixtures } from "../components/fixtures";
 import { Matrix, Narrow, Under } from "../components/matrix";
@@ -281,6 +281,21 @@ export const NotConfigured: Story = {
     await expect(canvas.getByText(th.brandReport.notConfigured)).toBeVisible();
     await expect(canvas.queryByRole("textbox")).toBeNull();
     await expect(canvasElement.querySelector("form")).toBeNull();
+  },
+};
+
+/** A signed-in person who is not on the approved list: the heading and the line, no form (ORV-268 row 11). */
+export const NotAllowed: Story = {
+  args: { access: "not-allowed" },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(
+      canvas.getByRole("heading", { level: 1, name: th.brandReport.heading }),
+    ).toBeVisible();
+    await expect(canvas.getByText(th.brandReport.notAllowed)).toBeVisible();
+    await expect(canvas.queryByRole("textbox")).toBeNull();
+    await expect(canvasElement.querySelector("form")).toBeNull();
+    await expect(canvasElement.querySelector("a")).toBeNull();
   },
 };
 
@@ -736,6 +751,37 @@ export const Failed: Story = {
   },
 };
 
+/** The action answered `forbidden`, so the caller passes `brandReport.notAllowed` as the failure line (ORV-268 row 14). */
+function NotAllowedOnSubmitScreen() {
+  const m = useMessages();
+  const [failure, setFailure] = useState<string | undefined>(undefined);
+  return (
+    <BrandReportScreen
+      access="form"
+      failure={failure}
+      onRead={() => setFailure(m.brandReport.notAllowed)}
+    />
+  );
+}
+
+/** An approved person is taken off the list and submits: the danger line says so, the address stays, no report. */
+export const NotAllowedOnSubmit: Story = {
+  render: () => <NotAllowedOnSubmitScreen />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const field = canvas.getByLabelText(new RegExp(th.brandReport.urlLabel));
+    await userEvent.type(field, "example.com");
+    await userEvent.click(canvas.getByRole("radio", { name: th.brandReport.roleOwn }));
+    await userEvent.click(canvas.getByRole("button", { name: th.brandReport.submit }));
+    await expect(alertWith(canvasElement, th.brandReport.notAllowed)).toHaveAttribute(
+      "data-variant",
+      "danger",
+    );
+    await expect(field).toHaveValue("example.com");
+    await expectNoSections(canvasElement);
+  },
+};
+
 // ----- long lists, untrusted text, narrow (rows 31, 32, 34) -----
 
 const hex = (i: number) => `#${(0x100000 + i * 4099).toString(16).toUpperCase().padStart(6, "0")}`;
@@ -885,6 +931,63 @@ export const NarrowEnglish: Story = {
   play: async ({ canvasElement }) => {
     await expectFitsAt360(canvasElement);
     await expect(textOf(canvasElement)).toContain(`Page read: ${LONG_URL}`);
+  },
+};
+
+/** Both not-allowed screens in a 360 px frame, in Thai and English, light and dark (ORV-268 row 16). */
+function NotAllowedNarrowGrid({ onSubmit }: { onSubmit: boolean }) {
+  return (
+    <>
+      {(["th", "en"] as const).flatMap((locale) =>
+        (["light", "dark"] as const).map((mode) => (
+          <LocaleProvider key={`${locale}-${mode}`} locale={locale}>
+            <Under profile="neutral" mode={mode}>
+              <div data-narrow="" data-locale={locale} className="w-[360px] max-w-full">
+                {onSubmit ? (
+                  <NotAllowedOnSubmitScreen />
+                ) : (
+                  <BrandReportScreen access="not-allowed" />
+                )}
+              </div>
+            </Under>
+          </LocaleProvider>
+        )),
+      )}
+    </>
+  );
+}
+
+async function expectNotAllowedFits(canvasElement: HTMLElement, onSubmit: boolean) {
+  const frames = canvasElement.querySelectorAll<HTMLElement>("[data-narrow]");
+  await expect(frames).toHaveLength(4);
+  for (const frame of frames) {
+    const m = messagesFor(frame.dataset.locale === "en" ? "en" : "th");
+    const inFrame = within(frame);
+    if (onSubmit) {
+      await userEvent.type(
+        inFrame.getByLabelText(new RegExp(m.brandReport.urlLabel)),
+        "example.com",
+      );
+      await userEvent.click(inFrame.getByRole("radio", { name: m.brandReport.roleOwn }));
+      await userEvent.click(inFrame.getByRole("button", { name: m.brandReport.submit }));
+    }
+    await expect(inFrame.getAllByText(m.brandReport.notAllowed).length).toBeGreaterThan(0);
+    await expect(frame.getBoundingClientRect().width).toBeLessThanOrEqual(360);
+    await expect(frame.scrollWidth).toBeLessThanOrEqual(frame.clientWidth);
+  }
+}
+
+export const NotAllowedNarrow: Story = {
+  render: () => <NotAllowedNarrowGrid onSubmit={false} />,
+  play: async ({ canvasElement }) => {
+    await expectNotAllowedFits(canvasElement, false);
+  },
+};
+
+export const NotAllowedOnSubmitNarrow: Story = {
+  render: () => <NotAllowedNarrowGrid onSubmit />,
+  play: async ({ canvasElement }) => {
+    await expectNotAllowedFits(canvasElement, true);
   },
 };
 

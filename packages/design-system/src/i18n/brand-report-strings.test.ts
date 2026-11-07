@@ -76,3 +76,18 @@ describe("brandReport word lists", () => {
     ]);
   });
 });
+
+describe("brandReport.notAllowed", () => {
+  it("is the approved text in both languages, with no middot and no em dash", () => {
+    expect(messagesFor("en").brandReport.notAllowed).toBe(
+      "Reading a website is open only to approved accounts for now, and this account is not one of them.",
+    );
+    expect(messagesFor("th").brandReport.notAllowed).toBe(
+      "ตอนนี้การอ่านเว็บไซต์เปิดให้เฉพาะบัญชีที่ได้รับอนุมัติ และบัญชีนี้ยังไม่อยู่ในรายชื่อ",
+    );
+    for (const locale of LOCALES) {
+      const banned = new RegExp(`[${String.fromCharCode(0xb7, 0x2014)}]`);
+      expect(messagesFor(locale).brandReport.notAllowed).not.toMatch(banned);
+    }
+  });
+});
