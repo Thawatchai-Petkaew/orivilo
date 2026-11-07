@@ -3,7 +3,7 @@ issue: ORV-266 (https://tpetkaew.atlassian.net/browse/ORV-266)
 spec: docs/specs/ORV-266/spec.md v1.4
 parent: docs/specs/ORV-128/spec.md, "Reading a page the person submits"
 adr: docs/adr/0019-page-renderer-placement.md, decision 7
-task: ORV-266-arch-1, ORV-266-arch-2, ORV-266-spec-2, ORV-267-spec-3
+task: ORV-266-arch-1, ORV-266-arch-2, ORV-266-spec-2, ORV-267-spec-3, ORV-266-arch-3
 author: architect
 date: 2026-11-07
 ---
@@ -14,7 +14,7 @@ A signed-in person gives one URL on a page of the deployed app. The server reads
 
 **What is real.** The read and the analysis are real and rule-based. The report never shows colour areas, contrast, density or text visibility, and lists them as not measured. Pages that build their content with JavaScript will probably give thin reports, because only the fetched bytes are read (inference, not measured). No test reaches the internet (ADR 0009 point 8): the port tests talk to a server on loopback that the test itself starts, and a real page is read only in the live check of section 10.
 
-**What was probed.** Every Node behaviour marked "probed" below was run in this task on Node 22.23.0, with scripts outside the repo, against a loopback server. The time and memory of a read on Vercel are not measured anywhere yet.
+**What was probed.** Every Node behaviour marked "probed" below was run in this task on Node 22.23.0, with scripts outside the repo, against a loopback server. The time of a read on Vercel has one live sample per Node line (section 4); its memory is not measured anywhere yet.
 
 ## 1. Decisions in short
 
@@ -34,13 +34,13 @@ A signed-in person gives one URL on a page of the deployed app. The server reads
 ## 2. The path of one request
 
 1. `apps/web/app/read/page.tsx` (server) reads the session and shows the form, or the sign-in prompt.
-2. The form calls `analysePage({ url, role })`. The action checks the session again, counts the limit, parses the input, then applies `url-input-1`.
+2. The form calls `analysePage({ url, role })`. The action checks the session again, then the allow-list, counts the limit, parses the input, then applies `url-input-1`, in the order of rule `read-door-1` of `docs/specs/ORV-268/spec.md` (section 5).
 3. `createReadPorts()` makes new ports, and `readUrlInput({ url, role }, ports)` runs the competitor gate and `readPage`. `readPage` stays unexported from the engine, so this is the only way in.
 4. `reportOf(...)` turns the read into a `Report` with `snapshot` null and `notRendered: "no-renderer"`.
 5. `toReportView(report, { role, retrievedAt })` cuts it down, and the action returns it. The bytes, the `Report` and the page text end with the call.
 6. `BrandReportScreen` resolves the view's keys in the person's locale, in the browser.
 
-No workspace data is read or written, so no `withWorkspace` call is needed. Session and rate limit are the only access checks (`.claude/rules/security.md` rules 1 and 6).
+No workspace data is read or written, so no `withWorkspace` call is needed. Session, the allow-list of ORV-268 and rate limit are the only access checks (`.claude/rules/security.md` rules 1 and 6).
 
 ## 3. Read ports: `apps/web/server/read-ports.ts`
 
@@ -64,7 +64,7 @@ No workspace data is read or written, so no `withWorkspace` call is needed. Sess
 
 ## 4. Time and memory against the function limit
 
-K-0081 records 300 s default and maximum on Hobby and an 800 s maximum on Pro, stated for fluid compute. This project's plan and fluid setting are not checked, so section 10 reads them.
+K-0081 records 300 s default and maximum on Hobby and an 800 s maximum on Pro, stated for fluid compute. The live check of section 10 read this project's plan and fluid setting: Hobby, fluid compute enabled.
 
 <!-- prettier-ignore -->
 | Step | Bound | Source |
@@ -73,7 +73,7 @@ K-0081 records 300 s default and maximum on Hobby and an 800 s maximum on Pro, s
 | Read, all hops and sheets, one at a time | 30 s; each request at most `min(10 s, what is left)` | `TOTAL_BUDGET_MS`, `REQUEST_TIMEOUT_MS` |
 | Analysis, report and view, one CPU block | Not measured on 1 vCPU. One worst case parse took 561 to 712 ms on an arm64 laptop | ORV-128 tech notes §6 |
 
-So `maxDuration` is 60: the 30 s read plus 30 s for everything else, many times the laptop figure and far inside K-0081's limit. The real figure on 1 vCPU comes from the live check. It goes in `page.tsx`, because the docs of the installed Next.js say to set it at the page level for Server Actions (`next/dist/docs/01-app/03-api-reference/03-file-conventions/02-route-segment-config/maxDuration.md`, line 18). So the action must be called only from this page. If the setting did not reach the action, K-0081's 300 s default still covers a read. A function stopped by the platform writes no boundary line, and the form treats a rejected call as `failed`.
+So `maxDuration` is 60: the 30 s read plus 30 s for everything else, many times the laptop figure and far inside K-0081's limit. The live check read airbnb.com in 579 ms (page-read) and 622 ms (action) on Node 24.x, and 488 ms and 561 ms on Node 22.x, on Hobby with fluid compute enabled (ORV-266 comment 10627, recorded in ADR 0019, "Addition 2026-11-07"). One read per Node line is a sample, not a benchmark, and no worst case page was read. It goes in `page.tsx`, because the docs of the installed Next.js say to set it at the page level for Server Actions (`next/dist/docs/01-app/03-api-reference/03-file-conventions/02-route-segment-config/maxDuration.md`, line 18). So the action must be called only from this page. If the setting did not reach the action, K-0081's 300 s default still covers a read. A function stopped by the platform writes no boundary line, and the form treats a rejected call as `failed`.
 
 **Memory (ORV-128 finding F30).** A parse at the Element count needs about 0.5 GB and sampled up to about 822 MB (ORV-128 tech notes §6). A function has 2 GB (K-0081), so one worst case read fits. Fluid compute shares an instance between calls (K-0081), so two worst case reads at once are tight: for the `security` review. The read holds at most 2 MB plus 10 x 1 MB of bytes.
 
@@ -81,9 +81,11 @@ So `maxDuration` is 60: the 30 s read plus 30 s for everything else, many times 
 
 `"use server"`, one exported async function, `analysePage(input: unknown): Promise<Outcome<ReportView>>`, reusing the `Outcome` type from `directions/actions.ts` by type import only. A small private `run` follows the order of the one in `directions/actions.ts`, inside one `atBoundary`:
 
-1. `auth().api.getSession`.
-2. The limit: `page-read` by session user, or `signed-out` by trusted IP when there is no session. Every call counts, whatever its result. A store failure fails closed with `SERVICE_UNAVAILABLE`.
-3. No session answers `signed-out`. No port has been called.
+The order is rule `read-door-1` of `docs/specs/ORV-268/spec.md`: session, allow-list, limit, input, ports.
+
+1. `auth().api.getSession`. No session: the `signed-out` limit counts by trusted IP, then the call answers `signed-out`. The list is not read and no port has been called.
+2. The allow-list, `read-allow-list-1`. An address not on `READ_ALLOWED_EMAILS` answers `forbidden`, with no limit consumed, no input parsed and no port created.
+3. The limit: `page-read` by session user. Every call from an approved person counts, whatever its result. A store failure fails closed with `SERVICE_UNAVAILABLE`.
 4. zod at the boundary: `z.strictObject({ url: z.string().trim().min(1).max(URL_MAX_CHARS), role: z.enum(INPUT_ROLES) })`, a failure being `invalid-input`. `.trim()` runs before the two bounds (probed on zod 4.6.6), so the 2,048 of `url-input-1` counts the trimmed text. Which roles the form offers is the spec's.
 5. `url-input-1`: a private `urlOf(text)` puts `https://` in front of text that does not match `/^[a-z][a-z0-9+.-]*:\/\//i`, unless the URL parser finds a username or password in the text, which then passes as written (ORV-267 row 37), and changes nothing else. `readUrlInput` gets the result and `reportOf` gets the same text as `given`, so the checks of `readUrlInput` decide the rest, as the spec's "Worked examples" lists.
 6. Ports, `readUrlInput`, `reportOf`, `toReportView`, and the `page-read` step line.
@@ -277,6 +279,6 @@ The release PR carries develop to main (ADR 0016); develop never deploys. Then, 
 
 ## 11. For the `security` review
 
-- **Who can reach it.** Better Auth creates an account for any Google sign-in, so any Google account can read pages, at 10 per hour each. There is no cap across people. The read names itself by its user agent and obeys robots.txt.
+- **Who can reach it.** Better Auth creates an account for any Google sign-in, but since ORV-268 only an address on `READ_ALLOWED_EMAILS` can read pages (rule `read-door-1` of `docs/specs/ORV-268/spec.md`), at 10 per hour each. There is no cap across people. The read names itself by its user agent and obeys robots.txt.
 - **Two worst case parses on one shared instance** (section 4).
 - **Address use.** A person can point the reader at any public address; the Address check, the pin and the 30 s are the whole fence. No URL or host is logged, so abuse shows only as a count per person in `rate_limit_counter`.
