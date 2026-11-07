@@ -18,6 +18,7 @@ import {
   paintMatches,
   paintRegion,
   parseCssColor,
+  partLabel,
   readGeometries,
   viewBoxToBox,
   type BoxGeometry,
@@ -980,6 +981,16 @@ describe("paintDifference", () => {
   it("throws on two regions of different sizes, in rows and in columns", () => {
     expect(() => paintDifference([row(white)], [row(white), row(white)])).toThrow(/same size/);
     expect(() => paintDifference([row(white)], [row(white, white)])).toThrow(/same size/);
+  });
+});
+
+describe("partLabel", () => {
+  it("names an element by tag and classes and a range as a text range", () => {
+    // The unit project runs in node, so these are the two shapes by their fields, not DOM nodes.
+    const el = { localName: "p", className: "ds-board__status" } as Element;
+    const range = { getBoundingClientRect: () => ({}) as DOMRect };
+    expect(partLabel(el)).toBe("<p.ds-board__status>");
+    expect(partLabel(range)).toBe("the text range");
   });
 });
 

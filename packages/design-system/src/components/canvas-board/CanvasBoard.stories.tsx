@@ -658,6 +658,17 @@ export const Loading: Story = {
     await expect(overlayLabel(canvasElement)).toBeVisible();
     await expect(region.querySelector(".ds-board__overlay .ds-spinner__ring")).not.toBeNull();
     await expectOnPlate(part(canvasElement, ".ds-board"));
+    if (inVitest) {
+      // Row 35's "once": the line's box is 1 by 1 px whether or not its words paint, so the words
+      // themselves are asked. A Range over the text has the words' layout box, which no clip
+      // narrows, and hiding the line must change nothing in that region.
+      const line = statuses[0] as HTMLElement;
+      const words = document.createRange();
+      words.selectNodeContents(line);
+      await withRingsStill(canvasElement, () =>
+        expectCoversInk(part(canvasElement, ".ds-board"), [words], line),
+      );
+    }
   },
 };
 
@@ -666,7 +677,7 @@ export const Loading: Story = {
  * nodes show, and the status line is the same node throughout, holding the loading words and then
  * nothing (`load-board-1`, W6).
  */
-function LoadingHost({ copy = "กำลังโหลดกระดาน" }: { copy?: string }) {
+function LoadingHost({ copy = "กำลังโหลดกระดาน", status }: { copy?: string; status?: string }) {
   const [loading, setLoading] = useState(true);
   return (
     <div>
@@ -675,7 +686,14 @@ function LoadingHost({ copy = "กำลังโหลดกระดาน" }:
           โหลดเสร็จ
         </Button>
       </div>
-      <Stateful initial={BOARD} loading={loading} label={copy} height={520} fill={false} />
+      <Stateful
+        initial={BOARD}
+        loading={loading}
+        status={status}
+        label={copy}
+        height={520}
+        fill={false}
+      />
     </div>
   );
 }
@@ -727,6 +745,28 @@ export const LoadingFinishes: Story = {
     await expect(line.textContent).toBe("");
     await expect(region.querySelector(".ds-loading-state")).toBeNull();
     await ready(region);
+  },
+};
+
+/**
+ * The shell has a status to show when the wait starts (`load-board-1`, W6's line true and line false
+ * rows): while `loading` is true the one status holds the loading words and not the shell's; when
+ * it ends the same node holds the shell's status.
+ */
+const SHELL_STATUS = "กำลังสร้างโลโก้ รอบที่ 2 (จำลอง)";
+export const LoadingOverStatus: Story = {
+  render: () => <LoadingHost copy="กระดานแบรนด์ (ข้อมูลตัวอย่าง)" status={SHELL_STATUS} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const region = canvas.getByRole("region", { name: "กระดานแบรนด์ (ข้อมูลตัวอย่าง)" });
+    const line = status(region);
+    await expect(line.textContent, "the line holds the wait ahead of the status").toBe(LOADING_TH);
+    await userEvent.click(canvas.getByRole("button", { name: "โหลดเสร็จ" }));
+    await waitFor(() => expect(region).not.toHaveAttribute("aria-busy"));
+    await expect(status(region)).toBe(line);
+    await expect(line.textContent, "the line holds the status once the wait ends").toBe(
+      SHELL_STATUS,
+    );
   },
 };
 
