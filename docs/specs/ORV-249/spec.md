@@ -94,7 +94,7 @@ Row 38 is catalog, copy, token and contrast checks.
 
 ## Rows per PR
 
-The main session adds this PR's line when the PR opens, in the form of the parent's line for PR 187. It will read rows 21-39.
+- PR 201: rows 21-39
 
 ## Rules and bounds
 
