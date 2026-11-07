@@ -90,7 +90,7 @@ const refusedReportSchema = z
   .object({
     version: z.literal(REPORT_SCHEMA_VERSION),
     status: z.literal("refused"), // a refused or failed read; no evidence, no notMeasured, no personality
-    url: z.string().max(URL_MAX_CHARS), // userinfo dropped, then cut at URL_MAX_CHARS
+    url: z.string().max(URL_MAX_CHARS), // the parser's origin and a slash, or empty, then cut
     urlCut: z.boolean(),
     key: z.enum(REFUSED_KEYS),
     line: z.enum(REFUSED_LINE_KEYS),
@@ -106,80 +106,25 @@ export const reportSchema = z.discriminatedUnion("status", [
 export type Report = z.infer<typeof reportSchema>;
 
 /**
- * The authority of a URL as given, userinfo included: from after an optional `scheme://` to the first
- * `/`, `?` or `#`. Textual, so it holds for text no URL parser accepts. It is not the only reading:
- * the WHATWG parser skips extra slashes, reads a backslash as a slash and drops a tab or a newline,
- * so it can find userinfo where this pattern finds an empty authority. `refusedUrlOf` therefore asks
- * the parser too, and the parser's own username and password decide.
- */
-const AUTHORITY = /^([a-z][a-z0-9+.-]*:\/\/)?([^/?#]*)/i;
-
-/** The URL parser's reading of `text` when it holds a username or a password, with both cleared. */
-function withoutParsedCredentials(text: string): string | null {
-  let parsed: URL;
-  try {
-    parsed = new URL(text);
-  } catch {
-    return null; // no parser accepts it: the textual path below decides
-  }
-  if (parsed.username === "" && parsed.password === "") return null;
-  parsed.username = "";
-  parsed.password = "";
-  return parsed.href;
-}
-
-/** True when the parser reads `text` as an http or https URL with no username and no password. */
-function isCleanWebUrl(text: string): boolean {
-  try {
-    const parsed = new URL(text);
-    return (
-      (parsed.protocol === "http:" || parsed.protocol === "https:") &&
-      parsed.username === "" &&
-      parsed.password === ""
-    );
-  } catch {
-    return false;
-  }
-}
-
-/** The text with the userinfo of its textual authority dropped. */
-function withoutTextualUserinfo(given: string): string {
-  const m = AUTHORITY.exec(given);
-  const scheme = m?.[1] ?? "";
-  const authority = m?.[2] ?? "";
-  const rest = given.slice(scheme.length + authority.length);
-  return scheme + authority.slice(authority.lastIndexOf("@") + 1) + rest;
-}
-
-/**
- * report-outcome-1, the two steps on `url` of a refused member: userinfo dropped, then cut at
- * URL_MAX_CHARS. Three cases, in order:
- *  1. The given text parses as an http or https URL with no username and no password: it stays as
- *     given, so https://www.tiktok.com/@brand stays whole and http://example.com\@evil.test/ never
- *     shows a host that was not contacted.
- *  2. The parser finds a username or a password: they are cleared and the parser's href is shown.
- *  3. Otherwise the textual authority drops its userinfo, the parser reads that result once more
- *     (dropping text can leave a form it reads as userinfo), and if the result is still not a clean
- *     http or https URL, everything up to its last `@` goes. That cut drops too much when unsure:
- *     text pasted around a URL, a scheme the parser does not know, or a password holding a slash,
- *     question mark or hash loses its front along with its secret.
- * The limit: a username and password inside the path or query of a clean http or https URL (a
- * second URL after the first, or one in `?next=`) are kept, because the text is a valid address and
- * the parser reads them as path. url-input-1 and the form check the person's text before it gets
- * here (the next issue).
+ * report-outcome-1, the `url` of a refused member: the origin the URL parser reads from `given`,
+ * with a slash after it, cut at URL_MAX_CHARS. It is empty when the parser rejects the text or reads
+ * no origin (an opaque path such as `view-source:` gives the text `null`). A URL origin has no place
+ * for a username, a password, a path or a query, so none of them can be shown.
+ * The limit: the origin keeps what the parser reads as the host or the port. A slash or a backslash
+ * inside a username or a password ends the authority early, so the text before it stays as the host
+ * (https://user\:secret@example.com/ gives https://user/).
  */
 function refusedUrlOf(given: string): { url: string; urlCut: boolean } {
-  let bare = given;
-  if (!isCleanWebUrl(given)) {
-    const textual = withoutTextualUserinfo(given);
-    bare = withoutParsedCredentials(given) ?? withoutParsedCredentials(textual) ?? textual;
-    if (!isCleanWebUrl(bare)) bare = bare.slice(bare.lastIndexOf("@") + 1);
+  let origin: string;
+  try {
+    origin = new URL(given).origin;
+  } catch {
+    return { url: "", urlCut: false }; // the parser rejects the text
   }
-  if (bare.length <= URL_MAX_CHARS) return { url: bare, urlCut: false };
-  let end = URL_MAX_CHARS;
-  const last = bare.charCodeAt(end - 1);
-  if (last >= 0xd800 && last <= 0xdbff) end -= 1; // never end on half a surrogate pair
-  return { url: bare.slice(0, end), urlCut: true };
+  if (origin === "null") return { url: "", urlCut: false }; // the parser reads no origin
+  const url = `${origin}/`;
+  if (url.length <= URL_MAX_CHARS) return { url, urlCut: false };
+  return { url: url.slice(0, URL_MAX_CHARS), urlCut: true }; // an origin is ASCII: no half pair
 }
 
 type ReportMemberBuilt =

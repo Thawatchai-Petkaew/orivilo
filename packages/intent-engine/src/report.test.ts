@@ -560,120 +560,101 @@ describe("reportOf, the url of a refused report", () => {
     return refusedOf(reportOf(given, outcome, null, CTX));
   };
 
+  // The 16 forms of the worked example of report-outcome-1 (spec v1.3), each as reportOf gets it, in
+  // order. Run through Node 22.23: the values are what the WHATWG URL parser gives. The rule keeps the
+  // parser's origin and a slash, or nothing, so no username, password, path or query can be in the url.
+  it.each([
+    ["the username and password go", "https://user:secret@example.com/", "https://example.com/"],
+    ["a backslash ends the authority", "http://example.com\\@evil.test/", "http://example.com/"],
+    ["a backslash in the userinfo", "https://CORP\\user:secret@example.com/", "https://corp/"],
+    ["the path and its @ go", "https://www.tiktok.com/@brand", "https://www.tiktok.com/"],
+    ["an opaque path has a null origin", "view-source:https://user:secret@example.com/", ""],
+    ["a space in the host is rejected", "https://exa mple.com/", ""],
+    ["a port past 65535 is rejected", "https://user:secret@example.com:99999/", ""],
+    ["a pasted https:\\\\ form", "https://https:\\\\user:secret@example.com/", "https://https/"],
+    ["a pasted https:/ form", "https://https:/user:secret@example.com/", "https://https/"],
+    [
+      "the metadata path goes",
+      "http://169.254.169.254/latest/meta-data/",
+      "http://169.254.169.254/",
+    ],
+    [
+      "a port that is not the default stays",
+      "https://example.com:8443/",
+      "https://example.com:8443/",
+    ],
+    ["ftp has an origin", "ftp://example.com/", "ftp://example.com/"],
+    [
+      "the query goes",
+      "https://example.com/?next=https://user:secret@b.test/",
+      "https://example.com/",
+    ],
+    [
+      "the limit: a backslash after the user",
+      "https://user\\:secret@example.com/",
+      "https://user/",
+    ],
+    [
+      "the limit: digits read as a port",
+      "https://user:123/secret@example.com/",
+      "https://user:123/",
+    ],
+    [
+      "the limit: the password tail is the host",
+      "https://user:se@cret/x@example.com:99999/",
+      "https://cret/",
+    ],
+  ])("%s", (_name, given, shown) => {
+    const r = refuse(given);
+    expect(r.url).toBe(shown);
+    expect(r.urlCut).toBe(false);
+    expect(JSON.stringify(r)).not.toContain("secret");
+  });
+
+  // Forms of the earlier rounds of ORV-266-security and ORV-266-review: the parser reads userinfo
+  // where a textual pattern did not, or rejects the text. None shows the secret, and what is left
+  // is the origin or nothing.
   it.each([
     ["http://user:secret@example.test/", "http://example.test/"],
-    ["http://user@example.test/a@b", "http://example.test/a@b"],
+    ["http://user@example.test/a@b", "http://example.test/"],
     ["http://:secret@example.test/", "http://example.test/"],
     ["https://a:b@c:d@example.test/", "https://example.test/"],
-    ["ftp://user:secret@example.com/", "ftp://example.com/"],
-    ["user:secret@example.test/", "example.test/"],
-    ["https://user:secret@", "https://"],
-    ["https://a:secret\\@example.test/", "https://example.test/"],
-    ["https://javascript:alert(1)", "https://javascript:alert(1)"],
-  ])("drops the userinfo of %s", (given, shown) => {
-    const r = refuse(given);
-    expect(r.url).toBe(shown);
-    expect(r.urlCut).toBe(false);
-    expect(r.url).not.toContain("secret");
-  });
-
-  // Forms the URL parser reads as userinfo where the textual authority pattern finds none (F1 of
-  // ORV-266-review-1): the parser's own username and password decide.
-  it.each([
-    ["extra slashes (three)", "https:///user:secret@example.com/", "https://example.com/"],
-    ["extra slashes (four)", "https:////user:secret@example.com/x", "https://example.com/x"],
-    ["one slash", "https:/user:secret@example.com/", "https://example.com/"],
-    ["a backslash after the slash", "https:/\\user:secret@example.com/", "https://example.com/"],
-    ["two backslashes", "https:\\\\user:secret@example.com/", "https://example.com/"],
-    ["a newline inside the scheme", "ht\ntps://user:secret@example.com/", "https://example.com/"],
-    ["a tab inside the scheme", "ht\ttps://user:secret@example.com/", "https://example.com/"],
-    ["an upper-case scheme", "HTTPS:///user:secret@example.com/", "https://example.com/"],
-    ["a mixed-case scheme and host", "HtTp://USER:secret@Example.com", "http://example.com/"],
-    ["ftp, extra slashes", "ftp:///user:secret@example.com/", "ftp://example.com/"],
-    ["a username without a password", "https:///user@example.com/", "https://example.com/"],
-    ["a password without a username", "https:///:secret@example.com/", "https://example.com/"],
-    [
-      "text before the scheme that the textual cut drops",
-      "a@https://u:secret@h.test/",
-      "https://h.test/",
-    ],
-  ])("drops the userinfo the parser finds: %s", (_name, given, shown) => {
-    const r = refuse(given);
-    expect(r.url).toBe(shown);
-    expect(r.urlCut).toBe(false);
-    expect(JSON.stringify(r)).not.toContain("secret");
-    expect(JSON.stringify(r)).not.toContain("user");
-    const parsed = new URL(r.url);
-    expect([parsed.username, parsed.password]).toEqual(["", ""]);
-  });
-
-  // SEC-266-8 and F6 of ORV-266-security-2: text the parser rejects or reads as an opaque path, or a
-  // password holding a slash, a question mark or a hash. The first eleven are the forms that reach
-  // reportOf through url-input-1 (https:// put in front); the next two reach it as written.
-  it.each([
-    ["odd slashes, a space in the host", "https:///user:secret@exa mple.com/", "exa mple.com/"],
-    ["odd slashes, a bad port", "https:///user:secret@example.com:99999/", "example.com:99999/"],
-    ["odd slashes, no host", "https:///user:secret@/", "/"],
-    [
-      "view-source: behind https://",
-      "https://view-source:https://user:secret@example.com/",
-      "example.com/",
-    ],
-    ["blob: behind https://", "https://blob:https://user:secret@example.com/", "example.com/"],
-    [
-      "a jdbc URL behind https://",
-      "https://jdbc:postgresql://user:secret@example.com/db",
-      "example.com/db",
-    ],
-    ["text before the URL", "https://see https://user:secret@example.com/", "example.com/"],
-    ["angle brackets", "https://<https://user:secret@example.com/>", "example.com/>"],
-    ["a slash in the password", "https://user:se/cret@example.com/", "example.com/"],
-    ["a question mark in the password", "https://user:se?cret@example.com/", "example.com/"],
-    ["a hash in the password", "https://user:se#cret@example.com/", "example.com/"],
-    ["view-source: as written", "view-source:https://user:secret@example.com/", "example.com/"],
-    ["text before the URL as written", "see https://user:secret@example.com/", "example.com/"],
-    [
-      "a newline in the scheme and a space in the host",
-      "ht\ntps://user:secret@exa mple.com/",
-      "exa mple.com/",
-    ],
-  ])("drops the userinfo the parser does not read: %s", (_name, given, shown) => {
+    ["user:secret@example.test/", ""],
+    ["https://user:secret@", ""],
+    ["https://a:secret\\@example.test/", ""],
+    ["https:///user:secret@example.com/", "https://example.com/"],
+    ["https:/\\user:secret@example.com/", "https://example.com/"],
+    ["ht\ntps://user:secret@example.com/", "https://example.com/"],
+    ["HtTp://USER:secret@Example.com", "http://example.com/"],
+    ["a@https://u:secret@h.test/", ""],
+    ["https://see https://user:secret@example.com/", ""],
+    ["https://<https://user:secret@example.com/>", ""],
+    ["https://user:se/cret@example.com/", ""],
+    ["https://jdbc:postgresql://user:secret@example.com/db", ""],
+  ])("keeps no secret of %j", (given, shown) => {
     const r = refuse(given);
     expect(r.url).toBe(shown);
     expect(r.urlCut).toBe(false);
     expect(JSON.stringify(r)).not.toContain("secret");
   });
 
-  // A clean http or https URL stays as given, an @ in its path included.
-  it.each([
-    "https://www.tiktok.com/@brand",
-    "https://medium.com/@brand/post",
-    "http://example.com/a@b",
-    "http://example.com\\@evil.test/",
-  ])("keeps %s, which the parser reads without userinfo", (given) => {
-    const r = refuse(given);
-    expect(r.url).toBe(given);
-    expect(r.urlCut).toBe(false);
+  it("shows a default port dropped and a Thai host in its xn-- form", () => {
+    expect(refuse("https://example.com:443/").url).toBe("https://example.com/");
+    expect(refuse("https://เว็บ.ไทย/").url).toBe("https://xn--r3cz4e3a.xn--o3cw4h/");
   });
 
-  it("cuts at 2048 characters after the userinfo is gone, and says so", () => {
-    const tail = "a".repeat(3000);
-    const r = refuse(`https://user:secret@example.test/${tail}`);
-    expect(r.url).toBe(
-      `https://example.test/${"a".repeat(URL_MAX_CHARS - "https://example.test/".length)}`,
-    );
-    expect(r.url.length).toBe(URL_MAX_CHARS);
-    expect(r.urlCut).toBe(true);
-    // a userinfo that would not fit is dropped before the length is measured
-    const exact = refuse(`https://user:secret@example.test/${"a".repeat(URL_MAX_CHARS - 21)}`);
+  it("cuts a long host at 2048 characters and says so, and not a character sooner", () => {
+    const long = refuse(`https://user:secret@${"a".repeat(3000)}.test/`);
+    expect(long.url).toBe(`https://${"a".repeat(URL_MAX_CHARS - "https://".length)}`);
+    expect(long.url.length).toBe(URL_MAX_CHARS);
+    expect(long.urlCut).toBe(true);
+    expect(JSON.stringify(long)).not.toContain("secret");
+    // https:// (8) + the host + the slash (1) is exactly 2048 at a host of 2039
+    const exact = refuse(`https://user:secret@${"a".repeat(URL_MAX_CHARS - 9)}/`);
+    expect(exact.url).toBe(`https://${"a".repeat(URL_MAX_CHARS - 9)}/`);
     expect(exact.urlCut).toBe(false);
-    expect(exact.url.length).toBe(URL_MAX_CHARS);
-  });
-
-  it("does not end on half a surrogate pair", () => {
-    const r = refuse(`https://example.test/${"a".repeat(URL_MAX_CHARS - 22)}😀😀`);
-    expect(r.urlCut).toBe(true);
-    expect(r.url.length).toBe(URL_MAX_CHARS - 1);
-    expect(r.url.endsWith("a")).toBe(true);
+    const over = refuse(`https://${"a".repeat(URL_MAX_CHARS - 8)}/`);
+    expect(over.url.length).toBe(URL_MAX_CHARS);
+    expect(over.urlCut).toBe(true);
   });
 });
