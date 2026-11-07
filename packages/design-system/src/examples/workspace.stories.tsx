@@ -3,6 +3,7 @@ import { expect, userEvent, waitFor, within } from "storybook/test";
 import type { ProfileId } from "../boundary/DesignProfileBoundary";
 import { fixtures } from "../components/fixtures";
 import { Narrow, Under } from "../components/matrix";
+import { expectInkClearsAbove, inVitest } from "../testing/visual-asserts";
 import { PROJECTS, WorkspaceScreen } from "./workspace";
 
 const meta = {
@@ -34,11 +35,35 @@ async function expectOnePageHeader(root: HTMLElement) {
   await expect(within(root).getAllByRole("heading", { level: 1 })).toHaveLength(1);
 }
 
+/**
+ * The section header over the table (ORV-251 row 20): a level 2 title under the page header, the
+ * table still named by it, and the live wrapper mounted in the header's actions with its
+ * `aria-live`, so a count announced on the first selection has a region that was already there.
+ */
+async function expectSectionHeader(root: HTMLElement) {
+  const canvas = within(root);
+  const headers = root.querySelectorAll<HTMLElement>(".ds-section-header");
+  await expect(headers).toHaveLength(1);
+  const section = headers[0] as HTMLElement;
+  const title = canvas.getByRole("heading", { level: 2, name: "โปรเจกต์ในเวิร์กสเปซ" });
+  await expect(section.contains(title)).toBe(true);
+  await expect(canvas.getByRole("table", { name: "โปรเจกต์ในเวิร์กสเปซ" })).toBeInTheDocument();
+  const pageHeader = root.querySelector(".ds-page-header") as HTMLElement;
+  await expect(
+    pageHeader.compareDocumentPosition(section) & Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
+  await expect(
+    section.querySelector('.ds-section-header__actions [aria-live="polite"]'),
+  ).not.toBeNull();
+  if (inVitest) await expectInkClearsAbove(title, pageHeader);
+}
+
 /** Six fixture projects, the long name inside its cell, one missing owner, one primary, the fixture label (AC 1, 2). */
 export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expectOnePageHeader(canvasElement);
+    await expectSectionHeader(canvasElement);
     await expect(rowCount(canvasElement)).toBe(PROJECTS.length);
     const table = canvas.getByRole("table", { name: "โปรเจกต์ในเวิร์กสเปซ" });
     await expect(within(table).getAllByText(fixtures.missingLabel)).toHaveLength(1);
@@ -90,10 +115,24 @@ export const ArchiveSelected: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.queryByRole("button", { name: "เก็บถาวร" })).toBeNull();
+    const table = canvas.getByRole("table");
+    const tableTop = table.getBoundingClientRect().top;
     for (const row of [PROJECTS[4], PROJECTS[5]]) {
       await userEvent.click(canvas.getByRole("checkbox", { name: `เลือก ${row?.name ?? ""}` }));
     }
     await expect(canvas.getByText("เลือกอยู่ 2 โปรเจกต์")).toBeVisible();
+    // The count and the archive button end the section header's row, and the table has not moved.
+    const section = canvasElement.querySelector(".ds-section-header") as HTMLElement;
+    const archive = canvas.getByRole("button", { name: "เก็บถาวร" }).getBoundingClientRect();
+    await expect(
+      Math.abs(archive.right - section.getBoundingClientRect().right),
+    ).toBeLessThanOrEqual(0.5);
+    await expect(
+      canvas.getByText("เลือกอยู่ 2 โปรเจกต์").getBoundingClientRect().left,
+    ).toBeGreaterThan(
+      within(section).getByRole("heading", { level: 2 }).getBoundingClientRect().left,
+    );
+    await expect(Math.abs(table.getBoundingClientRect().top - tableTop)).toBeLessThanOrEqual(0.5);
     await userEvent.click(canvas.getByRole("button", { name: "เก็บถาวร" }));
     const dialog = await body().findByRole("dialog", { name: "เก็บถาวร 2 โปรเจกต์" });
     await userEvent.click(within(dialog).getByRole("button", { name: "เก็บถาวร" }));

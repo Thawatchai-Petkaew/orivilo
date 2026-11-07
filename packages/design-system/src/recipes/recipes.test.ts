@@ -322,6 +322,50 @@ describe("the separator recipe (ORV-230, sep-look-1)", () => {
   });
 });
 
+describe("the section header recipe (ORV-251, section-header-1, header-type-1, header-stack-1)", () => {
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\s+/g, " ");
+  const rule = (selector: string) =>
+    bare.match(
+      new RegExp(`(?:^|[}\\s])${selector.replace(/[.[\]()]/g, "\\$&")} \\{([^{}]*)\\}`),
+    )?.[1];
+
+  it("names itself in the three selectors it shares with the page header", () => {
+    expect(bare).toContain(".ds-page-header__row, .ds-section-header__row {");
+    expect(bare).toContain(".ds-page-header__description, .ds-section-header__description {");
+    expect(bare).toContain(".ds-page-header__actions, .ds-section-header__actions {");
+  });
+
+  it("keeps the title block at size.panel.min, and nothing else as its basis", () => {
+    expect(rule(".ds-section-header__text")).toContain("flex: 1 1 var(--ds-size-panel-min);");
+  });
+
+  it("puts the 479 px query after every rule of its block, so flex: none beats the basis", () => {
+    const query = bare.indexOf("@container ds-section-header (max-width: 479px)");
+    expect(query).toBeGreaterThan(-1);
+    const end = bare.indexOf("} }", query) + 3;
+    expect(bare.slice(query, end)).toContain(
+      ".ds-section-header__text { flex: none; inline-size: 100%; }",
+    );
+    // Nothing of the part comes after the query: a later rule would win at 479 and below.
+    expect(bare.slice(end)).not.toContain("ds-section-header");
+  });
+
+  it("draws the one 1 px edge only under data-divider, 16 under the last line", () => {
+    expect(rule(".ds-section-header[data-divider]")).toBe(
+      " padding-block-end: var(--ds-space-stack-md); border-block-end: 1px solid var(--ds-border-subtle); ",
+    );
+    expect(rule(".ds-section-header")).not.toMatch(/border|padding/);
+  });
+
+  it("lists the title and the description on the canvas at the text floor", () => {
+    const pairs = RECIPE_PAIRS.filter((p) => p.recipe === "section-header");
+    expect(pairs.map((p) => [p.slot, p.fg, p.bg, p.floor])).toEqual([
+      ["title", "ds:text.primary", "ds:surface.canvas", 4.5],
+      ["description", "ds:text.secondary", "ds:surface.canvas", 4.5],
+    ]);
+  });
+});
+
 describe("the radio focus line (ORV-221, control-tokens-1, control-pairs-1, radio-api-1)", () => {
   const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
   const body = (selector: string) =>

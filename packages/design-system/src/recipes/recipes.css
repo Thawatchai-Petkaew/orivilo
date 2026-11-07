@@ -5965,8 +5965,10 @@ button.ds-tag__main {
 /* From 480 up the title block keeps nine title sizes (288 px under neutral) and the actions wrap
  * under it, on the same start edge, when they would leave it less (header-stack-1). The basis sits
  * here, above the @container block, which stays last: at 479 and below its flex: none must win,
- * because in a column the basis would be a height. */
-.ds-page-header__row {
+ * because in a column the basis would be a height. The row, description and actions rules are
+ * shared with Section header (ORV-251), which adds its names to these selectors. */
+.ds-page-header__row,
+.ds-section-header__row {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
@@ -5992,7 +5994,8 @@ button.ds-tag__main {
   overflow-wrap: anywhere;
   text-wrap: balance;
 }
-.ds-page-header__description {
+.ds-page-header__description,
+.ds-section-header__description {
   margin: 0;
   max-inline-size: 65ch;
   color: var(--ds-text-secondary);
@@ -6014,7 +6017,8 @@ button.ds-tag__main {
   line-height: var(--ds-type-body-sm-line-height);
   font-weight: var(--ds-type-body-sm-font-weight);
 }
-.ds-page-header__actions {
+.ds-page-header__actions,
+.ds-section-header__actions {
   display: flex;
   flex: none;
   flex-wrap: wrap;
@@ -6028,6 +6032,57 @@ button.ds-tag__main {
     align-items: flex-start;
   }
   .ds-page-header__text {
+    flex: none;
+    inline-size: 100%;
+  }
+}
+
+/* Section header (ORV-251, section-header-1, header-type-1, header-stack-1): the title of one block
+ * of a screen, with an optional description, actions and a divider. It shares the row, the
+ * description and the actions rules of the Page header above; its own are the column that puts
+ * children 16 under the title row, the 20 / 1.7 title of type.heading.sm and the floor of its
+ * title block, size.panel.min (240 px), twelve of its title sizes. The root is a size container
+ * named ds-section-header; the query below stays last so that at 479 and below its flex: none
+ * replaces the basis, which in a column would be a height. A divider draws one 1 px edge under the
+ * block, and the component sets data-divider only when no children follow, because Tabs draws its
+ * own line and an edge takes one line. */
+
+.ds-section-header {
+  container: ds-section-header / inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-stack-md);
+  inline-size: 100%;
+  min-inline-size: 0;
+}
+.ds-section-header[data-divider] {
+  padding-block-end: var(--ds-space-stack-md);
+  border-block-end: 1px solid var(--ds-border-subtle);
+}
+.ds-section-header__text {
+  display: flex;
+  flex: 1 1 var(--ds-size-panel-min);
+  flex-direction: column;
+  gap: var(--ds-space-inline-md);
+  min-inline-size: 0;
+}
+.ds-section-header__title {
+  margin: 0;
+  color: var(--ds-text-primary);
+  font-family: var(--ds-type-heading-sm-font-family);
+  font-size: var(--ds-type-heading-sm-font-size);
+  line-height: var(--ds-type-heading-sm-line-height);
+  font-weight: var(--ds-type-heading-sm-font-weight);
+  letter-spacing: var(--ds-type-heading-sm-letter-spacing);
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+@container ds-section-header (max-width: 479px) {
+  .ds-section-header__row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .ds-section-header__text {
     flex: none;
     inline-size: 100%;
   }

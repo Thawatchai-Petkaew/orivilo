@@ -110,6 +110,11 @@ export const Default: Story = {
     await expect(
       preview.getByRole("heading", { level: 4, name: "ทีมออกแบบ Brand Canvas" }),
     ).toBeVisible();
+    // The section header inside the screen sits one level under that title: h5, never h2.
+    await expect(
+      preview.getByRole("heading", { level: 5, name: "โปรเจกต์ในเวิร์กสเปซ" }),
+    ).toBeVisible();
+    await expect(preview.queryAllByRole("heading", { level: 2 })).toHaveLength(0);
   },
 };
 

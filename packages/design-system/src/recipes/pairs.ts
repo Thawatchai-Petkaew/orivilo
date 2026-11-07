@@ -1389,6 +1389,22 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     bg: "ds:surface.canvas",
     floor: TEXT,
   },
+  // Section header (ORV-251): the title and the description on the page ground. The divider is a
+  // decorative line under the block, so it lists no pair, as the Separator does.
+  {
+    recipe: "section-header",
+    slot: "title",
+    fg: "ds:text.primary",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
+  {
+    recipe: "section-header",
+    slot: "description",
+    fg: "ds:text.secondary",
+    bg: "ds:surface.canvas",
+    floor: TEXT,
+  },
   // Avatar (ORV-224): the initials and the glyph share one ink on the disc. TEXT also covers the
   // glyph, which needs only the UI floor.
   { recipe: "avatar", slot: "fallback", fg: "avatar.fg", bg: "avatar.bg", floor: TEXT },
