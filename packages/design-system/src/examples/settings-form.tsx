@@ -57,7 +57,6 @@ function LinkGlyph() {
 const SLUG = "brand-canvas-team";
 
 export function SettingsForm({ errors, saving = false }: SettingsFormProps) {
-  const formId = useId();
   const notifyHeadingId = useId();
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6">
@@ -74,11 +73,7 @@ export function SettingsForm({ errors, saving = false }: SettingsFormProps) {
         </TabsList>
 
         <TabsContent value="general" className="pt-6">
-          <form
-            id={formId}
-            className="flex flex-col gap-6"
-            onSubmit={(event) => event.preventDefault()}
-          >
+          <form className="flex flex-col gap-6" onSubmit={(event) => event.preventDefault()}>
             <Field
               label="ชื่อเวิร์กสเปซ"
               description="ชื่อที่ทีมเห็นในทุกหน้า"
@@ -173,6 +168,15 @@ export function SettingsForm({ errors, saving = false }: SettingsFormProps) {
               defaultChecked
               disabled={saving}
             />
+
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button variant="ghost" disabled={saving}>
+                ยกเลิก
+              </Button>
+              <Button variant="primary" type="submit" loading={saving} loadingLabel="กำลังบันทึก">
+                บันทึกการเปลี่ยนแปลง
+              </Button>
+            </div>
           </form>
         </TabsContent>
 
@@ -206,21 +210,6 @@ export function SettingsForm({ errors, saving = false }: SettingsFormProps) {
           </div>
         </TabsContent>
       </Tabs>
-
-      <div className="flex flex-wrap justify-end gap-2">
-        <Button variant="ghost" disabled={saving}>
-          ยกเลิก
-        </Button>
-        <Button
-          variant="primary"
-          type="submit"
-          form={formId}
-          loading={saving}
-          loadingLabel="กำลังบันทึก"
-        >
-          บันทึกการเปลี่ยนแปลง
-        </Button>
-      </div>
     </div>
   );
 }

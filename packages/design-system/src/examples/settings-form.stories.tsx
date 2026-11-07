@@ -118,7 +118,13 @@ async function openNotifications(canvasElement: HTMLElement) {
  */
 export const Notifications: Story = {
   play: async ({ canvasElement }) => {
+    const page = within(canvasElement);
+    await userEvent.click(page.getByRole("tab", { name: "สมาชิก" }));
+    await expect(primaryButtons(canvasElement)).toHaveLength(0);
+    await expect(page.queryByRole("button", { name: "ยกเลิก" })).toBeNull();
     const panel = within(await openNotifications(canvasElement));
+    await expect(primaryButtons(canvasElement)).toHaveLength(0);
+    await expect(page.queryByRole("button", { name: "ยกเลิก" })).toBeNull();
     const group = panel.getByRole("group", { name: switchFixtures.setLabel });
     await expect(panel.getByText(switchFixtures.setHelp)).toBeVisible();
     await expect(panel.queryByText(fixtures.missingLabel)).toBeNull();
