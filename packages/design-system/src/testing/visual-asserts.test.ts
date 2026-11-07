@@ -4,6 +4,7 @@ import {
   clipEdgeRow,
   colorsMatch,
   cssColorToHex,
+  firstInkCut,
   firstInkRow,
   hexToRgb,
   inkCentreOf,
@@ -945,6 +946,145 @@ describe("clipEdgeRow", () => {
     expect(inkCutAbove(shot(null), shot(10), clipEdgeRow(12, 0, 1), 1)).toBe(2);
     // A row above the clip edge is a real cut with padding too.
     expect(inkCutAbove(shot(null), shot(6), edge, 1)).toBe(2);
+  });
+});
+
+describe("firstInkCut", () => {
+  // Pixels as the Linux run of ORV-252 read them: the ground, the faint top row of a tone mark that
+  // one overflow mode rasters and the other does not (distance 75), and the ink of a mark cut by 2 px.
+  const ground: Rgb = [244, 244, 240];
+  const faint: Rgb = [224, 215, 214];
+  const strong: Rgb = [95, 94, 106];
+  // A region of `rows` x `columns` ground with the given pixels set: [x, y, pixel].
+  const shot = (set: readonly (readonly [number, number, Rgb])[] = [], rows = 6, columns = 12) => {
+    const grid: Rgb[][] = Array.from({ length: rows }, () =>
+      Array.from({ length: columns }, () => ground),
+    );
+    for (const [x, y, px] of set) (grid[y] as Rgb[])[x] = px;
+    return grid;
+  };
+
+  it("reads two equal shots as no cut", () => {
+    expect(firstInkCut(shot(), shot())).toBeNull();
+    expect(firstInkCut(shot([[3, 2, strong]]), shot([[3, 2, strong]]))).toBeNull();
+  });
+
+  it("reads one faint pixel of the visible shot, the Linux speck of ORV-252, as no cut", () => {
+    expect(firstInkCut(shot(), shot([[1, 3, faint]]))).toBeNull();
+    // The speck can sit in the other shot, and in any column.
+    expect(firstInkCut(shot([[7, 3, faint]]), shot())).toBeNull();
+  });
+
+  it("reads a faint pixel with fainter neighbours below INK_DISTANCE as no cut", () => {
+    const beside: Rgb = [224, 234, 240];
+    expect(
+      firstInkCut(
+        shot(),
+        shot([
+          [0, 3, beside],
+          [1, 3, faint],
+          [2, 3, beside],
+        ]),
+      ),
+    ).toBeNull();
+  });
+
+  it("reads three touching faint pixels as a speck and four as a cut", () => {
+    const row = (n: number) => Array.from({ length: n }, (_, i) => [2 + i, 3, faint] as const);
+    expect(firstInkCut(shot(), shot(row(3)))).toBeNull();
+    expect(firstInkCut(shot(), shot(row(4)))).toEqual([2, 3]);
+  });
+
+  it("joins pixels that touch at a corner", () => {
+    const diagonal = [
+      [2, 2, faint],
+      [3, 3, faint],
+      [4, 4, faint],
+    ] as const;
+    expect(firstInkCut(shot(), shot(diagonal))).toBeNull();
+    expect(firstInkCut(shot(), shot([...diagonal, [5, 5, faint]]))).toEqual([2, 2]);
+  });
+
+  it("reads separate specks as no cut, each judged alone", () => {
+    const far = [
+      [1, 1, faint],
+      [4, 1, faint],
+      [8, 4, faint],
+    ] as const;
+    expect(firstInkCut(shot(), shot(far))).toBeNull();
+  });
+
+  it("does not join the last column of a row to the first column of the next", () => {
+    // Column 11 of row 2 and column 0 of row 3 are a row apart and a whole row of columns away: a
+    // group of one and a group of three, both specks. Joined, they would be four and a cut.
+    const set = [
+      [11, 2, faint],
+      [0, 3, faint],
+      [0, 4, faint],
+      [0, 5, faint],
+    ] as const;
+    expect(firstInkCut(shot(), shot(set))).toBeNull();
+  });
+
+  it("reads one faint pixel just over the speck distance as a cut", () => {
+    // distance 96 is a speck, 97 is a cut
+    const at96: Rgb = [244 - 96, 244, 240];
+    const at97: Rgb = [244 - 97, 244, 240];
+    expect(firstInkCut(shot(), shot([[5, 2, at96]]))).toBeNull();
+    expect(firstInkCut(shot(), shot([[5, 2, at97]]))).toEqual([5, 2]);
+  });
+
+  it("reads a pixel at INK_DISTANCE or under as no difference, and 49 as one inside a group", () => {
+    const at48: Rgb = [244 - 48, 244, 240];
+    const at49: Rgb = [244 - 49, 244, 240];
+    const four = (px: Rgb) => Array.from({ length: 4 }, (_, i) => [2 + i, 3, px] as const);
+    expect(firstInkCut(shot(), shot(four(at48)))).toBeNull();
+    expect(firstInkCut(shot(), shot(four(at49)))).toEqual([2, 3]);
+  });
+
+  it("reads one strong pixel as a cut", () => {
+    expect(firstInkCut(shot(), shot([[6, 4, strong]]))).toEqual([6, 4]);
+  });
+
+  it("reads a mark cut by 2 px, two rows of ink with strong pixels, as a cut at its first pixel", () => {
+    const mark = [
+      [4, 2, faint],
+      [5, 2, faint],
+      [6, 2, faint],
+      [3, 3, strong],
+      [4, 3, strong],
+      [5, 3, strong],
+      [6, 3, strong],
+    ] as const;
+    expect(firstInkCut(shot(), shot(mark))).toEqual([4, 2]);
+  });
+
+  it("reads a line cut in one row, wider than a speck, as a cut even when it is pale", () => {
+    const border: Rgb = [244 - 70, 244 - 70, 240 - 70];
+    const line = Array.from({ length: 10 }, (_, i) => [1 + i, 4, border] as const);
+    expect(firstInkCut(shot(), shot(line))).toEqual([1, 4]);
+  });
+
+  it("names the cut and not an earlier speck", () => {
+    expect(
+      firstInkCut(
+        shot(),
+        shot([
+          [1, 1, faint],
+          [8, 4, strong],
+        ]),
+      ),
+    ).toEqual([8, 4]);
+    // A speck and a cut that touch are one group, and it is a cut.
+    expect(
+      firstInkCut(
+        shot(),
+        shot([
+          [1, 1, faint],
+          [2, 2, strong],
+        ]),
+      ),
+    ).toEqual([1, 1]);
   });
 });
 
