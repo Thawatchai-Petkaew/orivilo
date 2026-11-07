@@ -22,12 +22,14 @@ import { headers } from "next/headers";
 import { z } from "zod";
 import { auth } from "../../server/auth";
 import { limiter, subjectFromHeaders } from "../../server/rate-limit";
+import { mayRead } from "../../server/read-access";
 import { createReadPorts } from "../../server/read-ports";
 import type { Failed, Outcome } from "../directions/actions";
 
 /**
  * Reads one page the signed-in person names and returns a bounded view of the report (ORV-266 tech
- * notes section 5). Nothing is saved and no model is called. The URL, the host, the page body and
+ * notes section 5). The order is `read-door-1` (ORV-268): session, allow-list, limit, input, ports.
+ * Nothing is saved and no model is called. The URL, the host, the page body and
  * the person's data never reach a log line: the boundary line and the `page-read` step line carry
  * only closed words.
  */
@@ -35,6 +37,7 @@ import type { Failed, Outcome } from "../directions/actions";
 /** The `satisfies` makes a new reason without a code fail `pnpm typecheck`. */
 const CODE_OF = {
   "signed-out": "UNAUTHENTICATED",
+  forbidden: "FORBIDDEN",
   "invalid-input": "INVALID_INPUT",
   "not-configured": "INTERNAL_ERROR",
   failed: "INTERNAL_ERROR",
@@ -91,7 +94,10 @@ export async function analysePage(input: unknown): Promise<Outcome<ReportView>> 
   return atBoundary({ requestId, route: "read/analysePage" }, async () => {
     try {
       const session = await auth().api.getSession({ headers: h });
-      // Every call counts, whatever its result (page-read-limit-1).
+      // read-door-1: the allow-list comes right after the session and before anything is counted,
+      // parsed or opened. A person with no session never reaches it.
+      if (session && !mayRead(session.user.email)) return refused("forbidden");
+      // Every call from an approved person counts, whatever its result (page-read-limit-1).
       const counted = session
         ? await limiter().consume(LIMITS["page-read"], { user: session.user.id })
         : await limiter().consume(LIMITS["signed-out"], { ip: subjectFromHeaders(h) });

@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { getWebMessages } from "../../i18n/locale";
 import { auth } from "../../server/auth";
+import { mayRead } from "../../server/read-access";
 import { ReadForm } from "./ReadForm";
 
 export const dynamic = "force-dynamic";
@@ -19,13 +20,18 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: m.brandReport.title, description: m.brandReport.description };
 }
 
-type Access = "form" | "signed-out" | "not-configured";
+type Access = "form" | "signed-out" | "not-configured" | "not-allowed";
 
-/** The session only: nothing is read from the database here, and the action checks it again. */
+/**
+ * The session and the allow-list (`read-allow-list-1`): nothing is read from the database here, and
+ * the action checks both again. An unset or empty list shows the same line as a list without the
+ * person, so the page does not tell how the list is set up.
+ */
 async function accessOf(): Promise<Access> {
   try {
     const session = await auth().api.getSession({ headers: await headers() });
-    return session ? "form" : "signed-out";
+    if (!session) return "signed-out";
+    return mayRead(session.user.email) ? "form" : "not-allowed";
   } catch (error) {
     if (error instanceof MissingEnvError) return "not-configured";
     throw error;
@@ -35,8 +41,8 @@ async function accessOf(): Promise<Access> {
 /**
  * The brand evidence report (ORV-266, ORV-267): a signed-in person pastes a website address and
  * sees what its page declares and says, read by fixed rules and not by AI. The page owns the one
- * `main`; the screen holds the one `h1` and no landmark. Signed out, or with no auth set up, the
- * screen says so and shows no form.
+ * `main`; the screen holds the one `h1` and no landmark. Signed out, off the allow-list, or with no
+ * auth set up, the screen says so and shows no form.
  */
 export default async function ReadPage() {
   const { m } = await getWebMessages();

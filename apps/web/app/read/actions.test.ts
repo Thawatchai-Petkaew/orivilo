@@ -12,7 +12,12 @@ const enc = new TextEncoder();
 type Route = { status?: number; body?: string; error?: "timeout" | "network"; remote?: string };
 
 const state = vi.hoisted(() => ({
-  session: null as { user: { id: string }; session: { activeOrganizationId: string } } | null,
+  session: null as {
+    user: { id: string; email?: string };
+    session: { activeOrganizationId: string };
+  } | null,
+  order: [] as string[],
+  listReads: 0,
   ip: "ip-1",
   mode: "count" as "count" | "unavailable",
   counts: new Map<string, number>(),
@@ -30,13 +35,32 @@ vi.mock("server-only", () => ({}));
 vi.mock("@orivilo/db/client", () => ({ appDb: () => ({}) }));
 vi.mock("next/headers", () => ({ headers: async () => new Headers() }));
 vi.mock("../../server/auth", () => ({
-  auth: () => ({ api: { getSession: async () => state.session } }),
+  auth: () => ({
+    api: {
+      getSession: async () => {
+        state.order.push("session");
+        return state.session;
+      },
+    },
+  }),
 }));
+// The real check, wrapped so a test sees when it runs.
+vi.mock("../../server/read-access", async (importOriginal) => {
+  const real = await importOriginal<typeof import("../../server/read-access")>();
+  return {
+    mayRead: (email: string | null | undefined) => {
+      state.order.push("allow-list");
+      state.listReads += 1;
+      return real.mayRead(email);
+    },
+  };
+});
 vi.mock("../../server/rate-limit", () => ({
   subjectFromHeaders: () => state.ip,
   limiter: () => ({
     async consume(limit: Limit, subject: Subject) {
       state.consumed.push(keyOf(limit, subject));
+      state.order.push("consume");
       if (state.mode === "unavailable") return { ok: false, reason: "unavailable" };
       for (const w of limit.windows) {
         if ((state.counts.get(`${keyOf(limit, subject)}@${w.seconds}`) ?? 0) >= w.max) {
@@ -54,6 +78,7 @@ vi.mock("../../server/rate-limit", () => ({
 vi.mock("../../server/read-ports", () => ({
   createReadPorts: (): ReadPorts => {
     state.created += 1;
+    state.order.push("ports");
     return {
       async resolve(host) {
         state.resolved.push(host);
@@ -87,7 +112,12 @@ vi.mock("@orivilo/intent-engine", async (importOriginal) => {
 const engine = await import("@orivilo/intent-engine");
 const { analysePage } = await import("./actions");
 
-const person = { user: { id: "P" }, session: { activeOrganizationId: "ws-1" } };
+// Fixtures only: addresses under example.com and example.test (ORV-268).
+const LIST = "reader@example.com,second@example.test";
+const person = {
+  user: { id: "P", email: "reader@example.com" },
+  session: { activeOrganizationId: "ws-1" },
+};
 let capture: ReturnType<typeof captureLines>;
 const written = () => capture.lines.map((line) => expectLineShape(line));
 const portCalls = () => state.resolved.length + state.requested.length;
@@ -96,6 +126,9 @@ const PAGE =
 
 beforeEach(() => {
   capture = captureLines();
+  vi.stubEnv("READ_ALLOWED_EMAILS", LIST);
+  state.order = [];
+  state.listReads = 0;
   state.session = person;
   state.ip = "ip-1";
   state.mode = "count";
@@ -114,6 +147,7 @@ beforeEach(() => {
   vi.mocked(engine.reportOf).mockClear();
 });
 afterEach(() => {
+  vi.unstubAllEnvs();
   capture.restore();
 });
 
@@ -459,5 +493,93 @@ describe("credentials before url-input-1", () => {
       await analysePage({ url: text, role: "own" });
       expect(vi.mocked(engine.readUrlInput).mock.calls[0]?.[0].url).toBe(given);
     }
+  });
+});
+
+// ORV-268 rows 7 to 10: read-door-1 puts the allow-list second, after the session and before the
+// limit, the input and the ports.
+describe("read-door-1", () => {
+  const stranger = {
+    user: { id: "S", email: "other@example.com" },
+    session: { activeOrganizationId: "ws-2" },
+  };
+  const nothingSpent = () => {
+    expect(state.consumed).toEqual([]);
+    expect(state.created).toBe(0);
+    expect(state.resolved).toEqual([]);
+    expect(state.requested).toEqual([]);
+  };
+
+  it("not allowed refuses first", async () => {
+    state.session = stranger;
+    for (const arrange of [() => {}, () => (state.mode = "unavailable")]) {
+      state.mode = "count";
+      arrange();
+      for (const input of [own, {}]) {
+        const result = await analysePage(input);
+        expect(result).toEqual({
+          ok: false,
+          error: "forbidden",
+          code: "FORBIDDEN",
+          requestId: expect.any(String),
+          retryable: false,
+        });
+        expect(result).not.toHaveProperty("message");
+        nothingSpent();
+      }
+    }
+    expect(engine.readUrlInput).not.toHaveBeenCalled();
+  });
+
+  it("allowed order: session, allow-list, consume, ports", async () => {
+    // Invalid input: one consume, then invalid-input, and no ports.
+    expect(await analysePage({})).toMatchObject({ ok: false, error: "invalid-input" });
+    expect(state.consumed).toEqual(["page-read:u:P"]);
+    expect(state.created).toBe(0);
+    expect(state.order).toEqual(["session", "allow-list", "consume"]);
+
+    // The hourly window used up: rate-limited, no ports.
+    state.order = [];
+    state.consumed = [];
+    state.counts.set(`${keyOf(LIMITS["page-read"], { user: "P" })}@3600`, 10);
+    expect(await analysePage(own)).toMatchObject({
+      ok: false,
+      error: "rate-limited",
+      retryAfter: 3600,
+    });
+    expect(state.created).toBe(0);
+
+    // A valid input to a routed fake page: a report, and one set of ports.
+    state.counts.clear();
+    state.order = [];
+    expect(viewOf(await analysePage(own))).toMatchObject({ status: "analysed" });
+    expect(state.created).toBe(1);
+    expect(state.order).toEqual(["session", "allow-list", "consume", "ports"]);
+  });
+
+  it("signed out: one signed-out consume by IP and the list is not read", async () => {
+    state.session = null;
+    expect(await analysePage(own)).toMatchObject({ ok: false, error: "signed-out" });
+    expect(state.consumed).toEqual(["signed-out:ip:ip-1"]);
+    expect(state.listReads).toBe(0);
+    expect(state.order).toEqual(["session", "consume"]);
+  });
+
+  it("no address in logs or answer", async () => {
+    state.session = { ...stranger, user: { id: "S", email: "not.listed+tag@example.com" } };
+    const result = await analysePage(own);
+    const lines = written();
+    const everything = JSON.stringify([result, lines, capture.lines]);
+    for (const piece of ["not.listed", "example.com", "reader@", "second@"]) {
+      expect(everything).not.toContain(piece);
+    }
+    const [boundary, ...rest] = lines;
+    expect(rest).toEqual([]);
+    expect(boundary).toMatchObject({
+      route: "read/analysePage",
+      level: "info",
+      outcome: "refused",
+      reason: "forbidden",
+    });
   });
 });

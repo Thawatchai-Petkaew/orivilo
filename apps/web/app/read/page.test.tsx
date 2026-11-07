@@ -2,7 +2,8 @@ import { MissingEnvError } from "@orivilo/db";
 import { LocaleProvider, messagesFor } from "@orivilo/design-system";
 import { TOTAL_BUDGET_MS } from "../../../../packages/intent-engine/src/read-page";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { captureLines } from "@orivilo/auth/log-testing";
 import { webMessages } from "../../i18n/messages";
 
 vi.mock("server-only", () => ({}));
@@ -36,6 +37,15 @@ vi.mock("./ReadForm", () => ({
 }));
 
 const page = await import("./page");
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
+// Fixtures only: addresses under example.com and example.test (ORV-268).
+const LIST = "reader@example.com,second@example.test";
+const listed = { user: { id: "u1", email: "reader@example.com" } };
+const stranger = { user: { id: "u2", email: "not.listed+tag@example.com" } };
 
 async function render(locale: "en" | "th", session: unknown, throws: unknown = null) {
   state.locale = locale;
@@ -101,7 +111,8 @@ describe.each(["en", "th"] as const)("/read not configured in %s", (locale) => {
 // ORV-267 rows 12 and 29: signed in, the page shows the form and gives it the labels it needs.
 describe("/read signed in", () => {
   it("renders the form inside the one main and gives it the page's own labels", async () => {
-    const html = await render("th", { user: { id: "u1" } });
+    vi.stubEnv("READ_ALLOWED_EMAILS", LIST);
+    const html = await render("th", listed);
     expect(html).toContain("data-read-form");
     expect(html.match(/<main[\s>]/g)).toHaveLength(1);
     expect(form.props).toStrictEqual({
@@ -109,6 +120,55 @@ describe("/read signed in", () => {
       wait: webMessages.th.wait,
       failure: webMessages.th.failure,
     });
+  });
+});
+
+// ORV-268 rows 11 to 13: a signed-in person off the list, or with the list unset or empty, sees one
+// line and no form; a person on the list sees the form.
+describe.each(["en", "th"] as const)("/read signed in but not allowed in %s", (locale) => {
+  const m = () => messagesFor(locale).brandReport;
+  const expectLine = (html: string) => {
+    expect(text(html)).toContain(m().heading);
+    expect(text(html)).toContain(m().notAllowed);
+    expect(text(html)).not.toContain(m().notConfigured);
+    expect(html).not.toContain("<form");
+    expect(html).not.toContain("data-read-form");
+    expect(html).not.toContain("<a ");
+    expect(html.match(/<main[\s>]/g)).toHaveLength(1);
+  };
+
+  it("not allowed: the line, no form, no address", async () => {
+    vi.stubEnv("READ_ALLOWED_EMAILS", LIST);
+    const html = await render(locale, stranger);
+    expectLine(html);
+    expect(html).not.toContain("not.listed");
+  });
+
+  it.each([
+    ["unset", undefined],
+    ["empty", ""],
+  ])("unset list shows not allowed (%s)", async (_name, value) => {
+    if (value === undefined) delete process.env["READ_ALLOWED_EMAILS"];
+    else vi.stubEnv("READ_ALLOWED_EMAILS", value);
+    expectLine(await render(locale, listed));
+  });
+
+  it("allowed shows the form", async () => {
+    vi.stubEnv("READ_ALLOWED_EMAILS", LIST);
+    const html = await render(locale, listed);
+    expect(html).toContain("data-read-form");
+    expect(text(html)).not.toContain(m().notAllowed);
+  });
+
+  it("not allowed logs nothing", async () => {
+    vi.stubEnv("READ_ALLOWED_EMAILS", LIST);
+    const capture = captureLines();
+    try {
+      await render(locale, stranger);
+      expect(capture.lines).toEqual([]);
+    } finally {
+      capture.restore();
+    }
   });
 });
 
