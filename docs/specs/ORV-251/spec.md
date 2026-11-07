@@ -3,7 +3,7 @@ issue: ORV-251 (https://tpetkaew.atlassian.net/browse/ORV-251), slice B of ORV-2
 lane: L (as ORV-225, by the parent's reading of the risk flag "component public API"; Jira not read in this role)
 mode: POC mode short spec (`.claude/skills/ovl/SKILL.md`, section "POC mode")
 parent: docs/specs/ORV-225/spec.md v1.3, with docs/specs/ORV-225/design.md version 2
-version: 1.0
+version: 1.1
 ---
 
 # ORV-251: Section header (ORV-225 slice B)
@@ -88,7 +88,7 @@ Row 22 is the gate and the sign-off, and row 75 is the four checks. Both are in 
 
 ## Rows per PR
 
-No line yet: this issue's PR has no number. The main session adds one when the PR exists, in the form `qa-scope-1` reads, with a changelog line. Until then every row of the table is in scope for qa.
+- PR 200: rows 13-22, 75, 77
 
 ## Rules and bounds
 
@@ -134,4 +134,5 @@ This story derives no number and adds no method. W6 (the level of the screen's s
 
 ## Changelog
 
+- v1.1 (2026-11-07): Rows per PR line for PR 200. No row changes.
 - v1.0 (2026-11-07): slice spec split from ORV-225 spec v1.3 (L-0016). Rows 13 to 22, 75 and 77 copied with their numbers and no new requirement; row 22 names ORV-251 for its Jira comment. Downstream to review: the builder envelope (these rows, one PR), the qa envelope (the Rows per PR line once the PR exists), the designer's sign-off, and the parent spec, which does not name ORV-251 yet.
