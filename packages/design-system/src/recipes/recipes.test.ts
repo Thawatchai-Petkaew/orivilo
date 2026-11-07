@@ -454,6 +454,50 @@ describe("the alert recipe (ORV-222, alert-look-1)", () => {
   });
 });
 
+describe("the nav item and the current crumb (ORV-252, rows 39 and 78)", () => {
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  const rules = [...bare.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => ({
+    selector: (m[1] ?? "").trim().replace(/\s+/g, " "),
+    body: (m[2] ?? "").trim(),
+  }));
+  const pairsOf = (recipe: string) =>
+    RECIPE_PAIRS.filter((p) => p.recipe === recipe).map((p) => [p.slot, p.fg, p.bg, p.floor]);
+
+  it("holds the current crumb on the neutral ink, not on the selection ink", () => {
+    expect(pairsOf("breadcrumb").filter(([slot]) => String(slot).startsWith("current"))).toEqual([
+      ["current on canvas", "ds:text.primary", "ds:surface.canvas", 4.5],
+      ["current on card", "ds:text.primary", "ds:surface.card", 4.5],
+    ]);
+  });
+
+  it("paints .ds-breadcrumb__page from text.primary and no nav item token", () => {
+    const body = rules.find((r) => r.selector === ".ds-breadcrumb__page")?.body ?? "";
+    expect(body).toContain("color: var(--ds-text-primary);");
+    expect(body).not.toContain("--cmp-nav-item-fg-active");
+  });
+
+  it("leaves ds-nav-item as the only recipe that reads the selection fill and ink", () => {
+    const readers = rules
+      .filter((r) => /--cmp-nav-item-(?:fg|bg)-active|--cmp-nav-item-bead:?(?!-)/.test(r.body))
+      .map((r) => r.selector);
+    expect(readers).toEqual([".ds-nav-item[aria-current]", ".ds-nav-item__bead"]);
+  });
+
+  it("lists the nine pairs of the contract row, in order", () => {
+    expect([...pairsOf("nav-item"), ...pairsOf("top-nav")]).toEqual([
+      ["rest on canvas", "nav-item.fg", "ds:surface.canvas", 4.5],
+      ["rest on drawer", "nav-item.fg", "side-sheet.bg", 4.5],
+      ["hover", "nav-item.fg-hover", "nav-item.bg-hover", 4.5],
+      ["current", "nav-item.fg-active", "nav-item.bg-active", 4.5],
+      ["bead", "nav-item.bead", "nav-item.bg-active", 3],
+      ["active ink on canvas", "nav-item.fg-active", "ds:surface.canvas", 4.5],
+      ["active ink on drawer", "nav-item.fg-active", "side-sheet.bg", 4.5],
+      ["active ink on hover", "nav-item.fg-active", "nav-item.bg-hover", 4.5],
+      ["skip link", "ds:text.primary", "ds:surface.card", 4.5],
+    ]);
+  });
+});
+
 describe("recipe contrast pairs", () => {
   for (const { id, set } of CONTRAST_SETS) {
     for (const mode of MODES) {

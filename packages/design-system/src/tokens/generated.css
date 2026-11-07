@@ -982,11 +982,13 @@
   --cmp-tile-glow-opacity: var(--ds-elevation-glow-opacity);
   --cmp-nav-item-fg: var(--ds-text-secondary);
   --cmp-nav-item-fg-hover: var(--ds-text-primary);
-  --cmp-nav-item-fg-active: var(--ds-text-primary);
+  --cmp-nav-item-fg-active: var(--ds-selection-fg);
   --cmp-nav-item-bg-hover: var(--ds-surface-hover);
-  --cmp-nav-item-bg-active: var(--ds-surface-card);
-  --cmp-nav-item-bead: var(--ds-brand-signature);
+  --cmp-nav-item-bg-active: var(--ds-surface-selected);
+  --cmp-nav-item-bead: var(--ds-selection-fg);
+  --cmp-nav-item-bead-size: var(--ds-space-inline-md);
   --cmp-nav-item-radius: var(--ds-shape-control-radius);
+  --cmp-nav-item-row-radius: var(--ds-shape-media-radius);
   --cmp-nav-item-height: var(--ds-size-control-md);
   --cmp-toolbar-bg: var(--ds-surface-card);
   --cmp-toolbar-border: var(--ds-border-subtle);

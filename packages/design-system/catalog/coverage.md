@@ -56,7 +56,7 @@ Legend: `none` not started, `planned` entry exists, no code, `draft` code and st
 | Card                    | stable | application-card           |
 | Table                   | stable | application-table          |
 | Sheet                   | draft  | application-sheet          |
-| Top navigation          | none   |                            |
+| Top navigation          | draft  | application-top-navigation |
 | Sidebar navigation      | none   |                            |
 | Page header             | draft  | application-page-header    |
 | Section header          | none   |                            |

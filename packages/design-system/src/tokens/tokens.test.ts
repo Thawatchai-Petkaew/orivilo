@@ -175,7 +175,7 @@ describe("the violet signature (ORV-118, comment 10336)", () => {
 
   it("keeps brand readers and action readers apart", () => {
     const brand = componentsReading(["brand.signature"]);
-    expect(brand).toEqual(["logo", "nav-item", "tile"]);
+    expect(brand).toEqual(["logo", "tile"]);
     const action = componentsReading(["action.primary"]);
     expect(brand.filter((name) => action.includes(name))).toEqual([]);
   });
