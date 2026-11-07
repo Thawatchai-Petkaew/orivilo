@@ -554,61 +554,72 @@ describe("reportOf, row 7: a competitor", () => {
   });
 });
 
-describe("reportOf, the url of a refused report", () => {
-  const refuse = (given: string) => {
-    const outcome: ReadResult = { status: "refused", reason: "read.refused.address" };
-    return refusedOf(reportOf(given, outcome, null, CTX));
-  };
+// The 16 forms of the worked example of report-outcome-1 (spec v1.3), each as reportOf gets it, in
+// order. Run through Node 22.23: the values are what the WHATWG URL parser gives. The rule keeps the
+// parser's origin and a slash, or nothing, so no username, password, path or query can be in the url.
+const OUTCOME_FORMS: [name: string, given: string, shown: string][] = [
+  ["the username and password go", "https://user:secret@example.com/", "https://example.com/"],
+  ["a backslash ends the authority", "http://example.com\\@evil.test/", "http://example.com/"],
+  ["a backslash in the userinfo", "https://CORP\\user:secret@example.com/", "https://corp/"],
+  ["the path and its @ go", "https://www.tiktok.com/@brand", "https://www.tiktok.com/"],
+  ["an opaque path has a null origin", "view-source:https://user:secret@example.com/", ""],
+  ["a space in the host is rejected", "https://exa mple.com/", ""],
+  ["a port past 65535 is rejected", "https://user:secret@example.com:99999/", ""],
+  ["a pasted https:\\\\ form", "https://https:\\\\user:secret@example.com/", "https://https/"],
+  ["a pasted https:/ form", "https://https:/user:secret@example.com/", "https://https/"],
+  ["the metadata path goes", "http://169.254.169.254/latest/meta-data/", "http://169.254.169.254/"],
+  [
+    "a port that is not the default stays",
+    "https://example.com:8443/",
+    "https://example.com:8443/",
+  ],
+  ["ftp has an origin", "ftp://example.com/", "ftp://example.com/"],
+  [
+    "the query goes",
+    "https://example.com/?next=https://user:secret@b.test/",
+    "https://example.com/",
+  ],
+  ["the limit: a backslash after the user", "https://user\\:secret@example.com/", "https://user/"],
+  ["the limit: digits read as a port", "https://user:123/secret@example.com/", "https://user:123/"],
+  [
+    "the limit: the password tail is the host",
+    "https://user:se@cret/x@example.com:99999/",
+    "https://cret/",
+  ],
+];
 
-  // The 16 forms of the worked example of report-outcome-1 (spec v1.3), each as reportOf gets it, in
-  // order. Run through Node 22.23: the values are what the WHATWG URL parser gives. The rule keeps the
-  // parser's origin and a slash, or nothing, so no username, password, path or query can be in the url.
-  it.each([
-    ["the username and password go", "https://user:secret@example.com/", "https://example.com/"],
-    ["a backslash ends the authority", "http://example.com\\@evil.test/", "http://example.com/"],
-    ["a backslash in the userinfo", "https://CORP\\user:secret@example.com/", "https://corp/"],
-    ["the path and its @ go", "https://www.tiktok.com/@brand", "https://www.tiktok.com/"],
-    ["an opaque path has a null origin", "view-source:https://user:secret@example.com/", ""],
-    ["a space in the host is rejected", "https://exa mple.com/", ""],
-    ["a port past 65535 is rejected", "https://user:secret@example.com:99999/", ""],
-    ["a pasted https:\\\\ form", "https://https:\\\\user:secret@example.com/", "https://https/"],
-    ["a pasted https:/ form", "https://https:/user:secret@example.com/", "https://https/"],
-    [
-      "the metadata path goes",
-      "http://169.254.169.254/latest/meta-data/",
-      "http://169.254.169.254/",
-    ],
-    [
-      "a port that is not the default stays",
-      "https://example.com:8443/",
-      "https://example.com:8443/",
-    ],
-    ["ftp has an origin", "ftp://example.com/", "ftp://example.com/"],
-    [
-      "the query goes",
-      "https://example.com/?next=https://user:secret@b.test/",
-      "https://example.com/",
-    ],
-    [
-      "the limit: a backslash after the user",
-      "https://user\\:secret@example.com/",
-      "https://user/",
-    ],
-    [
-      "the limit: digits read as a port",
-      "https://user:123/secret@example.com/",
-      "https://user:123/",
-    ],
-    [
-      "the limit: the password tail is the host",
-      "https://user:se@cret/x@example.com:99999/",
-      "https://cret/",
-    ],
-  ])("%s", (_name, given, shown) => {
-    const r = refuse(given);
-    expect(r.url).toBe(shown);
-    expect(r.urlCut).toBe(false);
-    expect(JSON.stringify(r)).not.toContain("secret");
+// Row 2 holds for every reason a read can end short of a page, refused or failed: one branch of
+// reportOf serves all six, and a url that kept the given text for any of them would show the secret.
+const SHORT_READS: Exclude<ReadResult, { status: "read" }>[] = [
+  { status: "refused", reason: "read.refused.address" },
+  { status: "refused", reason: "read.refused.robots" },
+  { status: "failed", reason: "timeout" },
+  { status: "failed", reason: "network" },
+  { status: "failed", reason: "redirects" },
+  { status: "failed", reason: "not-html" },
+];
+
+describe("reportOf, the url of a refused report", () => {
+  const refuse = (
+    given: string,
+    outcome: ReadResult = { status: "refused", reason: "read.refused.address" },
+  ) => refusedOf(reportOf(given, outcome, null, CTX));
+
+  describe.each(SHORT_READS)("$status $reason", (outcome) => {
+    it.each(OUTCOME_FORMS)("%s", (_name, given, shown) => {
+      const r = refuse(given, outcome);
+      expect(r.key).toBe(outcome.reason);
+      expect(r.url).toBe(shown);
+      expect(r.urlCut).toBe(false);
+      expect(JSON.stringify(r)).not.toContain("secret");
+    });
+
+    it("cuts a long host at 2048 characters and says so", () => {
+      const r = refuse(`https://user:secret@${"a".repeat(3000)}.test/`, outcome);
+      expect(r.url.length).toBe(URL_MAX_CHARS);
+      expect(r.urlCut).toBe(true);
+      expect(JSON.stringify(r)).not.toContain("secret");
+    });
   });
 
   // Forms of the earlier rounds of ORV-266-security and ORV-266-review: the parser reads userinfo

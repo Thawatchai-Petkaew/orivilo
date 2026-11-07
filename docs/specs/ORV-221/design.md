@@ -1,8 +1,8 @@
 ---
 issue: ORV-221
 spec: docs/specs/ORV-221/spec.md v1.3
-task: ORV-221-design-1, ORV-221-design-2
-date: 2026-11-06
+task: ORV-221-design-1, ORV-221-design-2, ORV-249-design-1
+date: 2026-11-07
 ---
 
 # ORV-221: RadioGroup and Switch, design
@@ -12,6 +12,8 @@ The look of the two controls, decided on rendered proposals. The builder builds 
 Every proposal image below is static HTML that mirrors the Radix output, with this CSS put in by `page.addStyleTag` over the stories `base-checkbox--checked` and `examples-base-settings-form--default`. Hover, pressed and focus were forced through twin classes in the images and read separately on real pseudo states (D19). The images are Thai only, as the envelope asked. English belongs to sign-off rows 20 and 39, on the real stories.
 
 D22 to D25 are the rework of the sign-off `ORV-221-signoff-1` at head `023cb9c` (findings F1, F2, F3). Their images are not static HTML: they are the real stories at that head with the proposed CSS injected, listed under "Rework screenshots, design 2". The Switch rows are untouched here; the Switch PR is a later PR.
+
+D26 is the rework of the sign-off `ORV-249-signoff-1` at head `fcd15fb` (finding F1). Its images are the real stories at that head with the served module rewritten in the browser, listed under "Rework screenshots, ORV-249-design-1".
 
 ## Flow
 
@@ -73,6 +75,7 @@ Evidence: the `compare` shots, one block per question, each with its options sid
 | D23 | Checked and invalid under focus draws a 2 px red line (F1) | 1 px `radio.border-error` border plus a 1 px inner line in `radio.border-error`, the 3 px halo still from `focus.ring`, the dot kept. Play: `InvalidChecked` and the `invalid-checked` case of `InEnglish`, the shadow starts with the resolved `--cmp-radio-border-error`; `expectEdgeInk` left, 1 px on the unchecked circle, 2 px on the checked one, reach 2 | The sign-off's `:not([aria-invalid])` is refused: it leaves this state with a halo only, which is F1 again. Rendered on `Invalid` by Tab then Space, with four forms side by side: today, a dot line, a ring line and an error line. The dot and ring lines put two colours in one line and take the edge away from D6's "the error edge stays through hover and focus". The red line reads as one line in all six boundaries | 6, 8 |
 | D24 | The group root draws no focus (F2) | `.ds-radio-group:focus-visible` sets `outline: none` and `box-shadow: var(--_focus-shadow-none)`. The band goes from a 4 px halo to 0 px; focus shows on a radio only. No token. Play: `Disabled`, the root focused and matching `:focus-visible`, `expectEdgeInk` right, 0 px, reach 6 | Radix gives the root `tabindex` 0, so a click that lands on no control leaves focus on the root. The plays of `Disabled` and `DisabledItem` leave it there at rest, and on a real page a click on a description then any key does the same. The global `:focus-visible` rule then drew a band round the whole group, as tall as the form section and with no meaning. The root is a wrapper, not a control, so `DESIGN.md` section 7's "never removed" stays true of the radios; `.ds-menu__option` and `.ds-input-group__input` set the same pair. `outline: none` is written out although Radix sets it inline, so the rule does not rest on Radix. Tab from a click-focused root leaves the group, and Shift+Tab then lands on the checked radio with its full focus look: that is Radix's behaviour today, the same with or without the band, and this row does not change it | 4, 5 |
 | D25 | The focus rows hold the focus look at rest (F3) | `focusVisible: ["#rg-focus", "#rg-focus-on"]` in the same `parameters.pseudo` object as `hover`, in `InteractionStates` and `InEnglish`. The two rows show D22's look with no DOM focus. No change to `.storybook/preview.tsx`. Play: `InteractionStates`, `waitFor` the halo on both rows, `not.toHaveFocus`, the border against `--ds-focus-ring` | As built both focus rows read as rest, because the story names no `focusVisible`. `withPseudoHover` does not carry it: the decorator reads only `pseudo.hover`, adds only `pseudo-hover`, and asks for the sheet rewrite only when `hover` is set. It does not need to: the addon's own decorator adds `pseudo-focus-visible` (seen in the iframe and in Vitest). What matters is the rewrite. A story with `hover` and `focusVisible` passed alone in 5 of 5 runs. A story with `focusVisible` only failed alone in 5 of 5 (`expected 'none' to match / 0px 0px 0px 3px$/`) and passes in the whole file only through an earlier story's rewrite, an order dependency. So the rule: a story that forces `focusVisible` names `hover` in the same object, and reads the held look inside `waitFor`. Extending the decorator also worked, but it is not needed and it is a shared file that triggers the full suite | 8, 15 |
+| D26 | Save and Cancel live in the form they act on (F1 of `ORV-249-signoff-1`) | The action row becomes the last child of the general tab's `<form>`. It keeps `flex flex-wrap justify-end gap-2`, and both `Button`s keep their variant, size and copy. The form's `gap-6` gives the 24 px above it, the same step the page column gave. General tab, target unchanged: row 720 by 40 px at x 360, y 1136.08 at 1440, and 312 by 40 px at x 24, y 1187.06 at 360. Members and notifications, target: no row, so the tab ends at its last line. No new token, prop or string. Play: `Notifications`, on both tabs, `primaryButtons(canvasElement)` has length 0 and no button is named "ยกเลิก" (Cancel), each query on `canvasElement` | The row sat outside `Tabs`, so it showed on every tab. On notifications the strongest action on the screen was a Save that did nothing (`button.form` null, the form unmounted), right under a help line saying no save is needed. That fails `DESIGN.md` section 10 (a button says what happens), section 2 (Honest UI) and section 6 (a Switch applies immediately, a submit belongs to Checkbox). Inside the form the button needs no `form` attribute and the row needs no wrapper for its gap. `Button` defaults to `type="button"`, so Cancel cannot submit. The members tab loses the row too, for the same reason (A10). The busy Save now shows on the general tab only: a tab change during a save hides it. This example saves nothing, so that is accepted here | 37 |
 
 Finding outside this story: on a Checkbox, the row hover rule beats the error edge. In the browser an invalid box reads `rgb(180, 35, 24)` at rest and `rgb(91, 90, 102)` under hover (`recipes.css` line 608). The radio does not copy it. It needs its own follow-up card.
 
@@ -127,6 +130,8 @@ Selected and focused are separate rows: a checked control can be focused or not,
 - D22 at every line count: the long label reads 3 lines at 360 and 2 at 1440, one-line labels are in `Sizes`, and the circle stays on the first line with the line and halo unclipped. Page overflow was 0 in all 18 scenes in all eight rendered boundaries.
 - D22 under forced colours (neutral, md, light and dark): shadows drop, so the inner line and halo go, and the transparent outline draws. Rest is a plain circle, focus a heavier line, the dot kept (`sheet-forced.png`).
 - D22 under reduced motion: the recipe transitions only `background-color` and `border-color`, so the inner line and halo appear at once. The 0.12 s colour transition that remains is F5's card, not touched here.
+- D26 at every line count: the row reads one line down to a 300 px viewport at rest and 320 px while saving, because the ring widens Save, and two lines below that, down to the 240 px tried. On two lines Cancel sits above Save, 88 px tall with the 8 px gap, both on the end edge, and page overflow is 0 at every width. Above the row, the general tab's own text can reach any line count, and the row follows it with the same 24 px. On notifications no row follows the Switch rows, so their line count no longer moves anything.
+- D26 and the locales: the example's copy is fixture Thai under either toolbar locale, so English renders the same words. Each English shot matched its Thai shot to at most 2 pixels of strength 6, all on the mark of the first tab's label. The English look of this row waits for the example to take its copy from a catalog, which is not this story.
 
 ## Recipe
 
@@ -509,9 +514,35 @@ Each play goes red on its defect. All 20 stories pass with the three rules. With
 
 `settings-example-1`, outside the table's range but rendered: the Notifications panel is `<div class="flex flex-col gap-6" role="group" aria-labelledby={headingId}>` holding `<div class="flex flex-col gap-1"><h2 class="text-label-md text-text-primary" id={headingId}>` with `<p class="text-body-sm text-text-secondary">`, then the two `Field orientation="horizontal"`.
 
+`settings-example-1`, D26, what the builder changes. Line numbers are at head `fcd15fb`.
+
+`packages/design-system/src/examples/settings-form.tsx`:
+
+1. Delete line 60, `const formId = useId();`. The `useId` import on line 3 stays for `notifyHeadingId`.
+2. Delete line 78, `id={formId}`.
+3. Cut lines 210 to 223, the action row, with the blank line 209, and paste them between lines 175 and 176, after the `Checkbox` and before `</form>`, with a blank line above them.
+4. In the pasted row, delete line 217, `form={formId}`, and keep `type="submit"`.
+5. Run Prettier: the `<form>` opening tag and the Save `Button` tag may each fold to one line at width 100.
+
+`packages/design-system/src/examples/settings-form.stories.tsx`, the `Notifications` play, replace line 121 with these lines:
+
+```ts
+const page = within(canvasElement);
+await userEvent.click(page.getByRole("tab", { name: "สมาชิก" }));
+await expect(primaryButtons(canvasElement)).toHaveLength(0);
+await expect(page.queryByRole("button", { name: "ยกเลิก" })).toBeNull();
+const panel = within(await openNotifications(canvasElement));
+await expect(primaryButtons(canvasElement)).toHaveLength(0);
+await expect(page.queryByRole("button", { name: "ยกเลิก" })).toBeNull();
+```
+
+Keep these queries on `canvasElement`, never on `panel`. At head the row sits outside the tab panel, so a query on `panel` passes with the defect (tried, no throw). Each line went red alone on the head markup: `expected <button form="_r_0_" …(4)></button> to have a length of +0 but got 1` for the count, and `expected <button type="button" …(3)></button> to be null` for Cancel on each tab. All seven lines pass on the proposal. The plays of `Default`, `Invalid`, `Saving`, `LongContentAt360` and `NotificationsAt360` pass with no edit. `Default` counts one primary and `Saving` finds Save, so by those lines a row dropped from the general tab fails them.
+
+No other file changes. The comment on lines 183 and 184, "no form and no save", is true once the row moves.
+
 ## Spec amendments this design needs (L-0019)
 
-None of these changes the default of an open question. `spec.md` is outside this task's write set, so product takes them into v1.1 before the builder envelope, or the builder reads this section as the later word. A5 to A9 come from the rework of design 2 and go the same way into the next spec version. They add no token and keep every AC row number, so the "Rows per PR" line of PR 187 stands.
+None of these changes the default of an open question. `spec.md` is outside this task's write set, so product takes them into v1.1 before the builder envelope, or the builder reads this section as the later word. A5 to A9 come from the rework of design 2 and go the same way into the next spec version. They add no token and keep every AC row number, so the "Rows per PR" line of PR 187 stands. A10 comes from `ORV-249-design-1`; `docs/specs/ORV-249/spec.md` v1.1 already carries it, and it goes into the parent's next version.
 
 <!-- prettier-ignore -->
 | # | Rule | Change | Why | Impact |
@@ -525,6 +556,7 @@ None of these changes the default of an open question. `spec.md` is outside this
 | A7 | `control-pairs-1`, `radio` list; AC row 19 | Two more pairs at the UI floor: `ds:focus.ring` on `radio.bg-checked` (lowest 3.33, friendly light) and `radio.border-error` on `radio.bg-checked` (lowest 5.79). Both read over the eight boundaries of `CONTRAST_SETS` | The inner line sits on the checked ground, a pair no rule covered. `pairs.ts` lines 306 to 310 are the precedent for `ds:focus.ring` on a selected fill | `pairs.ts`, `recipes.test.ts`, `pnpm contrast`. No token |
 | A8 | `radio-api-1`; AC row 4, "Check" | `radio-api-1` gains: the root draws no focus, focus shows on a radio only. Row 4's play adds the root check of D24 | F2. The rule belongs to the component, whatever story shows it | `recipes.css`, `RadioGroup.stories.tsx`. `DESIGN.md` is unchanged: section 7's "never removed" speaks of controls |
 | A9 | AC rows 6, 15 and 20 | Row 6 adds the story `InvalidChecked` and its play. Row 15's list adds the `invalid-checked` case. Row 20's list adds `InvalidChecked` | D23 is a state of its own, and `.claude/rules/design-system.md` asks for each state as a story, in Thai and English | `RadioGroup.stories.tsx`, the qa walk of rows 6, 15 and 20 |
+| A10 | `settings-example-1`, its line "The members tab is unchanged"; AC row 37 | The members tab keeps its content and loses the action row. Row 37 adds: no Save or Cancel on the members and notifications tabs, on the `Notifications` play's lines in the builder section of D26 | The row was outside `Tabs`, so no tab could drop it alone. Moved into the form, it leaves both tabs that have no form (D26, F1 of `ORV-249-signoff-1`) | `settings-form.tsx`, `settings-form.stories.tsx`, the qa walk of row 37. No token, no new row, so the "Rows per PR" line of PR 201 stands |
 
 ## Screens to check in visual QA
 
@@ -545,6 +577,25 @@ Look for:
 - A checked radio under focus: one 2 px line in `focus.ring` in every profile, in light and dark, at md and sm, the dot kept and not touching the line (D22). In `InvalidChecked`, one 2 px red line, with the halo in the brand (D23).
 - `InteractionStates` and `InEnglish`: both focus rows show the look at rest with no click (D25).
 - `Disabled` and `DisabledItem` as their plays leave them, and a click on a description then a key in `Default` and the settings form: no band round the group (D24).
+- The settings form: Save and Cancel on the general tab only, in the same place as before, and nothing under the last line of the members and notifications tabs (D26).
+
+## Rework screenshots, ORV-249-design-1
+
+Folder: `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-249-design-1/`. It is a session scratchpad, so these files may not outlive the session. Every path is listed in `manifest.txt` in that folder.
+
+These are the real stories at `fcd15fb` in Storybook. Playwright rewrote the served `settings-form.tsx` and `settings-form.stories.tsx` in flight, so React rendered the proposed markup and tabs really mounted and unmounted. No file in the worktree changed. Neutral profile, device scale 1, and device scale 2 for the focus crops. `after/` is the proposal and `before/` is the head as built.
+
+<!-- prettier-ignore -->
+| Scene | Path | What it shows |
+| --- | --- | --- |
+| Notifications | `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-249-design-1/after/notifications-<light or dark>-<360 or 1440>-<th or en>.png` | The tab ends at its second Switch row. Against `before/` the only change is the row's own box, 224 by 40 px. The ring on the first Switch comes from the play's click, as at head |
+| Members | `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-249-design-1/after/members-<light or dark>-<360 or 1440>-<th or en>.png` | The tab ends at "ไม่มีข้อมูล". The only change is the same box. The ring on the tab after a mouse click is at head too |
+| General, saving, invalid | `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-249-design-1/after/<general or saving or invalid>-<light or dark>-<360 or 1440>-<th or en>.png` | The look of the head. General is byte-equal in all 8. Saving and invalid are byte-equal or differ by 2 pixels of strength 6 on the mark of the first tab's label, far from the row. Saving's hash also flips between two values across runs of the head alone |
+| Focus | `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-249-design-1/after/focus-<cancel or save>-<light or dark>-<360 or 1440>.png` | Real Tab from the Checkbox to Cancel, then Save. Line and 3 px halo whole on both, and no ancestor of Save clips |
+| Line counts | `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-249-design-1/after/wrap-<default or saving>-<320 or 280 or 240>.png` | One line at 320, two at 280 and 240, rest and saving |
+| Round trip | `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-249-design-1/after/round-trip-general.png` | Members, notifications, then general: the row is back in the panel, with one primary |
+
+Behaviour read on the same render, head and proposal alike: Cancel never submits, Save and Enter in a field each submit once when the required Profile is chosen, and native validation stops Save while it is empty. On the proposal, a Save held busy does not submit. Page overflow is 0 in all 88 captures and all 14 line count runs.
 
 ## Rework screenshots, design 2
 

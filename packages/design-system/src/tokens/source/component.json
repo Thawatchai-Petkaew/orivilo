@@ -1039,6 +1039,78 @@
       "$value": "{space.stack.sm}"
     }
   },
+  "switch": {
+    "$description": "ORV-249 (ORV-221 control-tokens-1): an on switch reads the selection tokens, not action.primary (DESIGN.md section 8). The ring in a saving thumb has no size token: it is the thumb less space.inline.sm",
+    "track": {
+      "$type": "color",
+      "$value": "{border.control}"
+    },
+    "track-hover": {
+      "$type": "color",
+      "$value": "{border.control-hover}"
+    },
+    "track-on": {
+      "$type": "color",
+      "$value": "{selection.fg}"
+    },
+    "track-press": {
+      "$type": "color",
+      "$value": "{border.strong}"
+    },
+    "track-disabled": {
+      "$type": "color",
+      "$value": "{surface.disabled}"
+    },
+    "thumb": {
+      "$type": "color",
+      "$value": "{surface.card}"
+    },
+    "thumb-on": {
+      "$type": "color",
+      "$value": "{selection.bg}"
+    },
+    "thumb-disabled": {
+      "$type": "color",
+      "$value": "{text.secondary}"
+    },
+    "edge-on-hover": {
+      "$type": "color",
+      "$value": "{border.strong}"
+    },
+    "edge-error": {
+      "$type": "color",
+      "$value": "{border.error}"
+    },
+    "ring": {
+      "$type": "color",
+      "$value": "{selection.fg}"
+    },
+    "height": {
+      "$type": "dimension",
+      "$value": "{size.icon.lg}"
+    },
+    "thumb-size": {
+      "$type": "dimension",
+      "$value": "{size.icon.md}"
+    },
+    "height-sm": {
+      "$type": "dimension",
+      "$value": "{size.icon.md}"
+    },
+    "thumb-size-sm": {
+      "$type": "dimension",
+      "$value": "{size.icon.sm}"
+    },
+    "target-min": {
+      "$type": "dimension",
+      "$value": "{size.icon.lg}",
+      "$description": "WCAG 2.5.8: the sm switch keeps a 24 px target. Borrows size.icon.lg (24) because no semantic target size exists"
+    },
+    "radius": {
+      "$type": "dimension",
+      "$value": "{shape.control.radius}"
+    }
+  },
   "menu": {
     "bg": {
       "$type": "color",
@@ -2851,6 +2923,17 @@
     "action-gap": {
       "$type": "dimension",
       "$value": "{space.stack.sm}"
+    },
+    "max-width": {
+      "$type": "dimension",
+      "$value": "{size.panel.default}"
+    }
+  },
+  "loading-state": {
+    "$description": "A ring with its label and an optional stop action for a region that waits (ORV-223, load-live-1): a centred column capped at the panel width, no pulse",
+    "gap": {
+      "$type": "dimension",
+      "$value": "{space.stack.md}"
     },
     "max-width": {
       "$type": "dimension",

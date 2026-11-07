@@ -2,7 +2,12 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useEffect, useState } from "react";
 import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { LocaleProvider } from "../../i18n/LocaleProvider";
-import { expectFrameCutsNoInk, expectLabelInkWhole, inVitest } from "../../testing/visual-asserts";
+import {
+  expectCoversInk,
+  expectFrameCutsNoInk,
+  expectLabelInkWhole,
+  inVitest,
+} from "../../testing/visual-asserts";
 import { Button } from "../button/Button";
 import { fixtureManyJobs, fixtures } from "../fixtures";
 import { Matrix, Narrow } from "../matrix";
@@ -574,13 +579,266 @@ export const EmptyRecipesAndModes: Story = {
   },
 };
 
-/** Loading: the region is busy and says so (AC 12). */
+/**
+ * The ring turns even under reduced motion (`spin-motion-1`), so two shots of one frame differ by
+ * the ring's angle. `expectFrameCutsNoInk` compares two shots, so the ring is held still (inline
+ * `animation: none`, put back after) for the call; the label and the clips are what it checks.
+ */
+async function withRingsStill(scope: ParentNode, run: () => Promise<void>) {
+  const rings = Array.from(scope.querySelectorAll<SVGElement>(".ds-spin"));
+  const before = rings.map((ring) => ring.style.animation);
+  for (const ring of rings) ring.style.animation = "none";
+  try {
+    await run();
+  } finally {
+    rings.forEach((ring, i) => {
+      ring.style.animation = before[i] ?? "";
+    });
+  }
+}
+
+/** The board's loading words are a Thai catalog value. */
+const LOADING_TH = "กำลังโหลดกระดาน";
+
+/** The overlay's label, which is the one place the loading words show. */
+const overlayLabel = (root: HTMLElement) =>
+  part(root, ".ds-board__overlay .ds-loading-state__label");
+
+/**
+ * The wait on its plate (ORV-250 rows 35 and 36, D17 to D20): the form's centre is the board's
+ * centre to half a pixel on both axes, and the ring and the label stand at least `space.inset.md`
+ * less half a pixel inside the form's padding box above and below, so the plate wraps them.
+ */
+async function expectOnPlate(board: HTMLElement) {
+  const root = part(board, ".ds-board__overlay .ds-loading-state");
+  const at = root.getBoundingClientRect();
+  const on = board.getBoundingClientRect();
+  await expect(
+    Math.abs(at.left + at.width / 2 - (on.left + on.width / 2)),
+    "the form's centre across the board's centre",
+  ).toBeLessThanOrEqual(HALF_PX);
+  await expect(
+    Math.abs(at.top + at.height / 2 - (on.top + on.height / 2)),
+    "the form's centre down the board's centre",
+  ).toBeLessThanOrEqual(HALF_PX);
+  const inset = resolvedLength(root, "--ds-space-inset-md");
+  const top = at.top + root.clientTop;
+  const bottom = top + root.clientHeight;
+  for (const [name, el] of [
+    ["ring", part(root, ".ds-spinner__ring")],
+    ["label", part(root, ".ds-loading-state__label")],
+  ] as const) {
+    const box = el.getBoundingClientRect();
+    await expect(box.top - top, `${name} clear of the plate's top`).toBeGreaterThanOrEqual(
+      inset - HALF_PX,
+    );
+    await expect(bottom - box.bottom, `${name} clear of the plate's bottom`).toBeGreaterThanOrEqual(
+      inset - HALF_PX,
+    );
+  }
+}
+
+/**
+ * Loading: the region is busy and says so (AC 12, ORV-223 row 35). The ring and the words show
+ * once, in the overlay, on the plate; the status line holds the same words in a 1 by 1 px box and
+ * is the one status in the region (`load-board-1`).
+ */
 export const Loading: Story = {
   args: { initial: { nodes: [], edges: [] }, loading: true },
   play: async ({ canvasElement }) => {
     const region = within(canvasElement).getByRole("region");
     await expect(region).toHaveAttribute("aria-busy", "true");
-    await expect(within(region).getByText("กำลังโหลดกระดาน")).toBeVisible();
+    const statuses = within(region).getAllByRole("status");
+    await expect(statuses).toHaveLength(1);
+    await expect(statuses[0]).toHaveTextContent(LOADING_TH);
+    const box = (statuses[0] as HTMLElement).getBoundingClientRect();
+    await expect(box.width).toBe(1);
+    await expect(box.height).toBe(1);
+    await expect(overlayLabel(canvasElement)).toHaveTextContent(LOADING_TH);
+    await expect(overlayLabel(canvasElement)).toBeVisible();
+    await expect(region.querySelector(".ds-board__overlay .ds-spinner__ring")).not.toBeNull();
+    await expectOnPlate(part(canvasElement, ".ds-board"));
+    if (inVitest) {
+      // Row 35's "once": the line's box is 1 by 1 px whether or not its words paint, so the words
+      // themselves are asked. A Range over the text has the words' layout box, which no clip
+      // narrows, and hiding the line must change nothing in that region.
+      const line = statuses[0] as HTMLElement;
+      const words = document.createRange();
+      words.selectNodeContents(line);
+      await withRingsStill(canvasElement, () =>
+        expectCoversInk(part(canvasElement, ".ds-board"), [words], line),
+      );
+    }
+  },
+};
+
+/**
+ * A host outside the region starts with `loading` and ends it: the overlay goes, the fixture
+ * nodes show, and the status line is the same node throughout, holding the loading words and then
+ * nothing (`load-board-1`, W6).
+ */
+function LoadingHost({ copy = "กำลังโหลดกระดาน", status }: { copy?: string; status?: string }) {
+  const [loading, setLoading] = useState(true);
+  return (
+    <div>
+      <div className="p-2">
+        <Button variant="secondary" size="sm" onClick={() => setLoading(false)}>
+          โหลดเสร็จ
+        </Button>
+      </div>
+      <Stateful
+        initial={BOARD}
+        loading={loading}
+        status={status}
+        label={copy}
+        height={520}
+        fill={false}
+      />
+    </div>
+  );
+}
+
+export const LoadingFinishes: Story = {
+  render: () => <LoadingHost copy="กระดานแบรนด์ (ข้อมูลตัวอย่าง)" />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const region = canvas.getByRole("region", { name: "กระดานแบรนด์ (ข้อมูลตัวอย่าง)" });
+    const line = status(region);
+    await expect(region).toHaveAttribute("aria-busy", "true");
+    await expect(line).toHaveTextContent(LOADING_TH);
+    await expect(overlayLabel(canvasElement)).toBeVisible();
+    // The wait sits over live nodes (ORV-250 row 36): a node's box meets the form's, and nothing of
+    // the nodes' layer shows through the ring or the words.
+    await ready(region);
+    const board = part(canvasElement, ".ds-board");
+    const form = part(board, ".ds-board__overlay .ds-loading-state").getBoundingClientRect();
+    await expect(
+      Array.from(nodeEls(region)).some((n) => {
+        const box = n.getBoundingClientRect();
+        return (
+          box.left < form.right &&
+          box.right > form.left &&
+          box.top < form.bottom &&
+          box.bottom > form.top
+        );
+      }),
+      "a node lies under the form",
+    ).toBe(true);
+    if (inVitest) {
+      const viewport = part(board, ".react-flow__viewport");
+      await withRingsStill(board, () =>
+        expectCoversInk(
+          board,
+          [
+            part(board, ".ds-board__overlay .ds-spinner__ring"),
+            part(board, ".ds-board__overlay .ds-loading-state__label"),
+          ],
+          viewport,
+        ),
+      );
+      // The helper put the layer back: its inline opacity is as it was, none.
+      await expect(viewport.style.opacity).toBe("");
+    }
+    await userEvent.click(canvas.getByRole("button", { name: "โหลดเสร็จ" }));
+    await waitFor(() => expect(region).not.toHaveAttribute("aria-busy"));
+    await expect(status(region)).toBe(line);
+    await expect(line.textContent).toBe("");
+    await expect(region.querySelector(".ds-loading-state")).toBeNull();
+    await ready(region);
+  },
+};
+
+/**
+ * The shell has a status to show when the wait starts (`load-board-1`, W6's line true and line false
+ * rows): while `loading` is true the one status holds the loading words and not the shell's; when
+ * it ends the same node holds the shell's status.
+ */
+const SHELL_STATUS = "กำลังสร้างโลโก้ รอบที่ 2 (จำลอง)";
+export const LoadingOverStatus: Story = {
+  render: () => <LoadingHost copy="กระดานแบรนด์ (ข้อมูลตัวอย่าง)" status={SHELL_STATUS} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const region = canvas.getByRole("region", { name: "กระดานแบรนด์ (ข้อมูลตัวอย่าง)" });
+    const line = status(region);
+    await expect(line.textContent, "the line holds the wait ahead of the status").toBe(LOADING_TH);
+    await userEvent.click(canvas.getByRole("button", { name: "โหลดเสร็จ" }));
+    await waitFor(() => expect(region).not.toHaveAttribute("aria-busy"));
+    await expect(status(region)).toBe(line);
+    await expect(line.textContent, "the line holds the status once the wait ends").toBe(
+      SHELL_STATUS,
+    );
+  },
+};
+
+/** The loading board in English: "Loading the board" once under the ring, and in the status line. */
+export const LoadingInEnglish: Story = {
+  args: { initial: { nodes: [], edges: [] }, loading: true },
+  decorators: [(Story) => <LocaleProvider locale="en">{Story()}</LocaleProvider>],
+  play: async ({ canvasElement }) => {
+    const region = within(canvasElement).getByRole("region");
+    await expect(region).toHaveAttribute("aria-busy", "true");
+    await expect(within(region).getAllByRole("status")).toHaveLength(1);
+    await expect(status(region)).toHaveTextContent("Loading the board");
+    await expect(overlayLabel(canvasElement)).toHaveTextContent("Loading the board");
+    await expect(overlayLabel(canvasElement)).toBeVisible();
+  },
+};
+
+/**
+ * The loading board in a 360 px frame: the ring and the words centred, nothing cut. The board root
+ * is the one clip inside the frame; the overlay's own parts clip nothing (ORV-223 row 38).
+ */
+export const LoadingAt360: Story = {
+  args: { initial: { nodes: [], edges: [] }, loading: true },
+  render: (args) => (
+    <div data-testid="frame" className="w-[360px] max-w-full">
+      <Stateful {...args} height={420} fill={false} />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const frame = within(canvasElement).getByTestId("frame");
+    await expect(frame.scrollWidth).toBeLessThanOrEqual(360);
+    const root = part(frame, ".ds-board");
+    const label = overlayLabel(canvasElement);
+    await expect(label).toBeVisible();
+    for (let el: HTMLElement | null = label; el && el !== root; el = el.parentElement) {
+      const style = getComputedStyle(el);
+      await expect(style.overflowX, `${el.className || el.localName} clips on x`).toBe("visible");
+      await expect(style.overflowY, `${el.className || el.localName} clips on y`).toBe("visible");
+    }
+    // The root clips: the label's box lies inside its padding box.
+    await expect(getComputedStyle(root).overflowX).toBe("hidden");
+    const inner = root.getBoundingClientRect();
+    const box = label.getBoundingClientRect();
+    await expect(box.left).toBeGreaterThanOrEqual(inner.left + root.clientLeft);
+    await expect(box.right).toBeLessThanOrEqual(inner.left + root.clientLeft + root.clientWidth);
+    await expect(box.top).toBeGreaterThanOrEqual(inner.top + root.clientTop);
+    await expect(box.bottom).toBeLessThanOrEqual(inner.top + root.clientTop + root.clientHeight);
+    // Centred across the frame, and on one line at this width.
+    await expect(
+      Math.abs(box.left + box.width / 2 - (inner.left + inner.width / 2)),
+    ).toBeLessThanOrEqual(HALF_PX);
+    if (inVitest) {
+      await expectLabelInkWhole(label);
+      await withRingsStill(root, () => expectFrameCutsNoInk(label, root));
+    }
+  },
+};
+
+/** The loading board under the three profiles in both modes, one board per cell. */
+export const LoadingRecipesAndModes: Story = {
+  args: { initial: { nodes: [], edges: [] }, loading: true },
+  render: (args) => (
+    <Matrix>
+      <MatrixBoard {...args} height={360} />
+    </Matrix>
+  ),
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelectorAll("[data-matrix-cell]")).toHaveLength(6);
+    await expect(within(canvasElement).getAllByRole("status")).toHaveLength(6);
+    await expect(
+      canvasElement.querySelectorAll(".ds-board__overlay .ds-spinner__ring"),
+    ).toHaveLength(6);
   },
 };
 
