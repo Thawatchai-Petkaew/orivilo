@@ -49,7 +49,8 @@ import { CommandMenu, type CommandMenuMode } from "../command-menu/CommandMenu";
 import { openContextMenuAt } from "../context-menu/ContextMenu";
 import { cx } from "../cx";
 import { EmptyState } from "../empty-state/EmptyState";
-import { ArtifactIcon, SpinnerIcon } from "../icons";
+import { ArtifactIcon } from "../icons";
+import { LoadingState } from "../loading-state/LoadingState";
 import { MiniMap } from "../mini-map/MiniMap";
 import { NodeGroup } from "../node-group/NodeGroup";
 import { ShortcutSheet } from "../shortcut-sheet/ShortcutSheet";
@@ -1203,8 +1204,7 @@ function Board({
       {readOnly ? <span className="ds-board__mode">{m.board.readOnly}</span> : null}
       {loading ? (
         <div className="ds-board__overlay">
-          <SpinnerIcon className="ds-spin ds-board__spinner" />
-          <p>{m.board.loading}</p>
+          <LoadingState live="off" label={m.board.loading} />
         </div>
       ) : null}
       {empty ? (
@@ -1219,7 +1219,7 @@ function Board({
         </div>
       ) : null}
       <p className="ds-board__status" role="status" aria-live="polite">
-        {message || status || ""}
+        {loading ? m.board.loading : message || status || ""}
       </p>
     </section>
   );

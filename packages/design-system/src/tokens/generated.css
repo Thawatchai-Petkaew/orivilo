@@ -1744,6 +1744,8 @@
   --cmp-empty-state-gap-sm: var(--ds-space-inline-lg);
   --cmp-empty-state-action-gap: var(--ds-space-stack-sm);
   --cmp-empty-state-max-width: var(--ds-size-panel-default);
+  --cmp-loading-state-gap: var(--ds-space-stack-md);
+  --cmp-loading-state-max-width: var(--ds-size-panel-default);
   --cmp-logo-ink: var(--ds-text-primary);
   --cmp-logo-dot: var(--ds-brand-signature);
   --cmp-logo-dot-small: var(--ds-brand-dot-small);

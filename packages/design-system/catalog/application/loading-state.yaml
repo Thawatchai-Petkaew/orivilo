@@ -1,0 +1,31 @@
+name: LoadingState
+tier: application
+status: draft
+since: ORV-223
+import: "@orivilo/design-system"
+story: application-loading-state
+useWhen:
+  - "A whole region has no known layout yet and waits: a board, a panel or a page while its content loads"
+avoidWhen:
+  - "A region whose layout is known (use SkeletonGroup)"
+  - "A row or a control that waits (use Spinner)"
+  - "A job with a known length or value (use Progress)"
+  - "A region with nothing in it (use EmptyState, never both at once)"
+contract: LoadingStateProps
+variants: []
+sizes: []
+states: [status, live-off, with-action]
+recipes: [neutral, professional, friendly]
+examples: []
+rules:
+  - "Props are `label`, `live`, `action` and `className`; there is no `size`, `progress`, `role` or `children` prop. `label` is the caller's words in the person's language and falls back to the catalog's spinner.loading (load-api-1)"
+  - "The ring is Spinner `lg` (24 px) with the label under it, 8 px apart; the action stands 16 px under them, apart from the status. The column is centred and capped at `size.panel.default` (320). It has no pulse and adds no motion beyond the ring's own turn, which follows the Spinner's rule on reduced motion"
+  - "`live` decides who speaks. `status` (default) is one polite status holding the ring and the label, in the Spinner's own form. `off` renders no role and the label in a plain `p` under an aria-hidden ring, for a region that owns its status; the two forms look the same (load-live-1)"
+  - "`action` is the caller's own Button, one at most, that stops the wait. It sits outside any status, so its name is not part of the message. Keep the label short: a Button label does not wrap. LoadingState holds no submit control, so repeat submission stays blocked by the control that started the wait"
+  - 'It sets no `aria-busy`: it replaces the content and holds nothing that changes. The region that waits sets `aria-busy="true"` on itself while it waits and removes it when done (load-busy-1)'
+  - 'Mount order: with `live="status"` the status mounts with its message, as Spinner, SkeletonGroup and Table do. For a wait that starts while the person is on the screen, in a region whose status container is already mounted, use `live="off"` and put the words in that container; CanvasBoard takes this form (load-mount-1, load-board-1)'
+  - "Which one to use: a whole region with no known layout takes LoadingState; a region with a known layout takes SkeletonGroup; a row or a control takes Spinner; a job with a known length or value takes Progress. EmptyState replaces the content of a region that is empty, never sits beside a wait (load-use-1)"
+  - "The words and the stop action in the stories are mock: no press stops a job"
+a11y:
+  - "`status` is one role status holding the aria-hidden ring and the label, so a screen reader hears the wait in the person's language. `off` has no role and speaks nothing: the region's own status does"
+  - "No screen reader test has been run; the rules above rest on the W3C pages read (ORV-223 spec, K-0113, K-0178), not on a measured announcement"

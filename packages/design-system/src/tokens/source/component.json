@@ -2857,6 +2857,17 @@
       "$value": "{size.panel.default}"
     }
   },
+  "loading-state": {
+    "$description": "A ring with its label and an optional stop action for a region that waits (ORV-223, load-live-1): a centred column capped at the panel width, no pulse",
+    "gap": {
+      "$type": "dimension",
+      "$value": "{space.stack.md}"
+    },
+    "max-width": {
+      "$type": "dimension",
+      "$value": "{size.panel.default}"
+    }
+  },
   "logo": {
     "$description": "The ORIVILO mark, wordmark and lockups (ORV-118, logo-colour-1)",
     "ink": {

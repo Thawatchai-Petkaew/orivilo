@@ -1,4 +1,4 @@
-# DESIGN.md: ORIVILO (agent-readable, v1.68)
+# DESIGN.md: ORIVILO (agent-readable, v1.69)
 
 Read this before any UI work: a Studio screen, a shared component, a story, a recipe, a preview, or a review of generated output. It is the design contract the `frontend-design` skill critiques against and the **design gate** (§11) that blocks G3. Rules that enforce it live in `.claude/rules/design-system.md`; the component registry lives in `packages/design-system/catalog/`.
 
@@ -365,3 +365,5 @@ Change log: v1.66 (2026-11-06) ORV-231 (the single-date Calendar of D.3 row 28):
 Change log: v1.67 (2026-11-06) ORV-226: §6 widens the ConfirmDialog task to "Confirm a destructive action, or accepting proposed changes"; the pattern is built (catalog entry `application-confirm-dialog`, draft). No token, value, contrast pair or profile file changes.
 
 Change log: v1.68 (2026-11-06) ORV-230 PR 1: the Separator component (`sep-api-1` to `sep-scope-1`), a bare 1 px line between two blocks. One new component token, `separator.line` from `border.subtle`, read as a border and never a background so forced colours draw one line. It lists no contrast pair: the space around the line separates and the role tells a screen reader. No semantic token, profile or existing component changes.
+
+Change log: v1.69 (2026-11-07) ORV-250, the loading half of ORV-223: the LoadingState component (`load-api-1` to `load-board-1`), a Spinner `lg` ring with its label and an optional stop action, centred and capped at the panel width, with no pulse. New component tokens `loading-state.gap` (`space.stack.md`) and `loading-state.max-width` (`size.panel.default`). The contrast pair "overlay text" of the board is replaced by `spinner.fg` on `board.bg` at 4.5. Impact: the CanvasBoard loading overlay draws LoadingState with `live="off"`, and while the board loads its status line holds the board's loading words in a 1 by 1 px box, so they are shown once and spoken once; `.ds-board__overlay > p` and `.ds-board__spinner` leave. No semantic token or profile file changes.

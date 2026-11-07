@@ -15,7 +15,8 @@ export interface SpinnerProps {
   labelHidden?: boolean | undefined;
   /**
    * The ring alone, hidden from assistive technology, with no status region and no label. For a
-   * control that owns its status (Button while loading). It takes the ink and size of its slot.
+   * control or a region that owns its status (Button while loading, LoadingState `live="off"`).
+   * It takes the ink and size of its slot.
    */
   decorative?: boolean | undefined;
   /** Layout only. */
