@@ -2,7 +2,7 @@
 issue: ORV-266 (https://tpetkaew.atlassian.net/browse/ORV-266)
 lane: L (reads outside web pages from a deployed server route, a new member set on the report contract, and a session check on a new action)
 mode: POC mode short spec (`.claude/skills/ovl/SKILL.md`, section "POC mode")
-version: 1.4
+version: 1.5
 ---
 
 # ORV-266: paste a website address, see a brand evidence report
@@ -89,7 +89,7 @@ Every value that came from the page (a quote, a URL, an element path, a font nam
 
 ### page-read-limit-1
 
-A new entry in `LIMITS`, `page-read`: 10 per hour and 50 per day per person, day from 00:00 Asia/Bangkok, the numbers of `ai-read`, because a read costs the same kind of outbound work. The order is the existing door: session, then limit, then work. So every submission that reaches the server counts, whatever its result. A store failure fails closed.
+A new entry in `LIMITS`, `page-read`: 10 per hour and 50 per day per person, day from 00:00 Asia/Bangkok, the numbers of `ai-read`, because a read costs the same kind of outbound work. On `/read` the checks run in the order of rule `read-door-1` of `docs/specs/ORV-268/spec.md` (changelog v1.5). So every submission from an approved person (`read-allow-list-1`, the same file) counts, whatever its result. A store failure fails closed.
 
 ### report-not-kept-1
 
@@ -339,7 +339,7 @@ Expected: `20`.
 
 1. **The role field.** The objective says paste an address; `role-input-1` adds one required choice. Option: fix the role at `own` and drop the field, which saves a click but labels any brand's page as the person's own, and leaves `competitor-not-read-1` with no way to fire. Default: keep the field, no option chosen first.
 2. **The limit numbers.** Default: `page-read-limit-1`. Option: reuse the `import` limit of 10 per hour, which has no day window.
-3. **Who may read on staging.** Sign-in is Google only and creates a workspace for any account, so any such account can make our server read a public page. Default: any signed-in person, within the limit. This rests on ORV-128 decision D1 (a), and the owner has accepted that risk for a single page. Option: an allow-list of accounts for the POC.
+3. **Who may read on staging.** Sign-in is Google only and creates a workspace for any account, so any such account can make our server read a public page. Decided by the owner on 2026-11-07: "Approved emails only" (ORV-268, comment 10617). The rule is `read-allow-list-1` of `docs/specs/ORV-268/spec.md`. The earlier default, any signed-in person within the limit on ORV-128 decision D1 (a), no longer holds for `/read`.
 4. **Showing the title and the description.** Evidence keeps no text-span quote, so the report cannot show the page's title. ORV-128 "Kept only as evidence" allows only quotes a reading rests on. Default: counts only. Option: quote the title and description (300 characters at most), which changes that rule and bumps `analyser.version`.
 5. **A colour swatch.** Default: hex and hue band as text, as a swatch paints a colour from page data through an inline style. Option: a swatch beside each entry, with one row and a check that it paints only a validated `#RRGGBB`.
 6. **The robots line when robots.txt fails.** A 5xx, no answer, or a compressed answer on robots.txt is complete disallow, and `read.refused.robots` then says the site "asks" when it may only be down. `ReadResult` does not tell the two apart. Default: keep the copy (ORV-128, word for word), an honest limit of this version. Option: a third refusal reason with its own line.
@@ -359,10 +359,12 @@ Expected: `20`.
 - ORV-112 and `packages/auth/src/rate-limit.ts` (`LIMITS`); ORV-141 and `packages/auth/src/log.ts` (`ROUTES`).
 - `docs/specs/ORV-266/tech.md`, the architect's notes on the ports, the report fields and the action.
 - `DESIGN.md` §11, the design gate for PR B.
+- `docs/specs/ORV-268/spec.md`: rule `read-door-1`, the order on `/read` that `page-read-limit-1` points to, and rule `read-allow-list-1`, the answer to open question 3.
 - The release: the main session's release PR from `develop` to `main`, which brings `main` up to date with its migrations, then the env check and the G4 walk.
 
 ## Changelog
 
+- v1.5 (2026-11-07): requirement change, from the owner's decision "Approved emails only" (ORV-268, comment 10617). Open question 3 records that answer and points to ORV-268 rule `read-allow-list-1`; its old default and option go. `page-read-limit-1` no longer names the door order "session, then limit, then work": on `/read` it points to ORV-268 rule `read-door-1`, and its count sentence now reads that every submission from an approved person counts. Its numbers, its day and its fail-closed store do not change. "Depends on" gains the ORV-268 spec. Rows 1 to 36, their numbers and the Rows per PR line do not change. `docs/specs/ORV-112/tech.md` does not change: its routes keep their order. Task `ORV-268-spec-2`. Downstream to review: `docs/specs/ORV-266/tech.md` section 2 step 2 and section 5 step 2, which still give the order of session and limit with no allow-list; `apps/web/app/read/actions.ts` and `actions.test.ts` (the ORV-268 builder round); the Goal's G4 walk, whose account must be on the list.
 - v1.4 (2026-11-07): requirement change. `url-input-1` now holds the credentials clause, which ORV-267 row 37 proves, and its worked example points to that clause's example in the ORV-267 spec. This is the behaviour of finding SEC-266-9 (ORV-266-security-2), which the ORV-267 spec first held in row 37. Open question 11 is now the one home of the question on credentials inside the path or query of a clean URL: it takes the read case and the second form from the ORV-267 spec, so its title no longer says `not-read` member only, and it now names the `analysed` member, which v1.3 left out. Its default does not change. Rows 1 to 36 do not change, and row 34 stays as it is: changelog v1.1 of the ORV-267 spec records the difference. Task `ORV-267-spec-3`. Downstream to review: `tech.md` (section 5 point 5 and test A6, changed in this task); `docs/specs/ORV-267/spec.md` (v1.2, changed in this task); the ORV-266 branch, whose copy of this file stays at v1.3 until PR 204 merges; the `security` re-check of open question 11.
 - v1.3 (2026-11-07): requirement change. The `url` of the `refused` member of `report-outcome-1` is now the URL parser's origin and nothing else, which closes the class of SEC-266-10 (ORV-266-security-3): the text past the origin can no longer hold a credential in any form. Cost, recorded in the rule: a refused report no longer holds the path of the address. Limit, recorded in the rule: text the parser reads as the host or the port stays. Row 2 gains the expected `url` of each form, with no change to its number. New worked example `report-outcome-1`, not run. New open question 11, for the `not-read` member, which does not change, nor does the `analysed` member. The front matter now gives the version, as F13 of ORV-266-review-3 asks. Rows 1 to 9 keep their numbers and rows 10 to 36 do not change. Task `ORV-266-spec-2`. Downstream to review: `tech.md` (section 7 and test R2, changed here); `packages/intent-engine/src/report.ts` and `report.test.ts` (the builder round); the ORV-135 branch spec, which still holds the older `url`; the ORV-267 branch (rebase on this version; its screen and fixtures need no change); the `security` re-check, whose expected value for SEC-266-10 this rule replaces.
 - v1.2 (2026-11-07): text only, no rule and no acceptance row changes. This edit: the Rows per PR note says the ORV-267 spec arrives with that issue's branch, and the worked-examples line names the `thin-page-1` correction of v1.1. The edit of commit 282fd51: the `- PR B: rows 10-36` line left the Rows per PR list, with a note that rows 10 to 36 moved to their own issue, and the worked-examples line now says the main session ran the examples. Task `ORV-266-build-4`.

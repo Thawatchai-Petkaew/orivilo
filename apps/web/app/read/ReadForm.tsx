@@ -46,6 +46,9 @@ function failureOf(
       return m.brandReport.engine["read.refused.address"];
     case "not-configured":
       return m.brandReport.notConfigured;
+    // The address left the list after the form opened (read-door-1 step 2).
+    case "forbidden":
+      return m.brandReport.notAllowed;
     case "rate-limited":
       return errorLine(labels.errors, labels.wait, outcome.error, outcome.retryAfter);
     default:

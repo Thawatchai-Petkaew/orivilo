@@ -187,6 +187,11 @@ describe("the line of each failed outcome", () => {
       (l) => messagesFor(l).brandReport.notConfigured,
     ],
     [
+      "forbidden is brandReport.notAllowed, never saved.errors.forbidden",
+      failed({ error: "forbidden", code: "FORBIDDEN" }),
+      (l) => messagesFor(l).brandReport.notAllowed,
+    ],
+    [
       "failed with an internal error is saved.errors.failed and the reference",
       failed({ error: "failed", code: "INTERNAL_ERROR" }),
       (l) =>

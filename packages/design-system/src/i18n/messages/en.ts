@@ -556,6 +556,8 @@ export const en: Messages = {
     signedOut: "Sign in to read a website.",
     signInLink: "Go to sign in",
     notConfigured: "Reading a website is not set up in this environment yet.",
+    notAllowed:
+      "Reading a website is open only to approved accounts for now, and this account is not one of them.",
     unavailable: "We cannot read pages right now. Try again in a few minutes.",
     urlLabel: "Website address",
     urlHint: "We read this one page once, as a visitor who is not logged in.",

@@ -28,7 +28,7 @@ import { fill } from "../i18n/messages/index";
  * (`report-text-1`). The readings are rule-based, not AI, and the screen says so.
  */
 export interface BrandReportScreenProps {
-  access: "form" | "signed-out" | "not-configured";
+  access: "form" | "signed-out" | "not-configured" | "not-allowed";
   /** Where the sign-in link goes; `/account` when left out. */
   signInHref?: string | undefined;
   view?: ReportView | null | undefined;
@@ -396,6 +396,7 @@ export function BrandReportScreen({
         </>
       ) : null}
       {access === "not-configured" ? <p>{m.brandReport.notConfigured}</p> : null}
+      {access === "not-allowed" ? <p>{m.brandReport.notAllowed}</p> : null}
       {access === "form" ? (
         <>
           <form className="flex flex-col gap-4" noValidate onSubmit={submit}>
