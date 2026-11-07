@@ -15,6 +15,7 @@ import {
   Input,
   PageHeader,
   Select,
+  SectionHeader,
   Table,
   type TableColumn,
   Textarea,
@@ -142,6 +143,9 @@ const columns: readonly TableColumn<Project>[] = [
   },
   { key: "updated", header: "แก้ไขล่าสุด", numeric: true, sortable: true },
 ];
+
+/** The section header sits one level under the screen's title (`heading-level-1`). */
+const SECTION_LEVEL = { 1: 2, 2: 3, 3: 4, 4: 5, 5: 6 } as const;
 
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
@@ -360,19 +364,26 @@ export function WorkspaceScreen({
         }
       />
 
-      <div className="flex min-h-9 flex-wrap items-center gap-3" aria-live="polite">
-        {selected.size > 0 ? (
-          <>
-            <span className="text-body-sm text-text-secondary">
-              เลือกอยู่ {selected.size} โปรเจกต์
-            </span>
-            <ArchiveDialog count={selected.size} latency={latency} onArchive={archive} />
-          </>
-        ) : null}
-      </div>
+      <SectionHeader
+        level={SECTION_LEVEL[headingLevel]}
+        title="โปรเจกต์ในเวิร์กสเปซ"
+        actions={
+          <div className="flex min-h-9 flex-wrap items-center gap-3" aria-live="polite">
+            {selected.size > 0 ? (
+              <>
+                <span className="text-body-sm text-text-secondary">
+                  เลือกอยู่ {selected.size} โปรเจกต์
+                </span>
+                <ArchiveDialog count={selected.size} latency={latency} onArchive={archive} />
+              </>
+            ) : null}
+          </div>
+        }
+      />
 
       <Table
         caption="โปรเจกต์ในเวิร์กสเปซ"
+        captionHidden
         columns={columns}
         rows={projects}
         rowKey={(row) => row.id}
