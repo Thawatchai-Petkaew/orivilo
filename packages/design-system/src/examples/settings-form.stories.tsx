@@ -146,16 +146,20 @@ export const Notifications: Story = {
 export const NotificationsAt360: Story = {
   render: () => (
     <Narrow>
-      <SettingsForm />
+      <div data-testid="narrow">
+        <SettingsForm />
+      </div>
     </Narrow>
   ),
   play: async ({ canvasElement }) => {
-    const frame = canvasElement.firstElementChild as HTMLElement;
+    // The 360 px column itself, not the story surface around it, which is wider and cannot overflow.
+    const narrow = within(canvasElement).getByTestId("narrow");
     const panel = await openNotifications(canvasElement);
-    await expect(frame.scrollWidth).toBe(frame.clientWidth);
+    await expect(narrow.clientWidth).toBe(360);
+    await expect(narrow.scrollWidth).toBe(narrow.clientWidth);
     for (const sw of within(panel).getAllByRole("switch")) {
       await expect(sw.getBoundingClientRect().right).toBeLessThanOrEqual(
-        frame.getBoundingClientRect().right,
+        narrow.getBoundingClientRect().right,
       );
     }
   },

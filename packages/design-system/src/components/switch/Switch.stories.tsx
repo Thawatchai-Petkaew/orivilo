@@ -541,6 +541,64 @@ export const InForm: Story = {
 };
 
 /**
+ * Each public prop of the API reaches the DOM (switch-api-1, switch-save-1): `invalid` on a bare
+ * switch, its own `aria-describedby` joined with the Field's, `required` from the Field and from
+ * the prop, a custom `value` in the form data, `className` on the wrapper, and `savingLabel` in a
+ * status that stays visually hidden (a box check, not a class name check).
+ */
+export const ApiProps: Story = {
+  render: () => (
+    <form data-testid="form">
+      <div className="flex w-[480px] max-w-full flex-col gap-6">
+        <span id="own-hint">{w.saveError}</span>
+        <Switch aria-label="bare invalid" invalid />
+        <Switch aria-label="bare plain" />
+        <Switch aria-label="bare hinted" aria-describedby="own-hint" />
+        <Field orientation="horizontal" label={w.comments} description={w.commentsHelp} required>
+          <Switch aria-describedby="own-hint" />
+        </Field>
+        <Switch aria-label="bare required" required />
+        <Switch aria-label="bare valued" name="valued" value="yes" defaultChecked />
+        <Switch aria-label="bare styled" className="story-class" />
+        <Switch aria-label="bare saving" saving savingLabel="Custom saving" />
+      </div>
+    </form>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const invalid = canvas.getByRole("switch", { name: "bare invalid" });
+    await expect(invalid).toHaveAttribute("aria-invalid", "true");
+    await expect(getComputedStyle(invalid).borderTopColor).toBe(
+      resolvedColor(invalid, "--cmp-switch-edge-error"),
+    );
+    const plain = canvas.getByRole("switch", { name: "bare plain" });
+    await expect(plain).not.toHaveAttribute("aria-invalid");
+    await expect(plain).not.toHaveAttribute("aria-required");
+    await expect(canvas.getByRole("switch", { name: "bare hinted" })).toHaveAccessibleDescription(
+      w.saveError,
+    );
+    const inField = canvas.getByRole("switch", { name: new RegExp(w.comments) });
+    await expect(inField).toHaveAccessibleDescription(`${w.saveError} ${w.commentsHelp}`);
+    await expect(inField).toHaveAttribute("aria-required", "true");
+    await expect(canvas.getByRole("switch", { name: "bare required" })).toHaveAttribute(
+      "aria-required",
+      "true",
+    );
+    const form = canvas.getByTestId("form") as HTMLFormElement;
+    await expect(new FormData(form).get("valued")).toBe("yes");
+    const styled = canvas.getByRole("switch", { name: "bare styled" });
+    await expect(styled.closest(".ds-switch")).toHaveClass("story-class");
+    const status = canvas.getByRole("status");
+    await expect(status).toHaveTextContent("Custom saving");
+    await expect(status).not.toHaveTextContent(w.saving);
+    // Visually hidden: a 1 px box, whatever class draws it.
+    const box = status.getBoundingClientRect();
+    await expect(box.width).toBeLessThanOrEqual(1);
+    await expect(box.height).toBeLessThanOrEqual(1);
+  },
+};
+
+/**
  * Under reduced motion the thumb stops sliding and the ring keeps turning (switch-size-1, ORV-201
  * `spin-motion-1`). The stylesheet walk reads the rules, since a play cannot switch the setting.
  */
