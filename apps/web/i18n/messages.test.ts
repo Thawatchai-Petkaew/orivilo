@@ -44,4 +44,24 @@ describe("the web catalog", () => {
       network: "ติดต่อ ORIVILO ไม่ได้ ตรวจการเชื่อมต่อแล้วลองอีกครั้ง",
     });
   });
+
+  // ORV-267 "Strings": the three keys the parent places in this catalog, word for word.
+  it("carries the brand report keys of ORV-266 'Strings'", () => {
+    expect(webMessages.en.home.openBrandReport).toBe(
+      "Paste a website address and see a brand evidence report",
+    );
+    expect(webMessages.th.home.openBrandReport).toBe(
+      "วางที่อยู่เว็บไซต์ แล้วดูรายงานหลักฐานแบรนด์",
+    );
+    expect(webMessages.en.brandReport).toStrictEqual({
+      title: "Brand evidence report, ORIVILO",
+      description:
+        "Paste a website address and see what its page declares and says, read by rules.",
+    });
+    expect(webMessages.th.brandReport).toStrictEqual({
+      title: "รายงานหลักฐานแบรนด์, ORIVILO",
+      description:
+        "วางที่อยู่เว็บไซต์ แล้วดูสิ่งที่หน้านั้นประกาศและเขียนไว้ อ่านตามกฎ ยังไม่ใช้ AI",
+    });
+  });
 });
