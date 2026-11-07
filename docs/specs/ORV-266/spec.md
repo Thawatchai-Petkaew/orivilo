@@ -225,7 +225,8 @@ A key in a row is in "Strings" or in the reused list above it, with its Thai and
 Replace A and B with the PR numbers when each PR opens: the recorder reads digits only (`qa-scope-1`).
 
 - PR 203: rows 1-9
-- PR B: rows 10-36
+
+Rows 10 to 36 moved to their own issue; they are in docs/specs/ORV-267/spec.md.
 
 PR A is the engine and the read ports: `report.ts` and the `read.failed.*` strings from the ORV-135 branch, the report builder `reportOf`, and `apps/web/server/read-ports.ts`. It adds no route. PR B is the form and the report page: the limit, the log route, the action, the report view, the page and the copy. PR B needs PR A merged.
 
@@ -237,7 +238,7 @@ Rows 1 to 7 are engine tests, row 8 is a port test against a local server, row 9
 
 ## Worked examples
 
-Not run in this role, which has no shell. The builder runs each line and reports a difference.
+The main session ran these examples and they match after the row 9 fix.
 
 **`url-input-1`.** Input: the forms a person pastes. Output: what `readUrlInput` gets, one line each, unrounded text.
 

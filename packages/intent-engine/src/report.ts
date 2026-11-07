@@ -107,18 +107,45 @@ export type Report = z.infer<typeof reportSchema>;
 
 /**
  * The authority of a URL as given, userinfo included: from after an optional `scheme://` to the first
- * `/`, `?` or `#`. Textual, so it holds for text no URL parser accepts. A backslash is not a stop, so
- * `https://a:b\@host/` loses `a:b\` as well: it drops too much, never too little.
+ * `/`, `?` or `#`. Textual, so it holds for text no URL parser accepts. It is not the only reading:
+ * the WHATWG parser skips extra slashes, reads a backslash as a slash and drops a tab or a newline,
+ * so it can find userinfo where this pattern finds an empty authority. `refusedUrlOf` therefore asks
+ * the parser too, and the parser's own username and password decide.
  */
 const AUTHORITY = /^([a-z][a-z0-9+.-]*:\/\/)?([^/?#]*)/i;
 
-/** report-outcome-1, the two steps on `url` of a refused member: userinfo dropped, then cut at URL_MAX_CHARS. */
-function refusedUrlOf(given: string): { url: string; urlCut: boolean } {
+/** The URL parser's reading of `text` when it holds a username or a password, with both cleared. */
+function withoutParsedCredentials(text: string): string | null {
+  let parsed: URL;
+  try {
+    parsed = new URL(text);
+  } catch {
+    return null; // no parser accepts it: the textual path below decides
+  }
+  if (parsed.username === "" && parsed.password === "") return null;
+  parsed.username = "";
+  parsed.password = "";
+  return parsed.href;
+}
+
+/** The text with the userinfo of its textual authority dropped. It drops too much when it is unsure. */
+function withoutTextualUserinfo(given: string): string {
   const m = AUTHORITY.exec(given);
   const scheme = m?.[1] ?? "";
   const authority = m?.[2] ?? "";
   const rest = given.slice(scheme.length + authority.length);
-  const bare = scheme + authority.slice(authority.lastIndexOf("@") + 1) + rest;
+  return scheme + authority.slice(authority.lastIndexOf("@") + 1) + rest;
+}
+
+/**
+ * report-outcome-1, the two steps on `url` of a refused member: userinfo dropped, then cut at
+ * URL_MAX_CHARS. Userinfo is dropped by the URL parser's reading of the given text when it finds
+ * any; otherwise by the textual authority, and then the parser reads that result once more, because
+ * dropping text can leave a form the parser reads as userinfo.
+ */
+function refusedUrlOf(given: string): { url: string; urlCut: boolean } {
+  const textual = withoutTextualUserinfo(given);
+  const bare = withoutParsedCredentials(given) ?? withoutParsedCredentials(textual) ?? textual;
   if (bare.length <= URL_MAX_CHARS) return { url: bare, urlCut: false };
   let end = URL_MAX_CHARS;
   const last = bare.charCodeAt(end - 1);
