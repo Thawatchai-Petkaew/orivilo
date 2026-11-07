@@ -76,6 +76,7 @@ export {
   type RadioGroupItemProps,
   type RadioGroupProps,
 } from "./radio-group/RadioGroup";
+export { Switch, type SwitchProps } from "./switch/Switch";
 export { InputGroup, type InputGroupProps } from "./input-group/InputGroup";
 export { PasswordInput, type PasswordInputProps } from "./password-input/PasswordInput";
 export {
