@@ -1,6 +1,6 @@
 ---
 issue: ORV-250
-spec: docs/specs/ORV-250/spec.md v1.0
+spec: docs/specs/ORV-250/spec.md v1.1
 parent design: docs/specs/ORV-223/design.md
 task: ORV-250-design-1
 head: f8cfb715157680926bd24d835d0a7643762af84e
@@ -118,7 +118,11 @@ New pair: `spinner.fg` on `toolbar.bg`, floor 4.5.
  * `opacity: 0`, and each part's region (`paintRegion`) must differ by no pixel (`paintDifference`).
  * The inline value is put back in `finally`. Runs where Vitest browser mode runs.
  */
-export async function expectCoversInk(scope: Element, parts: readonly Element[], layer: HTMLElement);
+export async function expectCoversInk(
+  scope: Element,
+  parts: readonly Element[],
+  layer: HTMLElement,
+);
 ```
 
 Two things I learned by getting it wrong:

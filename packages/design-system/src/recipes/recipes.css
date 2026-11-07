@@ -2047,6 +2047,16 @@
 .ds-board__overlay > * {
   pointer-events: auto;
 }
+/* The wait can land on nodes, the toolbar, the shelf or the open bar, so it brings its own ground: the
+ * status pill's form, which is hidden while the board loads (ORV-250 D17). Solid, so nothing shows through. */
+.ds-board__overlay > .ds-loading-state {
+  padding-block: var(--ds-space-inset-md);
+  padding-inline: var(--ds-space-inset-lg);
+  border: 1px solid var(--cmp-toolbar-border);
+  border-radius: var(--cmp-toolbar-radius);
+  background: var(--cmp-toolbar-bg);
+  box-shadow: var(--cmp-toolbar-shadow);
+}
 .ds-board__status {
   position: absolute;
   bottom: var(--ds-space-inset-md);

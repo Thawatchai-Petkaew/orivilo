@@ -454,6 +454,55 @@ describe("the alert recipe (ORV-222, alert-look-1)", () => {
   });
 });
 
+describe("the board's plate under the wait (ORV-250, D17 to D19)", () => {
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  const rules = [...bare.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => ({
+    selector: (m[1] ?? "").trim().replace(/\s+/g, " "),
+    body: (m[2] ?? "").trim().replace(/\s+/g, " "),
+  }));
+  const plate = rules.filter((r) => r.selector === ".ds-board__overlay > .ds-loading-state");
+
+  it("gives the form the status pill's solid ground, line, radius and shadow (D17, D18)", () => {
+    expect(plate).toHaveLength(1);
+    expect(plate[0]?.body).toBe(
+      "padding-block: var(--ds-space-inset-md); padding-inline: var(--ds-space-inset-lg); border: 1px solid var(--cmp-toolbar-border); border-radius: var(--cmp-toolbar-radius); background: var(--cmp-toolbar-bg); box-shadow: var(--cmp-toolbar-shadow);",
+    );
+  });
+
+  it("is on whenever the board's overlay holds the form, with no condition on nodes (D19)", () => {
+    const selectors = rules.map((r) => r.selector).filter((s) => s.includes(".ds-loading-state"));
+    expect(selectors.filter((s) => s.includes(".ds-board__overlay"))).toEqual([
+      ".ds-board__overlay > .ds-loading-state",
+    ]);
+    expect(css).not.toMatch(/:has\([^)]*react-flow__node/);
+  });
+
+  it("lists the ring and the words on the plate's ground at the text floor", () => {
+    expect(
+      RECIPE_PAIRS.filter(
+        (p) => p.recipe === "spinner" && p.slot === "ring and label on the board's plate",
+      ),
+    ).toEqual([
+      {
+        recipe: "spinner",
+        slot: "ring and label on the board's plate",
+        fg: "spinner.fg",
+        bg: "toolbar.bg",
+        floor: 4.5,
+      },
+    ]);
+  });
+
+  it("keeps the pair of the board's own ground, which load-live-1 names", () => {
+    expect(
+      RECIPE_PAIRS.some(
+        (p) =>
+          p.recipe === "spinner" && p.slot === "ring and label on board" && p.bg === "board.bg",
+      ),
+    ).toBe(true);
+  });
+});
+
 describe("recipe contrast pairs", () => {
   for (const { id, set } of CONTRAST_SETS) {
     for (const mode of MODES) {

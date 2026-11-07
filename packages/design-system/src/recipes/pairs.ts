@@ -972,6 +972,14 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     bg: "board.bg",
     floor: TEXT,
   },
+  // The plate the board puts under the wait (ORV-250 D17): the same ring and words on the toolbar's solid ground.
+  {
+    recipe: "spinner",
+    slot: "ring and label on the board's plate",
+    fg: "spinner.fg",
+    bg: "toolbar.bg",
+    floor: TEXT,
+  },
   // FeaturedIcon (ORV-222): the glyph on its tile, the graphic of the tile. The tile's own edge against the
   // page is not listed: the tile ground is decoration and the glyph carries the kind (see "Not listed" above).
   {

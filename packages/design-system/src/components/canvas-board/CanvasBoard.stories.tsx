@@ -2,7 +2,12 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useEffect, useState } from "react";
 import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { LocaleProvider } from "../../i18n/LocaleProvider";
-import { expectFrameCutsNoInk, expectLabelInkWhole, inVitest } from "../../testing/visual-asserts";
+import {
+  expectCoversInk,
+  expectFrameCutsNoInk,
+  expectLabelInkWhole,
+  inVitest,
+} from "../../testing/visual-asserts";
 import { Button } from "../button/Button";
 import { fixtureManyJobs, fixtures } from "../fixtures";
 import { Matrix, Narrow } from "../matrix";
@@ -600,9 +605,43 @@ const overlayLabel = (root: HTMLElement) =>
   part(root, ".ds-board__overlay .ds-loading-state__label");
 
 /**
+ * The wait on its plate (ORV-250 rows 35 and 36, D17 to D20): the form's centre is the board's
+ * centre to half a pixel on both axes, and the ring and the label stand at least `space.inset.md`
+ * less half a pixel inside the form's padding box above and below, so the plate wraps them.
+ */
+async function expectOnPlate(board: HTMLElement) {
+  const root = part(board, ".ds-board__overlay .ds-loading-state");
+  const at = root.getBoundingClientRect();
+  const on = board.getBoundingClientRect();
+  await expect(
+    Math.abs(at.left + at.width / 2 - (on.left + on.width / 2)),
+    "the form's centre across the board's centre",
+  ).toBeLessThanOrEqual(HALF_PX);
+  await expect(
+    Math.abs(at.top + at.height / 2 - (on.top + on.height / 2)),
+    "the form's centre down the board's centre",
+  ).toBeLessThanOrEqual(HALF_PX);
+  const inset = resolvedLength(root, "--ds-space-inset-md");
+  const top = at.top + root.clientTop;
+  const bottom = top + root.clientHeight;
+  for (const [name, el] of [
+    ["ring", part(root, ".ds-spinner__ring")],
+    ["label", part(root, ".ds-loading-state__label")],
+  ] as const) {
+    const box = el.getBoundingClientRect();
+    await expect(box.top - top, `${name} clear of the plate's top`).toBeGreaterThanOrEqual(
+      inset - HALF_PX,
+    );
+    await expect(bottom - box.bottom, `${name} clear of the plate's bottom`).toBeGreaterThanOrEqual(
+      inset - HALF_PX,
+    );
+  }
+}
+
+/**
  * Loading: the region is busy and says so (AC 12, ORV-223 row 35). The ring and the words show
- * once, in the overlay; the status line holds the same words in a 1 by 1 px box and is the one
- * status in the region (`load-board-1`).
+ * once, in the overlay, on the plate; the status line holds the same words in a 1 by 1 px box and
+ * is the one status in the region (`load-board-1`).
  */
 export const Loading: Story = {
   args: { initial: { nodes: [], edges: [] }, loading: true },
@@ -618,6 +657,7 @@ export const Loading: Story = {
     await expect(overlayLabel(canvasElement)).toHaveTextContent(LOADING_TH);
     await expect(overlayLabel(canvasElement)).toBeVisible();
     await expect(region.querySelector(".ds-board__overlay .ds-spinner__ring")).not.toBeNull();
+    await expectOnPlate(part(canvasElement, ".ds-board"));
   },
 };
 
@@ -649,6 +689,38 @@ export const LoadingFinishes: Story = {
     await expect(region).toHaveAttribute("aria-busy", "true");
     await expect(line).toHaveTextContent(LOADING_TH);
     await expect(overlayLabel(canvasElement)).toBeVisible();
+    // The wait sits over live nodes (ORV-250 row 36): a node's box meets the form's, and nothing of
+    // the nodes' layer shows through the ring or the words.
+    await ready(region);
+    const board = part(canvasElement, ".ds-board");
+    const form = part(board, ".ds-board__overlay .ds-loading-state").getBoundingClientRect();
+    await expect(
+      Array.from(nodeEls(region)).some((n) => {
+        const box = n.getBoundingClientRect();
+        return (
+          box.left < form.right &&
+          box.right > form.left &&
+          box.top < form.bottom &&
+          box.bottom > form.top
+        );
+      }),
+      "a node lies under the form",
+    ).toBe(true);
+    if (inVitest) {
+      const viewport = part(board, ".react-flow__viewport");
+      await withRingsStill(board, () =>
+        expectCoversInk(
+          board,
+          [
+            part(board, ".ds-board__overlay .ds-spinner__ring"),
+            part(board, ".ds-board__overlay .ds-loading-state__label"),
+          ],
+          viewport,
+        ),
+      );
+      // The helper put the layer back: its inline opacity is as it was, none.
+      await expect(viewport.style.opacity).toBe("");
+    }
     await userEvent.click(canvas.getByRole("button", { name: "โหลดเสร็จ" }));
     await waitFor(() => expect(region).not.toHaveAttribute("aria-busy"));
     await expect(status(region)).toBe(line);

@@ -968,6 +968,15 @@ describe("paintDifference", () => {
     expect(paintDifference([row([240, 240, 240])], [row([220, 240, 240])])).toBe(1);
   });
 
+  it("reads the plate and the ink under it as W11 does (ORV-250, expectCoversInk)", () => {
+    const plate: Rgb = [255, 255, 255];
+    const ink: Rgb = [30, 29, 38];
+    // Nothing shows through: both shots hold the plate. A pixel exactly 12 off is the same. One pixel of ink counts.
+    expect(paintDifference([row(plate, plate)], [row(plate, plate)])).toBe(0);
+    expect(paintDifference([row(plate)], [row([255, 251, 251])])).toBe(0);
+    expect(paintDifference([row(plate, plate)], [row(plate, ink)])).toBe(1);
+  });
+
   it("throws on two regions of different sizes, in rows and in columns", () => {
     expect(() => paintDifference([row(white)], [row(white), row(white)])).toThrow(/same size/);
     expect(() => paintDifference([row(white)], [row(white, white)])).toThrow(/same size/);
