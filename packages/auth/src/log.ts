@@ -20,6 +20,7 @@ export const ROUTES = [
   "directions/exportVersion",
   "directions/importDirection",
   "directions/readBriefWithAi",
+  "read/analysePage",
   "account/signInWithGoogle",
   "account/signOut",
   "i18n/setLocale",
@@ -36,6 +37,16 @@ export const STEP_OUTCOMES = {
   "rate-limit": ["allowed", "limited", "unavailable"],
   "client-ip": ["no-trusted-ip"],
   "ai-usage": ["record-failed", "cost-not-reported"],
+  "page-read": [
+    "read",
+    "not-read",
+    "refused-address",
+    "refused-robots",
+    "timeout",
+    "network",
+    "redirects",
+    "not-html",
+  ],
 } as const;
 export type Step = keyof typeof STEP_OUTCOMES;
 

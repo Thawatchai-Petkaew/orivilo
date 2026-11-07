@@ -3,6 +3,7 @@
  * composing, and the screens the app and E2-11's preview render. Exported through the package's
  * `./examples` entry so the component index stays components only.
  */
+export { BrandReportScreen, type BrandReportScreenProps } from "./brand-report";
 export { DECISIONS, type Decision, DecisionLog, type DecisionLogProps } from "./decision-log";
 export { Landing } from "./landing";
 export { SettingsForm, type SettingsFormProps } from "./settings-form";

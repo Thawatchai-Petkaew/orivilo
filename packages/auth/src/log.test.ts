@@ -54,6 +54,7 @@ describe("the closed lists", () => {
       "directions/exportVersion",
       "directions/importDirection",
       "directions/readBriefWithAi",
+      "read/analysePage",
       "account/signInWithGoogle",
       "account/signOut",
       "i18n/setLocale",
@@ -64,6 +65,16 @@ describe("the closed lists", () => {
       "rate-limit": ["allowed", "limited", "unavailable"],
       "client-ip": ["no-trusted-ip"],
       "ai-usage": ["record-failed", "cost-not-reported"],
+      "page-read": [
+        "read",
+        "not-read",
+        "refused-address",
+        "refused-robots",
+        "timeout",
+        "network",
+        "redirects",
+        "not-html",
+      ],
     });
     expect(REASONS).toEqual([
       "adapter-failed",
@@ -215,6 +226,9 @@ describe("writeLine", () => {
     ["client-ip", "allowed"],
     ["ai-usage", "limited"],
     ["ai-usage", "failed"],
+    ["page-read", "allowed"],
+    ["page-read", "ok"],
+    ["rate-limit", "read"],
   ])("writes the outcome %s/%s as unknown", (step, outcome) => {
     expect(written({ ...base, step, outcome })["outcome"]).toBe("unknown");
   });

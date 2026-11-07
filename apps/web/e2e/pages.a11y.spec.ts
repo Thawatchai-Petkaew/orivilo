@@ -1,6 +1,9 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 import { webMessages, type WebMessages } from "../i18n/messages";
+// The catalog only, not the package barrel: `/read` words its not-configured line in the design
+// system's catalog (ORV-266 "Strings"), and the barrel would load every component into the spec.
+import { messagesFor } from "../../../packages/design-system/src/i18n/messages/index";
 import config from "../playwright.config";
 
 /**
@@ -89,7 +92,7 @@ const STATES: readonly {
   state: string;
   path: string;
   status: number;
-  line: (m: WebMessages) => string;
+  line: (m: WebMessages, locale: Locale) => string;
 }[] = [
   { route: "/", state: "page", path: "/", status: 200, line: (m) => m.home.headline },
   // The reference screen is a fixture with Thai data in both locales (workspace.tsx h1).
@@ -113,6 +116,13 @@ const STATES: readonly {
     path: "/directions",
     status: 200,
     line: (m) => m.saved.notConfigured,
+  },
+  {
+    route: "/read",
+    state: "not-configured",
+    path: "/read",
+    status: 200,
+    line: (_m, locale) => messagesFor(locale).brandReport.notConfigured,
   },
   {
     route: "/account",
@@ -148,7 +158,7 @@ for (const s of STATES) {
             const response = await page.goto(s.path);
             expect(response?.status(), "response status").toBe(s.status);
             await expect(
-              page.getByText(s.line(webMessages[locale]), { exact: true }),
+              page.getByText(s.line(webMessages[locale], locale), { exact: true }),
             ).toBeVisible();
             await expect(page.locator("html")).toHaveAttribute("lang", locale);
             await expect

@@ -21,6 +21,7 @@ const th = {
     openWorkspace: "เปิดหน้าอ้างอิง: เวิร์กสเปซของทีม",
     openDirections: "ลองเขียนบรีฟแล้วดูสองทิศทางบนหน้าจอเดียวกัน",
     openAccount: "ลงชื่อเข้าใช้และดูเวิร์กสเปซของคุณ",
+    openBrandReport: "วางที่อยู่เว็บไซต์ แล้วดูรายงานหลักฐานแบรนด์",
     realHeading: "สิ่งที่มีจริงตอนนี้",
     notYetHeading: "สิ่งที่ยังไม่มี",
     schemaLine: "Design Profile schema v{version}. แผนงานทั้งหมดอยู่ใน",
@@ -179,6 +180,10 @@ const th = {
     reference: "รหัสอ้างอิง: {requestId}",
     network: "ติดต่อ ORIVILO ไม่ได้ ตรวจการเชื่อมต่อแล้วลองอีกครั้ง",
   },
+  brandReport: {
+    title: "รายงานหลักฐานแบรนด์, ORIVILO",
+    description: "วางที่อยู่เว็บไซต์ แล้วดูสิ่งที่หน้านั้นประกาศและเขียนไว้ อ่านตามกฎ ยังไม่ใช้ AI",
+  },
   workspace: {
     title: "เวิร์กสเปซ, ORIVILO",
     description: "หน้าอ้างอิง: เวิร์กสเปซของทีมพร้อมสร้างโปรเจกต์ (E2-8) ข้อมูลตัวอย่างภาษาไทย",
@@ -208,6 +213,7 @@ const en: WebMessages = {
     openWorkspace: "Open the reference screen: team workspace",
     openDirections: "Write a brief and see two directions on the same screen",
     openAccount: "Sign in and see your workspace",
+    openBrandReport: "Paste a website address and see a brand evidence report",
     realHeading: "What exists today",
     notYetHeading: "What does not exist yet",
     schemaLine: "Design Profile schema v{version}. The whole plan is in the",
@@ -375,6 +381,10 @@ const en: WebMessages = {
   failure: {
     reference: "Reference: {requestId}",
     network: "Could not reach ORIVILO. Check your connection, then try again.",
+  },
+  brandReport: {
+    title: "Brand evidence report, ORIVILO",
+    description: "Paste a website address and see what its page declares and says, read by rules.",
   },
   workspace: {
     title: "Workspace, ORIVILO",
