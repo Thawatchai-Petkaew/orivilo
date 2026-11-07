@@ -1,9 +1,9 @@
 ---
 issue: ORV-266 (https://tpetkaew.atlassian.net/browse/ORV-266)
-spec: docs/specs/ORV-266/spec.md v1.1
+spec: docs/specs/ORV-266/spec.md v1.3
 parent: docs/specs/ORV-128/spec.md, "Reading a page the person submits"
 adr: docs/adr/0019-page-renderer-placement.md, decision 7
-task: ORV-266-arch-1, ORV-266-arch-2
+task: ORV-266-arch-1, ORV-266-arch-2, ORV-266-spec-2
 author: architect
 date: 2026-11-07
 ---
@@ -119,9 +119,9 @@ export function reportOf(
   | { ok: false; error: "id-collision" | "competitor-not-read" | "report-invalid" };
 ```
 
-It follows rule `report-outcome-1`, minus the exit codes, which are the command's. `not-read` gives the `not-read` member. `refused` and `failed` give the `refused` member, after the rule's two steps on `url` (userinfo dropped, then cut). `read` calls `analyseUrl` and gives `analysed`: `personality` from the `identity-frame.personality.<axis>` readings that are not `belowFloor`, in axis order, and `lines: ["report.conflictsNotChecked"]`. It ends with `reportSchema.safeParse`. `analyseUrl` has no cap at 5,000 items (2,880 sheet items, plus blocks and readings, by reading the code), so a crafted page can give `report-invalid`, and test R3 builds that page. That is a failed call, never a throw. Pure, like the rest of the engine: `ctx.retrievedAt` comes from the action.
+It follows rule `report-outcome-1`, minus the exit codes, which are the command's. `not-read` gives the `not-read` member. `refused` and `failed` give the `refused` member, with its `url` and `urlCut` by the rule: one parse of `given` for the origin, no text step beside it, then the cut. `read` calls `analyseUrl` and gives `analysed`: `personality` from the `identity-frame.personality.<axis>` readings that are not `belowFloor`, in axis order, and `lines: ["report.conflictsNotChecked"]`. It ends with `reportSchema.safeParse`. `analyseUrl` has no cap at 5,000 items (2,880 sheet items, plus blocks and readings, by reading the code), so a crafted page can give `report-invalid`, and test R3 builds that page. That is a failed call, never a throw. Pure, like the rest of the engine: `ctx.retrievedAt` comes from the action.
 
-The rule's home is `docs/specs/ORV-135/spec.md`, which exists only on `origin/feature/ORV-135-page-reader`. The ORV-266 spec must carry it or the builder has no source on develop.
+The rule began in `docs/specs/ORV-135/spec.md`, which exists only on `origin/feature/ORV-135-page-reader`. The ORV-266 spec carries it, or the builder would have no source on develop, and since v1.3 its wording decides on this path: the branch's `url` of the `refused` member is the older one.
 
 **`toReportView`, in `packages/intent-engine/src/report-view.ts`.** The `Report` can pass K-0081's 4.5 MB: at most 5,000 items, each holding a URL of up to 2,048 characters. So a bounded view crosses instead. It is pure, like `reportOf`, and the engine exports it with its type (D9).
 
@@ -239,7 +239,7 @@ PR 1 adds no route, so nothing new is reachable. `security` reviews both PRs: PR
 | Test | Asserts | Break it |
 | --- | --- | --- |
 | R1 | `reportOf` gives each member for each read outcome, and each parses with `reportSchema` | Change a `line` key |
-| R2 | `http://user:secret@example.test/` refused: `user:secret` appears nowhere in the report | Skip step 1 |
+| R2 | Each form of the spec's `report-outcome-1` worked example gives the `url` it expects, and `user:secret` appears nowhere in the report; a long host is cut to `URL_MAX_CHARS` with `urlCut` true, and a short one has `urlCut` false | Use `href` for `origin`; keep the `null` origin; drop the slash; drop the cut |
 | R3 | Over 5,000 items gives `report-invalid` and no throw; a below-floor reading is not a lean | Use `reportSchema.parse` |
 | P1 | A URL on `does-not-exist.invalid` with `address: "127.0.0.1"` reaches the loopback server, and `remoteAddress` is that address | Remove `lookup`: `ENOTFOUND` |
 | P2 | `lookup` answers both call forms | Answer only the plain form |
