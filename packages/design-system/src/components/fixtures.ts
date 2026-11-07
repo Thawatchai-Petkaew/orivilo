@@ -706,3 +706,31 @@ export const calendarFixtures = {
   /** The caller's own button in the controlled-clear story: caller text, not a catalog key. */
   clear: { th: "ล้างวันที่", en: "Clear date" },
 } as const;
+
+/**
+ * SectionHeader story copy (ORV-251): the caller's text, not catalog keys, and it is mock. The two
+ * titles are the ones the workspace screen uses. Frames that count actions take `moreActions` and
+ * `longAction` from `pageHeaderFixtures`, the labels `docs/specs/ORV-225/design.md` measured.
+ */
+export const sectionHeaderFixtures = {
+  th: {
+    title: "โปรเจกต์ในเวิร์กสเปซ",
+    description: "ทุกโปรเจกต์ของทีมนี้ เรียงจากที่แก้ไขล่าสุด",
+    action: "สร้างโปรเจกต์",
+    tabsLabel: "มุมมองโปรเจกต์",
+    tabs: ["ทั้งหมด", "ของฉัน", "เก็บถาวร"],
+    region: "ส่วนของโปรเจกต์",
+    longTitle: fixtures.longThai,
+    marksTitle: "ฟื้ปั้ปี๊ฟื้ ปิ่นโต้ โลโก้",
+  },
+  en: {
+    title: "Projects in this workspace",
+    description: "Every project of this team, newest edit first",
+    action: "Create project",
+    tabsLabel: "Project views",
+    tabs: ["All", "Mine", "Archived"],
+    region: "Projects section",
+    longTitle: `${fixtures.longLatin} and a very long name for a block that keeps growing`,
+    marksTitle: "Projects in this workspace of the year",
+  },
+} as const;

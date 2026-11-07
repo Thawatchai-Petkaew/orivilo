@@ -99,6 +99,7 @@ export { Separator, type SeparatorProps } from "./separator/Separator";
 export { Spinner, type SpinnerProps, type SpinnerSize } from "./spinner/Spinner";
 export { Resizable, type ResizableProps } from "./resizable/Resizable";
 export { ScrollArea, type ScrollAreaProps } from "./scroll-area/ScrollArea";
+export { SectionHeader, type SectionHeaderProps } from "./section-header/SectionHeader";
 export { Select, type SelectGroup, type SelectOption, type SelectProps } from "./select/Select";
 export {
   Sheet,
