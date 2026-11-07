@@ -6151,12 +6151,13 @@ button.ds-tag__main {
     display: inline-flex;
   }
 }
-/* In view it is one opaque bar over the header; out of view while it has no focus. The hidden form is
- * the base and focus lifts it: a :not(:focus) selector is rewritten by the pseudo-states addon into
- * one that always matches, so the story would never see the bar. */
+/* In view it is one opaque bar over the header; out of view while it has no focus. The bar fills the
+ * header and draws its focus inside, because it has no room around it. The hidden form is the base
+ * and focus lifts it: a :not(:focus) selector is rewritten by the pseudo-states addon into one that
+ * always matches, so the story would never see the bar. */
 .ds-top-nav__skip {
   position: absolute;
-  inset: var(--ds-space-inline-sm);
+  inset: 0;
   z-index: var(--ds-layer-overlay);
   display: flex;
   align-items: center;
@@ -6180,7 +6181,14 @@ button.ds-tag__main {
   inline-size: auto;
   block-size: auto;
   padding-inline: var(--ds-space-inset-md);
+  outline: 1px solid var(--ds-focus-ring);
+  outline-offset: -1px;
+  box-shadow: var(--_focus-shadow-inset);
   overflow: visible;
+}
+/* Opacity, not visibility: the row keeps its Tab stops, and the next Tab must reach them. */
+.ds-top-nav__skip:focus ~ .ds-top-nav__row {
+  opacity: 0;
 }
 
 /* The drawer (ORV-252, nav-narrow-1, nav-size-1): items at least --ds-size-touch tall. The body

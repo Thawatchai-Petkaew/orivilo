@@ -11,6 +11,7 @@ import {
   expectLinesClear,
   expectSameHeight,
   inVitest,
+  measureInkCentre,
   resolvedColor,
 } from "../../testing/visual-asserts";
 import { Button } from "../button/Button";
@@ -753,7 +754,7 @@ const skipNav = ({ copy, open }: Setup) =>
     </>,
   );
 
-/** Row 38: the skip link is the header's first focusable, hidden until Tab, an opaque bar over the row. That focus lands on the target after Enter is proved by a Playwright probe on the built story, not here: a real hash change reloads the test page. */
+/** Row 38: the skip link is the header's first focusable, hidden until Tab, an opaque bar over the row with nothing showing beside it. That focus lands on the target after Enter is proved by a Playwright probe on the built story, not here: a real hash change reloads the test page. */
 async function expectSkipLink(canvasElement: HTMLElement, { copy }: Setup) {
   const header = canvasElement.querySelector("header") as HTMLElement;
   const skip = within(header).getByRole("link", { name: copy.skip, hidden: true });
@@ -763,19 +764,37 @@ async function expectSkipLink(canvasElement: HTMLElement, { copy }: Setup) {
   await userEvent.tab();
   await expect(skip).toHaveFocus();
   const [bar, box] = [rect(skip), rect(header)];
-  const gap = tokenPx(header, "--ds-space-inline-sm");
-  near(bar.left - box.left, gap, "the bar's start inset");
-  near(box.right - bar.right, gap, "the bar's end inset");
-  near(bar.top - box.top, gap, "the bar's top inset");
-  near(box.bottom - bar.bottom, gap, "the bar's bottom inset");
+  near(bar.left, box.left, "the bar's start edge");
+  near(bar.right, box.right, "the bar's end edge");
+  near(bar.top, box.top, "the bar's top edge");
+  near(bar.bottom, box.bottom, "the bar's bottom edge");
   const fill = getComputedStyle(skip).backgroundColor;
   await expect(fill).toBe(resolvedColor(skip, "--ds-surface-card"));
   await expect(cssColorToHex(fill), "the bar is opaque").not.toBeNull();
   await expect(getComputedStyle(skip).color).toBe(resolvedColor(skip, "--ds-text-primary"));
+  await expectInsetFocus(skip);
+  const row = part(header, "row");
+  await expect(getComputedStyle(row).opacity, "the row paints nothing beside the bar").toBe("0");
+  if (inVitest) {
+    // Line and halo off for the read, so the first ink is the label's.
+    skip.style.outline = "none";
+    skip.style.boxShadow = "none";
+    try {
+      const [label] = await measureInkCentre(header, [skip]);
+      await expect(label?.ink.inkTop, "the marks clear the focus line").toBeGreaterThanOrEqual(2);
+    } finally {
+      skip.style.outline = "";
+      skip.style.boxShadow = "";
+    }
+  }
   // The link points at a target that can take focus; the move itself is the probe's.
   const target = canvasElement.querySelector<HTMLElement>(skip.getAttribute("href") ?? "");
   await expect(target).toHaveAttribute("id", "main");
   await expect(target?.tabIndex).toBe(-1);
+  await userEvent.tab();
+  await expect(skip).not.toHaveFocus();
+  await expect(row.contains(document.activeElement), "the next Tab lands in the row").toBe(true);
+  await expect(getComputedStyle(row).opacity, "the row is back").toBe("1");
 }
 
 export const SkipLink: Story = {
