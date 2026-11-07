@@ -3,16 +3,16 @@ issue: ORV-267 (https://tpetkaew.atlassian.net/browse/ORV-267)
 parent: ORV-266 (https://tpetkaew.atlassian.net/browse/ORV-266), docs/specs/ORV-266/spec.md v1.1
 lane: L (the parent's lane)
 mode: POC mode short spec, for a slice (`.claude/skills/ovl/SKILL.md`, step 2 and section "POC mode")
-version: 1.0
+version: 1.1
 ---
 
 # ORV-267: the form and the report page, slice B of ORV-266
 
 ## Why a slice
 
-The parent's goal holds: one path from a brand's website address to a brand evidence report, which the owner can open on staging. ORV-266 ships that path in two PRs (parent, "Rows per PR"). PR 203 carries rows 1 to 9, the engine and the read ports, on the ORV-266 branch. This slice is the rest, rows 10 to 36: the form and the report page, which is the half a person sees.
+The parent's goal holds: one path from a brand's website address to a brand evidence report, which the owner can open on staging. ORV-266 ships that path in two PRs (parent, "Rows per PR"). PR 203 carries rows 1 to 9, the engine and the read ports, on the ORV-266 branch. This slice is the rest, the parent's rows 10 to 36 and its own row 37: the form and the report page, which is the half a person sees.
 
-A branch and its PR carry one issue (`AGENTS.md`, "Git"), so this half has its own key on `feature/ORV-267-report-page`. The qa recorder reads the acceptance table at `docs/specs/<issue>/spec.md`, so the key needs this file (L-0016). The file adds no requirement. The parent stays the home of each rule and string.
+A branch and its PR carry one issue (`AGENTS.md`, "Git"), so this half has its own key on `feature/ORV-267-report-page`. The qa recorder reads the acceptance table at `docs/specs/<issue>/spec.md`, so the key needs this file (L-0016). The file adds one requirement, row 37, and changes one test cell, row 34's ("Changelog"). Otherwise the parent stays the home of each rule and string.
 
 PR B is the form and the report page: the limit, the log route, the action, the report view, the page and the copy.
 
@@ -31,12 +31,12 @@ As a founder or designer who is signed in, I want to paste a brand's website add
 
 ## Rules the rows use
 
-Each rule is defined once, under "Rules" in the parent spec, and its full text is there. This slice restates none of them and defines none.
+Each rule is defined once, under "Rules" in the parent spec, and its full text is there. This slice restates none of them and defines no named rule. Row 37 is the home of the one check the parent's text does not have, the check made before `url-input-1`.
 
 <!-- prettier-ignore -->
 | Rule | Rows that name it |
 | --- | --- |
-| `url-input-1` | 15 |
+| `url-input-1` | 15, 37 |
 | `role-input-1` | None by name; rows 14 and 15 carry the role choice it governs |
 | `report-outcome-1` | 29 |
 | `thin-page-1` | 27 |
@@ -51,7 +51,7 @@ Through these, two rules of `docs/specs/ORV-128/spec.md` apply unchanged: `compe
 
 ## Acceptance criteria
 
-These are the parent's rows 10 to 36, word for word, with their numbers. A key in a row is in the parent's "Strings" or in its reused list, with its Thai and English. Tests use fake ports or a local server and never reach the internet (ADR 0009 point 8). The page rows are proven on stories `Examples/Application: Brand report` (names suggested), one story per state on a labelled fixture report, in both languages, because a signed-in page cannot be opened on a QA checkout without a Google session. Test names are suggested.
+Rows 10 to 33, 35 and 36 are the parent's rows, word for word, with their numbers. Row 34 is the parent's row with a new Check cell, and row 37 is new in this slice ("Changelog"). A key in a row is in the parent's "Strings" or in its reused list, with its Thai and English. Tests use fake ports or a local server and never reach the internet (ADR 0009 point 8). The page rows are proven on stories `Examples/Application: Brand report` (names suggested), one story per state on a labelled fixture report, in both languages, because a signed-in page cannot be opened on a QA checkout without a Google session. Test names are suggested.
 
 "Worked examples" in a row means the parent's section of that name. "Row 5" in row 26 means the parent's row 5, which PR 203 carries.
 
@@ -82,25 +82,44 @@ These are the parent's rows 10 to 36, word for word, with their numbers. A key i
 | 31 | A report with 300 distinct colours | It shows | The entries `report-list-1` allows, then `brandReport.more` with the number left out | The whole view stays under 256 KB (tech notes, test V1) | `report-view.test.ts`; story `LongLists`, play |
 | 32 | A fixture report whose quote is `<img src=x onerror=alert(1)>` and whose URL ends in `"><script>` | It shows | Both as literal text; no image, no script, no link (`report-text-1`) | None | Story `UntrustedText`, play |
 | 33 | An `analysed` report on the page | They press the other language in the header | The same report in the other language: headings, notices, hue labels, axis labels and not-measured lines. Values from the page stay as read. The Thai text has no letter spacing | No second read, no count | A test of the page's client part: a spy on the read action records no second call. Stories `Analysed` and `Incomplete` in both languages |
-| 34 | A viewport 360 px wide, a report with a 2,048-character URL, a 500-character element path and a long Thai word with no spaces | It shows, in both languages, light and dark | Every line wraps inside the page; no horizontal scroll | None | Story `Narrow`, play: `document.documentElement.scrollWidth` is at most 360 |
+| 34 | A viewport 360 px wide, a report with a 2,048-character URL, a 500-character element path and a long Thai word with no spaces | It shows, in both languages, light and dark | Every line wraps inside the page; no horizontal scroll | None | Stories `NarrowLight`, `NarrowDark` and `NarrowEnglish`, play on the 360 px frame: the frame is at most 360 px wide, its `scrollWidth` is at most its `clientWidth`, and every element's right edge is inside the frame. The real 360 px viewport check is a Playwright probe in the qa walk, in Thai and English: `document.documentElement.scrollWidth` is at most 360 |
 | 35 | A read through the action | It ends, in each result | No UI | No table, migration or file is added by this story; the log line has route `read/analysePage` and outcome `ok`, `limited`, `unavailable` or `failed`, and it and the `page-read` step line hold no address (`report-not-kept-1`) | `actions.test.ts` "log line"; `git diff --stat origin/develop -- packages/db` is empty |
 | 36 | The PR head | The gate runs | No UI | Thai and English keys match; no middot or em dash in the new copy; the route's duration limit is above the 30 s of `TOTAL_BUDGET_MS`; no model client is imported on this path | `check-i18n`; `apps/web/i18n/messages.test.ts`; a test on the duration limit; `pnpm lint && pnpm typecheck && pnpm test && pnpm build` |
+| 37 | The form, signed in | They submit `https:/user:secret@example.com/` with `brandReport.roleOwn`; separately, with `brandReport.roleCompetitor` | Under both roles, Alert `warning`: "We can read only public web addresses." ("เราอ่านได้เฉพาะที่อยู่เว็บสาธารณะเท่านั้น"), never `read.notRead.competitor`. No report sections. The address stays in the field as the person typed it | The person's trimmed text is first read by the URL parser. When the parser finds a username or password, `url-input-1` adds nothing, and `readUrlInput` and `reportOf` each get that text as written. Text the parser rejects, or reads with no username and no password, goes through `url-input-1` as before. Both roles end `refused` with `read.refused.address`: role own at `allowedUrl` in `readPage`, role competitor at `syntacticallyAllowed` in `readUrlInput`. No `resolve` or `request` port call. The view is `{ status: "refused", url: "https://example.com/", urlCut: false, line: "read.refused.address" }` | `actions.test.ts` "credentials before url-input-1", with `https:/user:secret@example.com/` under both roles: no `resolve` or `request` call, `readUrlInput` and `reportOf` get the text as written, and `secret` is nowhere in `JSON.stringify(view)` |
 
 ## Rows per PR
 
 Replace B with the PR number when the PR opens: the recorder reads digits only (`qa-scope-1`).
 
-- PR B: rows 10-36
+- PR B: rows 10-37
 
 ## Rows that render nothing
 
-- Rows: 35, 36
+- Rows: 35, 36, 37
 
-Row 35 is an action test and a diff, and row 36 is a gate run.
+Row 35 is an action test and a diff, row 36 is a gate run, and row 37 is an action test. The screen row 37 ends on is row 22's, which story `RefusedAddress` proves.
 
 ## Worked examples
 
-This slice derives no number and adds no method. The examples behind its rows are in the parent's "Worked examples", and the main session ran them against parent v1.1: `url-input-1` (row 15), "Hue band" and "Font name" (row 18), "Confidence on an incomplete page" (row 26, through the parent's row 5), `thin-page-1` (row 27), and "The wait in row 28".
+This slice derives no number, and row 37 adds its one method. The other examples behind its rows are in the parent's "Worked examples", and the main session ran them against parent v1.1: `url-input-1` (row 15), "Hue band" and "Font name" (row 18), "Confidence on an incomplete page" (row 26, through the parent's row 5), `thin-page-1` (row 27), and "The wait in row 28".
+
+The two examples below were not run in this role, which has no shell. The builder runs each line and reports a difference.
+
+**Row 37, the check before `url-input-1`.** Input: `https:/user:secret@example.com/` from finding SEC-266-9, then the six forms of the parent's `url-input-1` example. Output: what `readUrlInput` gets, one line each, unrounded text.
+
+```bash
+node -e "const c=t=>{try{const u=new URL(t);return Boolean(u.username||u.password)}catch{return false}};const urlOf=t=>/^[a-z][a-z0-9+.-]*:\/\//i.test(t)?t:'https://'+t;for(const s of ['https:/user:secret@example.com/','example.com','  https://clinic.example/  ','HTTP://clinic.example/','localhost:3000','javascript:alert(1)','ftp://example.com/']){const t=s.trim();console.log(c(t)?t:urlOf(t))}"
+```
+
+Expected: `https:/user:secret@example.com/`, `https://example.com`, `https://clinic.example/`, `HTTP://clinic.example/`, `https://localhost:3000`, `https://javascript:alert(1)`, `ftp://example.com/`. The first line is the row's case. The other six are the parent's expected lines, unchanged.
+
+**Row 37, the address in the view.** Input: the same text. Output: first what the textual step of `refusedUrlOf` gives, the only step on this branch today, then what the parser step of PR 203 at `9f0ce54` gives. Unrounded text.
+
+```bash
+node -e "const g='https:/user:secret@example.com/';const m=/^([a-z][a-z0-9+.-]*:\/\/)?([^/?#]*)/i.exec(g);const s=m[1]||'',a=m[2]||'';console.log(s+a.slice(a.lastIndexOf('@')+1)+g.slice(s.length+a.length));const u=new URL(g);u.username='';u.password='';console.log(u.href)"
+```
+
+Expected: `https:/user:secret@example.com/`, then `https://example.com/`. The second is the row's `url`, and `report.test.ts` line 585 pins it on that head.
 
 ## Out of scope
 
@@ -109,13 +128,16 @@ This slice derives no number and adds no method. The examples behind its rows ar
 
 ## Open questions
 
-None new. The parent's open questions and their defaults stand. Question 7 was about PR 203's copy: the four `read.failed.*` lines in `packages/intent-engine/src/evidence-strings.ts` on this branch hold the parent's words.
+One new, below. The parent's open questions and their defaults stand. Question 7 was about PR 203's copy: the four `read.failed.*` lines in `packages/intent-engine/src/evidence-strings.ts` on this branch hold the parent's words.
+
+- **Credentials inside the path or query of a clean URL (finding SEC-266-9).** The owner's call, and out of scope here. Today the parser reads `https://a.test/ https://user:secret@b.test/` or `https://a.test/?next=https://user:secret@b.test/` as a clean URL, so row 37 does not fire: role own or reference reads the page, and role competitor keeps the text as the address in a `not-read` report. Default: no rule, as today.
 
 ## Depends on
 
-- PR 203, the parent's rows 1 to 9. `reportOf` and `apps/web/server/read-ports.ts` are on this branch.
+- PR 203, the parent's rows 1 to 9. `reportOf` and `apps/web/server/read-ports.ts` are on this branch. Row 37 also needs the `refusedUrlOf` of PR 203 at `9f0ce54`, which this branch does not hold yet, so the row's test stays red until the branch takes that commit ("Worked examples").
 - The parent's "Depends on", unchanged. For this PR that includes the `DESIGN.md` §11 design gate and the `security` review.
 
 ## Changelog
 
+- v1.1 (2026-11-07): rows 34 and 37 now differ from the parent. Row 34: only the Check cell changes, because the vitest browser is 1200 px wide, so a play cannot read `document.documentElement.scrollWidth` at 360 (deviation of task `ORV-267-build-3`). Row 37 is new, for finding SEC-266-9 of task `ORV-266-security-2`: `url-input-1` could turn credentials into a path before any check saw them. Every other row stays byte for byte. "Rows per PR", "Rows that render nothing", "Worked examples", "Open questions" and "Depends on" take row 37. Task `ORV-267-spec-2`. Downstream to review: `apps/web/app/read/actions.ts` and `actions.test.ts` (row 37), this branch's base (PR 203 at `9f0ce54`), the builder envelope of row 37, the `security` envelope of this PR, the qa envelope (row 34's Playwright probe, the Rows per PR line), `docs/specs/ORV-266/spec.md` (`url-input-1`, row 34) and `docs/specs/ORV-266/tech.md` (section 5 point 5, test A6).
 - v1.0 (2026-11-07): first version, the slice spec of ORV-266 slice B, with rows 10 to 36 copied from parent v1.1. No new requirement, no changed row and no new rule. Task `ORV-267-spec-1`. Downstream to review: the builder envelopes of tasks B3 to B5, and the qa envelope once the Rows per PR line holds the PR number.
