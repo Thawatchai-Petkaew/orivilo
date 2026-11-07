@@ -59,7 +59,7 @@ Legend: `none` not started, `planned` entry exists, no code, `draft` code and st
 | Top navigation          | none   |                            |
 | Sidebar navigation      | none   |                            |
 | Page header             | draft  | application-page-header    |
-| Section header          | none   |                            |
+| Section header          | draft  | application-section-header |
 | Empty state             | draft  | application-empty-state    |
 | Loading state           | draft  | application-loading-state  |
 | Command menu            | stable | application-command-menu   |
