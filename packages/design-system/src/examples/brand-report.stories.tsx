@@ -488,6 +488,10 @@ export const Personality: Story = {
     const b = low.getBoundingClientRect();
     await expect(Math.abs(a.top - b.top)).toBeLessThanOrEqual(0.5);
     await expect(a.right).toBeLessThanOrEqual(b.left + 0.5);
+    // Each reading card has a ground of its own: border.card is clear in light, so the fill makes the shape.
+    for (const card of [high, low, below]) {
+      await expect(getComputedStyle(card).backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+    }
     for (const [card, quote, level, path, rule, confidence] of [
       [high, "A premium finish for every visit", "มาก", "p:nth-of-type(1)", "lexicon-1", "0.8"],
       [

@@ -119,7 +119,7 @@ function ReadingCard({
   const m = useMessages();
   const locale = useLocale();
   return (
-    <li className="flex min-w-0 flex-1 basis-56 flex-col gap-2 rounded-container border border-border-card p-3">
+    <li className="flex min-w-0 flex-1 basis-56 flex-col gap-2 rounded-container border border-border-card bg-surface-card p-3">
       {below ? (
         <p className="text-body-sm">
           {fill(m.brandReport.engine["evidence.belowFloor"], {
