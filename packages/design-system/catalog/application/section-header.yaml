@@ -1,0 +1,31 @@
+name: SectionHeader
+tier: application
+status: draft
+since: ORV-251
+import: "@orivilo/design-system"
+story: application-section-header
+useWhen:
+  - "Naming one block inside a screen: a title, an optional line saying what the block holds, and the block's own actions"
+  - "A block that switches between views: pass Tabs as children and they follow the title row"
+avoidWhen:
+  - "The opening of a screen (use Page header, ORV-225 slice A)"
+  - "A form field label or a group label inside a form (use Field)"
+  - "A search input or a filter bar in the header (not built; actions takes what a caller passes)"
+contract: SectionHeaderProps
+variants: [default]
+sizes: [md]
+states:
+  [default, title-only, with-actions, many-actions, with-tabs, with-divider, long-title, narrow]
+recipes: [neutral, professional, friendly]
+examples:
+  - src/examples/workspace.tsx
+rules:
+  - "The root is a div with class ds-section-header, so the caller decides which landmark or region the block belongs to (section-header-1)"
+  - "Slots are title, description, actions and children; a missing slot renders no node. children follow the title row as a following sibling, the place for Tabs (section-header-1)"
+  - "level is 2 to 6, default 2, and changes the element only, never the size. id goes on the heading for a caller's aria-labelledby. The caller passes the level so a page skips none; WorkspaceScreen passes one deeper than its headingLevel (heading-level-1)"
+  - "Title: type.heading.sm (20 px, 1.7 line) in text.primary over a body.md description in text.secondary, space.inline.md apart (header-type-1)"
+  - "divider is off by default and draws one 1 px edge in border.subtle under the block, space.stack.md under the last line. It does not draw when children render, because Tabs draws its own line and an edge takes one line (section-header-1)"
+  - "The root is a size container named ds-section-header. At 479 px and below the actions stack under the title on the same start edge; wider they share the row at its end edge while the title block keeps size.panel.min (240 px), and move under it on the same start edge when it would not. Neither scrolls sideways (header-stack-1)"
+a11y:
+  - "The title is a real heading; the level is the caller's"
+  - "The part adds no landmark and no role"

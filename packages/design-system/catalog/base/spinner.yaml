@@ -22,4 +22,4 @@ rules:
   - "Button's loading state draws a decorative Spinner and keeps its own status"
 a11y:
   - "One role status holds the aria-hidden ring and the label text; the svg has no role and no aria-label"
-  - "`decorative` renders no status and no label: only for a control that owns its status"
+  - '`decorative` renders no status and no label: only for a control that owns its status, or a region that owns it (LoadingState `live="off"`, CanvasBoard''s status line) (load-live-1)'

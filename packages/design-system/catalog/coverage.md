@@ -16,7 +16,7 @@ Legend: `none` not started, `planned` entry exists, no code, `draft` code and st
 | Select        | stable | base-select         |
 | Checkbox      | stable | base-checkbox       |
 | RadioGroup    | draft  | base-radio-group    |
-| Switch        | none   |                     |
+| Switch        | draft  | base-switch         |
 | Textarea      | stable | base-textarea       |
 | Combobox      | draft  | base-combobox       |
 | Badge         | stable | base-badge          |
@@ -59,9 +59,9 @@ Legend: `none` not started, `planned` entry exists, no code, `draft` code and st
 | Top navigation          | draft  | application-top-navigation |
 | Sidebar navigation      | none   |                            |
 | Page header             | draft  | application-page-header    |
-| Section header          | none   |                            |
+| Section header          | draft  | application-section-header |
 | Empty state             | draft  | application-empty-state    |
-| Loading state           | none   |                            |
+| Loading state           | draft  | application-loading-state  |
 | Command menu            | stable | application-command-menu   |
 | Shortcut sheet          | stable | application-shortcut-sheet |
 | Metric                  | none   |                            |

@@ -68,6 +68,7 @@ export {
 export { FileUpload, type FileUploadItem, type FileUploadProps } from "./file-upload/FileUpload";
 export { IMAGE_UPLOAD_LIMITS, type FileUploadLimits } from "./file-upload/limits";
 export { Input, type InputProps } from "./input/Input";
+export { LoadingState, type LoadingStateProps } from "./loading-state/LoadingState";
 export { type HeadingLevel, PageHeader, type PageHeaderProps } from "./page-header/PageHeader";
 export { TopNavigation, type TopNavigationProps } from "./top-navigation/TopNavigation";
 export {
@@ -76,6 +77,7 @@ export {
   type RadioGroupItemProps,
   type RadioGroupProps,
 } from "./radio-group/RadioGroup";
+export { Switch, type SwitchProps } from "./switch/Switch";
 export { InputGroup, type InputGroupProps } from "./input-group/InputGroup";
 export { PasswordInput, type PasswordInputProps } from "./password-input/PasswordInput";
 export {
@@ -100,6 +102,7 @@ export { Separator, type SeparatorProps } from "./separator/Separator";
 export { Spinner, type SpinnerProps, type SpinnerSize } from "./spinner/Spinner";
 export { Resizable, type ResizableProps } from "./resizable/Resizable";
 export { ScrollArea, type ScrollAreaProps } from "./scroll-area/ScrollArea";
+export { SectionHeader, type SectionHeaderProps } from "./section-header/SectionHeader";
 export { Select, type SelectGroup, type SelectOption, type SelectProps } from "./select/Select";
 export {
   Sheet,

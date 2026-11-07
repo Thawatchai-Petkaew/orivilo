@@ -6,6 +6,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { CONTRAST_SETS } from "../profiles/index";
 import { componentsReading } from "../profiles/refine";
 import { MODES, tokens } from "./index";
 
@@ -53,6 +54,112 @@ describe("shape.round.radius", () => {
     expect(round?.raw).toBe("{radius.full}");
     const radio = tokens.get("component", "radio.radius");
     expect(radio?.raw).toBe("{shape.round.radius}");
+  });
+});
+
+// ORV-249 control-tokens-1 and switch-size-1: the switch tokens and the geometry of worked example W1.
+describe("switch.*", () => {
+  const raw = (name: string) => tokens.get("component", `switch.${name}`)?.raw;
+  const px = (name: string, set = tokens) => {
+    const token = set.get("component", `switch.${name}`);
+    if (!token) throw new Error(`no switch.${name}`);
+    return parseFloat(String(set.resolve(token, "light").value));
+  };
+
+  it("holds exactly the tokens of control-tokens-1, less the two ring sizes that A1 dropped", () => {
+    const names = tokens
+      .layer("component")
+      .map((t) => t.path)
+      .filter((path) => path.startsWith("switch."))
+      .map((path) => path.slice("switch.".length))
+      .sort();
+    expect(names).toEqual(
+      [
+        "edge-error",
+        "edge-on-hover",
+        "height",
+        "height-sm",
+        "radius",
+        "ring",
+        "target-min",
+        "thumb",
+        "thumb-disabled",
+        "thumb-on",
+        "thumb-size",
+        "thumb-size-sm",
+        "track",
+        "track-disabled",
+        "track-hover",
+        "track-on",
+        "track-press",
+      ].sort(),
+    );
+  });
+
+  it("reads the semantic tokens of the table: on is the selection, never action.primary", () => {
+    expect({
+      track: raw("track"),
+      "track-hover": raw("track-hover"),
+      "track-on": raw("track-on"),
+      "track-press": raw("track-press"),
+      "track-disabled": raw("track-disabled"),
+      thumb: raw("thumb"),
+      "thumb-on": raw("thumb-on"),
+      "thumb-disabled": raw("thumb-disabled"),
+      "edge-on-hover": raw("edge-on-hover"),
+      "edge-error": raw("edge-error"),
+      ring: raw("ring"),
+      radius: raw("radius"),
+    }).toEqual({
+      track: "{border.control}",
+      "track-hover": "{border.control-hover}",
+      "track-on": "{selection.fg}",
+      "track-press": "{border.strong}",
+      "track-disabled": "{surface.disabled}",
+      thumb: "{surface.card}",
+      "thumb-on": "{selection.bg}",
+      "thumb-disabled": "{text.secondary}",
+      "edge-on-hover": "{border.strong}",
+      "edge-error": "{border.error}",
+      ring: "{selection.fg}",
+      radius: "{shape.control.radius}",
+    });
+  });
+
+  it("sizes md and sm so the track, the travel and the ring equal W1 (44x24 / 36x20, travel 20 / 16, ring 16 / 12)", () => {
+    const gap = px("height") - px("thumb-size");
+    const inset = gap / 2;
+    const ring = parseFloat(
+      String(tokens.resolve(tokens.get("semantic", "space.inline.sm") as never, "light").value),
+    );
+    expect([px("height") + px("thumb-size"), px("height"), px("thumb-size"), inset]).toEqual([
+      44, 24, 20, 2,
+    ]);
+    // The thumb travels its own width: track less thumb less both insets.
+    expect(px("height") + px("thumb-size") - px("thumb-size") - gap).toBe(20);
+    expect(px("thumb-size") - ring).toBe(16);
+    const gapSm = px("height-sm") - px("thumb-size-sm");
+    expect([px("height-sm") + px("thumb-size-sm"), px("height-sm"), px("thumb-size-sm")]).toEqual([
+      36, 20, 16,
+    ]);
+    expect(gapSm / 2).toBe(2);
+    expect(px("height-sm") + px("thumb-size-sm") - px("thumb-size-sm") - gapSm).toBe(16);
+    expect(px("thumb-size-sm") - ring).toBe(12);
+  });
+
+  it("keeps the sm target at the 24 px floor and the inset at 2 px at both sizes", () => {
+    expect(px("target-min")).toBe(24);
+    expect(px("height") - px("thumb-size")).toBe(4);
+    expect(px("height-sm") - px("thumb-size-sm")).toBe(4);
+  });
+
+  it("gives a thumb radius under every profile that stays concentric: track radius less the inset", () => {
+    // Neutral, friendly and orivilo are fully round; Professional's 6 px leaves 4 px (W1).
+    const radii = Object.fromEntries(CONTRAST_SETS.map(({ id, set }) => [id, px("radius", set)]));
+    const professional = radii["professional"] ?? NaN;
+    expect(professional).toBe(6);
+    expect(professional - (px("height") - px("thumb-size")) / 2).toBe(4);
+    for (const id of ["neutral", "friendly"]) expect(radii[id]).toBeGreaterThan(100);
   });
 });
 

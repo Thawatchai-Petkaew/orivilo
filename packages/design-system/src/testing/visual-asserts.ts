@@ -1545,3 +1545,50 @@ export async function expectSamePaint(scope: Element, a: Element, b: Element) {
   );
   expect(differing, `${label(b)} paints ${differing} px unlike ${label(a)}`).toBe(0);
 }
+
+/** A part `expectCoversInk` reads: an element, or a `Range` over text that has a box and no element of its own. */
+export type PaintPart = Element | Pick<Range, "getBoundingClientRect">;
+
+/** The name of a part in a failure message: an element by its tag and classes, a range as a text range. */
+export const partLabel = (part: PaintPart) =>
+  "localName" in part ? label(part) : "the text range";
+
+/**
+ * Asserts nothing of `layer` shows through `parts` (ORV-250 row 36): `scope` is shot as shipped and
+ * with `layer` at `opacity: 0`, and each part's region (`paintRegion`) must differ by no pixel
+ * (`paintDifference`). The layer is hidden by opacity and never by `visibility`, because React Flow
+ * writes `visibility: visible` on every node, so a hidden viewport would leave the nodes shown and
+ * the two shots would match on the defect. The caller holds any ring still (`withRingsStill`), or the
+ * shots differ by its angle. The inline value is put back in `finally`. It runs where Vitest browser
+ * mode runs; a play guards the call with `inVitest`. A part may be a `Range` over text, which
+ * is how a play asks whether the words of a clipped line paint (`Range.getBoundingClientRect` reads
+ * the text's layout box, whatever clips it).
+ */
+export async function expectCoversInk(
+  scope: Element,
+  parts: readonly PaintPart[],
+  layer: HTMLElement,
+) {
+  const saved = layer.style.opacity;
+  try {
+    const shipped = await shoot(scope);
+    layer.style.opacity = "0";
+    const bare = await shoot(scope);
+    // The second shot must be of a layer that is really hidden, or two equal shots prove nothing.
+    expect(getComputedStyle(layer).opacity, `${label(layer)} is hidden by opacity`).toBe("0");
+    const frame = scope.getBoundingClientRect();
+    for (const part of parts) {
+      const box = part.getBoundingClientRect();
+      const differing = paintDifference(
+        paintRegion(shipped, frame, box),
+        paintRegion(bare, frame, box),
+      );
+      expect(
+        differing,
+        `${differing} px of ${label(layer)} show through ${partLabel(part)}: the shots with and without it differ`,
+      ).toBe(0);
+    }
+  } finally {
+    layer.style.opacity = saved;
+  }
+}

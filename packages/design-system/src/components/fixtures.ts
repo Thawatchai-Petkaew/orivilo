@@ -147,6 +147,26 @@ export const emptyStateFixtures = {
 } as const;
 
 /**
+ * LoadingState story copy (ORV-223): the caller's words for a wait, the stop action's name, the
+ * name of the trigger that ends the wait, and the content that arrives. They are caller text, not
+ * catalog keys, and they are mock: no press stops a job or loads a brief.
+ */
+export const loadingStateFixtures = {
+  th: {
+    label: "กำลังอ่านบรีฟ",
+    action: "หยุดโหลด",
+    done: "โหลดเสร็จ",
+    loaded: "บรีฟพร้อมแล้ว",
+  },
+  en: {
+    label: "Reading the brief",
+    action: "Stop loading",
+    done: "Finish loading",
+    loaded: "The brief is ready",
+  },
+} as const;
+
+/**
  * PageHeader story copy (ORV-225): the caller's text, not catalog keys, and it is mock. The two
  * long titles are the sample for the wrapping and clip checks: a long name without spaces, and a
  * title that opens on stacked marks (a vowel and a tone mark on one letter).
@@ -312,6 +332,27 @@ export const radioFixtures = {
   linkEn: "Anyone with the link",
   linkHelpEn: "Anyone who receives this link",
   errorEn: "Choose who can open this workspace before you save",
+} as const;
+
+/**
+ * Switch story content (ORV-249): the Thai column plays, the `En` keys feed the `InEnglish` story.
+ * Copy is the caller's, not a catalog key (the saving word is the catalog's `switch.saving`).
+ */
+export const switchFixtures = {
+  setLabel: "อีเมลแจ้งเตือน",
+  setHelp: "การเปลี่ยนแปลงในหน้านี้มีผลทันที ไม่ต้องกดบันทึก",
+  comments: "แจ้งเตือนเมื่อมีความเห็นใหม่",
+  commentsHelp: "ส่งอีเมลเมื่อมีคนแสดงความเห็นในโปรเจกต์ของคุณ",
+  jobs: "แจ้งเตือนเมื่องานเสร็จ",
+  jobsHelp: "ส่งอีเมลเมื่องานที่คุณเริ่มเสร็จหรือล้มเหลว",
+  saveError: "บันทึกการตั้งค่าไม่สำเร็จ ตรวจการเชื่อมต่อแล้วลองอีกครั้ง",
+  setLabelEn: "Email notifications",
+  setHelpEn: "Changes here apply right away, with no need to save",
+  commentsEn: "Notify me about new comments",
+  commentsHelpEn: "Sends an email when someone comments on your project",
+  jobsEn: "Notify me when a job finishes",
+  jobsHelpEn: "Sends an email when a job you started finishes or fails",
+  saveErrorEn: "We could not save this setting. Check your connection, then try again",
 } as const;
 
 /**
@@ -749,4 +790,32 @@ export const calendarFixtures = {
   blocked: "2026-11-18",
   /** The caller's own button in the controlled-clear story: caller text, not a catalog key. */
   clear: { th: "ล้างวันที่", en: "Clear date" },
+} as const;
+
+/**
+ * SectionHeader story copy (ORV-251): the caller's text, not catalog keys, and it is mock. The two
+ * titles are the ones the workspace screen uses. Frames that count actions take `moreActions` and
+ * `longAction` from `pageHeaderFixtures`, the labels `docs/specs/ORV-225/design.md` measured.
+ */
+export const sectionHeaderFixtures = {
+  th: {
+    title: "โปรเจกต์ในเวิร์กสเปซ",
+    description: "ทุกโปรเจกต์ของทีมนี้ เรียงจากที่แก้ไขล่าสุด",
+    action: "สร้างโปรเจกต์",
+    tabsLabel: "มุมมองโปรเจกต์",
+    tabs: ["ทั้งหมด", "ของฉัน", "เก็บถาวร"],
+    region: "ส่วนของโปรเจกต์",
+    longTitle: fixtures.longThai,
+    marksTitle: "ฟื้ปั้ปี๊ฟื้ ปิ่นโต้ โลโก้",
+  },
+  en: {
+    title: "Projects in this workspace",
+    description: "Every project of this team, newest edit first",
+    action: "Create project",
+    tabsLabel: "Project views",
+    tabs: ["All", "Mine", "Archived"],
+    region: "Projects section",
+    longTitle: `${fixtures.longLatin} and a very long name for a block that keeps growing`,
+    marksTitle: "Projects in this workspace of the year",
+  },
 } as const;

@@ -12,6 +12,9 @@ export const th = {
   spinner: {
     loading: "กำลังโหลด",
   },
+  switch: {
+    saving: "กำลังบันทึก",
+  },
   skeleton: {
     loading: "กำลังโหลดเนื้อหา",
   },

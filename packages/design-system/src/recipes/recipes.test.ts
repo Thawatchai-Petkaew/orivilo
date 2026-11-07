@@ -322,6 +322,50 @@ describe("the separator recipe (ORV-230, sep-look-1)", () => {
   });
 });
 
+describe("the section header recipe (ORV-251, section-header-1, header-type-1, header-stack-1)", () => {
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\s+/g, " ");
+  const rule = (selector: string) =>
+    bare.match(
+      new RegExp(`(?:^|[}\\s])${selector.replace(/[.[\]()]/g, "\\$&")} \\{([^{}]*)\\}`),
+    )?.[1];
+
+  it("names itself in the three selectors it shares with the page header", () => {
+    expect(bare).toContain(".ds-page-header__row, .ds-section-header__row {");
+    expect(bare).toContain(".ds-page-header__description, .ds-section-header__description {");
+    expect(bare).toContain(".ds-page-header__actions, .ds-section-header__actions {");
+  });
+
+  it("keeps the title block at size.panel.min, and nothing else as its basis", () => {
+    expect(rule(".ds-section-header__text")).toContain("flex: 1 1 var(--ds-size-panel-min);");
+  });
+
+  it("puts the 479 px query after every rule of its block, so flex: none beats the basis", () => {
+    const query = bare.indexOf("@container ds-section-header (max-width: 479px)");
+    expect(query).toBeGreaterThan(-1);
+    const end = bare.indexOf("} }", query) + 3;
+    expect(bare.slice(query, end)).toContain(
+      ".ds-section-header__text { flex: none; inline-size: 100%; }",
+    );
+    // Nothing of the part comes after the query: a later rule would win at 479 and below.
+    expect(bare.slice(end)).not.toContain("ds-section-header");
+  });
+
+  it("draws the one 1 px edge only under data-divider, 16 under the last line", () => {
+    expect(rule(".ds-section-header[data-divider]")).toBe(
+      " padding-block-end: var(--ds-space-stack-md); border-block-end: 1px solid var(--ds-border-subtle); ",
+    );
+    expect(rule(".ds-section-header")).not.toMatch(/border|padding/);
+  });
+
+  it("lists the title and the description on the canvas at the text floor", () => {
+    const pairs = RECIPE_PAIRS.filter((p) => p.recipe === "section-header");
+    expect(pairs.map((p) => [p.slot, p.fg, p.bg, p.floor])).toEqual([
+      ["title", "ds:text.primary", "ds:surface.canvas", 4.5],
+      ["description", "ds:text.secondary", "ds:surface.canvas", 4.5],
+    ]);
+  });
+});
+
 describe("the radio focus line (ORV-221, control-tokens-1, control-pairs-1, radio-api-1)", () => {
   const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
   const body = (selector: string) =>
@@ -352,6 +396,137 @@ describe("the radio focus line (ORV-221, control-tokens-1, control-pairs-1, radi
   it("draws no focus on the group root", () => {
     expect(body(".ds-radio-group:focus-visible")).toBe(
       "outline: none; box-shadow: var(--_focus-shadow-none);",
+    );
+  });
+});
+
+describe("the switch recipe (ORV-249, control-pairs-1, switch-size-1, control-tokens-1)", () => {
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  const rules = [...bare.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => ({
+    selector: (m[1] ?? "").trim().replace(/\s+/g, " "),
+    body: (m[2] ?? "").replace(/\s+/g, " ").trim(),
+  }));
+  const body = (selector: string) => rules.find((r) => r.selector === selector)?.body;
+  const mine = rules.filter((r) => r.selector.includes(".ds-switch"));
+
+  it("lists the switch pairs of control-pairs-1, each at the UI floor", () => {
+    const pairs = RECIPE_PAIRS.filter((p) => p.recipe === "switch");
+    expect(pairs.map((p) => [p.fg, p.bg])).toEqual([
+      ["switch.track", "ds:surface.canvas"],
+      ["switch.track", "ds:surface.card"],
+      ["switch.track-on", "ds:surface.canvas"],
+      ["switch.track-on", "ds:surface.card"],
+      ["switch.thumb", "switch.track"],
+      ["switch.thumb", "switch.track-hover"],
+      ["switch.thumb", "switch.track-press"],
+      ["switch.thumb-on", "switch.track-on"],
+      ["switch.thumb-on", "switch.track-press"],
+      ["switch.edge-error", "ds:surface.canvas"],
+      ["switch.edge-error", "ds:surface.card"],
+      ["switch.thumb-disabled", "switch.track-disabled"],
+      ["switch.ring", "switch.thumb"],
+      ["switch.ring", "switch.thumb-on"],
+    ]);
+    expect(pairs.every((p) => p.floor === 3)).toBe(true);
+  });
+
+  it("draws an on track's focus in the fill form and an off track's in the border form", () => {
+    expect(body(".ds-switch__track:focus-visible")).toContain(
+      "box-shadow: var(--_focus-shadow-border);",
+    );
+    expect(body('.ds-switch__track[data-state="checked"]:focus-visible')).toBe(
+      "box-shadow: var(--_focus-shadow-fill);",
+    );
+  });
+
+  it("keeps the error edge through focus", () => {
+    expect(body('.ds-switch__track[aria-invalid="true"]:focus-visible')).toBe(
+      "border-color: var(--cmp-switch-edge-error);",
+    );
+  });
+
+  it("lets a press win over hover: the :active selector carries [data-state]", () => {
+    expect(
+      body('.ds-switch__track[data-state]:active:not([data-disabled]):not([aria-busy="true"])'),
+    ).toBe("background: var(--cmp-switch-track-press);");
+  });
+
+  it("turns hover off while saving or disabled, and on an invalid or focused on track", () => {
+    const hover = rules.filter(
+      (r) => r.selector.includes(":hover") && r.selector.includes(".ds-switch__track"),
+    );
+    expect(hover).toHaveLength(2);
+    for (const r of hover) {
+      expect(r.selector).toContain(":not([data-disabled])");
+      expect(r.selector).toContain(':not([aria-busy="true"])');
+    }
+    // Prettier wraps the long selector inside :not( ), so the spaces it adds are dropped first.
+    expect(
+      hover
+        .find((r) => r.selector.includes('"checked"'))
+        ?.selector.replace(/\( /g, "(")
+        .replace(/ \)/g, ")"),
+    ).toContain(':not([aria-invalid="true"]):not(:focus-visible)');
+  });
+
+  it("reads a concentric thumb radius: the track's radius less the inset", () => {
+    expect(body(".ds-switch__thumb")).toContain(
+      "--_thumb-radius: calc(var(--cmp-switch-radius) - var(--_inset)); border-radius: var(--_thumb-radius);",
+    );
+  });
+
+  it("sets the sizes from the tokens: the track is the height plus the thumb, the thumb travels its width", () => {
+    expect(body(".ds-switch")).toContain("--_h: var(--cmp-switch-height);");
+    expect(body(".ds-switch")).toContain("--_t: var(--cmp-switch-thumb-size);");
+    expect(body('.ds-switch[data-size="sm"]')).toBe(
+      "--_h: var(--cmp-switch-height-sm); --_t: var(--cmp-switch-thumb-size-sm);",
+    );
+    expect(body(".ds-switch__track")).toContain("inline-size: calc(var(--_h) + var(--_t));");
+    expect(body('.ds-switch__track[data-state="checked"] .ds-switch__thumb')).toContain(
+      "transform: translateX(var(--_t));",
+    );
+  });
+
+  it("sizes the saving ring as the thumb less space.inline.sm, with no ring-size token", () => {
+    expect(body(".ds-switch__thumb > .ds-spinner__ring")).toBe(
+      "inline-size: calc(var(--_t) - var(--ds-space-inline-sm)); block-size: calc(var(--_t) - var(--ds-space-inline-sm));",
+    );
+  });
+
+  it("reads disabled from tokens, never from opacity", () => {
+    expect(mine.filter((r) => /\bopacity\b/.test(r.body))).toEqual([]);
+    expect(body(".ds-switch__track[data-disabled]")).toContain(
+      "background: var(--cmp-switch-track-disabled);",
+    );
+  });
+
+  it("draws both the track and the thumb in forced colours through a transparent outline", () => {
+    expect(body(".ds-switch__track")).toContain("outline: 1px solid transparent;");
+    expect(body(".ds-switch__thumb")).toContain("outline: 1px solid transparent;");
+  });
+
+  it("drops the thumb's slide under reduced motion and names no spin rule", () => {
+    const block =
+      /@media \(prefers-reduced-motion: reduce\) \{\s*\.ds-switch__track,\s*\.ds-switch__thumb \{([^}]*)\}/.exec(
+        bare,
+      );
+    expect(block?.[1]?.replace(/\s+/g, " ").trim()).toBe("transition: none;");
+    expect(mine.filter((r) => /\.ds-spin/.test(r.selector) && /animation/.test(r.body))).toEqual(
+      [],
+    );
+  });
+
+  it("lays the horizontal Field out in two columns with the control on row 1 and the error across both", () => {
+    expect(body('.ds-field[data-orientation="horizontal"]')).toContain(
+      "grid-template-columns: minmax(0, 1fr) auto;",
+    );
+    expect(
+      body(
+        '.ds-field[data-orientation="horizontal"] > :not(.ds-field__label, .ds-field__description, .ds-field__error)',
+      ),
+    ).toBe("grid-column: 2; grid-row: 1;");
+    expect(body('.ds-field[data-orientation="horizontal"] > .ds-field__error')).toBe(
+      "grid-column: 1 / -1;",
     );
   });
 });
@@ -495,6 +670,55 @@ describe("the nav item and the current crumb (ORV-252, rows 39 and 78)", () => {
       ["active ink on hover", "nav-item.fg-active", "nav-item.bg-hover", 4.5],
       ["skip link", "ds:text.primary", "ds:surface.card", 4.5],
     ]);
+  });
+});
+
+describe("the board's plate under the wait (ORV-250, D17 to D19)", () => {
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  const rules = [...bare.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => ({
+    selector: (m[1] ?? "").trim().replace(/\s+/g, " "),
+    body: (m[2] ?? "").trim().replace(/\s+/g, " "),
+  }));
+  const plate = rules.filter((r) => r.selector === ".ds-board__overlay > .ds-loading-state");
+
+  it("gives the form the status pill's solid ground, line, radius and shadow (D17, D18)", () => {
+    expect(plate).toHaveLength(1);
+    expect(plate[0]?.body).toBe(
+      "padding-block: var(--ds-space-inset-md); padding-inline: var(--ds-space-inset-lg); border: 1px solid var(--cmp-toolbar-border); border-radius: var(--cmp-toolbar-radius); background: var(--cmp-toolbar-bg); box-shadow: var(--cmp-toolbar-shadow);",
+    );
+  });
+
+  it("is on whenever the board's overlay holds the form, with no condition on nodes (D19)", () => {
+    const selectors = rules.map((r) => r.selector).filter((s) => s.includes(".ds-loading-state"));
+    expect(selectors.filter((s) => s.includes(".ds-board__overlay"))).toEqual([
+      ".ds-board__overlay > .ds-loading-state",
+    ]);
+    expect(css).not.toMatch(/:has\([^)]*react-flow__node/);
+  });
+
+  it("lists the ring and the words on the plate's ground at the text floor", () => {
+    expect(
+      RECIPE_PAIRS.filter(
+        (p) => p.recipe === "spinner" && p.slot === "ring and label on the board's plate",
+      ),
+    ).toEqual([
+      {
+        recipe: "spinner",
+        slot: "ring and label on the board's plate",
+        fg: "spinner.fg",
+        bg: "toolbar.bg",
+        floor: 4.5,
+      },
+    ]);
+  });
+
+  it("keeps the pair of the board's own ground, which load-live-1 names", () => {
+    expect(
+      RECIPE_PAIRS.some(
+        (p) =>
+          p.recipe === "spinner" && p.slot === "ring and label on board" && p.bg === "board.bg",
+      ),
+    ).toBe(true);
   });
 });
 

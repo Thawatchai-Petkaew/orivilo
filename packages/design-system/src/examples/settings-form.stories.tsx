@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, within } from "storybook/test";
-import { radioFixtures } from "../components/fixtures";
+import { expect, userEvent, within } from "storybook/test";
+import { fixtures, radioFixtures, switchFixtures } from "../components/fixtures";
 import { Narrow, Under } from "../components/matrix";
 import { SettingsForm } from "./settings-form";
 
@@ -11,7 +11,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Base tier page example (E2-7): Tabs, Field, Input, Textarea, Select, RadioGroup, Checkbox, Popover, Tooltip and Button composed into a settings page. Fixture content; nothing is saved. Read `src/examples/settings-form.tsx` before composing a form.",
+          "Base tier page example (E2-7): Tabs, Field, Input, Textarea, Select, RadioGroup, Switch, Checkbox, Popover, Tooltip and Button composed into a settings page. Fixture content; nothing is saved. Read `src/examples/settings-form.tsx` before composing a form.",
       },
     },
   },
@@ -102,6 +102,66 @@ export const LongContentAt360: Story = {
   play: async ({ canvasElement }) => {
     const frame = canvasElement.firstElementChild as HTMLElement;
     await expect(frame.scrollWidth).toBe(frame.clientWidth);
+  },
+};
+
+/** Opens the notifications tab and returns its panel. */
+async function openNotifications(canvasElement: HTMLElement) {
+  const canvas = within(canvasElement);
+  await userEvent.click(canvas.getByRole("tab", { name: "การแจ้งเตือน" }));
+  return canvas.getByRole("tabpanel");
+}
+
+/**
+ * The notifications tab: a group named by its heading, the help line, and two switch rows that
+ * apply at once. Fixture content: each flips locally and nothing is saved (settings-example-1).
+ */
+export const Notifications: Story = {
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement);
+    await userEvent.click(page.getByRole("tab", { name: "สมาชิก" }));
+    await expect(primaryButtons(canvasElement)).toHaveLength(0);
+    await expect(page.queryByRole("button", { name: "ยกเลิก" })).toBeNull();
+    const panel = within(await openNotifications(canvasElement));
+    await expect(primaryButtons(canvasElement)).toHaveLength(0);
+    await expect(page.queryByRole("button", { name: "ยกเลิก" })).toBeNull();
+    const group = panel.getByRole("group", { name: switchFixtures.setLabel });
+    await expect(panel.getByText(switchFixtures.setHelp)).toBeVisible();
+    await expect(panel.queryByText(fixtures.missingLabel)).toBeNull();
+    const switches = within(group).getAllByRole("switch");
+    await expect(switches).toHaveLength(2);
+    const comments = within(group).getByRole("switch", { name: switchFixtures.comments });
+    await expect(comments).toHaveAccessibleDescription(switchFixtures.commentsHelp);
+    await expect(comments).toHaveAttribute("aria-checked", "true");
+    await userEvent.click(within(group).getByText(switchFixtures.comments));
+    await expect(comments).toHaveAttribute("aria-checked", "false");
+    await expect(within(group).getByRole("switch", { name: switchFixtures.jobs })).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
+  },
+};
+
+/** 360 px: the rows keep their switch at the end of the first line and nothing scrolls sideways. */
+export const NotificationsAt360: Story = {
+  render: () => (
+    <Narrow>
+      <div data-testid="narrow">
+        <SettingsForm />
+      </div>
+    </Narrow>
+  ),
+  play: async ({ canvasElement }) => {
+    // The 360 px column itself, not the story surface around it, which is wider and cannot overflow.
+    const narrow = within(canvasElement).getByTestId("narrow");
+    const panel = await openNotifications(canvasElement);
+    await expect(narrow.clientWidth).toBe(360);
+    await expect(narrow.scrollWidth).toBe(narrow.clientWidth);
+    for (const sw of within(panel).getAllByRole("switch")) {
+      await expect(sw.getBoundingClientRect().right).toBeLessThanOrEqual(
+        narrow.getBoundingClientRect().right,
+      );
+    }
   },
 };
 

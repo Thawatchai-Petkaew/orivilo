@@ -8,6 +8,9 @@ export const en: Messages = {
   spinner: {
     loading: "Loading",
   },
+  switch: {
+    saving: "Saving",
+  },
   skeleton: {
     loading: "Loading content",
   },
