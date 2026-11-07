@@ -54,7 +54,7 @@ Every row renders nothing new: the story's look stays as it is. The checks are c
 
 ## Rows per PR
 
-- PR 1: rows 1-12
+- PR 207: rows 1-12
 
 ## Rows that render nothing
 
