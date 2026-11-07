@@ -128,7 +128,21 @@ function withoutParsedCredentials(text: string): string | null {
   return parsed.href;
 }
 
-/** The text with the userinfo of its textual authority dropped. It drops too much when it is unsure. */
+/** True when the parser reads `text` as an http or https URL with no username and no password. */
+function isCleanWebUrl(text: string): boolean {
+  try {
+    const parsed = new URL(text);
+    return (
+      (parsed.protocol === "http:" || parsed.protocol === "https:") &&
+      parsed.username === "" &&
+      parsed.password === ""
+    );
+  } catch {
+    return false;
+  }
+}
+
+/** The text with the userinfo of its textual authority dropped. */
 function withoutTextualUserinfo(given: string): string {
   const m = AUTHORITY.exec(given);
   const scheme = m?.[1] ?? "";
@@ -139,13 +153,28 @@ function withoutTextualUserinfo(given: string): string {
 
 /**
  * report-outcome-1, the two steps on `url` of a refused member: userinfo dropped, then cut at
- * URL_MAX_CHARS. Userinfo is dropped by the URL parser's reading of the given text when it finds
- * any; otherwise by the textual authority, and then the parser reads that result once more, because
- * dropping text can leave a form the parser reads as userinfo.
+ * URL_MAX_CHARS. Three cases, in order:
+ *  1. The given text parses as an http or https URL with no username and no password: it stays as
+ *     given, so https://www.tiktok.com/@brand stays whole and http://example.com\@evil.test/ never
+ *     shows a host that was not contacted.
+ *  2. The parser finds a username or a password: they are cleared and the parser's href is shown.
+ *  3. Otherwise the textual authority drops its userinfo, the parser reads that result once more
+ *     (dropping text can leave a form it reads as userinfo), and if the result is still not a clean
+ *     http or https URL, everything up to its last `@` goes. That cut drops too much when unsure:
+ *     text pasted around a URL, a scheme the parser does not know, or a password holding a slash,
+ *     question mark or hash loses its front along with its secret.
+ * The limit: a username and password inside the path or query of a clean http or https URL (a
+ * second URL after the first, or one in `?next=`) are kept, because the text is a valid address and
+ * the parser reads them as path. url-input-1 and the form check the person's text before it gets
+ * here (the next issue).
  */
 function refusedUrlOf(given: string): { url: string; urlCut: boolean } {
-  const textual = withoutTextualUserinfo(given);
-  const bare = withoutParsedCredentials(given) ?? withoutParsedCredentials(textual) ?? textual;
+  let bare = given;
+  if (!isCleanWebUrl(given)) {
+    const textual = withoutTextualUserinfo(given);
+    bare = withoutParsedCredentials(given) ?? withoutParsedCredentials(textual) ?? textual;
+    if (!isCleanWebUrl(bare)) bare = bare.slice(bare.lastIndexOf("@") + 1);
+  }
   if (bare.length <= URL_MAX_CHARS) return { url: bare, urlCut: false };
   let end = URL_MAX_CHARS;
   const last = bare.charCodeAt(end - 1);

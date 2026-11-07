@@ -607,6 +607,55 @@ describe("reportOf, the url of a refused report", () => {
     expect([parsed.username, parsed.password]).toEqual(["", ""]);
   });
 
+  // SEC-266-8 and F6 of ORV-266-security-2: text the parser rejects or reads as an opaque path, or a
+  // password holding a slash, a question mark or a hash. The first eleven are the forms that reach
+  // reportOf through url-input-1 (https:// put in front); the next two reach it as written.
+  it.each([
+    ["odd slashes, a space in the host", "https:///user:secret@exa mple.com/", "exa mple.com/"],
+    ["odd slashes, a bad port", "https:///user:secret@example.com:99999/", "example.com:99999/"],
+    ["odd slashes, no host", "https:///user:secret@/", "/"],
+    [
+      "view-source: behind https://",
+      "https://view-source:https://user:secret@example.com/",
+      "example.com/",
+    ],
+    ["blob: behind https://", "https://blob:https://user:secret@example.com/", "example.com/"],
+    [
+      "a jdbc URL behind https://",
+      "https://jdbc:postgresql://user:secret@example.com/db",
+      "example.com/db",
+    ],
+    ["text before the URL", "https://see https://user:secret@example.com/", "example.com/"],
+    ["angle brackets", "https://<https://user:secret@example.com/>", "example.com/>"],
+    ["a slash in the password", "https://user:se/cret@example.com/", "example.com/"],
+    ["a question mark in the password", "https://user:se?cret@example.com/", "example.com/"],
+    ["a hash in the password", "https://user:se#cret@example.com/", "example.com/"],
+    ["view-source: as written", "view-source:https://user:secret@example.com/", "example.com/"],
+    ["text before the URL as written", "see https://user:secret@example.com/", "example.com/"],
+    [
+      "a newline in the scheme and a space in the host",
+      "ht\ntps://user:secret@exa mple.com/",
+      "exa mple.com/",
+    ],
+  ])("drops the userinfo the parser does not read: %s", (_name, given, shown) => {
+    const r = refuse(given);
+    expect(r.url).toBe(shown);
+    expect(r.urlCut).toBe(false);
+    expect(JSON.stringify(r)).not.toContain("secret");
+  });
+
+  // A clean http or https URL stays as given, an @ in its path included.
+  it.each([
+    "https://www.tiktok.com/@brand",
+    "https://medium.com/@brand/post",
+    "http://example.com/a@b",
+    "http://example.com\\@evil.test/",
+  ])("keeps %s, which the parser reads without userinfo", (given) => {
+    const r = refuse(given);
+    expect(r.url).toBe(given);
+    expect(r.urlCut).toBe(false);
+  });
+
   it("cuts at 2048 characters after the userinfo is gone, and says so", () => {
     const tail = "a".repeat(3000);
     const r = refuse(`https://user:secret@example.test/${tail}`);

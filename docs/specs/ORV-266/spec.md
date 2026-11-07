@@ -226,7 +226,7 @@ Replace A and B with the PR numbers when each PR opens: the recorder reads digit
 
 - PR 203: rows 1-9
 
-Rows 10 to 36 moved to their own issue; they are in docs/specs/ORV-267/spec.md.
+Rows 10 to 36 moved to their own issue; docs/specs/ORV-267/spec.md arrives with that issue's branch.
 
 PR A is the engine and the read ports: `report.ts` and the `read.failed.*` strings from the ORV-135 branch, the report builder `reportOf`, and `apps/web/server/read-ports.ts`. It adds no route. PR B is the form and the report page: the limit, the log route, the action, the report view, the page and the copy. PR B needs PR A merged.
 
@@ -238,7 +238,7 @@ Rows 1 to 7 are engine tests, row 8 is a port test against a local server, row 9
 
 ## Worked examples
 
-The main session ran these examples and they match after the row 9 fix.
+The main session ran these examples and they match after the `thin-page-1` example was corrected (changelog v1.1).
 
 **`url-input-1`.** Input: the forms a person pastes. Output: what `readUrlInput` gets, one line each, unrounded text.
 
@@ -325,5 +325,6 @@ Expected: `20`.
 
 ## Changelog
 
+- v1.2 (2026-11-07): text only, no rule and no acceptance row changes. This edit: the Rows per PR note says the ORV-267 spec arrives with that issue's branch, and the worked-examples line names the `thin-page-1` correction of v1.1. The edit of commit 282fd51: the `- PR B: rows 10-36` line left the Rows per PR list, with a note that rows 10 to 36 moved to their own issue, and the worked-examples line now says the main session ran the examples. Task `ORV-266-build-4`.
 - v1.1 (2026-11-07): the `thin-page-1` worked example now expects `9 true 33 false`, the line the main session printed when it ran the example; the first number was 10 in error, and the page is thin at either. No rule and no acceptance row changes. Task `ORV-266-arch-2`.
 - v1.0 (2026-11-07): first version, from the envelope facts, the survey of `develop` at `e7c4b6d`, and a read of the analyser, the read, the strings and ORV-128. No Jira tool and no shell in this role, so ORV-266 and the ORV-135 branch were not read directly. Aligned with `tech.md` of task `ORV-266-arch-1` on the route, the ports, the limit and the caps. Downstream to review: `tech.md` (`url-input-1`, `report-source-1`, the view's language, the screen's place), the builder envelopes (PR A rows 1 to 9, PR B rows 10 to 36), the `security` envelopes, the qa envelopes (the Rows per PR lines once the PRs exist), ORV-128 lines "No screen", and rule 6 of `.claude/rules/security.md` (the new limit).
