@@ -2,7 +2,7 @@
 issue: ORV-266 (https://tpetkaew.atlassian.net/browse/ORV-266)
 lane: L (reads outside web pages from a deployed server route, a new member set on the report contract, and a session check on a new action)
 mode: POC mode short spec (`.claude/skills/ovl/SKILL.md`, section "POC mode")
-version: 1.1
+version: 1.3
 ---
 
 # ORV-266: paste a website address, see a brand evidence report
@@ -40,12 +40,16 @@ The form asks whose website this is: `own`, `reference` or `competitor`, with no
 
 ### report-outcome-1
 
-Each read outcome gives one member of `reportSchema`. This carries the rule of the same name from the ORV-135 branch spec, without the command's exit codes, as read in `docs/specs/ORV-266/tech.md` section 7:
+Each read outcome gives one member of `reportSchema`. This carries the rule of the same name from the ORV-135 branch spec, without the command's exit codes and with a narrower `url` on the `refused` member (changelog v1.3), as read in `docs/specs/ORV-266/tech.md` section 7:
 
 - A `not-read` result gives the `not-read` member.
-- A `refused` or `failed` read gives the `refused` member, with its `read.refused.*` or `read.failed.*` key. Its `url` is the address as given, with any username and password dropped, then cut to fit the schema.
+- A `refused` or `failed` read gives the `refused` member, with its `read.refused.*` or `read.failed.*` key. Its `url` is the origin the URL parser reads from the address as given, with a slash after it. It is empty when the parser rejects the text or reads no origin, which the parser shows as the text `null`. Nothing else of the given text is kept, because three review rounds each moved a credential leak to a new form of the text, and a URL origin cannot hold a username or a password. It is then cut to fit the schema.
 - A `read` gives the `analysed` member. An axis's leans are its readings that are not `belowFloor`.
 - An `analyseUrl` result with `ok: false`, or a report that fails `reportSchema`, gives no report. The call ends as `failed`, never as a throw.
+
+The cost: a refused report no longer holds the path of the address, and its host is in the parser's form (lower case, a Thai host in its `xn--` form, a default port dropped). The screen never showed that address, the person's own text stays in the field, and nothing is stored.
+
+The limit: an origin has no place for a username or a password, but it keeps whatever the parser reads as the host or the port. A slash or a backslash inside a username or a password ends the authority early, so the text before it stays as the host the reader would ask for ("Worked examples", the last three forms).
 
 This settles ORV-128's open question "A report for a refused read" for this path.
 
@@ -184,7 +188,7 @@ A key in a row is in "Strings" or in the reused list above it, with its Thai and
 | # | Given | When | User sees | Data effect | Check |
 | --- | --- | --- | --- | --- | --- |
 | 1 | Fake ports answer with `HTML_A` and `CSS_A` (`url-analyser.test.ts` lines 122 to 130), role `own` | The report builder runs with no renderer | No UI | `reportSchema` parses a report with status `analysed`, `renderer` null, four `notMeasured` entries with reason `no-renderer`, five `personality` entries, `lines` holding `report.conflictsNotChecked`, and no item with `fromModel` true | `report.test.ts` "analysed" |
-| 2 | Each of: `http://127.0.0.1/`, `http://169.254.169.254/latest/meta-data/`, `http://10.0.0.5/`, `http://[::1]/`, `https://example.com:8443/`, `https://user:secret@example.com/`, `ftp://example.com/`, a host that resolves to `10.0.0.5`, a public page that redirects to `http://10.0.0.5/` | The report builder runs | No UI | Status `refused` with `read.refused.address`; `user:secret` appears nowhere in the report; no `request` port call to the non-public address | `report.test.ts` "refused address", one case per address |
+| 2 | Each of: `http://127.0.0.1/`, `http://169.254.169.254/latest/meta-data/`, `http://10.0.0.5/`, `http://[::1]/`, `https://example.com:8443/`, `https://user:secret@example.com/`, `ftp://example.com/`, a host that resolves to `10.0.0.5`, a public page that redirects to `http://10.0.0.5/` | The report builder runs | No UI | Status `refused` with `read.refused.address`; `user:secret` appears nowhere in the report; no `request` port call to the non-public address. Separately, each form of the `report-outcome-1` worked example gives the report the `url` that example expects, whichever refusal or failure reached it | `report.test.ts` "refused address", one case per address; "the url of a refused report", one case per form of the example |
 | 3 | robots.txt disallows `/` for `OriviloReader`; separately, robots.txt answers 503 | The report builder runs | No UI | Status `refused` with `read.refused.robots`; the only requests are for robots.txt | `report.test.ts` "refused robots" |
 | 4 | Each of: the document request times out; a host with no address; the document answers 404; a chain of 4 redirects; an answer of type `application/pdf` | The report builder runs | No UI | Status `refused` with, in that order, `read.failed.timeout`, `read.failed.network`, `read.failed.network`, `read.failed.redirects`, `read.failed.notHtml`. A robots.txt that times out is row 3's fail-closed case, so the timeout case times out the document | `report.test.ts` "failed", one case per reason |
 | 5 | A document of 2 MB plus 1 byte, with a block of 20 or more words holding `premium` before the cut | The report builder runs | No UI | Status `analysed`; each item carries `page-incomplete` and `quality.pageIncomplete`; a measure's confidence is 0.7; the `premium` reading's is 0.49 with `belowFloor` true, so the `premium` axis has no lean ("Worked examples") | `report.test.ts` "oversize", with `HEAVY_TIMEOUT` |
@@ -238,7 +242,7 @@ Rows 1 to 7 are engine tests, row 8 is a port test against a local server, row 9
 
 ## Worked examples
 
-The main session ran these examples and they match after the `thin-page-1` example was corrected (changelog v1.1).
+The main session ran these examples and they match after the `thin-page-1` example was corrected (changelog v1.1). The `report-outcome-1` example is new in v1.3: it was worked by hand through the WHATWG URL rules and has not been run, because this role has no shell.
 
 **`url-input-1`.** Input: the forms a person pastes. Output: what `readUrlInput` gets, one line each, unrounded text.
 
@@ -247,6 +251,36 @@ node -e "for (const s of ['example.com','  https://clinic.example/  ','HTTP://cl
 ```
 
 Expected, then what the address check does with it: `https://example.com` (read), `https://clinic.example/` (read), `HTTP://clinic.example/` (read), `https://localhost:3000` (refused, a port), `https://javascript:alert(1)` (refused, does not parse), `ftp://example.com/` (refused, a scheme).
+
+**`report-outcome-1`, the `url` of a refused report.** Input: the forms of row 2, of `report.test.ts` and of the reports ORV-266-security-3 and ORV-266-review-3, each as `reportOf` gets it, so after `url-input-1`. Output: one line each, in order, as JSON text, then one length in whole characters, before the cut.
+
+```bash
+node -e 'const o=t=>{let u;try{u=new URL(t)}catch{return ""}return u.origin==="null"?"":u.origin+"/"};for(const s of ["https://user:secret@example.com/","http://example.com\\@evil.test/","https://CORP\\user:secret@example.com/","https://www.tiktok.com/@brand","view-source:https://user:secret@example.com/","https://exa mple.com/","https://user:secret@example.com:99999/","https://https:\\\\user:secret@example.com/","https://https:/user:secret@example.com/","http://169.254.169.254/latest/meta-data/","https://example.com:8443/","ftp://example.com/","https://example.com/?next=https://user:secret@b.test/","https://user\\:secret@example.com/","https://user:123/secret@example.com/","https://user:se@cret/x@example.com:99999/"])console.log(JSON.stringify(o(s)));console.log(o("https://"+"a".repeat(3000)+".test/").length)'
+```
+
+Expected, with the reason by the WHATWG URL rules:
+
+<!-- prettier-ignore -->
+| # | Given | `url` | Why |
+| --- | --- | --- | --- |
+| 1 | `https://user:secret@example.com/` | `https://example.com/` | The parser reads the username and the password, and the origin has neither |
+| 2 | `http://example.com\@evil.test/` | `http://example.com/` | In an http or https URL a backslash ends the authority like a slash, so the rest is path |
+| 3 | `https://CORP\user:secret@example.com/` | `https://corp/` | The same: the host is `CORP`, in lower case |
+| 4 | `https://www.tiktok.com/@brand` | `https://www.tiktok.com/` | The path goes, the `@` in it with the rest |
+| 5 | `view-source:https://user:secret@example.com/` | empty | The parser accepts it with an opaque path, and its origin is `null` |
+| 6 | `https://exa mple.com/` | empty | A space in a host: the parser rejects it |
+| 7 | `https://user:secret@example.com:99999/` | empty | A port past 65535: the parser rejects it |
+| 8 | `https://https:\\user:secret@example.com/` | `https://https/` | What `url-input-1` alone makes of `https:\\user:secret@example.com/` as pasted: the host is `https`, with an empty port. Under ORV-267 row 37 that paste reaches `reportOf` as written, and the parser reads form 1's origin from it |
+| 9 | `https://https:/user:secret@example.com/` | `https://https/` | The same for `https:/user:secret@example.com/` as pasted |
+| 10 | `http://169.254.169.254/latest/meta-data/` | `http://169.254.169.254/` | Row 2: the path goes |
+| 11 | `https://example.com:8443/` | `https://example.com:8443/` | Row 2: a port that is not the default is part of the origin |
+| 12 | `ftp://example.com/` | `ftp://example.com/` | Row 2: the parser gives ftp an origin |
+| 13 | `https://example.com/?next=https://user:secret@b.test/` | `https://example.com/` | The query goes, with what it held |
+| 14 | `https://user\:secret@example.com/` | `https://user/` | The limit of the rule: the secret goes, and the text before the backslash stays as the host |
+| 15 | `https://user:123/secret@example.com/` | `https://user:123/` | The limit: the digits before the slash read as a port |
+| 16 | `https://user:se@cret/x@example.com:99999/` | `https://cret/` | The limit: the `@` before the slash ends the userinfo, and the password's tail reads as the host |
+
+The last line is `3014`: 8 for `https://`, 3,000, 5 for `.test` and 1 for the slash. The WHATWG host rules set no length bound on this form, so an origin can pass the schema, and the cut to 2,048 stays in the rule. If Node prints anything else here, the builder reports it before it changes the cut.
 
 **`thin-page-1`.** Input: the body of `HTML_B` (`url-analyser.test.ts` line 708) and the heading and body blocks of `HTML_A` (lines 128 and 129). Word count by `word-count-1`. Whole numbers, no rounding.
 
@@ -311,12 +345,14 @@ Expected: `20`.
 8. **The Node line.** ORV-128 asks the route's slice to re-run `word-count-1` on the Node line the route runs, as ICU may segment Thai differently. Default: the live check of tech notes section 10, and `thin-page-1` stands whatever it finds.
 9. **PR size.** PR B holds the page, the action, the catalog copy and about 15 stories, likely past 400 changed lines. Default: accept that for this one PR, since the objective allows two PRs at most.
 10. **Few leans on a real page.** Under ORV-128 "Confidence", a reading from a block under 20 words falls below the floor, and on an incomplete page so does every reading (row 5). Short headings carry most brand words, and one failed stylesheet makes a page incomplete, so many real pages will show `brandReport.noSignal` with their readings listed under the floor. Default: keep the numbers, because the page still shows each reading and why it does not count. Option: change the factor, which is an ORV-128 change.
+11. **Credentials inside the path or query of a clean URL, on the `not-read` member only.** Row 7 keeps the address as given, so `https://a.test/?next=https://user:secret@b.test/` stays in that report and on the screen through `brandReport.address`. The parser reads it as clean, so the check of ORV-267 row 37 does not fire on it (SEC-266-9). The `refused` member no longer has this question, by `report-outcome-1`. Default: keep the text, which goes back only to the person who typed it and is not stored. Option: a rule for this member. The owner decides.
 
 ## Depends on
 
 - ORV-128: "Reading a page the person submits" (address check, robots.txt, bounds), rule `competitor-not-read-1`, "Confidence" (`thousandths-1`, the floor), "Page text" (`word-count-1`), and decision D1 (a). This spec changes none of those. Its line "No screen" is superseded for this path, listed in the task report for the owner of that document.
 - ORV-128 tech notes §7, "The report schema", and open question "A report for a refused read".
 - `origin/feature/ORV-135-page-reader` at `8845abe`: `report.ts`, its test and the `read.failed.*` strings, taken by cherry-pick (tech notes section 7).
+- The WHATWG URL Standard, through the `origin` of Node's `URL`: the `url` of `report-outcome-1`.
 - ADR 0019: decision 4 (option D) and decision 7 (the signed-in deployed route). ADR 0002 (only server code reaches outside data). ADR 0009 point 8 (tests never reach the network). ADR 0015 decisions 2, 6 and 7, and `.claude/rules/security.md` rules 1, 3, 6, 8, 14 and 15. `security` reviews both PRs.
 - ORV-112 and `packages/auth/src/rate-limit.ts` (`LIMITS`); ORV-141 and `packages/auth/src/log.ts` (`ROUTES`).
 - `docs/specs/ORV-266/tech.md`, the architect's notes on the ports, the report fields and the action.
@@ -325,6 +361,7 @@ Expected: `20`.
 
 ## Changelog
 
+- v1.3 (2026-11-07): requirement change. The `url` of the `refused` member of `report-outcome-1` is now the URL parser's origin and nothing else, which closes the class of SEC-266-10 (ORV-266-security-3): the text past the origin can no longer hold a credential in any form. Cost, recorded in the rule: a refused report no longer holds the path of the address. Limit, recorded in the rule: text the parser reads as the host or the port stays. Row 2 gains the expected `url` of each form, with no change to its number. New worked example `report-outcome-1`, not run. New open question 11, for the `not-read` member, which does not change, nor does the `analysed` member. The front matter now gives the version, as F13 of ORV-266-review-3 asks. Rows 1 to 9 keep their numbers and rows 10 to 36 do not change. Task `ORV-266-spec-2`. Downstream to review: `tech.md` (section 7 and test R2, changed here); `packages/intent-engine/src/report.ts` and `report.test.ts` (the builder round); the ORV-135 branch spec, which still holds the older `url`; the ORV-267 branch (rebase on this version; its screen and fixtures need no change); the `security` re-check, whose expected value for SEC-266-10 this rule replaces.
 - v1.2 (2026-11-07): text only, no rule and no acceptance row changes. This edit: the Rows per PR note says the ORV-267 spec arrives with that issue's branch, and the worked-examples line names the `thin-page-1` correction of v1.1. The edit of commit 282fd51: the `- PR B: rows 10-36` line left the Rows per PR list, with a note that rows 10 to 36 moved to their own issue, and the worked-examples line now says the main session ran the examples. Task `ORV-266-build-4`.
 - v1.1 (2026-11-07): the `thin-page-1` worked example now expects `9 true 33 false`, the line the main session printed when it ran the example; the first number was 10 in error, and the page is thin at either. No rule and no acceptance row changes. Task `ORV-266-arch-2`.
 - v1.0 (2026-11-07): first version, from the envelope facts, the survey of `develop` at `e7c4b6d`, and a read of the analyser, the read, the strings and ORV-128. No Jira tool and no shell in this role, so ORV-266 and the ORV-135 branch were not read directly. Aligned with `tech.md` of task `ORV-266-arch-1` on the route, the ports, the limit and the caps. Downstream to review: `tech.md` (`url-input-1`, `report-source-1`, the view's language, the screen's place), the builder envelopes (PR A rows 1 to 9, PR B rows 10 to 36), the `security` envelopes, the qa envelopes (the Rows per PR lines once the PRs exist), ORV-128 lines "No screen", and rule 6 of `.claude/rules/security.md` (the new limit).
