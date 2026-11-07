@@ -111,7 +111,7 @@ Row 34 is a type check, row 40 is a diff, row 41 is catalog and copy checks, and
 
 ## Rows per PR
 
-The main session adds this PR's line here when it opens (the parent's open question 11).
+- PR 199: rows 27-43
 
 ## Rules and bounds
 
