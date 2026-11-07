@@ -753,7 +753,7 @@ const skipNav = ({ copy, open }: Setup) =>
     </>,
   );
 
-/** Row 38: the skip link is the header's first focusable, hidden until Tab, an opaque bar over the row, and it moves focus to the target. */
+/** Row 38: the skip link is the header's first focusable, hidden until Tab, an opaque bar over the row. That focus lands on the target after Enter is proved by a Playwright probe on the built story, not here: a real hash change reloads the test page. */
 async function expectSkipLink(canvasElement: HTMLElement, { copy }: Setup) {
   const header = canvasElement.querySelector("header") as HTMLElement;
   const skip = within(header).getByRole("link", { name: copy.skip, hidden: true });
@@ -772,17 +772,10 @@ async function expectSkipLink(canvasElement: HTMLElement, { copy }: Setup) {
   await expect(fill).toBe(resolvedColor(skip, "--ds-surface-card"));
   await expect(cssColorToHex(fill), "the bar is opaque").not.toBeNull();
   await expect(getComputedStyle(skip).color).toBe(resolvedColor(skip, "--ds-text-primary"));
-  // Following the fragment is the platform's: a real hash change reloads the test page, so the
-  // press is held back here and the proof is that the link points at a focusable target.
-  const held = (event: Event) => event.preventDefault();
-  skip.addEventListener("click", held);
-  await userEvent.keyboard("{Enter}");
-  skip.removeEventListener("click", held);
+  // The link points at a target that can take focus; the move itself is the probe's.
   const target = canvasElement.querySelector<HTMLElement>(skip.getAttribute("href") ?? "");
   await expect(target).toHaveAttribute("id", "main");
   await expect(target?.tabIndex).toBe(-1);
-  target?.focus();
-  await expect(target).toHaveFocus();
 }
 
 export const SkipLink: Story = {
