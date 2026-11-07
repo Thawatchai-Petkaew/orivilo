@@ -2,7 +2,7 @@
 issue: ORV-266 (https://tpetkaew.atlassian.net/browse/ORV-266)
 lane: L (reads outside web pages from a deployed server route, a new member set on the report contract, and a session check on a new action)
 mode: POC mode short spec (`.claude/skills/ovl/SKILL.md`, section "POC mode")
-version: 1.0
+version: 1.1
 ---
 
 # ORV-266: paste a website address, see a brand evidence report
@@ -253,7 +253,7 @@ Expected, then what the address check does with it: `https://example.com` (read)
 node -e "const w=t=>[...new Intl.Segmenter('th',{granularity:'word'}).segment(t)].filter(s=>s.isWordLike).length;const sum=b=>b.reduce((n,t)=>n+w(t),0);const B=['Premium care for every family, open all week long.'];const A=['premium and calm','ไม่หรูหรา','not too premium','Opening hours are every day of the week, with walk in visits and check ups for the whole family at the clinic near the market.'];console.log(sum(B),sum(B)<20,sum(A),sum(A)<20)"
 ```
 
-Expected: `10 true 33 false`. The 33 counts `ไม่หรูหรา` as 2 words, which depends on the ICU build; the result stays false at 32 or 34.
+Expected: `9 true 33 false`. The 33 counts `ไม่หรูหรา` as 2 words, which depends on the ICU build; the result stays false at 32 or 34.
 
 **Confidence on an incomplete page (row 5).** Base `rule-reading` 0.7 times `page-incomplete` 0.7, by `thousandths-1`: rounded to 3 decimals, compared in whole thousandths against the floor of 500.
 
@@ -324,4 +324,5 @@ Expected: `20`.
 
 ## Changelog
 
+- v1.1 (2026-11-07): the `thin-page-1` worked example now expects `9 true 33 false`, the line the main session printed when it ran the example; the first number was 10 in error, and the page is thin at either. No rule and no acceptance row changes. Task `ORV-266-arch-2`.
 - v1.0 (2026-11-07): first version, from the envelope facts, the survey of `develop` at `e7c4b6d`, and a read of the analyser, the read, the strings and ORV-128. No Jira tool and no shell in this role, so ORV-266 and the ORV-135 branch were not read directly. Aligned with `tech.md` of task `ORV-266-arch-1` on the route, the ports, the limit and the caps. Downstream to review: `tech.md` (`url-input-1`, `report-source-1`, the view's language, the screen's place), the builder envelopes (PR A rows 1 to 9, PR B rows 10 to 36), the `security` envelopes, the qa envelopes (the Rows per PR lines once the PRs exist), ORV-128 lines "No screen", and rule 6 of `.claude/rules/security.md` (the new limit).
