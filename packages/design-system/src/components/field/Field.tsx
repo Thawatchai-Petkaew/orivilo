@@ -71,8 +71,14 @@ export interface FieldProps {
    */
   group?: boolean | undefined;
   /**
+   * `horizontal` puts the label and description in the first column, the control at the inline end
+   * of the first line, and the error under both; the DOM order is unchanged (field-row-1). For a
+   * Switch. Give the row a width: with no column it spreads across the whole line.
+   */
+  orientation?: "vertical" | "horizontal" | undefined;
+  /**
    * One control: Input, Textarea, Select, or the file input inside FileUpload; with `group`, a
-   * RadioGroup.
+   * RadioGroup; with `orientation="horizontal"`, a Switch.
    */
   children: ReactNode;
 }
@@ -82,6 +88,7 @@ export interface FieldProps {
  * so the label is linked by `for`/`id`, the description and error by `aria-describedby`, and an
  * error sets `aria-invalid` (DESIGN.md §7 invalid, catalog rules for Input, Textarea, Select).
  * With `group` the label is a `span` the group control names itself by, not a `label` with `for`.
+ * With `orientation="horizontal"` the control sits at the end of the first line (a Switch).
  */
 export function Field({
   label,
@@ -92,6 +99,7 @@ export function Field({
   id: ownId,
   className,
   group = false,
+  orientation = "vertical",
   children,
 }: FieldProps) {
   const generated = useId();
@@ -118,7 +126,11 @@ export function Field({
     </>
   );
   return (
-    <div className={cx("ds-field", className)} data-disabled={disabled ? "" : undefined}>
+    <div
+      className={cx("ds-field", className)}
+      data-orientation={orientation}
+      data-disabled={disabled ? "" : undefined}
+    >
       {group ? (
         <span className="ds-field__label" id={labelId}>
           {labelContent}
