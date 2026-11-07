@@ -30,6 +30,13 @@ export const LIMITS = {
       { seconds: 3_600, max: 10 },
     ],
   },
+  "page-read": {
+    name: "page-read",
+    windows: [
+      { seconds: 86_400, max: 50, offsetSeconds: BANGKOK_OFFSET_SECONDS },
+      { seconds: 3_600, max: 10 },
+    ],
+  },
   write: { name: "write", windows: [{ seconds: 600, max: 60 }] },
   import: { name: "import", windows: [{ seconds: 3_600, max: 10 }] },
   "signed-out": { name: "signed-out", windows: [{ seconds: 600, max: 30 }] },
