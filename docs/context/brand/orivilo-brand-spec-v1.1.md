@@ -75,7 +75,7 @@ Proportion 60 canvas / 30 ink and neutrals / 10 violet and lime, lime under 2. C
 
 Stack: `"Inter", "Anuphan", system-ui, sans-serif` for display; `"Inter", "Sarabun", system-ui, sans-serif` for body; `"IBM Plex Mono", "Sarabun", ui-monospace, monospace` for code. All four faces on Google Fonts, OFL.
 
-Scale (px / line-height): 56 / 1.2 · 32 / 1.25 · 20 / 1.5 · 16 / 1.7 · 14 / 1.6. Display line-height was 1.1 in the case study; the browser specimen (§8) showed tone marks touching the line box at 56 px, so 1.2 is the rule. Loopless Thai (Anuphan) in every heading style, looped Thai (Sarabun) in body text. No letter-spacing and no text-transform on Thai. Thai takes the mixed line's line-height.
+Scale (px / line-height): 56 / 1.2, 32 / 1.25, 24 / 1.3, 20 / 1.7, 16 / 1.7, 14 / 1.6. Display line-height was 1.1 in the case study; the browser specimen (§8) showed tone marks touching the line box at 56 px, so 1.2 is the rule. Loopless Thai (Anuphan) in every heading style, looped Thai (Sarabun) in body text. No letter-spacing and no text-transform on Thai. Thai takes the mixed line's line-height.
 
 ## 7. Radius, space, motion
 
