@@ -97,7 +97,7 @@ export const confirmFixtures = {
       impact:
         "The primary colour, heading font and spacing change as proposed. You can undo this from version history",
       confirm: "Accept changes",
-      cancel: "Keep current version",
+      cancel: "Keep as is",
       pending: "Accepting changes",
       failed:
         "Could not accept the changes because the connection dropped. Check your connection and try again",
