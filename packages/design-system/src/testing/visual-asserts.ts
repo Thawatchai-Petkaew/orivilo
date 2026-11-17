@@ -201,10 +201,17 @@ export async function expectEdgeInk(
     if (px === 4 && label(el).includes("ds-menu__option")) {
       const hex = line.map((c) => c.map((v) => v.toString(16).padStart(2, "0")).join("")).join(",");
       const cs = getComputedStyle(el);
-      const probe = document.elementFromPoint(horizontal ? edge + 2 * (side === "left" ? 1 : -1) : (rect.left + rect.right) / 2, horizontal ? (rect.top + rect.bottom) / 2 : edge + 2 * (side === "top" ? 1 : -1));
-      diagAll.push(`${side}: read=${read} scale=${scale} across=${across} along=${along} line=${hex} probe=${probe ? label(probe) : "none"} bs=${cs.boxShadow} ol=${cs.outline} tr=${cs.transitionDuration}`);
+      const probe = document.elementFromPoint(
+        horizontal ? edge + 2 * (side === "left" ? 1 : -1) : (rect.left + rect.right) / 2,
+        horizontal ? (rect.top + rect.bottom) / 2 : edge + 2 * (side === "top" ? 1 : -1),
+      );
+      diagAll.push(
+        `${side}: read=${read} scale=${scale} across=${across} along=${along} line=${hex} probe=${probe ? label(probe) : "none"} bs=${cs.boxShadow} ol=${cs.outline} tr=${cs.transitionDuration}`,
+      );
       if (side === (Array.isArray(sides) ? sides[sides.length - 1] : sides)) {
-        throw new Error(`DIAGEDGE rect=${JSON.stringify(rect)} frame=${JSON.stringify(frame)} scope=${label(scope)} dpr=${window.devicePixelRatio} ;; ${diagAll.join(" ;; ")}`);
+        throw new Error(
+          `DIAGEDGE rect=${JSON.stringify(rect)} frame=${JSON.stringify(frame)} scope=${label(scope)} dpr=${window.devicePixelRatio} ;; ${diagAll.join(" ;; ")}`,
+        );
       }
     }
     expect(

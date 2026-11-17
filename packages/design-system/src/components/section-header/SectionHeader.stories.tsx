@@ -322,18 +322,22 @@ const many = (copy: Copy, labels: ActionCopy) => (
 async function expectManyActions(canvasElement: HTMLElement, copy: Copy, labels: ActionCopy) {
   const canvas = within(canvasElement);
   const diag: string[] = [];
-  const fonts = Array.from(document.fonts).map((f) => `${f.family}:${f.status}`).join(",");
+  const fonts = Array.from(document.fonts)
+    .map((f) => `${f.family}:${f.status}`)
+    .join(",");
   try {
-  for (const [i, frame] of manyFrames.entries()) {
-    const slot = canvas.getByTestId(`frame-${i + 1}`);
-    await expect(slot.getBoundingClientRect().width).toBe(frame.width);
-    const root = rootsOf(slot)[0] as HTMLElement;
-    const bs = within(root).getAllByRole("button");
-    diag.push(`F${i + 1} w${frame.width} ${frame.form} root=${root.getBoundingClientRect().width} text=${part(root, "text").getBoundingClientRect().width} acts=${part(root, "actions").getBoundingClientRect().width} btns=${bs.map((b) => b.getBoundingClientRect().width).join("|")} ff=${getComputedStyle(bs[0] as HTMLElement).fontFamily}`);
-    await expect(within(root).getAllByRole("button")).toHaveLength(frame.actions(labels).length);
-    if (frame.form === "under") await expectActionsUnder(root, copy);
-    else await expectActionsBeside(root, copy);
-  }
+    for (const [i, frame] of manyFrames.entries()) {
+      const slot = canvas.getByTestId(`frame-${i + 1}`);
+      await expect(slot.getBoundingClientRect().width).toBe(frame.width);
+      const root = rootsOf(slot)[0] as HTMLElement;
+      const bs = within(root).getAllByRole("button");
+      diag.push(
+        `F${i + 1} w${frame.width} ${frame.form} root=${root.getBoundingClientRect().width} text=${part(root, "text").getBoundingClientRect().width} acts=${part(root, "actions").getBoundingClientRect().width} btns=${bs.map((b) => b.getBoundingClientRect().width).join("|")} ff=${getComputedStyle(bs[0] as HTMLElement).fontFamily}`,
+      );
+      await expect(within(root).getAllByRole("button")).toHaveLength(frame.actions(labels).length);
+      if (frame.form === "under") await expectActionsUnder(root, copy);
+      else await expectActionsBeside(root, copy);
+    }
   } catch (e) {
     throw new Error(`${(e as Error).message} DIAG ${diag.join(" ;; ")} FONTS ${fonts}`);
   }
