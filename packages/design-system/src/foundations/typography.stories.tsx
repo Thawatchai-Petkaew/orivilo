@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, within } from "storybook/test";
+import { expect, waitFor, within } from "storybook/test";
 import {
   expectInkClearsAbove,
   expectLinesClear,
@@ -267,7 +267,7 @@ function TypographyPage() {
       <h2 className="mt-10 font-display text-heading-sm">
         Fixture lines every component must survive
       </h2>
-      <ul className="mt-3 space-y-2">
+      <ul data-fixtures className="mt-3 space-y-2 wrap-anywhere">
         <li>{LONG_THAI}</li>
         <li>A long Latin word: Donaudampfschifffahrtsgesellschaftskapitän</li>
         <li className="text-text-secondary">
@@ -294,6 +294,54 @@ const meta = {
 
 export default meta;
 type Story = StoryObj<typeof meta>;
+
+/** Runs `check` with the browser at 360 by 640, then puts the size back. Vitest's browser iframe is
+ * 1200 by 900, wide enough to hide a word that runs off a phone. The static Storybook has no
+ * `vitest/browser`; there the frame is the viewport the toolbar chose. */
+async function atPhoneSize(check: () => Promise<void>) {
+  if (!inVitest) return check();
+  const { page } = await import("vitest/browser");
+  const before = { width: window.innerWidth, height: window.innerHeight };
+  const resized = async (width: number, height: number) => {
+    await page.viewport(width, height);
+    await waitFor(() => expect([window.innerWidth, window.innerHeight]).toEqual([width, height]));
+    await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+  };
+  // The screenshot lock of `visual-asserts.ts`: no other file's screenshot runs while the frame is resized.
+  await navigator.locks.request("orivilo-screenshot", async () => {
+    await resized(360, 640);
+    try {
+      await check();
+    } finally {
+      await resized(before.width, before.height);
+    }
+  });
+}
+
+/**
+ * ORV-275 rows 7 and 10 at a 360 px frame: the fixture lines break inside their box. The long Latin
+ * word is wider than the frame in Inter, so the list sets `overflow-wrap: anywhere`; no line may
+ * reach past the list's content box, and the document may not scroll sideways.
+ */
+async function expectFixturesHoldAt360(canvasElement: HTMLElement) {
+  await document.fonts.load("400 16px Inter", "A");
+  await document.fonts.load("400 16px Sarabun", "ก");
+  await document.fonts.ready;
+  await atPhoneSize(async () => {
+    const lines = Array.from(canvasElement.querySelectorAll<HTMLElement>("[data-fixtures] > li"));
+    await expect(lines).toHaveLength(3);
+    for (const line of lines) {
+      const text = document.createRange();
+      text.selectNodeContents(line);
+      const box = line.getBoundingClientRect();
+      await expect(text.getBoundingClientRect().right, line.textContent ?? "").toBeLessThanOrEqual(
+        box.right + 0.01,
+      );
+      await expect(line.scrollWidth, line.textContent ?? "").toBeLessThanOrEqual(line.clientWidth);
+    }
+    await expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth);
+  });
+}
 
 /** The families of a computed `font-family`, without quotes. */
 const familiesOf = (el: Element) =>
@@ -390,6 +438,8 @@ export const Scale: Story = {
       .filter((name) => name.endsWith(".woff2"));
     await expect(files.length).toBeGreaterThan(0);
     for (const name of files) await expect(name.startsWith(location.origin), name).toBe(true);
+
+    await expectFixturesHoldAt360(canvasElement);
   },
 };
 
@@ -414,6 +464,7 @@ export const Families: Story = {
       await expect(families[1], face.key).toBe(face.thaiFace);
       await expect(families, face.key).not.toContain("IBM Plex Sans");
     }
+    await expectFixturesHoldAt360(canvasElement);
   },
 };
 
