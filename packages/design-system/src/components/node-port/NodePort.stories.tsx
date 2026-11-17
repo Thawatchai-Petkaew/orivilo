@@ -279,6 +279,16 @@ async function playPresentNames(root: HTMLElement, lang: Lang) {
     for (const pill of pills("p1")) expect(visibility(pill)).toBe("visible");
   });
   for (const pill of pills("p2")) await expect(visibility(pill)).toBe("visible");
+  // Shown on keyboard focus too (spec row 3): the rest node takes focus and its pills show.
+  const rest = node("p0") as HTMLElement;
+  await waitFor(() => {
+    rest.focus();
+    expect(rest).toHaveFocus();
+    expect(rest.matches(":focus-visible"), "the rest node's focus is a keyboard focus").toBe(true);
+    for (const pill of pills("p0")) expect(visibility(pill)).toBe("visible");
+  });
+  rest.blur();
+  for (const pill of pills("p0")) await waitFor(() => expect(visibility(pill)).toBe("hidden"));
   // A pill reads the port's own name; the input pill sits before the edge, the output pill after it.
   const input = node("p2").querySelector('.ds-port[data-direction="input"]') as Element;
   const output = node("p2").querySelector('.ds-port[data-direction="output"]') as Element;

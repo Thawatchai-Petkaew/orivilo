@@ -15,6 +15,7 @@ import {
   expectNoGlyphClip,
   expectPaintAt,
   expectPaintsAt,
+  expectPillsClear,
   expectSameHeight,
   inVitest,
   measureInkCentre,
@@ -234,9 +235,128 @@ export const LabelInkWhole: Story = {
     await expectLabelInkWhole(label);
     label.style.paddingBlock = "0";
     label.style.marginBlock = "0";
+    // Padding out alone cuts 1 px on this machine, a speck on Linux chromium in CI (the run of
+    // ORV-274 passed the negative case's call): a line height of 1 makes the cut 6 px and clear.
+    label.style.lineHeight = "1";
     await expect(expectLabelInkWhole(label)).rejects.toThrow(
       /cuts [0-9.]+ px of its Thai stack above the clip box/,
     );
+  },
+};
+
+/** Pills past the right, left, top and bottom of the 400 by 120 board, each over a card out there. */
+const OUTSIDE = [
+  [500, 50],
+  [-300, 50],
+  [100, -200],
+  [100, 300],
+] as const;
+
+/**
+ * ORV-274, sign-off 2 R1: `expectPillsClear` passes when a drawn edge pill is 72 px from a port dot
+ * and 80 px from a card, and throws, naming the pill and the clearance, when the card covers it
+ * (-30 px), a dot or a card's title line sits near it, or a zero-width box with a card's class sits on it. It reads
+ * only the pills that are drawn: a hidden one, a `display: none` one, a zero-width one and one
+ * outside the board's frame are ignored although each overlaps a card. The board is plain boxes, so
+ * the rects are the ones set here and no font width is read.
+ */
+export const PillsClear: Story = {
+  render: () => {
+    const box = (left: number, top: number, width: number, height: number): CSSProperties => ({
+      position: "absolute",
+      left,
+      top,
+      width,
+      height,
+    });
+    return (
+      <div
+        className="react-flow"
+        data-case="board"
+        style={{
+          ...box(0, 0, 400, 120),
+          position: "relative",
+          background: "var(--ds-surface-canvas)",
+        }}
+      >
+        <div className="ds-node" data-case="card" style={box(0, 20, 60, 80)}>
+          <span className="ds-port__handle" data-case="dot" style={box(60, 50, 8, 8)} />
+          <span className="ds-node__label" data-case="title" style={box(0, 0, 20, 10)} />
+        </div>
+        <div className="ds-node__label" data-case="thin" style={box(150, 20, 0, 80)} />
+        {OUTSIDE.map(([left, top]) => (
+          <div
+            key={`node-${left}-${top}`}
+            className="ds-node"
+            style={box(left - 20, top - 20, 120, 60)}
+          />
+        ))}
+        <span className="ds-edge__label" data-case="pill" style={box(140, 50, 80, 20)}>
+          input, stale
+        </span>
+        <span className="ds-edge__label" style={{ ...box(30, 50, 80, 20), visibility: "hidden" }}>
+          hidden
+        </span>
+        <span className="ds-edge__label" style={{ ...box(30, 50, 80, 20), display: "none" }}>
+          gone
+        </span>
+        <span
+          className="ds-edge__label"
+          style={{ ...box(30, 50, 0, 20), padding: 0, border: 0, minWidth: 0 }}
+        />
+        {OUTSIDE.map(([left, top]) => (
+          <span
+            key={`pill-${left}-${top}`}
+            className="ds-edge__label"
+            style={box(left, top, 80, 20)}
+          >
+            outside
+          </span>
+        ))}
+      </div>
+    );
+  },
+  play: async ({ canvasElement }) => {
+    const board = q(canvasElement, "[data-case='board']");
+    const card = q(canvasElement, "[data-case='card']");
+    const dot = q(canvasElement, "[data-case='dot']");
+    const title = q(canvasElement, "[data-case='title']");
+    const thin = q(canvasElement, "[data-case='thin']");
+    // One pill is drawn. The dot is the nearest thing to it, and the rule takes half a pixel of
+    // rounding: a gap passes when asked for 0.5 px more, and does not when asked for 1 px more.
+    const pill = q(canvasElement, "[data-case='pill']");
+    const gap = pill.getBoundingClientRect().left - dot.getBoundingClientRect().right;
+    expect(gap).toBeGreaterThan(60);
+    expect(expectPillsClear(board)).toBe(1);
+    expectPillsClear(board, gap + 0.5);
+    expect(() => expectPillsClear(board, gap + 1)).toThrow(
+      new RegExp(`is ${gap.toFixed(1)} px from <span\\.ds-port__handle>`),
+    );
+    // A zero-width box is not read; given width it covers the pill.
+    thin.style.width = "10px";
+    expect(() => expectPillsClear(board)).toThrow(/the pill "input, stale" is -20\.0 px from/);
+    thin.style.width = "0";
+    // The card grows under the pill: it is covered by 30 px.
+    card.style.width = "170px";
+    expect(() => expectPillsClear(board)).toThrow(
+      /the pill "input, stale" is -30\.0 px from <div\./,
+    );
+    card.style.width = "60px";
+    // The dot ends 1 px short of the pill: clearance 1 against the 4 px asked for.
+    dot.style.left = `${60 + gap - 1}px`;
+    expect(() => expectPillsClear(board)).toThrow(/is 1\.0 px from <span\.ds-port__handle>/);
+    dot.style.left = "60px";
+    // A title line is read from every side: 20 px above the pill and 10 px below it pass at those
+    // gaps, so the vertical gaps count, and one beside it is read by its horizontal gap.
+    title.style.left = "145px";
+    title.style.top = "0";
+    expectPillsClear(board, 18);
+    title.style.top = "60px";
+    expectPillsClear(board, 8);
+    // A title line that sits out of its card is read on its own.
+    title.style.left = "145px";
+    title.style.top = "30px";
+    expect(() => expectPillsClear(board)).toThrow(/is -?\d+\.0 px from <span\.ds-node__label>/);
   },
 };
 

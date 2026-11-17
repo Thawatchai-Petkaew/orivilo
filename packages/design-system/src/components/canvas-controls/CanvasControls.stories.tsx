@@ -4,7 +4,7 @@ import { commandById, surfaceCommands } from "../../commands/index";
 import { BOARD, BOARD_NODES } from "../canvas-board/fixtures";
 import { MatrixBoard, Stateful } from "../canvas-board/story-shell";
 import { Matrix, Narrow } from "../matrix";
-import { inVitest, resolvedColor } from "../../testing/visual-asserts";
+import { expectPillsClear, inVitest, resolvedColor } from "../../testing/visual-asserts";
 import { Button } from "../button/Button";
 import { CanvasControls } from "./CanvasControls";
 
@@ -27,6 +27,12 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 const nodeEls = (root: HTMLElement) => root.querySelectorAll<HTMLElement>(".react-flow__node");
+const viewportZoom = (root: Element) =>
+  parseFloat(
+    /scale\(([\d.]+)\)/.exec(
+      root.querySelector<HTMLElement>(".react-flow__viewport")?.style.transform ?? "",
+    )?.[1] ?? "NaN",
+  );
 const controls = (root: HTMLElement) =>
   within(root).getByRole("toolbar", { name: "เครื่องมือกระดาน" });
 
@@ -232,6 +238,10 @@ async function playDock(root: HTMLElement, lang: Lang) {
   const words = DOCK[lang];
   const region = within(root).getByRole("region", { name: words.readOnly });
   await waitFor(() => expect(nodeEls(region)).toHaveLength(BOARD_NODES.length));
+  // The edges mount after the nodes are measured; the hover check below needs them.
+  await waitFor(() =>
+    expect(region.querySelectorAll(".react-flow__edge")).toHaveLength(BOARD.edges.length),
+  );
   const bar = within(region).getByRole("toolbar", { name: words.bar });
   // The dock is centred on the board, inside it and above its bottom edge.
   const board = box(region);
@@ -278,6 +288,15 @@ async function playDock(root: HTMLElement, lang: Lang) {
     await expectEdgeHoverWidth(region, "e-type-profile", 1.5, 2.5);
     await expectEdgeHoverWidth(region, "e-logo-palette", 2.5, 3.5);
   }
+  // At zoom 1 no card or port dot covers an edge pill (sign-off 2 R1). The window decides the fit
+  // zoom (0.88 in Vitest's 1200 px frame, where a full-size pill is the accepted residual below zoom
+  // 1), so the check is made at the dock's own 100 percent. The count keeps it from passing before
+  // the pills are drawn.
+  await userEvent.click(bar.querySelector('[data-command="board.zoom-100"]') as HTMLElement);
+  await waitFor(() => {
+    expect(viewportZoom(region)).toBeCloseTo(1, 3);
+    expect(expectPillsClear(region)).toBeGreaterThan(0);
+  });
 }
 
 /**

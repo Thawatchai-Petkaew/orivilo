@@ -8,6 +8,7 @@ import {
   expectEdgeInk,
   expectFrameCutsNoInk,
   expectLabelInkWhole,
+  expectPillsClear,
   inVitest,
 } from "../../testing/visual-asserts";
 import { Button } from "../button/Button";
@@ -906,6 +907,12 @@ export const Present: Story = {
     const canvas = within(canvasElement);
     const region = canvas.getByRole("region");
     await ready(region);
+    // No card or port dot covers an edge pill at the fit view and again at zoom 1 (sign-off 2 R1).
+    // The window decides the fit zoom: in Vitest's 1200 px frame it is 0.88, where a full-size pill
+    // is the accepted residual below zoom 1, so the fit view is read only at zoom 1 or more.
+    if (viewportZoom(region) >= 1) {
+      await waitFor(() => expect(expectPillsClear(region)).toBeGreaterThan(0));
+    }
     await expect(canvas.getByText("ดูอย่างเดียว")).toBeVisible();
     await expect(canvas.getAllByRole("img", { name: /แก้ไขไม่ได้$/ }).length).toBeGreaterThan(5);
     const logo = await waitFor(() => nodeByTitle(region, "โลโก้"));
@@ -942,6 +949,8 @@ export const Present: Story = {
         colourOf(region, "--ds-border-subtle"),
       );
     }
+    await waitFor(() => expect(viewportZoom(region)).toBeCloseTo(1, 3));
+    await waitFor(() => expect(expectPillsClear(region)).toBeGreaterThan(0));
     for (const path of region.querySelectorAll(".ds-edge__path")) {
       await expect(path).not.toHaveAttribute("marker-end");
     }

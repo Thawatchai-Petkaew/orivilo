@@ -305,6 +305,13 @@ export const RecipesAndModes: Story = {
 const KINDS: readonly PortKind[] = ["text", "image", "palette", "type", "profile"];
 const MEANINGS = ["input", "reference", "derived"] as const;
 
+/** The states that keep their own stroke over a kind hue (spec row 10), each on a kind that has a hue. */
+const STATE_EDGES = [
+  { kind: "image", state: "stale" },
+  { kind: "palette", state: "invalid" },
+  { kind: "image", state: "selected" },
+] as const;
+
 /** Every kind by every meaning: one row per kind, one pair of nodes per meaning. */
 function kindGrid(lang: keyof typeof TITLES): Graph {
   const nodes: BoardNode[] = [];
@@ -354,6 +361,50 @@ function kindGrid(lang: keyof typeof TITLES): Graph {
         targetHandle: into.id,
         data: { meaning },
       });
+    });
+  });
+  // Three more rows on the image and palette kinds, one edge each in a state that wins over the hue.
+  STATE_EDGES.forEach(({ kind, state }, i) => {
+    const out = { id: `${kind}-out`, kind, label: kind } as const;
+    const into = { id: `${kind}-in`, kind, label: kind } as const;
+    const y = (KINDS.length + i) * 110;
+    nodes.push(
+      {
+        id: `s-${state}`,
+        type: "orivilo",
+        position: { x: 0, y },
+        data: {
+          title: `${TITLES[lang].from} ${state}`,
+          kind: "input-block",
+          size: "sm",
+          collapsed: true,
+          inputs: [],
+          outputs: [out],
+        },
+      },
+      {
+        id: `t-${state}`,
+        type: "orivilo",
+        position: { x: 440, y },
+        data: {
+          title: `${TITLES[lang].to} ${state}`,
+          kind: "artifact",
+          size: "sm",
+          collapsed: true,
+          inputs: [into],
+          outputs: [],
+        },
+      },
+    );
+    edges.push({
+      id: `e-${state}`,
+      type: "orivilo",
+      source: `s-${state}`,
+      sourceHandle: out.id,
+      target: `t-${state}`,
+      targetHandle: into.id,
+      data: { meaning: "input", ...(state === "selected" ? {} : { [state]: true }) },
+      selected: state === "selected",
     });
   });
   return { nodes, edges };
@@ -513,6 +564,17 @@ async function playKindsAndZoom(root: HTMLElement, lang: keyof typeof TITLES) {
       await expect(derived.cap).toBe("round");
       const hue = colourOf(present, kind === "text" ? "--cmp-edge-stroke" : `--cmp-port-${kind}`);
       for (const edge of [input, reference, derived]) await expect(edge.stroke).toBe(hue);
+    }
+    // Stale, invalid and selected strokes still win over the kind hue, on an image and a palette
+    // edge (spec row 10): each path draws its state's stroke token, and not its kind's hue.
+    for (const { kind, state } of STATE_EDGES) {
+      const stroke = drawn(pathOf(present, `e-${state}`)).stroke;
+      await expect(stroke, `${state} ${kind} edge at zoom ${zoom}`).toBe(
+        colourOf(present, `--cmp-edge-stroke-${state}`),
+      );
+      await expect(stroke, `${state} edge is not the ${kind} hue`).not.toBe(
+        colourOf(present, `--cmp-port-${kind}`),
+      );
     }
     // The five hues differ, so a kind is not only its dash (the glyph shape carries it too).
     const hues = new Set(KINDS.map((k) => drawn(pathOf(present, `e-${k}-input`)).stroke));
