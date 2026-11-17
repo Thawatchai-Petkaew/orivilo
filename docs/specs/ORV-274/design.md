@@ -1,0 +1,970 @@
+# ORV-274 design: ORIVILO from brief to product, on one canvas
+
+Designer task `ORV-274-design-5`, 2026-11-17 (revision 5, after `ORV-274-design-1` to `ORV-274-design-4`), brought to revision 5.1 by `ORV-274-design-6` the same day: the four new images placed, the two scene quads measured, the paper treatment settled, the image sizes checked, and four lines aligned with spec v2.1 (changelog). This design replaces the structure of spec v1.0 (`spec.md`); the spec is revised to match it after this task. Sources: the owner's order (ORV-274 comment 10636), the quality bar "excellent UI, no UI slop, no AI slop" (comment 10637), the node references (comment 10639), the eight review findings (comment 10640), the measured app-print card box (comment 10641), the two boards (comment 10643), English by default and the fonts (comment 10644), the node style, results as parts and the product stage (comment 10645), the two boards and one trial image per board before a set (comment 10646), the owner's verdict on revision 3's boards and images (comment 10649), `DESIGN.md`, and the brand notes in `docs/context/brand/` (method, identity v1, spec v1.1, the CI graph).
+
+What revision 5 keeps from revision 4, unchanged: the nodes, ports, edges, ground and dock; the preview's mechanics and states; the eight chapters; 31 nodes and 40 edges; the product stage's three levels; the copy outside the boards and the book; gaps 1 to 19. What it changes, by comment 10649 (the boards and images were briefed for traceability, with captions and many small tiles and neutral documentary prompts, and so read as a project wall rather than a brand):
+
+1. **One art direction** for the direction board, the brand in use board and the 12 brandbook pages, on the canvas and in their previews: violet or ink floods, photographs staged in or treated into the brand colour, one idea per tile or page at a large scale, few words, the real mark inside real scenes (section 0).
+2. **The direction board** becomes a composed mood board of 5 pieces edge to edge at 1280 x 800 (was 10 captioned tiles at 720 wide); its preview is 6 pages (was 11).
+3. **The brand in use board** becomes 7 pieces edge to edge at 1280 x 800, every one flooded or photographed in the system (was 6 tiles on paper); its preview is 8 pages (was 7).
+4. **The brandbook** is designed at 1280 x 800 (was 640 x 400) and every page carries the weight of a guideline deck page; the 12 pages and their facts stay.
+5. **The images of section 9** are rewritten in the brand-hero prompt form: 7 in use, of which 3 exist and 4 are new (were 11, of which 6 were missing). Since revision 5.1 all 7 are made.
+
+Static mock (not production code, outside the repo): `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-5/mock.html`. It starts from the revision 4 mock and changes only the two boards, the book and their previews. It links the real `tokens/fonts.css`, `tokens/generated.css` and `recipes/recipes.css` of the worktree, loads Inter, Anuphan and Sarabun and points the font tokens at them (mock only), draws the logo from its geometry with the `ds-logo` recipe classes, shows the 3 images that exist and, for each of the 4 not made, a placeholder flooded in its tile's colour with its id (no image was rendered for this revision), and places a screenshot of the deployed `Landing` story at 390 on the phone. Rules the catalog does not have yet are marked PROPOSED in its CSS and script; each is a gap in section 12. The revision 4 mock, kept for the side by side, is `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-5/mock-r4.html`. Screenshots are listed in section 15.
+
+Revision 5.1 mock: `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-6/mock.html`, a copy of the revision 5 mock that changes only the images (all 7 real, converted to jpg in its `img` folder), the two scene records (measured corners, the card's face, the sign's lockup width) and the paper treatment. Its `?pt=a` to `?pt=g` switch keeps the treatment variants that were judged (section 0); `g` is the default and the one chosen.
+
+## 0. The look first: the references, where revision 4 falls short, one art direction
+
+### What the owner's references share
+
+The references are brand identity presentations the owner sent (comment 10649) and the trial page made from `brand-hero` v1. They stay out of the repo and out of this document; what they share:
+
+1. **One colour floods whole surfaces.** A tile or a page is the brand colour edge to edge, not a swatch on white. The ground is the brand.
+2. **Photography is art-directed into the system.** The set, the clothes and the props are the brand colours, or the picture is treated (duotone, mono) so it sits in the palette. No neutral stock light.
+3. **One idea per tile or page, at a large scale,** with generous margins: one mark, one line, one photograph, one number.
+4. **The mark lives inside real scenes,** in perspective: on a sign, a card on a desk, a poster, a tote, a sweatshirt, a phone held in a hand.
+5. **Few words, set large.** A display line, a huge numeral, a name. No captions under tiles; a tile says what it is by what it shows.
+6. **A strict grid of few modules,** one gutter, one radius, a big and small rhythm (one hero, a few supports), and furniture that is small, constant and consistent.
+
+### Where revision 4 falls short (seen in its screenshots)
+
+- **The boards fill half the preview.** The direction board is about 540 of a 1370 px stage; the brand in use board about 450 of 1370. The rest is empty sunken ground.
+- **Every tile has a caption.** The direction board preview shows ten tiles each with an intent line under it; the brand in use board a caption and a kind word under every tile. The board reads as a labelled wall.
+- **Swatches of dropped colours.** The direction board ends in five labelled swatches, including Human Coral and Origin Violet, colours the brand dropped.
+- **A still life with no brand in it.** Two still lifes (paper and clay, frosted glass) carry no brand colour and no idea the other tiles do not; a form field tile reads as a screenshot.
+- **Placeholders that look broken.** Dashed frames with an id on white, three on each board.
+- **Brandbook pages that are mostly empty.** Contents of three small lines on white; small objects on the clear-space page; "Aa กข" small in the middle of the type page; one line on the voice page; a bullet list on page 12; opener numerals at about 14% of the page height, where the references use about 35%.
+
+### The art direction system
+
+| Part | Rule |
+| --- | --- |
+| Colours | Violet `brand.signature` (#7A22C7 under a light boundary), violet on ink `brand.signature` under a dark boundary (#B07FEE), ink `surface.canvas` under a dark boundary (#16151D), paper `surface.canvas` under a light boundary (#F4F4F0). The envelope's paper #F2F1EC is not a token; the nearest token, #F4F4F0, is used and no new token is added. Lime `action.intent` (#D9F66F) shows only on the one intent action, the `Button variant="intent"` on the ink tile and the applications page |
+| Floods | A tile or a page is one flood: violet, ink or paper. Text on a flood takes `text.primary` of a nested boundary chosen so it reads on that flood (a dark boundary inside a violet flood gives paper text) |
+| Photography | Either staged in the brand colour (the set, the clothes: `brand-hero`) or treated into it in CSS: the violet treatment (grayscale under a luminosity blend on `brand.signature`: the whole tonal range turns violet, near black to pale violet) or the paper treatment (violet ink on paper, revision 5.1: grayscale screened on `brand.signature`, then `surface.canvas` multiplied over it, so the lit areas are the paper exactly and the shadows run to the violet, never darker), gap 21. One board uses one or two treatments, never a third |
+| The mark | Large, cropped, bleeding off an edge where it helps: a giant ring and dot on the cover, the openers, the ink tile. The lockup at display size with its construction guides. Always the real geometry, never a generated picture, except on cloth (section 9) |
+| Type | Large numerals and short display lines in Inter (Latin) and Anuphan (Thai display), Sarabun for Thai body samples. Art sizes are display-lg times a data multiple (gap 20); numerals take `type.numeral-lg`'s line height (1) |
+| Words | Almost none on the art. A tile says what it is by what it shows. The honest label is said once per board or page: the preview's caption line under the stage, or one quiet line on the node card, never under every tile |
+| Grid | Each board and each page is designed at 1280 x 800 and scaled as one image. Boards: one gutter of 12, one radius `shape.container-radius` (16) on every tile, edge to edge, no outer margin. Pages: a margin of 48 at the sides, 36 at the top and 30 at the bottom, furniture in body-sm at the top and the bottom, mark 20 |
+| Furniture | One line at the top (the mark at 20, one colour; Brand guidelines; the section at the end) and one at the bottom (ORIVILO v1.5; the page number), body-sm `text.secondary` of the page's ground, the same on every page |
+| Modes | The boards and the pages are brand art: they keep their floods in both page modes, as a printed page does. Only the canvas, the nodes and the preview's chrome follow the mode |
+
+**Showing colour before the palette is chosen.** The direction board comes before 03 Colour, so it does not show a palette. It shows colour only as a photo treatment (violet and paper) and as the ground of the type piece (ink with violet on ink), and says so once, in the preview's caption line: "AI photographs in a violet and a paper treatment. No logo on this board. The violet is a direction; 03 Colour fixed it." No swatch, no hex and no colour name appears on the board.
+
+### Revision 5.1: the treatments on the real photographs
+
+Judged in the preview at 1440, light and dark, against trait 2 (photography art-directed into the system, no neutral stock light) and trait 1 (the ground is the brand):
+
+- **The violet treatment holds on both photographs.** `direction-team` (pale studio, darker hair and table) and `direction-making` (pale paper and hands on a near-black table, a strong diagonal) both keep their full range: the table goes to near-black violet, the paper and the hands to pale violet, the folds still read. `direction-making` is the stronger of the two: one gesture, large, edge to edge, the way trait 3 asks. Values unchanged from revision 5. Skin in the making photograph turns the same violet as the paper; that is the cost of a one-colour treatment and it reads as intended at the board scale.
+- **The paper treatment of revision 5 failed on the real `direction-place`.** Grayscale multiplied on `surface.canvas` (#F4F4F0) turned the beige plaster wall into a mid grey (#DDDDD9 measured on the wall) and only the sun patches into paper: a neutral black-and-white interior, the stock look trait 2 rules out, and the one tile on the board with no brand in it (`explore__paper-a__board.png`). The cause is the ground: `surface.canvas` is nearly neutral, so any multiply on it reads as grey.
+- **Settled: violet ink on paper.** Seven variants were rendered on the real photograph with filters, blend modes and tokens only (`explore__paper-{a..g}__{board,place}.png`, section 15): a, revision 5; b, a high-key grayscale multiply (still a grey photograph); c, d, e, the violet-on-paper duotone at three contrasts (e blows the table's edges; d is flat); f, a harder high-key multiply (grey); g, chosen. In g the sun patches and the lit floor are the paper itself (#F4F4F0 measured in the render, the same pixels as the Line tile beside it), the wall in half light a pale violet (#C3A3DB measured), the chair and the deep shadows the violet. It reads as one colour of ink printed on the brand's paper, the duotone print the references use, and it stays distinct from the violet treatment: the violet treatment is dark-ground and runs to near black, the paper treatment is paper-ground and never goes darker than the violet. On the board the bottom row now reads paper and violet, deep violet, ink: one light, one dark, one black, with the big violet photograph and the paper Line tile above.
+- The exact declarations are in gap 21. They hold in both page modes because the treatment sits inside a nested light boundary, as every flood does.
+
+## 1. The whole structure
+
+| Level | Count | What |
+| --- | --- | --- |
+| Page | 1 | One Storybook example page: a header and one board |
+| Header parts | 2 | Title, one-line description |
+| Floating toolbar (dock) | 1 | Bottom centre of the board: the view-only word, the chapter buttons, zoom out, the zoom percent, zoom in, fit |
+| Chapter buttons | 9 | Overview, 00 Brief, 01 Direction, 02 Logo, 03 Colour, 04 In use, 05 Brandbook, 06 Design system, 07 Product |
+| Chapters | 8 | 00 Brief, 01 Direction board, 02 Logo, 03 Colour, 04 Brand in use, 05 Brandbook, 06 Design system, 07 Product |
+| Stages, left to right | 8 | Intent lines; positioning, name and attributes; direction board; logo, type and brand in use over colour; brandbook parts; base components; composed components; pages |
+| Groups (`NodeGroup`) | 0 | Chapters read by clustering and by the chapter titles at the overview |
+| Content nodes (`CanvasNode`) | 31 | 12 knowledge, 2 direction, 16 artifact, 1 reference |
+| Result nodes (open a preview) | 12 | `d-board`, `l-logo`, `t-type`, `c-pal`, `u-board`, `bb-cover`, `bb-logo`, `bb-colour`, `bb-use`, `p-landing`, `p-form`, `p-report` |
+| Preview sequences | 7 | Direction board 6 pages, logo 3, type 2, palette 6, brand in use board 8, brandbook 12, product pages 3 |
+| Tile boards | 2 | Direction board (5 pieces), brand in use board (7 pieces), each designed at 1280 x 800 |
+| Brandbook pages | 12 | Designed at 1280 x 800, in 4 parts |
+| Edges (`CanvasEdge`) | 40 | 29 input (solid), 8 reference (dashed), 3 derived (dotted) |
+| Edge labels shown | 1 | Palette to demo, "derived from" / สร้างจาก |
+| Port kinds used | 5 | text, image, palette, type, profile |
+| Version histories | 2 | Mark history (a filmstrip of 5 marks), palette history (3 rows), each its own node |
+| Brandbook | 12 pages in 4 parts | The cover part (pages 1 and 2, opens the whole book), 01 Logo (pages 3 to 5), 02 Colour and type (6 to 9), 03 In use (10 to 12) |
+| Product stage levels | 3 | Base components (5 rows), composed components (5 rows), pages (3) |
+| Levels of detail | 3 | Far (under 0.4), mid (0.4 to 0.7), near (0.7 and over), section 2 |
+| Generated images | 7 | 3 kept (`brand-hero`, `direction-team`, `colour-reference`); 4 new, made after revision 5 and placed in revision 5.1 (`direction-place`, `direction-making`, `scene-card`, `scene-sign`) |
+
+The order is the owner's (comment 10643), extended by comment 10645: brief, direction board, logo, colour, brand in use, brandbook, design system, product, numbered 00 to 07.
+
+### Chapters and their nodes, breadth first
+
+| Chapter | Stage | Nodes (id, kind, width) | Count |
+| --- | --- | --- | --- |
+| 00 Brief | 1 and 2 | `b-ess`, `b-aud`, `b-pers`, `b-feel`, `b-cat`, `b-avoid` knowledge 280 (stage 1); `b-pos`, `b-name` knowledge 280 (stage 2, above the attributes) | 8 |
+| 01 Direction board | 2 and 3 | `d-attr` direction 300; `d-board` artifact 560 (result) | 2 |
+| 02 Logo | 4, top tier | `l-idea` direction 300, `l-build` artifact 300, `l-hist` artifact 300, `l-logo` artifact 360 (result) | 4 |
+| 03 Colour | 4, bottom tier | `c-why` knowledge 300, `c-hist` artifact 300, `c-prop` knowledge 300, `c-pal` artifact 360 (result), `c-con` knowledge 360, `c-demo` reference 360 | 6 |
+| 04 Brand in use | 4, top tier | `t-type` knowledge 360 (result, under the logo), `u-board` artifact 560 (result) | 2 |
+| 05 Brandbook | 5 | `bb-cover`, `bb-logo`, `bb-colour`, `bb-use` artifact 360 (results) | 4 |
+| 06 Design system | 6 and 7 | `p-base` artifact 300, `p-pat` artifact 360 | 2 |
+| 07 Product | 8 | `p-landing`, `p-form`, `p-report` artifact 480 (results) | 3 |
+
+`b-pos` and `b-name` feed only the idea of the mark, so they sit above the attributes and send their two dashed edges over the direction board. `t-type` has no number: it sits under the logo, feeds the brand in use board and the brandbook's colour and type part, and belongs to the 04 chapter view. The 07 Product chapter view frames all three levels (06 and 07), so the pages are seen with the parts that make them.
+
+## 2. Reading distances and levels of detail
+
+1. **Overview (fit view), far.** The flow reads as a story of eight chapter titles over images: the violet people photograph and the Thai line, the mark, the swatches, the brand in use board (the violet hero, the ink tile), the four brandbook covers (violet cover, ink openers with a giant number), the component sheets and the three pages. Node labels and edge labels are hidden; each chapter shows its number and name once, at a screen-fixed label-md size, at the top start corner of its first node (gap 19). Body text does not read and need not.
+2. **Chapter view, mid or near.** A chapter button frames the chapter's node set, up to 100%. Node labels show above the cards; at mid zoom the "n pages" word hides (the open glyph stays) and a label of a non-result node may run 56 world px into the column gap rather than ellipsize.
+3. **Preview.** A result opens large in a dialog, one page at a time (section 4, "Preview").
+
+| Level | Zoom | What shows |
+| --- | --- | --- |
+| Far | under 0.4 | Chapter titles; cards, images, edges, ports. No node or edge labels |
+| Mid | 0.4 to under 0.7 | Node labels (kind glyph, title, open glyph); no "n pages" word; edge label pills |
+| Near | 0.7 and over | Everything, with "n pages" |
+
+Measured in the mock (board padding as `CanvasBoard` computes it in `freePadding`, base 0.2 for the overview and 0.08 for a chapter; the dock as the bottom cover, its height plus 8: 74 px at 1440 and 1920, 66 at 360; world 4484 x 1394 in English, 4484 x 1244 in Thai):
+
+| Screen | Board viewport | Overview zoom | Chapter zoom, English (Thai where it differs) |
+| --- | --- | --- | --- |
+| 1440 x 900 | 1392 x 746 | 0.259 | Brief 0.44 (0.50), Direction 1.00 (was 0.95: the board is shorter), Logo 1.00, Colour 1.00, In use 1.00, Brandbook 0.50, Design system 0.86 (0.87), Product 0.50 |
+| 1920 x 1080 | 1872 x 926 | 0.348 | Brief 0.56 (0.63), Direction 1.00, Logo 1.00, Colour 1.00, In use 1.00, Brandbook 0.64, Design system 1.00, Product 0.64 |
+| 360 x 760 | 328 x 525 | 0.25, the floor (raw 0.061); the board shows the start and pans | Brief 0.30 (0.34), Direction 0.33, Logo 0.43, Colour 0.25, In use 0.31, Brandbook 0.34, Design system 0.42, Product 0.25 |
+
+**Budget.** The world is 4484 x 1394, as in revision 4: the two boards became shorter (391 high, were 624 and 531) and moved within their stages, nothing else moved. At 1440 the overview fits at 0.259 and at 1920 at 0.348, both above `CanvasBoard`'s fixed `minZoom` of 0.25. The budget at 1440 with `minZoom` 0.25 is about 4640 x 2260; a builder who adds content measures again.
+
+## 3. Layout numbers
+
+World px, the top-left corner of each card, measured in the mock in English with Inter, Anuphan and Sarabun (`layout5.mjs`). Every node's label row sits 28 above its card (label-sm plus 4), inside the gaps below. No parents: every node sits on the board.
+
+| Id | Width | Card height (en) | x | y |
+| --- | --- | --- | --- | --- |
+| `b-ess` | 280 | 97 | 0 | 28 |
+| `b-aud` | 280 | 197 | 0 | 193 |
+| `b-pers` | 280 | 215 | 0 | 458 |
+| `b-feel` | 280 | 210 | 0 | 741 |
+| `b-cat` | 280 | 150 | 0 | 1019 |
+| `b-avoid` | 280 | 157 | 0 | 1237 |
+| `b-pos` | 280 | 116 | 352 | 113 |
+| `b-name` | 280 | 181 | 352 | 297 |
+| `d-attr` | 300 | 386 | 352 | 546 |
+| `d-board` | 560 | 391 | 724 | 572 |
+| `l-idea` | 300 | 136 | 1356 | 104 |
+| `l-build` | 300 | 108 | 1356 | 308 |
+| `l-hist` | 300 | 111 | 1356 | 484 |
+| `l-logo` | 360 | 330 | 1704 | 104 |
+| `t-type` | 360 | 133 | 1704 | 502 |
+| `u-board` | 560 | 391 | 2136 | 174 |
+| `c-why` | 300 | 173 | 1356 | 785 |
+| `c-hist` | 300 | 122 | 1356 | 1026 |
+| `c-prop` | 300 | 102 | 1356 | 1216 |
+| `c-pal` | 360 | 288 | 1704 | 801 |
+| `c-con` | 360 | 146 | 1704 | 1157 |
+| `c-demo` | 360 | 381 | 2236 | 861 |
+| `bb-cover` | 360 | 248 | 2768 | 113 |
+| `bb-logo` | 360 | 248 | 2768 | 429 |
+| `bb-colour` | 360 | 248 | 2768 | 745 |
+| `bb-use` | 360 | 248 | 2768 | 1061 |
+| `p-base` | 300 | 484 | 3200 | 28 |
+| `p-pat` | 360 | 691 | 3572 | 28 |
+| `p-landing` | 480 | 308 | 4004 | 28 |
+| `p-form` | 480 | 288 | 4004 | 404 |
+| `p-report` | 480 | 472 | 4004 | 760 |
+
+Changed from revision 4: `d-board` 391 high at y 572 (was 624 at 455), `u-board` 391 high at y 174 (was 531 at 104); each board card is the board at 542 x 339 (1280 x 800 scaled by 0.4234) plus the meta line. In Thai: `d-board` y 492, `u-board` y 106, the other Thai positions as the mock reports them (world 4484 x 1244).
+
+Rules behind the numbers: a stage holds tiers of columns; a column stacks cards 40 apart plus the 28 label row (68 from a card's bottom to the next card's top); stages sit 72 apart; in stage 4 the type and palette column sits 48 after the idea column, the brand in use board 72 after the logo column, and the demo 172 after the palette column, which keeps the corridor where the palette's edges turn; the colour tier sits 150 under the logo tier, room for the "03 Colour" chapter title; `d-attr` centres on the brief column; `d-board` aligns its middle with `d-attr`; the three product stages are top aligned so their edges run level; the other stages centre on the tallest. All nodes use `size: "custom"` with `width` from the table. The `Default` play checks that no two node rectangles, labels included, overlap and that stack gaps are 40 or more; the builder moves `y` until it holds.
+
+## 4. Nodes and their data
+
+### The node (gap 14)
+
+Unchanged from revision 4. Old against new, at the same zoom, one node of each kind, light and dark: revision 4's `compare__{knowledge,direction,artifact,reference}__{light,dark}.png` (section 15).
+
+| Part | Revision 3 | Revision 4 and 5 |
+| --- | --- | --- |
+| Name | A glass header band inside the card: kind chip, title, kind word | A label above the card, outside it: the kind glyph (icon-xs, `text.tertiary`), the title (label-sm, `text.secondary`, one line, ellipsis); for a result, at the end, the page count (body-xs tertiary) and the open glyph (icon-xs). The kind word goes: the glyph carries it, and its accessible name stays the catalog kind word |
+| Surface | Card with a frame inset 4 and the header frame inside it | One surface: `--cmp-node-bg` (`surface.card`), 1 px `border.subtle`, radius `--cmp-node-radius` (24), no shadow, no frame inside it |
+| Padding | 16 under a header | Text nodes 16 (`space.inset-md`); media nodes 8 (`space.inset-sm`), their media radius 16 (the node radius less the inset), so media sit concentric in the card |
+| Ports | A labelled port row under the body | A glyph dot (`size.port`, the glyph icon-xs, filled in its locked port hue, a 2.5 stroke in the card colour) centred on the card edge: inputs on the start edge, outputs on the end edge, grouped at a 24 pitch around the card's middle; a row port sits at its row's middle (06 sheets). Names show on hover or selection as pills beside the dots |
+| Source line | A footer line in every card | Shown on hover or selection only, as a pill under the card (code font at body-xs, `surface.card`, hairline, `elevation.overlay`); in the preview it is the caption's second line where it names the page's source |
+| Words | Kind word, meta row, footer, ports | Title, body, and one honest label where one is due |
+
+States of the card: hover, the border takes `--cmp-node-border-hover` and the label `text.primary` (the mock draws hover with `border.control`); selected, the border and a 1 px inner outline (offset -2) in `--cmp-node-border-selected` (`canvas.selection`), the label `text.primary`, the port pills and the source pill show; keyboard focus, the catalog focus line and halo (`focus.ring` with `focus.halo-opacity`, 3 px) on the card, never the selection look; a result card shows `cursor: zoom-in`. Selection and focus differ in shape (outline inside against a halo outside) as well as hue.
+
+**Rows.** Lists stay rows with aligned columns (CSS subgrid), without the `surface.sunken` bars: rows are separated by space, the card is the only surface.
+
+**Quotes.** A quote keeps its source language in both locales, set in body-lg (body-md for the positioning line); when the page language differs, one body-xs line follows it, ถอดความ / Paraphrase.
+
+### 00 Brief: the intent lines (stages 1 and 2)
+
+| Node | Body | Output | Source |
+| --- | --- | --- | --- |
+| `b-ess` Essence / แก่นแบรนด์ | "Make intent tangible" in heading-md; "ทำให้ความตั้งใจมีรูปร่างและนำไปใช้งานได้" in body-sm secondary | text Essence | `orivilo-brand-identity-v1.md §1` |
+| `b-aud` Audience / กลุ่มผู้ใช้ | Three rows, the group in label-md and its need in body-sm secondary: Founders, small teams / Cannot picture the brand yet; Designers / Keep one identity across pieces; Product teams / Need data they can build from | text Audience | `orivilo-brand-identity-v1.md §2` |
+| `b-pers` Personality / บุคลิก | Five bars: label, 6 px track (`surface.sunken`, fill `text.primary`), number in code-md: Playful 65, Expressive 70, Structured 80, Warm 70, Premium 65 (labels from `m.direction.axes`); one body-xs line "Team alignment, not research" | text Personality | `orivilo-brand-identity-v1.md §3` |
+| `b-feel` Feeling / ความรู้สึก | Quote "การเริ่มงานใหม่ที่น่าตื่นเต้น แต่มีพื้นที่และโครงสร้างช่วยให้ตัดสินใจได้" with paraphrase in `en` | text Feeling | `orivilo-brand-identity-v1.md §5` |
+| `b-cat` Category / หมวด | Quote "AI design and brand tools"; body-xs "Colours the category already uses"; three `Badge size="sm"`: Violet, 250 to 265°; Black; Cream with clay (words, never invented hex) | text Category | `brand-ci-method.md §5.1` |
+| `b-avoid` Avoid / ไม่ใช้ | Six chips (`surface.sunken`, radius control, a 12 px cross glyph in `text.tertiary`): AI sparkles, Robots, Brains, Infinity signs, Rainbow gradients, People pointing at screens | text Avoid | `orivilo-brand-identity-v1.md §5, §9` |
+| `b-pos` Positioning / จุดยืน | Quote "The only brand platform that keeps every artifact traceable to the business reason behind it." in body-md, paraphrase in `th` | text Onliness | `brand-ci-method.md §2` |
+| `b-name` Name / ชื่อ | "Orivilo" in display-md, "ออริวิโล" in body-sm secondary; rows Ori origin, Vi vision, Lo loop (key in code-md) | text Name | `orivilo-brand-identity-v1.md §1` |
+
+### 01 Direction board (stages 2 and 3)
+
+`d-attr` Visual attributes / ลักษณะภาพ (direction, 300). Inputs: text Essence, Audience, Personality, Feeling, Category, Avoid. Output: text Attributes. Body: five rows, the attribute in label-sm secondary, the value in body-sm. Source `brand-ci-method.md §3; orivilo-brand-identity-v1.md §5, §9`.
+
+| Attribute | Value |
+| --- | --- |
+| Composition / องค์ประกอบ | One main piece, wide empty space / ชิ้นหลักชิ้นเดียว พื้นที่ว่างมาก |
+| Material / วัสดุ | Matte paper, smooth clay, a little frosted glass / กระดาษด้าน ดินปั้นผิวเรียบ แก้วฝ้าบ้าง |
+| Colour mood / อารมณ์สี | Warm near-neutral ground, deep ink, one vivid hue, no rainbow / พื้นอุ่นใกล้สีกลาง หมึกเข้ม สีสดหนึ่งสี ไม่ไล่สีรุ้ง |
+| Type / ตัวอักษร | Large editorial type, looped Thai for reading / ตัวใหญ่แบบนิตยสาร ไทยมีหัวสำหรับอ่าน |
+| Shape / รูปทรง | Open forms, one radius scale, no infinity or sparkle / รูปทรงเปิด มุมมนชุดเดียว ไม่มีอินฟินิตี้หรือประกาย |
+
+`d-board` Direction board / บอร์ดทิศทาง (artifact, 560, result, 6 pages). Input: text Attributes. Output: image Direction. Body: the board as media (radius 16), then one meta line: `Badge size="sm"` AI images and body-xs "No logo on this board". The board carries **no caption, no swatch and no mark**: it reads as one composed page, in the manner of a concept page.
+
+The board is designed at 1280 x 800, scaled as one image (0.4234 on the card), gutter 12, every tile radius `shape.container-radius` (16 at the design size), no outer margin. Five pieces, one big and four small:
+
+| Piece | Box (x, y, w, h at 1280 x 800) | Content | Treatment | Caption in the preview (title / second line) |
+| --- | --- | --- | --- | --- |
+| People | 0, 0, 788, 494 | `direction-team`, cover, focus 50% 45% | Violet treatment (gap 21) | People / AI image, violet treatment |
+| Line | 800, 0, 480, 494 | Paper flood. Bottom start, inset 40: "ให้ไอเดีย / มีตัวตน" (two lines, Anuphan, display-lg x 1.55, `text.primary`), 20 under it "Give your ideas a world." in display-md `text.secondary` | Drawn | Feeling / Drawn: the brand's own lines |
+| Place | 0, 506, 388, 294 | `direction-place`, cover | Paper treatment (gap 21) | Place / AI image, paper treatment |
+| Making | 400, 506, 388, 294 | `direction-making`, cover | Violet treatment | Making / AI image, violet treatment |
+| Type | 800, 506, 480, 294 | Ink flood. Inset 40 at the sides, 30 top, 32 bottom: "Aa กข" on one line at display-lg x 2.5, "กข" in `brand.signature` of the dark boundary (violet on ink); at the bottom "Inter, Anuphan, Sarabun" in body-sm `text.secondary` | Drawn | Type / Drawn: Inter, Anuphan, Sarabun |
+
+Why these five: people (identity §2, the audience), place (§5, room to decide), making (§1, make intent tangible), the line (§4, the brand's own words) and the type (DESIGN.md §4, Thai first). The "order" of revision 4 (structured 80) is carried by the board's own strict grid, not by a fifth photograph.
+
+Preview, 6 pages: 1 the whole board, filling the stage (caption "The whole direction board", second line the honest line of section 8); 2 to 6 each piece alone, filling the stage at its own aspect (contain), its caption from the table. A missing image's second line is its id.
+
+### 02 Logo (stage 4, top tier)
+
+Unchanged from revision 4.
+
+| Node | Body | Ports | Source |
+| --- | --- | --- | --- |
+| `l-idea` The idea of the mark / ความคิดของเครื่องหมาย (direction) | Quote "A loop that does not close, and the dot it stays connected to." in body-lg, paraphrase in `th` | in: text Onliness, text Name, image Direction; out: text Idea | `orivilo-brand-identity-v1.md §9` |
+| `l-build` Construction / โครงสร้าง | The equation: four square tiles (`surface.sunken`, radius media) joined by − + = in heading-sm tertiary: Loop (the full ring), 110° (a ghost ring with the opening drawn as two radii and an arc), Dot (a ghost ring with the dot r 19), Mark (`Logo kind="mark"` at 40). Under each tile one label-sm word | out: image Construction | `orivilo-brand-spec-v1.1.md §2` |
+| `l-hist` Mark history / ประวัติเครื่องหมาย | A filmstrip of five marks at 36, oldest first, key under each in code at body-xs; the mark in use on `surface.sunken` | out: image Earlier | `orivilo-brand-spec-v1.1.md §9 to §13` |
+| `l-logo` Logo / โลโก้ (result, 3 pages) | Mark panel: media, 240 high, `surface.sunken`, `Logo kind="mark"` at 160 centred; under it a 64 high row with `Logo kind="horizontal"` at 36 | in: text Idea, image Construction, image Earlier; out: image Logo | `orivilo-brand-spec-v1.1.md §2 to §4` |
+
+Mark history, the five marks drawn from the logo geometry with the recipe classes (only the v1.1 dot takes a data colour, lime, inline): v1.1 the 80° ring `M 70.42 25.2 A 52.5 52.5 0 1 0 125.71 63.91`, dot r 15 in #D9F66F (spec §9, §11); v1.2 the 80° ring, dot r 15 in `logo.dot` (spec §10); v1.3 the 110° ring `M 57.04 28.17 A 52.5 52.5 0 1 0 127.5 77.5`, dot r 15 (spec §11); v1.4 the 110° ring, dot r 21 (spec §12); v1.5 `Logo kind="mark"`, dot r 19, in use (spec §13).
+
+Logo preview, 3 pages: 1 The mark (`Logo kind="mark"` at 280 on `surface.card`); 2 The horizontal logo (`Logo kind="horizontal"` at 120); 3 On ink (the horizontal logo in a nested dark boundary on `surface.canvas`).
+
+### 03 Colour (stage 4, bottom tier)
+
+Unchanged from revision 4.
+
+| Node | Body | Ports | Source |
+| --- | --- | --- | --- |
+| `c-why` Why these colours / เหตุผลของสี | Three rows: a numeral at heading-sm size in `text.brand`, the reason in body-sm: 1 The personality asks for one vivid signature; 2 The category crowds 250 to 265°, so it moved to 272°; 3 The owner chose violet | in: image Direction; out: text Reasons | `brand-ci-method.md §3, §5.1; spec §10` |
+| `c-hist` Palette history / ประวัติชุดสี | Three rows: a strip of the version's swatches (10 x 24, hairline), key in code-md, change in body-sm; the row in use ends with `Badge variant="brand"` In use. v1 #6D3DF5 #D9F66F #FFB39E #20232B #F7F6F2 With coral; v1.1 #7A22C7 #D9F66F #16151D #F4F4F0 Lime leads; v1.2 #7A22C7 #16151D #F4F4F0 #D9F66F Violet leads | out: palette Earlier | `orivilo-brand-spec-v1.1.md §9, §10` |
+| `c-prop` Proportion / สัดส่วน | A 36 px bar of four segments 2 apart, radius media, each with a hairline: canvas 60, ink 30, violet 8.5, lime 1.5; one body-sm line "60 / 30 / 10, lime under 2" | out: text Proportion | `orivilo-brand-spec-v1.1.md §5` |
+| `c-pal` Palette / ชุดสี (result, 6 pages) | Five swatches as media, 220 high, 2 apart, each with a hairline; inside each, at the bottom, the name in label-sm and the hex in code at body-xs, in a nested boundary whose mode reads on that colour: Violet #7A22C7, Violet on ink #B07FEE, Ink #16151D, Canvas #F4F4F0, Lime #D9F66F. Under them one body-xs line "Lime only on the one Intent Engine button per screen" | in: text Reasons, palette Earlier, text Proportion; out: palette Palette | `orivilo-brand-spec-v1.1.md §5, §10` |
+| `c-con` Palette contrast / คอนทราสต์ของชุดสี | Three rows: an "Aa" tile (44 x 32, heading-sm, the pair's own colours inline, hairline), the pair in body-sm, the ratio in numeral style at heading-sm size: White on violet 7.3, Ink on canvas 16.4, Violet on canvas 6.6. No ports | none | `orivilo-brand-spec-v1.1.md §5` |
+| `c-demo` Demo: colours read back / ตัวอย่าง: อ่านสีกลับจากภาพ (reference) | `colour-reference` at 4:3 as media, `Badge variant="warning"` Mechanism demo over its top start corner, five numbered points (22 px ink discs with a card ring). Under it five read-back swatches (20 high, hairline), no hex on the canvas. The honest label (section 8) | in: palette Palette | `orivilo-brand-spec-v1.1.md §5` |
+
+Demo points as percent of the image, and the hex read back (revision 2's measure of `v1.png`): 1 (25, 33) #7A2FA7; 2 (74, 25) #D3EF46; 3 (80, 75) #19181E; 4 (27, 78) #F4F3FC; 5 (54, 45) #E3E2E0. The hex values stay in the data and in the swatches' `title`; the canvas shows the colours only.
+
+Palette preview, 6 pages: 1 the five swatches filling the stage; 2 to 6 one swatch each, filling the stage, its name in display-md and hex at heading-sm size, the caption its role: Violet, the signature, the mark's dot; Violet on ink, violet on a dark ground; Ink, text and dark grounds; Canvas, the main ground, 60; Lime, the one Intent Engine button per screen.
+
+### 04 Brand in use (stage 4, top tier)
+
+`t-type` Type / ตัวอักษร (knowledge, 360, result, 2 pages), unchanged: "Aa กข" in display-lg, one line; "Inter, Anuphan, Sarabun" in body-sm secondary. Output: type Type. Source `DESIGN.md §4`. Preview: 1 Latin: Inter; 2 Thai: Anuphan and Sarabun (as revision 4).
+
+`u-board` The brand in use / แบรนด์ในการใช้งาน (artifact, 560, result, 8 pages). Inputs: image Logo, palette Palette, type Type. Output: image In use. Body: the board as media, then one meta line: `Badge size="sm"` Mockups and body-xs "The real mark and screens on AI scenes". No captions on the board.
+
+The board is designed at 1280 x 800 on a grid of 5 columns of 246.4 and 3 rows of 258.67, gutter 12, every tile radius 16 at the design size, edge to edge. Column x: 0, 258.4, 516.8, 775.2, 1033.6; row y: 0, 270.67, 541.33.
+
+| Piece | Cells (columns, rows) | Content | Flood | Kind |
+| --- | --- | --- | --- | --- |
+| Hero | 1 to 2, 1 to 2 (504.8 x 529.3) | `brand-hero` v1, cover, focus 50% 34%: the founder in the violet set with the real mark on her sweatshirt | Photograph (staged in violet) | AI image |
+| App icon | 3, 1 (246.4 x 258.7) | The app icon centred: side 52% of the tile's shorter side (128), radius 22.5% of the side (data), ink ground (`surface.canvas` of a dark boundary), the full-tone mark at 62% (paper ring, violet-on-ink dot), `elevation.overlay` | Violet | Drawn |
+| Lockup | 4 to 5, 1 (504.8 x 258.7) | `Logo kind="horizontal" tone="one-colour"` at 86% of the tile width, centred, in a dark boundary (paper), with its construction guides drawn behind it: the cap line, the baseline, the mark's box and the word's start and end, dashed 7 on 7, 1.6 at the lockup's own scale (gap 23) | Violet | Drawn |
+| Phone | 3, 2 to 3 (246.4 x 529.3) | A phone drawn upright and flat: width 84% of the tile, height 2.06 x its width, top at 16% of the tile height, so it bleeds off the bottom; frame ink, radius 15% of its width, bezel 3.5%, screen radius 12%, `elevation.overlay`. On its screen the real `Landing` at 390 wide, light, from the top, `inert`, `aria-hidden` | Violet | Mockup |
+| Ink tile | 4 to 5, 2 to 3 (504.8 x 529.3) | The giant mark at 1.12 x the tile height, left at the tile width less 0.62 x the height, top at -0.2 x the height, ring `brand.signature` of a light boundary (violet), dot `brand.signature` of a dark boundary (violet on ink), bleeding off the top and the end. `Logo kind="horizontal"` at 30 at the top start, inset 40 by 36. Bottom start, inset 40: "Give your ideas a world." at display-lg x 1.2, max width 330 (three lines), 24 under it `Button variant="intent" size="lg"` "Start from your brief", in a light boundary | Ink | Drawn |
+| Card scene | 1, 3 (246.4 x 258.7) | `scene-card` with the real lockup laid on the card face in perspective (gap 22) | Violet | Mockup |
+| Sign scene | 2, 3 (246.4 x 258.7) | `scene-sign` with the real lockup laid on the violet wall panel in perspective (gap 22) | Ink | Mockup |
+
+The tagline on the ink tile crosses the giant ring on purpose: paper type over violet reads at 7.3 to 1 (spec §5). Nothing else on the board has words.
+
+**Where the mark goes in each scene, and at what angle.** The scene fills its tile (cover). Its flat surface is given by four corners in percent of the image (top start, top end, bottom end, bottom start); the corners map through the same cover crop, and a homography takes a flat face of the given size onto them (CSS `matrix3d`, gap 22). The corners below are measured on the made images (revision 5.1; they replace the targets of revision 5, which the images missed by up to 3.5 points), and the image records keep them as `quad`.
+
+**How they were measured.** By script, not by eye: `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-6/measure-quads.mjs` (output `quads.json` beside it). A colour threshold marks the surface's pixels (the card's face: mean of R, G, B at least 238 and a spread of at most 25, which leaves out the card under it, darker behind a shadow line; the panel's face: B at least 150 and B minus G at least 100, which leaves out the panel's darker side strip at the end). From a seed inside the surface the script marches out along every row to the start and end edges and along every column to the top and bottom edges, records each sub-pixel threshold crossing, fits a line to each side by RANSAC (tolerance 1.5 px) and least squares on the inliers (residuals 0.04 to 0.57 px), and intersects adjacent sides. The fits and both corners of each side were checked on an overlay of the image (`quad-check__scene-card.png`, `quad-check__scene-sign.png` and their corner crops at five times, section 15). The face's own proportion was estimated from the quad by `face-aspect.mjs` beside it (a pinhole camera with square pixels): the card is 1.75 : 1 at any focal length (a 3.5 by 2 inch card, not the 1.55 of 85 by 55 mm the face of revision 5 assumed), so the face becomes 350 x 200 and the lockup no longer stretches; the panel is 1.9 to 2.1 : 1 over plausible focal lengths, so 600 x 300 stays.
+
+| Scene | Corners (TS, TE, BE, BS, percent, measured) | Same in px of the 1254 x 1254 image | Face | Laid on it | Angle, measured |
+| --- | --- | --- | --- | --- | --- |
+| `scene-card` | (21.7, 39.7), (72.7, 31.8), (78.7, 61.5), (27.4, 68.2) | (271.8, 498.3), (911.5, 398.9), (986.4, 771.1), (343.0, 855.8) | 350 x 200 | `Logo kind="horizontal"` full tone, light boundary (ink word, violet dot), 56% of the face width: 196 x 44.3 in face units, inset 77 at the start and end and 77.9 at the top and bottom, so the margin is even in the card's plane; clear space (one stroke, 30 of the lockup's 150 units) needs 8.9 | The top card lies on the violet desk seen from high above, almost without foreshortening (near edge 648.9 px, far edge 647.3); its long sides rise to the end, 8.8° at the top and 7.5° at the bottom, and its short sides lean 11° |
+| `scene-sign` | (16.7, 32.3), (82.8, 24.1), (82.8, 71.2), (16.7, 64.8) | (209.4, 404.6), (1038.8, 302.5), (1038.9, 892.7), (209.4, 812.3) | 600 x 300 | `Logo kind="horizontal" tone="one-colour"`, dark boundary (paper), 65% of the face width (was 72%): 390 x 88.2 in face units, inset 105 at the start and end and 105.9 at the top and bottom, so the margin is even in the panel's plane; clear space needs 17.6 | The panel is seen from the start side; its sides stay vertical; the end edge is nearer and taller (47.1% against 32.5% of the image height); the top edge rises 7.0° and the bottom edge falls 5.5° to the end |
+
+**Checked in the render** (`shoot6.mjs`, four zero-size markers at the lockup's corners read back on screen against the quad): the lockup is inside the surface at every size it is drawn, and follows the surface's perspective. Distances from the lockup to the surface's sides, top, end, bottom and start, in screen px at 1440: card scene preview page (tile 653 x 686) 78.2, 80.4, 78.1, 75.4; sign scene preview page 82.6, 106.6, 82.8, 57.9; the board on its preview page (scene tiles 205 x 215) card 24.5, 25.2, 24.5, 23.6 and sign 25.8, 33.4, 25.9, 18.1; the board on the canvas at 100% (tiles 104 x 110) card 12.5, 12.8, 12.5, 12.0 and sign 13.2, 17.0, 13.2, 9.2; book page 11 at preview size (tiles 369 x 268, the scene cropped top and bottom) card 42.0, 43.2, 42.0, 40.5 and sign 44.4, 57.3, 44.5, 31.1; the fit view (tiles 27 x 28) inside. The card's margins are even on screen too; the sign's start margin is smaller and its end margin larger on screen because the start side is farther away, which is the perspective the face follows, while the margins are even in the panel's plane.
+
+`brand-hero` carries the mark on cloth, which follows the folds, so it is generated from the mark as a reference image (section 9) and checked against it; no mark is laid on top.
+
+Preview, 8 pages: 1 the whole board, filling the stage (caption "The whole brand in use board", second line the honest line of section 8); 2 to 8 each piece alone in the order of the table, filling the stage at its own aspect, caption and second line from the copy table (section 10). A missing scene's second line is its id.
+
+### 05 Brandbook (stage 5): four parts, one book
+
+The four parts of revision 4 stay: four result parts of 360 in one column, one per section, each a small stack: the section's first page, now designed at 1280 x 800 and scaled to the card (342 wide, 16:10), with two sheet edges peeking above it (6 px apart, `surface.card`, hairline). Every part opens the same 12-page book preview at its section's first page; the cover part's label says 12 pages, the others their section's count. Pages are brand art in nested boundaries: they keep their floods in both page modes.
+
+| Part | Label (en / th) | Opens at | Count on the label | Inputs | Output |
+| --- | --- | --- | --- | --- | --- |
+| `bb-cover` | Brandbook v1.5 / แบรนด์บุ๊ก v1.5 | page 1 | 12 pages | none | profile orivilo profile |
+| `bb-logo` | 01 Logo / 01 โลโก้ | page 3 | 3 pages | image Logo | none |
+| `bb-colour` | 02 Colour and type / 02 สีและตัวอักษร | page 6 | 4 pages | palette Palette, type Type | none |
+| `bb-use` | 03 In use / 03 การใช้งาน | page 10 | 3 pages | image In use | none |
+
+**Page frame, every page:** 1280 x 800; padding 36 top, 48 sides, 30 bottom; the top furniture row (the mark at 20, one colour; Brand guidelines / แนวทางแบรนด์; the section at the end) and the bottom row (ORIVILO v1.5; the two-digit page number), body-sm `text.secondary` of the page's ground, one line each; the body between them with 24 above and below (646 high). An opener is split: the ink half 704 wide carries the furniture, the art fills the rest to the bleed.
+
+| # | Section | Page | Ground | Content, at the 1280 x 800 design | Source |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Cover | Cover | Violet | `Logo kind="horizontal" tone="one-colour"` at 64, top start; "Brand / guidelines" (two lines, display-lg x 1.9, line height 1.05 in Latin, the display line height in Thai: "แนวทาง / แบรนด์"), bottom start; the giant mark at 980, left 560, top -40, ring ink (`surface.canvas` of a dark boundary), dot paper, bleeding off the end and the bottom | spec title |
+| 2 | Contents | Contents | Paper | "Contents" at display-lg x 1.15 top start; at the bottom three columns, gap 28, each a `border.strong` rule, the numeral 01, 02, 03 at display-lg x 3.2 in `brand.signature`, under it the section name in display-md and "Page 03 / 06 / 10" in body-md secondary at the end | this book |
+| 3 | 01 Logo | Opener | Ink half, violet art | Bottom start of the ink half: "01" at display-lg x 5 in violet on ink, "Logo" at display-lg x 1.3, the section's pages in code-md and body-md (04 Construction and clear space, 05 On violet, ink and paper); the art: a violet panel with a giant paper mark at 820 bleeding off the end | spec §1 |
+| 4 | 01 Logo | Construction and clear space | Paper | Start, 690 wide: a `surface.card` panel, radius container, holding the construction at 600: a grid of 15, the clear-space frame (one stroke, dashed `text.brand`), the mark's box, the mark, and its geometry in `text.brand` hairlines labelled in code: 110°, r 52.5, r 19, clear space 30, stroke 30. End column: "Construction and clear space" in heading-lg; the facts Ring radius 52.5, Stroke 30, Opening 110°, Dot radius 19, Clear space one stroke; at the bottom the mark at 96, 48, 24 and 16 with their sizes in code, and "Smallest 16 px" | spec §2 |
+| 5 | 01 Logo | On violet, ink and paper | Violet, ink, paper thirds | Three full-bleed thirds of 426.7, each the horizontal logo at 64 centred (one colour on violet, full tone on ink and paper) and its label in body-md secondary 84 above the bottom: On violet: one colour; On ink; On paper. The furniture splits across the thirds in each third's own text colour | spec §2, §10 |
+| 6 | 02 Colour and type | Opener | Ink half, field art | "02" at x 5, "Colour and type" at x 1.3, the pages 07 Palette and proportion, 08 Type, 09 Voice; the art: three full-height fields in the ratio 2.2 : 1.4 : 5, paper, violet on ink, violet, the violet at the bleed | spec §5 |
+| 7 | 02 Colour and type | Palette and proportion | Paper | Fields bleeding off both sides, 12 under the furniture to 12 over the footer, in the ratio 44 : 26 : 18 : 12: Canvas (paper, with a hairline top and bottom) 60; Ink 30; Violet 10; the last column split 55 : 45 into Violet on ink #B07FEE and Lime #D9F66F "Under 2, one intent action". Each field: the numeral at display-lg x 1.6 top start, at the bottom the name in heading-md, the hex in code-md and the role in body-sm secondary | spec §5 |
+| 8 | 02 Colour and type | Type | Paper | "Type" at x 1.15; three columns of equal width, gap 28, each under a `border.subtle` rule: the face in heading-md with "400 500 600" in code at the end, its role in body-sm, the glyphs at display-lg x 3.4 ("Aa" Inter, "กข" Anuphan, "กข" Sarabun), the alphabet in body-md secondary, a sample: "Give your ideas a world." (heading-md), "ให้ไอเดียมีตัวตน" (heading-md), the elevator pitch in Sarabun body-md | DESIGN.md §4, ORV-275 |
+| 9 | 02 Colour and type | Voice | Violet | "ให้ไอเดียมีตัวตน / และไปต่อได้จริง" at display-lg x 1.9, top start; "Give your ideas a world." at x 0.8 under it; at the bottom three columns under a rule in `currentColor`: "Voice" in body-sm over the word in display-md: Thoughtful, Clear, Reasoned | identity §4 |
+| 10 | 03 In use | Opener | Ink half, photograph | "03" at x 5, "In use" at x 1.3, the pages 11 Applications, 12 Not tested yet; the art: `brand-hero` full bleed, cover, focus 50% 30% | in use board |
+| 11 | 03 In use | Applications | Paper | Five pieces of the in use board laid on the page, gutter 12, radius 16: the phone (300 x 638), the sign scene and the card scene (430 x 313 each), the two app icons at 150 (violet with the one-colour mark, ink with the full-tone mark) on paper with a hairline, and the ink tile at 430 x 313 without its lockup (tagline at x 0.9, `Button variant="intent" size="md"`) | in use board, identity §8 |
+| 12 | 03 In use | Not tested yet | Paper | "Not tested yet" at x 1.15 top start, under it one body-lg secondary line "This logo is a direction until it passes these four checks."; at the bottom four columns under `border.strong` rules: the numeral 01 to 04 at x 2.6 in `brand.signature` over the check in display-md: Mark similarity; A lineup with 3 outsiders; Print at 8 mm; Name check with DIP and WIPO | spec §8 |
+
+Every page was rendered alone in English and Thai and checked by script for a furniture row wider than its box and for any text outside its page or tile: none (`bookpage__01__en.png` to `bookpage__12__th.png`, section 15).
+
+### 06 Design system and 07 Product (stages 6 to 8)
+
+Unchanged from revision 4.
+
+`p-base` Base components / ชิ้นส่วนพื้นฐาน (artifact, 300). Input: profile Profile, from `bb-cover`. Body: a sheet of five rows inside `DesignProfileBoundary profile={BRAND_PROFILES[0]}` (orivilo) and the page's mode; each row its catalog name in label-sm secondary over the live component, rows separated by a hairline. One output port per row, at the row's middle (profile kind, named by the row).
+
+| Row | Catalog entry (story) | Shows |
+| --- | --- | --- |
+| Button | `base/button.yaml` (`base-button`) | `Button variant="primary"` Read this page and `variant="secondary"` Clear, size sm |
+| Badge | `base/badge.yaml` (`base-badge`) | `Badge variant="brand"` orivilo, `Badge` Not measured, `Badge variant="warning"` Sample, size sm |
+| Field, Input | `base/field.yaml` (`base-field`), `base/input.yaml` | `Field` Website address, required, holding `Input size="sm"` with `https://clinic.example/` |
+| RadioGroup | `base/radio-group.yaml` (`base-radio-group`) | Two items: My own brand (checked), A competitor |
+| Alert | `base/alert.yaml` (`base-alert`) | `Alert variant="info"` Read by rules, no AI |
+
+`p-pat` Composed components / ชิ้นส่วนประกอบ (artifact, 360). Body: a sheet of five rows, each its name in label-sm secondary over the composed piece rendered under the orivilo profile (the mock places crops of the deployed stories; the builder renders them live, scaled, `inert`). Input ports sit on the rows built from the base rows; one output port per row.
+
+| Row | Catalog entry or file | Built from (edges in) |
+| --- | --- | --- |
+| Card | `application/card.yaml` (`application-card`) | none drawn (a catalog part) |
+| PageHeader | `application/page-header.yaml` (`application-page-header`) | none drawn |
+| BrandReportScreen form | `examples/brand-report.tsx`, the form of the `Form` story (`examples-application-brand-report--form`) | Button, Field and Input, RadioGroup |
+| SectionHeader | `application/section-header.yaml` (`application-section-header`) | none drawn |
+| Notice, ReadingCard | `examples/brand-report.tsx` (page-local `Notice` and `ReadingCard`, no catalog entry) | Badge, Alert |
+
+Pages, each a result of the one "Product pages" preview (3 pages), Landing first. Input: profile Parts. Body: a page frame as media on `surface.canvas` with an inset hairline, holding the page rendered at its design width, scaled to 464, `inert`, `aria-hidden`.
+
+| Node | Page | Frame | Preview page |
+| --- | --- | --- | --- |
+| `p-landing` Landing / หน้าแรก | `Landing` (`examples-marketing-landing-page--default`), 1280 wide | 290 high, from the top | 1: the whole page at 1280, from the top; caption the note "The existing Landing example, view only. Its copy is Thai only." |
+| `p-form` Website address form / ฟอร์มที่อยู่เว็บไซต์ | `BrandReportScreen` `Form` story, 800 wide | 270 high, from 48 css px down (past the story's fixture line) | 2: the form at 800; caption "The real screen under the orivilo profile. It reads no site and sends nothing." |
+| `p-report` Brand evidence report / รายงานหลักฐานแบรนด์ | `BrandReportScreen` `Analysed` story (`examples-application-brand-report--analysed`, fixture `ANALYSED`), 800 wide | 420 high, from `[data-report]` less 16; then a meta line `Badge variant="warning"` Sample data and "Opened at the findings" | 3: the report from `[data-report]` less 16, a scroll-bar mark showing where it sits in the page; caption "Sample data, opened at the findings. The form is above." |
+
+**The analysed state, not the empty form.** As in revision 3: the report frame shows the findings. In the build, the preview page of the report is the live `BrandReportScreen access="form" view={ANALYSED} headingLevel={2}` (gaps 4 and 11) in a `ScrollArea` set to `[data-report]` on mount (page-local effect); the form above it stays live. If `[data-report]` is absent the page starts at the top.
+
+### Preview (gap 18)
+
+| Part | What |
+| --- | --- |
+| Opener | A result card, by click, Enter or Space; the card has `aria-haspopup="dialog"` and the accessible name "{title}, {count} pages" |
+| Surface | `Dialog size="viewer"` (gap 18): the window less one gutter on each side, padding `space.inset-md`; the catalog scrim |
+| Header | `Dialog` title: the sequence's title (Direction board, The ORIVILO logo, Type, The ORIVILO palette, The brand in use, ORIVILO brandbook v1.5, Product pages); the catalog close button at the top end |
+| Stage | `surface.sunken`, radius container, filling the dialog; the page centred inside an inset of `space.inset-lg`, scaled to fit whole (contain), never cropped. A board or a book page is scaled as one image from its 1280 x 800 design, so at 1440 x 900 it fills the stage height (1059 x 662) where revision 4's board used 540 of the width. A piece page scales the piece from its own design box (a 246 x 259 icon tile is drawn about 2.6 times larger), so drawn type stays sharp. Photographs are made at 1448 x 1086 (the direction photographs, `colour-reference`), 1086 x 1448 (`brand-hero`) and 1254 x 1254 (the two scenes), measured against their largest use, the piece pages (section 9, "Sizes"): at device pixel ratio 1 every file covers its largest draw at 1440 and 1920; at device pixel ratio 2 the piece pages draw the photographs 1.09 to 1.59 times larger than the file, so they soften slightly while the laid lockup and the drawn art stay sharp. A long page (Landing, the report) shows a window of the page with a scroll-bar mark, and in the build scrolls in a `ScrollArea` |
+| Footer | Three columns: the caption (label-md title of the page, body-xs secondary second line) at the start; the pager centred: `Button variant="secondary" size="sm" iconOnly` Previous page, the count "6 / 12" (label-md, tabular, `text.secondary`, with a visually hidden "Page 6 of 12" in an `aria-live="polite"` region), `Button` Next page; the end column empty, balancing the caption |
+| Under 600 px | The footer stacks: the caption, then the pager centred; the empty column goes |
+
+Sequences: the direction board 6 (board, then pieces), the logo 3, the type 2, the palette 6, the brand in use board 8 (board, then pieces), the brandbook 12 (one book for all four parts), the product pages 3 (one sequence for the three pages; each page node opens at its own page).
+
+## 5. Edges
+
+Unchanged from revision 4, except the "why" of edges 20 and 21, which name the new pieces.
+
+**Kind by hue and glyph, meaning by line (gap 16).** An edge takes the hue of its source port's kind: text in `edge.stroke` (gray, since text is the default kind), image `port.image`, palette `port.palette`, type `port.type`, profile `port.profile`. The same port glyph, in the same hue, sits at both ends, so a kind reads by shape too, never by colour alone. The meaning reads by line style: input solid, reference dashed (6 on, 5 off), derived dotted (round dots 5 apart, 2.5 thick). The width is fixed on screen, 1.5 px at any zoom (the dash lengths too), by dividing by the zoom (`--zi`, written by `CanvasBoard`). Curves are the catalog's bezier. Selecting a node highlights its chain: its edges go to 2.5 px (derived 3.5) and every other edge drops to `opacity.disabled`.
+
+| # | From port | To port | Meaning | Label | Why, with its source |
+| --- | --- | --- | --- | --- | --- |
+| 1 | `b-pos` text Onliness | `l-idea` text Onliness | reference | | The mark carries one idea from the onliness line (method §4.1) |
+| 2 | `b-name` text Name | `l-idea` text Name | reference | | Ori, Vi, Lo: origin and loop are the dot and the ring (identity §1, §9) |
+| 3 | `b-ess` text Essence | `d-attr` text Essence | reference | | Tangible: real material, a thing in use (identity §1) |
+| 4 | `b-aud` text Audience | `d-attr` text Audience | reference | | Who the pictures show and who reads the type (identity §2) |
+| 5 | `b-pers` text Personality | `d-attr` text Personality | reference | | The axes set composition, colour mood and shape (method §3) |
+| 6 | `b-feel` text Feeling | `d-attr` text Feeling | reference | | Space and structure (identity §5) |
+| 7 | `b-cat` text Category | `d-attr` text Category | reference | | The crowd is what the colour mood avoids (method §5.1) |
+| 8 | `b-avoid` text Avoid | `d-attr` text Avoid | reference | | What the board must not show (identity §5, §9) |
+| 9 | `d-attr` text Attributes | `d-board` text Attributes | input | | The attributes choose the pieces (CI graph n12) |
+| 10 | `d-board` image Direction | `l-idea` image Direction | input | | The mark is drawn after the direction (method §8) |
+| 11 | `d-board` image Direction | `c-why` image Direction | input | | The colour reasons answer the direction's colour mood (CI graph n12 to n15) |
+| 12 | `l-idea` text Idea | `l-logo` text Idea | input | | The idea becomes the mark (identity §9) |
+| 13 | `l-build` image Construction | `l-logo` image Construction | input | | The parts compose the mark (spec §2) |
+| 14 | `l-hist` image Earlier | `l-logo` image Earlier | derived | | v1.5 is made from v1.1 to v1.4 (spec §9 to §13) |
+| 15 | `c-why` text Reasons | `c-pal` text Reasons | input | | The reasons choose the palette |
+| 16 | `c-hist` palette Earlier | `c-pal` palette Earlier | derived | | v1.2 is made from v1 and v1.1 (spec §9, §10) |
+| 17 | `c-prop` text Proportion | `c-pal` text Proportion | input | | The proportion rules how the palette is spent (spec §5) |
+| 18 | `c-pal` palette Palette | `c-demo` palette Palette | derived | derived from / สร้างจาก | The demo image is made from the palette, not the other way |
+| 19 | `l-logo` image Logo | `u-board` image Logo | input | | The mark on every touchpoint (CI graph n14 to n19) |
+| 20 | `c-pal` palette Palette | `u-board` palette Palette | input | | The violet and ink floods, the hero's set and the one lime action (CI graph n15 to n19) |
+| 21 | `t-type` type Type | `u-board` type Type | input | | The ink tile's tagline and the screen set in the brand type (CI graph n16 to n19) |
+| 22 | `l-logo` image Logo | `bb-logo` image Logo | input | | The logo pages (spec §1, §2) |
+| 23 | `c-pal` palette Palette | `bb-colour` palette Palette | input | | The colour pages (spec §5) |
+| 24 | `t-type` type Type | `bb-colour` type Type | input | | The type page (DESIGN.md §4) |
+| 25 | `u-board` image In use | `bb-use` image In use | input | | The applications pages (method §8, mockups last) |
+| 26 | `bb-cover` profile orivilo profile | `p-base` profile Profile | input | | The orivilo profile paints the parts (`profiles/source/orivilo.json`) |
+| 27 | `p-base` row Button | `p-pat` row BrandReportScreen form | input | | The form's submit and clear |
+| 28 | `p-base` row Field, Input | `p-pat` row BrandReportScreen form | input | | The address field |
+| 29 | `p-base` row RadioGroup | `p-pat` row BrandReportScreen form | input | | The input role |
+| 30 | `p-base` row Badge | `p-pat` row Notice, ReadingCard | input | | The not-measured and sample marks |
+| 31 | `p-base` row Alert | `p-pat` row Notice, ReadingCard | input | | The rule-based notice |
+| 32 | `p-base` row Button | `p-landing` profile Parts | input | | `Landing` imports `Button` |
+| 33 | `p-base` row Badge | `p-landing` profile Parts | input | | `Landing` imports `Badge` |
+| 34 | `p-pat` row Card | `p-landing` profile Parts | input | | `Landing` imports `Card` |
+| 35 | `p-pat` row PageHeader | `p-form` profile Parts | input | | The screen's header |
+| 36 | `p-pat` row PageHeader | `p-report` profile Parts | input | | The screen's header |
+| 37 | `p-pat` row BrandReportScreen form | `p-form` profile Parts | input | | The form page |
+| 38 | `p-pat` row BrandReportScreen form | `p-report` profile Parts | input | | The form stays above the report |
+| 39 | `p-pat` row SectionHeader | `p-report` profile Parts | input | | The report's section heads |
+| 40 | `p-pat` row Notice, ReadingCard | `p-report` profile Parts | input | | The report's readings |
+
+Count: 29 input (9 to 13, 15, 17, 19 to 40), 8 reference (1 to 8), 3 derived (14, 16, 18). Every edge steps to the right. Edges 26 to 40 are profile edges (orange): 15 of the 40 run in the product stage.
+
+**Labels.** One pill on the board: edge 18 (the palette was not read from the image). Every other edge hides its pill (gap 8); its accessible name stays the board's `graph.edgeLabel`. A stale or invalid edge always shows its pill. Edge labels hide at the far level of detail.
+
+**Gap 12 is closed** by gap 16: the line is screen-fixed, so at the overview the meaning dashes and the kind hues read.
+
+## 6. Components per part
+
+| Part | Components (catalog only, gaps named) |
+| --- | --- |
+| Page | `PageHeader` (title, description) |
+| Board | `CanvasBoard variant="present"` with `graph`, `label`, `status`, `renderBody`; the ground of gap 15; `minimap` off; `CanvasNode` x 31 in the look of gap 14; `CanvasEdge` x 40 (gap 16); `NodePort` all five kinds |
+| Dock | `CanvasControls` placed at the bottom centre with a chapter slot (gap 17): the view-only word, `Button variant="ghost" size="sm"` per chapter with `aria-current="true"` on the chapter shown (gap 9), the zoom commands |
+| Chapter titles | Page-local layer at the far level of detail (gap 19) |
+| Brief and lists | Page-local rows and chips (gap 6 for the bars); `Badge size="sm"`; `Badge variant="brand" size="sm"` In use |
+| Direction board | `Badge` AI images on the card; the art board (page-local, section 4) with nested `DesignProfileBoundary` floods, the photo treatments (gap 21) and art type (gap 20) |
+| Logo | `Logo` (mark, horizontal); older marks and the equation pieces are page-local SVG with the `ds-logo__ring` and `ds-logo__dot` classes (gap 2) |
+| Colour | Swatches with inline data colour (gap 3); nested `DesignProfileBoundary` for swatch labels; `Badge variant="warning"` Mechanism demo |
+| Brand in use | `Badge` Mockups on the card; `Logo` (horizontal, mark, one colour); the giant mark as page-local SVG with nested-boundary groups (gap 2); `Button variant="intent" size="lg"` (inert art, `tabindex="-1"`); `Landing` at 390 on the phone, `inert`; the quad placement (gap 22); nested `DesignProfileBoundary` floods |
+| Brandbook | `Logo` (mark, horizontal, `tone="one-colour"`); the giant mark and the construction (page-local SVG, gap 2); `Button variant="intent"` on page 11; nested `DesignProfileBoundary` for every flood |
+| Design system | `Button`, `Badge`, `Field`, `Input`, `RadioGroup`, `RadioGroupItem`, `Alert`, `Card`, `PageHeader`, `SectionHeader`, each under `DesignProfileBoundary profile={BRAND_PROFILES[0]}`; the brand report's form, `Notice` and `ReadingCard` |
+| Product | `Landing`; `BrandReportScreen` (form, analysed) scaled into page frames, `inert` |
+| Preview | `Dialog size="viewer"` (gap 18) with `title`, `footer`, `closeLabel`; `Button variant="secondary" size="sm" iconOnly` with `ChevronLeftIcon` and `ChevronRightIcon`; `ScrollArea` for the live report page; the open glyph `OpenIcon` (gap 18) in the node label |
+| Chapter view | `useBoard()` (`run("board.zoom-to-fit")` for Overview) and a page-local child for chapters (gap 1) |
+
+The art's intent `Button` is a picture of the action, not the action: it sits in an `inert`, `aria-hidden` board, so the page still has no live intent action and no second lime.
+
+## 7. Visual decisions
+
+**One art direction (section 0).** The two boards and the 12 pages are one system: violet, ink and paper floods, photographs in the brand colour, the mark large and cropped, few words set large, one grid per surface. On the canvas they are the brightest, boldest things; the nodes and edges around them stay calm.
+
+**A calm ground (gap 15).** The board is `surface.canvas` with one hairline and sparse dots in `border.subtle` at a 28 px screen pitch.
+
+**The node is its content (gap 14).** The label above names the card; the card is one surface with one hairline. Media nodes pad 8 so images nearly fill the card, concentric at radius 16 inside 24. Text nodes pad 16.
+
+**Small inputs left, large results right (comment 10639).** Brief cards 280, working nodes 300, results 360 to 560, pages 480.
+
+**One floating toolbar (gap 17).** The chapters and the zoom live in one glass toolbar at the bottom centre of the board.
+
+**The preview is calm, and the art fills it.** The dialog is the page's surface, the stage `surface.sunken`; a board or a book page fills the stage height; one page at a time, a quiet pager centred under it. No thumbnails strip, no carousel dots, no motion.
+
+**Two boards, two jobs (comment 10643).** The direction board answers "what should this brand feel like" before any mark exists: people, place, making, the line and the type, no mark, colour only as a treatment. The brand in use board answers "does the finished identity hold on real things": the hero, the icon, the lockup, the screen, the ink tile and two scenes, the mark in every one.
+
+**Real marks on AI scenes.** A generated picture never draws the mark, except on cloth from the mark as a reference image (`brand-hero`), checked against it. Every other scene is blank where the mark goes, and the real `Logo` is laid on it in perspective by its measured corners (gap 22).
+
+**The product stage reads as a build.** The sheet of base parts, the sheet of composed parts, the pages: three columns, edges row to row and row to page, Landing first.
+
+**Violet carries the signature.** The floods of the art, the dot on every mark, the art numerals. The dock's current chapter uses selection tokens, which is selection, not brand. **Lime** shows only on the intent action drawn in the art (the ink tile, page 11), and as data in the palette.
+
+**Type.** Inter for Latin, Anuphan for Thai in display and heading styles, Sarabun for Thai body (ORV-275). On the canvas chrome, the real scale only, as revision 4. In the art, display-lg times a data multiple (gap 20): x 5 opener numerals, x 3.2 contents numerals, x 3.4 type glyphs, x 2.5 the board's "Aa กข", x 2.6 the checks' numerals, x 1.9 cover and voice lines, x 1.6 palette numerals, x 1.55 the board's Thai line, x 1.3 opener words, x 1.2 the ink tile's tagline, x 1.15 page titles, x 0.9 the small ink tile, x 0.8 the voice page's English line; then display-md, heading-lg, heading-md, body-lg, body-md, body-sm and code-md from the scale. No letter-spacing; no uppercase.
+
+**Shape.** Node radius 24; media in a node 16; board tiles and the applications page's pieces `shape.container-radius` (16 at the 1280 design); book pages square in the stage with radius check (4) at the stage; the app icon 22.5% of its side and the phone 15% of its width (data, drawn); the preview stage radius container. Shadows: `elevation.overlay` on the app icons and the phone only.
+
+### Template tells this page must not show
+
+- A gradient blob, glow or sparkles; any rainbow or violet-to-lime gradient.
+- Nodes of identical size with an icon, a title and two lines of filler.
+- A header band, a frame inside a frame, or a port row of words under every card.
+- Numbers or badges with no source (no score, no rating, no "on brand" percent).
+- A caption under every tile of a board, or swatches of colours the brand dropped.
+- A tile with no brand in it: a neutral still life, a white card on white, a form field as decoration.
+- A mostly empty page: three small lines on white, a small object in the middle of a large field.
+- A live lime button, or lime anywhere but the one intent action and the palette data.
+- Lorem ipsum, invented history, invented hex.
+- A device with a reflection, a glare, a tilt or a fake 3D angle. A flat upright device with the catalog's overlay elevation is allowed; a scene photographed in perspective is allowed, with the mark laid on by its corners.
+- The logo drawn by the generator anywhere but on cloth from the reference image; a generated image used as a logo.
+- A preview with a thumbnail strip, dots, autoplay or a slide transition.
+- A legend panel, a minimap or a second toolbar the page does not need.
+
+## 8. Honest labels
+
+| Where | English | Thai |
+| --- | --- | --- |
+| Header description | A concept prototype. Read left to right; open a result to page through it. | ต้นแบบแนวคิด อ่านจากซ้ายไปขวา กดชิ้นงานเพื่อเปิดดูทีละหน้า |
+| Dock | View only | ดูอย่างเดียว |
+| Direction board, card | AI images; No logo on this board | ภาพจาก AI; ไม่มีโลโก้ในบอร์ดนี้ |
+| Direction board, preview page 1 | AI photographs in a violet and a paper treatment. No logo on this board. The violet is a direction; 03 Colour fixed it. | ภาพจาก AI ปรับโทนม่วงและกระดาษ ไม่มีโลโก้ในบอร์ดนี้ ม่วงคือทิศทาง สีจริงกำหนดใน 03 สี |
+| Direction pieces, preview | AI image, violet treatment / AI image, paper treatment / Drawn: ... / the image id while missing | ภาพจาก AI, โทนม่วง / ภาพจาก AI, โทนกระดาษ / วาดในหน้า: ... / the image id |
+| Image label (the direction board preview's `Dialog` description) | AI images made with Codex from each image's prompt, checked for no text and no marks. For this demo only. | ภาพจาก AI สร้างผ่าน Codex จากพรอมต์ของแต่ละภาพ ตรวจแล้วว่าไม่มีตัวอักษรและเครื่องหมาย ใช้ในหน้าตัวอย่างนี้เท่านั้น |
+| Brand in use, card | Mockups; The real mark and screens on AI scenes | ม็อกอัป; โลโก้และหน้าจอจริงวางบนฉากจาก AI |
+| Brand in use, preview page 1 | The mark, screens and print are real SVG and HTML laid on AI scenes. The mark on the sweatshirt was generated from the real mark and checked. | โลโก้ หน้าจอ และงานพิมพ์เป็น SVG และ HTML จริงวางบนฉากจาก AI โลโก้บนเสื้อสร้างจากโลโก้จริงและตรวจแล้ว |
+| Brand in use pieces, preview | Section 10, `use.*Sub`: the hero says AI image and how its mark was made; the scenes say Mockup: AI scene, the logo laid on; the phone says Mockup and that Landing is Thai only; the drawn pieces say Drawn | |
+| Brandbook page 12 | This logo is a direction until it passes these four checks. | โลโก้นี้ยังเป็นทิศทาง จนกว่าจะผ่านสี่ข้อนี้ |
+| Colour demo badge | Mechanism demo | ตัวอย่างกลไก |
+| Colour demo | Not in the product yet. Made from ORIVILO's palette, then read back at points 1 to 5. The owner chose the violet; it was not read from this image. | ยังไม่มีในผลิตภัณฑ์ ภาพนี้สร้างจากชุดสีของ ORIVILO แล้วอ่านสีกลับที่จุด 1 ถึง 5 เจ้าของเลือกม่วงเอง ไม่ได้อ่านจากภาพนี้ |
+| Landing, preview | The existing Landing example, view only. Its copy is Thai only. | ตัวอย่าง Landing ที่มีอยู่ ดูอย่างเดียว ข้อความเป็นภาษาไทยเท่านั้น |
+| Form, preview | The real screen under the orivilo profile. It reads no site and sends nothing. | หน้าจริงในโปรไฟล์ orivilo ไม่อ่านเว็บใดและไม่ส่งข้อมูลไปไหน |
+| Report, card | Sample data; Opened at the findings | ข้อมูลตัวอย่าง; เปิดที่ผลการอ่าน |
+| Report, preview | Sample data, opened at the findings. The form is above. | ข้อมูลตัวอย่าง เปิดที่ผลการอ่าน ฟอร์มอยู่ด้านบน |
+| Personality | Team alignment, not research | ตัวเลขให้ทีมเห็นตรงกัน ไม่ใช่ผลวิจัย |
+| Mark history v1.1 | The lime dot is the recorded v1.1 state, not a current use of lime | |
+
+Each label is said once per board or page: on the node card's meta line and on the preview's caption line, never under each tile. No text says that ORIVILO interpreted, generated, screened, tested or exported anything. Every picture with a real thing laid on it says so (Mockup), and every generated photograph is under an AI label.
+
+## 9. Images
+
+Seven images, made with Codex by the main session from the briefs below (not by a designer task), one trial before the set (comment 10646), checked under `images-1` of spec v2.1 (subject, no text, no marks except the one on cloth, licence, checked by and on; a scene record holds its measured `quad`). All seven are made: the four new ones passed the main session's check (comment 10653) and are placed in the revision 5.1 mock. Stored as `packages/design-system/.storybook/static/orv-274/<id>.webp`, at most 400 KB, longest side at most 1600 px. Each record in `orivilo-canvas.data.ts` holds its brief as its prompt, word for word, its treatment (`duo`, `mono` or `photo`), and for a scene the measured corners of its flat surface. Until an image exists the page shows the missing state (section 11).
+
+| Id | Serves (tile or page) | Treatment | Aspect, pixels | Status | File now |
+| --- | --- | --- | --- | --- | --- |
+| `brand-hero` | In use board, hero (504.8 x 529.3); book page 10, the opener art (576 x 800) | Photo (staged in violet) | 3:4, 1086 x 1448 | Made, kept (v1, the trial) | `.claude/generated-images/2026-11-17-orv-274-brand-hero/v1.png` |
+| `direction-team` | Direction board, people (788 x 494) | Violet treatment | 4:3, 1448 x 1086 | Made, kept | `.claude/generated-images/2026-11-17-orv-274-direction-team/v1.png` |
+| `colour-reference` | Colour demo (`c-demo`) | Photo | 4:3, 1448 x 1086 | Made, kept | `.claude/generated-images/2026-11-17-orv-274-colour-reference/v1.png` |
+| `direction-place` | Direction board, place (388 x 294) | Paper treatment (revision 5.1 values, gap 21) | 4:3, 1448 x 1086 | Made (v1, comment 10653) | `.claude/generated-images/2026-11-17-orv-274-direction-place/v1.png` |
+| `direction-making` | Direction board, making (388 x 294) | Violet treatment | 4:3, 1448 x 1086 | Made (v1, the direction board's trial, comment 10653) | `.claude/generated-images/2026-11-17-orv-274-direction-making/v1.png` |
+| `scene-card` | In use board, card scene (246.4 x 258.7); book page 11 (430 x 313) | Photo, quad measured (section 4) | 1:1, 1254 x 1254 | Made (v1, comment 10653) | `.claude/generated-images/2026-11-17-orv-274-scene-card/v1.png` |
+| `scene-sign` | In use board, sign scene (246.4 x 258.7); book page 11 (430 x 313) | Photo, quad measured (section 4) | 1:1, 1254 x 1254 | Made (v1, comment 10653) | `.claude/generated-images/2026-11-17-orv-274-scene-sign/v1.png` |
+
+Each folder also holds the prompt it was made from, `v1.prompt.md`. Total 7: 3 kept, 4 new, all made.
+
+**Sizes.** Measured in the revision 5.1 mock (`shoot6.mjs`): the largest draw of each photograph is its piece page in the preview. How many times larger than the file it is drawn (cover crop included):
+
+| Photograph | Piece page at 1440 (css px) | Device pixel ratio 1, at 1440 / 1920 | Device pixel ratio 2, at 1440 / 1920 |
+| --- | --- | --- | --- |
+| `scene-card`, `scene-sign` (1254 x 1254) | 653 x 686 | 0.55 / 0.69 | 1.09 / 1.38 |
+| `direction-place`, `direction-making` (1448 x 1086) | 905 x 686 | 0.63 / 0.80 | 1.26 / 1.59 |
+
+So 1254 is enough at device pixel ratio 1 at every window size, and not enough at device pixel ratio 2: on a 1440 window the scene pages need 1372 px and 1254 draws them 9% larger than made, which shows as no more than a slight softness on a soft-lit photograph, since the card's and panel's edges are the only crisp lines and the laid lockup is vector; on a 1920 window it is 38%. The direction photographs at 1448 are short the same way (26% and 59%). `images-1` caps a file at 1600 on the long side, which would cover the scenes at 1440 on a ratio 2 screen (0.86) but no larger window. The files serve their tiles as they are; a sharper ratio 2 preview needs larger renders, not a new brief. Dropped from use (the files stay where they are and nothing points to them): `mood-paper-clay` and `mood-glass` (still lifes with no brand in them), `app-print` (a neutral card on paper; the card scene replaces it). Dropped briefs, never made: `direction-order` (the board's grid carries order), `blank-screen`, `blank-poster`, `blank-phone` (the phone is drawn flat with the real Landing; the poster and the screen are replaced by the ink tile and the sign). Dropped earlier and still dropped: `mood-ribbon`, `mood-surfaces`, `mood-lime-detail`, and the rejected trial `mood-intent-tangible`, which drew the mark.
+
+**The order of making.** `brand-hero` v1 was the trial for the brand in use board and is kept. The direction board's trial is `direction-making` (the most art-directed of the two new direction photographs); `direction-place` follows only when the trial passes. The two scenes follow the brand-hero form; `scene-card` first.
+
+### Shared lines
+
+Direction photographs (`direction-*`), treated in CSS after they are made, so they are shot in natural colour with a strong tonal range:
+
+- Constraints: No readable text, letters, numbers or symbols anywhere. No logos or brand marks of any kind. No screens. No ring with a dot, no open circle with a dot, nothing that reads as a logo. Hands have five natural fingers. Strong separation of light and dark so the picture reads when turned to one colour: a light subject against a darker ground or the reverse, large simple shapes.
+- Avoid: stock-photo poses, staged laughing, business suits, whiteboards with writing, sticky-note walls, sparkles, robots, brains, infinity signs, neon glow, rainbow gradients, lime or green accents, busy patterns, heavy vignette, CGI look, watermark, border, frame, transparent areas. The image is fully opaque and fills every pixel to all four edges.
+
+Brand scenes (`scene-*`), staged in the brand colours, the mark laid on in the build:
+
+- Constraints: Exactly one flat blank surface for the mark, its four corners near the targets in the brief, evenly lit, with no glare, curl or text on it. That surface is one even colour with nothing on it. No text, letters, numbers, logos, marks, icons or interface anywhere in the image. No people and no hands.
+- Avoid: mockup-template look, glossy reflections, a second blank surface, clutter, sparkles, neon glow, gradients, purple that drifts to blue or pink, lime or green, heavy vignette, CGI look, watermark, border, frame, transparent areas. The image is fully opaque and fills every pixel to all four edges.
+
+### brand-hero (kept as it is)
+
+The brief is the prompt file beside the image, `.claude/generated-images/2026-11-17-orv-274-brand-hero/v1.prompt.md`, word for word, with the mark passed as a reference image (`orivilo-mark-on-ink.svg.png`, the real mark rendered from its SVG): one Thai woman founder in a studio set flooded with violet #7A22C7, a near-black sweatshirt with the mark printed small and flat on the left chest, a blank off-white card held up, 3:4, 1086 x 1448. The mark on cloth follows the folds, which is why it is generated from the reference and not laid on. Check before use: the chest mark matches the reference (a thick open ring, open at the upper right, one round dot in the gap, ring white, dot light violet, no extra shapes, no letters); exactly one mark in the picture; no readable text.
+
+### direction-team (kept as it is)
+
+The brief is the prompt file beside the image, `.claude/generated-images/2026-11-17-orv-274-direction-team/v1.prompt.md`, word for word. It now shows in the violet treatment, which needs no new picture: its pale studio and light clothes against the darker table and hair give the duotone its range (seen in `preview__d-board-p2__1440__light.png`).
+
+### colour-reference (kept as it is)
+
+```text
+Use case: Demo of reading colours from an image, for the ORIVILO concept canvas. The image is made from the ORIVILO palette.
+Asset type: Photographic still life, 4:3 landscape, 1448x1086.
+Primary request: An arranged still life whose five large colour areas are exactly the ORIVILO palette, each area flat and evenly lit so a colour can be sampled.
+Scene/backdrop: Matte paper, colour #F4F4F0, covering the left half.
+Subject: A violet #7A22C7 ceramic bowl, a lime #D9F66F clay block, an ink #16151D paper sheet covering the lower right quarter, a white #FFFFFF card, all apart from each other.
+Style/medium: Editorial still-life photograph, real materials, colour-accurate, no grading.
+Composition/framing: Top-down, the four objects spread so each has a flat area of at least one tenth of the frame.
+Lighting/mood: Even, soft, colour-neutral daylight (5000 K), minimal shadows.
+Color palette: #F4F4F0, #7A22C7, #D9F66F, #16151D, #FFFFFF.
+Materials/textures: Matte paper, matte glazed ceramic, unglazed clay, matte card.
+Text (verbatim): none.
+Constraints: No text, letters, numbers or symbols anywhere. No logos, brand marks or recognisable products. No people or hands. No ring with a dot, no open circle with a dot, nothing that reads as a logo. No gloss or reflections on the colour areas.
+Avoid: sparkles, robots, brains, infinity signs, rainbow gradients, coral or peach tones, neon glow, glossy 3D render look, heavy vignette.
+```
+
+### direction-making (new, the direction board's trial)
+
+Serves the direction board's making piece, 388 x 294 at the 1280 design (preview page 5, about 1059 x 802 on the stage), in the violet treatment.
+
+```text
+Use case: Mood board photograph for the ORIVILO brand direction, a platform that turns what a founder wants their brand to be into real things. The picture is turned to one violet tone in the layout, so it must read in light and dark shapes alone. Intent line: Make intent tangible (orivilo-brand-identity-v1.md §1); real materials, the making process (§9).
+Asset type: Art-directed close-up photograph, 4:3 landscape, 1448x1086.
+Primary request: Two hands building a small open paper model, caught in the moment one hand presses a fold into place.
+Scene/backdrop: A dark matte worktable, near-black, filling the frame, so the pale paper and the hands stand out as light shapes.
+Subject: Two hands with plain sleeves rolled to the forearm; one holds a curved off-white paper form steady, the other presses its edge. A few clean paper offcuts and a bone folder lie on the table. Nothing else.
+Style/medium: Contemporary editorial brand photography, real materials, 50 mm macro, sharp focus on the fingertips and the paper edge, full colour.
+Composition/framing: Seen from above at about 60 degrees. The model and the hands sit in the left two thirds, large in frame; the right third is empty dark table. Strong diagonal from lower left to upper right.
+Lighting/mood: One soft key light from the upper left, deep shadow on the table, bright paper edges. Careful, concrete, unhurried.
+Color palette: Near-black #16151D table, off-white #F2F1EC paper, natural skin tones. No other colours.
+Text (verbatim): none.
+Constraints: (direction shared lines) Plain sleeves, no jewellery, no rings, no watch.
+Avoid: (direction shared lines) Pale or mid-grey table, scattered tools, coloured paper.
+```
+
+### direction-place (new)
+
+Serves the direction board's place piece, 388 x 294 at the 1280 design (preview page 4), in the paper treatment.
+
+```text
+Use case: Mood board photograph for the ORIVILO brand direction. The picture is turned to a soft paper tone in the layout, so it must read in light and dark shapes alone. Intent line: ความรู้สึก, the thrill of starting something new, with space and structure that help decide (orivilo-brand-identity-v1.md §5).
+Asset type: Art-directed interior photograph, 4:3 landscape, 1448x1086.
+Primary request: A bright, nearly empty studio in the morning, ready for work to begin, with long shadows that draw a clear structure across the floor.
+Scene/backdrop: A large room with pale plaster walls and a pale concrete floor; a tall window out of frame on the left throws a grid of light and window-bar shadows across the floor and the far wall.
+Subject: One long pale table, empty but for a short stack of blank off-white paper, and one simple chair pushed in. Open floor and wall around it.
+Style/medium: Contemporary editorial architecture photography, natural colour, 35 mm lens, level camera.
+Composition/framing: Camera at standing height, level. The table in the lower third, off centre to the left; the shadow grid fills the right half. Large calm areas of wall.
+Lighting/mood: Low morning sun, crisp long shadows, high contrast between lit and shaded areas. Calm, open, expectant.
+Color palette: Off-white #F2F1EC walls, pale concrete, pale wood, near-black #16151D chair. No other colours.
+Text (verbatim): none.
+Constraints: (direction shared lines) No people.
+Avoid: (direction shared lines) Plants, furniture clutter, coloured objects.
+```
+
+### scene-card (new)
+
+Serves the brand in use board's card scene, 246.4 x 258.7 (preview page 7, about 630 x 662), and book page 11 (430 x 313, cropped top and bottom). The real lockup is laid on the card face by its corners; the image carries no mark. Made (v1); the corners in the brief were targets, and the card's measured corners (section 4) replace them in the data.
+
+```text
+Use case: Brand scene for the ORIVILO brand identity presentation. A blank business card on a violet desk; the real logo is placed on the card face later in the layout, so the card must stay completely blank.
+Asset type: Art-directed still-life photograph, 1:1 square, 1254x1254.
+Primary request: One blank white business card lying on a desk whose whole surface is saturated violet (close to #7A22C7), seen from about 45 degrees above.
+Scene/backdrop: The violet desk fills the frame edge to edge; at the top a violet wall meets it in a soft curve, the same violet.
+Subject: One blank white card, standard business card proportions, lying flat. Its four corners sit near these points of the frame, from the top left corner of the card clockwise: 24% across and 38% down; 72% across and 30% down; 78% across and 58% down; 30% across and 67% down. A second card lies half under it, also blank. A pencil in near-black lies at the lower edge.
+Style/medium: Contemporary editorial brand photography, real paper, sharp focus on the card, full colour, high saturation in the violet set.
+Composition/framing: Square. The card large and slightly right of centre, its long side rising gently to the right. Clear violet space around it.
+Lighting/mood: Soft large light from the upper left, a short soft shadow under the card's lower edge. Bold, graphic, calm.
+Color palette: Violet #7A22C7 across the set; white #FFFFFF cards; near-black #16151D pencil. No other colours.
+Text (verbatim): none.
+Constraints: (brand-scene shared lines) The card face is evenly lit white with no texture, print, emboss or edge colour.
+Avoid: (brand-scene shared lines) Wood, marble, plants, a laptop, a coffee cup.
+```
+
+### scene-sign (new)
+
+Serves the brand in use board's sign scene, 246.4 x 258.7 (preview page 8), and book page 11 (430 x 313). The real lockup, one colour in paper, is laid on the violet panel by its corners; the image carries no mark. Made (v1); the panel's measured corners (section 4) are the data.
+
+```text
+Use case: Brand scene for the ORIVILO brand identity presentation. A blank violet wall panel in a dark entrance; the real logo is placed on the panel later in the layout, so the panel must stay completely blank.
+Asset type: Art-directed architectural photograph, 1:1 square, 1254x1254.
+Primary request: One flat rectangular violet panel (close to #7A22C7) mounted on a near-black wall, seen from the left at about 25 degrees.
+Scene/backdrop: A near-black matte wall (#16151D) and a dark floor; nothing else in the room.
+Subject: One flat matte violet panel, about twice as wide as it is tall, with square corners, lit evenly. Its four corners sit near these points of the frame, from the top left corner of the panel clockwise: 18% across and 30% down; 82% across and 23% down; 82% across and 69% down; 18% across and 61% down.
+Style/medium: Contemporary architectural photography, real materials, sharp focus, full colour.
+Composition/framing: Square. The panel fills the middle of the frame, its right edge nearer the camera than its left.
+Lighting/mood: One soft wash light from above evenly lighting the panel, the wall falling off to near-black at the edges. Confident, quiet.
+Color palette: Violet #7A22C7 panel; near-black #16151D wall and floor. No other colours.
+Text (verbatim): none.
+Constraints: (brand-scene shared lines) The panel face is one even violet with no seams, screws, letters or reflections.
+Avoid: (brand-scene shared lines) Neon tubes, backlit glow, plants, a reception desk, a person.
+```
+
+## 10. Copy
+
+All new strings go to `packages/design-system/src/i18n/messages/en.ts` and `th.ts` under `orvCanvas`. English is the default locale of the page and its stories; Thai is complete. Quotations, the brand's own lines on its artwork (the tagline "Give your ideas a world.", "ให้ไอเดีย / มีตัวตน", "ให้ไอเดียมีตัวตน / และไปต่อได้จริง"), the type samples ("Aa กข", the alphabets, the elevator pitch in Sarabun), hex values, version keys, dates, file paths, image ids, component names, face names, sizes in px and chapter numbers are data, not copy, and stay as written in both locales.
+
+In the shared canvas message group, not in `orvCanvas` (revision 5.1, spec v2.1 default 3): `CanvasNode` renders the page count word and the open accessible name, so they live in the group it reads, `node` in `en.ts` and `th.ts`, beside its other strings. The words are unchanged from revision 4:
+
+| Key (group `node`) | English | Thai |
+| --- | --- | --- |
+| `open.pages` | {count} pages | {count} หน้า |
+| `open.name` | {title}, {count} pages | {title} {count} หน้า |
+
+Unchanged from revision 4, in `orvCanvas`:
+
+| Key | English | Thai |
+| --- | --- | --- |
+| `title` | ORIVILO, from brief to product | ORIVILO จากโจทย์ถึงผลิตภัณฑ์ |
+| `description` | A concept prototype. Read left to right; open a result to page through it. | ต้นแบบแนวคิด อ่านจากซ้ายไปขวา กดชิ้นงานเพื่อเปิดดูทีละหน้า |
+| `board` | ORIVILO board, from brief to product | กระดาน ORIVILO จากโจทย์ถึงผลิตภัณฑ์ |
+| `status.overview` | Showing the whole board, {count} nodes | ดูทั้งกระดาน {count} โหนด |
+| `dock.label` / `chapters` / `viewOnly` | Chapters and zoom / Chapters on the board / View only | บทและการซูม / บทบนกระดาน / ดูอย่างเดียว |
+| `chapter.overview` / `brief` / `direction` / `logo` | Overview / 00 Brief / 01 Direction / 02 Logo | ภาพรวม / 00 โจทย์ / 01 ทิศทาง / 02 โลโก้ |
+| `chapter.colour` / `inUse` / `brandbook` | 03 Colour / 04 In use / 05 Brandbook | 03 สี / 04 การใช้งาน / 05 แบรนด์บุ๊ก |
+| `chapter.system` / `product` | 06 Design system / 07 Product | 06 ระบบออกแบบ / 07 ผลิตภัณฑ์ |
+| `node.essence` / `audience` / `personality` / `feeling` | Essence / Audience / Personality / Feeling | แก่นแบรนด์ / กลุ่มผู้ใช้ / บุคลิก / ความรู้สึก |
+| `node.category` / `avoid` / `positioning` / `name` | Category / Avoid / Positioning / Name | หมวด / ไม่ใช้ / จุดยืน / ชื่อ |
+| `node.attributes` / `directionBoard` | Visual attributes / Direction board | ลักษณะภาพ / บอร์ดทิศทาง |
+| `node.idea` / `construction` / `markHistory` / `logo` | The idea of the mark / Construction / Mark history / Logo | ความคิดของเครื่องหมาย / โครงสร้าง / ประวัติเครื่องหมาย / โลโก้ |
+| `node.type` / `inUseBoard` | Type / The brand in use | ตัวอักษร / แบรนด์ในการใช้งาน |
+| `node.why` / `paletteHistory` / `proportion` | Why these colours / Palette history / Proportion | เหตุผลของสี / ประวัติชุดสี / สัดส่วน |
+| `node.palette` / `contrast` / `demo` | Palette / Palette contrast / Demo: colours read back | ชุดสี / คอนทราสต์ของชุดสี / ตัวอย่าง: อ่านสีกลับจากภาพ |
+| `node.book` | Brandbook v1.5 | แบรนด์บุ๊ก v1.5 |
+| `node.base` / `composed` | Base components / Composed components | ชิ้นส่วนพื้นฐาน / ชิ้นส่วนประกอบ |
+| `node.landing` / `form` / `report` | Landing / Website address form / Brand evidence report | หน้าแรก / ฟอร์มที่อยู่เว็บไซต์ / รายงานหลักฐานแบรนด์ |
+| `node.composedForm` | BrandReportScreen form | ฟอร์ม BrandReportScreen |
+| `port.essence` / `audience` / `personality` / `feeling` | Essence / Audience / Personality / Feeling | แก่นแบรนด์ / กลุ่มผู้ใช้ / บุคลิก / ความรู้สึก |
+| `port.category` / `avoid` / `onliness` / `name` | Category / Avoid / Onliness / Name | หมวด / ไม่ใช้ / จุดยืน / ชื่อ |
+| `port.attributes` / `direction` | Attributes / Direction | ลักษณะภาพ / ทิศทาง |
+| `port.idea` / `construction` / `earlier` / `logo` | Idea / Construction / Earlier / Logo | ความคิด / โครงสร้าง / ก่อนหน้า / โลโก้ |
+| `port.reasons` / `proportion` / `palette` / `type` | Reasons / Proportion / Palette / Type | เหตุผล / สัดส่วน / ชุดสี / ตัวอักษร |
+| `port.inUse` / `profileOut` / `profileIn` / `parts` | In use / orivilo profile / Profile / Parts | การใช้งาน / โปรไฟล์ orivilo / โปรไฟล์ / ชิ้นส่วน |
+| `preview.previous` / `next` / `close` | Previous page / Next page / Close | หน้าก่อน / หน้าถัดไป / ปิด |
+| `preview.count` | Page {page} of {count} | หน้า {page} จาก {count} |
+| `preview.logo` / `palette` / `book` / `pages` | The ORIVILO logo / The ORIVILO palette / ORIVILO brandbook v1.5 / Product pages | โลโก้ ORIVILO / ชุดสี ORIVILO / แบรนด์บุ๊ก ORIVILO v1.5 / หน้าของผลิตภัณฑ์ |
+| `preview.directionWhole` / `inUseWhole` | The whole direction board / The whole brand in use board | บอร์ดทิศทางทั้งบอร์ด / แบรนด์ในการใช้งานทั้งบอร์ด |
+| `preview.mark` / `horizontal` / `onInk` | The mark / The horizontal logo / On ink | เครื่องหมาย / โลโก้แนวนอน / บนพื้นเข้ม |
+| `preview.latin` / `thai` / `thaiNote` | Latin: Inter / Thai: Anuphan and Sarabun / Thai headings loopless, Thai body looped | ตัวละติน: Inter / ตัวไทย: Anuphan กับ Sarabun / หัวเรื่องไทยไม่มีหัว เนื้อความไทยมีหัว |
+| `preview.bookSub` | ORIVILO brand guidelines v1.5 | แนวทางแบรนด์ ORIVILO v1.5 |
+| `preview.aiImage` | AI image | ภาพจาก AI |
+| `role.violet` / `violetDark` / `ink` | The signature, the mark's dot / Violet on a dark ground / Text and dark grounds | สีเอกลักษณ์ จุดของเครื่องหมาย / ม่วงบนพื้นเข้ม / ตัวอักษรและพื้นเข้ม |
+| `role.canvas` / `lime` | The main ground, 60 / The one Intent Engine button per screen | พื้นหลัก 60 / ปุ่ม Intent Engine ปุ่มเดียวต่อหน้าจอ |
+| `paraphrase` | Paraphrase | ถอดความ |
+| `inUse` | In use | ใช้อยู่ |
+| `audience.founder` / `founderNeed` | Founders, small teams / Cannot picture the brand yet | ผู้ก่อตั้ง ทีมเล็ก / ยังนึกภาพแบรนด์ไม่ออก |
+| `audience.designer` / `designerNeed` | Designers / Keep one identity across pieces | นักออกแบบ / ต้องรักษาตัวตนในหลายชิ้นงาน |
+| `audience.product` / `productNeed` | Product teams / Need data they can build from | ทีมผลิตภัณฑ์ / ต้องการข้อมูลที่ทำต่อได้ |
+| `feeling.gloss` | the thrill of starting something new, with space and structure that help decide | (none: the quote is Thai) |
+| `personality.note` | Team alignment, not research | ตัวเลขให้ทีมเห็นตรงกัน ไม่ใช่ผลวิจัย |
+| `category.gloss` | (none: the quote is English) | เครื่องมือออกแบบและแบรนด์ด้วย AI |
+| `category.crowd` | Colours the category already uses | สีที่หมวดนี้ใช้กันมาก |
+| `category.violet` / `black` / `cream` | Violet, 250 to 265° / Black / Cream with clay | ม่วง 250 ถึง 265° / ดำ / ครีมกับดินเผา |
+| `avoid.sparkles` / `robots` / `brains` | AI sparkles / Robots / Brains | ประกาย AI / หุ่นยนต์ / สมอง |
+| `avoid.infinity` / `rainbow` / `pointing` | Infinity signs / Rainbow gradients / People pointing at screens | อินฟินิตี้ / ไล่สีรุ้ง / ภาพคนชี้จอ |
+| `positioning.gloss` | (none) | แพลตฟอร์มแบรนด์เดียวที่ทุกชิ้นงานสืบกลับไปถึงเหตุผลทางธุรกิจได้ |
+| `name.origin` / `vision` / `loop` | origin / vision / loop | จุดเริ่มต้น / ภาพอนาคต / วงจร |
+| `attr.composition` / `material` / `colourMood` / `type` / `shape` | Composition / Material / Colour mood / Type / Shape | องค์ประกอบ / วัสดุ / อารมณ์สี / ตัวอักษร / รูปทรง |
+| `attr.compositionValue` | One main piece, wide empty space | ชิ้นหลักชิ้นเดียว พื้นที่ว่างมาก |
+| `attr.materialValue` | Matte paper, smooth clay, a little frosted glass | กระดาษด้าน ดินปั้นผิวเรียบ แก้วฝ้าบ้าง |
+| `attr.colourMoodValue` | Warm near-neutral ground, deep ink, one vivid hue, no rainbow | พื้นอุ่นใกล้สีกลาง หมึกเข้ม สีสดหนึ่งสี ไม่ไล่สีรุ้ง |
+| `attr.typeValue` | Large editorial type, looped Thai for reading | ตัวใหญ่แบบนิตยสาร ไทยมีหัวสำหรับอ่าน |
+| `attr.shapeValue` | Open forms, one radius scale, no infinity or sparkle | รูปทรงเปิด มุมมนชุดเดียว ไม่มีอินฟินิตี้หรือประกาย |
+| `image.label` | (section 8) | (section 8) |
+| `image.missing` | This image is not here yet | ยังไม่มีภาพนี้ |
+| `image.alt.*` | one alt text per image id, describing the picture | |
+| `use.mockup` / `drawn` | Mockup / Drawn | ม็อกอัป / วาดในหน้า |
+| `use.card` / `icon` | Business card / App icon | นามบัตร / ไอคอนแอป |
+| `build.loop` / `dot` / `mark` | Loop / Dot / Mark | วง / จุด / เครื่องหมาย |
+| `why.r1` / `r2` / `r3` | The personality asks for one vivid signature / The category crowds 250 to 265°, so it moved to 272° / The owner chose violet | บุคลิกขอสีเอกลักษณ์หนึ่งสีที่สดมาก / หมวดนี้ใช้ม่วง 250 ถึง 265° จึงขยับไป 272° และเข้มขึ้น / เจ้าของเลือกม่วงเป็นสีเอกลักษณ์ |
+| `paletteHistory.v1` / `v11` / `v12` | With coral / Lime leads / Violet leads | มีส้มอ่อน / เขียวมะนาวนำ / ม่วงนำ |
+| `proportion.note` | 60 / 30 / 10, lime under 2 | 60 / 30 / 10 โดยเขียวมะนาวไม่ถึง 2 |
+| `palette.violet` / `violetDark` / `ink` / `canvas` / `lime` | Violet / Violet on ink / Ink / Canvas / Lime | ม่วง / ม่วงบนเข้ม / หมึก / พื้น / เขียวมะนาว |
+| `palette.limeNote` | Lime only on the one Intent Engine button per screen | เขียวมะนาวใช้กับปุ่ม Intent Engine ปุ่มเดียวต่อหน้าจอ |
+| `contrast.whiteOnViolet` / `inkOnCanvas` / `violetOnCanvas` | White on violet / Ink on canvas / Violet on canvas | ขาวบนม่วง / หมึกบนพื้น / ม่วงบนพื้น |
+| `demo.badge` / `note` | Mechanism demo / (section 8) | ตัวอย่างกลไก / (section 8) |
+| `wall.guidelines` / `cover` / `contents` | Brand guidelines / Cover / Contents | แนวทางแบรนด์ / ปก / สารบัญ |
+| `wall.s1` / `s2` / `s3` | 01 Logo / 02 Colour and type / 03 In use | 01 โลโก้ / 02 สีและตัวอักษร / 03 การใช้งาน |
+| `wall.logo` / `colourAndType` / `inUse` | Logo / Colour and type / In use | โลโก้ / สีและตัวอักษร / การใช้งาน |
+| `wall.voicePage` / `applications` | Voice / Applications | น้ำเสียง / ชิ้นงานจริง |
+| `wall.open` / `openSimilarity` / `openLineup` / `openPrint` / `openName` | Not tested yet / Mark similarity / A lineup with 3 outsiders / Print at 8 mm / Name check with DIP and WIPO | ยังไม่ได้ทดสอบ / ความคล้ายของเครื่องหมาย / ให้คนนอกทีม 3 คนดู / พิมพ์ที่ 8 มม. / ตรวจชื่อกับ DIP และ WIPO |
+| `part.read` / `clear` | Read this page / Clear | อ่านหน้านี้ / ล้าง |
+| `part.notMeasured` / `sample` | Not measured / Sample | ยังไม่ได้วัด / ข้อมูลตัวอย่าง |
+| `part.site` | Website address | ที่อยู่เว็บไซต์ |
+| `part.mine` / `competitor` | My own brand / A competitor | แบรนด์ของฉัน / คู่แข่ง |
+| `part.alert` | Read by rules, no AI | อ่านด้วยกฎ ไม่ได้ใช้ AI |
+| `product.badge` / `opened` | Sample data / Opened at the findings | ข้อมูลตัวอย่าง / เปิดที่ผลการอ่าน |
+| `product.landingNote` / `formNote` / `reportNote` | (section 8) | (section 8) |
+
+New in revision 5:
+
+| Key | English | Thai |
+| --- | --- | --- |
+| `direction.note` | AI photographs in a violet and a paper treatment. No logo on this board. The violet is a direction; 03 Colour fixed it. | ภาพจาก AI ปรับโทนม่วงและกระดาษ ไม่มีโลโก้ในบอร์ดนี้ ม่วงคือทิศทาง สีจริงกำหนดใน 03 สี |
+| `direction.badge` / `noLogo` | AI images / No logo on this board | ภาพจาก AI / ไม่มีโลโก้ในบอร์ดนี้ |
+| `direction.people` / `feeling` / `place` / `making` / `type` | People / Feeling / Place / Making / Type | คน / ความรู้สึก / สถานที่ / การลงมือทำ / ตัวอักษร |
+| `direction.violetSub` / `paperSub` | AI image, violet treatment / AI image, paper treatment | ภาพจาก AI, โทนม่วง / ภาพจาก AI, โทนกระดาษ |
+| `direction.lineSub` / `typeSub` | Drawn: the brand's own lines / Drawn: Inter, Anuphan, Sarabun | วาดในหน้า: สโลแกนของแบรนด์ / วาดในหน้า: Inter, Anuphan, Sarabun |
+| `use.badge` / `noteShort` / `note` | Mockups / The real mark and screens on AI scenes / (section 8) | ม็อกอัป / โลโก้และหน้าจอจริงวางบนฉากจาก AI / (section 8) |
+| `use.hero` / `heroSub` | Brand photograph / AI image; the mark on the sweatshirt was generated from the real mark and checked | ภาพแบรนด์ / ภาพจาก AI โลโก้บนเสื้อสร้างจากโลโก้จริงและตรวจแล้ว |
+| `use.lockup` | The logo and its construction | โลโก้และโครงสร้าง |
+| `use.phone` / `phoneSub` | Landing on a phone / Mockup: the real Landing at 390. Its copy is Thai only. | หน้าแรกบนมือถือ / ม็อกอัป: หน้า Landing จริงที่ 390 ข้อความเป็นภาษาไทยเท่านั้น |
+| `use.ink` / `inkSub` | Tagline and the intent action / Drawn. Lime is on this one action only. | สโลแกนและปุ่มเริ่ม / วาดในหน้า เขียวมะนาวใช้กับปุ่มนี้ปุ่มเดียว |
+| `use.sign` / `sceneSub` | Sign / Mockup: AI scene, the logo laid on | ป้าย / ม็อกอัป: ฉากว่างจาก AI โลโก้วางทับ |
+| `use.start` | Start from your brief | เริ่มจากบรีฟของคุณ |
+| `wall.coverTitle` | Brand / guidelines (two lines) | แนวทาง / แบรนด์ (two lines) |
+| `wall.page` | Page {page} | หน้า {page} |
+| `wall.constructionPage` / `onGroundsPage` / `palettePage` / `typePage` | Construction and clear space / On violet, ink and paper / Palette and proportion / Type | โครงสร้างและระยะว่าง / บนม่วง หมึก และกระดาษ / ชุดสีและสัดส่วน / ตัวอักษร |
+| `wall.ringRadius` / `stroke` / `opening` / `dotRadius` / `clearSpace` / `oneStroke` | Ring radius / Stroke / Opening / Dot radius / Clear space / one stroke | รัศมีวง / ความหนาเส้น / ช่องเปิด / รัศมีจุด / ระยะว่าง / เส้น 1 เท่า |
+| `wall.clearLabel` / `strokeLabel` | clear space {value} / stroke {value} | ระยะว่าง {value} / เส้น {value} |
+| `wall.smallest` | Smallest {value} px | เล็กสุด {value} px |
+| `wall.onViolet` / `onInk` / `onPaper` | On violet: one colour / On ink / On paper | บนม่วง: สีเดียว / บนหมึก / บนกระดาษ |
+| `wall.canvasRole` / `inkRole` / `violetRole` / `limeRole` | The main ground / Text and dark grounds / The signature / Under 2, one intent action | พื้นหลัก / ตัวอักษรและพื้นเข้ม / สีเอกลักษณ์ / ไม่ถึง 2 ปุ่มเริ่มปุ่มเดียว |
+| `wall.latinRole` / `thaiHeadRole` / `thaiBodyRole` | Latin, every style / Thai headings, loopless / Thai body, looped | ละตินทุกขนาด / หัวเรื่องไทย ไม่มีหัว / เนื้อความไทย มีหัว |
+| `wall.voiceLabel` / `thoughtful` / `clear` / `reasoned` | Voice / Thoughtful / Clear / Reasoned | น้ำเสียง / ชวนคิด / ชัดเจน / มีเหตุผล |
+| `wall.openLead` | This logo is a direction until it passes these four checks. | โลโก้นี้ยังเป็นทิศทาง จนกว่าจะผ่านสี่ข้อนี้ |
+
+Where a cell lists keys with slashes, each key takes the word in the same place. Removed in revision 5: `direction.team`, `direction.place`'s intent line, `direction.feeling`, `direction.making`'s intent line, `direction.order`, `direction.warm`, `direction.premium`, `direction.type`'s intent line, `direction.screen`, `direction.colours`, `direction.noLogoLong` (the board's captions are gone; the pieces take the new words above), `use.web`, `use.poster`, `use.post` (the pieces they named are gone), `wall.colour`, `wall.colourOpener`, `wall.clearSpacePage`, `wall.paperInk`, `wall.proportionPage`, `wall.clearSpace`, `wall.clearSpaceNote`, `wall.voice` (replaced by the page titles, facts and voice words above). Reused catalog strings, not new: `m.direction.axes`, `m.board.jumped`, the zoom command labels and `m.controls.zoomNow`, the canvas kind, meaning and port words, the `Dialog` close label. No string contains a middot or an em dash; ranges use ถึง and "to".
+
+## 11. States
+
+| State | What shows |
+| --- | --- |
+| Default | English, light, the overview at fit (0.259 at 1440): eight chapter titles over the cards; the dock shows Overview as current; status "Showing the whole board, 31 nodes" |
+| Thai | Every `orvCanvas` string in Thai; quotes keep their language with a paraphrase line; Thai headings in Anuphan, Thai body in Sarabun; `Landing` stays Thai (its note says so in both locales); the brief cards are shorter, the world 4484 x 1244. In the art, Thai lines keep the display line height (never 1 or 1.05), so marks above and below are whole: the cover "แนวทาง / แบรนด์", the opener words, the voice line, the board's Thai line, the check names |
+| Dark | Board and nodes from the dark set; the dots, hairlines and edge hues from their dark values; the boards and the book pages keep their floods (brand art, nested boundaries); the preview stage `surface.sunken` dark around them |
+| Far, mid, near | Section 2: chapter titles only at far; node labels at mid without the page word; all at near |
+| Chapter shown | The chapter button `aria-current="true"` (selection tint, gap 9); the board frames the chapter; status "Jumped to {chapter}" |
+| Node hover | The card border `--cmp-node-border-hover`, the label `text.primary`, port name pills and the source pill show; a result shows the zoom-in cursor |
+| Node selected | Selection border plus inner outline; the pills show; the node's edges go 2.5 px and every other edge drops to `opacity.disabled` |
+| Node focus (keyboard) | The focus line and halo on the card; never the selection look. Focus and selection can both be on one card: the halo outside, the outline inside |
+| Result affordance | The label ends with "{count} pages" and the open glyph (the word hides at mid zoom, the glyph stays); `cursor: zoom-in`; accessible name "{title}, {count} pages", `aria-haspopup="dialog"` |
+| Preview opening | Click, Enter or Space on a result card opens the dialog at the node's page (a brandbook part at its section's first page, a page node at its own page); no animation; focus moves to Next page (to Previous page when opened at the last page) |
+| Preview, whole board | Page 1 of a board: the board fills the stage height; its caption's second line is the board's honest line |
+| Preview, a piece | Pages 2 to 6 (direction) and 2 to 8 (in use): the piece alone at its own aspect, filling the stage; drawn pieces scale from their design box; caption and second line from section 10 |
+| Preview, a middle page | Previous and Next enabled; "6 / 12"; the live region reads "Page 6 of 12" |
+| Preview, first page | Previous page disabled (catalog disabled look, still announced), Next enabled; focus never lands on a disabled button |
+| Preview, last page | Next page disabled, Previous enabled; when Next becomes disabled under focus, focus moves to Previous page |
+| Preview, one-page sequence | None today (the shortest has 2); if one occurs, the pager hides and only the caption shows |
+| Preview closing | Esc, the close button or a click on the scrim closes; focus returns to the card that opened it, and the board does not move |
+| Keyboard path | Tab: the dock (chapter buttons, then the zoom), then the board, then the nodes in reading order (stage, tier, column, top to bottom). Enter or Space on a result opens the preview. In the preview: Left and Right arrows page, Home and End jump to the first and last page, Tab cycles the close button, Previous page and Next page (focus trapped by `Dialog`), Esc closes. The art's intent button is inert and never takes focus |
+| Missing image | The picture's tile or panel stays the flood its treatment sits on (violet for the violet treatment and violet scenes, paper for the paper treatment, ink for the ink scene), with the image id in label-sm and "This image is not here yet" in body-xs at the bottom start corner, inset 20 by 16, in the flood's own text colour; no `img`, no dashed frame. A missing scene still shows its surface as a flat polygon in its colour at the planned corners with the real lockup laid on it, so the composition holds. In the preview the piece page shows the same placeholder large, its second caption line the image id. Since revision 5.1 all 7 images are made, so the first build ships the photographs; this state stays for an image that fails to load and is shown by the `MissingImages` story |
+| Missing data | A node whose data is absent keeps its label and shows the catalog's empty word in the card; never an invented value. A report fixture without `[data-report]` opens at the top |
+| Loading, error, empty | Not used: the graph is static data; the page reads no network; a failed image falls back to the missing state; the board always has 31 nodes |
+| 360 px | The title and the description wrap; the dock spans the board less 8 on each side, keeps the chapter buttons in one scrolling row and the fit button, and hides the view-only word, its divider and the zoom steps; the overview stops at 0.25 and pans. The preview fills the window less one gutter; the whole board is shown at the stage width (about 270 wide), and its pieces, one per page, are the readable view; the footer stacks the caption over the pager (`preview__d-board__360__*.png`, `preview__u-board__360__*.png`) |
+| Reduced motion | No motion is designed: the chapter view and the preview open with duration 0; hover and focus changes are colour only |
+| Long text | Node labels are one line and ellipsize at near zoom, with the full title in the accessible name; furniture rows on the brandbook pages are one line each in both languages; no art text leaves its page or tile in either language (both checked by script); the check names on page 12 and the contents names may take two lines and keep their column; preview captions wrap at 360 |
+
+## 12. Gaps
+
+Gaps 1 to 11 were decided in revisions 1 and 2; gap 12 is closed by gap 16; gap 13 is withdrawn; gaps 14 to 19 are revision 4's; gaps 20 to 23 are new. Every gap that changes a component API, a node or edge data contract or a token is a lane L flag.
+
+| # | Need | Status in revision 5 | Smallest option (chosen) and its cost |
+| --- | --- | --- | --- |
+| 1 | A chapter button frames a chapter | Stands | A page-local child inside `CanvasBoard` calling `useReactFlow().fitView({ nodes, padding: 0.08, maxZoom: 1, duration })` and setting `status` to `m.board.jumped`; Overview runs `board.zoom-to-fit` |
+| 2 | Older marks, logo pieces, and now the giant mark and the construction | Stands, extended | Page-local SVG from the geometry numbers with the `ds-logo__ring` and `ds-logo__dot` classes; the giant mark puts its ring and its dot in two `<g>` elements, each inside its own nested boundary attributes, so each takes `brand.signature` or `surface.canvas` of the boundary it needs; the construction's lines take `border.subtle`, `border.control` and `text.brand` |
+| 3 | Swatches at size | Stands | The `ds-node__swatch` precedent: data colour inline, hairline from the recipe, labels in a nested boundary |
+| 4 | The live product inside a page with an `h1` | Stands | `headingLevel` on `BrandReportScreen`; the preview page passes 2 |
+| 5 | `Landing` is Thai only | Stands | The honest note in the Landing preview's caption and the phone's second line |
+| 6 | Personality bars | Stands | Page-local bars with token utilities |
+| 7 | One-line node header | Superseded by gap 14 | |
+| 8 | Hide an edge's label pill | Stands | Optional `label?: false` on `EdgeContent`; impact: `graph.ts`, `CanvasEdge`, its story |
+| 9 | The current chapter | Stands | Recipe rule `.ds-button[data-variant="ghost"][aria-current="true"]` with `selection.bg` and `selection.fg`, and its pair in `recipes/pairs.ts` |
+| 10 | Media to the node's edges | Superseded by gap 14 | |
+| 11 | The analysed sample in several places | Stands | Move `ANALYSED` to `examples/brand-report.fixtures.ts`; the stories and the report page import it |
+| 12 | Edges read at the overview | Closed by gap 16 | |
+| 13 | `minZoom` below 0.25 | Withdrawn | |
+| 14 to 19 | The modern node, the calm ground, edges, the dock, the preview, levels of detail | Stand as revision 4 wrote them | See below |
+| 20 | Art type larger than display-lg | New | See below |
+| 21 | Photo treatments: violet and paper | New, page-local since revision 5.1 (comment 10652); paper values settled on the real photograph | See below |
+| 22 | The mark laid on a scene in perspective | New | See below |
+| 23 | Construction guides on a flood | New | See below |
+
+**Gaps 14 to 19** stand word for word as revision 4 decided them (`ORV-274-design-4`): gap 14, the present node (`CanvasNode` label above the card, `NodePort` glyph on the edge with name pills, recipe rules under `.ds-board[data-variant="present"]`, new component token `node.padding-media`, node data `open?` and `pad?`); gap 15, the calm ground (`surface.canvas`, `border.subtle` dots at a 28 px screen pitch); gap 16, edges (`--zi`, screen-fixed width and dashes, kind hue, chain highlight, `edge.dash.*` re-cut, new contrast pairs); gap 17, the dock (`CanvasControls` `position` and `children`); gap 18, the preview (`DialogSize` `"viewer"`, `OpenIcon`, `onNodeOpen` on `CanvasBoard`); gap 19, levels of detail and chapter titles (page-local `data-lod`). Their costs, impact lists and DESIGN.md lines are as revision 4 listed them; nothing in revision 5 changes them.
+
+**Gap 20, art type larger than display-lg.** The type scale stops at display-lg (56). The art needs lines and numerals from 0.8 to 5 times that size. Chosen: page-local art styles in `orivilo-canvas.tsx` whose size is `calc(var(--ds-type-display-lg-font-size) * k)`, with `k` stored per art line in the board and page records (section 7 lists every `k`), the family and weight of display-lg, and the line height of display-lg for words (Thai always) or of `type.numeral-lg` (1) for Latin numerals and the Latin cover title (1.05 is written as `k` data on that one line). No token or recipe change; the art is drawn at 1280 x 800 and scaled as one image, so `k` is a proportion of the design, like the icon's 22.5%. Cost: page-local only; a play checks that no art line leaves its box in either language. Alternative not chosen: `type.display-xl` and `type.numeral-xl` tokens (semantic contract, lane L, every profile), worth it only if a second page needs art type.
+
+**Gap 21, photo treatments.** Nothing in the catalog turns a photograph into the brand colour. Chosen (revision 5.1, comment 10652, spec v2.1 default 10): page-local treatment utilities in `orivilo-canvas.tsx`, used by a page-local `<Photo id treatment>`; **no `recipes.css` change and no `pairs.ts` change** (the treatment sets no text). The image records carry `treatment` (`"violet"` or `"paper"`). Both treatments sit inside a nested `DesignProfileBoundary mode="light" profile="neutral"`, so `brand.signature` and `surface.canvas` resolve to the light values in either page mode (the art is drawn the same in light and dark, like every flood). The values below are the revision 5.1 mock's, judged on the real photographs (section 0); the filter and blend values are not colours and need no token; the only colours are the two semantic tokens.
+
+Violet treatment (`direction-team`, `direction-making`), unchanged from revision 5:
+
+```css
+/* container */ position: relative; overflow: hidden; isolation: isolate; background: var(--ds-brand-signature);
+/* img */       width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) contrast(1.1); mix-blend-mode: luminosity;
+```
+
+Tailwind form: container `relative overflow-hidden isolate bg-brand-signature`; image `size-full object-cover grayscale contrast-110 mix-blend-luminosity`.
+
+Paper treatment (`direction-place`), new in revision 5.1 (revision 5's grayscale multiplied on `surface.canvas` measured as plain grey, #DDDDD9 on the wall): violet ink on paper, the photograph's lights become the paper and its shadows become violet.
+
+```css
+/* container */ position: relative; overflow: hidden; isolation: isolate; background: var(--ds-brand-signature);
+/* img */       width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) brightness(1.2) contrast(1.15); mix-blend-mode: screen;
+/* ::after */   content: ""; position: absolute; inset: 0; background: var(--ds-surface-canvas); mix-blend-mode: multiply;
+```
+
+Tailwind form: container `relative overflow-hidden isolate bg-brand-signature after:absolute after:inset-0 after:content-[''] after:bg-surface-canvas after:mix-blend-multiply`; image `size-full object-cover grayscale brightness-120 contrast-115 mix-blend-screen`. Every class is a token, layout, filter or blend utility; `no-raw-style-classes` bans none of them (it bans arbitrary and palette colours, raw radius, shadow and font). If the builder prefers an element to the pseudo-element, a sibling `<span aria-hidden>` after the image with the `::after` declarations is the same. Proof: a unit or play check reads the computed `mix-blend-mode` and `filter` of each treatment's image (`luminosity` with `grayscale(1) contrast(1.1)`; `screen` with `grayscale(1) brightness(1.2) contrast(1.15)`), and the `DirectionChapter` story is the screenshot. Lane M; no API change to a shared component, no recipe, no token.
+
+**Gap 22, the mark laid on a scene in perspective.** Revision 4 laid the real thing in a box in percent of the scene; a scene in perspective needs four corners. Chosen: page-local `placeOnQuad(corners, face, tile, imageAspect)`: it maps the corners (percent of the image) through the tile's cover crop and solves the homography from the face rectangle to the four points, returning a CSS `matrix3d` applied with `transform-origin: 0 0` to a box of the face's size holding the real `Logo`. The image records' `quad` replaces revision 4's `box` for scenes. Since revision 5.1 the corners are measured on the made images (section 4) and the faces follow the surfaces' true aspect: card 350 x 200 with the lockup at 56% of the face, sign 600 x 300 with the lockup at 65%. Cost: page-local helper and its unit test (four known corners map exactly; a cover crop keeps them inside the tile), the data field. No shared component change.
+
+**Gap 23, construction guides on a flood.** The lockup piece draws its guides over violet. The mock draws them in `currentColor` at `opacity.disabled`, which borrows the disabled semantic for decoration; the build does not. Chosen: the guides take `text.secondary` of the nested dark boundary the lockup already sits in, dashed 7 on 7 and 1.6 wide at the lockup's design scale, as page-local SVG. No new token. Cost: page-local only.
+
+Not a gap, noted: the report page starts at `[data-report]` through a page-local effect on the `ScrollArea` viewport. The art's intent `Button` is the catalog `Button variant="intent"` in an `inert` subtree; no change to `Button`.
+
+## 13. What of earlier revisions is dropped, and why
+
+- **Revision 4's direction board** (comment 10649): ten tiles at 720 wide with a caption and a kind under each in the preview, two still lifes with no brand (`mood-paper-clay`, `mood-glass`), the `Field` tile, the type sample tile and the five candidate swatches with the dropped coral and Origin Violet. Replaced by five pieces in one art direction, colour shown only as treatment.
+- **Revision 4's brand in use board** (comment 10649): six tiles on paper with captions, the web page on a screen (`blank-screen`), the poster (`blank-poster`), the product screen on a phone (`blank-phone`), the social post and `app-print`'s neutral card. Replaced by seven pieces flooded or photographed in the system, with the real Landing on a drawn phone and two scenes in perspective.
+- **Revision 4's brandbook pages at 640 x 400**, with contents of three lines, small objects on the clear-space page, a small "Aa กข", a one-line voice page, a bullet list on page 12 and small opener numerals.
+- **The dashed placeholder frame**: a missing image is now its flood with its id.
+- From revision 4 and earlier, as recorded there: the banded node, the header rail, the corner controls and the minimap, the 1016 brandbook wall, "06 Web page" and "07 Product" as two screen nodes, the canvas captions, the `Collapsible` of image sources, the per-attribute "from" lines, the radio item "A brand I admire", gap 13, the live scrollable product frame on the canvas, the one mood board, the 22-node ORV-126 graph, 87 edges, groups, chapter markers, mono chips, the 9-tile brandbook, the mockup Alert, step numbers and slices.
+
+## 14. For the builder (one task)
+
+Files:
+
+- `packages/design-system/src/examples/orivilo-canvas.data.ts`: stages and chapters, the 31 nodes (as revision 4), the 40 edges, the 7 preview sequences (6, 3, 2, 6, 8, 12, 3 pages, with caption keys and what each renders), the palette, contrast pairs, attributes; the 5 direction pieces and the 7 in-use pieces (box at 1280 x 800, flood, treatment, image id, art lines with their `k`, caption keys); the 2 scene quads as measured in revision 5.1 (section 4: corners in percent of the image, `scene-card` face 350 x 200 with lockup width 0.56, `scene-sign` face 600 x 300 with lockup width 0.65, boundary); the 12 brandbook pages (ground, part, content records); the base and composed rows; the 3 pages; the 7 image records (section 9).
+- `packages/design-system/src/examples/orivilo-canvas.tsx`: `OriviloCanvas({ chapter?, preview? })`; the bodies through `renderBody`; one art renderer for both boards and the 12 pages at 1280 x 800, scaled as one image on the card, in the stack and on the preview stage; the floods as nested `DesignProfileBoundary` (light or dark, profile neutral) with the colour from `brand.signature` or `surface.canvas`; the page-local photo treatment utilities, violet and paper, with the exact declarations of gap 21; art type (gap 20); the giant mark and the construction (gap 2); the quad placement (gap 22); the guides (gap 23); the drawn phone with `Landing` at 390, `inert`; the chapter child (gap 1); the level-of-detail child (gap 19); the dock children (gap 17); the preview (gap 18) with its keyboard map; the report scroll start.
+- `packages/design-system/src/examples/orivilo-canvas.stories.tsx`, title `Examples/Prototype: ORIVILO canvas`, `layout: "fullscreen"`, locale English unless named. Stories: `Default`, `InThai`, `Dark`, `At360`, `DirectionChapter`, `LogoChapter`, `ColourChapter`, `InUseChapter`, `BrandbookChapter`, `DesignSystemChapter`, `ProductChapter`, `PreviewBrandbook` (page 6), `PreviewDirectionBoard`, `PreviewInUseBoard`, `PreviewProductPages` (the report), `PreviewAt360`, `MissingImages`.
+- `packages/design-system/src/examples/orivilo-canvas.test.ts`: 31 nodes and 40 edges (29 input, 8 reference, 3 derived, one label shown); 12 nodes with `open`, 7 sequences with 6, 3, 2, 6, 8, 12 and 3 pages; every edge joins ports of the same kind and steps to the right; images 7, of which only `brand-hero` may carry the mark and its record names the reference image; no other prompt asks for a logo; the scene quads are convex and inside the image; every art line's `k` lies in 0.8 to 5; no colour value in the art records (floods and inks are token names); the world fits 4640 x 2260; no middot or em dash in the data.
+- `packages/design-system/src/examples/index.ts`: export the page.
+- `packages/design-system/src/i18n/messages/en.ts` and `th.ts`: the `orvCanvas` keys of section 10, and `open.pages` and `open.name` in the shared canvas message group `node`, which `CanvasNode` reads (spec v2.1 default 3).
+- `packages/design-system/src/examples/brand-report.tsx` (gap 4), `brand-report.fixtures.ts` and the stories' imports (gap 11).
+- No `recipes.css` change and no `pairs.ts` change for the treatments: they are page-local in `orivilo-canvas.tsx` (gap 21, comment 10652).
+- If gaps 8, 9, 14, 15, 16, 17 and 18 are approved: the files revision 4 named for them. Without them the page renders the banded node, gray edges at world width, the corner controls, and no preview.
+
+Play checks in `Default`: no two node rectangles (labels included) overlap and stack gaps are 40 or more; the dock has 9 chapter buttons; pressing 01 Direction sets `aria-current` on it and the status reads "Jumped to 01 Direction"; the overview zoom is 0.25 or more at 1440 and shows chapter titles, not node labels; pressing Enter on `bb-colour` opens a dialog titled "ORIVILO brandbook v1.5" at "6 / 12", Right goes to 7, End to 12 with Next page disabled, Esc closes and focus is back on `bb-colour`; Enter on `d-board` opens "1 / 6" and the board's box fills the stage height within 2 px; every brandbook page's furniture rows are one line in English and Thai; no art text box leaves its page or piece in English and Thai; Thai marks whole on the cover, the openers, the voice page, the board's Thai line and page 12 (`expectLabelInkWhole`); no element inside a board or a page is focusable. Done when `pnpm lint`, `pnpm typecheck`, `pnpm test` and `pnpm build` pass.
+
+## 15. Visual QA screens
+
+Check each in English and Thai, light and dark, at 1440, 1920 and 360:
+
+1. Overview at fit: eight chapter titles; the two boards and the four book parts read as the boldest images on the board (violet and ink), the nodes calm around them; nothing under the dock; zoom 0.25 or more at 1440.
+2. The node: label above, one surface, one hairline, ports on the edge; hover, selected and focus differ in shape.
+3. Direction chapter: the board reads as one composed page, no caption, no swatch, no mark; the violet treatment on two photographs and the paper treatment on one; the paper piece reads as paper with violet shadows, not grey; the `MissingImages` story shows floods with an id, not dashed frames.
+4. Brand in use chapter: seven pieces edge to edge, one gutter, one radius; the mark in every piece but the phone's screen; lime only on the one button; the lockups sit inside the scene surfaces with an even margin in the surface's plane and follow its perspective at every tile size, on the board, the piece pages and book page 11.
+5. Brandbook: four parts of one size; each stack shows its section's first page; in the preview every page is one idea at a large scale, furniture on one line, numbers 01 to 12, no glyph clipped (Thai marks above and below on the cover, openers, voice and page 12).
+6. Preview of a board: page 1 fills the stage height; pieces fill the stage at their aspect; captions only in the footer.
+7. The rest as revision 4: logo, colour, design system and product chapters, the preview's first and last page states, focus return, 360.
+
+Revision 5.1 screenshots, with the 7 real images, all at 1440 x 900 and 1x, English unless the name ends in `__th`, each opened and judged:
+
+- Fit view: `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-6/screenshots/canvas__1440__light.png`, `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-6/screenshots/canvas__1440__dark.png`
+- Chapters at 1.00: `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-6/screenshots/direction__1440__light.png`, `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-6/screenshots/direction__1440__dark.png`, `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-6/screenshots/inuse__1440__light.png`, `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-6/screenshots/inuse__1440__dark.png`
+- Direction board preview, page 1: `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-6/screenshots/preview__d-board__1440__light.png`, `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-6/screenshots/preview__d-board__1440__dark.png`; Thai `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-6/screenshots/preview__d-board__1440__light__th.png`, `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-6/screenshots/preview__d-board__1440__dark__th.png`
+- The place and making piece pages: `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-6/screenshots/preview__d-board-p4-place__1440__light.png`, `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-6/screenshots/preview__d-board-p4-place__1440__dark.png`, `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-6/screenshots/preview__d-board-p5-making__1440__light.png`, `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-6/screenshots/preview__d-board-p5-making__1440__dark.png`
+- Brand in use board preview, page 1: `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-6/screenshots/preview__u-board__1440__light.png`, `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-6/screenshots/preview__u-board__1440__dark.png`; Thai `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-6/screenshots/preview__u-board__1440__light__th.png`, `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-6/screenshots/preview__u-board__1440__dark__th.png`
+- The card and sign scene piece pages: `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-6/screenshots/preview__u-board-p7-card__1440__light.png`, `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-6/screenshots/preview__u-board-p7-card__1440__dark.png`, `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-6/screenshots/preview__u-board-p8-sign__1440__light.png`, `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-6/screenshots/preview__u-board-p8-sign__1440__dark.png`
+- Book page 11 at preview size: `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-6/screenshots/preview__book-p11__1440__light.png`, `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-6/screenshots/preview__book-p11__1440__dark.png`
+- The measured quads drawn over each scene, whole and each corner at 5x: `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-6/screenshots/quad-check__scene-card.png`, `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-6/screenshots/quad-check__scene-sign.png`, and `quad-check__scene-{card,sign}__c1.png` to `__c4.png` beside them
+- The paper treatment variants judged (section 0), board and piece page: `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-6/screenshots/explore__paper-a__place.png` (revision 5, grey) to `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-6/screenshots/explore__paper-g__place.png` (chosen), with `explore__paper-{a..g}__board.png`
+
+Scripts beside the revision 5.1 mock: `measure-quads.mjs` (the scene corners, section 4), `face-aspect.mjs` (the surfaces' true aspect), `overlay-quads.mjs` (the quad check images), `explore-paper.mjs` (the paper variants), `shoot6.mjs` (the renders above; for every laid lockup on screen its four corners against its quad, and for every photograph on the preview stage its upscale at device pixel ratio 1 and 2, into `report6.json`): no lockup outside its surface, no art text outside its page or tile, no page error.
+
+Revision 5 mock screenshots, all under `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-5/screenshots/` (97 PNGs at 1x, English unless the name ends in `__th`):
+
+- Fit view at 1440: `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-5/screenshots/canvas__1440__light.png`, `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-5/screenshots/canvas__1440__dark.png` (0.259), and in Thai `canvas__1440__light__th.png`, `canvas__1440__dark__th.png`; at 1920 `canvas__1920__light.png`, `canvas__1920__dark.png` (0.348)
+- Chapters at 1440: `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-5/screenshots/direction__1440__light.png`, `direction__1440__dark.png` (1.00), `inuse__1440__light.png`, `inuse__1440__dark.png` (1.00), `wall__1440__light.png`, `wall__1440__dark.png` (0.50)
+- Direction preview: `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-5/screenshots/preview__d-board__1440__light.png`, `preview__d-board__1440__dark.png` (whole board), `preview__d-board-p2__1440__{light,dark}.png` (people), `preview__d-board-p6__1440__{light,dark}.png` (type); Thai `preview__d-board__1440__light__th.png`, `preview__d-board__1440__dark__th.png`; 360 `preview__d-board__360__light.png`, `preview__d-board__360__dark.png`
+- In use preview: `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-5/screenshots/preview__u-board__1440__light.png`, `preview__u-board__1440__dark.png` (whole board), `preview__u-board-p2__1440__{light,dark}.png` (hero), `preview__u-board-p6__1440__{light,dark}.png` (ink tile); Thai `preview__u-board__1440__light__th.png`, `preview__u-board__1440__dark__th.png`; 360 `preview__u-board__360__light.png`, `preview__u-board__360__dark.png`
+- Side by side, revision 4 left and revision 5 right at the same size: `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-5/screenshots/compare__d-board__light.png`, `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-5/screenshots/compare__d-board__dark.png`, `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-5/screenshots/compare__u-board__light.png`, `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-5/screenshots/compare__u-board__dark.png` (from `r4__preview__{d,u}-board__1440__{light,dark}.png`)
+- Brandbook contact sheets of the 12 pages: `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-5/screenshots/brandbook-pages__light.png`, `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-5/screenshots/brandbook-pages__dark.png`, `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-5/screenshots/brandbook-pages__light__th.png`
+- Three single pages in the preview: `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-5/screenshots/preview__book-p1__1440__{light,dark}.png` (cover), `preview__book-p4__1440__{light,dark}.png` (construction), `preview__book-p7__1440__{light,dark}.png` (palette)
+- Every page and piece clipped to the stage, English and Thai, for the text checks: `bookpage__01__en.png` to `bookpage__12__th.png` (24), `dpiece__2__en.png` to `dpiece__6__th.png` (10), `upiece__2__en.png` to `upiece__8__th.png` (14)
+
+Scripts beside the mock: `shoot5.mjs` (renders the jobs, reports zoom, world, node and edge counts, overlaps, furniture wrap and any art text outside its page or tile: none reported), `compare5.mjs` (the side by side sheets), `layout5.mjs` (the layout of section 3), `capture5.mjs` (the Landing at 390 from the deployed Storybook), `probe5.mjs`.
+
+### What is still weak (designer's judgement against comment 10637, next to the references)
+
+Looking at the two side by side sheets, the contact sheet and the fit view as the owner would: the layout and the type now read as a designed presentation. The boards fill the stage, every surface is a flood or a photograph in the system, the book pages carry one idea each at the scale of a guideline deck. What is still weak:
+
+Revision 5.1, with the real images: the direction board now has three photographs and reads as one shoot in one colour; the in use board's bottom row has depth, and the lockups sit on the card and the sign as printed things, not stickers. What is still weak after it:
+
+- **The place and the people pieces are both light lavender on the board.** The paper treatment turns the room's light into paper and its shadows into violet, which the eye at board size reads close to the violet treatment's pale studio; the difference (paper whites against violet whites) shows on the piece pages, less on the canvas. Kept: it is one shoot in one colour, and the making piece below is deep violet, so the row still alternates.
+- **The making photograph's skin goes flat violet.** Luminosity on `brand.signature` keeps the form of the hands and the paper but no skin tone; that is the treatment, as in the references' tinted shots.
+- **The sign scene's dark room merges with the dark preview stage.** On the sign piece page in dark mode the photograph's dark edges meet the stage with little line; the panel, the subject, still stands out. The tile's radius and the board's inset carry the edge on the board.
+- **The scene and photo pages soften a little on a ratio 2 screen.** At 1440 the scene pages draw 1254 px files 9% larger than made, the direction photographs 26% (section 9, "Sizes"); the lockups are vector and stay sharp.
+- **The palette page's 60 field is the page.** Canvas at 60% is drawn as the page's own paper with a hairline above and below; it is honest (the ground is the 60) but reads quieter than the other fields.
+- **The tagline crosses the giant ring** on the ink tile. It is deliberate and reads at 7.3 to 1, but some readers will see a collision; the alternative (a smaller ring) loses the bleed.
+- **The phone's screen is Thai in an English page.** `Landing` is Thai only (gap 5); its second line says so.
+- **At 360 the whole board is small** (about 270 wide); the pieces, one per page, are the readable view.
+- **Brandbook page 4's facts are small** next to the construction drawing; at the preview size they read, on the canvas stack they do not, which is the stack's job (it shows the section's first page).
+- **The mock's floods are hand-placed nested boundaries;** a builder who flattens them into one boundary will get the wrong ink on violet. The play checks text colour on violet by contrast.
+- Carried from revision 4: the overview is wide and short (3.2 : 1); the brief chapter is small at its fit; profile edges are loud in the product stage; selected-state pills can sit over neighbours.
+
+## 16. What the mock does not show
+
+- The composed rows, the three pages and the phone's screen are screenshots of the deployed stories under the orivilo profile; the builder renders them live.
+- The canvas, ports, edges and dock are drawn after the components' DOM and recipes, not by React Flow.
+- The hover border uses `border.control`; the build uses `--cmp-node-border-hover`.
+- The art's numerals read the primitive `--op-font-line-height-1` in the mock; the build reads `type.numeral-lg`'s line height (gap 20). The construction guides use `opacity.disabled` in the mock; the build uses `text.secondary` (gap 23).
+- The preview's `Dialog` description with the image label is not drawn; the report page in the preview is a static window, not a live `ScrollArea`.
+- The focus trap, Esc, arrows and focus return are specified (section 11), not run.
+- The revision 5 mock shows the four new images as their placeholder; the revision 5.1 mock shows all 7 real images, converted to jpg for the mock only (the build takes webp under `images-1`). The `MissingImages` state is not drawn in the 5.1 renders.
+- The fonts load from Google Fonts in the mock only; the product takes Inter, Anuphan and Sarabun from ORV-275.
+
+## Changelog
+
+- **Revision 5.1, 2026-11-17 (`ORV-274-design-6`).** The four new images are made (comment 10653); revision 5 stands with gaps 20, 22 and 23 as chosen and gap 21 page-local (comment 10652). Changes, and nothing else: (1) the 7 real images placed in a copy of the revision 5 mock (`orv-274-design-6`); (2) the scene quads of `scene-card` and `scene-sign` measured by script (`measure-quads.mjs`: threshold mask, sub-pixel edge crossings, a RANSAC line per side, corners from intersecting lines) and recorded in place of the targets, which missed by up to 3.5 points; (3) the card's face changed from 340 x 220 to 350 x 200 to match the card's measured aspect (1.75), lockup 56% of the face; (4) the sign's lockup from 72% to 65% of the face so its margins are even in the panel's plane; the lockup's size, inset and on-screen distances recorded per surface and checked on the board, the piece pages, the canvas and book page 11; (5) the paper treatment, revision 5's read as plain grey on the real `direction-place` (#DDDDD9), settled as violet ink on paper (variant g of seven: grayscale screened on `brand.signature`, `surface.canvas` multiplied over); (6) the violet treatment judged on `direction-team` and `direction-making` and kept unchanged; (7) gap 21 page-local in `orivilo-canvas.tsx` with exact declarations and a Tailwind form, no `recipes.css` and no `pairs.ts` change, in gap 21 and "For the builder"; (8) the image size sentence corrected: 1254 and 1448 are enough at device pixel ratio 1, not at 2 (1.09 and 1.26 at 1440), with a "Sizes" table in section 9; (9) the "Images" section checks under `images-1` of spec v2.1 and its table shows the four images as made with their folders; (10) `open.pages` and `open.name` moved from `orvCanvas` to the shared canvas message group `node` (spec v2.1 default 3); (11) the missing image state no longer says four images are missing; (12) the visual QA list gains the revision 5.1 screenshots and a new "still weak" judgement. Nodes, ports, edges, ground, dock, preview mechanics, chapters, product stage, board layouts, the brandbook pages' composition and the copy are unchanged.
+- **Revision 5, 2026-11-17 (`ORV-274-design-5`).** The owner's verdict on the boards and the images (comment 10649). One art direction for the two boards and the 12 brandbook pages, from six traits of the owner's references (section 0): violet, ink and paper floods; photographs staged in or treated into violet; the mark large and cropped, laid on real scenes in perspective; few words set large; no captions on the art; one honest line per board or page. The direction board: 5 pieces at 1280 x 800 (people, the Thai line, place, making, type), colour only as treatment, preview 6 pages. The brand in use board: 7 pieces at 1280 x 800 (hero, app icon, lockup with construction guides, phone with the real Landing, ink tile with the giant mark and the one lime action, card scene, sign scene), preview 8 pages. The brandbook redrawn at 1280 x 800 with a full cover, large-numeral contents, openers at x 5, a construction grid, the logo on three floods, the palette as bleeding fields with 60 / 30 / 10, a three-face type specimen, voice as large type, the applications from the in use board and a designed "Not tested yet". Images: 7 (3 kept: `brand-hero`, `direction-team`, `colour-reference`; 4 new briefs in the brand-hero form: `direction-making`, `direction-place`, `scene-card`, `scene-sign`); `mood-paper-clay`, `mood-glass`, `app-print` dropped from use; `direction-order`, `blank-screen`, `blank-poster`, `blank-phone` dropped. Gaps 20 (art type), 21 (photo treatments), 22 (quad placement), 23 (guides) added; gap 2 extended. Nodes, edges, ground, dock, preview mechanics, chapters and the product stage unchanged; the two board cards are 391 high; world 4484 x 1394.
+- **Revision 4, 2026-11-17 (`ORV-274-design-4`).** The owner's three requests of comment 10645 and the language note of comment 10644. The node becomes a label above one surface with edge ports and hover pills (gap 14) on a calm dotted ground (gap 15); edges are thin, screen-fixed, kind by hue and glyph, meaning by line, with a chain highlight (gap 16, closes gap 12); one floating dock at the bottom centre holds 9 chapter buttons and the zoom (gap 17). Twelve result nodes open a paged preview, `Dialog size="viewer"` (gap 18). The product becomes three levels. Far, mid and near levels of detail with chapter titles (gap 19). English by default; Inter, Anuphan and Sarabun in the mock. 31 nodes, 40 edges; world 4484 x 1394; gap 13 withdrawn.
+- **Revision 3, 2026-11-17 (`ORV-274-design-3`).** The one mood board becomes the two boards the owner chose (comment 10643). Order 00 Brief to 07 Product; 30 nodes, 35 edges. The product node opens at the analysed report. Gap 12 decided; gap 13 added. Images: 11 (5 exist, 6 briefed).
+- **Revision 2, 2026-11-17 (`ORV-274-design-2`).** Settles the eight findings of comment 10640: 26 typed nodes, no groups, one-line headers, one source line per node, bleed media, 29 edges with one label, a 12-page brandbook wall, five live components feeding the live analysed screen. Gaps 7 to 12 added.
+- **Revision 1, 2026-11-17 (`ORV-274-design-1`).** First design: 11 content nodes in 3 groups, chapter markers, version strips, 9 brandbook tiles, 7 image briefs, gaps 1 to 6.
