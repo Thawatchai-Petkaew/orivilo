@@ -177,7 +177,6 @@ export async function expectEdgeInk(
   const scope = scopeHolding(el, reach);
   const { data, width, frame, scale } = await screenshotOf(scope);
   const rect = el.getBoundingClientRect();
-  const diagAll: string[] = [];
   for (const side of typeof sides === "string" ? [sides] : sides) {
     const horizontal = side === "left" || side === "right";
     const edge = { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right }[side];
@@ -198,22 +197,6 @@ export async function expectEdgeInk(
     // Read outside to inside for every side.
     if (side === "bottom" || side === "right") line.reverse();
     const read = inkWidth(line, scale);
-    if (px === 4 && label(el).includes("ds-menu__option")) {
-      const hex = line.map((c) => c.map((v) => v.toString(16).padStart(2, "0")).join("")).join(",");
-      const cs = getComputedStyle(el);
-      const probe = document.elementFromPoint(
-        horizontal ? edge + 2 * (side === "left" ? 1 : -1) : (rect.left + rect.right) / 2,
-        horizontal ? (rect.top + rect.bottom) / 2 : edge + 2 * (side === "top" ? 1 : -1),
-      );
-      diagAll.push(
-        `${side}: read=${read} scale=${scale} across=${across} along=${along} line=${hex} probe=${probe ? label(probe) : "none"} bs=${cs.boxShadow} ol=${cs.outline} tr=${cs.transitionDuration}`,
-      );
-      if (side === (Array.isArray(sides) ? sides[sides.length - 1] : sides)) {
-        throw new Error(
-          `DIAGEDGE rect=${JSON.stringify(rect)} frame=${JSON.stringify(frame)} scope=${label(scope)} dpr=${window.devicePixelRatio} ;; ${diagAll.join(" ;; ")}`,
-        );
-      }
-    }
     expect(
       Math.abs(read - px),
       `${side} edge of ${label(el)} draws ${read} px of ink, expected ${px} px`,

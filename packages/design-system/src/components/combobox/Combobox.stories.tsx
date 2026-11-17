@@ -517,6 +517,7 @@ export const OpenInEnglish: Story = openList.en;
 
 // --- ActiveOnChosen (row 11) -------------------------------------------------------------------
 
+const edgeReach = 6;
 const activeOnChosen = twin((c) => ({
   render: (args) =>
     inField(c, <Combobox {...args} options={c.options} defaultValue={opt(c, "latin")} />),
@@ -527,7 +528,9 @@ const activeOnChosen = twin((c) => ({
     const chosen = within(listbox).getByRole("option", { name: opt(c, "latin").label });
     await expect(chosen).toHaveAttribute("data-state", "checked");
     await expect(chosen).not.toHaveAttribute("data-highlighted");
-    if (inVitest) await expectEdgeInk(chosen, ["top", "right", "bottom", "left"], 0, 8);
+    // The pixel line reaches `edgeReach` px in, short of the option's 8 px padding: at 8 the last
+    // pixel is the start of the label, and a glyph stem there (Inter's B on Linux) is no fill.
+    if (inVitest) await expectEdgeInk(chosen, ["top", "right", "bottom", "left"], 0, edgeReach);
     await userEvent.keyboard("{ArrowDown}{ArrowDown}");
     await waitFor(() => expect(activeLabel(input)).toBe(opt(c, "latin").label));
     await expect(chosen).toHaveAttribute("data-highlighted");
@@ -537,7 +540,7 @@ const activeOnChosen = twin((c) => ({
       resolvedColor(chosen.parentElement as HTMLElement, "--ds-focus-ring"),
     );
     // Ink on the edge: the 1 px line plus the 3 px inner halo of the focus form, 4 px in all.
-    if (inVitest) await expectEdgeInk(chosen, ["top", "right", "bottom", "left"], 4, 8);
+    if (inVitest) await expectEdgeInk(chosen, ["top", "right", "bottom", "left"], 4, edgeReach);
     await userEvent.keyboard("{ArrowUp}");
     await waitFor(() => expect(chosen).not.toHaveAttribute("data-highlighted"));
     await userEvent.keyboard("{Escape}");
