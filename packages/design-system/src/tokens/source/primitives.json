@@ -605,9 +605,13 @@
   },
   "font": {
     "family": {
-      "plex-sans": {
+      "inter-anuphan": {
         "$type": "fontFamily",
-        "$value": ["IBM Plex Sans", "Sarabun", "system-ui", "sans-serif"]
+        "$value": ["Inter", "Anuphan", "system-ui", "sans-serif"]
+      },
+      "inter-sarabun": {
+        "$type": "fontFamily",
+        "$value": ["Inter", "Sarabun", "system-ui", "sans-serif"]
       },
       "plex-mono": {
         "$type": "fontFamily",

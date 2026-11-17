@@ -13,6 +13,7 @@ import primitives from "../tokens/source/primitives.json" with { type: "json" };
 import semantic from "../tokens/source/semantic.json" with { type: "json" };
 import { MODES, tokens } from "../tokens/index";
 import {
+  CONTRAST_SETS,
   DECISIONS,
   LOCKED_GROUPS,
   PROFILE_IDS,
@@ -159,7 +160,7 @@ describe("focus.ring is the action.primary primitive under every set and mode (O
  * a value between two faces splits a Thai and Latin line across two faces, so the line looks uneven.
  */
 const WEIGHTS_BY_FAMILY: Record<string, readonly number[]> = {
-  "IBM Plex Sans": [400, 500, 600],
+  Inter: [400, 500, 600],
   "IBM Plex Mono": [400, 500],
 };
 
@@ -214,43 +215,98 @@ describe("type weights", () => {
 });
 
 /**
- * ORV-192 row 16 (owner, comment 10401; supersedes the row 15 Friendly exception). Thai renders in
- * Sarabun in every profile and every type token. The browser takes the first family that carries
- * the glyph, so each stack names its Latin face first and Sarabun second: IBM Plex Sans for the
- * sans roles, IBM Plex Mono for code. No stack names Anuphan or IBM Plex Sans Thai.
+ * ORV-275 `type-face-1` (owner, ORV-274 comment 10644; supersedes ORV-192 rows 15 and 16 for the
+ * Thai heading face). The browser takes the first family that carries the glyph, so each stack names
+ * its Latin face first and its Thai face second: Inter then Anuphan for the four heading styles,
+ * Inter then Sarabun for the ten body styles, IBM Plex Mono then Sarabun for code. Every set of
+ * `CONTRAST_SETS` (neutral, Professional, Friendly, the ORIVILO brand profile) carries the same
+ * families; no stack names IBM Plex Sans or IBM Plex Sans Thai.
  */
-describe("Thai face (row 16)", () => {
-  const LATIN_FACE = ["IBM Plex Sans", "IBM Plex Mono"];
-  const sets = [
-    { id: "neutral", set: tokens },
-    ...profiles.map((p) => ({ id: p.id, set: p.tokens })),
+describe("type faces (ORV-275 type-face-1)", () => {
+  const HEADING = ["type.display.lg", "type.display.md", "type.heading.md", "type.heading.sm"];
+  const BODY = [
+    "type.body.lg",
+    "type.body.md",
+    "type.body.sm",
+    "type.body.xs",
+    "type.label.md",
+    "type.label.sm",
+    "type.control.md",
+    "type.field.sm",
+    "type.numeral.lg",
+    "type.numeral.md",
   ];
+  const CODE = ["type.code.md"];
+  const INTER_ANUPHAN = ["Inter", "Anuphan", "system-ui", "sans-serif"];
+  const INTER_SARABUN = ["Inter", "Sarabun", "system-ui", "sans-serif"];
+  const PLEX_MONO = ["IBM Plex Mono", "Sarabun", "ui-monospace", "monospace"];
+  /** Weights each Thai face ships as true faces (fonts.css). */
+  const THAI_WEIGHTS: Record<string, readonly number[]> = {
+    Anuphan: [400, 500, 600],
+    Sarabun: [400, 500, 600],
+  };
 
-  const stacks = (set: (typeof sets)[number]["set"]) =>
-    set
-      .layer("semantic")
-      .filter((t) => t.path.startsWith("type.") || t.path.startsWith("font."))
-      .map((t) => {
-        const value = set.resolve(t, "light").value as string[] | { fontFamily: string[] };
-        return { path: t.path, family: Array.isArray(value) ? value : value.fontFamily };
-      });
+  it("covers neutral, Professional, Friendly and the ORIVILO brand profile", () => {
+    expect(CONTRAST_SETS.map((s) => s.id)).toEqual([
+      "neutral",
+      "professional",
+      "friendly",
+      "orivilo",
+    ]);
+  });
 
-  for (const { id, set } of sets) {
-    it(`under ${id}, every type.* token and font.* family leads Thai to Sarabun`, () => {
-      const found = stacks(set);
-      expect(found.length).toBeGreaterThanOrEqual(15);
-      for (const { path: p, family } of found) {
-        expect(LATIN_FACE, `${p} Latin face`).toContain(family[0]);
-        expect(family[1], `${p} Thai face`).toBe("Sarabun");
-        expect(family, `${p} names no other Thai face`).not.toContain("Anuphan");
-        expect(family, `${p} names no other Thai face`).not.toContain("IBM Plex Sans Thai");
+  for (const { id, set } of CONTRAST_SETS) {
+    const family = (path: string) => {
+      const token = set.get("semantic", path);
+      if (!token) throw new Error(`no semantic token ${path}`);
+      const value = set.resolve(token, "light").value as string[] | { fontFamily: string[] };
+      return Array.isArray(value) ? value : value.fontFamily;
+    };
+    const weight = (path: string) => {
+      const token = set.get("semantic", path);
+      if (!token) throw new Error(`no semantic token ${path}`);
+      return Number((set.resolve(token, "light").value as { fontWeight: number }).fontWeight);
+    };
+
+    it(`under ${id}, the four heading styles and font.display are Inter then Anuphan`, () => {
+      for (const path of [...HEADING, "font.display"]) {
+        expect(family(path), path).toEqual(INTER_ANUPHAN);
+      }
+    });
+
+    it(`under ${id}, the ten body styles and font.body are Inter then Sarabun`, () => {
+      for (const path of [...BODY, "font.body"]) {
+        expect(family(path), path).toEqual(INTER_SARABUN);
+      }
+    });
+
+    it(`under ${id}, type.code.md and font.mono are IBM Plex Mono then Sarabun`, () => {
+      for (const path of [...CODE, "font.mono"]) {
+        expect(family(path), path).toEqual(PLEX_MONO);
+      }
+    });
+
+    it(`under ${id}, no stack names IBM Plex Sans or IBM Plex Sans Thai`, () => {
+      const names = set
+        .layer("semantic")
+        .filter((t) => t.path.startsWith("type.") || t.path.startsWith("font."))
+        .map((t) => t.path);
+      expect(names.length).toBeGreaterThanOrEqual(15);
+      for (const path of names) {
+        expect(family(path), path).not.toContain("IBM Plex Sans");
+        expect(family(path), path).not.toContain("IBM Plex Sans Thai");
+      }
+    });
+
+    it(`under ${id}, each style's weight is one its Thai face carries`, () => {
+      for (const path of [...HEADING, ...BODY, ...CODE]) {
+        const thai = family(path)[1] ?? "";
+        const allowed = THAI_WEIGHTS[thai];
+        expect(allowed, `${path} has a known Thai face`).toBeDefined();
+        expect(allowed, `${path} weight ${weight(path)}`).toContain(weight(path));
       }
     });
   }
-
-  it("covers the neutral standard, Professional and Friendly", () => {
-    expect(sets.map((s) => s.id).sort()).toEqual(["friendly", "neutral", "professional"]);
-  });
 });
 
 /**
@@ -328,33 +384,35 @@ describe("running text clears Thai marks (row 18)", () => {
 });
 
 /**
- * Display type pads its own top by `space.stack.lg` (56 px) and `space.stack.md` (32 px) so the
- * tallest Thai stack (ฟื้) stays clear of what sits above it. The padding was sized from the ink
- * measured at these sizes and line heights; a change to any of them needs the ink re-measured
- * (docs/specs/ORV-192/design.md, row 19).
+ * Display type pads its own top by `space.stack.lg` (24 px) and `space.stack.md` (16 px) so the
+ * tallest Thai stack (ปี๊, ฟื้) stays clear of what sits above it. The paddings were re-measured
+ * with Inter and Anuphan in docs/specs/ORV-275/tech.md, section Metrics, at these sizes and these
+ * line heights (1.2, 1.25, 1.3 and 1.7: ORV-275 keeps the line heights of ORV-192 row 19 and changes
+ * the face only); a change to any of them needs the ink re-measured.
  */
-describe("display stack clearance (row 19)", () => {
-  const sets = [
-    { id: "neutral", set: tokens },
-    ...profiles.map((p) => ({ id: p.id, set: p.tokens })),
-  ];
+describe("heading stack clearance (row 19, ORV-275 type-clear-1)", () => {
   const dimension = (value: unknown) => {
     const v = value as { value: number; unit?: string } | number | string;
     return typeof v === "object" ? v.value : parseFloat(String(v));
   };
-  for (const { id, set } of sets) {
+  for (const { id, set } of CONTRAST_SETS) {
     const resolve = (path: string) => {
       const token = set.layer("semantic").find((t) => t.path === path);
       if (!token) throw new Error(`no ${path} token`);
-      return set.resolve(token, "light").value;
+      return set.resolve(token, "light").value as { fontSize: string; lineHeight: number };
     };
-    it(`under ${id}, display.lg is 56 px at 1.2 or more and display.md 32 px at 1.25 or more`, () => {
-      const lg = resolve("type.display.lg") as { fontSize: string; lineHeight: number };
-      const md = resolve("type.display.md") as { fontSize: string; lineHeight: number };
-      expect(dimension(lg.fontSize), "type.display.lg size").toBe(56);
-      expect(lg.lineHeight, "type.display.lg line height").toBeGreaterThanOrEqual(1.2);
-      expect(dimension(md.fontSize), "type.display.md size").toBe(32);
-      expect(md.lineHeight, "type.display.md line height").toBeGreaterThanOrEqual(1.25);
+    it(`under ${id}, the four heading styles are 56 / 1.2, 32 / 1.25, 24 / 1.3 and 20 / 1.7`, () => {
+      const rows: [string, number, number][] = [
+        ["type.display.lg", 56, 1.2],
+        ["type.display.md", 32, 1.25],
+        ["type.heading.md", 24, 1.3],
+        ["type.heading.sm", 20, 1.7],
+      ];
+      for (const [path, size, lineHeight] of rows) {
+        const value = resolve(path);
+        expect(dimension(value.fontSize), `${path} size`).toBe(size);
+        expect(value.lineHeight, `${path} line height`).toBe(lineHeight);
+      }
     });
     it(`under ${id}, space.stack.lg is 24 px and space.stack.md 16 px`, () => {
       expect(dimension(resolve("space.stack.lg")), "space.stack.lg").toBe(24);
@@ -421,7 +479,7 @@ describe("profile CSS", () => {
           display: {
             lg: {
               $value: {
-                fontFamily: "{font.family.plex-sans}",
+                fontFamily: "{font.family.inter-anuphan}",
                 fontSize: "{font.size.56}",
                 lineHeight: "{font.line-height.1-2}",
                 fontWeight: "{font.weight.700}",

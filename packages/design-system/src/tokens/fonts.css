@@ -1,11 +1,11 @@
 /*
  * Self-hosted fonts (DESIGN.md §4). All files are SIL Open Font License 1.1; see LICENSE-*.txt
- * in ./fonts. Subsets: Thai and Latin (plus Latin Extended for the variable IBM Plex Sans).
- * Never fetch fonts from Google Fonts at runtime in product code.
+ * in ./fonts. Subsets: Latin and Latin Extended for Inter, Thai for Anuphan and Sarabun.
+ * Never fetch fonts from a font host at runtime in product code.
  */
 
-/* Sarabun, looped Thai, body role (owner, ORV-58). Thai subset only: Latin and digits come from
- * IBM Plex Sans, which sits first in the body stack. */
+/* Sarabun, looped Thai, body role (owner, ORV-58): three @font-face rules as today. Thai subset
+ * only: Latin and digits come from Inter, which sits first in the body stack. */
 @font-face {
   font-family: "Sarabun";
   font-style: normal;
@@ -31,24 +31,34 @@
   unicode-range: U+02D7, U+0303, U+0331, U+0E01-0E5B, U+200C-200D, U+25CC;
 }
 
-/* IBM Plex Sans, variable 400 to 600, body role (Latin) */
+/* Anuphan, loopless Thai, heading role (owner, ORV-274 comment 10644), variable 400 to 600. */
 @font-face {
-  font-family: "IBM Plex Sans";
+  font-family: "Anuphan";
   font-style: normal;
   font-weight: 400 600;
   font-display: swap;
-  src: url("./fonts/plex-sans-latin-ext.woff2") format("woff2");
+  src: url("./fonts/anuphan-thai.woff2") format("woff2");
+  unicode-range: U+02D7, U+0303, U+0331, U+0E01-0E5B, U+200C-200D, U+25CC;
+}
+
+/* Inter, Latin and digits in every sans role, variable 400 to 600. */
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url("./fonts/inter-latin-ext.woff2") format("woff2");
   unicode-range:
     U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
     U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F,
     U+A720-A7FF;
 }
 @font-face {
-  font-family: "IBM Plex Sans";
+  font-family: "Inter";
   font-style: normal;
   font-weight: 400 600;
   font-display: swap;
-  src: url("./fonts/plex-sans-latin.woff2") format("woff2");
+  src: url("./fonts/inter-latin.woff2") format("woff2");
   unicode-range:
     U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
     U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;

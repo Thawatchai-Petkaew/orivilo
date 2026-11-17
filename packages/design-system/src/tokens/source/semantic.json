@@ -954,7 +954,7 @@
       "lg": {
         "$type": "typography",
         "$value": {
-          "fontFamily": "{font.family.plex-sans}",
+          "fontFamily": "{font.family.inter-anuphan}",
           "fontSize": "{font.size.56}",
           "lineHeight": "{font.line-height.1-2}",
           "fontWeight": "{font.weight.500}",
@@ -964,7 +964,7 @@
       "md": {
         "$type": "typography",
         "$value": {
-          "fontFamily": "{font.family.plex-sans}",
+          "fontFamily": "{font.family.inter-anuphan}",
           "fontSize": "{font.size.32}",
           "lineHeight": "{font.line-height.1-25}",
           "fontWeight": "{font.weight.500}",
@@ -976,7 +976,7 @@
       "md": {
         "$type": "typography",
         "$value": {
-          "fontFamily": "{font.family.plex-sans}",
+          "fontFamily": "{font.family.inter-anuphan}",
           "fontSize": "{font.size.24}",
           "lineHeight": "{font.line-height.1-3}",
           "fontWeight": "{font.weight.500}",
@@ -986,7 +986,7 @@
       "sm": {
         "$type": "typography",
         "$value": {
-          "fontFamily": "{font.family.plex-sans}",
+          "fontFamily": "{font.family.inter-anuphan}",
           "fontSize": "{font.size.20}",
           "lineHeight": "{font.line-height.1-7}",
           "fontWeight": "{font.weight.500}",
@@ -998,7 +998,7 @@
       "lg": {
         "$type": "typography",
         "$value": {
-          "fontFamily": "{font.family.plex-sans}",
+          "fontFamily": "{font.family.inter-sarabun}",
           "fontSize": "{font.size.20}",
           "lineHeight": "{font.line-height.1-7}",
           "fontWeight": "{font.weight.400}",
@@ -1008,7 +1008,7 @@
       "md": {
         "$type": "typography",
         "$value": {
-          "fontFamily": "{font.family.plex-sans}",
+          "fontFamily": "{font.family.inter-sarabun}",
           "fontSize": "{font.size.16}",
           "lineHeight": "{font.line-height.1-7}",
           "fontWeight": "{font.weight.400}",
@@ -1018,7 +1018,7 @@
       "sm": {
         "$type": "typography",
         "$value": {
-          "fontFamily": "{font.family.plex-sans}",
+          "fontFamily": "{font.family.inter-sarabun}",
           "fontSize": "{font.size.14}",
           "lineHeight": "{font.line-height.1-7}",
           "fontWeight": "{font.weight.400}",
@@ -1028,7 +1028,7 @@
       "xs": {
         "$type": "typography",
         "$value": {
-          "fontFamily": "{font.family.plex-sans}",
+          "fontFamily": "{font.family.inter-sarabun}",
           "fontSize": "{font.size.13}",
           "lineHeight": "{font.line-height.1-7}",
           "fontWeight": "{font.weight.400}",
@@ -1041,7 +1041,7 @@
       "md": {
         "$type": "typography",
         "$value": {
-          "fontFamily": "{font.family.plex-sans}",
+          "fontFamily": "{font.family.inter-sarabun}",
           "fontSize": "{font.size.14}",
           "lineHeight": "{font.line-height.1-7}",
           "fontWeight": "{font.weight.500}",
@@ -1051,7 +1051,7 @@
       "sm": {
         "$type": "typography",
         "$value": {
-          "fontFamily": "{font.family.plex-sans}",
+          "fontFamily": "{font.family.inter-sarabun}",
           "fontSize": "{font.size.13}",
           "lineHeight": "{font.line-height.1-5}",
           "fontWeight": "{font.weight.500}",
@@ -1063,7 +1063,7 @@
       "md": {
         "$type": "typography",
         "$value": {
-          "fontFamily": "{font.family.plex-sans}",
+          "fontFamily": "{font.family.inter-sarabun}",
           "fontSize": "{font.size.14}",
           "lineHeight": "{font.line-height.1-6}",
           "fontWeight": "{font.weight.500}",
@@ -1076,7 +1076,7 @@
       "sm": {
         "$type": "typography",
         "$value": {
-          "fontFamily": "{font.family.plex-sans}",
+          "fontFamily": "{font.family.inter-sarabun}",
           "fontSize": "{font.size.14}",
           "lineHeight": "{font.line-height.1-6}",
           "fontWeight": "{font.weight.400}",
@@ -1101,7 +1101,7 @@
       "lg": {
         "$type": "typography",
         "$value": {
-          "fontFamily": "{font.family.plex-sans}",
+          "fontFamily": "{font.family.inter-sarabun}",
           "fontSize": "{font.size.40}",
           "lineHeight": "{font.line-height.1}",
           "fontWeight": "{font.weight.500}",
@@ -1111,7 +1111,7 @@
       "md": {
         "$type": "typography",
         "$value": {
-          "fontFamily": "{font.family.plex-sans}",
+          "fontFamily": "{font.family.inter-sarabun}",
           "fontSize": "{font.size.32}",
           "lineHeight": "{font.line-height.1}",
           "fontWeight": "{font.weight.500}",
@@ -1198,13 +1198,13 @@
   "font": {
     "display": {
       "$type": "fontFamily",
-      "$value": "{font.family.plex-sans}",
-      "$description": "Display role: the body family, so a Thai heading is looped Sarabun and Latin is IBM Plex Sans in every profile (owner, ORV-192 rows 15 and 16)"
+      "$value": "{font.family.inter-anuphan}",
+      "$description": "Heading role: Latin and digits in Inter, Thai in loopless Anuphan, in every profile (owner, ORV-274 comment 10644)."
     },
     "body": {
       "$type": "fontFamily",
-      "$value": "{font.family.plex-sans}",
-      "$description": "Body and UI role: Latin and digits in IBM Plex Sans, Thai in looped Sarabun (owner, ORV-58)"
+      "$value": "{font.family.inter-sarabun}",
+      "$description": "Body and UI role: Latin and digits in Inter, Thai in looped Sarabun (owner, ORV-58; ORV-274 comment 10644)."
     },
     "mono": {
       "$type": "fontFamily",

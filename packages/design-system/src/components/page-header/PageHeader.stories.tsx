@@ -88,6 +88,8 @@ async function expectOpening(canvasElement: HTMLElement, copy: Copy) {
   await expect(root.localName).toBe("div");
   await expect(canvas.getByText(copy.description)).toBeVisible();
   const style = getComputedStyle(title);
+  // ORV-275 type-face-1: the title is a heading style, Inter for Latin and Anuphan for Thai.
+  await expect(style.fontFamily).toMatch(/^Inter, Anuphan,/);
   const size = tokenPx(title, "--ds-type-display-md-font-size");
   near(parseFloat(style.fontSize), size, "title size");
   // The 1.7 line of type.heading.sm and the 8 px of top padding (header-type-1), not the 1.25
