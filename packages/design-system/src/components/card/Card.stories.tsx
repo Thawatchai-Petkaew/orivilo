@@ -45,6 +45,11 @@ export const Default: Story = {
     // type, 16 / 1.7 (27.2 px), not Tailwind's 16 / 1.5 (24 px).
     const paragraph = canvasElement.querySelector("article p") as HTMLElement;
     await expect(getComputedStyle(paragraph).lineHeight).toBe("27.2px");
+    // ORV-275 type-face-1: untyped text is body text, Inter for Latin and looped Sarabun for Thai,
+    // never the heading face.
+    const stack = getComputedStyle(paragraph).fontFamily;
+    await expect(stack).toMatch(/^Inter, Sarabun,/);
+    await expect(stack).not.toContain("Anuphan");
   },
 };
 

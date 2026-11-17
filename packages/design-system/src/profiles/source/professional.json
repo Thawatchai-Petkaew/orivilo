@@ -368,7 +368,7 @@
       "display": {
         "lg": {
           "$value": {
-            "fontFamily": "{font.family.plex-sans}",
+            "fontFamily": "{font.family.inter-anuphan}",
             "fontSize": "{font.size.56}",
             "lineHeight": "{font.line-height.1-2}",
             "fontWeight": "{font.weight.500}",
@@ -377,7 +377,7 @@
         },
         "md": {
           "$value": {
-            "fontFamily": "{font.family.plex-sans}",
+            "fontFamily": "{font.family.inter-anuphan}",
             "fontSize": "{font.size.32}",
             "lineHeight": "{font.line-height.1-25}",
             "fontWeight": "{font.weight.500}",

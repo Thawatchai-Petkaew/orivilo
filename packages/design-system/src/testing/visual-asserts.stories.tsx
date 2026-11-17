@@ -184,6 +184,8 @@ export const StackClear: Story = {
   ),
   play: async ({ canvasElement }) => {
     if (!inVitest) return;
+    // The display line is Anuphan (ORV-275 type-face-1): load it first so both shots draw one face.
+    await document.fonts.load("500 56px Anuphan", "ฟื้นฟู");
     const caption = q(canvasElement, "[data-case='caption']");
     const display = q(canvasElement, "[data-case='display']");
     display.style.paddingBlockStart = "0";
