@@ -1,6 +1,6 @@
-# ORIVILO brand spec v1.5 (working hypothesis)
+# ORIVILO brand spec v1.6 (working hypothesis)
 
-Status: hypothesis approved by GOLF on 2026-10-21 for continued work ("ดำเนินการต่อเลย เอาตามที่คุณแนะนำ"). Not a cleared brand: see §8 for the tests still open. Supersedes the palette and type sections of `orivilo-brand-identity-v1.md`; the strategy and voice sections there still apply. The visual case study lives on the "ORIVILO brand identity case study" canvas; the method is in `brand-ci-method.md`. v1.2 (2026-10-31): the signature is violet (owner, ORV-118 comment 10336); see §10. v1.3 (2026-10-31): the mark's opening is 110° and the dot is as wide as the stroke (owner, ORV-118 comments 10375 and 10376); see §11. v1.4 (2026-10-31): the dot is radius 21 in every form (owner, ORV-192 row 5); see §12. v1.5 (2026-10-31): the dot is radius 19 in every form, a little smaller (owner, ORV-192 row 5); see §13.
+Status: hypothesis approved by GOLF on 2026-10-21 for continued work ("ดำเนินการต่อเลย เอาตามที่คุณแนะนำ"). Not a cleared brand: see §8 for the tests still open. Supersedes the palette and type sections of `orivilo-brand-identity-v1.md`; the strategy and voice sections there still apply. The visual case study lives on the "ORIVILO brand identity case study" canvas; the method is in `brand-ci-method.md`. v1.2 (2026-10-31): the signature is violet (owner, ORV-118 comment 10336); see §10. v1.3 (2026-10-31): the mark's opening is 110° and the dot is as wide as the stroke (owner, ORV-118 comments 10375 and 10376); see §11. v1.4 (2026-10-31): the dot is radius 21 in every form (owner, ORV-192 row 5); see §12. v1.5 (2026-10-31): the dot is radius 19 in every form, a little smaller (owner, ORV-192 row 5); see §13. v1.6 (2026-11-17): Inter for Latin, Anuphan for Thai headings, Sarabun for Thai body text (owner, ORV-274 comment 10644, ORV-275); see §14.
 
 ## 1. Idea
 
@@ -67,15 +67,15 @@ Proportion 60 canvas / 30 ink and neutrals / 10 violet and lime, lime under 2. C
 
 ## 6. Typography
 
-| Role    | Family                                      | Weights       |
-| ------- | ------------------------------------------- | ------------- |
-| Display | Anuphan (loopless Thai + Latin)             | 600, 700      |
-| Body/UI | IBM Plex Sans + IBM Plex Sans Thai (looped) | 400, 500, 600 |
-| Mono    | IBM Plex Mono                               | 400, 500      |
+| Role    | Family                                  | Weights  |
+| ------- | --------------------------------------- | -------- |
+| Display | Inter (Latin) + Anuphan (loopless Thai) | 500      |
+| Body/UI | Inter (Latin) + Sarabun (looped Thai)   | 400, 500 |
+| Mono    | IBM Plex Mono + Sarabun (Thai)          | 400, 500 |
 
-Stack: `"Anuphan", "IBM Plex Sans Thai", system-ui, sans-serif` for display; `"IBM Plex Sans", "IBM Plex Sans Thai", system-ui, sans-serif` for body. All four on Google Fonts, OFL.
+Stack: `"Inter", "Anuphan", system-ui, sans-serif` for display; `"Inter", "Sarabun", system-ui, sans-serif` for body; `"IBM Plex Mono", "Sarabun", ui-monospace, monospace` for code. All four faces on Google Fonts, OFL.
 
-Scale (px / line-height): 56 / 1.2 · 32 / 1.25 · 20 / 1.5 · 16 / 1.7 · 14 / 1.6. Display line-height was 1.1 in the case study; the browser specimen (§8) showed tone marks touching the line box at 56 px, so 1.2 is the rule. Looped below 24 px, loopless above. No letter-spacing and no text-transform on Thai. Thai takes the mixed line's line-height.
+Scale (px / line-height): 56 / 1.2 · 32 / 1.25 · 20 / 1.5 · 16 / 1.7 · 14 / 1.6. Display line-height was 1.1 in the case study; the browser specimen (§8) showed tone marks touching the line box at 56 px, so 1.2 is the rule. Loopless Thai (Anuphan) in every heading style, looped Thai (Sarabun) in body text. No letter-spacing and no text-transform on Thai. Thai takes the mixed line's line-height.
 
 ## 7. Radius, space, motion
 
@@ -118,3 +118,7 @@ The owner asked for a bigger dot so it balances the ring (ORV-192 comment 10388,
 ## 13. Changes in v1.5
 
 The owner viewed the radius 21 dot of §12 in Storybook and asked for it a little smaller (ORV-192 row 5, "ลดลงอีก นิด"). The dot is radius 19 (diameter 38) in every form, 0.63 x the master stroke, so §12's radius 21 is superseded. The dot's centre (105.11, 34.49), the ring, the opening, the stroke ladder 34 / 32 / 30 and every colour are unchanged. The gap between the dot and the nearer cap is 14.48, 13.48 and 12.48 units in the three forms: 3.09 px at 32 px, 2.16 px at 24 px and 1.33 px at 16 px, where §12 gave 2.66, 1.84 and 1.12. At 16 px and scale 1 the pixel toward the upper cap is still the canvas. The wordmark's i-dots stay radius 15. The two brand files `orivilo-mark.svg` and `orivilo-lockup.svg` carry the dot at radius 19.
+
+## 14. Changes in v1.6
+
+The owner asked for Inter as the Latin face and a different face for Thai headings, because the all-Plex Sans look read as generic (ORV-274 comment 10644; ORV-275 comment 10647). Latin letters and digits are Inter in every style. Thai headings are Anuphan (loopless) in all four heading styles, 20 px included, so §6's "looped below 24 px, loopless above" is superseded; Thai body text stays looped Sarabun, the face ORV-58 chose. IBM Plex Sans and IBM Plex Sans Thai leave the type contract, and the Anuphan display weights 600 and 700 of this section's first table give way to 500, the weight the heading styles use. The scale's line heights are unchanged: 56 / 1.2, 32 / 1.25, 24 / 1.3 and 20 / 1.7 for headings. Display tracking and Thai letter-spacing rules are unchanged.

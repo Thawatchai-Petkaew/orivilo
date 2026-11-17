@@ -78,6 +78,8 @@ async function expectOpening(canvasElement: HTMLElement, copy: Copy) {
   const description = canvas.getByText(copy.description);
   await expect(description).toBeVisible();
   expectTitleOverText(title, description, { gap: 8, header: true });
+  // ORV-275 type-face-1: the title is a heading style, Inter for Latin and Anuphan for Thai.
+  await expect(getComputedStyle(title).fontFamily).toMatch(/^Inter, Anuphan,/);
   const root = title.closest<HTMLElement>(".ds-section-header") as HTMLElement;
   await expect(root.localName).toBe("div");
   await expect(canvasElement.querySelector("header")).toBeNull();

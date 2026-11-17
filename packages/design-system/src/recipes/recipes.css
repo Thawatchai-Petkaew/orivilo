@@ -5663,7 +5663,7 @@ button.ds-tag__main {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* One-line labels clip at their padding box, and Sarabun's tallest stack (ปี๊, ฟื้) rises up to 3 px above a label line. Every ellipsis label pads its clip box 4 px out and cancels the space with a negative margin: no layout moves and no mark is cut (ORV-194 row 7). */
+/* One-line labels clip at their padding box, and the body face's tallest stack (Sarabun ปี๊, ฟื้) rises up to 3 px above a label line. Every ellipsis label pads its clip box 4 px out and cancels the space with a negative margin: no layout moves and no mark is cut (ORV-194 row 7). */
 .ds-control[data-trigger] > span:first-child,
 .ds-menu__option > span:first-child:not(.ds-menu__option-body),
 .ds-menu__option-label,
