@@ -173,14 +173,14 @@ Rules behind the numbers: a stage holds tiers of columns; a column stacks cards 
 
 Unchanged from revision 4. Old against new, at the same zoom, one node of each kind, light and dark: revision 4's `compare__{knowledge,direction,artifact,reference}__{light,dark}.png` (section 15).
 
-| Part        | Revision 3                                                       | Revision 4 and 5                                                                                                                                                                                                                                                                                                                                     |
-| ----------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Name        | A glass header band inside the card: kind chip, title, kind word | A label above the card, outside it: the kind glyph (icon-xs, `text.tertiary`), the title (label-sm, `text.secondary`, one line, ellipsis); for a result, at the end, the page count (body-xs tertiary) and the open glyph (icon-xs). The kind word goes: the glyph carries it, and its accessible name stays the catalog kind word                   |
-| Surface     | Card with a frame inset 4 and the header frame inside it         | One surface: `--cmp-node-bg` (`surface.card`), 1 px `border.subtle`, radius `--cmp-node-radius` (24), no shadow, no frame inside it                                                                                                                                                                                                                  |
-| Padding     | 16 under a header                                                | Text nodes 16 (`space.inset-md`); media nodes 8 (`space.inset-sm`), their media radius 16 (the node radius less the inset), so media sit concentric in the card                                                                                                                                                                                      |
-| Ports       | A labelled port row under the body                               | A glyph dot (`size.port`, the glyph icon-xs, filled in its locked port hue, a 2.5 stroke in the card colour) centred on the card edge: inputs on the start edge, outputs on the end edge, grouped at a 24 pitch around the card's middle; a row port sits at its row's middle (06 sheets). Names show on hover or selection as pills beside the dots |
-| Source line | A footer line in every card                                      | Shown on hover or selection only, as a pill under the card (code font at body-xs, `surface.card`, hairline, `elevation.overlay`); in the preview it is the caption's second line where it names the page's source                                                                                                                                    |
-| Words       | Kind word, meta row, footer, ports                               | Title, body, and one honest label where one is due                                                                                                                                                                                                                                                                                                   |
+| Part        | Revision 3                                                       | Revision 4 and 5                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ----------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Name        | A glass header band inside the card: kind chip, title, kind word | A label above the card, outside it: the kind glyph (icon-xs, `text.tertiary`), the title (label-sm, `text.secondary`, one line, ellipsis); for a result, at the end, the page count (body-xs tertiary) and the open glyph (icon-xs). The kind word goes: the glyph carries it, and its accessible name stays the catalog kind word. On a card narrower than its label, parts give way in a set order and the title keeps a minimum (section 17, F2) |
+| Surface     | Card with a frame inset 4 and the header frame inside it         | One surface: `--cmp-node-bg` (`surface.card`), 1 px `border.subtle`, radius `--cmp-node-radius` (24), no shadow, no frame inside it                                                                                                                                                                                                                                                                                                                 |
+| Padding     | 16 under a header                                                | Text nodes 16 (`space.inset-md`); media nodes 8 (`space.inset-sm`), their media radius 16 (the node radius less the inset), so media sit concentric in the card                                                                                                                                                                                                                                                                                     |
+| Ports       | A labelled port row under the body                               | A glyph dot (`size.port`, the glyph icon-xs, filled in its locked port hue, a 2.5 stroke in the card colour) centred on the card edge: inputs on the start edge, outputs on the end edge, grouped at a 24 pitch around the card's middle, on the straight part of the side, the card growing to hold them (section 17, S1); a row port sits at its row's middle (06 sheets). Names show on hover or selection as pills beside the dots              |
+| Source line | A footer line in every card                                      | Shown on hover or selection only, as a pill under the card (code font at body-xs, `surface.card`, hairline, `elevation.overlay`); in the preview it is the caption's second line where it names the page's source                                                                                                                                                                                                                                   |
+| Words       | Kind word, meta row, footer, ports                               | Title, body, and one honest label where one is due                                                                                                                                                                                                                                                                                                                                                                                                  |
 
 States of the card: hover, the border takes `--cmp-node-border-hover` and the label `text.primary` (the mock draws hover with `border.control`); selected, the border and a 1 px inner outline (offset -2) in `--cmp-node-border-selected` (`canvas.selection`), the label `text.primary`, the port pills and the source pill show; keyboard focus, the catalog focus line and halo (`focus.ring` with `focus.halo-opacity`, 3 px) on the card, never the selection look; a result card shows `cursor: zoom-in`. Selection and focus differ in shape (outline inside against a halo outside) as well as hue.
 
@@ -377,7 +377,7 @@ Sequences: the direction board 6 (board, then pieces), the logo 3, the type 2, t
 
 Unchanged from revision 4, except the "why" of edges 20 and 21, which name the new pieces.
 
-**Kind by hue and glyph, meaning by line (gap 16).** An edge takes the hue of its source port's kind: text in `edge.stroke` (gray, since text is the default kind), image `port.image`, palette `port.palette`, type `port.type`, profile `port.profile`. The same port glyph, in the same hue, sits at both ends, so a kind reads by shape too, never by colour alone. The meaning reads by line style: input solid, reference dashed (6 on, 5 off), derived dotted (round dots 5 apart, 2.5 thick). The width is fixed on screen, 1.5 px at any zoom (the dash lengths too), by dividing by the zoom (`--zi`, written by `CanvasBoard`). Curves are the catalog's bezier. Selecting a node highlights its chain: its edges go to 2.5 px (derived 3.5) and every other edge drops to `opacity.disabled`.
+**Kind by hue and glyph, meaning by line (gap 16).** An edge takes the hue of its source port's kind: text in `edge.stroke` (gray, since text is the default kind), image `port.image`, palette `port.palette`, type `port.type`, profile `port.profile`. The same port glyph, in the same hue, sits at both ends, so a kind reads by shape too, never by colour alone. The meaning reads by line style: input solid, reference dashed (6 on, 5 off), derived dotted (round dots 5 apart, 2.5 thick). The width is fixed on screen, 1.5 px at any zoom (the dash lengths too; hover takes the chain width in the edge's own hue, section 17, S2), by dividing by the zoom (`--zi`, written by `CanvasBoard`). Curves are the catalog's bezier. Selecting a node highlights its chain: its edges go to 2.5 px (derived 3.5) and every other edge drops to `opacity.disabled`.
 
 | #   | From port                          | To port                            | Meaning   | Label                   | Why, with its source                                                                    |
 | --- | ---------------------------------- | ---------------------------------- | --------- | ----------------------- | --------------------------------------------------------------------------------------- |
@@ -809,8 +809,8 @@ Where a cell lists keys with slashes, each key takes the word in the same place.
 | Missing data               | A node whose data is absent keeps its label and shows the catalog's empty word in the card; never an invented value. A report fixture without `[data-report]` opens at the top                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | Loading, error, empty      | Not used: the graph is static data; the page reads no network; a failed image falls back to the missing state; the board always has 31 nodes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | 360 px                     | The title and the description wrap; the dock spans the board less 8 on each side, keeps the chapter buttons in one scrolling row and the fit button, and hides the view-only word, its divider and the zoom steps; the overview stops at 0.25 and pans. The preview fills the window less one gutter; the whole board is shown at the stage width (about 270 wide), and its pieces, one per page, are the readable view; the footer stacks the caption over the pager (`preview__d-board__360__*.png`, `preview__u-board__360__*.png`)                                                                                                                                                                                                                                                                       |
-| Reduced motion             | No motion is designed: the chapter view and the preview open with duration 0; hover and focus changes are colour only                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| Long text                  | Node labels are one line and ellipsize at near zoom, with the full title in the accessible name; furniture rows on the brandbook pages are one line each in both languages; no art text leaves its page or tile in either language (both checked by script); the check names on page 12 and the contents names may take two lines and keep their column; preview captions wrap at 360                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| Reduced motion             | No motion is designed: the chapter view and the preview open with duration 0; hover and focus changes are colour only, except an edge's hover width, which changes at once with no transition (section 17, S2)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| Long text                  | Node labels are one line and ellipsize at near zoom, with the full title in the accessible name (on a narrow card the end parts give way first, section 17, F2); furniture rows on the brandbook pages are one line each in both languages; no art text leaves its page or tile in either language (both checked by script); the check names on page 12 and the contents names may take two lines and keep their column; preview captions wrap at 360                                                                                                                                                                                                                                                                                                                                                        |
 
 ## 12. Gaps
 
@@ -983,7 +983,308 @@ Revision 5.1, with the real images: the direction board now has three photograph
 - The revision 5 mock shows the four new images as their placeholder; the revision 5.1 mock shows all 7 real images, converted to jpg for the mock only (the build takes webp under `images-1`). The `MissingImages` state is not drawn in the 5.1 renders.
 - The fonts load from Google Fonts in the mock only; the product takes Inter, Anuphan and Sarabun from ORV-275.
 
+## 17. Revision 5.2: fixes from sign-off 1
+
+The first visual sign-off of the built components (head `bc871cf`) found two looks that fail and six smaller ones. This section records the exact change for each one we fix now, worked out from the built Storybook of this branch (served on port 6469) with the change injected into the real stories by `page.addStyleTag`, and measured by script. It adds no public prop, no token, no catalog key and no `pairs.ts` pair. Every value is a token already in the contract or a private `--_` property. Where an older sentence in this file disagrees, it points here.
+
+Proof screenshots are under `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-8/screenshots/`. Each was opened and judged. The scripts that made them sit beside it (`f1.mjs`, `f1-shots.mjs`, `f2.mjs`, `f2-sweep.mjs`, `f2-marks.mjs`, `s1.mjs`, `s2.mjs`, `s2-all.mjs`, `s56.mjs`, `s6.mjs`).
+
+### F1: edge label pills drift on a present board below zoom 1
+
+**Cause.** The rule `.ds-board[data-variant="present"] .ds-edge__label { scale: max(1, var(--_zi, 1)); }` (`recipes.css` line 3103) sets the individual `scale` property. CSS applies `scale` after the element's `transform` and around the `transform-origin` (the pill's centre). The inline `transform` is `translate(-50%, -50%) translate(labelX, labelY)` (`CanvasEdge.tsx` line 131), so the scale also multiplies the `labelX, labelY` offset. At zoom 0.5 the offset is doubled and the pill lands far from its edge. At zoom 1 and above, `max(1, 1/zoom)` is 1 and nothing drifts.
+
+**Change.**
+
+1. `packages/design-system/src/recipes/recipes.css`, replace the rule at lines 3101 to 3104 (comment included) with:
+
+   ```css
+   /* The pill keeps its zoom-1 size when the board is zoomed out. The scale is the last function of the
+    * inline transform in CanvasEdge, so it scales the pill around its centre and never the translate. */
+   .ds-board[data-variant="present"] .ds-edge__label {
+     --_ls: max(1, var(--_zi, 1));
+   }
+   ```
+
+   The rule no longer sets `scale` on the label.
+
+2. `packages/design-system/src/components/canvas-edge/CanvasEdge.tsx` line 131, the inline style becomes:
+
+   ```tsx
+   style={{ transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px) scale(var(--_ls, 1))` }}
+   ```
+
+   On an edit board `--_ls` is not set, so `scale(1)` applies and nothing changes there. `--_ls` is a private name. The node's own `--_ls` is set on `.ds-node`, which is never an ancestor of an edge label, so the two never meet.
+
+**Measured.** Drift is the distance from the pill's box centre to the edge's label point: the path's cubic at t = 0.5, mapped to the screen through `getScreenCTM()`. Pill height is on screen.
+
+| Story, board                | Zoom | Drift before    | Drift after | Pill height before / after  |
+| --------------------------- | ---- | --------------- | ----------- | --------------------------- |
+| CanvasEdge KindsAndZoom     | 0.25 | 232.9 to 1616.3 | 0.00        | 19.5 / 19.5                 |
+| CanvasEdge KindsAndZoom     | 0.5  | 155.3 to 1077.5 | 0.00        | 19.5 / 19.5                 |
+| CanvasEdge KindsAndZoom     | 1    | 0.00            | 0.00        | 19.5 / 19.5                 |
+| CanvasEdge KindsAndZoom     | 2    | 0.00            | 0.00        | 39 / 39                     |
+| CanvasControls WithChapters | 0.25 | 206.2 to 611.3  | 0.00        | 19.5 / 19.5                 |
+| CanvasControls WithChapters | 0.5  | 137.5 to 407.6  | 0.00        | 19.5 / 19.5                 |
+| CanvasControls WithChapters | 1, 2 | 0.00            | 0.00        | 19.5, 39 / same             |
+| Edit board (KindsAndZoom)   | all  | 0.00            | 0.00        | 4.88, 9.75, 19.5, 39 / same |
+
+The pill never shrinks below its zoom-1 size on a present board, and it grows with the board above 1. The edit board is unchanged.
+
+**Play assertion** (in `CanvasEdge` `KindsAndZoom`, after `zoomTo` 0.25, 0.5, 1 and 2):
+
+- For every `.ds-edge__label` on the present board, its `getBoundingClientRect()` centre is within 1 px of its edge's label point. To get the point, parse the path's `d` (`M sx,sy C c1x,c1y c2x,c2y tx,ty`), take `0.125 s + 0.375 c1 + 0.375 c2 + 0.125 t`, and map it with the path's `getScreenCTM()`. Match pills to edges one to one: by edge id if the label carries one, otherwise each pill to its nearest point with no point used twice.
+- Pill height at 0.25 and 0.5 equals its height at 1 within 0.5 px. At 2 it is twice that within 0.5 px.
+- The edit board's pills are within 1 px of their points at every zoom.
+
+Use a 1 px tolerance and `getBoundingClientRect` only, with no pixel reads, so the play holds on Linux chromium.
+
+**Proof.**
+
+- After, zoom 0.5: `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-8/screenshots/f1-edge-label__zoom-50__light.png`, `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-8/screenshots/f1-edge-label__zoom-50__dark.png`
+- Before, zoom 0.5: `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-8/screenshots/f1-edge-label__zoom-50__before__light.png`
+- After, zoom 0.25: `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-8/screenshots/f1-edge-label__zoom-25__light.png`, `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-8/screenshots/f1-edge-label__zoom-25__dark.png`
+- After, zoom 2: `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-8/screenshots/f1-edge-label__zoom-200__light.png`
+- After, zoom 0.5 at 360: `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-8/screenshots/f1-edge-label__zoom-50__360__light.png`, `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-8/screenshots/f1-edge-label__zoom-50__360__dark.png`
+
+Every pill sits on its curve's middle. One effect stays: below zoom 1, a full-size pill on a short edge can sit under its neighbouring cards (WithChapters at 0.5, the "ป้อนเข้า, ล้าสมัย" pill). That is a matter of page layout and level of detail, not of position, so it goes to follow-ups.
+
+### F2: the label above a narrow present card loses its title and overruns the card
+
+**Cause.** In `.ds-node__label` every child is `flex: none` except the title, which is `flex: 0 1 auto; min-width: 0`. When the card is narrower than the glyph, status, pages word and open glyph put together, the title alone shrinks, down to 0 px, and the fixed parts run past the card's end edge. Measured on the built `CanvasNode` `PresentStates`: the stale "Logo" card (n4) showed a 0 px title at 360 and at zoom 0.4, and the long Thai card (n6) a 0 px title at 360. The status span (glyph plus word) also made its label 26.1 px high against 23.5 for the others, so the siblings were not of one height.
+
+**Rule.** The label is one line, never wider than its card, and always shows part of the title. When the card is too narrow, parts leave from the end, whole, in this order:
+
+1. The open glyph, then the pages word (in Thai they go together at the same width).
+2. The status word, leaving the status glyph.
+3. The status glyph.
+4. The basis word.
+
+The title gives way last, through its ellipsis. Its minimum width is `min(4em, 100% - icon-xs - label gap)`: four ems of `type.label-sm` (52 px, about four Thai syllables or six Latin letters), or all of the line after the kind glyph when the line is shorter than that. The kind glyph never leaves.
+
+A part that leaves is wrapped to a second line, which the label clips. It stays in the DOM, so the status word stays in the text content. The accessible name does not change: it is `nodeLabel` (title, kind) or `nodeOpenLabel` (title, count pages) as today, and the status was never part of it.
+
+**Change.** `packages/design-system/src/recipes/recipes.css` only. Add these declarations after the existing `.ds-node__label` rules (lines 2840 to 2870). Every value is a token or a private property:
+
+```css
+/* One line that never overruns the card: parts that do not fit wrap to a second line, which the clip
+ * hides. They leave from the end, whole (open, pages, status word, status glyph, basis); the title
+ * keeps min(4em, the line after the kind glyph) and ellipsizes. The clip reaches inline-sm above the
+ * line so a Thai stack above the title is never cut. */
+.ds-node__label {
+  flex-wrap: wrap;
+  align-content: flex-start;
+  box-sizing: border-box;
+  block-size: calc(1lh + var(--ds-space-inline-sm));
+  row-gap: var(--ds-space-stack-lg);
+  white-space: nowrap;
+  clip-path: inset(calc(-1 * var(--ds-space-inline-sm)) 0 0 0);
+}
+.ds-node__label .ds-node__title {
+  flex: 1 1 min(4em, 100% - var(--ds-size-icon-xs) - var(--_label-gap));
+  max-inline-size: max-content;
+}
+.ds-node__label .ds-node__status {
+  display: contents;
+}
+.ds-node__label .ds-node__status > svg {
+  flex: none;
+}
+```
+
+Also add `.ds-node__label .ds-node__title` to the selector list of the clip-box rule (lines 6006 to 6028, ORV-194 row 7: `padding-block: var(--ds-space-inline-sm); margin-block: calc(-1 * var(--ds-space-inline-sm))`). The title's own `overflow: hidden` cuts the top of a Sarabun mai tri over a tall vowel: the built head draws ปี๊ as ปี้ (`f2-marks-crop__built__light.png`). F2 alone does not fix it (`f2-marks-crop__f2-only__light.png`). With the title in the clip-box list the mark is whole (`f2-marks-crop__f2-clipbox__light.png`). DESIGN.md already requires this for every one-line ellipsis label.
+
+What each part does:
+
+- `block-size` with `1lh` holds the label at one line plus its existing end padding (23.5 px at label-sm), whatever wraps.
+- `row-gap: stack-lg` puts the second line far enough below that none of it reaches into the visible line.
+- `clip-path` hides that second line. It reaches inline-sm above the label, so the title's padded clip box is not cut, and it is flush at the start, end and bottom, so nothing passes the card's width.
+- `display: contents` on the status makes its glyph and its word two flex items, so the word can leave before the glyph. The colour still inherits through it. This also brings the status card's label to the same 23.5 height as its siblings.
+- The title's `flex-basis` sets its minimum before others wrap. `max-inline-size: max-content` keeps a short title from growing and pushing the end parts away.
+
+`CanvasNode.tsx` is unchanged: the DOM order (kind glyph, title, basis, status, pages, open) already gives the order above.
+
+**Measured** (n4 "Logo", stale, open 3 pages, with the long Thai title copied in; n6 long Thai with basis; `PresentStates`):
+
+| Where                        | Label height | Label against card | Title width          | What shows                                          |
+| ---------------------------- | ------------ | ------------------ | -------------------- | --------------------------------------------------- |
+| Before, 360 (fit about 0.25) | 26.1 / 23.5  | runs past the card | 0                    | glyph, status, pages, open; no title                |
+| After, 360                   | 23.5 all     | 59.5 of 60         | 41.5                 | kind glyph, "บริษั…"; the rest clipped              |
+| After, zoom 0.4              | 23.5 all     | 95.2 of 96         | 57.2 (n4), 77.2 (n6) | n4: title and stale glyph; n6: title, basis clipped |
+| After, zoom 1                | 23.5 all     | 238 of 240         | 102.2 th, 94.7 en    | everything                                          |
+
+The zoom sweep on n4 (1 to 0.25, Thai light and English dark): Thai shows every part down to 0.8. At 0.7 the pages word and the open glyph go. At 0.5 the status word goes, and at 0.3 the status glyph. English loses the open glyph alone at 0.8, then pages at 0.7, the word at 0.5 and the glyph at 0.3. The title stays between 41.5 and 57 px at the narrow end and never wraps. Computed `clip-path` is `inset(-4px 0px 0px)`. With the clip-box rule, the title box is 27.5 high and starts 2.7 px above the label line at zoom 1 (4.0 at 0.6), inside the clip's 4 px reach. The label stays 23.5 high.
+
+**Play assertion** (a new `CanvasNode` story, `PresentNarrowLabels`, with a stale card with open pages, the long Thai title from `fixtures.longThai`, and a short title card; Thai and English; the play steps the zoom through 1, 0.8, 0.6, 0.4 and 0.25):
+
+- Every `.ds-node__label` is no wider than its `.ds-node` + 0.5 px.
+- A part counts as shown when its rect lies inside the label's rect (top within the 4 px reach). The shown parts are always a prefix of the DOM order. Every hidden part's top is at or below the label's bottom.
+- The title's shown width is at least `min(52, label width − 18) − 0.5`.
+- At zoom 1 every part shows. At 0.25 only the kind glyph and the title show. At one of the steps the status glyph shows and its word does not.
+- `.ds-node__status` keeps its word in `textContent`, and `getByRole` finds each card by its unchanged name.
+- `expectSameHeight` across all labels on the board.
+- At zoom 1, `expectLabelInkWhole` on a short title's `.ds-node__title` with a sample that has marks above and below (ปี๊ฟื้ ฎุฐู).
+
+**Proof** (360 is the Storybook viewport width, so the board fits at about 0.25):
+
+- 360 after: `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-8/screenshots/f2-node-label__360__light.png` (Thai), `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-8/screenshots/f2-node-label__360__dark.png` (English), with `f2-node-label__360__{th,en}__{light,dark}.png` beside them
+- 360 before: `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-8/screenshots/f2-node-label__360__th__light__before.png`, `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-8/screenshots/f2-node-label__360__en__light__before.png`
+- Zoom 0.4 and 1, after and before: `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-8/screenshots/f2-node-label__zoom-40__th__light.png`, `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-8/screenshots/f2-node-label__zoom-40__en__dark.png`, `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-8/screenshots/f2-node-label__zoom-100__th__light.png`, `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-8/screenshots/f2-node-label__zoom-100__en__dark.png`, and `f2-node-label__zoom-{40,100}__th__light__before.png`
+- The give-way order on n4: `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-8/screenshots/f2-node-label__n4-zoom-80__th__light.png`, `f2-node-label__n4-zoom-60__th__light.png`, `f2-node-label__n4-zoom-40__th__light.png`, and the same three `__en__dark`
+- Thai marks: `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-8/screenshots/f2-marks__f2-clipbox__zoom-100__light.png`, `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-8/screenshots/f2-marks__f2-clipbox__zoom-100__dark.png`, `f2-marks__f2-clipbox__zoom-60__{light,dark}.png`, against `f2-marks__built__*` and `f2-marks__f2-only__*`
+
+Judged: one start edge (the kind glyph), one line, every label the same height, and the title readable down to four syllables. With the clip-box rule, the mai tri of ปี๊ and the marks below ฎุ ฐู are whole in light and dark.
+
+### S1: a present card's minimum block size, so the port dots sit on the straight side
+
+**Cause.** The port dots are centred on the card's side at a 24 pitch around its middle. A one-line card is 57.8 px high and its radius is 24 (`--cmp-node-radius`), so its straight side is only 9.8 px long and a 16 px dot sits on the bend. On `NodePort` `PresentNames` the worst dot reaches 15.1 px into the bend.
+
+**Rule.** A card that carries side ports is at least `2 × radius + (n − 1) × grid-gap + size-port` high, where n is the larger port count of its two sides: 64 for one port, 88 for two, 112 for three, 136 for four. Row ports (`data-row`) sit at their row and are not counted.
+
+**Change.** `packages/design-system/src/recipes/recipes.css`, after the present node rule (the `:where(.ds-board[data-variant="present"]) .ds-node` block at line 2813):
+
+```css
+/* The port dots sit on the straight part of the side: the card is at least two radii plus the dots'
+ * column high. --_ports is the larger side's count of side ports (row ports sit at their row). */
+.ds-board[data-variant="present"] .ds-node:has(.ds-port) {
+  --_ports: 1;
+  min-block-size: calc(
+    2 * var(--cmp-node-radius) + (var(--_ports) - 1) * var(--ds-space-grid-gap) +
+      var(--ds-size-port)
+  );
+}
+.ds-board[data-variant="present"]
+  .ds-node:has(.ds-node__port-list > .ds-port:not([data-row]):nth-child(2)) {
+  --_ports: 2;
+}
+.ds-board[data-variant="present"]
+  .ds-node:has(.ds-node__port-list > .ds-port:not([data-row]):nth-child(3)) {
+  --_ports: 3;
+}
+.ds-board[data-variant="present"]
+  .ds-node:has(.ds-node__port-list > .ds-port:not([data-row]):nth-child(4)) {
+  --_ports: 4;
+}
+```
+
+No card on the page has more than four ports on one side. A fifth would need one more line of the same form.
+
+**Measured** (dots on the bend means a dot edge closer to the top or bottom than the radius):
+
+| Story                       | Before                                            | After                             |
+| --------------------------- | ------------------------------------------------- | --------------------------------- |
+| NodePort PresentNames       | 3 cards, worst 15.1 px into the bend, height 57.8 | none, height 88                   |
+| CanvasNode PresentStates    | 5 dots, worst 3.1 px                              | none; one-line cards 57.8 to 64   |
+| CanvasControls WithChapters | 4 dots, worst 15.1 px                             | none; heights 81.6, 64, 105.6, 88 |
+| CanvasNode PresentRowPorts  | the card without rows, 15.1 px                    | none; 88                          |
+
+Each dot's centre stays within 1 px of its side. The cards grow, and their body stays at the top with space below it. This matches the mock's cards, which are 97 px or more.
+
+**Play assertion** (in `NodePort` `PresentNames`): for every `.ds-port:not([data-row]) .ds-port__handle` on a present board, its rect's top is at least the card's top plus the card's computed `border-top-left-radius` (scaled by the zoom), and its bottom is at most the card's bottom minus that radius, each with 0.5 px of tolerance.
+
+**Proof.**
+
+- After: `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-8/screenshots/s1-port-dots__light.png`, `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-8/screenshots/s1-port-dots__dark.png`
+- Before: `s1-port-dots__{light,dark}__before.png` beside them
+
+### S2 (hover part): hover widens a present edge to the selected width, in its own hue
+
+**Cause.** The hover rule changes only the stroke colour, and a kind-hued edge (image, palette, type, profile) keeps its hue through the kind rule. So hover changed nothing on a hued edge: 1.5 px before hover and 1.5 px on hover.
+
+**Change.** `packages/design-system/src/recipes/recipes.css`, add the hover selectors to the two chain width rules (lines 3035 to 3040), so each reads:
+
+```css
+.ds-board[data-variant="present"] .ds-edge[data-chain] .ds-edge__path,
+.ds-board[data-variant="present"] .react-flow__edge:hover .ds-edge__path {
+  stroke-width: calc(var(--_edge-w-selected) * var(--_zi, 1));
+}
+.ds-board[data-variant="present"] .ds-edge[data-chain][data-meaning="derived"] .ds-edge__path,
+.ds-board[data-variant="present"]
+  .react-flow__edge:hover
+  .ds-edge[data-meaning="derived"]
+  .ds-edge__path {
+  stroke-width: calc((2 * var(--_edge-w-selected) - var(--_edge-w)) * var(--_zi, 1));
+}
+```
+
+The stroke colour is not touched, so the hue stays the kind's. There is no transition, so reduced motion is not affected.
+
+**Measured** (`CanvasControls` `WithChapters`, every edge, on-screen width):
+
+| Edge                     | Before, rest to hover | After, rest to hover              | Stroke on hover (light)      |
+| ------------------------ | --------------------- | --------------------------------- | ---------------------------- |
+| type, input              | 1.5 to 1.5            | 1.5 to 2.5                        | rgb(67, 56, 202), unchanged  |
+| palette, input           | 1.5 to 1.5            | 1.5 to 2.5                        | rgb(181, 71, 8), unchanged   |
+| image, input / reference | 1.5 to 1.5            | 1.5 to 2.5                        | rgb(15, 118, 110), unchanged |
+| any, derived             | 2.5 to 2.5            | 2.5 to 3.5                        | its kind hue, unchanged      |
+| text, reference          | 1.5, hover stroke     | 2.5, hover stroke rgb(22, 21, 29) | the existing hover colour    |
+
+The dark values keep their dark hues the same way. A flowing text input edge has a transparent base path under its flow, so hover shows no change there; the flow keeps its own width.
+
+**Play assertion** (in `CanvasControls` `WithChapters`): hover a type edge 30% along its path. Its `.ds-edge__path` drawn width (computed `stroke-width` × `getScreenCTM().a`) goes from 1.5 to 2.5 ± 0.1, and its computed `stroke` stays the same as at rest. Do the same on a derived edge, from 2.5 to 3.5 ± 0.1.
+
+**Proof.**
+
+- After: `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-8/screenshots/s2-edge-hover__light.png`, `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-8/screenshots/s2-edge-hover__dark.png`
+- Before: `s2-edge-hover__{light,dark}__before.png` beside them
+
+### S5 (opener part): the Viewer story's opener inset
+
+**Cause.** The `Dialog` `Viewer` story is `layout: "fullscreen"` and its opener `Button` has no wrapper, so the button sits at 0, 0 and its focus line and halo are cut at the top and start.
+
+**Change.** `packages/design-system/src/components/dialog/Dialog.stories.tsx`, in `ViewerDialog` (line 400), wrap the opener `Button` in `<div className="p-4">` (16 px, `space.inset-md`; padding is a layout utility). The dialog stays outside the wrapper.
+
+**Measured.** Before, the focused button's box was at 0, 0 and the ring was cut. After, the box is at 16, 16 and the ring is whole, at 1440 and 360, Thai light and English dark.
+
+**Play assertion** (in `Viewer`): after Escape returns focus to the opener, the opener's rect left and top, minus the focus reach (outline width plus offset, or the largest halo spread), are each at least 0.
+
+**Proof.** `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-8/screenshots/s5-viewer-opener__1440__light.png`, `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-8/screenshots/s5-viewer-opener__1440__dark.png`, `s5-viewer-opener__360__{light,dark}.png`, against `s5-viewer-opener__1440__{light,dark}__before.png`.
+
+### S6: the CanvasNode Present story's view padding
+
+**Cause.** `presentKinds` places the first card at x 0, and the `Present` story does not fit the view, so the first card's input dot (half of `size.port`, 8 px, outside the card) starts 7 px before the board's start edge and is cut.
+
+**Change.** `packages/design-system/src/components/canvas-node/CanvasNode.stories.tsx` line 901: `position: { x: 32 + i * 340, y: 64 }`. The 32 is `space.grid-gap` (24) of air plus the dot's 8 px overhang. It is fixture data, not a style value.
+
+**Measured.** Before, the first dot started 7 px before the board's start edge. After, it starts 25 px inside it, and the last dot ends 139 px before the board's end, in Thai light and English dark at 1440.
+
+**Play assertion** (in `Present`): the leftmost `.ds-port__handle` rect's left is at least the `.react-flow` rect's left + 24 − 1.
+
+**Proof.** `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-8/screenshots/s6-present-view__light.png`, `/private/tmp/claude-501/-Users-tawatchaipetkaew-My-Work-NOXIOUS-ORIVILO/1a700de3-9f5f-41df-9e15-cdbbfd48f205/scratchpad/orv-274-design-8/screenshots/s6-present-view__dark.png`, against `s6-present-view__{light,dark}__before.png`.
+
+### Files touched by revision 5.2
+
+| File                                                                               | Fixes                                                                                      |
+| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `packages/design-system/src/recipes/recipes.css`                                   | F1 (the label rule), F2 (label, title, status, and the title in the clip-box list), S1, S2 |
+| `packages/design-system/src/components/canvas-edge/CanvasEdge.tsx`                 | F1 (the inline transform ends in `scale(var(--_ls, 1))`)                                   |
+| `packages/design-system/src/components/canvas-edge/CanvasEdge.stories.tsx`         | F1 play in `KindsAndZoom`                                                                  |
+| `packages/design-system/src/components/canvas-node/CanvasNode.stories.tsx`         | F2 story `PresentNarrowLabels` and its play; S6 fixture                                    |
+| `packages/design-system/src/components/node-port/NodePort.stories.tsx`             | S1 play in `PresentNames`                                                                  |
+| `packages/design-system/src/components/canvas-controls/CanvasControls.stories.tsx` | S2 play in `WithChapters`                                                                  |
+| `packages/design-system/src/components/dialog/Dialog.stories.tsx`                  | S5 wrapper and its play                                                                    |
+
+`tech.md` rows 252 (the edge label's `scale`) and 272 (`.ds-node__label`) describe the code before this revision. Where they disagree with this section, the matching rows in tech.md need the same change before the builder starts, because tech.md wins on a conflict.
+
+### Follow-ups (not in this revision)
+
+- **S3, column gap.** On a present board a hovered or selected node shows its port name pills beside the dots, and they reach into the next column. PR 212's page must keep at least 120 px between the facing sides of two columns, so the pills of a hovered or selected node never sit over a neighbour.
+- **S4, the dock strip.** The dock's chapter row scrolls with a hard cut at its ends, and the board's attribution sits under the dock. PR 212's page must fade the ends of the scrolling strip (a mask) and keep the attribution clear of the dock.
+- **S2, focus part.** A focused edge has no focus line and halo along its path. This needs its own design (the halo on a path, its width at every zoom) and a story.
+- **S5, radius part.** The viewer's stage radius must be the panel's radius less `space.inset-md`, so the stage is concentric in the panel. PR 212's page must not show a stage whose radius is not concentric with its panel.
+- **F1, a full-size pill under neighbouring cards below zoom 1.** The position is now right, but on a short edge the pill can sit under cards (WithChapters at 0.5). PR 212's level of detail should hide meaning-only pills at mid, and its page layout should give the one shown pill (edge 18) room.
+- **F2, the basis word.** On a narrow card the basis honesty word (rules or mock) leaves after the status glyph. It stays in the DOM and the card's preview shows it, but a page that needs the honest word on the board at every zoom must give the card enough width.
+
 ## Changelog
+
+- **Revision 5.2, 2026-11-17 (`ORV-274-design-8`).** Fixes from the first visual sign-off of the built components at `bc871cf` (section 17). Each one was worked out on the built Storybook with the change injected, light and dark, and measured. Changes, and nothing else:
+  1. F1: the present edge pill's scale moves into the inline transform as its last function, `scale(var(--_ls, 1))`. Drift goes from up to 1616 px at zoom 0.25 to 0 at every zoom, and the pill keeps its zoom-1 size.
+  2. F2: the node label is one line of fixed height that is never wider than its card. Parts leave from the end, whole (open, pages, status word, status glyph, basis), and the title keeps `min(4em, the line)`. The title joins the clip-box rule so a Thai stack above it is whole.
+  3. S1: a present card with side ports is at least two radii plus its dot column high.
+  4. S2: hover gives a present edge the chain width in its own hue.
+  5. S5: the `Viewer` story's opener is inset by `space.inset-md`.
+  6. S6: the `Present` story's cards start 32 in.
+
+  S3, S4, the focus part of S2, the radius part of S5, and two residuals of F1 and F2 are follow-ups. No public prop, token, catalog key or `pairs.ts` pair is added. Pointers to section 17 are added in sections 4, 5 and 11; tech.md rows 252 and 272 need the matching change.
 
 - **Revision 5.1, 2026-11-17 (`ORV-274-design-6`).** The four new images are made (comment 10653); revision 5 stands with gaps 20, 22 and 23 as chosen and gap 21 page-local (comment 10652). Changes, and nothing else: (1) the 7 real images placed in a copy of the revision 5 mock (`orv-274-design-6`); (2) the scene quads of `scene-card` and `scene-sign` measured by script (`measure-quads.mjs`: threshold mask, sub-pixel edge crossings, a RANSAC line per side, corners from intersecting lines) and recorded in place of the targets, which missed by up to 3.5 points; (3) the card's face changed from 340 x 220 to 350 x 200 to match the card's measured aspect (1.75), lockup 56% of the face; (4) the sign's lockup from 72% to 65% of the face so its margins are even in the panel's plane; the lockup's size, inset and on-screen distances recorded per surface and checked on the board, the piece pages, the canvas and book page 11; (5) the paper treatment, revision 5's read as plain grey on the real `direction-place` (#DDDDD9), settled as violet ink on paper (variant g of seven: grayscale screened on `brand.signature`, `surface.canvas` multiplied over); (6) the violet treatment judged on `direction-team` and `direction-making` and kept unchanged; (7) gap 21 page-local in `orivilo-canvas.tsx` with exact declarations and a Tailwind form, no `recipes.css` and no `pairs.ts` change, in gap 21 and "For the builder"; (8) the image size sentence corrected: 1254 and 1448 are enough at device pixel ratio 1, not at 2 (1.09 and 1.26 at 1440), with a "Sizes" table in section 9; (9) the "Images" section checks under `images-1` of spec v2.1 and its table shows the four images as made with their folders; (10) `open.pages` and `open.name` moved from `orvCanvas` to the shared canvas message group `node` (spec v2.1 default 3); (11) the missing image state no longer says four images are missing; (12) the visual QA list gains the revision 5.1 screenshots and a new "still weak" judgement. Nodes, ports, edges, ground, dock, preview mechanics, chapters, product stage, board layouts, the brandbook pages' composition and the copy are unchanged.
 - **Revision 5, 2026-11-17 (`ORV-274-design-5`).** The owner's verdict on the boards and the images (comment 10649). One art direction for the two boards and the 12 brandbook pages, from six traits of the owner's references (section 0): violet, ink and paper floods; photographs staged in or treated into violet; the mark large and cropped, laid on real scenes in perspective; few words set large; no captions on the art; one honest line per board or page. The direction board: 5 pieces at 1280 x 800 (people, the Thai line, place, making, type), colour only as treatment, preview 6 pages. The brand in use board: 7 pieces at 1280 x 800 (hero, app icon, lockup with construction guides, phone with the real Landing, ink tile with the giant mark and the one lime action, card scene, sign scene), preview 8 pages. The brandbook redrawn at 1280 x 800 with a full cover, large-numeral contents, openers at x 5, a construction grid, the logo on three floods, the palette as bleeding fields with 60 / 30 / 10, a three-face type specimen, voice as large type, the applications from the in use board and a designed "Not tested yet". Images: 7 (3 kept: `brand-hero`, `direction-team`, `colour-reference`; 4 new briefs in the brand-hero form: `direction-making`, `direction-place`, `scene-card`, `scene-sign`); `mood-paper-clay`, `mood-glass`, `app-print` dropped from use; `direction-order`, `blank-screen`, `blank-poster`, `blank-phone` dropped. Gaps 20 (art type), 21 (photo treatments), 22 (quad placement), 23 (guides) added; gap 2 extended. Nodes, edges, ground, dock, preview mechanics, chapters and the product stage unchanged; the two board cards are 391 high; world 4484 x 1394.
