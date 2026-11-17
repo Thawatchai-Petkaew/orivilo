@@ -22,6 +22,7 @@ rules:
   - "On every board an edge keeps its width and its dash lengths on screen at any zoom: the board writes the private property --_zi (1 / zoom) on its root, and the recipe multiplies each width and length by it. An edit board draws 2 px (3 px selected). A present board draws edge.width-present, 1.5 px (edge.width-present-selected, 2.5 px, selected or chained). Input is solid, reference is 6 on 5 off (edge.dash.reference-on and -off), derived is round dots 5 apart (edge.dash.derived-on and -off) (ORV-274)"
   - "On a present board the hue follows the source port kind: text edge.stroke, image, palette, type and profile their port.* token. The port glyph carries the kind in shape. Selected, stale and invalid strokes still win; an edit board stays gray (ORV-274)"
   - "On a present board, when a node is selected its edges (data-chain) go to the selected width and every other edge and label drops to opacity.disabled. EdgeContent.label false hides the label pill; a stale or invalid edge keeps its pill because the pill carries the state. The accessible name is unchanged (ORV-274)"
+  - "On a present board the label pill keeps its zoom-1 size below zoom 1 and its centre on the edge's label point at every zoom; hover widens the edge to the chain width (derived: 2 x selected - rest) in its own hue (ORV-274; story KindsAndZoom, WithChapters)"
   - "1, 2, 3 on a focused edge set its meaning to input, reference, derived"
 a11y:
   - "aria-label reads: <meaning> จาก <source> ไป <target>, then the state word"

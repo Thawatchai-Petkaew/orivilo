@@ -301,6 +301,21 @@ async function playPresentNames(root: HTMLElement, lang: Lang) {
   for (const h of root.querySelectorAll(".ds-port__handle")) {
     await expect(getComputedStyle(h).opacity).toBe("1");
   }
+  // No side dot sits on the card's bend (ORV-274, S1): its top is at least the card's top plus the
+  // corner radius on screen, and its bottom at most the card's bottom less it. The viewport's zoom
+  // scales the radius, which is a world length.
+  const viewport = root.querySelector<HTMLElement>(".react-flow__viewport");
+  const zoom = parseFloat(/scale\(([\d.]+)\)/.exec(viewport?.style.transform ?? "")?.[1] ?? "NaN");
+  const sideDots = root.querySelectorAll<HTMLElement>(".ds-port:not([data-row]) .ds-port__handle");
+  await expect(sideDots.length).toBeGreaterThan(0);
+  for (const dot of sideDots) {
+    const card = dot.closest(".ds-node") as HTMLElement;
+    const radius = parseFloat(getComputedStyle(card).borderTopLeftRadius) * zoom;
+    const dotBox = dot.getBoundingClientRect();
+    const cardBox = card.getBoundingClientRect();
+    await expect(dotBox.top - (cardBox.top + radius)).toBeGreaterThanOrEqual(-0.5);
+    await expect(cardBox.bottom - radius - dotBox.bottom).toBeGreaterThanOrEqual(-0.5);
+  }
 }
 
 /**

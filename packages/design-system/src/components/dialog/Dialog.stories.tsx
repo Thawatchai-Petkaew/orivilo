@@ -397,15 +397,18 @@ function ViewerDialog({ lang }: { lang: Lang }) {
   const pager = useRef<HTMLDivElement>(null);
   return (
     <>
-      <Button
-        variant="secondary"
-        onClick={(event) => {
-          opener.current = event.currentTarget;
-          setOpen(true);
-        }}
-      >
-        {words.open}
-      </Button>
+      {/* The opener sits 16 px (space.inset-md) in from the page's edge, so its focus ring is whole. */}
+      <div className="p-4">
+        <Button
+          variant="secondary"
+          onClick={(event) => {
+            opener.current = event.currentTarget;
+            setOpen(true);
+          }}
+        >
+          {words.open}
+        </Button>
+      </div>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent
           size="viewer"
@@ -548,6 +551,23 @@ async function checkViewer(
   await userEvent.keyboard("{Escape}");
   await waitFor(() => expect(body().queryByRole("dialog")).toBeNull());
   await expect(opener).toHaveFocus();
+  // The opener's focus ring is whole (S5): its left and top, less how far the ring reaches, are not
+  // past the page's edge. The reach is the outline's width plus its offset, or the largest box-shadow
+  // spread, whichever is larger.
+  const ring = getComputedStyle(opener);
+  const spreads = ring.boxShadow
+    .replace(/(?:rgba?|color|oklch|oklab|lab|lch|hsla?|hwb)\([^)]*\)/g, "")
+    .split(",")
+    .map((layer) => parseFloat(layer.match(/-?[\d.]+px/g)?.[3] ?? "0"));
+  const reach = Math.max(
+    ring.outlineStyle === "none"
+      ? 0
+      : parseFloat(ring.outlineWidth) + parseFloat(ring.outlineOffset),
+    ...spreads,
+  );
+  await expect(reach).toBeGreaterThan(0);
+  await expect(box(opener).left - reach).toBeGreaterThanOrEqual(0);
+  await expect(box(opener).top - reach).toBeGreaterThanOrEqual(0);
 }
 
 /**

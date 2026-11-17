@@ -1,13 +1,26 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, userEvent, waitFor, within } from "storybook/test";
-import { type ReactNode, useState } from "react";
+import { type ReactFlowInstance, useReactFlow } from "@xyflow/react";
+import { type ReactNode, useEffect, useState } from "react";
 import { useDesignProfile } from "../../boundary/DesignProfileBoundary";
 import { NODE_KINDS } from "../../tokens/canvas";
-import { expectEdgeInk, inVitest, resolvedColor } from "../../testing/visual-asserts";
+import {
+  expectEdgeInk,
+  expectLabelInkWhole,
+  expectSameHeight,
+  inVitest,
+  resolvedColor,
+} from "../../testing/visual-asserts";
 import { CanvasBoard, type CanvasBoardProps } from "../canvas-board/CanvasBoard";
 import { blockNode, feed } from "../block-library/fixtures";
 import { LONG_NODE } from "../canvas-board/fixtures";
-import type { BoardNode, Graph, NodeContent } from "../canvas-board/graph";
+import {
+  type BoardNode,
+  type Graph,
+  type NodeContent,
+  nodeLabel,
+  nodeOpenLabel,
+} from "../canvas-board/graph";
 import { fixtures } from "../fixtures";
 import { fillHeight, Matrix, Narrow } from "../matrix";
 
@@ -898,7 +911,7 @@ function presentKinds(lang: Lang): Graph {
     nodes: kinds.map((kind, i) => ({
       id: `k${i}`,
       type: "orivilo" as const,
-      position: { x: i * 340, y: 64 },
+      position: { x: 32 + i * 340, y: 64 },
       data: {
         title: `${w.logo} ${i + 1}`,
         kind,
@@ -920,6 +933,12 @@ async function playPresentKinds(root: HTMLElement, lang: Lang) {
       : ["knowledge", "direction", "artifact", "reference"]
   ).map((kind, i) => `${WORDS[lang].logo} ${i + 1}, ${kind}`);
   for (const name of names) await expect(within(root).getByRole("group", { name })).toBeVisible();
+  // The first dot is whole (S6): the leftmost port starts inside the board, not over its edge.
+  const flowBox = (root.querySelector(".react-flow") as Element).getBoundingClientRect();
+  const lefts = [...root.querySelectorAll(".ds-port__handle")].map(
+    (h) => h.getBoundingClientRect().left,
+  );
+  await expect(Math.min(...lefts) - flowBox.left).toBeGreaterThanOrEqual(23);
   // Each kind draws its own glyph in the label, and the kind word is not on the card.
   const glyphs = new Set(
     [...root.querySelectorAll(".ds-node__label > svg:first-child")].map((g) => g.innerHTML),
@@ -932,7 +951,9 @@ async function playPresentKinds(root: HTMLElement, lang: Lang) {
   // view). Top and bottom only: the port dots sit on the side edges. Read in light mode only: in dark
   // the hairline is border.subtle on a card 1.1 from the ground by design, too faint for the pixel
   // reader's threshold, so the English twin asserts the computed border colour and width instead.
-  if (inVitest && lang === "th") await expectEdgeInk(cardOf(root, "k1"), ["top", "bottom"], 1);
+  // The third card is read, not the second: a ground dot 4 px above the second card's top centre
+  // reads as a second line of ink there (the cards start at x = 32 since S6).
+  if (inVitest && lang === "th") await expectEdgeInk(cardOf(root, "k2"), ["top", "bottom"], 1);
   const hairline = getComputedStyle(cardOf(root, "k1"));
   await expect(hairline.borderTopWidth).toBe("1px");
   await expect(hairline.borderTopColor).toBe(
@@ -967,6 +988,241 @@ export const PresentInEnglish: Story = {
     />
   ),
   play: async ({ canvasElement }) => playPresentKinds(canvasElement, "en"),
+};
+
+/* A present label never passes its card (ORV-274, F2). --------------------------------------------- */
+
+/** The board's React Flow instance, handed over by a child of the board, so a play can zoom it. */
+let flow: ReactFlowInstance | undefined;
+function FlowHandle() {
+  const instance = useReactFlow();
+  useEffect(() => {
+    flow = instance;
+    return () => {
+      flow = undefined;
+    };
+  }, [instance]);
+  return null;
+}
+
+/**
+ * Three `sm` cards in a row: a long title with a basis, a status and a page count; a short title with
+ * a status and a page count; a short title alone.
+ */
+function narrowLabels(lang: Lang): Graph {
+  const w = WORDS[lang];
+  const spec: Partial<NodeContent>[] = [
+    {
+      title: lang === "th" ? fixtures.longThai : fixtures.longLatin,
+      kind: "knowledge",
+      basis: "rules",
+      status: "stale",
+      open: { count: 3 },
+    },
+    { title: w.logo, kind: "artifact", status: "stale", open: { count: 3 } },
+    { title: w.rest, kind: "direction" },
+  ];
+  return {
+    nodes: spec.map((data, i) => ({
+      id: `l${i}`,
+      type: "orivilo" as const,
+      position: { x: 32 + i * 340, y: 64 },
+      data: { size: "sm" as const, inputs: [], outputs: [], ...data } as NodeContent,
+    })),
+    edges: [],
+  };
+}
+
+/** The zoom the viewport has, read from its transform. */
+const viewportZoom = (root: Element) =>
+  parseFloat(
+    /scale\(([\d.]+)\)/.exec(
+      root.querySelector<HTMLElement>(".react-flow__viewport")?.style.transform ?? "",
+    )?.[1] ?? "NaN",
+  );
+
+/** Sets the zoom and waits until the viewport and the labels' own scale both hold it. */
+async function zoomBoard(root: HTMLElement, zoom: number) {
+  await waitFor(async () => {
+    await flow?.zoomTo(zoom, { duration: 0 });
+    expect(viewportZoom(root)).toBeCloseTo(zoom, 3);
+    for (const label of root.querySelectorAll(".ds-node__label")) {
+      const scale = getComputedStyle(label).scale;
+      expect(scale === "none" ? 1 : parseFloat(scale)).toBeCloseTo(Math.max(1, 1 / zoom), 2);
+    }
+  });
+}
+
+/** The parts of a label in DOM order, each with its rect: the status's glyph and its word are two. */
+function labelParts(label: Element) {
+  const parts: { name: string; rect: DOMRect }[] = [];
+  const text = (node: Node) => {
+    const range = document.createRange();
+    range.selectNodeContents(node);
+    return range.getBoundingClientRect();
+  };
+  for (const child of label.children) {
+    if (child.classList.contains("ds-node__status")) {
+      for (const inner of child.childNodes) {
+        const name = inner.nodeType === Node.TEXT_NODE ? "status-word" : "status-glyph";
+        parts.push({
+          name,
+          rect: inner instanceof Element ? inner.getBoundingClientRect() : text(inner),
+        });
+      }
+    } else {
+      const name = child.classList.contains("ds-node__title")
+        ? "title"
+        : child.classList.contains("ds-node__basis")
+          ? "basis"
+          : child.classList.contains("ds-node__pages")
+            ? "pages"
+            : child.classList.contains("ds-node__open")
+              ? "open"
+              : "kind";
+      parts.push({ name, rect: child.getBoundingClientRect() });
+    }
+  }
+  return parts;
+}
+
+/** What a label shows: each part's name, in DOM order, whether it lies inside the label's box. */
+function shownParts(label: Element) {
+  const box = label.getBoundingClientRect();
+  return labelParts(label).map(({ name, rect }) => ({
+    name,
+    rect,
+    shown:
+      rect.left >= box.left - 0.5 &&
+      rect.right <= box.right + 0.5 &&
+      // A part is on the first line when its middle is: the title's rect is its padded clip box (4 px
+      // taller each way), and a taller part (the pages word) moves it a pixel past the label's edge.
+      // A part on the wrapped line is 24 px lower, so its middle is far outside.
+      (rect.top + rect.bottom) / 2 >= box.top &&
+      (rect.top + rect.bottom) / 2 <= box.bottom,
+  }));
+}
+
+async function playNarrowLabels(root: HTMLElement, lang: Lang) {
+  await ready(root, 3);
+  const labels = () => [...root.querySelectorAll<HTMLElement>(".ds-node__label")];
+  const checkStep = (zoom: number) => {
+    for (const label of labels()) {
+      const card = label.closest(".ds-node") as HTMLElement;
+      const box = label.getBoundingClientRect();
+      // Never wider than its card.
+      expect(
+        box.width,
+        `at zoom ${zoom}, a label is ${box.width} px in a ${card.getBoundingClientRect().width} px card`,
+      ).toBeLessThanOrEqual(card.getBoundingClientRect().width + 0.5);
+      const parts = shownParts(label);
+      // The shown parts are a prefix of the DOM order.
+      const firstHidden = parts.findIndex((p) => !p.shown);
+      if (firstHidden >= 0) {
+        for (const p of parts.slice(firstHidden)) {
+          expect(p.shown, `at zoom ${zoom}, ${p.name} shows after a hidden part`).toBe(false);
+          // A hidden part is on the wrapped line, at or below the label's bottom.
+          expect(
+            p.rect.top,
+            `at zoom ${zoom}, hidden ${p.name} sits inside the label`,
+          ).toBeGreaterThanOrEqual(box.bottom - 0.5);
+        }
+      }
+      // The title always keeps a stub: 4em of the label type, or the line after the kind glyph, or
+      // its whole text when that is shorter (it never grows past its text).
+      const title = parts.find((p) => p.name === "title");
+      const text = label.querySelector(".ds-node__title") as HTMLElement;
+      expect(title?.shown, `at zoom ${zoom}, the title is hidden`).toBe(true);
+      expect(title?.rect.width ?? 0).toBeGreaterThanOrEqual(
+        Math.min(52, box.width - 18, text.scrollWidth) - 0.5,
+      );
+    }
+    // Every label is the same height whatever wraps.
+    const [first, ...rest] = labels();
+    if (first) expectSameHeight(first, ...rest);
+  };
+  for (const zoom of [1, 0.8, 0.6, 0.4, 0.25]) {
+    await zoomBoard(root, zoom);
+    checkStep(zoom);
+    const shown = labels().map((label) =>
+      shownParts(label)
+        .filter((p) => p.shown)
+        .map((p) => p.name),
+    );
+    if (zoom === 1) {
+      // At 1 the two short cards show every part they have.
+      await expect(shown[1]).toEqual([
+        "kind",
+        "title",
+        "status-glyph",
+        "status-word",
+        "pages",
+        "open",
+      ]);
+      await expect(shown[2]).toEqual(["kind", "title"]);
+    }
+    if (zoom === 0.25) for (const parts of shown) await expect(parts).toEqual(["kind", "title"]);
+  }
+  // The long card gives its parts up from the end: a fine sweep finds a step where the status glyph
+  // shows and its word does not (where the word leaves depends on the font's width).
+  let between = false;
+  for (let zoom = 0.8; zoom >= 0.2499; zoom -= 0.05) {
+    await zoomBoard(root, Number(zoom.toFixed(2)));
+    const long = shownParts(labels()[0] as Element);
+    const glyph = long.find((p) => p.name === "status-glyph")?.shown;
+    const word = long.find((p) => p.name === "status-word")?.shown;
+    if (glyph && !word) between = true;
+  }
+  await expect(between, "no zoom step shows the status glyph without its word").toBe(true);
+  // The status keeps its word in the text, and each card keeps its name.
+  await expect(root.querySelector(".ds-node__status")).toHaveTextContent(/\S/);
+  const named = [
+    nodeOpenLabel(narrowLabels(lang).nodes[0]?.data as NodeContent, lang),
+    nodeOpenLabel(narrowLabels(lang).nodes[1]?.data as NodeContent, lang),
+    nodeLabel(narrowLabels(lang).nodes[2]?.data as NodeContent, lang),
+  ];
+  for (const name of named) await expect(within(root).getByRole("group", { name })).toBeVisible();
+  // The third card's title stack of Thai marks is whole.
+  await zoomBoard(root, 1);
+  if (inVitest) {
+    await expectLabelInkWhole(
+      cardOf(root, "l2").querySelector(".ds-node__title") as HTMLElement,
+      "ปี๊ฟื้ ฎุฐู",
+    );
+  }
+}
+
+/** The labels of three cards at five zooms: none passes its card, parts leave from the end, whole. */
+export const PresentNarrowLabels: Story = {
+  render: () => (
+    <NodeBoard
+      variant="present"
+      height={320}
+      chrome={false}
+      fitView={false}
+      initial={narrowLabels("th")}
+    >
+      <FlowHandle />
+    </NodeBoard>
+  ),
+  play: async ({ canvasElement }) => playNarrowLabels(canvasElement, "th"),
+};
+
+/** The same labels in English, in dark mode. */
+export const PresentNarrowLabelsInEnglish: Story = {
+  globals: { locale: "en", mode: "dark" },
+  render: () => (
+    <NodeBoard
+      variant="present"
+      height={320}
+      chrome={false}
+      fitView={false}
+      initial={narrowLabels("en")}
+    >
+      <FlowHandle />
+    </NodeBoard>
+  ),
+  play: async ({ canvasElement }) => playNarrowLabels(canvasElement, "en"),
 };
 
 /**

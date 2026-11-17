@@ -128,7 +128,9 @@ export function CanvasEdge({
             data-state={state ? (data?.invalid ? "invalid" : "stale") : undefined}
             data-chain={chain ? "" : undefined}
             aria-hidden="true"
-            style={{ transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)` }}
+            style={{
+              transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px) scale(var(--_ls, 1))`,
+            }}
           >
             {word(CANVAS_WORDS.edge[meaning])}
             {state ? `, ${state}` : ""}

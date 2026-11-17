@@ -196,6 +196,38 @@ const barOrder = (bar: HTMLElement) =>
       c.tagName,
   );
 
+/**
+ * A hover widens a present edge to the chain width and keeps its hue (ORV-274, S2). The drawn
+ * width is the computed `stroke-width` times the path's screen scale. The pointer is a real one
+ * (Vitest browser mode), as the `Calendar` hover is, so the static Storybook skips this part.
+ */
+async function expectEdgeHoverWidth(
+  region: HTMLElement,
+  id: string,
+  rest: number,
+  hovered: number,
+) {
+  const edge = region.querySelector(`.react-flow__edge[data-id="${id}"]`) as Element;
+  const path = edge.querySelector(".ds-edge__path") as SVGPathElement;
+  const target = edge.querySelector(".react-flow__edge-interaction") as SVGPathElement;
+  const drawnWidth = () =>
+    parseFloat(getComputedStyle(path).strokeWidth) * (path.getScreenCTM()?.a ?? NaN);
+  await expect(drawnWidth()).toBeCloseTo(rest, 1);
+  const stroke = getComputedStyle(path).stroke;
+  // The point 30% along the path, on screen, relative to the interaction path's rect.
+  const at = path
+    .getPointAtLength(0.3 * path.getTotalLength())
+    .matrixTransform(path.getScreenCTM() ?? undefined);
+  const rect = target.getBoundingClientRect();
+  const { userEvent: real } = await import("vitest/browser");
+  await real.hover(target, { position: { x: at.x - rect.left, y: at.y - rect.top } });
+  await waitFor(() => expect(edge.matches(":hover")).toBe(true));
+  await waitFor(() => expect(drawnWidth()).toBeCloseTo(hovered, 1));
+  await expect(getComputedStyle(path).stroke).toBe(stroke);
+  await real.unhover(target);
+  await waitFor(() => expect(edge.matches(":hover")).toBe(false));
+}
+
 async function playDock(root: HTMLElement, lang: Lang) {
   const words = DOCK[lang];
   const region = within(root).getByRole("region", { name: words.readOnly });
@@ -241,6 +273,11 @@ async function playDock(root: HTMLElement, lang: Lang) {
     "aria-current",
     "true",
   );
+  // Hover widens a present edge: a type edge from 1.5 to 2.5 px, a derived edge from 2.5 to 3.5.
+  if (inVitest) {
+    await expectEdgeHoverWidth(region, "e-type-profile", 1.5, 2.5);
+    await expectEdgeHoverWidth(region, "e-logo-palette", 2.5, 3.5);
+  }
 }
 
 /**

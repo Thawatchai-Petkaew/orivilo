@@ -429,18 +429,71 @@ const pathOf = (board: Element, id: string) =>
   board.querySelector(`.react-flow__edge[data-id="${id}"] .ds-edge__path`) as Element;
 
 /**
+ * Every pill of a board sits on its edge (ORV-274, F1). A pill's edge point is the cubic's t = 0.5
+ * point, mapped to the screen with the path's own matrix; the pill has no edge id, so each is
+ * matched to its nearest point with no point used twice. Returns each pill's rect height.
+ */
+function expectPillsOnEdges(board: Element, zoom: number) {
+  const points: { x: number; y: number }[] = [];
+  for (const path of board.querySelectorAll<SVGPathElement>(".ds-edge__path")) {
+    const n = (path.getAttribute("d") ?? "").match(/-?[\d.]+(?:e-?\d+)?/g)?.map(Number) ?? [];
+    // `M sx,sy C c1x,c1y c2x,c2y tx,ty`, as getBezierPath writes it.
+    expect(n).toHaveLength(8);
+    const [sx, sy, c1x, c1y, c2x, c2y, tx, ty] = n as [
+      number,
+      number,
+      number,
+      number,
+      number,
+      number,
+      number,
+      number,
+    ];
+    const ctm = path.getScreenCTM();
+    const point = new DOMPoint(
+      0.125 * sx + 0.375 * c1x + 0.375 * c2x + 0.125 * tx,
+      0.125 * sy + 0.375 * c1y + 0.375 * c2y + 0.125 * ty,
+    ).matrixTransform(ctm ?? undefined);
+    points.push({ x: point.x, y: point.y });
+  }
+  const pills = [...board.querySelectorAll<HTMLElement>(".ds-edge__label")].map((el) => {
+    const r = el.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2, height: r.height };
+  });
+  expect(pills.length).toBeGreaterThan(0);
+  const pairs = pills
+    .flatMap((pill, i) =>
+      points.map((point, j) => ({ i, j, d: Math.hypot(pill.x - point.x, pill.y - point.y) })),
+    )
+    .sort((a, b) => a.d - b.d);
+  const pillUsed = new Set<number>();
+  const pointUsed = new Set<number>();
+  for (const { i, j, d } of pairs) {
+    if (pillUsed.has(i) || pointUsed.has(j)) continue;
+    pillUsed.add(i);
+    pointUsed.add(j);
+    expect(
+      d,
+      `at zoom ${zoom}, pill ${i} is ${d.toFixed(1)} px from its edge point`,
+    ).toBeLessThanOrEqual(1);
+  }
+  expect(pillUsed.size).toBe(pills.length);
+  return pills.map((p) => p.height);
+}
+
+/**
  * Four kinds and text by three meanings on a present board, beside an edit board of the three
  * meanings, at zoom 0.25, 1 and 2 (spec rows 9 and 10). The width and the dash lengths on screen
  * are the same at every zoom; the hue follows the source port's kind.
  */
 async function playKindsAndZoom(root: HTMLElement, lang: keyof typeof TITLES) {
-  const pillHeights: number[] = [];
-  for (const zoom of [0.25, 1, 2]) {
+  const pillHeights = new Map<number, number[]>();
+  for (const zoom of [0.25, 0.5, 1, 2]) {
     const present = await zoomTo(root, "present", zoom);
     const edit = await zoomTo(root, "edit", zoom);
-    pillHeights.push(
-      (present.querySelector(".ds-edge__label") as HTMLElement).getBoundingClientRect().height,
-    );
+    // The pill sits on its edge at every zoom, on both boards (F1).
+    pillHeights.set(zoom, expectPillsOnEdges(present, zoom));
+    expectPillsOnEdges(edit, zoom);
     for (const kind of KINDS) {
       const input = drawn(pathOf(present, `e-${kind}-input`));
       const reference = drawn(pathOf(present, `e-${kind}-reference`));
@@ -477,9 +530,21 @@ async function playKindsAndZoom(root: HTMLElement, lang: keyof typeof TITLES) {
     for (const e of [editInput, editReference, editDerived]) await expect(e?.stroke).toBe(gray);
   }
   // A present label pill stays as tall on screen when zoomed out (it grows by 1 / zoom, so the
-  // zoom cancels), and grows with the board once the zoom is past 1.
-  await expect(pillHeights[0]).toBeCloseTo(pillHeights[1] ?? NaN, 0);
-  await expect(pillHeights[2]).toBeCloseTo(2 * (pillHeights[1] ?? NaN), 0);
+  // zoom cancels), and grows with the board once the zoom is past 1. Each pill is compared with
+  // the same pill at zoom 1 (the pills keep their DOM order at every zoom).
+  const at1 = pillHeights.get(1) ?? [];
+  expect(at1.length).toBeGreaterThan(0);
+  for (const [zoom, factor] of [
+    [0.25, 1],
+    [0.5, 1],
+    [2, 2],
+  ] as const) {
+    const heights = pillHeights.get(zoom) ?? [];
+    expect(heights).toHaveLength(at1.length);
+    heights.forEach((h, i) =>
+      expect(Math.abs(h - factor * (at1[i] ?? NaN))).toBeLessThanOrEqual(0.5),
+    );
+  }
   // The names still read meaning, source and target in the author's words.
   const { from, to } = TITLES[lang];
   const name =

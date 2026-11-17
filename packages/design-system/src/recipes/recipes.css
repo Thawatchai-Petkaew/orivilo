@@ -2818,6 +2818,39 @@
   padding: var(--cmp-node-padding);
   overflow: visible;
 }
+/* A card with side ports is as tall as its dot column needs (ORV-274): two radii, plus the pitch of
+ * the other dots, plus the dot, so every dot sits on the straight part of its side and none on the
+ * corner's bend. Ports are counted without row ports, which sit at their rows. */
+.ds-board[data-variant="present"] .ds-node:has(.ds-node__port-list > .ds-port:not([data-row])) {
+  --_ports: 1;
+  min-block-size: calc(
+    2 * var(--cmp-node-radius) + (var(--_ports) - 1) * var(--ds-space-grid-gap) +
+      var(--ds-size-port)
+  );
+}
+.ds-board[data-variant="present"]
+  .ds-node:has(.ds-node__port-list > .ds-port:not([data-row]) ~ .ds-port:not([data-row])) {
+  --_ports: 2;
+}
+.ds-board[data-variant="present"]
+  .ds-node:has(
+    .ds-node__port-list
+      > .ds-port:not([data-row])
+      ~ .ds-port:not([data-row])
+      ~ .ds-port:not([data-row])
+  ) {
+  --_ports: 3;
+}
+.ds-board[data-variant="present"]
+  .ds-node:has(
+    .ds-node__port-list
+      > .ds-port:not([data-row])
+      ~ .ds-port:not([data-row])
+      ~ .ds-port:not([data-row])
+      ~ .ds-port:not([data-row])
+  ) {
+  --_ports: 4;
+}
 .ds-board[data-variant="present"] .ds-node[data-pad="media"] {
   --_media-radius: calc(var(--cmp-node-radius) - var(--cmp-node-padding-media));
   padding: var(--cmp-node-padding-media);
@@ -2847,9 +2880,19 @@
   scale: var(--_ls);
   transform-origin: 0 100%;
   display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
   align-items: center;
   gap: var(--_label-gap);
+  row-gap: var(--ds-space-stack-lg);
+  box-sizing: border-box;
+  block-size: calc(1lh + var(--ds-space-inline-sm));
   padding-block-end: var(--ds-space-inline-sm);
+  white-space: nowrap;
+  /* One line that never passes the card: a part that does not fit wraps to a second line, 24 px below,
+   * and the clip hides it. The clip reaches 4 px above for a Thai mark over the title, and is flush
+   * at the start, the end and the bottom. */
+  clip-path: inset(calc(-1 * var(--ds-space-inline-sm)) 0 0 0);
   color: var(--ds-text-secondary);
   font-family: var(--ds-type-label-sm-font-family);
   font-size: var(--ds-type-label-sm-font-size);
@@ -2860,13 +2903,23 @@
   flex: none;
 }
 .ds-node__label .ds-node__title {
-  flex: 0 1 auto;
+  /* The title keeps 4em, or the whole line after the kind glyph when that is shorter, before the other
+   * parts wrap; it never grows past its text, so a short title does not push the end parts away. */
+  flex: 1 1 min(4em, 100% - var(--ds-size-icon-xs) - var(--_label-gap));
+  max-inline-size: max-content;
   min-width: 0;
   font: inherit;
   letter-spacing: inherit;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+/* The status's glyph and its word are two flex items, so the word leaves before the glyph. */
+.ds-node__label .ds-node__status {
+  display: contents;
+}
+.ds-node__label .ds-node__status > svg {
+  flex: none;
 }
 .ds-board[data-variant="present"]
   .react-flow__node:is(:hover, .selected, :focus-visible)
@@ -3032,10 +3085,17 @@
 .ds-board[data-variant="present"][data-has-selection] .ds-edge__label:not([data-chain]) {
   opacity: var(--ds-opacity-disabled);
 }
-.ds-board[data-variant="present"] .ds-edge[data-chain] .ds-edge__path {
+/* A chained edge and a hovered edge draw at the chain width; hover leaves the stroke colour alone, so
+ * a kind-hued edge keeps its hue (ORV-274). */
+.ds-board[data-variant="present"] .ds-edge[data-chain] .ds-edge__path,
+.ds-board[data-variant="present"] .react-flow__edge:hover .ds-edge__path {
   stroke-width: calc(var(--_edge-w-selected) * var(--_zi, 1));
 }
-.ds-board[data-variant="present"] .ds-edge[data-chain][data-meaning="derived"] .ds-edge__path {
+.ds-board[data-variant="present"] .ds-edge[data-chain][data-meaning="derived"] .ds-edge__path,
+.ds-board[data-variant="present"]
+  .react-flow__edge:hover
+  .ds-edge[data-meaning="derived"]
+  .ds-edge__path {
   stroke-width: calc((2 * var(--_edge-w-selected) - var(--_edge-w)) * var(--_zi, 1));
 }
 .ds-board__defs {
@@ -3098,9 +3158,10 @@
   white-space: nowrap;
   pointer-events: none;
 }
-/* The pill stays readable when the board is zoomed out. The inline transform keeps the translate. */
+/* The pill keeps its zoom-1 size when the board is zoomed out. The scale is the last function of the
+ * inline transform in CanvasEdge, so it scales the pill around its centre and never the translate. */
 .ds-board[data-variant="present"] .ds-edge__label {
-  scale: max(1, var(--_zi, 1));
+  --_ls: max(1, var(--_zi, 1));
 }
 .ds-edge__label[data-state="stale"] {
   color: var(--cmp-edge-stroke-stale);
@@ -6022,7 +6083,8 @@ button.ds-tag__main {
 .ds-chat__option > span:first-child,
 .ds-breadcrumb__link,
 .ds-breadcrumb__page,
-.ds-nav-item[data-size="sm"] .ds-nav-item__label {
+.ds-nav-item[data-size="sm"] .ds-nav-item__label,
+.ds-node__label .ds-node__title {
   padding-block: var(--ds-space-inline-sm);
   margin-block: calc(-1 * var(--ds-space-inline-sm));
 }
