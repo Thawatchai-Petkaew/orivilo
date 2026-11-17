@@ -1,7 +1,15 @@
 "use client";
 
-import type { NodeProps } from "@xyflow/react";
-import { type ComponentType, type SVGProps, useEffect, useMemo, useState } from "react";
+import { type NodeProps, useUpdateNodeInternals } from "@xyflow/react";
+import {
+  type ComponentType,
+  type SVGProps,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { type FillState, blockById, fillState, missingInputs, summarize } from "../../blocks/index";
 import { pick } from "../../i18n/locale";
 import { useBoard } from "../canvas-board/context";
@@ -21,6 +29,7 @@ import {
   KnowledgeIcon,
   LockIcon,
   NoteIcon,
+  OpenIcon,
   ReadStepIcon,
   ReferenceIcon,
   ReviewStepIcon,
@@ -67,6 +76,27 @@ const FILL_ICON: Record<FillState, Glyph> = {
 /** Summary lines a node shows before it says how many more there are. */
 const SUMMARY_LINES = 3;
 
+/** The middle of each `[data-port-row]` element, from the card's padding box top, in node pixels. */
+function measureRows(card: HTMLElement): Record<string, number> {
+  const box = card.getBoundingClientRect();
+  // The viewport scales the card; a node pixel is a screen pixel divided by that ratio.
+  const ratio = card.offsetWidth > 0 ? box.width / card.offsetWidth : 1;
+  const top = box.top + card.clientTop * ratio;
+  const rows: Record<string, number> = {};
+  for (const row of card.querySelectorAll<HTMLElement>("[data-port-row]")) {
+    const name = row.dataset["portRow"];
+    if (!name) continue;
+    const r = row.getBoundingClientRect();
+    rows[name] = Math.round(((r.top + r.height / 2 - top) / ratio) * 100) / 100;
+  }
+  return rows;
+}
+
+const sameRows = (a: Record<string, number>, b: Record<string, number>) => {
+  const keys = Object.keys(b);
+  return Object.keys(a).length === keys.length && keys.every((k) => a[k] === b[k]);
+};
+
 /** The time since a run started, ticking once a second while the node runs. */
 function useElapsed(startedAt: string | undefined, running: boolean): string | undefined {
   const [now, setNow] = useState(() => Date.now());
@@ -92,6 +122,11 @@ function useElapsed(startedAt: string | undefined, running: boolean): string | u
  * answers and edges: empty (dashed frame, its first question as the body), partial ("N more to
  * ask"), summarized, or unlinked; the body is then the rule-based summary, up to three lines,
  * with a swatch row when it holds colours, labelled as made by rules.
+ *
+ * A present board (`board.readOnly`) draws the node as one card (ORV-274): the kind glyph, title,
+ * status and basis form a label above the card; the ports are glyph dots on the card edge; the
+ * source line is a pill under the card. A node with `open` ends its title row with the pages word
+ * and the open glyph on both boards. Ports with a `row` sit at the middle of their body row.
  */
 export function CanvasNode({ id, data, selected, dragging }: CanvasNodeProps) {
   const board = useBoard();
@@ -126,6 +161,39 @@ export function CanvasNode({ id, data, selected, dragging }: CanvasNodeProps) {
       : m.node.fill[block.state]
     : undefined;
   const FillIcon = block?.state ? FILL_ICON[block.state] : undefined;
+  const present = board.readOnly;
+  const card = useRef<HTMLDivElement>(null);
+  const updateInternals = useUpdateNodeInternals();
+  const rowNames = [...data.inputs, ...data.outputs].flatMap((p) => (p.row ? [p.row] : []));
+  const rowKey = rowNames.join("|");
+  const hasRows = present && rowNames.length > 0;
+  const [rowY, setRowY] = useState<Record<string, number>>({});
+  // Each row port sits at its row's middle: measured on the card, again when the card resizes, then
+  // React Flow reads the moved handles. A measured layout position, not a design value.
+  useLayoutEffect(() => {
+    const el = card.current;
+    if (!el || !hasRows) return undefined;
+    const measure = () => {
+      const next = measureRows(el);
+      setRowY((prev) => (sameRows(prev, next) ? prev : next));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasRows, rowKey]);
+  useLayoutEffect(() => {
+    if (hasRows) updateInternals(id);
+  }, [hasRows, rowY, id, updateInternals]);
+  const pages = data.open ? fill(m.node.pages, { count: String(data.open.count) }) : undefined;
+  const statusChip = status ? (
+    <span className="ds-node__status" data-status={data.status}>
+      {running ? <SpinnerIcon className="ds-spin" /> : null}
+      {data.status === "stale" ? <StaleIcon /> : null}
+      {locked ? <LockIcon /> : null}
+      {status}
+    </span>
+  ) : null;
   const stepState: Record<NodeStep["state"], string> = {
     done: m.node.stepDone,
     current: m.node.stepCurrent,
@@ -134,8 +202,11 @@ export function CanvasNode({ id, data, selected, dragging }: CanvasNodeProps) {
 
   return (
     <div
+      ref={card}
       className="ds-node"
       data-kind={data.kind}
+      data-pad={data.pad ?? "text"}
+      data-open={data.open ? "" : undefined}
       data-size={data.size ?? "md"}
       data-status={data.status}
       data-selected={selected ? "" : undefined}
@@ -149,42 +220,61 @@ export function CanvasNode({ id, data, selected, dragging }: CanvasNodeProps) {
       aria-busy={data.status === "running" ? true : undefined}
     >
       <NodeToolbar node={{ id, data, selected }} />
-      <div className="ds-node__header">
-        <div className="ds-node__meta">
-          <span className="ds-node__chip">
-            <KindIcon />
-          </span>
-          <span className="ds-node__kind">
-            {kind}
-            {basis ? (
-              <>
-                {" "}
-                <span className="ds-node__basis">{basis}</span>
-              </>
-            ) : null}
-          </span>
-          {status ? (
-            <span className="ds-node__status" data-status={data.status}>
-              {running ? <SpinnerIcon className="ds-spin" /> : null}
-              {data.status === "stale" ? <StaleIcon /> : null}
-              {locked ? <LockIcon /> : null}
-              {status}
-            </span>
-          ) : null}
-          {fillWord && FillIcon ? (
-            <span className="ds-node__fill" data-fill={block?.state}>
-              <FillIcon />
-              {fillWord}
-            </span>
-          ) : null}
-          {elapsed ? (
-            <span className="ds-node__elapsed" aria-label={fill(m.node.elapsed, { time: elapsed })}>
-              {elapsed}
-            </span>
+      {present ? (
+        <div className="ds-node__label">
+          <KindIcon />
+          <span className="ds-node__title">{data.title}</span>
+          {basis ? <span className="ds-node__basis">{basis}</span> : null}
+          {statusChip}
+          {pages ? (
+            <>
+              <span className="ds-node__pages">{pages}</span>
+              <OpenIcon className="ds-node__open" />
+            </>
           ) : null}
         </div>
-        <span className="ds-node__title">{data.title}</span>
-      </div>
+      ) : (
+        <div className="ds-node__header">
+          <div className="ds-node__meta">
+            <span className="ds-node__chip">
+              <KindIcon />
+            </span>
+            <span className="ds-node__kind">
+              {kind}
+              {basis ? (
+                <>
+                  {" "}
+                  <span className="ds-node__basis">{basis}</span>
+                </>
+              ) : null}
+            </span>
+            {statusChip}
+            {fillWord && FillIcon ? (
+              <span className="ds-node__fill" data-fill={block?.state}>
+                <FillIcon />
+                {fillWord}
+              </span>
+            ) : null}
+            {elapsed ? (
+              <span
+                className="ds-node__elapsed"
+                aria-label={fill(m.node.elapsed, { time: elapsed })}
+              >
+                {elapsed}
+              </span>
+            ) : null}
+          </div>
+          {pages ? (
+            <div className="ds-node__heading">
+              <span className="ds-node__title">{data.title}</span>
+              <span className="ds-node__pages">{pages}</span>
+              <OpenIcon className="ds-node__open" />
+            </div>
+          ) : (
+            <span className="ds-node__title">{data.title}</span>
+          )}
+        </div>
+      )}
       {data.collapsed ? null : (
         <div className="ds-node__body">
           {body ??
@@ -224,16 +314,29 @@ export function CanvasNode({ id, data, selected, dragging }: CanvasNodeProps) {
         <div className="ds-node__ports">
           <ul className="ds-node__port-list" data-direction="input" aria-label={m.node.inputs}>
             {data.inputs.map((port) => (
-              <NodePort key={port.id} port={port} direction="input" disabled={locked} />
+              <NodePort
+                key={port.id}
+                port={port}
+                direction="input"
+                disabled={locked}
+                rowY={port.row ? rowY[port.row] : undefined}
+              />
             ))}
           </ul>
           <ul className="ds-node__port-list" data-direction="output" aria-label={m.node.outputs}>
             {data.outputs.map((port) => (
-              <NodePort key={port.id} port={port} direction="output" disabled={locked} />
+              <NodePort
+                key={port.id}
+                port={port}
+                direction="output"
+                disabled={locked}
+                rowY={port.row ? rowY[port.row] : undefined}
+              />
             ))}
           </ul>
         </div>
       ) : null}
+      {data.source ? <p className="ds-node__source">{data.source}</p> : null}
     </div>
   );
 }

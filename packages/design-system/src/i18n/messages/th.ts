@@ -263,6 +263,7 @@ export const th = {
     elapsed: "ใช้เวลา {time}",
     byRules: "ตามกฎ",
     moreLines: "อีก {count} บรรทัด",
+    pages: "{count} หน้า",
     fill: {
       empty: "ยังว่าง",
       partial: "ถามอีก {count} ข้อ",
@@ -443,6 +444,7 @@ export const th = {
   },
   graph: {
     nodeLabel: "{title}, {kind}",
+    nodeOpenLabel: "{title} {count} หน้า",
     edgeLabel: "{meaning} จาก {source} ไป {target}",
     invalid: "เชื่อมต่อไม่ได้",
     selfLoop: "ต่อสายเข้า node ตัวเองไม่ได้",

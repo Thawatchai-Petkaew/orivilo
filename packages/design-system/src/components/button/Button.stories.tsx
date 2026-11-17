@@ -1,7 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { DesignProfileBoundary, type Mode } from "../../boundary/DesignProfileBoundary";
-import { expectFocusBorderForm, expectInkCentred, inVitest } from "../../testing/visual-asserts";
+import {
+  expectFocusBorderForm,
+  expectInkCentred,
+  inVitest,
+  resolvedColor,
+} from "../../testing/visual-asserts";
 import { fixtures } from "../fixtures";
 import { ChevronDownIcon, PlusIcon } from "../icons";
 import { Matrix, Narrow } from "../matrix";
@@ -466,6 +471,9 @@ export const RecipesAndModes: Story = {
         <Button {...args} variant="link" size="sm" iconTrailing={<ChevronDownIcon />}>
           {fixtures.latin}
         </Button>
+        <Button {...args} variant="ghost" size="sm" aria-current="true">
+          {fixtures.thai}
+        </Button>
       </div>
     </Matrix>
   ),
@@ -478,5 +486,83 @@ export const RecipesAndModes: Story = {
     );
     // The surface pads the grid by 16 on top too: `layout: "padded"` (spec ORV-192, row 10).
     await expect(grid.getBoundingClientRect().top).toBe(surface.getBoundingClientRect().top + 16);
+    // The current ghost takes the selection pair in each of the six boundaries (spec rows 12 and 14).
+    const cells = canvasElement.querySelectorAll<HTMLElement>("[data-matrix-cell]");
+    await expect(cells).toHaveLength(6);
+    for (const cell of cells) {
+      const current = cell.querySelector('[aria-current="true"]') as HTMLElement;
+      await expect(getComputedStyle(current).backgroundColor).toBe(
+        resolvedColor(cell, "--ds-selection-bg"),
+      );
+      await expect(getComputedStyle(current).color).toBe(resolvedColor(cell, "--ds-selection-fg"));
+    }
   },
+};
+
+const CHAPTERS = {
+  th: ["แนวคิด", "โลโก้", "สี"],
+  en: ["Concept", "Logo", "Colour"],
+} as const;
+
+async function playGhostCurrent(root: HTMLElement, lang: keyof typeof CHAPTERS) {
+  const [before, current, after] = CHAPTERS[lang];
+  const canvas = within(root);
+  const cs = (name: string) => getComputedStyle(canvas.getByRole("button", { name }));
+  const button = canvas.getByRole("button", { name: current });
+  await expect(button).toHaveAttribute("aria-current", "true");
+  // The current one is a selection, never a brand colour: the selection pair, read through probes.
+  const bg = resolvedColor(button, "--ds-selection-bg");
+  const fg = resolvedColor(button, "--ds-selection-fg");
+  await expect(cs(current).backgroundColor).toBe(bg);
+  await expect(cs(current).color).toBe(fg);
+  // Its neighbours keep the plain ghost look, and neither takes the selection pair.
+  for (const name of [before, after]) {
+    await expect(canvas.getByRole("button", { name })).not.toHaveAttribute("aria-current");
+    await expect(cs(name).backgroundColor).not.toBe(bg);
+    await expect(cs(name).color).not.toBe(fg);
+  }
+  await expect(cs(before).backgroundColor).toBe(cs(after).backgroundColor);
+  await expect(cs(before).color).toBe(cs(after).color);
+}
+
+/**
+ * The current item of a set, such as a chapter strip (spec rows 12 and 14): a ghost button marked
+ * `aria-current="true"` takes `selection.bg` and `selection.fg`; its neighbours stay plain ghosts.
+ */
+export const GhostCurrent: Story = {
+  render: () => (
+    <div className="flex items-center gap-2">
+      {CHAPTERS.th.map((name, i) => (
+        <Button
+          key={name}
+          variant="ghost"
+          size="sm"
+          {...(i === 1 ? { "aria-current": "true" } : {})}
+        >
+          {name}
+        </Button>
+      ))}
+    </div>
+  ),
+  play: async ({ canvasElement }) => playGhostCurrent(canvasElement, "th"),
+};
+
+/** The current ghost with English names, in dark mode. */
+export const GhostCurrentInEnglish: Story = {
+  globals: { locale: "en", mode: "dark" },
+  render: () => (
+    <div className="flex items-center gap-2">
+      {CHAPTERS.en.map((name, i) => (
+        <Button
+          key={name}
+          variant="ghost"
+          size="sm"
+          {...(i === 1 ? { "aria-current": "true" } : {})}
+        >
+          {name}
+        </Button>
+      ))}
+    </div>
+  ),
+  play: async ({ canvasElement }) => playGhostCurrent(canvasElement, "en"),
 };

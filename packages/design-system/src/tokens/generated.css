@@ -1358,6 +1358,7 @@
   --cmp-node-radius: var(--ds-shape-overlay-radius);
   --cmp-node-shadow: var(--ds-elevation-shell);
   --cmp-node-padding: var(--ds-space-inset-md);
+  --cmp-node-padding-media: var(--ds-space-inset-sm);
   --cmp-node-gap: var(--ds-space-stack-sm);
   --cmp-node-width-sm: var(--ds-size-node-sm);
   --cmp-node-width-md: var(--ds-size-node-md);

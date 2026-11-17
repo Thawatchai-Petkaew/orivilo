@@ -33,6 +33,7 @@ import {
   LockOpen,
   Map as MapGlyph,
   Maximize,
+  Maximize2,
   Menu,
   MessageSquare,
   Minus,
@@ -111,6 +112,7 @@ export const StaleIcon = lucide(History, "StaleIcon");
 export const PlusIcon = lucide(Plus, "PlusIcon");
 /** Four corners: fit the board to the view. */
 export const FitIcon = lucide(Maximize, "FitIcon");
+export const OpenIcon = lucide(Maximize2, "OpenIcon");
 export const HandIcon = lucide(Hand, "HandIcon");
 export const CursorIcon = lucide(MousePointer2, "CursorIcon");
 export const MapIcon = lucide(MapGlyph, "MapIcon");

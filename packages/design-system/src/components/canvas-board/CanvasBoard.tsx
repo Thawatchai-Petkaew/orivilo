@@ -97,6 +97,7 @@ import {
   type Graph,
   neighbours,
   nodeLabel,
+  nodeOpenLabel,
   nudgeSelected,
   portOf,
   removeFromGraph,
@@ -142,6 +143,14 @@ export interface CanvasBoardProps {
   className?: string | undefined;
   /** Panels placed over the board (E4-3 onward). */
   children?: ReactNode;
+  /**
+   * Called with the id of a node whose data has `open` (ORV-274): on a double click, on Enter or
+   * Space while the node has focus (the key never reaches `node.open` or the pan key), and on a
+   * single click on a present board, where nothing drags. Without it, or on a node without `open`,
+   * every key and click does what it did before. On an edit board `node.open` stays reachable from
+   * the node toolbar and the context menu.
+   */
+  onNodeOpen?: ((id: string) => void) | undefined;
 }
 
 const NODE_TYPES: NodeTypes = { orivilo: CanvasNode, group: NodeGroup };
@@ -304,6 +313,7 @@ function Board({
   minimap = "auto",
   className,
   children,
+  onNodeOpen,
 }: CanvasBoardProps) {
   const readOnly = variant === "present";
   const locale = useLocale();
@@ -401,7 +411,12 @@ function Board({
         return {
           ...n,
           type: group ? ("group" as const) : ("orivilo" as const),
-          ariaLabel: n.ariaLabel ?? nodeLabel(n.data, locale),
+          ariaLabel:
+            n.ariaLabel ??
+            (n.data.open ? nodeOpenLabel(n.data, locale) : nodeLabel(n.data, locale)),
+          ...(n.data.open
+            ? { domAttributes: { ...n.domAttributes, "aria-haspopup": "dialog" as const } }
+            : {}),
           draggable: !readOnly && !locked && (n.draggable ?? true),
           connectable: !readOnly && !locked && !group,
           deletable: !readOnly && !locked,
@@ -1100,6 +1115,25 @@ function Board({
       return;
     }
 
+    // A node that opens something takes Enter and Space itself, before command routing, so neither
+    // `node.open` nor the pan key runs (ORV-274). Only the focused node card, plain keys.
+    if (
+      onNodeOpen &&
+      nodeId &&
+      target.classList.contains("react-flow__node") &&
+      (event.key === "Enter" || event.key === " ") &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      !event.altKey &&
+      !event.shiftKey &&
+      graphRef.current.nodes.find((n) => n.id === nodeId)?.data.open
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (!event.repeat) onNodeOpen(nodeId);
+      return;
+    }
+
     const scopes: CommandScope[] = nodeId
       ? ["node", "selection", "board", "app"]
       : edgeId
@@ -1142,6 +1176,14 @@ function Board({
     });
   };
 
+  // A double click opens on an edit board; on a present board the first click has opened already.
+  const onNodeDoubleClick = (_event: ReactMouseEvent, node: BoardNode) => {
+    if (!readOnly && node.data.open) onNodeOpen?.(node.id);
+  };
+  const onNodeClick = (_event: ReactMouseEvent, node: BoardNode) => {
+    if (readOnly && node.data.open) onNodeOpen?.(node.id);
+  };
+
   const empty = !loading && graph.nodes.length === 0;
 
   const flowElement = (
@@ -1159,6 +1201,8 @@ function Board({
       onBeforeDelete={onBeforeDelete}
       onDelete={onDelete}
       onNodeDragStop={onNodeDragStop}
+      onNodeClick={onNodeClick}
+      onNodeDoubleClick={onNodeDoubleClick}
       isValidConnection={isValidConnection}
       fitView={fitView}
       fitViewOptions={firstFit}

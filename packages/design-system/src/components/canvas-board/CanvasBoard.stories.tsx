@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { type ReactFlowInstance, useReactFlow } from "@xyflow/react";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { LocaleProvider } from "../../i18n/LocaleProvider";
 import {
@@ -15,7 +15,7 @@ import { fixtureManyJobs, fixtures } from "../fixtures";
 import { Matrix, Narrow } from "../matrix";
 import { TaskBar } from "../task-bar/TaskBar";
 import { CanvasBoard, GRID_UNIT } from "./CanvasBoard";
-import type { Graph } from "./graph";
+import type { BoardNode, Graph } from "./graph";
 import { BOARD, BOARD_NODES, LONG_NODE } from "./fixtures";
 import { MatrixBoard, Stateful } from "./story-shell";
 import { MOD } from "../story-keys";
@@ -1416,5 +1416,296 @@ export const English: Story = {
     await userEvent.keyboard("{Alt>}{ArrowLeft}{/Alt}");
     await waitFor(() => expect(status(region)).toHaveTextContent("No upstream node"));
     await expect(region.querySelector(".ds-node__kind")).toHaveTextContent("input block");
+  },
+};
+
+/* Open, levels of detail and the present matrix (ORV-274). --------------------------------------- */
+
+type Lang = "th" | "en";
+
+const OPEN_WORDS = {
+  th: {
+    logo: "โลโก้",
+    brief: "บรีฟ",
+    name: "โลโก้ 3 หน้า",
+    present: "บอร์ดที่ดู",
+    edit: "บอร์ดที่แก้",
+  },
+  en: {
+    logo: "Logo",
+    brief: "Brief",
+    name: "Logo, 3 pages",
+    present: "View board",
+    edit: "Edit board",
+  },
+} as const;
+
+/**
+ * Two nodes on a short row: a result that opens (`open: { count: 3 }`) and a brief that does not,
+ * joined by one input edge so the label pills of an edge show on the level-of-detail boards.
+ */
+function openGraph(lang: Lang): Graph {
+  const w = OPEN_WORDS[lang];
+  const node = (id: string, title: string, x: number, open: boolean): BoardNode => ({
+    id,
+    type: "orivilo",
+    position: { x, y: 0 },
+    data: {
+      title,
+      kind: open ? "artifact" : "input-block",
+      size: "sm",
+      inputs: open ? [{ id: "text", kind: "text", label: "text" }] : [],
+      outputs: open ? [] : [{ id: "text", kind: "text", label: "text" }],
+      ...(open ? { open: { count: 3 } } : {}),
+    },
+  });
+  return {
+    nodes: [node("brief", w.brief, 0, false), node("res", w.logo, 360, true)],
+    edges: [
+      {
+        id: "e",
+        type: "orivilo",
+        source: "brief",
+        sourceHandle: "text",
+        target: "res",
+        targetHandle: "text",
+        data: { meaning: "input" },
+      },
+    ],
+  };
+}
+
+const presentOpen = fn();
+const editOpen = fn();
+const editCommand = fn();
+
+const nodeEl = (root: Element, id: string) =>
+  root.querySelector<HTMLElement>(`.react-flow__node[data-id="${id}"]`) as HTMLElement;
+const boardReady = (root: HTMLElement, nodes: number) =>
+  waitFor(() => {
+    expect(root.querySelectorAll(".react-flow__node")).toHaveLength(nodes);
+    for (const n of root.querySelectorAll<HTMLElement>(".react-flow__node"))
+      expect(n.style.visibility).not.toBe("hidden");
+  });
+
+async function playOpenNode(root: HTMLElement, lang: Lang) {
+  const w = OPEN_WORDS[lang];
+  presentOpen.mockClear();
+  editOpen.mockClear();
+  editCommand.mockClear();
+  const canvas = within(root);
+  const view = canvas.getByRole("region", { name: w.present });
+  const edit = canvas.getByRole("region", { name: w.edit });
+  await boardReady(view, 2);
+  await boardReady(edit, 2);
+
+  // An open node is named with its page count and takes the popup attribute; a plain one neither.
+  for (const board of [view, edit]) {
+    await waitFor(() => expect(within(board).getByRole("group", { name: w.name })).toBeVisible());
+    await expect(nodeEl(board, "res")).toHaveAttribute("aria-haspopup", "dialog");
+    await expect(nodeEl(board, "brief")).not.toHaveAttribute("aria-haspopup");
+    // The title row of the open node ends with the pages word and the open glyph, on both boards.
+    await expect(nodeEl(board, "res").querySelector(".ds-node__pages")).toHaveTextContent(
+      lang === "th" ? "3 หน้า" : "3 pages",
+    );
+    await expect(nodeEl(board, "res").querySelector(".ds-node__open")).toBeVisible();
+    await expect(nodeEl(board, "brief").querySelector(".ds-node__open")).toBeNull();
+  }
+
+  // Present board: Enter, Space and a single click each open once; the brief never does.
+  await focusOn(() => nodeEl(view, "res"));
+  await userEvent.keyboard("{Enter}");
+  await expect(presentOpen).toHaveBeenCalledTimes(1);
+  await expect(presentOpen).toHaveBeenLastCalledWith("res");
+  // A held Space opens too, and must not arm the pan key: the pane stays in selection mode.
+  await userEvent.keyboard("[Space>]");
+  await expect(presentOpen).toHaveBeenCalledTimes(2);
+  const pane = view.querySelector(".react-flow__pane") as HTMLElement;
+  await expect(pane).not.toHaveClass("draggable");
+  await userEvent.keyboard("[/Space]");
+  await userEvent.click(nodeEl(view, "res"));
+  await expect(presentOpen).toHaveBeenCalledTimes(3);
+  // The same keys on the brief open nothing; there Space does arm the pan key, which proves the
+  // probe above can tell the two apart.
+  await focusOn(() => nodeEl(view, "brief"));
+  await userEvent.keyboard("{Enter}");
+  await userEvent.keyboard("[Space>]");
+  await waitFor(() => expect(pane).toHaveClass("draggable"));
+  await userEvent.keyboard("[/Space]");
+  await userEvent.click(nodeEl(view, "brief"));
+  await expect(presentOpen).toHaveBeenCalledTimes(3);
+
+  // Edit board: a double click and Enter open an open node; a single click does not; Enter on a
+  // node without `open` is still the `node.open` command.
+  await userEvent.click(nodeEl(edit, "res"));
+  await expect(editOpen).not.toHaveBeenCalled();
+  await userEvent.dblClick(nodeEl(edit, "res"));
+  await expect(editOpen).toHaveBeenCalledTimes(1);
+  await expect(editOpen).toHaveBeenLastCalledWith("res");
+  await focusOn(() => nodeEl(edit, "res"));
+  await userEvent.keyboard("{Enter}");
+  await expect(editOpen).toHaveBeenCalledTimes(2);
+  await userEvent.keyboard(" ");
+  await expect(editOpen).toHaveBeenCalledTimes(3);
+  await expect(editCommand).not.toHaveBeenCalledWith("node.open", expect.anything());
+  await focusOn(() => nodeEl(edit, "brief"));
+  await userEvent.keyboard("{Enter}");
+  await waitFor(() =>
+    expect(editCommand).toHaveBeenCalledWith(
+      "node.open",
+      expect.objectContaining({ nodeId: "brief" }),
+    ),
+  );
+  await userEvent.dblClick(nodeEl(edit, "brief"));
+  await expect(editOpen).toHaveBeenCalledTimes(3);
+}
+
+function OpenBoards({ lang }: { lang: Lang }) {
+  const w = OPEN_WORDS[lang];
+  return (
+    <>
+      <Stateful
+        variant="present"
+        initial={openGraph(lang)}
+        label={w.present}
+        height={260}
+        fill={false}
+        chrome={false}
+        onNodeOpen={presentOpen}
+      />
+      <Stateful
+        initial={openGraph(lang)}
+        label={w.edit}
+        height={260}
+        fill={false}
+        chrome={false}
+        onNodeOpen={editOpen}
+        onCommand={editCommand}
+      />
+    </>
+  );
+}
+
+/**
+ * `onNodeOpen` (spec row 5): a node with `open` calls it on Enter, Space, a double click on an edit
+ * board and a single click on a present board, once each; Space never starts a pan; a node without
+ * `open` never calls it, and on an edit board its Enter is still `node.open`.
+ */
+export const OpenNode: Story = {
+  render: () => <OpenBoards lang="th" />,
+  play: async ({ canvasElement }) => playOpenNode(canvasElement, "th"),
+};
+
+/** The open node with English names ("Logo, 3 pages"), in dark mode. */
+export const OpenNodeInEnglish: Story = {
+  globals: { locale: "en", mode: "dark" },
+  render: () => <OpenBoards lang="en" />,
+  play: async ({ canvasElement }) => playOpenNode(canvasElement, "en"),
+};
+
+/** A story-local stand-in for the page's writer: sets `data-lod` on its closest `.ds-board`. */
+function LodWriter({ lod }: { lod: "far" | "mid" | "near" }): ReactNode {
+  const ref = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => {
+    const board = ref.current?.closest<HTMLElement>(".ds-board");
+    board?.setAttribute("data-lod", lod);
+    return () => board?.removeAttribute("data-lod");
+  }, [lod]);
+  return <span ref={ref} hidden />;
+}
+
+const LODS = ["far", "mid", "near"] as const;
+
+function LodBoards({ lang }: { lang: Lang }) {
+  return (
+    <>
+      {LODS.map((lod) => (
+        <Stateful
+          key={lod}
+          variant="present"
+          initial={openGraph(lang)}
+          label={`${lod}, ${OPEN_WORDS[lang].present}`}
+          height={240}
+          fill={false}
+          chrome={false}
+        >
+          <LodWriter lod={lod} />
+        </Stateful>
+      ))}
+    </>
+  );
+}
+
+async function playLevelsOfDetail(root: HTMLElement, lang: Lang) {
+  const w = OPEN_WORDS[lang];
+  const cs = (el: Element) => getComputedStyle(el);
+  const board = (lod: string) => within(root).getByRole("region", { name: `${lod}, ${w.present}` });
+  for (const lod of LODS) await boardReady(board(lod), 2);
+  await waitFor(() => expect(root.querySelectorAll(".ds-edge__label")).toHaveLength(3));
+  // Far: names and edge words are hidden, but the node keeps its accessible name.
+  const far = board("far");
+  await expect(far).toHaveAttribute("data-lod", "far");
+  for (const el of far.querySelectorAll(".ds-node__label, .ds-edge__label"))
+    await expect(cs(el).visibility).toBe("hidden");
+  await expect(within(far).getByRole("group", { name: w.name })).toBeInTheDocument();
+  // Mid: the label shows, the page count steps aside and the open glyph stays.
+  const mid = board("mid");
+  for (const el of mid.querySelectorAll(".ds-node__label, .ds-edge__label"))
+    await expect(cs(el).visibility).toBe("visible");
+  await expect(cs(mid.querySelector(".ds-node__pages") as Element).display).toBe("none");
+  await expect(mid.querySelector(".ds-node__open")).toBeVisible();
+  // Near: the page count shows as well.
+  const near = board("near");
+  await expect(cs(near.querySelector(".ds-node__pages") as Element).display).not.toBe("none");
+  await expect(near.querySelector(".ds-node__pages")).toBeVisible();
+  await expect(near.querySelector(".ds-node__open")).toBeVisible();
+  for (const el of near.querySelectorAll(".ds-node__label, .ds-edge__label"))
+    await expect(cs(el).visibility).toBe("visible");
+}
+
+/**
+ * Levels of detail (spec row 8): three present boards stacked, written `far`, `mid` and `near` by a
+ * story-local writer as the page will. Far hides the names, mid the page count, near shows all.
+ */
+export const LevelsOfDetail: Story = {
+  render: () => <LodBoards lang="th" />,
+  play: async ({ canvasElement }) => playLevelsOfDetail(canvasElement, "th"),
+};
+
+/** The three levels with English names, in dark mode. */
+export const LevelsOfDetailInEnglish: Story = {
+  globals: { locale: "en", mode: "dark" },
+  render: () => <LodBoards lang="en" />,
+  play: async ({ canvasElement }) => playLevelsOfDetail(canvasElement, "en"),
+};
+
+/** The present board under three profiles in both modes, with one node that opens. */
+export const PresentRecipesAndModes: Story = {
+  render: (args) => {
+    const initial: Graph = {
+      ...BOARD,
+      nodes: BOARD.nodes.map((n) =>
+        n.id === "logo" ? { ...n, data: { ...n.data, open: { count: 3 } } } : n,
+      ),
+    };
+    return (
+      <Matrix>
+        <MatrixBoard {...args} initial={initial} variant="present" height={360} />
+      </Matrix>
+    );
+  },
+  play: async ({ canvasElement }) => {
+    const cells = canvasElement.querySelectorAll<HTMLElement>("[data-matrix-cell]");
+    await expect(cells).toHaveLength(6);
+    for (const cell of cells) {
+      await waitFor(() => expect(nodeEls(cell)).toHaveLength(BOARD_NODES.length));
+      await expect(cell.querySelectorAll('.ds-board[data-variant="present"]')).toHaveLength(1);
+      await expect(cell.querySelectorAll(".ds-node__label")).toHaveLength(BOARD_NODES.length);
+      await expect(cell.querySelectorAll(".ds-node__open")).toHaveLength(1);
+      await expect(cell.querySelectorAll(".ds-node[data-open]")).toHaveLength(1);
+      await expect(getComputedStyle(cell.querySelector(".ds-node") as Element).borderTopColor).toBe(
+        colourOf(cell, "--ds-border-subtle"),
+      );
+    }
   },
 };

@@ -1565,6 +1565,11 @@
       "$type": "dimension",
       "$value": "{space.inset.md}"
     },
+    "padding-media": {
+      "$type": "dimension",
+      "$value": "{space.inset.sm}",
+      "$description": "A present node that holds media pads less, so the media sit concentric in the card (ORV-274)"
+    },
     "gap": {
       "$type": "dimension",
       "$value": "{space.stack.sm}"

@@ -122,6 +122,12 @@
   color: var(--cmp-button-ghost-fg-disabled);
 }
 
+/* The shown item of a set, such as a chapter strip: a selection, never a brand colour (ORV-274). */
+.ds-button[data-variant="ghost"][aria-current="true"] {
+  background: var(--ds-selection-bg);
+  color: var(--ds-selection-fg);
+}
+
 .ds-button[data-variant="intent"] {
   background: var(--cmp-button-intent-bg);
   color: var(--cmp-button-intent-fg);
@@ -2731,6 +2737,207 @@
   opacity: var(--cmp-port-opacity-disabled);
 }
 
+/* A node that opens something (ORV-274): the pages word and the open glyph end the title row on both
+ * boards; the card shows a zoom-in cursor. The source line is a pill under the card that shows on
+ * hover, selection or keyboard focus. */
+.ds-node__heading {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-inline-md);
+}
+.ds-node__heading .ds-node__title {
+  flex: 1 1 auto;
+}
+.ds-node__pages {
+  flex: none;
+  color: var(--ds-text-tertiary);
+  font-family: var(--ds-type-body-xs-font-family);
+  font-size: var(--ds-type-body-xs-font-size);
+  line-height: var(--ds-type-body-xs-line-height);
+  font-weight: var(--ds-type-body-xs-font-weight);
+  white-space: nowrap;
+}
+.ds-node__label > svg:first-child,
+.ds-node__open {
+  flex: none;
+  inline-size: var(--ds-size-icon-xs);
+  block-size: var(--ds-size-icon-xs);
+  color: var(--ds-text-tertiary);
+}
+.ds-node[data-open] {
+  cursor: zoom-in;
+}
+.ds-node__source {
+  position: absolute;
+  inset-inline-start: 0;
+  top: calc(100% + var(--ds-space-inline-sm));
+  margin: 0;
+  padding: var(--ds-space-inline-sm) var(--ds-space-inline-md);
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-shape-round-radius);
+  background: var(--ds-surface-card);
+  box-shadow: var(--ds-elevation-overlay);
+  color: var(--ds-text-secondary);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-type-body-xs-font-size);
+  line-height: var(--ds-type-body-xs-line-height);
+  visibility: hidden;
+  z-index: 1;
+}
+.react-flow__node:is(:hover, .selected, :focus-visible) .ds-node__source {
+  visibility: visible;
+}
+
+/* Node, present boards (ORV-274): one card with a hairline, the name above it, the ports as glyph dots
+ * on its edge. The card rules sit in `:where` so every state rule above (selected, error, running,
+ * empty, note) keeps winning; the selected look is the existing border plus 1 px inner outline. */
+:where(.ds-board[data-variant="present"]) .ds-node {
+  --_ls: max(1, var(--_zi, 1));
+  border: 1px solid var(--ds-border-subtle);
+  background: var(--cmp-node-bg);
+  border-radius: var(--cmp-node-radius);
+  padding: var(--cmp-node-padding);
+  overflow: visible;
+}
+.ds-board[data-variant="present"] .ds-node[data-pad="media"] {
+  --_media-radius: calc(var(--cmp-node-radius) - var(--cmp-node-padding-media));
+  padding: var(--cmp-node-padding-media);
+}
+.ds-board[data-variant="present"] .ds-node[data-pad="media"] .ds-node__media {
+  border-radius: var(--_media-radius);
+  overflow: hidden;
+}
+/* The card's padding replaces the inset every block carries on an edit board. */
+.ds-board[data-variant="present"] .ds-node__body {
+  padding: 0;
+}
+.ds-board[data-variant="present"] .ds-node__steps,
+.ds-board[data-variant="present"] .ds-node__error {
+  padding-inline: 0;
+}
+.ds-board[data-variant="present"] .ds-node__missing {
+  margin-inline: 0;
+}
+.ds-node__label {
+  --_label-gap: var(--ds-space-inline-sm);
+  position: absolute;
+  inset-inline-start: 0;
+  /* The card's own 1 px hairline sits between the padding box this is measured from and the top. */
+  bottom: calc(100% + 1px);
+  inline-size: calc(100% / var(--_ls));
+  scale: var(--_ls);
+  transform-origin: 0 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--_label-gap);
+  padding-block-end: var(--ds-space-inline-sm);
+  color: var(--ds-text-secondary);
+  font-family: var(--ds-type-label-sm-font-family);
+  font-size: var(--ds-type-label-sm-font-size);
+  line-height: var(--ds-type-label-sm-line-height);
+  font-weight: var(--ds-type-label-sm-font-weight);
+}
+.ds-node__label > * {
+  flex: none;
+}
+.ds-node__label .ds-node__title {
+  flex: 0 1 auto;
+  min-width: 0;
+  font: inherit;
+  letter-spacing: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ds-board[data-variant="present"]
+  .react-flow__node:is(:hover, .selected, :focus-visible)
+  .ds-node__label {
+  color: var(--ds-text-primary);
+}
+:where(.ds-board[data-variant="present"] .react-flow__node:hover) .ds-node {
+  border-color: var(--cmp-node-border-hover);
+}
+
+/* Ports, present boards (ORV-274): a glyph centred on the card edge, inputs at the start and outputs
+ * at the end, on a 24 px pitch (16 glyph plus 8). The name is a pill outside the edge that shows when
+ * the node is hovered, selected or has keyboard focus. A port with a row sits at the middle of it. */
+.ds-board[data-variant="present"] .ds-node__ports {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  pointer-events: none;
+}
+.ds-board[data-variant="present"] .ds-node__port-list {
+  position: absolute;
+  inset-block: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: calc(var(--ds-space-grid-gap) - var(--ds-size-port));
+}
+.ds-board[data-variant="present"] .ds-node__port-list[data-direction="input"] {
+  inset-inline-start: calc(var(--ds-size-port) / -2);
+}
+.ds-board[data-variant="present"] .ds-node__port-list[data-direction="output"] {
+  inset-inline-end: calc(var(--ds-size-port) / -2);
+}
+.ds-board[data-variant="present"] .ds-port {
+  inline-size: var(--cmp-port-size);
+}
+.ds-board[data-variant="present"] .ds-port .ds-port__handle {
+  inset: 0;
+  transform: none;
+}
+.ds-board[data-variant="present"] .ds-port[data-row] {
+  position: absolute;
+  top: var(--_port-y);
+  translate: 0 -50%;
+}
+/* The design draws every dot in its locked hue; the name still says it cannot be edited. */
+.ds-board[data-variant="present"] .ds-port[data-state="disabled"] .ds-port__handle {
+  opacity: 1;
+}
+.ds-board[data-variant="present"] .ds-port__label {
+  position: absolute;
+  top: 50%;
+  translate: 0 -50%;
+  padding: var(--ds-space-inline-sm) var(--ds-space-inline-md);
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-shape-round-radius);
+  background: var(--ds-surface-card);
+  box-shadow: var(--ds-elevation-overlay);
+  color: var(--ds-text-secondary);
+  font-family: var(--ds-type-body-xs-font-family);
+  font-size: var(--ds-type-body-xs-font-size);
+  line-height: var(--ds-type-body-xs-line-height);
+  font-weight: var(--ds-type-body-xs-font-weight);
+  white-space: nowrap;
+  visibility: hidden;
+  z-index: 1;
+}
+.ds-board[data-variant="present"] .ds-port[data-direction="input"] .ds-port__label {
+  inset-inline-end: calc(100% + var(--ds-space-inline-sm));
+}
+.ds-board[data-variant="present"] .ds-port[data-direction="output"] .ds-port__label {
+  inset-inline-start: calc(100% + var(--ds-space-inline-sm));
+}
+.ds-board[data-variant="present"]
+  .react-flow__node:is(:hover, .selected, :focus-visible)
+  .ds-port__label {
+  visibility: visible;
+}
+
+/* Levels of detail (ORV-274): the page writes `data-lod` (far, mid, near) from the zoom. */
+.ds-board[data-lod="far"] .ds-node__label,
+.ds-board[data-lod="far"] .ds-edge__label {
+  visibility: hidden;
+}
+.ds-board[data-lod="mid"] .ds-node__pages {
+  display: none;
+}
+
 /* Edge: meaning by dash and label word, state by stroke colour (catalog CanvasEdge). -------- */
 
 /* Every board draws an edge at a fixed width and dash length on screen: the board writes `--_zi`
@@ -3134,6 +3341,58 @@
   margin: var(--ds-space-inset-md);
   flex-wrap: wrap;
   max-width: calc(100% - 2 * var(--ds-space-inset-md));
+}
+/* The dock (ORV-274): the bottom centre, a chapter strip then the four viewport commands. React
+ * Flow centres a panel with `left: 50%` and a 15 px shift for its default margin, so a dock with no
+ * side margin takes the plain half-width shift. */
+.ds-board .react-flow__panel.ds-controls[data-position="center"] {
+  flex-wrap: nowrap;
+  margin-inline: 0;
+  transform: translateX(-50%);
+}
+.ds-controls__mode {
+  padding-inline: var(--ds-space-inline-md);
+  color: var(--ds-text-secondary);
+  white-space: nowrap;
+  font-family: var(--ds-type-label-sm-font-family);
+  font-size: var(--ds-type-label-sm-font-size);
+  line-height: var(--ds-type-label-sm-line-height);
+  font-weight: var(--ds-type-label-sm-font-weight);
+}
+.ds-controls__children {
+  display: flex;
+  gap: var(--ds-space-inline-sm);
+  min-inline-size: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.ds-board:has(.ds-controls[data-position="center"]) .ds-board__mode {
+  display: none;
+}
+@media (width < 480px) {
+  .ds-board .react-flow__panel.ds-controls[data-position="center"] {
+    inline-size: calc(100% - 2 * var(--ds-space-inset-sm));
+    max-inline-size: none;
+    margin-block: var(--ds-space-inset-sm);
+  }
+  /* The word stays in the accessibility tree; its divider is decoration and goes. */
+  .ds-controls[data-position="center"] .ds-controls__mode {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    padding: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    clip-path: inset(50%);
+  }
+  .ds-controls[data-position="center"] .ds-controls__mode + .ds-controls__divider {
+    display: none;
+  }
+  .ds-controls[data-position="center"] [data-command="board.zoom-out"],
+  .ds-controls[data-position="center"] .ds-controls__zoom,
+  .ds-controls[data-position="center"] [data-command="board.zoom-in"] {
+    display: none;
+  }
 }
 .ds-controls__divider {
   width: 1px;

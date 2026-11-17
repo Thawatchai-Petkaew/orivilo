@@ -1,8 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, userEvent, waitFor, within } from "storybook/test";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { useDesignProfile } from "../../boundary/DesignProfileBoundary";
 import { NODE_KINDS } from "../../tokens/canvas";
+import { expectEdgeInk, inVitest, resolvedColor } from "../../testing/visual-asserts";
 import { CanvasBoard, type CanvasBoardProps } from "../canvas-board/CanvasBoard";
 import { blockNode, feed } from "../block-library/fixtures";
 import { LONG_NODE } from "../canvas-board/fixtures";
@@ -657,5 +658,495 @@ export const Basis: Story = {
         ).toBe(false);
       }
     }
+  },
+};
+
+/* The present look (ORV-274): the name above one card, the ports as dots on its edge. ---------- */
+
+type Lang = "th" | "en";
+
+/** The author's words for the present fixtures; the catalog words (kind, ports) come from the board. */
+const WORDS = {
+  th: {
+    rest: "ปกติ",
+    hover: "โฮเวอร์",
+    selected: "เลือกอยู่",
+    focus: "โฟกัส",
+    logo: "โลโก้",
+    media: "มู้ดบอร์ด",
+    missing: "ยังไม่ครบ",
+    source: "ที่มา: บรีฟลูกค้า",
+    summary: "ข้อความตัวอย่างในตัว node",
+    pages: "3 หน้า",
+    openName: "โลโก้ 3 หน้า",
+    empty: "ยังไม่มีเนื้อหา",
+    text: "ข้อความ",
+    image: "ภาพ",
+    readOnly: "แก้ไขไม่ได้",
+  },
+  en: {
+    rest: "Rest",
+    hover: "Hover",
+    selected: "Selected",
+    focus: "Focus",
+    logo: "Logo",
+    media: "Mood board",
+    missing: "Incomplete",
+    source: "Source: client brief",
+    summary: "Sample text inside the node",
+    pages: "3 pages",
+    openName: "Logo, 3 pages",
+    empty: "No content yet",
+    text: "Text",
+    image: "Image",
+    readOnly: "read only",
+  },
+} as const;
+
+/** The card of a node, by id, inside a board. */
+const cardOf = (root: Element, id: string) =>
+  root.querySelector(`.react-flow__node[data-id="${id}"] .ds-node`) as HTMLElement;
+const wrapperOf = (root: Element, id: string) =>
+  root.querySelector(`.react-flow__node[data-id="${id}"]`) as HTMLElement;
+
+/** The media slot of the media node, filled by the board's `renderBody`. */
+const presentBody = (node: BoardNode): ReactNode =>
+  node.data.pad === "media" ? (
+    <div className="ds-node__media h-20 bg-surface-sunken" data-testid="media" />
+  ) : undefined;
+
+/** Seven nodes on a grid, 100 px apart so the name pills of the ports have room. */
+function presentStates(lang: Lang): Graph {
+  const w = WORDS[lang];
+  const ports = {
+    inputs: [{ id: "text", kind: "text" as const, label: w.text }],
+    outputs: [{ id: "image", kind: "image" as const, label: w.image }],
+  };
+  const spec: [id: string, data: Partial<NodeContent>, selected?: boolean][] = [
+    ["n0", { title: w.rest, kind: "knowledge", summary: w.summary, source: w.source }],
+    ["n1", { title: w.hover, kind: "direction", summary: w.summary, source: w.source }],
+    ["n2", { title: w.selected, kind: "reference", summary: w.summary, source: w.source }, true],
+    ["n3", { title: w.focus, kind: "knowledge", summary: w.summary, source: w.source }],
+    [
+      "n4",
+      { title: w.logo, kind: "artifact", summary: w.summary, open: { count: 3 }, status: "stale" },
+    ],
+    ["n5", { title: w.media, kind: "direction", pad: "media", source: w.source }],
+    ["n6", { title: fixtures.longThai, kind: "knowledge", missing: [w.missing], basis: "rules" }],
+  ];
+  return {
+    nodes: spec.map(([id, data, selected], i) => ({
+      id,
+      type: "orivilo" as const,
+      position: { x: (i % 4) * 360, y: Math.floor(i / 4) * 260 },
+      ...(selected ? { selected: true } : {}),
+      data: { size: "sm" as const, ...ports, ...data } as NodeContent,
+    })),
+    edges: [],
+  };
+}
+
+const PRESENT_HEIGHT = 560;
+
+async function playPresentStates(root: HTMLElement, lang: Lang) {
+  const w = WORDS[lang];
+  await ready(root, 7);
+  const cs = (el: Element) => getComputedStyle(el);
+  // Spec row 1: the name sits above the card, one surface with one hairline, no band, frame or footer.
+  for (const id of ["n0", "n1", "n2", "n3", "n4", "n5", "n6"]) {
+    const card = cardOf(root, id);
+    const label = card.querySelector(".ds-node__label") as HTMLElement;
+    await expect(label.getBoundingClientRect().bottom).toBeLessThanOrEqual(
+      card.getBoundingClientRect().top,
+    );
+    await expect(label.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+    for (const part of [".ds-node__header", ".ds-node__meta", ".ds-node__kind", ".ds-node__chip"]) {
+      await expect(card.querySelector(part), `${id} ${part}`).toBeNull();
+    }
+    await expect(cs(card).borderTopWidth).toBe("1px");
+  }
+  const rest = cardOf(root, "n0");
+  await expect(cs(rest).borderTopColor).toBe(resolvedColor(rest, "--ds-border-subtle"));
+  await expect(cs(rest).outlineStyle).toBe("none");
+  // The label ends in an ellipsis on one line: the long title is cut, and no taller than a short one.
+  const long = cardOf(root, "n6");
+  const title = long.querySelector(".ds-node__title") as HTMLElement;
+  await expect(cs(title).textOverflow).toBe("ellipsis");
+  await expect(title.scrollWidth).toBeGreaterThan(title.clientWidth);
+  await expect(
+    (long.querySelector(".ds-node__label") as HTMLElement).getBoundingClientRect().height,
+  ).toBeCloseTo(
+    (rest.querySelector(".ds-node__label") as HTMLElement).getBoundingClientRect().height,
+    1,
+  );
+  // The kind word is not shown; the status and the basis follow the title.
+  await expect(long.querySelector(".ds-node__basis")).toHaveTextContent(
+    lang === "th" ? "ตามกฎ" : "By rules",
+  );
+  await expect(cardOf(root, "n4").querySelector(".ds-node__status")).toBeInTheDocument();
+  // Spec row 4: hover takes the hover border, selected the border plus a 1 px inner outline.
+  const hover = cardOf(root, "n1");
+  // The probe colour is read once, outside `waitFor`: a probe node added inside it would trigger
+  // the observer that `waitFor` runs on, and loop.
+  const hoverBorder = resolvedColor(hover, "--cmp-node-border-hover");
+  await waitFor(() => expect(cs(hover).borderTopColor).toBe(hoverBorder));
+  await expect(cs(hover).borderTopColor).not.toBe(cs(rest).borderTopColor);
+  const selected = cardOf(root, "n2");
+  await expect(cs(selected).borderTopColor).toBe(
+    resolvedColor(selected, "--cmp-node-border-selected"),
+  );
+  await expect(cs(selected).outlineStyle).toBe("solid");
+  await expect(cs(selected).outlineWidth).toBe("1px");
+  await expect(cs(selected).outlineOffset).toBe("-2px");
+  await expect(cs(selected).outlineColor).toBe(
+    resolvedColor(selected, "--cmp-node-border-selected"),
+  );
+  // Focus is the line and halo outside, never the selection look.
+  const focus = within(root).getByRole("group", {
+    name: `${w.focus}, ${lang === "th" ? "ความรู้" : "knowledge"}`,
+  });
+  focus.focus();
+  await expect(focus).toHaveFocus();
+  const ring = cs(focus);
+  await expect(ring.outlineStyle).not.toBe("none");
+  await expect(ring.outlineOffset).toBe("0px");
+  await expect(ring.boxShadow).not.toBe("none");
+  await expect(ring.outlineOffset).not.toBe(cs(selected).outlineOffset);
+  await expect(ring.boxShadow).not.toBe(cs(selected).boxShadow);
+  await expect(cs(cardOf(root, "n3")).outlineStyle).toBe("none");
+  await expect(cs(cardOf(root, "n3")).borderTopColor).toBe(cs(rest).borderTopColor);
+  // Spec row 3: the source pill is hidden at rest and shows on hover, on selection and on focus.
+  const pill = (id: string) => cardOf(root, id).querySelector(".ds-node__source") as HTMLElement;
+  await expect(pill("n0")).toHaveTextContent(w.source);
+  await expect(cs(pill("n0")).visibility).toBe("hidden");
+  await waitFor(() => expect(cs(pill("n1")).visibility).toBe("visible"));
+  await expect(cs(pill("n2")).visibility).toBe("visible");
+  await waitFor(() => expect(cs(pill("n3")).visibility).toBe("visible"));
+  // Spec row 5: a node with `open` is named with its page count, takes the popup attribute and the
+  // zoom-in cursor, and ends its title row with the pages word and the open glyph.
+  const open = within(root).getByRole("group", { name: w.openName });
+  await expect(open).toHaveAttribute("aria-haspopup", "dialog");
+  await expect(wrapperOf(root, "n0")).not.toHaveAttribute("aria-haspopup");
+  const result = cardOf(root, "n4");
+  await expect(result).toHaveAttribute("data-open", "");
+  await expect(result.querySelector(".ds-node__pages")).toHaveTextContent(w.pages);
+  await expect(result.querySelector(".ds-node__pages")).toBeVisible();
+  await expect(result.querySelector(".ds-node__open")).toBeVisible();
+  await expect(result.querySelector(".ds-node__open")).toHaveAttribute("aria-hidden", "true");
+  await expect(cs(result).cursor).toBe("zoom-in");
+  await expect(cs(rest).cursor).toBe("default");
+  // Spec row 2: media pad 8 and a slot rounded to the node radius less that; text pads 16.
+  const media = cardOf(root, "n5");
+  await expect(cs(media).paddingTop).toBe("8px");
+  await expect(cs(rest).paddingTop).toBe("16px");
+  await expect(cardOf(root, "n5")).toHaveAttribute("data-pad", "media");
+  const slot = media.querySelector(".ds-node__media") as HTMLElement;
+  await expect(parseFloat(cs(slot).borderTopLeftRadius)).toBeCloseTo(
+    parseFloat(cs(media).borderTopLeftRadius) - 8,
+    2,
+  );
+  await expect(cs(slot).overflow).toBe("hidden");
+  // A node with a missing value says so; an empty body shows the catalog's empty word.
+  await expect(within(long).getByText(w.missing, { exact: false })).toBeVisible();
+  await expect(within(cardOf(root, "n5")).queryByText(w.empty)).toBeNull();
+}
+
+/**
+ * The present node (spec rows 1 to 5): the name above the card, one surface with a hairline, hover,
+ * selected and keyboard focus each different, a result that opens, a media pad, a long title cut
+ * off, a missing value and the source pill. Hover is forced by the pseudo-states addon.
+ */
+export const PresentStates: Story = {
+  parameters: {
+    pseudo: { rootSelector: "body", hover: ['.react-flow__node[data-id="n1"]'] },
+  },
+  render: () => (
+    <NodeBoard
+      variant="present"
+      height={PRESENT_HEIGHT}
+      renderBody={presentBody}
+      chrome={false}
+      initial={presentStates("th")}
+    />
+  ),
+  play: async ({ canvasElement }) => playPresentStates(canvasElement, "th"),
+};
+
+/** The same present states with English names, in dark mode. */
+export const PresentStatesInEnglish: Story = {
+  globals: { locale: "en", mode: "dark" },
+  parameters: {
+    pseudo: { rootSelector: "body", hover: ['.react-flow__node[data-id="n1"]'] },
+  },
+  render: () => (
+    <NodeBoard
+      variant="present"
+      height={PRESENT_HEIGHT}
+      renderBody={presentBody}
+      chrome={false}
+      initial={presentStates("en")}
+    />
+  ),
+  play: async ({ canvasElement }) => playPresentStates(canvasElement, "en"),
+};
+
+/** The four kinds of a present board, each with its glyph and name above the card (spec row 1). */
+function presentKinds(lang: Lang): Graph {
+  const w = WORDS[lang];
+  const kinds = ["knowledge", "direction", "artifact", "reference"] as const;
+  return {
+    nodes: kinds.map((kind, i) => ({
+      id: `k${i}`,
+      type: "orivilo" as const,
+      position: { x: i * 340, y: 64 },
+      data: {
+        title: `${w.logo} ${i + 1}`,
+        kind,
+        size: "sm" as const,
+        summary: w.summary,
+        inputs: [{ id: "text", kind: "text" as const, label: w.text }],
+        outputs: [{ id: "image", kind: "image" as const, label: w.image }],
+      },
+    })),
+    edges: [],
+  };
+}
+
+async function playPresentKinds(root: HTMLElement, lang: Lang) {
+  await ready(root, 4);
+  const names = (
+    lang === "th"
+      ? ["ความรู้", "ทิศทาง", "ชิ้นงาน", "อ้างอิง"]
+      : ["knowledge", "direction", "artifact", "reference"]
+  ).map((kind, i) => `${WORDS[lang].logo} ${i + 1}, ${kind}`);
+  for (const name of names) await expect(within(root).getByRole("group", { name })).toBeVisible();
+  // Each kind draws its own glyph in the label, and the kind word is not on the card.
+  const glyphs = new Set(
+    [...root.querySelectorAll(".ds-node__label > svg:first-child")].map((g) => g.innerHTML),
+  );
+  await expect(glyphs.size).toBe(4);
+  for (const kind of ["ความรู้", "ทิศทาง", "knowledge", "direction"]) {
+    await expect(within(root).queryByText(kind)).toBeNull();
+  }
+  // The card's hairline is 1 px of ink, read from the pixels at zoom 1 (the board does not fit the
+  // view). Top and bottom only: the port dots sit on the side edges. Read in light mode only: in dark
+  // the hairline is border.subtle on a card 1.1 from the ground by design, too faint for the pixel
+  // reader's threshold, so the English twin asserts the computed border colour and width instead.
+  if (inVitest && lang === "th") await expectEdgeInk(cardOf(root, "k1"), ["top", "bottom"], 1);
+  const hairline = getComputedStyle(cardOf(root, "k1"));
+  await expect(hairline.borderTopWidth).toBe("1px");
+  await expect(hairline.borderTopColor).toBe(
+    resolvedColor(cardOf(root, "k1"), "--ds-border-subtle"),
+  );
+}
+
+/** The four kinds on a present board: a glyph and a title above each card, no kind word (spec row 1). */
+export const Present: Story = {
+  render: () => (
+    <NodeBoard
+      variant="present"
+      height={320}
+      chrome={false}
+      fitView={false}
+      initial={presentKinds("th")}
+    />
+  ),
+  play: async ({ canvasElement }) => playPresentKinds(canvasElement, "th"),
+};
+
+/** The four kinds in English, in dark mode. */
+export const PresentInEnglish: Story = {
+  globals: { locale: "en", mode: "dark" },
+  render: () => (
+    <NodeBoard
+      variant="present"
+      height={320}
+      chrome={false}
+      fitView={false}
+      initial={presentKinds("en")}
+    />
+  ),
+  play: async ({ canvasElement }) => playPresentKinds(canvasElement, "en"),
+};
+
+/**
+ * Ports with a `row` (spec row 3): each sits at the middle of its body row. A second node has none,
+ * so its two ports stay a group centred on the card.
+ */
+function rowPorts(lang: Lang): Graph {
+  const w = WORDS[lang];
+  const port = (id: string, kind: "text" | "image", row?: string) => ({
+    id,
+    kind,
+    label: id,
+    ...(row ? { row } : {}),
+  });
+  return {
+    nodes: [
+      {
+        id: "rows",
+        type: "orivilo",
+        position: { x: 0, y: 0 },
+        data: {
+          title: w.logo,
+          kind: "knowledge",
+          inputs: [port("brief", "text", "brief"), port("logo", "image", "logo")],
+          outputs: [port("out", "text", "logo")],
+        },
+      },
+      {
+        id: "plain",
+        type: "orivilo",
+        position: { x: 480, y: 0 },
+        data: {
+          title: w.rest,
+          kind: "artifact",
+          size: "sm",
+          summary: w.summary,
+          inputs: [port("a", "text"), port("b", "image")],
+          outputs: [],
+        },
+      },
+    ],
+    // One edge from the row port, so the play can read where React Flow thinks the handle is.
+    edges: [
+      {
+        id: "e",
+        type: "orivilo",
+        source: "rows",
+        sourceHandle: "out",
+        target: "plain",
+        targetHandle: "a",
+        data: { meaning: "input" },
+      },
+    ],
+  };
+}
+
+const rowBody = (node: BoardNode): ReactNode =>
+  node.id === "rows" ? (
+    <div>
+      <p data-port-row="brief" className="m-0">
+        {fixtures.latin}
+      </p>
+      <p data-port-row="logo" className="m-0 mt-6">
+        {fixtures.mixed} {fixtures.mixed} {fixtures.mixed}
+      </p>
+    </div>
+  ) : undefined;
+
+async function playRowPorts(root: HTMLElement) {
+  await ready(root, 2);
+  const middle = (el: Element) => {
+    const r = el.getBoundingClientRect();
+    return (r.top + r.bottom) / 2;
+  };
+  const handle = (nodeId: string, handleId: string) =>
+    root.querySelector(
+      `.react-flow__node[data-id="${nodeId}"] .ds-port__handle[data-handleid="${handleId}"]`,
+    ) as HTMLElement;
+  const row = (name: string) => root.querySelector(`[data-port-row="${name}"]`) as HTMLElement;
+  await waitFor(() => {
+    expect(Math.abs(middle(handle("rows", "brief")) - middle(row("brief")))).toBeLessThanOrEqual(1);
+    expect(Math.abs(middle(handle("rows", "logo")) - middle(row("logo")))).toBeLessThanOrEqual(1);
+    expect(Math.abs(middle(handle("rows", "out")) - middle(row("logo")))).toBeLessThanOrEqual(1);
+  });
+  // React Flow reads the moved handle: the edge leaves the output where its dot is drawn, and enters
+  // the plain node's first input where that dot is.
+  const end = (nodeId: string, handleId: string, at: "start" | "end") => {
+    const path = root.querySelector(".ds-edge__path") as SVGPathElement;
+    const point = path.getPointAtLength(at === "start" ? 0 : path.getTotalLength());
+    const screen = point.matrixTransform(path.getScreenCTM() as DOMMatrix);
+    const r = handle(nodeId, handleId).getBoundingClientRect();
+    return Math.abs(screen.y - (r.top + r.bottom) / 2);
+  };
+  await waitFor(() => {
+    expect(end("rows", "out", "start")).toBeLessThanOrEqual(1.5);
+    expect(end("plain", "a", "end")).toBeLessThanOrEqual(1.5);
+  });
+  // The two rows are different heights, so the ports are not just spaced evenly.
+  await expect(middle(handle("rows", "logo")) - middle(handle("rows", "brief"))).toBeGreaterThan(
+    24,
+  );
+  // Inputs sit on the start edge, outputs on the end edge, centred on it.
+  const card = cardOf(root, "rows").getBoundingClientRect();
+  const input = handle("rows", "brief").getBoundingClientRect();
+  const output = handle("rows", "out").getBoundingClientRect();
+  await expect(Math.abs((input.left + input.right) / 2 - card.left)).toBeLessThanOrEqual(2);
+  await expect(Math.abs((output.left + output.right) / 2 - card.right)).toBeLessThanOrEqual(2);
+  // Without a row the two ports stay a group centred on the card, 24 apart before the zoom.
+  const plain = cardOf(root, "plain").getBoundingClientRect();
+  const a = handle("plain", "a");
+  const b = handle("plain", "b");
+  await expect(
+    Math.abs((middle(a) + middle(b)) / 2 - (plain.top + plain.bottom) / 2),
+  ).toBeLessThanOrEqual(1);
+  await expect(middle(b) - middle(a)).toBeGreaterThan(0);
+}
+
+export const PresentRowPorts: Story = {
+  render: () => (
+    <NodeBoard
+      variant="present"
+      height={360}
+      chrome={false}
+      renderBody={rowBody}
+      initial={rowPorts("th")}
+    />
+  ),
+  play: async ({ canvasElement }) => playRowPorts(canvasElement),
+};
+
+/** The row ports in English, in dark mode. */
+export const PresentRowPortsInEnglish: Story = {
+  globals: { locale: "en", mode: "dark" },
+  render: () => (
+    <NodeBoard
+      variant="present"
+      height={360}
+      chrome={false}
+      renderBody={rowBody}
+      initial={rowPorts("en")}
+    />
+  ),
+  play: async ({ canvasElement }) => playRowPorts(canvasElement),
+};
+
+/**
+ * The present node under three profiles in both modes: four kinds, a result that opens, a media
+ * node and a selected node. Six present boards on the page, so the accessibility addon covers every
+ * boundary.
+ */
+function recipeNodes(): Graph {
+  const graph = presentStates("th");
+  return { nodes: graph.nodes, edges: [] };
+}
+
+export const PresentRecipesAndModes: Story = {
+  render: () => (
+    <Matrix>
+      <NodeBoard
+        variant="present"
+        height={520}
+        chrome={false}
+        renderBody={presentBody}
+        initial={recipeNodes()}
+      />
+    </Matrix>
+  ),
+  play: async ({ canvasElement }) => {
+    const cells = canvasElement.querySelectorAll("[data-matrix-cell]");
+    await expect(cells).toHaveLength(6);
+    await waitFor(() => {
+      for (const cell of cells) {
+        expect(cell.querySelectorAll('.ds-board[data-variant="present"]')).toHaveLength(1);
+        expect(cell.querySelectorAll(".ds-node")).toHaveLength(7);
+        expect(cell.querySelectorAll(".ds-port")).toHaveLength(14);
+        expect(cell.querySelectorAll(".ds-node__open")).toHaveLength(1);
+        expect(cell.querySelectorAll('.ds-node[data-pad="media"]')).toHaveLength(1);
+        expect(cell.querySelectorAll(".ds-node[data-selected]")).toHaveLength(1);
+        expect(cell.querySelectorAll(".ds-node__label")).toHaveLength(7);
+      }
+    });
   },
 };
