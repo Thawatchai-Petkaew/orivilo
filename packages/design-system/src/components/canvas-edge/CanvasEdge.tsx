@@ -8,7 +8,7 @@ import {
 } from "@xyflow/react";
 import { useBoard } from "../canvas-board/context";
 import type { BoardEdge, BoardNode } from "../canvas-board/graph";
-import { edgeStateWord, feedsRunning } from "../canvas-board/graph";
+import { edgeStateWord, feedsRunning, portOf } from "../canvas-board/graph";
 import { useLocale, useWord } from "../../i18n/LocaleProvider";
 import { CANVAS_WORDS } from "../../tokens/canvas";
 
@@ -68,6 +68,7 @@ export function CanvasEdge({
   targetY,
   sourcePosition,
   targetPosition,
+  sourceHandleId,
   data,
   selected,
   markerEnd,
@@ -85,6 +86,11 @@ export function CanvasEdge({
   const state = edgeStateWord({ id, source: "", target: "", data } as BoardEdge, useLocale());
   const board = useBoard();
   const flowing = feedsRunning(board.graph, { id, source, target, data } as BoardEdge);
+  // On a present board the hue follows the source port's kind; text is the fallback (ORV-274).
+  const kind =
+    portOf(board.graph.nodes, { nodeId: source, handleId: sourceHandleId })?.port.kind ?? "text";
+  const chain = board.selectedNodeIds.includes(source) || board.selectedNodeIds.includes(target);
+  const showLabel = data?.label !== false || state !== "";
   return (
     <>
       <g
@@ -94,6 +100,8 @@ export function CanvasEdge({
         data-stale={data?.stale ? "" : undefined}
         data-invalid={data?.invalid ? "" : undefined}
         data-flowing={flowing ? "" : undefined}
+        data-kind={kind}
+        data-chain={chain ? "" : undefined}
       >
         <path className="ds-edge__path react-flow__edge-path" d={path} markerEnd={markerEnd} />
         {flowing ? (
@@ -112,18 +120,21 @@ export function CanvasEdge({
           strokeWidth={20}
         />
       </g>
-      <EdgeLabelRenderer>
-        <div
-          className="ds-edge__label"
-          data-meaning={meaning}
-          data-state={state ? (data?.invalid ? "invalid" : "stale") : undefined}
-          aria-hidden="true"
-          style={{ transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)` }}
-        >
-          {word(CANVAS_WORDS.edge[meaning])}
-          {state ? `, ${state}` : ""}
-        </div>
-      </EdgeLabelRenderer>
+      {showLabel ? (
+        <EdgeLabelRenderer>
+          <div
+            className="ds-edge__label"
+            data-meaning={meaning}
+            data-state={state ? (data?.invalid ? "invalid" : "stale") : undefined}
+            data-chain={chain ? "" : undefined}
+            aria-hidden="true"
+            style={{ transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)` }}
+          >
+            {word(CANVAS_WORDS.edge[meaning])}
+            {state ? `, ${state}` : ""}
+          </div>
+        </EdgeLabelRenderer>
+      ) : null}
     </>
   );
 }

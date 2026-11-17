@@ -80,6 +80,11 @@ export type EdgeContent = {
   stale?: boolean;
   /** The kinds no longer match (an edit after the connection). */
   invalid?: boolean;
+  /**
+   * `false` hides the label pill. A stale or invalid edge shows it anyway, because the pill carries
+   * that state (ORV-274). The edge's accessible name is unchanged.
+   */
+  label?: false;
 };
 
 export type BoardEdge = Edge<EdgeContent, "orivilo">;

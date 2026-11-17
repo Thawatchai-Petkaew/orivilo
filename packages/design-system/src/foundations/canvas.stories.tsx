@@ -152,8 +152,12 @@ function CanvasPage({ mode }: { mode: Mode }) {
       <Section title="Edge meanings: dash pattern">
         <Table head={["Meaning", "Stroke", "Dash", "Use for"]}>
           {EDGE_MEANINGS.map((meaning) => {
-            const dash = token(`edge.dash.${meaning}`);
-            const value = String(tokens.resolve(dash, mode).value);
+            // Input is one token (`none`); the others are an on and an off length (ORV-274).
+            const dash = token(meaning === "input" ? "edge.dash.input" : `edge.dash.${meaning}-on`);
+            const value =
+              meaning === "input"
+                ? String(tokens.resolve(dash, mode).value)
+                : `${tokens.resolve(dash, mode).value} ${tokens.resolve(token(`edge.dash.${meaning}-off`), mode).value}`;
             return (
               <tr key={meaning}>
                 <Cell>
@@ -172,7 +176,11 @@ function CanvasPage({ mode }: { mode: Mode }) {
                       d="M2 6h156"
                       fill="none"
                       stroke="var(--cmp-edge-stroke)"
-                      strokeWidth="var(--cmp-edge-width)"
+                      strokeWidth={
+                        meaning === "derived"
+                          ? "var(--cmp-edge-width-selected)"
+                          : "var(--cmp-edge-width)"
+                      }
                       strokeLinecap="round"
                       strokeDasharray={value === "none" ? undefined : value}
                     />
@@ -253,6 +261,9 @@ export const Contract: Story = {
     const shapes = new Set([...ports].map((p) => p.getAttribute("data-port-shape")));
     await expect(shapes.size).toBe(5);
     await expect(canvasElement.querySelectorAll("[data-edge-meaning]")).toHaveLength(3);
+    // The reference dash and the derived dots are an on and an off length (ORV-274).
+    await expect(canvas.getByText("6px 5px")).toBeVisible();
+    await expect(canvas.getByText("0px 5px")).toBeVisible();
     await expect(canvas.getByText("กำลังทำงาน")).toBeVisible();
     const board = canvasElement.querySelector<HTMLElement>("[data-board]");
     await expect(getComputedStyle(board as Element).backgroundColor).not.toBe("rgba(0, 0, 0, 0)");

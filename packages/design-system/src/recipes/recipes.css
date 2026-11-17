@@ -2148,6 +2148,16 @@
   width: 100%;
   height: 100%;
 }
+/* A present board (ORV-274): a calm ground, the page surface with a hairline, and sparse dots.
+ * The dots take `space.grid-gap` as their screen pitch (the board keeps the pitch at any zoom).
+ * An edit board keeps `surface.board` and `canvas.grid`. */
+.ds-board[data-variant="present"] {
+  background: var(--ds-surface-canvas);
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-shape-container-radius);
+  --xy-background-color: var(--ds-surface-canvas);
+  --xy-background-pattern-color: var(--ds-border-subtle);
+}
 /* React Flow strips the outline from its own node types; ours keep the focus line and halo (DESIGN.md §3.1).
    The edge is SVG: the shadow does not paint there, the line does. */
 .ds-board .react-flow__node:focus-visible {
@@ -2723,10 +2733,21 @@
 
 /* Edge: meaning by dash and label word, state by stroke colour (catalog CanvasEdge). -------- */
 
+/* Every board draws an edge at a fixed width and dash length on screen: the board writes `--_zi`
+ * (1 / zoom) on its root, so a length times `--_zi` holds at every zoom. With no board around,
+ * the fallback 1 keeps world units. A present board draws thinner (ORV-274). */
+.ds-board {
+  --_edge-w: var(--cmp-edge-width);
+  --_edge-w-selected: var(--cmp-edge-width-selected);
+}
+.ds-board[data-variant="present"] {
+  --_edge-w: var(--cmp-edge-width-present);
+  --_edge-w-selected: var(--cmp-edge-width-present-selected);
+}
 .ds-board .ds-edge__path {
   fill: none;
   stroke: var(--cmp-edge-stroke);
-  stroke-width: var(--cmp-edge-width);
+  stroke-width: calc(var(--_edge-w, var(--cmp-edge-width)) * var(--_zi, 1));
   stroke-linecap: round;
   transition: stroke var(--ds-motion-feedback-duration) var(--ds-motion-easing);
 }
@@ -2734,10 +2755,14 @@
   stroke-dasharray: var(--cmp-edge-dash-input);
 }
 .ds-edge[data-meaning="reference"] .ds-edge__path {
-  stroke-dasharray: var(--cmp-edge-dash-reference);
+  stroke-dasharray: calc(var(--cmp-edge-dash-reference-on) * var(--_zi, 1))
+    calc(var(--cmp-edge-dash-reference-off) * var(--_zi, 1));
 }
 .ds-edge[data-meaning="derived"] .ds-edge__path {
-  stroke-dasharray: var(--cmp-edge-dash-derived);
+  stroke-width: calc(var(--_edge-w-selected, var(--cmp-edge-width-selected)) * var(--_zi, 1));
+  stroke-dasharray: calc(var(--cmp-edge-dash-derived-on) * var(--_zi, 1))
+    calc(var(--cmp-edge-dash-derived-off) * var(--_zi, 1));
+  stroke-linecap: round;
 }
 .ds-board .react-flow__edge:hover .ds-edge__path {
   stroke: var(--cmp-edge-stroke-hover);
@@ -2746,13 +2771,46 @@
 .ds-board .react-flow__edge:focus-visible .ds-edge__path,
 .ds-board .ds-edge[data-selected] .ds-edge__path {
   stroke: var(--cmp-edge-stroke-selected);
-  stroke-width: var(--cmp-edge-width-selected);
+  stroke-width: calc(var(--_edge-w-selected, var(--cmp-edge-width-selected)) * var(--_zi, 1));
 }
 .ds-board .ds-edge[data-stale] .ds-edge__path {
   stroke: var(--cmp-edge-stroke-stale);
 }
 .ds-board .ds-edge[data-invalid] .ds-edge__path {
   stroke: var(--cmp-edge-stroke-invalid);
+}
+/* Present boards: the hue follows the source port kind, the port glyph carries the kind in shape.
+ * Text keeps the rest stroke. Selected, stale and invalid strokes still win. A node's chain stays
+ * at full strength and every other edge steps back while a node is selected (ORV-274). */
+.ds-board[data-variant="present"]
+  .ds-edge[data-kind="image"]:not([data-selected], [data-stale], [data-invalid])
+  .ds-edge__path {
+  stroke: var(--cmp-port-image);
+}
+.ds-board[data-variant="present"]
+  .ds-edge[data-kind="palette"]:not([data-selected], [data-stale], [data-invalid])
+  .ds-edge__path {
+  stroke: var(--cmp-port-palette);
+}
+.ds-board[data-variant="present"]
+  .ds-edge[data-kind="type"]:not([data-selected], [data-stale], [data-invalid])
+  .ds-edge__path {
+  stroke: var(--cmp-port-type);
+}
+.ds-board[data-variant="present"]
+  .ds-edge[data-kind="profile"]:not([data-selected], [data-stale], [data-invalid])
+  .ds-edge__path {
+  stroke: var(--cmp-port-profile);
+}
+.ds-board[data-variant="present"][data-has-selection] .ds-edge:not([data-chain]),
+.ds-board[data-variant="present"][data-has-selection] .ds-edge__label:not([data-chain]) {
+  opacity: var(--ds-opacity-disabled);
+}
+.ds-board[data-variant="present"] .ds-edge[data-chain] .ds-edge__path {
+  stroke-width: calc(var(--_edge-w-selected) * var(--_zi, 1));
+}
+.ds-board[data-variant="present"] .ds-edge[data-chain][data-meaning="derived"] .ds-edge__path {
+  stroke-width: calc((2 * var(--_edge-w-selected) - var(--_edge-w)) * var(--_zi, 1));
 }
 .ds-board__defs {
   position: absolute;
@@ -2813,6 +2871,10 @@
   letter-spacing: var(--cmp-edge-label-type-letter-spacing);
   white-space: nowrap;
   pointer-events: none;
+}
+/* The pill stays readable when the board is zoomed out. The inline transform keeps the translate. */
+.ds-board[data-variant="present"] .ds-edge__label {
+  scale: max(1, var(--_zi, 1));
 }
 .ds-edge__label[data-state="stale"] {
   color: var(--cmp-edge-stroke-stale);

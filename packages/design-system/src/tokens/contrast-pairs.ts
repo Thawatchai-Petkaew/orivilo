@@ -117,9 +117,10 @@ export const PAIR_RULES: readonly PairRule[] = [
   },
   {
     fg: ["port.text", "port.image", "port.palette", "port.type", "port.profile"],
-    on: ["surface.card", "surface.board"],
+    on: ["surface.card", "surface.board", "surface.canvas"],
     floor: UI,
-    where: "a port on the node edge, over the node and over the board (E4-1)",
+    where:
+      "a port on the node edge, over the node, over the board and over the present ground (E4-1, ORV-274)",
   },
   {
     fg: [
@@ -130,9 +131,10 @@ export const PAIR_RULES: readonly PairRule[] = [
       "edge.stroke-stale",
       "canvas.selection",
     ],
-    on: ["surface.board", "surface.card"],
+    on: ["surface.board", "surface.card", "surface.canvas"],
     floor: UI,
-    where: "an edge or a selection outline over the board and over a node or group (E4-1)",
+    where:
+      "an edge or a selection outline over the board, over a node or group and over the present ground (E4-1, ORV-274)",
   },
   {
     fg: ["status.running", "status.stale", "status.locked"],

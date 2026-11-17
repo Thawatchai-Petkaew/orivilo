@@ -16,6 +16,8 @@ import {
   ReactFlowProvider,
   SelectionMode,
   useReactFlow,
+  useStore,
+  useStoreApi,
 } from "@xyflow/react";
 import {
   type KeyboardEvent as ReactKeyboardEvent,
@@ -23,6 +25,7 @@ import {
   type ReactNode,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -260,6 +263,16 @@ const MEANING_OF: Partial<Record<CommandId, EdgeMeaning>> = {
 };
 
 /**
+ * The dots of a present board, at a fixed pitch on screen (ORV-274): the pitch and the dot size
+ * are divided by the zoom, so React Flow's own multiplication by the zoom cancels. Only this
+ * child renders again when the zoom changes. An edit board keeps the plain Background.
+ */
+function PresentGround() {
+  const zoom = useStore((s) => s.transform[2]);
+  return <Background variant={BackgroundVariant.Dots} gap={GRID_UNIT / zoom} size={1 / zoom} />;
+}
+
+/**
  * The Intent Studio board (ADR 0004): React Flow for viewport, drag, selection, connection and
  * focus order; every visual value from the board, node, port and edge tokens; every key from the
  * command registry. Controlled: the shell passes the graph and receives the next one. One runner
@@ -298,6 +311,23 @@ function Board({
   const aria = useMemo(() => ariaFor(m, locale), [m, locale]);
   const flow = useReactFlow<BoardNode, BoardEdge>();
   const wrapper = useRef<HTMLElement>(null);
+  const store = useStoreApi();
+  // `--_zi` (1 / zoom) lives on the root, so an edge keeps its width and dash length on screen at
+  // every zoom (ORV-274). It is written from the store, not from render: the board does not render
+  // again on a zoom.
+  useLayoutEffect(() => {
+    const root = wrapper.current;
+    if (!root) return;
+    let written = 0;
+    const write = () => {
+      const zoom = store.getState().transform[2];
+      if (zoom === written) return;
+      written = zoom;
+      root.style.setProperty("--_zi", String(1 / zoom));
+    };
+    write();
+    return store.subscribe(write);
+  }, [store]);
   // The working copy: React Flow fires edge and node changes for one deletion in two calls in one
   // tick, so each handler reads and writes here; `rendered` is the graph of the last render, the
   // basis for "what was connected before this deletion".
@@ -387,7 +417,17 @@ function Board({
         type: "orivilo" as const,
         ariaLabel: edgeLabel(e, graph.nodes, locale),
         deletable: !readOnly,
-        markerEnd: { type: MarkerType.ArrowClosed, color: markerColour(e), width: 14, height: 14 },
+        // A present board draws no arrow head: the port glyph at each end shows the direction.
+        ...(readOnly
+          ? {}
+          : {
+              markerEnd: {
+                type: MarkerType.ArrowClosed,
+                color: markerColour(e),
+                width: 14,
+                height: 14,
+              },
+            }),
       })),
     [graph.edges, graph.nodes, readOnly, locale],
   );
@@ -1141,7 +1181,11 @@ function Board({
       className="ds-board__flow"
       data-tool={tool}
     >
-      <Background variant={BackgroundVariant.Dots} gap={GRID_UNIT} size={1} />
+      {readOnly ? (
+        <PresentGround />
+      ) : (
+        <Background variant={BackgroundVariant.Dots} gap={GRID_UNIT} size={1} />
+      )}
       {chrome ? <CanvasControls /> : null}
       {chrome && minimapShown ? <MiniMap /> : null}
       {children}
@@ -1156,6 +1200,7 @@ function Board({
       aria-busy={loading ? true : undefined}
       className={cx("ds-board", className)}
       data-variant={variant}
+      data-has-selection={selectedNodeIds.length > 0 ? "" : undefined}
       data-loading={loading ? "" : undefined}
       data-empty={empty ? "" : undefined}
       data-connecting={connecting ? "" : undefined}

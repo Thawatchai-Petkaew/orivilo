@@ -1,26 +1,39 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { type ReactFlowInstance, useReactFlow } from "@xyflow/react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useDesignProfile } from "../../boundary/DesignProfileBoundary";
 import { CanvasBoard, type CanvasBoardProps } from "../canvas-board/CanvasBoard";
 import type { BoardEdge, BoardNode, EdgeContent, Graph } from "../canvas-board/graph";
+import type { PortKind } from "../../tokens/canvas";
+import { expectEdgeInk, inVitest } from "../../testing/visual-asserts";
 import { fillHeight, Matrix } from "../matrix";
 
 const text = { id: "text", kind: "text", label: "ข้อความ" } as const;
 
+/** Node titles for the fixtures: the author's words, so the English stories show English ones. */
+const TITLES = {
+  th: { from: "ต้นทาง", to: "ปลายทาง" },
+  en: { from: "Source", to: "Target" },
+} as const;
+
 /** Pairs of nodes stacked, one edge per pair, so each story shows one edge per row. */
-function pairs(contents: EdgeContent[], selected: number[] = []): Graph {
+function pairs(
+  contents: EdgeContent[],
+  selected: number[] = [],
+  { lang = "th", gap = 150 }: { lang?: keyof typeof TITLES; gap?: number } = {},
+): Graph {
   const nodes: BoardNode[] = [];
   const edges: BoardEdge[] = [];
   contents.forEach((data, i) => {
-    const y = i * 150;
+    const y = i * gap;
     nodes.push(
       {
         id: `s${i}`,
         type: "orivilo",
         position: { x: 0, y },
         data: {
-          title: `ต้นทาง ${i + 1}`,
+          title: `${TITLES[lang].from} ${i + 1}`,
           kind: "input-block",
           size: "sm",
           collapsed: true,
@@ -33,7 +46,7 @@ function pairs(contents: EdgeContent[], selected: number[] = []): Graph {
         type: "orivilo",
         position: { x: 440, y },
         data: {
-          title: `ปลายทาง ${i + 1}`,
+          title: `${TITLES[lang].to} ${i + 1}`,
           kind: "artifact",
           size: "sm",
           collapsed: true,
@@ -59,15 +72,21 @@ function pairs(contents: EdgeContent[], selected: number[] = []): Graph {
 function EdgeBoard({
   initial,
   height = 420,
+  label = "ตัวอย่างสาย",
   ...rest
-}: Omit<CanvasBoardProps, "graph" | "onChange" | "label"> & { initial: Graph; height?: number }) {
+}: Omit<CanvasBoardProps, "graph" | "onChange" | "label"> & {
+  initial: Graph;
+  height?: number;
+  /** The board's name; a story with two boards names each, so they are distinct landmarks. */
+  label?: string;
+}) {
   const [graph, setGraph] = useState(initial);
   const scope = useDesignProfile();
   const id = typeof scope?.profile === "string" ? scope.profile : scope?.profile.id;
   return (
     <div style={{ height: fillHeight(height) }}>
       <CanvasBoard
-        label={`ตัวอย่างสาย${scope ? `, ${id} ${scope.mode}` : ""}`}
+        label={`${label}${scope ? `, ${id} ${scope.mode}` : ""}`}
         {...rest}
         graph={graph}
         onChange={setGraph}
@@ -278,5 +297,507 @@ export const RecipesAndModes: Story = {
   ),
   play: async ({ canvasElement }) => {
     await waitFor(() => expect(edgeEls(canvasElement)).toHaveLength(18));
+  },
+};
+
+/* The present look (ORV-274): fixed width on screen, kind hues, chain highlight, hidden labels. ---- */
+
+const KINDS: readonly PortKind[] = ["text", "image", "palette", "type", "profile"];
+const MEANINGS = ["input", "reference", "derived"] as const;
+
+/** Every kind by every meaning: one row per kind, one pair of nodes per meaning. */
+function kindGrid(lang: keyof typeof TITLES): Graph {
+  const nodes: BoardNode[] = [];
+  const edges: BoardEdge[] = [];
+  KINDS.forEach((kind, row) => {
+    MEANINGS.forEach((meaning, col) => {
+      const id = `${kind}-${meaning}`;
+      // The two ends name their ports apart, so an edge reads its hue from its source end.
+      const out = { id: `${kind}-out`, kind, label: kind } as const;
+      const into = { id: `${kind}-in`, kind, label: kind } as const;
+      const y = row * 110;
+      const x = col * 900;
+      nodes.push(
+        {
+          id: `s-${id}`,
+          type: "orivilo",
+          position: { x, y },
+          data: {
+            title: `${TITLES[lang].from} ${id}`,
+            kind: "input-block",
+            size: "sm",
+            collapsed: true,
+            inputs: [],
+            outputs: [out],
+          },
+        },
+        {
+          id: `t-${id}`,
+          type: "orivilo",
+          position: { x: x + 440, y },
+          data: {
+            title: `${TITLES[lang].to} ${id}`,
+            kind: "artifact",
+            size: "sm",
+            collapsed: true,
+            inputs: [into],
+            outputs: [],
+          },
+        },
+      );
+      edges.push({
+        id: `e-${id}`,
+        type: "orivilo",
+        source: `s-${id}`,
+        sourceHandle: out.id,
+        target: `t-${id}`,
+        targetHandle: into.id,
+        data: { meaning },
+      });
+    });
+  });
+  return { nodes, edges };
+}
+
+/** The boards a story zooms, by name: a child of the board hands over React Flow's instance. */
+const flows = new Map<string, ReactFlowInstance>();
+
+function FlowHandle({ name }: { name: string }) {
+  const flow = useReactFlow();
+  useEffect(() => {
+    flows.set(name, flow);
+    return () => {
+      flows.delete(name);
+    };
+  }, [flow, name]);
+  return null;
+}
+
+/** The zoom the viewport has, read from its transform. */
+const viewportZoom = (board: Element) => {
+  const transform = board.querySelector<HTMLElement>(".react-flow__viewport")?.style.transform;
+  return parseFloat(/scale\(([\d.]+)\)/.exec(transform ?? "")?.[1] ?? "NaN");
+};
+
+/** Waits for every node to be measured and shown, then sets the zoom and waits until it holds. */
+async function zoomTo(root: HTMLElement, name: string, zoom: number) {
+  const board = root.querySelector(`[data-zoom-board="${name}"] .ds-board`) as HTMLElement;
+  await waitFor(() => {
+    for (const n of board.querySelectorAll<HTMLElement>(".react-flow__node")) {
+      expect(n.style.visibility).not.toBe("hidden");
+    }
+    expect(board.querySelectorAll(".react-flow__edge").length).toBeGreaterThan(0);
+  });
+  await waitFor(async () => {
+    await flows.get(name)?.zoomTo(zoom, { duration: 0 });
+    expect(viewportZoom(board)).toBeCloseTo(zoom, 3);
+  });
+  return board;
+}
+
+/**
+ * What an edge measures on screen: the computed lengths times the path's own screen scale. This is
+ * the drawn width, not a style value, so a zoom that the board forgot to cancel shows here.
+ */
+function drawn(path: Element) {
+  const style = getComputedStyle(path);
+  const scale = (path as SVGGraphicsElement).getScreenCTM()?.a ?? NaN;
+  const dashes = style.strokeDasharray === "none" ? [] : style.strokeDasharray.split(/[\s,]+/);
+  return {
+    scale,
+    width: parseFloat(style.strokeWidth) * scale,
+    dash: dashes.map((d) => parseFloat(d) * scale),
+    cap: style.strokeLinecap,
+    stroke: style.stroke,
+  };
+}
+
+/**
+ * The computed colour of a token at `root`, read through a probe so both sides use one
+ * serialisation. The probe sits inside the board, in the story's own mode and profile.
+ */
+function colourOf(root: HTMLElement, cssVar: string) {
+  const probe = document.createElement("span");
+  probe.style.color = `var(${cssVar})`;
+  root.appendChild(probe);
+  const colour = getComputedStyle(probe).color;
+  probe.remove();
+  return colour;
+}
+
+const pathOf = (board: Element, id: string) =>
+  board.querySelector(`.react-flow__edge[data-id="${id}"] .ds-edge__path`) as Element;
+
+/**
+ * Four kinds and text by three meanings on a present board, beside an edit board of the three
+ * meanings, at zoom 0.25, 1 and 2 (spec rows 9 and 10). The width and the dash lengths on screen
+ * are the same at every zoom; the hue follows the source port's kind.
+ */
+async function playKindsAndZoom(root: HTMLElement, lang: keyof typeof TITLES) {
+  const pillHeights: number[] = [];
+  for (const zoom of [0.25, 1, 2]) {
+    const present = await zoomTo(root, "present", zoom);
+    const edit = await zoomTo(root, "edit", zoom);
+    pillHeights.push(
+      (present.querySelector(".ds-edge__label") as HTMLElement).getBoundingClientRect().height,
+    );
+    for (const kind of KINDS) {
+      const input = drawn(pathOf(present, `e-${kind}-input`));
+      const reference = drawn(pathOf(present, `e-${kind}-reference`));
+      const derived = drawn(pathOf(present, `e-${kind}-derived`));
+      await expect(input.scale).toBeCloseTo(zoom, 3);
+      await expect(input.width).toBeCloseTo(1.5, 2);
+      await expect(reference.width).toBeCloseTo(1.5, 2);
+      await expect(input.dash).toEqual([]);
+      await expect(reference.dash).toHaveLength(2);
+      await expect(reference.dash[0]).toBeCloseTo(6, 2);
+      await expect(reference.dash[1]).toBeCloseTo(5, 2);
+      // Derived: round dots (a zero dash with a round cap) 5 apart, 2.5 across.
+      await expect(derived.width).toBeCloseTo(2.5, 2);
+      await expect(derived.dash).toHaveLength(2);
+      await expect(derived.dash[0]).toBeCloseTo(0, 2);
+      await expect(derived.dash[1]).toBeCloseTo(5, 2);
+      await expect(derived.cap).toBe("round");
+      const hue = colourOf(present, kind === "text" ? "--cmp-edge-stroke" : `--cmp-port-${kind}`);
+      for (const edge of [input, reference, derived]) await expect(edge.stroke).toBe(hue);
+    }
+    // The five hues differ, so a kind is not only its dash (the glyph shape carries it too).
+    const hues = new Set(KINDS.map((k) => drawn(pathOf(present, `e-${k}-input`)).stroke));
+    await expect(hues.size).toBe(KINDS.length);
+    // Edit boards stay gray at their own width: 2 px at rest, 3 px for the dots.
+    const gray = colourOf(edit, "--cmp-edge-stroke");
+    const [editInput, editReference, editDerived] = ["e0", "e1", "e2"].map((id) =>
+      drawn(pathOf(edit, id)),
+    );
+    await expect(editInput?.width).toBeCloseTo(2, 2);
+    await expect(editReference?.width).toBeCloseTo(2, 2);
+    await expect(editDerived?.width).toBeCloseTo(3, 2);
+    await expect(editReference?.dash[0]).toBeCloseTo(6, 2);
+    await expect(editReference?.dash[1]).toBeCloseTo(5, 2);
+    for (const e of [editInput, editReference, editDerived]) await expect(e?.stroke).toBe(gray);
+  }
+  // A present label pill stays as tall on screen when zoomed out (it grows by 1 / zoom, so the
+  // zoom cancels), and grows with the board once the zoom is past 1.
+  await expect(pillHeights[0]).toBeCloseTo(pillHeights[1] ?? NaN, 0);
+  await expect(pillHeights[2]).toBeCloseTo(2 * (pillHeights[1] ?? NaN), 0);
+  // The names still read meaning, source and target in the author's words.
+  const { from, to } = TITLES[lang];
+  const name =
+    lang === "th"
+      ? `อ้างอิง จาก ${from} image-reference ไป ${to} image-reference`
+      : `reference from ${from} image-reference to ${to} image-reference`;
+  await expect(within(root).getByRole("group", { name })).toBeInTheDocument();
+}
+
+/** One name per board, so two boards on a page are two distinct landmarks. */
+const LABELS = {
+  th: { present: "กระดานนำเสนอ (ตัวอย่าง)", edit: "กระดานแก้ไข (ตัวอย่าง)" },
+  en: { present: "Present board (sample)", edit: "Edit board (sample)" },
+} as const;
+
+function ZoomBoards({ lang }: { lang: keyof typeof TITLES }) {
+  return (
+    <div className="flex flex-col gap-4">
+      <div data-zoom-board="present">
+        <EdgeBoard
+          variant="present"
+          label={LABELS[lang].present}
+          initial={kindGrid(lang)}
+          height={520}
+        >
+          <FlowHandle name="present" />
+        </EdgeBoard>
+      </div>
+      <div data-zoom-board="edit">
+        <EdgeBoard
+          label={LABELS[lang].edit}
+          initial={pairs(
+            [{ meaning: "input" }, { meaning: "reference" }, { meaning: "derived" }],
+            [],
+            { lang, gap: 110 },
+          )}
+          height={420}
+        >
+          <FlowHandle name="edit" />
+        </EdgeBoard>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * A present board holds a thin edge on screen at every zoom (1.5 px, spec row 9) and takes its
+ * source port's hue (spec row 10); an edit board beside it holds 2 px. The dash lengths hold too.
+ */
+export const KindsAndZoom: Story = {
+  render: () => <ZoomBoards lang="th" />,
+  play: async ({ canvasElement }) => playKindsAndZoom(canvasElement, "th"),
+};
+
+/** The same measurements with English names, in dark mode. */
+export const KindsAndZoomInEnglish: Story = {
+  globals: { locale: "en", mode: "dark" },
+  render: () => <ZoomBoards lang="en" />,
+  play: async ({ canvasElement }) => playKindsAndZoom(canvasElement, "en"),
+};
+
+/**
+ * Three chains and two lone edges: a to b is input and b to c is reference, d to e is derived,
+ * f to g is input. Selecting b chains its two edges; selecting d chains the dotted one.
+ */
+function chainGraph(lang: keyof typeof TITLES): Graph {
+  const { from, to } = TITLES[lang];
+  const spec: [id: string, title: string, x: number, y: number][] = [
+    ["a", `${from} A`, 0, 0],
+    ["b", `${to} B`, 440, 0],
+    ["c", `${to} C`, 880, 0],
+    ["d", `${from} D`, 0, 130],
+    ["e", `${to} E`, 440, 130],
+    ["f", `${from} F`, 0, 260],
+    ["g", `${to} G`, 440, 260],
+  ];
+  const nodes: BoardNode[] = spec.map(([id, title, x, y]) => ({
+    id,
+    type: "orivilo",
+    position: { x, y },
+    data: {
+      title,
+      kind: "input-block",
+      size: "sm",
+      collapsed: true,
+      inputs: [text],
+      outputs: [text],
+    },
+  }));
+  const link = (source: string, target: string, meaning: EdgeContent["meaning"]): BoardEdge => ({
+    id: `${source}${target}`,
+    type: "orivilo",
+    source,
+    sourceHandle: "text",
+    target,
+    targetHandle: "text",
+    data: { meaning },
+  });
+  return {
+    nodes,
+    edges: [
+      link("a", "b", "input"),
+      link("b", "c", "reference"),
+      link("d", "e", "derived"),
+      link("f", "g", "input"),
+    ],
+  };
+}
+
+const opacityOf = (el: Element | null) => getComputedStyle(el as Element).opacity;
+
+async function playChain(root: HTMLElement) {
+  const board = await zoomTo(root, "chain", 1);
+  const node = (id: string) => board.querySelector(`.react-flow__node[data-id="${id}"]`) as Element;
+  const edge = (id: string) => board.querySelector(`.react-flow__edge[data-id="${id}"] .ds-edge`);
+  await expect(board).not.toHaveAttribute("data-has-selection");
+  await userEvent.click(node("b"));
+  await waitFor(() => expect(board).toHaveAttribute("data-has-selection"));
+  const chained = [...board.querySelectorAll(".ds-edge[data-chain]")]
+    .map((g) => g.closest(".react-flow__edge")?.getAttribute("data-id"))
+    .sort();
+  await expect(chained).toEqual(["ab", "bc"]);
+  // The chain draws at the selected width (2.5 on screen) and at full strength.
+  for (const id of ["ab", "bc"]) {
+    await expect(drawn(pathOf(board, id)).width).toBeCloseTo(2.5, 2);
+    await expect(opacityOf(edge(id))).toBe("1");
+  }
+  // Every other edge steps back to opacity.disabled, and so does its label; their widths stay.
+  await expect(opacityOf(edge("fg"))).toBe("0.4");
+  await expect(opacityOf(edge("de"))).toBe("0.4");
+  await expect(drawn(pathOf(board, "fg")).width).toBeCloseTo(1.5, 2);
+  const labels = [...board.querySelectorAll(".ds-edge__label")];
+  await expect(labels).toHaveLength(4);
+  for (const l of labels) {
+    await expect(opacityOf(l)).toBe(l.hasAttribute("data-chain") ? "1" : "0.4");
+  }
+  await expect(labels.filter((l) => l.hasAttribute("data-chain"))).toHaveLength(2);
+  // A chained dotted edge is wider than a dotted edge at rest: 2 x 2.5 less 1.5 is 3.5.
+  await userEvent.click(node("d"));
+  await waitFor(() => expect(edge("de")).toHaveAttribute("data-chain"));
+  await expect(drawn(pathOf(board, "de")).width).toBeCloseTo(3.5, 2);
+  await expect(opacityOf(edge("ab"))).toBe("0.4");
+}
+
+function ChainBoard({ lang }: { lang: keyof typeof TITLES }) {
+  return (
+    <div data-zoom-board="chain">
+      <EdgeBoard variant="present" initial={chainGraph(lang)} height={420}>
+        <FlowHandle name="chain" />
+      </EdgeBoard>
+    </div>
+  );
+}
+
+/**
+ * Selecting a node on a present board chains its edges (spec row 11): they take the selected
+ * width and full strength, and every other edge and label drops to `opacity.disabled`.
+ */
+export const ChainHighlight: Story = {
+  render: () => <ChainBoard lang="th" />,
+  play: async ({ canvasElement }) => playChain(canvasElement),
+};
+
+/** The chain highlight in English, in dark mode. */
+export const ChainHighlightInEnglish: Story = {
+  globals: { locale: "en", mode: "dark" },
+  render: () => <ChainBoard lang="en" />,
+  play: async ({ canvasElement }) => playChain(canvasElement),
+};
+
+/**
+ * Four edges, three labels: `label: false` hides the pill, a stale or invalid edge shows it
+ * anyway because the pill carries the state, and an edge with no `label` field shows its pill
+ * (spec row 11). Every edge keeps its name.
+ */
+function labelGraph(lang: keyof typeof TITLES): Graph {
+  return pairs(
+    [
+      { meaning: "reference", label: false },
+      { meaning: "input", label: false, stale: true },
+      { meaning: "derived", label: false, invalid: true },
+      { meaning: "input" },
+    ],
+    [],
+    { lang, gap: 100 },
+  );
+}
+
+async function playLabelHidden(root: HTMLElement, lang: keyof typeof TITLES) {
+  const canvas = within(root);
+  await waitFor(() => expect(edgeEls(root)).toHaveLength(4));
+  const { from, to } = TITLES[lang];
+  const words =
+    lang === "th"
+      ? {
+          reference: "อ้างอิง",
+          stale: "ป้อนเข้า, ล้าสมัย",
+          invalid: "สร้างจาก, เชื่อมต่อไม่ได้",
+          plain: "ป้อนเข้า",
+        }
+      : {
+          reference: "reference",
+          stale: "input, stale",
+          invalid: "derived from, cannot connect",
+          plain: "input",
+        };
+  const names =
+    lang === "th"
+      ? [
+          `อ้างอิง จาก ${from} 1 ไป ${to} 1`,
+          `ป้อนเข้า จาก ${from} 2 ไป ${to} 2, ล้าสมัย`,
+          `สร้างจาก จาก ${from} 3 ไป ${to} 3, เชื่อมต่อไม่ได้`,
+          `ป้อนเข้า จาก ${from} 4 ไป ${to} 4`,
+        ]
+      : [
+          `reference from ${from} 1 to ${to} 1`,
+          `input from ${from} 2 to ${to} 2, stale`,
+          `derived from from ${from} 3 to ${to} 3, cannot connect`,
+          `input from ${from} 4 to ${to} 4`,
+        ];
+  // Every edge keeps its accessible name from the board, hidden label or not.
+  for (const name of names) await expect(canvas.getByRole("group", { name })).toBeInTheDocument();
+  const pills = root.querySelectorAll(".ds-edge__label");
+  await expect(pills).toHaveLength(3);
+  for (const pill of pills) await expect(pill).toHaveAttribute("aria-hidden", "true");
+  await expect(canvas.queryByText(words.reference)).toBeNull();
+  await expect(canvas.getByText(words.stale)).toBeInTheDocument();
+  await expect(canvas.getByText(words.invalid)).toBeInTheDocument();
+  await expect(canvas.getByText(words.plain)).toBeInTheDocument();
+}
+
+function LabelBoard({ lang }: { lang: keyof typeof TITLES }) {
+  return <EdgeBoard variant="present" initial={labelGraph(lang)} height={420} />;
+}
+
+/** A hidden label shows no pill; a stale or invalid edge shows it anyway (spec row 11). */
+export const LabelHidden: Story = {
+  render: () => <LabelBoard lang="th" />,
+  play: async ({ canvasElement }) => playLabelHidden(canvasElement, "th"),
+};
+
+/** The hidden label in English, in dark mode. */
+export const LabelHiddenInEnglish: Story = {
+  globals: { locale: "en", mode: "dark" },
+  render: () => <LabelBoard lang="en" />,
+  play: async ({ canvasElement }) => playLabelHidden(canvasElement, "en"),
+};
+
+/**
+ * The present look under three profiles in both modes: the five hues, a chain from a selected
+ * node, a hidden label and a stale edge. The Matrix puts six present boards on the page, so the
+ * accessibility addon covers every boundary.
+ */
+function recipeGraph(): Graph {
+  const graph = pairs(
+    KINDS.map((): EdgeContent => ({ meaning: "input" })),
+    [],
+    { gap: 100 },
+  );
+  const kindOf = (i: number) => KINDS[i] ?? "text";
+  graph.nodes = graph.nodes.map((n) => {
+    const i = Number(n.id.slice(1));
+    const port = { id: "text", kind: kindOf(i), label: kindOf(i) };
+    return {
+      ...n,
+      selected: n.id === "s0",
+      data: {
+        ...n.data,
+        inputs: n.data.inputs.length > 0 ? [port] : [],
+        outputs: n.data.outputs.length > 0 ? [port] : [],
+      },
+    };
+  });
+  graph.edges = graph.edges.map((e, i) => ({
+    ...e,
+    data: { ...(e.data ?? { meaning: "input" }), ...(i === 2 ? { label: false as const } : {}) },
+  }));
+  const stale = pairs([{ meaning: "reference", stale: true, label: false }], [], { gap: 100 });
+  const y = KINDS.length * 100;
+  graph.nodes.push(
+    ...stale.nodes.map((n) => ({ ...n, id: `x${n.id}`, position: { x: n.position.x, y } })),
+  );
+  graph.edges.push(...stale.edges.map((e) => ({ ...e, id: "ex", source: "xs0", target: "xt0" })));
+  return graph;
+}
+
+export const PresentRecipesAndModes: Story = {
+  render: () => (
+    <Matrix>
+      {/* No controls: the toolbar sits over the bottom edge at the middle, where the ink is read. */}
+      <EdgeBoard variant="present" initial={recipeGraph()} height={600} chrome={false} />
+    </Matrix>
+  ),
+  play: async ({ canvasElement }) => {
+    const cells = canvasElement.querySelectorAll("[data-matrix-cell]");
+    await expect(cells).toHaveLength(6);
+    await waitFor(() => {
+      for (const cell of cells) {
+        expect(cell.querySelectorAll('.ds-board[data-variant="present"]')).toHaveLength(1);
+        expect(cell.querySelectorAll(".react-flow__edge")).toHaveLength(6);
+      }
+    });
+    for (const cell of cells) {
+      // Six edges, five pills: the label of edge three is hidden, the stale edge keeps its own.
+      await expect(cell.querySelectorAll(".ds-edge__label")).toHaveLength(5);
+      await expect(cell.querySelectorAll(".ds-edge[data-chain]")).toHaveLength(1);
+      await expect(cell.querySelector(".ds-board")).toHaveAttribute("data-has-selection");
+      await expect(cell.querySelectorAll(".ds-edge[data-stale]")).toHaveLength(1);
+      // The ground's hairline (spec row 7) is 1 px of ink on every side in all six boundaries.
+      if (inVitest) {
+        await expectEdgeInk(
+          cell.querySelector(".ds-board") as Element,
+          ["top", "right", "bottom", "left"],
+          1,
+        );
+      }
+      const kinds = [...cell.querySelectorAll(".ds-edge")].map((g) => g.getAttribute("data-kind"));
+      await expect(new Set(kinds)).toEqual(new Set(KINDS));
+    }
   },
 };

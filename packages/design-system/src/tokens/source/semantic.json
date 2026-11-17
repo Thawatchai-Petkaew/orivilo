@@ -1429,21 +1429,41 @@
       "$value": "{size.0-75}",
       "$description": "Stroke when selected or hovered"
     },
+    "width-present": {
+      "$type": "dimension",
+      "$value": "{size.0-375}",
+      "$description": "An edge at rest on a present board, on screen"
+    },
+    "width-present-selected": {
+      "$type": "dimension",
+      "$value": "{size.0-625}",
+      "$description": "A selected or chained edge on a present board, on screen"
+    },
     "dash": {
       "input": {
         "$type": "strokeDasharray",
         "$value": "{dash.solid}",
         "$description": "Input: the source feeds the target"
       },
-      "reference": {
-        "$type": "strokeDasharray",
-        "$value": "{dash.dashed}",
-        "$description": "Reference: the target looks at the source"
+      "reference-on": {
+        "$type": "dimension",
+        "$value": "{dash.dashed-on}",
+        "$description": "Reference: dash length, multiplied by the zoom factor"
       },
-      "derived": {
-        "$type": "strokeDasharray",
-        "$value": "{dash.dotted}",
-        "$description": "Derived from: the target was generated from the source"
+      "reference-off": {
+        "$type": "dimension",
+        "$value": "{dash.dashed-off}",
+        "$description": "Reference: gap length, multiplied by the zoom factor"
+      },
+      "derived-on": {
+        "$type": "dimension",
+        "$value": "{dash.dotted-on}",
+        "$description": "Derived from: zero dash, round cap, so a dot"
+      },
+      "derived-off": {
+        "$type": "dimension",
+        "$value": "{dash.dotted-off}",
+        "$description": "Derived from: the dot pitch"
       }
     }
   },

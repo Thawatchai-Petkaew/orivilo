@@ -1693,13 +1693,29 @@
       "$type": "strokeDasharray",
       "$value": "{edge.dash.input}"
     },
-    "dash-reference": {
-      "$type": "strokeDasharray",
-      "$value": "{edge.dash.reference}"
+    "width-present": {
+      "$type": "dimension",
+      "$value": "{edge.width-present}"
     },
-    "dash-derived": {
-      "$type": "strokeDasharray",
-      "$value": "{edge.dash.derived}"
+    "width-present-selected": {
+      "$type": "dimension",
+      "$value": "{edge.width-present-selected}"
+    },
+    "dash-reference-on": {
+      "$type": "dimension",
+      "$value": "{edge.dash.reference-on}"
+    },
+    "dash-reference-off": {
+      "$type": "dimension",
+      "$value": "{edge.dash.reference-off}"
+    },
+    "dash-derived-on": {
+      "$type": "dimension",
+      "$value": "{edge.dash.derived-on}"
+    },
+    "dash-derived-off": {
+      "$type": "dimension",
+      "$value": "{edge.dash.derived-off}"
     },
     "label-bg": {
       "$type": "color",

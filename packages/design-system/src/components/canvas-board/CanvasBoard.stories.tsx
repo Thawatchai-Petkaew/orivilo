@@ -1,9 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { type ReactFlowInstance, useReactFlow } from "@xyflow/react";
 import { useEffect, useState } from "react";
 import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { LocaleProvider } from "../../i18n/LocaleProvider";
 import {
   expectCoversInk,
+  expectEdgeInk,
   expectFrameCutsNoInk,
   expectLabelInkWhole,
   inVitest,
@@ -79,6 +81,48 @@ const translateX = (el: HTMLElement) =>
 const translateY = (el: HTMLElement) =>
   Number(/translate\([-\d.]+px,\s*([-\d.]+)px/.exec(el.style.transform)?.[1]);
 
+/** The computed colour of a token, read through a probe, so both sides use one serialisation. */
+function colourOf(root: HTMLElement, cssVar: string) {
+  const probe = document.createElement("span");
+  probe.style.color = `var(${cssVar})`;
+  root.appendChild(probe);
+  const colour = getComputedStyle(probe).color;
+  probe.remove();
+  return colour;
+}
+
+/** The zoom the viewport has, read from its transform. */
+const viewportZoom = (board: Element) =>
+  parseFloat(
+    /scale\(([\d.]+)\)/.exec(
+      board.querySelector<HTMLElement>(".react-flow__viewport")?.style.transform ?? "",
+    )?.[1] ?? "NaN",
+  );
+
+/** The pitch of the board's dots as drawn: the width of React Flow's pattern cell, in screen px. */
+const dotPitch = (board: Element) =>
+  Number(board.querySelector(".react-flow__background pattern")?.getAttribute("width"));
+
+/** A child of the board that hands the story React Flow's instance, to set the zoom. */
+let boardFlow: ReactFlowInstance | undefined;
+function ZoomHandle() {
+  const flow = useReactFlow();
+  useEffect(() => {
+    boardFlow = flow;
+    return () => {
+      boardFlow = undefined;
+    };
+  }, [flow]);
+  return null;
+}
+
+/** Sets the zoom and waits until the viewport holds it. */
+const zoomTo = (board: Element, zoom: number) =>
+  waitFor(async () => {
+    await boardFlow?.zoomTo(zoom, { duration: 0 });
+    expect(viewportZoom(board)).toBeCloseTo(zoom, 3);
+  });
+
 /** Six fixture nodes, five edges, the region named, the grid painted from the board tokens (AC 2). */
 export const Default: Story = {
   play: async ({ canvasElement }) => {
@@ -99,6 +143,14 @@ export const Default: Story = {
     ).toBeInTheDocument();
     await expect(getComputedStyle(region).backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
     await expect(region.querySelector(".react-flow__background")).not.toBeNull();
+    // An edit board keeps its own ground (`surface.board`, spec row 7), the grid pitch of one
+    // grid unit in the world, and the arrow head on its edges.
+    await expect(getComputedStyle(region).backgroundColor).toBe(colourOf(region, "--cmp-board-bg"));
+    await expect(getComputedStyle(region).borderTopWidth).toBe("0px");
+    await expect(dotPitch(region)).toBeCloseTo(GRID_UNIT * viewportZoom(region), 2);
+    for (const path of region.querySelectorAll(".ds-edge__path")) {
+      await expect(path).toHaveAttribute("marker-end");
+    }
     await expect(canvas.getByText("กำลังทำงาน")).toBeVisible();
     await expect(canvas.getByText("ล็อกแล้ว")).toBeVisible();
     await expect(canvas.getByText("ขาดข้อมูล: สีหลัก, สีรอง")).toBeVisible();
@@ -845,6 +897,11 @@ export const LoadingRecipesAndModes: Story = {
 /** Present: read-only, ports disabled, Delete and the editing shortcuts do nothing, Tab still moves (E4-2 AC 11, E4-3 AC 17). */
 export const Present: Story = {
   args: { variant: "present" },
+  render: (args) => (
+    <Stateful {...args}>
+      <ZoomHandle />
+    </Stateful>
+  ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const region = canvas.getByRole("region");
@@ -866,6 +923,28 @@ export const Present: Story = {
     const bar = canvas.getByRole("toolbar", { name: "เครื่องมือกระดาน" });
     await expect(bar.querySelector('[data-command="board.add-node"]')).toBeNull();
     await expect(bar.querySelector('[data-command="board.zoom-to-fit"]')).not.toBeNull();
+    // The calm ground (spec row 7): `surface.canvas` with a `border.subtle` hairline, and sparse
+    // `border.subtle` dots 24 px apart on screen at every zoom, 1 px across. No arrow heads.
+    const ground = getComputedStyle(region);
+    await expect(ground.backgroundColor).toBe(colourOf(region, "--ds-surface-canvas"));
+    await expect(ground.borderTopWidth).toBe("1px");
+    await expect(ground.borderTopColor).toBe(colourOf(region, "--ds-border-subtle"));
+    // The hairline is 1 px of ink, read from the pixels. The story fills the window, so only the
+    // top edge has ground outside it to read; `Present Recipes And Modes` of Canvas edge reads all
+    // four sides in six boundaries.
+    if (inVitest) await expectEdgeInk(region, "top", 1);
+    for (const zoom of [0.5, 1]) {
+      await zoomTo(region, zoom);
+      await waitFor(() => expect(dotPitch(region)).toBeCloseTo(24, 2));
+      const dot = region.querySelector(".react-flow__background circle");
+      await expect(Number(dot?.getAttribute("r"))).toBeCloseTo(0.5, 2);
+      await expect(getComputedStyle(dot as Element).fill).toBe(
+        colourOf(region, "--ds-border-subtle"),
+      );
+    }
+    for (const path of region.querySelectorAll(".ds-edge__path")) {
+      await expect(path).not.toHaveAttribute("marker-end");
+    }
   },
 };
 

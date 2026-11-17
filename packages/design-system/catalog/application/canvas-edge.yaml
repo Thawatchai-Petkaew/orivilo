@@ -11,14 +11,17 @@ avoidWhen:
 contract: CanvasEdgeProps
 variants: [input, reference, derived]
 sizes: []
-states: [default, hover, selected, focus-visible, invalid, stale]
+states: [default, hover, selected, focus-visible, invalid, stale, chain, label-hidden]
 recipes: [neutral, professional, friendly]
 examples: []
 rules:
   - "The three meanings differ by stroke style and label, never by colour alone"
   - "Deleting an edge never deletes a node"
   - "Plain at rest; only an edge feeding a running node and the line being drawn take the AI gradient with a travelling light; selected, stale and invalid strokes still win (ORV-57)"
-  - "The label shows the meaning word, then ล้าสมัย or เชื่อมต่อไม่ได้; the arrow head takes the stroke colour"
+  - "The label shows the meaning word, then ล้าสมัย or เชื่อมต่อไม่ได้; on an edit board the arrow head takes the stroke colour, and a present board draws no arrow head because the port glyph at each end shows the direction (ORV-274)"
+  - "On every board an edge keeps its width and its dash lengths on screen at any zoom: the board writes the private property --_zi (1 / zoom) on its root, and the recipe multiplies each width and length by it. An edit board draws 2 px (3 px selected). A present board draws edge.width-present, 1.5 px (edge.width-present-selected, 2.5 px, selected or chained). Input is solid, reference is 6 on 5 off (edge.dash.reference-on and -off), derived is round dots 5 apart (edge.dash.derived-on and -off) (ORV-274)"
+  - "On a present board the hue follows the source port kind: text edge.stroke, image, palette, type and profile their port.* token. The port glyph carries the kind in shape. Selected, stale and invalid strokes still win; an edit board stays gray (ORV-274)"
+  - "On a present board, when a node is selected its edges (data-chain) go to the selected width and every other edge and label drops to opacity.disabled. EdgeContent.label false hides the label pill; a stale or invalid edge keeps its pill because the pill carries the state. The accessible name is unchanged (ORV-274)"
   - "1, 2, 3 on a focused edge set its meaning to input, reference, derived"
 a11y:
   - "aria-label reads: <meaning> จาก <source> ไป <target>, then the state word"
