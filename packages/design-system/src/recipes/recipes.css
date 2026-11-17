@@ -1496,6 +1496,25 @@
   top: var(--ds-space-inset-md);
   inset-inline-end: var(--ds-space-inset-md);
 }
+/* The viewer size (ORV-274): the window less one gutter on each side. The page's own ScrollArea
+ * scrolls, not the body, and there is no entry animation, so the panel never moves under a reader. */
+.ds-dialog[data-size="viewer"] {
+  inline-size: calc(100% - 2 * var(--ds-space-gutter));
+  block-size: calc(100% - 2 * var(--ds-space-gutter));
+  max-inline-size: none;
+  max-block-size: none;
+  padding: var(--ds-space-inset-md);
+  gap: var(--ds-space-stack-sm);
+  animation: none;
+}
+.ds-dialog[data-size="viewer"] .ds-dialog__body {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.ds-dialog[data-size="viewer"] .ds-dialog__footer > * {
+  flex: 1 1 auto;
+}
 /* Confirm dialog (ORV-226): the panel is its own scroller, so the actions stay in reach. */
 .ds-confirm {
   container-type: inline-size;

@@ -1,6 +1,7 @@
 /**
  * The Logo's generated files (ORV-118 slice B, rules `logo-icon-1` and `logo-asset-1`, spec rows 17
- * to 21): the favicon SVG, the two app icon PNGs and the Storybook brand image. Each case regenerates
+ * to 21): the favicon SVG, the two app icon PNGs, the Storybook brand image and the Storybook tab
+ * icon (ORV-274, the favicon's bytes again). Each case regenerates
  * the files in memory from the drawing and the token source and never writes a file. Row 21 is the
  * freshness case: the committed bytes must equal a fresh render, and a changed token value or a
  * changed drawing number must make exactly the files that read it stale.
@@ -23,7 +24,8 @@ const ICON_SVG = "apps/web/app/icon1.svg";
 const ICON_32 = "apps/web/app/icon2.png";
 const ICON_180 = "apps/web/app/apple-icon.png";
 const STORYBOOK = "packages/design-system/.storybook/static/orivilo-logo.svg";
-const ALL = [ICON_SVG, ICON_32, ICON_180, STORYBOOK];
+const STORYBOOK_FAVICON = "packages/design-system/.storybook/static/favicon.svg";
+const ALL = [ICON_SVG, ICON_32, ICON_180, STORYBOOK, STORYBOOK_FAVICON];
 
 const COMMAND = "pnpm --filter @orivilo/design-system logo-assets";
 
@@ -210,11 +212,19 @@ describe("the Storybook brand image", () => {
   });
 });
 
+describe("the Storybook tab icon (ORV-274)", () => {
+  it("is the favicon, byte for byte, so the tab shows the mark in both colour schemes", () => {
+    const tab = byPath(base, STORYBOOK_FAVICON).bytes;
+    expect(Buffer.from(tab).equals(Buffer.from(byPath(base, ICON_SVG).bytes))).toBe(true);
+    expect(text(byPath(base, STORYBOOK_FAVICON))).toContain("prefers-color-scheme:dark");
+  });
+});
+
 describe("the Storybook brand reads the generated image (row 22)", () => {
   const source = (file: string): string =>
     readFileSync(path.join(REPO_ROOT, "packages/design-system/.storybook", file), "utf8");
 
-  it("serves the static folder, so the built output holds orivilo-logo.svg", () => {
+  it("serves the static folder, so the built output holds orivilo-logo.svg and favicon.svg", () => {
     expect(source("main.ts")).toMatch(/staticDirs:\s*\[\s*"\.\/static"\s*,?\s*\]/);
   });
 
@@ -231,7 +241,7 @@ describe("the Storybook brand reads the generated image (row 22)", () => {
 
 describe("the committed assets are fresh (row 21)", () => {
   it(
-    "generates the four files, in order, with equal bytes on two generations",
+    "generates the five files, in order, with equal bytes on two generations",
     async () => {
       expect(base.map((f) => f.path)).toEqual(ALL);
       const again = await logoAssetFiles();
@@ -248,19 +258,19 @@ describe("the committed assets are fresh (row 21)", () => {
   });
 
   it(
-    "changes exactly icon1.svg and the Storybook image when the light value of brand.dot-small changes",
+    "changes exactly the favicons and the Storybook image when the light value of brand.dot-small changes",
     async () => {
       const files = await logoAssetFiles(setWith("dot-small", "light", "#112233"));
-      expect(stale(files, base)).toEqual([ICON_SVG, STORYBOOK]);
+      expect(stale(files, base)).toEqual([ICON_SVG, STORYBOOK, STORYBOOK_FAVICON]);
     },
     HEAVY_TIMEOUT,
   );
 
   it(
-    "changes exactly icon1.svg and icon2.png when the dark value of brand.dot-small changes",
+    "changes exactly the favicons and icon2.png when the dark value of brand.dot-small changes",
     async () => {
       const files = await logoAssetFiles(setWith("dot-small", "dark", "#112233"));
-      expect(stale(files, base)).toEqual([ICON_SVG, ICON_32]);
+      expect(stale(files, base)).toEqual([ICON_SVG, ICON_32, STORYBOOK_FAVICON]);
     },
     HEAVY_TIMEOUT,
   );
@@ -275,7 +285,7 @@ describe("the committed assets are fresh (row 21)", () => {
   );
 
   it(
-    "changes all four when the dot radius the drawing reads changes",
+    "changes all five when the dot radius the drawing reads changes",
     async () => {
       const radii = DOT_RADIUS as Record<LogoForm, number>;
       const saved = { ...radii };
@@ -291,7 +301,7 @@ describe("the committed assets are fresh (row 21)", () => {
   );
 
   it(
-    "changes all four when the geometry changes",
+    "changes all five when the geometry changes",
     async () => {
       const moved: Geometry = {
         ...GEOMETRY,
