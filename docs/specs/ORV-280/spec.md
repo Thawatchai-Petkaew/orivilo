@@ -2,7 +2,7 @@
 issue: ORV-280 (https://tpetkaew.atlassian.net/browse/ORV-280)
 lane: S for PR A; L for the PR B items marked "lane L" under "Impact on contracts"
 mode: POC mode short spec (`.claude/skills/ovl/SKILL.md`, section "POC mode")
-version: 1.1
+version: 1.2
 ---
 
 # ORV-280: one polish batch for the canvas, the prototype page and the business screens
@@ -12,6 +12,8 @@ version: 1.1
 ORV-280 is the one combined polish card. The owner's rule of 2026-10-31 says small UI comments go into one card and one PR series, not one issue each. The card collects the follow-ups that reviews of PR 211 (ORV-274, shared canvas components), PR 213 (ORV-278, the ORIVILO canvas page), PR 214 (ORV-281 slice 1) and PR 216 (ORV-282, slice 2) left open. Closing them makes the canvas say the right words to a screen reader, keeps its tests honest, makes the docs match the build, and fixes the look faults that designers and QA found.
 
 The card holds 44 items (W1): D1 to D15 from the description, C1 to C11 and B1 to B18 from its 11 comments, copied on 2026-11-18. The task envelope said 48. The id ranges hold 44, and this spec counts by the ids. Each item was checked against this checkout (develop at c30b53c). None is fixed yet, so nothing is Dropped.
+
+The designer's sign-off ORV-280-signoff-1 on PR 220 (head b90a69f) adds three Suggestions, F3, F4 and F5, as PR B items S1, S2 and S3. They are not card items, so W1 still counts 44, and "Sorting" counts them apart (W3).
 
 The owner's POC focus is function (ORV-137 comment 10246). The screen flow and the final look wait. A look item that only a later look pass can settle may therefore be left out with its reason: `polish-split-1` calls it Deferred, and B12 is one ("Sorting").
 
@@ -35,7 +37,7 @@ A PR B look item states the outcome the person sees. The measure (a pixel value,
 
 ## Sorting
 
-One line per item id. The counts are PR A 16, PR B 26, Deferred 2, Dropped 0 (W3). "Slice 3 file" means a file that `polish-split-1` names.
+One line per item id. The counts are PR A 15, PR B 30 (27 card items, and S1 to S3 from the sign-off), Deferred 2, Dropped 0 (W3). "Slice 3 file" means a file that `polish-split-1` names.
 
 <!-- prettier-ignore -->
 | Item | Goes to | Reason | Row |
@@ -80,10 +82,13 @@ One line per item id. The counts are PR A 16, PR B 26, Deferred 2, Dropped 0 (W3
 | B12 | Deferred | Accepted for the POC as a map (reading happens in the viewer). Only a later look pass can raise the zoom floor or the pitch (ORV-137 comment 10246) | none |
 | B13 | PR B | Code tidy in `business-node-view.tsx` (a slice 3 file): its only caller, `business-board.tsx` line 144, passes `heading={false}` | 41 |
 | B14 | PR B | Node positions on the prototype board belong to the design's "Layout numbers" | 32 |
-| B15 | PR A | Story fixture: the `NodePort` `PresentRecipesAndModes` card sits under the board's corner badge at 360; moving the card in the story needs no look decision | 10 |
+| B15 | PR B | Look, moved from PR A in v1.2: the `NodePort` `PresentRecipesAndModes` card sits under the board's corner badge at 360. PR 220's fix (a 420 px board, refitted by the play's fit key) cleared it at 360, but sign-off ORV-280-signoff-1 (F1, F2) measured the badge 2 px into the Professional card and 1 px into its dot at 1440 (`develop`: 75 and 69 px clear), and a fit status pill over the card's corner in every cell (21 px in at 360). Clearing the badge at both widths changes the look, so `polish-split-1` sends it to PR B | 10 |
 | B16 | PR A | Words: `board.fitAll` needs a form for one, and its Thai carries the English word "node". `board.fitSelection` has the same two faults (`th.ts` line 503), so it is fixed with it | 5 |
 | B17 | PR B | Look: the attribution under the dock, on the business board (a slice 3 file) | 24 |
 | B18 | PR B | Look: the fit inset at 360 on the business board | 26 |
+| S1 | PR B | Sign-off ORV-280-signoff-1 F3, added in v1.2. Look: the `CanvasEdge` `KindsAndZoom` edit board (`CanvasEdge.stories.tsx` line 654, the default gap of 150) leaves 3.4 world px between stacked cards, 0.85 screen px at zoom 0.25 (W4) | 43 |
+| S2 | PR B | Sign-off F4, added in v1.2. Story fixture copy with a look outcome: `NodePort` `KindsInEnglish` and `ConnectedInEnglish` show Thai fixture titles and port names beside English chrome | 44 |
+| S3 | PR B | Sign-off F5, added in v1.2. Look and behaviour: a node on a board without `onNodeOpen` still shows the open glyph (`.ds-node__open`, `CanvasNode.tsx` line 200) and its page count | 45 |
 
 ## Strings
 
@@ -104,9 +109,11 @@ Each line is the copy of record for this batch, Thai and English together. B3's 
 
 The one-forms are used when the count is exactly 1. Every other count keeps the existing key. Thai has no plural, so each Thai one-form reads like its general form with 1.
 
+S2's copy is story fixture data in `NodePort.stories.tsx`, not a locale key. The English stories take the titles "All kinds", "Source" and "Target" where the Thai stories keep "ทุกชนิด", "ต้นทาง" and "ปลายทาง", and the port names of `CANVAS_WORDS.port[kind].en` ("text", "image", "palette", "type", "profile") where the Thai stories keep `.th` ("ข้อความ", "ภาพ", "ชุดสี", "ตัวอักษร", "โปรไฟล์"). The English titles are a draft for the owner's copy review.
+
 ## Acceptance criteria
 
-Tests use fixtures and run offline. No test reaches a model or the internet. Rows 1 to 18 are PR A and rows 19 to 42 are PR B ("Delivery").
+Tests use fixtures and run offline. No test reaches a model or the internet. Rows 1 to 9 and 11 to 18 are PR A; row 10 and rows 19 to 45 are PR B ("Delivery").
 
 <!-- prettier-ignore -->
 | # | Items | Given | When | User sees | Data effect | Proven by |
@@ -120,7 +127,7 @@ Tests use fixtures and run offline. No test reaches a model or the internet. Row
 | 7 | D11 | `CanvasBoard` `Present` | The play runs in the test project | No UI change | Under Vitest, where the window can be set, the fit-view `expectPillsClear` check runs at least once: the play sets a 1920 by 1200 window, where the fit zoom is 1 or more (the `atWindow` pattern), and asserts that zoom before it checks. In the static Storybook the window cannot be set, and the play keeps its zoom-guarded branch | `CanvasBoard` `Present` play |
 | 8 | D12 | `NodePort` `Kinds`, `Connected` and `Disabled` | `pnpm --filter @orivilo/design-system exec vitest run --repeats 4` on `NodePort.stories.tsx` | No UI change | Every repeat passes; the fix waits on conditions, never on fixed time | Command output in the builder report |
 | 9 | D6 | `CanvasEdge` `KindsAndZoom` and `...InEnglish`, the edit board | Rendering at zoom 0.25, 1 and 2 | The edit board's nodes stand apart, none over another | No two node rectangles intersect; the width and dash assertions at lines 583 to 592 hold unchanged | `KindsAndZoom` play |
-| 10 | B15 | `NodePort` `PresentRecipesAndModes` | Rendering at 360 | The "View only" corner badge sits clear of every card and dot | The badge's rect intersects no `.ds-node` rect and no `.ds-port__handle` rect; the badge and the board component are unchanged; only the story's fixture changes: its board grows from 300 to 420 px tall and is fitted again, and no card moves, because a board fits its content and would fit a moved card back | `PresentRecipesAndModes` play under a 360 window |
+| 10 | B15 | `NodePort` `PresentRecipesAndModes`, all six cells (three profiles, two modes), Thai and English | Rendering at 360 and at 1440 | The "View only" ("ดูอย่างเดียว") corner badge sits clear of every card and port dot; at rest no status pill (such as "Fitted 1 node to the view", "พอดีจอ 1 โหนด") lies over a card or a port dot | In every cell at 360 and at 1440 the badge's rect keeps a gap of 0 or more to every `.ds-node` rect and every `.ds-port__handle` rect; at rest no status pill rect meets a `.ds-node` or `.ds-port__handle` rect; the board component is unchanged; how the story gets there (board height, fit, card place) and any wider clearance are the designer's row for B15, recorded before the builder runs (`look-row-1`) | `PresentRecipesAndModes` play, passing in Storybook under a 360 and a 1440 window |
 | 11 | C7 | `orivilo-canvas.tsx` | Reading the source | No UI change; the page renders as before | The history mark's dot reads the lime record of `PALETTE`, the type sample reads `TYPE_SAMPLE` exported from `orivilo-canvas.data.ts`, and the badge text reads the profile id; `grep -n "#D9F66F" orivilo-canvas.tsx` and `grep -n "Aa กข" orivilo-canvas.tsx` print nothing, and line 2002's bare `orivilo` text is gone | grep; `Default`, `InThai` and `DesignSystemChapter` plays pass unchanged |
 | 12 | C8 | `Default` | Each of the 12 result nodes opens its sequence. The first node of each sequence pages through all its pages; a later node of a shared sequence only opens it | No UI change | The honesty scan of line 597 runs on the open dialog's text at each of the 40 preview pages (W2), as well as on the board; a mutant that puts "score" on one preview page turns the play red | `Default` play |
 | 13 | C9 | `PreviewProductPages`, the report preview opened at its findings | The reader scrolls the area by any route (wheel, keys, touch or a scrollbar drag), then the content resizes | The area stays where the reader left it | Any `scroll` event the re-apply did not cause itself stops the re-apply; a programmatic `scrollTop` change stands in for the scrollbar drag; a mutant without the scroll stop turns the play red | `PreviewProductPages` play |
@@ -128,7 +135,7 @@ Tests use fixtures and run offline. No test reaches a model or the internet. Row
 | 15 | D13 | `docs/specs/ORV-274/tech.md` lines 165 and 1141, `CanvasControls.tsx` line 84, `catalog/application/canvas-controls.yaml` line 21 | Reading them | Not a screen | Each states the built order as row 12 of `docs/specs/ORV-274/spec.md` (line 64) gives it: on a read-only board the read-only word, a divider, the children, a divider, then the four viewport commands | `grep -n "divider"` on the four files |
 | 16 | D14 | `docs/specs/ORV-274/tech.md` line 60 and Impact A (line 911), `DESIGN.md` line 102 | Reading them | Not a screen | Line 60 names the edit board's derived width, `edge.width-selected`, 3 px on screen; the `edge.stroke` row of `DESIGN.md` names the widths of `docs/specs/ORV-274/spec.md` row 9 (present 1.5 and derived 2.5, edit 2 and derived 3); `git show --stat 8347e98` lists `scripts/build-logo-assets.ts` with a one comment line change, so it is listed in Impact A with the count in its heading updated, and line 901's "No code change" reads "No code change beyond one comment line"; `DESIGN.md` gets a version bump and a changelog line | grep; the `git show` output in the builder report |
 | 17 | D15 | `docs/specs/ORV-274/spec.md` (12 hits of "PR 212"), `tech.md` (7), `design.md` (4) | Reading them | Not a screen | Each file carries one note: "PR 212" in this file names the page PR, which merged as PR 213 under ORV-278; GitHub PR 212 is ORV-277. The spec bumps to v2.6 with a changelog line | `grep -n "PR 213"` on the three files |
-| 18 | D6-D15, C7-C9, C11, B15, B16 | PR A head | Quality gate | Not a screen | `pnpm lint && pnpm typecheck && pnpm test && pnpm build` pass; check-i18n, the copy check and `apps/web/i18n/messages.test.ts` pass; `pnpm contrast` unchanged from `develop` | Gate output |
+| 18 | D6-D15, C7-C9, C11, B16 | PR A head | Quality gate | Not a screen | `pnpm lint && pnpm typecheck && pnpm test && pnpm build` pass; check-i18n, the copy check and `apps/web/i18n/messages.test.ts` pass; `pnpm contrast` unchanged from `develop` | Gate output |
 | 19 | C1 | A board with the centre dock (`CanvasControls position="center"`): the `CanvasBoard` dock stories, the ORIVILO canvas page and the business board | Keyboard only, Tab from the page start | Tab reaches the dock first (its buttons in order), then the board, its edges and the nodes in reading order, each with visible focus | `docs/specs/ORV-278/spec.md` row 35 (line 76) and its departure note (line 87) return to the parent's dock first, with a v1.3 changelog line; ORV-274 spec line 87, tech.md line 762 and design.md line 807 then hold as written | `CanvasBoard` dock play; `orivilo-canvas` `Default` and `Dark` plays; `business-board.stories.tsx` `expectTabOrder` |
 | 20 | D1 | A present board below zoom 1 (`KindsAndZoom` state rows at fit view) | Rendering | Every edge label pill shows whole, never under a card | The designer's row for D1 (`look-row-1`) | `KindsAndZoom` play |
 | 21 | D2 | `ChainHighlight` (a selected node) and `PresentNames` (short column gaps) | Hover or select a node | A shown port name pill or source pill covers no other pill and no edge label | `expectPillsClear` also measures shown `.ds-port__label` and `.ds-node__source`; the designer's row for D2 | `ChainHighlight` and `PresentNames` plays |
@@ -152,7 +159,10 @@ Tests use fixtures and run offline. No test reaches a model or the internet. Row
 | 39 | B7 | A project saved at 23:30 Bangkok time | Opening the list, then the board | The list and the board show the same saved date | Both read one source, `business_intake.created_at` (with time zone) | `apps/web/app/business/page.test.tsx` and `[projectId]/page.test.tsx` |
 | 40 | B9 | The viewer dialog at 360 and 1440 on the business board and on the prototype page; the `ScrollArea` stories | Open (the scroll region takes focus) | The focus outline crosses no glyph of the content, and the Thai upper marks of the state line stay whole | `expectNoGlyphClip` or the designer's row for B9; every `ScrollArea` story's play passes | `business-board` `ViewerAt360` and `ViewerAt1440`; `ScrollArea` plays |
 | 41 | B13 | `business-node-view.tsx` | Reading the source | Not a screen | The `heading` prop, its default and its `SectionHeader` branch are gone; `grep -n "heading" business-node-view.tsx` shows no prop; the views render as before | grep; typecheck; `business-board` plays |
-| 42 | B1-B7, B9-B11, B13, B14, B17, B18, C1-C6, C10, D1-D5 | PR B head | Quality gate | Not a screen | As row 18, and the designer's visual sign-off on PR B | Gate output; sign-off |
+| 42 | B1-B7, B9-B11, B13-B15, B17, B18, C1-C6, C10, D1-D5, S1-S3 | PR B head | Quality gate | Not a screen | As row 18, and the designer's visual sign-off on PR B | Gate output; sign-off |
+| 43 | S1 | `CanvasEdge` `KindsAndZoom` and `KindsAndZoomInEnglish`, the edit board | Rendering at every zoom the story shows (row 9's 0.25, 1 and 2, and the fit zoom) | Stacked cards read as separate cards at every zoom, with a gap the person can see between them | The vertical gap between stacked cards is at least the designer's row for S1 (`look-row-1`; the sign-off suggests 16 world px or more, a fixture gap of 163 or more, W4); row 9's no-intersection, width and dash assertions hold | `KindsAndZoom` play |
+| 44 | S2 | `NodePort` `KindsInEnglish` and `ConnectedInEnglish` | Rendering in English | Every node title and port row name reads in English, as "Strings" gives S2's copy ("All kinds", "Source", "Target"; "text", "image", "palette", "type", "profile"); the Thai stories `Kinds` and `Connected` keep "ทุกชนิด", "ต้นทาง", "ปลายทาง" and the Thai port names; the look follows the designer's row for S2 (`look-row-1`) | The visible text (`innerText`) of each English story's board holds no Thai character; the handle names of row 2 hold unchanged | `KindsInEnglish` and `ConnectedInEnglish` plays |
+| 45 | S3 | `CanvasBoard` `OpenNode` and `OpenNodeInEnglish`: the third board without `onNodeOpen`, and the boards with it | Rendering | What the designer's row for S3 decides (`look-row-1`). By default (open question 8): on the board without `onNodeOpen` the node shows no open glyph and keeps its page count as content ("3 pages", "3 หน้า"); on a board with `onNodeOpen` the glyph shows as today | By default `.ds-node__open` is absent from every node of a board without `onNodeOpen` and visible on an open node of a board with it; every `CanvasNode` and `CanvasBoard` story that asserts `.ds-node__open` passes; `canvas-node.yaml` states the rule beside its `aria-haspopup` line (row 4) | `OpenNode` and `OpenNodeInEnglish` plays; `CanvasNode` plays |
 
 ## Rows that render nothing
 
@@ -160,13 +170,14 @@ Tests use fixtures and run offline. No test reaches a model or the internet. Row
 
 ## Delivery
 
-- PR A holds rows 1 to 18: D6 to D15, C7 to C9, C11, B15 and B16. It may start now, on `develop` at c30b53c.
-- PR B holds rows 19 to 42: D1 to D5, C1 to C6, C10, B1 to B7, B9 to B11, B13, B14, B17 and B18. Its order is set by `look-row-1` (the designer's rows first) and `polish-split-1` (after slice 3, ORV-283).
+- PR A holds rows 1 to 9 and 11 to 18: D6 to D15, C7 to C9, C11 and B16. It may start now, on `develop` at c30b53c.
+- PR 220 leaves the story `PresentRecipesAndModes` as it is on `develop` (board height, no fit key in the play, no badge clearance assertion); the flake fix of row 8 in the same file stays.
+- PR B holds row 10 and rows 19 to 45: D1 to D5, C1 to C6, C10, B1 to B7, B9 to B11, B13 to B15, B17, B18, and S1 to S3. Its order is set by `look-row-1` (the designer's rows first) and `polish-split-1` (after slice 3, ORV-283).
 - PR A is PR 220, and "Rows per PR" holds its line. PR B has no line until it has a number; then a version bump adds it in the recorder's form (`- PR <n>: rows <list>`).
 
 ## Rows per PR
 
-- PR 220: rows 1-18
+- PR 220: rows 1-9, 11-18
 
 ## Impact on contracts
 
@@ -181,6 +192,7 @@ Tests use fixtures and run offline. No test reaches a model or the internet. Row
   - `NodeGroup`: the stale pill (D3).
   - `PageHeader`: the action's place (B2).
   - `ScrollArea`: the focus outline (B9).
+  - `CanvasNode` and `CanvasBoard`: the open glyph only where the board can open the node (S3), with `canvas-node.yaml`. If the board tells the node through a new field of its node data, that field is a public API change and its row lists the impact.
   - Each of these shared changes goes through every story of its component, and through the catalog entry where a rule changes.
 - **Tokens, recipes for colour, contrast pairs:** none expected. If a designer's row needs a new token, that row says so, and the change is an L lane contract change with its own impact list.
 
@@ -200,7 +212,8 @@ Tests use fixtures and run offline. No test reaches a model or the internet. Row
 4. **D15, the form of the fix.** Options: (a) one note per file; (b) replace the 23 hits with "PR 213". Default (a), because a note keeps the record of the plan.
 5. **B7, the source.** Options: (a) the list reads the intake's saved time (`business_intake.created_at`, with time zone); (b) keep `project.created_at` and record in `docs/specs/ORV-281/tech.md` that the list reads it under a UTC session. Default (a).
 6. **B10, the word at 360.** Options: (a) the designer makes "view only" visible at 360 and records the change to ORV-274 row 12; (b) keep it visually hidden, as row 12 decided, and close B10 by design. Default (a).
-7. **PR B size.** PR B holds 26 items, and may pass the 400-line guide. Options: (a) one PR B, and the designer's rows may move a residual (D1 or D4, the F1 and F2 residuals of ORV-274) to Deferred with its reason; (b) a third PR. Default (a), because the card allows at most two PRs.
+7. **PR B size.** PR B holds 30 items, and may pass the 400-line guide. Options: (a) one PR B, and the designer's rows may move a residual (D1 or D4, the F1 and F2 residuals of ORV-274) to Deferred with its reason; (b) a third PR. Default (a), because the card allows at most two PRs.
+8. **S3, the open glyph on a board that cannot open.** Options: (a) the glyph shows only when the board has `onNodeOpen`, and the page count stays as content; (b) the glyph shows wherever a node has `open`, and the designer's row records why. Default (a): a cue to open a view the board cannot open promises an action that does not exist, the same reason row 4 drops `aria-haspopup`. The zoom-in cursor stays out of scope ("Out of scope").
 
 ## Depends on
 
@@ -215,9 +228,11 @@ Tests use fixtures and run offline. No test reaches a model or the internet. Row
 
 - W1, the item count. Input: the id ranges of the items file (D1 to D15, C1 to C11, B1 to B18). `node -e "console.log(15 + 11 + 18)"` prints `44`, a whole count with no rounding.
 - W2, the preview pages of row 12. Input: `structure-1` of `docs/specs/ORV-278/spec.md` line 37, "6, 3, 2, 6, 8, 12 and 3 pages". `node -e "console.log([6,3,2,6,8,12,3].reduce((a,b)=>a+b,0))"` prints `40`, a whole count with no rounding.
-- W3, the sort. Input: the "Goes to" column of "Sorting". `node -e "const a=['D6','D7','D8','D9','D10','D11','D12','D13','D14','D15','C7','C8','C9','C11','B15','B16'], d=['B8','B12']; console.log(a.length, 44 - a.length - d.length, d.length)"` prints `16 26 2`, whole counts with no rounding.
+- W3, the sort. Input: the "Goes to" column of "Sorting". `node -e "const a=['D6','D7','D8','D9','D10','D11','D12','D13','D14','D15','C7','C8','C9','C11','B16'], d=['B8','B12'], s=['S1','S2','S3']; console.log(a.length, 44 - a.length - d.length + s.length, d.length)"` prints `15 30 2`, whole counts with no rounding (PR B: 44 - 15 - 2 = 27 card items, plus 3 sign-off items).
+- W4, the stacked gap of S1. Input: the sign-off's `edge-zoom.cjs` check in `.orivilo/runs/ORV-280/ORV-280-signoff-1/result.json`, "card height 146.6 world px" on the default gap of 150, and its suggested gap of 16 world px. `node -e "const g=150-146.6; console.log(g.toFixed(1), (g*0.25).toFixed(2), Math.ceil(146.6+16))"` prints `3.4 0.85 163`: the gap in world px to one decimal, the gap in screen px at zoom 0.25 to two decimals, and the fixture gap rounded up to a whole world px.
 
 ## Changelog
 
 - v1.0 (2026-11-18): first version, task ORV-280-spec-1. Sorts the 44 items of ORV-280 into PR A (16), PR B (26) and Deferred (2), with 42 rows. To review downstream: the designer's `docs/specs/ORV-280/design.md` (PR B rows), the PR A builder envelope, then the PR B builder envelope after ORV-283 merges, and the qa envelopes. These files change in PR A or PR B and are listed for review: `docs/specs/ORV-274/spec.md`, `tech.md` and `design.md`; `docs/specs/ORV-278/spec.md` (row 35); `docs/specs/ORV-281/spec.md` (line 210); `DESIGN.md` (line 102); and the catalog entries named under "Impact on contracts".
 - v1.1 (2026-11-18): task ORV-280-spec-2. Rows 5, 6, 7, 10, 12 and 16 now state what PR 220 built, as the deviations of builder task ORV-280-a1-first-batch report it: row 5 proves the general fit lines with six nodes and six selected (no `CanvasBoard` story fixture holds 31) and limits its Thai claim to the four fit lines; row 6 names the third board without `onNodeOpen`; row 7 runs the fit check under Vitest, with the zoom-guarded branch kept in the static Storybook; row 10 grows the story's board from 300 to 420 px instead of moving a card; row 12 pages each sequence once, through its first node; row 16 records the one comment line in `scripts/build-logo-assets.ts`. Adds N1 under "Out of scope" (Deferred, not a card item) and "Rows per PR" with PR 220's line. No row added, removed or renumbered; no new string, token, component or requirement; the counts of "Sorting" and the worked examples are unchanged. To review downstream: the reviewer and qa envelopes for PR 220.
+- v1.2 (2026-11-18): task ORV-280-spec-3, after sign-off ORV-280-signoff-1 (request_changes, F1 and F2 on head b90a69f) and ORV-280 comment 10711. B15 and its row 10 move from PR A to PR B, because PR 220's fix changed the look: at 1440 the "View only" badge met the Professional card and its dot, and the play's fit key left a status pill over the card and a port dot in every cell. Row 10 keeps its number and now states what PR B must reach at 360 and 1440; PR 220 leaves `PresentRecipesAndModes` as on `develop`, with row 8's flake fix kept. Adds the sign-off's Suggestions F3, F4 and F5 as PR B items S1, S2 and S3 with rows 43, 44 and 45, S2's fixture copy under "Strings", S3 under "Impact on contracts", open question 8 and W4. Counts: PR A 16 to 15, PR B 26 to 30 (W3); rows 18 and 42 list their items to match; "Rows per PR" reads `rows 1-9, 11-18`. No row removed or renumbered. To review downstream: the PR 220 builder rework envelope, the designer's `docs/specs/ORV-280/design.md` (rows for B15, S1, S2 and S3, before any PR B builder runs), the PR B builder envelope, and the qa envelopes for both PRs.
