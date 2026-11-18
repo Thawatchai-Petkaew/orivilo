@@ -27,6 +27,7 @@ export * from "./report-view";
 export * from "./business/questions";
 export * from "./business/intake";
 export * from "./business/place";
+export * from "./business/positioning";
 export * from "./business/view";
 export * from "./business/reading";
 export * from "./business/read";
