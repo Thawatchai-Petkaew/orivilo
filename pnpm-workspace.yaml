@@ -1,3 +1,13 @@
 packages:
   - "apps/*"
   - "packages/*"
+
+# audit-exception-1 (ORV-277), accepted 2026-11-18.
+# Reason: GHSA-fc5q-39xc-vjpf is a ReDoS in picomatch (<=4.0.7) with no patched release. Here
+# picomatch is reached only through vitest as a peer of better-auth (apps__web>better-auth>vitest>
+# picomatch). The app never calls it at run time and no user input reaches it.
+# Removal condition: a patched picomatch release exists, or better-auth no longer resolves vitest
+# in the production graph.
+auditConfig:
+  ignoreGhsas:
+    - GHSA-fc5q-39xc-vjpf
