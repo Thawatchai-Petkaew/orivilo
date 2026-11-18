@@ -1,0 +1,134 @@
+[
+  {
+    "caseId": "th-01",
+    "model": "anthropic/claude-sonnet-5.5",
+    "recordedAt": "2026-11-18T12:23:07.919Z",
+    "raw": "{\"readings\":[{\"field\":\"situation.name\",\"value\":\"ครัวบ้านไร่\",\"quotes\":[{\"answer\":\"idea\",\"text\":\"ร้านครัวบ้านไร่\"}]},{\"field\":\"business-core.offer\",\"value\":\"อาหารปรุงสำเร็จแช่แข็งสำหรับครอบครัวที่ทำงานทั้งคู่\",\"quotes\":[{\"answer\":\"idea\",\"text\":\"ขายอาหารปรุงสำเร็จแช่แข็งสำหรับครอบครัวที่ทำงานทั้งคู่\"}]},{\"field\":\"business-core.why\",\"value\":\"อยากให้ทุกบ้านมีอาหารฝีมือแม่กินทุกวัน\",\"quotes\":[{\"answer\":\"idea\",\"text\":\"เราอยากให้ทุกบ้านมีอาหารฝีมือแม่กินทุกวัน\"}]},{\"field\":\"audience.customers\",\"value\":\"คุณแม่วัยทำงานที่มีลูกเล็กสองคนและกลับบ้านหลังหกโมงเย็น\",\"quotes\":[{\"answer\":\"customers\",\"text\":\"คุณแม่วัยทำงานที่มีลูกเล็กสองคนและกลับบ้านหลังหกโมงเย็น\"}]},{\"field\":\"audience.problem\",\"value\":\"ไม่มีเวลาทำกับข้าวและกังวลว่าอาหารสั่งมากินไม่ดีต่อสุขภาพลูก\",\"quotes\":[{\"answer\":\"problem\",\"text\":\"ไม่มีเวลาทำกับข้าวและกังวลว่าอาหารสั่งมากินไม่ดีต่อสุขภาพลูก\"}]},{\"field\":\"competitive-frame.category\",\"value\":\"ธุรกิจอาหารแช่แข็ง\",\"quotes\":[{\"answer\":\"industry\",\"text\":\"ธุรกิจอาหารแช่แข็ง\"}]},{\"field\":\"competitive-frame.alternatives\",\"value\":\"แอปสั่งอาหารเดลิเวอรี่\",\"quotes\":[{\"answer\":\"competitors\",\"text\":\"แอปสั่งอาหารเดลิเวอรี่\"}]},{\"field\":\"competitive-frame.alternatives\",\"value\":\"ข้าวกล่องหน้าปากซอย\",\"quotes\":[{\"answer\":\"competitors\",\"text\":\"ข้าวกล่องหน้าปากซอย\"}]},{\"field\":\"competitive-frame.alternatives\",\"value\":\"ร้านสะดวกซื้อ\",\"quotes\":[{\"answer\":\"competitors\",\"text\":\"ร้านสะดวกซื้อ\"}]}]}"
+  },
+  {
+    "caseId": "th-02",
+    "model": "anthropic/claude-sonnet-5.5",
+    "recordedAt": "2026-11-18T12:23:12.751Z",
+    "raw": "{\"readings\":[{\"field\":\"business-core.offer\",\"value\":\"กาแฟคั่วอ่อนจากไร่เล็กในภาคเหนือ\",\"quotes\":[{\"answer\":\"idea\",\"text\":\"เราขายกาแฟคั่วอ่อนจากไร่เล็กในภาคเหนือ\"}]},{\"field\":\"business-core.why\",\"value\":\"เชื่อว่ากาแฟควรมีรสผลไม้\",\"quotes\":[{\"answer\":\"idea\",\"text\":\"เชื่อว่ากาแฟควรมีรสผลไม้\"}]},{\"field\":\"audience.customers\",\"value\":\"พนักงานออฟฟิศที่ชอบลองกาแฟใหม่ๆ ช่วงพักเที่ยง\",\"quotes\":[{\"answer\":\"customers\",\"text\":\"พนักงานออฟฟิศที่ชอบลองกาแฟใหม่ๆ ช่วงพักเที่ยง\"}]},{\"field\":\"audience.problem\",\"value\":\"กาแฟตามร้านทั่วไปคั่วเข้มและขมเกินไป\",\"quotes\":[{\"answer\":\"problem\",\"text\":\"กาแฟตามร้านทั่วไปคั่วเข้มและขมเกินไป\"}]},{\"field\":\"competitive-frame.category\",\"value\":\"ร้านกาแฟสเปเชียลตี้\",\"quotes\":[{\"answer\":\"industry\",\"text\":\"ร้านกาแฟสเปเชียลตี้\"}]},{\"field\":\"competitive-frame.alternatives\",\"value\":\"ร้านกาแฟเชนใหญ่\",\"quotes\":[{\"answer\":\"competitors\",\"text\":\"ร้านกาแฟเชนใหญ่\"}]},{\"field\":\"competitive-frame.alternatives\",\"value\":\"กาแฟสำเร็จรูป\",\"quotes\":[{\"answer\":\"competitors\",\"text\":\"กาแฟสำเร็จรูป\"}]}]}"
+  },
+  {
+    "caseId": "th-03",
+    "model": "anthropic/claude-sonnet-5.5",
+    "recordedAt": "2026-11-18T12:23:14.869Z",
+    "raw": "{\"readings\":[{\"field\":\"business-core.offer\",\"value\":\"รับซ่อมจักรยานถึงหน้าบ้าน\",\"quotes\":[{\"answer\":\"idea\",\"text\":\"รับซ่อมจักรยานถึงหน้าบ้าน\"}]}]}"
+  },
+  {
+    "caseId": "th-04",
+    "model": "anthropic/claude-sonnet-5.5",
+    "recordedAt": "2026-11-18T12:23:18.133Z",
+    "raw": "{\"readings\":[{\"field\":\"business-core.offer\",\"value\":\"สอนเปียโนออนไลน์\",\"quotes\":[{\"answer\":\"idea\",\"text\":\"สอนเปียโนออนไลน์\"}]},{\"field\":\"audience.customers\",\"value\":\"ผู้ใหญ่ที่เพิ่งเริ่มเรียนเปียโนตอนอายุสามสิบ\",\"quotes\":[{\"answer\":\"idea\",\"text\":\"ผู้ใหญ่ที่เพิ่งเริ่มเรียนตอนอายุสามสิบ\"}]},{\"field\":\"audience.customers\",\"value\":\"ผู้ใหญ่วัยทำงานที่อยากเล่นเปียโนเป็นงานอดิเรก\",\"quotes\":[{\"answer\":\"customers\",\"text\":\"ผู้ใหญ่วัยทำงานที่อยากเล่นเปียโนเป็นงานอดิเรก\"}]}]}"
+  },
+  {
+    "caseId": "th-05",
+    "model": "anthropic/claude-sonnet-5.5",
+    "recordedAt": "2026-11-18T12:23:21.375Z",
+    "raw": "{\"readings\":[{\"field\":\"business-core.offer\",\"value\":\"คลินิกสัตว์เลี้ยงเคลื่อนที่\",\"quotes\":[{\"answer\":\"idea\",\"text\":\"คลินิกสัตว์เลี้ยงเคลื่อนที่\"}]},{\"field\":\"business-core.why\",\"value\":\"สัตว์เลี้ยงหลายตัวเครียดเมื่อต้องเดินทางไปโรงพยาบาล\",\"quotes\":[{\"answer\":\"idea\",\"text\":\"สัตว์เลี้ยงหลายตัวเครียดเมื่อต้องเดินทางไปโรงพยาบาล\"}]},{\"field\":\"audience.customers\",\"value\":\"เจ้าของสัตว์เลี้ยง\",\"quotes\":[{\"answer\":\"problem\",\"text\":\"เจ้าของ\"}]},{\"field\":\"audience.problem\",\"value\":\"สัตว์เลี้ยงตื่นกลัวในรถและเจ้าของต้องลางานพาไปตรวจ\",\"quotes\":[{\"answer\":\"problem\",\"text\":\"สัตว์เลี้ยงตื่นกลัวในรถและเจ้าของต้องลางานพาไปตรวจ\"}]}]}"
+  },
+  {
+    "caseId": "th-06",
+    "model": "anthropic/claude-sonnet-5.5",
+    "recordedAt": "2026-11-18T12:23:23.933Z",
+    "raw": "{\"readings\":[{\"field\":\"business-core.offer\",\"value\":\"ซักรีดผ้าส่งถึงคอนโดในวันเดียว\",\"quotes\":[{\"answer\":\"idea\",\"text\":\"ซักรีดผ้าส่งถึงคอนโดในวันเดียว\"}]},{\"field\":\"audience.customers\",\"value\":\"คนที่อยู่คอนโด\",\"quotes\":[{\"answer\":\"idea\",\"text\":\"ส่งถึงคอนโด\"}]},{\"field\":\"competitive-frame.category\",\"value\":\"บริการซักรีด\",\"quotes\":[{\"answer\":\"industry\",\"text\":\"บริการซักรีด\"}]},{\"field\":\"competitive-frame.alternatives\",\"value\":\"ร้านซักรีดใต้คอนโด\",\"quotes\":[{\"answer\":\"competitors\",\"text\":\"ร้านซักรีดใต้คอนโด\"}]}]}"
+  },
+  {
+    "caseId": "th-07",
+    "model": "anthropic/claude-sonnet-5.5",
+    "recordedAt": "2026-11-18T12:23:27.187Z",
+    "raw": "{\"readings\":[{\"field\":\"situation.name\",\"value\":\"ฟ้าใสสตูดิโอ\",\"quotes\":[{\"answer\":\"idea\",\"text\":\"ฟ้าใสสตูดิโอ\"}]},{\"field\":\"business-core.offer\",\"value\":\"รับถ่ายภาพสินค้า\",\"quotes\":[{\"answer\":\"idea\",\"text\":\"รับถ่ายภาพสินค้า\"}]},{\"field\":\"audience.customers\",\"value\":\"ร้านค้าออนไลน์\",\"quotes\":[{\"answer\":\"idea\",\"text\":\"ร้านค้าออนไลน์\"}]},{\"field\":\"competitive-frame.alternatives\",\"value\":\"ช่างภาพฟรีแลนซ์\",\"quotes\":[{\"answer\":\"competitors\",\"text\":\"ช่างภาพฟรีแลนซ์\"}]},{\"field\":\"competitive-frame.alternatives\",\"value\":\"ถ่ายเองด้วยมือถือ\",\"quotes\":[{\"answer\":\"competitors\",\"text\":\"ถ่ายเองด้วยมือถือ\"}]}]}"
+  },
+  {
+    "caseId": "th-08",
+    "model": "anthropic/claude-sonnet-5.5",
+    "recordedAt": "2026-11-18T12:23:29.823Z",
+    "raw": "{\"readings\":[{\"field\":\"situation.name\",\"value\":\"มะลิเบเกอรี่\",\"quotes\":[{\"answer\":\"idea\",\"text\":\"มะลิเบเกอรี่\"}]},{\"field\":\"business-core.offer\",\"value\":\"ขายขนมปังโฮลวีท\",\"quotes\":[{\"answer\":\"idea\",\"text\":\"ขายขนมปังโฮลวีท\"}]},{\"field\":\"audience.customers\",\"value\":\"คนรักสุขภาพวัยสามสิบ\",\"quotes\":[{\"answer\":\"customers\",\"text\":\"คนรักสุขภาพวัยสามสิบ\"}]}]}"
+  },
+  {
+    "caseId": "en-01",
+    "model": "anthropic/claude-sonnet-5.5",
+    "recordedAt": "2026-11-18T12:23:33.772Z",
+    "raw": "{\"readings\":[{\"field\":\"situation.name\",\"value\":\"Greenleaf Meal Kits\",\"quotes\":[{\"answer\":\"idea\",\"text\":\"Greenleaf Meal Kits\"}]},{\"field\":\"business-core.offer\",\"value\":\"Weekly delivered boxes of pre-measured ingredients for busy families\",\"quotes\":[{\"answer\":\"idea\",\"text\":\"delivers weekly boxes of pre-measured ingredients for busy families\"}]},{\"field\":\"business-core.why\",\"value\":\"Home cooking should not take a whole evening\",\"quotes\":[{\"answer\":\"idea\",\"text\":\"we think home cooking should not take a whole evening\"}]},{\"field\":\"audience.customers\",\"value\":\"Parents with two young children who both work full time\",\"quotes\":[{\"answer\":\"customers\",\"text\":\"Parents with two young children who both work full time\"}]},{\"field\":\"audience.problem\",\"value\":\"No time to plan meals, so they order takeaway, which costs more and is less healthy\",\"quotes\":[{\"answer\":\"problem\",\"text\":\"They have no time to plan meals and end up ordering takeaway, which costs more and is less healthy\"}]},{\"field\":\"competitive-frame.category\",\"value\":\"Meal kit delivery\",\"quotes\":[{\"answer\":\"industry\",\"text\":\"Meal kit delivery\"}]},{\"field\":\"competitive-frame.alternatives\",\"value\":\"Takeaway apps\",\"quotes\":[{\"answer\":\"competitors\",\"text\":\"Takeaway apps\"}]},{\"field\":\"competitive-frame.alternatives\",\"value\":\"Supermarket ready meals\",\"quotes\":[{\"answer\":\"competitors\",\"text\":\"supermarket ready meals\"}]},{\"field\":\"competitive-frame.alternatives\",\"value\":\"Other meal kit boxes\",\"quotes\":[{\"answer\":\"competitors\",\"text\":\"other meal kit boxes\"}]}]}"
+  },
+  {
+    "caseId": "en-02",
+    "model": "anthropic/claude-sonnet-5.5",
+    "recordedAt": "2026-11-18T12:23:37.196Z",
+    "raw": "{\"readings\":[{\"field\":\"business-core.offer\",\"value\":\"A repair cafe where neighbours fix broken appliances together\",\"quotes\":[{\"answer\":\"idea\",\"text\":\"We run a repair cafe where neighbours fix broken appliances together\"}]},{\"field\":\"business-core.why\",\"value\":\"Throwing things away is wasteful\",\"quotes\":[{\"answer\":\"idea\",\"text\":\"throwing things away is wasteful\"}]},{\"field\":\"audience.customers\",\"value\":\"Retired people who like fixing things and young people on a tight budget\",\"quotes\":[{\"answer\":\"customers\",\"text\":\"Retired people who like fixing things and young people on a tight budget\"}]},{\"field\":\"audience.problem\",\"value\":\"New appliances are expensive and repair shops charge more than the item is worth\",\"quotes\":[{\"answer\":\"problem\",\"text\":\"New appliances are expensive and repair shops charge more than the item is worth\"}]},{\"field\":\"competitive-frame.category\",\"value\":\"Community repair service\",\"quotes\":[{\"answer\":\"industry\",\"text\":\"Community repair service\"}]},{\"field\":\"competitive-frame.alternatives\",\"value\":\"Buying a new one\",\"quotes\":[{\"answer\":\"competitors\",\"text\":\"Buying a new one\"}]},{\"field\":\"competitive-frame.alternatives\",\"value\":\"Local repair shops\",\"quotes\":[{\"answer\":\"competitors\",\"text\":\"local repair shops\"}]},{\"field\":\"competitive-frame.alternatives\",\"value\":\"Online tutorials\",\"quotes\":[{\"answer\":\"competitors\",\"text\":\"online tutorials\"}]}]}"
+  },
+  {
+    "caseId": "en-03",
+    "model": "anthropic/claude-sonnet-5.5",
+    "recordedAt": "2026-11-18T12:23:39.792Z",
+    "raw": "{\"readings\":[{\"field\":\"business-core.offer\",\"value\":\"Dog walking in the city centre\",\"quotes\":[{\"answer\":\"idea\",\"text\":\"Dog walking in the city centre\"}]}]}"
+  },
+  {
+    "caseId": "en-04",
+    "model": "anthropic/claude-sonnet-5.5",
+    "recordedAt": "2026-11-18T12:23:41.539Z",
+    "raw": "{\"readings\":[{\"field\":\"business-core.offer\",\"value\":\"A language school for nurses who want to work abroad\",\"quotes\":[{\"answer\":\"idea\",\"text\":\"A language school for nurses who want to work abroad\"}]},{\"field\":\"audience.customers\",\"value\":\"Nurses with three years of experience preparing for an English exam\",\"quotes\":[{\"answer\":\"customers\",\"text\":\"Nurses with three years of experience who are preparing for an English exam\"}]}]}"
+  },
+  {
+    "caseId": "en-05",
+    "model": "anthropic/claude-sonnet-5.5",
+    "recordedAt": "2026-11-18T12:23:43.997Z",
+    "raw": "{\"readings\":[{\"field\":\"business-core.offer\",\"value\":\"A sleep coaching app\",\"quotes\":[{\"answer\":\"idea\",\"text\":\"A sleep coaching app\"}]},{\"field\":\"business-core.why\",\"value\":\"Poor sleep quietly damages work and health\",\"quotes\":[{\"answer\":\"idea\",\"text\":\"poor sleep quietly damages work and health\"}]},{\"field\":\"audience.customers\",\"value\":\"Shift workers\",\"quotes\":[{\"answer\":\"problem\",\"text\":\"Shift workers\"}]},{\"field\":\"audience.problem\",\"value\":\"Cannot fall asleep after a night shift\",\"quotes\":[{\"answer\":\"problem\",\"text\":\"cannot fall asleep after a night shift\"}]}]}"
+  },
+  {
+    "caseId": "en-06",
+    "model": "anthropic/claude-sonnet-5.5",
+    "recordedAt": "2026-11-18T12:23:46.545Z",
+    "raw": "{\"readings\":[{\"field\":\"business-core.offer\",\"value\":\"Same day courier\",\"quotes\":[{\"answer\":\"idea\",\"text\":\"Same day courier\"}]},{\"field\":\"audience.customers\",\"value\":\"Small shops\",\"quotes\":[{\"answer\":\"idea\",\"text\":\"small shops\"}]},{\"field\":\"competitive-frame.category\",\"value\":\"Last mile delivery\",\"quotes\":[{\"answer\":\"industry\",\"text\":\"Last mile delivery\"}]},{\"field\":\"competitive-frame.alternatives\",\"value\":\"Postal services\",\"quotes\":[{\"answer\":\"competitors\",\"text\":\"Postal services\"}]},{\"field\":\"competitive-frame.alternatives\",\"value\":\"Shop owners delivering themselves\",\"quotes\":[{\"answer\":\"competitors\",\"text\":\"shop owners delivering themselves\"}]}]}"
+  },
+  {
+    "caseId": "en-07",
+    "model": "anthropic/claude-sonnet-5.5",
+    "recordedAt": "2026-11-18T12:23:49.138Z",
+    "raw": "{\"readings\":[{\"field\":\"situation.name\",\"value\":\"Harbour Light Studio\",\"quotes\":[{\"answer\":\"idea\",\"text\":\"Harbour Light Studio\"}]},{\"field\":\"business-core.offer\",\"value\":\"logo and packaging design\",\"quotes\":[{\"answer\":\"idea\",\"text\":\"logo and packaging design\"}]},{\"field\":\"audience.customers\",\"value\":\"small food brands\",\"quotes\":[{\"answer\":\"idea\",\"text\":\"small food brands\"}]},{\"field\":\"competitive-frame.alternatives\",\"value\":\"Freelancers on marketplaces\",\"quotes\":[{\"answer\":\"competitors\",\"text\":\"Freelancers on marketplaces\"}]},{\"field\":\"competitive-frame.alternatives\",\"value\":\"Template websites\",\"quotes\":[{\"answer\":\"competitors\",\"text\":\"template websites\"}]}]}"
+  },
+  {
+    "caseId": "en-08",
+    "model": "anthropic/claude-sonnet-5.5",
+    "recordedAt": "2026-11-18T12:23:51.708Z",
+    "raw": "{\"readings\":[{\"field\":\"situation.name\",\"value\":\"Pine and Pepper\",\"quotes\":[{\"answer\":\"idea\",\"text\":\"Pine and Pepper\"}]},{\"field\":\"business-core.offer\",\"value\":\"hot sauce\",\"quotes\":[{\"answer\":\"idea\",\"text\":\"sells hot sauce\"}]},{\"field\":\"audience.customers\",\"value\":\"restaurant owners\",\"quotes\":[{\"answer\":\"idea\",\"text\":\"restaurant owners\"}]},{\"field\":\"audience.customers\",\"value\":\"restaurant owners who want a local sauce on every table\",\"quotes\":[{\"answer\":\"customers\",\"text\":\"Restaurant owners who want a local sauce on every table\"}]}]}"
+  },
+  {
+    "caseId": "th-i1",
+    "model": "anthropic/claude-sonnet-5.5",
+    "recordedAt": "2026-11-18T12:23:53.346Z",
+    "raw": "{\"readings\":[{\"field\":\"business-core.offer\",\"value\":\"ร้านดอกไม้สดส่งถึงบ้าน\",\"quotes\":[{\"answer\":\"idea\",\"text\":\"ร้านดอกไม้สดส่งถึงบ้าน\"}]}]}"
+  },
+  {
+    "caseId": "th-i2",
+    "model": "anthropic/claude-sonnet-5.5",
+    "recordedAt": "2026-11-18T12:23:57.272Z",
+    "raw": "{\"readings\":[{\"field\":\"business-core.offer\",\"value\":\"ร้านขายหนังสือมือสอง\",\"quotes\":[{\"answer\":\"idea\",\"text\":\"ร้านขายหนังสือมือสอง\"}]}]}"
+  },
+  {
+    "caseId": "th-i3",
+    "model": "anthropic/claude-sonnet-5.5",
+    "recordedAt": "2026-11-18T12:23:59.386Z",
+    "raw": "{\"readings\":[{\"field\":\"business-core.offer\",\"value\":\"คาเฟ่แมว\",\"quotes\":[{\"answer\":\"idea\",\"text\":\"คาเฟ่แมว\"}]}]}"
+  },
+  {
+    "caseId": "en-i1",
+    "model": "anthropic/claude-sonnet-5.5",
+    "recordedAt": "2026-11-18T12:24:01.040Z",
+    "raw": "{\"readings\":[{\"field\":\"business-core.offer\",\"value\":\"A bike repair shop that comes to your door\",\"quotes\":[{\"answer\":\"idea\",\"text\":\"A bike repair shop that comes to your door\"}]}]}"
+  },
+  {
+    "caseId": "en-i2",
+    "model": "anthropic/claude-sonnet-5.5",
+    "recordedAt": "2026-11-18T12:24:02.439Z",
+    "raw": "{\"readings\":[{\"field\":\"business-core.offer\",\"value\":\"A tutoring service for high school maths\",\"quotes\":[{\"answer\":\"idea\",\"text\":\"A tutoring service for high school maths\"}]}]}"
+  },
+  {
+    "caseId": "en-i3",
+    "model": "anthropic/claude-sonnet-5.5",
+    "recordedAt": "2026-11-18T12:24:03.923Z",
+    "raw": "{\"readings\":[{\"field\":\"business-core.offer\",\"value\":\"Handmade candles sold through an online shop\",\"quotes\":[{\"answer\":\"idea\",\"text\":\"An online shop for handmade candles\"}]}]}"
+  }
+]
