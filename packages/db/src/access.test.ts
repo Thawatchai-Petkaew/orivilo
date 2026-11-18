@@ -409,11 +409,15 @@ describe.runIf(HAS_TEST_DATABASE)("orivilo_app and row security", () => {
       await inWorkspace(t.app, "ws-a", (tx) =>
         tx.insert(businessReading).values({ ...base("br-a2", "ws-a", "br-i-a2"), ...model }),
       );
-      await expect(
+      // Another job, so that the one-per-job rule cannot be what refuses it: only the policy can.
+      await failsWithCode(
         inWorkspace(t.app, "ws-a", (tx) =>
-          tx.insert(businessReading).values(base("br-x", "ws-b", "br-i-b")),
+          tx
+            .insert(businessReading)
+            .values({ ...base("br-x", "ws-b", "br-i-b"), job: "other-job" }),
         ),
-      ).rejects.toThrow();
+        "42501",
+      );
     });
 
     it("refuses a reading whose intake sits in another workspace (T9)", async () => {
@@ -466,6 +470,20 @@ describe.runIf(HAS_TEST_DATABASE)("orivilo_app and row security", () => {
         "23514",
       );
     });
+
+    it.each(["ai-not-configured", "ai-failed", "ai-rate-limited", "ai-spend-cap"])(
+      "keeps a rule-based record with the reason %s (T9)",
+      async (reason) => {
+        await t.admin
+          .insert(businessReading)
+          .values({ ...base(`br-${reason}`, "ws-a", "br-i-a2"), job: `reason-${reason}`, reason });
+        const [row] = await t.admin
+          .select()
+          .from(businessReading)
+          .where(eq(businessReading.id, `br-${reason}`));
+        expect(row?.reason).toBe(reason);
+      },
+    );
 
     it("keeps a model record at the longest bounds and the evidence as it was written (T9)", async () => {
       const evidence = [{ id: "x", text: "ก".repeat(3) }];
