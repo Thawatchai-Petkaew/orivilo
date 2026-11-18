@@ -112,13 +112,14 @@ Commands and shortcuts for the set: `commands/canvas.yaml` (checked by `check-co
 
 ## Page examples
 
-| Example                        | Tier        | Status | Story                                    |
-| ------------------------------ | ----------- | ------ | ---------------------------------------- |
-| Workspace settings form        | base        | stable | examples-base-settings-form              |
-| Decision log overview (bento)  | application | stable | examples-application-decision-log        |
-| Landing page                   | marketing   | draft  | examples-marketing-landing-page          |
-| Reference screen (handoff §19) | application | stable | examples-application-workspace-reference |
-| Tokens and type specimen       | foundation  | stable | foundations-typography                   |
-| Members (agent, ORV-37)        | application | draft  | examples-application-members-agent       |
+| Example                                                          | Tier        | Status | Story                                    |
+| ---------------------------------------------------------------- | ----------- | ------ | ---------------------------------------- |
+| Workspace settings form                                          | base        | stable | examples-base-settings-form              |
+| Decision log overview (bento)                                    | application | stable | examples-application-decision-log        |
+| Landing page                                                     | marketing   | draft  | examples-marketing-landing-page          |
+| Reference screen (handoff §19)                                   | application | stable | examples-application-workspace-reference |
+| Tokens and type specimen: Inter, Anuphan, Sarabun, IBM Plex Mono | foundation  | stable | foundations-typography                   |
+| Members (agent, ORV-37)                                          | application | draft  | examples-application-members-agent       |
+| ORIVILO canvas (ORV-274)                                         | application | draft  | examples-prototype-orivilo-canvas        |
 
 Marketing has no section entries yet and will not until a story needs a generated landing page; the gap is intentional and reported here rather than implied. Its page example (E2-7) is `draft` for that reason: it is composed from Base and Application components only, and becomes `stable` when a marketing section lands with its own entry. A page example lists only the public components it uses; an inline metric or empty state in an example does not make that row above real.

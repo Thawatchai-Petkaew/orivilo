@@ -1,10 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useId, useState, type ReactNode } from "react";
+import { useId, useRef, useState, type ReactNode } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { DesignProfileBoundary } from "../../boundary/DesignProfileBoundary";
 import { Button } from "../button/Button";
 import { Field } from "../field/Field";
 import { fixtures } from "../fixtures";
+import { ChevronLeftIcon, ChevronRightIcon } from "../icons";
 import { Input } from "../input/Input";
 import { contrastRatio } from "../../foundations/contrast";
 import {
@@ -357,4 +358,249 @@ export const RecipesAndModes: Story = {
   play: async () => {
     await waitFor(() => expect(body().getAllByRole("dialog")).toHaveLength(6));
   },
+};
+
+type Lang = "th" | "en";
+
+/** The viewer stories' words: story-local fixtures, one table per language. */
+const VIEWER = {
+  th: {
+    open: "เปิดตัวดู",
+    title: "ตัวอย่างหน้าแบรนด์",
+    description: "หน้า 2 จาก 6 ของชุดภาพทิศทางแบรนด์ ดูได้อย่างเดียว",
+    previous: "หน้าก่อนหน้า",
+    next: "หน้าถัดไป",
+    count: "2 / 6",
+    stage: "พื้นที่แสดงหน้า ภาพจะขยายให้พอดีกับกรอบนี้",
+    close: "ปิด",
+  },
+  en: {
+    open: "Open the viewer",
+    title: "Brand page preview",
+    description: "Page 2 of 6 of the brand direction set, view only",
+    previous: "Previous page",
+    next: "Next page",
+    count: "2 / 6",
+    stage: "The page area. The picture scales to fit this frame",
+    close: "Close",
+  },
+} as const;
+
+/**
+ * A viewer the way the page opens one: it has no `DialogTrigger`, so the story holds the open state
+ * and sends focus itself. On open focus goes to Next page, and on close back to the opener.
+ */
+function ViewerDialog({ lang }: { lang: Lang }) {
+  const words = VIEWER[lang];
+  const [open, setOpen] = useState(false);
+  const opener = useRef<HTMLElement | null>(null);
+  const pager = useRef<HTMLDivElement>(null);
+  return (
+    <>
+      {/* The opener sits 16 px (space.inset-md) in from the page's edge, so its focus ring is whole. */}
+      <div className="p-4">
+        <Button
+          variant="secondary"
+          onClick={(event) => {
+            opener.current = event.currentTarget;
+            setOpen(true);
+          }}
+        >
+          {words.open}
+        </Button>
+      </div>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent
+          size="viewer"
+          // A caller's stray cap: the viewer's recipe still lets the panel fill the window less the gutters.
+          className="max-w-xs"
+          title={words.title}
+          description={words.description}
+          onOpenAutoFocus={(event) => {
+            event.preventDefault();
+            pager.current?.querySelector<HTMLElement>('[data-pager="next"]')?.focus();
+          }}
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            opener.current?.focus({ preventScroll: true });
+          }}
+          footer={
+            <div ref={pager} className="flex items-center justify-center gap-3">
+              <Button variant="secondary" size="sm" iconOnly aria-label={words.previous}>
+                <ChevronLeftIcon className="size-4" />
+              </Button>
+              <span className="text-text-secondary">{words.count}</span>
+              <Button
+                variant="secondary"
+                size="sm"
+                iconOnly
+                aria-label={words.next}
+                data-pager="next"
+              >
+                <ChevronRightIcon className="size-4" />
+              </Button>
+            </div>
+          }
+        >
+          <div
+            data-stage
+            className="min-h-0 flex-1 rounded-container bg-surface-sunken p-6 text-text-secondary"
+          >
+            {words.stage}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+const box = (el: Element) => el.getBoundingClientRect();
+const px = (el: Element, property: string) =>
+  parseFloat(getComputedStyle(el).getPropertyValue(property));
+
+/**
+ * Runs `check` with the browser at `width` by `height`, then puts the size back. The viewer is as
+ * large as the window, and Vitest's browser iframe is 1200 by 900, so the size is set, not assumed.
+ * The static Storybook has no `vitest/browser`; there the window is the size the toolbar chose and
+ * `check` reads it.
+ */
+async function atWindow(width: number, height: number, check: () => Promise<void>) {
+  if (!inVitest) return check();
+  const { page } = await import("vitest/browser");
+  const before = { width: window.innerWidth, height: window.innerHeight };
+  const resized = async (w: number, h: number) => {
+    await page.viewport(w, h);
+    await waitFor(() => expect([window.innerWidth, window.innerHeight]).toEqual([w, h]));
+    await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+  };
+  // The screenshot lock of `visual-asserts.ts`: no other file's screenshot runs while the frame is resized.
+  await navigator.locks.request("orivilo-screenshot", async () => {
+    await resized(width, height);
+    try {
+      await check();
+    } finally {
+      await resized(before.width, before.height);
+    }
+  });
+}
+
+/** Opens the viewer, reads its size, focus and parts, closes it, and reads where focus went. */
+async function checkViewer(
+  root: HTMLElement,
+  lang: Lang,
+  size?: { width: number; height: number },
+) {
+  const words = VIEWER[lang];
+  const opener = within(root).getByRole("button", { name: words.open });
+  await userEvent.click(opener);
+  const dialog = await body().findByRole("dialog", { name: words.title });
+  // Focus lands on Next page, not on the first control the panel holds (Previous page).
+  await waitFor(() =>
+    expect(within(dialog).getByRole("button", { name: words.next })).toHaveFocus(),
+  );
+  // The panel is the window less one gutter (16) on each side, with no max width or height.
+  const win = {
+    width: document.documentElement.clientWidth,
+    height: document.documentElement.clientHeight,
+  };
+  if (size) await expect([win.width, win.height]).toEqual([size.width, size.height]);
+  const panel = box(dialog);
+  await expect(dialog).toHaveAttribute("data-size", "viewer");
+  await expect(dialog.className).not.toMatch(/max-w-(sm|lg)/);
+  await expect(getComputedStyle(dialog).maxWidth).toBe("none");
+  await expect(getComputedStyle(dialog).maxHeight).toBe("none");
+  await expect(Math.abs(panel.left - 16)).toBeLessThanOrEqual(1);
+  await expect(Math.abs(panel.top - 16)).toBeLessThanOrEqual(1);
+  await expect(Math.abs(win.width - 16 - panel.right)).toBeLessThanOrEqual(1);
+  await expect(Math.abs(win.height - 16 - panel.bottom)).toBeLessThanOrEqual(1);
+  if (size) {
+    await expect(Math.abs(panel.width - (size.width - 32))).toBeLessThanOrEqual(1);
+    await expect(Math.abs(panel.height - (size.height - 32))).toBeLessThanOrEqual(1);
+  }
+  // No entry animation: the panel is where it ends from the first frame.
+  await expect(getComputedStyle(dialog).animationName).toBe("none");
+  // Padding space.inset-md (16) and gap space.stack-sm (8).
+  await expect(px(dialog, "padding-left")).toBe(16);
+  await expect(px(dialog, "padding-top")).toBe(16);
+  await expect(px(dialog, "row-gap")).toBe(8);
+  // The body is a flex column that does not scroll, and the stage fills what it holds.
+  const content = dialog.querySelector<HTMLElement>(".ds-dialog__body");
+  const stage = dialog.querySelector<HTMLElement>("[data-stage]");
+  if (!content || !stage) throw new Error("the viewer has no body or stage");
+  await expect(getComputedStyle(content).display).toBe("flex");
+  await expect(getComputedStyle(content).flexDirection).toBe("column");
+  await expect(getComputedStyle(content).overflowY).toBe("hidden");
+  const inner = {
+    top: box(content).top + px(content, "padding-top"),
+    bottom: box(content).bottom - px(content, "padding-bottom"),
+  };
+  await expect(Math.abs(box(stage).top - inner.top)).toBeLessThanOrEqual(1);
+  await expect(Math.abs(box(stage).bottom - inner.bottom)).toBeLessThanOrEqual(1);
+  await expect(box(stage).height).toBeGreaterThan(panel.height / 2);
+  // The footer's one child takes the whole row at every width, not its own width.
+  const footer = dialog.querySelector<HTMLElement>(".ds-dialog__footer");
+  const pager = footer?.firstElementChild;
+  if (!footer || !pager) throw new Error("the viewer has no footer");
+  await expect(Math.abs(box(pager).width - box(footer).width)).toBeLessThanOrEqual(1);
+  // The close control stays last in the DOM and sits at the top end, an inset from the panel's edge.
+  const close = within(dialog).getByRole("button", { name: words.close });
+  await expect(dialog.lastElementChild).toBe(close);
+  await expect(Math.abs(panel.right - 1 - 16 - box(close).right)).toBeLessThanOrEqual(1);
+  await expect(Math.abs(box(close).top - (panel.top + 1 + 16))).toBeLessThanOrEqual(1);
+  // Escape closes it and focus goes back to the opener.
+  await userEvent.keyboard("{Escape}");
+  await waitFor(() => expect(body().queryByRole("dialog")).toBeNull());
+  await expect(opener).toHaveFocus();
+  // The opener's focus ring is whole (S5): its left and top, less how far the ring reaches, are not
+  // past the page's edge. The reach is the outline's width plus its offset, or the largest box-shadow
+  // spread, whichever is larger.
+  const ring = getComputedStyle(opener);
+  const spreads = ring.boxShadow
+    .replace(/(?:rgba?|color|oklch|oklab|lab|lch|hsla?|hwb)\([^)]*\)/g, "")
+    .split(",")
+    .map((layer) => parseFloat(layer.match(/-?[\d.]+px/g)?.[3] ?? "0"));
+  const reach = Math.max(
+    ring.outlineStyle === "none"
+      ? 0
+      : parseFloat(ring.outlineWidth) + parseFloat(ring.outlineOffset),
+    ...spreads,
+  );
+  await expect(reach).toBeGreaterThan(0);
+  await expect(box(opener).left - reach).toBeGreaterThanOrEqual(0);
+  await expect(box(opener).top - reach).toBeGreaterThanOrEqual(0);
+}
+
+/**
+ * The viewer at 1440 by 900: the window less 16 on each side, no entry animation, the body a flex
+ * column the stage fills, the pager across the footer's row. Focus goes to Next page on open and
+ * back to the opener on close (spec row 13).
+ */
+export const Viewer: Story = {
+  parameters: { layout: "fullscreen" },
+  render: () => <ViewerDialog lang="th" />,
+  play: async ({ canvasElement }) =>
+    atWindow(1440, 900, () =>
+      checkViewer(canvasElement, "th", inVitest ? { width: 1440, height: 900 } : undefined),
+    ),
+};
+
+/** The same viewer with English words, in dark mode. */
+export const ViewerInEnglish: Story = {
+  parameters: { layout: "fullscreen" },
+  globals: { locale: "en", mode: "dark" },
+  render: () => <ViewerDialog lang="en" />,
+  play: async ({ canvasElement }) =>
+    atWindow(1440, 900, () =>
+      checkViewer(canvasElement, "en", inVitest ? { width: 1440, height: 900 } : undefined),
+    ),
+};
+
+/** The viewer at 360 by 760: 328 wide and 728 high, the pager still across the row. */
+export const ViewerAt360: Story = {
+  parameters: { layout: "fullscreen" },
+  render: () => <ViewerDialog lang="th" />,
+  play: async ({ canvasElement }) =>
+    atWindow(360, 760, () =>
+      checkViewer(canvasElement, "th", inVitest ? { width: 360, height: 760 } : undefined),
+    ),
 };

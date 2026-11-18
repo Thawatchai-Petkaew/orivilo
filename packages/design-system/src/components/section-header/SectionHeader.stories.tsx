@@ -78,6 +78,8 @@ async function expectOpening(canvasElement: HTMLElement, copy: Copy) {
   const description = canvas.getByText(copy.description);
   await expect(description).toBeVisible();
   expectTitleOverText(title, description, { gap: 8, header: true });
+  // ORV-275 type-face-1: the title is a heading style, Inter for Latin and Anuphan for Thai.
+  await expect(getComputedStyle(title).fontFamily).toMatch(/^Inter, Anuphan,/);
   const root = title.closest<HTMLElement>(".ds-section-header") as HTMLElement;
   await expect(root.localName).toBe("div");
   await expect(canvasElement.querySelector("header")).toBeNull();
@@ -281,7 +283,7 @@ async function expectTitleInk(root: HTMLElement, copy: Copy) {
 const frameWidth = {
   479: "w-[479px]",
   480: "w-[480px]",
-  520: "w-[520px]",
+  560: "w-[560px]",
 } as const;
 
 interface ManyFrame {
@@ -290,14 +292,19 @@ interface ManyFrame {
   form: "under" | "beside";
 }
 
-/** Row 77: the six frames of design.md "Finding F1", each a header with a description. */
+/**
+ * Row 77: the six frames of design.md "Finding F1", each a header with a description. Two actions
+ * sit beside the title block from container W + 256, W being 257.7 px in English on macOS and 265
+ * on Linux (Inter sets wider there), so the "beside" frame is 560, not the 520 design.md names:
+ * at 520 the margin was 6 px on macOS and a miss on Linux. At 480 the same two actions still go under.
+ */
 const manyFrames: readonly ManyFrame[] = [
   { width: 480, actions: (c) => [c.action, ...c.moreActions.slice(0, 2)], form: "under" },
   { width: 480, actions: (c) => [c.action, ...c.moreActions], form: "under" },
   { width: 480, actions: (c) => [c.action], form: "beside" },
   { width: 479, actions: (c) => [c.action], form: "under" },
   { width: 480, actions: (c) => [c.action, c.moreActions[0]], form: "under" },
-  { width: 520, actions: (c) => [c.action, c.moreActions[0]], form: "beside" },
+  { width: 560, actions: (c) => [c.action, c.moreActions[0]], form: "beside" },
 ];
 
 const many = (copy: Copy, labels: ActionCopy) => (

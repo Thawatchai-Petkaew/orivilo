@@ -15,6 +15,7 @@ import {
   type Graph,
   neighbours,
   nodeLabel,
+  nodeOpenLabel,
   nudgeSelected,
   removeFromGraph,
   selectAll,
@@ -64,6 +65,14 @@ describe("labels", () => {
     expect(edgeLabel({ ...e1, data: { meaning: "reference", stale: true } }, graph.nodes)).toBe(
       "อ้างอิง จาก บรีฟ ไป โลโก้, ล้าสมัย",
     );
+  });
+
+  it("name a node that opens by title and page count, and fall back to the plain name without open (ORV-274)", () => {
+    const open = { ...brief.data, title: "โลโก้", open: { count: 3 } };
+    expect(nodeOpenLabel(open)).toBe("โลโก้ 3 หน้า");
+    expect(nodeOpenLabel({ ...open, title: "Logo" }, "en")).toBe("Logo, 3 pages");
+    expect(nodeOpenLabel({ ...open, open: { count: 12 } })).toBe("โลโก้ 12 หน้า");
+    expect(nodeOpenLabel(brief.data)).toBe(nodeLabel(brief.data));
   });
 
   it("speak English when asked, Thai by default (spec ORV-39 AC 10)", () => {

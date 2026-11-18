@@ -47,7 +47,7 @@ export function DialogClose({
 }
 
 export type DialogVariant = "default" | "destructive";
-export type DialogSize = "sm" | "md";
+export type DialogSize = "sm" | "md" | "viewer";
 
 export interface DialogContentProps extends Omit<
   ComponentPropsWithoutRef<typeof DialogPrimitive.Content>,
@@ -59,7 +59,11 @@ export interface DialogContentProps extends Omit<
   description?: ReactNode | undefined;
   /** `destructive` puts a danger glyph before the title; the confirming Button is `destructive` too. */
   variant?: DialogVariant | undefined;
-  /** `sm` for a confirmation, `md` for a short form. Longer tasks take a Sheet or a page. */
+  /**
+   * `sm` for a confirmation, `md` for a short form. Longer tasks take a Sheet or a page. `viewer`
+   * is the window less one gutter on each side, for a picture or a page the user looks at; its body
+   * does not scroll itself, the content inside does.
+   */
   size?: DialogSize | undefined;
   /**
    * The task inside is running: Escape, the scrim and the close control do nothing; `aria-busy`
@@ -111,7 +115,12 @@ export function DialogContent({
         <DialogPrimitive.Content
           {...rest}
           {...(description ? {} : { "aria-describedby": undefined })}
-          className={cx("ds-dialog", size === "md" ? "max-w-lg" : "max-w-sm", className)}
+          className={cx(
+            "ds-dialog",
+            size === "md" && "max-w-lg",
+            size === "sm" && "max-w-sm",
+            className,
+          )}
           data-variant={variant}
           data-size={size}
           aria-busy={ariaBusy ?? (pending || undefined)}

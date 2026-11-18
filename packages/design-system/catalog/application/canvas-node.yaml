@@ -29,6 +29,9 @@ states:
     fill-partial,
     fill-summarized,
     fill-unlinked,
+    present,
+    open,
+    media-pad,
   ]
 recipes: [neutral, professional, friendly]
 examples: []
@@ -41,6 +44,11 @@ rules:
   - "A note a chat reply placed (ORV-106) carries NodeContent.basis: its header says ตามกฎ or ข้อมูลจำลอง after the kind word, plain text in the kind ink, never a chip; it is never marked done or approved"
   - "Stale means an upstream node changed after this one ran; shown with an edge and a word, not a tint"
   - "A note is glass, like the toolbar (owner's choice, ORV-56); every other kind is solid. Solid under reduced transparency"
+  - "On a present board (board.readOnly) a node is one card with a border.subtle hairline in both modes: its kind glyph, title, basis and status are a label above the card, one line that never passes the card: parts leave from the end, whole (open glyph, pages, status word, status glyph, basis), and the title keeps min(4em, the line) with an ellipsis; the label grows by 1 / zoom below zoom 1 so it stays legible. Hover takes node.border-hover; selected takes node.border-selected plus a 1 px inner outline (offset -2); keyboard focus keeps its own line and halo outside, so it never reads as selection. The kind word, the header band and the footer are gone (ORV-274; stories PresentStates, Present, PresentNarrowLabels)"
+  - "On a present board a card with side ports is at least 2 x node.radius + (n - 1) x space.grid-gap + size.port high, n the larger side's count of ports without row, so every dot sits on the straight part of its side (ORV-274)"
+  - "NodeContent.source is a pill under the present card (text.secondary on surface.card) that shows on hover, selection and keyboard focus; NodeContent.pad is `text` (padding node.padding, 16) or `media` (node.padding-media, 8, with the body slot rounded to the node radius less that) (ORV-274)"
+  - "NodeContent.open ({ count }) makes a node that opens something: the accessible name is `graph.nodeOpenLabel` (title and page count), the wrapper takes aria-haspopup=dialog, the cursor is zoom-in, and the title row ends with the pages word (node.pages) and the open glyph on both boards. CanvasBoard.onNodeOpen is called with its id (ORV-274; story CanvasBoard OpenNode)"
+  - "A port with `row` sits at the middle of the body element that carries the same data-port-row, measured on the card and again when it resizes (ORV-274; story PresentRowPorts)"
 a11y:
   - "Accessible name is title, kind (Thai word); aria-busy while running"
   - "Every action on the node also exists in the command registry; NodeToolbar and the resizer arrive in E4-3"

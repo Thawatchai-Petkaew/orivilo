@@ -51,14 +51,30 @@ describe("port kinds", () => {
 });
 
 describe("edge meanings", () => {
-  it("differ by dash pattern, not only by colour", () => {
-    const dashes = EDGE_MEANINGS.map((m) => {
-      const t = tokens.get("semantic", `edge.dash.${m}`);
-      if (!t) throw new Error(`edge.dash.${m} missing`);
-      return String(tokens.resolve(t, "light").value);
-    });
-    expect(new Set(dashes).size).toBe(EDGE_MEANINGS.length);
-    expect(dashes[0]).toBe("none");
+  const value = (path: string) => {
+    const t = tokens.get("semantic", path);
+    if (!t) throw new Error(`${path} missing`);
+    return String(tokens.resolve(t, "light").value);
+  };
+
+  it("differ by dash pattern, not only by colour: input is solid, the others an on and an off length", () => {
+    const patterns = EDGE_MEANINGS.map((m) =>
+      m === "input"
+        ? value("edge.dash.input")
+        : `${value(`edge.dash.${m}-on`)} ${value(`edge.dash.${m}-off`)}`,
+    );
+    expect(new Set(patterns).size).toBe(EDGE_MEANINGS.length);
+    expect(patterns[0]).toBe("none");
+    expect(patterns[1]).toBe("6px 5px");
+    expect(patterns[2]).toBe("0px 5px");
+  });
+
+  it("a present edge is thinner than an edit edge, and its selected width sits between them", () => {
+    const px = (path: string) => parseFloat(value(path));
+    expect(px("edge.width-present")).toBe(1.5);
+    expect(px("edge.width-present-selected")).toBe(2.5);
+    expect(px("edge.width")).toBe(2);
+    expect(px("edge.width-selected")).toBe(3);
   });
 });
 

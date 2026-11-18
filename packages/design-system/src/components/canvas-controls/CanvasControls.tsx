@@ -1,6 +1,7 @@
 "use client";
 
 import { Panel, useViewport } from "@xyflow/react";
+import type { ReactNode } from "react";
 import { type CommandId, commandById, shortcutsOf, surfaceCommands } from "../../commands/index";
 import { formatPercent } from "../../i18n/format";
 import { useLocale, useMessages, useWord } from "../../i18n/LocaleProvider";
@@ -64,17 +65,34 @@ const DIVIDE_BEFORE = new Set<CommandId>([
   "board.command-menu",
 ]);
 
+/** The four commands that move the viewport: all a centre dock shows (design §6, ORV-274). */
+const VIEWPORT = new Set<CommandId>([
+  "board.zoom-out",
+  "board.zoom-100",
+  "board.zoom-in",
+  "board.zoom-to-fit",
+]);
+
 export interface CanvasControlsProps {
   className?: string | undefined;
+  /**
+   * `start` (default) is the panel at the bottom-left; `center` is the dock at the bottom centre:
+   * only the four viewport commands, and on a read-only board the "View only" word first. The
+   * board's corner badge then hides, so the word lives here (ORV-274).
+   */
+  position?: "start" | "center" | undefined;
+  /** Rendered first, then a divider, then the commands: a chapter strip, for one. */
+  children?: ReactNode;
 }
 
 /**
  * Zoom, fit, pan or select, minimap, undo, redo, add, find and the shortcut sheet (catalog
  * CanvasControls): every control is a registry command with its shortcut in the tooltip. Sits
  * bottom-left over the board on the glass toolbar. The present variant keeps only what moves
- * the viewport.
+ * the viewport. At `center` it is a dock with only those commands, the read-only word and the
+ * page's children (ORV-274).
  */
-export function CanvasControls({ className }: CanvasControlsProps) {
+export function CanvasControls({ className, position = "start", children }: CanvasControlsProps) {
   const board = useBoard();
   const m = useMessages();
   const word = useWord();
@@ -85,18 +103,34 @@ export function CanvasControls({ className }: CanvasControlsProps) {
     ...ORDER.filter((id) => available.includes(id)),
     ...available.filter((id) => !ORDER.includes(id)),
   ];
-  const shown = ids.filter((id) => board.enabled(id) || !board.readOnly);
+  const centre = position === "center";
+  const shown = ids.filter(
+    (id) => (board.enabled(id) || !board.readOnly) && (!centre || VIEWPORT.has(id)),
+  );
   const percent = formatPercent(zoom, locale);
   const modeIds: CommandId[] = ["board.select-mode", "board.pan-mode"];
   const hasModes = modeIds.every((id) => shown.includes(id));
 
   return (
     <Panel
-      position="bottom-left"
+      position={centre ? "bottom-center" : "bottom-left"}
       className={["ds-toolbar ds-controls", className].filter(Boolean).join(" ")}
       role="toolbar"
       aria-label={m.controls.label}
+      data-position={position}
     >
+      {centre && board.readOnly ? (
+        <>
+          <span className="ds-controls__mode">{m.board.readOnly}</span>
+          <span className="ds-controls__divider" />
+        </>
+      ) : null}
+      {children ? (
+        <>
+          <div className="ds-controls__children">{children}</div>
+          <span className="ds-controls__divider" />
+        </>
+      ) : null}
       {shown.map((id) => {
         const divider = DIVIDE_BEFORE.has(id) ? <span className="ds-controls__divider" /> : null;
         if (id === "board.zoom-100") {

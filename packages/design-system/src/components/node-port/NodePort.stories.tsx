@@ -152,7 +152,7 @@ export const Connected: Story = {
   },
 };
 
-/** Disabled on a present board: the glyph fades, the name says it cannot be edited. */
+/** Disabled on a present board: the glyph keeps its full hue, the name says it cannot be edited. */
 export const Disabled: Story = {
   render: () => <PortBoard initial={connectedPair} height={300} variant="present" />,
   play: async ({ canvasElement }) => {
@@ -243,5 +243,131 @@ export const RecipesAndModes: Story = {
   ),
   play: async ({ canvasElement }) => {
     await waitFor(() => expect(canvasElement.querySelectorAll(".ds-port")).toHaveLength(60));
+  },
+};
+
+type Lang = "th" | "en";
+
+/** Three present nodes in a row, 100 px apart: one at rest, one hovered, one selected. */
+function presentNames(lang: Lang): Graph {
+  const words = { th: ["ปกติ", "โฮเวอร์", "เลือกอยู่"], en: ["Rest", "Hover", "Selected"] }[lang];
+  const pair: PortSpec[] = [0, 1].map((i) => ({
+    id: PORT_KINDS[i] as string,
+    kind: PORT_KINDS[i] as PortSpec["kind"],
+    label: CANVAS_WORDS.port[PORT_KINDS[i] as PortSpec["kind"]][lang],
+  }));
+  return {
+    nodes: words.map((title, i) => ({
+      id: `p${i}`,
+      type: "orivilo" as const,
+      position: { x: i * 360, y: 0 },
+      ...(i === 2 ? { selected: true } : {}),
+      data: { title, kind: "knowledge" as const, size: "sm" as const, inputs: pair, outputs: pair },
+    })),
+    edges: [],
+  };
+}
+
+async function playPresentNames(root: HTMLElement, lang: Lang) {
+  await waitFor(() => expect(root.querySelectorAll(".ds-port")).toHaveLength(12));
+  const node = (id: string) => root.querySelector(`.react-flow__node[data-id="${id}"]`) as Element;
+  const pills = (id: string) => [...node(id).querySelectorAll<HTMLElement>(".ds-port__label")];
+  const visibility = (el: Element) => getComputedStyle(el).visibility;
+  // Hidden at rest, shown on hover (forced by the pseudo-states addon) and on selection.
+  for (const pill of pills("p0")) await expect(visibility(pill)).toBe("hidden");
+  await waitFor(() => {
+    for (const pill of pills("p1")) expect(visibility(pill)).toBe("visible");
+  });
+  for (const pill of pills("p2")) await expect(visibility(pill)).toBe("visible");
+  // Shown on keyboard focus too (spec row 3): the rest node takes focus and its pills show.
+  const rest = node("p0") as HTMLElement;
+  await waitFor(() => {
+    rest.focus();
+    expect(rest).toHaveFocus();
+    expect(rest.matches(":focus-visible"), "the rest node's focus is a keyboard focus").toBe(true);
+    for (const pill of pills("p0")) expect(visibility(pill)).toBe("visible");
+  });
+  rest.blur();
+  for (const pill of pills("p0")) await waitFor(() => expect(visibility(pill)).toBe("hidden"));
+  // A pill reads the port's own name; the input pill sits before the edge, the output pill after it.
+  const input = node("p2").querySelector('.ds-port[data-direction="input"]') as Element;
+  const output = node("p2").querySelector('.ds-port[data-direction="output"]') as Element;
+  await expect(input.querySelector(".ds-port__label")).toHaveTextContent(
+    CANVAS_WORDS.port[PORT_KINDS[0] as PortSpec["kind"]][lang],
+  );
+  const handle = (li: Element) =>
+    (li.querySelector(".ds-port__handle") as Element).getBoundingClientRect();
+  const pill = (li: Element) =>
+    (li.querySelector(".ds-port__label") as Element).getBoundingClientRect();
+  await expect(pill(input).right).toBeLessThanOrEqual(handle(input).left);
+  await expect(pill(output).left).toBeGreaterThanOrEqual(handle(output).right);
+  // The catalog name stays on the handle, read only on a present board, and the glyph is not faded.
+  const names = [...root.querySelectorAll(".ds-port__handle")].map((h) =>
+    h.getAttribute("aria-label"),
+  );
+  const suffix = lang === "th" ? "แก้ไขไม่ได้" : "read only";
+  for (const name of names) await expect(name).toMatch(new RegExp(`, ${suffix}$`));
+  await expect(names[0]).toContain(CANVAS_WORDS.port[PORT_KINDS[0] as PortSpec["kind"]][lang]);
+  for (const h of root.querySelectorAll(".ds-port__handle")) {
+    await expect(getComputedStyle(h).opacity).toBe("1");
+  }
+  // No side dot sits on the card's bend (ORV-274, S1): its top is at least the card's top plus the
+  // corner radius on screen, and its bottom at most the card's bottom less it. The viewport's zoom
+  // scales the radius, which is a world length.
+  const viewport = root.querySelector<HTMLElement>(".react-flow__viewport");
+  const zoom = parseFloat(/scale\(([\d.]+)\)/.exec(viewport?.style.transform ?? "")?.[1] ?? "NaN");
+  const sideDots = root.querySelectorAll<HTMLElement>(".ds-port:not([data-row]) .ds-port__handle");
+  await expect(sideDots.length).toBeGreaterThan(0);
+  for (const dot of sideDots) {
+    const card = dot.closest(".ds-node") as HTMLElement;
+    const radius = parseFloat(getComputedStyle(card).borderTopLeftRadius) * zoom;
+    const dotBox = dot.getBoundingClientRect();
+    const cardBox = card.getBoundingClientRect();
+    await expect(dotBox.top - (cardBox.top + radius)).toBeGreaterThanOrEqual(-0.5);
+    await expect(cardBox.bottom - radius - dotBox.bottom).toBeGreaterThanOrEqual(-0.5);
+  }
+}
+
+/**
+ * The name pills of a present board (spec row 3): hidden at rest, shown when the node is hovered or
+ * selected, on the outer side of each dot. The catalog name stays on the handle and the dot keeps
+ * its full hue although the port is read only.
+ */
+export const PresentNames: Story = {
+  parameters: { pseudo: { rootSelector: "body", hover: ['.react-flow__node[data-id="p1"]'] } },
+  render: () => <PortBoard initial={presentNames("th")} height={260} variant="present" />,
+  play: async ({ canvasElement }) => playPresentNames(canvasElement, "th"),
+};
+
+/** The present pills in English, in dark mode. */
+export const PresentNamesInEnglish: Story = {
+  globals: { locale: "en", mode: "dark" },
+  parameters: { pseudo: { rootSelector: "body", hover: ['.react-flow__node[data-id="p1"]'] } },
+  render: () => <PortBoard initial={presentNames("en")} height={260} variant="present" />,
+  play: async ({ canvasElement }) => playPresentNames(canvasElement, "en"),
+};
+
+/** All five kinds on a present board under three profiles in both modes: locked hues, full opacity. */
+export const PresentRecipesAndModes: Story = {
+  render: () => (
+    <Matrix>
+      <PortBoard initial={allKinds} height={300} variant="present" />
+    </Matrix>
+  ),
+  play: async ({ canvasElement }) => {
+    await waitFor(() => expect(canvasElement.querySelectorAll(".ds-port")).toHaveLength(60));
+    const cells = canvasElement.querySelectorAll("[data-matrix-cell]");
+    await expect(cells).toHaveLength(6);
+    for (const cell of cells) {
+      const fills = new Set(
+        [...cell.querySelectorAll('.ds-port[data-direction="input"] .ds-port__glyph')].map(
+          (g) => getComputedStyle(g).fill,
+        ),
+      );
+      await expect(fills.size).toBe(5);
+    }
+    for (const h of canvasElement.querySelectorAll(".ds-port__handle")) {
+      await expect(getComputedStyle(h).opacity).toBe("1");
+    }
   },
 };

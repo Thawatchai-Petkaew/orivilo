@@ -593,13 +593,25 @@
     "0-75": {
       "$type": "dimension",
       "$value": "3px"
+    },
+    "0-375": {
+      "$type": "dimension",
+      "$value": "1.5px"
+    },
+    "0-625": {
+      "$type": "dimension",
+      "$value": "2.5px"
     }
   },
   "font": {
     "family": {
-      "plex-sans": {
+      "inter-anuphan": {
         "$type": "fontFamily",
-        "$value": ["IBM Plex Sans", "Sarabun", "system-ui", "sans-serif"]
+        "$value": ["Inter", "Anuphan", "system-ui", "sans-serif"]
+      },
+      "inter-sarabun": {
+        "$type": "fontFamily",
+        "$value": ["Inter", "Sarabun", "system-ui", "sans-serif"]
       },
       "plex-mono": {
         "$type": "fontFamily",
@@ -829,18 +841,26 @@
     }
   },
   "dash": {
-    "$description": "SVG stroke-dasharray patterns for canvas edges (E4-1)",
+    "$description": "Edge dash lengths (E4-1, ORV-274): solid is none; a dash is an on and an off length, so a board can multiply both by the zoom factor",
     "solid": {
       "$type": "strokeDasharray",
       "$value": "none"
     },
-    "dashed": {
-      "$type": "strokeDasharray",
-      "$value": "8 6"
+    "dashed-on": {
+      "$type": "dimension",
+      "$value": "6px"
     },
-    "dotted": {
-      "$type": "strokeDasharray",
-      "$value": "2 5"
+    "dashed-off": {
+      "$type": "dimension",
+      "$value": "5px"
+    },
+    "dotted-on": {
+      "$type": "dimension",
+      "$value": "0px"
+    },
+    "dotted-off": {
+      "$type": "dimension",
+      "$value": "5px"
     }
   }
 }

@@ -10,7 +10,7 @@ avoidWhen: []
 contract: CanvasControlsProps
 variants: []
 sizes: []
-states: [default, with-history, disabled-undo, disabled-redo, present]
+states: [default, with-history, disabled-undo, disabled-redo, present, centre-dock]
 recipes: [neutral, professional, friendly]
 examples: []
 rules:
@@ -18,5 +18,6 @@ rules:
   - "Undo and redo are enabled only when the shell passes canUndo or canRedo"
   - "The present variant keeps what moves the viewport, the search and the sheet"
   - "Bottom-left over the board, glass like the node toolbar"
+  - '`position="center"` is a dock at the bottom centre: on a read-only board the word ดูอย่างเดียว first (the board''s corner badge then hides), then `children` (the page''s chapter strip), a divider, and only the four viewport commands (zoom out, percent, zoom in, fit). Under 480 px the bar spans the board less space.inset-sm each side, the children scroll in one row, the zoom steps hide, fit stays and the word is visually hidden but still read (ORV-274; stories WithChapters, WithChaptersAt360, PresentRecipesAndModes)'
 a11y:
   - "Toolbar role; each button named with its shortcut in the tooltip; the zoom percentage is a button that reads its current value; pan or select is a ToggleGroup"

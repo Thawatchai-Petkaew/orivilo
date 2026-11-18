@@ -61,14 +61,30 @@
   color: var(--ds-selection-fg);
 }
 
-/* Display type pads its own top (ORV-192 row 19): Sarabun's tallest stack (ฟื้) rises 17 px above a
- * 56 / 1.2 line box and 8.5 px above a 32 / 1.25 one; the padding keeps it 6.5 px or more clear of
- * whatever sits above. */
+/* Display type pads its own top (ORV-192 row 19): Anuphan's tallest stack (ปี๊) rises 7 to 8 px
+ * above a 56 / 1.2 line box and 3.5 to 4 px above a 32 / 1.25 one; the padding keeps it 13 px or
+ * more clear of whatever sits above (ORV-275). */
 .text-display-lg {
   padding-block-start: var(--ds-space-stack-lg);
 }
 .text-display-md {
   padding-block-start: var(--ds-space-stack-md);
+}
+
+/* The type utilities set size, line height, weight and tracking, never family; a heading style
+ * carries its own family so it renders in the heading faces wherever its utility is used
+ * (ORV-275 type-face-1). */
+.text-display-lg {
+  font-family: var(--ds-type-display-lg-font-family);
+}
+.text-display-md {
+  font-family: var(--ds-type-display-md-font-family);
+}
+.text-heading-md {
+  font-family: var(--ds-type-heading-md-font-family);
+}
+.text-heading-sm {
+  font-family: var(--ds-type-heading-sm-font-family);
 }
 
 :focus-visible {
