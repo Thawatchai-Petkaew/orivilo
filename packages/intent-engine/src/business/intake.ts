@@ -132,6 +132,9 @@ export type WebsiteResult = { ok: true; href: string | null } | { ok: false };
 
 const SCHEME = /^[a-z][a-z0-9+.-]*:\/\//i;
 
+/** Postgres refuses U+0000 in a text column and no form sends it by intent: dropped before the trim. */
+const NUL = "\u0000";
+
 /**
  * `website-input-1`: trim; empty is not given (`href` null); put `https://` in front when there is
  * no scheme; keep the parser's `href` only for http or https, within 2,048 characters, with no
@@ -160,7 +163,8 @@ const isKey = (value: unknown): value is IntakeField =>
 
 /**
  * Checks what the form sent. Never throws. A problem carries a field and a kind, never the value,
- * so a refusal can be logged and returned without the person's words. A value that is not a string
+ * so a refusal can be logged and returned without the person's words. U+0000 is dropped from each
+ * value before the trim. A value that is not a string
  * is reported as `required`: the answer in the form the field takes is missing.
  */
 export function checkIntake(input: unknown): IntakeCheck {
@@ -188,7 +192,7 @@ export function checkIntake(input: unknown): IntakeCheck {
   const problems: IntakeProblem[] = [];
   const intake: Record<string, string> = {};
   for (const field of INTAKE_FIELDS) {
-    const text = (parsed.data[field.key] ?? "").trim();
+    const text = (parsed.data[field.key] ?? "").replaceAll(NUL, "").trim();
     if (text === "") {
       if (field.required) problems.push({ field: field.key, kind: "required" });
       continue;

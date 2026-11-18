@@ -1,6 +1,11 @@
 "use client";
 
-import type { BusinessFieldId, BusinessNote, BusinessView } from "@orivilo/intent-engine";
+import {
+  BUSINESS_FIELDS,
+  type BusinessFieldId,
+  type BusinessNote,
+  type BusinessView,
+} from "@orivilo/intent-engine";
 import { Badge, SectionHeader } from "../components/index";
 import { useMessages } from "../i18n/LocaleProvider";
 import type { Messages } from "../i18n/messages/index";
@@ -46,9 +51,20 @@ function noteText(m: Messages, note: BusinessNote): string {
   }
 }
 
+/**
+ * Fields no answer can fill: only a reading can (`business-fields-1`, source `reading`). With no
+ * reading in slice 1 they are never a skip by the person, so they read as nothing given yet.
+ */
+const READING_ONLY: readonly BusinessFieldId[] = BUSINESS_FIELDS.filter(
+  (f) => f.source === "reading",
+).map((f) => f.id);
+
 export function BusinessNodeView({ node, heading = true }: BusinessNodeViewProps) {
   const m = useMessages();
-  const empty = SKIPPABLE.includes(node.id) ? m.business.state.skipped : m.business.state.empty;
+  const fallback = SKIPPABLE.includes(node.id) ? m.business.state.skipped : m.business.state.empty;
+  /** A reading-only field is a skip only when the whole node is skipped. */
+  const emptyOf = (field: BusinessFieldId): string =>
+    READING_ONLY.includes(field) && node.state !== "skipped" ? m.business.state.empty : fallback;
   return (
     <div className="@container flex min-w-0 flex-col gap-6" data-node={node.id}>
       {heading ? (
@@ -68,7 +84,7 @@ export function BusinessNodeView({ node, heading = true }: BusinessNodeViewProps
           <div key={f.field} className="flex min-w-0 flex-col gap-1" data-field={f.field}>
             <h3 className="text-label-md">{fieldLabel(m, f.field)}</h3>
             {f.answer === null ? (
-              <p className={FIELD_NOTE}>{empty}</p>
+              <p className={FIELD_NOTE}>{emptyOf(f.field)}</p>
             ) : (
               <>
                 <p className="whitespace-pre-wrap">

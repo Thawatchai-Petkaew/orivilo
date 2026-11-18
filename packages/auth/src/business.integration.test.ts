@@ -1,4 +1,4 @@
-import { businessIntake, eq, member, project } from "@orivilo/db";
+import { businessIntake, eq, member, project, sql } from "@orivilo/db";
 import { inWorkspace } from "@orivilo/db/client";
 import { createTestDatabase, HAS_TEST_DATABASE, type TestDatabase } from "@orivilo/db/testing";
 import { testUtils } from "better-auth/plugins";
@@ -90,11 +90,16 @@ describe.runIf(HAS_TEST_DATABASE)("business projects", () => {
 
   it("create leaves no project behind when the intake insert fails (T11)", async () => {
     const a = await signIn("atomic@example.com", "Atom");
-    // The engine's check allows a NUL character; Postgres refuses it in text, at the intake insert
-    // that follows the project insert.
+    // The engine's check drops a NUL character, so no input it accepts fails in Postgres. A probe
+    // constraint on this throwaway database refuses one idea at the intake insert, which follows
+    // the project insert in the same transaction.
+    await t.admin.execute(
+      sql`alter table business_intake add constraint atomic_probe check (idea <> 'atomic probe')`,
+    );
     await expect(
-      service.create(a.headers, a.workspaceId, { projectName: "Atomic", idea: "a\u0000b" }),
+      service.create(a.headers, a.workspaceId, { projectName: "Atomic", idea: "atomic probe" }),
     ).rejects.toThrow();
+    await t.admin.execute(sql`alter table business_intake drop constraint atomic_probe`);
     const left = await t.admin.select().from(project).where(eq(project.workspaceId, a.workspaceId));
     expect(left).toEqual([]);
   });

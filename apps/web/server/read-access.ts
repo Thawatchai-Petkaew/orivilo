@@ -1,7 +1,8 @@
 import "server-only";
 
 /**
- * `read-allow-list-1` (ORV-268): who may read a website through `/read`. The list lives in the server
+ * `read-allow-list-1` (ORV-268): who may read a website through `/read` and, from ORV-281, who may open
+ * `/business` and save a project there. The list lives in the server
  * variable `READ_ALLOWED_EMAILS`, addresses separated by commas. It is read on each call, never at
  * module load, and never takes the `NEXT_PUBLIC_` prefix. The answer is true or false: no address,
  * no part of one and no list entry leaves this module.

@@ -52,6 +52,31 @@ describe("bounds", () => {
     });
   });
 
+  // Postgres refuses U+0000 in a text column, and no form sends it by intent, so the check drops it
+  // from each value before the trim (ORV-281 task A4).
+  it("drops U+0000 from each value before the trim, so none is kept or saved", () => {
+    const intake = ok({
+      projectName: "\u0000Cli\u0000nic ",
+      idea: "a\u0000b",
+      industry: "\u0000",
+      customers: " \u0000 \u0000 ",
+      website: "exam\u0000ple.com",
+    });
+    expect(intake).toStrictEqual({
+      projectName: "Clinic",
+      idea: "ab",
+      website: "https://example.com/",
+    });
+    expect(JSON.stringify(intake)).not.toContain("\\u0000");
+  });
+
+  it("a required answer that holds only U+0000 is not given", () => {
+    expect(problems({ projectName: "\u0000", idea: " \u0000 " })).toStrictEqual([
+      { field: "projectName", kind: "required" },
+      { field: "idea", kind: "required" },
+    ]);
+  });
+
   it("keeps example.com as https://example.com/", () => {
     expect(ok({ ...BASE, website: "example.com" }).website).toBe("https://example.com/");
   });

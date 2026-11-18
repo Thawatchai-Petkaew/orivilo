@@ -162,6 +162,11 @@ async function savedPlay(
   // A field with nothing yet says so in words, not a blank.
   await expect(textOf(fieldOf(situation, "situation.name"))).toContain(m.business.state.empty);
   await expect(textOf(fieldOf(core, "business-core.why"))).toContain(m.business.state.empty);
+  // The category is read by a model only, so no answer can fill it: it says nothing given, never
+  // skipped, even though the person answered this node (competitors are given).
+  const category = textOf(fieldOf(frame, "competitive-frame.category"));
+  await expect(category).toContain(m.business.state.empty);
+  await expect(category).not.toContain(m.business.state.skipped);
   // Still to ask: only Business core has an open question, and it is the `why` copy of the spec.
   const asks = canvas.getAllByRole("heading", { level: 3, name: m.business.stillToAsk });
   await expect(asks).toHaveLength(1);
