@@ -5,6 +5,7 @@ import { useDesignProfile } from "../../boundary/DesignProfileBoundary";
 import { CANVAS_WORDS, PORT_KINDS, portShape } from "../../tokens/canvas";
 import { CanvasBoard, type CanvasBoardProps } from "../canvas-board/CanvasBoard";
 import type { Graph, PortSpec } from "../canvas-board/graph";
+import { expectPortPillsClear } from "../../testing/visual-asserts";
 import { fillHeight, Matrix } from "../matrix";
 import { PortGlyph, type PortState } from "./NodePort";
 
@@ -268,6 +269,29 @@ function presentNames(lang: Lang): Graph {
   };
 }
 
+/**
+ * No side dot sits on a card's bend (ORV-274, S1; ORV-282, D5): its top is at least the card's top
+ * plus the corner radius on screen, and its bottom at most the card's bottom less it. The zoom comes
+ * from the card's own viewport (a matrix holds six boards) and scales the radius, a world length.
+ * Returns the number of dots checked.
+ */
+async function expectDotsOffBend(root: HTMLElement): Promise<number> {
+  const dots = root.querySelectorAll<HTMLElement>(".ds-port:not([data-row]) .ds-port__handle");
+  for (const dot of dots) {
+    const card = dot.closest(".ds-node") as HTMLElement;
+    const viewport = card.closest<HTMLElement>(".react-flow__viewport");
+    const zoom = parseFloat(
+      /scale\(([\d.]+)\)/.exec(viewport?.style.transform ?? "")?.[1] ?? "NaN",
+    );
+    const radius = parseFloat(getComputedStyle(card).borderTopLeftRadius) * zoom;
+    const dotBox = dot.getBoundingClientRect();
+    const cardBox = card.getBoundingClientRect();
+    await expect(dotBox.top - (cardBox.top + radius)).toBeGreaterThanOrEqual(-0.5);
+    await expect(cardBox.bottom - radius - dotBox.bottom).toBeGreaterThanOrEqual(-0.5);
+  }
+  return dots.length;
+}
+
 async function playPresentNames(root: HTMLElement, lang: Lang) {
   await waitFor(() => expect(root.querySelectorAll(".ds-port")).toHaveLength(12));
   const node = (id: string) => root.querySelector(`.react-flow__node[data-id="${id}"]`) as Element;
@@ -279,6 +303,10 @@ async function playPresentNames(root: HTMLElement, lang: Lang) {
     for (const pill of pills("p1")) expect(visibility(pill)).toBe("visible");
   });
   for (const pill of pills("p2")) await expect(visibility(pill)).toBe("visible");
+  // The side ports sit 40 apart (ORV-282, D4b): the hovered p1 and the selected p2, two pills on
+  // each side, keep their name pills apart. The cards are 120 apart, so only pill to pill is near.
+  await expect(expectPortPillsClear(node("p1"))).toBe(pills("p1").length);
+  await expect(expectPortPillsClear(node("p2"))).toBe(pills("p2").length);
   // Shown on keyboard focus too (spec row 3): the rest node takes focus and its pills show.
   const rest = node("p0") as HTMLElement;
   await waitFor(() => {
@@ -311,21 +339,7 @@ async function playPresentNames(root: HTMLElement, lang: Lang) {
   for (const h of root.querySelectorAll(".ds-port__handle")) {
     await expect(getComputedStyle(h).opacity).toBe("1");
   }
-  // No side dot sits on the card's bend (ORV-274, S1): its top is at least the card's top plus the
-  // corner radius on screen, and its bottom at most the card's bottom less it. The viewport's zoom
-  // scales the radius, which is a world length.
-  const viewport = root.querySelector<HTMLElement>(".react-flow__viewport");
-  const zoom = parseFloat(/scale\(([\d.]+)\)/.exec(viewport?.style.transform ?? "")?.[1] ?? "NaN");
-  const sideDots = root.querySelectorAll<HTMLElement>(".ds-port:not([data-row]) .ds-port__handle");
-  await expect(sideDots.length).toBeGreaterThan(0);
-  for (const dot of sideDots) {
-    const card = dot.closest(".ds-node") as HTMLElement;
-    const radius = parseFloat(getComputedStyle(card).borderTopLeftRadius) * zoom;
-    const dotBox = dot.getBoundingClientRect();
-    const cardBox = card.getBoundingClientRect();
-    await expect(dotBox.top - (cardBox.top + radius)).toBeGreaterThanOrEqual(-0.5);
-    await expect(cardBox.bottom - radius - dotBox.bottom).toBeGreaterThanOrEqual(-0.5);
-  }
+  await expect(await expectDotsOffBend(root)).toBeGreaterThan(0);
 }
 
 /**
@@ -368,6 +382,21 @@ export const PresentRecipesAndModes: Story = {
     }
     for (const h of canvasElement.querySelectorAll(".ds-port__handle")) {
       await expect(getComputedStyle(h).opacity).toBe("1");
+    }
+    // The five port card keeps every dot on the straight part of its edge (ORV-282, D5): the node
+    // writes its count of side ports, and the floor is two radii plus four 40 pitches plus a dot.
+    await expect(await expectDotsOffBend(canvasElement)).toBe(60);
+    for (const cell of cells) {
+      const card = cell.querySelector<HTMLElement>(".ds-node") as HTMLElement;
+      const viewport = card.closest<HTMLElement>(".react-flow__viewport");
+      const zoom = parseFloat(
+        /scale\(([\d.]+)\)/.exec(viewport?.style.transform ?? "")?.[1] ?? "NaN",
+      );
+      const radius = parseFloat(getComputedStyle(card).borderTopLeftRadius);
+      await expect(card.style.getPropertyValue("--_ports")).toBe("5");
+      await expect(
+        Math.abs(card.getBoundingClientRect().height / zoom - (2 * radius + 4 * 40 + 16)),
+      ).toBeLessThanOrEqual(0.5);
     }
   },
 };
