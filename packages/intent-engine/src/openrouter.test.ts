@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   AI_MODELS,
+  openRouterBody,
   openRouterComplete,
   reportedCostMicroUsd,
   type FetchLike,
@@ -240,17 +241,65 @@ describe("the request openRouterComplete sends (ORV-160 rows 9 to 16, 23, 24)", 
     expect((await oneCall()).body.provider.data_collection).toBe("deny");
   });
 
-  it("row 12: AI_MODELS is exactly the seven pinned jobs (orv160-model-ids)", () => {
+  it("row 12: AI_MODELS is exactly the pinned jobs (orv160-model-ids, ORV-284)", () => {
     expect(AI_MODELS).toEqual({
       chat: "anthropic/claude-sonnet-5.5",
-      instant: "inception/mercury-3",
+      instant: "anthropic/claude-haiku-5.5",
       interpret: "anthropic/claude-sonnet-5.5",
-      see: "google/gemini-4-argon",
+      see: "anthropic/claude-sonnet-5.5",
       "logo-vector": "anthropic/claude-opus-5.5",
       "logo-image": "google/gemini-nano-banana-2.1",
       "business-read": "anthropic/claude-sonnet-5.5",
     });
   });
+
+  it("ORV-284 anthropic-jobs-1: every analysis job is on an Anthropic model, the image job is not", () => {
+    const IMAGE_JOBS: string[] = ["logo-image"];
+    const ANTHROPIC_IDS = [
+      "anthropic/claude-haiku-5.5",
+      "anthropic/claude-sonnet-5.5",
+      "anthropic/claude-opus-5.5",
+    ];
+    for (const [job, id] of Object.entries(AI_MODELS)) {
+      if (IMAGE_JOBS.includes(job)) expect(id.startsWith("anthropic/")).toBe(false);
+      else expect(ANTHROPIC_IDS).toContain(id);
+    }
+    expect(IMAGE_JOBS.every((job) => job in AI_MODELS)).toBe(true);
+  });
+
+  it("ORV-284 byok-route-1: moved jobs keep the provider settings", () => {
+    // The two moved jobs first, then every other pinned id: no branch on the model or the vendor.
+    for (const id of [AI_MODELS.see, AI_MODELS.instant, ...Object.values(AI_MODELS)]) {
+      const body = openRouterBody(id, REQUEST, 2000);
+      expect(body.model).toBe(id);
+      expect(body.provider).toStrictEqual({
+        zdr: true,
+        data_collection: "deny",
+        require_parameters: true,
+        allow_fallbacks: false,
+      });
+    }
+  });
+
+  it.each([429, 401])(
+    "ORV-284 byok-fail-1: a failed own key (%i) ends the call, with no retry and no cost read",
+    async (status) => {
+      let fetched = 0;
+      const { calls, complete } = run(() => {
+        fetched += 1;
+        return Promise.resolve({
+          ok: false,
+          status,
+          body: chunked(
+            JSON.stringify({ error: { message: "key refused" }, usage: { cost: 0.014 } }),
+          ).body,
+        });
+      });
+      await expect(complete(REQUEST)).rejects.toThrow(`OpenRouter answered ${status}.`);
+      expect(fetched).toBe(1);
+      expect(calls).toEqual([{ costMicroUsd: null }]);
+    },
+  );
 
   it("ORV-283: the business-read job is pinned to the interpret model (ADR 0009 addition of 2026-11-18)", () => {
     expect(AI_MODELS["business-read"]).toBe("anthropic/claude-sonnet-5.5");
