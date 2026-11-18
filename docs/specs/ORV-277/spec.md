@@ -2,7 +2,7 @@
 issue: ORV-277 (https://tpetkaew.atlassian.net/browse/ORV-277)
 lane: S (chore, no risk flag; a security review runs before merge)
 mode: POC mode short spec (`.claude/skills/ovl/SKILL.md`, section "POC mode")
-version: 1.0
+version: 1.1
 ---
 
 # ORV-277: one dated audit exception for GHSA-fc5q-39xc-vjpf (picomatch)
@@ -31,7 +31,7 @@ Every row renders nothing: each check is a command run on the PR head.
 | # | Given | When | User sees | Data effect | Check |
 | --- | --- | --- | --- | --- | --- |
 | 1 | The PR head after `pnpm install` | The blocking audit runs | No UI | None | `pnpm audit --prod --audit-level high; echo "exit=$?"` prints `exit=0` |
-| 2 | The PR head | The audit runs without a level | No UI | None | `pnpm audit --prod` still prints its advisory count line and the remaining moderate advisories, and no line names `GHSA-fc5q-39xc-vjpf` or a high severity |
+| 2 | The PR head | The audit runs without a level | No UI | None | `pnpm audit --prod` still prints its advisory count line and the remaining moderate advisories; no advisory block names `GHSA-fc5q-39xc-vjpf`; and the summary line counts it as ignored, `Severity: 3 moderate \| 1 high (1 ignored)` |
 | 3 | The PR head | The audit config is searched | No UI | `audit-exception-1` holds: one id | `git grep -n -e "GHSA-" -e "CVE-" -- package.json pnpm-workspace.yaml` shows only lines that name `GHSA-fc5q-39xc-vjpf`, and the ignore list has one entry |
 | 4 | The PR head | The file that holds the ignore entry is read | No UI | `audit-exception-1` holds: the record | `git grep -n "2026-11-18" -- package.json pnpm-workspace.yaml` hits the line beside the entry, and the lines there state the reason and the removal condition |
 | 5 | The PR head | The diff against `origin/develop` is read | No UI | No dependency change | `git diff --stat origin/develop` lists only the audit config file and this spec; `git diff origin/develop -- pnpm-lock.yaml '**/package.json'` shows no dependency or version line |
@@ -62,3 +62,4 @@ The story changes one audit setting. Every row is a command, a search or the dif
 ## Changelog
 
 - v1.0 (2026-11-18): first version. Task `ORV-277-spec-1`. Downstream to review: the builder envelope (rows 1-6), the security review envelope, and a `## Rows per PR` section once the PR number exists.
+- v1.1 (2026-11-18): row 2 corrected from the builder deviation of `ORV-277-build-1`; its Check now expects the summary line to count the advisory as ignored. Task `ORV-277-spec-2`. Downstream to review: the qa and security envelopes.
