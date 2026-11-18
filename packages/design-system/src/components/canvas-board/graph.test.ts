@@ -75,6 +75,15 @@ describe("labels", () => {
     expect(nodeOpenLabel(brief.data)).toBe(nodeLabel(brief.data));
   });
 
+  it("name a node that opens with no page count by title and kind, as a plain node (ORV-282)", () => {
+    const open = { ...brief.data, title: "Situation", kind: "knowledge" as const, open: {} };
+    expect(nodeOpenLabel(open)).toBe(nodeLabel(open));
+    expect(nodeOpenLabel(open, "en")).toBe("Situation, knowledge");
+    expect(nodeOpenLabel(open, "en")).not.toContain("pages");
+    // A count of 0 is still a count: only a missing one drops the pages word.
+    expect(nodeOpenLabel({ ...open, open: { count: 0 } }, "en")).toBe("Situation, 0 pages");
+  });
+
   it("speak English when asked, Thai by default (spec ORV-39 AC 10)", () => {
     expect(nodeLabel(brief.data, "en")).toBe("บรีฟ, input block");
     expect(edgeLabel(e1, graph.nodes, "en")).toBe("input from บรีฟ to โลโก้");

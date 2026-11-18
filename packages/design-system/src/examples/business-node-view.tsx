@@ -66,53 +66,61 @@ export function BusinessNodeView({ node, heading = true }: BusinessNodeViewProps
   const emptyOf = (field: BusinessFieldId): string =>
     READING_ONLY.includes(field) && node.state !== "skipped" ? m.business.state.empty : fallback;
   return (
-    <div className="@container flex min-w-0 flex-col gap-6" data-node={node.id}>
-      {heading ? (
-        <SectionHeader
-          level={2}
-          title={nodeTitle(m, node.id)}
-          description={node.gate ? m.business.state.gate : undefined}
-        />
-      ) : null}
-      <div>
-        <Badge variant="neutral" size="sm">
-          {m.business.state[node.state]}
-        </Badge>
-      </div>
-      <div className="flex flex-col gap-6">
-        {node.fields.map((f) => (
-          <div key={f.field} className="flex min-w-0 flex-col gap-1" data-field={f.field}>
-            <h3 className="text-label-md">{fieldLabel(m, f.field)}</h3>
-            {f.answer === null ? (
-              <p className={FIELD_NOTE}>{emptyOf(f.field)}</p>
-            ) : (
-              <>
-                <p className="whitespace-pre-wrap">
-                  <bdi>{f.answer.text}</bdi>
-                </p>
-                <p className={FIELD_NOTE}>{m.business.label.yourWords}</p>
-              </>
-            )}
-            {node.notes
-              .filter((note) => NOTE_AT[note] === f.field)
-              .map((note) => (
-                <p key={note} className={FIELD_NOTE}>
-                  {noteText(m, note)}
-                </p>
-              ))}
+    <div className="@container min-w-0" data-node={node.id}>
+      {/* One column; at 960 and over (the viewer at 1440) the state and fields take the first
+          column and the questions still to ask the second, top aligned (design 5). */}
+      <div className="flex flex-col gap-6 @min-[960px]:grid @min-[960px]:grid-cols-[minmax(0,42rem)_minmax(0,20rem)] @min-[960px]:items-start @min-[960px]:gap-x-12">
+        {heading ? (
+          <div className="@min-[960px]:col-span-full">
+            <SectionHeader
+              level={2}
+              title={nodeTitle(m, node.id)}
+              description={node.gate ? m.business.state.gate : undefined}
+            />
           </div>
-        ))}
-      </div>
-      {node.stillToAsk.length === 0 ? null : (
-        <div className="flex min-w-0 flex-col gap-2">
-          <h3 className="text-label-md">{m.business.stillToAsk}</h3>
-          <ul className="flex flex-col gap-2">
-            {node.stillToAsk.map((id) => (
-              <li key={id}>{questionText(m, id)}</li>
+        ) : null}
+        <div className="flex min-w-0 flex-col gap-6">
+          <div>
+            <Badge variant="neutral" size="sm">
+              {m.business.state[node.state]}
+            </Badge>
+          </div>
+          <div className="flex flex-col gap-6">
+            {node.fields.map((f) => (
+              <div key={f.field} className="flex min-w-0 flex-col gap-1" data-field={f.field}>
+                <h3 className="text-label-md">{fieldLabel(m, f.field)}</h3>
+                {f.answer === null ? (
+                  <p className={FIELD_NOTE}>{emptyOf(f.field)}</p>
+                ) : (
+                  <>
+                    <p className="whitespace-pre-wrap">
+                      <bdi>{f.answer.text}</bdi>
+                    </p>
+                    <p className={FIELD_NOTE}>{m.business.label.yourWords}</p>
+                  </>
+                )}
+                {node.notes
+                  .filter((note) => NOTE_AT[note] === f.field)
+                  .map((note) => (
+                    <p key={note} className={FIELD_NOTE}>
+                      {noteText(m, note)}
+                    </p>
+                  ))}
+              </div>
             ))}
-          </ul>
+          </div>
         </div>
-      )}
+        {node.stillToAsk.length === 0 ? null : (
+          <div className="flex min-w-0 flex-col gap-2">
+            <h3 className="text-label-md">{m.business.stillToAsk}</h3>
+            <ul className="flex flex-col gap-2">
+              {node.stillToAsk.map((id) => (
+                <li key={id}>{questionText(m, id)}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
