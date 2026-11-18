@@ -1,6 +1,6 @@
 ---
 issue: ORV-284 (https://tpetkaew.atlassian.net/browse/ORV-284)
-spec: docs/specs/ORV-284/spec.md v1
+spec: docs/specs/ORV-284/spec.md v1.1
 adr: docs/adr/0009-ai-through-openrouter.md, addition of 2026-11-18 (ORV-284)
 task: ORV-284-tech-1
 author: architect
