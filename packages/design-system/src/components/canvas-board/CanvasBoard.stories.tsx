@@ -929,6 +929,9 @@ export const Present: Story = {
     const canvas = within(canvasElement);
     const region = canvas.getByRole("region");
     await ready(region);
+    // The fit zoom at load, before any zoom key: outside Vitest the window is the viewer's, so the
+    // pill check runs only when this fit is at zoom 1 or more.
+    const fitZoomAtLoad = viewportZoom(region);
     await expect(canvas.getByText("ดูอย่างเดียว")).toBeVisible();
     await expect(canvas.getAllByRole("img", { name: /แก้ไขไม่ได้$/ }).length).toBeGreaterThan(5);
     const logo = await waitFor(() => nodeByTitle(region, "โลโก้"));
@@ -979,7 +982,7 @@ export const Present: Story = {
       await waitFor(() => expect(expectPillsClear(region)).toBeGreaterThan(0));
     };
     if (inVitest) await atWindow(FIT_WINDOW.width, FIT_WINDOW.height, readFit);
-    else if (viewportZoom(region) >= 1) await readFit();
+    else if (fitZoomAtLoad >= 1) await readFit();
     for (const path of region.querySelectorAll(".ds-edge__path")) {
       await expect(path).not.toHaveAttribute("marker-end");
     }
