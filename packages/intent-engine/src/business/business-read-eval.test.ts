@@ -9,15 +9,19 @@ import casesJson from "./eval/cases.json";
 import marksJson from "./eval/marks.json";
 import recordedJson from "./eval/recorded.json";
 
-// ORV-281 tech notes section 8.5, "The exit test" (T38; ORV-283 spec row 34). Four clauses:
+// ORV-281 tech notes section 8.5, "The exit test" (T38; ORV-283 spec row 34). Five clauses:
 //   1. every case has one recording from the pinned model;
 //   2. each recording replays to a `model` record or a refused answer;
 //   3. no injection case gives an accepted reading whose value holds its marker;
-//   4. each mark names an accepted reading.
+//   4. each mark names an accepted reading;
+//   5. each mark records who made it under `markedBy`, `person` or `ai-agent`, and no other value.
 // `recorded.json` is model output and so untrusted data: it is replayed through `readBusiness` with
 // a completion that returns the recorded text, and nothing in it is followed or run. No model, no
-// network (ADR 0009 point 8). The counts of right, wrong and unclear marks are reported at G3,
-// with no pass claim (open question 11), so this file asserts no threshold on them.
+// network (ADR 0009 point 8). The counts of right, wrong and unclear marks are reported at G3 per
+// field and language, apart by who marked and never added together, with no pass claim (open
+// question 11), so this file asserts no threshold on them. A mark is `person` only when a person
+// made it; every mark of the set now is `ai-agent` (the designer role), so the exit test of ADR
+// 0009's addition stays not confirmed while an accepted reading has no `person` mark.
 
 const { createHash } = (await vi.importActual("node:crypto")) as {
   createHash(algorithm: "sha256"): { update(s: string, enc: "utf8"): { digest(e: "hex"): string } };
@@ -57,6 +61,8 @@ const markSchema = z
     target: z.enum(BUSINESS_READ_FIELDS),
     value: z.string(),
     mark: z.enum(["right", "wrong", "unclear"]),
+    /** Who made the mark (spec row 34, tech notes section 8.5): a closed list of two. */
+    markedBy: z.enum(["person", "ai-agent"]),
   })
   .strict();
 type Mark = z.infer<typeof markSchema>;
@@ -340,6 +346,7 @@ describe("the exit test of the business read (tech notes section 8.5)", () => {
       target,
       value: valueOf(item),
       mark: "right",
+      markedBy: "ai-agent",
     };
     expect(markProblems([good], replays)).toEqual([]);
     const other = BUSINESS_READ_FIELDS.find((f) => f !== target) as Mark["target"];
@@ -354,7 +361,13 @@ describe("the exit test of the business read (tech notes section 8.5)", () => {
   });
 
   it("a mark has one of three verdicts, one of the seven fields, and no other key", () => {
-    const mark = { caseId: "th-01", target: "business-core.offer", value: "v", mark: "right" };
+    const mark = {
+      caseId: "th-01",
+      target: "business-core.offer",
+      value: "v",
+      mark: "right",
+      markedBy: "person",
+    };
     expect(markSchema.safeParse(mark).success).toBe(true);
     for (const verdict of ["right", "wrong", "unclear"]) {
       expect(markSchema.safeParse({ ...mark, mark: verdict }).success).toBe(true);
@@ -362,5 +375,26 @@ describe("the exit test of the business read (tech notes section 8.5)", () => {
     expect(markSchema.safeParse({ ...mark, mark: "great" }).success).toBe(false);
     expect(markSchema.safeParse({ ...mark, target: "positioning.value" }).success).toBe(false);
     expect(markSchema.safeParse({ ...mark, extra: 1 }).success).toBe(false);
+  });
+
+  it("a mark records who made it, a person or an AI agent, and a mark with no value for it fails (T38)", () => {
+    const mark = {
+      caseId: "th-01",
+      target: "business-core.offer",
+      value: "v",
+      mark: "right",
+      markedBy: "ai-agent",
+    };
+    expect(markSchema.safeParse(mark).success).toBe(true);
+    expect(markSchema.safeParse({ ...mark, markedBy: "person" }).success).toBe(true);
+    const without: Partial<typeof mark> = { ...mark };
+    delete without.markedBy;
+    expect(markSchema.safeParse(without).success).toBe(false);
+    for (const value of ["", "human", "AI-agent", "ai agent", "owner", null, 1]) {
+      expect(markSchema.safeParse({ ...mark, markedBy: value }).success, String(value)).toBe(false);
+    }
+    // Every mark of the set holds one of the two, so the set is read as marked by someone.
+    expect(marks.length).toBeGreaterThan(0);
+    for (const m of marks) expect(["person", "ai-agent"]).toContain(m.markedBy);
   });
 });

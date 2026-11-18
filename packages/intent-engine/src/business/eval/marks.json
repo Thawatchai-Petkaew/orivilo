@@ -3,480 +3,560 @@
     "caseId": "th-01",
     "target": "situation.name",
     "value": "ครัวบ้านไร่",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "th-01",
     "target": "competitive-frame.alternatives",
     "value": "แอปสั่งอาหารเดลิเวอรี่",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "th-01",
     "target": "competitive-frame.alternatives",
     "value": "ข้าวกล่องหน้าปากซอย",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "th-01",
     "target": "competitive-frame.alternatives",
     "value": "ร้านสะดวกซื้อ",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "th-01",
     "target": "audience.customers",
     "value": "คุณแม่วัยทำงานที่มีลูกเล็กสองคนและกลับบ้านหลังหกโมงเย็น",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "th-01",
     "target": "business-core.offer",
     "value": "อาหารปรุงสำเร็จแช่แข็งสำหรับครอบครัวที่ทำงานทั้งคู่",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "th-01",
     "target": "business-core.why",
     "value": "อยากให้ทุกบ้านมีอาหารฝีมือแม่กินทุกวัน",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "th-01",
     "target": "competitive-frame.category",
     "value": "ธุรกิจอาหารแช่แข็ง",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "th-01",
     "target": "audience.problem",
     "value": "ไม่มีเวลาทำกับข้าวและกังวลว่าอาหารสั่งมากินไม่ดีต่อสุขภาพลูก",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "th-02",
     "target": "competitive-frame.alternatives",
     "value": "ร้านกาแฟเชนใหญ่",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "th-02",
     "target": "competitive-frame.alternatives",
     "value": "กาแฟสำเร็จรูป",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "th-02",
     "target": "audience.customers",
     "value": "พนักงานออฟฟิศที่ชอบลองกาแฟใหม่ๆ ช่วงพักเที่ยง",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "th-02",
     "target": "business-core.offer",
     "value": "กาแฟคั่วอ่อนจากไร่เล็กในภาคเหนือ",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "th-02",
     "target": "business-core.why",
     "value": "เชื่อว่ากาแฟควรมีรสผลไม้",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "th-02",
     "target": "competitive-frame.category",
     "value": "ร้านกาแฟสเปเชียลตี้",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "th-02",
     "target": "audience.problem",
     "value": "กาแฟตามร้านทั่วไปคั่วเข้มและขมเกินไป",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "th-03",
     "target": "business-core.offer",
     "value": "รับซ่อมจักรยานถึงหน้าบ้าน",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "th-04",
     "target": "audience.customers",
     "value": "ผู้ใหญ่วัยทำงานที่อยากเล่นเปียโนเป็นงานอดิเรก",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "th-04",
     "target": "business-core.offer",
     "value": "สอนเปียโนออนไลน์",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "th-04",
     "target": "audience.customers",
     "value": "ผู้ใหญ่ที่เพิ่งเริ่มเรียนเปียโนตอนอายุสามสิบ",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "th-05",
     "target": "business-core.offer",
     "value": "คลินิกสัตว์เลี้ยงเคลื่อนที่",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "th-05",
     "target": "business-core.why",
     "value": "สัตว์เลี้ยงหลายตัวเครียดเมื่อต้องเดินทางไปโรงพยาบาล",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "th-05",
     "target": "audience.problem",
     "value": "สัตว์เลี้ยงตื่นกลัวในรถและเจ้าของต้องลางานพาไปตรวจ",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "th-05",
     "target": "audience.customers",
     "value": "เจ้าของสัตว์เลี้ยง",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "th-06",
     "target": "competitive-frame.alternatives",
     "value": "ร้านซักรีดใต้คอนโด",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "th-06",
     "target": "business-core.offer",
     "value": "ซักรีดผ้าส่งถึงคอนโดในวันเดียว",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "th-06",
     "target": "audience.customers",
     "value": "คนที่อยู่คอนโด",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "th-06",
     "target": "competitive-frame.category",
     "value": "บริการซักรีด",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "th-07",
     "target": "situation.name",
     "value": "ฟ้าใสสตูดิโอ",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "th-07",
     "target": "competitive-frame.alternatives",
     "value": "ช่างภาพฟรีแลนซ์",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "th-07",
     "target": "competitive-frame.alternatives",
     "value": "ถ่ายเองด้วยมือถือ",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "th-07",
     "target": "business-core.offer",
     "value": "รับถ่ายภาพสินค้า",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "th-07",
     "target": "audience.customers",
     "value": "ร้านค้าออนไลน์",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "th-08",
     "target": "situation.name",
     "value": "มะลิเบเกอรี่",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "th-08",
     "target": "audience.customers",
     "value": "คนรักสุขภาพวัยสามสิบ",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "th-08",
     "target": "business-core.offer",
     "value": "ขายขนมปังโฮลวีท",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "en-01",
     "target": "situation.name",
     "value": "Greenleaf Meal Kits",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "en-01",
     "target": "competitive-frame.alternatives",
     "value": "Takeaway apps",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "en-01",
     "target": "competitive-frame.alternatives",
     "value": "Supermarket ready meals",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "en-01",
     "target": "competitive-frame.alternatives",
     "value": "Other meal kit boxes",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "en-01",
     "target": "audience.customers",
     "value": "Parents with two young children who both work full time",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "en-01",
     "target": "business-core.offer",
     "value": "Weekly delivered boxes of pre-measured ingredients for busy families",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "en-01",
     "target": "business-core.why",
     "value": "Home cooking should not take a whole evening",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "en-01",
     "target": "competitive-frame.category",
     "value": "Meal kit delivery",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "en-01",
     "target": "audience.problem",
     "value": "No time to plan meals, so they order takeaway, which costs more and is less healthy",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "en-02",
     "target": "competitive-frame.alternatives",
     "value": "Buying a new one",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "en-02",
     "target": "competitive-frame.alternatives",
     "value": "Local repair shops",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "en-02",
     "target": "competitive-frame.alternatives",
     "value": "Online tutorials",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "en-02",
     "target": "audience.customers",
     "value": "Retired people who like fixing things and young people on a tight budget",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "en-02",
     "target": "business-core.offer",
     "value": "A repair cafe where neighbours fix broken appliances together",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "en-02",
     "target": "business-core.why",
     "value": "Throwing things away is wasteful",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "en-02",
     "target": "competitive-frame.category",
     "value": "Community repair service",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "en-02",
     "target": "audience.problem",
     "value": "New appliances are expensive and repair shops charge more than the item is worth",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "en-03",
     "target": "business-core.offer",
     "value": "Dog walking in the city centre",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "en-04",
     "target": "audience.customers",
     "value": "Nurses with three years of experience preparing for an English exam",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "en-04",
     "target": "business-core.offer",
     "value": "A language school for nurses who want to work abroad",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "en-05",
     "target": "business-core.offer",
     "value": "A sleep coaching app",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "en-05",
     "target": "business-core.why",
     "value": "Poor sleep quietly damages work and health",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "en-05",
     "target": "audience.customers",
     "value": "Shift workers",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "en-05",
     "target": "audience.problem",
     "value": "Cannot fall asleep after a night shift",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "en-06",
     "target": "competitive-frame.alternatives",
     "value": "Postal services",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "en-06",
     "target": "competitive-frame.alternatives",
     "value": "Shop owners delivering themselves",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "en-06",
     "target": "business-core.offer",
     "value": "Same day courier",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "en-06",
     "target": "audience.customers",
     "value": "Small shops",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "en-06",
     "target": "competitive-frame.category",
     "value": "Last mile delivery",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "en-07",
     "target": "situation.name",
     "value": "Harbour Light Studio",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "en-07",
     "target": "competitive-frame.alternatives",
     "value": "Freelancers on marketplaces",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "en-07",
     "target": "competitive-frame.alternatives",
     "value": "Template websites",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "en-07",
     "target": "business-core.offer",
     "value": "logo and packaging design",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "en-07",
     "target": "audience.customers",
     "value": "small food brands",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "en-08",
     "target": "situation.name",
     "value": "Pine and Pepper",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "en-08",
     "target": "audience.customers",
     "value": "restaurant owners who want a local sauce on every table",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "en-08",
     "target": "business-core.offer",
     "value": "hot sauce",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "en-08",
     "target": "audience.customers",
     "value": "restaurant owners",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "th-i1",
     "target": "business-core.offer",
     "value": "ร้านดอกไม้สดส่งถึงบ้าน",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "th-i2",
     "target": "business-core.offer",
     "value": "ร้านขายหนังสือมือสอง",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "th-i3",
     "target": "business-core.offer",
     "value": "คาเฟ่แมว",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "en-i1",
     "target": "business-core.offer",
     "value": "A bike repair shop that comes to your door",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "en-i2",
     "target": "business-core.offer",
     "value": "A tutoring service for high school maths",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   },
   {
     "caseId": "en-i3",
     "target": "business-core.offer",
     "value": "Handmade candles sold through an online shop",
-    "mark": "right"
+    "mark": "right",
+    "markedBy": "ai-agent"
   }
 ]

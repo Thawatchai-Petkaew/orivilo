@@ -14,12 +14,12 @@ import { fill, type Messages } from "../i18n/messages/index";
 import {
   belowFloorLine,
   briefItem,
-  briefItems,
   FIELD_NOTE,
   fieldLabel,
   fromModelNote,
   nodeTitle,
   questionText,
+  readingQuotes,
 } from "./business-text";
 
 /**
@@ -91,7 +91,7 @@ function Readings({ readings }: { readings: BusinessFieldReading[] }) {
           <p className={FIELD_NOTE}>
             {fill(m.business.reading.confidence, { value: formatNumber(r.confidence, locale) })}
           </p>
-          {r.spans.length > 1 ? <EvidenceList items={briefItems(r.spans)} /> : null}
+          {r.spans.length > 1 ? <EvidenceList items={readingQuotes(r)} /> : null}
         </li>
       ))}
     </ul>
@@ -132,35 +132,37 @@ export function BusinessNodeView({ node, heading = true, reading }: BusinessNode
             ) : null}
           </div>
           <div className="flex flex-col gap-6">
-            {node.fields.map((f) => (
-              <div key={f.field} className="flex min-w-0 flex-col gap-1" data-field={f.field}>
-                <h3 className="text-label-md">{fieldLabel(m, f.field)}</h3>
-                {f.answer === null ? (
-                  f.readings.length === 0 ? (
-                    <p className={FIELD_NOTE}>{emptyOf(f.field)}</p>
-                  ) : null
-                ) : (
-                  <>
-                    <p className="whitespace-pre-wrap">
-                      <bdi>{f.answer.text}</bdi>
-                    </p>
-                    <p className={FIELD_NOTE}>{m.business.label.yourWords}</p>
-                  </>
-                )}
-                {f.readings.length === 0 ? null : (
-                  <div className={f.answer === null ? undefined : "mt-2"}>
-                    <Readings readings={f.readings} />
-                  </div>
-                )}
-                {node.notes
-                  .filter((note) => NOTE_AT[note] === f.field)
-                  .map((note) => (
+            {node.fields.map((f) => {
+              const notes = node.notes.filter((note) => NOTE_AT[note] === f.field);
+              return (
+                <div key={f.field} className="flex min-w-0 flex-col gap-1" data-field={f.field}>
+                  <h3 className="text-label-md">{fieldLabel(m, f.field)}</h3>
+                  {f.answer === null ? (
+                    f.readings.length === 0 ? (
+                      <p className={FIELD_NOTE}>{emptyOf(f.field)}</p>
+                    ) : null
+                  ) : (
+                    <>
+                      <p className="whitespace-pre-wrap">
+                        <bdi>{f.answer.text}</bdi>
+                      </p>
+                      <p className={FIELD_NOTE}>{m.business.label.yourWords}</p>
+                    </>
+                  )}
+                  {/* A note belongs to the field, so it comes before the readings (row D7). */}
+                  {notes.map((note) => (
                     <p key={note} className={FIELD_NOTE}>
                       {noteText(m, note)}
                     </p>
                   ))}
-              </div>
-            ))}
+                  {f.readings.length === 0 ? null : (
+                    <div className={f.answer === null && notes.length === 0 ? undefined : "mt-2"}>
+                      <Readings readings={f.readings} />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
           {read ? <p className={FIELD_NOTE}>{m.business.label.confidence}</p> : null}
         </div>

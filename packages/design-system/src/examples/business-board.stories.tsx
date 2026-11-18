@@ -31,6 +31,7 @@ import {
   en,
   expectAccessScreen,
   expectFitsAt360,
+  FIXTURE_NOTES,
   FixtureNote,
   inEnglish,
   textOf,
@@ -49,9 +50,9 @@ const meta = {
   component: BusinessBoardScreen,
   args: { access: "ready", view: THAI_VIEW, signInHref: "/account", listHref: "/business" },
   decorators: [
-    (Story) => (
+    (Story, { parameters }) => (
       <>
-        <FixtureNote />
+        <FixtureNote readings={parameters["fixtureReadings"] === true} />
         <Story />
       </>
     ),
@@ -196,6 +197,15 @@ async function expectViewer(
   }
 }
 
+/** Row D8: one fixture note at the top of the story, of the kind the story is. */
+async function expectFixtureNote(root: HTMLElement, kind: "answers" | "readings") {
+  const notes = root.querySelectorAll("[data-fixture-note]");
+  await expect(notes).toHaveLength(1);
+  const note = notes[0] as HTMLElement;
+  await expect(note.dataset["fixtureNote"]).toBe(kind);
+  await expect(Object.values(FIXTURE_NOTES[kind])).toContain(textOf(note));
+}
+
 /** Opens one node by click, reads its view, and closes it again. */
 async function readNode(root: HTMLElement, m: Messages, view: BusinessView, id: BusinessNodeId) {
   await userEvent.click(nodeEl(root, id));
@@ -257,6 +267,7 @@ async function expectBoard(
 ) {
   const canvas = within(canvasElement);
   await boardReady(canvasElement);
+  await expectFixtureNote(canvasElement, "answers");
   await expect(canvas.getByRole("heading", { level: 1, name: view.projectName })).toBeVisible();
   const lede = canvas.getByText(m.business.board.lede);
   await expect(lede).toBeVisible();
@@ -916,6 +927,62 @@ const inkLeft = (el: Element) => {
 const near = (a: number, b: number, tolerance = 1) => Math.abs(a - b) <= tolerance;
 
 /**
+ * Row D7: in every field with readings, each of the field's own lines (the person's words, their
+ * label, the notes) comes before the readings list; the list sits 12 under the last of them when
+ * there is one; a note is never after a reading and sits 4 under the `yourWords` line when there is
+ * an answer. The note wraps to two lines in English at 360, and the gap holds at every line count.
+ */
+async function expectNoteBeforeReadings(
+  dialog: HTMLElement,
+  m: Messages,
+  view: BusinessView,
+  id: BusinessNodeId,
+) {
+  const node = viewNode(view, id);
+  for (const f of node.fields) {
+    if (f.readings.length === 0) continue;
+    const el = fieldOf(dialog, f.field);
+    const list = el.querySelector("ul") as HTMLElement;
+    const lines = [...el.querySelectorAll<HTMLElement>(":scope > p")];
+    for (const p of lines) {
+      await expect(p.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    }
+    const last = lines.at(-1);
+    if (last !== undefined) {
+      await expect(
+        near(list.getBoundingClientRect().top - last.getBoundingClientRect().bottom, 12),
+      ).toBe(true);
+    }
+    const hasNote = lines.some((p) => node.notes.some((note) => textOf(p) === noteLine(m, note)));
+    await expect(f.answer !== null || hasNote).toBe(last !== undefined);
+  }
+  for (const note of node.notes) {
+    const line = [...dialog.querySelectorAll<HTMLElement>("[data-field] p")].find(
+      (p) => textOf(p) === noteLine(m, note),
+    );
+    const field = line?.closest<HTMLElement>("[data-field]");
+    if (line === undefined || field === null || field === undefined) continue;
+    const items = [...field.querySelectorAll<HTMLElement>("li[data-reading]")];
+    if (items.length === 0) continue;
+    for (const li of items) {
+      await expect(
+        line.compareDocumentPosition(li) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    }
+    const words = [...field.querySelectorAll<HTMLElement>(":scope > p")].find(
+      (p) => textOf(p) === m.business.label.yourWords,
+    );
+    if (words !== undefined) {
+      await expect(
+        near(line.getBoundingClientRect().top - words.getBoundingClientRect().bottom, 4),
+      ).toBe(true);
+    }
+    // The note's ink starts where the field's label does.
+    await expect(near(inkLeft(line), inkLeft(field.querySelector("h3") as HTMLElement))).toBe(true);
+  }
+}
+
+/**
  * Row 33 for one node: under each field the person's words with their label, then one list item per
  * reading, in the view's order. Each item is, top to bottom: the below-floor line when it applies,
  * the value as text in `bdi` followed by the pill that opens its quote, "Read by AI (model id)",
@@ -999,16 +1066,8 @@ async function expectReadings(
         await expect(near(gap, 16)).toBe(true);
       }
     }
-    // 12 px under the person's words and their label, never before them.
-    if (f.answer !== null && f.readings.length > 0) {
-      const note = [...el.querySelectorAll<HTMLElement>("p")].find(
-        (p) => textOf(p) === m.business.label.yourWords,
-      ) as HTMLElement;
-      const list = el.querySelector("ul") as HTMLElement;
-      await expect(
-        near(list.getBoundingClientRect().top - note.getBoundingClientRect().bottom, 12),
-      ).toBe(true);
-    }
+    // Row D7: the field's notes before its readings, the list 12 under the line above it.
+    await expectNoteBeforeReadings(dialog, m, view, id);
   }
   // The confidence note is the last thing of the first column, after the last field.
   if (all.length > 0) {
@@ -1050,12 +1109,17 @@ async function expectQuoteCard(dialog: HTMLElement, m: Messages, view: BusinessV
   await expect([...li.querySelectorAll(".ds-evidence-list blockquote")].map(textOf)).toEqual(
     reading.spans.map((s) => s.observation.quote),
   );
+  // Row D6: each quote row of the list says what the pill card says, an AI model read it.
+  await expect(
+    [...li.querySelectorAll(".ds-evidence-list .ds-evidence-quote__meta")].map(textOf),
+  ).toEqual(reading.spans.map(() => m.evidence.sourceByModel));
   await userEvent.click(trigger);
 }
 
 /** Opens each node of a project with readings and reads it; opens the pills on Audience. */
 async function readingsPlay(canvasElement: HTMLElement, m: Messages, view: BusinessView) {
   await boardReady(canvasElement);
+  await expectFixtureNote(canvasElement, "readings");
   // No reading is shown on the board's cards, and no Alert: the record is a model reading.
   await expect(canvasElement.querySelector(".ds-alert")).toBeNull();
   for (const r of view.nodes.flatMap((n) => n.fields).flatMap((f) => f.readings)) {
@@ -1091,6 +1155,7 @@ async function readingsPlay(canvasElement: HTMLElement, m: Messages, view: Busin
  */
 export const Readings: Story = {
   args: { view: THAI_READ_VIEW },
+  parameters: { fixtureReadings: true },
   play: async ({ canvasElement }) => {
     await readingsPlay(canvasElement, th, THAI_READ_VIEW);
   },
@@ -1098,6 +1163,7 @@ export const Readings: Story = {
 
 export const ReadingsEnglish: Story = {
   args: { view: ENGLISH_READ_VIEW },
+  parameters: { fixtureReadings: true },
   decorators: [inEnglish],
   play: async ({ canvasElement }) => {
     await readingsPlay(canvasElement, en, ENGLISH_READ_VIEW);
@@ -1111,6 +1177,7 @@ export const ReadingsEnglish: Story = {
  * the layout allows, so every node with a reading scrolls and has a bar to clear.
  */
 async function readingsAt360Play(canvasElement: HTMLElement, m: Messages, view: BusinessView) {
+  await expectFixtureNote(canvasElement, "readings");
   for (const height of [760, 480]) {
     await atWindow(360, height, async () => {
       let barred = 0;
@@ -1123,6 +1190,16 @@ async function readingsAt360Play(canvasElement: HTMLElement, m: Messages, view: 
           )) {
             await userEvent.click(trigger);
           }
+          // Row D7: the order and the gap hold where the note wraps to a second line.
+          await expectNoteBeforeReadings(dialog, m, view, id);
+          // Row D6: every quote row of an opened list says an AI model read it, none says rules did.
+          const sources = [
+            ...dialog.querySelectorAll("li[data-reading] .ds-evidence-quote__meta"),
+          ].map(textOf);
+          await expect(sources.filter((t) => t === m.evidence.sourceByRule)).toHaveLength(0);
+          await expect(sources.filter((t) => t === m.evidence.sourceByModel)).toHaveLength(
+            readings.filter((r) => r.spans.length > 1).reduce((n, r) => n + r.spans.length, 0),
+          );
           await expect(region.scrollWidth).toBeLessThanOrEqual(region.clientWidth);
           await expect(dialog.querySelectorAll("[data-reading]")).toHaveLength(readings.length);
           // A node that fits the window has no bar to clear; a node with readings must scroll at 480.
@@ -1152,6 +1229,7 @@ async function readingsAt360Play(canvasElement: HTMLElement, m: Messages, view: 
 
 export const ReadingsAt360: Story = {
   args: { view: THAI_READ_VIEW },
+  parameters: { fixtureReadings: true },
   play: async ({ canvasElement }) => {
     await readingsAt360Play(canvasElement, th, THAI_READ_VIEW);
   },
@@ -1159,6 +1237,7 @@ export const ReadingsAt360: Story = {
 
 export const ReadingsAt360English: Story = {
   args: { view: ENGLISH_READ_VIEW },
+  parameters: { fixtureReadings: true },
   decorators: [inEnglish],
   play: async ({ canvasElement }) => {
     await readingsAt360Play(canvasElement, en, ENGLISH_READ_VIEW);
