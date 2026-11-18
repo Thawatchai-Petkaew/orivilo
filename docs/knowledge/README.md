@@ -493,3 +493,4 @@ Keep this table in step with the folder when you add an entry.
 | [[K-0407-cldr-thailand-week-starts-sunday-and-getweekinfo]]                             | 0.8        | CLDR: Thailand week starts Sunday; getWeekInfo newly available        |
 | [[K-0408-date-fns-thai-locale-sunday-gregorian-year]]                                   | 0.8        | date-fns Thai locale: Sunday, no 543, Gregorian year (own reading)    |
 | [[K-0409-synthesis-calendar-and-date-picker-benchmark]]                                 | 0.75       | Synthesis: Calendar and Date picker benchmark tables                  |
+| [[K-0412-openrouter-byok-cost-fee-and-fallback]]                                        | 0.75       | BYOK fee 5% (company-reported); usage.cost on BYOK unstated           |
