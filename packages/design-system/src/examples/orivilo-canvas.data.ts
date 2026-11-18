@@ -1450,7 +1450,7 @@ export const NODES: readonly NodeRecord[] = [
       badges: ["category.violet", "category.black", "category.cream"],
     },
   ),
-  briefNode("b-avoid", "node.avoid", 1237, { id: "avoid", name: "port.avoid" }, `${BRIEF} §5, §9`, {
+  briefNode("b-avoid", "node.avoid", 1287, { id: "avoid", name: "port.avoid" }, `${BRIEF} §5, §9`, {
     kind: "rows",
     look: "chips",
     rows: [
@@ -1466,7 +1466,7 @@ export const NODES: readonly NodeRecord[] = [
   briefNode(
     "b-pos",
     "node.positioning",
-    113,
+    85,
     { id: "onliness", name: "port.onliness" },
     `${METHOD} §2`,
     {
@@ -1482,7 +1482,7 @@ export const NODES: readonly NodeRecord[] = [
   briefNode(
     "b-name",
     "node.name",
-    297,
+    321,
     { id: "name", name: "port.name" },
     `${BRIEF} §1`,
     {
@@ -1505,7 +1505,7 @@ export const NODES: readonly NodeRecord[] = [
     title: "node.attributes",
     width: 300,
     x: 352,
-    y: 546,
+    y: 598,
     pad: "text",
     inputs: [
       port("essence", "text", c("port.essence")),
@@ -1575,7 +1575,7 @@ export const NODES: readonly NodeRecord[] = [
     title: "node.construction",
     width: 300,
     x: 1356,
-    y: 308,
+    y: 338,
     pad: "text",
     inputs: [],
     outputs: [port("construction", "image", c("port.construction"))],
@@ -1589,7 +1589,7 @@ export const NODES: readonly NodeRecord[] = [
     title: "node.markHistory",
     width: 300,
     x: 1356,
-    y: 484,
+    y: 514,
     pad: "text",
     inputs: [],
     outputs: [port("earlier", "image", c("port.earlier"))],
