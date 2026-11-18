@@ -95,6 +95,8 @@ const th = {
     failed: "ตอนนี้ยังลงชื่อเข้าใช้ไม่ได้ ลองใหม่อีกครั้ง",
     limitReason: "มีการลงชื่อเข้าใช้จากเครือข่ายนี้ถี่เกินไป",
     limitRetry: "ลองใหม่ได้ในอีก {wait}",
+    callbackFailed:
+      'ลงชื่อเข้าใช้ด้วย Google ไม่สำเร็จ คุณจึงยังไม่ได้ลงชื่อเข้าใช้ กดปุ่ม "ลงชื่อเข้าใช้ด้วย Google" เพื่อลองอีกครั้ง',
   },
   wait: {
     seconds: { one: "{n} วินาที", other: "{n} วินาที" },
@@ -291,6 +293,8 @@ const en: WebMessages = {
     failed: "You cannot sign in right now. Try again.",
     limitReason: "Too many sign-in attempts from this network.",
     limitRetry: "Try again in {wait}.",
+    callbackFailed:
+      'Sign-in with Google did not finish, so you are not signed in. Press "Sign in with Google" to try again.',
   },
   wait: {
     seconds: { one: "{n} second", other: "{n} seconds" },

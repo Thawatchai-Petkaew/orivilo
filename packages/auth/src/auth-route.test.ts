@@ -1,5 +1,7 @@
+import { type Db } from "@orivilo/db/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { authRoute } from "./auth-route.ts";
+import { createAuth } from "./config.ts";
 import { captureLines, expectLineShape } from "./log-testing.ts";
 import { type Consumed, RateLimitUnavailable } from "./rate-limit.ts";
 
@@ -493,5 +495,45 @@ describe("authRoute", () => {
     expect(res.status).toBe(200);
     expect(await res.text()).toBe("fine");
     expect(res.headers.get("x-request-id")).toMatch(UUID_V4);
+  });
+});
+
+// ORV-286 row 11: a failed sign-in through Better Auth's own handler writes the boundary's one
+// line and nothing that names the code, the description, a person or a token.
+describe("a failed sign-in callback through authRoute", () => {
+  const allowAll = { execute: async () => [{ count: 1 }] };
+  const limiterDb = {
+    ...allowAll,
+    transaction: async (run: (tx: typeof allowAll) => Promise<unknown>) => run(allowAll),
+  } as unknown as Db;
+  const auth = createAuth({
+    db: limiterDb,
+    secret: "test-secret-that-is-long-enough-0123456789",
+    baseURL: "http://localhost:3000",
+    google: { clientId: "test", clientSecret: "test" },
+  });
+
+  it("writes one api/auth line with only the allow-listed keys", async () => {
+    const res = await authRoute(auth.handler, { consumeSignIn: allowed })(
+      new Request(
+        "http://localhost:3000/api/auth/callback/google?error=access_denied&error_description=Blocked%20for%20ana%40example.com",
+      ),
+    );
+    expect(res.status).toBe(302);
+    expect(new URL(res.headers.get("location") ?? "", "http://localhost:3000").pathname).toBe(
+      "/account",
+    );
+    const own = (capture?.lines ?? []).filter((l) => String(l.args[0]).startsWith("{"));
+    // Better Auth's own logger lines are the known gap of ORV-141 open question 6; they are not JSON.
+    capture?.lines.splice(0, capture.lines.length, ...own);
+    expect(own).toHaveLength(1);
+    const [only] = own;
+    if (!only) throw new Error("no line");
+    const line = expectLineShape(only);
+    expect(line["route"]).toBe("api/auth");
+    const text = String(own[0]?.args[0]);
+    for (const secret of ["access_denied", "Blocked", "ana", "example.com", "state_not_found"]) {
+      expect(text).not.toContain(secret);
+    }
   });
 });
