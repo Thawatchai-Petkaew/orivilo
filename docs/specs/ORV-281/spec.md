@@ -1,7 +1,7 @@
 ---
 issue: ORV-281 (https://tpetkaew.atlassian.net/browse/ORV-281)
 lane: L (risk flags: auth and data access, a new tenant table set behind the authorization helper; a change to the evidence contract every brand node reads; a new pinned model job with its prompt and answer schema)
-version: 1
+version: 1.1
 ---
 
 # ORV-281: business first, the first real stage of the board
@@ -59,7 +59,7 @@ This story builds on those sources and redefines none of their nodes, inputs or 
 | 3 | ORV-126 harness part 1: the intake classifier reads a structured inventory (concept, name, live brand, structural change, expression references, sub-brands); strategic nodes ask their proxy questions one by one | One intake form of the brief's six inputs and a website (`intake-fields-1`). Five of the six map to ORV-126 proxy question ids and use their copy word for word; the industry question is new. Live brand, structural change, expression references and sub-brands are not asked | Envelope default 1; the brief names these six inputs for stage 1 |
 | 4 | The brief, "The board is a presentation": input and interpretation must work as blocks on a canvas with a drill-down conversation per element, not as a single form | A single form | The brief contradicts envelope default 1. Kept as the default under the POC focus on function; open question 1 asks the owner |
 | 5 | The brief lists the stage 1 inputs as idea, industry, customers, problem, value, competitors | The form asks competitors before value | ORV-126's `positioning.proxy.only` says "those alternatives", which refers back to the competitors question |
-| 6 | ORV-128 analyser 5 (`brief-text`): one text of 1 to 2,000 characters; reading targets for `situation` only among the business nodes; model job `interpret` | Seven answers, each its own source text with the same bound; new reading targets for `business-core`, `audience` and the category of `competitive-frame`, with a short text value; a new pinned job | The six answers are separate inputs the person gave; ADR 0009 keeps prompts and evaluation sets per job (open question 2) |
+| 6 | ORV-128 analyser 5 (`brief-text`): one text of 1 to 2,000 characters; reading targets for `situation` only among the business nodes; model job `interpret` | Seven answers, each its own source text with the same bound; new reading targets for `business-core`, `audience`, and the category and the alternatives of `competitive-frame`: a short text value for each, except the alternatives, which take a name for each alternative, one reading per alternative; a new pinned job | The six answers are separate inputs the person gave; ADR 0009 keeps prompts and evaluation sets per job (open question 2) |
 | 7 | ORV-128 "How evidence feeds the node graph": `situation.competitors` proposes an inventory fact on `situation` | Competitor names show on `competitive-frame`, field `alternatives` | The intake asks them with `competitive-frame.proxy.instead` |
 | 8 | ORV-128 "Industry": a TSIC code is read only against the ORV-127 code list; with no list, `awaiting-taxonomy` | The same rule holds: the industry field shows the person's words and `business.industry.awaitingTaxonomy`; the model is not asked for a code | The ORV-127 code list is not in `packages` |
 | 9 | ORV-266: the website report reads looks and personality signals from a page | The website the person gives is checked and kept as an address, not read (`website-input-1`) | A page read gives no business fact today: ORV-128 keeps no page text, and its model readings are slice 3 of ORV-128 (open question 6) |
@@ -138,7 +138,7 @@ Slice 3. After the answers are saved, one model call reads the six business answ
 - **Evidence.** Each reading is an ORV-128 evidence item: `fromModel` true, the pinned model id, the adapter id and version, `basedOn` its spans, and a confidence by ORV-128 "Confidence" (base `model-reading`; factor `few-words` when the answers its spans sit in hold fewer than 20 words together by `word-count-1`; factor `single-signal` when it names one span only). Below the floor it stays shown and counts as no support ("Worked examples", W5).
 - **Prompt.** The six answers go only in the user message, never in the instructions. The project name, the website, the person's id and email and the workspace are never sent (ADR 0009 point 4). The request keeps zero data retention and denies data collection, as `interpret` does (ADR 0009 point 4 and its Addition of 2026-10-23).
 - **No fallback model.** When the call fails, times out, has no key, or is stopped by the limit or the spend cap (`business-door-1`), no other model is tried (ADR 0009 point 3), and the reason is saved with the result.
-- **The job.** A new pinned job in ADR 0009's table, named by the architect (`business-read` is a suggestion), with a Thai and English evaluation set recorded as fixtures before it ships (ADR 0009 point 2). Tests replay recordings and never call a model (ADR 0009 point 8).
+- **The job.** A new pinned job in ADR 0009's addition of 2026-11-18, named by the architect (`business-read` is a suggestion), with a Thai and English evaluation set recorded as fixtures before it ships (ADR 0009 point 2). Tests replay recordings and never call a model (ADR 0009 point 8).
 
 ### business-door-1
 
@@ -193,7 +193,7 @@ Three screens, each composed in `packages/design-system/src/examples` (the place
 2. **Intake** (`/business/new`): `business.intake.heading`, `business.intake.lede`, the eight fields of `intake-fields-1` with `business.intake.optional` on the optional ones, and the button `business.intake.submit`.
 3. **Project board** (`/business/[projectId]`): the project name as the `h1`, `business.board.lede`, `business.board.savedAt`, then the board (`business-board-1`). In slice 1, before the board, the five node views are stacked on the page in node order.
 
-Signed out, a screen shows its heading, `business.signedOut` and the sign-in link, and no form. Not on the approved list: `business.notAllowed`, no form. No database set up: `business.notConfigured`. Every value from the person or the model renders as plain text, never as HTML or a link.
+Signed out, a screen shows its heading, `business.signedOut` and the sign-in link `business.signInLink`, and no form. Not on the approved list: `business.notAllowed`, no form. No database set up: `business.notConfigured`. Every value from the person or the model renders as plain text, never as HTML or a link.
 
 ## Strings
 
@@ -253,7 +253,9 @@ New keys live in the design-system catalog (`packages/design-system/src/i18n`), 
 | `business.competitors.coloursNotRead` | Competitors' colours are not part of this step. | ขั้นนี้ยังไม่รวมสีของคู่แข่ง |
 | `business.board.lede` | What you told us, placed on the first nodes of your board. Nothing here is confirmed yet. | สิ่งที่คุณเล่า วางไว้บนโหนดแรกของกระดาน ยังไม่มีข้อใดได้รับการยืนยัน |
 | `business.board.savedAt` | Saved {date} | บันทึกเมื่อ {date} |
+| `business.board.label` | Business board | กระดานธุรกิจ |
 | `business.signedOut` | Sign in to tell us about your business. | ลงชื่อเข้าใช้ก่อน แล้วจึงเล่าเรื่องธุรกิจของคุณได้ |
+| `business.signInLink` | Go to sign in | ไปหน้าลงชื่อเข้าใช้ |
 | `business.notAllowed` | This is open only to approved accounts for now, and this account is not one of them. | ตอนนี้ส่วนนี้เปิดให้เฉพาะบัญชีที่ได้รับอนุมัติ และบัญชีนี้ยังไม่อยู่ในรายชื่อ |
 | `business.notConfigured` | Businesses cannot be saved in this environment yet: the database is not set up. | ยังบันทึกธุรกิจในสภาพแวดล้อมนี้ไม่ได้ เพราะยังไม่ได้ตั้งค่าฐานข้อมูล |
 | `business.errors.aiNotConfigured` | AI is not set up in this environment, so only your own words are shown. | สภาพแวดล้อมนี้ยังไม่ได้ตั้งค่า AI จึงแสดงเฉพาะคำของคุณเอง |
@@ -261,7 +263,7 @@ New keys live in the design-system catalog (`packages/design-system/src/i18n`), 
 | `business.errors.aiRateLimited` | You have reached the limit for AI readings, so only your own words are shown. | ใช้ AI อ่านครบจำนวนที่กำหนดแล้ว จึงแสดงเฉพาะคำของคุณเอง |
 | `business.errors.aiSpendCap` | This workspace has used its AI budget for this month, so only your own words are shown. | เวิร์กสเปซนี้ใช้งบ AI ของเดือนนี้ครบแล้ว จึงแสดงเฉพาะคำของคุณเอง |
 
-Reused as they are: `board.readOnly` (PR 211), `evidence.fromModel`, `evidence.belowFloor` and `quality.fewWords` (ORV-128 "Strings"), `saved.errors.signed-out`, `saved.errors.rate-limited` and `saved.errors.failed` (`apps/web/i18n/messages.ts`). The six `business.question.*` texts are ORV-126's proxy question copy word for word; ORV-126 is their home, and a test pins each to it.
+Reused as they are: `board.readOnly` (PR 211), `evidence.fromModel`, `evidence.belowFloor` and `quality.fewWords` (ORV-128 "Strings"), `saved.errors.signed-out`, `saved.errors.rate-limited` and `saved.errors.failed` (`apps/web/i18n/messages.ts`). The six `business.question.*` texts are ORV-126's proxy question copy word for word; ORV-126 is their home, and a test pins each to it. `business.signInLink` is the text of the sign-in link on a signed-out screen ("Screens"), the copy of `brandReport.signInLink`. `business.board.label` is the accessible name of the board region, the `label` of `CanvasBoard` (`business-board-1`).
 
 ## Acceptance criteria
 
@@ -292,7 +294,7 @@ Tests use fixtures, a fake network and recorded model answers; none reaches the 
 | 20 | A 360 px viewport, a long Thai answer with no spaces, a 2,048-character website | The intake and the board render, light and dark | Every line wraps; no horizontal scroll | None | Story `Narrow`, play: `scrollWidth` at most 360 |
 | 21 | The slice 1 head | The gate runs | No UI | The new tables are in `TENANT_TABLES` with row security; each new column carries one classification tag (rule 11); check-i18n and `apps/web/i18n/messages.test.ts` pass; no middot or em dash in new copy; `pnpm lint && pnpm typecheck && pnpm test && pnpm build` pass | Gate output |
 | 22 | A saved project, slice 2 | They open its board | The read-only present board under `business.board.lede`: five nodes titled Situation, Business core, Audience, Competitive frame and Positioning (สถานการณ์ตั้งต้น, แก่นธุรกิจ, กลุ่มลูกค้า, ตลาดและคู่แข่ง, จุดยืน), six edges, and the dock with "View only" ("ดูอย่างเดียว") | The edges are exactly the six of W2; nothing can be dragged or connected | Story `Board`, play; page test |
-| 23 | The board | They click a node; then Tab to another and press Enter, then Space; then Escape | The node's view in the viewer dialog, with the content row 14 names for that node; Escape closes it | `onNodeOpen` once per gesture with that node's id; focus returns to the node; the viewport does not move | Story `Board`, play |
+| 23 | The board | They click a node; then Tab to another and press Enter, then Space; then Escape | The node's view in the viewer dialog, with the content row 14 names for that node; Escape closes it. Each node's title row ends with the open glyph and no page count, and its accessible name is `graph.nodeLabel` with no page count (`CanvasNode` open without a count, "Impact on contracts", UI) | `onNodeOpen` once per gesture with that node's id; focus returns to the node; the viewport does not move | Story `Board`, play |
 | 24 | A board whose project skipped audience, competitors and value | It renders | `business.state.skipped` on Audience, Competitive frame and Positioning, Positioning with its gate line | None | Story `Skipped`, play |
 | 25 | The board, keyboard only, light and dark, a 360 px viewport | They Tab through it | Focus visible on the dock and each node in fill order; no horizontal scroll | Zero a11y violations | Stories `Board` and `Narrow`; a11y addon |
 | 26 | The slice 2 head | The gate runs | No UI | No new shared component; every story of the canvas components PR 211 changed still passes its play; gate as row 21; `pnpm contrast` unchanged from `develop` | Gate output |
@@ -304,13 +306,13 @@ Tests use fixtures, a fake network and recorded model answers; none reaches the 
 | 32 | A saved project with a reading | They open its board twice, a day apart on a fake clock | The same readings both times | No model call on opening; the record holds the model id, adapter id and version and prompt version | `actions.test.ts` "replay, never re-read" |
 | 33 | The fixture of row 27 on the board | They open Audience | Under Customers: the person's words with `business.label.yourWords`; then each reading with "Read by AI (anthropic/claude-sonnet-5.5). Check it before you use it." (the saved model id; Thai from `evidence.fromModel`), "Not confirmed yet" ("ยังไม่ได้ยืนยัน"), its quote through `EvidenceSpan`, `business.reading.confidence`; one `business.label.confidence` in the view; a reading below the floor under `evidence.belowFloor` with "the text has fewer than 20 words" ("ข้อความมีไม่ถึง 20 คำ") | None | Story `Readings`, play |
 | 34 | The evaluation set: Thai and English intakes covering each of the seven read fields, and intakes whose answers carry instructions to the model | Recorded answers are replayed | No UI | Each recording parses or is refused by `business-read-1`; no recorded answer that follows an instruction from an answer is accepted; the G3 packet reports, per field and language, how many readings a person marked as right, without a pass claim | `business-read-eval.test.ts`; G3 packet |
-| 35 | The slice 3 head | The gate runs | No UI | Gate as row 21; the model is imported only by the read's adapter module; ADR 0009's table and `AI_MODELS` name the new job; `MODEL_JOBS` and the evidence schema version are bumped with their tests | Gate output |
+| 35 | The slice 3 head | The gate runs | No UI | Gate as row 21; the model is imported only by the read's adapter module; ADR 0009's addition of 2026-11-18 and `AI_MODELS` name the new job; `MODEL_JOBS` and the evidence schema version are bumped with their tests | Gate output |
 
 ## Rows per PR
 
 Replace A, B and C with the PR numbers when each PR opens: the recorder reads digits only.
 
-- PR A: rows 1-21
+- PR 214: rows 1-21
 - PR B: rows 22-26
 - PR C: rows 27-35
 
@@ -335,6 +337,7 @@ Slice 2 waits on slice 1. Slice 3 waits on slice 1 and on the ADR 0009 addition;
 - **Storage.** New tenant tables for the intake and the reading, joined to `project`; a migration with row security; `TENANT_TABLES`; classification tags in `packages/db/src/schema/classification.ts`. `project` gets its first writer. No Supabase Storage object. Table shapes are the architect's.
 - **Auth and limits.** New server actions behind `withWorkspace`; the approved list of ORV-268 reused; the `write` and `ai-read` limits reused with no new numbers; the spend cap charge recorded as ORV-121 does; new route names in `ROUTES` (`packages/auth/src/log.ts`). `security` reviews slices 1 and 3 (ADR 0015 decision 2: `packages/intent-engine/**` and the server actions).
 - **UI.** New catalog keys ("Strings"); three example screens with stories; no new shared component; no token change.
+- **UI, `CanvasNode` open without a count (slice 2, a component public API change, lane L flag).** One additive change to the shared `CanvasNode`: `NodeContent.open` (`packages/design-system/src/components/canvas-board/graph.ts`) becomes `{ count?: number }`. With no `count`, the title row ends with the open glyph only, with no pages word (`node.pages`), and the accessible name is `graph.nodeLabel` in place of `graph.nodeOpenLabel` (`nodeOpenLabel` returns `nodeLabel`); `aria-haspopup="dialog"`, the zoom-in cursor and `onNodeOpen` stay. A business node opens with no page count, because it opens one view, not pages (decision N1 option (a) of the design's section 11, ORV-281 comment 10673; option (b) would show "3 pages" and "1 pages", a false label, AGENTS.md rule 4). The catalog entry `packages/design-system/catalog/application/canvas-node.yaml` changes its `NodeContent.open` rule to say `count` is optional and what shows without it, and the change brings one story in `CanvasNode.stories.tsx`, `OpenWithoutCount` (name a suggestion), in Thai and English, which asserts the glyph, no pages word and the `graph.nodeLabel` name. Every existing caller of `open` passes a count (the `CanvasNode` and `CanvasBoard` stories, among them `OpenNode`, and `graph.test.ts`) and renders as before: the same pages word, glyph and `graph.nodeOpenLabel`. No new copy, no token change.
 
 ## Out of scope
 
@@ -445,3 +448,4 @@ node -e 'const m={situation:["industry","website"],"business-core":["idea"],audi
 ## Changelog
 
 - v1 (2026-11-18): first version, from the owner's request on ORV-281, the envelope's four defaults, and a read of the brief, ORV-126 v1.4, ORV-128 v1.27, ORV-266 v1.5, ORV-268, ORV-274 v2.5, ADR 0009, `evidence.ts`, `workspace.ts`, `access.ts` and `rate-limit.ts`. No Jira tool and no shell in this role, so ORV-281 was not read directly and no worked example was run. Downstream to review: the G1 packet (open questions 1 to 13), the architect's and the designer's G2 tasks, the builder envelopes for PRs A, B and C, the `security` envelopes for A and C, the qa envelopes (Rows per PR once the PRs exist).
+- v1.1 (2026-11-18, task ORV-281-spec-v11): six changes, no row added, removed or renumbered. (1) Departure 6 names the alternatives of `competitive-frame` among the new reading targets, with a name for each alternative, because "Impact on contracts" already counted them and the tech notes section 16 read departure 6 that way. (2) `business-read-1` "The job" and row 35 say ADR 0009's addition of 2026-11-18 in place of its table, because the job row sits in that addition and a decided ADR's table is never rewritten. (3) "Strings" gains `business.signInLink` and "Screens" names it on the signed-out state, because the sign-in link had no key (design section 10). (4) "Strings" gains `business.board.label`, because `CanvasBoard` requires a `label` as the board region's accessible name (design section 10). (5) Slice 2 records one additive change to the shared `CanvasNode` ("Impact on contracts", UI, and row 23): `NodeContent.open`'s `count` becomes optional and a business node opens with no page count, because a business node opens one view and a page count would be a false label (design N1 option (a), ORV-281 comment 10673). (6) "Rows per PR" names PR 214 for rows 1-21, because the slice 1 PR takes that number. Downstream to review: the tech notes sections 9 and 14 ("No shared component changes" now has one exception in slice 2), the design section 11 (N1 decided), the builder envelopes for PR A and PR B, the qa envelope for PR 214.
