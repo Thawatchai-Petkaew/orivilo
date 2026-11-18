@@ -240,7 +240,7 @@ describe("the request openRouterComplete sends (ORV-160 rows 9 to 16, 23, 24)", 
     expect((await oneCall()).body.provider.data_collection).toBe("deny");
   });
 
-  it("row 12: AI_MODELS is exactly the six pinned jobs (orv160-model-ids)", () => {
+  it("row 12: AI_MODELS is exactly the seven pinned jobs (orv160-model-ids)", () => {
     expect(AI_MODELS).toEqual({
       chat: "anthropic/claude-sonnet-5.5",
       instant: "inception/mercury-3",
@@ -248,7 +248,13 @@ describe("the request openRouterComplete sends (ORV-160 rows 9 to 16, 23, 24)", 
       see: "google/gemini-4-argon",
       "logo-vector": "anthropic/claude-opus-5.5",
       "logo-image": "google/gemini-nano-banana-2.1",
+      "business-read": "anthropic/claude-sonnet-5.5",
     });
+  });
+
+  it("ORV-283: the business-read job is pinned to the interpret model (ADR 0009 addition of 2026-11-18)", () => {
+    expect(AI_MODELS["business-read"]).toBe("anthropic/claude-sonnet-5.5");
+    expect(AI_MODELS["business-read"]).toBe(AI_MODELS.interpret);
   });
 
   it("row 13: fetch gets the one pinned URL (orv160-url)", async () => {
