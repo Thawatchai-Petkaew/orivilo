@@ -24,3 +24,7 @@ export { checkAddress, parseRobots, robotsAllows } from "./read-page";
 export * from "./url-analyser";
 export * from "./report";
 export * from "./report-view";
+export * from "./business/questions";
+export * from "./business/intake";
+export * from "./business/place";
+export * from "./business/view";
