@@ -22,9 +22,15 @@ export interface SignInLine {
 /**
  * The line under the sign-in button, or `null` before any refusal. A wait that is not a positive
  * number falls back to the plain failure line (`account.failed`) rather than print an empty one.
+ * Before any press, a sign-in that came back failed (`callbackFailed`, ORV-286) says so with
+ * `account.callbackFailed`; the action's own state replaces it, so at most one line shows.
  */
-export function signInLine(state: SignInState, labels: SignInLabels): SignInLine | null {
-  if (!state) return null;
+export function signInLine(
+  state: SignInState,
+  labels: SignInLabels,
+  callbackFailed = false,
+): SignInLine | null {
+  if (!state) return callbackFailed ? { reason: labels.account.callbackFailed } : null;
   if (state.error === "rate-limited" && Number.isFinite(state.retryAfter) && state.retryAfter > 0) {
     return {
       reason: labels.account.limitReason,

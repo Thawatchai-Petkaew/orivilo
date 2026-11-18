@@ -86,6 +86,48 @@ describe.runIf(HAS_TEST_DATABASE)("Better Auth and the authorization helper", ()
     }
   });
 
+  // ORV-286 row 2 (signin-failure-1): the staging case. Sign-in started on one host stores its
+  // state and sets its cookie there; the callback arrives with that state and no cookie.
+  it("a missing state cookie lands on /account", async () => {
+    try {
+      const { url } = await auth.api.signInSocial({
+        body: { provider: "google", callbackURL: "/account" },
+      });
+      const state = new URL(url ?? "").searchParams.get("state") ?? "";
+      expect(state).not.toBe("");
+      // Through the route wrapper, so row 11 reads the lines it writes.
+      const log = captureLines();
+      let response: Response;
+      try {
+        response = await authRoute(auth.handler, { consumeSignIn: async () => ({ ok: true }) })(
+          new Request(
+            `http://localhost:3000/api/auth/callback/google?code=c&state=${encodeURIComponent(state)}`,
+          ),
+        );
+      } finally {
+        log.restore();
+      }
+      // Better Auth's own logger lines are not JSON: the known gap of ORV-141 open question 6.
+      const own = log.lines.filter((l) => String(l.args[0]).startsWith("{"));
+      expect(own).toHaveLength(1);
+      const [only] = own;
+      if (!only) throw new Error("no line");
+      const fields = expectLineShape(only);
+      expect(fields["route"]).toBe("api/auth");
+      for (const word of ["state_mismatch", state, "code"]) {
+        expect(String(own[0]?.args[0])).not.toContain(word);
+      }
+      expect(response.status).toBe(302);
+      const landed = new URL(response.headers.get("location") ?? "", "http://localhost:3000");
+      expect(landed.pathname + landed.search).toBe("/account?error=state_mismatch");
+      expect(response.headers.get("set-cookie") ?? "").not.toContain("session_token=");
+    } finally {
+      // The call had no trusted IP and counted in a shared bucket; the limiter tests below count
+      // that bucket's rows, so leave none behind.
+      await t.admin.delete(rateLimitCounter);
+    }
+  });
+
   it("gives a new person their own workspace, as owner (AC 1)", async () => {
     const a = await signIn("a@example.com", "Anna");
     expect(a.role).toBe("owner");

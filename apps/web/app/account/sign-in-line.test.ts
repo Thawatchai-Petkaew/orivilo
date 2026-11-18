@@ -115,3 +115,26 @@ describe("the sign-in line", () => {
     });
   });
 });
+
+// ORV-286 signin-message-1: a failed sign-in is the line before any press; an action state replaces it.
+describe("the sign-in line after a failed sign-in", () => {
+  it("is the callback line, with no retry or reference, in both locales", () => {
+    expect(signInLine(null, labels(en), true)).toEqual({ reason: en.account.callbackFailed });
+    expect(signInLine(null, labels(th), true)).toEqual({ reason: th.account.callbackFailed });
+  });
+
+  it("stays empty when the sign-in did not fail", () => {
+    expect(signInLine(null, labels(en), false)).toBeNull();
+    expect(signInLine(null, labels(en))).toBeNull();
+  });
+
+  it("gives way to the action's own line once the action returned a state", () => {
+    expect(
+      signInLine(
+        { error: "failed", code: "SERVICE_UNAVAILABLE", requestId: "r1", retryable: true },
+        labels(en),
+        true,
+      ),
+    ).toEqual({ reason: en.account.failed });
+  });
+});

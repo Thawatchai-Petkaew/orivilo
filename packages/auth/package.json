@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./configured-address": "./src/configured-address.ts",
     "./log-testing": "./src/log-testing.ts"
   },
   "scripts": {
