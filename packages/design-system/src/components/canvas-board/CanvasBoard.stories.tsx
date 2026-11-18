@@ -895,6 +895,28 @@ export const LoadingRecipesAndModes: Story = {
   },
 };
 
+/** A window wide enough for the fixture board to fit at zoom 1 or more (ORV-280 D11). */
+const FIT_WINDOW = { width: 1920, height: 1200 };
+
+/** A window of `width` by `height` for `check`, restored after; the frame is the screenshot lock's. */
+async function atWindow(width: number, height: number, check: () => Promise<void>) {
+  const { page } = await import("vitest/browser");
+  const before = { width: window.innerWidth, height: window.innerHeight };
+  const resized = async (w: number, h: number) => {
+    await page.viewport(w, h);
+    await waitFor(() => expect([window.innerWidth, window.innerHeight]).toEqual([w, h]));
+    for (let i = 0; i < 2; i++) await new Promise((done) => requestAnimationFrame(done));
+  };
+  await navigator.locks.request("orivilo-screenshot", async () => {
+    await resized(width, height);
+    try {
+      await check();
+    } finally {
+      await resized(before.width, before.height);
+    }
+  });
+}
+
 /** Present: read-only, ports disabled, Delete and the editing shortcuts do nothing, Tab still moves (E4-2 AC 11, E4-3 AC 17). */
 export const Present: Story = {
   args: { variant: "present" },
@@ -907,12 +929,6 @@ export const Present: Story = {
     const canvas = within(canvasElement);
     const region = canvas.getByRole("region");
     await ready(region);
-    // No card or port dot covers an edge pill at the fit view and again at zoom 1 (sign-off 2 R1).
-    // The window decides the fit zoom: in Vitest's 1200 px frame it is 0.88, where a full-size pill
-    // is the accepted residual below zoom 1, so the fit view is read only at zoom 1 or more.
-    if (viewportZoom(region) >= 1) {
-      await waitFor(() => expect(expectPillsClear(region)).toBeGreaterThan(0));
-    }
     await expect(canvas.getByText("ดูอย่างเดียว")).toBeVisible();
     await expect(canvas.getAllByRole("img", { name: /แก้ไขไม่ได้$/ }).length).toBeGreaterThan(5);
     const logo = await waitFor(() => nodeByTitle(region, "โลโก้"));
@@ -951,6 +967,19 @@ export const Present: Story = {
     }
     await waitFor(() => expect(viewportZoom(region)).toBeCloseTo(1, 3));
     await waitFor(() => expect(expectPillsClear(region)).toBeGreaterThan(0));
+    // No card or port dot covers an edge pill at the fit view (sign-off 2 R1). It runs last, because
+    // the fit command says its count in the status line, which the keys above leave empty. The
+    // window decides the fit zoom: in Vitest's 1200 px frame it is 0.88, where a full-size pill is
+    // the accepted residual below zoom 1. So the fit view is read in a window wide enough for a fit
+    // at zoom 1 or more, and the zoom is asserted before the pills are read (ORV-280 D11).
+    const readFit = async () => {
+      await focusOn(() => region);
+      await userEvent.keyboard("{Shift>}1{/Shift}");
+      await waitFor(() => expect(viewportZoom(region)).toBeGreaterThanOrEqual(1));
+      await waitFor(() => expect(expectPillsClear(region)).toBeGreaterThan(0));
+    };
+    if (inVitest) await atWindow(FIT_WINDOW.width, FIT_WINDOW.height, readFit);
+    else if (viewportZoom(region) >= 1) await readFit();
     for (const path of region.querySelectorAll(".ds-edge__path")) {
       await expect(path).not.toHaveAttribute("marker-end");
     }
@@ -1359,12 +1388,18 @@ export const Viewport: Story = {
     await waitFor(() => expect(zoomOf(region)).toBeLessThan(1));
     await userEvent.keyboard("{Shift>}1{/Shift}");
     await waitFor(() =>
-      expect(status(region)).toHaveTextContent(`พอดีจอ ${BOARD_NODES.length} node`),
+      expect(status(region)).toHaveTextContent(`พอดีจอ ${BOARD_NODES.length} โหนด`),
     );
     await focusOn(() => nodeByTitle(region, "บรีฟ"));
     await userEvent.keyboard("{Enter}");
     await userEvent.keyboard("{Shift>}2{/Shift}");
-    await waitFor(() => expect(status(region)).toHaveTextContent("พอดีจอกับ 1 node ที่เลือก"));
+    await waitFor(() => expect(status(region)).toHaveTextContent("พอดีจอกับ 1 โหนดที่เลือก"));
+    // Every node selected: the general form, with the count.
+    await userEvent.keyboard(`{${MOD}>}a{/${MOD}}`);
+    await userEvent.keyboard("{Shift>}2{/Shift}");
+    await waitFor(() =>
+      expect(status(region)).toHaveTextContent(`พอดีจอกับ ${BOARD_NODES.length} โหนดที่เลือก`),
+    );
     await userEvent.keyboard("h");
     await waitFor(() => expect(status(region)).toHaveTextContent("โหมดเลื่อนกระดาน"));
     await expect(region.querySelector(".ds-board__flow")).toHaveAttribute("data-tool", "pan");
@@ -1378,6 +1413,41 @@ export const Viewport: Story = {
     await waitFor(() => expect(status(region)).toHaveTextContent("ปิดการดูดเข้ากริด"));
     await expect(region).not.toHaveAttribute("data-snap");
   },
+};
+
+const ONE_NODE: Graph = { nodes: [BOARD_NODES[0] as BoardNode], edges: [] };
+
+/** A board of one node: fit all and fit selection say "1 node" in the singular (ORV-280 B16). */
+async function playFitOneNode(root: HTMLElement, lang: "th" | "en") {
+  const region = within(root).getByRole("region");
+  await waitFor(() => {
+    expect(nodeEls(region)).toHaveLength(1);
+    expect((nodeEls(region)[0] as HTMLElement).style.visibility).not.toBe("hidden");
+  });
+  const words = {
+    th: { all: "พอดีจอ 1 โหนด", picked: "พอดีจอกับ 1 โหนดที่เลือก" },
+    en: { all: "Fitted 1 node to the view", picked: "Fitted 1 selected node to the view" },
+  }[lang];
+  await focusOn(() => region);
+  await userEvent.keyboard("{Shift>}1{/Shift}");
+  await waitFor(() => expect(status(region)).toHaveTextContent(words.all));
+  await focusOn(() => nodeByTitle(region, "บรีฟ"));
+  await userEvent.keyboard("{Enter}");
+  await userEvent.keyboard("{Shift>}2{/Shift}");
+  await waitFor(() => expect(status(region)).toHaveTextContent(words.picked));
+}
+
+/** One node, in Thai: the singular fit lines carry no English word. */
+export const FitOneNode: Story = {
+  args: { initial: ONE_NODE },
+  play: async ({ canvasElement }) => playFitOneNode(canvasElement, "th"),
+};
+
+/** One node, in English. */
+export const FitOneNodeInEnglish: Story = {
+  globals: { locale: "en" },
+  args: { initial: ONE_NODE },
+  play: async ({ canvasElement }) => playFitOneNode(canvasElement, "en"),
 };
 
 /** Without chrome: no controls, no menus, no sheet; the keyboard still works (shell-composed layouts). */
@@ -1417,6 +1487,16 @@ export const English: Story = {
     await waitFor(() =>
       expect(status(region)).toHaveTextContent(`Selected all ${BOARD_NODES.length} nodes`),
     );
+    await userEvent.keyboard("{Shift>}2{/Shift}");
+    await waitFor(() =>
+      expect(status(region)).toHaveTextContent(
+        `Fitted ${BOARD_NODES.length} selected nodes to the view`,
+      ),
+    );
+    await userEvent.keyboard("{Shift>}1{/Shift}");
+    await waitFor(() =>
+      expect(status(region)).toHaveTextContent(`Fitted ${BOARD_NODES.length} nodes to the view`),
+    );
     await userEvent.keyboard("{Escape}");
     // React Flow blurs the node on Escape in the next animation frame; refocusing before that
     // frame gets undone, so wait for the blur first.
@@ -1439,6 +1519,7 @@ const OPEN_WORDS = {
     name: "โลโก้ 3 หน้า",
     present: "บอร์ดที่ดู",
     edit: "บอร์ดที่แก้",
+    bare: "บอร์ดที่ไม่มีตัวเปิด",
   },
   en: {
     logo: "Logo",
@@ -1446,6 +1527,7 @@ const OPEN_WORDS = {
     name: "Logo, 3 pages",
     present: "View board",
     edit: "Edit board",
+    bare: "Board without opener",
   },
 } as const;
 
@@ -1490,6 +1572,14 @@ const editCommand = fn();
 
 const nodeEl = (root: Element, id: string) =>
   root.querySelector<HTMLElement>(`.react-flow__node[data-id="${id}"]`) as HTMLElement;
+/** The viewport's transform: a pan or a zoom changes it, so a gesture that must not move it reads it. */
+const transformOf = (board: Element) =>
+  board.querySelector<HTMLElement>(".react-flow__viewport")?.style.transform;
+/** Two frames after a gesture, a pan that animates has started; the transform must still be `before`. */
+const expectStill = async (board: Element, before: string | undefined) => {
+  for (let i = 0; i < 2; i++) await new Promise((done) => requestAnimationFrame(done));
+  await expect(transformOf(board)).toBe(before);
+};
 const boardReady = (root: HTMLElement, nodes: number) =>
   waitFor(() => {
     expect(root.querySelectorAll(".react-flow__node")).toHaveLength(nodes);
@@ -1505,8 +1595,13 @@ async function playOpenNode(root: HTMLElement, lang: Lang) {
   const canvas = within(root);
   const view = canvas.getByRole("region", { name: w.present });
   const edit = canvas.getByRole("region", { name: w.edit });
+  const bare = canvas.getByRole("region", { name: w.bare });
   await boardReady(view, 2);
   await boardReady(edit, 2);
+  await boardReady(bare, 2);
+  // Without `onNodeOpen` the node still says what it holds but promises no dialog (ORV-280 D9).
+  await expect(within(bare).getByRole("group", { name: w.name })).toBe(nodeEl(bare, "res"));
+  await expect(nodeEl(bare, "res")).not.toHaveAttribute("aria-haspopup");
 
   // An open node is named with its page count and takes the popup attribute; a plain one neither.
   for (const board of [view, edit]) {
@@ -1522,18 +1617,25 @@ async function playOpenNode(root: HTMLElement, lang: Lang) {
   }
 
   // Present board: Enter, Space and a single click each open once; the brief never does.
+  // None of the open gestures moves the viewport: each is checked against the transform it began with.
+  const viewStart = transformOf(view);
+  const editStart = transformOf(edit);
+  await expect(viewStart).toBeTruthy();
   await focusOn(() => nodeEl(view, "res"));
   await userEvent.keyboard("{Enter}");
   await expect(presentOpen).toHaveBeenCalledTimes(1);
   await expect(presentOpen).toHaveBeenLastCalledWith("res");
+  await expectStill(view, viewStart);
   // A held Space opens too, and must not arm the pan key: the pane stays in selection mode.
   await userEvent.keyboard("[Space>]");
   await expect(presentOpen).toHaveBeenCalledTimes(2);
   const pane = view.querySelector(".react-flow__pane") as HTMLElement;
   await expect(pane).not.toHaveClass("draggable");
   await userEvent.keyboard("[/Space]");
+  await expectStill(view, viewStart);
   await userEvent.click(nodeEl(view, "res"));
   await expect(presentOpen).toHaveBeenCalledTimes(3);
+  await expectStill(view, viewStart);
   // The same keys on the brief open nothing; there Space does arm the pan key, which proves the
   // probe above can tell the two apart.
   await focusOn(() => nodeEl(view, "brief"));
@@ -1551,11 +1653,14 @@ async function playOpenNode(root: HTMLElement, lang: Lang) {
   await userEvent.dblClick(nodeEl(edit, "res"));
   await expect(editOpen).toHaveBeenCalledTimes(1);
   await expect(editOpen).toHaveBeenLastCalledWith("res");
+  await expectStill(edit, editStart);
   await focusOn(() => nodeEl(edit, "res"));
   await userEvent.keyboard("{Enter}");
   await expect(editOpen).toHaveBeenCalledTimes(2);
+  await expectStill(edit, editStart);
   await userEvent.keyboard(" ");
   await expect(editOpen).toHaveBeenCalledTimes(3);
+  await expectStill(edit, editStart);
   await expect(editCommand).not.toHaveBeenCalledWith("node.open", expect.anything());
   await focusOn(() => nodeEl(edit, "brief"));
   await userEvent.keyboard("{Enter}");
@@ -1590,6 +1695,14 @@ function OpenBoards({ lang }: { lang: Lang }) {
         chrome={false}
         onNodeOpen={editOpen}
         onCommand={editCommand}
+      />
+      <Stateful
+        variant="present"
+        initial={openGraph(lang)}
+        label={w.bare}
+        height={260}
+        fill={false}
+        chrome={false}
       />
     </>
   );

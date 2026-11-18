@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, waitFor, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { useState } from "react";
 import { useDesignProfile } from "../../boundary/DesignProfileBoundary";
 import { CANVAS_WORDS, PORT_KINDS, portShape } from "../../tokens/canvas";
 import { CanvasBoard, type CanvasBoardProps } from "../canvas-board/CanvasBoard";
 import type { Graph, PortSpec } from "../canvas-board/graph";
-import { expectPortPillsClear } from "../../testing/visual-asserts";
+import { expectPortPillsClear, inVitest } from "../../testing/visual-asserts";
 import { fillHeight, Matrix } from "../matrix";
 import { PortGlyph, type PortState } from "./NodePort";
 
@@ -88,6 +88,18 @@ function PortBoard({
   );
 }
 
+/**
+ * React Flow hides a node until it is measured, and a role query skips a hidden element, so a play
+ * that names a handle waits until the ports are drawn and every node is shown (ORV-280 D12).
+ */
+const portsDrawn = (root: HTMLElement, count: number) =>
+  waitFor(() => {
+    expect(root.querySelectorAll(".ds-port")).toHaveLength(count);
+    for (const n of root.querySelectorAll<HTMLElement>(".react-flow__node")) {
+      expect(n.style.visibility).not.toBe("hidden");
+    }
+  });
+
 const meta = {
   title: "Application/Node port",
   parameters: {
@@ -109,7 +121,7 @@ export const Kinds: Story = {
   render: () => <PortBoard initial={allKinds} />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await waitFor(() => expect(canvasElement.querySelectorAll(".ds-port")).toHaveLength(10));
+    await portsDrawn(canvasElement, 10);
     const shapes = new Set(
       [...canvasElement.querySelectorAll("[data-port-shape]")].map((p) =>
         p.getAttribute("data-port-shape"),
@@ -139,7 +151,7 @@ export const Connected: Story = {
   render: () => <PortBoard initial={connectedPair} height={300} />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await waitFor(() => expect(canvasElement.querySelectorAll(".ds-port")).toHaveLength(4));
+    await portsDrawn(canvasElement, 4);
     await expect(
       canvas.getByRole("img", { name: "พอร์ตส่งข้อความ, เชื่อมอยู่" }),
     ).toBeInTheDocument();
@@ -157,11 +169,45 @@ export const Connected: Story = {
 export const Disabled: Story = {
   render: () => <PortBoard initial={connectedPair} height={300} variant="present" />,
   play: async ({ canvasElement }) => {
-    await waitFor(() => expect(canvasElement.querySelectorAll(".ds-port")).toHaveLength(4));
+    await portsDrawn(canvasElement, 4);
     await expect(canvasElement.querySelectorAll('.ds-port[data-state="disabled"]')).toHaveLength(4);
     await expect(within(canvasElement).getAllByRole("img", { name: /แก้ไขไม่ได้$/ })).toHaveLength(
       4,
     );
+  },
+};
+
+/** The handle names in English: kind, then direction ("text input port", ORV-280 D8). */
+async function playNamesInEnglish(root: HTMLElement) {
+  const canvas = within(root);
+  await portsDrawn(root, 10);
+  for (const kind of PORT_KINDS) {
+    const word = CANVAS_WORDS.port[kind].en;
+    await expect(canvas.getByRole("img", { name: `${word} input port` })).toHaveAttribute(
+      "data-port-shape",
+      portShape(kind),
+    );
+    await expect(canvas.getByRole("img", { name: `${word} output port` })).toBeInTheDocument();
+  }
+}
+
+/** The same five kinds in English: "text input port", never "input port text". */
+export const KindsInEnglish: Story = {
+  globals: { locale: "en" },
+  render: () => <PortBoard initial={allKinds} />,
+  play: async ({ canvasElement }) => playNamesInEnglish(canvasElement),
+};
+
+/** The connected pair in English: the state word follows the name after a comma. */
+export const ConnectedInEnglish: Story = {
+  globals: { locale: "en" },
+  render: () => <PortBoard initial={connectedPair} height={300} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await portsDrawn(canvasElement, 4);
+    await expect(canvas.getByRole("img", { name: "text output port, connected" })).toBeVisible();
+    await expect(canvas.getByRole("img", { name: "text input port, connected" })).toBeVisible();
+    await expect(canvas.getByRole("img", { name: "image input port" })).toBeVisible();
   },
 };
 
@@ -361,11 +407,31 @@ export const PresentNamesInEnglish: Story = {
   play: async ({ canvasElement }) => playPresentNames(canvasElement, "en"),
 };
 
+/** A window of `width` by `height` for `check`, restored after; the frame is the screenshot lock's. */
+async function atWindow(width: number, height: number, check: () => Promise<void>) {
+  if (!inVitest) return check();
+  const { page } = await import("vitest/browser");
+  const before = { width: window.innerWidth, height: window.innerHeight };
+  const resized = async (w: number, h: number) => {
+    await page.viewport(w, h);
+    await waitFor(() => expect([window.innerWidth, window.innerHeight]).toEqual([w, h]));
+    for (let i = 0; i < 2; i++) await new Promise((done) => requestAnimationFrame(done));
+  };
+  await navigator.locks.request("orivilo-screenshot", async () => {
+    await resized(width, height);
+    try {
+      await check();
+    } finally {
+      await resized(before.width, before.height);
+    }
+  });
+}
+
 /** All five kinds on a present board under three profiles in both modes: locked hues, full opacity. */
 export const PresentRecipesAndModes: Story = {
   render: () => (
     <Matrix>
-      <PortBoard initial={allKinds} height={300} variant="present" />
+      <PortBoard initial={allKinds} height={420} variant="present" />
     </Matrix>
   ),
   play: async ({ canvasElement }) => {
@@ -398,5 +464,35 @@ export const PresentRecipesAndModes: Story = {
         Math.abs(card.getBoundingClientRect().height / zoom - (2 * radius + 4 * 40 + 16)),
       ).toBeLessThanOrEqual(0.5);
     }
+    // In a 360 window the "View only" badge in the corner of each board sits clear of the card and
+    // of every dot (ORV-280 B15). A board keeps its view when the window narrows, so each board is
+    // fitted again with the fit key, as the first fit does at that width.
+    await atWindow(360, 760, async () => {
+      for (const cell of cells) {
+        const region = within(cell as HTMLElement).getByRole("region");
+        await waitFor(() => {
+          (region as HTMLElement).focus();
+          expect(region).toHaveFocus();
+        });
+        await userEvent.keyboard("{Shift>}1{/Shift}");
+        await waitFor(() => expect(within(region).getByRole("status")).toHaveTextContent(/\S/));
+      }
+      for (const cell of cells) {
+        const badge = cell.querySelector(".ds-board__mode") as HTMLElement;
+        const box = badge.getBoundingClientRect();
+        for (const other of cell.querySelectorAll(".ds-node, .ds-port__handle")) {
+          const o = other.getBoundingClientRect();
+          const apart =
+            o.right <= box.left ||
+            o.left >= box.right ||
+            o.bottom <= box.top ||
+            o.top >= box.bottom;
+          await expect(
+            apart,
+            `the badge ${JSON.stringify(box)} meets ${other.className} ${JSON.stringify(o)}`,
+          ).toBe(true);
+        }
+      }
+    });
   },
 };

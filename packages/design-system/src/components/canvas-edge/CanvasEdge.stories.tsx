@@ -134,7 +134,7 @@ export const Meanings: Story = {
       canvas.getByRole("group", { name: "อ้างอิง จาก ต้นทาง 2 ไป ปลายทาง 2" }),
     ).toBeInTheDocument();
     await expect(
-      canvas.getByRole("group", { name: "สร้างจาก จาก ต้นทาง 3 ไป ปลายทาง 3" }),
+      canvas.getByRole("group", { name: "สร้างจาก ต้นทาง 3 ไป ปลายทาง 3" }),
     ).toBeInTheDocument();
     await expect(dash(canvasElement, "input")).toBe("none");
     await expect(dash(canvasElement, "reference")).not.toBe("none");
@@ -213,7 +213,7 @@ export const StaleAndInvalid: Story = {
       canvas.getByRole("group", { name: "ป้อนเข้า จาก ต้นทาง 1 ไป ปลายทาง 1, ล้าสมัย" }),
     ).toBeInTheDocument();
     await expect(
-      canvas.getByRole("group", { name: "สร้างจาก จาก ต้นทาง 2 ไป ปลายทาง 2, เชื่อมต่อไม่ได้" }),
+      canvas.getByRole("group", { name: "สร้างจาก ต้นทาง 2 ไป ปลายทาง 2, เชื่อมต่อไม่ได้" }),
     ).toBeInTheDocument();
     await expect(canvas.getByText("ป้อนเข้า, ล้าสมัย")).toBeInTheDocument();
     await expect(canvas.getByText("สร้างจาก, เชื่อมต่อไม่ได้")).toBeInTheDocument();
@@ -545,6 +545,16 @@ async function playKindsAndZoom(root: HTMLElement, lang: keyof typeof TITLES) {
     // The pill sits on its edge at every zoom, on both boards (F1).
     pillHeights.set(zoom, expectPillsOnEdges(present, zoom));
     expectPillsOnEdges(edit, zoom);
+    // The edit board's nodes stand apart: no two cards overlap (ORV-280 D6).
+    const cards = [...edit.querySelectorAll(".ds-node")].map((el) => el.getBoundingClientRect());
+    await expect(cards.length).toBeGreaterThan(1);
+    cards.forEach((a, i) =>
+      cards.slice(i + 1).forEach((b, j) => {
+        const apart =
+          a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top;
+        expect(apart, `at zoom ${zoom}, cards ${i} and ${i + 1 + j} overlap`).toBe(true);
+      }),
+    );
     for (const kind of KINDS) {
       const input = drawn(pathOf(present, `e-${kind}-input`));
       const reference = drawn(pathOf(present, `e-${kind}-reference`));
@@ -641,7 +651,7 @@ function ZoomBoards({ lang }: { lang: keyof typeof TITLES }) {
           initial={pairs(
             [{ meaning: "input" }, { meaning: "reference" }, { meaning: "derived" }],
             [],
-            { lang, gap: 110 },
+            { lang },
           )}
           height={420}
         >
@@ -818,13 +828,13 @@ async function playLabelHidden(root: HTMLElement, lang: keyof typeof TITLES) {
       ? [
           `อ้างอิง จาก ${from} 1 ไป ${to} 1`,
           `ป้อนเข้า จาก ${from} 2 ไป ${to} 2, ล้าสมัย`,
-          `สร้างจาก จาก ${from} 3 ไป ${to} 3, เชื่อมต่อไม่ได้`,
+          `สร้างจาก ${from} 3 ไป ${to} 3, เชื่อมต่อไม่ได้`,
           `ป้อนเข้า จาก ${from} 4 ไป ${to} 4`,
         ]
       : [
           `reference from ${from} 1 to ${to} 1`,
           `input from ${from} 2 to ${to} 2, stale`,
-          `derived from from ${from} 3 to ${to} 3, cannot connect`,
+          `derived from ${from} 3 to ${to} 3, cannot connect`,
           `input from ${from} 4 to ${to} 4`,
         ];
   // Every edge keeps its accessible name from the board, hidden label or not.

@@ -77,7 +77,10 @@ export function NodePort({ port, direction, disabled = false, rowY }: NodePortPr
     state = "connected";
   }
 
-  const portName = `${word(CANVAS_WORDS.direction[direction])}${word(CANVAS_WORDS.port[port.kind])}`;
+  const portName = fill(m.port.handleName, {
+    direction: word(CANVAS_WORDS.direction[direction]),
+    kind: word(CANVAS_WORDS.port[port.kind]),
+  });
   const name =
     state === "connected"
       ? fill(m.port.connected, { port: portName })
