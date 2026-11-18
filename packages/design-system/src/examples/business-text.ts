@@ -133,3 +133,11 @@ export function briefItem(item: InputEvidence): EvidenceItem | undefined {
 export function briefItems(items: readonly InputEvidence[]): EvidenceItem[] {
   return items.flatMap((item) => briefItem(item) ?? []);
 }
+
+/**
+ * The quotes a reading drew on, as the reading's own: a model reading's quotes say an AI model read
+ * them, as its pill card does (ORV-283, row D6). The record keeps each span's own `fromModel`.
+ */
+export function readingQuotes(reading: BusinessFieldReading): EvidenceItem[] {
+  return briefItems(reading.spans).map((item) => ({ ...item, fromModel: reading.item.fromModel }));
+}

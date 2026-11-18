@@ -14,18 +14,28 @@ export const en = messagesFor("en");
 
 export const textOf = (el: Element) => (el.textContent ?? "").replace(/\s+/g, " ");
 
+/**
+ * The fixture notes (story-only copy, not UI catalog copy). `answers` is the note every business
+ * story carries; `readings` replaces it on the four readings stories (ORV-283, row D8).
+ */
+export const FIXTURE_NOTES = {
+  answers: {
+    th: "ข้อมูลตัวอย่าง: โปรเจกต์และคำตอบในเรื่องนี้ทำขึ้นเอง ไม่มีใครกรอกจริง",
+    en: "Fixture: the projects and answers in this story are made by hand, nobody gave them.",
+  },
+  readings: {
+    th: "ข้อมูลตัวอย่าง: โปรเจกต์ คำตอบ และผลการอ่านของ AI ในเรื่องนี้เขียนขึ้นเองทั้งหมด ไม่มีโมเดล AI อ่านคำตอบเหล่านี้จริง",
+    en: "Fixture: the projects, answers and AI readings in this story are written by hand, and no AI model read these answers.",
+  },
+} as const;
+
 /** The label every story carries: the projects and answers are made by hand, nobody gave them. */
-export function FixtureNote() {
+export function FixtureNote({ readings = false }: { readings?: boolean }) {
   const locale = useLocale();
+  const kind = readings ? "readings" : "answers";
   return (
-    <p className="p-4 text-body-sm text-text-secondary">
-      {pick(
-        {
-          th: "ข้อมูลตัวอย่าง: โปรเจกต์และคำตอบในเรื่องนี้ทำขึ้นเอง ไม่มีใครกรอกจริง",
-          en: "Fixture: the projects and answers in this story are made by hand, nobody gave them.",
-        },
-        locale,
-      )}
+    <p className="p-4 text-body-sm text-text-secondary" data-fixture-note={kind}>
+      {pick(FIXTURE_NOTES[kind], locale)}
     </p>
   );
 }
