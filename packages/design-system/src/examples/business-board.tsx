@@ -3,6 +3,7 @@
 import type { BusinessView } from "@orivilo/intent-engine";
 import { useMemo, useRef, useState } from "react";
 import {
+  Alert,
   type BoardNode,
   Button,
   CanvasBoard,
@@ -18,7 +19,7 @@ import { fill } from "../i18n/messages/index";
 import { BusinessAccessNotice, type BusinessAccess } from "./business-access";
 import { boardGraphOf } from "./business-graph";
 import { BusinessNodeView } from "./business-node-view";
-import { FIELD_NOTE, fieldLabel, formatSavedAt, nodeTitle } from "./business-text";
+import { FIELD_NOTE, fieldLabel, formatSavedAt, nodeTitle, readReasonLine } from "./business-text";
 
 /**
  * The project board screen, slice 2 (ORV-281 design sections 6.1 and 6.3, ORV-282): the project
@@ -26,7 +27,9 @@ import { FIELD_NOTE, fieldLabel, formatSavedAt, nodeTitle } from "./business-tex
  * board. A node at rest is a card with its state and the names of its fields, never an answer: each
  * answer must carry its label, which belongs in the view. Opening a node (click, Enter or Space)
  * shows that node's view in a viewer dialog. It takes a `BusinessView`, which holds keys and values
- * and no resolved text, so a language switch redraws it with no second load. It knows no route.
+ * and no resolved text, so a language switch redraws it with no second load. Slice 3 (ORV-283): when
+ * the saved record has no model reading, an info Alert under the header says AI did not read and
+ * why, and the viewer's view carries the readings or the same line. It knows no route.
  */
 export interface BusinessBoardScreenProps {
   access: BusinessAccess;
@@ -102,6 +105,14 @@ function ReadyBoard({ view, listHref }: { view: BusinessView; listHref: string }
           </Button>
         }
       />
+      {view.reading.status === "rule-based" ? (
+        <Alert
+          variant="info"
+          live="off"
+          title={m.business.label.aiUnavailable}
+          description={readReasonLine(m, view.reading.reason)}
+        />
+      ) : null}
       {/* The board's height is layout: 70 percent of the window, never under 480 px. */}
       <div ref={board} className="h-[70dvh] min-h-[480px] min-w-0">
         <CanvasBoard
@@ -139,7 +150,7 @@ function ReadyBoard({ view, listHref }: { view: BusinessView; listHref: string }
           >
             <div ref={viewer} className="flex min-h-0 flex-1 flex-col">
               <ScrollArea label={nodeTitle(m, opened.id)} className="min-h-0 flex-1">
-                <BusinessNodeView node={opened} heading={false} />
+                <BusinessNodeView node={opened} heading={false} reading={view.reading} />
               </ScrollArea>
             </div>
           </DialogContent>

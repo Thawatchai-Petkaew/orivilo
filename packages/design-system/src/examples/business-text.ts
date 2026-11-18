@@ -1,13 +1,18 @@
 import {
   BUSINESS_FIELDS,
   type BusinessFieldId,
+  type BusinessFieldReading,
   type BusinessNodeId,
+  type BusinessReadReason,
+  EVIDENCE_STRINGS,
+  type InputEvidence,
   type IntakeField,
   PROXY_QUESTIONS,
   type ProxyQuestionId,
 } from "@orivilo/intent-engine";
+import type { EvidenceItem } from "../components/index";
 import { DATE_TAGS, type Locale } from "../i18n/locale";
-import type { Messages } from "../i18n/messages/index";
+import { fill, type Messages } from "../i18n/messages/index";
 
 /**
  * Looks the engine's keys up in the catalog for the three business screens (ORV-281 tech notes
@@ -85,3 +90,46 @@ export function formatSavedAt(iso: string, locale: Locale): string {
 
 /** Notes, meta: the `FIELD_NOTE` of the brand report. */
 export const FIELD_NOTE = "text-body-sm text-text-secondary";
+
+/** The line `business-read-1` gives for each reason a result has no model reading. */
+export function readReasonLine(m: Messages, reason: BusinessReadReason): string {
+  switch (reason) {
+    case "ai-not-configured":
+      return m.business.errors.aiNotConfigured;
+    case "ai-failed":
+      return m.business.errors.aiFailed;
+    case "ai-rate-limited":
+      return m.business.errors.aiRateLimited;
+    case "ai-spend-cap":
+      return m.business.errors.aiSpendCap;
+  }
+}
+
+/**
+ * "Read by AI (model). Check it before you use it." from the engine's `EVIDENCE_STRINGS`, the
+ * model the saved record names. The engine holds this line in both languages; the catalog does not
+ * copy it (ORV-281 design section 5, one reading, step 3).
+ */
+export function fromModelNote(locale: Locale, modelId: string): string {
+  return fill(EVIDENCE_STRINGS["evidence.fromModel"][locale], { model: modelId });
+}
+
+/**
+ * "Too uncertain to use: the text has fewer than 20 words", from the brand report's catalog table of
+ * the engine's lines, which holds `evidence.belowFloor` and the `quality.*` reasons.
+ */
+export function belowFloorLine(m: Messages, reading: BusinessFieldReading): string {
+  return fill(m.brandReport.engine["evidence.belowFloor"], {
+    reason: reading.quality.map((key) => m.brandReport.engine[key]).join(", "),
+  });
+}
+
+/** An evidence item as `EvidenceSpan` takes it: a quote of the brief, or none when it is not one. */
+export function briefItem(item: InputEvidence): EvidenceItem | undefined {
+  return item.inputKind === "brief-text" ? { ...item, inputKind: "brief-text" } : undefined;
+}
+
+/** The items of a list that are quotes of the brief. */
+export function briefItems(items: readonly InputEvidence[]): EvidenceItem[] {
+  return items.flatMap((item) => briefItem(item) ?? []);
+}
