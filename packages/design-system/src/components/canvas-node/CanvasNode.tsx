@@ -3,6 +3,7 @@
 import { type NodeProps, useUpdateNodeInternals } from "@xyflow/react";
 import {
   type ComponentType,
+  type CSSProperties,
   type SVGProps,
   useEffect,
   useLayoutEffect,
@@ -162,6 +163,11 @@ export function CanvasNode({ id, data, selected, dragging }: CanvasNodeProps) {
     : undefined;
   const FillIcon = block?.state ? FILL_ICON[block.state] : undefined;
   const present = board.readOnly;
+  // The present card's floor reads the larger side's count of ports without a row (ORV-282, D5).
+  const sidePorts = Math.max(
+    data.inputs.filter((p) => p.row === undefined).length,
+    data.outputs.filter((p) => p.row === undefined).length,
+  );
   const card = useRef<HTMLDivElement>(null);
   const updateInternals = useUpdateNodeInternals();
   const rowNames = [...data.inputs, ...data.outputs].flatMap((p) => (p.row ? [p.row] : []));
@@ -222,6 +228,9 @@ export function CanvasNode({ id, data, selected, dragging }: CanvasNodeProps) {
       data-fill={block?.state}
       data-connect-candidate={candidate}
       aria-busy={data.status === "running" ? true : undefined}
+      style={
+        present && sidePorts > 0 ? ({ "--_ports": String(sidePorts) } as CSSProperties) : undefined
+      }
     >
       <NodeToolbar node={{ id, data, selected }} />
       {present ? (
