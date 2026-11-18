@@ -36,24 +36,24 @@ From the ZDR guide, table "Per-Model-Group ZDR Enforcement":
 
 Prices are each endpoint's `pricing.prompt` and `pricing.completion` (USD per token) times 1,000,000, own arithmetic. Every endpoint row the endpoints call returned is in the price cell: the base price, the regional price (tags such as `/us`, `/europe`, `/eu-west-1`, `/us-east5`) and the `anthropic/fast` price, with the number of endpoints at each. "RF" and "SO" count the endpoints whose `supported_parameters` include `response_format` and `structured_outputs`. "ZDR" counts the model's endpoints found in the ZDR endpoint list (next section), and "ZDR and SO" those of them that list `structured_outputs` (own count).
 
-| Model id                       | `created`  | Endpoints | Input / output USD per million, by endpoint count | Context (tokens)                 | Image input | RF  | SO  | ZDR | ZDR and SO |
-| ------------------------------ | ---------- | --------- | ------------------------------------------------- | -------------------------------- | ----------- | --- | --- | --- | ---------- |
-| anthropic/claude-haiku-5.5     | 1791397883 | 10        | 0.10 / 0.50 on 5; 0.11 / 0.55 on 5                | 1,000,000                        | yes         | 10  | 6   | 6   | 3          |
-| anthropic/claude-haiku-4.5     | 1760547638 | 8         | 1 / 5 on 4; 1.10 / 5.50 on 4                      | 200,000                          | yes         | 5   | 8   | 6   | 6          |
-| anthropic/claude-sonnet-5.5    | 1790618686 | 10        | 2 / 10 on 5; 2.20 / 11 on 5                       | 1,000,000                        | yes         | 10  | 6   | 6   | 3          |
-| anthropic/claude-sonnet-5      | 1782843083 | 10        | 2 / 10 on 5; 2.20 / 11 on 5                       | 1,000,000                        | yes         | 10  | 7   | 6   | 3          |
-| anthropic/claude-sonnet-4.6    | 1771342990 | 9         | 3 / 15 on 5; 3.30 / 16.50 on 4                    | 1,000,000                        | yes         | 9   | 9   | 6   | 6          |
-| anthropic/claude-sonnet-4.5    | 1759161676 | 7         | 3 / 15 on 5; 3.30 / 16.50 on 2                    | 1,000,000 on 6; 200,000 on azure | yes         | 5   | 7   | 4   | 4          |
-| anthropic/claude-opus-5.5      | 1790094732 | 11        | 4 / 20 on 5; 4.40 / 22 on 5; 8 / 40 on fast       | 1,000,000                        | yes         | 11  | 8   | 6   | 3          |
-| anthropic/claude-opus-5        | 1784912544 | 11        | 5 / 25 on 5; 5.50 / 27.50 on 5; 10 / 50 on fast   | 1,000,000                        | yes         | 11  | 8   | 6   | 3          |
-| anthropic/claude-opus-4.8      | 1779905091 | 11        | 5 / 25 on 5; 5.50 / 27.50 on 5; 10 / 50 on fast   | 1,000,000                        | yes         | 11  | 8   | 6   | 3          |
-| anthropic/claude-opus-4.7      | 1776351100 | 8         | 5 / 25 on 5; 5.50 / 27.50 on 3                    | 1,000,000                        | yes         | 8   | 6   | 5   | 3          |
-| anthropic/claude-opus-4.6      | 1770219050 | 6         | 5 / 25 on 5; 5.50 / 27.50 on 1                    | 1,000,000                        | yes         | 6   | 6   | 3   | 3          |
-| anthropic/claude-opus-4.5      | 1764010580 | 6         | 5 / 25 on 5; 5.50 / 27.50 on 1                    | 200,000                          | yes         | 5   | 6   | 3   | 3          |
-| anthropic/claude-opus-4.1      | 1754411591 | 1         | 15 / 75 on 1 (amazon-bedrock)                     | 200,000                          | yes         | 0   | 0   | 1   | 0          |
-| anthropic/claude-fable-5.2     | 1794253781 | 5         | 8 / 40 on 4; 16 / 80 on fast                      | 1,000,000                        | yes         | 5   | 3   | 0   | 0          |
-| anthropic/claude-fable-5.1     | 1788285838 | 5         | 10 / 50 on 4; 11 / 55 on 1                        | 1,000,000                        | yes         | 5   | 4   | 0   | 0          |
-| anthropic/claude-fable-5       | 1781007515 | 7         | 10 / 50 on 5; 11 / 55 on 2                        | 1,000,000                        | yes         | 7   | 6   | 0   | 0          |
+| Model id                    | `created`  | Endpoints | Input / output USD per million, by endpoint count | Context (tokens)                 | Image input | RF  | SO  | ZDR | ZDR and SO |
+| --------------------------- | ---------- | --------- | ------------------------------------------------- | -------------------------------- | ----------- | --- | --- | --- | ---------- |
+| anthropic/claude-haiku-5.5  | 1791397883 | 10        | 0.10 / 0.50 on 5; 0.11 / 0.55 on 5                | 1,000,000                        | yes         | 10  | 6   | 6   | 3          |
+| anthropic/claude-haiku-4.5  | 1760547638 | 8         | 1 / 5 on 4; 1.10 / 5.50 on 4                      | 200,000                          | yes         | 5   | 8   | 6   | 6          |
+| anthropic/claude-sonnet-5.5 | 1790618686 | 10        | 2 / 10 on 5; 2.20 / 11 on 5                       | 1,000,000                        | yes         | 10  | 6   | 6   | 3          |
+| anthropic/claude-sonnet-5   | 1782843083 | 10        | 2 / 10 on 5; 2.20 / 11 on 5                       | 1,000,000                        | yes         | 10  | 7   | 6   | 3          |
+| anthropic/claude-sonnet-4.6 | 1771342990 | 9         | 3 / 15 on 5; 3.30 / 16.50 on 4                    | 1,000,000                        | yes         | 9   | 9   | 6   | 6          |
+| anthropic/claude-sonnet-4.5 | 1759161676 | 7         | 3 / 15 on 5; 3.30 / 16.50 on 2                    | 1,000,000 on 6; 200,000 on azure | yes         | 5   | 7   | 4   | 4          |
+| anthropic/claude-opus-5.5   | 1790094732 | 11        | 4 / 20 on 5; 4.40 / 22 on 5; 8 / 40 on fast       | 1,000,000                        | yes         | 11  | 8   | 6   | 3          |
+| anthropic/claude-opus-5     | 1784912544 | 11        | 5 / 25 on 5; 5.50 / 27.50 on 5; 10 / 50 on fast   | 1,000,000                        | yes         | 11  | 8   | 6   | 3          |
+| anthropic/claude-opus-4.8   | 1779905091 | 11        | 5 / 25 on 5; 5.50 / 27.50 on 5; 10 / 50 on fast   | 1,000,000                        | yes         | 11  | 8   | 6   | 3          |
+| anthropic/claude-opus-4.7   | 1776351100 | 8         | 5 / 25 on 5; 5.50 / 27.50 on 3                    | 1,000,000                        | yes         | 8   | 6   | 5   | 3          |
+| anthropic/claude-opus-4.6   | 1770219050 | 6         | 5 / 25 on 5; 5.50 / 27.50 on 1                    | 1,000,000                        | yes         | 6   | 6   | 3   | 3          |
+| anthropic/claude-opus-4.5   | 1764010580 | 6         | 5 / 25 on 5; 5.50 / 27.50 on 1                    | 200,000                          | yes         | 5   | 6   | 3   | 3          |
+| anthropic/claude-opus-4.1   | 1754411591 | 1         | 15 / 75 on 1 (amazon-bedrock)                     | 200,000                          | yes         | 0   | 0   | 1   | 0          |
+| anthropic/claude-fable-5.2  | 1794253781 | 5         | 8 / 40 on 4; 16 / 80 on fast                      | 1,000,000                        | yes         | 5   | 3   | 0   | 0          |
+| anthropic/claude-fable-5.1  | 1788285838 | 5         | 10 / 50 on 4; 11 / 55 on 1                        | 1,000,000                        | yes         | 5   | 4   | 0   | 0          |
+| anthropic/claude-fable-5    | 1781007515 | 7         | 10 / 50 on 5; 11 / 55 on 2                        | 1,000,000                        | yes         | 7   | 6   | 0   | 0          |
 
 - **Newest per family** (largest `created` among the live models of the family): Haiku `anthropic/claude-haiku-5.5`, Sonnet `anthropic/claude-sonnet-5.5`, Opus `anthropic/claude-opus-5.5`. A fourth family the question did not name, Fable, is listed too; its newest is `anthropic/claude-fable-5.2`.
 - **Image input.** Every live model's `architecture.input_modalities` is `["text","image","file"]` in some order, as returned (the column reads "yes" for "image" in that list). The models guide defines the field as `Supported input types: ["file", "image", "text"]`. No page read says an endpoint of a model can refuse an image its `input_modalities` lists.
