@@ -3,6 +3,7 @@
 import { type NodeProps, useUpdateNodeInternals } from "@xyflow/react";
 import {
   type ComponentType,
+  type CSSProperties,
   type SVGProps,
   useEffect,
   useLayoutEffect,
@@ -126,7 +127,7 @@ function useElapsed(startedAt: string | undefined, running: boolean): string | u
  * A present board (`board.readOnly`) draws the node as one card (ORV-274): the kind glyph, title,
  * status and basis form a label above the card; the ports are glyph dots on the card edge; the
  * source line is a pill under the card. A node with `open` ends its title row with the pages word
- * and the open glyph on both boards. Ports with a `row` sit at the middle of their body row.
+ * and the open glyph on both boards; with no `open.count` (ORV-282) it ends with the glyph only. Ports with a `row` sit at the middle of their body row.
  */
 export function CanvasNode({ id, data, selected, dragging }: CanvasNodeProps) {
   const board = useBoard();
@@ -162,6 +163,11 @@ export function CanvasNode({ id, data, selected, dragging }: CanvasNodeProps) {
     : undefined;
   const FillIcon = block?.state ? FILL_ICON[block.state] : undefined;
   const present = board.readOnly;
+  // The present card's floor reads the larger side's count of ports without a row (ORV-282, D5).
+  const sidePorts = Math.max(
+    data.inputs.filter((p) => p.row === undefined).length,
+    data.outputs.filter((p) => p.row === undefined).length,
+  );
   const card = useRef<HTMLDivElement>(null);
   const updateInternals = useUpdateNodeInternals();
   const rowNames = [...data.inputs, ...data.outputs].flatMap((p) => (p.row ? [p.row] : []));
@@ -185,7 +191,11 @@ export function CanvasNode({ id, data, selected, dragging }: CanvasNodeProps) {
   useLayoutEffect(() => {
     if (hasRows) updateInternals(id);
   }, [hasRows, rowY, id, updateInternals]);
-  const pages = data.open ? fill(m.node.pages, { count: String(data.open.count) }) : undefined;
+  const pages =
+    data.open?.count === undefined
+      ? undefined
+      : fill(m.node.pages, { count: String(data.open.count) });
+  const openGlyph = data.open ? <OpenIcon className="ds-node__open" /> : null;
   const statusChip = status ? (
     <span className="ds-node__status" data-status={data.status}>
       {running ? <SpinnerIcon className="ds-spin" /> : null}
@@ -218,6 +228,9 @@ export function CanvasNode({ id, data, selected, dragging }: CanvasNodeProps) {
       data-fill={block?.state}
       data-connect-candidate={candidate}
       aria-busy={data.status === "running" ? true : undefined}
+      style={
+        present && sidePorts > 0 ? ({ "--_ports": String(sidePorts) } as CSSProperties) : undefined
+      }
     >
       <NodeToolbar node={{ id, data, selected }} />
       {present ? (
@@ -226,12 +239,8 @@ export function CanvasNode({ id, data, selected, dragging }: CanvasNodeProps) {
           <span className="ds-node__title">{data.title}</span>
           {basis ? <span className="ds-node__basis">{basis}</span> : null}
           {statusChip}
-          {pages ? (
-            <>
-              <span className="ds-node__pages">{pages}</span>
-              <OpenIcon className="ds-node__open" />
-            </>
-          ) : null}
+          {pages ? <span className="ds-node__pages">{pages}</span> : null}
+          {openGlyph}
         </div>
       ) : (
         <div className="ds-node__header">
@@ -264,11 +273,11 @@ export function CanvasNode({ id, data, selected, dragging }: CanvasNodeProps) {
               </span>
             ) : null}
           </div>
-          {pages ? (
+          {data.open ? (
             <div className="ds-node__heading">
               <span className="ds-node__title">{data.title}</span>
-              <span className="ds-node__pages">{pages}</span>
-              <OpenIcon className="ds-node__open" />
+              {pages ? <span className="ds-node__pages">{pages}</span> : null}
+              {openGlyph}
             </div>
           ) : (
             <span className="ds-node__title">{data.title}</span>

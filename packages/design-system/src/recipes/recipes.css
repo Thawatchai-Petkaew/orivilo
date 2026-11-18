@@ -2820,36 +2820,14 @@
 }
 /* A card with side ports is as tall as its dot column needs (ORV-274): two radii, plus the pitch of
  * the other dots, plus the dot, so every dot sits on the straight part of its side and none on the
- * corner's bend. Ports are counted without row ports, which sit at their rows. */
+ * corner's bend. The node writes `--_ports`, the larger side's count of ports without a row (row
+ * ports sit at their rows), so the floor holds at any count (ORV-282, D5). */
 .ds-board[data-variant="present"] .ds-node:has(.ds-node__port-list > .ds-port:not([data-row])) {
   --_ports: 1;
   min-block-size: calc(
-    2 * var(--cmp-node-radius) + (var(--_ports) - 1) * var(--ds-space-grid-gap) +
-      var(--ds-size-port)
+    2 * var(--cmp-node-radius) + (var(--_ports) - 1) *
+      (var(--ds-space-grid-gap) + var(--ds-size-port)) + var(--ds-size-port)
   );
-}
-.ds-board[data-variant="present"]
-  .ds-node:has(.ds-node__port-list > .ds-port:not([data-row]) ~ .ds-port:not([data-row])) {
-  --_ports: 2;
-}
-.ds-board[data-variant="present"]
-  .ds-node:has(
-    .ds-node__port-list
-      > .ds-port:not([data-row])
-      ~ .ds-port:not([data-row])
-      ~ .ds-port:not([data-row])
-  ) {
-  --_ports: 3;
-}
-.ds-board[data-variant="present"]
-  .ds-node:has(
-    .ds-node__port-list
-      > .ds-port:not([data-row])
-      ~ .ds-port:not([data-row])
-      ~ .ds-port:not([data-row])
-      ~ .ds-port:not([data-row])
-  ) {
-  --_ports: 4;
 }
 .ds-board[data-variant="present"] .ds-node[data-pad="media"] {
   --_media-radius: calc(var(--cmp-node-radius) - var(--cmp-node-padding-media));
@@ -2931,7 +2909,7 @@
 }
 
 /* Ports, present boards (ORV-274): a glyph centred on the card edge, inputs at the start and outputs
- * at the end, on a 24 px pitch (16 glyph plus 8). The name is a pill outside the edge that shows when
+ * at the end, on a 40 px pitch (16 glyph plus 24). The name is a pill outside the edge that shows when
  * the node is hovered, selected or has keyboard focus. A port with a row sits at the middle of it. */
 .ds-board[data-variant="present"] .ds-node__ports {
   position: absolute;
@@ -2947,7 +2925,7 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: calc(var(--ds-space-grid-gap) - var(--ds-size-port));
+  gap: var(--ds-space-grid-gap);
 }
 .ds-board[data-variant="present"] .ds-node__port-list[data-direction="input"] {
   inset-inline-start: calc(var(--ds-size-port) / -2);

@@ -990,6 +990,103 @@ export const PresentInEnglish: Story = {
   play: async ({ canvasElement }) => playPresentKinds(canvasElement, "en"),
 };
 
+/* A node that opens one view, with no page count (ORV-282). ---------------------------------------- */
+
+/** One node that opens with no `count`, one that opens with a count, and a plain one. */
+function openWithoutCount(lang: Lang): Graph {
+  const title = lang === "th" ? "สถานการณ์ตั้งต้น" : "Situation";
+  const base = { kind: "knowledge" as const, size: "sm" as const, inputs: [], outputs: [] };
+  return {
+    nodes: [
+      { id: "view", type: "orivilo", position: { x: 0, y: 0 }, data: { ...base, title, open: {} } },
+      {
+        id: "pages",
+        type: "orivilo",
+        position: { x: 360, y: 0 },
+        data: { ...base, title: `${title} 2`, open: { count: 3 } },
+      },
+      {
+        id: "plain",
+        type: "orivilo",
+        position: { x: 720, y: 0 },
+        data: { ...base, title: `${title} 3` },
+      },
+    ],
+    edges: [],
+  };
+}
+
+/**
+ * `open: {}` on both boards: the title row ends with the open glyph and no pages word, the name is
+ * the plain "title, kind" and the node still takes the popup attribute. A node with a count keeps
+ * its pages word and its page-count name, and a plain node has neither glyph nor popup.
+ */
+async function playOpenWithoutCount(root: HTMLElement, lang: Lang) {
+  const w = {
+    th: {
+      name: "สถานการณ์ตั้งต้น, ความรู้",
+      pages: "3 หน้า",
+      pagesName: "สถานการณ์ตั้งต้น 2 3 หน้า",
+    },
+    en: { name: "Situation, knowledge", pages: "3 pages", pagesName: "Situation 2, 3 pages" },
+  }[lang];
+  await ready(root, 6);
+  for (const board of root.querySelectorAll<HTMLElement>(".ds-board")) {
+    const view = wrapperOf(board, "view");
+    await expect(within(board).getByRole("group", { name: w.name })).toBe(view);
+    await expect(view).toHaveAttribute("aria-haspopup", "dialog");
+    await expect(view).toHaveAccessibleName(w.name);
+    await expect(view.querySelector(".ds-node__pages")).toBeNull();
+    await expect(view.querySelector(".ds-node__open")).toBeVisible();
+    await expect(cardOf(board, "view")).toHaveAttribute("data-open", "");
+    await expect(getComputedStyle(cardOf(board, "view")).cursor).toBe("zoom-in");
+    // With a count the pages word and the page-count name stay, as they were.
+    const pages = wrapperOf(board, "pages");
+    await expect(pages.querySelector(".ds-node__pages")).toHaveTextContent(w.pages);
+    await expect(pages).toHaveAccessibleName(w.pagesName);
+    await expect(pages.querySelector(".ds-node__open")).toBeVisible();
+    // A plain node has no glyph and no popup.
+    const plain = wrapperOf(board, "plain");
+    await expect(plain.querySelector(".ds-node__open")).toBeNull();
+    await expect(plain).not.toHaveAttribute("aria-haspopup");
+  }
+}
+
+/** A node that opens with no page count, on a present and an edit board, in Thai. */
+export const OpenWithoutCount: Story = {
+  render: () => (
+    <>
+      <NodeBoard
+        variant="present"
+        label="present"
+        height={240}
+        chrome={false}
+        initial={openWithoutCount("th")}
+      />
+      <NodeBoard label="edit" height={300} chrome={false} initial={openWithoutCount("th")} />
+    </>
+  ),
+  play: async ({ canvasElement }) => playOpenWithoutCount(canvasElement, "th"),
+};
+
+/** The same in English, in dark mode. */
+export const OpenWithoutCountInEnglish: Story = {
+  globals: { locale: "en", mode: "dark" },
+  render: () => (
+    <>
+      <NodeBoard
+        variant="present"
+        label="present"
+        height={240}
+        chrome={false}
+        initial={openWithoutCount("en")}
+      />
+      <NodeBoard label="edit" height={300} chrome={false} initial={openWithoutCount("en")} />
+    </>
+  ),
+  play: async ({ canvasElement }) => playOpenWithoutCount(canvasElement, "en"),
+};
+
 /* A present label never passes its card (ORV-274, F2). --------------------------------------------- */
 
 /** The board's React Flow instance, handed over by a child of the board, so a play can zoom it. */

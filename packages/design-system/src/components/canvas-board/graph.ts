@@ -75,9 +75,11 @@ export type NodeContent = {
   /**
    * The node opens something, such as a page viewer (ORV-274). `count` is how many pages. The
    * title row then ends with the pages word and the open glyph, the card shows a zoom-in cursor,
-   * and `CanvasBoard`'s `onNodeOpen` takes the open gestures.
+   * and `CanvasBoard`'s `onNodeOpen` takes the open gestures. Without a `count` (ORV-282) the
+   * node opens one view, not pages: the title row ends with the open glyph only and the accessible
+   * name is the plain `nodeLabel`.
    */
-  open?: { count: number };
+  open?: { count?: number };
   /**
    * What pads the card on a present board (ORV-274): `text` (default) pads `node.padding`, `media`
    * pads `node.padding-media` and rounds a `.ds-node__media` slot to the radius less that padding.
@@ -126,9 +128,12 @@ export function nodeLabel(content: NodeContent, locale: Locale = DEFAULT_LOCALE)
   });
 }
 
-/** The name of a node that opens something: title, then its page count; any other node keeps `nodeLabel` (ORV-274). */
+/**
+ * The name of a node that opens pages: title, then its page count. A node that does not open, and
+ * one that opens with no page count (ORV-282), keep `nodeLabel` (ORV-274).
+ */
 export function nodeOpenLabel(content: NodeContent, locale: Locale = DEFAULT_LOCALE): string {
-  if (!content.open) return nodeLabel(content, locale);
+  if (content.open?.count === undefined) return nodeLabel(content, locale);
   return fill(messagesFor(locale).graph.nodeOpenLabel, {
     title: content.title,
     count: String(content.open.count),

@@ -16,6 +16,7 @@ import {
   expectPaintAt,
   expectPaintsAt,
   expectPillsClear,
+  expectPortPillsClear,
   expectSameHeight,
   inVitest,
   measureInkCentre,
@@ -357,6 +358,135 @@ export const PillsClear: Story = {
     title.style.left = "145px";
     title.style.top = "30px";
     expect(() => expectPillsClear(board)).toThrow(/is -?\d+\.0 px from <span\.ds-node__label>/);
+  },
+};
+
+/**
+ * ORV-282, design row D4: `expectPortPillsClear` reads the port name pills of one board node. Two
+ * pills 7.9 world px apart (a 40 pitch with a 32.1 pill) pass the default 7.5 and throw, naming both
+ * pills, at 8.5; on the old 24 pitch they overlap by 8.1 and throw at the default. A card, a title
+ * line or a dot of another node 7 px from a pill throws at the default 8 and passes at 6.5 asked; the
+ * node's own card and own dot sitting under its pills are not read. Hidden, `display: none`,
+ * zero-width and out-of-frame pills are not read. At a 0.5 zoom the bounds halve, so the same layout
+ * passes at the defaults, and a card 6 world px away (3 on screen) throws and reads "6.0 world px".
+ * The board is plain boxes in a viewport, so no font width is read.
+ */
+export const PortPillsClear: Story = {
+  render: () => {
+    const box = (left: number, top: number, width: number, height: number): CSSProperties => ({
+      position: "absolute",
+      left,
+      top,
+      width,
+      height,
+      boxSizing: "border-box",
+      padding: 0,
+      border: 0,
+    });
+    const pill = (left: number, top: number, extra: CSSProperties = {}): CSSProperties => ({
+      ...box(left, top, 80, 32.1),
+      visibility: "visible",
+      ...extra,
+    });
+    return (
+      <div
+        className="react-flow"
+        data-case="board"
+        style={{ position: "relative", width: 400, height: 140, overflow: "hidden" }}
+      >
+        <div
+          className="react-flow__viewport"
+          data-case="viewport"
+          style={{ ...box(0, 0, 400, 140), transformOrigin: "0 0" }}
+        >
+          <div
+            className="react-flow__node"
+            data-case="a"
+            style={{ position: "absolute", inset: 0 }}
+          >
+            <div className="ds-node" style={box(0, 0, 100, 120)} />
+            <span className="ds-port__handle" style={box(104, 20, 8, 8)} />
+            <span className="ds-port__label" data-case="first" style={pill(110, 10)}>
+              first
+            </span>
+            <span className="ds-port__label" data-case="second" style={pill(110, 50)}>
+              second
+            </span>
+            <span className="ds-port__label" style={pill(110, 50, { visibility: "hidden" })}>
+              hidden
+            </span>
+            <span className="ds-port__label" style={pill(110, 50, { display: "none" })}>
+              gone
+            </span>
+            <span className="ds-port__label" style={pill(110, 50, { width: 0, minWidth: 0 })} />
+            <span className="ds-port__label" style={pill(900, 50)}>
+              outside
+            </span>
+          </div>
+          <div
+            className="react-flow__node"
+            data-case="b"
+            style={{ position: "absolute", inset: 0 }}
+          >
+            <div className="ds-node" data-case="card" style={box(310, 0, 80, 120)} />
+            <div className="ds-node__label" data-case="title" style={box(300, 124, 80, 10)} />
+            <span className="ds-port__handle" data-case="dot" style={box(300, 100, 8, 8)} />
+          </div>
+        </div>
+      </div>
+    );
+  },
+  play: async ({ canvasElement }) => {
+    const a = q(canvasElement, "[data-case='a']");
+    const second = q(canvasElement, "[data-case='second']");
+    const viewport = q(canvasElement, "[data-case='viewport']");
+    const card = q(canvasElement, "[data-case='card']");
+    const title = q(canvasElement, "[data-case='title']");
+    const dot = q(canvasElement, "[data-case='dot']");
+    // Two pills are drawn; the node's own card and dot sit under them and are not read.
+    expect(expectPortPillsClear(a)).toBe(2);
+    expectPortPillsClear(a, 8, 8.3);
+    expect(() => expectPortPillsClear(a, 8, 8.5)).toThrow(
+      /the port pill "first" is 7\.9 world px from the pill "second", expected at least 8\.5/,
+    );
+    // The old 24 pitch: the pills overlap by 8.1.
+    second.style.top = "34px";
+    expect(() => expectPortPillsClear(a)).toThrow(
+      /the port pill "first" is -8\.1 world px from the pill "second"/,
+    );
+    // The bounds take 0.5 px of rounding: 7.2 apart passes the default 7.5 and 8 would not.
+    second.style.top = "49.3px";
+    expectPortPillsClear(a);
+    second.style.top = "50px";
+    // Another node's card, title line and dot, each 7 px from a pill, are read at the default 8.
+    card.style.left = "197px";
+    expect(() => expectPortPillsClear(a)).toThrow(/is 7\.0 world px from <div\.ds-node>/);
+    expectPortPillsClear(a, 6.5);
+    card.style.left = "197.7px";
+    expectPortPillsClear(a);
+    card.style.left = "310px";
+    title.style.left = "110px";
+    title.style.top = "89.1px";
+    expect(() => expectPortPillsClear(a)).toThrow(/is 7\.0 world px from <div\.ds-node__label>/);
+    title.style.left = "300px";
+    title.style.top = "124px";
+    dot.style.left = "197px";
+    dot.style.top = "20px";
+    expect(() => expectPortPillsClear(a)).toThrow(/is 7\.0 world px from <span\.ds-port__handle>/);
+    dot.style.left = "300px";
+    dot.style.top = "100px";
+    // At a 0.5 zoom the bounds halve: the same layout passes, and a card 6 world px away is 3 on screen.
+    viewport.style.transform = "scale(0.5)";
+    expect(expectPortPillsClear(a)).toBe(2);
+    expect(() => expectPortPillsClear(a, 8, 9)).toThrow(
+      /the port pill "first" is 7\.9 world px from the pill "second"/,
+    );
+    card.style.left = "198px";
+    expectPortPillsClear(a);
+    card.style.left = "196px";
+    expect(() => expectPortPillsClear(a)).toThrow(/is 6\.0 world px from <div\.ds-node>/);
+    card.style.left = "310px";
+    viewport.style.transform = "";
   },
 };
 
