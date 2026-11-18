@@ -131,4 +131,19 @@ export const CLASSIFICATION = {
     currency: "internal", // amount
     createdAt: "internal", // record
   },
+  businessIntake: {
+    id: "internal", // row-key
+    workspaceId: "internal", // workspace-key
+    projectId: "internal", // row-key
+    version: "internal", // record
+    idea: "personal", // free-text
+    industry: "personal", // free-text
+    customers: "personal", // free-text
+    problem: "personal", // free-text
+    competitors: "personal", // free-text
+    value: "personal", // free-text
+    website: "internal", // record
+    createdBy: "personal", // user-ref
+    createdAt: "internal", // record
+  },
 } as const satisfies Classification;

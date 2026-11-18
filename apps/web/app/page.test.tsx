@@ -24,3 +24,17 @@ describe("the home page link to the brand report", () => {
     },
   );
 });
+
+// ORV-281 row 18: the home page links to the project list, in the catalog's words, in each language.
+describe("the home page link to the businesses", () => {
+  it.each(["en", "th"] as const)(
+    "is one link to /business named by the catalog in %s",
+    async (locale) => {
+      state.locale = locale;
+      const html = renderToStaticMarkup(await Home());
+      const links = [...html.matchAll(/<a [^>]*href="\/business"[^>]*>(.*?)<\/a>/g)];
+      expect(links).toHaveLength(1);
+      expect(links[0]?.[1]).toBe(webMessages[locale].home.openBusiness);
+    },
+  );
+});

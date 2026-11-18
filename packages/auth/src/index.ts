@@ -4,6 +4,8 @@ export { Denied, ROLES, withWorkspace } from "./access.ts";
 export type { Access, AccessDeps, Role, Session } from "./access.ts";
 export { createAuth, settingsFromEnv } from "./config.ts";
 export type { Auth, AuthSettings } from "./config.ts";
+export { BUSINESS_LIST_LIMIT, BusinessError, businessService } from "./business.ts";
+export type { BusinessService, OpenedProject, ProjectSummary } from "./business.ts";
 export { DirectionError, directionService, saveInputSchema, sealReading } from "./directions.ts";
 export type {
   DirectionService,

@@ -41,6 +41,14 @@ export default async function Home() {
         <p className="text-body-md">
           <Link
             className="text-text-link underline-offset-4 hover:text-text-link-hover hover:underline"
+            href="/business"
+          >
+            {m.home.openBusiness}
+          </Link>
+        </p>
+        <p className="text-body-md">
+          <Link
+            className="text-text-link underline-offset-4 hover:text-text-link-hover hover:underline"
             href="/account"
           >
             {m.home.openAccount}
