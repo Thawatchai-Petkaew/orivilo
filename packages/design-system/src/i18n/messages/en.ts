@@ -262,6 +262,7 @@ export const en: Messages = {
     elapsed: "{time} elapsed",
     byRules: "By rules",
     moreLines: "{count} more lines",
+    pages: "{count} pages",
     fill: {
       empty: "Empty",
       partial: "{count} more to ask",
@@ -444,6 +445,7 @@ export const en: Messages = {
   },
   graph: {
     nodeLabel: "{title}, {kind}",
+    nodeOpenLabel: "{title}, {count} pages",
     edgeLabel: "{meaning} from {source} to {target}",
     invalid: "cannot connect",
     selfLoop: "A node cannot connect to itself",

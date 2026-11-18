@@ -1565,6 +1565,11 @@
       "$type": "dimension",
       "$value": "{space.inset.md}"
     },
+    "padding-media": {
+      "$type": "dimension",
+      "$value": "{space.inset.sm}",
+      "$description": "A present node that holds media pads less, so the media sit concentric in the card (ORV-274)"
+    },
     "gap": {
       "$type": "dimension",
       "$value": "{space.stack.sm}"
@@ -1693,13 +1698,29 @@
       "$type": "strokeDasharray",
       "$value": "{edge.dash.input}"
     },
-    "dash-reference": {
-      "$type": "strokeDasharray",
-      "$value": "{edge.dash.reference}"
+    "width-present": {
+      "$type": "dimension",
+      "$value": "{edge.width-present}"
     },
-    "dash-derived": {
-      "$type": "strokeDasharray",
-      "$value": "{edge.dash.derived}"
+    "width-present-selected": {
+      "$type": "dimension",
+      "$value": "{edge.width-present-selected}"
+    },
+    "dash-reference-on": {
+      "$type": "dimension",
+      "$value": "{edge.dash.reference-on}"
+    },
+    "dash-reference-off": {
+      "$type": "dimension",
+      "$value": "{edge.dash.reference-off}"
+    },
+    "dash-derived-on": {
+      "$type": "dimension",
+      "$value": "{edge.dash.derived-on}"
+    },
+    "dash-derived-off": {
+      "$type": "dimension",
+      "$value": "{edge.dash.derived-off}"
     },
     "label-bg": {
       "$type": "color",

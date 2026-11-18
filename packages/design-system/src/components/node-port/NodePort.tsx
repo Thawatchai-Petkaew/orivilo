@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { Handle, Position, useConnection, useNodeId } from "@xyflow/react";
 import { useBoard } from "../canvas-board/context";
 import type { PortSpec } from "../canvas-board/graph";
@@ -15,6 +16,11 @@ export interface NodePortProps {
   direction: PortDirection;
   /** The node is locked: the port shows and names itself but takes no connection. */
   disabled?: boolean | undefined;
+  /**
+   * Set by the node on a present board for a port with `row`: the middle of that body row, in node
+   * pixels from the card's top. Written as the private property `--_port-y` (ORV-274).
+   */
+  rowY?: number | undefined;
 }
 
 const PATHS: Record<PortShape, string> = {
@@ -40,7 +46,7 @@ export function PortGlyph({ shape }: { shape: PortShape }) {
  * Handle gives it pointer connection; the keyboard path starts from the node (C) and the board
  * marks the picked target through context. Rendered only inside a CanvasNode.
  */
-export function NodePort({ port, direction, disabled = false }: NodePortProps) {
+export function NodePort({ port, direction, disabled = false, rowY }: NodePortProps) {
   const nodeId = useNodeId() ?? "";
   const board = useBoard();
   const m = useMessages();
@@ -80,7 +86,14 @@ export function NodePort({ port, direction, disabled = false }: NodePortProps) {
         : portName;
 
   return (
-    <li className="ds-port" data-kind={port.kind} data-direction={direction} data-state={state}>
+    <li
+      className="ds-port"
+      data-kind={port.kind}
+      data-direction={direction}
+      data-state={state}
+      data-row={port.row}
+      style={rowY === undefined ? undefined : ({ "--_port-y": `${rowY}px` } as CSSProperties)}
+    >
       <Handle
         type={direction === "input" ? "target" : "source"}
         position={direction === "input" ? Position.Left : Position.Right}

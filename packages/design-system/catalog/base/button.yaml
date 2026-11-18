@@ -13,7 +13,7 @@ avoidWhen:
 contract: ButtonProps
 variants: [primary, secondary, ghost, destructive, intent, link]
 sizes: [sm, md, lg]
-states: [default, hover, focus-visible, pressed, disabled, loading]
+states: [default, hover, focus-visible, pressed, disabled, loading, current]
 recipes: [neutral, professional, friendly]
 examples:
   - src/examples/settings-form.tsx
@@ -25,6 +25,7 @@ rules:
   - "iconLeading and iconTrailing take an icon element from the icon module, 16 px for sm and md, 20 px for lg, hidden from assistive tech; the name stays the label. While loading the spinner replaces the leading icon only; both are ignored with iconOnly"
   - "link is text in text.link with an underline on hover, no fill, no border, at the height of other sizes; it goes somewhere (navigation or a quiet action), has no destructive or intent form, and never takes a brand colour"
   - "asChild renders the recipe on a child element such as a link"
+  - 'A ghost button marked aria-current="true" is the shown item of a set, such as a chapter strip: it takes selection.bg and selection.fg, never a brand colour (ORV-274; stories GhostCurrent, GhostCurrentInEnglish)'
   - Label says what happens and keeps its name through the flow
   - Icon-only form requires an accessible name
   - Only one primary per view

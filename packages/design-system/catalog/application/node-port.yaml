@@ -11,13 +11,16 @@ avoidWhen:
 contract: NodePortProps
 variants: [input, output]
 sizes: [md]
-states: [idle, hover, connecting, valid-target, invalid-target, connected, disabled]
+states: [idle, hover, connecting, valid-target, invalid-target, connected, disabled, name-pill]
 recipes: [neutral, professional, friendly]
 examples: []
 rules:
   - "Kind is shown by shape (circle, square, diamond, triangle, hexagon) and label as well as colour"
   - "States: connecting, valid-target and invalid-target follow the pointer drag and the keyboard connection; connected and disabled come from the graph"
   - "Dragging from a port lists only compatible nodes (Krea pattern); an invalid drop explains why"
+  - "On a present board the glyph is centred on the card edge at full opacity in its kind's hue (the disabled state no longer fades it), and the name is a pill (surface.card, border.subtle, round radius, overlay elevation) outside the edge that shows when the node is hovered, selected or has keyboard focus. The handle keeps the catalog name (ORV-274; stories PresentNames, PresentRecipesAndModes)"
+  - "On a present board each dot is a 16 px box centred on the card's side and sits on its straight part, never on the corner's bend (ORV-274; story PresentNames)"
+  - "PortSpec.row places the port at the middle of its row: CanvasNode passes the measured offset as the private property --_port-y (ORV-274)"
 a11y:
   - "Keyboard connect: C on a focused node starts a connection, arrow keys pick a target, Enter confirms, Escape cancels"
   - "The handle carries the accessible name: direction and kind (พอร์ตรับข้อความ), then เชื่อมอยู่ or แก้ไขไม่ได้"

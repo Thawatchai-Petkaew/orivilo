@@ -1,6 +1,7 @@
 /**
  * The Logo's generated files (ORV-118 slice B, rules `logo-icon-1` and `logo-asset-1`, tech.md
- * section 5): the favicon SVG, the two app icon PNGs and the Storybook brand image. They come from
+ * section 5): the favicon SVG, the two app icon PNGs, the Storybook brand image and the Storybook tab
+ * icon (the favicon again, ORV-274). They come from
  * `drawing.ts` (the function the component renders with) and the token source, never by hand;
  * `pnpm --filter @orivilo/design-system logo-assets` writes them and `assets.test.ts` fails when a
  * committed file differs from a fresh render. Pure apart from the wasm start: no clock and no
@@ -29,6 +30,8 @@ const FAVICON = "apps/web/app/icon1.svg";
 const ICON_32 = "apps/web/app/icon2.png";
 const ICON_180 = "apps/web/app/apple-icon.png";
 const STORYBOOK = "packages/design-system/.storybook/static/orivilo-logo.svg";
+/** The Storybook tab icon: the same bytes as the favicon. Storybook serves `<static dir>/favicon.svg`. */
+const STORYBOOK_FAVICON = "packages/design-system/.storybook/static/favicon.svg";
 
 type Layer = "semantic" | "component";
 
@@ -133,17 +136,19 @@ function png(svg: string): Uint8Array {
 
 const utf8 = (text: string): Uint8Array => new TextEncoder().encode(text);
 
-/** The four generated files, in a fixed order, rendered in memory from the token set and geometry. */
+/** The five generated files, in a fixed order, rendered in memory from the token set and geometry. */
 export async function logoAssetFiles(
   set: TokenSet = tokens,
   geometry: Geometry = GEOMETRY,
 ): Promise<LogoAssetFile[]> {
   await startRasteriser();
+  const favicon = utf8(faviconSvg(set, geometry));
   return [
-    { path: FAVICON, bytes: utf8(faviconSvg(set, geometry)) },
+    { path: FAVICON, bytes: favicon },
     { path: ICON_32, bytes: png(appIconSvg(set, geometry, 32, "brand.dot-small")) },
     { path: ICON_180, bytes: png(appIconSvg(set, geometry, 180, "brand.signature")) },
     { path: STORYBOOK, bytes: utf8(storybookSvg(set, geometry)) },
+    { path: STORYBOOK_FAVICON, bytes: favicon },
   ];
 }
 

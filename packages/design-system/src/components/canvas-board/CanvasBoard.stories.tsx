@@ -1,11 +1,14 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useEffect, useState } from "react";
+import { type ReactFlowInstance, useReactFlow } from "@xyflow/react";
+import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { LocaleProvider } from "../../i18n/LocaleProvider";
 import {
   expectCoversInk,
+  expectEdgeInk,
   expectFrameCutsNoInk,
   expectLabelInkWhole,
+  expectPillsClear,
   inVitest,
 } from "../../testing/visual-asserts";
 import { Button } from "../button/Button";
@@ -13,7 +16,7 @@ import { fixtureManyJobs, fixtures } from "../fixtures";
 import { Matrix, Narrow } from "../matrix";
 import { TaskBar } from "../task-bar/TaskBar";
 import { CanvasBoard, GRID_UNIT } from "./CanvasBoard";
-import type { Graph } from "./graph";
+import type { BoardNode, Graph } from "./graph";
 import { BOARD, BOARD_NODES, LONG_NODE } from "./fixtures";
 import { MatrixBoard, Stateful } from "./story-shell";
 import { MOD } from "../story-keys";
@@ -79,6 +82,48 @@ const translateX = (el: HTMLElement) =>
 const translateY = (el: HTMLElement) =>
   Number(/translate\([-\d.]+px,\s*([-\d.]+)px/.exec(el.style.transform)?.[1]);
 
+/** The computed colour of a token, read through a probe, so both sides use one serialisation. */
+function colourOf(root: HTMLElement, cssVar: string) {
+  const probe = document.createElement("span");
+  probe.style.color = `var(${cssVar})`;
+  root.appendChild(probe);
+  const colour = getComputedStyle(probe).color;
+  probe.remove();
+  return colour;
+}
+
+/** The zoom the viewport has, read from its transform. */
+const viewportZoom = (board: Element) =>
+  parseFloat(
+    /scale\(([\d.]+)\)/.exec(
+      board.querySelector<HTMLElement>(".react-flow__viewport")?.style.transform ?? "",
+    )?.[1] ?? "NaN",
+  );
+
+/** The pitch of the board's dots as drawn: the width of React Flow's pattern cell, in screen px. */
+const dotPitch = (board: Element) =>
+  Number(board.querySelector(".react-flow__background pattern")?.getAttribute("width"));
+
+/** A child of the board that hands the story React Flow's instance, to set the zoom. */
+let boardFlow: ReactFlowInstance | undefined;
+function ZoomHandle() {
+  const flow = useReactFlow();
+  useEffect(() => {
+    boardFlow = flow;
+    return () => {
+      boardFlow = undefined;
+    };
+  }, [flow]);
+  return null;
+}
+
+/** Sets the zoom and waits until the viewport holds it. */
+const zoomTo = (board: Element, zoom: number) =>
+  waitFor(async () => {
+    await boardFlow?.zoomTo(zoom, { duration: 0 });
+    expect(viewportZoom(board)).toBeCloseTo(zoom, 3);
+  });
+
 /** Six fixture nodes, five edges, the region named, the grid painted from the board tokens (AC 2). */
 export const Default: Story = {
   play: async ({ canvasElement }) => {
@@ -99,6 +144,14 @@ export const Default: Story = {
     ).toBeInTheDocument();
     await expect(getComputedStyle(region).backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
     await expect(region.querySelector(".react-flow__background")).not.toBeNull();
+    // An edit board keeps its own ground (`surface.board`, spec row 7), the grid pitch of one
+    // grid unit in the world, and the arrow head on its edges.
+    await expect(getComputedStyle(region).backgroundColor).toBe(colourOf(region, "--cmp-board-bg"));
+    await expect(getComputedStyle(region).borderTopWidth).toBe("0px");
+    await expect(dotPitch(region)).toBeCloseTo(GRID_UNIT * viewportZoom(region), 2);
+    for (const path of region.querySelectorAll(".ds-edge__path")) {
+      await expect(path).toHaveAttribute("marker-end");
+    }
     await expect(canvas.getByText("กำลังทำงาน")).toBeVisible();
     await expect(canvas.getByText("ล็อกแล้ว")).toBeVisible();
     await expect(canvas.getByText("ขาดข้อมูล: สีหลัก, สีรอง")).toBeVisible();
@@ -845,10 +898,21 @@ export const LoadingRecipesAndModes: Story = {
 /** Present: read-only, ports disabled, Delete and the editing shortcuts do nothing, Tab still moves (E4-2 AC 11, E4-3 AC 17). */
 export const Present: Story = {
   args: { variant: "present" },
+  render: (args) => (
+    <Stateful {...args}>
+      <ZoomHandle />
+    </Stateful>
+  ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const region = canvas.getByRole("region");
     await ready(region);
+    // No card or port dot covers an edge pill at the fit view and again at zoom 1 (sign-off 2 R1).
+    // The window decides the fit zoom: in Vitest's 1200 px frame it is 0.88, where a full-size pill
+    // is the accepted residual below zoom 1, so the fit view is read only at zoom 1 or more.
+    if (viewportZoom(region) >= 1) {
+      await waitFor(() => expect(expectPillsClear(region)).toBeGreaterThan(0));
+    }
     await expect(canvas.getByText("ดูอย่างเดียว")).toBeVisible();
     await expect(canvas.getAllByRole("img", { name: /แก้ไขไม่ได้$/ }).length).toBeGreaterThan(5);
     const logo = await waitFor(() => nodeByTitle(region, "โลโก้"));
@@ -866,6 +930,30 @@ export const Present: Story = {
     const bar = canvas.getByRole("toolbar", { name: "เครื่องมือกระดาน" });
     await expect(bar.querySelector('[data-command="board.add-node"]')).toBeNull();
     await expect(bar.querySelector('[data-command="board.zoom-to-fit"]')).not.toBeNull();
+    // The calm ground (spec row 7): `surface.canvas` with a `border.subtle` hairline, and sparse
+    // `border.subtle` dots 24 px apart on screen at every zoom, 1 px across. No arrow heads.
+    const ground = getComputedStyle(region);
+    await expect(ground.backgroundColor).toBe(colourOf(region, "--ds-surface-canvas"));
+    await expect(ground.borderTopWidth).toBe("1px");
+    await expect(ground.borderTopColor).toBe(colourOf(region, "--ds-border-subtle"));
+    // The hairline is 1 px of ink, read from the pixels. The story fills the window, so only the
+    // top edge has ground outside it to read; `Present Recipes And Modes` of Canvas edge reads all
+    // four sides in six boundaries.
+    if (inVitest) await expectEdgeInk(region, "top", 1);
+    for (const zoom of [0.5, 1]) {
+      await zoomTo(region, zoom);
+      await waitFor(() => expect(dotPitch(region)).toBeCloseTo(24, 2));
+      const dot = region.querySelector(".react-flow__background circle");
+      await expect(Number(dot?.getAttribute("r"))).toBeCloseTo(0.5, 2);
+      await expect(getComputedStyle(dot as Element).fill).toBe(
+        colourOf(region, "--ds-border-subtle"),
+      );
+    }
+    await waitFor(() => expect(viewportZoom(region)).toBeCloseTo(1, 3));
+    await waitFor(() => expect(expectPillsClear(region)).toBeGreaterThan(0));
+    for (const path of region.querySelectorAll(".ds-edge__path")) {
+      await expect(path).not.toHaveAttribute("marker-end");
+    }
   },
 };
 
@@ -1337,5 +1425,296 @@ export const English: Story = {
     await userEvent.keyboard("{Alt>}{ArrowLeft}{/Alt}");
     await waitFor(() => expect(status(region)).toHaveTextContent("No upstream node"));
     await expect(region.querySelector(".ds-node__kind")).toHaveTextContent("input block");
+  },
+};
+
+/* Open, levels of detail and the present matrix (ORV-274). --------------------------------------- */
+
+type Lang = "th" | "en";
+
+const OPEN_WORDS = {
+  th: {
+    logo: "โลโก้",
+    brief: "บรีฟ",
+    name: "โลโก้ 3 หน้า",
+    present: "บอร์ดที่ดู",
+    edit: "บอร์ดที่แก้",
+  },
+  en: {
+    logo: "Logo",
+    brief: "Brief",
+    name: "Logo, 3 pages",
+    present: "View board",
+    edit: "Edit board",
+  },
+} as const;
+
+/**
+ * Two nodes on a short row: a result that opens (`open: { count: 3 }`) and a brief that does not,
+ * joined by one input edge so the label pills of an edge show on the level-of-detail boards.
+ */
+function openGraph(lang: Lang): Graph {
+  const w = OPEN_WORDS[lang];
+  const node = (id: string, title: string, x: number, open: boolean): BoardNode => ({
+    id,
+    type: "orivilo",
+    position: { x, y: 0 },
+    data: {
+      title,
+      kind: open ? "artifact" : "input-block",
+      size: "sm",
+      inputs: open ? [{ id: "text", kind: "text", label: "text" }] : [],
+      outputs: open ? [] : [{ id: "text", kind: "text", label: "text" }],
+      ...(open ? { open: { count: 3 } } : {}),
+    },
+  });
+  return {
+    nodes: [node("brief", w.brief, 0, false), node("res", w.logo, 360, true)],
+    edges: [
+      {
+        id: "e",
+        type: "orivilo",
+        source: "brief",
+        sourceHandle: "text",
+        target: "res",
+        targetHandle: "text",
+        data: { meaning: "input" },
+      },
+    ],
+  };
+}
+
+const presentOpen = fn();
+const editOpen = fn();
+const editCommand = fn();
+
+const nodeEl = (root: Element, id: string) =>
+  root.querySelector<HTMLElement>(`.react-flow__node[data-id="${id}"]`) as HTMLElement;
+const boardReady = (root: HTMLElement, nodes: number) =>
+  waitFor(() => {
+    expect(root.querySelectorAll(".react-flow__node")).toHaveLength(nodes);
+    for (const n of root.querySelectorAll<HTMLElement>(".react-flow__node"))
+      expect(n.style.visibility).not.toBe("hidden");
+  });
+
+async function playOpenNode(root: HTMLElement, lang: Lang) {
+  const w = OPEN_WORDS[lang];
+  presentOpen.mockClear();
+  editOpen.mockClear();
+  editCommand.mockClear();
+  const canvas = within(root);
+  const view = canvas.getByRole("region", { name: w.present });
+  const edit = canvas.getByRole("region", { name: w.edit });
+  await boardReady(view, 2);
+  await boardReady(edit, 2);
+
+  // An open node is named with its page count and takes the popup attribute; a plain one neither.
+  for (const board of [view, edit]) {
+    await waitFor(() => expect(within(board).getByRole("group", { name: w.name })).toBeVisible());
+    await expect(nodeEl(board, "res")).toHaveAttribute("aria-haspopup", "dialog");
+    await expect(nodeEl(board, "brief")).not.toHaveAttribute("aria-haspopup");
+    // The title row of the open node ends with the pages word and the open glyph, on both boards.
+    await expect(nodeEl(board, "res").querySelector(".ds-node__pages")).toHaveTextContent(
+      lang === "th" ? "3 หน้า" : "3 pages",
+    );
+    await expect(nodeEl(board, "res").querySelector(".ds-node__open")).toBeVisible();
+    await expect(nodeEl(board, "brief").querySelector(".ds-node__open")).toBeNull();
+  }
+
+  // Present board: Enter, Space and a single click each open once; the brief never does.
+  await focusOn(() => nodeEl(view, "res"));
+  await userEvent.keyboard("{Enter}");
+  await expect(presentOpen).toHaveBeenCalledTimes(1);
+  await expect(presentOpen).toHaveBeenLastCalledWith("res");
+  // A held Space opens too, and must not arm the pan key: the pane stays in selection mode.
+  await userEvent.keyboard("[Space>]");
+  await expect(presentOpen).toHaveBeenCalledTimes(2);
+  const pane = view.querySelector(".react-flow__pane") as HTMLElement;
+  await expect(pane).not.toHaveClass("draggable");
+  await userEvent.keyboard("[/Space]");
+  await userEvent.click(nodeEl(view, "res"));
+  await expect(presentOpen).toHaveBeenCalledTimes(3);
+  // The same keys on the brief open nothing; there Space does arm the pan key, which proves the
+  // probe above can tell the two apart.
+  await focusOn(() => nodeEl(view, "brief"));
+  await userEvent.keyboard("{Enter}");
+  await userEvent.keyboard("[Space>]");
+  await waitFor(() => expect(pane).toHaveClass("draggable"));
+  await userEvent.keyboard("[/Space]");
+  await userEvent.click(nodeEl(view, "brief"));
+  await expect(presentOpen).toHaveBeenCalledTimes(3);
+
+  // Edit board: a double click and Enter open an open node; a single click does not; Enter on a
+  // node without `open` is still the `node.open` command.
+  await userEvent.click(nodeEl(edit, "res"));
+  await expect(editOpen).not.toHaveBeenCalled();
+  await userEvent.dblClick(nodeEl(edit, "res"));
+  await expect(editOpen).toHaveBeenCalledTimes(1);
+  await expect(editOpen).toHaveBeenLastCalledWith("res");
+  await focusOn(() => nodeEl(edit, "res"));
+  await userEvent.keyboard("{Enter}");
+  await expect(editOpen).toHaveBeenCalledTimes(2);
+  await userEvent.keyboard(" ");
+  await expect(editOpen).toHaveBeenCalledTimes(3);
+  await expect(editCommand).not.toHaveBeenCalledWith("node.open", expect.anything());
+  await focusOn(() => nodeEl(edit, "brief"));
+  await userEvent.keyboard("{Enter}");
+  await waitFor(() =>
+    expect(editCommand).toHaveBeenCalledWith(
+      "node.open",
+      expect.objectContaining({ nodeId: "brief" }),
+    ),
+  );
+  await userEvent.dblClick(nodeEl(edit, "brief"));
+  await expect(editOpen).toHaveBeenCalledTimes(3);
+}
+
+function OpenBoards({ lang }: { lang: Lang }) {
+  const w = OPEN_WORDS[lang];
+  return (
+    <>
+      <Stateful
+        variant="present"
+        initial={openGraph(lang)}
+        label={w.present}
+        height={260}
+        fill={false}
+        chrome={false}
+        onNodeOpen={presentOpen}
+      />
+      <Stateful
+        initial={openGraph(lang)}
+        label={w.edit}
+        height={260}
+        fill={false}
+        chrome={false}
+        onNodeOpen={editOpen}
+        onCommand={editCommand}
+      />
+    </>
+  );
+}
+
+/**
+ * `onNodeOpen` (spec row 5): a node with `open` calls it on Enter, Space, a double click on an edit
+ * board and a single click on a present board, once each; Space never starts a pan; a node without
+ * `open` never calls it, and on an edit board its Enter is still `node.open`.
+ */
+export const OpenNode: Story = {
+  render: () => <OpenBoards lang="th" />,
+  play: async ({ canvasElement }) => playOpenNode(canvasElement, "th"),
+};
+
+/** The open node with English names ("Logo, 3 pages"), in dark mode. */
+export const OpenNodeInEnglish: Story = {
+  globals: { locale: "en", mode: "dark" },
+  render: () => <OpenBoards lang="en" />,
+  play: async ({ canvasElement }) => playOpenNode(canvasElement, "en"),
+};
+
+/** A story-local stand-in for the page's writer: sets `data-lod` on its closest `.ds-board`. */
+function LodWriter({ lod }: { lod: "far" | "mid" | "near" }): ReactNode {
+  const ref = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => {
+    const board = ref.current?.closest<HTMLElement>(".ds-board");
+    board?.setAttribute("data-lod", lod);
+    return () => board?.removeAttribute("data-lod");
+  }, [lod]);
+  return <span ref={ref} hidden />;
+}
+
+const LODS = ["far", "mid", "near"] as const;
+
+function LodBoards({ lang }: { lang: Lang }) {
+  return (
+    <>
+      {LODS.map((lod) => (
+        <Stateful
+          key={lod}
+          variant="present"
+          initial={openGraph(lang)}
+          label={`${lod}, ${OPEN_WORDS[lang].present}`}
+          height={240}
+          fill={false}
+          chrome={false}
+        >
+          <LodWriter lod={lod} />
+        </Stateful>
+      ))}
+    </>
+  );
+}
+
+async function playLevelsOfDetail(root: HTMLElement, lang: Lang) {
+  const w = OPEN_WORDS[lang];
+  const cs = (el: Element) => getComputedStyle(el);
+  const board = (lod: string) => within(root).getByRole("region", { name: `${lod}, ${w.present}` });
+  for (const lod of LODS) await boardReady(board(lod), 2);
+  await waitFor(() => expect(root.querySelectorAll(".ds-edge__label")).toHaveLength(3));
+  // Far: names and edge words are hidden, but the node keeps its accessible name.
+  const far = board("far");
+  await expect(far).toHaveAttribute("data-lod", "far");
+  for (const el of far.querySelectorAll(".ds-node__label, .ds-edge__label"))
+    await expect(cs(el).visibility).toBe("hidden");
+  await expect(within(far).getByRole("group", { name: w.name })).toBeInTheDocument();
+  // Mid: the label shows, the page count steps aside and the open glyph stays.
+  const mid = board("mid");
+  for (const el of mid.querySelectorAll(".ds-node__label, .ds-edge__label"))
+    await expect(cs(el).visibility).toBe("visible");
+  await expect(cs(mid.querySelector(".ds-node__pages") as Element).display).toBe("none");
+  await expect(mid.querySelector(".ds-node__open")).toBeVisible();
+  // Near: the page count shows as well.
+  const near = board("near");
+  await expect(cs(near.querySelector(".ds-node__pages") as Element).display).not.toBe("none");
+  await expect(near.querySelector(".ds-node__pages")).toBeVisible();
+  await expect(near.querySelector(".ds-node__open")).toBeVisible();
+  for (const el of near.querySelectorAll(".ds-node__label, .ds-edge__label"))
+    await expect(cs(el).visibility).toBe("visible");
+}
+
+/**
+ * Levels of detail (spec row 8): three present boards stacked, written `far`, `mid` and `near` by a
+ * story-local writer as the page will. Far hides the names, mid the page count, near shows all.
+ */
+export const LevelsOfDetail: Story = {
+  render: () => <LodBoards lang="th" />,
+  play: async ({ canvasElement }) => playLevelsOfDetail(canvasElement, "th"),
+};
+
+/** The three levels with English names, in dark mode. */
+export const LevelsOfDetailInEnglish: Story = {
+  globals: { locale: "en", mode: "dark" },
+  render: () => <LodBoards lang="en" />,
+  play: async ({ canvasElement }) => playLevelsOfDetail(canvasElement, "en"),
+};
+
+/** The present board under three profiles in both modes, with one node that opens. */
+export const PresentRecipesAndModes: Story = {
+  render: (args) => {
+    const initial: Graph = {
+      ...BOARD,
+      nodes: BOARD.nodes.map((n) =>
+        n.id === "logo" ? { ...n, data: { ...n.data, open: { count: 3 } } } : n,
+      ),
+    };
+    return (
+      <Matrix>
+        <MatrixBoard {...args} initial={initial} variant="present" height={360} />
+      </Matrix>
+    );
+  },
+  play: async ({ canvasElement }) => {
+    const cells = canvasElement.querySelectorAll<HTMLElement>("[data-matrix-cell]");
+    await expect(cells).toHaveLength(6);
+    for (const cell of cells) {
+      await waitFor(() => expect(nodeEls(cell)).toHaveLength(BOARD_NODES.length));
+      await expect(cell.querySelectorAll('.ds-board[data-variant="present"]')).toHaveLength(1);
+      await expect(cell.querySelectorAll(".ds-node__label")).toHaveLength(BOARD_NODES.length);
+      await expect(cell.querySelectorAll(".ds-node__open")).toHaveLength(1);
+      await expect(cell.querySelectorAll(".ds-node[data-open]")).toHaveLength(1);
+      await expect(getComputedStyle(cell.querySelector(".ds-node") as Element).borderTopColor).toBe(
+        colourOf(cell, "--ds-border-subtle"),
+      );
+    }
   },
 };

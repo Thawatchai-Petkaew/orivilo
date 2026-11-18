@@ -66,7 +66,9 @@ export const BOARD_NODES: BoardNode[] = [
   {
     id: "profile",
     type: "orivilo",
-    position: { x: 760, y: 240 },
+    // 816 is 34 grid units: a 136 px gap to the 360 + 320 column, so the present edge pill between
+    // them clears both cards and their port dots.
+    position: { x: 816, y: 240 },
     data: {
       title: "โปรไฟล์ว่าที่ลูกค้า",
       kind: "knowledge",

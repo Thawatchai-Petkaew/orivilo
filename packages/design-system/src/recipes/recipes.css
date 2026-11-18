@@ -122,6 +122,12 @@
   color: var(--cmp-button-ghost-fg-disabled);
 }
 
+/* The shown item of a set, such as a chapter strip: a selection, never a brand colour (ORV-274). */
+.ds-button[data-variant="ghost"][aria-current="true"] {
+  background: var(--ds-selection-bg);
+  color: var(--ds-selection-fg);
+}
+
 .ds-button[data-variant="intent"] {
   background: var(--cmp-button-intent-bg);
   color: var(--cmp-button-intent-fg);
@@ -1490,6 +1496,25 @@
   top: var(--ds-space-inset-md);
   inset-inline-end: var(--ds-space-inset-md);
 }
+/* The viewer size (ORV-274): the window less one gutter on each side. The page's own ScrollArea
+ * scrolls, not the body, and there is no entry animation, so the panel never moves under a reader. */
+.ds-dialog[data-size="viewer"] {
+  inline-size: calc(100% - 2 * var(--ds-space-gutter));
+  block-size: calc(100% - 2 * var(--ds-space-gutter));
+  max-inline-size: none;
+  max-block-size: none;
+  padding: var(--ds-space-inset-md);
+  gap: var(--ds-space-stack-sm);
+  animation: none;
+}
+.ds-dialog[data-size="viewer"] .ds-dialog__body {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.ds-dialog[data-size="viewer"] .ds-dialog__footer > * {
+  flex: 1 1 auto;
+}
 /* Confirm dialog (ORV-226): the panel is its own scroller, so the actions stay in reach. */
 .ds-confirm {
   container-type: inline-size;
@@ -2148,6 +2173,16 @@
   width: 100%;
   height: 100%;
 }
+/* A present board (ORV-274): a calm ground, the page surface with a hairline, and sparse dots.
+ * The dots take `space.grid-gap` as their screen pitch (the board keeps the pitch at any zoom).
+ * An edit board keeps `surface.board` and `canvas.grid`. */
+.ds-board[data-variant="present"] {
+  background: var(--ds-surface-canvas);
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-shape-container-radius);
+  --xy-background-color: var(--ds-surface-canvas);
+  --xy-background-pattern-color: var(--ds-border-subtle);
+}
 /* React Flow strips the outline from its own node types; ours keep the focus line and halo (DESIGN.md §3.1).
    The edge is SVG: the shadow does not paint there, the line does. */
 .ds-board .react-flow__node:focus-visible {
@@ -2721,12 +2756,277 @@
   opacity: var(--cmp-port-opacity-disabled);
 }
 
+/* A node that opens something (ORV-274): the pages word and the open glyph end the title row on both
+ * boards; the card shows a zoom-in cursor. The source line is a pill under the card that shows on
+ * hover, selection or keyboard focus. */
+.ds-node__heading {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-inline-md);
+}
+.ds-node__heading .ds-node__title {
+  flex: 1 1 auto;
+}
+.ds-node__pages {
+  flex: none;
+  color: var(--ds-text-tertiary);
+  font-family: var(--ds-type-body-xs-font-family);
+  font-size: var(--ds-type-body-xs-font-size);
+  line-height: var(--ds-type-body-xs-line-height);
+  font-weight: var(--ds-type-body-xs-font-weight);
+  white-space: nowrap;
+}
+.ds-node__label > svg:first-child,
+.ds-node__open {
+  flex: none;
+  inline-size: var(--ds-size-icon-xs);
+  block-size: var(--ds-size-icon-xs);
+  color: var(--ds-text-tertiary);
+}
+.ds-node[data-open] {
+  cursor: zoom-in;
+}
+.ds-node__source {
+  position: absolute;
+  inset-inline-start: 0;
+  top: calc(100% + var(--ds-space-inline-sm));
+  margin: 0;
+  padding: var(--ds-space-inline-sm) var(--ds-space-inline-md);
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-shape-round-radius);
+  background: var(--ds-surface-card);
+  box-shadow: var(--ds-elevation-overlay);
+  color: var(--ds-text-secondary);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-type-body-xs-font-size);
+  line-height: var(--ds-type-body-xs-line-height);
+  visibility: hidden;
+  z-index: 1;
+}
+.react-flow__node:is(:hover, .selected, :focus-visible) .ds-node__source {
+  visibility: visible;
+}
+
+/* Node, present boards (ORV-274): one card with a hairline, the name above it, the ports as glyph dots
+ * on its edge. The card rules sit in `:where` so every state rule above (selected, error, running,
+ * empty, note) keeps winning; the selected look is the existing border plus 1 px inner outline. */
+:where(.ds-board[data-variant="present"]) .ds-node {
+  --_ls: max(1, var(--_zi, 1));
+  border: 1px solid var(--ds-border-subtle);
+  background: var(--cmp-node-bg);
+  border-radius: var(--cmp-node-radius);
+  padding: var(--cmp-node-padding);
+  overflow: visible;
+}
+/* A card with side ports is as tall as its dot column needs (ORV-274): two radii, plus the pitch of
+ * the other dots, plus the dot, so every dot sits on the straight part of its side and none on the
+ * corner's bend. Ports are counted without row ports, which sit at their rows. */
+.ds-board[data-variant="present"] .ds-node:has(.ds-node__port-list > .ds-port:not([data-row])) {
+  --_ports: 1;
+  min-block-size: calc(
+    2 * var(--cmp-node-radius) + (var(--_ports) - 1) * var(--ds-space-grid-gap) +
+      var(--ds-size-port)
+  );
+}
+.ds-board[data-variant="present"]
+  .ds-node:has(.ds-node__port-list > .ds-port:not([data-row]) ~ .ds-port:not([data-row])) {
+  --_ports: 2;
+}
+.ds-board[data-variant="present"]
+  .ds-node:has(
+    .ds-node__port-list
+      > .ds-port:not([data-row])
+      ~ .ds-port:not([data-row])
+      ~ .ds-port:not([data-row])
+  ) {
+  --_ports: 3;
+}
+.ds-board[data-variant="present"]
+  .ds-node:has(
+    .ds-node__port-list
+      > .ds-port:not([data-row])
+      ~ .ds-port:not([data-row])
+      ~ .ds-port:not([data-row])
+      ~ .ds-port:not([data-row])
+  ) {
+  --_ports: 4;
+}
+.ds-board[data-variant="present"] .ds-node[data-pad="media"] {
+  --_media-radius: calc(var(--cmp-node-radius) - var(--cmp-node-padding-media));
+  padding: var(--cmp-node-padding-media);
+}
+.ds-board[data-variant="present"] .ds-node[data-pad="media"] .ds-node__media {
+  border-radius: var(--_media-radius);
+  overflow: hidden;
+}
+/* The card's padding replaces the inset every block carries on an edit board. */
+.ds-board[data-variant="present"] .ds-node__body {
+  padding: 0;
+}
+.ds-board[data-variant="present"] .ds-node__steps,
+.ds-board[data-variant="present"] .ds-node__error {
+  padding-inline: 0;
+}
+.ds-board[data-variant="present"] .ds-node__missing {
+  margin-inline: 0;
+}
+.ds-node__label {
+  --_label-gap: var(--ds-space-inline-sm);
+  position: absolute;
+  inset-inline-start: 0;
+  /* The card's own 1 px hairline sits between the padding box this is measured from and the top. */
+  bottom: calc(100% + 1px);
+  inline-size: calc(100% / var(--_ls));
+  scale: var(--_ls);
+  transform-origin: 0 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  align-items: center;
+  gap: var(--_label-gap);
+  row-gap: var(--ds-space-stack-lg);
+  box-sizing: border-box;
+  block-size: calc(1lh + var(--ds-space-inline-sm));
+  padding-block-end: var(--ds-space-inline-sm);
+  white-space: nowrap;
+  /* One line that never passes the card: a part that does not fit wraps to a second line, 24 px below,
+   * and the clip hides it. The clip reaches 4 px above for a Thai mark over the title, and is flush
+   * at the start, the end and the bottom. */
+  clip-path: inset(calc(-1 * var(--ds-space-inline-sm)) 0 0 0);
+  color: var(--ds-text-secondary);
+  font-family: var(--ds-type-label-sm-font-family);
+  font-size: var(--ds-type-label-sm-font-size);
+  line-height: var(--ds-type-label-sm-line-height);
+  font-weight: var(--ds-type-label-sm-font-weight);
+}
+.ds-node__label > * {
+  flex: none;
+}
+.ds-node__label .ds-node__title {
+  /* The title keeps 4em, or the whole line after the kind glyph when that is shorter, before the other
+   * parts wrap; it never grows past its text, so a short title does not push the end parts away. */
+  flex: 1 1 min(4em, 100% - var(--ds-size-icon-xs) - var(--_label-gap));
+  max-inline-size: max-content;
+  min-width: 0;
+  font: inherit;
+  letter-spacing: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* The status's glyph and its word are two flex items, so the word leaves before the glyph. */
+.ds-node__label .ds-node__status {
+  display: contents;
+}
+.ds-node__label .ds-node__status > svg {
+  flex: none;
+}
+.ds-board[data-variant="present"]
+  .react-flow__node:is(:hover, .selected, :focus-visible)
+  .ds-node__label {
+  color: var(--ds-text-primary);
+}
+:where(.ds-board[data-variant="present"] .react-flow__node:hover) .ds-node {
+  border-color: var(--cmp-node-border-hover);
+}
+
+/* Ports, present boards (ORV-274): a glyph centred on the card edge, inputs at the start and outputs
+ * at the end, on a 24 px pitch (16 glyph plus 8). The name is a pill outside the edge that shows when
+ * the node is hovered, selected or has keyboard focus. A port with a row sits at the middle of it. */
+.ds-board[data-variant="present"] .ds-node__ports {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  pointer-events: none;
+}
+.ds-board[data-variant="present"] .ds-node__port-list {
+  position: absolute;
+  inset-block: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: calc(var(--ds-space-grid-gap) - var(--ds-size-port));
+}
+.ds-board[data-variant="present"] .ds-node__port-list[data-direction="input"] {
+  inset-inline-start: calc(var(--ds-size-port) / -2);
+}
+.ds-board[data-variant="present"] .ds-node__port-list[data-direction="output"] {
+  inset-inline-end: calc(var(--ds-size-port) / -2);
+}
+.ds-board[data-variant="present"] .ds-port {
+  inline-size: var(--cmp-port-size);
+}
+.ds-board[data-variant="present"] .ds-port .ds-port__handle {
+  inset: 0;
+  transform: none;
+}
+.ds-board[data-variant="present"] .ds-port[data-row] {
+  position: absolute;
+  top: var(--_port-y);
+  translate: 0 -50%;
+}
+/* The design draws every dot in its locked hue; the name still says it cannot be edited. */
+.ds-board[data-variant="present"] .ds-port[data-state="disabled"] .ds-port__handle {
+  opacity: 1;
+}
+.ds-board[data-variant="present"] .ds-port__label {
+  position: absolute;
+  top: 50%;
+  translate: 0 -50%;
+  padding: var(--ds-space-inline-sm) var(--ds-space-inline-md);
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-shape-round-radius);
+  background: var(--ds-surface-card);
+  box-shadow: var(--ds-elevation-overlay);
+  color: var(--ds-text-secondary);
+  font-family: var(--ds-type-body-xs-font-family);
+  font-size: var(--ds-type-body-xs-font-size);
+  line-height: var(--ds-type-body-xs-line-height);
+  font-weight: var(--ds-type-body-xs-font-weight);
+  white-space: nowrap;
+  visibility: hidden;
+  z-index: 1;
+}
+.ds-board[data-variant="present"] .ds-port[data-direction="input"] .ds-port__label {
+  inset-inline-end: calc(100% + var(--ds-space-inline-sm));
+}
+.ds-board[data-variant="present"] .ds-port[data-direction="output"] .ds-port__label {
+  inset-inline-start: calc(100% + var(--ds-space-inline-sm));
+}
+.ds-board[data-variant="present"]
+  .react-flow__node:is(:hover, .selected, :focus-visible)
+  .ds-port__label {
+  visibility: visible;
+}
+
+/* Levels of detail (ORV-274): the page writes `data-lod` (far, mid, near) from the zoom. */
+.ds-board[data-lod="far"] .ds-node__label,
+.ds-board[data-lod="far"] .ds-edge__label {
+  visibility: hidden;
+}
+.ds-board[data-lod="mid"] .ds-node__pages {
+  display: none;
+}
+
 /* Edge: meaning by dash and label word, state by stroke colour (catalog CanvasEdge). -------- */
 
+/* Every board draws an edge at a fixed width and dash length on screen: the board writes `--_zi`
+ * (1 / zoom) on its root, so a length times `--_zi` holds at every zoom. With no board around,
+ * the fallback 1 keeps world units. A present board draws thinner (ORV-274). */
+.ds-board {
+  --_edge-w: var(--cmp-edge-width);
+  --_edge-w-selected: var(--cmp-edge-width-selected);
+}
+.ds-board[data-variant="present"] {
+  --_edge-w: var(--cmp-edge-width-present);
+  --_edge-w-selected: var(--cmp-edge-width-present-selected);
+}
 .ds-board .ds-edge__path {
   fill: none;
   stroke: var(--cmp-edge-stroke);
-  stroke-width: var(--cmp-edge-width);
+  stroke-width: calc(var(--_edge-w, var(--cmp-edge-width)) * var(--_zi, 1));
   stroke-linecap: round;
   transition: stroke var(--ds-motion-feedback-duration) var(--ds-motion-easing);
 }
@@ -2734,10 +3034,14 @@
   stroke-dasharray: var(--cmp-edge-dash-input);
 }
 .ds-edge[data-meaning="reference"] .ds-edge__path {
-  stroke-dasharray: var(--cmp-edge-dash-reference);
+  stroke-dasharray: calc(var(--cmp-edge-dash-reference-on) * var(--_zi, 1))
+    calc(var(--cmp-edge-dash-reference-off) * var(--_zi, 1));
 }
 .ds-edge[data-meaning="derived"] .ds-edge__path {
-  stroke-dasharray: var(--cmp-edge-dash-derived);
+  stroke-width: calc(var(--_edge-w-selected, var(--cmp-edge-width-selected)) * var(--_zi, 1));
+  stroke-dasharray: calc(var(--cmp-edge-dash-derived-on) * var(--_zi, 1))
+    calc(var(--cmp-edge-dash-derived-off) * var(--_zi, 1));
+  stroke-linecap: round;
 }
 .ds-board .react-flow__edge:hover .ds-edge__path {
   stroke: var(--cmp-edge-stroke-hover);
@@ -2746,13 +3050,53 @@
 .ds-board .react-flow__edge:focus-visible .ds-edge__path,
 .ds-board .ds-edge[data-selected] .ds-edge__path {
   stroke: var(--cmp-edge-stroke-selected);
-  stroke-width: var(--cmp-edge-width-selected);
+  stroke-width: calc(var(--_edge-w-selected, var(--cmp-edge-width-selected)) * var(--_zi, 1));
 }
 .ds-board .ds-edge[data-stale] .ds-edge__path {
   stroke: var(--cmp-edge-stroke-stale);
 }
 .ds-board .ds-edge[data-invalid] .ds-edge__path {
   stroke: var(--cmp-edge-stroke-invalid);
+}
+/* Present boards: the hue follows the source port kind, the port glyph carries the kind in shape.
+ * Text keeps the rest stroke. Selected, stale and invalid strokes still win. A node's chain stays
+ * at full strength and every other edge steps back while a node is selected (ORV-274). */
+.ds-board[data-variant="present"]
+  .ds-edge[data-kind="image"]:not([data-selected], [data-stale], [data-invalid])
+  .ds-edge__path {
+  stroke: var(--cmp-port-image);
+}
+.ds-board[data-variant="present"]
+  .ds-edge[data-kind="palette"]:not([data-selected], [data-stale], [data-invalid])
+  .ds-edge__path {
+  stroke: var(--cmp-port-palette);
+}
+.ds-board[data-variant="present"]
+  .ds-edge[data-kind="type"]:not([data-selected], [data-stale], [data-invalid])
+  .ds-edge__path {
+  stroke: var(--cmp-port-type);
+}
+.ds-board[data-variant="present"]
+  .ds-edge[data-kind="profile"]:not([data-selected], [data-stale], [data-invalid])
+  .ds-edge__path {
+  stroke: var(--cmp-port-profile);
+}
+.ds-board[data-variant="present"][data-has-selection] .ds-edge:not([data-chain]),
+.ds-board[data-variant="present"][data-has-selection] .ds-edge__label:not([data-chain]) {
+  opacity: var(--ds-opacity-disabled);
+}
+/* A chained edge and a hovered edge draw at the chain width; hover leaves the stroke colour alone, so
+ * a kind-hued edge keeps its hue (ORV-274). */
+.ds-board[data-variant="present"] .ds-edge[data-chain] .ds-edge__path,
+.ds-board[data-variant="present"] .react-flow__edge:hover .ds-edge__path {
+  stroke-width: calc(var(--_edge-w-selected) * var(--_zi, 1));
+}
+.ds-board[data-variant="present"] .ds-edge[data-chain][data-meaning="derived"] .ds-edge__path,
+.ds-board[data-variant="present"]
+  .react-flow__edge:hover
+  .ds-edge[data-meaning="derived"]
+  .ds-edge__path {
+  stroke-width: calc((2 * var(--_edge-w-selected) - var(--_edge-w)) * var(--_zi, 1));
 }
 .ds-board__defs {
   position: absolute;
@@ -2813,6 +3157,11 @@
   letter-spacing: var(--cmp-edge-label-type-letter-spacing);
   white-space: nowrap;
   pointer-events: none;
+}
+/* The pill keeps its zoom-1 size when the board is zoomed out. The scale is the last function of the
+ * inline transform in CanvasEdge, so it scales the pill around its centre and never the translate. */
+.ds-board[data-variant="present"] .ds-edge__label {
+  --_ls: max(1, var(--_zi, 1));
 }
 .ds-edge__label[data-state="stale"] {
   color: var(--cmp-edge-stroke-stale);
@@ -3072,6 +3421,58 @@
   margin: var(--ds-space-inset-md);
   flex-wrap: wrap;
   max-width: calc(100% - 2 * var(--ds-space-inset-md));
+}
+/* The dock (ORV-274): the bottom centre, a chapter strip then the four viewport commands. React
+ * Flow centres a panel with `left: 50%` and a 15 px shift for its default margin, so a dock with no
+ * side margin takes the plain half-width shift. */
+.ds-board .react-flow__panel.ds-controls[data-position="center"] {
+  flex-wrap: nowrap;
+  margin-inline: 0;
+  transform: translateX(-50%);
+}
+.ds-controls__mode {
+  padding-inline: var(--ds-space-inline-md);
+  color: var(--ds-text-secondary);
+  white-space: nowrap;
+  font-family: var(--ds-type-label-sm-font-family);
+  font-size: var(--ds-type-label-sm-font-size);
+  line-height: var(--ds-type-label-sm-line-height);
+  font-weight: var(--ds-type-label-sm-font-weight);
+}
+.ds-controls__children {
+  display: flex;
+  gap: var(--ds-space-inline-sm);
+  min-inline-size: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.ds-board:has(.ds-controls[data-position="center"]) .ds-board__mode {
+  display: none;
+}
+@media (width < 480px) {
+  .ds-board .react-flow__panel.ds-controls[data-position="center"] {
+    inline-size: calc(100% - 2 * var(--ds-space-inset-sm));
+    max-inline-size: none;
+    margin-block: var(--ds-space-inset-sm);
+  }
+  /* The word stays in the accessibility tree; its divider is decoration and goes. */
+  .ds-controls[data-position="center"] .ds-controls__mode {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    padding: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    clip-path: inset(50%);
+  }
+  .ds-controls[data-position="center"] .ds-controls__mode + .ds-controls__divider {
+    display: none;
+  }
+  .ds-controls[data-position="center"] [data-command="board.zoom-out"],
+  .ds-controls[data-position="center"] .ds-controls__zoom,
+  .ds-controls[data-position="center"] [data-command="board.zoom-in"] {
+    display: none;
+  }
 }
 .ds-controls__divider {
   width: 1px;
@@ -5682,7 +6083,8 @@ button.ds-tag__main {
 .ds-chat__option > span:first-child,
 .ds-breadcrumb__link,
 .ds-breadcrumb__page,
-.ds-nav-item[data-size="sm"] .ds-nav-item__label {
+.ds-nav-item[data-size="sm"] .ds-nav-item__label,
+.ds-node__label .ds-node__title {
   padding-block: var(--ds-space-inline-sm);
   margin-block: calc(-1 * var(--ds-space-inline-sm));
 }

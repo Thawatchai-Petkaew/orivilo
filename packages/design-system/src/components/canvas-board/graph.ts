@@ -39,6 +39,11 @@ export interface PortSpec {
   kind: PortKind;
   /** Shown next to the glyph; document content, so the author's language. */
   label: string;
+  /**
+   * On a present board, the port sits at the vertical middle of the body element
+   * `[data-port-row="<row>"]` of its node, instead of joining the group centred on the card (ORV-274).
+   */
+  row?: string;
 }
 
 /** Plain data, so a board saves as JSON; rich content renders through the board's `renderBody`. */
@@ -67,6 +72,20 @@ export type NodeContent = {
   collapsed?: boolean;
   /** A group's frame while expanded, kept so collapse and expand restore it (E4-3). */
   frame?: { width: number; height: number };
+  /**
+   * The node opens something, such as a page viewer (ORV-274). `count` is how many pages. The
+   * title row then ends with the pages word and the open glyph, the card shows a zoom-in cursor,
+   * and `CanvasBoard`'s `onNodeOpen` takes the open gestures.
+   */
+  open?: { count: number };
+  /**
+   * What pads the card on a present board (ORV-274): `text` (default) pads `node.padding`, `media`
+   * pads `node.padding-media` and rounds a `.ds-node__media` slot to the radius less that padding.
+   * Edit boards ignore it.
+   */
+  pad?: "text" | "media";
+  /** The source line: a pill under the card that shows on hover, selection or keyboard focus (ORV-274). */
+  source?: string;
   inputs: PortSpec[];
   outputs: PortSpec[];
 };
@@ -80,6 +99,11 @@ export type EdgeContent = {
   stale?: boolean;
   /** The kinds no longer match (an edit after the connection). */
   invalid?: boolean;
+  /**
+   * `false` hides the label pill. A stale or invalid edge shows it anyway, because the pill carries
+   * that state (ORV-274). The edge's accessible name is unchanged.
+   */
+  label?: false;
 };
 
 export type BoardEdge = Edge<EdgeContent, "orivilo">;
@@ -99,6 +123,15 @@ export function nodeLabel(content: NodeContent, locale: Locale = DEFAULT_LOCALE)
   return fill(messagesFor(locale).graph.nodeLabel, {
     title: content.title,
     kind: pick(CANVAS_WORDS.node[content.kind], locale),
+  });
+}
+
+/** The name of a node that opens something: title, then its page count; any other node keeps `nodeLabel` (ORV-274). */
+export function nodeOpenLabel(content: NodeContent, locale: Locale = DEFAULT_LOCALE): string {
+  if (!content.open) return nodeLabel(content, locale);
+  return fill(messagesFor(locale).graph.nodeOpenLabel, {
+    title: content.title,
+    count: String(content.open.count),
   });
 }
 

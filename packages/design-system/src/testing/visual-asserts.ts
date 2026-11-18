@@ -1716,3 +1716,44 @@ export async function expectCoversInk(
     layer.style.opacity = saved;
   }
 }
+
+/**
+ * Asserts no drawn edge pill of `board` sits under, or within `px` of, a card, a card's title line
+ * or a port dot (ORV-274, sign-off 2 R1). A pill is drawn when it has a width (a `display: none`
+ * pill has none), is not `visibility: hidden`, and its rect meets the `.react-flow` rect; a hidden or
+ * scrolled-away pill covers nothing. Each is checked against every `.ds-node`, `.ds-node__label`
+ * and `.ds-port__handle` of the board that has a width. The clearance is the largest of the four
+ * gaps between the two rects (negative when they overlap), so it holds whatever the width of the
+ * font: it reads `getBoundingClientRect` only, no text width, and holds on Linux chromium. A failure
+ * names the pill's text, the thing it touches and the clearance. `px` is allowed 0.5 px of rounding.
+ */
+export function expectPillsClear(board: Element, px = 4) {
+  const flow = board.matches(".react-flow") ? board : (board.querySelector(".react-flow") ?? board);
+  const frame = flow.getBoundingClientRect();
+  const meets = (r: DOMRect) =>
+    r.left < frame.right && r.right > frame.left && r.top < frame.bottom && r.bottom > frame.top;
+  const others = [...board.querySelectorAll(".ds-node, .ds-node__label, .ds-port__handle")].filter(
+    (o) => o.getBoundingClientRect().width > 0,
+  );
+  const pills = [...board.querySelectorAll<HTMLElement>(".ds-edge__label")].filter((el) => {
+    const r = el.getBoundingClientRect();
+    return r.width > 0 && getComputedStyle(el).visibility !== "hidden" && meets(r);
+  });
+  for (const pill of pills) {
+    const p = pill.getBoundingClientRect();
+    for (const other of others) {
+      const o = other.getBoundingClientRect();
+      const clearance = Math.max(
+        o.left - p.right,
+        p.left - o.right,
+        o.top - p.bottom,
+        p.top - o.bottom,
+      );
+      expect(
+        clearance,
+        `the pill "${pill.textContent}" is ${clearance.toFixed(1)} px from ${label(other)}, expected at least ${px}`,
+      ).toBeGreaterThanOrEqual(px - 0.5);
+    }
+  }
+  return pills.length;
+}
