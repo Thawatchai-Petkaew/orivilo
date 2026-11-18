@@ -58,6 +58,7 @@ describe("the closed lists", () => {
       "business/createProject",
       "business/listProjects",
       "business/openProject",
+      "business/choosePositioning",
       "account/signInWithGoogle",
       "account/signOut",
       "i18n/setLocale",

@@ -34,4 +34,5 @@ export const TENANT_TABLES = [
   "ai_usage",
   "business_intake",
   "business_reading",
+  "business_positioning_choice",
 ] as const;

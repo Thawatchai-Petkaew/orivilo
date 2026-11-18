@@ -4,6 +4,7 @@ import { inWorkspace } from "./client.ts";
 import {
   aiUsage,
   businessIntake,
+  businessPositioningChoice,
   businessReading,
   organization,
   project,
@@ -559,6 +560,227 @@ describe.runIf(HAS_TEST_DATABASE)("orivilo_app and row security", () => {
       ).toEqual([]);
     });
   });
+  // ORV-285 (tech notes section 4.1, T5 and T6): the choice of a positioning statement is workspace
+  // data, insert only. The database holds the row's shape and the one agreed choice per intake.
+  describe("business_positioning_choice", () => {
+    const intake = (id: string, workspaceId: string, projectId: string) => ({
+      id,
+      workspaceId,
+      projectId,
+      version: "intake-1",
+      idea: "ร้านกาแฟคั่วเอง",
+      createdBy: "u-1",
+    });
+    const written = (id: string, workspaceId: string, intakeId: string) => ({
+      id,
+      workspaceId,
+      intakeId,
+      kind: "written",
+      statement: "กาแฟคั่วสดที่ส่งถึงออฟฟิศทุกเช้า",
+      createdBy: "u-1",
+    });
+    const skipped = (id: string, workspaceId: string, intakeId: string) => ({
+      id,
+      workspaceId,
+      intakeId,
+      kind: "skipped",
+      createdBy: "u-1",
+    });
+
+    beforeAll(async () => {
+      await t.admin
+        .insert(businessIntake)
+        .values([
+          intake("pc-i-a", "ws-a", "p-a"),
+          intake("pc-i-a2", "ws-a", "p-a"),
+          intake("pc-i-a3", "ws-a", "p-a"),
+          intake("pc-i-b", "ws-b", "p-b"),
+        ]);
+      await t.admin
+        .insert(businessPositioningChoice)
+        .values([written("pc-a", "ws-a", "pc-i-a"), written("pc-b", "ws-b", "pc-i-b")]);
+    });
+
+    const failsWithCode = async (run: Promise<unknown>, code: string) => {
+      const error = await run.then(
+        () => null,
+        (e: unknown) => e,
+      );
+      expect((error as { cause?: { code?: string } } | null)?.cause?.code).toBe(code);
+    };
+
+    it("is a tenant table, and a scoped transaction sees only its own workspace's rows (T5)", async () => {
+      expect(TENANT_TABLES).toContain("business_positioning_choice");
+      const rows = await inWorkspace(t.app, "ws-a", (tx) =>
+        tx.select().from(businessPositioningChoice),
+      );
+      expect(rows.map((r) => r.id)).toEqual(["pc-a"]);
+      expect(await t.app.select().from(businessPositioningChoice)).toEqual([]);
+    });
+
+    it("inserts for the scoped workspace and refuses an insert for another (T5)", async () => {
+      await inWorkspace(t.app, "ws-a", (tx) =>
+        tx.insert(businessPositioningChoice).values(skipped("pc-a-skip", "ws-a", "pc-i-a2")),
+      );
+      await failsWithCode(
+        inWorkspace(t.app, "ws-a", (tx) =>
+          tx.insert(businessPositioningChoice).values(skipped("pc-x", "ws-b", "pc-i-b")),
+        ),
+        "42501",
+      );
+    });
+
+    it("refuses a choice whose intake sits in another workspace (T5)", async () => {
+      // The owner role skips row security, so only the composite foreign key can refuse this.
+      await failsWithCode(
+        t.admin.insert(businessPositioningChoice).values(skipped("pc-cross", "ws-a", "pc-i-b")),
+        "23503",
+      );
+    });
+
+    it("keeps one agreed choice per intake: a second written fails, skips repeat (T6)", async () => {
+      await failsWithCode(
+        t.admin.insert(businessPositioningChoice).values(written("pc-twice", "ws-a", "pc-i-a")),
+        "23505",
+      );
+      // A skipped row on an agreed intake is still not a second agreement: only the kind counts.
+      await t.admin
+        .insert(businessPositioningChoice)
+        .values([
+          skipped("pc-s1", "ws-a", "pc-i-a3"),
+          skipped("pc-s2", "ws-a", "pc-i-a3"),
+          written("pc-after-skips", "ws-a", "pc-i-a3"),
+        ]);
+      const rows = await t.admin
+        .select()
+        .from(businessPositioningChoice)
+        .where(eq(businessPositioningChoice.intakeId, "pc-i-a3"));
+      expect(rows.map((r) => r.kind).sort()).toEqual(["skipped", "skipped", "written"]);
+    });
+
+    it.each([
+      ["a skip with a statement", { ...skipped("pc-bad", "ws-a", "pc-i-a2"), statement: "x" }],
+      [
+        "a written choice with no statement",
+        { ...written("pc-bad", "ws-a", "pc-i-a2"), statement: null },
+      ],
+      [
+        "a written choice with a draft id",
+        { ...written("pc-bad", "ws-a", "pc-i-a2"), draftId: "d-1", option: 1 },
+      ],
+      [
+        "a picked choice with no draft id",
+        { ...written("pc-bad", "ws-a", "pc-i-a2"), kind: "picked", option: 1 },
+      ],
+      [
+        "a picked choice with no option",
+        { ...written("pc-bad", "ws-a", "pc-i-a2"), kind: "picked", draftId: "d-1" },
+      ],
+      [
+        "an edited choice with neither",
+        { ...written("pc-bad", "ws-a", "pc-i-a2"), kind: "edited" },
+      ],
+      ["a draft id without an option", { ...skipped("pc-bad", "ws-a", "pc-i-a2"), draftId: "d-1" }],
+      ["a kind outside the list", { ...written("pc-bad", "ws-a", "pc-i-a2"), kind: "guessed" }],
+      ["another kind outside the list", { ...written("pc-bad", "ws-a", "pc-i-a2"), kind: "other" }],
+      ["an empty statement", { ...written("pc-bad", "ws-a", "pc-i-a2"), statement: "" }],
+      [
+        "a statement past 300 characters",
+        { ...written("pc-bad", "ws-a", "pc-i-a2"), statement: "ก".repeat(301) },
+      ],
+      [
+        "an option past 3",
+        { ...written("pc-bad", "ws-a", "pc-i-a2"), kind: "picked", draftId: "d-1", option: 4 },
+      ],
+      [
+        "an option of 0",
+        { ...written("pc-bad", "ws-a", "pc-i-a2"), kind: "picked", draftId: "d-1", option: 0 },
+      ],
+    ])("refuses %s (T6)", async (_, row) => {
+      await failsWithCode(t.admin.insert(businessPositioningChoice).values(row), "23514");
+    });
+
+    it("keeps a picked row of the right shape and a statement at 300 characters (T6)", async () => {
+      await t.admin.insert(businessPositioningChoice).values({
+        ...written("pc-picked", "ws-a", "pc-i-a2"),
+        kind: "picked",
+        draftId: "d-1",
+        option: 3,
+        statement: "ก".repeat(300),
+      });
+      const [row] = await t.admin
+        .select()
+        .from(businessPositioningChoice)
+        .where(eq(businessPositioningChoice.id, "pc-picked"));
+      expect([row?.kind, row?.option, row?.statement?.length]).toEqual(["picked", 3, 300]);
+    });
+
+    it("business rows never change: refuses an update and a delete, even in its own workspace (T5)", async () => {
+      await failsWithCode(
+        inWorkspace(t.app, "ws-a", (tx) =>
+          tx
+            .update(businessPositioningChoice)
+            .set({ statement: "changed" })
+            .where(eq(businessPositioningChoice.id, "pc-a")),
+        ),
+        "42501",
+      );
+      await failsWithCode(
+        inWorkspace(t.app, "ws-a", (tx) =>
+          tx.delete(businessPositioningChoice).where(eq(businessPositioningChoice.id, "pc-a")),
+        ),
+        "42501",
+      );
+      const kept = await t.admin
+        .select()
+        .from(businessPositioningChoice)
+        .where(eq(businessPositioningChoice.id, "pc-a"));
+      expect(kept.map((r) => r.statement)).toEqual(["กาแฟคั่วสดที่ส่งถึงออฟฟิศทุกเช้า"]);
+    });
+
+    it("has row security on and only the owner and the app role as grantees (T5)", async () => {
+      const on = await t.admin.execute<{ relrowsecurity: boolean }>(
+        sql`select relrowsecurity from pg_class where relname = 'business_positioning_choice'`,
+      );
+      expect([...on].map((r) => r.relrowsecurity)).toEqual([true]);
+      const policies = await t.admin.execute<{ policyname: string }>(
+        sql`select policyname from pg_policies where tablename = 'business_positioning_choice'`,
+      );
+      expect([...policies].map((r) => r.policyname)).toEqual(["workspace_rows"]);
+      const grants = await t.admin.execute<{ grantee: string; privilege_type: string }>(
+        sql`select grantee, privilege_type from information_schema.role_table_grants
+            where table_name = 'business_positioning_choice' and table_schema = 'public'
+              and grantee <> current_user`,
+      );
+      const rows = [...grants];
+      expect([...new Set(rows.map((r) => r.grantee))]).toEqual(["orivilo_app"]);
+      expect(rows.map((r) => r.privilege_type).sort()).toEqual(["INSERT", "SELECT"]);
+    });
+
+    it("has the workspace index and the intake and time index (T5)", async () => {
+      const found = await t.admin.execute<{ indexname: string }>(
+        sql`select indexname from pg_indexes
+            where tablename = 'business_positioning_choice' and indexname like '%idx'`,
+      );
+      expect([...found].map((r) => r.indexname).sort()).toEqual([
+        "business_positioning_choice_intake_created_idx",
+        "business_positioning_choice_workspaceId_idx",
+      ]);
+    });
+
+    it("goes away with its intake, by the cascade (T5)", async () => {
+      await t.admin.insert(project).values({ id: "p-pc", workspaceId: "ws-a", name: "PC project" });
+      await t.admin.insert(businessIntake).values(intake("pc-i-r", "ws-a", "p-pc"));
+      await t.admin.insert(businessPositioningChoice).values(written("pc-r", "ws-a", "pc-i-r"));
+      await t.admin.delete(project).where(eq(project.id, "p-pc"));
+      expect(
+        await t.admin
+          .select()
+          .from(businessPositioningChoice)
+          .where(eq(businessPositioningChoice.id, "pc-r")),
+      ).toEqual([]);
+    });
+  });
   // ORV-112 AC 18: the counter table is the app role's to use and nobody else's.
   describe("rate_limit_counter", () => {
     it("lets the app role select, insert, update and delete", async () => {
@@ -630,7 +852,7 @@ describe.runIf(HAS_TEST_DATABASE)("business tables under the host's default priv
     await t?.drop();
   });
 
-  it.each(["business_intake", "business_reading"])(
+  it.each(["business_intake", "business_reading", "business_positioning_choice"])(
     "leaves %s to the owner and the app role only",
     async (table) => {
       const grants = await t.admin.execute<{ grantee: string }>(
