@@ -14,6 +14,7 @@ export {
 } from "./business-list";
 export { DECISIONS, type Decision, DecisionLog, type DecisionLogProps } from "./decision-log";
 export { Landing } from "./landing";
+export { OriviloCanvas, type OriviloCanvasProps } from "./orivilo-canvas";
 export { SettingsForm, type SettingsFormProps } from "./settings-form";
 export {
   PROJECTS,

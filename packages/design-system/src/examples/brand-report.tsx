@@ -35,6 +35,11 @@ export interface BrandReportScreenProps {
   pending?: boolean | undefined;
   /** A line already resolved by the caller, for what the design-system catalog does not hold. */
   failure?: string | undefined;
+  /**
+   * The page title's heading level, default 1. Each section's heading is one level lower and the
+   * personality axis headings one lower again. A page inside a dialog passes 3, under the dialog's `h2`.
+   */
+  headingLevel?: 1 | 2 | 3 | undefined;
   onRead?: ((input: { url: string; role: InputRole }) => void) | undefined;
 }
 
@@ -65,7 +70,7 @@ function Template({ text, values }: { text: string; values: Record<string, React
  * One sentence in an Alert. The catalog's Alert asks for a title and a description, and the report's
  * strings are single sentences, so the sentence is the title and the description stays empty.
  */
-function Notice({
+export function Notice({
   variant,
   text,
   live,
@@ -107,7 +112,7 @@ function More({ total, shown }: { total: number; shown: number }) {
   );
 }
 
-function ReadingCard({
+export function ReadingCard({
   reading,
   url,
   below,
@@ -174,25 +179,30 @@ function Sources({ view, at }: { view: Analysed; at: Analysed["colours"][number]
   );
 }
 
-/** One block of the report: a level 2 title under the page's level 1, its note, then the content. */
+/** One block of the report: a title one level under the page's, its note, then the content. */
 function Block({
+  level,
   title,
   note,
   children,
 }: {
+  level: 2 | 3 | 4;
   title: string;
   note?: string | undefined;
   children: ReactNode;
 }) {
   return (
     <div className="flex min-w-0 flex-col gap-3">
-      <SectionHeader level={2} title={title} description={note} />
+      <SectionHeader level={level} title={title} description={note} />
       {children}
     </div>
   );
 }
 
-function Report({ view }: { view: Analysed }) {
+/** The axis headings sit one level under their section. */
+const AXIS_HEADING = { 2: "h3", 3: "h4", 4: "h5" } as const;
+
+function Report({ view, level }: { view: Analysed; level: 2 | 3 | 4 }) {
   const m = useMessages();
   const locale = useLocale();
   const roleLabel = {
@@ -201,6 +211,7 @@ function Report({ view }: { view: Analysed }) {
     competitor: m.brandReport.roleCompetitor,
   }[view.role];
   const page = <Page>{view.url}</Page>;
+  const AxisHeading = AXIS_HEADING[level];
   return (
     <div className="flex min-w-0 flex-col gap-6" data-report="">
       <div className="flex flex-col gap-3">
@@ -220,7 +231,7 @@ function Report({ view }: { view: Analysed }) {
         </div>
       ) : null}
 
-      <Block title={m.brandReport.coloursHeading} note={m.brandReport.declaredNote}>
+      <Block level={level} title={m.brandReport.coloursHeading} note={m.brandReport.declaredNote}>
         {view.colours.length === 0 ? (
           <p>{m.brandReport.coloursEmpty}</p>
         ) : (
@@ -238,7 +249,7 @@ function Report({ view }: { view: Analysed }) {
         <More total={view.coloursTotal} shown={view.colours.length} />
       </Block>
 
-      <Block title={m.brandReport.fontsHeading} note={m.brandReport.declaredNote}>
+      <Block level={level} title={m.brandReport.fontsHeading} note={m.brandReport.declaredNote}>
         {view.fonts.length === 0 ? (
           <p>{m.brandReport.fontsEmpty}</p>
         ) : (
@@ -256,7 +267,7 @@ function Report({ view }: { view: Analysed }) {
         <More total={view.fontsTotal} shown={view.fonts.length} />
       </Block>
 
-      <Block title={m.brandReport.textHeading} note={m.brandReport.textNote}>
+      <Block level={level} title={m.brandReport.textHeading} note={m.brandReport.textNote}>
         {view.text.length === 0 ? (
           <p>{m.brandReport.textEmpty}</p>
         ) : (
@@ -279,13 +290,13 @@ function Report({ view }: { view: Analysed }) {
         )}
       </Block>
 
-      <Block title={m.brandReport.personalityHeading}>
+      <Block level={level} title={m.brandReport.personalityHeading}>
         {view.lines.map((line) => (
           <p key={line}>{m.brandReport.engine[line]}</p>
         ))}
         {view.personality.map((axis) => (
           <div key={axis.axis} className="flex min-w-0 flex-col gap-2">
-            <h3 className="text-label-md">{m.direction.axes[axis.axis]}</h3>
+            <AxisHeading className="text-label-md">{m.direction.axes[axis.axis]}</AxisHeading>
             {axis.leans.length === 0 ? (
               <p>{m.brandReport.noSignal}</p>
             ) : (
@@ -313,7 +324,7 @@ function Report({ view }: { view: Analysed }) {
         ))}
       </Block>
 
-      <Block title={m.brandReport.notMeasuredHeading}>
+      <Block level={level} title={m.brandReport.notMeasuredHeading}>
         <ul className="flex flex-col gap-2">
           {view.notMeasured.map((entry) => (
             <li key={entry.what}>
@@ -355,12 +366,16 @@ function outcomeOf(view: ReportView | null | undefined, m: ReturnType<typeof use
   return { danger: null, status: null };
 }
 
+/** The report sections sit one level under the page title. */
+const SECTION_LEVEL = { 1: 2, 2: 3, 3: 4 } as const;
+
 export function BrandReportScreen({
   access,
   signInHref = "/account",
   view,
   pending = false,
   failure,
+  headingLevel = 1,
   onRead,
 }: BrandReportScreenProps) {
   const m = useMessages();
@@ -384,7 +399,7 @@ export function BrandReportScreen({
 
   return (
     <div className="@container mx-auto flex w-full min-w-0 max-w-3xl flex-col gap-6 p-6 wrap-anywhere">
-      <PageHeader title={m.brandReport.heading} />
+      <PageHeader level={headingLevel} title={m.brandReport.heading} />
       {access === "signed-out" ? (
         <>
           <p>{m.brandReport.signedOut}</p>
@@ -453,7 +468,9 @@ export function BrandReportScreen({
           <div role="status" className="flex flex-col gap-3">
             {outcome.status}
           </div>
-          {view?.status === "analysed" ? <Report view={view} /> : null}
+          {view?.status === "analysed" ? (
+            <Report view={view} level={SECTION_LEVEL[headingLevel]} />
+          ) : null}
         </>
       ) : null}
     </div>

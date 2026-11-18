@@ -283,6 +283,55 @@ describe("website forms", () => {
     expect(websiteOf(bare(2049)).ok).toBe(false);
   });
 
+  it("counts the parser's href, not the raw text: percent-encoding can make it longer", () => {
+    // 300 Thai letters are 2,720 characters of href, from 320 characters of raw text.
+    const raw = `example.com/${"ก".repeat(300)}`;
+    expect(raw.length).toBeLessThan(2048);
+    expect(websiteOf(raw).ok).toBe(false);
+    expect(problems({ ...BASE, website: raw })).toEqual([{ field: "website", kind: "website" }]);
+    // A space in the path is %20 in the href: three characters for one.
+    const spaced = `example.com/${"a ".repeat(700)}`;
+    expect(websiteOf(spaced).ok).toBe(false);
+    // At the bound: 225 Thai letters (9 characters each) and 3 more make a 2,048 character href.
+    const edge = (extra: number) => `example.com/${"ก".repeat(225)}${"a".repeat(extra)}`;
+    const kept = websiteOf(edge(3));
+    expect(kept.ok && kept.href?.length).toBe(2048);
+    expect(websiteOf(edge(4)).ok).toBe(false);
+  });
+
+  it("still refuses text over 2,048 characters whose href is shorter (the default port is dropped)", () => {
+    const text = `https://example.com:443/${"a".repeat(2049 - "https://example.com:443/".length)}`;
+    expect(text.length).toBe(2049);
+    expect(new URL(text).href.length).toBeLessThanOrEqual(2048);
+    expect(websiteOf(text).ok).toBe(false);
+  });
+
+  it("keeps only a website the stored form parses", () => {
+    const inputs = [
+      "example.com",
+      "  https://clinic.example/  ",
+      "http://example.com/a",
+      "example.com/ร้านกาแฟ",
+      "example.com/a b",
+      `example.com/${"ก".repeat(225)}aaa`,
+      `example.com/${"ก".repeat(225)}aaaa`,
+      `example.com/${"ก".repeat(300)}`,
+      `example.com/${"a ".repeat(700)}`,
+      `https://example.com/${"a".repeat(2028)}`,
+      `https://example.com/${"a".repeat(2029)}`,
+    ];
+    let kept = 0;
+    for (const website of inputs) {
+      const r = checkIntake({ ...BASE, website });
+      if (!r.ok) continue;
+      kept += 1;
+      const stored: Record<string, unknown> = { version: "intake-1", ...r.intake };
+      delete stored.projectName;
+      expect(storedIntakeSchema.safeParse(stored).success).toBe(true);
+    }
+    expect(kept).toBe(7);
+  });
+
   it("refuses text the URL parser cannot read", () => {
     expect(show("http://")).toBe("refused");
     expect(show("exa mple.com")).toBe("refused");

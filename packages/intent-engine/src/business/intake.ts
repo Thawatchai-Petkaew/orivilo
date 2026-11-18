@@ -137,8 +137,8 @@ const NUL = "\u0000";
 
 /**
  * `website-input-1`: trim; empty is not given (`href` null); put `https://` in front when there is
- * no scheme; keep the parser's `href` only for http or https, within 2,048 characters, with no
- * credentials. Nothing is fetched.
+ * no scheme; keep the parser's `href` only for http or https, with no credentials, and only when
+ * both the text with its scheme and the `href` are within 2,048 characters. Nothing is fetched.
  */
 export function websiteOf(text: string): WebsiteResult {
   const trimmed = text.trim();
@@ -153,6 +153,8 @@ export function websiteOf(text: string): WebsiteResult {
   }
   if (url.protocol !== "http:" && url.protocol !== "https:") return { ok: false };
   if (url.username !== "" || url.password !== "") return { ok: false };
+  // The parser can make the address longer (percent-encoding), so the kept form is counted too.
+  if (url.href.length > URL_MAX_CHARS) return { ok: false };
   return { ok: true, href: url.href };
 }
 

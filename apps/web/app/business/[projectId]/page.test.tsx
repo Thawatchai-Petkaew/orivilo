@@ -117,23 +117,29 @@ describe("the route", () => {
   });
 });
 
-// Row 14 at the page (slice 1): the name as the one h1, the lede, the date, five node views.
+// Rows 14 and 22 at the page (slice 2): the name as the one h1, the lede, the date, then the present
+// board under the lede and no stacked node views. The viewer and the node views are the design
+// system's stories; here the page proves what it hands the screen and where the board sits.
 describe.each(["en", "th"] as const)("/business/[projectId] in %s", (locale) => {
-  it("shows the saved project: the name, the lede, the date and the five node views", async () => {
+  it("shows the saved project: the name, the lede, the date and the board under the lede", async () => {
     const html = await render(locale, MINE);
     const m = messagesFor(locale).business;
     expect(html.match(/<h1[^>]*>/g)).toHaveLength(1);
     expect(html).toContain("ร้านกาแฟคั่วเอง");
     expect(text(html)).toContain(m.board.lede);
     expect(text(html)).toMatch(locale === "th" ? /บันทึกเมื่อ .*2569/ : /Saved .*Nov 18, 2026/);
-    expect([...html.matchAll(/data-node="([^"]+)"/g)].map((x) => x[1])).toEqual([
-      "situation",
-      "business-core",
-      "audience",
-      "competitive-frame",
-      "positioning",
-    ]);
-    expect(html).toContain("ขายกาแฟคั่วสด");
+    // The board: one present region named by the catalog, after the lede, in the one main.
+    const region = html.match(/<section[^>]*class="ds-board[^"]*"[^>]*>/g) ?? [];
+    expect(region).toHaveLength(1);
+    expect(region[0]).toContain('data-variant="present"');
+    expect(region[0]).toContain(`aria-label="${m.board.label}"`);
+    expect(html.indexOf(m.board.lede)).toBeGreaterThan(-1);
+    expect(html.indexOf(m.board.lede)).toBeLessThan(html.indexOf('class="ds-board'));
+    expect(html).toContain("ds-board__mode");
+    expect(html).toContain(messagesFor(locale).board.readOnly);
+    // The stacked node views of slice 1 are gone: no view, no answer text, until a node is opened.
+    expect(html).not.toContain("data-node=");
+    expect(html).not.toContain("ขายกาแฟคั่วสด");
     expect(html.match(/<main[\s>]/g)).toHaveLength(1);
     expect(state.asked).toEqual([MINE]);
   });
