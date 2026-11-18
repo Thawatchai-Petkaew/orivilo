@@ -4,6 +4,7 @@ import * as schema from "@orivilo/db";
 import { betterAuth, type BetterAuthPlugin } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { oAuthProxy, organization as organizationPlugin } from "better-auth/plugins";
+import { pickBaseURL } from "./configured-address.ts";
 import { createRateLimiter, type RateLimitDeps } from "./rate-limit.ts";
 import { randomUUID } from "node:crypto";
 
@@ -96,17 +97,10 @@ export type Auth = ReturnType<typeof createAuth>;
 
 /** Settings from the environment; names a missing variable, never prints a value. */
 export function settingsFromEnv(db: Db, env: Record<string, string | undefined> = process.env) {
-  const vercel = env["VERCEL_URL"] && `https://${env["VERCEL_URL"]}`;
+  // Which origin signs in is decided in `configured-address.ts`, which the request proxy also reads.
+  const baseURL = pickBaseURL(env) || requireEnv("BETTER_AUTH_URL", env);
   const production =
     env["VERCEL_PROJECT_PRODUCTION_URL"] && `https://${env["VERCEL_PROJECT_PRODUCTION_URL"]}`;
-  // A preview signs in on its own origin. Production signs in on the project's domain, never on
-  // the deployment's own URL (`VERCEL_URL`), or the person lands on that URL after signing in.
-  const baseURL =
-    (env["VERCEL_ENV"] === "preview" && vercel) ||
-    env["BETTER_AUTH_URL"] ||
-    (env["VERCEL_ENV"] === "production" && production) ||
-    vercel ||
-    requireEnv("BETTER_AUTH_URL", env);
   return {
     db,
     secret: requireEnv("BETTER_AUTH_SECRET", env),
