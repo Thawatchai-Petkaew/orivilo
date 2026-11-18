@@ -124,6 +124,29 @@ const STATES: readonly {
     status: 200,
     line: (_m, locale) => messagesFor(locale).brandReport.notConfigured,
   },
+  // ORV-281: the three business screens with no database set up. The board's id is any UUID form:
+  // with no auth set up the page answers not-configured before it looks the id up.
+  {
+    route: "/business",
+    state: "not-configured",
+    path: "/business",
+    status: 200,
+    line: (_m, locale) => messagesFor(locale).business.notConfigured,
+  },
+  {
+    route: "/business/new",
+    state: "not-configured",
+    path: "/business/new",
+    status: 200,
+    line: (_m, locale) => messagesFor(locale).business.notConfigured,
+  },
+  {
+    route: "/business/[projectId]",
+    state: "not-configured",
+    path: "/business/11111111-1111-4111-8111-111111111111",
+    status: 200,
+    line: (_m, locale) => messagesFor(locale).business.notConfigured,
+  },
   {
     route: "/account",
     state: "not-configured",

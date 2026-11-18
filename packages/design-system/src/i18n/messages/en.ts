@@ -654,6 +654,98 @@ export const en: Messages = {
       "quality.imageBlurred": "the image is blurred",
     },
   },
+  business: {
+    list: {
+      heading: "Your businesses",
+      new: "Tell us about a business",
+      empty: "No businesses yet. Tell us about one to start your board.",
+    },
+    intake: {
+      heading: "Tell us about your business",
+      lede: "Answer in your own words. Only the first question is required. Leave any other empty and the board shows it as skipped.",
+      projectName: "Project name",
+      industry: "What kind of business is it? A few words is enough.",
+      website: "Your website, if you have one",
+      optional: "Optional",
+      submit: "Save and show the board",
+      pending: "Saving your answers",
+      offerRequired: "Tell us what you sell or offer.",
+      nameRequired: "Give the project a name.",
+      tooLong: "Use {max} characters or fewer.",
+      websiteInvalid: "This is not a web address we can keep. Check it, or leave it empty.",
+    },
+    question: {
+      offer: "What do you sell or offer, and to whom?",
+      bestCustomer: "Describe one customer you would like ten more of.",
+      problem: "What problem were they trying to solve when they found you?",
+      instead: "When a customer does not choose you, who or what do they choose instead?",
+      only: "What does a customer get from you that they cannot get from those alternatives?",
+      why: "Why did you start this? One or two sentences is enough.",
+    },
+    node: {
+      situation: "Situation",
+      businessCore: "Business core",
+      audience: "Audience",
+      competitiveFrame: "Competitive frame",
+      positioning: "Positioning",
+    },
+    field: {
+      industry: "Business type",
+      name: "Business name",
+      website: "Website",
+      offer: "What you offer",
+      why: "Why it exists",
+      customers: "Customers",
+      problem: "Their problem",
+      category: "Category",
+      alternatives: "What customers choose instead",
+      value: "What only you give",
+    },
+    state: {
+      proposed: "Not confirmed yet",
+      skipped: "Skipped for now",
+      empty: "Nothing given yet",
+      gate: "A gate: nothing builds on this until you agree to it.",
+    },
+    stillToAsk: "Still to ask",
+    label: {
+      yourWords: "Your words, placed here by fixed rules. Not read by AI.",
+      aiUnavailable: "AI did not read these answers, so only your own words are shown.",
+      confidence: "Confidence numbers come from fixed rules, not from a test of accuracy.",
+    },
+    reading: {
+      confidence: "Confidence {value}",
+    },
+    industry: {
+      awaitingTaxonomy:
+        "The business type code (TSIC) is not matched yet: ORIVILO does not hold the code list yet.",
+    },
+    website: {
+      notRead: "Kept as an address. Not read in this version.",
+    },
+    competitors: {
+      coloursNotRead: "Competitors' colours are not part of this step.",
+    },
+    board: {
+      lede: "What you told us, placed on the first nodes of your board. Nothing here is confirmed yet.",
+      savedAt: "Saved {date}",
+      label: "Business board",
+    },
+    signedOut: "Sign in to tell us about your business.",
+    signInLink: "Go to sign in",
+    notAllowed:
+      "This is open only to approved accounts for now, and this account is not one of them.",
+    notConfigured:
+      "Businesses cannot be saved in this environment yet: the database is not set up.",
+    errors: {
+      aiNotConfigured: "AI is not set up in this environment, so only your own words are shown.",
+      aiFailed: "AI could not read your answers, so only your own words are shown.",
+      aiRateLimited:
+        "You have reached the limit for AI readings, so only your own words are shown.",
+      aiSpendCap:
+        "This workspace has used its AI budget for this month, so only your own words are shown.",
+    },
+  },
   orvCanvas: {
     title: "ORIVILO, from brief to product",
     description: "A concept prototype. Read left to right; open a result to page through it.",

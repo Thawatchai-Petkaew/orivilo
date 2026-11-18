@@ -64,4 +64,10 @@ describe("the web catalog", () => {
         "วางที่อยู่เว็บไซต์ แล้วดูสิ่งที่หน้านั้นประกาศและเขียนไว้ อ่านตามกฎ ยังไม่ใช้ AI",
     });
   });
+
+  // ORV-281 "Strings": the one key the story places in this catalog, word for word.
+  it("carries home.openBusiness of ORV-281 'Strings'", () => {
+    expect(webMessages.en.home.openBusiness).toBe("Your businesses");
+    expect(webMessages.th.home.openBusiness).toBe("ธุรกิจของคุณ");
+  });
 });

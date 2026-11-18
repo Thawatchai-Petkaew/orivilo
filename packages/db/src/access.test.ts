@@ -1,7 +1,14 @@
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { inWorkspace } from "./client.ts";
-import { aiUsage, organization, project, rateLimitCounter, TENANT_TABLES } from "./schema/index.ts";
+import {
+  aiUsage,
+  businessIntake,
+  organization,
+  project,
+  rateLimitCounter,
+  TENANT_TABLES,
+} from "./schema/index.ts";
 import { createTestDatabase, HAS_TEST_DATABASE, type TestDatabase } from "./testing/database.ts";
 
 // ORV-38 AC 5 and 6: the second wall. Even if code skipped the authorization helper, the app
@@ -182,6 +189,152 @@ describe.runIf(HAS_TEST_DATABASE)("orivilo_app and row security", () => {
       await t.app.delete(organization).where(eq(organization.id, "ws-c"));
       const left = await t.admin.select().from(aiUsage).where(eq(aiUsage.workspaceId, "ws-c"));
       expect(left).toEqual([]);
+    });
+  });
+  // ORV-281 rows 9, 13 and 17: what a person told ORIVILO about their business is workspace data.
+  // The app role adds and reads the rows of the workspace it is scoped to, and can neither change
+  // nor delete one; the database holds the same bounds as the engine's intake check.
+  describe("business_intake", () => {
+    const answers = (id: string, workspaceId: string, projectId: string) => ({
+      id,
+      workspaceId,
+      projectId,
+      version: "intake-1",
+      idea: "ร้านกาแฟคั่วเอง",
+      createdBy: "u-1",
+    });
+
+    beforeAll(async () => {
+      await t.admin
+        .insert(businessIntake)
+        .values([answers("bi-a", "ws-a", "p-a"), answers("bi-b", "ws-b", "p-b")]);
+    });
+
+    // drizzle wraps the driver error; the cause carries Postgres' error code.
+    const failsWithCode = async (run: Promise<unknown>, code: string) => {
+      const error = await run.then(
+        () => null,
+        (e: unknown) => e,
+      );
+      expect((error as { cause?: { code?: string } } | null)?.cause?.code).toBe(code);
+    };
+
+    it("shows a scoped transaction only its own workspace's rows", async () => {
+      const rows = await inWorkspace(t.app, "ws-a", (tx) => tx.select().from(businessIntake));
+      expect(rows.map((r) => r.id)).toEqual(["bi-a"]);
+      const other = await inWorkspace(t.app, "ws-a", (tx) =>
+        tx.select().from(businessIntake).where(eq(businessIntake.workspaceId, "ws-b")),
+      );
+      expect(other).toEqual([]);
+      expect(await t.app.select().from(businessIntake)).toEqual([]);
+    });
+
+    it("inserts for the scoped workspace and refuses an insert for another", async () => {
+      await inWorkspace(t.app, "ws-a", (tx) =>
+        tx.insert(businessIntake).values({ ...answers("bi-a2", "ws-a", "p-a"), website: null }),
+      );
+      await expect(
+        inWorkspace(t.app, "ws-a", (tx) =>
+          tx.insert(businessIntake).values(answers("bi-x", "ws-b", "p-b")),
+        ),
+      ).rejects.toThrow();
+    });
+
+    it("refuses an intake whose project sits in another workspace", async () => {
+      // The owner role skips row security, so only the composite foreign key can refuse this.
+      await failsWithCode(
+        t.admin.insert(businessIntake).values(answers("bi-cross", "ws-a", "p-b")),
+        "23503",
+      );
+    });
+
+    it.each([
+      ["a version other than intake-1", { version: "intake-2" }],
+      ["an empty idea", { idea: "" }],
+      ["an idea past 2,000 characters", { idea: "ก".repeat(2001) }],
+      ["an empty industry", { industry: "" }],
+      ["an industry past 2,000 characters", { industry: "x".repeat(2001) }],
+      ["a customers answer past 2,000 characters", { customers: "x".repeat(2001) }],
+      ["a problem past 2,000 characters", { problem: "x".repeat(2001) }],
+      ["a competitors answer past 2,000 characters", { competitors: "x".repeat(2001) }],
+      ["a value answer past 2,000 characters", { value: "x".repeat(2001) }],
+      ["an empty website", { website: "" }],
+      ["a website past 2,048 characters", { website: "https://a.example/" + "x".repeat(2031) }],
+    ])("refuses %s", async (_, change) => {
+      await failsWithCode(
+        t.admin.insert(businessIntake).values({ ...answers("bi-bad", "ws-a", "p-a"), ...change }),
+        "23514",
+      );
+    });
+
+    it("keeps an idea of 2,000 characters and a website of 2,048", async () => {
+      await t.admin.insert(businessIntake).values({
+        ...answers("bi-max", "ws-a", "p-a"),
+        idea: "ก".repeat(2000),
+        website: "https://a.example/" + "x".repeat(2030),
+      });
+      const [row] = await t.admin
+        .select()
+        .from(businessIntake)
+        .where(eq(businessIntake.id, "bi-max"));
+      expect([row?.idea.length, row?.website?.length]).toEqual([2000, 2048]);
+    });
+
+    it("refuses a project name of no characters or of more than 120", async () => {
+      await failsWithCode(
+        t.admin.insert(project).values({ id: "p-empty", workspaceId: "ws-a", name: "" }),
+        "23514",
+      );
+      await failsWithCode(
+        t.admin
+          .insert(project)
+          .values({ id: "p-long", workspaceId: "ws-a", name: "ก".repeat(121) }),
+        "23514",
+      );
+      await t.admin
+        .insert(project)
+        .values({ id: "p-120", workspaceId: "ws-a", name: "ก".repeat(120) });
+    });
+
+    it("business rows never change: refuses an update and a delete, even in its own workspace", async () => {
+      await failsWithCode(
+        inWorkspace(t.app, "ws-a", (tx) =>
+          tx.update(businessIntake).set({ idea: "changed" }).where(eq(businessIntake.id, "bi-a")),
+        ),
+        "42501",
+      );
+      await failsWithCode(
+        inWorkspace(t.app, "ws-a", (tx) =>
+          tx.delete(businessIntake).where(eq(businessIntake.id, "bi-a")),
+        ),
+        "42501",
+      );
+      const kept = await t.admin.select().from(businessIntake).where(eq(businessIntake.id, "bi-a"));
+      expect(kept.map((r) => r.idea)).toEqual(["ร้านกาแฟคั่วเอง"]);
+    });
+
+    it("has row security on and only the owner and the app role as grantees", async () => {
+      const on = await t.admin.execute<{ relrowsecurity: boolean }>(
+        sql`select relrowsecurity from pg_class where relname = 'business_intake'`,
+      );
+      expect([...on].map((r) => r.relrowsecurity)).toEqual([true]);
+      const grants = await t.admin.execute<{ grantee: string; privilege_type: string }>(
+        sql`select grantee, privilege_type from information_schema.role_table_grants
+            where table_name = 'business_intake' and table_schema = 'public'
+              and grantee <> current_user`,
+      );
+      const rows = [...grants];
+      expect([...new Set(rows.map((r) => r.grantee))]).toEqual(["orivilo_app"]);
+      expect(rows.map((r) => r.privilege_type).sort()).toEqual(["INSERT", "SELECT"]);
+    });
+
+    it("goes away with its project, by the cascade", async () => {
+      await t.admin.insert(project).values({ id: "p-d", workspaceId: "ws-a", name: "D project" });
+      await t.admin.insert(businessIntake).values(answers("bi-d", "ws-a", "p-d"));
+      await t.admin.delete(project).where(eq(project.id, "p-d"));
+      expect(
+        await t.admin.select().from(businessIntake).where(eq(businessIntake.id, "bi-d")),
+      ).toEqual([]);
     });
   });
   // ORV-112 AC 18: the counter table is the app role's to use and nobody else's.

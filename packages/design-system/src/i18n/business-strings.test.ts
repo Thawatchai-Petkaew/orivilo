@@ -1,0 +1,156 @@
+import {
+  BUSINESS_FIELDS,
+  BUSINESS_NODES,
+  INTAKE_FIELDS,
+  PROXY_QUESTIONS,
+} from "@orivilo/intent-engine";
+import { describe, expect, it } from "vitest";
+import { fieldLabel, intakeLabel, nodeTitle, questionText } from "../examples/business-text";
+import { LOCALES } from "./locale";
+import { messagesFor } from "./messages/index";
+
+/**
+ * The business screens (ORV-281, task A5, T20) look the engine's keys up in `business.*`. These
+ * tests hold the catalog to the engine's own words and keys, in both languages: the six
+ * `business.question.*` lines are ORV-126's proxy question copy word for word, every key the engine
+ * names resolves to a string, and the catalog holds the keys of the spec's Strings section and no
+ * other.
+ */
+
+/** Walks a dotted key such as `business.question.offer` down the catalog. */
+function at(catalog: unknown, key: string): unknown {
+  return key.split(".").reduce<unknown>((node, part) => {
+    return typeof node === "object" && node !== null
+      ? (node as Record<string, unknown>)[part]
+      : undefined;
+  }, catalog);
+}
+
+function leafKeys(tree: Record<string, unknown>, prefix = ""): string[] {
+  return Object.entries(tree).flatMap(([key, value]) =>
+    typeof value === "string"
+      ? [`${prefix}${key}`]
+      : leafKeys(value as Record<string, unknown>, `${prefix}${key}.`),
+  );
+}
+
+/** Every `business.*` key of the spec's Strings section, `home.openBusiness` apart (it lives in the app). */
+const SPEC_KEYS = [
+  "business.list.heading",
+  "business.list.new",
+  "business.list.empty",
+  "business.intake.heading",
+  "business.intake.lede",
+  "business.intake.projectName",
+  "business.intake.industry",
+  "business.intake.website",
+  "business.intake.optional",
+  "business.intake.submit",
+  "business.intake.pending",
+  "business.intake.offerRequired",
+  "business.intake.nameRequired",
+  "business.intake.tooLong",
+  "business.intake.websiteInvalid",
+  "business.question.offer",
+  "business.question.bestCustomer",
+  "business.question.problem",
+  "business.question.instead",
+  "business.question.only",
+  "business.question.why",
+  "business.node.situation",
+  "business.node.businessCore",
+  "business.node.audience",
+  "business.node.competitiveFrame",
+  "business.node.positioning",
+  "business.field.industry",
+  "business.field.name",
+  "business.field.website",
+  "business.field.offer",
+  "business.field.why",
+  "business.field.customers",
+  "business.field.problem",
+  "business.field.category",
+  "business.field.alternatives",
+  "business.field.value",
+  "business.state.proposed",
+  "business.state.skipped",
+  "business.state.empty",
+  "business.state.gate",
+  "business.stillToAsk",
+  "business.label.yourWords",
+  "business.label.aiUnavailable",
+  "business.label.confidence",
+  "business.reading.confidence",
+  "business.industry.awaitingTaxonomy",
+  "business.website.notRead",
+  "business.competitors.coloursNotRead",
+  "business.board.lede",
+  "business.board.savedAt",
+  "business.board.label",
+  "business.signedOut",
+  "business.signInLink",
+  "business.notAllowed",
+  "business.notConfigured",
+  "business.errors.aiNotConfigured",
+  "business.errors.aiFailed",
+  "business.errors.aiRateLimited",
+  "business.errors.aiSpendCap",
+];
+
+describe("business catalog", () => {
+  for (const locale of LOCALES) {
+    const m = messagesFor(locale);
+
+    it(`${locale}: holds the keys of the spec's Strings section and no other`, () => {
+      const keys = leafKeys({ business: m.business });
+      expect([...keys].sort()).toEqual([...SPEC_KEYS].sort());
+    });
+
+    it(`${locale}: every business.question line is word for word the ORV-126 proxy question`, () => {
+      const wrong = PROXY_QUESTIONS.filter((q) => at(m, q.key) !== q[locale]).map((q) => q.id);
+      expect(wrong).toEqual([]);
+      // The six questions are the catalog's whole `question` group.
+      expect(Object.keys(m.business.question)).toHaveLength(PROXY_QUESTIONS.length);
+    });
+
+    it(`${locale}: every proxy question id resolves to its own catalog line`, () => {
+      for (const q of PROXY_QUESTIONS) expect(questionText(m, q.id)).toBe(q[locale]);
+    });
+
+    it(`${locale}: every business field label key the engine names resolves to that line`, () => {
+      expect(BUSINESS_FIELDS).toHaveLength(10);
+      for (const f of BUSINESS_FIELDS) {
+        const line = at(m, f.labelKey);
+        expect(typeof line, f.labelKey).toBe("string");
+        expect(fieldLabel(m, f.id)).toBe(line);
+      }
+    });
+
+    it(`${locale}: every intake field label is the catalog line INTAKE_FIELDS names`, () => {
+      expect(INTAKE_FIELDS.map((f) => f.key)).toHaveLength(8);
+      for (const f of INTAKE_FIELDS) {
+        const line = at(m, f.question);
+        expect(typeof line, f.question).toBe("string");
+        expect(intakeLabel(m, f.key)).toBe(line);
+      }
+    });
+
+    it(`${locale}: the five node titles are distinct, in fill order`, () => {
+      const titles = BUSINESS_NODES.map((id) => nodeTitle(m, id));
+      expect(titles).toEqual([
+        m.business.node.situation,
+        m.business.node.businessCore,
+        m.business.node.audience,
+        m.business.node.competitiveFrame,
+        m.business.node.positioning,
+      ]);
+      expect(new Set(titles).size).toBe(5);
+    });
+
+    it(`${locale}: spells the {max}, {date} and {value} slots`, () => {
+      expect(m.business.intake.tooLong).toContain("{max}");
+      expect(m.business.board.savedAt).toContain("{date}");
+      expect(m.business.reading.confidence).toContain("{value}");
+    });
+  }
+});
