@@ -78,6 +78,17 @@ describe("the closed lists", () => {
         "redirects",
         "not-html",
       ],
+      // ORV-283 T41: the eight things that can happen to a business reading, in the spec's order.
+      "business-read": [
+        "read",
+        "refused",
+        "failed",
+        "not-configured",
+        "limited",
+        "spend-cap",
+        "unavailable",
+        "save-failed",
+      ],
     });
     expect(REASONS).toEqual([
       "adapter-failed",
@@ -232,6 +243,10 @@ describe("writeLine", () => {
     ["page-read", "allowed"],
     ["page-read", "ok"],
     ["rate-limit", "read"],
+    ["business-read", "allowed"],
+    ["business-read", "ok"],
+    ["business-read", "not-read"],
+    ["page-read", "save-failed"],
   ])("writes the outcome %s/%s as unknown", (step, outcome) => {
     expect(written({ ...base, step, outcome })["outcome"]).toBe("unknown");
   });

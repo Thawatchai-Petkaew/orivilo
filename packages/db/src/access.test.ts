@@ -4,12 +4,18 @@ import { inWorkspace } from "./client.ts";
 import {
   aiUsage,
   businessIntake,
+  businessReading,
   organization,
   project,
   rateLimitCounter,
   TENANT_TABLES,
 } from "./schema/index.ts";
-import { createTestDatabase, HAS_TEST_DATABASE, type TestDatabase } from "./testing/database.ts";
+import {
+  createTestDatabase,
+  HAS_TEST_DATABASE,
+  TEST_ROLE_LOCK,
+  type TestDatabase,
+} from "./testing/database.ts";
 
 // ORV-38 AC 5 and 6: the second wall. Even if code skipped the authorization helper, the app
 // role sees one workspace's rows at most, and cannot change the schema or escape its role.
@@ -337,6 +343,222 @@ describe.runIf(HAS_TEST_DATABASE)("orivilo_app and row security", () => {
       ).toEqual([]);
     });
   });
+  // ORV-283 (tech notes section 5.2, T9 and T10): the saved reading of an intake is workspace data.
+  // The app role adds and reads the rows of its workspace and can neither change nor delete one;
+  // the database holds the record's shape and the one reading per intake and job.
+  describe("business_reading", () => {
+    const base = (id: string, workspaceId: string, intakeId: string) => ({
+      id,
+      workspaceId,
+      intakeId,
+      job: "business-read",
+      method: "rule-based",
+      reason: "ai-failed",
+      createdBy: "u-1",
+    });
+    const model = {
+      method: "model",
+      reason: null,
+      modelId: "test/model",
+      adapterId: "business-read",
+      adapterVersion: "1",
+      promptVersion: "business-prompt-1",
+    };
+    const intake = (id: string, workspaceId: string, projectId: string) => ({
+      id,
+      workspaceId,
+      projectId,
+      version: "intake-1",
+      idea: "ร้านกาแฟคั่วเอง",
+      createdBy: "u-1",
+    });
+
+    beforeAll(async () => {
+      await t.admin
+        .insert(businessIntake)
+        .values([
+          intake("br-i-a", "ws-a", "p-a"),
+          intake("br-i-a2", "ws-a", "p-a"),
+          intake("br-i-a3", "ws-a", "p-a"),
+          intake("br-i-b", "ws-b", "p-b"),
+        ]);
+      await t.admin
+        .insert(businessReading)
+        .values([base("br-a", "ws-a", "br-i-a"), base("br-b", "ws-b", "br-i-b")]);
+    });
+
+    const failsWithCode = async (run: Promise<unknown>, code: string) => {
+      const error = await run.then(
+        () => null,
+        (e: unknown) => e,
+      );
+      expect((error as { cause?: { code?: string } } | null)?.cause?.code).toBe(code);
+    };
+
+    it("is a tenant table with row security and the workspace policy (T9)", () => {
+      expect(TENANT_TABLES).toContain("business_reading");
+    });
+
+    it("shows a scoped transaction only its own workspace's rows (T9)", async () => {
+      const rows = await inWorkspace(t.app, "ws-a", (tx) => tx.select().from(businessReading));
+      expect(rows.map((r) => r.id)).toEqual(["br-a"]);
+      expect(await t.app.select().from(businessReading)).toEqual([]);
+    });
+
+    it("inserts for the scoped workspace and refuses an insert for another (T9)", async () => {
+      await inWorkspace(t.app, "ws-a", (tx) =>
+        tx.insert(businessReading).values({ ...base("br-a2", "ws-a", "br-i-a2"), ...model }),
+      );
+      // Another job, so that the one-per-job rule cannot be what refuses it: only the policy can.
+      await failsWithCode(
+        inWorkspace(t.app, "ws-a", (tx) =>
+          tx
+            .insert(businessReading)
+            .values({ ...base("br-x", "ws-b", "br-i-b"), job: "other-job" }),
+        ),
+        "42501",
+      );
+    });
+
+    it("refuses a reading whose intake sits in another workspace (T9)", async () => {
+      // The owner role skips row security, so only the composite foreign key can refuse this.
+      await failsWithCode(
+        t.admin
+          .insert(businessReading)
+          .values({ ...base("br-cross", "ws-a", "br-i-b"), job: "cross-job" }),
+        "23503",
+      );
+    });
+
+    it("keeps one reading per intake and job (T40)", async () => {
+      await failsWithCode(
+        t.admin.insert(businessReading).values(base("br-twice", "ws-a", "br-i-a")),
+        "23505",
+      );
+      // Another job on the same intake is another row.
+      await t.admin
+        .insert(businessReading)
+        .values({ ...base("br-job", "ws-a", "br-i-a"), job: "other-job" });
+    });
+
+    it.each([
+      ["an empty job", { job: "" }],
+      ["a job past 40 characters", { job: "j".repeat(41) }],
+      ["a method outside the list", { method: "guess" }],
+      ["a reason outside the list", { reason: "ai-tired" }],
+      ["a model record with a reason", { ...model, reason: "ai-failed" }],
+      ["a model record with no model id", { ...model, modelId: null }],
+      ["a model record with no adapter id", { ...model, adapterId: null }],
+      ["a model record with no adapter version", { ...model, adapterVersion: null }],
+      ["a model record with no prompt version", { ...model, promptVersion: null }],
+      ["an empty model id", { ...model, modelId: "" }],
+      ["a model id past 200 characters", { ...model, modelId: "m".repeat(201) }],
+      ["an adapter id past 40 characters", { ...model, adapterId: "a".repeat(41) }],
+      ["an empty adapter id", { ...model, adapterId: "" }],
+      ["an adapter version past 40 characters", { ...model, adapterVersion: "v".repeat(41) }],
+      ["an empty adapter version", { ...model, adapterVersion: "" }],
+      ["a prompt version past 40 characters", { ...model, promptVersion: "p".repeat(41) }],
+      ["an empty prompt version", { ...model, promptVersion: "" }],
+      [
+        "a rule-based record that has the model's columns and no reason",
+        { ...model, method: "rule-based" },
+      ],
+      ["a rule-based record with evidence", { evidence: [{ id: "x" }] }],
+    ])("refuses %s (T9)", async (_, change) => {
+      await failsWithCode(
+        t.admin.insert(businessReading).values({ ...base("br-bad", "ws-a", "br-i-a3"), ...change }),
+        "23514",
+      );
+    });
+
+    it.each(["ai-not-configured", "ai-failed", "ai-rate-limited", "ai-spend-cap"])(
+      "keeps a rule-based record with the reason %s (T9)",
+      async (reason) => {
+        await t.admin
+          .insert(businessReading)
+          .values({ ...base(`br-${reason}`, "ws-a", "br-i-a2"), job: `reason-${reason}`, reason });
+        const [row] = await t.admin
+          .select()
+          .from(businessReading)
+          .where(eq(businessReading.id, `br-${reason}`));
+        expect(row?.reason).toBe(reason);
+      },
+    );
+
+    it("keeps a model record at the longest bounds and the evidence as it was written (T9)", async () => {
+      const evidence = [{ id: "x", text: "ก".repeat(3) }];
+      await t.admin.insert(businessReading).values({
+        ...base("br-max", "ws-a", "br-i-a3"),
+        ...model,
+        modelId: "m".repeat(200),
+        adapterId: "a".repeat(40),
+        adapterVersion: "v".repeat(40),
+        promptVersion: "p".repeat(40),
+        evidence,
+      });
+      const [row] = await t.admin
+        .select()
+        .from(businessReading)
+        .where(eq(businessReading.id, "br-max"));
+      expect([row?.modelId?.length, row?.evidence]).toEqual([200, evidence]);
+    });
+
+    it("gives a rule-based record an empty evidence list by default (T9)", async () => {
+      const [row] = await t.admin
+        .select()
+        .from(businessReading)
+        .where(eq(businessReading.id, "br-a"));
+      expect(row?.evidence).toEqual([]);
+    });
+
+    it("business rows never change: refuses an update and a delete, even in its own workspace (T10)", async () => {
+      await failsWithCode(
+        inWorkspace(t.app, "ws-a", (tx) =>
+          tx
+            .update(businessReading)
+            .set({ reason: "ai-not-configured" })
+            .where(eq(businessReading.id, "br-a")),
+        ),
+        "42501",
+      );
+      await failsWithCode(
+        inWorkspace(t.app, "ws-a", (tx) =>
+          tx.delete(businessReading).where(eq(businessReading.id, "br-a")),
+        ),
+        "42501",
+      );
+      const kept = await t.admin
+        .select()
+        .from(businessReading)
+        .where(eq(businessReading.id, "br-a"));
+      expect(kept.map((r) => r.reason)).toEqual(["ai-failed"]);
+    });
+
+    it("has row security on and only the owner and the app role as grantees (T9, T10)", async () => {
+      const on = await t.admin.execute<{ relrowsecurity: boolean }>(
+        sql`select relrowsecurity from pg_class where relname = 'business_reading'`,
+      );
+      expect([...on].map((r) => r.relrowsecurity)).toEqual([true]);
+      const grants = await t.admin.execute<{ grantee: string; privilege_type: string }>(
+        sql`select grantee, privilege_type from information_schema.role_table_grants
+            where table_name = 'business_reading' and table_schema = 'public'
+              and grantee <> current_user`,
+      );
+      const rows = [...grants];
+      expect([...new Set(rows.map((r) => r.grantee))]).toEqual(["orivilo_app"]);
+      expect(rows.map((r) => r.privilege_type).sort()).toEqual(["INSERT", "SELECT"]);
+    });
+
+    it("goes away with its intake, by the cascade (T9)", async () => {
+      await t.admin.insert(project).values({ id: "p-r", workspaceId: "ws-a", name: "R project" });
+      await t.admin.insert(businessIntake).values(intake("br-i-r", "ws-a", "p-r"));
+      await t.admin.insert(businessReading).values(base("br-r", "ws-a", "br-i-r"));
+      await t.admin.delete(project).where(eq(project.id, "p-r"));
+      expect(
+        await t.admin.select().from(businessReading).where(eq(businessReading.id, "br-r")),
+      ).toEqual([]);
+    });
+  });
   // ORV-112 AC 18: the counter table is the app role's to use and nobody else's.
   describe("rate_limit_counter", () => {
     it("lets the app role select, insert, update and delete", async () => {
@@ -375,5 +597,58 @@ describe.runIf(HAS_TEST_DATABASE)("orivilo_app and row security", () => {
       expect(names).toContain("orivilo_app");
       expect(names).not.toContain("PUBLIC");
     });
+  });
+});
+
+// ORV-283: a host may grant new tables to PUBLIC and to its own roles by default privileges (Supabase
+// does, to `anon`, `authenticated` and `service_role`). The access migrations of the business tables
+// revoke all of it, so the only grantees of a business table are the owner and the app role.
+describe.runIf(HAS_TEST_DATABASE)("business tables under the host's default privileges", () => {
+  let t: TestDatabase;
+  const HOST_ROLES = ["anon", "authenticated", "service_role"];
+
+  beforeAll(async () => {
+    t = await createTestDatabase({
+      async beforeMigrations(database, cluster) {
+        await cluster.begin(async (tx) => {
+          await tx`select pg_advisory_xact_lock(${TEST_ROLE_LOCK})`;
+          for (const role of HOST_ROLES) {
+            await tx.unsafe(`do $$ begin
+              if not exists (select from pg_roles where rolname = '${role}') then
+                create role ${role} nologin;
+              end if;
+            end $$`);
+          }
+        });
+        await database.unsafe(
+          `alter default privileges in schema public grant all on tables to public, ${HOST_ROLES.join(", ")}`,
+        );
+      },
+    });
+  }, 60_000);
+  afterAll(async () => {
+    await t?.drop();
+  });
+
+  it.each(["business_intake", "business_reading"])(
+    "leaves %s to the owner and the app role only",
+    async (table) => {
+      const grants = await t.admin.execute<{ grantee: string }>(
+        sql`select grantee from information_schema.role_table_grants
+            where table_name = ${table} and table_schema = 'public' and grantee <> current_user`,
+      );
+      expect([...new Set([...grants].map((r) => r.grantee))]).toEqual(["orivilo_app"]);
+    },
+  );
+
+  it("does hand the host's default privileges to a table its migration does not revoke", async () => {
+    // The control: without a revoke, the same defaults reach the table, so the test above can fail.
+    const grants = await t.admin.execute<{ grantee: string }>(
+      sql`select grantee from information_schema.role_table_grants
+          where table_name = 'project' and table_schema = 'public' and grantee <> current_user`,
+    );
+    expect([...new Set([...grants].map((r) => r.grantee))]).toEqual(
+      expect.arrayContaining(["PUBLIC", "anon", "authenticated", "service_role"]),
+    );
   });
 });

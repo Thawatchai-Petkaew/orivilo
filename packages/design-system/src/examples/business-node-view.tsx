@@ -3,20 +3,34 @@
 import {
   BUSINESS_FIELDS,
   type BusinessFieldId,
+  type BusinessFieldReading,
   type BusinessNote,
   type BusinessView,
 } from "@orivilo/intent-engine";
-import { SectionHeader } from "../components/index";
-import { useMessages } from "../i18n/LocaleProvider";
-import type { Messages } from "../i18n/messages/index";
-import { FIELD_NOTE, fieldLabel, nodeTitle, questionText } from "./business-text";
+import { EvidenceList, EvidenceSpan, SectionHeader } from "../components/index";
+import { formatNumber } from "../i18n/format";
+import { useLocale, useMessages } from "../i18n/LocaleProvider";
+import { fill, type Messages } from "../i18n/messages/index";
+import {
+  belowFloorLine,
+  briefItem,
+  FIELD_NOTE,
+  fieldLabel,
+  fromModelNote,
+  nodeTitle,
+  questionText,
+  readingQuotes,
+} from "./business-text";
 
 /**
  * One business node as a reading surface (ORV-281 design section 5, row D1): its state as a line
  * of text under the heading, each field with the person's words and the label that says how they
- * got here, and the questions still to ask. Slice 1 only: no reading, no AI line, no confidence
- * note. Every value from a person is a text node inside `bdi`, `whitespace-pre-wrap` so a line break
- * stays, never HTML and never a link (spec row 16).
+ * got here, what AI read under them, and the questions still to ask. A reading (slice 3) is a
+ * proposal: it says it came from a model with the saved model id, that it is not confirmed, and
+ * its confidence, and a reading below the floor says so before its value. With a result that has no
+ * reading the view says AI did not read, and shows the person's words alone. Every value from a
+ * person or a model is a text node inside `bdi`, `whitespace-pre-wrap` so a line break stays, never
+ * HTML and never a link (spec rows 16 and 33). No badge: a state and a reading are lines of text.
  */
 export type BusinessNodeData = BusinessView["nodes"][number];
 
@@ -24,6 +38,8 @@ export interface BusinessNodeViewProps {
   node: BusinessNodeData;
   /** Slice 1 draws the node's own level 2 heading; a surface that titles the node itself passes false. */
   heading?: boolean | undefined;
+  /** What the saved record says about AI; only `rule-based` adds a line. `none` is slice 1 and 2. */
+  reading?: BusinessView["reading"] | undefined;
 }
 
 /** `audience`, `competitive-frame` and `positioning` show a field with no answer as skipped, the rest as empty. */
@@ -59,8 +75,32 @@ const READING_ONLY: readonly BusinessFieldId[] = BUSINESS_FIELDS.filter(
   (f) => f.source === "reading",
 ).map((f) => f.id);
 
-export function BusinessNodeView({ node, heading = true }: BusinessNodeViewProps) {
+function Readings({ readings }: { readings: BusinessFieldReading[] }) {
   const m = useMessages();
+  const locale = useLocale();
+  return (
+    <ul className="flex flex-col gap-4">
+      {readings.map((r) => (
+        <li key={r.item.id} className="flex min-w-0 flex-col gap-1" data-reading={r.item.id}>
+          {r.belowFloor ? <p className="text-body-sm">{belowFloorLine(m, r)}</p> : null}
+          <EvidenceSpan item={briefItem(r.item)}>
+            <bdi>{r.value}</bdi>
+          </EvidenceSpan>
+          <p className={FIELD_NOTE}>{fromModelNote(locale, r.modelId)}</p>
+          <p className={FIELD_NOTE}>{m.business.state.proposed}</p>
+          <p className={FIELD_NOTE}>
+            {fill(m.business.reading.confidence, { value: formatNumber(r.confidence, locale) })}
+          </p>
+          {r.spans.length > 1 ? <EvidenceList items={readingQuotes(r)} /> : null}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export function BusinessNodeView({ node, heading = true, reading }: BusinessNodeViewProps) {
+  const m = useMessages();
+  const read = node.fields.some((f) => f.readings.length > 0);
   const fallback = SKIPPABLE.includes(node.id) ? m.business.state.skipped : m.business.state.empty;
   /** A reading-only field is a skip only when the whole node is skipped. */
   const emptyOf = (field: BusinessFieldId): string =>
@@ -81,33 +121,50 @@ export function BusinessNodeView({ node, heading = true }: BusinessNodeViewProps
           </div>
         ) : null}
         <div className="flex min-w-0 flex-col gap-6">
-          <p className={FIELD_NOTE} data-node-state={node.state}>
-            {m.business.state[node.state]}
-          </p>
+          <div className="flex flex-col gap-2">
+            <p className={FIELD_NOTE} data-node-state={node.state}>
+              {m.business.state[node.state]}
+            </p>
+            {reading?.status === "rule-based" ? (
+              <p className={FIELD_NOTE} data-ai-line={reading.reason}>
+                {m.business.label.aiUnavailable}
+              </p>
+            ) : null}
+          </div>
           <div className="flex flex-col gap-6">
-            {node.fields.map((f) => (
-              <div key={f.field} className="flex min-w-0 flex-col gap-1" data-field={f.field}>
-                <h3 className="text-label-md">{fieldLabel(m, f.field)}</h3>
-                {f.answer === null ? (
-                  <p className={FIELD_NOTE}>{emptyOf(f.field)}</p>
-                ) : (
-                  <>
-                    <p className="whitespace-pre-wrap">
-                      <bdi>{f.answer.text}</bdi>
-                    </p>
-                    <p className={FIELD_NOTE}>{m.business.label.yourWords}</p>
-                  </>
-                )}
-                {node.notes
-                  .filter((note) => NOTE_AT[note] === f.field)
-                  .map((note) => (
+            {node.fields.map((f) => {
+              const notes = node.notes.filter((note) => NOTE_AT[note] === f.field);
+              return (
+                <div key={f.field} className="flex min-w-0 flex-col gap-1" data-field={f.field}>
+                  <h3 className="text-label-md">{fieldLabel(m, f.field)}</h3>
+                  {f.answer === null ? (
+                    f.readings.length === 0 ? (
+                      <p className={FIELD_NOTE}>{emptyOf(f.field)}</p>
+                    ) : null
+                  ) : (
+                    <>
+                      <p className="whitespace-pre-wrap">
+                        <bdi>{f.answer.text}</bdi>
+                      </p>
+                      <p className={FIELD_NOTE}>{m.business.label.yourWords}</p>
+                    </>
+                  )}
+                  {/* A note belongs to the field, so it comes before the readings (row D7). */}
+                  {notes.map((note) => (
                     <p key={note} className={FIELD_NOTE}>
                       {noteText(m, note)}
                     </p>
                   ))}
-              </div>
-            ))}
+                  {f.readings.length === 0 ? null : (
+                    <div className={f.answer === null && notes.length === 0 ? undefined : "mt-2"}>
+                      <Readings readings={f.readings} />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
+          {read ? <p className={FIELD_NOTE}>{m.business.label.confidence}</p> : null}
         </div>
         {node.stillToAsk.length === 0 ? null : (
           <div className="mt-4 flex min-w-0 flex-col gap-2 @min-[960px]:mt-0">
