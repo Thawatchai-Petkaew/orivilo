@@ -5,6 +5,7 @@ import { useDesignProfile } from "../../boundary/DesignProfileBoundary";
 import { CANVAS_WORDS, PORT_KINDS, portShape } from "../../tokens/canvas";
 import { CanvasBoard, type CanvasBoardProps } from "../canvas-board/CanvasBoard";
 import type { Graph, PortSpec } from "../canvas-board/graph";
+import { expectPortPillsClear } from "../../testing/visual-asserts";
 import { fillHeight, Matrix } from "../matrix";
 import { PortGlyph, type PortState } from "./NodePort";
 
@@ -279,6 +280,10 @@ async function playPresentNames(root: HTMLElement, lang: Lang) {
     for (const pill of pills("p1")) expect(visibility(pill)).toBe("visible");
   });
   for (const pill of pills("p2")) await expect(visibility(pill)).toBe("visible");
+  // The side ports sit 40 apart (ORV-282, D4b): the hovered p1 and the selected p2, two pills on
+  // each side, keep their name pills apart. The cards are 120 apart, so only pill to pill is near.
+  await expect(expectPortPillsClear(node("p1"))).toBe(pills("p1").length);
+  await expect(expectPortPillsClear(node("p2"))).toBe(pills("p2").length);
   // Shown on keyboard focus too (spec row 3): the rest node takes focus and its pills show.
   const rest = node("p0") as HTMLElement;
   await waitFor(() => {

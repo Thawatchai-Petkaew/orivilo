@@ -2824,8 +2824,8 @@
 .ds-board[data-variant="present"] .ds-node:has(.ds-node__port-list > .ds-port:not([data-row])) {
   --_ports: 1;
   min-block-size: calc(
-    2 * var(--cmp-node-radius) + (var(--_ports) - 1) * var(--ds-space-grid-gap) +
-      var(--ds-size-port)
+    2 * var(--cmp-node-radius) + (var(--_ports) - 1) *
+      (var(--ds-space-grid-gap) + var(--ds-size-port)) + var(--ds-size-port)
   );
 }
 .ds-board[data-variant="present"]
@@ -2931,7 +2931,7 @@
 }
 
 /* Ports, present boards (ORV-274): a glyph centred on the card edge, inputs at the start and outputs
- * at the end, on a 24 px pitch (16 glyph plus 8). The name is a pill outside the edge that shows when
+ * at the end, on a 40 px pitch (16 glyph plus 24). The name is a pill outside the edge that shows when
  * the node is hovered, selected or has keyboard focus. A port with a row sits at the middle of it. */
 .ds-board[data-variant="present"] .ds-node__ports {
   position: absolute;
@@ -2947,7 +2947,7 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: calc(var(--ds-space-grid-gap) - var(--ds-size-port));
+  gap: var(--ds-space-grid-gap);
 }
 .ds-board[data-variant="present"] .ds-node__port-list[data-direction="input"] {
   inset-inline-start: calc(var(--ds-size-port) / -2);

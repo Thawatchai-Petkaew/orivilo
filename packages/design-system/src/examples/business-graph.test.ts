@@ -76,9 +76,9 @@ describe.each(["th", "en"] as const)("boardGraphOf in %s", (locale) => {
   it("sets the nodes where the design table puts them", () => {
     expect(graph.nodes.map((n) => [n.id, n.position.x, n.position.y])).toEqual([
       ["situation", 0, 326],
-      ["business-core", 464, 28],
-      ["audience", 464, 340],
-      ["competitive-frame", 464, 652],
+      ["business-core", 456, 28],
+      ["audience", 456, 340],
+      ["competitive-frame", 456, 652],
       ["positioning", 928, 326],
     ]);
     expect(Object.keys(BUSINESS_POSITIONS)).toEqual([...BUSINESS_NODES]);

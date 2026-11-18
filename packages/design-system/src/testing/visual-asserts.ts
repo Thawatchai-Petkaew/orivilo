@@ -1757,3 +1757,57 @@ export function expectPillsClear(board: Element, px = 4) {
   }
   return pills.length;
 }
+
+/** The largest of the four gaps between two rects: negative when they overlap, as in `expectPillsClear`. */
+const rectClearance = (a: DOMRect, b: DOMRect) =>
+  Math.max(b.left - a.right, a.left - b.right, b.top - a.bottom, a.top - b.bottom);
+
+/**
+ * Asserts the drawn port name pills of one board node keep their distance (ORV-282, design row D4):
+ * every pill of `node` (a `.react-flow__node`) is at least `px` world px from the cards (`.ds-node`),
+ * title lines (`.ds-node__label`) and port dots (`.ds-port__handle`) of the board's other nodes, and
+ * at least `between` world px from every other drawn pill of `node`. A pill is drawn when it has a
+ * width, is not `visibility: hidden` and its rect meets the `.react-flow` rect; a hidden pill covers
+ * nothing. The rects are screen pixels, so each bound is scaled by the zoom of
+ * `.react-flow__viewport` (1 with no viewport) and takes 0.5 px of rounding. `between` is 7.5 because
+ * a present card puts its side ports 40 world px apart and a pill is 32.1 tall (7.9 between them).
+ * It reads `getBoundingClientRect` only, no text width. A failure names the pill, the thing it is
+ * near and the clearance. It returns how many pills of `node` were read.
+ */
+export function expectPortPillsClear(node: Element, px = 8, between = 7.5) {
+  const flow = node.closest(".react-flow") ?? node;
+  const board = flow.getBoundingClientRect();
+  const matrix = new DOMMatrix(
+    getComputedStyle(flow.querySelector(".react-flow__viewport") ?? flow).transform,
+  );
+  const zoom = matrix.a;
+  const meets = (r: DOMRect) =>
+    r.left < board.right && r.right > board.left && r.top < board.bottom && r.bottom > board.top;
+  const drawn = (el: HTMLElement) => {
+    const r = el.getBoundingClientRect();
+    return r.width > 0 && getComputedStyle(el).visibility !== "hidden" && meets(r);
+  };
+  const pills = [...node.querySelectorAll<HTMLElement>(".ds-port__label")].filter(drawn);
+  const others = [...flow.querySelectorAll(".react-flow__node")]
+    .filter((n) => n !== node)
+    .flatMap((n) => [...n.querySelectorAll(".ds-node, .ds-node__label, .ds-port__handle")])
+    .filter((o) => o.getBoundingClientRect().width > 0);
+  for (const pill of pills) {
+    const p = pill.getBoundingClientRect();
+    for (const other of others) {
+      const clearance = rectClearance(p, other.getBoundingClientRect());
+      expect(
+        clearance,
+        `the port pill "${pill.textContent}" is ${(clearance / zoom).toFixed(1)} world px from ${label(other)}, expected at least ${px}`,
+      ).toBeGreaterThanOrEqual(px * zoom - 0.5);
+    }
+    for (const neighbour of pills.filter((q) => q !== pill)) {
+      const clearance = rectClearance(p, neighbour.getBoundingClientRect());
+      expect(
+        clearance,
+        `the port pill "${pill.textContent}" is ${(clearance / zoom).toFixed(1)} world px from the pill "${neighbour.textContent}", expected at least ${between}`,
+      ).toBeGreaterThanOrEqual(between * zoom - 0.5);
+    }
+  }
+  return pills.length;
+}

@@ -1,7 +1,7 @@
 ---
 issue: ORV-281 (https://tpetkaew.atlassian.net/browse/ORV-281)
 lane: L (risk flags: auth and data access, a new tenant table set behind the authorization helper; a change to the evidence contract every brand node reads; a new pinned model job with its prompt and answer schema)
-version: 1.1
+version: 1.3
 ---
 
 # ORV-281: business first, the first real stage of the board
@@ -52,7 +52,7 @@ As a founder or product owner who is signed in, I want to tell ORIVILO about my 
 This story builds on those sources and redefines none of their nodes, inputs or analysers. Where it does something they do not, the departure is listed here, once.
 
 <!-- prettier-ignore -->
-| # | Source and what it says | This story | Why |
+| No. | Source and what it says | This story | Why |
 | --- | --- | --- | --- |
 | 1 | ORV-126 "Rules and bounds", State: node states live in memory, nothing is persisted. ORV-128 "Rules and bounds": nothing persisted in the POC. ORV-266 `report-not-kept-1`: nothing from a read is stored | The intake and the reading are saved per project (`business-saved-1`) | Envelope default 3; a business the person cannot come back to is not a first stage |
 | 2 | ORV-126 slices 1 to 4: the graph as data (`BRAND_GRAPH`), the classifier, the sequencer and the propagation rule | None of them is built. The five nodes use ORV-126's ids and `requires` links as fixed data on the board; no node status comes from the propagation rule; `situation` shows no entry group and asks no `situation.start` | No brand graph code exists; this story shows the business stage without waiting on the whole graph. A later slice 1 of ORV-126 takes the same ids |
@@ -75,7 +75,7 @@ What does not depart: a proxy answer is evidence on its node, not its value (ORV
 The intake has eight fields, in this order. Each answer is trimmed; an answer that is empty after the trim is not given. The bound of each business answer is ORV-126's proxy answer bound (ORV-126 "Rules and bounds", Inventory: 1 to 2,000 characters). The project name takes the bound of a saved direction's name, 1 to 120 characters (`directionFileSchema` in `packages/intent-engine/src/saved.ts`).
 
 <!-- prettier-ignore -->
-| # | Field | Brief input | Question key and copy home | Required | Node, field |
+| No. | Field | Brief input | Question key and copy home | Required | Node, field |
 | --- | --- | --- | --- | --- | --- |
 | 1 | Project name | none | `business.intake.projectName` ("Strings") | yes | none: names the project |
 | 2 | Idea | idea | `business.question.offer`, copy of `business-core.proxy.offer` (ORV-126) | yes | `business-core`, `offer` |
@@ -310,11 +310,9 @@ Tests use fixtures, a fake network and recorded model answers; none reaches the 
 
 ## Rows per PR
 
-Replace A, B and C with the PR numbers when each PR opens: the recorder reads digits only.
+This section lists the PR of slice 1 only. Rows 22 to 26 are walked under the slice spec `docs/specs/ORV-282/spec.md` and rows 27 to 35 under `docs/specs/ORV-283/spec.md`, each on its own issue's PR.
 
 - PR 214: rows 1-21
-- PR B: rows 22-26
-- PR C: rows 27-35
 
 ## Rows that render nothing
 
@@ -449,3 +447,5 @@ node -e 'const m={situation:["industry","website"],"business-core":["idea"],audi
 
 - v1 (2026-11-18): first version, from the owner's request on ORV-281, the envelope's four defaults, and a read of the brief, ORV-126 v1.4, ORV-128 v1.27, ORV-266 v1.5, ORV-268, ORV-274 v2.5, ADR 0009, `evidence.ts`, `workspace.ts`, `access.ts` and `rate-limit.ts`. No Jira tool and no shell in this role, so ORV-281 was not read directly and no worked example was run. Downstream to review: the G1 packet (open questions 1 to 13), the architect's and the designer's G2 tasks, the builder envelopes for PRs A, B and C, the `security` envelopes for A and C, the qa envelopes (Rows per PR once the PRs exist).
 - v1.1 (2026-11-18, task ORV-281-spec-v11): six changes, no row added, removed or renumbered. (1) Departure 6 names the alternatives of `competitive-frame` among the new reading targets, with a name for each alternative, because "Impact on contracts" already counted them and the tech notes section 16 read departure 6 that way. (2) `business-read-1` "The job" and row 35 say ADR 0009's addition of 2026-11-18 in place of its table, because the job row sits in that addition and a decided ADR's table is never rewritten. (3) "Strings" gains `business.signInLink` and "Screens" names it on the signed-out state, because the sign-in link had no key (design section 10). (4) "Strings" gains `business.board.label`, because `CanvasBoard` requires a `label` as the board region's accessible name (design section 10). (5) Slice 2 records one additive change to the shared `CanvasNode` ("Impact on contracts", UI, and row 23): `NodeContent.open`'s `count` becomes optional and a business node opens with no page count, because a business node opens one view and a page count would be a false label (design N1 option (a), ORV-281 comment 10673). (6) "Rows per PR" names PR 214 for rows 1-21, because the slice 1 PR takes that number. Downstream to review: the tech notes sections 9 and 14 ("No shared component changes" now has one exception in slice 2), the design section 11 (N1 decided), the builder envelopes for PR A and PR B, the qa envelope for PR 214.
+- v1.2 (2026-11-18, task ORV-281-spec-rows-fix): "Rows per PR" keeps one list line, `PR 214: rows 1-21`, and drops the placeholder lines for PR B and PR C, because the qa result recorder refused the record of PR 214 with "malformed line" on both (qa finding QA1-1 of task ORV-281-pr214-qa-1). A prose sentence above the list says rows 22 to 26 are walked under `docs/specs/ORV-282/spec.md` and rows 27 to 35 under `docs/specs/ORV-283/spec.md`, each on its own issue's PR. No acceptance row, rule or string changed. Downstream to review: the qa envelope for PR 214, and the qa envelopes of the ORV-282 and ORV-283 PRs (they read their slice spec's rows).
+- v1.3 (2026-11-18, task ORV-281-spec-table-fix): the first header cell of the Departures table and of the `intake-fields-1` table changes from `#` to `No.`, so the acceptance table is the first table whose header starts with a `#` cell, because the qa result recorder took the Departures table as the acceptance table, read its rows 1 to 11 and refused the qa record of PR 214 (qa finding QA-1 of task ORV-281-pr214-qa-2). No other cell, row, rule or string changed, and text that names a departure or an intake field by number keeps its number. Downstream to review: the qa envelope for PR 214.

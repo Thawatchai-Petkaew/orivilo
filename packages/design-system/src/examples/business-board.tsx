@@ -150,7 +150,10 @@ function ReadyBoard({ view, listHref }: { view: BusinessView; listHref: string }
           >
             <div ref={viewer} className="flex min-h-0 flex-1 flex-col">
               <ScrollArea label={nodeTitle(m, opened.id)} className="min-h-0 flex-1">
-                <BusinessNodeView node={opened} heading={false} reading={view.reading} />
+                {/* Radix draws the bar over the viewport: leave it room, bar 4 plus 8 (row D3). */}
+                <div className="pe-3">
+                  <BusinessNodeView node={opened} heading={false} reading={view.reading} />
+                </div>
               </ScrollArea>
             </div>
           </DialogContent>
