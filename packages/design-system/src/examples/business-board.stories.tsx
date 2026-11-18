@@ -106,6 +106,19 @@ export const NotConfiguredEnglish: Story = {
   },
 };
 
+/** Row D1: the node's state is a text line carrying `data-node-state`, never a badge. */
+async function expectStateLine(
+  node: HTMLElement,
+  m: Messages,
+  state: BusinessView["nodes"][number]["state"],
+) {
+  await expect(node.querySelector(".ds-badge")).toBeNull();
+  const line = node.querySelector<HTMLElement>("[data-node-state]");
+  await expect(line).not.toBeNull();
+  await expect(line?.getAttribute("data-node-state")).toBe(state);
+  await expect(textOf(line as HTMLElement)).toBe(m.business.state[state]);
+}
+
 // ----- saved (rows 14, 15, 19) -----
 
 async function savedPlay(
@@ -134,11 +147,23 @@ async function savedPlay(
     HTMLElement,
     HTMLElement,
   ];
-  // Every node holds the neutral state word, and a full intake leaves every node not confirmed.
-  for (const node of nodesOf(canvasElement)) {
-    const badge = node.querySelector<HTMLElement>(".ds-badge");
-    await expect(badge?.getAttribute("data-variant")).toBe("neutral");
-    await expect(textOf(badge as HTMLElement)).toBe(m.business.state.proposed);
+  // Every node holds its state as a line of text (design row D1), and a full intake leaves every
+  // node not confirmed. The ink sits on the heading's start edge, 8 px under the header block.
+  for (const [i, node] of nodesOf(canvasElement).entries()) {
+    const shown = view.nodes[i]?.state;
+    await expect(shown).toBe("proposed");
+    await expectStateLine(node, m, shown as BusinessView["nodes"][number]["state"]);
+    const line = node.querySelector<HTMLElement>("[data-node-state]") as HTMLElement;
+    const heading = node.querySelector<HTMLElement>("h2") as HTMLElement;
+    const header = node.querySelector<HTMLElement>(".ds-section-header") as HTMLElement;
+    const ink = document.createRange();
+    ink.selectNodeContents(line);
+    await expect(
+      Math.abs(ink.getBoundingClientRect().left - heading.getBoundingClientRect().left),
+    ).toBeLessThanOrEqual(1);
+    await expect(
+      Math.abs(line.getBoundingClientRect().top - header.getBoundingClientRect().bottom - 8),
+    ).toBeLessThanOrEqual(1);
   }
   // Row 15: Situation, Competitive frame and Positioning carry their labels, and no address is a link.
   await expect(textOf(fieldOf(situation, "situation.industry"))).toContain(
@@ -239,14 +264,10 @@ async function skippedPlay(canvasElement: HTMLElement, m: Messages) {
     HTMLElement,
     HTMLElement,
   ];
-  const state = (node: HTMLElement) => textOf(node.querySelector(".ds-badge") as HTMLElement);
-  await expect([situation, core, audience, frame, positioning].map(state)).toEqual([
-    m.business.state.empty,
-    m.business.state.proposed,
-    m.business.state.skipped,
-    m.business.state.skipped,
-    m.business.state.skipped,
-  ]);
+  const expected = ["empty", "proposed", "skipped", "skipped", "skipped"] as const;
+  for (const [i, node] of [situation, core, audience, frame, positioning].entries()) {
+    await expectStateLine(node, m, expected[i] as (typeof expected)[number]);
+  }
   // Their fields say skipped, and Positioning keeps its gate line.
   for (const node of [audience, frame, positioning]) {
     for (const field of node.querySelectorAll("[data-field]")) {

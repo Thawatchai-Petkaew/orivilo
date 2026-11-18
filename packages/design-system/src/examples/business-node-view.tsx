@@ -6,17 +6,17 @@ import {
   type BusinessNote,
   type BusinessView,
 } from "@orivilo/intent-engine";
-import { Badge, SectionHeader } from "../components/index";
+import { SectionHeader } from "../components/index";
 import { useMessages } from "../i18n/LocaleProvider";
 import type { Messages } from "../i18n/messages/index";
 import { FIELD_NOTE, fieldLabel, nodeTitle, questionText } from "./business-text";
 
 /**
- * One business node as a reading surface (ORV-281 design section 5): its state as a neutral word,
- * each field with the person's words and the label that says how they got here, and the questions
- * still to ask. Slice 1 only: no reading, no AI line, no confidence note. Every value from a person
- * is a text node inside `bdi`, `whitespace-pre-wrap` so a line break stays, never HTML and never a
- * link (spec row 16).
+ * One business node as a reading surface (ORV-281 design section 5, row D1): its state as a line
+ * of text under the heading, each field with the person's words and the label that says how they
+ * got here, and the questions still to ask. Slice 1 only: no reading, no AI line, no confidence
+ * note. Every value from a person is a text node inside `bdi`, `whitespace-pre-wrap` so a line break
+ * stays, never HTML and never a link (spec row 16).
  */
 export type BusinessNodeData = BusinessView["nodes"][number];
 
@@ -67,17 +67,17 @@ export function BusinessNodeView({ node, heading = true }: BusinessNodeViewProps
     READING_ONLY.includes(field) && node.state !== "skipped" ? m.business.state.empty : fallback;
   return (
     <div className="@container flex min-w-0 flex-col gap-6" data-node={node.id}>
-      {heading ? (
-        <SectionHeader
-          level={2}
-          title={nodeTitle(m, node.id)}
-          description={node.gate ? m.business.state.gate : undefined}
-        />
-      ) : null}
-      <div>
-        <Badge variant="neutral" size="sm">
+      <div className="flex min-w-0 flex-col gap-2">
+        {heading ? (
+          <SectionHeader
+            level={2}
+            title={nodeTitle(m, node.id)}
+            description={node.gate ? m.business.state.gate : undefined}
+          />
+        ) : null}
+        <p className={FIELD_NOTE} data-node-state={node.state}>
           {m.business.state[node.state]}
-        </Badge>
+        </p>
       </div>
       <div className="flex flex-col gap-6">
         {node.fields.map((f) => (
