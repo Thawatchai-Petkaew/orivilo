@@ -4,6 +4,7 @@ import * as schema from "@orivilo/db";
 import { betterAuth, type BetterAuthPlugin } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { oAuthProxy, organization as organizationPlugin } from "better-auth/plugins";
+import { logBetterAuth } from "./log.ts";
 import { pickBaseURL } from "./configured-address.ts";
 import { createRateLimiter, type RateLimitDeps } from "./rate-limit.ts";
 import { randomUUID } from "node:crypto";
@@ -43,6 +44,9 @@ export function createAuth(settings: AuthSettings) {
     // sign-in page, which says the sign-in did not finish (ORV-286 `signin-failure-1`). Without
     // it a production build sends the person to `/?error=<code>` and the home page says nothing.
     onAPIError: { errorURL: "/account" },
+    // Better Auth's own lines go through the JSON logger, with no argument (ORV-288 `ba-log-1`).
+    // Its default writes the raw request values it was given, such as the provider's `error`.
+    logger: { level: "warn", log: logBetterAuth },
     advanced: { ipAddress: { ipAddressHeaders: ["x-forwarded-for"] } },
     plugins: [
       organizationPlugin(),

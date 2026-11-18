@@ -1,8 +1,10 @@
+import { type BetterAuthOptions } from "better-auth";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   atBoundary,
   BOUNDARY_OUTCOMES,
   endingOfStatus,
+  logBetterAuth,
   logStep,
   REASONS,
   REQUEST_ID_HEADER,
@@ -77,6 +79,15 @@ describe("the closed lists", () => {
         "network",
         "redirects",
         "not-html",
+      ],
+      "better-auth": [
+        "INVALID_CALLBACK_REQUEST",
+        "State not found",
+        "Code not found",
+        "OAuth provider not found",
+        "No callback URL found",
+        "Failed to create verification",
+        "Failed to parse state",
       ],
     });
     expect(REASONS).toEqual([
@@ -561,6 +572,71 @@ describe("logStep", () => {
       requestId: "unknown",
       route: "unknown",
     });
+  });
+});
+
+// ORV-288 ba-log-1 and ba-messages-1: Better Auth's own logger, through the JSON writer.
+describe("Better Auth's logger", () => {
+  // Assigned to the type Better Auth takes, so a signature it would not call fails typecheck.
+  const betterAuthLog: NonNullable<NonNullable<BetterAuthOptions["logger"]>["log"]> = logBetterAuth;
+  // The sentinel is the decoded value of the forged callback query: a line break and a fake line.
+  const SENTINEL = "x\r\nFORGED someone@example.invalid";
+  const everything = () => JSON.stringify(capture.lines.flatMap((l) => l.args));
+
+  it("Better Auth line keeps level and message, never an argument", () => {
+    betterAuthLog("error", "State not found", new Error(SENTINEL), { value: SENTINEL });
+    expect(capture.lines).toHaveLength(1);
+    expect(expectLineShape(first())).toEqual({
+      level: "error",
+      requestId: "unknown",
+      route: "unknown",
+      durationMs: 0,
+      outcome: "State not found",
+      step: "better-auth",
+    });
+    expect(first().stream).toBe("error");
+    for (const forbidden of ["FORGED", "someone@example.invalid", "\\r", "\\n", "\r", "\n"])
+      expect(everything()).not.toContain(forbidden);
+  });
+
+  it("takes the request's id and route from the open context", async () => {
+    await atBoundary({ requestId: ID, route: "api/auth" }, async () => {
+      betterAuthLog("warn", "Code not found", SENTINEL);
+      return { value: 1, ending: { level: "info", outcome: "ok" } };
+    });
+    expect(expectLineShape(first())).toMatchObject({
+      level: "warn",
+      requestId: ID,
+      route: "api/auth",
+      step: "better-auth",
+      outcome: "Code not found",
+    });
+    expect(first().stream).toBe("warn");
+  });
+
+  it("every message of the list is kept", () => {
+    for (const message of STEP_OUTCOMES["better-auth"]) {
+      capture.lines.length = 0;
+      betterAuthLog("error", message);
+      expect(expectLineShape(first())["outcome"]).toBe(message);
+    }
+  });
+
+  it("a message outside the list is unknown", () => {
+    betterAuthLog("warn", "Invalid origin: https://orivilo-alias.example/x");
+    betterAuthLog("error", "state not found");
+    expect(capture.lines).toHaveLength(2);
+    expect(capture.lines.map((l) => expectLineShape(l))).toMatchObject([
+      { level: "warn", outcome: "unknown", step: "better-auth" },
+      { level: "error", outcome: "unknown", step: "better-auth" },
+    ]);
+    expect(everything()).not.toContain("orivilo-alias.example");
+  });
+
+  it("levels below warn write nothing", () => {
+    for (const level of ["info", "debug", "success", "trace"])
+      betterAuthLog(level as "info", "State not found", SENTINEL);
+    expect(capture.lines).toHaveLength(0);
   });
 });
 

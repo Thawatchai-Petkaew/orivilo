@@ -50,6 +50,20 @@ export const STEP_OUTCOMES = {
     "redirects",
     "not-html",
   ],
+  /**
+   * ba-messages-1: the string literals Better Auth 1.7.12 passes to `logger.warn(` or
+   * `logger.error(` in `dist/api/routes/callback.mjs` and `dist/oauth2/state.mjs`. A message built
+   * at run time is not here, and reads `unknown`.
+   */
+  "better-auth": [
+    "INVALID_CALLBACK_REQUEST",
+    "State not found",
+    "Code not found",
+    "OAuth provider not found",
+    "No callback URL found",
+    "Failed to create verification",
+    "Failed to parse state",
+  ],
 } as const;
 export type Step = keyof typeof STEP_OUTCOMES;
 
@@ -224,6 +238,25 @@ export function logStep<S extends Step>(fields: {
     // Outside a request both are undefined, which `writeLine` closes to "unknown".
     requestId: context?.requestId,
     route: context?.route,
+  });
+}
+
+/**
+ * Better Auth's `logger.log` (ba-log-1): one line for a `warn` or an `error`, nothing for any other
+ * level. The message is closed to `STEP_OUTCOMES["better-auth"]` by `writeLine`. It takes no rest
+ * parameter and never reads the arguments Better Auth passes after the message: they hold the
+ * provider's raw `error` value, `Error` objects and other request values.
+ */
+export function logBetterAuth(level: string, message: unknown): void {
+  if (level !== "warn" && level !== "error") return;
+  const context = store().getStore();
+  writeLine({
+    level,
+    requestId: context?.requestId,
+    route: context?.route,
+    durationMs: 0,
+    step: "better-auth",
+    outcome: message,
   });
 }
 
