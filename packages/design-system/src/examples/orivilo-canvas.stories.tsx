@@ -110,10 +110,9 @@ const PRODUCT_NODE_IDS = ["p-base", "p-pat", "p-landing", "p-form", "p-report"];
 /** A live page (`live-only-1`): zero `img` and `picture` in it and at least one `.ds-button`. */
 function expectLivePage(page: Element, name: string) {
   expect(page.querySelectorAll("img, picture"), `${name} has no image`).toHaveLength(0);
-  expect(
-    page.querySelectorAll(".ds-button").length,
-    `${name} has a button`,
-  ).toBeGreaterThanOrEqual(1);
+  expect(page.querySelectorAll(".ds-button").length, `${name} has a button`).toBeGreaterThanOrEqual(
+    1,
+  );
 }
 const boardOf = (root: Element) => {
   const el = root.querySelector<HTMLElement>(".ds-board");
