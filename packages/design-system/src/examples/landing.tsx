@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { Badge, Button, Card, CardTitle } from "../components/index";
 
 /**
@@ -35,23 +36,36 @@ const STEPS = [
   },
 ] as const;
 
+/**
+ * The ids and the `#` anchors come from one `useId()` prefix, so two trees on one page (the canvas
+ * page renders `Landing` as a frame, a tile and a preview) never repeat an id.
+ */
 export function Landing() {
+  const prefix = useId();
+  const ids = {
+    top: `${prefix}-top`,
+    heroTitle: `${prefix}-hero-title`,
+    modules: `${prefix}-modules`,
+    modulesTitle: `${prefix}-modules-title`,
+    how: `${prefix}-how`,
+    howTitle: `${prefix}-how-title`,
+  };
   return (
     <div className="@container flex min-h-dvh w-full flex-col">
       <header className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-4 px-6 py-4">
-        <a href="#top" className="flex items-center gap-2 text-label-md text-text-primary">
+        <a href={`#${ids.top}`} className="flex items-center gap-2 text-label-md text-text-primary">
           <span aria-hidden="true" className="size-2 rounded-check bg-brand-signature" />
           ORIVILO
         </a>
         <nav aria-label="หลัก">
           <ul className="m-0 flex list-none gap-5 p-0 text-body-md">
             <li>
-              <a href="#modules" className="text-text-secondary hover:text-text-primary">
+              <a href={`#${ids.modules}`} className="text-text-secondary hover:text-text-primary">
                 โมดูล
               </a>
             </li>
             <li>
-              <a href="#how" className="text-text-secondary hover:text-text-primary">
+              <a href={`#${ids.how}`} className="text-text-secondary hover:text-text-primary">
                 วิธีทำงาน
               </a>
             </li>
@@ -59,9 +73,9 @@ export function Landing() {
         </nav>
       </header>
 
-      <div id="top" className="mx-auto flex w-full max-w-5xl flex-col gap-16 px-6 py-12">
-        <section aria-labelledby="hero-title" className="flex max-w-3xl flex-col gap-6">
-          <h1 id="hero-title" className="font-display text-display-lg text-balance">
+      <div id={ids.top} className="mx-auto flex w-full max-w-5xl flex-col gap-16 px-6 py-12">
+        <section aria-labelledby={ids.heroTitle} className="flex max-w-3xl flex-col gap-6">
+          <h1 id={ids.heroTitle} className="font-display text-display-lg text-balance">
             จากเจตนาทางธุรกิจ สู่ผลิตภัณฑ์ดิจิทัลที่มีชีวิต
           </h1>
           <p className="max-w-prose text-body-lg text-text-secondary">
@@ -78,8 +92,12 @@ export function Landing() {
           </div>
         </section>
 
-        <section id="modules" aria-labelledby="modules-title" className="flex flex-col gap-6">
-          <h2 id="modules-title" className="text-heading-md text-balance">
+        <section
+          id={ids.modules}
+          aria-labelledby={ids.modulesTitle}
+          className="flex flex-col gap-6"
+        >
+          <h2 id={ids.modulesTitle} className="text-heading-md text-balance">
             หกโมดูล หนึ่งเส้นทาง
           </h2>
           <ul className="m-0 grid list-none gap-4 p-0 @xl:grid-cols-2 @3xl:grid-cols-3">
@@ -92,8 +110,8 @@ export function Landing() {
           </ul>
         </section>
 
-        <section id="how" aria-labelledby="how-title" className="flex flex-col gap-6">
-          <h2 id="how-title" className="text-heading-md text-balance">
+        <section id={ids.how} aria-labelledby={ids.howTitle} className="flex flex-col gap-6">
+          <h2 id={ids.howTitle} className="text-heading-md text-balance">
             ทำงานอย่างไร
           </h2>
           <ol className="m-0 flex max-w-3xl list-decimal flex-col gap-4 ps-6">
