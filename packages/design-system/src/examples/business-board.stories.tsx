@@ -7,7 +7,7 @@ import {
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { Under } from "../components/matrix";
-import { inVitest } from "../testing/visual-asserts";
+import { expectPortPillsClear, inVitest } from "../testing/visual-asserts";
 import { LocaleProvider } from "../i18n/LocaleProvider";
 import { fill, type Messages } from "../i18n/messages/index";
 import { BusinessBoardScreen } from "./business-board";
@@ -298,12 +298,14 @@ async function expectBoard(
   ).toBe("none");
   // Cards clear of the next label at the fit zoom and at the dock's 100 percent.
   await expectCardsClear(canvasElement);
+  await expectPortPills(canvasElement, BUSINESS_NODES);
   await userEvent.click(
     canvasElement.querySelector('[data-command="board.zoom-100"]') as HTMLElement,
   );
   await waitFor(() => expect(zoomOf(canvasElement)).toBeCloseTo(1, 3));
   await expectCardsClear(canvasElement);
   await expectStateAlignment(canvasElement);
+  await expectPortPills(canvasElement, ["positioning"]);
   await userEvent.click(
     canvasElement.querySelector('[data-command="board.zoom-to-fit"]') as HTMLElement,
   );
@@ -312,6 +314,35 @@ async function expectBoard(
   // Nothing can be dragged or connected.
   await expect(canvasElement.querySelectorAll(".react-flow__node.draggable")).toHaveLength(0);
   await expect(canvasElement.querySelectorAll(".react-flow__handle.connectable")).toHaveLength(0);
+}
+
+/**
+ * Row D4: each node, focused in turn (the way `NodePort` `PresentNames` does), shows its port name
+ * pills, and they keep clear of one another and of every other node. Measured at the zoom the board
+ * is at. A pill outside the board's frame is not read, and at zoom 1 the board shows only part of the
+ * world, so `whole` names the nodes whose every pill must be read: all five at the fit zoom, and at
+ * zoom 1 Positioning, the node with three pills on one edge.
+ */
+async function expectPortPills(root: HTMLElement, whole: readonly BusinessNodeId[]) {
+  for (const id of BUSINESS_NODES) {
+    const el = nodeEl(root, id);
+    await waitFor(() => {
+      el.focus({ preventScroll: true });
+      expect(el).toHaveFocus();
+      expect(el.matches(":focus-visible"), `${id} has a keyboard focus`).toBe(true);
+      const pills = [...el.querySelectorAll<HTMLElement>(".ds-port__label")];
+      expect(pills.length).toBeGreaterThan(0);
+      for (const pill of pills) expect(getComputedStyle(pill).visibility).toBe("visible");
+    });
+    await settled(root);
+    const read = expectPortPillsClear(el);
+    if (whole.includes(id)) {
+      await expect(read, `every port pill of ${id} is read`).toBe(
+        el.querySelectorAll(".ds-port__label").length,
+      );
+    }
+    el.blur();
+  }
 }
 
 /** Waits until the viewport stops moving: the same transform on two reads in a row. */
@@ -405,11 +436,21 @@ async function expectTabOrder(canvasElement: HTMLElement) {
     seen.push(active.dataset["id"] ?? "");
   }
   await expect(seen).toEqual([...BUSINESS_NODES]);
+  // Row 25 (R1 of ORV-282-pr216-review-1): Tab goes on to the dock. React Flow's attribution link may
+  // come first, so Tab is pressed until focus is inside the dock, and a broken order fails at the bound.
   const dock = canvasElement.querySelector(".ds-controls") as HTMLElement;
-  const buttons = [...dock.querySelectorAll<HTMLElement>("button")];
-  await expect(buttons.length).toBeGreaterThan(0);
-  (buttons[0] as HTMLElement).focus();
-  await expect(document.activeElement).toBe(buttons[0]);
+  let reached: HTMLElement | null = null;
+  for (let presses = 0; presses < 6 && reached === null; presses++) {
+    await userEvent.tab();
+    const active = document.activeElement as HTMLElement;
+    if (dock.contains(active)) reached = active;
+  }
+  await expect(
+    reached,
+    "Tab reaches the dock within 6 presses after the five nodes",
+  ).not.toBeNull();
+  await expect((reached as HTMLElement).matches(".ds-controls button")).toBe(true);
+  await expect((reached as HTMLElement).matches(":focus-visible")).toBe(true);
 }
 
 const SAVED_TH = /บันทึกเมื่อ .*2569.*10:15/;
@@ -573,6 +614,36 @@ export const ViewerAt1440: Story = {
   },
 };
 
+/**
+ * Row D3: Radix draws the vertical bar over the viewport, so the view keeps an end gutter of the bar
+ * plus 8. The text's ink is at least 4 from the bar's left edge and the view's box at least 8.
+ */
+async function expectClearOfBar(dialog: HTMLElement, region: HTMLElement) {
+  // Radix mounts the bar after it has measured the overflow.
+  let bar: HTMLElement | null | undefined = null;
+  await waitFor(() => {
+    bar = region.parentElement?.querySelector<HTMLElement>(
+      '.ds-scroll__bar[data-orientation="vertical"]',
+    );
+    expect(bar).not.toBeNull();
+  });
+  const barBox = (bar as unknown as HTMLElement).getBoundingClientRect();
+  await expect(barBox.width).toBeGreaterThan(0);
+  const walker = document.createTreeWalker(region, NodeFilter.SHOW_TEXT);
+  let inked = 0;
+  for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
+    const range = document.createRange();
+    range.selectNodeContents(node);
+    for (const rect of range.getClientRects()) {
+      inked++;
+      await expect(rect.right).toBeLessThanOrEqual(barBox.left - 4 + 0.5);
+    }
+  }
+  await expect(inked).toBeGreaterThan(0);
+  const view = dialog.querySelector<HTMLElement>("[data-node]") as HTMLElement;
+  await expect(view.getBoundingClientRect().right).toBeLessThanOrEqual(barBox.left - 8 + 0.5);
+}
+
 /** At 360 by 760 the view is one column, the long answers scroll in the region, nothing runs sideways. */
 export const ViewerAt360: Story = {
   args: { view: NARROW_VIEW },
@@ -591,6 +662,8 @@ export const ViewerAt360: Story = {
         await expect(region.tabIndex).toBe(0);
         region.scrollTop = 40;
         await expect(region.scrollTop).toBeGreaterThan(0);
+        region.scrollTop = 0;
+        await expectClearOfBar(dialog, region);
       });
       await viewerAt(canvasElement, th, "business-core", async ({ fields, asked }) => {
         await expect(asked).not.toBeNull();

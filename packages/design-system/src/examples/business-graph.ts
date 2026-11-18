@@ -7,16 +7,16 @@ import { nodeTitle } from "./business-text";
  * The business nodes as a present board (ORV-281 design section 6.3, ORV-282 slice 2). A pure
  * function of the view and the catalog: five `CanvasNode`s in ORV-126's fill order, which is the
  * Tab order, and the six edges the engine's `BUSINESS_EDGES` names. Positions are a fixed table:
- * the columns are 144 apart and the column-2 pitch is 312, so a card's label and the next card
+ * the columns are 136 and 152 apart and the column-2 pitch is 312, so a card's label and the next card
  * never meet at any zoom the board allows. Nothing is saved on the board and nothing moves.
  */
 
 /** Where each node sits, in board pixels (design 6.3): `situation` and `positioning` centre on `audience`. */
 export const BUSINESS_POSITIONS: Record<BusinessNodeId, { x: number; y: number }> = {
   situation: { x: 0, y: 326 },
-  "business-core": { x: 464, y: 28 },
-  audience: { x: 464, y: 340 },
-  "competitive-frame": { x: 464, y: 652 },
+  "business-core": { x: 456, y: 28 },
+  audience: { x: 456, y: 340 },
+  "competitive-frame": { x: 456, y: 652 },
   positioning: { x: 928, y: 326 },
 };
 
