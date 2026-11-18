@@ -34,7 +34,19 @@ const withDatabase = (url: string, name: string) => {
   return u;
 };
 
-export async function createTestDatabase(): Promise<TestDatabase> {
+export interface TestDatabaseOptions {
+  /**
+   * Runs as the owner role on the new, empty database before the migrations, with the server's
+   * superuser client for the cluster-wide statements (roles). A test uses it to put the host's
+   * default privileges in place, as Supabase does, so a migration's revokes are exercised.
+   */
+  beforeMigrations?: (database: postgres.Sql, cluster: postgres.Sql) => Promise<void>;
+}
+
+/** The key a hook locks on when it creates a role, as `createTestDatabase` does for `orivilo_app`. */
+export const TEST_ROLE_LOCK = ROLE_LOCK;
+
+export async function createTestDatabase(options: TestDatabaseOptions = {}): Promise<TestDatabase> {
   if (!TEST_DATABASE_URL) throw new Error("TEST_DATABASE_URL is not set");
   const name = `orivilo_test_${randomBytes(4).toString("hex")}`;
   const root = postgres(TEST_DATABASE_URL, { max: 1, onnotice: () => {} });
@@ -52,6 +64,14 @@ export async function createTestDatabase(): Promise<TestDatabase> {
       end if;
     end $$`);
   });
+  if (options.beforeMigrations) {
+    const database = postgres(adminUrl, { max: 1, onnotice: () => {} });
+    try {
+      await options.beforeMigrations(database, root);
+    } finally {
+      await database.end();
+    }
+  }
   await runMigrations(adminUrl);
   // The role is shared by every test database on the server, and test files run in parallel, so
   // every run sets the same test-only password, one at a time: two concurrent ALTER ROLE

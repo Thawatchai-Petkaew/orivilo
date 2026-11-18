@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { InputEvidence } from "./evidence";
+import { EVIDENCE_SCHEMA_VERSION, type InputEvidence } from "./evidence";
 import { EVIDENCE_STRINGS } from "./evidence-strings";
 import { PERSONALITY_AXES } from "./knowledge";
 import type { ReadResult } from "./read-page";
@@ -101,7 +101,7 @@ function item(
   },
 ): InputEvidence {
   return {
-    schemaVersion: "1.0",
+    schemaVersion: EVIDENCE_SCHEMA_VERSION,
     id: n.toString(16).padStart(8, "0"),
     analyser: { id: "website-url", version: "1" },
     inputKind: "website-url",

@@ -15,6 +15,8 @@ export const AI_MODELS = {
   see: "google/gemini-4-argon",
   "logo-vector": "anthropic/claude-opus-5.5",
   "logo-image": "google/gemini-nano-banana-2.1",
+  // ORV-281, ADR 0009 addition of 2026-11-18: read only by `business/read.ts`.
+  "business-read": "anthropic/claude-sonnet-5.5",
 } as const;
 export type AiJob = keyof typeof AI_MODELS;
 

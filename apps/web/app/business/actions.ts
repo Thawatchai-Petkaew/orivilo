@@ -15,12 +15,14 @@ import { checkIntake, type IntakeProblem } from "@orivilo/intent-engine";
 import { headers } from "next/headers";
 import { accessDeps, auth } from "../../server/auth";
 import { limiter, subjectFromHeaders } from "../../server/rate-limit";
+import { readSavedIntake } from "../../server/business-read";
 import { mayRead } from "../../server/read-access";
 import type { Failed, Outcome } from "../directions/actions";
 
 /**
- * Saves a business project from the intake (ORV-281 tech notes section 6.1, slice 1): steps 1 to 5
- * of `business-door-1` in one boundary. The order is fixed and nothing is saved before the session,
+ * Saves a business project from the intake (ORV-281 tech notes section 6.1): steps 1 to 5 of
+ * `business-door-1` in one boundary, then (ORV-283) steps 6 to 9, the reading, which cannot fail
+ * the action (`server/business-read.ts`). The order is fixed and nothing is saved before the session,
  * the approved list, the `write` limit and the intake check have passed. The person's answers, the
  * project name and the website never reach a log line or a refusal: the boundary line carries closed
  * words only, and a problem names a field and a kind.
@@ -116,11 +118,15 @@ export async function createProject(
 
       // 5. The save: one project and its intake in the session's active workspace, never one the
       // client names.
+      const workspaceId = session.session.activeOrganizationId ?? "";
       const { projectId } = await businessService(accessDeps()).create(
         h,
-        session.session.activeOrganizationId ?? "",
+        workspaceId,
         checked.intake,
       );
+      // 6 to 9 (ORV-283): the reading. The save above committed, and this never throws, so the
+      // answer stays ok whatever happens to the reading; its outcome is the step line.
+      await readSavedIntake(h, workspaceId, session.user.id, projectId);
       return {
         value: { ok: true, value: { projectId } },
         ending: { level: "info", outcome: "ok" },

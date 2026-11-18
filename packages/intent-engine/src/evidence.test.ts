@@ -13,7 +13,9 @@ import {
 } from "./confidence";
 import {
   EVIDENCE_SCHEMA_VERSION,
+  EVIDENCE_SCHEMA_VERSIONS,
   HYPOTHESIS_RULES,
+  MODEL_JOBS,
   PATH_MAX_CHARS,
   READING_TARGETS,
   RULE_IDS,
@@ -949,5 +951,131 @@ describe("the strings a NotMeasured entry prints (slice 1c, F51)", () => {
       th: "ข้อความที่มองเห็นได้",
       en: "which text is visible",
     });
+  });
+});
+
+// ---------------------------------------------------------------- ORV-283 (ORV-281 tech notes section 7, schema 1.1)
+
+const BUSINESS_MODEL = {
+  job: "business-read",
+  modelId: "anthropic/claude-sonnet-5.5",
+  adapter: { id: "business-read", version: "1" },
+};
+/** A business reading item: a model reading on a text span of an intake answer. */
+const businessItem = (target: string, value: unknown, over: Item = {}) =>
+  modelItem({
+    observation: {
+      kind: target === "situation.name" ? "brand-name" : "text-span",
+      subject: target,
+      quote: "words",
+    },
+    source: src({
+      ref: "intake:i1",
+      locator: { kind: "text", path: "answer.idea", start: 0, end: 5 },
+      renderer: null,
+    }),
+    reading: { target, value, by: "model" },
+    model: BUSINESS_MODEL,
+    ...over,
+  });
+
+const TEXT_TARGETS = [
+  "business-core.offer",
+  "business-core.why",
+  "audience.customers",
+  "audience.problem",
+  "competitive-frame.category",
+] as const;
+
+describe("business targets and their shapes", () => {
+  it("holds the six new targets after the twelve it had, in this order", () => {
+    expect(READING_TARGETS).toHaveLength(18);
+    expect(READING_TARGETS.slice(0, 12)).toEqual([
+      "situation.tsic",
+      "situation.name",
+      "situation.competitors",
+      "identity-frame.personality.playful",
+      "identity-frame.personality.expressive",
+      "identity-frame.personality.structured",
+      "identity-frame.personality.warm",
+      "identity-frame.personality.premium",
+      "look-feel.mood",
+      "color.current",
+      "competitive-frame.lineup-candidate",
+      "reference.asset",
+    ]);
+    expect(READING_TARGETS.slice(12)).toEqual([
+      "business-core.offer",
+      "business-core.why",
+      "audience.customers",
+      "audience.problem",
+      "competitive-frame.category",
+      "competitive-frame.alternatives",
+    ]);
+  });
+
+  it.each(TEXT_TARGETS)("%s takes { text } and refuses { name }", (target) => {
+    expect(failures(businessItem(target, { text: "ขายกาแฟคั่วเอง" }))).toBeNull();
+    expect(failures(businessItem(target, { name: "ขายกาแฟคั่วเอง" }))).toEqual(["reading.value"]);
+  });
+
+  it("competitive-frame.alternatives takes { name } and refuses { text }", () => {
+    const target = "competitive-frame.alternatives";
+    expect(failures(businessItem(target, { name: "Brand X" }))).toBeNull();
+    expect(failures(businessItem(target, { text: "Brand X" }))).toEqual(["reading.value"]);
+  });
+
+  it("situation.name and the other name targets still refuse { text }", () => {
+    expect(failures(businessItem("situation.name", { name: "Café Lanna" }))).toBeNull();
+    expect(failures(businessItem("situation.name", { text: "Café Lanna" }))).toEqual([
+      "reading.value",
+    ]);
+    expect(failures(businessItem("situation.competitors", { text: "x" }))).toEqual([
+      "reading.value",
+    ]);
+  });
+
+  it("a text value is 1 to 200 characters after the trim, and holds no other key", () => {
+    const text = (value: unknown) => failures(businessItem("business-core.offer", value));
+    expect(text({ text: "ก".repeat(200) })).toBeNull();
+    expect(text({ text: "ก".repeat(201) })).toContain("reading.value");
+    expect(text({ text: `  ${"ก".repeat(200)}  ` })).toBeNull(); // the trim comes before the bound
+    expect(text({ text: "   " })).toContain("reading.value");
+    expect(text({ text: "" })).toContain("reading.value");
+    expect(text({ text: "x", name: "y" })).toContain("reading.value");
+    expect(text({ text: 5 })).toContain("reading.value");
+  });
+
+  it("an alternative is 1 to 60 characters", () => {
+    const name = (value: string) =>
+      failures(businessItem("competitive-frame.alternatives", { name: value }));
+    expect(name("ก".repeat(60))).toBeNull();
+    expect(name("ก".repeat(61))).toContain("reading.value");
+  });
+
+  it("MODEL_JOBS is interpret, see and business-read, and an item may name the new job", () => {
+    expect(MODEL_JOBS).toEqual(["interpret", "see", "business-read"]);
+    expect(failures(businessItem("business-core.offer", { text: "x" }))).toBeNull();
+    const other = { ...BUSINESS_MODEL, job: "business-write" };
+    expect(failures(businessItem("business-core.offer", { text: "x" }, { model: other }))).toEqual([
+      "model.job",
+    ]);
+  });
+});
+
+describe("the versions it reads", () => {
+  const at = (schemaVersion: string) => ({ ...item(), schemaVersion });
+
+  it("writers write 1.1 and the schema reads 1.0 and 1.1", () => {
+    expect(EVIDENCE_SCHEMA_VERSION).toBe("1.1");
+    expect(EVIDENCE_SCHEMA_VERSIONS).toEqual(["1.0", "1.1"]);
+  });
+
+  it("an item at 1.0 and one at 1.1 parse and keep their version; 1.2 and 2.0 fail", () => {
+    expect(inputEvidenceSchema.parse(at("1.0")).schemaVersion).toBe("1.0");
+    expect(inputEvidenceSchema.parse(at("1.1")).schemaVersion).toBe("1.1");
+    expect(failures(at("1.2"))).toEqual(["schemaVersion"]);
+    expect(failures(at("2.0"))).toEqual(["schemaVersion"]);
+    expect(failures(at("1"))).toEqual(["schemaVersion"]);
   });
 });
