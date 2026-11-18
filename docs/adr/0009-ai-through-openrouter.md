@@ -147,3 +147,46 @@ Points 1 to 9 and the additions above stay as written. The decided table of poin
 - **A later job** that drafts ORIVILO's own analysis from the same answers is a separate job with its own addition and its own evaluation set.
 
 Confirmation: not confirmed yet; follow-up: PR C of ORV-281 (the slice that reads the business), where `openrouter.test.ts` pins `AI_MODELS["business-read"]` to `anthropic/claude-sonnet-5.5`, `business-read.test.ts` › "untrusted input" asserts zero retention, denied data collection and the absence of the project name, website, ids and workspace in the request, and `business-read-eval.test.ts` replays the recorded set; the G3 packet of that PR reports the marks.
+
+## Addition, 2026-11-18 (ORV-284): analysis jobs on Anthropic models, image jobs on an image model, and what the cap counts under the owner's key
+
+- Status: decided by the architect on the defaults of open questions 1 to 8 of `docs/specs/ORV-284/spec.md` v1, with G1 passed under the owner's POC delegation as lane L (ORV-284 comment 10712). Open for the owner at G2. The one real call of the spec's row 9 waits for the owner's confirmation.
+- Design: `docs/specs/ORV-284/tech.md`.
+
+Points 1 to 9 and the additions above stay as written. The decided table of point 2 is not rewritten; the rows below replace two of its pins from this date.
+
+**The owner's decision, 2026-11-18 (ORV-284), as the spec records it in "Why".** Work that analyses, or writes prompts to direct other work, uses Anthropic's models, each chosen by what the job needs and fitting for the MVP and POC, to be changed later; work that generates images keeps a model that can make images. The owner added an Anthropic key to OpenRouter as their own provider key ("BYOK"). The Jira text was not read in this task; the spec is the record cited.
+
+**Two classes.** Every job falls in one:
+
+- **Analysis or prompt writing, on an Anthropic model:** `chat`, `instant`, `interpret`, `business-read`, `see`, `logo-vector` (the spec's `anthropic-jobs-1`). `logo-vector` writes SVG as text and stays on `anthropic/claude-opus-5.5`. No job writes a prompt for another job today; ADR 0018 decision 3 (only deterministic code writes an image prompt) stands, and a story that adds such a job amends it.
+- **Image generation, on an image model:** `logo-image` stays on `google/gemini-nano-banana-2.1`; `mockup-image` takes its ADR 0018 model when its story adds it. Neither uses the owner's key, which is an Anthropic key.
+
+**Two moves.** Prices are company-reported by OpenRouter on 2026-11-18 (K-0413, confidence 0.75), US dollars per million input / output tokens, base endpoints then regional endpoints. They are not measured by us.
+
+| Job       | Was (2026-10-23)                   | Now                           | Price on 2026-11-18      | Why                                                                                                                                                        |
+| --------- | ---------------------------------- | ----------------------------- | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `instant` | `inception/mercury-3`, 0.10 / 0.35 | `anthropic/claude-haiku-5.5`  | 0.10 / 0.50; 0.11 / 0.55 | Short, cheap and frequent: the cheapest live Anthropic tier. K-0413 states no speed figure, so the speed point 2 gave for Mercury is not claimed for Haiku |
+| `see`     | `google/gemini-4-argon`, 2 / 10    | `anthropic/claude-sonnet-5.5` | 2 / 10; 2.20 / 11        | Image input is listed on every live Anthropic model (K-0413); the same tier as `interpret`, whose reading it feeds, at the price Argon had on 2026-10-23   |
+
+- **`instant`'s exit test ends.** Point 2's test (Mercury's Thai against `openai/gpt-6-luna`) never ran, because `instant` has no call path; it ends with the move. `openai/gpt-6-luna` is no longer the named way out.
+- **`see` moves to zero retention.** The addition of 2026-10-23 let `see` allow safety retention because only Google served it. On an Anthropic model `see` sends what `interpret` sends: `zdr: true`, `data_collection: "deny"`, `require_parameters: true`, `allow_fallbacks: false` (point 4). That addition's safety retention now covers `logo-image` only.
+- **First sets on the new models.** Neither moved job has a call path or an evaluation set. The story that adds the call path of `instant` or `see` records that job's first set (point 2) on the model pinned here. A set that fails moves the pin through a further addition, as point 2 asks.
+- **The jobs that stay** keep their pins, so no set is recorded again: `interpret`'s 9 recordings (addition of 2026-10-30) and `business-read`'s set (addition of 2026-11-18, ORV-281) stay valid.
+- **Earlier text this replaces, not rewritten:** in Consequences, "Visible AI use" will read "image read by AI (Claude Sonnet 5.5)" once `see` has a call path; "More processors for PDPA" loses Inception, and under zero retention K-0413 lists only Amazon Bedrock and Google endpoints for the three Anthropic tiers, so those are the hosts that may serve the analysis jobs.
+
+**Zero retention against the owner's key (open point, K-0413).** The zero-retention list K-0413 read holds the Anthropic models' Amazon Bedrock and Google endpoints and no first-party Anthropic endpoint, and OpenRouter's ZDR guide says enforcement "Removes first-party Anthropic endpoints (Bedrock and Vertex remain available)" (company-reported). That a request with zero retention therefore never reaches the endpoint where the owner's Anthropic key applies is our reading; no page states it. This addition keeps zero retention on every request anyway (point 4; spec open question 4, default (a)): no request drops it to reach the owner's key. The spec's row 9 reads from one real answer whether the owner's key was used.
+
+**When the owner's key fails.** What OpenRouter does next is the per-key setting in the owner's account, by default "Use shared capacity" (K-0412; spec open question 5, default (a)). Our code adds nothing: an answer from shared capacity is the same pinned model and is checked and counted like any answer; an error status ends the call with no retry and no other model (point 3) and records no reported cost.
+
+**What the spend cap counts (the spec's `byok-cost-1`).** One request counts what it cost in total, whichever account paid. From the fields K-0412 documents (company-reported, confidence 0.75):
+
+- an answer whose `usage.is_byok` is `false` counts `usage.cost`, as ORV-121 counts today; the `cost_details` parts are not added, since they are the parts of that cost;
+- an answer whose `usage.is_byok` is `true` counts `usage.cost` (OpenRouter's fee, or 0 inside the plan's allowance) plus `usage.cost_details.upstream_inference_cost` (the provider's charge to the owner's account), summed exactly and rounded once, half to even, at the millionth (ADR 0015 decision 12, addition of 2026-10-29), and only when the fee is below the provider's charge, as K-0412's reading has it;
+- any other answer (no boolean `is_byok`, a part missing, null or not a number, a provider charge of 0, or a fee not below the provider's charge) records no amount: null, never 0, adding nothing to the sum.
+
+The design and the exact field each check reads are in the tech notes, section 4. ADR 0015 decision 4's "The sum" names `usage.cost` alone; the tech notes give the text of a further addition there, which waits for the owner, as does the wording of security rule 6.
+
+**Exit test of this addition.** (1) The spec's row 9: one real call on the `interpret` model, after the owner confirms its bound and cost, shows `usage.is_byok` as a boolean and the cost fields the counting reads, recorded in K-0412. If it shows other fields, the tech notes are revised before the counting ships. If it shows `is_byok` false, the reading above on zero retention holds, and the `is_byok` true branch stays unconfirmed by a real answer until one is seen. (2) The first evaluation set of `instant` and of `see` on the model pinned here, in the story that wires each.
+
+Confirmation: not confirmed yet; follow-up: PR 1 of ORV-284, where `openrouter.test.ts` row 12 (`orv160-model-ids`) pins the two new ids, "analysis jobs on Anthropic models" fails on any analysis job off the three Anthropic tiers, and "moved jobs keep the provider settings" fails when `see` or `instant` drops zero retention; then PR 2 of ORV-284, where the counting tests of rows 5 to 8 fail on a cap that counts `usage.cost` alone or counts a charge twice, and K-0412 records the answer of row 9.
