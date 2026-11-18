@@ -1,0 +1,83 @@
+import { expect, within } from "storybook/test";
+import { LocaleProvider, useLocale } from "../i18n/LocaleProvider";
+import { pick } from "../i18n/locale";
+import { type Messages, messagesFor } from "../i18n/messages/index";
+import type { ReactNode } from "react";
+
+/**
+ * Shared by the stories of the three business screens (ORV-281). Not a component of the library:
+ * the labels, the language switch and the checks every story of these screens repeats.
+ */
+
+export const th = messagesFor("th");
+export const en = messagesFor("en");
+
+export const textOf = (el: Element) => (el.textContent ?? "").replace(/\s+/g, " ");
+
+/** The label every story carries: the projects and answers are made by hand, nobody gave them. */
+export function FixtureNote() {
+  const locale = useLocale();
+  return (
+    <p className="p-4 text-body-sm text-text-secondary">
+      {pick(
+        {
+          th: "ข้อมูลตัวอย่าง: โปรเจกต์และคำตอบในเรื่องนี้ทำขึ้นเอง ไม่มีใครกรอกจริง",
+          en: "Fixture: the projects and answers in this story are made by hand, nobody gave them.",
+        },
+        locale,
+      )}
+    </p>
+  );
+}
+
+/** A story's decorator that puts it in English; the other stories run in Thai, as the test run does. */
+export const inEnglish = (Story: () => ReactNode) => (
+  <LocaleProvider locale="en">{Story()}</LocaleProvider>
+);
+
+/** Signed out, not allowed or not configured: the heading, one paragraph, no form, no list, no board (spec rows 5, 7). */
+export async function expectAccessScreen(
+  canvasElement: HTMLElement,
+  m: Messages,
+  heading: string,
+  access: "signed-out" | "not-allowed" | "not-configured",
+) {
+  const canvas = within(canvasElement);
+  await expect(canvas.getByRole("heading", { level: 1, name: heading })).toBeVisible();
+  const line = {
+    "signed-out": m.business.signedOut,
+    "not-allowed": m.business.notAllowed,
+    "not-configured": m.business.notConfigured,
+  }[access];
+  await expect(canvas.getByText(line)).toBeVisible();
+  await expect(canvasElement.querySelector("form")).toBeNull();
+  await expect(canvasElement.querySelector("ul")).toBeNull();
+  await expect(canvasElement.querySelector("[data-node]")).toBeNull();
+  await expect(canvas.queryByRole("textbox")).toBeNull();
+  const links = [...canvasElement.querySelectorAll("a")];
+  if (access === "signed-out") {
+    await expect(links.map((a) => [textOf(a), a.getAttribute("href")])).toEqual([
+      [m.business.signInLink, "/account"],
+    ]);
+  } else {
+    await expect(links).toHaveLength(0);
+  }
+  // No header actions on an access screen (design section 2).
+  await expect(canvasElement.querySelectorAll(".ds-page-header__actions")).toHaveLength(0);
+}
+
+/** At 360 px every line wraps inside the frame and nothing scrolls sideways (spec row 20). */
+export async function expectFitsAt360(canvasElement: HTMLElement) {
+  const frame = canvasElement.querySelector<HTMLElement>("[data-narrow]");
+  if (frame === null) throw new Error("no [data-narrow] frame");
+  const edge = frame.getBoundingClientRect().right;
+  await expect(frame.getBoundingClientRect().width).toBeLessThanOrEqual(360);
+  await expect(frame.scrollWidth).toBeLessThanOrEqual(frame.clientWidth);
+  await expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(
+    Math.max(360, window.innerWidth),
+  );
+  for (const el of frame.querySelectorAll<HTMLElement>("*")) {
+    if (el.closest(".sr-only") !== null) continue;
+    await expect(el.getBoundingClientRect().right).toBeLessThanOrEqual(edge + 0.5);
+  }
+}
