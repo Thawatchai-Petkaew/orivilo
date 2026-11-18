@@ -147,3 +147,13 @@ Points 1 to 9 and the additions above stay as written. The decided table of poin
 - **A later job** that drafts ORIVILO's own analysis from the same answers is a separate job with its own addition and its own evaluation set.
 
 Confirmation: not confirmed yet; follow-up: PR C of ORV-281 (the slice that reads the business), where `openrouter.test.ts` pins `AI_MODELS["business-read"]` to `anthropic/claude-sonnet-5.5`, `business-read.test.ts` › "untrusted input" asserts zero retention, denied data collection and the absence of the project name, website, ids and workspace in the request, and `business-read-eval.test.ts` replays the recorded set; the G3 packet of that PR reports the marks.
+
+## Addition, 2026-11-18 (ORV-283): who marked the `business-read` evaluation set
+
+Every line above stays as written, the addition of 2026-11-18 (ORV-281) and its Confirmation line included. Its exit test reads, from here on, as row 34 of `docs/specs/ORV-283/spec.md` has it. Design: `docs/specs/ORV-281/tech.md`, section 8.5.
+
+- **Who marked.** Each mark of the evaluation set records who made it, `person` or `ai-agent`. `business-read-eval.test.ts` refuses a mark with no value or another value.
+- **What the G3 packet reports.** Per field and language, the right, wrong and unclear marks as two separate counts, by a person and by an AI agent, never added together. Marks by an AI agent are labelled "Marked by an AI agent, not a person." and never reported as a person's. No pass claim.
+- **When it counts as confirmed.** Only when every accepted reading has a mark by a person and the replay test passes on those marks. Until then the exit test is not confirmed. The marks now in the set are by an AI agent (finding F-1 of review ORV-283-review-1); who marks is open question 11 of the spec, asked in ORV-283 comment 10708.
+
+Confirmation: not confirmed yet; follow-up: the ORV-283 builder fix adds the who-marked key to the mark schema and to `marks.json`, and the G3 packet of the ORV-283 PR prints the split; confirmed by a further dated addition once a person has marked every accepted reading and `business-read-eval.test.ts` passes.
