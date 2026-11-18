@@ -38,6 +38,10 @@ export function createAuth(settings: AuthSettings) {
     socialProviders: { google: settings.google },
     // Always the shared store: Better Auth's memory map counts per instance (ORV-112, ADR 0015).
     rateLimit: { enabled: true, customStorage: limiter.betterAuthStorage(settings.secret) },
+    // Every failure of the Google callback, and Better Auth's own `/error` endpoint, lands on the
+    // sign-in page, which says the sign-in did not finish (ORV-286 `signin-failure-1`). Without
+    // it a production build sends the person to `/?error=<code>` and the home page says nothing.
+    onAPIError: { errorURL: "/account" },
     advanced: { ipAddress: { ipAddressHeaders: ["x-forwarded-for"] } },
     plugins: [
       organizationPlugin(),

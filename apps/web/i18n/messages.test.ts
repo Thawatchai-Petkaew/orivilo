@@ -45,6 +45,22 @@ describe("the web catalog", () => {
     });
   });
 
+  // ORV-286 "Strings": the failed sign-in line, word for word, and it names the button as it reads.
+  it("carries the failed sign-in line of ORV-286 'Strings'", () => {
+    expect(webMessages.en.account.callbackFailed).toBe(
+      'Sign-in with Google did not finish, so you are not signed in. Press "Sign in with Google" to try again.',
+    );
+    expect(webMessages.th.account.callbackFailed).toBe(
+      'ลงชื่อเข้าใช้ด้วย Google ไม่สำเร็จ คุณจึงยังไม่ได้ลงชื่อเข้าใช้ กดปุ่ม "ลงชื่อเข้าใช้ด้วย Google" เพื่อลองอีกครั้ง',
+    );
+    expect(webMessages.en.account.callbackFailed).toContain(
+      `"${webMessages.en.account.signInWithGoogle}"`,
+    );
+    expect(webMessages.th.account.callbackFailed).toContain(
+      `"${webMessages.th.account.signInWithGoogle}"`,
+    );
+  });
+
   // ORV-267 "Strings": the three keys the parent places in this catalog, word for word.
   it("carries the brand report keys of ORV-266 'Strings'", () => {
     expect(webMessages.en.home.openBrandReport).toBe(
