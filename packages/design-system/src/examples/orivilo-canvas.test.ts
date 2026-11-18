@@ -2,9 +2,12 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { Graph } from "../components/canvas-board/graph";
+import { contrastRatio } from "../foundations/contrast";
 import { messagesFor } from "../i18n/messages/index";
+import { tokens } from "../tokens/index";
 import {
   type ArtText,
+  type Paint,
   BOARDS,
   BOOK,
   BOOK_FRAME,
@@ -663,6 +666,60 @@ describe("orivilo canvas data, art (spec row 41)", () => {
     const text = JSON.stringify([PIECES, BOOK, BOARDS]);
     expect(text).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
     expect(text).not.toMatch(/\b(rgb|rgba|hsl|hsla|oklch)\(/i);
+  });
+
+  /** The hex a paint resolves to in the base profile: the art's floods and inks keep their own mode. */
+  const hexOfPaint = (paint: Paint): string => {
+    const token = tokens.get("semantic", paint.token);
+    if (!token) throw new RangeError(`no semantic token ${paint.token}`);
+    return String(tokens.resolve(token, paint.mode).value);
+  };
+
+  /** Every art line with the flood it sits on: a piece's flood, a page's ground, a field's swatch. */
+  function linesOnFloods(): { where: string; line: ArtText; flood: string }[] {
+    const out: { where: string; line: ArtText; flood: string }[] = [];
+    for (const p of PIECES) {
+      const c = p.content;
+      if (c.kind !== "type" && c.kind !== "lines" && c.kind !== "ink") continue;
+      c.lines.forEach((line, i) =>
+        out.push({ where: `piece ${p.id} line ${i}`, line, flood: hexOfPaint(p.flood) }),
+      );
+    }
+    for (const page of BOOK) {
+      page.lines.forEach((line, i) => {
+        let flood: string;
+        if (page.layout === "grounds" && Array.isArray(page.ground)) {
+          // Page 5: line i sits on third i of the page.
+          flood = hexOfPaint(page.ground[i] as Paint);
+        } else if (page.layout === "palette") {
+          // Page 7: lines 0-1, 2-3, 4-5, 6 and 7 sit on the swatches canvas, ink, violet, violetDark
+          // and lime, whose colours are the palette's own hex values.
+          const swatch = [0, 0, 1, 1, 2, 2, 3, 4][i];
+          const entry = PALETTE.find((e) => e.id === page.swatches?.[swatch ?? -1]);
+          if (!entry) throw new RangeError(`page 7 line ${i} has no swatch`);
+          flood = entry.hex;
+        } else {
+          flood = hexOfPaint(page.ground as Paint);
+        }
+        out.push({ where: `page ${page.n} line ${i}`, line, flood });
+      });
+    }
+    return out;
+  }
+
+  // The contrast script reads one boundary's pairs; the art mixes modes (a light ink on a palette
+  // hex), so the pairs it sets are checked here (review R1-5).
+  it("reads every art line at 4.5 or more on the flood it sits on", () => {
+    const pairs = linesOnFloods();
+    expect(pairs.length).toBeGreaterThan(60);
+    for (const { where, line, flood } of pairs) {
+      const ratio = contrastRatio(hexOfPaint(line.ink), flood);
+      expect(ratio, `${where}: ${hexOfPaint(line.ink)} on ${flood}`).toBeGreaterThanOrEqual(4.5);
+      if (line.accent) {
+        const accent = contrastRatio(hexOfPaint(line.accent.ink), flood);
+        expect(accent, `${where} accent`).toBeGreaterThanOrEqual(4.5);
+      }
+    }
   });
 
   it("names every paint with a token and a mode", () => {

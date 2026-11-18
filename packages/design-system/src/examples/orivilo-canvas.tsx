@@ -342,27 +342,34 @@ function ArtLine({ line, className }: { line: ArtText; className?: string | unde
   }
   const accent = line.accent;
   const at0 = accent ? raw.indexOf(accent.match) : -1;
+  // The boundary sits on a wrapper that adds no box. The unlayered `[data-design-profile]` rule
+  // sets the body-md size and family on whatever element carries the attributes, so an element
+  // that also carries a type class would lose it (ORV-278 findings I2 and I3).
   return (
-    <p
-      data-art-line=""
-      {...("k" in line.size ? { "data-k": line.size.k } : {})}
-      {...scope(line.ink.mode)}
-      {...("data" in line.text ? { lang: langOf(raw) } : {})}
-      className={cx(cls, className)}
-      style={style}
-    >
-      {accent && at0 >= 0 ? (
-        <>
-          {raw.slice(0, at0)}
-          <span {...scope(accent.ink.mode)} style={{ color: tokenVar(accent.ink.token) }}>
-            {accent.match}
-          </span>
-          {raw.slice(at0 + accent.match.length)}
-        </>
-      ) : (
-        raw
-      )}
-    </p>
+    <div {...scope(line.ink.mode)} className="contents">
+      <p
+        data-art-line=""
+        {...("k" in line.size ? { "data-k": line.size.k } : {})}
+        {...("data" in line.text ? { lang: langOf(raw) } : {})}
+        className={cx(cls, className)}
+        style={style}
+      >
+        {accent && at0 >= 0 ? (
+          <>
+            {raw.slice(0, at0)}
+            <span
+              {...scope(accent.ink.mode)}
+              style={{ font: "inherit", color: tokenVar(accent.ink.token) }}
+            >
+              {accent.match}
+            </span>
+            {raw.slice(at0 + accent.match.length)}
+          </>
+        ) : (
+          raw
+        )}
+      </p>
+    </div>
   );
 }
 
@@ -406,9 +413,13 @@ function Photo({
   const { missing, fail } = useContext(PageContext);
   const record = imageOf(id);
   const gone = missing.has(id);
+  // The paper treatment screens the photograph onto the brand violet and multiplies the paper over
+  // it, so while the image is there its container is violet (design gap 21); the paper flood is
+  // the missing state's ground only.
+  const ground = !gone && record.treatment === "paper" ? VIOLET : flood;
   return (
     <Flood
-      paint={flood}
+      paint={ground}
       className={cx("relative isolate overflow-hidden", className)}
       style={{ width: size.w, height: size.h }}
       data-photo={id}
@@ -953,14 +964,15 @@ function Furniture({
   const m = useMessages();
   const { pad, mark } = BOOK_FRAME;
   const part = (paint: Paint, children: ReactNode, extra?: string) => (
-    <div
-      {...scope(textMode(paint))}
-      className={cx(
-        "flex items-center gap-2 whitespace-nowrap font-body text-body-sm text-text-secondary",
-        extra,
-      )}
-    >
-      {children}
+    <div {...scope(textMode(paint))} className="contents">
+      <div
+        className={cx(
+          "flex items-center gap-2 whitespace-nowrap font-body text-body-sm text-text-secondary",
+          extra,
+        )}
+      >
+        {children}
+      </div>
     </div>
   );
   const number = String(page.n).padStart(2, "0");
@@ -2165,17 +2177,34 @@ function Scrolling({
   children: ReactNode;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  // The report opens at its findings. A web font that swaps in after mount, or a late image, moves
+  // the findings, so the offset is applied again whenever the content resizes, until the reader
+  // moves the page themselves (review R1-7).
   useEffect(() => {
     if (!findings) return;
     const root = ref.current;
     const viewport = root?.querySelector<HTMLElement>(".ds-scroll__viewport");
-    const target = root?.querySelector("[data-report]");
-    if (!viewport || !target) return;
-    viewport.scrollTop =
-      target.getBoundingClientRect().top -
-      viewport.getBoundingClientRect().top +
-      viewport.scrollTop -
-      INSET_MD;
+    const content = viewport?.firstElementChild;
+    if (!root || !viewport || !content) return;
+    const apply = () => {
+      const target = root.querySelector("[data-report]");
+      if (!target) return;
+      viewport.scrollTop =
+        target.getBoundingClientRect().top -
+        viewport.getBoundingClientRect().top +
+        viewport.scrollTop -
+        INSET_MD;
+    };
+    apply();
+    const observer = new ResizeObserver(apply);
+    observer.observe(content);
+    const stop = () => observer.disconnect();
+    const moves = ["wheel", "pointerdown", "keydown", "touchstart"] as const;
+    for (const type of moves) viewport.addEventListener(type, stop, { once: true });
+    return () => {
+      observer.disconnect();
+      for (const type of moves) viewport.removeEventListener(type, stop);
+    };
   }, [findings]);
   return (
     <div ref={ref} style={{ width, height: size.h }}>

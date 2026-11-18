@@ -1023,7 +1023,8 @@ export const BOOK: readonly BookPageRecord[] = [
       art(c("wall.inkRole"), { style: "body-sm" }, TEXT_ON_DARK_2),
       art(d("10"), { k: 1.6 }, TEXT_ON_DARK, { leading: "numeral" }),
       art(c("wall.violetRole"), { style: "body-sm" }, TEXT_ON_DARK),
-      art(c("role.violetDark"), { style: "body-sm" }, TEXT_ON_LIGHT_2),
+      // A light ink on the violetDark swatch (#B07FEE): text.primary reads 6.14, text.secondary 2.30.
+      art(c("role.violetDark"), { style: "body-sm" }, TEXT_ON_LIGHT),
       art(c("wall.limeRole"), { style: "body-sm" }, TEXT_ON_LIGHT_2),
     ],
     swatches: ["canvas", "ink", "violet", "violetDark", "lime"],
@@ -1382,6 +1383,12 @@ function briefNode(
   };
 }
 
+// Layout: the design's measured y values (docs/specs/ORV-274/design.md, "Layout numbers") with
+// headroom added to the stack gaps the text height decides (ORV-278 review R1-7 and CI). A card's
+// height is its text, and Linux chromium wraps a line the Mac does not (the palette card grew 22 px
+// there), so each stack gap is 48 or more measured with the type scale 10 percent larger, where the
+// design's was exactly 40. The product stack and the brandbook parts are fixed frames and take 8
+// and 4. The d-board stays at y 572.
 export const NODES: readonly NodeRecord[] = [
   // 00 Brief, stage 1
   briefNode("b-ess", "node.essence", 28, { id: "essence", name: "port.essence" }, `${BRIEF} §1`, {
@@ -1397,7 +1404,7 @@ export const NODES: readonly NodeRecord[] = [
   briefNode(
     "b-aud",
     "node.audience",
-    193,
+    263,
     { id: "audience", name: "port.audience" },
     `${BRIEF} §2`,
     {
@@ -1413,7 +1420,7 @@ export const NODES: readonly NodeRecord[] = [
   briefNode(
     "b-pers",
     "node.personality",
-    458,
+    550,
     { id: "personality", name: "port.personality" },
     `${BRIEF} §3`,
     {
@@ -1429,7 +1436,7 @@ export const NODES: readonly NodeRecord[] = [
       note: "personality.note",
     },
   ),
-  briefNode("b-feel", "node.feeling", 741, { id: "feeling", name: "port.feeling" }, `${BRIEF} §5`, {
+  briefNode("b-feel", "node.feeling", 855, { id: "feeling", name: "port.feeling" }, `${BRIEF} §5`, {
     kind: "quote",
     quote: "การเริ่มงานใหม่ที่น่าตื่นเต้น แต่มีพื้นที่และโครงสร้างช่วยให้ตัดสินใจได้",
     lang: "th",
@@ -1438,7 +1445,7 @@ export const NODES: readonly NodeRecord[] = [
   briefNode(
     "b-cat",
     "node.category",
-    1019,
+    1158,
     { id: "category", name: "port.category" },
     `${METHOD} §5.1`,
     {
@@ -1450,7 +1457,7 @@ export const NODES: readonly NodeRecord[] = [
       badges: ["category.violet", "category.black", "category.cream"],
     },
   ),
-  briefNode("b-avoid", "node.avoid", 1287, { id: "avoid", name: "port.avoid" }, `${BRIEF} §5, §9`, {
+  briefNode("b-avoid", "node.avoid", 1430, { id: "avoid", name: "port.avoid" }, `${BRIEF} §5, §9`, {
     kind: "rows",
     look: "chips",
     rows: [
@@ -1505,7 +1512,7 @@ export const NODES: readonly NodeRecord[] = [
     title: "node.attributes",
     width: 300,
     x: 352,
-    y: 598,
+    y: 620,
     pad: "text",
     inputs: [
       port("essence", "text", c("port.essence")),
@@ -1589,7 +1596,7 @@ export const NODES: readonly NodeRecord[] = [
     title: "node.markHistory",
     width: 300,
     x: 1356,
-    y: 514,
+    y: 524,
     pad: "text",
     inputs: [],
     outputs: [port("earlier", "image", c("port.earlier"))],
@@ -1623,7 +1630,7 @@ export const NODES: readonly NodeRecord[] = [
     title: "node.type",
     width: 360,
     x: 1704,
-    y: 502,
+    y: 506,
     pad: "text",
     open: { sequence: "type", page: 1 },
     inputs: [],
@@ -1680,7 +1687,7 @@ export const NODES: readonly NodeRecord[] = [
     title: "node.paletteHistory",
     width: 300,
     x: 1356,
-    y: 1026,
+    y: 1046,
     pad: "text",
     inputs: [],
     outputs: [port("earlier", "palette", c("port.earlier"))],
@@ -1718,7 +1725,7 @@ export const NODES: readonly NodeRecord[] = [
     title: "node.proportion",
     width: 300,
     x: 1356,
-    y: 1216,
+    y: 1251,
     pad: "text",
     inputs: [],
     outputs: [port("proportion", "text", c("port.proportion"))],
@@ -1761,7 +1768,7 @@ export const NODES: readonly NodeRecord[] = [
     title: "node.contrast",
     width: 360,
     x: 1704,
-    y: 1157,
+    y: 1180,
     pad: "text",
     inputs: [],
     outputs: [],
@@ -1828,7 +1835,7 @@ export const NODES: readonly NodeRecord[] = [
     title: "wall.s1",
     width: 360,
     x: 2768,
-    y: 429,
+    y: 433,
     pad: "media",
     open: { sequence: "book", page: 3, count: 3 },
     inputs: [port("logo", "image", c("port.logo"))],
@@ -1843,7 +1850,7 @@ export const NODES: readonly NodeRecord[] = [
     title: "wall.s2",
     width: 360,
     x: 2768,
-    y: 745,
+    y: 753,
     pad: "media",
     open: { sequence: "book", page: 6, count: 4 },
     inputs: [port("palette", "palette", c("port.palette")), port("type", "type", c("port.type"))],
@@ -1858,7 +1865,7 @@ export const NODES: readonly NodeRecord[] = [
     title: "wall.s3",
     width: 360,
     x: 2768,
-    y: 1061,
+    y: 1073,
     pad: "media",
     open: { sequence: "book", page: 10, count: 3 },
     inputs: [port("inUse", "image", c("port.inUse"))],
@@ -1925,7 +1932,7 @@ export const NODES: readonly NodeRecord[] = [
     title: "node.form",
     width: 480,
     x: 4004,
-    y: 404,
+    y: 412,
     pad: "media",
     open: { sequence: "pages", page: 2 },
     inputs: [port("parts", "profile", c("port.parts"))],
@@ -1940,7 +1947,7 @@ export const NODES: readonly NodeRecord[] = [
     title: "node.report",
     width: 480,
     x: 4004,
-    y: 760,
+    y: 776,
     pad: "media",
     open: { sequence: "pages", page: 3 },
     inputs: [port("parts", "profile", c("port.parts"))],

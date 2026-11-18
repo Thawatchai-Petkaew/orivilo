@@ -1,10 +1,16 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { messagesFor, type Messages } from "../i18n/messages/index";
-import { expectLabelInkWhole, inVitest, resolvedColor } from "../testing/visual-asserts";
+import {
+  expectFocusBorderForm,
+  expectLabelInkWhole,
+  inVitest,
+  resolvedColor,
+} from "../testing/visual-asserts";
 import { OriviloCanvas } from "./orivilo-canvas";
 import {
   CHAPTERS,
+  EDGES,
   IMAGES,
   NODES,
   PALETTE,
@@ -46,6 +52,49 @@ const frames = async (n = 2) => {
   for (let i = 0; i < n; i++) await frame();
 };
 
+/**
+ * Waits for the web fonts the page's text asks for. The faces load with `font-display: swap`, and a
+ * face is only requested once text that uses it is laid out, so two frames start every request
+ * before `document.fonts.ready` is read; a swap after a measurement moves every wrapped line
+ * (review R1-7). Call it again after a dialog opens: its text asks for faces too.
+ */
+async function fontsReady() {
+  await frames(2);
+  await document.fonts.ready;
+  await frames(2);
+}
+
+/** A real Tab key in the browser runner (the simulated one does not skip `inert` parts). */
+async function pressTab() {
+  if (inVitest) {
+    const { userEvent: real } = await import("vitest/browser");
+    await real.tab();
+  } else {
+    await userEvent.tab();
+  }
+}
+
+/**
+ * Runs `check` with `prefers-reduced-motion: reduce` emulated in the browser runner (spec row 34);
+ * outside it the page keeps the reader's setting and the check still runs.
+ */
+async function reducedMotion(check: () => Promise<void>) {
+  if (!inVitest) return check();
+  const { cdp } = await import("vitest/browser");
+  const session = cdp();
+  const emulate = (value: "reduce" | "no-preference") =>
+    session.send("Emulation.setEmulatedMedia", {
+      features: [{ name: "prefers-reduced-motion", value }],
+    });
+  await emulate("reduce");
+  try {
+    expect(matchMedia("(prefers-reduced-motion: reduce)").matches, "motion is reduced").toBe(true);
+    await check();
+  } finally {
+    await emulate("no-preference");
+  }
+}
+
 // ---- the board
 
 const viewportOf = (root: Element) => root.querySelector<HTMLElement>(".react-flow__viewport");
@@ -78,6 +127,7 @@ async function ready(root: HTMLElement) {
   await waitFor(() => expect(root.querySelector("[data-live-frame] .ds-button")).not.toBeNull(), {
     timeout: 20000,
   });
+  await fontsReady();
   let last = Number.NaN;
   await waitFor(
     () => {
@@ -150,9 +200,46 @@ function expectChapterInView(root: HTMLElement, id: string, words: Messages) {
   }
 }
 
+/** Every node of the board lies inside the board's box: the Overview shows the whole path. */
+function expectAllInView(root: HTMLElement) {
+  const board = boardOf(root).getBoundingClientRect();
+  for (const node of NODES) {
+    const r = nodeEl(root, node.id).getBoundingClientRect();
+    expect(r.left, `${node.id} left`).toBeGreaterThanOrEqual(board.left - 1);
+    expect(r.right, `${node.id} right`).toBeLessThanOrEqual(board.right + 1);
+    expect(r.top, `${node.id} top`).toBeGreaterThanOrEqual(board.top - 1);
+    expect(r.bottom, `${node.id} bottom`).toBeLessThanOrEqual(board.bottom + 1);
+  }
+}
+
+/**
+ * The viewport transform before `act` and on each of the next `n` frames. A view that moves with
+ * duration 0 changes once; a glide (xyflow animates a fit through d3-zoom, rewriting the inline
+ * transform each frame, never a CSS transition) shows a new value on most of the frames.
+ */
+async function viewTrail(root: Element, act: () => Promise<unknown>, n = 30) {
+  const seen = [viewportOf(root)?.style.transform ?? ""];
+  await act();
+  for (let i = 0; i < n; i++) {
+    await frame();
+    seen.push(viewportOf(root)?.style.transform ?? "");
+  }
+  return seen;
+}
+
+/** A jump with no motion: the view held its place, then took its new place in one step and stayed. */
+function expectOneStep(trail: readonly string[], what: string) {
+  const steps = trail.filter((t, i) => i > 0 && t !== trail[i - 1]);
+  expect(steps, `${what} changes the view once, not by a glide`).toHaveLength(1);
+}
+
 // ---- the preview
 
-const dialogOf = (title: string) => body().findByRole("dialog", { name: title });
+async function dialogOf(title: string) {
+  const dialog = await body().findByRole("dialog", { name: title });
+  await fontsReady();
+  return dialog;
+}
 const pagerOf = (dialog: HTMLElement, which: "previous" | "next") => {
   const el = dialog.querySelector<HTMLButtonElement>(`[data-pager="${which}"]`);
   if (!el) throw new RangeError(`no ${which} button`);
@@ -247,6 +334,44 @@ function expectOneLine(page: Element) {
   }
 }
 
+/**
+ * Each art line set at a scale step and each furniture item renders at the size and in the family
+ * its own type class gives (row 41, review I2 and I3): a probe that carries only those classes is
+ * the reference. An accent span takes its line's size. A boundary on the same element as a type
+ * class would reset it to body-md, so 16 px everywhere is the defect this reads.
+ */
+function expectOwnStep(scope: Element, what: string) {
+  const TYPE = /^(font-(display|body|mono)|text-(display|heading|body|label|code)-(lg|md|sm|xs))$/;
+  const items = scope.querySelectorAll<HTMLElement>(
+    "[data-art-line]:not([data-k]), [data-furniture] > div > div",
+  );
+  let stepped = 0;
+  for (const el of items) {
+    const classes = [...el.classList].filter((c) => TYPE.test(c));
+    expect(classes.length, `${what}: ${el.textContent} carries a type class`).toBeGreaterThan(0);
+    const probe = document.createElement("span");
+    probe.className = classes.join(" ");
+    el.parentElement?.append(probe);
+    const want = getComputedStyle(probe);
+    const got = getComputedStyle(el);
+    const label = `${what}: "${el.textContent}" (${classes.join(" ")})`;
+    expect(got.fontSize, `${label} size`).toBe(want.fontSize);
+    expect(got.fontFamily, `${label} family`).toBe(want.fontFamily);
+    probe.remove();
+    stepped++;
+  }
+  for (const span of scope.querySelectorAll<HTMLElement>("[data-art-line] > span")) {
+    const line = span.parentElement as HTMLElement;
+    expect(getComputedStyle(span).fontSize, `${what}: accent "${span.textContent}" size`).toBe(
+      getComputedStyle(line).fontSize,
+    );
+    expect(getComputedStyle(span).fontFamily, `${what}: accent family`).toBe(
+      getComputedStyle(line).fontFamily,
+    );
+  }
+  return stepped;
+}
+
 /** The mark of a page is the `Logo` or an SVG that draws with the logo recipe. */
 function expectMarksAreLogos(page: Element) {
   for (const mark of page.querySelectorAll<HTMLElement | SVGElement>('[data-kind="mark"]')) {
@@ -254,6 +379,70 @@ function expectMarksAreLogos(page: Element) {
       mark.matches(".ds-logo") || mark.querySelector(".ds-logo__ring, .ds-logo") !== null,
       "a mark draws with the logo recipe",
     ).toBe(true);
+  }
+}
+
+/**
+ * Row 35: with real Tab presses from before the page, focus visits the board, then its 40 edges,
+ * then the 31 nodes in reading order, then the 13 dock buttons, and each kind shows its focus.
+ * The order is the one the shared board gives (spec v1.1); no element inside a board takes focus.
+ * A real key press needs the browser runner.
+ */
+async function expectKeyboardOrder(root: HTMLElement, words: Messages) {
+  if (!inVitest) return;
+  const dock = dockOf(root, words).closest(".react-flow__panel") as HTMLElement;
+  const dockButtons = [...dock.querySelectorAll<HTMLElement>("button")];
+  expect(dockButtons, "the dock").toHaveLength(13);
+  const sentinel = document.createElement("button");
+  sentinel.setAttribute("aria-label", "start of the page");
+  root.before(sentinel);
+  try {
+    sentinel.focus();
+    const stops: HTMLElement[] = [];
+    const seen = new Set<string>();
+    const board = boardOf(root);
+    const ring = resolvedColor(board, "--ds-focus-ring");
+    for (let i = 0; i < 100; i++) {
+      await pressTab();
+      const el = document.activeElement as HTMLElement;
+      stops.push(el);
+      const kind = el === board ? "board" : el.matches(".react-flow__edge") ? "edge" : "other";
+      const known = el.matches(".react-flow__node") ? "node" : dock.contains(el) ? "dock" : kind;
+      if (!seen.has(known)) {
+        seen.add(known);
+        expect(el.matches(":focus-visible"), `${known} focus is visible`).toBe(true);
+        if (known === "dock") {
+          await expectFocusBorderForm(el);
+        } else {
+          const cs = getComputedStyle(el);
+          expect(cs.outlineStyle, `${known} outline`).toBe("solid");
+          expect(cs.outlineWidth, `${known} outline width`).toBe("1px");
+          expect(cs.outlineColor, `${known} outline is focus.ring`).toBe(ring);
+          if (known !== "edge") expect(cs.boxShadow, `${known} halo`).toMatch(/ 0px 0px 0px 4px$/);
+        }
+      }
+      if (el === dockButtons.at(-1)) break;
+    }
+    const names = stops.map((el) => {
+      if (el === board) return "board";
+      if (el.matches(".react-flow__edge, .react-flow__node")) return el.dataset.id ?? "?";
+      const index = dockButtons.indexOf(el);
+      return index >= 0 ? `dock ${index}` : `${el.tagName} outside`;
+    });
+    expect(names).toEqual([
+      "board",
+      ...EDGES.map((e) => `e${e.n}`),
+      ...NODES.map((n) => n.id),
+      ...dockButtons.map((_, i) => `dock ${i}`),
+    ]);
+    expect([...seen].sort(), "each kind showed its focus").toEqual([
+      "board",
+      "dock",
+      "edge",
+      "node",
+    ]);
+  } finally {
+    sentinel.remove();
   }
 }
 
@@ -291,59 +480,78 @@ export const Default: Story = {
     ).toBeDefined();
     expectNoOverlap(root);
 
-    // The dock: nine buttons; a jump marks only its own, says so, and moves with no transition.
+    // The dock: nine buttons. Under reduced motion a jump lands in one frame (row 34), marks only
+    // its own button, says so, and frames its chapter; the route is a click, then the keyboard (row 21).
     const dock = dockOf(root, words);
     expect(within(dock).getAllByRole("button")).toHaveLength(9);
-    await userEvent.click(within(dock).getByRole("button", { name: "01 Direction" }));
-    await waitFor(() =>
-      expect(
-        within(dock).getByRole("button", { name: "01 Direction" }).getAttribute("aria-current"),
-      ).toBe("true"),
-    );
-    expect(dock.querySelectorAll('[aria-current="true"]')).toHaveLength(1);
-    await waitFor(() => expect(within(root).getByText("Jumped to 01 Direction")).toBeDefined());
-    expect(getComputedStyle(viewportOf(root) as HTMLElement).transitionDuration).toBe("0s");
-    await userEvent.click(within(dock).getByRole("button", { name: "Overview" }));
-    await waitFor(() => expect(zoomOf(root)).toBeLessThan(0.3));
-    await frames(4);
+    const chapterButton = (name: string) => within(dock).getByRole("button", { name });
+    const expectCurrent = (name: string) => {
+      expect(chapterButton(name).getAttribute("aria-current"), `${name} is current`).toBe("true");
+      expect(dock.querySelectorAll('[aria-current="true"]'), "only one is current").toHaveLength(1);
+    };
+    await reducedMotion(async () => {
+      const trail = await viewTrail(root, () => userEvent.click(chapterButton("01 Direction")));
+      expectOneStep(trail, "the jump to 01 Direction");
+      await waitFor(() => expectCurrent("01 Direction"));
+      await waitFor(() => expect(within(root).getByText("Jumped to 01 Direction")).toBeDefined());
+      await waitFor(() => expectChapterInView(root, "direction", words));
+      expect(getComputedStyle(viewportOf(root) as HTMLElement).transitionDuration).toBe("0s");
 
-    // The keyboard path: Tab to the colour part, Enter opens page 6 of 12.
-    const title = words.orvCanvas.preview.book;
-    // A real Tab key (the simulated one does not skip `inert` parts, so it sticks on a node whose
-    // phone holds a live page); outside Vitest the node is focused directly.
-    let found = false;
-    if (inVitest) {
-      const { userEvent: real } = await import("vitest/browser");
-      const trail: string[] = [];
-      for (let i = 0; i < 200 && !found; i++) {
-        await real.tab();
-        const now = document.activeElement as HTMLElement | null;
-        trail.push(`${now?.tagName}:${now?.dataset.id ?? ""}`);
-        found = now?.dataset.id === "bb-colour";
+      // Tab on to 05 Brandbook and press Enter.
+      for (let i = 0; i < 4; i++) await pressTab();
+      expect(document.activeElement, "Tab reaches 05 Brandbook").toBe(
+        chapterButton("05 Brandbook"),
+      );
+      const keyed = await viewTrail(root, () => userEvent.keyboard("{Enter}"));
+      expectOneStep(keyed, "the jump to 05 Brandbook");
+      await waitFor(() => expectCurrent("05 Brandbook"));
+      await waitFor(() => expect(within(root).getByText("Jumped to 05 Brandbook")).toBeDefined());
+      await waitFor(() => expectChapterInView(root, "brandbook", words));
+
+      const overview = await viewTrail(root, () => userEvent.click(chapterButton("Overview")));
+      expectOneStep(overview, "the jump to Overview");
+      await waitFor(() => expect(zoomOf(root)).toBeLessThan(0.3));
+      await waitFor(() => expectCurrent("Overview"));
+      await waitFor(() => expectAllInView(root));
+      await frames(4);
+
+      // The keyboard path: Tab to the colour part, Enter opens page 6 of 12.
+      const title = words.orvCanvas.preview.book;
+      // A real Tab key (the simulated one does not skip `inert` parts, so it sticks on a node whose
+      // phone holds a live page); outside Vitest the node is focused directly.
+      let found = false;
+      if (inVitest) {
+        const trail: string[] = [];
+        for (let i = 0; i < 200 && !found; i++) {
+          await pressTab();
+          const now = document.activeElement as HTMLElement | null;
+          trail.push(`${now?.tagName}:${now?.dataset.id ?? ""}`);
+          found = now?.dataset.id === "bb-colour";
+        }
+        expect(found, `Tab reaches bb-colour: ${trail.slice(-8).join(" ")}`).toBe(true);
+      } else {
+        nodeEl(root, "bb-colour").focus();
       }
-      expect(found, `Tab reaches bb-colour: ${trail.slice(-8).join(" ")}`).toBe(true);
-    } else {
-      nodeEl(root, "bb-colour").focus();
-    }
-    const zoomBefore = viewportOf(root)?.style.transform;
-    await userEvent.keyboard("{Enter}");
-    const dialog = await dialogOf(title);
-    expect(countOf(dialog)).toBe("6 / 12");
-    expect(within(dialog).getByText("Page 6 of 12")).toBeDefined();
-    expect(getComputedStyle(dialog).animationName).toBe("none");
-    expect(getComputedStyle(dialog).transitionDuration).toBe("0s");
-    await userEvent.keyboard("{ArrowRight}");
-    await waitFor(() => expect(countOf(dialog)).toBe("7 / 12"));
-    await userEvent.keyboard("{End}");
-    await waitFor(() => expect(countOf(dialog)).toBe("12 / 12"));
-    expect(pagerOf(dialog, "next").disabled).toBe(true);
-    await waitFor(() => expect(document.activeElement).toBe(pagerOf(dialog, "previous")));
-    await userEvent.keyboard("{Home}");
-    await waitFor(() => expect(countOf(dialog)).toBe("1 / 12"));
-    await userEvent.keyboard("{Escape}");
-    await waitFor(() => expect(document.querySelector("[role='dialog']")).toBeNull());
-    await waitFor(() => expect(document.activeElement).toBe(nodeEl(root, "bb-colour")));
-    expect(viewportOf(root)?.style.transform).toBe(zoomBefore);
+      const zoomBefore = viewportOf(root)?.style.transform;
+      await userEvent.keyboard("{Enter}");
+      const dialog = await dialogOf(title);
+      expect(countOf(dialog)).toBe("6 / 12");
+      expect(within(dialog).getByText("Page 6 of 12")).toBeDefined();
+      expect(getComputedStyle(dialog).animationName).toBe("none");
+      expect(getComputedStyle(dialog).transitionDuration).toBe("0s");
+      await userEvent.keyboard("{ArrowRight}");
+      await waitFor(() => expect(countOf(dialog)).toBe("7 / 12"));
+      await userEvent.keyboard("{End}");
+      await waitFor(() => expect(countOf(dialog)).toBe("12 / 12"));
+      expect(pagerOf(dialog, "next").disabled).toBe(true);
+      await waitFor(() => expect(document.activeElement).toBe(pagerOf(dialog, "previous")));
+      await userEvent.keyboard("{Home}");
+      await waitFor(() => expect(countOf(dialog)).toBe("1 / 12"));
+      await userEvent.keyboard("{Escape}");
+      await waitFor(() => expect(document.querySelector("[role='dialog']")).toBeNull());
+      await waitFor(() => expect(document.activeElement).toBe(nodeEl(root, "bb-colour")));
+      expect(viewportOf(root)?.style.transform).toBe(zoomBefore);
+    });
 
     // Each result opens its own sequence, and the scrim closes it.
     for (const record of NODES.filter((n) => n.open)) {
@@ -392,6 +600,7 @@ export const Default: Story = {
     expect(
       root.querySelectorAll("[data-book-page] :is(button, a[href], input, [tabindex='0'])"),
     ).toHaveLength(0);
+    await expectKeyboardOrder(root, words);
   },
 };
 
@@ -426,6 +635,7 @@ export const InThai: Story = {
     const sample = inVitest ? new Set([1, 3, 6, 10, 11, 12]) : new Set<number>();
     for (let n = 1; n <= 12; n++) {
       await waitFor(() => expect(stage.querySelector(`[data-book-page="${n}"]`)).not.toBeNull());
+      await fontsReady();
       const page = stage.querySelector<HTMLElement>(`[data-book-page="${n}"]`) as HTMLElement;
       expectOneLine(page);
       expectTextInside(page, page.getBoundingClientRect(), `page ${n}`);
@@ -465,6 +675,7 @@ export const Dark: Story = {
     probe.remove();
     expect(getComputedStyle(flood as HTMLElement).backgroundColor).toBe(lightViolet);
     expect(root.querySelector("[data-mode='dark']")).not.toBeNull();
+    await expectKeyboardOrder(root, EN);
   },
 };
 
@@ -520,6 +731,12 @@ export const DirectionChapter: Story = {
           expect(cs.mixBlendMode, image.id).toBe("luminosity");
           expect(cs.filter, image.id).toBe("grayscale(1) contrast(1.1)");
         } else {
+          // The paper treatment screens the photograph onto the brand violet (design gap 21): the
+          // container is violet while the image is there, and the paper is multiplied over it.
+          const tile = img.closest<HTMLElement>("[data-photo]") as HTMLElement;
+          expect(getComputedStyle(tile).backgroundColor, `${image.id} ground`).toBe(
+            resolvedColor(tile, "--ds-brand-signature"),
+          );
           expect(cs.mixBlendMode, image.id).toBe("screen");
           expect(cs.filter, image.id).toBe("grayscale(1) brightness(1.2) contrast(1.15)");
           const sibling = img.nextElementSibling as HTMLElement | null;
@@ -550,6 +767,15 @@ export const DirectionChapter: Story = {
       for (const piece of pieces) {
         expectTextInside(piece, piece.getBoundingClientRect(), piece.dataset.piece ?? "piece");
       }
+      expect(
+        expectOwnStep(board, "d-board"),
+        "the board has lines at a scale step",
+      ).toBeGreaterThan(0);
+      const accent = board.querySelector<HTMLElement>('[data-art-line][data-k="2.5"] > span');
+      expect(accent, "the accent of the type piece").not.toBeNull();
+      expect(parseFloat(getComputedStyle(accent as HTMLElement).fontSize)).toBeGreaterThan(
+        displayLg,
+      );
     });
     // The ink check takes the screenshot lock, which `atWindow` holds, so it runs after the window is restored.
     if (inVitest) {
@@ -683,6 +909,16 @@ export const InUseChapter: Story = {
       const board = nodeEl(root, "u-board");
       expect(board.querySelectorAll("[data-piece]")).toHaveLength(7);
       expectQuadsRead(board);
+      expectMarksAreLogos(board);
+      // One label per board (honest-1): the node's meta line says Mockups once, the art says nothing.
+      expect(
+        within(board).getAllByText(copyOf(EN, "use.badge")),
+        "the Mockups label on the node",
+      ).toHaveLength(1);
+      expect(
+        board.querySelector("[data-art-frame]")?.textContent ?? "",
+        "the art carries no caption",
+      ).not.toMatch(/Mockup/);
       const hero = board.querySelector('[data-photo="brand-hero"]') as HTMLElement;
       expect(hero.children.length, "nothing but the image over the hero").toBe(
         hero.querySelectorAll(":scope > img").length,
@@ -761,7 +997,7 @@ async function pageBook(dialog: HTMLElement) {
     await waitFor(() => expect(countOf(dialog)).toBe("1 / 12"));
     for (let n = 1; n <= 12; n++) {
       await waitFor(() => expect(stage.querySelector(`[data-book-page="${n}"]`)).not.toBeNull());
-      await frames();
+      await fontsReady();
       const art = stage.querySelector<HTMLElement>("[data-art-frame]") as HTMLElement;
       const box = stageBox(stage);
       expect(
@@ -770,6 +1006,7 @@ async function pageBook(dialog: HTMLElement) {
       ).toBeLessThanOrEqual(2);
       const page = stage.querySelector<HTMLElement>(`[data-book-page="${n}"]`) as HTMLElement;
       expectOneLine(page);
+      expectOwnStep(page, `page ${n}`);
       expectMarksAreLogos(page);
       if (n === 11) {
         const intent = page.querySelector('.ds-button[data-variant="intent"]');
@@ -890,6 +1127,19 @@ export const PreviewInUseBoard: Story = {
     const stage = stageOf(dialog);
     await imagesLoaded(stage);
     expectQuadsRead(stage);
+    expectMarksAreLogos(stage);
+    // One label (honest-1), in the caption and not on the art.
+    expect(within(dialog).getAllByText(copyOf(EN, "use.note"))).toHaveLength(1);
+    expect(stage.textContent).not.toContain(copyOf(EN, "use.note"));
+    // At 1440 by 900 the board fills the stage height within 2 px (row 29, as row 28 for the direction board).
+    await atWindow(1440, 900, async () => {
+      await fontsReady();
+      const art = stage.querySelector<HTMLElement>("[data-art-frame]") as HTMLElement;
+      expect(
+        Math.abs(art.getBoundingClientRect().height - stageBox(stage).height),
+        "the board fills the stage",
+      ).toBeLessThanOrEqual(2);
+    });
     const sequence = SEQUENCES.find((s) => s.id === "inUse");
     for (let n = 2; n <= 8; n++) {
       await userEvent.keyboard("{ArrowRight}");
@@ -923,8 +1173,28 @@ export const PreviewProductPages: Story = {
       "[data-radix-scroll-area-viewport]",
     ) as HTMLElement;
     await waitFor(() => expect(viewport.scrollTop).toBeGreaterThan(0));
-    const gap = report.getBoundingClientRect().top - viewport.getBoundingClientRect().top;
-    expect(Math.abs(gap)).toBeLessThanOrEqual(24);
+    const gapOf = () => report.getBoundingClientRect().top - viewport.getBoundingClientRect().top;
+    expect(Math.abs(gapOf())).toBeLessThanOrEqual(24);
+    // A font that swaps in after mount, or a late image, grows the page above the findings: the
+    // report opens at its findings again (review R1-7) until the reader moves the page.
+    const spacer = (height: number) => {
+      const el = document.createElement("div");
+      el.style.height = `${height}px`;
+      report.before(el);
+      return el;
+    };
+    // The browser keeps an anchored node in place by itself; switch that off to read the page.
+    viewport.style.overflowAnchor = "none";
+    const above = spacer(240);
+    await waitFor(() =>
+      expect(Math.abs(gapOf()), "the findings stay at the top").toBeLessThanOrEqual(24),
+    );
+    viewport.dispatchEvent(new WheelEvent("wheel", { deltaY: 1 }));
+    const grown = spacer(240);
+    await frames(4);
+    expect(gapOf(), "the reader's place is kept once they scroll").toBeGreaterThan(100);
+    above.remove();
+    grown.remove();
     expect(dialog.querySelector("h2")).not.toBeNull();
     expect(stage.querySelector("h3"), "the page heading is h3").not.toBeNull();
     expect(report.querySelector("h4"), "its sections are h4").not.toBeNull();
