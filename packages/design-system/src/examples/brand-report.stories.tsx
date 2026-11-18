@@ -1,4 +1,4 @@
-import type { PersonalityAxis, QualityKey, ReportView, ViewReading } from "@orivilo/intent-engine";
+import type { QualityKey, ReportView } from "@orivilo/intent-engine";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { type ReactNode, useState } from "react";
 import { expect, fn, userEvent, within } from "storybook/test";
@@ -8,6 +8,17 @@ import { LocaleProvider, useLocale, useMessages } from "../i18n/LocaleProvider";
 import { pick } from "../i18n/locale";
 import { messagesFor } from "../i18n/messages/index";
 import { BrandReportScreen } from "./brand-report";
+import {
+  ANALYSED,
+  type AnalysedView,
+  AXES,
+  NOT_MEASURED,
+  PAGE,
+  PREMIUM_BODY,
+  personalityOf,
+  reading,
+  SHEET,
+} from "./brand-report.fixtures";
 
 const meta = {
   title: "Examples/Application: Brand report",
@@ -54,137 +65,8 @@ const th = messagesFor("th");
 const en = messagesFor("en");
 const onRead = fn();
 
-/** `HTML_A` and `CSS_A` of the ORV-20 band: an orange and a blue that falls in the violet band, and one font. */
-const PAGE = "https://clinic.example/";
-const SHEET = "https://clinic.example/a.css";
-const READ_AT = "2026-11-07T03:15:00.000Z";
-
-const AXES: readonly PersonalityAxis[] = ["playful", "expressive", "structured", "warm", "premium"];
-
-function reading(
-  id: string,
-  level: "high" | "low",
-  quote: string,
-  path: string,
-  extra: Partial<ViewReading> = {},
-): ViewReading {
-  return {
-    evidenceId: id,
-    level,
-    quote,
-    path,
-    rules: ["lexicon-1"],
-    confidence: 0.7,
-    hypothesis: false,
-    reasons: [],
-    ...extra,
-  };
-}
-
-type Analysed = Extract<ReportView, { status: "analysed" }>;
-type AxisEntry = Analysed["personality"][number];
-
-function personalityOf(by: Partial<Record<PersonalityAxis, Partial<AxisEntry>>>): AxisEntry[] {
-  return AXES.map((axis) => {
-    const given = by[axis] ?? {};
-    const leans = given.leans ?? [];
-    const belowFloor = given.belowFloor ?? [];
-    return {
-      axis,
-      leans,
-      leansTotal: given.leansTotal ?? leans.length,
-      belowFloor,
-      belowFloorTotal: given.belowFloorTotal ?? belowFloor.length,
-    };
-  });
-}
-
-const NOT_MEASURED: Analysed["notMeasured"] = [
-  {
-    line: "read.notMeasured",
-    what: "read.notMeasured.what.colourArea",
-    reason: "read.notRendered.none",
-  },
-  {
-    line: "read.notMeasured",
-    what: "read.notMeasured.what.contrast",
-    reason: "read.notRendered.none",
-  },
-  {
-    line: "read.notMeasured",
-    what: "read.notMeasured.what.density",
-    reason: "read.notRendered.none",
-  },
-  {
-    line: "read.notMeasured",
-    what: "read.notMeasured.what.textVisibility",
-    reason: "read.notRendered.none",
-  },
-];
-
-/** One quote holding `premium`, one holding `not too premium`, and a heading below the floor. */
-const PREMIUM_BODY = reading(
-  "ev-body-1",
-  "high",
-  "A premium finish for every visit",
-  "body > section > p:nth-of-type(1)",
-  { confidence: 0.8 },
-);
-const PREMIUM_NOT_TOO = reading(
-  "ev-body-2",
-  "low",
-  "Not too premium, just honest care",
-  "body > section > p:nth-of-type(2)",
-  { rules: ["value-to-lean-1"], confidence: 0.4, hypothesis: true },
-);
-const PREMIUM_HEADING = reading("ev-h-1", "high", "Quiet premium care", "body > section > h1", {
-  confidence: 0.3,
-  reasons: ["quality.fewWords"],
-});
-
-const ANALYSED: Analysed = {
-  status: "analysed",
-  url: PAGE,
-  readAt: READ_AT,
-  role: "own",
-  incomplete: false,
-  thin: false,
-  sheets: [SHEET],
-  colours: [
-    { hex: "#FF7A00", band: "orange", at: [{ sheet: 0, offset: 41 }] },
-    { hex: "#0000FF", band: "violet", at: [{ sheet: 0, offset: 88 }] },
-  ],
-  coloursTotal: 2,
-  fonts: [{ name: "inter", at: [{ sheet: 0, offset: 120 }] }],
-  fontsTotal: 1,
-  text: [
-    { kind: "title", blocks: 1, words: 3 },
-    { kind: "meta", blocks: 1, words: 12 },
-    { kind: "heading", blocks: 3, words: 9 },
-    { kind: "body", blocks: 2, words: 44 },
-  ],
-  personality: personalityOf({
-    premium: {
-      leans: [PREMIUM_BODY, PREMIUM_NOT_TOO],
-      belowFloor: [PREMIUM_HEADING],
-    },
-    warm: {
-      leans: [
-        reading(
-          "ev-body-3",
-          "high",
-          "We welcome every family",
-          "body > section > p:nth-of-type(3)",
-        ),
-      ],
-    },
-  }),
-  notMeasured: NOT_MEASURED,
-  lines: ["report.conflictsNotChecked"],
-};
-
 /** Part of the page did not load: the premium reading falls below the floor, and no lean is left. */
-const INCOMPLETE: Analysed = {
+const INCOMPLETE: AnalysedView = {
   ...ANALYSED,
   incomplete: true,
   personality: personalityOf({
@@ -197,7 +79,7 @@ const INCOMPLETE: Analysed = {
 };
 
 /** A title and a description only: too little text to read much from. */
-const THIN: Analysed = {
+const THIN: AnalysedView = {
   ...ANALYSED,
   thin: true,
   colours: [],
@@ -859,7 +741,7 @@ export const UntrustedText: Story = {
 
 const LONG_URL = `https://long.example/${"a".repeat(2048 - "https://long.example/".length)}`;
 const LONG_PATH = `body > ${"div:nth-of-type(1) > ".repeat(24)}p`.slice(0, 500);
-const NARROW_VIEW: Analysed = {
+const NARROW_VIEW: AnalysedView = {
   ...ANALYSED,
   url: LONG_URL,
   sheets: [LONG_URL],
@@ -1001,6 +883,31 @@ export const NarrowForm: Story = {
   play: async ({ canvasElement }) => {
     const frame = canvasElement.firstElementChild as HTMLElement;
     await expect(frame.scrollWidth).toBeLessThanOrEqual(frame.clientWidth);
+  },
+};
+
+// ----- heading level (the canvas page renders the screen under a dialog's h2) -----
+
+/** `headingLevel={3}`: the title is an `h3`, the sections `h4` and the axis headings `h5`, and no `h1` or `h2` is left. */
+export const HeadingLevel3: Story = {
+  args: { view: ANALYSED, headingLevel: 3 },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getAllByRole("heading", { level: 3 }).map((h) => textOf(h))).toEqual([
+      th.brandReport.heading,
+    ]);
+    await expect(canvas.getAllByRole("heading", { level: 4 }).map((h) => textOf(h))).toEqual([
+      th.brandReport.coloursHeading,
+      th.brandReport.fontsHeading,
+      th.brandReport.textHeading,
+      th.brandReport.personalityHeading,
+      th.brandReport.notMeasuredHeading,
+    ]);
+    await expect(canvas.getAllByRole("heading", { level: 5 }).map((h) => textOf(h))).toEqual(
+      AXES.map((axis) => th.direction.axes[axis]),
+    );
+    await expect(canvas.queryAllByRole("heading", { level: 1 })).toHaveLength(0);
+    await expect(canvas.queryAllByRole("heading", { level: 2 })).toHaveLength(0);
   },
 };
 

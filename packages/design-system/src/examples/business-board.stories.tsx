@@ -131,9 +131,9 @@ async function expectViewer(
   // The view draws no heading of its own: the dialog's title is the heading.
   await expect(d.getAllByRole("heading", { level: 2 })).toHaveLength(1);
   await expect(d.getByRole("region", { name: nodeTitle(m, id) })).toBeVisible();
-  const badge = dialog.querySelector<HTMLElement>(".ds-badge") as HTMLElement;
-  await expect(badge.getAttribute("data-variant")).toBe("neutral");
-  await expect(textOf(badge)).toBe(m.business.state[node.state]);
+  // Row D1: the state is a text line, and with no heading of its own it is the only line under the dialog title.
+  await expectStateLine(dialog, m, node.state);
+  await expect(dialog.querySelector(".ds-section-header")).toBeNull();
   await expect(
     [...dialog.querySelectorAll("[data-field]")].map((f) => f.getAttribute("data-field")),
   ).toEqual(BUSINESS_FIELDS.filter((f) => f.node === id).map((f) => f.id));
@@ -208,6 +208,19 @@ export const NotConfiguredEnglish: Story = {
   },
 };
 
+/** Rows D1 and D2: the node's state is a text line carrying `data-node-state`, never a badge. */
+async function expectStateLine(
+  node: HTMLElement,
+  m: Messages,
+  state: BusinessView["nodes"][number]["state"],
+) {
+  await expect(node.querySelector(".ds-badge")).toBeNull();
+  const line = node.querySelector<HTMLElement>("[data-node-state]");
+  await expect(line).not.toBeNull();
+  await expect(line?.getAttribute("data-node-state")).toBe(state);
+  await expect(textOf(line as HTMLElement)).toBe(m.business.state[state]);
+}
+
 // ----- the board (rows 22, 23, 25) -----
 
 const W2 = [
@@ -260,9 +273,7 @@ async function expectBoard(
   for (const id of BUSINESS_NODES) {
     const node = viewNode(view, id);
     const card = nodeEl(canvasElement, id).querySelector(".ds-node") as HTMLElement;
-    const badge = card.querySelector<HTMLElement>(".ds-badge") as HTMLElement;
-    await expect(badge.getAttribute("data-variant")).toBe("neutral");
-    await expect(textOf(badge)).toBe(m.business.state[node.state]);
+    await expectStateLine(card, m, node.state);
     await expect([...card.querySelectorAll(".ds-node__body ul li")].map(textOf)).toEqual(
       BUSINESS_FIELDS.filter((f) => f.node === id).map((f) => fieldLabel(m, f.id)),
     );
@@ -292,6 +303,7 @@ async function expectBoard(
   );
   await waitFor(() => expect(zoomOf(canvasElement)).toBeCloseTo(1, 3));
   await expectCardsClear(canvasElement);
+  await expectStateAlignment(canvasElement);
   await userEvent.click(
     canvasElement.querySelector('[data-command="board.zoom-to-fit"]') as HTMLElement,
   );
@@ -317,6 +329,29 @@ async function settled(root: HTMLElement) {
 const zoomOf = (root: HTMLElement) =>
   new DOMMatrix(getComputedStyle(root.querySelector(".react-flow__viewport") as Element).transform)
     .a;
+
+/**
+ * Row D2: on every card the state's ink starts where the first field name starts (within 1 px), and
+ * the field list sits 8 under the state line. Measured at the zoom the board is at, in world px.
+ */
+async function expectStateAlignment(root: HTMLElement) {
+  const zoom = zoomOf(root);
+  for (const id of BUSINESS_NODES) {
+    const card = nodeEl(root, id).querySelector(".ds-node") as HTMLElement;
+    const line = card.querySelector<HTMLElement>("[data-node-state]") as HTMLElement;
+    const first = card.querySelector<HTMLElement>(".ds-node__body ul li") as HTMLElement;
+    const list = first.parentElement as HTMLElement;
+    const ink = (el: HTMLElement) => {
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      return range.getBoundingClientRect().left;
+    };
+    await expect(Math.abs(ink(line) - ink(first)) / zoom).toBeLessThanOrEqual(1);
+    await expect(
+      Math.abs((list.getBoundingClientRect().top - line.getBoundingClientRect().bottom) / zoom - 8),
+    ).toBeLessThanOrEqual(1);
+  }
+}
 
 /**
  * Down column 2, from each card's bottom to the next node's label top is at least 40 screen pixels
@@ -575,7 +610,15 @@ async function skippedPlay(canvasElement: HTMLElement, m: Messages) {
   await boardReady(canvasElement);
   const canvas = within(canvasElement);
   const state = (id: BusinessNodeId) =>
-    textOf(nodeEl(canvasElement, id).querySelector(".ds-badge") as HTMLElement);
+    textOf(nodeEl(canvasElement, id).querySelector("[data-node-state]") as HTMLElement);
+  for (const [i, id] of BUSINESS_NODES.entries()) {
+    const shown = ["empty", "proposed", "skipped", "skipped", "skipped"] as const;
+    await expectStateLine(
+      nodeEl(canvasElement, id).querySelector(".ds-node") as HTMLElement,
+      m,
+      shown[i] as (typeof shown)[number],
+    );
+  }
   await expect(BUSINESS_NODES.map(state)).toEqual([
     m.business.state.empty,
     m.business.state.proposed,

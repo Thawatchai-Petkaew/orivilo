@@ -3,7 +3,6 @@
 import type { BusinessView } from "@orivilo/intent-engine";
 import { useMemo, useRef, useState } from "react";
 import {
-  Badge,
   type BoardNode,
   Button,
   CanvasBoard,
@@ -74,17 +73,15 @@ function ReadyBoard({ view, listHref }: { view: BusinessView; listHref: string }
     if (node === undefined) return undefined;
     return (
       <div className="flex flex-col gap-2">
-        <div>
-          <Badge variant="neutral" size="sm">
-            {m.business.state[node.state]}
-          </Badge>
-        </div>
-        <ul className="flex flex-col gap-1 text-body-sm text-text-secondary">
+        <p className={FIELD_NOTE} data-node-state={node.state}>
+          {m.business.state[node.state]}
+        </p>
+        <ul className="flex flex-col gap-1 text-body-sm">
           {node.fields.map((f) => (
             <li key={f.field}>{fieldLabel(m, f.field)}</li>
           ))}
         </ul>
-        {node.gate ? <p className="text-body-sm">{m.business.state.gate}</p> : null}
+        {node.gate ? <p className={FIELD_NOTE}>{m.business.state.gate}</p> : null}
       </div>
     );
   };
