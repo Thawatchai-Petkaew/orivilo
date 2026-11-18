@@ -39,6 +39,8 @@ const UNKNOWN = "99999999-9999-4999-8999-999999999999";
 const SAVED = new Date("2026-11-18T03:15:00Z");
 const opened = (id: string, name: string, idea: string) => ({
   project: { id, name, createdAt: SAVED },
+  intakeId: `intake-of-${id}`,
+  reading: null,
   intake: { version: "intake-1", idea, customers: "พนักงานออฟฟิศ" },
   savedAt: SAVED,
 });

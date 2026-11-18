@@ -1,6 +1,14 @@
-import { businessIntake, eq, member, project, sql } from "@orivilo/db";
+import { createHash } from "node:crypto";
+import { businessIntake, businessReading, desc, eq, member, project, sql } from "@orivilo/db";
 import { inWorkspace } from "@orivilo/db/client";
 import { createTestDatabase, HAS_TEST_DATABASE, type TestDatabase } from "@orivilo/db/testing";
+import {
+  type BusinessReading,
+  modelReading,
+  readBusiness,
+  ruleBasedReading,
+  toBusinessView,
+} from "@orivilo/intent-engine";
 import { testUtils } from "better-auth/plugins";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { BUSINESS_LIST_LIMIT, BusinessError, businessService } from "./business.ts";
@@ -279,5 +287,275 @@ describe.runIf(HAS_TEST_DATABASE)("business projects", () => {
     expect(listed).toHaveLength(BUSINESS_LIST_LIMIT);
     expect(listed[0]?.id).toBe(ids[total - 1]);
     expect(listed.at(-1)?.id).toBe(ids[1]);
+  });
+
+  // ORV-283 rows 27 to 35 at the service: the saved reading of an intake (tech notes 5.2, 6.2).
+  describe("the saved reading", () => {
+    const MODEL = "test/model";
+    const sha256Text = (text: string): string =>
+      createHash("sha256").update(text, "utf8").digest("hex");
+    const answers = {
+      projectName: "Reading",
+      idea: "Roasted coffee for office workers who want good coffee at home",
+    };
+
+    /** A valid model record for the intake, built the way the job builds it, from a typed answer. */
+    const modelRecord = async (intakeId: string): Promise<BusinessReading> => {
+      const complete = () =>
+        Promise.resolve(
+          JSON.stringify({
+            readings: [
+              {
+                field: "audience.customers",
+                value: "Office workers",
+                quotes: [{ answer: "idea", text: "office workers" }],
+              },
+            ],
+          }),
+        );
+      const { items } = await readBusiness(
+        { intake: answers, intakeId, savedAt: "2026-11-18T03:04:05.000Z" },
+        { complete, sha256Text, model: MODEL },
+      );
+      return modelReading(intakeId, MODEL, items);
+    };
+
+    const create = async (email: string, name: string) => {
+      const a = await signIn(email, name);
+      const { projectId } = await service.create(a.headers, a.workspaceId, answers);
+      const [row] = await t.admin
+        .select({ id: businessIntake.id })
+        .from(businessIntake)
+        .where(eq(businessIntake.projectId, projectId));
+      return { ...a, projectId, intakeId: row?.id ?? "" };
+    };
+
+    it("opens with no reading before one is saved (T40)", async () => {
+      const a = await create("noreading@example.com", "Non");
+      const opened = await service.open(a.headers, a.workspaceId, a.projectId);
+      expect(opened.reading).toBeNull();
+      expect(opened.intakeId).toBe(a.intakeId);
+    });
+
+    it("saves a model reading once and replays it on every open (T40)", async () => {
+      const a = await create("replay@example.com", "Rep");
+      const record = await modelRecord(a.intakeId);
+      expect(record.method === "model" && record.items.length).toBeGreaterThan(1);
+      await service.saveReading(a.headers, a.workspaceId, record);
+      const [row] = await t.admin
+        .select()
+        .from(businessReading)
+        .where(eq(businessReading.intakeId, a.intakeId));
+      expect(row).toMatchObject({
+        workspaceId: a.workspaceId,
+        createdBy: a.user.id,
+        job: "business-read",
+        method: "model",
+        reason: null,
+        modelId: MODEL,
+        adapterId: "business-read",
+        adapterVersion: "1",
+        promptVersion: "business-prompt-1",
+      });
+      const first = await service.open(a.headers, a.workspaceId, a.projectId);
+      const second = await service.open(a.headers, a.workspaceId, a.projectId);
+      expect(first.reading).toEqual(record);
+      expect(second.reading).toEqual(first.reading);
+    });
+
+    it("saves a rule-based reading with its reason and no evidence (T40)", async () => {
+      const a = await create("rulebased@example.com", "Rul");
+      await service.saveReading(
+        a.headers,
+        a.workspaceId,
+        ruleBasedReading(a.intakeId, "ai-spend-cap"),
+      );
+      const opened = await service.open(a.headers, a.workspaceId, a.projectId);
+      expect(opened.reading).toEqual(ruleBasedReading(a.intakeId, "ai-spend-cap"));
+      const [row] = await t.admin
+        .select()
+        .from(businessReading)
+        .where(eq(businessReading.intakeId, a.intakeId));
+      expect([row?.reason, row?.modelId, row?.evidence]).toEqual(["ai-spend-cap", null, []]);
+    });
+
+    it("keeps one row per intake and job: a second save fails and changes nothing (T40)", async () => {
+      const a = await create("twice@example.com", "Two");
+      await service.saveReading(a.headers, a.workspaceId, await modelRecord(a.intakeId));
+      const error = await service
+        .saveReading(a.headers, a.workspaceId, ruleBasedReading(a.intakeId, "ai-failed"))
+        .then(
+          () => null,
+          (e: unknown) => e,
+        );
+      expect(error).toBeInstanceOf(BusinessError);
+      expect((error as BusinessError).reason).toBe("not-saved");
+      // The message is a closed word: no answer, id or driver text.
+      expect((error as BusinessError).message).toBe("business refused: not-saved");
+      const rows = await t.admin
+        .select()
+        .from(businessReading)
+        .where(eq(businessReading.intakeId, a.intakeId));
+      expect(rows.map((r) => r.method)).toEqual(["model"]);
+    });
+
+    it("refuses a record that does not parse, and writes nothing (T40)", async () => {
+      const a = await create("badrecord@example.com", "Bad");
+      const record = await modelRecord(a.intakeId);
+      const bad: unknown[] = [
+        { ...record, extra: "key" },
+        { ...ruleBasedReading(a.intakeId, "ai-failed"), reason: "ai-tired" },
+        { ...record, job: "other-job" },
+        record.method === "model"
+          ? {
+              ...record,
+              items: record.items.map((i) => ({
+                ...i,
+                source: { ...i.source, ref: "intake:other" },
+              })),
+            }
+          : null,
+        "not a record",
+      ];
+      for (const one of bad) {
+        await expect(
+          service.saveReading(a.headers, a.workspaceId, one as BusinessReading),
+        ).rejects.toMatchObject({ name: "BusinessError", reason: "invalid-input" });
+      }
+      expect(
+        await t.admin
+          .select()
+          .from(businessReading)
+          .where(eq(businessReading.intakeId, a.intakeId)),
+      ).toEqual([]);
+    });
+
+    it("saves only into the caller's own workspace's intake (T40)", async () => {
+      const a = await create("own-a@example.com", "Own");
+      const b = await signIn("own-b@example.com", "Oth");
+      const record = ruleBasedReading(a.intakeId, "ai-failed");
+      // Not a member of A's workspace: denied before any query.
+      await expect(service.saveReading(b.headers, a.workspaceId, record)).rejects.toMatchObject({
+        status: 404,
+      });
+      await expect(service.saveReading(new Headers(), a.workspaceId, record)).rejects.toMatchObject(
+        {
+          status: 401,
+        },
+      );
+      // In B's own workspace, A's intake does not exist for B: the foreign key and row security refuse.
+      await expect(service.saveReading(b.headers, b.workspaceId, record)).rejects.toMatchObject({
+        name: "BusinessError",
+        reason: "not-saved",
+      });
+      expect(
+        await t.admin
+          .select()
+          .from(businessReading)
+          .where(eq(businessReading.intakeId, a.intakeId)),
+      ).toEqual([]);
+    });
+
+    it("opens the reading of the newest intake only, for the business-read job only (T40)", async () => {
+      const a = await create("newest-reading@example.com", "New");
+      await service.saveReading(a.headers, a.workspaceId, await modelRecord(a.intakeId));
+      const later = "bi-reading-later";
+      await t.admin.insert(businessIntake).values({
+        id: later,
+        workspaceId: a.workspaceId,
+        projectId: a.projectId,
+        version: "intake-1",
+        idea: "second",
+        createdBy: a.user.id,
+        createdAt: new Date(Date.now() + 60_000),
+      });
+      const opened = await service.open(a.headers, a.workspaceId, a.projectId);
+      expect(opened.intakeId).toBe(later);
+      expect(opened.reading).toBeNull();
+      // Another job's row on the newest intake is not this job's reading.
+      await t.admin.insert(businessReading).values({
+        id: "br-other-job",
+        workspaceId: a.workspaceId,
+        intakeId: later,
+        job: "other-job",
+        method: "rule-based",
+        reason: "ai-failed",
+        createdBy: a.user.id,
+      });
+      expect((await service.open(a.headers, a.workspaceId, a.projectId)).reading).toBeNull();
+      const newest = await t.admin
+        .select({ id: businessIntake.id })
+        .from(businessIntake)
+        .where(eq(businessIntake.projectId, a.projectId))
+        .orderBy(desc(businessIntake.createdAt))
+        .limit(1);
+      expect(newest[0]?.id).toBe(later);
+    });
+
+    it("shows a reading row changed outside the app as invalid, never as a reading (T40)", async () => {
+      const a = await create("tampered@example.com", "Tam");
+      await service.saveReading(a.headers, a.workspaceId, await modelRecord(a.intakeId));
+      const where = eq(businessReading.intakeId, a.intakeId);
+      // Valid for the database's checks, refused by the record's schema: evidence that is no item.
+      await t.admin
+        .update(businessReading)
+        .set({ evidence: [{ not: "an item" }] })
+        .where(where);
+      await expect(service.open(a.headers, a.workspaceId, a.projectId)).rejects.toMatchObject({
+        name: "BusinessError",
+        reason: "invalid-stored",
+      });
+    });
+
+    it("shows a row whose columns disagree with its evidence as invalid (T40)", async () => {
+      const a = await create("disagree@example.com", "Dis");
+      await service.saveReading(a.headers, a.workspaceId, await modelRecord(a.intakeId));
+      await t.admin
+        .update(businessReading)
+        .set({ modelId: "other/model" })
+        .where(eq(businessReading.intakeId, a.intakeId));
+      await expect(service.open(a.headers, a.workspaceId, a.projectId)).rejects.toMatchObject({
+        reason: "invalid-stored",
+      });
+    });
+
+    it("a reading changes no saved value (T45)", async () => {
+      const a = await create("nochange@example.com", "Noc");
+      const intakeRow = async () =>
+        (await t.admin.select().from(businessIntake).where(eq(businessIntake.id, a.intakeId)))[0];
+      const before = await intakeRow();
+      const opened = await service.open(a.headers, a.workspaceId, a.projectId);
+      const asView = (reading: BusinessReading | null) =>
+        toBusinessView({
+          project: {
+            id: a.projectId,
+            name: opened.project.name,
+            createdAt: "2026-11-18T00:00:00.000Z",
+          },
+          intake: opened.intake,
+          reading,
+        });
+      const without = asView(null);
+
+      // The reading lands on `audience.customers`, whose own answer is empty in this fixture.
+      await service.saveReading(a.headers, a.workspaceId, await modelRecord(a.intakeId));
+
+      expect(await intakeRow()).toEqual(before);
+      const reopened = await service.open(a.headers, a.workspaceId, a.projectId);
+      expect(reopened.intake).toEqual(opened.intake);
+      const withReading = asView(reopened.reading);
+      const bare = (v: typeof without) =>
+        v.nodes.map((n) => ({
+          id: n.id,
+          state: n.state,
+          gate: n.gate,
+          notes: n.notes,
+          stillToAsk: n.stillToAsk,
+          answers: n.fields.map((f) => [f.field, f.answer]),
+        }));
+      expect(bare(withReading)).toEqual(bare(without));
+      // The reading is there, beside the answers and not in place of them.
+      expect(withReading.nodes.flatMap((n) => n.fields).flatMap((f) => f.readings)).not.toEqual([]);
+    });
   });
 });

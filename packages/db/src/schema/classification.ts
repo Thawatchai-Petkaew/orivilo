@@ -146,4 +146,19 @@ export const CLASSIFICATION = {
     createdBy: "personal", // user-ref
     createdAt: "internal", // record
   },
+  businessReading: {
+    id: "internal", // row-key
+    workspaceId: "internal", // workspace-key
+    intakeId: "internal", // row-key
+    job: "internal", // record
+    method: "internal", // record
+    reason: "internal", // record
+    modelId: "internal", // record
+    adapterId: "internal", // record
+    adapterVersion: "internal", // record
+    promptVersion: "internal", // record
+    evidence: "personal", // free-text
+    createdBy: "personal", // user-ref
+    createdAt: "internal", // record
+  },
 } as const satisfies Classification;
