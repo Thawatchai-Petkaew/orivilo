@@ -48,8 +48,20 @@ async function load(): Promise<View> {
   }
 }
 
-export default async function AccountPage() {
+/**
+ * A failed sign-in (ORV-286 `signin-failure-1`): the address has an `error` with a non-empty value.
+ * Only whether it is there is read; the value is never rendered, logged or matched.
+ */
+const signInFailed = (error: string | string[] | undefined) =>
+  [error ?? ""].flat().some((value) => value !== "");
+
+export default async function AccountPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { m } = await getWebMessages();
+  const callbackFailed = signInFailed((await searchParams)["error"]);
   const view = await load();
   return (
     <main className="mx-auto flex w-full max-w-md flex-col justify-start gap-6 px-4 pt-24 pb-12">
@@ -62,6 +74,7 @@ export default async function AccountPage() {
         <SignInForm
           action={signInWithGoogle}
           labels={{ account: m.account, wait: m.wait, failure: m.failure }}
+          callbackFailed={callbackFailed}
         />
       ) : null}
       {view.kind === "signed-in" ? (

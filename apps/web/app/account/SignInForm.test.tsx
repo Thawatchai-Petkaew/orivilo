@@ -20,9 +20,11 @@ const labels = (m: typeof webMessages.en) => ({
   wait: m.wait,
   failure: m.failure,
 });
-const render = (m: typeof webMessages.en, state: SignInState) => {
+const render = (m: typeof webMessages.en, state: SignInState, callbackFailed = false) => {
   refused.state = state;
-  return renderToStaticMarkup(<SignInForm action={async () => null} labels={labels(m)} />);
+  return renderToStaticMarkup(
+    <SignInForm action={async () => null} labels={labels(m)} callbackFailed={callbackFailed} />,
+  );
 };
 const statusOf = (html: string) => /<div role="status"[^>]*>(.*)<\/div>/.exec(html)?.[1] ?? "";
 const text = (markup: string) => markup.replace(/<[^>]*>/g, "");
@@ -150,5 +152,44 @@ describe("SignInForm", () => {
   it("keeps the status region mounted and empty before any refusal", () => {
     const html = render(webMessages.en, null);
     expect(/<div role="status"[^>]*><\/div>/.test(html)).toBe(true);
+  });
+});
+
+// ORV-286 rows 4, 5 and 10 (signin-message-1): the notice before any press, and its replacement.
+describe("SignInForm after a failed sign-in", () => {
+  it.each([
+    ["en", webMessages.en, "Not done"],
+    ["th", webMessages.th, "ทำไม่สำเร็จ"],
+  ] as const)("shows the badge and the callback line once in %s", (_l, m, word) => {
+    const status = statusOf(render(m, null, true));
+    expect(occurrences(text(status), word)).toBe(1);
+    // The message names the button in straight quotes, which the markup writes as `&quot;`.
+    expect(occurrences(text(status).replaceAll("&quot;", '"'), m.account.callbackFailed)).toBe(1);
+    expect(occurrences(status, "<p ")).toBe(1);
+  });
+
+  it("shows no notice when the sign-in did not fail", () => {
+    expect(/<div role="status"[^>]*><\/div>/.test(render(webMessages.en, null, false))).toBe(true);
+  });
+
+  it("action line replaces the callback notice", () => {
+    const status = statusOf(
+      render(
+        webMessages.en,
+        {
+          error: "rate-limited",
+          code: "RATE_LIMITED",
+          requestId: "r1",
+          retryAfter: 180,
+          retryable: true,
+        },
+        true,
+      ),
+    );
+    expect(text(status)).toContain("Too many sign-in attempts from this network.");
+    expect(text(status)).toContain("Try again in 3 minutes.");
+    expect(text(status)).not.toContain(webMessages.en.account.callbackFailed);
+    expect(occurrences(status, "<p ")).toBe(1);
+    expect(occurrences(text(status), "Not done")).toBe(1);
   });
 });

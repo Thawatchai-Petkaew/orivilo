@@ -6,8 +6,16 @@ import type { SignInState } from "./actions";
 import { signInLine, type SignInLabels } from "./sign-in-line";
 
 /** The notice under the button: the `account.problem` word, then the line (design.md D2). */
-function SignInNotice({ state, labels }: { state: SignInState; labels: SignInLabels }) {
-  const line = signInLine(state, labels);
+function SignInNotice({
+  state,
+  labels,
+  callbackFailed,
+}: {
+  state: SignInState;
+  labels: SignInLabels;
+  callbackFailed: boolean;
+}) {
+  const line = signInLine(state, labels, callbackFailed);
   return (
     <div role="status" aria-live="polite" className="flex flex-col gap-2">
       {line ? (
@@ -36,9 +44,12 @@ function SignInNotice({ state, labels }: { state: SignInState; labels: SignInLab
 export function SignInForm({
   action,
   labels,
+  callbackFailed = false,
 }: {
   action: (previous: SignInState, form: FormData) => Promise<SignInState>;
   labels: SignInLabels;
+  /** The person came back from a sign-in that did not finish (ORV-286 `signin-message-1`). */
+  callbackFailed?: boolean;
 }) {
   const [state, formAction, pending] = useActionState(action, null);
   return (
@@ -49,7 +60,7 @@ export function SignInForm({
           {labels.account.signInWithGoogle}
         </Button>
       </div>
-      <SignInNotice state={state} labels={labels} />
+      <SignInNotice state={state} labels={labels} callbackFailed={callbackFailed} />
     </form>
   );
 }
