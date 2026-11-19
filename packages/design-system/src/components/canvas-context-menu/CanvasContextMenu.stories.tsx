@@ -114,7 +114,7 @@ export const OnEdge: Story = {
     const region = canvas.getByRole("region");
     await ready(region);
     const edge = canvas.getByRole("group", { name: "ป้อนเข้า จาก บรีฟ ไป โลโก้" });
-    const path = edge.querySelector(".react-flow__edge-interaction, path") as SVGElement;
+    const path = edge.querySelector(".react-flow__edge-interaction") as SVGElement;
     await userEvent.pointer({ keys: "[MouseRight]", target: path });
     const menu = await body().findByRole("menu");
     const items = within(menu).getAllByRole("menuitem");

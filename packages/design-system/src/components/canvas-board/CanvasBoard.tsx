@@ -104,6 +104,7 @@ import {
   selectAll,
   setEdgeMeaning,
 } from "./graph";
+import { usePillLayout } from "./pill-layout";
 
 export type { CommandContext, JumpOptions } from "./context";
 
@@ -338,6 +339,9 @@ function Board({
     write();
     return store.subscribe(write);
   }, [store]);
+  // A present board draws a pill only where it is whole and clear of every card, dot and kept pill
+  // (ORV-280 rows 20 and 21).
+  usePillLayout(wrapper, readOnly);
   // The working copy: React Flow fires edge and node changes for one deletion in two calls in one
   // tick, so each handler reads and writes here; `rendered` is the graph of the last render, the
   // basis for "what was connected before this deletion".
@@ -403,6 +407,10 @@ function Board({
 
   const titleOf = (id: string) => graphRef.current.nodes.find((n) => n.id === id)?.data.title ?? id;
 
+  // The node data reads whether a handler exists, never which one: an inline handler from a page
+  // would otherwise remap every node on each render (ORV-280 review S1).
+  const canOpen = Boolean(onNodeOpen);
+
   const nodes = useMemo(
     () =>
       graph.nodes.map((n) => {
@@ -416,15 +424,21 @@ function Board({
             (n.data.open ? nodeOpenLabel(n.data, locale) : nodeLabel(n.data, locale)),
           // The popup attribute says a gesture opens a dialog, so it is set only when the board has a
           // handler to open it (ORV-280 D9).
-          ...(n.data.open && onNodeOpen
+          ...(n.data.open && canOpen
             ? { domAttributes: { ...n.domAttributes, "aria-haspopup": "dialog" as const } }
             : {}),
+          // A group frame is a ground: it sits under the edges and their pills, so no pill is cut at
+          // its frame; its children draw above the edges (ORV-280 D3). Bring to front still wins.
+
+          // A group frame is a ground: it sits under the edges and their pills, so no pill is cut at
+          // its frame; its children draw above the edges (ORV-280 D3). Bring to front still wins.
+          ...(group && n.zIndex === undefined ? { zIndex: -1 } : {}),
           draggable: !readOnly && !locked && (n.draggable ?? true),
           connectable: !readOnly && !locked && !group,
           deletable: !readOnly && !locked,
         };
       }),
-    [graph.nodes, readOnly, locale, onNodeOpen],
+    [graph.nodes, readOnly, locale, canOpen],
   );
 
   const edges = useMemo(
@@ -1066,6 +1080,7 @@ function Board({
       tool,
       snap,
       minimapShown,
+      canOpen,
     }),
     // `enabled` reads the latest graph, clipboard and shell flags through a ref; the surfaces must
     // render again when any of them changes, so they are dependencies here on purpose.
@@ -1082,6 +1097,7 @@ function Board({
       tool,
       snap,
       minimapShown,
+      canOpen,
       clipboard,
       canUndo,
       canRedo,

@@ -1512,6 +1512,52 @@
   flex-direction: column;
   overflow: hidden;
 }
+/* The stage is set into the panel: its corner runs parallel to the panel's, the panel's radius less
+ * the padding between them (ORV-280 D5), not the container radius, which reads fatter inside. */
+.ds-dialog[data-size="viewer"] [data-stage] {
+  --_stage-radius: calc(var(--cmp-dialog-radius) - var(--ds-space-inset-md));
+  border-radius: var(--_stage-radius);
+}
+/* A page on the stage shows its bounds (ORV-290 row 28): a line of the subtle border drawn over the
+ * page's own edge, so a near white page does not melt into a near white stage. */
+[data-stage] [data-art-frame]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border: 1px solid var(--ds-border-subtle);
+  pointer-events: none;
+}
+/* A page made of rounded tiles draws its bounds on one line box per tile, not on the frame (ORV-290
+ * row 28, R28-1). The colour is resolved on the frame, in the stage's mode, because a tile carries
+ * its own art mode; the line boxes below sit in the art's own scope. */
+[data-stage] [data-art-frame] {
+  --_page-line-colour: var(--ds-border-subtle);
+  --_page-matte: var(--ds-surface-sunken);
+}
+[data-stage] [data-art-frame]:has(> * > .rounded-media, > * > [data-board-art])::after {
+  content: none;
+}
+/* The bounds of a page of rounded tiles (ORV-290 row 28, R28-2, R28-3): one untransformed line
+ * box per tile, laid over the frame, so the browser draws its border on whole device px, the
+ * same px as the frame's clip, at every position and device scale. The radius is the tile's own
+ * (the box sits in the art's scope) times the art's scale. A 1 px ring of the stage's fill just
+ * outside the line covers what the scaled tile paints past its box at a corner or a gutter. */
+[data-stage] [data-art-frame] > [data-page-lines] {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+[data-stage] [data-art-frame] > [data-page-lines] > * {
+  --_page-radius: calc(var(--ds-shape-media-radius) * var(--_art-scale));
+  --_page-ring: 0 0 0 1px var(--_page-matte);
+  position: absolute;
+  box-sizing: border-box;
+  border: 1px solid var(--_page-line-colour);
+  border-radius: var(--_page-radius);
+  box-shadow: var(--_page-ring);
+}
 .ds-dialog[data-size="viewer"] .ds-dialog__footer > * {
   flex: 1 1 auto;
 }
@@ -2149,6 +2195,8 @@
   color: var(--cmp-node-fg);
   font: inherit;
   --xy-background-color: var(--cmp-board-bg);
+  /* The ground a focused edge's fill is drawn in, so the shape reads as a line with a halo (D5). */
+  --_ground: var(--cmp-board-bg);
   --xy-background-pattern-color: var(--cmp-board-grid);
   --xy-edge-stroke: var(--cmp-edge-stroke);
   --xy-edge-stroke-width: var(--cmp-edge-width);
@@ -2181,6 +2229,7 @@
   border: 1px solid var(--ds-border-subtle);
   border-radius: var(--ds-shape-container-radius);
   --xy-background-color: var(--ds-surface-canvas);
+  --_ground: var(--ds-surface-canvas);
   --xy-background-pattern-color: var(--ds-border-subtle);
 }
 /* React Flow strips the outline from its own node types; ours keep the focus line and halo (DESIGN.md §3.1).
@@ -2191,10 +2240,15 @@
   box-shadow: var(--_focus-shadow);
   border-radius: var(--cmp-node-radius);
 }
+/* A focused edge draws the focus shape along its curve, not a box around its bounds (ORV-280 D5);
+   the `.ds-edge__focus` paths below are shown while it has keyboard focus. React Flow's own sheet
+   already takes its outline away; the global focus line's shadow is what is left to drop. */
 .ds-board .react-flow__edge:focus-visible {
-  outline: 1px solid var(--ds-focus-ring);
-  outline-offset: 0;
-  box-shadow: var(--_focus-shadow);
+  box-shadow: var(--_focus-shadow-none);
+}
+/* A focused edge stays at full strength while a node is selected and the others step back. */
+.ds-board[data-variant="present"][data-has-selection] .react-flow__edge:focus-visible .ds-edge {
+  opacity: 1;
 }
 .ds-board .react-flow__attribution {
   color: var(--ds-text-secondary);
@@ -2890,7 +2944,12 @@
   letter-spacing: inherit;
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
+  /* No ellipsis: it leaves an empty run after the last mark that fits (ORV-280 D4). A title that does
+   * not fit fades out over its last 2em instead (`data-cut`); the label's own 4 px gap follows it. */
+  text-overflow: clip;
+}
+.ds-node__label .ds-node__title[data-cut] {
+  mask-image: linear-gradient(to right, currentColor calc(100% - 2em), transparent);
 }
 /* The status's glyph and its word are two flex items, so the word leaves before the glyph. */
 .ds-node__label .ds-node__status {
@@ -2979,6 +3038,15 @@
   visibility: visible;
 }
 
+/* The layout pass of a present board (ORV-280 rows 20 and 21) marks a pill that is not whole and
+ * clear with `data-hidden`. The pill stays in the accessible name of its edge or node. The port
+ * pill's selector outweighs the rule that shows it on hover, selection and focus. */
+.ds-board[data-variant="present"] .ds-edge__label[data-hidden],
+.ds-board[data-variant="present"] .react-flow__node .ds-node__source[data-hidden],
+.ds-board[data-variant="present"] .react-flow__node .ds-port .ds-port__label[data-hidden] {
+  visibility: hidden;
+}
+
 /* Levels of detail (ORV-274): the page writes `data-lod` (far, mid, near) from the zoom. */
 .ds-board[data-lod="far"] .ds-node__label,
 .ds-board[data-lod="far"] .ds-edge__label {
@@ -3000,6 +3068,45 @@
 .ds-board[data-variant="present"] {
   --_edge-w: var(--cmp-edge-width-present);
   --_edge-w-selected: var(--cmp-edge-width-present-selected);
+}
+/* The focus parts' base width `--_fw` is the width the edge's own path draws at (a derived edge and
+ * a selected or chained one draw wider), so the shape stays a 1 px line and a 3 px halo around it. */
+.ds-board .ds-edge {
+  --_fw: var(--_edge-w, var(--cmp-edge-width));
+}
+.ds-board .ds-edge[data-meaning="derived"],
+.ds-board .react-flow__edge.selected .ds-edge,
+.ds-board .ds-edge[data-selected] {
+  --_fw: var(--_edge-w-selected, var(--cmp-edge-width-selected));
+}
+.ds-board[data-variant="present"] .ds-edge[data-chain],
+.ds-board[data-variant="present"] .react-flow__edge:hover .ds-edge {
+  --_fw: var(--_edge-w-selected);
+}
+.ds-board[data-variant="present"] .ds-edge[data-chain][data-meaning="derived"],
+.ds-board[data-variant="present"] .react-flow__edge:hover .ds-edge[data-meaning="derived"] {
+  --_fw: calc(2 * var(--_edge-w-selected) - var(--_edge-w));
+}
+.ds-board .ds-edge__focus {
+  display: none;
+  fill: none;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+.ds-board .react-flow__edge:focus-visible .ds-edge__focus {
+  display: inline;
+}
+.ds-board .ds-edge__focus[data-part="halo"] {
+  stroke: var(--_focus-halo);
+  stroke-width: calc((var(--_fw) + 10px) * var(--_zi, 1));
+}
+.ds-board .ds-edge__focus[data-part="line"] {
+  stroke: var(--ds-focus-ring);
+  stroke-width: calc((var(--_fw) + 4px) * var(--_zi, 1));
+}
+.ds-board .ds-edge__focus[data-part="fill"] {
+  stroke: var(--_ground);
+  stroke-width: calc((var(--_fw) + 2px) * var(--_zi, 1));
 }
 .ds-board .ds-edge__path {
   fill: none;
@@ -3025,7 +3132,6 @@
   stroke: var(--cmp-edge-stroke-hover);
 }
 .ds-board .react-flow__edge.selected .ds-edge__path,
-.ds-board .react-flow__edge:focus-visible .ds-edge__path,
 .ds-board .ds-edge[data-selected] .ds-edge__path {
   stroke: var(--cmp-edge-stroke-selected);
   stroke-width: calc(var(--_edge-w-selected, var(--cmp-edge-width-selected)) * var(--_zi, 1));

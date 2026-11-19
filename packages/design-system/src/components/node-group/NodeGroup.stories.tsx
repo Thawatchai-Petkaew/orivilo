@@ -1,10 +1,16 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, userEvent, waitFor, within } from "storybook/test";
-import { BOARD, BOARD_NODES, COLLAPSED_BOARD, GROUPED_BOARD } from "../canvas-board/fixtures";
+import {
+  BOARD,
+  BOARD_EDGES,
+  BOARD_NODES,
+  COLLAPSED_BOARD,
+  GROUPED_BOARD,
+} from "../canvas-board/fixtures";
 import { MatrixBoard, Stateful } from "../canvas-board/story-shell";
 import type { Graph } from "../canvas-board/graph";
 import { Matrix } from "../matrix";
-import { expectLabelInkWhole, inVitest } from "../../testing/visual-asserts";
+import { expectLabelInkWhole, expectPillsAbove, inVitest } from "../../testing/visual-asserts";
 import { MOD } from "../story-keys";
 
 const meta = {
@@ -48,6 +54,25 @@ export const Grouped: Story = {
     const title = group.querySelector<HTMLElement>(".ds-group__title");
     if (!title) throw new Error("the group has no title");
     if (inVitest) await expectLabelInkWhole(title);
+    // ORV-280 row 22: the group is a ground under the edges, so its frame draws over no edge pill.
+    // The stale pill crosses the frame; the pill of the derived edge sits inside it.
+    await expect(getComputedStyle(nodeByTitle(region, "งานภาพ")).zIndex).toBe("-1");
+    await waitFor(() =>
+      expect(region.querySelectorAll(".ds-edge__label")).toHaveLength(BOARD_EDGES.length),
+    );
+    const pills = [...region.querySelectorAll<HTMLElement>(".ds-edge__label")];
+    const frame = nodeByTitle(region, "งานภาพ").getBoundingClientRect();
+    const stale = pills.filter((p) => p.hasAttribute("data-state"));
+    await expect(stale).toHaveLength(1);
+    const crossing = (stale[0] as HTMLElement).getBoundingClientRect();
+    await expect(crossing.left < frame.right && crossing.right > frame.right).toBe(true);
+    const inside = pills.filter((p) => {
+      const r = p.getBoundingClientRect();
+      return r.left > frame.left && r.right < frame.right && r.top > frame.top;
+    });
+    await expect(inside.length).toBeGreaterThan(0);
+    // The helper sets a style on each pill for its read, so it runs once, outside `waitFor`.
+    expectPillsAbove([...stale, ...inside], ".react-flow__node-group");
   },
 };
 
