@@ -448,6 +448,32 @@ describe("foundation in the view", () => {
     if (node?.id !== "identity-frame") throw new Error("the node identity-frame");
     return node;
   };
+  const architecture = (view: ReturnType<typeof toBusinessView>) => {
+    const node = view.foundation[1];
+    if (node?.id !== "architecture") throw new Error("the node architecture");
+    return node;
+  };
+  const nameNode = (view: ReturnType<typeof toBusinessView>) => {
+    const node = view.foundation[2];
+    if (node?.id !== "name") throw new Error("the node name");
+    return node;
+  };
+  const ANSWER = (subBrands: boolean, createdAt = "2026-11-19T05:00:00.000Z"): StoredEntry =>
+    storedEntrySchema.parse({
+      id: `a-${subBrands}`,
+      node: "architecture",
+      kind: "answered",
+      payload: { subBrands },
+      createdAt,
+    });
+  const NAME = (name = "ORIVILO"): StoredEntry =>
+    storedEntrySchema.parse({
+      id: "n1",
+      node: "name",
+      kind: "given",
+      payload: { name },
+      createdAt: "2026-11-19T06:00:00.000Z",
+    });
 
   describe("foundation marks", () => {
     it("gives identity-frame the results of W4 cases 1, 2 and 5 on a given personality", () => {
@@ -617,8 +643,10 @@ describe("foundation in the view", () => {
 
     it("names the fields the card lists, in order, and has the node first and only", () => {
       const view = toBusinessView(project_("agreed"));
-      expect(view.foundation.map((n) => n.id)).toEqual(["identity-frame"]);
+      expect(view.foundation.map((n) => n.id)).toEqual(["identity-frame", "architecture", "name"]);
       expect(personality(view).fields).toEqual(["person", "never", "personality"]);
+      expect(architecture(view).fields).toEqual(["subBrands", "architecture"]);
+      expect(nameNode(view).fields).toEqual(["workingName"]);
     });
 
     it("the newest entry wins in whatever order the entries are stored", () => {
@@ -632,6 +660,232 @@ describe("foundation in the view", () => {
       expect(toBusinessView(project_("agreed")).foundation).toEqual(
         toBusinessView(project_("agreed", [])).foundation,
       );
+    });
+  });
+
+  // T29, rows 15 to 17 and 20, the data half.
+  describe("architecture derived", () => {
+    it("row 15: with positioning agreed and the answer no, the node is derived by rule architecture-derive-1", () => {
+      const node = architecture(toBusinessView(project_("agreed", [ANSWER(false)])));
+      expect(node.state).toBe("derived");
+      expect(node.subBrands).toBe(false);
+      expect(node.value).toEqual({
+        key: "business.architecture.single",
+        rule: "architecture-derive-1",
+      });
+      expect(node.result.status).toBe("derived");
+      expect(node.restsOn).toEqual([]);
+      expect(node.unchecked).toEqual([]);
+      expect(node.waitingFor).toEqual([]);
+      expect(node.controls).toEqual([]);
+    });
+
+    it("row 15, before the answer: empty, no answer, no value, and the question is offered", () => {
+      for (const entries of [undefined, []]) {
+        const node = architecture(toBusinessView(project_("agreed", entries)));
+        expect(node.state).toBe("empty");
+        expect(node.subBrands).toBeNull();
+        expect(node.value).toBeNull();
+        expect(node.controls).toEqual(["answer"]);
+      }
+    });
+
+    it("stores no derived value: the stored entry holds the answer and the view derives the value", () => {
+      const entry = ANSWER(false);
+      expect(JSON.stringify(entry)).not.toContain("single");
+      expect(JSON.stringify(entry)).not.toContain("architecture-derive-1");
+    });
+  });
+
+  describe("architecture yes", () => {
+    it("row 16: the answer yes is not in this version, shows no value, and name waits for architecture", () => {
+      const view = toBusinessView(project_("agreed", [ANSWER(true)]));
+      const node = architecture(view);
+      expect(node.state).toBe("notInVersion");
+      expect(node.subBrands).toBe(true);
+      expect(node.value).toBeNull();
+      expect(node.result).toMatchObject({ status: "open", skipped: false });
+      expect(node.controls).toEqual([]);
+      expect(node.restsOn).toEqual([]);
+      expect(node.unchecked).toEqual([]);
+      const name = nameNode(view);
+      expect(name.state).toBe("waiting");
+      expect(name.waitingFor).toEqual(["architecture"]);
+      expect(name.result).toMatchObject({ status: "blocked", blockedBy: ["architecture"] });
+      expect(name.controls).toEqual(["give"]);
+    });
+
+    it("a yes while positioning is open waits for positioning: a block wins over notInVersion", () => {
+      for (const positioning of ["open", "stale"] as const) {
+        const node = architecture(toBusinessView(project_(positioning, [ANSWER(true)])));
+        expect(node.state, positioning).toBe("waiting");
+        expect(node.waitingFor, positioning).toEqual(["positioning"]);
+        expect(node.subBrands, positioning).toBe(true);
+      }
+      expect(architecture(toBusinessView(project_("skipped", [ANSWER(true)]))).state).toBe(
+        "notInVersion",
+      );
+    });
+
+    it("notInVersion is the open state of a stored yes only: no answer is empty", () => {
+      expect(architecture(toBusinessView(project_("agreed", []))).state).toBe("empty");
+      expect(architecture(toBusinessView(project_("agreed", [ANSWER(false)]))).state).toBe(
+        "derived",
+      );
+    });
+  });
+
+  describe("architecture marks", () => {
+    it("row 17: the three projects give W4's results and show the saved answer without a value", () => {
+      const noChoiceNo = architecture(toBusinessView(project_("open", [ANSWER(false)])));
+      const skippedNo = architecture(toBusinessView(project_("skipped", [ANSWER(false)])));
+      const noChoiceNone = architecture(toBusinessView(project_("open", [])));
+      expect(noChoiceNo.result).toEqual({
+        status: "blocked",
+        skipped: false,
+        blockedBy: ["positioning"],
+        provisionalOn: [],
+        unchecked: [],
+      });
+      expect(skippedNo.result).toEqual({
+        status: "derived",
+        skipped: false,
+        blockedBy: [],
+        provisionalOn: ["positioning"],
+        unchecked: [],
+      });
+      expect(noChoiceNone.result).toEqual({
+        status: "blocked",
+        skipped: false,
+        blockedBy: ["positioning"],
+        provisionalOn: [],
+        unchecked: [],
+      });
+    });
+
+    it("row 17, first: waits for positioning with the saved answer and no value", () => {
+      const node = architecture(toBusinessView(project_("open", [ANSWER(false)])));
+      expect(node.state).toBe("waiting");
+      expect(node.waitingFor).toEqual(["positioning"]);
+      expect(node.subBrands).toBe(false);
+      expect(node.value).toBeNull();
+      expect(node.restsOn).toEqual([]);
+      expect(node.unchecked).toEqual([]);
+    });
+
+    it("row 17, second: derived with the value, provisional, resting on positioning", () => {
+      const node = architecture(toBusinessView(project_("skipped", [ANSWER(false)])));
+      expect(node.state).toBe("derived");
+      expect(node.value).not.toBeNull();
+      expect(node.restsOn).toEqual(["positioning"]);
+      expect(node.unchecked).toEqual([]);
+      expect(node.waitingFor).toEqual([]);
+    });
+
+    it("row 17, third: waits for positioning with the question still offered", () => {
+      const node = architecture(toBusinessView(project_("open", [])));
+      expect(node.state).toBe("waiting");
+      expect(node.waitingFor).toEqual(["positioning"]);
+      expect(node.subBrands).toBeNull();
+      expect(node.controls).toEqual(["answer"]);
+    });
+
+    it("a stale positioning shows the same as an open one", () => {
+      const node = architecture(toBusinessView(project_("stale", [ANSWER(false)])));
+      expect(node.state).toBe("waiting");
+      expect(node.value).toBeNull();
+    });
+
+    it("the question is offered while no entry exists whatever the marks, and never after one", () => {
+      for (const positioning of Object.keys(POSITIONING) as Array<keyof typeof POSITIONING>) {
+        expect(
+          architecture(toBusinessView(project_(positioning, []))).controls,
+          positioning,
+        ).toEqual(["answer"]);
+        for (const subBrands of [false, true]) {
+          expect(
+            architecture(toBusinessView(project_(positioning, [ANSWER(subBrands)]))).controls,
+          ).toEqual([]);
+        }
+      }
+    });
+  });
+
+  describe("the working name in the view", () => {
+    it("row 18: a given name shows with state given, no mark and no control", () => {
+      const node = nameNode(toBusinessView(project_("agreed", [ANSWER(false), NAME()])));
+      expect(node.state).toBe("given");
+      expect(node.name).toBe("ORIVILO");
+      expect(node.unchecked).toEqual([]);
+      expect(node.restsOn).toEqual([]);
+      expect(node.controls).toEqual([]);
+    });
+
+    it("row 20: before, waits for positioning with give offered; after, given and unchecked positioning", () => {
+      const before = nameNode(toBusinessView(project_("open", [])));
+      expect(before.state).toBe("waiting");
+      expect(before.waitingFor).toEqual(["positioning"]);
+      expect(before.name).toBeNull();
+      expect(before.controls).toEqual(["give"]);
+      const after = nameNode(toBusinessView(project_("open", [NAME()])));
+      expect(after.state).toBe("given");
+      expect(after.name).toBe("ORIVILO");
+      expect(after.unchecked).toEqual(["positioning"]);
+      expect(after.result).toMatchObject({ status: "given", unchecked: ["positioning"] });
+      expect(after.controls).toEqual([]);
+    });
+
+    it("with no entry and nothing blocking it is empty and offers give; a stored name shows in any state", () => {
+      const empty = nameNode(toBusinessView(project_("agreed", [ANSWER(false)])));
+      expect(empty.state).toBe("empty");
+      expect(empty.controls).toEqual(["give"]);
+      expect(empty.name).toBeNull();
+      for (const positioning of Object.keys(POSITIONING) as Array<keyof typeof POSITIONING>) {
+        expect(nameNode(toBusinessView(project_(positioning, [NAME("ชื่อ")]))).name).toBe("ชื่อ");
+      }
+    });
+
+    it("a name stays given when positioning goes stale or architecture is yes (W4 case 5)", () => {
+      const view = toBusinessView(project_("stale", [ANSWER(true), NAME()]));
+      expect(nameNode(view).state).toBe("given");
+      expect(nameNode(view).unchecked).toEqual(["positioning"]);
+      const yes = nameNode(toBusinessView(project_("agreed", [ANSWER(true), NAME()])));
+      expect(yes.state).toBe("given");
+      expect(yes.unchecked).toEqual(["architecture"]);
+    });
+
+    it("the name is the typed text: it is neither the project's name nor derived from it", () => {
+      const view = toBusinessView(project_("agreed", [NAME("Other")]));
+      expect(nameNode(view).name).toBe("Other");
+      expect(view.projectName).not.toBe("Other");
+      expect(nameNode(toBusinessView(project_("agreed", []))).name).toBeNull();
+    });
+  });
+
+  describe("controls match the door for architecture and name", () => {
+    const SETS: Record<string, StoredEntry[]> = {
+      none: [],
+      "answer no": [ANSWER(false)],
+      "answer yes": [ANSWER(true)],
+      name: [NAME()],
+      "answer yes and name": [ANSWER(true), NAME()],
+      "personality skipped": [SKIP_ENTRY],
+    };
+
+    it("offers answer and give exactly when entryAllowed is true, for every fixture", () => {
+      for (const positioning of Object.keys(POSITIONING) as Array<keyof typeof POSITIONING>) {
+        for (const [label, entries] of Object.entries(SETS)) {
+          const view = toBusinessView(project_(positioning, entries));
+          const gate = { state: view.positioning.gate, skipped: view.positioning.skipped };
+          const { roots, newest } = foundationState(gate, entries);
+          expect(architecture(view).controls.includes("answer"), `${positioning} / ${label}`).toBe(
+            entryAllowed({ node: "architecture", kind: "answered" }, { roots, newest }),
+          );
+          expect(nameNode(view).controls.includes("give"), `${positioning} / ${label}`).toBe(
+            entryAllowed({ node: "name", kind: "given" }, { roots, newest }),
+          );
+        }
+      }
     });
   });
 
@@ -697,12 +951,21 @@ describe("foundation in the view", () => {
       walk(JSON.parse(JSON.stringify(view.foundation)));
       const closed = new Set([
         "identity-frame",
+        "architecture",
+        "name",
         "given",
         "open",
+        "empty",
+        "waiting",
+        "blocked",
         "positioning",
         "person",
         "never",
         "personality",
+        "subBrands",
+        "workingName",
+        "answer",
+        "give",
         "describe",
         "skip",
         "playful",

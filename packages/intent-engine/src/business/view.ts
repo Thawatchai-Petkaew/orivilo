@@ -3,6 +3,8 @@ import { PERSONALITY_AXES, type PersonalityAxis } from "../knowledge";
 import type { AxisValue, StoredEntry } from "./foundation";
 import {
   axisPointOf,
+  derivedArchitecture,
+  type DerivedArchitecture,
   entryAllowed,
   type AxisPoint,
   type FoundationResult,
@@ -69,10 +71,12 @@ export type PositioningView = {
   controls: Array<"writeOwn" | "skip">;
 };
 
-/** A foundation node's field names, a key of `business.field.*`. PRs 2 and 3 add their own. */
-export type FoundationFieldKey = "person" | "never" | "personality";
-/** A foundation node's state line, a key of `business.state.*`. PRs 2 and 3 add their own. */
-export type FoundationStateKey = "given" | "derived" | "waiting" | "skipped" | "empty";
+/** A foundation node's field names, a key of `business.field.*`. PR 3 adds its own. */
+export type FoundationFieldKey =
+  "person" | "never" | "personality" | "subBrands" | "architecture" | "workingName";
+/** A foundation node's state line, a key of `business.state.*`. PR 3 adds `agreed`. */
+export type FoundationStateKey =
+  "given" | "derived" | "waiting" | "skipped" | "empty" | "notInVersion";
 
 type FoundationBase = {
   result: FoundationResult;
@@ -88,15 +92,30 @@ type FoundationBase = {
   fields: FoundationFieldKey[];
 };
 
-/** The four foundation nodes of ORV-291 in fill order; PR 1 builds `identity-frame`. */
-export type FoundationNode = FoundationBase & {
-  id: "identity-frame";
-  person: string | null;
-  never: string | null;
-  /** The five values the person chose, in the order of `PERSONALITY_AXES`; null unless given. */
-  axes: null | Array<{ axis: PersonalityAxis; value: AxisValue; point: AxisPoint }>;
-  controls: Array<"describe" | "skip">;
-};
+/** The four foundation nodes of ORV-291 in fill order; PRs 1 and 2 build the first three. */
+export type FoundationNode =
+  | (FoundationBase & {
+      id: "identity-frame";
+      person: string | null;
+      never: string | null;
+      /** The five values the person chose, in the order of `PERSONALITY_AXES`; null unless given. */
+      axes: null | Array<{ axis: PersonalityAxis; value: AxisValue; point: AxisPoint }>;
+      controls: Array<"describe" | "skip">;
+    })
+  | (FoundationBase & {
+      id: "architecture";
+      /** The stored answer, shown in every state that holds one; null with no entry. */
+      subBrands: boolean | null;
+      /** The value of `architecture-derive-1`, only while the result is `derived`. */
+      value: DerivedArchitecture | null;
+      controls: Array<"answer">;
+    })
+  | (FoundationBase & {
+      id: "name";
+      /** The person's own text, shown with any entry; null with none. */
+      name: string | null;
+      controls: Array<"give">;
+    });
 
 export type BusinessView = {
   projectName: string;
@@ -258,12 +277,42 @@ function personalityOf(state: FoundationState): FoundationNode {
   };
 }
 
+function architectureOf(state: FoundationState): FoundationNode {
+  const result = state.results.architecture;
+  const answer = state.newest.architecture?.payload.subBrands ?? null;
+  const lines = foundationLines(result);
+  return {
+    id: "architecture",
+    ...lines,
+    // An answer yes leaves the node open: out of this version, with the answer kept.
+    state: result.status === "open" && answer === true ? "notInVersion" : lines.state,
+    fields: ["subBrands", "architecture"],
+    subBrands: answer,
+    value: derivedArchitecture(result),
+    controls: entryAllowed({ node: "architecture", kind: "answered" }, state) ? ["answer"] : [],
+  };
+}
+
+function nameOf(state: FoundationState): FoundationNode {
+  return {
+    id: "name",
+    ...foundationLines(state.results.name),
+    fields: ["workingName"],
+    name: state.newest.name?.payload.name ?? null,
+    controls: entryAllowed({ node: "name", kind: "given" }, state) ? ["give"] : [],
+  };
+}
+
 export function toBusinessView(saved: SavedBusiness): BusinessView {
   const placed = placeIntake(saved.intake);
   const states = nodeStates(saved.intake);
   const readings = readingsOf(saved.reading);
   const positioning = positioningOf(saved);
   const agreed = positioning.gate === "given" || positioning.gate === "confirmed";
+  const foundation = foundationState(
+    { state: positioning.gate, skipped: positioning.skipped },
+    saved.foundation ?? [],
+  );
   /**
    * `positioning-gate-1`'s state; `open` without a skip keeps `node-state-1`'s own. `awaitingChoice`
    * comes with the drafted options (no draft is read yet, so the gate is never `awaiting-choice`).
@@ -275,14 +324,7 @@ export function toBusinessView(saved: SavedBusiness): BusinessView {
     savedAt: saved.project.createdAt,
     reading: statusOf(saved.reading),
     positioning,
-    foundation: [
-      personalityOf(
-        foundationState(
-          { state: positioning.gate, skipped: positioning.skipped },
-          saved.foundation ?? [],
-        ),
-      ),
-    ],
+    foundation: [personalityOf(foundation), architectureOf(foundation), nameOf(foundation)],
     nodes: states.map((s) => ({
       id: s.id,
       state: s.id === "positioning" ? stateOfPositioning(s.state) : s.state,

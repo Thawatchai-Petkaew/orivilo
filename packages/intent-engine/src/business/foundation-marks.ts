@@ -1,4 +1,10 @@
-import { newestByNode, type AxisValue, type EntryInput, type StoredEntry } from "./foundation";
+import {
+  newestByNode,
+  type AxisValue,
+  type EntryInput,
+  type NewestByNode,
+  type StoredEntry,
+} from "./foundation";
 import type { GateState } from "./positioning";
 
 /**
@@ -6,11 +12,12 @@ import type { GateState } from "./positioning";
  * spec `foundation-roots-1`, `foundation-marks-1`, `foundation-entry-1`). One pure function the view
  * and the server door both call, so a control is offered exactly when the door accepts its entry.
  * Nothing about a mark is stored: it is computed from the entries and the positioning gate each time.
- * PR 1 holds the node `identity-frame`; PRs 2 and 3 add the other three to each list.
+ * PR 1 holds the node `identity-frame`, PR 2 adds `architecture` and `name`; PR 3 adds `core-idea`
+ * to each list.
  */
 
-/** Fill order. PR 2 adds "architecture" and "name"; PR 3 adds "core-idea". */
-export const FOUNDATION_NODES = ["identity-frame"] as const;
+/** Fill order. PR 3 adds "core-idea". */
+export const FOUNDATION_NODES = ["identity-frame", "architecture", "name"] as const;
 export type FoundationNodeId = (typeof FOUNDATION_NODES)[number];
 /** The two roots the nodes rest on, and the nodes themselves. */
 export type RootId = "situation" | "positioning";
@@ -19,6 +26,8 @@ export type MarkRef = RootId | FoundationNodeId;
 /** ORV-126 requires, in ORV-126 order. One entry per node of FOUNDATION_NODES. */
 export const FOUNDATION_REQUIRES = {
   "identity-frame": ["positioning"],
+  architecture: ["situation", "positioning"],
+  name: ["positioning", "architecture"],
 } as const satisfies Record<FoundationNodeId, readonly MarkRef[]>;
 
 /** `[from, to]`, one per require. */
@@ -31,6 +40,8 @@ export const MARK_NUMBERS: Record<MarkRef, number> = {
   situation: 1,
   positioning: 6,
   "identity-frame": 7,
+  architecture: 8,
+  name: 9,
 };
 
 export type RootStatus = "done" | "skipped" | "open";
@@ -54,13 +65,17 @@ export function foundationRoots(gate: { state: GateState; skipped: boolean }): F
 /** A node's status from its newest entry, before the rule of `foundation-marks-1` runs. */
 export type OwnStatus = "given" | "derived" | "skipped" | "open";
 
-export function ownStatus(
-  newest: Record<FoundationNodeId, StoredEntry | null>,
-): Record<FoundationNodeId, OwnStatus> {
-  const entry = newest["identity-frame"];
+export function ownStatus(newest: NewestByNode): Record<FoundationNodeId, OwnStatus> {
+  const personality = newest["identity-frame"];
+  const architecture = newest.architecture;
+  const name = newest.name;
   return {
-    "identity-frame": entry === null ? "open" : entry.kind === "given" ? "given" : "skipped",
-  }; // identity-frame-1
+    "identity-frame":
+      personality === null ? "open" : personality.kind === "given" ? "given" : "skipped", // identity-frame-1
+    // architecture-derive-1: only the answer no derives a value; yes and no answer are open.
+    architecture: architecture === null || architecture.payload.subBrands ? "open" : "derived",
+    name: name === null ? "open" : "given", // working-name-1
+  };
 }
 
 export type FoundationResult<R extends string = MarkRef> = {
@@ -194,13 +209,10 @@ export function blockCause(
   return foundationMarks(roots, { ...own, [node]: "open" })[node].blockedBy;
 }
 
-/** The "Allowed when" column of `foundation-entry-1`, for the entries PR 1 builds. */
+/** The "Allowed when" column of `foundation-entry-1`, for the entries PRs 1 and 2 build. */
 export function entryAllowed(
   entry: Pick<EntryInput, "node" | "kind">,
-  state: {
-    roots: FoundationRoots;
-    newest: Record<FoundationNodeId, StoredEntry | null>;
-  },
+  state: { roots: FoundationRoots; newest: NewestByNode },
 ): boolean {
   const own = ownStatus(state.newest);
   switch (entry.node) {
@@ -209,6 +221,12 @@ export function entryAllowed(
       if (blockCause("identity-frame", state.roots, own).length > 0) return false;
       return entry.kind === "given" ? newest?.kind !== "given" : newest === null;
     }
+    // The answer is an input of `situation`, and a name may come first (ORV-126 group B): neither
+    // waits for a block cause, each is allowed once.
+    case "architecture":
+      return state.newest.architecture === null;
+    case "name":
+      return state.newest.name === null;
   }
 }
 
@@ -224,6 +242,22 @@ export function foundationState(
 }
 
 export type FoundationState = ReturnType<typeof foundationState>;
+
+/** `architecture-derive-1`: the value "single brand, one unit" of an answer no, never stored. */
+export type DerivedArchitecture = {
+  key: "business.architecture.single";
+  rule: "architecture-derive-1";
+};
+
+/**
+ * The derived value of a node result: only a `derived` result has one. A `blocked` result shows the
+ * stored answer and no value, an `open` one (the answer yes, or none) has none.
+ */
+export function derivedArchitecture(result: FoundationResult): DerivedArchitecture | null {
+  return result.status === "derived"
+    ? { key: "business.architecture.single", rule: "architecture-derive-1" }
+    : null;
+}
 
 export type AxisPoint = 1 | 2 | 3 | 4 | 5;
 

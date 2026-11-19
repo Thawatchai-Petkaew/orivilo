@@ -56,3 +56,17 @@ export const PROXY_QUESTIONS = [
 
 export type ProxyQuestion = (typeof PROXY_QUESTIONS)[number];
 export type ProxyQuestionId = ProxyQuestion["id"];
+
+/**
+ * The ORV-126 start question the Brand architecture view asks (ORV-291, `architecture-derive-1`;
+ * ORV-126 "The start question" is the home of the copy). Not a proxy question: it is an input of
+ * `situation`, so it stays out of `PROXY_QUESTIONS`.
+ */
+export const START_QUESTIONS = [
+  {
+    id: "situation.sub-brands",
+    key: "business.question.subBrands",
+    en: "Does this brand sit above or below other brands?",
+    th: "แบรนด์นี้อยู่เหนือหรืออยู่ใต้แบรนด์อื่นหรือไม่",
+  },
+] as const;

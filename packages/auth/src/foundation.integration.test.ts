@@ -464,4 +464,144 @@ describe.runIf(HAS_TEST_DATABASE)("brand foundation entries", () => {
       expect(JSON.stringify(error)).not.toContain(PERSON);
     });
   });
+
+  // ORV-295 (slice of ORV-291, PR 2), T30, rows 15, 18, 20 and 21 at the unchanged service: the
+  // architecture and name arms reach it through `checkEntry` and `entryAllowed`.
+  describe("architecture and name entries", () => {
+    const answer = (projectId: string, subBrands: boolean) => ({
+      projectId,
+      node: "architecture",
+      kind: "answered",
+      payload: { subBrands },
+    });
+    const named = (projectId: string, name: string) => ({
+      projectId,
+      node: "name",
+      kind: "given",
+      payload: { name },
+    });
+
+    it("saves the answer no as one row with no derived value, made by the session's user", async () => {
+      const a = await create("fe-arch-save@example.com", "Fas");
+      expect(await foundation.enter(a.headers, a.workspaceId, answer(a.projectId, false))).toEqual({
+        node: "architecture",
+        kind: "answered",
+      });
+      const rows = await rowsOf(a.projectId);
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({
+        workspaceId: a.workspaceId,
+        projectId: a.projectId,
+        node: "architecture",
+        kind: "answered",
+        payload: { subBrands: false },
+        createdBy: a.user.id,
+      });
+      expect(JSON.stringify(rows[0]?.payload)).not.toContain("single");
+    });
+
+    it("saves a working name trimmed, as typed otherwise, with Thai whole", async () => {
+      const a = await create("fe-name-save@example.com", "Fns");
+      await foundation.enter(a.headers, a.workspaceId, named(a.projectId, "  ORIVILO  "));
+      expect((await rowsOf(a.projectId)).map((r) => [r.node, r.kind, r.payload])).toEqual([
+        ["name", "given", { name: "ORIVILO" }],
+      ]);
+      const b = await create("fe-name-thai@example.com", "Fnt");
+      await foundation.enter(b.headers, b.workspaceId, named(b.projectId, "ก".repeat(60)));
+      expect((await rowsOf(b.projectId))[0]?.payload).toEqual({ name: "ก".repeat(60) });
+    });
+
+    it("saves a name and an answer while positioning is not decided, and still refuses the personality", async () => {
+      const a = await create("fe-name-wait@example.com", "Fnw", "none");
+      await foundation.enter(a.headers, a.workspaceId, named(a.projectId, "ORIVILO"));
+      await foundation.enter(a.headers, a.workspaceId, answer(a.projectId, false));
+      expect(
+        (await refusal(foundation.enter(a.headers, a.workspaceId, given(a.projectId)))).reason,
+      ).toBe("out-of-order");
+      expect((await rowsOf(a.projectId)).map((r) => r.node).sort()).toEqual([
+        "architecture",
+        "name",
+      ]);
+    });
+
+    it("refuses a second answer and a second name, and keeps what was saved", async () => {
+      const a = await create("fe-arch-twice@example.com", "Fat");
+      await foundation.enter(a.headers, a.workspaceId, answer(a.projectId, true));
+      await foundation.enter(a.headers, a.workspaceId, named(a.projectId, "First"));
+      for (const entry of [
+        answer(a.projectId, true),
+        answer(a.projectId, false),
+        named(a.projectId, "Second"),
+      ]) {
+        expect((await refusal(foundation.enter(a.headers, a.workspaceId, entry))).reason).toBe(
+          "out-of-order",
+        );
+      }
+      expect((await rowsOf(a.projectId)).map((r) => [r.node, r.payload]).sort()).toEqual([
+        ["architecture", { subBrands: true }],
+        ["name", { name: "First" }],
+      ]);
+    });
+
+    it("gives a member of B entering on A's project the same not-found as an unknown id, for each arm", async () => {
+      const a = await create("fe-an-nf-a@example.com", "Fan");
+      const b = await signIn("fe-an-nf-b@example.com", "Fbn");
+      const unknownId = "00000000-0000-4000-8000-000000000000";
+      for (const make of [
+        (id: string) => answer(id, false),
+        (id: string) => named(id, "ORIVILO"),
+      ]) {
+        const other = await refusal(foundation.enter(b.headers, b.workspaceId, make(a.projectId)));
+        const unknown = await refusal(foundation.enter(b.headers, b.workspaceId, make(unknownId)));
+        expect([other.reason, unknown.reason]).toEqual(["not-found", "not-found"]);
+        expect(unknown.message).toBe(other.message);
+      }
+      expect(await rowsOf(a.projectId)).toEqual([]);
+    });
+
+    it("refuses what the check refuses, writes nothing, and holds the name out of the error", async () => {
+      const a = await create("fe-an-input@example.com", "Fai");
+      for (const bad of [
+        named(a.projectId, "   "),
+        named(a.projectId, `SECRET-NAME-${"x".repeat(61)}`),
+        { ...answer(a.projectId, false), payload: { subBrands: "no" } },
+        { projectId: a.projectId, node: "name", kind: "skipped", payload: {} },
+      ]) {
+        const error = await refusal(foundation.enter(a.headers, a.workspaceId, bad));
+        expect(error.reason).toBe("invalid-input");
+        expect(JSON.stringify(error)).not.toContain("SECRET-NAME");
+      }
+      expect(await rowsOf(a.projectId)).toEqual([]);
+    });
+
+    it("opens with the three nodes' entries newest first and reads each through the stored schema", async () => {
+      const a = await create("fe-an-open@example.com", "Fao");
+      await foundation.enter(a.headers, a.workspaceId, given(a.projectId));
+      await foundation.enter(a.headers, a.workspaceId, answer(a.projectId, false));
+      await foundation.enter(a.headers, a.workspaceId, named(a.projectId, "ORIVILO"));
+      const opened = await business.open(a.headers, a.workspaceId, a.projectId);
+      expect(opened.foundation.map((e) => e.node)).toEqual([
+        "name",
+        "architecture",
+        "identity-frame",
+      ]);
+      expect(opened.foundation[0]).toMatchObject({ kind: "given", payload: { name: "ORIVILO" } });
+      expect(opened.foundation[1]).toMatchObject({
+        kind: "answered",
+        payload: { subBrands: false },
+      });
+    });
+
+    it("shows an answer row changed outside the app as invalid, never as an answer", async () => {
+      const a = await create("fe-an-tamper@example.com", "Fat2");
+      await foundation.enter(a.headers, a.workspaceId, answer(a.projectId, false));
+      // The table holds the text bounds, not the boolean: the stored form refuses a text answer.
+      await t.admin
+        .update(businessFoundationEntry)
+        .set({ payload: { subBrands: "no" } })
+        .where(eq(businessFoundationEntry.projectId, a.projectId));
+      const error = await refusal(business.open(a.headers, a.workspaceId, a.projectId));
+      expect(error.reason).toBe("invalid-stored");
+    });
+  });
 });
