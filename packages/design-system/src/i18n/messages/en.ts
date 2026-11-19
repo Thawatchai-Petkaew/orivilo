@@ -706,12 +706,15 @@ export const en: Messages = {
       category: "Category",
       alternatives: "What customers choose instead",
       value: "What only you give",
+      statement: "Positioning statement",
     },
     state: {
       proposed: "Not confirmed yet",
       skipped: "Skipped for now",
       empty: "Nothing given yet",
       gate: "A gate: nothing builds on this until you agree to it.",
+      awaitingChoice: "Waiting for your choice",
+      agreed: "Agreed",
     },
     stillToAsk: "Still to ask",
     label: {
@@ -743,6 +746,18 @@ export const en: Messages = {
       "This is open only to approved accounts for now, and this account is not one of them.",
     notConfigured:
       "Businesses cannot be saved in this environment yet: the database is not set up.",
+    positioning: {
+      gatePassed: "You agreed to this positioning.",
+      writeOwn: "Write my own",
+      save: "Agree to this positioning",
+      saving: "Saving your choice",
+      cancel: "Cancel",
+      statementRequired: "Write your positioning before you agree to it, or cancel.",
+      by: {
+        own: "Written by you.",
+      },
+      stale: "Your business answers changed after you agreed to this. Check it again.",
+    },
     errors: {
       aiNotConfigured: "AI is not set up in this environment, so only your own words are shown.",
       aiFailed: "AI could not read your answers, so only your own words are shown.",
@@ -751,6 +766,10 @@ export const en: Messages = {
       aiSpendCap:
         "This workspace has used its AI budget for this month, so only your own words are shown.",
     },
+  },
+  /** Strategy steps shared by the nodes that ask for a decision (ORV-126, "Missing strategy"). */
+  strategy: {
+    skip: "Skip for now",
   },
   orvCanvas: {
     title: "ORIVILO, from brief to product",

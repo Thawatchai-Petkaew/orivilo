@@ -18,7 +18,11 @@ import { useLocale, useMessages } from "../i18n/LocaleProvider";
 import { fill } from "../i18n/messages/index";
 import { BusinessAccessNotice, type BusinessAccess } from "./business-access";
 import { boardGraphOf } from "./business-graph";
-import { BusinessNodeView } from "./business-node-view";
+import {
+  BusinessNodeView,
+  type PositioningControls,
+  type PositioningEditor,
+} from "./business-node-view";
 import { FIELD_NOTE, fieldLabel, formatSavedAt, nodeTitle, readReasonLine } from "./business-text";
 
 /**
@@ -29,7 +33,10 @@ import { FIELD_NOTE, fieldLabel, formatSavedAt, nodeTitle, readReasonLine } from
  * shows that node's view in a viewer dialog. It takes a `BusinessView`, which holds keys and values
  * and no resolved text, so a language switch redraws it with no second load. Slice 3 (ORV-283): when
  * the saved record has no model reading, an info Alert under the header says AI did not read and
- * why, and the viewer's view carries the readings or the same line. It knows no route.
+ * why, and the viewer's view carries the readings or the same line. Slice 4 (ORV-285): the Positioning
+ * node shows the state of its gate on the card and holds the controls to write one's own statement or
+ * skip in its view. The text of an open editor is held here, so it stays while the viewer closes and
+ * opens. It knows no route and no action: the page's wrapper gives it `positioning`.
  */
 export interface BusinessBoardScreenProps {
   access: BusinessAccess;
@@ -39,6 +46,11 @@ export interface BusinessBoardScreenProps {
   listHref: string;
   /** The saved project. Required when `access` is `ready`, ignored otherwise. */
   view?: BusinessView | undefined;
+  /**
+   * The Positioning gate's decision: the request that is running, what the server refused or failed
+   * with, and what to call. Absent, the view shows the statement and its labels with no control.
+   */
+  positioning?: Omit<PositioningControls, "editor" | "onEditor"> | undefined;
 }
 
 export function BusinessBoardScreen(props: BusinessBoardScreenProps) {
@@ -52,10 +64,18 @@ export function BusinessBoardScreen(props: BusinessBoardScreenProps) {
     );
   }
   if (props.view === undefined) throw new Error("BusinessBoardScreen: access ready needs a view");
-  return <ReadyBoard view={props.view} listHref={props.listHref} />;
+  return <ReadyBoard view={props.view} listHref={props.listHref} positioning={props.positioning} />;
 }
 
-function ReadyBoard({ view, listHref }: { view: BusinessView; listHref: string }) {
+function ReadyBoard({
+  view,
+  listHref,
+  positioning,
+}: {
+  view: BusinessView;
+  listHref: string;
+  positioning: BusinessBoardScreenProps["positioning"];
+}) {
   const m = useMessages();
   const locale = useLocale();
   const built = useMemo(() => boardGraphOf(view, m), [view, m]);
@@ -67,9 +87,15 @@ function ReadyBoard({ view, listHref }: { view: BusinessView; listHref: string }
   });
   const graph = held.source === built ? held.graph : built;
   const [openId, setOpenId] = useState<string | null>(null);
+  const [editor, setEditor] = useState<PositioningEditor>(null);
   const board = useRef<HTMLDivElement>(null);
   const viewer = useRef<HTMLDivElement>(null);
   const opened = openId === null ? undefined : view.nodes.find((n) => n.id === openId);
+  // Closing the viewer leaves the gate undecided: the caller drops the last failure.
+  const closeViewer = () => {
+    setOpenId(null);
+    positioning?.onDismiss?.();
+  };
 
   const renderBody = (boardNode: BoardNode) => {
     const node = view.nodes.find((n) => n.id === boardNode.id);
@@ -83,8 +109,13 @@ function ReadyBoard({ view, listHref }: { view: BusinessView; listHref: string }
           {node.fields.map((f) => (
             <li key={f.field}>{fieldLabel(m, f.field)}</li>
           ))}
+          {node.id === "positioning" ? <li>{m.business.field.statement}</li> : null}
         </ul>
-        {node.gate ? <p className={FIELD_NOTE}>{m.business.state.gate}</p> : null}
+        {node.gatePassed ? (
+          <p className={FIELD_NOTE}>{m.business.positioning.gatePassed}</p>
+        ) : node.gate ? (
+          <p className={FIELD_NOTE}>{m.business.state.gate}</p>
+        ) : null}
       </div>
     );
   };
@@ -130,11 +161,17 @@ function ReadyBoard({ view, listHref }: { view: BusinessView; listHref: string }
         </CanvasBoard>
       </div>
       {opened === undefined ? null : (
-        <Dialog open onOpenChange={(next) => (next ? undefined : setOpenId(null))}>
+        <Dialog open onOpenChange={(next) => (next ? undefined : closeViewer())}>
           <DialogContent
             size="viewer"
             title={nodeTitle(m, opened.id)}
-            description={opened.gate ? m.business.state.gate : undefined}
+            description={
+              opened.gatePassed
+                ? m.business.positioning.gatePassed
+                : opened.gate
+                  ? m.business.state.gate
+                  : undefined
+            }
             onOpenAutoFocus={(event) => {
               // Arrow keys scroll the view, so focus goes to its scroll region.
               event.preventDefault();
@@ -152,7 +189,17 @@ function ReadyBoard({ view, listHref }: { view: BusinessView; listHref: string }
               <ScrollArea label={nodeTitle(m, opened.id)} className="min-h-0 flex-1">
                 {/* Radix draws the bar over the viewport: leave it room, bar 4 plus 8 (row D3). */}
                 <div className="pe-3">
-                  <BusinessNodeView node={opened} heading={false} reading={view.reading} />
+                  <BusinessNodeView
+                    node={opened}
+                    heading={false}
+                    reading={view.reading}
+                    positioning={view.positioning}
+                    controls={
+                      positioning === undefined
+                        ? undefined
+                        : { ...positioning, editor, onEditor: setEditor }
+                    }
+                  />
                 </div>
               </ScrollArea>
             </div>

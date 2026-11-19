@@ -15,6 +15,7 @@ import {
   modelReading,
   ruleBasedReading,
   scoreConfidence,
+  type StoredChoice,
   type StoredIntake,
   toBusinessView,
   wordCount,
@@ -33,15 +34,17 @@ const view = (
   name: string,
   intake: Omit<StoredIntake, "version">,
   reading?: BusinessReading,
+  positioning?: { intakeId: string; choice: StoredChoice | null },
 ): BusinessView =>
   toBusinessView({
     project: { id: "fixture", name, createdAt: SAVED_AT },
     intake: { version: INTAKE_VERSION, ...intake },
     ...(reading === undefined ? {} : { reading }),
+    ...(positioning === undefined ? {} : { positioning }),
   });
 
 /** Thai, every field given, a line break inside one answer. */
-export const THAI_VIEW = view("คาเฟ่ริมคลอง", {
+const THAI_INTAKE = {
   idea: "ร้านกาแฟคั่วเองและขนมอบ สำหรับคนทำงานในย่านเมืองเก่า",
   industry: "ร้านกาแฟและเบเกอรี่",
   customers: "พี่ใหม่ ทำงานออกแบบอยู่แถวนี้ แวะมาทุกเช้า\nและพาเพื่อนร่วมงานมาด้วยทุกวันศุกร์",
@@ -49,10 +52,11 @@ export const THAI_VIEW = view("คาเฟ่ริมคลอง", {
   competitors: "ร้านกาแฟแฟรนไชส์หน้าปากซอย และกาแฟกระป๋องจากร้านสะดวกซื้อ",
   value: "เมล็ดกาแฟที่คั่วสดทุกเช้าในร้าน และที่นั่งริมคลองที่เงียบ",
   website: "https://cafe-rim-khlong.example/",
-});
+} as const;
+export const THAI_VIEW = view("คาเฟ่ริมคลอง", THAI_INTAKE);
 
 /** English, every field given. */
-export const ENGLISH_VIEW = view("Canalside Cafe", {
+const ENGLISH_INTAKE = {
   idea: "A roastery and bakery for people who work in the old town.",
   industry: "Coffee shop and bakery",
   customers: "Mai designs for a living nearby and stops in every morning.",
@@ -60,7 +64,8 @@ export const ENGLISH_VIEW = view("Canalside Cafe", {
   competitors: "The chain cafe at the end of the lane, and canned coffee from the corner shop.",
   value: "Beans roasted fresh in the shop each morning, and a quiet seat by the canal.",
   website: "https://canalside-cafe.example/",
-});
+} as const;
+export const ENGLISH_VIEW = view("Canalside Cafe", ENGLISH_INTAKE);
 
 /** The name and the idea only: audience, competitors and value are skipped, the website is not given. */
 export const SKIPPED_VIEW = view("โปรเจกต์ที่ข้ามไว้", {
@@ -384,3 +389,92 @@ export const aiUnavailableView = (
     ruleBasedReading(INTAKE_ID, reason),
   );
 };
+
+// ----- the positioning gate (ORV-285) -----
+
+/** The newest intake of every project below; a choice made on `OLDER_INTAKE_ID` is stale. */
+const NEWEST_INTAKE_ID = "intake-newest";
+const OLDER_INTAKE_ID = "intake-older";
+
+const choiceOf = (
+  intakeId: string,
+  kind: "written" | "skipped",
+  statement: string | null,
+): StoredChoice =>
+  kind === "skipped"
+    ? {
+        id: `choice-${kind}`,
+        intakeId,
+        kind,
+        statement: null,
+        draftId: null,
+        option: null,
+        createdAt: SAVED_AT,
+      }
+    : {
+        id: `choice-${kind}`,
+        intakeId,
+        kind,
+        statement: statement ?? "",
+        draftId: null,
+        option: null,
+        createdAt: SAVED_AT,
+      };
+
+/** The Thai project of the board, with the newest choice a person made on the Positioning gate. */
+const thaiWith = (choice: StoredChoice | null, intakeId = NEWEST_INTAKE_ID) =>
+  view("คาเฟ่ริมคลอง", THAI_INTAKE, undefined, { intakeId, choice });
+const englishWith = (choice: StoredChoice | null, intakeId = NEWEST_INTAKE_ID) =>
+  view("Canalside Cafe", ENGLISH_INTAKE, undefined, { intakeId, choice });
+
+/** What a person wrote on the gate, in each language: one sentence of their own. */
+export const POSITIONING_STATEMENTS = {
+  th: "คาเฟ่ริมคลองเพียงแห่งเดียวที่คั่วเมล็ดกาแฟสดทุกเช้าในร้านให้คนทำงานย่านเมืองเก่า",
+  en: "The only cafe on the canal that roasts its beans fresh each morning for the old town's workers.",
+} as const;
+
+/** A markup statement, which must show as literal text (spec row 8). */
+export const HOSTILE_STATEMENT = "<img src=x onerror=alert(1)>";
+
+/** A statement of 300 Thai characters with no space, the longest the choice keeps. */
+export const LONG_STATEMENT = LONG_ANSWER.slice(0, 300);
+
+/** The four projects of spec row 5, then the stale and the markup cases, in each language. */
+export const POSITIONING_VIEWS = {
+  th: {
+    /** Value given, no choice: `proposed`, the gate line, both controls. */
+    open: thaiWith(null),
+    /** The value answer empty, no choice: `skipped`. */
+    valueEmpty: SKIPPED_VIEW,
+    skipped: thaiWith(choiceOf(NEWEST_INTAKE_ID, "skipped", null)),
+    agreed: thaiWith(choiceOf(NEWEST_INTAKE_ID, "written", POSITIONING_STATEMENTS.th)),
+    stale: thaiWith(choiceOf(OLDER_INTAKE_ID, "written", POSITIONING_STATEMENTS.th)),
+    hostile: thaiWith(choiceOf(NEWEST_INTAKE_ID, "written", HOSTILE_STATEMENT)),
+    long: thaiWith(choiceOf(NEWEST_INTAKE_ID, "written", LONG_STATEMENT)),
+  },
+  en: {
+    open: englishWith(null),
+    valueEmpty: view("A project that skipped", { idea: "A booking app for barber shops" }),
+    skipped: englishWith(choiceOf(NEWEST_INTAKE_ID, "skipped", null)),
+    agreed: englishWith(choiceOf(NEWEST_INTAKE_ID, "written", POSITIONING_STATEMENTS.en)),
+    stale: englishWith(choiceOf(OLDER_INTAKE_ID, "written", POSITIONING_STATEMENTS.en)),
+    hostile: englishWith(choiceOf(NEWEST_INTAKE_ID, "written", HOSTILE_STATEMENT)),
+    long: englishWith(choiceOf(NEWEST_INTAKE_ID, "written", LONG_STATEMENT)),
+  },
+} as const;
+
+/**
+ * What a stub action does when a person writes or skips: the view the page would build again after
+ * the save, from the same engine function. The stories use it in place of the server.
+ */
+export function positioningAfter(
+  locale: "th" | "en",
+  choice: { kind: "written"; statement: string } | { kind: "skipped" },
+): BusinessView {
+  const make = locale === "th" ? thaiWith : englishWith;
+  return make(
+    choice.kind === "skipped"
+      ? choiceOf(NEWEST_INTAKE_ID, "skipped", null)
+      : choiceOf(NEWEST_INTAKE_ID, "written", choice.statement.trim()),
+  );
+}
