@@ -422,12 +422,18 @@ async function expectKeyboardOrder(root: HTMLElement, words: Messages) {
         expect(el.matches(":focus-visible"), `${known} focus is visible`).toBe(true);
         if (known === "dock") {
           await expectFocusBorderForm(el);
+        } else if (known === "edge") {
+          // A focused edge draws the focus shape along its curve, not a box (ORV-280 D5).
+          expect(getComputedStyle(el).outlineStyle, "edge outline").toBe("none");
+          const line = el.querySelector(".ds-edge__focus[data-part='line']") as Element;
+          expect(getComputedStyle(line).display, "edge focus line shown").not.toBe("none");
+          expect(getComputedStyle(line).stroke, "edge focus line is focus.ring").toBe(ring);
         } else {
           const cs = getComputedStyle(el);
           expect(cs.outlineStyle, `${known} outline`).toBe("solid");
           expect(cs.outlineWidth, `${known} outline width`).toBe("1px");
           expect(cs.outlineColor, `${known} outline is focus.ring`).toBe(ring);
-          if (known !== "edge") expect(cs.boxShadow, `${known} halo`).toMatch(/ 0px 0px 0px 4px$/);
+          expect(cs.boxShadow, `${known} halo`).toMatch(/ 0px 0px 0px 4px$/);
         }
       }
       if (el === dockButtons.at(-1)) break;

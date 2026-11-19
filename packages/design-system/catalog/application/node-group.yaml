@@ -19,4 +19,5 @@ rules:
   - "Mod+G groups two or more selected nodes (named กลุ่ม N); Mod+Shift+G ungroups; deleting a group ungroups it and keeps every node"
   - "Collapsing hides the children and shows how many nodes and crossing edges it holds; the frame is restored on expand"
 a11y:
+  - "The group frame is drawn under its children and under the board's edges and pills (z-index -1 unless the node sets one), so a stale or invalid pill over the frame is whole, not veiled by it (ORV-280 D3; story Grouped)"
   - "A focusable node named by its title and the word กลุ่ม; its toolbar appears when it is the one selected node; children are reachable in the board's focus order"

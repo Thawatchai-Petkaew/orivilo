@@ -362,6 +362,106 @@ export const PillsClear: Story = {
 };
 
 /**
+ * ORV-280 rows 20 and 21: `expectPillsClear` also reads the drawn port name pills and source pills,
+ * against every other drawn pill. Two edge pills 2 px apart throw; a port pill of node a over an edge
+ * pill or over a pill of node b throws, naming both; the two pills of one node (a port pill and its
+ * source pill) overlap and pass, since they are its own rows; a port pill under a card or a dot is not
+ * an error, since it sits beside its own card by design, while an edge pill there still is; hidden
+ * port and source pills are not read. The board is plain boxes, so no font width is read.
+ */
+export const PillsClearAmongPills: Story = {
+  render: () => {
+    const box = (left: number, top: number, width: number, height: number): CSSProperties => ({
+      position: "absolute",
+      left,
+      top,
+      width,
+      height,
+    });
+    return (
+      <div
+        className="react-flow"
+        data-case="board"
+        style={{ ...box(0, 0, 500, 200), position: "relative" }}
+      >
+        <div className="react-flow__node" data-id="a" style={box(0, 0, 0, 0)}>
+          <span className="ds-port__label" data-case="a-port" style={box(0, 100, 80, 20)}>
+            a port
+          </span>
+          <span
+            className="ds-node__source"
+            data-case="a-source"
+            style={{ ...box(10, 110, 80, 20), visibility: "visible" }}
+          >
+            a source
+          </span>
+        </div>
+        <div className="react-flow__node" data-id="b" style={box(0, 0, 0, 0)}>
+          <span className="ds-port__label" data-case="b-port" style={box(300, 100, 80, 20)}>
+            b port
+          </span>
+        </div>
+        <span className="ds-edge__label" data-case="edge-1" style={box(200, 20, 80, 20)}>
+          edge one
+        </span>
+        <span className="ds-edge__label" data-case="edge-2" style={box(200, 60, 80, 20)}>
+          edge two
+        </span>
+        <div className="ds-node" data-case="card" style={box(400, 150, 90, 40)} />
+      </div>
+    );
+  },
+  play: async ({ canvasElement }) => {
+    const board = q(canvasElement, "[data-case='board']");
+    const at = (name: string) => q(canvasElement, `[data-case='${name}']`);
+    const place = (name: string, left: number, top: number) => {
+      at(name).style.left = `${left}px`;
+      at(name).style.top = `${top}px`;
+    };
+    // Two edge pills 40 px apart, a port pill and its source pill overlapping (one node), a port pill
+    // of b far off: every pill is drawn and clear, so five are read.
+    expect(expectPillsClear(board)).toBe(5);
+    // Two edge pills 2 px apart.
+    place("edge-2", 200, 42);
+    expect(() => expectPillsClear(board)).toThrow(
+      /the pill "edge one" is 2\.0 px from the pill "edge two", expected at least 4/,
+    );
+    expectPillsClear(board, 2);
+    place("edge-2", 200, 60);
+    // A port pill of a over an edge pill.
+    place("a-port", 190, 25);
+    expect(() => expectPillsClear(board)).toThrow(
+      /the pill "edge one" is -?\d+\.0 px from the pill "a port"/,
+    );
+    // Hidden, the same pill is not read.
+    at("a-port").style.visibility = "hidden";
+    expectPillsClear(board);
+    at("a-port").style.visibility = "";
+    place("a-port", 0, 100);
+    // A port pill of a over a port pill of b.
+    place("a-port", 290, 105);
+    expect(() => expectPillsClear(board)).toThrow(
+      /the pill "a port" is -?\d+\.0 px from the pill "b port"/,
+    );
+    place("a-port", 0, 100);
+    // A source pill is read the same way.
+    place("a-source", 200, 22);
+    expect(() => expectPillsClear(board)).toThrow(
+      /the pill "edge one" is -?\d+\.0 px from the pill "a source"/,
+    );
+    place("a-source", 10, 110);
+    // A port pill under a card is its own node's business: no error. An edge pill there is.
+    place("b-port", 405, 155);
+    expectPillsClear(board);
+    place("b-port", 300, 100);
+    place("edge-2", 400, 150);
+    expect(() => expectPillsClear(board)).toThrow(
+      /the pill "edge two" is -?\d+\.0 px from <div\.ds-node>/,
+    );
+  },
+};
+
+/**
  * ORV-282, design row D4: `expectPortPillsClear` reads the port name pills of one board node. Two
  * pills 7.9 world px apart (a 40 pitch with a 32.1 pill) pass the default 7.5 and throw, naming both
  * pills, at 8.5; on the old 24 pitch they overlap by 8.1 and throw at the default. A card, a title

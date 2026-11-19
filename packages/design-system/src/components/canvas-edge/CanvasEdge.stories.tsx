@@ -6,7 +6,12 @@ import { useDesignProfile } from "../../boundary/DesignProfileBoundary";
 import { CanvasBoard, type CanvasBoardProps } from "../canvas-board/CanvasBoard";
 import type { BoardEdge, BoardNode, EdgeContent, Graph } from "../canvas-board/graph";
 import type { PortKind } from "../../tokens/canvas";
-import { expectEdgeInk, inVitest } from "../../testing/visual-asserts";
+import {
+  colourRunsAcross,
+  expectEdgeInk,
+  expectPillsClear,
+  inVitest,
+} from "../../testing/visual-asserts";
 import { fillHeight, Matrix } from "../matrix";
 
 const text = { id: "text", kind: "text", label: "ข้อความ" } as const;
@@ -179,11 +184,14 @@ export const InteractionStates: Story = {
     await userEvent.hover(hover.querySelector(".react-flow__edge-interaction") as Element);
     focus.focus();
     await expect(focus).toHaveFocus();
-    // The focused edge's reach is the 1 px line (outline width plus offset; an SVG edge gets no halo) and ends above the controls bar (design.md
-    // row 1): the board is tall enough that the fit leaves the bottom pair clear of the bar.
-    const ring = getComputedStyle(focus);
-    await expect(ring.outlineStyle).not.toBe("none");
-    const reach = parseFloat(ring.outlineWidth) + parseFloat(ring.outlineOffset);
+    // The focused edge draws the focus shape along its curve, no box (ORV-280 D5): its reach is half
+    // the halo's width, and it ends above the controls bar (design.md row 1): the board is tall enough
+    // that the fit leaves the bottom pair clear of the bar.
+    await expect(getComputedStyle(focus).outlineStyle).toBe("none");
+    const halo = focus.querySelector(".ds-edge__focus[data-part='halo']") as SVGPathElement;
+    await expect(getComputedStyle(halo).display).not.toBe("none");
+    const reach =
+      (parseFloat(getComputedStyle(halo).strokeWidth) * (halo.getScreenCTM()?.a ?? 1)) / 2;
     const bar = canvasElement.querySelector(".ds-controls") as HTMLElement;
     await waitFor(() =>
       expect(focus.getBoundingClientRect().bottom + reach).toBeLessThanOrEqual(
@@ -545,6 +553,13 @@ async function playKindsAndZoom(root: HTMLElement, lang: keyof typeof TITLES) {
     // The pill sits on its edge at every zoom, on both boards (F1).
     pillHeights.set(zoom, expectPillsOnEdges(present, zoom));
     expectPillsOnEdges(edit, zoom);
+    // Row 20: a pill is drawn only where it is whole and clear of every card, title line, dot and
+    // pill drawn before it. At the 0.25 floor none is, and the board shows its lines only (D1); a
+    // pill that is cut from the picture stays on its edge, so the check above still reads it.
+    await waitFor(() => {
+      const drawnPills = expectPillsClear(present);
+      if (zoom === 0.25) expect(drawnPills, "pills drawn at the 0.25 floor").toBe(0);
+    });
     // The edit board's nodes stand apart: no two cards overlap (ORV-280 D6).
     const cards = [...edit.querySelectorAll(".ds-node")].map((el) => el.getBoundingClientRect());
     await expect(cards.length).toBeGreaterThan(1);
@@ -601,6 +616,22 @@ async function playKindsAndZoom(root: HTMLElement, lang: keyof typeof TITLES) {
     await expect(editReference?.dash[1]).toBeCloseTo(5, 2);
     for (const e of [editInput, editReference, editDerived]) await expect(e?.stroke).toBe(gray);
   }
+  // At the fit zoom, where the grid is smaller than the board, the pills that stay are clear; a state
+  // pill keeps its place before a meaning pill does (row 20), so the stale and the invalid pill show.
+  const present = await zoomTo(root, "present", 1);
+  await flows.get("present")?.fitView({ duration: 0 });
+  await waitFor(() => expect(viewportZoom(present)).toBeLessThan(1));
+  await waitFor(() => expectPillsClear(present));
+  await zoomTo(root, "present", 1);
+  await waitFor(() => {
+    expectPillsClear(present);
+    for (const state of ["stale", "invalid"]) {
+      const pill = present.querySelector(`.ds-edge__label[data-state="${state}"]`);
+      expect(getComputedStyle(pill as Element).visibility, `the ${state} pill at zoom 1`).toBe(
+        "visible",
+      );
+    }
+  });
   // A present label pill stays as tall on screen when zoomed out (it grows by 1 / zoom, so the
   // zoom cancels), and grows with the board once the zoom is past 1. Each pill is compared with
   // the same pill at zoom 1 (the pills keep their DOM order at every zoom).
@@ -754,6 +785,26 @@ async function playChain(root: HTMLElement) {
     await expect(opacityOf(l)).toBe(l.hasAttribute("data-chain") ? "1" : "0.4");
   }
   await expect(labels.filter((l) => l.hasAttribute("data-chain"))).toHaveLength(2);
+  // Row 21: the pointer is still over b, so its port names are drawn and the edge words they meet
+  // give way. No shown pill covers another.
+  const shown = (el: Element) => getComputedStyle(el).visibility === "visible";
+  const portNames = () => [...node("b").querySelectorAll(".ds-port__label")];
+  await waitFor(() => {
+    expectPillsClear(board);
+    expect(portNames().length).toBeGreaterThan(0);
+    for (const name of portNames()) expect(shown(name), "a port name of the pointed b").toBe(true);
+    expect([...board.querySelectorAll(".ds-edge__label")].filter(shown).length).toBeLessThan(4);
+  });
+  // The pointer and the focus leave: b is selected and not pointed, so its names give way to the edge
+  // words. All four edge pills are drawn, and at least one name is cut where it met one.
+  await userEvent.unhover(node("b"));
+  (node("b") as HTMLElement).blur();
+  await waitFor(() => expect(node("b").matches(":hover, :focus-visible")).toBe(false));
+  await waitFor(() => {
+    expectPillsClear(board);
+    expect([...board.querySelectorAll(".ds-edge__label")].filter(shown)).toHaveLength(4);
+    expect(portNames().filter((el) => !shown(el)).length).toBeGreaterThan(0);
+  });
   // A chained dotted edge is wider than a dotted edge at rest: 2 x 2.5 less 1.5 is 3.5.
   await userEvent.click(node("d"));
   await waitFor(() => expect(edge("de")).toHaveAttribute("data-chain"));
@@ -785,6 +836,225 @@ export const ChainHighlightInEnglish: Story = {
   globals: { locale: "en", mode: "dark" },
   render: () => <ChainBoard lang="en" />,
   play: async ({ canvasElement }) => playChain(canvasElement),
+};
+
+/** Waits until the stroke's transition has run out, so a colour read is the one the edge ends on. */
+const settled = (el: Element) =>
+  Promise.all(el.getAnimations().map((a) => a.finished.catch(() => undefined)));
+
+/**
+ * Row 25 (D5): a focused edge shows the focus shape, a line with a halo traced along its curve, and
+ * never the selected look: its own stroke and width stay, and no box is drawn around it.
+ */
+async function playFocusedEdge(root: HTMLElement) {
+  const board = await zoomTo(root, "chain", 1);
+  const edgeEl = (id: string) =>
+    board.querySelector(`.react-flow__edge[data-id="${id}"]`) as HTMLElement;
+  const part = (id: string, name: string) =>
+    edgeEl(id).querySelector(`.ds-edge__focus[data-part="${name}"]`) as SVGPathElement;
+  const selectedStroke = colourOf(board, "--cmp-edge-stroke-selected");
+  const parts = [
+    ["halo", 10],
+    ["line", 4],
+    ["fill", 2],
+  ] as const;
+  const check = async (zoom: number) => {
+    await waitFor(async () => {
+      await flows.get("chain")?.zoomTo(zoom, { duration: 0 });
+      expect(viewportZoom(board)).toBeCloseTo(zoom, 3);
+    });
+    // An edge at rest draws no focus part, and one edge of each meaning is focused in turn.
+    for (const id of ["ab", "bc", "de"]) {
+      for (const [name] of parts) {
+        await expect(getComputedStyle(part(id, name)).display, `${id} ${name} at rest`).toBe(
+          "none",
+        );
+      }
+    }
+    for (const id of ["ab", "bc", "de"]) {
+      await settled(pathOf(board, id));
+      const before = drawn(pathOf(board, id));
+      edgeEl(id).focus();
+      await waitFor(() => expect(edgeEl(id).matches(":focus-visible")).toBe(true));
+      const at = `edge ${id} at zoom ${zoom}`;
+      // The edge keeps its own stroke and width, and is not the selected look. A stroke that is
+      // moving to another colour reads as the old one, so the read waits for the transition to end.
+      await settled(pathOf(board, id));
+      const after = drawn(pathOf(board, id));
+      await expect(after.stroke, `${at}: its stroke`).toBe(before.stroke);
+      await expect(after.width, `${at}: its width`).toBeCloseTo(before.width, 2);
+      await expect(after.stroke, `${at}: not the selected stroke`).not.toBe(selectedStroke);
+      await expect(
+        edgeEl(id).querySelector(".ds-edge")?.hasAttribute("data-selected"),
+        `${at}: not selected`,
+      ).toBe(false);
+      // No box around the edge's bounds.
+      await expect(getComputedStyle(edgeEl(id)).outlineStyle, `${at}: no outline`).toBe("none");
+      await expect(getComputedStyle(edgeEl(id)).boxShadow, `${at}: no box shadow`).toBe("none");
+      // The three focus parts trace the same curve, a 1 px line on each side and a 3 px halo.
+      const colours = {
+        halo: colourOf(board, "--_focus-halo"),
+        line: colourOf(board, "--ds-focus-ring"),
+        fill: getComputedStyle(board).backgroundColor,
+      };
+      for (const [name, extra] of parts) {
+        const el = part(id, name);
+        const m = drawn(el);
+        await expect(getComputedStyle(el).display, `${at}: ${name} shown`).not.toBe("none");
+        await expect(el.getAttribute("d"), `${at}: ${name} traces the edge`).toBe(
+          pathOf(board, id).getAttribute("d"),
+        );
+        await expect(m.width, `${at}: ${name} width`).toBeCloseTo(before.width + extra, 2);
+        await expect(m.stroke, `${at}: ${name} colour`).toBe(colours[name]);
+        await expect(m.cap, `${at}: ${name} cap`).toBe("round");
+        await expect(getComputedStyle(el).pointerEvents, `${at}: ${name} pointer`).toBe("none");
+      }
+      // What the eye gets, read from a screenshot (zoom 1, a solid edge): from the page's ground in, a
+      // 3 px halo, the 1 px line, then the 1 px fill, the edge's own stroke and the fill (together
+      // the stroke's width plus 2), and the same back out. A shot has one pixel per CSS px here, so
+      // the core is read as one piece.
+      if (inVitest && zoom === 1 && id === "ab") {
+        const runs = await colourRunsAcross(
+          pathOf(board, id) as SVGGeometryElement,
+          0.25,
+          8,
+          { ground: colours.fill, halo: colours.halo, line: colours.line, stroke: before.stroke },
+          colours.fill,
+          board,
+        );
+        const at4 = `${at}: runs ${JSON.stringify(runs)}`;
+        const names = runs.map(([name]) => name);
+        await expect(names.slice(0, 3), at4).toEqual(["ground", "halo", "line"]);
+        await expect(names.slice(-3), at4).toEqual(["line", "halo", "ground"]);
+        const outer = [...runs.slice(0, 3), ...runs.slice(-3)];
+        const want = [2, 3, 1, 1, 3, 2];
+        outer.forEach(([name, px], i) => {
+          // The outer ground runs are the reach left over, so only the shape's own runs are held.
+          if (name === "ground") return;
+          expect(
+            Math.abs(px - (want[i] ?? 0)),
+            `${at4}: the ${name} run is ${px} px`,
+          ).toBeLessThanOrEqual(0.75);
+        });
+        const core = runs.slice(3, -3).reduce((sum, [, px]) => sum + px, 0);
+        await expect(
+          Math.abs(core - (before.width + 2)),
+          `${at4}: the core is ${core} px`,
+        ).toBeLessThanOrEqual(1);
+      }
+      // The focus parts sit under the edge's own path.
+      const own = pathOf(board, id);
+      await expect(
+        part(id, "fill").compareDocumentPosition(own) & Node.DOCUMENT_POSITION_FOLLOWING,
+        `${at}: the focus parts are under the path`,
+      ).toBeTruthy();
+      edgeEl(id).blur();
+      await waitFor(() => expect(edgeEl(id).matches(":focus-visible")).toBe(false));
+      await expect(getComputedStyle(part(id, "halo")).display, `${at}: gone on blur`).toBe("none");
+    }
+  };
+  await check(1);
+  await check(0.5);
+  await waitFor(async () => {
+    await flows.get("chain")?.zoomTo(1, { duration: 0 });
+    expect(viewportZoom(board)).toBeCloseTo(1, 3);
+  });
+  // The shape follows the width the edge draws at: a chained edge draws wider, and a chained derived
+  // one wider still (a hovered one is in FocusedEdgeHovered).
+  const node = (id: string) => board.querySelector(`.react-flow__node[data-id="${id}"]`) as Element;
+  // A key press first, so the browser takes the focus that follows as keyboard focus.
+  const focusByKey = async (id: string) => {
+    await userEvent.keyboard("{Shift}");
+    edgeEl(id).focus();
+    await waitFor(() =>
+      expect(edgeEl(id).matches(":focus-visible"), `focus-visible on ${id}`).toBe(true),
+    );
+  };
+  const widthsHold = async (id: string, at: string) => {
+    const own = drawn(pathOf(board, id)).width;
+    await focusByKey(id);
+    for (const [name, extra] of parts) {
+      await expect(drawn(part(id, name)).width, `${at}: ${name} width`).toBeCloseTo(own + extra, 2);
+    }
+    edgeEl(id).blur();
+    await waitFor(() => expect(edgeEl(id).matches(":focus-visible")).toBe(false));
+    return own;
+  };
+  await userEvent.click(node("b"));
+  await waitFor(() => expect(board).toHaveAttribute("data-has-selection"));
+  await expect(await widthsHold("ab", "chained edge ab")).toBeCloseTo(2.5, 2);
+  // An edge outside the chain has stepped back; focused, it is at full strength again.
+  const own = (id: string) => edgeEl(id).querySelector(".ds-edge") as Element;
+  await expect(getComputedStyle(own("de")).opacity).toBe("0.4");
+  await focusByKey("de");
+  await expect(getComputedStyle(own("de")).opacity, "a focused edge outside the chain").toBe("1");
+  edgeEl("de").blur();
+  await userEvent.click(node("d"));
+  await waitFor(() => expect(own("de")).toHaveAttribute("data-chain"));
+  await expect(await widthsHold("de", "chained derived edge de")).toBeCloseTo(3.5, 2);
+  // A selected edge draws at the selected width, and its focus shape with it, still not the
+  // selected look itself.
+  await userEvent.click(board.querySelector(".react-flow__pane") as Element);
+  await waitFor(() => expect(board).not.toHaveAttribute("data-has-selection"));
+  await userEvent.click(edgeEl("bc").querySelector(".react-flow__edge-interaction") as Element);
+  await waitFor(() => expect(edgeEl("bc")).toHaveClass("selected"));
+  await expect(await widthsHold("bc", "selected edge bc")).toBeCloseTo(2.5, 2);
+}
+
+/** A focused edge shows the focus shape and keeps its own stroke (spec row 25). */
+export const FocusedEdge: Story = {
+  render: () => <ChainBoard lang="th" />,
+  play: async ({ canvasElement }) => playFocusedEdge(canvasElement),
+};
+
+/** The focused edge in English, in dark mode. */
+export const FocusedEdgeInEnglish: Story = {
+  globals: { locale: "en", mode: "dark" },
+  render: () => <ChainBoard lang="en" />,
+  play: async ({ canvasElement }) => playFocusedEdge(canvasElement),
+};
+
+/**
+ * A hovered edge on a present board draws at the chain width, and the focus shape follows it. The
+ * addon imitates the hover in the styles, so this holds where no pointer is driven.
+ */
+export const FocusedEdgeHovered: Story = {
+  parameters: {
+    pseudo: {
+      rootSelector: "body",
+      hover: ['.react-flow__edge[data-id="fg"]', '.react-flow__edge[data-id="de"]'],
+    },
+  },
+  render: () => <ChainBoard lang="th" />,
+  play: async ({ canvasElement }) => {
+    const board = await zoomTo(canvasElement, "chain", 1);
+    // An input edge hovers at the chain width (2.5), a derived one at 2 x 2.5 less 1.5 (3.5).
+    for (const [id, width] of [
+      ["fg", 2.5],
+      ["de", 3.5],
+    ] as const) {
+      const edge = board.querySelector(`.react-flow__edge[data-id="${id}"]`) as HTMLElement;
+      await waitFor(() => expect(drawn(pathOf(board, id)).width).toBeCloseTo(width, 2));
+      await userEvent.keyboard("{Shift}");
+      edge.focus();
+      await waitFor(() =>
+        expect(edge.matches(":focus-visible"), `focus-visible on ${id}`).toBe(true),
+      );
+      for (const [name, extra] of [
+        ["halo", 10],
+        ["line", 4],
+        ["fill", 2],
+      ] as const) {
+        const part = edge.querySelector(`.ds-edge__focus[data-part="${name}"]`) as Element;
+        await expect(drawn(part).width, `hovered edge ${id}: ${name} width`).toBeCloseTo(
+          width + extra,
+          2,
+        );
+      }
+      edge.blur();
+      await waitFor(() => expect(edge.matches(":focus-visible")).toBe(false));
+    }
+  },
 };
 
 /**

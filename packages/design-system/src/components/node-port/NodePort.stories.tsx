@@ -5,7 +5,7 @@ import { useDesignProfile } from "../../boundary/DesignProfileBoundary";
 import { CANVAS_WORDS, PORT_KINDS, portShape } from "../../tokens/canvas";
 import { CanvasBoard, type CanvasBoardProps } from "../canvas-board/CanvasBoard";
 import type { Graph, PortSpec } from "../canvas-board/graph";
-import { expectPortPillsClear } from "../../testing/visual-asserts";
+import { expectPillsClear, expectPortPillsClear, inVitest } from "../../testing/visual-asserts";
 import { fillHeight, Matrix } from "../matrix";
 import { PortGlyph, type PortState } from "./NodePort";
 
@@ -348,11 +348,51 @@ async function playPresentNames(root: HTMLElement, lang: Lang) {
   await waitFor(() => {
     for (const pill of pills("p1")) expect(visibility(pill)).toBe("visible");
   });
-  for (const pill of pills("p2")) await expect(visibility(pill)).toBe("visible");
-  // The side ports sit 40 apart (ORV-282, D4b): the hovered p1 and the selected p2, two pills on
-  // each side, keep their name pills apart. The cards are 120 apart, so only pill to pill is near.
+  const outputs = (id: string) => [
+    ...node(id).querySelectorAll<HTMLElement>('.ds-port[data-direction="output"] .ds-port__label'),
+  ];
+  const inputs = (id: string) => [
+    ...node(id).querySelectorAll<HTMLElement>('.ds-port[data-direction="input"] .ds-port__label'),
+  ];
+  // Row 21: a shown name covers no other. The cards are 120 apart, so a name p1 draws on its output
+  // side can meet the name p2 draws on its input side. p1 is hovered and comes first, so the p2 name
+  // that meets one gives way, and p2's output names, which meet nothing, stay.
+  const hiddenOf = (list: HTMLElement[]) => list.filter((pill) => visibility(pill) === "hidden");
+  await waitFor(() => {
+    for (const pill of pills("p1")) expect(visibility(pill)).toBe("visible");
+    expect(hiddenOf(inputs("p2")).length).toBeGreaterThan(0);
+  });
+  for (const pill of outputs("p2")) await expect(visibility(pill)).toBe("visible");
+  await waitFor(() => expectPillsClear(root));
+  // A hidden name keeps its words: it is cut from the picture, not from the node.
+  await expect(inputs("p2")[0]).toHaveTextContent(
+    CANVAS_WORDS.port[PORT_KINDS[0] as PortSpec["kind"]][lang],
+  );
+  // The side ports sit 40 apart (ORV-282, D4b): the hovered p1, two pills on each side, keeps its
+  // name pills apart. The cards are 120 apart, so only pill to pill is near.
   await expect(expectPortPillsClear(node("p1"))).toBe(pills("p1").length);
-  await expect(expectPortPillsClear(node("p2"))).toBe(pills("p2").length);
+  await expect(expectPortPillsClear(node("p2"))).toBe(
+    pills("p2").length - hiddenOf(inputs("p2")).length,
+  );
+  // The pointed node's names win whatever the order. The addon only imitates hover in the styles, so
+  // the pointer goes over p2 for real, where Vitest drives one: every p2 name is drawn and the p1
+  // output name that meets one gives way.
+  if (inVitest) {
+    const { userEvent: pointer } = await import("vitest/browser");
+    await pointer.hover(node("p2"));
+    await waitFor(() => expect(node("p2").matches(":hover")).toBe(true));
+    await waitFor(() => {
+      for (const pill of pills("p2")) expect(visibility(pill)).toBe("visible");
+      expect(hiddenOf(outputs("p1")).length).toBeGreaterThan(0);
+    });
+    for (const pill of inputs("p1")) await expect(visibility(pill)).toBe("visible");
+    await waitFor(() => expectPillsClear(root));
+    await pointer.unhover(node("p2"));
+    await waitFor(() => expect(node("p2").matches(":hover")).toBe(false));
+    await waitFor(() => {
+      for (const pill of pills("p1")) expect(visibility(pill)).toBe("visible");
+    });
+  }
   // Shown on keyboard focus too (spec row 3): the rest node takes focus and its pills show.
   const rest = node("p0") as HTMLElement;
   await waitFor(() => {

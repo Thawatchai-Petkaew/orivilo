@@ -34,6 +34,39 @@ export function inkWidth(line: readonly Rgb[], devicePixelRatio: number): number
 }
 
 /**
+ * The runs of colour along one pixel line: each pixel takes the name of the nearest colour in
+ * `palette`, equal neighbours join, and a run shorter than `minPx` CSS px (the antialiased sliver
+ * between two colours) is dropped into the run before it. Returns `[name, CSS px]` pairs in order.
+ */
+export function colourRuns(
+  line: readonly Rgb[],
+  palette: Readonly<Record<string, Rgb>>,
+  devicePixelRatio: number,
+  minPx = 0.4,
+): [name: string, px: number][] {
+  const names = Object.keys(palette);
+  const nearest = (px: Rgb) =>
+    names.reduce((best, name) =>
+      distance(px, palette[name] as Rgb) < distance(px, palette[best] as Rgb) ? name : best,
+    );
+  const raw: [string, number][] = [];
+  for (const px of line) {
+    const name = nearest(px);
+    const last = raw[raw.length - 1];
+    if (last && last[0] === name) last[1] += 1;
+    else raw.push([name, 1]);
+  }
+  const runs: [string, number][] = [];
+  for (const [name, count] of raw) {
+    const last = runs[runs.length - 1];
+    if (count / devicePixelRatio < minPx && last) last[1] += count;
+    else if (last && last[0] === name) last[1] += count;
+    else runs.push([name, count]);
+  }
+  return runs.map(([name, count]) => [name, count / devicePixelRatio]);
+}
+
+/**
  * The index of the first row that holds a pixel more than `INK_DISTANCE` from `ground`, or null
  * when every row is plain ground. Used to find where a line of text starts to draw.
  */
@@ -159,6 +192,63 @@ function scopeHolding(el: Element, reach: number): Element {
     scope = scope.parentElement;
   }
   return scope;
+}
+
+/**
+ * A CSS colour as an opaque RGB over `ground`, read through a canvas so every colour syntax the
+ * browser computes (`color(srgb ...)`, a colour with alpha) comes out as the pixel it draws.
+ */
+function paintedOver(css: string, ground: string): Rgb {
+  const canvas = document.createElement("canvas");
+  canvas.width = 1;
+  canvas.height = 1;
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("no 2d canvas to read a colour");
+  context.fillStyle = ground;
+  context.fillRect(0, 0, 1, 1);
+  context.fillStyle = css;
+  context.fillRect(0, 0, 1, 1);
+  const [r, g, b] = context.getImageData(0, 0, 1, 1).data;
+  return [r ?? 0, g ?? 0, b ?? 0];
+}
+
+/**
+ * The colour runs across a path at `fraction` of its length, read from a screenshot: one pixel line
+ * perpendicular to the path (for a path that is straight there), `reach` CSS px to each side of it.
+ * `palette` names the colours as CSS strings, each painted over `ground`. It runs where Vitest
+ * browser mode runs, so a play guards the call with `inVitest`. `within` is the element to shoot
+ * when it is not the path's nearest ancestor that holds the path and its margin.
+ */
+export async function colourRunsAcross(
+  path: SVGGeometryElement,
+  fraction: number,
+  reach: number,
+  palette: Readonly<Record<string, string>>,
+  ground: string,
+  within?: Element,
+): Promise<[name: string, px: number][]> {
+  const scope = within ?? scopeHolding(path, reach);
+  const { data, width, frame, scale } = await screenshotOf(scope);
+  // The point is read after the shot: the shot may scroll the page, and the frame is read with it.
+  const matrix = path.getScreenCTM();
+  if (!matrix) throw new Error("the path has no screen matrix");
+  const at = path.getPointAtLength(path.getTotalLength() * fraction);
+  const x = matrix.a * at.x + matrix.c * at.y + matrix.e;
+  const y = matrix.b * at.x + matrix.d * at.y + matrix.f;
+  const column = Math.round((x - frame.left) * scale);
+  const line: Rgb[] = [];
+  for (
+    let i = Math.round((y - reach - frame.top) * scale);
+    i <= Math.round((y + reach - frame.top) * scale);
+    i++
+  ) {
+    const index = (i * width + column) * 4;
+    line.push([data[index] ?? 0, data[index + 1] ?? 0, data[index + 2] ?? 0]);
+  }
+  const painted = Object.fromEntries(
+    Object.entries(palette).map(([name, css]) => [name, paintedOver(css, ground)]),
+  );
+  return colourRuns(line, painted, scale);
 }
 
 /**
@@ -1717,15 +1807,25 @@ export async function expectCoversInk(
   }
 }
 
+/** The largest of the four gaps between two rects: negative when they overlap, as in `expectPillsClear`. */
+const rectClearance = (a: DOMRect, b: DOMRect) =>
+  Math.max(b.left - a.right, a.left - b.right, b.top - a.bottom, a.top - b.bottom);
+
 /**
- * Asserts no drawn edge pill of `board` sits under, or within `px` of, a card, a card's title line
- * or a port dot (ORV-274, sign-off 2 R1). A pill is drawn when it has a width (a `display: none`
- * pill has none), is not `visibility: hidden`, and its rect meets the `.react-flow` rect; a hidden or
- * scrolled-away pill covers nothing. Each is checked against every `.ds-node`, `.ds-node__label`
- * and `.ds-port__handle` of the board that has a width. The clearance is the largest of the four
- * gaps between the two rects (negative when they overlap), so it holds whatever the width of the
- * font: it reads `getBoundingClientRect` only, no text width, and holds on Linux chromium. A failure
- * names the pill's text, the thing it touches and the clearance. `px` is allowed 0.5 px of rounding.
+ * Asserts no drawn pill of `board` sits under, or within `px` of, a card, a card's title line or a
+ * port dot, or of another pill (ORV-274 sign-off 2 R1; ORV-280 rows 20 and 21). The pills are the
+ * edge pills (`.ds-edge__label`), the port name pills (`.ds-port__label`) and the source pills
+ * (`.ds-node__source`). A pill is drawn when it has a width (a `display: none` pill has none), is
+ * not `visibility: hidden`, and its rect meets the `.react-flow` rect; a hidden or scrolled-away
+ * pill covers nothing. An edge pill is checked against every `.ds-node`, `.ds-node__label` and
+ * `.ds-port__handle` of the board that has a width; a port or source pill sits beside its own card
+ * and dot by design, so it is checked against other pills only. Every pill is checked against every
+ * other drawn pill, except two of one node (`.react-flow__node`): a node's pills are its own rows
+ * and do not hide each other. The clearance is the largest of the four gaps between the two rects
+ * (negative when they overlap), so it holds whatever the width of the font: it reads
+ * `getBoundingClientRect` only, no text width, and holds on Linux chromium. A failure names the
+ * pill's text, the thing it touches and the clearance. `px` is allowed 0.5 px of rounding. It
+ * returns how many pills were read.
  */
 export function expectPillsClear(board: Element, px = 4) {
   const flow = board.matches(".react-flow") ? board : (board.querySelector(".react-flow") ?? board);
@@ -1735,32 +1835,73 @@ export function expectPillsClear(board: Element, px = 4) {
   const others = [...board.querySelectorAll(".ds-node, .ds-node__label, .ds-port__handle")].filter(
     (o) => o.getBoundingClientRect().width > 0,
   );
-  const pills = [...board.querySelectorAll<HTMLElement>(".ds-edge__label")].filter((el) => {
-    const r = el.getBoundingClientRect();
-    return r.width > 0 && getComputedStyle(el).visibility !== "hidden" && meets(r);
-  });
-  for (const pill of pills) {
+  const drawnIn = (selector: string) =>
+    [...board.querySelectorAll<HTMLElement>(selector)].filter((el) => {
+      const r = el.getBoundingClientRect();
+      return r.width > 0 && getComputedStyle(el).visibility !== "hidden" && meets(r);
+    });
+  const edgePills = drawnIn(".ds-edge__label");
+  const pills = [...edgePills, ...drawnIn(".ds-port__label, .ds-node__source")];
+  const ownerOf = (pill: Element) => pill.closest(".react-flow__node");
+  for (const pill of edgePills) {
     const p = pill.getBoundingClientRect();
     for (const other of others) {
-      const o = other.getBoundingClientRect();
-      const clearance = Math.max(
-        o.left - p.right,
-        p.left - o.right,
-        o.top - p.bottom,
-        p.top - o.bottom,
-      );
+      const clearance = rectClearance(p, other.getBoundingClientRect());
       expect(
         clearance,
         `the pill "${pill.textContent}" is ${clearance.toFixed(1)} px from ${label(other)}, expected at least ${px}`,
       ).toBeGreaterThanOrEqual(px - 0.5);
     }
   }
+  pills.forEach((pill, i) => {
+    for (const other of pills.slice(i + 1)) {
+      const owner = ownerOf(pill);
+      if (owner !== null && owner === ownerOf(other)) continue;
+      const clearance = rectClearance(pill.getBoundingClientRect(), other.getBoundingClientRect());
+      expect(
+        clearance,
+        `the pill "${pill.textContent}" is ${clearance.toFixed(1)} px from the pill "${other.textContent}", expected at least ${px}`,
+      ).toBeGreaterThanOrEqual(px - 0.5);
+    }
+  });
   return pills.length;
 }
 
-/** The largest of the four gaps between two rects: negative when they overlap, as in `expectPillsClear`. */
-const rectClearance = (a: DOMRect, b: DOMRect) =>
-  Math.max(b.left - a.right, a.left - b.right, b.top - a.bottom, a.top - b.bottom);
+/**
+ * Asserts nothing that matches `covers` is drawn over any of `pills` (ORV-280 row 22): at the centre
+ * of a pill and 2 px inside each end of its middle line, the browser's paint order puts the pill
+ * above every element that sits under `covers`. A pill has `pointer-events: none`, so
+ * `elementsFromPoint` would skip it; it takes `auto` for the read and gets its own value back in
+ * `finally`. That is a style change, so call it outside `waitFor`, whose observer would run it again
+ * on the change. A pill with a point outside the window throws, so none is skipped silently. A
+ * failure names the pill and the element drawn over it.
+ */
+export function expectPillsAbove(pills: readonly HTMLElement[], covers: string) {
+  expect(pills.length, "no pill to read").toBeGreaterThan(0);
+  for (const pill of pills) {
+    const r = pill.getBoundingClientRect();
+    const y = (r.top + r.bottom) / 2;
+    const saved = pill.style.pointerEvents;
+    pill.style.pointerEvents = "auto";
+    try {
+      for (const x of [(r.left + r.right) / 2, r.left + 2, r.right - 2]) {
+        expect(
+          x >= 0 && x < window.innerWidth && y >= 0 && y < window.innerHeight,
+          `the pill "${pill.textContent}" has a point (${Math.round(x)}, ${Math.round(y)}) outside the window`,
+        ).toBe(true);
+        const stack = document.elementsFromPoint(x, y);
+        const own = stack.findIndex((el) => pill.contains(el));
+        const over = stack.findIndex((el) => el.closest(covers));
+        expect(
+          over === -1 || (own !== -1 && own < over),
+          `the pill "${pill.textContent}" is under ${over === -1 ? "nothing" : label(stack[over] as Element)} at (${Math.round(x)}, ${Math.round(y)})`,
+        ).toBe(true);
+      }
+    } finally {
+      pill.style.pointerEvents = saved;
+    }
+  }
+}
 
 /**
  * Asserts the drawn port name pills of one board node keep their distance (ORV-282, design row D4):

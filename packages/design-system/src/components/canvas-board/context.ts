@@ -53,6 +53,11 @@ export interface BoardContextValue {
   tool: BoardTool;
   snap: boolean;
   minimapShown: boolean;
+  /**
+   * Whether the board has an `onNodeOpen` handler. A node that has `open` draws its open glyph only
+   * then: on a board that cannot open, the glyph would promise what nothing does (ORV-280 S3).
+   */
+  canOpen: boolean;
 }
 
 export const BoardContext = createContext<BoardContextValue>({
@@ -69,6 +74,7 @@ export const BoardContext = createContext<BoardContextValue>({
   tool: "select",
   snap: true,
   minimapShown: false,
+  canOpen: false,
 });
 
 export function useBoard(): BoardContextValue {

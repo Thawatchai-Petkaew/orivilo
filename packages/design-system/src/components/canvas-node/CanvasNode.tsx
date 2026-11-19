@@ -127,7 +127,8 @@ function useElapsed(startedAt: string | undefined, running: boolean): string | u
  * A present board (`board.readOnly`) draws the node as one card (ORV-274): the kind glyph, title,
  * status and basis form a label above the card; the ports are glyph dots on the card edge; the
  * source line is a pill under the card. A node with `open` ends its title row with the pages word
- * and the open glyph on both boards; with no `open.count` (ORV-282) it ends with the glyph only. Ports with a `row` sit at the middle of their body row.
+ * and, when the board has `onNodeOpen` (ORV-280 S3), the open glyph; with no `open.count` (ORV-282)
+ * it ends with the glyph only. Ports with a `row` sit at the middle of their body row.
  */
 export function CanvasNode({ id, data, selected, dragging }: CanvasNodeProps) {
   const board = useBoard();
@@ -191,13 +192,32 @@ export function CanvasNode({ id, data, selected, dragging }: CanvasNodeProps) {
   useLayoutEffect(() => {
     if (hasRows) updateInternals(id);
   }, [hasRows, rowY, id, updateInternals]);
+  // A present title that does not fit fades out instead of ending in an ellipsis (ORV-280 D4). It
+  // is measured, not guessed: `data-cut` is set while the text runs past its box, when the box
+  // resizes (the observer also reads it once on mount) and when a font has loaded and the text with it.
+  const title = useRef<HTMLSpanElement>(null);
+  const [cut, setCut] = useState(false);
+  useLayoutEffect(() => {
+    const el = title.current;
+    if (!el) return undefined;
+    const measure = () => setCut(el.scrollWidth > el.clientWidth);
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    document.fonts?.addEventListener("loadingdone", measure);
+    return () => {
+      observer.disconnect();
+      document.fonts?.removeEventListener("loadingdone", measure);
+    };
+  }, [present, data.title]);
   const pages =
     data.open?.count === undefined
       ? undefined
       : data.open.count === 1
         ? m.node.pagesOne
         : fill(m.node.pages, { count: String(data.open.count) });
-  const openGlyph = data.open ? <OpenIcon className="ds-node__open" /> : null;
+  // The glyph promises that a gesture opens something, so a board without `onNodeOpen` draws none
+  // and the node keeps its page count as its content (ORV-280 S3).
+  const openGlyph = data.open && board.canOpen ? <OpenIcon className="ds-node__open" /> : null;
   const statusChip = status ? (
     <span className="ds-node__status" data-status={data.status}>
       {running ? <SpinnerIcon className="ds-spin" /> : null}
@@ -238,7 +258,9 @@ export function CanvasNode({ id, data, selected, dragging }: CanvasNodeProps) {
       {present ? (
         <div className="ds-node__label">
           <KindIcon />
-          <span className="ds-node__title">{data.title}</span>
+          <span ref={title} className="ds-node__title" data-cut={cut ? "" : undefined}>
+            {data.title}
+          </span>
           {basis ? <span className="ds-node__basis">{basis}</span> : null}
           {statusChip}
           {pages ? <span className="ds-node__pages">{pages}</span> : null}
