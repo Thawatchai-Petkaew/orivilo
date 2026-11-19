@@ -2,6 +2,7 @@ import { type Db } from "@orivilo/db/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { authRoute } from "./auth-route.ts";
 import { createAuth } from "./config.ts";
+import { logBetterAuth } from "./log.ts";
 import { captureLines, expectLineShape } from "./log-testing.ts";
 import { type Consumed, RateLimitUnavailable } from "./rate-limit.ts";
 
@@ -513,7 +514,7 @@ describe("a failed sign-in callback through authRoute", () => {
     google: { clientId: "test", clientSecret: "test" },
   });
 
-  it("writes one api/auth line with only the allow-listed keys", async () => {
+  it("writes the boundary line and Better Auth's line, with only the allow-listed keys", async () => {
     const res = await authRoute(auth.handler, { consumeSignIn: allowed })(
       new Request(
         "http://localhost:3000/api/auth/callback/google?error=access_denied&error_description=Blocked%20for%20ana%40example.com",
@@ -523,17 +524,72 @@ describe("a failed sign-in callback through authRoute", () => {
     expect(new URL(res.headers.get("location") ?? "", "http://localhost:3000").pathname).toBe(
       "/account",
     );
-    const own = (capture?.lines ?? []).filter((l) => String(l.args[0]).startsWith("{"));
-    // Better Auth's own logger lines are the known gap of ORV-141 open question 6; they are not JSON.
-    capture?.lines.splice(0, capture.lines.length, ...own);
-    expect(own).toHaveLength(1);
-    const [only] = own;
-    if (!only) throw new Error("no line");
-    const line = expectLineShape(only);
-    expect(line["route"]).toBe("api/auth");
-    const text = String(own[0]?.args[0]);
+    // No state in the query: Better Auth logs `State not found` (ORV-288), then the boundary line.
+    expect(capture?.lines).toHaveLength(2);
+    const [betterAuth, boundary] = linesOf();
+    expect(betterAuth).toMatchObject({ step: "better-auth", outcome: "State not found" });
+    expect(boundary).toMatchObject({ route: "api/auth", outcome: "ok" });
+    const text = JSON.stringify(capture?.lines.map((l) => l.args));
     for (const secret of ["access_denied", "Blocked", "ana", "example.com", "state_not_found"]) {
       expect(text).not.toContain(secret);
+    }
+  });
+
+  // ORV-288 row 8: Better Auth's own line goes through the JSON writer and holds no request value.
+  it("Better Auth's line goes through the JSON logger", async () => {
+    // ba-log-1: the logger option writes through `logBetterAuth` and has no `level` key.
+    const logger = (await auth.$context).options.logger;
+    expect(logger?.log).toBe(logBetterAuth);
+    expect(logger).not.toHaveProperty("level");
+    const res = await authRoute(auth.handler, { consumeSignIn: allowed })(
+      new Request(
+        "http://localhost:3000/api/auth/callback/google?error=x%0D%0AFORGED%20someone%40example.invalid",
+        { headers: { "x-request-id": SEEDED_ID } },
+      ),
+    );
+    expect(res.status).toBe(302);
+    expect(new URL(res.headers.get("location") ?? "", "http://localhost:3000").pathname).toBe(
+      "/account",
+    );
+    expect(capture?.lines).toHaveLength(2);
+    expect(linesOf()).toMatchObject([
+      {
+        level: "error",
+        requestId: SEEDED_ID,
+        route: "api/auth",
+        step: "better-auth",
+        outcome: "State not found",
+      },
+      { requestId: SEEDED_ID, route: "api/auth", outcome: "ok" },
+    ]);
+    const args = (capture?.lines ?? []).flatMap((l) => l.args);
+    const text = JSON.stringify(args);
+    for (const forbidden of ["FORGED", "someone@example.invalid", "\\r", "\\n"])
+      expect(text).not.toContain(forbidden);
+    for (const arg of args) expect(String(arg)).not.toMatch(/[\r\n]/);
+  });
+
+  // ORV-288 row 10: an API error Better Auth refuses leaves only JSON lines (ba-log-1). A `level`
+  // in the logger option turns on the router's raw `console.error` holding the request's values.
+  it("a request Better Auth refuses leaves only JSON lines", async () => {
+    const res = await authRoute(auth.handler, { consumeSignIn: allowed })(
+      new Request("http://localhost:3000/api/auth/sign-in/social", {
+        method: "POST",
+        headers: {
+          origin: "http://localhost:3000",
+          "content-type": "text/plain; FORGED someone@example.invalid",
+        },
+        body: "{}",
+      }),
+    );
+    expect(res.status).toBe(415);
+    await exactBody(res);
+    expect((capture?.lines ?? []).length).toBeGreaterThan(0);
+    // Every captured call is one JSON line of the allow-listed shape.
+    linesOf();
+    const text = JSON.stringify((capture?.lines ?? []).map((l) => l.args));
+    for (const forbidden of ["FORGED", "someone@example.invalid"]) {
+      expect(text).not.toContain(forbidden);
     }
   });
 });

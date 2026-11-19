@@ -10,6 +10,11 @@ const REQUEST_ID_HEADER = "x-request-id";
 // to the configured address, so sign-in starts where Google returns. The target's origin is the
 // configured address alone: its path and query are set on a URL made from it, never resolved
 // against it, and no request value (Host, X-Forwarded-Host, a query parameter) chooses it.
+// ORV-288 proxy-host-1: the compare reads the host of the request URL, never a header. That holds
+// because on Vercel Next's `trustHostHeader` is on (ORV-288 comment 10713), so the request URL
+// carries the host the person used. On a server where the request URL carries the bind address
+// (Next builds it from the bind address when `trustHostHeader` is off), every request would be
+// redirected; proxy.test.ts records both sides.
 function aliasRedirect(request: NextRequest, requestId: string): NextResponse | undefined {
   if (process.env["VERCEL_ENV"] !== "production") return undefined;
   const address = configuredAddress(process.env);

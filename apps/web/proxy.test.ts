@@ -168,6 +168,28 @@ describe("alias host", () => {
     expectRedirect(get(`${ALIAS}/a`), "https://orivilo-production.example/a");
   });
 
+  // ORV-288 proxy-host-1: the proxy decides on the host of the request URL, never on a header.
+  it("reads the request URL's host, not a header", () => {
+    production();
+    const response = get(`${CONFIGURED}/account`, {
+      headers: { host: "orivilo-alias.example", "x-forwarded-host": "orivilo-alias.example" },
+    });
+    expect(response.status).toBe(200);
+    expect(response.headers.get("location")).toBeNull();
+    expect(response.headers.get(REQUEST_ID_HEADER)).toMatch(UUID_V4);
+    expect(response.headers.get("content-security-policy-report-only")).toContain("default-src");
+  });
+
+  // The dependency of proxy-host-1, ORV-288 comment 10713: on Vercel `trustHostHeader` is on and the
+  // request URL carries the host the person used. Where Next builds the URL from the bind address
+  // instead, every request reads as another host and goes to the configured address. NextRequest
+  // writes the loopback address 127.0.0.1 as localhost, so the URL the proxy reads is
+  // http://localhost:3000/account; its host is still not the configured address.
+  it("a request URL that reports another address is redirected", () => {
+    production();
+    expectRedirect(get("http://127.0.0.1:3000/account"), `${CONFIGURED}/account`);
+  });
+
   it("configured host passes", () => {
     production();
     const response = get(`${CONFIGURED}/account`);

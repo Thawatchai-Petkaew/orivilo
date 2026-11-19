@@ -81,7 +81,10 @@ export interface CanvasControlsProps {
    * board's corner badge then hides, so the word lives here (ORV-274).
    */
   position?: "start" | "center" | undefined;
-  /** Rendered first, then a divider, then the commands: a chapter strip, for one. */
+  /**
+   * After the read-only word and its divider on a read-only board, then a divider, then the
+   * commands: a chapter strip, for one.
+   */
   children?: ReactNode;
 }
 

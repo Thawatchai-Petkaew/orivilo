@@ -134,10 +134,9 @@ export function nodeLabel(content: NodeContent, locale: Locale = DEFAULT_LOCALE)
  */
 export function nodeOpenLabel(content: NodeContent, locale: Locale = DEFAULT_LOCALE): string {
   if (content.open?.count === undefined) return nodeLabel(content, locale);
-  return fill(messagesFor(locale).graph.nodeOpenLabel, {
-    title: content.title,
-    count: String(content.open.count),
-  });
+  const g = messagesFor(locale).graph;
+  if (content.open.count === 1) return fill(g.nodeOpenLabelOne, { title: content.title });
+  return fill(g.nodeOpenLabel, { title: content.title, count: String(content.open.count) });
 }
 
 function titleOf(nodes: readonly BoardNode[], id: string): string {
@@ -150,11 +149,14 @@ export function edgeLabel(
   nodes: readonly BoardNode[],
   locale: Locale = DEFAULT_LOCALE,
 ): string {
-  const base = fill(messagesFor(locale).graph.edgeLabel, {
-    meaning: pick(CANVAS_WORDS.edge[edge.data?.meaning ?? "input"], locale),
-    source: titleOf(nodes, edge.source),
-    target: titleOf(nodes, edge.target),
-  });
+  const g = messagesFor(locale).graph;
+  const meaning = edge.data?.meaning ?? "input";
+  const ends = { source: titleOf(nodes, edge.source), target: titleOf(nodes, edge.target) };
+  // A derived edge's meaning word already holds "from" in both locales, so it has its own form.
+  const base =
+    meaning === "derived"
+      ? fill(g.edgeLabelDerived, ends)
+      : fill(g.edgeLabel, { meaning: pick(CANVAS_WORDS.edge[meaning], locale), ...ends });
   const state = edgeStateWord(edge, locale);
   return state ? `${base}, ${state}` : base;
 }

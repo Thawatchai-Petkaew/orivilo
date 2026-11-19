@@ -263,6 +263,7 @@ export const en: Messages = {
     byRules: "By rules",
     moreLines: "{count} more lines",
     pages: "{count} pages",
+    pagesOne: "1 page",
     fill: {
       empty: "Empty",
       partial: "{count} more to ask",
@@ -434,6 +435,7 @@ export const en: Messages = {
     placed: "Placed {title} on the board",
   },
   port: {
+    handleName: "{kind} {direction}",
     connected: "{port}, connected",
     disabled: "{port}, read only",
   },
@@ -446,7 +448,9 @@ export const en: Messages = {
   graph: {
     nodeLabel: "{title}, {kind}",
     nodeOpenLabel: "{title}, {count} pages",
+    nodeOpenLabelOne: "{title}, 1 page",
     edgeLabel: "{meaning} from {source} to {target}",
+    edgeLabelDerived: "derived from {source} to {target}",
     invalid: "cannot connect",
     selfLoop: "A node cannot connect to itself",
     otherNode: "Drop the edge on a port of another node",
@@ -501,7 +505,9 @@ export const en: Messages = {
     zoomOut: "Zoomed out",
     zoom100: "Zoom 100%",
     fitAll: "Fitted {count} nodes to the view",
+    fitAllOne: "Fitted 1 node to the view",
     fitSelection: "Fitted {count} selected nodes to the view",
+    fitSelectionOne: "Fitted 1 selected node to the view",
     panMode: "Pan mode: drag to move the board",
     selectMode: "Select mode: drag to select several nodes, hold Space to pan",
     minimapHidden: "Overview hidden",
