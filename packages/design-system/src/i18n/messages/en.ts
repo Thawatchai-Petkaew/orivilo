@@ -755,8 +755,28 @@ export const en: Messages = {
       statementRequired: "Write your positioning before you agree to it, or cancel.",
       by: {
         own: "Written by you.",
+        picked: "Drafted by AI ({model}) and picked by you.",
+        edited: "Drafted by AI ({model}) and edited by you.",
       },
       stale: "Your business answers changed after you agreed to this. Check it again.",
+      draft: "Draft options from my answers",
+      drafting: "Drafting options",
+      option: "Option {n}",
+      draftedBy: "Drafted by AI ({model}). Check it before you use it.",
+      restsOn: "Rests on your words:",
+      pick: "Use this one",
+      edit: "Edit this one",
+      needsValue:
+        "AI can draft options only after you say what customers get from you alone. Write your own, or skip for now.",
+      errors: {
+        aiNotConfigured:
+          "AI is not set up in this environment, so no options were drafted. Write your own, or skip for now.",
+        aiFailed: "AI could not draft options from your answers. Write your own, or skip for now.",
+        aiRateLimited:
+          "You have reached the limit for AI requests, so no options were drafted. Write your own, or skip for now.",
+        aiSpendCap:
+          "This workspace has used its AI budget for this month, so no options were drafted. Write your own, or skip for now.",
+      },
     },
     errors: {
       aiNotConfigured: "AI is not set up in this environment, so only your own words are shown.",
@@ -770,6 +790,7 @@ export const en: Messages = {
   /** Strategy steps shared by the nodes that ask for a decision (ORV-126, "Missing strategy"). */
   strategy: {
     skip: "Skip for now",
+    draftedOptions: "Drafted by AI from your answers. Pick one, edit it, or write your own.",
   },
   orvCanvas: {
     title: "ORIVILO, from brief to product",

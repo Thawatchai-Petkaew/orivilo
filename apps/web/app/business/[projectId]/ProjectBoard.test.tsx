@@ -5,12 +5,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { webMessages } from "../../../i18n/messages";
 
 /**
- * ORV-285 tech notes T18 (spec rows 3, 4, 7, 8 and 9 at the wrapper). There is no DOM in this
- * project's tests, so the hooks `ProjectBoard` uses are given a store, as `IntakeForm.test.tsx`
- * does: `useState` for its one outcome (the only state that starts as null), `useTransition` that
- * runs the async function and holds `pending` until it settles, `useMessages` for the locale and
- * `useRouter` for a spy. The wrapper is called as a function and its element's props are what it
- * asks the screen for. What the screen draws from those props is the stories' proof
+ * ORV-285 tech notes T18 (spec rows 2, 3 and 9 at the wrapper) and, from ORV-292, the draft request
+ * and row 29 (a late failure after the viewer closed). There is no DOM in this project's tests, so
+ * the hooks `ProjectBoard` uses are given a store, as `IntakeForm.test.tsx` does: `useState` for its
+ * one outcome (the only state that starts as null), `useRef` for the count of viewer closings, `useTransition` that runs the async function and holds `pending` until it settles,
+ * `useMessages` for the locale and `useRouter` for a spy. The wrapper is called as a function and its
+ * element's props are what it asks the screen for. What the screen draws from those props is the stories' proof
  * (`business-board.stories.tsx`, the `Positioning` plays).
  */
 const seed = vi.hoisted(() => ({
@@ -18,6 +18,7 @@ const seed = vi.hoisted(() => ({
   last: null as unknown,
   pending: false,
   running: Promise.resolve() as Promise<unknown>,
+  ref: null as { current: unknown } | null,
 }));
 vi.mock("react", async (importOriginal) => {
   const react = await importOriginal<typeof import("react")>();
@@ -32,6 +33,7 @@ vi.mock("react", async (importOriginal) => {
             },
           ] as const)
         : react.useState(initial),
+    useRef: (initial: unknown) => (seed.ref ??= { current: initial }),
     useTransition: () =>
       [
         seed.pending,
@@ -51,7 +53,8 @@ vi.mock("@orivilo/design-system", async (importOriginal) => ({
 const refresh = vi.hoisted(() => vi.fn());
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
 const choosePositioning = vi.hoisted(() => vi.fn());
-vi.mock("../positioning-actions", () => ({ choosePositioning }));
+const draftPositioning = vi.hoisted(() => vi.fn());
+vi.mock("../positioning-actions", () => ({ choosePositioning, draftPositioning }));
 
 const { ProjectBoard } = await import("./ProjectBoard");
 
@@ -70,10 +73,12 @@ const failed = (extra: Record<string, unknown>) => ({
 });
 
 type Controls = {
-  pending: "saving" | null;
+  pending: "saving" | "drafting" | null;
   problem: "required" | "too-long" | null;
   failure: string | undefined;
+  stopped: string | undefined;
   onChoose: (request: unknown) => void;
+  onDraft: () => void;
   onDismiss: () => void;
 };
 /** The element `ProjectBoard` returns, with the hooks above: its props are what it asks the screen for. */
@@ -96,11 +101,13 @@ beforeEach(() => {
   seed.last = null;
   seed.pending = false;
   seed.running = Promise.resolve();
+  seed.ref = null;
   choosePositioning.mockReset();
+  draftPositioning.mockReset();
   refresh.mockReset();
 });
 
-// Row 7 (the check before the call): an empty statement and one past its bound make no server call.
+// Row 3 (the check before the call): an empty statement and one past its bound make no server call.
 describe("a statement the wrapper refuses before any call", () => {
   it.each([
     ["empty", "", "required"],
@@ -124,7 +131,7 @@ describe("a statement the wrapper refuses before any call", () => {
   });
 });
 
-// Row 8: while the call runs the screen is told it is saving; a second press is ignored.
+// Row 3: while the call runs the screen is told it is saving; a second press is ignored.
 describe("a save that is running", () => {
   it("is pending, and a second press makes no second call", async () => {
     let finish: (outcome: unknown) => void = () => {};
@@ -156,7 +163,7 @@ describe("a save that is running", () => {
   });
 });
 
-// Row 3: a saved choice asks the page to build the view again, once, with no line of failure.
+// Row 2: a saved choice asks the page to build the view again, once, with no line of failure.
 describe("a choice that was saved", () => {
   it("refreshes the page once and shows no failure", async () => {
     choosePositioning.mockResolvedValue({ ok: true, value: { kind: "written" } });
@@ -169,7 +176,7 @@ describe("a choice that was saved", () => {
   });
 });
 
-// Row 4: a refusal keeps the person's text (the screen holds it) and says what went wrong, once.
+// Row 3: a refusal keeps the person's text (the screen holds it) and says what went wrong, once.
 describe("a choice that was refused", () => {
   it.each(["en", "th"] as const)(
     "rate-limited shows the line with the wait in %s and refreshes nothing",
@@ -277,5 +284,225 @@ describe("leaving the gate without deciding", () => {
     expect(next.failure).toBeUndefined();
     expect(next.problem).toBeNull();
     expect(choosePositioning).not.toHaveBeenCalled();
+  });
+});
+
+const rateLimited = () =>
+  failed({ error: "rate-limited", code: "RATE_LIMITED", retryAfter: 1200, retryable: true });
+/** An action stub that answers only when the test releases it. */
+const held = (action: ReturnType<typeof vi.fn>) => {
+  let release: (outcome: unknown) => void = () => {};
+  action.mockReturnValue(new Promise((resolve) => (release = resolve)));
+  return (outcome: unknown) => release(outcome);
+};
+
+// ORV-292 row 29: a save whose answer arrives after the viewer closed leaves no failure and no
+// field problem, so the reopened view is the one before the press (row 24's rule for a draft).
+describe("late failure after the viewer closed", () => {
+  const ANSWERS = [
+    ["failed", () => failed({ error: "failed", code: "INTERNAL_ERROR" })],
+    ["rate-limited", rateLimited],
+  ] as const;
+  const PRESSES = [
+    ["Agree on a written statement", { kind: "written", statement: STATEMENT }],
+    ["Skip for now", { kind: "skipped" }],
+  ] as const;
+
+  for (const [press_, request] of PRESSES) {
+    for (const [name, answer] of ANSWERS) {
+      it(`${press_}, then ${name} after the viewer closed: no failure on the reopened view`, async () => {
+        const release = held(choosePositioning);
+        press("th", request);
+        expect(controlsOf("th").pending).toBe("saving");
+        controlsOf("th").onDismiss(); // the viewer closes while the save runs
+        release(answer());
+        await seed.running;
+        const reopened = controlsOf("th"); // they open Positioning again
+        expect(reopened.failure).toBeUndefined();
+        expect(reopened.problem).toBeNull();
+        expect(reopened.stopped).toBeUndefined();
+        expect(reopened.pending).toBeNull();
+        expect(choosePositioning).toHaveBeenCalledTimes(1);
+        expect(refresh).not.toHaveBeenCalled();
+      });
+    }
+  }
+
+  it("a draft still running when the viewer closes shows as drafting on the reopened view", async () => {
+    const release = held(draftPositioning);
+    controlsOf("th").onDraft();
+    controlsOf("th").onDismiss();
+    expect(controlsOf("th").pending).toBe("drafting");
+    release({ ok: false, error: "ai-failed" });
+    await seed.running;
+    expect(controlsOf("th").pending).toBeNull();
+    expect(controlsOf("th").stopped).toBeUndefined();
+  });
+
+  it("a late refusal of the statement leaves no field problem either", async () => {
+    const release = held(choosePositioning);
+    press("th", { kind: "written", statement: STATEMENT });
+    controlsOf("th").onDismiss();
+    release(
+      failed({
+        error: "invalid-input",
+        code: "INVALID_INPUT",
+        problems: [{ path: "statement", kind: "too-long" }],
+      }),
+    );
+    await seed.running;
+    const reopened = controlsOf("th");
+    expect(reopened.problem).toBeNull();
+    expect(reopened.failure).toBeUndefined();
+  });
+
+  it("a late rejected call leaves no failure", async () => {
+    let reject: (error: Error) => void = () => {};
+    choosePositioning.mockReturnValue(new Promise((_done, no) => (reject = no)));
+    press("th", { kind: "skipped" });
+    controlsOf("th").onDismiss();
+    reject(new Error("network"));
+    await seed.running;
+    expect(controlsOf("th").failure).toBeUndefined();
+  });
+
+  it("a late answer that saved the choice still refreshes the page, once", async () => {
+    const release = held(choosePositioning);
+    press("th", { kind: "written", statement: STATEMENT });
+    controlsOf("th").onDismiss();
+    release({ ok: true, value: { kind: "written" } });
+    await seed.running;
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(controlsOf("th").failure).toBeUndefined();
+  });
+
+  it("a failure of the next request shows, so only the closed view's answer is dropped", async () => {
+    const release = held(choosePositioning);
+    press("en", { kind: "skipped" });
+    controlsOf("en").onDismiss();
+    release(rateLimited());
+    await seed.running;
+    choosePositioning.mockResolvedValue(rateLimited());
+    press("en", { kind: "skipped" });
+    await seed.running;
+    expect(controlsOf("en").failure).toContain("20 minutes");
+    expect(choosePositioning).toHaveBeenCalledTimes(2);
+  });
+
+  it("a late stopped draft shows nothing on the reopened view", async () => {
+    const release = held(draftPositioning);
+    controlsOf("th").onDraft();
+    expect(controlsOf("th").pending).toBe("drafting");
+    controlsOf("th").onDismiss();
+    release(failed({ error: "ai-failed", code: "UPSTREAM_FAILED" }));
+    await seed.running;
+    const reopened = controlsOf("th");
+    expect(reopened.stopped).toBeUndefined();
+    expect(reopened.failure).toBeUndefined();
+    expect(reopened.pending).toBeNull();
+  });
+});
+
+// ORV-292 rows 15, 16 and 24 at the wrapper: the draft request runs as the choice does, one action
+// call per press, in a transition, the outcome kept in state; a stopped request names its reason.
+describe("a draft request", () => {
+  it("is pending as drafting, calls once with the project id alone, and refreshes once when drafted", async () => {
+    const release = held(draftPositioning);
+    controlsOf("en").onDraft();
+    expect(controlsOf("en").pending).toBe("drafting");
+    controlsOf("en").onDraft();
+    press("en", { kind: "skipped" });
+    expect(draftPositioning).toHaveBeenCalledExactlyOnceWith({ projectId: PROJECT });
+    expect(choosePositioning).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
+    release({ ok: true, value: { draftId: ID } });
+    await seed.running;
+    expect(refresh).toHaveBeenCalledTimes(1);
+    const next = controlsOf("en");
+    expect(next.pending).toBeNull();
+    expect(next.stopped).toBeUndefined();
+    expect(next.failure).toBeUndefined();
+  });
+
+  it.each([
+    ["ai-not-configured", failed({ error: "ai-not-configured", code: "INTERNAL_ERROR" })],
+    ["ai-failed", failed({ error: "ai-failed", code: "UPSTREAM_FAILED" })],
+    [
+      "ai-rate-limited",
+      failed({ error: "ai-rate-limited", code: "RATE_LIMITED", retryAfter: 60, retryable: true }),
+    ],
+    ["ai-spend-cap", failed({ error: "ai-spend-cap", code: "AI_SPEND_CAP" })],
+  ] as const)(
+    "%s is kept as the stopped reason, with no refresh and no line of failure",
+    async (reason, outcome) => {
+      draftPositioning.mockResolvedValue(outcome);
+      controlsOf("th").onDraft();
+      await seed.running;
+      const next = controlsOf("th");
+      expect(next.stopped).toBe(reason);
+      expect(next.failure).toBeUndefined();
+      expect(next.problem).toBeNull();
+      expect(refresh).not.toHaveBeenCalled();
+      expect(draftPositioning).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it("a rejected call stops as ai-failed and is never retried", async () => {
+    draftPositioning.mockRejectedValue(new Error("network"));
+    controlsOf("en").onDraft();
+    await seed.running;
+    expect(controlsOf("en").stopped).toBe("ai-failed");
+    expect(draftPositioning).toHaveBeenCalledTimes(1);
+  });
+
+  it("an answer that is not a stopped draft shows as the page's line of failure", async () => {
+    draftPositioning.mockResolvedValue(failed({ error: "signed-out", code: "UNAUTHENTICATED" }));
+    controlsOf("en").onDraft();
+    await seed.running;
+    const next = controlsOf("en");
+    expect(next.stopped).toBeUndefined();
+    expect(next.failure).toBe(webMessages.en.saved.errors["signed-out"]);
+  });
+
+  it("the stopped request's error does not outlive the viewer (row 24)", async () => {
+    draftPositioning.mockResolvedValue(failed({ error: "ai-failed", code: "UPSTREAM_FAILED" }));
+    controlsOf("en").onDraft();
+    await seed.running;
+    expect(controlsOf("en").stopped).toBe("ai-failed");
+    controlsOf("en").onDismiss();
+    expect(controlsOf("en").stopped).toBeUndefined();
+  });
+
+  it("a language switch keeps the same stopped reason, so the screen redraws its line with no second call", async () => {
+    draftPositioning.mockResolvedValue(failed({ error: "ai-spend-cap", code: "AI_SPEND_CAP" }));
+    controlsOf("en").onDraft();
+    await seed.running;
+    expect(controlsOf("th").stopped).toBe("ai-spend-cap");
+    expect(draftPositioning).toHaveBeenCalledTimes(1);
+  });
+});
+
+// A pick and an edit go through the same one door as a write: the check, then one call.
+describe("a pick or an edit", () => {
+  it.each([
+    [{ kind: "picked", draftId: ID, option: 2 }],
+    [{ kind: "edited", draftId: ID, option: 1, statement: STATEMENT }],
+  ] as const)("%o makes one call with the project id and refreshes once", async (request) => {
+    choosePositioning.mockResolvedValue({ ok: true, value: { kind: request.kind } });
+    press("en", request);
+    await seed.running;
+    expect(choosePositioning).toHaveBeenCalledExactlyOnceWith({ ...request, projectId: PROJECT });
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("an edit past its bound makes no call and shows the field's problem", () => {
+    press("en", {
+      kind: "edited",
+      draftId: ID,
+      option: 1,
+      statement: "ก".repeat(POSITIONING_STATEMENT_MAX + 1),
+    });
+    expect(choosePositioning).not.toHaveBeenCalled();
+    expect(controlsOf("en").problem).toBe("too-long");
   });
 });

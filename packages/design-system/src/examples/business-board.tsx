@@ -34,8 +34,8 @@ import { FIELD_NOTE, fieldLabel, formatSavedAt, nodeTitle, readReasonLine } from
  * and no resolved text, so a language switch redraws it with no second load. Slice 3 (ORV-283): when
  * the saved record has no model reading, an info Alert under the header says AI did not read and
  * why, and the viewer's view carries the readings or the same line. Slice 4 (ORV-285): the Positioning
- * node shows the state of its gate on the card and holds the controls to write one's own statement or
- * skip in its view. The text of an open editor is held here, so it stays while the viewer closes and
+ * node shows the state of its gate on the card and holds the controls to draft options, pick or edit one,
+ * write one's own statement or skip in its view. The text of an open editor is held here, so it stays while the viewer closes and
  * opens. It knows no route and no action: the page's wrapper gives it `positioning`.
  */
 export interface BusinessBoardScreenProps {

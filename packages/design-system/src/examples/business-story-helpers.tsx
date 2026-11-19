@@ -16,7 +16,8 @@ export const textOf = (el: Element) => (el.textContent ?? "").replace(/\s+/g, " 
 
 /**
  * The fixture notes (story-only copy, not UI catalog copy). `answers` is the note every business
- * story carries; `readings` replaces it on the four readings stories (ORV-283, row D8).
+ * story carries; `readings` replaces it on the four readings stories (ORV-283, row D8); `drafts`
+ * replaces it where a draft written by hand for a fixture is stored (ORV-292).
  */
 export const FIXTURE_NOTES = {
   answers: {
@@ -27,12 +28,22 @@ export const FIXTURE_NOTES = {
     th: "ข้อมูลตัวอย่าง: โปรเจกต์ คำตอบ และผลการอ่านของ AI ในเรื่องนี้เขียนขึ้นเองทั้งหมด ไม่มีโมเดล AI อ่านคำตอบเหล่านี้จริง",
     en: "Fixture: the projects, answers and AI readings in this story are written by hand, and no AI model read these answers.",
   },
+  drafts: {
+    th: "ข้อมูลตัวอย่าง: โปรเจกต์ คำตอบ และตัวเลือกที่ AI ร่างในเรื่องนี้เขียนขึ้นเองทั้งหมด ไม่มีโมเดล AI ร่างข้อความเหล่านี้จริง",
+    en: "Fixture: the projects, answers and AI drafted options in this story are written by hand, and no AI model drafted this text.",
+  },
 } as const;
 
 /** The label every story carries: the projects and answers are made by hand, nobody gave them. */
-export function FixtureNote({ readings = false }: { readings?: boolean }) {
+export function FixtureNote({
+  readings = false,
+  drafts = false,
+}: {
+  readings?: boolean;
+  drafts?: boolean;
+}) {
   const locale = useLocale();
-  const kind = readings ? "readings" : "answers";
+  const kind = drafts ? "drafts" : readings ? "readings" : "answers";
   return (
     <p className="p-4 text-body-sm text-text-secondary" data-fixture-note={kind}>
       {pick(FIXTURE_NOTES[kind], locale)}

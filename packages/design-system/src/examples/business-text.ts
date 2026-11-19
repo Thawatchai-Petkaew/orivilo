@@ -1,6 +1,7 @@
 import {
   BUSINESS_FIELDS,
   type BusinessFieldId,
+  type BusinessFieldLabelKey,
   type BusinessFieldReading,
   type BusinessNodeId,
   type BusinessReadReason,
@@ -49,6 +50,11 @@ const QUESTION_KEY = Object.fromEntries(
 
 export function fieldLabel(m: Messages, field: BusinessFieldId): string {
   return m.business.field[FIELD_KEY[field]];
+}
+
+/** The catalog line a field label key names (the quote labels of a drafted option). */
+export function labelOfKey(m: Messages, key: BusinessFieldLabelKey): string {
+  return m.business.field[key.slice("business.field.".length) as keyof Business["field"]];
 }
 
 export function questionText(m: Messages, id: ProxyQuestionId): string {

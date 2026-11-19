@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { ENGLISH_READ_VIEW, THAI_READ_VIEW } from "./business-fixtures";
-import { readingQuotes } from "./business-text";
+import { BUSINESS_FIELDS } from "@orivilo/intent-engine";
+import { en } from "../i18n/messages/en";
+import { th } from "../i18n/messages/th";
+import { labelOfKey, readingQuotes } from "./business-text";
 
 /**
  * ORV-281 design row D6 (ORV-283): the quotes a reading drew on are shown with the reading's own
@@ -31,6 +34,24 @@ describe.each([
   it("leaves the record's span items as the rule made them", () => {
     for (const r of readings) {
       expect(r.spans.every((s) => !s.fromModel)).toBe(true);
+    }
+  });
+});
+
+/**
+ * ORV-292 row 17: a drafted option's quote is labelled with the field its answer sits on. The
+ * engine hands a label key; the screen turns it to the catalog line of the same name, in both
+ * languages.
+ */
+describe("labelOfKey", () => {
+  it.each([
+    ["Thai", th],
+    ["English", en],
+  ])("gives every field label key its catalog line, %s", (_name, m) => {
+    for (const field of BUSINESS_FIELDS) {
+      const name = field.labelKey.slice("business.field.".length) as keyof typeof m.business.field;
+      expect(labelOfKey(m, field.labelKey)).toBe(m.business.field[name]);
+      expect(labelOfKey(m, field.labelKey).length).toBeGreaterThan(0);
     }
   });
 });
