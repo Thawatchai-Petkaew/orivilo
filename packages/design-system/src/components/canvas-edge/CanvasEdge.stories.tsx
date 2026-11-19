@@ -570,6 +570,27 @@ async function playKindsAndZoom(root: HTMLElement, lang: keyof typeof TITLES) {
         expect(apart, `at zoom ${zoom}, cards ${i} and ${i + 1 + j} overlap`).toBe(true);
       }),
     );
+    // Row 43 (S1): stacked cards read as separate cards: the ground between a card and the one under
+    // it in its column is 25.4 world px or more (16 asked), so it shows at the 0.25 floor too.
+    const columns = new Map<number, DOMRect[]>();
+    for (const card of cards) {
+      const left = Math.round(card.left);
+      columns.set(left, [...(columns.get(left) ?? []), card]);
+    }
+    let stacked = 0;
+    for (const column of columns.values()) {
+      const down = [...column].sort((a, b) => a.top - b.top);
+      for (let k = 1; k < down.length; k++) {
+        const gap =
+          ((down[k] as DOMRect).top - (down[k - 1] as DOMRect).bottom) / viewportZoom(edit);
+        expect(
+          gap,
+          `at zoom ${zoom}, a card stands ${gap.toFixed(1)} world px under the one above`,
+        ).toBeGreaterThanOrEqual(25.3);
+        stacked++;
+      }
+    }
+    await expect(stacked, "pairs of stacked cards on the edit board").toBe(4);
     for (const kind of KINDS) {
       const input = drawn(pathOf(present, `e-${kind}-input`));
       const reference = drawn(pathOf(present, `e-${kind}-reference`));
@@ -663,6 +684,12 @@ const LABELS = {
   en: { present: "Present board (sample)", edit: "Edit board (sample)" },
 } as const;
 
+/**
+ * The edit board's row pitch (ORV-290 row 43, S1): a collapsed card is 146.6 world px tall, so 172
+ * leaves 25.4 of ground between stacked cards, 6.4 screen px at the 0.25 floor, where 150 left 3.4.
+ */
+const STACK_GAP = 172;
+
 function ZoomBoards({ lang }: { lang: keyof typeof TITLES }) {
   return (
     <div className="flex flex-col gap-4">
@@ -682,7 +709,7 @@ function ZoomBoards({ lang }: { lang: keyof typeof TITLES }) {
           initial={pairs(
             [{ meaning: "input" }, { meaning: "reference" }, { meaning: "derived" }],
             [],
-            { lang },
+            { lang, gap: STACK_GAP },
           )}
           height={420}
         >

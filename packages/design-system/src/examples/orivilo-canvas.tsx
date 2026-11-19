@@ -1496,8 +1496,8 @@ function PaletteSpecimen({ which }: { which: "all" | PaletteId }) {
             style={{ background: entry.hex, padding: 40 }}
           >
             <div className="flex flex-col gap-2 font-body">
-              <span className="text-heading-md font-display">{copyOf(m, entry.name)}</span>
-              <span className="font-mono text-code-md">{entry.hex}</span>
+              <span className="font-display text-display-md">{copyOf(m, entry.name)}</span>
+              <span className="font-mono text-heading-sm">{entry.hex}</span>
             </div>
             <span className="font-body text-body-md">{copyOf(m, entry.role)}</span>
           </div>
@@ -1906,6 +1906,7 @@ function ContrastBody({ rows }: { rows: readonly RowRecord[] }) {
 
 function DemoBody({ body }: { body: Extract<BodyRecord, { kind: "demo" }> }) {
   const m = useMessages();
+  const { mode } = useContext(PageContext);
   const record = imageOf(body.image);
   const width = 342;
   const size = { w: width, h: Math.round((width * record.height) / record.width) };
@@ -1922,7 +1923,11 @@ function DemoBody({ body }: { body: Extract<BodyRecord, { kind: "demo" }> }) {
           <span
             key={point.n}
             aria-hidden="true"
-            className="absolute rounded-round ring-2 ring-surface-card"
+            className={cx(
+              "absolute rounded-round ring-2",
+              // In dark the card's own ground would melt into the black paper at point 3.
+              mode === "dark" ? "ring-border-subtle" : "ring-surface-card",
+            )}
             style={{
               left: `${point.x}%`,
               top: `${point.y}%`,
@@ -1933,9 +1938,10 @@ function DemoBody({ body }: { body: Extract<BodyRecord, { kind: "demo" }> }) {
           >
             <span
               {...scope("dark")}
-              className="flex size-full items-center justify-center rounded-round bg-surface-canvas font-body text-label-sm text-text-primary"
+              className="flex size-full items-center justify-center rounded-round bg-surface-canvas text-text-primary"
             >
-              {point.n}
+              {/* The scope resets the type, so the numeral sets its own step inside it (ORV-290 row 31). */}
+              <span className="font-body text-label-sm leading-none tabular-nums">{point.n}</span>
             </span>
           </span>
         ))}
@@ -2327,7 +2333,7 @@ function Preview({
         {second ? <p className={MUTED}>{second}</p> : null}
       </div>
       {count > 1 ? (
-        <div className="flex items-center gap-2 justify-self-start min-[600px]:justify-self-center">
+        <div className="flex items-center gap-2 justify-self-center">
           <Button
             variant="secondary"
             size="sm"

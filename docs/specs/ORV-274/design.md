@@ -139,31 +139,33 @@ World px, the top-left corner of each card, measured in the mock in English with
 | `b-feel`    | 280   | 210              | 0    | 741  |
 | `b-cat`     | 280   | 150              | 0    | 1019 |
 | `b-avoid`   | 280   | 157              | 0    | 1237 |
-| `b-pos`     | 280   | 116              | 352  | 113  |
-| `b-name`    | 280   | 181              | 352  | 297  |
-| `d-attr`    | 300   | 386              | 352  | 546  |
-| `d-board`   | 560   | 391              | 724  | 572  |
-| `l-idea`    | 300   | 136              | 1356 | 104  |
-| `l-build`   | 300   | 108              | 1356 | 308  |
-| `l-hist`    | 300   | 111              | 1356 | 484  |
-| `l-logo`    | 360   | 330              | 1704 | 104  |
-| `t-type`    | 360   | 133              | 1704 | 502  |
-| `u-board`   | 560   | 391              | 2136 | 174  |
-| `c-why`     | 300   | 173              | 1356 | 785  |
-| `c-hist`    | 300   | 122              | 1356 | 1026 |
-| `c-prop`    | 300   | 102              | 1356 | 1216 |
-| `c-pal`     | 360   | 288              | 1704 | 801  |
-| `c-con`     | 360   | 146              | 1704 | 1157 |
-| `c-demo`    | 360   | 381              | 2236 | 861  |
-| `bb-cover`  | 360   | 248              | 2768 | 113  |
-| `bb-logo`   | 360   | 248              | 2768 | 429  |
-| `bb-colour` | 360   | 248              | 2768 | 745  |
-| `bb-use`    | 360   | 248              | 2768 | 1061 |
-| `p-base`    | 300   | 484              | 3200 | 28   |
-| `p-pat`     | 360   | 691              | 3572 | 28   |
-| `p-landing` | 480   | 308              | 4004 | 28   |
-| `p-form`    | 480   | 288              | 4004 | 404  |
-| `p-report`  | 480   | 472              | 4004 | 760  |
+| `b-pos`     | 280   | 116              | 392  | 113  |
+| `b-name`    | 280   | 181              | 392  | 297  |
+| `d-attr`    | 300   | 386              | 392  | 546  |
+| `d-board`   | 560   | 391              | 804  | 572  |
+| `l-idea`    | 300   | 136              | 1460 | 104  |
+| `l-build`   | 300   | 108              | 1460 | 308  |
+| `l-hist`    | 300   | 111              | 1460 | 484  |
+| `l-logo`    | 360   | 330              | 1880 | 104  |
+| `t-type`    | 360   | 133              | 1880 | 502  |
+| `u-board`   | 560   | 391              | 2328 | 174  |
+| `c-why`     | 300   | 173              | 1460 | 785  |
+| `c-hist`    | 300   | 122              | 1460 | 1026 |
+| `c-prop`    | 300   | 102              | 1460 | 1216 |
+| `c-pal`     | 360   | 288              | 1880 | 801  |
+| `c-con`     | 360   | 146              | 1880 | 1157 |
+| `c-demo`    | 360   | 381              | 2428 | 861  |
+| `bb-cover`  | 360   | 248              | 2980 | 113  |
+| `bb-logo`   | 360   | 248              | 2980 | 429  |
+| `bb-colour` | 360   | 248              | 2980 | 745  |
+| `bb-use`    | 360   | 248              | 2980 | 1061 |
+| `p-base`    | 300   | 484              | 3464 | 28   |
+| `p-pat`     | 360   | 691              | 3876 | 28   |
+| `p-landing` | 480   | 308              | 4432 | 28   |
+| `p-form`    | 480   | 288              | 4432 | 404  |
+| `p-report`  | 480   | 472              | 4432 | 760  |
+
+Changed 2026-11-19 (ORV-290 row 32, B14): the x of the columns after the brief column moved right so no port name pill comes within 8 world px of another node's card or dot; each column's shift is the least that clears every pill of the earlier columns, planned with a 12 px margin. y is unchanged. The world grows from 4484 to 4912 wide.
 
 Changed from revision 4: `d-board` 391 high at y 572 (was 624 at 455), `u-board` 391 high at y 174 (was 531 at 104); each board card is the board at 542 x 339 (1280 x 800 scaled by 0.4234) plus the meta line. In Thai: `d-board` y 492, `u-board` y 106, the other Thai positions as the mock reports them (world 4484 x 1244).
 

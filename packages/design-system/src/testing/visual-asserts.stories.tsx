@@ -8,6 +8,8 @@ import { InputGroup } from "../components/input-group/InputGroup";
 import { Tag } from "../components/tag/Tag";
 import { CloseIcon, WarningIcon } from "../components/icons";
 import {
+  expectBoardChromeClear,
+  expectEdgeColour,
   expectEdgeInk,
   expectFrameCutsNoInk,
   expectInkClearsAbove,
@@ -20,6 +22,7 @@ import {
   expectSameHeight,
   inVitest,
   measureInkCentre,
+  resolvedColor,
 } from "./visual-asserts";
 
 const meta = {
@@ -882,5 +885,130 @@ export const InkCentreGroupAddon: Story = {
         /<div>: holds more than one input to measure/,
       );
     }
+  },
+};
+
+/**
+ * ORV-290 row 29: a heading whose clip is its frame, a box that holds it and moves it up. The frame
+ * is above the heading, so `expectNoGlyphClip(heading)` has no clip to read; with `through` it reads
+ * the frame, throws while the heading rides 12 px over the frame's top, and passes once it is down.
+ */
+export const GlyphClipThrough: Story = {
+  render: () => (
+    <DesignProfileBoundary mode="light" profile="neutral">
+      <div style={{ display: "flex", gap: 24, padding: 16 }}>
+        {[-12, 8].map((top) => (
+          <div
+            key={top}
+            data-case={top < 0 ? "cut" : "whole"}
+            style={{ width: 240, height: 72, overflow: "hidden", position: "relative" }}
+          >
+            <div style={{ position: "absolute", top, left: 8 }}>
+              <h1 style={{ margin: 0, font: "500 32px/1.25 var(--ds-font-display)" }}>
+                {fixtures.thaiMarks}
+              </h1>
+            </div>
+          </div>
+        ))}
+      </div>
+    </DesignProfileBoundary>
+  ),
+  play: async ({ canvasElement }) => {
+    const heading = (name: string) => q(canvasElement, `[data-case='${name}'] h1`);
+    const frame = (name: string) => q(canvasElement, `[data-case='${name}']`);
+    await expect(() => expectNoGlyphClip(heading("cut"))).toThrow(/no text under a clipping/);
+    await expect(() => expectNoGlyphClip(heading("cut"), frame("cut"))).toThrow(
+      /outside the clip.*corner/,
+    );
+    expectNoGlyphClip(heading("whole"), frame("whole"));
+  },
+};
+
+/**
+ * ORV-290 row 28: a hairline of the subtle border on the edge of a near white page, beside the same
+ * page with no line. `expectEdgeInk` reads 0 px for the subtle line (46 apart over RGB, under its
+ * threshold of 48); `expectEdgeColour` names the colour and reads 1 px for the page with the line.
+ */
+export const EdgeColour: Story = {
+  render: () => (
+    <DesignProfileBoundary mode="light" profile="neutral">
+      <div
+        className="bg-surface-sunken"
+        style={{ display: "flex", gap: 24, padding: 24, width: 520 }}
+      >
+        {["line", "bare"].map((name) => (
+          <div
+            key={name}
+            data-case={name}
+            style={{
+              position: "relative",
+              width: 200,
+              height: 80,
+              background: "#ffffff",
+              boxShadow: "none",
+            }}
+          >
+            {name === "line" ? (
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  border: "1px solid var(--ds-border-subtle)",
+                }}
+              />
+            ) : null}
+          </div>
+        ))}
+      </div>
+    </DesignProfileBoundary>
+  ),
+  play: async ({ canvasElement }) => {
+    if (!inVitest) return;
+    const line = q(canvasElement, "[data-case='line']");
+    const bare = q(canvasElement, "[data-case='bare']");
+    const subtle = resolvedColor(line, "--ds-border-subtle");
+    const sides = ["top", "right", "bottom", "left"] as const;
+    await expectEdgeColour(line, sides, subtle, 1);
+    await expect(expectEdgeColour(bare, sides, subtle, 1)).rejects.toThrow(
+      /reads outside, inside, expected outside, line, inside/,
+    );
+    await expect(expectEdgeColour(line, "top", subtle, 2)).rejects.toThrow(
+      /draws 1 px of .*, expected 2 px/,
+    );
+    await expect(expectEdgeInk(line, "top", 1)).rejects.toThrow(/draws 0 px of ink/);
+  },
+};
+
+/**
+ * ORV-290 row 10: the corner badge and the status line against a card. A card under the badge
+ * throws, a card clear of it passes, an empty status line is not read, and a board with no badge
+ * and no status text reads nothing, so the caller's count catches it.
+ */
+export const BoardChromeClear: Story = {
+  render: () => (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16, padding: 16 }}>
+      {[0, 80].map((gap) => (
+        <div
+          key={gap}
+          data-case={gap === 0 ? "under" : "clear"}
+          style={{ position: "relative", width: 300, height: 140 }}
+        >
+          <span className="ds-board__mode" style={{ top: 0, right: 0 }}>
+            Badge
+          </span>
+          <div className="ds-node" style={{ position: "absolute", top: 8 + gap, left: 8 }}>
+            Card
+          </div>
+          <p role="status" />
+        </div>
+      ))}
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const under = q(canvasElement, "[data-case='under']");
+    const clear = q(canvasElement, "[data-case='clear']");
+    await expect(() => expectBoardChromeClear(under)).toThrow(/"Badge" is -?\d+\.\d px from/);
+    await expect(expectBoardChromeClear(clear)).toBe(1);
+    await expect(expectBoardChromeClear(clear, 0, "[role=status]")).toBe(0);
   },
 };

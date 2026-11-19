@@ -294,6 +294,60 @@ export async function expectEdgeInk(
   }
 }
 
+/**
+ * Asserts a line of one named colour, `px` CSS px wide, is drawn at each of `sides` of `el`, read
+ * from a screenshot (ORV-290 row 28). `expectEdgeInk` counts a pixel as ink only when it is far from
+ * both grounds, which a subtle line beside a near white stage is not (a gap of 46 over RGB against
+ * a threshold of 48). This one names the colour instead: a pixel line runs across the edge from
+ * `reach` CSS px outside to `reach` inside, every pixel takes the name of the nearest of the outside
+ * ground, `colour` and the inside ground, and the run of `colour` between the two grounds must be
+ * `px` wide, within 0.25 px. `colour` is a computed CSS colour, painted over `ground`. It runs where
+ * Vitest browser mode runs, so a play guards the call with `inVitest`.
+ */
+export async function expectEdgeColour(
+  el: Element,
+  sides: Side | readonly Side[],
+  colour: string,
+  px: number,
+  ground = "#ffffff",
+  reach = 4,
+) {
+  const scope = scopeHolding(el, reach);
+  const { data, width, frame, scale } = await screenshotOf(scope);
+  const rect = el.getBoundingClientRect();
+  const wanted = paintedOver(colour, ground);
+  for (const side of typeof sides === "string" ? [sides] : sides) {
+    const horizontal = side === "left" || side === "right";
+    const edge = { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right }[side];
+    const across = (horizontal ? edge - frame.left : edge - frame.top) * scale;
+    const along =
+      (horizontal
+        ? (rect.top + rect.bottom) / 2 - frame.top
+        : (rect.left + rect.right) / 2 - frame.left) * scale;
+    const line: Rgb[] = [];
+    for (let i = Math.round(across - reach * scale); i <= Math.round(across + reach * scale); i++) {
+      const at =
+        ((horizontal ? Math.round(along) : i) * width + (horizontal ? i : Math.round(along))) * 4;
+      line.push([data[at] ?? 0, data[at + 1] ?? 0, data[at + 2] ?? 0]);
+    }
+    // Read outside to inside for every side.
+    if (side === "bottom" || side === "right") line.reverse();
+    const outside = line[0] as Rgb;
+    const inside = line[line.length - 1] as Rgb;
+    const runs = colourRuns(line, { outside, line: wanted, inside }, scale);
+    const names = runs.map(([name]) => name);
+    const drawn = runs.find(([name]) => name === "line")?.[1] ?? 0;
+    expect(
+      names,
+      `${side} edge of ${label(el)} reads ${names.join(", ")}, expected outside, line, inside`,
+    ).toEqual(["outside", "line", "inside"]);
+    expect(
+      Math.abs(drawn - px),
+      `${side} edge of ${label(el)} draws ${drawn} px of ${colour}, expected ${px} px`,
+    ).toBeLessThanOrEqual(0.25);
+  }
+}
+
 export type ViewBox = readonly [minX: number, minY: number, width: number, height: number];
 export interface PaintProbe {
   /** A point in the svg's `viewBox` units. */
@@ -666,9 +720,12 @@ const clips = (style: CSSStyleDeclaration) =>
  * its nearest clipping ancestor's padding box and inside that box's rounded corners. Text that an
  * ellipsis truncates is judged on the part that shows. Use it with a Thai sample that has stacked
  * marks (`fixtures.thaiMarks`). A mark drawn above the font's own ascent is outside every Range
- * rect, so this cannot see it; a designer screenshot is the catch for that.
+ * rect, so this cannot see it; a designer screenshot is the catch for that. The clipping
+ * ancestors counted are those from the text up to `el`'s parent, so a clip that holds `el` is not
+ * seen; `through` names the outermost ancestor whose clip counts (it and everything under it), for a
+ * text whose clip is its frame (ORV-290 row 29). `through` defaults to `el`.
  */
-export function expectNoGlyphClip(el: Element) {
+export function expectNoGlyphClip(el: Element, through: Element = el) {
   const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
   let checked = 0;
   for (let node = walker.nextNode(); node; node = walker.nextNode()) {
@@ -676,7 +733,7 @@ export function expectNoGlyphClip(el: Element) {
     if (!text) continue;
     // Ink shows only inside every clipping ancestor, so each one is checked, innermost first.
     const clipsOf: Element[] = [];
-    for (let up = node.parentElement; up && up !== el.parentElement; up = up.parentElement) {
+    for (let up = node.parentElement; up && up !== through.parentElement; up = up.parentElement) {
       if (clips(getComputedStyle(up))) clipsOf.push(up);
     }
     const range = document.createRange();
@@ -1951,4 +2008,37 @@ export function expectPortPillsClear(node: Element, px = 8, between = 7.5) {
     }
   }
   return pills.length;
+}
+
+/**
+ * Asserts the chrome a board draws in its own corners keeps clear of the nodes (ORV-290 row 10): each
+ * element of `chrome` (by default the corner badge `.ds-board__mode` and every status pill
+ * `[role=status]`) that holds text lies at least `px` screen px from every card (`.ds-node`) and
+ * port dot (`.ds-port__handle`) of `board` that has a width. The clearance is the largest of the four
+ * gaps between the two rects, negative when they overlap, so it reads `getBoundingClientRect` only
+ * and holds on Linux chromium. An empty status line has no pill and is skipped. A failure names the
+ * chrome, the thing it meets and the clearance. It returns how many chrome elements were read, so a
+ * board with no badge cannot pass.
+ */
+export function expectBoardChromeClear(
+  board: Element,
+  px = 0,
+  chrome = ".ds-board__mode, [role=status]",
+) {
+  const read = [...board.querySelectorAll<HTMLElement>(chrome)].filter(
+    (el) => (el.textContent ?? "").trim() !== "" && el.getBoundingClientRect().width > 0,
+  );
+  const others = [...board.querySelectorAll(".ds-node, .ds-port__handle")].filter(
+    (o) => o.getBoundingClientRect().width > 0,
+  );
+  for (const el of read) {
+    for (const other of others) {
+      const clearance = rectClearance(el.getBoundingClientRect(), other.getBoundingClientRect());
+      expect(
+        clearance,
+        `"${el.textContent}" is ${clearance.toFixed(1)} px from ${label(other)}, expected at least ${px}`,
+      ).toBeGreaterThanOrEqual(px);
+    }
+  }
+  return read.length;
 }

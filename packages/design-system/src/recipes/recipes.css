@@ -1518,6 +1518,16 @@
   --_stage-radius: calc(var(--cmp-dialog-radius) - var(--ds-space-inset-md));
   border-radius: var(--_stage-radius);
 }
+/* A page on the stage shows its bounds (ORV-290 row 28): a line of the subtle border drawn over the
+ * page's own edge, so a near white page does not melt into a near white stage. */
+[data-stage] [data-art-frame]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border: 1px solid var(--ds-border-subtle);
+  pointer-events: none;
+}
 .ds-dialog[data-size="viewer"] .ds-dialog__footer > * {
   flex: 1 1 auto;
 }
