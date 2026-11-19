@@ -265,7 +265,13 @@ function ArtFrame({
     <div
       className="relative overflow-hidden"
       data-art-frame=""
-      style={{ width, height: (width * design.h) / design.w }}
+      style={
+        {
+          width,
+          height: (width * design.h) / design.w,
+          "--_art-scale": String(scale),
+        } as CSSProperties
+      }
       inert
       aria-hidden="true"
     >
@@ -925,7 +931,11 @@ function PieceArt({
 /** A board at 1280 x 800: its pieces at their boxes. */
 function BoardArt({ board }: { board: BoardId }) {
   return (
-    <div className="relative" style={{ width: BOARD_DESIGN.w, height: BOARD_DESIGN.h }}>
+    <div
+      className="relative"
+      data-board-art=""
+      style={{ width: BOARD_DESIGN.w, height: BOARD_DESIGN.h }}
+    >
       {BOARDS[board].pieces.map((id) => {
         const piece = pieceOf(id);
         return (

@@ -1528,6 +1528,26 @@
   border: 1px solid var(--ds-border-subtle);
   pointer-events: none;
 }
+/* A page made of rounded tiles draws its bounds on each tile, not on the frame (ORV-290 row 28,
+ * R28-1). The colour is resolved on the frame, in the stage's mode, because a tile carries its
+ * own art mode; the width is divided by the art's scale so it draws 1 CSS px at every size. */
+[data-stage] [data-art-frame] {
+  --_page-line-colour: var(--ds-border-subtle);
+}
+[data-stage] [data-art-frame]:has(> * > .rounded-media, > * > [data-board-art])::after {
+  content: none;
+}
+[data-stage] [data-art-frame] > * > .rounded-media::after,
+[data-stage] [data-art-frame] > * > [data-board-art] > [data-piece] > .rounded-media::after {
+  --_page-line: inset 0 0 0 calc(1px / var(--_art-scale)) var(--_page-line-colour);
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: var(--ds-shape-media-radius);
+  box-shadow: var(--_page-line);
+  pointer-events: none;
+}
 .ds-dialog[data-size="viewer"] .ds-dialog__footer > * {
   flex: 1 1 auto;
 }
