@@ -4,7 +4,8 @@ import { createHash } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // ORV-283 C4: the page loader passes the saved reading of the newest intake into the view, and
-// opening never calls a model. A stored reading that no longer parses reads as the page's one 404.
+// opening never calls a model. A stored reading that no longer parses opens with no reading; an
+// intake row that no longer parses reads as the page's one 404 (ORV-287).
 vi.mock("server-only", () => ({}));
 vi.mock("next/headers", () => ({ headers: async () => new Headers() }));
 vi.mock("../../server/auth", () => ({
@@ -118,13 +119,39 @@ describe("loadProject and the saved reading", () => {
     });
   });
 
-  it("answers the page's one 404 for a stored reading that no longer parses, with an error line", async () => {
+  // `orv287-unparsed-reading-1`: `open` answers a reading that no longer parses with `reading: null`
+  // (proved at the service, `business.integration.test.ts`); the loader shows what it shows for a
+  // project that has no reading, and its boundary line is `ok`.
+  it("a stored reading that no longer parses opens with no reading", async () => {
+    state.reading = null;
+    const loaded = await loadProject(PROJECT);
+    if (loaded.access !== "ready") throw new Error("not ready");
+    expect(loaded.view.reading).toEqual({ status: "none" });
+    // The person's own words are in the view, and no field carries a reading.
+    expect(loaded.view.nodes.flatMap((n) => n.fields).flatMap((f) => f.readings)).toEqual([]);
+    expect(JSON.stringify(loaded.view.nodes)).toContain("Roasted coffee for office workers");
+    expect(fetchSpy).not.toHaveBeenCalled();
+    const lines = capture.lines.map((line) => expectLineShape(line));
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toMatchObject({ level: "info", outcome: "ok" });
+  });
+
+  it("answers the page's one 404 for an intake row that no longer parses, with an error line", async () => {
     const { BusinessError } = await import("@orivilo/auth");
     state.throws = new BusinessError("invalid-stored");
     expect(await loadProject(PROJECT)).toEqual({ access: "not-found" });
     const lines = capture.lines.map((line) => expectLineShape(line));
     expect(lines).toHaveLength(1);
     expect(lines[0]).toMatchObject({ level: "error", outcome: "failed", reason: "failed" });
+  });
+
+  it("answers not-found with a refusal line for a project the service does not find", async () => {
+    const { BusinessError } = await import("@orivilo/auth");
+    state.throws = new BusinessError("not-found");
+    expect(await loadProject(PROJECT)).toEqual({ access: "not-found" });
+    const lines = capture.lines.map((line) => expectLineShape(line));
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toMatchObject({ level: "info", outcome: "refused", reason: "not-found" });
   });
 });
 

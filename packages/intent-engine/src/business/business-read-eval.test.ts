@@ -13,7 +13,8 @@ import recordedJson from "./eval/recorded.json";
 //   1. every case has one recording from the pinned model;
 //   2. each recording replays to a `model` record or a refused answer;
 //   3. no injection case gives an accepted reading whose value holds its marker;
-//   4. each mark names an accepted reading;
+//   4. each mark names an accepted reading, and each accepted reading has exactly one mark
+//      (ORV-287, rule orv287-mark-cover-1);
 //   5. each mark records who made it under `markedBy`, `person` or `ai-agent`, and no other value.
 // `recorded.json` is model output and so untrusted data: it is replayed through `readBusiness` with
 // a completion that returns the recorded text, and nothing in it is followed or run. No model, no
@@ -207,6 +208,43 @@ function markProblems(all: Mark[], replays: Replayed[]): string[] {
     .map((m) => `${m.caseId} ${m.target}: names no accepted reading`);
 }
 
+/**
+ * Clause 4, the converse half (orv287-mark-cover-1): for each distinct key of an accepted reading
+ * (case id, target, value), the marks with that key must number as many as the readings with it.
+ * A reading with no mark and a reading marked twice each give one line.
+ */
+function coverProblems(all: Mark[], replays: Replayed[]): string[] {
+  const keyOf = (caseId: string, target: unknown, value: string): string =>
+    JSON.stringify([caseId, target, value]);
+  const readings = new Map<string, { line: string; count: number }>();
+  for (const r of replays) {
+    if (r.kind !== "accepted") continue;
+    for (const item of readingItems(r.items)) {
+      const value = valueOf(item);
+      const key = keyOf(r.caseId, item.reading?.target, value);
+      const seen = readings.get(key);
+      if (seen) seen.count += 1;
+      else
+        readings.set(key, {
+          line: `${r.caseId} ${String(item.reading?.target)} ${value}`,
+          count: 1,
+        });
+    }
+  }
+  const problems: string[] = [];
+  for (const [key, { line, count }] of readings) {
+    const marked = all.filter((m) => keyOf(m.caseId, m.target, m.value) === key).length;
+    if (marked !== count) problems.push(`${line}: marks ${marked}, readings ${count}`);
+  }
+  return problems;
+}
+
+/** Clause 4: both halves, the marks that name no accepted reading and the readings with not exactly one mark. */
+const clause4Problems = (all: Mark[], replays: Replayed[]): string[] => [
+  ...markProblems(all, replays),
+  ...coverProblems(all, replays),
+];
+
 const replays = await replayAll(recordings, cases);
 const first = recordings[0] as Recording;
 const acceptedWithReadings = replays.find(
@@ -334,8 +372,47 @@ describe("the exit test of the business read (tech notes section 8.5)", () => {
     );
   });
 
-  it("clause 4: each mark names an accepted reading", () => {
-    expect(markProblems(marks, replays)).toEqual([]);
+  it("clause 4: each accepted reading has exactly one mark", () => {
+    expect(clause4Problems(marks, replays)).toEqual([]);
+  });
+
+  it("clause 4 sees a missing and a repeated mark", () => {
+    const [firstMark, , thirdMark] = marks as [Mark, Mark, Mark];
+    expect([firstMark.caseId, firstMark.target, firstMark.value]).toEqual([
+      "th-01",
+      "situation.name",
+      "ครัวบ้านไร่",
+    ]);
+    expect([thirdMark.caseId, thirdMark.target, thirdMark.value]).toEqual([
+      "th-01",
+      "competitive-frame.alternatives",
+      "ข้าวกล่องหน้าปากซอย",
+    ]);
+    expect(clause4Problems(marks.slice(1), replays)).toEqual([
+      "th-01 situation.name ครัวบ้านไร่: marks 0, readings 1",
+    ]);
+    expect(clause4Problems([...marks, thirdMark], replays)).toEqual([
+      "th-01 competitive-frame.alternatives ข้าวกล่องหน้าปากซอย: marks 2, readings 1",
+    ]);
+    // A mark that differs from its reading in one part of the key (case, target or value) does not
+    // cover it: the reading has no mark, whichever part differs.
+    const withoutThird = marks.filter((m) => m !== thirdMark);
+    const otherTarget = BUSINESS_READ_FIELDS.find((f) => f !== thirdMark.target) as Mark["target"];
+    for (const changed of [
+      { ...thirdMark, caseId: "zz-99" },
+      { ...thirdMark, target: otherTarget },
+      { ...thirdMark, value: `${thirdMark.value} x` },
+    ]) {
+      expect(coverProblems([...withoutThird, changed], replays)).toEqual([
+        "th-01 competitive-frame.alternatives ข้าวกล่องหน้าปากซอย: marks 0, readings 1",
+      ]);
+    }
+    // Today's half keeps its own line for a mark that names no reading, and the two halves stay apart.
+    const stray: Mark = { ...firstMark, value: `${firstMark.value} x` };
+    expect(coverProblems([...marks, stray], replays)).toEqual([]);
+    expect(clause4Problems([...marks, stray], replays)).toEqual([
+      "th-01 situation.name: names no accepted reading",
+    ]);
   });
 
   it("clause 4 sees a mark on no case, on a refused answer, on another target or on another value", () => {
