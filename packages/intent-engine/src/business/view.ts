@@ -8,6 +8,7 @@ import {
   type PlacedAnswer,
   placeIntake,
 } from "./place";
+import { positioningGate, type GateState, type StoredChoice } from "./positioning";
 import type { ProxyQuestionId } from "./questions";
 import type { BusinessReadReason, BusinessReading } from "./reading";
 
@@ -36,6 +37,27 @@ export type BusinessFieldReading = {
   spans: InputEvidence[];
 };
 
+/** A node's state in the view: `node-state-1`'s three, and the two the positioning gate adds. */
+export type BusinessNodeState = NodeState | "awaitingChoice" | "agreed"; // a key of business.state.*
+
+export type PositioningView = {
+  gate: GateState;
+  skipped: boolean;
+  stale: boolean;
+  /** The statement to show: the agreed one, or the stale one with its note. */
+  statement: null | {
+    text: string;
+    label:
+      | "business.positioning.by.picked"
+      | "business.positioning.by.edited"
+      | "business.positioning.by.own"
+      | "business.positioning.stale";
+    /** The draft's saved model id for `by.picked` and `by.edited`; no draft is stored yet. */
+    modelId: string | null;
+  };
+  controls: Array<"writeOwn" | "skip">;
+};
+
 export type BusinessView = {
   projectName: string;
   /** ISO time the project was saved. */
@@ -44,10 +66,13 @@ export type BusinessView = {
     | { status: "none" } // no reading row: slice 1 and 2, or a project saved before slice 3
     | { status: "model"; modelId: string }
     | { status: "rule-based"; reason: BusinessReadReason };
+  positioning: PositioningView;
   nodes: Array<{
     id: BusinessNodeId;
-    state: NodeState;
+    state: BusinessNodeState;
     gate: boolean;
+    /** True only on `positioning` once the gate is `given` or `confirmed`. */
+    gatePassed: boolean;
     notes: BusinessNote[];
     stillToAsk: ProxyQuestionId[];
     fields: Array<{
@@ -64,6 +89,11 @@ export type SavedBusiness = {
   intake: StoredIntake;
   /** The saved reading record of the intake, or none. */
   reading?: BusinessReading | null;
+  /**
+   * The newest intake's id and the project's newest choice row. Absent, no choice is stored. The
+   * choice's draft is not read yet: a draft is never a value.
+   */
+  positioning?: { intakeId: string; choice: StoredChoice | null };
 };
 
 /** The notes of `honest-business-1` that belong to a node, by rule. */
@@ -105,18 +135,58 @@ function statusOf(record: BusinessReading | null | undefined): BusinessView["rea
   return { status: "rule-based", reason: record.reason };
 }
 
+const BY_KIND = {
+  picked: "business.positioning.by.picked",
+  edited: "business.positioning.by.edited",
+  written: "business.positioning.by.own",
+} as const;
+
+function positioningOf(saved: SavedBusiness): PositioningView {
+  const choice = saved.positioning?.choice ?? null;
+  const gate = positioningGate({
+    newestIntakeId: saved.positioning?.intakeId ?? "",
+    choice,
+    draftOfNewest: false,
+  });
+  const agreed = gate.state === "given" || gate.state === "confirmed";
+  const statement =
+    choice === null || choice.kind === "skipped"
+      ? null
+      : {
+          text: choice.statement,
+          label: gate.stale ? ("business.positioning.stale" as const) : BY_KIND[choice.kind],
+          modelId: null,
+        };
+  const controls: PositioningView["controls"] = agreed
+    ? []
+    : gate.skipped
+      ? ["writeOwn"]
+      : ["writeOwn", "skip"];
+  return { gate: gate.state, skipped: gate.skipped, stale: gate.stale, statement, controls };
+}
+
 export function toBusinessView(saved: SavedBusiness): BusinessView {
   const placed = placeIntake(saved.intake);
   const states = nodeStates(saved.intake);
   const readings = readingsOf(saved.reading);
+  const positioning = positioningOf(saved);
+  const agreed = positioning.gate === "given" || positioning.gate === "confirmed";
+  /**
+   * `positioning-gate-1`'s state; `open` without a skip keeps `node-state-1`'s own. `awaitingChoice`
+   * comes with the drafted options (no draft is read yet, so the gate is never `awaiting-choice`).
+   */
+  const stateOfPositioning = (own: NodeState): BusinessNodeState =>
+    agreed ? "agreed" : positioning.skipped ? "skipped" : own;
   return {
     projectName: saved.project.name,
     savedAt: saved.project.createdAt,
     reading: statusOf(saved.reading),
+    positioning,
     nodes: states.map((s) => ({
       id: s.id,
-      state: s.state,
+      state: s.id === "positioning" ? stateOfPositioning(s.state) : s.state,
       gate: s.gate,
+      gatePassed: s.id === "positioning" && agreed,
       notes: notesOf(s.id, saved.intake),
       stillToAsk: s.stillToAsk,
       fields: (placed.find((p) => p.id === s.id)?.fields ?? []).map((f) => ({

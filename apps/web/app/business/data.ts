@@ -112,8 +112,9 @@ export async function loadList(): Promise<ListLoad> {
 }
 
 /**
- * One project with its newest intake and that intake's saved reading, as the view the screen
- * takes. Opening reads rows and never calls a model. The id is a name to look up:
+ * One project with its newest intake, that intake's saved reading and the project's newest
+ * positioning choice (ORV-285), as the view the screen takes. Opening reads rows and never calls
+ * a model. The id is a name to look up:
  * one that is not in UUID form never reaches the database. Another workspace's project, an unknown
  * id and a bad form all answer `not-found`, one answer for the page's one 404 body (security rule 9).
  * A stored row, an intake or a reading, that no longer parses shows as the same 404: the page tells
@@ -140,6 +141,7 @@ export async function loadProject(id: string): Promise<ProjectLoad> {
           },
           intake: opened.intake,
           reading: opened.reading,
+          positioning: opened.positioning,
         });
         return {
           value: { access: "ready", view },

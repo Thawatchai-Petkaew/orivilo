@@ -3,6 +3,7 @@ import { MissingEnvError } from "@orivilo/db";
 import { LocaleProvider, messagesFor } from "@orivilo/design-system";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { webMessages } from "../../../i18n/messages";
 
 // ORV-281 tech notes T22 (spec rows 5, 7, 13 and 14 at the page): one project's board page, with the
 // real loader and a service that holds two workspaces. Another workspace's id, an unknown id and an
@@ -21,6 +22,12 @@ vi.mock("../../../i18n/locale", async () => {
   const { webMessages: all } = await import("../../../i18n/messages");
   return { getWebMessages: async () => ({ locale: state.locale, m: all[state.locale] }) };
 });
+// The ready board is the client wrapper `ProjectBoard`, which reads the router and imports the action.
+vi.mock("next/navigation", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("next/navigation")>()),
+  useRouter: () => ({ refresh: () => {} }),
+}));
+vi.mock("../positioning-actions", () => ({ choosePositioning: async () => ({ ok: true }) }));
 vi.mock("../../../server/auth", () => ({
   accessDeps: () => ({}),
   auth: () => ({
@@ -66,6 +73,7 @@ vi.mock("@orivilo/auth", async (importOriginal) => {
 });
 
 const page = await import("./page");
+const { ProjectBoard } = await import("./ProjectBoard");
 
 let capture: ReturnType<typeof captureLines>;
 beforeEach(() => {
@@ -142,6 +150,27 @@ describe.each(["en", "th"] as const)("/business/[projectId] in %s", (locale) => 
     expect(html).not.toContain("ขายกาแฟคั่วสด");
     expect(html.match(/<main[\s>]/g)).toHaveLength(1);
     expect(state.asked).toEqual([MINE]);
+  });
+
+  // ORV-285 T19: a ready board goes through the wrapper with the view and the id from the route,
+  // and the page asks the service for no positioning of its own here (the stub returns none).
+  it("hands the wrapper the view, the project id and the catalog's lines", async () => {
+    state.locale = locale;
+    state.session = person("ws-a");
+    state.throws = null;
+    const main = (await page.default({ params: Promise.resolve({ projectId: MINE }) })) as {
+      props: { children: { type: unknown; props: Record<string, unknown> } };
+    };
+    const wrapper = main.props.children;
+    expect(wrapper.type).toBe(ProjectBoard);
+    expect(wrapper.props["projectId"]).toBe(MINE);
+    expect(wrapper.props["view"]).toMatchObject({
+      projectName: "ร้านกาแฟคั่วเอง",
+      positioning: { gate: "open", statement: null },
+    });
+    expect(wrapper.props["errors"]).toBe(webMessages[locale].saved.errors);
+    expect(wrapper.props["wait"]).toBe(webMessages[locale].wait);
+    expect(wrapper.props["failure"]).toBe(webMessages[locale].failure);
   });
 
   it("writes one line with the route and outcome and no name or answer", async () => {

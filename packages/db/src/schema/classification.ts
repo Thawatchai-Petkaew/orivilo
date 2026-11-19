@@ -161,4 +161,15 @@ export const CLASSIFICATION = {
     createdBy: "personal", // user-ref
     createdAt: "internal", // record
   },
+  businessPositioningChoice: {
+    id: "internal", // row-key
+    workspaceId: "internal", // workspace-key
+    intakeId: "internal", // row-key
+    kind: "internal", // record
+    statement: "personal", // free-text
+    draftId: "internal", // row-key
+    option: "internal", // record
+    createdBy: "personal", // user-ref
+    createdAt: "internal", // record
+  },
 } as const satisfies Classification;

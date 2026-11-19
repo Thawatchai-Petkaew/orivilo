@@ -5,6 +5,7 @@
  */
 export { BrandReportScreen, type BrandReportScreenProps } from "./brand-report";
 export type { BusinessAccess } from "./business-access";
+export type { ChoiceRequest } from "./business-node-view";
 export { BusinessBoardScreen, type BusinessBoardScreenProps } from "./business-board";
 export { BusinessIntakeScreen, type BusinessIntakeScreenProps } from "./business-intake";
 export {
