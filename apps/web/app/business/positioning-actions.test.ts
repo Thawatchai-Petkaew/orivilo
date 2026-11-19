@@ -867,7 +867,9 @@ describe("draft stopped", () => {
     }
   });
 
-  it("no key: the limit and the cap are counted, no call is made, nothing is stored", async () => {
+  // Row 15, `positioning-draft-key-1`: the key is read before the limit, so a request with no key
+  // consumes no limit, checks no cap, calls no model and records no usage.
+  it("no key: no limit, no cap, no call, nothing stored", async () => {
     vi.stubEnv("OPENROUTER_API_KEY", "");
     const outcome = await draftPositioning(ask);
     expect(outcome).toMatchObject({
@@ -875,7 +877,8 @@ describe("draft stopped", () => {
       error: "ai-not-configured",
       code: "INTERNAL_ERROR",
     });
-    expect(state.order).toEqual(["session", "allow-list", "open", "consume", "spend-check"]);
+    expect(state.order).toEqual(["session", "allow-list", "open"]);
+    expect(state.consumed).toEqual([]);
     expect(fetchSpy).not.toHaveBeenCalled();
     nothingStored();
     expect(draftStep()).toMatchObject([{ outcome: "not-configured" }]);

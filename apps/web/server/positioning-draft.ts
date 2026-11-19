@@ -19,11 +19,13 @@ import { limiter } from "./rate-limit";
 import { spendCap } from "./spend-cap";
 
 /**
- * Steps 6 to 8 of `positioning-door-1`, draft (ORV-285 tech notes section 6.2): the `ai-read` limit,
- * the spend cap, and the one model call with its checks. It runs after the project was read and never
- * throws: it answers the record to save, or the reason no draft was made and the word of the step
- * line, for the action to word. No answer, option, quote, model text, provider message or key reaches
- * a line: the only thing a catch keeps is which step it was.
+ * Steps 6 to 8 of `positioning-door-1`, draft (ORV-285 tech notes section 6.2), in the order of
+ * `positioning-draft-key-1` (ORV-292): the key is read first, then the `ai-read` limit, the spend cap
+ * and the one model call with its checks. With no key nothing is counted, checked, called or
+ * recorded. It runs after the project was read and never throws: it answers the record to save, or
+ * the reason no draft was made and the word of the step line, for the action to word. No answer,
+ * option, quote, model text, provider message or key reaches a line: the only thing a catch keeps is
+ * which step it was.
  */
 
 /** How long the model may take before the person writes their own (ADR 0009 point 3). */
@@ -49,6 +51,10 @@ export async function draftFromAnswers(
   userId: string,
   opened: Pick<OpenedProject, "intake" | "intakeId">,
 ): Promise<Drafted> {
+  // The key is read before the limit: with none, no limit is consumed and no cap is read.
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) return { reason: "ai-not-configured", outcome: "not-configured" };
+
   // 6. The `ai-read` limit. A store that cannot count fails closed.
   try {
     const counted = await limiter().consume(LIMITS["ai-read"], { user: userId });
@@ -80,8 +86,6 @@ export async function draftFromAnswers(
   }
 
   // 8. The model call, with the one pinned model and no other.
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) return { reason: "ai-not-configured", outcome: "not-configured" };
   const calls: UsageEntry[] = [];
   try {
     const record = await draftPositioning(
