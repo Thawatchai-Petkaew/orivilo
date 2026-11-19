@@ -1,8 +1,8 @@
 ---
 issue: ORV-285 (https://tpetkaew.atlassian.net/browse/ORV-285)
-spec: docs/specs/ORV-285/spec.md v1.0
+spec: docs/specs/ORV-285/spec.md v1.2
 tech: docs/specs/ORV-285/tech.md
-task: ORV-285-design-1
+task: ORV-285-design-1, ORV-285-design-f1
 author: designer
 date: 2026-11-18
 ---
@@ -45,9 +45,9 @@ The section, top to bottom. Every class is a semantic utility or layout utility 
 <!-- prettier-ignore -->
 | Part | Element and classes | Shows when |
 | --- | --- | --- |
-| Section | `div.flex.min-w-0.flex-col.gap-3`, `data-field="positioning.statement"` | always |
-| A. Lead group | `div.flex.min-w-0.flex-col.gap-1` | always |
-| A1. Heading | `h3.text-label-md.self-start`, `tabIndex={-1}`, id for `aria-labelledby`, text `business.field.statement` | always |
+| Section | `div.flex.min-w-0.flex-col.gap-3`, `data-field="positioning.statement"` | a statement exists or controls are given (`positioning.statement !== null \|\| controls !== undefined`); with neither, the section is not in the DOM (row F1-a, S0) |
+| A. Lead group | `div.flex.min-w-0.flex-col.gap-1` | with the Section |
+| A1. Heading | `h3.text-label-md.self-start`, `tabIndex={-1}`, id for `aria-labelledby`, text `business.field.statement` | with the Section |
 | A2. Stale line | `p.text-body-sm` (primary ink, the voice of ORV-281 `belowFloor`), `business.positioning.stale` | `stale` true |
 | A3. Statement | `p.whitespace-pre-wrap` holding `<bdi>{statement}</bdi>`, body type, primary ink | `given`, `confirmed`, `stale` |
 | A4. Who wrote it | `p` with `FIELD_NOTE`: `business.positioning.by.own`, `by.picked` or `by.edited` with the draft's saved model id | `given`, `confirmed` (never with `stale`) |
@@ -70,6 +70,8 @@ Quote field labels by answer key: idea `business.field.offer`, industry `busines
 
 **Why two rows when Draft is offered.** In one wrapping row the ghost "Skip for now" would start a line at 360 with no visible edge, and Draft (the lime intent button) would sit beside its alternatives as if it were one of three equal choices. Draft alone on row 1, then the person's own paths on row 2, reads as "ask the engine, or do it yourself", with one start edge at x 33 (measured on every row, every frame).
 
+**Why the section can be absent (F1).** A viewer opened without controls (every board story built before this story, and any read-only surface) has nothing to offer under the heading when no statement exists either: the heading would stand alone, an empty label that DESIGN.md section 9 item 5 forbids, where every other field without an answer shows a fallback line. So the heading shows only when something sits under it: a statement (A3, with A2 or A4), or the controls (C). With neither, the view ends after the value field exactly as on develop.
+
 ## 4. The drafted options, set apart from the person's words
 
 1. **Place.** The person's statement (A3) is never inside the well; drafted text (B4) is never outside it. After a pick or an edit is agreed, the well is gone and the chosen text moves to A3 with the label that says the model drafted it (A4, `by.picked` or `by.edited`).
@@ -85,6 +87,7 @@ The state line is the existing `p[data-node-state]` at the top of the view, with
 <!-- prettier-ignore -->
 | # | State (gate, marks) | State line | Section shows, in order | Primary | Focus after the action that led here | A screen reader hears |
 | --- | --- | --- | --- | --- | --- | --- |
+| S0 | no controls given and no statement (any gate state; a read-only viewer such as `Board`) | as on develop | nothing: no Section, no heading; the value field is the last child of the fields container (row F1-a) | none | (opening the viewer: the region, unchanged) | the view as on develop, no "Positioning statement" |
 | S1 | `open`, PR 1, value given | `business.state.proposed` | A1; C: one row [Write my own `primary`] [Skip for now `ghost`] | Write my own | (opening the viewer: the region, unchanged) | heading "Positioning statement", then two buttons |
 | S1b | `open`, PR 1, value empty | `business.state.skipped` | as S1 | Write my own | as S1 | as S1 |
 | S2 | `open`, PR 2, value given, no draft | `business.state.proposed` | A1; C: row 1 [Draft options from my answers `intent`]; row 2 [Write my own `secondary`] [Skip for now `ghost`] | Draft (intent) | as S1 | heading, then "Draft options from my answers", "Write my own", "Skip for now" |
@@ -174,6 +177,15 @@ All x are in the 360 viewer (region x 21 to 315 plus `pe-3`; text from x 33); at
 | P15 | 360, every state | region scrollWidth = clientWidth (294); document scrollWidth = 360; every text rect's right at most bar left minus 4 plus 0.5 (319.5) | max 319.1 English (a trailing space, as the existing value field), 313.4 Thai |
 | P16 | S14 long | a 300-character Thai statement with no spaces wraps inside the column, no overflow | 8 lines at 360 and 4 at 1440, section 273.1 at 360 |
 
+### Rework rows from visual sign-off 1
+
+Visual sign-off 1 (task ORV-285-signoff-1, head d59484a) requested one change, F1: a viewer with no controls and no statement ended in a bare heading. The row below is the look the builder builds; it changes no other row of this file.
+
+<!-- prettier-ignore -->
+| Row | Rule (S0) | Target | Measure | Proof play | Rendered target |
+| --- | --- | --- | --- | --- | --- |
+| F1-a | Render `PositioningSection` only when `positioning.statement !== null \|\| controls !== undefined` (the guard of `business-node-view.tsx`, today `node.id === "positioning" && positioning !== undefined` at line 441 of head d59484a, kept and joined with this condition). With a statement and no controls the section stays as built (A1, A3, A4; A2 when stale); with controls it stays as built in every state S1 to S16 | A viewer with neither renders as on develop: no `[data-field="positioning.statement"]`, no h3 "Positioning statement" / "ข้อความจุดยืน"; the fields container (`div.flex.flex-col.gap-6`) holds the value field alone, so the first column ends at the value field's label "Your words, placed here by fixed rules. Not read by AI." / "คำของคุณเอง วางไว้ตรงนี้ด้วยกฎที่กำหนดไว้ ไม่ได้ให้ AI อ่าน" | The 24 Positioning viewer pairs of the sign-off's pixel diff (6 board stories, 360 x 760 and 1440 x 900, light and dark) match develop pixel for pixel, 0 differing pixels; at head d59484a each differed only by the bare heading (diff box x 17 to 97, y 322 to 340 at 360; the heading's section 23.8 tall, 24 under the value field, one child). Every other row of section 8 (P1 to P16) is unchanged because each is measured with controls or a statement | In `Board` and `BoardEnglish`: open the Positioning viewer, assert `dialog.querySelector('[data-field="positioning.statement"]')` is null and no element of the dialog has the text of `business.field.statement`. In `PositioningStatesAgreed` (and its English story): open the viewer, assert the same selector is present and holds A3 with the fixture's statement | The develop half of `/Users/tawatchaipetkaew/My Work/NOXIOUS/ORIVILO/.orivilo/runs/ORV-285/ORV-285-signoff-1/screenshots/sheet__develop-vs-pr__positioning-viewer-without-controls.png` (left column: `Board` and `BoardEnglish` at 360, light and dark, origin/develop); the right column is the rejected look. No new render: the fix restores develop's render |
+
 ## 9. One play per state, with its measured bound
 
 Story names are the spec's (acceptance rows). Helpers are `src/testing/visual-asserts.ts`; screenshot helpers run under `inVitest`.
@@ -181,7 +193,8 @@ Story names are the spec's (acceptance rows). Helpers are `src/testing/visual-as
 <!-- prettier-ignore -->
 | State | Story | Play clause and bound |
 | --- | --- | --- |
-| S1, S1b, S14 card | `PositioningStates` | per fixture: the card's `[data-node-state]` text and its last `p` equal the table of section 7; card height divided by zoom within 1 of 172.98 (gate) or 149.19 (agreed); the view's P1 (all four inks equal within 0.5) and P2 (24 within 0.5); `expectSameHeight` on the row's buttons (40) |
+| S0 | `Board`, `BoardEnglish` (no controls, no statement); `PositioningStatesAgreed`, `PositioningStatesAgreedEnglish` (statement) | row F1-a: in `Board` and `BoardEnglish` the open viewer has no `[data-field="positioning.statement"]` and no `business.field.statement` text; in `PositioningStatesAgreed` the selector is present with A3 |
+| S1, S1b, S7b, S14 card | four states stories, one fixture each, in spec v1.2 row 5's order: `PositioningStates` (value given, no choice), `PositioningStatesValueEmpty` (value empty, no choice), `PositioningStatesSkipped` (newest choice `skipped`), `PositioningStatesAgreed` (newest choice `written`), each with its English story (`PositioningStatesEnglish`, `PositioningStatesValueEmptyEnglish`, `PositioningStatesSkippedEnglish`, `PositioningStatesAgreedEnglish`) | per story, its one fixture: the card's `[data-node-state]` text and its last `p` equal the table of section 7; card height divided by zoom within 1 of 172.98 (gate) or 149.19 (agreed); the view's P1 (all four inks equal within 0.5) and P2 (24 within 0.5); `expectSameHeight` on the row's buttons (40) |
 | S1 to S14 | `PositioningWritten` | press Write my own: `document.activeElement` is the textarea; type and Agree: A3 text equals the trimmed input, A4 is `by.own`, `document.activeElement` is the h3, the state line reads `business.state.agreed`; `expectNoGlyphClip(A3)`, `expectInkClearsAbove(A4, A3, 4)` |
 | S11, S12, S13 | `PositioningInvalid` | empty Agree: the Field error equals `statementRequired`, `aria-invalid="true"`, focus on the textarea, 0 action calls; 301 characters: `business.intake.tooLong` with 300; rate-limited stub: C4 holds `saved.errors.rate-limited` with the wait and the textarea keeps the text; two presses while saving: 1 call, Agree has `data-loading` and `aria-disabled`; `expectSameHeight(agree, cancel)` |
 | S7, S7b | `PositioningSkipped` | Skip: the state line reads `business.state.skipped`, the gate line shows, Skip is gone, focus is on Write my own; then write and agree: S14 |
@@ -247,7 +260,9 @@ The mock is labelled as a mock on its own page: every frame carries a dashed box
 5. S14 long at 360 Thai: the 300-character statement wrapped inside the column, no horizontal scroll.
 6. The card at 1440 Thai and English, light and dark: 172.98 and 149.19 high, the statement label as the last field.
 7. Keyboard: Tab through S2 and S6; every focus shows the line and halo; after Agree, focus on the heading.
+8. S0 (row F1-a): the Positioning viewer of `Board` and `BoardEnglish` at 360 and 1440, Thai and English, light and dark, ends after the value field's label with no bare "Positioning statement" heading, pixel for pixel as on develop; and `PositioningStatesAgreed` still shows the section with its statement.
 
 ## Changelog
 
 - v1.0 (2026-11-18): first design for spec v1.0, both PRs: section anatomy, 16 view states and 6 card states with measured bounds from a rendered mock, one play per state; N1 (cancel key) open.
+- v1.1 (2026-11-19): task ORV-285-design-f1, finding F1 of visual sign-off 1 (head d59484a): section 3's Section, A and A1 show when a statement exists or controls are given, not always, with the reason; new state S0 in section 5 (no controls, no statement: no section, as on develop); new row F1-a under section 8 (guard, target, measure, proof play, rendered target = the develop half of the sign-off's comparison sheet); section 9 gains the S0 play and names the four states stories with their English stories as built (spec v1.2 row 5) in place of one `PositioningStates`; section 15 gains screen 8. No other measure changed.
