@@ -97,6 +97,10 @@ Tests use fixtures, a fake network and recorded or typed model answers; none rea
 | 13 | As row 10 | The owner role inserts a `model` row with evidence of 201 items, then one with 200 items | No UI | The first refused with `23514` on `business_reading_shape`; the second kept, with its evidence as written | `access.test.ts` "refuses evidence past 200 items" and "keeps evidence of 200 items"; the first red first with the bound at 201 |
 | 14 | The PR head | The database tests and the gate run | No UI | One new migration file and its meta, numbered after the last migration on `develop` at build time; `git diff origin/develop -- packages/db/migrations/0010_business_reading.sql` is empty; `pnpm --filter @orivilo/db generate` writes nothing new; every existing `business_reading` case of `access.test.ts` (each refusal of lines 444 to 472, the four reasons kept, the model row at its longest bounds) passes unchanged; the query of "Rows already stored" gives 0 on the builder's database | `access.test.ts`; `migrate.test.ts`; the builder's `verified` rows with the generate output and the query count; gate output |
 
+## Rows per PR
+
+- PR 229: rows 1-14
+
 ## Rows that render nothing
 
 - Rows: 1-4, 6, 7, 9-14
