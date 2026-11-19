@@ -109,6 +109,11 @@ Measured on the board region of the screen (`h-[70dvh] min-h-[480px]`, unchanged
 - **360.** From PR 1 the board no longer fits whole: the fit stops at `minZoom` 0.25 and centres the world. The person pans (drag, the arrow keys on the focused board), or Tabs: React Flow's `autoPanOnNodeFocus` (on by default, not changed) pans each focused card fully into the board. Measured: after focusing each of the nine cards in turn, each card's box is inside the board's box. Nothing on the page scrolls sideways (`documentElement.scrollWidth` 360).
 - **Consequence for the stories.** ORV-285's `narrowPlay` asserts every card inside the board at 360. From PR 1 it becomes the B3 play below. The owner's alternative, a second board (spec open question 5 (b)), is in section 15.
 
+**Correction, 2026-11-19 (task ORV-291-spec-3): the board as builder task A3 built it at `3c646c4`, measured by its plays. Accepted by the main session under the owner's POC delegation (ORV-291 comment 10748); the owner can change both readings.**
+
+- **The fit at 1440, row "After PR 1" of the table.** Measured 0.6167 on the built cards, not 0.640, on a board region of 1392 x 630. A3's reading: the fit is bound by the board's height, not its width; the built cards are taller than the mock's (section 17: its business cards were placeholders about 90 tall), and Brand personality sits inside the height the business nodes already take, so the fit stays ORV-285's 0.617. `BoardAt1440` asserts 0.617 within 0.01 (6.5, B2). The rows "After PR 2" and "After PR 3" (0.524) were measured on the same mock and are not re-measured here; PR 2 measures them.
+- **The 360 bullet.** As A3's play found at the installed React Flow, focus pans a card only when no part of it is in view. A card that is partly in view is not moved, so it is not "fully into the board". After PR 1, with each node focused in turn, Situation spans x -35 to 45 against a board from 24 to 336 and Brand personality x 315 to 395: each stays cut by 59 px; the other four cards are fully inside. Each card takes focus and overlaps the board. Nothing on the page scrolls sideways. The "Measured" sentence of the bullet was read on the mock, not on the built board. A pan that brings each focused card fully into view would sit in the shared `CanvasBoard`; it is a follow-up on the second slice card of ORV-280 (spec open question 14 (b)). The spec's `foundation-board-1` (v1.3) states the 360 reading.
+
 ## 3. The card at rest
 
 `renderBody` for a foundation node is the business card body, plus the gate line on Core idea only:
@@ -311,6 +316,12 @@ Each play names its story (spec acceptance rows) and its measured bound. Visual 
 | I12 | `IdentityNarrow` (row 11), `FoundationUntrustedText` (row 8) | `expectFitsAt360`; `expectNoGlyphClip` on the 2,000-character Thai answer; every text block's left equal to the state line's left within 0.5; the untrusted answer as literal text, no `img` |
 | all | `IdentityNarrow`, light and dark | Tab order: person, never, five groups, Save, Cancel; `expectFocusBorderForm` on Save and Cancel; the focused radio's border in the focus colour with a 3 px halo; a11y addon zero violations |
 
+**Correction, 2026-11-19 (task ORV-291-spec-3): plays B2 and B3 as builder task A3 built them at `3c646c4` (ORV-291 comment 10748; section 2.3's correction).**
+
+- **B2** is the story `BoardAt1440` in `business-board.stories.tsx`: at the 1440 frame, after zoom to fit, the viewport zoom is 0.617 within 0.01 (measured 0.6167, bound by the board's height), and every card is inside the board within 0.5.
+- **B3** is the clause of `narrowPlay` in `business-board.stories.tsx`, run by `NarrowLight`, `NarrowDark` and `NarrowEnglish`; `IdentityNarrow` holds the view, not the board, and does not run it. It asserts: zoom 0.25 within 0.001; `document.documentElement.scrollWidth` at most the larger of 360 and the window's inner width; for each node in fill order, after `node.focus()`, the node has focus and its box overlaps the board's box on both axes, in place of "inside the board's box within 0.5". Situation and Brand personality stay cut by 59 px each (2.3). The follow-up that would restore the inside clause is a pan into view on focus in the shared `CanvasBoard`, on the second slice card of ORV-280. `expectFitsAt360` skips the elements inside `.react-flow__viewport`, so the board's world may pass its frame while the frame itself is checked.
+- **The row "all"** runs in `IdentityNarrowEditor`, `IdentityNarrowEditorDark` and `IdentityNarrowEditorEnglish`, which open the editor at 360; `IdentityNarrow` holds the given view with the 2,000-character answers (I12).
+
 ---
 
 ## Part C, PR 2: Brand architecture and Name
@@ -503,7 +514,7 @@ No new key. Every visible word is a key of the spec's Strings table or a reused 
 
 1. **Card positions and lanes.** Default: the table of 2.1, two lanes, Core idea in the upper lane of column 5 and Name in the lower lane, so column 5 reads Core idea above Name though Name fills first.
 2. **`situation` moves to y 447 in PR 2.** Default: move it; the alternative, leaving it, runs the `situation` to `architecture` edge 53.9 world px under Audience.
-3. **The board at 360 no longer shows whole, from PR 1.** Default: the fit stops at 0.25, the person pans, and Tab pans each card into view; `narrowPlay` changes to the B3 clause. Alternative: the foundation nodes on a second board (spec open question 5 (b)).
+3. **The board at 360 no longer shows whole, from PR 1.** Default: the fit stops at 0.25, the person pans, and Tab pans each card into view; `narrowPlay` changes to the B3 clause. Alternative: the foundation nodes on a second board (spec open question 5 (b)). Correction, 2026-11-19 (task ORV-291-spec-3), as built at `3c646c4`: the default stays, read as focus bringing a card into view only when no part of it is in view, so Situation and Brand personality stay cut by 59 px each (2.3); accepted by the main session under the owner's POC delegation (ORV-291 comment 10748), and the owner can change it. A pan into view on focus in the shared `CanvasBoard` is a follow-up on the second slice card of ORV-280; the second board stays open to the owner (spec open question 14).
 4. **The overview at 1440 is 0.524 from PR 2.** Default: accept; titles readable, card text small. Alternative: open the board fitted to the newest column.
 5. **The hypothesis line shows only where the scales show** (the editor and the given view), not under an empty Personality field. The spec's "always" read as "whenever the scales show".
 6. **The scale look.** Default: a vertical `RadioGroup` (md) per scale, labels "n of 5", the end words under points 1 and 5, the group named "From {low} to {high}". Alternatives: `size="sm"` (shorter editor, smaller hit area) or a horizontal row at wide widths (two shapes).
@@ -543,3 +554,4 @@ For each PR, the sign-off reads these stories at 360 and at the widest frame, Th
 ## Changelog
 
 - 2026-11-19, ORV-291-design-1: first version, for spec v1.1 and the three PRs.
+- 2026-11-19, task ORV-291-spec-3: dated corrections for what builder task A3 built at `3c646c4` and the decision of ORV-291 comment 10748 (the main session, under the owner's POC delegation): section 2.3, the fit at 1440 measured 0.6167 (asserted 0.617 within 0.01) and the 360 bullet as built (a card partly in view stays cut, 59 px on Situation and on Brand personality); section 6.5, plays B2 and B3 and the stories that run them; section 15 item 3, the default kept with the reading as built. No look, component measure, token or string changed. The spec is now v1.3.
