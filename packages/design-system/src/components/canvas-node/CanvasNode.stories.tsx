@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, userEvent, waitFor, within } from "storybook/test";
+import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { type ReactFlowInstance, useReactFlow } from "@xyflow/react";
 import { type ReactNode, useEffect, useState } from "react";
 import { useDesignProfile } from "../../boundary/DesignProfileBoundary";
@@ -879,6 +879,7 @@ export const PresentStates: Story = {
       height={PRESENT_HEIGHT}
       renderBody={presentBody}
       chrome={false}
+      onNodeOpen={fn()}
       initial={presentStates("th")}
     />
   ),
@@ -897,6 +898,7 @@ export const PresentStatesInEnglish: Story = {
       height={PRESENT_HEIGHT}
       renderBody={presentBody}
       chrome={false}
+      onNodeOpen={fn()}
       initial={presentStates("en")}
     />
   ),
@@ -992,7 +994,7 @@ export const PresentInEnglish: Story = {
 
 /* A node that opens one view, with no page count (ORV-282). ---------------------------------------- */
 
-/** One node that opens with no `count`, one that opens with a count, and a plain one. */
+/** One node that opens with no `count`, one with a count, one with a count of 1, and a plain one. */
 function openWithoutCount(lang: Lang): Graph {
   const title = lang === "th" ? "สถานการณ์ตั้งต้น" : "Situation";
   const base = { kind: "knowledge" as const, size: "sm" as const, inputs: [], outputs: [] };
@@ -1006,10 +1008,16 @@ function openWithoutCount(lang: Lang): Graph {
         data: { ...base, title: `${title} 2`, open: { count: 3 } },
       },
       {
-        id: "plain",
+        id: "one",
         type: "orivilo",
         position: { x: 720, y: 0 },
-        data: { ...base, title: `${title} 3` },
+        data: { ...base, title: `${title} 3`, open: { count: 1 } },
+      },
+      {
+        id: "plain",
+        type: "orivilo",
+        position: { x: 1080, y: 0 },
+        data: { ...base, title: `${title} 4` },
       },
     ],
     edges: [],
@@ -1027,14 +1035,26 @@ async function playOpenWithoutCount(root: HTMLElement, lang: Lang) {
       name: "สถานการณ์ตั้งต้น, ความรู้",
       pages: "3 หน้า",
       pagesName: "สถานการณ์ตั้งต้น 2 3 หน้า",
+      one: "1 หน้า",
+      oneName: "สถานการณ์ตั้งต้น 3 1 หน้า",
     },
-    en: { name: "Situation, knowledge", pages: "3 pages", pagesName: "Situation 2, 3 pages" },
+    en: {
+      name: "Situation, knowledge",
+      pages: "3 pages",
+      pagesName: "Situation 2, 3 pages",
+      one: "1 page",
+      oneName: "Situation 3, 1 page",
+    },
   }[lang];
-  await ready(root, 6);
-  for (const board of root.querySelectorAll<HTMLElement>(".ds-board")) {
+  await ready(root, 8);
+  const boards = [...root.querySelectorAll<HTMLElement>(".ds-board")];
+  await expect(boards).toHaveLength(2);
+  for (const [index, board] of boards.entries()) {
     const view = wrapperOf(board, "view");
     await expect(within(board).getByRole("group", { name: w.name })).toBe(view);
-    await expect(view).toHaveAttribute("aria-haspopup", "dialog");
+    // The first board has `onNodeOpen` and the popup attribute; the second has neither (ORV-280 D9).
+    if (index === 0) await expect(view).toHaveAttribute("aria-haspopup", "dialog");
+    else await expect(view).not.toHaveAttribute("aria-haspopup");
     await expect(view).toHaveAccessibleName(w.name);
     await expect(view.querySelector(".ds-node__pages")).toBeNull();
     await expect(view.querySelector(".ds-node__open")).toBeVisible();
@@ -1045,6 +1065,10 @@ async function playOpenWithoutCount(root: HTMLElement, lang: Lang) {
     await expect(pages.querySelector(".ds-node__pages")).toHaveTextContent(w.pages);
     await expect(pages).toHaveAccessibleName(w.pagesName);
     await expect(pages.querySelector(".ds-node__open")).toBeVisible();
+    // A count of 1 takes the singular form in the title row and in the name (ORV-280 D7).
+    const one = wrapperOf(board, "one");
+    await expect(one.querySelector(".ds-node__pages")).toHaveTextContent(new RegExp(`^${w.one}$`));
+    await expect(one).toHaveAccessibleName(w.oneName);
     // A plain node has no glyph and no popup.
     const plain = wrapperOf(board, "plain");
     await expect(plain.querySelector(".ds-node__open")).toBeNull();
@@ -1061,6 +1085,7 @@ export const OpenWithoutCount: Story = {
         label="present"
         height={240}
         chrome={false}
+        onNodeOpen={fn()}
         initial={openWithoutCount("th")}
       />
       <NodeBoard label="edit" height={300} chrome={false} initial={openWithoutCount("th")} />
@@ -1079,6 +1104,7 @@ export const OpenWithoutCountInEnglish: Story = {
         label="present"
         height={240}
         chrome={false}
+        onNodeOpen={fn()}
         initial={openWithoutCount("en")}
       />
       <NodeBoard label="edit" height={300} chrome={false} initial={openWithoutCount("en")} />

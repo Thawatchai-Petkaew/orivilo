@@ -75,6 +75,37 @@ describe("labels", () => {
     expect(nodeOpenLabel(brief.data)).toBe(nodeLabel(brief.data));
   });
 
+  it("name a node that opens with one page in the singular, in both locales (ORV-280 D7)", () => {
+    const open = { ...brief.data, title: "Logo", open: { count: 1 } };
+    expect(nodeOpenLabel(open, "en")).toBe("Logo, 1 page");
+    expect(nodeOpenLabel({ ...open, title: "โลโก้" }, "th")).toBe("โลโก้ 1 หน้า");
+    expect(nodeOpenLabel({ ...open, open: { count: 3 } }, "en")).toBe("Logo, 3 pages");
+    expect(nodeOpenLabel({ ...open, title: "โลโก้", open: { count: 3 } }, "th")).toBe(
+      "โลโก้ 3 หน้า",
+    );
+  });
+
+  it("name a derived edge with its meaning once, with no doubled from (ORV-280 D8)", () => {
+    const derived = (invalid?: boolean, stale?: boolean): BoardEdge => ({
+      ...edge("d", "palette", "brief"),
+      data: { meaning: "derived", ...(invalid ? { invalid } : {}), ...(stale ? { stale } : {}) },
+    });
+    const nodes = [node("palette", 0, { title: "Palette" }), node("brief", 100, { title: "Demo" })];
+    expect(edgeLabel(derived(), nodes, "en")).toBe("derived from Palette to Demo");
+    expect(edgeLabel(derived(), nodes, "th")).toBe("สร้างจาก Palette ไป Demo");
+    expect(edgeLabel(derived(true), nodes, "en")).toBe(
+      "derived from Palette to Demo, cannot connect",
+    );
+    expect(edgeLabel(derived(false, true), nodes, "en")).toBe(
+      "derived from Palette to Demo, stale",
+    );
+    expect(edgeLabel(derived(false, true), nodes, "th")).toBe("สร้างจาก Palette ไป Demo, ล้าสมัย");
+    // An input edge keeps the general form.
+    expect(edgeLabel({ ...edge("i", "palette", "brief") }, nodes, "en")).toBe(
+      "input from Palette to Demo",
+    );
+  });
+
   it("name a node that opens with no page count by title and kind, as a plain node (ORV-282)", () => {
     const open = { ...brief.data, title: "Situation", kind: "knowledge" as const, open: {} };
     expect(nodeOpenLabel(open)).toBe(nodeLabel(open));

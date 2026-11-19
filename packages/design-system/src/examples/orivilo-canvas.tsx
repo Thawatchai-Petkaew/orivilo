@@ -100,6 +100,7 @@ import {
   SEQUENCES,
   SHEETS,
   textOf,
+  TYPE_SAMPLE,
   VIOLET,
 } from "./orivilo-canvas.data";
 
@@ -1799,7 +1800,14 @@ function LogoBody({
     const versions: { key: string; mark: ReactNode }[] = [
       {
         key: "v1.1",
-        mark: <DrawnMark ring={RING_80} dotRadius={15} dotFill="#D9F66F" dotClass={false} />,
+        mark: (
+          <DrawnMark
+            ring={RING_80}
+            dotRadius={15}
+            dotFill={paletteOf("lime").hex}
+            dotClass={false}
+          />
+        ),
       },
       { key: "v1.2", mark: <DrawnMark ring={RING_80} dotRadius={15} /> },
       { key: "v1.3", mark: <DrawnMark ring={RING_110} dotRadius={15} /> },
@@ -1999,7 +2007,7 @@ function SheetBase() {
           name(at(SHEETS.base, 1)),
           <div className="flex flex-wrap gap-2">
             <Badge variant="brand" size="sm">
-              orivilo
+              {at(BRAND_PROFILES, 0).id}
             </Badge>
             <Badge size="sm">{p.notMeasured}</Badge>
             <Badge variant="warning" size="sm">
@@ -2100,7 +2108,7 @@ function PageBody({ id }: { id: "landing" | "form" | "report" }) {
 function TypeBody() {
   return (
     <p className="m-0 font-display text-display-lg text-text-primary" lang="th">
-      Aa กข
+      {TYPE_SAMPLE}
     </p>
   );
 }
@@ -2186,6 +2194,9 @@ function Scrolling({
     const viewport = root?.querySelector<HTMLElement>(".ds-scroll__viewport");
     const content = viewport?.firstElementChild;
     if (!root || !viewport || !content) return;
+    // Where the last apply left the area: a scroll event that lands elsewhere is the reader's
+    // (a scrollbar drag, a key, a wheel or a touch), not the apply's own.
+    let placed = viewport.scrollTop;
     const apply = () => {
       const target = root.querySelector("[data-report]");
       if (!target) return;
@@ -2194,6 +2205,7 @@ function Scrolling({
         viewport.getBoundingClientRect().top +
         viewport.scrollTop -
         INSET_MD;
+      placed = viewport.scrollTop;
     };
     apply();
     const observer = new ResizeObserver(apply);
@@ -2201,9 +2213,14 @@ function Scrolling({
     const stop = () => observer.disconnect();
     const moves = ["wheel", "pointerdown", "keydown", "touchstart"] as const;
     for (const type of moves) viewport.addEventListener(type, stop, { once: true });
+    const onScroll = () => {
+      if (Math.abs(viewport.scrollTop - placed) >= 1) stop();
+    };
+    viewport.addEventListener("scroll", onScroll);
     return () => {
       observer.disconnect();
       for (const type of moves) viewport.removeEventListener(type, stop);
+      viewport.removeEventListener("scroll", onScroll);
     };
   }, [findings]);
   return (

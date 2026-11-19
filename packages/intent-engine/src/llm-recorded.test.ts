@@ -41,6 +41,7 @@ const fixtureSchema = z.object({
   cases: z.array(
     z.object({
       id: z.string(),
+      model: z.string(),
       text: z.string(),
       raw: z.string().nullable(),
       outcome: z.string(),
@@ -89,6 +90,13 @@ function pastedIn(source: string, entries: { id: string; raw: string | null }[])
 }
 
 describe("LLM01:2026 recorded answers replayed (row 35, orv160-recorder-output)", () => {
+  it("the recorded model is the pinned id (ORV-284 eval-rerecord-1)", () => {
+    expect(fixture.model).toBe(AI_MODELS.interpret);
+    expect(fixture.cases.map((c) => c.model)).toStrictEqual(
+      fixture.cases.map(() => AI_MODELS.interpret),
+    );
+  });
+
   it("holds one recording for each of the 9 cases, in order", () => {
     expect(fixture.cases.map((c) => c.id)).toStrictEqual(CASE_IDS);
   });

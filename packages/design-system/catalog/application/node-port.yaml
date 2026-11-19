@@ -23,4 +23,4 @@ rules:
   - "PortSpec.row places the port at the middle of its row: CanvasNode passes the measured offset as the private property --_port-y (ORV-274)"
 a11y:
   - "Keyboard connect: C on a focused node starts a connection, arrow keys pick a target, Enter confirms, Escape cancels"
-  - "The handle carries the accessible name: direction and kind (พอร์ตรับข้อความ), then เชื่อมอยู่ or แก้ไขไม่ได้"
+  - "The handle carries the accessible name: direction and kind (พอร์ตรับข้อความ; in English the kind comes first, text input port, from the key port.handleName), then เชื่อมอยู่ or แก้ไขไม่ได้ (connected or read only)"

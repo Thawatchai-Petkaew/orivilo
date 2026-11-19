@@ -414,7 +414,9 @@ function Board({
           ariaLabel:
             n.ariaLabel ??
             (n.data.open ? nodeOpenLabel(n.data, locale) : nodeLabel(n.data, locale)),
-          ...(n.data.open
+          // The popup attribute says a gesture opens a dialog, so it is set only when the board has a
+          // handler to open it (ORV-280 D9).
+          ...(n.data.open && onNodeOpen
             ? { domAttributes: { ...n.domAttributes, "aria-haspopup": "dialog" as const } }
             : {}),
           draggable: !readOnly && !locked && (n.draggable ?? true),
@@ -422,7 +424,7 @@ function Board({
           deletable: !readOnly && !locked,
         };
       }),
-    [graph.nodes, readOnly, locale],
+    [graph.nodes, readOnly, locale, onNodeOpen],
   );
 
   const edges = useMemo(
@@ -779,7 +781,11 @@ function Board({
         return true;
       case "board.zoom-to-fit":
         void flow.fitView({ padding: freePadding(0.2), duration: 200 });
-        setMessage(fill(m.board.fitAll, { count: g.nodes.length }));
+        setMessage(
+          g.nodes.length === 1
+            ? m.board.fitAllOne
+            : fill(m.board.fitAll, { count: g.nodes.length }),
+        );
         return true;
       case "board.zoom-to-selection":
         void flow.fitView({
@@ -787,7 +793,11 @@ function Board({
           padding: freePadding(0.3),
           duration: 200,
         });
-        setMessage(fill(m.board.fitSelection, { count: picked.length }));
+        setMessage(
+          picked.length === 1
+            ? m.board.fitSelectionOne
+            : fill(m.board.fitSelection, { count: picked.length }),
+        );
         return true;
       case "board.pan-mode":
         setTool("pan");
