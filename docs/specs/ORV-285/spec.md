@@ -2,7 +2,7 @@
 issue: ORV-285 (https://tpetkaew.atlassian.net/browse/ORV-285)
 lane: L (risk flags: a new pinned model job with its prompt and answer schema; stored workspace data, new tenant tables behind the authorization helper; a new contract on the positioning node, its gate states and its saved statement)
 mode: POC mode short spec (`.claude/skills/ovl/SKILL.md`, section "POC mode")
-version: 1.4
+version: 1.5
 ---
 
 # ORV-285: the positioning gate, drafted options to pick, edit, replace or skip
@@ -87,6 +87,8 @@ Draft request (PR 2):
 8. the model call and its checks (`positioning-draft-1`);
 9. the save of the draft.
 
+**Note, 2026-11-19 (ORV-292-spec-5).** The OpenRouter key is read after draft step 5 and before draft step 6, by the slice's rule `positioning-draft-key-1` (`docs/specs/ORV-292/spec.md`, decided in ORV-292 comment 10747 under the owner's POC delegation). The steps above are unchanged; the slice spec holds the rule.
+
 Choice (PR 1; picked and edited from PR 2):
 
 1. the session;
@@ -97,6 +99,8 @@ Choice (PR 1; picked and edited from PR 2):
 6. the save of the choice.
 
 A refusal at draft steps 1 to 5 or choice steps 1 to 5 saves nothing, consumes no `ai-read` limit and calls no model. A project of another workspace, an unknown project id and a draft that is not the newest intake's (or has no option of the given number) all answer 404 with one body (`.claude/rules/security.md` rule 9). Without a session the answer is `signed-out` (`saved.errors.signed-out`); refused at step 2, `forbidden` with no address in it, as ORV-268 `read-door-1` gives it; over the `write` limit, `rate-limited` with the wait (`saved.errors.rate-limited`). A stop at draft steps 6 to 8 stores no draft and answers its reason: `ai-rate-limited`, `ai-spend-cap`, `ai-not-configured` or `ai-failed`, shown by `positioning-honest-1`; the person may write their own, skip, or ask again, and each request that reaches step 6 counts the limit. No answer text, statement, option or quote reaches a log line or an error body.
+
+**Note, 2026-11-19 (ORV-292-spec-5).** `ai-not-configured` is answered after draft step 5 and before draft step 6, by the slice's rule `positioning-draft-key-1` (`docs/specs/ORV-292/spec.md`, ORV-292 comment 10747), and such a request counts no limit. The paragraph above is unchanged; the slice spec holds the rule.
 
 ### positioning-choice-1
 
@@ -236,6 +240,8 @@ Tests use fixtures, a fake network and recorded or typed model answers; none rea
 
 **Note, 2026-11-19 (ORV-292-spec-3).** Row 13 gains one refused answer, a statement that holds U+0000, under the slice card ORV-292 (ORV-292 row 13, `docs/specs/ORV-292/spec.md` v1.2, rule `positioning-draft-nul-1`, decided in ORV-292 comment 10742). Row 13's text above is unchanged; the slice spec holds the added case and its values.
 
+**Note, 2026-11-19 (ORV-292-spec-5).** Row 15's no-key case follows ORV-292 row 15 (`docs/specs/ORV-292/spec.md` v1.3, rule `positioning-draft-key-1`, decided in ORV-292 comment 10747 under the owner's POC delegation). Row 15's text above is unchanged; the slice spec holds the no-key case and its values.
+
 ## Rows that render nothing
 
 - Rows: 1, 6, 11-14, 20, 22, 25, 26
@@ -343,3 +349,4 @@ node -e 'const K=["picked","edited","written"];const g=(d,draft,newest)=>{const 
 - v1.2 (2026-11-19): task ORV-285-spec-3, bookkeeping only, no requirement change. (1) New section "Rows per PR" with the line for PR 226 (rows 1 to 11, PR 1 of "Delivery: two PRs"); PR 2 gets its line once it has a number. (2) Row 5's Check cell names the states stories as built by task ORV-285-a3-screens, one per fixture with its English story, in place of one `PositioningStates` story; its Given, When, User sees and Data effect cells are unchanged. No row number, rule, string, bound, default or open question changed. Downstream to review: the qa, reviewer, security and designer sign-off envelopes for PR 226; tech notes row T16 and design section 9's `PositioningStates` row, which name the one story, not edited in this task.
 - v1.3 (2026-11-19): task ORV-292-spec-2, after PR 226 merged into `develop` (c2f1061). (1) `positioning-choice-1`, the `edited` and `written` rows: the statement's bound of 1 to 300 characters is counted after U+0000 is dropped and the text trimmed, as `checkIntake` does (ORV-292 row 27, from finding ORV-285-SEC-1); a statement of U+0000 and spaces only is now refused as empty, and one with U+0000 inside is saved without it. (2) "Rows per PR": PR 2 is delivered under the slice card ORV-292 with its spec path, in place of the note that it gets its line here; the line for PR 226 is unchanged. No row number, string, default or open question changed; rows 12 to 26 are as in v1.2. Downstream to review: `docs/specs/ORV-292/spec.md` (its parent version), the ORV-292 B1 and B3 builder envelopes (`checkChoice` and the choice action, row 27), tech notes section 3 if it states the bound, and the `security` envelope of ORV-292's PR.
 - v1.4 (2026-11-19): task ORV-292-spec-3. A dated note under the acceptance table points row 13 to ORV-292 row 13 for one added case, a model statement that holds U+0000, refused by the slice's rule `positioning-draft-nul-1` (ORV-292 spec v1.2, decided in ORV-292 comment 10742, under the owner's POC delegation). No row's text, rule, string, bound, default or open question of this spec changed. Downstream to review: `positioning-draft-1`, whose "Checks" bullet does not name the case (listed for the main session, not edited in this task); the ORV-292 engine and B3 builder envelopes and the `security` envelope of ORV-292's PR; tech notes section 8.2 and row T21, corrected in the same task.
+- v1.5 (2026-11-19): task ORV-292-spec-5, bookkeeping of the key-first order of a draft request (ORV-292 comment 10747, under the owner's POC delegation), built on the slice's branch as 5235b4e. Three dated notes point to the slice's rule `positioning-draft-key-1` (`docs/specs/ORV-292/spec.md`): one under the draft steps of `positioning-door-1`, one under its paragraph on a stop at draft steps 6 to 8, and one under the acceptance table for row 15's no-key case (ORV-292 row 15). No row's text, rule, string, bound, default or open question of this spec changed. Downstream to review: the `security`, reviewer and qa envelopes of ORV-292's PR (row 15 and the order of the limit and the cap); `docs/specs/ORV-292/spec.md` v1.4 and tech notes section 6.2, updated in the same task; tech notes row T33, which still reads "not built at 4900487" (listed for the main session, not edited in this task).
