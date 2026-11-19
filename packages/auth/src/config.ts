@@ -46,7 +46,9 @@ export function createAuth(settings: AuthSettings) {
     onAPIError: { errorURL: "/account" },
     // Better Auth's own lines go through the JSON logger, with no argument (ORV-288 `ba-log-1`).
     // Its default writes the raw request values it was given, such as the provider's `error`.
-    logger: { level: "warn", log: logBetterAuth },
+    // No `level` key: any level turns on the router's own raw `console.error` for every API error,
+    // and `logBetterAuth` already drops what is below `warn`.
+    logger: { log: logBetterAuth },
     advanced: { ipAddress: { ipAddressHeaders: ["x-forwarded-for"] } },
     plugins: [
       organizationPlugin(),

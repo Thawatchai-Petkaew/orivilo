@@ -537,11 +537,10 @@ describe("a failed sign-in callback through authRoute", () => {
 
   // ORV-288 row 8: Better Auth's own line goes through the JSON writer and holds no request value.
   it("Better Auth's line goes through the JSON logger", async () => {
-    // ba-log-1: the logger option asks for warn and above, and writes through `logBetterAuth`.
-    expect((await auth.$context).options.logger).toMatchObject({
-      level: "warn",
-      log: logBetterAuth,
-    });
+    // ba-log-1: the logger option writes through `logBetterAuth` and has no `level` key.
+    const logger = (await auth.$context).options.logger;
+    expect(logger?.log).toBe(logBetterAuth);
+    expect(logger).not.toHaveProperty("level");
     const res = await authRoute(auth.handler, { consumeSignIn: allowed })(
       new Request(
         "http://localhost:3000/api/auth/callback/google?error=x%0D%0AFORGED%20someone%40example.invalid",
@@ -568,5 +567,29 @@ describe("a failed sign-in callback through authRoute", () => {
     for (const forbidden of ["FORGED", "someone@example.invalid", "\\r", "\\n"])
       expect(text).not.toContain(forbidden);
     for (const arg of args) expect(String(arg)).not.toMatch(/[\r\n]/);
+  });
+
+  // ORV-288 row 10: an API error Better Auth refuses leaves only JSON lines (ba-log-1). A `level`
+  // in the logger option turns on the router's raw `console.error` holding the request's values.
+  it("a request Better Auth refuses leaves only JSON lines", async () => {
+    const res = await authRoute(auth.handler, { consumeSignIn: allowed })(
+      new Request("http://localhost:3000/api/auth/sign-in/social", {
+        method: "POST",
+        headers: {
+          origin: "http://localhost:3000",
+          "content-type": "text/plain; FORGED someone@example.invalid",
+        },
+        body: "{}",
+      }),
+    );
+    expect(res.status).toBe(415);
+    await exactBody(res);
+    expect((capture?.lines ?? []).length).toBeGreaterThan(0);
+    // Every captured call is one JSON line of the allow-listed shape.
+    linesOf();
+    const text = JSON.stringify((capture?.lines ?? []).map((l) => l.args));
+    for (const forbidden of ["FORGED", "someone@example.invalid"]) {
+      expect(text).not.toContain(forbidden);
+    }
   });
 });
