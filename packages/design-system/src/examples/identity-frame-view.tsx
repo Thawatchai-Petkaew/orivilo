@@ -16,8 +16,8 @@ import { useEffect, useRef, useState } from "react";
 import { Button, Field, RadioGroup, RadioGroupItem, Textarea } from "../components/index";
 import { useMessages } from "../i18n/LocaleProvider";
 import { fill, type Messages } from "../i18n/messages/index";
-import { Notice } from "./brand-report";
 import { FIELD_NOTE } from "./business-text";
+import { FailureRegion, NO_PROJECT } from "./foundation-parts";
 import type { FoundationControls } from "./foundation-view";
 
 /**
@@ -30,9 +30,6 @@ import type { FoundationControls } from "./foundation-view";
  */
 
 type IdentityNode = Extract<FoundationNode, { id: "identity-frame" }>;
-
-/** The editor check needs a project id to parse; the screen does not know it. */
-const NO_PROJECT = "00000000-0000-4000-8000-000000000000";
 
 const POINTS = [1, 2, 3, 4, 5] as const;
 const TEXT_PATHS = { person: "payload.person", never: "payload.never" } as const;
@@ -49,19 +46,6 @@ function firstFailing(editor: HTMLElement | null, paths: readonly string[]) {
   return axis === undefined
     ? undefined
     : editor?.querySelector<HTMLElement>(`[data-scale="${axis}"] [role="radio"]`);
-}
-
-/** A failed call's line under the controls: the live alert region is always there, so it is announced once. */
-function FailureRegion({ line }: { line: string | undefined }) {
-  return (
-    <div role="alert">
-      {line === undefined ? null : (
-        <div className="mt-3">
-          <Notice variant="danger" text={line} live="off" />
-        </div>
-      )}
-    </div>
-  );
 }
 
 /** A proxy answer: the person's words as text with the label that says so, or the fallback line. */
@@ -157,7 +141,7 @@ export function IdentityFrameView({
   const given = node.state === "given";
   const editor = controls?.editor?.node === "identity-frame" && !given ? controls.editor : null;
   // A given personality has no editor left to keep.
-  const editorOpen = controls?.editor != null;
+  const editorOpen = controls?.editor?.node === "identity-frame";
   const onEditor = controls?.onEditor;
   useEffect(() => {
     if (given && editorOpen) onEditor?.(null);
