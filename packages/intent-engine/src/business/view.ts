@@ -1,6 +1,7 @@
 import type { InputEvidence } from "../evidence";
 import type { StoredIntake } from "./intake";
 import {
+  BUSINESS_FIELDS,
   type BusinessFieldId,
   type BusinessNodeId,
   nodeStates,
@@ -8,9 +9,14 @@ import {
   type PlacedAnswer,
   placeIntake,
 } from "./place";
-import { positioningGate, type GateState, type StoredChoice } from "./positioning";
+import {
+  positioningGate,
+  type GateState,
+  type StoredChoice,
+  type StoredDraft,
+} from "./positioning";
 import type { ProxyQuestionId } from "./questions";
-import type { BusinessReadReason, BusinessReading } from "./reading";
+import type { BusinessAnswerKey, BusinessReadReason, BusinessReading } from "./reading";
 
 /**
  * What a business project shows (ORV-281 tech notes section 4). The view holds keys and values,
@@ -40,6 +46,22 @@ export type BusinessFieldReading = {
 /** A node's state in the view: `node-state-1`'s three, and the two the positioning gate adds. */
 export type BusinessNodeState = NodeState | "awaitingChoice" | "agreed"; // a key of business.state.*
 
+/** A key of `business.field.*`: the label of a field of the board. */
+export type BusinessFieldLabelKey = (typeof BUSINESS_FIELDS)[number]["labelKey"];
+
+/**
+ * The label of the field each of the six answers lands on (`INTAKE_FIELDS` place, `BUSINESS_FIELDS`),
+ * written out so a new answer fails the compile here; `view.test.ts` checks it against the two tables.
+ */
+const QUOTE_LABEL: Record<BusinessAnswerKey, BusinessFieldLabelKey> = {
+  idea: "business.field.offer",
+  industry: "business.field.industry",
+  customers: "business.field.customers",
+  problem: "business.field.problem",
+  competitors: "business.field.alternatives",
+  value: "business.field.value",
+};
+
 export type PositioningView = {
   gate: GateState;
   skipped: boolean;
@@ -52,10 +74,25 @@ export type PositioningView = {
       | "business.positioning.by.edited"
       | "business.positioning.by.own"
       | "business.positioning.stale";
-    /** The draft's saved model id for `by.picked` and `by.edited`; no draft is stored yet. */
+    /** The draft's saved model id for `by.picked` and `by.edited`; null for the other labels. */
     modelId: string | null;
   };
-  controls: Array<"writeOwn" | "skip">;
+  /**
+   * The draft of the newest intake, while the gate is not `given` or `confirmed`. Start and end of a
+   * quote stay on the server: the screen needs the words and the label of their answer.
+   */
+  options: null | {
+    draftId: string;
+    modelId: string;
+    items: Array<{
+      n: 1 | 2 | 3;
+      statement: string;
+      quotes: Array<{ labelKey: BusinessFieldLabelKey; text: string }>;
+    }>;
+  };
+  controls: Array<"draft" | "writeOwn" | "skip" | "pick" | "edit">;
+  /** The value answer is empty and the gate is not passed: no options can be drafted. */
+  needsValue: boolean;
 };
 
 export type BusinessView = {
@@ -90,10 +127,11 @@ export type SavedBusiness = {
   /** The saved reading record of the intake, or none. */
   reading?: BusinessReading | null;
   /**
-   * The newest intake's id and the project's newest choice row. Absent, no choice is stored. The
-   * choice's draft is not read yet: a draft is never a value.
+   * The newest intake's id, the project's newest choice row and the stored draft of the newest
+   * intake. Absent, no choice or draft is stored. A draft is never a value: the view shows its
+   * options as proposals and a statement only from a choice. A draft of another intake is ignored.
    */
-  positioning?: { intakeId: string; choice: StoredChoice | null };
+  positioning?: { intakeId: string; choice: StoredChoice | null; draft?: StoredDraft | null };
 };
 
 /** The notes of `honest-business-1` that belong to a node, by rule. */
@@ -143,10 +181,12 @@ const BY_KIND = {
 
 function positioningOf(saved: SavedBusiness): PositioningView {
   const choice = saved.positioning?.choice ?? null;
+  const stored = saved.positioning?.draft;
+  const draft = stored && stored.intakeId === saved.positioning?.intakeId ? stored : null;
   const gate = positioningGate({
     newestIntakeId: saved.positioning?.intakeId ?? "",
     choice,
-    draftOfNewest: false,
+    draftOfNewest: draft !== null,
   });
   const agreed = gate.state === "given" || gate.state === "confirmed";
   const statement =
@@ -155,14 +195,43 @@ function positioningOf(saved: SavedBusiness): PositioningView {
       : {
           text: choice.statement,
           label: gate.stale ? ("business.positioning.stale" as const) : BY_KIND[choice.kind],
-          modelId: null,
+          // Only the draft the choice names, which the table's key makes a draft of the choice's own
+          // intake: a stale choice never names the draft of the newest one.
+          modelId: draft !== null && draft.id === choice.draftId ? draft.modelId : null,
         };
+  const options =
+    draft !== null && !agreed
+      ? {
+          draftId: draft.id,
+          modelId: draft.modelId,
+          items: draft.options.map((option, at) => ({
+            n: (at + 1) as 1 | 2 | 3,
+            statement: option.statement,
+            quotes: option.quotes.map((quote) => ({
+              labelKey: QUOTE_LABEL[quote.answer],
+              text: quote.text,
+            })),
+          })),
+        }
+      : null;
+  const valueGiven = saved.intake.value !== undefined; // as `nodeStates`: a stored answer is never empty
   const controls: PositioningView["controls"] = agreed
     ? []
-    : gate.skipped
-      ? ["writeOwn"]
-      : ["writeOwn", "skip"];
-  return { gate: gate.state, skipped: gate.skipped, stale: gate.stale, statement, controls };
+    : [
+        ...(options === null && valueGiven ? (["draft"] as const) : []),
+        "writeOwn",
+        ...(gate.skipped ? [] : (["skip"] as const)),
+        ...(options !== null ? (["pick", "edit"] as const) : []),
+      ];
+  return {
+    gate: gate.state,
+    skipped: gate.skipped,
+    stale: gate.stale,
+    statement,
+    options,
+    controls,
+    needsValue: !agreed && !valueGiven,
+  };
 }
 
 export function toBusinessView(saved: SavedBusiness): BusinessView {
@@ -171,12 +240,15 @@ export function toBusinessView(saved: SavedBusiness): BusinessView {
   const readings = readingsOf(saved.reading);
   const positioning = positioningOf(saved);
   const agreed = positioning.gate === "given" || positioning.gate === "confirmed";
-  /**
-   * `positioning-gate-1`'s state; `open` without a skip keeps `node-state-1`'s own. `awaitingChoice`
-   * comes with the drafted options (no draft is read yet, so the gate is never `awaiting-choice`).
-   */
+  /** `positioning-gate-1`'s state; `open` without a skip keeps `node-state-1`'s own. */
   const stateOfPositioning = (own: NodeState): BusinessNodeState =>
-    agreed ? "agreed" : positioning.skipped ? "skipped" : own;
+    agreed
+      ? "agreed"
+      : positioning.skipped
+        ? "skipped"
+        : positioning.gate === "awaiting-choice"
+          ? "awaitingChoice"
+          : own;
   return {
     projectName: saved.project.name,
     savedAt: saved.project.createdAt,

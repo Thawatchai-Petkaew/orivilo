@@ -250,7 +250,9 @@ describe("the request openRouterComplete sends (ORV-160 rows 9 to 16, 23, 24)", 
       "logo-vector": "anthropic/claude-opus-5.5",
       "logo-image": "google/gemini-nano-banana-2.1",
       "business-read": "anthropic/claude-sonnet-5.5",
+      "positioning-draft": "anthropic/claude-sonnet-5.5",
     });
+    expect(Object.keys(AI_MODELS)).toHaveLength(8);
   });
 
   it("ORV-284 anthropic-jobs-1: every analysis job is on an Anthropic model, the image job is not", () => {
@@ -304,6 +306,11 @@ describe("the request openRouterComplete sends (ORV-160 rows 9 to 16, 23, 24)", 
   it("ORV-283: the business-read job is pinned to the interpret model (ADR 0009 addition of 2026-11-18)", () => {
     expect(AI_MODELS["business-read"]).toBe("anthropic/claude-sonnet-5.5");
     expect(AI_MODELS["business-read"]).toBe(AI_MODELS.interpret);
+  });
+
+  it("ORV-292: the positioning-draft job is pinned to the interpret model (ADR 0009 addition for the job)", () => {
+    expect(AI_MODELS["positioning-draft"]).toBe("anthropic/claude-sonnet-5.5");
+    expect(AI_MODELS["positioning-draft"]).toBe(AI_MODELS.interpret);
   });
 
   it("row 13: fetch gets the one pinned URL (orv160-url)", async () => {
