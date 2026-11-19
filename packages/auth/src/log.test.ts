@@ -61,6 +61,7 @@ describe("the closed lists", () => {
       "business/listProjects",
       "business/openProject",
       "business/choosePositioning",
+      "business/draftPositioning",
       "account/signInWithGoogle",
       "account/signOut",
       "i18n/setLocale",
@@ -84,6 +85,17 @@ describe("the closed lists", () => {
       // ORV-283 T41: the eight things that can happen to a business reading, in the spec's order.
       "business-read": [
         "read",
+        "refused",
+        "failed",
+        "not-configured",
+        "limited",
+        "spend-cap",
+        "unavailable",
+        "save-failed",
+      ],
+      // ORV-285 T10: the eight things that can happen to a drafted positioning, in the spec's order.
+      "positioning-draft": [
+        "drafted",
         "refused",
         "failed",
         "not-configured",
@@ -258,6 +270,8 @@ describe("writeLine", () => {
     ["business-read", "allowed"],
     ["business-read", "ok"],
     ["business-read", "not-read"],
+    ["positioning-draft", "read"],
+    ["positioning-draft", "allowed"],
     ["page-read", "save-failed"],
   ])("writes the outcome %s/%s as unknown", (step, outcome) => {
     expect(written({ ...base, step, outcome })["outcome"]).toBe("unknown");

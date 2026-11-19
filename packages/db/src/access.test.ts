@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { inWorkspace } from "./client.ts";
 import {
   aiUsage,
+  businessDraft,
   businessIntake,
   businessPositioningChoice,
   businessReading,
@@ -599,6 +600,19 @@ describe.runIf(HAS_TEST_DATABASE)("orivilo_app and row security", () => {
       await t.admin
         .insert(businessPositioningChoice)
         .values([written("pc-a", "ws-a", "pc-i-a"), written("pc-b", "ws-b", "pc-i-b")]);
+      // A picked or edited row names a draft of its own intake (ORV-292, the three-column key).
+      await t.admin.insert(businessDraft).values({
+        id: "d-1",
+        workspaceId: "ws-a",
+        intakeId: "pc-i-a2",
+        job: "positioning-draft",
+        modelId: "test/model",
+        adapterId: "positioning-draft",
+        adapterVersion: "1",
+        promptVersion: "positioning-prompt-1",
+        options: [{}, {}],
+        createdBy: "u-1",
+      });
     });
 
     const failsWithCode = async (run: Promise<unknown>, code: string) => {
@@ -778,6 +792,233 @@ describe.runIf(HAS_TEST_DATABASE)("orivilo_app and row security", () => {
           .select()
           .from(businessPositioningChoice)
           .where(eq(businessPositioningChoice.id, "pc-r")),
+      ).toEqual([]);
+    });
+  });
+  // ORV-285 tech notes section 4.2 (T31, ORV-292 B3): what a model drafted for the positioning of an
+  // intake is workspace data, insert only, one row per intake and job. A choice that names a draft
+  // can only name one of its own intake and workspace.
+  describe("business_draft", () => {
+    const intake = (id: string, workspaceId: string, projectId: string) => ({
+      id,
+      workspaceId,
+      projectId,
+      version: "intake-1",
+      idea: "ร้านกาแฟคั่วเอง",
+      createdBy: "u-1",
+    });
+    const draft = (id: string, workspaceId: string, intakeId: string) => ({
+      id,
+      workspaceId,
+      intakeId,
+      job: "positioning-draft",
+      modelId: "anthropic/claude-sonnet-5.5",
+      adapterId: "positioning-draft",
+      adapterVersion: "1",
+      promptVersion: "positioning-prompt-1",
+      options: [
+        { statement: "one", quotes: [] },
+        { statement: "two", quotes: [] },
+      ],
+      createdBy: "u-1",
+    });
+    const picked = (id: string, intakeId: string, draftId: string) => ({
+      id,
+      workspaceId: "ws-a",
+      intakeId,
+      kind: "picked",
+      statement: "one",
+      draftId,
+      option: 1,
+      createdBy: "u-1",
+    });
+
+    beforeAll(async () => {
+      await t.admin
+        .insert(businessIntake)
+        .values([
+          intake("bd-i-a", "ws-a", "p-a"),
+          intake("bd-i-a2", "ws-a", "p-a"),
+          intake("bd-i-a3", "ws-a", "p-a"),
+          intake("bd-i-b", "ws-b", "p-b"),
+        ]);
+      await t.admin
+        .insert(businessDraft)
+        .values([draft("bd-a", "ws-a", "bd-i-a"), draft("bd-b", "ws-b", "bd-i-b")]);
+    });
+
+    const failsWithCode = async (run: Promise<unknown>, code: string) => {
+      const error = await run.then(
+        () => null,
+        (e: unknown) => e,
+      );
+      expect((error as { cause?: { code?: string } } | null)?.cause?.code).toBe(code);
+    };
+
+    it("is a tenant table, and a scoped transaction sees only its own workspace's rows (T31)", async () => {
+      expect(TENANT_TABLES).toContain("business_draft");
+      const rows = await inWorkspace(t.app, "ws-a", (tx) => tx.select().from(businessDraft));
+      expect(rows.map((r) => r.id).filter((id) => id.startsWith("bd-"))).toEqual(["bd-a"]);
+      expect(await t.app.select().from(businessDraft)).toEqual([]);
+    });
+
+    it("inserts for the scoped workspace and refuses an insert for another (T31)", async () => {
+      await inWorkspace(t.app, "ws-a", (tx) =>
+        tx.insert(businessDraft).values(draft("bd-a2", "ws-a", "bd-i-a2")),
+      );
+      await failsWithCode(
+        inWorkspace(t.app, "ws-a", (tx) =>
+          tx.insert(businessDraft).values(draft("bd-x", "ws-b", "bd-i-b")),
+        ),
+        "42501",
+      );
+    });
+
+    it("refuses a draft whose intake sits in another workspace (T31)", async () => {
+      // The owner role skips row security, so only the composite foreign key can refuse this.
+      await failsWithCode(
+        t.admin
+          .insert(businessDraft)
+          .values({ ...draft("bd-cross", "ws-a", "bd-i-b"), job: "cross-draft" }),
+        "23503",
+      );
+    });
+
+    it("keeps one draft per intake and job (T31)", async () => {
+      await failsWithCode(
+        t.admin.insert(businessDraft).values(draft("bd-twice", "ws-a", "bd-i-a")),
+        "23505",
+      );
+      // Another job on the same intake is not the same draft.
+      await t.admin
+        .insert(businessDraft)
+        .values({ ...draft("bd-other-job", "ws-a", "bd-i-a"), job: "other-draft" });
+    });
+
+    it.each([
+      ["no options", { options: [] }],
+      ["one option", { options: [{ statement: "one", quotes: [] }] }],
+      ["four options", { options: [{}, {}, {}, {}] }],
+      ["an object in place of the list", { options: { statement: "one" } }],
+      ["a string in place of the list", { options: "two options" }],
+      ["an empty job", { job: "" }],
+      ["a job past 40 characters", { job: "j".repeat(41) }],
+      ["an empty model id", { modelId: "" }],
+      ["a model id past 200 characters", { modelId: "m".repeat(201) }],
+      ["an empty adapter id", { adapterId: "" }],
+      ["an adapter id past 40 characters", { adapterId: "a".repeat(41) }],
+      ["an empty adapter version", { adapterVersion: "" }],
+      ["an adapter version past 40 characters", { adapterVersion: "v".repeat(41) }],
+      ["an empty prompt version", { promptVersion: "" }],
+      ["a prompt version past 40 characters", { promptVersion: "p".repeat(41) }],
+    ])("refuses %s (T31)", async (_, change) => {
+      await failsWithCode(
+        t.admin.insert(businessDraft).values({ ...draft("bd-bad", "ws-a", "bd-i-a2"), ...change }),
+        "23514",
+      );
+    });
+
+    it("keeps two and three options and the longest names (T31)", async () => {
+      await t.admin.insert(businessDraft).values({
+        ...draft("bd-max", "ws-a", "bd-i-a3"),
+        options: [{}, {}, {}],
+        modelId: "m".repeat(200),
+        adapterId: "a".repeat(40),
+        adapterVersion: "v".repeat(40),
+        promptVersion: "p".repeat(40),
+      });
+      const [row] = await t.admin
+        .select()
+        .from(businessDraft)
+        .where(eq(businessDraft.id, "bd-max"));
+      expect([row?.modelId.length, (row?.options as unknown[]).length]).toEqual([200, 3]);
+    });
+
+    it("lets a choice name a draft of its own intake, and refuses one of another intake or workspace (T31)", async () => {
+      await t.admin.insert(businessPositioningChoice).values(picked("bd-c-ok", "bd-i-a", "bd-a"));
+      // bd-a2 is a draft of bd-i-a2, not of bd-i-a3: only the three-column key can refuse this.
+      await failsWithCode(
+        t.admin.insert(businessPositioningChoice).values(picked("bd-c-intake", "bd-i-a3", "bd-a2")),
+        "23503",
+      );
+      await failsWithCode(
+        t.admin.insert(businessPositioningChoice).values(picked("bd-c-ws", "bd-i-a3", "bd-b")),
+        "23503",
+      );
+      await failsWithCode(
+        t.admin
+          .insert(businessPositioningChoice)
+          .values(picked("bd-c-unknown", "bd-i-a3", "no-such-draft")),
+        "23503",
+      );
+    });
+
+    it("a written or skipped choice needs no draft (T31)", async () => {
+      await t.admin.insert(businessPositioningChoice).values({
+        id: "bd-c-skip",
+        workspaceId: "ws-a",
+        intakeId: "bd-i-a3",
+        kind: "skipped",
+        createdBy: "u-1",
+      });
+      const rows = await t.admin
+        .select()
+        .from(businessPositioningChoice)
+        .where(eq(businessPositioningChoice.id, "bd-c-skip"));
+      expect(rows.map((r) => r.draftId)).toEqual([null]);
+    });
+
+    it("business rows never change: refuses an update and a delete, even in its own workspace (T31)", async () => {
+      await failsWithCode(
+        inWorkspace(t.app, "ws-a", (tx) =>
+          tx.update(businessDraft).set({ modelId: "changed" }).where(eq(businessDraft.id, "bd-a")),
+        ),
+        "42501",
+      );
+      await failsWithCode(
+        inWorkspace(t.app, "ws-a", (tx) =>
+          tx.delete(businessDraft).where(eq(businessDraft.id, "bd-a")),
+        ),
+        "42501",
+      );
+      const kept = await t.admin.select().from(businessDraft).where(eq(businessDraft.id, "bd-a"));
+      expect(kept.map((r) => r.modelId)).toEqual(["anthropic/claude-sonnet-5.5"]);
+    });
+
+    it("has row security on and only the owner and the app role as grantees (T31)", async () => {
+      const on = await t.admin.execute<{ relrowsecurity: boolean }>(
+        sql`select relrowsecurity from pg_class where relname = 'business_draft'`,
+      );
+      expect([...on].map((r) => r.relrowsecurity)).toEqual([true]);
+      const policies = await t.admin.execute<{ policyname: string }>(
+        sql`select policyname from pg_policies where tablename = 'business_draft'`,
+      );
+      expect([...policies].map((r) => r.policyname)).toEqual(["workspace_rows"]);
+      const grants = await t.admin.execute<{ grantee: string; privilege_type: string }>(
+        sql`select grantee, privilege_type from information_schema.role_table_grants
+            where table_name = 'business_draft' and table_schema = 'public'
+              and grantee <> current_user`,
+      );
+      const rows = [...grants];
+      expect([...new Set(rows.map((r) => r.grantee))]).toEqual(["orivilo_app"]);
+      expect(rows.map((r) => r.privilege_type).sort()).toEqual(["INSERT", "SELECT"]);
+    });
+
+    it("has the workspace index (T31)", async () => {
+      const found = await t.admin.execute<{ indexname: string }>(
+        sql`select indexname from pg_indexes
+            where tablename = 'business_draft' and indexname like '%idx'`,
+      );
+      expect([...found].map((r) => r.indexname)).toEqual(["business_draft_workspaceId_idx"]);
+    });
+
+    it("goes away with its intake, by the cascade, and takes the choice that names it (T31)", async () => {
+      await t.admin.insert(project).values({ id: "p-bd", workspaceId: "ws-a", name: "BD project" });
+      await t.admin.insert(businessIntake).values(intake("bd-i-r", "ws-a", "p-bd"));
+      await t.admin.insert(businessDraft).values(draft("bd-r", "ws-a", "bd-i-r"));
+      await t.admin.delete(project).where(eq(project.id, "p-bd"));
+      expect(
+        await t.admin.select().from(businessDraft).where(eq(businessDraft.id, "bd-r")),
       ).toEqual([]);
     });
   });

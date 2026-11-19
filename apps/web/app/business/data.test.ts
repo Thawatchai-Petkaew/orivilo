@@ -22,9 +22,34 @@ const state = vi.hoisted(() => ({
   reading: null as unknown,
   throws: null as unknown,
   choice: null as unknown,
+  /** The stored draft of the newest intake, with the intake's answers it quotes. */
+  draft: null as unknown,
+  value: undefined as string | undefined,
+  /** Every call that reads or writes beside `open`: a limit, the cap, a save of a choice or a draft. */
+  beside: [] as string[],
 }));
 const fetchSpy = vi.fn();
 vi.stubGlobal("fetch", fetchSpy);
+vi.mock("../../server/rate-limit", () => ({
+  subjectFromHeaders: () => "ip-1",
+  limiter: () => ({
+    async consume() {
+      state.beside.push("limit");
+      return { ok: true };
+    },
+  }),
+}));
+vi.mock("../../server/spend-cap", () => ({
+  spendCap: () => ({
+    async check() {
+      state.beside.push("spend-cap");
+      return { ok: false, reason: "unavailable" };
+    },
+    async record() {
+      state.beside.push("usage");
+    },
+  }),
+}));
 
 const PROJECT = "11111111-1111-4111-8111-111111111111";
 const INTAKE = "22222222-2222-4222-8222-222222222222";
@@ -39,11 +64,25 @@ vi.mock("@orivilo/auth", async (importOriginal) => {
         return {
           project: { id: PROJECT, name: "Shop", createdAt: SAVED },
           intakeId: INTAKE,
-          intake: { version: "intake-1", idea: "Roasted coffee for office workers" },
+          intake: {
+            version: "intake-1",
+            idea: "Roasted coffee for office workers",
+            ...(state.value === undefined ? {} : { value: state.value }),
+          },
           savedAt: SAVED,
           reading: state.reading,
-          positioning: { intakeId: INTAKE, choice: state.choice },
+          positioning: { intakeId: INTAKE, choice: state.choice, draft: state.draft },
         };
+      },
+    }),
+    positioningService: () => ({
+      async choose() {
+        state.beside.push("choose");
+        return { kind: "skipped" };
+      },
+      async saveDraft() {
+        state.beside.push("save-draft");
+        return { draftId: "x" };
       },
     }),
   };
@@ -83,11 +122,15 @@ beforeEach(() => {
   state.reading = null;
   state.throws = null;
   state.choice = null;
+  state.draft = null;
+  state.value = undefined;
+  state.beside = [];
   fetchSpy.mockClear();
 });
 afterEach(() => {
   capture.restore();
   vi.unstubAllEnvs();
+  vi.useRealTimers();
 });
 
 describe("loadProject and the saved reading", () => {
@@ -193,5 +236,101 @@ describe("loadProject and the positioning choice", () => {
       controls: ["writeOwn"],
     });
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+});
+
+// T37, row 22 (ORV-292): opening a project with a stored draft and a choice replays them. The loader
+// calls no model, counts no limit, checks no cap and writes nothing, whatever the time.
+describe("replay, never re-draft", () => {
+  const VALUE = "Fresh beans every week";
+  const draft = {
+    id: "55555555-5555-4555-8555-555555555555",
+    job: "positioning-draft",
+    intakeId: INTAKE,
+    modelId: "anthropic/claude-sonnet-5.5",
+    adapter: { id: "positioning-draft", version: "1" },
+    promptVersion: "positioning-prompt-1",
+    options: [
+      {
+        statement: "Roasted coffee for office workers, fresh every week",
+        quotes: [
+          { answer: "value", start: 0, end: VALUE.length, text: VALUE },
+          { answer: "idea", start: 20, end: 34, text: "office workers" },
+        ],
+      },
+      {
+        statement: "Fresh beans, every week",
+        quotes: [
+          { answer: "value", start: 0, end: 11, text: "Fresh beans" },
+          { answer: "idea", start: 0, end: 14, text: "Roasted coffee" },
+        ],
+      },
+    ],
+  };
+  const picked = {
+    id: "c-2",
+    intakeId: INTAKE,
+    kind: "picked",
+    statement: "Fresh beans, every week",
+    draftId: draft.id,
+    option: 2,
+    createdAt: "2026-11-18T04:00:00.000Z",
+  };
+  const twice = async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-19T09:00:00Z"));
+    const first = await loadProject(PROJECT);
+    vi.setSystemTime(new Date("2026-11-20T09:00:00Z"));
+    const second = await loadProject(PROJECT);
+    return { first, second };
+  };
+
+  it("gives the same draft and the same choice a day apart, and does nothing beside reading", async () => {
+    state.value = VALUE;
+    state.draft = draft;
+    const { first, second } = await twice();
+    if (first.access !== "ready" || second.access !== "ready") throw new Error("not ready");
+    expect(second).toEqual(first);
+    expect(first.view.positioning).toMatchObject({
+      gate: "awaiting-choice",
+      options: {
+        draftId: draft.id,
+        modelId: "anthropic/claude-sonnet-5.5",
+        items: [{ n: 1 }, { n: 2 }],
+      },
+      controls: expect.arrayContaining(["pick", "edit"]),
+    });
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(state.beside).toEqual([]);
+  });
+
+  it("gives the same picked statement a day apart, labelled with the saved model, and does nothing beside reading", async () => {
+    state.value = VALUE;
+    state.draft = draft;
+    state.choice = picked;
+    const { first, second } = await twice();
+    if (first.access !== "ready" || second.access !== "ready") throw new Error("not ready");
+    expect(second).toEqual(first);
+    expect(first.view.positioning).toMatchObject({
+      gate: "confirmed",
+      statement: {
+        text: "Fresh beans, every week",
+        label: "business.positioning.by.picked",
+        modelId: "anthropic/claude-sonnet-5.5",
+      },
+      options: null,
+    });
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(state.beside).toEqual([]);
+  });
+
+  it("a project with no draft is not drafted on open: the draft control is offered and nothing runs", async () => {
+    state.value = VALUE;
+    const { first } = await twice();
+    if (first.access !== "ready") throw new Error("not ready");
+    expect(first.view.positioning.controls).toContain("draft");
+    expect(first.view.positioning.options).toBeNull();
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(state.beside).toEqual([]);
   });
 });

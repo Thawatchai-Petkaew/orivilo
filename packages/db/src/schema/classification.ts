@@ -161,6 +161,19 @@ export const CLASSIFICATION = {
     createdBy: "personal", // user-ref
     createdAt: "internal", // record
   },
+  businessDraft: {
+    id: "internal", // row-key
+    workspaceId: "internal", // workspace-key
+    intakeId: "internal", // row-key
+    job: "internal", // record
+    modelId: "internal", // record
+    adapterId: "internal", // record
+    adapterVersion: "internal", // record
+    promptVersion: "internal", // record
+    options: "personal", // free-text
+    createdBy: "personal", // user-ref
+    createdAt: "internal", // record
+  },
   businessPositioningChoice: {
     id: "internal", // row-key
     workspaceId: "internal", // workspace-key

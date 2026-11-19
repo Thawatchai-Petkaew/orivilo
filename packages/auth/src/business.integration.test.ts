@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import {
+  businessDraft,
   businessIntake,
   businessPositioningChoice,
   businessReading,
@@ -13,7 +14,10 @@ import { inWorkspace } from "@orivilo/db/client";
 import { createTestDatabase, HAS_TEST_DATABASE, type TestDatabase } from "@orivilo/db/testing";
 import {
   type BusinessReading,
+  draftPositioning,
   modelReading,
+  type PositioningDraft,
+  positioningGate,
   readBusiness,
   ruleBasedReading,
   toBusinessView,
@@ -595,7 +599,7 @@ describe.runIf(HAS_TEST_DATABASE)("business projects", () => {
     it("opens with no choice before one is made (T7)", async () => {
       const a = await create("pos-none@example.com", "Pon");
       const opened = await service.open(a.headers, a.workspaceId, a.projectId);
-      expect(opened.positioning).toEqual({ intakeId: a.intakeId, choice: null });
+      expect(opened.positioning).toEqual({ intakeId: a.intakeId, choice: null, draft: null });
     });
 
     it("choice saved in the workspace: one row, written, trimmed, on the newest intake (T7)", async () => {
@@ -691,7 +695,7 @@ describe.runIf(HAS_TEST_DATABASE)("business projects", () => {
       expect(await rowsOf(a.projectId)).toEqual([]);
     });
 
-    it("answers not-found for a picked or edited choice: no draft exists yet (T7)", async () => {
+    it("answers not-found for a picked or edited choice that names a draft which does not exist (T7)", async () => {
       const a = await create("pos-pick@example.com", "Ppk");
       const draftId = "33333333-3333-4333-8333-333333333333";
       for (const bad of [
@@ -794,7 +798,7 @@ describe.runIf(HAS_TEST_DATABASE)("business projects", () => {
         statement,
       });
       const opened = await service.open(a.headers, a.workspaceId, a.projectId);
-      expect(opened.positioning).toEqual({ intakeId: a.intakeId, choice: null });
+      expect(opened.positioning).toEqual({ intakeId: a.intakeId, choice: null, draft: null });
       // And a choice on this project is not blocked by the other project's agreement.
       await positioning.choose(a.headers, a.workspaceId, {
         kind: "skipped",
@@ -829,14 +833,527 @@ describe.runIf(HAS_TEST_DATABASE)("business projects", () => {
         statement,
       });
       // The database's shape check wants a draft id and an option on a picked row and is content
-      // with an empty id; the stored form is not.
-      await t.admin
-        .update(businessPositioningChoice)
-        .set({ kind: "picked", draftId: "", option: 1 })
-        .where(eq(businessPositioningChoice.intakeId, a.intakeId));
+      // with an empty id (with its key off); the stored form is not.
+      // The draft key is switched off for this one statement, as only the owner role can.
+      await t.admin.transaction(async (tx) => {
+        await tx.execute(sql`set local session_replication_role = replica`);
+        await tx
+          .update(businessPositioningChoice)
+          .set({ kind: "picked", draftId: "", option: 1 })
+          .where(eq(businessPositioningChoice.intakeId, a.intakeId));
+      });
       await expect(service.open(a.headers, a.workspaceId, a.projectId)).rejects.toMatchObject({
         name: "BusinessError",
         reason: "invalid-stored",
+      });
+    });
+  });
+
+  // ORV-285 tech notes sections 4.2, 6.2 and 7, ORV-292 rows 18 to 22, 27 and 30 at the service: the
+  // drafted options are stored once, replayed on every open, and become a statement only when a person
+  // picks or edits one.
+  describe("the positioning draft", () => {
+    const ANSWERS = {
+      idea: "Roasted coffee for office workers",
+      value: "Fresh beans every week",
+    };
+    const MODEL = "anthropic/claude-sonnet-5.5";
+    const typed = JSON.stringify({
+      options: [
+        {
+          statement: "Roasted coffee for office workers, with fresh beans every week",
+          quotes: [
+            { answer: "value", text: "Fresh beans every week" },
+            { answer: "idea", text: "office workers" },
+          ],
+        },
+        {
+          statement: "Fresh beans, every week, for the office",
+          quotes: [
+            { answer: "value", text: "Fresh beans" },
+            { answer: "idea", text: "Roasted coffee" },
+          ],
+        },
+      ],
+    });
+    const recordFor = (intakeId: string): Promise<PositioningDraft> =>
+      draftPositioning(
+        { intake: { ...ANSWERS }, intakeId },
+        { complete: async () => typed, model: MODEL },
+      );
+    const create = async (email: string, name: string) => {
+      const a = await signIn(email, name);
+      const { projectId } = await service.create(a.headers, a.workspaceId, {
+        projectName: "Drafted",
+        ...ANSWERS,
+      });
+      const [row] = await t.admin
+        .select({ id: businessIntake.id })
+        .from(businessIntake)
+        .where(eq(businessIntake.projectId, projectId));
+      return { ...a, projectId, intakeId: row?.id ?? "" };
+    };
+    const choicesOf = (projectId: string) =>
+      t.admin
+        .select({ c: businessPositioningChoice })
+        .from(businessPositioningChoice)
+        .innerJoin(businessIntake, eq(businessIntake.id, businessPositioningChoice.intakeId))
+        .where(eq(businessIntake.projectId, projectId))
+        .then((r) => r.map((x) => x.c));
+    const intakeRows = (projectId: string) =>
+      t.admin.select().from(businessIntake).where(eq(businessIntake.projectId, projectId));
+    const reasonOf = async (run: Promise<unknown>) => {
+      const error = await run.then(
+        () => null,
+        (e: unknown) => e,
+      );
+      expect(error).toBeInstanceOf(BusinessError);
+      return (error as BusinessError).reason;
+    };
+    const saved = async (a: Awaited<ReturnType<typeof create>>) => {
+      const { draftId } = await positioning.saveDraft(
+        a.headers,
+        a.workspaceId,
+        await recordFor(a.intakeId),
+      );
+      return draftId;
+    };
+
+    it("draft saved and replayed: one row, no choice, the gate awaits a choice (T32)", async () => {
+      const a = await create("dr-save@example.com", "Dsa");
+      const before = JSON.stringify(await intakeRows(a.projectId));
+      const draftId = await saved(a);
+      const rows = await t.admin.select().from(businessDraft).where(eq(businessDraft.id, draftId));
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({
+        workspaceId: a.workspaceId,
+        intakeId: a.intakeId,
+        job: "positioning-draft",
+        modelId: MODEL,
+        adapterId: "positioning-draft",
+        adapterVersion: "1",
+        promptVersion: "positioning-prompt-1",
+        createdBy: a.user.id,
+      });
+      const first = await service.open(a.headers, a.workspaceId, a.projectId);
+      const second = await service.open(a.headers, a.workspaceId, a.projectId);
+      expect(first.positioning.draft).toMatchObject({ id: draftId, intakeId: a.intakeId });
+      expect(first.positioning.draft?.options).toHaveLength(2);
+      expect(second.positioning).toEqual(first.positioning);
+      // A draft is no value: no choice exists, the gate waits, and the intake is byte for byte as saved.
+      expect(await choicesOf(a.projectId)).toEqual([]);
+      expect(
+        positioningGate({
+          newestIntakeId: first.positioning.intakeId,
+          choice: first.positioning.choice,
+          draftOfNewest: first.positioning.draft !== null,
+        }).state,
+      ).toBe("awaiting-choice");
+      expect(JSON.stringify(await intakeRows(a.projectId))).toBe(before);
+    });
+
+    it("a second draft for the same intake and job is refused as not-saved, and the first stays (T32)", async () => {
+      const a = await create("dr-twice@example.com", "Dtw");
+      const draftId = await saved(a);
+      expect(await reasonOf(saved(a))).toBe("not-saved");
+      const rows = await t.admin
+        .select({ id: businessDraft.id })
+        .from(businessDraft)
+        .where(eq(businessDraft.intakeId, a.intakeId));
+      expect(rows.map((r) => r.id)).toEqual([draftId]);
+    });
+
+    it("saveDraft refuses a record the engine's schema refuses, one whose quotes are not in the saved answers, and writes nothing (T32)", async () => {
+      const a = await create("dr-bad@example.com", "Dbd");
+      const good = await recordFor(a.intakeId);
+      const first = good.options[0];
+      if (!first) throw new Error("no option");
+      for (const bad of [
+        { ...good, options: [first] },
+        { ...good, job: "other-job" },
+        { ...good, extra: true },
+        "not a draft",
+        // A quote that no longer sits at its place in the answer the intake holds.
+        {
+          ...good,
+          options: good.options.map((o) => ({
+            ...o,
+            quotes: o.quotes.map((q) => ({ ...q, start: q.start + 1, end: q.end + 1 })),
+          })),
+        },
+      ]) {
+        expect(
+          await reasonOf(positioning.saveDraft(a.headers, a.workspaceId, bad as PositioningDraft)),
+        ).toBe("invalid-input");
+      }
+      expect(
+        await t.admin.select().from(businessDraft).where(eq(businessDraft.intakeId, a.intakeId)),
+      ).toEqual([]);
+    });
+
+    it("saveDraft for an intake of another workspace or an unknown intake is one not-found, and writes nothing (T32)", async () => {
+      const a = await create("dr-a@example.com", "Dra");
+      const b = await signIn("dr-b@example.com", "Drb");
+      const record = await recordFor(a.intakeId);
+      const other = await reasonOf(positioning.saveDraft(b.headers, b.workspaceId, record));
+      const unknown = await reasonOf(
+        positioning.saveDraft(b.headers, b.workspaceId, { ...record, intakeId: "no-such-intake" }),
+      );
+      expect([other, unknown]).toEqual(["not-found", "not-found"]);
+      expect(
+        await t.admin.select().from(businessDraft).where(eq(businessDraft.intakeId, a.intakeId)),
+      ).toEqual([]);
+      await expect(
+        positioning.saveDraft(new Headers(), a.workspaceId, record),
+      ).rejects.toMatchObject({ status: 401 });
+    });
+
+    it("opens a project whose newest intake has no draft with draft null, though an older intake has one (T32)", async () => {
+      const a = await create("dr-older@example.com", "Dol");
+      await saved(a);
+      await t.admin.insert(businessIntake).values({
+        id: "bi-dr-newer",
+        workspaceId: a.workspaceId,
+        projectId: a.projectId,
+        version: "intake-1",
+        idea: "changed answers",
+        createdBy: a.user.id,
+        createdAt: new Date(Date.now() + 60_000),
+      });
+      const opened = await service.open(a.headers, a.workspaceId, a.projectId);
+      expect(opened.positioning).toEqual({ intakeId: "bi-dr-newer", choice: null, draft: null });
+    });
+
+    it("shows a draft row changed outside the app as invalid, never as unchecked quotes (T32)", async () => {
+      const a = await create("dr-tamper@example.com", "Dtm");
+      await saved(a);
+      const [row] = await t.admin
+        .select()
+        .from(businessDraft)
+        .where(eq(businessDraft.intakeId, a.intakeId));
+      const options = row?.options as PositioningDraft["options"];
+      // The database wants two or three options; the stored form also wants the words where they were.
+      await t.admin
+        .update(businessDraft)
+        .set({
+          options: options.map((o) => ({
+            ...o,
+            quotes: o.quotes.map((q) => ({ ...q, text: `${q.text.slice(0, -1)}!` })),
+          })),
+        })
+        .where(eq(businessDraft.intakeId, a.intakeId));
+      await expect(service.open(a.headers, a.workspaceId, a.projectId)).rejects.toMatchObject({
+        name: "BusinessError",
+        reason: "invalid-stored",
+      });
+      await t.admin
+        .update(businessDraft)
+        .set({ options: [{ statement: "x" }, { statement: "y" }] })
+        .where(eq(businessDraft.intakeId, a.intakeId));
+      await expect(service.open(a.headers, a.workspaceId, a.projectId)).rejects.toMatchObject({
+        reason: "invalid-stored",
+      });
+    });
+
+    it("pick: copies the option's statement on the server, names the draft and leaves the draft as it was (T35)", async () => {
+      const a = await create("dr-pick@example.com", "Dpk");
+      const draftId = await saved(a);
+      const draftBefore = JSON.stringify(
+        await t.admin.select().from(businessDraft).where(eq(businessDraft.id, draftId)),
+      );
+      const done = await positioning.choose(a.headers, a.workspaceId, {
+        kind: "picked",
+        projectId: a.projectId,
+        draftId,
+        option: 2,
+      });
+      expect(done).toEqual({ kind: "picked" });
+      const rows = await choicesOf(a.projectId);
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({
+        kind: "picked",
+        draftId,
+        option: 2,
+        statement: "Fresh beans, every week, for the office",
+        intakeId: a.intakeId,
+        createdBy: a.user.id,
+      });
+      expect(
+        JSON.stringify(
+          await t.admin.select().from(businessDraft).where(eq(businessDraft.id, draftId)),
+        ),
+      ).toBe(draftBefore);
+      const opened = await service.open(a.headers, a.workspaceId, a.projectId);
+      expect(opened.positioning.choice).toMatchObject({ kind: "picked", draftId, option: 2 });
+      expect(opened.positioning.draft?.options).toHaveLength(2);
+    });
+
+    it("edit: saves the trimmed text as edited, and an edit equal to its option as picked (T35)", async () => {
+      const a = await create("dr-edit@example.com", "Ded");
+      const draftId = await saved(a);
+      await positioning.choose(a.headers, a.workspaceId, {
+        kind: "edited",
+        projectId: a.projectId,
+        draftId,
+        option: 1,
+        statement: "  Roasted coffee for office workers, delivered fresh  ",
+      });
+      const [edited] = await choicesOf(a.projectId);
+      expect(edited).toMatchObject({
+        kind: "edited",
+        draftId,
+        option: 1,
+        statement: "Roasted coffee for office workers, delivered fresh",
+      });
+      const b = await create("dr-edit-same@example.com", "Des");
+      const sameDraft = await saved(b);
+      expect(
+        await positioning.choose(b.headers, b.workspaceId, {
+          kind: "edited",
+          projectId: b.projectId,
+          draftId: sameDraft,
+          option: 1,
+          statement: "  Roasted coffee for office workers, with fresh beans every week ",
+        }),
+      ).toEqual({ kind: "picked" });
+      const [same] = await choicesOf(b.projectId);
+      expect(same).toMatchObject({
+        kind: "picked",
+        option: 1,
+        statement: "Roasted coffee for office workers, with fresh beans every week",
+      });
+    });
+
+    it("draft references: another project's draft, an option the draft lacks, a draft of an older intake and another workspace's draft are one not-found, and save nothing (T36)", async () => {
+      const a = await create("dr-ref-a@example.com", "Dra2");
+      const other = await create("dr-ref-a2@example.com", "Dra3");
+      const mine = await saved(a);
+      // A second project of the same workspace, with a draft of its own.
+      const { projectId: second } = await service.create(a.headers, a.workspaceId, {
+        projectName: "Second",
+        ...ANSWERS,
+      });
+      const [secondIntake] = await t.admin
+        .select({ id: businessIntake.id })
+        .from(businessIntake)
+        .where(eq(businessIntake.projectId, second));
+      const { draftId: secondDraft } = await positioning.saveDraft(
+        a.headers,
+        a.workspaceId,
+        await recordFor(secondIntake?.id ?? ""),
+      );
+      const names = async (input: Record<string, unknown>) =>
+        reasonOf(positioning.choose(a.headers, a.workspaceId, input));
+      expect(
+        await names({ kind: "picked", projectId: a.projectId, draftId: secondDraft, option: 1 }),
+      ).toBe("not-found");
+      expect(
+        await names({ kind: "picked", projectId: a.projectId, draftId: mine, option: 3 }),
+      ).toBe("not-found");
+      expect(
+        await names({
+          kind: "edited",
+          projectId: a.projectId,
+          draftId: mine,
+          option: 3,
+          statement: "x",
+        }),
+      ).toBe("not-found");
+      // Another workspace's draft, named by a member of this one.
+      const theirs = await saved(other);
+      expect(
+        await names({ kind: "picked", projectId: a.projectId, draftId: theirs, option: 1 }),
+      ).toBe("not-found");
+      // A later intake makes the draft one of an older intake.
+      await t.admin.insert(businessIntake).values({
+        id: "bi-dr-ref-later",
+        workspaceId: a.workspaceId,
+        projectId: a.projectId,
+        version: "intake-1",
+        idea: "later answers",
+        createdBy: a.user.id,
+        createdAt: new Date(Date.now() + 60_000),
+      });
+      expect(
+        await names({ kind: "picked", projectId: a.projectId, draftId: mine, option: 1 }),
+      ).toBe("not-found");
+      expect(await choicesOf(a.projectId)).toEqual([]);
+    });
+
+    it("skip, then pick: both rows stay and the newest is the pick (T36)", async () => {
+      const a = await create("dr-skip@example.com", "Dsk");
+      const draftId = await saved(a);
+      await positioning.choose(a.headers, a.workspaceId, {
+        kind: "skipped",
+        projectId: a.projectId,
+      });
+      const afterSkip = await service.open(a.headers, a.workspaceId, a.projectId);
+      expect(afterSkip.positioning.choice?.kind).toBe("skipped");
+      expect(afterSkip.positioning.draft?.id).toBe(draftId);
+      await positioning.choose(a.headers, a.workspaceId, {
+        kind: "picked",
+        projectId: a.projectId,
+        draftId,
+        option: 1,
+      });
+      const opened = await service.open(a.headers, a.workspaceId, a.projectId);
+      expect(opened.positioning.choice).toMatchObject({ kind: "picked", option: 1 });
+      expect((await choicesOf(a.projectId)).map((r) => r.kind).sort()).toEqual([
+        "picked",
+        "skipped",
+      ]);
+    });
+
+    it("an agreed pick stays agreed: a later pick, edit or skip is gate-passed (T14, D4)", async () => {
+      const a = await create("dr-agreed@example.com", "Dag");
+      const draftId = await saved(a);
+      await positioning.choose(a.headers, a.workspaceId, {
+        kind: "picked",
+        projectId: a.projectId,
+        draftId,
+        option: 1,
+      });
+      for (const again of [
+        { kind: "picked", projectId: a.projectId, draftId, option: 2 },
+        { kind: "edited", projectId: a.projectId, draftId, option: 2, statement: "other" },
+        { kind: "skipped", projectId: a.projectId },
+      ]) {
+        expect(await reasonOf(positioning.choose(a.headers, a.workspaceId, again))).toBe(
+          "gate-passed",
+        );
+      }
+      expect(await choicesOf(a.projectId)).toHaveLength(1);
+    });
+
+    // Row 27 at the service: U+0000 is dropped before the trim, so the text column never sees it.
+    it("U+0000 in a statement: dropped, the rest judged as usual, and never a failed save (T7, row 27)", async () => {
+      const a = await create("dr-nul@example.com", "Dnu");
+      expect(
+        await reasonOf(
+          positioning.choose(a.headers, a.workspaceId, {
+            kind: "written",
+            projectId: a.projectId,
+            statement: "\u0000 \u0000 ",
+          }),
+        ),
+      ).toBe("invalid-input");
+      expect(await choicesOf(a.projectId)).toEqual([]);
+      expect(
+        await positioning.choose(a.headers, a.workspaceId, {
+          kind: "written",
+          projectId: a.projectId,
+          statement: "a\u0000b",
+        }),
+      ).toEqual({ kind: "written" });
+      const [row] = await choicesOf(a.projectId);
+      expect(row?.statement).toBe("ab");
+    });
+
+    // Row 30: two choices at the same moment. A third session holds the project's row, so both calls
+    // arrive while it is held and queue on it; each then meets the rows the one before it left.
+    describe("two choices at the same moment (row 30)", () => {
+      const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+      /** Backends of this database that wait on a lock inside the choose query (read, never timed). */
+      const waiting = async () => {
+        const rows = await t.admin.execute<{ n: number }>(
+          sql`select count(*)::int as n from pg_stat_activity
+              where datname = current_database() and pid <> pg_backend_pid()
+                and wait_event_type = 'Lock' and query ilike '%for update%'`,
+        );
+        return [...rows][0]?.n ?? 0;
+      };
+      /** Polls a condition; the cap is only a guard against a hang, sized for a slow runner. */
+      const until = async (condition: () => Promise<boolean>, what: string) => {
+        const deadline = Date.now() + 30_000;
+        while (!(await condition())) {
+          if (Date.now() > deadline) throw new Error(`timed out waiting for ${what}`);
+          await sleep(20);
+        }
+      };
+      type Call = Promise<{ kind: string } | { reason: string }>;
+      const answer = (run: Promise<{ kind: string }>): Call =>
+        run.then(
+          (v) => v,
+          (e: unknown) => ({ reason: e instanceof BusinessError ? e.reason : String(e) }),
+        );
+
+      const race = async (
+        email: string,
+        orders: [Record<string, unknown>, Record<string, unknown>],
+      ) => {
+        const a = await create(email, "Rce");
+        const send = (order: Record<string, unknown>) =>
+          answer(
+            positioning.choose(a.headers, a.workspaceId, { ...order, projectId: a.projectId }),
+          );
+        let T = new Date(0);
+        const calls: Call[] = [];
+        let settled = 0;
+        let settledWhileHeld = -1;
+        let rowsWhileHeld = -1;
+        await t.admin.transaction(async (holder) => {
+          await holder.execute(sql`select id from project where id = ${a.projectId} for update`);
+          const first = send(orders[0]);
+          first.then(() => settled++);
+          calls.push(first);
+          await until(async () => (await waiting()) >= 1 || settled > 0, "the first call");
+          const second = send(orders[1]);
+          second.then(() => settled++);
+          calls.push(second);
+          await until(async () => (await waiting()) >= 2 || settled > 0, "the second call");
+          rowsWhileHeld = (await choicesOf(a.projectId)).length;
+          settledWhileHeld = settled;
+          const [clock] = await holder.execute<{ ms: number }>(
+            sql`select (extract(epoch from clock_timestamp()) * 1000)::float8 as ms`,
+          );
+          T = new Date(Number(clock?.ms));
+        });
+        const [one, two] = await Promise.all(calls);
+        return { a, one, two, T, settledWhileHeld, rowsWhileHeld };
+      };
+
+      it("a skip and a write: both answer ok, two rows, the write the later one, and the project opens agreed", async () => {
+        const r = await race("race-sw@example.com", [
+          { kind: "skipped" },
+          { kind: "written", statement: "A statement" },
+        ]);
+        expect([r.settledWhileHeld, r.rowsWhileHeld]).toEqual([0, 0]);
+        expect([r.one, r.two]).toEqual([{ kind: "skipped" }, { kind: "written" }]);
+        const rows = await choicesOf(r.a.projectId);
+        const skip = rows.find((x) => x.kind === "skipped");
+        const write = rows.find((x) => x.kind === "written");
+        expect(rows).toHaveLength(2);
+        expect(write?.createdAt.getTime()).toBeGreaterThan(r.T.getTime());
+        expect(write?.createdAt.getTime()).toBeGreaterThan(skip?.createdAt.getTime() ?? Infinity);
+        const opened = await service.open(r.a.headers, r.a.workspaceId, r.a.projectId);
+        expect(opened.positioning.choice?.kind).toBe("written");
+        expect(
+          positioningGate({
+            newestIntakeId: opened.positioning.intakeId,
+            choice: opened.positioning.choice,
+            draftOfNewest: false,
+          }).state,
+        ).toBe("given");
+      });
+
+      it("a write and a skip: the write answers ok and the skip answers gate-passed, one row", async () => {
+        const r = await race("race-ws@example.com", [
+          { kind: "written", statement: "A statement" },
+          { kind: "skipped" },
+        ]);
+        expect([r.settledWhileHeld, r.rowsWhileHeld]).toEqual([0, 0]);
+        expect([r.one, r.two]).toEqual([{ kind: "written" }, { reason: "gate-passed" }]);
+        expect((await choicesOf(r.a.projectId)).map((x) => x.kind)).toEqual(["written"]);
+      });
+
+      it("two writes: the first answers ok and the second gate-passed, never not-saved, and the first statement stays", async () => {
+        const r = await race("race-ww@example.com", [
+          { kind: "written", statement: "Statement A" },
+          { kind: "written", statement: "Statement B" },
+        ]);
+        expect([r.settledWhileHeld, r.rowsWhileHeld]).toEqual([0, 0]);
+        expect([r.one, r.two]).toEqual([{ kind: "written" }, { reason: "gate-passed" }]);
+        expect((await choicesOf(r.a.projectId)).map((x) => x.statement)).toEqual(["Statement A"]);
       });
     });
   });

@@ -25,6 +25,7 @@ export const ROUTES = [
   "business/listProjects",
   "business/openProject",
   "business/choosePositioning",
+  "business/draftPositioning",
   "account/signInWithGoogle",
   "account/signOut",
   "i18n/setLocale",
@@ -54,6 +55,17 @@ export const STEP_OUTCOMES = {
   // ORV-283: what happened to the reading of a saved business intake, after the intake committed.
   "business-read": [
     "read",
+    "refused",
+    "failed",
+    "not-configured",
+    "limited",
+    "spend-cap",
+    "unavailable",
+    "save-failed",
+  ],
+  // ORV-285: what happened to the draft of a positioning, after the answers were read.
+  "positioning-draft": [
+    "drafted",
     "refused",
     "failed",
     "not-configured",
