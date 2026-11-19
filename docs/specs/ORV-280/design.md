@@ -413,14 +413,17 @@ The sign-off on PR B checks, at 360 and 1440, Thai and English, light and dark:
 
 ## 4. Needs decision
 
-- **B14.** The board grows from 4484 to about 4912 world px wide; at 1440 the overview fit lands on the 0.25 floor. Accept, or tighten the corridors and keep 0.261.
-- **B15.** The story height route (540 under 554) keeps the board component unchanged as row 10 asks. A board-level fit that reserves the badge's corner would fix every narrow present board; it is a component change outside row 10.
+Four of these are decided for slice ORV-290 on 2026-11-19, by the main session under the owner's POC delegation (ADR 0012 decision 4); the owner can change any of them. The others stay open for the second slice card.
+
+- **B14.** The board grows from 4484 to about 4912 world px wide; at 1440 the overview fit lands on the 0.25 floor. Accept, or tighten the corridors and keep 0.261. **Decided for slice ORV-290 (2026-11-19): accept.** The board grows to about 4912 world px wide and the overview fit at 1440 lands on the 0.25 floor.
+- **B15.** The story height route (540 under 554) keeps the board component unchanged as row 10 asks. A board-level fit that reserves the badge's corner would fix every narrow present board; it is a component change outside row 10. **Decided for slice ORV-290 (2026-11-19): the story height route**, 540 px under 554 px, with the board component unchanged.
 - **B11.** At 100 percent the 1:1 content is taller than the free area, so the dock clearance is reached by a vertical move only; a card can still pass under the dock while the person pans.
-- **D1.** At the 0.25 fit (360) every edge pill fails the clearance and the board shows lines only, its kinds by colour and dash. Accept, or show the state pills (stale, missing) even at the floor.
-- **C4.** The hairline token: `border.subtle` (proposed, quiet) or `border.control` (stronger, reads like a field).
+- **D1.** At the 0.25 fit (360) every edge pill fails the clearance and the board shows lines only, its kinds by colour and dash. Accept, or show the state pills (stale, missing) even at the floor. **Decided for slice ORV-290 (2026-11-19): accept.** At the 0.25 fit an edge shows its line only, and its pill returns on zoom.
+- **C4.** The hairline token: `border.subtle` (proposed, quiet) or `border.control` (stronger, reads like a field). **Decided for slice ORV-290 (2026-11-19): `border.subtle`.**
 - **B10 and B17.** The change to the 360 dock rule (`canvas-controls.yaml` line 21, `docs/specs/ORV-274/spec.md` row 12).
 - **B3.** The proposed Thai and English lede copy, for the owner's review.
 
 ## 5. Changelog
 
 - 2026-11-18, `ORV-280-design-b`: first version; rows 10 and 19 to 45 with their measures, CSS and sheets.
+- 2026-11-19, `ORV-290-spec-1`: section 4 marks D1, C4, B14 and B15 as decided for slice ORV-290 (main session, under the owner's POC delegation, ADR 0012 decision 4; the owner can change them). No measure, row or sheet changed.
