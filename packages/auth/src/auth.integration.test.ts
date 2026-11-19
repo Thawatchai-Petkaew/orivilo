@@ -107,15 +107,13 @@ describe.runIf(HAS_TEST_DATABASE)("Better Auth and the authorization helper", ()
       } finally {
         log.restore();
       }
-      // Better Auth's own logger lines are not JSON: the known gap of ORV-141 open question 6.
-      const own = log.lines.filter((l) => String(l.args[0]).startsWith("{"));
-      expect(own).toHaveLength(1);
-      const [only] = own;
-      if (!only) throw new Error("no line");
-      const fields = expectLineShape(only);
-      expect(fields["route"]).toBe("api/auth");
+      // Better Auth's own line goes through the JSON writer (ORV-288), then the boundary line.
+      expect(log.lines).toHaveLength(2);
+      const [betterAuth, boundary] = log.lines.map((l) => expectLineShape(l));
+      expect(betterAuth?.["step"]).toBe("better-auth");
+      expect(boundary?.["route"]).toBe("api/auth");
       for (const word of ["state_mismatch", state, "code"]) {
-        expect(String(own[0]?.args[0])).not.toContain(word);
+        expect(JSON.stringify(log.lines.map((l) => l.args))).not.toContain(word);
       }
       expect(response.status).toBe(302);
       const landed = new URL(response.headers.get("location") ?? "", "http://localhost:3000");

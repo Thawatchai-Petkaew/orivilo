@@ -2,10 +2,12 @@
 issue: ORV-274 (https://tpetkaew.atlassian.net/browse/ORV-274)
 lane: L (component public API and the token contract change in PR 211)
 mode: POC mode short spec (`.claude/skills/ovl/SKILL.md`, section "POC mode")
-version: 2.5
+version: 2.6
 ---
 
 # ORV-274: ORIVILO from brief to product, a live prototype on one canvas (Storybook)
+
+> Note (ORV-280): "PR 212" in this file names the page PR, which merged as PR 213 under ORV-278. GitHub PR 212 is ORV-277.
 
 ## Goal
 
@@ -188,3 +190,4 @@ node -e 'const tw=246.4,th=776/3,iw=1254,ih=1254,s=Math.max(tw/iw,th/ih),dx=(tw-
 - v2.3 (2026-11-17): three corrections raised by the tech notes task ORV-274-tech-2. `images-1`: the treatment values are `violet`, `paper` or `photo` (were `duo` violet and `mono` paper). `images-1`: a record's prompt is word for word the text sent to Codex, the `v1.prompt.md` the image was made from (the text fence body where the file has one), not the design's brief. W5: the tile is 246.4 by 776/3 (the board cell, was 258.7), and the expected output is `50.00,102.69 181.92,82.26 197.44,159.08 64.74,176.41`. No row, rule name or Rows per PR line changed. Downstream to review: the PR 212 builder envelopes.
 - v2.4 (2026-11-17): one correction raised by the tech notes task ORV-274-tech-3, on the built behaviour accepted in comment 10660. Row 9's data effect now names the derived edge widths: present 1.5 px (`edge.width-present`), derived 2.5; edit 2 px (`edge.width`), derived 3 (was one width per board). No other row, rule name or Rows per PR line changed. Downstream to review: the qa envelope for PR 211.
 - v2.5 (2026-11-18): one correction from qa task ORV-274-pr211-qa-1, finding F1. Row 12's User sees cell now orders the centre dock as tech.md decides and the build renders it: the read-only word first, a divider, the children, a divider, then only the four viewport commands (was the children, a divider, then the read-only word). The main session decided it under the owner's POC delegation (comment 10656, the tech notes win): the honest label leads the bar and cannot scroll away with the chapter strip. No other row, rule name, number or Rows per PR line changed. Downstream to review: the qa re-walk of row 12 and the reviewer re-check of PR 211.
+- v2.6 (2026-11-18): wording only, from ORV-280 (D15). A note under the title says that "PR 212" in this file names the page PR, which merged as PR 213 under ORV-278, and that GitHub PR 212 is ORV-277. No row, rule or number changes.
