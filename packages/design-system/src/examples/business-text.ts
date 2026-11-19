@@ -5,8 +5,12 @@ import {
   type BusinessNodeId,
   type BusinessReadReason,
   EVIDENCE_STRINGS,
+  type FoundationFieldKey,
+  type FoundationNode,
+  type FoundationNodeId,
   type InputEvidence,
   type IntakeField,
+  type MarkRef,
   PROXY_QUESTIONS,
   type ProxyQuestionId,
 } from "@orivilo/intent-engine";
@@ -28,10 +32,47 @@ const NODE_KEY = {
   audience: "audience",
   "competitive-frame": "competitiveFrame",
   positioning: "positioning",
-} as const satisfies Record<BusinessNodeId, keyof Business["node"]>;
+  // The foundation nodes of ORV-291; PRs 2 and 3 add `architecture`, `name` and `coreIdea`.
+  "identity-frame": "identityFrame",
+} as const satisfies Record<BusinessNodeId | FoundationNodeId, keyof Business["node"]>;
 
-export function nodeTitle(m: Messages, id: BusinessNodeId): string {
+export function nodeTitle(m: Messages, id: BusinessNodeId | FoundationNodeId): string {
   return m.business.node[NODE_KEY[id]];
+}
+
+/** The node titles of `refs` as one line: `Intl.ListFormat`, type `conjunction`, in the page's locale. */
+export function listOfNodes(m: Messages, locale: Locale, refs: readonly MarkRef[]): string {
+  return new Intl.ListFormat(DATE_TAGS[locale], { type: "conjunction" }).format(
+    refs.map((ref) => nodeTitle(m, ref)),
+  );
+}
+
+/** The name of a foundation field, a key of `business.field.*`. */
+export function foundationFieldLabel(m: Messages, field: FoundationFieldKey): string {
+  return m.business.field[field];
+}
+
+/**
+ * The state line of a foundation node (`foundation-marks-1`): the catalog's line for its state key,
+ * and for `waiting` the line with the nodes it waits for.
+ */
+export function foundationStateLine(m: Messages, locale: Locale, node: FoundationNode): string {
+  switch (node.state) {
+    case "waiting":
+      return fill(m.business.state.waiting, { nodes: listOfNodes(m, locale, node.waitingFor) });
+    case "derived":
+      // `business.state.derived` is PR 2's key; Brand personality is never derived.
+      throw new Error("foundationStateLine: no line for a derived state before PR 2");
+    default:
+      return m.business.state[node.state];
+  }
+}
+
+/** `business.marks.unchecked` with its nodes, or null when the node rests on nothing unchecked. */
+export function uncheckedLine(m: Messages, locale: Locale, node: FoundationNode): string | null {
+  return node.unchecked.length === 0
+    ? null
+    : fill(m.business.marks.unchecked, { nodes: listOfNodes(m, locale, node.unchecked) });
 }
 
 type Tail<T, P extends string> = T extends `${P}${infer K}` ? K : never;

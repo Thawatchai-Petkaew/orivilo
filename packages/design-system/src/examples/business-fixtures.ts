@@ -16,6 +16,7 @@ import {
   ruleBasedReading,
   scoreConfidence,
   type StoredChoice,
+  type StoredEntry,
   type StoredIntake,
   toBusinessView,
   wordCount,
@@ -35,12 +36,14 @@ const view = (
   intake: Omit<StoredIntake, "version">,
   reading?: BusinessReading,
   positioning?: { intakeId: string; choice: StoredChoice | null },
+  foundation?: StoredEntry[],
 ): BusinessView =>
   toBusinessView({
     project: { id: "fixture", name, createdAt: SAVED_AT },
     intake: { version: INTAKE_VERSION, ...intake },
     ...(reading === undefined ? {} : { reading }),
     ...(positioning === undefined ? {} : { positioning }),
+    ...(foundation === undefined ? {} : { foundation }),
   });
 
 /** Thai, every field given, a line break inside one answer. */
@@ -422,10 +425,16 @@ const choiceOf = (
       };
 
 /** The Thai project of the board, with the newest choice a person made on the Positioning gate. */
-const thaiWith = (choice: StoredChoice | null, intakeId = NEWEST_INTAKE_ID) =>
-  view("คาเฟ่ริมคลอง", THAI_INTAKE, undefined, { intakeId, choice });
-const englishWith = (choice: StoredChoice | null, intakeId = NEWEST_INTAKE_ID) =>
-  view("Canalside Cafe", ENGLISH_INTAKE, undefined, { intakeId, choice });
+const thaiWith = (
+  choice: StoredChoice | null,
+  intakeId = NEWEST_INTAKE_ID,
+  foundation?: StoredEntry[],
+) => view("คาเฟ่ริมคลอง", THAI_INTAKE, undefined, { intakeId, choice }, foundation);
+const englishWith = (
+  choice: StoredChoice | null,
+  intakeId = NEWEST_INTAKE_ID,
+  foundation?: StoredEntry[],
+) => view("Canalside Cafe", ENGLISH_INTAKE, undefined, { intakeId, choice }, foundation);
 
 /** What a person wrote on the gate, in each language: one sentence of their own. */
 export const POSITIONING_STATEMENTS = {
@@ -476,5 +485,28 @@ export function positioningAfter(
     choice.kind === "skipped"
       ? choiceOf(NEWEST_INTAKE_ID, "skipped", null)
       : choiceOf(NEWEST_INTAKE_ID, "written", choice.statement.trim()),
+  );
+}
+
+/**
+ * A project for the foundation stories (ORV-291): the Positioning gate `open` (Brand personality
+ * waits), `skipped` or `agreed`, with the foundation entries a story names. The view comes from the
+ * engine, so a card shows what the screen gets from a saved project.
+ */
+export function foundationProject(
+  locale: "th" | "en",
+  gate: "open" | "skipped" | "agreed",
+  entries: StoredEntry[] = [],
+): BusinessView {
+  const make = locale === "th" ? thaiWith : englishWith;
+  const statement = POSITIONING_STATEMENTS[locale];
+  return make(
+    gate === "open"
+      ? null
+      : gate === "skipped"
+        ? choiceOf(NEWEST_INTAKE_ID, "skipped", null)
+        : choiceOf(NEWEST_INTAKE_ID, "written", statement),
+    NEWEST_INTAKE_ID,
+    entries,
   );
 }

@@ -159,7 +159,15 @@ export function newestByNode(
   return newest;
 }
 
+/**
+ * Later `createdAt` wins. `createdAt` reaches the engine in milliseconds while the table orders by
+ * microseconds, so on equal times the given entry is the newer: the table holds one entry per kind
+ * and refuses a skip once a given entry is saved, so a given entry is never the older one. The
+ * larger `id` decides only between two entries of one kind, which the table does not hold.
+ */
 function isNewer(a: StoredEntry, b: StoredEntry): boolean {
   const byTime = Date.parse(a.createdAt) - Date.parse(b.createdAt);
-  return byTime !== 0 ? byTime > 0 : a.id > b.id;
+  if (byTime !== 0) return byTime > 0;
+  const aSkipped = a.kind === "skipped";
+  return aSkipped === (b.kind === "skipped") ? a.id > b.id : !aSkipped;
 }

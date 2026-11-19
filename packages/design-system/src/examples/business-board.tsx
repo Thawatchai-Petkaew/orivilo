@@ -23,7 +23,20 @@ import {
   type PositioningControls,
   type PositioningEditor,
 } from "./business-node-view";
-import { FIELD_NOTE, fieldLabel, formatSavedAt, nodeTitle, readReasonLine } from "./business-text";
+import {
+  FIELD_NOTE,
+  fieldLabel,
+  formatSavedAt,
+  foundationFieldLabel,
+  foundationStateLine,
+  nodeTitle,
+  readReasonLine,
+} from "./business-text";
+import {
+  type FoundationControls,
+  type FoundationEditor,
+  FoundationNodeView,
+} from "./foundation-view";
 
 /**
  * The project board screen, slice 2 (ORV-281 design sections 6.1 and 6.3, ORV-282): the project
@@ -36,7 +49,9 @@ import { FIELD_NOTE, fieldLabel, formatSavedAt, nodeTitle, readReasonLine } from
  * why, and the viewer's view carries the readings or the same line. Slice 4 (ORV-285): the Positioning
  * node shows the state of its gate on the card and holds the controls to write one's own statement or
  * skip in its view. The text of an open editor is held here, so it stays while the viewer closes and
- * opens. It knows no route and no action: the page's wrapper gives it `positioning`.
+ * opens. It knows no route and no action: the page's wrapper gives it `positioning`. ORV-291: the
+ * foundation nodes of the view follow the business nodes on the same board; a card shows its state
+ * line and the names of its fields, never an answer, and opening it shows `FoundationNodeView`.
  */
 export interface BusinessBoardScreenProps {
   access: BusinessAccess;
@@ -51,6 +66,8 @@ export interface BusinessBoardScreenProps {
    * with, and what to call. Absent, the view shows the statement and its labels with no control.
    */
   positioning?: Omit<PositioningControls, "editor" | "onEditor"> | undefined;
+  /** The foundation nodes' entries, as `positioning` is for the gate. Absent, their views show no control. */
+  foundation?: Omit<FoundationControls, "editor" | "onEditor"> | undefined;
 }
 
 export function BusinessBoardScreen(props: BusinessBoardScreenProps) {
@@ -64,17 +81,26 @@ export function BusinessBoardScreen(props: BusinessBoardScreenProps) {
     );
   }
   if (props.view === undefined) throw new Error("BusinessBoardScreen: access ready needs a view");
-  return <ReadyBoard view={props.view} listHref={props.listHref} positioning={props.positioning} />;
+  return (
+    <ReadyBoard
+      view={props.view}
+      listHref={props.listHref}
+      positioning={props.positioning}
+      foundation={props.foundation}
+    />
+  );
 }
 
 function ReadyBoard({
   view,
   listHref,
   positioning,
+  foundation,
 }: {
   view: BusinessView;
   listHref: string;
   positioning: BusinessBoardScreenProps["positioning"];
+  foundation: BusinessBoardScreenProps["foundation"];
 }) {
   const m = useMessages();
   const locale = useLocale();
@@ -88,16 +114,36 @@ function ReadyBoard({
   const graph = held.source === built ? held.graph : built;
   const [openId, setOpenId] = useState<string | null>(null);
   const [editor, setEditor] = useState<PositioningEditor>(null);
+  const [foundationEditor, setFoundationEditor] = useState<FoundationEditor>(null);
   const board = useRef<HTMLDivElement>(null);
   const viewer = useRef<HTMLDivElement>(null);
   const opened = openId === null ? undefined : view.nodes.find((n) => n.id === openId);
+  const openedFoundation =
+    openId === null ? undefined : view.foundation.find((n) => n.id === openId);
+  const openedId = (opened ?? openedFoundation)?.id;
   // Closing the viewer leaves the gate undecided: the caller drops the last failure.
   const closeViewer = () => {
     setOpenId(null);
     positioning?.onDismiss?.();
+    foundation?.onDismiss?.();
   };
 
   const renderBody = (boardNode: BoardNode) => {
+    const found = view.foundation.find((n) => n.id === boardNode.id);
+    if (found !== undefined) {
+      return (
+        <div className="flex flex-col gap-2">
+          <p className={FIELD_NOTE} data-node-state={found.state}>
+            {foundationStateLine(m, locale, found)}
+          </p>
+          <ul className="flex flex-col gap-1 text-body-sm">
+            {found.fields.map((field) => (
+              <li key={field}>{foundationFieldLabel(m, field)}</li>
+            ))}
+          </ul>
+        </div>
+      );
+    }
     const node = view.nodes.find((n) => n.id === boardNode.id);
     if (node === undefined) return undefined;
     return (
@@ -160,15 +206,15 @@ function ReadyBoard({
           <CanvasControls position="center" />
         </CanvasBoard>
       </div>
-      {opened === undefined ? null : (
+      {openedId === undefined ? null : (
         <Dialog open onOpenChange={(next) => (next ? undefined : closeViewer())}>
           <DialogContent
             size="viewer"
-            title={nodeTitle(m, opened.id)}
+            title={nodeTitle(m, openedId)}
             description={
-              opened.gatePassed
+              opened?.gatePassed
                 ? m.business.positioning.gatePassed
-                : opened.gate
+                : opened?.gate
                   ? m.business.state.gate
                   : undefined
             }
@@ -181,25 +227,42 @@ function ReadyBoard({
               // Back to the node that opened it, and the viewport stays where it was.
               event.preventDefault();
               board.current
-                ?.querySelector<HTMLElement>(`.react-flow__node[data-id="${opened.id}"]`)
+                ?.querySelector<HTMLElement>(`.react-flow__node[data-id="${openedId}"]`)
                 ?.focus({ preventScroll: true });
             }}
           >
             <div ref={viewer} className="flex min-h-0 flex-1 flex-col">
-              <ScrollArea label={nodeTitle(m, opened.id)} className="min-h-0 flex-1">
+              <ScrollArea label={nodeTitle(m, openedId)} className="min-h-0 flex-1">
                 {/* Radix draws the bar over the viewport: leave it room, bar 4 plus 8 (row D3). */}
                 <div className="pe-3">
-                  <BusinessNodeView
-                    node={opened}
-                    heading={false}
-                    reading={view.reading}
-                    positioning={view.positioning}
-                    controls={
-                      positioning === undefined
-                        ? undefined
-                        : { ...positioning, editor, onEditor: setEditor }
-                    }
-                  />
+                  {opened === undefined ? null : (
+                    <BusinessNodeView
+                      node={opened}
+                      heading={false}
+                      reading={view.reading}
+                      positioning={view.positioning}
+                      controls={
+                        positioning === undefined
+                          ? undefined
+                          : { ...positioning, editor, onEditor: setEditor }
+                      }
+                    />
+                  )}
+                  {openedFoundation === undefined ? null : (
+                    <FoundationNodeView
+                      node={openedFoundation}
+                      heading={false}
+                      controls={
+                        foundation === undefined
+                          ? undefined
+                          : {
+                              ...foundation,
+                              editor: foundationEditor,
+                              onEditor: setFoundationEditor,
+                            }
+                      }
+                    />
+                  )}
                 </div>
               </ScrollArea>
             </div>

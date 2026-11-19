@@ -687,6 +687,8 @@ export const en: Messages = {
       instead: "When a customer does not choose you, who or what do they choose instead?",
       only: "What does a customer get from you that they cannot get from those alternatives?",
       why: "Why did you start this? One or two sentences is enough.",
+      person: "If your brand were a person, which three words would people use to describe them?",
+      never: "How should your brand never feel?",
     },
     node: {
       situation: "Situation",
@@ -694,6 +696,7 @@ export const en: Messages = {
       audience: "Audience",
       competitiveFrame: "Competitive frame",
       positioning: "Positioning",
+      identityFrame: "Brand personality",
     },
     field: {
       industry: "Business type",
@@ -707,6 +710,9 @@ export const en: Messages = {
       alternatives: "What customers choose instead",
       value: "What only you give",
       statement: "Positioning statement",
+      personality: "Personality",
+      person: "Three words for your brand as a person",
+      never: "How it should never feel",
     },
     state: {
       proposed: "Not confirmed yet",
@@ -715,8 +721,29 @@ export const en: Messages = {
       gate: "A gate: nothing builds on this until you agree to it.",
       awaitingChoice: "Waiting for your choice",
       agreed: "Agreed",
+      given: "Given by you",
+      waiting: "Waits for {nodes}",
     },
     stillToAsk: "Still to ask",
+    marks: {
+      unchecked: "Not yet checked against: {nodes}",
+    },
+    axis: {
+      playful: { low: "Serious", high: "Playful" },
+      expressive: { low: "Quiet", high: "Bold" },
+      structured: { low: "Free and loose", high: "Orderly and precise" },
+      warm: { low: "Cool and reserved", high: "Warm and friendly" },
+      premium: { low: "Everyday and easy to reach", high: "Premium and exclusive" },
+    },
+    identity: {
+      axisLegend: "From {low} to {high}",
+      point: "{n} of 5",
+      hypothesis:
+        "These five scales are ORIVILO's working words for a brand's personality, not a tested method.",
+      describe: "Describe the personality",
+      save: "Save this personality",
+      axesRequired: "Choose a point on each of the five scales, or cancel.",
+    },
     label: {
       yourWords: "Your words, placed here by fixed rules. Not read by AI.",
       aiUnavailable: "AI did not read these answers, so only your own words are shown.",

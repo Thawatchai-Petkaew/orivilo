@@ -372,8 +372,18 @@ describe("newest by node", () => {
     expect(newestByNode([newer, older])["identity-frame"]?.id).toBe("a");
   });
 
-  it("breaks a tie of time by the larger id", () => {
-    const a = at("a", "2026-11-19T03:00:00.000Z");
+  it("on equal times the given entry is the newer, whatever its id", () => {
+    // Two calls queued on the project row can land inside one millisecond; the table orders by
+    // microseconds, so the given entry (never the older one) must win here by its kind, not its id.
+    const given = at("a", "2026-11-19T03:00:00.000Z", "given");
+    const skipped = at("b", "2026-11-19T03:00:00.000Z");
+    expect(newestByNode([given, skipped])["identity-frame"]?.id).toBe("a");
+    expect(newestByNode([skipped, given])["identity-frame"]?.id).toBe("a");
+    expect(newestByNode([skipped, given])["identity-frame"]?.kind).toBe("given");
+  });
+
+  it("on equal times and one kind, the larger id is the newer", () => {
+    const a = at("a", "2026-11-19T03:00:00.000Z", "given");
     const b = at("b", "2026-11-19T03:00:00.000Z", "given");
     expect(newestByNode([a, b])["identity-frame"]?.id).toBe("b");
     expect(newestByNode([b, a])["identity-frame"]?.id).toBe("b");
