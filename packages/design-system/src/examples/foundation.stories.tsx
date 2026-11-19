@@ -59,11 +59,13 @@ function Host({
   initial,
   readOnly = false,
   narrow = false,
+  heading = false,
 }: {
   locale: Lang;
   initial: BusinessView;
   readOnly?: boolean;
   narrow?: boolean;
+  heading?: boolean;
 }) {
   const [view, setView] = useState(initial);
   const [pending, setPending] = useState<"saving" | null>(null);
@@ -88,7 +90,7 @@ function Host({
     >
       <FoundationNodeView
         node={node}
-        heading={false}
+        heading={heading}
         controls={
           readOnly
             ? undefined
@@ -321,7 +323,8 @@ async function expectOpenEditor(v: HTMLElement, m: Messages) {
 /**
  * Spec row 3: nothing is chosen when the editor opens; a save with a scale unchosen, or an answer
  * past 2,000, makes no call and moves focus to the first failing control; a double press makes one
- * call; a rate limited answer keeps the points and the text; a saved personality shows its points
+ * call, while Cancel is inert and answers no press until the save has come back; a rate limited
+ * answer keeps the points and the text; a saved personality shows its points
  * as words, with focus on the Personality heading.
  */
 async function invalidPlay(canvasElement: HTMLElement, m: Messages, locale: Lang) {
@@ -364,22 +367,33 @@ async function invalidPlay(canvasElement: HTMLElement, m: Messages, locale: Lang
   await expect(never).toHaveAttribute("aria-invalid", "true");
   await expect(enter).toHaveBeenCalledTimes(0);
 
-  // A rate limited answer, and a double press: one call, Save inert and named, text and points kept.
+  // A rate limited answer, and a double press: one call, Save inert and named, Cancel inert, text
+  // and points kept. The stub answers when the play releases it, so every assert below runs inside
+  // the window where the save is still running.
   await userEvent.clear(never);
   await userEvent.click(person);
   await userEvent.paste(PERSONALITY_ANSWERS[locale].person);
+  let release: (result: StubResult) => void = () => {};
   enter.mockImplementation(
     () =>
-      new Promise((done) =>
-        setTimeout(() => done({ ok: false, failure: RATE_LIMITED[locale] }), 300),
-      ),
+      new Promise<StubResult>((done) => {
+        release = done;
+      }),
   );
   await userEvent.click(save());
   await userEvent.click(save());
   await expect(enter).toHaveBeenCalledTimes(1);
   await expect(save()).toHaveAttribute("aria-disabled", "true");
   await expect(textOf(save())).toContain(m.business.positioning.saving);
+  // Cancel is disabled in the form the Button gives a disabled control: inert, still in the order.
+  await expect(cancel()).toHaveAttribute("aria-disabled", "true");
+  await userEvent.click(cancel());
+  await expect(v.querySelector("[data-editor]")).not.toBeNull();
+  await expect(person.value).toBe(PERSONALITY_ANSWERS[locale].person);
+  await expect(enter).toHaveBeenCalledTimes(1);
+  release({ ok: false, failure: RATE_LIMITED[locale] });
   await waitFor(() => expect(textOf(failureRegionOf(v))).toContain(RATE_LIMITED[locale]));
+  await expect(cancel()).not.toHaveAttribute("aria-disabled");
   await expect(person.value).toBe(PERSONALITY_ANSWERS[locale].person);
   await expect(never.value).toBe("");
   const chosen = [2, 4, 3, 1, 5];
@@ -537,6 +551,108 @@ export const IdentityMarksEnglish: Story = {
   },
 };
 
+// ----- one project, the other language (spec row 10) -----
+
+/**
+ * The header's language switch, as a story needs it: one given personality held by one mounted
+ * view, and a control outside the view that changes the locale above it. The view is never keyed
+ * on the locale, so a remount would show as a new element.
+ */
+function SwitchHost({ from, initial }: { from: Lang; initial: BusinessView }) {
+  const [locale, setLocale] = useState<Lang>(from);
+  const next: Lang = locale === "th" ? "en" : "th";
+  return (
+    <LocaleProvider locale={locale}>
+      <button type="button" data-switch-locale={next} onClick={() => setLocale(next)}>
+        {next.toUpperCase()}
+      </button>
+      <Host locale={locale} initial={initial} heading />
+    </LocaleProvider>
+  );
+}
+
+/** Every text block of the view draws with normal letter spacing, read from the rendered elements. */
+async function expectNoLetterSpacing(v: HTMLElement) {
+  const blocks = [v, ...v.querySelectorAll<HTMLElement>("*")].filter((el) =>
+    [...el.childNodes].some((n) => n.nodeType === Node.TEXT_NODE && (n.textContent ?? "").trim()),
+  );
+  await expect(blocks.length).toBeGreaterThan(8);
+  for (const block of blocks) {
+    await expect(["normal", "0px"], textOf(block)).toContain(getComputedStyle(block).letterSpacing);
+  }
+}
+
+/** What the view says in one language about a given personality, from the catalog, answers as typed. */
+async function expectGivenIn(
+  v: HTMLElement,
+  m: Messages,
+  typed: { person: string; never: string },
+) {
+  await expect(
+    within(v).getByRole("heading", { level: 2, name: nodeTitle(m, "identity-frame") }),
+  ).toBeVisible();
+  await expectState(v, "given", m.business.state.given);
+  const [person, never, personality] = fieldsOf(v) as [HTMLElement, HTMLElement, HTMLElement];
+  await expect(fieldsOf(v).map((f) => textOf(f.children[0] as HTMLElement))).toEqual([
+    m.business.field.person,
+    m.business.field.never,
+    m.business.field.personality,
+  ]);
+  await expect(person.querySelector("bdi")?.textContent).toBe(typed.person);
+  await expect(never.querySelector("bdi")?.textContent).toBe(typed.never);
+  for (const field of [person, never])
+    await expect(textOf(field)).toContain(m.business.label.yourWords);
+  await expect(textOf(personality)).toContain(m.business.identity.hypothesis);
+  const terms = [...personality.querySelectorAll<HTMLElement>("dt")];
+  await expect(terms.map(textOf)).toEqual(PERSONALITY_AXES.map((a) => legendLine(m, a)));
+  for (const [i, axis] of PERSONALITY_AXES.entries()) {
+    await expect(textOf(terms[i] as HTMLElement)).toContain(m.business.axis[axis].low);
+    await expect(textOf(terms[i] as HTMLElement)).toContain(m.business.axis[axis].high);
+  }
+  await expect([...personality.querySelectorAll<HTMLElement>("dd")].map(textOf)).toEqual(
+    PERSONALITY_AXES.map((a) => pointLine(m, FIXTURE_POINTS[a])),
+  );
+  await expect(buttonsOf(v)).toHaveLength(0);
+}
+
+/**
+ * Spec row 10: one given personality on one mounted view, shown in the first language and then in
+ * the other with no remount: the node title, the labels, both ends of each scale, the points and the
+ * state line come from the other catalog, the two answers stay exactly as typed, no call is made,
+ * and the Thai text of the view, whichever side of the switch it is on, has no letter spacing.
+ */
+async function switchPlay(canvasElement: HTMLElement, from: Lang) {
+  enter.mockReset();
+  const first = from === "th" ? th : en;
+  const second = from === "th" ? en : th;
+  const answers = PERSONALITY_ANSWERS[from];
+  const v = viewOf(canvasElement);
+  const field = fieldsOf(v)[2] as HTMLElement;
+  await expectGivenIn(v, first, answers);
+  if (from === "th") await expectNoLetterSpacing(v);
+  await userEvent.click(canvasElement.querySelector("[data-switch-locale]") as HTMLElement);
+  await waitFor(() => expect(textOf(stateLineOf(v))).toBe(second.business.state.given));
+  await expect(viewOf(canvasElement)).toBe(v);
+  await expect(fieldsOf(v)[2]).toBe(field);
+  await expectGivenIn(v, second, answers);
+  if (from === "en") await expectNoLetterSpacing(v);
+  await expect(enter).toHaveBeenCalledTimes(0);
+}
+
+export const IdentitySwitchToEnglish: Story = {
+  render: () => <SwitchHost from="th" initial={given("th")} />,
+  play: async ({ canvasElement }) => {
+    await switchPlay(canvasElement, "th");
+  },
+};
+
+export const IdentitySwitchToThai: Story = {
+  render: () => <SwitchHost from="en" initial={given("en")} />,
+  play: async ({ canvasElement }) => {
+    await switchPlay(canvasElement, "en");
+  },
+};
+
 // ----- markup as text (spec row 8) -----
 
 /** Spec row 8: markup in an answer is text in a `bdi`, never an image, a link or a tag. */
@@ -620,11 +736,36 @@ export const IdentityNarrowEnglish: Story = {
   },
 };
 
+type Arrow = "ArrowDown" | "ArrowUp" | "ArrowLeft" | "ArrowRight";
+
+/**
+ * Radix moves focus in a timeout after the keydown and checks the radio only while the arrow key is
+ * still held, so the key is held until the focus has arrived, as a finger would (RadioGroup stories).
+ */
+async function pressArrow(key: Arrow, reached: HTMLElement) {
+  await userEvent.keyboard(`{${key}>}`);
+  await focusedIs(reached);
+  await userEvent.keyboard(`{/${key}}`);
+}
+
+/** The point a scale holds, or 0 when none is chosen. */
+const pointOf = (scale: HTMLElement) =>
+  radiosOf(scale).findIndex((r) => r.getAttribute("aria-checked") === "true") + 1;
+
+/** The radio a Tab or a Shift+Tab stops on in a scale: the chosen point, or the first one. */
+const stopOf = (scale: HTMLElement) =>
+  radiosOf(scale)[Math.max(pointOf(scale), 1) - 1] as HTMLElement;
+
 /**
  * The editor at 360: one column that fits, Tab goes person, never, one stop per scale, Save, Cancel,
- * and each focused control draws the focus form of the catalog.
+ * and each focused control draws the focus form of the catalog. Then keyboard alone: the arrow keys
+ * move between the points of a scale and check the one reached, a 2,000-character Thai answer with
+ * no space pasted into the open editor wraps inside the field, and one Enter on Save makes one call
+ * with the chosen points and the typed answers, after which the given view fits at 360.
  */
-async function narrowEditorPlay(canvasElement: HTMLElement, m: Messages) {
+async function narrowEditorPlay(canvasElement: HTMLElement, m: Messages, locale: Lang) {
+  enter.mockReset();
+  enter.mockResolvedValue({ ok: true });
   const v = viewOf(canvasElement);
   await userEvent.click(buttonOf(v, m.business.identity.describe));
   await expectOpenEditor(v, m);
@@ -648,25 +789,111 @@ async function narrowEditorPlay(canvasElement: HTMLElement, m: Messages) {
   }
   await expectFocusBorderForm(buttonOf(v, m.business.identity.save));
   await expectFocusBorderForm(buttonOf(v, m.business.positioning.cancel));
+
+  // Back through Cancel and Save to the last scale, then the arrow keys: each of the four moves to
+  // the point beside it and checks it, with focus visible on the point reached.
+  const premium = scaleOf(v, "premium");
+  await userEvent.tab({ shift: true });
+  await focusedIs(buttonOf(v, m.business.identity.save));
+  await userEvent.tab({ shift: true });
+  await focusedIs(radiosOf(premium)[0] as HTMLElement);
+  const arrows: [Arrow, number][] = [
+    ["ArrowDown", 2],
+    ["ArrowRight", 3],
+    ["ArrowUp", 2],
+    ["ArrowLeft", 1],
+    ["ArrowRight", 2],
+    ["ArrowDown", 3],
+    ["ArrowDown", 4],
+  ];
+  for (const [key, point] of arrows) {
+    const reached = radiosOf(premium)[point - 1] as HTMLElement;
+    await pressArrow(key, reached);
+    await waitFor(() => expect(pointOf(premium)).toBe(point));
+    await expect(reached.matches(":focus-visible")).toBe(true);
+    await expectFocusBorderForm(reached);
+    await expect(checkedIn(v)).toBe(1);
+  }
+
+  // The other four scales by keyboard, backwards: Space takes the first point, an arrow the next ones.
+  const wanted: Record<PersonalityAxis, number> = {
+    playful: 2,
+    expressive: 4,
+    structured: 3,
+    warm: 1,
+    premium: 4,
+  };
+  for (const axis of [...PERSONALITY_AXES].reverse().slice(1)) {
+    const scale = scaleOf(v, axis);
+    await userEvent.tab({ shift: true });
+    await focusedIs(radiosOf(scale)[0] as HTMLElement);
+    if (wanted[axis] === 1) await userEvent.keyboard(" ");
+    for (let point = 2; point <= wanted[axis]; point++) {
+      await pressArrow("ArrowDown", radiosOf(scale)[point - 1] as HTMLElement);
+    }
+    await waitFor(() => expect(pointOf(scale)).toBe(wanted[axis]));
+  }
+
+  // The 2,000-character Thai answer with no space goes into the open editor and wraps inside it.
+  await userEvent.tab({ shift: true });
+  await focusedIs(never);
+  await userEvent.paste(LONG_PERSONALITY_ANSWER);
+  await waitFor(() => expect(never.value).toBe(LONG_PERSONALITY_ANSWER));
+  await userEvent.tab({ shift: true });
+  await focusedIs(person);
+  await userEvent.paste(PERSONALITY_ANSWERS[locale].person);
+  await expectFitsAt360(canvasElement);
+  for (const area of [person, never]) {
+    await expect(area.scrollWidth).toBeLessThanOrEqual(area.clientWidth);
+  }
+
+  // Forward again, one stop per control, to Save; one Enter makes one call and no other key does.
+  const forward = [
+    never,
+    ...PERSONALITY_AXES.map((axis) => stopOf(scaleOf(v, axis))),
+    buttonOf(v, m.business.identity.save),
+  ];
+  for (const stop of forward) {
+    await userEvent.tab();
+    await focusedIs(stop);
+  }
+  await expect(enter).toHaveBeenCalledTimes(0);
+  await userEvent.keyboard("{Enter}");
+  await waitFor(() => expect(stateLineOf(v).dataset["nodeState"]).toBe("given"));
+  await expect(enter).toHaveBeenCalledTimes(1);
+  await expect(enter).toHaveBeenCalledWith({
+    node: "identity-frame",
+    kind: "given",
+    payload: {
+      axes: { playful: 25, expressive: 75, structured: 50, warm: 0, premium: 75 },
+      person: PERSONALITY_ANSWERS[locale].person,
+      never: LONG_PERSONALITY_ANSWER,
+    },
+  });
+  await expectState(v, "given", m.business.state.given);
+  await expect(v.querySelector("[data-editor]")).toBeNull();
+  await expectFitsAt360(canvasElement);
+  for (const bdi of v.querySelectorAll("bdi")) await expect(bdi).toBeVisible();
+  await expect(v.querySelectorAll("bdi")).toHaveLength(2);
 }
 
 export const IdentityNarrowEditor: Story = {
   render: narrowHost("th", open("th"), "light"),
   play: async ({ canvasElement }) => {
-    await narrowEditorPlay(canvasElement, th);
+    await narrowEditorPlay(canvasElement, th, "th");
   },
 };
 
 export const IdentityNarrowEditorDark: Story = {
   render: narrowHost("th", open("th"), "dark"),
   play: async ({ canvasElement }) => {
-    await narrowEditorPlay(canvasElement, th);
+    await narrowEditorPlay(canvasElement, th, "th");
   },
 };
 
 export const IdentityNarrowEditorEnglish: Story = {
   render: narrowHost("en", open("en"), "light"),
   play: async ({ canvasElement }) => {
-    await narrowEditorPlay(canvasElement, en);
+    await narrowEditorPlay(canvasElement, en, "en");
   },
 };

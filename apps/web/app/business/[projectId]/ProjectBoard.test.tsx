@@ -492,6 +492,29 @@ describe("a foundation entry that was saved or refused", () => {
     expect(enterFoundation).toHaveBeenCalledTimes(1);
   });
 
+  // Row 10 at the wrapper: the saved given personality is kept as an outcome, so each language reads
+  // it back with no second call and no second refresh. A render that asked the page to refresh again
+  // would show here, after the extra renders; the test above counts the refresh before its render.
+  it("a language switch after a saved personality makes no second call and no second refresh", async () => {
+    enterFoundation.mockResolvedValue({
+      ok: true,
+      value: { node: "identity-frame", kind: "given" },
+    });
+    enter("th", given({ person: STATEMENT }));
+    await seed.enteringRun;
+    for (const locale of ["en", "th", "en"] as const) {
+      const next = foundationOf(locale);
+      expect(next.failure).toBeUndefined();
+      expect(next.problems).toBeNull();
+      expect(next.pending).toBeNull();
+    }
+    expect(enterFoundation).toHaveBeenCalledExactlyOnceWith({
+      projectId: PROJECT,
+      ...given({ person: STATEMENT }),
+    });
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
   it("onDismiss drops the failure and the named fields, and nothing else", async () => {
     enterFoundation.mockRejectedValue(new Error("network"));
     enter("en", given());
