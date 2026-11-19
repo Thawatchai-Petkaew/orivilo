@@ -12,10 +12,10 @@ for (const m of orv126.matchAll(LINE)) {
 
 describe("copy is ORV-126's", () => {
   it("reads the proxy question lines of ORV-126", () => {
-    expect(home.size).toBeGreaterThanOrEqual(6);
+    expect(home.size).toBeGreaterThanOrEqual(8);
   });
 
-  it("holds the six ids, in the order the intake lists them", () => {
+  it("holds the eight ids: the six the intake lists, then the two of Brand personality", () => {
     expect(PROXY_QUESTIONS.map((q) => q.id)).toEqual([
       "business-core.proxy.offer",
       "business-core.proxy.why",
@@ -23,7 +23,30 @@ describe("copy is ORV-126's", () => {
       "audience.proxy.problem",
       "competitive-frame.proxy.instead",
       "positioning.proxy.only",
+      "identity-frame.proxy.person",
+      "identity-frame.proxy.never",
     ]);
+  });
+
+  // ORV-291 tech notes section 13, T24; spec row 13: the two personality questions are ORV-126's words.
+  it("identity-frame.proxy.person and .never are ORV-126 'Missing strategy' word for word", () => {
+    const wording = {
+      "identity-frame.proxy.person": {
+        en: "If your brand were a person, which three words would people use to describe them?",
+        th: "ถ้าแบรนด์ของคุณเป็นคนคนหนึ่ง คนอื่นจะใช้คำสามคำใดบรรยายเขา",
+        key: "business.question.person",
+      },
+      "identity-frame.proxy.never": {
+        en: "How should your brand never feel?",
+        th: "แบรนด์ของคุณไม่ควรให้ความรู้สึกแบบไหน",
+        key: "business.question.never",
+      },
+    } as const;
+    for (const [id, expected] of Object.entries(wording)) {
+      const q = PROXY_QUESTIONS.find((p) => p.id === id);
+      expect(q, id).toMatchObject(expected);
+      expect(home.get(id), id).toEqual({ en: expected.en, th: expected.th });
+    }
   });
 
   it.each(PROXY_QUESTIONS.map((q) => [q.id, q] as const))(
