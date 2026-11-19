@@ -151,6 +151,20 @@ const everything = (outcome: unknown) =>
 /** The body of a refusal without the request id, which is made for each call. */
 const body = (outcome: unknown) =>
   Object.fromEntries(Object.entries(outcome as object).filter(([key]) => key !== "requestId"));
+/**
+ * The only places an axis value could leak: the body of the outcome and the parsed log lines, with
+ * the two fields that hold digits of their own (the random request id and the duration) left out,
+ * so a short number such as "75" cannot match a UUID or a duration.
+ */
+const whereAxisCouldLeak = (outcome: unknown) =>
+  JSON.stringify([
+    body(outcome),
+    written().map((fields) =>
+      Object.fromEntries(
+        Object.entries(fields).filter(([key]) => key !== "requestId" && key !== "durationMs"),
+      ),
+    ),
+  ]);
 /** Text a person typed or a value the entry carries: none of it may reach a line or a body. */
 const SECRETS = [WORDS, NEVER, PROJECT_ID, UNKNOWN_ID, "reader@example.com", "ws-1"];
 
@@ -199,7 +213,7 @@ describe("give the personality", () => {
     // No answer, axis value, id, address or workspace reaches a line or a body.
     const all = everything(outcome);
     for (const secret of SECRETS) expect(all).not.toContain(secret);
-    expect(all).not.toContain("75");
+    expect(whereAxisCouldLeak(outcome)).not.toContain("75");
   });
 
   it("never reaches a line with the answer when the save fails", async () => {
@@ -378,9 +392,11 @@ describe("entry door", () => {
     });
     expect(state.order).toEqual(["session", "allow-list", "consume"]);
     expect(state.saved).toEqual([]);
-    for (const secret of ["admin", "xxxxx", NEVER, "60"]) {
+    for (const secret of ["admin", "xxxxx", NEVER]) {
       expect(everything(outcome)).not.toContain(secret);
     }
+    // The refused axis value, searched where it could leak (not in the request id or the duration).
+    expect(whereAxisCouldLeak(outcome)).not.toContain("60");
     expect(written()).toMatchObject([{ outcome: "refused", reason: "invalid-input" }]);
   });
 
