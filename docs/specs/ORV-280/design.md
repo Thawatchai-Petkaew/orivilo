@@ -32,6 +32,11 @@ Designer task `ORV-280-design-b`, 2026-11-18, for spec v1.2 (`docs/specs/ORV-280
 - **Measure for the play.** In every cell at 360 and at 1440: badge rect to every `.ds-node` and `.ds-port__handle` rect, gap 0 or more (proposed: 124.8 px to the card and 143.1 px to the dot at 360; unchanged 75.5 px and more at 1440); no `[role=status]` pill with text at rest.
 - **Seen.** At 360 the badge sits alone in the top right corner and the Professional card starts well under it, whole, with its dots; at 1440 nothing moves. Thai "ดูอย่างเดียว" and English "View only" both clear. Light and dark alike.
 - **Sheet.** `sheets/r10-b15.sheet.png`.
+- **Corrected 2026-11-19 (`ORV-290-design-2`, built by `ORV-290-b2-stories-page` at 7b45e65).**
+  - _Where the container sits._ The story cannot put a container on the `Matrix` cell, so the container is the board's own wrapper in the story's `PortBoard` (`NodePort.stories.tsx`, `PortBoard` with `roomBelow`, lines 85 to 123: an `@container` div around the board, whose wrapper takes `h-(--board-height) @max-[554px]:h-(--room)`, with `roomBelow={540}` in `PresentRecipesAndModes`). The wrapper and the cell share one content box width, so the 554 bound and the 540 height are the ones above; the `[data-matrix-cell]` selectors of the CSS block are not used.
+  - _What the play reads._ In the window the story opens in, every `[role=status]` text is empty and the badge clears every card and dot (`expectBoardChromeClear(cell)`). Then in a 360 and a 1440 window each board is fitted again by its own key (Shift+1, padding 0.2, because the board fits only on mount) and the badge alone is read (`expectBoardChromeClear(cell, 0, ".ds-board__mode")`), not the status line that key raises (see "Open points of ORV-290 builder B2" in section 4, point 1).
+  - _Measured at 7b45e65_ (B2's Playwright probe on the dev Storybook, device scale 4, the first fit): 360, boards 294 x 540 at zoom 0.7625, badge to card 112.7 to 131.9 px, to dot 137.1 to 144.1 px (proposed above: 124.8 and 143.1); 1024, boards 454 x 540, 48.5 to 86.4 and 86.3 to 105.3 px; 1440, boards 662 x 300, 75.4 to 94.0 and 69.3 to 88.7 px. Every gap in all six cells is above 0.
+  - _Statements corrected._ "Measured now" above describes `develop` at 6a75c16 before the change: its "294 x 300" and "0.454 to 0.524" are the old 300 px board at 360, not the built one. The built 360 board is 294 x 540 at 0.7625, which is the Decision's 0.762. Its "79.8 px and more to every port dot" at 1440 is replaced by 69.3 px, B2's read, which agrees with the 69 px sign-off ORV-280-signoff-1 measured on `develop` (spec v1.2, item B15). Both stay above 0.
 
 ### Row 19, C1: the centre dock is the first Tab stop
 
@@ -50,6 +55,12 @@ Designer task `ORV-280-design-b`, 2026-11-18, for spec v1.2 (`docs/specs/ORV-280
 - **Measure for the play.** `expectPillsClear` with 4 px: no drawn pill within 4 px of a solid or of another drawn pill. Proposed: 1440, 16 (Thai) or 11 (English) pills drawn, worst clearance 13.1 / 6.9 px, 0 failures; 360, 0 pills drawn, 0 failures.
 - **Seen.** At 1440 the pills that remain sit whole in the corridors between cards; the ones that would sit on a card are gone, and their edges still read by colour and dash. At 360 the board at fit shows only lines, no word on any edge: tidy, but the meaning words are gone at that zoom (needs decision D1, section 4).
 - **Sheets.** `sheets/r20-d1.sheet.png` (now and proposed), `sheets/r20-d1-now.sheet.png`.
+- **Corrected 2026-11-19 (`ORV-290-design-2`, built by `ORV-290-b1-canvas` at 92a42c1).** The rule as built in `packages/design-system/src/components/canvas-board/pill-layout.ts` (`hiddenPills`, `pillTier`, `layoutPills`, `usePillLayout`), run by `CanvasBoard` on a present board only (`usePillLayout(wrapper, readOnly)`, `readOnly` is `variant === "present"`):
+  - Only edge pills keep the 4 px from solids (`.ds-node`, `.ds-node__label`, `.ds-port__handle`). Port name and source pills keep it from every pill already kept, not from solids: a port pill sits beside its own card and dot, so a solids test would hide every one. The decision's "clear of every card, title line, port dot" holds for edge pills.
+  - A tier 1 pill (a pill of the pointed node) is always kept, never tested. "Pointed" is the node under `:hover` or `:focus-visible`; a selected node that is not pointed is tier 4, as row 21 decides.
+  - The clearance is the number 4 (`CLEARANCE`, the value of `space.inline-sm`), not read from the token at run time. The pass reruns in the next frame after a style or class change in the board (a zoom, a pan, a selection), a pointer or focus move, a resize or a font load, and takes its marks off when it stops.
+  - The CSS rule is `.ds-board[data-variant="present"]` before each of the three pill selectors (`recipes.css` lines 3014 to 3018); the port pill's selector outweighs the rule that shows it on hover, selection and focus.
+  - `expectPillsClear` takes the clearance as its second argument (default 4) and also measures port name and source pills against solids and every other drawn pill.
 
 ### Row 21, D2: a shown pill covers no other pill
 
@@ -67,6 +78,7 @@ Designer task `ORV-280-design-b`, 2026-11-18, for spec v1.2 (`docs/specs/ORV-280
 - **Measure for the play.** Computed `z-index` of `.react-flow__node-group` is `-1`; the centre and both ends of every edge pill hit the pill itself (`elementFromPoint`).
 - **Seen.** The stale pill "ป้อนเข้า, ล้าสมัย" and "input, stale" read whole over the group's edge, in light and dark, Thai and English; the cards inside the group still draw above the edges.
 - **Sheet.** `sheets/r22-d3.sheet.png`.
+- **Corrected 2026-11-19 (`ORV-290-design-2`, built by `ORV-290-b1-canvas`).** `CanvasBoard.tsx` line 435 gives a group node `zIndex: -1` only when its record sets no `zIndex` of its own; a record that sets one keeps it. No CSS `z-index` rule was added.
 
 ### Row 23, D4: no empty gap after a cut Thai title (`PresentNarrowLabels`)
 
@@ -89,6 +101,10 @@ Designer task `ORV-280-design-b`, 2026-11-18, for spec v1.2 (`docs/specs/ORV-280
 - **Measure for the play.** On a cut title: `text-overflow` is `clip`, the gap from the title's right to the next shown part is 4 px within 0.5 px.
 - **Seen.** "บริษัทพัฒ" and "Anuphan-and" fade into the next part with a short even space; Thai upper and lower marks stay whole. At every zoom and both modes.
 - **Sheet.** `sheets/r23-d4.sheet.png`.
+- **Corrected 2026-11-19 (`ORV-290-design-2`, built by `ORV-290-b1-canvas`).**
+  - The title's own `margin-inline-end: var(--ds-space-inline-sm)` is not built: with the label's own 4 px flex gap it measured 8 px between a cut title and the next part. The 4 px is the label's gap alone (`recipes.css` lines 2907 to 2923: `text-overflow: clip` on `.ds-node__label .ds-node__title`, and only the `mask-image` on `[data-cut]`). The play's 4 within 0.5 px holds.
+  - `CanvasNode.tsx` sets `data-cut` when `scrollWidth > clientWidth`, with no 0.5 slack (both are whole numbers), and measures again on a `ResizeObserver` and on the font set's `loadingdone` event (a font load does not change the title's box, so the observer alone cannot see it).
+  - The ellipsis assertion in `CanvasNode.stories.tsx` (near line 787) now asserts `clip`.
 
 ### Row 24, D5, B10, B17: the dock at 360
 
@@ -179,6 +195,14 @@ Designer task `ORV-280-design-b`, 2026-11-18, for spec v1.2 (`docs/specs/ORV-280
 - **Measure.** Stage radius equals the panel radius less `space.inset-md`, within 1 px; inset 17 px.
 - **Seen.** The two corners run parallel, the stage reads as set into the panel.
 - **Sheets.** `sheets/r25-edge-focus.sheet.png`, `sheets/r25-stage.sheet.png`.
+- **Corrected 2026-11-19 (`ORV-290-design-2`, built by `ORV-290-b1-canvas` at 92a42c1).** The focused edge as built (`recipes.css` lines 2213 to 2222 and 3042 to 3080, `CanvasEdge.tsx` lines 108 to 119):
+  - No `outline: none` is written: React Flow's own sheet already sets it, and the play asserts `none`. What is dropped is the global focus rule's box shadow, by `box-shadow: var(--_focus-shadow-none)` on `.ds-board .react-flow__edge:focus-visible` (`recipes.test.ts` bans a raw `none`).
+  - `opacity: 1` sits on `.ds-edge` under `.ds-board[data-variant="present"][data-has-selection] .react-flow__edge:focus-visible`, the case where the other edges step back; on the wrapper it changed nothing.
+  - The fill part strokes `var(--_ground)`, a private property set to `--cmp-board-bg` on an edit board and to `--ds-surface-canvas` on a present board, whose ground is not `--cmp-board-bg`.
+  - W is `--_fw`, the width the edge's own path draws at: the base width, the selected width for a derived, selected or `data-selected` edge, the present selected width for a chained or hovered edge, and `2 x selected - base` for a chained or hovered derived edge. So the shape stays a 1 px line and a 3 px halo on every edge state.
+  - The edge's own path is `path.ds-edge__path` without React Flow's `react-flow__edge-path` class: React Flow's sheet draws the selected stroke on `.react-flow__edge.selectable:focus-visible .react-flow__edge-path`, so removing `:focus-visible` from our rule alone left the selected look. Nothing else reads that class; the recipe sets the stroke, width, fill and cap. The right-click target in `CanvasContextMenu.stories.tsx` (line 117) is `.react-flow__edge-interaction`, as the first path is now a focus part with no pointer events.
+  - Measured at zoom 1, one pixel column across edge ab at a quarter of its length (Playwright, device scale 4, built story, light and dark), in CSS px: ground 3.25, halo 3, line 1, ground 1, own stroke 1.5, ground 1, line 1, halo 3, ground 3.25. The stroke reads rgb(91, 90, 102) light and rgb(169, 167, 179) dark, the kind colour, not the selected violet. The in-suite play shoots at one device px per CSS px and reads the outer runs 3 and 1 and the core as one piece, 3.5 within 1. `FocusedEdgeHovered` shows hover by the pseudo-states addon's class, not a pointer.
+  - The stage radius is `--_stage-radius: calc(var(--cmp-dialog-radius) - var(--ds-space-inset-md))` (`recipes.css` lines 1517 to 1519) without `max(0px, ...)`: a negative radius computes to 0, and the `Viewer` play sets a 4 px panel and reads 0. Measured: stage inset 17 px, its corners the panel radius less 16.
 
 ### Row 26, C3, B11, B18
 
@@ -219,6 +243,9 @@ Designer task `ORV-280-design-b`, 2026-11-18, for spec v1.2 (`docs/specs/ORV-280
 - **Measure.** The hairline's computed colour is `border.subtle` (rgb(227, 226, 220) light); it shows on paper pages and paper tiles, light and dark.
 - **Seen.** In light a quiet hairline draws the page edge, barely visible at sheet scale but clear at 1:1; in dark the page already stands off the stage and the line adds nothing loud. The `border.control` alternative (`r28-c4-tokens`) reads heavier, like a form field (needs decision C4).
 - **Sheets.** `sheets/r28-c4.sheet.png`, `sheets/r28-c4-corner.sheet.png`, `sheets/r28-c4-tokens.sheet.png`.
+- **Corrected 2026-11-19 (`ORV-290-design-2`, built by `ORV-290-b2-stories-page` at 7b45e65).**
+  - _Statement corrected: the Measure._ A computed colour does not prove the line is drawn: a mutant with the `::after` at opacity 0 kept the computed style and stayed green on it. The measure that replaces it is a pixel read across the page edge: `expectEdgeColour` (new in `visual-asserts.ts`) reads, at one device px per CSS px, outside 4, line 1, inside 4 px, on `PreviewDirectionBoard` (light) and the new `PreviewDirectionBoardDark` (dark). B2's probe at device scale 4 reads 1 CSS px of rgb(227, 226, 220) in light and rgb(43, 42, 54) in dark on the top, left, bottom and right edges, at 1440 and 1200 light, 1440 and 360 dark. `expectEdgeInk` cannot see this line (46 apart from the stage over RGB, under its threshold of 48). The 12 brandbook pages are read by computed style only, because on a dark page the line lies near the page colour and a pixel read has no ground to tell it from.
+  - _Built as written:_ the rule is the generic `[data-stage] [data-art-frame]::after` (`recipes.css` lines 1521 to 1530), so any art frame inside any stage draws the line, not only the viewer dialog's; `catalog/application/dialog.yaml` says so. Token `border.subtle`, decision C4.
 
 ### Row 29, C5: the "Brand evidence report" heading shows whole
 
@@ -243,6 +270,7 @@ Designer task `ORV-280-design-b`, 2026-11-18, for spec v1.2 (`docs/specs/ORV-280
 - **Measure for the play.** Computed font size equals `--ds-type-label-sm-font-size` (13), weight 500, line height 13.
 - **Seen.** The numerals are smaller and centred in the 22 px disc with even air. In dark the disc's ring (`ring-surface-card`) disappears on the black paper at point 3, an extra note for the builder (keep the ring on `border.subtle` in dark).
 - **Sheet.** `sheets/r31-c10.sheet.png`.
+- **Corrected 2026-11-19 (`ORV-290-design-2`, built by `ORV-290-b2-stories-page` at 7b45e65).** Built with the second route: `scope("dark")` stays on the disc, and the numeral is an inner span `font-body text-label-sm leading-none tabular-nums` (`examples/orivilo-canvas.tsx` line 1944); computed 13 px, line height 13. The "extra note" on the ring is read as dark only: the ring is `ring-border-subtle` when the page is dark and `ring-surface-card` when it is light (line 1929, from the page's mode), so light is unchanged. Measured in dark: the ring reads rgb(43, 42, 54) (was rgb(30, 29, 38)). Whether that ring is strong enough on the black paper is point 4 of "Open points of ORV-290 builder B2" in section 4.
 
 ### Row 32, B14: no port pill within 8 world px of another node
 
@@ -268,6 +296,10 @@ Designer task `ORV-280-design-b`, 2026-11-18, for spec v1.2 (`docs/specs/ORV-280
 - **Effect.** The world grows from 4484 to about 4912 wide; the fit at 1440 moves from 0.261 to 0.25 (the floor) and the whole board still shows (needs decision B14).
 - **Seen.** The p-pat pills sit whole in a wider corridor between p-pat and p-form; no column touches the next; the board reads as the same eight chapters with a little more air.
 - **Sheets.** `sheets/r32-b14.sheet.png`, `sheets/r32-b14-pat.sheet.png`.
+- **Corrected 2026-11-19 (`ORV-290-design-2`, built by `ORV-290-b2-stories-page` at 7b45e65).**
+  - The x values are built as the table gives them (`examples/orivilo-canvas.data.ts`; `b-pos` and `b-name` take their 392 through `briefNode`), and `docs/specs/ORV-274/design.md` section 3 records them.
+  - The world is 4912 wide exactly (`p-landing`, `p-form` and `p-report` at 4432 plus 480), not "about". `orivilo-canvas.test.ts` bounds it at 4912 x 2260 (was 4640, the ORV-274 budget). At the 0.25 floor it needs a 1228 px board: a 1440 window shows it whole; the old 1200 test window (board 1168) no longer does, so the `Default` play runs its Overview step in a 1440 window. B2 reports the whole world from about a 1240 px window up; from its own figures (a 1228 px board, 32 px of page margin at 1200) the bound lies between 1240 and 1260.
+  - The Measure is called as `expectPortPillsClear(el, 8, Number.NEGATIVE_INFINITY)` (`orivilo-canvas.stories.tsx` line 471), on every node focused in turn, in English and Thai: 0 pills under 8 world px to another node's card, title line or dot. The pill to pill bound is switched off because the three input pills of `p-pat` that share the row `form` (Button, Field and RadioGroup) draw over each other, a gap of -32.1 world px; that is a defect inside one node, already on `develop`, and not this row's measure (point 3 of "Open points of ORV-290 builder B2" in section 4).
 
 ### Row 33, B1: still-to-ask questions read apart from the person's words
 
@@ -372,6 +404,7 @@ The `heading` prop, its default and its `SectionHeader` branch leave `business-n
 - **Measure for the play.** The vertical gap between stacked cards is 25.4 world px or more (16 or more asked); on screen 11.2 px at 360 (zoom 0.441) and 35.4 px at 1440 (zoom 1.393).
 - **Seen.** Each card stands apart with a visible band of ground at every zoom; the row 9 edges still draw clear.
 - **Sheet.** `sheets/r43-s1.sheet.png`.
+- **Corrected 2026-11-19 (`ORV-290-design-2`, built by `ORV-290-b2-stories-page` at 7b45e65).** _Statement corrected:_ the old pitch of the edit board was 150, the default `gap` of the story's `pairs()` (`CanvasEdge.stories.tsx` line 29), which left 3.4 world px between stacked cards, not 110. Built: `STACK_GAP = 172` (line 691) passed to the `KindsAndZoom` edit board only; a collapsed card is 146.6 world px tall, so the gap is 25.4 world px, 6.4 screen px at the 0.25 floor. The present board's `kindGrid` pitch of 110 is unchanged: a probe of its columns found no pair of cards under 25.3 world px. The play asserts 25.3 world px or more (25.4 less 0.1 for rounding) at zooms 0.25, 0.5, 1 and 2, over 4 stacked pairs.
 
 ### Row 44, S2: the English stories read in English
 
@@ -411,6 +444,14 @@ The sign-off on PR B checks, at 360 and 1440, Thai and English, light and dark:
 10. Every `PageHeader` story, `business-intake` at 768, 1024, 1440, `business-list`, every `business-*` story at 360 (rows 34 to 37), and the four new board stories (row 38).
 11. `NodePort` `KindsInEnglish`, `ConnectedInEnglish`, `Kinds`; `CanvasBoard` `OpenNode` and `OpenNodeInEnglish` (rows 44, 45).
 
+Added 2026-11-19 (`ORV-290-design-2`), for the sign-off on head 7b45e65:
+
+- Item 1: in Storybook the `PresentRecipesAndModes` play runs too, and outside the Vitest runner `atWindow` runs its check in the reader's own window (`testing/window.ts`), so the play presses each board's fit key and its status line stays on screen after it. Shoot the story after the play and check that line against the cards (section 4, "Open points of ORV-290 builder B2", point 1).
+- Item 6: the focused edge is in `CanvasEdge` `FocusedEdge`, `FocusedEdgeInEnglish` and `FocusedEdgeHovered`; the stage in `Dialog` `Viewer`, `ViewerInEnglish` and `ViewerAt360`.
+- Item 7: the paper bounds in dark are in the new `orivilo-canvas` `PreviewDirectionBoardDark`; check the `c-demo` rings in dark on `Default` with the dark mode, at point 3 (point 4).
+- Item 8: `orivilo-canvas` `Default` at 1440 for the Overview (the whole 4912 world at 0.25), and once at 1280 to see the narrowest window that still shows it whole (point 2).
+- `CanvasBoard` `PillLayoutPass` and the `visual-asserts` stories (`PillsClearAmongPills`, `GlyphClipThrough`, `EdgeColour`, `BoardChromeClear`) are test pages built by hand to prove the helpers, not looks of the product; they need no look judgement.
+
 ## 4. Needs decision
 
 Four of these are decided for slice ORV-290 on 2026-11-19, by the main session under the owner's POC delegation (ADR 0012 decision 4); the owner can change any of them. The others stay open for the second slice card.
@@ -423,7 +464,34 @@ Four of these are decided for slice ORV-290 on 2026-11-19, by the main session u
 - **B10 and B17.** The change to the 360 dock rule (`canvas-controls.yaml` line 21, `docs/specs/ORV-274/spec.md` row 12).
 - **B3.** The proposed Thai and English lede copy, for the owner's review.
 
+### Open points of ORV-290 builder B2, answered 2026-11-19 (`ORV-290-design-2`)
+
+Builder `ORV-290-b2-stories-page` left four points at head 7b45e65. Each answer is accept, follow-up item or change needed. The four decisions D1, C4, B14 and B15 above stand as written.
+
+1. **Row 10: the status line a person's fit key raises, at 360. Change needed.**
+   - _Measure._ After Shift+1 at 360 the status line "Fitted 1 node to the view" ("พอดีจอ 1 โหนด"), bottom left, overlaps the card by 11.2 px (neutral, light, the 540 px board; B2).
+   - _Why before the merge._ The line is not brief: `CanvasBoard` keeps the message until the next command or a new `status` from the shell (`message` state, cleared only at line 389). Outside the Vitest runner `atWindow` runs its check in the reader's own window, so in Storybook the play itself presses the fit key on every board and leaves that line over the card. That is the state the visual sign-off renders, and it is the look sign-off ORV-280-signoff-1 rejected (F2, "a fit status pill over the card's corner in every cell", spec v1.2 item B15). Row 10's text covers only the board at rest, so the play passes, but the look does not.
+   - _Wanted._ In every cell of `NodePort` `PresentRecipesAndModes`, at 360 and at 1440, after the board's own fit key: the status line's rect keeps a gap of 0 or more to every `.ds-node` and `.ds-port__handle` rect, the same bound as the badge, with the board component unchanged (decision B15). The route (the story's board height under 554, or another story route) is a design row of its own, rendered at 360 and 1440, Thai and English, light and dark, before any builder (L-0017); the component route is follow-up D16 below.
+2. **Row 32, B14: the 4912 world fits whole only from a window of about 1240 to 1260 px. Accept.**
+   - _Measure._ 4912 x 0.25 is a 1228 px board. Before, 4484 x 0.25 was 1121, about a 1153 px window. A 1280, 1366 or 1440 window still shows the whole world at the Overview; from about 1153 to 1260 the Overview now sits at the floor with the world's ends past the board.
+   - _Why._ Decision B14 accepts the 0.25 floor at 1440, and under the bound the board does what `docs/specs/ORV-274/design.md` section 2 already gives for 360: the floor, the start in view, pan or a chapter button. The start view under the floor is item C3 of the second slice card. Nothing to build.
+3. **Row 32: the three `p-pat` input pills that share one row. Follow-up item C12.**
+   - _Measure._ Button, Field and RadioGroup sit on the row `form` and draw over each other, a gap of -32.1 world px (B2); Badge and Alert share the row `notice` the same way and are not yet measured.
+   - _Why not now._ It is a defect inside one node, already on `develop`, outside this slice's rows; row 32's measure is the distance to other nodes, and it holds. The names show only while `p-pat` is pointed, selected or focused.
+4. **Row 31: the `c-demo` ring in dark. Accept for this PR; follow-up item C13.**
+   - _Measure._ The dark ring is `border.subtle`, rgb(43, 42, 54) (gray-700). Computed from the token hex, not rendered: about 1.3 to 1 against the disc's own ground (`surface.canvas` dark, gray-900) and about 1.4 to 1 against gray-950, the darkest paper grey. The old `surface.card` ring (gray-800) was lower.
+   - _Why accept now._ Row 31 asks for the numeral's step, and it holds (13 px). The numeral, `text.primary` on the disc, carries the point; the discs are `aria-hidden` and the numbered list under the image names each point. The ring bounds the disc, it is not the meaning.
+
+### Follow-up items for the second slice card of ORV-280 (rows 19, 24, 26, 33 to 41)
+
+Added 2026-11-19 (`ORV-290-design-2`). The second slice card's spec gives them rows; each needs its own design row, rendered, before a builder.
+
+- **C12.** One `p-pat` row holds several input ports (`form`: Button, Field, RadioGroup; `notice`: Badge, Alert), so their name pills draw over each other (-32.1 world px for `form`). Wanted: the pills of one node keep `expectPortPillsClear`'s default pill to pill bound (7.5) on every node of `Default` and `InThai`, so the prototype plays can drop `Number.NEGATIVE_INFINITY`. Route to design: one row per input port, or one pill per shared row naming its ports.
+- **C13.** The `c-demo` disc ring in dark reads about 1.4 to 1 on the black paper. Wanted: 3 to 1 or more against the paper under the disc, from an existing token, quiet next to the photograph. `border.control` (gray-500) computes about 4.9 to 1 against gray-900 and 5.5 to 1 against gray-950, and may read loud; render both before choosing.
+- **D16.** On every present board, a status line a fit command raises lies over the cards when the board is short: the fit's bottom padding (`freePadding` in `CanvasBoard`) counts the bottom panels and the task bar, not the status line. Wanted: after a fit, the status line keeps a gap of 0 or more to every card and dot. A component change (lane L), the board-level route that decision B15 set aside for row 10.
+
 ## 5. Changelog
 
 - 2026-11-18, `ORV-280-design-b`: first version; rows 10 and 19 to 45 with their measures, CSS and sheets.
 - 2026-11-19, `ORV-290-spec-1`: section 4 marks D1, C4, B14 and B15 as decided for slice ORV-290 (main session, under the owner's POC delegation, ADR 0012 decision 4; the owner can change them). No measure, row or sheet changed.
+- 2026-11-19, `ORV-290-design-2`: the design brought to head 7b45e65 of the ORV-290 slice before its visual sign-off and code review, from the reports of builder tasks `ORV-290-b1-canvas` (92a42c1) and `ORV-290-b2-stories-page` (7b45e65) and the built files. Dated corrections in rows 10, 20, 22, 23, 25, 28, 31, 32 and 43, among them the three statements B2 found wrong (row 43's old pitch, 150 not 110; row 28's proof, a pixel read, not a computed colour; row 10's 294 x 300 at 0.454, the old board, the built one 294 x 540 at 0.7625) and row 10's dot gap at 1440 (69.3, not 79.8). Section 3 names the new stories for the sign-off. Section 4 answers B2's four open points (row 10's fit status line: change needed; the 4912 world: accept; `p-pat`'s shared rows: follow-up C12; the `c-demo` ring in dark: accept, follow-up C13) and lists C12, C13 and D16 for the second slice card. No look changed; D1, C4, B14 and B15 stand as written.

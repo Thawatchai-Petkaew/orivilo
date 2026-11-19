@@ -76,6 +76,10 @@ Each look row points to its section of `docs/specs/ORV-280/design.md`, section 2
 - Row 44: "Row 44, S2: the English stories read in English".
 - Row 45: "Row 45, S3: no open glyph on a board that cannot open".
 
+## Rows per PR
+
+- PR 230: rows 10, 20-23, 25, 27-32, 42-45
+
 ## Rows that render nothing
 
 - Rows: 42
