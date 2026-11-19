@@ -147,11 +147,14 @@ export const businessReading = pgTable(
       "business_reading_prompt_version_check",
       sql`${t.promptVersion} is null or char_length(${t.promptVersion}) between 1 and 40`,
     ),
-    // A model record names its model, adapter and prompt and has no reason; a rule-based record is
-    // not that, and holds no evidence.
+    // A model record names its model, adapter and prompt, has no reason and holds its items as an
+    // array of at most 200 (the record's BUSINESS_RECORD_MAX_ITEMS); a rule-based record holds no
+    // evidence, has a reason and none of the four model columns (ORV-287, orv287-shape-1). No clause
+    // on `job`: a later job may write rows here. The `case` keeps jsonb_array_length from running on
+    // an object or a scalar, so a bad row fails with this check and no other error.
     check(
       "business_reading_shape",
-      sql`(${t.method} = 'model') = (${t.reason} is null and ${t.modelId} is not null and ${t.adapterId} is not null and ${t.adapterVersion} is not null and ${t.promptVersion} is not null) and (${t.method} <> 'rule-based' or ${t.evidence} = '[]'::jsonb)`,
+      sql`(${t.method} = 'model') = (${t.reason} is null and ${t.modelId} is not null and ${t.adapterId} is not null and ${t.adapterVersion} is not null and ${t.promptVersion} is not null) and (${t.method} <> 'rule-based' or (${t.evidence} = '[]'::jsonb and ${t.reason} is not null and ${t.modelId} is null and ${t.adapterId} is null and ${t.adapterVersion} is null and ${t.promptVersion} is null)) and (${t.method} <> 'model' or (case when jsonb_typeof(${t.evidence}) = 'array' then jsonb_array_length(${t.evidence}) <= 200 else false end))`,
     ),
   ],
 );
@@ -211,6 +214,62 @@ export const businessPositioningChoice = pgTable(
     check(
       "business_positioning_choice_shape",
       sql`(${t.kind} in ('picked', 'edited')) = (${t.draftId} is not null and ${t.option} is not null) and (${t.kind} <> 'skipped') = (${t.statement} is not null) and (${t.draftId} is null) = (${t.option} is null)`,
+    ),
+  ],
+);
+
+/**
+ * What a person did on the four brand foundation nodes (ORV-291, tech notes section 4.1): one row
+ * per act, insert only, keyed to the project and not the intake (an entry outlives a new intake).
+ * The newest row of a node is its current entry, and the node's state is computed from the rows each
+ * time, never stored. The payload is checked JSON: the app schema (`storedEntrySchema`) holds its
+ * shape and the axes, and this table holds the pairs, the text bounds and one entry per kind, so no
+ * direct call passes a missed app check. No model, adapter or prompt column exists: no entry can
+ * hold a model id. Written and read only through `foundationService` in @orivilo/auth, inside
+ * `withWorkspace`; the app role may insert and select, never update or delete (the access migration).
+ */
+export const businessFoundationEntry = pgTable(
+  "business_foundation_entry",
+  {
+    id: text("id").primaryKey(),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    projectId: text("project_id").notNull(),
+    node: text("node").notNull(),
+    kind: text("kind").notNull(),
+    payload: jsonb("payload").notNull(),
+    // A plain id, not a foreign key: a record keeps who wrote it after they leave (as business_intake).
+    createdBy: text("created_by").notNull(),
+    // The time of the insert after the project row lock, not the transaction's start (D6).
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
+      .default(sql`clock_timestamp()`)
+      .notNull(),
+  },
+  (t) => [
+    // The pair proves the entry sits in its project's workspace.
+    foreignKey({
+      columns: [t.projectId, t.workspaceId],
+      foreignColumns: [project.id, project.workspaceId],
+      name: "business_foundation_entry_project_fk",
+    }).onDelete("cascade"),
+    index("business_foundation_entry_workspaceId_idx").on(t.workspaceId),
+    index("business_foundation_entry_project_created_idx").on(t.projectId, t.createdAt),
+    // One skip, one given, one answered and one written entry per node of a project: given stays
+    // given, and a skip may come before a given entry but never twice.
+    unique("business_foundation_entry_one_per_kind").on(t.projectId, t.node, t.kind),
+    check(
+      "business_foundation_entry_pair",
+      sql`(${t.node}, ${t.kind}) in (('identity-frame', 'given'), ('identity-frame', 'skipped'), ('architecture', 'answered'), ('name', 'given'), ('core-idea', 'written'), ('core-idea', 'skipped'))`,
+    ),
+    check(
+      "business_foundation_entry_payload_shape",
+      sql`jsonb_typeof(${t.payload}) = 'object' and (${t.kind} = 'skipped') = (${t.payload} = '{}'::jsonb)`,
+    ),
+    // Each text key, where present, is a JSON string within its bound in code points.
+    check(
+      "business_foundation_entry_text",
+      sql`((${t.payload} ? 'person') is false or (jsonb_typeof(${t.payload}->'person') = 'string' and char_length(${t.payload}->>'person') between 1 and 2000)) and ((${t.payload} ? 'never') is false or (jsonb_typeof(${t.payload}->'never') = 'string' and char_length(${t.payload}->>'never') between 1 and 2000)) and ((${t.payload} ? 'remember') is false or (jsonb_typeof(${t.payload}->'remember') = 'string' and char_length(${t.payload}->>'remember') between 1 and 2000)) and ((${t.payload} ? 'name') is false or (jsonb_typeof(${t.payload}->'name') = 'string' and char_length(${t.payload}->>'name') between 1 and 60)) and ((${t.payload} ? 'statement') is false or (jsonb_typeof(${t.payload}->'statement') = 'string' and char_length(${t.payload}->>'statement') between 1 and 300))`,
     ),
   ],
 );

@@ -16,6 +16,7 @@ import {
   ruleBasedReading,
   scoreConfidence,
   type StoredChoice,
+  type StoredEntry,
   type StoredIntake,
   toBusinessView,
   wordCount,
@@ -28,19 +29,22 @@ import { fixtures } from "../components/fixtures";
  * through the engine's `toBusinessView`, so a story shows what the screen gets from a saved project.
  */
 
-const SAVED_AT = "2026-11-18T03:15:00.000Z";
+/** The time every fixture was saved, read by `business-fixtures.test.ts` as well. */
+export const SAVED_AT = "2026-11-18T03:15:00.000Z";
 
 const view = (
   name: string,
   intake: Omit<StoredIntake, "version">,
   reading?: BusinessReading,
   positioning?: { intakeId: string; choice: StoredChoice | null },
+  foundation?: StoredEntry[],
 ): BusinessView =>
   toBusinessView({
     project: { id: "fixture", name, createdAt: SAVED_AT },
     intake: { version: INTAKE_VERSION, ...intake },
     ...(reading === undefined ? {} : { reading }),
     ...(positioning === undefined ? {} : { positioning }),
+    ...(foundation === undefined ? {} : { foundation }),
   });
 
 /** Thai, every field given, a line break inside one answer. */
@@ -126,13 +130,13 @@ export const PROJECTS: readonly FixtureProject[] = [
 
 // ----- readings (ORV-283, slice 3) -----
 
-const INTAKE_ID = "fixture";
+export const INTAKE_ID = "fixture";
 /** Not the hash of any answer: no one read these answers, the fixture only needs a well-formed value. */
-const FIXTURE_HASH = "0".repeat(64);
+export const FIXTURE_HASH = "0".repeat(64);
 /** The number of words below which a reading has `few-words` (`word-count-1`). */
 const FEW_WORDS = 20;
 
-type ReadingSpec = {
+export type ReadingSpec = {
   field: BusinessReadField;
   value: string;
   quotes: ReadonlyArray<readonly [BusinessAnswerKey, string]>;
@@ -150,7 +154,10 @@ const NAME_FIELDS: readonly BusinessReadField[] = [
  * `single-signal` for one span). No model ran: the readings are fixture data, and the record is
  * checked by the engine's own schema in `toBusinessView`'s tests and here by `inputEvidenceSchema`.
  */
-function readingOf(intake: Omit<StoredIntake, "version">, specs: ReadingSpec[]): BusinessReading {
+function readingOf(
+  intake: Omit<StoredIntake, "version">,
+  specs: ReadingSpec[],
+): Extract<BusinessReading, { method: "model" }> {
   const answers = intake as Partial<Record<BusinessAnswerKey, string>>;
   const draft = (
     key: BusinessAnswerKey,
@@ -260,7 +267,7 @@ function readingOf(intake: Omit<StoredIntake, "version">, specs: ReadingSpec[]):
 }
 
 /** Thai, every field given. The idea holds 22 words, the customers 11 and the problem 12 (`word-count-1`). */
-const THAI_READ_INTAKE = {
+export const THAI_READ_INTAKE = {
   idea: "บ้านสวนคอฟฟี่ ร้านกาแฟคั่วเองที่ขายเมล็ดกาแฟให้พนักงานออฟฟิศที่อยากดื่มกาแฟดีๆ ที่บ้าน",
   industry: "ร้านกาแฟ",
   customers: "พนักงานออฟฟิศอายุ 25 ถึง 40 ปีที่ทำงานในเมือง",
@@ -273,56 +280,55 @@ const THAI_READ_INTAKE = {
  * answer (two spans), a problem below the floor (one span in 12 words), and an alternative whose
  * model value is markup, which must show as text.
  */
-export const THAI_READ_VIEW = view(
-  "บ้านสวนคอฟฟี่",
-  THAI_READ_INTAKE,
-  readingOf(THAI_READ_INTAKE, [
-    {
-      field: "situation.name",
-      value: "บ้านสวนคอฟฟี่",
-      quotes: [["idea", "บ้านสวนคอฟฟี่"]],
-    },
-    {
-      field: "business-core.offer",
-      value: "ร้านกาแฟคั่วเองที่ขายเมล็ดกาแฟ",
-      quotes: [["idea", "ร้านกาแฟคั่วเองที่ขายเมล็ดกาแฟ"]],
-    },
-    {
-      field: "audience.customers",
-      value: "พนักงานออฟฟิศ",
-      quotes: [
-        ["idea", "พนักงานออฟฟิศ"],
-        ["customers", "พนักงานออฟฟิศอายุ 25 ถึง 40 ปี"],
-      ],
-    },
-    {
-      field: "audience.problem",
-      value: "กาแฟสำเร็จรูปรสไม่ดี",
-      quotes: [["problem", "กาแฟสำเร็จรูปรสไม่ดี"]],
-    },
-    {
-      field: "competitive-frame.category",
-      value: "ร้านกาแฟ",
-      quotes: [["industry", "ร้านกาแฟ"]],
-    },
-    {
-      field: "competitive-frame.alternatives",
-      value: "<img src=x onerror=alert(1)>",
-      quotes: [["competitors", "<img src=x onerror=alert(1)>"]],
-    },
-    {
-      field: "competitive-frame.alternatives",
-      value: "ร้านกาแฟหน้าปากซอย",
-      quotes: [["competitors", "ร้านกาแฟหน้าปากซอย"]],
-    },
-  ]),
-);
+export const THAI_READ_SPECS: ReadingSpec[] = [
+  {
+    field: "situation.name",
+    value: "บ้านสวนคอฟฟี่",
+    quotes: [["idea", "บ้านสวนคอฟฟี่"]],
+  },
+  {
+    field: "business-core.offer",
+    value: "ร้านกาแฟคั่วเองที่ขายเมล็ดกาแฟ",
+    quotes: [["idea", "ร้านกาแฟคั่วเองที่ขายเมล็ดกาแฟ"]],
+  },
+  {
+    field: "audience.customers",
+    value: "พนักงานออฟฟิศ",
+    quotes: [
+      ["idea", "พนักงานออฟฟิศ"],
+      ["customers", "พนักงานออฟฟิศอายุ 25 ถึง 40 ปี"],
+    ],
+  },
+  {
+    field: "audience.problem",
+    value: "กาแฟสำเร็จรูปรสไม่ดี",
+    quotes: [["problem", "กาแฟสำเร็จรูปรสไม่ดี"]],
+  },
+  {
+    field: "competitive-frame.category",
+    value: "ร้านกาแฟ",
+    quotes: [["industry", "ร้านกาแฟ"]],
+  },
+  {
+    field: "competitive-frame.alternatives",
+    value: "<img src=x onerror=alert(1)>",
+    quotes: [["competitors", "<img src=x onerror=alert(1)>"]],
+  },
+  {
+    field: "competitive-frame.alternatives",
+    value: "ร้านกาแฟหน้าปากซอย",
+    quotes: [["competitors", "ร้านกาแฟหน้าปากซอย"]],
+  },
+];
+/** The saved record of the Thai readings, which `business-fixtures.test.ts` holds to `readBusiness`. */
+export const THAI_READ_RECORD = readingOf(THAI_READ_INTAKE, THAI_READ_SPECS);
+export const THAI_READ_VIEW = view("บ้านสวนคอฟฟี่", THAI_READ_INTAKE, THAI_READ_RECORD);
 
 /**
  * English, with no customers answer, so a reading on the customers stands with no words of the
  * person's beside it. The idea holds 29 words, the problem 10 and the industry 4.
  */
-const ENGLISH_READ_INTAKE = {
+export const ENGLISH_READ_INTAKE = {
   idea: "Canalside Cafe is a small roastery and bakery that sells freshly roasted beans and warm pastries to people who work in the old town and want a quiet seat.",
   industry: "Coffee shop and bakery",
   problem: "She wants a quiet seat, good coffee and no wait.",
@@ -330,46 +336,45 @@ const ENGLISH_READ_INTAKE = {
     "The chain cafe at the end of the lane, and <b>canned</b> coffee from the corner shop.",
 } as const;
 
-export const ENGLISH_READ_VIEW = view(
-  "Canalside Cafe",
-  ENGLISH_READ_INTAKE,
-  readingOf(ENGLISH_READ_INTAKE, [
-    { field: "situation.name", value: "Canalside Cafe", quotes: [["idea", "Canalside Cafe"]] },
-    {
-      field: "business-core.offer",
-      value: "A small roastery and bakery",
-      quotes: [["idea", "a small roastery and bakery"]],
-    },
-    {
-      field: "audience.customers",
-      value: "People who work in the old town",
-      quotes: [["idea", "people who work in the old town"]],
-    },
-    {
-      field: "audience.problem",
-      value: "A quiet seat",
-      quotes: [
-        ["idea", "a quiet seat"],
-        ["problem", "She wants a quiet seat"],
-      ],
-    },
-    {
-      field: "competitive-frame.category",
-      value: "Coffee shop",
-      quotes: [["industry", "Coffee shop"]],
-    },
-    {
-      field: "competitive-frame.alternatives",
-      value: "<b>canned</b> coffee",
-      quotes: [["competitors", "<b>canned</b> coffee"]],
-    },
-    {
-      field: "competitive-frame.alternatives",
-      value: "The chain cafe at the end of the lane",
-      quotes: [["competitors", "The chain cafe at the end of the lane"]],
-    },
-  ]),
-);
+export const ENGLISH_READ_SPECS: ReadingSpec[] = [
+  { field: "situation.name", value: "Canalside Cafe", quotes: [["idea", "Canalside Cafe"]] },
+  {
+    field: "business-core.offer",
+    value: "A small roastery and bakery",
+    quotes: [["idea", "a small roastery and bakery"]],
+  },
+  {
+    field: "audience.customers",
+    value: "People who work in the old town",
+    quotes: [["idea", "people who work in the old town"]],
+  },
+  {
+    field: "audience.problem",
+    value: "A quiet seat",
+    quotes: [
+      ["idea", "a quiet seat"],
+      ["problem", "She wants a quiet seat"],
+    ],
+  },
+  {
+    field: "competitive-frame.category",
+    value: "Coffee shop",
+    quotes: [["industry", "Coffee shop"]],
+  },
+  {
+    field: "competitive-frame.alternatives",
+    value: "<b>canned</b> coffee",
+    quotes: [["competitors", "<b>canned</b> coffee"]],
+  },
+  {
+    field: "competitive-frame.alternatives",
+    value: "The chain cafe at the end of the lane",
+    quotes: [["competitors", "The chain cafe at the end of the lane"]],
+  },
+];
+/** The saved record of the English readings, which `business-fixtures.test.ts` holds to `readBusiness`. */
+export const ENGLISH_READ_RECORD = readingOf(ENGLISH_READ_INTAKE, ENGLISH_READ_SPECS);
+export const ENGLISH_READ_VIEW = view("Canalside Cafe", ENGLISH_READ_INTAKE, ENGLISH_READ_RECORD);
 
 /** The model values of the two fixtures that hold markup, which a story must prove render as text. */
 export const MARKUP_READINGS = {
@@ -422,10 +427,16 @@ const choiceOf = (
       };
 
 /** The Thai project of the board, with the newest choice a person made on the Positioning gate. */
-const thaiWith = (choice: StoredChoice | null, intakeId = NEWEST_INTAKE_ID) =>
-  view("คาเฟ่ริมคลอง", THAI_INTAKE, undefined, { intakeId, choice });
-const englishWith = (choice: StoredChoice | null, intakeId = NEWEST_INTAKE_ID) =>
-  view("Canalside Cafe", ENGLISH_INTAKE, undefined, { intakeId, choice });
+const thaiWith = (
+  choice: StoredChoice | null,
+  intakeId = NEWEST_INTAKE_ID,
+  foundation?: StoredEntry[],
+) => view("คาเฟ่ริมคลอง", THAI_INTAKE, undefined, { intakeId, choice }, foundation);
+const englishWith = (
+  choice: StoredChoice | null,
+  intakeId = NEWEST_INTAKE_ID,
+  foundation?: StoredEntry[],
+) => view("Canalside Cafe", ENGLISH_INTAKE, undefined, { intakeId, choice }, foundation);
 
 /** What a person wrote on the gate, in each language: one sentence of their own. */
 export const POSITIONING_STATEMENTS = {
@@ -476,5 +487,28 @@ export function positioningAfter(
     choice.kind === "skipped"
       ? choiceOf(NEWEST_INTAKE_ID, "skipped", null)
       : choiceOf(NEWEST_INTAKE_ID, "written", choice.statement.trim()),
+  );
+}
+
+/**
+ * A project for the foundation stories (ORV-291): the Positioning gate `open` (Brand personality
+ * waits), `skipped` or `agreed`, with the foundation entries a story names. The view comes from the
+ * engine, so a card shows what the screen gets from a saved project.
+ */
+export function foundationProject(
+  locale: "th" | "en",
+  gate: "open" | "skipped" | "agreed",
+  entries: StoredEntry[] = [],
+): BusinessView {
+  const make = locale === "th" ? thaiWith : englishWith;
+  const statement = POSITIONING_STATEMENTS[locale];
+  return make(
+    gate === "open"
+      ? null
+      : gate === "skipped"
+        ? choiceOf(NEWEST_INTAKE_ID, "skipped", null)
+        : choiceOf(NEWEST_INTAKE_ID, "written", statement),
+    NEWEST_INTAKE_ID,
+    entries,
   );
 }

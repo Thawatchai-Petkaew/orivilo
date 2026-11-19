@@ -3,6 +3,7 @@ import {
   BUSINESS_NODES,
   BUSINESS_READ_REASONS,
   INTAKE_FIELDS,
+  PERSONALITY_AXES,
   PROXY_QUESTIONS,
 } from "@orivilo/intent-engine";
 import { describe, expect, it } from "vitest";
@@ -16,7 +17,7 @@ import {
   readReasonLine,
 } from "../examples/business-text";
 import { LOCALES } from "./locale";
-import { messagesFor } from "./messages/index";
+import { type Messages, messagesFor } from "./messages/index";
 
 /**
  * The business screens (ORV-281, task A5, T20) look the engine's keys up in `business.*`. These
@@ -118,6 +119,32 @@ const SPEC_KEYS = [
   "business.errors.aiFailed",
   "business.errors.aiRateLimited",
   "business.errors.aiSpendCap",
+  // ORV-291 PR 1: the Brand personality node (the other three nodes' keys come with PRs 2 and 3).
+  "business.node.identityFrame",
+  "business.question.person",
+  "business.question.never",
+  "business.field.personality",
+  "business.field.person",
+  "business.field.never",
+  "business.axis.playful.low",
+  "business.axis.playful.high",
+  "business.axis.expressive.low",
+  "business.axis.expressive.high",
+  "business.axis.structured.low",
+  "business.axis.structured.high",
+  "business.axis.warm.low",
+  "business.axis.warm.high",
+  "business.axis.premium.low",
+  "business.axis.premium.high",
+  "business.identity.axisLegend",
+  "business.identity.point",
+  "business.identity.hypothesis",
+  "business.identity.describe",
+  "business.identity.save",
+  "business.identity.axesRequired",
+  "business.state.given",
+  "business.state.waiting",
+  "business.marks.unchecked",
 ];
 
 describe("business catalog", () => {
@@ -132,7 +159,7 @@ describe("business catalog", () => {
     it(`${locale}: every business.question line is word for word the ORV-126 proxy question`, () => {
       const wrong = PROXY_QUESTIONS.filter((q) => at(m, q.key) !== q[locale]).map((q) => q.id);
       expect(wrong).toEqual([]);
-      // The six questions are the catalog's whole `question` group.
+      // The proxy questions are the catalog's whole `question` group (PR 2 adds the start question).
       expect(Object.keys(m.business.question)).toHaveLength(PROXY_QUESTIONS.length);
     });
 
@@ -223,12 +250,25 @@ describe("business readings, strings", () => {
   }
 
   it("the model line is the engine's, with the saved model id", () => {
-    expect(fromModelNote("en", "anthropic/claude-sonnet-5.5")).toBe(
+    expect(fromModelNote(messagesFor("en"), "anthropic/claude-sonnet-5.5")).toBe(
       "Read by AI (anthropic/claude-sonnet-5.5). Check it before you use it.",
     );
-    expect(fromModelNote("th", "anthropic/claude-sonnet-5.5")).toBe(
+    expect(fromModelNote(messagesFor("th"), "anthropic/claude-sonnet-5.5")).toBe(
       "AI อ่านค่านี้ (anthropic/claude-sonnet-5.5) โปรดตรวจสอบก่อนนำไปใช้",
     );
+  });
+
+  it("the AI line reads the catalog", () => {
+    const m = messagesFor("en");
+    const changed: Messages = {
+      ...m,
+      brandReport: {
+        ...m.brandReport,
+        engine: { ...m.brandReport.engine, "evidence.fromModel": "Changed line ({model})" },
+      },
+    };
+    expect(fromModelNote(changed, "m/1")).toBe("Changed line (m/1)");
+    expect(fromModelNote(m, "m/1")).toBe("Read by AI (m/1). Check it before you use it.");
   });
 
   it("a reading below the floor says why, in each language", () => {
@@ -297,6 +337,109 @@ describe("positioning gate, strings", () => {
       ];
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) expect(String(at(m, key)), key).not.toMatch(/[\u00B7\u2014]/);
+    });
+  }
+});
+
+/**
+ * The lines of the Brand personality node (ORV-291 PR 1, spec "Strings"): each key in both
+ * languages, word for word, the five axes' two ends in the order of `PERSONALITY_AXES`, and no
+ * middot or em dash in any of them. `business.question.person` and `.never` are ORV-126's copy,
+ * pinned to the engine's `PROXY_QUESTIONS` by the question tests above.
+ */
+describe("brand personality, strings", () => {
+  const LINES = {
+    en: {
+      "business.node.identityFrame": "Brand personality",
+      "business.question.person":
+        "If your brand were a person, which three words would people use to describe them?",
+      "business.question.never": "How should your brand never feel?",
+      "business.field.personality": "Personality",
+      "business.field.person": "Three words for your brand as a person",
+      "business.field.never": "How it should never feel",
+      "business.axis.playful.low": "Serious",
+      "business.axis.playful.high": "Playful",
+      "business.axis.expressive.low": "Quiet",
+      "business.axis.expressive.high": "Bold",
+      "business.axis.structured.low": "Free and loose",
+      "business.axis.structured.high": "Orderly and precise",
+      "business.axis.warm.low": "Cool and reserved",
+      "business.axis.warm.high": "Warm and friendly",
+      "business.axis.premium.low": "Everyday and easy to reach",
+      "business.axis.premium.high": "Premium and exclusive",
+      "business.identity.axisLegend": "From {low} to {high}",
+      "business.identity.point": "{n} of 5",
+      "business.identity.hypothesis":
+        "These five scales are ORIVILO's working words for a brand's personality, not a tested method.",
+      "business.identity.describe": "Describe the personality",
+      "business.identity.save": "Save this personality",
+      "business.identity.axesRequired": "Choose a point on each of the five scales, or cancel.",
+      "business.state.given": "Given by you",
+      "business.state.waiting": "Waits for {nodes}",
+      "business.marks.unchecked": "Not yet checked against: {nodes}",
+    },
+    th: {
+      "business.node.identityFrame": "บุคลิกของแบรนด์",
+      "business.question.person": "ถ้าแบรนด์ของคุณเป็นคนคนหนึ่ง คนอื่นจะใช้คำสามคำใดบรรยายเขา",
+      "business.question.never": "แบรนด์ของคุณไม่ควรให้ความรู้สึกแบบไหน",
+      "business.field.personality": "บุคลิก",
+      "business.field.person": "สามคำที่บรรยายแบรนด์ถ้าเป็นคน",
+      "business.field.never": "ความรู้สึกที่แบรนด์ไม่ควรให้",
+      "business.axis.playful.low": "จริงจัง",
+      "business.axis.playful.high": "ขี้เล่น",
+      "business.axis.expressive.low": "เรียบนิ่ง",
+      "business.axis.expressive.high": "โดดเด่น",
+      "business.axis.structured.low": "อิสระ ยืดหยุ่น",
+      "business.axis.structured.high": "เป็นระเบียบ แม่นยำ",
+      "business.axis.warm.low": "สุขุม วางตัว",
+      "business.axis.warm.high": "อบอุ่น เป็นกันเอง",
+      "business.axis.premium.low": "ใช้ได้ทุกวัน เข้าถึงง่าย",
+      "business.axis.premium.high": "หรูหรา พิเศษเฉพาะ",
+      "business.identity.axisLegend": "จาก {low} ถึง {high}",
+      "business.identity.point": "ระดับ {n} จาก 5",
+      "business.identity.hypothesis":
+        "สเกลทั้งห้านี้เป็นคำที่ ORIVILO ใช้อธิบายบุคลิกแบรนด์ ยังไม่ใช่วิธีที่ผ่านการทดสอบ",
+      "business.identity.describe": "บอกบุคลิกของแบรนด์",
+      "business.identity.save": "บันทึกบุคลิกนี้",
+      "business.identity.axesRequired": "เลือกระดับให้ครบทั้งห้าสเกล หรือกดยกเลิก",
+      "business.state.given": "คุณกำหนดเอง",
+      "business.state.waiting": "รอ {nodes} ก่อน",
+      "business.marks.unchecked": "ยังไม่ได้ตรวจทานกับ: {nodes}",
+    },
+  } as const;
+
+  for (const locale of LOCALES) {
+    const m = messagesFor(locale);
+
+    it(`${locale}: each line is the spec's, word for word`, () => {
+      expect(Object.keys(LINES[locale])).toHaveLength(25);
+      for (const [key, line] of Object.entries(LINES[locale])) {
+        expect(at(m, key), key).toBe(line);
+      }
+    });
+
+    it(`${locale}: the node title is the catalog's, and the two ends of the five scales are in axis order`, () => {
+      expect(nodeTitle(m, "identity-frame")).toBe(m.business.node.identityFrame);
+      for (const axis of PERSONALITY_AXES) {
+        expect(typeof m.business.axis[axis].low, axis).toBe("string");
+        expect(typeof m.business.axis[axis].high, axis).toBe("string");
+        expect(m.business.axis[axis].low).not.toBe(m.business.axis[axis].high);
+      }
+      expect(Object.keys(m.business.axis)).toEqual([...PERSONALITY_AXES]);
+    });
+
+    it(`${locale}: spells the {low}, {high}, {n} and {nodes} slots`, () => {
+      expect(m.business.identity.axisLegend).toContain("{low}");
+      expect(m.business.identity.axisLegend).toContain("{high}");
+      expect(m.business.identity.point).toContain("{n}");
+      expect(m.business.state.waiting).toContain("{nodes}");
+      expect(m.business.marks.unchecked).toContain("{nodes}");
+    });
+
+    it(`${locale}: no personality line has a middot or an em dash`, () => {
+      for (const key of Object.keys(LINES[locale])) {
+        expect(String(at(m, key)), key).not.toMatch(/[\u00B7\u2014]/);
+      }
     });
   }
 });
