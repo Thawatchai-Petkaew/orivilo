@@ -3,7 +3,7 @@ issue: ORV-290 (https://tpetkaew.atlassian.net/browse/ORV-290)
 parent: ORV-280 (https://tpetkaew.atlassian.net/browse/ORV-280), docs/specs/ORV-280/spec.md v1.3
 lane: L for the shared canvas component items D1, D2, D3, D4, D5 and S3; S for the other items
 mode: POC mode short spec (`.claude/skills/ovl/SKILL.md`, section "POC mode"), a slice spec
-version: 1.0
+version: 1.1
 ---
 
 # ORV-290: the canvas look items of the second polish PR (slice 1 of ORV-280 PR B)
@@ -91,7 +91,7 @@ Taken on 2026-11-19 by the main session under the owner's POC delegation (ADR 00
 - **D1 (row 20).** At the 0.25 fit zoom an edge shows its line only, and its pill returns on zoom.
 - **C4 (row 28).** The page hairline token is `border.subtle`.
 - **B14 (row 32).** The prototype board grows to about 4912 world px wide, and the overview fit at 1440 lands on the 0.25 floor.
-- **B15 (row 10).** The story height route: a cell under 554 px renders its board 540 px tall, and the board component is unchanged.
+- **B15 (row 10).** The story height route: a cell under 554 px renders its board 540 px tall, and the board component is unchanged. Changed 2026-11-19 (task `ORV-290-design-3`): the values are 720 px tall under 720 px, so the status line a fit key raises also stands clear of every card and port dot at 360 and at 1440 (`docs/specs/ORV-280/design.md`, row 10, "Changed 2026-11-19"). The route and the unchanged board component stand.
 
 The other points of design section 4 (B11, B10 and B17, B3) belong to rows of the second slice card and stay open.
 
@@ -119,3 +119,4 @@ Review S1 of PR 220 (ORV-280 comment 10720, carried in comment 10728): the nodes
 ## Changelog
 
 - v1.0 (2026-11-19): first version, task ORV-290-spec-1. The slice spec of ORV-280 PR B for the shared canvas components and the ORIVILO canvas prototype page: rows 10, 20 to 23, 25, 27 to 32 and 43 to 45 copied from the parent spec v1.3 with their numbers and cells, and row 42 cut to this slice's items and sign-off; no new requirement, no row renumbered. Records the four decisions of design section 4 (D1, C4, B14, B15) and review S1 of PR 220 as a no-look item. To review downstream: the ORV-290 builder envelope (its objective cites these rows and the design sections), the designer's sign-off envelope, the reviewer and qa envelopes for this slice's PR.
+- v1.1 (2026-11-19): decision B15 carries the values of task ORV-290-design-3, 720 px tall under 720 px (was 540 under 554), with a dated note; row 10 keeps its text and number. No requirement added.
