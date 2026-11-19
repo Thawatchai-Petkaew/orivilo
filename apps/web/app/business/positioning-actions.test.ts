@@ -926,6 +926,29 @@ describe("draft stopped", () => {
     expect(everything(outcome)).not.toContain(TYPED.options[0]?.statement);
   });
 
+  // Row 13, `positioning-draft-nul-1`: the model's statement holds U+0000, which jsonb cannot keep.
+  // The answer is refused whole as `schema` and never repaired, so no save is tried.
+  it("refused answer, U+0000: ai-failed, the one call's usage recorded once, no draft row, no second model", async () => {
+    fetchSpy.mockImplementation(async () => {
+      state.order.push("fetch");
+      return modelReply(
+        JSON.stringify({
+          options: [{ ...TYPED.options[0], statement: "a\u0000b" }, TYPED.options[1]],
+        }),
+      );
+    });
+    const outcome = await draftPositioning(ask);
+    expect(outcome).toMatchObject({ ok: false, error: "ai-failed", code: "UPSTREAM_FAILED" });
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(fetchSpy.mock.calls[0]?.[1].body ?? "{}").model).toBe(PINNED);
+    expect(state.order.slice(3)).toEqual(["consume", "spend-check", "fetch", "usage"]);
+    expect(state.usage).toEqual([
+      { job: "positioning-draft", model: PINNED, costMicroUsd: 11_300 },
+    ]);
+    nothingStored();
+    expect(draftStep()).toMatchObject([{ outcome: "refused" }]);
+  });
+
   it("the ai-read limit used up: ai-rate-limited with how long to wait, no cap check, no call", async () => {
     for (const w of LIMITS["ai-read"].windows) {
       state.counts.set(`${keyOf(LIMITS["ai-read"], { user: "P" })}@${w.seconds}`, w.max);

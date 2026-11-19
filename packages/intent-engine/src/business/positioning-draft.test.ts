@@ -181,6 +181,8 @@ describe("refused answers", () => {
     ["one option", { options: [good("ก")] }, "schema"],
     ["four options", { options: [good("ก"), second, good("ค"), good("ง")] }, "schema"],
     ["a statement of 301 characters", { options: [good("ก".repeat(301)), second] }, "schema"],
+    // `positioning-draft-nul-1`: the model's text is refused whole, never repaired (W8).
+    ["a statement holding U+0000", { options: [good("a\u0000b"), second] }, "schema"],
     [
       "a quote naming website",
       withFirst(q("idea", "ร้านกาแฟคั่วเอง"), q("value", "คั่วสด"), q("website", "x")),
@@ -210,13 +212,14 @@ describe("refused answers", () => {
     expect(await refusedWith(answer, SHORT)).toBe(clause);
   });
 
-  it("counts the clauses of row 13: schema five times, quote twice, basis twice, duplicate once", () => {
+  it("counts the clauses of row 13: schema six times, quote twice, basis twice, duplicate once", () => {
     expect(CASES.map((c) => c[2]).sort()).toEqual([
       "basis",
       "basis",
       "duplicate",
       "quote",
       "quote",
+      "schema",
       "schema",
       "schema",
       "schema",
@@ -273,6 +276,14 @@ describe("refused answers", () => {
     const mixed = { options: [good("ก"), second], confidence: 1 };
     expect(
       await refusedWith({ ...mixed, options: [option("ก", q("idea", "ไม่มี")), second] }, SHORT),
+    ).toBe("schema");
+    // Fails schema (U+0000 in the first statement) and quote (its quote is in no answer) at once:
+    // the refusal sits inside check 2, so it is named before check 3.
+    expect(
+      await refusedWith(
+        { options: [option("a\u0000b", q("idea", "ไม่มีในคำตอบ")), second] },
+        SHORT,
+      ),
     ).toBe("schema");
   });
 

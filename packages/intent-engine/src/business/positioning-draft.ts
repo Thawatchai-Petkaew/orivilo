@@ -38,7 +38,13 @@ export const positioningAnswerSchema = z
       .array(
         z
           .object({
-            statement: z.string().trim().min(1).max(300),
+            statement: z
+              .string()
+              .trim()
+              .min(1)
+              .max(300)
+              // `positioning-draft-nul-1`: jsonb cannot hold U+0000. The model's text is refused, not repaired.
+              .refine((statement) => !statement.includes("\u0000")),
             quotes: z.array(quoteSchema).min(1).max(8),
           })
           .strict(),
