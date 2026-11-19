@@ -62,6 +62,8 @@ export const STEP_OUTCOMES = {
     "spend-cap",
     "unavailable",
     "save-failed",
+    // ORV-287: a saved reading that no longer parses; the project opens with no reading.
+    "stored-invalid",
   ],
   /**
    * ba-messages-1: the string literals Better Auth 1.7.12 passes to `logger.warn(` or

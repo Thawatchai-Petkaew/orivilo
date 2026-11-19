@@ -147,11 +147,14 @@ export const businessReading = pgTable(
       "business_reading_prompt_version_check",
       sql`${t.promptVersion} is null or char_length(${t.promptVersion}) between 1 and 40`,
     ),
-    // A model record names its model, adapter and prompt and has no reason; a rule-based record is
-    // not that, and holds no evidence.
+    // A model record names its model, adapter and prompt, has no reason and holds its items as an
+    // array of at most 200 (the record's BUSINESS_RECORD_MAX_ITEMS); a rule-based record holds no
+    // evidence, has a reason and none of the four model columns (ORV-287, orv287-shape-1). No clause
+    // on `job`: a later job may write rows here. The `case` keeps jsonb_array_length from running on
+    // an object or a scalar, so a bad row fails with this check and no other error.
     check(
       "business_reading_shape",
-      sql`(${t.method} = 'model') = (${t.reason} is null and ${t.modelId} is not null and ${t.adapterId} is not null and ${t.adapterVersion} is not null and ${t.promptVersion} is not null) and (${t.method} <> 'rule-based' or ${t.evidence} = '[]'::jsonb)`,
+      sql`(${t.method} = 'model') = (${t.reason} is null and ${t.modelId} is not null and ${t.adapterId} is not null and ${t.adapterVersion} is not null and ${t.promptVersion} is not null) and (${t.method} <> 'rule-based' or (${t.evidence} = '[]'::jsonb and ${t.reason} is not null and ${t.modelId} is null and ${t.adapterId} is null and ${t.adapterVersion} is null and ${t.promptVersion} is null)) and (${t.method} <> 'model' or (case when jsonb_typeof(${t.evidence}) = 'array' then jsonb_array_length(${t.evidence}) <= 200 else false end))`,
     ),
   ],
 );

@@ -302,16 +302,15 @@ describe("saves in the workspace", () => {
         intake: { ...INTAKE, website: "https://cafe.example/menu" },
       },
     ]);
-    // Steps 6 to 9 follow the save; with no key the reading is the rule-based record.
-    expect(state.consumed).toEqual([`write:u:P`, `ai-read:u:P`]);
+    // Steps 6 to 9 follow the save; with no key the reading is the rule-based record, and steps 6 to
+    // 8 do not run (`orv287-key-first-1`): no `ai-read` count and no spend check.
+    expect(state.consumed).toEqual([`write:u:P`]);
     expect(state.order).toEqual([
       "session",
       "allow-list",
       "consume",
       "save",
       "open",
-      "consume",
-      "spend-check",
       "save-reading",
     ]);
     const lines = written();
@@ -468,10 +467,45 @@ describe("no reading", () => {
     expectNothingSecret(outcome);
   };
 
-  it("no key: ai-not-configured, no model call", async () => {
+  // ORV-287 row 6, `orv287-key-first-1`: with no key, steps 6 to 8 do not run. No `ai-read` count is
+  // used, the spend cap is not read and nothing is sent, whatever the limit or the cap would say.
+  it.each([
+    ["the ai-read count at 0", () => {}],
+    [
+      "the ai-read count at the max of its first window",
+      () => {
+        const window = LIMITS["ai-read"].windows[0];
+        if (!window) throw new Error("the ai-read limit has a window");
+        state.counts.set(`ai-read:u:P@${window.seconds}`, window.max);
+      },
+    ],
+    [
+      "the ai-read store down",
+      () => {
+        state.downFor = "ai-read";
+      },
+    ],
+    [
+      "the spend cap capped",
+      () => {
+        state.cap = "capped";
+      },
+    ],
+  ] as const)("no key, %s: ai-not-configured, no count, no cap read, no call", async (_n, set) => {
+    set();
+    const window = LIMITS["ai-read"].windows[0];
+    if (!window) throw new Error("the ai-read limit has a window");
+    const counterBefore = state.counts.get(`ai-read:u:P@${window.seconds}`);
     await expectSavedAndRuleBased("ai-not-configured", "not-configured");
+    // The counter is as it was: absent, or at the max, never one more.
+    expect(state.counts.get(`ai-read:u:P@${window.seconds}`)).toBe(counterBefore);
+    // One `consume` (the write limit) and no spend check.
+    expect(state.order.filter((o) => o === "consume")).toHaveLength(1);
+    expect(state.consumed).toEqual(["write:u:P"]);
+    expect(state.order).not.toContain("spend-check");
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(state.usage).toEqual([]);
+    expect(state.order).not.toContain("usage");
   });
 
   it("a call that fails: ai-failed, one call to the pinned model and no other", async () => {
@@ -501,16 +535,57 @@ describe("no reading", () => {
     expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
 
-  it("a refused answer: ai-failed, the usage is still recorded, no second model", async () => {
-    vi.stubEnv("OPENROUTER_API_KEY", FAKE_KEY);
-    // An extra key `confidence` refuses the whole answer (row 28).
-    fetchSpy.mockImplementation(async () =>
-      modelReply(JSON.stringify({ readings: RECORDED.readings, confidence: 1 })),
-    );
-    await expectSavedAndRuleBased("ai-failed", "refused");
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
-    expect(state.usage).toEqual([{ job: "business-read", model: PINNED, costMicroUsd: 11300 }]);
-  });
+  // ORV-287 row 2: each answer ORV-283 row 28 names is refused whole, and the server read saves the
+  // rule-based record with the reason `ai-failed` (the engine test proves only the refusal).
+  const quoted = (answer: string, text: string) => [{ answer, text }];
+  it.each([
+    ["an extra key confidence", { readings: RECORDED.readings, confidence: 1 }],
+    [
+      "a quote that is not in the answers",
+      {
+        readings: [
+          {
+            field: "audience.customers",
+            value: "คนทำงาน",
+            quotes: quoted("idea", "คำที่ไม่มีในคำตอบ"),
+          },
+        ],
+      },
+    ],
+    [
+      "a reading on positioning.value",
+      {
+        readings: [
+          { field: "positioning.value", value: "x", quotes: quoted("idea", "กาแฟคั่วสด") },
+        ],
+      },
+    ],
+    [
+      "a reading on situation.industry",
+      {
+        readings: [
+          {
+            field: "situation.industry",
+            value: "x",
+            quotes: quoted("industry", "ร้านอาหารและเครื่องดื่ม"),
+          },
+        ],
+      },
+    ],
+  ])(
+    "a refused answer, %s: ai-failed, the usage is still recorded, no second model",
+    async (_name, answer) => {
+      vi.stubEnv("OPENROUTER_API_KEY", FAKE_KEY);
+      fetchSpy.mockImplementation(async () => modelReply(JSON.stringify(answer)));
+      await expectSavedAndRuleBased("ai-failed", "refused");
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      expect(JSON.parse(fetchSpy.mock.calls[0]?.[1].body ?? "{}")).toMatchObject({
+        model: PINNED,
+        provider: { allow_fallbacks: false },
+      });
+      expect(state.usage).toEqual([{ job: "business-read", model: PINNED, costMicroUsd: 11300 }]);
+    },
+  );
 
   it("the ai-read limit used up: ai-rate-limited, no spend check and no model call", async () => {
     vi.stubEnv("OPENROUTER_API_KEY", FAKE_KEY);
@@ -581,14 +656,34 @@ describe("no reading", () => {
     expect(stepLines()).toMatchObject([{ outcome: "save-failed" }]);
   });
 
-  it("steps 6 to 9 start only after the save committed", async () => {
+  it("steps 6 to 9 start only after the save committed, with the model call after the cap", async () => {
     vi.stubEnv("OPENROUTER_API_KEY", FAKE_KEY);
+    fetchSpy.mockImplementation(async () => {
+      state.order.push("model-call");
+      return modelReply(JSON.stringify(RECORDED));
+    });
+    const window = LIMITS["ai-read"].windows[0];
+    if (!window) throw new Error("the ai-read limit has a window");
+    expect(state.counts.get(`ai-read:u:P@${window.seconds}`)).toBeUndefined();
     await createProject(INTAKE);
     const at = (step: string) => state.order.indexOf(step);
     expect(at("save")).toBeGreaterThan(-1);
     expect(state.order.lastIndexOf("consume")).toBeGreaterThan(at("save"));
     expect(at("spend-check")).toBeGreaterThan(at("save"));
     expect(at("usage")).toBeLessThan(at("save-reading"));
+    // ORV-287 row 7: with a key the order of security rule 6 stands, after the save: the ai-read
+    // count, then the spend cap, then the one model call, then its usage, then the saved record.
+    expect(state.order.slice(at("save"))).toEqual([
+      "save",
+      "open",
+      "consume",
+      "spend-check",
+      "model-call",
+      "usage",
+      "save-reading",
+    ]);
+    expect(state.counts.get(`ai-read:u:P@${window.seconds}`)).toBe(1);
+    expect(lastRecord()).toMatchObject({ method: "model" });
   });
 });
 

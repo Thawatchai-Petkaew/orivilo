@@ -473,6 +473,78 @@ describe.runIf(HAS_TEST_DATABASE)("orivilo_app and row security", () => {
       );
     });
 
+    // ORV-287 rows 10 to 13 (orv287-shape-1): the check holds what the app writes and nothing
+    // else. Every refusal is the check violation on `business_reading_shape`, never another error.
+    const failsOnShape = async (run: Promise<unknown>) => {
+      const error = await run.then(
+        () => null,
+        (e: unknown) => e,
+      );
+      const cause = (error as { cause?: { code?: string; constraint_name?: string } } | null)
+        ?.cause;
+      expect([cause?.code, cause?.constraint_name]).toEqual(["23514", "business_reading_shape"]);
+    };
+
+    it("refuses a rule-based record with no reason (T9)", async () => {
+      await failsOnShape(
+        t.admin
+          .insert(businessReading)
+          .values({ ...base("br-shape-1", "ws-a", "br-i-a3"), reason: null }),
+      );
+    });
+
+    it.each([
+      ["model id", { modelId: "m" }],
+      ["adapter id", { adapterId: "a" }],
+      ["adapter version", { adapterVersion: "1" }],
+      ["prompt version", { promptVersion: "p" }],
+    ])("refuses a rule-based record that holds only its %s (T9)", async (_, change) => {
+      await failsOnShape(
+        t.admin
+          .insert(businessReading)
+          .values({ ...base("br-shape-2", "ws-a", "br-i-a3"), ...change }),
+      );
+    });
+
+    it.each([
+      ["an object", { x: 1 }],
+      ["a string", "text"],
+      ["a number", 1],
+    ])("refuses a model record whose evidence is %s (T9)", async (_, evidence) => {
+      await failsOnShape(
+        t.admin
+          .insert(businessReading)
+          .values({ ...base("br-shape-3", "ws-a", "br-i-a3"), ...model, evidence }),
+      );
+    });
+
+    const items = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `x${i}` }));
+
+    it("refuses evidence past 200 items (T9)", async () => {
+      await failsOnShape(
+        t.admin.insert(businessReading).values({
+          ...base("br-shape-4", "ws-a", "br-i-a3"),
+          ...model,
+          job: "evidence-201",
+          evidence: items(201),
+        }),
+      );
+    });
+
+    it("keeps evidence of 200 items (T9)", async () => {
+      await t.admin.insert(businessReading).values({
+        ...base("br-shape-5", "ws-a", "br-i-a3"),
+        ...model,
+        job: "evidence-200",
+        evidence: items(200),
+      });
+      const [row] = await t.admin
+        .select()
+        .from(businessReading)
+        .where(eq(businessReading.id, "br-shape-5"));
+      expect(row?.evidence).toEqual(items(200));
+    });
+
     it.each(["ai-not-configured", "ai-failed", "ai-rate-limited", "ai-spend-cap"])(
       "keeps a rule-based record with the reason %s (T9)",
       async (reason) => {

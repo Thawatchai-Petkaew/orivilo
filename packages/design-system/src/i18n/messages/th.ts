@@ -649,6 +649,7 @@ export const th = {
       "read.notRendered.failed": "ตัวแสดงผลเริ่มทำงานไม่สำเร็จ",
       "read.notRendered.budget": "หน้าเว็บใช้เวลานานเกินไป",
       "read.notRendered.invalid": "ใช้ผลจากตัวแสดงผลไม่ได้",
+      "evidence.fromModel": "AI อ่านค่านี้ ({model}) โปรดตรวจสอบก่อนนำไปใช้",
       "evidence.belowFloor": "ยังไม่แน่ชัดพอจะนำไปใช้: {reason}",
       "quality.fewWords": "ข้อความมีไม่ถึง 20 คำ",
       "quality.pageIncomplete": "บางส่วนของหน้าเว็บโหลดไม่สำเร็จ",

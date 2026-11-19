@@ -1,5 +1,5 @@
 {
-  "id": "21c98bb5-89cf-492a-a81f-27f8ff990f99",
+  "id": "06d4069d-901c-4a51-8368-966d6eb839f7",
   "prevId": "0dcbf90b-c721-4cef-b784-05f711262d54",
   "version": "7",
   "dialect": "postgresql",
@@ -1112,143 +1112,6 @@
       },
       "isRLSEnabled": false
     },
-    "public.business_foundation_entry": {
-      "name": "business_foundation_entry",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "workspace_id": {
-          "name": "workspace_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "project_id": {
-          "name": "project_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "node": {
-          "name": "node",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "kind": {
-          "name": "kind",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "payload": {
-          "name": "payload",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_by": {
-          "name": "created_by",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "clock_timestamp()"
-        }
-      },
-      "indexes": {
-        "business_foundation_entry_workspaceId_idx": {
-          "name": "business_foundation_entry_workspaceId_idx",
-          "columns": [
-            {
-              "expression": "workspace_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "business_foundation_entry_project_created_idx": {
-          "name": "business_foundation_entry_project_created_idx",
-          "columns": [
-            {
-              "expression": "project_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "business_foundation_entry_workspace_id_organization_id_fk": {
-          "name": "business_foundation_entry_workspace_id_organization_id_fk",
-          "tableFrom": "business_foundation_entry",
-          "tableTo": "organization",
-          "columnsFrom": ["workspace_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "business_foundation_entry_project_fk": {
-          "name": "business_foundation_entry_project_fk",
-          "tableFrom": "business_foundation_entry",
-          "tableTo": "project",
-          "columnsFrom": ["project_id", "workspace_id"],
-          "columnsTo": ["id", "workspace_id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "business_foundation_entry_one_per_kind": {
-          "name": "business_foundation_entry_one_per_kind",
-          "nullsNotDistinct": false,
-          "columns": ["project_id", "node", "kind"]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {
-        "business_foundation_entry_pair": {
-          "name": "business_foundation_entry_pair",
-          "value": "(\"business_foundation_entry\".\"node\", \"business_foundation_entry\".\"kind\") in (('identity-frame', 'given'), ('identity-frame', 'skipped'), ('architecture', 'answered'), ('name', 'given'), ('core-idea', 'written'), ('core-idea', 'skipped'))"
-        },
-        "business_foundation_entry_payload_shape": {
-          "name": "business_foundation_entry_payload_shape",
-          "value": "jsonb_typeof(\"business_foundation_entry\".\"payload\") = 'object' and (\"business_foundation_entry\".\"kind\" = 'skipped') = (\"business_foundation_entry\".\"payload\" = '{}'::jsonb)"
-        },
-        "business_foundation_entry_text": {
-          "name": "business_foundation_entry_text",
-          "value": "((\"business_foundation_entry\".\"payload\" ? 'person') is false or (jsonb_typeof(\"business_foundation_entry\".\"payload\"->'person') = 'string' and char_length(\"business_foundation_entry\".\"payload\"->>'person') between 1 and 2000)) and ((\"business_foundation_entry\".\"payload\" ? 'never') is false or (jsonb_typeof(\"business_foundation_entry\".\"payload\"->'never') = 'string' and char_length(\"business_foundation_entry\".\"payload\"->>'never') between 1 and 2000)) and ((\"business_foundation_entry\".\"payload\" ? 'remember') is false or (jsonb_typeof(\"business_foundation_entry\".\"payload\"->'remember') = 'string' and char_length(\"business_foundation_entry\".\"payload\"->>'remember') between 1 and 2000)) and ((\"business_foundation_entry\".\"payload\" ? 'name') is false or (jsonb_typeof(\"business_foundation_entry\".\"payload\"->'name') = 'string' and char_length(\"business_foundation_entry\".\"payload\"->>'name') between 1 and 60)) and ((\"business_foundation_entry\".\"payload\" ? 'statement') is false or (jsonb_typeof(\"business_foundation_entry\".\"payload\"->'statement') = 'string' and char_length(\"business_foundation_entry\".\"payload\"->>'statement') between 1 and 300))"
-        }
-      },
-      "isRLSEnabled": false
-    },
     "public.business_intake": {
       "name": "business_intake",
       "schema": "",
@@ -1755,7 +1618,7 @@
         },
         "business_reading_shape": {
           "name": "business_reading_shape",
-          "value": "(\"business_reading\".\"method\" = 'model') = (\"business_reading\".\"reason\" is null and \"business_reading\".\"model_id\" is not null and \"business_reading\".\"adapter_id\" is not null and \"business_reading\".\"adapter_version\" is not null and \"business_reading\".\"prompt_version\" is not null) and (\"business_reading\".\"method\" <> 'rule-based' or \"business_reading\".\"evidence\" = '[]'::jsonb)"
+          "value": "(\"business_reading\".\"method\" = 'model') = (\"business_reading\".\"reason\" is null and \"business_reading\".\"model_id\" is not null and \"business_reading\".\"adapter_id\" is not null and \"business_reading\".\"adapter_version\" is not null and \"business_reading\".\"prompt_version\" is not null) and (\"business_reading\".\"method\" <> 'rule-based' or (\"business_reading\".\"evidence\" = '[]'::jsonb and \"business_reading\".\"reason\" is not null and \"business_reading\".\"model_id\" is null and \"business_reading\".\"adapter_id\" is null and \"business_reading\".\"adapter_version\" is null and \"business_reading\".\"prompt_version\" is null)) and (\"business_reading\".\"method\" <> 'model' or (case when jsonb_typeof(\"business_reading\".\"evidence\") = 'array' then jsonb_array_length(\"business_reading\".\"evidence\") <= 200 else false end))"
         }
       },
       "isRLSEnabled": false

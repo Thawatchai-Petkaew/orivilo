@@ -15,7 +15,6 @@ import {
   businessAnswerSchema,
   modelReading,
   readBusiness,
-  ruleBasedReading,
 } from "./read";
 import readSource from "./read.ts?raw";
 import {
@@ -314,14 +313,8 @@ describe("refused answers", () => {
     expect(error).toMatchObject({ name: "BusinessReadRefused", clause });
     // Its message names the clause and holds none of the person's words or the model's text.
     expect(String((error as Error).message)).toBe(`The answer was refused: ${clause}.`);
-    // The result is the person's placement, rule-based, with the reason that shows aiFailed.
-    const record = ruleBasedReading(FIXTURE_INTAKE_ID, "ai-failed");
-    expect(businessReadingSchema.parse(record)).toEqual({
-      method: "rule-based",
-      job: "business-read",
-      intakeId: FIXTURE_INTAKE_ID,
-      reason: "ai-failed",
-    });
+    // The rule-based record this refusal becomes is saved by the server read, and its test
+    // (`apps/web/app/business/actions.test.ts`, "a refused answer", ORV-287 row 2) proves it.
     expect(intake).toEqual(FIXTURE_INTAKE);
     expect(JSON.stringify(placeIntake(intake))).toBe(before);
   });

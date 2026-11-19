@@ -653,6 +653,7 @@ export const en: Messages = {
       "read.notRendered.failed": "the renderer did not start",
       "read.notRendered.budget": "the page took too long",
       "read.notRendered.invalid": "the renderer's result could not be used",
+      "evidence.fromModel": "Read by AI ({model}). Check it before you use it.",
       "evidence.belowFloor": "Too uncertain to use: {reason}",
       "quality.fewWords": "the text has fewer than 20 words",
       "quality.pageIncomplete": "part of the page did not load",
