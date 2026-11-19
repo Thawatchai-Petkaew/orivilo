@@ -10,9 +10,9 @@ import { toMicroUsd } from "./money";
 /** One pinned model per job (ADR 0009 point 2). Changing one is a contract change. */
 export const AI_MODELS = {
   chat: "anthropic/claude-sonnet-5.5",
-  instant: "inception/mercury-3",
+  instant: "anthropic/claude-haiku-5.5",
   interpret: "anthropic/claude-sonnet-5.5",
-  see: "google/gemini-4-argon",
+  see: "anthropic/claude-sonnet-5.5",
   "logo-vector": "anthropic/claude-opus-5.5",
   "logo-image": "google/gemini-nano-banana-2.1",
   // ORV-281, ADR 0009 addition of 2026-11-18: read only by `business/read.ts`.
