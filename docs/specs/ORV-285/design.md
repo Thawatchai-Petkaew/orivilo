@@ -190,6 +190,8 @@ Visual sign-off 1 (task ORV-285-signoff-1, head d59484a) requested one change, F
 
 Story names are the spec's (acceptance rows). Helpers are `src/testing/visual-asserts.ts`; screenshot helpers run under `inVitest`.
 
+**Note, 2026-11-19 (ORV-292-spec-2).** The stories this table names for PR 1 are merged in PR 226 (c2f1061) and exported by `packages/design-system/src/examples/business-board.stories.tsx`: `Board`, `BoardEnglish`, the four states stories with their English stories, `PositioningWritten`, `PositioningInvalid`, `PositioningSkipped`, `PositioningStale`, `PositioningUntrustedText`, each with its English story, and `PositioningNarrow`. PR 226 also added `PositioningReadOnly` and `PositioningReadOnlyEnglish` (row F1-a, a statement with no control) and `PositioningNarrowControls`, `PositioningNarrowDark`, `PositioningNarrowControlsDark` and `PositioningNarrowEnglish` (the narrow play with the controls, light, dark and English). The stories for PR 2 (`PositioningDraftStopped`, `PositioningNeedsValue`, `PositioningOptions`, `PositioningEdit`, `PositioningUntrustedDraft`, `PositioningNoDraft`) are built under the slice card ORV-292. No look, state or measure of this section changes.
+
 <!-- prettier-ignore -->
 | State | Story | Play clause and bound |
 | --- | --- | --- |
@@ -266,3 +268,4 @@ The mock is labelled as a mock on its own page: every frame carries a dashed box
 
 - v1.0 (2026-11-18): first design for spec v1.0, both PRs: section anatomy, 16 view states and 6 card states with measured bounds from a rendered mock, one play per state; N1 (cancel key) open.
 - v1.1 (2026-11-19): task ORV-285-design-f1, finding F1 of visual sign-off 1 (head d59484a): section 3's Section, A and A1 show when a statement exists or controls are given, not always, with the reason; new state S0 in section 5 (no controls, no statement: no section, as on develop); new row F1-a under section 8 (guard, target, measure, proof play, rendered target = the develop half of the sign-off's comparison sheet); section 9 gains the S0 play and names the four states stories with their English stories as built (spec v1.2 row 5) in place of one `PositioningStates`; section 15 gains screen 8. No other measure changed.
+- v1.2 (2026-11-19): task ORV-292-spec-2, after PR 226 merged into `develop` (c2f1061): a dated note under section 9's heading names the PR 1 stories as merged, the stories PR 226 added beside them, and the PR 2 stories as built under ORV-292. No look, state or measure changed. Downstream to review: the ORV-292 B4 builder envelope and the designer sign-off envelope of ORV-292's PR.
