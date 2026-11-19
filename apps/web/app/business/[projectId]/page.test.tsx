@@ -201,11 +201,27 @@ describe("another workspace", () => {
     expect((await notFoundOf(THEIRS, person(null))).digest).toBe("NEXT_HTTP_ERROR_FALLBACK;404");
   });
 
-  it("a stored row that fails its own check is the same 404, and an error line", async () => {
+  it("an intake row that fails its own check is the same 404, and an error line", async () => {
     state.stored = { bad: true };
     const error = await notFoundOf(MINE);
     expect(error.digest).toBe("NEXT_HTTP_ERROR_FALLBACK;404");
     expect(written()).toMatchObject([{ outcome: "failed", level: "error", reason: "failed" }]);
+  });
+});
+
+// ORV-287 row 5 at the page: a project whose saved reading no longer parses reaches the page as the
+// service gives it (`reading: null`, `orv287-unparsed-reading-1`). It shows the board as a project
+// with no reading does: no "AI did not read" line and no "Read by AI" line, and one `ok` line.
+describe.each(["en", "th"] as const)("a project with no usable reading in %s", (locale) => {
+  it("opens the board with no AI line, as a project with no reading does", async () => {
+    const html = await render(locale, MINE);
+    const m = messagesFor(locale);
+    expect(html).toContain('data-variant="present"');
+    expect(text(html)).not.toContain(m.business.label.aiUnavailable);
+    expect(text(html)).not.toMatch(/Read by AI|AI อ่านค่านี้/);
+    expect(written()).toMatchObject([
+      { route: "business/openProject", outcome: "ok", level: "info" },
+    ]);
   });
 });
 

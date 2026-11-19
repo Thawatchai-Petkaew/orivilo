@@ -10,14 +10,17 @@ import {
   storedIntakeSchema,
 } from "@orivilo/intent-engine";
 import { type AccessDeps, withWorkspace } from "./access.ts";
+import { logStep } from "./log.ts";
 
 /**
  * Business projects (ORV-281), every call through the one door (ADR 0002). A project and its
  * intake are written in one transaction; an intake row is never changed, and the newest row of a
  * project is its current intake. The reading of an intake (ORV-283) is one more row, saved once
  * and replayed on every open, never made again. The stored form of an intake and of a reading is
- * parsed again on every read, so a row changed outside the app fails as `invalid-stored` and never
- * shows as unchecked text. Nothing here reaches a log line: the callers log closed words only.
+ * parsed again on every read, so a row changed outside the app never shows as unchecked text: an
+ * intake that does not parse fails as `invalid-stored`, a reading that does not parse is shown as no
+ * reading. Nothing here reaches a log line but the one closed word of a reading that
+ * no longer parses (`stored-invalid`): the callers log closed words only.
  */
 
 export class BusinessError extends Error {
@@ -146,7 +149,10 @@ export function businessService(deps: AccessDeps) {
 
     /**
      * One project with its newest intake and that intake's saved reading. Never calls a model: a
-     * project with no saved reading opens with `reading: null`.
+     * project with no saved reading opens with `reading: null`. A saved reading that no longer
+     * parses opens the same way, with one `warn` step line (`orv287-unparsed-reading-1`); the row is
+     * left as it is. An intake that no longer parses is `invalid-stored`, and the project is not
+     * shown.
      */
     async open(headers: Headers, workspaceId: string, projectId: string): Promise<OpenedProject> {
       return withWorkspace(deps, headers, workspaceId, "member", async ({ tx }) => {
@@ -211,8 +217,17 @@ export function businessService(deps: AccessDeps) {
                   reason: saved.reason,
                 },
           );
-          if (!parsed.success) throw new BusinessError("invalid-stored");
-          reading = parsed.data;
+          if (parsed.success) {
+            reading = parsed.data;
+          } else {
+            // The row stays and the person's own answers show; the line holds closed words only.
+            logStep({
+              step: "business-read",
+              outcome: "stored-invalid",
+              level: "warn",
+              durationMs: 0,
+            });
+          }
         }
         return {
           project: found,

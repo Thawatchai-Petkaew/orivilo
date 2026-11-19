@@ -13,6 +13,7 @@ import { testUtils } from "better-auth/plugins";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { BUSINESS_LIST_LIMIT, BusinessError, businessService } from "./business.ts";
 import { createAuth } from "./config.ts";
+import { captureLines, expectLineShape } from "./log-testing.ts";
 
 // ORV-281 rows 9, 13 and 17 at the service, against a throwaway database as orivilo_app.
 const intake = {
@@ -492,32 +493,59 @@ describe.runIf(HAS_TEST_DATABASE)("business projects", () => {
       expect(newest[0]?.id).toBe(later);
     });
 
-    it("shows a reading row changed outside the app as invalid, never as a reading (T40)", async () => {
-      const a = await create("tampered@example.com", "Tam");
-      await service.saveReading(a.headers, a.workspaceId, await modelRecord(a.intakeId));
-      const where = eq(businessReading.intakeId, a.intakeId);
-      // Valid for the database's checks, refused by the record's schema: evidence that is no item.
-      await t.admin
-        .update(businessReading)
-        .set({ evidence: [{ not: "an item" }] })
-        .where(where);
-      await expect(service.open(a.headers, a.workspaceId, a.projectId)).rejects.toMatchObject({
-        name: "BusinessError",
-        reason: "invalid-stored",
-      });
-    });
-
-    it("shows a row whose columns disagree with its evidence as invalid (T40)", async () => {
-      const a = await create("disagree@example.com", "Dis");
-      await service.saveReading(a.headers, a.workspaceId, await modelRecord(a.intakeId));
-      await t.admin
-        .update(businessReading)
-        .set({ modelId: "other/model" })
-        .where(eq(businessReading.intakeId, a.intakeId));
-      await expect(service.open(a.headers, a.workspaceId, a.projectId)).rejects.toMatchObject({
-        reason: "invalid-stored",
-      });
-    });
+    // orv287-unparsed-reading-1 (ORV-287 row 3): a reading row that no longer parses opens as a
+    // project with no reading and one warn line; the row is neither changed nor deleted.
+    it.each([
+      [
+        "evidence that is no item",
+        "tampered@example.com",
+        // Valid for the database's checks, refused by the record's schema.
+        { evidence: [{ not: "an item" }] },
+      ],
+      [
+        "columns that disagree with the evidence",
+        "disagree@example.com",
+        { modelId: "other/model" },
+      ],
+    ] as const)(
+      "opens a project whose reading no longer parses, with no reading: %s (T40)",
+      async (_name, email, change) => {
+        const a = await create(email, "Tam");
+        await service.saveReading(a.headers, a.workspaceId, await modelRecord(a.intakeId));
+        const where = eq(businessReading.intakeId, a.intakeId);
+        await t.admin.update(businessReading).set(change).where(where);
+        const before = await t.admin.select().from(businessReading).where(where);
+        const capture = captureLines();
+        let opened: Awaited<ReturnType<typeof service.open>>;
+        try {
+          opened = await service.open(a.headers, a.workspaceId, a.projectId);
+        } finally {
+          capture.restore();
+        }
+        expect(opened.reading).toBeNull();
+        expect(opened.intakeId).toBe(a.intakeId);
+        expect(opened.project.id).toBe(a.projectId);
+        expect(opened.intake.idea).toBe(answers.idea);
+        const lines = capture.lines.map((line) => expectLineShape(line));
+        expect(lines).toMatchObject([
+          { step: "business-read", outcome: "stored-invalid", level: "warn" },
+        ]);
+        const all = JSON.stringify(capture.lines.map((l) => l.args));
+        for (const never of [
+          "Tam",
+          email,
+          "an item",
+          "other/model",
+          a.projectId,
+          a.intakeId,
+          answers.idea,
+        ]) {
+          expect(all).not.toContain(never);
+        }
+        // The row is byte-equal before and after.
+        expect(await t.admin.select().from(businessReading).where(where)).toEqual(before);
+      },
+    );
 
     it("a reading changes no saved value (T45)", async () => {
       const a = await create("nochange@example.com", "Noc");
