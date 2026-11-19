@@ -2,20 +2,27 @@ import {
   BUSINESS_FIELDS,
   BUSINESS_NODES,
   type BusinessNodeId,
+  type BusinessReadReason,
   type BusinessView,
 } from "@orivilo/intent-engine";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { Under } from "../components/matrix";
 import { expectPortPillsClear, inVitest } from "../testing/visual-asserts";
+import { formatNumber } from "../i18n/format";
 import { LocaleProvider } from "../i18n/LocaleProvider";
+import type { Locale } from "../i18n/locale";
 import { fill, type Messages } from "../i18n/messages/index";
 import { BusinessBoardScreen } from "./business-board";
 import {
+  aiUnavailableView,
+  ENGLISH_READ_VIEW,
   ENGLISH_VIEW,
   LONG_NAME,
   NARROW_VIEW,
+  MARKUP_READINGS,
   SKIPPED_VIEW,
+  THAI_READ_VIEW,
   THAI_VIEW,
   UNTRUSTED,
   UNTRUSTED_VIEW,
@@ -24,21 +31,28 @@ import {
   en,
   expectAccessScreen,
   expectFitsAt360,
+  FIXTURE_NOTES,
   FixtureNote,
   inEnglish,
   textOf,
   th,
 } from "./business-story-helpers";
-import { fieldLabel, nodeTitle, questionText } from "./business-text";
+import {
+  fromModelNote,
+  readReasonLine,
+  fieldLabel,
+  nodeTitle,
+  questionText,
+} from "./business-text";
 
 const meta = {
   title: "Examples/Application: Business board",
   component: BusinessBoardScreen,
   args: { access: "ready", view: THAI_VIEW, signInHref: "/account", listHref: "/business" },
   decorators: [
-    (Story) => (
+    (Story, { parameters }) => (
       <>
-        <FixtureNote />
+        <FixtureNote readings={parameters["fixtureReadings"] === true} />
         <Story />
       </>
     ),
@@ -133,6 +147,9 @@ async function expectViewer(
   await expect(d.getByRole("region", { name: nodeTitle(m, id) })).toBeVisible();
   // Row D1: the state is a text line, and with no heading of its own it is the only line under the dialog title.
   await expectStateLine(dialog, m, node.state);
+  // A project with no reading record (slice 1 and 2) says nothing of AI.
+  await expect(dialog.querySelector("[data-ai-line]")).toBeNull();
+  await expect(d.queryByText(m.business.label.aiUnavailable)).toBeNull();
   await expect(dialog.querySelector(".ds-section-header")).toBeNull();
   await expect(
     [...dialog.querySelectorAll("[data-field]")].map((f) => f.getAttribute("data-field")),
@@ -178,6 +195,15 @@ async function expectViewer(
       (fields[i - 1] as HTMLElement).getBoundingClientRect().bottom;
     await expect(Math.abs(gap - 24)).toBeLessThanOrEqual(0.5);
   }
+}
+
+/** Row D8: one fixture note at the top of the story, of the kind the story is. */
+async function expectFixtureNote(root: HTMLElement, kind: "answers" | "readings") {
+  const notes = root.querySelectorAll("[data-fixture-note]");
+  await expect(notes).toHaveLength(1);
+  const note = notes[0] as HTMLElement;
+  await expect(note.dataset["fixtureNote"]).toBe(kind);
+  await expect(Object.values(FIXTURE_NOTES[kind])).toContain(textOf(note));
 }
 
 /** Opens one node by click, reads its view, and closes it again. */
@@ -241,6 +267,7 @@ async function expectBoard(
 ) {
   const canvas = within(canvasElement);
   await boardReady(canvasElement);
+  await expectFixtureNote(canvasElement, "answers");
   await expect(canvas.getByRole("heading", { level: 1, name: view.projectName })).toBeVisible();
   const lede = canvas.getByText(m.business.board.lede);
   await expect(lede).toBeVisible();
@@ -250,6 +277,7 @@ async function expectBoard(
     "/business",
   );
   await expect(canvasElement.querySelector("main")).toBeNull();
+  await expect(canvasElement.querySelector(".ds-alert")).toBeNull();
   // The board region has its own name, and the lede comes before it.
   const region = canvas.getByRole("region", { name: m.business.board.label });
   await expect(region.getAttribute("data-variant")).toBe("present");
@@ -886,3 +914,445 @@ const under = (profile: "neutral" | "professional" | "friendly", mode: "light" |
 export const BoardDark: Story = under("neutral", "dark");
 export const BoardProfessional: Story = under("professional", "light");
 export const BoardFriendlyDark: Story = under("friendly", "dark");
+
+// ----- readings and the AI labels (ORV-283, rows 31 and 33) -----
+
+const localeOf = (m: Messages): Locale => (m === th ? "th" : "en");
+/** The rect of an element's text ink: where the words start, not where the box does. */
+const inkLeft = (el: Element) => {
+  const range = document.createRange();
+  range.selectNodeContents(el);
+  return range.getBoundingClientRect().left;
+};
+const near = (a: number, b: number, tolerance = 1) => Math.abs(a - b) <= tolerance;
+
+/**
+ * Row D7: in every field with readings, each of the field's own lines (the person's words, their
+ * label, the notes) comes before the readings list; the list sits 12 under the last of them when
+ * there is one; a note is never after a reading and sits 4 under the `yourWords` line when there is
+ * an answer. The note wraps to two lines in English at 360, and the gap holds at every line count.
+ */
+async function expectNoteBeforeReadings(
+  dialog: HTMLElement,
+  m: Messages,
+  view: BusinessView,
+  id: BusinessNodeId,
+) {
+  const node = viewNode(view, id);
+  for (const f of node.fields) {
+    if (f.readings.length === 0) continue;
+    const el = fieldOf(dialog, f.field);
+    const list = el.querySelector("ul") as HTMLElement;
+    const lines = [...el.querySelectorAll<HTMLElement>(":scope > p")];
+    for (const p of lines) {
+      await expect(p.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    }
+    const last = lines.at(-1);
+    if (last !== undefined) {
+      await expect(
+        near(list.getBoundingClientRect().top - last.getBoundingClientRect().bottom, 12),
+      ).toBe(true);
+    }
+    const hasNote = lines.some((p) => node.notes.some((note) => textOf(p) === noteLine(m, note)));
+    await expect(f.answer !== null || hasNote).toBe(last !== undefined);
+  }
+  for (const note of node.notes) {
+    const line = [...dialog.querySelectorAll<HTMLElement>("[data-field] p")].find(
+      (p) => textOf(p) === noteLine(m, note),
+    );
+    const field = line?.closest<HTMLElement>("[data-field]");
+    if (line === undefined || field === null || field === undefined) continue;
+    const items = [...field.querySelectorAll<HTMLElement>("li[data-reading]")];
+    if (items.length === 0) continue;
+    for (const li of items) {
+      await expect(
+        line.compareDocumentPosition(li) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    }
+    const words = [...field.querySelectorAll<HTMLElement>(":scope > p")].find(
+      (p) => textOf(p) === m.business.label.yourWords,
+    );
+    if (words !== undefined) {
+      await expect(
+        near(line.getBoundingClientRect().top - words.getBoundingClientRect().bottom, 4),
+      ).toBe(true);
+    }
+    // The note's ink starts where the field's label does.
+    await expect(near(inkLeft(line), inkLeft(field.querySelector("h3") as HTMLElement))).toBe(true);
+  }
+}
+
+/**
+ * Row 33 for one node: under each field the person's words with their label, then one list item per
+ * reading, in the view's order. Each item is, top to bottom: the below-floor line when it applies,
+ * the value as text in `bdi` followed by the pill that opens its quote, "Read by AI (model id)",
+ * "Not confirmed yet", the confidence, and a list of the other quotes when the reading rests on more
+ * than one. One "confidence numbers come from fixed rules" note ends the view, and only when a
+ * reading is there.
+ */
+async function expectReadings(
+  dialog: HTMLElement,
+  m: Messages,
+  view: BusinessView,
+  id: BusinessNodeId,
+) {
+  const locale = localeOf(m);
+  const node = viewNode(view, id);
+  const all = node.fields.flatMap((f) => f.readings);
+  await expect(dialog.querySelectorAll("[data-reading]")).toHaveLength(all.length);
+  await expect(d(dialog).queryAllByText(m.business.label.confidence)).toHaveLength(
+    all.length === 0 ? 0 : 1,
+  );
+  await expect(dialog.querySelector(".ds-badge")).toBeNull();
+  await expect(dialog.querySelector("[data-ai-line]")).toBeNull();
+  for (const f of node.fields) {
+    const el = fieldOf(dialog, f.field);
+    const items = [...el.querySelectorAll<HTMLElement>("li[data-reading]")];
+    await expect(items.map((li) => li.dataset["reading"])).toEqual(
+      f.readings.map((r) => r.item.id),
+    );
+    const label = el.querySelector("h3") as HTMLElement;
+    // A reading with no answer of the person's: no "skipped" or "nothing given" beside it, no words.
+    if (f.answer === null && f.readings.length > 0) {
+      await expect(textOf(el)).not.toContain(m.business.state.empty);
+      await expect(textOf(el)).not.toContain(m.business.state.skipped);
+      await expect(textOf(el)).not.toContain(m.business.label.yourWords);
+    }
+    for (const [i, r] of f.readings.entries()) {
+      const li = items[i] as HTMLElement;
+      // The value is a text node in bdi, whatever it holds.
+      await expect(li.querySelector("bdi")?.textContent).toBe(r.value);
+      await expect(li.querySelector("bdi")?.children).toHaveLength(0);
+      // Children, in order: the below-floor line, the fact with its pill, then three lines, then the quotes.
+      const below = `${m.brandReport.engine["evidence.belowFloor"].replace("{reason}", r.quality.map((k) => m.brandReport.engine[k]).join(", "))}`;
+      const lines = [
+        ...(r.belowFloor ? [below] : []),
+        fromModelNote(locale, r.modelId),
+        m.business.state.proposed,
+        fill(m.business.reading.confidence, { value: formatNumber(r.confidence, locale) }),
+      ];
+      await expect([...li.querySelectorAll(":scope > p")].map(textOf)).toEqual(lines);
+      const order = [...li.children].map((c) =>
+        c.tagName === "P" ? "p" : c.classList.contains("ds-evidence-span") ? "span" : "list",
+      );
+      await expect(order).toEqual([
+        ...(r.belowFloor ? ["p"] : []),
+        "span",
+        "p",
+        "p",
+        "p",
+        ...(r.spans.length > 1 ? ["list"] : []),
+      ]);
+      await expect(li.querySelectorAll(".ds-evidence-list")).toHaveLength(
+        r.spans.length > 1 ? 1 : 0,
+      );
+      // The fact has its own pill that names the fact.
+      const pill = li.querySelector<HTMLElement>(".ds-evidence-span button") as HTMLElement;
+      await expect(pill).toHaveAccessibleName(`${m.evidence.trigger} ${r.value}`);
+      // The saved model id is in the line, and the pill reads it as a reading by a model.
+      await expect(r.modelId).toBe("anthropic/claude-sonnet-5.5");
+      // One start edge: every line of a reading starts where its field's label starts.
+      await expect(near(li.getBoundingClientRect().left, label.getBoundingClientRect().left)).toBe(
+        true,
+      );
+      for (const line of li.querySelectorAll(":scope > p")) {
+        await expect(near(inkLeft(line), inkLeft(label))).toBe(true);
+      }
+      // Readings 16 px apart.
+      if (i > 0) {
+        const gap =
+          li.getBoundingClientRect().top -
+          (items[i - 1] as HTMLElement).getBoundingClientRect().bottom;
+        await expect(near(gap, 16)).toBe(true);
+      }
+    }
+    // Row D7: the field's notes before its readings, the list 12 under the line above it.
+    await expectNoteBeforeReadings(dialog, m, view, id);
+  }
+  // The confidence note is the last thing of the first column, after the last field.
+  if (all.length > 0) {
+    const note = d(dialog).getByText(m.business.label.confidence);
+    const last = [...dialog.querySelectorAll("[data-field]")].at(-1) as HTMLElement;
+    await expect(
+      last.compareDocumentPosition(note) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  }
+  // Nothing from a person or a model became a link, an image or markup.
+  await expect(dialog.querySelectorAll("a, img, script, b")).toHaveLength(0);
+}
+
+const d = (el: HTMLElement) => within(el);
+
+/** The pill of a reading opens the exact words, and Escape closes them with focus back on the pill. */
+async function expectQuoteCard(dialog: HTMLElement, m: Messages, view: BusinessView) {
+  const reading = viewNode(view, "audience")
+    .fields.flatMap((f) => f.readings)
+    .find((r) => r.spans.length > 1);
+  if (reading === undefined) throw new Error("fixture: a reading on two spans in Audience");
+  const li = dialog.querySelector(`[data-reading="${reading.item.id}"]`) as HTMLElement;
+  const pill = li.querySelector<HTMLElement>(".ds-evidence-span button") as HTMLElement;
+  await userEvent.click(pill);
+  const card = await within(document.body).findByRole("dialog", { name: m.evidence.cardLabel });
+  // The quote is the words of the answer, as text, and the card says an AI model read it.
+  await expect(card.querySelector("blockquote")?.textContent).toBe(reading.item.observation.quote);
+  await expect(textOf(card)).toContain(m.evidence.sourceByModel);
+  await expect(card.querySelectorAll("a, img, script")).toHaveLength(0);
+  await userEvent.keyboard("{Escape}");
+  await waitFor(() => expect(document.activeElement).toBe(pill));
+  // Two spans: the list holds a count, closed, and opens to both quotes.
+  const trigger = within(li).getByRole("button", {
+    name: fill(m.evidence.count, { count: reading.spans.length }),
+  });
+  await expect(trigger).toHaveAttribute("aria-expanded", "false");
+  await userEvent.click(trigger);
+  await expect(trigger).toHaveAttribute("aria-expanded", "true");
+  await expect([...li.querySelectorAll(".ds-evidence-list blockquote")].map(textOf)).toEqual(
+    reading.spans.map((s) => s.observation.quote),
+  );
+  // Row D6: each quote row of the list says what the pill card says, an AI model read it.
+  await expect(
+    [...li.querySelectorAll(".ds-evidence-list .ds-evidence-quote__meta")].map(textOf),
+  ).toEqual(reading.spans.map(() => m.evidence.sourceByModel));
+  await userEvent.click(trigger);
+}
+
+/** Opens each node of a project with readings and reads it; opens the pills on Audience. */
+async function readingsPlay(canvasElement: HTMLElement, m: Messages, view: BusinessView) {
+  await boardReady(canvasElement);
+  await expectFixtureNote(canvasElement, "readings");
+  // No reading is shown on the board's cards, and no Alert: the record is a model reading.
+  await expect(canvasElement.querySelector(".ds-alert")).toBeNull();
+  for (const r of view.nodes.flatMap((n) => n.fields).flatMap((f) => f.readings)) {
+    await expect(textOf(canvasElement.querySelector(".react-flow") as HTMLElement)).not.toContain(
+      r.value,
+    );
+  }
+  for (const id of BUSINESS_NODES) {
+    await userEvent.click(nodeEl(canvasElement, id));
+    const dialog = await dialogNamed(nodeTitle(m, id));
+    await expectStateLine(dialog, m, viewNode(view, id).state);
+    await expectReadings(dialog, m, view, id);
+    if (id === "audience") await expectQuoteCard(dialog, m, view);
+    await closeViewer(canvasElement, id);
+  }
+  // A fixture value with markup shows as text, in the viewer of its node.
+  const markup = MARKUP_READINGS[localeOf(m)];
+  await userEvent.click(nodeEl(canvasElement, "competitive-frame"));
+  const frame = await dialogNamed(nodeTitle(m, "competitive-frame"));
+  await expect(fieldOf(frame, "competitive-frame.alternatives").textContent).toContain(markup);
+  await expect(
+    [...frame.querySelectorAll("bdi")].some(
+      (b) => b.textContent === markup && b.children.length === 0,
+    ),
+  ).toBe(true);
+  await closeViewer(canvasElement, "competitive-frame");
+}
+
+/**
+ * A saved Thai project with a model reading, fixture data: the readings under Audience with the
+ * person's words, one above the floor on two quotes, one below it, and a model value that holds
+ * markup and shows as text. Nobody gave these answers and no model read them.
+ */
+export const Readings: Story = {
+  args: { view: THAI_READ_VIEW },
+  parameters: { fixtureReadings: true },
+  play: async ({ canvasElement }) => {
+    await readingsPlay(canvasElement, th, THAI_READ_VIEW);
+  },
+};
+
+export const ReadingsEnglish: Story = {
+  args: { view: ENGLISH_READ_VIEW },
+  parameters: { fixtureReadings: true },
+  decorators: [inEnglish],
+  play: async ({ canvasElement }) => {
+    await readingsPlay(canvasElement, en, ENGLISH_READ_VIEW);
+  },
+};
+
+/**
+ * Row D3 for the readings: at a 360 window every node of a project with readings keeps its text
+ * (values, quotes, the below-floor line, the evidence list opened) clear of the scroll bar, and the
+ * region does not run sideways. The 760 window is the story size; at 480 the viewer is the shortest
+ * the layout allows, so every node with a reading scrolls and has a bar to clear.
+ */
+async function readingsAt360Play(canvasElement: HTMLElement, m: Messages, view: BusinessView) {
+  await expectFixtureNote(canvasElement, "readings");
+  for (const height of [760, 480]) {
+    await atWindow(360, height, async () => {
+      let barred = 0;
+      for (const id of BUSINESS_NODES) {
+        await viewerAt(canvasElement, m, id, async ({ dialog, region }) => {
+          const readings = viewNode(view, id).fields.flatMap((f) => f.readings);
+          // Open every evidence list so the quotes of a reading on two spans are in the view too.
+          for (const trigger of dialog.querySelectorAll<HTMLElement>(
+            ".ds-evidence-list button[aria-expanded='false']",
+          )) {
+            await userEvent.click(trigger);
+          }
+          // Row D7: the order and the gap hold where the note wraps to a second line.
+          await expectNoteBeforeReadings(dialog, m, view, id);
+          // Row D6: every quote row of an opened list says an AI model read it, none says rules did.
+          const sources = [
+            ...dialog.querySelectorAll("li[data-reading] .ds-evidence-quote__meta"),
+          ].map(textOf);
+          await expect(sources.filter((t) => t === m.evidence.sourceByRule)).toHaveLength(0);
+          await expect(sources.filter((t) => t === m.evidence.sourceByModel)).toHaveLength(
+            readings.filter((r) => r.spans.length > 1).reduce((n, r) => n + r.spans.length, 0),
+          );
+          await expect(region.scrollWidth).toBeLessThanOrEqual(region.clientWidth);
+          await expect(dialog.querySelectorAll("[data-reading]")).toHaveLength(readings.length);
+          // A node that fits the window has no bar to clear; a node with readings must scroll at 480.
+          if (region.scrollHeight > region.clientHeight) {
+            await expectClearOfBar(dialog, region);
+            barred++;
+          } else {
+            await expect(height === 480 && readings.length > 0).toBe(false);
+          }
+          for (const el of dialog.querySelectorAll<HTMLElement>(
+            "[data-reading], blockquote, bdi",
+          )) {
+            await expect(el.getBoundingClientRect().right).toBeLessThanOrEqual(
+              dialog.getBoundingClientRect().right + 0.5,
+            );
+          }
+        });
+      }
+      await expect(barred).toBeGreaterThan(0);
+    });
+  }
+  // The project holds a reading below the floor and one on two quotes, so the probe saw them.
+  const all = view.nodes.flatMap((n) => n.fields).flatMap((f) => f.readings);
+  await expect(all.some((r) => r.belowFloor)).toBe(true);
+  await expect(all.some((r) => r.spans.length > 1)).toBe(true);
+}
+
+export const ReadingsAt360: Story = {
+  args: { view: THAI_READ_VIEW },
+  parameters: { fixtureReadings: true },
+  play: async ({ canvasElement }) => {
+    await readingsAt360Play(canvasElement, th, THAI_READ_VIEW);
+  },
+};
+
+export const ReadingsAt360English: Story = {
+  args: { view: ENGLISH_READ_VIEW },
+  parameters: { fixtureReadings: true },
+  decorators: [inEnglish],
+  play: async ({ canvasElement }) => {
+    await readingsAt360Play(canvasElement, en, ENGLISH_READ_VIEW);
+  },
+};
+
+/**
+ * Row 31: a result with no reading. The Alert under the header says AI did not read, and why; the
+ * viewer says it again under the state line, and shows the person's words alone.
+ */
+async function aiUnavailablePlay(
+  canvasElement: HTMLElement,
+  m: Messages,
+  view: BusinessView,
+  reason: BusinessReadReason,
+) {
+  await boardReady(canvasElement);
+  const alert = canvasElement.querySelector<HTMLElement>(".ds-alert") as HTMLElement;
+  await expect(alert).toBeVisible();
+  await expect(alert.dataset["variant"]).toBe("info");
+  await expect(alert.getAttribute("role")).toBeNull();
+  await expect(alert.querySelector(".ds-alert__title")?.textContent).toBe(
+    m.business.label.aiUnavailable,
+  );
+  await expect(alert.querySelector(".ds-alert__description")?.textContent).toBe(
+    readReasonLine(m, reason),
+  );
+  // Row 31's lines, one per reason, in the language of the story.
+  await expect(readReasonLine(m, reason)).toBe(
+    {
+      "ai-not-configured": m.business.errors.aiNotConfigured,
+      "ai-failed": m.business.errors.aiFailed,
+      "ai-rate-limited": m.business.errors.aiRateLimited,
+      "ai-spend-cap": m.business.errors.aiSpendCap,
+    }[reason],
+  );
+  // 24 px under the header, and before the board.
+  const header = canvasElement.querySelector(".ds-page-header") as HTMLElement;
+  await expect(
+    near(alert.getBoundingClientRect().top - header.getBoundingClientRect().bottom, 24),
+  ).toBe(true);
+  const region = within(canvasElement).getByRole("region", { name: m.business.board.label });
+  await expect(
+    alert.compareDocumentPosition(region) & Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
+  // No reading anywhere on the screen, and nothing that says AI read.
+  await expect(canvasElement.querySelector("[data-reading]")).toBeNull();
+  for (const id of BUSINESS_NODES) {
+    const node = viewNode(view, id);
+    await userEvent.click(nodeEl(canvasElement, id));
+    const dialog = await dialogNamed(nodeTitle(m, id));
+    const state = dialog.querySelector("[data-node-state]") as HTMLElement;
+    const line = dialog.querySelector<HTMLElement>("[data-ai-line]") as HTMLElement;
+    await expect(textOf(line)).toBe(m.business.label.aiUnavailable);
+    await expect(line.dataset["aiLine"]).toBe(reason);
+    await expect(d(dialog).getAllByText(m.business.label.aiUnavailable)).toHaveLength(1);
+    // Under the state line, 8 px apart, in one group; 24 px to the first field; one start edge.
+    await expect(state.nextElementSibling).toBe(line);
+    await expect(
+      near(line.getBoundingClientRect().top - state.getBoundingClientRect().bottom, 8),
+    ).toBe(true);
+    const first = dialog.querySelector("[data-field]") as HTMLElement;
+    await expect(
+      near(first.getBoundingClientRect().top - line.getBoundingClientRect().bottom, 24),
+    ).toBe(true);
+    await expect(near(inkLeft(line), inkLeft(state))).toBe(true);
+    // The person's words alone, each with its label; nothing read.
+    await expect(dialog.querySelectorAll("[data-reading]")).toHaveLength(0);
+    await expect(d(dialog).queryAllByText(m.business.label.confidence)).toHaveLength(0);
+    await expect(textOf(dialog)).not.toContain(
+      fromModelNote(localeOf(m), "anthropic/claude-sonnet-5.5"),
+    );
+    await expect(dialog.querySelector(".ds-badge")).toBeNull();
+    const given = node.fields.filter((f) => f.answer !== null);
+    await expect(d(dialog).queryAllByText(m.business.label.yourWords)).toHaveLength(given.length);
+    for (const f of given) {
+      await expect(fieldOf(dialog, f.field).querySelector("bdi")?.textContent).toBe(f.answer?.text);
+    }
+    await closeViewer(canvasElement, id);
+  }
+}
+
+export const AiUnavailable: Story = {
+  args: { view: aiUnavailableView("th", "ai-failed") },
+  play: async ({ canvasElement, args }) => {
+    await aiUnavailablePlay(canvasElement, th, args.view as BusinessView, "ai-failed");
+  },
+};
+
+export const AiUnavailableEnglish: Story = {
+  args: { view: aiUnavailableView("en", "ai-failed") },
+  decorators: [inEnglish],
+  play: async ({ canvasElement, args }) => {
+    await aiUnavailablePlay(canvasElement, en, args.view as BusinessView, "ai-failed");
+  },
+};
+
+export const AiNotConfigured: Story = {
+  args: { view: aiUnavailableView("th", "ai-not-configured") },
+  play: async ({ canvasElement, args }) => {
+    await aiUnavailablePlay(canvasElement, th, args.view as BusinessView, "ai-not-configured");
+  },
+};
+
+export const AiRateLimitedEnglish: Story = {
+  args: { view: aiUnavailableView("en", "ai-rate-limited") },
+  decorators: [inEnglish],
+  play: async ({ canvasElement, args }) => {
+    await aiUnavailablePlay(canvasElement, en, args.view as BusinessView, "ai-rate-limited");
+  },
+};
+
+export const AiSpendCap: Story = {
+  args: { view: aiUnavailableView("th", "ai-spend-cap") },
+  play: async ({ canvasElement, args }) => {
+    await aiUnavailablePlay(canvasElement, th, args.view as BusinessView, "ai-spend-cap");
+  },
+};

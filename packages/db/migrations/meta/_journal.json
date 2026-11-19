@@ -71,6 +71,20 @@
       "when": 1794986435667,
       "tag": "0009_business_access",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1794992769863,
+      "tag": "0010_business_reading",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794992770318,
+      "tag": "0011_business_reading_access",
+      "breakpoints": true
     }
   ]
 }

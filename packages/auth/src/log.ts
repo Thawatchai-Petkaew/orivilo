@@ -50,6 +50,17 @@ export const STEP_OUTCOMES = {
     "redirects",
     "not-html",
   ],
+  // ORV-283: what happened to the reading of a saved business intake, after the intake committed.
+  "business-read": [
+    "read",
+    "refused",
+    "failed",
+    "not-configured",
+    "limited",
+    "spend-cap",
+    "unavailable",
+    "save-failed",
+  ],
   /**
    * ba-messages-1: the string literals Better Auth 1.7.12 passes to `logger.warn(` or
    * `logger.error(` in `dist/api/routes/callback.mjs` and `dist/oauth2/state.mjs`. A message built

@@ -17,7 +17,14 @@ import { fingerprintOf } from "./resolver";
  * The evidence contract (ORV-128 spec "Evidence first", tech notes sections 2, 3 and 5).
  * Every closed list, field name and bound below is the spec's. Pure: no clock, no random, no I/O.
  */
-export const EVIDENCE_SCHEMA_VERSION = "1.0";
+export const EVIDENCE_SCHEMA_VERSION = "1.1";
+/**
+ * Every version the schema reads (ORV-281 tech notes section 7). A minor bump that only adds
+ * members keeps every older item valid, so a stored item at an older version still parses;
+ * writers write `EVIDENCE_SCHEMA_VERSION`. A bump that narrows a shape migrates the stored items
+ * or shows that none holds the narrowed shape, before it joins this list.
+ */
+export const EVIDENCE_SCHEMA_VERSIONS = ["1.0", "1.1"] as const;
 
 export const INPUT_KINDS = [
   "website-url",
@@ -81,6 +88,13 @@ export const READING_TARGETS = [
   "color.current",
   "competitive-frame.lineup-candidate",
   "reference.asset",
+  // Schema 1.1 (ORV-281): the business readings. `situation.name` is above.
+  "business-core.offer",
+  "business-core.why",
+  "audience.customers",
+  "audience.problem",
+  "competitive-frame.category",
+  "competitive-frame.alternatives",
 ] as const;
 export type ReadingTarget = (typeof READING_TARGETS)[number];
 /** Spec "Evidence first", Rule ids: four at schema 1.0. A slice that adds a rule making a reading adds its id and bumps the schema by a minor version. */
@@ -107,7 +121,7 @@ export const FLAG_KEYS = [
   "quality.imageSmall",
   "quality.imageBlurred",
 ] as const;
-export const MODEL_JOBS = ["interpret", "see"] as const;
+export const MODEL_JOBS = ["interpret", "see", "business-read"] as const;
 
 /** Each quality factor and the flag that must travel with it (checkItem clause 10). */
 const QUALITY_PAIRS = [
@@ -186,6 +200,8 @@ const measureSchema = z
 
 const tsicCode = z.string().regex(/^(?:[A-U]|\d{2,5})$/);
 const nameValue = z.object({ name: z.string().trim().min(1).max(60) }).strict();
+/** The value of a business reading that restates what the quoted words say (schema 1.1). */
+const textValue = z.object({ text: z.string().trim().min(1).max(200) }).strict();
 const leanValue = z.object({ lean: z.enum(["high", "low"]) }).strict();
 const lineupValue = z
   .object({
@@ -211,6 +227,12 @@ const VALUE_SHAPES: Record<ReadingTarget, z.ZodType> = {
   "color.current": z.object({ hex: hexSchema }).strict(),
   "competitive-frame.lineup-candidate": lineupValue,
   "reference.asset": assetValue,
+  "business-core.offer": textValue,
+  "business-core.why": textValue,
+  "audience.customers": textValue,
+  "audience.problem": textValue,
+  "competitive-frame.category": textValue,
+  "competitive-frame.alternatives": nameValue,
 };
 /** Every shape a reading's value can take; which one fits is decided by the target (checkItem). */
 const readingValueSchema = z.union([
@@ -221,6 +243,7 @@ const readingValueSchema = z.union([
   z.object({ hex: hexSchema }).strict(),
   lineupValue,
   assetValue,
+  textValue,
 ]);
 const readingTargetSchema = z.enum(READING_TARGETS);
 
@@ -251,7 +274,7 @@ const confidenceSchema = z
 
 const itemShape = z
   .object({
-    schemaVersion: z.literal(EVIDENCE_SCHEMA_VERSION),
+    schemaVersion: z.enum(EVIDENCE_SCHEMA_VERSIONS),
     id: hexId,
     analyser: z
       .object({ id: z.enum(INPUT_KINDS), version: z.string().trim().min(1).max(20) })
