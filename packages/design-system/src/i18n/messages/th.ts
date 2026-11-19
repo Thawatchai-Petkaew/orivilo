@@ -264,6 +264,7 @@ export const th = {
     byRules: "ตามกฎ",
     moreLines: "อีก {count} บรรทัด",
     pages: "{count} หน้า",
+    pagesOne: "1 หน้า",
     fill: {
       empty: "ยังว่าง",
       partial: "ถามอีก {count} ข้อ",
@@ -433,6 +434,7 @@ export const th = {
     placed: "วาง {title} บนกระดานแล้ว",
   },
   port: {
+    handleName: "{direction}{kind}",
     connected: "{port}, เชื่อมอยู่",
     disabled: "{port}, แก้ไขไม่ได้",
   },
@@ -445,7 +447,9 @@ export const th = {
   graph: {
     nodeLabel: "{title}, {kind}",
     nodeOpenLabel: "{title} {count} หน้า",
+    nodeOpenLabelOne: "{title} 1 หน้า",
     edgeLabel: "{meaning} จาก {source} ไป {target}",
+    edgeLabelDerived: "สร้างจาก {source} ไป {target}",
     invalid: "เชื่อมต่อไม่ได้",
     selfLoop: "ต่อสายเข้า node ตัวเองไม่ได้",
     otherNode: "วางสายบนพอร์ตของ node อื่น",
@@ -499,8 +503,10 @@ export const th = {
     zoomIn: "ซูมเข้า",
     zoomOut: "ซูมออก",
     zoom100: "ซูม 100%",
-    fitAll: "พอดีจอ {count} node",
-    fitSelection: "พอดีจอกับ {count} node ที่เลือก",
+    fitAll: "พอดีจอ {count} โหนด",
+    fitAllOne: "พอดีจอ 1 โหนด",
+    fitSelection: "พอดีจอกับ {count} โหนดที่เลือก",
+    fitSelectionOne: "พอดีจอกับ 1 โหนดที่เลือก",
     panMode: "โหมดเลื่อนกระดาน ลากเพื่อเลื่อน",
     selectMode: "โหมดเลือก ลากเพื่อเลือกหลาย node, กด Space ค้างเพื่อเลื่อน",
     minimapHidden: "ซ่อนแผนที่ย่อ",

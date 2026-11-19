@@ -382,7 +382,7 @@ const port = (id: string, kind: PortKind, name: Text, row?: string): PortRecord 
 const TAGLINE = "Give your ideas a world.";
 const TAGLINE_TH = "ให้ไอเดีย\nมีตัวตน";
 const VOICE_TH = "ให้ไอเดียมีตัวตน\nและไปต่อได้จริง";
-const TYPE_SAMPLE = "Aa กข";
+export const TYPE_SAMPLE = "Aa กข";
 const TYPE_FACES = "Inter, Anuphan, Sarabun";
 
 // ---- palette

@@ -194,7 +194,9 @@ export function CanvasNode({ id, data, selected, dragging }: CanvasNodeProps) {
   const pages =
     data.open?.count === undefined
       ? undefined
-      : fill(m.node.pages, { count: String(data.open.count) });
+      : data.open.count === 1
+        ? m.node.pagesOne
+        : fill(m.node.pages, { count: String(data.open.count) });
   const openGlyph = data.open ? <OpenIcon className="ds-node__open" /> : null;
   const statusChip = status ? (
     <span className="ds-node__status" data-status={data.status}>

@@ -25,5 +25,5 @@ rules:
   - "On a present board the label pill keeps its zoom-1 size below zoom 1 and its centre on the edge's label point at every zoom; hover widens the edge to the chain width (derived: 2 x selected - rest) in its own hue (ORV-274; story KindsAndZoom, WithChapters)"
   - "1, 2, 3 on a focused edge set its meaning to input, reference, derived"
 a11y:
-  - "aria-label reads: <meaning> จาก <source> ไป <target>, then the state word"
+  - "aria-label reads: <meaning> จาก <source> ไป <target> (English: <meaning> from <source> to <target>), then the state word; a derived edge reads สร้างจาก <source> ไป <target> (derived from <source> to <target>), with its meaning word once, from the key graph.edgeLabelDerived"
   - "Selectable by keyboard with Tab; Delete removes it"
