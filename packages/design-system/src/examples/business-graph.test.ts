@@ -1,4 +1,9 @@
-import { BUSINESS_EDGES, BUSINESS_NODES } from "@orivilo/intent-engine";
+import {
+  BUSINESS_EDGES,
+  BUSINESS_NODES,
+  FOUNDATION_EDGES,
+  FOUNDATION_NODES,
+} from "@orivilo/intent-engine";
 import { describe, expect, it } from "vitest";
 import { messagesFor } from "../i18n/messages/index";
 import { boardGraphOf, BUSINESS_POSITIONS } from "./business-graph";
@@ -6,8 +11,10 @@ import { SKIPPED_VIEW, THAI_VIEW } from "./business-fixtures";
 import { nodeTitle } from "./business-text";
 
 /**
- * ORV-281 tech notes T26, spec rows 22 and 23: `boardGraphOf` gives five nodes in fill order, each
- * opening one view with no page count, and exactly the six edges of W2.
+ * ORV-281 tech notes T26, spec rows 22 and 23: `boardGraphOf` gives the business nodes in fill order,
+ * each opening one view with no page count, and exactly the six edges of W2. ORV-291 tech notes T20
+ * (spec rows 9, 23 and 34): after PR 1 the board has six nodes and seven edges, the new node and
+ * its one edge per require (W2), and a node with several sources gets one input handle per source.
  */
 
 const W2 = [
@@ -18,16 +25,17 @@ const W2 = [
   "audience>positioning",
   "competitive-frame>positioning",
 ];
+/** ORV-281's six edges, then `positioning` to `identity-frame` (W2, after PR 1). */
+const W2_PR1 = [...W2, "positioning>identity-frame"];
 
 describe.each(["th", "en"] as const)("boardGraphOf in %s", (locale) => {
   const m = messagesFor(locale);
   const graph = boardGraphOf(THAI_VIEW, m);
 
-  it("has five nodes in fill order, each titled by the catalog and opening with no count", () => {
-    expect(graph.nodes.map((n) => n.id)).toEqual([...BUSINESS_NODES]);
-    expect(graph.nodes.map((n) => n.data.title)).toEqual(
-      BUSINESS_NODES.map((id) => nodeTitle(m, id)),
-    );
+  it("has six nodes in fill order, each titled by the catalog and opening with no count", () => {
+    const fill = [...BUSINESS_NODES, ...FOUNDATION_NODES];
+    expect(graph.nodes.map((n) => n.id)).toEqual(fill);
+    expect(graph.nodes.map((n) => n.data.title)).toEqual(fill.map((id) => nodeTitle(m, id)));
     for (const node of graph.nodes) {
       expect(node.data.open).toEqual({});
       expect(node.data.open).not.toHaveProperty("count");
@@ -40,13 +48,14 @@ describe.each(["th", "en"] as const)("boardGraphOf in %s", (locale) => {
     }
   });
 
-  it("has exactly the six edges of W2, each solid and with no label pill", () => {
-    expect(graph.edges.map((e) => `${e.source}>${e.target}`)).toEqual(W2);
+  it("has exactly the seven edges of W2, each solid and with no label pill", () => {
+    expect(graph.edges.map((e) => `${e.source}>${e.target}`)).toEqual(W2_PR1);
     expect([...BUSINESS_EDGES].map(([a, b]) => `${a}>${b}`)).toEqual(W2);
+    expect(FOUNDATION_EDGES.map(([a, b]) => `${a}>${b}`)).toEqual(["positioning>identity-frame"]);
     for (const edge of graph.edges) {
       expect(edge.data).toEqual({ meaning: "input", label: false });
     }
-    expect(new Set(graph.edges.map((e) => e.id)).size).toBe(6);
+    expect(new Set(graph.edges.map((e) => e.id)).size).toBe(7);
   });
 
   it("joins every edge to a port that exists, of the same kind, on its two nodes", () => {
@@ -60,17 +69,52 @@ describe.each(["th", "en"] as const)("boardGraphOf in %s", (locale) => {
     }
   });
 
-  it("gives Positioning three inputs named by their source, in column order, and no output", () => {
+  it("gives a node with several sources one input per source, named by it, in column order", () => {
     const positioning = graph.nodes.find((n) => n.id === "positioning");
     expect(positioning?.data.inputs.map((p) => [p.id, p.label])).toEqual([
       ["from-business-core", nodeTitle(m, "business-core")],
       ["from-audience", nodeTitle(m, "audience")],
       ["from-competitive-frame", nodeTitle(m, "competitive-frame")],
     ]);
-    expect(positioning?.data.outputs).toEqual([]);
+    // Positioning now feeds Brand personality, so it has one output (ORV-291, design 2.2).
+    expect(positioning?.data.outputs.map((p) => [p.id, p.label])).toEqual([
+      ["out", nodeTitle(m, "positioning")],
+    ]);
     const situation = graph.nodes.find((n) => n.id === "situation");
     expect(situation?.data.inputs).toEqual([]);
     expect(situation?.data.outputs.map((p) => p.label)).toEqual([nodeTitle(m, "situation")]);
+  });
+
+  it("leaves the ports of the four other business nodes as they were", () => {
+    const portsOf = (id: string) => {
+      const node = graph.nodes.find((n) => n.id === id);
+      return [
+        node?.data.inputs.map((p) => [p.id, p.label]),
+        node?.data.outputs.map((p) => [p.id, p.label]),
+      ];
+    };
+    expect(portsOf("business-core")).toEqual([
+      [["in", nodeTitle(m, "situation")]],
+      [["out", nodeTitle(m, "business-core")]],
+    ]);
+    expect(portsOf("audience")).toEqual([
+      [["in", nodeTitle(m, "situation")]],
+      [["out", nodeTitle(m, "audience")]],
+    ]);
+    expect(portsOf("competitive-frame")).toEqual([
+      [["in", nodeTitle(m, "situation")]],
+      [["out", nodeTitle(m, "competitive-frame")]],
+    ]);
+  });
+
+  it("gives Brand personality one input from Positioning and no output yet", () => {
+    const identity = graph.nodes.find((n) => n.id === "identity-frame");
+    expect(identity?.data.inputs.map((p) => [p.id, p.label])).toEqual([
+      ["in", nodeTitle(m, "positioning")],
+    ]);
+    expect(identity?.data.outputs).toEqual([]);
+    const edge = graph.edges.find((e) => e.target === "identity-frame");
+    expect(edge).toMatchObject({ source: "positioning", sourceHandle: "out", targetHandle: "in" });
   });
 
   it("sets the nodes where the design table puts them", () => {
@@ -80,8 +124,9 @@ describe.each(["th", "en"] as const)("boardGraphOf in %s", (locale) => {
       ["audience", 456, 340],
       ["competitive-frame", 456, 652],
       ["positioning", 928, 326],
+      ["identity-frame", 1400, 160],
     ]);
-    expect(Object.keys(BUSINESS_POSITIONS)).toEqual([...BUSINESS_NODES]);
+    expect(Object.keys(BUSINESS_POSITIONS)).toEqual([...BUSINESS_NODES, ...FOUNDATION_NODES]);
   });
 
   it("is the same graph for a project that skipped answers, and is deterministic", () => {
@@ -104,6 +149,7 @@ describe("boardGraphOf in two languages", () => {
       "Audience",
       "Competitive frame",
       "Positioning",
+      "Brand personality",
     ]);
     expect(th.nodes.map((n) => n.data.title)).toEqual([
       "สถานการณ์ตั้งต้น",
@@ -111,6 +157,7 @@ describe("boardGraphOf in two languages", () => {
       "กลุ่มลูกค้า",
       "ตลาดและคู่แข่ง",
       "จุดยืน",
+      "บุคลิกของแบรนด์",
     ]);
   });
 });
