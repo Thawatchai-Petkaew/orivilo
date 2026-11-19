@@ -1,7 +1,7 @@
 ---
 issue: ORV-284 (https://tpetkaew.atlassian.net/browse/ORV-284)
 lane: L
-version: 1.1
+version: 1.2
 ---
 
 # ORV-284: analysis jobs on Anthropic models with the owner's own key, image jobs on an image model
@@ -125,6 +125,8 @@ Tests use recorded or constructed answers and a fake `fetch`; none reaches a mod
 
 PR 1 carries rows 1 to 4 and 10 to 12; PR 2 carries rows 5 to 9 and 12. Each PR's line in the qa recorder's form is added when that PR has its number.
 
+- PR 223: rows 1-4, 10-12
+
 ## Rows that render nothing
 
 - Rows: 1-12
@@ -215,3 +217,4 @@ node -e 'const t=[["haiku-5.5",3],["haiku-4.5",6],["sonnet-5.5",3],["sonnet-5",3
 
 - v1 (2026-11-18): first version, from the owner's decision on ORV-284 and a read of ADR 0009, ADR 0015, ADR 0018, K-0091, K-0412, K-0413, `openrouter.ts`, `openrouter.test.ts`, `spend-cap.ts`, ORV-121 and ORV-281. No Jira tool and no shell in this task, so ORV-284 was not read directly and no worked example was run. Downstream to review: the owner's answers (open questions 1 to 8) and confirmation of row 9's run; the research task that updates K-0412 from row 9; the architect's tech notes and ADR 0009 addition; the builder, `security` and reviewer envelopes for the PR; the items under "Downstream review if this spec changes".
 - v1.1 (2026-11-18): task ORV-284-spec-2, the bookkeeping items S1 to S7 of the tech notes section 11; no requirement, row, rule, string, number or default changed. S1: "Delivery order" in two PRs, PR 1 with no real call and PR 2 after row 9. S2: a new "Rows per PR" section, one prose sentence, with no list line until a PR has its number. S3: front matter `lane: L`, as G1 passed (ORV-284 comment 10712). S4: row 8's Check names `openrouter.test.ts` for the null and `apps/web/app/directions/actions.test.ts` for the record and the step line. S5: "Worked examples" opens with the main session's run of W1 to W4 on 2026-11-18. S6: `byok-cost-1` bullet 2, the design made from K-0412's documented fields before row 9 and checked against its real answer. S7: "ORV-281 slice 3 (ORV-283)" at its first mention. Downstream to review: the tech notes front matter, which names spec v1; the dated note on the ORV-160 spec (`orv160-model-ids`, PR 1 task 1.1) and the dated note on the ORV-121 spec (`spend-cap-8`, PR 2 task 2.6), each a task of its builder PR as the tech notes' build order says; the qa envelopes, which read "Rows per PR", and PR 1's list line once PR 1 has its number.
+- v1.2 (2026-11-18): task ORV-284-spec-3, the open part of tech notes section 7 task 1.1; no requirement, row, rule, string, number or default changed. "Rows per PR" gets PR 1's list line, `- PR 223: rows 1-4, 10-12`, now that PR 1 is PR 223; PR 2 stays in the prose sentence until it has its number. The ORV-160 spec gets the dated note of tech notes section 10 row L2 after `orv160-model-ids`. Downstream to review: the qa envelopes for PR 223, which read the new list line; the tech notes front matter, which names spec v1; PR 2's list line once PR 2 has its number.
