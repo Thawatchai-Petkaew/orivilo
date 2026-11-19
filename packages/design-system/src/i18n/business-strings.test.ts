@@ -1,11 +1,20 @@
 import {
   BUSINESS_FIELDS,
   BUSINESS_NODES,
+  BUSINESS_READ_REASONS,
   INTAKE_FIELDS,
   PROXY_QUESTIONS,
 } from "@orivilo/intent-engine";
 import { describe, expect, it } from "vitest";
-import { fieldLabel, intakeLabel, nodeTitle, questionText } from "../examples/business-text";
+import {
+  belowFloorLine,
+  fieldLabel,
+  fromModelNote,
+  intakeLabel,
+  nodeTitle,
+  questionText,
+  readReasonLine,
+} from "../examples/business-text";
 import { LOCALES } from "./locale";
 import { messagesFor } from "./messages/index";
 
@@ -153,4 +162,68 @@ describe("business catalog", () => {
       expect(m.business.reading.confidence).toContain("{value}");
     });
   }
+});
+
+/**
+ * The lines of the slice 3 rows (ORV-283, rows 31 and 33): one `business.errors.*` line for each
+ * reason a result has no model reading, in the order the spec gives them, and the three lines the
+ * view takes from the engine's ORV-128 table, word for word in each language.
+ */
+describe("business readings, strings", () => {
+  const LINES = {
+    en: {
+      "ai-not-configured":
+        "AI is not set up in this environment, so only your own words are shown.",
+      "ai-failed": "AI could not read your answers, so only your own words are shown.",
+      "ai-rate-limited":
+        "You have reached the limit for AI readings, so only your own words are shown.",
+      "ai-spend-cap":
+        "This workspace has used its AI budget for this month, so only your own words are shown.",
+    },
+    th: {
+      "ai-not-configured": "สภาพแวดล้อมนี้ยังไม่ได้ตั้งค่า AI จึงแสดงเฉพาะคำของคุณเอง",
+      "ai-failed": "AI อ่านคำตอบของคุณไม่สำเร็จ จึงแสดงเฉพาะคำของคุณเอง",
+      "ai-rate-limited": "ใช้ AI อ่านครบจำนวนที่กำหนดแล้ว จึงแสดงเฉพาะคำของคุณเอง",
+      "ai-spend-cap": "เวิร์กสเปซนี้ใช้งบ AI ของเดือนนี้ครบแล้ว จึงแสดงเฉพาะคำของคุณเอง",
+    },
+  } as const;
+
+  it("the engine names four reasons, in the order of the spec", () => {
+    expect([...BUSINESS_READ_REASONS]).toEqual([
+      "ai-not-configured",
+      "ai-failed",
+      "ai-rate-limited",
+      "ai-spend-cap",
+    ]);
+  });
+
+  for (const locale of LOCALES) {
+    const m = messagesFor(locale);
+
+    it(`${locale}: each reason gives its own line, word for word`, () => {
+      for (const reason of BUSINESS_READ_REASONS) {
+        expect(readReasonLine(m, reason), reason).toBe(LINES[locale][reason]);
+      }
+      expect(new Set(BUSINESS_READ_REASONS.map((r) => readReasonLine(m, r))).size).toBe(4);
+    });
+  }
+
+  it("the model line is the engine's, with the saved model id", () => {
+    expect(fromModelNote("en", "anthropic/claude-sonnet-5.5")).toBe(
+      "Read by AI (anthropic/claude-sonnet-5.5). Check it before you use it.",
+    );
+    expect(fromModelNote("th", "anthropic/claude-sonnet-5.5")).toBe(
+      "AI อ่านค่านี้ (anthropic/claude-sonnet-5.5) โปรดตรวจสอบก่อนนำไปใช้",
+    );
+  });
+
+  it("a reading below the floor says why, in each language", () => {
+    const reading = { quality: ["quality.fewWords"] } as Parameters<typeof belowFloorLine>[1];
+    expect(belowFloorLine(messagesFor("en"), reading)).toBe(
+      "Too uncertain to use: the text has fewer than 20 words",
+    );
+    expect(belowFloorLine(messagesFor("th"), reading)).toBe(
+      "ยังไม่แน่ชัดพอจะนำไปใช้: ข้อความมีไม่ถึง 20 คำ",
+    );
+  });
 });

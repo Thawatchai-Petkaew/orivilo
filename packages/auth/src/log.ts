@@ -50,6 +50,17 @@ export const STEP_OUTCOMES = {
     "redirects",
     "not-html",
   ],
+  // ORV-283: what happened to the reading of a saved business intake, after the intake committed.
+  "business-read": [
+    "read",
+    "refused",
+    "failed",
+    "not-configured",
+    "limited",
+    "spend-cap",
+    "unavailable",
+    "save-failed",
+  ],
 } as const;
 export type Step = keyof typeof STEP_OUTCOMES;
 

@@ -126,6 +126,8 @@ describe("the field classification map (ORV-158, orv158-walk)", () => {
         "businessIntake.industry",
         "businessIntake.problem",
         "businessIntake.value",
+        "businessReading.createdBy",
+        "businessReading.evidence",
         "direction.createdBy",
         "directionVersion.approvedBy",
         "directionVersion.createdBy",
