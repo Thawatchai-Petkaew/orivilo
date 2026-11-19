@@ -82,7 +82,7 @@ const connectedPair = (lang: Lang = "th"): Graph => {
 };
 
 /**
- * `roomBelow` is the board's height where its container is narrower than 554 px (ORV-290 row 10).
+ * `roomBelow` is the board's height where its container is narrower than 720 px (ORV-290 row 10).
  * The board fits its node to its width, so a narrow board shrinks the card and the corner badge
  * lands on it; the taller board fits the node at a zoom that keeps the card under the badge. The
  * board itself is unchanged: only the story's frame answers the container's width.
@@ -102,7 +102,7 @@ function PortBoard({
   const id = typeof scope?.profile === "string" ? scope.profile : scope?.profile.id;
   const board = (
     <div
-      className={roomBelow === undefined ? undefined : "h-(--board-height) @max-[554px]:h-(--room)"}
+      className={roomBelow === undefined ? undefined : "h-(--board-height) @max-[720px]:h-(--room)"}
       style={
         roomBelow === undefined
           ? { height: fillHeight(height) }
@@ -522,7 +522,7 @@ async function refit(board: HTMLElement) {
 export const PresentRecipesAndModes: Story = {
   render: () => (
     <Matrix>
-      <PortBoard initial={allKinds()} height={300} roomBelow={540} variant="present" />
+      <PortBoard initial={allKinds()} height={300} roomBelow={720} variant="present" />
     </Matrix>
   ),
   play: async ({ canvasElement }) => {
@@ -558,8 +558,7 @@ export const PresentRecipesAndModes: Story = {
     // The corner badge keeps clear of every card and dot (ORV-290 row 10, B15). At rest no status
     // line holds text, and the badge has a gap of 0 or more to every card and dot in the window the
     // story opens in. Then at 360 and at 1440 each board is fitted again, as a person's fit key does
-    // it, and the badge meets no card and no dot. The status line that fit key raises is a message,
-    // not the board at rest, so it is not read there.
+    // it, and the badge and the status line that key raises (2 reads a cell) meet no card and no dot.
     for (const cell of cells) {
       for (const status of cell.querySelectorAll("[role=status]")) {
         await expect(status.textContent, "no status line text at rest").toBe("");
@@ -571,7 +570,7 @@ export const PresentRecipesAndModes: Story = {
         for (const cell of cells) {
           const board = cell.querySelector<HTMLElement>(".ds-board") as HTMLElement;
           await refit(board);
-          await expect(expectBoardChromeClear(cell, 0, ".ds-board__mode")).toBe(1);
+          await expect(expectBoardChromeClear(cell)).toBe(2);
         }
       });
     }
