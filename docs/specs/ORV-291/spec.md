@@ -321,6 +321,10 @@ Tests use fixtures; none reaches the internet or a model. Screen rows are proven
 
 - Rows: 1, 7, 12-14, 21, 24, 25, 32, 36, 37
 
+## Rows per PR
+
+- PR 232: rows 1-13
+
 ## Delivery: three PRs
 
 Each PR closes a piece the owner can open, and none calls a model. Function, file and table names are suggestions; each named test keeps its name.
