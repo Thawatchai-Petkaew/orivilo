@@ -2,7 +2,7 @@
 issue: ORV-291 (https://tpetkaew.atlassian.net/browse/ORV-291)
 lane: L (risk flags: stored workspace data, a new tenant table behind the authorization helper; a new contract on the business nodes, four new nodes with their entry contract, their states and the marks a skip or an unagreed step leaves on them; a model call only if open question 1 is answered (b))
 mode: POC mode short spec (`.claude/skills/ovl/SKILL.md`, section "POC mode")
-version: 1.1
+version: 1.2
 ---
 
 # ORV-291: the brand foundation, personality, architecture, working name and the core idea gate
@@ -179,7 +179,7 @@ The one home of the labels on the four nodes.
 | Content | Label | When |
 | --- | --- | --- |
 | A proxy answer (`person`, `never`, `remember`) | `business.label.yourWords` | always |
-| The five scales | `business.identity.hypothesis`, once per view and once in the editor | always |
+| The five scales | `business.identity.hypothesis`, once in each place it shows | only where the scales show (the editor and the given view), not under an empty Personality field (open question 13) |
 | The derived architecture | `business.architecture.because` | the value shows |
 | The working name | `business.name.notScreened` | the name shows |
 | A core idea | `business.positioning.by.own` | `given` |
@@ -195,6 +195,8 @@ Per project, in the person's workspace: the entries of `foundation-entry-1`, eac
 ### foundation-board-1
 
 The four nodes join the read-only business board of ORV-281 `business-board-1`, with one edge per require of `foundation-marks-1`: `positioning` to `identity-frame`; `situation` and `positioning` to `architecture`; `positioning` and `architecture` to `name`; `positioning` and `identity-frame` to `core-idea`. Each PR adds its nodes and their edges ("Worked examples", W2). The board still reads left to right in fill order, with the four nodes to the right of Positioning (open question 5); positions and the card at rest are the designer's at G2. A card shows its title, its state line, the names of its fields and, on Core idea, its gate line, never an answer or a value; opening it shows its view in the viewer dialog, as for the business nodes. A view shows the state line, the fields with their content and labels, the mark lines and the controls.
+
+**At a 360 px viewport, from PR 1** (open question 14): the board's fit stops at the zoom floor 0.25, so the board is not shown whole. The person pans it (drag, or the arrow keys on the focused board), and focus pans each card on the board (six after PR 1, eight after PR 2, nine after PR 3, W2) fully into view as Tab reaches it. Nothing on the page scrolls sideways. Checked by the play the designer's notes call B3 (`design.md` section 6.5, in `IdentityNarrow` and the narrow board stories), which replaces the every-card-inside assert of ORV-285's `narrowPlay`.
 
 ## Screens
 
@@ -361,6 +363,8 @@ PR 1 waits on ORV-285 PR 1 (PR 226) in `develop`, because `foundation-roots-1` r
 10. **The bound of a core idea.** (a) 1 to 300 characters, as a positioning statement; (b) 1 to 120 characters, closer to one line. Default: (a).
 11. **A brand above or below other brands.** (a) The architecture stays open with `business.architecture.notInVersion`, and the name waits on it or lists it as unchecked; (b) one more question on the number of units, and a rule to derive "endorsed" or "house of brands", which ORV-126 gives no rule for in groups A and B. Default: (a).
 12. **The board's lede.** `business.board.lede` says "Nothing here is confirmed yet." while agreed gates show under it. (a) Unchanged in this story; (b) a new line once any gate is passed. Default: (a).
+13. **Where the hypothesis line of the five scales shows.** (a) Where `foundation-honest-1` places it, the designer's reading of v1.1's "always" (`design.md` section 15 item 5); (b) in every state of the Brand personality view, also above the empty Personality field while the node waits, is open or is skipped. Impact: (b) adds the line to states I1 to I3 of `design.md` section 6.1 and to their plays; no data, rule or string changes. Default: (a), accepted at G2 under the owner's POC delegation (ORV-291 comment 10741); the owner has not ruled on it and may change it.
+14. **The business board at a 360 px viewport.** (a) What `foundation-board-1` states for 360 px, the designer's default (`design.md` sections 2.3 and 15 item 3); (b) the four nodes on a second board linked from the business board (open question 5 (b)), so the business board keeps ORV-285's every-card-inside check at 360. Impact: (a) changes ORV-285's `narrowPlay` story; (b) adds a board, its place in the page and its stories, and changes `foundation-board-1` and the Check cells of rows 9, 23 and 34. Default: (a), accepted at G2 under the owner's POC delegation (ORV-291 comment 10741); the owner has not ruled on it and may change it.
 
 ## Depends on
 
@@ -423,3 +427,4 @@ node -e 'console.log(["  ORIVILO  ","ก".repeat(60),"ก".repeat(61),"   "].map
 
 - v1.0 (2026-11-19): first version, task ORV-291-spec-1, from ORV-126 v1.4 ("Fill order", "The propagation rule", "Missing strategy", nodes 1, 7, 8, 9 and 11, decisions D1, D3, D4, D6 and D9), ORV-285 v1.2 (PR 226 branch), ORV-281 v1.4, ORV-283 v1.1, the brief, `brand-ci-method.md`, ADR 0009 and the code of `questions.ts`, `intake.ts`, `place.ts`, `view.ts`, `color-rules.ts`, `knowledge.ts` and the business board example. No Jira tool call and no shell in this role, so ORV-291 and ORV-284 were taken from the envelope's facts; the main session then ran the five worked examples (all match) and checked that plan rows 1 to 4 are on staging. Downstream to review: the G1 packet, the architect's tech notes, the designer's notes, the builder, `security` and qa envelopes for PRs 1 to 3.
 - v1.1 (2026-11-19): one Check cell, from the architect (task ORV-291-tech-1), accepted by the main session under the owner's POC delegation. Row 24: `strategy.provisional` is pinned to ORV-126 by `business-strings.test.ts`, not by `questions.test.ts`, because the engine holds no catalog line and cannot import the design system; `strategy.skip` is pinned the same way by ORV-285. `questions.test.ts` still pins `situation.sub-brands`. No row number, rule, string, bound, default or open question changed. Downstream to review: tech notes tests T31 and T33, which already read this way.
+- v1.2 (2026-11-19): two readings of the designer's notes, accepted at G2 under the owner's POC delegation (ORV-291 comment 10741), task ORV-291-spec-2. `foundation-honest-1`, the row of the five scales: where the hypothesis line shows, in the words of `design.md` section 15 item 5, in place of "always" and "once per view". `foundation-board-1` gains what holds at a 360 px viewport from PR 1 (`design.md` sections 2.3 and 15 item 3), checked by the B3 play. Open questions 13 and 14 hold both as defaults the owner can change. No acceptance row rested on "always", so none changed; no row renumbered, no string, bound, rule outcome or other default changed. Downstream to review: the A3 builder envelope (stories `IdentityNarrow` and `Board`, ORV-285's `narrowPlay` in `business-board.stories.tsx`), the qa envelope and the G3 packet of PR 1, the next owner packet (open questions 13 and 14), `design.md` section 15 item 5 (it quotes v1.1's "always"), ORV-281 design D4a (its 360 reasoning rests on every card inside the board).
