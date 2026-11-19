@@ -1,6 +1,6 @@
 ---
 issue: ORV-298 (https://tpetkaew.atlassian.net/browse/ORV-298)
-spec: docs/specs/ORV-298/spec.md v1.0
+spec: docs/specs/ORV-298/spec.md v1.1
 adr: none new; the design stays inside ADR 0002 (server-only data access through `withWorkspace`), ADR 0015 decisions 2, 9 and 10, and ADR 0017 (the colour rules are called, never changed)
 task: ORV-298-tech-1
 author: architect
@@ -125,7 +125,7 @@ const logoTypeEntry = z.discriminatedUnion("kind", [
 
 No new table and no new column (`expression-saved-1`). `TENANT_TABLES` and `CLASSIFICATION` are unchanged: `payload` stays `personal`, which covers the competitor names the person types.
 
-**The pair check is the only check on `node` and `kind`.** The table has no check on `node` alone (ORV-291 tech notes section 4.1, correction of task ORV-291-spec-3), so each migration widens `business_foundation_entry_pair` by its pair; section 16 lists the spec lines that say "the `node` check". The pair check of `develop` already holds ORV-296's two `core-idea` pairs, so ORV-296 adds no migration and the only migrations that race these are ORV-292's.
+**The pair check is the only check on `node` and `kind`.** The table has no check on `node` alone (ORV-291 tech notes section 4.1, correction of task ORV-291-spec-3), so each migration widens `business_foundation_entry_pair` by its pair; the spec says so since its v1.1 (section 16 keeps the lines as they read before). The pair check of `develop` already holds ORV-296's two `core-idea` pairs, so ORV-296 adds no migration and the only migrations that race these are ORV-292's.
 
 <!-- prettier-ignore -->
 | PR | File (number taken at build time) | Content |
@@ -621,6 +621,8 @@ Each row of the spec has a test: 1 (T1 to T3), 2 (T6, T13, T23), 3 (T17, T18, T2
 
 These are spec lines the notes read in one way; the spec is not changed here. The main session decides whether to amend them.
 
+**Resolved, 2026-11-20 (task ORV-298-spec-2).** The spec's v1.1 amends the first three points below as these notes read them: the pair check alone is widened, PR 1's migration also adds the check that bounds the lineup, and row 36 states its count both ways (twelve nodes and eighteen edges with ORV-296 in `develop`, eleven and sixteen without). The quotes below are the spec's earlier text. The last two points stand as readings.
+
 - **"The `node` check".** `expression-entry-1` ("The table's checks on `node` and on the pair"), "Impact on contracts", Storage ("widens the `node` check and the pair check"), and row 16 ("widens the `node` and pair checks", which rows 26 and 39 take as "Gate as row 16") name a check the table does not have (ORV-291 tech notes section 4.1, correction of task ORV-291-spec-3). Read as: each migration widens the pair check.
 - **"By its pair only".** Row 16 says PR 1's migration widens the checks "by (`competitive-frame`, `lineup`) only". PR 1's migration also adds the lineup check (E7). Read as: the pair set grows by that one pair; a bound on the new payload is part of the same change.
 - **Row 36's twelve nodes and eighteen edges** hold only with ORV-296 in `develop`, while "Delivery" says PR 3 does not wait on ORV-296. T39 asserts the new edges by name and the counts relative to PR 2's board, and twelve and eighteen when `core-idea` is in the view; without it the board has eleven nodes and sixteen edges.
@@ -630,3 +632,4 @@ These are spec lines the notes read in one way; the spec is not changed here. Th
 ## Changelog
 
 - 2026-11-20: first version, task ORV-298-tech-1, from the spec's rules, rows and W1 to W8, ORV-291's spec and tech notes, ORV-20's spec, ADR 0002, ADR 0015, ADR 0017, `.claude/rules/security.md`, and the code of `color-rules.ts`, `color-audit.ts`, `rules.ts`, `color-fixtures.ts`, migrations 0015 and 0016, `packages/db/src/schema/business.ts` on this branch, and PR 234's head (`60f3c1b`): `business/foundation.ts`, `foundation-marks.ts`, `view.ts`, `packages/auth/src/foundation.ts`, `foundation-actions.ts`, `foundation-view.tsx`, `foundation-parts.tsx`, `architecture-view.tsx`, `business-graph.ts`, `business-text.ts`, `business-board.tsx`, and ORV-295's task B1 report. zod 4.6.6's string `max` was checked to count code points.
+- 2026-11-20: bookkeeping by the main session after the spec's v1.1 (task ORV-298-spec-2): the front matter names v1.1, section 4 and section 16 say which of the spec points are resolved. No design change.
