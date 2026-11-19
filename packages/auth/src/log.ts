@@ -25,6 +25,7 @@ export const ROUTES = [
   "business/listProjects",
   "business/openProject",
   "business/choosePositioning",
+  "business/enterFoundation",
   "account/signInWithGoogle",
   "account/signOut",
   "i18n/setLocale",

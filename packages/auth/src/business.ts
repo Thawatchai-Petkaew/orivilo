@@ -7,10 +7,12 @@ import {
   checkIntake,
   INTAKE_VERSION,
   type StoredChoice,
+  type StoredEntry,
   type StoredIntake,
   storedIntakeSchema,
 } from "@orivilo/intent-engine";
 import { type AccessDeps, withWorkspace } from "./access.ts";
+import { readFoundation } from "./foundation.ts";
 import { readPositioning } from "./positioning.ts";
 
 /**
@@ -29,9 +31,11 @@ export class BusinessError extends Error {
    * refused (a second one for the intake and job, an intake of another workspace); the message is
    * a closed word, so no driver text, which holds the record's answers, reaches a caller's log.
    * `gate-passed` (ORV-285) is a positioning choice made after the newest intake's positioning was
-   * agreed: the statement stays as it is.
+   * agreed: the statement stays as it is. `out-of-order` (ORV-291) is a foundation entry its node's
+   * state does not allow now (`foundation-entry-1`, "Allowed when").
    */
-  readonly reason: "invalid-input" | "not-found" | "invalid-stored" | "not-saved" | "gate-passed";
+  readonly reason:
+    "invalid-input" | "not-found" | "invalid-stored" | "not-saved" | "gate-passed" | "out-of-order";
   constructor(reason: BusinessError["reason"]) {
     super(`business refused: ${reason}`);
     this.name = "BusinessError";
@@ -64,6 +68,11 @@ export interface OpenedProject {
    * here: nothing a model proposed counts until a person acts.
    */
   positioning: { intakeId: string; choice: StoredChoice | null };
+  /**
+   * The project's brand foundation entries (ORV-291), newest first, parsed again. Marks and states
+   * are computed from them and the positioning gate; none is stored.
+   */
+  foundation: StoredEntry[];
 }
 
 export function businessService(deps: AccessDeps) {
@@ -156,7 +165,7 @@ export function businessService(deps: AccessDeps) {
 
     /**
      * One project with its newest intake, that intake's saved reading and the project's newest
-     * positioning choice. Never calls a model: a project with no saved reading opens with
+     * positioning choice and its foundation entries. Never calls a model: a project with no saved reading opens with
      * `reading: null`.
      */
     async open(headers: Headers, workspaceId: string, projectId: string): Promise<OpenedProject> {
@@ -226,6 +235,7 @@ export function businessService(deps: AccessDeps) {
           reading = parsed.data;
         }
         const choice = await readPositioning(tx, workspaceId, found.id);
+        const foundation = await readFoundation(tx, workspaceId, found.id);
         return {
           project: found,
           intakeId: row.id,
@@ -233,6 +243,7 @@ export function businessService(deps: AccessDeps) {
           savedAt: row.createdAt,
           reading,
           positioning: { intakeId: row.id, choice },
+          foundation,
         };
       });
     },

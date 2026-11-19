@@ -61,6 +61,7 @@ describe("the closed lists", () => {
       "business/listProjects",
       "business/openProject",
       "business/choosePositioning",
+      "business/enterFoundation",
       "account/signInWithGoogle",
       "account/signOut",
       "i18n/setLocale",
@@ -207,6 +208,44 @@ describe("writeLine", () => {
 
   it.each(ROUTES)("keeps the route %s", (route) => {
     expect(written({ ...base, route, outcome: "ok" })["route"]).toBe(route);
+  });
+
+  // ORV-291 T15, rows 2 and 13: the foundation entry route holds closed words only; an answer, a
+  // name or a statement passed as an outcome or a reason is written as `unknown`, never as text.
+  it("writes a foundation entry line with closed words only", () => {
+    const answer = "ถ้าแบรนด์เป็นคน เขาจะอบอุ่น";
+    const line = written({
+      ...base,
+      route: "business/enterFoundation",
+      outcome: answer,
+      reason: answer,
+      errorName: answer,
+      person: answer,
+      axes: { warm: 75 },
+    });
+    expect(line).toEqual({
+      level: "info",
+      requestId: ID,
+      route: "business/enterFoundation",
+      durationMs: 5,
+      outcome: "unknown",
+      reason: "unknown",
+      errorName: "unknown",
+    });
+    expect(first().args[0] as string).not.toContain("อบอุ่น");
+    capture.lines.length = 0;
+    expect(
+      written({
+        ...base,
+        route: "business/enterFoundation",
+        outcome: "refused",
+        reason: "invalid-input",
+      }),
+    ).toMatchObject({
+      route: "business/enterFoundation",
+      outcome: "refused",
+      reason: "invalid-input",
+    });
   });
 
   it.each(["api/auth/sign-in/social", "ana@example.com", "", 7, undefined])(
