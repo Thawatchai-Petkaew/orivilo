@@ -41,6 +41,8 @@ describe("brandReport.engine", () => {
       "read.failed.notHtml",
       "read.notRead.competitor",
       "evidence.belowFloor",
+      // The business board reads this one for the AI line under a reading (`fromModelNote`).
+      "evidence.fromModel",
       ...REPORT_LINES,
       ...Object.values(NOT_MEASURED_REASON_LINES).flatMap((r) =>
         r.reason === null ? [r.line] : [r.line, r.reason],
