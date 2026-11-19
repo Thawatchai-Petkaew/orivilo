@@ -23,6 +23,20 @@ const state = vi.hoisted(() => ({
   reading: null as unknown,
   throws: null as unknown,
   choice: null as unknown,
+  foundation: [] as unknown[],
+  /** Every write a service was asked for; opening a project asks for none. */
+  writes: [] as string[],
+  limitsConsumed: 0,
+}));
+// Opening a project counts no limit (ORV-291 rows 12 and 36).
+vi.mock("../../server/rate-limit", () => ({
+  subjectFromHeaders: () => "ip-1",
+  limiter: () => ({
+    async consume() {
+      state.limitsConsumed += 1;
+      return { ok: true };
+    },
+  }),
 }));
 const fetchSpy = vi.fn();
 vi.stubGlobal("fetch", fetchSpy);
@@ -34,7 +48,23 @@ vi.mock("@orivilo/auth", async (importOriginal) => {
   const real = await importOriginal<typeof import("@orivilo/auth")>();
   return {
     ...real,
+    foundationService: () => ({
+      async enter() {
+        state.writes.push("foundation.enter");
+      },
+    }),
+    positioningService: () => ({
+      async choose() {
+        state.writes.push("positioning.choose");
+      },
+    }),
     businessService: () => ({
+      async create() {
+        state.writes.push("business.create");
+      },
+      async saveReading() {
+        state.writes.push("business.saveReading");
+      },
       async open() {
         if (state.throws !== null) throw state.throws;
         return {
@@ -44,6 +74,7 @@ vi.mock("@orivilo/auth", async (importOriginal) => {
           savedAt: SAVED,
           reading: state.reading,
           positioning: { intakeId: INTAKE, choice: state.choice },
+          foundation: state.foundation,
         };
       },
     }),
@@ -84,11 +115,15 @@ beforeEach(() => {
   state.reading = null;
   state.throws = null;
   state.choice = null;
+  state.foundation = [];
+  state.writes = [];
+  state.limitsConsumed = 0;
   fetchSpy.mockClear();
 });
 afterEach(() => {
   capture.restore();
   vi.unstubAllEnvs();
+  vi.useRealTimers();
 });
 
 describe("loadProject and the saved reading", () => {
@@ -220,5 +255,72 @@ describe("loadProject and the positioning choice", () => {
       controls: ["writeOwn"],
     });
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+});
+
+// ORV-291 T19, row 12: the loader passes the project's foundation entries into the view, and
+// opening writes nothing, counts no limit and calls no model.
+describe("foundation replay", () => {
+  const AXES = { playful: 75, expressive: 75, structured: 75, warm: 75, premium: 75 };
+  const agreed = {
+    id: "c-1",
+    intakeId: INTAKE,
+    kind: "written",
+    statement: "Fresh roasted coffee for office workers",
+    draftId: null,
+    option: null,
+    createdAt: "2026-11-18T04:00:00.000Z",
+  };
+  const given = {
+    id: "e-1",
+    node: "identity-frame",
+    kind: "given",
+    payload: { axes: AXES, person: "warm, plain, caring" },
+    createdAt: "2026-11-18T05:00:00.000Z",
+  };
+
+  it("loaded twice a day apart gives the same view, and writes nothing, counts no limit, calls no model", async () => {
+    state.choice = agreed;
+    state.foundation = [given];
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-19T03:00:00Z"));
+    const first = await loadProject(PROJECT);
+    vi.setSystemTime(new Date("2026-11-20T03:00:00Z"));
+    const second = await loadProject(PROJECT);
+    if (first.access !== "ready" || second.access !== "ready") throw new Error("not ready");
+    expect(second).toEqual(first);
+    // The entry reached the view: Brand personality is given, with the axes as 4 of 5.
+    expect(first.view.foundation[0]).toMatchObject({
+      id: "identity-frame",
+      state: "given",
+      person: "warm, plain, caring",
+      axes: expect.arrayContaining([{ axis: "warm", value: 75, point: 4 }]),
+      controls: [],
+    });
+    expect(state.writes).toEqual([]);
+    expect(state.limitsConsumed).toBe(0);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("gives Brand personality as waiting, with both controls hidden, while positioning is open", async () => {
+    const loaded = await loadProject(PROJECT);
+    if (loaded.access !== "ready") throw new Error("not ready");
+    expect(loaded.view.foundation[0]).toMatchObject({
+      id: "identity-frame",
+      state: "waiting",
+      waitingFor: ["positioning"],
+      controls: [],
+    });
+  });
+
+  it("gives Brand personality both controls once positioning is agreed and no entry exists", async () => {
+    state.choice = agreed;
+    const loaded = await loadProject(PROJECT);
+    if (loaded.access !== "ready") throw new Error("not ready");
+    expect(loaded.view.foundation[0]).toMatchObject({
+      id: "identity-frame",
+      state: "empty",
+      controls: ["describe", "skip"],
+    });
   });
 });

@@ -9,8 +9,15 @@ import {
   FIXTURE_SAVED_AT,
 } from "./read-fixtures";
 import { BUSINESS_READ_REASONS, type BusinessReading } from "./reading";
+import {
+  entryAllowed,
+  foundationState,
+  type FoundationResult,
+  type MarkRef,
+} from "./foundation-marks";
+import { storedEntrySchema, type StoredEntry } from "./foundation";
 import type { StoredChoice } from "./positioning";
-import { toBusinessView, type SavedBusiness } from "./view";
+import { foundationLines, toBusinessView, type SavedBusiness } from "./view";
 
 // ORV-281 tech notes section 13, T8 and T37; spec rows 14 and 15 (the data half), 19, 27 and 33 (the data half).
 
@@ -378,5 +385,341 @@ describe("positioning in the view", () => {
     expect(view.positioning.stale).toBe(false);
     expect(view.positioning.statement).toBeNull();
     expect(positioningNode(view)?.state).toBe("proposed");
+  });
+});
+
+// ORV-291 tech notes section 13, T7 and T8; spec rows 2, 4, 5, 6 (the data half).
+describe("foundation in the view", () => {
+  const NEWEST = "intake-b";
+  const at = "2026-11-18T03:04:05.000Z";
+  const AXES = { playful: 75, expressive: 75, structured: 75, warm: 75, premium: 75 };
+  const written = (intakeId: string): StoredChoice => ({
+    id: "c",
+    intakeId,
+    createdAt: at,
+    kind: "written",
+    statement: "คั่วสดส่งถึงบ้าน",
+    draftId: null,
+    option: null,
+  });
+  const skippedChoice: StoredChoice = {
+    id: "c",
+    intakeId: NEWEST,
+    createdAt: at,
+    kind: "skipped",
+    statement: null,
+    draftId: null,
+    option: null,
+  };
+  const POSITIONING = {
+    agreed: written(NEWEST),
+    skipped: skippedChoice,
+    open: null,
+    stale: written("intake-a"),
+  } as const;
+  const entry = (
+    kind: "given" | "skipped",
+    id: string,
+    createdAt: string,
+    answers: { person?: string; never?: string } = {},
+  ): StoredEntry =>
+    storedEntrySchema.parse({
+      id,
+      node: "identity-frame",
+      kind,
+      payload: kind === "given" ? { axes: AXES, ...answers } : {},
+      createdAt,
+    });
+  const GIVEN_ENTRY = entry("given", "g1", "2026-11-19T04:00:00.000Z", {
+    person: "อบอุ่น เป็นกันเอง จริงใจ",
+  });
+  const SKIP_ENTRY = entry("skipped", "s1", "2026-11-19T03:00:00.000Z");
+  const GIVEN_INTAKE = { idea: "i", value: "v" };
+  const project_ = (
+    positioning: keyof typeof POSITIONING,
+    foundation?: StoredEntry[],
+  ): SavedBusiness =>
+    saved(GIVEN_INTAKE, {
+      positioning: { intakeId: NEWEST, choice: POSITIONING[positioning] },
+      ...(foundation === undefined ? {} : { foundation }),
+    });
+  const personality = (view: ReturnType<typeof toBusinessView>) => {
+    const node = view.foundation[0];
+    if (node?.id !== "identity-frame") throw new Error("the node identity-frame");
+    return node;
+  };
+
+  describe("foundation marks", () => {
+    it("gives identity-frame the results of W4 cases 1, 2 and 5 on a given personality", () => {
+      const agreed = personality(toBusinessView(project_("agreed", [GIVEN_ENTRY])));
+      const skipped = personality(toBusinessView(project_("skipped", [GIVEN_ENTRY])));
+      const stale = personality(toBusinessView(project_("stale", [GIVEN_ENTRY])));
+      expect([agreed.result, skipped.result, stale.result]).toEqual([
+        { status: "given", skipped: false, blockedBy: [], provisionalOn: [], unchecked: [] },
+        {
+          status: "given",
+          skipped: false,
+          blockedBy: [],
+          provisionalOn: [],
+          unchecked: ["positioning"],
+        },
+        {
+          status: "given",
+          skipped: false,
+          blockedBy: [],
+          provisionalOn: [],
+          unchecked: ["positioning"],
+        },
+      ]);
+      expect([agreed.unchecked, skipped.unchecked, stale.unchecked]).toEqual([
+        [],
+        ["positioning"],
+        ["positioning"],
+      ]);
+    });
+
+    it("keeps the five values unchanged and the state given under every mark", () => {
+      for (const positioning of ["agreed", "skipped", "stale"] as const) {
+        const node = personality(toBusinessView(project_(positioning, [GIVEN_ENTRY])));
+        expect(node.state, positioning).toBe("given");
+        expect(node.axes?.map((a) => [a.axis, a.value, a.point])).toEqual([
+          ["playful", 75, 4],
+          ["expressive", 75, 4],
+          ["structured", 75, 4],
+          ["warm", 75, 4],
+          ["premium", 75, 4],
+        ]);
+        expect(node.person).toBe("อบอุ่น เป็นกันเอง จริงใจ");
+        expect(node.never).toBeNull();
+      }
+    });
+
+    it("shows a mark line only for a given or derived result, and restsOn only for derived", () => {
+      const open = personality(toBusinessView(project_("open")));
+      expect(open.result.status).toBe("blocked");
+      expect(open.unchecked).toEqual([]);
+      expect(open.restsOn).toEqual([]);
+      const skipped = personality(toBusinessView(project_("skipped", [SKIP_ENTRY])));
+      expect(skipped.result.status).toBe("open");
+      expect(skipped.unchecked).toEqual([]);
+      expect(skipped.restsOn).toEqual([]);
+    });
+  });
+
+  describe("the result table", () => {
+    const lists = {
+      blockedBy: ["positioning"] as MarkRef[],
+      provisionalOn: ["positioning"] as MarkRef[],
+      unchecked: ["situation"] as MarkRef[],
+    };
+    const lines = (status: FoundationResult["status"], skipped: boolean) => {
+      const { state, waitingFor, restsOn, unchecked } = foundationLines({
+        status,
+        skipped,
+        ...lists,
+      });
+      return { state, waitingFor, restsOn, unchecked };
+    };
+
+    it("a given result shows its unchecked line and no rests-on or waiting line", () => {
+      expect(lines("given", false)).toEqual({
+        state: "given",
+        waitingFor: [],
+        restsOn: [],
+        unchecked: ["situation"],
+      });
+    });
+
+    it("a derived result shows what it rests on and what it is unchecked against", () => {
+      expect(lines("derived", false)).toEqual({
+        state: "derived",
+        waitingFor: [],
+        restsOn: ["positioning"],
+        unchecked: ["situation"],
+      });
+    });
+
+    it("a blocked result waits for its causes and shows no mark line", () => {
+      expect(lines("blocked", false)).toEqual({
+        state: "waiting",
+        waitingFor: ["positioning"],
+        restsOn: [],
+        unchecked: [],
+      });
+    });
+
+    it("a skipped or an open result shows its state and no mark line", () => {
+      expect(lines("open", true)).toEqual({
+        state: "skipped",
+        waitingFor: [],
+        restsOn: [],
+        unchecked: [],
+      });
+      expect(lines("open", false)).toEqual({
+        state: "empty",
+        waitingFor: [],
+        restsOn: [],
+        unchecked: [],
+      });
+    });
+  });
+
+  describe("personality in the view", () => {
+    it("holds the state keys, the values and the points", () => {
+      const row = (positioning: keyof typeof POSITIONING, entries?: StoredEntry[]) => {
+        const node = personality(toBusinessView(project_(positioning, entries)));
+        return `${node.state} ${node.waitingFor.join(",") || "-"} ${node.controls.join(",") || "-"}`;
+      };
+      expect(row("agreed")).toBe("empty - describe,skip");
+      expect(row("agreed", [])).toBe("empty - describe,skip");
+      expect(row("agreed", [SKIP_ENTRY])).toBe("skipped - describe");
+      expect(row("agreed", [GIVEN_ENTRY])).toBe("given - -");
+      expect(row("agreed", [SKIP_ENTRY, GIVEN_ENTRY])).toBe("given - -");
+      expect(row("open")).toBe("waiting positioning -");
+      expect(row("stale")).toBe("waiting positioning -");
+      expect(row("skipped")).toBe("empty - describe,skip");
+    });
+
+    it("maps the five points: a value of 0, 25, 50, 75 and 100 is point 1 to 5", () => {
+      const node = personality(
+        toBusinessView(
+          project_("agreed", [
+            storedEntrySchema.parse({
+              id: "g",
+              node: "identity-frame",
+              kind: "given",
+              payload: {
+                axes: { playful: 0, expressive: 25, structured: 50, warm: 75, premium: 100 },
+              },
+              createdAt: at,
+            }),
+          ]),
+        ),
+      );
+      expect(node.axes?.map((a) => [a.value, a.point])).toEqual([
+        [0, 1],
+        [25, 2],
+        [50, 3],
+        [75, 4],
+        [100, 5],
+      ]);
+      expect(node.person).toBeNull();
+    });
+
+    it("shows no value and no answer while the node is open or skipped", () => {
+      for (const entries of [undefined, [SKIP_ENTRY]]) {
+        const node = personality(toBusinessView(project_("agreed", entries)));
+        expect(node.axes).toBeNull();
+        expect(node.person).toBeNull();
+        expect(node.never).toBeNull();
+      }
+    });
+
+    it("names the fields the card lists, in order, and has the node first and only", () => {
+      const view = toBusinessView(project_("agreed"));
+      expect(view.foundation.map((n) => n.id)).toEqual(["identity-frame"]);
+      expect(personality(view).fields).toEqual(["person", "never", "personality"]);
+    });
+
+    it("the newest entry wins in whatever order the entries are stored", () => {
+      const a = personality(toBusinessView(project_("agreed", [SKIP_ENTRY, GIVEN_ENTRY])));
+      const b = personality(toBusinessView(project_("agreed", [GIVEN_ENTRY, SKIP_ENTRY])));
+      expect(a.state).toBe("given");
+      expect(b.state).toBe("given");
+    });
+
+    it("an absent foundation is no entry", () => {
+      expect(toBusinessView(project_("agreed")).foundation).toEqual(
+        toBusinessView(project_("agreed", [])).foundation,
+      );
+    });
+  });
+
+  describe("controls match the door", () => {
+    const ENTRIES: Record<string, StoredEntry[]> = {
+      none: [],
+      skipped: [SKIP_ENTRY],
+      given: [GIVEN_ENTRY],
+      "skipped then given": [SKIP_ENTRY, GIVEN_ENTRY],
+    };
+
+    it("offers a control exactly when entryAllowed is true, for every fixture and kind", () => {
+      for (const positioning of Object.keys(POSITIONING) as Array<keyof typeof POSITIONING>) {
+        for (const [name, entries] of Object.entries(ENTRIES)) {
+          const view = toBusinessView(project_(positioning, entries));
+          const node = personality(view);
+          const gate = { state: view.positioning.gate, skipped: view.positioning.skipped };
+          const { roots, newest } = foundationState(gate, entries);
+          const door = (kind: "given" | "skipped") =>
+            entryAllowed({ node: "identity-frame", kind }, { roots, newest });
+          const label = `${positioning} / ${name}`;
+          expect(node.controls.includes("describe"), label).toBe(door("given"));
+          expect(node.controls.includes("skip"), label).toBe(door("skipped"));
+        }
+      }
+    });
+
+    it("offers describe once and skip once, and no skip after a skip", () => {
+      expect(personality(toBusinessView(project_("agreed", []))).controls).toEqual([
+        "describe",
+        "skip",
+      ]);
+      expect(personality(toBusinessView(project_("agreed", [SKIP_ENTRY]))).controls).toEqual([
+        "describe",
+      ]);
+      expect(personality(toBusinessView(project_("agreed", [GIVEN_ENTRY]))).controls).toEqual([]);
+    });
+  });
+
+  describe("beside the business nodes", () => {
+    it("builds the five nodes, positioning and reading exactly as a view built without foundation", () => {
+      for (const positioning of Object.keys(POSITIONING) as Array<keyof typeof POSITIONING>) {
+        const without = toBusinessView(project_(positioning));
+        for (const entries of [[SKIP_ENTRY], [GIVEN_ENTRY], [SKIP_ENTRY, GIVEN_ENTRY]]) {
+          const withEntries = toBusinessView(project_(positioning, entries));
+          expect(withEntries.nodes, positioning).toEqual(without.nodes);
+          expect(withEntries.positioning, positioning).toEqual(without.positioning);
+          expect(withEntries.reading).toEqual(without.reading);
+          expect(withEntries.projectName).toBe(without.projectName);
+          expect(withEntries.savedAt).toBe(without.savedAt);
+        }
+      }
+    });
+
+    it("its JSON holds state keys, label keys and the person's words, never catalog text", () => {
+      const view = toBusinessView(project_("skipped", [GIVEN_ENTRY]));
+      const strings: string[] = [];
+      const walk = (v: unknown): void => {
+        if (typeof v === "string") strings.push(v);
+        else if (Array.isArray(v)) v.forEach(walk);
+        else if (v !== null && typeof v === "object") Object.values(v).forEach(walk);
+      };
+      walk(JSON.parse(JSON.stringify(view.foundation)));
+      const closed = new Set([
+        "identity-frame",
+        "given",
+        "open",
+        "positioning",
+        "person",
+        "never",
+        "personality",
+        "describe",
+        "skip",
+        "playful",
+        "expressive",
+        "structured",
+        "warm",
+        "premium",
+      ]);
+      const rest = strings.filter((s) => !closed.has(s));
+      expect(rest).toEqual(["อบอุ่น เป็นกันเอง จริงใจ"]);
+    });
+
+    it("the same saved project gives the same view, and the view survives a JSON round trip", () => {
+      const s = project_("stale", [SKIP_ENTRY, GIVEN_ENTRY]);
+      const view = toBusinessView(s);
+      expect(toBusinessView(s)).toStrictEqual(view);
+      expect(JSON.parse(JSON.stringify(view))).toEqual(view);
+    });
   });
 });
