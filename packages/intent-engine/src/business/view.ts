@@ -1,4 +1,15 @@
 import type { InputEvidence } from "../evidence";
+import { PERSONALITY_AXES, type PersonalityAxis } from "../knowledge";
+import type { AxisValue, StoredEntry } from "./foundation";
+import {
+  axisPointOf,
+  entryAllowed,
+  type AxisPoint,
+  type FoundationResult,
+  foundationState,
+  type FoundationState,
+  type MarkRef,
+} from "./foundation-marks";
 import type { StoredIntake } from "./intake";
 import {
   type BusinessFieldId,
@@ -58,6 +69,35 @@ export type PositioningView = {
   controls: Array<"writeOwn" | "skip">;
 };
 
+/** A foundation node's field names, a key of `business.field.*`. PRs 2 and 3 add their own. */
+export type FoundationFieldKey = "person" | "never" | "personality";
+/** A foundation node's state line, a key of `business.state.*`. PRs 2 and 3 add their own. */
+export type FoundationStateKey = "given" | "derived" | "waiting" | "skipped" | "empty";
+
+type FoundationBase = {
+  result: FoundationResult;
+  /** The state line, by the result table of `foundation-marks-1`. */
+  state: FoundationStateKey;
+  /** `{nodes}` of `business.state.waiting`: `result.blockedBy` while `state` is `waiting`, else empty. */
+  waitingFor: MarkRef[];
+  /** The mark line "rests on", shown only for a derived result. */
+  restsOn: MarkRef[];
+  /** The mark line "not yet checked against", shown only for a given or derived result. */
+  unchecked: MarkRef[];
+  /** The names the card lists, in the order the view shows them. */
+  fields: FoundationFieldKey[];
+};
+
+/** The four foundation nodes of ORV-291 in fill order; PR 1 builds `identity-frame`. */
+export type FoundationNode = FoundationBase & {
+  id: "identity-frame";
+  person: string | null;
+  never: string | null;
+  /** The five values the person chose, in the order of `PERSONALITY_AXES`; null unless given. */
+  axes: null | Array<{ axis: PersonalityAxis; value: AxisValue; point: AxisPoint }>;
+  controls: Array<"describe" | "skip">;
+};
+
 export type BusinessView = {
   projectName: string;
   /** ISO time the project was saved. */
@@ -67,6 +107,8 @@ export type BusinessView = {
     | { status: "model"; modelId: string }
     | { status: "rule-based"; reason: BusinessReadReason };
   positioning: PositioningView;
+  /** The foundation nodes, in fill order, after the business nodes. */
+  foundation: FoundationNode[];
   nodes: Array<{
     id: BusinessNodeId;
     state: BusinessNodeState;
@@ -94,6 +136,8 @@ export type SavedBusiness = {
    * choice's draft is not read yet: a draft is never a value.
    */
   positioning?: { intakeId: string; choice: StoredChoice | null };
+  /** The project's foundation entries, in any order. Absent, no entry is stored. */
+  foundation?: StoredEntry[];
 };
 
 /** The notes of `honest-business-1` that belong to a node, by rule. */
@@ -165,6 +209,55 @@ function positioningOf(saved: SavedBusiness): PositioningView {
   return { gate: gate.state, skipped: gate.skipped, stale: gate.stale, statement, controls };
 }
 
+const STATE_OF = {
+  given: "given",
+  derived: "derived",
+  blocked: "waiting",
+  open: "empty",
+} as const;
+
+/**
+ * The result table of `foundation-marks-1`: the state line a result shows and which mark lines
+ * show with it. A blocked, skipped or open result keeps its lists in `result` but shows none.
+ */
+export function foundationLines(result: FoundationResult): Omit<FoundationBase, "fields"> {
+  const shows = result.status === "given" || result.status === "derived";
+  return {
+    result,
+    state: result.status === "open" && result.skipped ? "skipped" : STATE_OF[result.status],
+    waitingFor: result.status === "blocked" ? result.blockedBy : [],
+    restsOn: result.status === "derived" ? result.provisionalOn : [],
+    unchecked: shows ? result.unchecked : [],
+  };
+}
+
+function personalityOf(state: FoundationState): FoundationNode {
+  const result = state.results["identity-frame"];
+  const entry = state.newest["identity-frame"];
+  const given = entry?.kind === "given" ? entry : null;
+  const allowed = (kind: "given" | "skipped") =>
+    entryAllowed({ node: "identity-frame", kind }, state);
+  return {
+    id: "identity-frame",
+    ...foundationLines(result),
+    fields: ["person", "never", "personality"],
+    person: given?.payload.person ?? null,
+    never: given?.payload.never ?? null,
+    axes:
+      given === null
+        ? null
+        : PERSONALITY_AXES.map((axis) => ({
+            axis,
+            value: given.payload.axes[axis],
+            point: axisPointOf(given.payload.axes[axis]),
+          })),
+    controls: [
+      ...(allowed("given") ? (["describe"] as const) : []),
+      ...(allowed("skipped") ? (["skip"] as const) : []),
+    ],
+  };
+}
+
 export function toBusinessView(saved: SavedBusiness): BusinessView {
   const placed = placeIntake(saved.intake);
   const states = nodeStates(saved.intake);
@@ -182,6 +275,14 @@ export function toBusinessView(saved: SavedBusiness): BusinessView {
     savedAt: saved.project.createdAt,
     reading: statusOf(saved.reading),
     positioning,
+    foundation: [
+      personalityOf(
+        foundationState(
+          { state: positioning.gate, skipped: positioning.skipped },
+          saved.foundation ?? [],
+        ),
+      ),
+    ],
     nodes: states.map((s) => ({
       id: s.id,
       state: s.id === "positioning" ? stateOfPositioning(s.state) : s.state,

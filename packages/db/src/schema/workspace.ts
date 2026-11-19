@@ -35,4 +35,5 @@ export const TENANT_TABLES = [
   "business_intake",
   "business_reading",
   "business_positioning_choice",
+  "business_foundation_entry",
 ] as const;

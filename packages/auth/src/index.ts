@@ -6,6 +6,8 @@ export { createAuth, settingsFromEnv } from "./config.ts";
 export type { Auth, AuthSettings } from "./config.ts";
 export { BUSINESS_LIST_LIMIT, BusinessError, businessService } from "./business.ts";
 export type { BusinessService, OpenedProject, ProjectSummary } from "./business.ts";
+export { foundationService } from "./foundation.ts";
+export type { FoundationService } from "./foundation.ts";
 export { positioningService } from "./positioning.ts";
 export type { PositioningService } from "./positioning.ts";
 export { DirectionError, directionService, saveInputSchema, sealReading } from "./directions.ts";
