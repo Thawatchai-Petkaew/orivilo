@@ -70,6 +70,7 @@ import {
   type BoardId,
   type BookPageRecord,
   type BodyRecord,
+  type Box,
   type ChapterId,
   type CopyKey,
   type ImageId,
@@ -254,10 +255,13 @@ function LiveFrame({ outer, design, start = 0, mode, children }: LiveFrameProps)
 function ArtFrame({
   design,
   width,
+  lines,
   children,
 }: {
   design: Size;
   width: number;
+  /** The tiles of a page of rounded tiles, in design px: each gets one untransformed line box. */
+  lines?: readonly Box[] | undefined;
   children: ReactNode;
 }) {
   const scale = width / design.w;
@@ -286,6 +290,21 @@ function ArtFrame({
       >
         {children}
       </div>
+      {lines ? (
+        <div data-page-lines="" {...scope("light")}>
+          {lines.map((b, i) => (
+            <span
+              key={i}
+              style={{
+                left: b.x * scale,
+                top: b.y * scale,
+                width: b.w * scale,
+                height: b.h * scale,
+              }}
+            />
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -2280,16 +2299,27 @@ function LiveScreen({ id, size }: { id: "landing" | "form" | "report"; size: Siz
 
 function PreviewArt({ rec, size }: { rec: PreviewPageRecord; size: Size }) {
   const show = rec.show;
-  const contain = (design: Size, node: ReactNode) => (
-    <ArtFrame design={design} width={Math.min(size.w, (size.h * design.w) / design.h)}>
+  const contain = (design: Size, node: ReactNode, lines?: readonly Box[]) => (
+    <ArtFrame
+      design={design}
+      width={Math.min(size.w, (size.h * design.w) / design.h)}
+      lines={lines}
+    >
       {node}
     </ArtFrame>
   );
-  if ("board" in show) return contain(BOARD_DESIGN, <BoardArt board={show.board} />);
+  if ("board" in show) {
+    return contain(
+      BOARD_DESIGN,
+      <BoardArt board={show.board} />,
+      BOARDS[show.board].pieces.map((id) => pieceOf(id).box),
+    );
+  }
   if ("piece" in show) {
     const piece = pieceOf(show.piece);
-    const design = { w: piece.box.w, h: piece.box.h };
-    return contain(design, <PieceArt piece={piece} size={design} />);
+    // Whole design px: inside a scale Chrome lays each box on whole px before it scales them.
+    const design = { w: Math.round(piece.box.w), h: Math.round(piece.box.h) };
+    return contain(design, <PieceArt piece={piece} size={design} />, [{ x: 0, y: 0, ...design }]);
   }
   if ("book" in show) return contain(BOARD_DESIGN, <BookPageArt n={show.book} />);
   if ("logo" in show) return contain(BOARD_DESIGN, <LogoPage kind={show.logo} />);

@@ -1528,25 +1528,35 @@
   border: 1px solid var(--ds-border-subtle);
   pointer-events: none;
 }
-/* A page made of rounded tiles draws its bounds on each tile, not on the frame (ORV-290 row 28,
- * R28-1). The colour is resolved on the frame, in the stage's mode, because a tile carries its
- * own art mode; the width is divided by the art's scale so it draws 1 CSS px at every size. */
+/* A page made of rounded tiles draws its bounds on one line box per tile, not on the frame (ORV-290
+ * row 28, R28-1). The colour is resolved on the frame, in the stage's mode, because a tile carries
+ * its own art mode; the line boxes below sit in the art's own scope. */
 [data-stage] [data-art-frame] {
   --_page-line-colour: var(--ds-border-subtle);
+  --_page-matte: var(--ds-surface-sunken);
 }
 [data-stage] [data-art-frame]:has(> * > .rounded-media, > * > [data-board-art])::after {
   content: none;
 }
-[data-stage] [data-art-frame] > * > .rounded-media::after,
-[data-stage] [data-art-frame] > * > [data-board-art] > [data-piece] > .rounded-media::after {
-  --_page-line: inset 0 0 0 calc(1px / var(--_art-scale)) var(--_page-line-colour);
-  content: "";
+/* The bounds of a page of rounded tiles (ORV-290 row 28, R28-2, R28-3): one untransformed line
+ * box per tile, laid over the frame, so the browser draws its border on whole device px, the
+ * same px as the frame's clip, at every position and device scale. The radius is the tile's own
+ * (the box sits in the art's scope) times the art's scale. A 1 px ring of the stage's fill just
+ * outside the line covers what the scaled tile paints past its box at a corner or a gutter. */
+[data-stage] [data-art-frame] > [data-page-lines] {
   position: absolute;
   inset: 0;
   z-index: 1;
-  border-radius: var(--ds-shape-media-radius);
-  box-shadow: var(--_page-line);
   pointer-events: none;
+}
+[data-stage] [data-art-frame] > [data-page-lines] > * {
+  --_page-radius: calc(var(--ds-shape-media-radius) * var(--_art-scale));
+  --_page-ring: 0 0 0 1px var(--_page-matte);
+  position: absolute;
+  box-sizing: border-box;
+  border: 1px solid var(--_page-line-colour);
+  border-radius: var(--_page-radius);
+  box-shadow: var(--_page-ring);
 }
 .ds-dialog[data-size="viewer"] .ds-dialog__footer > * {
   flex: 1 1 auto;

@@ -1061,7 +1061,9 @@ function expectQuadsRead(scope: Element) {
     if (!tile) continue;
     const record = IMAGES.find((i) => i.id === (piece.content as { image: ImageId }).image);
     if (!record?.quad) throw new RangeError(`no quad for ${piece.id}`);
-    const size = { w: piece.box.w, h: piece.box.h };
+    // The size the tile was drawn at: a one tile page draws at whole design px, not piece.box.
+    const drawn = getComputedStyle(tile);
+    const size = { w: parseFloat(drawn.width), h: parseFloat(drawn.height) };
     const corners = quadInTile(record.quad, size, { w: record.width, h: record.height });
     const rect = tile.getBoundingClientRect();
     const scale = rect.width / size.w;
@@ -1101,16 +1103,16 @@ export const BrandbookChapter: Story = {
 };
 
 const ALL_SIDES: readonly Side[] = ["top", "right", "bottom", "left"];
-const LIGHT_SIDES: readonly Side[] = ["top", "bottom", "left"];
 
 /**
- * A page on the stage shows its bounds (ORV-290 row 28, C4, R28-1): a 1 px line of `border.subtle`
- * that follows the shape of the page. A square sheet keeps one line over the frame's edge; a page of
- * rounded tiles (a board, or one tile) draws it on each tile with the tile's own radius and the frame
- * line off, so no stage shows between the line and the tile and no line crosses a gutter. `ink` names
- * the sides read from a screenshot: one line of that colour, 1 px wide, on each. A light page leaves
- * its right side out: that edge ends on the near white paper tile at a fraction of a device px, where
- * the line blends into stage and tile and no pixel reads as the line; the dark page reads all four.
+ * A page on the stage shows its bounds (ORV-290 row 28, C4, R28-1, R28-2, R28-3): a 1 px line of
+ * `border.subtle` that follows the shape of the page. A square sheet keeps one line over the frame's
+ * edge. A page of rounded tiles (a board, or one tile) has the frame line off and one untransformed
+ * line box per tile laid over the frame, so the browser draws the border on whole device px, the
+ * same px as the frame's clip, at every position and device scale; the box carries the tile's radius
+ * times the art's scale and a 1 px ring of the stage's fill outside the line. `ink` names the sides
+ * read from a screenshot: one line of that colour, 1 px wide, on each. The read runs at the Vitest
+ * window, outside `atWindow`, because a pixel read inside it deadlocks on the screenshot lock.
  */
 async function expectPaperBounds(
   stage: HTMLElement,
@@ -1133,34 +1135,82 @@ async function expectPaperBounds(
   } else {
     expect(tiles.length, "the page's tiles are found").toBeGreaterThan(0);
     expect(frameLine.content, "a page of tiles has no frame line").toBe("none");
+    const boxes = Array.from(frame.querySelectorAll<HTMLElement>(":scope > [data-page-lines] > *"));
+    expect(boxes, "one line box per tile").toHaveLength(tiles.length);
+    expect(
+      getComputedStyle(frame.querySelector("[data-page-lines]") as HTMLElement).pointerEvents,
+      "the line layer takes no pointer",
+    ).toBe("none");
     const scale =
       frame.getBoundingClientRect().width / (frame.firstElementChild as HTMLElement).offsetWidth;
-    for (const tile of tiles) {
+    const matte = resolvedColor(frame, "--ds-surface-sunken");
+    tiles.forEach((tile, i) => {
+      const box = boxes[i] as HTMLElement;
       const own = getComputedStyle(tile);
-      const line = getComputedStyle(tile, "::after");
-      expect(line.content, "each tile draws its own line").toBe('""');
-      expect(line.pointerEvents).toBe("none");
+      expect(getComputedStyle(tile, "::after").content, "the tile draws no line of its own").toBe(
+        "none",
+      );
+      const t = tile.getBoundingClientRect();
+      const r = box.getBoundingClientRect();
+      for (const edge of ["left", "top", "right", "bottom"] as const) {
+        // Layout lays boxes on 1/64 px, so the two boxes differ by a hair, never by a device px.
+        expect(
+          Math.abs(r[edge] - t[edge]),
+          `line box ${i} lies on the tile's ${edge} edge`,
+        ).toBeLessThanOrEqual(0.02);
+      }
+      const line = getComputedStyle(box);
       expect(
-        [
-          line.borderTopLeftRadius,
-          line.borderTopRightRadius,
-          line.borderBottomRightRadius,
-          line.borderBottomLeftRadius,
-        ],
-        "the line turns each corner with the tile",
-      ).toEqual([
+        Math.abs(r.width - parseFloat(line.width)),
+        `line box ${i} is untransformed in width`,
+      ).toBeLessThanOrEqual(0.01);
+      expect(
+        Math.abs(r.height - parseFloat(line.height)),
+        `line box ${i} is untransformed in height`,
+      ).toBeLessThanOrEqual(0.01);
+      expect(
+        [line.borderTopWidth, line.borderRightWidth, line.borderBottomWidth, line.borderLeftWidth],
+        `line box ${i} border widths`,
+      ).toEqual(["1px", "1px", "1px", "1px"]);
+      expect(
+        [line.borderTopStyle, line.borderRightStyle, line.borderBottomStyle, line.borderLeftStyle],
+        `line box ${i} border styles`,
+      ).toEqual(["solid", "solid", "solid", "solid"]);
+      expect(
+        [line.borderTopColor, line.borderRightColor, line.borderBottomColor, line.borderLeftColor],
+        `line box ${i} is the stage's border.subtle`,
+      ).toEqual([colour, colour, colour, colour]);
+      expect(line.boxShadow, `line box ${i} rings the line in the stage's fill`).toBe(
+        `${matte} 0px 0px 0px 1px`,
+      );
+      const radii = [
+        line.borderTopLeftRadius,
+        line.borderTopRightRadius,
+        line.borderBottomRightRadius,
+        line.borderBottomLeftRadius,
+      ];
+      const tileRadii = [
         own.borderTopLeftRadius,
         own.borderTopRightRadius,
         own.borderBottomRightRadius,
         own.borderBottomLeftRadius,
-      ]);
-      const shadow = /^(rgb\([^)]*\)) 0px 0px 0px ([\d.]+)px inset$/.exec(line.boxShadow);
-      expect(shadow, `the line is an inset spread, read ${line.boxShadow}`).not.toBeNull();
-      expect(shadow?.[1], "the line is the stage's border.subtle").toBe(colour);
-      expect(Math.abs(Number(shadow?.[2]) * scale - 1), "the line draws 1 CSS px").toBeLessThan(
-        0.02,
-      );
-    }
+      ];
+      radii.forEach((radius, k) => {
+        expect(
+          Math.abs(parseFloat(radius) - parseFloat(tileRadii[k] as string) * scale),
+          `line box ${i} corner ${k} is the tile's radius times the scale`,
+        ).toBeLessThanOrEqual(0.01);
+      });
+      if (tiles.length === 1) {
+        // One tile page: whole design px, or Chrome lays the tile off its box inside the scale.
+        expect(Number.isInteger(parseFloat(own.width)), `tile width ${own.width} is whole`).toBe(
+          true,
+        );
+        expect(Number.isInteger(parseFloat(own.height)), `tile height ${own.height} is whole`).toBe(
+          true,
+        );
+      }
+    });
   }
   if (ink.length > 0 && inVitest) {
     await expectEdgeColour(frame, ink, colour, 1);
@@ -1324,7 +1374,7 @@ export const PreviewDirectionBoard: Story = {
     expect(
       Math.abs(art.getBoundingClientRect().height - stageBox(stage).height),
     ).toBeLessThanOrEqual(2);
-    await expectPaperBounds(stage, { ink: LIGHT_SIDES, tiles: true });
+    await expectPaperBounds(stage, { ink: ALL_SIDES, tiles: true });
     expect(within(dialog).getByText(copyOf(EN, "image.label"))).toBeDefined();
     const sequence = SEQUENCES.find((s) => s.id === "direction");
     for (let n = 2; n <= 6; n++) {
@@ -1333,7 +1383,7 @@ export const PreviewDirectionBoard: Story = {
       await waitFor(() => expect(stage.querySelectorAll("[data-piece]").length).toBe(0));
       const rec = at(sequence?.pages ?? [], n - 1);
       expect(Object.keys(rec.show)[0]).toBe("piece");
-      await expectPaperBounds(stage, { tiles: true });
+      await expectPaperBounds(stage, { ink: ALL_SIDES, tiles: true });
       const footer = within(dialog).getByText(copyOf(EN, rec.caption));
       expect(footer.closest("[data-stage]")).toBeNull();
       expect(stage.textContent).not.toContain(copyOf(EN, rec.caption));
@@ -1362,7 +1412,7 @@ export const PreviewInUseBoard: Story = {
     expect(countOf(dialog)).toBe("1 / 8");
     const stage = stageOf(dialog);
     await imagesLoaded(stage);
-    await expectPaperBounds(stage, { ink: LIGHT_SIDES, tiles: true });
+    await expectPaperBounds(stage, { ink: ALL_SIDES, tiles: true });
     expectQuadsRead(stage);
     expectMarksAreLogos(stage);
     // One label (honest-1), in the caption and not on the art.
@@ -1388,7 +1438,7 @@ export const PreviewInUseBoard: Story = {
           await imagesLoaded(stage);
           expectQuadsRead(stage);
         }
-        await expectPaperBounds(stage, { tiles: true });
+        await expectPaperBounds(stage, { ink: ALL_SIDES, tiles: true });
       }
     }
   },
@@ -1578,6 +1628,7 @@ export const MissingImages: Story = {
       expect(tile?.querySelector(".ds-logo"), `${piece.id} lockup`).not.toBeNull();
     }
     const dialog = await openNode(root, "u-board", EN.orvCanvas.node.inUseBoard);
+    await expectPaperBounds(stageOf(dialog), { ink: ALL_SIDES, tiles: true });
     const sequence = SEQUENCES.find((s) => s.id === ("inUse" satisfies SequenceId));
     for (let n = 2; n <= 8; n++) {
       await userEvent.keyboard("{ArrowRight}");
