@@ -3,7 +3,7 @@ issue: ORV-295 (https://tpetkaew.atlassian.net/browse/ORV-295)
 parent: ORV-291 (https://tpetkaew.atlassian.net/browse/ORV-291), docs/specs/ORV-291/spec.md v1.4
 lane: L (inherited from ORV-291)
 mode: POC mode short spec (`.claude/skills/ovl/SKILL.md`, section "POC mode"), a slice spec
-version: 1.0
+version: 1.1
 ---
 
 # ORV-295: Brand architecture and the working name (slice of ORV-291, PR 2)
@@ -61,9 +61,13 @@ Row 24's "Gate as row 13". Row 13 is the parent's gate row for PR 1 and is not a
 
 How to read the other copied rows:
 
-- "PR 2 head" in rows 23 and 24 is the head of this slice's PR, which has no number yet.
+- "PR 2 head" in rows 23 and 24 is the head of this slice's PR, PR 234.
 - Rows 1 to 13 are PR 232 (ORV-291) and rows 25 to 37 are ORV-296, so this table holds rows 14 to 24 only and no row is renumbered.
 - The W2, W4 and W5 cited in the rows are the parent's worked examples, with their `node -e` lines and expected outputs; they are not copied here.
+
+## Rows per PR
+
+- PR 234: rows 14-24
 
 ## Rows that render nothing
 
@@ -94,7 +98,7 @@ This slice adds none. The parent's open questions that touch it, by number, with
 - 12, the board's lede: default (a).
 - 14, the business board at a 360 px viewport: default (a).
 
-One default of this slice: it has no "Rows per PR" section, because its PR has no number yet, so the qa walk covers every row of the table above.
+The section "Rows per PR" names this slice's one PR, so the qa walk covers every row of the table above.
 
 ## Out of scope
 
@@ -110,4 +114,5 @@ One default of this slice: it has no "Rows per PR" section, because its PR has n
 
 ## Changelog
 
+- v1.1 (2026-11-20): the PR has its number. "Rows per PR" added (PR 234, rows 14 to 24) and the two sentences that said the PR had no number yet now name it. No row changed.
 - v1.0 (2026-11-20): first version, task ORV-295-spec-1. The slice spec of ORV-291 for PR 2: rows 14 to 24 copied word for word from the parent spec v1.4, with their numbers; no new requirement. Downstream to review: the B1 and B2 builder envelopes, the `security` and qa envelopes and the G3 packet of this slice's PR.
