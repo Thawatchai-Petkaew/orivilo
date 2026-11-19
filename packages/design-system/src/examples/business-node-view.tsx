@@ -73,6 +73,11 @@ export interface PositioningControls {
   failure?: string | undefined;
   /** Called with a choice the screen has checked; the caller checks again and calls the action. */
   onChoose: (choice: ChoiceRequest) => void;
+  /**
+   * The person left without deciding (Cancel, or the viewer closing): drop the last outcome, so no
+   * failure line outlives the editor it came from.
+   */
+  onDismiss?: (() => void) | undefined;
   editor: PositioningEditor;
   onEditor: (next: PositioningEditor) => void;
 }
@@ -85,7 +90,7 @@ export interface BusinessNodeViewProps {
   reading?: BusinessView["reading"] | undefined;
   /** The view's positioning gate. Only the `positioning` node uses it; with none, that node has no section. */
   positioning?: PositioningView | undefined;
-  /** The controls of the section. Absent, the section shows the statement and its labels and no control. */
+  /** The controls of the section. Absent, the section shows a statement and no control, and with no statement it is not drawn. */
   controls?: PositioningControls | undefined;
 }
 
@@ -163,7 +168,7 @@ type FocusTarget = "field" | "opener" | "heading";
  * The statement section of the Positioning view (ORV-285 design sections 3 and 5): the heading, the
  * agreed or stale statement as text with who wrote it, and the controls of `positioning-gate-1`.
  * "Write my own" opens an editor that holds its text in the board; "Agree" checks it and calls
- * `onChoose`; "Skip" calls it with a skip; "Cancel" closes the editor and keeps nothing. Focus follows
+ * `onChoose`; "Skip" calls it with a skip; "Cancel" closes the editor, keeps nothing and drops the last failure. Focus follows
  * each action: the field when the editor opens or the check fails, "Write my own" after a cancel or
  * a skip, the heading after the gate passes. The statement is a text node in `bdi`, never HTML.
  */
@@ -253,6 +258,7 @@ function PositioningSection({
     if (busy) return;
     setShown(null);
     controls?.onEditor(null);
+    controls?.onDismiss?.();
     setFocus({ target: "opener" });
   };
   const skip = () => {
@@ -438,7 +444,9 @@ export function BusinessNodeView({
                 </div>
               );
             })}
-            {node.id === "positioning" && positioning !== undefined ? (
+            {node.id === "positioning" &&
+            positioning !== undefined &&
+            (positioning.statement !== null || controls !== undefined) ? (
               <PositioningSection gate={positioning} controls={controls} />
             ) : null}
           </div>

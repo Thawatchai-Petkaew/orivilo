@@ -91,6 +91,11 @@ function ReadyBoard({
   const board = useRef<HTMLDivElement>(null);
   const viewer = useRef<HTMLDivElement>(null);
   const opened = openId === null ? undefined : view.nodes.find((n) => n.id === openId);
+  // Closing the viewer leaves the gate undecided: the caller drops the last failure.
+  const closeViewer = () => {
+    setOpenId(null);
+    positioning?.onDismiss?.();
+  };
 
   const renderBody = (boardNode: BoardNode) => {
     const node = view.nodes.find((n) => n.id === boardNode.id);
@@ -156,7 +161,7 @@ function ReadyBoard({
         </CanvasBoard>
       </div>
       {opened === undefined ? null : (
-        <Dialog open onOpenChange={(next) => (next ? undefined : setOpenId(null))}>
+        <Dialog open onOpenChange={(next) => (next ? undefined : closeViewer())}>
           <DialogContent
             size="viewer"
             title={nodeTitle(m, opened.id)}

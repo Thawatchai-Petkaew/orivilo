@@ -164,13 +164,10 @@ async function expectViewer(
   await expect(dialog.querySelector("[data-ai-line]")).toBeNull();
   await expect(d.queryByText(m.business.label.aiUnavailable)).toBeNull();
   await expect(dialog.querySelector(".ds-section-header")).toBeNull();
-  // Positioning's own fields, then its statement section (ORV-285).
+  // These views have no controls and no statement, so Positioning has no statement section (row F1-a).
   await expect(
     [...dialog.querySelectorAll("[data-field]")].map((f) => f.getAttribute("data-field")),
-  ).toEqual([
-    ...BUSINESS_FIELDS.filter((f) => f.node === id).map((f) => f.id),
-    ...(id === "positioning" ? ["positioning.statement"] : []),
-  ]);
+  ).toEqual(BUSINESS_FIELDS.filter((f) => f.node === id).map((f) => f.id));
   // Each answer exactly as typed, with its label; a field with none says skipped or nothing given.
   const given = node.fields.flatMap((f) => (f.answer === null ? [] : [f]));
   for (const f of node.fields) {
@@ -499,6 +496,20 @@ async function expectTabOrder(canvasElement: HTMLElement) {
   await expect((reached as HTMLElement).matches(":focus-visible")).toBe(true);
 }
 
+/**
+ * Row F1-a (state S0): a board with no controls and no statement shows the Positioning viewer as
+ * develop does, with no statement section and no bare heading.
+ */
+async function expectNoStatementSection(root: HTMLElement, m: Messages) {
+  await userEvent.click(nodeEl(root, "positioning"));
+  const dialog = await dialogNamed(nodeTitle(m, "positioning"));
+  await expect(dialog.querySelector('[data-field="positioning.statement"]')).toBeNull();
+  await expect(
+    [...dialog.querySelectorAll("*")].filter((el) => textOf(el) === m.business.field.statement),
+  ).toHaveLength(0);
+  await closeViewer(root, "positioning");
+}
+
 const SAVED_TH = /บันทึกเมื่อ .*2569.*10:15/;
 const SAVED_EN = /Saved .*Nov 18, 2026.*10:15/;
 
@@ -508,6 +519,7 @@ export const Board: Story = {
     await expectBoard(canvasElement, th, THAI_VIEW, SAVED_TH);
     await expectGestures(canvasElement, th, THAI_VIEW);
     await expectTabOrder(canvasElement);
+    await expectNoStatementSection(canvasElement, th);
   },
 };
 
@@ -519,6 +531,7 @@ export const BoardEnglish: Story = {
     await expectBoard(canvasElement, en, ENGLISH_VIEW, SAVED_EN);
     await expectGestures(canvasElement, en, ENGLISH_VIEW);
     await expectTabOrder(canvasElement);
+    await expectNoStatementSection(canvasElement, en);
   },
 };
 
@@ -1413,7 +1426,7 @@ function GateHost({ locale, initial }: { locale: Lang; initial: BusinessView }) 
       view={view}
       signInHref="/account"
       listHref="/business"
-      positioning={{ pending, failure, onChoose }}
+      positioning={{ pending, failure, onChoose, onDismiss: () => setFailure(undefined) }}
     />
   );
 }
@@ -1437,6 +1450,8 @@ const stateLineOf = (dialog: HTMLElement) =>
 /** The statement and the line under it, the two paragraphs of the person's decision. */
 const statementOf = (section: HTMLElement) =>
   section.querySelector<HTMLElement>("p.whitespace-pre-wrap");
+/** The line of failure under the controls, empty when nothing failed. */
+const alertOf = (section: HTMLElement) => section.querySelector('[role="alert"]') as HTMLElement;
 const buttonOf = (section: HTMLElement, name: string) =>
   within(section).getByRole("button", { name });
 const textbox = (section: HTMLElement, name: string) =>
@@ -1504,6 +1519,9 @@ async function statesPlay(canvasElement: HTMLElement, m: Messages, kind: StateKi
     want.line === "gate" ? m.business.state.gate : m.business.positioning.gatePassed,
   );
   const section = sectionOf(dialog);
+  // Row F1-a: a statement keeps the section, here A3 with the fixture's words.
+  if (kind === "agreed")
+    await expect(statementOf(section)?.textContent).toBe(POSITIONING_STATEMENTS[lang]);
   await expect(sectionButtons(section).map((b) => b.dataset["choice"])).toEqual(want.buttons);
   await expect(
     within(section).getByRole("heading", { level: 3, name: m.business.field.statement }),
@@ -1574,6 +1592,29 @@ export const PositioningStatesAgreedEnglish: Story = {
   play: ({ canvasElement }) => statesPlay(canvasElement, en, "agreed"),
 };
 
+/** A statement and no controls (row F1-a): the section stays, as the statement and who wrote it, with no control. */
+async function readOnlyPlay(canvasElement: HTMLElement, m: Messages) {
+  const lang = langOf(m);
+  await boardReady(canvasElement);
+  await userEvent.click(nodeEl(canvasElement, "positioning"));
+  const dialog = await dialogNamed(nodeTitle(m, "positioning"));
+  const section = sectionOf(dialog);
+  await expect(statementOf(section)?.textContent).toBe(POSITIONING_STATEMENTS[lang]);
+  await expect(textOf(section)).toContain(m.business.positioning.by.own);
+  await expect(sectionButtons(section)).toHaveLength(0);
+  await expect(section.querySelector("textarea")).toBeNull();
+  await closeViewer(canvasElement, "positioning");
+}
+export const PositioningReadOnly: Story = {
+  args: { view: POSITIONING_VIEWS.th.agreed },
+  play: ({ canvasElement }) => readOnlyPlay(canvasElement, th),
+};
+export const PositioningReadOnlyEnglish: Story = {
+  args: { view: POSITIONING_VIEWS.en.agreed },
+  decorators: [inEnglish],
+  play: ({ canvasElement }) => readOnlyPlay(canvasElement, en),
+};
+
 // ----- row 2: write my own and agree -----
 
 async function writtenPlay(canvasElement: HTMLElement, m: Messages) {
@@ -1633,8 +1674,8 @@ export const PositioningWrittenEnglish: Story = {
 async function invalidPlay(canvasElement: HTMLElement, m: Messages) {
   stubSaves();
   const lang = langOf(m);
-  const dialog = await positioningOf(canvasElement, m);
-  const section = sectionOf(dialog);
+  let dialog = await positioningOf(canvasElement, m);
+  let section = sectionOf(dialog);
   await userEvent.click(buttonOf(section, m.business.positioning.writeOwn));
   const field = textbox(section, m.business.positioning.writeOwn);
   await focusedIs(field);
@@ -1662,19 +1703,34 @@ async function invalidPlay(canvasElement: HTMLElement, m: Messages) {
   await userEvent.paste(valid);
   choose.mockImplementation(async () => ({ ok: false, failure: RATE_LIMITED[lang] }));
   await userEvent.click(agree());
-  await waitFor(() =>
-    expect(textOf(section.querySelector('[role="alert"]') as HTMLElement)).toBe(RATE_LIMITED[lang]),
-  );
+  await waitFor(() => expect(textOf(alertOf(section))).toBe(RATE_LIMITED[lang]));
   await expect(field.value).toBe(valid);
   await expect(choose).toHaveBeenCalledTimes(1);
   await expect(agree()).not.toHaveAttribute("data-loading");
   // Cancel: the editor closes, the view is as before it opened, focus is on Write my own, no call.
   await userEvent.click(buttonOf(section, m.business.positioning.cancel));
   await expect(section.querySelector("textarea")).toBeNull();
-  const write = buttonOf(section, m.business.positioning.writeOwn);
+  let write = buttonOf(section, m.business.positioning.writeOwn);
   await focusedIs(write);
   await expect(textOf(stateLineOf(dialog))).toBe(m.business.state.proposed);
+  // The failure line is gone with the editor (positioning-choice-1, "The editors").
+  await expect(textOf(alertOf(section))).toBe("");
   await expect(choose).toHaveBeenCalledTimes(1);
+  // Closing the viewer after a refusal drops the line too: reopened, the region is empty and the
+  // text the person wrote is still in the editor.
+  await userEvent.click(write);
+  await userEvent.click(textbox(section, m.business.positioning.writeOwn));
+  await userEvent.paste(valid);
+  await userEvent.click(agree());
+  await waitFor(() => expect(textOf(alertOf(section))).toBe(RATE_LIMITED[lang]));
+  await expect(choose).toHaveBeenCalledTimes(2);
+  await closeViewer(canvasElement, "positioning");
+  dialog = await positioningOf(canvasElement, m);
+  section = sectionOf(dialog);
+  await expect(textOf(alertOf(section))).toBe("");
+  await expect(textbox(section, m.business.positioning.writeOwn).value).toBe(valid);
+  await userEvent.click(buttonOf(section, m.business.positioning.cancel));
+  write = buttonOf(section, m.business.positioning.writeOwn);
   // Opened again it is empty: nothing typed was kept.
   await userEvent.click(write);
   await expect(textbox(section, m.business.positioning.writeOwn).value).toBe("");
@@ -1686,7 +1742,7 @@ async function invalidPlay(canvasElement: HTMLElement, m: Messages) {
   await userEvent.click(agree());
   await waitFor(() => expect(agree()).toHaveAttribute("data-loading"));
   await userEvent.click(agree());
-  await expect(choose).toHaveBeenCalledTimes(2);
+  await expect(choose).toHaveBeenCalledTimes(3);
   await expect(agree()).toHaveAttribute("aria-disabled", "true");
   await expect(buttonOf(section, m.business.positioning.cancel)).toHaveAttribute(
     "aria-disabled",

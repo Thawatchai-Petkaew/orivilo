@@ -74,6 +74,7 @@ type Controls = {
   problem: "required" | "too-long" | null;
   failure: string | undefined;
   onChoose: (request: unknown) => void;
+  onDismiss: () => void;
 };
 /** The element `ProjectBoard` returns, with the hooks above: its props are what it asks the screen for. */
 const controlsOf = (locale: "en" | "th"): Controls => {
@@ -236,5 +237,45 @@ describe("a language switch after a refusal", () => {
     expect(thai).toContain("20 นาที");
     expect(thai).not.toBe(english);
     expect(choosePositioning).toHaveBeenCalledTimes(1);
+  });
+});
+
+// Cancel and closing the viewer both call `onDismiss`: the last outcome goes, so no failure line
+// outlives the editor it came from (spec row 3, positioning-choice-1 "The editors").
+describe("leaving the gate without deciding", () => {
+  it("drops the failure of a refused save", async () => {
+    choosePositioning.mockResolvedValue(
+      failed({ error: "rate-limited", code: "RATE_LIMITED", retryAfter: 1200, retryable: true }),
+    );
+    press("en", { kind: "written", statement: STATEMENT });
+    await seed.running;
+    expect(controlsOf("en").failure).toBeDefined();
+    controlsOf("en").onDismiss();
+    expect(controlsOf("en").failure).toBeUndefined();
+    expect(choosePositioning).toHaveBeenCalledTimes(1);
+  });
+
+  it("drops the failure of a rejected call", async () => {
+    choosePositioning.mockRejectedValue(new Error("network"));
+    press("en", { kind: "skipped" });
+    await seed.running;
+    expect(controlsOf("en").failure).toBe(webMessages.en.saved.errors.failed);
+    controlsOf("en").onDismiss();
+    expect(controlsOf("en").failure).toBeUndefined();
+  });
+
+  it("drops the field's problem too", () => {
+    press("en", { kind: "written", statement: "" });
+    expect(controlsOf("en").problem).toBe("required");
+    controlsOf("en").onDismiss();
+    expect(controlsOf("en").problem).toBeNull();
+  });
+
+  it("changes nothing when there was nothing to drop", () => {
+    controlsOf("en").onDismiss();
+    const next = controlsOf("en");
+    expect(next.failure).toBeUndefined();
+    expect(next.problem).toBeNull();
+    expect(choosePositioning).not.toHaveBeenCalled();
   });
 });

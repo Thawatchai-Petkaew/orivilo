@@ -82,7 +82,8 @@ function failureOf(
  * before it calls out, so an empty statement and one past its bound make no server call, and a
  * second press while a request runs is ignored. On a saved choice it asks the page to build the view
  * again, inside the same transition, so the buttons stay disabled until the new view arrives. The
- * view holds keys and values, so a language switch redraws with no second load. Its `errors`, `wait`
+ * view holds keys and values, so a language switch redraws with no second load. Cancel and closing
+ * the viewer call `onDismiss`, which drops the last outcome, so a failure never outlives its editor. Its `errors`, `wait`
  * and `failure` come from the page.
  */
 export function ProjectBoard({
@@ -124,6 +125,7 @@ export function ProjectBoard({
         problem: problemOf(last),
         failure: failureOf(last, { errors, wait, failure }, m),
         onChoose,
+        onDismiss: () => setLast(null),
       }}
     />
   );
