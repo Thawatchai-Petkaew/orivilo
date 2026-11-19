@@ -5,9 +5,11 @@ import {
   index,
   jsonb,
   pgTable,
+  smallint,
   text,
   timestamp,
   unique,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { organization } from "./auth.ts";
 import { project } from "./workspace.ts";
@@ -150,6 +152,65 @@ export const businessReading = pgTable(
     check(
       "business_reading_shape",
       sql`(${t.method} = 'model') = (${t.reason} is null and ${t.modelId} is not null and ${t.adapterId} is not null and ${t.adapterVersion} is not null and ${t.promptVersion} is not null) and (${t.method} <> 'rule-based' or ${t.evidence} = '[]'::jsonb)`,
+    ),
+  ],
+);
+
+/**
+ * What a person chose for the positioning statement of an intake (ORV-285, tech notes section 4.1):
+ * one row per choice, insert only, keyed to the intake it was made on. The project is the intake's,
+ * so there is no project column. The newest row of a project is its current choice. At most one row
+ * of kind `picked`, `edited` or `written` exists per intake, whatever the action did, so an agreed
+ * positioning stays agreed; `skipped` rows may repeat. Written and read only through
+ * `positioningService` in @orivilo/auth, inside `withWorkspace`; the app role may insert and select,
+ * never update or delete (migration 0013).
+ */
+export const businessPositioningChoice = pgTable(
+  "business_positioning_choice",
+  {
+    id: text("id").primaryKey(),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    intakeId: text("intake_id").notNull(),
+    kind: text("kind").notNull(),
+    /** The statement the person agreed; null for a skip. */
+    statement: text("statement"),
+    /** A plain id in this table's first form; a later draft table adds its foreign key. */
+    draftId: text("draft_id"),
+    option: smallint("option"),
+    // A plain id, not a foreign key: a record keeps who wrote it after they leave (as business_intake).
+    createdBy: text("created_by").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+  },
+  (t) => [
+    // The pair proves the choice sits in its intake's workspace.
+    foreignKey({
+      columns: [t.intakeId, t.workspaceId],
+      foreignColumns: [businessIntake.id, businessIntake.workspaceId],
+      name: "business_positioning_choice_intake_fk",
+    }).onDelete("cascade"),
+    index("business_positioning_choice_workspaceId_idx").on(t.workspaceId),
+    index("business_positioning_choice_intake_created_idx").on(t.intakeId, t.createdAt),
+    // A second agreement on one intake fails in the database; skips may repeat.
+    uniqueIndex("business_positioning_choice_one_agreed")
+      .on(t.intakeId)
+      .where(sql`${t.kind} <> 'skipped'`),
+    check(
+      "business_positioning_choice_kind_check",
+      sql`${t.kind} in ('picked', 'edited', 'written', 'skipped')`,
+    ),
+    check(
+      "business_positioning_choice_statement_check",
+      sql`${t.statement} is null or char_length(${t.statement}) between 1 and 300`,
+    ),
+    check(
+      "business_positioning_choice_option_check",
+      sql`${t.option} is null or ${t.option} between 1 and 3`,
+    ),
+    check(
+      "business_positioning_choice_shape",
+      sql`(${t.kind} in ('picked', 'edited')) = (${t.draftId} is not null and ${t.option} is not null) and (${t.kind} <> 'skipped') = (${t.statement} is not null) and (${t.draftId} is null) = (${t.option} is null)`,
     ),
   ],
 );

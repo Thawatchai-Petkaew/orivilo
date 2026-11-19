@@ -9,6 +9,7 @@ import {
   FIXTURE_SAVED_AT,
 } from "./read-fixtures";
 import { BUSINESS_READ_REASONS, type BusinessReading } from "./reading";
+import type { StoredChoice } from "./positioning";
 import { toBusinessView, type SavedBusiness } from "./view";
 
 // ORV-281 tech notes section 13, T8 and T37; spec rows 14 and 15 (the data half), 19, 27 and 33 (the data half).
@@ -235,5 +236,147 @@ describe("readings in the view", () => {
     const view = toBusinessView(withReading(model));
     expect(JSON.parse(JSON.stringify(view))).toEqual(view);
     expect(toBusinessView(withReading(model))).toStrictEqual(view);
+  });
+});
+
+// ORV-285 tech notes section 12, T3 and T4; spec rows 5 and 7 (the data half).
+
+describe("positioning in the view", () => {
+  const NEWEST = "intake-b";
+  const at = "2026-11-18T03:04:05.000Z";
+  const choice = (
+    kind: StoredChoice["kind"],
+    intakeId: string,
+    statement = "คั่วสดส่งถึงบ้าน",
+  ): StoredChoice => {
+    if (kind === "skipped")
+      return {
+        id: "c",
+        intakeId,
+        createdAt: at,
+        kind,
+        statement: null,
+        draftId: null,
+        option: null,
+      };
+    if (kind === "written")
+      return { id: "c", intakeId, createdAt: at, kind, statement, draftId: null, option: null };
+    return { id: "c", intakeId, createdAt: at, kind, statement, draftId: "d1", option: 1 };
+  };
+  const withChoice = (intake: Record<string, string>, c: StoredChoice | null, intakeId = NEWEST) =>
+    saved(intake, { positioning: { intakeId, choice: c } });
+  const GIVEN = { idea: "i", value: "v" };
+  const positioningNode = (view: ReturnType<typeof toBusinessView>) =>
+    view.nodes.find((n) => n.id === "positioning");
+
+  it("gives the four projects of row 5 their state, gate line and controls", () => {
+    const rows = [
+      withChoice(GIVEN, null),
+      withChoice({ idea: "i" }, null),
+      withChoice(GIVEN, choice("skipped", NEWEST)),
+      withChoice(GIVEN, choice("written", NEWEST)),
+    ].map((s) => toBusinessView(s));
+    expect(
+      rows.map((v) => {
+        const node = positioningNode(v);
+        return `${node?.state} ${node?.gatePassed} ${v.positioning.gate} ${v.positioning.controls.join(",") || "-"}`;
+      }),
+    ).toEqual([
+      "proposed false open writeOwn,skip",
+      "skipped false open writeOwn,skip",
+      "skipped false open writeOwn",
+      "agreed true given -",
+    ]);
+    expect(rows[3]?.positioning.statement).toEqual({
+      text: "คั่วสดส่งถึงบ้าน",
+      label: "business.positioning.by.own",
+      modelId: null,
+    });
+    expect(rows[2]?.positioning.skipped).toBe(true);
+    expect(rows[2]?.positioning.statement).toBeNull();
+  });
+
+  it("labels a picked or edited statement and shows it with no control once confirmed", () => {
+    for (const [kind, label] of [
+      ["picked", "business.positioning.by.picked"],
+      ["edited", "business.positioning.by.edited"],
+    ] as const) {
+      const view = toBusinessView(withChoice(GIVEN, choice(kind, NEWEST)));
+      expect(view.positioning.gate).toBe("confirmed");
+      expect(view.positioning.statement?.label).toBe(label);
+      expect(view.positioning.controls).toEqual([]);
+      expect(positioningNode(view)?.state).toBe("agreed");
+      expect(positioningNode(view)?.gatePassed).toBe(true);
+    }
+  });
+
+  it("builds the other four nodes exactly as a view built without positioning", () => {
+    const without = toBusinessView(saved(FULL));
+    for (const c of [
+      null,
+      choice("skipped", NEWEST),
+      choice("written", NEWEST),
+      choice("written", "older"),
+    ]) {
+      const view = toBusinessView(withChoice(FULL, c));
+      expect(view.nodes.filter((n) => n.id !== "positioning")).toEqual(
+        without.nodes.filter((n) => n.id !== "positioning"),
+      );
+      for (const n of view.nodes.filter((n) => n.id !== "positioning")) {
+        expect(n.gatePassed).toBe(false);
+      }
+    }
+  });
+
+  it("a view with no positioning saved is open, with no statement", () => {
+    const view = toBusinessView(saved(FULL));
+    expect(view.positioning).toEqual({
+      gate: "open",
+      skipped: false,
+      stale: false,
+      statement: null,
+      controls: ["writeOwn", "skip"],
+    });
+  });
+
+  it("its positioning JSON holds the statement and keys, and no catalog text", () => {
+    const view = toBusinessView(
+      withChoice(GIVEN, choice("written", NEWEST, "<img src=x onerror=alert(1)>")),
+    );
+    const strings: string[] = [];
+    const walk = (v: unknown): void => {
+      if (typeof v === "string") strings.push(v);
+      else if (Array.isArray(v)) v.forEach(walk);
+      else if (v !== null && typeof v === "object") Object.values(v).forEach(walk);
+    };
+    walk(JSON.parse(JSON.stringify(view.positioning)));
+    expect(strings).toContain("<img src=x onerror=alert(1)>");
+    for (const s of strings.filter((s) => s !== "<img src=x onerror=alert(1)>")) {
+      expect(s).toMatch(/^[a-z][A-Za-z0-9.-]*$/);
+    }
+  });
+
+  it("stale positioning: a choice on an older intake reopens the gate with the old statement", () => {
+    for (const kind of ["written", "picked"] as const) {
+      const view = toBusinessView(withChoice(GIVEN, choice(kind, "intake-a")));
+      expect(view.positioning.gate).toBe("open");
+      expect(view.positioning.stale).toBe(true);
+      expect(view.positioning.statement).toEqual({
+        text: "คั่วสดส่งถึงบ้าน",
+        label: "business.positioning.stale",
+        modelId: null,
+      });
+      expect(positioningNode(view)?.state).toBe("proposed");
+      expect(positioningNode(view)?.gatePassed).toBe(false);
+      expect(JSON.stringify(view.positioning)).not.toContain("business.positioning.by.");
+      expect(view.positioning.controls).toEqual(["writeOwn", "skip"]);
+    }
+  });
+
+  it("a skipped choice on an older intake is not stale and shows no statement", () => {
+    const view = toBusinessView(withChoice(GIVEN, choice("skipped", "intake-a")));
+    expect(view.positioning.stale).toBe(false);
+    expect(view.positioning.statement).toBeNull();
+    expect(positioningNode(view)?.state).toBe("proposed");
   });
 });

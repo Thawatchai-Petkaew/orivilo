@@ -6,11 +6,13 @@ import {
   businessReadingSchema,
   checkIntake,
   INTAKE_VERSION,
+  type StoredChoice,
   type StoredIntake,
   storedIntakeSchema,
 } from "@orivilo/intent-engine";
 import { type AccessDeps, withWorkspace } from "./access.ts";
 import { logStep } from "./log.ts";
+import { readPositioning } from "./positioning.ts";
 
 /**
  * Business projects (ORV-281), every call through the one door (ADR 0002). A project and its
@@ -29,8 +31,10 @@ export class BusinessError extends Error {
    * with no intake (`.claude/rules/security.md` rule 9). `not-saved` is a reading the database
    * refused (a second one for the intake and job, an intake of another workspace); the message is
    * a closed word, so no driver text, which holds the record's answers, reaches a caller's log.
+   * `gate-passed` (ORV-285) is a positioning choice made after the newest intake's positioning was
+   * agreed: the statement stays as it is.
    */
-  readonly reason: "invalid-input" | "not-found" | "invalid-stored" | "not-saved";
+  readonly reason: "invalid-input" | "not-found" | "invalid-stored" | "not-saved" | "gate-passed";
   constructor(reason: BusinessError["reason"]) {
     super(`business refused: ${reason}`);
     this.name = "BusinessError";
@@ -57,6 +61,12 @@ export interface OpenedProject {
   savedAt: Date;
   /** That intake's saved `business-read` record, parsed again, or null when none was saved. */
   reading: BusinessReading | null;
+  /**
+   * The positioning choice (ORV-285): the newest intake's id, which a choice names, and the
+   * project's newest choice row, parsed again, or null when none was made. A draft is never read
+   * here: nothing a model proposed counts until a person acts.
+   */
+  positioning: { intakeId: string; choice: StoredChoice | null };
 }
 
 export function businessService(deps: AccessDeps) {
@@ -148,11 +158,11 @@ export function businessService(deps: AccessDeps) {
     },
 
     /**
-     * One project with its newest intake and that intake's saved reading. Never calls a model: a
-     * project with no saved reading opens with `reading: null`. A saved reading that no longer
-     * parses opens the same way, with one `warn` step line (`orv287-unparsed-reading-1`); the row is
-     * left as it is. An intake that no longer parses is `invalid-stored`, and the project is not
-     * shown.
+     * One project with its newest intake, that intake's saved reading and the project's newest
+     * positioning choice. Never calls a model: a project with no saved reading opens with
+     * `reading: null`. A saved reading that no longer parses opens the same way, with one `warn`
+     * step line (`orv287-unparsed-reading-1`); the row is left as it is. An intake that no longer
+     * parses is `invalid-stored`, and the project is not shown.
      */
     async open(headers: Headers, workspaceId: string, projectId: string): Promise<OpenedProject> {
       return withWorkspace(deps, headers, workspaceId, "member", async ({ tx }) => {
@@ -229,12 +239,14 @@ export function businessService(deps: AccessDeps) {
             });
           }
         }
+        const choice = await readPositioning(tx, workspaceId, found.id);
         return {
           project: found,
           intakeId: row.id,
           intake: intake.data,
           savedAt: row.createdAt,
           reading,
+          positioning: { intakeId: row.id, choice },
         };
       });
     },

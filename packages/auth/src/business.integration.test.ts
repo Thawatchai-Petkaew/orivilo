@@ -1,5 +1,14 @@
 import { createHash } from "node:crypto";
-import { businessIntake, businessReading, desc, eq, member, project, sql } from "@orivilo/db";
+import {
+  businessIntake,
+  businessPositioningChoice,
+  businessReading,
+  desc,
+  eq,
+  member,
+  project,
+  sql,
+} from "@orivilo/db";
 import { inWorkspace } from "@orivilo/db/client";
 import { createTestDatabase, HAS_TEST_DATABASE, type TestDatabase } from "@orivilo/db/testing";
 import {
@@ -14,6 +23,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { BUSINESS_LIST_LIMIT, BusinessError, businessService } from "./business.ts";
 import { createAuth } from "./config.ts";
 import { captureLines, expectLineShape } from "./log-testing.ts";
+import { positioningService } from "./positioning.ts";
 
 // ORV-281 rows 9, 13 and 17 at the service, against a throwaway database as orivilo_app.
 const intake = {
@@ -31,6 +41,7 @@ describe.runIf(HAS_TEST_DATABASE)("business projects", () => {
   let t: TestDatabase;
   let auth: ReturnType<typeof make>;
   let service: ReturnType<typeof businessService>;
+  let positioning: ReturnType<typeof positioningService>;
   const make = (db: TestDatabase["app"]) =>
     createAuth({
       db,
@@ -61,10 +72,9 @@ describe.runIf(HAS_TEST_DATABASE)("business projects", () => {
   beforeAll(async () => {
     t = await createTestDatabase();
     auth = make(t.app);
-    service = businessService({
-      db: t.app,
-      getSession: (headers) => auth.api.getSession({ headers }),
-    });
+    const deps = { db: t.app, getSession: (headers: Headers) => auth.api.getSession({ headers }) };
+    service = businessService(deps);
+    positioning = positioningService(deps);
   }, 60_000);
   afterAll(async () => {
     await t?.drop();
@@ -584,6 +594,278 @@ describe.runIf(HAS_TEST_DATABASE)("business projects", () => {
       expect(bare(withReading)).toEqual(bare(without));
       // The reading is there, beside the answers and not in place of them.
       expect(withReading.nodes.flatMap((n) => n.fields).flatMap((f) => f.readings)).not.toEqual([]);
+    });
+  });
+
+  // ORV-285 rows 2, 4 and 6 at the service: the positioning choice (tech notes sections 4.1, 6.1, 7).
+  describe("the positioning choice", () => {
+    const statement = "กาแฟคั่วสดสำหรับคนทำงานที่ส่งถึงออฟฟิศทุกเช้า";
+    const create = async (email: string, name: string) => {
+      const a = await signIn(email, name);
+      const { projectId } = await service.create(a.headers, a.workspaceId, {
+        projectName: "Positioning",
+        idea: "Roasted coffee for office workers",
+      });
+      const [row] = await t.admin
+        .select({ id: businessIntake.id })
+        .from(businessIntake)
+        .where(eq(businessIntake.projectId, projectId));
+      return { ...a, projectId, intakeId: row?.id ?? "" };
+    };
+    const rowsOf = (projectId: string) =>
+      t.admin
+        .select({ c: businessPositioningChoice })
+        .from(businessPositioningChoice)
+        .innerJoin(businessIntake, eq(businessIntake.id, businessPositioningChoice.intakeId))
+        .where(eq(businessIntake.projectId, projectId))
+        .then((r) => r.map((x) => x.c));
+
+    it("opens with no choice before one is made (T7)", async () => {
+      const a = await create("pos-none@example.com", "Pon");
+      const opened = await service.open(a.headers, a.workspaceId, a.projectId);
+      expect(opened.positioning).toEqual({ intakeId: a.intakeId, choice: null });
+    });
+
+    it("choice saved in the workspace: one row, written, trimmed, on the newest intake (T7)", async () => {
+      const a = await create("pos-save@example.com", "Pos");
+      const later = "bi-pos-later";
+      await t.admin.insert(businessIntake).values({
+        id: later,
+        workspaceId: a.workspaceId,
+        projectId: a.projectId,
+        version: "intake-1",
+        idea: "second",
+        createdBy: a.user.id,
+        createdAt: new Date(Date.now() + 60_000),
+      });
+      const done = await positioning.choose(a.headers, a.workspaceId, {
+        kind: "written",
+        projectId: a.projectId,
+        statement: `  ${statement}  `,
+      });
+      expect(done).toEqual({ kind: "written" });
+      const rows = await rowsOf(a.projectId);
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({
+        workspaceId: a.workspaceId,
+        intakeId: later,
+        kind: "written",
+        statement,
+        draftId: null,
+        option: null,
+        createdBy: a.user.id,
+      });
+      const opened = await service.open(a.headers, a.workspaceId, a.projectId);
+      expect(opened.positioning.intakeId).toBe(later);
+      expect(opened.positioning.choice).toMatchObject({
+        kind: "written",
+        statement,
+        intakeId: later,
+      });
+    });
+
+    it("choice of another workspace reads as not found: the same answer as an unknown id (T8)", async () => {
+      const a = await create("pos-a@example.com", "Pab");
+      const b = await signIn("pos-b@example.com", "Pbb");
+      const attempt = async (id: string) => {
+        const error = await positioning
+          .choose(b.headers, b.workspaceId, {
+            kind: "written",
+            projectId: id,
+            statement,
+          })
+          .then(
+            () => null,
+            (e: unknown) => e,
+          );
+        expect(error).toBeInstanceOf(BusinessError);
+        return error as BusinessError;
+      };
+      const other = await attempt(a.projectId);
+      const unknown = await attempt("00000000-0000-4000-8000-000000000000");
+      expect([other.reason, unknown.reason]).toEqual(["not-found", "not-found"]);
+      expect(unknown.message).toBe(other.message);
+      expect(await rowsOf(a.projectId)).toEqual([]);
+      // Naming A's workspace is denied before any query.
+      await expect(
+        positioning.choose(b.headers, a.workspaceId, {
+          kind: "written",
+          projectId: a.projectId,
+          statement,
+        }),
+      ).rejects.toMatchObject({ status: 404, reason: "not-a-member" });
+      await expect(
+        positioning.choose(new Headers(), a.workspaceId, {
+          kind: "skipped",
+          projectId: a.projectId,
+        }),
+      ).rejects.toMatchObject({ status: 401 });
+    });
+
+    it("refuses a choice the engine's check refuses, and writes nothing (T7)", async () => {
+      const a = await create("pos-bad@example.com", "Pbd");
+      for (const bad of [
+        { kind: "written", projectId: a.projectId, statement: "   " },
+        { kind: "written", projectId: a.projectId, statement: "x".repeat(301) },
+        { kind: "skipped", projectId: a.projectId, statement: "x" },
+        { kind: "written", projectId: a.projectId, statement, by: "admin" },
+        "not a choice",
+      ]) {
+        await expect(positioning.choose(a.headers, a.workspaceId, bad)).rejects.toMatchObject({
+          name: "BusinessError",
+          reason: "invalid-input",
+        });
+      }
+      expect(await rowsOf(a.projectId)).toEqual([]);
+    });
+
+    it("answers not-found for a picked or edited choice: no draft exists yet (T7)", async () => {
+      const a = await create("pos-pick@example.com", "Ppk");
+      const draftId = "33333333-3333-4333-8333-333333333333";
+      for (const bad of [
+        { kind: "picked", projectId: a.projectId, draftId, option: 1 },
+        { kind: "edited", projectId: a.projectId, draftId, option: 1, statement },
+      ]) {
+        await expect(positioning.choose(a.headers, a.workspaceId, bad)).rejects.toMatchObject({
+          reason: "not-found",
+        });
+      }
+      expect(await rowsOf(a.projectId)).toEqual([]);
+    });
+
+    it("newest choice wins: a skip then a written choice opens as the second, both rows stay (T9)", async () => {
+      const a = await create("pos-newest@example.com", "Pnw");
+      await positioning.choose(a.headers, a.workspaceId, {
+        kind: "skipped",
+        projectId: a.projectId,
+      });
+      expect(
+        (await service.open(a.headers, a.workspaceId, a.projectId)).positioning.choice?.kind,
+      ).toBe("skipped");
+      await positioning.choose(a.headers, a.workspaceId, {
+        kind: "written",
+        projectId: a.projectId,
+        statement,
+      });
+      const opened = await service.open(a.headers, a.workspaceId, a.projectId);
+      expect(opened.positioning.choice).toMatchObject({ kind: "written", statement });
+      expect((await rowsOf(a.projectId)).map((r) => r.kind).sort()).toEqual(["skipped", "written"]);
+    });
+
+    it("newest choice wins by the time it was saved, then by id, never by id alone (T9)", async () => {
+      const a = await create("pos-order@example.com", "Por");
+      const at = Date.now();
+      // The older row has the larger id and the newer one the smaller, so an order by id alone
+      // would open the older one.
+      await t.admin.insert(businessPositioningChoice).values([
+        {
+          id: "zzzz-older",
+          workspaceId: a.workspaceId,
+          intakeId: a.intakeId,
+          kind: "skipped",
+          createdBy: a.user.id,
+          createdAt: new Date(at - 60_000),
+        },
+        {
+          id: "aaaa-newer",
+          workspaceId: a.workspaceId,
+          intakeId: a.intakeId,
+          kind: "written",
+          statement,
+          createdBy: a.user.id,
+          createdAt: new Date(at),
+        },
+      ]);
+      const opened = await service.open(a.headers, a.workspaceId, a.projectId);
+      expect(opened.positioning.choice?.id).toBe("aaaa-newer");
+    });
+
+    it("a choice made on an older intake is the project's newest choice and is not on the newest intake (T9)", async () => {
+      const a = await create("pos-older@example.com", "Pol");
+      await positioning.choose(a.headers, a.workspaceId, {
+        kind: "written",
+        projectId: a.projectId,
+        statement,
+      });
+      await t.admin.insert(businessIntake).values({
+        id: "bi-pos-newer",
+        workspaceId: a.workspaceId,
+        projectId: a.projectId,
+        version: "intake-1",
+        idea: "changed answers",
+        createdBy: a.user.id,
+        createdAt: new Date(Date.now() + 60_000),
+      });
+      const opened = await service.open(a.headers, a.workspaceId, a.projectId);
+      expect(opened.positioning.intakeId).toBe("bi-pos-newer");
+      expect(opened.positioning.choice).toMatchObject({ intakeId: a.intakeId, kind: "written" });
+      // The newest intake has no agreement, so a new choice is allowed on it.
+      await positioning.choose(a.headers, a.workspaceId, {
+        kind: "written",
+        projectId: a.projectId,
+        statement: "second",
+      });
+      expect((await rowsOf(a.projectId)).map((r) => r.intakeId).sort()).toEqual(
+        [a.intakeId, "bi-pos-newer"].sort(),
+      );
+    });
+
+    it("a choice on another project of the same workspace is not this project's choice (T9)", async () => {
+      const a = await create("pos-two@example.com", "Ptw");
+      const { projectId: second } = await service.create(a.headers, a.workspaceId, {
+        projectName: "Second",
+        idea: "Another business",
+      });
+      await positioning.choose(a.headers, a.workspaceId, {
+        kind: "written",
+        projectId: second,
+        statement,
+      });
+      const opened = await service.open(a.headers, a.workspaceId, a.projectId);
+      expect(opened.positioning).toEqual({ intakeId: a.intakeId, choice: null });
+      // And a choice on this project is not blocked by the other project's agreement.
+      await positioning.choose(a.headers, a.workspaceId, {
+        kind: "skipped",
+        projectId: a.projectId,
+      });
+      expect(await rowsOf(a.projectId)).toHaveLength(1);
+    });
+
+    it("an agreed intake stays agreed: a later choice is gate-passed and writes nothing (T14 at the service)", async () => {
+      const a = await create("pos-agreed@example.com", "Pag");
+      await positioning.choose(a.headers, a.workspaceId, {
+        kind: "written",
+        projectId: a.projectId,
+        statement,
+      });
+      for (const again of [
+        { kind: "skipped", projectId: a.projectId },
+        { kind: "written", projectId: a.projectId, statement: "other" },
+      ]) {
+        await expect(positioning.choose(a.headers, a.workspaceId, again)).rejects.toMatchObject({
+          reason: "gate-passed",
+        });
+      }
+      expect(await rowsOf(a.projectId)).toHaveLength(1);
+    });
+
+    it("shows a choice row changed outside the app as invalid, never as a statement (T9)", async () => {
+      const a = await create("pos-tamper@example.com", "Ptm");
+      await positioning.choose(a.headers, a.workspaceId, {
+        kind: "written",
+        projectId: a.projectId,
+        statement,
+      });
+      // The database's shape check wants a draft id and an option on a picked row and is content
+      // with an empty id; the stored form is not.
+      await t.admin
+        .update(businessPositioningChoice)
+        .set({ kind: "picked", draftId: "", option: 1 })
+        .where(eq(businessPositioningChoice.intakeId, a.intakeId));
+      await expect(service.open(a.headers, a.workspaceId, a.projectId)).rejects.toMatchObject({
+        name: "BusinessError",
+        reason: "invalid-stored",
+      });
     });
   });
 });

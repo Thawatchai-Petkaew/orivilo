@@ -19,7 +19,11 @@ vi.mock("../../server/auth", () => ({
     },
   }),
 }));
-const state = vi.hoisted(() => ({ reading: null as unknown, throws: null as unknown }));
+const state = vi.hoisted(() => ({
+  reading: null as unknown,
+  throws: null as unknown,
+  choice: null as unknown,
+}));
 const fetchSpy = vi.fn();
 vi.stubGlobal("fetch", fetchSpy);
 
@@ -39,6 +43,7 @@ vi.mock("@orivilo/auth", async (importOriginal) => {
           intake: { version: "intake-1", idea: "Roasted coffee for office workers" },
           savedAt: SAVED,
           reading: state.reading,
+          positioning: { intakeId: INTAKE, choice: state.choice },
         };
       },
     }),
@@ -78,6 +83,7 @@ beforeEach(() => {
   vi.stubEnv("READ_ALLOWED_EMAILS", "reader@example.com");
   state.reading = null;
   state.throws = null;
+  state.choice = null;
   fetchSpy.mockClear();
 });
 afterEach(() => {
@@ -146,5 +152,73 @@ describe("loadProject and the saved reading", () => {
     const lines = capture.lines.map((line) => expectLineShape(line));
     expect(lines).toHaveLength(1);
     expect(lines[0]).toMatchObject({ level: "info", outcome: "refused", reason: "not-found" });
+  });
+});
+
+// ORV-285: the loader passes the newest intake's id and the project's newest choice into the view.
+describe("loadProject and the positioning choice", () => {
+  const choice = (over: Record<string, unknown>) => ({
+    id: "c-1",
+    intakeId: INTAKE,
+    kind: "written",
+    statement: "Fresh roasted coffee for office workers",
+    draftId: null,
+    option: null,
+    createdAt: "2026-11-18T04:00:00.000Z",
+    ...over,
+  });
+
+  it("gives an open gate with the own controls when no choice was made", async () => {
+    const loaded = await loadProject(PROJECT);
+    if (loaded.access !== "ready") throw new Error("not ready");
+    expect(loaded.view.positioning).toMatchObject({
+      gate: "open",
+      skipped: false,
+      stale: false,
+      statement: null,
+      controls: ["writeOwn", "skip"],
+    });
+  });
+
+  it("gives a given gate and the statement for a written choice on the newest intake", async () => {
+    state.choice = choice({});
+    const loaded = await loadProject(PROJECT);
+    if (loaded.access !== "ready") throw new Error("not ready");
+    expect(loaded.view.positioning).toMatchObject({
+      gate: "given",
+      stale: false,
+      statement: {
+        text: "Fresh roasted coffee for office workers",
+        label: "business.positioning.by.own",
+      },
+      controls: [],
+    });
+    expect(loaded.view.nodes.find((n) => n.id === "positioning")).toMatchObject({
+      state: "agreed",
+      gatePassed: true,
+    });
+  });
+
+  it("gives an open gate with the stale note for a choice made on an older intake", async () => {
+    state.choice = choice({ intakeId: "44444444-4444-4444-8444-444444444444" });
+    const loaded = await loadProject(PROJECT);
+    if (loaded.access !== "ready") throw new Error("not ready");
+    expect(loaded.view.positioning).toMatchObject({
+      gate: "open",
+      stale: true,
+      statement: { label: "business.positioning.stale" },
+    });
+  });
+
+  it("gives a skipped open gate for a skip on the newest intake, and calls no model", async () => {
+    state.choice = choice({ kind: "skipped", statement: null });
+    const loaded = await loadProject(PROJECT);
+    if (loaded.access !== "ready") throw new Error("not ready");
+    expect(loaded.view.positioning).toMatchObject({
+      gate: "open",
+      skipped: true,
+      controls: ["writeOwn"],
+    });
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 });

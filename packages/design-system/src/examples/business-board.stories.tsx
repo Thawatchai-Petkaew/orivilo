@@ -6,21 +6,34 @@ import {
   type BusinessView,
 } from "@orivilo/intent-engine";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, userEvent, waitFor, within } from "storybook/test";
+import { useState } from "react";
+import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { Under } from "../components/matrix";
-import { expectPortPillsClear, inVitest } from "../testing/visual-asserts";
+import {
+  expectFocusBorderForm,
+  expectInkClearsAbove,
+  expectNoGlyphClip,
+  expectPortPillsClear,
+  expectSameHeight,
+  inVitest,
+} from "../testing/visual-asserts";
 import { formatNumber } from "../i18n/format";
 import { LocaleProvider } from "../i18n/LocaleProvider";
 import type { Locale } from "../i18n/locale";
 import { fill, type Messages } from "../i18n/messages/index";
 import { BusinessBoardScreen } from "./business-board";
+import type { ChoiceRequest } from "./business-node-view";
 import {
   aiUnavailableView,
   ENGLISH_READ_VIEW,
   ENGLISH_VIEW,
   LONG_NAME,
   NARROW_VIEW,
+  HOSTILE_STATEMENT,
   MARKUP_READINGS,
+  POSITIONING_STATEMENTS,
+  POSITIONING_VIEWS,
+  positioningAfter,
   SKIPPED_VIEW,
   THAI_READ_VIEW,
   THAI_VIEW,
@@ -151,6 +164,7 @@ async function expectViewer(
   await expect(dialog.querySelector("[data-ai-line]")).toBeNull();
   await expect(d.queryByText(m.business.label.aiUnavailable)).toBeNull();
   await expect(dialog.querySelector(".ds-section-header")).toBeNull();
+  // These views have no controls and no statement, so Positioning has no statement section (row F1-a).
   await expect(
     [...dialog.querySelectorAll("[data-field]")].map((f) => f.getAttribute("data-field")),
   ).toEqual(BUSINESS_FIELDS.filter((f) => f.node === id).map((f) => f.id));
@@ -302,9 +316,10 @@ async function expectBoard(
     const node = viewNode(view, id);
     const card = nodeEl(canvasElement, id).querySelector(".ds-node") as HTMLElement;
     await expectStateLine(card, m, node.state);
-    await expect([...card.querySelectorAll(".ds-node__body ul li")].map(textOf)).toEqual(
-      BUSINESS_FIELDS.filter((f) => f.node === id).map((f) => fieldLabel(m, f.id)),
-    );
+    await expect([...card.querySelectorAll(".ds-node__body ul li")].map(textOf)).toEqual([
+      ...BUSINESS_FIELDS.filter((f) => f.node === id).map((f) => fieldLabel(m, f.id)),
+      ...(id === "positioning" ? [m.business.field.statement] : []),
+    ]);
     await expect(textOf(card).includes(m.business.state.gate)).toBe(id === "positioning");
     await expect(card.querySelector("bdi")).toBeNull();
   }
@@ -481,6 +496,20 @@ async function expectTabOrder(canvasElement: HTMLElement) {
   await expect((reached as HTMLElement).matches(":focus-visible")).toBe(true);
 }
 
+/**
+ * Row F1-a (state S0): a board with no controls and no statement shows the Positioning viewer as
+ * develop does, with no statement section and no bare heading.
+ */
+async function expectNoStatementSection(root: HTMLElement, m: Messages) {
+  await userEvent.click(nodeEl(root, "positioning"));
+  const dialog = await dialogNamed(nodeTitle(m, "positioning"));
+  await expect(dialog.querySelector('[data-field="positioning.statement"]')).toBeNull();
+  await expect(
+    [...dialog.querySelectorAll("*")].filter((el) => textOf(el) === m.business.field.statement),
+  ).toHaveLength(0);
+  await closeViewer(root, "positioning");
+}
+
 const SAVED_TH = /บันทึกเมื่อ .*2569.*10:15/;
 const SAVED_EN = /Saved .*Nov 18, 2026.*10:15/;
 
@@ -490,6 +519,7 @@ export const Board: Story = {
     await expectBoard(canvasElement, th, THAI_VIEW, SAVED_TH);
     await expectGestures(canvasElement, th, THAI_VIEW);
     await expectTabOrder(canvasElement);
+    await expectNoStatementSection(canvasElement, th);
   },
 };
 
@@ -501,6 +531,7 @@ export const BoardEnglish: Story = {
     await expectBoard(canvasElement, en, ENGLISH_VIEW, SAVED_EN);
     await expectGestures(canvasElement, en, ENGLISH_VIEW);
     await expectTabOrder(canvasElement);
+    await expectNoStatementSection(canvasElement, en);
   },
 };
 
@@ -1354,5 +1385,600 @@ export const AiSpendCap: Story = {
   args: { view: aiUnavailableView("th", "ai-spend-cap") },
   play: async ({ canvasElement, args }) => {
     await aiUnavailablePlay(canvasElement, th, args.view as BusinessView, "ai-spend-cap");
+  },
+};
+
+// ----- the positioning gate (ORV-285, PR 1, rows 2 to 5, 7, 8 and 10) -----
+
+/** What the stub action answers: saved, or a line the page would have resolved from `saved.errors.*`. */
+type StubResult = { ok: true } | { ok: false; failure: string };
+/** Shared by every story below; each play resets it first. */
+const choose = fn<(choice: ChoiceRequest) => Promise<StubResult>>();
+
+/** Story-only copy: the lines `saved.errors.rate-limited` gives for a 20 minute wait (apps/web catalog). */
+const RATE_LIMITED = {
+  th: "ส่งคำขอถี่เกินไป จึงยังไม่ได้ทำรายการนี้ ลองใหม่ได้ในอีก 20 นาที",
+  en: "Too many requests in a short time, so this was not done. Try again in 20 minutes.",
+} as const;
+
+/**
+ * What the page does around the screen, with a stub action in place of the server: it holds the
+ * view, runs the action while `pending` is set, and builds the view again from the same engine
+ * function once the action has saved. Nothing is saved anywhere.
+ */
+function GateHost({ locale, initial }: { locale: Lang; initial: BusinessView }) {
+  const [view, setView] = useState(initial);
+  const [pending, setPending] = useState<"saving" | null>(null);
+  const [failure, setFailure] = useState<string | undefined>(undefined);
+  const onChoose = (choice: ChoiceRequest) => {
+    if (choice.kind !== "written" && choice.kind !== "skipped") return;
+    setPending("saving");
+    setFailure(undefined);
+    void choose(choice).then((result) => {
+      if (result.ok) setView(positioningAfter(locale, choice));
+      else setFailure(result.failure);
+      setPending(null);
+    });
+  };
+  return (
+    <BusinessBoardScreen
+      access="ready"
+      view={view}
+      signInHref="/account"
+      listHref="/business"
+      positioning={{ pending, failure, onChoose, onDismiss: () => setFailure(undefined) }}
+    />
+  );
+}
+
+const hosted = (locale: Lang, initial: BusinessView) => () => (
+  <GateHost locale={locale} initial={initial} />
+);
+
+const positioningOf = (root: HTMLElement, m: Messages) =>
+  (async () => {
+    await boardReady(root);
+    await userEvent.click(nodeEl(root, "positioning"));
+    return dialogNamed(nodeTitle(m, "positioning"));
+  })();
+const sectionOf = (dialog: HTMLElement) => fieldOf(dialog, "positioning.statement");
+const sectionButtons = (section: HTMLElement) => [
+  ...section.querySelectorAll<HTMLButtonElement>("button"),
+];
+const stateLineOf = (dialog: HTMLElement) =>
+  dialog.querySelector<HTMLElement>("[data-node-state]") as HTMLElement;
+/** The statement and the line under it, the two paragraphs of the person's decision. */
+const statementOf = (section: HTMLElement) =>
+  section.querySelector<HTMLElement>("p.whitespace-pre-wrap");
+/** The line of failure under the controls, empty when nothing failed. */
+const alertOf = (section: HTMLElement) => section.querySelector('[role="alert"]') as HTMLElement;
+const buttonOf = (section: HTMLElement, name: string) =>
+  within(section).getByRole("button", { name });
+const textbox = (section: HTMLElement, name: string) =>
+  within(section).getByRole("textbox", { name }) as HTMLTextAreaElement;
+const focusedIs = (el: Element) => waitFor(() => expect(document.activeElement).toBe(el));
+
+/** Resets the stub to answer saved, and returns the ready `choose` spy. */
+function stubSaves() {
+  choose.mockReset();
+  choose.mockImplementation(async () => ({ ok: true }));
+}
+
+// ----- row 5: the four states on the card and in the view -----
+
+type StateKind = "open" | "valueEmpty" | "skipped" | "agreed";
+
+/** The card and the view for each stored state (`positioning-gate-1`), and the card's measured height. */
+const STATES: Record<
+  StateKind,
+  {
+    state: "proposed" | "skipped" | "agreed";
+    line: "gate" | "gatePassed";
+    buttons: string[];
+    height: number;
+  }
+> = {
+  open: { state: "proposed", line: "gate", buttons: ["writeOwn", "skip"], height: 172.98 },
+  valueEmpty: { state: "skipped", line: "gate", buttons: ["writeOwn", "skip"], height: 172.98 },
+  skipped: { state: "skipped", line: "gate", buttons: ["writeOwn"], height: 172.98 },
+  agreed: { state: "agreed", line: "gatePassed", buttons: [], height: 149.19 },
+};
+
+async function statesPlay(canvasElement: HTMLElement, m: Messages, kind: StateKind) {
+  const want = STATES[kind];
+  const lang = langOf(m);
+  const view = POSITIONING_VIEWS[lang][kind];
+  await boardReady(canvasElement);
+  // The card: the state line, the statement label as the last field, the gate line last.
+  const card = nodeEl(canvasElement, "positioning").querySelector(".ds-node") as HTMLElement;
+  await expectStateLine(card, m, want.state);
+  const lines = [...card.querySelectorAll<HTMLElement>(".ds-node__body p")].map(textOf);
+  await expect(lines.at(-1)).toBe(
+    want.line === "gate" ? m.business.state.gate : m.business.positioning.gatePassed,
+  );
+  await expect(textOf(card.querySelector(".ds-node__body ul li:last-child") as HTMLElement)).toBe(
+    m.business.field.statement,
+  );
+  await expect(card.querySelector("bdi")).toBeNull();
+  await expect(
+    Math.abs(card.getBoundingClientRect().height / zoomOf(canvasElement) - want.height),
+  ).toBeLessThanOrEqual(1);
+  // The other four cards keep their states (node-state-1).
+  for (const id of BUSINESS_NODES.filter((n) => n !== "positioning")) {
+    const node = viewNode(view, id);
+    await expectStateLine(
+      nodeEl(canvasElement, id).querySelector(".ds-node") as HTMLElement,
+      m,
+      node.state,
+    );
+  }
+  // The view: the state line, the dialog's description, the controls the gate offers.
+  const dialog = await positioningOf(canvasElement, m);
+  await expectStateLine(dialog, m, want.state);
+  await expect(dialog).toHaveAccessibleDescription(
+    want.line === "gate" ? m.business.state.gate : m.business.positioning.gatePassed,
+  );
+  const section = sectionOf(dialog);
+  // Row F1-a: a statement keeps the section, here A3 with the fixture's words.
+  if (kind === "agreed")
+    await expect(statementOf(section)?.textContent).toBe(POSITIONING_STATEMENTS[lang]);
+  await expect(sectionButtons(section).map((b) => b.dataset["choice"])).toEqual(want.buttons);
+  await expect(
+    within(section).getByRole("heading", { level: 3, name: m.business.field.statement }),
+  ).toBeVisible();
+  // P1 and P2: one start edge for the state, the value field, the section heading and the statement,
+  // and the section 24 under the value field.
+  const edge = inkLeft(stateLineOf(dialog));
+  const parts = [
+    fieldOf(dialog, "positioning.value").querySelector("h3"),
+    section.querySelector("h3"),
+    statementOf(section),
+  ].flatMap((el) => (el === null ? [] : [el]));
+  for (const el of parts) await expect(Math.abs(inkLeft(el) - edge)).toBeLessThanOrEqual(0.5);
+  await expect(
+    Math.abs(
+      section.getBoundingClientRect().top -
+        fieldOf(dialog, "positioning.value").getBoundingClientRect().bottom -
+        24,
+    ),
+  ).toBeLessThanOrEqual(0.5);
+  // Every button of the row is 40 tall (`md`).
+  const buttons = sectionButtons(section);
+  for (const b of buttons) await expect(b.getBoundingClientRect().height).toBeCloseTo(40, 0);
+  if (buttons.length > 1) expectSameHeight(buttons[0] as HTMLElement, ...buttons.slice(1));
+  // No AI label anywhere: nothing was drafted (row 24's PR 1 half).
+  await expect(textOf(dialog)).not.toMatch(/AI \(|AI ร่าง/);
+  await closeViewer(canvasElement, "positioning");
+}
+
+/** The value answer given and no choice: not confirmed, the gate line, "Write my own" and "Skip for now". */
+export const PositioningStates: Story = {
+  render: hosted("th", POSITIONING_VIEWS.th.open),
+  play: ({ canvasElement }) => statesPlay(canvasElement, th, "open"),
+};
+export const PositioningStatesEnglish: Story = {
+  render: hosted("en", POSITIONING_VIEWS.en.open),
+  decorators: [inEnglish],
+  play: ({ canvasElement }) => statesPlay(canvasElement, en, "open"),
+};
+/** The value answer empty: skipped for now, the gate line, both controls. */
+export const PositioningStatesValueEmpty: Story = {
+  render: hosted("th", POSITIONING_VIEWS.th.valueEmpty),
+  play: ({ canvasElement }) => statesPlay(canvasElement, th, "valueEmpty"),
+};
+export const PositioningStatesValueEmptyEnglish: Story = {
+  render: hosted("en", POSITIONING_VIEWS.en.valueEmpty),
+  decorators: [inEnglish],
+  play: ({ canvasElement }) => statesPlay(canvasElement, en, "valueEmpty"),
+};
+/** The newest choice a skip: skipped for now, the gate line, only "Write my own". */
+export const PositioningStatesSkipped: Story = {
+  render: hosted("th", POSITIONING_VIEWS.th.skipped),
+  play: ({ canvasElement }) => statesPlay(canvasElement, th, "skipped"),
+};
+export const PositioningStatesSkippedEnglish: Story = {
+  render: hosted("en", POSITIONING_VIEWS.en.skipped),
+  decorators: [inEnglish],
+  play: ({ canvasElement }) => statesPlay(canvasElement, en, "skipped"),
+};
+/** The newest choice written: agreed, the gate passed, no control. */
+export const PositioningStatesAgreed: Story = {
+  render: hosted("th", POSITIONING_VIEWS.th.agreed),
+  play: ({ canvasElement }) => statesPlay(canvasElement, th, "agreed"),
+};
+export const PositioningStatesAgreedEnglish: Story = {
+  render: hosted("en", POSITIONING_VIEWS.en.agreed),
+  decorators: [inEnglish],
+  play: ({ canvasElement }) => statesPlay(canvasElement, en, "agreed"),
+};
+
+/** A statement and no controls (row F1-a): the section stays, as the statement and who wrote it, with no control. */
+async function readOnlyPlay(canvasElement: HTMLElement, m: Messages) {
+  const lang = langOf(m);
+  await boardReady(canvasElement);
+  await userEvent.click(nodeEl(canvasElement, "positioning"));
+  const dialog = await dialogNamed(nodeTitle(m, "positioning"));
+  const section = sectionOf(dialog);
+  await expect(statementOf(section)?.textContent).toBe(POSITIONING_STATEMENTS[lang]);
+  await expect(textOf(section)).toContain(m.business.positioning.by.own);
+  await expect(sectionButtons(section)).toHaveLength(0);
+  await expect(section.querySelector("textarea")).toBeNull();
+  await closeViewer(canvasElement, "positioning");
+}
+export const PositioningReadOnly: Story = {
+  args: { view: POSITIONING_VIEWS.th.agreed },
+  play: ({ canvasElement }) => readOnlyPlay(canvasElement, th),
+};
+export const PositioningReadOnlyEnglish: Story = {
+  args: { view: POSITIONING_VIEWS.en.agreed },
+  decorators: [inEnglish],
+  play: ({ canvasElement }) => readOnlyPlay(canvasElement, en),
+};
+
+// ----- row 2: write my own and agree -----
+
+async function writtenPlay(canvasElement: HTMLElement, m: Messages) {
+  stubSaves();
+  const lang = langOf(m);
+  const dialog = await positioningOf(canvasElement, m);
+  const section = sectionOf(dialog);
+  const write = buttonOf(section, m.business.positioning.writeOwn);
+  // Write my own is the one primary button: no engine action is offered in this PR.
+  await expect(write).toHaveAttribute("data-variant", "primary");
+  await userEvent.click(write);
+  const field = textbox(section, m.business.positioning.writeOwn);
+  await focusedIs(field);
+  await expect(field.value).toBe("");
+  const typed = `  ${POSITIONING_STATEMENTS[lang]}  `;
+  await userEvent.click(field);
+  await userEvent.paste(typed);
+  await userEvent.click(buttonOf(section, m.business.positioning.save));
+  // The statement as the person wrote it, trimmed, with who wrote it; the gate passed; no control.
+  await waitFor(() => expect(statementOf(section)?.textContent).toBe(POSITIONING_STATEMENTS[lang]));
+  const by = (statementOf(section) as HTMLElement).nextElementSibling as HTMLElement;
+  await expect(textOf(by)).toBe(m.business.positioning.by.own);
+  await expect(textOf(stateLineOf(dialog))).toBe(m.business.state.agreed);
+  await expect(dialog).toHaveAccessibleDescription(m.business.positioning.gatePassed);
+  await expect(sectionButtons(section)).toHaveLength(0);
+  await expect(section.querySelector("textarea")).toBeNull();
+  await expect(textOf(dialog)).not.toContain(m.business.state.gate);
+  await focusedIs(section.querySelector("h3") as HTMLElement);
+  await expect(choose).toHaveBeenCalledTimes(1);
+  await expect(choose).toHaveBeenCalledWith({ kind: "written", statement: typed });
+  expectNoGlyphClip(within(dialog).getByRole("region", { name: nodeTitle(m, "positioning") }));
+  // The heading's focus line reaches into the statement's box, so the ink is read with focus off.
+  (document.activeElement as HTMLElement).blur();
+  if (inVitest) await expectInkClearsAbove(by, statementOf(section) as HTMLElement, 4);
+  await closeViewer(canvasElement, "positioning");
+  // The card follows: agreed, with the gate passed in place of the gate line.
+  const card = nodeEl(canvasElement, "positioning").querySelector(".ds-node") as HTMLElement;
+  await expectStateLine(card, m, "agreed");
+  await expect([...card.querySelectorAll(".ds-node__body p")].map(textOf).at(-1)).toBe(
+    m.business.positioning.gatePassed,
+  );
+}
+
+/** A saved project, no choice: write one's own statement and agree (row 2). */
+export const PositioningWritten: Story = {
+  render: hosted("th", POSITIONING_VIEWS.th.open),
+  play: ({ canvasElement }) => writtenPlay(canvasElement, th),
+};
+export const PositioningWrittenEnglish: Story = {
+  render: hosted("en", POSITIONING_VIEWS.en.open),
+  decorators: [inEnglish],
+  play: ({ canvasElement }) => writtenPlay(canvasElement, en),
+};
+
+// ----- row 3: the editor's checks, its failure, cancel and the double press -----
+
+async function invalidPlay(canvasElement: HTMLElement, m: Messages) {
+  stubSaves();
+  const lang = langOf(m);
+  let dialog = await positioningOf(canvasElement, m);
+  let section = sectionOf(dialog);
+  await userEvent.click(buttonOf(section, m.business.positioning.writeOwn));
+  const field = textbox(section, m.business.positioning.writeOwn);
+  await focusedIs(field);
+  // An empty field: the line of the editor, `aria-invalid`, focus on the field, no call.
+  // Busy, the button's name takes its status line too, so it is found by its own mark.
+  const agree = () => section.querySelector<HTMLElement>('[data-choice="save"]') as HTMLElement;
+  await userEvent.click(agree());
+  await waitFor(() => expect(textOf(section)).toContain(m.business.positioning.statementRequired));
+  await expect(field).toHaveAttribute("aria-invalid", "true");
+  await focusedIs(field);
+  await expect(choose).not.toHaveBeenCalled();
+  // 301 characters: the bound, with 300 in it; typing clears the line.
+  await userEvent.click(field);
+  await userEvent.paste("ก".repeat(301));
+  await expect(textOf(section)).not.toContain(m.business.positioning.statementRequired);
+  await userEvent.click(agree());
+  await waitFor(() =>
+    expect(textOf(section)).toContain(fill(m.business.intake.tooLong, { max: "300" })),
+  );
+  await expect(field).toHaveAttribute("aria-invalid", "true");
+  await expect(choose).not.toHaveBeenCalled();
+  // A valid statement while the action answers rate-limited: the line under the controls, the text kept.
+  const valid = POSITIONING_STATEMENTS[lang];
+  await userEvent.clear(field);
+  await userEvent.paste(valid);
+  choose.mockImplementation(async () => ({ ok: false, failure: RATE_LIMITED[lang] }));
+  await userEvent.click(agree());
+  await waitFor(() => expect(textOf(alertOf(section))).toBe(RATE_LIMITED[lang]));
+  await expect(field.value).toBe(valid);
+  await expect(choose).toHaveBeenCalledTimes(1);
+  await expect(agree()).not.toHaveAttribute("data-loading");
+  // Cancel: the editor closes, the view is as before it opened, focus is on Write my own, no call.
+  await userEvent.click(buttonOf(section, m.business.positioning.cancel));
+  await expect(section.querySelector("textarea")).toBeNull();
+  let write = buttonOf(section, m.business.positioning.writeOwn);
+  await focusedIs(write);
+  await expect(textOf(stateLineOf(dialog))).toBe(m.business.state.proposed);
+  // The failure line is gone with the editor (positioning-choice-1, "The editors").
+  await expect(textOf(alertOf(section))).toBe("");
+  await expect(choose).toHaveBeenCalledTimes(1);
+  // Closing the viewer after a refusal drops the line too: reopened, the region is empty and the
+  // text the person wrote is still in the editor.
+  await userEvent.click(write);
+  await userEvent.click(textbox(section, m.business.positioning.writeOwn));
+  await userEvent.paste(valid);
+  await userEvent.click(agree());
+  await waitFor(() => expect(textOf(alertOf(section))).toBe(RATE_LIMITED[lang]));
+  await expect(choose).toHaveBeenCalledTimes(2);
+  await closeViewer(canvasElement, "positioning");
+  dialog = await positioningOf(canvasElement, m);
+  section = sectionOf(dialog);
+  await expect(textOf(alertOf(section))).toBe("");
+  await expect(textbox(section, m.business.positioning.writeOwn).value).toBe(valid);
+  await userEvent.click(buttonOf(section, m.business.positioning.cancel));
+  write = buttonOf(section, m.business.positioning.writeOwn);
+  // Opened again it is empty: nothing typed was kept.
+  await userEvent.click(write);
+  await expect(textbox(section, m.business.positioning.writeOwn).value).toBe("");
+  // Two presses while a save runs: one call, the button busy, Cancel inert, both 40 tall.
+  let finish: (result: StubResult) => void = () => {};
+  choose.mockImplementation(() => new Promise<StubResult>((done) => (finish = done)));
+  await userEvent.click(textbox(section, m.business.positioning.writeOwn));
+  await userEvent.paste(valid);
+  await userEvent.click(agree());
+  await waitFor(() => expect(agree()).toHaveAttribute("data-loading"));
+  await userEvent.click(agree());
+  await expect(choose).toHaveBeenCalledTimes(3);
+  await expect(agree()).toHaveAttribute("aria-disabled", "true");
+  await expect(buttonOf(section, m.business.positioning.cancel)).toHaveAttribute(
+    "aria-disabled",
+    "true",
+  );
+  expectSameHeight(agree(), buttonOf(section, m.business.positioning.cancel));
+  await expect(within(section).getByRole("status")).toHaveTextContent(
+    m.business.positioning.saving,
+  );
+  finish({ ok: true });
+  await waitFor(() => expect(statementOf(section)?.textContent).toBe(valid));
+}
+
+/** The empty field, 301 characters, a rate limit, cancel and the double press (row 3). */
+export const PositioningInvalid: Story = {
+  render: hosted("th", POSITIONING_VIEWS.th.open),
+  play: ({ canvasElement }) => invalidPlay(canvasElement, th),
+};
+export const PositioningInvalidEnglish: Story = {
+  render: hosted("en", POSITIONING_VIEWS.en.open),
+  decorators: [inEnglish],
+  play: ({ canvasElement }) => invalidPlay(canvasElement, en),
+};
+
+// ----- row 4: skip, then write -----
+
+async function skippedFlowPlay(canvasElement: HTMLElement, m: Messages) {
+  stubSaves();
+  const lang = langOf(m);
+  const dialog = await positioningOf(canvasElement, m);
+  const section = sectionOf(dialog);
+  await userEvent.click(buttonOf(section, m.strategy.skip));
+  // Skipped for now, the gate line, Skip gone, focus on Write my own.
+  await waitFor(() => expect(textOf(stateLineOf(dialog))).toBe(m.business.state.skipped));
+  await expect(dialog).toHaveAccessibleDescription(m.business.state.gate);
+  await expect(within(section).queryByRole("button", { name: m.strategy.skip })).toBeNull();
+  const write = buttonOf(section, m.business.positioning.writeOwn);
+  await focusedIs(write);
+  await expect(write).toHaveAttribute("data-variant", "primary");
+  await expect(choose).toHaveBeenCalledTimes(1);
+  await expect(choose).toHaveBeenCalledWith({ kind: "skipped" });
+  // Then write and agree: the view of row 2.
+  await userEvent.click(write);
+  await userEvent.click(textbox(section, m.business.positioning.writeOwn));
+  await userEvent.paste(POSITIONING_STATEMENTS[lang]);
+  await userEvent.click(buttonOf(section, m.business.positioning.save));
+  await waitFor(() => expect(textOf(stateLineOf(dialog))).toBe(m.business.state.agreed));
+  await expect(statementOf(section)?.textContent).toBe(POSITIONING_STATEMENTS[lang]);
+  await expect(sectionButtons(section)).toHaveLength(0);
+  await expect(choose).toHaveBeenCalledTimes(2);
+}
+
+export const PositioningSkipped: Story = {
+  render: hosted("th", POSITIONING_VIEWS.th.open),
+  play: ({ canvasElement }) => skippedFlowPlay(canvasElement, th),
+};
+export const PositioningSkippedEnglish: Story = {
+  render: hosted("en", POSITIONING_VIEWS.en.open),
+  decorators: [inEnglish],
+  play: ({ canvasElement }) => skippedFlowPlay(canvasElement, en),
+};
+
+// ----- row 7: a choice on older answers -----
+
+async function stalePlay(canvasElement: HTMLElement, m: Messages) {
+  const lang = langOf(m);
+  const dialog = await positioningOf(canvasElement, m);
+  const section = sectionOf(dialog);
+  const line = within(section).getByText(m.business.positioning.stale);
+  const statement = statementOf(section) as HTMLElement;
+  // The old statement as text, the note above it, from one start edge.
+  await expect(statement.textContent).toBe(POSITIONING_STATEMENTS[lang]);
+  await expect(line.getBoundingClientRect().bottom).toBeLessThan(
+    statement.getBoundingClientRect().top,
+  );
+  await expect(Math.abs(inkLeft(line) - inkLeft(statement))).toBeLessThanOrEqual(0.5);
+  // Not agreed: no `by` line, no agreed state and no gate passed anywhere, the gate line instead.
+  await expect(textOf(section)).not.toContain(m.business.positioning.by.own);
+  await expect(textOf(dialog)).not.toContain(m.business.state.agreed);
+  await expect(textOf(dialog)).not.toContain(m.business.positioning.gatePassed);
+  await expect(textOf(stateLineOf(dialog))).toBe(m.business.state.proposed);
+  await expect(dialog).toHaveAccessibleDescription(m.business.state.gate);
+  // The gate is open again: the person can write their own or skip.
+  await expect(sectionButtons(section).map((b) => b.dataset["choice"])).toEqual([
+    "writeOwn",
+    "skip",
+  ]);
+  await closeViewer(canvasElement, "positioning");
+  const card = nodeEl(canvasElement, "positioning").querySelector(".ds-node") as HTMLElement;
+  await expectStateLine(card, m, "proposed");
+  await expect(textOf(card)).not.toContain(m.business.positioning.gatePassed);
+}
+
+export const PositioningStale: Story = {
+  render: hosted("th", POSITIONING_VIEWS.th.stale),
+  play: ({ canvasElement }) => stalePlay(canvasElement, th),
+};
+export const PositioningStaleEnglish: Story = {
+  render: hosted("en", POSITIONING_VIEWS.en.stale),
+  decorators: [inEnglish],
+  play: ({ canvasElement }) => stalePlay(canvasElement, en),
+};
+
+// ----- row 8: a statement that is markup -----
+
+async function hostilePlay(canvasElement: HTMLElement, m: Messages) {
+  const dialog = await positioningOf(canvasElement, m);
+  const section = sectionOf(dialog);
+  const statement = statementOf(section) as HTMLElement;
+  await expect(statement.textContent).toBe(HOSTILE_STATEMENT);
+  await expect(statement.querySelector("bdi")?.textContent).toBe(HOSTILE_STATEMENT);
+  await expect(section.querySelectorAll("img, script, a, b")).toHaveLength(0);
+  await expect(dialog.querySelectorAll("img, script, a")).toHaveLength(0);
+  await closeViewer(canvasElement, "positioning");
+  await expect(canvasElement.querySelector("img")).toBeNull();
+  await expect(textOf(canvasElement)).not.toContain(HOSTILE_STATEMENT);
+}
+
+export const PositioningUntrustedText: Story = {
+  render: hosted("th", POSITIONING_VIEWS.th.hostile),
+  play: ({ canvasElement }) => hostilePlay(canvasElement, th),
+};
+export const PositioningUntrustedTextEnglish: Story = {
+  render: hosted("en", POSITIONING_VIEWS.en.hostile),
+  decorators: [inEnglish],
+  play: ({ canvasElement }) => hostilePlay(canvasElement, en),
+};
+
+// ----- row 10: at 360 px, a 300-character Thai statement, light and dark -----
+
+async function narrowStatementPlay(canvasElement: HTMLElement, m: Messages) {
+  await atWindow(360, 760, async () => {
+    const dialog = await positioningOf(canvasElement, m);
+    const section = sectionOf(dialog);
+    const region = within(dialog).getByRole("region", { name: nodeTitle(m, "positioning") });
+    const statement = statementOf(section) as HTMLElement;
+    // 300 Thai characters with no space wrap inside the column: nothing scrolls sideways.
+    await expect(statement.textContent).toHaveLength(300);
+    await expect(region.scrollWidth).toBeLessThanOrEqual(region.clientWidth);
+    await expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(360);
+    const view = dialog.querySelector<HTMLElement>("[data-node]") as HTMLElement;
+    const walker = document.createTreeWalker(section, NodeFilter.SHOW_TEXT);
+    for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
+      const range = document.createRange();
+      range.selectNodeContents(node);
+      for (const rect of range.getClientRects()) {
+        await expect(rect.right).toBeLessThanOrEqual(view.getBoundingClientRect().right + 0.5);
+      }
+    }
+    expectNoGlyphClip(region);
+    await closeViewer(canvasElement, "positioning");
+  });
+}
+
+async function narrowControlsPlay(canvasElement: HTMLElement, m: Messages) {
+  await atWindow(360, 760, async () => {
+    const dialog = await positioningOf(canvasElement, m);
+    const section = sectionOf(dialog);
+    const region = within(dialog).getByRole("region", { name: nodeTitle(m, "positioning") });
+    await expect(region.scrollWidth).toBeLessThanOrEqual(region.clientWidth);
+    await expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(360);
+    // Keyboard only: Tab goes to Write my own, then Skip, in reading order; each focus is the line and halo.
+    const buttons = sectionButtons(section);
+    const write = buttons[0] as HTMLElement;
+    const skip = buttons[1] as HTMLElement;
+    await userEvent.tab();
+    await focusedIs(write);
+    await expect(write.matches(":focus-visible")).toBe(true);
+    await userEvent.tab();
+    await focusedIs(skip);
+    await expect(skip.matches(":focus-visible")).toBe(true);
+    await expectFocusBorderForm(write);
+    await expectFocusBorderForm(skip);
+    // Both buttons on one row from the column's start edge; the editor's two buttons start there too.
+    const column = section.getBoundingClientRect().left;
+    await expect(Math.abs(write.getBoundingClientRect().left - column)).toBeLessThanOrEqual(0.5);
+    await userEvent.click(write);
+    const editor = textbox(section, m.business.positioning.writeOwn);
+    await focusedIs(editor);
+    await expect(Math.abs(editor.getBoundingClientRect().left - column)).toBeLessThanOrEqual(0.5);
+    // Agree starts at the column; Cancel sits beside it, or under it from the same edge when the row wraps.
+    const [agree, cancel] = sectionButtons(section).map((b) => b.getBoundingClientRect()) as [
+      DOMRect,
+      DOMRect,
+    ];
+    await expect(Math.abs(agree.left - column)).toBeLessThanOrEqual(0.5);
+    if (cancel.top >= agree.bottom - 0.5) {
+      await expect(Math.abs(cancel.left - column)).toBeLessThanOrEqual(0.5);
+    } else {
+      await expect(cancel.left).toBeGreaterThanOrEqual(agree.right);
+    }
+    for (const box of [agree, cancel]) {
+      await expect(box.right).toBeLessThanOrEqual(region.getBoundingClientRect().right);
+    }
+    await expect(region.scrollWidth).toBeLessThanOrEqual(region.clientWidth);
+    await closeViewer(canvasElement, "positioning");
+  });
+}
+
+/** Light, Thai: the long statement wraps inside the column and the controls take the keyboard in order. */
+export const PositioningNarrow: Story = {
+  render: hosted("th", POSITIONING_VIEWS.th.long),
+  play: async ({ canvasElement }) => {
+    await narrowStatementPlay(canvasElement, th);
+  },
+};
+export const PositioningNarrowControls: Story = {
+  render: hosted("th", POSITIONING_VIEWS.th.open),
+  play: async ({ canvasElement }) => {
+    await narrowControlsPlay(canvasElement, th);
+  },
+};
+export const PositioningNarrowDark: Story = {
+  render: () => (
+    <Under profile="neutral" mode="dark">
+      <GateHost locale="th" initial={POSITIONING_VIEWS.th.long} />
+    </Under>
+  ),
+  play: async ({ canvasElement }) => {
+    await narrowStatementPlay(canvasElement, th);
+  },
+};
+export const PositioningNarrowControlsDark: Story = {
+  render: () => (
+    <Under profile="neutral" mode="dark">
+      <GateHost locale="th" initial={POSITIONING_VIEWS.th.open} />
+    </Under>
+  ),
+  play: async ({ canvasElement }) => {
+    await narrowControlsPlay(canvasElement, th);
+  },
+};
+export const PositioningNarrowEnglish: Story = {
+  render: hosted("en", POSITIONING_VIEWS.en.open),
+  decorators: [inEnglish],
+  play: async ({ canvasElement }) => {
+    await narrowControlsPlay(canvasElement, en);
   },
 };
