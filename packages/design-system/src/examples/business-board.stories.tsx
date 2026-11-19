@@ -1058,7 +1058,7 @@ async function expectReadings(
       const below = `${m.brandReport.engine["evidence.belowFloor"].replace("{reason}", r.quality.map((k) => m.brandReport.engine[k]).join(", "))}`;
       const lines = [
         ...(r.belowFloor ? [below] : []),
-        fromModelNote(locale, r.modelId),
+        fromModelNote(m, r.modelId),
         m.business.state.proposed,
         fill(m.business.reading.confidence, { value: formatNumber(r.confidence, locale) }),
       ];
@@ -1338,9 +1338,7 @@ async function aiUnavailablePlay(
     // The person's words alone, each with its label; nothing read.
     await expect(dialog.querySelectorAll("[data-reading]")).toHaveLength(0);
     await expect(d(dialog).queryAllByText(m.business.label.confidence)).toHaveLength(0);
-    await expect(textOf(dialog)).not.toContain(
-      fromModelNote(localeOf(m), "anthropic/claude-sonnet-5.5"),
-    );
+    await expect(textOf(dialog)).not.toContain(fromModelNote(m, "anthropic/claude-sonnet-5.5"));
     await expect(dialog.querySelector(".ds-badge")).toBeNull();
     const given = node.fields.filter((f) => f.answer !== null);
     await expect(d(dialog).queryAllByText(m.business.label.yourWords)).toHaveLength(given.length);

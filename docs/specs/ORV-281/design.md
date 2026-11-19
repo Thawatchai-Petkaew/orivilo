@@ -112,7 +112,7 @@ One reading (slice 3), top to bottom:
 
 1. Below the floor only: `text-body-sm` (primary ink) `evidence.belowFloor` with the `quality.*` reasons joined by ", ". First, so it is read before the value.
 2. `EvidenceSpan item={reading.item}` with the value in `<bdi>` as children: the fact, then the pill that opens the quote.
-3. `FIELD_NOTE` `evidence.fromModel` with the saved model id (copy from `EVIDENCE_STRINGS` in the engine).
+3. `FIELD_NOTE` `evidence.fromModel` with the saved model id, from the catalog's `brandReport.engine` table, pinned word for word to the engine's `EVIDENCE_STRINGS` (ORV-287 row 8).
 4. `FIELD_NOTE` `business.state.proposed`, then under it `FIELD_NOTE` `business.reading.confidence` (the number by `formatNumber`), each its own line on the field's start edge (row D1: no badge on the canvas or the dialog).
 5. When `spans.length > 1`: `EvidenceList items={readingQuotes(reading)}`, the spans with the reading's own provenance, so each quote row says what the pill card says (row D6).
 
@@ -240,7 +240,7 @@ Semantic only, through components and the token utilities above: `surface.canvas
 
 ## 9. Reused keys (not new)
 
-`business.state.skipped` and `business.state.empty` also mark an empty field (section 5). `board.readOnly` in the dock. `business.list.heading` as the back link text. `evidence.fromModel`, `evidence.belowFloor`, `quality.fewWords` from `EVIDENCE_STRINGS`.
+`business.state.skipped` and `business.state.empty` also mark an empty field (section 5). `board.readOnly` in the dock. `business.list.heading` as the back link text. `evidence.fromModel`, `evidence.belowFloor`, `quality.fewWords` from the catalog's `brandReport.engine` table, pinned to `EVIDENCE_STRINGS`.
 
 ## 10. New strings (for the product owner)
 
@@ -278,3 +278,4 @@ Each at 360 and 1440, Thai and English, light and dark.
 - v1.3 (2026-11-18, ORV-282-design-2): row D3, a 12 px end gutter keeps the viewer's text off the scroll bar (sign-off V1); row D4, column 2 at x 456 (gaps 136 and 152, world still 1248) and, pending N2, a 40 side port pitch on present cards, so Positioning's port pills stand apart and clear the Audience card (sign-off V2). Section 6.3 restated: positions, gaps, the measured fit zoom 0.617, the port floor. Rendered: 233 screenshots under `.orivilo/runs/ORV-282/ORV-282-design-2/screenshots/`.
 - v1.4 (2026-11-18, ORV-282-design-3): row D5, `CanvasNode` writes the larger side's count of ports without a row as `--_ports` and the recipe's 2 to 4 ladder goes, so the present card floor keeps every side dot off the corner bend at any count (sign-off V3: five ports put the end dots 20 world px into the bend); N2's impact list corrected (the five port card 224, 208, 240) and section 12 gains the five port card. Rendered: 116 screenshots under `.orivilo/runs/ORV-282/ORV-282-design-3/screenshots/`.
 - v1.5 (2026-11-18, ORV-283-design-1): rows D6 to D8 from sign-off ORV-283-signoff-1. D6, a reading's quote list takes the reading's provenance through `readingQuotes`, so its rows say "read by an AI model" as the pill card does (V1); D7, a field's notes come before its readings and the list sits 12 under them, section 5's field content table restated with that order (V2); D8, the four readings stories carry a fixture note that says the readings are written by hand and no model read the answers (V3). Rendered: 96 screenshots under `.orivilo/runs/ORV-283/ORV-283-design-1/screenshots/`.
+- v1.6 (2026-11-19, ORV-287-spec-2): a dated pointer correction for ORV-287 row 8 (commit `b9879ba`). Section 5, item 3 of one reading, and section 9 say the AI line `evidence.fromModel` (and, in section 9, `evidence.belowFloor` and `quality.fewWords`) comes from the catalog's `brandReport.engine` table, pinned word for word to the engine's `EVIDENCE_STRINGS`, not copied from the engine. The words, the layout and every row are unchanged. Nothing rendered.

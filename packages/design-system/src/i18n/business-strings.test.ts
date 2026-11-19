@@ -16,7 +16,7 @@ import {
   readReasonLine,
 } from "../examples/business-text";
 import { LOCALES } from "./locale";
-import { messagesFor } from "./messages/index";
+import { type Messages, messagesFor } from "./messages/index";
 
 /**
  * The business screens (ORV-281, task A5, T20) look the engine's keys up in `business.*`. These
@@ -223,12 +223,25 @@ describe("business readings, strings", () => {
   }
 
   it("the model line is the engine's, with the saved model id", () => {
-    expect(fromModelNote("en", "anthropic/claude-sonnet-5.5")).toBe(
+    expect(fromModelNote(messagesFor("en"), "anthropic/claude-sonnet-5.5")).toBe(
       "Read by AI (anthropic/claude-sonnet-5.5). Check it before you use it.",
     );
-    expect(fromModelNote("th", "anthropic/claude-sonnet-5.5")).toBe(
+    expect(fromModelNote(messagesFor("th"), "anthropic/claude-sonnet-5.5")).toBe(
       "AI อ่านค่านี้ (anthropic/claude-sonnet-5.5) โปรดตรวจสอบก่อนนำไปใช้",
     );
+  });
+
+  it("the AI line reads the catalog", () => {
+    const m = messagesFor("en");
+    const changed: Messages = {
+      ...m,
+      brandReport: {
+        ...m.brandReport,
+        engine: { ...m.brandReport.engine, "evidence.fromModel": "Changed line ({model})" },
+      },
+    };
+    expect(fromModelNote(changed, "m/1")).toBe("Changed line (m/1)");
+    expect(fromModelNote(m, "m/1")).toBe("Read by AI (m/1). Check it before you use it.");
   });
 
   it("a reading below the floor says why, in each language", () => {

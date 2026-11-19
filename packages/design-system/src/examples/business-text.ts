@@ -4,7 +4,6 @@ import {
   type BusinessFieldReading,
   type BusinessNodeId,
   type BusinessReadReason,
-  EVIDENCE_STRINGS,
   type InputEvidence,
   type IntakeField,
   PROXY_QUESTIONS,
@@ -106,12 +105,13 @@ export function readReasonLine(m: Messages, reason: BusinessReadReason): string 
 }
 
 /**
- * "Read by AI (model). Check it before you use it." from the engine's `EVIDENCE_STRINGS`, the
- * model the saved record names. The engine holds this line in both languages; the catalog does not
- * copy it (ORV-281 design section 5, one reading, step 3).
+ * "Read by AI (model). Check it before you use it." from the catalog key
+ * `brandReport.engine["evidence.fromModel"]`, the model the saved record names. The key holds the
+ * engine's line word for word (`brand-report-strings.test.ts` pins it), as `belowFloorLine` reads
+ * its own (ORV-287 row 8).
  */
-export function fromModelNote(locale: Locale, modelId: string): string {
-  return fill(EVIDENCE_STRINGS["evidence.fromModel"][locale], { model: modelId });
+export function fromModelNote(m: Messages, modelId: string): string {
+  return fill(m.brandReport.engine["evidence.fromModel"], { model: modelId });
 }
 
 /**

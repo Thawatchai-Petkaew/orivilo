@@ -81,7 +81,9 @@ describe("the closed lists", () => {
         "redirects",
         "not-html",
       ],
-      // ORV-283 T41: the eight things that can happen to a business reading, in the spec's order.
+      // ORV-283 T41, ORV-287: the nine things that can happen to a business reading, in the spec's
+      // order; `stored-invalid` (a saved reading that no longer parses, orv287-unparsed-reading-1) is
+      // the ninth.
       "business-read": [
         "read",
         "refused",
@@ -91,6 +93,7 @@ describe("the closed lists", () => {
         "spend-cap",
         "unavailable",
         "save-failed",
+        "stored-invalid",
       ],
       "better-auth": [
         "INVALID_CALLBACK_REQUEST",
