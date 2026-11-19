@@ -1,7 +1,7 @@
 ---
 issue: ORV-288 (https://tpetkaew.atlassian.net/browse/ORV-288)
 lane: S (chore, one PR; a security review still runs, because the diff touches `packages/auth` and `apps/web/proxy.ts`, paths in `.claude/rules/security.md`)
-version: 1
+version: 1.1
 ---
 
 # ORV-288: the three follow-ups of the ORV-286 security review
@@ -36,7 +36,7 @@ As the operator of ORIVILO, I want the web framework on a patch with no known ad
 
 ### ba-log-1
 
-`createAuth` (`packages/auth/src/config.ts`) passes Better Auth a `logger` option with `level: "warn"` and a `log(level, message, ...args)` function. That function:
+`createAuth` (`packages/auth/src/config.ts`) passes Better Auth a `logger` option with a `log(level, message, ...args)` function and no `level` key. Reason: a `level` of `error`, `warn` or `debug` turns on a second Better Auth path (the router's `onError`, `dist/api/index.mjs` lines 206 to 217) that writes its own raw `console.error` line holding the request's values for every API error, while Better Auth's own default already drops levels below `warn` and the `log` function filters levels itself. That function:
 
 - never reads `args`: not their values, not their count, not their type;
 - for `level` `warn` or `error`, writes exactly one line through `writeLine` in `packages/auth/src/log.ts` (the one `console` caller, ORV-141 `orv141-no-console`), with `level` as Better Auth gave it, `requestId` and `route` from the open request context (`"unknown"` outside one, as `logStep` does), `durationMs` `0`, `step` `"better-auth"`, and `outcome` the message closed to `ba-messages-1`;
@@ -75,12 +75,13 @@ Hosts are the stand-ins of ORV-286: `orivilo.example` is the configured address,
 | 5 | Spies on `console` (`captureLines`) | The Better Auth logger of `ba-log-1` is called with `error`, `State not found` and the arguments `new Error(SENTINEL)` and `{ value: SENTINEL }` | No UI | Exactly one captured call; it passes `expectLineShape`; `level` `error`, `step` `better-auth`, `outcome` `State not found`, `requestId` and `route` `unknown`. No captured argument, turned to text, holds `FORGED`, `someone@example.invalid`, `\r` or `\n`. The test goes red if any argument reaches the line | `packages/auth/src/log.test.ts` "Better Auth line keeps level and message, never an argument" |
 | 6 | As row 5 | The logger is called with `warn` and `Invalid origin: https://orivilo-alias.example/x`, then with `error` and `state not found` (lower case) | No UI | Two lines, `level` `warn` then `error`, each `outcome` `unknown` (`ba-messages-1`); no captured text holds `orivilo-alias.example` | `log.test.ts` "a message outside the list is unknown" |
 | 7 | As row 5 | The logger is called with `info`, `debug`, `success` and `trace`, each with a message from the list and `SENTINEL` as an argument | No UI | No captured call | `log.test.ts` "levels below warn write nothing" |
-| 8 | ORIVILO's auth config through `authRoute`, with the stub limiter store of ORV-286 (`auth-route.test.ts`), spies on `console` | `GET /api/auth/callback/google?error=x%0D%0AFORGED%20someone%40example.invalid` with no `state` | No UI | Exactly two captured calls, each passing `expectLineShape`: the Better Auth line (`step` `better-auth`, `outcome` `State not found`, `level` `error`, `route` `api/auth`) and the `api/auth` boundary line, with the same `requestId`. No captured argument holds `FORGED`, `someone@example.invalid`, `\r` or `\n`. The redirect to `/account?error=...` is unchanged (ORV-286 row 1) | `packages/auth/src/auth-route.test.ts` "Better Auth's line goes through the JSON logger" |
+| 8 | ORIVILO's auth config through `authRoute`, with the stub limiter store of ORV-286 (`auth-route.test.ts`), spies on `console` | `GET /api/auth/callback/google?error=x%0D%0AFORGED%20someone%40example.invalid` with no `state` | No UI | The auth context's `logger` option is the one `ba-log-1` sets: `log` is `logBetterAuth` and the option has no `level` key. Exactly two captured calls, each passing `expectLineShape`: the Better Auth line (`step` `better-auth`, `outcome` `State not found`, `level` `error`, `route` `api/auth`) and the `api/auth` boundary line, with the same `requestId`. No captured argument holds `FORGED`, `someone@example.invalid`, `\r` or `\n`. The redirect to `/account?error=...` is unchanged (ORV-286 row 1) | `packages/auth/src/auth-route.test.ts` "Better Auth's line goes through the JSON logger" |
 | 9 | The PR head | The gate runs | No UI | `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build` and `pnpm audit --prod` run and their real output is in the G3 packet (row 2 for the audit); `no-console` still allows `console` only in `log.ts`; the diff holds no key, token, secret or real email address | Gate output (`pnpm quality-gate`) and `git diff origin/develop` read for secrets |
+| 10 | As row 8 | `POST /api/auth/sign-in/social` with `Origin: http://localhost:3000`, the body `{}` and the header `Content-Type: text/plain; FORGED someone@example.invalid` (the printable part of `SENTINEL`, since a header cannot hold `\r` or `\n`), which Better Auth refuses with an API error | No UI | Status 415 with the error body of ORV-144. Every captured call passes `expectLineShape`, so the log holds only JSON lines (`ba-log-1`); no captured argument, turned to text, holds `FORGED` or `someone@example.invalid`. With `level: "warn"` put back in the `logger` option the test goes red, because Better Auth's raw line holding the `Content-Type` value is captured | `packages/auth/src/auth-route.test.ts` "a request Better Auth refuses leaves only JSON lines" |
 
 ## Rows that render nothing
 
-- Rows: 1-9
+- Rows: 1-10
 
 ## Impact on contracts
 
@@ -122,3 +123,4 @@ Run by the main session on 2026-11-18; each printed its expected output. Each li
 ## Changelog
 
 - Version 1, 2026-11-18: first version, from the ORV-288 description, comment 10713 and the ORV-286 security review (task ORV-288-spec-1).
+- v1.1, 2026-11-19: for the code review's Important finding ORV-288-rev-1 (task ORV-288-review-1), `ba-log-1` passes the `logger` option with no `level` and gives the reason; row 8 expects no `level` key; new row 10 proves that an API error through `authRoute` leaves only JSON lines; the list of rows that render nothing covers 1-10 (task ORV-288-spec-2). Governed lines to review: `packages/auth/src/config.ts` line 49, this spec's `ba-log-1` (line 39 in version 1), `packages/auth/src/auth-route.test.ts` line 542; row 10 adds a test to `auth-route.test.ts`.
