@@ -88,6 +88,9 @@ export async function expectFitsAt360(canvasElement: HTMLElement) {
   );
   for (const el of frame.querySelectorAll<HTMLElement>("*")) {
     if (el.closest(".sr-only") !== null) continue;
+    // The board's world is clipped by the board's own frame, which is checked above and below
+    // (ORV-291 B3: from PR 1 the map is wider than the frame at 360 and the person pans).
+    if (el.closest(".react-flow__viewport") !== null) continue;
     await expect(el.getBoundingClientRect().right).toBeLessThanOrEqual(edge + 0.5);
   }
 }

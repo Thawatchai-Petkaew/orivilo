@@ -537,6 +537,23 @@ async function checkViewer(
   await expect(Math.abs(box(stage).top - inner.top)).toBeLessThanOrEqual(1);
   await expect(Math.abs(box(stage).bottom - inner.bottom)).toBeLessThanOrEqual(1);
   await expect(box(stage).height).toBeGreaterThan(panel.height / 2);
+  // Row 25 (D5): the stage is set into the panel 17 px in (1 border and the 16 padding), and its
+  // corner runs parallel to the panel's: the panel's radius less that padding, never a fatter one.
+  await expect(Math.abs(box(stage).left - (panel.left + 17))).toBeLessThanOrEqual(1);
+  await expect(Math.abs(panel.right - 17 - box(stage).right)).toBeLessThanOrEqual(1);
+  const panelRadius = px(dialog, "border-top-left-radius");
+  await expect(panelRadius).toBeGreaterThan(16);
+  for (const corner of ["top-left", "top-right", "bottom-left", "bottom-right"]) {
+    await expect(
+      Math.abs(px(stage, `border-${corner}-radius`) - Math.max(0, panelRadius - 16)),
+      `the stage's ${corner} corner`,
+    ).toBeLessThanOrEqual(1);
+  }
+  // A panel less round than its padding gives a square stage: a radius that calc takes below zero
+  // is drawn as zero.
+  dialog.style.setProperty("--cmp-dialog-radius", "4px");
+  await expect(px(stage, "border-top-left-radius"), "a panel of 4 px").toBe(0);
+  dialog.style.removeProperty("--cmp-dialog-radius");
   // The footer's one child takes the whole row at every width, not its own width.
   const footer = dialog.querySelector<HTMLElement>(".ds-dialog__footer");
   const pager = footer?.firstElementChild;

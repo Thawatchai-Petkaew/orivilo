@@ -781,10 +781,10 @@ async function playPresentStates(root: HTMLElement, lang: Lang) {
   const rest = cardOf(root, "n0");
   await expect(cs(rest).borderTopColor).toBe(resolvedColor(rest, "--ds-border-subtle"));
   await expect(cs(rest).outlineStyle).toBe("none");
-  // The label ends in an ellipsis on one line: the long title is cut, and no taller than a short one.
+  // The label stays on one line: the long title is cut (it fades, no ellipsis, ORV-280 D4), and no taller than a short one.
   const long = cardOf(root, "n6");
   const title = long.querySelector(".ds-node__title") as HTMLElement;
-  await expect(cs(title).textOverflow).toBe("ellipsis");
+  await expect(cs(title).textOverflow).toBe("clip");
   await expect(title.scrollWidth).toBeGreaterThan(title.clientWidth);
   await expect(
     (long.querySelector(".ds-node__label") as HTMLElement).getBoundingClientRect().height,
@@ -1057,14 +1057,18 @@ async function playOpenWithoutCount(root: HTMLElement, lang: Lang) {
     else await expect(view).not.toHaveAttribute("aria-haspopup");
     await expect(view).toHaveAccessibleName(w.name);
     await expect(view.querySelector(".ds-node__pages")).toBeNull();
-    await expect(view.querySelector(".ds-node__open")).toBeVisible();
+    // The glyph shows only where the board can open: the second board has no `onNodeOpen`, so its
+    // node draws none (ORV-280 S3).
+    if (index === 0) await expect(view.querySelector(".ds-node__open")).toBeVisible();
+    else await expect(view.querySelector(".ds-node__open")).toBeNull();
     await expect(cardOf(board, "view")).toHaveAttribute("data-open", "");
     await expect(getComputedStyle(cardOf(board, "view")).cursor).toBe("zoom-in");
     // With a count the pages word and the page-count name stay, as they were.
     const pages = wrapperOf(board, "pages");
     await expect(pages.querySelector(".ds-node__pages")).toHaveTextContent(w.pages);
     await expect(pages).toHaveAccessibleName(w.pagesName);
-    await expect(pages.querySelector(".ds-node__open")).toBeVisible();
+    if (index === 0) await expect(pages.querySelector(".ds-node__open")).toBeVisible();
+    else await expect(pages.querySelector(".ds-node__open")).toBeNull();
     // A count of 1 takes the singular form in the title row and in the name (ORV-280 D7).
     const one = wrapperOf(board, "one");
     await expect(one.querySelector(".ds-node__pages")).toHaveTextContent(new RegExp(`^${w.one}$`));
@@ -1264,9 +1268,47 @@ async function playNarrowLabels(root: HTMLElement, lang: Lang) {
     const [first, ...rest] = labels();
     if (first) expectSameHeight(first, ...rest);
   };
+  // Row 23 (D4): a cut title has no ellipsis, so no empty run follows its last mark. It fades out and
+  // keeps `space.inline-sm` (4) before the next part that shows; a title that fits is plain.
+  let cutBeforeAPart = 0;
+  const checkCut = async (zoom: number) => {
+    await waitFor(() => {
+      let cuts = 0;
+      for (const label of labels()) {
+        const title = label.querySelector<HTMLElement>(".ds-node__title") as HTMLElement;
+        const cut = title.scrollWidth > title.clientWidth;
+        const style = getComputedStyle(title);
+        expect(title.hasAttribute("data-cut"), `at zoom ${zoom}, data-cut follows the clip`).toBe(
+          cut,
+        );
+        expect(style.textOverflow, `at zoom ${zoom}, a title shows no ellipsis`).toBe("clip");
+        expect(style.maskImage !== "none", `at zoom ${zoom}, a cut title fades out`).toBe(cut);
+        if (!cut) continue;
+        cuts++;
+        // The fade runs over the title's last 2em: its transparent stop sits 2em from the end.
+        const stop = /calc\(100% - ([\d.]+)px\)/.exec(style.maskImage)?.[1];
+        expect(
+          Number(stop),
+          `at zoom ${zoom}, the fade starts ${stop} px from the end of ${style.maskImage}`,
+        ).toBeCloseTo(2 * parseFloat(style.fontSize), 0);
+        const parts = shownParts(label);
+        const next = parts[parts.findIndex((p) => p.name === "title") + 1];
+        if (next?.shown) {
+          cutBeforeAPart++;
+          const gap = next.rect.left - title.getBoundingClientRect().right;
+          expect(
+            Math.abs(gap - 4),
+            `at zoom ${zoom}, ${gap} px between a cut title and ${next.name}`,
+          ).toBeLessThanOrEqual(0.5);
+        }
+      }
+      expect(cuts, `at zoom ${zoom}, a title is cut`).toBeGreaterThan(0);
+    });
+  };
   for (const zoom of [1, 0.8, 0.6, 0.4, 0.25]) {
     await zoomBoard(root, zoom);
     checkStep(zoom);
+    await checkCut(zoom);
     const shown = labels().map((label) =>
       shownParts(label)
         .filter((p) => p.shown)
@@ -1286,6 +1328,45 @@ async function playNarrowLabels(root: HTMLElement, lang: Lang) {
     }
     if (zoom === 0.25) for (const parts of shown) await expect(parts).toEqual(["kind", "title"]);
   }
+  await expect(cutBeforeAPart, "a cut title with a part after it").toBeGreaterThan(0);
+  // The mark is read again when the title's box changes and when a font loads, with no render in
+  // between. A label that is given room makes its title whole, and takes it back when the room goes.
+  await zoomBoard(root, 1);
+  const cutLabel = labels().find((l) =>
+    l.querySelector(".ds-node__title")?.hasAttribute("data-cut"),
+  );
+  const cutTitle = cutLabel?.querySelector(".ds-node__title") as HTMLElement;
+  if (!cutLabel) return expect(cutLabel, "a cut title at zoom 1").toBeDefined();
+  const width = cutLabel.style.width;
+  cutLabel.style.width = "900px";
+  await waitFor(() => expect(cutTitle.hasAttribute("data-cut"), "a title with room").toBe(false));
+  cutLabel.style.width = width;
+  await waitFor(() => expect(cutTitle.hasAttribute("data-cut"), "the room taken back").toBe(true));
+  // A font that loads changes the text and not the box: the title keeps its box, its text is
+  // swapped for a short one, and nothing re-reads it until the font set says a load is done.
+  const words = cutTitle.firstChild as Text;
+  const full = words.data;
+  const w0 = cutTitle.getBoundingClientRect().width;
+  cutTitle.style.flex = "none";
+  cutTitle.style.maxInlineSize = "none";
+  cutTitle.style.width = `${w0}px`;
+  // Its own first mark, so no new font subset is asked for.
+  words.data = full.slice(0, 1);
+  // Two frames let a resize observer speak if it is going to; the box must not give it a reason to.
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  await expect(cutTitle.getBoundingClientRect().width, "the box is the one it was").toBe(w0);
+  await expect(cutTitle.scrollWidth).toBeLessThanOrEqual(cutTitle.clientWidth);
+  await expect(cutTitle.hasAttribute("data-cut"), "no font event yet").toBe(true);
+  document.fonts.dispatchEvent(new Event("loadingdone"));
+  await waitFor(() =>
+    expect(cutTitle.hasAttribute("data-cut"), "after the font event").toBe(false),
+  );
+  words.data = full;
+  document.fonts.dispatchEvent(new Event("loadingdone"));
+  await waitFor(() => expect(cutTitle.hasAttribute("data-cut"), "the text back").toBe(true));
+  cutTitle.style.flex = "";
+  cutTitle.style.maxInlineSize = "";
+  cutTitle.style.width = "";
   // The long card gives its parts up from the end: a fine sweep finds a step where the status glyph
   // shows and its word does not (where the word leaves depends on the font's width).
   let between = false;
@@ -1323,6 +1404,7 @@ export const PresentNarrowLabels: Story = {
       height={320}
       chrome={false}
       fitView={false}
+      onNodeOpen={fn()}
       initial={narrowLabels("th")}
     >
       <FlowHandle />
@@ -1340,6 +1422,7 @@ export const PresentNarrowLabelsInEnglish: Story = {
       height={320}
       chrome={false}
       fitView={false}
+      onNodeOpen={fn()}
       initial={narrowLabels("en")}
     >
       <FlowHandle />
@@ -1509,6 +1592,7 @@ export const PresentRecipesAndModes: Story = {
         height={520}
         chrome={false}
         renderBody={presentBody}
+        onNodeOpen={fn()}
         initial={recipeNodes()}
       />
     </Matrix>

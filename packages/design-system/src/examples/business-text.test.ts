@@ -1,6 +1,14 @@
+import type { FoundationNode } from "@orivilo/intent-engine";
 import { describe, expect, it } from "vitest";
-import { ENGLISH_READ_VIEW, THAI_READ_VIEW } from "./business-fixtures";
-import { readingQuotes } from "./business-text";
+import { messagesFor } from "../i18n/messages/index";
+import { ENGLISH_READ_VIEW, THAI_READ_VIEW, THAI_VIEW } from "./business-fixtures";
+import {
+  foundationStateLine,
+  listOfNodes,
+  provisionalLines,
+  readingQuotes,
+  uncheckedLine,
+} from "./business-text";
 
 /**
  * ORV-281 design row D6 (ORV-283): the quotes a reading drew on are shown with the reading's own
@@ -32,5 +40,135 @@ describe.each([
     for (const r of readings) {
       expect(r.spans.every((s) => !s.fromModel)).toBe(true);
     }
+  });
+});
+
+/**
+ * ORV-291 tech notes T25, spec rows 5 and 10: `business.state.waiting` and the two mark lines fill
+ * `{nodes}` with the node titles joined by `Intl.ListFormat`, type `conjunction`, in the page's
+ * locale. PR 1 has one node name in each line (`positioning`); the join is proven on two and three
+ * names so a comma join, which only shows with more than one, goes red.
+ */
+describe("foundation lines", () => {
+  type Personality = Extract<FoundationNode, { id: "identity-frame" }>;
+  const personality = THAI_VIEW.foundation[0] as Personality;
+  const given = (over: Partial<Personality>): Personality => ({ ...personality, ...over });
+
+  it("joins the node titles with the locale's conjunction", () => {
+    const en = messagesFor("en");
+    const th = messagesFor("th");
+    expect(listOfNodes(en, "en", ["positioning"])).toBe("Positioning");
+    expect(listOfNodes(en, "en", ["positioning", "identity-frame"])).toBe(
+      "Positioning and Brand personality",
+    );
+    expect(listOfNodes(en, "en", ["situation", "positioning", "identity-frame"])).toBe(
+      "Situation, Positioning, and Brand personality",
+    );
+    expect(listOfNodes(th, "th", ["positioning", "identity-frame"])).toBe(
+      "จุดยืนและบุคลิกของแบรนด์",
+    );
+    expect(listOfNodes(th, "th", ["situation", "positioning", "identity-frame"])).toBe(
+      "สถานการณ์ตั้งต้น จุดยืน และบุคลิกของแบรนด์",
+    );
+  });
+
+  it("fills `{nodes}` of the waiting line with what the node waits for", () => {
+    expect(personality.state).toBe("waiting");
+    expect(foundationStateLine(messagesFor("th"), "th", personality)).toBe("รอ จุดยืน ก่อน");
+    expect(foundationStateLine(messagesFor("en"), "en", personality)).toBe("Waits for Positioning");
+    const two = given({ waitingFor: ["positioning", "identity-frame"] });
+    expect(foundationStateLine(messagesFor("en"), "en", two)).toBe(
+      "Waits for Positioning and Brand personality",
+    );
+  });
+
+  it("gives the other state lines as the catalog's own words, with no slot", () => {
+    for (const locale of ["th", "en"] as const) {
+      const m = messagesFor(locale);
+      expect(foundationStateLine(m, locale, given({ state: "given", waitingFor: [] }))).toBe(
+        m.business.state.given,
+      );
+      expect(foundationStateLine(m, locale, given({ state: "skipped", waitingFor: [] }))).toBe(
+        m.business.state.skipped,
+      );
+      expect(foundationStateLine(m, locale, given({ state: "empty", waitingFor: [] }))).toBe(
+        m.business.state.empty,
+      );
+    }
+  });
+
+  // PR 2 replaces PR 1's pin "has no line for a derived state before PR 2 gives it one".
+  it("gives the derived and not-in-version states their own catalog lines (PR 2)", () => {
+    for (const locale of ["th", "en"] as const) {
+      const m = messagesFor(locale);
+      expect(foundationStateLine(m, locale, given({ state: "derived", waitingFor: [] }))).toBe(
+        m.business.state.derived,
+      );
+      expect(foundationStateLine(m, locale, given({ state: "notInVersion", waitingFor: [] }))).toBe(
+        m.business.state.notInVersion,
+      );
+    }
+    expect(
+      foundationStateLine(messagesFor("en"), "en", given({ state: "derived", waitingFor: [] })),
+    ).toBe("Worked out by a fixed rule");
+    expect(
+      foundationStateLine(messagesFor("th"), "th", given({ state: "derived", waitingFor: [] })),
+    ).toBe("ได้จากกฎที่กำหนดไว้");
+  });
+
+  it("gives the unchecked line with its nodes, and none when there is nothing unchecked", () => {
+    const unchecked = given({ state: "given", waitingFor: [], unchecked: ["positioning"] });
+    expect(uncheckedLine(messagesFor("en"), "en", unchecked)).toBe(
+      "Not yet checked against: Positioning",
+    );
+    expect(uncheckedLine(messagesFor("th"), "th", unchecked)).toBe("ยังไม่ได้ตรวจทานกับ: จุดยืน");
+    const two = given({ unchecked: ["positioning", "identity-frame"] });
+    expect(uncheckedLine(messagesFor("en"), "en", two)).toBe(
+      "Not yet checked against: Positioning and Brand personality",
+    );
+    expect(uncheckedLine(messagesFor("en"), "en", given({ unchecked: [] }))).toBeNull();
+  });
+});
+
+/**
+ * ORV-291 tech notes T34, spec row 17 (PR 2): for a derived result `strategy.provisional` and
+ * `business.marks.restsOn` resolve together, the second with its nodes joined in the page's locale.
+ * Neither shows alone: no "rests on" line without the provisional line, and none for a result that
+ * rests on nothing.
+ */
+describe("rests on", () => {
+  type Architecture = Extract<FoundationNode, { id: "architecture" }>;
+  const architecture = THAI_VIEW.foundation[1] as Architecture;
+  const derived = (over: Partial<Architecture>): Architecture => ({
+    ...architecture,
+    state: "derived",
+    waitingFor: [],
+    ...over,
+  });
+
+  it("gives the provisional line and the rests-on line together, in each language", () => {
+    const node = derived({ restsOn: ["positioning"] });
+    expect(provisionalLines(messagesFor("en"), "en", node)).toEqual({
+      provisional: "Provisional. This rests on a step you skipped.",
+      restsOn: "Rests on: Positioning",
+    });
+    expect(provisionalLines(messagesFor("th"), "th", node)).toEqual({
+      provisional: "ชั่วคราว เพราะอิงกับขั้นตอนที่คุณข้ามไว้",
+      restsOn: "อิงกับ: จุดยืน",
+    });
+  });
+
+  it("joins several nodes with the locale's conjunction", () => {
+    const node = derived({ restsOn: ["situation", "positioning"] });
+    expect(provisionalLines(messagesFor("en"), "en", node)?.restsOn).toBe(
+      "Rests on: Situation and Positioning",
+    );
+    expect(provisionalLines(messagesFor("th"), "th", node)?.restsOn).toBe(
+      "อิงกับ: สถานการณ์ตั้งต้นและจุดยืน",
+    );
+  });
+
+  it("gives no line, neither of the two, when the node rests on nothing", () => {
+    expect(provisionalLines(messagesFor("en"), "en", derived({ restsOn: [] }))).toBeNull();
   });
 });

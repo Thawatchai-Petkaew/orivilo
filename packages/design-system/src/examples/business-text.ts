@@ -4,8 +4,12 @@ import {
   type BusinessFieldReading,
   type BusinessNodeId,
   type BusinessReadReason,
+  type FoundationFieldKey,
+  type FoundationNode,
+  type FoundationNodeId,
   type InputEvidence,
   type IntakeField,
+  type MarkRef,
   PROXY_QUESTIONS,
   type ProxyQuestionId,
 } from "@orivilo/intent-engine";
@@ -27,10 +31,61 @@ const NODE_KEY = {
   audience: "audience",
   "competitive-frame": "competitiveFrame",
   positioning: "positioning",
-} as const satisfies Record<BusinessNodeId, keyof Business["node"]>;
+  // The foundation nodes of ORV-291; PR 3 adds `coreIdea`.
+  "identity-frame": "identityFrame",
+  architecture: "architecture",
+  name: "name",
+} as const satisfies Record<BusinessNodeId | FoundationNodeId, keyof Business["node"]>;
 
-export function nodeTitle(m: Messages, id: BusinessNodeId): string {
+export function nodeTitle(m: Messages, id: BusinessNodeId | FoundationNodeId): string {
   return m.business.node[NODE_KEY[id]];
+}
+
+/** The node titles of `refs` as one line: `Intl.ListFormat`, type `conjunction`, in the page's locale. */
+export function listOfNodes(m: Messages, locale: Locale, refs: readonly MarkRef[]): string {
+  return new Intl.ListFormat(DATE_TAGS[locale], { type: "conjunction" }).format(
+    refs.map((ref) => nodeTitle(m, ref)),
+  );
+}
+
+/** The name of a foundation field, a key of `business.field.*`. */
+export function foundationFieldLabel(m: Messages, field: FoundationFieldKey): string {
+  return m.business.field[field];
+}
+
+/**
+ * The state line of a foundation node (`foundation-marks-1`): the catalog's line for its state key,
+ * and for `waiting` the line with the nodes it waits for.
+ */
+export function foundationStateLine(m: Messages, locale: Locale, node: FoundationNode): string {
+  return node.state === "waiting"
+    ? fill(m.business.state.waiting, { nodes: listOfNodes(m, locale, node.waitingFor) })
+    : m.business.state[node.state];
+}
+
+/**
+ * The provisional pair of a derived result that rests on a skipped step (`foundation-marks-1`):
+ * `strategy.provisional`, then `business.marks.restsOn` with its nodes. Both or neither, so a
+ * "rests on" line never stands without the line that says what it means.
+ */
+export function provisionalLines(
+  m: Messages,
+  locale: Locale,
+  node: FoundationNode,
+): { provisional: string; restsOn: string } | null {
+  return node.restsOn.length === 0
+    ? null
+    : {
+        provisional: m.strategy.provisional,
+        restsOn: fill(m.business.marks.restsOn, { nodes: listOfNodes(m, locale, node.restsOn) }),
+      };
+}
+
+/** `business.marks.unchecked` with its nodes, or null when the node rests on nothing unchecked. */
+export function uncheckedLine(m: Messages, locale: Locale, node: FoundationNode): string | null {
+  return node.unchecked.length === 0
+    ? null
+    : fill(m.business.marks.unchecked, { nodes: listOfNodes(m, locale, node.unchecked) });
 }
 
 type Tail<T, P extends string> = T extends `${P}${infer K}` ? K : never;

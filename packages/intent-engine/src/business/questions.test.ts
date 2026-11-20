@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import orv126 from "../../../../docs/specs/ORV-126/spec.md?raw";
-import { PROXY_QUESTIONS } from "./questions";
+import { PROXY_QUESTIONS, START_QUESTIONS } from "./questions";
 
 // ORV-281 tech notes section 13, T4. ORV-126 "Missing strategy" is the home of the copy.
 
@@ -12,10 +12,10 @@ for (const m of orv126.matchAll(LINE)) {
 
 describe("copy is ORV-126's", () => {
   it("reads the proxy question lines of ORV-126", () => {
-    expect(home.size).toBeGreaterThanOrEqual(6);
+    expect(home.size).toBeGreaterThanOrEqual(8);
   });
 
-  it("holds the six ids, in the order the intake lists them", () => {
+  it("holds the eight ids: the six the intake lists, then the two of Brand personality", () => {
     expect(PROXY_QUESTIONS.map((q) => q.id)).toEqual([
       "business-core.proxy.offer",
       "business-core.proxy.why",
@@ -23,7 +23,30 @@ describe("copy is ORV-126's", () => {
       "audience.proxy.problem",
       "competitive-frame.proxy.instead",
       "positioning.proxy.only",
+      "identity-frame.proxy.person",
+      "identity-frame.proxy.never",
     ]);
+  });
+
+  // ORV-291 tech notes section 13, T24; spec row 13: the two personality questions are ORV-126's words.
+  it("identity-frame.proxy.person and .never are ORV-126 'Missing strategy' word for word", () => {
+    const wording = {
+      "identity-frame.proxy.person": {
+        en: "If your brand were a person, which three words would people use to describe them?",
+        th: "ถ้าแบรนด์ของคุณเป็นคนคนหนึ่ง คนอื่นจะใช้คำสามคำใดบรรยายเขา",
+        key: "business.question.person",
+      },
+      "identity-frame.proxy.never": {
+        en: "How should your brand never feel?",
+        th: "แบรนด์ของคุณไม่ควรให้ความรู้สึกแบบไหน",
+        key: "business.question.never",
+      },
+    } as const;
+    for (const [id, expected] of Object.entries(wording)) {
+      const q = PROXY_QUESTIONS.find((p) => p.id === id);
+      expect(q, id).toMatchObject(expected);
+      expect(home.get(id), id).toEqual({ en: expected.en, th: expected.th });
+    }
   });
 
   it.each(PROXY_QUESTIONS.map((q) => [q.id, q] as const))(
@@ -41,5 +64,34 @@ describe("copy is ORV-126's", () => {
       expect(`${q.en}${q.th}`).not.toMatch(/[·—]/);
       expect(q.key).toMatch(/^business\.question\.[a-zA-Z]+$/);
     }
+  });
+});
+
+// ORV-291 tech notes section 13, T31; spec row 24. ORV-126 "The start question" is the home of the copy.
+describe("start question", () => {
+  const START = /`situation\.sub-brands`[^:\n]*: en "([^"]*)"; th "([^"]*)"/;
+  const line = orv126.match(START);
+
+  it("finds the line of ORV-126", () => {
+    expect(line).not.toBeNull();
+  });
+
+  it("holds one question, situation.sub-brands, and it stays out of the proxy questions", () => {
+    expect(START_QUESTIONS.map((q) => q.id)).toEqual(["situation.sub-brands"]);
+    expect(PROXY_QUESTIONS.map((q) => q.id)).not.toContain("situation.sub-brands");
+    expect(PROXY_QUESTIONS).toHaveLength(8);
+  });
+
+  it("situation.sub-brands equals ORV-126 'The start question' word for word", () => {
+    const [q] = START_QUESTIONS;
+    expect(q?.en).toBe("Does this brand sit above or below other brands?");
+    expect(q?.th).toBe("แบรนด์นี้อยู่เหนือหรืออยู่ใต้แบรนด์อื่นหรือไม่");
+    expect(q?.key).toBe("business.question.subBrands");
+    expect(q?.en).toBe(line?.[1]);
+    expect(q?.th).toBe(line?.[2]);
+  });
+
+  it("has no middot and no em dash", () => {
+    for (const q of START_QUESTIONS) expect(`${q.en}${q.th}`).not.toMatch(/[·—]/);
   });
 });

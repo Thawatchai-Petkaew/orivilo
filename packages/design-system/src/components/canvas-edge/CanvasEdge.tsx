@@ -52,6 +52,8 @@ function Flow({
   );
 }
 
+const FOCUS_PARTS = ["halo", "line", "fill"] as const;
+
 /**
  * A link between two nodes that means input, reference or derived-from (ADR 0004 item 4). The
  * meaning is the dash pattern and the label word; the state (rest, hover, selected, invalid,
@@ -103,7 +105,18 @@ export function CanvasEdge({
         data-kind={kind}
         data-chain={chain ? "" : undefined}
       >
-        <path className="ds-edge__path react-flow__edge-path" d={path} markerEnd={markerEnd} />
+        {/* The focus shape, drawn under the edge's own path and shown by CSS while the edge has
+            keyboard focus (ORV-280 D5): a halo, a 1 px line and a fill in the board's own ground. */}
+        {FOCUS_PARTS.map((part) => (
+          <path
+            key={part}
+            className="ds-edge__focus"
+            data-part={part}
+            d={path}
+            aria-hidden="true"
+          />
+        ))}
+        <path className="ds-edge__path" d={path} markerEnd={markerEnd} />
         {flowing ? (
           <Flow
             id={id}

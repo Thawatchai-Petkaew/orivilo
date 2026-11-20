@@ -3,8 +3,12 @@ import {
   BUSINESS_NODES,
   BUSINESS_READ_REASONS,
   INTAKE_FIELDS,
+  PERSONALITY_AXES,
   PROXY_QUESTIONS,
+  START_QUESTIONS,
 } from "@orivilo/intent-engine";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   belowFloorLine,
@@ -118,6 +122,53 @@ const SPEC_KEYS = [
   "business.errors.aiFailed",
   "business.errors.aiRateLimited",
   "business.errors.aiSpendCap",
+  // ORV-291 PR 1: the Brand personality node. PR 2 adds the keys of the next block, PR 3 the core idea's.
+  "business.node.identityFrame",
+  "business.question.person",
+  "business.question.never",
+  "business.field.personality",
+  "business.field.person",
+  "business.field.never",
+  "business.axis.playful.low",
+  "business.axis.playful.high",
+  "business.axis.expressive.low",
+  "business.axis.expressive.high",
+  "business.axis.structured.low",
+  "business.axis.structured.high",
+  "business.axis.warm.low",
+  "business.axis.warm.high",
+  "business.axis.premium.low",
+  "business.axis.premium.high",
+  "business.identity.axisLegend",
+  "business.identity.point",
+  "business.identity.hypothesis",
+  "business.identity.describe",
+  "business.identity.save",
+  "business.identity.axesRequired",
+  "business.state.given",
+  "business.state.waiting",
+  "business.marks.unchecked",
+  // ORV-291 PR 2 (ORV-295): Brand architecture and Name.
+  "business.node.architecture",
+  "business.node.name",
+  "business.question.subBrands",
+  "business.field.subBrands",
+  "business.field.architecture",
+  "business.field.workingName",
+  "business.state.derived",
+  "business.state.notInVersion",
+  "business.marks.restsOn",
+  "business.architecture.no",
+  "business.architecture.yes",
+  "business.architecture.save",
+  "business.architecture.choiceRequired",
+  "business.architecture.single",
+  "business.architecture.because",
+  "business.architecture.notInVersion",
+  "business.name.give",
+  "business.name.save",
+  "business.name.required",
+  "business.name.notScreened",
 ];
 
 describe("business catalog", () => {
@@ -132,8 +183,11 @@ describe("business catalog", () => {
     it(`${locale}: every business.question line is word for word the ORV-126 proxy question`, () => {
       const wrong = PROXY_QUESTIONS.filter((q) => at(m, q.key) !== q[locale]).map((q) => q.id);
       expect(wrong).toEqual([]);
-      // The six questions are the catalog's whole `question` group.
-      expect(Object.keys(m.business.question)).toHaveLength(PROXY_QUESTIONS.length);
+      // The `question` group is the proxy questions and the start question, and nothing else.
+      expect(Object.keys(m.business.question)).toHaveLength(
+        PROXY_QUESTIONS.length + START_QUESTIONS.length,
+      );
+      for (const q of START_QUESTIONS) expect(at(m, q.key), q.key).toBe(q[locale]);
     });
 
     it(`${locale}: every proxy question id resolves to its own catalog line`, () => {
@@ -310,6 +364,213 @@ describe("positioning gate, strings", () => {
       ];
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) expect(String(at(m, key)), key).not.toMatch(/[\u00B7\u2014]/);
+    });
+  }
+});
+
+/**
+ * The lines of the Brand personality node (ORV-291 PR 1, spec "Strings"): each key in both
+ * languages, word for word, the five axes' two ends in the order of `PERSONALITY_AXES`, and no
+ * middot or em dash in any of them. `business.question.person` and `.never` are ORV-126's copy,
+ * pinned to the engine's `PROXY_QUESTIONS` by the question tests above.
+ */
+describe("brand personality, strings", () => {
+  const LINES = {
+    en: {
+      "business.node.identityFrame": "Brand personality",
+      "business.question.person":
+        "If your brand were a person, which three words would people use to describe them?",
+      "business.question.never": "How should your brand never feel?",
+      "business.field.personality": "Personality",
+      "business.field.person": "Three words for your brand as a person",
+      "business.field.never": "How it should never feel",
+      "business.axis.playful.low": "Serious",
+      "business.axis.playful.high": "Playful",
+      "business.axis.expressive.low": "Quiet",
+      "business.axis.expressive.high": "Bold",
+      "business.axis.structured.low": "Free and loose",
+      "business.axis.structured.high": "Orderly and precise",
+      "business.axis.warm.low": "Cool and reserved",
+      "business.axis.warm.high": "Warm and friendly",
+      "business.axis.premium.low": "Everyday and easy to reach",
+      "business.axis.premium.high": "Premium and exclusive",
+      "business.identity.axisLegend": "From {low} to {high}",
+      "business.identity.point": "{n} of 5",
+      "business.identity.hypothesis":
+        "These five scales are ORIVILO's working words for a brand's personality, not a tested method.",
+      "business.identity.describe": "Describe the personality",
+      "business.identity.save": "Save this personality",
+      "business.identity.axesRequired": "Choose a point on each of the five scales, or cancel.",
+      "business.state.given": "Given by you",
+      "business.state.waiting": "Waits for {nodes}",
+      "business.marks.unchecked": "Not yet checked against: {nodes}",
+    },
+    th: {
+      "business.node.identityFrame": "บุคลิกของแบรนด์",
+      "business.question.person": "ถ้าแบรนด์ของคุณเป็นคนคนหนึ่ง คนอื่นจะใช้คำสามคำใดบรรยายเขา",
+      "business.question.never": "แบรนด์ของคุณไม่ควรให้ความรู้สึกแบบไหน",
+      "business.field.personality": "บุคลิก",
+      "business.field.person": "สามคำที่บรรยายแบรนด์ถ้าเป็นคน",
+      "business.field.never": "ความรู้สึกที่แบรนด์ไม่ควรให้",
+      "business.axis.playful.low": "จริงจัง",
+      "business.axis.playful.high": "ขี้เล่น",
+      "business.axis.expressive.low": "เรียบนิ่ง",
+      "business.axis.expressive.high": "โดดเด่น",
+      "business.axis.structured.low": "อิสระ ยืดหยุ่น",
+      "business.axis.structured.high": "เป็นระเบียบ แม่นยำ",
+      "business.axis.warm.low": "สุขุม วางตัว",
+      "business.axis.warm.high": "อบอุ่น เป็นกันเอง",
+      "business.axis.premium.low": "ใช้ได้ทุกวัน เข้าถึงง่าย",
+      "business.axis.premium.high": "หรูหรา พิเศษเฉพาะ",
+      "business.identity.axisLegend": "จาก {low} ถึง {high}",
+      "business.identity.point": "ระดับ {n} จาก 5",
+      "business.identity.hypothesis":
+        "สเกลทั้งห้านี้เป็นคำที่ ORIVILO ใช้อธิบายบุคลิกแบรนด์ ยังไม่ใช่วิธีที่ผ่านการทดสอบ",
+      "business.identity.describe": "บอกบุคลิกของแบรนด์",
+      "business.identity.save": "บันทึกบุคลิกนี้",
+      "business.identity.axesRequired": "เลือกระดับให้ครบทั้งห้าสเกล หรือกดยกเลิก",
+      "business.state.given": "คุณกำหนดเอง",
+      "business.state.waiting": "รอ {nodes} ก่อน",
+      "business.marks.unchecked": "ยังไม่ได้ตรวจทานกับ: {nodes}",
+    },
+  } as const;
+
+  for (const locale of LOCALES) {
+    const m = messagesFor(locale);
+
+    it(`${locale}: each line is the spec's, word for word`, () => {
+      expect(Object.keys(LINES[locale])).toHaveLength(25);
+      for (const [key, line] of Object.entries(LINES[locale])) {
+        expect(at(m, key), key).toBe(line);
+      }
+    });
+
+    it(`${locale}: the node title is the catalog's, and the two ends of the five scales are in axis order`, () => {
+      expect(nodeTitle(m, "identity-frame")).toBe(m.business.node.identityFrame);
+      for (const axis of PERSONALITY_AXES) {
+        expect(typeof m.business.axis[axis].low, axis).toBe("string");
+        expect(typeof m.business.axis[axis].high, axis).toBe("string");
+        expect(m.business.axis[axis].low).not.toBe(m.business.axis[axis].high);
+      }
+      expect(Object.keys(m.business.axis)).toEqual([...PERSONALITY_AXES]);
+    });
+
+    it(`${locale}: spells the {low}, {high}, {n} and {nodes} slots`, () => {
+      expect(m.business.identity.axisLegend).toContain("{low}");
+      expect(m.business.identity.axisLegend).toContain("{high}");
+      expect(m.business.identity.point).toContain("{n}");
+      expect(m.business.state.waiting).toContain("{nodes}");
+      expect(m.business.marks.unchecked).toContain("{nodes}");
+    });
+
+    it(`${locale}: no personality line has a middot or an em dash`, () => {
+      for (const key of Object.keys(LINES[locale])) {
+        expect(String(at(m, key)), key).not.toMatch(/[\u00B7\u2014]/);
+      }
+    });
+  }
+});
+
+/**
+ * The lines of Brand architecture and Name (ORV-291 PR 2, ORV-295, spec "Strings"): each key in both
+ * languages, word for word; the question is ORV-126's start question and `strategy.provisional` is
+ * ORV-126 "Missing strategy" word for word, read from ORV-126's spec so a changed catalog line goes
+ * red (T33, spec row 24); no middot or em dash in any of them.
+ */
+describe("brand architecture and name, strings", () => {
+  const LINES = {
+    en: {
+      "business.node.architecture": "Brand architecture",
+      "business.node.name": "Name",
+      "business.question.subBrands": "Does this brand sit above or below other brands?",
+      "business.field.subBrands": "Other brands above or below",
+      "business.field.architecture": "Architecture",
+      "business.field.workingName": "Working name",
+      "business.state.derived": "Worked out by a fixed rule",
+      "business.state.notInVersion": "Not in this version",
+      "business.marks.restsOn": "Rests on: {nodes}",
+      "business.architecture.no": "No, it stands on its own",
+      "business.architecture.yes": "Yes, it sits above or below other brands",
+      "business.architecture.save": "Save this answer",
+      "business.architecture.choiceRequired": "Choose one answer first.",
+      "business.architecture.single": "Single brand, one unit",
+      "business.architecture.because":
+        "Worked out from your answer: this brand does not sit above or below other brands.",
+      "business.architecture.notInVersion":
+        "A brand that sits above or below other brands needs a brand architecture study, which this version does not do yet.",
+      "business.name.give": "Give a working name",
+      "business.name.save": "Use this working name",
+      "business.name.required": "Write a working name, or cancel.",
+      "business.name.notScreened": "Working name, not screened for trademarks.",
+      "strategy.provisional": "Provisional. This rests on a step you skipped.",
+    },
+    th: {
+      "business.node.architecture": "โครงสร้างแบรนด์",
+      "business.node.name": "ชื่อแบรนด์",
+      "business.question.subBrands": "แบรนด์นี้อยู่เหนือหรืออยู่ใต้แบรนด์อื่นหรือไม่",
+      "business.field.subBrands": "แบรนด์อื่นที่อยู่เหนือหรือใต้",
+      "business.field.architecture": "โครงสร้าง",
+      "business.field.workingName": "ชื่อใช้งาน",
+      "business.state.derived": "ได้จากกฎที่กำหนดไว้",
+      "business.state.notInVersion": "ยังไม่มีในเวอร์ชันนี้",
+      "business.marks.restsOn": "อิงกับ: {nodes}",
+      "business.architecture.no": "ไม่ใช่ แบรนด์นี้อยู่เดี่ยว ๆ",
+      "business.architecture.yes": "ใช่ แบรนด์นี้อยู่เหนือหรือใต้แบรนด์อื่น",
+      "business.architecture.save": "บันทึกคำตอบนี้",
+      "business.architecture.choiceRequired": "เลือกหนึ่งคำตอบก่อน",
+      "business.architecture.single": "แบรนด์เดียว หน่วยเดียว",
+      "business.architecture.because":
+        "ได้จากคำตอบของคุณ: แบรนด์นี้ไม่ได้อยู่เหนือหรือใต้แบรนด์อื่น",
+      "business.architecture.notInVersion":
+        "แบรนด์ที่อยู่เหนือหรือใต้แบรนด์อื่นต้องศึกษาโครงสร้างแบรนด์ ซึ่งเวอร์ชันนี้ยังไม่ได้ทำ",
+      "business.name.give": "ตั้งชื่อใช้งาน",
+      "business.name.save": "ใช้ชื่อนี้",
+      "business.name.required": "เขียนชื่อใช้งาน หรือกดยกเลิก",
+      "business.name.notScreened": "ชื่อใช้งานชั่วคราว ยังไม่ได้ตรวจสอบเครื่องหมายการค้า",
+      "strategy.provisional": "ชั่วคราว เพราะอิงกับขั้นตอนที่คุณข้ามไว้",
+    },
+  } as const;
+
+  const orv126 = readFileSync(
+    path.join(import.meta.dirname, "../../../../docs/specs/ORV-126/spec.md"),
+    "utf8",
+  );
+  const PROVISIONAL = /^- `strategy\.provisional`: en "([^"]*)"; th "([^"]*)"$/m;
+
+  it("finds ORV-126's strategy.provisional line", () => {
+    expect(orv126.match(PROVISIONAL)).not.toBeNull();
+  });
+
+  for (const locale of LOCALES) {
+    const m = messagesFor(locale);
+
+    it(`${locale}: each line is the spec's, word for word`, () => {
+      expect(Object.keys(LINES[locale])).toHaveLength(21);
+      for (const [key, line] of Object.entries(LINES[locale])) {
+        expect(at(m, key), key).toBe(line);
+      }
+    });
+
+    it(`${locale}: strategy.provisional is ORV-126 'Missing strategy' word for word`, () => {
+      const home = orv126.match(PROVISIONAL);
+      expect(m.strategy.provisional).toBe(home?.[locale === "en" ? 1 : 2]);
+    });
+
+    it(`${locale}: the question of the choice is the start question of ORV-126`, () => {
+      expect(START_QUESTIONS).toHaveLength(1);
+      expect(m.business.question.subBrands).toBe(START_QUESTIONS[0]?.[locale]);
+    });
+
+    it(`${locale}: the node titles are the catalog's and spell the {nodes} slot of the new mark line`, () => {
+      expect(nodeTitle(m, "architecture")).toBe(m.business.node.architecture);
+      expect(nodeTitle(m, "name")).toBe(m.business.node.name);
+      expect(m.business.marks.restsOn).toContain("{nodes}");
+    });
+
+    it(`${locale}: no line has a middot or an em dash`, () => {
+      for (const key of Object.keys(LINES[locale])) {
+        expect(String(at(m, key)), key).not.toMatch(/[\u00b7\u2014]/);
+      }
     });
   }
 });
