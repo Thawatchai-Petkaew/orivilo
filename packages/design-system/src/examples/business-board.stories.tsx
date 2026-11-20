@@ -630,10 +630,64 @@ async function expectFoundationCards(root: HTMLElement, m: Messages, locale: "th
   }
 }
 
+const GUIDEBOOK_HREF = "/business/fixture/guidebook";
+
+/**
+ * ORV-302 row 13 (design P17): the guidebook link is the first action of the header, before the list
+ * link; Tab reaches it first and then the list link; both are 40 px tall with the focus form; Enter
+ * follows it. The board region is what it is without the link: 70 percent of the window, never under
+ * 480 px, and it starts where the header starts (the same story without `guidebookHref` holds the same).
+ */
+async function expectGuidebookLink(canvasElement: HTMLElement, m: Messages) {
+  const canvas = within(canvasElement);
+  const link = canvas.getByRole("link", { name: m.business.board.openGuidebook });
+  const list = canvas.getByRole("link", { name: m.business.list.heading });
+  await expect(link.tagName).toBe("A");
+  await expect(link.getAttribute("href")).toBe(GUIDEBOOK_HREF);
+  await expect(link.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  await expect(link.parentElement).toBe(list.parentElement);
+  await expect(link.getBoundingClientRect().right).toBeLessThanOrEqual(
+    list.getBoundingClientRect().left,
+  );
+  expectSameHeight(link, list);
+  await expect(link.getBoundingClientRect().height).toBe(40);
+  await expect(list.getBoundingClientRect().height).toBe(40);
+  // Tab: the first stop of the page is the guidebook link, the next the list link.
+  (document.activeElement as HTMLElement | null)?.blur();
+  await userEvent.tab();
+  await expect(document.activeElement).toBe(link);
+  await expectFocusBorderForm(link);
+  await userEvent.tab();
+  await expect(document.activeElement).toBe(list);
+  await expectFocusBorderForm(list);
+  // The board region: its height and its left are what the header's own column gives it.
+  const region = canvas.getByRole("region", { name: m.business.board.label });
+  const heading = canvas.getByRole("heading", { level: 1 });
+  expect(
+    Math.abs(region.getBoundingClientRect().height - Math.max(0.7 * window.innerHeight, 480)),
+  ).toBeLessThanOrEqual(0.5);
+  expect(
+    Math.abs(region.getBoundingClientRect().left - heading.getBoundingClientRect().left),
+  ).toBeLessThanOrEqual(0.5);
+  // Enter follows the link: a click reaches it (the listener stops the page from leaving the story).
+  let clicks = 0;
+  const follow = (event: Event) => {
+    event.preventDefault();
+    clicks += 1;
+  };
+  link.addEventListener("click", follow);
+  link.focus();
+  await userEvent.keyboard("{Enter}");
+  link.removeEventListener("click", follow);
+  await expect(clicks).toBe(1);
+}
+
 /** A saved Thai project on the present board: twelve nodes, eighteen edges, the dock, the gestures (rows 22, 23, 25, 34). */
 export const Board: Story = {
+  args: { guidebookHref: GUIDEBOOK_HREF },
   play: async ({ canvasElement }) => {
     await expectBoard(canvasElement, th, THAI_VIEW, SAVED_TH);
+    await expectGuidebookLink(canvasElement, th);
     await expectGestures(canvasElement, th, THAI_VIEW);
     await expectTabOrder(canvasElement);
     await expectNoStatementSection(canvasElement, th);

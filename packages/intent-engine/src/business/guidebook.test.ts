@@ -497,6 +497,12 @@ describe("a skipped step is listed with what rests on it, and clears once answer
     });
   });
 
+  it("lists W2 case A: the partly colour counts as done and rests on the skipped positioning", () => {
+    expect(printW2(gb(SKIPPED_FOUNDATION))).toBe(
+      "positioning=identity-frame:unchecked,architecture:restsOn,name:unchecked,core-idea:unchecked,color:restsOn",
+    );
+  });
+
   it("lists nothing in case E once the positioning is written, and no item keeps a mark", () => {
     const g = gb(DONE);
     expect(printW2(g)).toBe("none");

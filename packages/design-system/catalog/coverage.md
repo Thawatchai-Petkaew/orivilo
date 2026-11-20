@@ -123,6 +123,7 @@ Commands and shortcuts for the set: `commands/canvas.yaml` (checked by `check-co
 | Business project list (ORV-281)                                  | application | draft  | examples-application-business-list       |
 | Business intake (ORV-281)                                        | application | draft  | examples-application-business-intake     |
 | Business board, readings (ORV-281, ORV-283)                      | application | draft  | examples-application-business-board      |
+| Brand guidebook (ORV-302)                                        | application | draft  | examples-application-brand-guidebook     |
 | ORIVILO canvas (ORV-274)                                         | application | draft  | examples-prototype-orivilo-canvas        |
 
 Marketing has no section entries yet and will not until a story needs a generated landing page; the gap is intentional and reported here rather than implied. Its page example (E2-7) is `draft` for that reason: it is composed from Base and Application components only, and becomes `stable` when a marketing section lands with its own entry. A page example lists only the public components it uses; an inline metric or empty state in an example does not make that row above real.
