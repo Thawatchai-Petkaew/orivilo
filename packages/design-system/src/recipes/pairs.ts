@@ -958,6 +958,14 @@ export const RECIPE_PAIRS: readonly RecipePair[] = [
     bg: "edge.label-bg",
     floor: TEXT,
   },
+  { recipe: "edge", slot: "focus line", fg: "ds:focus.ring", bg: "board.bg", floor: UI },
+  {
+    recipe: "edge",
+    slot: "present focus line",
+    fg: "ds:focus.ring",
+    bg: "ds:surface.canvas",
+    floor: UI,
+  },
   { recipe: "board", slot: "status line", fg: "ds:text.secondary", bg: "toolbar.bg", floor: TEXT },
   {
     recipe: "controls",

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import orv126 from "../../../../docs/specs/ORV-126/spec.md?raw";
-import { PROXY_QUESTIONS } from "./questions";
+import { PROXY_QUESTIONS, START_QUESTIONS } from "./questions";
 
 // ORV-281 tech notes section 13, T4. ORV-126 "Missing strategy" is the home of the copy.
 
@@ -64,5 +64,34 @@ describe("copy is ORV-126's", () => {
       expect(`${q.en}${q.th}`).not.toMatch(/[·—]/);
       expect(q.key).toMatch(/^business\.question\.[a-zA-Z]+$/);
     }
+  });
+});
+
+// ORV-291 tech notes section 13, T31; spec row 24. ORV-126 "The start question" is the home of the copy.
+describe("start question", () => {
+  const START = /`situation\.sub-brands`[^:\n]*: en "([^"]*)"; th "([^"]*)"/;
+  const line = orv126.match(START);
+
+  it("finds the line of ORV-126", () => {
+    expect(line).not.toBeNull();
+  });
+
+  it("holds one question, situation.sub-brands, and it stays out of the proxy questions", () => {
+    expect(START_QUESTIONS.map((q) => q.id)).toEqual(["situation.sub-brands"]);
+    expect(PROXY_QUESTIONS.map((q) => q.id)).not.toContain("situation.sub-brands");
+    expect(PROXY_QUESTIONS).toHaveLength(8);
+  });
+
+  it("situation.sub-brands equals ORV-126 'The start question' word for word", () => {
+    const [q] = START_QUESTIONS;
+    expect(q?.en).toBe("Does this brand sit above or below other brands?");
+    expect(q?.th).toBe("แบรนด์นี้อยู่เหนือหรืออยู่ใต้แบรนด์อื่นหรือไม่");
+    expect(q?.key).toBe("business.question.subBrands");
+    expect(q?.en).toBe(line?.[1]);
+    expect(q?.th).toBe(line?.[2]);
+  });
+
+  it("has no middot and no em dash", () => {
+    for (const q of START_QUESTIONS) expect(`${q.en}${q.th}`).not.toMatch(/[·—]/);
   });
 });

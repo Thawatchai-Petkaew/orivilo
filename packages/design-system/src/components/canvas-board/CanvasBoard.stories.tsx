@@ -16,6 +16,7 @@ import { fixtureManyJobs, fixtures } from "../fixtures";
 import { Matrix, Narrow } from "../matrix";
 import { TaskBar } from "../task-bar/TaskBar";
 import { CanvasBoard, GRID_UNIT } from "./CanvasBoard";
+import { layoutPills } from "./pill-layout";
 import type { BoardNode, Graph } from "./graph";
 import { BOARD, BOARD_NODES, LONG_NODE } from "./fixtures";
 import { MatrixBoard, Stateful } from "./story-shell";
@@ -1605,6 +1606,14 @@ async function playOpenNode(root: HTMLElement, lang: Lang) {
   // Without `onNodeOpen` the node still says what it holds but promises no dialog (ORV-280 D9).
   await expect(within(bare).getByRole("group", { name: w.name })).toBe(nodeEl(bare, "res"));
   await expect(nodeEl(bare, "res")).not.toHaveAttribute("aria-haspopup");
+  // And it draws no open glyph on any node: nothing there opens, so the title row ends with the
+  // page count and nothing after it (ORV-280 S3, option (a) of open question 8).
+  for (const n of bare.querySelectorAll(".react-flow__node")) {
+    await expect(n.querySelector(".ds-node__open")).toBeNull();
+  }
+  await expect(nodeEl(bare, "res").querySelector(".ds-node__pages")).toHaveTextContent(
+    lang === "th" ? "3 หน้า" : "3 pages",
+  );
 
   // An open node is named with its page count and takes the popup attribute; a plain one neither.
   for (const board of [view, edit]) {
@@ -1753,6 +1762,7 @@ function LodBoards({ lang }: { lang: Lang }) {
           height={240}
           fill={false}
           chrome={false}
+          onNodeOpen={fn()}
         >
           <LodWriter lod={lod} />
         </Stateful>
@@ -1815,7 +1825,7 @@ export const PresentRecipesAndModes: Story = {
     };
     return (
       <Matrix>
-        <MatrixBoard {...args} initial={initial} variant="present" height={360} />
+        <MatrixBoard {...args} initial={initial} variant="present" height={360} onNodeOpen={fn()} />
       </Matrix>
     );
   },
@@ -1832,5 +1842,131 @@ export const PresentRecipesAndModes: Story = {
         colourOf(cell, "--ds-border-subtle"),
       );
     }
+  },
+};
+
+/**
+ * The layout pass on a hand-built page of boxes (ORV-280 rows 20 and 21), so each rule shows alone:
+ * an edge pill under a card, a title line or a port dot is hidden; between a meaning pill and a
+ * state pill the state pill stays whichever comes first; a node's own pills never hide each other
+ * while another node's pill that overlaps one does; a pill that is not drawn takes no one's place.
+ */
+export const PillLayoutPass: Story = {
+  render: () => {
+    const at = (left: number, top: number, width: number, height: number) => ({
+      position: "absolute" as const,
+      left,
+      top,
+      width,
+      height,
+      visibility: "visible" as const,
+    });
+    return (
+      <div data-pill-fixture="" style={{ position: "relative", width: 640, height: 270 }}>
+        <div className="ds-node" style={at(0, 0, 100, 60)} />
+        <div data-case="under-card" className="ds-edge__label" style={at(20, 20, 60, 20)}>
+          ล้าสมัย
+        </div>
+        <div className="ds-node__label" style={at(200, 0, 100, 20)} />
+        <div data-case="under-title" className="ds-edge__label" style={at(210, 5, 60, 10)}>
+          อ้างอิง
+        </div>
+        <div className="ds-port__handle" style={at(400, 0, 10, 10)} />
+        <div data-case="under-dot" className="ds-edge__label" style={at(402, 2, 40, 6)}>
+          อ้างอิง
+        </div>
+        <div data-case="meaning-first" className="ds-edge__label" style={at(0, 100, 80, 20)}>
+          ป้อนเข้า
+        </div>
+        <div
+          data-case="state-second"
+          data-state="stale"
+          className="ds-edge__label"
+          style={at(10, 100, 80, 20)}
+        >
+          ป้อนเข้า, ล้าสมัย
+        </div>
+        <div
+          data-case="edge-invisible"
+          className="ds-edge__label"
+          style={{ ...at(0, 170, 80, 20), visibility: "hidden" }}
+        >
+          ป้อนเข้า
+        </div>
+        <div
+          data-case="edge-no-box"
+          className="ds-edge__label"
+          style={{ ...at(0, 170, 80, 20), display: "none" }}
+        >
+          ป้อนเข้า
+        </div>
+        <div data-case="edge-over-unseen" className="ds-edge__label" style={at(10, 170, 80, 20)}>
+          ป้อนเข้า
+        </div>
+        <div data-case="gap-45-first" className="ds-edge__label" style={at(300, 200, 60, 20)}>
+          ป้อนเข้า
+        </div>
+        <div data-case="gap-45-second" className="ds-edge__label" style={at(364.5, 200, 60, 20)}>
+          ป้อนเข้า
+        </div>
+        <div data-case="gap-35-first" className="ds-edge__label" style={at(300, 230, 60, 20)}>
+          ป้อนเข้า
+        </div>
+        <div data-case="gap-35-second" className="ds-edge__label" style={at(363.5, 230, 60, 20)}>
+          ป้อนเข้า
+        </div>
+        <div className="react-flow__node" data-id="n1" style={{ position: "static" }}>
+          <div data-case="own-first" className="ds-port__label" style={at(200, 100, 60, 20)}>
+            ภาพ
+          </div>
+          <div data-case="own-second" className="ds-port__label" style={at(210, 100, 60, 20)}>
+            สี
+          </div>
+        </div>
+        <div className="react-flow__node" data-id="n2" style={{ position: "static" }}>
+          <div data-case="other-node" className="ds-port__label" style={at(205, 100, 60, 20)}>
+            ฟอนต์
+          </div>
+        </div>
+        <div className="react-flow__node" data-id="n3" style={{ position: "static" }}>
+          <div
+            data-case="not-drawn"
+            className="ds-port__label"
+            style={{ ...at(400, 100, 60, 20), visibility: "hidden" }}
+          >
+            ข้อความ
+          </div>
+        </div>
+        <div className="react-flow__node" data-id="n4" style={{ position: "static" }}>
+          <div data-case="under-the-hidden" className="ds-port__label" style={at(410, 100, 60, 20)}>
+            ข้อความ
+          </div>
+        </div>
+      </div>
+    );
+  },
+  play: async ({ canvasElement }) => {
+    const root = canvasElement.querySelector<HTMLElement>("[data-pill-fixture]");
+    if (!root) throw new Error("the fixture did not render");
+    await waitFor(() => expect(root.querySelectorAll("[data-case]")).toHaveLength(17));
+    layoutPills(root);
+    const hidden = (name: string) =>
+      (root.querySelector(`[data-case="${name}"]`) as Element).hasAttribute("data-hidden");
+    await expect(hidden("under-card"), "under a card").toBe(true);
+    await expect(hidden("under-title"), "under a title line").toBe(true);
+    await expect(hidden("under-dot"), "under a port dot").toBe(true);
+    await expect(hidden("meaning-first"), "a meaning pill under a state pill").toBe(true);
+    await expect(hidden("state-second"), "the state pill").toBe(false);
+    await expect(hidden("own-first"), "a node's first pill").toBe(false);
+    await expect(hidden("own-second"), "a node's second pill over the first").toBe(false);
+    await expect(hidden("other-node"), "another node's pill over them").toBe(true);
+    await expect(hidden("not-drawn"), "a pill that is not drawn is not marked").toBe(false);
+    await expect(hidden("under-the-hidden"), "a pill over one that is not drawn").toBe(false);
+    await expect(hidden("edge-invisible"), "an invisible edge pill is not marked").toBe(false);
+    await expect(hidden("edge-no-box"), "an edge pill with no box is not marked").toBe(false);
+    await expect(hidden("edge-over-unseen"), "an edge pill over ones not drawn").toBe(false);
+    // The clearance is 4 px: a pill 4.5 px from another stays, one 3.5 px from it gives way.
+    await expect(hidden("gap-45-second"), "a pill 4.5 px from another").toBe(false);
+    await expect(hidden("gap-35-second"), "a pill 3.5 px from another").toBe(true);
   },
 };
