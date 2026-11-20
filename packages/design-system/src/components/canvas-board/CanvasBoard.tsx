@@ -658,7 +658,7 @@ function Board({
    */
   const firstFit = {
     get padding() {
-      return freePadding(0.2);
+      return freePadding(0.15);
     },
   };
 
@@ -794,7 +794,7 @@ function Board({
         setMessage(m.board.zoom100);
         return true;
       case "board.zoom-to-fit":
-        void flow.fitView({ padding: freePadding(0.2), duration: 200 });
+        void flow.fitView({ padding: freePadding(0.15), duration: 200 });
         setMessage(
           g.nodes.length === 1
             ? m.board.fitAllOne

@@ -643,10 +643,10 @@ export const Board: Story = {
 
 /**
  * ORV-298 design 2.4 (PR 3, twelve cards with Core idea of ORV-296 and Logo type): at the 1440 frame
- * every card sits inside the board and the fit is 0.364 within 0.01 (design 2.4 gives 0.364 for this
- * head; PR 3 measured 0.3637, and the as-built note there records it; PR 1 measured 0.412 against
- * 0.430). Typography at x 2864 still sets the fit, the width bound, and Logo type at x 2376 adds no
- * width. The fit is asked for again after the window is resized, then waited for.
+ * every card sits inside the board and the fit is 0.381 within 0.01 (design 2.6, the margin step: the
+ * fit padding is 0.15, not 0.2; measured 0.3800, where 0.3637 was the zoom at padding 0.2). Typography
+ * at x 2864 still sets the fit, the width bound, and Logo type at x 2376 adds no width. The fit is asked
+ * for again after the window is resized, then waited for. Two zoom-in steps give 0.547 (0.380 x 1.44).
  */
 export const BoardAt1440: Story = {
   play: async ({ canvasElement }) => {
@@ -712,7 +712,7 @@ async function boardAt1440Play(canvasElement: HTMLElement, m: Messages) {
       canvasElement.querySelector('[data-command="board.zoom-to-fit"]') as HTMLElement,
     );
     await settled(canvasElement);
-    await expect(Math.abs(zoomOf(canvasElement) - 0.364)).toBeLessThanOrEqual(0.01);
+    await expect(Math.abs(zoomOf(canvasElement) - 0.381)).toBeLessThanOrEqual(0.01);
     const region = within(canvasElement).getByRole("region", { name: m.business.board.label });
     const box = region.getBoundingClientRect();
     for (const id of BOARD_NODES) {
@@ -735,7 +735,7 @@ async function boardAt1440Play(canvasElement: HTMLElement, m: Messages) {
       expect(Math.abs(zoomOf(canvasElement) - fit * 1.44)).toBeLessThanOrEqual(0.002),
     );
     await settled(canvasElement);
-    await expect(Math.abs(zoomOf(canvasElement) - 0.524)).toBeLessThanOrEqual(0.01);
+    await expect(Math.abs(zoomOf(canvasElement) - 0.547)).toBeLessThanOrEqual(0.01);
     await waitFor(() => expectTitlesWhole(canvasElement, m, false));
   });
 }
