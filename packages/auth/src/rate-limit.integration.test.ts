@@ -221,7 +221,8 @@ describe.runIf(HAS_TEST_DATABASE)("the shared rate limit store", () => {
     const started = Date.now();
     const result = await limiter.consume(per(60, 5, "locked"), { user: "l" });
     expect(result).toEqual({ ok: false, reason: "unavailable" });
-    expect(Date.now() - started).toBeLessThan(1_000);
+    // the bound 2000 is 2 times 928 ms, the whole test on run 44693919786, rounded up to a whole second (ORV-299)
+    expect(Date.now() - started).toBeLessThan(2_000);
     // Past the lock timeout the database has cancelled the upsert, so releasing the lock
     // does not let a late commit count the refused call.
     await new Promise((r) => setTimeout(r, 400));

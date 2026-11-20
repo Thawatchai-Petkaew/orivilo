@@ -113,8 +113,8 @@ const viewNode = (view: BusinessView, id: BusinessNodeId) =>
 /** React Flow keeps a node hidden until it is measured and draws edges after: wait for all of it. */
 const boardReady = (root: HTMLElement) =>
   waitFor(() => {
-    expect(root.querySelectorAll(".react-flow__node")).toHaveLength(9);
-    expect(root.querySelectorAll(".react-flow__edge")).toHaveLength(13);
+    expect(root.querySelectorAll(".react-flow__node")).toHaveLength(12);
+    expect(root.querySelectorAll(".react-flow__edge")).toHaveLength(18);
     for (const n of root.querySelectorAll<HTMLElement>(".react-flow__node")) {
       expect(n.style.visibility).not.toBe("hidden");
     }
@@ -286,9 +286,17 @@ const W2 = [
   "architecture>name",
   "positioning>core-idea",
   "identity-frame>core-idea",
+  // ORV-298 PR 3: Logo type reads Brand architecture and Name (spec row 35).
+  "architecture>logo-type",
+  "name>logo-type",
+  // ORV-298 PR 1: Colour reads Competitive frame and Brand personality (spec row 12).
+  "competitive-frame>color",
+  "identity-frame>color",
+  // ORV-298 PR 2: Typography reads Brand personality (spec row 18).
+  "identity-frame>typography",
 ];
 
-/** The header, the nine nodes at rest, the thirteen edges and the dock (spec row 22). */
+/** The header, the twelve nodes at rest, the eighteen edges and the dock (spec row 22). */
 async function expectBoard(
   canvasElement: HTMLElement,
   m: Messages,
@@ -342,7 +350,7 @@ async function expectBoard(
   for (const f of answersOf(view)) {
     await expect(textOf(region)).not.toContain(f.answer?.text ?? "");
   }
-  // Exactly the thirteen edges of W2 and the foundation require, and the dock says view only.
+  // Exactly the eighteen edges of W2 and the foundation require, and the dock says view only.
   const edges = [...canvasElement.querySelectorAll<HTMLElement>(".react-flow__edge")].map((e) => {
     const [, source, , target] = (e.dataset["id"] ?? "").split(":");
     return `${source}>${target}`;
@@ -448,7 +456,9 @@ async function expectStateAlignment(root: HTMLElement) {
 
 /**
  * Down column 2, from each card's bottom to the next node's label top is at least 40 screen pixels
- * (design 6.3), measured from the rendered boxes at the zoom the board is at.
+ * (design 6.3) at the base fit of 0.412, which is 90 world pixels (96.3 measured, and the positions
+ * did not move). The fit zoom falls as the board widens (0.364 at ORV-298 PR 2), so the bound is
+ * read in world pixels: the rendered boxes at the zoom the board is at, divided by that zoom.
  */
 async function expectCardsClear(root: HTMLElement) {
   const column = ["business-core", "audience", "competitive-frame"] as const;
@@ -458,7 +468,7 @@ async function expectCardsClear(root: HTMLElement) {
     const label = nodeEl(root, column[i] as string).querySelector(".ds-node__label") as HTMLElement;
     gaps.push(label.getBoundingClientRect().top - above.getBoundingClientRect().bottom);
   }
-  for (const gap of gaps) await expect(gap).toBeGreaterThanOrEqual(40);
+  for (const gap of gaps) await expect(gap / zoomOf(root)).toBeGreaterThanOrEqual(90);
 }
 
 /**
@@ -566,11 +576,12 @@ async function expectFoundationCard(
   await closeViewer(root, id);
 }
 
-/** The four foundation cards of the head (design 6.5 B1, sections 7 and 10) on the Thai or English fixture. */
+/** The six foundation cards (design 6.5 B1, sections 7 and 10; ORV-298 design 2.5) on the Thai or English fixture. */
 async function expectFoundationCards(root: HTMLElement, m: Messages, locale: "th" | "en") {
   const list = (...ids: (FoundationNodeId | BusinessNodeId)[]) =>
     new Intl.ListFormat(locale, { type: "conjunction" }).format(ids.map((id) => nodeTitle(m, id)));
-  await expectFoundationCard(root, m, "identity-frame", { x: 1400, y: 160 }, list("positioning"), [
+  // Brand personality moved up 500 in ORV-298 PR 1 (design 2.1), so its edge to Colour clears the cards.
+  await expectFoundationCard(root, m, "identity-frame", { x: 1400, y: -340 }, list("positioning"), [
     m.business.field.person,
     m.business.field.never,
     m.business.field.personality,
@@ -592,9 +603,33 @@ async function expectFoundationCards(root: HTMLElement, m: Messages, locale: "th
     [m.business.field.remember, m.business.field.coreIdea],
     m.business.state.gate,
   );
+  // ORV-298 PR 3, spec row 35: Logo type right of Name and Brand architecture, its two field names and no value.
+  await expectFoundationCard(root, m, "logo-type", { x: 2376, y: 552 }, list("positioning"), [
+    m.business.field.appIcon,
+    m.business.field.logoType,
+  ]);
+  // ORV-298 PR 1, spec row 12: Colour right of Brand personality, its five field names and no value.
+  await expectFoundationCard(root, m, "color", { x: 2376, y: -330 }, list("positioning"), [
+    m.business.field.signature,
+    m.business.field.neutral,
+    m.business.field.canvas,
+    m.business.field.lineup,
+    m.business.field.crowded,
+  ]);
+  // ORV-298 PR 2, spec row 18: Typography right of Colour, its three field names and no value.
+  await expectFoundationCard(root, m, "typography", { x: 2864, y: 0 }, list("positioning"), [
+    m.business.field.scripts,
+    m.business.field.readingFace,
+    m.business.field.displayFace,
+  ]);
+  for (const card of root.querySelectorAll<HTMLElement>(".ds-node")) {
+    // A card shows no colour: no hex, and no element with a background of its own (expression-board-1).
+    await expect(textOf(card)).not.toContain("#");
+    await expect(card.querySelectorAll("[style*='background']")).toHaveLength(0);
+  }
 }
 
-/** A saved Thai project on the present board: nine nodes, thirteen edges, the dock, the gestures (rows 22, 23, 25, 34). */
+/** A saved Thai project on the present board: twelve nodes, eighteen edges, the dock, the gestures (rows 22, 23, 25, 34). */
 export const Board: Story = {
   play: async ({ canvasElement }) => {
     await expectBoard(canvasElement, th, THAI_VIEW, SAVED_TH);
@@ -606,10 +641,11 @@ export const Board: Story = {
 };
 
 /**
- * Design 7 (stage 2, eight cards): at the 1440 frame every card sits inside the board and the fit is
- * 0.524 within 0.01, the figure the design gives and the real cards measure. Stage 1 held 0.617;
- * the wider world of Name at x 1888 now sets the fit. The fit is asked
- * for again after the window is resized, then waited for.
+ * ORV-298 design 2.4 (PR 3, twelve cards with Core idea of ORV-296 and Logo type): at the 1440 frame
+ * every card sits inside the board and the fit is 0.364 within 0.01 (design 2.4 gives 0.364 for this
+ * head; PR 3 measured 0.3637, and the as-built note there records it; PR 1 measured 0.412 against
+ * 0.430). Typography at x 2864 still sets the fit, the width bound, and Logo type at x 2376 adds no
+ * width. The fit is asked for again after the window is resized, then waited for.
  */
 export const BoardAt1440: Story = {
   play: async ({ canvasElement }) => {
@@ -619,7 +655,7 @@ export const BoardAt1440: Story = {
         canvasElement.querySelector('[data-command="board.zoom-to-fit"]') as HTMLElement,
       );
       await settled(canvasElement);
-      await expect(Math.abs(zoomOf(canvasElement) - 0.524)).toBeLessThanOrEqual(0.01);
+      await expect(Math.abs(zoomOf(canvasElement) - 0.364)).toBeLessThanOrEqual(0.01);
       const region = within(canvasElement).getByRole("region", { name: th.business.board.label });
       const box = region.getBoundingClientRect();
       for (const id of BOARD_NODES) {

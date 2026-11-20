@@ -1,3 +1,4 @@
+import { expressionOf, isLongName, type ExpressionOutcomes } from "./expression";
 import {
   newestByNode,
   type AxisValue,
@@ -13,14 +14,25 @@ import type { GateState } from "./positioning";
  * and the server door both call, so a control is offered exactly when the door accepts its entry.
  * Nothing about a mark is stored: it is computed from the entries and the positioning gate each time.
  * PR 1 holds the node `identity-frame`, PR 2 adds `architecture` and `name`, PR 3 adds `core-idea`
- * (`core-idea-gate-1`).
+ * (`core-idea-gate-1`). ORV-298 adds the node `color` and the root `competitive-frame` (spec
+ * `expression-roots-1`, `expression-marks-1`), the node `typography` and the node `logo-type`
+ * (`logo-type-1`).
  */
 
-/** Fill order. */
-export const FOUNDATION_NODES = ["identity-frame", "architecture", "name", "core-idea"] as const;
+/** Fill order, by ORV-126 node number from `core-idea` on: 11, 13, 15, 16. */
+export const FOUNDATION_NODES = [
+  "identity-frame",
+  "architecture",
+  "name",
+  "core-idea",
+  "logo-type",
+  "color",
+  "typography",
+] as const;
 export type FoundationNodeId = (typeof FOUNDATION_NODES)[number];
-/** The two roots the nodes rest on, and the nodes themselves. */
-export type RootId = "situation" | "positioning";
+/** The roots the nodes rest on, in ORV-126 number order. */
+export const ROOT_IDS = ["situation", "competitive-frame", "positioning"] as const;
+export type RootId = (typeof ROOT_IDS)[number];
 export type MarkRef = RootId | FoundationNodeId;
 
 /** ORV-126 requires, in ORV-126 order. One entry per node of FOUNDATION_NODES. */
@@ -29,6 +41,9 @@ export const FOUNDATION_REQUIRES = {
   architecture: ["situation", "positioning"],
   name: ["positioning", "architecture"],
   "core-idea": ["positioning", "identity-frame"],
+  "logo-type": ["architecture", "name"],
+  color: ["competitive-frame", "identity-frame"],
+  typography: ["identity-frame"],
 } as const satisfies Record<FoundationNodeId, readonly MarkRef[]>;
 
 /** `[from, to]`, one per require. */
@@ -39,18 +54,24 @@ export const FOUNDATION_EDGES = FOUNDATION_NODES.flatMap((to) =>
 /** ORV-126 node numbers, for the sort order of every mark list. */
 export const MARK_NUMBERS: Record<MarkRef, number> = {
   situation: 1,
+  "competitive-frame": 5,
   positioning: 6,
   "identity-frame": 7,
   architecture: 8,
   name: 9,
   "core-idea": 11,
+  "logo-type": 13,
+  color: 15,
+  typography: 16,
 };
 
 export type RootStatus = "done" | "skipped" | "open";
 export type FoundationRoots = Record<RootId, RootStatus>;
 
 /**
- * `foundation-roots-1`. `situation` is done on every saved project (departure 1). `positioning`
+ * `foundation-roots-1`. `situation` is done on every saved project (departure 1), and so is
+ * `competitive-frame` (`expression-roots-1`, departure 2): a missing lineup shows only as the
+ * colour's question. `positioning`
  * counts by its gate: `given` and `confirmed` are done; `open` with `skipped` is skipped; every
  * other state, a stale `open` and `awaiting-choice` included, is open and not skipped.
  */
@@ -61,13 +82,16 @@ export function foundationRoots(gate: { state: GateState; skipped: boolean }): F
       : gate.state === "open" && gate.skipped
         ? "skipped"
         : "open";
-  return { situation: "done", positioning };
+  return { situation: "done", "competitive-frame": "done", positioning };
 }
 
 /** A node's status from its newest entry, before the rule of `foundation-marks-1` runs. */
 export type OwnStatus = "given" | "derived" | "skipped" | "open";
 
-export function ownStatus(newest: NewestByNode): Record<FoundationNodeId, OwnStatus> {
+export function ownStatus(
+  newest: NewestByNode,
+  expression: ExpressionOutcomes = expressionOf(newest),
+): Record<FoundationNodeId, OwnStatus> {
   const personality = newest["identity-frame"];
   const architecture = newest.architecture;
   const name = newest.name;
@@ -80,6 +104,12 @@ export function ownStatus(newest: NewestByNode): Record<FoundationNodeId, OwnSta
     name: name === null ? "open" : "given", // working-name-1
     // core-idea-gate-1: a written idea is given, a skip is skipped, none is open.
     "core-idea": coreIdea === null ? "open" : coreIdea.kind === "written" ? "given" : "skipped",
+    // logo-type-1: derived with a decision, open without one.
+    "logo-type": expression.logoType === null ? "open" : "derived",
+    // color-node-1: derived only when the three decisions are made.
+    color: expression.color.decided === 3 ? "derived" : "open",
+    // typography-node-1: derived with an entry, open without one.
+    typography: expression.typography === null ? "open" : "derived",
   };
 }
 
@@ -118,7 +148,7 @@ export function propagateMarks<N extends string>(
 ): Record<N, FoundationResult<RootId | N>> {
   type Ref = RootId | N;
   const results = new Map<Ref, FoundationResult<Ref>>();
-  for (const root of ["situation", "positioning"] as const) {
+  for (const root of ROOT_IDS) {
     results.set(root, {
       ...ROOT_RESULT[roots[root]],
       blockedBy: [],
@@ -214,7 +244,10 @@ export function blockCause(
   return foundationMarks(roots, { ...own, [node]: "open" })[node].blockedBy;
 }
 
-/** The "Allowed when" column of `foundation-entry-1`, for every entry the four nodes take. */
+/**
+ * The "Allowed when" column of `foundation-entry-1` and `expression-entry-1`, for the entries
+ * built so far.
+ */
 export function entryAllowed(
   entry: Pick<EntryInput, "node" | "kind">,
   state: { roots: FoundationRoots; newest: NewestByNode },
@@ -237,6 +270,20 @@ export function entryAllowed(
       if (blockCause("core-idea", state.roots, own).length > 0) return false;
       return entry.kind === "written" ? newest?.kind !== "written" : newest === null;
     }
+    // expression-entry-1: the lineup is a fact about the business, given once, whatever the marks.
+    case "competitive-frame":
+      return state.newest["competitive-frame"] === null;
+    // The scripts are a fact about the brand, given once while the node waits (typography-node-1).
+    case "typography":
+      return state.newest.typography === null;
+    // The need for a small square mark is a fact about the brand, given once while the node waits.
+    // A long name needs no answer: the name alone gives the symbol (name-length-1, logo-type-1).
+    case "logo-type": {
+      const name = state.newest.name;
+      return (
+        state.newest["logo-type"] === null && !(name !== null && isLongName(name.payload.name))
+      );
+    }
   }
 }
 
@@ -247,8 +294,10 @@ export function foundationState(
 ) {
   const roots = foundationRoots(gate);
   const newest = newestByNode(entries);
-  const own = ownStatus(newest);
-  return { roots, newest, own, results: foundationMarks(roots, own) };
+  // The decisions of the expression nodes, worked out once for the status and the view.
+  const expression = expressionOf(newest);
+  const own = ownStatus(newest, expression);
+  return { roots, newest, own, expression, results: foundationMarks(roots, own) };
 }
 
 export type FoundationState = ReturnType<typeof foundationState>;
