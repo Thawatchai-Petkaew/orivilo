@@ -1068,6 +1068,7 @@ describe.runIf(HAS_TEST_DATABASE)("orivilo_app and row security", () => {
         ["name", "given", { name: "ORIVILO" }],
         ["core-idea", "written", { statement: "Brands that stay alive" }],
         ["core-idea", "skipped", {}],
+        ["competitive-frame", "lineup", { lineup: [{ name: "Brand A", hex: "#5B3FD9" }] }],
       ] as const;
 
       it.each(six)("takes the pair %s and %s", async (node, kind, payload) => {
@@ -1092,6 +1093,11 @@ describe.runIf(HAS_TEST_DATABASE)("orivilo_app and row security", () => {
         ["core-idea", "given", { statement: "x" }],
         ["color", "given", {}],
         ["color", "skipped", {}],
+        ["color", "lineup", { lineup: [{ name: "Brand A", hex: "#5B3FD9" }] }],
+        ["competitive-frame", "skipped", {}],
+        ["competitive-frame", "given", { lineup: [{ name: "Brand A", hex: "#5B3FD9" }] }],
+        ["competitive-frame", "answered", { lineup: [{ name: "Brand A", hex: "#5B3FD9" }] }],
+        ["identity-frame", "lineup", { lineup: [{ name: "Brand A", hex: "#5B3FD9" }] }],
       ])("refuses the pair %s and %s (the pair check)", async (node, kind, payload) => {
         const id = await freshProject();
         await failsWithCode(
@@ -1203,6 +1209,97 @@ describe.runIf(HAS_TEST_DATABASE)("orivilo_app and row security", () => {
             ),
           "23514",
         );
+      });
+    });
+
+    // ORV-298 (tech notes sections 4 and 13, T16): the lineup of competitor colours. The app schema
+    // holds the strict keys and the repeat rule; the table bounds the count, each name and each
+    // colour, so no direct call passes a missed app check.
+    describe("lineup entry shape (T16)", () => {
+      const ok = { name: "Brand A", hex: "#5B3FD9" };
+      const lineupRow = (id: string, payload: unknown) =>
+        entry(`${id}-l`, "ws-a", id, "competitive-frame", "lineup", payload);
+      const many = (n: number) =>
+        Array.from({ length: n }, (_, i) => ({ name: `Brand ${i}`, hex: "#111111" }));
+
+      it.each([
+        ["one entry", [ok]],
+        ["twenty entries", many(20)],
+        ["a name of 60 Thai characters", [{ name: "ก".repeat(60), hex: "#111111" }]],
+        ["a name of 60 astral characters", [{ name: "😀".repeat(60), hex: "#111111" }]],
+        ["a name of one character", [{ name: "x", hex: "#111111" }]],
+        ["a name with a line break inside", [{ name: "a\nb", hex: "#111111" }]],
+        ["upper-case hex digits and letters", [{ name: "a", hex: "#0A9BFE" }]],
+      ])("keeps %s", async (_label, lineup) => {
+        const id = await freshProject();
+        await t.admin.insert(businessFoundationEntry).values(lineupRow(id, { lineup }));
+        const rows = await t.admin
+          .select()
+          .from(businessFoundationEntry)
+          .where(eq(businessFoundationEntry.projectId, id));
+        expect(rows).toHaveLength(1);
+      });
+
+      it.each([
+        ["no entry", []],
+        ["twenty-one entries", many(21)],
+        ["a name of 61 Thai characters", [{ name: "ก".repeat(61), hex: "#111111" }]],
+        ["a name of 61 astral characters", [{ name: "😀".repeat(61), hex: "#111111" }]],
+        ["an empty name", [{ name: "", hex: "#111111" }]],
+        ["a name that is no text", [{ name: 5, hex: "#111111" }]],
+        ["a null name", [{ name: null, hex: "#111111" }]],
+        ["no name", [{ hex: "#111111" }]],
+        ["no hex", [{ name: "a" }]],
+        ["a hex that is no text", [{ name: "a", hex: 5 }]],
+        ["a null hex", [{ name: "a", hex: null }]],
+        ["a lower-case hex", [{ name: "a", hex: "#5b3fd9" }]],
+        ["a hex of five digits", [{ name: "a", hex: "#12345" }]],
+        ["a hex of seven digits", [{ name: "a", hex: "#5B3FD9F" }]],
+        ["a hex of three digits", [{ name: "a", hex: "#FFF" }]],
+        ["a hex with no #", [{ name: "a", hex: "5B3FD9" }]],
+        ["a hex with a letter past F", [{ name: "a", hex: "#GGGGGG" }]],
+        ["a hex followed by text", [{ name: "a", hex: "#5B3FD9\nx" }]],
+        ["a bad entry among good ones", [ok, { name: "b", hex: "red" }, ok]],
+        ["an entry that is no object", [5]],
+        ["an entry that is a list holding a good one", [[ok]]],
+        ["a hex with text before it", [{ name: "a", hex: "x#5B3FD9" }]],
+        ["an entry that is a text", ["x"]],
+        ["an entry that is null", [null]],
+        ["a list that is an object", { name: "a", hex: "#111111" }],
+        ["a list that is a text", "Brand A"],
+        ["a list that is null", null],
+      ])("refuses %s (the lineup check)", async (_label, lineup) => {
+        const id = await freshProject();
+        await failsWithCode(
+          t.admin.insert(businessFoundationEntry).values(lineupRow(id, { lineup })),
+          "23514",
+        );
+      });
+
+      it("refuses a lineup entry whose payload holds no lineup key", async () => {
+        const id = await freshProject();
+        await failsWithCode(
+          t.admin.insert(businessFoundationEntry).values(lineupRow(id, { other: [ok] })),
+          "23514",
+        );
+      });
+
+      it("refuses a second lineup for one project (the unique index)", async () => {
+        const id = await freshProject();
+        await t.admin.insert(businessFoundationEntry).values(lineupRow(id, { lineup: [ok] }));
+        await failsWithCode(
+          t.admin
+            .insert(businessFoundationEntry)
+            .values(entry(`${id}-2`, "ws-a", id, "competitive-frame", "lineup", { lineup: [ok] })),
+          "23505",
+        );
+      });
+
+      it("leaves the other nodes' payloads alone: a given entry takes no lineup check", async () => {
+        const id = await freshProject();
+        await t.admin
+          .insert(businessFoundationEntry)
+          .values(given(`${id}-g`, "ws-a", id, { axes: { warm: 50 } }));
       });
     });
   });

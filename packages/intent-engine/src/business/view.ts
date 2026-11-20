@@ -1,5 +1,7 @@
+import type { HueFamily } from "../color-audit";
 import type { InputEvidence } from "../evidence";
 import { PERSONALITY_AXES, type PersonalityAxis } from "../knowledge";
+import type { ColorOutcome } from "./expression";
 import type { AxisValue, StoredEntry } from "./foundation";
 import {
   axisPointOf,
@@ -73,10 +75,20 @@ export type PositioningView = {
 
 /** A foundation node's field names, a key of `business.field.*`. PR 3 adds its own. */
 export type FoundationFieldKey =
-  "person" | "never" | "personality" | "subBrands" | "architecture" | "workingName";
+  | "person"
+  | "never"
+  | "personality"
+  | "subBrands"
+  | "architecture"
+  | "workingName"
+  | "signature"
+  | "neutral"
+  | "canvas"
+  | "lineup"
+  | "crowded";
 /** A foundation node's state line, a key of `business.state.*`. PR 3 adds `agreed`. */
 export type FoundationStateKey =
-  "given" | "derived" | "waiting" | "skipped" | "empty" | "notInVersion";
+  "given" | "derived" | "waiting" | "skipped" | "empty" | "notInVersion" | "partly" | "needsAnswer";
 
 type FoundationBase = {
   result: FoundationResult;
@@ -114,6 +126,24 @@ export type FoundationNode =
       id: "name";
       /** The person's own text, shown with any entry; null with none. */
       name: string | null;
+      controls: Array<"give">;
+    })
+  | (FoundationBase & {
+      id: "color";
+      /** The person's lineup in the order given; null with none. Shown in every result. */
+      lineup: null | Array<{ name: string; hex: string }>;
+      /** `auditLineup`'s crowded families in its order; null with no lineup. Shown in every result. */
+      crowded: null | HueFamily[];
+      /** Null while the result is blocked; each decision null when `decideColor` left it open. */
+      decisions: null | Pick<ColorOutcome, "signature" | "neutral" | "canvas">;
+      /** Why the signature is open; null while blocked. */
+      signatureOpen: ColorOutcome["signatureOpen"];
+      /** `business.color.needsPersonality`: the rules ask for the personality and the result is not blocked. */
+      needsPersonality: boolean;
+      /** `business.color.notDecided`: a conflicted or invalid result, not blocked. */
+      notDecided: boolean;
+      /** The scale points (1 to 5) the reasons quote; null while blocked or with no given personality. */
+      points: null | Record<"expressive" | "warm" | "premium", AxisPoint>;
       controls: Array<"give">;
     });
 
@@ -250,6 +280,27 @@ export function foundationLines(result: FoundationResult): Omit<FoundationBase, 
   };
 }
 
+/**
+ * `expression-marks-1`'s table for the three expression nodes: an open result reads `partly` with
+ * at least one decision made, and carries the mark lines as a derived one does; `needsAnswer`
+ * with none, and no mark line. Every other status reads as `foundationLines` gives it.
+ */
+export function expressionLines(
+  result: FoundationResult,
+  decided: number,
+): Omit<FoundationBase, "fields"> {
+  if (result.status !== "open") return foundationLines(result);
+  return decided > 0
+    ? {
+        result,
+        state: "partly",
+        waitingFor: [],
+        restsOn: result.provisionalOn,
+        unchecked: result.unchecked,
+      }
+    : { result, state: "needsAnswer", waitingFor: [], restsOn: [], unchecked: [] };
+}
+
 function personalityOf(state: FoundationState): FoundationNode {
   const result = state.results["identity-frame"];
   const entry = state.newest["identity-frame"];
@@ -303,6 +354,37 @@ function nameOf(state: FoundationState): FoundationNode {
   };
 }
 
+function colorNodeOf(state: FoundationState): FoundationNode {
+  const result = state.results.color;
+  const outcome = state.expression.color;
+  // A blocked result shows no decision; the lineup, its audit and the question show in every result.
+  const blocked = result.status === "blocked";
+  const { axes } = outcome;
+  return {
+    id: "color",
+    ...expressionLines(result, outcome.decided),
+    fields: ["signature", "neutral", "canvas", "lineup", "crowded"],
+    lineup: state.newest["competitive-frame"]?.payload.lineup ?? null,
+    crowded: outcome.audit?.crowded ?? null,
+    decisions: blocked
+      ? null
+      : { signature: outcome.signature, neutral: outcome.neutral, canvas: outcome.canvas },
+    signatureOpen: blocked ? null : outcome.signatureOpen,
+    needsPersonality: !blocked && outcome.asks.includes("identity-frame"),
+    notDecided: outcome.notDecided,
+    // A blocked colour has no given personality (a given one is never blocked), so no axes.
+    points:
+      axes === null
+        ? null
+        : {
+            expressive: axisPointOf(axes.expressive),
+            warm: axisPointOf(axes.warm),
+            premium: axisPointOf(axes.premium),
+          },
+    controls: entryAllowed({ node: "competitive-frame", kind: "lineup" }, state) ? ["give"] : [],
+  };
+}
+
 export function toBusinessView(saved: SavedBusiness): BusinessView {
   const placed = placeIntake(saved.intake);
   const states = nodeStates(saved.intake);
@@ -324,7 +406,12 @@ export function toBusinessView(saved: SavedBusiness): BusinessView {
     savedAt: saved.project.createdAt,
     reading: statusOf(saved.reading),
     positioning,
-    foundation: [personalityOf(foundation), architectureOf(foundation), nameOf(foundation)],
+    foundation: [
+      personalityOf(foundation),
+      architectureOf(foundation),
+      nameOf(foundation),
+      colorNodeOf(foundation),
+    ],
     nodes: states.map((s) => ({
       id: s.id,
       state: s.id === "positioning" ? stateOfPositioning(s.state) : s.state,

@@ -324,3 +324,73 @@ describe("foundation replay", () => {
     });
   });
 });
+
+// ORV-298 T19, row 15: the colour is computed from the stored entries each time the project opens.
+// Opening stores no decision, writes nothing, counts no limit and calls no model.
+describe("expression replay", () => {
+  const agreed = {
+    id: "c-1",
+    intakeId: INTAKE,
+    kind: "written",
+    statement: "Fresh roasted coffee for office workers",
+    draftId: null,
+    option: null,
+    createdAt: "2026-11-18T04:00:00.000Z",
+  };
+  const personality = {
+    id: "e-1",
+    node: "identity-frame",
+    kind: "given",
+    payload: {
+      axes: { playful: 75, expressive: 75, structured: 75, warm: 75, premium: 75 },
+      person: "warm, plain, caring",
+    },
+    createdAt: "2026-11-18T05:00:00.000Z",
+  };
+  const lineup = [
+    { name: "Rival A", hex: "#5B3FD9" },
+    { name: "Rival B", hex: "#111111" },
+  ];
+  const lineupEntry = {
+    id: "e-2",
+    node: "competitive-frame",
+    kind: "lineup",
+    payload: { lineup },
+    createdAt: "2026-11-18T05:30:00.000Z",
+  };
+
+  it("colour loaded twice gives the same view and writes nothing", async () => {
+    state.choice = agreed;
+    state.foundation = [lineupEntry, personality];
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-19T03:00:00Z"));
+    const first = await loadProject(PROJECT);
+    vi.setSystemTime(new Date("2026-11-20T03:00:00Z"));
+    const second = await loadProject(PROJECT);
+    if (first.access !== "ready" || second.access !== "ready") throw new Error("not ready");
+    expect(second).toEqual(first);
+    const colour = first.view.foundation.find((node) => node.id === "color");
+    // The stored lineup and personality reached the view, and the decisions came from the rules.
+    expect(colour).toMatchObject({
+      id: "color",
+      lineup,
+      controls: [],
+      needsPersonality: false,
+      decisions: { neutral: expect.anything(), canvas: expect.anything() },
+    });
+    expect(state.writes).toEqual([]);
+    expect(state.limitsConsumed).toBe(0);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("gives the colour node the give control while no lineup is stored and the personality is", async () => {
+    state.choice = agreed;
+    state.foundation = [personality];
+    const loaded = await loadProject(PROJECT);
+    if (loaded.access !== "ready") throw new Error("not ready");
+    expect(loaded.view.foundation.find((node) => node.id === "color")).toMatchObject({
+      lineup: null,
+      controls: ["give"],
+    });
+  });
+});

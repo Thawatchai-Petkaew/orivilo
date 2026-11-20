@@ -17,7 +17,9 @@ import {
 } from "./foundation-marks";
 import { storedEntrySchema, type StoredEntry } from "./foundation";
 import type { StoredChoice } from "./positioning";
-import { foundationLines, toBusinessView, type SavedBusiness } from "./view";
+import { STAND_IN_LINEUP } from "../color-fixtures";
+import type { Lineup } from "../color-audit";
+import { expressionLines, foundationLines, toBusinessView, type SavedBusiness } from "./view";
 
 // ORV-281 tech notes section 13, T8 and T37; spec rows 14 and 15 (the data half), 19, 27 and 33 (the data half).
 
@@ -458,6 +460,19 @@ describe("foundation in the view", () => {
     if (node?.id !== "name") throw new Error("the node name");
     return node;
   };
+  const colorNode = (view: ReturnType<typeof toBusinessView>) => {
+    const node = view.foundation[3];
+    if (node?.id !== "color") throw new Error("the node color");
+    return node;
+  };
+  const LINEUP = (lineup: Lineup = STAND_IN_LINEUP): StoredEntry =>
+    storedEntrySchema.parse({
+      id: "l1",
+      node: "competitive-frame",
+      kind: "lineup",
+      payload: { lineup },
+      createdAt: "2026-11-19T07:00:00.000Z",
+    });
   const ANSWER = (subBrands: boolean, createdAt = "2026-11-19T05:00:00.000Z"): StoredEntry =>
     storedEntrySchema.parse({
       id: `a-${subBrands}`,
@@ -643,10 +658,22 @@ describe("foundation in the view", () => {
 
     it("names the fields the card lists, in order, and has the node first and only", () => {
       const view = toBusinessView(project_("agreed"));
-      expect(view.foundation.map((n) => n.id)).toEqual(["identity-frame", "architecture", "name"]);
+      expect(view.foundation.map((n) => n.id)).toEqual([
+        "identity-frame",
+        "architecture",
+        "name",
+        "color",
+      ]);
       expect(personality(view).fields).toEqual(["person", "never", "personality"]);
       expect(architecture(view).fields).toEqual(["subBrands", "architecture"]);
       expect(nameNode(view).fields).toEqual(["workingName"]);
+      expect(colorNode(view).fields).toEqual([
+        "signature",
+        "neutral",
+        "canvas",
+        "lineup",
+        "crowded",
+      ]);
     });
 
     it("the newest entry wins in whatever order the entries are stored", () => {
@@ -925,6 +952,229 @@ describe("foundation in the view", () => {
     });
   });
 
+  // ORV-298 tech notes section 13, T13 to T15: spec rows 2, 5, 6, 7 and 8, the data half.
+  describe("colour in the view", () => {
+    const LIME_A = { name: "lime-a", hex: "#C6F432" };
+    const LIME_B = { name: "lime-b", hex: "#B5E61D" };
+    const EVERY: Lineup = [
+      LIME_A,
+      LIME_B,
+      { name: "cyan-a", hex: "#00C8E0" },
+      { name: "cyan-b", hex: "#10D0E8" },
+      { name: "magenta-a", hex: "#D020B0" },
+      { name: "magenta-b", hex: "#E030C0" },
+      { name: "teal-a", hex: "#00C8A0" },
+      { name: "teal-b", hex: "#10D0A8" },
+    ];
+
+    it("decides neutral and canvas and keeps the signature open with no lineup", () => {
+      const node = colorNode(toBusinessView(project_("agreed", [GIVEN_ENTRY])));
+      expect(node.state).toBe("partly");
+      expect(node.result.status).toBe("open");
+      expect(node.decisions).toEqual({
+        signature: null,
+        neutral: { value: "warm", rule: "color.neutral.warm" },
+        canvas: { value: "soft", rule: "color.canvas.soft" },
+      });
+      expect(node.signatureOpen).toEqual({ why: "waitsForLineup" });
+      expect(node.needsPersonality).toBe(false);
+      expect(node.notDecided).toBe(false);
+      expect(node.points).toEqual({ expressive: 4, warm: 4, premium: 4 });
+      expect(node.lineup).toBeNull();
+      expect(node.crowded).toBeNull();
+      expect(node.controls).toEqual(["give"]);
+      expect(node.restsOn).toEqual([]);
+      expect(node.unchecked).toEqual([]);
+      expect(node.waitingFor).toEqual([]);
+    });
+
+    it("decides the signature with its rule once a lineup is stored, and offers no control", () => {
+      const node = colorNode(toBusinessView(project_("agreed", [GIVEN_ENTRY, LINEUP()])));
+      expect(node.state).toBe("derived");
+      expect(node.decisions?.signature).toEqual({
+        value: "lime",
+        rule: "color.signature.lime-warm",
+        because: "signature",
+        preferred: null,
+      });
+      expect(node.signatureOpen).toBeNull();
+      expect(node.lineup).toEqual(STAND_IN_LINEUP);
+      expect(node.crowded).toEqual(["ink", "orange", "violet"]);
+      expect(node.controls).toEqual([]);
+    });
+
+    it("a crowded lime gives the fallback with lime as the preferred family", () => {
+      const node = colorNode(
+        toBusinessView(
+          project_("agreed", [GIVEN_ENTRY, LINEUP([...STAND_IN_LINEUP, LIME_A, LIME_B])]),
+        ),
+      );
+      expect(node.state).toBe("derived");
+      expect(node.decisions?.signature).toEqual({
+        value: "cyan",
+        rule: "color.signature.cyan-warm-fallback",
+        because: "fallback",
+        preferred: "lime",
+      });
+      expect(node.crowded).toContain("lime");
+    });
+
+    it("both candidates crowded leaves the signature open, with no value invented", () => {
+      const node = colorNode(toBusinessView(project_("agreed", [GIVEN_ENTRY, LINEUP(EVERY)])));
+      expect(node.state).toBe("partly");
+      expect(node.decisions?.signature).toBeNull();
+      expect(node.signatureOpen).toEqual({ why: "bothCrowded", first: "lime", second: "cyan" });
+      expect(node.decisions?.neutral?.value).toBe("warm");
+      expect(node.controls).toEqual([]);
+    });
+
+    it("waits for the personality, or asks for it once skipped", () => {
+      const skippedP = colorNode(toBusinessView(project_("agreed", [SKIP_ENTRY])));
+      expect(skippedP.state).toBe("needsAnswer");
+      expect(skippedP.result).toMatchObject({ status: "open", provisionalOn: ["identity-frame"] });
+      expect(skippedP.needsPersonality).toBe(true);
+      expect(skippedP.decisions).toEqual({ signature: null, neutral: null, canvas: null });
+      expect(skippedP.restsOn).toEqual([]);
+      expect(skippedP.unchecked).toEqual([]);
+      expect(skippedP.controls).toEqual(["give"]);
+
+      const none = colorNode(toBusinessView(project_("agreed", [])));
+      expect(none.state).toBe("waiting");
+      expect(none.waitingFor).toEqual(["identity-frame"]);
+      expect(none.decisions).toBeNull();
+      expect(none.signatureOpen).toBeNull();
+      expect(none.needsPersonality).toBe(false);
+      expect(none.points).toBeNull();
+      expect(none.controls).toEqual(["give"]);
+
+      const open = colorNode(toBusinessView(project_("open", [])));
+      expect(open.state).toBe("waiting");
+      expect(open.waitingFor).toEqual(["positioning"]);
+      expect(open.decisions).toBeNull();
+      expect(open.controls).toEqual(["give"]);
+    });
+
+    it("shows the lineup and its audit in every result, a blocked one too", () => {
+      const node = colorNode(toBusinessView(project_("open", [LINEUP()])));
+      expect(node.state).toBe("waiting");
+      expect(node.lineup).toEqual(STAND_IN_LINEUP);
+      expect(node.crowded).toEqual(["ink", "orange", "violet"]);
+      expect(node.decisions).toBeNull();
+      expect(node.controls).toEqual([]);
+    });
+
+    it("keeps the lineup in the order the person gave it", () => {
+      const reversed = [...STAND_IN_LINEUP].reverse();
+      expect(colorNode(toBusinessView(project_("agreed", [LINEUP(reversed)]))).lineup).toEqual(
+        reversed,
+      );
+    });
+
+    it("its JSON holds keys, rule ids and the person's names and colours, no catalog text", () => {
+      const view = toBusinessView(project_("agreed", [GIVEN_ENTRY, LINEUP()]));
+      const json = JSON.stringify(colorNode(view));
+      for (const text of ["Worked out", "Lime", "Warm greys", "Rule:", "Waits for"]) {
+        expect(json).not.toContain(text);
+      }
+      expect(json).toContain("color.signature.lime-warm");
+    });
+  });
+
+  describe("expression marks", () => {
+    it("colour takes the marks of W8 cases 2 and 3, with a partial decision too", () => {
+      const agreed = colorNode(toBusinessView(project_("agreed", [GIVEN_ENTRY, LINEUP()])));
+      const skipped = colorNode(toBusinessView(project_("skipped", [GIVEN_ENTRY, LINEUP()])));
+      expect(skipped.state).toBe("derived");
+      expect(skipped.restsOn).toEqual(["positioning"]);
+      expect(skipped.unchecked).toEqual([]);
+      expect(skipped.result.provisionalOn).toEqual(["positioning"]);
+      const stale = colorNode(toBusinessView(project_("stale", [GIVEN_ENTRY, LINEUP()])));
+      expect(stale.state).toBe("derived");
+      expect(stale.restsOn).toEqual([]);
+      expect(stale.unchecked).toEqual(["positioning"]);
+      // The marks change no decision.
+      expect(skipped.decisions).toEqual(agreed.decisions);
+      expect(stale.decisions).toEqual(agreed.decisions);
+      // Skipped with no lineup: partly, with both provisional lines.
+      const partly = colorNode(toBusinessView(project_("skipped", [GIVEN_ENTRY])));
+      expect(partly.state).toBe("partly");
+      expect(partly.restsOn).toEqual(["positioning"]);
+      expect(partly.decisions?.neutral?.value).toBe("warm");
+      // Stale with no lineup: partly, unchecked against positioning.
+      const partlyStale = colorNode(toBusinessView(project_("stale", [GIVEN_ENTRY])));
+      expect(partlyStale.state).toBe("partly");
+      expect(partlyStale.unchecked).toEqual(["positioning"]);
+      expect(partlyStale.restsOn).toEqual([]);
+    });
+  });
+
+  describe("expression lines", () => {
+    const result = (over: Partial<FoundationResult>): FoundationResult => ({
+      status: "open",
+      skipped: false,
+      blockedBy: [],
+      provisionalOn: [],
+      unchecked: [],
+      ...over,
+    });
+
+    it("an open result reads partly with a decision made and needsAnswer without", () => {
+      const open = result({ provisionalOn: ["positioning"], unchecked: ["identity-frame"] });
+      expect(expressionLines(open, 1)).toEqual({
+        result: open,
+        state: "partly",
+        waitingFor: [],
+        restsOn: ["positioning"],
+        unchecked: ["identity-frame"],
+      });
+      expect(expressionLines(open, 2).state).toBe("partly");
+      expect(expressionLines(open, 0)).toEqual({
+        result: open,
+        state: "needsAnswer",
+        waitingFor: [],
+        restsOn: [],
+        unchecked: [],
+      });
+    });
+
+    it("every other status reads as foundationLines gives it, whatever the count", () => {
+      for (const decided of [0, 1, 3]) {
+        for (const status of ["blocked", "derived", "given"] as const) {
+          const r = result({
+            status,
+            blockedBy: status === "blocked" ? ["positioning"] : [],
+            provisionalOn: status === "derived" ? ["positioning"] : [],
+            unchecked: status === "given" ? ["positioning"] : [],
+          });
+          expect(expressionLines(r, decided), `${status} ${decided}`).toEqual(foundationLines(r));
+        }
+      }
+    });
+  });
+
+  describe("controls match the door for colour", () => {
+    const SETS: Record<string, StoredEntry[]> = {
+      none: [],
+      lineup: [LINEUP()],
+      personality: [GIVEN_ENTRY],
+      "personality and lineup": [GIVEN_ENTRY, LINEUP()],
+      "personality skipped": [SKIP_ENTRY],
+    };
+
+    it("offers give exactly when entryAllowed is true, for every fixture", () => {
+      for (const positioning of Object.keys(POSITIONING) as Array<keyof typeof POSITIONING>) {
+        for (const [label, entries] of Object.entries(SETS)) {
+          const view = toBusinessView(project_(positioning, entries));
+          const gate = { state: view.positioning.gate, skipped: view.positioning.skipped };
+          const { roots, newest } = foundationState(gate, entries);
+          expect(colorNode(view).controls.includes("give"), `${positioning} / ${label}`).toBe(
+            entryAllowed({ node: "competitive-frame", kind: "lineup" }, { roots, newest }),
+          );
+        }
+      }
+    });
+  });
+
   describe("beside the business nodes", () => {
     it("builds the five nodes, positioning and reading exactly as a view built without foundation", () => {
       for (const positioning of Object.keys(POSITIONING) as Array<keyof typeof POSITIONING>) {
@@ -973,6 +1223,18 @@ describe("foundation in the view", () => {
         "structured",
         "warm",
         "premium",
+        // The color node: its id, field keys, decision values, rule ids and control.
+        "color",
+        "signature",
+        "neutral",
+        "canvas",
+        "lineup",
+        "crowded",
+        "soft",
+        "color.neutral.warm",
+        "color.canvas.soft",
+        "waitsForLineup",
+        "partly",
       ]);
       const rest = strings.filter((s) => !closed.has(s));
       expect(rest).toEqual(["อบอุ่น เป็นกันเอง จริงใจ"]);

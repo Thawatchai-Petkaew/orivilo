@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { lineupSchema } from "../color-audit";
 import { PERSONALITY_AXES } from "../knowledge";
 import { ANSWER_MAX_CHARS, RAW_MAX_CHARS } from "./intake";
 
@@ -6,7 +7,8 @@ import { ANSWER_MAX_CHARS, RAW_MAX_CHARS } from "./intake";
  * The foundation entry contract (ORV-291 tech notes section 3; spec `foundation-entry-1`). One check
  * the client wrapper, the node views, the server action and the service share. Pure code, no AI.
  * PR 1 holds the node `identity-frame`, PR 2 adds `architecture` and `name`; the arm of `core-idea`
- * comes with PR 3.
+ * comes with PR 3. ORV-298 adds the `lineup` entry of `competitive-frame` (the competitors' colours
+ * the Colour node reads).
  */
 
 /** The bound of a working name, in UTF-16 units (ORV-126 "Rules and bounds", Inventory; W5). */
@@ -86,11 +88,37 @@ const nameEntry = z.discriminatedUnion("kind", [
     .strict(),
 ]);
 
+// ORV-298 `expression-entry-1`, PR 1. U+0000 is dropped from each name before ORV-20's
+// `lineupSchema`, which trims, bounds (1 to 60, counted in code points), upper-cases the colour and
+// refuses a repeated name, unchanged. Anything that is not an array of objects with a text name
+// passes through as it is, for `lineupSchema` to refuse.
+const dropNulInNames = (value: unknown): unknown =>
+  Array.isArray(value)
+    ? value.map((row: unknown) =>
+        typeof row === "object" && row !== null && "name" in row && typeof row.name === "string"
+          ? { ...row, name: row.name.replaceAll("\u0000", "") }
+          : row,
+      )
+    : value;
+
+// The competitors' main colours, given by the person; not skippable.
+const lineupEntry = z.discriminatedUnion("kind", [
+  z
+    .object({
+      projectId,
+      node: z.literal("competitive-frame"),
+      kind: z.literal("lineup"),
+      payload: z.object({ lineup: z.preprocess(dropNulInNames, lineupSchema) }).strict(),
+    })
+    .strict(),
+]);
+
 // PR 3 adds the arm of `core-idea` here.
 const entryInputSchema = z.discriminatedUnion("node", [
   identityEntry,
   architectureEntry,
   nameEntry,
+  lineupEntry,
 ]);
 
 /** The checked entry. Answers are trimmed; length is counted in UTF-16 units, as `checkIntake`. */
@@ -116,6 +144,9 @@ export type EntryCheck = { ok: true; entry: EntryInput } | { ok: false; problems
  * (`too_small`) gives `required`.
  */
 const TEXT_PATHS: readonly string[] = ["payload.person", "payload.never", "payload.name"];
+
+/** A competitor's name in a lineup: its own bound, apart from the text paths (a repeat is `custom`). */
+const LINEUP_NAME_PATH = /^payload\.lineup\.\d+\.name$/;
 
 const valueAt = (source: unknown, path: ReadonlyArray<PropertyKey>): unknown =>
   path.reduce<unknown>(
@@ -145,6 +176,10 @@ export function checkEntry(input: unknown): EntryCheck {
       // On a text path the only custom check is the length bound.
       add({ path, kind: "too-long" });
     } else if (TEXT_PATHS.includes(path) && issue.code === "too_small") {
+      add({ path, kind: "required" });
+    } else if (LINEUP_NAME_PATH.test(path) && issue.code === "too_big") {
+      add({ path, kind: "too-long" });
+    } else if (LINEUP_NAME_PATH.test(path) && issue.code === "too_small") {
       add({ path, kind: "required" });
     } else if (valueAt(input, issue.path) === undefined) {
       add({ path, kind: "required" });
@@ -201,6 +236,14 @@ export const storedEntrySchema = z.discriminatedUnion("node", [
       payload: z.object({ name: storedName }).strict(),
     })
     .strict(),
+  z
+    .object({
+      ...base,
+      node: z.literal("competitive-frame"),
+      kind: z.literal("lineup"),
+      payload: z.object({ lineup: lineupSchema }).strict(),
+    })
+    .strict(),
 ]);
 
 export type StoredEntry = z.infer<typeof storedEntrySchema>;
@@ -216,6 +259,7 @@ export function newestByNode(entries: readonly StoredEntry[]): NewestByNode {
     "identity-frame": null,
     architecture: null,
     name: null,
+    "competitive-frame": null,
   };
   for (const entry of entries) {
     const at = newest[entry.node];

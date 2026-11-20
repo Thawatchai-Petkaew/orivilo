@@ -120,6 +120,13 @@
       "when": 1795098260684,
       "tag": "0016_foundation_entry_access",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1795156496007,
+      "tag": "0017_lineup_entry",
+      "breakpoints": true
     }
   ]
 }

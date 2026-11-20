@@ -227,6 +227,8 @@ export const businessPositioningChoice = pgTable(
  * direct call passes a missed app check. No model, adapter or prompt column exists: no entry can
  * hold a model id. Written and read only through `foundationService` in @orivilo/auth, inside
  * `withWorkspace`; the app role may insert and select, never update or delete (the access migration).
+ * ORV-298 adds the lineup of competitor colours (`competitive-frame`, kind `lineup`, tech notes
+ * section 4): its entry count, each name and each colour are bounded here too.
  */
 export const businessFoundationEntry = pgTable(
   "business_foundation_entry",
@@ -260,7 +262,7 @@ export const businessFoundationEntry = pgTable(
     unique("business_foundation_entry_one_per_kind").on(t.projectId, t.node, t.kind),
     check(
       "business_foundation_entry_pair",
-      sql`(${t.node}, ${t.kind}) in (('identity-frame', 'given'), ('identity-frame', 'skipped'), ('architecture', 'answered'), ('name', 'given'), ('core-idea', 'written'), ('core-idea', 'skipped'))`,
+      sql`(${t.node}, ${t.kind}) in (('identity-frame', 'given'), ('identity-frame', 'skipped'), ('architecture', 'answered'), ('name', 'given'), ('core-idea', 'written'), ('core-idea', 'skipped'), ('competitive-frame', 'lineup'))`,
     ),
     check(
       "business_foundation_entry_payload_shape",
@@ -270,6 +272,19 @@ export const businessFoundationEntry = pgTable(
     check(
       "business_foundation_entry_text",
       sql`((${t.payload} ? 'person') is false or (jsonb_typeof(${t.payload}->'person') = 'string' and char_length(${t.payload}->>'person') between 1 and 2000)) and ((${t.payload} ? 'never') is false or (jsonb_typeof(${t.payload}->'never') = 'string' and char_length(${t.payload}->>'never') between 1 and 2000)) and ((${t.payload} ? 'remember') is false or (jsonb_typeof(${t.payload}->'remember') = 'string' and char_length(${t.payload}->>'remember') between 1 and 2000)) and ((${t.payload} ? 'name') is false or (jsonb_typeof(${t.payload}->'name') = 'string' and char_length(${t.payload}->>'name') between 1 and 60)) and ((${t.payload} ? 'statement') is false or (jsonb_typeof(${t.payload}->'statement') = 'string' and char_length(${t.payload}->>'statement') between 1 and 300))`,
+    ),
+    // The lineup entry (ORV-298): one to twenty rows, each an object whose name is a text of 1 to
+    // 60 code points and whose hex is `#` and six upper-case hex digits. The count of valid rows must
+    // equal the count of rows, so one bad row, a missing key or a row that is no object refuses the
+    // entry. `like_regex` matches a text only, so a name or a colour that is no text fails it. The
+    // path is strict, so a row that is no object, a list included, fails its member reads instead
+    // of being read through its own members, and silent, so a row of another kind, which the `or`
+    // does not shield from evaluation, never raises. A check cannot hold a subquery, so the rows are read through jsonpath. `like_regex`
+    // counts code points and its flag `s` lets a name hold a line break; `$` ends only the string. A
+    // missing `lineup` key makes the test null, which a check lets through, so `is true` refuses it.
+    check(
+      "business_foundation_entry_lineup",
+      sql`${t.kind} <> 'lineup' or ((jsonb_typeof(${t.payload}->'lineup') = 'array' and jsonb_array_length(${t.payload}->'lineup') between 1 and 20 and jsonb_array_length(${t.payload}->'lineup') = jsonb_array_length(jsonb_path_query_array(${t.payload}, 'strict $.lineup[*] ? (@.name like_regex "^.{1,60}$" flag "s" && @.hex like_regex "^#[0-9A-F]{6}$")', '{}', true))) is true)`,
     ),
   ],
 );

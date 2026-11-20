@@ -726,3 +726,179 @@ describe("architecture and name door", () => {
     },
   );
 });
+
+// ORV-298 T18, rows 3 and 10: the lineup of competitor colours. Competitor names and colours are
+// untrusted data: none reaches a log line or a refusal body.
+const RIVAL = "SECRET-RIVAL-ก";
+const RIVAL_HEX = "#5B3FD9";
+const lineupEntry = (lineup: unknown = [{ name: RIVAL, hex: RIVAL_HEX }]) => ({
+  projectId: PROJECT_ID,
+  node: "competitive-frame",
+  kind: "lineup",
+  payload: { lineup },
+});
+/** Every competitor name and colour the tests send, whatever case it takes in a line. */
+const RIVAL_TEXT = [RIVAL, RIVAL_HEX, RIVAL_HEX.toLowerCase(), "SECRET-OTHER", "#ZZZZZZ"];
+
+describe("give the lineup", () => {
+  it("answers ok with the node and the kind, saves the checked lineup in the session's workspace, and logs closed words", async () => {
+    const outcome = await enterFoundation(
+      lineupEntry([
+        { name: `  ${RIVAL}  `, hex: RIVAL_HEX.toLowerCase() },
+        { name: "SECRET-OTHER", hex: "#0a9bfe" },
+      ]),
+    );
+    expect(outcome).toEqual({ ok: true, value: { node: "competitive-frame", kind: "lineup" } });
+    expect(state.saved).toEqual([
+      {
+        workspaceId: "ws-1",
+        entry: {
+          node: "competitive-frame",
+          kind: "lineup",
+          payload: {
+            lineup: [
+              { name: RIVAL, hex: RIVAL_HEX },
+              { name: "SECRET-OTHER", hex: "#0A9BFE" },
+            ],
+          },
+        },
+      },
+    ]);
+    expect(state.consumed).toEqual(["write:u:P"]);
+    expect(state.order).toEqual(["session", "allow-list", "consume", "save"]);
+    expect(written()).toMatchObject([
+      { route: "business/enterFoundation", outcome: "ok", level: "info" },
+    ]);
+    const all = everything(outcome);
+    for (const secret of [...SECRETS, ...RIVAL_TEXT]) expect(all).not.toContain(secret);
+    for (const secret of [...SECRETS, ...RIVAL_TEXT]) {
+      expect(whereAxisCouldLeak(outcome)).not.toContain(secret);
+    }
+  });
+
+  it("never reaches a line with a competitor when the save fails", async () => {
+    state.throws = new Error(`insert failed for ${RIVAL} ${RIVAL_HEX}`);
+    const outcome = await enterFoundation(lineupEntry());
+    expect(outcome).toMatchObject({ ok: false, error: "failed", code: "INTERNAL_ERROR" });
+    for (const secret of [...SECRETS, ...RIVAL_TEXT]) {
+      expect(everything(outcome)).not.toContain(secret);
+    }
+    expect(written()).toMatchObject([
+      { route: "business/enterFoundation", outcome: "failed", reason: "unexpected" },
+    ]);
+  });
+
+  it("saves while positioning is not decided: the lineup waits for no other node", async () => {
+    state.positioning = "none";
+    expect(await enterFoundation(lineupEntry())).toMatchObject({ ok: true });
+    expect(state.saved).toHaveLength(1);
+  });
+});
+
+describe("lineup door", () => {
+  it("signed-out: counts the signed-out limit by IP, answers signed-out, saves nothing", async () => {
+    state.session = null;
+    const outcome = await enterFoundation(lineupEntry());
+    expect(outcome).toMatchObject({ ok: false, error: "signed-out", code: "UNAUTHENTICATED" });
+    expect(state.consumed).toEqual(["signed-out:ip:ip-1"]);
+    expect(state.saved).toEqual([]);
+    expect(state.order).toEqual(["session", "consume"]);
+  });
+
+  it("an email off the list: forbidden, no address, nothing counted, nothing saved", async () => {
+    state.session = { ...person, user: { id: "P2", email: "stranger@example.com" } };
+    const outcome = await enterFoundation(lineupEntry());
+    expect(outcome).toMatchObject({ ok: false, error: "forbidden", code: "FORBIDDEN" });
+    expect(state.consumed).toEqual([]);
+    expect(state.saved).toEqual([]);
+    for (const secret of ["stranger", "example.com", ...RIVAL_TEXT]) {
+      expect(everything(outcome)).not.toContain(secret);
+    }
+  });
+
+  it("the write limit used up: rate-limited with retryAfter, nothing saved", async () => {
+    for (const w of LIMITS.write.windows) {
+      state.counts.set(`${keyOf(LIMITS.write, { user: "P" })}@${w.seconds}`, w.max);
+    }
+    expect(await enterFoundation(lineupEntry())).toMatchObject({
+      ok: false,
+      error: "rate-limited",
+      code: "RATE_LIMITED",
+      retryAfter: expect.any(Number),
+    });
+    expect(state.saved).toEqual([]);
+  });
+
+  it("another workspace's project and an unknown id: one not-found body, nothing saved", async () => {
+    const unknown = await enterFoundation({ ...lineupEntry(), projectId: UNKNOWN_ID });
+    const other = await enterFoundation({
+      ...lineupEntry(),
+      projectId: "22222222-2222-4222-8222-222222222222",
+    });
+    expect(unknown).toMatchObject({ ok: false, error: "not-found", code: "NOT_FOUND" });
+    expect(body(other)).toEqual(body(unknown));
+    expect(state.saved).toEqual([]);
+    for (const secret of [UNKNOWN_ID, ...RIVAL_TEXT]) {
+      expect(everything(unknown)).not.toContain(secret);
+    }
+  });
+
+  it("a second lineup: invalid-input with no problems, the first one kept", async () => {
+    expect(await enterFoundation(lineupEntry())).toMatchObject({ ok: true });
+    const outcome = await enterFoundation(lineupEntry([{ name: "SECRET-OTHER", hex: "#111111" }]));
+    expect(outcome).toMatchObject({ ok: false, error: "invalid-input", code: "INVALID_INPUT" });
+    expect(outcome).not.toHaveProperty("problems");
+    expect(state.saved).toHaveLength(1);
+  });
+
+  it.each([
+    ["no entry", [], "payload.lineup", "invalid"],
+    ["a colour that is no hex", [{ name: RIVAL, hex: "#ZZZZZZ" }], "payload.lineup.0.hex", null],
+    [
+      "a repeated name",
+      [
+        { name: RIVAL, hex: "#111111" },
+        { name: RIVAL.toLowerCase(), hex: "#222222" },
+      ],
+      "payload.lineup.1.name",
+      null,
+    ],
+    [
+      "a name past 60 characters",
+      [{ name: `${RIVAL}${"x".repeat(60)}`, hex: "#111111" }],
+      "payload.lineup.0.name",
+      "too-long",
+    ],
+  ] as const)(
+    "%s: invalid-input with the path and a kind, saves nothing, and holds no competitor in the body or a line",
+    async (_label, lineup, path, kind) => {
+      const outcome = await enterFoundation(lineupEntry(lineup));
+      expect(outcome).toMatchObject({
+        ok: false,
+        error: "invalid-input",
+        code: "INVALID_INPUT",
+        problems: [{ path, ...(kind === null ? {} : { kind }) }],
+      });
+      expect(state.saved).toEqual([]);
+      expect(state.order).toEqual(["session", "allow-list", "consume"]);
+      for (const problem of (outcome as { problems: object[] }).problems) {
+        expect(Object.keys(problem).sort()).toEqual(["kind", "path"]);
+      }
+      for (const secret of [...SECRETS, ...RIVAL_TEXT]) {
+        expect(whereAxisCouldLeak(outcome)).not.toContain(secret);
+      }
+    },
+  );
+
+  it("refuses a skip of the lineup, a lineup beside another node and a stray key, saving nothing", async () => {
+    for (const bad of [
+      { projectId: PROJECT_ID, node: "competitive-frame", kind: "skipped", payload: {} },
+      { ...lineupEntry(), node: "color" },
+      { ...lineupEntry(), payload: { lineup: [{ name: RIVAL, hex: RIVAL_HEX }], extra: 1 } },
+      { ...lineupEntry(), payload: { lineup: [{ name: RIVAL, hex: RIVAL_HEX, extra: 1 }] } },
+    ]) {
+      expect(await enterFoundation(bad)).toMatchObject({ ok: false, error: "invalid-input" });
+    }
+    expect(state.saved).toEqual([]);
+  });
+});

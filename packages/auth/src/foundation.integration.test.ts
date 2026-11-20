@@ -1,6 +1,6 @@
 import { businessFoundationEntry, businessIntake, eq, member, project, sql } from "@orivilo/db";
 import { createTestDatabase, HAS_TEST_DATABASE, type TestDatabase } from "@orivilo/db/testing";
-import { PERSONALITY_AXES } from "@orivilo/intent-engine";
+import { PERSONALITY_AXES, STAND_IN_LINEUP } from "@orivilo/intent-engine";
 import { testUtils } from "better-auth/plugins";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { BusinessError, businessService } from "./business.ts";
@@ -602,6 +602,121 @@ describe.runIf(HAS_TEST_DATABASE)("brand foundation entries", () => {
         .where(eq(businessFoundationEntry.projectId, a.projectId));
       const error = await refusal(business.open(a.headers, a.workspaceId, a.projectId));
       expect(error.reason).toBe("invalid-stored");
+    });
+  });
+
+  // ORV-298 T17, rows 3 and 10: the lineup of competitor colours.
+  describe("lineup saved in the workspace", () => {
+    const lineupOf = (projectId: string, lineup: unknown = STAND_IN_LINEUP, over = {}) => ({
+      projectId,
+      node: "competitive-frame",
+      kind: "lineup",
+      payload: { lineup },
+      ...over,
+    });
+
+    it("saves one row of seven entries, colours upper case, made by the session's user", async () => {
+      const a = await create("fe-lineup-save@example.com", "Fls");
+      const lower = STAND_IN_LINEUP.map((row) => ({
+        name: `  ${row.name}  `,
+        hex: row.hex.toLowerCase(),
+      }));
+      // The service takes the app's own check: the colours are upper-cased and the names trimmed.
+      expect(
+        await foundation.enter(a.headers, a.workspaceId, lineupOf(a.projectId, lower)),
+      ).toEqual({
+        node: "competitive-frame",
+        kind: "lineup",
+      });
+      const rows = await rowsOf(a.projectId);
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({
+        workspaceId: a.workspaceId,
+        projectId: a.projectId,
+        node: "competitive-frame",
+        kind: "lineup",
+        payload: { lineup: STAND_IN_LINEUP },
+        createdBy: a.user.id,
+      });
+    });
+
+    it("saves while positioning is not decided, and opens through the stored schema", async () => {
+      const a = await create("fe-lineup-wait@example.com", "Flw", "none");
+      await foundation.enter(a.headers, a.workspaceId, lineupOf(a.projectId));
+      const opened = await business.open(a.headers, a.workspaceId, a.projectId);
+      expect(opened.foundation).toHaveLength(1);
+      expect(opened.foundation[0]).toMatchObject({
+        node: "competitive-frame",
+        kind: "lineup",
+        payload: { lineup: STAND_IN_LINEUP },
+      });
+    });
+
+    it("refuses what the check refuses, writes nothing, and holds the names out of the error", async () => {
+      const a = await create("fe-lineup-input@example.com", "Fli");
+      const secret = [{ name: "SECRET-RIVAL", hex: "#ZZZZZZ" }];
+      for (const bad of [
+        lineupOf(a.projectId, secret),
+        lineupOf(a.projectId, []),
+        lineupOf(a.projectId, [
+          { name: "SECRET-RIVAL", hex: "#111111" },
+          { name: "secret-rival", hex: "#222222" },
+        ]),
+        lineupOf(a.projectId, [{ name: "x".repeat(61), hex: "#111111" }]),
+        { projectId: a.projectId, node: "competitive-frame", kind: "skipped", payload: {} },
+        {
+          projectId: a.projectId,
+          node: "color",
+          kind: "lineup",
+          payload: { lineup: STAND_IN_LINEUP },
+        },
+      ]) {
+        const error = await refusal(foundation.enter(a.headers, a.workspaceId, bad));
+        expect(error.reason).toBe("invalid-input");
+        expect(JSON.stringify(error)).not.toContain("SECRET-RIVAL");
+        expect(JSON.stringify(error)).not.toContain("#ZZZZZZ");
+      }
+      expect(await rowsOf(a.projectId)).toEqual([]);
+    });
+  });
+
+  describe("another workspace reads as not found (lineup)", () => {
+    it("gives a member of B entering a lineup on A's project the same not-found as an unknown id", async () => {
+      const a = await create("fe-lineup-nf-a@example.com", "Fla");
+      const b = await signIn("fe-lineup-nf-b@example.com", "Flb");
+      const make = (projectId: string) => ({
+        projectId,
+        node: "competitive-frame",
+        kind: "lineup",
+        payload: { lineup: STAND_IN_LINEUP },
+      });
+      const other = await refusal(foundation.enter(b.headers, b.workspaceId, make(a.projectId)));
+      const unknown = await refusal(
+        foundation.enter(b.headers, b.workspaceId, make("00000000-0000-4000-8000-000000000000")),
+      );
+      expect([other.reason, unknown.reason]).toEqual(["not-found", "not-found"]);
+      expect(unknown.message).toBe(other.message);
+      expect(await rowsOf(a.projectId)).toEqual([]);
+    });
+  });
+
+  describe("one lineup per project", () => {
+    it("refuses a second lineup as out-of-order and keeps the stored one unchanged", async () => {
+      const a = await create("fe-lineup-twice@example.com", "Flt");
+      const make = (lineup: unknown) => ({
+        projectId: a.projectId,
+        node: "competitive-frame",
+        kind: "lineup",
+        payload: { lineup },
+      });
+      await foundation.enter(a.headers, a.workspaceId, make(STAND_IN_LINEUP));
+      const error = await refusal(
+        foundation.enter(a.headers, a.workspaceId, make([{ name: "Other", hex: "#123456" }])),
+      );
+      expect(error.reason).toBe("out-of-order");
+      expect((await rowsOf(a.projectId)).map((r) => r.payload)).toEqual([
+        { lineup: STAND_IN_LINEUP },
+      ]);
     });
   });
 });

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import * as engine from "../index";
+import { STAND_IN_LINEUP } from "../color-fixtures";
 import { PERSONALITY_AXES } from "../knowledge";
 import { briefFactsSchema } from "../rules";
 import {
@@ -634,7 +635,12 @@ describe("newest by node", () => {
     });
 
   it("is null for a node with no entry", () => {
-    expect(newestByNode([])).toEqual({ "identity-frame": null, architecture: null, name: null });
+    expect(newestByNode([])).toEqual({
+      "identity-frame": null,
+      architecture: null,
+      name: null,
+      "competitive-frame": null,
+    });
   });
 
   it("keeps the newest of each node apart: an entry of one node never hides another's", () => {
@@ -661,6 +667,7 @@ describe("newest by node", () => {
         "identity-frame": personality,
         architecture: arch,
         name,
+        "competitive-frame": null,
       });
     }
   });
@@ -690,6 +697,291 @@ describe("newest by node", () => {
   });
 });
 
+// ORV-298 tech notes section 13, T1 to T3; spec row 1 (the engine half).
+describe("lineup entry", () => {
+  const lineupOf = (lineup: unknown, over: Record<string, unknown> = {}) => ({
+    projectId: PID,
+    node: "competitive-frame",
+    kind: "lineup",
+    payload: { lineup },
+    ...over,
+  });
+  const named = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({ name: `Brand ${i + 1}`, hex: "#5B3FD9" }));
+  const lineupFrom = (input: unknown) => {
+    const entry = entryOf(input);
+    if (entry.node !== "competitive-frame") throw new Error("expected a lineup entry");
+    return entry.payload.lineup;
+  };
+
+  it("parses the stand-in lineup, one entry and twenty, as they are", () => {
+    expect(entryOf(lineupOf(STAND_IN_LINEUP))).toEqual({
+      projectId: PID,
+      node: "competitive-frame",
+      kind: "lineup",
+      payload: { lineup: STAND_IN_LINEUP },
+    });
+    expect(lineupFrom(lineupOf(named(1)))).toHaveLength(1);
+    expect(lineupFrom(lineupOf(named(20)))).toHaveLength(20);
+  });
+
+  it("trims each name and upper-cases each colour", () => {
+    expect(
+      lineupFrom(
+        lineupOf([
+          { name: "  Brand A  ", hex: "#5b3fd9" },
+          { name: "\tBrand B\n", hex: "#6e4ae8" },
+        ]),
+      ),
+    ).toEqual([
+      { name: "Brand A", hex: "#5B3FD9" },
+      { name: "Brand B", hex: "#6E4AE8" },
+    ]);
+  });
+
+  it("keeps a name of 60 characters, counted in code points, and refuses 61", () => {
+    expect(lineupFrom(lineupOf([{ name: "ก".repeat(60), hex: "#111111" }]))).toHaveLength(1);
+    expect(lineupFrom(lineupOf([{ name: "😀".repeat(60), hex: "#111111" }]))).toHaveLength(1);
+    expect(problemsOf(lineupOf([{ name: "😀".repeat(61), hex: "#111111" }]))).toEqual([
+      { path: "payload.lineup.0.name", kind: "too-long" },
+    ]);
+  });
+
+  it("maps the length and the empty bound of a name at any row, two digits included", () => {
+    const rows = named(14);
+    expect(
+      problemsOf(
+        lineupOf(rows.map((row, i) => (i === 11 ? { ...row, name: "x".repeat(61) } : row))),
+      ),
+    ).toEqual([{ path: "payload.lineup.11.name", kind: "too-long" }]);
+    expect(
+      problemsOf(lineupOf(rows.map((row, i) => (i === 12 ? { ...row, name: "\u0000" } : row)))),
+    ).toEqual([{ path: "payload.lineup.12.name", kind: "required" }]);
+  });
+
+  it("each other input fails at the path of its field", () => {
+    const one = (over: Record<string, unknown>) => [{ name: "Brand A", hex: "#111111", ...over }];
+    const rows: Array<[string, unknown, EntryProblem[]]> = [
+      ["no entry", lineupOf([]), [{ path: "payload.lineup", kind: "invalid" }]],
+      ["21 entries", lineupOf(named(21)), [{ path: "payload.lineup", kind: "invalid" }]],
+      [
+        "two names equal ignoring case",
+        lineupOf([
+          { name: "Brand A", hex: "#111111" },
+          { name: "brand a", hex: "#222222" },
+        ]),
+        [{ path: "payload.lineup.1.name", kind: "invalid" }],
+      ],
+      [
+        "a name of 61",
+        lineupOf(one({ name: "x".repeat(61) })),
+        [{ path: "payload.lineup.0.name", kind: "too-long" }],
+      ],
+      [
+        "#12345",
+        lineupOf(one({ hex: "#12345" })),
+        [{ path: "payload.lineup.0.hex", kind: "invalid" }],
+      ],
+      ["red", lineupOf(one({ hex: "red" })), [{ path: "payload.lineup.0.hex", kind: "invalid" }]],
+      ["#FFF", lineupOf(one({ hex: "#FFF" })), [{ path: "payload.lineup.0.hex", kind: "invalid" }]],
+      [
+        "a name of white space",
+        lineupOf(one({ name: "   " })),
+        [{ path: "payload.lineup.0.name", kind: "required" }],
+      ],
+      [
+        "no hex",
+        lineupOf([{ name: "Brand A" }]),
+        [{ path: "payload.lineup.0.hex", kind: "required" }],
+      ],
+      [
+        "no name",
+        lineupOf([{ hex: "#111111" }]),
+        [{ path: "payload.lineup.0.name", kind: "required" }],
+      ],
+      [
+        "a name that is no text",
+        lineupOf(one({ name: 5 })),
+        [{ path: "payload.lineup.0.name", kind: "invalid" }],
+      ],
+      [
+        "an unknown key on an entry",
+        lineupOf(one({ source: "x" })),
+        [{ path: "payload.lineup.0.source", kind: "unknown-key" }],
+      ],
+      ["no lineup", lineupOf(undefined), [{ path: "payload.lineup", kind: "required" }]],
+      ["a lineup that is no list", lineupOf("x"), [{ path: "payload.lineup", kind: "invalid" }]],
+      [
+        "an unknown key source in the payload",
+        { ...lineupOf(STAND_IN_LINEUP), payload: { lineup: STAND_IN_LINEUP, source: "page" } },
+        [{ path: "payload.source", kind: "unknown-key" }],
+      ],
+      [
+        "an unknown top-level key",
+        lineupOf(STAND_IN_LINEUP, { score: 1 }),
+        [{ path: "score", kind: "unknown-key" }],
+      ],
+      [
+        "a skipped entry of competitive-frame",
+        { projectId: PID, node: "competitive-frame", kind: "skipped", payload: {} },
+        [{ path: "kind", kind: "invalid" }],
+      ],
+      [
+        "the node color, kind given",
+        { projectId: PID, node: "color", kind: "given", payload: { lineup: STAND_IN_LINEUP } },
+        [{ path: "node", kind: "invalid" }],
+      ],
+      [
+        "the node color, kind lineup",
+        { projectId: PID, node: "color", kind: "lineup", payload: { lineup: STAND_IN_LINEUP } },
+        [{ path: "node", kind: "invalid" }],
+      ],
+    ];
+    for (const [name, input, expected] of rows) {
+      expect(problemsOf(input), name).toEqual(expected);
+    }
+  });
+
+  it("a problem holds a path and a kind only: no name or colour reaches it", () => {
+    const secret = "SECRET-COMPETITOR";
+    const problems = [
+      ...problemsOf(lineupOf([{ name: secret.repeat(5), hex: "#12345" }])),
+      ...problemsOf(
+        lineupOf([
+          { name: secret, hex: "#111111" },
+          { name: secret, hex: "#222222" },
+        ]),
+      ),
+      ...problemsOf(lineupOf([{ name: secret, hex: "#111111", note: secret }])),
+    ];
+    expect(problems.length).toBeGreaterThanOrEqual(3);
+    for (const p of problems) expect(Object.keys(p).sort()).toEqual(["kind", "path"]);
+    expect(JSON.stringify(problems)).not.toContain(secret);
+  });
+
+  // T2: the mapper reads a length bound and a repeat apart.
+  it("drops U+0000 from each name, then trims", () => {
+    expect(
+      lineupFrom(
+        lineupOf([
+          { name: "Br\u0000and A", hex: "#111111" },
+          { name: " \u0000 Brand B \u0000", hex: "#222222" },
+        ]),
+      ),
+    ).toEqual([
+      { name: "Brand A", hex: "#111111" },
+      { name: "Brand B", hex: "#222222" },
+    ]);
+  });
+
+  it("a name that is only U+0000 is required, and a repeat made equal by it is invalid", () => {
+    expect(problemsOf(lineupOf([{ name: "\u0000\u0000", hex: "#111111" }]))).toEqual([
+      { path: "payload.lineup.0.name", kind: "required" },
+    ]);
+    expect(
+      problemsOf(
+        lineupOf([
+          { name: "Brand\u0000 A", hex: "#111111" },
+          { name: "Brand A", hex: "#222222" },
+        ]),
+      ),
+    ).toEqual([{ path: "payload.lineup.1.name", kind: "invalid" }]);
+  });
+
+  it("gives too-long for 61 characters and invalid, never too-long, for a repeated name", () => {
+    const long = problemsOf(lineupOf([{ name: "x".repeat(61), hex: "#111111" }]));
+    const repeat = problemsOf(
+      lineupOf([
+        { name: "x".repeat(60), hex: "#111111" },
+        { name: "X".repeat(60), hex: "#222222" },
+      ]),
+    );
+    expect(long.map((p) => p.kind)).toEqual(["too-long"]);
+    expect(repeat.map((p) => p.kind)).toEqual(["invalid"]);
+  });
+
+  it("passes input that is no list of objects on as it is, for the lineup check to refuse", () => {
+    for (const bad of [null, 5, [null], [5], ["x"], [{ name: 5, hex: "#111111" }]]) {
+      expect(checkEntry(lineupOf(bad)).ok, JSON.stringify(bad)).toBe(false);
+    }
+  });
+
+  it("EntryRequest drops the project id of the lineup arm", () => {
+    const request: EntryRequest = {
+      node: "competitive-frame",
+      kind: "lineup",
+      payload: { lineup: STAND_IN_LINEUP },
+    };
+    expect(checkEntry({ projectId: PID, ...request }).ok).toBe(true);
+  });
+});
+
+// T3.
+describe("stored lineup", () => {
+  const stored = (over: Record<string, unknown> = {}) => ({
+    id: "l1",
+    node: "competitive-frame",
+    kind: "lineup",
+    payload: { lineup: STAND_IN_LINEUP },
+    createdAt: "2026-11-20T03:04:05.000Z",
+    ...over,
+  });
+
+  it("parses a stored lineup as it is", () => {
+    expect(storedEntrySchema.parse(stored())).toEqual(stored());
+  });
+
+  it.each([
+    [
+      "21 entries",
+      stored({
+        payload: {
+          lineup: Array.from({ length: 21 }, (_, i) => ({ name: `B${i}`, hex: "#111111" })),
+        },
+      }),
+    ],
+    ["no entry", stored({ payload: { lineup: [] } })],
+    ["an unknown payload key", stored({ payload: { lineup: STAND_IN_LINEUP, source: "x" } })],
+    ["an unknown top-level key", stored({ extra: 1 })],
+    [
+      "an unknown key on an entry",
+      stored({ payload: { lineup: [{ name: "a", hex: "#111111", x: 1 }] } }),
+    ],
+    ["a name of 61", stored({ payload: { lineup: [{ name: "x".repeat(61), hex: "#111111" }] } })],
+    [
+      "a repeated name",
+      stored({
+        payload: {
+          lineup: [
+            { name: "a", hex: "#111111" },
+            { name: "A", hex: "#222222" },
+          ],
+        },
+      }),
+    ],
+    ["a skipped kind", stored({ kind: "skipped", payload: {} })],
+    ["an empty id", stored({ id: "" })],
+  ])("refuses %s", (_name, input) => {
+    expect(storedEntrySchema.safeParse(input).success).toBe(false);
+  });
+
+  it("fills the competitive-frame slot of the newest entries, and no other", () => {
+    const lineup = storedEntrySchema.parse(stored());
+    const name = storedEntrySchema.parse({
+      id: "n1",
+      node: "name",
+      kind: "given",
+      payload: { name: "ORIVILO" },
+      createdAt: "2026-11-20T01:00:00.000Z",
+    });
+    const newest = newestByNode([name, lineup]);
+    expect(newest["competitive-frame"]).toEqual(lineup);
+    expect(newest.name).toEqual(name);
+    expect(newest["identity-frame"]).toBeNull();
+    expect(newestByNode([name])["competitive-frame"]).toBeNull();
+  });
+});
+
 describe("exports", () => {
   it("the package index exports the entry contract and the marks", () => {
     expect(typeof engine.checkEntry).toBe("function");
@@ -697,7 +989,7 @@ describe("exports", () => {
     expect(typeof engine.newestByNode).toBe("function");
     expect(typeof engine.foundationMarks).toBe("function");
     expect(typeof engine.entryAllowed).toBe("function");
-    expect(engine.FOUNDATION_NODES).toEqual(["identity-frame", "architecture", "name"]);
+    expect(engine.FOUNDATION_NODES).toEqual(["identity-frame", "architecture", "name", "color"]);
     expect(engine.WORKING_NAME_MAX).toBe(60);
     expect(engine.START_QUESTIONS.map((q) => q.id)).toEqual(["situation.sub-brands"]);
     expect(typeof engine.derivedArchitecture).toBe("function");
