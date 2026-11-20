@@ -1,8 +1,8 @@
 ---
 issue: ORV-302 (https://tpetkaew.atlassian.net/browse/ORV-302)
-spec: docs/specs/ORV-302/spec.md v1.1 (comment 10786; v1.0 at ec6d2fa)
+spec: docs/specs/ORV-302/spec.md v1.2 (v1.1 by comment 10786; v1.0 at ec6d2fa)
 tech: docs/specs/ORV-302/tech.md (6c0abb8, read for file and prop names only)
-task: ORV-302-design-1, revised by ORV-302-design-2
+task: ORV-302-design-1, revised by ORV-302-design-2 and ORV-302-design-r1
 author: designer
 date: 2026-11-20
 ---
@@ -41,6 +41,7 @@ The screen is `GuidebookScreen` in `packages/design-system/src/examples/guideboo
 - **Type ramp of three steps, by role.** The document title at 32 px (`PageHeader`, display-md); the values the person gave or a rule worked out at 20 px (`text-body-lg`) or, for a person's answer under a field name, 16 px (`text-body-md`); every line about a value (its state, its method, its reason, its rule, its labels, its marks, what it waits for) at 14 px (`text-body-sm`, `text-label-md` for entry titles). Section titles sit between them through `SectionHeader`.
 - **Done and open, at a glance and in words.** A done item carries a value line at 20 or 16 px in primary ink; an open item carries only 14 px lines, so it reads shorter and quieter before a word is read. In words, every item's second line is its board state ("Agreed", "Worked out by a fixed rule", "Waits for Positioning", "Not in this version"). No colour, chip, icon or weight is the only carrier of the state.
 - **Spacing carries the structure, rules carry only the chapters.** 48 between the title block and each section, 32 between entries, 12 inside an entry between its head, its question and its value, 4 between the lines of one group. The only ruled lines are the section dividers of `SectionHeader`.
+- **Peer lines, 2026-11-20 (ORV-302-design-r1).** "4 between the lines of one group" holds only where the line changes size, weight or colour. Two lines of one style that are each their own statement (two questions, two notes, two labels, a reason and its rule) are 8 apart. The full rule, its survey and the classes per list are section 6.1.
 
 ## 3. Page frame
 
@@ -81,12 +82,79 @@ The preface is the guidebook's honest statement (`guidebook-honest-1`), so it is
 <!-- prettier-ignore -->
 | Part | Markup and classes | Content |
 | --- | --- | --- |
-| Head | `div` `flex min-w-0 flex-col gap-1` `data-head` | `h3` `self-start text-label-md` (the item title); `p` `FIELD_NOTE` `data-state` (the board state line); an optional note `p` `FIELD_NOTE` (the reason a step is out of this version, the out-of-date line); the mark lines (below) |
-| Mark lines | inside the head, after the state line | provisional: `div` `flex flex-col gap-1` `data-marks="provisional"` with the two lines of `provisionalLines` (`strategy.provisional`, `business.marks.restsOn`), each `p` `text-body-sm`; unchecked: `p` `text-body-sm` `data-marks="unchecked"` (`business.marks.unchecked`). Primary ink, 14 px: a mark is a line to read, one step stronger than the state line, never coloured |
-| Ask | `div` `flex min-w-0 flex-col gap-1` `data-ask` | `p` `FIELD_NOTE` `business.stillToAsk`; `ul` `flex flex-col gap-1`, each `li` `text-body-sm` one question in primary ink |
+| Head | `div` `flex min-w-0 flex-col gap-1` `data-head` | `h3` `self-start text-label-md` (the item title); `p` `FIELD_NOTE` `data-state` (the board state line); an optional note `p` `FIELD_NOTE` (the reason a step is out of this version, the out-of-date line), from 2026-11-20 inside one `div` `mt-1 flex min-w-0 flex-col gap-2` `data-notes` (6.1, R1-3); the mark lines (below) |
+| Mark lines | inside the head, after the state line; from 2026-11-20 each mark block takes `mt-1`, 8 below the line above (6.1, R1-4, R1-5) | provisional: `div` `flex flex-col gap-1` `data-marks="provisional"` with the two lines of `provisionalLines` (`strategy.provisional`, `business.marks.restsOn`), each `p` `text-body-sm`; unchecked: `p` `text-body-sm` `data-marks="unchecked"` (`business.marks.unchecked`). Primary ink, 14 px: a mark is a line to read, one step stronger than the state line, never coloured |
+| Ask | `div` `flex min-w-0 flex-col gap-1` `data-ask` | `p` `FIELD_NOTE` `business.stillToAsk`; `ul` `flex flex-col gap-2` (was `gap-1`, changed 2026-11-20, 6.1 R1-1), each `li` `text-body-sm` one question in primary ink |
 | Value | one block, `data-value` | per item, sections 7 and 13 |
 
 `FIELD_NOTE` is the existing `text-body-sm text-text-secondary` of the business examples. Head to the next block is 12 (measured on every done item of every frame). Typed text (project name, statements, answers, the working name) is a text node in `bdi` with `whitespace-pre-wrap` (tech.md 7.1); a `bdi` that holds a whole value is `block` (`<bdi className="block">`), so a soft wrap's hanging space never pushes its box past the column (section 19, item 2). A `bdi` inside a sentence (the name inside `business.logoType.nameLength`) stays inline.
+
+### 6.1 Peer lines (2026-11-20, ORV-302-design-r1, answers finding R1 of ORV-302-signoff-1)
+
+**Cause.** The rows above set the Ask's questions (`ul` `gap-1`) and section 8 a skipped step's questions the same way: 4 between two questions on a 23.8 px line (14 px at 1.7). The pitch from the last line of one question to the first line of the next was 27.8, the pitch between two lines of one question 23.8, a ratio of 1.17. A Thai question carries no question mark, so once the first question wraps (Brand personality at 360: `business.question.person` takes two lines) the two questions read as one paragraph. English held only because each question ends in "?". The design prescribed the gap, so the fault is the design's (L-0019), and the same gap sat under every stack of one-style lines on the page.
+
+**Rule.** A 14 px line that follows a line of the same size, weight and colour, and is its own statement (a question, a note, a label, a reason, a rule line), starts 8 below it: Tailwind `gap-2` on its stack, or `mt-1` on top of a `gap-1` stack where the markup cannot hold a nested stack (a `dd` inside a `dl` field). 4 (`gap-1`) and 2 (`gap-0.5`) stay only where the boundary changes size, weight or colour (a title to its state line, a field name to its answer, a value to its first note), or where the line above is the one-line name of what follows (a field name above `business.state.empty` or above the hypothesis line; the provisional line above its `business.marks.restsOn` pair, which P8 keeps as one mark and which opens with the run-in label "อิงกับ:" / "Rests on:"). Inside a head, the title and the state line stay 4 apart and every later block of the head (the notes, the provisional pair, the unchecked line) is 8 below the block above it. No new token, recipe class, component, prop or string; 8 is `gap-2`, a step the page already uses (the resting list, the personality points).
+
+**Ladder after the rule.** 2 (an entry's title to its note: lead, not held, resting list), 4 (a style change inside one entry), 8 (peer lines; resting entries; personality points), 12 (the blocks of an item; head to the next block), 16 (fields; not held entries), 24, 32, 48. An entry's peer lines (8) stay clearly inside its blocks (12) and fields (16), and far inside the item rhythm (32) and the sections (48), so the hierarchy reads as before. Measured: the cover to each section 48, header to first child 24, items 32, head to next block 12 in GuidebookSkipped, GuidebookVisualSkipped, GuidebookOpenAsks and GuidebookSkippedSteps at 360 and 1440, before and after.
+
+**Why not the others.**
+
+- A list marker (bullet or dash): it moves the text to about L + 16, a second start edge against P1, it decorates notes and labels that are not a list, and it would mark the two question lists only, not the notes and labels of the same fault.
+- A hanging indent of wrapped lines (`pl-4 -indent-4`): every wrapped line gets a second edge at L + 16, the column loses 16 of its 328 px at 360 so Thai wraps more, and a one-line entry gains nothing.
+- 12 between questions (`gap-3`): equal to the gap between an item's head and its Ask and between a step's blocks, so each question would read as a block of its own and the Ask would come apart from its lead-in `business.stillToAsk`.
+
+**Survey.** Every stack in the page whose children are lines of text, in GuidebookDone, GuidebookOpen, GuidebookOpenAsks, GuidebookSkipped, GuidebookSkippedSteps, GuidebookStale, GuidebookVisual, GuidebookVisualOpen, GuidebookVisualSkipped, GuidebookUntrustedText and GuidebookNarrow, Thai and English, at 360: 2434 adjacent pairs, each measured on the rendered line boxes (`Range.getClientRects`). Line pitch inside an entry is 23.8 for every 14 px line in both languages. "Gap" is the box gap between two entries, "across" the pitch from the last line of one to the first line of the next.
+
+<!-- prettier-ignore -->
+| # | List (selector today) | Where | Wraps at 360 | Before: gap, across, ratio | Verdict | After: gap, across, ratio |
+| --- | --- | --- | --- | --- | --- | --- |
+| S1 | Ask questions, `[data-ask] > ul` | items waiting for the person (6, 7.2, 13 colour) | th and en: `question.person` 2 lines | 4, 27.8, 1.17 | fail: two questions read as one | 8, 31.8, 1.34 |
+| S2 | A skipped step's questions, `[data-step] > ul` (not `[data-rests]`) | section 8 | th and en: `question.person` 2 lines | 4, 27.8, 1.17 | fail, as S1 | 8, 31.8, 1.34 |
+| S3 | Head lines, `[data-head]`: state line, notes, marks | every item (6) | en: colour's first note and Logo mark's note 2 lines; th: one line each in the fixtures, notes are free sentences | 4, 27.8, 1.17 between two notes and between the state and a note | fail: two notes, or the state and a note, read as one | 8 below the state for every later block; 8 between notes; 31.8, 1.34 |
+| S4 | Provisional pair, `[data-marks=provisional]` | marked items (6) | no: the first line is one line in th and en | 4, 27.8, 1.17 | pass: one mark of two lines; the second opens with the run-in "อิงกับ:" / "Rests on:" | pair unchanged at 4; the pair sits 8 below the line above |
+| S5 | Statement labels, the `div` under a statement | positioning, core idea (7.1, 14) | no in PR 1; PR 2's `by.picked` carries a model id | 4, 27.8, 1.17 | fail by the rule: two peer labels, Thai without a stop | 8, 31.8, 1.34 |
+| S6 | Architecture notes, `[data-item=architecture] > [data-value]` | 7.1 | th and en: `architecture.because` 2 lines | 4, 27.8, 1.17 | fail by the rule: reason then rule | 8, 31.8, 1.34 |
+| S7 | Logo type notes, `[data-item=logo-type] > [data-value]` | 13 | th: a reason 3 lines, the length line 3 lines (GuidebookNarrow) | 4, 27.8, 1.17 | fail: reason, length line and rule read as one paragraph | 8, 31.8, 1.34 |
+| S8 | Labels, `[data-labels]` | logo type, colour, typography (13) | th and en: 2 and 3 lines | 4, 27.8, 1.17 | fail: three labels read as one paragraph | 8, 31.8, 1.34 |
+| S9 | Colour field, `[data-value] > [data-field]` (signature, neutral, canvas) | 13 | th: the signature reason 2 lines, en 3 | name to family and family to reason change style; reason to rule 4, 27.8, 1.17 | fail by the rule: reason then rule | reason to rule 8, 31.8, 1.34; the rest unchanged |
+| S10 | Colour partly notes, `dd` notes in `[data-field=signature]` | 13 | one note in every fixture | 4 | fail by the rule when a view gives two notes | 8 between two note `dd` |
+| S11 | Typeface, `[data-face]` | 13 | th and en: the reason 2 lines | family to style changes style; style to licence and licence to reason 4, 27.8, 1.17 | fail by the rule: three notes under the family | family to style 4; notes 8, 31.8, 1.34 |
+| S12 | Typography notes, the last `div` of `[data-item=typography] > [data-value]` | 13 | no | 4, 27.8, 1.17 | fail by the rule: pairing reason then rule | 8, 31.8, 1.34 |
+| S13 | Answer field, `[data-field=person\|never\|remember]` | 7.1 | th and en: an answer or `yourWords` 2 lines | name, answer, `yourWords` change style at each line; `never` empty: name to `state.empty` 4 | pass: the name is the one-line name of its value | unchanged |
+| S14 | Personality field, `[data-field=personality]` and its points `dl` | 7.1 | th and en: the hypothesis 2 lines | name to hypothesis 4 (one-word name); points 8, each a name and a 16 px value | pass | unchanged |
+| S15 | Lead lines, `[data-lead]` | 5 | no | title 500 to note 400 at 2; rows 12 | pass: weight change, rows 12 | unchanged |
+| S16 | Not in this guidebook, `[data-not-held]` | 9 | th and en: reasons 2 lines | title to reason 2 (weight change); entries 16 | pass | unchanged |
+| S17 | Resting list, `[data-rests]` | 8 | no | title to mark 2 (weight change); entries 8 | pass | unchanged |
+| S18 | Step head, `[data-step] > div` | 8 | no | `h3` to `state.skipped` 4 (weight and colour change) | pass | unchanged |
+| S19 | Preface, `[data-preface]` | 4 | th and en: 2 and 3 lines | 12, 39.2 on a 27.2 line, 1.44 | pass | unchanged |
+| S20 | Name value, `[data-item=name] > [data-value]` | 7.1 | no | the name (20) to `notScreened` (14) 4 | pass: one note, style change | unchanged |
+
+After the rule the only same-style pairs under 8 in the 2434 are S4, S13 (`never` empty) and S14 (the hypothesis), each a pass above. The changed pairs reach every line count the fixtures hold (1 then 1, 1 then 2, 1 then 3, 2 then 1, 2 then 2, 2 then 3, 3 then 1, 3 then 2), and each measures gap 8 and across 31.8; the gap does not depend on the line count, so the bound holds at any count. On the ink (2x render, GuidebookOpenAsks th 360 light), the blank between the two lines of the person question is 10.5 and between the two questions 13.5 before, 17.5 after.
+
+**Classes for the builder** (`guidebook.tsx`; the plays read the `data-*` hooks, a new one is `data-notes`):
+
+<!-- prettier-ignore -->
+| Row | Function and element | Now | Becomes |
+| --- | --- | --- | --- |
+| R1-1 | `Ask`, the `ul` | `flex flex-col gap-1` | `flex flex-col gap-2` (the `[data-ask]` `div` stays `gap-1`: lead-in to first question 4) |
+| R1-2 | `Unconfirmed`, the questions `ul` of a step | `flex flex-col gap-1` | `flex flex-col gap-2` |
+| R1-3 | `Item`, the notes in `[data-head]` | each `Note` a direct child of the head | when `!notesInValue && item.notes.length > 0`: one `div` `mt-1 flex min-w-0 flex-col gap-2` `data-notes` holding the `Note`s |
+| R1-4 | `Item`, `[data-marks=provisional]` | `flex flex-col gap-1` | `mt-1 flex flex-col gap-1` |
+| R1-5 | `Item`, `p[data-marks=unchecked]` | `text-body-sm` | `mt-1 text-body-sm` |
+| R1-6 | `Statement`, the labels `div` | `flex min-w-0 flex-col gap-1` | `flex min-w-0 flex-col gap-2` `data-notes` (the statement to its first label stays 4) |
+| R1-7 | `Value`, `architecture` | `p` `architecture.because` and `Rules` direct children of `[data-value]` | the same two inside one `div` `flex min-w-0 flex-col gap-2` `data-notes` after the `text-body-lg` line |
+| R1-8 | `LogoTypeValue` | reasons, `[data-name-length]` and `Rules` direct children of `[data-value]` | the same inside one `div` `flex min-w-0 flex-col gap-2` `data-notes` after the decision line |
+| R1-9 | `Labels`, `[data-labels]` | `flex min-w-0 flex-col gap-1` | `flex min-w-0 flex-col gap-2` |
+| R1-10 | `ColorValue`, `dd[data-rule]` of signature, neutral, canvas | `FIELD_NOTE` | `mt-1` with `FIELD_NOTE` |
+| R1-11 | `ColorValue`, the note `dd`s of an open signature | `text-body-sm` | `text-body-sm`, and `mt-1` on every note `dd` after the first |
+| R1-12 | `TypographyValue`, `li[data-face]` | family, style, licence, reason as four `p` children | `li` keeps `flex min-w-0 flex-col gap-1`; style, licence and reason move into one `div` `flex min-w-0 flex-col gap-2` `data-notes` after the family |
+| R1-13 | `TypographyValue`, the pairing and rules `div` | `flex min-w-0 flex-col gap-1` | `flex min-w-0 flex-col gap-2` `data-notes` |
+
+Nothing else changes: no `gap` of an item, a section, a field list or the screen root, no font, no colour.
+
+**Play clause** (P25 in section 16). A story-local clause `expectPeerLinesApart(root)` in `guidebook.stories.tsx`, measuring rendered line boxes, not a class: for every stack `[data-ask] > ul`, `[data-step] > ul:not([data-rests])`, `[data-notes]`, `[data-labels]`, `[data-head]` (from its state line on) and each colour field's reason and rule `dd`, for every two adjacent children A and B, with `p` the computed line height of A (23.8): the top of B's first line box less the top of A's last line box is at least `1.3 * p` (30.94; measured 31.8, and 27.8 before, so the old look goes red), and B's box top less A's box bottom is at least 7.5. In GuidebookOpenAsks and GuidebookSkippedSteps the clause runs inside `atWindow(360, 900, ...)` in Thai and first asserts that the person question of Brand personality spans at least two line boxes, so the bound is proven at a wrapped line count; GuidebookNarrow runs it in its 360 frame. The builder shows it red once by setting R1-1 back to `gap-1`.
+
+**Rendered proof** is section 20, "Rework render".
 
 ## 7. Foundation items (PR 1)
 
@@ -102,6 +170,8 @@ The preface is the guidebook's honest statement (`guidebook-honest-1`), so it is
 | `core-idea` (agreed) | `business.state.agreed`, then any marks | `div` `flex min-w-0 flex-col gap-4`: the statement as on `positioning` with `business.positioning.by.own` and `business.coreIdea.gatePassed`; then a `dl` field of `remember` as on `identity-frame` with `business.label.yourWords` |
 
 A done item with an optional answer missing (a `never` left empty) keeps the field name with `business.state.empty` ("Nothing given yet") as its `dd` `FIELD_NOTE`, so no field name stands alone (`guidebook-item-1` in spec v1.1, this design's choice 7 taken by comment 10786). The done project of spec v1.1 has no `never` answer, so its Brand personality shows this line.
+
+**2026-11-20, ORV-302-design-r1 (section 6.1).** Under a value, two notes are 8 apart: the statement's labels `div` (positioning, core idea) becomes `gap-2` (R1-6), and the architecture item's reason and rule move into a notes `div` `gap-2` after the value line (R1-7). The value line to its first note stays 4. The `name` value (one note) and the fields of `identity-frame` and `core-idea` do not change (6.1, S13, S14, S20).
 
 ### 7.2 Open
 
@@ -128,9 +198,11 @@ An open item holds no line larger than 14 px: that is the at-a-glance difference
 | State | Content |
 | --- | --- |
 | No skipped step | `p` `text-body-md` `data-unconfirmed-none` `business.guidebook.unconfirmed.none`. One line under the heading; never an empty section |
-| One or more steps | `ul` `flex min-w-0 flex-col gap-8` `data-unconfirmed`, one `li` `flex min-w-0 flex-col gap-3` `data-step="<id>"` per step in node order: `div` `flex flex-col gap-1` of `h3` `text-label-md` (title) and `p` `FIELD_NOTE` `business.state.skipped`; `ul` `flex flex-col gap-1` of `li` `text-body-sm` (the questions); then the resting block |
+| One or more steps | `ul` `flex min-w-0 flex-col gap-8` `data-unconfirmed`, one `li` `flex min-w-0 flex-col gap-3` `data-step="<id>"` per step in node order: `div` `flex flex-col gap-1` of `h3` `text-label-md` (title) and `p` `FIELD_NOTE` `business.state.skipped`; `ul` `flex flex-col gap-2` (was `gap-1`, changed 2026-11-20, 6.1 R1-2) of `li` `text-body-sm` (the questions); then the resting block |
 | Step with items resting on it | `div` `flex min-w-0 flex-col gap-2`: `p` `FIELD_NOTE` `business.guidebook.unconfirmed.restsOnIt`; `ul` `flex min-w-0 flex-col gap-2` `data-rests`, each `li` `flex flex-col gap-0.5` of `span` `text-label-md` (item title) and `span` `FIELD_NOTE` (its mark line, `business.marks.restsOn` or `business.marks.unchecked`) |
 | Step with nothing resting | `p` `FIELD_NOTE` `business.guidebook.unconfirmed.nothing` alone, with no `restsOnIt` line above it, so no lead-in stands with nothing under it |
+
+**2026-11-20, ORV-302-design-r1 (section 6.1, S2).** The questions `ul` of a step becomes `flex flex-col gap-2` (R1-2): two questions 8 apart, the pitch across them 31.8 on a 23.8 line, so Brand personality's two questions read as two in Thai at 360, where the first wraps to two lines and neither ends in a mark. The step's own blocks stay 12 apart and the steps 32.
 
 Each step is an `h3` so a reader of headings finds each skipped step; the items resting on it are names in a list, not headings, because their own entries sit above in the foundation section.
 
@@ -181,6 +253,8 @@ Logo type, Colour and Typography, read from ORV-298's views (spec v1.1, comment 
 | `color` open | the board state line, then its open line as a note (`business.color.needsPersonality`, `bothCrowded` or `notDecided`) | the Ask of `business.question.lineup` while the view shows `waitsForLineup` | none |
 | `typography` derived | `business.state.derived`, marks | `dl` `flex min-w-0 flex-col gap-4` of roles (reading, display): `dt` `FIELD_NOTE` the role, `dd` `ul` `flex flex-col gap-3` of faces, each `li` of `p` `text-body-lg` the family, `p` `FIELD_NOTE` its style, `p` `FIELD_NOTE` `business.typography.licence`, `p` `FIELD_NOTE` its reason (where the view has one); then `div` `flex flex-col gap-1`: `business.typography.because.pairing`, `business.decision.rule` with `typography-node-1` | `business.typography.oneChoice`, `business.typography.noPersonalityLink` |
 | `typography` open | `business.state.needsAnswer` line as the board shows it | `business.question.scripts` | none |
+
+**2026-11-20, ORV-302-design-r1 (section 6.1, S7 to S12).** Every run of notes under a value is 8 apart: Logo type's reasons, length line and rule in a notes `div` `gap-2` (R1-8); the labels block `gap-2` (R1-9); a colour field's rule `dd` `mt-1` under its reason (R1-10) and an open signature's second note `dd` `mt-1` (R1-11); a typeface's style, licence and reason in a notes `div` `gap-2` under the family (R1-12); the pairing reason and rule `gap-2` (R1-13). The value line to its first note stays 4, the labels block stays 12 below the value, the fields stay 16 apart and the faces 12.
 
 No colour value, no swatch, no sample of a typeface (the family name is set in the page's own font): the guidebook names a family; showing a sample would claim more than the rule decided (`business.color.familyOnly`). The lineup and the crowded families are not repeated (`guidebook-item-1`).
 
@@ -239,6 +313,7 @@ Helpers: `atWindow`, `expectFitsAt360`, `textOf` (`business-story-helpers.tsx`);
 | P22 | Awaiting choice (PR 2) | `GuidebookAwaitingChoice` | positioning shows `business.state.awaitingChoice` only: no `[data-ask]`, no `[data-value]`, no AI label | 0, 0, 0 |
 | P23 | Picked (PR 2) | `GuidebookPicked` | `business.positioning.by.picked` with its model id, 14 px, `text-text-secondary`, the same computed colour as `by.own` in `GuidebookDone` | equal colour |
 | P24 | Visual narrow (PR 1) | `GuidebookVisualNarrow`, `GuidebookVisualNarrowDark` | as P13 | pass |
+| P25 | Peer lines (2026-11-20, ORV-302-design-r1, 6.1) | `GuidebookOpenAsks` and `GuidebookSkippedSteps` (Thai, inside `atWindow(360, 900, ...)`), `GuidebookNarrow` (Thai, its 360 frame) | `expectPeerLinesApart(root)`: first, the person question of Brand personality spans two or more line boxes (`[data-item=identity-frame] [data-ask] li`, and in GuidebookSkippedSteps also `[data-step=identity-frame] li`); then for every two adjacent children A, B of `[data-ask] > ul`, `[data-step] > ul:not([data-rests])`, `[data-notes]`, `[data-labels]`, `[data-head]` from its `[data-state]` line on, and a colour field's reason and rule `dd`: top of B's first line box less top of A's last line box at least `1.3 * lineHeight(A)`, and B's top less A's bottom at least 7.5 | at least 30.94 (measured 31.8, before 27.8) and at least 7.5 (measured 8, before 4) |
 
 ## 17. Stories, title `Examples/Application: Brand guidebook`
 
@@ -302,11 +377,27 @@ Measured in all 96 frames: `scrollWidth` equal to the viewport; one start edge (
 
 Not rendered under spec v1.1 (no render was made in task ORV-302-design-2): the done, open, skipped, stale and long pages with the visual section of PR 1 in place (rows 1, 4, 5, 7, 12), the visual items with their provisional marks and their names in the resting list (row 19), and Logo type's length line holding untrusted text (row 12). Each uses only the anatomy and spacing measured above; the PR 1 stories are their first render, so section 21 lists them.
 
+**Rework render, 2026-11-20 (ORV-302-design-r1, section 6.1).** The running stories of this worktree at head cc5fc68 (Storybook dev server, neutral profile), with the 6.1 classes injected as CSS through `page.addStyleTag` (no tracked file changed; the notes wrappers of R1-3, R1-7, R1-8 and R1-12 emulated by `margin-top: 4px` on each later note of a `gap-1` stack, the same boxes). Each sheet puts before and after side by side, light then dark. Sheets in `/Users/tawatchaipetkaew/My Work/NOXIOUS/ORIVILO/.orivilo/runs/ORV-302/ORV-302-design-r1/screenshots/`:
+
+<!-- prettier-ignore -->
+| Sheet | What it shows | Height of the screen root, before / after |
+| --- | --- | --- |
+| `r1-open-asks-th-360-2x.png`, `r1-open-asks-en-360-2x.png` | GuidebookOpenAsks, Brand personality's Ask at 2x: the wrapped person question and the never question, 4 apart before, 8 after | 360 th 3140 / 3152 |
+| `r1-skipped-steps-th-360-2x.png`, `r1-skipped-steps-en-360-2x.png` | GuidebookSkippedSteps at 2x: the Brand personality step under Not yet confirmed, its item's Ask, and Colour's head with two notes (S3) | 360 th 4231 / 4263 |
+| `r1-narrow-logo-type-th-360-2x.png`, `r1-narrow-logo-type-en-360-2x.png` | GuidebookNarrow and GuidebookNarrowEnglish, Logo type at 2x: the head marks 8 below the state, the reason, the 3-line length line, the rule (S7) and the labels (S8) | |
+| `r1-done-notes-th-360-light-2x.png` | GuidebookDone th light at 2x: positioning labels (S5), architecture (S6), colour fields and labels (S8, S9), typography faces and notes (S11, S12), Logo mark's state and note (S3), Logo type (S7, S8) | |
+| `r1-visual-skipped-heads-th-360-2x.png` | GuidebookVisualSkipped th at 2x: heads with the provisional pair and the unchecked line 8 below the state line, the pair itself 4 (S4), colour fields (S9), Brand personality's fields unchanged (S13, S14) | |
+| `r1-open-asks-th-360-page.png`, `r1-open-asks-en-360-page.png`, `r1-skipped-steps-th-360-page.png`, `r1-skipped-steps-en-360-page.png`, `r1-narrow-th-360-page.png`, `r1-narrow-en-360-page.png` | the three stories at 360, Thai and English, whole page | |
+| `r1-skipped-th-1440-page.png`, `r1-visual-skipped-th-1440-page.png` | GuidebookSkipped and GuidebookVisualSkipped th at 1440, whole page at half size | 1440 th 5594 / 5698 (both) |
+
+Measured before and after in GuidebookSkipped, GuidebookVisualSkipped, GuidebookOpenAsks and GuidebookSkippedSteps at 360 and 1440: the cover to each section 48, section header to first child 24, items and steps 32, head to the next block 12, all unchanged. The page grows by 12 to 104 px, the 8s it adds.
+
 ## 21. Screens for visual QA
 
-At 360 and 1440, Thai and English, light and dark. PR 1: `GuidebookDone` (rhythm, start edge, lead block columns, the visual section in place), `GuidebookOpen` (open items read quieter than done ones, the visual items waiting), `GuidebookSkipped` and `GuidebookSkippedSteps` (marks, the resting list, the `nothing` line alone), `GuidebookStale`, `GuidebookUntrustedText` (long Thai at 360, the name inside Logo type's length line), `GuidebookNarrowDark`, `GuidebookAccess`, `GuidebookVisual`, `GuidebookVisualOpen`, `GuidebookVisualSkipped` (marks and the longer resting list), `Board` (the two actions at 360 English wrap cleanly and the board keeps its size). PR 2: `GuidebookAwaitingChoice`, `GuidebookPicked`. In each: the focus on the back link, Thai marks above and below whole, no line past the column.
+At 360 and 1440, Thai and English, light and dark. PR 1: `GuidebookDone` (rhythm, start edge, lead block columns, the visual section in place), `GuidebookOpen` (open items read quieter than done ones, the visual items waiting), `GuidebookSkipped` and `GuidebookSkippedSteps` (marks, the resting list, the `nothing` line alone), `GuidebookStale`, `GuidebookUntrustedText` (long Thai at 360, the name inside Logo type's length line), `GuidebookNarrowDark`, `GuidebookAccess`, `GuidebookVisual`, `GuidebookVisualOpen`, `GuidebookVisualSkipped` (marks and the longer resting list), `Board` (the two actions at 360 English wrap cleanly and the board keeps its size). PR 2: `GuidebookAwaitingChoice`, `GuidebookPicked`. In each: the focus on the back link, Thai marks above and below whole, no line past the column. From 2026-11-20 (6.1): in Thai at 360, `GuidebookOpenAsks` and `GuidebookSkippedSteps` (Brand personality's two questions read as two, in the item and in the step), `GuidebookNarrow` (Logo type's notes and labels), `GuidebookVisual` (colour fields, faces, labels) and `GuidebookSkippedSteps` (Colour's two notes): every two peer lines 8 apart, the page rhythm 48, 24, 32, 12 unchanged.
 
 ## Changelog
 
 - 2026-11-20, v1.0 (ORV-302-design-1): first design of the guidebook page, its states for both PRs, the board link, the plays and the rendered proof.
 - 2026-11-20, v1.1 (ORV-302-design-2): words and labels only, no new render, caused by spec v1.1 and ORV-302 comment 10786. Logo type, Colour and Typography move to PR 1 (sections 7.3, 13, plays P19 to P21 and P24, stories); PR 2 is the drafted positioning only (section 14, P22, P23); the placeholder note of the three visual items is gone and Logo mark alone reads as not in this version; positioning waiting for a choice shows its state line only (7.2, 14); P5, P8, P9, P15 and P18 follow spec v1.1; the reading guide, the strings line, the owner's choices and section 20's sheet labels say which PR shows what.
+- 2026-11-20, v1.2 (ORV-302-design-r1): answers finding R1 of the visual sign-off ORV-302-signoff-1 (Thai questions of one step read as one paragraph). New section 6.1, the peer lines rule: two lines of one style that are each their own statement are 8 apart (`gap-2`, or `mt-1` in a `dl` field), surveyed over 20 lists (S1 to S20, 13 changed, rows R1-1 to R1-13); dated additions to sections 2, 6, 7.1, 8 and 13; play P25; the rework render in section 20; front matter on spec v1.2.
