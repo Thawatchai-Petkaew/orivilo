@@ -242,7 +242,7 @@ describe("expression lines", () => {
     expect(colorReason(th, node, "neutral")).toBe("ความอบอุ่นระดับ 4 จาก 5 กำหนดสีเทา");
     expect(colorReason(th, node, "canvas")).toBe("ความหรูหราระดับ 4 จาก 5 กำหนดพื้นหลัง");
     expect(neutralWord(en, "warm")).toBe("Warm greys");
-    expect(canvasWord(th, "soft")).toBe("ขาวนวล วางการ์ดสีขาวด้านบน");
+    expect(canvasWord(th, "soft")).toBe("ขาวนวล มีการ์ดสีขาววางอยู่ด้านบน");
   });
 
   it("gives a reason only for a decision the engine made, and never prints a guess", () => {
