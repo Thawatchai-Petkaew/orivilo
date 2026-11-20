@@ -1,15 +1,21 @@
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { auditLineup, type Lineup } from "../color-audit";
 import { STAND_IN_LINEUP } from "../color-fixtures";
 import { COLOR_RULES, decideColor, type ColorDecisionResult } from "../color-rules";
 import { PERSONALITY_AXES } from "../knowledge";
 import { evaluateScope } from "../rules";
+import { SUGGESTION_CANDIDATES } from "../suggest";
 import {
   checkLineupRows,
   colorCandidates,
   colorOf,
   colorOutcome,
   expressionOf,
+  TYPOGRAPHY_FAMILIES,
+  typographyOf,
   type ColorAxes,
   type LineupRow,
   type LineupRowProblem,
@@ -17,9 +23,15 @@ import {
 import expressionSource from "./expression.ts?raw";
 import foundationSource from "./foundation.ts?raw";
 import marksSource from "./foundation-marks.ts?raw";
-import { newestByNode, storedEntrySchema, type StoredEntry } from "./foundation";
+import {
+  newestByNode,
+  storedEntrySchema,
+  TYPOGRAPHY_SCRIPTS,
+  type StoredEntry,
+} from "./foundation";
 
-// ORV-298 tech notes section 13, T4 to T8; spec rows 4, 5, 6 and 9 (the engine half), 16, W3 and W4.
+// ORV-298 tech notes section 13, T4 to T8 and T25 and T26; spec rows 4, 5, 6 and 9 (the engine half),
+// 16, 19, 22, W3, W4 and W7.
 
 const PID = "3f2b8c1e-0d4a-4b7e-9c55-1a2b3c4d5e6f";
 const at = "2026-11-20T03:00:00.000Z";
@@ -617,9 +629,152 @@ describe("colour adapter", () => {
     expect(signature.filter((r) => r.priority === 70)).toHaveLength(4);
   });
 
-  it("expressionOf holds the colour outcome of the same entries", () => {
+  it("expressionOf holds the colour and typography outcomes of the same entries", () => {
     const newest = newestByNode([personality(4), lineupEntry(STAND_IN_LINEUP)]);
-    expect(expressionOf(newest)).toEqual({ color: colorOf(newest) });
+    expect(expressionOf(newest)).toEqual({ color: colorOf(newest), typography: null });
+    const typed = newestByNode([typographyEntry("thai")]);
+    expect(expressionOf(typed).typography).toEqual(typographyOf("thai"));
+    expect(expressionOf(typed).typography).not.toBeNull();
+  });
+});
+
+const typographyEntry = (scripts: (typeof TYPOGRAPHY_SCRIPTS)[number]) =>
+  storedEntrySchema.parse({
+    id: "t1",
+    node: "typography",
+    kind: "answered",
+    payload: { scripts },
+    createdAt: at,
+  });
+
+// T25, row 19, W7.
+describe("typography", () => {
+  const names = (faces: ReadonlyArray<{ family: string }>) => faces.map((f) => f.family).join("+");
+  const line = (scripts: (typeof TYPOGRAPHY_SCRIPTS)[number]) => {
+    const decided = typographyOf(scripts);
+    if (decided === null) throw new Error("expected a decision");
+    return `${scripts} reading=${names(decided.reading)} display=${names(decided.display)}`;
+  };
+
+  it("families per script: prints W7's line, Thai first, then Latin", () => {
+    expect(TYPOGRAPHY_SCRIPTS.map(line).join(" | ")).toBe(
+      "thai-latin reading=Sarabun+Inter display=Anuphan+Inter | thai reading=Sarabun display=Anuphan | latin reading=Inter display=Inter",
+    );
+  });
+
+  it("holds the three answers in the order of the entry contract", () => {
+    expect([...TYPOGRAPHY_SCRIPTS]).toEqual(["thai-latin", "thai", "latin"]);
+  });
+
+  it("gives no decision for no answer", () => {
+    expect(typographyOf(null)).toBeNull();
+  });
+
+  it("the pairing is true for Thai and Latin together, and for no other answer", () => {
+    expect(typographyOf("thai-latin")?.pairing).toBe(true);
+    expect(typographyOf("thai")?.pairing).toBe(false);
+    expect(typographyOf("latin")?.pairing).toBe(false);
+  });
+
+  it("the reason of a role is on the Thai family only, never on Inter", () => {
+    const both = typographyOf("thai-latin");
+    expect(both?.reading.map((f) => [f.id, f.because])).toEqual([
+      ["sarabun", "reading"],
+      ["inter", null],
+    ]);
+    expect(both?.display.map((f) => [f.id, f.because])).toEqual([
+      ["anuphan", "display"],
+      ["inter", null],
+    ]);
+    expect(typographyOf("thai")?.reading.map((f) => f.because)).toEqual(["reading"]);
+    expect(typographyOf("thai")?.display.map((f) => f.because)).toEqual(["display"]);
+    expect(typographyOf("latin")?.reading.map((f) => f.because)).toEqual([null]);
+    expect(typographyOf("latin")?.display.map((f) => f.because)).toEqual([null]);
+  });
+
+  it("each face carries its id, family, style key and licence name as data", () => {
+    const decided = typographyOf("thai-latin");
+    expect(decided?.reading).toEqual([
+      {
+        id: "sarabun",
+        family: "Sarabun",
+        style: "looped",
+        licence: "SIL Open Font License 1.1",
+        because: "reading",
+      },
+      {
+        id: "inter",
+        family: "Inter",
+        style: "latinSans",
+        licence: "SIL Open Font License 1.1",
+        because: null,
+      },
+    ]);
+    expect(decided?.display[0]).toMatchObject({ id: "anuphan", style: "loopless" });
+  });
+
+  it("is the same answer every time: no axis is read, so the personality changes nothing", () => {
+    expect(typographyOf("thai-latin")).toEqual(typographyOf("thai-latin"));
+    const newest = (entries: StoredEntry[]) => expressionOf(newestByNode(entries)).typography;
+    expect(newest([typographyEntry("thai"), personality(1)])).toEqual(
+      newest([typographyEntry("thai"), personality(5)]),
+    );
+    expect(newest([typographyEntry("thai"), skippedPersonality()])).toEqual(typographyOf("thai"));
+  });
+});
+
+// T26, row 22. The licence files are read with node:fs from the repo root.
+describe("typography families carry a recorded licence", () => {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
+
+  it("lists exactly sarabun, anuphan and inter, in that order", () => {
+    expect(TYPOGRAPHY_FAMILIES.map((f) => f.id)).toEqual(["sarabun", "anuphan", "inter"]);
+  });
+
+  it("each has the licence OFL-1.1, a script, a style, a role and a licence file that exists", () => {
+    for (const family of TYPOGRAPHY_FAMILIES) {
+      expect(family.licence, family.id).toBe("OFL-1.1");
+      expect(family.licenceName, family.id).toBe("SIL Open Font License 1.1");
+      expect(["thai", "latin"], family.id).toContain(family.script);
+      expect(["looped", "loopless", "latinSans"], family.id).toContain(family.style);
+      expect(family.roles.length, family.id).toBeGreaterThan(0);
+      const file = resolve(root, family.licenceFile);
+      expect(existsSync(file), `${family.id}: ${family.licenceFile}`).toBe(true);
+      expect(readFileSync(file, "utf8"), family.id).toMatch(/SIL OPEN FONT LICENSE/i);
+    }
+  });
+
+  it("each licence file is the one beside the fonts, named for its family", () => {
+    for (const family of TYPOGRAPHY_FAMILIES) {
+      expect(family.licenceFile).toBe(
+        `packages/design-system/src/tokens/fonts/LICENSE-${family.id}.txt`,
+      );
+    }
+  });
+
+  it("names no id of the suggestion candidates other than sarabun and anuphan", () => {
+    const candidates = new Set(SUGGESTION_CANDIDATES.map((c) => c.id));
+    const shared = TYPOGRAPHY_FAMILIES.map((f) => f.id as string).filter((id) =>
+      candidates.has(id),
+    );
+    expect(shared).toEqual(["sarabun", "anuphan"]);
+    const candidateNames = new Set(
+      SUGGESTION_CANDIDATES.filter((c) => c.id !== "sarabun" && c.id !== "anuphan").map((c) =>
+        c.name.toLowerCase(),
+      ),
+    );
+    for (const family of TYPOGRAPHY_FAMILIES) {
+      expect(candidateNames.has(family.family.toLowerCase()), family.family).toBe(false);
+    }
+  });
+
+  it("the module imports nothing from suggest.ts, and no other candidate id is in its source", () => {
+    expect(suggestImports(expressionSource)).toEqual([]);
+    const others = SUGGESTION_CANDIDATES.map((c) => c.id).filter(
+      (id) => id !== "sarabun" && id !== "anuphan",
+    );
+    const code = expressionSource.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+    for (const id of others) expect(code, id).not.toContain(`"${id}"`);
   });
 });
 

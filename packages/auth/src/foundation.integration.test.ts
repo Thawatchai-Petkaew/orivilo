@@ -719,4 +719,91 @@ describe.runIf(HAS_TEST_DATABASE)("brand foundation entries", () => {
       ]);
     });
   });
+
+  // ORV-298 PR 2, rows 18, 23 and 26: the scripts the brand writes in.
+  describe("typography saved in the workspace", () => {
+    const typed = (projectId: string, scripts: unknown = "thai-latin", over = {}) => ({
+      projectId,
+      node: "typography",
+      kind: "answered",
+      payload: { scripts },
+      ...over,
+    });
+
+    it("saves one row with the answer, made by the session's user", async () => {
+      const a = await create("fe-typo-save@example.com", "Fts");
+      expect(await foundation.enter(a.headers, a.workspaceId, typed(a.projectId))).toEqual({
+        node: "typography",
+        kind: "answered",
+      });
+      const rows = await rowsOf(a.projectId);
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({
+        workspaceId: a.workspaceId,
+        projectId: a.projectId,
+        node: "typography",
+        kind: "answered",
+        payload: { scripts: "thai-latin" },
+        createdBy: a.user.id,
+      });
+    });
+
+    it("saves while positioning is skipped or not decided, and opens through the stored schema", async () => {
+      for (const setup of ["none", "skipped"] as const) {
+        const a = await create(`fe-typo-wait-${setup}@example.com`, "Ftw", setup);
+        await foundation.enter(a.headers, a.workspaceId, typed(a.projectId, "latin"));
+        const opened = await business.open(a.headers, a.workspaceId, a.projectId);
+        expect(opened.foundation).toHaveLength(1);
+        expect(opened.foundation[0]).toMatchObject({
+          node: "typography",
+          kind: "answered",
+          payload: { scripts: "latin" },
+        });
+      }
+    });
+
+    it("refuses what the check refuses, writes nothing, and holds the answer out of the error", async () => {
+      const a = await create("fe-typo-input@example.com", "Fti");
+      for (const bad of [
+        typed(a.projectId, "klingon-secret"),
+        typed(a.projectId, "thai", { payload: {} }),
+        typed(a.projectId, "thai", { kind: "skipped", payload: {} }),
+        typed(a.projectId, "thai", { kind: "given" }),
+        { ...typed(a.projectId, "thai"), source: "x" },
+        {
+          projectId: a.projectId,
+          node: "typography",
+          kind: "answered",
+          payload: { scripts: "thai", locale: "th" },
+        },
+      ]) {
+        const error = await refusal(foundation.enter(a.headers, a.workspaceId, bad));
+        expect(error.reason).toBe("invalid-input");
+        expect(JSON.stringify(error)).not.toContain("klingon-secret");
+      }
+      expect(await rowsOf(a.projectId)).toEqual([]);
+    });
+
+    it("gives a member of B entering on A's project the same not-found as an unknown id", async () => {
+      const a = await create("fe-typo-nf-a@example.com", "Fta");
+      const b = await signIn("fe-typo-nf-b@example.com", "Ftb");
+      const other = await refusal(foundation.enter(b.headers, b.workspaceId, typed(a.projectId)));
+      const unknown = await refusal(
+        foundation.enter(b.headers, b.workspaceId, typed("00000000-0000-4000-8000-000000000000")),
+      );
+      expect([other.reason, unknown.reason]).toEqual(["not-found", "not-found"]);
+      expect(unknown.message).toBe(other.message);
+      expect(await rowsOf(a.projectId)).toEqual([]);
+    });
+
+    it("refuses a second answer as out-of-order and keeps the stored one unchanged", async () => {
+      const a = await create("fe-typo-twice@example.com", "Ftt");
+      await foundation.enter(a.headers, a.workspaceId, typed(a.projectId, "thai"));
+      const error = await refusal(
+        foundation.enter(a.headers, a.workspaceId, typed(a.projectId, "latin")),
+      );
+      expect(error.reason).toBe("out-of-order");
+      expect((await rowsOf(a.projectId)).map((r) => r.payload)).toEqual([{ scripts: "thai" }]);
+    });
+  });
 });

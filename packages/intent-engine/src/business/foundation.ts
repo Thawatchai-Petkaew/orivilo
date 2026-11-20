@@ -8,7 +8,7 @@ import { ANSWER_MAX_CHARS, RAW_MAX_CHARS } from "./intake";
  * the client wrapper, the node views, the server action and the service share. Pure code, no AI.
  * PR 1 holds the node `identity-frame`, PR 2 adds `architecture` and `name`; the arm of `core-idea`
  * comes with PR 3. ORV-298 adds the `lineup` entry of `competitive-frame` (the competitors' colours
- * the Colour node reads).
+ * the Colour node reads) and the `typography` answer (the scripts the brand writes in).
  */
 
 /** The bound of a working name, in UTF-16 units (ORV-126 "Rules and bounds", Inventory; W5). */
@@ -113,12 +113,29 @@ const lineupEntry = z.discriminatedUnion("kind", [
     .strict(),
 ]);
 
+/** The one home of the three answers of `typography-node-1`; `expression.ts` imports it from here. */
+export const TYPOGRAPHY_SCRIPTS = ["thai-latin", "thai", "latin"] as const;
+export type TypographyScripts = (typeof TYPOGRAPHY_SCRIPTS)[number];
+
+// ORV-298 `typography-node-1`: the scripts the brand writes in, one answer, not skippable.
+const typographyEntry = z.discriminatedUnion("kind", [
+  z
+    .object({
+      projectId,
+      node: z.literal("typography"),
+      kind: z.literal("answered"),
+      payload: z.object({ scripts: z.enum(TYPOGRAPHY_SCRIPTS) }).strict(),
+    })
+    .strict(),
+]);
+
 // PR 3 adds the arm of `core-idea` here.
 const entryInputSchema = z.discriminatedUnion("node", [
   identityEntry,
   architectureEntry,
   nameEntry,
   lineupEntry,
+  typographyEntry,
 ]);
 
 /** The checked entry. Answers are trimmed; length is counted in UTF-16 units, as `checkIntake`. */
@@ -244,6 +261,14 @@ export const storedEntrySchema = z.discriminatedUnion("node", [
       payload: z.object({ lineup: lineupSchema }).strict(),
     })
     .strict(),
+  z
+    .object({
+      ...base,
+      node: z.literal("typography"),
+      kind: z.literal("answered"),
+      payload: z.object({ scripts: z.enum(TYPOGRAPHY_SCRIPTS) }).strict(),
+    })
+    .strict(),
 ]);
 
 export type StoredEntry = z.infer<typeof storedEntrySchema>;
@@ -260,6 +285,7 @@ export function newestByNode(entries: readonly StoredEntry[]): NewestByNode {
     architecture: null,
     name: null,
     "competitive-frame": null,
+    typography: null,
   };
   for (const entry of entries) {
     const at = newest[entry.node];

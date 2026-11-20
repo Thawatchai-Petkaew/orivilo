@@ -127,6 +127,13 @@
       "when": 1795156496007,
       "tag": "0017_lineup_entry",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1795160563358,
+      "tag": "0018_foundation_entry_typography",
+      "breakpoints": true
     }
   ]
 }

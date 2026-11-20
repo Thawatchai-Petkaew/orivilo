@@ -1060,6 +1060,41 @@ describe.runIf(HAS_TEST_DATABASE)("orivilo_app and row security", () => {
       });
     });
 
+    describe("one typography answer per project (T28, the unique index)", () => {
+      it("refuses a second typography answer and keeps the first", async () => {
+        const id = await freshProject();
+        await t.admin
+          .insert(businessFoundationEntry)
+          .values(entry(`${id}-t1`, "ws-a", id, "typography", "answered", { scripts: "thai" }));
+        await failsWithCode(
+          t.admin
+            .insert(businessFoundationEntry)
+            .values(entry(`${id}-t2`, "ws-a", id, "typography", "answered", { scripts: "latin" })),
+          "23505",
+        );
+        const rows = await t.admin
+          .select()
+          .from(businessFoundationEntry)
+          .where(eq(businessFoundationEntry.projectId, id));
+        expect(rows.map((r) => r.payload)).toEqual([{ scripts: "thai" }]);
+      });
+
+      it("counts the node: an answer on architecture and on typography are two entries", async () => {
+        const id = await freshProject();
+        await t.admin
+          .insert(businessFoundationEntry)
+          .values([
+            entry(`${id}-a`, "ws-a", id, "architecture", "answered", { subBrands: false }),
+            entry(`${id}-t`, "ws-a", id, "typography", "answered", { scripts: "thai-latin" }),
+          ]);
+        const rows = await t.admin
+          .select()
+          .from(businessFoundationEntry)
+          .where(eq(businessFoundationEntry.projectId, id));
+        expect(rows).toHaveLength(2);
+      });
+    });
+
     describe("foundation entry shape (T10)", () => {
       const six = [
         ["identity-frame", "given", { axes: { warm: 75 } }],
@@ -1069,6 +1104,7 @@ describe.runIf(HAS_TEST_DATABASE)("orivilo_app and row security", () => {
         ["core-idea", "written", { statement: "Brands that stay alive" }],
         ["core-idea", "skipped", {}],
         ["competitive-frame", "lineup", { lineup: [{ name: "Brand A", hex: "#5B3FD9" }] }],
+        ["typography", "answered", { scripts: "thai-latin" }],
       ] as const;
 
       it.each(six)("takes the pair %s and %s", async (node, kind, payload) => {
@@ -1098,6 +1134,13 @@ describe.runIf(HAS_TEST_DATABASE)("orivilo_app and row security", () => {
         ["competitive-frame", "given", { lineup: [{ name: "Brand A", hex: "#5B3FD9" }] }],
         ["competitive-frame", "answered", { lineup: [{ name: "Brand A", hex: "#5B3FD9" }] }],
         ["identity-frame", "lineup", { lineup: [{ name: "Brand A", hex: "#5B3FD9" }] }],
+        // ORV-298 PR 2 (T28): the one typography pair is (typography, answered).
+        ["typography", "skipped", {}],
+        ["typography", "given", { scripts: "thai" }],
+        ["typography", "written", { scripts: "thai" }],
+        ["typography", "lineup", { scripts: "thai" }],
+        ["logo-type", "answered", { appIcon: true }],
+        ["architecture", "answered-by-scripts", { scripts: "thai" }],
       ])("refuses the pair %s and %s (the pair check)", async (node, kind, payload) => {
         const id = await freshProject();
         await failsWithCode(

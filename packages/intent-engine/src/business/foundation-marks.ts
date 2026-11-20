@@ -15,7 +15,8 @@ import type { GateState } from "./positioning";
  * Nothing about a mark is stored: it is computed from the entries and the positioning gate each time.
  * PR 1 holds the node `identity-frame`, PR 2 adds `architecture` and `name`; PR 3 adds `core-idea`
  * to each list. ORV-298 adds the node `color` and the root `competitive-frame` (spec
- * `expression-roots-1`, `expression-marks-1`); its other two nodes follow in its PRs 2 and 3.
+ * `expression-roots-1`, `expression-marks-1`) and the node `typography`; its third node follows in
+ * its PR 3.
  */
 
 /** Fill order. ORV-296 adds "core-idea" after "name"; ORV-298 PR 3 adds "logo-type" before "color". */
@@ -24,7 +25,7 @@ export const FOUNDATION_NODES = [
   "architecture",
   "name",
   "color",
-  // ORV-298 PR 2: "typography"
+  "typography",
 ] as const;
 export type FoundationNodeId = (typeof FOUNDATION_NODES)[number];
 /** The roots the nodes rest on, in ORV-126 number order. */
@@ -38,6 +39,7 @@ export const FOUNDATION_REQUIRES = {
   architecture: ["situation", "positioning"],
   name: ["positioning", "architecture"],
   color: ["competitive-frame", "identity-frame"],
+  typography: ["identity-frame"],
 } as const satisfies Record<FoundationNodeId, readonly MarkRef[]>;
 
 /** `[from, to]`, one per require. */
@@ -54,6 +56,7 @@ export const MARK_NUMBERS: Record<MarkRef, number> = {
   architecture: 8,
   name: 9,
   color: 15,
+  typography: 16,
 };
 
 export type RootStatus = "done" | "skipped" | "open";
@@ -94,6 +97,8 @@ export function ownStatus(
     name: name === null ? "open" : "given", // working-name-1
     // color-node-1: derived only when the three decisions are made.
     color: expression.color.decided === 3 ? "derived" : "open",
+    // typography-node-1: derived with an entry, open without one.
+    typography: expression.typography === null ? "open" : "derived",
   };
 }
 
@@ -252,6 +257,9 @@ export function entryAllowed(
     // expression-entry-1: the lineup is a fact about the business, given once, whatever the marks.
     case "competitive-frame":
       return state.newest["competitive-frame"] === null;
+    // The scripts are a fact about the brand, given once while the node waits (typography-node-1).
+    case "typography":
+      return state.newest.typography === null;
   }
 }
 

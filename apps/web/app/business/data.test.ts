@@ -383,6 +383,53 @@ describe("expression replay", () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
+  // ORV-298 PR 2, T30, row 25.
+  it("typography loaded twice gives the same view and writes nothing", async () => {
+    const typed = {
+      id: "e-3",
+      node: "typography",
+      kind: "answered",
+      payload: { scripts: "thai-latin" },
+      createdAt: "2026-11-18T06:00:00.000Z",
+    };
+    state.choice = agreed;
+    state.foundation = [typed, personality];
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-19T03:00:00Z"));
+    const first = await loadProject(PROJECT);
+    vi.setSystemTime(new Date("2026-11-20T03:00:00Z"));
+    const second = await loadProject(PROJECT);
+    if (first.access !== "ready" || second.access !== "ready") throw new Error("not ready");
+    expect(second).toEqual(first);
+    const typography = first.view.foundation.find((node) => node.id === "typography");
+    // The stored answer reached the view, and the families came from the rule, not from a row.
+    expect(typography).toMatchObject({
+      id: "typography",
+      state: "derived",
+      scripts: "thai-latin",
+      controls: [],
+      faces: { pairing: true },
+    });
+    if (typography?.id !== "typography") throw new Error("typography");
+    expect(typography.faces?.reading.map((f) => f.id)).toEqual(["sarabun", "inter"]);
+    expect(state.writes).toEqual([]);
+    expect(state.limitsConsumed).toBe(0);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("gives the typography node the answer control while no answer is stored", async () => {
+    state.choice = agreed;
+    state.foundation = [personality];
+    const loaded = await loadProject(PROJECT);
+    if (loaded.access !== "ready") throw new Error("not ready");
+    expect(loaded.view.foundation.find((node) => node.id === "typography")).toMatchObject({
+      scripts: null,
+      faces: null,
+      state: "needsAnswer",
+      controls: ["answer"],
+    });
+  });
+
   it("gives the colour node the give control while no lineup is stored and the personality is", async () => {
     state.choice = agreed;
     state.foundation = [personality];

@@ -640,6 +640,7 @@ describe("newest by node", () => {
       architecture: null,
       name: null,
       "competitive-frame": null,
+      typography: null,
     });
   });
 
@@ -668,6 +669,7 @@ describe("newest by node", () => {
         architecture: arch,
         name,
         "competitive-frame": null,
+        typography: null,
       });
     }
   });
@@ -982,6 +984,132 @@ describe("stored lineup", () => {
   });
 });
 
+// ORV-298 tech notes section 13, T24; spec row 17 (the engine half).
+describe("typography entry", () => {
+  const typed = (payload: unknown, over: Record<string, unknown> = {}) => ({
+    projectId: PID,
+    node: "typography",
+    kind: "answered",
+    payload,
+    ...over,
+  });
+
+  it.each(["thai-latin", "thai", "latin"] as const)("parses the answer %s as it is", (scripts) => {
+    expect(entryOf(typed({ scripts }))).toEqual({
+      projectId: PID,
+      node: "typography",
+      kind: "answered",
+      payload: { scripts },
+    });
+  });
+
+  it("each other input fails at the path of its field", () => {
+    const rows: Array<[string, unknown, EntryProblem[]]> = [
+      [
+        "an unknown answer",
+        typed({ scripts: "chinese" }),
+        [{ path: "payload.scripts", kind: "invalid" }],
+      ],
+      [
+        "an answer in another case",
+        typed({ scripts: "Thai" }),
+        [{ path: "payload.scripts", kind: "invalid" }],
+      ],
+      [
+        "an answer that is no text",
+        typed({ scripts: true }),
+        [{ path: "payload.scripts", kind: "invalid" }],
+      ],
+      ["a missing answer", typed({}), [{ path: "payload.scripts", kind: "required" }]],
+      [
+        "an unknown key locale",
+        typed({ scripts: "thai", locale: "th" }),
+        [{ path: "payload.locale", kind: "unknown-key" }],
+      ],
+      [
+        "a key beside the payload",
+        typed({ scripts: "thai" }, { source: "x" }),
+        [{ path: "source", kind: "unknown-key" }],
+      ],
+      ["a skipped entry", typed({}, { kind: "skipped" }), [{ path: "kind", kind: "invalid" }]],
+      [
+        "a given entry",
+        typed({ scripts: "thai" }, { kind: "given" }),
+        [{ path: "kind", kind: "invalid" }],
+      ],
+    ];
+    for (const [name, input, expected] of rows) {
+      expect(problemsOf(input), name).toEqual(expected);
+    }
+  });
+
+  it("a problem holds a path and a kind only: the answer never reaches it", () => {
+    const problems = problemsOf(typed({ scripts: "klingon-secret" }));
+    expect(JSON.stringify(problems)).not.toContain("klingon");
+    for (const problem of problems) expect(Object.keys(problem).sort()).toEqual(["kind", "path"]);
+  });
+
+  it("takes a whole UUID as the project id and nothing else", () => {
+    expect(problemsOf(typed({ scripts: "thai" }, { projectId: "not-a-uuid" }))).toEqual([
+      { path: "projectId", kind: "invalid" },
+    ]);
+  });
+
+  it("EntryRequest drops the project id of the typography arm", () => {
+    const request: Extract<EntryRequest, { node: "typography" }> = {
+      node: "typography",
+      kind: "answered",
+      payload: { scripts: "thai-latin" },
+    };
+    expect(entryOf({ projectId: PID, ...request })).toMatchObject(request);
+  });
+
+  describe("stored", () => {
+    const stored = (over: Record<string, unknown> = {}) => ({
+      id: "t1",
+      node: "typography",
+      kind: "answered",
+      payload: { scripts: "thai-latin" },
+      createdAt: "2026-11-20T03:04:05.000Z",
+      ...over,
+    });
+
+    it("parses a stored row of each answer as it is", () => {
+      for (const scripts of ["thai-latin", "thai", "latin"]) {
+        const row = stored({ payload: { scripts } });
+        expect(storedEntrySchema.parse(row)).toEqual(row);
+      }
+    });
+
+    it.each([
+      ["an unknown answer", stored({ payload: { scripts: "chinese" } })],
+      ["a missing answer", stored({ payload: {} })],
+      ["an unknown payload key", stored({ payload: { scripts: "thai", locale: "th" } })],
+      ["an unknown top-level key", stored({ extra: 1 })],
+      ["a skipped kind", stored({ kind: "skipped", payload: {} })],
+      ["an empty id", stored({ id: "" })],
+    ])("refuses %s", (_name, input) => {
+      expect(storedEntrySchema.safeParse(input).success).toBe(false);
+    });
+
+    it("fills the typography slot of the newest entries, and no other", () => {
+      const typography = storedEntrySchema.parse(stored());
+      const name = storedEntrySchema.parse({
+        id: "n1",
+        node: "name",
+        kind: "given",
+        payload: { name: "ORIVILO" },
+        createdAt: "2026-11-20T01:00:00.000Z",
+      });
+      const newest = newestByNode([name, typography]);
+      expect(newest.typography).toEqual(typography);
+      expect(newest.name).toEqual(name);
+      expect(newest["competitive-frame"]).toBeNull();
+      expect(newestByNode([name]).typography).toBeNull();
+    });
+  });
+});
+
 describe("exports", () => {
   it("the package index exports the entry contract and the marks", () => {
     expect(typeof engine.checkEntry).toBe("function");
@@ -989,7 +1117,16 @@ describe("exports", () => {
     expect(typeof engine.newestByNode).toBe("function");
     expect(typeof engine.foundationMarks).toBe("function");
     expect(typeof engine.entryAllowed).toBe("function");
-    expect(engine.FOUNDATION_NODES).toEqual(["identity-frame", "architecture", "name", "color"]);
+    expect(engine.FOUNDATION_NODES).toEqual([
+      "identity-frame",
+      "architecture",
+      "name",
+      "color",
+      "typography",
+    ]);
+    expect([...engine.TYPOGRAPHY_SCRIPTS]).toEqual(["thai-latin", "thai", "latin"]);
+    expect(engine.TYPOGRAPHY_FAMILIES.map((f) => f.id)).toEqual(["sarabun", "anuphan", "inter"]);
+    expect(engine.typographyOf("thai")?.reading.map((f) => f.id)).toEqual(["sarabun"]);
     expect(engine.WORKING_NAME_MAX).toBe(60);
     expect(engine.START_QUESTIONS.map((q) => q.id)).toEqual(["situation.sub-brands"]);
     expect(typeof engine.derivedArchitecture).toBe("function");

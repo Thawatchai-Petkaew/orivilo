@@ -902,3 +902,148 @@ describe("lineup door", () => {
     expect(state.saved).toEqual([]);
   });
 });
+
+// ORV-298 PR 2, T29, rows 18 and 23: the scripts the brand writes in, through the one route.
+const scriptsEntry = (scripts: unknown = "thai-latin") => ({
+  projectId: PROJECT_ID,
+  node: "typography",
+  kind: "answered",
+  payload: { scripts },
+});
+/** The answers the tests send and the words an unknown one carries, whatever the case in a line. */
+const SCRIPTS_TEXT = ["thai-latin", "klingon-secret"];
+
+describe("answer the scripts", () => {
+  it("answers ok with the node and the kind, saves the answer in the session's workspace, and logs closed words", async () => {
+    const outcome = await enterFoundation(scriptsEntry("thai"));
+    expect(outcome).toEqual({ ok: true, value: { node: "typography", kind: "answered" } });
+    expect(state.saved).toEqual([
+      {
+        workspaceId: "ws-1",
+        entry: { node: "typography", kind: "answered", payload: { scripts: "thai" } },
+      },
+    ]);
+    expect(state.consumed).toEqual(["write:u:P"]);
+    expect(state.order).toEqual(["session", "allow-list", "consume", "save"]);
+    const lines = written();
+    expect(lines).toMatchObject([
+      { route: "business/enterFoundation", outcome: "ok", level: "info" },
+    ]);
+    // No line holds the answer.
+    expect(JSON.stringify(lines)).not.toMatch(/thai|latin/i);
+  });
+
+  it("never reaches a line with the answer when the save fails", async () => {
+    state.throws = new Error("insert failed for scripts thai-latin");
+    const outcome = await enterFoundation(scriptsEntry("thai-latin"));
+    expect(outcome).toMatchObject({ ok: false, error: "failed", code: "INTERNAL_ERROR" });
+    expect(everything(outcome)).not.toContain("thai-latin");
+    expect(written()).toMatchObject([
+      { route: "business/enterFoundation", outcome: "failed", reason: "unexpected" },
+    ]);
+    expect(JSON.stringify(written())).not.toContain("thai-latin");
+  });
+
+  it("saves while positioning is not decided or stale: the answer waits for no other node", async () => {
+    for (const positioning of ["none", "stale"] as const) {
+      state.saved.length = 0;
+      state.positioning = positioning;
+      expect(await enterFoundation(scriptsEntry("latin"))).toMatchObject({ ok: true });
+      expect(state.saved).toHaveLength(1);
+    }
+  });
+});
+
+describe("typography door", () => {
+  it("signed-out: counts the signed-out limit by IP, answers signed-out, saves nothing", async () => {
+    state.session = null;
+    const outcome = await enterFoundation(scriptsEntry());
+    expect(outcome).toMatchObject({ ok: false, error: "signed-out", code: "UNAUTHENTICATED" });
+    expect(state.consumed).toEqual(["signed-out:ip:ip-1"]);
+    expect(state.saved).toEqual([]);
+    expect(state.order).toEqual(["session", "consume"]);
+  });
+
+  it("an email off the list: forbidden, no address, nothing counted, nothing saved", async () => {
+    state.session = { ...person, user: { id: "P2", email: "stranger@example.com" } };
+    const outcome = await enterFoundation(scriptsEntry());
+    expect(outcome).toMatchObject({ ok: false, error: "forbidden", code: "FORBIDDEN" });
+    expect(state.consumed).toEqual([]);
+    expect(state.saved).toEqual([]);
+    for (const secret of ["stranger", "example.com", ...SCRIPTS_TEXT]) {
+      expect(everything(outcome)).not.toContain(secret);
+    }
+  });
+
+  it("the write limit used up: rate-limited with retryAfter, nothing saved", async () => {
+    for (const w of LIMITS.write.windows) {
+      state.counts.set(`${keyOf(LIMITS.write, { user: "P" })}@${w.seconds}`, w.max);
+    }
+    expect(await enterFoundation(scriptsEntry())).toMatchObject({
+      ok: false,
+      error: "rate-limited",
+      code: "RATE_LIMITED",
+      retryAfter: expect.any(Number),
+    });
+    expect(state.saved).toEqual([]);
+  });
+
+  it("another workspace's project and an unknown id: one not-found body, nothing saved", async () => {
+    const unknown = await enterFoundation({ ...scriptsEntry(), projectId: UNKNOWN_ID });
+    const other = await enterFoundation({
+      ...scriptsEntry(),
+      projectId: "22222222-2222-4222-8222-222222222222",
+    });
+    expect(unknown).toMatchObject({ ok: false, error: "not-found", code: "NOT_FOUND" });
+    expect(body(other)).toEqual(body(unknown));
+    expect(state.saved).toEqual([]);
+    expect(everything(unknown)).not.toContain(UNKNOWN_ID);
+  });
+
+  it("a second answer: invalid-input with no problems, the first one kept", async () => {
+    expect(await enterFoundation(scriptsEntry("thai"))).toMatchObject({ ok: true });
+    const outcome = await enterFoundation(scriptsEntry("latin"));
+    expect(outcome).toMatchObject({ ok: false, error: "invalid-input", code: "INVALID_INPUT" });
+    expect(outcome).not.toHaveProperty("problems");
+    expect(state.saved).toHaveLength(1);
+  });
+
+  it.each([
+    ["an unknown answer", "klingon-secret", "payload.scripts", "invalid"],
+    ["a missing answer", undefined, "payload.scripts", "required"],
+  ] as const)(
+    "%s: invalid-input with the path and a kind, saves nothing, and holds no answer in the body or a line",
+    async (_label, scripts, path, kind) => {
+      const outcome = await enterFoundation({
+        ...scriptsEntry(),
+        payload: scripts === undefined ? {} : { scripts },
+      });
+      expect(outcome).toMatchObject({
+        ok: false,
+        error: "invalid-input",
+        code: "INVALID_INPUT",
+        problems: [{ path, kind }],
+      });
+      expect(state.saved).toEqual([]);
+      expect(state.order).toEqual(["session", "allow-list", "consume"]);
+      for (const problem of (outcome as { problems: object[] }).problems) {
+        expect(Object.keys(problem).sort()).toEqual(["kind", "path"]);
+      }
+      expect(JSON.stringify(whereAxisCouldLeak(outcome))).not.toContain("klingon-secret");
+      expect(JSON.stringify(written())).not.toContain("klingon-secret");
+    },
+  );
+
+  it("refuses a skip of typography, a stray key and an answer beside another node, saving nothing", async () => {
+    for (const bad of [
+      { projectId: PROJECT_ID, node: "typography", kind: "skipped", payload: {} },
+      { ...scriptsEntry(), kind: "given" },
+      { ...scriptsEntry(), payload: { scripts: "thai", locale: "th" } },
+      { ...scriptsEntry(), source: "x" },
+      { ...scriptsEntry(), node: "logo-type" },
+    ]) {
+      expect(await enterFoundation(bad)).toMatchObject({ ok: false, error: "invalid-input" });
+    }
+    expect(state.saved).toEqual([]);
+  });
+});

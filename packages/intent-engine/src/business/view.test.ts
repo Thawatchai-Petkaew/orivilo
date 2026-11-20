@@ -19,6 +19,7 @@ import { storedEntrySchema, type StoredEntry } from "./foundation";
 import type { StoredChoice } from "./positioning";
 import { STAND_IN_LINEUP } from "../color-fixtures";
 import type { Lineup } from "../color-audit";
+import { typographyOf } from "./expression";
 import { expressionLines, foundationLines, toBusinessView, type SavedBusiness } from "./view";
 
 // ORV-281 tech notes section 13, T8 and T37; spec rows 14 and 15 (the data half), 19, 27 and 33 (the data half).
@@ -465,6 +466,22 @@ describe("foundation in the view", () => {
     if (node?.id !== "color") throw new Error("the node color");
     return node;
   };
+  const typographyNode = (view: ReturnType<typeof toBusinessView>) => {
+    const node = view.foundation[4];
+    if (node?.id !== "typography") throw new Error("the node typography");
+    return node;
+  };
+  const TYPOGRAPHY = (
+    scripts: "thai-latin" | "thai" | "latin" = "thai-latin",
+    createdAt = "2026-11-19T08:00:00.000Z",
+  ): StoredEntry =>
+    storedEntrySchema.parse({
+      id: `t-${scripts}`,
+      node: "typography",
+      kind: "answered",
+      payload: { scripts },
+      createdAt,
+    });
   const LINEUP = (lineup: Lineup = STAND_IN_LINEUP): StoredEntry =>
     storedEntrySchema.parse({
       id: "l1",
@@ -663,6 +680,7 @@ describe("foundation in the view", () => {
         "architecture",
         "name",
         "color",
+        "typography",
       ]);
       expect(personality(view).fields).toEqual(["person", "never", "personality"]);
       expect(architecture(view).fields).toEqual(["subBrands", "architecture"]);
@@ -674,6 +692,7 @@ describe("foundation in the view", () => {
         "lineup",
         "crowded",
       ]);
+      expect(typographyNode(view).fields).toEqual(["scripts", "readingFace", "displayFace"]);
     });
 
     it("the newest entry wins in whatever order the entries are stored", () => {
@@ -1108,6 +1127,56 @@ describe("foundation in the view", () => {
     });
   });
 
+  describe("expression marks, typography", () => {
+    // W8 cases 4, 3 and 5 for typography, and the fourth fixture of row 21.
+    it("row 21, first: derived, provisional on the personality the person skipped", () => {
+      const node = typographyNode(toBusinessView(project_("agreed", [SKIP_ENTRY, TYPOGRAPHY()])));
+      expect(node.state).toBe("derived");
+      expect(node.restsOn).toEqual(["identity-frame"]);
+      expect(node.unchecked).toEqual([]);
+      expect(node.result.provisionalOn).toEqual(["identity-frame"]);
+      expect(node.faces).toEqual(typographyOf("thai-latin"));
+    });
+
+    it("row 21, second: derived, not yet checked against a stale positioning", () => {
+      const node = typographyNode(toBusinessView(project_("stale", [GIVEN_ENTRY, TYPOGRAPHY()])));
+      expect(node.state).toBe("derived");
+      expect(node.restsOn).toEqual([]);
+      expect(node.unchecked).toEqual(["positioning"]);
+      expect(node.faces).toEqual(typographyOf("thai-latin"));
+    });
+
+    it("row 21, third: waits for the personality, shows the saved answer and no family", () => {
+      const node = typographyNode(toBusinessView(project_("agreed", [TYPOGRAPHY()])));
+      expect(node.state).toBe("waiting");
+      expect(node.waitingFor).toEqual(["identity-frame"]);
+      expect(node.scripts).toBe("thai-latin");
+      expect(node.faces).toBeNull();
+    });
+
+    it("row 21, fourth: waits for positioning, shows the saved answer and no family", () => {
+      const node = typographyNode(toBusinessView(project_("open", [TYPOGRAPHY()])));
+      expect(node.state).toBe("waiting");
+      expect(node.waitingFor).toEqual(["positioning"]);
+      expect(node.result.blockedBy).toEqual(["positioning"]);
+      expect(node.scripts).toBe("thai-latin");
+      expect(node.faces).toBeNull();
+    });
+
+    it("positioning skipped and a given personality: derived, provisional on positioning", () => {
+      const node = typographyNode(toBusinessView(project_("skipped", [GIVEN_ENTRY, TYPOGRAPHY()])));
+      expect(node.state).toBe("derived");
+      expect(node.restsOn).toEqual(["positioning"]);
+    });
+
+    it("the marks change no family", () => {
+      const faces = (positioning: keyof typeof POSITIONING) =>
+        typographyNode(toBusinessView(project_(positioning, [GIVEN_ENTRY, TYPOGRAPHY()]))).faces;
+      expect(faces("skipped")).toEqual(faces("agreed"));
+      expect(faces("stale")).toEqual(faces("agreed"));
+    });
+  });
+
   describe("expression lines", () => {
     const result = (over: Partial<FoundationResult>): FoundationResult => ({
       status: "open",
@@ -1175,6 +1244,108 @@ describe("foundation in the view", () => {
     });
   });
 
+  // ORV-298 tech notes section 13, T27: spec rows 18, 19 and 21, the data half.
+  describe("typography in the view", () => {
+    it("row 18, before the answer: needsAnswer, no scripts, no family, and answer is offered", () => {
+      const node = typographyNode(toBusinessView(project_("agreed", [GIVEN_ENTRY])));
+      expect(node.state).toBe("needsAnswer");
+      expect(node.result.status).toBe("open");
+      expect(node.scripts).toBeNull();
+      expect(node.faces).toBeNull();
+      expect(node.controls).toEqual(["answer"]);
+      expect(node.restsOn).toEqual([]);
+      expect(node.unchecked).toEqual([]);
+      expect(node.waitingFor).toEqual([]);
+    });
+
+    it("row 18, after the answer: derived with the families of the answer and no control", () => {
+      const node = typographyNode(
+        toBusinessView(project_("agreed", [GIVEN_ENTRY, TYPOGRAPHY("thai-latin")])),
+      );
+      expect(node.state).toBe("derived");
+      expect(node.scripts).toBe("thai-latin");
+      expect(node.faces).toEqual(typographyOf("thai-latin"));
+      expect(node.faces?.reading.map((f) => f.id)).toEqual(["sarabun", "inter"]);
+      expect(node.faces?.display.map((f) => f.id)).toEqual(["anuphan", "inter"]);
+      expect(node.faces?.pairing).toBe(true);
+      expect(node.controls).toEqual([]);
+      expect(node.restsOn).toEqual([]);
+      expect(node.unchecked).toEqual([]);
+    });
+
+    it("row 19: Thai only and Latin only give W7's families and no pairing", () => {
+      const thai = typographyNode(
+        toBusinessView(project_("agreed", [GIVEN_ENTRY, TYPOGRAPHY("thai")])),
+      );
+      expect(thai.faces?.reading.map((f) => f.id)).toEqual(["sarabun"]);
+      expect(thai.faces?.display.map((f) => f.id)).toEqual(["anuphan"]);
+      expect(thai.faces?.pairing).toBe(false);
+      const latin = typographyNode(
+        toBusinessView(project_("agreed", [GIVEN_ENTRY, TYPOGRAPHY("latin")])),
+      );
+      expect(latin.faces?.reading.map((f) => f.id)).toEqual(["inter"]);
+      expect(latin.faces?.display.map((f) => f.id)).toEqual(["inter"]);
+      expect(latin.faces?.pairing).toBe(false);
+    });
+
+    it("waits with the saved answer and no family while blocked, and offers the question", () => {
+      const node = typographyNode(toBusinessView(project_("agreed", [TYPOGRAPHY("thai-latin")])));
+      expect(node.state).toBe("waiting");
+      expect(node.waitingFor).toEqual(["identity-frame"]);
+      expect(node.scripts).toBe("thai-latin");
+      expect(node.faces).toBeNull();
+      // No answer stored and blocked: the question is offered all the same, whatever the marks.
+      const empty = typographyNode(toBusinessView(project_("open", [])));
+      expect(empty.state).toBe("waiting");
+      expect(empty.faces).toBeNull();
+      expect(empty.controls).toEqual(["answer"]);
+    });
+
+    it("the answer is read from the newest typography entry, in whatever order they are stored", () => {
+      const a = typographyNode(
+        toBusinessView(project_("agreed", [GIVEN_ENTRY, TYPOGRAPHY("latin")])),
+      );
+      const b = typographyNode(
+        toBusinessView(project_("agreed", [TYPOGRAPHY("latin"), GIVEN_ENTRY])),
+      );
+      expect(a).toEqual(b);
+    });
+
+    it("its JSON holds keys, ids and the licence name as data, no catalog text", () => {
+      const view = toBusinessView(project_("agreed", [GIVEN_ENTRY, TYPOGRAPHY()]));
+      const json = JSON.stringify(typographyNode(view));
+      for (const text of ["Worked out", "Looped Thai", "Licence:", "Waits for", "Reading text"]) {
+        expect(json).not.toContain(text);
+      }
+      expect(json).toContain("looped");
+      expect(json).toContain("SIL Open Font License 1.1");
+    });
+  });
+
+  describe("controls match the door for typography", () => {
+    const SETS: Record<string, StoredEntry[]> = {
+      none: [],
+      answer: [TYPOGRAPHY()],
+      personality: [GIVEN_ENTRY],
+      "personality and answer": [GIVEN_ENTRY, TYPOGRAPHY("latin")],
+      "personality skipped": [SKIP_ENTRY],
+    };
+
+    it("offers answer exactly when entryAllowed is true, for every fixture", () => {
+      for (const positioning of Object.keys(POSITIONING) as Array<keyof typeof POSITIONING>) {
+        for (const [label, entries] of Object.entries(SETS)) {
+          const view = toBusinessView(project_(positioning, entries));
+          const gate = { state: view.positioning.gate, skipped: view.positioning.skipped };
+          const { roots, newest } = foundationState(gate, entries);
+          expect(
+            typographyNode(view).controls.includes("answer"),
+            `${positioning} / ${label}`,
+          ).toBe(entryAllowed({ node: "typography", kind: "answered" }, { roots, newest }));
+        }
+      }
+    });
+  });
+
   describe("beside the business nodes", () => {
     it("builds the five nodes, positioning and reading exactly as a view built without foundation", () => {
       for (const positioning of Object.keys(POSITIONING) as Array<keyof typeof POSITIONING>) {
@@ -1235,6 +1406,12 @@ describe("foundation in the view", () => {
         "color.canvas.soft",
         "waitsForLineup",
         "partly",
+        // The typography node: its id, field keys, control and state.
+        "typography",
+        "scripts",
+        "readingFace",
+        "displayFace",
+        "needsAnswer",
       ]);
       const rest = strings.filter((s) => !closed.has(s));
       expect(rest).toEqual(["อบอุ่น เป็นกันเอง จริงใจ"]);

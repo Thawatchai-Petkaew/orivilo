@@ -1,8 +1,8 @@
 import type { HueFamily } from "../color-audit";
 import type { InputEvidence } from "../evidence";
 import { PERSONALITY_AXES, type PersonalityAxis } from "../knowledge";
-import type { ColorOutcome } from "./expression";
-import type { AxisValue, StoredEntry } from "./foundation";
+import type { ColorOutcome, TypographyOutcome } from "./expression";
+import type { AxisValue, StoredEntry, TypographyScripts } from "./foundation";
 import {
   axisPointOf,
   derivedArchitecture,
@@ -85,7 +85,10 @@ export type FoundationFieldKey =
   | "neutral"
   | "canvas"
   | "lineup"
-  | "crowded";
+  | "crowded"
+  | "scripts"
+  | "readingFace"
+  | "displayFace";
 /** A foundation node's state line, a key of `business.state.*`. PR 3 adds `agreed`. */
 export type FoundationStateKey =
   "given" | "derived" | "waiting" | "skipped" | "empty" | "notInVersion" | "partly" | "needsAnswer";
@@ -104,7 +107,7 @@ type FoundationBase = {
   fields: FoundationFieldKey[];
 };
 
-/** The four foundation nodes of ORV-291 in fill order; PRs 1 and 2 build the first three. */
+/** The foundation nodes in fill order: ORV-291's three built so far, then ORV-298's colour and typography. */
 export type FoundationNode =
   | (FoundationBase & {
       id: "identity-frame";
@@ -145,6 +148,14 @@ export type FoundationNode =
       /** The scale points (1 to 5) the reasons quote; null while blocked or with no given personality. */
       points: null | Record<"expressive" | "warm" | "premium", AxisPoint>;
       controls: Array<"give">;
+    })
+  | (FoundationBase & {
+      id: "typography";
+      /** The stored answer, shown in every result that holds one; null with no entry. */
+      scripts: TypographyScripts | null;
+      /** The families of the answer, only while the result is `derived`; null in every other. */
+      faces: TypographyOutcome | null;
+      controls: Array<"answer">;
     });
 
 export type BusinessView = {
@@ -385,6 +396,20 @@ function colorNodeOf(state: FoundationState): FoundationNode {
   };
 }
 
+function typographyNodeOf(state: FoundationState): FoundationNode {
+  const result = state.results.typography;
+  const outcome = state.expression.typography;
+  return {
+    id: "typography",
+    // One decision, made with the answer: a derived result has it, and no result is partly.
+    ...expressionLines(result, outcome === null ? 0 : 1),
+    fields: ["scripts", "readingFace", "displayFace"],
+    scripts: state.newest.typography?.payload.scripts ?? null,
+    faces: result.status === "derived" ? outcome : null,
+    controls: entryAllowed({ node: "typography", kind: "answered" }, state) ? ["answer"] : [],
+  };
+}
+
 export function toBusinessView(saved: SavedBusiness): BusinessView {
   const placed = placeIntake(saved.intake);
   const states = nodeStates(saved.intake);
@@ -411,6 +436,7 @@ export function toBusinessView(saved: SavedBusiness): BusinessView {
       architectureOf(foundation),
       nameOf(foundation),
       colorNodeOf(foundation),
+      typographyNodeOf(foundation),
     ],
     nodes: states.map((s) => ({
       id: s.id,

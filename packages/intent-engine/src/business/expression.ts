@@ -2,7 +2,13 @@ import type { ChromaticFamily, LineupAudit } from "../color-audit";
 import { COLOR_RULES, decideColor, type ColorDecisionResult } from "../color-rules";
 import { PERSONALITY_AXES } from "../knowledge";
 import { evaluateScope, type BriefFacts, type ColorDecisionValue, type RuleAction } from "../rules";
-import { checkEntry, type AxisValue, type EntryRequest, type NewestByNode } from "./foundation";
+import {
+  checkEntry,
+  type AxisValue,
+  type EntryRequest,
+  type NewestByNode,
+  type TypographyScripts,
+} from "./foundation";
 
 /**
  * The expression rules (ORV-298 tech notes section 6): the adapter around ORV-20's colour rules and
@@ -270,11 +276,104 @@ export function checkLineupRows(
   return { ok: false, problems };
 }
 
-/** What each expression node decides, from the stored entries. PR 2 adds typography, PR 3 logo type. */
+/**
+ * The curated family list (`typography-families-1`), the one home of every typeface the typography
+ * rule can name. A family is listed only with its licence and the path of the licence text in the
+ * repo, from the repo root. The list is data: the engine reads no file, and a test reads each path.
+ * Nothing is imported from `suggest.ts`.
+ */
+export const TYPOGRAPHY_FAMILIES = [
+  {
+    id: "sarabun",
+    family: "Sarabun",
+    script: "thai",
+    style: "looped",
+    roles: ["reading"],
+    licence: "OFL-1.1",
+    licenceName: "SIL Open Font License 1.1",
+    licenceFile: "packages/design-system/src/tokens/fonts/LICENSE-sarabun.txt",
+  },
+  {
+    id: "anuphan",
+    family: "Anuphan",
+    script: "thai",
+    style: "loopless",
+    roles: ["display"],
+    licence: "OFL-1.1",
+    licenceName: "SIL Open Font License 1.1",
+    licenceFile: "packages/design-system/src/tokens/fonts/LICENSE-anuphan.txt",
+  },
+  {
+    id: "inter",
+    family: "Inter",
+    script: "latin",
+    style: "latinSans",
+    roles: ["reading", "display"],
+    licence: "OFL-1.1",
+    licenceName: "SIL Open Font License 1.1",
+    licenceFile: "packages/design-system/src/tokens/fonts/LICENSE-inter.txt",
+  },
+] as const;
+
+/** A family as the view shows it; the words around it stay keys the view resolves. */
+export type Face = {
+  id: (typeof TYPOGRAPHY_FAMILIES)[number]["id"];
+  /** Shown as written, in both languages. */
+  family: string;
+  /** A key of `business.typography.style.*`. */
+  style: "looped" | "loopless" | "latinSans";
+  /** The licence name, shown as written, in both languages. */
+  licence: string;
+  /** The reason of the role: the Thai reading and display families only. */
+  because: "reading" | "display" | null;
+};
+
+export type TypographyOutcome = { reading: Face[]; display: Face[]; pairing: boolean };
+
+/** The scripts each answer names (`typography-node-1`), Thai first. */
+const SCRIPTS_OF: Record<TypographyScripts, ReadonlyArray<"thai" | "latin">> = {
+  "thai-latin": ["thai", "latin"],
+  thai: ["thai"],
+  latin: ["latin"],
+};
+
+function facesFor(scripts: TypographyScripts, role: "reading" | "display"): Face[] {
+  // The families are listed Thai first, so each script's families come out in the answer's order.
+  return SCRIPTS_OF[scripts].flatMap((script) =>
+    TYPOGRAPHY_FAMILIES.filter(
+      (family) => family.script === script && (family.roles as readonly string[]).includes(role),
+    ).map((family): Face => ({
+      id: family.id,
+      family: family.family,
+      style: family.style,
+      licence: family.licenceName,
+      because: family.script === "thai" ? role : null,
+    })),
+  );
+}
+
+/**
+ * `typography-node-1`: for each role, the families whose script the answer names and whose role
+ * matches, Thai first, then Latin. No axis is read and nothing is stored; null with no answer.
+ */
+export function typographyOf(scripts: TypographyScripts | null): TypographyOutcome | null {
+  if (scripts === null) return null;
+  return {
+    reading: facesFor(scripts, "reading"),
+    display: facesFor(scripts, "display"),
+    pairing: scripts === "thai-latin",
+  };
+}
+
+/** What each expression node decides, from the stored entries. PR 3 adds logo type. */
 export type ExpressionOutcomes = {
   color: ColorOutcome;
+  typography: TypographyOutcome | null;
 };
 
 export function expressionOf(newest: NewestByNode): ExpressionOutcomes {
-  return { color: colorOf(newest) };
+  return {
+    color: colorOf(newest),
+    typography: typographyOf(newest.typography?.payload.scripts ?? null),
+  };
 }
