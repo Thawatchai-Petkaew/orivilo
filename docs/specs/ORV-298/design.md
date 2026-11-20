@@ -140,6 +140,83 @@ As built (2026-11-20, C2): the story `BoardAt1440` measured the PR 3 fit at 1440
 
 The ORV-291 and ORV-295 board plays that assert Brand personality at (1400, 160) change to (1400, -340) in PR 1, in the same commit as the position.
 
+### 2.6 Card titles at the overview fit (ORV-298-design-f1)
+
+Answers finding F1 of the visual sign-off `ORV-298-signoff-1` (head 02b6cfe): at the 1440 fit of the twelve-card board four titles ended in the fade, where on `develop` (nine cards, fit 0.5245) every title was whole.
+
+**Cause.** The label above a card is bound to the card: its screen width is 317.95 x zoom (the card's padding box), so 115.64 px at the 0.3637 fit against 166.8 at 0.5245. The kind glyph (14), the open glyph (14) and the label's two 4 px gaps take 36 of it, which leaves the title 79.6 px (measured `clientWidth` 80). The title is `label.sm`, 13 px, Inter with Sarabun, and keeps that size on screen at every zoom (the label scales by 1 / zoom), so a title wider than 80 px fades. Measured at the 1440 fit, `clientWidth` / `scrollWidth`, with the text's own width from a `Range`:
+
+<!-- prettier-ignore -->
+| Language | Node | Text width | Before (head 02b6cfe) | After (row a) |
+| --- | --- | --- | --- | --- |
+| th | `situation` สถานการณ์ตั้งต้น | 91.70 | 80 / 92, cut | 92 / 92 |
+| th | `competitive-frame` ตลาดและคู่แข่ง | 81.66 | 80 / 82, cut | 82 / 82 |
+| th | `identity-frame` บุคลิกของแบรนด์ | 91.73 | 80 / 92, cut | 92 / 92 |
+| th | `architecture` โครงสร้างแบรนด์ | 90.36 | 80 / 90, cut | 90 / 90 |
+| th | the other eight | 7.64 to 68.08 | whole | whole |
+| en | `business-core` Business core | 87.33 | 80 / 87, cut | 87 / 87 |
+| en | `competitive-frame` Competitive frame | 114.80 | 80 / 115, cut | 115 / 115 |
+| en | `identity-frame` Brand personality | 109.69 | 80 / 110, cut | 110 / 110 |
+| en | `architecture` Brand architecture | 115.06 | 80 / 115, cut | 115 / 115 |
+| en | the other eight | 36.41 to 74.59 | whole | whole |
+
+Light and dark measure the same (zoom 0.3637 in all eight 1440 frames).
+
+**Choices weighed** (all measured on the head with the CSS injected):
+
+- **a. The title holds the line on a narrow label (chosen).** When the label is narrower than 10rem on screen, the kind glyph and the open glyph are not drawn and the title has the whole label: 115.64 px at the fit, every title whole in both languages.
+- b. A wider label at low zoom (up to the card plus 120 world px): the English titles of Competitive frame and Brand architecture then run into the gap where their own out edge and Positioning to Name climb, 0 px from an edge (the Thai Brand architecture 0.8 px). Loses: an edge through a title.
+- c. The title wraps to a second line: the label grows to 43 px and the Competitive frame and Brand architecture labels sit on the edges Situation to Brand architecture and Positioning to Name (0 px, both languages), the bands that 2.3 records at 9.1 and 5.0 world px. Loses: the edges of 2.3 cross titles.
+- d. Shorter titles: a product copy change in two languages, the card would name its node otherwise than the view's title, and the next long title fades again. Loses: not a look change, and it moves the problem.
+- e. A different fit or card spacing: the fit is width bound; even with no padding it is 1392 / 3184 = 0.437, a 139 px label and 103 px for the title beside the two glyphs, under the 115 the English titles need; tighter columns move the positions of 2.1 and the clearances of 2.3. Loses alone; it is kept as the margin step, row b below.
+
+**Row a, the change.** `packages/design-system/src/recipes/recipes.css`, the present label:
+
+1. In the `.ds-node__label` rule, after `--_label-gap: var(--ds-space-inline-sm);`, add `container: ds-node-label / inline-size;` (the label sets its own inline and block size, so the containment changes no box: label 115.64 x 23.5 before and after).
+2. After the rule `.ds-node__label .ds-node__status > svg { flex: none; }`, add:
+
+```css
+/* A label narrower than 10rem on screen (a board zoomed out, under 0.503 for an md card) gives the
+ * whole line to the title: the kind glyph and the open glyph are not drawn, so a title as wide as the
+ * card stays whole (ORV-298-design-f1). The node keeps its accessible name and its zoom-in cursor. */
+@container ds-node-label (width < 10rem) {
+  .ds-node__label > svg:first-child,
+  .ds-node__label .ds-node__open {
+    display: none;
+  }
+}
+```
+
+Why 10rem: at 160 px and wider the title keeps at least 124 px beside the two glyphs, more than the longest title (115.06); under 160 it has the whole label. So the title's room never drops below the smaller of the label and 124 px, at any zoom. No new token, recipe class or prop: the query value is a breakpoint, as the recipes' other container queries are (`ds-table`, `ds-section-header`), and the container name sits inside the existing `ds-node` recipe.
+
+What it leaves as it was (measured):
+
+- The label's box, the card positions of 2.1 and every card box: unchanged. The drawn label stays inside the card: its last part ends at least 1.0 px before the card's end (English Brand architecture, the tightest).
+- The edges of 2.3: the nearest edge to each title is as far or farther. Thai: Competitive frame 3.6 to 10.5 px, Brand architecture 2.2 to 6.8 px (the glyph that sat next to the edge is gone). English: 3.6 to 3.8 and 2.2 to 2.2 px. No edge runs under a card or through a title.
+- The port pills: not touched; on a focused card they show beside the card as before (sheet `sheet-zoom52-focus.png`).
+- The focus ring: on the card, the same line and halo; the focused card's label still turns to the primary ink.
+- The title size: 13 px on screen; the scale and the clip (4 px above for a Thai mark) are unchanged.
+- At two zoom-in steps from the fit (zoom 0.5237, 52 percent) the label is 166.5 px wide, so both glyphs are drawn on all twelve cards and the frame matches the head (light and dark, Thai and English).
+- At 360 (zoom 0.25): the label is 79.5 px. Before, the open glyph already wrapped off and the title had 62 px; now it has 80. Thai: cut titles 5 to 4 (Logo type now whole); English: 6 to 4 (Positioning and Typography now whole); every cut title shows more of its text. `documentElement.scrollWidth` 360. The 360 board is no worse than `develop` on any card.
+- Other present boards: the rule applies wherever a present label is under 10rem (an md card under zoom 0.503, an sm card under 0.667); an edit board has no label.
+
+**Row b, the margin step (only if CI shows a cut).** On this Mac Chromium, English Brand architecture has 0.58 px to spare (115.06 in 115.64). A renderer that rounds each glyph advance to a whole pixel would make it 116 (estimated from the per-glyph advances), and CI runs the story tests in Chromium on ubuntu-24.04. If the English clause below fails on CI with `scrollWidth` over `clientWidth` on any title, apply in the same PR: `packages/design-system/src/components/canvas-board/CanvasBoard.tsx`, `firstFit` and the `board.zoom-to-fit` command, `freePadding(0.2)` becomes `freePadding(0.15)` (side padding 90 px instead of 116 at a 1392 board). Measured by writing the transform the fit would write: zoom 0.3807, label 121.05 px, English Brand architecture 115 / 115 with 6 px to spare, every title whole in both languages. The 1440 zoom bound of `BoardAt1440` then reads 0.381 within 0.01 and the PR adds a dated as-built note to 2.4. At 360 nothing changes (the fit stays at the 0.25 floor). Row b is not applied when row a passes on CI.
+
+**Contract and files a builder touches** (no token, no recipe class, no public prop):
+
+- `packages/design-system/src/recipes/recipes.css`: row a.
+- `packages/design-system/catalog/application/canvas-node.yaml`, the present-board line (it begins "On a present board (board.readOnly) a node is one card"): after "(ORV-280 D4; story PresentNarrowLabels)" insert "; a label narrower than 10rem on screen (a board zoomed out, under 0.503 for an md card) gives the whole line to the title: the kind glyph and the open glyph are not drawn, the node keeps its accessible name and its zoom-in cursor (ORV-298-design-f1; stories Examples/Application: Business board BoardAt1440 and BoardAt1440English)". A changed catalog entry, named here.
+- `packages/design-system/src/examples/business-board.stories.tsx`: the plays below. In `expectBoard`, the clause `expect(el.querySelector(".ds-node__open")).toBeVisible()` becomes `not.toBeNull()`: the title row still ends with the open glyph (ORV-282 spec row 23), and it is drawn once the label is 10rem or wider, which `BoardAt1440` proves at 52 percent; the board in a story frame narrower than 1440 sits at a zoom where the glyph is not drawn.
+- The rule changes the leave order the catalog line gives (ORV-280 D4, "parts leave from the end"): under 10rem the kind glyph, first in the row, is not drawn. Swept on the head at the 414 px test window, with each play run first: 119 of the 133 stories that draw a present board have a label under 10rem holding a glyph. The plays that read the glyphs and change with this row: `CanvasNode.stories.tsx` `playNarrowLabels` (`PresentNarrowLabels`, `PresentNarrowLabelsInEnglish`: the shown parts are a prefix of the DOM order once the kind glyph and the open glyph are set aside on a label under 160 px, and a part not drawn has `display` `none` instead of sitting on the wrapped line), `playPresentStates`, `playOpenWithoutCount` and `PresentRecipesAndModes`; `CanvasBoard.stories.tsx` `playOpenNode`, `playLevelsOfDetail` and `PresentRecipesAndModes`. Where such a play asserts `.ds-node__open` `toBeVisible()`, it either zooms the board so the label is at least 160 px first, or asserts the glyph is in the row (`not.toBeNull()`) and, on a label under 160 px, has `display` `none`. The builder runs every story of Application/Canvas board, Canvas node, Canvas edge, Canvas controls, Canvas context menu and Node port, and the Business board, Core idea and Prototype ORIVILO canvas examples.
+
+**Plays and bounds.**
+
+<!-- prettier-ignore -->
+| Story | Play clause and bound |
+| --- | --- |
+| `BoardAt1440` (th) and a new `BoardAt1440English` (`args: { view: ENGLISH_VIEW }`, `decorators: [inEnglish]`, the same play with `en`) | after the fit (zoom 0.364 within 0.01): for every card, its `.ds-node__title` has `scrollWidth <= clientWidth` and no `data-cut`; its label's `> svg:first-child` and `.ds-node__open` have computed `display` `none`; the right of the label's last drawn child is at most the card's right plus 0.5. Then two clicks on zoom in (zoom 0.524 within 0.01): every label is at least 160 px wide, both glyphs are drawn (`display` not `none`) and every title still has `scrollWidth <= clientWidth` |
+| `NarrowLight`, `NarrowDark`, `NarrowEnglish` (`narrowPlay`) | at zoom 0.25: every title has `scrollWidth <= clientWidth`, or a `clientWidth` of at least the label's width less 1 (the title holds the whole line: 80 against a 79.5 label, where the head gave 62) |
+
 ## 3. The card at rest
 
 `renderBody` for the three nodes is the foundation card body, unchanged (`div.flex.flex-col.gap-2` > `p.text-body-sm.text-text-secondary [data-node-state]` > `ul.flex.flex-col.gap-1.text-body-sm` of field names):
@@ -549,6 +626,7 @@ Only classes already in the catalog's views and in Tailwind's layout set: `flex`
 - `business-board.stories.tsx` and `foundation.stories.tsx`: every assert of Brand personality's position, the node and edge counts, and the fit zooms (0.524 to 0.430 in PR 1, 0.364 in PR 2).
 - ORV-296's board: Core idea keeps (1888, 212); its edge from Brand personality now arrives from above (2.3). Its design reading of "Core idea to the right of Brand personality" holds.
 - No shared component, token or recipe changes.
+- From ORV-298-design-f1 (section 2.6): the present label of `ds-node` in `recipes.css` gains a container and one container query, and the `canvas-node.yaml` present-board line says so; no token, class or prop. Row b, only if CI shows a cut, changes the fit padding of `CanvasBoard` from 0.2 to 0.15 on every board.
 
 ## 14. Strings
 
@@ -583,6 +661,7 @@ The board frames use fixture state lines and field names.
 ## 16. Screens for visual QA
 
 - Board at each PR head, with and without Core idea, 1440 and 360.
+- Card titles at the 1440 fit (2.6): every title whole, no kind or open glyph; at 52 percent both glyphs back on every card; a focused card at the fit; the 360 board against `develop`.
 - Colour: C3, C5, C6 (20 rows, Thai, 360), C9, C10, C11.
 - Typography: T1, T2, T6, T9.
 - Logo type: L1, L6, L8 (60-character Thai name, 360), L12.
@@ -591,3 +670,4 @@ The board frames use fixture state lines and field names.
 ## Changelog
 
 - 2026-11-20, ORV-298-design-1: first version.
+- 2026-11-20, ORV-298-design-f1: section 2.6, card titles at the overview fit, answering finding F1 of the visual sign-off ORV-298-signoff-1 (the title holds the line on a label under 10rem; a fit padding margin step only if CI shows a cut); impact and visual QA lines added.
