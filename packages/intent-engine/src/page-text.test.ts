@@ -22,19 +22,17 @@ const HEAVY_TIMEOUT = 60_000;
  * (ORV-139, `.claude/rules/testing.md`): each is at least 10 times the slowest local time seen while
  * `pnpm test` ran, or at least 2 times a time measured on CI. The 2 MB description cut took 2,249 ms on
  * CI run 40746575077 (bound 2,000 then), so its bound is 5,000. Where CI showed a slower time than
- * the local run allowed for, the bound follows the slowest CI time seen: the held-depth page took
- * 8,485 ms (run 40826193643), the re-opened-formatting page 7,287 ms (run 40878076151), the
- * 5,000 sibling blocks 1,527 ms (run 40890047958) and the 5,000 path lookups 1,654 ms (run
- * 40713714426). Each also stays below the time the
- * defect it guards takes (a mutant of the product code ran past it), except five, the accepted
- * exceptions of `mutant-exception-1` in `docs/specs/ORV-139/spec.md`, which holds the mutant times:
- * - "returns the held-depth page within 17 s, with nothing cut" and "within 10 s with nothing cut":
- *   no mutant was found, so each bound is sized by the local 10 L or the CI 2 C rule alone.
- * - "returns the re-opened-formatting page within 15 s, cut by the Element count": each cap lifted
- *   alone stays under the bound, and both lifted abort out of memory, red but not on the time line.
- * - "stops the Element count at the push that would be the 1,048,577th" and "returns the parse of
- *   the empty text when the second parse stops too": the mutant is faster than the bound and goes
- *   red on the value assertion (texts `['A']` and `['T']` instead of `[]`).
+ * the local run allowed for, the bound follows the slowest CI time seen: the 5,000 sibling blocks
+ * 1,527 ms (run 40890047958) and the 5,000 path lookups 1,654 ms (run 40713714426). Each bound
+ * below still stays below the time of the mutant it guards (a mutant of the product code ran past
+ * it). `mutant-exception-1` in `docs/specs/ORV-139/spec.md` holds the mutant times.
+ *
+ * Five tests hold no clock (ORV-299): "returns the held-depth page, with nothing cut", "returns the
+ * re-opened-formatting page, cut by the Element count", "stops the Element count at the push that
+ * would be the 1,048,577th", "returns the parse of the empty text when the second parse stops too",
+ * and stylesheetLinksOf "returns the held-depth page with nothing cut". No mutant goes red on their
+ * clock: the defect goes red on a value line of the same test, or aborts the run out of memory (both
+ * work caps lifted). Their value lines stay, and `HEAVY_TIMEOUT` is the backstop against a hang.
  */
 const DESCRIPTION_BOUND_MS = 5000;
 const LOOKUP_BOUND_MS = 4000;
@@ -536,12 +534,10 @@ describe("html-text-1", () => {
     );
 
     it(
-      "returns the held-depth page within 17 s, with nothing cut",
+      "returns the held-depth page, with nothing cut",
       () => {
         expect(HELD_DEPTH.length).toBeLessThanOrEqual(DOCUMENT_MAX);
-        const started = performance.now();
         const out = pageTextOf(bytes(HELD_DEPTH));
-        expect(performance.now() - started).toBeLessThan(17000);
         expect(out.blocks).toEqual([]); // its p elements hold no text
         expect(out.incomplete).toBe(false);
       },
@@ -751,12 +747,10 @@ describe("html-text-1", () => {
 
     describe("the four 2 MB documents", () => {
       it(
-        "returns the re-opened-formatting page within 15 s, cut by the Element count",
+        "returns the re-opened-formatting page, cut by the Element count",
         () => {
           expect(REOPENED_FORMATTING.length).toBeLessThanOrEqual(DOCUMENT_MAX);
-          const started = performance.now();
           const out = pageTextOf(bytes(REOPENED_FORMATTING));
-          expect(performance.now() - started).toBeLessThan(15000);
           expect(out.incomplete).toBe(true);
         },
         HEAVY_TIMEOUT,
@@ -802,10 +796,8 @@ describe("html-text-1", () => {
       it(
         "stops the Element count at the push that would be the 1,048,577th",
         () => {
-          const started = performance.now();
           expect(read(strays(1_048_572))).toEqual({ texts: ["A"], incomplete: false }); // exactly 1,048,576
           expect(read(strays(1_048_573))).toEqual({ texts: [], incomplete: true });
-          expect(performance.now() - started).toBeLessThan(11000);
         },
         HEAVY_TIMEOUT,
       );
@@ -817,11 +809,7 @@ describe("html-text-1", () => {
           // 1,048,577 pushes. 107 <i></i> line the count up; 106 or 108 do not (tech notes section 6).
           const doc = (idle: number) =>
             `<title>T</title><template>${"<i></i>".repeat(idle)}<p>${Array.from({ length: 120 }, (_, i) => `<b id=${i}>`).join("")}${"<p>x".repeat(8700)}`;
-          // the 12 s guard is the row's claim for the document that reaches the third parse; the other two
-          // are read outside it, so a loaded runner is not charged for three reads against one bound
-          const started = performance.now();
           expect(read(doc(107))).toEqual({ texts: [], incomplete: true });
-          expect(performance.now() - started).toBeLessThan(12000);
           expect(read(doc(108))).toEqual({ texts: ["T"], incomplete: true });
           expect(read(doc(106))).toEqual({ texts: ["T"], incomplete: true });
         },
@@ -1449,11 +1437,9 @@ describe("stylesheetLinksOf", () => {
   );
 
   it(
-    "returns the held-depth page within 10 s with nothing cut",
+    "returns the held-depth page with nothing cut",
     () => {
-      const started = performance.now();
       const out = stylesheetLinksOf(bytes(HELD_DEPTH));
-      expect(performance.now() - started).toBeLessThan(10000);
       expect(out).toEqual({ hrefs: [], incomplete: false });
     },
     HEAVY_TIMEOUT,
