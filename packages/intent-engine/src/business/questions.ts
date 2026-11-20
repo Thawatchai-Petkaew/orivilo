@@ -1,7 +1,8 @@
 /**
  * The ORV-126 proxy questions the business intake asks or lists as still to ask (ORV-281 tech
- * notes section 4), and the two of Brand personality (ORV-291, `identity-frame-1`). ORV-126 "Missing strategy" is the home of the copy, and `questions.test.ts`
- * fails when a line here differs from it.
+ * notes section 4), the two of Brand personality (ORV-291, `identity-frame-1`) and the one of the
+ * core idea (`core-idea-gate-1`). ORV-126 "Missing strategy" is the home of the copy, and
+ * `questions.test.ts` fails when a line here differs from it.
  */
 export const PROXY_QUESTIONS = [
   {
@@ -51,6 +52,12 @@ export const PROXY_QUESTIONS = [
     key: "business.question.never",
     en: "How should your brand never feel?",
     th: "แบรนด์ของคุณไม่ควรให้ความรู้สึกแบบไหน",
+  },
+  {
+    id: "core-idea.proxy.remember",
+    key: "business.question.remember",
+    en: "After someone meets your brand, what one thing should they remember?",
+    th: "หลังจากได้รู้จักแบรนด์ของคุณ คุณอยากให้คนจำอะไรได้หนึ่งอย่าง",
   },
 ] as const;
 

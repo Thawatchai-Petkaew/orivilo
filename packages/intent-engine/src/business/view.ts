@@ -5,6 +5,7 @@ import type { ColorOutcome, TypographyOutcome } from "./expression";
 import type { AxisValue, StoredEntry, TypographyScripts } from "./foundation";
 import {
   axisPointOf,
+  coreIdeaGate,
   derivedArchitecture,
   type DerivedArchitecture,
   entryAllowed,
@@ -73,7 +74,7 @@ export type PositioningView = {
   controls: Array<"writeOwn" | "skip">;
 };
 
-/** A foundation node's field names, a key of `business.field.*`. PR 3 adds its own. */
+/** A foundation node's field names, a key of `business.field.*`. */
 export type FoundationFieldKey =
   | "person"
   | "never"
@@ -81,6 +82,8 @@ export type FoundationFieldKey =
   | "subBrands"
   | "architecture"
   | "workingName"
+  | "remember"
+  | "coreIdea"
   | "signature"
   | "neutral"
   | "canvas"
@@ -89,9 +92,17 @@ export type FoundationFieldKey =
   | "scripts"
   | "readingFace"
   | "displayFace";
-/** A foundation node's state line, a key of `business.state.*`. PR 3 adds `agreed`. */
+/** A foundation node's state line, a key of `business.state.*`. */
 export type FoundationStateKey =
-  "given" | "derived" | "waiting" | "skipped" | "empty" | "notInVersion" | "partly" | "needsAnswer";
+  | "given"
+  | "agreed"
+  | "derived"
+  | "waiting"
+  | "skipped"
+  | "empty"
+  | "notInVersion"
+  | "partly"
+  | "needsAnswer";
 
 type FoundationBase = {
   result: FoundationResult;
@@ -107,7 +118,7 @@ type FoundationBase = {
   fields: FoundationFieldKey[];
 };
 
-/** The foundation nodes in fill order: ORV-291's three built so far, then ORV-298's colour and typography. */
+/** The foundation nodes in fill order: ORV-291's four, then ORV-298's colour and typography. */
 export type FoundationNode =
   | (FoundationBase & {
       id: "identity-frame";
@@ -130,6 +141,20 @@ export type FoundationNode =
       /** The person's own text, shown with any entry; null with none. */
       name: string | null;
       controls: Array<"give">;
+    })
+  | (FoundationBase & {
+      id: "core-idea";
+      /** `core-idea-gate-1`: `given` only with a written idea; `blocked` while a cause waits. */
+      gate: "blocked" | "open" | "given";
+      /** True while the newest entry is a skip and nothing blocks the node. */
+      skipped: boolean;
+      /** True only in `given`: the gate line is `business.coreIdea.gatePassed`, else `business.state.gate`. */
+      gatePassed: boolean;
+      /** The person's own words, shown with a written idea; never labelled as drafted or picked. */
+      statement: null | { text: string; label: "business.positioning.by.own" };
+      /** The proxy answer, the person's own words; null with none. */
+      remember: string | null;
+      controls: Array<"writeOwn" | "skip">;
     })
   | (FoundationBase & {
       id: "color";
@@ -365,6 +390,31 @@ function nameOf(state: FoundationState): FoundationNode {
   };
 }
 
+function coreIdeaOf(state: FoundationState): FoundationNode {
+  const result = state.results["core-idea"];
+  const written = state.newest["core-idea"]?.kind === "written" ? state.newest["core-idea"] : null;
+  const gate = coreIdeaGate(result);
+  const allowed = (kind: "written" | "skipped") => entryAllowed({ node: "core-idea", kind }, state);
+  return {
+    id: "core-idea",
+    ...foundationLines(result),
+    state: gate.state,
+    fields: ["remember", "coreIdea"],
+    gate: gate.gate,
+    skipped: gate.skipped,
+    gatePassed: gate.gatePassed,
+    statement:
+      written === null
+        ? null
+        : { text: written.payload.statement, label: "business.positioning.by.own" },
+    remember: written?.payload.remember ?? null,
+    controls: [
+      ...(allowed("written") ? (["writeOwn"] as const) : []),
+      ...(allowed("skipped") ? (["skip"] as const) : []),
+    ],
+  };
+}
+
 function colorNodeOf(state: FoundationState): FoundationNode {
   const result = state.results.color;
   const outcome = state.expression.color;
@@ -435,6 +485,7 @@ export function toBusinessView(saved: SavedBusiness): BusinessView {
       personalityOf(foundation),
       architectureOf(foundation),
       nameOf(foundation),
+      coreIdeaOf(foundation),
       colorNodeOf(foundation),
       typographyNodeOf(foundation),
     ],

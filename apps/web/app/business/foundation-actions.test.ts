@@ -1047,3 +1047,275 @@ describe("typography door", () => {
     expect(state.saved).toEqual([]);
   });
 });
+
+// ORV-296 (slice of ORV-291, PR 3), T39, spec rows 25, 26, 28, 29 and 32: the core idea entries
+// through the same unchanged door. The fake service decides with the engine's own `entryAllowed`, so
+// these tests prove what the arms add: the checked entry reaches the save as the contract gives it,
+// the gate waits while a block cause exists, and the node refuses a second `written` entry.
+const STATEMENT = "ทำให้ทุกเช้าง่ายขึ้น";
+const REMEMBER = "กาแฟที่ส่งถึงบ้านทันเวลา";
+const writeIdea = (statement: string, remember?: string) => ({
+  projectId: PROJECT_ID,
+  node: "core-idea",
+  kind: "written",
+  payload: remember === undefined ? { statement } : { statement, remember },
+});
+const skipIdea = { projectId: PROJECT_ID, node: "core-idea", kind: "skipped", payload: {} };
+/** A personality given before the call, as the door would have saved it. */
+const seedPersonality = (kind: "given" | "skipped" = "given") => {
+  state.saved.push({
+    workspaceId: "ws-1",
+    entry: { node: "identity-frame", kind, payload: kind === "given" ? { axes } : {} },
+  });
+};
+const IDEA_SECRETS = [STATEMENT, REMEMBER, PROJECT_ID, UNKNOWN_ID, "reader@example.com", "ws-1"];
+
+// Row 26.
+describe("write the core idea", () => {
+  it("answers ok with the node and the kind, saves one trimmed entry in the session's workspace, and logs closed words", async () => {
+    seedPersonality();
+    const outcome = await enterFoundation(writeIdea(`  ${STATEMENT}  `, `  ${REMEMBER}  `));
+    expect(outcome).toEqual({ ok: true, value: { node: "core-idea", kind: "written" } });
+    expect(state.saved.slice(1)).toEqual([
+      {
+        workspaceId: "ws-1",
+        entry: {
+          node: "core-idea",
+          kind: "written",
+          payload: { statement: STATEMENT, remember: REMEMBER },
+        },
+      },
+    ]);
+    expect(state.consumed).toEqual(["write:u:P"]);
+    expect(state.order).toEqual(["session", "allow-list", "consume", "save"]);
+    expect(written()).toMatchObject([
+      { route: "business/enterFoundation", outcome: "ok", level: "info" },
+    ]);
+    // Searched where the text could leak: the body and every parsed line and argument.
+    const all = everything(outcome);
+    for (const secret of IDEA_SECRETS) expect(all).not.toContain(secret);
+    for (const secret of IDEA_SECRETS) expect(whereAxisCouldLeak(outcome)).not.toContain(secret);
+  });
+
+  it("saves a written idea with no remember answer as the statement alone", async () => {
+    seedPersonality();
+    expect(await enterFoundation(writeIdea(STATEMENT))).toMatchObject({ ok: true });
+    expect(state.saved.at(-1)?.entry.payload).toEqual({ statement: STATEMENT });
+  });
+
+  it("keeps the idea out of every line and body, on a failed save, a refused save and a refusal", async () => {
+    seedPersonality();
+    state.throws = new Error(`insert failed for ${STATEMENT}`);
+    const failed = await enterFoundation(writeIdea(STATEMENT, REMEMBER));
+    expect(failed).toMatchObject({ ok: false, error: "failed" });
+    state.throws = new BusinessError("not-saved");
+    const notSaved = await enterFoundation(writeIdea(STATEMENT, REMEMBER));
+    expect(notSaved).toMatchObject({ ok: false, error: "failed" });
+    state.throws = null;
+    const tooLong = await enterFoundation(writeIdea(`${STATEMENT}${"x".repeat(301)}`, REMEMBER));
+    expect(tooLong).toMatchObject({
+      ok: false,
+      error: "invalid-input",
+      problems: [{ path: "payload.statement", kind: "too-long" }],
+    });
+    const unknownKey = await enterFoundation({
+      ...writeIdea(STATEMENT),
+      payload: { statement: STATEMENT, draftId: STATEMENT },
+    });
+    expect(unknownKey).toMatchObject({
+      ok: false,
+      problems: [{ path: "payload.draftId", kind: "unknown-key" }],
+    });
+    for (const outcome of [failed, notSaved, tooLong, unknownKey]) {
+      expect(whereAxisCouldLeak(outcome)).not.toContain(STATEMENT);
+      expect(whereAxisCouldLeak(outcome)).not.toContain(REMEMBER);
+    }
+    expect(JSON.stringify(capture.lines.map((l) => l.args))).not.toContain("ทุกเช้า");
+    expect(JSON.stringify(capture.lines.map((l) => l.args))).not.toContain("กาแฟ");
+  });
+
+  it("refuses an empty statement and 301 characters with the field and the kind, and saves nothing", async () => {
+    seedPersonality();
+    const empty = await enterFoundation(writeIdea("   ", REMEMBER));
+    expect(empty).toMatchObject({
+      ok: false,
+      error: "invalid-input",
+      problems: [{ path: "payload.statement", kind: "required" }],
+    });
+    const long = await enterFoundation(writeIdea("x".repeat(301)));
+    expect(long).toMatchObject({
+      ok: false,
+      problems: [{ path: "payload.statement", kind: "too-long" }],
+    });
+    const picked = await enterFoundation({ ...writeIdea("x"), kind: "picked" });
+    expect(picked).toMatchObject({ ok: false, problems: [{ path: "kind", kind: "invalid" }] });
+    expect(state.saved).toHaveLength(1);
+    expect(state.order.filter((s) => s === "save")).toEqual([]);
+  });
+});
+
+// Row 28.
+describe("skip, then write", () => {
+  it("accepts both calls and keeps two rows of the node, the written one newest", async () => {
+    seedPersonality();
+    expect(await enterFoundation(skipIdea)).toEqual({
+      ok: true,
+      value: { node: "core-idea", kind: "skipped" },
+    });
+    expect(await enterFoundation(writeIdea(STATEMENT, REMEMBER))).toEqual({
+      ok: true,
+      value: { node: "core-idea", kind: "written" },
+    });
+    expect(state.saved.map((s) => `${s.entry.node}:${s.entry.kind}`)).toEqual([
+      "identity-frame:given",
+      "core-idea:skipped",
+      "core-idea:written",
+    ]);
+    expect(written().map((l) => l["outcome"])).toEqual(["ok", "ok"]);
+    for (const secret of IDEA_SECRETS) expect(everything(capture.lines)).not.toContain(secret);
+  });
+
+  it("a skipped personality still lets the core idea be skipped or written", async () => {
+    seedPersonality("skipped");
+    expect(await enterFoundation(skipIdea)).toMatchObject({ ok: true });
+    expect(await enterFoundation(writeIdea(STATEMENT))).toMatchObject({ ok: true });
+  });
+
+  it("with positioning skipped and a given personality both are accepted", async () => {
+    state.positioning = "skipped";
+    seedPersonality();
+    expect(await enterFoundation(skipIdea)).toMatchObject({ ok: true });
+    expect(await enterFoundation(writeIdea(STATEMENT))).toMatchObject({ ok: true });
+  });
+});
+
+// Row 29.
+describe("core idea waits", () => {
+  const FIXTURES: Array<[string, () => void]> = [
+    [
+      "positioning agreed and no personality entry",
+      () => {
+        state.positioning = "agreed";
+      },
+    ],
+    [
+      "positioning with no choice and no personality entry",
+      () => {
+        state.positioning = "none";
+      },
+    ],
+    [
+      "positioning stale and a given personality",
+      () => {
+        state.positioning = "stale";
+        seedPersonality();
+      },
+    ],
+  ];
+
+  it.each(FIXTURES)(
+    "%s: a written and a skipped entry called directly are invalid-input, and nothing is saved",
+    async (_name, arrange) => {
+      arrange();
+      const before = state.saved.length;
+      for (const entry of [writeIdea(STATEMENT, REMEMBER), skipIdea]) {
+        const outcome = await enterFoundation(entry);
+        expect(outcome).toMatchObject({ ok: false, error: "invalid-input", code: "INVALID_INPUT" });
+        expect(outcome).not.toHaveProperty("problems");
+        for (const secret of IDEA_SECRETS) expect(everything(outcome)).not.toContain(secret);
+      }
+      expect(state.saved).toHaveLength(before);
+      expect(written().map((l) => [l["outcome"], l["reason"]])).toEqual([
+        ["refused", "invalid-input"],
+        ["refused", "invalid-input"],
+      ]);
+    },
+  );
+});
+
+// Row 32.
+describe("core idea door", () => {
+  it("signed-out: counts the signed-out limit by IP, answers signed-out, saves nothing", async () => {
+    state.session = null;
+    const outcome = await enterFoundation(writeIdea(STATEMENT));
+    expect(outcome).toMatchObject({ ok: false, error: "signed-out", code: "UNAUTHENTICATED" });
+    expect(state.consumed).toEqual(["signed-out:ip:ip-1"]);
+    expect(state.saved).toEqual([]);
+    expect(state.order).toEqual(["session", "consume"]);
+  });
+
+  it("an email off the list: forbidden, no address, nothing counted, nothing saved", async () => {
+    state.session = { ...person, user: { id: "P2", email: "stranger@example.com" } };
+    const outcome = await enterFoundation(writeIdea(STATEMENT));
+    expect(outcome).toMatchObject({ ok: false, error: "forbidden", code: "FORBIDDEN" });
+    expect(state.consumed).toEqual([]);
+    expect(state.saved).toEqual([]);
+    expect(state.order).toEqual(["session", "allow-list"]);
+    for (const secret of ["stranger", "example.com", STATEMENT]) {
+      expect(everything(outcome)).not.toContain(secret);
+    }
+  });
+
+  it("the write limit used up: rate-limited with retryAfter, nothing saved", async () => {
+    for (const w of LIMITS.write.windows) {
+      state.counts.set(`${keyOf(LIMITS.write, { user: "P" })}@${w.seconds}`, w.max);
+    }
+    const outcome = await enterFoundation(writeIdea(STATEMENT));
+    expect(outcome).toMatchObject({
+      ok: false,
+      error: "rate-limited",
+      code: "RATE_LIMITED",
+      retryAfter: expect.any(Number),
+    });
+    expect(state.saved).toEqual([]);
+    expect(state.order).toEqual(["session", "allow-list", "consume"]);
+  });
+
+  it("another workspace's project and an unknown id: one not-found body, nothing saved", async () => {
+    seedPersonality();
+    const unknown = await enterFoundation({ ...writeIdea(STATEMENT), projectId: UNKNOWN_ID });
+    const other = await enterFoundation({
+      ...skipIdea,
+      projectId: "22222222-2222-4222-8222-222222222222",
+    });
+    expect(unknown).toMatchObject({ ok: false, error: "not-found", code: "NOT_FOUND" });
+    expect(body(other)).toEqual(body(unknown));
+    expect(state.saved).toHaveLength(1);
+    for (const secret of [UNKNOWN_ID, STATEMENT]) expect(everything(unknown)).not.toContain(secret);
+  });
+
+  it("the check runs after the limit and before the service", async () => {
+    const outcome = await enterFoundation({ ...writeIdea(STATEMENT), extra: 1 });
+    expect(outcome).toMatchObject({
+      ok: false,
+      error: "invalid-input",
+      problems: [{ path: "extra", kind: "unknown-key" }],
+    });
+    expect(state.order).toEqual(["session", "allow-list", "consume"]);
+  });
+});
+
+describe("agreed stays agreed", () => {
+  it("after a written idea, a written and a skipped entry answer invalid-input and the newest stays the first", async () => {
+    seedPersonality();
+    expect(await enterFoundation(writeIdea(STATEMENT, REMEMBER))).toMatchObject({ ok: true });
+    const again = await enterFoundation(writeIdea("another idea"));
+    const afterWritten = await enterFoundation(skipIdea);
+    for (const outcome of [again, afterWritten]) {
+      expect(outcome).toMatchObject({ ok: false, error: "invalid-input", code: "INVALID_INPUT" });
+      expect(outcome).not.toHaveProperty("problems");
+    }
+    const ideas = state.saved.filter((s) => s.entry.node === "core-idea");
+    expect(ideas.map((s) => s.entry.kind)).toEqual(["written"]);
+    expect(ideas[0]?.entry.payload).toEqual({ statement: STATEMENT, remember: REMEMBER });
+    expect(everything(again)).not.toContain("another idea");
+    expect(written().at(-1)).toMatchObject({ outcome: "refused", reason: "invalid-input" });
+  });
+
+  it("after a skip, a second skip answers invalid-input", async () => {
+    seedPersonality();
+    expect(await enterFoundation(skipIdea)).toMatchObject({ ok: true });
+    expect(await enterFoundation(skipIdea)).toMatchObject({ ok: false, error: "invalid-input" });
+    expect(state.saved.filter((s) => s.entry.node === "core-idea")).toHaveLength(1);
+  });
+});

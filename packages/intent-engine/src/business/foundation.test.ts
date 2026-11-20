@@ -6,6 +6,7 @@ import { briefFactsSchema } from "../rules";
 import {
   AXIS_VALUES,
   checkEntry,
+  CORE_IDEA_MAX,
   newestByNode,
   storedEntrySchema,
   WORKING_NAME_MAX,
@@ -411,10 +412,10 @@ describe("architecture and name entries", () => {
     expect(checkEntry({ ...named("x"), projectId: PID.toUpperCase() }).ok).toBe(true);
   });
 
-  it("the node core-idea is not built in this PR", () => {
-    expect(problemsOf({ projectId: PID, node: "core-idea", kind: "skipped", payload: {} })).toEqual(
-      [{ path: "node", kind: "invalid" }],
-    );
+  it("a node that is none of the four is refused at the node", () => {
+    expect(problemsOf({ projectId: PID, node: "color", kind: "skipped", payload: {} })).toEqual([
+      { path: "node", kind: "invalid" },
+    ]);
   });
 
   it("a problem on a name holds a path and a kind only: the name never reaches it", () => {
@@ -438,6 +439,187 @@ describe("architecture and name entries", () => {
     };
     expect(checkEntry({ projectId: PID, ...request }).ok).toBe(true);
     expect(checkEntry({ projectId: PID, ...other }).ok).toBe(true);
+  });
+});
+
+// T35, spec row 25: the arms of `core-idea` of PR 3.
+const written = (statement: unknown, payload: Record<string, unknown> = {}, extra = {}) => ({
+  projectId: PID,
+  node: "core-idea",
+  kind: "written",
+  payload: { statement, ...payload },
+  ...extra,
+});
+const coreSkipped = (payload: unknown = {}) => ({
+  projectId: PID,
+  node: "core-idea",
+  kind: "skipped",
+  payload,
+});
+
+describe("core-idea entry", () => {
+  it("row 25: a statement of 1 and of 300 characters, with remember of 1 and of 2,000, parse", () => {
+    expect(CORE_IDEA_MAX).toBe(300);
+    expect(entryOf(written("x", { remember: "y" }))).toEqual({
+      projectId: PID,
+      node: "core-idea",
+      kind: "written",
+      payload: { statement: "x", remember: "y" },
+    });
+    const long = entryOf(written("ก".repeat(300), { remember: "ก".repeat(2000) }));
+    expect(long).toMatchObject({
+      node: "core-idea",
+      payload: { statement: "ก".repeat(300), remember: "ก".repeat(2000) },
+    });
+  });
+
+  it("row 25: one with no remember parses, and a skip with an empty payload parses", () => {
+    expect(entryOf(written("  Make it simple  "))).toEqual({
+      projectId: PID,
+      node: "core-idea",
+      kind: "written",
+      payload: { statement: "Make it simple" },
+    });
+    expect(entryOf(coreSkipped())).toEqual({
+      projectId: PID,
+      node: "core-idea",
+      kind: "skipped",
+      payload: {},
+    });
+  });
+
+  it("row 25: each other input fails at the path of its field", () => {
+    const rows: Array<[string, unknown, EntryProblem[]]> = [
+      ["white space only", written("   "), [{ path: "payload.statement", kind: "required" }]],
+      [
+        "301 characters",
+        written("x".repeat(301)),
+        [{ path: "payload.statement", kind: "too-long" }],
+      ],
+      [
+        "remember of 2,001",
+        written("x", { remember: "x".repeat(2001) }),
+        [{ path: "payload.remember", kind: "too-long" }],
+      ],
+      [
+        "a skip with a statement",
+        coreSkipped({ statement: "x" }),
+        [{ path: "payload.statement", kind: "unknown-key" }],
+      ],
+      [
+        "a kind picked",
+        { projectId: PID, node: "core-idea", kind: "picked", payload: { statement: "x" } },
+        [{ path: "kind", kind: "invalid" }],
+      ],
+      [
+        "an unknown key draftId",
+        written("x", {}, { draftId: "d1" }),
+        [{ path: "draftId", kind: "unknown-key" }],
+      ],
+    ];
+    for (const [name, input, expected] of rows) {
+      expect(problemsOf(input), name).toEqual(expected);
+    }
+  });
+
+  it("the bound of a core idea is 300 in UTF-16 units: 300 passes, 301 is too long", () => {
+    expect(checkEntry(written("😀".repeat(150))).ok).toBe(true);
+    expect(problemsOf(written("😀".repeat(151)))).toEqual([
+      { path: "payload.statement", kind: "too-long" },
+    ]);
+  });
+
+  it("the statement drops U+0000, then trims, and nothing is required but the statement", () => {
+    expect(entryOf(written("\u0000 a\u0000b \u0000"))).toMatchObject({
+      payload: { statement: "ab" },
+    });
+    for (const empty of ["", " ", "\n\t ", "\u0000", " \u0000 "]) {
+      expect(problemsOf(written(empty)), JSON.stringify(empty)).toEqual([
+        { path: "payload.statement", kind: "required" },
+      ]);
+    }
+    expect(problemsOf({ projectId: PID, node: "core-idea", kind: "written", payload: {} })).toEqual(
+      [{ path: "payload.statement", kind: "required" }],
+    );
+    expect(problemsOf(written(5))).toEqual([{ path: "payload.statement", kind: "invalid" }]);
+  });
+
+  it("an empty remember is absent from the payload, a padded one is trimmed and capped raw at 8,000", () => {
+    for (const empty of ["", "   ", "\u0000", " \u0000 \n"]) {
+      const entry = entryOf(written("x", { remember: empty }));
+      expect(Object.keys(entry.payload)).toEqual(["statement"]);
+    }
+    expect(entryOf(written("x", { remember: "  hi  " }))).toMatchObject({
+      payload: { statement: "x", remember: "hi" },
+    });
+    const padded = (n: number) => `${" ".repeat(n)}x`;
+    expect(checkEntry(written("x", { remember: padded(7999) })).ok).toBe(true);
+    expect(problemsOf(written("x", { remember: padded(8000) }))).toEqual([
+      { path: "payload.remember", kind: "too-long" },
+    ]);
+    expect(checkEntry(written("x", { remember: "😀".repeat(1000) })).ok).toBe(true);
+    expect(problemsOf(written("x", { remember: "😀".repeat(1001) }))).toEqual([
+      { path: "payload.remember", kind: "too-long" },
+    ]);
+  });
+
+  it("each arm refuses a key outside its row, at the root and in the payload", () => {
+    expect(problemsOf(written("x", {}, { score: 1 }))).toEqual([
+      { path: "score", kind: "unknown-key" },
+    ]);
+    expect(problemsOf(written("x", { option: 2 }))).toEqual([
+      { path: "payload.option", kind: "unknown-key" },
+    ]);
+    expect(problemsOf({ ...coreSkipped(), score: 1 })).toEqual([
+      { path: "score", kind: "unknown-key" },
+    ]);
+  });
+
+  it("a kind of another node is refused: no given and no answered for core-idea", () => {
+    for (const kind of ["given", "answered", "edited"]) {
+      expect(
+        problemsOf({ projectId: PID, node: "core-idea", kind, payload: { statement: "x" } }),
+        kind,
+      ).toEqual([{ path: "kind", kind: "invalid" }]);
+    }
+    expect(
+      problemsOf({ projectId: PID, node: "name", kind: "written", payload: { statement: "x" } }),
+    ).toEqual([{ path: "kind", kind: "invalid" }]);
+  });
+
+  it("takes a whole UUID as the project id and nothing else", () => {
+    for (const bad of [`x${PID}`, `${PID}x`, PID.replaceAll("-", ""), "not-a-uuid", ""]) {
+      expect(problemsOf(written("x", {}, { projectId: bad })), bad).toEqual([
+        { path: "projectId", kind: "invalid" },
+      ]);
+      expect(problemsOf({ ...coreSkipped(), projectId: bad }), bad).toEqual([
+        { path: "projectId", kind: "invalid" },
+      ]);
+    }
+    expect(checkEntry(written("x", {}, { projectId: PID.toUpperCase() })).ok).toBe(true);
+  });
+
+  it("a problem holds a path and a kind only: the statement never reaches it", () => {
+    const secret = "SECRET-IDEA-MARKER";
+    const problems = [
+      ...problemsOf(written(`${secret}${"x".repeat(301)}`)),
+      ...problemsOf(written(secret, { remember: secret.repeat(200) })),
+      ...problemsOf(written(secret, { draftId: secret })),
+    ];
+    expect(problems).toHaveLength(3);
+    for (const p of problems) expect(Object.keys(p).sort()).toEqual(["kind", "path"]);
+    expect(JSON.stringify(problems)).not.toContain(secret);
+  });
+
+  it("EntryRequest drops the project id of the core-idea arms", () => {
+    const request: EntryRequest = {
+      node: "core-idea",
+      kind: "written",
+      payload: { statement: "x" },
+    };
+    const skip: EntryRequest = { node: "core-idea", kind: "skipped", payload: {} };
+    expect(checkEntry({ projectId: PID, ...request }).ok).toBe(true);
+    expect(checkEntry({ projectId: PID, ...skip }).ok).toBe(true);
   });
 });
 
@@ -601,7 +783,6 @@ describe("the stored entry", () => {
       ],
       ["a name skip", stored("name", "skipped", {})],
       ["a name answered row", stored("name", "answered", { name: "x" })],
-      ["a core-idea row", stored("core-idea", "skipped", {})],
     ])("refuses %s", (_label, row) => {
       expect(storedEntrySchema.safeParse(row).success).toBe(false);
     });
@@ -612,6 +793,55 @@ describe("the stored entry", () => {
       ).toBe(true);
       expect(
         storedEntrySchema.safeParse(stored("name", "given", { name: "😀".repeat(31) })).success,
+      ).toBe(false);
+    });
+  });
+
+  describe("the core-idea rows", () => {
+    const stored = (kind: string, payload: unknown, over = {}) => ({
+      id: "e1",
+      node: "core-idea",
+      kind,
+      payload,
+      createdAt: "2026-11-19T03:04:05.000Z",
+      ...over,
+    });
+
+    it("parses a written row with and without remember, and a skipped row, as they are", () => {
+      const spaced = stored("written", { statement: " keeps its spaces ", remember: " r " });
+      expect(storedEntrySchema.parse(spaced)).toEqual(spaced);
+      expect(storedEntrySchema.safeParse(stored("written", { statement: "x" })).success).toBe(true);
+      expect(storedEntrySchema.safeParse(stored("skipped", {})).success).toBe(true);
+      expect(
+        storedEntrySchema.safeParse(
+          stored("written", { statement: "x".repeat(300), remember: "x".repeat(2000) }),
+        ).success,
+      ).toBe(true);
+    });
+
+    it.each([
+      ["an empty statement", stored("written", { statement: "" })],
+      ["a statement of 301", stored("written", { statement: "x".repeat(301) })],
+      ["a statement that is not text", stored("written", { statement: 5 })],
+      ["a written row with no statement", stored("written", {})],
+      ["an empty remember", stored("written", { statement: "x", remember: "" })],
+      ["a remember of 2,001", stored("written", { statement: "x", remember: "x".repeat(2001) })],
+      ["an unknown key beside the statement", stored("written", { statement: "x", draftId: "d" })],
+      ["an unknown top-level key", stored("written", { statement: "x" }, { extra: 1 })],
+      ["a skipped row with a payload", stored("skipped", { statement: "x" })],
+      ["an unknown top-level key on a skipped row", stored("skipped", {}, { extra: 1 })],
+      ["a picked row", stored("picked", { statement: "x" })],
+      ["a given row", stored("given", { statement: "x" })],
+    ])("refuses %s", (_label, row) => {
+      expect(storedEntrySchema.safeParse(row).success).toBe(false);
+    });
+
+    it("counts a stored statement in UTF-16 units: 150 emoji pass and 151 do not", () => {
+      expect(
+        storedEntrySchema.safeParse(stored("written", { statement: "😀".repeat(150) })).success,
+      ).toBe(true);
+      expect(
+        storedEntrySchema.safeParse(stored("written", { statement: "😀".repeat(151) })).success,
       ).toBe(false);
     });
   });
@@ -639,6 +869,7 @@ describe("newest by node", () => {
       "identity-frame": null,
       architecture: null,
       name: null,
+      "core-idea": null,
       "competitive-frame": null,
       typography: null,
     });
@@ -668,6 +899,7 @@ describe("newest by node", () => {
         "identity-frame": personality,
         architecture: arch,
         name,
+        "core-idea": null,
         "competitive-frame": null,
         typography: null,
       });
@@ -1121,6 +1353,7 @@ describe("exports", () => {
       "identity-frame",
       "architecture",
       "name",
+      "core-idea",
       "color",
       "typography",
     ]);
@@ -1128,6 +1361,8 @@ describe("exports", () => {
     expect(engine.TYPOGRAPHY_FAMILIES.map((f) => f.id)).toEqual(["sarabun", "anuphan", "inter"]);
     expect(engine.typographyOf("thai")?.reading.map((f) => f.id)).toEqual(["sarabun"]);
     expect(engine.WORKING_NAME_MAX).toBe(60);
+    expect(engine.CORE_IDEA_MAX).toBe(300);
+    expect(typeof engine.coreIdeaGate).toBe("function");
     expect(engine.START_QUESTIONS.map((q) => q.id)).toEqual(["situation.sub-brands"]);
     expect(typeof engine.derivedArchitecture).toBe("function");
   });

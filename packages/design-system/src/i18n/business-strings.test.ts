@@ -175,6 +175,14 @@ const SPEC_KEYS = [
   "business.name.save",
   "business.name.required",
   "business.name.notScreened",
+  // ORV-291 PR 3 (ORV-296): the core idea.
+  "business.node.coreIdea",
+  "business.question.remember",
+  "business.field.remember",
+  "business.field.coreIdea",
+  "business.coreIdea.save",
+  "business.coreIdea.statementRequired",
+  "business.coreIdea.gatePassed",
   // ORV-298 PR 1: the Colour node. PR 2 and PR 3 add the typography and logo type keys.
   "business.node.color",
   "business.state.partly",
@@ -778,4 +786,63 @@ describe("expression, typography strings", () => {
       expect(messagesFor(locale).business.typography.licence).toContain("{licence}");
     }
   });
+});
+
+/**
+ * The lines of the Core idea node (ORV-291 PR 3, ORV-296, spec "Strings"): each key in both
+ * languages, word for word; `business.question.remember` is ORV-126's proxy question and equals the
+ * engine's `core-idea.proxy.remember` (T42, spec row 37); no middot or em dash in any of them.
+ */
+describe("core idea, strings", () => {
+  const LINES = {
+    en: {
+      "business.node.coreIdea": "Core idea",
+      "business.question.remember":
+        "After someone meets your brand, what one thing should they remember?",
+      "business.field.remember": "The one thing to remember",
+      "business.field.coreIdea": "Core idea",
+      "business.coreIdea.save": "Agree to this core idea",
+      "business.coreIdea.statementRequired":
+        "Write your core idea before you agree to it, or cancel.",
+      "business.coreIdea.gatePassed": "You agreed to this core idea.",
+    },
+    th: {
+      "business.node.coreIdea": "แนวคิดหลัก",
+      "business.question.remember": "หลังจากได้รู้จักแบรนด์ของคุณ คุณอยากให้คนจำอะไรได้หนึ่งอย่าง",
+      "business.field.remember": "สิ่งเดียวที่อยากให้คนจำ",
+      "business.field.coreIdea": "แนวคิดหลัก",
+      "business.coreIdea.save": "เห็นชอบแนวคิดหลักนี้",
+      "business.coreIdea.statementRequired": "เขียนแนวคิดหลักของคุณก่อนกดเห็นชอบ หรือกดยกเลิก",
+      "business.coreIdea.gatePassed": "คุณเห็นชอบแนวคิดหลักนี้แล้ว",
+    },
+  } as const;
+
+  for (const locale of LOCALES) {
+    const m = messagesFor(locale);
+
+    it(`${locale}: each line is the spec's, word for word`, () => {
+      expect(Object.keys(LINES[locale])).toHaveLength(7);
+      for (const [key, line] of Object.entries(LINES[locale])) {
+        expect(at(m, key), key).toBe(line);
+      }
+    });
+
+    it(`${locale}: the question is the engine's core-idea.proxy.remember, ORV-126's copy`, () => {
+      const question = PROXY_QUESTIONS.find((q) => q.id === "core-idea.proxy.remember");
+      expect(question?.key).toBe("business.question.remember");
+      expect(m.business.question.remember).toBe(question?.[locale]);
+      expect(questionText(m, "core-idea.proxy.remember")).toBe(question?.[locale]);
+    });
+
+    it(`${locale}: the node title is the catalog's, the field and the node read alike`, () => {
+      expect(nodeTitle(m, "core-idea")).toBe(m.business.node.coreIdea);
+      expect(m.business.field.coreIdea).toBe(m.business.node.coreIdea);
+    });
+
+    it(`${locale}: no line has a middot or an em dash`, () => {
+      for (const key of Object.keys(LINES[locale])) {
+        expect(String(at(m, key)), key).not.toMatch(/[\u00b7\u2014]/);
+      }
+    });
+  }
 });

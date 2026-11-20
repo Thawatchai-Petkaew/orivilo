@@ -38,6 +38,8 @@ export const BUSINESS_POSITIONS: Record<
   // The lower lane (design 2.1): Brand architecture in column 4, Name in column 5, 168 right of it.
   architecture: { x: 1400, y: 576 },
   name: { x: 1888, y: 473 },
+  // Column 5, the upper lane (design 2.1): Brand personality's own edge runs level to it.
+  "core-idea": { x: 1888, y: 212 },
   // Column 6, the upper lane (ORV-298 design 2.1), 488 right of column 4.
   color: { x: 2376, y: -330 },
   // Column 7 (ORV-298 PR 2, design 2.1), 488 right of column 5: right of Colour, as fill order reads.
@@ -61,10 +63,12 @@ const port = (id: string, label: string): PortSpec => ({ id, kind: "text", label
  * The top-to-bottom order of a node's input ports where it is not the order of the edge list
  * (design 2.2): the upper source enters the upper port, so no two edges cross at the card. The
  * engine lists Brand architecture's requires in ORV-126's order, Situation first; Situation sits
- * below Positioning on the board. Colour lists Competitive frame first; Brand personality sits above it.
+ * below Positioning on the board. Core idea lists Positioning first, and Brand personality sits
+ * above it. Colour lists Competitive frame first; Brand personality sits above it.
  */
 const INPUT_ORDER: Partial<Record<NodeRef, readonly NodeRef[]>> = {
   architecture: ["positioning", "situation"],
+  "core-idea": ["identity-frame", "positioning"],
   color: ["identity-frame", "competitive-frame"],
 };
 

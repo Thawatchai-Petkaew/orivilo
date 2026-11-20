@@ -141,6 +141,11 @@ function ReadyBoard({
               <li key={field}>{foundationFieldLabel(m, field)}</li>
             ))}
           </ul>
+          {found.id === "core-idea" ? (
+            <p className={FIELD_NOTE}>
+              {found.gatePassed ? m.business.coreIdea.gatePassed : m.business.state.gate}
+            </p>
+          ) : null}
         </div>
       );
     }
@@ -216,7 +221,11 @@ function ReadyBoard({
                 ? m.business.positioning.gatePassed
                 : opened?.gate
                   ? m.business.state.gate
-                  : undefined
+                  : openedFoundation?.id === "core-idea"
+                    ? openedFoundation.gatePassed
+                      ? m.business.coreIdea.gatePassed
+                      : m.business.state.gate
+                    : undefined
             }
             onOpenAutoFocus={(event) => {
               // Arrow keys scroll the view, so focus goes to its scroll region.

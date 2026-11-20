@@ -16,6 +16,7 @@ import {
   type MarkRef,
 } from "./foundation-marks";
 import { storedEntrySchema, type StoredEntry } from "./foundation";
+import { AI_MODELS } from "../openrouter";
 import type { StoredChoice } from "./positioning";
 import { STAND_IN_LINEUP } from "../color-fixtures";
 import type { Lineup } from "../color-audit";
@@ -461,13 +462,30 @@ describe("foundation in the view", () => {
     if (node?.id !== "name") throw new Error("the node name");
     return node;
   };
-  const colorNode = (view: ReturnType<typeof toBusinessView>) => {
+  const coreIdea = (view: ReturnType<typeof toBusinessView>) => {
     const node = view.foundation[3];
+    if (node?.id !== "core-idea") throw new Error("the node core-idea");
+    return node;
+  };
+  const IDEA = (
+    kind: "written" | "skipped",
+    createdAt = "2026-11-19T07:00:00.000Z",
+    payload: { statement?: string; remember?: string } = {},
+  ): StoredEntry =>
+    storedEntrySchema.parse({
+      id: `i-${kind}-${createdAt}`,
+      node: "core-idea",
+      kind,
+      payload: kind === "written" ? { statement: "ทำให้ง่ายที่สุด", ...payload } : {},
+      createdAt,
+    });
+  const colorNode = (view: ReturnType<typeof toBusinessView>) => {
+    const node = view.foundation[4];
     if (node?.id !== "color") throw new Error("the node color");
     return node;
   };
   const typographyNode = (view: ReturnType<typeof toBusinessView>) => {
-    const node = view.foundation[4];
+    const node = view.foundation[5];
     if (node?.id !== "typography") throw new Error("the node typography");
     return node;
   };
@@ -679,9 +697,11 @@ describe("foundation in the view", () => {
         "identity-frame",
         "architecture",
         "name",
+        "core-idea",
         "color",
         "typography",
       ]);
+      expect(coreIdea(view).fields).toEqual(["remember", "coreIdea"]);
       expect(personality(view).fields).toEqual(["person", "never", "personality"]);
       expect(architecture(view).fields).toEqual(["subBrands", "architecture"]);
       expect(nameNode(view).fields).toEqual(["workingName"]);
@@ -1346,6 +1366,289 @@ describe("foundation in the view", () => {
     });
   });
 
+  // T37, spec rows 29 and 30: the core idea's rows as data.
+  describe("core idea marks", () => {
+    it("row 30: three written ideas give W4 cases 2, 4 and 5, each still agreed", () => {
+      const first = coreIdea(toBusinessView(project_("skipped", [GIVEN_ENTRY, IDEA("written")])));
+      const second = coreIdea(toBusinessView(project_("agreed", [SKIP_ENTRY, IDEA("written")])));
+      const third = coreIdea(toBusinessView(project_("stale", [GIVEN_ENTRY, IDEA("written")])));
+      const given = (unchecked: MarkRef[]): FoundationResult => ({
+        status: "given",
+        skipped: false,
+        blockedBy: [],
+        provisionalOn: [],
+        unchecked,
+      });
+      expect([first.result, second.result, third.result]).toEqual([
+        given(["positioning"]),
+        given(["identity-frame"]),
+        given(["positioning"]),
+      ]);
+      expect([first.unchecked, second.unchecked, third.unchecked]).toEqual([
+        ["positioning"],
+        ["identity-frame"],
+        ["positioning"],
+      ]);
+      for (const node of [first, second, third]) {
+        expect(node.state).toBe("agreed");
+        expect(node.gate).toBe("given");
+        expect(node.gatePassed).toBe(true);
+        expect(node.waitingFor).toEqual([]);
+        expect(node.restsOn).toEqual([]);
+        expect(node.controls).toEqual([]);
+      }
+    });
+
+    it("a written idea whose roots are all agreed has no unchecked line", () => {
+      const node = coreIdea(toBusinessView(project_("agreed", [GIVEN_ENTRY, IDEA("written")])));
+      expect(node.unchecked).toEqual([]);
+      expect(node.state).toBe("agreed");
+    });
+
+    it("shows the statement as typed with its own label, and the remember answer", () => {
+      const typed = "<img src=x onerror=alert(1)>";
+      const node = coreIdea(
+        toBusinessView(
+          project_("agreed", [
+            GIVEN_ENTRY,
+            IDEA("written", "2026-11-19T07:00:00.000Z", {
+              statement: typed,
+              remember: "<script>alert(1)</script>",
+            }),
+          ]),
+        ),
+      );
+      expect(node.statement).toEqual({ text: typed, label: "business.positioning.by.own" });
+      expect(node.remember).toBe("<script>alert(1)</script>");
+    });
+
+    it("a written idea with no remember answer has none", () => {
+      const node = coreIdea(toBusinessView(project_("agreed", [GIVEN_ENTRY, IDEA("written")])));
+      expect(node.remember).toBeNull();
+    });
+
+    it("shows no statement and no answer while the gate is waiting, open or skipped", () => {
+      for (const view of [
+        toBusinessView(project_("open", [])),
+        toBusinessView(project_("agreed", [GIVEN_ENTRY])),
+        toBusinessView(project_("agreed", [GIVEN_ENTRY, IDEA("skipped")])),
+      ]) {
+        const node = coreIdea(view);
+        expect(node.statement).toBeNull();
+        expect(node.remember).toBeNull();
+      }
+    });
+  });
+
+  describe("core idea waits", () => {
+    it("row 29: waits for Brand personality, then for Positioning twice, with no control", () => {
+      const rows = [
+        coreIdea(toBusinessView(project_("agreed", []))),
+        coreIdea(toBusinessView(project_("open", []))),
+        coreIdea(toBusinessView(project_("stale", [GIVEN_ENTRY]))),
+      ];
+      expect(rows.map((n) => n.waitingFor)).toEqual([
+        ["identity-frame"],
+        ["positioning"],
+        ["positioning"],
+      ]);
+      for (const node of rows) {
+        expect(node.state).toBe("waiting");
+        expect(node.gate).toBe("blocked");
+        expect(node.gatePassed).toBe(false);
+        expect(node.controls).toEqual([]);
+        expect(node.unchecked).toEqual([]);
+        expect(node.statement).toBeNull();
+      }
+    });
+
+    it("a skipped core idea waits too once its roots change, and offers nothing", () => {
+      const node = coreIdea(toBusinessView(project_("open", [IDEA("skipped")])));
+      expect(node.state).toBe("waiting");
+      expect(node.controls).toEqual([]);
+    });
+  });
+
+  describe("core idea states", () => {
+    it("row 31: waiting, open, skipped and agreed, each with its gate and controls", () => {
+      const row = (view: ReturnType<typeof toBusinessView>) => {
+        const n = coreIdea(view);
+        return [n.state, n.gate, n.skipped, n.gatePassed, n.controls.join(",") || "-"];
+      };
+      expect(row(toBusinessView(project_("open", [])))).toEqual([
+        "waiting",
+        "blocked",
+        false,
+        false,
+        "-",
+      ]);
+      expect(row(toBusinessView(project_("agreed", [GIVEN_ENTRY])))).toEqual([
+        "empty",
+        "open",
+        false,
+        false,
+        "writeOwn,skip",
+      ]);
+      expect(row(toBusinessView(project_("agreed", [GIVEN_ENTRY, IDEA("skipped")])))).toEqual([
+        "skipped",
+        "open",
+        true,
+        false,
+        "writeOwn",
+      ]);
+      expect(row(toBusinessView(project_("agreed", [GIVEN_ENTRY, IDEA("written")])))).toEqual([
+        "agreed",
+        "given",
+        false,
+        true,
+        "-",
+      ]);
+    });
+
+    it("row 28: a skip, then a written idea: the newest wins, in whatever order they are stored", () => {
+      const skip = IDEA("skipped", "2026-11-19T07:00:00.000Z");
+      const write = IDEA("written", "2026-11-19T08:00:00.000Z");
+      for (const entries of [
+        [GIVEN_ENTRY, skip, write],
+        [write, skip, GIVEN_ENTRY],
+      ]) {
+        expect(coreIdea(toBusinessView(project_("agreed", entries))).state).toBe("agreed");
+      }
+      expect(coreIdea(toBusinessView(project_("agreed", [GIVEN_ENTRY, skip]))).state).toBe(
+        "skipped",
+      );
+    });
+
+    it("the other three nodes keep the state keys they had: given, derived, empty", () => {
+      const view = toBusinessView(
+        project_("agreed", [GIVEN_ENTRY, ANSWER(false), NAME(), IDEA("written")]),
+      );
+      expect(view.foundation.map((n) => n.state)).toEqual([
+        "given",
+        "derived",
+        "given",
+        "agreed",
+        "partly",
+        "needsAnswer",
+      ]);
+    });
+  });
+
+  describe("controls match the door for the core idea", () => {
+    const SETS: Record<string, StoredEntry[]> = {
+      none: [],
+      "personality given": [GIVEN_ENTRY],
+      "personality skipped": [SKIP_ENTRY],
+      "idea skipped": [GIVEN_ENTRY, IDEA("skipped")],
+      "idea written": [GIVEN_ENTRY, IDEA("written")],
+      "idea skipped then written": [
+        GIVEN_ENTRY,
+        IDEA("skipped", "2026-11-19T07:00:00.000Z"),
+        IDEA("written", "2026-11-19T08:00:00.000Z"),
+      ],
+      "idea skipped, no personality": [IDEA("skipped")],
+    };
+
+    it("offers writeOwn and skip exactly when entryAllowed is true, for every fixture", () => {
+      for (const positioning of Object.keys(POSITIONING) as Array<keyof typeof POSITIONING>) {
+        for (const [label, entries] of Object.entries(SETS)) {
+          const view = toBusinessView(project_(positioning, entries));
+          const gate = { state: view.positioning.gate, skipped: view.positioning.skipped };
+          const { roots, newest } = foundationState(gate, entries);
+          const controls = coreIdea(view).controls;
+          const key = `${positioning} / ${label}`;
+          expect(controls.includes("writeOwn"), key).toBe(
+            entryAllowed({ node: "core-idea", kind: "written" }, { roots, newest }),
+          );
+          expect(controls.includes("skip"), key).toBe(
+            entryAllowed({ node: "core-idea", kind: "skipped" }, { roots, newest }),
+          );
+        }
+      }
+    });
+
+    it("offers writeOwn once and skip once, and no skip after a skip", () => {
+      expect(coreIdea(toBusinessView(project_("agreed", [GIVEN_ENTRY]))).controls).toEqual([
+        "writeOwn",
+        "skip",
+      ]);
+      expect(
+        coreIdea(toBusinessView(project_("agreed", [GIVEN_ENTRY, IDEA("skipped")]))).controls,
+      ).toEqual(["writeOwn"]);
+    });
+  });
+
+  // T38, spec row 35: no AI label on any of the four nodes.
+  describe("foundation, no AI label", () => {
+    const AI_LABELS = [
+      "evidence.fromModel",
+      "strategy.draftedOptions",
+      "business.positioning.draftedBy",
+      "business.positioning.by.picked",
+      "business.positioning.by.edited",
+    ];
+    const SETS: StoredEntry[][] = [
+      [],
+      [SKIP_ENTRY],
+      [GIVEN_ENTRY],
+      [GIVEN_ENTRY, ANSWER(false)],
+      [GIVEN_ENTRY, ANSWER(true)],
+      [GIVEN_ENTRY, ANSWER(false), NAME()],
+      [SKIP_ENTRY, ANSWER(true), NAME(), IDEA("skipped")],
+      [GIVEN_ENTRY, IDEA("skipped")],
+      [GIVEN_ENTRY, ANSWER(false), NAME(), IDEA("written", undefined, { remember: "x" })],
+      [
+        SKIP_ENTRY,
+        IDEA("skipped", "2026-11-19T07:00:00.000Z"),
+        IDEA("written", "2026-11-19T08:00:00.000Z"),
+      ],
+    ];
+    const everyView = () =>
+      (Object.keys(POSITIONING) as Array<keyof typeof POSITIONING>).flatMap((positioning) =>
+        SETS.map((entries) => toBusinessView(project_(positioning, entries))),
+      );
+    const walk = (v: unknown, out: { strings: string[]; keys: string[] }): void => {
+      if (typeof v === "string") out.strings.push(v);
+      else if (Array.isArray(v)) for (const item of v) walk(item, out);
+      else if (v !== null && typeof v === "object") {
+        for (const [k, item] of Object.entries(v)) {
+          out.keys.push(k);
+          walk(item, out);
+        }
+      }
+    };
+
+    it("over every fixture the foundation JSON holds none of the five AI labels and no model id", () => {
+      const ids = Object.values(AI_MODELS);
+      for (const view of everyView()) {
+        const json = JSON.stringify(view.foundation);
+        const found = { strings: [] as string[], keys: [] as string[] };
+        walk(JSON.parse(json), found);
+        for (const label of AI_LABELS) expect(found.strings, label).not.toContain(label);
+        expect(found.keys).not.toContain("modelId");
+        for (const id of ids) expect(json).not.toContain(id);
+        expect(json).not.toMatch(/anthropic|openrouter|gemini/i);
+      }
+    });
+
+    it("a written idea is the person's own words: labelled as their own, never drafted, picked or edited", () => {
+      let seen = 0;
+      for (const view of everyView()) {
+        const node = coreIdea(view);
+        if (node.statement === null) continue;
+        seen += 1;
+        expect(node.statement.label).toBe("business.positioning.by.own");
+      }
+      expect(seen).toBeGreaterThan(0);
+    });
+
+    it("no entry kind of the four nodes is picked or edited", () => {
+      for (const view of everyView()) {
+        expect(JSON.stringify(view.foundation)).not.toMatch(/"(picked|edited|drafted)"/);
+      }
+    });
+  });
+
   describe("beside the business nodes", () => {
     it("builds the five nodes, positioning and reading exactly as a view built without foundation", () => {
       for (const positioning of Object.keys(POSITIONING) as Array<keyof typeof POSITIONING>) {
@@ -1387,6 +1690,10 @@ describe("foundation in the view", () => {
         "workingName",
         "answer",
         "give",
+        "core-idea",
+        "remember",
+        "coreIdea",
+        "writeOwn",
         "describe",
         "skip",
         "playful",

@@ -33,10 +33,11 @@ const NODE_KEY = {
   audience: "audience",
   "competitive-frame": "competitiveFrame",
   positioning: "positioning",
-  // The foundation nodes of ORV-291; PR 3 adds `coreIdea`.
+  // The foundation nodes of ORV-291.
   "identity-frame": "identityFrame",
   architecture: "architecture",
   name: "name",
+  "core-idea": "coreIdea",
   color: "color",
   typography: "typography",
 } as const satisfies Record<BusinessNodeId | FoundationNodeId, keyof Business["node"]>;

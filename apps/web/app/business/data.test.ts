@@ -325,6 +325,112 @@ describe("foundation replay", () => {
   });
 });
 
+// ORV-296 T40, row 36: the replay with an entry on every one of the four nodes.
+describe("foundation replay, all four", () => {
+  const AXES = { playful: 75, expressive: 75, structured: 75, warm: 75, premium: 75 };
+  const agreed = {
+    id: "c-1",
+    intakeId: INTAKE,
+    kind: "written",
+    statement: "Fresh roasted coffee for office workers",
+    draftId: null,
+    option: null,
+    createdAt: "2026-11-18T04:00:00.000Z",
+  };
+  const entries = () => [
+    {
+      id: "e-1",
+      node: "identity-frame",
+      kind: "given",
+      payload: { axes: AXES, person: "warm, plain, caring" },
+      createdAt: "2026-11-18T05:00:00.000Z",
+    },
+    {
+      id: "e-2",
+      node: "architecture",
+      kind: "answered",
+      payload: { subBrands: false },
+      createdAt: "2026-11-18T05:10:00.000Z",
+    },
+    {
+      id: "e-3",
+      node: "name",
+      kind: "given",
+      payload: { name: "ORIVILO" },
+      createdAt: "2026-11-18T05:20:00.000Z",
+    },
+    {
+      id: "e-4",
+      node: "core-idea",
+      kind: "written",
+      payload: { statement: "ทำให้ทุกเช้าง่ายขึ้น", remember: "กาแฟที่ส่งถึงบ้านทันเวลา" },
+      createdAt: "2026-11-18T05:30:00.000Z",
+    },
+  ];
+
+  it("loaded twice a day apart gives the same view and marks, and writes nothing, counts no limit, calls no model", async () => {
+    state.choice = agreed;
+    state.foundation = entries();
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-19T03:00:00Z"));
+    const first = await loadProject(PROJECT);
+    vi.setSystemTime(new Date("2026-11-20T03:00:00Z"));
+    const second = await loadProject(PROJECT);
+    if (first.access !== "ready" || second.access !== "ready") throw new Error("not ready");
+    expect(second).toEqual(first);
+    expect(first.view.foundation.map((n) => [n.id, n.state])).toEqual([
+      ["identity-frame", "given"],
+      ["architecture", "derived"],
+      ["name", "given"],
+      ["core-idea", "agreed"],
+      ["color", "partly"],
+      ["typography", "needsAnswer"],
+    ]);
+    expect(first.view.foundation[3]).toMatchObject({
+      id: "core-idea",
+      gate: "given",
+      gatePassed: true,
+      statement: { text: "ทำให้ทุกเช้าง่ายขึ้น", label: "business.positioning.by.own" },
+      remember: "กาแฟที่ส่งถึงบ้านทันเวลา",
+      unchecked: [],
+      controls: [],
+    });
+    expect(state.writes).toEqual([]);
+    expect(state.limitsConsumed).toBe(0);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("derives the architecture value on each load and stores none: the saved rows are untouched", async () => {
+    state.choice = agreed;
+    state.foundation = entries();
+    const before = JSON.stringify(state.foundation);
+    const loaded = await loadProject(PROJECT);
+    if (loaded.access !== "ready") throw new Error("not ready");
+    expect(loaded.view.foundation[1]).toMatchObject({
+      id: "architecture",
+      value: { key: "business.architecture.single", rule: "architecture-derive-1" },
+    });
+    expect(JSON.stringify(state.foundation)).toBe(before);
+    expect(JSON.stringify(state.foundation)).not.toContain("business.architecture.single");
+    expect(state.writes).toEqual([]);
+  });
+
+  it("with positioning gone stale the marks follow the same rule and nothing is written", async () => {
+    state.choice = { ...agreed, intakeId: "33333333-3333-4333-8333-333333333333" };
+    state.foundation = entries();
+    const loaded = await loadProject(PROJECT);
+    if (loaded.access !== "ready") throw new Error("not ready");
+    expect(loaded.view.foundation[3]).toMatchObject({
+      state: "agreed",
+      unchecked: ["positioning"],
+      controls: [],
+    });
+    expect(loaded.view.foundation[1]).toMatchObject({ state: "waiting" });
+    expect(state.writes).toEqual([]);
+    expect(state.limitsConsumed).toBe(0);
+  });
+});
+
 // ORV-298 T19, row 15: the colour is computed from the stored entries each time the project opens.
 // Opening stores no decision, writes nothing, counts no limit and calls no model.
 describe("expression replay", () => {

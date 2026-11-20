@@ -18,6 +18,7 @@ import {
 } from "./business-text";
 import { ArchitectureView } from "./architecture-view";
 import { ColorView } from "./color-view";
+import { CoreIdeaView } from "./core-idea-view";
 import { IdentityFrameView } from "./identity-frame-view";
 import { NameView } from "./name-view";
 import { TypographyView } from "./typography-view";
@@ -27,8 +28,8 @@ import { TypographyView } from "./typography-view";
  * state line with `role="status"` and, under it, the mark line of `foundation-marks-1`, then the
  * node's own fields and controls. Words only, no badge, no icon: a mark line is plain text in the
  * primary ink so the caveat is read before the value. Every name, answer and statement is a text
- * node inside `bdi`, `whitespace-pre-wrap`, never HTML and never a link. PRs 1 and 2 hold
- * Brand personality, Brand architecture and Name; PR 3 adds Core idea to the dispatch below.
+ * node inside `bdi`, `whitespace-pre-wrap`, never HTML and never a link. The four nodes of ORV-291
+ * are Brand personality, Brand architecture, Name and Core idea.
  */
 
 /** The open editor. Held by the board, so it stays while the viewer closes and opens; one at a time. */
@@ -41,6 +42,7 @@ export type FoundationEditor =
       axes: Partial<Record<PersonalityAxis, AxisPoint>>;
     }
   | { node: "name"; name: string }
+  | { node: "core-idea"; remember: string; statement: string }
   // ORV-298 PR 1: the lineup rows as typed; `key` is a stable React key and is never sent.
   | { node: "color"; rows: Array<{ key: number; name: string; hex: string }> }
   | null;
@@ -111,12 +113,14 @@ export function FoundationNodeView({ node, heading = true, controls }: Foundatio
         <IdentityFrameView node={node} controls={controls} />
       ) : node.id === "architecture" ? (
         <ArchitectureView node={node} controls={controls} />
+      ) : node.id === "name" ? (
+        <NameView node={node} controls={controls} />
+      ) : node.id === "core-idea" ? (
+        <CoreIdeaView node={node} controls={controls} />
       ) : node.id === "color" ? (
         <ColorView node={node} controls={controls} />
-      ) : node.id === "typography" ? (
-        <TypographyView node={node} controls={controls} />
       ) : (
-        <NameView node={node} controls={controls} />
+        <TypographyView node={node} controls={controls} />
       )}
     </div>
   );
