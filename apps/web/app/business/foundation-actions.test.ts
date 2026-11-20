@@ -436,3 +436,293 @@ describe("given stays given", () => {
     expect(state.saved.map((s) => s.entry.kind)).toEqual(["skipped"]);
   });
 });
+
+// ORV-295 (slice of ORV-291, PR 2), T30, spec rows 15, 16, 18, 20 and 21: the architecture and the
+// name entries through the same unchanged door. The fake service decides with the engine's own
+// `entryAllowed` as above, so these tests prove what the arms add: the checked entries reach the
+// save as the contract gives them, a name is allowed while positioning is open and architecture is
+// not answered, and the two nodes refuse a second entry.
+const NAME_TYPED = "  ORIVILO  ";
+const NAME_THAI = "ชื่อลับของเรา";
+const answerNo = {
+  projectId: PROJECT_ID,
+  node: "architecture",
+  kind: "answered",
+  payload: { subBrands: false },
+};
+const answerYes = { ...answerNo, payload: { subBrands: true } };
+const giveName = (name: string) => ({
+  projectId: PROJECT_ID,
+  node: "name",
+  kind: "given",
+  payload: { name },
+});
+
+// Row 15.
+describe("answer sub-brands", () => {
+  it("answers ok with the node and the kind, saves one entry with subBrands false and logs closed words", async () => {
+    const outcome = await enterFoundation(answerNo);
+    expect(outcome).toEqual({ ok: true, value: { node: "architecture", kind: "answered" } });
+    expect(state.saved).toEqual([
+      {
+        workspaceId: "ws-1",
+        entry: { node: "architecture", kind: "answered", payload: { subBrands: false } },
+      },
+    ]);
+    expect(state.consumed).toEqual(["write:u:P"]);
+    expect(state.order).toEqual(["session", "allow-list", "consume", "save"]);
+    expect(written()).toMatchObject([
+      { route: "business/enterFoundation", outcome: "ok", level: "info" },
+    ]);
+    for (const secret of SECRETS) expect(everything(outcome)).not.toContain(secret);
+  });
+
+  it("stores no derived value: the saved payload is the answer alone", async () => {
+    await enterFoundation(answerNo);
+    expect(JSON.stringify(state.saved)).not.toContain("single");
+    expect(JSON.stringify(state.saved)).not.toContain("architecture-derive-1");
+  });
+
+  // Row 16, the data half: the answer yes is saved too.
+  it("saves the answer yes as one entry with subBrands true", async () => {
+    expect(await enterFoundation(answerYes)).toMatchObject({ ok: true });
+    expect(state.saved.map((s) => s.entry.payload)).toEqual([{ subBrands: true }]);
+  });
+
+  it("accepts the answer while positioning is open, skipped or stale: it is an input, not a value", async () => {
+    for (const positioning of ["none", "stale", "skipped", "agreed"] as const) {
+      state.saved = [];
+      state.positioning = positioning;
+      expect(await enterFoundation(answerNo), positioning).toMatchObject({ ok: true });
+      expect(state.saved, positioning).toHaveLength(1);
+    }
+  });
+
+  it("refuses a second answer, whichever it is, and an answer after a yes, with nothing more saved", async () => {
+    expect(await enterFoundation(answerYes)).toMatchObject({ ok: true });
+    for (const again of [answerYes, answerNo]) {
+      const outcome = await enterFoundation(again);
+      expect(outcome).toMatchObject({ ok: false, error: "invalid-input", code: "INVALID_INPUT" });
+      expect(outcome).not.toHaveProperty("problems");
+    }
+    expect(state.saved).toHaveLength(1);
+  });
+
+  it("refuses a skip and an answer that is text before the service, with the path and kind only", async () => {
+    const skipped = await enterFoundation({
+      projectId: PROJECT_ID,
+      node: "architecture",
+      kind: "skipped",
+      payload: {},
+    });
+    expect(skipped).toMatchObject({
+      ok: false,
+      error: "invalid-input",
+      problems: [{ path: "kind", kind: "invalid" }],
+    });
+    const text = await enterFoundation({ ...answerNo, payload: { subBrands: "no" } });
+    expect(text).toMatchObject({
+      ok: false,
+      error: "invalid-input",
+      problems: [{ path: "payload.subBrands", kind: "invalid" }],
+    });
+    expect(state.order.filter((s) => s === "save")).toEqual([]);
+    expect(state.saved).toEqual([]);
+  });
+});
+
+// Row 18.
+describe("give a working name", () => {
+  it("saves one name entry, trimmed, and no line or body holds the name", async () => {
+    const outcome = await enterFoundation(giveName(NAME_TYPED));
+    expect(outcome).toEqual({ ok: true, value: { node: "name", kind: "given" } });
+    expect(state.saved).toEqual([
+      { workspaceId: "ws-1", entry: { node: "name", kind: "given", payload: { name: "ORIVILO" } } },
+    ]);
+    expect(state.order).toEqual(["session", "allow-list", "consume", "save"]);
+    expect(written()).toMatchObject([
+      { route: "business/enterFoundation", outcome: "ok", level: "info" },
+    ]);
+    // Searched where a name could leak: the body and the parsed lines, not the request id.
+    expect(whereAxisCouldLeak(outcome)).not.toContain("ORIVILO");
+    for (const secret of [...SECRETS, "ORIVILO"])
+      expect(whereAxisCouldLeak(outcome)).not.toContain(secret);
+  });
+
+  it("keeps a Thai name out of every line and body, on ok, on a failed save and on a refusal", async () => {
+    const ok = await enterFoundation(giveName(NAME_THAI));
+    expect(state.saved).toHaveLength(1);
+    state.saved = [];
+    state.throws = new Error(`insert failed for ${NAME_THAI}`);
+    const failed = await enterFoundation(giveName(NAME_THAI));
+    expect(failed).toMatchObject({ ok: false, error: "failed" });
+    state.throws = new BusinessError("not-saved");
+    const notSaved = await enterFoundation(giveName(NAME_THAI));
+    expect(notSaved).toMatchObject({ ok: false, error: "failed" });
+    state.throws = null;
+    const tooLong = await enterFoundation(giveName(`${NAME_THAI}${"x".repeat(61)}`));
+    expect(tooLong).toMatchObject({
+      ok: false,
+      error: "invalid-input",
+      problems: [{ path: "payload.name", kind: "too-long" }],
+    });
+    const unknownKey = await enterFoundation({
+      ...giveName(NAME_THAI),
+      payload: { name: NAME_THAI, screened: NAME_THAI },
+    });
+    expect(unknownKey).toMatchObject({
+      ok: false,
+      problems: [{ path: "payload.screened", kind: "unknown-key" }],
+    });
+    for (const outcome of [ok, failed, notSaved, tooLong, unknownKey]) {
+      expect(whereAxisCouldLeak(outcome)).not.toContain(NAME_THAI);
+    }
+    expect(JSON.stringify(capture.lines.map((l) => l.args))).not.toContain("ชื่อ");
+  });
+
+  it("refuses a name of white space with the field and the kind required, and saves nothing", async () => {
+    const outcome = await enterFoundation(giveName("   "));
+    expect(outcome).toMatchObject({
+      ok: false,
+      error: "invalid-input",
+      problems: [{ path: "payload.name", kind: "required" }],
+    });
+    expect(state.saved).toEqual([]);
+  });
+
+  it("refuses a second name and a name skip, with nothing more saved", async () => {
+    expect(await enterFoundation(giveName("First"))).toMatchObject({ ok: true });
+    const again = await enterFoundation(giveName("Second"));
+    expect(again).toMatchObject({ ok: false, error: "invalid-input", code: "INVALID_INPUT" });
+    expect(again).not.toHaveProperty("problems");
+    expect(everything(again)).not.toContain("Second");
+    const skipped = await enterFoundation({
+      projectId: PROJECT_ID,
+      node: "name",
+      kind: "skipped",
+      payload: {},
+    });
+    expect(skipped).toMatchObject({ ok: false, error: "invalid-input" });
+    expect(state.saved.map((s) => s.entry.payload)).toEqual([{ name: "First" }]);
+  });
+
+  it("accepts a name whether or not the architecture was answered no, and after a yes", async () => {
+    expect(await enterFoundation(answerNo)).toMatchObject({ ok: true });
+    expect(await enterFoundation(giveName("After no"))).toMatchObject({ ok: true });
+    state.saved = [];
+    expect(await enterFoundation(answerYes)).toMatchObject({ ok: true });
+    expect(await enterFoundation(giveName("After yes"))).toMatchObject({ ok: true });
+    expect(state.saved.map((s) => s.entry.node)).toEqual(["architecture", "name"]);
+  });
+});
+
+// Row 20.
+describe("a name ahead of positioning", () => {
+  it.each(["none", "stale"] as const)(
+    "with positioning %s and no architecture answer a name is saved: a name is never blocked",
+    async (positioning) => {
+      state.positioning = positioning;
+      const outcome = await enterFoundation(giveName(NAME_TYPED));
+      expect(outcome).toEqual({ ok: true, value: { node: "name", kind: "given" } });
+      expect(state.saved.map((s) => s.entry.payload)).toEqual([{ name: "ORIVILO" }]);
+      expect(whereAxisCouldLeak(outcome)).not.toContain("ORIVILO");
+    },
+  );
+
+  it("with positioning skipped a name is saved", async () => {
+    state.positioning = "skipped";
+    expect(await enterFoundation(giveName("x"))).toMatchObject({ ok: true });
+  });
+});
+
+// Row 21.
+describe("architecture and name door", () => {
+  const entries = [
+    ["architecture", answerNo],
+    ["name", giveName(NAME_TYPED)],
+  ] as const;
+
+  it.each(entries)(
+    "%s, signed-out: counts the signed-out limit by IP, answers signed-out, saves nothing",
+    async (_node, entry) => {
+      state.session = null;
+      const outcome = await enterFoundation(entry);
+      expect(outcome).toMatchObject({ ok: false, error: "signed-out", code: "UNAUTHENTICATED" });
+      expect(state.consumed).toEqual(["signed-out:ip:ip-1"]);
+      expect(state.saved).toEqual([]);
+      expect(state.order).toEqual(["session", "consume"]);
+    },
+  );
+
+  it.each(entries)(
+    "%s, an email off the list: forbidden, no address, nothing counted, nothing saved",
+    async (_node, entry) => {
+      state.session = { ...person, user: { id: "P2", email: "stranger@example.com" } };
+      const outcome = await enterFoundation(entry);
+      expect(outcome).toMatchObject({ ok: false, error: "forbidden", code: "FORBIDDEN" });
+      expect(state.consumed).toEqual([]);
+      expect(state.saved).toEqual([]);
+      expect(state.order).toEqual(["session", "allow-list"]);
+      for (const secret of ["stranger", "example.com", "ORIVILO"]) {
+        expect(everything(outcome)).not.toContain(secret);
+      }
+    },
+  );
+
+  it.each(entries)(
+    "%s, the write limit used up: rate-limited with retryAfter, nothing saved",
+    async (_node, entry) => {
+      for (const w of LIMITS.write.windows) {
+        state.counts.set(`${keyOf(LIMITS.write, { user: "P" })}@${w.seconds}`, w.max);
+      }
+      const outcome = await enterFoundation(entry);
+      expect(outcome).toMatchObject({
+        ok: false,
+        error: "rate-limited",
+        code: "RATE_LIMITED",
+        retryAfter: expect.any(Number),
+      });
+      expect(state.saved).toEqual([]);
+      expect(state.order).toEqual(["session", "allow-list", "consume"]);
+    },
+  );
+
+  it.each(entries)(
+    "%s, another workspace's project and an unknown id: one not-found body, nothing saved",
+    async (_node, entry) => {
+      const unknown = await enterFoundation({ ...entry, projectId: UNKNOWN_ID });
+      const other = await enterFoundation({
+        ...entry,
+        projectId: "22222222-2222-4222-8222-222222222222",
+      });
+      expect(unknown).toMatchObject({ ok: false, error: "not-found", code: "NOT_FOUND" });
+      expect(body(other)).toEqual(body(unknown));
+      expect(state.saved).toEqual([]);
+      for (const secret of [UNKNOWN_ID, "ORIVILO"])
+        expect(everything(unknown)).not.toContain(secret);
+    },
+  );
+
+  it.each(entries)(
+    "%s, a project whose node already holds an entry: invalid-input, nothing more saved",
+    async (_node, entry) => {
+      expect(await enterFoundation(entry)).toMatchObject({ ok: true });
+      const outcome = await enterFoundation(entry);
+      expect(outcome).toMatchObject({ ok: false, error: "invalid-input", code: "INVALID_INPUT" });
+      expect(state.saved).toHaveLength(1);
+    },
+  );
+
+  it.each(entries)(
+    "%s, the check runs after the limit and before the service",
+    async (_node, entry) => {
+      const outcome = await enterFoundation({ ...entry, extra: 1 });
+      expect(outcome).toMatchObject({
+        ok: false,
+        error: "invalid-input",
+        problems: [{ path: "extra", kind: "unknown-key" }],
+      });
+      expect(state.order).toEqual(["session", "allow-list", "consume"]);
+    },
+  );
+});

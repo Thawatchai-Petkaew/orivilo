@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   bodyOf,
   clipEdgeRow,
+  colourRuns,
   colorsMatch,
   cssColorToHex,
   firstInkCut,
@@ -1174,5 +1175,44 @@ describe("paintRegion", () => {
     const rows = paintRegion(wide, frame, { left: 103, top: 53, width: 2, height: 2 });
     expect(rows).toHaveLength(12);
     expect(rows[0]?.[0]).toEqual([2, 2, 0]);
+  });
+});
+
+describe("colourRuns", () => {
+  const palette = { ground: [255, 255, 255], line: [100, 0, 200], stroke: [90, 90, 90] } as const;
+  const w: Rgb = [255, 255, 255];
+  const l: Rgb = [100, 0, 200];
+  const k: Rgb = [90, 90, 90];
+
+  it("names each pixel by the nearest colour and joins equal neighbours", () => {
+    expect(colourRuns([w, w, l, l, k, w], palette, 1)).toEqual([
+      ["ground", 2],
+      ["line", 2],
+      ["stroke", 1],
+      ["ground", 1],
+    ]);
+  });
+
+  it("counts runs in CSS px, not device px", () => {
+    expect(colourRuns([w, w, w, w, l, l, w, w], palette, 2)).toEqual([
+      ["ground", 2],
+      ["line", 1],
+      ["ground", 1],
+    ]);
+  });
+
+  it("folds a sliver shorter than minPx into the run before it", () => {
+    const between: Rgb = [100, 100, 100];
+    expect(colourRuns([w, w, w, w, between, l, l, l, l], palette, 4, 0.5)).toEqual([
+      ["ground", 1.25],
+      ["line", 1],
+    ]);
+  });
+
+  it("starts a run with a sliver when nothing came before it", () => {
+    expect(colourRuns([l, w, w, w, w], palette, 4, 0.5)).toEqual([
+      ["line", 0.25],
+      ["ground", 1],
+    ]);
   });
 });

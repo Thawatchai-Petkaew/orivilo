@@ -5,8 +5,12 @@ import { ANSWER_MAX_CHARS, RAW_MAX_CHARS } from "./intake";
 /**
  * The foundation entry contract (ORV-291 tech notes section 3; spec `foundation-entry-1`). One check
  * the client wrapper, the node views, the server action and the service share. Pure code, no AI.
- * PR 1 holds the node `identity-frame`; the arms of the other three nodes come with PRs 2 and 3.
+ * PR 1 holds the node `identity-frame`, PR 2 adds `architecture` and `name`; the arm of `core-idea`
+ * comes with PR 3.
  */
+
+/** The bound of a working name, in UTF-16 units (ORV-126 "Rules and bounds", Inventory; W5). */
+export const WORKING_NAME_MAX = 60;
 
 /** The stored value of each point of a personality scale, on ORV-20's 0 to 100 range (W3). */
 export const AXIS_VALUES = [0, 25, 50, 75, 100] as const;
@@ -18,6 +22,10 @@ const projectId = z.string().regex(UUID);
 const clean = (s: string) => s.replaceAll("\u0000", "").trim();
 // Length is counted in UTF-16 units as `checkIntake` counts it; zod's own `max` counts code points.
 const within = (max: number) => z.string().refine((s) => s.length <= max);
+const required = (max: number) =>
+  within(RAW_MAX_CHARS)
+    .transform(clean)
+    .pipe(z.string().min(1).pipe(within(max)));
 const optional = (max: number) =>
   within(RAW_MAX_CHARS).transform(clean).pipe(within(max)).optional();
 // An optional answer that is empty after the trim is not given: no key, never an empty string.
@@ -54,8 +62,36 @@ const identityEntry = z.discriminatedUnion("kind", [
     .strict(),
 ]);
 
-// PR 2 and PR 3 add the arms of `architecture`, `name` and `core-idea` here.
-const entryInputSchema = z.discriminatedUnion("node", [identityEntry]);
+// `architecture-derive-1`: one answer, not skippable.
+const architectureEntry = z.discriminatedUnion("kind", [
+  z
+    .object({
+      projectId,
+      node: z.literal("architecture"),
+      kind: z.literal("answered"),
+      payload: z.object({ subBrands: z.boolean() }).strict(),
+    })
+    .strict(),
+]);
+
+// `working-name-1`: the person's own text, given only, not skippable.
+const nameEntry = z.discriminatedUnion("kind", [
+  z
+    .object({
+      projectId,
+      node: z.literal("name"),
+      kind: z.literal("given"),
+      payload: z.object({ name: required(WORKING_NAME_MAX) }).strict(),
+    })
+    .strict(),
+]);
+
+// PR 3 adds the arm of `core-idea` here.
+const entryInputSchema = z.discriminatedUnion("node", [
+  identityEntry,
+  architectureEntry,
+  nameEntry,
+]);
 
 /** The checked entry. Answers are trimmed; length is counted in UTF-16 units, as `checkIntake`. */
 export type EntryInput = z.infer<typeof entryInputSchema>;
@@ -75,8 +111,11 @@ export type EntryProblem = {
 
 export type EntryCheck = { ok: true; entry: EntryInput } | { ok: false; problems: EntryProblem[] };
 
-/** The text paths: a failed length bound there gives `too-long`. */
-const TEXT_PATHS: readonly string[] = ["payload.person", "payload.never"];
+/**
+ * The text paths: a failed length bound there gives `too-long`, a text that is empty after the trim
+ * (`too_small`) gives `required`.
+ */
+const TEXT_PATHS: readonly string[] = ["payload.person", "payload.never", "payload.name"];
 
 const valueAt = (source: unknown, path: ReadonlyArray<PropertyKey>): unknown =>
   path.reduce<unknown>(
@@ -105,6 +144,8 @@ export function checkEntry(input: unknown): EntryCheck {
     } else if (TEXT_PATHS.includes(path) && issue.code === "custom") {
       // On a text path the only custom check is the length bound.
       add({ path, kind: "too-long" });
+    } else if (TEXT_PATHS.includes(path) && issue.code === "too_small") {
+      add({ path, kind: "required" });
     } else if (valueAt(input, issue.path) === undefined) {
       add({ path, kind: "required" });
     } else {
@@ -117,6 +158,7 @@ export function checkEntry(input: unknown): EntryCheck {
 const iso = z.iso.datetime();
 const base = { id: z.string().min(1), createdAt: iso };
 const storedText = z.string().min(1).pipe(within(ANSWER_MAX_CHARS));
+const storedName = z.string().min(1).pipe(within(WORKING_NAME_MAX));
 
 /**
  * A row read back: the same arms with exact bounds and no transform (a stored text is already
@@ -143,20 +185,44 @@ export const storedEntrySchema = z.discriminatedUnion("node", [
       })
       .strict(),
   ]),
+  z
+    .object({
+      ...base,
+      node: z.literal("architecture"),
+      kind: z.literal("answered"),
+      payload: z.object({ subBrands: z.boolean() }).strict(),
+    })
+    .strict(),
+  z
+    .object({
+      ...base,
+      node: z.literal("name"),
+      kind: z.literal("given"),
+      payload: z.object({ name: storedName }).strict(),
+    })
+    .strict(),
 ]);
 
 export type StoredEntry = z.infer<typeof storedEntrySchema>;
 
+/** The newest entry of each node, typed by its node: the slot of a node holds that node's entry. */
+export type NewestByNode = {
+  [N in StoredEntry["node"]]: Extract<StoredEntry, { node: N }> | null;
+};
+
 /** The newest entry of each node (`created_at` desc, then `id` desc), or null. Order-independent. */
-export function newestByNode(
-  entries: readonly StoredEntry[],
-): Record<StoredEntry["node"], StoredEntry | null> {
-  const newest: Record<StoredEntry["node"], StoredEntry | null> = { "identity-frame": null };
+export function newestByNode(entries: readonly StoredEntry[]): NewestByNode {
+  const newest: Record<StoredEntry["node"], StoredEntry | null> = {
+    "identity-frame": null,
+    architecture: null,
+    name: null,
+  };
   for (const entry of entries) {
     const at = newest[entry.node];
     if (at === null || isNewer(entry, at)) newest[entry.node] = entry;
   }
-  return newest;
+  // Each slot is only ever filled from an entry of its own node, which the loop's key guarantees.
+  return newest as NewestByNode;
 }
 
 /**

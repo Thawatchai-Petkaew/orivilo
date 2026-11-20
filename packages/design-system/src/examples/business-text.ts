@@ -31,8 +31,10 @@ const NODE_KEY = {
   audience: "audience",
   "competitive-frame": "competitiveFrame",
   positioning: "positioning",
-  // The foundation nodes of ORV-291; PRs 2 and 3 add `architecture`, `name` and `coreIdea`.
+  // The foundation nodes of ORV-291; PR 3 adds `coreIdea`.
   "identity-frame": "identityFrame",
+  architecture: "architecture",
+  name: "name",
 } as const satisfies Record<BusinessNodeId | FoundationNodeId, keyof Business["node"]>;
 
 export function nodeTitle(m: Messages, id: BusinessNodeId | FoundationNodeId): string {
@@ -56,15 +58,27 @@ export function foundationFieldLabel(m: Messages, field: FoundationFieldKey): st
  * and for `waiting` the line with the nodes it waits for.
  */
 export function foundationStateLine(m: Messages, locale: Locale, node: FoundationNode): string {
-  switch (node.state) {
-    case "waiting":
-      return fill(m.business.state.waiting, { nodes: listOfNodes(m, locale, node.waitingFor) });
-    case "derived":
-      // `business.state.derived` is PR 2's key; Brand personality is never derived.
-      throw new Error("foundationStateLine: no line for a derived state before PR 2");
-    default:
-      return m.business.state[node.state];
-  }
+  return node.state === "waiting"
+    ? fill(m.business.state.waiting, { nodes: listOfNodes(m, locale, node.waitingFor) })
+    : m.business.state[node.state];
+}
+
+/**
+ * The provisional pair of a derived result that rests on a skipped step (`foundation-marks-1`):
+ * `strategy.provisional`, then `business.marks.restsOn` with its nodes. Both or neither, so a
+ * "rests on" line never stands without the line that says what it means.
+ */
+export function provisionalLines(
+  m: Messages,
+  locale: Locale,
+  node: FoundationNode,
+): { provisional: string; restsOn: string } | null {
+  return node.restsOn.length === 0
+    ? null
+    : {
+        provisional: m.strategy.provisional,
+        restsOn: fill(m.business.marks.restsOn, { nodes: listOfNodes(m, locale, node.restsOn) }),
+      };
 }
 
 /** `business.marks.unchecked` with its nodes, or null when the node rests on nothing unchecked. */

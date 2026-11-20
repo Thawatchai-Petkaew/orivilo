@@ -2,7 +2,13 @@ import type { FoundationNode } from "@orivilo/intent-engine";
 import { describe, expect, it } from "vitest";
 import { messagesFor } from "../i18n/messages/index";
 import { ENGLISH_READ_VIEW, THAI_READ_VIEW, THAI_VIEW } from "./business-fixtures";
-import { foundationStateLine, listOfNodes, uncheckedLine, readingQuotes } from "./business-text";
+import {
+  foundationStateLine,
+  listOfNodes,
+  provisionalLines,
+  readingQuotes,
+  uncheckedLine,
+} from "./business-text";
 
 /**
  * ORV-281 design row D6 (ORV-283): the quotes a reading drew on are shown with the reading's own
@@ -44,8 +50,9 @@ describe.each([
  * names so a comma join, which only shows with more than one, goes red.
  */
 describe("foundation lines", () => {
-  const personality = THAI_VIEW.foundation[0] as FoundationNode;
-  const given = (over: Partial<FoundationNode>): FoundationNode => ({ ...personality, ...over });
+  type Personality = Extract<FoundationNode, { id: "identity-frame" }>;
+  const personality = THAI_VIEW.foundation[0] as Personality;
+  const given = (over: Partial<Personality>): Personality => ({ ...personality, ...over });
 
   it("joins the node titles with the locale's conjunction", () => {
     const en = messagesFor("en");
@@ -90,10 +97,23 @@ describe("foundation lines", () => {
     }
   });
 
-  it("has no line for a derived state before PR 2 gives it one", () => {
-    expect(() =>
+  // PR 2 replaces PR 1's pin "has no line for a derived state before PR 2 gives it one".
+  it("gives the derived and not-in-version states their own catalog lines (PR 2)", () => {
+    for (const locale of ["th", "en"] as const) {
+      const m = messagesFor(locale);
+      expect(foundationStateLine(m, locale, given({ state: "derived", waitingFor: [] }))).toBe(
+        m.business.state.derived,
+      );
+      expect(foundationStateLine(m, locale, given({ state: "notInVersion", waitingFor: [] }))).toBe(
+        m.business.state.notInVersion,
+      );
+    }
+    expect(
       foundationStateLine(messagesFor("en"), "en", given({ state: "derived", waitingFor: [] })),
-    ).toThrow(/derived/);
+    ).toBe("Worked out by a fixed rule");
+    expect(
+      foundationStateLine(messagesFor("th"), "th", given({ state: "derived", waitingFor: [] })),
+    ).toBe("ได้จากกฎที่กำหนดไว้");
   });
 
   it("gives the unchecked line with its nodes, and none when there is nothing unchecked", () => {
@@ -107,5 +127,48 @@ describe("foundation lines", () => {
       "Not yet checked against: Positioning and Brand personality",
     );
     expect(uncheckedLine(messagesFor("en"), "en", given({ unchecked: [] }))).toBeNull();
+  });
+});
+
+/**
+ * ORV-291 tech notes T34, spec row 17 (PR 2): for a derived result `strategy.provisional` and
+ * `business.marks.restsOn` resolve together, the second with its nodes joined in the page's locale.
+ * Neither shows alone: no "rests on" line without the provisional line, and none for a result that
+ * rests on nothing.
+ */
+describe("rests on", () => {
+  type Architecture = Extract<FoundationNode, { id: "architecture" }>;
+  const architecture = THAI_VIEW.foundation[1] as Architecture;
+  const derived = (over: Partial<Architecture>): Architecture => ({
+    ...architecture,
+    state: "derived",
+    waitingFor: [],
+    ...over,
+  });
+
+  it("gives the provisional line and the rests-on line together, in each language", () => {
+    const node = derived({ restsOn: ["positioning"] });
+    expect(provisionalLines(messagesFor("en"), "en", node)).toEqual({
+      provisional: "Provisional. This rests on a step you skipped.",
+      restsOn: "Rests on: Positioning",
+    });
+    expect(provisionalLines(messagesFor("th"), "th", node)).toEqual({
+      provisional: "ชั่วคราว เพราะอิงกับขั้นตอนที่คุณข้ามไว้",
+      restsOn: "อิงกับ: จุดยืน",
+    });
+  });
+
+  it("joins several nodes with the locale's conjunction", () => {
+    const node = derived({ restsOn: ["situation", "positioning"] });
+    expect(provisionalLines(messagesFor("en"), "en", node)?.restsOn).toBe(
+      "Rests on: Situation and Positioning",
+    );
+    expect(provisionalLines(messagesFor("th"), "th", node)?.restsOn).toBe(
+      "อิงกับ: สถานการณ์ตั้งต้นและจุดยืน",
+    );
+  });
+
+  it("gives no line, neither of the two, when the node rests on nothing", () => {
+    expect(provisionalLines(messagesFor("en"), "en", derived({ restsOn: [] }))).toBeNull();
   });
 });

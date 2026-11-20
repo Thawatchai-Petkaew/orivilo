@@ -13,7 +13,8 @@ import { fixtures } from "../components/fixtures";
 import { foundationProject } from "./business-fixtures";
 
 /**
- * Fixture data for the brand foundation stories (ORV-291 PR 1, Brand personality). Every project is
+ * Fixture data for the brand foundation stories (ORV-291 PR 1, Brand personality; PR 2, Brand
+ * architecture and Name, ORV-295). Every project is
  * made by hand to show a state: nobody gave these answers and nothing was saved. Each view goes
  * through the engine's `toBusinessView`, so a story shows what the screen gets from a saved project.
  */
@@ -67,6 +68,33 @@ export const givenEntry = (
   },
 });
 
+/** The answer to "Does this brand sit above or below other brands?", as the table holds it (PR 2). */
+export const answeredEntry = (subBrands: boolean): StoredEntry => ({
+  id: "entry-architecture",
+  createdAt: SAVED_AT,
+  node: "architecture",
+  kind: "answered",
+  payload: { subBrands },
+});
+
+/** A working name, as the table holds it (PR 2). */
+export const nameEntry = (name: string): StoredEntry => ({
+  id: "entry-name",
+  createdAt: SAVED_AT,
+  node: "name",
+  kind: "given",
+  payload: { name },
+});
+
+/** The working name of the stories: the one of spec row 18. */
+export const FIXTURE_NAME = "ORIVILO";
+
+/** Markup as a working name: it must show as literal text (spec row 22). */
+export const HOSTILE_NAME = "<img src=x onerror=alert(1)>";
+
+/** 60 Thai characters with no space, the longest a working name keeps (spec row 23). */
+export const LONG_WORKING_NAME = fixtures.longThai.slice(0, 60);
+
 export const skippedEntry: StoredEntry = {
   id: "entry-skipped",
   createdAt: SAVED_AT,
@@ -88,20 +116,32 @@ export const given = (locale: Locale): BusinessView =>
 export const givenUnchecked = (locale: Locale): BusinessView =>
   foundationProject(locale, "open", [givenEntry(PERSONALITY_ANSWERS[locale])]);
 
+/** The entry a request makes, as the table would hold it. */
+function entryOf(request: EntryRequest): StoredEntry {
+  if (request.node === "architecture") return answeredEntry(request.payload.subBrands);
+  // The server stores the trimmed name (`foundation-entry-1`); the stub does the same.
+  if (request.node === "name") return nameEntry(request.payload.name.trim());
+  return request.kind === "skipped"
+    ? skippedEntry
+    : {
+        id: "entry-given",
+        createdAt: SAVED_AT,
+        node: "identity-frame",
+        kind: "given",
+        payload: request.payload,
+      };
+}
+
 /**
  * The view the page would build again after the save, from the same engine function: what a stub
- * action returns in place of the server. A given entry holds only the answers the person typed.
+ * action returns in place of the server. `gate` and `before` are the project the person saved on:
+ * its Positioning gate and the entries it already held. A given entry holds only what the person typed.
  */
-export function afterEntry(locale: Locale, request: EntryRequest): BusinessView {
-  const entry: StoredEntry =
-    request.kind === "skipped"
-      ? skippedEntry
-      : {
-          id: "entry-given",
-          createdAt: SAVED_AT,
-          node: "identity-frame",
-          kind: "given",
-          payload: request.payload,
-        };
-  return foundationProject(locale, "agreed", [entry]);
-}
+export const afterEntryOn =
+  (locale: Locale, gate: "open" | "skipped" | "agreed", before: StoredEntry[] = []) =>
+  (request: EntryRequest): BusinessView =>
+    foundationProject(locale, gate, [...before, entryOf(request)]);
+
+/** The Brand personality stories' stub: Positioning agreed, no other entry. */
+export const afterEntry = (locale: Locale, request: EntryRequest): BusinessView =>
+  afterEntryOn(locale, "agreed")(request);

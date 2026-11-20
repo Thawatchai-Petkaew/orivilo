@@ -1,83 +1,117 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, waitFor, within } from "storybook/test";
-import { useState } from "react";
+import { expect, userEvent, waitFor, within } from "storybook/test";
+import { useState, type CSSProperties } from "react";
 import { useDesignProfile } from "../../boundary/DesignProfileBoundary";
 import { CANVAS_WORDS, PORT_KINDS, portShape } from "../../tokens/canvas";
 import { CanvasBoard, type CanvasBoardProps } from "../canvas-board/CanvasBoard";
 import type { Graph, PortSpec } from "../canvas-board/graph";
-import { expectPortPillsClear } from "../../testing/visual-asserts";
+import {
+  expectBoardChromeClear,
+  expectPillsClear,
+  expectPortPillsClear,
+  inVitest,
+} from "../../testing/visual-asserts";
+import { atWindow } from "../../testing/window";
 import { fillHeight, Matrix } from "../matrix";
 import { PortGlyph, type PortState } from "./NodePort";
 
-const ports: PortSpec[] = PORT_KINDS.map((kind) => ({
-  id: kind,
-  kind,
-  label: CANVAS_WORDS.port[kind].th,
-}));
+type Lang = "th" | "en";
+
+const portsIn = (lang: Lang): PortSpec[] =>
+  PORT_KINDS.map((kind) => ({ id: kind, kind, label: CANVAS_WORDS.port[kind][lang] }));
 
 /** One node with every kind in and out. */
-const allKinds: Graph = {
+const allKinds = (lang: Lang = "th"): Graph => ({
   nodes: [
     {
       id: "all",
       type: "orivilo",
       position: { x: 0, y: 0 },
-      data: { title: "ทุกชนิด", kind: "knowledge", inputs: ports, outputs: ports },
+      data: {
+        title: { th: "ทุกชนิด", en: "All kinds" }[lang],
+        kind: "knowledge",
+        inputs: portsIn(lang),
+        outputs: portsIn(lang),
+      },
     },
   ],
   edges: [],
+});
+
+const connectedPair = (lang: Lang = "th"): Graph => {
+  const ports = portsIn(lang);
+  return {
+    nodes: [
+      {
+        id: "a",
+        type: "orivilo",
+        position: { x: 0, y: 0 },
+        data: {
+          title: { th: "ต้นทาง", en: "Source" }[lang],
+          kind: "input-block",
+          size: "sm",
+          inputs: [],
+          outputs: [ports[0] as PortSpec, ports[1] as PortSpec],
+        },
+      },
+      {
+        id: "b",
+        type: "orivilo",
+        position: { x: 360, y: 0 },
+        data: {
+          title: { th: "ปลายทาง", en: "Target" }[lang],
+          kind: "artifact",
+          size: "sm",
+          inputs: [ports[0] as PortSpec, ports[1] as PortSpec],
+          outputs: [],
+        },
+      },
+    ],
+    edges: [
+      {
+        id: "e",
+        type: "orivilo",
+        source: "a",
+        sourceHandle: "text",
+        target: "b",
+        targetHandle: "text",
+        data: { meaning: "input" },
+      },
+    ],
+  };
 };
 
-const connectedPair: Graph = {
-  nodes: [
-    {
-      id: "a",
-      type: "orivilo",
-      position: { x: 0, y: 0 },
-      data: {
-        title: "ต้นทาง",
-        kind: "input-block",
-        size: "sm",
-        inputs: [],
-        outputs: [ports[0] as PortSpec, ports[1] as PortSpec],
-      },
-    },
-    {
-      id: "b",
-      type: "orivilo",
-      position: { x: 360, y: 0 },
-      data: {
-        title: "ปลายทาง",
-        kind: "artifact",
-        size: "sm",
-        inputs: [ports[0] as PortSpec, ports[1] as PortSpec],
-        outputs: [],
-      },
-    },
-  ],
-  edges: [
-    {
-      id: "e",
-      type: "orivilo",
-      source: "a",
-      sourceHandle: "text",
-      target: "b",
-      targetHandle: "text",
-      data: { meaning: "input" },
-    },
-  ],
-};
-
+/**
+ * `roomBelow` is the board's height where its container is narrower than 720 px (ORV-290 row 10).
+ * The board fits its node to its width, so a narrow board shrinks the card and the corner badge
+ * lands on it; the taller board fits the node at a zoom that keeps the card under the badge. The
+ * board itself is unchanged: only the story's frame answers the container's width.
+ */
 function PortBoard({
   initial,
   height = 360,
+  roomBelow,
   ...rest
-}: Omit<CanvasBoardProps, "graph" | "onChange" | "label"> & { initial: Graph; height?: number }) {
+}: Omit<CanvasBoardProps, "graph" | "onChange" | "label"> & {
+  initial: Graph;
+  height?: number;
+  roomBelow?: number;
+}) {
   const [graph, setGraph] = useState(initial);
   const scope = useDesignProfile();
   const id = typeof scope?.profile === "string" ? scope.profile : scope?.profile.id;
-  return (
-    <div style={{ height: fillHeight(height) }}>
+  const board = (
+    <div
+      className={roomBelow === undefined ? undefined : "h-(--board-height) @max-[720px]:h-(--room)"}
+      style={
+        roomBelow === undefined
+          ? { height: fillHeight(height) }
+          : ({
+              "--board-height": fillHeight(height),
+              "--room": `${roomBelow}px`,
+            } as CSSProperties)
+      }
+    >
       <CanvasBoard
         label={`ตัวอย่างพอร์ต${scope ? `, ${id} ${scope.mode}` : ""}`}
         {...rest}
@@ -86,6 +120,7 @@ function PortBoard({
       />
     </div>
   );
+  return roomBelow === undefined ? board : <div className="@container">{board}</div>;
 }
 
 /**
@@ -118,10 +153,14 @@ type Story = StoryObj<typeof meta>;
 
 /** Five kinds in, five out: five shapes, five colours, each named "พอร์ตรับ <kind>" or "พอร์ตส่ง <kind>". */
 export const Kinds: Story = {
-  render: () => <PortBoard initial={allKinds} />,
+  render: () => <PortBoard initial={allKinds()} />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await portsDrawn(canvasElement, 10);
+    // The Thai story keeps its Thai title (ORV-290 row 44).
+    await expect(canvasElement.querySelector<HTMLElement>(".ds-board")?.innerText).toContain(
+      "ทุกชนิด",
+    );
     const shapes = new Set(
       [...canvasElement.querySelectorAll("[data-port-shape]")].map((p) =>
         p.getAttribute("data-port-shape"),
@@ -148,10 +187,13 @@ export const Kinds: Story = {
 
 /** Connected ports say so in their name; the unconnected pair stays idle. */
 export const Connected: Story = {
-  render: () => <PortBoard initial={connectedPair} height={300} />,
+  render: () => <PortBoard initial={connectedPair()} height={300} />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await portsDrawn(canvasElement, 4);
+    const text = canvasElement.querySelector<HTMLElement>(".ds-board")?.innerText;
+    await expect(text).toContain("ต้นทาง");
+    await expect(text).toContain("ปลายทาง");
     await expect(
       canvas.getByRole("img", { name: "พอร์ตส่งข้อความ, เชื่อมอยู่" }),
     ).toBeInTheDocument();
@@ -167,7 +209,7 @@ export const Connected: Story = {
 
 /** Disabled on a present board: the glyph keeps its full hue, the name says it cannot be edited. */
 export const Disabled: Story = {
-  render: () => <PortBoard initial={connectedPair} height={300} variant="present" />,
+  render: () => <PortBoard initial={connectedPair()} height={300} variant="present" />,
   play: async ({ canvasElement }) => {
     await portsDrawn(canvasElement, 4);
     await expect(canvasElement.querySelectorAll('.ds-port[data-state="disabled"]')).toHaveLength(4);
@@ -177,10 +219,22 @@ export const Disabled: Story = {
   },
 };
 
+/**
+ * An English story reads in English (ORV-290 row 44, S2): the board's visible text and its text
+ * content hold no Thai character, and each of `words` is drawn on it.
+ */
+async function expectEnglishOnly(root: HTMLElement, words: readonly string[]) {
+  const board = root.querySelector<HTMLElement>(".ds-board") as HTMLElement;
+  await expect(board.innerText).not.toMatch(/[\u0E00-\u0E7F]/);
+  await expect(board.textContent).not.toMatch(/[\u0E00-\u0E7F]/);
+  for (const word of words) await expect(board.innerText).toContain(word);
+}
+
 /** The handle names in English: kind, then direction ("text input port", ORV-280 D8). */
 async function playNamesInEnglish(root: HTMLElement) {
   const canvas = within(root);
   await portsDrawn(root, 10);
+  await expectEnglishOnly(root, ["All kinds", "text", "image", "palette", "type", "profile"]);
   for (const kind of PORT_KINDS) {
     const word = CANVAS_WORDS.port[kind].en;
     await expect(canvas.getByRole("img", { name: `${word} input port` })).toHaveAttribute(
@@ -194,17 +248,18 @@ async function playNamesInEnglish(root: HTMLElement) {
 /** The same five kinds in English: "text input port", never "input port text". */
 export const KindsInEnglish: Story = {
   globals: { locale: "en" },
-  render: () => <PortBoard initial={allKinds} />,
+  render: () => <PortBoard initial={allKinds("en")} />,
   play: async ({ canvasElement }) => playNamesInEnglish(canvasElement),
 };
 
 /** The connected pair in English: the state word follows the name after a comma. */
 export const ConnectedInEnglish: Story = {
   globals: { locale: "en" },
-  render: () => <PortBoard initial={connectedPair} height={300} />,
+  render: () => <PortBoard initial={connectedPair("en")} height={300} />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await portsDrawn(canvasElement, 4);
+    await expectEnglishOnly(canvasElement, ["Source", "Target", "text", "image"]);
     await expect(canvas.getByRole("img", { name: "text output port, connected" })).toBeVisible();
     await expect(canvas.getByRole("img", { name: "text input port, connected" })).toBeVisible();
     await expect(canvas.getByRole("img", { name: "image input port" })).toBeVisible();
@@ -285,15 +340,13 @@ export const StatesLineup: Story = {
 export const RecipesAndModes: Story = {
   render: () => (
     <Matrix>
-      <PortBoard initial={allKinds} height={300} />
+      <PortBoard initial={allKinds()} height={300} />
     </Matrix>
   ),
   play: async ({ canvasElement }) => {
     await waitFor(() => expect(canvasElement.querySelectorAll(".ds-port")).toHaveLength(60));
   },
 };
-
-type Lang = "th" | "en";
 
 /** Three present nodes in a row, 100 px apart: one at rest, one hovered, one selected. */
 function presentNames(lang: Lang): Graph {
@@ -348,11 +401,51 @@ async function playPresentNames(root: HTMLElement, lang: Lang) {
   await waitFor(() => {
     for (const pill of pills("p1")) expect(visibility(pill)).toBe("visible");
   });
-  for (const pill of pills("p2")) await expect(visibility(pill)).toBe("visible");
-  // The side ports sit 40 apart (ORV-282, D4b): the hovered p1 and the selected p2, two pills on
-  // each side, keep their name pills apart. The cards are 120 apart, so only pill to pill is near.
+  const outputs = (id: string) => [
+    ...node(id).querySelectorAll<HTMLElement>('.ds-port[data-direction="output"] .ds-port__label'),
+  ];
+  const inputs = (id: string) => [
+    ...node(id).querySelectorAll<HTMLElement>('.ds-port[data-direction="input"] .ds-port__label'),
+  ];
+  // Row 21: a shown name covers no other. The cards are 120 apart, so a name p1 draws on its output
+  // side can meet the name p2 draws on its input side. p1 is hovered and comes first, so the p2 name
+  // that meets one gives way, and p2's output names, which meet nothing, stay.
+  const hiddenOf = (list: HTMLElement[]) => list.filter((pill) => visibility(pill) === "hidden");
+  await waitFor(() => {
+    for (const pill of pills("p1")) expect(visibility(pill)).toBe("visible");
+    expect(hiddenOf(inputs("p2")).length).toBeGreaterThan(0);
+  });
+  for (const pill of outputs("p2")) await expect(visibility(pill)).toBe("visible");
+  await waitFor(() => expectPillsClear(root));
+  // A hidden name keeps its words: it is cut from the picture, not from the node.
+  await expect(inputs("p2")[0]).toHaveTextContent(
+    CANVAS_WORDS.port[PORT_KINDS[0] as PortSpec["kind"]][lang],
+  );
+  // The side ports sit 40 apart (ORV-282, D4b): the hovered p1, two pills on each side, keeps its
+  // name pills apart. The cards are 120 apart, so only pill to pill is near.
   await expect(expectPortPillsClear(node("p1"))).toBe(pills("p1").length);
-  await expect(expectPortPillsClear(node("p2"))).toBe(pills("p2").length);
+  await expect(expectPortPillsClear(node("p2"))).toBe(
+    pills("p2").length - hiddenOf(inputs("p2")).length,
+  );
+  // The pointed node's names win whatever the order. The addon only imitates hover in the styles, so
+  // the pointer goes over p2 for real, where Vitest drives one: every p2 name is drawn and the p1
+  // output name that meets one gives way.
+  if (inVitest) {
+    const { userEvent: pointer } = await import("vitest/browser");
+    await pointer.hover(node("p2"));
+    await waitFor(() => expect(node("p2").matches(":hover")).toBe(true));
+    await waitFor(() => {
+      for (const pill of pills("p2")) expect(visibility(pill)).toBe("visible");
+      expect(hiddenOf(outputs("p1")).length).toBeGreaterThan(0);
+    });
+    for (const pill of inputs("p1")) await expect(visibility(pill)).toBe("visible");
+    await waitFor(() => expectPillsClear(root));
+    await pointer.unhover(node("p2"));
+    await waitFor(() => expect(node("p2").matches(":hover")).toBe(false));
+    await waitFor(() => {
+      for (const pill of pills("p1")) expect(visibility(pill)).toBe("visible");
+    });
+  }
   // Shown on keyboard focus too (spec row 3): the rest node takes focus and its pills show.
   const rest = node("p0") as HTMLElement;
   await waitFor(() => {
@@ -407,11 +500,29 @@ export const PresentNamesInEnglish: Story = {
   play: async ({ canvasElement }) => playPresentNames(canvasElement, "en"),
 };
 
+/**
+ * Fits a board again with its own key (Shift+1) and waits until the view stops moving: the fit
+ * eases for 200 ms, so the view is read settled when three reads in a row agree.
+ */
+async function refit(board: HTMLElement) {
+  await waitFor(() => {
+    board.focus();
+    expect(board).toHaveFocus();
+  });
+  await userEvent.keyboard("{Shift>}1{/Shift}");
+  const reads: string[] = [];
+  await waitFor(() => {
+    reads.push(board.querySelector<HTMLElement>(".react-flow__viewport")?.style.transform ?? "");
+    expect(reads.slice(-3)).toHaveLength(3);
+    expect(new Set(reads.slice(-3)).size).toBe(1);
+  });
+}
+
 /** All five kinds on a present board under three profiles in both modes: locked hues, full opacity. */
 export const PresentRecipesAndModes: Story = {
   render: () => (
     <Matrix>
-      <PortBoard initial={allKinds} height={300} variant="present" />
+      <PortBoard initial={allKinds()} height={300} roomBelow={720} variant="present" />
     </Matrix>
   ),
   play: async ({ canvasElement }) => {
@@ -443,6 +554,25 @@ export const PresentRecipesAndModes: Story = {
       await expect(
         Math.abs(card.getBoundingClientRect().height / zoom - (2 * radius + 4 * 40 + 16)),
       ).toBeLessThanOrEqual(0.5);
+    }
+    // The corner badge keeps clear of every card and dot (ORV-290 row 10, B15). At rest no status
+    // line holds text, and the badge has a gap of 0 or more to every card and dot in the window the
+    // story opens in. Then at 360 and at 1440 each board is fitted again, as a person's fit key does
+    // it, and the badge and the status line that key raises (2 reads a cell) meet no card and no dot.
+    for (const cell of cells) {
+      for (const status of cell.querySelectorAll("[role=status]")) {
+        await expect(status.textContent, "no status line text at rest").toBe("");
+      }
+      await expect(expectBoardChromeClear(cell)).toBe(1);
+    }
+    for (const width of [360, 1440]) {
+      await atWindow(width, 900, async () => {
+        for (const cell of cells) {
+          const board = cell.querySelector<HTMLElement>(".ds-board") as HTMLElement;
+          await refit(board);
+          await expect(expectBoardChromeClear(cell)).toBe(2);
+        }
+      });
     }
   },
 };
