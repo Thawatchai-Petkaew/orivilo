@@ -117,6 +117,8 @@ Board region unchanged (`h-[70dvh] min-h-[480px]`): 1392 x 630 at 1440, 312 x 63
 | PR 2 head | 11, 16 | 10, 14 | x 0 to 3184 | 0.364 (width bound) | 0.25 floor |
 | PR 3 head | 12, 18 | 11, 16 | x 0 to 3184 | 0.364 (measured 0.3637 on the mock) | 0.25 floor |
 
+As built (2026-11-20, A2): the story `BoardAt1440` (Examples/Application: Business board) measured the PR 1 fit at 1440 as 0.412, not 0.430. Every card sits inside the board; the figures that scale from 0.430 (title band 64.7 world px) read about 4 percent larger at 0.412.
+
 - **1440.** The whole board fits at every stage. At 0.364 a card's body text is about 5 px on screen and reads as texture; the titles stay at their screen size (the label scales by 1/zoom) and carry the overview. That is the overview's job; the view carries the reading.
 - **360.** As ORV-291 2.3 (correction of 2026-11-19): the fit stops at `minZoom` 0.25 and centres the world; most cards are outside. The person pans (drag, arrow keys on the focused board), zooms with the controls, or Tabs: focus pans a card into view only when no part of it is in view, so a card partly in view stays cut. Nothing on the page scrolls sideways (`documentElement.scrollWidth` 360, measured). A pan that brings every focused card whole into view stays the ORV-280 follow-up (ORV-291 open question 14 (b)).
 - **When the whole board no longer fits** (every 360 frame, and 1440 if more nodes join): the reader uses the canvas controls (zoom out to 25 percent, fit), drags, or Tabs from card to card in fill order; Enter opens the card's view, which is the full-size reading.

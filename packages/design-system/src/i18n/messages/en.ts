@@ -691,6 +691,7 @@ export const en: Messages = {
       person: "If your brand were a person, which three words would people use to describe them?",
       never: "How should your brand never feel?",
       subBrands: "Does this brand sit above or below other brands?",
+      lineup: "Which brands do customers compare you with, and what is the main colour of each?",
     },
     node: {
       situation: "Situation",
@@ -701,6 +702,7 @@ export const en: Messages = {
       identityFrame: "Brand personality",
       architecture: "Brand architecture",
       name: "Name",
+      color: "Colour",
     },
     field: {
       industry: "Business type",
@@ -720,6 +722,11 @@ export const en: Messages = {
       subBrands: "Other brands above or below",
       architecture: "Architecture",
       workingName: "Working name",
+      lineup: "Competitors' main colours",
+      crowded: "Crowded colour families",
+      signature: "Signature colour family",
+      neutral: "Greys",
+      canvas: "Background",
     },
     state: {
       proposed: "Not confirmed yet",
@@ -732,6 +739,8 @@ export const en: Messages = {
       waiting: "Waits for {nodes}",
       derived: "Worked out by a fixed rule",
       notInVersion: "Not in this version",
+      partly: "Partly worked out by fixed rules",
+      needsAnswer: "Waits for your answer",
     },
     stillToAsk: "Still to ask",
     marks: {
@@ -770,7 +779,70 @@ export const en: Messages = {
       required: "Write a working name, or cancel.",
       notScreened: "Working name, not screened for trademarks.",
     },
+    decision: {
+      rule: "Rule: {rule}",
+    },
+    color: {
+      give: "Give competitors' colours",
+      row: "Brand {n}",
+      brandName: "Brand name",
+      hex: "Main colour, as # and six characters",
+      add: "Add a brand",
+      remove: "Remove {name}",
+      save: "Save these colours",
+      lineupRequired: "Add at least one brand with its colour, or cancel.",
+      rowIncomplete: "Give both the brand name and its colour, or remove the row.",
+      hexInvalid:
+        "Write the colour as # and six characters from 0 to 9 and A to F, for example #5B3FD9.",
+      nameRepeated: "This brand is already in the list.",
+      lineupMax: "Twenty brands at most.",
+      givenByYou: "Colours you gave. ORIVILO did not read them from these brands.",
+      crowdRule:
+        "A colour family counts as crowded when two or more of the brands you gave share it.",
+      noneCrowded: "None",
+      family: {
+        red: "Red",
+        orange: "Orange",
+        yellow: "Yellow",
+        lime: "Lime",
+        green: "Green",
+        teal: "Teal",
+        cyan: "Cyan",
+        blue: "Blue",
+        violet: "Violet",
+        magenta: "Magenta",
+        ink: "Near black",
+        paper: "Near white",
+      },
+      neutral: {
+        cool: "Cool greys",
+        near: "Near neutral greys",
+        warm: "Warm greys",
+      },
+      canvas: {
+        soft: "Soft off-white, with white cards on it",
+        bright: "Bright white",
+      },
+      because: {
+        signature:
+          "Bold at {expressive} of 5 and warm at {warm} of 5 point to {family}, and {family} is not crowded among the colours you gave.",
+        fallback:
+          "Bold at {expressive} of 5 and warm at {warm} of 5 point first to {preferred}, which is crowded among the colours you gave, so the next candidate, {family}, is used.",
+        neutral: "Warm at {warm} of 5 sets the greys.",
+        canvas: "Premium at {premium} of 5 sets the background.",
+      },
+      waitsForLineup: "The signature colour waits for your competitors' colours.",
+      bothCrowded:
+        "Both candidate families for this personality, {first} and {second}, are crowded among the colours you gave, so no signature colour is chosen.",
+      needsPersonality:
+        "Describe the brand's personality to work out the colours: the colour rules read it.",
+      notDecided: "The colour rules gave no result for this input.",
+      hypothesis:
+        "The thresholds and the four candidate colour families are ORIVILO's working rules, not a tested method.",
+      familyOnly: "A colour family, not a final colour value.",
+    },
     label: {
+      byRule: "Worked out by fixed rules from what you gave. Not decided by AI.",
       yourWords: "Your words, placed here by fixed rules. Not read by AI.",
       aiUnavailable: "AI did not read these answers, so only your own words are shown.",
       confidence: "Confidence numbers come from fixed rules, not from a test of accuracy.",

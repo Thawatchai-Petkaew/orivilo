@@ -2,6 +2,8 @@ import {
   BUSINESS_FIELDS,
   BUSINESS_NODES,
   BUSINESS_READ_REASONS,
+  CHROMATIC_FAMILIES,
+  COLOR_DECISIONS,
   INTAKE_FIELDS,
   PERSONALITY_AXES,
   PROXY_QUESTIONS,
@@ -169,6 +171,48 @@ const SPEC_KEYS = [
   "business.name.save",
   "business.name.required",
   "business.name.notScreened",
+  // ORV-298 PR 1: the Colour node. PR 2 and PR 3 add the typography and logo type keys.
+  "business.node.color",
+  "business.state.partly",
+  "business.state.needsAnswer",
+  "business.label.byRule",
+  "business.decision.rule",
+  "business.question.lineup",
+  "business.field.lineup",
+  "business.field.crowded",
+  "business.field.signature",
+  "business.field.neutral",
+  "business.field.canvas",
+  "business.color.give",
+  "business.color.row",
+  "business.color.brandName",
+  "business.color.hex",
+  "business.color.add",
+  "business.color.remove",
+  "business.color.save",
+  "business.color.lineupRequired",
+  "business.color.rowIncomplete",
+  "business.color.hexInvalid",
+  "business.color.nameRepeated",
+  "business.color.lineupMax",
+  "business.color.givenByYou",
+  "business.color.crowdRule",
+  "business.color.noneCrowded",
+  ...CHROMATIC_FAMILIES.map((family) => `business.color.family.${family}`),
+  "business.color.family.ink",
+  "business.color.family.paper",
+  ...COLOR_DECISIONS.neutral.map((value) => `business.color.neutral.${value}`),
+  ...COLOR_DECISIONS.canvas.map((value) => `business.color.canvas.${value}`),
+  "business.color.because.signature",
+  "business.color.because.fallback",
+  "business.color.because.neutral",
+  "business.color.because.canvas",
+  "business.color.waitsForLineup",
+  "business.color.bothCrowded",
+  "business.color.needsPersonality",
+  "business.color.notDecided",
+  "business.color.hypothesis",
+  "business.color.familyOnly",
 ];
 
 describe("business catalog", () => {
@@ -183,9 +227,10 @@ describe("business catalog", () => {
     it(`${locale}: every business.question line is word for word the ORV-126 proxy question`, () => {
       const wrong = PROXY_QUESTIONS.filter((q) => at(m, q.key) !== q[locale]).map((q) => q.id);
       expect(wrong).toEqual([]);
-      // The `question` group is the proxy questions and the start question, and nothing else.
+      // The `question` group is the proxy questions, the start question and the colour lineup
+      // question of ORV-298 (`business.question.lineup`, new copy with no ORV-126 id), and nothing else.
       expect(Object.keys(m.business.question)).toHaveLength(
-        PROXY_QUESTIONS.length + START_QUESTIONS.length,
+        PROXY_QUESTIONS.length + START_QUESTIONS.length + 1,
       );
       for (const q of START_QUESTIONS) expect(at(m, q.key), q.key).toBe(q[locale]);
     });
@@ -573,4 +618,77 @@ describe("brand architecture and name, strings", () => {
       }
     });
   }
+});
+
+/**
+ * ORV-298 PR 1, spec row 16 (T22): the Colour node's keys, word for word. The copy of record is the
+ * spec's "Strings" table; the test reads its rows marked PR 1 and holds the catalog to them in both
+ * languages, so a one-word edit of a catalog line, English or Thai, goes red. It also holds every
+ * colour word to the engine's own lists (each family `auditLineup` can name, each value of
+ * `neutral` and `canvas`) and every PR 1 line free of a middot and an em dash.
+ */
+describe("expression, colour strings", () => {
+  const spec = readFileSync(
+    path.join(import.meta.dirname, "../../../../docs/specs/ORV-298/spec.md"),
+    "utf8",
+  );
+  const table = spec.slice(spec.indexOf("\n## Strings"), spec.indexOf("\n## Acceptance criteria"));
+  const rows = table
+    .split("\n")
+    .filter((line) => line.startsWith("| `"))
+    .map((line) => line.slice(2, -2).split(" | "))
+    .filter((cells) => cells.length === 4 && cells[3] === "1")
+    .map(([key, en, th]) => ({
+      key: (key ?? "").replaceAll("`", ""),
+      en: en ?? "",
+      th: th ?? "",
+    }));
+
+  it("reads the fifty-three PR 1 rows of the spec's Strings table", () => {
+    expect(rows).toHaveLength(53);
+    expect(new Set(rows.map((row) => row.key)).size).toBe(53);
+  });
+
+  it("is the whole PR 1 set of this test file's key list", () => {
+    const first = SPEC_KEYS.indexOf("business.node.color");
+    expect(rows.map((row) => row.key).sort()).toEqual([...SPEC_KEYS.slice(first)].sort());
+  });
+
+  for (const locale of LOCALES) {
+    const m = messagesFor(locale);
+
+    it(`${locale}: each PR 1 line is the spec's, word for word`, () => {
+      for (const row of rows) expect(at(m, row.key), row.key).toBe(row[locale]);
+    });
+
+    it(`${locale}: no PR 1 line has a middot or an em dash`, () => {
+      for (const row of rows) expect(String(at(m, row.key)), row.key).not.toMatch(/[\u00b7\u2014]/);
+    });
+
+    it(`${locale}: every colour family the audit can name has a word, and the words differ`, () => {
+      const families = [...CHROMATIC_FAMILIES, "ink", "paper"] as const;
+      const words = families.map((family) => m.business.color.family[family]);
+      expect(words.every((word) => word.trim() !== "")).toBe(true);
+      expect(new Set(words).size).toBe(families.length);
+      expect(Object.keys(m.business.color.family).sort()).toEqual([...families].sort());
+      expect(Object.keys(m.business.color.neutral)).toEqual([...COLOR_DECISIONS.neutral]);
+      expect(Object.keys(m.business.color.canvas)).toEqual([...COLOR_DECISIONS.canvas]);
+    });
+  }
+
+  it("spells the slots of the reasons: points, families, the rule and the row", () => {
+    for (const locale of LOCALES) {
+      const { color, decision } = messagesFor(locale).business;
+      expect(color.because.signature).toContain("{expressive}");
+      expect(color.because.signature).toContain("{warm}");
+      expect(color.because.fallback).toContain("{preferred}");
+      expect(color.because.neutral).toContain("{warm}");
+      expect(color.because.canvas).toContain("{premium}");
+      expect(color.bothCrowded).toContain("{first}");
+      expect(color.bothCrowded).toContain("{second}");
+      expect(color.remove).toContain("{name}");
+      expect(color.row).toContain("{n}");
+      expect(decision.rule).toContain("{rule}");
+    }
+  });
 });

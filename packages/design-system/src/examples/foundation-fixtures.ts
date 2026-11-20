@@ -86,6 +86,15 @@ export const nameEntry = (name: string): StoredEntry => ({
   payload: { name },
 });
 
+/** The competitors' main colours, as the table holds them (ORV-298 PR 1). */
+export const lineupEntry = (lineup: Array<{ name: string; hex: string }>): StoredEntry => ({
+  id: "entry-lineup",
+  createdAt: SAVED_AT,
+  node: "competitive-frame",
+  kind: "lineup",
+  payload: { lineup },
+});
+
 /** The working name of the stories: the one of spec row 18. */
 export const FIXTURE_NAME = "ORIVILO";
 
@@ -121,6 +130,7 @@ function entryOf(request: EntryRequest): StoredEntry {
   if (request.node === "architecture") return answeredEntry(request.payload.subBrands);
   // The server stores the trimmed name (`foundation-entry-1`); the stub does the same.
   if (request.node === "name") return nameEntry(request.payload.name.trim());
+  if (request.node === "competitive-frame") return lineupEntry(request.payload.lineup);
   return request.kind === "skipped"
     ? skippedEntry
     : {

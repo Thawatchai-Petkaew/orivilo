@@ -35,6 +35,7 @@ const NODE_KEY = {
   "identity-frame": "identityFrame",
   architecture: "architecture",
   name: "name",
+  color: "color",
 } as const satisfies Record<BusinessNodeId | FoundationNodeId, keyof Business["node"]>;
 
 export function nodeTitle(m: Messages, id: BusinessNodeId | FoundationNodeId): string {
@@ -46,6 +47,95 @@ export function listOfNodes(m: Messages, locale: Locale, refs: readonly MarkRef[
   return new Intl.ListFormat(DATE_TAGS[locale], { type: "conjunction" }).format(
     refs.map((ref) => nodeTitle(m, ref)),
   );
+}
+
+/** Words as one line: `Intl.ListFormat`, type `conjunction`, in the page's locale. */
+export function listOfWords(locale: Locale, words: readonly string[]): string {
+  return new Intl.ListFormat(DATE_TAGS[locale], { type: "conjunction" }).format(words);
+}
+
+type ColorNode = Extract<FoundationNode, { id: "color" }>;
+type Color = Business["color"];
+
+/** The word of a colour family, a key of `business.color.family.*`. */
+export function familyWord(m: Messages, family: keyof Color["family"]): string {
+  return m.business.color.family[family];
+}
+
+/** The word of a neutral decision, a key of `business.color.neutral.*`. */
+export function neutralWord(m: Messages, value: keyof Color["neutral"]): string {
+  return m.business.color.neutral[value];
+}
+
+/** The word of a canvas decision, a key of `business.color.canvas.*`. */
+export function canvasWord(m: Messages, value: keyof Color["canvas"]): string {
+  return m.business.color.canvas[value];
+}
+
+/** The crowded families as one line, or `business.color.noneCrowded` when none is. */
+export function crowdedLine(
+  m: Messages,
+  locale: Locale,
+  crowded: ReadonlyArray<keyof Color["family"]>,
+): string {
+  return crowded.length === 0
+    ? m.business.color.noneCrowded
+    : listOfWords(
+        locale,
+        crowded.map((family) => familyWord(m, family)),
+      );
+}
+
+/**
+ * The reason line of a decision (`color-node-1`): the catalog's sentence filled with the scale points
+ * and the family words the engine gave. A reason for a decision the engine did not make, or with no
+ * points, throws: a view prints no guess.
+ */
+export function colorReason(
+  m: Messages,
+  node: ColorNode,
+  which: "signature" | "fallback" | "neutral" | "canvas",
+): string {
+  const { points, decisions } = node;
+  if (points === null || decisions === null) throw new Error("colorReason: no decision to explain");
+  const because = m.business.color.because;
+  if (which === "neutral" || which === "canvas") {
+    if ((which === "neutral" ? decisions.neutral : decisions.canvas) === null) {
+      throw new Error(`colorReason: no ${which} decision`);
+    }
+    return which === "neutral"
+      ? fill(because.neutral, { warm: String(points.warm) })
+      : fill(because.canvas, { premium: String(points.premium) });
+  }
+  const signature = decisions.signature;
+  if (signature === null || signature.because !== which) {
+    throw new Error(`colorReason: the signature is not a ${which} decision`);
+  }
+  const shared = {
+    expressive: String(points.expressive),
+    warm: String(points.warm),
+    family: familyWord(m, signature.value),
+  };
+  if (which === "signature") return fill(because.signature, shared);
+  if (signature.preferred === null)
+    throw new Error("colorReason: a fallback names its first family");
+  return fill(because.fallback, { ...shared, preferred: familyWord(m, signature.preferred) });
+}
+
+/** The rule line of a decision: `business.decision.rule` with the rule id as the engine gave it. */
+export function decisionRule(m: Messages, rule: string): string {
+  return fill(m.business.decision.rule, { rule });
+}
+
+/** Why the signature is open: the lineup wait, or the two families both crowded; null when it is not. */
+export function signatureOpenLine(m: Messages, open: ColorNode["signatureOpen"]): string | null {
+  if (open === null) return null;
+  return open.why === "waitsForLineup"
+    ? m.business.color.waitsForLineup
+    : fill(m.business.color.bothCrowded, {
+        first: familyWord(m, open.first),
+        second: familyWord(m, open.second),
+      });
 }
 
 /** The name of a foundation field, a key of `business.field.*`. */

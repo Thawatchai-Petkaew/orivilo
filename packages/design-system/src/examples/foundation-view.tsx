@@ -17,6 +17,7 @@ import {
   uncheckedLine,
 } from "./business-text";
 import { ArchitectureView } from "./architecture-view";
+import { ColorView } from "./color-view";
 import { IdentityFrameView } from "./identity-frame-view";
 import { NameView } from "./name-view";
 
@@ -39,6 +40,8 @@ export type FoundationEditor =
       axes: Partial<Record<PersonalityAxis, AxisPoint>>;
     }
   | { node: "name"; name: string }
+  // ORV-298 PR 1: the lineup rows as typed; `key` is a stable React key and is never sent.
+  | { node: "color"; rows: Array<{ key: number; name: string; hex: string }> }
   | null;
 
 /** What the caller gives a view so a person can enter a value (`foundation-entry-1`). */
@@ -70,6 +73,15 @@ export function FoundationNodeView({ node, heading = true, controls }: Foundatio
   const locale = useLocale();
   const unchecked = uncheckedLine(m, locale, node);
   const provisional = provisionalLines(m, locale, node);
+  // Colour only: what the node needs before it can decide, in words, as a mark line says what a value rests on.
+  const ask =
+    node.id !== "color"
+      ? null
+      : node.needsPersonality
+        ? m.business.color.needsPersonality
+        : node.notDecided
+          ? m.business.color.notDecided
+          : null;
   return (
     <div className="flex min-w-0 max-w-[42rem] flex-col gap-6" data-node={node.id}>
       {heading ? <SectionHeader level={2} title={nodeTitle(m, node.id)} /> : null}
@@ -88,11 +100,18 @@ export function FoundationNodeView({ node, heading = true, controls }: Foundatio
             {unchecked}
           </p>
         )}
+        {ask === null ? null : (
+          <p className="text-body-sm" data-ask>
+            {ask}
+          </p>
+        )}
       </div>
       {node.id === "identity-frame" ? (
         <IdentityFrameView node={node} controls={controls} />
       ) : node.id === "architecture" ? (
         <ArchitectureView node={node} controls={controls} />
+      ) : node.id === "color" ? (
+        <ColorView node={node} controls={controls} />
       ) : (
         <NameView node={node} controls={controls} />
       )}
