@@ -102,6 +102,7 @@ import {
   SHEETS,
   textOf,
   TYPE_SAMPLE,
+  TYPE_SPECIMEN,
   VIOLET,
 } from "./orivilo-canvas.data";
 
@@ -118,7 +119,7 @@ export interface OriviloCanvasProps {
 
 type Mode = "light" | "dark";
 const BOARD_DESIGN: Size = { w: 1280, h: 800 };
-const THAI = /[฀-๿]/;
+const THAI = /[\u0E00-\u0E7F]/;
 
 /** The attributes that re-resolve every token under an element in a fixed mode of the base profile. */
 const scope = (mode: Mode) => ({ "data-mode": mode, "data-design-profile": "neutral" }) as const;
@@ -1468,10 +1469,7 @@ function LogoPage({ kind }: { kind: "mark" | "horizontal" | "onInk" }) {
 function TypeSpecimen({ kind }: { kind: "latin" | "thai" }) {
   const m = useMessages();
   const latin = kind === "latin";
-  const glyphs = latin ? "Aa" : "กข";
-  const alphabet = latin
-    ? "ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789"
-    : "กขคงจฉชซญฎฏฐฑฒณดตถทธนบปผฝพฟภมยรลวศษสหฬอฮ";
+  const { face, glyphs, alphabet, tagline } = TYPE_SPECIMEN[kind];
   return (
     <Flood
       paint={PAPER}
@@ -1479,9 +1477,7 @@ function TypeSpecimen({ kind }: { kind: "latin" | "thai" }) {
       style={{ width: BOARD_DESIGN.w, height: BOARD_DESIGN.h, padding: 80 }}
     >
       <div {...scope("light")} className="flex flex-col gap-6 text-text-primary">
-        <p className="m-0 font-mono text-code-md text-text-secondary">
-          {latin ? "Inter" : "Anuphan, Sarabun"}
-        </p>
+        <p className="m-0 font-mono text-code-md text-text-secondary">{face}</p>
         <p
           className="m-0 font-display"
           style={{
@@ -1498,7 +1494,7 @@ function TypeSpecimen({ kind }: { kind: "latin" | "thai" }) {
           {alphabet}
         </p>
         <p className="m-0 font-display text-heading-md" lang={latin ? "en" : "th"}>
-          {latin ? "Give your ideas a world." : "ให้ไอเดียมีตัวตน"}
+          {tagline}
         </p>
         <p className="m-0 font-body text-body-md text-text-secondary">
           {latin ? m.orvCanvas.preview.latin : m.orvCanvas.preview.thaiNote}
