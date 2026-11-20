@@ -1242,7 +1242,25 @@ async function playNarrowLabels(root: HTMLElement, lang: Lang) {
         box.width,
         `at zoom ${zoom}, a label is ${box.width} px in a ${card.getBoundingClientRect().width} px card`,
       ).toBeLessThanOrEqual(card.getBoundingClientRect().width + 0.5);
-      const parts = shownParts(label);
+      // Design 2.6 (ORV-298-design-f1): under 160 px the kind glyph and the open glyph are not drawn
+      // (`display` `none`) and the title has the line; they are set aside, and the rest leave from the end.
+      const narrowLabel = box.width < 160;
+      if (narrowLabel) {
+        for (const glyph of [
+          label.querySelector(":scope > svg:first-child"),
+          label.querySelector(".ds-node__open"),
+        ]) {
+          if (glyph) {
+            expect(
+              getComputedStyle(glyph).display,
+              `at zoom ${zoom}, a glyph is drawn on a label ${box.width} px wide`,
+            ).toBe("none");
+          }
+        }
+      }
+      const parts = shownParts(label).filter(
+        (p) => !(narrowLabel && (p.name === "kind" || p.name === "open")),
+      );
       // The shown parts are a prefix of the DOM order.
       const firstHidden = parts.findIndex((p) => !p.shown);
       if (firstHidden >= 0) {
@@ -1326,7 +1344,15 @@ async function playNarrowLabels(root: HTMLElement, lang: Lang) {
       ]);
       await expect(shown[2]).toEqual(["kind", "title"]);
     }
-    if (zoom === 0.25) for (const parts of shown) await expect(parts).toEqual(["kind", "title"]);
+    // At 0.25 every label is under 160 px: the kind glyph is not drawn, the title is first and has the
+    // line, and the status glyph may take the room the kind glyph gave up.
+    if (zoom === 0.25) {
+      for (const parts of shown) {
+        await expect(parts[0]).toBe("title");
+        await expect(parts).not.toContain("kind");
+        await expect(parts).not.toContain("open");
+      }
+    }
   }
   await expect(cutBeforeAPart, "a cut title with a part after it").toBeGreaterThan(0);
   // The mark is read again when the title's box changes and when a font loads, with no render in

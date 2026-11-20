@@ -331,7 +331,8 @@ async function expectBoard(
     await expect(el).toHaveAttribute("aria-haspopup", "dialog");
     await expect(textOf(el.querySelector(".ds-node__title") as HTMLElement)).toBe(nodeTitle(m, id));
     // The title row ends with the open glyph and has no page count (spec row 23).
-    await expect(el.querySelector(".ds-node__open")).toBeVisible();
+    // It is drawn once the label is 10rem wide; a board in a frame under 1440 sits below that (design 2.6).
+    await expect(el.querySelector(".ds-node__open")).not.toBeNull();
     await expect(el.querySelector(".ds-node__pages")).toBeNull();
     await expect(getComputedStyle(el.querySelector(".ds-node") as Element).cursor).toBe("zoom-in");
   }
@@ -649,23 +650,102 @@ export const Board: Story = {
  */
 export const BoardAt1440: Story = {
   play: async ({ canvasElement }) => {
-    await atWindow(1440, 900, async () => {
-      await boardReady(canvasElement);
-      await userEvent.click(
-        canvasElement.querySelector('[data-command="board.zoom-to-fit"]') as HTMLElement,
-      );
-      await settled(canvasElement);
-      await expect(Math.abs(zoomOf(canvasElement) - 0.364)).toBeLessThanOrEqual(0.01);
-      const region = within(canvasElement).getByRole("region", { name: th.business.board.label });
-      const box = region.getBoundingClientRect();
-      for (const id of BOARD_NODES) {
-        const r = nodeEl(canvasElement, id).getBoundingClientRect();
-        await expect(r.left).toBeGreaterThanOrEqual(box.left - 0.5);
-        await expect(r.right).toBeLessThanOrEqual(box.right + 0.5);
-        await expect(r.top).toBeGreaterThanOrEqual(box.top - 0.5);
-        await expect(r.bottom).toBeLessThanOrEqual(box.bottom + 0.5);
-      }
-    });
+    await boardAt1440Play(canvasElement, th);
+  },
+};
+
+/** The parts of a label that are drawn, in DOM order: a `display: contents` wrapper gives its children. */
+const drawnParts = (label: HTMLElement): HTMLElement[] =>
+  [...label.children].flatMap((c) => {
+    const display = getComputedStyle(c).display;
+    if (display === "none") return [];
+    return display === "contents" ? [...c.children] : [c];
+  }) as HTMLElement[];
+
+/**
+ * Design 2.6 (ORV-298-design-f1, spec expression-board-1): at the fit the label is narrower than 10rem,
+ * so the kind glyph and the open glyph are not drawn and every title is whole, not cut. After two clicks
+ * on zoom in every label is at least 160 px, both glyphs are drawn and every title is still whole.
+ */
+async function expectTitlesWhole(canvasElement: HTMLElement, m: Messages, narrowLabel: boolean) {
+  for (const id of BOARD_NODES) {
+    const root = nodeEl(canvasElement, id);
+    const label = root.querySelector(".ds-node__label") as HTMLElement;
+    const title = label.querySelector(".ds-node__title") as HTMLElement;
+    const name = nodeTitle(m, id);
+    await expect(
+      title.scrollWidth,
+      `${name}: title scrollWidth ${title.scrollWidth} against clientWidth ${title.clientWidth}`,
+    ).toBeLessThanOrEqual(title.clientWidth);
+    await expect(title.hasAttribute("data-cut"), `${name}: title is cut`).toBe(false);
+    const glyphs = [
+      label.querySelector(":scope > svg:first-child"),
+      label.querySelector(".ds-node__open"),
+    ] as HTMLElement[];
+    for (const glyph of glyphs) {
+      await expect(glyph, `${name}: a glyph is in the label`).not.toBeNull();
+      await expect(
+        getComputedStyle(glyph).display === "none",
+        `${name}: glyph display on a label ${label.getBoundingClientRect().width.toFixed(1)} px wide`,
+      ).toBe(narrowLabel);
+    }
+    if (narrowLabel) {
+      const card = root.querySelector(".ds-node") as HTMLElement;
+      const last = drawnParts(label).at(-1) as HTMLElement;
+      await expect(
+        last.getBoundingClientRect().right,
+        `${name}: the label's last part ends in the card`,
+      ).toBeLessThanOrEqual(card.getBoundingClientRect().right + 0.5);
+    } else {
+      await expect(
+        label.getBoundingClientRect().width,
+        `${name}: label width`,
+      ).toBeGreaterThanOrEqual(160);
+    }
+  }
+}
+
+async function boardAt1440Play(canvasElement: HTMLElement, m: Messages) {
+  await atWindow(1440, 900, async () => {
+    await boardReady(canvasElement);
+    await userEvent.click(
+      canvasElement.querySelector('[data-command="board.zoom-to-fit"]') as HTMLElement,
+    );
+    await settled(canvasElement);
+    await expect(Math.abs(zoomOf(canvasElement) - 0.364)).toBeLessThanOrEqual(0.01);
+    const region = within(canvasElement).getByRole("region", { name: m.business.board.label });
+    const box = region.getBoundingClientRect();
+    for (const id of BOARD_NODES) {
+      const r = nodeEl(canvasElement, id).getBoundingClientRect();
+      await expect(r.left).toBeGreaterThanOrEqual(box.left - 0.5);
+      await expect(r.right).toBeLessThanOrEqual(box.right + 0.5);
+      await expect(r.top).toBeGreaterThanOrEqual(box.top - 0.5);
+      await expect(r.bottom).toBeLessThanOrEqual(box.bottom + 0.5);
+    }
+    await waitFor(() => expectTitlesWhole(canvasElement, m, true));
+    const zoomIn = canvasElement.querySelector('[data-command="board.zoom-in"]') as HTMLElement;
+    // Each click animates for 150 ms, so wait for the zoom the step gives (1.2 times), not for a rest.
+    const fit = zoomOf(canvasElement);
+    await userEvent.click(zoomIn);
+    await waitFor(() =>
+      expect(Math.abs(zoomOf(canvasElement) - fit * 1.2)).toBeLessThanOrEqual(0.002),
+    );
+    await userEvent.click(zoomIn);
+    await waitFor(() =>
+      expect(Math.abs(zoomOf(canvasElement) - fit * 1.44)).toBeLessThanOrEqual(0.002),
+    );
+    await settled(canvasElement);
+    await expect(Math.abs(zoomOf(canvasElement) - 0.524)).toBeLessThanOrEqual(0.01);
+    await waitFor(() => expectTitlesWhole(canvasElement, m, false));
+  });
+}
+
+/** The same fit in English: the longer English titles are whole too (spec expression-board-1). */
+export const BoardAt1440English: Story = {
+  args: { view: ENGLISH_VIEW },
+  decorators: [inEnglish],
+  play: async ({ canvasElement }) => {
+    await boardAt1440Play(canvasElement, en);
   },
 };
 
@@ -992,6 +1072,17 @@ async function narrowPlay(canvasElement: HTMLElement, m: Messages) {
   await expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(
     Math.max(360, window.innerWidth),
   );
+  // Design 2.6: at 0.25 the label is under 10rem, so the title has the whole line: it is whole, or it
+  // is as wide as the label less 1 px (80 against a 79.5 label, where the head gave 62).
+  for (const id of BOARD_NODES) {
+    const title = nodeEl(canvasElement, id).querySelector(".ds-node__title") as HTMLElement;
+    const label = title.parentElement as HTMLElement;
+    await expect(
+      title.scrollWidth <= title.clientWidth ||
+        title.clientWidth >= label.getBoundingClientRect().width - 1,
+      `${nodeTitle(m, id)}: title ${title.clientWidth} / ${title.scrollWidth} in a label ${label.getBoundingClientRect().width}`,
+    ).toBe(true);
+  }
   for (const id of BOARD_NODES) {
     const el = nodeEl(canvasElement, id);
     el.focus({ preventScroll: true });

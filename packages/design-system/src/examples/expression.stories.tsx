@@ -775,26 +775,23 @@ export const ColorBothCrowdedEnglish: Story = {
 
 // ----- waiting and asking (spec row 7) -----
 
-function Cases({ locale, cases }: { locale: Lang; cases: ReadonlyArray<[string, BusinessView]> }) {
-  return (
-    <>
-      {cases.map(([name, initial]) => (
-        <div key={name} data-case={name}>
-          <Host locale={locale} initial={initial} />
-        </div>
-      ))}
-    </>
-  );
-}
-
 const inLocale = (locale: Lang, children: ReactNode) =>
   locale === "en" ? <LocaleProvider locale="en">{children}</LocaleProvider> : <>{children}</>;
 
 const waitsCases = (locale: Lang): ReadonlyArray<[string, BusinessView]> => [
-  ["asks", asksPersonality(locale)],
+  ["asks-personality", asksPersonality(locale)],
   ["waits-personality", waitsForPersonality(locale)],
   ["waits-positioning", waitsForPositioning(locale)],
 ];
+
+/** Design F5: every stacked case has a case label of its own, a plain line over its frame. */
+async function expectCaseLabels(canvasElement: HTMLElement, names: readonly string[]) {
+  const labels = names.map((name) =>
+    textOf(canvasElement.querySelector(`[data-case="${name}"] > [data-case-label]`) as HTMLElement),
+  );
+  await expect(labels.every((l) => l.length > 0)).toBe(true);
+  await expect(new Set(labels).size).toBe(names.length);
+}
 
 /**
  * Spec row 7: with a skipped personality the rules ask for it (the ask line, no labels); with none
@@ -804,7 +801,12 @@ const waitsCases = (locale: Lang): ReadonlyArray<[string, BusinessView]> => [
 async function waitsPlay(canvasElement: HTMLElement, m: Messages) {
   const at = (name: string) =>
     viewOf(canvasElement.querySelector(`[data-case="${name}"]`) as HTMLElement);
-  const asks = at("asks");
+  await expectCaseLabels(canvasElement, [
+    "asks-personality",
+    "waits-personality",
+    "waits-positioning",
+  ]);
+  const asks = at("asks-personality");
   await expectState(asks, "needsAnswer", m.business.state.needsAnswer);
   await expect(textOf(asks.querySelector("[data-ask]") as HTMLElement)).toBe(
     m.business.color.needsPersonality,
@@ -827,7 +829,7 @@ async function waitsPlay(canvasElement: HTMLElement, m: Messages) {
       ]);
     }
   }
-  for (const name of ["asks", "waits-personality", "waits-positioning"]) {
+  for (const name of ["asks-personality", "waits-personality", "waits-positioning"]) {
     const v = at(name);
     await expect(v.querySelector("[data-labels]")).toBeNull();
     await expect(v.querySelector("[data-value]")).toBeNull();
@@ -837,14 +839,16 @@ async function waitsPlay(canvasElement: HTMLElement, m: Messages) {
 }
 
 export const ColorWaits: Story = {
-  render: () => inLocale("th", <Cases locale="th" cases={waitsCases("th")} />),
+  render: () =>
+    inLocale("th", <LabelledCases locale="th" cases={waitsCases("th")} nodeId="color" />),
   play: async ({ canvasElement }) => {
     await waitsPlay(canvasElement, th);
   },
 };
 
 export const ColorWaitsEnglish: Story = {
-  render: () => inLocale("en", <Cases locale="en" cases={waitsCases("en")} />),
+  render: () =>
+    inLocale("en", <LabelledCases locale="en" cases={waitsCases("en")} nodeId="color" />),
   play: async ({ canvasElement }) => {
     await waitsPlay(canvasElement, en);
   },
@@ -853,9 +857,9 @@ export const ColorWaitsEnglish: Story = {
 // ----- marks (spec row 8) -----
 
 const marksCases = (locale: Lang): ReadonlyArray<[string, BusinessView]> => [
-  ["provisional", provisional(locale)],
+  ["skipped-positioning", provisional(locale)],
   ["unchecked", unchecked(locale)],
-  ["provisional-partly", provisionalPartly(locale)],
+  ["skipped-positioning-partly", provisionalPartly(locale)],
 ];
 
 /**
@@ -866,13 +870,18 @@ const marksCases = (locale: Lang): ReadonlyArray<[string, BusinessView]> => [
 async function marksPlay(canvasElement: HTMLElement, m: Messages) {
   const at = (name: string) =>
     viewOf(canvasElement.querySelector(`[data-case="${name}"]`) as HTMLElement);
+  await expectCaseLabels(canvasElement, [
+    "skipped-positioning",
+    "unchecked",
+    "skipped-positioning-partly",
+  ]);
   const positioning = nodeTitle(m, "positioning");
-  for (const name of ["provisional", "provisional-partly"]) {
+  for (const name of ["skipped-positioning", "skipped-positioning-partly"]) {
     const v = at(name);
     await expectState(
       v,
-      name === "provisional" ? "derived" : "partly",
-      name === "provisional" ? m.business.state.derived : m.business.state.partly,
+      name === "skipped-positioning" ? "derived" : "partly",
+      name === "skipped-positioning" ? m.business.state.derived : m.business.state.partly,
     );
     await expect(v.querySelectorAll("[data-marks]")).toHaveLength(1);
     const marks = v.querySelector<HTMLElement>('[data-marks="provisional"]') as HTMLElement;
@@ -890,12 +899,14 @@ async function marksPlay(canvasElement: HTMLElement, m: Messages) {
       Math.abs(marks.getBoundingClientRect().left - stateLineOf(v).getBoundingClientRect().left),
     ).toBeLessThanOrEqual(0.5);
   }
-  const first = at("provisional");
+  const first = at("skipped-positioning");
   await expect(
     textOf(fieldOf(first, "signature").querySelector("[data-value]") as HTMLElement),
   ).toBe(familyOf(m, "lime"));
   await expect(buttonsOf(first)).toHaveLength(0);
-  await expect(buttonsOf(at("provisional-partly")).map(textOf)).toEqual([m.business.color.give]);
+  await expect(buttonsOf(at("skipped-positioning-partly")).map(textOf)).toEqual([
+    m.business.color.give,
+  ]);
 
   const second = at("unchecked");
   await expectState(second, "derived", m.business.state.derived);
@@ -909,14 +920,16 @@ async function marksPlay(canvasElement: HTMLElement, m: Messages) {
 }
 
 export const ColorMarks: Story = {
-  render: () => inLocale("th", <Cases locale="th" cases={marksCases("th")} />),
+  render: () =>
+    inLocale("th", <LabelledCases locale="th" cases={marksCases("th")} nodeId="color" />),
   play: async ({ canvasElement }) => {
     await marksPlay(canvasElement, th);
   },
 };
 
 export const ColorMarksEnglish: Story = {
-  render: () => inLocale("en", <Cases locale="en" cases={marksCases("en")} />),
+  render: () =>
+    inLocale("en", <LabelledCases locale="en" cases={marksCases("en")} nodeId="color" />),
   play: async ({ canvasElement }) => {
     await marksPlay(canvasElement, en);
   },
@@ -1315,6 +1328,15 @@ const CASE_LABELS: Record<string, { th: string; en: string }> = {
   unchecked: { th: "จุดยืนยังไม่ได้ตกลง", en: "Positioning not agreed" },
   "waits-personality": { th: "รอบุคลิกของแบรนด์", en: "Waits for Brand personality" },
   "waits-positioning": { th: "รอจุดยืน", en: "Waits for Positioning" },
+  // The stacked cases of Colour (design 5.4, rows C1, C2, C11 and C12).
+  "asks-personality": {
+    th: "บุคลิกถูกข้ามไว้ จึงขอคำตอบ",
+    en: "Personality skipped, so it asks for it",
+  },
+  "skipped-positioning-partly": {
+    th: "ตัดสินบางส่วน จุดยืนถูกข้ามไว้",
+    en: "Partly worked out, Positioning skipped",
+  },
   "waits-asks": { th: "รอ และยังไม่ได้ตอบ", en: "Waits, not answered" },
   "asks-readonly": { th: "ยังไม่ได้ตอบ อ่านอย่างเดียว", en: "Not answered, read only" },
   "decided-readonly": { th: "ตอบแล้ว อ่านอย่างเดียว", en: "Answered, read only" },

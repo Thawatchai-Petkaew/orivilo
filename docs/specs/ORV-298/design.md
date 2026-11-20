@@ -123,7 +123,7 @@ As built (2026-11-20, B2): the story `BoardAt1440` measured the PR 2 fit at 1440
 
 As built (2026-11-20, C2): the story `BoardAt1440` measured the PR 3 fit at 1440 as 0.3637 on this branch (twelve cards with Core idea of ORV-296, eighteen edges, `logo-type` at (2376, 552)), which is the 0.364 of the PR 3 row within 0.01; Logo type adds no width, so `typography` at (2864, 0) still sets the bound and the fit is the same as PR 2's.
 
-- **1440.** The whole board fits at every stage. At 0.364 a card's body text is about 5 px on screen and reads as texture; the titles stay at their screen size (the label scales by 1/zoom) and carry the overview. That is the overview's job; the view carries the reading.
+- **1440.** The whole board fits at every stage. At 0.364 a card's body text is about 5 px on screen and reads as texture; the titles stay at their screen size (the label scales by 1/zoom) and carry the overview. That is the overview's job; the view carries the reading. Every card title is whole at the fit, in Thai and in English: a label under 10rem gives the whole line to the title (2.6).
 - **360.** As ORV-291 2.3 (correction of 2026-11-19): the fit stops at `minZoom` 0.25 and centres the world; most cards are outside. The person pans (drag, arrow keys on the focused board), zooms with the controls, or Tabs: focus pans a card into view only when no part of it is in view, so a card partly in view stays cut. Nothing on the page scrolls sideways (`documentElement.scrollWidth` 360, measured). A pan that brings every focused card whole into view stays the ORV-280 follow-up (ORV-291 open question 14 (b)).
 - **When the whole board no longer fits** (every 360 frame, and 1440 if more nodes join): the reader uses the canvas controls (zoom out to 25 percent, fit), drags, or Tabs from card to card in fill order; Enter opens the card's view, which is the full-size reading.
 
@@ -133,10 +133,10 @@ As built (2026-11-20, C2): the story `BoardAt1440` measured the PR 3 fit at 1440
 | PR | Story | Play clause and bound |
 | --- | --- | --- |
 | 1 | `Board` (row 12) | 9 cards and 13 edges on the base without ORV-296, 10 and 15 with it (W2); `identity-frame` at world (1400, -340) and `color` at (2376, -330) read from the node transforms; Colour's `[data-node-state]` text equals the state line and its five `li` equal section 3; no `bdi`, no `#` and no element with an inline background inside any card; `expectPortPillsClear` on Colour, Brand personality and Competitive frame at the fit zoom (the ORV-295 reading, sign-off F1); Enter opens the viewer titled "Colour", Escape returns focus to the card |
-| 1 | `BoardAt1440` | viewport zoom 0.430 within 0.01; every card's box inside the board's box |
+| 1 | `BoardAt1440` | viewport zoom 0.430 within 0.01; every card's box inside the board's box; every card title whole (`scrollWidth` at most `clientWidth`, no `data-cut`) in Thai and, in `BoardAt1440English`, in English, with the kind glyph and the open glyph not drawn on the narrow label (2.6) |
 | 1 | narrow board stories | zoom 0.25 within 0.001; `documentElement.scrollWidth` at most 360; each node focused in fill order overlaps the board's box (ORV-291 B3 as corrected) |
 | 2 | `Board` (row 24) | one more card and one more edge than PR 1; `typography` at (2864, 0); `expectPortPillsClear` on Typography; zoom 0.364 within 0.01 at 1440 |
-| 3 | `Board` (row 36) | 12 and 18 with ORV-296, 11 and 16 without; `logo-type` at (2376, 552); Name has an `out` handle; `expectPortPillsClear` on Logo type and Name; Tab reaches Logo type after Core idea (or Name) and before Colour; zoom 0.364 within 0.01 |
+| 3 | `Board` (row 36) | 12 and 18 with ORV-296, 11 and 16 without; `logo-type` at (2376, 552); Name has an `out` handle; `expectPortPillsClear` on Logo type and Name; Tab reaches Logo type after Core idea (or Name) and before Colour; zoom 0.364 within 0.01; every card title whole at the fit in Thai and in English (2.6) |
 
 The ORV-291 and ORV-295 board plays that assert Brand personality at (1400, 160) change to (1400, -340) in PR 1, in the same commit as the position.
 
@@ -216,6 +216,8 @@ What it leaves as it was (measured):
 | --- | --- |
 | `BoardAt1440` (th) and a new `BoardAt1440English` (`args: { view: ENGLISH_VIEW }`, `decorators: [inEnglish]`, the same play with `en`) | after the fit (zoom 0.364 within 0.01): for every card, its `.ds-node__title` has `scrollWidth <= clientWidth` and no `data-cut`; its label's `> svg:first-child` and `.ds-node__open` have computed `display` `none`; the right of the label's last drawn child is at most the card's right plus 0.5. Then two clicks on zoom in (zoom 0.524 within 0.01): every label is at least 160 px wide, both glyphs are drawn (`display` not `none`) and every title still has `scrollWidth <= clientWidth` |
 | `NarrowLight`, `NarrowDark`, `NarrowEnglish` (`narrowPlay`) | at zoom 0.25: every title has `scrollWidth <= clientWidth`, or a `clientWidth` of at least the label's width less 1 (the title holds the whole line: 80 against a 79.5 label, where the head gave 62) |
+
+As built (2026-11-20, rework 1): row a is built as written, in `BoardAt1440` (Thai) and the new `BoardAt1440English` (Examples/Application: Business board). At the fit the zoom reads 0.3637 and every label is 115.64 px wide; no title is cut in either language and both glyphs are `display` `none` on all twelve cards. The tightest title is English Brand architecture (`clientWidth` / `scrollWidth` 115 / 115 in a 115.64 px label, 0.64 px to spare), then English Competitive frame (115 / 115) and Brand personality (110 / 110); in Thai the widest is Situation and Brand personality (92 / 92). After two clicks on zoom in the zoom reads 0.5237 and every label is 166.53 px wide, both glyphs are drawn and every title is whole (the same widths). The shared plays that went red on the rule are `CanvasNode.stories.tsx` `playNarrowLabels` only (`PresentNarrowLabels`, `PresentNarrowLabelsInEnglish`); the other plays the design lists stayed green and are unchanged. Row b is not built.
 
 ## 3. The card at rest
 
