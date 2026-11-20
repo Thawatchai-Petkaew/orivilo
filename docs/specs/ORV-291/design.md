@@ -114,6 +114,11 @@ Measured on the board region of the screen (`h-[70dvh] min-h-[480px]`, unchanged
 - **The fit at 1440, row "After PR 1" of the table.** Measured 0.6167 on the built cards, not 0.640, on a board region of 1392 x 630. A3's reading: the fit is bound by the board's height, not its width; the built cards are taller than the mock's (section 17: its business cards were placeholders about 90 tall), and Brand personality sits inside the height the business nodes already take, so the fit stays ORV-285's 0.617. `BoardAt1440` asserts 0.617 within 0.01 (6.5, B2). The rows "After PR 2" and "After PR 3" (0.524) were measured on the same mock and are not re-measured here; PR 2 measures them.
 - **The 360 bullet.** As A3's play found at the installed React Flow, focus pans a card only when no part of it is in view. A card that is partly in view is not moved, so it is not "fully into the board". After PR 1, with each node focused in turn, Situation spans x -35 to 45 against a board from 24 to 336 and Brand personality x 315 to 395: each stays cut by 59 px; the other four cards are fully inside. Each card takes focus and overlaps the board. Nothing on the page scrolls sideways. The "Measured" sentence of the bullet was read on the mock, not on the built board. A pan that brings each focused card fully into view would sit in the shared `CanvasBoard`; it is a follow-up on the second slice card of ORV-280 (spec open question 14 (b)). The spec's `foundation-board-1` (v1.3) states the 360 reading.
 
+**As-built note, 2026-11-20 (task ORV-296-design-notes-1), for finding F1 of the PR 2 visual sign-off (ORV-295-signoff-1): the rows "After PR 2" and "After PR 3" of the table, read on the built board.**
+
+- **After PR 2: 0.524 measured on the built cards at 1440 (`BoardAt1440`), as the mock.** On PR 2 as merged (PR 234, `6aea3cf`), the story `BoardAt1440` in `business-board.stories.tsx` zooms to fit at the 1440 frame and asserts 0.524 within 0.01, with every card inside the board within 0.5; the sign-off read the viewport transform at 0.524457 in all four 1440 frames. Stage 1's 0.617 was bound by the board's height; from PR 2 the wider world, Name at x 1888, sets the fit.
+- **After PR 3.** At `39f216a` (task C2), `BoardAt1440` waits for nine nodes and thirteen edges and asserts the same 0.524 within 0.01: the Core idea card at x 1888 does not widen the world. Read from the play's assert; no closer figure was taken at stage 3.
+
 ## 3. The card at rest
 
 `renderBody` for a foundation node is the business card body, plus the gate line on Core idea only:
@@ -333,6 +338,11 @@ Each play names its story (spec acceptance rows) and its measured bound. Visual 
 - `Board` (row 23): eight cards and eleven edges; the two new cards at (1400, 576) and (1888, 473); `situation` at (0, 447); `expectPortPillsClear` on Brand architecture and Name with every pill shown; fit 0.524 within 0.01 at 1440.
 - The B3 clause at 360 with eight nodes.
 
+**As-built note, 2026-11-20 (task ORV-296-design-notes-1), for finding F1 of the PR 2 visual sign-off (ORV-295-signoff-1): the `Board` play as PR 2 built it at `6aea3cf`.**
+
+- **Port pills.** At zoom 1 the whole-list port-pill read holds business core, audience and competitive frame; Positioning's four pills, and Brand architecture's three and Name's two, are read whole at the fit zoom. Why: a pill outside the board's frame is not read, and with eight nodes the world is wider, so the 100 percent view no longer holds Positioning, or the cards of columns 4 and 5, whole. `expectPortPills` in `business-board.stories.tsx` focuses every card at both zooms and runs `expectPortPillsClear` on each; it requires every pill of a card to be read only for the cards named at that zoom: all of them at the fit zoom, the three cards of column 2 at zoom 1.
+- **Where the other clauses run.** The fit 0.524 within 0.01 at 1440 is the story `BoardAt1440`, not `Board` (section 2.3's note); the B3 clause at 360 runs in `NarrowLight`, `NarrowDark` and `NarrowEnglish` (section 6.5's correction).
+
 ## 8. Brand architecture (`architecture`)
 
 ### 8.1 States of the view
@@ -353,6 +363,8 @@ Each play names its story (spec acceptance rows) and its measured bound. Visual 
 | A11 | Read-only, no answer | `business.state.empty` | none | both fields `business.state.empty` | none |
 
 The stored answer is shown as the choice's own words with no `yourWords` label: it is a pick between two catalog sentences, not the person's text.
+
+**As-built note, 2026-11-20 (task ORV-296-design-notes-1), for finding F1 of the PR 2 visual sign-off (ORV-295-signoff-1): state A8.** A8 cannot be reached in PR 2: a derived architecture gathers a skipped root as provisional (A7), and its roots, Positioning and Situation, carry no unchecked list, so no fixture under `foundation-marks-1` with PR 2's roots shows a derived, unchecked architecture. The view still shows the unchecked line for any node that carries it: the mark block of section 4.3 is shared, and Name's N8 and Brand personality's I10 show it.
 
 ### 8.2 The inline choice (no Cancel)
 
@@ -381,6 +393,8 @@ Focus: Save valid lands on the Architecture `h3`; no choice lands on the first r
 | A2, A7, A8, A9 | `ArchitectureMarks` (row 17) | the three fixtures as row 17; in A7 `[data-marks=provisional]` holds two lines 4 apart (within 0.5), first `strategy.provisional`; the provisional pair's left equals the state line's left |
 | A4, A5 | `ArchitectureDerived` with a stub | double press 1 call; rate limited: the notice under the row, the choice still checked |
 | all at 360 | `FoundationNarrow` (row 23) | `expectFitsAt360` in both languages; `expectNoGlyphClip` on the Thai radio labels ("ไม่ใช่ แบรนด์นี้อยู่เดี่ยว ๆ"); `expectFocusBorderForm` on Save |
+
+**As-built note, 2026-11-20 (task ORV-296-design-notes-1), for finding F1 of the PR 2 visual sign-off (ORV-295-signoff-1): the row "A2, A7, A8, A9".** `ArchitectureMarks` and `ArchitectureMarksEnglish` in `foundation.stories.tsx`, as built at `6aea3cf`, read three cases: A9 (answered "no", waiting, Architecture `business.state.empty`, no mark, no button), A7 (answered, Positioning skipped: derived, with the provisional pair 4 apart, 8 under the state line and at its left edge, within 0.5) and A2 (no answer, waiting, the question with 0 checked and Save offered). A8 has no story: it cannot be reached in PR 2 (section 8.1's note).
 
 ## 9. Name (`name`)
 
@@ -432,6 +446,13 @@ div.flex.min-w-0.flex-col.gap-3 [data-editor]
 
 `core-idea` joins at (1888, 212) with its two edges; the board is 2208 wide as at stage 2, so the fit at 1440 stays 0.524. `Board` (row 34): nine cards, thirteen edges; Core idea's card shows the gate line as its last `p`; `expectPortPillsClear` on Core idea; the B3 clause at 360 with nine nodes; Tab reaches Core idea last.
 
+**As-built note, 2026-11-20 (task ORV-296-design-notes-1): the board at stage 3 as task C2 built it at `39f216a`.**
+
+- **`Board` and `BoardEnglish`** wait for nine cards and thirteen edges, read the edges in W2 order, place Core idea at (1888, 212) and read its card's paragraphs as the state line then the gate line (on this fixture Core idea waits for Positioning, so the gate line is `business.state.gate`); Tab reaches the nine nodes in fill order, Core idea last, then the dock.
+- **Port pills.** Core idea's two pills are read whole at the fit zoom, with every other card. At zoom 1 the whole-list read still holds only the three cards of column 2 (section 7's note), so Core idea's pills are not required whole at 100 percent.
+- **Where the other clauses run.** The fit at 1440 is `BoardAt1440` (section 2.3's note); the B3 clause with nine nodes runs in `NarrowLight`, `NarrowDark` and `NarrowEnglish`.
+- **The gate line on two cards.** `business.state.gate` now shows on Positioning's card and on Core idea's, so the earlier plays that count it, `Skipped` and `NarrowSkipped`, count 2, not 1.
+
 ## 11. Core idea (`core-idea`)
 
 ### 11.1 States of the view
@@ -479,6 +500,18 @@ No `maxLength` and no counter on either textarea: the client check shows `tooLon
 | C1, C2, C3, C8 cards | `CoreIdeaStates`, `CoreIdeaStatesOpen`, `CoreIdeaStatesSkipped`, `CoreIdeaStatesAgreed` and their English stories (row 31) | the card's `[data-node-state]` and last `p` equal section 3's table; the view's state line and description equal 11.1 |
 | C10 | `CoreIdeaNarrow` (row 34) | `expectFitsAt360`; `expectNoGlyphClip` on the 300-character Thai statement; Tab to the Core idea card, Enter, the view opens |
 | all four views | `FoundationNoAi` (row 35) | no text matching the five AI labels of `foundation-honest-1`; no number other than "n of 5"; no `[data-ai-line]` |
+
+**As-built note, 2026-11-20 (task ORV-296-design-notes-1): the Core idea plays as task C2 built them at `39f216a`.**
+
+- **File and host.** The `CoreIdea*` stories live in a new file, `core-idea.stories.tsx` (title "Examples/Application: Core idea"), not in `foundation.stories.tsx`. Each renders the whole `BusinessBoardScreen` with a stub host, because the gate line is the viewer's description and a view alone cannot show it; the play opens the view from the Core idea card (focus, then Enter). `CoreIdeaWaits` and `CoreIdeaMarks` hold their three fixtures on one board, picked by three numbered buttons above it (`data-fixture`), which the play presses in turn. Each Thai `CoreIdea*` story but `CoreIdeaNarrowDark` (the dark frame of `CoreIdeaNarrow`) has an English twin. `FoundationUntrustedText` and `FoundationNoAi` stay in `foundation.stories.tsx`.
+- **C2, C4, C8, `CoreIdeaWritten`.** As the row, with one number read elsewhere: the play asserts `expectSameHeight` on the two buttons without the figure, and the 40 (within 0.5) is read on every button in `CoreIdeaStatesOpen` and `CoreIdeaStatesSkipped`. It adds `expectInkClearsAbove(by.own, statement, 2)`, read with focus taken off the heading, because the heading's focus line reaches into the statement's box.
+- **C5, C6, C7, `CoreIdeaInvalid`.** Adds a remember answer of 2,001 characters: `tooLong` with 2000 under it, focus on the remember textarea (the first failing control in DOM order, section 5), no call. During the double press Cancel is `aria-disabled` too, and a press on it leaves the editor open.
+- **C3, `CoreIdeaSkipped`.** Goes on as spec row 28: Write my own, agree with no remember answer; the Remember field then shows `business.state.empty`.
+- **C1, `CoreIdeaWaits`.** The three fixtures read "Waits for Brand personality" (Positioning agreed, no personality entry), "Waits for Positioning" (no positioning choice) and "Waits for Positioning" (positioning stale, personality given); the play also finds no `[data-row]`.
+- **C9, `CoreIdeaMarks`.** Each fixture names one node: Positioning (Positioning skipped), Brand personality (personality skipped), Positioning (positioning stale); each also reads the description `gatePassed` and no button.
+- **C10, `CoreIdeaNarrow`, `CoreIdeaNarrowDark`, `CoreIdeaNarrowEnglish`.** The board in a 360 container with `expectFitsAt360`; Tab from Name lands on Core idea with `:focus-visible`; the view is opened and read at a 360 x 760 window: the dialog inside 0 to 360, the region's `scrollWidth` at most its `clientWidth`, every block's left at the state line's within 0.5, and `expectNoGlyphClip` on the whole region, not on the statement alone; then the story's language switch redraws card and view in the other language. The fixture holds the 300-character Thai statement and no remember answer (the fixture of spec row 34), so the Remember field reads `business.state.empty`: the 2,000-character remember answer of 11.1 C10 is in no story. This is recorded, not accepted; it is open to a decision.
+- **All four views, `FoundationNoAi` and `FoundationNoAiEnglish`.** Six fixture projects, each rendering the four views read-only with their headings, outside the board and the dialog, so the editors and the dialog description are not read. The five AI labels are read as far as the catalog holds them: the prefix of `brandReport.engine["evidence.fromModel"]`, every `business.positioning.by` line other than `own`, and every `strategy` line other than `skip` and `provisional`. The labels for drafted options, drafted by, picked and edited are not catalog keys yet, so those lists are empty today and apply once the keys land. Before the read, the catalog's own negations (`business.identity.hypothesis`, `business.name.notScreened`) and the five "n of 5" points are taken out; then no digit, Latin or Thai, and no claim word (verified, tested, screened, registered, and their Thai words) may remain.
+- **Untrusted text (spec row 33).** `FoundationUntrustedText` and its English story now also host the Core idea view: the statement and the remember answer as literal text in a `bdi` with no child element, and no `img`, `script`, `a` or `b` in the view.
 
 ---
 
@@ -551,7 +584,10 @@ For each PR, the sign-off reads these stories at 360 and at the widest frame, Th
 - PR 2: `Board` (eight cards, `situation` moved, no edge under a card at 1440), `ArchitectureDerived`, `ArchitectureNotInVersion`, `ArchitectureMarks`, `NameGiven`, `NameInvalid`, `NameAhead`, `FoundationNarrow`.
 - PR 3: `Board` (nine cards), `CoreIdeaWritten`, `CoreIdeaInvalid`, `CoreIdeaSkipped`, `CoreIdeaWaits`, `CoreIdeaMarks`, `CoreIdeaStates` and its three siblings with their English stories, `CoreIdeaNarrow`, `FoundationNoAi`.
 
+**As-built note, 2026-11-20 (task ORV-296-design-notes-1): the PR 3 line as task C2 built it at `39f216a`.** The `CoreIdea*` stories are in `core-idea.stories.tsx` under "Examples/Application: Core idea", each Thai story but `CoreIdeaNarrowDark` with an English twin. Each renders the board; the view shows only once the Core idea card is opened (focus, then Enter), so a frame of the view is taken after that step. `CoreIdeaWaits` and `CoreIdeaMarks` show their first fixture at rest; fixtures 2 and 3 come from the numbered buttons above the board. `CoreIdeaNarrow` has `CoreIdeaNarrowDark` and `CoreIdeaNarrowEnglish` beside it, and its long fixture holds no remember answer (section 11.3's note). `FoundationUntrustedText` (spec row 33) now shows the Core idea view too. `FoundationNoAi` renders the four views read-only outside the dialog, so its frames show no gate line.
+
 ## Changelog
 
 - 2026-11-19, ORV-291-design-1: first version, for spec v1.1 and the three PRs.
 - 2026-11-19, task ORV-291-spec-3: dated corrections for what builder task A3 built at `3c646c4` and the decision of ORV-291 comment 10748 (the main session, under the owner's POC delegation): section 2.3, the fit at 1440 measured 0.6167 (asserted 0.617 within 0.01) and the 360 bullet as built (a card partly in view stays cut, 59 px on Situation and on Brand personality); section 6.5, plays B2 and B3 and the stories that run them; section 15 item 3, the default kept with the reading as built. No look, component measure, token or string changed. The spec is now v1.3.
+- 2026-11-20, task ORV-296-design-notes-1: dated as-built notes, read from the stories and plays of PR 2 (PR 234, `6aea3cf`) and of PR 3 task C2 (`39f216a`). For finding F1 of the PR 2 visual sign-off: section 2.3 (the fit 0.524 at 1440 after PR 2 and after PR 3), section 7 (which cards' port pills are read whole at zoom 1 and which at the fit zoom, and where the fit and B3 clauses run) and sections 8.1 and 8.3 (A8 cannot be reached in PR 2). For Part D: section 10 (the stage 3 board plays, Core idea's pills at the fit zoom, the gate line counted on two cards), section 11.3 (the new stories file and its board host, each play as built, the long remember answer of C10 in no story, `FoundationNoAi` as far as the catalog holds the labels, Core idea in `FoundationUntrustedText`) and section 18 (the PR 3 line). No look, measure, token or string changed; no story was rendered for these notes.
