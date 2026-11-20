@@ -1,4 +1,12 @@
-import { businessFoundationEntry, businessIntake, eq, member, project, sql } from "@orivilo/db";
+import {
+  and,
+  businessFoundationEntry,
+  businessIntake,
+  eq,
+  member,
+  project,
+  sql,
+} from "@orivilo/db";
 import { createTestDatabase, HAS_TEST_DATABASE, type TestDatabase } from "@orivilo/db/testing";
 import { PERSONALITY_AXES } from "@orivilo/intent-engine";
 import { testUtils } from "better-auth/plugins";
@@ -600,6 +608,195 @@ describe.runIf(HAS_TEST_DATABASE)("brand foundation entries", () => {
         .update(businessFoundationEntry)
         .set({ payload: { subBrands: "no" } })
         .where(eq(businessFoundationEntry.projectId, a.projectId));
+      const error = await refusal(business.open(a.headers, a.workspaceId, a.projectId));
+      expect(error.reason).toBe("invalid-stored");
+    });
+  });
+
+  // ORV-296 (slice of ORV-291, PR 3), T39, rows 26, 28, 29 and 32 at the unchanged service: the
+  // core idea arms reach it through `checkEntry` and `entryAllowed`, and the table's pair and text
+  // checks have held the node's pairs since PR 1 (no migration).
+  describe("core idea entries", () => {
+    const REMEMBER = "กาแฟที่ส่งถึงบ้านทันเวลา";
+    const idea = (projectId: string, statement: string, remember?: string) => ({
+      projectId,
+      node: "core-idea",
+      kind: "written",
+      payload: remember === undefined ? { statement } : { statement, remember },
+    });
+    const ideaSkip = (projectId: string) => ({
+      projectId,
+      node: "core-idea",
+      kind: "skipped",
+      payload: {},
+    });
+    const rowsOfIdea = async (projectId: string) =>
+      (await rowsOf(projectId)).filter((r) => r.node === "core-idea");
+
+    it("saves a written idea trimmed, with the remember answer, made by the session's user", async () => {
+      const a = await create("fe-idea-save@example.com", "Fis");
+      await foundation.enter(a.headers, a.workspaceId, given(a.projectId));
+      expect(
+        await foundation.enter(
+          a.headers,
+          a.workspaceId,
+          idea(a.projectId, `  ${STATEMENT}  `, `  ${REMEMBER}  `),
+        ),
+      ).toEqual({ node: "core-idea", kind: "written" });
+      const rows = await rowsOfIdea(a.projectId);
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({
+        workspaceId: a.workspaceId,
+        projectId: a.projectId,
+        node: "core-idea",
+        kind: "written",
+        payload: { statement: STATEMENT, remember: REMEMBER },
+        createdBy: a.user.id,
+      });
+    });
+
+    it("saves a written idea with no remember answer as the statement alone, and a skip as {}", async () => {
+      const a = await create("fe-idea-bare@example.com", "Fib");
+      await foundation.enter(a.headers, a.workspaceId, given(a.projectId));
+      await foundation.enter(a.headers, a.workspaceId, idea(a.projectId, STATEMENT, "   "));
+      expect((await rowsOfIdea(a.projectId))[0]?.payload).toEqual({ statement: STATEMENT });
+      const b = await create("fe-idea-skip@example.com", "Fik");
+      await foundation.enter(b.headers, b.workspaceId, given(b.projectId));
+      await foundation.enter(b.headers, b.workspaceId, ideaSkip(b.projectId));
+      expect((await rowsOfIdea(b.projectId)).map((r) => [r.kind, r.payload])).toEqual([
+        ["skipped", {}],
+      ]);
+    });
+
+    it("row 28: a skip, then a written idea: two rows, and open returns the written one first", async () => {
+      const a = await create("fe-idea-then@example.com", "Fit");
+      await foundation.enter(a.headers, a.workspaceId, given(a.projectId));
+      await foundation.enter(a.headers, a.workspaceId, ideaSkip(a.projectId));
+      await foundation.enter(a.headers, a.workspaceId, idea(a.projectId, STATEMENT));
+      const opened = await business.open(a.headers, a.workspaceId, a.projectId);
+      expect(opened.foundation.filter((e) => e.node === "core-idea").map((e) => e.kind)).toEqual([
+        "written",
+        "skipped",
+      ]);
+    }, 60_000);
+
+    it("row 29: waits while a block cause exists, and saves nothing", async () => {
+      // Positioning agreed and no personality entry; no positioning choice; positioning stale.
+      const noPersonality = await create("fe-idea-w1@example.com", "Fw1");
+      const noPositioning = await create("fe-idea-w2@example.com", "Fw2", "none");
+      const stale = await create("fe-idea-w3@example.com", "Fw3");
+      await foundation.enter(stale.headers, stale.workspaceId, given(stale.projectId));
+      await t.admin.insert(businessIntake).values({
+        id: "bi-fe-idea-stale",
+        workspaceId: stale.workspaceId,
+        projectId: stale.projectId,
+        version: "intake-1",
+        idea: "a newer idea",
+        createdBy: stale.user.id,
+        createdAt: new Date(Date.now() + 60_000),
+      });
+      for (const a of [noPersonality, noPositioning, stale]) {
+        for (const entry of [idea(a.projectId, STATEMENT, REMEMBER), ideaSkip(a.projectId)]) {
+          const error = await refusal(foundation.enter(a.headers, a.workspaceId, entry));
+          expect(error.reason).toBe("out-of-order");
+          expect(JSON.stringify(error)).not.toContain(STATEMENT);
+        }
+        expect(await rowsOfIdea(a.projectId)).toEqual([]);
+      }
+    });
+
+    it("saves both while positioning is skipped and the personality is given or skipped", async () => {
+      const a = await create("fe-idea-ps@example.com", "Fps", "skipped");
+      await foundation.enter(a.headers, a.workspaceId, given(a.projectId));
+      await foundation.enter(a.headers, a.workspaceId, ideaSkip(a.projectId));
+      await foundation.enter(a.headers, a.workspaceId, idea(a.projectId, STATEMENT));
+      const b = await create("fe-idea-pk@example.com", "Fpk");
+      await foundation.enter(b.headers, b.workspaceId, skip(b.projectId));
+      await foundation.enter(b.headers, b.workspaceId, idea(b.projectId, STATEMENT));
+      expect((await rowsOfIdea(a.projectId)).map((r) => r.kind).sort()).toEqual([
+        "skipped",
+        "written",
+      ]);
+      expect((await rowsOfIdea(b.projectId)).map((r) => r.kind)).toEqual(["written"]);
+    });
+
+    it("row 32: after a written idea, a written and a skipped entry are refused and the first stays", async () => {
+      const a = await create("fe-idea-stays@example.com", "Fiy");
+      await foundation.enter(a.headers, a.workspaceId, given(a.projectId));
+      await foundation.enter(a.headers, a.workspaceId, idea(a.projectId, STATEMENT, REMEMBER));
+      for (const entry of [idea(a.projectId, "another idea"), ideaSkip(a.projectId)]) {
+        expect((await refusal(foundation.enter(a.headers, a.workspaceId, entry))).reason).toBe(
+          "out-of-order",
+        );
+      }
+      const rows = await rowsOfIdea(a.projectId);
+      expect(rows.map((r) => [r.kind, r.payload])).toEqual([
+        ["written", { statement: STATEMENT, remember: REMEMBER }],
+      ]);
+      const b = await create("fe-idea-stays2@example.com", "Fy2");
+      await foundation.enter(b.headers, b.workspaceId, given(b.projectId));
+      await foundation.enter(b.headers, b.workspaceId, ideaSkip(b.projectId));
+      expect(
+        (await refusal(foundation.enter(b.headers, b.workspaceId, ideaSkip(b.projectId)))).reason,
+      ).toBe("out-of-order");
+    });
+
+    it("row 32: a member of B entering on A's project gets the same not-found as an unknown id", async () => {
+      const a = await create("fe-idea-nf-a@example.com", "Fna");
+      const b = await signIn("fe-idea-nf-b@example.com", "Fnb");
+      const unknownId = "00000000-0000-4000-8000-000000000000";
+      for (const make of [(id: string) => idea(id, STATEMENT), (id: string) => ideaSkip(id)]) {
+        const other = await refusal(foundation.enter(b.headers, b.workspaceId, make(a.projectId)));
+        const unknown = await refusal(foundation.enter(b.headers, b.workspaceId, make(unknownId)));
+        expect([other.reason, unknown.reason]).toEqual(["not-found", "not-found"]);
+        expect(unknown.message).toBe(other.message);
+      }
+      expect(await rowsOf(a.projectId)).toEqual([]);
+    });
+
+    it("refuses what the check refuses, writes nothing, and holds the idea out of the error", async () => {
+      const a = await create("fe-idea-input@example.com", "Fii");
+      await foundation.enter(a.headers, a.workspaceId, given(a.projectId));
+      for (const bad of [
+        idea(a.projectId, "   "),
+        idea(a.projectId, `SECRET-IDEA-${"x".repeat(301)}`),
+        idea(a.projectId, "ok", "x".repeat(2001)),
+        { ...idea(a.projectId, "SECRET-IDEA"), kind: "picked" },
+        { ...ideaSkip(a.projectId), payload: { statement: "SECRET-IDEA" } },
+      ]) {
+        const error = await refusal(foundation.enter(a.headers, a.workspaceId, bad));
+        expect(error.reason).toBe("invalid-input");
+        expect(JSON.stringify(error)).not.toContain("SECRET-IDEA");
+      }
+      expect(await rowsOfIdea(a.projectId)).toEqual([]);
+    });
+
+    it("opens with the four nodes' entries newest first and reads each through the stored schema", async () => {
+      const a = await create("fe-idea-open@example.com", "Fio");
+      await foundation.enter(a.headers, a.workspaceId, given(a.projectId));
+      await foundation.enter(a.headers, a.workspaceId, idea(a.projectId, STATEMENT, REMEMBER));
+      const opened = await business.open(a.headers, a.workspaceId, a.projectId);
+      expect(opened.foundation.map((e) => e.node)).toEqual(["core-idea", "identity-frame"]);
+      expect(opened.foundation[0]).toMatchObject({
+        kind: "written",
+        payload: { statement: STATEMENT, remember: REMEMBER },
+      });
+    });
+
+    it("shows a core idea row changed outside the app as invalid, never as an idea", async () => {
+      const a = await create("fe-idea-tamper@example.com", "Fit2");
+      await foundation.enter(a.headers, a.workspaceId, given(a.projectId));
+      await foundation.enter(a.headers, a.workspaceId, idea(a.projectId, STATEMENT));
+      // The table keeps the text bounds; the stored form refuses a key outside the row.
+      await t.admin
+        .update(businessFoundationEntry)
+        .set({ payload: { statement: STATEMENT, draftId: "d1" } })
+        .where(
+          and(
+            eq(businessFoundationEntry.projectId, a.projectId),
+            eq(businessFoundationEntry.node, "core-idea"),
+          ),
+        );
       const error = await refusal(business.open(a.headers, a.workspaceId, a.projectId));
       expect(error.reason).toBe("invalid-stored");
     });

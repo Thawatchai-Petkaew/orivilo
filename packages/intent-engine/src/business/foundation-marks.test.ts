@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { storedEntrySchema, type NewestByNode, type StoredEntry } from "./foundation";
 import {
   blockCause,
+  coreIdeaGate,
   derivedArchitecture,
   entryAllowed,
   FOUNDATION_EDGES,
@@ -50,11 +51,20 @@ const nameEntry = (name = "ORIVILO", id = "n1", createdAt = "2026-11-19T03:00:00
     payload: { name },
     createdAt,
   }) as EntryOf<"name">;
+const idea = (kind: "written" | "skipped", id = "c1", createdAt = "2026-11-19T03:00:00.000Z") =>
+  storedEntrySchema.parse({
+    id,
+    node: "core-idea",
+    kind,
+    payload: kind === "written" ? { statement: "One thing to remember", remember: "x" } : {},
+    createdAt,
+  }) as EntryOf<"core-idea">;
 /** The newest entry of each node, none unless named. */
 const newestOf = (some: Partial<NewestByNode> = {}): NewestByNode => ({
   "identity-frame": null,
   architecture: null,
   name: null,
+  "core-idea": null,
   ...some,
 });
 /** Every node's own status, open unless named. */
@@ -64,16 +74,18 @@ const ownOf = (
   "identity-frame": "open",
   architecture: "open",
   name: "open",
+  "core-idea": "open",
   ...some,
 });
 
 describe("the lists", () => {
-  it("holds the three nodes in fill order, their requires in ORV-126 order, and one edge per require", () => {
-    expect(FOUNDATION_NODES).toEqual(["identity-frame", "architecture", "name"]);
+  it("holds the four nodes in fill order, their requires in ORV-126 order, and one edge per require", () => {
+    expect(FOUNDATION_NODES).toEqual(["identity-frame", "architecture", "name", "core-idea"]);
     expect(FOUNDATION_REQUIRES).toEqual({
       "identity-frame": ["positioning"],
       architecture: ["situation", "positioning"],
       name: ["positioning", "architecture"],
+      "core-idea": ["positioning", "identity-frame"],
     });
     expect(FOUNDATION_EDGES).toEqual([
       ["positioning", "identity-frame"],
@@ -81,12 +93,14 @@ describe("the lists", () => {
       ["positioning", "architecture"],
       ["positioning", "name"],
       ["architecture", "name"],
+      ["positioning", "core-idea"],
+      ["identity-frame", "core-idea"],
     ]);
   });
 
-  it("gives the board eight nodes and eleven edges (W2): ORV-281's five and six, plus these", () => {
-    expect(5 + FOUNDATION_NODES.length).toBe(8);
-    expect(6 + FOUNDATION_EDGES.length).toBe(11);
+  it("gives the board nine nodes and thirteen edges (W2): ORV-281's five and six, plus these", () => {
+    expect(5 + FOUNDATION_NODES.length).toBe(9);
+    expect(6 + FOUNDATION_EDGES.length).toBe(13);
   });
 
   it("sorts by the ORV-126 node numbers", () => {
@@ -96,6 +110,7 @@ describe("the lists", () => {
       "identity-frame": 7,
       architecture: 8,
       name: 9,
+      "core-idea": 11,
     });
   });
 });
@@ -141,6 +156,24 @@ describe("roots", () => {
 
   it("a given or confirmed gate is done even when a skip flag came with it", () => {
     expect(roots("given", true).positioning).toBe("done");
+  });
+});
+
+describe("own status of the core idea", () => {
+  it("is given for a written entry, skipped for a skip and open for none (core-idea-gate-1)", () => {
+    expect(ownStatus(newestOf({ "core-idea": idea("written") }))).toEqual(
+      ownOf({ "core-idea": "given" }),
+    );
+    expect(ownStatus(newestOf({ "core-idea": idea("skipped") }))).toEqual(
+      ownOf({ "core-idea": "skipped" }),
+    );
+    expect(ownStatus(newestOf())["core-idea"]).toBe("open");
+  });
+
+  it("reads no other node's entry", () => {
+    expect(
+      ownStatus(newestOf({ "identity-frame": entry("given"), name: nameEntry() }))["core-idea"],
+    ).toBe("open");
   });
 });
 
@@ -591,6 +624,74 @@ describe("allowed", () => {
     }
     expect(got).toEqual(expected);
   });
+
+  // The core idea rows of `foundation-entry-1`: written while no block cause and the newest entry is
+  // not written; skipped while no block cause and no entry. The block cause is the position of
+  // positioning and the personality, each combination named with its answer.
+  const COMBOS: Array<[RootStatus, "none" | "skipped" | "given", boolean]> = [
+    ["done", "none", false],
+    ["done", "skipped", true],
+    ["done", "given", true],
+    ["skipped", "none", false],
+    ["skipped", "skipped", true],
+    ["skipped", "given", true],
+    ["open", "none", false],
+    ["open", "skipped", false],
+    ["open", "given", false],
+  ];
+  const PERSONALITY = { none: null, skipped: entry("skipped"), given: entry("given") } as const;
+  const IDEA = { none: null, skipped: idea("skipped"), written: idea("written") } as const;
+  const WHEN_FREE = {
+    none: { written: true, skipped: true },
+    skipped: { written: true, skipped: false },
+    written: { written: false, skipped: false },
+  } as const;
+
+  it("holds the core idea matrix: every kind against no entry, a skip and a written entry, with and without a block cause", () => {
+    const got: Record<string, boolean> = {};
+    const expected: Record<string, boolean> = {};
+    for (const [p, personality, free] of COMBOS) {
+      for (const [name, newest] of Object.entries(IDEA)) {
+        for (const kind of ["written", "skipped"] as const) {
+          const key = `${p} / personality ${personality} / idea ${name} / ${kind}`;
+          got[key] = entryAllowed(
+            { node: "core-idea", kind },
+            {
+              roots: roots(p),
+              newest: newestOf({ "identity-frame": PERSONALITY[personality], "core-idea": newest }),
+            },
+          );
+          expected[key] = free && WHEN_FREE[name as keyof typeof WHEN_FREE][kind];
+        }
+      }
+    }
+    expect(Object.keys(got)).toHaveLength(54);
+    expect(got).toEqual(expected);
+  });
+
+  it("a skip is refused after a skip and after a written idea; a written one after a written one only", () => {
+    const ready = {
+      roots: roots("done"),
+      newest: (c: StoredEntry | null) =>
+        newestOf({
+          "identity-frame": entry("given"),
+          "core-idea": c as EntryOf<"core-idea"> | null,
+        }),
+    };
+    const ok = (kind: "written" | "skipped", c: StoredEntry | null) =>
+      entryAllowed({ node: "core-idea", kind }, { roots: ready.roots, newest: ready.newest(c) });
+    expect(ok("skipped", idea("skipped"))).toBe(false);
+    expect(ok("written", idea("skipped"))).toBe(true);
+    expect(ok("skipped", idea("written"))).toBe(false);
+    expect(ok("written", idea("written"))).toBe(false);
+  });
+
+  it("the core idea is the one node whose entries wait on a block cause besides the personality's", () => {
+    // Name and architecture are allowed with positioning open; the core idea is not.
+    const open = { roots: roots("open"), newest: newestOf({ "identity-frame": entry("given") }) };
+    expect(entryAllowed({ node: "name", kind: "given" }, open)).toBe(true);
+    expect(entryAllowed({ node: "core-idea", kind: "written" }, open)).toBe(false);
+  });
 });
 
 describe("foundationState", () => {
@@ -606,10 +707,22 @@ describe("foundationState", () => {
     expect(state.results["identity-frame"].unchecked).toEqual(["positioning"]);
   });
 
-  it("holds a result for each of the three nodes, from the stored answer and name", () => {
-    const state = foundationState({ state: "given", skipped: false }, [answer(false), nameEntry()]);
-    expect(state.own).toEqual(ownOf({ architecture: "derived", name: "given" }));
-    expect(Object.keys(state.results)).toEqual(["identity-frame", "architecture", "name"]);
+  it("holds a result for each of the four nodes, from the stored answer, name and core idea", () => {
+    const state = foundationState({ state: "given", skipped: false }, [
+      answer(false),
+      nameEntry(),
+      idea("written"),
+    ]);
+    expect(state.own).toEqual(
+      ownOf({ architecture: "derived", name: "given", "core-idea": "given" }),
+    );
+    expect(Object.keys(state.results)).toEqual([
+      "identity-frame",
+      "architecture",
+      "name",
+      "core-idea",
+    ]);
+    expect(state.results["core-idea"].status).toBe("given");
     expect(state.results.architecture.status).toBe("derived");
     expect(state.results.name.status).toBe("given");
   });
@@ -633,25 +746,168 @@ const PRINT = (
     })
     .join(" ");
 
-describe("the three nodes on the real graph, W4's cases", () => {
+describe("the four nodes on the real graph, W4 whole", () => {
   const run = (positioning: RootStatus, own: Record<FoundationNodeId, OwnStatus>) =>
     PRINT(foundationMarks(roots(positioning), own));
+  const all = ownOf({
+    "identity-frame": "given",
+    architecture: "derived",
+    name: "given",
+    "core-idea": "given",
+  });
 
-  it("case 1 to 5 print W4's lines for identity-frame, architecture and name", () => {
-    const all = ownOf({ "identity-frame": "given", architecture: "derived", name: "given" });
-    expect(run("done", all)).toBe("identity-frame:given architecture:derived name:given");
+  it("case 1: positioning done, all given", () => {
+    expect(run("done", all)).toBe(
+      "identity-frame:given architecture:derived name:given core-idea:given",
+    );
+  });
+
+  it("case 2: the same with positioning skipped", () => {
     expect(run("skipped", all)).toBe(
-      "identity-frame:given/unchecked=positioning architecture:derived/provisionalOn=positioning name:given/unchecked=positioning",
+      "identity-frame:given/unchecked=positioning architecture:derived/provisionalOn=positioning name:given/unchecked=positioning core-idea:given/unchecked=positioning",
     );
+  });
+
+  it("case 3: positioning open and nothing else stored", () => {
     expect(run("open", ownOf())).toBe(
-      "identity-frame:blocked/blockedBy=positioning architecture:blocked/blockedBy=positioning name:blocked/blockedBy=positioning",
+      "identity-frame:blocked/blockedBy=positioning architecture:blocked/blockedBy=positioning name:blocked/blockedBy=positioning core-idea:blocked/blockedBy=positioning",
     );
-    expect(run("done", ownOf({ "identity-frame": "skipped" }))).toBe(
-      "identity-frame:skipped architecture:open name:blocked/blockedBy=architecture",
+  });
+
+  it("case 4: positioning done, the personality skipped, architecture yes, core idea given", () => {
+    expect(run("done", ownOf({ "identity-frame": "skipped", "core-idea": "given" }))).toBe(
+      "identity-frame:skipped architecture:open name:blocked/blockedBy=architecture core-idea:given/unchecked=identity-frame",
     );
+  });
+
+  it("case 5: the values of case 1 with positioning open", () => {
     expect(run("open", all)).toBe(
-      "identity-frame:given/unchecked=positioning architecture:blocked/blockedBy=positioning name:given/unchecked=positioning",
+      "identity-frame:given/unchecked=positioning architecture:blocked/blockedBy=positioning name:given/unchecked=positioning core-idea:given/unchecked=positioning",
     );
+  });
+});
+
+describe("block cause of the core idea", () => {
+  it("is positioning while positioning is open, the personality while it holds no entry", () => {
+    expect(blockCause("core-idea", roots("open"), ownOf({ "identity-frame": "given" }))).toEqual([
+      "positioning",
+    ]);
+    expect(blockCause("core-idea", roots("done"), ownOf())).toEqual(["identity-frame"]);
+    expect(blockCause("core-idea", roots("skipped"), ownOf())).toEqual(["identity-frame"]);
+  });
+
+  it("is positioning alone when the personality is itself blocked by it (W4 case 3)", () => {
+    expect(blockCause("core-idea", roots("open"), ownOf())).toEqual(["positioning"]);
+    expect(blockCause("core-idea", roots("open"), ownOf({ "identity-frame": "skipped" }))).toEqual([
+      "positioning",
+    ]);
+  });
+
+  it("is none when the personality is given or skipped and positioning is done or skipped", () => {
+    for (const p of ["done", "skipped"] as const) {
+      for (const personality of ["given", "skipped"] as const) {
+        expect(
+          blockCause("core-idea", roots(p), ownOf({ "identity-frame": personality })),
+          p,
+        ).toEqual([]);
+      }
+    }
+  });
+
+  it("is computed as if the node held no entry: a written idea still shows its cause", () => {
+    expect(blockCause("core-idea", roots("open"), ownOf({ "core-idea": "given" }))).toEqual([
+      "positioning",
+    ]);
+    expect(blockCause("core-idea", roots("done"), ownOf({ "core-idea": "skipped" }))).toEqual([
+      "identity-frame",
+    ]);
+  });
+});
+
+// T36, spec rows 29 to 31: `core-idea-gate-1`, the four rows with their state, gate line and label.
+describe("core idea gate", () => {
+  const resultOf = (positioning: RootStatus, own: Partial<Record<FoundationNodeId, OwnStatus>>) =>
+    foundationMarks(roots(positioning), ownOf(own))["core-idea"];
+
+  it("row 1, waiting: no written entry and a block cause is blocked, gate line business.state.gate", () => {
+    expect(coreIdeaGate(resultOf("open", {}))).toEqual({
+      gate: "blocked",
+      skipped: false,
+      state: "waiting",
+      gateLine: "business.state.gate",
+      gatePassed: false,
+      label: null,
+    });
+    expect(coreIdeaGate(resultOf("done", {})).gate).toBe("blocked");
+  });
+
+  it("a skipped entry with a block cause is waiting too, not skipped", () => {
+    const gate = coreIdeaGate(resultOf("open", { "core-idea": "skipped" }));
+    expect(gate).toMatchObject({ gate: "blocked", skipped: false, state: "waiting" });
+  });
+
+  it("row 2, open: no entry and no block cause, gate line business.state.gate", () => {
+    expect(coreIdeaGate(resultOf("done", { "identity-frame": "given" }))).toEqual({
+      gate: "open",
+      skipped: false,
+      state: "empty",
+      gateLine: "business.state.gate",
+      gatePassed: false,
+      label: null,
+    });
+  });
+
+  it("row 3, skipped: the newest entry skipped and no block cause, gate line business.state.gate", () => {
+    expect(
+      coreIdeaGate(resultOf("done", { "identity-frame": "skipped", "core-idea": "skipped" })),
+    ).toEqual({
+      gate: "open",
+      skipped: true,
+      state: "skipped",
+      gateLine: "business.state.gate",
+      gatePassed: false,
+      label: null,
+    });
+  });
+
+  it("row 4, agreed: a written entry passes the gate, with its own label and gate line", () => {
+    expect(
+      coreIdeaGate(resultOf("done", { "identity-frame": "given", "core-idea": "given" })),
+    ).toEqual({
+      gate: "given",
+      skipped: false,
+      state: "agreed",
+      gateLine: "business.coreIdea.gatePassed",
+      gatePassed: true,
+      label: "business.positioning.by.own",
+    });
+  });
+
+  it("a written entry stays agreed whatever its roots do (W4 cases 2, 4 and 5)", () => {
+    for (const [p, personality] of [
+      ["skipped", "given"],
+      ["done", "skipped"],
+      ["open", "given"],
+    ] as const) {
+      const gate = coreIdeaGate(
+        resultOf(p, { "identity-frame": personality, "core-idea": "given" }),
+      );
+      expect(gate, `${p} ${personality}`).toMatchObject({
+        gate: "given",
+        state: "agreed",
+        gatePassed: true,
+      });
+    }
+  });
+
+  it("the gate passes only for the given state: a skip does not pass it", () => {
+    const passed = [
+      resultOf("done", { "identity-frame": "given" }),
+      resultOf("done", { "identity-frame": "given", "core-idea": "skipped" }),
+      resultOf("open", {}),
+      resultOf("done", { "identity-frame": "given", "core-idea": "given" }),
+    ].map((r) => coreIdeaGate(r).gatePassed);
+    expect(passed).toEqual([false, false, false, true]);
   });
 });
 

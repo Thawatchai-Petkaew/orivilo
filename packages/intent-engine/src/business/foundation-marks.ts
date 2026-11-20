@@ -12,12 +12,12 @@ import type { GateState } from "./positioning";
  * spec `foundation-roots-1`, `foundation-marks-1`, `foundation-entry-1`). One pure function the view
  * and the server door both call, so a control is offered exactly when the door accepts its entry.
  * Nothing about a mark is stored: it is computed from the entries and the positioning gate each time.
- * PR 1 holds the node `identity-frame`, PR 2 adds `architecture` and `name`; PR 3 adds `core-idea`
- * to each list.
+ * PR 1 holds the node `identity-frame`, PR 2 adds `architecture` and `name`, PR 3 adds `core-idea`
+ * (`core-idea-gate-1`).
  */
 
-/** Fill order. PR 3 adds "core-idea". */
-export const FOUNDATION_NODES = ["identity-frame", "architecture", "name"] as const;
+/** Fill order. */
+export const FOUNDATION_NODES = ["identity-frame", "architecture", "name", "core-idea"] as const;
 export type FoundationNodeId = (typeof FOUNDATION_NODES)[number];
 /** The two roots the nodes rest on, and the nodes themselves. */
 export type RootId = "situation" | "positioning";
@@ -28,6 +28,7 @@ export const FOUNDATION_REQUIRES = {
   "identity-frame": ["positioning"],
   architecture: ["situation", "positioning"],
   name: ["positioning", "architecture"],
+  "core-idea": ["positioning", "identity-frame"],
 } as const satisfies Record<FoundationNodeId, readonly MarkRef[]>;
 
 /** `[from, to]`, one per require. */
@@ -42,6 +43,7 @@ export const MARK_NUMBERS: Record<MarkRef, number> = {
   "identity-frame": 7,
   architecture: 8,
   name: 9,
+  "core-idea": 11,
 };
 
 export type RootStatus = "done" | "skipped" | "open";
@@ -69,12 +71,15 @@ export function ownStatus(newest: NewestByNode): Record<FoundationNodeId, OwnSta
   const personality = newest["identity-frame"];
   const architecture = newest.architecture;
   const name = newest.name;
+  const coreIdea = newest["core-idea"];
   return {
     "identity-frame":
       personality === null ? "open" : personality.kind === "given" ? "given" : "skipped", // identity-frame-1
     // architecture-derive-1: only the answer no derives a value; yes and no answer are open.
     architecture: architecture === null || architecture.payload.subBrands ? "open" : "derived",
     name: name === null ? "open" : "given", // working-name-1
+    // core-idea-gate-1: a written idea is given, a skip is skipped, none is open.
+    "core-idea": coreIdea === null ? "open" : coreIdea.kind === "written" ? "given" : "skipped",
   };
 }
 
@@ -209,7 +214,7 @@ export function blockCause(
   return foundationMarks(roots, { ...own, [node]: "open" })[node].blockedBy;
 }
 
-/** The "Allowed when" column of `foundation-entry-1`, for the entries PRs 1 and 2 build. */
+/** The "Allowed when" column of `foundation-entry-1`, for every entry the four nodes take. */
 export function entryAllowed(
   entry: Pick<EntryInput, "node" | "kind">,
   state: { roots: FoundationRoots; newest: NewestByNode },
@@ -227,6 +232,11 @@ export function entryAllowed(
       return state.newest.architecture === null;
     case "name":
       return state.newest.name === null;
+    case "core-idea": {
+      const newest = state.newest["core-idea"];
+      if (blockCause("core-idea", state.roots, own).length > 0) return false;
+      return entry.kind === "written" ? newest?.kind !== "written" : newest === null;
+    }
   }
 }
 
@@ -268,4 +278,42 @@ export function axisValueOf(point: AxisPoint): AxisValue {
 
 export function axisPointOf(value: AxisValue): AxisPoint {
   return (value / 25 + 1) as AxisPoint;
+}
+
+/** A row of `core-idea-gate-1`: the gate state, the state line's key, the gate line and the label. */
+export type CoreIdeaGate = {
+  gate: "blocked" | "open" | "given";
+  skipped: boolean;
+  /** The state line, a key of `business.state.*`. */
+  state: "waiting" | "skipped" | "empty" | "agreed";
+  /** The line under the state: the gate is still shut, or it has passed. */
+  gateLine: "business.state.gate" | "business.coreIdea.gatePassed";
+  /** True only in `given`: nothing builds on the core idea before then. */
+  gatePassed: boolean;
+  /** The label of the statement, shown with a written idea only. */
+  label: "business.positioning.by.own" | null;
+};
+
+/**
+ * `core-idea-gate-1`, the four rows of its table. The gate passes only in `given`, a written idea;
+ * a block cause, no entry and a skip each leave it shut with the gate line `business.state.gate`.
+ */
+export function coreIdeaGate(result: FoundationResult): CoreIdeaGate {
+  if (result.status === "given") {
+    return {
+      gate: "given",
+      skipped: false,
+      state: "agreed",
+      gateLine: "business.coreIdea.gatePassed",
+      gatePassed: true,
+      label: "business.positioning.by.own",
+    };
+  }
+  const shut = { gateLine: "business.state.gate", gatePassed: false, label: null } as const;
+  if (result.status === "blocked") {
+    return { gate: "blocked", skipped: false, state: "waiting", ...shut };
+  }
+  return result.skipped
+    ? { gate: "open", skipped: true, state: "skipped", ...shut }
+    : { gate: "open", skipped: false, state: "empty", ...shut };
 }
