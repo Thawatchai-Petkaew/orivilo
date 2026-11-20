@@ -190,7 +190,7 @@ function Ask({
   return (
     <div className={`flex min-w-0 flex-col gap-1 ${className ?? ""}`.trim()} data-ask>
       <p className={FIELD_NOTE}>{m.business.stillToAsk}</p>
-      <ul className="flex flex-col gap-1">
+      <ul className="flex flex-col gap-2">
         {questions.map((key) => (
           <li key={key} className="text-body-sm">
             {questionLine(m, key)}
@@ -231,15 +231,21 @@ function Item({ item }: { item: GuidebookItem }) {
         <p className={FIELD_NOTE} data-state>
           {guidebookStateLine(m, locale, item)}
         </p>
-        {notesInValue ? null : item.notes.map((note) => <Note key={note.key} note={note} />)}
+        {notesInValue || item.notes.length === 0 ? null : (
+          <div className="mt-1 flex min-w-0 flex-col gap-2" data-notes>
+            {item.notes.map((note) => (
+              <Note key={note.key} note={note} />
+            ))}
+          </div>
+        )}
         {provisional === null ? null : (
-          <div className="flex flex-col gap-1" data-marks="provisional">
+          <div className="mt-1 flex flex-col gap-1" data-marks="provisional">
             <p className="text-body-sm">{provisional.provisional}</p>
             <p className="text-body-sm">{provisional.restsOn}</p>
           </div>
         )}
         {unchecked === null ? null : (
-          <p className="text-body-sm" data-marks="unchecked">
+          <p className="mt-1 text-body-sm" data-marks="unchecked">
             {unchecked}
           </p>
         )}
@@ -268,8 +274,10 @@ function Value({ item }: { item: Done }) {
       return (
         <div className="flex min-w-0 flex-col gap-1" data-value>
           <p className="text-body-lg">{m.business.architecture.single}</p>
-          <p className={FIELD_NOTE}>{m.business.architecture.because}</p>
-          <Rules rules={item.rules} />
+          <div className="flex min-w-0 flex-col gap-2" data-notes>
+            <p className={FIELD_NOTE}>{m.business.architecture.because}</p>
+            <Rules rules={item.rules} />
+          </div>
         </div>
       );
     case "name":
@@ -337,7 +345,7 @@ function Statement({
       <p className="text-body-lg whitespace-pre-wrap">
         <Typed>{statement.text}</Typed>
       </p>
-      <div className="flex min-w-0 flex-col gap-1">
+      <div className="flex min-w-0 flex-col gap-2" data-notes>
         {statement.label === "business.positioning.by.own" ? (
           <p className={FIELD_NOTE}>{m.business.positioning.by.own}</p>
         ) : null}
@@ -406,7 +414,7 @@ function IdentityValue({
 /** The labels block after a visual item's value, 12 below it: each line a note. */
 function Labels({ lines }: { lines: ReadonlyArray<string | null> }) {
   return (
-    <div className="flex min-w-0 flex-col gap-1" data-labels>
+    <div className="flex min-w-0 flex-col gap-2" data-labels>
       {lines.map((line) =>
         line === null ? null : (
           <p key={line} className={FIELD_NOTE}>
@@ -434,17 +442,19 @@ function LogoTypeValue({
     <>
       <div className="flex min-w-0 flex-col gap-1" data-value>
         <p className="text-body-lg">{logoTypeWord(m, decision.type)}</p>
-        {decision.reasons.map((reason) => (
-          <p key={reason} className={FIELD_NOTE}>
-            {logoTypeReason(m, reason)}
+        <div className="flex min-w-0 flex-col gap-2" data-notes>
+          {decision.reasons.map((reason) => (
+            <p key={reason} className={FIELD_NOTE}>
+              {logoTypeReason(m, reason)}
+            </p>
+          ))}
+          <p className={`${FIELD_NOTE} whitespace-pre-wrap`} data-name-length>
+            {length.before}
+            <bdi>{decision.name}</bdi>
+            {length.after}
           </p>
-        ))}
-        <p className={`${FIELD_NOTE} whitespace-pre-wrap`} data-name-length>
-          {length.before}
-          <bdi>{decision.name}</bdi>
-          {length.after}
-        </p>
-        <Rules rules={item.rules} />
+          <Rules rules={item.rules} />
+        </div>
       </div>
       <Labels
         lines={[hypothesis, m.business.logoType.crowdingNotChecked, m.business.logoType.otherTypes]}
@@ -473,8 +483,8 @@ function ColorValue({
           <dt className={FIELD_NOTE}>{foundationFieldLabel(m, "signature")}</dt>{" "}
           {signature === null ? (
             <>
-              {item.notes.map((note) => (
-                <dd key={note.key} className="text-body-sm">
+              {item.notes.map((note, i) => (
+                <dd key={note.key} className={i === 0 ? "text-body-sm" : "mt-1 text-body-sm"}>
                   {noteLine(m, note)}
                 </dd>
               ))}
@@ -488,7 +498,7 @@ function ColorValue({
             <>
               <dd className="text-body-lg">{familyWord(m, signature.value)}</dd>
               <dd className={FIELD_NOTE}>{colorReason(m, explain, signature.because)}</dd>
-              <dd className={FIELD_NOTE} data-rule>
+              <dd className={`mt-1 ${FIELD_NOTE}`} data-rule>
                 {decisionRule(m, signature.rule)}
               </dd>
             </>
@@ -499,7 +509,7 @@ function ColorValue({
             <dt className={FIELD_NOTE}>{foundationFieldLabel(m, "neutral")}</dt>
             <dd className="text-body-lg">{neutralWord(m, neutral.value)}</dd>
             <dd className={FIELD_NOTE}>{colorReason(m, explain, "neutral")}</dd>
-            <dd className={FIELD_NOTE} data-rule>
+            <dd className={`mt-1 ${FIELD_NOTE}`} data-rule>
               {decisionRule(m, neutral.rule)}
             </dd>
           </div>
@@ -509,7 +519,7 @@ function ColorValue({
             <dt className={FIELD_NOTE}>{foundationFieldLabel(m, "canvas")}</dt>
             <dd className="text-body-lg">{canvasWord(m, canvas.value)}</dd>
             <dd className={FIELD_NOTE}>{colorReason(m, explain, "canvas")}</dd>
-            <dd className={FIELD_NOTE} data-rule>
+            <dd className={`mt-1 ${FIELD_NOTE}`} data-rule>
               {decisionRule(m, canvas.rule)}
             </dd>
           </div>
@@ -549,9 +559,11 @@ function TypographyValue({
                     return (
                       <li key={face.id} className="flex min-w-0 flex-col gap-1" data-face>
                         <p className="text-body-lg">{face.family}</p>
-                        <p className={FIELD_NOTE}>{styleWord(m, face.style)}</p>
-                        <p className={FIELD_NOTE}>{licenceLine(m, face)}</p>
-                        {because === null ? null : <p className={FIELD_NOTE}>{because}</p>}
+                        <div className="flex min-w-0 flex-col gap-2" data-notes>
+                          <p className={FIELD_NOTE}>{styleWord(m, face.style)}</p>
+                          <p className={FIELD_NOTE}>{licenceLine(m, face)}</p>
+                          {because === null ? null : <p className={FIELD_NOTE}>{because}</p>}
+                        </div>
                       </li>
                     );
                   })}
@@ -560,7 +572,7 @@ function TypographyValue({
             </div>
           ))}
         </dl>
-        <div className="flex min-w-0 flex-col gap-1">
+        <div className="flex min-w-0 flex-col gap-2" data-notes>
           {faces.pairing ? (
             <p className={FIELD_NOTE}>{m.business.typography.because.pairing}</p>
           ) : null}
@@ -593,7 +605,7 @@ function Unconfirmed({ steps }: { steps: readonly GuidebookStep[] }) {
             <p className={FIELD_NOTE}>{m.business.state.skipped}</p>
           </div>
           {step.questions.length === 0 ? null : (
-            <ul className="flex flex-col gap-1">
+            <ul className="flex flex-col gap-2">
               {step.questions.map((key) => (
                 <li key={key} className="text-body-sm">
                   {questionLine(m, key)}

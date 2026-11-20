@@ -14,6 +14,7 @@ import {
   inVitest,
 } from "../testing/visual-asserts";
 import {
+  atWindow,
   en,
   expectAccessScreen,
   expectFitsAt360,
@@ -139,6 +140,115 @@ async function expectOneStartEdge(root: HTMLElement) {
       near(first.left, left, `"${textOf(el)}"`);
     }
   }
+}
+
+/** One line box of a run of text: where its glyph box starts and the element that sets its line height. */
+interface LineBox {
+  top: number;
+  host: Element;
+}
+
+/**
+ * The line boxes of the text under `el`, top to bottom, read from the rendered text (a range per text
+ * node), never from a class: a wrapped paragraph gives one entry per line, and a block of several
+ * paragraphs gives the lines of all of them.
+ */
+function lineBoxes(el: Element): LineBox[] {
+  const found: LineBox[] = [];
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
+    if ((node.textContent ?? "").trim() === "" || node.parentElement === null) continue;
+    const range = document.createRange();
+    range.selectNodeContents(node);
+    for (const r of range.getClientRects()) {
+      if (r.width > 0) found.push({ top: r.top, host: node.parentElement });
+    }
+  }
+  found.sort((a, b) => a.top - b.top);
+  const lines: LineBox[] = [];
+  for (const box of found) {
+    const last = lines.at(-1);
+    if (last === undefined || box.top - last.top > 4) lines.push(box);
+  }
+  return lines;
+}
+
+/** The families of stack `expectPeerLinesApart` measures, named as the design's survey rows. */
+type PeerFamily = "ask" | "step" | "notes" | "labels" | "head" | "colour";
+
+/**
+ * P25 (design 6.1): two peer lines of one stack, a question, a note, a label, a reason, a rule line,
+ * start apart by more than the pitch inside one entry. For every two adjacent children A and B of
+ * each stack the page holds: B's first line starts at least 1.3 line heights below A's last line
+ * (31.8 measured, 27.8 on the 4 gap, a line height of 23.8), and B's box starts at least 7.5 below A's
+ * box. It reads rendered line boxes, so it holds at any line count. Returns the pairs measured per
+ * family; a story names the families its fixture must reach, so a selector that matches nothing fails.
+ */
+function expectPeerLinesApart(root: HTMLElement, reach: readonly PeerFamily[]) {
+  const pairs: Record<PeerFamily, number> = {
+    ask: 0,
+    step: 0,
+    notes: 0,
+    labels: 0,
+    head: 0,
+    colour: 0,
+  };
+  const apart = (family: PeerFamily, a: Element, b: Element) => {
+    const linesA = lineBoxes(a);
+    const linesB = lineBoxes(b);
+    const lastA = linesA.at(-1);
+    const firstB = linesB[0];
+    if (lastA === undefined || firstB === undefined) return;
+    const lineHeight = parseFloat(getComputedStyle(lastA.host).lineHeight);
+    const what = `${family}: "${textOf(a).slice(0, 40)}" then "${textOf(b).slice(0, 40)}"`;
+    expect(Number.isFinite(lineHeight), `${what}: line height`).toBe(true);
+    const pitch = firstB.top - lastA.top;
+    expect(pitch, `${what}: last line to next first line is ${pitch}`).toBeGreaterThanOrEqual(
+      1.3 * lineHeight,
+    );
+    const gap = rect(b).top - rect(a).bottom;
+    expect(gap, `${what}: box gap is ${gap}`).toBeGreaterThanOrEqual(7.5);
+    pairs[family] += 1;
+  };
+  const stacks = (family: PeerFamily, selector: string) => {
+    for (const stack of root.querySelectorAll(selector)) {
+      const children = [...stack.children];
+      for (let i = 1; i < children.length; i++) {
+        apart(family, must(children[i - 1] ?? null, "A"), must(children[i] ?? null, "B"));
+      }
+    }
+  };
+  stacks("ask", "[data-ask] > ul");
+  stacks("step", "[data-step] > ul:not([data-rests])");
+  stacks("notes", "[data-notes]");
+  stacks("labels", "[data-labels]");
+  // A head from its state line on: the title above it changes size and weight, so it is not a peer.
+  for (const head of root.querySelectorAll("[data-head]")) {
+    const children = [...head.children];
+    const from = children.findIndex((c) => c.hasAttribute("data-state"));
+    for (let i = from + 1; from >= 0 && i < children.length; i++) {
+      apart("head", must(children[i - 1] ?? null, "A"), must(children[i] ?? null, "B"));
+    }
+  }
+  // A colour field's reason, then its rule.
+  for (const rule of root.querySelectorAll("[data-field] > dd[data-rule]")) {
+    apart("colour", must(rule.previousElementSibling, "the reason"), rule);
+  }
+  for (const family of reach)
+    expect(pairs[family], `pairs measured in ${family}`).toBeGreaterThan(0);
+}
+
+/** The person question of Brand personality wraps at 360, so the bound is proven at a wrapped count. */
+function expectPersonQuestionWraps(root: HTMLElement, m: Messages) {
+  // Outside the browser runner the window is the reader's own, so a wrap is not promised.
+  if (!inVitest) return;
+  const person = [
+    ...root.querySelectorAll(
+      "[data-item=identity-frame] [data-ask] li, [data-step=identity-frame] li",
+    ),
+  ].filter((li) => textOf(li) === m.business.question.person);
+  expect(person.length, "the person question of Brand personality").toBeGreaterThan(0);
+  for (const li of person) expect(lineBoxes(li).length).toBeGreaterThanOrEqual(2);
 }
 
 /** The lines an item shows are the lines the data gives (rows 1 to 7, 17 to 19 and 23). */
@@ -376,7 +486,12 @@ async function expectDoneFoundation(root: HTMLElement, m: Messages, g: Guidebook
   );
   // Brand architecture: the single brand, why, and its rule.
   await expect(stateOf("architecture")).toBe(gb.state.derived);
-  await expect([...one("architecture").children].map(textOf)).toEqual([
+  // The reason and the rule sit in one notes block after the value line (design 6.1, R1-7).
+  const architecture = [...one("architecture").children];
+  await expect(architecture.map((el) => el.hasAttribute("data-notes"))).toEqual([false, true]);
+  await expect(
+    [...architecture.slice(0, 1), ...(architecture[1]?.children ?? [])].map(textOf),
+  ).toEqual([
     gb.architecture.single,
     gb.architecture.because,
     decisionRule(m, "architecture-derive-1"),
@@ -449,7 +564,7 @@ async function expectVisualDone(root: HTMLElement, m: Messages, g: Guidebook) {
   // Typography: the families as written, per role, with style, licence and the pairing line.
   const ty = itemEl(root, "typography");
   const families = (field: string) =>
-    [...ty.querySelectorAll(`[data-field=${field}] [data-face] p:first-child`)].map(textOf);
+    [...ty.querySelectorAll(`[data-field=${field}] [data-face] > p:first-child`)].map(textOf);
   await expect(families("readingFace")).toEqual(["Sarabun", "Inter"]);
   await expect(families("displayFace")).toEqual(["Anuphan", "Inter"]);
   await expect(textOf(ty)).toContain(
@@ -632,6 +747,11 @@ export const GuidebookOpenAsks: Story = {
     ).toEqual([th.business.question.person, th.business.question.never]);
     // The name asks by the board's button, so it shows its state line only (guidebook-open-1).
     await expect(itemEl(root, "name").querySelectorAll("[data-ask]")).toHaveLength(0);
+    // P25: at 360 the person question wraps, and the two questions still read as two lines apart.
+    await atWindow(360, 900, async () => {
+      expectPersonQuestionWraps(root, th);
+      expectPeerLinesApart(root, ["ask", "head"]);
+    });
   },
 };
 
@@ -736,6 +856,11 @@ export const GuidebookSkippedSteps: Story = {
         `step ${i}`,
       );
     }
+    // P25: at 360 the person question of the skipped Brand personality step wraps, and its two questions stay apart.
+    await atWindow(360, 900, async () => {
+      expectPersonQuestionWraps(root, th);
+      expectPeerLinesApart(root, ["ask", "step", "head"]);
+    });
   },
 };
 
@@ -1025,6 +1150,8 @@ export const GuidebookNarrow: Story = {
   render: (args) => narrow(args.guidebook as Guidebook),
   play: async ({ canvasElement }) => {
     await narrowPlay(canvasElement, th);
+    // P25: the notes, labels and heads of the long fixture, in the 360 frame, in Thai.
+    expectPeerLinesApart(rootOf(canvasElement), ["notes", "labels", "head", "colour"]);
   },
 };
 
