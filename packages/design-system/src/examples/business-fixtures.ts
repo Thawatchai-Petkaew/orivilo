@@ -492,12 +492,13 @@ export function positioningAfter(
 
 /**
  * A project for the foundation stories (ORV-291): the Positioning gate `open` (Brand personality
- * waits), `skipped` or `agreed`, with the foundation entries a story names. The view comes from the
- * engine, so a card shows what the screen gets from a saved project.
+ * waits), `skipped`, `agreed` or `stale` (agreed on an older intake), with the foundation entries a
+ * story names. The view comes from the engine, so a card shows what the screen gets from a saved
+ * project.
  */
 export function foundationProject(
   locale: "th" | "en",
-  gate: "open" | "skipped" | "agreed",
+  gate: "open" | "skipped" | "agreed" | "stale",
   entries: StoredEntry[] = [],
 ): BusinessView {
   const make = locale === "th" ? thaiWith : englishWith;
@@ -507,7 +508,8 @@ export function foundationProject(
       ? null
       : gate === "skipped"
         ? choiceOf(NEWEST_INTAKE_ID, "skipped", null)
-        : choiceOf(NEWEST_INTAKE_ID, "written", statement),
+        : // `stale`: agreed on an older intake, then a later one was saved (ORV-296, spec row 30).
+          choiceOf(gate === "stale" ? OLDER_INTAKE_ID : NEWEST_INTAKE_ID, "written", statement),
     NEWEST_INTAKE_ID,
     entries,
   );

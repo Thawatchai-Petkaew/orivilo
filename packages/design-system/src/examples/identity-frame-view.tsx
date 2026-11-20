@@ -17,7 +17,7 @@ import { Button, Field, RadioGroup, RadioGroupItem, Textarea } from "../componen
 import { useMessages } from "../i18n/LocaleProvider";
 import { fill, type Messages } from "../i18n/messages/index";
 import { FIELD_NOTE } from "./business-text";
-import { FailureRegion, NO_PROJECT } from "./foundation-parts";
+import { AnswerField, FailureRegion, NO_PROJECT } from "./foundation-parts";
 import type { FoundationControls } from "./foundation-view";
 
 /**
@@ -46,37 +46,6 @@ function firstFailing(editor: HTMLElement | null, paths: readonly string[]) {
   return axis === undefined
     ? undefined
     : editor?.querySelector<HTMLElement>(`[data-scale="${axis}"] [role="radio"]`);
-}
-
-/** A proxy answer: the person's words as text with the label that says so, or the fallback line. */
-function AnswerField({
-  field,
-  title,
-  text,
-  fallback,
-  m,
-}: {
-  field: "person" | "never";
-  title: string;
-  text: string | null;
-  fallback: string;
-  m: Messages;
-}) {
-  return (
-    <div className="flex min-w-0 flex-col gap-1" data-field={field}>
-      <h3 className="self-start text-label-md">{title}</h3>
-      {text === null ? (
-        <p className={FIELD_NOTE}>{fallback}</p>
-      ) : (
-        <>
-          <p className="whitespace-pre-wrap">
-            <bdi>{text}</bdi>
-          </p>
-          <p className={FIELD_NOTE}>{m.business.label.yourWords}</p>
-        </>
-      )}
-    </div>
-  );
 }
 
 const legendOf = (m: Messages, axis: PersonalityAxis) =>
