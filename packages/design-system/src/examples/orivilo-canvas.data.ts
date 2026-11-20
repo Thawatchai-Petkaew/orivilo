@@ -916,7 +916,23 @@ function typeColumn(
 }
 
 const ALPHABET_LATIN = "ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz";
-const ALPHABET_THAI = "กขคงจฉชซญฎฏฐฑฒณดตถทธนบปผฝพฟภมยรลวศษสหฬอฮ";
+export const ALPHABET_THAI = "กขคงจฉชซญฎฏฐฑฒณดตถทธนบปผฝพฟภมยรลวศษสหฬอฮ";
+
+/** The strings of the type pages' specimen (`TypeSpecimen`): the face label, the glyphs, the alphabet and the tagline. */
+export const TYPE_SPECIMEN = {
+  latin: {
+    face: "Inter",
+    glyphs: "Aa",
+    alphabet: "ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789",
+    tagline: "Give your ideas a world.",
+  },
+  thai: {
+    face: "Anuphan, Sarabun",
+    glyphs: "กข",
+    alphabet: ALPHABET_THAI,
+    tagline: "ให้ไอเดียมีตัวตน",
+  },
+} as const;
 const PITCH_TH =
   "Orivilo ช่วยคุณค้นหาตัวตนของแบรนด์ แล้วเชื่อมไปสู่โลโก้ สี ระบบออกแบบ และผลิตภัณฑ์ดิจิทัล ผ่าน AI และพื้นที่ทำงานที่ทีมร่วมเลือก ทดลอง และพัฒนาต่อได้";
 
