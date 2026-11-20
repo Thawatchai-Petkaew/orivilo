@@ -112,8 +112,8 @@ const viewNode = (view: BusinessView, id: BusinessNodeId) =>
 /** React Flow keeps a node hidden until it is measured and draws edges after: wait for all of it. */
 const boardReady = (root: HTMLElement) =>
   waitFor(() => {
-    expect(root.querySelectorAll(".react-flow__node")).toHaveLength(6);
-    expect(root.querySelectorAll(".react-flow__edge")).toHaveLength(7);
+    expect(root.querySelectorAll(".react-flow__node")).toHaveLength(8);
+    expect(root.querySelectorAll(".react-flow__edge")).toHaveLength(11);
     for (const n of root.querySelectorAll<HTMLElement>(".react-flow__node")) {
       expect(n.style.visibility).not.toBe("hidden");
     }
@@ -279,9 +279,13 @@ const W2 = [
   "audience>positioning",
   "competitive-frame>positioning",
   "positioning>identity-frame",
+  "situation>architecture",
+  "positioning>architecture",
+  "positioning>name",
+  "architecture>name",
 ];
 
-/** The header, the six nodes at rest, the seven edges and the dock (spec row 22). */
+/** The header, the eight nodes at rest, the eleven edges and the dock (spec row 22). */
 async function expectBoard(
   canvasElement: HTMLElement,
   m: Messages,
@@ -307,7 +311,7 @@ async function expectBoard(
   await expect(
     lede.compareDocumentPosition(region) & Node.DOCUMENT_POSITION_FOLLOWING,
   ).toBeTruthy();
-  // Six nodes titled as the catalog says, in fill order, each named "title, kind" and opening a view.
+  // Eight nodes titled as the catalog says, in fill order, each named "title, kind" and opening a view.
   const nodes = [...canvasElement.querySelectorAll<HTMLElement>(".react-flow__node")];
   await expect(nodes.map((n) => n.dataset["id"])).toEqual([...BOARD_NODES]);
   for (const id of BOARD_NODES) {
@@ -335,7 +339,7 @@ async function expectBoard(
   for (const f of answersOf(view)) {
     await expect(textOf(region)).not.toContain(f.answer?.text ?? "");
   }
-  // Exactly the seven edges of W2 and the foundation require, and the dock says view only.
+  // Exactly the eleven edges of W2 and the foundation require, and the dock says view only.
   const edges = [...canvasElement.querySelectorAll<HTMLElement>(".react-flow__edge")].map((e) => {
     const [, source, , target] = (e.dataset["id"] ?? "").split(":");
     return `${source}>${target}`;
@@ -357,7 +361,7 @@ async function expectBoard(
   await waitFor(() => expect(zoomOf(canvasElement)).toBeCloseTo(1, 3));
   await expectCardsClear(canvasElement);
   await expectStateAlignment(canvasElement);
-  await expectPortPills(canvasElement, ["positioning"]);
+  await expectPortPills(canvasElement, ["business-core", "audience", "competitive-frame"]);
   await userEvent.click(
     canvasElement.querySelector('[data-command="board.zoom-to-fit"]') as HTMLElement,
   );
@@ -372,8 +376,8 @@ async function expectBoard(
  * Row D4: each node, focused in turn (the way `NodePort` `PresentNames` does), shows its port name
  * pills, and they keep clear of one another and of every other node. Measured at the zoom the board
  * is at. A pill outside the board's frame is not read, and at zoom 1 the board shows only part of the
- * world, so `whole` names the nodes whose every pill must be read: all six at the fit zoom, and at
- * zoom 1 Positioning, the node with three pills on one edge.
+ * world, so `whole` names the nodes whose every pill must be read: all eight at the fit zoom, and at
+ * zoom 1 the three nodes of the middle column that the frame still holds whole (with eight nodes the world is wider, so the 100 percent view no longer holds Positioning whole; its four pills are read at the fit zoom).
  */
 async function expectPortPills(
   root: HTMLElement,
@@ -500,10 +504,7 @@ async function expectTabOrder(canvasElement: HTMLElement) {
     const active = document.activeElement as HTMLElement;
     if (dock.contains(active)) reached = active;
   }
-  await expect(
-    reached,
-    "Tab reaches the dock within 6 presses after the five nodes",
-  ).not.toBeNull();
+  await expect(reached, "Tab reaches the dock within 6 presses after the last node").not.toBeNull();
   await expect((reached as HTMLElement).matches(".ds-controls button")).toBe(true);
   await expect((reached as HTMLElement).matches(":focus-visible")).toBe(true);
 }
@@ -526,49 +527,69 @@ const SAVED_TH = /บันทึกเมื่อ .*2569.*10:15/;
 const SAVED_EN = /Saved .*Nov 18, 2026.*10:15/;
 
 /**
- * Brand personality on the board (ORV-291 design 6.5 B1): at world (1400, 160), its card holds the
- * state line and the three field names and no answer, and Enter opens the viewer with its title
- * and Escape brings focus back to the card.
+ * A foundation card on the board (ORV-291 design 6.5 B1, section 7): at its world position, its
+ * state line and its field names and no answer, and Enter opens the viewer with its title and
+ * Escape brings focus back to the card.
  */
-async function expectPersonalityCard(root: HTMLElement, m: Messages) {
-  const el = nodeEl(root, "identity-frame");
-  await expect(el.style.transform).toMatch(/translate\(1400px,\s*160px\)/);
+async function expectFoundationCard(
+  root: HTMLElement,
+  m: Messages,
+  id: FoundationNodeId,
+  at: { x: number; y: number },
+  waitsFor: string,
+  fields: readonly string[],
+) {
+  const el = nodeEl(root, id);
+  await expect(el.style.transform).toMatch(new RegExp(`translate\\(${at.x}px,\\s*${at.y}px\\)`));
   const card = el.querySelector(".ds-node") as HTMLElement;
   await expect(textOf(card.querySelector("[data-node-state]") as HTMLElement)).toBe(
-    fill(m.business.state.waiting, { nodes: nodeTitle(m, "positioning") }),
+    fill(m.business.state.waiting, { nodes: waitsFor }),
   );
-  await expect([...card.querySelectorAll(".ds-node__body ul li")].map(textOf)).toEqual([
+  await expect([...card.querySelectorAll(".ds-node__body ul li")].map(textOf)).toEqual([...fields]);
+  await expect(card.querySelector("bdi")).toBeNull();
+  el.focus({ preventScroll: true });
+  await focusOn(root, id);
+  await userEvent.keyboard("{Enter}");
+  const dialog = await dialogNamed(nodeTitle(m, id));
+  await expect(
+    within(dialog).getByRole("heading", { level: 2, name: nodeTitle(m, id) }),
+  ).toBeVisible();
+  await closeViewer(root, id);
+}
+
+/** The three foundation cards of the head (design 6.5 B1, section 7) on the Thai or English fixture. */
+async function expectFoundationCards(root: HTMLElement, m: Messages, locale: "th" | "en") {
+  const list = (...ids: (FoundationNodeId | BusinessNodeId)[]) =>
+    new Intl.ListFormat(locale, { type: "conjunction" }).format(ids.map((id) => nodeTitle(m, id)));
+  await expectFoundationCard(root, m, "identity-frame", { x: 1400, y: 160 }, list("positioning"), [
     m.business.field.person,
     m.business.field.never,
     m.business.field.personality,
   ]);
-  await expect(card.querySelector("bdi")).toBeNull();
-  el.focus({ preventScroll: true });
-  await focusOn(root, "identity-frame");
-  await userEvent.keyboard("{Enter}");
-  const dialog = await dialogNamed(m.business.node.identityFrame);
-  await expect(
-    within(dialog).getByRole("heading", { level: 2, name: m.business.node.identityFrame }),
-  ).toBeVisible();
-  await closeViewer(root, "identity-frame");
+  await expectFoundationCard(root, m, "architecture", { x: 1400, y: 576 }, list("positioning"), [
+    m.business.field.subBrands,
+    m.business.field.architecture,
+  ]);
+  await expectFoundationCard(root, m, "name", { x: 1888, y: 473 }, list("positioning"), [
+    m.business.field.workingName,
+  ]);
 }
 
-/** A saved Thai project on the present board: six nodes, seven edges, the dock, the gestures (rows 22, 23, 25). */
+/** A saved Thai project on the present board: eight nodes, eleven edges, the dock, the gestures (rows 22, 23, 25). */
 export const Board: Story = {
   play: async ({ canvasElement }) => {
     await expectBoard(canvasElement, th, THAI_VIEW, SAVED_TH);
     await expectGestures(canvasElement, th, THAI_VIEW);
     await expectTabOrder(canvasElement);
     await expectNoStatementSection(canvasElement, th);
-    await expectPersonalityCard(canvasElement, th);
+    await expectFoundationCards(canvasElement, th, "th");
   },
 };
 
 /**
- * Design 6.5 B2: at the 1440 frame every card sits inside the board and the fit is 0.617 within
- * 0.01. Design 6.5 says 0.640; the real cards are taller than the mock's, the fit is bound by the
- * height of the board, and Brand personality sits inside the height the business nodes already
- * take, so the fit is the 0.617 of ORV-285's sign-off (reported as a deviation). The fit is asked
+ * Design 7 (stage 2, eight cards): at the 1440 frame every card sits inside the board and the fit is
+ * 0.524 within 0.01, the figure the design gives and the real cards measure. Stage 1 held 0.617;
+ * the wider world of Name at x 1888 now sets the fit. The fit is asked
  * for again after the window is resized, then waited for.
  */
 export const BoardAt1440: Story = {
@@ -579,7 +600,7 @@ export const BoardAt1440: Story = {
         canvasElement.querySelector('[data-command="board.zoom-to-fit"]') as HTMLElement,
       );
       await settled(canvasElement);
-      await expect(Math.abs(zoomOf(canvasElement) - 0.617)).toBeLessThanOrEqual(0.01);
+      await expect(Math.abs(zoomOf(canvasElement) - 0.524)).toBeLessThanOrEqual(0.01);
       const region = within(canvasElement).getByRole("region", { name: th.business.board.label });
       const box = region.getBoundingClientRect();
       for (const id of BOARD_NODES) {
@@ -602,7 +623,7 @@ export const BoardEnglish: Story = {
     await expectGestures(canvasElement, en, ENGLISH_VIEW);
     await expectTabOrder(canvasElement);
     await expectNoStatementSection(canvasElement, en);
-    await expectPersonalityCard(canvasElement, en);
+    await expectFoundationCards(canvasElement, en, "en");
   },
 };
 
@@ -933,9 +954,9 @@ async function narrowPlay(canvasElement: HTMLElement, m: Messages) {
   await expect(region.getBoundingClientRect().height).toBeGreaterThanOrEqual(480);
   // B3 (ORV-291): from PR 1 the map no longer fits whole at 360. The fit stops at the 0.25 floor and
   // centres the world. React Flow's auto-pan on focus moves a card only when none of it is in view,
-  // so the two end cards (Situation and Brand personality) stay partly cut by the frame; each still
-  // overlaps the board, takes focus, and opens its view (design 2.2 says "fully inside": measured
-  // 59 px outside on Situation and 59 px on Brand personality, reported as a deviation).
+  // so the end cards (Situation at the left, Name at the right) stay partly cut by the frame; each still
+  // overlaps the board, takes focus, and opens its view (design 2.2 says "fully inside"; the stage 1
+  // measure was 59 px outside on each end card, reported as a deviation). Stage 2 holds all eight.
   await expect(Math.abs(zoomOf(canvasElement) - 0.25)).toBeLessThanOrEqual(0.001);
   await expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(
     Math.max(360, window.innerWidth),

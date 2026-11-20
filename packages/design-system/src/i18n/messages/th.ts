@@ -686,6 +686,7 @@ export const th = {
       why: "ทำไมคุณถึงเริ่มทำสิ่งนี้ ตอบสั้น ๆ หนึ่งหรือสองประโยคก็พอ",
       person: "ถ้าแบรนด์ของคุณเป็นคนคนหนึ่ง คนอื่นจะใช้คำสามคำใดบรรยายเขา",
       never: "แบรนด์ของคุณไม่ควรให้ความรู้สึกแบบไหน",
+      subBrands: "แบรนด์นี้อยู่เหนือหรืออยู่ใต้แบรนด์อื่นหรือไม่",
     },
     node: {
       situation: "สถานการณ์ตั้งต้น",
@@ -694,6 +695,8 @@ export const th = {
       competitiveFrame: "ตลาดและคู่แข่ง",
       positioning: "จุดยืน",
       identityFrame: "บุคลิกของแบรนด์",
+      architecture: "โครงสร้างแบรนด์",
+      name: "ชื่อแบรนด์",
     },
     field: {
       industry: "ประเภทธุรกิจ",
@@ -710,6 +713,9 @@ export const th = {
       personality: "บุคลิก",
       person: "สามคำที่บรรยายแบรนด์ถ้าเป็นคน",
       never: "ความรู้สึกที่แบรนด์ไม่ควรให้",
+      subBrands: "แบรนด์อื่นที่อยู่เหนือหรือใต้",
+      architecture: "โครงสร้าง",
+      workingName: "ชื่อใช้งาน",
     },
     state: {
       proposed: "ยังไม่ได้ยืนยัน",
@@ -720,10 +726,13 @@ export const th = {
       agreed: "เห็นชอบแล้ว",
       given: "คุณกำหนดเอง",
       waiting: "รอ {nodes} ก่อน",
+      derived: "ได้จากกฎที่กำหนดไว้",
+      notInVersion: "ยังไม่มีในเวอร์ชันนี้",
     },
     stillToAsk: "ยังต้องถาม",
     marks: {
       unchecked: "ยังไม่ได้ตรวจทานกับ: {nodes}",
+      restsOn: "อิงกับ: {nodes}",
     },
     axis: {
       playful: { low: "จริงจัง", high: "ขี้เล่น" },
@@ -740,6 +749,22 @@ export const th = {
       describe: "บอกบุคลิกของแบรนด์",
       save: "บันทึกบุคลิกนี้",
       axesRequired: "เลือกระดับให้ครบทั้งห้าสเกล หรือกดยกเลิก",
+    },
+    architecture: {
+      no: "ไม่ใช่ แบรนด์นี้อยู่เดี่ยว ๆ",
+      yes: "ใช่ แบรนด์นี้อยู่เหนือหรือใต้แบรนด์อื่น",
+      save: "บันทึกคำตอบนี้",
+      choiceRequired: "เลือกหนึ่งคำตอบก่อน",
+      single: "แบรนด์เดียว หน่วยเดียว",
+      because: "ได้จากคำตอบของคุณ: แบรนด์นี้ไม่ได้อยู่เหนือหรือใต้แบรนด์อื่น",
+      notInVersion:
+        "แบรนด์ที่อยู่เหนือหรือใต้แบรนด์อื่นต้องศึกษาโครงสร้างแบรนด์ ซึ่งเวอร์ชันนี้ยังไม่ได้ทำ",
+    },
+    name: {
+      give: "ตั้งชื่อใช้งาน",
+      save: "ใช้ชื่อนี้",
+      required: "เขียนชื่อใช้งาน หรือกดยกเลิก",
+      notScreened: "ชื่อใช้งานชั่วคราว ยังไม่ได้ตรวจสอบเครื่องหมายการค้า",
     },
     label: {
       yourWords: "คำของคุณเอง วางไว้ตรงนี้ด้วยกฎที่กำหนดไว้ ไม่ได้ให้ AI อ่าน",
@@ -789,6 +814,7 @@ export const th = {
   /** Strategy steps shared by the nodes that ask for a decision (ORV-126, "Missing strategy"). */
   strategy: {
     skip: "ข้ามไปก่อน",
+    provisional: "ชั่วคราว เพราะอิงกับขั้นตอนที่คุณข้ามไว้",
   },
   /**
    * The ORIVILO canvas prototype page (ORV-274, ORV-278). Quotes, the brand's own lines, type

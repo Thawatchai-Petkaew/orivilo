@@ -7,8 +7,10 @@ import {
   checkEntry,
   newestByNode,
   storedEntrySchema,
+  WORKING_NAME_MAX,
   type EntryInput,
   type EntryProblem,
+  type EntryRequest,
   type StoredEntry,
 } from "./foundation";
 import marksSource from "./foundation-marks.ts?raw";
@@ -236,10 +238,214 @@ describe("identity-frame entry", () => {
   });
 });
 
+// T27, spec row 14 and W5: the architecture and name arms of PR 2.
+const answered = (subBrands: unknown, extra: Record<string, unknown> = {}) => ({
+  projectId: PID,
+  node: "architecture",
+  kind: "answered",
+  payload: { subBrands },
+  ...extra,
+});
+const named = (name: unknown, payload: Record<string, unknown> = {}) => ({
+  projectId: PID,
+  node: "name",
+  kind: "given",
+  payload: { name, ...payload },
+});
+const THAI_60 = "ก".repeat(60);
+
+describe("architecture and name entries", () => {
+  it("row 14: the first four parse, the name as ORIVILO and the Thai name whole", () => {
+    expect(entryOf(answered(false))).toEqual({
+      projectId: PID,
+      node: "architecture",
+      kind: "answered",
+      payload: { subBrands: false },
+    });
+    expect(entryOf(answered(true))).toEqual({
+      projectId: PID,
+      node: "architecture",
+      kind: "answered",
+      payload: { subBrands: true },
+    });
+    expect(entryOf(named("  ORIVILO  "))).toEqual({
+      projectId: PID,
+      node: "name",
+      kind: "given",
+      payload: { name: "ORIVILO" },
+    });
+    expect(entryOf(named(THAI_60))).toMatchObject({ payload: { name: THAI_60 } });
+  });
+
+  it("row 14: each other input fails at the path of its field", () => {
+    const rows: Array<[string, unknown, EntryProblem[]]> = [
+      ["subBrands as text", answered("no"), [{ path: "payload.subBrands", kind: "invalid" }]],
+      ["a name of 61", named("ก".repeat(61)), [{ path: "payload.name", kind: "too-long" }]],
+      ["white space only", named("   "), [{ path: "payload.name", kind: "required" }]],
+      [
+        "an unknown key screened",
+        named("ORIVILO", { screened: true }),
+        [{ path: "payload.screened", kind: "unknown-key" }],
+      ],
+      [
+        "an architecture skip",
+        { projectId: PID, node: "architecture", kind: "skipped", payload: {} },
+        [{ path: "kind", kind: "invalid" }],
+      ],
+      [
+        "a name skip",
+        { projectId: PID, node: "name", kind: "skipped", payload: {} },
+        [{ path: "kind", kind: "invalid" }],
+      ],
+    ];
+    for (const [name, input, expected] of rows) {
+      expect(problemsOf(input), name).toEqual(expected);
+    }
+  });
+
+  it("W5: the trim and the bound of 1 to 60, as the node -e line prints it", () => {
+    const printed = ["  ORIVILO  ", "ก".repeat(60), "ก".repeat(61), "   "].map((name) => {
+      const checked = checkEntry(named(name));
+      return checked.ok && checked.entry.node === "name"
+        ? `ok:${checked.entry.payload.name.length}`
+        : "refused";
+    });
+    expect(printed.join(" ")).toBe("ok:7 ok:60 refused refused");
+  });
+
+  it("the bound of a working name is 60: 1 and 60 pass, 61 is too long, nothing is required", () => {
+    expect(WORKING_NAME_MAX).toBe(60);
+    expect(checkEntry(named("x")).ok).toBe(true);
+    expect(checkEntry(named("x".repeat(60))).ok).toBe(true);
+    expect(problemsOf(named("x".repeat(61)))).toEqual([{ path: "payload.name", kind: "too-long" }]);
+    for (const empty of ["", " ", "\n\t ", "\u0000", " \u0000 "]) {
+      expect(problemsOf(named(empty)), JSON.stringify(empty)).toEqual([
+        { path: "payload.name", kind: "required" },
+      ]);
+    }
+  });
+
+  it("a name drops U+0000 then trims, counts UTF-16 units and keeps a raw cap of 8,000", () => {
+    const payloadName = (input: unknown) => {
+      const entry = entryOf(input);
+      if (entry.node !== "name") throw new Error("a name entry");
+      return entry.payload.name;
+    };
+    expect(payloadName(named("\u0000 ORI\u0000VILO \u0000"))).toBe("ORIVILO");
+    expect(checkEntry(named("😀".repeat(30))).ok).toBe(true);
+    expect(problemsOf(named("😀".repeat(31)))).toEqual([
+      { path: "payload.name", kind: "too-long" },
+    ]);
+    const padded = (n: number) => `${" ".repeat(n)}x`;
+    expect(payloadName(named(padded(7999)))).toBe("x");
+    expect(problemsOf(named(padded(8000)))).toEqual([{ path: "payload.name", kind: "too-long" }]);
+  });
+
+  it("a missing or mistyped name is required or invalid, never a value", () => {
+    expect(problemsOf({ projectId: PID, node: "name", kind: "given", payload: {} })).toEqual([
+      { path: "payload.name", kind: "required" },
+    ]);
+    expect(problemsOf(named(5))).toEqual([{ path: "payload.name", kind: "invalid" }]);
+    expect(problemsOf(named(null))).toEqual([{ path: "payload.name", kind: "invalid" }]);
+    expect(problemsOf({ projectId: PID, node: "name", kind: "given" })).toEqual([
+      { path: "payload", kind: "required" },
+    ]);
+  });
+
+  it("an answer is a boolean: each other value is invalid, a missing one required", () => {
+    for (const bad of ["no", "true", 0, 1, null, [], {}]) {
+      expect(problemsOf(answered(bad)), JSON.stringify(bad)).toEqual([
+        { path: "payload.subBrands", kind: "invalid" },
+      ]);
+    }
+    expect(
+      problemsOf({ projectId: PID, node: "architecture", kind: "answered", payload: {} }),
+    ).toEqual([{ path: "payload.subBrands", kind: "required" }]);
+  });
+
+  it("each arm refuses a key outside its row, at the root and in the payload", () => {
+    expect(problemsOf(answered(true, { score: 1 }))).toEqual([
+      { path: "score", kind: "unknown-key" },
+    ]);
+    expect(
+      problemsOf({
+        projectId: PID,
+        node: "architecture",
+        kind: "answered",
+        payload: { subBrands: true, units: 3 },
+      }),
+    ).toEqual([{ path: "payload.units", kind: "unknown-key" }]);
+    expect(problemsOf({ ...named("x"), score: 1 })).toEqual([
+      { path: "score", kind: "unknown-key" },
+    ]);
+    expect(problemsOf(named("x", { person: "y" }))).toEqual([
+      { path: "payload.person", kind: "unknown-key" },
+    ]);
+  });
+
+  it("a kind of another node is refused: no given for architecture, no answered for name", () => {
+    expect(
+      problemsOf({
+        projectId: PID,
+        node: "architecture",
+        kind: "given",
+        payload: { subBrands: true },
+      }),
+    ).toEqual([{ path: "kind", kind: "invalid" }]);
+    expect(
+      problemsOf({ projectId: PID, node: "name", kind: "answered", payload: { name: "x" } }),
+    ).toEqual([{ path: "kind", kind: "invalid" }]);
+  });
+
+  it("each new arm takes a whole UUID as the project id and nothing else", () => {
+    for (const bad of [`x${PID}`, `${PID}x`, PID.replaceAll("-", ""), "not-a-uuid", ""]) {
+      expect(problemsOf(answered(true, { projectId: bad })), bad).toEqual([
+        { path: "projectId", kind: "invalid" },
+      ]);
+      expect(problemsOf({ ...named("x"), projectId: bad }), bad).toEqual([
+        { path: "projectId", kind: "invalid" },
+      ]);
+    }
+    expect(checkEntry(answered(true, { projectId: PID.toUpperCase() })).ok).toBe(true);
+    expect(checkEntry({ ...named("x"), projectId: PID.toUpperCase() }).ok).toBe(true);
+  });
+
+  it("the node core-idea is not built in this PR", () => {
+    expect(problemsOf({ projectId: PID, node: "core-idea", kind: "skipped", payload: {} })).toEqual(
+      [{ path: "node", kind: "invalid" }],
+    );
+  });
+
+  it("a problem on a name holds a path and a kind only: the name never reaches it", () => {
+    const secret = "SECRET-NAME-MARKER";
+    const problems = [
+      ...problemsOf(named(`${secret}${"x".repeat(61)}`)),
+      ...problemsOf(named(secret, { screened: secret })),
+      ...problemsOf(answered(secret)),
+    ];
+    expect(problems).toHaveLength(3);
+    for (const p of problems) expect(Object.keys(p).sort()).toEqual(["kind", "path"]);
+    expect(JSON.stringify(problems)).not.toContain(secret);
+  });
+
+  it("EntryRequest drops the project id of the two new arms", () => {
+    const request: EntryRequest = { node: "name", kind: "given", payload: { name: "ORIVILO" } };
+    const other: EntryRequest = {
+      node: "architecture",
+      kind: "answered",
+      payload: { subBrands: false },
+    };
+    expect(checkEntry({ projectId: PID, ...request }).ok).toBe(true);
+    expect(checkEntry({ projectId: PID, ...other }).ok).toBe(true);
+  });
+});
+
 describe("text rules", () => {
   const payloadOf = (input: unknown) => {
     const entry = entryOf(input);
-    if (entry.kind !== "given") throw new Error("a given entry");
+    if (entry.node !== "identity-frame" || entry.kind !== "given") {
+      throw new Error("a given personality entry");
+    }
     return entry.payload;
   };
 
@@ -283,7 +489,9 @@ describe("text rules", () => {
 describe("axes fit ORV-20's personality facts", () => {
   it("a given payload's axes parse with the personality schema of rules.ts, unchanged", () => {
     const entry = entryOf(given({ axes: AXES }));
-    if (entry.kind !== "given") throw new Error("given");
+    if (entry.node !== "identity-frame" || entry.kind !== "given") {
+      throw new Error("a given personality entry");
+    }
     const facts = briefFactsSchema.safeParse({
       personality: entry.payload.axes,
       industry: null,
@@ -343,6 +551,70 @@ describe("the stored entry", () => {
     expect(storedEntrySchema.safeParse(input).success).toBe(false);
   });
 
+  describe("the architecture and name rows", () => {
+    const stored = (node: string, kind: string, payload: unknown, over = {}) => ({
+      id: "e1",
+      node,
+      kind,
+      payload,
+      createdAt: "2026-11-19T03:04:05.000Z",
+      ...over,
+    });
+
+    it("parses an answered row of either value and a name of 1 and of 60, as they are", () => {
+      for (const subBrands of [false, true]) {
+        const row = stored("architecture", "answered", { subBrands });
+        expect(storedEntrySchema.parse(row)).toEqual(row);
+      }
+      const spaced = stored("name", "given", { name: " keeps its spaces " });
+      expect(storedEntrySchema.parse(spaced)).toEqual(spaced);
+      expect(storedEntrySchema.safeParse(stored("name", "given", { name: "x" })).success).toBe(
+        true,
+      );
+      expect(storedEntrySchema.safeParse(stored("name", "given", { name: THAI_60 })).success).toBe(
+        true,
+      );
+    });
+
+    it.each([
+      ["an answer that is text", stored("architecture", "answered", { subBrands: "no" })],
+      ["an answer that is missing", stored("architecture", "answered", {})],
+      [
+        "an unknown key beside the answer",
+        stored("architecture", "answered", { subBrands: true, x: 1 }),
+      ],
+      [
+        "an unknown top-level key on an answered row",
+        stored("architecture", "answered", { subBrands: true }, { extra: 1 }),
+      ],
+      ["an architecture skip", stored("architecture", "skipped", {})],
+      ["an architecture given row", stored("architecture", "given", { subBrands: true })],
+      ["an empty name", stored("name", "given", { name: "" })],
+      ["a name of 61", stored("name", "given", { name: "x".repeat(61) })],
+      ["a name that is not text", stored("name", "given", { name: 5 })],
+      ["a name row with no name", stored("name", "given", {})],
+      ["an unknown key beside the name", stored("name", "given", { name: "x", screened: true })],
+      [
+        "an unknown top-level key on a name row",
+        stored("name", "given", { name: "x" }, { extra: 1 }),
+      ],
+      ["a name skip", stored("name", "skipped", {})],
+      ["a name answered row", stored("name", "answered", { name: "x" })],
+      ["a core-idea row", stored("core-idea", "skipped", {})],
+    ])("refuses %s", (_label, row) => {
+      expect(storedEntrySchema.safeParse(row).success).toBe(false);
+    });
+
+    it("counts a stored name in UTF-16 units: 30 emoji pass and 31 do not", () => {
+      expect(
+        storedEntrySchema.safeParse(stored("name", "given", { name: "😀".repeat(30) })).success,
+      ).toBe(true);
+      expect(
+        storedEntrySchema.safeParse(stored("name", "given", { name: "😀".repeat(31) })).success,
+      ).toBe(false);
+    });
+  });
+
   it("an answer of 2,000 stored passes", () => {
     expect(
       storedEntrySchema.safeParse(row({ payload: { axes: AXES, person: "x".repeat(2000) } }))
@@ -362,7 +634,35 @@ describe("newest by node", () => {
     });
 
   it("is null for a node with no entry", () => {
-    expect(newestByNode([])).toEqual({ "identity-frame": null });
+    expect(newestByNode([])).toEqual({ "identity-frame": null, architecture: null, name: null });
+  });
+
+  it("keeps the newest of each node apart: an entry of one node never hides another's", () => {
+    const arch = storedEntrySchema.parse({
+      id: "a1",
+      node: "architecture",
+      kind: "answered",
+      payload: { subBrands: false },
+      createdAt: "2026-11-19T05:00:00.000Z",
+    });
+    const name = storedEntrySchema.parse({
+      id: "n1",
+      node: "name",
+      kind: "given",
+      payload: { name: "ORIVILO" },
+      createdAt: "2026-11-19T01:00:00.000Z",
+    });
+    const personality = at("p1", "2026-11-19T03:00:00.000Z", "given");
+    for (const list of [
+      [arch, name, personality],
+      [name, personality, arch],
+    ]) {
+      expect(newestByNode(list)).toEqual({
+        "identity-frame": personality,
+        architecture: arch,
+        name,
+      });
+    }
   });
 
   it("is the entry with the latest created time, in whatever order the list comes", () => {
@@ -397,7 +697,10 @@ describe("exports", () => {
     expect(typeof engine.newestByNode).toBe("function");
     expect(typeof engine.foundationMarks).toBe("function");
     expect(typeof engine.entryAllowed).toBe("function");
-    expect(engine.FOUNDATION_NODES).toEqual(["identity-frame"]);
+    expect(engine.FOUNDATION_NODES).toEqual(["identity-frame", "architecture", "name"]);
+    expect(engine.WORKING_NAME_MAX).toBe(60);
+    expect(engine.START_QUESTIONS.map((q) => q.id)).toEqual(["situation.sub-brands"]);
+    expect(typeof engine.derivedArchitecture).toBe("function");
   });
 });
 

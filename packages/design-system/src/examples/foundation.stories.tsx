@@ -1,12 +1,13 @@
 import {
   type BusinessView,
+  type EntryProblem,
   type EntryRequest,
   type FoundationNode,
   PERSONALITY_AXES,
   type PersonalityAxis,
 } from "@orivilo/intent-engine";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { Under } from "../components/matrix";
 import { LocaleProvider } from "../i18n/LocaleProvider";
@@ -23,12 +24,18 @@ import { en, expectFitsAt360, FixtureNote, textOf, th } from "./business-story-h
 import { nodeTitle } from "./business-text";
 import {
   afterEntry,
+  afterEntryOn,
+  answeredEntry,
+  FIXTURE_NAME,
   FIXTURE_POINTS,
   given,
   givenEntry,
   givenUnchecked,
   HOSTILE_ANSWERS,
+  HOSTILE_NAME,
   LONG_PERSONALITY_ANSWER,
+  LONG_WORKING_NAME,
+  nameEntry,
   open,
   PERSONALITY_ANSWERS,
   waiting,
@@ -38,7 +45,7 @@ import { type FoundationEditor, FoundationNodeView } from "./foundation-view";
 type Lang = "th" | "en";
 
 /** What the stub action answers: saved, or a line the page would have resolved from `saved.errors.*`. */
-type StubResult = { ok: true } | { ok: false; failure: string };
+type StubResult = { ok: true } | { ok: false; failure: string; problems?: EntryProblem[] };
 /** Shared by every story below; each play resets it first. */
 const enter = fn<(request: EntryRequest) => Promise<StubResult>>();
 
@@ -60,34 +67,46 @@ function Host({
   readOnly = false,
   narrow = false,
   heading = false,
+  node: nodeId = "identity-frame",
+  after = (request) => afterEntry(locale, request),
+  frame = true,
+  companion,
 }: {
   locale: Lang;
   initial: BusinessView;
   readOnly?: boolean;
   narrow?: boolean;
   heading?: boolean;
+  /** The node the view shows; Brand personality unless a PR 2 story names another. */
+  node?: FoundationNode["id"];
+  /** The view the page would build again once the stub action has saved: the project the story is on. */
+  after?: (request: EntryRequest) => BusinessView;
+  /** False inside a story that holds several views in one frame of its own. */
+  frame?: boolean;
+  /** A second node of the same project, read-only under the first: where a story reads its state line. */
+  companion?: FoundationNode["id"];
 }) {
   const [view, setView] = useState(initial);
   const [pending, setPending] = useState<"saving" | null>(null);
   const [failure, setFailure] = useState<string | undefined>(undefined);
+  const [problems, setProblems] = useState<EntryProblem[] | undefined>(undefined);
   const [editor, setEditor] = useState<FoundationEditor>(null);
-  const node = view.foundation[0] as FoundationNode;
+  const node = view.foundation.find((n) => n.id === nodeId) as FoundationNode;
+  const other = view.foundation.find((n) => n.id === companion);
   const onEnter = (request: EntryRequest) => {
     setPending("saving");
     setFailure(undefined);
     void enter(request).then((result) => {
-      if (result.ok) setView(afterEntry(locale, request));
-      else setFailure(result.failure);
+      if (result.ok) setView(after(request));
+      else {
+        setFailure(result.failure);
+        setProblems(result.problems);
+      }
       setPending(null);
     });
   };
-  return (
-    <div
-      {...(narrow ? { "data-narrow": "" } : {})}
-      className={
-        narrow ? "w-[360px] max-w-full overflow-hidden ps-[33px] pe-[45px]" : "overflow-hidden p-4"
-      }
-    >
+  const shown = (
+    <>
       <FoundationNodeView
         node={node}
         heading={heading}
@@ -96,6 +115,7 @@ function Host({
             ? undefined
             : {
                 pending,
+                problems,
                 failure,
                 onEnter,
                 onDismiss: () => setFailure(undefined),
@@ -104,6 +124,22 @@ function Host({
               }
         }
       />
+      {other === undefined ? null : (
+        <div className="mt-6" data-companion={other.id}>
+          <FoundationNodeView node={other} heading />
+        </div>
+      )}
+    </>
+  );
+  if (!frame) return shown;
+  return (
+    <div
+      {...(narrow ? { "data-narrow": "" } : {})}
+      className={
+        narrow ? "w-[360px] max-w-full overflow-hidden ps-[33px] pe-[45px]" : "overflow-hidden p-4"
+      }
+    >
+      {shown}
     </div>
   );
 }
@@ -122,7 +158,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "The Brand personality node's view (ORV-291, PR 1): its state line, the mark line when it was not checked against Positioning, two optional answers in the person's own words and five scales of five points, each named by its two ends. The editor opens with no point chosen; a point is a value only when the person chose it. Everything here is rule-based: no model reads these answers and nothing is sent anywhere. Every project is a labelled fixture; nobody gave these answers.",
+          "The views of the brand foundation nodes. PR 2 (ORV-295) adds Brand architecture, one question with two choices and no Cancel, whose value is worked out by a fixed rule, and Name, a working name the person gives that is not screened for trademarks; their stories follow Brand personality's. Brand personality (ORV-291, PR 1): its state line, the mark line when it was not checked against Positioning, two optional answers in the person's own words and five scales of five points, each named by its two ends. The editor opens with no point chosen; a point is a value only when the person chose it. Everything here is rule-based: no model reads these answers and nothing is sent anywhere. Every project is a labelled fixture; nobody gave these answers.",
       },
     },
   },
@@ -133,8 +169,9 @@ type Story = StoryObj<typeof meta>;
 
 // ----- helpers -----
 
-const viewOf = (root: HTMLElement) =>
-  root.querySelector<HTMLElement>('[data-node="identity-frame"]') as HTMLElement;
+const nodeViewOf = (root: HTMLElement, id: FoundationNode["id"]) =>
+  root.querySelector<HTMLElement>(`[data-node="${id}"]`) as HTMLElement;
+const viewOf = (root: HTMLElement) => nodeViewOf(root, "identity-frame");
 const stateLineOf = (v: HTMLElement) =>
   v.querySelector<HTMLElement>("[data-node-state]") as HTMLElement;
 const fieldsOf = (v: HTMLElement) => [...v.querySelectorAll<HTMLElement>("[data-field]")];
@@ -182,11 +219,16 @@ async function expectFallbacks(v: HTMLElement, text: string) {
   }
 }
 
+/** What a story gives the host beyond the project: read-only, a PR 2 node, the stub's project, a companion. */
+type HostOptions = Partial<
+  Pick<Parameters<typeof Host>[0], "readOnly" | "node" | "after" | "companion">
+>;
+
 const hosted =
-  (locale: Lang, initial: BusinessView, options: { readOnly?: boolean } = {}) =>
+  (locale: Lang, initial: BusinessView, options: HostOptions = {}) =>
   () => <Host locale={locale} initial={initial} {...options} />;
 const hostedEnglish =
-  (initial: BusinessView, options: { readOnly?: boolean } = {}) =>
+  (initial: BusinessView, options: HostOptions = {}) =>
   () => (
     <LocaleProvider locale="en">
       <Host locale="en" initial={initial} {...options} />
@@ -667,19 +709,44 @@ async function untrustedPlay(canvasElement: HTMLElement, m: Messages) {
 }
 
 const untrusted = (locale: Lang) =>
-  foundationProject(locale, "agreed", [givenEntry(HOSTILE_ANSWERS)]);
+  foundationProject(locale, "agreed", [
+    givenEntry(HOSTILE_ANSWERS),
+    answeredEntry(false),
+    nameEntry(HOSTILE_NAME),
+  ]);
+
+/** Spec row 22: markup as a working name is text in a `bdi`, never an image, a link, a script or a tag. */
+async function untrustedNamePlay(canvasElement: HTMLElement, m: Messages) {
+  const v = nodeViewOf(canvasElement, "name");
+  await expectState(v, "given", m.business.state.given);
+  const name = v.querySelector<HTMLElement>('[data-field="workingName"] bdi') as HTMLElement;
+  await expect(name.textContent).toBe(HOSTILE_NAME);
+  await expect(name.children).toHaveLength(0);
+  await expect(v.querySelectorAll("a, img, script, b")).toHaveLength(0);
+  await expect(textOf(v)).toContain(m.business.name.notScreened);
+}
+
+/** Both nodes with text the person typed: the answers of Brand personality and the working name. */
+const untrustedHosts = (locale: Lang) => (
+  <>
+    <Host locale={locale} initial={untrusted(locale)} />
+    <Host locale={locale} initial={untrusted(locale)} node="name" />
+  </>
+);
 
 export const FoundationUntrustedText: Story = {
-  render: hosted("th", untrusted("th")),
+  render: () => untrustedHosts("th"),
   play: async ({ canvasElement }) => {
     await untrustedPlay(canvasElement, th);
+    await untrustedNamePlay(canvasElement, th);
   },
 };
 
 export const FoundationUntrustedTextEnglish: Story = {
-  render: hostedEnglish(untrusted("en")),
+  render: () => <LocaleProvider locale="en">{untrustedHosts("en")}</LocaleProvider>,
   play: async ({ canvasElement }) => {
     await untrustedPlay(canvasElement, en);
+    await untrustedNamePlay(canvasElement, en);
   },
 };
 
@@ -895,5 +962,772 @@ export const IdentityNarrowEditorEnglish: Story = {
   render: narrowHost("en", open("en"), "light"),
   play: async ({ canvasElement }) => {
     await narrowEditorPlay(canvasElement, en, "en");
+  },
+};
+
+// ----- Brand architecture (ORV-295, spec rows 15 to 17) -----
+
+type Gate = "open" | "skipped" | "agreed";
+const architectureOn = (locale: Lang, gate: Gate) => ({
+  node: "architecture" as const,
+  after: afterEntryOn(locale, gate),
+});
+
+const choiceOf = (v: HTMLElement) =>
+  v.querySelector<HTMLElement>('[data-field="subBrands"]') as HTMLElement;
+const answerField = (v: HTMLElement) =>
+  v.querySelector<HTMLElement>('[data-field="architecture"]') as HTMLElement;
+const saveOf = (v: HTMLElement) =>
+  v.querySelector<HTMLElement>('[data-choice="save"]') as HTMLElement;
+const groupOf = (v: HTMLElement, m: Messages) =>
+  within(v).getByRole("radiogroup", { name: m.business.question.subBrands });
+const choiceRadio = (v: HTMLElement, m: Messages, which: "no" | "yes") =>
+  within(groupOf(v, m)).getByRole("radio", { name: m.business.architecture[which] });
+/** The lines of one field, as text, heading first. */
+const linesOf = (field: HTMLElement) => [...field.children].map((c) => textOf(c));
+/** The fixed-rule architecture, with its "because" line under it. */
+const expectDerived = async (v: HTMLElement, m: Messages) => {
+  await expectState(v, "derived", m.business.state.derived);
+  await expect(linesOf(choiceOf(v))).toEqual([
+    m.business.field.subBrands,
+    m.business.architecture.no,
+  ]);
+  await expect(linesOf(answerField(v))).toEqual([
+    m.business.field.architecture,
+    m.business.architecture.single,
+    m.business.architecture.because,
+  ]);
+  await expect(v.querySelector("[data-editor], [role=radiogroup], [data-row]")).toBeNull();
+  await expect(buttonsOf(v)).toHaveLength(0);
+};
+
+/**
+ * Spec row 15 and design A1, A4 to A6: the question with two choices and nothing checked, one button
+ * in the row. A rate limited save keeps the choice and says so under the row; a double press makes
+ * one call. Choosing No and saving shows "Worked out by a fixed rule", "Single brand, one unit" with
+ * the line that says where it came from, no control, and focus on the Architecture heading.
+ */
+async function derivedPlay(canvasElement: HTMLElement, m: Messages, locale: Lang) {
+  enter.mockReset();
+  const v = nodeViewOf(canvasElement, "architecture");
+  await expectState(v, "empty", m.business.state.empty);
+  await expect(within(groupOf(v, m)).getAllByRole("radio")).toHaveLength(2);
+  await expect(checkedIn(v)).toBe(0);
+  await expect([...v.querySelectorAll("[data-row] button")].map(textOf)).toEqual([
+    m.business.architecture.save,
+  ]);
+  await expect(saveOf(v).dataset["variant"]).toBe("primary");
+  // The question is the group's name: the field's own heading would say it twice.
+  await expect(within(choiceOf(v)).queryByRole("heading")).toBeNull();
+  await expect(linesOf(answerField(v))).toEqual([
+    m.business.field.architecture,
+    m.business.state.empty,
+  ]);
+
+  await userEvent.click(choiceRadio(v, m, "no"));
+  await expect(checkedIn(v)).toBe(1);
+  let release: (result: StubResult) => void = () => {};
+  enter.mockImplementation(
+    () =>
+      new Promise<StubResult>((done) => {
+        release = done;
+      }),
+  );
+  await userEvent.click(saveOf(v));
+  await userEvent.click(saveOf(v));
+  await expect(enter).toHaveBeenCalledTimes(1);
+  await expect(saveOf(v)).toHaveAttribute("aria-disabled", "true");
+  await expect(textOf(saveOf(v))).toContain(m.business.positioning.saving);
+  release({ ok: false, failure: RATE_LIMITED[locale] });
+  await waitFor(() => expect(textOf(failureRegionOf(v))).toContain(RATE_LIMITED[locale]));
+  await expect(checkedIn(v)).toBe(1);
+  await expect(choiceRadio(v, m, "no")).toHaveAttribute("aria-checked", "true");
+  await expect(saveOf(v)).not.toHaveAttribute("aria-disabled");
+
+  enter.mockReset();
+  enter.mockResolvedValue({ ok: true });
+  await userEvent.click(saveOf(v));
+  await waitFor(() => expect(stateLineOf(v).dataset["nodeState"]).toBe("derived"));
+  await expect(enter).toHaveBeenCalledTimes(1);
+  await expect(enter).toHaveBeenCalledWith({
+    node: "architecture",
+    kind: "answered",
+    payload: { subBrands: false },
+  });
+  await expectDerived(v, m);
+  await expect(v.querySelector("[data-marks]")).toBeNull();
+  const [value, because] = [...answerField(v).querySelectorAll<HTMLElement>("p")] as [
+    HTMLElement,
+    HTMLElement,
+  ];
+  if (inVitest) await expectInkClearsAbove(because, value, 2);
+  await focusedIs(
+    within(answerField(v)).getByRole("heading", { name: m.business.field.architecture }),
+  );
+}
+
+export const ArchitectureDerived: Story = {
+  render: hosted("th", open("th"), architectureOn("th", "agreed")),
+  play: async ({ canvasElement }) => {
+    await derivedPlay(canvasElement, th, "th");
+  },
+};
+
+export const ArchitectureDerivedEnglish: Story = {
+  render: hostedEnglish(open("en"), architectureOn("en", "agreed")),
+  play: async ({ canvasElement }) => {
+    await derivedPlay(canvasElement, en, "en");
+  },
+};
+
+/**
+ * Spec row 16 and design A3, A10: a save with no choice shows "Choose one answer first", puts focus
+ * on the first option without checking it, and makes no call. Yes is saved as the answer, the node
+ * says it is not in this version, the Architecture field holds that one sentence and no value, and
+ * the Name card (a read-only view of the same project) now waits for Brand architecture.
+ */
+async function notInVersionPlay(canvasElement: HTMLElement, m: Messages) {
+  enter.mockReset();
+  enter.mockResolvedValue({ ok: true });
+  const v = nodeViewOf(canvasElement, "architecture");
+  await userEvent.click(saveOf(v));
+  await waitFor(() =>
+    expect(within(choiceOf(v)).getByText(m.business.architecture.choiceRequired)).toBeVisible(),
+  );
+  await expect(groupOf(v, m)).toHaveAttribute("aria-invalid", "true");
+  await focusedIs(choiceRadio(v, m, "no"));
+  await expect(checkedIn(v)).toBe(0);
+  await expect(enter).toHaveBeenCalledTimes(0);
+
+  await userEvent.click(choiceRadio(v, m, "yes"));
+  await expect(within(choiceOf(v)).queryByText(m.business.architecture.choiceRequired)).toBeNull();
+  await userEvent.click(saveOf(v));
+  await waitFor(() => expect(stateLineOf(v).dataset["nodeState"]).toBe("notInVersion"));
+  await expect(enter).toHaveBeenCalledTimes(1);
+  await expect(enter).toHaveBeenCalledWith({
+    node: "architecture",
+    kind: "answered",
+    payload: { subBrands: true },
+  });
+  await expectState(v, "notInVersion", m.business.state.notInVersion);
+  await expect(linesOf(choiceOf(v))).toEqual([
+    m.business.field.subBrands,
+    m.business.architecture.yes,
+  ]);
+  // No value under Architecture: the one sentence, as a secondary line.
+  await expect(linesOf(answerField(v))).toEqual([
+    m.business.field.architecture,
+    m.business.architecture.notInVersion,
+  ]);
+  await expect(textOf(v)).not.toContain(m.business.architecture.single);
+  await expect(buttonsOf(v)).toHaveLength(0);
+  const name = nodeViewOf(canvasElement, "name");
+  await expectState(
+    name,
+    "waiting",
+    fill(m.business.state.waiting, { nodes: nodeTitle(m, "architecture") }),
+  );
+}
+
+export const ArchitectureNotInVersion: Story = {
+  render: hosted("th", open("th"), { ...architectureOn("th", "agreed"), companion: "name" }),
+  play: async ({ canvasElement }) => {
+    await notInVersionPlay(canvasElement, th);
+  },
+};
+
+export const ArchitectureNotInVersionEnglish: Story = {
+  render: hostedEnglish(open("en"), { ...architectureOn("en", "agreed"), companion: "name" }),
+  play: async ({ canvasElement }) => {
+    await notInVersionPlay(canvasElement, en);
+  },
+};
+
+/** The three projects of spec row 17, each in a frame of its own. */
+function MarksCases({ locale }: { locale: Lang }) {
+  const cases: [string, BusinessView][] = [
+    ["answered-waiting", foundationProject(locale, "open", [answeredEntry(false)])],
+    ["answered-skipped", foundationProject(locale, "skipped", [answeredEntry(false)])],
+    ["unanswered-waiting", foundationProject(locale, "open")],
+  ];
+  return (
+    <>
+      {cases.map(([name, initial]) => (
+        <div key={name} data-case={name}>
+          <Host locale={locale} initial={initial} {...architectureOn(locale, "open")} />
+        </div>
+      ))}
+    </>
+  );
+}
+
+/**
+ * Spec row 17 and design A2, A7, A9: positioning with no choice and the answer "no" waits for
+ * Positioning, with the answer and no architecture value; with Positioning skipped the value shows,
+ * with the provisional pair of lines (4 apart, at the state line's edge); with no answer it waits
+ * and still asks the question, with its button.
+ */
+async function architectureMarksPlay(canvasElement: HTMLElement, m: Messages) {
+  const at = (name: string) =>
+    nodeViewOf(canvasElement.querySelector(`[data-case="${name}"]`) as HTMLElement, "architecture");
+  const waitingLine = fill(m.business.state.waiting, { nodes: nodeTitle(m, "positioning") });
+
+  const first = at("answered-waiting");
+  await expectState(first, "waiting", waitingLine);
+  await expect(linesOf(choiceOf(first))).toEqual([
+    m.business.field.subBrands,
+    m.business.architecture.no,
+  ]);
+  await expect(linesOf(answerField(first))).toEqual([
+    m.business.field.architecture,
+    m.business.state.empty,
+  ]);
+  await expect(textOf(first)).not.toContain(m.business.architecture.single);
+  await expect(first.querySelector("[data-marks], [data-row], [role=radiogroup]")).toBeNull();
+
+  const second = at("answered-skipped");
+  await expect(second.querySelectorAll("[data-marks]")).toHaveLength(1);
+  await expectState(second, "derived", m.business.state.derived);
+  await expect(linesOf(answerField(second))).toEqual([
+    m.business.field.architecture,
+    m.business.architecture.single,
+    m.business.architecture.because,
+  ]);
+  const provisional = second.querySelector<HTMLElement>(
+    '[data-marks="provisional"]',
+  ) as HTMLElement;
+  await expect(provisional.closest("[data-head]")).toBe(second.querySelector("[data-head]"));
+  const lines = [...provisional.children] as HTMLElement[];
+  await expect(lines.map(textOf)).toEqual([
+    m.strategy.provisional,
+    fill(m.business.marks.restsOn, { nodes: nodeTitle(m, "positioning") }),
+  ]);
+  const gap =
+    (lines[1] as HTMLElement).getBoundingClientRect().top -
+    (lines[0] as HTMLElement).getBoundingClientRect().bottom;
+  await expect(Math.abs(gap - 4)).toBeLessThanOrEqual(0.5);
+  const state = stateLineOf(second).getBoundingClientRect();
+  await expect(Math.abs(provisional.getBoundingClientRect().left - state.left)).toBeLessThanOrEqual(
+    0.5,
+  );
+  await expect(
+    Math.abs(provisional.getBoundingClientRect().top - state.bottom - 8),
+  ).toBeLessThanOrEqual(0.5);
+
+  const third = at("unanswered-waiting");
+  await expectState(third, "waiting", waitingLine);
+  await expect(groupOf(third, m)).toBeVisible();
+  await expect(checkedIn(third)).toBe(0);
+  await expect([...third.querySelectorAll("[data-row] button")].map(textOf)).toEqual([
+    m.business.architecture.save,
+  ]);
+  await expect(textOf(third)).not.toContain(m.business.architecture.single);
+}
+
+export const ArchitectureMarks: Story = {
+  render: () => <MarksCases locale="th" />,
+  play: async ({ canvasElement }) => {
+    await architectureMarksPlay(canvasElement, th);
+  },
+};
+
+export const ArchitectureMarksEnglish: Story = {
+  render: () => (
+    <LocaleProvider locale="en">
+      <MarksCases locale="en" />
+    </LocaleProvider>
+  ),
+  play: async ({ canvasElement }) => {
+    await architectureMarksPlay(canvasElement, en);
+  },
+};
+
+// ----- Name (ORV-295, spec rows 18 to 20) -----
+
+const nameOn = (locale: Lang, gate: Gate, before: StoredEntryList = []) => ({
+  node: "name" as const,
+  after: afterEntryOn(locale, gate, before),
+});
+type StoredEntryList = Parameters<typeof afterEntryOn>[2];
+
+const nameField = (v: HTMLElement) =>
+  v.querySelector<HTMLElement>('[data-field="workingName"]') as HTMLElement;
+const giveOf = (v: HTMLElement) =>
+  v.querySelector<HTMLElement>('[data-choice="give"]') as HTMLElement;
+const nameInput = (v: HTMLElement) =>
+  v.querySelector<HTMLInputElement>("input") as HTMLInputElement;
+
+/** The Name view before anything is given: the state, one fallback line, and Give as the one button. */
+async function expectNameOpen(
+  v: HTMLElement,
+  key: FoundationNode["state"],
+  line: string,
+  m: Messages,
+) {
+  await expectState(v, key, line);
+  await expect(linesOf(nameField(v))).toEqual([
+    m.business.field.workingName,
+    m.business.state.empty,
+  ]);
+  await expect(buttonsOf(v).map(textOf)).toEqual([m.business.name.give]);
+  await expect(giveOf(v).dataset["variant"]).toBe("primary");
+}
+
+/**
+ * Spec row 18 and design N1, N3, N7: Give opens the editor with focus on the input; "  ORIVILO  " is
+ * saved (the server trims it), and the view shows the name as text with "not screened for
+ * trademarks" under it, "Given by you", no mark, no control, focus on the Working name heading.
+ */
+async function nameGivenPlay(canvasElement: HTMLElement, m: Messages) {
+  enter.mockReset();
+  enter.mockResolvedValue({ ok: true });
+  const v = nodeViewOf(canvasElement, "name");
+  await expectNameOpen(v, "empty", m.business.state.empty, m);
+  await userEvent.click(giveOf(v));
+  await focusedIs(nameInput(v));
+  await expect(nameInput(v)).toHaveAttribute("aria-required", "true");
+  await expect(within(v).getByRole("textbox", { name: /./ })).toBe(nameInput(v));
+  await expect(nameInput(v).labels?.[0]?.textContent).toContain(m.business.field.workingName);
+  await expect(
+    [...v.querySelectorAll("[data-row] button")].map((b) => [
+      textOf(b),
+      (b as HTMLElement).dataset["variant"],
+    ]),
+  ).toEqual([
+    [m.business.name.save, "primary"],
+    [m.business.positioning.cancel, "secondary"],
+  ]);
+  await userEvent.type(nameInput(v), `  ${FIXTURE_NAME}  `);
+  await userEvent.click(saveOf(v));
+  await waitFor(() => expect(stateLineOf(v).dataset["nodeState"]).toBe("given"));
+  await expect(enter).toHaveBeenCalledTimes(1);
+  await expect(enter).toHaveBeenCalledWith({
+    node: "name",
+    kind: "given",
+    payload: { name: `  ${FIXTURE_NAME}  ` },
+  });
+  await expectState(v, "given", m.business.state.given);
+  const field = nameField(v);
+  await expect(linesOf(field)).toEqual([
+    m.business.field.workingName,
+    FIXTURE_NAME,
+    m.business.name.notScreened,
+  ]);
+  await expect(field.querySelector("bdi")?.textContent).toBe(FIXTURE_NAME);
+  await expect(v.querySelector("[data-marks]")).toBeNull();
+  await expect(buttonsOf(v)).toHaveLength(0);
+  await expect(v.querySelector("[data-editor]")).toBeNull();
+  const [name, label] = [...field.querySelectorAll<HTMLElement>("p")] as [HTMLElement, HTMLElement];
+  if (inVitest) await expectInkClearsAbove(label, name, 2);
+  await focusedIs(within(field).getByRole("heading", { name: m.business.field.workingName }));
+}
+
+export const NameGiven: Story = {
+  render: hosted(
+    "th",
+    foundationProject("th", "agreed", [answeredEntry(false)]),
+    nameOn("th", "agreed", [answeredEntry(false)]),
+  ),
+  play: async ({ canvasElement }) => {
+    await nameGivenPlay(canvasElement, th);
+  },
+};
+
+export const NameGivenEnglish: Story = {
+  render: hostedEnglish(
+    foundationProject("en", "agreed", [answeredEntry(false)]),
+    nameOn("en", "agreed", [answeredEntry(false)]),
+  ),
+  play: async ({ canvasElement }) => {
+    await nameGivenPlay(canvasElement, en);
+  },
+};
+
+/**
+ * Spec row 19 and design N4 to N6: an empty name and a name of 61 characters make no call and keep
+ * what was typed, each with its line and focus on the input; Cancel closes the editor with focus on
+ * Give and the next editor starts empty; a double press makes one call, the save button inert and
+ * named, Cancel inert, the two buttons of one height; a rate limited answer keeps the text.
+ */
+async function nameInvalidPlay(canvasElement: HTMLElement, m: Messages, locale: Lang) {
+  enter.mockReset();
+  enter.mockResolvedValue({ ok: true });
+  const v = nodeViewOf(canvasElement, "name");
+  const cancel = () => v.querySelector<HTMLElement>('[data-choice="cancel"]') as HTMLElement;
+  await userEvent.click(giveOf(v));
+  await focusedIs(nameInput(v));
+
+  await userEvent.click(saveOf(v));
+  await waitFor(() => expect(within(v).getByText(m.business.name.required)).toBeVisible());
+  await focusedIs(nameInput(v));
+  await expect(nameInput(v)).toHaveAttribute("aria-invalid", "true");
+  await expect(enter).toHaveBeenCalledTimes(0);
+
+  await userEvent.click(nameInput(v));
+  await userEvent.paste("ก".repeat(61));
+  await expect(within(v).queryByText(m.business.name.required)).toBeNull();
+  await userEvent.click(saveOf(v));
+  const tooLong = fill(m.business.intake.tooLong, { max: "60" });
+  await waitFor(() => expect(within(v).getByText(tooLong)).toBeVisible());
+  await expect(nameInput(v).value).toBe("ก".repeat(61));
+  await focusedIs(nameInput(v));
+  await expect(enter).toHaveBeenCalledTimes(0);
+
+  await userEvent.click(cancel());
+  await waitFor(() => expect(v.querySelector("[data-editor]")).toBeNull());
+  await focusedIs(giveOf(v));
+  await expect(enter).toHaveBeenCalledTimes(0);
+  await userEvent.click(giveOf(v));
+  await expect(nameInput(v).value).toBe("");
+
+  await userEvent.type(nameInput(v), FIXTURE_NAME);
+  let release: (result: StubResult) => void = () => {};
+  enter.mockImplementation(
+    () =>
+      new Promise<StubResult>((done) => {
+        release = done;
+      }),
+  );
+  await userEvent.click(saveOf(v));
+  await userEvent.click(saveOf(v));
+  await expect(enter).toHaveBeenCalledTimes(1);
+  await expect(saveOf(v)).toHaveAttribute("aria-disabled", "true");
+  await expect(textOf(saveOf(v))).toContain(m.business.positioning.saving);
+  await expect(cancel()).toHaveAttribute("aria-disabled", "true");
+  await userEvent.click(cancel());
+  await expect(v.querySelector("[data-editor]")).not.toBeNull();
+  release({ ok: false, failure: RATE_LIMITED[locale] });
+  await waitFor(() => expect(textOf(failureRegionOf(v))).toContain(RATE_LIMITED[locale]));
+  await expect(nameInput(v).value).toBe(FIXTURE_NAME);
+  await expect(saveOf(v)).not.toHaveAttribute("aria-disabled");
+  expectSameHeight(saveOf(v), cancel());
+}
+
+export const NameInvalid: Story = {
+  render: hosted(
+    "th",
+    foundationProject("th", "agreed", [answeredEntry(false)]),
+    nameOn("th", "agreed", [answeredEntry(false)]),
+  ),
+  play: async ({ canvasElement }) => {
+    await nameInvalidPlay(canvasElement, th, "th");
+  },
+};
+
+export const NameInvalidEnglish: Story = {
+  render: hostedEnglish(
+    foundationProject("en", "agreed", [answeredEntry(false)]),
+    nameOn("en", "agreed", [answeredEntry(false)]),
+  ),
+  play: async ({ canvasElement }) => {
+    await nameInvalidPlay(canvasElement, en, "en");
+  },
+};
+
+/**
+ * Spec row 20 and design N2, N8: with Positioning not agreed the name waits for Positioning and can
+ * still be given; once given it shows the name, the label, "Given by you" and one mark line that
+ * names Positioning as not yet checked.
+ */
+async function nameAheadPlay(canvasElement: HTMLElement, m: Messages) {
+  enter.mockReset();
+  enter.mockResolvedValue({ ok: true });
+  const v = nodeViewOf(canvasElement, "name");
+  await expectNameOpen(
+    v,
+    "waiting",
+    fill(m.business.state.waiting, { nodes: nodeTitle(m, "positioning") }),
+    m,
+  );
+  await userEvent.click(giveOf(v));
+  await focusedIs(nameInput(v));
+  await userEvent.type(nameInput(v), FIXTURE_NAME);
+  await userEvent.click(saveOf(v));
+  await waitFor(() => expect(stateLineOf(v).dataset["nodeState"]).toBe("given"));
+  await expect(enter).toHaveBeenCalledWith({
+    node: "name",
+    kind: "given",
+    payload: { name: FIXTURE_NAME },
+  });
+  await expectState(v, "given", m.business.state.given);
+  await expect(linesOf(nameField(v))).toEqual([
+    m.business.field.workingName,
+    FIXTURE_NAME,
+    m.business.name.notScreened,
+  ]);
+  const marks = v.querySelectorAll<HTMLElement>("[data-marks]");
+  await expect(marks).toHaveLength(1);
+  await expect((marks[0] as HTMLElement).dataset["marks"]).toBe("unchecked");
+  await expect(textOf(marks[0] as HTMLElement)).toBe(
+    fill(m.business.marks.unchecked, { nodes: nodeTitle(m, "positioning") }),
+  );
+  await expect(buttonsOf(v)).toHaveLength(0);
+}
+
+export const NameAhead: Story = {
+  render: hosted("th", foundationProject("th", "open"), nameOn("th", "open")),
+  play: async ({ canvasElement }) => {
+    await nameAheadPlay(canvasElement, th);
+  },
+};
+
+export const NameAheadEnglish: Story = {
+  render: hostedEnglish(foundationProject("en", "open"), nameOn("en", "open")),
+  play: async ({ canvasElement }) => {
+    await nameAheadPlay(canvasElement, en);
+  },
+};
+
+// ----- narrow and the other language (spec row 23) -----
+
+/**
+ * One 360 px frame holding both views of the PR 2 head's project: Brand architecture with its
+ * question open, Name with 60 Thai characters with no space given. `answered` is the project after
+ * the answer "no": the architecture view is then the derived one.
+ */
+function PairHost({ locale, mode }: { locale: Lang; mode: "light" | "dark" }) {
+  const entries = [answeredEntry(false), nameEntry(LONG_WORKING_NAME)];
+  const asked = foundationProject(locale, "agreed", [nameEntry(LONG_WORKING_NAME)]);
+  const pair = (
+    <div
+      data-narrow=""
+      className="flex w-[360px] max-w-full flex-col gap-6 overflow-hidden ps-[33px] pe-[45px]"
+    >
+      <Host
+        locale={locale}
+        initial={asked}
+        node="architecture"
+        frame={false}
+        after={afterEntryOn(locale, "agreed", [nameEntry(LONG_WORKING_NAME)])}
+      />
+      <Host
+        locale={locale}
+        initial={foundationProject(locale, "agreed", entries)}
+        node="name"
+        frame={false}
+      />
+    </div>
+  );
+  return (
+    <Under profile="neutral" mode={mode}>
+      {locale === "en" ? <LocaleProvider locale="en">{pair}</LocaleProvider> : pair}
+    </Under>
+  );
+}
+
+/**
+ * Spec row 23, design N9 and 8.3: at 360 px nothing scrolls sideways with the question open or
+ * answered; the Thai choice labels and the 60-character name wrap with no glyph clipped; the name
+ * starts where its heading starts; Save takes the focus form of the catalog.
+ */
+async function pairNarrowPlay(canvasElement: HTMLElement, m: Messages) {
+  enter.mockReset();
+  enter.mockResolvedValue({ ok: true });
+  const arch = nodeViewOf(canvasElement, "architecture");
+  const name = nodeViewOf(canvasElement, "name");
+  await expectFitsAt360(canvasElement);
+  expectNoGlyphClip(canvasElement);
+  const field = nameField(name);
+  const heading = field.children[0] as HTMLElement;
+  const bdi = field.querySelector("bdi") as HTMLElement;
+  await expect(textOf(bdi)).toBe(LONG_WORKING_NAME);
+  await expect(
+    Math.abs(
+      (field.children[1] as HTMLElement).getBoundingClientRect().left -
+        heading.getBoundingClientRect().left,
+    ),
+  ).toBeLessThanOrEqual(0.5);
+  await expect(bdi.getBoundingClientRect().height).toBeGreaterThan(0);
+
+  // Tab goes to the first option (checking none), then Save, with the catalog's focus form.
+  await userEvent.click(canvasElement);
+  await userEvent.tab();
+  await focusedIs(within(groupOf(arch, m)).getAllByRole("radio")[0] as HTMLElement);
+  await expect(checkedIn(arch)).toBe(0);
+  await userEvent.tab();
+  await focusedIs(saveOf(arch));
+  await expectFocusBorderForm(saveOf(arch));
+
+  await userEvent.click(choiceRadio(arch, m, "no"));
+  await userEvent.click(saveOf(arch));
+  await waitFor(() => expect(stateLineOf(arch).dataset["nodeState"]).toBe("derived"));
+  await expectFitsAt360(canvasElement);
+  expectNoGlyphClip(canvasElement);
+  const left = stateLineOf(arch).getBoundingClientRect().left;
+  for (const block of arch.querySelectorAll<HTMLElement>(
+    "[data-head] > p, [data-field] > h3, [data-field] > p",
+  )) {
+    await expect(Math.abs(block.getBoundingClientRect().left - left)).toBeLessThanOrEqual(0.5);
+  }
+}
+
+export const FoundationNarrow: Story = {
+  render: () => <PairHost locale="th" mode="light" />,
+  play: async ({ canvasElement }) => {
+    await pairNarrowPlay(canvasElement, th);
+  },
+};
+
+export const FoundationNarrowDark: Story = {
+  render: () => <PairHost locale="th" mode="dark" />,
+  play: async ({ canvasElement }) => {
+    await pairNarrowPlay(canvasElement, th);
+  },
+};
+
+export const FoundationNarrowEnglish: Story = {
+  render: () => <PairHost locale="en" mode="light" />,
+  play: async ({ canvasElement }) => {
+    await pairNarrowPlay(canvasElement, en);
+  },
+};
+
+/**
+ * The header's language switch on the two PR 2 views: one project with the answer "no" and a Thai
+ * name, one mounted pair of views, and a control outside them that changes the locale. The titles,
+ * state lines and labels come from the other catalog; the name stays as typed, in the same element.
+ */
+function PairSwitchHost({ from }: { from: Lang }) {
+  const [locale, setLocale] = useState<Lang>(from);
+  const next: Lang = locale === "th" ? "en" : "th";
+  const project = foundationProject(locale, "agreed", [
+    answeredEntry(false),
+    nameEntry(LONG_WORKING_NAME),
+  ]);
+  const views: ReactNode = (
+    <>
+      <Host locale={locale} initial={project} node="architecture" heading />
+      <Host locale={locale} initial={project} node="name" heading />
+    </>
+  );
+  return (
+    <LocaleProvider locale={locale}>
+      <button type="button" data-switch-locale={next} onClick={() => setLocale(next)}>
+        {next.toUpperCase()}
+      </button>
+      {views}
+    </LocaleProvider>
+  );
+}
+
+async function pairSwitchPlay(canvasElement: HTMLElement, from: Lang) {
+  const first = from === "th" ? th : en;
+  const second = from === "th" ? en : th;
+  const read = async (m: Messages) => {
+    const arch = nodeViewOf(canvasElement, "architecture");
+    const name = nodeViewOf(canvasElement, "name");
+    await expect(
+      within(arch).getByRole("heading", { level: 2, name: m.business.node.architecture }),
+    ).toBeVisible();
+    await expect(
+      within(name).getByRole("heading", { level: 2, name: m.business.node.name }),
+    ).toBeVisible();
+    await expectState(arch, "derived", m.business.state.derived);
+    await expect(linesOf(answerField(arch))).toEqual([
+      m.business.field.architecture,
+      m.business.architecture.single,
+      m.business.architecture.because,
+    ]);
+    // The project was made in the first language; the derived values are the other catalog's words.
+    await expectState(name, "given", m.business.state.given);
+    await expect(linesOf(nameField(name))).toEqual([
+      m.business.field.workingName,
+      LONG_WORKING_NAME,
+      m.business.name.notScreened,
+    ]);
+  };
+  const bdi = nodeViewOf(canvasElement, "name").querySelector("bdi");
+  await read(first);
+  await userEvent.click(canvasElement.querySelector("[data-switch-locale]") as HTMLElement);
+  await waitFor(() =>
+    expect(textOf(stateLineOf(nodeViewOf(canvasElement, "name")))).toBe(
+      second.business.state.given,
+    ),
+  );
+  await expect(nodeViewOf(canvasElement, "name").querySelector("bdi")).toBe(bdi);
+  await read(second);
+  await expect(enter).toHaveBeenCalledTimes(0);
+}
+
+export const FoundationSwitchToEnglish: Story = {
+  render: () => <PairSwitchHost from="th" />,
+  play: async ({ canvasElement }) => {
+    enter.mockReset();
+    await pairSwitchPlay(canvasElement, "th");
+  },
+};
+
+export const FoundationSwitchToThai: Story = {
+  render: () => <PairSwitchHost from="en" />,
+  play: async ({ canvasElement }) => {
+    enter.mockReset();
+    await pairSwitchPlay(canvasElement, "en");
+  },
+};
+
+/**
+ * A refusal the server's own check makes after the client's passed (the entry names a field): the
+ * name shows its bound under the input and takes focus with the text kept; the architecture asks for
+ * a choice again, with the choice kept and focus on the first option.
+ */
+async function refusedPlay(canvasElement: HTMLElement, m: Messages, locale: Lang) {
+  enter.mockReset();
+  const arch = nodeViewOf(canvasElement, "architecture");
+  const name = nodeViewOf(canvasElement, "name");
+  enter.mockResolvedValue({
+    ok: false,
+    failure: RATE_LIMITED[locale],
+    problems: [{ path: "payload.name", kind: "too-long" }],
+  });
+  await userEvent.click(giveOf(name));
+  await userEvent.type(nameInput(name), FIXTURE_NAME);
+  await userEvent.click(saveOf(name));
+  await waitFor(() =>
+    expect(within(name).getByText(fill(m.business.intake.tooLong, { max: "60" }))).toBeVisible(),
+  );
+  await expect(nameInput(name).value).toBe(FIXTURE_NAME);
+  await expect(nameInput(name)).toHaveAttribute("aria-invalid", "true");
+  await focusedIs(nameInput(name));
+
+  enter.mockResolvedValue({
+    ok: false,
+    failure: RATE_LIMITED[locale],
+    problems: [{ path: "payload.subBrands", kind: "required" }],
+  });
+  await userEvent.click(choiceRadio(arch, m, "yes"));
+  await userEvent.click(saveOf(arch));
+  await waitFor(() =>
+    expect(within(choiceOf(arch)).getByText(m.business.architecture.choiceRequired)).toBeVisible(),
+  );
+  await expect(choiceRadio(arch, m, "yes")).toHaveAttribute("aria-checked", "true");
+  await focusedIs(choiceRadio(arch, m, "no"));
+}
+
+const refusedHosts = (locale: Lang) => (
+  <>
+    <Host
+      locale={locale}
+      initial={foundationProject(locale, "agreed")}
+      {...architectureOn(locale, "agreed")}
+    />
+    <Host
+      locale={locale}
+      initial={foundationProject(locale, "agreed")}
+      {...nameOn(locale, "agreed")}
+    />
+  </>
+);
+
+export const FoundationRefused: Story = {
+  render: () => refusedHosts("th"),
+  play: async ({ canvasElement }) => {
+    await refusedPlay(canvasElement, th, "th");
+  },
+};
+
+export const FoundationRefusedEnglish: Story = {
+  render: () => <LocaleProvider locale="en">{refusedHosts("en")}</LocaleProvider>,
+  play: async ({ canvasElement }) => {
+    await refusedPlay(canvasElement, en, "en");
   },
 };

@@ -26,13 +26,17 @@ export const BUSINESS_POSITIONS: Record<
   BusinessNodeId | FoundationNodeId,
   { x: number; y: number }
 > = {
-  situation: { x: 0, y: 326 },
+  // Moved down from 326 in ORV-291 PR 2: its edge to Brand architecture would run under Audience (design 2.1).
+  situation: { x: 0, y: 447 },
   "business-core": { x: 456, y: 28 },
   audience: { x: 456, y: 340 },
   "competitive-frame": { x: 456, y: 652 },
   positioning: { x: 928, y: 326 },
   // Column 4, the upper lane (ORV-291 design 2.1), 152 right of Positioning.
   "identity-frame": { x: 1400, y: 160 },
+  // The lower lane (design 2.1): Brand architecture in column 4, Name in column 5, 168 right of it.
+  architecture: { x: 1400, y: 576 },
+  name: { x: 1888, y: 473 },
 };
 
 const OUT = "out";
@@ -48,13 +52,26 @@ const edgesOf = (view: BusinessView): ReadonlyArray<readonly [NodeRef, NodeRef]>
 
 const port = (id: string, label: string): PortSpec => ({ id, kind: "text", label });
 
+/**
+ * The top-to-bottom order of a node's input ports where it is not the order of the edge list
+ * (design 2.2): the upper source enters the upper port, so no two edges cross at the card. The
+ * engine lists Brand architecture's requires in ORV-126's order, Situation first; Situation sits
+ * below Positioning on the board.
+ */
+const INPUT_ORDER: Partial<Record<NodeRef, readonly NodeRef[]>> = {
+  architecture: ["positioning", "situation"],
+};
+
 /** The ports of one node: what it takes in from the nodes before it, and what it gives on. */
 function portsOf(
   id: NodeRef,
   edges: ReturnType<typeof edgesOf>,
   m: Messages,
 ): { inputs: PortSpec[]; outputs: PortSpec[] } {
-  const sources = edges.filter(([, to]) => to === id).map(([source]) => source);
+  const listed = edges.filter(([, to]) => to === id).map(([source]) => source);
+  const order = INPUT_ORDER[id];
+  const sources =
+    order === undefined ? listed : [...listed].sort((a, b) => order.indexOf(a) - order.indexOf(b));
   const feeds = edges.some(([source]) => source === id);
   return {
     // A node with several sources has one input per source, each labelled by the node it comes from.
