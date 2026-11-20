@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { messagesFor } from "../i18n/messages/index";
 import { ENGLISH_READ_VIEW, THAI_READ_VIEW, THAI_VIEW } from "./business-fixtures";
 import {
+  appIconWord,
   canvasWord,
   colorReason,
   crowdedLine,
@@ -13,6 +14,9 @@ import {
   licenceLine,
   listOfNodes,
   listOfWords,
+  logoTypeReason,
+  logoTypeWord,
+  nameLengthLine,
   neutralWord,
   nodeTitle,
   provisionalLines,
@@ -27,6 +31,7 @@ import {
   bothCrowded,
   decided,
   fallback,
+  logoTypeDecided,
   partly,
   typographyDecided,
   waitsForPersonality,
@@ -343,5 +348,60 @@ describe("Typography words", () => {
         th.business.typography.licence.replace("{licence}", licence),
       );
     }
+  });
+});
+
+/**
+ * ORV-298 PR 3 (`logo-type-1`): the words of the Logo type view come from the catalog keys they
+ * name. The name length line splits at the person's name, which is never filled into the template
+ * or parsed: a name that spells a slot stays literal.
+ */
+describe("Logo type words", () => {
+  const en = messagesFor("en");
+  const th = messagesFor("th");
+  const outcomeOf = (view: BusinessView) => {
+    const node = view.foundation.find((n) => n.id === "logo-type");
+    if (node?.id !== "logo-type" || node.decision === null) throw new Error("no decision");
+    return node.decision;
+  };
+
+  it("names the two logo types and the three reasons from their own catalog keys", () => {
+    expect(logoTypeWord(en, "wordmark")).toBe("Wordmark: the name itself is the logo");
+    expect(logoTypeWord(en, "symbol-plus-name")).toBe("Symbol plus name");
+    expect(logoTypeWord(th, "wordmark")).toBe(th.business.logoType.wordmark);
+    expect(logoTypeWord(th, "symbol-plus-name")).toBe(th.business.logoType.symbolPlusName);
+    expect(logoTypeReason(en, "longName")).toBe(en.business.logoType.because.longName);
+    expect(logoTypeReason(en, "appIcon")).toBe(en.business.logoType.because.appIcon);
+    expect(logoTypeReason(th, "wordmark")).toBe(th.business.logoType.because.wordmark);
+    expect(
+      new Set(["longName", "appIcon", "wordmark"].map((r) => logoTypeReason(en, r as never))),
+    ).toHaveProperty("size", 3);
+  });
+
+  it("names the two answers of the app icon question", () => {
+    expect(appIconWord(en, true)).toBe("Yes, it needs one");
+    expect(appIconWord(en, false)).toBe("No, the name is enough");
+    expect(appIconWord(th, true)).toBe(th.business.logoType.appIcon.yes);
+    expect(appIconWord(th, false)).toBe(th.business.logoType.appIcon.no);
+  });
+
+  it("splits the name length line at the name and fills the length and the bound", () => {
+    const outcome = outcomeOf(logoTypeDecided("en", false));
+    const { before, after } = nameLengthLine(en, outcome);
+    expect(before + outcome.name + after).toBe(
+      "Your working name ORIVILO has 7 characters; more than 12 counts as long.",
+    );
+    const thai = nameLengthLine(th, outcome);
+    expect(thai.before + outcome.name + thai.after).toBe(
+      "ชื่อใช้งาน ORIVILO มี 7 ตัวอักษร เกิน 12 ตัวนับว่ายาว",
+    );
+  });
+
+  it("never fills a slot the name itself spells", () => {
+    const outcome = { ...outcomeOf(logoTypeDecided("en", false)), name: "{max}{n}{name}" };
+    const { before, after } = nameLengthLine(en, outcome);
+    expect(before.includes("{")).toBe(false);
+    expect(after.includes("{")).toBe(false);
+    expect(before + outcome.name + after).toContain("Your working name {max}{n}{name} has 7");
   });
 });

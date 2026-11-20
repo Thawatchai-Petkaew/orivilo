@@ -694,6 +694,8 @@ export const en: Messages = {
       remember: "After someone meets your brand, what one thing should they remember?",
       lineup: "Which brands do customers compare you with, and what is the main colour of each?",
       scripts: "Which scripts will your brand write in?",
+      appIcon:
+        "Will your brand need a small square mark on its own, for example an app icon or a profile picture?",
     },
     node: {
       situation: "Situation",
@@ -705,6 +707,7 @@ export const en: Messages = {
       architecture: "Brand architecture",
       name: "Name",
       coreIdea: "Core idea",
+      logoType: "Logo type",
       color: "Colour",
       typography: "Typography",
     },
@@ -736,6 +739,8 @@ export const en: Messages = {
       scripts: "Scripts",
       readingFace: "Reading text",
       displayFace: "Headlines",
+      appIcon: "Small square mark",
+      logoType: "Logo type",
     },
     state: {
       proposed: "Not confirmed yet",
@@ -876,6 +881,25 @@ export const en: Messages = {
         "This version has one family for each role and script, so every brand gets these families.",
       noPersonalityLink:
         "Your brand's personality does not choose these families. A link from personality to a typeface would be a working guess, not a tested method.",
+    },
+    logoType: {
+      appIcon: {
+        yes: "Yes, it needs one",
+        no: "No, the name is enough",
+      },
+      wordmark: "Wordmark: the name itself is the logo",
+      symbolPlusName: "Symbol plus name",
+      because: {
+        wordmark:
+          "A short name, one brand and no need for a small square mark: the logo puts the name first, because a symbol needs a reason.",
+        longName: "A long name is a reason for a symbol as a shorthand.",
+        appIcon: "The need for a small square mark is a reason for a symbol as a shorthand.",
+      },
+      nameLength: "Your working name {name} has {n} characters; more than {max} counts as long.",
+      hypothesis: "What counts as a long name is ORIVILO's working rule; no source gives a number.",
+      crowdingNotChecked: "Not checked against similar trademarks.",
+      otherTypes:
+        "Letterform marks, emblems and dynamic marks are not worked out by any rule in this version.",
     },
     label: {
       byRule: "Worked out by fixed rules from what you gave. Not decided by AI.",

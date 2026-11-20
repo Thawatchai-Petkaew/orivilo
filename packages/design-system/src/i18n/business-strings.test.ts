@@ -225,7 +225,7 @@ const SPEC_KEYS = [
   "business.color.notDecided",
   "business.color.hypothesis",
   "business.color.familyOnly",
-  // ORV-298 PR 2: the Typography node. PR 3 adds the logo type keys.
+  // ORV-298 PR 2: the Typography node.
   "business.node.typography",
   "business.question.scripts",
   "business.typography.scripts.thaiLatin",
@@ -243,6 +243,22 @@ const SPEC_KEYS = [
   "business.typography.because.pairing",
   "business.typography.oneChoice",
   "business.typography.noPersonalityLink",
+  // ORV-298 PR 3: the Logo type node.
+  "business.node.logoType",
+  "business.question.appIcon",
+  "business.logoType.appIcon.yes",
+  "business.logoType.appIcon.no",
+  "business.field.appIcon",
+  "business.field.logoType",
+  "business.logoType.wordmark",
+  "business.logoType.symbolPlusName",
+  "business.logoType.because.wordmark",
+  "business.logoType.because.longName",
+  "business.logoType.because.appIcon",
+  "business.logoType.nameLength",
+  "business.logoType.hypothesis",
+  "business.logoType.crowdingNotChecked",
+  "business.logoType.otherTypes",
 ];
 
 describe("business catalog", () => {
@@ -258,10 +274,10 @@ describe("business catalog", () => {
       const wrong = PROXY_QUESTIONS.filter((q) => at(m, q.key) !== q[locale]).map((q) => q.id);
       expect(wrong).toEqual([]);
       // The `question` group is the proxy questions, the start question and the two questions of
-      // ORV-298 with no ORV-126 id (`business.question.lineup`, PR 1, and `business.question.scripts`,
-      // PR 2: new copy), and nothing else.
+      // ORV-298 with no ORV-126 id (`business.question.lineup`, PR 1, `business.question.scripts`,
+      // PR 2, and `business.question.appIcon`, PR 3: new copy), and nothing else.
       expect(Object.keys(m.business.question)).toHaveLength(
-        PROXY_QUESTIONS.length + START_QUESTIONS.length + 2,
+        PROXY_QUESTIONS.length + START_QUESTIONS.length + 3,
       );
       for (const q of START_QUESTIONS) expect(at(m, q.key), q.key).toBe(q[locale]);
     });
@@ -755,7 +771,8 @@ describe("expression, typography strings", () => {
 
   it("is the whole PR 2 set of this test file's key list", () => {
     const first = SPEC_KEYS.indexOf("business.node.typography");
-    expect(rows.map((row) => row.key).sort()).toEqual([...SPEC_KEYS.slice(first)].sort());
+    const end = SPEC_KEYS.indexOf("business.node.logoType");
+    expect(rows.map((row) => row.key).sort()).toEqual([...SPEC_KEYS.slice(first, end)].sort());
   });
 
   for (const locale of LOCALES) {
@@ -784,6 +801,69 @@ describe("expression, typography strings", () => {
   it("spells the {licence} slot of the licence line", () => {
     for (const locale of LOCALES) {
       expect(messagesFor(locale).business.typography.licence).toContain("{licence}");
+    }
+  });
+});
+
+/**
+ * ORV-298 PR 3, spec row 39 (T39): the Logo type node's keys, word for word. The copy of record is
+ * the spec's "Strings" table; the test reads its rows marked PR 3 and holds the catalog to them in
+ * both languages, so a one-word edit of a catalog line, English or Thai, goes red. It also holds the
+ * slots of the name length line to the engine's outcome (the name, its length and the bound).
+ */
+describe("expression, logo type strings", () => {
+  const spec = readFileSync(
+    path.join(import.meta.dirname, "../../../../docs/specs/ORV-298/spec.md"),
+    "utf8",
+  );
+  const table = spec.slice(spec.indexOf("\n## Strings"), spec.indexOf("\n## Acceptance criteria"));
+  const rows = table
+    .split("\n")
+    .filter((line) => line.startsWith("| `"))
+    .map((line) => line.slice(2, -2).split(" | "))
+    .filter((cells) => cells.length === 4 && cells[3] === "3")
+    .map(([key, en, th]) => ({
+      key: (key ?? "").replaceAll("`", ""),
+      en: en ?? "",
+      th: th ?? "",
+    }));
+
+  it("reads the fifteen PR 3 rows of the spec's Strings table", () => {
+    expect(rows).toHaveLength(15);
+    expect(new Set(rows.map((row) => row.key)).size).toBe(15);
+  });
+
+  it("is the whole PR 3 set of this test file's key list", () => {
+    const first = SPEC_KEYS.indexOf("business.node.logoType");
+    expect(rows.map((row) => row.key).sort()).toEqual([...SPEC_KEYS.slice(first)].sort());
+  });
+
+  for (const locale of LOCALES) {
+    const m = messagesFor(locale);
+
+    it(`${locale}: each PR 3 line is the spec's, word for word`, () => {
+      for (const row of rows) expect(at(m, row.key), row.key).toBe(row[locale]);
+    });
+
+    it(`${locale}: no PR 3 line has a middot or an em dash`, () => {
+      // Built from the code points, so this file holds neither character itself (the copy check).
+      const banned = new RegExp(`[${String.fromCharCode(0xb7, 0x2014)}]`);
+      for (const row of rows) expect(String(at(m, row.key)), row.key).not.toMatch(banned);
+    });
+
+    it(`${locale}: the node title and the field read alike, and the two answers differ`, () => {
+      expect(nodeTitle(m, "logo-type")).toBe(m.business.node.logoType);
+      expect(m.business.field.logoType).toBe(m.business.node.logoType);
+      expect(m.business.logoType.appIcon.yes).not.toBe(m.business.logoType.appIcon.no);
+    });
+  }
+
+  it("spells the {name}, {n} and {max} slots of the name length line", () => {
+    for (const locale of LOCALES) {
+      const line = messagesFor(locale).business.logoType.nameLength;
+      expect(line).toContain("{name}");
+      expect(line).toContain("{n}");
+      expect(line).toContain("{max}");
     }
   });
 });

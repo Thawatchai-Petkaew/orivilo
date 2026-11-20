@@ -38,6 +38,7 @@ const NODE_KEY = {
   architecture: "architecture",
   name: "name",
   "core-idea": "coreIdea",
+  "logo-type": "logoType",
   color: "color",
   typography: "typography",
 } as const satisfies Record<BusinessNodeId | FoundationNodeId, keyof Business["node"]>;
@@ -161,6 +162,38 @@ export function licenceLine(m: Messages, face: Face): string {
 /** The reason of a Thai family's role, or null for a family that has none (the Latin one). */
 export function faceBecause(m: Messages, face: Face): string | null {
   return face.because === null ? null : m.business.typography.because[face.because];
+}
+
+type LogoTypeOutcome = NonNullable<Extract<FoundationNode, { id: "logo-type" }>["decision"]>;
+
+/** The word of a logo type, a key of `business.logoType.*` (`logo-type-1`). */
+export function logoTypeWord(m: Messages, type: LogoTypeOutcome["type"]): string {
+  return type === "wordmark" ? m.business.logoType.wordmark : m.business.logoType.symbolPlusName;
+}
+
+/** The reason of a logo type, a key of `business.logoType.because.*`, in the order the engine gave. */
+export function logoTypeReason(m: Messages, reason: LogoTypeOutcome["reasons"][number]): string {
+  return m.business.logoType.because[reason];
+}
+
+/** The word of an answer to the small square mark question, a key of `business.logoType.appIcon.*`. */
+export function appIconWord(m: Messages, answer: boolean): string {
+  return answer ? m.business.logoType.appIcon.yes : m.business.logoType.appIcon.no;
+}
+
+/**
+ * The name length line (`name-length-1`) in two parts, around the person's working name: the
+ * catalog's sentence cut at `{name}`, its `{n}` and `{max}` filled with the length and the bound the
+ * engine gave. The name is never filled into the template, so the view puts it between the parts as
+ * a text node of its own and a name that spells a slot stays literal.
+ */
+export function nameLengthLine(
+  m: Messages,
+  outcome: Pick<LogoTypeOutcome, "length" | "max">,
+): { before: string; after: string } {
+  const [before = "", after = ""] = m.business.logoType.nameLength.split("{name}");
+  const params = { n: outcome.length, max: outcome.max };
+  return { before: fill(before, params), after: fill(after, params) };
 }
 
 /** The name of a foundation field, a key of `business.field.*`. */

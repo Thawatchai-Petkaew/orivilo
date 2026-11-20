@@ -113,8 +113,8 @@ const viewNode = (view: BusinessView, id: BusinessNodeId) =>
 /** React Flow keeps a node hidden until it is measured and draws edges after: wait for all of it. */
 const boardReady = (root: HTMLElement) =>
   waitFor(() => {
-    expect(root.querySelectorAll(".react-flow__node")).toHaveLength(11);
-    expect(root.querySelectorAll(".react-flow__edge")).toHaveLength(16);
+    expect(root.querySelectorAll(".react-flow__node")).toHaveLength(12);
+    expect(root.querySelectorAll(".react-flow__edge")).toHaveLength(18);
     for (const n of root.querySelectorAll<HTMLElement>(".react-flow__node")) {
       expect(n.style.visibility).not.toBe("hidden");
     }
@@ -286,6 +286,9 @@ const W2 = [
   "architecture>name",
   "positioning>core-idea",
   "identity-frame>core-idea",
+  // ORV-298 PR 3: Logo type reads Brand architecture and Name (spec row 35).
+  "architecture>logo-type",
+  "name>logo-type",
   // ORV-298 PR 1: Colour reads Competitive frame and Brand personality (spec row 12).
   "competitive-frame>color",
   "identity-frame>color",
@@ -293,7 +296,7 @@ const W2 = [
   "identity-frame>typography",
 ];
 
-/** The header, the eleven nodes at rest, the sixteen edges and the dock (spec row 22). */
+/** The header, the twelve nodes at rest, the eighteen edges and the dock (spec row 22). */
 async function expectBoard(
   canvasElement: HTMLElement,
   m: Messages,
@@ -347,7 +350,7 @@ async function expectBoard(
   for (const f of answersOf(view)) {
     await expect(textOf(region)).not.toContain(f.answer?.text ?? "");
   }
-  // Exactly the sixteen edges of W2 and the foundation require, and the dock says view only.
+  // Exactly the eighteen edges of W2 and the foundation require, and the dock says view only.
   const edges = [...canvasElement.querySelectorAll<HTMLElement>(".react-flow__edge")].map((e) => {
     const [, source, , target] = (e.dataset["id"] ?? "").split(":");
     return `${source}>${target}`;
@@ -600,6 +603,11 @@ async function expectFoundationCards(root: HTMLElement, m: Messages, locale: "th
     [m.business.field.remember, m.business.field.coreIdea],
     m.business.state.gate,
   );
+  // ORV-298 PR 3, spec row 35: Logo type right of Name and Brand architecture, its two field names and no value.
+  await expectFoundationCard(root, m, "logo-type", { x: 2376, y: 552 }, list("positioning"), [
+    m.business.field.appIcon,
+    m.business.field.logoType,
+  ]);
   // ORV-298 PR 1, spec row 12: Colour right of Brand personality, its five field names and no value.
   await expectFoundationCard(root, m, "color", { x: 2376, y: -330 }, list("positioning"), [
     m.business.field.signature,
@@ -621,7 +629,7 @@ async function expectFoundationCards(root: HTMLElement, m: Messages, locale: "th
   }
 }
 
-/** A saved Thai project on the present board: eleven nodes, sixteen edges, the dock, the gestures (rows 22, 23, 25, 34). */
+/** A saved Thai project on the present board: twelve nodes, eighteen edges, the dock, the gestures (rows 22, 23, 25, 34). */
 export const Board: Story = {
   play: async ({ canvasElement }) => {
     await expectBoard(canvasElement, th, THAI_VIEW, SAVED_TH);
@@ -633,10 +641,11 @@ export const Board: Story = {
 };
 
 /**
- * ORV-298 design 2.4 (PR 2, eleven cards with Core idea of ORV-296): at the 1440 frame every card sits inside the board and the
- * fit is 0.364 within 0.01 (design 2.4 gives 0.364; PR 1 measured 0.412 against 0.430, and the
- * as-built note there records both). Typography at x 2864 now sets the fit, the width bound. The fit
- * is asked for again after the window is resized, then waited for.
+ * ORV-298 design 2.4 (PR 3, twelve cards with Core idea of ORV-296 and Logo type): at the 1440 frame
+ * every card sits inside the board and the fit is 0.364 within 0.01 (design 2.4 gives 0.364 for this
+ * head; PR 3 measured 0.3637, and the as-built note there records it; PR 1 measured 0.412 against
+ * 0.430). Typography at x 2864 still sets the fit, the width bound, and Logo type at x 2376 adds no
+ * width. The fit is asked for again after the window is resized, then waited for.
  */
 export const BoardAt1440: Story = {
   play: async ({ canvasElement }) => {

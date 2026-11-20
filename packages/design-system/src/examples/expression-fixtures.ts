@@ -9,7 +9,18 @@ import {
 } from "@orivilo/intent-engine";
 import { fixtures } from "../components/fixtures";
 import { foundationProject } from "./business-fixtures";
-import { givenEntry, lineupEntry, scriptsEntry, skippedEntry } from "./foundation-fixtures";
+import {
+  answeredEntry,
+  FIXTURE_NAME,
+  givenEntry,
+  HOSTILE_NAME,
+  LONG_WORKING_NAME,
+  lineupEntry,
+  logoTypeEntry,
+  nameEntry,
+  scriptsEntry,
+  skippedEntry,
+} from "./foundation-fixtures";
 
 /**
  * Fixture data for the brand expression stories (ORV-298, PR 1: Colour; PR 2: Typography). Every project is made by
@@ -146,3 +157,86 @@ export const typographyWaitsForPositioning = (locale: Locale): BusinessView =>
 /** Design T12: waiting and not answered, so the question is offered whatever the marks. */
 export const typographyWaitsAndAsks = (locale: Locale): BusinessView =>
   foundationProject(locale, "agreed");
+
+// ----- Logo type (ORV-298 PR 3) -----
+
+/** The long working name of spec row 31: eighteen characters once the spaces are left out. */
+export const CHASE_NAME = "Chase Manhattan Bank";
+
+/** The project every logo type fixture stands on: Brand architecture answered "no", so it is derived. */
+const ARCHITECTURE_NO = answeredEntry(false);
+
+/** Spec rows 29 and 30, before: positioning agreed, architecture "no", the name "ORIVILO" and no answer. */
+export const asksAppIcon = (locale: Locale): BusinessView =>
+  foundationProject(locale, "agreed", [ARCHITECTURE_NO, nameEntry(FIXTURE_NAME)]);
+
+/** Spec rows 29 and 30, after the save: the decided logo type of an answer, for a name. */
+export const logoTypeDecided = (
+  locale: Locale,
+  appIcon: boolean,
+  name: string = FIXTURE_NAME,
+): BusinessView =>
+  foundationProject(locale, "agreed", [ARCHITECTURE_NO, nameEntry(name), logoTypeEntry(appIcon)]);
+
+/** Spec row 31: a long name and no answer: symbol plus name, and no question to ask. */
+export const logoTypeLongName = (locale: Locale): BusinessView =>
+  foundationProject(locale, "agreed", [ARCHITECTURE_NO, nameEntry(CHASE_NAME)]);
+
+/** Design L9: a long name and a "yes" stored before the name was given: both reasons show. */
+export const logoTypeLongNameYes = (locale: Locale): BusinessView =>
+  foundationProject(locale, "agreed", [
+    ARCHITECTURE_NO,
+    nameEntry(CHASE_NAME),
+    logoTypeEntry(true),
+  ]);
+
+/** Spec row 36: a working name of 60 Thai characters with no space, so the name is long. */
+export const logoTypeThaiLongName = (locale: Locale): BusinessView =>
+  foundationProject(locale, "agreed", [ARCHITECTURE_NO, nameEntry(LONG_WORKING_NAME)]);
+
+/** Thai marks that stack above the line, as a working name (design 4.5): a short name. */
+export const MARKS_NAME = "ฟื้ปั้ปี๊ฟื้ ปิ่นโต้";
+
+/** The same project with a name of marks and the answer "no": the length line holds the stacked marks. */
+export const logoTypeMarksName = (locale: Locale): BusinessView =>
+  logoTypeDecided(locale, false, MARKS_NAME);
+
+/** Spec row 35: the working name is markup, and the answer is "no". */
+export const logoTypeHostile = (locale: Locale): BusinessView =>
+  logoTypeDecided(locale, false, HOSTILE_NAME);
+
+/** Spec row 32, first case: positioning agreed, architecture "no", no name: it waits for Name. */
+export const logoTypeWaitsForName = (locale: Locale): BusinessView =>
+  foundationProject(locale, "agreed", [ARCHITECTURE_NO]);
+/** Spec row 32, second case: architecture "yes" leaves it open, so Logo type waits for it. */
+export const logoTypeWaitsForArchitecture = (locale: Locale): BusinessView =>
+  foundationProject(locale, "agreed", [answeredEntry(true)]);
+/** Spec row 32, third case: positioning went stale after it was agreed: it waits for Positioning. */
+export const logoTypeWaitsForPositioning = (locale: Locale): BusinessView =>
+  foundationProject(locale, "stale", [ARCHITECTURE_NO, nameEntry(FIXTURE_NAME)]);
+/** Design L11: waiting and answered, so the answer shows and no decision does. */
+export const logoTypeWaitsAnswered = (locale: Locale): BusinessView =>
+  foundationProject(locale, "stale", [
+    ARCHITECTURE_NO,
+    nameEntry(FIXTURE_NAME),
+    logoTypeEntry(false),
+  ]);
+
+/** Spec row 33: positioning skipped, the answer "no" and a name: the decision is provisional. */
+export const logoTypeProvisional = (locale: Locale): BusinessView =>
+  foundationProject(locale, "skipped", [
+    ARCHITECTURE_NO,
+    nameEntry(FIXTURE_NAME),
+    logoTypeEntry(false),
+  ]);
+
+/** Every expression node decided on one project: a personality, a lineup, a typography and a logo type. */
+export const allDecided = (locale: Locale): BusinessView =>
+  foundationProject(locale, "agreed", [
+    personality(POINT_4),
+    lineupEntry(STAND_IN),
+    scriptsEntry("thai-latin"),
+    ARCHITECTURE_NO,
+    nameEntry(FIXTURE_NAME),
+    logoTypeEntry(false),
+  ]);

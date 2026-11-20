@@ -836,9 +836,13 @@ async function noAiPlay(canvasElement: HTMLElement, m: Messages, locale: Lang) {
   const projects = canvasElement.querySelectorAll<HTMLElement>("[data-project]");
   await expect(projects).toHaveLength(noAiProjects(locale).length);
   for (const project of projects) {
-    await expect(project.querySelectorAll("[data-node]")).toHaveLength(6);
+    await expect(project.querySelectorAll("[data-node]")).toHaveLength(7);
     await expect(project.querySelectorAll("[data-ai-line]")).toHaveLength(0);
-    let said = textOf(project);
+    // ORV-298 PR 3: the Logo type length line holds the name's length and its bound, two numbers
+    // that are not scale points; the brand expression story `ExpressionNoAi` reads that line.
+    const clone = project.cloneNode(true) as HTMLElement;
+    for (const line of clone.querySelectorAll("[data-name-length]")) line.remove();
+    let said = textOf(clone);
     for (const line of [
       ...negations(m),
       ...[1, 2, 3, 4, 5].map((n) => fill(m.business.identity.point, { n: String(n) })),

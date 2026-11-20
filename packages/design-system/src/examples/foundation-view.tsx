@@ -20,6 +20,7 @@ import { ArchitectureView } from "./architecture-view";
 import { ColorView } from "./color-view";
 import { CoreIdeaView } from "./core-idea-view";
 import { IdentityFrameView } from "./identity-frame-view";
+import { LogoTypeView } from "./logo-type-view";
 import { NameView } from "./name-view";
 import { TypographyView } from "./typography-view";
 
@@ -117,6 +118,8 @@ export function FoundationNodeView({ node, heading = true, controls }: Foundatio
         <NameView node={node} controls={controls} />
       ) : node.id === "core-idea" ? (
         <CoreIdeaView node={node} controls={controls} />
+      ) : node.id === "logo-type" ? (
+        <LogoTypeView node={node} controls={controls} />
       ) : node.id === "color" ? (
         <ColorView node={node} controls={controls} />
       ) : (

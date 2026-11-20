@@ -1,4 +1,5 @@
 import type { FoundationFieldKey } from "@orivilo/intent-engine";
+import type { ReactNode } from "react";
 import { useMessages } from "../i18n/LocaleProvider";
 import { FIELD_NOTE, foundationFieldLabel } from "./business-text";
 
@@ -11,18 +12,21 @@ import { FIELD_NOTE, foundationFieldLabel } from "./business-text";
 /**
  * One decision as text: the field name, the value word in the primary ink, each reason and the rule
  * line in the secondary note. The decision reads first and the why under it. `reasons` is a list
- * because Logo type can show two (design section 7).
+ * because Logo type can show two (design section 7). `children` are further lines of the decision
+ * between its reasons and its rule: Logo type's name length line (design 7.2).
  */
 export function DecisionLine({
   field,
   value,
   reasons,
   rule,
+  children,
 }: {
   field: FoundationFieldKey;
   value: string;
   reasons: readonly string[];
   rule: string;
+  children?: ReactNode;
 }) {
   const m = useMessages();
   return (
@@ -34,6 +38,7 @@ export function DecisionLine({
           {reason}
         </p>
       ))}
+      {children}
       <p className={FIELD_NOTE} data-rule>
         {rule}
       </p>

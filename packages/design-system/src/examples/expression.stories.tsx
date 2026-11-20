@@ -25,19 +25,35 @@ import {
 import { en, expectFitsAt360, FixtureNote, textOf, th } from "./business-story-helpers";
 import { nodeTitle, scriptsWord, styleWord } from "./business-text";
 import {
+  allDecided,
+  asksAppIcon,
   asksPersonality,
   asksScripts,
   bothCrowded,
+  CHASE_NAME,
   decided,
   fallback,
   HOSTILE_COMPETITOR,
   hostile,
+  logoTypeDecided,
+  logoTypeHostile,
+  logoTypeLongName,
+  logoTypeLongNameYes,
+  logoTypeMarksName,
+  logoTypeProvisional,
+  logoTypeThaiLongName,
+  logoTypeWaitsAnswered,
+  logoTypeWaitsForArchitecture,
+  logoTypeWaitsForName,
+  logoTypeWaitsForPositioning,
+  MARKS_NAME,
   NARROW_LINEUP,
   partly,
   POINT_4,
   provisional,
   provisionalPartly,
   STAND_IN,
+  EVERY_CANDIDATE_CROWDED,
   typographyDecided,
   typographyProvisional,
   typographyUnchecked,
@@ -48,11 +64,20 @@ import {
   waitsForPersonality,
   waitsForPositioning,
 } from "./expression-fixtures";
-import { afterEntryOn, givenEntry } from "./foundation-fixtures";
+import {
+  afterEntryOn,
+  answeredEntry,
+  FIXTURE_NAME,
+  givenEntry,
+  HOSTILE_NAME,
+  LONG_WORKING_NAME,
+  nameEntry,
+} from "./foundation-fixtures";
 import { type FoundationEditor, FoundationNodeView } from "./foundation-view";
 
 type Lang = "th" | "en";
 type Color = Extract<FoundationNode, { id: "color" }>;
+type ExpressionNodeId = "color" | "typography" | "logo-type";
 
 /** What the stub action answers: saved, or a line the page would have resolved from `saved.errors.*`. */
 type StubResult =
@@ -70,6 +95,10 @@ const RATE_LIMITED = {
 
 /** The project the stub saves on: Positioning agreed and a personality at point 4 (`partly`). */
 const stubAfter = (locale: Lang) => afterEntryOn(locale, "agreed", [givenEntry({}, POINT_4)]);
+
+/** The project the Logo type stub saves on: Positioning agreed, Brand architecture "no" and the working name ORIVILO. */
+const logoStubAfter = (locale: Lang) =>
+  afterEntryOn(locale, "agreed", [answeredEntry(false), nameEntry(FIXTURE_NAME)]);
 
 /**
  * What the page does around the view, with a stub action in place of the server: it holds the view
@@ -93,8 +122,8 @@ function Host({
   narrow?: boolean;
   scroll?: boolean;
   heading?: boolean;
-  /** The node the host shows: Colour (PR 1) or Typography (PR 2). */
-  nodeId?: "color" | "typography";
+  /** The node the host shows: Colour (PR 1), Typography (PR 2) or Logo type (PR 3). */
+  nodeId?: ExpressionNodeId;
 }) {
   const [view, setView] = useState(initial);
   const [pending, setPending] = useState<"saving" | null>(null);
@@ -106,7 +135,7 @@ function Host({
     setPending("saving");
     setFailure(undefined);
     void enter(request).then((result) => {
-      if (result.ok) setView(stubAfter(locale)(request));
+      if (result.ok) setView((nodeId === "logo-type" ? logoStubAfter : stubAfter)(locale)(request));
       else {
         setFailure(result.failure);
         // A new array each time, so a second refusal of the same fields is a new outcome.
@@ -167,7 +196,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "The brand expression nodes of the brand board (ORV-298): Colour (PR 1) and Typography (PR 2). The Typography view asks which scripts the brand writes in, with nothing chosen, and then shows the families that follow from the answer for reading text and for headlines, each with its style and its licence. It is rule-based: every brand gets the same three families in this version, no model picks them and the personality does not choose them. The Colour node: its view shows three decisions worked out by fixed rules from the brand personality and the competitors' main colours the person gave: the signature colour family, the greys and the background. Each shows its reason and its rule. The person gives the competitors' colours in an editor of up to twenty brands; the view lists them as text and names the colour families that are crowded among them. Everything here is rule-based: no model decides these and nothing is sent anywhere, and a colour family is not a final colour value. Every project is a labelled fixture; nobody gave these answers.",
+          "The brand expression nodes of the brand board (ORV-298): Colour (PR 1), Typography (PR 2) and Logo type (PR 3). The Logo type view asks one question, whether the brand needs a small square mark such as an app icon, with nothing chosen, and then shows the logo type that follows from the answer and the working name: a wordmark, or a symbol with the name, with each reason, the length of the name and its rule. A name longer than twelve characters needs no answer. It is rule-based: no model decides it, no crowding check was made and the other types are not offered. The Typography view asks which scripts the brand writes in, with nothing chosen, and then shows the families that follow from the answer for reading text and for headlines, each with its style and its licence. It is rule-based: every brand gets the same three families in this version, no model picks them and the personality does not choose them. The Colour node: its view shows three decisions worked out by fixed rules from the brand personality and the competitors' main colours the person gave: the signature colour family, the greys and the background. Each shows its reason and its rule. The person gives the competitors' colours in an editor of up to twenty brands; the view lists them as text and names the colour families that are crowded among them. Everything here is rule-based: no model decides these and nothing is sent anywhere, and a colour family is not a final colour value. Every project is a labelled fixture; nobody gave these answers.",
       },
     },
   },
@@ -178,7 +207,7 @@ type Story = StoryObj<typeof meta>;
 
 // ----- helpers -----
 
-const viewOf = (root: ParentNode, id: "color" | "typography" = "color") =>
+const viewOf = (root: ParentNode, id: ExpressionNodeId = "color") =>
   root.querySelector<HTMLElement>(`[data-node="${id}"]`) as HTMLElement;
 const stateLineOf = (v: HTMLElement) =>
   v.querySelector<HTMLElement>("[data-node-state]") as HTMLElement;
@@ -312,7 +341,7 @@ const hosted =
   (
     locale: Lang,
     initial: BusinessView,
-    options: { readOnly?: boolean; scroll?: boolean; nodeId?: "color" | "typography" } = {},
+    options: { readOnly?: boolean; scroll?: boolean; nodeId?: ExpressionNodeId } = {},
   ) =>
   () =>
     locale === "en" ? (
@@ -923,16 +952,36 @@ async function untrustedPlay(canvasElement: HTMLElement, m: Messages) {
   await expect(editing.querySelectorAll("a, img, script, b")).toHaveLength(0);
   await expect(canvasElement.querySelector("img[src='x']")).toBeNull();
   await expect(editing.querySelector("[title]")).toBeNull();
+
+  // Spec row 35: a working name that is markup is the literal text of the length line's `bdi`, on a
+  // line that keeps its white space, never an image, a link, a script or a tag.
+  const logo = viewOf(
+    canvasElement.querySelector('[data-case="name"]') as HTMLElement,
+    "logo-type",
+  );
+  const line = logo.querySelector<HTMLElement>("[data-name-length]") as HTMLElement;
+  const name = line.querySelector("bdi") as HTMLElement;
+  await expect(name.textContent).toBe(HOSTILE_NAME);
+  await expect(name.children).toHaveLength(0);
+  await expect(line.querySelectorAll("bdi")).toHaveLength(1);
+  await expect(getComputedStyle(line).whiteSpace).toBe("pre-wrap");
+  await expect(textOf(line)).toBe(
+    fill(m.business.logoType.nameLength, { name: HOSTILE_NAME, n: 26, max: 12 }),
+  );
+  await expect(logo.querySelectorAll("a, img, script, b, svg, [style], [title]")).toHaveLength(0);
+  await expect(canvasElement.querySelector("img[src='x']")).toBeNull();
   await expect(enter).toHaveBeenCalledTimes(0);
 }
 
 function UntrustedCases({ locale }: { locale: Lang }) {
   return (
-    <Cases
+    <LabelledCases
       locale={locale}
+      nodeId="color"
       cases={[
         ["saved", hostile(locale)],
         ["editing", partly(locale)],
+        ["name", logoTypeHostile(locale), "logo-type"],
       ]}
     />
   );
@@ -1269,19 +1318,34 @@ const CASE_LABELS: Record<string, { th: string; en: string }> = {
   "waits-asks": { th: "รอ และยังไม่ได้ตอบ", en: "Waits, not answered" },
   "asks-readonly": { th: "ยังไม่ได้ตอบ อ่านอย่างเดียว", en: "Not answered, read only" },
   "decided-readonly": { th: "ตอบแล้ว อ่านอย่างเดียว", en: "Answered, read only" },
+  // Logo type (PR 3).
+  "waits-name": { th: "รอชื่อแบรนด์", en: "Waits for Name" },
+  "waits-architecture": { th: "รอโครงสร้างแบรนด์", en: "Waits for Brand architecture" },
+  "waits-answered": { th: "รอ และตอบแล้ว", en: "Waits, answered" },
+  "skipped-positioning": { th: "จุดยืนถูกข้ามไว้", en: "Positioning skipped" },
+  "marks-name": { th: "ชื่อที่มีวรรณยุกต์ซ้อนกัน", en: "A name with stacked Thai marks" },
+  "long-name": { th: "ชื่อยาว ยังไม่ได้ตอบ", en: "Long name, not answered" },
+  "long-name-yes": { th: "ชื่อยาว และตอบว่าต้องมี", en: "Long name, answered yes" },
+  // The stacked cases of `ExpressionUntrustedText` (design F5).
+  saved: { th: "คู่แข่งที่บันทึกไว้", en: "The saved competitors" },
+  editing: { th: "ตัวแก้ไขรายชื่อคู่แข่ง", en: "The competitor editor" },
+  name: { th: "ชื่อใช้งานที่เป็นโค้ด", en: "A working name that is markup" },
 };
 
 /** Cases stacked in one story, each in a labelled frame (design F5); the read-only ones get no controls. */
-function TypographyCases({
+function LabelledCases({
   locale,
   cases,
+  nodeId = "typography",
 }: {
   locale: Lang;
-  cases: ReadonlyArray<[string, BusinessView]>;
+  cases: ReadonlyArray<readonly [string, BusinessView, ExpressionNodeId?]>;
+  /** The node every case shows unless its own entry names another. */
+  nodeId?: ExpressionNodeId;
 }) {
   return (
     <>
-      {cases.map(([name, initial]) => (
+      {cases.map(([name, initial, own]) => (
         <div key={name} data-case={name}>
           <p className="px-4 text-label-md" data-case-label>
             {pick(CASE_LABELS[name] as { th: string; en: string }, locale)}
@@ -1289,7 +1353,7 @@ function TypographyCases({
           <Host
             locale={locale}
             initial={initial}
-            nodeId="typography"
+            nodeId={own ?? nodeId}
             readOnly={name.endsWith("readonly")}
           />
         </div>
@@ -1300,7 +1364,7 @@ function TypographyCases({
 
 const typCases =
   (locale: Lang, build: (locale: Lang) => ReadonlyArray<[string, BusinessView]>) => () =>
-    inLocale(locale, <TypographyCases locale={locale} cases={build(locale)} />);
+    inLocale(locale, <LabelledCases locale={locale} cases={build(locale)} />);
 
 const typAt = (canvasElement: HTMLElement, name: string) =>
   typView(canvasElement.querySelector(`[data-case="${name}"]`) as HTMLElement);
@@ -1832,5 +1896,903 @@ export const TypographyNarrowEnglish: Story = {
   render: typNarrowHost("en", asksScripts("en"), "light"),
   play: async ({ canvasElement }) => {
     await typographyNarrowPlay(canvasElement, en);
+  },
+};
+
+// ======================================================================================
+// Logo type (ORV-298 PR 3, `logo-type-1`)
+// ======================================================================================
+
+const logoView = (root: ParentNode) => viewOf(root, "logo-type");
+const logoAt = (canvasElement: HTMLElement, name: string) =>
+  logoView(canvasElement.querySelector(`[data-case="${name}"]`) as HTMLElement);
+
+/** A Logo type view held by the same host as Colour, with the stub saving on the Logo type project. */
+const logoHosted =
+  (locale: Lang, initial: BusinessView, options: { readOnly?: boolean; scroll?: boolean } = {}) =>
+  () =>
+    hosted(locale, initial, { ...options, nodeId: "logo-type" })();
+
+const logoCases =
+  (locale: Lang, build: (locale: Lang) => ReadonlyArray<readonly [string, BusinessView]>) => () =>
+    inLocale(locale, <LabelledCases locale={locale} cases={build(locale)} nodeId="logo-type" />);
+
+const appIconGroupOf = (v: HTMLElement, m: Messages) =>
+  within(v).getByRole("radiogroup", { name: m.business.question.appIcon });
+const appIconRadioOf = (v: HTMLElement, m: Messages, yes: boolean) =>
+  within(appIconGroupOf(v, m)).getByRole("radio", {
+    name: yes ? m.business.logoType.appIcon.yes : m.business.logoType.appIcon.no,
+  });
+
+/** What a decided Logo type view shows: the type, the reasons in the engine's order, the name and its count. */
+interface LogoWant {
+  type: "wordmark" | "symbol-plus-name";
+  reasons: ReadonlyArray<"longName" | "appIcon" | "wordmark">;
+  /** The stored answer, or null when none is stored (then the field is not shown for a long name). */
+  appIcon: boolean | null;
+  name: string;
+  /** The count `name-length-1` gives, in grapheme clusters with the white space left out. */
+  length: number;
+}
+
+/** The decided Logo type of one project, in one language (spec rows 29 to 31, design L6 to L9). */
+async function expectLogoDecided(v: HTMLElement, m: Messages, want: LogoWant) {
+  await expectState(v, "derived", m.business.state.derived);
+  await expect(fieldKeys(v)).toEqual(
+    want.appIcon === null ? ["logoType"] : ["appIcon", "logoType"],
+  );
+  if (want.appIcon !== null) {
+    await expect(linesOf(fieldOf(v, "appIcon"))).toEqual([
+      m.business.field.appIcon,
+      want.appIcon ? m.business.logoType.appIcon.yes : m.business.logoType.appIcon.no,
+    ]);
+  }
+  const field = fieldOf(v, "logoType");
+  await expect(field.children[0]?.tagName).toBe("H3");
+  await expect(linesOf(field)).toEqual([
+    m.business.field.logoType,
+    want.type === "wordmark" ? m.business.logoType.wordmark : m.business.logoType.symbolPlusName,
+    ...want.reasons.map((reason) => m.business.logoType.because[reason]),
+    fill(m.business.logoType.nameLength, { name: want.name, n: want.length, max: 12 }),
+    fill(m.business.decision.rule, { rule: "logo-type-1" }),
+  ]);
+  await expect(field.querySelector("[data-value]")).toBe(field.children[1]);
+  await expect(field.querySelector("[data-rule]")).toBe(field.lastElementChild);
+  // The name is the literal text of one `bdi` in the length line, which is the line before the rule.
+  const line = field.querySelector<HTMLElement>("[data-name-length]") as HTMLElement;
+  await expect(line).toBe(field.children[field.children.length - 2]);
+  await expect(line.querySelectorAll("bdi")).toHaveLength(1);
+  await expect(line.querySelector("bdi")?.textContent).toBe(want.name);
+  await expect(line.querySelector("bdi")?.children).toHaveLength(0);
+  // The honesty lines, once each, after the decision.
+  const labels = v.querySelectorAll("[data-labels]");
+  await expect(labels).toHaveLength(1);
+  await expect([...(labels[0] as HTMLElement).children].map(textOf)).toEqual([
+    m.business.label.byRule,
+    m.business.logoType.hypothesis,
+    m.business.logoType.crowdingNotChecked,
+    m.business.logoType.otherTypes,
+  ]);
+  await expect(textOf(v).split(m.business.label.byRule)).toHaveLength(2);
+  await expect(v.querySelector("[role=radiogroup]")).toBeNull();
+  await expect(v.querySelectorAll("button")).toHaveLength(0);
+}
+
+// ----- the question, then the decided logo type (spec rows 29 and 30) -----
+
+/**
+ * Spec rows 29 and 30: before, "Waits for your answer", the question with two answers and none
+ * checked, one primary button, Logo type holding the empty line. Choosing an answer and saving makes
+ * one call with the checked request; after it the state is "Worked out by a fixed rule", the type
+ * and its reason show with the length line ("ORIVILO", 7, 12) and the rule line, the labels hold
+ * the four honesty lines once each, no control is left and focus is on the scroll region, scrolled
+ * to its top.
+ */
+async function logoDecidePlay(canvasElement: HTMLElement, m: Messages, yes: boolean) {
+  enter.mockReset();
+  enter.mockResolvedValue({ ok: true });
+  const v = logoView(canvasElement);
+  await expectState(v, "needsAnswer", m.business.state.needsAnswer);
+  const radios = within(appIconGroupOf(v, m)).getAllByRole("radio");
+  await expect(radios.map((r) => textOf(r.closest(".ds-radio") as HTMLElement))).toEqual([
+    m.business.logoType.appIcon.yes,
+    m.business.logoType.appIcon.no,
+  ]);
+  await expect(checkedIn(v)).toBe(0);
+  const row = rowButtonsOf(v);
+  await expect(row.map(textOf)).toEqual([m.business.architecture.save]);
+  await expect(row[0]?.dataset["variant"]).toBe("primary");
+  // The question is the group's name, so the Small square mark heading is not shown twice.
+  await expect(v.querySelector('[data-field="appIcon"] h3')).toBeNull();
+  await expect(linesOf(fieldOf(v, "logoType"))).toEqual([
+    m.business.field.logoType,
+    m.business.state.empty,
+  ]);
+  await expect(
+    v.querySelector("[data-labels], [data-name-length], [data-marks], [data-ask]"),
+  ).toBeNull();
+
+  await userEvent.click(appIconRadioOf(v, m, yes));
+  await expect(checkedIn(v)).toBe(1);
+  await expect(enter).toHaveBeenCalledTimes(0);
+  const region = regionOf(canvasElement);
+  region.scrollTop = region.scrollHeight;
+  await userEvent.click(saveOf(v));
+  await waitFor(() => expect(stateLineOf(v).dataset["nodeState"]).toBe("derived"));
+  await expect(enter).toHaveBeenCalledTimes(1);
+  await expect(enter).toHaveBeenCalledWith({
+    node: "logo-type",
+    kind: "answered",
+    payload: { appIcon: yes },
+  });
+  await expectLogoDecided(v, m, {
+    type: yes ? "symbol-plus-name" : "wordmark",
+    reasons: [yes ? "appIcon" : "wordmark"],
+    appIcon: yes,
+    name: FIXTURE_NAME,
+    length: 7,
+  });
+  await focusedIs(region);
+  await waitFor(() => expect(region.scrollTop).toBe(0));
+  // No heading took focus and none can: no h3 has a tabindex (design 4.4, F3).
+  await expect(v.querySelectorAll("h3[tabindex]")).toHaveLength(0);
+}
+
+export const LogoTypeWordmark: Story = {
+  render: logoHosted("th", asksAppIcon("th"), { scroll: true }),
+  play: async ({ canvasElement }) => {
+    await logoDecidePlay(canvasElement, th, false);
+    const v = logoView(canvasElement);
+    // The Thai lines of the top of the view sit whole inside the frame that clips them.
+    expectNoGlyphClip(stateLineOf(v), canvasElement);
+    expectNoGlyphClip(v.querySelector("[data-name-length]") as HTMLElement, canvasElement);
+    expectNoGlyphClip(fieldOf(v, "logoType").children[2] as HTMLElement, canvasElement);
+    await expectNoLetterSpacing(v);
+  },
+};
+
+export const LogoTypeWordmarkEnglish: Story = {
+  render: logoHosted("en", asksAppIcon("en"), { scroll: true }),
+  play: async ({ canvasElement }) => {
+    await logoDecidePlay(canvasElement, en, false);
+  },
+};
+
+export const LogoTypeSymbol: Story = {
+  render: logoHosted("th", asksAppIcon("th"), { scroll: true }),
+  play: async ({ canvasElement }) => {
+    await logoDecidePlay(canvasElement, th, true);
+  },
+};
+
+export const LogoTypeSymbolEnglish: Story = {
+  render: logoHosted("en", asksAppIcon("en"), { scroll: true }),
+  play: async ({ canvasElement }) => {
+    await logoDecidePlay(canvasElement, en, true);
+  },
+};
+
+// ----- a long name (spec row 31, design L8 and L9) -----
+
+const longNameCases = (locale: Lang): ReadonlyArray<readonly [string, BusinessView]> => [
+  ["long-name", logoTypeLongName(locale)],
+  ["long-name-yes", logoTypeLongNameYes(locale)],
+];
+
+/**
+ * Spec row 31: a name of eighteen characters is long, so the logo type is symbol plus name with the
+ * reason `longName`, the length line holds "Chase Manhattan Bank" and 18, and nothing is asked: no
+ * radio, no button and no Small square mark field. Design L9: an answer "yes" stored before the name
+ * was given shows too, with both reasons in the order of the rule.
+ */
+async function logoLongNamePlay(canvasElement: HTMLElement, m: Messages) {
+  enter.mockReset();
+  const long = logoAt(canvasElement, "long-name");
+  await expectLogoDecided(long, m, {
+    type: "symbol-plus-name",
+    reasons: ["longName"],
+    appIcon: null,
+    name: CHASE_NAME,
+    length: 18,
+  });
+  await expect(long.querySelector('[data-field="appIcon"]')).toBeNull();
+  await expect(long.querySelector("[data-row], [role=radiogroup], [role=radio]")).toBeNull();
+  await expect(long.querySelectorAll("button")).toHaveLength(0);
+
+  const yes = logoAt(canvasElement, "long-name-yes");
+  await expectLogoDecided(yes, m, {
+    type: "symbol-plus-name",
+    reasons: ["longName", "appIcon"],
+    appIcon: true,
+    name: CHASE_NAME,
+    length: 18,
+  });
+  await expect(enter).toHaveBeenCalledTimes(0);
+}
+
+export const LogoTypeLongName: Story = {
+  render: logoCases("th", longNameCases),
+  play: async ({ canvasElement }) => {
+    await logoLongNamePlay(canvasElement, th);
+  },
+};
+
+export const LogoTypeLongNameEnglish: Story = {
+  render: logoCases("en", longNameCases),
+  play: async ({ canvasElement }) => {
+    await logoLongNamePlay(canvasElement, en);
+  },
+};
+
+// ----- a choice that cannot be saved (spec rows 29 and 34, design L2 to L5) -----
+
+const logoInvalidCases = (locale: Lang): ReadonlyArray<readonly [string, BusinessView]> => [
+  ["empty", asksAppIcon(locale)],
+  ["limited", asksAppIcon(locale)],
+  ["refused", asksAppIcon(locale)],
+];
+
+/**
+ * Design L2 to L5, one case each, as `TypographyInvalid`. Saving with no choice shows
+ * `choiceRequired` under the group, focuses the first radio, checks nothing and makes no call. A
+ * rate limited answer keeps the choice and shows only the notice; a double press makes one call,
+ * with Save inert and named. A refusal naming `payload.appIcon` clears the choice, shows the error
+ * again and no notice, and focuses the first radio (F2).
+ */
+async function logoInvalidPlay(canvasElement: HTMLElement, m: Messages, locale: Lang) {
+  enter.mockReset();
+  const at = (name: string) => logoAt(canvasElement, name);
+  const empty = at("empty");
+  await userEvent.click(saveOf(empty));
+  await waitFor(() => expect(errorsOf(empty)).toHaveLength(1));
+  await expect(textOf(errorsOf(empty)[0] as HTMLElement)).toBe(
+    m.business.architecture.choiceRequired,
+  );
+  await expect(appIconGroupOf(empty, m)).toHaveAttribute("aria-invalid", "true");
+  await focusedIs(within(appIconGroupOf(empty, m)).getAllByRole("radio")[0] as HTMLElement);
+  await expect(checkedIn(empty)).toBe(0);
+  await expect(enter).toHaveBeenCalledTimes(0);
+  // Choosing takes the error away and still makes no call.
+  await userEvent.click(appIconRadioOf(empty, m, false));
+  await expect(errorsOf(empty)).toHaveLength(0);
+  await expect(enter).toHaveBeenCalledTimes(0);
+
+  // Rate limited, with a double press.
+  const limited = at("limited");
+  await userEvent.click(appIconRadioOf(limited, m, true));
+  let release: (result: StubResult) => void = () => {};
+  enter.mockImplementation(
+    () =>
+      new Promise<StubResult>((done) => {
+        release = done;
+      }),
+  );
+  await userEvent.click(saveOf(limited));
+  await userEvent.click(saveOf(limited));
+  await expect(enter).toHaveBeenCalledTimes(1);
+  await expect(saveOf(limited)).toHaveAttribute("aria-disabled", "true");
+  await expect(textOf(saveOf(limited))).toContain(m.business.positioning.saving);
+  release({ ok: false, failure: RATE_LIMITED[locale] });
+  await waitFor(() => expect(textOf(failureRegionOf(limited))).toContain(RATE_LIMITED[locale]));
+  await expect(saveOf(limited)).not.toHaveAttribute("aria-disabled");
+  await expect(checkedIn(limited)).toBe(1);
+  await expect(appIconRadioOf(limited, m, true)).toHaveAttribute("aria-checked", "true");
+  await expect(errorsOf(limited)).toHaveLength(0);
+  await expect(enter).toHaveBeenCalledTimes(1);
+
+  // A refusal naming the field: nothing checked, the error, no notice, focus on the first radio.
+  const refused = at("refused");
+  enter.mockReset();
+  enter.mockResolvedValue({ ok: false, problems: [{ path: "payload.appIcon", kind: "invalid" }] });
+  await userEvent.click(appIconRadioOf(refused, m, false));
+  await expect(checkedIn(refused)).toBe(1);
+  await userEvent.click(saveOf(refused));
+  await waitFor(() => expect(errorsOf(refused)).toHaveLength(1));
+  await expect(enter).toHaveBeenCalledTimes(1);
+  await expect(textOf(errorsOf(refused)[0] as HTMLElement)).toBe(
+    m.business.architecture.choiceRequired,
+  );
+  await expect(checkedIn(refused)).toBe(0);
+  await expect(textOf(failureRegionOf(refused))).toBe("");
+  await focusedIs(within(appIconGroupOf(refused, m)).getAllByRole("radio")[0] as HTMLElement);
+}
+
+export const LogoTypeInvalid: Story = {
+  render: logoCases("th", logoInvalidCases),
+  play: async ({ canvasElement }) => {
+    await logoInvalidPlay(canvasElement, th, "th");
+  },
+};
+
+export const LogoTypeInvalidEnglish: Story = {
+  render: logoCases("en", logoInvalidCases),
+  play: async ({ canvasElement }) => {
+    await logoInvalidPlay(canvasElement, en, "en");
+  },
+};
+
+// ----- waiting, and the read-only arm (spec row 32, design L10, L11 and L13) -----
+
+const logoWaitsCases = (locale: Lang): ReadonlyArray<readonly [string, BusinessView]> => [
+  ["waits-name", logoTypeWaitsForName(locale)],
+  ["waits-architecture", logoTypeWaitsForArchitecture(locale)],
+  ["waits-positioning", logoTypeWaitsForPositioning(locale)],
+  ["waits-answered", logoTypeWaitsAnswered(locale)],
+  ["asks-readonly", asksAppIcon(locale)],
+  ["decided-readonly", logoTypeDecided(locale, false)],
+];
+
+/**
+ * Spec row 32: with no name the node waits for Name, with Brand architecture open it waits for that,
+ * with Positioning no longer agreed it waits for Positioning; the question is offered in all three,
+ * none checked, with one primary button, and no decision shows. Design L11: a waiting node with a
+ * stored answer shows the answer and no decision, and no question. L13: with no `controls` the same
+ * fields show with the same fallbacks, no question, no button row and no failure region.
+ */
+async function logoWaitsPlay(canvasElement: HTMLElement, m: Messages) {
+  for (const [name, waitsFor] of [
+    ["waits-name", nodeTitle(m, "name")],
+    ["waits-architecture", nodeTitle(m, "architecture")],
+    ["waits-positioning", nodeTitle(m, "positioning")],
+  ] as const) {
+    const v = logoAt(canvasElement, name);
+    await expectState(v, "waiting", fill(m.business.state.waiting, { nodes: waitsFor }));
+    await expect(within(appIconGroupOf(v, m)).getAllByRole("radio")).toHaveLength(2);
+    await expect(checkedIn(v)).toBe(0);
+    await expect(rowButtonsOf(v).map(textOf)).toEqual([m.business.architecture.save]);
+    await expect(rowButtonsOf(v)[0]?.dataset["variant"]).toBe("primary");
+    await expect(linesOf(fieldOf(v, "logoType"))).toEqual([
+      m.business.field.logoType,
+      m.business.state.empty,
+    ]);
+    await expect(
+      v.querySelector("[data-labels], [data-name-length], [data-marks], [data-ask]"),
+    ).toBeNull();
+  }
+
+  const answered = logoAt(canvasElement, "waits-answered");
+  await expectState(
+    answered,
+    "waiting",
+    fill(m.business.state.waiting, { nodes: nodeTitle(m, "positioning") }),
+  );
+  await expect(linesOf(fieldOf(answered, "appIcon"))).toEqual([
+    m.business.field.appIcon,
+    m.business.logoType.appIcon.no,
+  ]);
+  await expect(linesOf(fieldOf(answered, "logoType"))).toEqual([
+    m.business.field.logoType,
+    m.business.state.empty,
+  ]);
+  await expect(answered.querySelector("[data-labels], [role=radiogroup]")).toBeNull();
+  await expect(answered.querySelectorAll("button")).toHaveLength(0);
+
+  const unanswered = logoAt(canvasElement, "asks-readonly");
+  await expectState(unanswered, "needsAnswer", m.business.state.needsAnswer);
+  await expect(linesOf(fieldOf(unanswered, "appIcon"))).toEqual([
+    m.business.field.appIcon,
+    m.business.state.empty,
+  ]);
+  await expect(linesOf(fieldOf(unanswered, "logoType"))).toEqual([
+    m.business.field.logoType,
+    m.business.state.empty,
+  ]);
+  const decided = logoAt(canvasElement, "decided-readonly");
+  await expectLogoDecided(decided, m, {
+    type: "wordmark",
+    reasons: ["wordmark"],
+    appIcon: false,
+    name: FIXTURE_NAME,
+    length: 7,
+  });
+  for (const v of [unanswered, decided]) {
+    await expect(v.querySelector("[data-row]")).toBeNull();
+    await expect(v.querySelector("[role=alert]")).toBeNull();
+    await expect(v.querySelector("[role=radiogroup]")).toBeNull();
+    await expect(v.querySelectorAll("button")).toHaveLength(0);
+  }
+}
+
+export const LogoTypeWaits: Story = {
+  render: logoCases("th", logoWaitsCases),
+  play: async ({ canvasElement }) => {
+    await logoWaitsPlay(canvasElement, th);
+  },
+};
+
+export const LogoTypeWaitsEnglish: Story = {
+  render: logoCases("en", logoWaitsCases),
+  play: async ({ canvasElement }) => {
+    await logoWaitsPlay(canvasElement, en);
+  },
+};
+
+// ----- marks (spec row 33, design L12) -----
+
+const logoMarksCases = (locale: Lang): ReadonlyArray<readonly [string, BusinessView]> => [
+  ["skipped-positioning", logoTypeProvisional(locale)],
+  ["marks-name", logoTypeMarksName(locale)],
+];
+
+/**
+ * Spec row 33: a logo type that rests on a skipped Positioning says so in two lines under the state
+ * line, 4 apart, and shows the decision as with no mark. A name whose Thai marks stack above the
+ * line keeps the length line and the rule line apart and whole (design 4.5).
+ */
+async function logoMarksPlay(canvasElement: HTMLElement, m: Messages) {
+  const v = logoAt(canvasElement, "skipped-positioning");
+  await expectState(v, "derived", m.business.state.derived);
+  await expect(v.querySelectorAll("[data-marks]")).toHaveLength(1);
+  const marks = v.querySelector<HTMLElement>('[data-marks="provisional"]') as HTMLElement;
+  await expect(marks.closest("[data-head]")).toBe(v.querySelector("[data-head]"));
+  const lines = [...marks.children] as HTMLElement[];
+  await expect(lines.map(textOf)).toEqual([
+    m.strategy.provisional,
+    fill(m.business.marks.restsOn, { nodes: nodeTitle(m, "positioning") }),
+  ]);
+  const gap =
+    (lines[1] as HTMLElement).getBoundingClientRect().top -
+    (lines[0] as HTMLElement).getBoundingClientRect().bottom;
+  await expect(Math.abs(gap - 4)).toBeLessThanOrEqual(0.5);
+  if (inVitest) await expectInkClearsAbove(lines[1] as HTMLElement, lines[0] as HTMLElement, 2);
+  expectNoGlyphClip(lines[1] as HTMLElement, canvasElement);
+  await expect(
+    Math.abs(marks.getBoundingClientRect().left - stateLineOf(v).getBoundingClientRect().left),
+  ).toBeLessThanOrEqual(0.5);
+  await expectLogoDecided(v, m, {
+    type: "wordmark",
+    reasons: ["wordmark"],
+    appIcon: false,
+    name: FIXTURE_NAME,
+    length: 7,
+  });
+
+  const stacked = logoAt(canvasElement, "marks-name");
+  await expectLogoDecided(stacked, m, {
+    type: "wordmark",
+    reasons: ["wordmark"],
+    appIcon: false,
+    name: MARKS_NAME,
+    length: 8,
+  });
+  const line = stacked.querySelector("[data-name-length]") as HTMLElement;
+  expectNoGlyphClip(line, canvasElement);
+  if (inVitest) {
+    // The second case sits below the fold of the test page; the helper reads a screenshot of the
+    // frame, so the line is brought into view first.
+    line.scrollIntoView({ block: "center" });
+    await expectInkClearsAbove(line, line.previousElementSibling as HTMLElement, 2);
+    await expectInkClearsAbove(line.nextElementSibling as HTMLElement, line, 2);
+  }
+}
+
+export const LogoTypeMarks: Story = {
+  render: logoCases("th", logoMarksCases),
+  play: async ({ canvasElement }) => {
+    await logoMarksPlay(canvasElement, th);
+  },
+};
+
+export const LogoTypeMarksEnglish: Story = {
+  render: logoCases("en", logoMarksCases),
+  play: async ({ canvasElement }) => {
+    await logoMarksPlay(canvasElement, en);
+  },
+};
+
+// ----- one project, the other language (spec row 36) -----
+
+/**
+ * The header's language switch for Logo type, as `TypographySwitchHost`: one decided view held by
+ * one mounted host, and the catalog `Button` (secondary, sm) outside it that changes the locale
+ * above it, inside a padded frame (F4).
+ */
+function LogoTypeSwitchHost({ from }: { from: Lang }) {
+  const [locale, setLocale] = useState<Lang>(from);
+  const next: Lang = locale === "th" ? "en" : "th";
+  return (
+    <LocaleProvider locale={locale}>
+      <div className="p-4">
+        <Button
+          variant="secondary"
+          size="sm"
+          data-switch-locale={next}
+          onClick={() => setLocale(next)}
+        >
+          {next.toUpperCase()}
+        </Button>
+      </div>
+      <Host locale={locale} initial={logoTypeDecided(from, false)} nodeId="logo-type" heading />
+    </LocaleProvider>
+  );
+}
+
+/**
+ * Spec row 36: one decided Logo type on one mounted view, shown in one language and then the other
+ * with no remount: the title, the state line, the type, the reasons, the length line and the labels
+ * come from the other catalog, the name stays exactly as typed in the same `bdi`, and no call is made.
+ */
+async function logoSwitchPlay(canvasElement: HTMLElement, from: Lang) {
+  enter.mockReset();
+  const first = from === "th" ? th : en;
+  const second = from === "th" ? en : th;
+  const v = logoView(canvasElement);
+  const field = fieldOf(v, "logoType");
+  const name = v.querySelector("[data-name-length] bdi") as HTMLElement;
+  const decided: LogoWant = {
+    type: "wordmark",
+    reasons: ["wordmark"],
+    appIcon: false,
+    name: FIXTURE_NAME,
+    length: 7,
+  };
+  await expect(
+    within(v).getByRole("heading", { level: 2, name: nodeTitle(first, "logo-type") }),
+  ).toBeVisible();
+  await expectLogoDecided(v, first, decided);
+  if (from === "th") await expectNoLetterSpacing(v);
+  await userEvent.click(canvasElement.querySelector("[data-switch-locale]") as HTMLElement);
+  await waitFor(() => expect(textOf(stateLineOf(v))).toBe(second.business.state.derived));
+  await expect(logoView(canvasElement)).toBe(v);
+  await expect(fieldOf(v, "logoType")).toBe(field);
+  await expect(v.querySelector("[data-name-length] bdi")).toBe(name);
+  await expect(
+    within(v).getByRole("heading", { level: 2, name: nodeTitle(second, "logo-type") }),
+  ).toBeVisible();
+  await expectLogoDecided(v, second, decided);
+  if (from === "en") await expectNoLetterSpacing(v);
+  await expect(enter).toHaveBeenCalledTimes(0);
+}
+
+export const LogoTypeSwitchToEnglish: Story = {
+  render: () => <LogoTypeSwitchHost from="th" />,
+  play: async ({ canvasElement }) => {
+    await logoSwitchPlay(canvasElement, "th");
+  },
+};
+
+export const LogoTypeSwitchToThai: Story = {
+  render: () => <LogoTypeSwitchHost from="en" />,
+  play: async ({ canvasElement }) => {
+    await logoSwitchPlay(canvasElement, "en");
+  },
+};
+
+// ----- narrow (spec row 36) -----
+
+const logoNarrowHost = (locale: Lang, initial: BusinessView, mode: "light" | "dark") => () => (
+  <Under profile="neutral" mode={mode}>
+    {inLocale(locale, <Host locale={locale} initial={initial} nodeId="logo-type" narrow />)}
+  </Under>
+);
+
+/** Every block of the Logo type view starts at the state line's edge, at 360 (design 4.5). */
+async function expectLogoStartEdge(v: HTMLElement) {
+  const left = stateLineOf(v).getBoundingClientRect().left;
+  for (const block of v.querySelectorAll<HTMLElement>(
+    "[data-head] > p, [data-field] > h3, [data-field] > p, [data-labels] > p, .ds-field__label, [data-row] > button:first-child",
+  )) {
+    await expect(
+      Math.abs(block.getBoundingClientRect().left - left),
+      textOf(block),
+    ).toBeLessThanOrEqual(0.5);
+  }
+}
+
+/** A working name of 60 Thai characters with no space is 47 grapheme clusters, so it is long. */
+const LONG_NAME_LENGTH = 47;
+
+/**
+ * Spec row 36 at 360: a working name of 60 Thai characters with no space is long, so the view shows
+ * symbol plus name with `longName` and no question, no button and no Small square mark field; the
+ * length line wraps inside the column over several lines, the name whole in its `bdi`, with the
+ * start edge of the head and no Thai text clipped, and nothing scrolls sideways.
+ */
+async function logoNarrowPlay(canvasElement: HTMLElement, m: Messages) {
+  enter.mockReset();
+  const v = logoView(canvasElement);
+  await expectFitsAt360(canvasElement);
+  await expectLogoStartEdge(v);
+  await expectLogoDecided(v, m, {
+    type: "symbol-plus-name",
+    reasons: ["longName"],
+    appIcon: null,
+    name: LONG_WORKING_NAME,
+    length: LONG_NAME_LENGTH,
+  });
+  const line = v.querySelector("[data-name-length]") as HTMLElement;
+  const bdi = line.querySelector("bdi") as HTMLElement;
+  const frame = canvasElement.querySelector("[data-narrow]") as HTMLElement;
+  await expect(bdi.getBoundingClientRect().right).toBeLessThanOrEqual(
+    frame.getBoundingClientRect().right + 0.5,
+  );
+  // The line wraps over more than two lines of its own height, inside the column.
+  const lineHeight = parseFloat(getComputedStyle(line).lineHeight);
+  await expect(line.getBoundingClientRect().height).toBeGreaterThan(lineHeight * 2);
+  expectNoGlyphClip(line, canvasElement);
+  expectNoGlyphClip(stateLineOf(v), canvasElement);
+  for (const note of v.querySelectorAll<HTMLElement>("[data-field] > p")) {
+    expectNoGlyphClip(note, canvasElement);
+  }
+  await expect(v.querySelector('[data-field="appIcon"]')).toBeNull();
+  await expect(enter).toHaveBeenCalledTimes(0);
+}
+
+export const LogoTypeNarrow: Story = {
+  render: logoNarrowHost("th", logoTypeThaiLongName("th"), "light"),
+  play: async ({ canvasElement }) => {
+    await logoNarrowPlay(canvasElement, th);
+  },
+};
+
+export const LogoTypeNarrowDark: Story = {
+  render: logoNarrowHost("th", logoTypeThaiLongName("th"), "dark"),
+  play: async ({ canvasElement }) => {
+    await logoNarrowPlay(canvasElement, th);
+  },
+};
+
+/** English at 360: the longest English lines of the decided view. */
+export const LogoTypeNarrowEnglish: Story = {
+  render: logoNarrowHost("en", logoTypeThaiLongName("en"), "light"),
+  play: async ({ canvasElement }) => {
+    await logoNarrowPlay(canvasElement, en);
+  },
+};
+
+/**
+ * Spec row 36 at 360, the question: the two answers and Save fit the column and keep their Tab order
+ * (the first radio while none is checked, then Save), each stop with the border form of focus; the
+ * error under the group fits; the decided view fits, starts at one edge and no Thai text is clipped.
+ */
+async function logoAsksNarrowPlay(canvasElement: HTMLElement, m: Messages) {
+  enter.mockReset();
+  enter.mockResolvedValue({ ok: true });
+  const v = logoView(canvasElement);
+  await expectFitsAt360(canvasElement);
+  await expectLogoStartEdge(v);
+  expectNoGlyphClip(appIconGroupOf(v, m), canvasElement);
+  expectNoGlyphClip(stateLineOf(v), canvasElement);
+
+  const first = within(appIconGroupOf(v, m)).getAllByRole("radio")[0] as HTMLElement;
+  first.focus();
+  await focusedIs(first);
+  await expectFocusBorderForm(first);
+  // The group is one Tab stop, so the next Tab reaches Save.
+  await userEvent.tab();
+  await focusedIs(saveOf(v));
+  await expect(saveOf(v).matches(":focus-visible")).toBe(true);
+  await expectFocusBorderForm(saveOf(v));
+
+  // The error under the group at 360.
+  await userEvent.click(saveOf(v));
+  await waitFor(() => expect(errorsOf(v)).toHaveLength(1));
+  await expect(textOf(errorsOf(v)[0] as HTMLElement)).toBe(m.business.architecture.choiceRequired);
+  await expectFitsAt360(canvasElement);
+  await expectLogoStartEdge(v);
+  expectNoGlyphClip(errorsOf(v)[0] as HTMLElement, canvasElement);
+
+  await userEvent.click(appIconRadioOf(v, m, true));
+  await userEvent.click(saveOf(v));
+  await waitFor(() => expect(stateLineOf(v).dataset["nodeState"]).toBe("derived"));
+  await expect(enter).toHaveBeenCalledTimes(1);
+  await expectFitsAt360(canvasElement);
+  await expectLogoStartEdge(v);
+  await expectLogoDecided(v, m, {
+    type: "symbol-plus-name",
+    reasons: ["appIcon"],
+    appIcon: true,
+    name: FIXTURE_NAME,
+    length: 7,
+  });
+  expectNoGlyphClip(v, canvasElement);
+  for (const line of v.querySelectorAll<HTMLElement>("[data-field] > p")) {
+    expectNoGlyphClip(line, canvasElement);
+  }
+}
+
+export const LogoTypeNarrowAsks: Story = {
+  render: logoNarrowHost("th", asksAppIcon("th"), "light"),
+  play: async ({ canvasElement }) => {
+    await logoAsksNarrowPlay(canvasElement, th);
+  },
+};
+
+export const LogoTypeNarrowAsksEnglish: Story = {
+  render: logoNarrowHost("en", asksAppIcon("en"), "light"),
+  play: async ({ canvasElement }) => {
+    await logoAsksNarrowPlay(canvasElement, en);
+  },
+};
+
+// ----- no AI, over all three views (spec row 37) -----
+
+/** Fixture projects that hold every result of `expression-marks-1` on the three nodes (spec row 37). */
+const NO_AI_PROJECTS: ReadonlyArray<
+  readonly [name: string, label: { th: string; en: string }, build: (locale: Lang) => BusinessView]
+> = [
+  ["colour-partly", { th: "สีทำได้บางส่วน", en: "Colour partly worked out" }, partly],
+  ["colour-decided", { th: "สีตัดสินแล้ว", en: "Colour decided" }, decided],
+  ["colour-crowded", { th: "สีซ้ำกันทั้งคู่", en: "Both colours crowded" }, bothCrowded],
+  ["colour-asks", { th: "สีขอบุคลิก", en: "Colour asks for personality" }, asksPersonality],
+  ["colour-waits", { th: "สีรอบุคลิก", en: "Colour waits for personality" }, waitsForPersonality],
+  [
+    "colour-waits-positioning",
+    { th: "สีรอจุดยืน", en: "Colour waits for Positioning" },
+    waitsForPositioning,
+  ],
+  ["colour-provisional", { th: "สีชั่วคราว", en: "Colour provisional" }, provisional],
+  ["colour-unchecked", { th: "สียังไม่ได้ตรวจ", en: "Colour not yet checked" }, unchecked],
+  ["typography-asks", { th: "ตัวอักษรถามอักษร", en: "Typography asks" }, asksScripts],
+  [
+    "typography-decided",
+    { th: "ตัวอักษรตัดสินแล้ว", en: "Typography decided" },
+    (locale) => typographyDecided(locale),
+  ],
+  [
+    "typography-provisional",
+    { th: "ตัวอักษรชั่วคราว", en: "Typography provisional" },
+    typographyProvisional,
+  ],
+  [
+    "typography-unchecked",
+    { th: "ตัวอักษรยังไม่ได้ตรวจ", en: "Typography not yet checked" },
+    typographyUnchecked,
+  ],
+  ["logo-asks", { th: "ประเภทโลโก้ถามคำตอบ", en: "Logo type asks" }, asksAppIcon],
+  [
+    "logo-wordmark",
+    { th: "โลโก้ตัวอักษร", en: "Logo type wordmark" },
+    (locale) => logoTypeDecided(locale, false),
+  ],
+  [
+    "logo-symbol",
+    { th: "สัญลักษณ์คู่กับชื่อ", en: "Logo type symbol plus name" },
+    (locale) => logoTypeDecided(locale, true),
+  ],
+  ["logo-long", { th: "ชื่อยาว", en: "Logo type, long name" }, logoTypeLongName],
+  [
+    "logo-long-yes",
+    { th: "ชื่อยาวและตอบว่าต้องมี", en: "Logo type, long name and yes" },
+    logoTypeLongNameYes,
+  ],
+  [
+    "logo-waits-name",
+    { th: "ประเภทโลโก้รอชื่อ", en: "Logo type waits for Name" },
+    logoTypeWaitsForName,
+  ],
+  [
+    "logo-waits-architecture",
+    { th: "ประเภทโลโก้รอโครงสร้าง", en: "Logo type waits for architecture" },
+    logoTypeWaitsForArchitecture,
+  ],
+  [
+    "logo-waits-positioning",
+    { th: "ประเภทโลโก้รอจุดยืน", en: "Logo type waits for Positioning" },
+    logoTypeWaitsForPositioning,
+  ],
+  [
+    "logo-provisional",
+    { th: "ประเภทโลโก้ชั่วคราว", en: "Logo type provisional" },
+    logoTypeProvisional,
+  ],
+  ["all-decided", { th: "ทั้งสามตัดสินแล้ว", en: "All three decided" }, allDecided],
+];
+
+/** Each project shows its three expression views, read only, in a labelled frame (design F5). */
+function NoAiCases({ locale }: { locale: Lang }) {
+  return (
+    <>
+      {NO_AI_PROJECTS.map(([name, label, build]) => {
+        const view = build(locale);
+        return (
+          <div key={name} data-case={name}>
+            <p className="px-4 text-label-md" data-case-label>
+              {pick(label, locale)}
+            </p>
+            <div className="flex flex-col gap-6 p-4">
+              {(["logo-type", "color", "typography"] as const).map((id) => (
+                <FoundationNodeView
+                  key={id}
+                  node={view.foundation.find((n) => n.id === id) as FoundationNode}
+                  heading={false}
+                />
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
+/** The grapheme clusters of a name with its white space left out: the length `name-length-1` counts. */
+const lengthOf = (name: string) =>
+  [...new Intl.Segmenter("en", { granularity: "grapheme" }).segment(name.replace(/\s/gu, ""))]
+    .length;
+
+/**
+ * Spec row 37: over fixture projects that hold every result of `expression-marks-1` on the three
+ * nodes, the play reads the text of each view and finds no AI wording anywhere but the by-rule label
+ * (which says the decisions are not AI's), none of the words final, verified, tested, screened or
+ * registered but in the three honesty lines that deny them, no hex outside the colours the person
+ * gave and no number other than a scale point, the name length and its bound. A decision shows no
+ * badge, no swatch and no inline style.
+ */
+async function noAiPlay(canvasElement: HTMLElement, m: Messages, locale: Lang) {
+  // The honesty lines that deny a claim: the only text that holds one of the words below.
+  const denials = [
+    m.business.color.hypothesis,
+    m.business.color.familyOnly,
+    m.business.typography.noPersonalityLink,
+  ];
+  // The colours the fixture projects give: the stand-in lineup and the crowded one.
+  const given = new Set(
+    [...STAND_IN, ...EVERY_CANDIDATE_CROWDED].map((row) => row.hex.toUpperCase()),
+  );
+  let views = 0;
+  let decisions = 0;
+  let names = 0;
+  for (const project of canvasElement.querySelectorAll<HTMLElement>("[data-case]")) {
+    for (const v of project.querySelectorAll<HTMLElement>("[data-node]")) {
+      views += 1;
+      const id = v.dataset["node"];
+      const lineup = v.querySelector<HTMLElement>("[data-lineup]");
+      const hexes = [...(lineup?.textContent ?? "").matchAll(/#[0-9A-Fa-f]{3,8}\b/g)].map((x) =>
+        x[0].toUpperCase(),
+      );
+      for (const hex of hexes) await expect(given.has(hex), `${id} ${hex}`).toBe(true);
+      if (v.querySelector("[data-rule]") !== null) decisions += 1;
+
+      // The length line: the name as typed, its length and the bound, and no other number.
+      const length = v.querySelector<HTMLElement>("[data-name-length]");
+      if (length !== null) {
+        names += 1;
+        const name = length.querySelector("bdi")?.textContent ?? "";
+        const rest = textOf(length).replace(name, "");
+        await expect(rest.match(/\d+/g)).toEqual([String(lengthOf(name)), "12"]);
+      }
+
+      // The text the rest of the checks read: the rule lines, the lineup, the families (licence
+      // numbers) and the length line are set apart, and the three denials are cut out.
+      const clone = v.cloneNode(true) as HTMLElement;
+      for (const part of clone.querySelectorAll(
+        "[data-rule], [data-lineup], [data-face], [data-name-length]",
+      )) {
+        part.remove();
+      }
+      let text = textOf(clone).replaceAll(m.business.label.byRule, "");
+      await expect(text, `${id}: no AI wording`).not.toMatch(/\bAI\b/);
+      for (const denial of denials) text = text.replaceAll(denial, "");
+      if (locale === "en") {
+        await expect(text, `${id}: no claim`).not.toMatch(
+          /\b(final|verified|tested|screened|registered)\b/i,
+        );
+      }
+      await expect(text, `${id}: no colour value`).not.toMatch(/#[0-9A-Fa-f]{3,8}\b/);
+      for (const number of text.match(/\d+/g) ?? []) {
+        await expect(["1", "2", "3", "4", "5"], `${id}: ${number}`).toContain(number);
+      }
+      await expect(v.querySelectorAll("[style], .ds-badge, svg, img, a")).toHaveLength(0);
+    }
+  }
+  await expect(views).toBe(NO_AI_PROJECTS.length * 3);
+  // The projects hold decisions of every node and the length line of the Logo type ones.
+  await expect(decisions).toBeGreaterThanOrEqual(12);
+  await expect(names).toBeGreaterThanOrEqual(6);
+  await expect(canvasElement.querySelector(".ds-badge")).toBeNull();
+}
+
+export const ExpressionNoAi: Story = {
+  render: () => inLocale("th", <NoAiCases locale="th" />),
+  play: async ({ canvasElement }) => {
+    await noAiPlay(canvasElement, th, "th");
+  },
+};
+
+export const ExpressionNoAiEnglish: Story = {
+  render: () => inLocale("en", <NoAiCases locale="en" />),
+  play: async ({ canvasElement }) => {
+    await noAiPlay(canvasElement, en, "en");
   },
 };

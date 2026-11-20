@@ -106,6 +106,15 @@ export const scriptsEntry = (scripts: TypographyScripts): StoredEntry => ({
   payload: { scripts },
 });
 
+/** The answer to "Will your brand need a small square mark on its own?", as the table holds it (ORV-298 PR 3). */
+export const logoTypeEntry = (appIcon: boolean): StoredEntry => ({
+  id: "entry-logo-type",
+  createdAt: SAVED_AT,
+  node: "logo-type",
+  kind: "answered",
+  payload: { appIcon },
+});
+
 /** The working name of the stories: the one of spec row 18. */
 export const FIXTURE_NAME = "ORIVILO";
 
@@ -189,6 +198,7 @@ export function entryOf(request: EntryRequest): StoredEntry {
   }
   if (request.node === "competitive-frame") return lineupEntry(request.payload.lineup);
   if (request.node === "typography") return scriptsEntry(request.payload.scripts);
+  if (request.node === "logo-type") return logoTypeEntry(request.payload.appIcon);
   return request.kind === "skipped"
     ? skippedEntry
     : {
