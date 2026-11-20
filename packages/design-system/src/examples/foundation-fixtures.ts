@@ -8,6 +8,7 @@ import {
   PERSONALITY_AXES,
   type PersonalityAxis,
   type StoredEntry,
+  type TypographyScripts,
 } from "@orivilo/intent-engine";
 import { fixtures } from "../components/fixtures";
 import { foundationProject } from "./business-fixtures";
@@ -95,6 +96,15 @@ export const lineupEntry = (lineup: Array<{ name: string; hex: string }>): Store
   payload: { lineup },
 });
 
+/** The scripts the brand writes in, as the table holds them (ORV-298 PR 2). */
+export const scriptsEntry = (scripts: TypographyScripts): StoredEntry => ({
+  id: "entry-typography",
+  createdAt: SAVED_AT,
+  node: "typography",
+  kind: "answered",
+  payload: { scripts },
+});
+
 /** The working name of the stories: the one of spec row 18. */
 export const FIXTURE_NAME = "ORIVILO";
 
@@ -131,6 +141,7 @@ function entryOf(request: EntryRequest): StoredEntry {
   // The server stores the trimmed name (`foundation-entry-1`); the stub does the same.
   if (request.node === "name") return nameEntry(request.payload.name.trim());
   if (request.node === "competitive-frame") return lineupEntry(request.payload.lineup);
+  if (request.node === "typography") return scriptsEntry(request.payload.scripts);
   return request.kind === "skipped"
     ? skippedEntry
     : {

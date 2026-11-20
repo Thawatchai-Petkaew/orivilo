@@ -1,15 +1,18 @@
-import type {
-  BusinessView,
-  EntryProblem,
-  EntryRequest,
-  FoundationNode,
+import {
+  type BusinessView,
+  type EntryProblem,
+  type EntryRequest,
+  type FoundationNode,
+  TYPOGRAPHY_SCRIPTS,
+  type TypographyScripts as ScriptsAnswer,
 } from "@orivilo/intent-engine";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { type ReactNode, useState } from "react";
 import { expect, fn, userEvent, waitFor, within } from "storybook/test";
-import { ScrollArea } from "../components/index";
+import { Button, ScrollArea } from "../components/index";
 import { Under } from "../components/matrix";
 import { LocaleProvider } from "../i18n/LocaleProvider";
+import { pick } from "../i18n/locale";
 import { fill, type Messages } from "../i18n/messages/index";
 import {
   expectFocusBorderForm,
@@ -20,9 +23,10 @@ import {
   resolvedColor,
 } from "../testing/visual-asserts";
 import { en, expectFitsAt360, FixtureNote, textOf, th } from "./business-story-helpers";
-import { nodeTitle } from "./business-text";
+import { nodeTitle, scriptsWord, styleWord } from "./business-text";
 import {
   asksPersonality,
+  asksScripts,
   bothCrowded,
   decided,
   fallback,
@@ -34,6 +38,12 @@ import {
   provisional,
   provisionalPartly,
   STAND_IN,
+  typographyDecided,
+  typographyProvisional,
+  typographyUnchecked,
+  typographyWaitsAndAsks,
+  typographyWaitsForPersonality,
+  typographyWaitsForPositioning,
   unchecked,
   waitsForPersonality,
   waitsForPositioning,
@@ -45,7 +55,10 @@ type Lang = "th" | "en";
 type Color = Extract<FoundationNode, { id: "color" }>;
 
 /** What the stub action answers: saved, or a line the page would have resolved from `saved.errors.*`. */
-type StubResult = { ok: true } | { ok: false; failure: string; problems?: EntryProblem[] };
+type StubResult =
+  | { ok: true }
+  // A refusal naming a field has `problems` and no line, as the page answers it (design F2).
+  | { ok: false; failure?: string; problems?: EntryProblem[] };
 /** Shared by every story below; each play resets it first. */
 const enter = fn<(request: EntryRequest) => Promise<StubResult>>();
 
@@ -72,6 +85,7 @@ function Host({
   narrow = false,
   scroll = false,
   heading = false,
+  nodeId = "color",
 }: {
   locale: Lang;
   initial: BusinessView;
@@ -79,18 +93,25 @@ function Host({
   narrow?: boolean;
   scroll?: boolean;
   heading?: boolean;
+  /** The node the host shows: Colour (PR 1) or Typography (PR 2). */
+  nodeId?: "color" | "typography";
 }) {
   const [view, setView] = useState(initial);
   const [pending, setPending] = useState<"saving" | null>(null);
   const [failure, setFailure] = useState<string | undefined>(undefined);
+  const [problems, setProblems] = useState<EntryProblem[] | undefined>(undefined);
   const [editor, setEditor] = useState<FoundationEditor>(null);
-  const node = view.foundation.find((n) => n.id === "color") as FoundationNode;
+  const node = view.foundation.find((n) => n.id === nodeId) as FoundationNode;
   const onEnter = (request: EntryRequest) => {
     setPending("saving");
     setFailure(undefined);
     void enter(request).then((result) => {
       if (result.ok) setView(stubAfter(locale)(request));
-      else setFailure(result.failure);
+      else {
+        setFailure(result.failure);
+        // A new array each time, so a second refusal of the same fields is a new outcome.
+        setProblems(result.problems === undefined ? undefined : [...result.problems]);
+      }
       setPending(null);
     });
   };
@@ -103,7 +124,7 @@ function Host({
           ? undefined
           : {
               pending,
-              problems: undefined,
+              problems,
               failure,
               onEnter,
               onDismiss: () => setFailure(undefined),
@@ -115,7 +136,7 @@ function Host({
   );
   const framed = scroll ? (
     <div className="flex h-[560px] flex-col p-4">
-      <ScrollArea label={nodeTitle(locale === "th" ? th : en, "color")} className="min-h-0 flex-1">
+      <ScrollArea label={nodeTitle(locale === "th" ? th : en, nodeId)} className="min-h-0 flex-1">
         <div className="pe-3">{shown}</div>
       </ScrollArea>
     </div>
@@ -133,7 +154,7 @@ function Host({
 }
 
 const meta = {
-  title: "Examples/Application: Colour",
+  title: "Examples/Application: Brand expression",
   decorators: [
     (Story) => (
       <>
@@ -146,7 +167,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "The Colour node of the brand board (ORV-298, PR 1). Its view shows three decisions worked out by fixed rules from the brand personality and the competitors' main colours the person gave: the signature colour family, the greys and the background. Each shows its reason and its rule. The person gives the competitors' colours in an editor of up to twenty brands; the view lists them as text and names the colour families that are crowded among them. Everything here is rule-based: no model decides these and nothing is sent anywhere, and a colour family is not a final colour value. Every project is a labelled fixture; nobody gave these answers.",
+          "The brand expression nodes of the brand board (ORV-298): Colour (PR 1) and Typography (PR 2). The Typography view asks which scripts the brand writes in, with nothing chosen, and then shows the families that follow from the answer for reading text and for headlines, each with its style and its licence. It is rule-based: every brand gets the same three families in this version, no model picks them and the personality does not choose them. The Colour node: its view shows three decisions worked out by fixed rules from the brand personality and the competitors' main colours the person gave: the signature colour family, the greys and the background. Each shows its reason and its rule. The person gives the competitors' colours in an editor of up to twenty brands; the view lists them as text and names the colour families that are crowded among them. Everything here is rule-based: no model decides these and nothing is sent anywhere, and a colour family is not a final colour value. Every project is a labelled fixture; nobody gave these answers.",
       },
     },
   },
@@ -157,8 +178,8 @@ type Story = StoryObj<typeof meta>;
 
 // ----- helpers -----
 
-const viewOf = (root: ParentNode) =>
-  root.querySelector<HTMLElement>('[data-node="color"]') as HTMLElement;
+const viewOf = (root: ParentNode, id: "color" | "typography" = "color") =>
+  root.querySelector<HTMLElement>(`[data-node="${id}"]`) as HTMLElement;
 const stateLineOf = (v: HTMLElement) =>
   v.querySelector<HTMLElement>("[data-node-state]") as HTMLElement;
 const fieldOf = (v: HTMLElement, key: string) =>
@@ -288,7 +309,11 @@ async function fillRows(
 }
 
 const hosted =
-  (locale: Lang, initial: BusinessView, options: { readOnly?: boolean; scroll?: boolean } = {}) =>
+  (
+    locale: Lang,
+    initial: BusinessView,
+    options: { readOnly?: boolean; scroll?: boolean; nodeId?: "color" | "typography" } = {},
+  ) =>
   () =>
     locale === "en" ? (
       <LocaleProvider locale="en">
@@ -1131,5 +1156,681 @@ export const ColorNarrowEnglish: Story = {
     await expectFitsAt360(canvasElement);
     await expectOneStartEdge(v);
     await expect(enter).toHaveBeenCalledTimes(0);
+  },
+};
+
+// ======================================================================================
+// Typography (ORV-298 PR 2, `typography-node-1`)
+// ======================================================================================
+
+type Role = "reading" | "display";
+
+const typView = (root: ParentNode) => viewOf(root, "typography");
+
+/** A typography view held by the same host as Colour, with the stub saving on the same project. */
+const typHosted =
+  (locale: Lang, initial: BusinessView, options: { readOnly?: boolean; scroll?: boolean } = {}) =>
+  () =>
+    hosted(locale, initial, { ...options, nodeId: "typography" })();
+
+/** The licence of the three families, as written, the same in both languages (design 6.3). */
+const LICENCE = "SIL Open Font License 1.1";
+
+/** What the three families show, by role: the name as written, its style key and the reason of its role. */
+const FACES = {
+  sarabun: { family: "Sarabun", style: "looped", because: "reading" },
+  anuphan: { family: "Anuphan", style: "loopless", because: "display" },
+  inter: { family: "Inter", style: "latinSans", because: null },
+} as const;
+/** W7: the families of each answer, per role, Thai first. */
+const FAMILIES = {
+  "thai-latin": { reading: ["sarabun", "inter"], display: ["anuphan", "inter"] },
+  thai: { reading: ["sarabun"], display: ["anuphan"] },
+  latin: { reading: ["inter"], display: ["inter"] },
+} as const;
+
+const scriptsGroupOf = (v: HTMLElement, m: Messages) =>
+  within(v).getByRole("radiogroup", { name: m.business.question.scripts });
+const scriptsRadioOf = (v: HTMLElement, m: Messages, scripts: ScriptsAnswer) =>
+  within(scriptsGroupOf(v, m)).getByRole("radio", { name: scriptsWord(m, scripts) });
+const checkedIn = (v: HTMLElement) =>
+  v.querySelectorAll('[role="radio"][aria-checked="true"]').length;
+/** The buttons of the view's row: the radios are buttons too, so they are not counted. */
+const rowButtonsOf = (v: HTMLElement) => [...v.querySelectorAll<HTMLElement>("[data-row] button")];
+const facesOf = (v: HTMLElement, field: "readingFace" | "displayFace") =>
+  [...fieldOf(v, field).querySelectorAll<HTMLElement>("[data-face]")].map((face) =>
+    [...face.children].map(textOf),
+  );
+const faceLines = (m: Messages, id: keyof typeof FACES, role: Role) => {
+  const face = FACES[id];
+  return [
+    face.family,
+    styleWord(m, face.style),
+    fill(m.business.typography.licence, { licence: LICENCE }),
+    ...(face.because !== null && face.because === role
+      ? [m.business.typography.because[face.because]]
+      : []),
+  ];
+};
+
+/** The decided typography of one answer, in one language (spec rows 18 and 19, design T6 to T8). */
+async function expectTypographyDecided(v: HTMLElement, m: Messages, scripts: ScriptsAnswer) {
+  await expectState(v, "derived", m.business.state.derived);
+  await expect(fieldKeys(v)).toEqual(["scripts", "readingFace", "displayFace"]);
+  await expect(linesOf(fieldOf(v, "scripts"))).toEqual([
+    m.business.field.scripts,
+    scriptsWord(m, scripts),
+  ]);
+  await expect(textOf(fieldOf(v, "readingFace").children[0] as HTMLElement)).toBe(
+    m.business.field.readingFace,
+  );
+  await expect(textOf(fieldOf(v, "displayFace").children[0] as HTMLElement)).toBe(
+    m.business.field.displayFace,
+  );
+  for (const role of ["reading", "display"] as const) {
+    await expect(facesOf(v, role === "reading" ? "readingFace" : "displayFace")).toEqual(
+      FAMILIES[scripts][role].map((id) => faceLines(m, id, role)),
+    );
+  }
+  // The foot: the pairing line for Thai and Latin only, then the rule line, last.
+  const foot = v.querySelector<HTMLElement>("[data-decision-foot]") as HTMLElement;
+  const rule = fill(m.business.decision.rule, { rule: "typography-node-1" });
+  await expect([...foot.children].map(textOf)).toEqual(
+    scripts === "thai-latin" ? [m.business.typography.because.pairing, rule] : [rule],
+  );
+  await expect(foot.querySelector("[data-rule]")).toBe(foot.lastElementChild);
+  await expect(textOf(v).split(m.business.typography.because.pairing)).toHaveLength(
+    scripts === "thai-latin" ? 2 : 1,
+  );
+  // The honesty lines, once each, after the decisions.
+  const labels = v.querySelectorAll("[data-labels]");
+  await expect(labels).toHaveLength(1);
+  await expect([...(labels[0] as HTMLElement).children].map(textOf)).toEqual([
+    m.business.label.byRule,
+    m.business.typography.oneChoice,
+    m.business.typography.noPersonalityLink,
+  ]);
+  await expect(textOf(v).split(m.business.label.byRule)).toHaveLength(2);
+  await expect(v.querySelector("[role=radiogroup]")).toBeNull();
+  await expect(v.querySelectorAll("[data-row] button")).toHaveLength(0);
+}
+
+/** The labels of the stacked cases (design F5): a plain fixture line over each frame. */
+const CASE_LABELS: Record<string, { th: string; en: string }> = {
+  thai: { th: "คำตอบ: อักษรไทยอย่างเดียว", en: "Answer: Thai only" },
+  latin: { th: "คำตอบ: อักษรละตินอย่างเดียว", en: "Answer: Latin only" },
+  empty: { th: "บันทึกโดยไม่เลือก", en: "Save with no choice" },
+  limited: { th: "ส่งคำขอถี่เกินไป", en: "Rate limited" },
+  refused: { th: "เซิร์ฟเวอร์ปฏิเสธคำตอบ", en: "The server refuses the answer" },
+  provisional: { th: "บุคลิกถูกข้ามไว้", en: "Personality skipped" },
+  unchecked: { th: "จุดยืนยังไม่ได้ตกลง", en: "Positioning not agreed" },
+  "waits-personality": { th: "รอบุคลิกของแบรนด์", en: "Waits for Brand personality" },
+  "waits-positioning": { th: "รอจุดยืน", en: "Waits for Positioning" },
+  "waits-asks": { th: "รอ และยังไม่ได้ตอบ", en: "Waits, not answered" },
+  "asks-readonly": { th: "ยังไม่ได้ตอบ อ่านอย่างเดียว", en: "Not answered, read only" },
+  "decided-readonly": { th: "ตอบแล้ว อ่านอย่างเดียว", en: "Answered, read only" },
+};
+
+/** Cases stacked in one story, each in a labelled frame (design F5); the read-only ones get no controls. */
+function TypographyCases({
+  locale,
+  cases,
+}: {
+  locale: Lang;
+  cases: ReadonlyArray<[string, BusinessView]>;
+}) {
+  return (
+    <>
+      {cases.map(([name, initial]) => (
+        <div key={name} data-case={name}>
+          <p className="px-4 text-label-md" data-case-label>
+            {pick(CASE_LABELS[name] as { th: string; en: string }, locale)}
+          </p>
+          <Host
+            locale={locale}
+            initial={initial}
+            nodeId="typography"
+            readOnly={name.endsWith("readonly")}
+          />
+        </div>
+      ))}
+    </>
+  );
+}
+
+const typCases =
+  (locale: Lang, build: (locale: Lang) => ReadonlyArray<[string, BusinessView]>) => () =>
+    inLocale(locale, <TypographyCases locale={locale} cases={build(locale)} />);
+
+const typAt = (canvasElement: HTMLElement, name: string) =>
+  typView(canvasElement.querySelector(`[data-case="${name}"]`) as HTMLElement);
+
+// ----- the question, then the decided families (spec row 18) -----
+
+/**
+ * Spec row 18: before, "Waits for your answer", the question with three answers and none checked,
+ * one primary button, Reading text and Headlines holding the empty line. Choosing Thai and Latin
+ * and saving makes one call with the checked request; after it the state is "Worked out by a fixed
+ * rule", Reading text holds Sarabun then Inter, Headlines Anuphan then Inter, the pairing line shows
+ * once with the rule line, the labels hold the three honesty lines once each, no control is left and
+ * focus is on the scroll region, scrolled to its top.
+ */
+async function typographyDecidedPlay(canvasElement: HTMLElement, m: Messages) {
+  enter.mockReset();
+  enter.mockResolvedValue({ ok: true });
+  const v = typView(canvasElement);
+  await expectState(v, "needsAnswer", m.business.state.needsAnswer);
+  const radios = within(scriptsGroupOf(v, m)).getAllByRole("radio");
+  await expect(radios.map((r) => textOf(r.closest(".ds-radio") as HTMLElement))).toEqual(
+    TYPOGRAPHY_SCRIPTS.map((scripts) => scriptsWord(m, scripts)),
+  );
+  await expect(checkedIn(v)).toBe(0);
+  const row = rowButtonsOf(v);
+  await expect(row.map(textOf)).toEqual([m.business.architecture.save]);
+  await expect(row[0]?.dataset["variant"]).toBe("primary");
+  // The question is the group's name, so the Scripts heading is not shown twice.
+  await expect(v.querySelector('[data-field="scripts"] h3')).toBeNull();
+  for (const field of ["readingFace", "displayFace"] as const) {
+    await expect(linesOf(fieldOf(v, field))).toEqual([
+      m.business.field[field],
+      m.business.state.empty,
+    ]);
+  }
+  await expect(v.querySelector("[data-labels], [data-face], [data-marks], [data-ask]")).toBeNull();
+
+  await userEvent.click(scriptsRadioOf(v, m, "thai-latin"));
+  await expect(checkedIn(v)).toBe(1);
+  await expect(enter).toHaveBeenCalledTimes(0);
+  const region = regionOf(canvasElement);
+  region.scrollTop = region.scrollHeight;
+  await userEvent.click(saveOf(v));
+  await waitFor(() => expect(stateLineOf(v).dataset["nodeState"]).toBe("derived"));
+  await expect(enter).toHaveBeenCalledTimes(1);
+  await expect(enter).toHaveBeenCalledWith({
+    node: "typography",
+    kind: "answered",
+    payload: { scripts: "thai-latin" },
+  });
+  await expectTypographyDecided(v, m, "thai-latin");
+  await focusedIs(region);
+  await waitFor(() => expect(region.scrollTop).toBe(0));
+  // No heading took focus and none can: no h3 has a tabindex (design 4.4, F3).
+  await expect(v.querySelectorAll("h3[tabindex]")).toHaveLength(0);
+}
+
+export const TypographyDecided: Story = {
+  render: typHosted("th", asksScripts("th"), { scroll: true }),
+  play: async ({ canvasElement }) => {
+    await typographyDecidedPlay(canvasElement, th);
+    const v = typView(canvasElement);
+    // The Thai lines of the top of the view sit whole inside the frame that clips them.
+    expectNoGlyphClip(stateLineOf(v), canvasElement);
+    const sarabun = v.querySelector("[data-face]") as HTMLElement;
+    expectNoGlyphClip(sarabun, canvasElement);
+    // The four lines of one family stack 4 apart, so the Thai style and reason lines never touch the name.
+    const lines = [...sarabun.children] as HTMLElement[];
+    await expect(lines).toHaveLength(4);
+    for (const [i, line] of lines.slice(1).entries()) {
+      const gap =
+        line.getBoundingClientRect().top - (lines[i] as HTMLElement).getBoundingClientRect().bottom;
+      await expect(Math.abs(gap - 4), textOf(line)).toBeLessThanOrEqual(0.5);
+    }
+    await expectNoLetterSpacing(v);
+  },
+};
+
+export const TypographyDecidedEnglish: Story = {
+  render: typHosted("en", asksScripts("en"), { scroll: true }),
+  play: async ({ canvasElement }) => {
+    await typographyDecidedPlay(canvasElement, en);
+  },
+};
+
+// ----- one family set per answer (spec row 19) -----
+
+const scriptsCases = (locale: Lang): ReadonlyArray<[string, BusinessView]> => [
+  ["thai", typographyDecided(locale, "thai")],
+  ["latin", typographyDecided(locale, "latin")],
+];
+
+/**
+ * Spec row 19: "Thai only" gives Sarabun for reading and Anuphan for headlines, no Inter and no
+ * pairing line; "Latin only" gives Inter for both, one family per role, and no Thai family.
+ */
+async function typographyScriptsPlay(canvasElement: HTMLElement, m: Messages) {
+  const thai = typAt(canvasElement, "thai");
+  await expectTypographyDecided(thai, m, "thai");
+  await expect(textOf(thai)).not.toContain("Inter");
+  await expect(thai.querySelectorAll("[data-face]")).toHaveLength(2);
+  // The style and reason lines of a Thai family stack under its name and are not clipped.
+  const sarabun = thai.querySelector("[data-face]") as HTMLElement;
+  if (inVitest) {
+    await expectInkClearsAbove(
+      sarabun.children[1] as HTMLElement,
+      sarabun.children[0] as HTMLElement,
+      2,
+    );
+  }
+  expectNoGlyphClip(sarabun.children[1] as HTMLElement, canvasElement);
+  expectNoGlyphClip(sarabun.children[3] as HTMLElement, canvasElement);
+  const latin = typAt(canvasElement, "latin");
+  await expectTypographyDecided(latin, m, "latin");
+  await expect(latin.querySelectorAll("[data-face]")).toHaveLength(2);
+  await expect(facesOf(latin, "readingFace")).toHaveLength(1);
+  await expect(facesOf(latin, "displayFace")).toHaveLength(1);
+  await expect(textOf(latin)).not.toContain("Sarabun");
+  await expect(textOf(latin)).not.toContain("Anuphan");
+  await expect(textOf(latin)).not.toContain(m.business.typography.style.looped);
+  await expect(textOf(latin)).not.toContain(m.business.typography.because.reading);
+}
+
+export const TypographyScripts: Story = {
+  render: typCases("th", scriptsCases),
+  play: async ({ canvasElement }) => {
+    await typographyScriptsPlay(canvasElement, th);
+  },
+};
+
+export const TypographyScriptsEnglish: Story = {
+  render: typCases("en", scriptsCases),
+  play: async ({ canvasElement }) => {
+    await typographyScriptsPlay(canvasElement, en);
+  },
+};
+
+// ----- a choice that cannot be saved (spec row 20) -----
+
+const invalidCases = (locale: Lang): ReadonlyArray<[string, BusinessView]> => [
+  ["empty", asksScripts(locale)],
+  ["limited", asksScripts(locale)],
+  ["refused", asksScripts(locale)],
+];
+
+/**
+ * Spec row 20 and design T2 to T5, one case each. Saving with no choice shows `choiceRequired` under
+ * the group, focuses the first radio, checks nothing and makes no call. A rate limited answer keeps
+ * the choice and shows only the notice; a double press makes one call, with Save inert and named.
+ * A refusal naming `payload.scripts` clears the choice, shows the error again and no notice, and
+ * focuses the first radio (F2).
+ */
+async function typographyInvalidPlay(canvasElement: HTMLElement, m: Messages, locale: Lang) {
+  enter.mockReset();
+  const empty = typAt(canvasElement, "empty");
+  await userEvent.click(saveOf(empty));
+  await waitFor(() => expect(errorsOf(empty)).toHaveLength(1));
+  await expect(textOf(errorsOf(empty)[0] as HTMLElement)).toBe(
+    m.business.architecture.choiceRequired,
+  );
+  await expect(scriptsGroupOf(empty, m)).toHaveAttribute("aria-invalid", "true");
+  await focusedIs(within(scriptsGroupOf(empty, m)).getAllByRole("radio")[0] as HTMLElement);
+  await expect(checkedIn(empty)).toBe(0);
+  await expect(enter).toHaveBeenCalledTimes(0);
+  // Choosing takes the error away and still makes no call.
+  await userEvent.click(scriptsRadioOf(empty, m, "thai"));
+  await expect(errorsOf(empty)).toHaveLength(0);
+  await expect(enter).toHaveBeenCalledTimes(0);
+
+  // Rate limited, with a double press.
+  const limited = typAt(canvasElement, "limited");
+  await userEvent.click(scriptsRadioOf(limited, m, "thai"));
+  let release: (result: StubResult) => void = () => {};
+  enter.mockImplementation(
+    () =>
+      new Promise<StubResult>((done) => {
+        release = done;
+      }),
+  );
+  await userEvent.click(saveOf(limited));
+  await userEvent.click(saveOf(limited));
+  await expect(enter).toHaveBeenCalledTimes(1);
+  await expect(saveOf(limited)).toHaveAttribute("aria-disabled", "true");
+  await expect(textOf(saveOf(limited))).toContain(m.business.positioning.saving);
+  release({ ok: false, failure: RATE_LIMITED[locale] });
+  await waitFor(() => expect(textOf(failureRegionOf(limited))).toContain(RATE_LIMITED[locale]));
+  await expect(saveOf(limited)).not.toHaveAttribute("aria-disabled");
+  await expect(checkedIn(limited)).toBe(1);
+  await expect(scriptsRadioOf(limited, m, "thai")).toHaveAttribute("aria-checked", "true");
+  await expect(errorsOf(limited)).toHaveLength(0);
+  await expect(enter).toHaveBeenCalledTimes(1);
+
+  // A refusal naming the field: nothing checked, the error, no notice, focus on the first radio.
+  const refused = typAt(canvasElement, "refused");
+  enter.mockReset();
+  enter.mockResolvedValue({ ok: false, problems: [{ path: "payload.scripts", kind: "invalid" }] });
+  await userEvent.click(scriptsRadioOf(refused, m, "latin"));
+  await expect(checkedIn(refused)).toBe(1);
+  await userEvent.click(saveOf(refused));
+  await waitFor(() => expect(errorsOf(refused)).toHaveLength(1));
+  await expect(enter).toHaveBeenCalledTimes(1);
+  await expect(textOf(errorsOf(refused)[0] as HTMLElement)).toBe(
+    m.business.architecture.choiceRequired,
+  );
+  await expect(checkedIn(refused)).toBe(0);
+  await expect(textOf(failureRegionOf(refused))).toBe("");
+  await focusedIs(within(scriptsGroupOf(refused, m)).getAllByRole("radio")[0] as HTMLElement);
+}
+
+export const TypographyInvalid: Story = {
+  render: typCases("th", invalidCases),
+  play: async ({ canvasElement }) => {
+    await typographyInvalidPlay(canvasElement, th, "th");
+  },
+};
+
+export const TypographyInvalidEnglish: Story = {
+  render: typCases("en", invalidCases),
+  play: async ({ canvasElement }) => {
+    await typographyInvalidPlay(canvasElement, en, "en");
+  },
+};
+
+// ----- marks and waiting (spec row 21) -----
+
+const typographyMarksCases = (locale: Lang): ReadonlyArray<[string, BusinessView]> => [
+  ["provisional", typographyProvisional(locale)],
+  ["unchecked", typographyUnchecked(locale)],
+  ["waits-personality", typographyWaitsForPersonality(locale)],
+  ["waits-positioning", typographyWaitsForPositioning(locale)],
+];
+
+/**
+ * Spec row 21: families that rest on a skipped personality say so in two lines under the state line,
+ * 4 apart; families decided before Positioning was agreed carry the one unchecked line; with no
+ * personality or no Positioning choice the node waits for it, keeps the saved answer and shows no
+ * family and no label.
+ */
+async function typographyMarksPlay(canvasElement: HTMLElement, m: Messages) {
+  const provisional = typAt(canvasElement, "provisional");
+  await expectState(provisional, "derived", m.business.state.derived);
+  await expect(provisional.querySelectorAll("[data-marks]")).toHaveLength(1);
+  const marks = provisional.querySelector<HTMLElement>('[data-marks="provisional"]') as HTMLElement;
+  await expect(marks.closest("[data-head]")).toBe(provisional.querySelector("[data-head]"));
+  const lines = [...marks.children] as HTMLElement[];
+  await expect(lines.map(textOf)).toEqual([
+    m.strategy.provisional,
+    fill(m.business.marks.restsOn, { nodes: nodeTitle(m, "identity-frame") }),
+  ]);
+  const gap =
+    (lines[1] as HTMLElement).getBoundingClientRect().top -
+    (lines[0] as HTMLElement).getBoundingClientRect().bottom;
+  await expect(Math.abs(gap - 4)).toBeLessThanOrEqual(0.5);
+  if (inVitest) await expectInkClearsAbove(lines[1] as HTMLElement, lines[0] as HTMLElement, 2);
+  expectNoGlyphClip(lines[1] as HTMLElement, canvasElement);
+  await expect(
+    Math.abs(
+      marks.getBoundingClientRect().left - stateLineOf(provisional).getBoundingClientRect().left,
+    ),
+  ).toBeLessThanOrEqual(0.5);
+  await expect(facesOf(provisional, "readingFace")).toHaveLength(2);
+  await expect(provisional.querySelectorAll("[data-row] button")).toHaveLength(0);
+
+  const unchecked = typAt(canvasElement, "unchecked");
+  await expectState(unchecked, "derived", m.business.state.derived);
+  await expect(unchecked.querySelectorAll("[data-marks]")).toHaveLength(1);
+  await expect(textOf(unchecked.querySelector('[data-marks="unchecked"]') as HTMLElement)).toBe(
+    fill(m.business.marks.unchecked, { nodes: nodeTitle(m, "positioning") }),
+  );
+  await expect(facesOf(unchecked, "displayFace")).toHaveLength(2);
+
+  for (const [name, waitsFor] of [
+    ["waits-personality", nodeTitle(m, "identity-frame")],
+    ["waits-positioning", nodeTitle(m, "positioning")],
+  ] as const) {
+    const v = typAt(canvasElement, name);
+    await expectState(v, "waiting", fill(m.business.state.waiting, { nodes: waitsFor }));
+    // The saved answer shows; no family, no label, no question, no control.
+    await expect(linesOf(fieldOf(v, "scripts"))).toEqual([
+      m.business.field.scripts,
+      scriptsWord(m, "thai-latin"),
+    ]);
+    for (const field of ["readingFace", "displayFace"] as const) {
+      await expect(linesOf(fieldOf(v, field))).toEqual([
+        m.business.field[field],
+        m.business.state.empty,
+      ]);
+    }
+    await expect(
+      v.querySelector("[data-labels], [data-face], [data-marks], [data-ask]"),
+    ).toBeNull();
+    await expect(v.querySelector("[role=radiogroup]")).toBeNull();
+    await expect(v.querySelectorAll("[data-row] button")).toHaveLength(0);
+  }
+}
+
+export const TypographyMarks: Story = {
+  render: typCases("th", typographyMarksCases),
+  play: async ({ canvasElement }) => {
+    await typographyMarksPlay(canvasElement, th);
+  },
+};
+
+export const TypographyMarksEnglish: Story = {
+  render: typCases("en", typographyMarksCases),
+  play: async ({ canvasElement }) => {
+    await typographyMarksPlay(canvasElement, en);
+  },
+};
+
+// ----- waiting and not answered, and the read-only arm (design T12, T13) -----
+
+const typographyWaitsCases = (locale: Lang): ReadonlyArray<[string, BusinessView]> => [
+  ["waits-asks", typographyWaitsAndAsks(locale)],
+  ["asks-readonly", asksScripts(locale)],
+  ["decided-readonly", typographyDecided(locale)],
+];
+
+/**
+ * Design T12: the question is offered whatever the marks, so a node that waits and has no answer
+ * shows the waiting line with the question and one primary button. T13: with no `controls` the same
+ * fields show with the same fallbacks, no question, no button row and no failure region.
+ */
+async function typographyWaitsPlay(canvasElement: HTMLElement, m: Messages) {
+  const asks = typAt(canvasElement, "waits-asks");
+  await expectState(
+    asks,
+    "waiting",
+    fill(m.business.state.waiting, { nodes: nodeTitle(m, "identity-frame") }),
+  );
+  await expect(within(scriptsGroupOf(asks, m)).getAllByRole("radio")).toHaveLength(3);
+  await expect(checkedIn(asks)).toBe(0);
+  await expect(rowButtonsOf(asks).map(textOf)).toEqual([m.business.architecture.save]);
+  await expect(rowButtonsOf(asks)[0]?.dataset["variant"]).toBe("primary");
+
+  const unanswered = typAt(canvasElement, "asks-readonly");
+  await expectState(unanswered, "needsAnswer", m.business.state.needsAnswer);
+  await expect(linesOf(fieldOf(unanswered, "scripts"))).toEqual([
+    m.business.field.scripts,
+    m.business.state.empty,
+  ]);
+  const decided = typAt(canvasElement, "decided-readonly");
+  await expectState(decided, "derived", m.business.state.derived);
+  await expect(facesOf(decided, "readingFace")).toHaveLength(2);
+  for (const v of [unanswered, decided]) {
+    await expect(v.querySelector("[data-row]")).toBeNull();
+    await expect(v.querySelector("[role=alert]")).toBeNull();
+    await expect(v.querySelector("[role=radiogroup]")).toBeNull();
+    await expect(v.querySelectorAll("button")).toHaveLength(0);
+  }
+}
+
+export const TypographyWaits: Story = {
+  render: typCases("th", typographyWaitsCases),
+  play: async ({ canvasElement }) => {
+    await typographyWaitsPlay(canvasElement, th);
+  },
+};
+
+export const TypographyWaitsEnglish: Story = {
+  render: typCases("en", typographyWaitsCases),
+  play: async ({ canvasElement }) => {
+    await typographyWaitsPlay(canvasElement, en);
+  },
+};
+
+// ----- one project, the other language (spec row 24) -----
+
+/**
+ * The header's language switch for Typography, as `SwitchHost` does for Colour: one decided view
+ * held by one mounted host, and the catalog `Button` (secondary, sm) outside it that changes the
+ * locale above it, inside a padded frame (F4).
+ */
+function TypographySwitchHost({ from }: { from: Lang }) {
+  const [locale, setLocale] = useState<Lang>(from);
+  const next: Lang = locale === "th" ? "en" : "th";
+  return (
+    <LocaleProvider locale={locale}>
+      <div className="p-4">
+        <Button
+          variant="secondary"
+          size="sm"
+          data-switch-locale={next}
+          onClick={() => setLocale(next)}
+        >
+          {next.toUpperCase()}
+        </Button>
+      </div>
+      <Host locale={locale} initial={typographyDecided(from)} nodeId="typography" heading />
+    </LocaleProvider>
+  );
+}
+
+/**
+ * Spec row 24: one decided typography on one mounted view, shown in one language and then the
+ * other with no remount: the title, the state line, the style words, the reasons and the labels come
+ * from the other catalog, the family and licence names stay exactly as written, and no call is made.
+ */
+async function typographySwitchPlay(canvasElement: HTMLElement, from: Lang) {
+  enter.mockReset();
+  const first = from === "th" ? th : en;
+  const second = from === "th" ? en : th;
+  const v = typView(canvasElement);
+  const names = (el: HTMLElement) =>
+    [...el.querySelectorAll("[data-face] [data-value]")].map(textOf);
+  const licences = (el: HTMLElement) =>
+    [...el.querySelectorAll("[data-face] [data-value] + p + p")].map((p) =>
+      textOf(p).includes(LICENCE),
+    );
+  const reading = fieldOf(v, "readingFace");
+  await expect(
+    within(v).getByRole("heading", { level: 2, name: nodeTitle(first, "typography") }),
+  ).toBeVisible();
+  await expectTypographyDecided(v, first, "thai-latin");
+  const before = names(v);
+  await expect(before).toEqual(["Sarabun", "Inter", "Anuphan", "Inter"]);
+  await expect(licences(v).every(Boolean)).toBe(true);
+  if (from === "th") await expectNoLetterSpacing(v);
+  await userEvent.click(canvasElement.querySelector("[data-switch-locale]") as HTMLElement);
+  await waitFor(() => expect(textOf(stateLineOf(v))).toBe(second.business.state.derived));
+  await expect(typView(canvasElement)).toBe(v);
+  await expect(fieldOf(v, "readingFace")).toBe(reading);
+  await expect(
+    within(v).getByRole("heading", { level: 2, name: nodeTitle(second, "typography") }),
+  ).toBeVisible();
+  await expectTypographyDecided(v, second, "thai-latin");
+  await expect(names(v)).toEqual(before);
+  await expect(licences(v).every(Boolean)).toBe(true);
+  if (from === "en") await expectNoLetterSpacing(v);
+  await expect(enter).toHaveBeenCalledTimes(0);
+}
+
+export const TypographySwitchToEnglish: Story = {
+  render: () => <TypographySwitchHost from="th" />,
+  play: async ({ canvasElement }) => {
+    await typographySwitchPlay(canvasElement, "th");
+  },
+};
+
+export const TypographySwitchToThai: Story = {
+  render: () => <TypographySwitchHost from="en" />,
+  play: async ({ canvasElement }) => {
+    await typographySwitchPlay(canvasElement, "en");
+  },
+};
+
+// ----- narrow (spec row 24) -----
+
+const typNarrowHost = (locale: Lang, initial: BusinessView, mode: "light" | "dark") => () => (
+  <Under profile="neutral" mode={mode}>
+    {inLocale(locale, <Host locale={locale} initial={initial} nodeId="typography" narrow />)}
+  </Under>
+);
+
+/** Every block of the Typography view starts at the state line's edge, at 360 (design 4.5). */
+async function expectTypographyStartEdge(v: HTMLElement) {
+  const left = stateLineOf(v).getBoundingClientRect().left;
+  for (const block of v.querySelectorAll<HTMLElement>(
+    "[data-head] > p, [data-field] > h3, [data-field] > p, [data-face] > p, [data-decision-foot] > p, [data-labels] > p, .ds-field__label, [data-row] > button:first-child",
+  )) {
+    await expect(
+      Math.abs(block.getBoundingClientRect().left - left),
+      textOf(block),
+    ).toBeLessThanOrEqual(0.5);
+  }
+}
+
+/**
+ * Spec row 24 at 360: the question with its three answers and Save fit the column and keep their
+ * Tab order (the first radio while none is checked, then Save), each stop with the border form of
+ * focus; the error under the group fits; the decided view fits, starts at one edge, and no Thai
+ * text is clipped, the answer names and the reasons included.
+ */
+async function typographyNarrowPlay(canvasElement: HTMLElement, m: Messages) {
+  enter.mockReset();
+  enter.mockResolvedValue({ ok: true });
+  const v = typView(canvasElement);
+  await expectFitsAt360(canvasElement);
+  await expectTypographyStartEdge(v);
+  expectNoGlyphClip(scriptsGroupOf(v, m), canvasElement);
+  expectNoGlyphClip(stateLineOf(v), canvasElement);
+
+  const first = within(scriptsGroupOf(v, m)).getAllByRole("radio")[0] as HTMLElement;
+  first.focus();
+  await focusedIs(first);
+  await userEvent.tab();
+  await focusedIs(saveOf(v));
+  await expect(saveOf(v).matches(":focus-visible")).toBe(true);
+  await expectFocusBorderForm(saveOf(v));
+  await expectFocusBorderForm(first);
+
+  // The error under the group at 360.
+  await userEvent.click(saveOf(v));
+  await waitFor(() => expect(errorsOf(v)).toHaveLength(1));
+  await expect(textOf(errorsOf(v)[0] as HTMLElement)).toBe(m.business.architecture.choiceRequired);
+  await expectFitsAt360(canvasElement);
+  await expectTypographyStartEdge(v);
+  expectNoGlyphClip(errorsOf(v)[0] as HTMLElement, canvasElement);
+
+  await userEvent.click(scriptsRadioOf(v, m, "thai-latin"));
+  await userEvent.click(saveOf(v));
+  await waitFor(() => expect(stateLineOf(v).dataset["nodeState"]).toBe("derived"));
+  await expect(enter).toHaveBeenCalledTimes(1);
+  await expectFitsAt360(canvasElement);
+  await expectTypographyStartEdge(v);
+  await expectTypographyDecided(v, m, "thai-latin");
+  expectNoGlyphClip(v, canvasElement);
+  for (const line of v.querySelectorAll<HTMLElement>("[data-face] > p")) {
+    expectNoGlyphClip(line, canvasElement);
+  }
+}
+
+export const TypographyNarrow: Story = {
+  render: typNarrowHost("th", asksScripts("th"), "light"),
+  play: async ({ canvasElement }) => {
+    await typographyNarrowPlay(canvasElement, th);
+  },
+};
+
+export const TypographyNarrowDark: Story = {
+  render: typNarrowHost("th", asksScripts("th"), "dark"),
+  play: async ({ canvasElement }) => {
+    await typographyNarrowPlay(canvasElement, th);
+  },
+};
+
+/** English at 360: the longest lines of the question and of the decided view. */
+export const TypographyNarrowEnglish: Story = {
+  render: typNarrowHost("en", asksScripts("en"), "light"),
+  play: async ({ canvasElement }) => {
+    await typographyNarrowPlay(canvasElement, en);
   },
 };

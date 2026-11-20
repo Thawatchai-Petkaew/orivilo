@@ -1,4 +1,4 @@
-import type { BusinessView, FoundationNode } from "@orivilo/intent-engine";
+import type { BusinessView, Face, FoundationNode } from "@orivilo/intent-engine";
 import { describe, expect, it } from "vitest";
 import { messagesFor } from "../i18n/messages/index";
 import { ENGLISH_READ_VIEW, THAI_READ_VIEW, THAI_VIEW } from "./business-fixtures";
@@ -7,15 +7,19 @@ import {
   colorReason,
   crowdedLine,
   decisionRule,
+  faceBecause,
   familyWord,
   foundationStateLine,
+  licenceLine,
   listOfNodes,
   listOfWords,
   neutralWord,
   nodeTitle,
   provisionalLines,
   readingQuotes,
+  scriptsWord,
   signatureOpenLine,
+  styleWord,
   uncheckedLine,
 } from "./business-text";
 import {
@@ -24,6 +28,7 @@ import {
   decided,
   fallback,
   partly,
+  typographyDecided,
   waitsForPersonality,
 } from "./expression-fixtures";
 
@@ -294,5 +299,49 @@ describe("expression lines", () => {
     const asks = colorOf(asksPersonality("en"));
     expect(asks.state).toBe("needsAnswer");
     expect(foundationStateLine(th, "th", asks)).toBe("รอคำตอบของคุณ");
+  });
+});
+
+/**
+ * ORV-298 PR 2 (`typography-node-1`): the words of the Typography view come from the catalog keys
+ * they name, the family and licence names pass through as written in both languages.
+ */
+describe("Typography words", () => {
+  const en = messagesFor("en");
+  const th = messagesFor("th");
+  const facesOf = (view: BusinessView) => {
+    const node = view.foundation.find((n) => n.id === "typography");
+    if (node?.id !== "typography" || node.faces === null) throw new Error("no faces");
+    return node.faces;
+  };
+
+  it("names the three scripts answers from their own catalog keys", () => {
+    expect(scriptsWord(en, "thai-latin")).toBe("Thai and Latin");
+    expect(scriptsWord(en, "thai")).toBe("Thai only");
+    expect(scriptsWord(en, "latin")).toBe("Latin only");
+    expect(scriptsWord(th, "thai-latin")).toBe("อักษรไทยและอักษรละติน");
+    expect(scriptsWord(th, "thai")).toBe(th.business.typography.scripts.thai);
+    expect(scriptsWord(th, "latin")).toBe(th.business.typography.scripts.latin);
+  });
+
+  it("gives each family its style, its licence as written and, for a Thai family, its reason", () => {
+    const { reading, display } = facesOf(typographyDecided("en", "thai-latin"));
+    const [sarabun, inter] = reading;
+    const [anuphan] = display;
+    expect(sarabun?.family).toBe("Sarabun");
+    expect(styleWord(en, sarabun?.style ?? "looped")).toBe("Thai, looped");
+    expect(styleWord(en, anuphan?.style ?? "looped")).toBe("Thai, loopless");
+    expect(styleWord(en, inter?.style ?? "looped")).toBe("Latin, sans serif");
+    expect(faceBecause(en, sarabun as Face)).toBe(en.business.typography.because.reading);
+    expect(faceBecause(en, anuphan as Face)).toBe(en.business.typography.because.display);
+    expect(faceBecause(en, inter as Face)).toBeNull();
+    for (const face of [sarabun, inter, anuphan]) {
+      const licence = (face as NonNullable<typeof face>).licence;
+      expect(licence).not.toBe("");
+      expect(licenceLine(en, face as Face)).toBe(`Licence: ${licence}`);
+      expect(licenceLine(th, face as Face)).toBe(
+        th.business.typography.licence.replace("{licence}", licence),
+      );
+    }
   });
 });

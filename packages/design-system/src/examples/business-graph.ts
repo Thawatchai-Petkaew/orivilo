@@ -40,6 +40,8 @@ export const BUSINESS_POSITIONS: Record<
   name: { x: 1888, y: 473 },
   // Column 6, the upper lane (ORV-298 design 2.1), 488 right of column 4.
   color: { x: 2376, y: -330 },
+  // Column 7 (ORV-298 PR 2, design 2.1), 488 right of column 5: right of Colour, as fill order reads.
+  typography: { x: 2864, y: 0 },
 };
 
 const OUT = "out";

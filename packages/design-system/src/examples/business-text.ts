@@ -6,12 +6,14 @@ import {
   type BusinessReadReason,
   type FoundationFieldKey,
   type FoundationNode,
+  type Face,
   type FoundationNodeId,
   type InputEvidence,
   type IntakeField,
   type MarkRef,
   PROXY_QUESTIONS,
   type ProxyQuestionId,
+  type TypographyScripts,
 } from "@orivilo/intent-engine";
 import type { EvidenceItem } from "../components/index";
 import { DATE_TAGS, type Locale } from "../i18n/locale";
@@ -36,6 +38,7 @@ const NODE_KEY = {
   architecture: "architecture",
   name: "name",
   color: "color",
+  typography: "typography",
 } as const satisfies Record<BusinessNodeId | FoundationNodeId, keyof Business["node"]>;
 
 export function nodeTitle(m: Messages, id: BusinessNodeId | FoundationNodeId): string {
@@ -136,6 +139,27 @@ export function signatureOpenLine(m: Messages, open: ColorNode["signatureOpen"])
         first: familyWord(m, open.first),
         second: familyWord(m, open.second),
       });
+}
+
+/** The word of a scripts answer, a key of `business.typography.scripts.*` (`typography-node-1`). */
+export function scriptsWord(m: Messages, scripts: TypographyScripts): string {
+  const words = m.business.typography.scripts;
+  return scripts === "thai-latin" ? words.thaiLatin : words[scripts];
+}
+
+/** The word of a family's style, a key of `business.typography.style.*`. */
+export function styleWord(m: Messages, style: Face["style"]): string {
+  return m.business.typography.style[style];
+}
+
+/** The licence line of a family: `business.typography.licence` with the licence name as written. */
+export function licenceLine(m: Messages, face: Face): string {
+  return fill(m.business.typography.licence, { licence: face.licence });
+}
+
+/** The reason of a Thai family's role, or null for a family that has none (the Latin one). */
+export function faceBecause(m: Messages, face: Face): string | null {
+  return face.because === null ? null : m.business.typography.because[face.because];
 }
 
 /** The name of a foundation field, a key of `business.field.*`. */

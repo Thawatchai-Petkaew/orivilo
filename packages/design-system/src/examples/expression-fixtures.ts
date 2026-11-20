@@ -5,13 +5,14 @@ import {
   type PersonalityAxis,
   type StoredEntry,
   STAND_IN_LINEUP,
+  type TypographyScripts,
 } from "@orivilo/intent-engine";
 import { fixtures } from "../components/fixtures";
 import { foundationProject } from "./business-fixtures";
-import { givenEntry, lineupEntry, skippedEntry } from "./foundation-fixtures";
+import { givenEntry, lineupEntry, scriptsEntry, skippedEntry } from "./foundation-fixtures";
 
 /**
- * Fixture data for the brand expression stories (ORV-298, PR 1: Colour). Every project is made by
+ * Fixture data for the brand expression stories (ORV-298, PR 1: Colour; PR 2: Typography). Every project is made by
  * hand to show a state: nobody gave these answers and nothing was saved. Each view goes through the
  * engine's `toBusinessView`, so a story shows what the screen gets from a saved project. The
  * lineups are ORV-20's own fixtures: the brand names are stand-ins, not real brands, and nothing
@@ -116,3 +117,32 @@ export const unchecked = (locale: Locale): BusinessView => withLineup(locale, ST
 /** Spec row 8, third case: positioning skipped and no lineup, a partly worked out colour. */
 export const provisionalPartly = (locale: Locale): BusinessView =>
   foundationProject(locale, "skipped", [personality(POINT_4)]);
+
+// ----- Typography (ORV-298 PR 2) -----
+
+/** Spec row 18, before: positioning agreed, personality at point 4 and no typography entry. */
+export const asksScripts = (locale: Locale): BusinessView =>
+  foundationProject(locale, "agreed", [personality(POINT_4)]);
+
+/** Spec rows 18 and 19, after the save: the families of the answer, a decided typography. */
+export const typographyDecided = (
+  locale: Locale,
+  scripts: TypographyScripts = "thai-latin",
+): BusinessView =>
+  foundationProject(locale, "agreed", [personality(POINT_4), scriptsEntry(scripts)]);
+
+/** Spec row 21, first case: positioning agreed and a skipped personality, so the families are provisional. */
+export const typographyProvisional = (locale: Locale): BusinessView =>
+  foundationProject(locale, "agreed", [skippedEntry, scriptsEntry("thai-latin")]);
+/** Spec row 21, second case: a given personality while positioning is not agreed, so not yet checked. */
+export const typographyUnchecked = (locale: Locale): BusinessView =>
+  foundationProject(locale, "open", [personality(POINT_4), scriptsEntry("thai-latin")]);
+/** Spec row 21, third case: positioning agreed, no personality entry and an answer: it waits for Brand personality. */
+export const typographyWaitsForPersonality = (locale: Locale): BusinessView =>
+  foundationProject(locale, "agreed", [scriptsEntry("thai-latin")]);
+/** Spec row 21, fourth case: positioning with no choice, no personality entry and an answer. */
+export const typographyWaitsForPositioning = (locale: Locale): BusinessView =>
+  foundationProject(locale, "open", [scriptsEntry("thai-latin")]);
+/** Design T12: waiting and not answered, so the question is offered whatever the marks. */
+export const typographyWaitsAndAsks = (locale: Locale): BusinessView =>
+  foundationProject(locale, "agreed");

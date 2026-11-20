@@ -692,6 +692,7 @@ export const en: Messages = {
       never: "How should your brand never feel?",
       subBrands: "Does this brand sit above or below other brands?",
       lineup: "Which brands do customers compare you with, and what is the main colour of each?",
+      scripts: "Which scripts will your brand write in?",
     },
     node: {
       situation: "Situation",
@@ -703,6 +704,7 @@ export const en: Messages = {
       architecture: "Brand architecture",
       name: "Name",
       color: "Colour",
+      typography: "Typography",
     },
     field: {
       industry: "Business type",
@@ -727,6 +729,9 @@ export const en: Messages = {
       signature: "Signature colour family",
       neutral: "Greys",
       canvas: "Background",
+      scripts: "Scripts",
+      readingFace: "Reading text",
+      displayFace: "Headlines",
     },
     state: {
       proposed: "Not confirmed yet",
@@ -840,6 +845,28 @@ export const en: Messages = {
       hypothesis:
         "The thresholds and the four candidate colour families are ORIVILO's working rules, not a tested method.",
       familyOnly: "A colour family, not a final colour value.",
+    },
+    typography: {
+      scripts: {
+        thaiLatin: "Thai and Latin",
+        thai: "Thai only",
+        latin: "Latin only",
+      },
+      style: {
+        looped: "Thai, looped",
+        loopless: "Thai, loopless",
+        latinSans: "Latin, sans serif",
+      },
+      licence: "Licence: {licence}",
+      because: {
+        reading: "Looped Thai is the style commonly used for body and small text.",
+        display: "Loopless Thai is the style commonly used for titles and branding.",
+        pairing: "Either Thai style pairs with a Latin sans serif.",
+      },
+      oneChoice:
+        "This version has one family for each role and script, so every brand gets these families.",
+      noPersonalityLink:
+        "Your brand's personality does not choose these families. A link from personality to a typeface would be a working guess, not a tested method.",
     },
     label: {
       byRule: "Worked out by fixed rules from what you gave. Not decided by AI.",

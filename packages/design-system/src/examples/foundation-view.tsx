@@ -20,6 +20,7 @@ import { ArchitectureView } from "./architecture-view";
 import { ColorView } from "./color-view";
 import { IdentityFrameView } from "./identity-frame-view";
 import { NameView } from "./name-view";
+import { TypographyView } from "./typography-view";
 
 /**
  * One brand foundation node as a reading surface (ORV-291 design section 4): the shared head, a
@@ -112,6 +113,8 @@ export function FoundationNodeView({ node, heading = true, controls }: Foundatio
         <ArchitectureView node={node} controls={controls} />
       ) : node.id === "color" ? (
         <ColorView node={node} controls={controls} />
+      ) : node.id === "typography" ? (
+        <TypographyView node={node} controls={controls} />
       ) : (
         <NameView node={node} controls={controls} />
       )}
