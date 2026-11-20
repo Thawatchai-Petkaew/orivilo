@@ -3,6 +3,7 @@ import { PERSONALITY_AXES, type PersonalityAxis } from "../knowledge";
 import type { AxisValue, StoredEntry } from "./foundation";
 import {
   axisPointOf,
+  coreIdeaGate,
   derivedArchitecture,
   type DerivedArchitecture,
   entryAllowed,
@@ -71,12 +72,19 @@ export type PositioningView = {
   controls: Array<"writeOwn" | "skip">;
 };
 
-/** A foundation node's field names, a key of `business.field.*`. PR 3 adds its own. */
+/** A foundation node's field names, a key of `business.field.*`. */
 export type FoundationFieldKey =
-  "person" | "never" | "personality" | "subBrands" | "architecture" | "workingName";
-/** A foundation node's state line, a key of `business.state.*`. PR 3 adds `agreed`. */
+  | "person"
+  | "never"
+  | "personality"
+  | "subBrands"
+  | "architecture"
+  | "workingName"
+  | "remember"
+  | "coreIdea";
+/** A foundation node's state line, a key of `business.state.*`. */
 export type FoundationStateKey =
-  "given" | "derived" | "waiting" | "skipped" | "empty" | "notInVersion";
+  "given" | "agreed" | "derived" | "waiting" | "skipped" | "empty" | "notInVersion";
 
 type FoundationBase = {
   result: FoundationResult;
@@ -92,7 +100,7 @@ type FoundationBase = {
   fields: FoundationFieldKey[];
 };
 
-/** The four foundation nodes of ORV-291 in fill order; PRs 1 and 2 build the first three. */
+/** The four foundation nodes of ORV-291 in fill order. */
 export type FoundationNode =
   | (FoundationBase & {
       id: "identity-frame";
@@ -115,6 +123,20 @@ export type FoundationNode =
       /** The person's own text, shown with any entry; null with none. */
       name: string | null;
       controls: Array<"give">;
+    })
+  | (FoundationBase & {
+      id: "core-idea";
+      /** `core-idea-gate-1`: `given` only with a written idea; `blocked` while a cause waits. */
+      gate: "blocked" | "open" | "given";
+      /** True while the newest entry is a skip and nothing blocks the node. */
+      skipped: boolean;
+      /** True only in `given`: the gate line is `business.coreIdea.gatePassed`, else `business.state.gate`. */
+      gatePassed: boolean;
+      /** The person's own words, shown with a written idea; never labelled as drafted or picked. */
+      statement: null | { text: string; label: "business.positioning.by.own" };
+      /** The proxy answer, the person's own words; null with none. */
+      remember: string | null;
+      controls: Array<"writeOwn" | "skip">;
     });
 
 export type BusinessView = {
@@ -303,6 +325,31 @@ function nameOf(state: FoundationState): FoundationNode {
   };
 }
 
+function coreIdeaOf(state: FoundationState): FoundationNode {
+  const result = state.results["core-idea"];
+  const written = state.newest["core-idea"]?.kind === "written" ? state.newest["core-idea"] : null;
+  const gate = coreIdeaGate(result);
+  const allowed = (kind: "written" | "skipped") => entryAllowed({ node: "core-idea", kind }, state);
+  return {
+    id: "core-idea",
+    ...foundationLines(result),
+    state: gate.state,
+    fields: ["remember", "coreIdea"],
+    gate: gate.gate,
+    skipped: gate.skipped,
+    gatePassed: gate.gatePassed,
+    statement:
+      written === null
+        ? null
+        : { text: written.payload.statement, label: "business.positioning.by.own" },
+    remember: written?.payload.remember ?? null,
+    controls: [
+      ...(allowed("written") ? (["writeOwn"] as const) : []),
+      ...(allowed("skipped") ? (["skip"] as const) : []),
+    ],
+  };
+}
+
 export function toBusinessView(saved: SavedBusiness): BusinessView {
   const placed = placeIntake(saved.intake);
   const states = nodeStates(saved.intake);
@@ -324,7 +371,12 @@ export function toBusinessView(saved: SavedBusiness): BusinessView {
     savedAt: saved.project.createdAt,
     reading: statusOf(saved.reading),
     positioning,
-    foundation: [personalityOf(foundation), architectureOf(foundation), nameOf(foundation)],
+    foundation: [
+      personalityOf(foundation),
+      architectureOf(foundation),
+      nameOf(foundation),
+      coreIdeaOf(foundation),
+    ],
     nodes: states.map((s) => ({
       id: s.id,
       state: s.id === "positioning" ? stateOfPositioning(s.state) : s.state,

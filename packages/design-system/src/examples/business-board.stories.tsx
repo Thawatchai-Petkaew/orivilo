@@ -43,6 +43,7 @@ import {
   UNTRUSTED_VIEW,
 } from "./business-fixtures";
 import {
+  atWindow,
   en,
   expectAccessScreen,
   expectFitsAt360,
@@ -112,8 +113,8 @@ const viewNode = (view: BusinessView, id: BusinessNodeId) =>
 /** React Flow keeps a node hidden until it is measured and draws edges after: wait for all of it. */
 const boardReady = (root: HTMLElement) =>
   waitFor(() => {
-    expect(root.querySelectorAll(".react-flow__node")).toHaveLength(8);
-    expect(root.querySelectorAll(".react-flow__edge")).toHaveLength(11);
+    expect(root.querySelectorAll(".react-flow__node")).toHaveLength(9);
+    expect(root.querySelectorAll(".react-flow__edge")).toHaveLength(13);
     for (const n of root.querySelectorAll<HTMLElement>(".react-flow__node")) {
       expect(n.style.visibility).not.toBe("hidden");
     }
@@ -283,9 +284,11 @@ const W2 = [
   "positioning>architecture",
   "positioning>name",
   "architecture>name",
+  "positioning>core-idea",
+  "identity-frame>core-idea",
 ];
 
-/** The header, the eight nodes at rest, the eleven edges and the dock (spec row 22). */
+/** The header, the nine nodes at rest, the thirteen edges and the dock (spec row 22). */
 async function expectBoard(
   canvasElement: HTMLElement,
   m: Messages,
@@ -311,7 +314,7 @@ async function expectBoard(
   await expect(
     lede.compareDocumentPosition(region) & Node.DOCUMENT_POSITION_FOLLOWING,
   ).toBeTruthy();
-  // Eight nodes titled as the catalog says, in fill order, each named "title, kind" and opening a view.
+  // Nine nodes titled as the catalog says, in fill order, each named "title, kind" and opening a view.
   const nodes = [...canvasElement.querySelectorAll<HTMLElement>(".react-flow__node")];
   await expect(nodes.map((n) => n.dataset["id"])).toEqual([...BOARD_NODES]);
   for (const id of BOARD_NODES) {
@@ -339,7 +342,7 @@ async function expectBoard(
   for (const f of answersOf(view)) {
     await expect(textOf(region)).not.toContain(f.answer?.text ?? "");
   }
-  // Exactly the eleven edges of W2 and the foundation require, and the dock says view only.
+  // Exactly the thirteen edges of W2 and the foundation require, and the dock says view only.
   const edges = [...canvasElement.querySelectorAll<HTMLElement>(".react-flow__edge")].map((e) => {
     const [, source, , target] = (e.dataset["id"] ?? "").split(":");
     return `${source}>${target}`;
@@ -538,6 +541,7 @@ async function expectFoundationCard(
   at: { x: number; y: number },
   waitsFor: string,
   fields: readonly string[],
+  gateLine?: string,
 ) {
   const el = nodeEl(root, id);
   await expect(el.style.transform).toMatch(new RegExp(`translate\\(${at.x}px,\\s*${at.y}px\\)`));
@@ -547,6 +551,11 @@ async function expectFoundationCard(
   );
   await expect([...card.querySelectorAll(".ds-node__body ul li")].map(textOf)).toEqual([...fields]);
   await expect(card.querySelector("bdi")).toBeNull();
+  // Only Core idea has a gate line, the last paragraph of the card (design 3).
+  const waiting = fill(m.business.state.waiting, { nodes: waitsFor });
+  await expect([...card.querySelectorAll<HTMLElement>(".ds-node__body p")].map(textOf)).toEqual(
+    gateLine === undefined ? [waiting] : [waiting, gateLine],
+  );
   el.focus({ preventScroll: true });
   await focusOn(root, id);
   await userEvent.keyboard("{Enter}");
@@ -557,7 +566,7 @@ async function expectFoundationCard(
   await closeViewer(root, id);
 }
 
-/** The three foundation cards of the head (design 6.5 B1, section 7) on the Thai or English fixture. */
+/** The four foundation cards of the head (design 6.5 B1, sections 7 and 10) on the Thai or English fixture. */
 async function expectFoundationCards(root: HTMLElement, m: Messages, locale: "th" | "en") {
   const list = (...ids: (FoundationNodeId | BusinessNodeId)[]) =>
     new Intl.ListFormat(locale, { type: "conjunction" }).format(ids.map((id) => nodeTitle(m, id)));
@@ -573,9 +582,19 @@ async function expectFoundationCards(root: HTMLElement, m: Messages, locale: "th
   await expectFoundationCard(root, m, "name", { x: 1888, y: 473 }, list("positioning"), [
     m.business.field.workingName,
   ]);
+  // PR 3 (design 10): Core idea sits above Name in column 5 and shows the gate line.
+  await expectFoundationCard(
+    root,
+    m,
+    "core-idea",
+    { x: 1888, y: 212 },
+    list("positioning"),
+    [m.business.field.remember, m.business.field.coreIdea],
+    m.business.state.gate,
+  );
 }
 
-/** A saved Thai project on the present board: eight nodes, eleven edges, the dock, the gestures (rows 22, 23, 25). */
+/** A saved Thai project on the present board: nine nodes, thirteen edges, the dock, the gestures (rows 22, 23, 25, 34). */
 export const Board: Story = {
   play: async ({ canvasElement }) => {
     await expectBoard(canvasElement, th, THAI_VIEW, SAVED_TH);
@@ -686,31 +705,6 @@ export const ViewersEnglish: Story = {
 };
 
 // ----- the viewer at two window sizes (design 6.3) -----
-
-/**
- * Runs `check` with the browser at `width` by `height`, then puts the size back. The viewer is as
- * large as the window and Vitest's browser iframe is 1200 by 900, so the size is set, not assumed.
- * The static Storybook has no `vitest/browser`; there the window is the size the toolbar chose.
- */
-async function atWindow(width: number, height: number, check: () => Promise<void>) {
-  if (!inVitest) return check();
-  const { page } = await import("vitest/browser");
-  const before = { width: window.innerWidth, height: window.innerHeight };
-  const resized = async (w: number, h: number) => {
-    await page.viewport(w, h);
-    await waitFor(() => expect([window.innerWidth, window.innerHeight]).toEqual([w, h]));
-    await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
-  };
-  // The screenshot lock of `visual-asserts.ts`: no other file's screenshot runs while the frame is resized.
-  await navigator.locks.request("orivilo-screenshot", async () => {
-    await resized(width, height);
-    try {
-      await check();
-    } finally {
-      await resized(before.width, before.height);
-    }
-  });
-}
 
 /** Opens one node and reads where the viewer's parts sit; focus starts on the scroll region. */
 async function viewerAt(
@@ -850,8 +844,9 @@ async function skippedPlay(canvasElement: HTMLElement, m: Messages) {
     m.business.state.skipped,
     m.business.state.skipped,
   ]);
-  // Positioning keeps its gate line on the card, and only Positioning.
-  await expect(canvas.getAllByText(m.business.state.gate)).toHaveLength(1);
+  // Positioning keeps its gate line on the card, and Core idea (waiting) has one of its own.
+  // The Core idea card keeps the gate line too (ORV-296, design 3), so the line is on two cards.
+  await expect(canvas.getAllByText(m.business.state.gate)).toHaveLength(2);
   await expect(
     nodeEl(canvasElement, "positioning").querySelector(".ds-node")?.textContent,
   ).toContain(m.business.state.gate);
@@ -1016,7 +1011,7 @@ export const NarrowSkipped: Story = {
     await boardReady(canvasElement);
     await expectFitsAt360(canvasElement);
     await expect(within(canvasElement).getAllByText(th.business.state.skipped)).toHaveLength(3);
-    await expect(within(canvasElement).getAllByText(th.business.state.gate)).toHaveLength(1);
+    await expect(within(canvasElement).getAllByText(th.business.state.gate)).toHaveLength(2);
   },
 };
 

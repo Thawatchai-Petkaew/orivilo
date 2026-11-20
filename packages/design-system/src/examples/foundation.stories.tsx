@@ -26,18 +26,23 @@ import {
   afterEntry,
   afterEntryOn,
   answeredEntry,
+  CORE_IDEA_TEXT,
+  coreIdeaEntry,
+  coreIdeaSkippedEntry,
   FIXTURE_NAME,
   FIXTURE_POINTS,
   given,
   givenEntry,
   givenUnchecked,
   HOSTILE_ANSWERS,
+  HOSTILE_CORE_IDEA,
   HOSTILE_NAME,
   LONG_PERSONALITY_ANSWER,
   LONG_WORKING_NAME,
   nameEntry,
   open,
   PERSONALITY_ANSWERS,
+  skippedEntry,
   waiting,
 } from "./foundation-fixtures";
 import { type FoundationEditor, FoundationNodeView } from "./foundation-view";
@@ -713,6 +718,7 @@ const untrusted = (locale: Lang) =>
     givenEntry(HOSTILE_ANSWERS),
     answeredEntry(false),
     nameEntry(HOSTILE_NAME),
+    coreIdeaEntry(HOSTILE_CORE_IDEA.statement, HOSTILE_CORE_IDEA.remember),
   ]);
 
 /** Spec row 22: markup as a working name is text in a `bdi`, never an image, a link, a script or a tag. */
@@ -726,11 +732,26 @@ async function untrustedNamePlay(canvasElement: HTMLElement, m: Messages) {
   await expect(textOf(v)).toContain(m.business.name.notScreened);
 }
 
-/** Both nodes with text the person typed: the answers of Brand personality and the working name. */
+/** Spec row 33: markup as a core idea and as its answer is text in a `bdi`, never an image, a link, a script or a tag. */
+async function untrustedCoreIdeaPlay(canvasElement: HTMLElement, m: Messages) {
+  const v = nodeViewOf(canvasElement, "core-idea");
+  await expectState(v, "agreed", m.business.state.agreed);
+  const statement = v.querySelector<HTMLElement>('[data-field="coreIdea"] bdi') as HTMLElement;
+  const remember = v.querySelector<HTMLElement>('[data-field="remember"] bdi') as HTMLElement;
+  await expect(statement.textContent).toBe(HOSTILE_CORE_IDEA.statement);
+  await expect(remember.textContent).toBe(HOSTILE_CORE_IDEA.remember);
+  await expect(statement.children).toHaveLength(0);
+  await expect(remember.children).toHaveLength(0);
+  await expect(v.querySelectorAll("a, img, script, b")).toHaveLength(0);
+  await expect(canvasElement.querySelector("img[src='x']")).toBeNull();
+}
+
+/** The nodes with text the person typed: the answers of Brand personality, the working name and the core idea. */
 const untrustedHosts = (locale: Lang) => (
   <>
     <Host locale={locale} initial={untrusted(locale)} />
     <Host locale={locale} initial={untrusted(locale)} node="name" />
+    <Host locale={locale} initial={untrusted(locale)} node="core-idea" />
   </>
 );
 
@@ -739,6 +760,7 @@ export const FoundationUntrustedText: Story = {
   play: async ({ canvasElement }) => {
     await untrustedPlay(canvasElement, th);
     await untrustedNamePlay(canvasElement, th);
+    await untrustedCoreIdeaPlay(canvasElement, th);
   },
 };
 
@@ -747,6 +769,107 @@ export const FoundationUntrustedTextEnglish: Story = {
   play: async ({ canvasElement }) => {
     await untrustedPlay(canvasElement, en);
     await untrustedNamePlay(canvasElement, en);
+    await untrustedCoreIdeaPlay(canvasElement, en);
+  },
+};
+
+// ----- no AI, no score, no claim (spec row 35) -----
+
+/**
+ * Spec row 35: projects that hold, together, the states the four nodes take in rows 2, 4, 15, 16,
+ * 18, 26 and 28: waiting, open, skipped, given or written, derived or not in the version, with a
+ * mark line. Each one is read-only, so what is read is what a person sees before any control.
+ */
+const noAiProjects = (locale: Lang): BusinessView[] => {
+  const text = CORE_IDEA_TEXT[locale];
+  const written = coreIdeaEntry(text.statement, text.remember);
+  return [
+    foundationProject(locale, "open"),
+    foundationProject(locale, "agreed"),
+    foundationProject(locale, "agreed", [
+      givenEntry(PERSONALITY_ANSWERS[locale]),
+      answeredEntry(true),
+    ]),
+    foundationProject(locale, "agreed", [
+      givenEntry(PERSONALITY_ANSWERS[locale]),
+      answeredEntry(false),
+      nameEntry(FIXTURE_NAME),
+      written,
+    ]),
+    foundationProject(locale, "skipped", [
+      skippedEntry,
+      answeredEntry(false),
+      nameEntry(FIXTURE_NAME),
+      coreIdeaSkippedEntry,
+    ]),
+    foundationProject(locale, "stale", [givenEntry(PERSONALITY_ANSWERS[locale]), written]),
+  ];
+};
+
+/** The lines the catalog itself says in the negative: they hold "tested" and "screened" by design. */
+const negations = (m: Messages) => [m.business.identity.hypothesis, m.business.name.notScreened];
+
+/** The five AI labels of `foundation-honest-1`, as catalog lines, and the words of a claim of proof. */
+const aiLabels = (m: Messages) => {
+  const fromModel = m.brandReport.engine["evidence.fromModel"].split("{model}")[0] as string;
+  const extra = [
+    ...Object.entries(m.business.positioning.by)
+      .filter(([key]) => key !== "own")
+      .map(([, line]) => line),
+    ...Object.entries(m.strategy)
+      .filter(([key]) => key !== "skip" && key !== "provisional")
+      .map(([, line]) => line),
+  ];
+  return [fromModel, ...extra].filter((line) => line.trim() !== "");
+};
+const CLAIMS = {
+  th: /ตรวจสอบแล้ว|ทดสอบแล้ว|ผ่านการทดสอบ|ผ่านการตรวจ|จดทะเบียน|ยืนยันแล้ว/u,
+  en: /verified|tested|screened|registered/iu,
+} as const;
+
+async function noAiPlay(canvasElement: HTMLElement, m: Messages, locale: Lang) {
+  const projects = canvasElement.querySelectorAll<HTMLElement>("[data-project]");
+  await expect(projects).toHaveLength(noAiProjects(locale).length);
+  for (const project of projects) {
+    await expect(project.querySelectorAll("[data-node]")).toHaveLength(4);
+    await expect(project.querySelectorAll("[data-ai-line]")).toHaveLength(0);
+    let said = textOf(project);
+    for (const line of [
+      ...negations(m),
+      ...[1, 2, 3, 4, 5].map((n) => fill(m.business.identity.point, { n: String(n) })),
+    ]) {
+      said = said.split(line).join("");
+    }
+    for (const label of aiLabels(m)) await expect(said).not.toContain(label);
+    // The one number a view shows is a scale point, "n of 5", and it is gone from `said` by now.
+    await expect(said).not.toMatch(/[0-9\u0E50-\u0E59]/u);
+    await expect(said).not.toMatch(CLAIMS[locale]);
+  }
+}
+
+const noAiHosts = (locale: Lang) => (
+  <>
+    {noAiProjects(locale).map((view, i) => (
+      <div key={i} data-project={i}>
+        {view.foundation.map((node) => (
+          <FoundationNodeView key={node.id} node={node} heading />
+        ))}
+      </div>
+    ))}
+  </>
+);
+
+export const FoundationNoAi: Story = {
+  render: () => noAiHosts("th"),
+  play: async ({ canvasElement }) => {
+    await noAiPlay(canvasElement, th, "th");
+  },
+};
+
+export const FoundationNoAiEnglish: Story = {
+  render: () => <LocaleProvider locale="en">{noAiHosts("en")}</LocaleProvider>,
+  play: async ({ canvasElement }) => {
+    await noAiPlay(canvasElement, en, "en");
   },
 };
 
