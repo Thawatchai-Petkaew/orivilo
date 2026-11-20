@@ -691,6 +691,7 @@ export const en: Messages = {
       person: "If your brand were a person, which three words would people use to describe them?",
       never: "How should your brand never feel?",
       subBrands: "Does this brand sit above or below other brands?",
+      remember: "After someone meets your brand, what one thing should they remember?",
     },
     node: {
       situation: "Situation",
@@ -701,6 +702,7 @@ export const en: Messages = {
       identityFrame: "Brand personality",
       architecture: "Brand architecture",
       name: "Name",
+      coreIdea: "Core idea",
     },
     field: {
       industry: "Business type",
@@ -720,6 +722,8 @@ export const en: Messages = {
       subBrands: "Other brands above or below",
       architecture: "Architecture",
       workingName: "Working name",
+      remember: "The one thing to remember",
+      coreIdea: "Core idea",
     },
     state: {
       proposed: "Not confirmed yet",
@@ -769,6 +773,11 @@ export const en: Messages = {
       save: "Use this working name",
       required: "Write a working name, or cancel.",
       notScreened: "Working name, not screened for trademarks.",
+    },
+    coreIdea: {
+      save: "Agree to this core idea",
+      statementRequired: "Write your core idea before you agree to it, or cancel.",
+      gatePassed: "You agreed to this core idea.",
     },
     label: {
       yourWords: "Your words, placed here by fixed rules. Not read by AI.",

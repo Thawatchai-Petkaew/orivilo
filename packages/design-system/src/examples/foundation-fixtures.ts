@@ -4,6 +4,7 @@ import {
   type AxisValue,
   axisValueOf,
   type BusinessView,
+  CORE_IDEA_MAX,
   type EntryRequest,
   PERSONALITY_AXES,
   type PersonalityAxis,
@@ -95,6 +96,45 @@ export const HOSTILE_NAME = "<img src=x onerror=alert(1)>";
 /** 60 Thai characters with no space, the longest a working name keeps (spec row 23). */
 export const LONG_WORKING_NAME = fixtures.longThai.slice(0, 60);
 
+/** What a person wrote for the core idea in each language: a sentence of their own, and the one thing to remember. */
+export const CORE_IDEA_TEXT = {
+  th: {
+    statement: "กาแฟสดที่คั่วทุกเช้า เสิร์ฟให้คนเมืองเก่าได้นั่งพักอย่างสงบ",
+    remember: "ที่นั่งเงียบ ๆ ริมคลอง กลิ่นกาแฟคั่วใหม่",
+  },
+  en: {
+    statement: "Fresh coffee roasted each morning, served so old town workers can sit quietly.",
+    remember: "A quiet seat by the canal and the smell of fresh roast.",
+  },
+} as const;
+
+/** Markup as a core idea and as the answer: both must show as literal text (spec row 33). */
+export const HOSTILE_CORE_IDEA = {
+  statement: "<img src=x onerror=alert(1)>",
+  remember: "<script>alert(1)</script>",
+} as const;
+
+/** 300 Thai characters with no space, the longest a core idea keeps (spec row 34). */
+export const LONG_CORE_IDEA = fixtures.longThai.repeat(5).slice(0, CORE_IDEA_MAX);
+
+/** The core idea a person wrote and agreed to, as the table holds it (PR 3). */
+export const coreIdeaEntry = (statement: string, remember?: string): StoredEntry => ({
+  id: "entry-core-idea",
+  createdAt: SAVED_AT,
+  node: "core-idea",
+  kind: "written",
+  payload: remember === undefined ? { statement } : { statement, remember },
+});
+
+/** A skipped core idea, as the table holds it (PR 3). */
+export const coreIdeaSkippedEntry: StoredEntry = {
+  id: "entry-core-idea-skipped",
+  createdAt: SAVED_AT,
+  node: "core-idea",
+  kind: "skipped",
+  payload: {},
+};
+
 export const skippedEntry: StoredEntry = {
   id: "entry-skipped",
   createdAt: SAVED_AT,
@@ -117,10 +157,17 @@ export const givenUnchecked = (locale: Locale): BusinessView =>
   foundationProject(locale, "open", [givenEntry(PERSONALITY_ANSWERS[locale])]);
 
 /** The entry a request makes, as the table would hold it. */
-function entryOf(request: EntryRequest): StoredEntry {
+export function entryOf(request: EntryRequest): StoredEntry {
   if (request.node === "architecture") return answeredEntry(request.payload.subBrands);
   // The server stores the trimmed name (`foundation-entry-1`); the stub does the same.
   if (request.node === "name") return nameEntry(request.payload.name.trim());
+  if (request.node === "core-idea") {
+    // The server stores the trimmed statement and the answer, and no answer when it is blank.
+    const remember = request.kind === "written" ? request.payload.remember?.trim() : undefined;
+    return request.kind === "skipped"
+      ? coreIdeaSkippedEntry
+      : coreIdeaEntry(request.payload.statement.trim(), remember === "" ? undefined : remember);
+  }
   return request.kind === "skipped"
     ? skippedEntry
     : {

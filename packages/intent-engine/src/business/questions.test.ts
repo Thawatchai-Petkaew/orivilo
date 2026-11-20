@@ -15,7 +15,7 @@ describe("copy is ORV-126's", () => {
     expect(home.size).toBeGreaterThanOrEqual(8);
   });
 
-  it("holds the eight ids: the six the intake lists, then the two of Brand personality", () => {
+  it("holds the nine ids: the six the intake lists, the two of Brand personality, then the core idea's", () => {
     expect(PROXY_QUESTIONS.map((q) => q.id)).toEqual([
       "business-core.proxy.offer",
       "business-core.proxy.why",
@@ -25,7 +25,20 @@ describe("copy is ORV-126's", () => {
       "positioning.proxy.only",
       "identity-frame.proxy.person",
       "identity-frame.proxy.never",
+      "core-idea.proxy.remember",
     ]);
+  });
+
+  // ORV-291 tech notes section 13, T42; spec row 37: the core idea question is ORV-126's words.
+  it("core-idea.proxy.remember is ORV-126 'Missing strategy' word for word", () => {
+    const expected = {
+      en: "After someone meets your brand, what one thing should they remember?",
+      th: "หลังจากได้รู้จักแบรนด์ของคุณ คุณอยากให้คนจำอะไรได้หนึ่งอย่าง",
+      key: "business.question.remember",
+    } as const;
+    const q = PROXY_QUESTIONS.find((p) => p.id === "core-idea.proxy.remember");
+    expect(q).toMatchObject(expected);
+    expect(home.get("core-idea.proxy.remember")).toEqual({ en: expected.en, th: expected.th });
   });
 
   // ORV-291 tech notes section 13, T24; spec row 13: the two personality questions are ORV-126's words.
@@ -79,7 +92,7 @@ describe("start question", () => {
   it("holds one question, situation.sub-brands, and it stays out of the proxy questions", () => {
     expect(START_QUESTIONS.map((q) => q.id)).toEqual(["situation.sub-brands"]);
     expect(PROXY_QUESTIONS.map((q) => q.id)).not.toContain("situation.sub-brands");
-    expect(PROXY_QUESTIONS).toHaveLength(8);
+    expect(PROXY_QUESTIONS).toHaveLength(9);
   });
 
   it("situation.sub-brands equals ORV-126 'The start question' word for word", () => {

@@ -13,7 +13,7 @@ import { nodeTitle } from "./business-text";
 /**
  * ORV-281 tech notes T26, spec rows 22 and 23: `boardGraphOf` gives the business nodes in fill order,
  * each opening one view with no page count, and exactly the six edges of W2. ORV-291 tech notes T20
- * (spec rows 9, 23 and 34): after PR 2 the board has eight nodes and eleven edges, the new nodes and
+ * (spec rows 9, 23 and 34): after PR 3 the board has nine nodes and thirteen edges, the new nodes and
  * their one edge per require (W2), and a node with several sources gets one input handle per source,
  * in the order of the design's table (2.2), which is not always the order of the engine's edge list.
  */
@@ -26,21 +26,23 @@ const W2 = [
   "audience>positioning",
   "competitive-frame>positioning",
 ];
-/** ORV-281's six edges, then one edge per require of the foundation nodes built so far (W2, after PR 2). */
-const W2_PR2 = [
+/** ORV-281's six edges, then one edge per require of the foundation nodes built so far (W2, after PR 3). */
+const W2_PR3 = [
   ...W2,
   "positioning>identity-frame",
   "situation>architecture",
   "positioning>architecture",
   "positioning>name",
   "architecture>name",
+  "positioning>core-idea",
+  "identity-frame>core-idea",
 ];
 
 describe.each(["th", "en"] as const)("boardGraphOf in %s", (locale) => {
   const m = messagesFor(locale);
   const graph = boardGraphOf(THAI_VIEW, m);
 
-  it("has eight nodes in fill order, each titled by the catalog and opening with no count", () => {
+  it("has nine nodes in fill order, each titled by the catalog and opening with no count", () => {
     const fill = [...BUSINESS_NODES, ...FOUNDATION_NODES];
     expect(graph.nodes.map((n) => n.id)).toEqual(fill);
     expect(graph.nodes.map((n) => n.data.title)).toEqual(fill.map((id) => nodeTitle(m, id)));
@@ -56,14 +58,14 @@ describe.each(["th", "en"] as const)("boardGraphOf in %s", (locale) => {
     }
   });
 
-  it("has exactly the eleven edges of W2, each solid and with no label pill", () => {
-    expect(graph.edges.map((e) => `${e.source}>${e.target}`)).toEqual(W2_PR2);
+  it("has exactly the thirteen edges of W2, each solid and with no label pill", () => {
+    expect(graph.edges.map((e) => `${e.source}>${e.target}`)).toEqual(W2_PR3);
     expect([...BUSINESS_EDGES].map(([a, b]) => `${a}>${b}`)).toEqual(W2);
-    expect(FOUNDATION_EDGES.map(([a, b]) => `${a}>${b}`)).toEqual(W2_PR2.slice(6));
+    expect(FOUNDATION_EDGES.map(([a, b]) => `${a}>${b}`)).toEqual(W2_PR3.slice(6));
     for (const edge of graph.edges) {
       expect(edge.data).toEqual({ meaning: "input", label: false });
     }
-    expect(new Set(graph.edges.map((e) => e.id)).size).toBe(11);
+    expect(new Set(graph.edges.map((e) => e.id)).size).toBe(13);
   });
 
   it("joins every edge to a port that exists, of the same kind, on its two nodes", () => {
@@ -137,7 +139,7 @@ describe.each(["th", "en"] as const)("boardGraphOf in %s", (locale) => {
     expect(name?.data.outputs).toEqual([]);
   });
 
-  it("joins each edge of the two new nodes to the port of its own source", () => {
+  it("joins each edge of the three new nodes to the port of its own source", () => {
     const into = (target: string) =>
       graph.edges.filter((e) => e.target === target).map((e) => [e.source, e.targetHandle]);
     expect(into("architecture")).toEqual([
@@ -148,16 +150,33 @@ describe.each(["th", "en"] as const)("boardGraphOf in %s", (locale) => {
       ["positioning", "from-positioning"],
       ["architecture", "from-architecture"],
     ]);
+    expect(into("core-idea")).toEqual([
+      ["positioning", "from-positioning"],
+      ["identity-frame", "from-identity-frame"],
+    ]);
   });
 
-  it("gives Brand personality one input from Positioning and no output yet", () => {
+  it("gives Brand personality one input from Positioning and one output to Core idea", () => {
     const identity = graph.nodes.find((n) => n.id === "identity-frame");
     expect(identity?.data.inputs.map((p) => [p.id, p.label])).toEqual([
       ["in", nodeTitle(m, "positioning")],
     ]);
-    expect(identity?.data.outputs).toEqual([]);
+    expect(identity?.data.outputs.map((p) => [p.id, p.label])).toEqual([
+      ["out", nodeTitle(m, "identity-frame")],
+    ]);
     const edge = graph.edges.find((e) => e.target === "identity-frame");
     expect(edge).toMatchObject({ source: "positioning", sourceHandle: "out", targetHandle: "in" });
+  });
+
+  it("gives Core idea two inputs, Brand personality above Positioning (design 2.2), and no output", () => {
+    const coreIdea = graph.nodes.find((n) => n.id === "core-idea");
+    // The engine lists Positioning first (ORV-126 order); the table puts the upper source in the
+    // upper port (278 against 318) so the two edges do not cross at the card.
+    expect(coreIdea?.data.inputs.map((p) => [p.id, p.label])).toEqual([
+      ["from-identity-frame", nodeTitle(m, "identity-frame")],
+      ["from-positioning", nodeTitle(m, "positioning")],
+    ]);
+    expect(coreIdea?.data.outputs).toEqual([]);
   });
 
   it("sets the nodes where the design table puts them", () => {
@@ -171,6 +190,7 @@ describe.each(["th", "en"] as const)("boardGraphOf in %s", (locale) => {
       ["identity-frame", 1400, 160],
       ["architecture", 1400, 576],
       ["name", 1888, 473],
+      ["core-idea", 1888, 212],
     ]);
     expect(Object.keys(BUSINESS_POSITIONS)).toEqual([...BUSINESS_NODES, ...FOUNDATION_NODES]);
   });
@@ -198,6 +218,7 @@ describe("boardGraphOf in two languages", () => {
       "Brand personality",
       "Brand architecture",
       "Name",
+      "Core idea",
     ]);
     expect(th.nodes.map((n) => n.data.title)).toEqual([
       "สถานการณ์ตั้งต้น",
@@ -208,6 +229,7 @@ describe("boardGraphOf in two languages", () => {
       "บุคลิกของแบรนด์",
       "โครงสร้างแบรนด์",
       "ชื่อแบรนด์",
+      "แนวคิดหลัก",
     ]);
   });
 });

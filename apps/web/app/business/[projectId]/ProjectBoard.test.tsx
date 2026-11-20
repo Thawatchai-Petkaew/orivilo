@@ -1,6 +1,7 @@
 import { messagesFor } from "@orivilo/design-system";
 import {
   ANSWER_MAX_CHARS,
+  CORE_IDEA_MAX,
   INTAKE_VERSION,
   POSITIONING_STATEMENT_MAX,
   toBusinessView,
@@ -405,6 +406,74 @@ describe("a foundation entry that is running", () => {
     expect(enterFoundation).toHaveBeenCalledExactlyOnceWith({
       projectId: PROJECT,
       node: "identity-frame",
+      kind: "skipped",
+      payload: {},
+    });
+  });
+});
+
+// ORV-291 T43 (spec rows 26 and 27, at the wrapper): the core idea entry, written or skipped.
+const written = (payload: Record<string, unknown>) => ({
+  node: "core-idea",
+  kind: "written",
+  payload,
+});
+
+describe("a core idea entry", () => {
+  it("an empty core idea makes no call and names the statement", () => {
+    enter("en", written({ statement: "   " }));
+    expect(enterFoundation).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
+    expect(foundationOf("en").problems).toEqual([{ path: "payload.statement", kind: "required" }]);
+    expect(foundationOf("en").pending).toBeNull();
+  });
+
+  it("a core idea one past its bound makes no call and names the statement", () => {
+    enter("en", written({ statement: "ก".repeat(CORE_IDEA_MAX + 1) }));
+    expect(enterFoundation).not.toHaveBeenCalled();
+    expect(foundationOf("en").problems).toEqual([{ path: "payload.statement", kind: "too-long" }]);
+  });
+
+  it("an answer one past its bound makes no call and names the answer", () => {
+    enter("en", written({ statement: STATEMENT, remember: "ก".repeat(ANSWER_MAX_CHARS + 1) }));
+    expect(enterFoundation).not.toHaveBeenCalled();
+    expect(foundationOf("en").problems).toEqual([{ path: "payload.remember", kind: "too-long" }]);
+  });
+
+  it("calls once for a core idea and an answer at their bounds, with the project id", async () => {
+    enterFoundation.mockResolvedValue({ ok: true, value: { node: "core-idea", kind: "written" } });
+    const payload = {
+      statement: "ก".repeat(CORE_IDEA_MAX),
+      remember: "ก".repeat(ANSWER_MAX_CHARS),
+    };
+    enter("en", written(payload));
+    await seed.enteringRun;
+    expect(enterFoundation).toHaveBeenCalledExactlyOnceWith({
+      projectId: PROJECT,
+      ...written(payload),
+    });
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("a double press makes one call", async () => {
+    let finish: (outcome: unknown) => void = () => {};
+    enterFoundation.mockReturnValue(new Promise((resolve) => (finish = resolve)));
+    enter("en", written({ statement: STATEMENT }));
+    expect(foundationOf("en").pending).toBe("saving");
+    enter("en", written({ statement: STATEMENT }));
+    expect(enterFoundation).toHaveBeenCalledTimes(1);
+    finish({ ok: true, value: { node: "core-idea", kind: "written" } });
+    await seed.enteringRun;
+    expect(foundationOf("en").pending).toBeNull();
+  });
+
+  it("asks for the skip with the project id and nothing else", async () => {
+    enterFoundation.mockResolvedValue({ ok: true, value: { node: "core-idea", kind: "skipped" } });
+    enter("th", { node: "core-idea", kind: "skipped", payload: {} });
+    await seed.enteringRun;
+    expect(enterFoundation).toHaveBeenCalledExactlyOnceWith({
+      projectId: PROJECT,
+      node: "core-idea",
       kind: "skipped",
       payload: {},
     });
