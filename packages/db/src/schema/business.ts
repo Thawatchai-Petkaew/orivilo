@@ -231,6 +231,8 @@ export const businessPositioningChoice = pgTable(
  * section 4): its entry count, each name and each colour are bounded here too.
  * PR 2 adds the typography answer (`typography`, kind `answered`): the pair check holds it, and the
  * scripts stay with the app schema, as the booleans of ORV-291 do.
+ * PR 3 adds the logo type answer (`logo-type`, kind `answered`): the pair check holds it alone, and
+ * the boolean stays with the app schema. A long name is refused at the door, not here.
  */
 export const businessFoundationEntry = pgTable(
   "business_foundation_entry",
@@ -264,7 +266,7 @@ export const businessFoundationEntry = pgTable(
     unique("business_foundation_entry_one_per_kind").on(t.projectId, t.node, t.kind),
     check(
       "business_foundation_entry_pair",
-      sql`(${t.node}, ${t.kind}) in (('identity-frame', 'given'), ('identity-frame', 'skipped'), ('architecture', 'answered'), ('name', 'given'), ('core-idea', 'written'), ('core-idea', 'skipped'), ('competitive-frame', 'lineup'), ('typography', 'answered'))`,
+      sql`(${t.node}, ${t.kind}) in (('identity-frame', 'given'), ('identity-frame', 'skipped'), ('architecture', 'answered'), ('name', 'given'), ('core-idea', 'written'), ('core-idea', 'skipped'), ('competitive-frame', 'lineup'), ('typography', 'answered'), ('logo-type', 'answered'))`,
     ),
     check(
       "business_foundation_entry_payload_shape",

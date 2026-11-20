@@ -1,7 +1,7 @@
 import type { HueFamily } from "../color-audit";
 import type { InputEvidence } from "../evidence";
 import { PERSONALITY_AXES, type PersonalityAxis } from "../knowledge";
-import type { ColorOutcome, TypographyOutcome } from "./expression";
+import type { ColorOutcome, LogoTypeOutcome, TypographyOutcome } from "./expression";
 import type { AxisValue, StoredEntry, TypographyScripts } from "./foundation";
 import {
   axisPointOf,
@@ -91,7 +91,9 @@ export type FoundationFieldKey =
   | "crowded"
   | "scripts"
   | "readingFace"
-  | "displayFace";
+  | "displayFace"
+  | "appIcon"
+  | "logoType";
 /** A foundation node's state line, a key of `business.state.*`. */
 export type FoundationStateKey =
   | "given"
@@ -118,7 +120,10 @@ type FoundationBase = {
   fields: FoundationFieldKey[];
 };
 
-/** The foundation nodes in fill order: ORV-291's four, then ORV-298's colour and typography. */
+/**
+ * The foundation nodes in fill order: ORV-291's four, then ORV-298's logo type, colour and
+ * typography.
+ */
 export type FoundationNode =
   | (FoundationBase & {
       id: "identity-frame";
@@ -155,6 +160,14 @@ export type FoundationNode =
       /** The proxy answer, the person's own words; null with none. */
       remember: string | null;
       controls: Array<"writeOwn" | "skip">;
+    })
+  | (FoundationBase & {
+      id: "logo-type";
+      /** The stored answer, shown in every result that holds one; null with no entry. */
+      appIcon: boolean | null;
+      /** The decision of `logo-type-1`, only while the result is `derived`; null in every other. */
+      decision: LogoTypeOutcome | null;
+      controls: Array<"answer">;
     })
   | (FoundationBase & {
       id: "color";
@@ -415,6 +428,21 @@ function coreIdeaOf(state: FoundationState): FoundationNode {
   };
 }
 
+function logoTypeNodeOf(state: FoundationState): FoundationNode {
+  const result = state.results["logo-type"];
+  const outcome = state.expression.logoType;
+  return {
+    id: "logo-type",
+    // One decision, made with the rule: a derived result has it, and no result is partly.
+    ...expressionLines(result, outcome === null ? 0 : 1),
+    fields: ["appIcon", "logoType"],
+    appIcon: state.newest["logo-type"]?.payload.appIcon ?? null,
+    // A blocked result shows no decision; the saved answer shows in every result.
+    decision: result.status === "derived" ? outcome : null,
+    controls: entryAllowed({ node: "logo-type", kind: "answered" }, state) ? ["answer"] : [],
+  };
+}
+
 function colorNodeOf(state: FoundationState): FoundationNode {
   const result = state.results.color;
   const outcome = state.expression.color;
@@ -486,6 +514,7 @@ export function toBusinessView(saved: SavedBusiness): BusinessView {
       architectureOf(foundation),
       nameOf(foundation),
       coreIdeaOf(foundation),
+      logoTypeNodeOf(foundation),
       colorNodeOf(foundation),
       typographyNodeOf(foundation),
     ],

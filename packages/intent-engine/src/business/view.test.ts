@@ -479,16 +479,30 @@ describe("foundation in the view", () => {
       payload: kind === "written" ? { statement: "ทำให้ง่ายที่สุด", ...payload } : {},
       createdAt,
     });
+  // Found by id, not by place: the logo type node sits before colour in fill order (ORV-298 PR 3).
   const colorNode = (view: ReturnType<typeof toBusinessView>) => {
-    const node = view.foundation[4];
+    const node = view.foundation.find((n) => n.id === "color");
     if (node?.id !== "color") throw new Error("the node color");
     return node;
   };
   const typographyNode = (view: ReturnType<typeof toBusinessView>) => {
-    const node = view.foundation[5];
+    const node = view.foundation.find((n) => n.id === "typography");
     if (node?.id !== "typography") throw new Error("the node typography");
     return node;
   };
+  const logoTypeNode = (view: ReturnType<typeof toBusinessView>) => {
+    const node = view.foundation.find((n) => n.id === "logo-type");
+    if (node?.id !== "logo-type") throw new Error("the node logo-type");
+    return node;
+  };
+  const LOGO_TYPE = (appIcon: boolean, createdAt = "2026-11-19T09:00:00.000Z"): StoredEntry =>
+    storedEntrySchema.parse({
+      id: `g-${appIcon}`,
+      node: "logo-type",
+      kind: "answered",
+      payload: { appIcon },
+      createdAt,
+    });
   const TYPOGRAPHY = (
     scripts: "thai-latin" | "thai" | "latin" = "thai-latin",
     createdAt = "2026-11-19T08:00:00.000Z",
@@ -698,10 +712,12 @@ describe("foundation in the view", () => {
         "architecture",
         "name",
         "core-idea",
+        "logo-type",
         "color",
         "typography",
       ]);
       expect(coreIdea(view).fields).toEqual(["remember", "coreIdea"]);
+      expect(logoTypeNode(view).fields).toEqual(["appIcon", "logoType"]);
       expect(personality(view).fields).toEqual(["person", "never", "personality"]);
       expect(architecture(view).fields).toEqual(["subBrands", "architecture"]);
       expect(nameNode(view).fields).toEqual(["workingName"]);
@@ -1366,6 +1382,249 @@ describe("foundation in the view", () => {
     });
   });
 
+  // ORV-298 tech notes section 13, T35: spec rows 29 to 33, the data half.
+  describe("logo type in the view", () => {
+    const LONG = "Chase Manhattan Bank";
+
+    it("row 29, before the answer: needsAnswer, no answer, no decision, and answer is offered", () => {
+      const node = logoTypeNode(toBusinessView(project_("agreed", [ANSWER(false), NAME()])));
+      expect(node.state).toBe("needsAnswer");
+      expect(node.result.status).toBe("open");
+      expect(node.appIcon).toBeNull();
+      expect(node.decision).toBeNull();
+      expect(node.controls).toEqual(["answer"]);
+      expect(node.restsOn).toEqual([]);
+      expect(node.unchecked).toEqual([]);
+      expect(node.waitingFor).toEqual([]);
+    });
+
+    it("row 29, after the answer no: derived, a wordmark by the rule, no control", () => {
+      const node = logoTypeNode(
+        toBusinessView(project_("agreed", [ANSWER(false), NAME(), LOGO_TYPE(false)])),
+      );
+      expect(node.state).toBe("derived");
+      expect(node.appIcon).toBe(false);
+      expect(node.decision).toEqual({
+        type: "wordmark",
+        reasons: ["wordmark"],
+        rule: "logo-type-1",
+        name: "ORIVILO",
+        length: 7,
+        max: 12,
+      });
+      expect(node.controls).toEqual([]);
+      expect(node.restsOn).toEqual([]);
+      expect(node.unchecked).toEqual([]);
+    });
+
+    it("row 30: the answer yes is a symbol plus name for the app icon", () => {
+      const node = logoTypeNode(
+        toBusinessView(project_("agreed", [ANSWER(false), NAME(), LOGO_TYPE(true)])),
+      );
+      expect(node.state).toBe("derived");
+      expect(node.appIcon).toBe(true);
+      expect(node.decision?.type).toBe("symbol-plus-name");
+      expect(node.decision?.reasons).toEqual(["appIcon"]);
+    });
+
+    it("row 31: a long name is a symbol plus name with no answer, and no question is offered", () => {
+      const node = logoTypeNode(toBusinessView(project_("agreed", [ANSWER(false), NAME(LONG)])));
+      expect(node.state).toBe("derived");
+      expect(node.appIcon).toBeNull();
+      expect(node.decision).toMatchObject({
+        type: "symbol-plus-name",
+        reasons: ["longName"],
+        name: LONG,
+        length: 18,
+        max: 12,
+      });
+      expect(node.controls).toEqual([]);
+    });
+
+    it("row 32, first: waits for the name, with no decision and the question offered", () => {
+      const node = logoTypeNode(toBusinessView(project_("agreed", [ANSWER(false)])));
+      expect(node.state).toBe("waiting");
+      expect(node.waitingFor).toEqual(["name"]);
+      expect(node.result.blockedBy).toEqual(["name"]);
+      expect(node.decision).toBeNull();
+      expect(node.controls).toEqual(["answer"]);
+    });
+
+    it("row 32, second: the architecture answer yes waits for the architecture, with no decision", () => {
+      const node = logoTypeNode(toBusinessView(project_("agreed", [ANSWER(true)])));
+      expect(node.state).toBe("waiting");
+      expect(node.waitingFor).toEqual(["architecture"]);
+      expect(node.decision).toBeNull();
+      expect(node.controls).toEqual(["answer"]);
+    });
+
+    it("row 32, third: a stale positioning waits for positioning, with no decision", () => {
+      const node = logoTypeNode(toBusinessView(project_("stale", [ANSWER(false), NAME()])));
+      expect(node.state).toBe("waiting");
+      expect(node.waitingFor).toEqual(["positioning"]);
+      expect(node.result.blockedBy).toEqual(["positioning"]);
+      expect(node.decision).toBeNull();
+      expect(node.controls).toEqual(["answer"]);
+    });
+
+    it("shows the saved answer and no decision while blocked, long name or short", () => {
+      const waiting = logoTypeNode(
+        toBusinessView(project_("stale", [ANSWER(false), NAME(), LOGO_TYPE(true)])),
+      );
+      expect(waiting.state).toBe("waiting");
+      expect(waiting.appIcon).toBe(true);
+      expect(waiting.decision).toBeNull();
+      expect(waiting.controls).toEqual([]);
+      const long = logoTypeNode(toBusinessView(project_("agreed", [ANSWER(true), NAME(LONG)])));
+      expect(long.state).toBe("waiting");
+      expect(long.decision).toBeNull();
+    });
+
+    it("row 33: positioning skipped gives a wordmark, provisional on positioning", () => {
+      const node = logoTypeNode(
+        toBusinessView(project_("skipped", [ANSWER(false), NAME(), LOGO_TYPE(false)])),
+      );
+      expect(node.state).toBe("derived");
+      expect(node.decision?.type).toBe("wordmark");
+      expect(node.restsOn).toEqual(["positioning"]);
+      expect(node.unchecked).toEqual([]);
+      expect(node.result.provisionalOn).toEqual(["positioning"]);
+    });
+
+    it("the marks change no decision", () => {
+      const decision = (positioning: keyof typeof POSITIONING) =>
+        logoTypeNode(
+          toBusinessView(project_(positioning, [ANSWER(false), NAME(), LOGO_TYPE(false)])),
+        ).decision;
+      expect(decision("skipped")).toEqual(decision("agreed"));
+      expect(decision("agreed")).not.toBeNull();
+    });
+
+    it("the answer is read from the newest entry, in whatever order the entries are stored", () => {
+      const entries = [ANSWER(false), NAME(), LOGO_TYPE(true)];
+      const a = logoTypeNode(toBusinessView(project_("agreed", entries)));
+      const b = logoTypeNode(toBusinessView(project_("agreed", [...entries].reverse())));
+      expect(a).toEqual(b);
+    });
+
+    it("its JSON holds keys, reasons and the name as typed, no catalog text", () => {
+      const view = toBusinessView(project_("agreed", [ANSWER(false), NAME(LONG), LOGO_TYPE(true)]));
+      const json = JSON.stringify(logoTypeNode(view));
+      for (const text of [
+        "Wordmark",
+        "Symbol plus name",
+        "Worked out",
+        "Waits for",
+        "characters",
+      ]) {
+        expect(json).not.toContain(text);
+      }
+      expect(json).toContain("longName");
+      expect(json).toContain("symbol-plus-name");
+      expect(json).toContain(LONG);
+    });
+  });
+
+  describe("controls match the door for logo type", () => {
+    const SETS: Record<string, StoredEntry[]> = {
+      none: [],
+      answer: [LOGO_TYPE(false)],
+      "name and answer": [NAME(), LOGO_TYPE(true)],
+      "short name": [ANSWER(false), NAME()],
+      "long name": [ANSWER(false), NAME("Chase Manhattan Bank")],
+      "long name and the architecture yes": [ANSWER(true), NAME("ก".repeat(13))],
+      "name of twelve": [ANSWER(false), NAME("ก".repeat(12))],
+    };
+
+    it("offers answer exactly when entryAllowed is true, for every fixture", () => {
+      let offered = 0;
+      let refused = 0;
+      for (const positioning of Object.keys(POSITIONING) as Array<keyof typeof POSITIONING>) {
+        for (const [label, entries] of Object.entries(SETS)) {
+          const view = toBusinessView(project_(positioning, entries));
+          const gate = { state: view.positioning.gate, skipped: view.positioning.skipped };
+          const { roots, newest } = foundationState(gate, entries);
+          const allowed = entryAllowed({ node: "logo-type", kind: "answered" }, { roots, newest });
+          expect(logoTypeNode(view).controls.includes("answer"), `${positioning} / ${label}`).toBe(
+            allowed,
+          );
+          if (allowed) offered += 1;
+          else refused += 1;
+        }
+      }
+      // The fixtures cover both outcomes.
+      expect(offered).toBeGreaterThan(0);
+      expect(refused).toBeGreaterThan(0);
+    });
+  });
+
+  // ORV-298 tech notes section 13, T36: spec row 37, the data half.
+  describe("expression, no AI label", () => {
+    const AI_LABELS = [
+      "evidence.fromModel",
+      "strategy.draftedOptions",
+      "business.positioning.draftedBy",
+      "business.positioning.by.picked",
+      "business.positioning.by.edited",
+      "logo-mark.draftLabel",
+    ];
+    const SETS: StoredEntry[][] = [
+      [],
+      [GIVEN_ENTRY, LINEUP()],
+      [GIVEN_ENTRY],
+      [SKIP_ENTRY, LINEUP(), TYPOGRAPHY("thai")],
+      [GIVEN_ENTRY, LINEUP(), TYPOGRAPHY("thai-latin")],
+      [ANSWER(false), NAME(), LOGO_TYPE(false)],
+      [ANSWER(false), NAME(), LOGO_TYPE(true)],
+      [ANSWER(false), NAME("Chase Manhattan Bank")],
+      [ANSWER(true), NAME()],
+      [ANSWER(false)],
+      [GIVEN_ENTRY, LINEUP(), TYPOGRAPHY(), ANSWER(false), NAME(), LOGO_TYPE(false)],
+    ];
+    const everyView = () =>
+      (Object.keys(POSITIONING) as Array<keyof typeof POSITIONING>).flatMap((positioning) =>
+        SETS.map((entries) => toBusinessView(project_(positioning, entries))),
+      );
+    const walk = (v: unknown, out: { strings: string[]; keys: string[] }): void => {
+      if (typeof v === "string") out.strings.push(v);
+      else if (Array.isArray(v)) for (const item of v) walk(item, out);
+      else if (v !== null && typeof v === "object") {
+        for (const [k, item] of Object.entries(v)) {
+          out.keys.push(k);
+          walk(item, out);
+        }
+      }
+    };
+
+    it("over every fixture the three nodes hold none of the six AI labels and no model id", () => {
+      const ids = Object.values(AI_MODELS);
+      let decisions = 0;
+      for (const view of everyView()) {
+        const nodes = [logoTypeNode(view), colorNode(view), typographyNode(view)];
+        const json = JSON.stringify(nodes);
+        const found = { strings: [] as string[], keys: [] as string[] };
+        walk(JSON.parse(json), found);
+        for (const label of AI_LABELS) expect(found.strings, label).not.toContain(label);
+        expect(found.keys).not.toContain("modelId");
+        for (const id of ids) expect(json).not.toContain(id);
+        expect(json).not.toMatch(/anthropic|openrouter|gemini/i);
+        expect(json).not.toMatch(/"(picked|edited|drafted)"/);
+        if (logoTypeNode(view).decision !== null) decisions += 1;
+      }
+      // The fixtures include decisions of the new node.
+      expect(decisions).toBeGreaterThan(0);
+    });
+
+    it("no number in a logo type decision other than the name length and its bound", () => {
+      for (const view of everyView()) {
+        const { decision } = logoTypeNode(view);
+        if (decision === null) continue;
+        const numbers = Object.entries(decision).filter(([, v]) => typeof v === "number");
+        expect(numbers.map(([k]) => k).sort()).toEqual(["length", "max"]);
+      }
+    });
+  });
+
   // T37, spec rows 29 and 30: the core idea's rows as data.
   describe("core idea marks", () => {
     it("row 30: three written ideas give W4 cases 2, 4 and 5, each still agreed", () => {
@@ -1528,6 +1787,8 @@ describe("foundation in the view", () => {
         "derived",
         "given",
         "agreed",
+        // ORV-298 PR 3: logo type, with a name and the architecture and no answer yet.
+        "needsAnswer",
         "partly",
         "needsAnswer",
       ]);
@@ -1719,6 +1980,10 @@ describe("foundation in the view", () => {
         "readingFace",
         "displayFace",
         "needsAnswer",
+        // The logo type node: its id and field keys.
+        "logo-type",
+        "appIcon",
+        "logoType",
       ]);
       const rest = strings.filter((s) => !closed.has(s));
       expect(rest).toEqual(["อบอุ่น เป็นกันเอง จริงใจ"]);

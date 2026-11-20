@@ -1,4 +1,4 @@
-import { expressionOf, type ExpressionOutcomes } from "./expression";
+import { expressionOf, isLongName, type ExpressionOutcomes } from "./expression";
 import {
   newestByNode,
   type AxisValue,
@@ -15,16 +15,17 @@ import type { GateState } from "./positioning";
  * Nothing about a mark is stored: it is computed from the entries and the positioning gate each time.
  * PR 1 holds the node `identity-frame`, PR 2 adds `architecture` and `name`, PR 3 adds `core-idea`
  * (`core-idea-gate-1`). ORV-298 adds the node `color` and the root `competitive-frame` (spec
- * `expression-roots-1`, `expression-marks-1`) and the node `typography`; its third node follows in
- * its PR 3.
+ * `expression-roots-1`, `expression-marks-1`), the node `typography` and the node `logo-type`
+ * (`logo-type-1`).
  */
 
-/** Fill order. ORV-298 PR 3 adds "logo-type" after "core-idea", before "color". */
+/** Fill order, by ORV-126 node number from `core-idea` on: 11, 13, 15, 16. */
 export const FOUNDATION_NODES = [
   "identity-frame",
   "architecture",
   "name",
   "core-idea",
+  "logo-type",
   "color",
   "typography",
 ] as const;
@@ -40,6 +41,7 @@ export const FOUNDATION_REQUIRES = {
   architecture: ["situation", "positioning"],
   name: ["positioning", "architecture"],
   "core-idea": ["positioning", "identity-frame"],
+  "logo-type": ["architecture", "name"],
   color: ["competitive-frame", "identity-frame"],
   typography: ["identity-frame"],
 } as const satisfies Record<FoundationNodeId, readonly MarkRef[]>;
@@ -58,6 +60,7 @@ export const MARK_NUMBERS: Record<MarkRef, number> = {
   architecture: 8,
   name: 9,
   "core-idea": 11,
+  "logo-type": 13,
   color: 15,
   typography: 16,
 };
@@ -101,6 +104,8 @@ export function ownStatus(
     name: name === null ? "open" : "given", // working-name-1
     // core-idea-gate-1: a written idea is given, a skip is skipped, none is open.
     "core-idea": coreIdea === null ? "open" : coreIdea.kind === "written" ? "given" : "skipped",
+    // logo-type-1: derived with a decision, open without one.
+    "logo-type": expression.logoType === null ? "open" : "derived",
     // color-node-1: derived only when the three decisions are made.
     color: expression.color.decided === 3 ? "derived" : "open",
     // typography-node-1: derived with an entry, open without one.
@@ -271,6 +276,14 @@ export function entryAllowed(
     // The scripts are a fact about the brand, given once while the node waits (typography-node-1).
     case "typography":
       return state.newest.typography === null;
+    // The need for a small square mark is a fact about the brand, given once while the node waits.
+    // A long name needs no answer: the name alone gives the symbol (name-length-1, logo-type-1).
+    case "logo-type": {
+      const name = state.newest.name;
+      return (
+        state.newest["logo-type"] === null && !(name !== null && isLongName(name.payload.name))
+      );
+    }
   }
 }
 

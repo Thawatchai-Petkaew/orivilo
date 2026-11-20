@@ -14,6 +14,10 @@ import {
   colorOf,
   colorOutcome,
   expressionOf,
+  isLongName,
+  logoTypeOf,
+  LONG_NAME_OVER,
+  nameLength,
   TYPOGRAPHY_FAMILIES,
   typographyOf,
   type ColorAxes,
@@ -30,8 +34,8 @@ import {
   type StoredEntry,
 } from "./foundation";
 
-// ORV-298 tech notes section 13, T4 to T8 and T25 and T26; spec rows 4, 5, 6 and 9 (the engine half),
-// 16, 19, 22, W3, W4 and W7.
+// ORV-298 tech notes section 13, T4 to T8, T25, T26 and T34; spec rows 4, 5, 6 and 9 (the engine half),
+// 16, 19, 22, 28, W3, W4, W5, W6 and W7.
 
 const PID = "3f2b8c1e-0d4a-4b7e-9c55-1a2b3c4d5e6f";
 const at = "2026-11-20T03:00:00.000Z";
@@ -629,12 +633,19 @@ describe("colour adapter", () => {
     expect(signature.filter((r) => r.priority === 70)).toHaveLength(4);
   });
 
-  it("expressionOf holds the colour and typography outcomes of the same entries", () => {
+  it("expressionOf holds the colour, typography and logo type outcomes of the same entries", () => {
     const newest = newestByNode([personality(4), lineupEntry(STAND_IN_LINEUP)]);
-    expect(expressionOf(newest)).toEqual({ color: colorOf(newest), typography: null });
+    expect(expressionOf(newest)).toEqual({
+      color: colorOf(newest),
+      typography: null,
+      logoType: null,
+    });
     const typed = newestByNode([typographyEntry("thai")]);
     expect(expressionOf(typed).typography).toEqual(typographyOf("thai"));
     expect(expressionOf(typed).typography).not.toBeNull();
+    const logo = newestByNode([nameEntry("ORIVILO"), logoTypeEntry(false)]);
+    expect(expressionOf(logo).logoType).toEqual(logoTypeOf("ORIVILO", false));
+    expect(expressionOf(logo).logoType).not.toBeNull();
   });
 });
 
@@ -775,6 +786,182 @@ describe("typography families carry a recorded licence", () => {
     );
     const code = expressionSource.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
     for (const id of others) expect(code, id).not.toContain(`"${id}"`);
+  });
+});
+
+const nameEntry = (name: string) =>
+  storedEntrySchema.parse({
+    id: "n1",
+    node: "name",
+    kind: "given",
+    payload: { name },
+    createdAt: at,
+  });
+const logoTypeEntry = (appIcon: boolean) =>
+  storedEntrySchema.parse({
+    id: "g1",
+    node: "logo-type",
+    kind: "answered",
+    payload: { appIcon },
+    createdAt: at,
+  });
+
+// T34, row 28, W5: what counts as a long name (`name-length-1`).
+describe("name length", () => {
+  const W5: Array<[string, string, number, "short" | "long"]> = [
+    ["ORIVILO", "ORIVILO", 7, "short"],
+    ["Smithsonian", "Smithsonian", 11, "short"],
+    ["Chase Manhattan Bank", "Chase Manhattan Bank", 18, "long"],
+    ["ชื่อแบรนด์", "ชื่อแบรนด์", 7, "short"],
+    ["ก*12", "ก".repeat(12), 12, "short"],
+    ["ก*13", "ก".repeat(13), 13, "long"],
+  ];
+  const verdict = (name: string) => (isLongName(name) ? "long" : "short");
+
+  it("prints W5's line: the counts and the verdicts", () => {
+    expect(
+      W5.map(([label, name]) => `${label}|${nameLength(name)}|${verdict(name)}`).join(" ; "),
+    ).toBe(
+      "ORIVILO|7|short ; Smithsonian|11|short ; Chase Manhattan Bank|18|long ; ชื่อแบรนด์|7|short ; ก*12|12|short ; ก*13|13|long",
+    );
+  });
+
+  it.each(W5)("%s: its count and verdict", (_label, name, length, expected) => {
+    expect(nameLength(name)).toBe(length);
+    expect(verdict(name)).toBe(expected);
+  });
+
+  it("holds the bound at 12: twelve is short and thirteen is long", () => {
+    expect(LONG_NAME_OVER).toBe(12);
+    expect(isLongName("a".repeat(LONG_NAME_OVER))).toBe(false);
+    expect(isLongName("a".repeat(LONG_NAME_OVER + 1))).toBe(true);
+  });
+
+  it("drops every white space character before it counts", () => {
+    // A space, a tab, a line feed, a no-break space, an em space, an ideographic space and U+2028.
+    expect(nameLength("a b\tc\nd e f　g h")).toBe(8);
+    expect(nameLength("   ")).toBe(0);
+    expect(nameLength("")).toBe(0);
+    // Twelve letters among many spaces are short; thirteen are long however few the spaces.
+    expect(isLongName("a ".repeat(12))).toBe(false);
+    expect(isLongName("a ".repeat(13))).toBe(true);
+  });
+
+  it("counts a grapheme cluster once: a Thai consonant with its vowel and tone marks", () => {
+    expect(nameLength("ที่")).toBe(1);
+    expect(nameLength("น้ำ")).toBe(1);
+    expect([..."ที่"].length).toBe(3);
+    // Twelve such clusters are 36 UTF-16 units and still short; thirteen are long.
+    expect(isLongName("ที่".repeat(12))).toBe(false);
+    expect(isLongName("ที่".repeat(13))).toBe(true);
+  });
+
+  it("counts an emoji sequence, a flag and a combining accent once each", () => {
+    const family = "\u{1F468}‍\u{1F469}‍\u{1F467}";
+    expect(nameLength(family)).toBe(1);
+    expect(nameLength("\u{1F1F9}\u{1F1ED}")).toBe(1);
+    expect(nameLength("é")).toBe(1);
+    expect(isLongName(family.repeat(12))).toBe(false);
+    expect(isLongName(family.repeat(13))).toBe(true);
+  });
+
+  it("a name of 60 Thai characters with no spaces is long (row 36)", () => {
+    expect(isLongName("ก".repeat(60))).toBe(true);
+  });
+});
+
+// T34, row 28, W6: `logo-type-1`'s reasons, in order.
+describe("logo type rule", () => {
+  const SHORT = "ORIVILO";
+  const LONG = "Chase Manhattan Bank";
+  const line = (name: string | null, appIcon: boolean | null) => {
+    const decided = logoTypeOf(name, appIcon);
+    if (decided === null) return "open(logo-type.app-icon)";
+    if (decided.type === "wordmark") return "wordmark";
+    const words = { longName: "long-name", appIcon: "app-icon", wordmark: "wordmark" } as const;
+    return `symbol-plus-name(${decided.reasons.map((r) => words[r]).join(",")})`;
+  };
+
+  it("prints W6's line for the five cases", () => {
+    expect(
+      [
+        line(SHORT, false),
+        line(SHORT, true),
+        line(LONG, null),
+        line(LONG, true),
+        line(SHORT, null),
+      ].join(" "),
+    ).toBe(
+      "wordmark symbol-plus-name(app-icon) symbol-plus-name(long-name) symbol-plus-name(long-name,app-icon) open(logo-type.app-icon)",
+    );
+  });
+
+  it("a short name and the answer no is a wordmark, for the one reason wordmark", () => {
+    expect(logoTypeOf(SHORT, false)).toEqual({
+      type: "wordmark",
+      reasons: ["wordmark"],
+      rule: "logo-type-1",
+      name: SHORT,
+      length: 7,
+      max: 12,
+    });
+  });
+
+  it("a short name and the answer yes is a symbol plus name, for the app icon", () => {
+    expect(logoTypeOf(SHORT, true)).toEqual({
+      type: "symbol-plus-name",
+      reasons: ["appIcon"],
+      rule: "logo-type-1",
+      name: SHORT,
+      length: 7,
+      max: 12,
+    });
+  });
+
+  it("a long name is a symbol plus name for its length, with no answer or with the answer no", () => {
+    for (const answer of [null, false]) {
+      expect(logoTypeOf(LONG, answer)).toEqual({
+        type: "symbol-plus-name",
+        reasons: ["longName"],
+        rule: "logo-type-1",
+        name: LONG,
+        length: 18,
+        max: 12,
+      });
+    }
+  });
+
+  it("a long name and the answer yes lists both reasons, the long name first", () => {
+    expect(logoTypeOf(LONG, true)).toEqual({
+      type: "symbol-plus-name",
+      reasons: ["longName", "appIcon"],
+      rule: "logo-type-1",
+      name: LONG,
+      length: 18,
+      max: 12,
+    });
+  });
+
+  it("a short name with no answer is open: no decision", () => {
+    expect(logoTypeOf(SHORT, null)).toBeNull();
+  });
+
+  it("no name is no decision, whatever the answer", () => {
+    for (const answer of [null, true, false]) expect(logoTypeOf(null, answer)).toBeNull();
+  });
+
+  it("the name is quoted as stored and the length is the count of name-length-1", () => {
+    const decided = logoTypeOf("ก".repeat(13), false);
+    expect(decided?.name).toBe("ก".repeat(13));
+    expect(decided?.length).toBe(13);
+    expect(decided?.reasons).toEqual(["longName"]);
+    // The bound itself: twelve is short.
+    expect(logoTypeOf("ก".repeat(12), false)?.reasons).toEqual(["wordmark"]);
+  });
+
+  it("is the same decision every time and holds keys and values, no catalog text", () => {
+    expect(logoTypeOf(LONG, true)).toEqual(logoTypeOf(LONG, true));
+    expect(JSON.stringify(logoTypeOf(SHORT, true))).not.toMatch(/business\./);
   });
 });
 

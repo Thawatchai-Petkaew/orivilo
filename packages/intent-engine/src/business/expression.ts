@@ -365,15 +365,65 @@ export function typographyOf(scripts: TypographyScripts | null): TypographyOutco
   };
 }
 
-/** What each expression node decides, from the stored entries. PR 3 adds logo type. */
+/** A name is long when it counts more than this many grapheme clusters (`name-length-1`; ours). */
+export const LONG_NAME_OVER = 12;
+
+// The locale is fixed so the count never follows the page's language; grapheme rules do not depend on it.
+const graphemes = new Intl.Segmenter("en", { granularity: "grapheme" });
+
+/**
+ * `name-length-1`: the name with every white space character removed, counted in grapheme
+ * clusters, so a Thai consonant with its vowel and tone marks counts once.
+ */
+export const nameLength = (name: string): number =>
+  [...graphemes.segment(name.replace(/\s/gu, ""))].length;
+
+export const isLongName = (name: string): boolean => nameLength(name) > LONG_NAME_OVER;
+
+export type LogoTypeOutcome = {
+  type: "wordmark" | "symbol-plus-name";
+  /** The reasons that hold, in the order of `logo-type-1`. */
+  reasons: Array<"longName" | "appIcon" | "wordmark">;
+  rule: "logo-type-1";
+  /** The working name as stored, quoted in the name length line. */
+  name: string;
+  /** The count of `name-length-1`. */
+  length: number;
+  max: typeof LONG_NAME_OVER;
+};
+
+/**
+ * `logo-type-1`: emphasise the name by default, and a symbol needs a reason. No name gives no
+ * decision (the marks block the node then). One or both of a long name and the answer yes give a
+ * symbol plus name with each reason that holds; neither, with the answer no, gives a wordmark;
+ * neither with no answer gives null and the node asks. Nothing is stored.
+ */
+export function logoTypeOf(name: string | null, appIcon: boolean | null): LogoTypeOutcome | null {
+  if (name === null) return null;
+  const length = nameLength(name);
+  const reasons: LogoTypeOutcome["reasons"] = [];
+  if (length > LONG_NAME_OVER) reasons.push("longName");
+  if (appIcon === true) reasons.push("appIcon");
+  const quoted = { rule: "logo-type-1", name, length, max: LONG_NAME_OVER } as const;
+  if (reasons.length > 0) return { type: "symbol-plus-name", reasons, ...quoted };
+  if (appIcon === false) return { type: "wordmark", reasons: ["wordmark"], ...quoted };
+  return null;
+}
+
+/** What each expression node decides, from the stored entries. */
 export type ExpressionOutcomes = {
   color: ColorOutcome;
   typography: TypographyOutcome | null;
+  logoType: LogoTypeOutcome | null;
 };
 
 export function expressionOf(newest: NewestByNode): ExpressionOutcomes {
   return {
     color: colorOf(newest),
     typography: typographyOf(newest.typography?.payload.scripts ?? null),
+    logoType: logoTypeOf(
+      newest.name?.payload.name ?? null,
+      newest["logo-type"]?.payload.appIcon ?? null,
+    ),
   };
 }

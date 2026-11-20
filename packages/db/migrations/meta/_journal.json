@@ -134,6 +134,13 @@
       "when": 1795160563358,
       "tag": "0018_foundation_entry_typography",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1795166858191,
+      "tag": "0019_foundation_entry_logo_type",
+      "breakpoints": true
     }
   ]
 }

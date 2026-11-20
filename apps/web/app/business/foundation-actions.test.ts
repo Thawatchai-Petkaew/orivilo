@@ -1319,3 +1319,194 @@ describe("agreed stays agreed", () => {
     expect(state.saved.filter((s) => s.entry.node === "core-idea")).toHaveLength(1);
   });
 });
+
+// ORV-298 PR 3, T37, rows 29, 31 and 34: whether the brand needs a small square mark, through the
+// one route. The service is the fake above, which decides with the engine's own `entryAllowed`.
+const iconEntry = (appIcon: unknown = false) => ({
+  projectId: PROJECT_ID,
+  node: "logo-type",
+  kind: "answered",
+  payload: { appIcon },
+});
+const nameOf = (name: string) => ({
+  projectId: PROJECT_ID,
+  node: "name",
+  kind: "given",
+  payload: { name },
+});
+/** Words a working name or an unknown answer carries: none may reach a line or an error body. */
+const LONG_NAME = "Chase Manhattan Bank";
+
+describe("answer the app icon", () => {
+  it("answers ok with the node and the kind, saves the answer in the session's workspace, and logs closed words", async () => {
+    expect(await enterFoundation(nameOf("ORIVILO"))).toMatchObject({ ok: true });
+    state.saved.length = 0;
+    state.order = [];
+    state.consumed = [];
+    capture.lines.length = 0;
+    const outcome = await enterFoundation(iconEntry(false));
+    expect(outcome).toEqual({ ok: true, value: { node: "logo-type", kind: "answered" } });
+    expect(state.saved).toEqual([
+      {
+        workspaceId: "ws-1",
+        entry: { node: "logo-type", kind: "answered", payload: { appIcon: false } },
+      },
+    ]);
+    expect(state.consumed).toEqual(["write:u:P"]);
+    expect(state.order).toEqual(["session", "allow-list", "consume", "save"]);
+    const lines = written();
+    expect(lines).toMatchObject([
+      { route: "business/enterFoundation", outcome: "ok", level: "info" },
+    ]);
+    // No line holds the answer or the working name.
+    expect(JSON.stringify(lines)).not.toMatch(/ORIVILO|appIcon|false/);
+  });
+
+  it("saves the answer yes, and saves while positioning is not decided or stale", async () => {
+    for (const positioning of ["agreed", "none", "stale"] as const) {
+      state.saved.length = 0;
+      state.positioning = positioning;
+      expect(await enterFoundation(iconEntry(true))).toMatchObject({ ok: true });
+      expect(state.saved).toHaveLength(1);
+    }
+  });
+
+  it("never reaches a line with the working name when the save fails", async () => {
+    state.saved.push({
+      workspaceId: "ws-1",
+      entry: { node: "name", kind: "given", payload: { name: "ORIVILO" } },
+    });
+    state.throws = new Error("insert failed for the name ORIVILO");
+    const outcome = await enterFoundation(iconEntry(true));
+    expect(outcome).toMatchObject({ ok: false, error: "failed", code: "INTERNAL_ERROR" });
+    expect(everything(outcome)).not.toContain("ORIVILO");
+  });
+});
+
+describe("a long name needs no app icon answer", () => {
+  it("refuses the answer as invalid-input with no problems, saves nothing more, quotes no name", async () => {
+    expect(await enterFoundation(nameOf(LONG_NAME))).toMatchObject({ ok: true });
+    capture.lines.length = 0;
+    const outcome = await enterFoundation(iconEntry(true));
+    expect(outcome).toMatchObject({ ok: false, error: "invalid-input", code: "INVALID_INPUT" });
+    expect(outcome).not.toHaveProperty("problems");
+    expect(state.saved.map((s) => s.entry.node)).toEqual(["name"]);
+    expect(everything(outcome)).not.toContain("Chase");
+    expect(JSON.stringify(written())).not.toContain("Chase");
+  });
+
+  it("counts grapheme clusters with the white space left out: twelve is asked, thirteen is not", async () => {
+    expect(await enterFoundation(nameOf("ก ".repeat(12)))).toMatchObject({ ok: true });
+    expect(await enterFoundation(iconEntry(false))).toMatchObject({ ok: true });
+    state.saved.length = 0;
+    expect(await enterFoundation(nameOf("ก ".repeat(13)))).toMatchObject({ ok: true });
+    expect(await enterFoundation(iconEntry(false))).toMatchObject({
+      ok: false,
+      error: "invalid-input",
+    });
+    expect(state.saved.map((s) => s.entry.node)).toEqual(["name"]);
+  });
+
+  it("a name that is not long leaves the answer allowed, and the answer then blocks a second", async () => {
+    expect(await enterFoundation(nameOf("Smithsonian"))).toMatchObject({ ok: true });
+    expect(await enterFoundation(iconEntry(true))).toMatchObject({ ok: true });
+    expect(await enterFoundation(iconEntry(false))).toMatchObject({
+      ok: false,
+      error: "invalid-input",
+    });
+  });
+});
+
+describe("logo type door", () => {
+  it("signed-out: counts the signed-out limit by IP, answers signed-out, saves nothing", async () => {
+    state.session = null;
+    const outcome = await enterFoundation(iconEntry());
+    expect(outcome).toMatchObject({ ok: false, error: "signed-out", code: "UNAUTHENTICATED" });
+    expect(state.consumed).toEqual(["signed-out:ip:ip-1"]);
+    expect(state.saved).toEqual([]);
+    expect(state.order).toEqual(["session", "consume"]);
+  });
+
+  it("an email off the list: forbidden, no address, nothing counted, nothing saved", async () => {
+    state.session = { ...person, user: { id: "P2", email: "stranger@example.com" } };
+    const outcome = await enterFoundation(iconEntry());
+    expect(outcome).toMatchObject({ ok: false, error: "forbidden", code: "FORBIDDEN" });
+    expect(state.consumed).toEqual([]);
+    expect(state.saved).toEqual([]);
+    for (const secret of ["stranger", "example.com"]) {
+      expect(everything(outcome)).not.toContain(secret);
+    }
+  });
+
+  it("the write limit used up: rate-limited with retryAfter, nothing saved", async () => {
+    for (const w of LIMITS.write.windows) {
+      state.counts.set(`${keyOf(LIMITS.write, { user: "P" })}@${w.seconds}`, w.max);
+    }
+    expect(await enterFoundation(iconEntry())).toMatchObject({
+      ok: false,
+      error: "rate-limited",
+      code: "RATE_LIMITED",
+      retryAfter: expect.any(Number),
+    });
+    expect(state.saved).toEqual([]);
+  });
+
+  it("another workspace's project and an unknown id: one not-found body, nothing saved", async () => {
+    const unknown = await enterFoundation({ ...iconEntry(), projectId: UNKNOWN_ID });
+    const other = await enterFoundation({
+      ...iconEntry(),
+      projectId: "22222222-2222-4222-8222-222222222222",
+    });
+    expect(unknown).toMatchObject({ ok: false, error: "not-found", code: "NOT_FOUND" });
+    expect(body(other)).toEqual(body(unknown));
+    expect(state.saved).toEqual([]);
+    expect(everything(unknown)).not.toContain(UNKNOWN_ID);
+  });
+
+  it("a project that already holds an answer: invalid-input with no problems, the first one kept", async () => {
+    expect(await enterFoundation(iconEntry(true))).toMatchObject({ ok: true });
+    const outcome = await enterFoundation(iconEntry(false));
+    expect(outcome).toMatchObject({ ok: false, error: "invalid-input", code: "INVALID_INPUT" });
+    expect(outcome).not.toHaveProperty("problems");
+    expect(state.saved).toHaveLength(1);
+  });
+
+  it.each([
+    ["a text answer", "klingon-secret", "payload.appIcon", "invalid"],
+    ["the text yes", "yes", "payload.appIcon", "invalid"],
+    ["a missing answer", undefined, "payload.appIcon", "required"],
+  ] as const)(
+    "%s: invalid-input with the path and a kind, saves nothing, and holds no answer in the body or a line",
+    async (_label, appIcon, path, kind) => {
+      const outcome = await enterFoundation({
+        ...iconEntry(),
+        payload: appIcon === undefined ? {} : { appIcon },
+      });
+      expect(outcome).toMatchObject({
+        ok: false,
+        error: "invalid-input",
+        code: "INVALID_INPUT",
+        problems: [{ path, kind }],
+      });
+      expect(state.saved).toEqual([]);
+      expect(state.order).toEqual(["session", "allow-list", "consume"]);
+      for (const problem of (outcome as { problems: object[] }).problems) {
+        expect(Object.keys(problem).sort()).toEqual(["kind", "path"]);
+      }
+      expect(JSON.stringify(whereAxisCouldLeak(outcome))).not.toContain("klingon-secret");
+      expect(JSON.stringify(written())).not.toContain("klingon-secret");
+    },
+  );
+
+  it("refuses a skip of logo type, a given kind, a stray key and an unknown key, saving nothing", async () => {
+    for (const bad of [
+      { projectId: PROJECT_ID, node: "logo-type", kind: "skipped", payload: {} },
+      { ...iconEntry(), kind: "given" },
+      { ...iconEntry(), payload: { appIcon: true, crowding: false } },
+      { ...iconEntry(), source: "x" },
+    ]) {
+      expect(await enterFoundation(bad)).toMatchObject({ ok: false, error: "invalid-input" });
+    }
+    expect(state.saved).toEqual([]);
+  });
+});

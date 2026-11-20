@@ -872,6 +872,7 @@ describe("newest by node", () => {
       "core-idea": null,
       "competitive-frame": null,
       typography: null,
+      "logo-type": null,
     });
   });
 
@@ -902,6 +903,7 @@ describe("newest by node", () => {
         "core-idea": null,
         "competitive-frame": null,
         typography: null,
+        "logo-type": null,
       });
     }
   });
@@ -1342,6 +1344,121 @@ describe("typography entry", () => {
   });
 });
 
+// ORV-298 tech notes section 13, T33; spec row 27 (the engine half).
+describe("logo type entry", () => {
+  const logo = (payload: unknown, over: Record<string, unknown> = {}) => ({
+    projectId: PID,
+    node: "logo-type",
+    kind: "answered",
+    payload,
+    ...over,
+  });
+
+  it.each([true, false])("parses the answer appIcon %s as it is", (appIcon) => {
+    expect(entryOf(logo({ appIcon }))).toEqual({
+      projectId: PID,
+      node: "logo-type",
+      kind: "answered",
+      payload: { appIcon },
+    });
+  });
+
+  it("each other input fails at the path of its field", () => {
+    const rows: Array<[string, unknown, EntryProblem[]]> = [
+      ["a text answer", logo({ appIcon: "yes" }), [{ path: "payload.appIcon", kind: "invalid" }]],
+      ["the text true", logo({ appIcon: "true" }), [{ path: "payload.appIcon", kind: "invalid" }]],
+      ["a number", logo({ appIcon: 1 }), [{ path: "payload.appIcon", kind: "invalid" }]],
+      ["a null", logo({ appIcon: null }), [{ path: "payload.appIcon", kind: "invalid" }]],
+      ["a missing answer", logo({}), [{ path: "payload.appIcon", kind: "required" }]],
+      [
+        "an unknown key crowding",
+        logo({ appIcon: true, crowding: false }),
+        [{ path: "payload.crowding", kind: "unknown-key" }],
+      ],
+      [
+        "a key beside the payload",
+        logo({ appIcon: true }, { source: "x" }),
+        [{ path: "source", kind: "unknown-key" }],
+      ],
+      ["a skipped entry", logo({}, { kind: "skipped" }), [{ path: "kind", kind: "invalid" }]],
+      [
+        "a given entry",
+        logo({ appIcon: true }, { kind: "given" }),
+        [{ path: "kind", kind: "invalid" }],
+      ],
+    ];
+    for (const [name, input, expected] of rows) {
+      expect(problemsOf(input), name).toEqual(expected);
+    }
+  });
+
+  it("a problem holds a path and a kind only: the answer never reaches it", () => {
+    const problems = problemsOf(logo({ appIcon: "klingon-secret" }));
+    expect(JSON.stringify(problems)).not.toContain("klingon");
+    for (const problem of problems) expect(Object.keys(problem).sort()).toEqual(["kind", "path"]);
+  });
+
+  it("takes a whole UUID as the project id and nothing else", () => {
+    expect(problemsOf(logo({ appIcon: true }, { projectId: "not-a-uuid" }))).toEqual([
+      { path: "projectId", kind: "invalid" },
+    ]);
+  });
+
+  it("EntryRequest drops the project id of the logo type arm", () => {
+    const request: Extract<EntryRequest, { node: "logo-type" }> = {
+      node: "logo-type",
+      kind: "answered",
+      payload: { appIcon: false },
+    };
+    expect(entryOf({ projectId: PID, ...request })).toMatchObject(request);
+  });
+
+  describe("stored", () => {
+    const stored = (over: Record<string, unknown> = {}) => ({
+      id: "g1",
+      node: "logo-type",
+      kind: "answered",
+      payload: { appIcon: true },
+      createdAt: "2026-11-20T03:04:05.000Z",
+      ...over,
+    });
+
+    it("parses a stored row of each answer as it is", () => {
+      for (const appIcon of [true, false]) {
+        const row = stored({ payload: { appIcon } });
+        expect(storedEntrySchema.parse(row)).toEqual(row);
+      }
+    });
+
+    it.each([
+      ["a text answer", stored({ payload: { appIcon: "yes" } })],
+      ["a missing answer", stored({ payload: {} })],
+      ["an unknown payload key", stored({ payload: { appIcon: true, crowding: false } })],
+      ["an unknown top-level key", stored({ extra: 1 })],
+      ["a skipped kind", stored({ kind: "skipped", payload: {} })],
+      ["an empty id", stored({ id: "" })],
+    ])("refuses %s", (_name, input) => {
+      expect(storedEntrySchema.safeParse(input).success).toBe(false);
+    });
+
+    it("fills the logo type slot of the newest entries, and no other", () => {
+      const logoType = storedEntrySchema.parse(stored());
+      const name = storedEntrySchema.parse({
+        id: "n1",
+        node: "name",
+        kind: "given",
+        payload: { name: "ORIVILO" },
+        createdAt: "2026-11-20T01:00:00.000Z",
+      });
+      const newest = newestByNode([name, logoType]);
+      expect(newest["logo-type"]).toEqual(logoType);
+      expect(newest.name).toEqual(name);
+      expect(newest.typography).toBeNull();
+      expect(newestByNode([name])["logo-type"]).toBeNull();
+    });
+  });
+});
+
 describe("exports", () => {
   it("the package index exports the entry contract and the marks", () => {
     expect(typeof engine.checkEntry).toBe("function");
@@ -1354,9 +1471,14 @@ describe("exports", () => {
       "architecture",
       "name",
       "core-idea",
+      "logo-type",
       "color",
       "typography",
     ]);
+    expect(engine.LONG_NAME_OVER).toBe(12);
+    expect(engine.nameLength("ชื่อแบรนด์")).toBe(7);
+    expect(engine.isLongName("Chase Manhattan Bank")).toBe(true);
+    expect(engine.logoTypeOf("ORIVILO", false)?.type).toBe("wordmark");
     expect([...engine.TYPOGRAPHY_SCRIPTS]).toEqual(["thai-latin", "thai", "latin"]);
     expect(engine.TYPOGRAPHY_FAMILIES.map((f) => f.id)).toEqual(["sarabun", "anuphan", "inter"]);
     expect(engine.typographyOf("thai")?.reading.map((f) => f.id)).toEqual(["sarabun"]);

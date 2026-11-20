@@ -815,6 +815,128 @@ describe.runIf(HAS_TEST_DATABASE)("brand foundation entries", () => {
     });
   });
 
+  // ORV-298 PR 3, rows 29, 31 and 34 (T37): whether the brand needs a small square mark, at the
+  // unchanged service. The long-name refusal is `entryAllowed`'s, read from the stored name.
+  describe("logo type saved in the workspace", () => {
+    const logo = (projectId: string, appIcon: unknown = false, over = {}) => ({
+      projectId,
+      node: "logo-type",
+      kind: "answered",
+      payload: { appIcon },
+      ...over,
+    });
+    const named = (projectId: string, name: string) => ({
+      projectId,
+      node: "name",
+      kind: "given",
+      payload: { name },
+    });
+
+    it("saves one row with the answer, made by the session's user", async () => {
+      const a = await create("fe-logo-save@example.com", "Fls");
+      await foundation.enter(a.headers, a.workspaceId, named(a.projectId, "ORIVILO"));
+      expect(await foundation.enter(a.headers, a.workspaceId, logo(a.projectId, false))).toEqual({
+        node: "logo-type",
+        kind: "answered",
+      });
+      const rows = (await rowsOf(a.projectId)).filter((r) => r.node === "logo-type");
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({
+        workspaceId: a.workspaceId,
+        projectId: a.projectId,
+        node: "logo-type",
+        kind: "answered",
+        payload: { appIcon: false },
+        createdBy: a.user.id,
+      });
+    });
+
+    it("saves the answer yes, and saves with no name or no positioning decision", async () => {
+      for (const setup of ["agreed", "skipped", "none"] as const) {
+        const a = await create(`fe-logo-wait-${setup}@example.com`, "Flw", setup);
+        await foundation.enter(a.headers, a.workspaceId, logo(a.projectId, true));
+        const opened = await business.open(a.headers, a.workspaceId, a.projectId);
+        expect(opened.foundation).toHaveLength(1);
+        expect(opened.foundation[0]).toMatchObject({
+          node: "logo-type",
+          kind: "answered",
+          payload: { appIcon: true },
+        });
+      }
+    });
+
+    it("refuses what the check refuses, writes nothing, and holds the answer out of the error", async () => {
+      const a = await create("fe-logo-input@example.com", "Fli");
+      for (const bad of [
+        logo(a.projectId, "klingon-secret"),
+        logo(a.projectId, "yes"),
+        logo(a.projectId, true, { payload: {} }),
+        logo(a.projectId, true, { kind: "skipped", payload: {} }),
+        logo(a.projectId, true, { kind: "given" }),
+        { ...logo(a.projectId, true), source: "x" },
+        { ...logo(a.projectId), payload: { appIcon: true, crowding: false } },
+      ]) {
+        const error = await refusal(foundation.enter(a.headers, a.workspaceId, bad));
+        expect(error.reason).toBe("invalid-input");
+        expect(JSON.stringify(error)).not.toContain("klingon-secret");
+      }
+      expect(await rowsOf(a.projectId)).toEqual([]);
+    });
+
+    it("refuses an answer for a long name as out-of-order, writes nothing, and quotes no name", async () => {
+      const a = await create("fe-logo-long@example.com", "Fll");
+      await foundation.enter(a.headers, a.workspaceId, named(a.projectId, "Chase Manhattan Bank"));
+      const error = await refusal(foundation.enter(a.headers, a.workspaceId, logo(a.projectId)));
+      expect(error.reason).toBe("out-of-order");
+      expect(JSON.stringify(error)).not.toContain("Chase");
+      expect((await rowsOf(a.projectId)).map((r) => r.node)).toEqual(["name"]);
+    });
+
+    it("takes an answer for a name of twelve and refuses one of thirteen, in grapheme clusters", async () => {
+      const twelve = await create("fe-logo-12@example.com", "F12");
+      await foundation.enter(
+        twelve.headers,
+        twelve.workspaceId,
+        named(twelve.projectId, "ก".repeat(12)),
+      );
+      expect(
+        await foundation.enter(twelve.headers, twelve.workspaceId, logo(twelve.projectId, true)),
+      ).toEqual({ node: "logo-type", kind: "answered" });
+      const thirteen = await create("fe-logo-13@example.com", "F13");
+      await foundation.enter(
+        thirteen.headers,
+        thirteen.workspaceId,
+        named(thirteen.projectId, "ก".repeat(13)),
+      );
+      const error = await refusal(
+        foundation.enter(thirteen.headers, thirteen.workspaceId, logo(thirteen.projectId, true)),
+      );
+      expect(error.reason).toBe("out-of-order");
+    });
+
+    it("gives a member of B entering on A's project the same not-found as an unknown id", async () => {
+      const a = await create("fe-logo-nf-a@example.com", "Fla");
+      const b = await signIn("fe-logo-nf-b@example.com", "Flb");
+      const other = await refusal(foundation.enter(b.headers, b.workspaceId, logo(a.projectId)));
+      const unknown = await refusal(
+        foundation.enter(b.headers, b.workspaceId, logo("00000000-0000-4000-8000-000000000000")),
+      );
+      expect([other.reason, unknown.reason]).toEqual(["not-found", "not-found"]);
+      expect(unknown.message).toBe(other.message);
+      expect(await rowsOf(a.projectId)).toEqual([]);
+    });
+
+    it("refuses a second answer as out-of-order and keeps the stored one unchanged", async () => {
+      const a = await create("fe-logo-twice@example.com", "Flt");
+      await foundation.enter(a.headers, a.workspaceId, logo(a.projectId, false));
+      const error = await refusal(
+        foundation.enter(a.headers, a.workspaceId, logo(a.projectId, true)),
+      );
+      expect(error.reason).toBe("out-of-order");
+      expect((await rowsOf(a.projectId)).map((r) => r.payload)).toEqual([{ appIcon: false }]);
+    });
+  });
+
   // ORV-296 (slice of ORV-291, PR 3), T39, rows 26, 28, 29 and 32 at the unchanged service: the
   // core idea arms reach it through `checkEntry` and `entryAllowed`, and the table's pair and text
   // checks have held the node's pairs since PR 1 (no migration).

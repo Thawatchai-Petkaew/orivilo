@@ -56,6 +56,14 @@ const typographyEntry = (
     payload: { scripts },
     createdAt,
   }) as EntryOf<"typography">;
+const logoTypeEntry = (appIcon: boolean, id = "g1", createdAt = "2026-11-19T03:00:00.000Z") =>
+  storedEntrySchema.parse({
+    id,
+    node: "logo-type",
+    kind: "answered",
+    payload: { appIcon },
+    createdAt,
+  }) as EntryOf<"logo-type">;
 const nameEntry = (name = "ORIVILO", id = "n1", createdAt = "2026-11-19T03:00:00.000Z") =>
   storedEntrySchema.parse({
     id,
@@ -80,6 +88,7 @@ const newestOf = (some: Partial<NewestByNode> = {}): NewestByNode => ({
   "core-idea": null,
   "competitive-frame": null,
   typography: null,
+  "logo-type": null,
   ...some,
 });
 /** Every node's own status, open unless named. */
@@ -90,18 +99,20 @@ const ownOf = (
   architecture: "open",
   name: "open",
   "core-idea": "open",
+  "logo-type": "open",
   color: "open",
   typography: "open",
   ...some,
 });
 
 describe("the lists", () => {
-  it("holds the six nodes in fill order, their requires in ORV-126 order, and one edge per require", () => {
+  it("holds the seven nodes in fill order, their requires in ORV-126 order, and one edge per require", () => {
     expect(FOUNDATION_NODES).toEqual([
       "identity-frame",
       "architecture",
       "name",
       "core-idea",
+      "logo-type",
       "color",
       "typography",
     ]);
@@ -110,6 +121,7 @@ describe("the lists", () => {
       architecture: ["situation", "positioning"],
       name: ["positioning", "architecture"],
       "core-idea": ["positioning", "identity-frame"],
+      "logo-type": ["architecture", "name"],
       color: ["competitive-frame", "identity-frame"],
       typography: ["identity-frame"],
     });
@@ -121,15 +133,17 @@ describe("the lists", () => {
       ["architecture", "name"],
       ["positioning", "core-idea"],
       ["identity-frame", "core-idea"],
+      ["architecture", "logo-type"],
+      ["name", "logo-type"],
       ["competitive-frame", "color"],
       ["identity-frame", "color"],
       ["identity-frame", "typography"],
     ]);
   });
 
-  it("gives the board eleven nodes and sixteen edges (ORV-298 W2, PR 2 with ORV-296 in): ORV-281's five and six, plus these", () => {
-    expect(5 + FOUNDATION_NODES.length).toBe(11);
-    expect(6 + FOUNDATION_EDGES.length).toBe(16);
+  it("gives the board twelve nodes and eighteen edges (ORV-298 W2, PR 3 with ORV-296 in): ORV-281's five and six, plus these", () => {
+    expect(5 + FOUNDATION_NODES.length).toBe(12);
+    expect(6 + FOUNDATION_EDGES.length).toBe(18);
   });
 
   it("sorts by the ORV-126 node numbers", () => {
@@ -141,6 +155,7 @@ describe("the lists", () => {
       architecture: 8,
       name: 9,
       "core-idea": 11,
+      "logo-type": 13,
       color: 15,
       typography: 16,
     });
@@ -264,6 +279,29 @@ describe("own status", () => {
     ).toBe("open");
     expect(ownStatus(newestOf({ typography: typographyEntry() }))).toEqual(
       ownOf({ typography: "derived" }),
+    );
+  });
+
+  // logo-type-1: derived with a decision (a name and the answer, or a long name), open otherwise.
+  it("logo type is derived with a decision, and open without one", () => {
+    const long = nameEntry("Chase Manhattan Bank");
+    // A short name needs the answer; either answer decides.
+    expect(ownStatus(newestOf({ name: nameEntry() }))["logo-type"]).toBe("open");
+    for (const appIcon of [true, false]) {
+      expect(
+        ownStatus(newestOf({ name: nameEntry(), "logo-type": logoTypeEntry(appIcon) }))[
+          "logo-type"
+        ],
+      ).toBe("derived");
+    }
+    // A long name decides by itself, with no answer.
+    expect(ownStatus(newestOf({ name: long }))["logo-type"]).toBe("derived");
+    // An answer with no name decides nothing.
+    expect(ownStatus(newestOf({ "logo-type": logoTypeEntry(true) }))["logo-type"]).toBe("open");
+    expect(ownStatus(newestOf())["logo-type"]).toBe("open");
+    // It never reads the architecture here: the marks block it, ownStatus does not.
+    expect(ownStatus(newestOf({ name: nameEntry(), "logo-type": logoTypeEntry(false) }))).toEqual(
+      ownOf({ name: "given", "logo-type": "derived" }),
     );
   });
 
@@ -849,6 +887,57 @@ describe("allowed typography", () => {
   });
 });
 
+// T35, rows 31 to 34: a logo type answer is allowed while none is stored and the name is not long.
+describe("allowed logo type", () => {
+  it("is allowed while the node holds no entry and the name is not long, in every gate state", () => {
+    for (const p of ["done", "skipped", "open"] as const) {
+      for (const [label, newest, expected] of [
+        ["no entry, no name", newestOf(), true],
+        ["a short name", newestOf({ name: nameEntry("ORIVILO") }), true],
+        ["a name of twelve", newestOf({ name: nameEntry("ก".repeat(12)) }), true],
+        ["a name of thirteen", newestOf({ name: nameEntry("ก".repeat(13)) }), false],
+        ["a long name", newestOf({ name: nameEntry("Chase Manhattan Bank") }), false],
+        [
+          "a long name by its grapheme count, short by its units",
+          newestOf({ name: nameEntry("ที่".repeat(12)) }),
+          true,
+        ],
+        [
+          "a long name with spaces dropped to twelve",
+          newestOf({ name: nameEntry("a ".repeat(12)) }),
+          true,
+        ],
+        ["an answer", newestOf({ "logo-type": logoTypeEntry(false) }), false],
+        [
+          "the other answer",
+          newestOf({ name: nameEntry(), "logo-type": logoTypeEntry(true) }),
+          false,
+        ],
+        ["an architecture answer yes", newestOf({ architecture: answer(true) }), true],
+        ["a personality skipped", newestOf({ "identity-frame": entry("skipped") }), true],
+      ] as const) {
+        expect(
+          entryAllowed({ node: "logo-type", kind: "answered" }, { roots: roots(p), newest }),
+          `${p} / ${label}`,
+        ).toBe(expected);
+      }
+    }
+  });
+
+  it("the logo type answer does not change what another node allows", () => {
+    const newest = newestOf({ name: nameEntry(), "logo-type": logoTypeEntry(false) });
+    expect(entryAllowed({ node: "name", kind: "given" }, { roots: roots("done"), newest })).toBe(
+      false,
+    );
+    expect(
+      entryAllowed({ node: "typography", kind: "answered" }, { roots: roots("done"), newest }),
+    ).toBe(true);
+    expect(
+      entryAllowed({ node: "competitive-frame", kind: "lineup" }, { roots: roots("done"), newest }),
+    ).toBe(true);
+  });
+});
+
 describe("foundationState", () => {
   it("bundles the roots, the newest entry, the own status and the results once", () => {
     const state = foundationState({ state: "open", skipped: true }, [
@@ -866,11 +955,12 @@ describe("foundationState", () => {
     expect(state.results["identity-frame"].unchecked).toEqual(["positioning"]);
   });
 
-  it("holds a result for each of the six nodes, from the stored answer, name, core idea and typography", () => {
+  it("holds a result for each of the seven nodes, from the stored answer, name, core idea, logo type and typography", () => {
     const state = foundationState({ state: "given", skipped: false }, [
       answer(false),
       nameEntry(),
       idea("written"),
+      logoTypeEntry(false),
       typographyEntry(),
     ]);
     expect(state.own).toEqual(
@@ -878,6 +968,7 @@ describe("foundationState", () => {
         architecture: "derived",
         name: "given",
         "core-idea": "given",
+        "logo-type": "derived",
         typography: "derived",
       }),
     );
@@ -886,10 +977,14 @@ describe("foundationState", () => {
       "architecture",
       "name",
       "core-idea",
+      "logo-type",
       "color",
       "typography",
     ]);
     expect(state.results["core-idea"].status).toBe("given");
+    expect(state.expression.logoType?.type).toBe("wordmark");
+    // The architecture is derived and the name given: the logo type needs nothing else.
+    expect(state.results["logo-type"]).toMatchObject({ status: "derived", blockedBy: [] });
     expect(state.expression.typography?.pairing).toBe(true);
     // No personality is stored, so typography waits for it, though its own answer is saved.
     expect(state.results.typography).toMatchObject({
@@ -1221,7 +1316,7 @@ describe("architecture derive", () => {
 });
 
 // T11, rows 7 and 8: W8 of ORV-298 on the grown graph. The test graph holds all three nodes of the
-// story (PR 3 builds logo type); the real graph holds `color` and `typography` so far.
+// story; since PR 3 the real graph holds all three, and the test graph is its cross-check.
 describe("W8", () => {
   const W8 = {
     nodes: ["identity-frame", "architecture", "name", "logo-type", "color", "typography"],
@@ -1387,6 +1482,74 @@ describe("W8", () => {
       ).toBe(TYPOGRAPHY_LINES[c]);
     },
   );
+
+  // T35, rows 32 and 33 and W8 whole: the real graph, all three nodes, every case.
+  it.each(CASES)(
+    "case %s on the real graph of all three nodes prints W8's whole line",
+    (_c, positioning, own, all) => {
+      expect(
+        expressionNodes(
+          foundationMarks(
+            roots(positioning),
+            ownOf({
+              "identity-frame": own["identity-frame"],
+              architecture: own.architecture,
+              name: own.name,
+              "logo-type": own["logo-type"],
+              color: own.color,
+              typography: own.typography,
+            }),
+          ),
+          ["logo-type", "color", "typography"],
+        ),
+      ).toBe(all);
+    },
+  );
+
+  it("the real graph and the test graph agree on every node of every case", () => {
+    for (const [, positioning, own] of CASES) {
+      const real = foundationMarks(
+        roots(positioning),
+        ownOf({
+          "identity-frame": own["identity-frame"],
+          architecture: own.architecture,
+          name: own.name,
+          "logo-type": own["logo-type"],
+          color: own.color,
+          typography: own.typography,
+        }),
+      );
+      const test = propagateMarks(graph, roots(positioning), own);
+      for (const node of ["logo-type", "color", "typography"] as const) {
+        expect(real[node]).toEqual(test[node]);
+      }
+    }
+  });
+
+  // Rows 32 and 33: logo type waits for the name, waits for the architecture, waits for
+  // positioning, and rests on a skipped positioning.
+  it("logo type: blocked by the name, by the architecture and by positioning; provisional when positioning is skipped", () => {
+    const own = (some: Partial<Record<FoundationNodeId, OwnStatus>>) =>
+      ownOf({ "logo-type": "derived", ...some });
+    // Row 32, first: positioning agreed, no name.
+    expect(
+      foundationMarks(roots("done"), own({ architecture: "derived" }))["logo-type"],
+    ).toMatchObject({ status: "blocked", blockedBy: ["name"] });
+    // Row 32, second: the architecture answer yes (open), a name not given either way.
+    expect(
+      foundationMarks(roots("done"), own({ architecture: "open", name: "given" }))["logo-type"],
+    ).toMatchObject({ status: "blocked", blockedBy: ["architecture"] });
+    // Row 32, third: positioning stale or open blocks every require, naming it once.
+    expect(
+      foundationMarks(roots("open"), own({ architecture: "derived", name: "given" }))["logo-type"],
+    ).toMatchObject({ status: "blocked", blockedBy: ["positioning"] });
+    // Row 33: positioning skipped, architecture derived, name given.
+    expect(
+      foundationMarks(roots("skipped"), own({ architecture: "derived", name: "given" }))[
+        "logo-type"
+      ],
+    ).toMatchObject({ status: "derived", provisionalOn: ["positioning"], unchecked: [] });
+  });
 
   it("typography waits for the personality it does not read: open personality blocks it, a skipped one marks it", () => {
     const own = (identity: OwnStatus) =>

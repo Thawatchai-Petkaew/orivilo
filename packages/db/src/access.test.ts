@@ -1095,6 +1095,41 @@ describe.runIf(HAS_TEST_DATABASE)("orivilo_app and row security", () => {
       });
     });
 
+    describe("one logo type answer per project (T37, the unique index)", () => {
+      it("refuses a second logo type answer and keeps the first", async () => {
+        const id = await freshProject();
+        await t.admin
+          .insert(businessFoundationEntry)
+          .values(entry(`${id}-g1`, "ws-a", id, "logo-type", "answered", { appIcon: false }));
+        await failsWithCode(
+          t.admin
+            .insert(businessFoundationEntry)
+            .values(entry(`${id}-g2`, "ws-a", id, "logo-type", "answered", { appIcon: true })),
+          "23505",
+        );
+        const rows = await t.admin
+          .select()
+          .from(businessFoundationEntry)
+          .where(eq(businessFoundationEntry.projectId, id));
+        expect(rows.map((r) => r.payload)).toEqual([{ appIcon: false }]);
+      });
+
+      it("counts the node: an answer on typography and on logo type are two entries", async () => {
+        const id = await freshProject();
+        await t.admin
+          .insert(businessFoundationEntry)
+          .values([
+            entry(`${id}-t`, "ws-a", id, "typography", "answered", { scripts: "thai" }),
+            entry(`${id}-g`, "ws-a", id, "logo-type", "answered", { appIcon: true }),
+          ]);
+        const rows = await t.admin
+          .select()
+          .from(businessFoundationEntry)
+          .where(eq(businessFoundationEntry.projectId, id));
+        expect(rows).toHaveLength(2);
+      });
+    });
+
     describe("foundation entry shape (T10)", () => {
       const six = [
         ["identity-frame", "given", { axes: { warm: 75 } }],
@@ -1105,6 +1140,9 @@ describe.runIf(HAS_TEST_DATABASE)("orivilo_app and row security", () => {
         ["core-idea", "skipped", {}],
         ["competitive-frame", "lineup", { lineup: [{ name: "Brand A", hex: "#5B3FD9" }] }],
         ["typography", "answered", { scripts: "thai-latin" }],
+        // ORV-298 PR 3 (T37): the one logo type pair is (logo-type, answered), both answers.
+        ["logo-type", "answered", { appIcon: true }],
+        ["logo-type", "answered", { appIcon: false }],
       ] as const;
 
       it.each(six)("takes the pair %s and %s", async (node, kind, payload) => {
@@ -1139,7 +1177,11 @@ describe.runIf(HAS_TEST_DATABASE)("orivilo_app and row security", () => {
         ["typography", "given", { scripts: "thai" }],
         ["typography", "written", { scripts: "thai" }],
         ["typography", "lineup", { scripts: "thai" }],
-        ["logo-type", "answered", { appIcon: true }],
+        // ORV-298 PR 3 (T37): every other pair of logo-type, and a skip is never one.
+        ["logo-type", "skipped", {}],
+        ["logo-type", "given", { appIcon: true }],
+        ["logo-type", "written", { appIcon: true }],
+        ["logo-type", "lineup", { appIcon: true }],
         ["architecture", "answered-by-scripts", { scripts: "thai" }],
       ])("refuses the pair %s and %s (the pair check)", async (node, kind, payload) => {
         const id = await freshProject();
