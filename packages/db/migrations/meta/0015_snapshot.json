@@ -1,6 +1,6 @@
 {
-  "id": "c4eadaef-5aac-41fb-8015-6dfcff7607a3",
-  "prevId": "1f0247c8-0ae4-4e56-94d1-2ad893e812d9",
+  "id": "21c98bb5-89cf-492a-a81f-27f8ff990f99",
+  "prevId": "06d4069d-901c-4a51-8368-966d6eb839f7",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -100,20 +100,20 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "account_user_id_user_id_fk": {
           "name": "account_user_id_user_id_fk",
           "tableFrom": "account",
-          "columnsFrom": ["user_id"],
           "tableTo": "user",
+          "columnsFrom": ["user_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -189,9 +189,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "invitation_email_idx": {
           "name": "invitation_email_idx",
@@ -204,29 +204,29 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "invitation_organization_id_organization_id_fk": {
           "name": "invitation_organization_id_organization_id_fk",
           "tableFrom": "invitation",
-          "columnsFrom": ["organization_id"],
           "tableTo": "organization",
+          "columnsFrom": ["organization_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "invitation_inviter_id_user_id_fk": {
           "name": "invitation_inviter_id_user_id_fk",
           "tableFrom": "invitation",
-          "columnsFrom": ["inviter_id"],
           "tableTo": "user",
+          "columnsFrom": ["inviter_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -283,9 +283,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "member_userId_idx": {
           "name": "member_userId_idx",
@@ -298,29 +298,29 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "member_organization_id_organization_id_fk": {
           "name": "member_organization_id_organization_id_fk",
           "tableFrom": "member",
-          "columnsFrom": ["organization_id"],
           "tableTo": "organization",
+          "columnsFrom": ["organization_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "member_user_id_user_id_fk": {
           "name": "member_user_id_user_id_fk",
           "tableFrom": "member",
-          "columnsFrom": ["user_id"],
           "tableTo": "user",
+          "columnsFrom": ["user_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -376,8 +376,8 @@
       "uniqueConstraints": {
         "organization_slug_unique": {
           "name": "organization_slug_unique",
-          "columns": ["slug"],
-          "nullsNotDistinct": false
+          "nullsNotDistinct": false,
+          "columns": ["slug"]
         }
       },
       "policies": {},
@@ -456,28 +456,28 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "session_user_id_user_id_fk": {
           "name": "session_user_id_user_id_fk",
           "tableFrom": "session",
-          "columnsFrom": ["user_id"],
           "tableTo": "user",
+          "columnsFrom": ["user_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "session_token_unique": {
           "name": "session_token_unique",
-          "columns": ["token"],
-          "nullsNotDistinct": false
+          "nullsNotDistinct": false,
+          "columns": ["token"]
         }
       },
       "policies": {},
@@ -540,8 +540,8 @@
       "uniqueConstraints": {
         "user_email_unique": {
           "name": "user_email_unique",
-          "columns": ["email"],
-          "nullsNotDistinct": false
+          "nullsNotDistinct": false,
+          "columns": ["email"]
         }
       },
       "policies": {},
@@ -603,9 +603,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {},
@@ -663,37 +663,37 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "project_workspace_id_organization_id_fk": {
           "name": "project_workspace_id_organization_id_fk",
           "tableFrom": "project",
-          "columnsFrom": ["workspace_id"],
           "tableTo": "organization",
+          "columnsFrom": ["workspace_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "project_created_by_user_id_fk": {
           "name": "project_created_by_user_id_fk",
           "tableFrom": "project",
-          "columnsFrom": ["created_by"],
           "tableTo": "user",
+          "columnsFrom": ["created_by"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "project_id_workspace_unique": {
           "name": "project_id_workspace_unique",
-          "columns": ["id", "workspace_id"],
-          "nullsNotDistinct": false
+          "nullsNotDistinct": false,
+          "columns": ["id", "workspace_id"]
         }
       },
       "policies": {},
@@ -760,37 +760,37 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "direction_workspace_id_organization_id_fk": {
           "name": "direction_workspace_id_organization_id_fk",
           "tableFrom": "direction",
-          "columnsFrom": ["workspace_id"],
           "tableTo": "organization",
+          "columnsFrom": ["workspace_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "direction_created_by_user_id_fk": {
           "name": "direction_created_by_user_id_fk",
           "tableFrom": "direction",
-          "columnsFrom": ["created_by"],
           "tableTo": "user",
+          "columnsFrom": ["created_by"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "direction_id_workspace_unique": {
           "name": "direction_id_workspace_unique",
-          "columns": ["id", "workspace_id"],
-          "nullsNotDistinct": false
+          "nullsNotDistinct": false,
+          "columns": ["id", "workspace_id"]
         }
       },
       "policies": {},
@@ -881,9 +881,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "direction_version_one_draft": {
           "name": "direction_version_one_draft",
@@ -896,29 +896,29 @@
             }
           ],
           "isUnique": true,
-          "with": {},
-          "method": "btree",
           "where": "\"direction_version\".\"status\" = 'draft'",
-          "concurrently": false
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
         "direction_version_direction_fk": {
           "name": "direction_version_direction_fk",
           "tableFrom": "direction_version",
-          "columnsFrom": ["direction_id", "workspace_id"],
           "tableTo": "direction",
+          "columnsFrom": ["direction_id", "workspace_id"],
           "columnsTo": ["id", "workspace_id"],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "direction_version_number_unique": {
           "name": "direction_version_number_unique",
-          "columns": ["direction_id", "number"],
-          "nullsNotDistinct": false
+          "nullsNotDistinct": false,
+          "columns": ["direction_id", "number"]
         }
       },
       "policies": {},
@@ -971,9 +971,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {},
@@ -1073,20 +1073,20 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "ai_usage_workspace_id_organization_id_fk": {
           "name": "ai_usage_workspace_id_organization_id_fk",
           "tableFrom": "ai_usage",
-          "columnsFrom": ["workspace_id"],
           "tableTo": "organization",
+          "columnsFrom": ["workspace_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1112,8 +1112,8 @@
       },
       "isRLSEnabled": false
     },
-    "public.business_draft": {
-      "name": "business_draft",
+    "public.business_foundation_entry": {
+      "name": "business_foundation_entry",
       "schema": "",
       "columns": {
         "id": {
@@ -1128,44 +1128,26 @@
           "primaryKey": false,
           "notNull": true
         },
-        "intake_id": {
-          "name": "intake_id",
+        "project_id": {
+          "name": "project_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "job": {
-          "name": "job",
+        "node": {
+          "name": "node",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "model_id": {
-          "name": "model_id",
+        "kind": {
+          "name": "kind",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "adapter_id": {
-          "name": "adapter_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "adapter_version": {
-          "name": "adapter_version",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "prompt_version": {
-          "name": "prompt_version",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "options": {
-          "name": "options",
+        "payload": {
+          "name": "payload",
           "type": "jsonb",
           "primaryKey": false,
           "notNull": true
@@ -1181,12 +1163,12 @@
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
-          "default": "now()"
+          "default": "clock_timestamp()"
         }
       },
       "indexes": {
-        "business_draft_workspaceId_idx": {
-          "name": "business_draft_workspaceId_idx",
+        "business_foundation_entry_workspaceId_idx": {
+          "name": "business_foundation_entry_workspaceId_idx",
           "columns": [
             {
               "expression": "workspace_id",
@@ -1196,69 +1178,73 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
+        },
+        "business_foundation_entry_project_created_idx": {
+          "name": "business_foundation_entry_project_created_idx",
+          "columns": [
+            {
+              "expression": "project_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
-        "business_draft_workspace_id_organization_id_fk": {
-          "name": "business_draft_workspace_id_organization_id_fk",
-          "tableFrom": "business_draft",
-          "columnsFrom": ["workspace_id"],
+        "business_foundation_entry_workspace_id_organization_id_fk": {
+          "name": "business_foundation_entry_workspace_id_organization_id_fk",
+          "tableFrom": "business_foundation_entry",
           "tableTo": "organization",
+          "columnsFrom": ["workspace_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
-        "business_draft_intake_fk": {
-          "name": "business_draft_intake_fk",
-          "tableFrom": "business_draft",
-          "columnsFrom": ["intake_id", "workspace_id"],
-          "tableTo": "business_intake",
+        "business_foundation_entry_project_fk": {
+          "name": "business_foundation_entry_project_fk",
+          "tableFrom": "business_foundation_entry",
+          "tableTo": "project",
+          "columnsFrom": ["project_id", "workspace_id"],
           "columnsTo": ["id", "workspace_id"],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "business_draft_one_per_job": {
-          "name": "business_draft_one_per_job",
-          "columns": ["intake_id", "job"],
-          "nullsNotDistinct": false
-        },
-        "business_draft_id_intake_workspace_unique": {
-          "name": "business_draft_id_intake_workspace_unique",
-          "columns": ["id", "intake_id", "workspace_id"],
-          "nullsNotDistinct": false
+        "business_foundation_entry_one_per_kind": {
+          "name": "business_foundation_entry_one_per_kind",
+          "nullsNotDistinct": false,
+          "columns": ["project_id", "node", "kind"]
         }
       },
       "policies": {},
       "checkConstraints": {
-        "business_draft_job_check": {
-          "name": "business_draft_job_check",
-          "value": "char_length(\"business_draft\".\"job\") between 1 and 40"
+        "business_foundation_entry_pair": {
+          "name": "business_foundation_entry_pair",
+          "value": "(\"business_foundation_entry\".\"node\", \"business_foundation_entry\".\"kind\") in (('identity-frame', 'given'), ('identity-frame', 'skipped'), ('architecture', 'answered'), ('name', 'given'), ('core-idea', 'written'), ('core-idea', 'skipped'))"
         },
-        "business_draft_model_id_check": {
-          "name": "business_draft_model_id_check",
-          "value": "char_length(\"business_draft\".\"model_id\") between 1 and 200"
+        "business_foundation_entry_payload_shape": {
+          "name": "business_foundation_entry_payload_shape",
+          "value": "jsonb_typeof(\"business_foundation_entry\".\"payload\") = 'object' and (\"business_foundation_entry\".\"kind\" = 'skipped') = (\"business_foundation_entry\".\"payload\" = '{}'::jsonb)"
         },
-        "business_draft_adapter_id_check": {
-          "name": "business_draft_adapter_id_check",
-          "value": "char_length(\"business_draft\".\"adapter_id\") between 1 and 40"
-        },
-        "business_draft_adapter_version_check": {
-          "name": "business_draft_adapter_version_check",
-          "value": "char_length(\"business_draft\".\"adapter_version\") between 1 and 40"
-        },
-        "business_draft_prompt_version_check": {
-          "name": "business_draft_prompt_version_check",
-          "value": "char_length(\"business_draft\".\"prompt_version\") between 1 and 40"
-        },
-        "business_draft_options_check": {
-          "name": "business_draft_options_check",
-          "value": "jsonb_typeof(\"business_draft\".\"options\") = 'array' and jsonb_array_length(\"business_draft\".\"options\") between 2 and 3"
+        "business_foundation_entry_text": {
+          "name": "business_foundation_entry_text",
+          "value": "((\"business_foundation_entry\".\"payload\" ? 'person') is false or (jsonb_typeof(\"business_foundation_entry\".\"payload\"->'person') = 'string' and char_length(\"business_foundation_entry\".\"payload\"->>'person') between 1 and 2000)) and ((\"business_foundation_entry\".\"payload\" ? 'never') is false or (jsonb_typeof(\"business_foundation_entry\".\"payload\"->'never') = 'string' and char_length(\"business_foundation_entry\".\"payload\"->>'never') between 1 and 2000)) and ((\"business_foundation_entry\".\"payload\" ? 'remember') is false or (jsonb_typeof(\"business_foundation_entry\".\"payload\"->'remember') = 'string' and char_length(\"business_foundation_entry\".\"payload\"->>'remember') between 1 and 2000)) and ((\"business_foundation_entry\".\"payload\" ? 'name') is false or (jsonb_typeof(\"business_foundation_entry\".\"payload\"->'name') = 'string' and char_length(\"business_foundation_entry\".\"payload\"->>'name') between 1 and 60)) and ((\"business_foundation_entry\".\"payload\" ? 'statement') is false or (jsonb_typeof(\"business_foundation_entry\".\"payload\"->'statement') = 'string' and char_length(\"business_foundation_entry\".\"payload\"->>'statement') between 1 and 300))"
         }
       },
       "isRLSEnabled": false
@@ -1359,9 +1345,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "business_intake_project_created_idx": {
           "name": "business_intake_project_created_idx",
@@ -1380,37 +1366,37 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "business_intake_workspace_id_organization_id_fk": {
           "name": "business_intake_workspace_id_organization_id_fk",
           "tableFrom": "business_intake",
-          "columnsFrom": ["workspace_id"],
           "tableTo": "organization",
+          "columnsFrom": ["workspace_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "business_intake_project_fk": {
           "name": "business_intake_project_fk",
           "tableFrom": "business_intake",
-          "columnsFrom": ["project_id", "workspace_id"],
           "tableTo": "project",
+          "columnsFrom": ["project_id", "workspace_id"],
           "columnsTo": ["id", "workspace_id"],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "business_intake_id_workspace_unique": {
           "name": "business_intake_id_workspace_unique",
-          "columns": ["id", "workspace_id"],
-          "nullsNotDistinct": false
+          "nullsNotDistinct": false,
+          "columns": ["id", "workspace_id"]
         }
       },
       "policies": {},
@@ -1522,9 +1508,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "business_positioning_choice_intake_created_idx": {
           "name": "business_positioning_choice_intake_created_idx",
@@ -1543,9 +1529,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "business_positioning_choice_one_agreed": {
           "name": "business_positioning_choice_one_agreed",
@@ -1558,39 +1544,30 @@
             }
           ],
           "isUnique": true,
-          "with": {},
-          "method": "btree",
           "where": "\"business_positioning_choice\".\"kind\" <> 'skipped'",
-          "concurrently": false
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
         "business_positioning_choice_workspace_id_organization_id_fk": {
           "name": "business_positioning_choice_workspace_id_organization_id_fk",
           "tableFrom": "business_positioning_choice",
-          "columnsFrom": ["workspace_id"],
           "tableTo": "organization",
+          "columnsFrom": ["workspace_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "business_positioning_choice_intake_fk": {
           "name": "business_positioning_choice_intake_fk",
           "tableFrom": "business_positioning_choice",
-          "columnsFrom": ["intake_id", "workspace_id"],
           "tableTo": "business_intake",
+          "columnsFrom": ["intake_id", "workspace_id"],
           "columnsTo": ["id", "workspace_id"],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
-        },
-        "business_positioning_choice_draft_fk": {
-          "name": "business_positioning_choice_draft_fk",
-          "tableFrom": "business_positioning_choice",
-          "columnsFrom": ["draft_id", "intake_id", "workspace_id"],
-          "tableTo": "business_draft",
-          "columnsTo": ["id", "intake_id", "workspace_id"],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1713,37 +1690,37 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "business_reading_workspace_id_organization_id_fk": {
           "name": "business_reading_workspace_id_organization_id_fk",
           "tableFrom": "business_reading",
-          "columnsFrom": ["workspace_id"],
           "tableTo": "organization",
+          "columnsFrom": ["workspace_id"],
           "columnsTo": ["id"],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "business_reading_intake_fk": {
           "name": "business_reading_intake_fk",
           "tableFrom": "business_reading",
-          "columnsFrom": ["intake_id", "workspace_id"],
           "tableTo": "business_intake",
+          "columnsFrom": ["intake_id", "workspace_id"],
           "columnsTo": ["id", "workspace_id"],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "business_reading_one_per_job": {
           "name": "business_reading_one_per_job",
-          "columns": ["intake_id", "job"],
-          "nullsNotDistinct": false
+          "nullsNotDistinct": false,
+          "columns": ["intake_id", "job"]
         }
       },
       "policies": {},
@@ -1778,7 +1755,7 @@
         },
         "business_reading_shape": {
           "name": "business_reading_shape",
-          "value": "(\"business_reading\".\"method\" = 'model') = (\"business_reading\".\"reason\" is null and \"business_reading\".\"model_id\" is not null and \"business_reading\".\"adapter_id\" is not null and \"business_reading\".\"adapter_version\" is not null and \"business_reading\".\"prompt_version\" is not null) and (\"business_reading\".\"method\" <> 'rule-based' or \"business_reading\".\"evidence\" = '[]'::jsonb)"
+          "value": "(\"business_reading\".\"method\" = 'model') = (\"business_reading\".\"reason\" is null and \"business_reading\".\"model_id\" is not null and \"business_reading\".\"adapter_id\" is not null and \"business_reading\".\"adapter_version\" is not null and \"business_reading\".\"prompt_version\" is not null) and (\"business_reading\".\"method\" <> 'rule-based' or (\"business_reading\".\"evidence\" = '[]'::jsonb and \"business_reading\".\"reason\" is not null and \"business_reading\".\"model_id\" is null and \"business_reading\".\"adapter_id\" is null and \"business_reading\".\"adapter_version\" is null and \"business_reading\".\"prompt_version\" is null)) and (\"business_reading\".\"method\" <> 'model' or (case when jsonb_typeof(\"business_reading\".\"evidence\") = 'array' then jsonb_array_length(\"business_reading\".\"evidence\") <= 200 else false end))"
         }
       },
       "isRLSEnabled": false
@@ -1786,10 +1763,10 @@
   },
   "enums": {},
   "schemas": {},
-  "views": {},
   "sequences": {},
   "roles": {},
   "policies": {},
+  "views": {},
   "_meta": {
     "columns": {},
     "schemas": {},

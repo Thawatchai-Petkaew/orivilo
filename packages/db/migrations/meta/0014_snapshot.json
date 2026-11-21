@@ -1,5 +1,5 @@
 {
-  "id": "1f0247c8-0ae4-4e56-94d1-2ad893e812d9",
+  "id": "06d4069d-901c-4a51-8368-966d6eb839f7",
   "prevId": "0dcbf90b-c721-4cef-b784-05f711262d54",
   "version": "7",
   "dialect": "postgresql",
@@ -1112,157 +1112,6 @@
       },
       "isRLSEnabled": false
     },
-    "public.business_draft": {
-      "name": "business_draft",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "workspace_id": {
-          "name": "workspace_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "intake_id": {
-          "name": "intake_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "job": {
-          "name": "job",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "model_id": {
-          "name": "model_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "adapter_id": {
-          "name": "adapter_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "adapter_version": {
-          "name": "adapter_version",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "prompt_version": {
-          "name": "prompt_version",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "options": {
-          "name": "options",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_by": {
-          "name": "created_by",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "business_draft_workspaceId_idx": {
-          "name": "business_draft_workspaceId_idx",
-          "columns": [
-            {
-              "expression": "workspace_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "business_draft_workspace_id_organization_id_fk": {
-          "name": "business_draft_workspace_id_organization_id_fk",
-          "tableFrom": "business_draft",
-          "tableTo": "organization",
-          "columnsFrom": ["workspace_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "business_draft_intake_fk": {
-          "name": "business_draft_intake_fk",
-          "tableFrom": "business_draft",
-          "tableTo": "business_intake",
-          "columnsFrom": ["intake_id", "workspace_id"],
-          "columnsTo": ["id", "workspace_id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "business_draft_one_per_job": {
-          "name": "business_draft_one_per_job",
-          "nullsNotDistinct": false,
-          "columns": ["intake_id", "job"]
-        },
-        "business_draft_id_intake_workspace_unique": {
-          "name": "business_draft_id_intake_workspace_unique",
-          "nullsNotDistinct": false,
-          "columns": ["id", "intake_id", "workspace_id"]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {
-        "business_draft_job_check": {
-          "name": "business_draft_job_check",
-          "value": "char_length(\"business_draft\".\"job\") between 1 and 40"
-        },
-        "business_draft_model_id_check": {
-          "name": "business_draft_model_id_check",
-          "value": "char_length(\"business_draft\".\"model_id\") between 1 and 200"
-        },
-        "business_draft_adapter_id_check": {
-          "name": "business_draft_adapter_id_check",
-          "value": "char_length(\"business_draft\".\"adapter_id\") between 1 and 40"
-        },
-        "business_draft_adapter_version_check": {
-          "name": "business_draft_adapter_version_check",
-          "value": "char_length(\"business_draft\".\"adapter_version\") between 1 and 40"
-        },
-        "business_draft_prompt_version_check": {
-          "name": "business_draft_prompt_version_check",
-          "value": "char_length(\"business_draft\".\"prompt_version\") between 1 and 40"
-        },
-        "business_draft_options_check": {
-          "name": "business_draft_options_check",
-          "value": "jsonb_typeof(\"business_draft\".\"options\") = 'array' and jsonb_array_length(\"business_draft\".\"options\") between 2 and 3"
-        }
-      },
-      "isRLSEnabled": false
-    },
     "public.business_intake": {
       "name": "business_intake",
       "schema": "",
@@ -1582,15 +1431,6 @@
           "columnsTo": ["id", "workspace_id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
-        },
-        "business_positioning_choice_draft_fk": {
-          "name": "business_positioning_choice_draft_fk",
-          "tableFrom": "business_positioning_choice",
-          "tableTo": "business_draft",
-          "columnsFrom": ["draft_id", "intake_id", "workspace_id"],
-          "columnsTo": ["id", "intake_id", "workspace_id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1778,7 +1618,7 @@
         },
         "business_reading_shape": {
           "name": "business_reading_shape",
-          "value": "(\"business_reading\".\"method\" = 'model') = (\"business_reading\".\"reason\" is null and \"business_reading\".\"model_id\" is not null and \"business_reading\".\"adapter_id\" is not null and \"business_reading\".\"adapter_version\" is not null and \"business_reading\".\"prompt_version\" is not null) and (\"business_reading\".\"method\" <> 'rule-based' or \"business_reading\".\"evidence\" = '[]'::jsonb)"
+          "value": "(\"business_reading\".\"method\" = 'model') = (\"business_reading\".\"reason\" is null and \"business_reading\".\"model_id\" is not null and \"business_reading\".\"adapter_id\" is not null and \"business_reading\".\"adapter_version\" is not null and \"business_reading\".\"prompt_version\" is not null) and (\"business_reading\".\"method\" <> 'rule-based' or (\"business_reading\".\"evidence\" = '[]'::jsonb and \"business_reading\".\"reason\" is not null and \"business_reading\".\"model_id\" is null and \"business_reading\".\"adapter_id\" is null and \"business_reading\".\"adapter_version\" is null and \"business_reading\".\"prompt_version\" is null)) and (\"business_reading\".\"method\" <> 'model' or (case when jsonb_typeof(\"business_reading\".\"evidence\") = 'array' then jsonb_array_length(\"business_reading\".\"evidence\") <= 200 else false end))"
         }
       },
       "isRLSEnabled": false

@@ -5,6 +5,8 @@ import {
   type BusinessNodeId,
   type BusinessReadReason,
   type BusinessView,
+  FOUNDATION_NODES,
+  type FoundationNodeId,
 } from "@orivilo/intent-engine";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
@@ -47,6 +49,7 @@ import {
   UNTRUSTED_VIEW,
 } from "./business-fixtures";
 import {
+  atWindow,
   en,
   expectAccessScreen,
   expectFitsAt360,
@@ -101,7 +104,13 @@ const langOf = (m: Messages): Lang => (m === th ? "th" : "en");
 
 const nodeEl = (root: ParentNode, id: string) =>
   root.querySelector<HTMLElement>(`.react-flow__node[data-id="${id}"]`) as HTMLElement;
-const nodeNamed = (m: Messages, id: BusinessNodeId) =>
+/** Every card of the board, in fill order: the business nodes, then the foundation nodes (ORV-291). */
+const BOARD_NODES: readonly (BusinessNodeId | FoundationNodeId)[] = [
+  ...BUSINESS_NODES,
+  ...FOUNDATION_NODES,
+];
+
+const nodeNamed = (m: Messages, id: BusinessNodeId | FoundationNodeId) =>
   fill(m.graph.nodeLabel, { title: nodeTitle(m, id), kind: KIND_WORD[langOf(m)] });
 const fieldOf = (node: ParentNode, field: string) =>
   node.querySelector<HTMLElement>(`[data-field="${field}"]`) as HTMLElement;
@@ -113,8 +122,8 @@ const viewNode = (view: BusinessView, id: BusinessNodeId) =>
 /** React Flow keeps a node hidden until it is measured and draws edges after: wait for all of it. */
 const boardReady = (root: HTMLElement) =>
   waitFor(() => {
-    expect(root.querySelectorAll(".react-flow__node")).toHaveLength(5);
-    expect(root.querySelectorAll(".react-flow__edge")).toHaveLength(6);
+    expect(root.querySelectorAll(".react-flow__node")).toHaveLength(12);
+    expect(root.querySelectorAll(".react-flow__edge")).toHaveLength(18);
     for (const n of root.querySelectorAll<HTMLElement>(".react-flow__node")) {
       expect(n.style.visibility).not.toBe("hidden");
     }
@@ -279,9 +288,24 @@ const W2 = [
   "business-core>positioning",
   "audience>positioning",
   "competitive-frame>positioning",
+  "positioning>identity-frame",
+  "situation>architecture",
+  "positioning>architecture",
+  "positioning>name",
+  "architecture>name",
+  "positioning>core-idea",
+  "identity-frame>core-idea",
+  // ORV-298 PR 3: Logo type reads Brand architecture and Name (spec row 35).
+  "architecture>logo-type",
+  "name>logo-type",
+  // ORV-298 PR 1: Colour reads Competitive frame and Brand personality (spec row 12).
+  "competitive-frame>color",
+  "identity-frame>color",
+  // ORV-298 PR 2: Typography reads Brand personality (spec row 18).
+  "identity-frame>typography",
 ];
 
-/** The header, the five nodes at rest, the six edges and the dock (spec row 22). */
+/** The header, the twelve nodes at rest, the eighteen edges and the dock (spec row 22). */
 async function expectBoard(
   canvasElement: HTMLElement,
   m: Messages,
@@ -307,16 +331,17 @@ async function expectBoard(
   await expect(
     lede.compareDocumentPosition(region) & Node.DOCUMENT_POSITION_FOLLOWING,
   ).toBeTruthy();
-  // Five nodes titled as the catalog says, in fill order, each named "title, kind" and opening a view.
+  // Nine nodes titled as the catalog says, in fill order, each named "title, kind" and opening a view.
   const nodes = [...canvasElement.querySelectorAll<HTMLElement>(".react-flow__node")];
-  await expect(nodes.map((n) => n.dataset["id"])).toEqual([...BUSINESS_NODES]);
-  for (const id of BUSINESS_NODES) {
+  await expect(nodes.map((n) => n.dataset["id"])).toEqual([...BOARD_NODES]);
+  for (const id of BOARD_NODES) {
     const el = nodeEl(canvasElement, id);
     await expect(el).toHaveAccessibleName(nodeNamed(m, id));
     await expect(el).toHaveAttribute("aria-haspopup", "dialog");
     await expect(textOf(el.querySelector(".ds-node__title") as HTMLElement)).toBe(nodeTitle(m, id));
     // The title row ends with the open glyph and has no page count (spec row 23).
-    await expect(el.querySelector(".ds-node__open")).toBeVisible();
+    // It is drawn once the label is 10rem wide; a board in a frame under 1440 sits below that (design 2.6).
+    await expect(el.querySelector(".ds-node__open")).not.toBeNull();
     await expect(el.querySelector(".ds-node__pages")).toBeNull();
     await expect(getComputedStyle(el.querySelector(".ds-node") as Element).cursor).toBe("zoom-in");
   }
@@ -335,7 +360,7 @@ async function expectBoard(
   for (const f of answersOf(view)) {
     await expect(textOf(region)).not.toContain(f.answer?.text ?? "");
   }
-  // Exactly the six edges of W2, and the dock says view only.
+  // Exactly the eighteen edges of W2 and the foundation require, and the dock says view only.
   const edges = [...canvasElement.querySelectorAll<HTMLElement>(".react-flow__edge")].map((e) => {
     const [, source, , target] = (e.dataset["id"] ?? "").split(":");
     return `${source}>${target}`;
@@ -350,14 +375,14 @@ async function expectBoard(
   ).toBe("none");
   // Cards clear of the next label at the fit zoom and at the dock's 100 percent.
   await expectCardsClear(canvasElement);
-  await expectPortPills(canvasElement, BUSINESS_NODES);
+  await expectPortPills(canvasElement, BOARD_NODES);
   await userEvent.click(
     canvasElement.querySelector('[data-command="board.zoom-100"]') as HTMLElement,
   );
   await waitFor(() => expect(zoomOf(canvasElement)).toBeCloseTo(1, 3));
   await expectCardsClear(canvasElement);
   await expectStateAlignment(canvasElement);
-  await expectPortPills(canvasElement, ["positioning"]);
+  await expectPortPills(canvasElement, ["business-core", "audience", "competitive-frame"]);
   await userEvent.click(
     canvasElement.querySelector('[data-command="board.zoom-to-fit"]') as HTMLElement,
   );
@@ -372,11 +397,14 @@ async function expectBoard(
  * Row D4: each node, focused in turn (the way `NodePort` `PresentNames` does), shows its port name
  * pills, and they keep clear of one another and of every other node. Measured at the zoom the board
  * is at. A pill outside the board's frame is not read, and at zoom 1 the board shows only part of the
- * world, so `whole` names the nodes whose every pill must be read: all five at the fit zoom, and at
- * zoom 1 Positioning, the node with three pills on one edge.
+ * world, so `whole` names the nodes whose every pill must be read: all eight at the fit zoom, and at
+ * zoom 1 the three nodes of the middle column that the frame still holds whole (with eight nodes the world is wider, so the 100 percent view no longer holds Positioning whole; its four pills are read at the fit zoom).
  */
-async function expectPortPills(root: HTMLElement, whole: readonly BusinessNodeId[]) {
-  for (const id of BUSINESS_NODES) {
+async function expectPortPills(
+  root: HTMLElement,
+  whole: readonly (BusinessNodeId | FoundationNodeId)[],
+) {
+  for (const id of BOARD_NODES) {
     const el = nodeEl(root, id);
     await waitFor(() => {
       el.focus({ preventScroll: true });
@@ -419,7 +447,7 @@ const zoomOf = (root: HTMLElement) =>
  */
 async function expectStateAlignment(root: HTMLElement) {
   const zoom = zoomOf(root);
-  for (const id of BUSINESS_NODES) {
+  for (const id of BOARD_NODES) {
     const card = nodeEl(root, id).querySelector(".ds-node") as HTMLElement;
     const line = card.querySelector<HTMLElement>("[data-node-state]") as HTMLElement;
     const first = card.querySelector<HTMLElement>(".ds-node__body ul li") as HTMLElement;
@@ -438,7 +466,9 @@ async function expectStateAlignment(root: HTMLElement) {
 
 /**
  * Down column 2, from each card's bottom to the next node's label top is at least 40 screen pixels
- * (design 6.3), measured from the rendered boxes at the zoom the board is at.
+ * (design 6.3) at the base fit of 0.412, which is 90 world pixels (96.3 measured, and the positions
+ * did not move). The fit zoom falls as the board widens (0.364 at ORV-298 PR 2), so the bound is
+ * read in world pixels: the rendered boxes at the zoom the board is at, divided by that zoom.
  */
 async function expectCardsClear(root: HTMLElement) {
   const column = ["business-core", "audience", "competitive-frame"] as const;
@@ -448,7 +478,7 @@ async function expectCardsClear(root: HTMLElement) {
     const label = nodeEl(root, column[i] as string).querySelector(".ds-node__label") as HTMLElement;
     gaps.push(label.getBoundingClientRect().top - above.getBoundingClientRect().bottom);
   }
-  for (const gap of gaps) await expect(gap).toBeGreaterThanOrEqual(40);
+  for (const gap of gaps) await expect(gap / zoomOf(root)).toBeGreaterThanOrEqual(90);
 }
 
 /**
@@ -478,16 +508,16 @@ async function expectGestures(canvasElement: HTMLElement, m: Messages, view: Bus
 
 /** Tab reaches each node in fill order, then the dock, each with a visible focus (spec row 25). */
 async function expectTabOrder(canvasElement: HTMLElement) {
-  (nodeEl(canvasElement, BUSINESS_NODES[0]) as HTMLElement).focus();
-  await focusOn(canvasElement, BUSINESS_NODES[0]);
-  const seen: string[] = [BUSINESS_NODES[0]];
-  for (let i = 1; i < BUSINESS_NODES.length; i++) {
+  (nodeEl(canvasElement, BOARD_NODES[0] as string) as HTMLElement).focus();
+  await focusOn(canvasElement, BOARD_NODES[0] as string);
+  const seen: string[] = [BOARD_NODES[0] as string];
+  for (let i = 1; i < BOARD_NODES.length; i++) {
     await userEvent.tab();
     const active = document.activeElement as HTMLElement;
     await expect(active.matches(":focus-visible")).toBe(true);
     seen.push(active.dataset["id"] ?? "");
   }
-  await expect(seen).toEqual([...BUSINESS_NODES]);
+  await expect(seen).toEqual([...BOARD_NODES]);
   // Row 25 (R1 of ORV-282-pr216-review-1): Tab goes on to the dock. React Flow's attribution link may
   // come first, so Tab is pressed until focus is inside the dock, and a broken order fails at the bound.
   const dock = canvasElement.querySelector(".ds-controls") as HTMLElement;
@@ -497,10 +527,7 @@ async function expectTabOrder(canvasElement: HTMLElement) {
     const active = document.activeElement as HTMLElement;
     if (dock.contains(active)) reached = active;
   }
-  await expect(
-    reached,
-    "Tab reaches the dock within 6 presses after the five nodes",
-  ).not.toBeNull();
+  await expect(reached, "Tab reaches the dock within 6 presses after the last node").not.toBeNull();
   await expect((reached as HTMLElement).matches(".ds-controls button")).toBe(true);
   await expect((reached as HTMLElement).matches(":focus-visible")).toBe(true);
 }
@@ -522,13 +549,266 @@ async function expectNoStatementSection(root: HTMLElement, m: Messages) {
 const SAVED_TH = /บันทึกเมื่อ .*2569.*10:15/;
 const SAVED_EN = /Saved .*Nov 18, 2026.*10:15/;
 
-/** A saved Thai project on the present board: five nodes, six edges, the dock, the gestures (rows 22, 23, 25). */
+/**
+ * A foundation card on the board (ORV-291 design 6.5 B1, section 7): at its world position, its
+ * state line and its field names and no answer, and Enter opens the viewer with its title and
+ * Escape brings focus back to the card.
+ */
+async function expectFoundationCard(
+  root: HTMLElement,
+  m: Messages,
+  id: FoundationNodeId,
+  at: { x: number; y: number },
+  waitsFor: string,
+  fields: readonly string[],
+  gateLine?: string,
+) {
+  const el = nodeEl(root, id);
+  await expect(el.style.transform).toMatch(new RegExp(`translate\\(${at.x}px,\\s*${at.y}px\\)`));
+  const card = el.querySelector(".ds-node") as HTMLElement;
+  await expect(textOf(card.querySelector("[data-node-state]") as HTMLElement)).toBe(
+    fill(m.business.state.waiting, { nodes: waitsFor }),
+  );
+  await expect([...card.querySelectorAll(".ds-node__body ul li")].map(textOf)).toEqual([...fields]);
+  await expect(card.querySelector("bdi")).toBeNull();
+  // Only Core idea has a gate line, the last paragraph of the card (design 3).
+  const waiting = fill(m.business.state.waiting, { nodes: waitsFor });
+  await expect([...card.querySelectorAll<HTMLElement>(".ds-node__body p")].map(textOf)).toEqual(
+    gateLine === undefined ? [waiting] : [waiting, gateLine],
+  );
+  el.focus({ preventScroll: true });
+  await focusOn(root, id);
+  await userEvent.keyboard("{Enter}");
+  const dialog = await dialogNamed(nodeTitle(m, id));
+  await expect(
+    within(dialog).getByRole("heading", { level: 2, name: nodeTitle(m, id) }),
+  ).toBeVisible();
+  await closeViewer(root, id);
+}
+
+/** The six foundation cards (design 6.5 B1, sections 7 and 10; ORV-298 design 2.5) on the Thai or English fixture. */
+async function expectFoundationCards(root: HTMLElement, m: Messages, locale: "th" | "en") {
+  const list = (...ids: (FoundationNodeId | BusinessNodeId)[]) =>
+    new Intl.ListFormat(locale, { type: "conjunction" }).format(ids.map((id) => nodeTitle(m, id)));
+  // Brand personality moved up 500 in ORV-298 PR 1 (design 2.1), so its edge to Colour clears the cards.
+  await expectFoundationCard(root, m, "identity-frame", { x: 1400, y: -340 }, list("positioning"), [
+    m.business.field.person,
+    m.business.field.never,
+    m.business.field.personality,
+  ]);
+  await expectFoundationCard(root, m, "architecture", { x: 1400, y: 576 }, list("positioning"), [
+    m.business.field.subBrands,
+    m.business.field.architecture,
+  ]);
+  await expectFoundationCard(root, m, "name", { x: 1888, y: 473 }, list("positioning"), [
+    m.business.field.workingName,
+  ]);
+  // PR 3 (design 10): Core idea sits above Name in column 5 and shows the gate line.
+  await expectFoundationCard(
+    root,
+    m,
+    "core-idea",
+    { x: 1888, y: 212 },
+    list("positioning"),
+    [m.business.field.remember, m.business.field.coreIdea],
+    m.business.state.gate,
+  );
+  // ORV-298 PR 3, spec row 35: Logo type right of Name and Brand architecture, its two field names and no value.
+  await expectFoundationCard(root, m, "logo-type", { x: 2376, y: 552 }, list("positioning"), [
+    m.business.field.appIcon,
+    m.business.field.logoType,
+  ]);
+  // ORV-298 PR 1, spec row 12: Colour right of Brand personality, its five field names and no value.
+  await expectFoundationCard(root, m, "color", { x: 2376, y: -330 }, list("positioning"), [
+    m.business.field.signature,
+    m.business.field.neutral,
+    m.business.field.canvas,
+    m.business.field.lineup,
+    m.business.field.crowded,
+  ]);
+  // ORV-298 PR 2, spec row 18: Typography right of Colour, its three field names and no value.
+  await expectFoundationCard(root, m, "typography", { x: 2864, y: 0 }, list("positioning"), [
+    m.business.field.scripts,
+    m.business.field.readingFace,
+    m.business.field.displayFace,
+  ]);
+  for (const card of root.querySelectorAll<HTMLElement>(".ds-node")) {
+    // A card shows no colour: no hex, and no element with a background of its own (expression-board-1).
+    await expect(textOf(card)).not.toContain("#");
+    await expect(card.querySelectorAll("[style*='background']")).toHaveLength(0);
+  }
+}
+
+const GUIDEBOOK_HREF = "/business/fixture/guidebook";
+
+/**
+ * ORV-302 row 13 (design P17): the guidebook link is the first action of the header, before the list
+ * link; Tab reaches it first and then the list link; both are 40 px tall with the focus form; Enter
+ * follows it. The board region is what it is without the link: 70 percent of the window, never under
+ * 480 px, and it starts where the header starts (the same story without `guidebookHref` holds the same).
+ */
+async function expectGuidebookLink(canvasElement: HTMLElement, m: Messages) {
+  const canvas = within(canvasElement);
+  const link = canvas.getByRole("link", { name: m.business.board.openGuidebook });
+  const list = canvas.getByRole("link", { name: m.business.list.heading });
+  await expect(link.tagName).toBe("A");
+  await expect(link.getAttribute("href")).toBe(GUIDEBOOK_HREF);
+  await expect(link.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  await expect(link.parentElement).toBe(list.parentElement);
+  await expect(link.getBoundingClientRect().right).toBeLessThanOrEqual(
+    list.getBoundingClientRect().left,
+  );
+  expectSameHeight(link, list);
+  await expect(link.getBoundingClientRect().height).toBe(40);
+  await expect(list.getBoundingClientRect().height).toBe(40);
+  // Tab: the first stop of the page is the guidebook link, the next the list link.
+  (document.activeElement as HTMLElement | null)?.blur();
+  await userEvent.tab();
+  await expect(document.activeElement).toBe(link);
+  await expectFocusBorderForm(link);
+  await userEvent.tab();
+  await expect(document.activeElement).toBe(list);
+  await expectFocusBorderForm(list);
+  // The board region: its height and its left are what the header's own column gives it.
+  const region = canvas.getByRole("region", { name: m.business.board.label });
+  const heading = canvas.getByRole("heading", { level: 1 });
+  expect(
+    Math.abs(region.getBoundingClientRect().height - Math.max(0.7 * window.innerHeight, 480)),
+  ).toBeLessThanOrEqual(0.5);
+  expect(
+    Math.abs(region.getBoundingClientRect().left - heading.getBoundingClientRect().left),
+  ).toBeLessThanOrEqual(0.5);
+  // Enter follows the link: a click reaches it (the listener stops the page from leaving the story).
+  let clicks = 0;
+  const follow = (event: Event) => {
+    event.preventDefault();
+    clicks += 1;
+  };
+  link.addEventListener("click", follow);
+  link.focus();
+  await userEvent.keyboard("{Enter}");
+  link.removeEventListener("click", follow);
+  await expect(clicks).toBe(1);
+}
+
+/** A saved Thai project on the present board: twelve nodes, eighteen edges, the dock, the gestures (rows 22, 23, 25, 34). */
 export const Board: Story = {
+  args: { guidebookHref: GUIDEBOOK_HREF },
   play: async ({ canvasElement }) => {
     await expectBoard(canvasElement, th, THAI_VIEW, SAVED_TH);
+    await expectGuidebookLink(canvasElement, th);
     await expectGestures(canvasElement, th, THAI_VIEW);
     await expectTabOrder(canvasElement);
     await expectNoStatementSection(canvasElement, th);
+    await expectFoundationCards(canvasElement, th, "th");
+  },
+};
+
+/**
+ * ORV-298 design 2.4 (PR 3, twelve cards with Core idea of ORV-296 and Logo type): at the 1440 frame
+ * every card sits inside the board and the fit is 0.381 within 0.01 (design 2.6, the margin step: the
+ * fit padding is 0.15, not 0.2; measured 0.3800, where 0.3637 was the zoom at padding 0.2). Typography
+ * at x 2864 still sets the fit, the width bound, and Logo type at x 2376 adds no width. The fit is asked
+ * for again after the window is resized, then waited for. Two zoom-in steps give 0.547 (0.380 x 1.44).
+ */
+export const BoardAt1440: Story = {
+  play: async ({ canvasElement }) => {
+    await boardAt1440Play(canvasElement, th);
+  },
+};
+
+/** The parts of a label that are drawn, in DOM order: a `display: contents` wrapper gives its children. */
+const drawnParts = (label: HTMLElement): HTMLElement[] =>
+  [...label.children].flatMap((c) => {
+    const display = getComputedStyle(c).display;
+    if (display === "none") return [];
+    return display === "contents" ? [...c.children] : [c];
+  }) as HTMLElement[];
+
+/**
+ * Design 2.6 (ORV-298-design-f1, spec expression-board-1): at the fit the label is narrower than 10rem,
+ * so the kind glyph and the open glyph are not drawn and every title is whole, not cut. After two clicks
+ * on zoom in every label is at least 160 px, both glyphs are drawn and every title is still whole.
+ */
+async function expectTitlesWhole(canvasElement: HTMLElement, m: Messages, narrowLabel: boolean) {
+  for (const id of BOARD_NODES) {
+    const root = nodeEl(canvasElement, id);
+    const label = root.querySelector(".ds-node__label") as HTMLElement;
+    const title = label.querySelector(".ds-node__title") as HTMLElement;
+    const name = nodeTitle(m, id);
+    await expect(
+      title.scrollWidth,
+      `${name}: title scrollWidth ${title.scrollWidth} against clientWidth ${title.clientWidth}`,
+    ).toBeLessThanOrEqual(title.clientWidth);
+    await expect(title.hasAttribute("data-cut"), `${name}: title is cut`).toBe(false);
+    const glyphs = [
+      label.querySelector(":scope > svg:first-child"),
+      label.querySelector(".ds-node__open"),
+    ] as HTMLElement[];
+    for (const glyph of glyphs) {
+      await expect(glyph, `${name}: a glyph is in the label`).not.toBeNull();
+      await expect(
+        getComputedStyle(glyph).display === "none",
+        `${name}: glyph display on a label ${label.getBoundingClientRect().width.toFixed(1)} px wide`,
+      ).toBe(narrowLabel);
+    }
+    if (narrowLabel) {
+      const card = root.querySelector(".ds-node") as HTMLElement;
+      const last = drawnParts(label).at(-1) as HTMLElement;
+      await expect(
+        last.getBoundingClientRect().right,
+        `${name}: the label's last part ends in the card`,
+      ).toBeLessThanOrEqual(card.getBoundingClientRect().right + 0.5);
+    } else {
+      await expect(
+        label.getBoundingClientRect().width,
+        `${name}: label width`,
+      ).toBeGreaterThanOrEqual(160);
+    }
+  }
+}
+
+async function boardAt1440Play(canvasElement: HTMLElement, m: Messages) {
+  await atWindow(1440, 900, async () => {
+    await boardReady(canvasElement);
+    await userEvent.click(
+      canvasElement.querySelector('[data-command="board.zoom-to-fit"]') as HTMLElement,
+    );
+    await settled(canvasElement);
+    await expect(Math.abs(zoomOf(canvasElement) - 0.381)).toBeLessThanOrEqual(0.01);
+    const region = within(canvasElement).getByRole("region", { name: m.business.board.label });
+    const box = region.getBoundingClientRect();
+    for (const id of BOARD_NODES) {
+      const r = nodeEl(canvasElement, id).getBoundingClientRect();
+      await expect(r.left).toBeGreaterThanOrEqual(box.left - 0.5);
+      await expect(r.right).toBeLessThanOrEqual(box.right + 0.5);
+      await expect(r.top).toBeGreaterThanOrEqual(box.top - 0.5);
+      await expect(r.bottom).toBeLessThanOrEqual(box.bottom + 0.5);
+    }
+    await waitFor(() => expectTitlesWhole(canvasElement, m, true));
+    const zoomIn = canvasElement.querySelector('[data-command="board.zoom-in"]') as HTMLElement;
+    // Each click animates for 150 ms, so wait for the zoom the step gives (1.2 times), not for a rest.
+    const fit = zoomOf(canvasElement);
+    await userEvent.click(zoomIn);
+    await waitFor(() =>
+      expect(Math.abs(zoomOf(canvasElement) - fit * 1.2)).toBeLessThanOrEqual(0.002),
+    );
+    await userEvent.click(zoomIn);
+    await waitFor(() =>
+      expect(Math.abs(zoomOf(canvasElement) - fit * 1.44)).toBeLessThanOrEqual(0.002),
+    );
+    await settled(canvasElement);
+    await expect(Math.abs(zoomOf(canvasElement) - 0.547)).toBeLessThanOrEqual(0.01);
+    await waitFor(() => expectTitlesWhole(canvasElement, m, false));
+  });
+}
+
+/** The same fit in English: the longer English titles are whole too (spec expression-board-1). */
+export const BoardAt1440English: Story = {
+  args: { view: ENGLISH_VIEW },
+  decorators: [inEnglish],
+  play: async ({ canvasElement }) => {
+    await boardAt1440Play(canvasElement, en);
   },
 };
 
@@ -541,6 +821,7 @@ export const BoardEnglish: Story = {
     await expectGestures(canvasElement, en, ENGLISH_VIEW);
     await expectTabOrder(canvasElement);
     await expectNoStatementSection(canvasElement, en);
+    await expectFoundationCards(canvasElement, en, "en");
   },
 };
 
@@ -603,31 +884,6 @@ export const ViewersEnglish: Story = {
 };
 
 // ----- the viewer at two window sizes (design 6.3) -----
-
-/**
- * Runs `check` with the browser at `width` by `height`, then puts the size back. The viewer is as
- * large as the window and Vitest's browser iframe is 1200 by 900, so the size is set, not assumed.
- * The static Storybook has no `vitest/browser`; there the window is the size the toolbar chose.
- */
-async function atWindow(width: number, height: number, check: () => Promise<void>) {
-  if (!inVitest) return check();
-  const { page } = await import("vitest/browser");
-  const before = { width: window.innerWidth, height: window.innerHeight };
-  const resized = async (w: number, h: number) => {
-    await page.viewport(w, h);
-    await waitFor(() => expect([window.innerWidth, window.innerHeight]).toEqual([w, h]));
-    await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
-  };
-  // The screenshot lock of `visual-asserts.ts`: no other file's screenshot runs while the frame is resized.
-  await navigator.locks.request("orivilo-screenshot", async () => {
-    await resized(width, height);
-    try {
-      await check();
-    } finally {
-      await resized(before.width, before.height);
-    }
-  });
-}
 
 /** Opens one node and reads where the viewer's parts sit; focus starts on the scroll region. */
 async function viewerAt(
@@ -767,8 +1023,9 @@ async function skippedPlay(canvasElement: HTMLElement, m: Messages) {
     m.business.state.skipped,
     m.business.state.skipped,
   ]);
-  // Positioning keeps its gate line on the card, and only Positioning.
-  await expect(canvas.getAllByText(m.business.state.gate)).toHaveLength(1);
+  // Positioning keeps its gate line on the card, and Core idea (waiting) has one of its own.
+  // The Core idea card keeps the gate line too (ORV-296, design 3), so the line is on two cards.
+  await expect(canvas.getAllByText(m.business.state.gate)).toHaveLength(2);
   await expect(
     nodeEl(canvasElement, "positioning").querySelector(".ds-node")?.textContent,
   ).toContain(m.business.state.gate);
@@ -869,14 +1126,34 @@ async function narrowPlay(canvasElement: HTMLElement, m: Messages) {
   const region = within(canvasElement).getByRole("region", { name: m.business.board.label });
   await expect(region.getBoundingClientRect().width).toBeLessThanOrEqual(312.5);
   await expect(region.getBoundingClientRect().height).toBeGreaterThanOrEqual(480);
-  // The map fits whole: every card inside the board, at the zoom floor or above it.
-  const box = region.getBoundingClientRect();
-  for (const id of BUSINESS_NODES) {
-    const r = nodeEl(canvasElement, id).getBoundingClientRect();
-    await expect(r.left).toBeGreaterThanOrEqual(box.left - 0.5);
-    await expect(r.right).toBeLessThanOrEqual(box.right + 0.5);
-    await expect(r.top).toBeGreaterThanOrEqual(box.top - 0.5);
-    await expect(r.bottom).toBeLessThanOrEqual(box.bottom + 0.5);
+  // B3 (ORV-291): from PR 1 the map no longer fits whole at 360. The fit stops at the 0.25 floor and
+  // centres the world. React Flow's auto-pan on focus moves a card only when none of it is in view,
+  // so the end cards (Situation at the left, Name at the right) stay partly cut by the frame; each still
+  // overlaps the board, takes focus, and opens its view (design 2.2 says "fully inside"; the stage 1
+  // measure was 59 px outside on each end card, reported as a deviation). Stage 2 holds all eight.
+  await expect(Math.abs(zoomOf(canvasElement) - 0.25)).toBeLessThanOrEqual(0.001);
+  await expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(
+    Math.max(360, window.innerWidth),
+  );
+  // Design 2.6: at 0.25 the label is under 10rem, so the title has the whole line: it is whole, or it
+  // is as wide as the label less 1 px (80 against a 79.5 label, where the head gave 62).
+  for (const id of BOARD_NODES) {
+    const title = nodeEl(canvasElement, id).querySelector(".ds-node__title") as HTMLElement;
+    const label = title.parentElement as HTMLElement;
+    await expect(
+      title.scrollWidth <= title.clientWidth ||
+        title.clientWidth >= label.getBoundingClientRect().width - 1,
+      `${nodeTitle(m, id)}: title ${title.clientWidth} / ${title.scrollWidth} in a label ${label.getBoundingClientRect().width}`,
+    ).toBe(true);
+  }
+  for (const id of BOARD_NODES) {
+    const el = nodeEl(canvasElement, id);
+    el.focus({ preventScroll: true });
+    await expect(el).toHaveFocus();
+    const box = region.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    await expect(Math.min(r.right, box.right) - Math.max(r.left, box.left)).toBeGreaterThan(0);
+    await expect(Math.min(r.bottom, box.bottom) - Math.max(r.top, box.top)).toBeGreaterThan(0);
   }
   // Keyboard only: each node in fill order, with a visible focus.
   await expectTabOrder(canvasElement);
@@ -924,7 +1201,7 @@ export const NarrowSkipped: Story = {
     await boardReady(canvasElement);
     await expectFitsAt360(canvasElement);
     await expect(within(canvasElement).getAllByText(th.business.state.skipped)).toHaveLength(3);
-    await expect(within(canvasElement).getAllByText(th.business.state.gate)).toHaveLength(1);
+    await expect(within(canvasElement).getAllByText(th.business.state.gate)).toHaveLength(2);
   },
 };
 
@@ -1067,7 +1344,7 @@ async function expectReadings(
       const below = `${m.brandReport.engine["evidence.belowFloor"].replace("{reason}", r.quality.map((k) => m.brandReport.engine[k]).join(", "))}`;
       const lines = [
         ...(r.belowFloor ? [below] : []),
-        fromModelNote(locale, r.modelId),
+        fromModelNote(m, r.modelId),
         m.business.state.proposed,
         fill(m.business.reading.confidence, { value: formatNumber(r.confidence, locale) }),
       ];
@@ -1347,9 +1624,7 @@ async function aiUnavailablePlay(
     // The person's words alone, each with its label; nothing read.
     await expect(dialog.querySelectorAll("[data-reading]")).toHaveLength(0);
     await expect(d(dialog).queryAllByText(m.business.label.confidence)).toHaveLength(0);
-    await expect(textOf(dialog)).not.toContain(
-      fromModelNote(localeOf(m), "anthropic/claude-sonnet-5.5"),
-    );
+    await expect(textOf(dialog)).not.toContain(fromModelNote(m, "anthropic/claude-sonnet-5.5"));
     await expect(dialog.querySelector(".ds-badge")).toBeNull();
     const given = node.fields.filter((f) => f.answer !== null);
     await expect(d(dialog).queryAllByText(m.business.label.yourWords)).toHaveLength(given.length);
@@ -1931,7 +2206,9 @@ async function narrowStatementPlay(canvasElement: HTMLElement, m: Messages) {
     // 300 Thai characters with no space wrap inside the column: nothing scrolls sideways.
     await expect(statement.textContent).toHaveLength(300);
     await expect(region.scrollWidth).toBeLessThanOrEqual(region.clientWidth);
-    await expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(360);
+    await expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(
+      Math.max(360, window.innerWidth),
+    );
     const view = dialog.querySelector<HTMLElement>("[data-node]") as HTMLElement;
     const walker = document.createTreeWalker(section, NodeFilter.SHOW_TEXT);
     for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
@@ -1954,7 +2231,9 @@ async function narrowControlsPlay(canvasElement: HTMLElement, m: Messages) {
     const section = sectionOf(dialog);
     const region = within(dialog).getByRole("region", { name: nodeTitle(m, "positioning") });
     await expect(region.scrollWidth).toBeLessThanOrEqual(region.clientWidth);
-    await expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(360);
+    await expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(
+      Math.max(360, window.innerWidth),
+    );
     // Keyboard only: Tab goes to Draft, then Write my own, then Skip, in reading order; each focus is the line and halo.
     const drafter = choiceButton(section, "draft");
     const write = choiceButton(section, "writeOwn");

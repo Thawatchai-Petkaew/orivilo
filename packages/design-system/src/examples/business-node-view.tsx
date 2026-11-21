@@ -147,7 +147,7 @@ function Readings({ readings }: { readings: BusinessFieldReading[] }) {
           <EvidenceSpan item={briefItem(r.item)}>
             <bdi>{r.value}</bdi>
           </EvidenceSpan>
-          <p className={FIELD_NOTE}>{fromModelNote(locale, r.modelId)}</p>
+          <p className={FIELD_NOTE}>{fromModelNote(m, r.modelId)}</p>
           <p className={FIELD_NOTE}>{m.business.state.proposed}</p>
           <p className={FIELD_NOTE}>
             {fill(m.business.reading.confidence, { value: formatNumber(r.confidence, locale) })}

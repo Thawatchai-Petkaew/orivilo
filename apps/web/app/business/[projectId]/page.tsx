@@ -32,6 +32,7 @@ export default async function BusinessProjectPage({
         <ProjectBoard
           view={loaded.view}
           projectId={projectId}
+          guidebookHref={`/business/${projectId}/guidebook`}
           errors={m.saved.errors}
           wait={m.wait}
           failure={m.failure}

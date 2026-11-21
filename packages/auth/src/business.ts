@@ -8,10 +8,13 @@ import {
   INTAKE_VERSION,
   type StoredChoice,
   type StoredDraft,
+  type StoredEntry,
   type StoredIntake,
   storedIntakeSchema,
 } from "@orivilo/intent-engine";
 import { type AccessDeps, withWorkspace } from "./access.ts";
+import { readFoundation } from "./foundation.ts";
+import { logStep } from "./log.ts";
 import { readPositioning } from "./positioning.ts";
 
 /**
@@ -19,8 +22,10 @@ import { readPositioning } from "./positioning.ts";
  * intake are written in one transaction; an intake row is never changed, and the newest row of a
  * project is its current intake. The reading of an intake (ORV-283) is one more row, saved once
  * and replayed on every open, never made again. The stored form of an intake and of a reading is
- * parsed again on every read, so a row changed outside the app fails as `invalid-stored` and never
- * shows as unchecked text. Nothing here reaches a log line: the callers log closed words only.
+ * parsed again on every read, so a row changed outside the app never shows as unchecked text: an
+ * intake that does not parse fails as `invalid-stored`, a reading that does not parse is shown as no
+ * reading. Nothing here reaches a log line but the one closed word of a reading that
+ * no longer parses (`stored-invalid`): the callers log closed words only.
  */
 
 export class BusinessError extends Error {
@@ -31,8 +36,11 @@ export class BusinessError extends Error {
    * a closed word, so no driver text, which holds the record's answers, reaches a caller's log.
    * `gate-passed` (ORV-285) is a positioning choice made after the newest intake's positioning was
    * agreed: the statement stays as it is. A draft the database refused is `not-saved` too.
+   * `out-of-order` (ORV-291) is a foundation entry its node's state does not allow now
+   * (`foundation-entry-1`, "Allowed when").
    */
-  readonly reason: "invalid-input" | "not-found" | "invalid-stored" | "not-saved" | "gate-passed";
+  readonly reason:
+    "invalid-input" | "not-found" | "invalid-stored" | "not-saved" | "gate-passed" | "out-of-order";
   constructor(reason: BusinessError["reason"]) {
     super(`business refused: ${reason}`);
     this.name = "BusinessError";
@@ -85,6 +93,11 @@ export interface OpenedProject {
    * person acts.
    */
   positioning: { intakeId: string; choice: StoredChoice | null; draft: StoredDraft | null };
+  /**
+   * The project's brand foundation entries (ORV-291), newest first, parsed again. Marks and states
+   * are computed from them and the positioning gate; none is stored.
+   */
+  foundation: StoredEntry[];
 }
 
 export function businessService(deps: AccessDeps) {
@@ -177,8 +190,11 @@ export function businessService(deps: AccessDeps) {
 
     /**
      * One project with its newest intake, that intake's saved reading, the project's newest
-     * positioning choice and the draft of the newest intake. Never calls a model: a project with no
-     * saved reading opens with `reading: null`, and one with no draft with `draft: null`.
+     * positioning choice, the draft of the newest intake and its foundation entries. Never calls a
+     * model: a project with no saved reading opens with `reading: null`, and one with no draft with
+     * `draft: null`. A saved reading that no longer parses opens the same way as no reading, with
+     * one `warn` step line (`orv287-unparsed-reading-1`); the row is left as it is. An intake that
+     * no longer parses is `invalid-stored`, and the project is not shown.
      */
     async open(headers: Headers, workspaceId: string, projectId: string): Promise<OpenedProject> {
       return withWorkspace(deps, headers, workspaceId, "member", async ({ tx }) => {
@@ -233,13 +249,23 @@ export function businessService(deps: AccessDeps) {
                   reason: saved.reason,
                 },
           );
-          if (!parsed.success) throw new BusinessError("invalid-stored");
-          reading = parsed.data;
+          if (parsed.success) {
+            reading = parsed.data;
+          } else {
+            // The row stays and the person's own answers show; the line holds closed words only.
+            logStep({
+              step: "business-read",
+              outcome: "stored-invalid",
+              level: "warn",
+              durationMs: 0,
+            });
+          }
         }
         const positioning = await readPositioning(tx, workspaceId, found.id, {
           id: row.id,
           answers: intake,
         });
+        const foundation = await readFoundation(tx, workspaceId, found.id);
         return {
           project: found,
           intakeId: row.id,
@@ -247,6 +273,7 @@ export function businessService(deps: AccessDeps) {
           savedAt: row.createdAt,
           reading,
           positioning,
+          foundation,
         };
       });
     },

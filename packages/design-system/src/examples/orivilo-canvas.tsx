@@ -70,6 +70,7 @@ import {
   type BoardId,
   type BookPageRecord,
   type BodyRecord,
+  type Box,
   type ChapterId,
   type CopyKey,
   type ImageId,
@@ -101,6 +102,7 @@ import {
   SHEETS,
   textOf,
   TYPE_SAMPLE,
+  TYPE_SPECIMEN,
   VIOLET,
 } from "./orivilo-canvas.data";
 
@@ -117,7 +119,7 @@ export interface OriviloCanvasProps {
 
 type Mode = "light" | "dark";
 const BOARD_DESIGN: Size = { w: 1280, h: 800 };
-const THAI = /[฀-๿]/;
+const THAI = /[\u0E00-\u0E7F]/;
 
 /** The attributes that re-resolve every token under an element in a fixed mode of the base profile. */
 const scope = (mode: Mode) => ({ "data-mode": mode, "data-design-profile": "neutral" }) as const;
@@ -254,10 +256,13 @@ function LiveFrame({ outer, design, start = 0, mode, children }: LiveFrameProps)
 function ArtFrame({
   design,
   width,
+  lines,
   children,
 }: {
   design: Size;
   width: number;
+  /** The tiles of a page of rounded tiles, in design px: each gets one untransformed line box. */
+  lines?: readonly Box[] | undefined;
   children: ReactNode;
 }) {
   const scale = width / design.w;
@@ -265,7 +270,13 @@ function ArtFrame({
     <div
       className="relative overflow-hidden"
       data-art-frame=""
-      style={{ width, height: (width * design.h) / design.w }}
+      style={
+        {
+          width,
+          height: (width * design.h) / design.w,
+          "--_art-scale": String(scale),
+        } as CSSProperties
+      }
       inert
       aria-hidden="true"
     >
@@ -280,6 +291,21 @@ function ArtFrame({
       >
         {children}
       </div>
+      {lines ? (
+        <div data-page-lines="" {...scope("light")}>
+          {lines.map((b, i) => (
+            <span
+              key={i}
+              style={{
+                left: b.x * scale,
+                top: b.y * scale,
+                width: b.w * scale,
+                height: b.h * scale,
+              }}
+            />
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -925,7 +951,11 @@ function PieceArt({
 /** A board at 1280 x 800: its pieces at their boxes. */
 function BoardArt({ board }: { board: BoardId }) {
   return (
-    <div className="relative" style={{ width: BOARD_DESIGN.w, height: BOARD_DESIGN.h }}>
+    <div
+      className="relative"
+      data-board-art=""
+      style={{ width: BOARD_DESIGN.w, height: BOARD_DESIGN.h }}
+    >
       {BOARDS[board].pieces.map((id) => {
         const piece = pieceOf(id);
         return (
@@ -1439,10 +1469,7 @@ function LogoPage({ kind }: { kind: "mark" | "horizontal" | "onInk" }) {
 function TypeSpecimen({ kind }: { kind: "latin" | "thai" }) {
   const m = useMessages();
   const latin = kind === "latin";
-  const glyphs = latin ? "Aa" : "กข";
-  const alphabet = latin
-    ? "ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789"
-    : "กขคงจฉชซญฎฏฐฑฒณดตถทธนบปผฝพฟภมยรลวศษสหฬอฮ";
+  const { face, glyphs, alphabet, tagline } = TYPE_SPECIMEN[kind];
   return (
     <Flood
       paint={PAPER}
@@ -1450,9 +1477,7 @@ function TypeSpecimen({ kind }: { kind: "latin" | "thai" }) {
       style={{ width: BOARD_DESIGN.w, height: BOARD_DESIGN.h, padding: 80 }}
     >
       <div {...scope("light")} className="flex flex-col gap-6 text-text-primary">
-        <p className="m-0 font-mono text-code-md text-text-secondary">
-          {latin ? "Inter" : "Anuphan, Sarabun"}
-        </p>
+        <p className="m-0 font-mono text-code-md text-text-secondary">{face}</p>
         <p
           className="m-0 font-display"
           style={{
@@ -1469,7 +1494,7 @@ function TypeSpecimen({ kind }: { kind: "latin" | "thai" }) {
           {alphabet}
         </p>
         <p className="m-0 font-display text-heading-md" lang={latin ? "en" : "th"}>
-          {latin ? "Give your ideas a world." : "ให้ไอเดียมีตัวตน"}
+          {tagline}
         </p>
         <p className="m-0 font-body text-body-md text-text-secondary">
           {latin ? m.orvCanvas.preview.latin : m.orvCanvas.preview.thaiNote}
@@ -1496,8 +1521,8 @@ function PaletteSpecimen({ which }: { which: "all" | PaletteId }) {
             style={{ background: entry.hex, padding: 40 }}
           >
             <div className="flex flex-col gap-2 font-body">
-              <span className="text-heading-md font-display">{copyOf(m, entry.name)}</span>
-              <span className="font-mono text-code-md">{entry.hex}</span>
+              <span className="font-display text-display-md">{copyOf(m, entry.name)}</span>
+              <span className="font-mono text-heading-sm">{entry.hex}</span>
             </div>
             <span className="font-body text-body-md">{copyOf(m, entry.role)}</span>
           </div>
@@ -1906,6 +1931,7 @@ function ContrastBody({ rows }: { rows: readonly RowRecord[] }) {
 
 function DemoBody({ body }: { body: Extract<BodyRecord, { kind: "demo" }> }) {
   const m = useMessages();
+  const { mode } = useContext(PageContext);
   const record = imageOf(body.image);
   const width = 342;
   const size = { w: width, h: Math.round((width * record.height) / record.width) };
@@ -1922,7 +1948,11 @@ function DemoBody({ body }: { body: Extract<BodyRecord, { kind: "demo" }> }) {
           <span
             key={point.n}
             aria-hidden="true"
-            className="absolute rounded-round ring-2 ring-surface-card"
+            className={cx(
+              "absolute rounded-round ring-2",
+              // In dark the card's own ground would melt into the black paper at point 3.
+              mode === "dark" ? "ring-border-subtle" : "ring-surface-card",
+            )}
             style={{
               left: `${point.x}%`,
               top: `${point.y}%`,
@@ -1933,9 +1963,10 @@ function DemoBody({ body }: { body: Extract<BodyRecord, { kind: "demo" }> }) {
           >
             <span
               {...scope("dark")}
-              className="flex size-full items-center justify-center rounded-round bg-surface-canvas font-body text-label-sm text-text-primary"
+              className="flex size-full items-center justify-center rounded-round bg-surface-canvas text-text-primary"
             >
-              {point.n}
+              {/* The scope resets the type, so the numeral sets its own step inside it (ORV-290 row 31). */}
+              <span className="font-body text-label-sm leading-none tabular-nums">{point.n}</span>
             </span>
           </span>
         ))}
@@ -2264,16 +2295,27 @@ function LiveScreen({ id, size }: { id: "landing" | "form" | "report"; size: Siz
 
 function PreviewArt({ rec, size }: { rec: PreviewPageRecord; size: Size }) {
   const show = rec.show;
-  const contain = (design: Size, node: ReactNode) => (
-    <ArtFrame design={design} width={Math.min(size.w, (size.h * design.w) / design.h)}>
+  const contain = (design: Size, node: ReactNode, lines?: readonly Box[]) => (
+    <ArtFrame
+      design={design}
+      width={Math.min(size.w, (size.h * design.w) / design.h)}
+      lines={lines}
+    >
       {node}
     </ArtFrame>
   );
-  if ("board" in show) return contain(BOARD_DESIGN, <BoardArt board={show.board} />);
+  if ("board" in show) {
+    return contain(
+      BOARD_DESIGN,
+      <BoardArt board={show.board} />,
+      BOARDS[show.board].pieces.map((id) => pieceOf(id).box),
+    );
+  }
   if ("piece" in show) {
     const piece = pieceOf(show.piece);
-    const design = { w: piece.box.w, h: piece.box.h };
-    return contain(design, <PieceArt piece={piece} size={design} />);
+    // Whole design px: inside a scale Chrome lays each box on whole px before it scales them.
+    const design = { w: Math.round(piece.box.w), h: Math.round(piece.box.h) };
+    return contain(design, <PieceArt piece={piece} size={design} />, [{ x: 0, y: 0, ...design }]);
   }
   if ("book" in show) return contain(BOARD_DESIGN, <BookPageArt n={show.book} />);
   if ("logo" in show) return contain(BOARD_DESIGN, <LogoPage kind={show.logo} />);
@@ -2327,7 +2369,7 @@ function Preview({
         {second ? <p className={MUTED}>{second}</p> : null}
       </div>
       {count > 1 ? (
-        <div className="flex items-center gap-2 justify-self-start min-[600px]:justify-self-center">
+        <div className="flex items-center gap-2 justify-self-center">
           <Button
             variant="secondary"
             size="sm"

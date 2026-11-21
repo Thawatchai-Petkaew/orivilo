@@ -22,6 +22,7 @@ rules:
   - "Controlled: the graph comes in through `graph` and every change goes out through `onChange`; `onCommand` hands the shell what the board cannot finish (add node, rename, undo, redo)"
   - "Deleting a node marks every downstream node and its outgoing edges stale, never deletes them"
   - "The present variant shows the words ดูอย่างเดียว and allows only focus and jump"
+  - "The present variant runs a layout pass (usePillLayout) that hides, with data-hidden, an edge pill or a port or source pill that is not whole and clear; the pure rule is hiddenPills in pill-layout.ts, in screen px with a 4 px clearance (ORV-280 D1, D2)"
   - "`onNodeOpen(id)` is called for a node with `open` on Enter, Space, a double click on an edit board and a single click on a present board, once each. Enter and Space on such a node never reach `node.open` or the pan key (the node takes them first); a node without `open` keeps every key and click it had, so on an edit board its Enter is still `node.open` (ORV-274; stories OpenNode, OpenNodeInEnglish)"
   - "The page writes `data-lod` (far, mid, near) on the board from the zoom: far hides node and edge labels, mid hides the page count, near shows all; the node keeps its accessible name (ORV-274; stories LevelsOfDetail, LevelsOfDetailInEnglish)"
   - "A present board is a calm ground: surface.canvas with a border.subtle hairline, edges and glyphs on top, labels above cards (ORV-274; story PresentRecipesAndModes)"

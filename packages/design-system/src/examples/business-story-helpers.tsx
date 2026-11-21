@@ -1,4 +1,5 @@
-import { expect, within } from "storybook/test";
+import { expect, waitFor, within } from "storybook/test";
+import { inVitest } from "../testing/visual-asserts";
 import { LocaleProvider, useLocale } from "../i18n/LocaleProvider";
 import { pick } from "../i18n/locale";
 import { type Messages, messagesFor } from "../i18n/messages/index";
@@ -99,6 +100,34 @@ export async function expectFitsAt360(canvasElement: HTMLElement) {
   );
   for (const el of frame.querySelectorAll<HTMLElement>("*")) {
     if (el.closest(".sr-only") !== null) continue;
+    // The board's world is clipped by the board's own frame, which is checked above and below
+    // (ORV-291 B3: from PR 1 the map is wider than the frame at 360 and the person pans).
+    if (el.closest(".react-flow__viewport") !== null) continue;
     await expect(el.getBoundingClientRect().right).toBeLessThanOrEqual(edge + 0.5);
   }
+}
+
+/**
+ * Runs `check` with the browser at `width` by `height`, then puts the size back. The viewer is as
+ * large as the window and Vitest's browser iframe is 1200 by 900, so the size is set, not assumed.
+ * The static Storybook has no `vitest/browser`; there the window is the size the toolbar chose.
+ */
+export async function atWindow(width: number, height: number, check: () => Promise<void>) {
+  if (!inVitest) return check();
+  const { page } = await import("vitest/browser");
+  const before = { width: window.innerWidth, height: window.innerHeight };
+  const resized = async (w: number, h: number) => {
+    await page.viewport(w, h);
+    await waitFor(() => expect([window.innerWidth, window.innerHeight]).toEqual([w, h]));
+    await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+  };
+  // The screenshot lock of `visual-asserts.ts`: no other file's screenshot runs while the frame is resized.
+  await navigator.locks.request("orivilo-screenshot", async () => {
+    await resized(width, height);
+    try {
+      await check();
+    } finally {
+      await resized(before.width, before.height);
+    }
+  });
 }

@@ -26,6 +26,7 @@ export const ROUTES = [
   "business/openProject",
   "business/choosePositioning",
   "business/draftPositioning",
+  "business/enterFoundation",
   "account/signInWithGoogle",
   "account/signOut",
   "i18n/setLocale",
@@ -62,6 +63,8 @@ export const STEP_OUTCOMES = {
     "spend-cap",
     "unavailable",
     "save-failed",
+    // ORV-287: a saved reading that no longer parses; the project opens with no reading.
+    "stored-invalid",
   ],
   // ORV-285: what happened to the draft of a positioning, after the answers were read.
   "positioning-draft": [

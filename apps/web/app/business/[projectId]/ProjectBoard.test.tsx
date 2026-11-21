@@ -1,49 +1,82 @@
 import { messagesFor } from "@orivilo/design-system";
-import { INTAKE_VERSION, POSITIONING_STATEMENT_MAX, toBusinessView } from "@orivilo/intent-engine";
+import {
+  ANSWER_MAX_CHARS,
+  CORE_IDEA_MAX,
+  INTAKE_VERSION,
+  POSITIONING_STATEMENT_MAX,
+  toBusinessView,
+} from "@orivilo/intent-engine";
 import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { webMessages } from "../../../i18n/messages";
 
 /**
- * ORV-285 tech notes T18 (spec rows 2, 3 and 9 at the wrapper) and, from ORV-292, the draft request
- * and row 29 (a late failure after the viewer closed). There is no DOM in this project's tests, so
- * the hooks `ProjectBoard` uses are given a store, as `IntakeForm.test.tsx` does: `useState` for its
- * one outcome (the only state that starts as null), `useRef` for the count of viewer closings, `useTransition` that runs the async function and holds `pending` until it settles,
- * `useMessages` for the locale and `useRouter` for a spy. The wrapper is called as a function and its
- * element's props are what it asks the screen for. What the screen draws from those props is the stories' proof
- * (`business-board.stories.tsx`, the `Positioning` plays).
+ * ORV-285 tech notes T18 (spec rows 2, 3, 4, 7, 8 and 9 at the wrapper) and, from ORV-292, the draft
+ * request and row 29 (a late failure after the viewer closed). There is no DOM in this project's
+ * tests, so the hooks `ProjectBoard` uses are given a store, as `IntakeForm.test.tsx` does:
+ * `useState` for its one outcome (the only state that starts as null), `useRef` for the count of
+ * viewer closings, `useTransition` that runs the async function and holds `pending` until it
+ * settles, `useMessages` for the locale and `useRouter` for a spy. The wrapper is called as a
+ * function and its element's props are what it asks the screen for. What the screen draws from
+ * those props is the stories' proof (`business-board.stories.tsx`, the `Positioning` plays).
+ * ORV-291 T22: the wrapper holds a second outcome and a second transition for the foundation
+ * entries; the hooks are given two slots, in the order the wrapper calls them (the positioning
+ * slot first), and a render starts at slot one.
  */
 const seed = vi.hoisted(() => ({
   locale: "en" as "en" | "th",
   last: null as unknown,
   pending: false,
   running: Promise.resolve() as Promise<unknown>,
+  entered: null as unknown,
+  entering: false,
+  enteringRun: Promise.resolve() as Promise<unknown>,
+  /** Which `useState(null)` and `useTransition` of the current render comes next. */
+  states: 0,
+  transitions: 0,
   ref: null as { current: unknown } | null,
 }));
 vi.mock("react", async (importOriginal) => {
   const react = await importOriginal<typeof import("react")>();
   return {
     ...react,
-    useState: (initial: unknown) =>
-      initial === null
+    useState: (initial: unknown) => {
+      if (initial !== null) return react.useState(initial);
+      return seed.states++ === 0
         ? ([
             seed.last,
             (next: unknown) => {
               seed.last = next;
             },
           ] as const)
-        : react.useState(initial),
+        : ([
+            seed.entered,
+            (next: unknown) => {
+              seed.entered = next;
+            },
+          ] as const);
+    },
     useRef: (initial: unknown) => (seed.ref ??= { current: initial }),
     useTransition: () =>
-      [
-        seed.pending,
-        (run: () => Promise<void>) => {
-          seed.pending = true;
-          seed.running = run().finally(() => {
-            seed.pending = false;
-          });
-        },
-      ] as const,
+      seed.transitions++ === 0
+        ? ([
+            seed.pending,
+            (run: () => Promise<void>) => {
+              seed.pending = true;
+              seed.running = run().finally(() => {
+                seed.pending = false;
+              });
+            },
+          ] as const)
+        : ([
+            seed.entering,
+            (run: () => Promise<void>) => {
+              seed.entering = true;
+              seed.enteringRun = run().finally(() => {
+                seed.entering = false;
+              });
+            },
+          ] as const),
   };
 });
 vi.mock("@orivilo/design-system", async (importOriginal) => ({
@@ -55,10 +88,13 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
 const choosePositioning = vi.hoisted(() => vi.fn());
 const draftPositioning = vi.hoisted(() => vi.fn());
 vi.mock("../positioning-actions", () => ({ choosePositioning, draftPositioning }));
+const enterFoundation = vi.hoisted(() => vi.fn());
+vi.mock("../foundation-actions", () => ({ enterFoundation }));
 
 const { ProjectBoard } = await import("./ProjectBoard");
 
 const PROJECT = "9a8b7c6d-1111-4222-8333-444455556666";
+const GUIDEBOOK = `/business/${PROJECT}/guidebook`;
 const ID = "5f0c6f7e-2b1d-4c3a-9e8f-0a1b2c3d4e5f";
 const VIEW = toBusinessView({
   project: { id: PROJECT, name: "ร้านกาแฟคั่วเอง", createdAt: "2026-11-18T03:15:00.000Z" },
@@ -81,19 +117,37 @@ type Controls = {
   onDraft: () => void;
   onDismiss: () => void;
 };
+type FoundationControls = {
+  pending: "saving" | null;
+  problems: { path: string; kind: string }[] | null;
+  failure: string | undefined;
+  onEnter: (request: unknown) => void;
+  onDismiss: () => void;
+};
 /** The element `ProjectBoard` returns, with the hooks above: its props are what it asks the screen for. */
-const controlsOf = (locale: "en" | "th"): Controls => {
+const elementOf = (locale: "en" | "th") => {
   seed.locale = locale;
+  seed.states = 0;
+  seed.transitions = 0;
   const element = ProjectBoard({
     view: VIEW,
     projectId: PROJECT,
+    guidebookHref: GUIDEBOOK,
     errors: webMessages[locale].saved.errors,
     wait: webMessages[locale].wait,
     failure: webMessages[locale].failure,
-  }) as ReactElement<{ view: unknown; positioning: Controls }>;
+  }) as ReactElement<{
+    view: unknown;
+    guidebookHref: string;
+    positioning: Controls;
+    foundation: FoundationControls;
+  }>;
   expect(element.props.view).toBe(VIEW);
-  return element.props.positioning;
+  // ORV-302: the wrapper passes the address of the guidebook to the screen as it is given.
+  expect(element.props.guidebookHref).toBe(GUIDEBOOK);
+  return element.props;
 };
+const controlsOf = (locale: "en" | "th"): Controls => elementOf(locale).positioning;
 const press = (locale: "en" | "th", request: unknown) => controlsOf(locale).onChoose(request);
 
 beforeEach(() => {
@@ -101,9 +155,13 @@ beforeEach(() => {
   seed.last = null;
   seed.pending = false;
   seed.running = Promise.resolve();
+  seed.entered = null;
+  seed.entering = false;
+  seed.enteringRun = Promise.resolve();
   seed.ref = null;
   choosePositioning.mockReset();
   draftPositioning.mockReset();
+  enterFoundation.mockReset();
   refresh.mockReset();
 });
 
@@ -504,5 +562,278 @@ describe("a pick or an edit", () => {
     });
     expect(choosePositioning).not.toHaveBeenCalled();
     expect(controlsOf("en").problem).toBe("too-long");
+  });
+});
+
+// ORV-291 T22 (spec rows 3 and 10): the foundation entries at the wrapper.
+const foundationOf = (locale: "en" | "th"): FoundationControls => elementOf(locale).foundation;
+const AXES = { playful: 25, expressive: 75, structured: 50, warm: 0, premium: 100 };
+const given = (payload: Record<string, unknown> = {}) => ({
+  node: "identity-frame",
+  kind: "given",
+  payload: { axes: AXES, ...payload },
+});
+const enter = (locale: "en" | "th", request: unknown) => foundationOf(locale).onEnter(request);
+
+describe("a foundation entry the wrapper refuses before any call", () => {
+  it("a scale with no point makes no call and names that scale", () => {
+    const four = { ...AXES, warm: undefined };
+    enter("en", given({ axes: four }));
+    expect(enterFoundation).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
+    const next = foundationOf("en");
+    expect(next.problems?.map((p) => p.path)).toEqual(["payload.axes.warm"]);
+    expect(next.failure).toBeUndefined();
+    expect(next.pending).toBeNull();
+  });
+
+  it("an answer one past its bound makes no call and names that answer", () => {
+    enter("en", given({ never: "ก".repeat(ANSWER_MAX_CHARS + 1) }));
+    expect(enterFoundation).not.toHaveBeenCalled();
+    expect(foundationOf("en").problems).toEqual([{ path: "payload.never", kind: "too-long" }]);
+  });
+
+  it("calls once for an answer at its bound, with the project id", async () => {
+    enterFoundation.mockResolvedValue({
+      ok: true,
+      value: { node: "identity-frame", kind: "given" },
+    });
+    enter("en", given({ person: "ก".repeat(ANSWER_MAX_CHARS) }));
+    await seed.enteringRun;
+    expect(enterFoundation).toHaveBeenCalledExactlyOnceWith({
+      projectId: PROJECT,
+      ...given({ person: "ก".repeat(ANSWER_MAX_CHARS) }),
+    });
+  });
+});
+
+describe("a foundation entry that is running", () => {
+  it("is pending; a second press, and a Positioning press, make no second call", async () => {
+    let finish: (outcome: unknown) => void = () => {};
+    enterFoundation.mockReturnValue(new Promise((resolve) => (finish = resolve)));
+    enter("en", given());
+    expect(foundationOf("en").pending).toBe("saving");
+    enter("en", given());
+    enter("en", { node: "identity-frame", kind: "skipped", payload: {} });
+    controlsOf("en").onChoose({ kind: "skipped" });
+    expect(enterFoundation).toHaveBeenCalledTimes(1);
+    expect(choosePositioning).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
+    finish({ ok: true, value: { node: "identity-frame", kind: "given" } });
+    await seed.enteringRun;
+    expect(foundationOf("en").pending).toBeNull();
+  });
+
+  it("a Positioning save that is running blocks an entry", async () => {
+    let finish: (outcome: unknown) => void = () => {};
+    choosePositioning.mockReturnValue(new Promise((resolve) => (finish = resolve)));
+    controlsOf("en").onChoose({ kind: "skipped" });
+    enter("en", given());
+    expect(enterFoundation).not.toHaveBeenCalled();
+    finish({ ok: true, value: { kind: "skipped" } });
+    await seed.running;
+  });
+
+  it("asks for the skip with the project id and nothing else", async () => {
+    enterFoundation.mockResolvedValue({
+      ok: true,
+      value: { node: "identity-frame", kind: "skipped" },
+    });
+    enter("th", { node: "identity-frame", kind: "skipped", payload: {} });
+    await seed.enteringRun;
+    expect(enterFoundation).toHaveBeenCalledExactlyOnceWith({
+      projectId: PROJECT,
+      node: "identity-frame",
+      kind: "skipped",
+      payload: {},
+    });
+  });
+});
+
+// ORV-291 T43 (spec rows 26 and 27, at the wrapper): the core idea entry, written or skipped.
+const written = (payload: Record<string, unknown>) => ({
+  node: "core-idea",
+  kind: "written",
+  payload,
+});
+
+describe("a core idea entry", () => {
+  it("an empty core idea makes no call and names the statement", () => {
+    enter("en", written({ statement: "   " }));
+    expect(enterFoundation).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
+    expect(foundationOf("en").problems).toEqual([{ path: "payload.statement", kind: "required" }]);
+    expect(foundationOf("en").pending).toBeNull();
+  });
+
+  it("a core idea one past its bound makes no call and names the statement", () => {
+    enter("en", written({ statement: "ก".repeat(CORE_IDEA_MAX + 1) }));
+    expect(enterFoundation).not.toHaveBeenCalled();
+    expect(foundationOf("en").problems).toEqual([{ path: "payload.statement", kind: "too-long" }]);
+  });
+
+  it("an answer one past its bound makes no call and names the answer", () => {
+    enter("en", written({ statement: STATEMENT, remember: "ก".repeat(ANSWER_MAX_CHARS + 1) }));
+    expect(enterFoundation).not.toHaveBeenCalled();
+    expect(foundationOf("en").problems).toEqual([{ path: "payload.remember", kind: "too-long" }]);
+  });
+
+  it("calls once for a core idea and an answer at their bounds, with the project id", async () => {
+    enterFoundation.mockResolvedValue({ ok: true, value: { node: "core-idea", kind: "written" } });
+    const payload = {
+      statement: "ก".repeat(CORE_IDEA_MAX),
+      remember: "ก".repeat(ANSWER_MAX_CHARS),
+    };
+    enter("en", written(payload));
+    await seed.enteringRun;
+    expect(enterFoundation).toHaveBeenCalledExactlyOnceWith({
+      projectId: PROJECT,
+      ...written(payload),
+    });
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("a double press makes one call", async () => {
+    let finish: (outcome: unknown) => void = () => {};
+    enterFoundation.mockReturnValue(new Promise((resolve) => (finish = resolve)));
+    enter("en", written({ statement: STATEMENT }));
+    expect(foundationOf("en").pending).toBe("saving");
+    enter("en", written({ statement: STATEMENT }));
+    expect(enterFoundation).toHaveBeenCalledTimes(1);
+    finish({ ok: true, value: { node: "core-idea", kind: "written" } });
+    await seed.enteringRun;
+    expect(foundationOf("en").pending).toBeNull();
+  });
+
+  it("asks for the skip with the project id and nothing else", async () => {
+    enterFoundation.mockResolvedValue({ ok: true, value: { node: "core-idea", kind: "skipped" } });
+    enter("th", { node: "core-idea", kind: "skipped", payload: {} });
+    await seed.enteringRun;
+    expect(enterFoundation).toHaveBeenCalledExactlyOnceWith({
+      projectId: PROJECT,
+      node: "core-idea",
+      kind: "skipped",
+      payload: {},
+    });
+  });
+});
+
+describe("a foundation entry that was saved or refused", () => {
+  it("a saved entry refreshes the page once and shows no failure", async () => {
+    enterFoundation.mockResolvedValue({
+      ok: true,
+      value: { node: "identity-frame", kind: "given" },
+    });
+    enter("en", given());
+    await seed.enteringRun;
+    expect(refresh).toHaveBeenCalledTimes(1);
+    const next = foundationOf("en");
+    expect(next.failure).toBeUndefined();
+    expect(next.problems).toBeNull();
+  });
+
+  it.each(["en", "th"] as const)(
+    "rate-limited shows the line with the wait in %s, names no field and refreshes nothing",
+    async (locale) => {
+      enterFoundation.mockResolvedValue(
+        failed({ error: "rate-limited", code: "RATE_LIMITED", retryAfter: 1200, retryable: true }),
+      );
+      enter(locale, given());
+      await seed.enteringRun;
+      const next = foundationOf(locale);
+      expect(next.failure).toBe(
+        webMessages[locale].saved.errors["rate-limited"].replace(
+          "{wait}",
+          locale === "en" ? "20 minutes" : "20 นาที",
+        ),
+      );
+      expect(next.problems).toBeNull();
+      expect(next.pending).toBeNull();
+      expect(refresh).not.toHaveBeenCalled();
+      expect(enterFoundation).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it("a refusal that names a field shows on the field and has no line of its own", async () => {
+    const problems = [{ path: "payload.person", kind: "too-long" }];
+    enterFoundation.mockResolvedValue(
+      failed({ error: "invalid-input", code: "INVALID_INPUT", problems }),
+    );
+    enter("en", given());
+    await seed.enteringRun;
+    const next = foundationOf("en");
+    expect(next.problems).toEqual(problems);
+    expect(next.failure).toBeUndefined();
+  });
+
+  it("an entry the node does not allow, with no field named, says saved.errors.failed", async () => {
+    enterFoundation.mockResolvedValue(failed({ error: "invalid-input", code: "INVALID_INPUT" }));
+    enter("en", given());
+    await seed.enteringRun;
+    const next = foundationOf("en");
+    expect(next.failure).toBe(webMessages.en.saved.errors.failed);
+    expect(next.problems).toBeNull();
+  });
+
+  it("a rejected call is saved.errors.failed, never retried", async () => {
+    enterFoundation.mockRejectedValue(new Error("network"));
+    enter("en", given());
+    await seed.enteringRun;
+    const next = foundationOf("en");
+    expect(next.failure).toBe(webMessages.en.saved.errors.failed);
+    expect(next.pending).toBeNull();
+    expect(enterFoundation).toHaveBeenCalledTimes(1);
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
+  it("a language switch redraws the line and makes no second call", async () => {
+    enterFoundation.mockResolvedValue(
+      failed({ error: "rate-limited", code: "RATE_LIMITED", retryAfter: 1200, retryable: true }),
+    );
+    enter("en", given());
+    await seed.enteringRun;
+    const english = foundationOf("en").failure;
+    const thai = foundationOf("th").failure;
+    expect(english).toContain("20 minutes");
+    expect(thai).toContain("20 นาที");
+    expect(enterFoundation).toHaveBeenCalledTimes(1);
+  });
+
+  // Row 10 at the wrapper: the saved given personality is kept as an outcome, so each language reads
+  // it back with no second call and no second refresh. A render that asked the page to refresh again
+  // would show here, after the extra renders; the test above counts the refresh before its render.
+  it("a language switch after a saved personality makes no second call and no second refresh", async () => {
+    enterFoundation.mockResolvedValue({
+      ok: true,
+      value: { node: "identity-frame", kind: "given" },
+    });
+    enter("th", given({ person: STATEMENT }));
+    await seed.enteringRun;
+    for (const locale of ["en", "th", "en"] as const) {
+      const next = foundationOf(locale);
+      expect(next.failure).toBeUndefined();
+      expect(next.problems).toBeNull();
+      expect(next.pending).toBeNull();
+    }
+    expect(enterFoundation).toHaveBeenCalledExactlyOnceWith({
+      projectId: PROJECT,
+      ...given({ person: STATEMENT }),
+    });
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("onDismiss drops the failure and the named fields, and nothing else", async () => {
+    enterFoundation.mockRejectedValue(new Error("network"));
+    enter("en", given());
+    await seed.enteringRun;
+    expect(foundationOf("en").failure).toBeDefined();
+    foundationOf("en").onDismiss();
+    expect(foundationOf("en").failure).toBeUndefined();
+    const four = { ...AXES, warm: undefined };
+    enter("en", given({ axes: four }));
+    expect(foundationOf("en").problems).not.toBeNull();
+    foundationOf("en").onDismiss();
+    expect(foundationOf("en").problems).toBeNull();
+    expect(enterFoundation).toHaveBeenCalledTimes(1);
   });
 });

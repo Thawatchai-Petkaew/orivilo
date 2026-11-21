@@ -653,6 +653,7 @@ export const en: Messages = {
       "read.notRendered.failed": "the renderer did not start",
       "read.notRendered.budget": "the page took too long",
       "read.notRendered.invalid": "the renderer's result could not be used",
+      "evidence.fromModel": "Read by AI ({model}). Check it before you use it.",
       "evidence.belowFloor": "Too uncertain to use: {reason}",
       "quality.fewWords": "the text has fewer than 20 words",
       "quality.pageIncomplete": "part of the page did not load",
@@ -687,6 +688,14 @@ export const en: Messages = {
       instead: "When a customer does not choose you, who or what do they choose instead?",
       only: "What does a customer get from you that they cannot get from those alternatives?",
       why: "Why did you start this? One or two sentences is enough.",
+      person: "If your brand were a person, which three words would people use to describe them?",
+      never: "How should your brand never feel?",
+      subBrands: "Does this brand sit above or below other brands?",
+      remember: "After someone meets your brand, what one thing should they remember?",
+      lineup: "Which brands do customers compare you with, and what is the main colour of each?",
+      scripts: "Which scripts will your brand write in?",
+      appIcon:
+        "Will your brand need a small square mark on its own, for example an app icon or a profile picture?",
     },
     node: {
       situation: "Situation",
@@ -694,6 +703,14 @@ export const en: Messages = {
       audience: "Audience",
       competitiveFrame: "Competitive frame",
       positioning: "Positioning",
+      identityFrame: "Brand personality",
+      architecture: "Brand architecture",
+      name: "Name",
+      coreIdea: "Core idea",
+      logoType: "Logo type",
+      color: "Colour",
+      typography: "Typography",
+      logoMark: "Logo mark",
     },
     field: {
       industry: "Business type",
@@ -707,6 +724,24 @@ export const en: Messages = {
       alternatives: "What customers choose instead",
       value: "What only you give",
       statement: "Positioning statement",
+      personality: "Personality",
+      person: "Three words for your brand as a person",
+      never: "How it should never feel",
+      subBrands: "Other brands above or below",
+      architecture: "Architecture",
+      workingName: "Working name",
+      remember: "The one thing to remember",
+      coreIdea: "Core idea",
+      lineup: "Competitors' main colours",
+      crowded: "Crowded colour families",
+      signature: "Signature colour family",
+      neutral: "Greys",
+      canvas: "Background",
+      scripts: "Scripts",
+      readingFace: "Reading text",
+      displayFace: "Headlines",
+      appIcon: "Small square mark",
+      logoType: "Logo type",
     },
     state: {
       proposed: "Not confirmed yet",
@@ -715,9 +750,160 @@ export const en: Messages = {
       gate: "A gate: nothing builds on this until you agree to it.",
       awaitingChoice: "Waiting for your choice",
       agreed: "Agreed",
+      given: "Given by you",
+      waiting: "Waits for {nodes}",
+      derived: "Worked out by a fixed rule",
+      notInVersion: "Not in this version",
+      partly: "Partly worked out by fixed rules",
+      needsAnswer: "Waits for your answer",
     },
     stillToAsk: "Still to ask",
+    marks: {
+      unchecked: "Not yet checked against: {nodes}",
+      restsOn: "Rests on: {nodes}",
+    },
+    axis: {
+      playful: { low: "Serious", high: "Playful" },
+      expressive: { low: "Quiet", high: "Bold" },
+      structured: { low: "Free and loose", high: "Orderly and precise" },
+      warm: { low: "Cool and reserved", high: "Warm and friendly" },
+      premium: { low: "Everyday and easy to reach", high: "Premium and exclusive" },
+    },
+    identity: {
+      axisLegend: "From {low} to {high}",
+      point: "{n} of 5",
+      hypothesis:
+        "These five scales are ORIVILO's working words for a brand's personality, not a tested method.",
+      describe: "Describe the personality",
+      save: "Save this personality",
+      axesRequired: "Choose a point on each of the five scales, or cancel.",
+    },
+    architecture: {
+      no: "No, it stands on its own",
+      yes: "Yes, it sits above or below other brands",
+      save: "Save this answer",
+      choiceRequired: "Choose one answer first.",
+      single: "Single brand, one unit",
+      because: "Worked out from your answer: this brand does not sit above or below other brands.",
+      notInVersion:
+        "A brand that sits above or below other brands needs a brand architecture study, which this version does not do yet.",
+    },
+    name: {
+      give: "Give a working name",
+      save: "Use this working name",
+      required: "Write a working name, or cancel.",
+      notScreened: "Working name, not screened for trademarks.",
+    },
+    coreIdea: {
+      save: "Agree to this core idea",
+      statementRequired: "Write your core idea before you agree to it, or cancel.",
+      gatePassed: "You agreed to this core idea.",
+    },
+    decision: {
+      rule: "Rule: {rule}",
+    },
+    color: {
+      give: "Give competitors' colours",
+      row: "Brand {n}",
+      brandName: "Brand name",
+      hex: "Main colour, as # and six characters",
+      add: "Add a brand",
+      remove: "Remove {name}",
+      save: "Save these colours",
+      lineupRequired: "Add at least one brand with its colour, or cancel.",
+      rowIncomplete: "Give both the brand name and its colour, or remove the row.",
+      hexInvalid:
+        "Write the colour as # and six characters from 0 to 9 and A to F, for example #5B3FD9.",
+      nameRepeated: "This brand is already in the list.",
+      lineupMax: "Twenty brands at most.",
+      givenByYou: "Colours you gave. ORIVILO did not read them from these brands.",
+      crowdRule:
+        "A colour family counts as crowded when two or more of the brands you gave share it.",
+      noneCrowded: "None",
+      family: {
+        red: "Red",
+        orange: "Orange",
+        yellow: "Yellow",
+        lime: "Lime",
+        green: "Green",
+        teal: "Teal",
+        cyan: "Cyan",
+        blue: "Blue",
+        violet: "Violet",
+        magenta: "Magenta",
+        ink: "Near black",
+        paper: "Near white",
+      },
+      neutral: {
+        cool: "Cool greys",
+        near: "Near neutral greys",
+        warm: "Warm greys",
+      },
+      canvas: {
+        soft: "Soft off-white, with white cards on it",
+        bright: "Bright white",
+      },
+      because: {
+        signature:
+          "Bold at {expressive} of 5 and warm at {warm} of 5 point to {family}, and {family} is not crowded among the colours you gave.",
+        fallback:
+          "Bold at {expressive} of 5 and warm at {warm} of 5 point first to {preferred}, which is crowded among the colours you gave, so the next candidate, {family}, is used.",
+        neutral: "Warm at {warm} of 5 sets the greys.",
+        canvas: "Premium at {premium} of 5 sets the background.",
+      },
+      waitsForLineup: "The signature colour waits for your competitors' colours.",
+      bothCrowded:
+        "Both candidate families for this personality, {first} and {second}, are crowded among the colours you gave, so no signature colour is chosen.",
+      needsPersonality:
+        "Describe the brand's personality to work out the colours: the colour rules read it.",
+      notDecided: "The colour rules gave no result for this input.",
+      hypothesis:
+        "The thresholds and the four candidate colour families are ORIVILO's working rules, not a tested method.",
+      familyOnly: "A colour family, not a final colour value.",
+    },
+    typography: {
+      scripts: {
+        thaiLatin: "Thai and Latin",
+        thai: "Thai only",
+        latin: "Latin only",
+      },
+      style: {
+        looped: "Thai, looped",
+        loopless: "Thai, loopless",
+        latinSans: "Latin, sans serif",
+      },
+      licence: "Licence: {licence}",
+      because: {
+        reading: "Looped Thai is the style commonly used for body and small text.",
+        display: "Loopless Thai is the style commonly used for titles and branding.",
+        pairing: "Either Thai style pairs with a Latin sans serif.",
+      },
+      oneChoice:
+        "This version has one family for each role and script, so every brand gets these families.",
+      noPersonalityLink:
+        "Your brand's personality does not choose these families. A link from personality to a typeface would be a working guess, not a tested method.",
+    },
+    logoType: {
+      appIcon: {
+        yes: "Yes, it needs one",
+        no: "No, the name is enough",
+      },
+      wordmark: "Wordmark: the name itself is the logo",
+      symbolPlusName: "Symbol plus name",
+      because: {
+        wordmark:
+          "A short name, one brand and no need for a small square mark: the logo puts the name first, because a symbol needs a reason.",
+        longName: "A long name is a reason for a symbol as a shorthand.",
+        appIcon: "The need for a small square mark is a reason for a symbol as a shorthand.",
+      },
+      nameLength: "Your working name {name} has {n} characters; more than {max} counts as long.",
+      hypothesis: "What counts as a long name is ORIVILO's working rule; no source gives a number.",
+      crowdingNotChecked: "Not checked against similar trademarks.",
+      otherTypes:
+        "Letterform marks, emblems and dynamic marks are not worked out by any rule in this version.",
+    },
     label: {
+      byRule: "Worked out by fixed rules from what you gave. Not decided by AI.",
       yourWords: "Your words, placed here by fixed rules. Not read by AI.",
       aiUnavailable: "AI did not read these answers, so only your own words are shown.",
       confidence: "Confidence numbers come from fixed rules, not from a test of accuracy.",
@@ -739,6 +925,70 @@ export const en: Messages = {
       lede: "What you told us, placed on the first nodes of your board. Nothing here is confirmed yet.",
       savedAt: "Saved {date}",
       label: "Business board",
+      openGuidebook: "Open the brand guidebook",
+    },
+    guidebook: {
+      title: "Brand guidebook, draft",
+      byRule:
+        "ORIVILO put this guidebook together by fixed rules from what is on your board. No AI was used to put it together.",
+      draftNote:
+        "This version does not screen names or logos for trademarks and does not test the identity with people, so this guidebook stays a draft.",
+      backToBoard: "Back to the board",
+      section: {
+        business: "From your business answers",
+        foundation: "Brand foundation",
+        visual: "Visual identity",
+        unconfirmed: "Not yet confirmed",
+        notHeld: "Not in this guidebook",
+      },
+      businessNote:
+        "These steps are on your board with your own words. The guidebook names each one and its state only.",
+      unconfirmed: {
+        none: "You have skipped no step.",
+        restsOnIt: "What rests on it:",
+        nothing: "Nothing you gave or a rule worked out rests on it yet.",
+      },
+      notYet: {
+        logoMark: "Logo image drafts come in a later step that is not built yet.",
+      },
+      notHeld: {
+        audit: {
+          title: "Research and audits",
+          reason:
+            "Not in this version: the board starts from your answers, not from a study of an existing brand.",
+        },
+        verbal: {
+          title: "Verbal identity",
+          reason: "Not in this version: the brand's voice, tone and messages are a later step.",
+        },
+        "look-feel": {
+          title: "Look and feel",
+          reason:
+            "Not in this version: the colour, type and logo type here were worked out without it.",
+        },
+        "expression-kit": {
+          title: "Imagery, icons and graphic elements",
+          reason:
+            "Not in this version: imagery, icons, graphic elements, motion and sound are a later step.",
+        },
+        "ip-screen": {
+          title: "Trademark screening",
+          reason: "Not done: the working name and any logo are not screened for trademarks.",
+        },
+        touchpoints: {
+          title: "The brand in use",
+          reason:
+            "Not in this version: examples of the brand on the things your business uses are a later step.",
+        },
+        validation: {
+          title: "Tests with people",
+          reason: "Not done: the identity is not tested with people.",
+        },
+        launch: {
+          title: "Launch and upkeep",
+          reason: "Not in this version: launching and looking after the brand are a later step.",
+        },
+      },
     },
     signedOut: "Sign in to tell us about your business.",
     signInLink: "Go to sign in",
@@ -791,6 +1041,7 @@ export const en: Messages = {
   strategy: {
     skip: "Skip for now",
     draftedOptions: "Drafted by AI from your answers. Pick one, edit it, or write your own.",
+    provisional: "Provisional. This rests on a step you skipped.",
   },
   orvCanvas: {
     title: "ORIVILO, from brief to product",

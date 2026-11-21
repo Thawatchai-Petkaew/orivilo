@@ -127,6 +127,8 @@ Measured in the mock (board padding as `CanvasBoard` computes it in `freePadding
 
 **Budget.** The world is 4484 x 1394, as in revision 4: the two boards became shorter (391 high, were 624 and 531) and moved within their stages, nothing else moved. At 1440 the overview fits at 0.259 and at 1920 at 0.348, both above `CanvasBoard`'s fixed `minZoom` of 0.25. The budget at 1440 with `minZoom` 0.25 is about 4640 x 2260; a builder who adds content measures again.
 
+Corrected 2026-11-19 (`ORV-290-design-2`, `docs/specs/ORV-290/spec.md` row 32, B14): the world is now 4912 x 1394 in English and 4912 x 1244 in Thai, past the 4640 budget, because the columns after the brief column moved right (section 3). The test bound in `orivilo-canvas.test.ts` is 4912 x 2260. At 1440 the overview lands on the 0.25 floor (was 0.259) and the whole world still shows (1228 screen px); it shows whole from a window of about 1240 to 1260 px up. The measured table above is of the 4484 world. The design row is `docs/specs/ORV-280/design.md` row 32.
+
 ## 3. Layout numbers
 
 World px, the top-left corner of each card, measured in the mock in English with Inter, Anuphan and Sarabun (`layout5.mjs`). Every node's label row sits 28 above its card (label-sm plus 4), inside the gaps below. No parents: every node sits on the board.
@@ -139,33 +141,37 @@ World px, the top-left corner of each card, measured in the mock in English with
 | `b-feel`    | 280   | 210              | 0    | 741  |
 | `b-cat`     | 280   | 150              | 0    | 1019 |
 | `b-avoid`   | 280   | 157              | 0    | 1237 |
-| `b-pos`     | 280   | 116              | 352  | 113  |
-| `b-name`    | 280   | 181              | 352  | 297  |
-| `d-attr`    | 300   | 386              | 352  | 546  |
-| `d-board`   | 560   | 391              | 724  | 572  |
-| `l-idea`    | 300   | 136              | 1356 | 104  |
-| `l-build`   | 300   | 108              | 1356 | 308  |
-| `l-hist`    | 300   | 111              | 1356 | 484  |
-| `l-logo`    | 360   | 330              | 1704 | 104  |
-| `t-type`    | 360   | 133              | 1704 | 502  |
-| `u-board`   | 560   | 391              | 2136 | 174  |
-| `c-why`     | 300   | 173              | 1356 | 785  |
-| `c-hist`    | 300   | 122              | 1356 | 1026 |
-| `c-prop`    | 300   | 102              | 1356 | 1216 |
-| `c-pal`     | 360   | 288              | 1704 | 801  |
-| `c-con`     | 360   | 146              | 1704 | 1157 |
-| `c-demo`    | 360   | 381              | 2236 | 861  |
-| `bb-cover`  | 360   | 248              | 2768 | 113  |
-| `bb-logo`   | 360   | 248              | 2768 | 429  |
-| `bb-colour` | 360   | 248              | 2768 | 745  |
-| `bb-use`    | 360   | 248              | 2768 | 1061 |
-| `p-base`    | 300   | 484              | 3200 | 28   |
-| `p-pat`     | 360   | 691              | 3572 | 28   |
-| `p-landing` | 480   | 308              | 4004 | 28   |
-| `p-form`    | 480   | 288              | 4004 | 404  |
-| `p-report`  | 480   | 472              | 4004 | 760  |
+| `b-pos`     | 280   | 116              | 392  | 113  |
+| `b-name`    | 280   | 181              | 392  | 297  |
+| `d-attr`    | 300   | 386              | 392  | 546  |
+| `d-board`   | 560   | 391              | 804  | 572  |
+| `l-idea`    | 300   | 136              | 1460 | 104  |
+| `l-build`   | 300   | 108              | 1460 | 308  |
+| `l-hist`    | 300   | 111              | 1460 | 484  |
+| `l-logo`    | 360   | 330              | 1880 | 104  |
+| `t-type`    | 360   | 133              | 1880 | 502  |
+| `u-board`   | 560   | 391              | 2328 | 174  |
+| `c-why`     | 300   | 173              | 1460 | 785  |
+| `c-hist`    | 300   | 122              | 1460 | 1026 |
+| `c-prop`    | 300   | 102              | 1460 | 1216 |
+| `c-pal`     | 360   | 288              | 1880 | 801  |
+| `c-con`     | 360   | 146              | 1880 | 1157 |
+| `c-demo`    | 360   | 381              | 2428 | 861  |
+| `bb-cover`  | 360   | 248              | 2980 | 113  |
+| `bb-logo`   | 360   | 248              | 2980 | 429  |
+| `bb-colour` | 360   | 248              | 2980 | 745  |
+| `bb-use`    | 360   | 248              | 2980 | 1061 |
+| `p-base`    | 300   | 484              | 3464 | 28   |
+| `p-pat`     | 360   | 691              | 3876 | 28   |
+| `p-landing` | 480   | 308              | 4432 | 28   |
+| `p-form`    | 480   | 288              | 4432 | 404  |
+| `p-report`  | 480   | 472              | 4432 | 760  |
+
+Changed 2026-11-19 (ORV-290 row 32, B14): the x of the columns after the brief column moved right so no port name pill comes within 8 world px of another node's card or dot; each column's shift is the least that clears every pill of the earlier columns, planned with a 12 px margin. y is unchanged. The world grows from 4484 to 4912 wide.
 
 Changed from revision 4: `d-board` 391 high at y 572 (was 624 at 455), `u-board` 391 high at y 174 (was 531 at 104); each board card is the board at 542 x 339 (1280 x 800 scaled by 0.4234) plus the meta line. In Thai: `d-board` y 492, `u-board` y 106, the other Thai positions as the mock reports them (world 4484 x 1244).
+
+Corrected 2026-11-19 (`ORV-290-design-2`, `docs/specs/ORV-290/spec.md` row 32): the Thai world is 4912 x 1244 since the column move above.
 
 Rules behind the numbers: a stage holds tiers of columns; a column stacks cards 40 apart plus the 28 label row (68 from a card's bottom to the next card's top); stages sit 72 apart; in stage 4 the type and palette column sits 48 after the idea column, the brand in use board 72 after the logo column, and the demo 172 after the palette column, which keeps the corridor where the palette's edges turn; the colour tier sits 150 under the logo tier, room for the "03 Colour" chapter title; `d-attr` centres on the brief column; `d-board` aligns its middle with `d-attr`; the three product stages are top aligned so their edges run level; the other stages centre on the tallest. All nodes use `size: "custom"` with `width` from the table. The `Default` play checks that no two node rectangles, labels included, overlap and that stack gaps are 40 or more; the builder moves `y` until it holds.
 
@@ -814,6 +820,8 @@ Where a cell lists keys with slashes, each key takes the word in the same place.
 | Reduced motion             | No motion is designed: the chapter view and the preview open with duration 0; hover and focus changes are colour only, except an edge's hover width, which changes at once with no transition (section 17, S2)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | Long text                  | Node labels are one line and ellipsize at near zoom, with the full title in the accessible name (on a narrow card the end parts give way first, section 17, F2); furniture rows on the brandbook pages are one line each in both languages; no art text leaves its page or tile in either language (both checked by script); the check names on page 12 and the contents names may take two lines and keep their column; preview captions wrap at 360                                                                                                                                                                                                                                                                                                                                                        |
 
+Corrected 2026-11-19 (`ORV-290-design-2`, `docs/specs/ORV-290/spec.md` row 32): in the Thai state the world is 4912 x 1244, and in the Default state the overview at 1440 sits at 0.25, the floor (section 2, "Budget").
+
 ## 12. Gaps
 
 Gaps 1 to 11 were decided in revisions 1 and 2; gap 12 is closed by gap 16; gap 13 is withdrawn; gaps 14 to 19 are revision 4's; gaps 20 to 23 are new. Every gap that changes a component API, a node or edge data contract or a token is a lane L flag.
@@ -908,7 +916,7 @@ Files:
 - `packages/design-system/src/examples/orivilo-canvas.data.ts`: stages and chapters, the 31 nodes (as revision 4), the 40 edges, the 7 preview sequences (6, 3, 2, 6, 8, 12, 3 pages, with caption keys and what each renders), the palette, contrast pairs, attributes; the 5 direction pieces and the 7 in-use pieces (box at 1280 x 800, flood, treatment, image id, art lines with their `k`, caption keys); the 2 scene quads as measured in revision 5.1 (section 4: corners in percent of the image, `scene-card` face 350 x 200 with lockup width 0.56, `scene-sign` face 600 x 300 with lockup width 0.65, boundary); the 12 brandbook pages (ground, part, content records); the base and composed rows; the 3 pages; the 7 image records (section 9).
 - `packages/design-system/src/examples/orivilo-canvas.tsx`: `OriviloCanvas({ chapter?, preview? })`; the bodies through `renderBody`; one art renderer for both boards and the 12 pages at 1280 x 800, scaled as one image on the card, in the stack and on the preview stage; the floods as nested `DesignProfileBoundary` (light or dark, profile neutral) with the colour from `brand.signature` or `surface.canvas`; the page-local photo treatment utilities, violet and paper, with the exact declarations of gap 21; art type (gap 20); the giant mark and the construction (gap 2); the quad placement (gap 22); the guides (gap 23); the drawn phone with `Landing` at 390, `inert`; the chapter child (gap 1); the level-of-detail child (gap 19); the dock children (gap 17); the preview (gap 18) with its keyboard map; the report scroll start.
 - `packages/design-system/src/examples/orivilo-canvas.stories.tsx`, title `Examples/Prototype: ORIVILO canvas`, `layout: "fullscreen"`, locale English unless named. Stories: `Default`, `InThai`, `Dark`, `At360`, `DirectionChapter`, `LogoChapter`, `ColourChapter`, `InUseChapter`, `BrandbookChapter`, `DesignSystemChapter`, `ProductChapter`, `PreviewBrandbook` (page 6), `PreviewDirectionBoard`, `PreviewInUseBoard`, `PreviewProductPages` (the report), `PreviewAt360`, `MissingImages`.
-- `packages/design-system/src/examples/orivilo-canvas.test.ts`: 31 nodes and 40 edges (29 input, 8 reference, 3 derived, one label shown); 12 nodes with `open`, 7 sequences with 6, 3, 2, 6, 8, 12 and 3 pages; every edge joins ports of the same kind and steps to the right; images 7, of which only `brand-hero` may carry the mark and its record names the reference image; no other prompt asks for a logo; the scene quads are convex and inside the image; every art line's `k` lies in 0.8 to 5; no colour value in the art records (floods and inks are token names); the world fits 4640 x 2260; no middot or em dash in the data.
+- `packages/design-system/src/examples/orivilo-canvas.test.ts`: 31 nodes and 40 edges (29 input, 8 reference, 3 derived, one label shown); 12 nodes with `open`, 7 sequences with 6, 3, 2, 6, 8, 12 and 3 pages; every edge joins ports of the same kind and steps to the right; images 7, of which only `brand-hero` may carry the mark and its record names the reference image; no other prompt asks for a logo; the scene quads are convex and inside the image; every art line's `k` lies in 0.8 to 5; no colour value in the art records (floods and inks are token names); the world fits 4640 x 2260; no middot or em dash in the data. Corrected 2026-11-19 (`ORV-290-design-2`, `docs/specs/ORV-290/spec.md` row 32): the world bound is 4912 x 2260.
 - `packages/design-system/src/examples/index.ts`: export the page.
 - `packages/design-system/src/i18n/messages/en.ts` and `th.ts`: the `orvCanvas` keys of section 10, and `open.pages` and `open.name` in the shared canvas message group `node`, which `CanvasNode` reads (spec v2.1 default 3).
 - `packages/design-system/src/examples/brand-report.tsx` (gap 4), `brand-report.fixtures.ts` and the stories' imports (gap 11).

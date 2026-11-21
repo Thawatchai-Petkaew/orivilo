@@ -170,6 +170,7 @@ describe.each(["en", "th"] as const)("/business/[projectId] in %s", (locale) => 
     const wrapper = main.props.children;
     expect(wrapper.type).toBe(ProjectBoard);
     expect(wrapper.props["projectId"]).toBe(MINE);
+    expect(wrapper.props["guidebookHref"]).toBe(`/business/${MINE}/guidebook`);
     expect(wrapper.props["view"]).toMatchObject({
       projectName: "ร้านกาแฟคั่วเอง",
       positioning: { gate: "open", statement: null },
@@ -187,6 +188,48 @@ describe.each(["en", "th"] as const)("/business/[projectId] in %s", (locale) => 
       expect(all).not.toContain(secret);
     }
   });
+});
+
+// ORV-302 T18 (spec row 13): the ready board is given the address of the guidebook, built from the
+// id the loader accepted; a board that is not ready shows its notice and no link.
+describe("links to the guidebook", () => {
+  type Child = { type: unknown; props: Record<string, unknown> };
+  const childOf = async (session: unknown, throws: unknown = null) => {
+    state.locale = "en";
+    state.session = session;
+    state.throws = throws;
+    const main = (await page.default({ params: Promise.resolve({ projectId: MINE }) })) as {
+      props: { children: Child };
+    };
+    return main.props.children;
+  };
+
+  it("hands ProjectBoard the address of this project's guidebook", async () => {
+    const child = await childOf(person("ws-a"));
+    expect(child.type).toBe(ProjectBoard);
+    expect(child.props["guidebookHref"]).toBe(`/business/${MINE}/guidebook`);
+  });
+
+  it.each([
+    ["signed out", null, null],
+    [
+      "not on the approved list",
+      {
+        user: { id: "u2", email: "stranger@example.com" },
+        session: { activeOrganizationId: "ws-a" },
+      },
+      null,
+    ],
+    ["no database set up", null, new MissingEnvError("DATABASE_URL")],
+  ] as const)(
+    "%s: the notice's props hold no guidebook address",
+    async (_name, session, throws) => {
+      const child = await childOf(session, throws);
+      expect(child.type).not.toBe(ProjectBoard);
+      expect(child.props["access"]).not.toBe("ready");
+      expect(Object.keys(child.props)).not.toContain("guidebookHref");
+    },
+  );
 });
 
 // Row 13: another workspace's project, an unknown id and an id not in UUID form are one 404.
@@ -236,11 +279,27 @@ describe("another workspace", () => {
     expect((await notFoundOf(THEIRS, person(null))).digest).toBe("NEXT_HTTP_ERROR_FALLBACK;404");
   });
 
-  it("a stored row that fails its own check is the same 404, and an error line", async () => {
+  it("an intake row that fails its own check is the same 404, and an error line", async () => {
     state.stored = { bad: true };
     const error = await notFoundOf(MINE);
     expect(error.digest).toBe("NEXT_HTTP_ERROR_FALLBACK;404");
     expect(written()).toMatchObject([{ outcome: "failed", level: "error", reason: "failed" }]);
+  });
+});
+
+// ORV-287 row 5 at the page: a project whose saved reading no longer parses reaches the page as the
+// service gives it (`reading: null`, `orv287-unparsed-reading-1`). It shows the board as a project
+// with no reading does: no "AI did not read" line and no "Read by AI" line, and one `ok` line.
+describe.each(["en", "th"] as const)("a project with no usable reading in %s", (locale) => {
+  it("opens the board with no AI line, as a project with no reading does", async () => {
+    const html = await render(locale, MINE);
+    const m = messagesFor(locale);
+    expect(html).toContain('data-variant="present"');
+    expect(text(html)).not.toContain(m.business.label.aiUnavailable);
+    expect(text(html)).not.toMatch(/Read by AI|AI อ่านค่านี้/);
+    expect(written()).toMatchObject([
+      { route: "business/openProject", outcome: "ok", level: "info" },
+    ]);
   });
 });
 

@@ -149,11 +149,13 @@ describe("orivilo canvas data, structure (spec rows 19, 23)", () => {
     for (const n of NODES) if (n.id !== "c-demo") expect(n.source, n.id).toBeTruthy();
   });
 
-  it("fits the world in 4640 x 2260", () => {
+  // The columns moved right in ORV-290 row 32 so no port name pill nears another node, which grew
+  // the world from 4484 to 4912 wide; at 1440 it still fits at the 0.25 floor (5760 wide).
+  it("fits the world in 4912 x 2260", () => {
     for (const n of NODES) {
       expect(n.x, n.id).toBeGreaterThanOrEqual(0);
       expect(n.y, n.id).toBeGreaterThanOrEqual(0);
-      expect(n.x + n.width, n.id).toBeLessThanOrEqual(4640);
+      expect(n.x + n.width, n.id).toBeLessThanOrEqual(4912);
       expect(n.y, n.id).toBeLessThanOrEqual(2260);
     }
   });
@@ -188,7 +190,7 @@ describe("orivilo canvas data, structure (spec rows 19, 23)", () => {
     ]);
     expect(FRAMES.map((f) => [f.id, f.width, f.height, f.start])).toEqual([
       ["landing", 1280, 290, 0],
-      ["form", 800, 270, 48],
+      ["form", 800, 270, 8],
       ["report", 800, 420, "report"],
     ]);
     expect(PALETTE.map((p) => p.hex)).toEqual([
@@ -237,7 +239,7 @@ describe("graphOf (spec row 19)", () => {
     expect(board?.data.open).toEqual({ count: 6 });
     expect(board?.data.pad).toBe("media");
     expect(board?.width).toBe(560);
-    expect(board?.position).toEqual({ x: 724, y: 572 });
+    expect(board?.position).toEqual({ x: 804, y: 572 });
     expect(g.nodes.find((n) => n.id === "c-demo")?.data.source).toBeUndefined();
     const pat = g.nodes.find((n) => n.id === "p-pat");
     expect(pat?.data.inputs?.map((p) => p.row)).toEqual([

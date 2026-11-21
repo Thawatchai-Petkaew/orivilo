@@ -113,12 +113,14 @@ export async function loadList(): Promise<ListLoad> {
 
 /**
  * One project with its newest intake, that intake's saved reading and the project's newest
- * positioning choice (ORV-285), as the view the screen takes. Opening reads rows and never calls
- * a model. The id is a name to look up:
- * one that is not in UUID form never reaches the database. Another workspace's project, an unknown
+ * positioning choice (ORV-285) and its brand foundation entries (ORV-291), as the view the screen
+ * takes. Opening reads rows and never calls a model. The id is a name to look up: one that is not
+ * in UUID form never reaches the database. Another workspace's project, an unknown
  * id and a bad form all answer `not-found`, one answer for the page's one 404 body (security rule 9).
- * A stored row, an intake or a reading, that no longer parses shows as the same 404: the page tells
- * nothing about the row.
+ * A stored intake that no longer parses shows as the same 404 and an error line: the page tells
+ * nothing about the row. A saved reading that no longer parses is not an error here: `open` answers
+ * with no reading (`orv287-unparsed-reading-1`), so the project is `ready` with reading status
+ * `none`, its own answers shown and the boundary line `ok`.
  */
 export async function loadProject(id: string): Promise<ProjectLoad> {
   return load<ProjectLoad>(
@@ -142,6 +144,7 @@ export async function loadProject(id: string): Promise<ProjectLoad> {
           intake: opened.intake,
           reading: opened.reading,
           positioning: opened.positioning,
+          foundation: opened.foundation,
         });
         return {
           value: { access: "ready", view },

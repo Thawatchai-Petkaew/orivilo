@@ -5,11 +5,16 @@ import {
   type BusinessFieldReading,
   type BusinessNodeId,
   type BusinessReadReason,
-  EVIDENCE_STRINGS,
+  type FoundationFieldKey,
+  type FoundationNode,
+  type Face,
+  type FoundationNodeId,
   type InputEvidence,
   type IntakeField,
+  type MarkRef,
   PROXY_QUESTIONS,
   type ProxyQuestionId,
+  type TypographyScripts,
 } from "@orivilo/intent-engine";
 import type { EvidenceItem } from "../components/index";
 import { DATE_TAGS, type Locale } from "../i18n/locale";
@@ -29,10 +34,211 @@ const NODE_KEY = {
   audience: "audience",
   "competitive-frame": "competitiveFrame",
   positioning: "positioning",
-} as const satisfies Record<BusinessNodeId, keyof Business["node"]>;
+  // The foundation nodes of ORV-291.
+  "identity-frame": "identityFrame",
+  architecture: "architecture",
+  name: "name",
+  "core-idea": "coreIdea",
+  "logo-type": "logoType",
+  color: "color",
+  typography: "typography",
+} as const satisfies Record<BusinessNodeId | FoundationNodeId, keyof Business["node"]>;
 
-export function nodeTitle(m: Messages, id: BusinessNodeId): string {
+export function nodeTitle(m: Messages, id: BusinessNodeId | FoundationNodeId): string {
   return m.business.node[NODE_KEY[id]];
+}
+
+/** The node titles of `refs` as one line: `Intl.ListFormat`, type `conjunction`, in the page's locale. */
+export function listOfNodes(m: Messages, locale: Locale, refs: readonly MarkRef[]): string {
+  return new Intl.ListFormat(DATE_TAGS[locale], { type: "conjunction" }).format(
+    refs.map((ref) => nodeTitle(m, ref)),
+  );
+}
+
+/** Words as one line: `Intl.ListFormat`, type `conjunction`, in the page's locale. */
+export function listOfWords(locale: Locale, words: readonly string[]): string {
+  return new Intl.ListFormat(DATE_TAGS[locale], { type: "conjunction" }).format(words);
+}
+
+type ColorNode = Extract<FoundationNode, { id: "color" }>;
+type Color = Business["color"];
+
+/** The word of a colour family, a key of `business.color.family.*`. */
+export function familyWord(m: Messages, family: keyof Color["family"]): string {
+  return m.business.color.family[family];
+}
+
+/** The word of a neutral decision, a key of `business.color.neutral.*`. */
+export function neutralWord(m: Messages, value: keyof Color["neutral"]): string {
+  return m.business.color.neutral[value];
+}
+
+/** The word of a canvas decision, a key of `business.color.canvas.*`. */
+export function canvasWord(m: Messages, value: keyof Color["canvas"]): string {
+  return m.business.color.canvas[value];
+}
+
+/** The crowded families as one line, or `business.color.noneCrowded` when none is. */
+export function crowdedLine(
+  m: Messages,
+  locale: Locale,
+  crowded: ReadonlyArray<keyof Color["family"]>,
+): string {
+  return crowded.length === 0
+    ? m.business.color.noneCrowded
+    : listOfWords(
+        locale,
+        crowded.map((family) => familyWord(m, family)),
+      );
+}
+
+/**
+ * The reason line of a decision (`color-node-1`): the catalog's sentence filled with the scale points
+ * and the family words the engine gave. A reason for a decision the engine did not make, or with no
+ * points, throws: a view prints no guess.
+ */
+export function colorReason(
+  m: Messages,
+  node: Pick<ColorNode, "points" | "decisions">,
+  which: "signature" | "fallback" | "neutral" | "canvas",
+): string {
+  const { points, decisions } = node;
+  if (points === null || decisions === null) throw new Error("colorReason: no decision to explain");
+  const because = m.business.color.because;
+  if (which === "neutral" || which === "canvas") {
+    if ((which === "neutral" ? decisions.neutral : decisions.canvas) === null) {
+      throw new Error(`colorReason: no ${which} decision`);
+    }
+    return which === "neutral"
+      ? fill(because.neutral, { warm: String(points.warm) })
+      : fill(because.canvas, { premium: String(points.premium) });
+  }
+  const signature = decisions.signature;
+  if (signature === null || signature.because !== which) {
+    throw new Error(`colorReason: the signature is not a ${which} decision`);
+  }
+  const shared = {
+    expressive: String(points.expressive),
+    warm: String(points.warm),
+    family: familyWord(m, signature.value),
+  };
+  if (which === "signature") return fill(because.signature, shared);
+  if (signature.preferred === null)
+    throw new Error("colorReason: a fallback names its first family");
+  return fill(because.fallback, { ...shared, preferred: familyWord(m, signature.preferred) });
+}
+
+/** The rule line of a decision: `business.decision.rule` with the rule id as the engine gave it. */
+export function decisionRule(m: Messages, rule: string): string {
+  return fill(m.business.decision.rule, { rule });
+}
+
+/** Why the signature is open: the lineup wait, or the two families both crowded; null when it is not. */
+export function signatureOpenLine(m: Messages, open: ColorNode["signatureOpen"]): string | null {
+  if (open === null) return null;
+  return open.why === "waitsForLineup"
+    ? m.business.color.waitsForLineup
+    : fill(m.business.color.bothCrowded, {
+        first: familyWord(m, open.first),
+        second: familyWord(m, open.second),
+      });
+}
+
+/** The word of a scripts answer, a key of `business.typography.scripts.*` (`typography-node-1`). */
+export function scriptsWord(m: Messages, scripts: TypographyScripts): string {
+  const words = m.business.typography.scripts;
+  return scripts === "thai-latin" ? words.thaiLatin : words[scripts];
+}
+
+/** The word of a family's style, a key of `business.typography.style.*`. */
+export function styleWord(m: Messages, style: Face["style"]): string {
+  return m.business.typography.style[style];
+}
+
+/** The licence line of a family: `business.typography.licence` with the licence name as written. */
+export function licenceLine(m: Messages, face: Face): string {
+  return fill(m.business.typography.licence, { licence: face.licence });
+}
+
+/** The reason of a Thai family's role, or null for a family that has none (the Latin one). */
+export function faceBecause(m: Messages, face: Face): string | null {
+  return face.because === null ? null : m.business.typography.because[face.because];
+}
+
+type LogoTypeOutcome = NonNullable<Extract<FoundationNode, { id: "logo-type" }>["decision"]>;
+
+/** The word of a logo type, a key of `business.logoType.*` (`logo-type-1`). */
+export function logoTypeWord(m: Messages, type: LogoTypeOutcome["type"]): string {
+  return type === "wordmark" ? m.business.logoType.wordmark : m.business.logoType.symbolPlusName;
+}
+
+/** The reason of a logo type, a key of `business.logoType.because.*`, in the order the engine gave. */
+export function logoTypeReason(m: Messages, reason: LogoTypeOutcome["reasons"][number]): string {
+  return m.business.logoType.because[reason];
+}
+
+/** The word of an answer to the small square mark question, a key of `business.logoType.appIcon.*`. */
+export function appIconWord(m: Messages, answer: boolean): string {
+  return answer ? m.business.logoType.appIcon.yes : m.business.logoType.appIcon.no;
+}
+
+/**
+ * The name length line (`name-length-1`) in two parts, around the person's working name: the
+ * catalog's sentence cut at `{name}`, its `{n}` and `{max}` filled with the length and the bound the
+ * engine gave. The name is never filled into the template, so the view puts it between the parts as
+ * a text node of its own and a name that spells a slot stays literal.
+ */
+export function nameLengthLine(
+  m: Messages,
+  outcome: Pick<LogoTypeOutcome, "length" | "max">,
+): { before: string; after: string } {
+  const [before = "", after = ""] = m.business.logoType.nameLength.split("{name}");
+  const params = { n: outcome.length, max: outcome.max };
+  return { before: fill(before, params), after: fill(after, params) };
+}
+
+/** The name of a foundation field, a key of `business.field.*`. */
+export function foundationFieldLabel(m: Messages, field: FoundationFieldKey): string {
+  return m.business.field[field];
+}
+
+/**
+ * The state line of a foundation node (`foundation-marks-1`): the catalog's line for its state key,
+ * and for `waiting` the line with the nodes it waits for.
+ */
+export function foundationStateLine(m: Messages, locale: Locale, node: FoundationNode): string {
+  return node.state === "waiting"
+    ? fill(m.business.state.waiting, { nodes: listOfNodes(m, locale, node.waitingFor) })
+    : m.business.state[node.state];
+}
+
+/**
+ * The provisional pair of a derived result that rests on a skipped step (`foundation-marks-1`):
+ * `strategy.provisional`, then `business.marks.restsOn` with its nodes. Both or neither, so a
+ * "rests on" line never stands without the line that says what it means.
+ */
+export function provisionalLines(
+  m: Messages,
+  locale: Locale,
+  node: Pick<FoundationNode, "restsOn">,
+): { provisional: string; restsOn: string } | null {
+  return node.restsOn.length === 0
+    ? null
+    : {
+        provisional: m.strategy.provisional,
+        restsOn: fill(m.business.marks.restsOn, { nodes: listOfNodes(m, locale, node.restsOn) }),
+      };
+}
+
+/** `business.marks.unchecked` with its nodes, or null when the node rests on nothing unchecked. */
+export function uncheckedLine(
+  m: Messages,
+  locale: Locale,
+  node: Pick<FoundationNode, "unchecked">,
+): string | null {
+  return node.unchecked.length === 0
+    ? null
+    : fill(m.business.marks.unchecked, { nodes: listOfNodes(m, locale, node.unchecked) });
 }
 
 type Tail<T, P extends string> = T extends `${P}${infer K}` ? K : never;
@@ -112,12 +318,13 @@ export function readReasonLine(m: Messages, reason: BusinessReadReason): string 
 }
 
 /**
- * "Read by AI (model). Check it before you use it." from the engine's `EVIDENCE_STRINGS`, the
- * model the saved record names. The engine holds this line in both languages; the catalog does not
- * copy it (ORV-281 design section 5, one reading, step 3).
+ * "Read by AI (model). Check it before you use it." from the catalog key
+ * `brandReport.engine["evidence.fromModel"]`, the model the saved record names. The key holds the
+ * engine's line word for word (`brand-report-strings.test.ts` pins it), as `belowFloorLine` reads
+ * its own (ORV-287 row 8).
  */
-export function fromModelNote(locale: Locale, modelId: string): string {
-  return fill(EVIDENCE_STRINGS["evidence.fromModel"][locale], { model: modelId });
+export function fromModelNote(m: Messages, modelId: string): string {
+  return fill(m.brandReport.engine["evidence.fromModel"], { model: modelId });
 }
 
 /**

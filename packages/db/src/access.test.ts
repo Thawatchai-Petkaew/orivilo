@@ -4,6 +4,7 @@ import { inWorkspace } from "./client.ts";
 import {
   aiUsage,
   businessDraft,
+  businessFoundationEntry,
   businessIntake,
   businessPositioningChoice,
   businessReading,
@@ -473,6 +474,78 @@ describe.runIf(HAS_TEST_DATABASE)("orivilo_app and row security", () => {
       );
     });
 
+    // ORV-287 rows 10 to 13 (orv287-shape-1): the check holds what the app writes and nothing
+    // else. Every refusal is the check violation on `business_reading_shape`, never another error.
+    const failsOnShape = async (run: Promise<unknown>) => {
+      const error = await run.then(
+        () => null,
+        (e: unknown) => e,
+      );
+      const cause = (error as { cause?: { code?: string; constraint_name?: string } } | null)
+        ?.cause;
+      expect([cause?.code, cause?.constraint_name]).toEqual(["23514", "business_reading_shape"]);
+    };
+
+    it("refuses a rule-based record with no reason (T9)", async () => {
+      await failsOnShape(
+        t.admin
+          .insert(businessReading)
+          .values({ ...base("br-shape-1", "ws-a", "br-i-a3"), reason: null }),
+      );
+    });
+
+    it.each([
+      ["model id", { modelId: "m" }],
+      ["adapter id", { adapterId: "a" }],
+      ["adapter version", { adapterVersion: "1" }],
+      ["prompt version", { promptVersion: "p" }],
+    ])("refuses a rule-based record that holds only its %s (T9)", async (_, change) => {
+      await failsOnShape(
+        t.admin
+          .insert(businessReading)
+          .values({ ...base("br-shape-2", "ws-a", "br-i-a3"), ...change }),
+      );
+    });
+
+    it.each([
+      ["an object", { x: 1 }],
+      ["a string", "text"],
+      ["a number", 1],
+    ])("refuses a model record whose evidence is %s (T9)", async (_, evidence) => {
+      await failsOnShape(
+        t.admin
+          .insert(businessReading)
+          .values({ ...base("br-shape-3", "ws-a", "br-i-a3"), ...model, evidence }),
+      );
+    });
+
+    const items = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `x${i}` }));
+
+    it("refuses evidence past 200 items (T9)", async () => {
+      await failsOnShape(
+        t.admin.insert(businessReading).values({
+          ...base("br-shape-4", "ws-a", "br-i-a3"),
+          ...model,
+          job: "evidence-201",
+          evidence: items(201),
+        }),
+      );
+    });
+
+    it("keeps evidence of 200 items (T9)", async () => {
+      await t.admin.insert(businessReading).values({
+        ...base("br-shape-5", "ws-a", "br-i-a3"),
+        ...model,
+        job: "evidence-200",
+        evidence: items(200),
+      });
+      const [row] = await t.admin
+        .select()
+        .from(businessReading)
+        .where(eq(businessReading.id, "br-shape-5"));
+      expect(row?.evidence).toEqual(items(200));
+    });
+
     it.each(["ai-not-configured", "ai-failed", "ai-rate-limited", "ai-spend-cap"])(
       "keeps a rule-based record with the reason %s (T9)",
       async (reason) => {
@@ -795,6 +868,540 @@ describe.runIf(HAS_TEST_DATABASE)("orivilo_app and row security", () => {
       ).toEqual([]);
     });
   });
+  // ORV-291 (tech notes section 4.1, T9 and T10): what a person did on the four foundation nodes is
+  // workspace data, insert only. The database holds the pairs, the payload shape, the text bounds
+  // and the one entry per project, node and kind, so no direct call can pass a missed app check.
+  describe("business_foundation_entry", () => {
+    const entry = (
+      id: string,
+      workspaceId: string,
+      projectId: string,
+      node: string,
+      kind: string,
+      payload: unknown,
+    ) => ({ id, workspaceId, projectId, node, kind, payload, createdBy: "u-1" });
+    const given = (
+      id: string,
+      workspaceId: string,
+      projectId: string,
+      payload: unknown = { axes: { warm: 50 } },
+    ) => entry(id, workspaceId, projectId, "identity-frame", "given", payload);
+    const skipped = (id: string, workspaceId: string, projectId: string) =>
+      entry(id, workspaceId, projectId, "identity-frame", "skipped", {});
+
+    const failsWithCode = async (run: Promise<unknown>, code: string) => {
+      const error = await run.then(
+        () => null,
+        (e: unknown) => e,
+      );
+      expect((error as { cause?: { code?: string } } | null)?.cause?.code).toBe(code);
+    };
+    // Each bad row is a project of its own, so one failure never masks another by the unique index.
+    let n = 0;
+    const freshProject = async () => {
+      const id = `p-fe-${++n}`;
+      await t.admin.insert(project).values({ id, workspaceId: "ws-a", name: `FE ${n}` });
+      return id;
+    };
+
+    beforeAll(async () => {
+      await t.admin
+        .insert(businessFoundationEntry)
+        .values([
+          given("fe-a", "ws-a", "p-a", { axes: { warm: 75 }, person: "ใจดี" }),
+          given("fe-b", "ws-b", "p-b", { axes: { warm: 25 } }),
+        ]);
+    });
+
+    it("is a tenant table, and a scoped transaction sees only its own workspace's rows (T9)", async () => {
+      expect(TENANT_TABLES).toContain("business_foundation_entry");
+      const rows = await inWorkspace(t.app, "ws-a", (tx) =>
+        tx.select().from(businessFoundationEntry),
+      );
+      expect(rows.map((r) => r.id)).toEqual(["fe-a"]);
+      expect(await t.app.select().from(businessFoundationEntry)).toEqual([]);
+    });
+
+    it("inserts for the scoped workspace and refuses an insert for another (T9)", async () => {
+      const mine = await freshProject();
+      await inWorkspace(t.app, "ws-a", (tx) =>
+        tx.insert(businessFoundationEntry).values(skipped("fe-own", "ws-a", mine)),
+      );
+      await failsWithCode(
+        inWorkspace(t.app, "ws-a", (tx) =>
+          tx.insert(businessFoundationEntry).values(skipped("fe-x", "ws-b", "p-b")),
+        ),
+        "42501",
+      );
+    });
+
+    it("refuses an entry whose project sits in another workspace (T10)", async () => {
+      // The owner role skips row security, so only the composite foreign key can refuse this.
+      await failsWithCode(
+        t.admin.insert(businessFoundationEntry).values(skipped("fe-cross", "ws-a", "p-b")),
+        "23503",
+      );
+    });
+
+    it("rows never change: refuses an update and a delete, even in its own workspace (T9)", async () => {
+      await failsWithCode(
+        inWorkspace(t.app, "ws-a", (tx) =>
+          tx
+            .update(businessFoundationEntry)
+            .set({ payload: {} })
+            .where(eq(businessFoundationEntry.id, "fe-a")),
+        ),
+        "42501",
+      );
+      await failsWithCode(
+        inWorkspace(t.app, "ws-a", (tx) =>
+          tx.delete(businessFoundationEntry).where(eq(businessFoundationEntry.id, "fe-a")),
+        ),
+        "42501",
+      );
+      const kept = await t.admin
+        .select()
+        .from(businessFoundationEntry)
+        .where(eq(businessFoundationEntry.id, "fe-a"));
+      expect(kept.map((r) => r.payload)).toEqual([{ axes: { warm: 75 }, person: "ใจดี" }]);
+    });
+
+    it("has row security on and only the owner and the app role as grantees (T9)", async () => {
+      const on = await t.admin.execute<{ relrowsecurity: boolean }>(
+        sql`select relrowsecurity from pg_class where relname = 'business_foundation_entry'`,
+      );
+      expect([...on].map((r) => r.relrowsecurity)).toEqual([true]);
+      const policies = await t.admin.execute<{ policyname: string }>(
+        sql`select policyname from pg_policies where tablename = 'business_foundation_entry'`,
+      );
+      expect([...policies].map((r) => r.policyname)).toEqual(["workspace_rows"]);
+      const grants = await t.admin.execute<{ grantee: string; privilege_type: string }>(
+        sql`select grantee, privilege_type from information_schema.role_table_grants
+            where table_name = 'business_foundation_entry' and table_schema = 'public'
+              and grantee <> current_user`,
+      );
+      const rows = [...grants];
+      expect([...new Set(rows.map((r) => r.grantee))]).toEqual(["orivilo_app"]);
+      expect(rows.map((r) => r.privilege_type).sort()).toEqual(["INSERT", "SELECT"]);
+    });
+
+    it("has the workspace index and the project and time index (T9)", async () => {
+      const found = await t.admin.execute<{ indexname: string }>(
+        sql`select indexname from pg_indexes
+            where tablename = 'business_foundation_entry' and indexname like '%idx'`,
+      );
+      expect([...found].map((r) => r.indexname).sort()).toEqual([
+        "business_foundation_entry_project_created_idx",
+        "business_foundation_entry_workspaceId_idx",
+      ]);
+    });
+
+    it("goes away with its project, by the cascade (T9)", async () => {
+      const id = await freshProject();
+      await t.admin.insert(businessFoundationEntry).values(skipped(`fe-r-${id}`, "ws-a", id));
+      await t.admin.delete(project).where(eq(project.id, id));
+      expect(
+        await t.admin
+          .select()
+          .from(businessFoundationEntry)
+          .where(eq(businessFoundationEntry.projectId, id)),
+      ).toEqual([]);
+    });
+
+    it("holds exactly the eight columns of section 4.1, none for a model, adapter or prompt (T10)", async () => {
+      const cols = await t.admin.execute<{ column_name: string }>(
+        sql`select column_name from information_schema.columns
+            where table_name = 'business_foundation_entry' and table_schema = 'public'`,
+      );
+      expect([...cols].map((c) => c.column_name).sort()).toEqual(
+        [
+          "created_at",
+          "created_by",
+          "id",
+          "kind",
+          "node",
+          "payload",
+          "project_id",
+          "workspace_id",
+        ].sort(),
+      );
+    });
+
+    describe("one entry per kind (T10, the unique index)", () => {
+      it("refuses a second given and a second skipped for one node", async () => {
+        const id = await freshProject();
+        await t.admin.insert(businessFoundationEntry).values(given(`${id}-1`, "ws-a", id));
+        await failsWithCode(
+          t.admin.insert(businessFoundationEntry).values(given(`${id}-2`, "ws-a", id)),
+          "23505",
+        );
+        await t.admin.insert(businessFoundationEntry).values(skipped(`${id}-3`, "ws-a", id));
+        await failsWithCode(
+          t.admin.insert(businessFoundationEntry).values(skipped(`${id}-4`, "ws-a", id)),
+          "23505",
+        );
+      });
+
+      it("takes a skipped, then a given, for one node, and the same kind on another project", async () => {
+        const id = await freshProject();
+        const other = await freshProject();
+        await t.admin.insert(businessFoundationEntry).values([
+          skipped(`${id}-s`, "ws-a", id),
+          given(`${id}-g`, "ws-a", id),
+          // The same node and kind on another project is no second of the first.
+          given(`${other}-g`, "ws-a", other),
+        ]);
+        const rows = await t.admin
+          .select()
+          .from(businessFoundationEntry)
+          .where(eq(businessFoundationEntry.projectId, id));
+        expect(rows.map((r) => r.kind).sort()).toEqual(["given", "skipped"]);
+      });
+
+      it("counts the node: the same kind on a second node is not a second entry", async () => {
+        const id = await freshProject();
+        await t.admin
+          .insert(businessFoundationEntry)
+          .values([
+            skipped(`${id}-i`, "ws-a", id),
+            entry(`${id}-c`, "ws-a", id, "core-idea", "skipped", {}),
+          ]);
+        const rows = await t.admin
+          .select()
+          .from(businessFoundationEntry)
+          .where(eq(businessFoundationEntry.projectId, id));
+        expect(rows).toHaveLength(2);
+      });
+    });
+
+    describe("one typography answer per project (T28, the unique index)", () => {
+      it("refuses a second typography answer and keeps the first", async () => {
+        const id = await freshProject();
+        await t.admin
+          .insert(businessFoundationEntry)
+          .values(entry(`${id}-t1`, "ws-a", id, "typography", "answered", { scripts: "thai" }));
+        await failsWithCode(
+          t.admin
+            .insert(businessFoundationEntry)
+            .values(entry(`${id}-t2`, "ws-a", id, "typography", "answered", { scripts: "latin" })),
+          "23505",
+        );
+        const rows = await t.admin
+          .select()
+          .from(businessFoundationEntry)
+          .where(eq(businessFoundationEntry.projectId, id));
+        expect(rows.map((r) => r.payload)).toEqual([{ scripts: "thai" }]);
+      });
+
+      it("counts the node: an answer on architecture and on typography are two entries", async () => {
+        const id = await freshProject();
+        await t.admin
+          .insert(businessFoundationEntry)
+          .values([
+            entry(`${id}-a`, "ws-a", id, "architecture", "answered", { subBrands: false }),
+            entry(`${id}-t`, "ws-a", id, "typography", "answered", { scripts: "thai-latin" }),
+          ]);
+        const rows = await t.admin
+          .select()
+          .from(businessFoundationEntry)
+          .where(eq(businessFoundationEntry.projectId, id));
+        expect(rows).toHaveLength(2);
+      });
+    });
+
+    describe("one logo type answer per project (T37, the unique index)", () => {
+      it("refuses a second logo type answer and keeps the first", async () => {
+        const id = await freshProject();
+        await t.admin
+          .insert(businessFoundationEntry)
+          .values(entry(`${id}-g1`, "ws-a", id, "logo-type", "answered", { appIcon: false }));
+        await failsWithCode(
+          t.admin
+            .insert(businessFoundationEntry)
+            .values(entry(`${id}-g2`, "ws-a", id, "logo-type", "answered", { appIcon: true })),
+          "23505",
+        );
+        const rows = await t.admin
+          .select()
+          .from(businessFoundationEntry)
+          .where(eq(businessFoundationEntry.projectId, id));
+        expect(rows.map((r) => r.payload)).toEqual([{ appIcon: false }]);
+      });
+
+      it("counts the node: an answer on typography and on logo type are two entries", async () => {
+        const id = await freshProject();
+        await t.admin
+          .insert(businessFoundationEntry)
+          .values([
+            entry(`${id}-t`, "ws-a", id, "typography", "answered", { scripts: "thai" }),
+            entry(`${id}-g`, "ws-a", id, "logo-type", "answered", { appIcon: true }),
+          ]);
+        const rows = await t.admin
+          .select()
+          .from(businessFoundationEntry)
+          .where(eq(businessFoundationEntry.projectId, id));
+        expect(rows).toHaveLength(2);
+      });
+    });
+
+    describe("foundation entry shape (T10)", () => {
+      const six = [
+        ["identity-frame", "given", { axes: { warm: 75 } }],
+        ["identity-frame", "skipped", {}],
+        ["architecture", "answered", { subBrands: false }],
+        ["name", "given", { name: "ORIVILO" }],
+        ["core-idea", "written", { statement: "Brands that stay alive" }],
+        ["core-idea", "skipped", {}],
+        ["competitive-frame", "lineup", { lineup: [{ name: "Brand A", hex: "#5B3FD9" }] }],
+        ["typography", "answered", { scripts: "thai-latin" }],
+        // ORV-298 PR 3 (T37): the one logo type pair is (logo-type, answered), both answers.
+        ["logo-type", "answered", { appIcon: true }],
+        ["logo-type", "answered", { appIcon: false }],
+      ] as const;
+
+      it.each(six)("takes the pair %s and %s", async (node, kind, payload) => {
+        const id = await freshProject();
+        await t.admin
+          .insert(businessFoundationEntry)
+          .values(entry(`${id}-ok`, "ws-a", id, node, kind, payload));
+        const rows = await t.admin
+          .select()
+          .from(businessFoundationEntry)
+          .where(eq(businessFoundationEntry.projectId, id));
+        expect(rows.map((r) => [r.node, r.kind])).toEqual([[node, kind]]);
+      });
+
+      it.each([
+        ["name", "skipped", {}],
+        ["name", "written", { name: "x" }],
+        ["architecture", "given", { subBrands: true }],
+        ["architecture", "skipped", {}],
+        ["identity-frame", "written", {}],
+        ["identity-frame", "answered", {}],
+        ["core-idea", "given", { statement: "x" }],
+        ["color", "given", {}],
+        ["color", "skipped", {}],
+        ["color", "lineup", { lineup: [{ name: "Brand A", hex: "#5B3FD9" }] }],
+        ["competitive-frame", "skipped", {}],
+        ["competitive-frame", "given", { lineup: [{ name: "Brand A", hex: "#5B3FD9" }] }],
+        ["competitive-frame", "answered", { lineup: [{ name: "Brand A", hex: "#5B3FD9" }] }],
+        ["identity-frame", "lineup", { lineup: [{ name: "Brand A", hex: "#5B3FD9" }] }],
+        // ORV-298 PR 2 (T28): the one typography pair is (typography, answered).
+        ["typography", "skipped", {}],
+        ["typography", "given", { scripts: "thai" }],
+        ["typography", "written", { scripts: "thai" }],
+        ["typography", "lineup", { scripts: "thai" }],
+        // ORV-298 PR 3 (T37): every other pair of logo-type, and a skip is never one.
+        ["logo-type", "skipped", {}],
+        ["logo-type", "given", { appIcon: true }],
+        ["logo-type", "written", { appIcon: true }],
+        ["logo-type", "lineup", { appIcon: true }],
+        ["architecture", "answered-by-scripts", { scripts: "thai" }],
+      ])("refuses the pair %s and %s (the pair check)", async (node, kind, payload) => {
+        const id = await freshProject();
+        await failsWithCode(
+          t.admin
+            .insert(businessFoundationEntry)
+            .values(entry(`${id}-bad`, "ws-a", id, node, kind, payload)),
+          "23514",
+        );
+      });
+
+      it("refuses a skip with a payload (the payload shape, skipped half)", async () => {
+        const id = await freshProject();
+        await failsWithCode(
+          t.admin
+            .insert(businessFoundationEntry)
+            .values(entry(`${id}-bad`, "ws-a", id, "identity-frame", "skipped", { axes: {} })),
+          "23514",
+        );
+      });
+
+      it("refuses an empty object on a given entry (the payload shape, other half)", async () => {
+        const id = await freshProject();
+        await failsWithCode(
+          t.admin.insert(businessFoundationEntry).values(given(`${id}-bad`, "ws-a", id, {})),
+          "23514",
+        );
+      });
+
+      it.each([
+        ["an array", []],
+        ["an array of an object", [{ name: "x" }]],
+        ["a string", "name"],
+        ["a number", 5],
+        ["a JSON null", sql`'null'::jsonb`],
+      ])("refuses a payload that is %s (the payload shape, object half)", async (_, payload) => {
+        const id = await freshProject();
+        await failsWithCode(
+          t.admin
+            .insert(businessFoundationEntry)
+            .values(entry(`${id}-bad`, "ws-a", id, "identity-frame", "given", payload)),
+          "23514",
+        );
+      });
+
+      // One row per key and per side of its bound: a missing "is a string" half or a moved bound
+      // each leaves one of these passing.
+      const TEXT = [
+        ["person", "identity-frame", "given", 2000],
+        ["never", "identity-frame", "given", 2000],
+        ["remember", "core-idea", "written", 2000],
+        ["name", "name", "given", 60],
+        ["statement", "core-idea", "written", 300],
+      ] as const;
+
+      it.each(TEXT)("%s: keeps 1 and %i code points, in Thai", async (key, node, kind, max) => {
+        const id = await freshProject();
+        await t.admin
+          .insert(businessFoundationEntry)
+          .values([entry(`${id}-1`, "ws-a", id, node, kind, { [key]: "ก" })]);
+        const other = await freshProject();
+        await t.admin
+          .insert(businessFoundationEntry)
+          .values(entry(`${other}-m`, "ws-a", other, node, kind, { [key]: "ก".repeat(max) }));
+        const [row] = await t.admin
+          .select()
+          .from(businessFoundationEntry)
+          .where(eq(businessFoundationEntry.projectId, other));
+        expect(((row?.payload as Record<string, string>)[key] ?? "").length).toBe(max);
+      });
+
+      it.each(TEXT)(
+        "%s: refuses an empty text and one of one past the bound",
+        async (key, node, kind, max) => {
+          for (const text of ["", "ก".repeat(max + 1)]) {
+            const id = await freshProject();
+            await failsWithCode(
+              t.admin
+                .insert(businessFoundationEntry)
+                .values(entry(`${id}-bad`, "ws-a", id, node, kind, { [key]: text })),
+              "23514",
+            );
+          }
+        },
+      );
+
+      it.each(TEXT)("%s: refuses a value that is not a string", async (key, node, kind) => {
+        for (const value of [5, true, null, ["x"], { a: "x" }]) {
+          const id = await freshProject();
+          await failsWithCode(
+            t.admin
+              .insert(businessFoundationEntry)
+              .values(entry(`${id}-bad`, "ws-a", id, node, kind, { [key]: value })),
+            "23514",
+          );
+        }
+      });
+
+      it("counts code points, not UTF-16 units: 60 astral characters keep, 61 do not (name)", async () => {
+        const id = await freshProject();
+        await t.admin
+          .insert(businessFoundationEntry)
+          .values(entry(`${id}-ok`, "ws-a", id, "name", "given", { name: "😀".repeat(60) }));
+        const other = await freshProject();
+        await failsWithCode(
+          t.admin
+            .insert(businessFoundationEntry)
+            .values(
+              entry(`${other}-bad`, "ws-a", other, "name", "given", { name: "😀".repeat(61) }),
+            ),
+          "23514",
+        );
+      });
+    });
+
+    // ORV-298 (tech notes sections 4 and 13, T16): the lineup of competitor colours. The app schema
+    // holds the strict keys and the repeat rule; the table bounds the count, each name and each
+    // colour, so no direct call passes a missed app check.
+    describe("lineup entry shape (T16)", () => {
+      const ok = { name: "Brand A", hex: "#5B3FD9" };
+      const lineupRow = (id: string, payload: unknown) =>
+        entry(`${id}-l`, "ws-a", id, "competitive-frame", "lineup", payload);
+      const many = (n: number) =>
+        Array.from({ length: n }, (_, i) => ({ name: `Brand ${i}`, hex: "#111111" }));
+
+      it.each([
+        ["one entry", [ok]],
+        ["twenty entries", many(20)],
+        ["a name of 60 Thai characters", [{ name: "ก".repeat(60), hex: "#111111" }]],
+        ["a name of 60 astral characters", [{ name: "😀".repeat(60), hex: "#111111" }]],
+        ["a name of one character", [{ name: "x", hex: "#111111" }]],
+        ["a name with a line break inside", [{ name: "a\nb", hex: "#111111" }]],
+        ["upper-case hex digits and letters", [{ name: "a", hex: "#0A9BFE" }]],
+      ])("keeps %s", async (_label, lineup) => {
+        const id = await freshProject();
+        await t.admin.insert(businessFoundationEntry).values(lineupRow(id, { lineup }));
+        const rows = await t.admin
+          .select()
+          .from(businessFoundationEntry)
+          .where(eq(businessFoundationEntry.projectId, id));
+        expect(rows).toHaveLength(1);
+      });
+
+      it.each([
+        ["no entry", []],
+        ["twenty-one entries", many(21)],
+        ["a name of 61 Thai characters", [{ name: "ก".repeat(61), hex: "#111111" }]],
+        ["a name of 61 astral characters", [{ name: "😀".repeat(61), hex: "#111111" }]],
+        ["an empty name", [{ name: "", hex: "#111111" }]],
+        ["a name that is no text", [{ name: 5, hex: "#111111" }]],
+        ["a null name", [{ name: null, hex: "#111111" }]],
+        ["no name", [{ hex: "#111111" }]],
+        ["no hex", [{ name: "a" }]],
+        ["a hex that is no text", [{ name: "a", hex: 5 }]],
+        ["a null hex", [{ name: "a", hex: null }]],
+        ["a lower-case hex", [{ name: "a", hex: "#5b3fd9" }]],
+        ["a hex of five digits", [{ name: "a", hex: "#12345" }]],
+        ["a hex of seven digits", [{ name: "a", hex: "#5B3FD9F" }]],
+        ["a hex of three digits", [{ name: "a", hex: "#FFF" }]],
+        ["a hex with no #", [{ name: "a", hex: "5B3FD9" }]],
+        ["a hex with a letter past F", [{ name: "a", hex: "#GGGGGG" }]],
+        ["a hex followed by text", [{ name: "a", hex: "#5B3FD9\nx" }]],
+        ["a bad entry among good ones", [ok, { name: "b", hex: "red" }, ok]],
+        ["an entry that is no object", [5]],
+        ["an entry that is a list holding a good one", [[ok]]],
+        ["a hex with text before it", [{ name: "a", hex: "x#5B3FD9" }]],
+        ["an entry that is a text", ["x"]],
+        ["an entry that is null", [null]],
+        ["a list that is an object", { name: "a", hex: "#111111" }],
+        ["a list that is a text", "Brand A"],
+        ["a list that is null", null],
+      ])("refuses %s (the lineup check)", async (_label, lineup) => {
+        const id = await freshProject();
+        await failsWithCode(
+          t.admin.insert(businessFoundationEntry).values(lineupRow(id, { lineup })),
+          "23514",
+        );
+      });
+
+      it("refuses a lineup entry whose payload holds no lineup key", async () => {
+        const id = await freshProject();
+        await failsWithCode(
+          t.admin.insert(businessFoundationEntry).values(lineupRow(id, { other: [ok] })),
+          "23514",
+        );
+      });
+
+      it("refuses a second lineup for one project (the unique index)", async () => {
+        const id = await freshProject();
+        await t.admin.insert(businessFoundationEntry).values(lineupRow(id, { lineup: [ok] }));
+        await failsWithCode(
+          t.admin
+            .insert(businessFoundationEntry)
+            .values(entry(`${id}-2`, "ws-a", id, "competitive-frame", "lineup", { lineup: [ok] })),
+          "23505",
+        );
+      });
+
+      it("leaves the other nodes' payloads alone: a given entry takes no lineup check", async () => {
+        const id = await freshProject();
+        await t.admin
+          .insert(businessFoundationEntry)
+          .values(given(`${id}-g`, "ws-a", id, { axes: { warm: 50 } }));
+      });
+    });
+  });
   // ORV-285 tech notes section 4.2 (T31, ORV-292 B3): what a model drafted for the positioning of an
   // intake is workspace data, insert only, one row per intake and job. A choice that names a draft
   // can only name one of its own intake and workspace.
@@ -1093,16 +1700,18 @@ describe.runIf(HAS_TEST_DATABASE)("business tables under the host's default priv
     await t?.drop();
   });
 
-  it.each(["business_intake", "business_reading", "business_positioning_choice"])(
-    "leaves %s to the owner and the app role only",
-    async (table) => {
-      const grants = await t.admin.execute<{ grantee: string }>(
-        sql`select grantee from information_schema.role_table_grants
+  it.each([
+    "business_intake",
+    "business_reading",
+    "business_positioning_choice",
+    "business_foundation_entry",
+  ])("leaves %s to the owner and the app role only", async (table) => {
+    const grants = await t.admin.execute<{ grantee: string }>(
+      sql`select grantee from information_schema.role_table_grants
             where table_name = ${table} and table_schema = 'public' and grantee <> current_user`,
-      );
-      expect([...new Set([...grants].map((r) => r.grantee))]).toEqual(["orivilo_app"]);
-    },
-  );
+    );
+    expect([...new Set([...grants].map((r) => r.grantee))]).toEqual(["orivilo_app"]);
+  });
 
   it("does hand the host's default privileges to a table its migration does not revoke", async () => {
     // The control: without a revoke, the same defaults reach the table, so the test above can fail.

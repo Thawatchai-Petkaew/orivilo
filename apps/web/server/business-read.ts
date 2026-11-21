@@ -20,6 +20,8 @@ import { spendCap } from "./spend-cap";
 /**
  * Steps 6 to 9 of `business-door-1` for a saved business intake (ORV-283, tech notes section 6.1):
  * the `ai-read` limit, the spend cap, the model call and its checks, and the save of the record.
+ * The key is read before step 6 (`orv287-key-first-1`): with none, steps 6 to 8 do not run and the
+ * record is `rule-based` with the reason `ai-not-configured`.
  * It runs after the intake committed and never throws, so nothing here can undo or fail that save.
  * What happened is the saved record and one step line `business-read` with a word from a closed
  * list. No answer, name, quote, model text, provider message or key reaches a line: the only thing
@@ -51,6 +53,11 @@ async function decide(
     outcome,
   });
 
+  // The key first (`orv287-key-first-1`): with no key AI is not set up, so steps 6 to 8 do not run.
+  // No `ai-read` count is used, the spend cap is not read and no model is called.
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) return without("ai-not-configured", "not-configured");
+
   // 6. The `ai-read` limit. A store that cannot count fails closed.
   try {
     const counted = await limiter().consume(LIMITS["ai-read"], { user: userId });
@@ -78,8 +85,6 @@ async function decide(
   }
 
   // 8. The model call, with the one pinned model and no other.
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) return without("ai-not-configured", "not-configured");
   const calls: UsageEntry[] = [];
   try {
     const { items } = await readBusiness(

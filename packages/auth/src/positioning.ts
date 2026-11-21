@@ -53,16 +53,14 @@ function storedDraftOf(row: typeof businessDraft.$inferSelect, answers: StoredIn
 }
 
 /**
- * The positioning of a project: its newest choice across its intakes and the draft of its newest
- * intake, each parsed again. The join proves the choice's intake belongs to the project; the order
- * is the time it was saved, then its id. A draft of an older intake is not read.
+ * The project's newest choice, across its intakes, parsed again. The join proves the choice's
+ * intake belongs to the project; the order is the time it was saved, then its id.
  */
-export async function readPositioning(
+export async function readChoice(
   tx: Tx,
   workspaceId: string,
   projectId: string,
-  newest: { id: string; answers: StoredIntake },
-): Promise<{ intakeId: string; choice: StoredChoice | null; draft: StoredDraft | null }> {
+): Promise<StoredChoice | null> {
   const [row] = await tx
     .select({ choice: businessPositioningChoice })
     .from(businessPositioningChoice)
@@ -81,20 +79,31 @@ export async function readPositioning(
     )
     .orderBy(desc(businessPositioningChoice.createdAt), desc(businessPositioningChoice.id))
     .limit(1);
-  let choice: StoredChoice | null = null;
-  if (row) {
-    const parsed = storedChoiceSchema.safeParse({
-      id: row.choice.id,
-      intakeId: row.choice.intakeId,
-      kind: row.choice.kind,
-      statement: row.choice.statement,
-      draftId: row.choice.draftId,
-      option: row.choice.option,
-      createdAt: row.choice.createdAt.toISOString(),
-    });
-    if (!parsed.success) throw new BusinessError("invalid-stored");
-    choice = parsed.data;
-  }
+  if (!row) return null;
+  const parsed = storedChoiceSchema.safeParse({
+    id: row.choice.id,
+    intakeId: row.choice.intakeId,
+    kind: row.choice.kind,
+    statement: row.choice.statement,
+    draftId: row.choice.draftId,
+    option: row.choice.option,
+    createdAt: row.choice.createdAt.toISOString(),
+  });
+  if (!parsed.success) throw new BusinessError("invalid-stored");
+  return parsed.data;
+}
+
+/**
+ * The positioning of a project: its newest choice and the draft of its newest intake, each parsed
+ * again. A draft of an older intake is not read.
+ */
+export async function readPositioning(
+  tx: Tx,
+  workspaceId: string,
+  projectId: string,
+  newest: { id: string; answers: StoredIntake },
+): Promise<{ intakeId: string; choice: StoredChoice | null; draft: StoredDraft | null }> {
+  const choice = await readChoice(tx, workspaceId, projectId);
   const [drafted] = await tx
     .select()
     .from(businessDraft)

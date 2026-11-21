@@ -4,7 +4,8 @@ import { createHash } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // ORV-283 C4: the page loader passes the saved reading of the newest intake into the view, and
-// opening never calls a model. A stored reading that no longer parses reads as the page's one 404.
+// opening never calls a model. A stored reading that no longer parses opens with no reading; an
+// intake row that no longer parses reads as the page's one 404 (ORV-287).
 vi.mock("server-only", () => ({}));
 vi.mock("next/headers", () => ({ headers: async () => new Headers() }));
 vi.mock("../../server/auth", () => ({
@@ -27,18 +28,24 @@ const state = vi.hoisted(() => ({
   value: undefined as string | undefined,
   /** Every call that reads or writes beside `open`: a limit, the cap, a save of a choice or a draft. */
   beside: [] as string[],
+  foundation: [] as unknown[],
+  /** Every write a service was asked for; opening a project asks for none. */
+  writes: [] as string[],
+  limitsConsumed: 0,
 }));
-const fetchSpy = vi.fn();
-vi.stubGlobal("fetch", fetchSpy);
+// Opening a project counts no limit (ORV-291 rows 12 and 36).
 vi.mock("../../server/rate-limit", () => ({
   subjectFromHeaders: () => "ip-1",
   limiter: () => ({
     async consume() {
       state.beside.push("limit");
+      state.limitsConsumed += 1;
       return { ok: true };
     },
   }),
 }));
+const fetchSpy = vi.fn();
+vi.stubGlobal("fetch", fetchSpy);
 vi.mock("../../server/spend-cap", () => ({
   spendCap: () => ({
     async check() {
@@ -58,7 +65,18 @@ vi.mock("@orivilo/auth", async (importOriginal) => {
   const real = await importOriginal<typeof import("@orivilo/auth")>();
   return {
     ...real,
+    foundationService: () => ({
+      async enter() {
+        state.writes.push("foundation.enter");
+      },
+    }),
     businessService: () => ({
+      async create() {
+        state.writes.push("business.create");
+      },
+      async saveReading() {
+        state.writes.push("business.saveReading");
+      },
       async open() {
         if (state.throws !== null) throw state.throws;
         return {
@@ -72,15 +90,18 @@ vi.mock("@orivilo/auth", async (importOriginal) => {
           savedAt: SAVED,
           reading: state.reading,
           positioning: { intakeId: INTAKE, choice: state.choice, draft: state.draft },
+          foundation: state.foundation,
         };
       },
     }),
     positioningService: () => ({
       async choose() {
+        state.writes.push("positioning.choose");
         state.beside.push("choose");
         return { kind: "skipped" };
       },
       async saveDraft() {
+        state.writes.push("positioning.saveDraft");
         state.beside.push("save-draft");
         return { draftId: "x" };
       },
@@ -125,6 +146,9 @@ beforeEach(() => {
   state.draft = null;
   state.value = undefined;
   state.beside = [];
+  state.foundation = [];
+  state.writes = [];
+  state.limitsConsumed = 0;
   fetchSpy.mockClear();
 });
 afterEach(() => {
@@ -161,13 +185,39 @@ describe("loadProject and the saved reading", () => {
     });
   });
 
-  it("answers the page's one 404 for a stored reading that no longer parses, with an error line", async () => {
+  // `orv287-unparsed-reading-1`: `open` answers a reading that no longer parses with `reading: null`
+  // (proved at the service, `business.integration.test.ts`); the loader shows what it shows for a
+  // project that has no reading, and its boundary line is `ok`.
+  it("a stored reading that no longer parses opens with no reading", async () => {
+    state.reading = null;
+    const loaded = await loadProject(PROJECT);
+    if (loaded.access !== "ready") throw new Error("not ready");
+    expect(loaded.view.reading).toEqual({ status: "none" });
+    // The person's own words are in the view, and no field carries a reading.
+    expect(loaded.view.nodes.flatMap((n) => n.fields).flatMap((f) => f.readings)).toEqual([]);
+    expect(JSON.stringify(loaded.view.nodes)).toContain("Roasted coffee for office workers");
+    expect(fetchSpy).not.toHaveBeenCalled();
+    const lines = capture.lines.map((line) => expectLineShape(line));
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toMatchObject({ level: "info", outcome: "ok" });
+  });
+
+  it("answers the page's one 404 for an intake row that no longer parses, with an error line", async () => {
     const { BusinessError } = await import("@orivilo/auth");
     state.throws = new BusinessError("invalid-stored");
     expect(await loadProject(PROJECT)).toEqual({ access: "not-found" });
     const lines = capture.lines.map((line) => expectLineShape(line));
     expect(lines).toHaveLength(1);
     expect(lines[0]).toMatchObject({ level: "error", outcome: "failed", reason: "failed" });
+  });
+
+  it("answers not-found with a refusal line for a project the service does not find", async () => {
+    const { BusinessError } = await import("@orivilo/auth");
+    state.throws = new BusinessError("not-found");
+    expect(await loadProject(PROJECT)).toEqual({ access: "not-found" });
+    const lines = capture.lines.map((line) => expectLineShape(line));
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toMatchObject({ level: "info", outcome: "refused", reason: "not-found" });
   });
 });
 
@@ -332,5 +382,396 @@ describe("replay, never re-draft", () => {
     expect(first.view.positioning.options).toBeNull();
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(state.beside).toEqual([]);
+  });
+});
+
+// ORV-291 T19, row 12: the loader passes the project's foundation entries into the view, and
+// opening writes nothing, counts no limit and calls no model.
+describe("foundation replay", () => {
+  const AXES = { playful: 75, expressive: 75, structured: 75, warm: 75, premium: 75 };
+  const agreed = {
+    id: "c-1",
+    intakeId: INTAKE,
+    kind: "written",
+    statement: "Fresh roasted coffee for office workers",
+    draftId: null,
+    option: null,
+    createdAt: "2026-11-18T04:00:00.000Z",
+  };
+  const given = {
+    id: "e-1",
+    node: "identity-frame",
+    kind: "given",
+    payload: { axes: AXES, person: "warm, plain, caring" },
+    createdAt: "2026-11-18T05:00:00.000Z",
+  };
+
+  it("loaded twice a day apart gives the same view, and writes nothing, counts no limit, calls no model", async () => {
+    state.choice = agreed;
+    state.foundation = [given];
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-19T03:00:00Z"));
+    const first = await loadProject(PROJECT);
+    vi.setSystemTime(new Date("2026-11-20T03:00:00Z"));
+    const second = await loadProject(PROJECT);
+    if (first.access !== "ready" || second.access !== "ready") throw new Error("not ready");
+    expect(second).toEqual(first);
+    // The entry reached the view: Brand personality is given, with the axes as 4 of 5.
+    expect(first.view.foundation[0]).toMatchObject({
+      id: "identity-frame",
+      state: "given",
+      person: "warm, plain, caring",
+      axes: expect.arrayContaining([{ axis: "warm", value: 75, point: 4 }]),
+      controls: [],
+    });
+    expect(state.writes).toEqual([]);
+    expect(state.limitsConsumed).toBe(0);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("gives Brand personality as waiting, with both controls hidden, while positioning is open", async () => {
+    const loaded = await loadProject(PROJECT);
+    if (loaded.access !== "ready") throw new Error("not ready");
+    expect(loaded.view.foundation[0]).toMatchObject({
+      id: "identity-frame",
+      state: "waiting",
+      waitingFor: ["positioning"],
+      controls: [],
+    });
+  });
+
+  it("gives Brand personality both controls once positioning is agreed and no entry exists", async () => {
+    state.choice = agreed;
+    const loaded = await loadProject(PROJECT);
+    if (loaded.access !== "ready") throw new Error("not ready");
+    expect(loaded.view.foundation[0]).toMatchObject({
+      id: "identity-frame",
+      state: "empty",
+      controls: ["describe", "skip"],
+    });
+  });
+});
+
+// ORV-296 T40, row 36: the replay with an entry on every one of the four nodes.
+describe("foundation replay, all four", () => {
+  const AXES = { playful: 75, expressive: 75, structured: 75, warm: 75, premium: 75 };
+  const agreed = {
+    id: "c-1",
+    intakeId: INTAKE,
+    kind: "written",
+    statement: "Fresh roasted coffee for office workers",
+    draftId: null,
+    option: null,
+    createdAt: "2026-11-18T04:00:00.000Z",
+  };
+  const entries = () => [
+    {
+      id: "e-1",
+      node: "identity-frame",
+      kind: "given",
+      payload: { axes: AXES, person: "warm, plain, caring" },
+      createdAt: "2026-11-18T05:00:00.000Z",
+    },
+    {
+      id: "e-2",
+      node: "architecture",
+      kind: "answered",
+      payload: { subBrands: false },
+      createdAt: "2026-11-18T05:10:00.000Z",
+    },
+    {
+      id: "e-3",
+      node: "name",
+      kind: "given",
+      payload: { name: "ORIVILO" },
+      createdAt: "2026-11-18T05:20:00.000Z",
+    },
+    {
+      id: "e-4",
+      node: "core-idea",
+      kind: "written",
+      payload: { statement: "ทำให้ทุกเช้าง่ายขึ้น", remember: "กาแฟที่ส่งถึงบ้านทันเวลา" },
+      createdAt: "2026-11-18T05:30:00.000Z",
+    },
+  ];
+
+  it("loaded twice a day apart gives the same view and marks, and writes nothing, counts no limit, calls no model", async () => {
+    state.choice = agreed;
+    state.foundation = entries();
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-19T03:00:00Z"));
+    const first = await loadProject(PROJECT);
+    vi.setSystemTime(new Date("2026-11-20T03:00:00Z"));
+    const second = await loadProject(PROJECT);
+    if (first.access !== "ready" || second.access !== "ready") throw new Error("not ready");
+    expect(second).toEqual(first);
+    expect(first.view.foundation.map((n) => [n.id, n.state])).toEqual([
+      ["identity-frame", "given"],
+      ["architecture", "derived"],
+      ["name", "given"],
+      ["core-idea", "agreed"],
+      ["logo-type", "needsAnswer"],
+      ["color", "partly"],
+      ["typography", "needsAnswer"],
+    ]);
+    expect(first.view.foundation[3]).toMatchObject({
+      id: "core-idea",
+      gate: "given",
+      gatePassed: true,
+      statement: { text: "ทำให้ทุกเช้าง่ายขึ้น", label: "business.positioning.by.own" },
+      remember: "กาแฟที่ส่งถึงบ้านทันเวลา",
+      unchecked: [],
+      controls: [],
+    });
+    expect(state.writes).toEqual([]);
+    expect(state.limitsConsumed).toBe(0);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("derives the architecture value on each load and stores none: the saved rows are untouched", async () => {
+    state.choice = agreed;
+    state.foundation = entries();
+    const before = JSON.stringify(state.foundation);
+    const loaded = await loadProject(PROJECT);
+    if (loaded.access !== "ready") throw new Error("not ready");
+    expect(loaded.view.foundation[1]).toMatchObject({
+      id: "architecture",
+      value: { key: "business.architecture.single", rule: "architecture-derive-1" },
+    });
+    expect(JSON.stringify(state.foundation)).toBe(before);
+    expect(JSON.stringify(state.foundation)).not.toContain("business.architecture.single");
+    expect(state.writes).toEqual([]);
+  });
+
+  it("with positioning gone stale the marks follow the same rule and nothing is written", async () => {
+    state.choice = { ...agreed, intakeId: "33333333-3333-4333-8333-333333333333" };
+    state.foundation = entries();
+    const loaded = await loadProject(PROJECT);
+    if (loaded.access !== "ready") throw new Error("not ready");
+    expect(loaded.view.foundation[3]).toMatchObject({
+      state: "agreed",
+      unchecked: ["positioning"],
+      controls: [],
+    });
+    expect(loaded.view.foundation[1]).toMatchObject({ state: "waiting" });
+    expect(state.writes).toEqual([]);
+    expect(state.limitsConsumed).toBe(0);
+  });
+});
+
+// ORV-298 T19, row 15: the colour is computed from the stored entries each time the project opens.
+// Opening stores no decision, writes nothing, counts no limit and calls no model.
+describe("expression replay", () => {
+  const agreed = {
+    id: "c-1",
+    intakeId: INTAKE,
+    kind: "written",
+    statement: "Fresh roasted coffee for office workers",
+    draftId: null,
+    option: null,
+    createdAt: "2026-11-18T04:00:00.000Z",
+  };
+  const personality = {
+    id: "e-1",
+    node: "identity-frame",
+    kind: "given",
+    payload: {
+      axes: { playful: 75, expressive: 75, structured: 75, warm: 75, premium: 75 },
+      person: "warm, plain, caring",
+    },
+    createdAt: "2026-11-18T05:00:00.000Z",
+  };
+  const lineup = [
+    { name: "Rival A", hex: "#5B3FD9" },
+    { name: "Rival B", hex: "#111111" },
+  ];
+  const lineupEntry = {
+    id: "e-2",
+    node: "competitive-frame",
+    kind: "lineup",
+    payload: { lineup },
+    createdAt: "2026-11-18T05:30:00.000Z",
+  };
+
+  it("colour loaded twice gives the same view and writes nothing", async () => {
+    state.choice = agreed;
+    state.foundation = [lineupEntry, personality];
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-19T03:00:00Z"));
+    const first = await loadProject(PROJECT);
+    vi.setSystemTime(new Date("2026-11-20T03:00:00Z"));
+    const second = await loadProject(PROJECT);
+    if (first.access !== "ready" || second.access !== "ready") throw new Error("not ready");
+    expect(second).toEqual(first);
+    const colour = first.view.foundation.find((node) => node.id === "color");
+    // The stored lineup and personality reached the view, and the decisions came from the rules.
+    expect(colour).toMatchObject({
+      id: "color",
+      lineup,
+      controls: [],
+      needsPersonality: false,
+      decisions: { neutral: expect.anything(), canvas: expect.anything() },
+    });
+    expect(state.writes).toEqual([]);
+    expect(state.limitsConsumed).toBe(0);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  // ORV-298 PR 2, T30, row 25.
+  it("typography loaded twice gives the same view and writes nothing", async () => {
+    const typed = {
+      id: "e-3",
+      node: "typography",
+      kind: "answered",
+      payload: { scripts: "thai-latin" },
+      createdAt: "2026-11-18T06:00:00.000Z",
+    };
+    state.choice = agreed;
+    state.foundation = [typed, personality];
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-19T03:00:00Z"));
+    const first = await loadProject(PROJECT);
+    vi.setSystemTime(new Date("2026-11-20T03:00:00Z"));
+    const second = await loadProject(PROJECT);
+    if (first.access !== "ready" || second.access !== "ready") throw new Error("not ready");
+    expect(second).toEqual(first);
+    const typography = first.view.foundation.find((node) => node.id === "typography");
+    // The stored answer reached the view, and the families came from the rule, not from a row.
+    expect(typography).toMatchObject({
+      id: "typography",
+      state: "derived",
+      scripts: "thai-latin",
+      controls: [],
+      faces: { pairing: true },
+    });
+    if (typography?.id !== "typography") throw new Error("typography");
+    expect(typography.faces?.reading.map((f) => f.id)).toEqual(["sarabun", "inter"]);
+    expect(state.writes).toEqual([]);
+    expect(state.limitsConsumed).toBe(0);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("gives the typography node the answer control while no answer is stored", async () => {
+    state.choice = agreed;
+    state.foundation = [personality];
+    const loaded = await loadProject(PROJECT);
+    if (loaded.access !== "ready") throw new Error("not ready");
+    expect(loaded.view.foundation.find((node) => node.id === "typography")).toMatchObject({
+      scripts: null,
+      faces: null,
+      state: "needsAnswer",
+      controls: ["answer"],
+    });
+  });
+
+  // ORV-298 PR 3, T38, row 38: all three expression nodes, from a lineup, a personality, a
+  // typography answer and a logo type answer; the working name and the architecture answer are the
+  // two entries the logo type rests on.
+  describe("expression replay, all three", () => {
+    const rows = [
+      personality,
+      lineupEntry,
+      {
+        id: "e-3",
+        node: "typography",
+        kind: "answered",
+        payload: { scripts: "thai-latin" },
+        createdAt: "2026-11-18T06:00:00.000Z",
+      },
+      {
+        id: "e-4",
+        node: "architecture",
+        kind: "answered",
+        payload: { subBrands: false },
+        createdAt: "2026-11-18T06:10:00.000Z",
+      },
+      {
+        id: "e-5",
+        node: "name",
+        kind: "given",
+        payload: { name: "ORIVILO" },
+        createdAt: "2026-11-18T06:20:00.000Z",
+      },
+      {
+        id: "e-6",
+        node: "logo-type",
+        kind: "answered",
+        payload: { appIcon: false },
+        createdAt: "2026-11-18T06:30:00.000Z",
+      },
+    ];
+
+    it("loaded twice a day apart gives the same view, decisions and marks, and writes nothing", async () => {
+      state.choice = agreed;
+      state.foundation = rows;
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date("2026-11-19T03:00:00Z"));
+      const first = await loadProject(PROJECT);
+      vi.setSystemTime(new Date("2026-11-20T03:00:00Z"));
+      const second = await loadProject(PROJECT);
+      if (first.access !== "ready" || second.access !== "ready") throw new Error("not ready");
+      expect(second).toEqual(first);
+      const byId = (id: string) => first.view.foundation.find((node) => node.id === id);
+      expect(byId("logo-type")).toMatchObject({
+        id: "logo-type",
+        state: "derived",
+        appIcon: false,
+        controls: [],
+        decision: { type: "wordmark", reasons: ["wordmark"], name: "ORIVILO", length: 7 },
+      });
+      expect(byId("color")).toMatchObject({ id: "color", state: "derived" });
+      expect(byId("typography")).toMatchObject({ id: "typography", state: "derived" });
+      // No decision is stored: opening writes nothing and counts no limit.
+      expect(state.writes).toEqual([]);
+      expect(state.limitsConsumed).toBe(0);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it("gives the logo type node the answer control while no answer is stored and the name is short", async () => {
+      state.choice = agreed;
+      state.foundation = rows.filter((r) => r.node !== "logo-type");
+      const loaded = await loadProject(PROJECT);
+      if (loaded.access !== "ready") throw new Error("not ready");
+      expect(loaded.view.foundation.find((node) => node.id === "logo-type")).toMatchObject({
+        appIcon: null,
+        decision: null,
+        state: "needsAnswer",
+        controls: ["answer"],
+      });
+    });
+
+    it("gives a long name its decision and no answer control", async () => {
+      state.choice = agreed;
+      state.foundation = rows
+        .filter((r) => r.node !== "logo-type")
+        .map((r) => (r.node === "name" ? { ...r, payload: { name: "Chase Manhattan Bank" } } : r));
+      const loaded = await loadProject(PROJECT);
+      if (loaded.access !== "ready") throw new Error("not ready");
+      expect(loaded.view.foundation.find((node) => node.id === "logo-type")).toMatchObject({
+        state: "derived",
+        controls: [],
+        decision: { type: "symbol-plus-name", reasons: ["longName"], length: 18, max: 12 },
+      });
+    });
+
+    it("loads the logo type with a stored answer in the view JSON as keys and the name as typed", async () => {
+      state.choice = agreed;
+      state.foundation = rows;
+      const loaded = await loadProject(PROJECT);
+      if (loaded.access !== "ready") throw new Error("not ready");
+      const node = loaded.view.foundation.find((n) => n.id === "logo-type");
+      expect(JSON.stringify(node)).not.toMatch(/Wordmark|Waits for|characters/);
+    });
+  });
+
+  it("gives the colour node the give control while no lineup is stored and the personality is", async () => {
+    state.choice = agreed;
+    state.foundation = [personality];
+    const loaded = await loadProject(PROJECT);
+    if (loaded.access !== "ready") throw new Error("not ready");
+    expect(loaded.view.foundation.find((node) => node.id === "color")).toMatchObject({
+      lineup: null,
+      controls: ["give"],
+    });
   });
 });

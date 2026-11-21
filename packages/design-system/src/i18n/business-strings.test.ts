@@ -2,9 +2,20 @@ import {
   BUSINESS_FIELDS,
   BUSINESS_NODES,
   BUSINESS_READ_REASONS,
+  CHROMATIC_FAMILIES,
+  COLOR_DECISIONS,
+  GUIDEBOOK_HYPOTHESIS,
+  GUIDEBOOK_NOT_HELD,
+  GUIDEBOOK_QUESTIONS,
   INTAKE_FIELDS,
+  PERSONALITY_AXES,
   PROXY_QUESTIONS,
+  START_QUESTIONS,
+  TYPOGRAPHY_FAMILIES,
+  TYPOGRAPHY_SCRIPTS,
 } from "@orivilo/intent-engine";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   belowFloorLine,
@@ -14,9 +25,11 @@ import {
   nodeTitle,
   questionText,
   readReasonLine,
+  scriptsWord,
+  styleWord,
 } from "../examples/business-text";
 import { LOCALES } from "./locale";
-import { messagesFor } from "./messages/index";
+import { type Messages, messagesFor } from "./messages/index";
 
 /**
  * The business screens (ORV-281, task A5, T20) look the engine's keys up in `business.*`. These
@@ -132,6 +145,164 @@ const SPEC_KEYS = [
   "business.errors.aiFailed",
   "business.errors.aiRateLimited",
   "business.errors.aiSpendCap",
+  // ORV-291 PR 1: the Brand personality node. PR 2 adds the keys of the next block, PR 3 the core idea's.
+  "business.node.identityFrame",
+  "business.question.person",
+  "business.question.never",
+  "business.field.personality",
+  "business.field.person",
+  "business.field.never",
+  "business.axis.playful.low",
+  "business.axis.playful.high",
+  "business.axis.expressive.low",
+  "business.axis.expressive.high",
+  "business.axis.structured.low",
+  "business.axis.structured.high",
+  "business.axis.warm.low",
+  "business.axis.warm.high",
+  "business.axis.premium.low",
+  "business.axis.premium.high",
+  "business.identity.axisLegend",
+  "business.identity.point",
+  "business.identity.hypothesis",
+  "business.identity.describe",
+  "business.identity.save",
+  "business.identity.axesRequired",
+  "business.state.given",
+  "business.state.waiting",
+  "business.marks.unchecked",
+  // ORV-291 PR 2 (ORV-295): Brand architecture and Name.
+  "business.node.architecture",
+  "business.node.name",
+  "business.question.subBrands",
+  "business.field.subBrands",
+  "business.field.architecture",
+  "business.field.workingName",
+  "business.state.derived",
+  "business.state.notInVersion",
+  "business.marks.restsOn",
+  "business.architecture.no",
+  "business.architecture.yes",
+  "business.architecture.save",
+  "business.architecture.choiceRequired",
+  "business.architecture.single",
+  "business.architecture.because",
+  "business.architecture.notInVersion",
+  "business.name.give",
+  "business.name.save",
+  "business.name.required",
+  "business.name.notScreened",
+  // ORV-291 PR 3 (ORV-296): the core idea.
+  "business.node.coreIdea",
+  "business.question.remember",
+  "business.field.remember",
+  "business.field.coreIdea",
+  "business.coreIdea.save",
+  "business.coreIdea.statementRequired",
+  "business.coreIdea.gatePassed",
+  // ORV-298 PR 1: the Colour node. PR 2 and PR 3 add the typography and logo type keys.
+  "business.node.color",
+  "business.state.partly",
+  "business.state.needsAnswer",
+  "business.label.byRule",
+  "business.decision.rule",
+  "business.question.lineup",
+  "business.field.lineup",
+  "business.field.crowded",
+  "business.field.signature",
+  "business.field.neutral",
+  "business.field.canvas",
+  "business.color.give",
+  "business.color.row",
+  "business.color.brandName",
+  "business.color.hex",
+  "business.color.add",
+  "business.color.remove",
+  "business.color.save",
+  "business.color.lineupRequired",
+  "business.color.rowIncomplete",
+  "business.color.hexInvalid",
+  "business.color.nameRepeated",
+  "business.color.lineupMax",
+  "business.color.givenByYou",
+  "business.color.crowdRule",
+  "business.color.noneCrowded",
+  ...CHROMATIC_FAMILIES.map((family) => `business.color.family.${family}`),
+  "business.color.family.ink",
+  "business.color.family.paper",
+  ...COLOR_DECISIONS.neutral.map((value) => `business.color.neutral.${value}`),
+  ...COLOR_DECISIONS.canvas.map((value) => `business.color.canvas.${value}`),
+  "business.color.because.signature",
+  "business.color.because.fallback",
+  "business.color.because.neutral",
+  "business.color.because.canvas",
+  "business.color.waitsForLineup",
+  "business.color.bothCrowded",
+  "business.color.needsPersonality",
+  "business.color.notDecided",
+  "business.color.hypothesis",
+  "business.color.familyOnly",
+  // ORV-298 PR 2: the Typography node.
+  "business.node.typography",
+  "business.question.scripts",
+  "business.typography.scripts.thaiLatin",
+  "business.typography.scripts.thai",
+  "business.typography.scripts.latin",
+  "business.field.scripts",
+  "business.field.readingFace",
+  "business.field.displayFace",
+  "business.typography.style.looped",
+  "business.typography.style.loopless",
+  "business.typography.style.latinSans",
+  "business.typography.licence",
+  "business.typography.because.reading",
+  "business.typography.because.display",
+  "business.typography.because.pairing",
+  "business.typography.oneChoice",
+  "business.typography.noPersonalityLink",
+  // ORV-298 PR 3: the Logo type node.
+  "business.node.logoType",
+  "business.question.appIcon",
+  "business.logoType.appIcon.yes",
+  "business.logoType.appIcon.no",
+  "business.field.appIcon",
+  "business.field.logoType",
+  "business.logoType.wordmark",
+  "business.logoType.symbolPlusName",
+  "business.logoType.because.wordmark",
+  "business.logoType.because.longName",
+  "business.logoType.because.appIcon",
+  "business.logoType.nameLength",
+  "business.logoType.hypothesis",
+  "business.logoType.crowdingNotChecked",
+  "business.logoType.otherTypes",
+];
+
+/**
+ * The keys ORV-302 PR 1 adds (its spec's Strings table). A list of its own, so the ORV-298 PR 3 block
+ * below keeps reading its slice of `SPEC_KEYS` to the end; the catalog test holds both lists.
+ */
+const GUIDEBOOK_KEYS = [
+  "business.board.openGuidebook",
+  "business.node.logoMark",
+  "business.guidebook.title",
+  "business.guidebook.byRule",
+  "business.guidebook.draftNote",
+  "business.guidebook.backToBoard",
+  "business.guidebook.section.business",
+  "business.guidebook.businessNote",
+  "business.guidebook.section.foundation",
+  "business.guidebook.section.visual",
+  "business.guidebook.section.unconfirmed",
+  "business.guidebook.unconfirmed.none",
+  "business.guidebook.unconfirmed.restsOnIt",
+  "business.guidebook.unconfirmed.nothing",
+  "business.guidebook.section.notHeld",
+  "business.guidebook.notYet.logoMark",
+  ...GUIDEBOOK_NOT_HELD.flatMap((id) => [
+    `business.guidebook.notHeld.${id}.title`,
+    `business.guidebook.notHeld.${id}.reason`,
+  ]),
 ];
 
 describe("business catalog", () => {
@@ -140,14 +311,19 @@ describe("business catalog", () => {
 
     it(`${locale}: holds the keys of the spec's Strings section and no other`, () => {
       const keys = leafKeys({ business: m.business });
-      expect([...keys].sort()).toEqual([...SPEC_KEYS].sort());
+      expect([...keys].sort()).toEqual([...SPEC_KEYS, ...GUIDEBOOK_KEYS].sort());
     });
 
     it(`${locale}: every business.question line is word for word the ORV-126 proxy question`, () => {
       const wrong = PROXY_QUESTIONS.filter((q) => at(m, q.key) !== q[locale]).map((q) => q.id);
       expect(wrong).toEqual([]);
-      // The six questions are the catalog's whole `question` group.
-      expect(Object.keys(m.business.question)).toHaveLength(PROXY_QUESTIONS.length);
+      // The `question` group is the proxy questions, the start question and the two questions of
+      // ORV-298 with no ORV-126 id (`business.question.lineup`, PR 1, `business.question.scripts`,
+      // PR 2, and `business.question.appIcon`, PR 3: new copy), and nothing else.
+      expect(Object.keys(m.business.question)).toHaveLength(
+        PROXY_QUESTIONS.length + START_QUESTIONS.length + 3,
+      );
+      for (const q of START_QUESTIONS) expect(at(m, q.key), q.key).toBe(q[locale]);
     });
 
     it(`${locale}: every proxy question id resolves to its own catalog line`, () => {
@@ -237,12 +413,25 @@ describe("business readings, strings", () => {
   }
 
   it("the model line is the engine's, with the saved model id", () => {
-    expect(fromModelNote("en", "anthropic/claude-sonnet-5.5")).toBe(
+    expect(fromModelNote(messagesFor("en"), "anthropic/claude-sonnet-5.5")).toBe(
       "Read by AI (anthropic/claude-sonnet-5.5). Check it before you use it.",
     );
-    expect(fromModelNote("th", "anthropic/claude-sonnet-5.5")).toBe(
+    expect(fromModelNote(messagesFor("th"), "anthropic/claude-sonnet-5.5")).toBe(
       "AI อ่านค่านี้ (anthropic/claude-sonnet-5.5) โปรดตรวจสอบก่อนนำไปใช้",
     );
+  });
+
+  it("the AI line reads the catalog", () => {
+    const m = messagesFor("en");
+    const changed: Messages = {
+      ...m,
+      brandReport: {
+        ...m.brandReport,
+        engine: { ...m.brandReport.engine, "evidence.fromModel": "Changed line ({model})" },
+      },
+    };
+    expect(fromModelNote(changed, "m/1")).toBe("Changed line (m/1)");
+    expect(fromModelNote(m, "m/1")).toBe("Read by AI (m/1). Check it before you use it.");
   });
 
   it("a reading below the floor says why, in each language", () => {
@@ -394,6 +583,558 @@ describe("drafted options, strings", () => {
       expect(stopped).toHaveLength(4);
       expect(new Set(stopped).size).toBe(4);
       for (const line of stopped) expect(Object.values(m.business.errors)).not.toContain(line);
+    });
+  }
+});
+
+/**
+ * The lines of the Brand personality node (ORV-291 PR 1, spec "Strings"): each key in both
+ * languages, word for word, the five axes' two ends in the order of `PERSONALITY_AXES`, and no
+ * middot or em dash in any of them. `business.question.person` and `.never` are ORV-126's copy,
+ * pinned to the engine's `PROXY_QUESTIONS` by the question tests above.
+ */
+describe("brand personality, strings", () => {
+  const LINES = {
+    en: {
+      "business.node.identityFrame": "Brand personality",
+      "business.question.person":
+        "If your brand were a person, which three words would people use to describe them?",
+      "business.question.never": "How should your brand never feel?",
+      "business.field.personality": "Personality",
+      "business.field.person": "Three words for your brand as a person",
+      "business.field.never": "How it should never feel",
+      "business.axis.playful.low": "Serious",
+      "business.axis.playful.high": "Playful",
+      "business.axis.expressive.low": "Quiet",
+      "business.axis.expressive.high": "Bold",
+      "business.axis.structured.low": "Free and loose",
+      "business.axis.structured.high": "Orderly and precise",
+      "business.axis.warm.low": "Cool and reserved",
+      "business.axis.warm.high": "Warm and friendly",
+      "business.axis.premium.low": "Everyday and easy to reach",
+      "business.axis.premium.high": "Premium and exclusive",
+      "business.identity.axisLegend": "From {low} to {high}",
+      "business.identity.point": "{n} of 5",
+      "business.identity.hypothesis":
+        "These five scales are ORIVILO's working words for a brand's personality, not a tested method.",
+      "business.identity.describe": "Describe the personality",
+      "business.identity.save": "Save this personality",
+      "business.identity.axesRequired": "Choose a point on each of the five scales, or cancel.",
+      "business.state.given": "Given by you",
+      "business.state.waiting": "Waits for {nodes}",
+      "business.marks.unchecked": "Not yet checked against: {nodes}",
+    },
+    th: {
+      "business.node.identityFrame": "บุคลิกของแบรนด์",
+      "business.question.person": "ถ้าแบรนด์ของคุณเป็นคนคนหนึ่ง คนอื่นจะใช้คำสามคำใดบรรยายเขา",
+      "business.question.never": "แบรนด์ของคุณไม่ควรให้ความรู้สึกแบบไหน",
+      "business.field.personality": "บุคลิก",
+      "business.field.person": "สามคำที่บรรยายแบรนด์ถ้าเป็นคน",
+      "business.field.never": "ความรู้สึกที่แบรนด์ไม่ควรให้",
+      "business.axis.playful.low": "จริงจัง",
+      "business.axis.playful.high": "ขี้เล่น",
+      "business.axis.expressive.low": "เรียบนิ่ง",
+      "business.axis.expressive.high": "โดดเด่น",
+      "business.axis.structured.low": "อิสระ ยืดหยุ่น",
+      "business.axis.structured.high": "เป็นระเบียบ แม่นยำ",
+      "business.axis.warm.low": "สุขุม วางตัว",
+      "business.axis.warm.high": "อบอุ่น เป็นกันเอง",
+      "business.axis.premium.low": "ใช้ได้ทุกวัน เข้าถึงง่าย",
+      "business.axis.premium.high": "หรูหรา พิเศษเฉพาะ",
+      "business.identity.axisLegend": "จาก {low} ถึง {high}",
+      "business.identity.point": "ระดับ {n} จาก 5",
+      "business.identity.hypothesis":
+        "สเกลทั้งห้านี้เป็นคำที่ ORIVILO ใช้อธิบายบุคลิกแบรนด์ ยังไม่ใช่วิธีที่ผ่านการทดสอบ",
+      "business.identity.describe": "บอกบุคลิกของแบรนด์",
+      "business.identity.save": "บันทึกบุคลิกนี้",
+      "business.identity.axesRequired": "เลือกระดับให้ครบทั้งห้าสเกล หรือกดยกเลิก",
+      "business.state.given": "คุณกำหนดเอง",
+      "business.state.waiting": "รอ {nodes} ก่อน",
+      "business.marks.unchecked": "ยังไม่ได้ตรวจทานกับ: {nodes}",
+    },
+  } as const;
+
+  for (const locale of LOCALES) {
+    const m = messagesFor(locale);
+
+    it(`${locale}: each line is the spec's, word for word`, () => {
+      expect(Object.keys(LINES[locale])).toHaveLength(25);
+      for (const [key, line] of Object.entries(LINES[locale])) {
+        expect(at(m, key), key).toBe(line);
+      }
+    });
+
+    it(`${locale}: the node title is the catalog's, and the two ends of the five scales are in axis order`, () => {
+      expect(nodeTitle(m, "identity-frame")).toBe(m.business.node.identityFrame);
+      for (const axis of PERSONALITY_AXES) {
+        expect(typeof m.business.axis[axis].low, axis).toBe("string");
+        expect(typeof m.business.axis[axis].high, axis).toBe("string");
+        expect(m.business.axis[axis].low).not.toBe(m.business.axis[axis].high);
+      }
+      expect(Object.keys(m.business.axis)).toEqual([...PERSONALITY_AXES]);
+    });
+
+    it(`${locale}: spells the {low}, {high}, {n} and {nodes} slots`, () => {
+      expect(m.business.identity.axisLegend).toContain("{low}");
+      expect(m.business.identity.axisLegend).toContain("{high}");
+      expect(m.business.identity.point).toContain("{n}");
+      expect(m.business.state.waiting).toContain("{nodes}");
+      expect(m.business.marks.unchecked).toContain("{nodes}");
+    });
+
+    it(`${locale}: no personality line has a middot or an em dash`, () => {
+      for (const key of Object.keys(LINES[locale])) {
+        expect(String(at(m, key)), key).not.toMatch(/[\u00B7\u2014]/);
+      }
+    });
+  }
+});
+
+/**
+ * The lines of Brand architecture and Name (ORV-291 PR 2, ORV-295, spec "Strings"): each key in both
+ * languages, word for word; the question is ORV-126's start question and `strategy.provisional` is
+ * ORV-126 "Missing strategy" word for word, read from ORV-126's spec so a changed catalog line goes
+ * red (T33, spec row 24); no middot or em dash in any of them.
+ */
+describe("brand architecture and name, strings", () => {
+  const LINES = {
+    en: {
+      "business.node.architecture": "Brand architecture",
+      "business.node.name": "Name",
+      "business.question.subBrands": "Does this brand sit above or below other brands?",
+      "business.field.subBrands": "Other brands above or below",
+      "business.field.architecture": "Architecture",
+      "business.field.workingName": "Working name",
+      "business.state.derived": "Worked out by a fixed rule",
+      "business.state.notInVersion": "Not in this version",
+      "business.marks.restsOn": "Rests on: {nodes}",
+      "business.architecture.no": "No, it stands on its own",
+      "business.architecture.yes": "Yes, it sits above or below other brands",
+      "business.architecture.save": "Save this answer",
+      "business.architecture.choiceRequired": "Choose one answer first.",
+      "business.architecture.single": "Single brand, one unit",
+      "business.architecture.because":
+        "Worked out from your answer: this brand does not sit above or below other brands.",
+      "business.architecture.notInVersion":
+        "A brand that sits above or below other brands needs a brand architecture study, which this version does not do yet.",
+      "business.name.give": "Give a working name",
+      "business.name.save": "Use this working name",
+      "business.name.required": "Write a working name, or cancel.",
+      "business.name.notScreened": "Working name, not screened for trademarks.",
+      "strategy.provisional": "Provisional. This rests on a step you skipped.",
+    },
+    th: {
+      "business.node.architecture": "โครงสร้างแบรนด์",
+      "business.node.name": "ชื่อแบรนด์",
+      "business.question.subBrands": "แบรนด์นี้อยู่เหนือหรืออยู่ใต้แบรนด์อื่นหรือไม่",
+      "business.field.subBrands": "แบรนด์อื่นที่อยู่เหนือหรือใต้",
+      "business.field.architecture": "โครงสร้าง",
+      "business.field.workingName": "ชื่อใช้งาน",
+      "business.state.derived": "ได้จากกฎที่กำหนดไว้",
+      "business.state.notInVersion": "ยังไม่มีในเวอร์ชันนี้",
+      "business.marks.restsOn": "อิงกับ: {nodes}",
+      "business.architecture.no": "ไม่ใช่ แบรนด์นี้อยู่เดี่ยว ๆ",
+      "business.architecture.yes": "ใช่ แบรนด์นี้อยู่เหนือหรือใต้แบรนด์อื่น",
+      "business.architecture.save": "บันทึกคำตอบนี้",
+      "business.architecture.choiceRequired": "เลือกหนึ่งคำตอบก่อน",
+      "business.architecture.single": "แบรนด์เดียว หน่วยเดียว",
+      "business.architecture.because":
+        "ได้จากคำตอบของคุณ: แบรนด์นี้ไม่ได้อยู่เหนือหรือใต้แบรนด์อื่น",
+      "business.architecture.notInVersion":
+        "แบรนด์ที่อยู่เหนือหรือใต้แบรนด์อื่นต้องศึกษาโครงสร้างแบรนด์ ซึ่งเวอร์ชันนี้ยังไม่ได้ทำ",
+      "business.name.give": "ตั้งชื่อใช้งาน",
+      "business.name.save": "ใช้ชื่อนี้",
+      "business.name.required": "เขียนชื่อใช้งาน หรือกดยกเลิก",
+      "business.name.notScreened": "ชื่อใช้งานชั่วคราว ยังไม่ได้ตรวจสอบเครื่องหมายการค้า",
+      "strategy.provisional": "ชั่วคราว เพราะอิงกับขั้นตอนที่คุณข้ามไว้",
+    },
+  } as const;
+
+  const orv126 = readFileSync(
+    path.join(import.meta.dirname, "../../../../docs/specs/ORV-126/spec.md"),
+    "utf8",
+  );
+  const PROVISIONAL = /^- `strategy\.provisional`: en "([^"]*)"; th "([^"]*)"$/m;
+
+  it("finds ORV-126's strategy.provisional line", () => {
+    expect(orv126.match(PROVISIONAL)).not.toBeNull();
+  });
+
+  for (const locale of LOCALES) {
+    const m = messagesFor(locale);
+
+    it(`${locale}: each line is the spec's, word for word`, () => {
+      expect(Object.keys(LINES[locale])).toHaveLength(21);
+      for (const [key, line] of Object.entries(LINES[locale])) {
+        expect(at(m, key), key).toBe(line);
+      }
+    });
+
+    it(`${locale}: strategy.provisional is ORV-126 'Missing strategy' word for word`, () => {
+      const home = orv126.match(PROVISIONAL);
+      expect(m.strategy.provisional).toBe(home?.[locale === "en" ? 1 : 2]);
+    });
+
+    it(`${locale}: the question of the choice is the start question of ORV-126`, () => {
+      expect(START_QUESTIONS).toHaveLength(1);
+      expect(m.business.question.subBrands).toBe(START_QUESTIONS[0]?.[locale]);
+    });
+
+    it(`${locale}: the node titles are the catalog's and spell the {nodes} slot of the new mark line`, () => {
+      expect(nodeTitle(m, "architecture")).toBe(m.business.node.architecture);
+      expect(nodeTitle(m, "name")).toBe(m.business.node.name);
+      expect(m.business.marks.restsOn).toContain("{nodes}");
+    });
+
+    it(`${locale}: no line has a middot or an em dash`, () => {
+      for (const key of Object.keys(LINES[locale])) {
+        expect(String(at(m, key)), key).not.toMatch(/[\u00b7\u2014]/);
+      }
+    });
+  }
+});
+
+/**
+ * ORV-298 PR 1, spec row 16 (T22): the Colour node's keys, word for word. The copy of record is the
+ * spec's "Strings" table; the test reads its rows marked PR 1 and holds the catalog to them in both
+ * languages, so a one-word edit of a catalog line, English or Thai, goes red. It also holds every
+ * colour word to the engine's own lists (each family `auditLineup` can name, each value of
+ * `neutral` and `canvas`) and every PR 1 line free of a middot and an em dash.
+ */
+describe("expression, colour strings", () => {
+  const spec = readFileSync(
+    path.join(import.meta.dirname, "../../../../docs/specs/ORV-298/spec.md"),
+    "utf8",
+  );
+  const table = spec.slice(spec.indexOf("\n## Strings"), spec.indexOf("\n## Acceptance criteria"));
+  const rows = table
+    .split("\n")
+    .filter((line) => line.startsWith("| `"))
+    .map((line) => line.slice(2, -2).split(" | "))
+    .filter((cells) => cells.length === 4 && cells[3] === "1")
+    .map(([key, en, th]) => ({
+      key: (key ?? "").replaceAll("`", ""),
+      en: en ?? "",
+      th: th ?? "",
+    }));
+
+  it("reads the fifty-three PR 1 rows of the spec's Strings table", () => {
+    expect(rows).toHaveLength(53);
+    expect(new Set(rows.map((row) => row.key)).size).toBe(53);
+  });
+
+  it("is the whole PR 1 set of this test file's key list", () => {
+    const first = SPEC_KEYS.indexOf("business.node.color");
+    const end = SPEC_KEYS.indexOf("business.node.typography");
+    expect(rows.map((row) => row.key).sort()).toEqual([...SPEC_KEYS.slice(first, end)].sort());
+  });
+
+  for (const locale of LOCALES) {
+    const m = messagesFor(locale);
+
+    it(`${locale}: each PR 1 line is the spec's, word for word`, () => {
+      for (const row of rows) expect(at(m, row.key), row.key).toBe(row[locale]);
+    });
+
+    it(`${locale}: no PR 1 line has a middot or an em dash`, () => {
+      for (const row of rows) expect(String(at(m, row.key)), row.key).not.toMatch(/[\u00b7\u2014]/);
+    });
+
+    it(`${locale}: every colour family the audit can name has a word, and the words differ`, () => {
+      const families = [...CHROMATIC_FAMILIES, "ink", "paper"] as const;
+      const words = families.map((family) => m.business.color.family[family]);
+      expect(words.every((word) => word.trim() !== "")).toBe(true);
+      expect(new Set(words).size).toBe(families.length);
+      expect(Object.keys(m.business.color.family).sort()).toEqual([...families].sort());
+      expect(Object.keys(m.business.color.neutral)).toEqual([...COLOR_DECISIONS.neutral]);
+      expect(Object.keys(m.business.color.canvas)).toEqual([...COLOR_DECISIONS.canvas]);
+    });
+  }
+
+  it("spells the slots of the reasons: points, families, the rule and the row", () => {
+    for (const locale of LOCALES) {
+      const { color, decision } = messagesFor(locale).business;
+      expect(color.because.signature).toContain("{expressive}");
+      expect(color.because.signature).toContain("{warm}");
+      expect(color.because.fallback).toContain("{preferred}");
+      expect(color.because.neutral).toContain("{warm}");
+      expect(color.because.canvas).toContain("{premium}");
+      expect(color.bothCrowded).toContain("{first}");
+      expect(color.bothCrowded).toContain("{second}");
+      expect(color.remove).toContain("{name}");
+      expect(color.row).toContain("{n}");
+      expect(decision.rule).toContain("{rule}");
+    }
+  });
+});
+
+/**
+ * ORV-298 PR 2, spec row 26 (T31): the Typography node's keys, word for word. The copy of record is
+ * the spec's "Strings" table; the test reads its rows marked PR 2 and holds the catalog to them in
+ * both languages, so a one-word edit of a catalog line, English or Thai, goes red. The three family
+ * and licence names are not catalog lines: they are shown as written, the same in both languages.
+ */
+describe("expression, typography strings", () => {
+  const spec = readFileSync(
+    path.join(import.meta.dirname, "../../../../docs/specs/ORV-298/spec.md"),
+    "utf8",
+  );
+  const table = spec.slice(spec.indexOf("\n## Strings"), spec.indexOf("\n## Acceptance criteria"));
+  const rows = table
+    .split("\n")
+    .filter((line) => line.startsWith("| `"))
+    .map((line) => line.slice(2, -2).split(" | "))
+    .filter((cells) => cells.length === 4 && cells[3] === "2")
+    .map(([key, en, th]) => ({
+      key: (key ?? "").replaceAll("`", ""),
+      en: en ?? "",
+      th: th ?? "",
+    }));
+
+  it("reads the seventeen PR 2 rows of the spec's Strings table", () => {
+    expect(rows).toHaveLength(17);
+    expect(new Set(rows.map((row) => row.key)).size).toBe(17);
+  });
+
+  it("is the whole PR 2 set of this test file's key list", () => {
+    const first = SPEC_KEYS.indexOf("business.node.typography");
+    const end = SPEC_KEYS.indexOf("business.node.logoType");
+    expect(rows.map((row) => row.key).sort()).toEqual([...SPEC_KEYS.slice(first, end)].sort());
+  });
+
+  for (const locale of LOCALES) {
+    const m = messagesFor(locale);
+
+    it(`${locale}: each PR 2 line is the spec's, word for word`, () => {
+      for (const row of rows) expect(at(m, row.key), row.key).toBe(row[locale]);
+    });
+
+    it(`${locale}: no PR 2 line has a middot or an em dash`, () => {
+      for (const row of rows) expect(String(at(m, row.key)), row.key).not.toMatch(/[\u00b7\u2014]/);
+    });
+
+    it(`${locale}: the three answers and the three styles have words, and the words differ`, () => {
+      const answers = TYPOGRAPHY_SCRIPTS.map((scripts) => scriptsWord(m, scripts));
+      expect(answers.every((word) => word.trim() !== "")).toBe(true);
+      expect(new Set(answers).size).toBe(TYPOGRAPHY_SCRIPTS.length);
+      const styles = [...new Set(TYPOGRAPHY_FAMILIES.map((family) => family.style))];
+      expect(Object.keys(m.business.typography.style).sort()).toEqual([...styles].sort());
+      const words = styles.map((style) => styleWord(m, style));
+      expect(words.every((word) => word.trim() !== "")).toBe(true);
+      expect(new Set(words).size).toBe(styles.length);
+    });
+  }
+
+  it("spells the {licence} slot of the licence line", () => {
+    for (const locale of LOCALES) {
+      expect(messagesFor(locale).business.typography.licence).toContain("{licence}");
+    }
+  });
+});
+
+/**
+ * ORV-298 PR 3, spec row 39 (T39): the Logo type node's keys, word for word. The copy of record is
+ * the spec's "Strings" table; the test reads its rows marked PR 3 and holds the catalog to them in
+ * both languages, so a one-word edit of a catalog line, English or Thai, goes red. It also holds the
+ * slots of the name length line to the engine's outcome (the name, its length and the bound).
+ */
+describe("expression, logo type strings", () => {
+  const spec = readFileSync(
+    path.join(import.meta.dirname, "../../../../docs/specs/ORV-298/spec.md"),
+    "utf8",
+  );
+  const table = spec.slice(spec.indexOf("\n## Strings"), spec.indexOf("\n## Acceptance criteria"));
+  const rows = table
+    .split("\n")
+    .filter((line) => line.startsWith("| `"))
+    .map((line) => line.slice(2, -2).split(" | "))
+    .filter((cells) => cells.length === 4 && cells[3] === "3")
+    .map(([key, en, th]) => ({
+      key: (key ?? "").replaceAll("`", ""),
+      en: en ?? "",
+      th: th ?? "",
+    }));
+
+  it("reads the fifteen PR 3 rows of the spec's Strings table", () => {
+    expect(rows).toHaveLength(15);
+    expect(new Set(rows.map((row) => row.key)).size).toBe(15);
+  });
+
+  it("is the whole PR 3 set of this test file's key list", () => {
+    const first = SPEC_KEYS.indexOf("business.node.logoType");
+    expect(rows.map((row) => row.key).sort()).toEqual([...SPEC_KEYS.slice(first)].sort());
+  });
+
+  for (const locale of LOCALES) {
+    const m = messagesFor(locale);
+
+    it(`${locale}: each PR 3 line is the spec's, word for word`, () => {
+      for (const row of rows) expect(at(m, row.key), row.key).toBe(row[locale]);
+    });
+
+    it(`${locale}: no PR 3 line has a middot or an em dash`, () => {
+      // Built from the code points, so this file holds neither character itself (the copy check).
+      const banned = new RegExp(`[${String.fromCharCode(0xb7, 0x2014)}]`);
+      for (const row of rows) expect(String(at(m, row.key)), row.key).not.toMatch(banned);
+    });
+
+    it(`${locale}: the node title and the field read alike, and the two answers differ`, () => {
+      expect(nodeTitle(m, "logo-type")).toBe(m.business.node.logoType);
+      expect(m.business.field.logoType).toBe(m.business.node.logoType);
+      expect(m.business.logoType.appIcon.yes).not.toBe(m.business.logoType.appIcon.no);
+    });
+  }
+
+  it("spells the {name}, {n} and {max} slots of the name length line", () => {
+    for (const locale of LOCALES) {
+      const line = messagesFor(locale).business.logoType.nameLength;
+      expect(line).toContain("{name}");
+      expect(line).toContain("{n}");
+      expect(line).toContain("{max}");
+    }
+  });
+});
+
+/**
+ * The lines of the Core idea node (ORV-291 PR 3, ORV-296, spec "Strings"): each key in both
+ * languages, word for word; `business.question.remember` is ORV-126's proxy question and equals the
+ * engine's `core-idea.proxy.remember` (T42, spec row 37); no middot or em dash in any of them.
+ */
+describe("core idea, strings", () => {
+  const LINES = {
+    en: {
+      "business.node.coreIdea": "Core idea",
+      "business.question.remember":
+        "After someone meets your brand, what one thing should they remember?",
+      "business.field.remember": "The one thing to remember",
+      "business.field.coreIdea": "Core idea",
+      "business.coreIdea.save": "Agree to this core idea",
+      "business.coreIdea.statementRequired":
+        "Write your core idea before you agree to it, or cancel.",
+      "business.coreIdea.gatePassed": "You agreed to this core idea.",
+    },
+    th: {
+      "business.node.coreIdea": "แนวคิดหลัก",
+      "business.question.remember": "หลังจากได้รู้จักแบรนด์ของคุณ คุณอยากให้คนจำอะไรได้หนึ่งอย่าง",
+      "business.field.remember": "สิ่งเดียวที่อยากให้คนจำ",
+      "business.field.coreIdea": "แนวคิดหลัก",
+      "business.coreIdea.save": "เห็นชอบแนวคิดหลักนี้",
+      "business.coreIdea.statementRequired": "เขียนแนวคิดหลักของคุณก่อนกดเห็นชอบ หรือกดยกเลิก",
+      "business.coreIdea.gatePassed": "คุณเห็นชอบแนวคิดหลักนี้แล้ว",
+    },
+  } as const;
+
+  for (const locale of LOCALES) {
+    const m = messagesFor(locale);
+
+    it(`${locale}: each line is the spec's, word for word`, () => {
+      expect(Object.keys(LINES[locale])).toHaveLength(7);
+      for (const [key, line] of Object.entries(LINES[locale])) {
+        expect(at(m, key), key).toBe(line);
+      }
+    });
+
+    it(`${locale}: the question is the engine's core-idea.proxy.remember, ORV-126's copy`, () => {
+      const question = PROXY_QUESTIONS.find((q) => q.id === "core-idea.proxy.remember");
+      expect(question?.key).toBe("business.question.remember");
+      expect(m.business.question.remember).toBe(question?.[locale]);
+      expect(questionText(m, "core-idea.proxy.remember")).toBe(question?.[locale]);
+    });
+
+    it(`${locale}: the node title is the catalog's, the field and the node read alike`, () => {
+      expect(nodeTitle(m, "core-idea")).toBe(m.business.node.coreIdea);
+      expect(m.business.field.coreIdea).toBe(m.business.node.coreIdea);
+    });
+
+    it(`${locale}: no line has a middot or an em dash`, () => {
+      for (const key of Object.keys(LINES[locale])) {
+        expect(String(at(m, key)), key).not.toMatch(/[\u00b7\u2014]/);
+      }
+    });
+  }
+});
+
+/**
+ * The lines of the guidebook (ORV-302 PR 1, spec "Strings"): every PR 1 row of the spec's table in
+ * both languages, word for word; `business.guidebook.section.unconfirmed` is ORV-126's copy for the
+ * guidebook section `unconfirmed`; every question key the engine's closed table names (the visual
+ * ones included, tech notes T13) and every hypothesis key resolve in both catalogs; no middot or em dash.
+ */
+describe("guidebook, strings", () => {
+  const read = (spec: string) =>
+    readFileSync(path.join(import.meta.dirname, `../../../../docs/specs/${spec}/spec.md`), "utf8");
+  const spec = read("ORV-302");
+  const table = spec.slice(spec.indexOf("\n## Strings"), spec.indexOf("\n## Acceptance criteria"));
+  const rows = table
+    .split("\n")
+    .filter((line) => line.startsWith("| `"))
+    .map((line) => line.slice(2, -2).split(" | "))
+    .filter((cells) => cells.length === 4 && cells[3] === "1")
+    .map(([key, en, th]) => ({
+      key: (key ?? "").replaceAll("`", ""),
+      en: en ?? "",
+      th: th ?? "",
+    }));
+  // ORV-126 "Missing strategy": the line `- guidebook section `unconfirmed`: en "..."; th "..."`.
+  const pinned = /- guidebook section `unconfirmed`: en "([^"]+)"; th "([^"]+)"/.exec(
+    read("ORV-126"),
+  );
+
+  it("reads the thirty-two PR 1 rows of the spec's Strings table", () => {
+    expect(rows).toHaveLength(32);
+    expect(new Set(rows.map((row) => row.key)).size).toBe(32);
+  });
+
+  it("is the whole set of this test file's guidebook key list", () => {
+    expect(rows.map((row) => row.key).sort()).toEqual([...GUIDEBOOK_KEYS].sort());
+  });
+
+  it("reads ORV-126's copy for the section it pins", () => {
+    expect(pinned?.slice(1, 3)).toEqual(["Not yet confirmed", "ยังไม่ได้ยืนยัน"]);
+  });
+
+  for (const locale of LOCALES) {
+    const m = messagesFor(locale);
+
+    it(`${locale}: each PR 1 line is the spec's, word for word`, () => {
+      for (const row of rows) expect(at(m, row.key), row.key).toBe(row[locale]);
+    });
+
+    it(`${locale}: the section title Not yet confirmed is ORV-126's copy`, () => {
+      expect(m.business.guidebook.section.unconfirmed).toBe(pinned?.[locale === "en" ? 1 : 2]);
+    });
+
+    it(`${locale}: no PR 1 line has a middot or an em dash`, () => {
+      // Built from the code points, so this file holds neither character itself (the copy check).
+      const banned = new RegExp(`[${String.fromCharCode(0xb7, 0x2014)}]`);
+      for (const row of rows) expect(String(at(m, row.key)), row.key).not.toMatch(banned);
+    });
+
+    it(`${locale}: every question key of the closed table resolves to a line`, () => {
+      const keys = new Set(Object.values(GUIDEBOOK_QUESTIONS).flat());
+      expect([...keys].sort()).toEqual(
+        [
+          "business.question.appIcon",
+          "business.question.lineup",
+          "business.question.never",
+          "business.question.only",
+          "business.question.person",
+          "business.question.remember",
+          "business.question.scripts",
+          "business.question.subBrands",
+        ].sort(),
+      );
+      for (const key of keys) {
+        expect(typeof at(m, key), key).toBe("string");
+        expect(String(at(m, key)), key).not.toBe("");
+      }
+    });
+
+    it(`${locale}: every hypothesis key resolves, and the not-held group is the closed list`, () => {
+      for (const key of Object.values(GUIDEBOOK_HYPOTHESIS)) {
+        expect(typeof at(m, key), key).toBe("string");
+      }
+      expect(Object.keys(m.business.guidebook.notHeld)).toEqual([...GUIDEBOOK_NOT_HELD]);
     });
   }
 });
