@@ -61,6 +61,7 @@ describe("the closed lists", () => {
       "business/listProjects",
       "business/openProject",
       "business/choosePositioning",
+      "business/draftPositioning",
       "business/enterFoundation",
       "account/signInWithGoogle",
       "account/signOut",
@@ -95,6 +96,17 @@ describe("the closed lists", () => {
         "unavailable",
         "save-failed",
         "stored-invalid",
+      ],
+      // ORV-285 T10: the eight things that can happen to a drafted positioning, in the spec's order.
+      "positioning-draft": [
+        "drafted",
+        "refused",
+        "failed",
+        "not-configured",
+        "limited",
+        "spend-cap",
+        "unavailable",
+        "save-failed",
       ],
       "better-auth": [
         "INVALID_CALLBACK_REQUEST",
@@ -300,6 +312,8 @@ describe("writeLine", () => {
     ["business-read", "allowed"],
     ["business-read", "ok"],
     ["business-read", "not-read"],
+    ["positioning-draft", "read"],
+    ["positioning-draft", "allowed"],
     ["page-read", "save-failed"],
   ])("writes the outcome %s/%s as unknown", (step, outcome) => {
     expect(written({ ...base, step, outcome })["outcome"]).toBe("unknown");

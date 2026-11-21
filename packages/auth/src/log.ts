@@ -25,6 +25,7 @@ export const ROUTES = [
   "business/listProjects",
   "business/openProject",
   "business/choosePositioning",
+  "business/draftPositioning",
   "business/enterFoundation",
   "account/signInWithGoogle",
   "account/signOut",
@@ -64,6 +65,17 @@ export const STEP_OUTCOMES = {
     "save-failed",
     // ORV-287: a saved reading that no longer parses; the project opens with no reading.
     "stored-invalid",
+  ],
+  // ORV-285: what happened to the draft of a positioning, after the answers were read.
+  "positioning-draft": [
+    "drafted",
+    "refused",
+    "failed",
+    "not-configured",
+    "limited",
+    "spend-cap",
+    "unavailable",
+    "save-failed",
   ],
   /**
    * ba-messages-1: the string literals Better Auth 1.7.12 passes to `logger.warn(` or

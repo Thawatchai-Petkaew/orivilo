@@ -1,6 +1,7 @@
 import {
   BUSINESS_FIELDS,
   BUSINESS_NODES,
+  type BusinessAnswerKey,
   type BusinessNodeId,
   type BusinessReadReason,
   type BusinessView,
@@ -27,12 +28,17 @@ import { BusinessBoardScreen } from "./business-board";
 import type { ChoiceRequest } from "./business-node-view";
 import {
   aiUnavailableView,
+  DRAFT_ID,
+  DRAFT_MODEL_ID,
+  draftedAfter,
   ENGLISH_READ_VIEW,
   ENGLISH_VIEW,
   LONG_NAME,
   NARROW_VIEW,
+  HOSTILE_QUOTE,
   HOSTILE_STATEMENT,
   MARKUP_READINGS,
+  POSITIONING_DRAFTS,
   POSITIONING_STATEMENTS,
   POSITIONING_VIEWS,
   positioningAfter,
@@ -68,7 +74,10 @@ const meta = {
   decorators: [
     (Story, { parameters }) => (
       <>
-        <FixtureNote readings={parameters["fixtureReadings"] === true} />
+        <FixtureNote
+          readings={parameters["fixtureReadings"] === true}
+          drafts={parameters["fixtureDrafts"] === true}
+        />
         <Story />
       </>
     ),
@@ -1667,8 +1676,11 @@ export const AiSpendCap: Story = {
 
 /** What the stub action answers: saved, or a line the page would have resolved from `saved.errors.*`. */
 type StubResult = { ok: true } | { ok: false; failure: string };
-/** Shared by every story below; each play resets it first. */
+/** What the stub draft action answers: drafted, or the reason the request stopped. */
+type DraftResult = { ok: true } | { ok: false; stopped: BusinessReadReason };
+/** Shared by every story below; each play resets them first. */
 const choose = fn<(choice: ChoiceRequest) => Promise<StubResult>>();
+const draft = fn<() => Promise<DraftResult>>();
 
 /** Story-only copy: the lines `saved.errors.rate-limited` gives for a 20 minute wait (apps/web catalog). */
 const RATE_LIMITED = {
@@ -1683,15 +1695,27 @@ const RATE_LIMITED = {
  */
 function GateHost({ locale, initial }: { locale: Lang; initial: BusinessView }) {
   const [view, setView] = useState(initial);
-  const [pending, setPending] = useState<"saving" | null>(null);
+  const [pending, setPending] = useState<"saving" | "drafting" | null>(null);
   const [failure, setFailure] = useState<string | undefined>(undefined);
+  const [stopped, setStopped] = useState<BusinessReadReason | undefined>(undefined);
   const onChoose = (choice: ChoiceRequest) => {
-    if (choice.kind !== "written" && choice.kind !== "skipped") return;
     setPending("saving");
     setFailure(undefined);
+    setStopped(undefined);
     void choose(choice).then((result) => {
-      if (result.ok) setView(positioningAfter(locale, choice));
-      else setFailure(result.failure);
+      if (result.ok) {
+        setView(positioningAfter(locale, choice, view.positioning.options !== null));
+      } else setFailure(result.failure);
+      setPending(null);
+    });
+  };
+  const onDraft = () => {
+    setPending("drafting");
+    setFailure(undefined);
+    setStopped(undefined);
+    void draft().then((result) => {
+      if (result.ok) setView(draftedAfter(locale));
+      else setStopped(result.stopped);
       setPending(null);
     });
   };
@@ -1701,7 +1725,18 @@ function GateHost({ locale, initial }: { locale: Lang; initial: BusinessView }) 
       view={view}
       signInHref="/account"
       listHref="/business"
-      positioning={{ pending, failure, onChoose, onDismiss: () => setFailure(undefined) }}
+      positioning={{
+        pending,
+        failure,
+        stopped,
+        onChoose,
+        onDraft,
+        // Closing the viewer or cancelling drops what the last request left, as the page's wrapper does.
+        onDismiss: () => {
+          setFailure(undefined);
+          setStopped(undefined);
+        },
+      }}
     />
   );
 }
@@ -1729,6 +1764,11 @@ const statementOf = (section: HTMLElement) =>
 const alertOf = (section: HTMLElement) => section.querySelector('[role="alert"]') as HTMLElement;
 const buttonOf = (section: HTMLElement, name: string) =>
   within(section).getByRole("button", { name });
+/** A control by the `data-choice` the section marks it with (a button's name changes while it is busy). */
+const choiceButton = (scope: ParentNode, choice: string, option?: number) =>
+  scope.querySelector<HTMLElement>(
+    `[data-choice="${choice}"]${option === undefined ? "" : `[data-option="${option}"]`}`,
+  ) as HTMLElement;
 const textbox = (section: HTMLElement, name: string) =>
   within(section).getByRole("textbox", { name }) as HTMLTextAreaElement;
 const focusedIs = (el: Element) => waitFor(() => expect(document.activeElement).toBe(el));
@@ -1737,6 +1777,8 @@ const focusedIs = (el: Element) => waitFor(() => expect(document.activeElement).
 function stubSaves() {
   choose.mockReset();
   choose.mockImplementation(async () => ({ ok: true }));
+  draft.mockReset();
+  draft.mockImplementation(async () => ({ ok: true }));
 }
 
 // ----- row 5: the four states on the card and in the view -----
@@ -1753,9 +1795,14 @@ const STATES: Record<
     height: number;
   }
 > = {
-  open: { state: "proposed", line: "gate", buttons: ["writeOwn", "skip"], height: 172.98 },
+  open: {
+    state: "proposed",
+    line: "gate",
+    buttons: ["draft", "writeOwn", "skip"],
+    height: 172.98,
+  },
   valueEmpty: { state: "skipped", line: "gate", buttons: ["writeOwn", "skip"], height: 172.98 },
-  skipped: { state: "skipped", line: "gate", buttons: ["writeOwn"], height: 172.98 },
+  skipped: { state: "skipped", line: "gate", buttons: ["draft", "writeOwn"], height: 172.98 },
   agreed: { state: "agreed", line: "gatePassed", buttons: [], height: 149.19 },
 };
 
@@ -1898,8 +1945,9 @@ async function writtenPlay(canvasElement: HTMLElement, m: Messages) {
   const dialog = await positioningOf(canvasElement, m);
   const section = sectionOf(dialog);
   const write = buttonOf(section, m.business.positioning.writeOwn);
-  // Write my own is the one primary button: no engine action is offered in this PR.
-  await expect(write).toHaveAttribute("data-variant", "primary");
+  // The Intent Engine action takes the one lit button; Write my own is secondary beside it (design 5).
+  await expect(write).toHaveAttribute("data-variant", "secondary");
+  await expect(choiceButton(section, "draft")).toHaveAttribute("data-variant", "intent");
   await userEvent.click(write);
   const field = textbox(section, m.business.positioning.writeOwn);
   await focusedIs(field);
@@ -2024,7 +2072,7 @@ async function invalidPlay(canvasElement: HTMLElement, m: Messages) {
     "true",
   );
   expectSameHeight(agree(), buttonOf(section, m.business.positioning.cancel));
-  await expect(within(section).getByRole("status")).toHaveTextContent(
+  await expect(within(agree()).getByRole("status")).toHaveTextContent(
     m.business.positioning.saving,
   );
   finish({ ok: true });
@@ -2056,7 +2104,7 @@ async function skippedFlowPlay(canvasElement: HTMLElement, m: Messages) {
   await expect(within(section).queryByRole("button", { name: m.strategy.skip })).toBeNull();
   const write = buttonOf(section, m.business.positioning.writeOwn);
   await focusedIs(write);
-  await expect(write).toHaveAttribute("data-variant", "primary");
+  await expect(write).toHaveAttribute("data-variant", "secondary");
   await expect(choose).toHaveBeenCalledTimes(1);
   await expect(choose).toHaveBeenCalledWith({ kind: "skipped" });
   // Then write and agree: the view of row 2.
@@ -2102,6 +2150,7 @@ async function stalePlay(canvasElement: HTMLElement, m: Messages) {
   await expect(dialog).toHaveAccessibleDescription(m.business.state.gate);
   // The gate is open again: the person can write their own or skip.
   await expect(sectionButtons(section).map((b) => b.dataset["choice"])).toEqual([
+    "draft",
     "writeOwn",
     "skip",
   ]);
@@ -2175,6 +2224,8 @@ async function narrowStatementPlay(canvasElement: HTMLElement, m: Messages) {
 }
 
 async function narrowControlsPlay(canvasElement: HTMLElement, m: Messages) {
+  stubSaves();
+  const lang = langOf(m);
   await atWindow(360, 760, async () => {
     const dialog = await positioningOf(canvasElement, m);
     const section = sectionOf(dialog);
@@ -2183,22 +2234,38 @@ async function narrowControlsPlay(canvasElement: HTMLElement, m: Messages) {
     await expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(
       Math.max(360, window.innerWidth),
     );
-    // Keyboard only: Tab goes to Write my own, then Skip, in reading order; each focus is the line and halo.
-    const buttons = sectionButtons(section);
-    const write = buttons[0] as HTMLElement;
-    const skip = buttons[1] as HTMLElement;
+    // Keyboard only: Tab goes to Draft, then Write my own, then Skip, in reading order; each focus is the line and halo.
+    const drafter = choiceButton(section, "draft");
+    const write = choiceButton(section, "writeOwn");
+    const skip = choiceButton(section, "skip");
+    await userEvent.tab();
+    await focusedIs(drafter);
+    await expect(drafter.matches(":focus-visible")).toBe(true);
     await userEvent.tab();
     await focusedIs(write);
     await expect(write.matches(":focus-visible")).toBe(true);
     await userEvent.tab();
     await focusedIs(skip);
     await expect(skip.matches(":focus-visible")).toBe(true);
-    await expectFocusBorderForm(write);
-    await expectFocusBorderForm(skip);
-    // Both buttons on one row from the column's start edge; the editor's two buttons start there too.
+    for (const button of [drafter, write, skip]) await expectFocusBorderForm(button);
+    // Draft alone on row 1, the person's own paths on row 2 eight under it, all from the column's
+    // start edge, every button inside the column (design 8, P4).
     const column = section.getBoundingClientRect().left;
+    const first = drafter.getBoundingClientRect();
+    await expect(Math.abs(first.left - column)).toBeLessThanOrEqual(0.5);
+    await expect(
+      Math.abs(write.getBoundingClientRect().top - first.bottom - 8),
+    ).toBeLessThanOrEqual(0.5);
     await expect(Math.abs(write.getBoundingClientRect().left - column)).toBeLessThanOrEqual(0.5);
-    await userEvent.click(write);
+    for (const button of [drafter, write, skip]) {
+      await expect(button.getBoundingClientRect().right).toBeLessThanOrEqual(
+        region.getBoundingClientRect().right,
+      );
+    }
+    // Back to Write my own with Shift+Tab, then Enter opens the editor with focus in the field.
+    await userEvent.tab({ shift: true });
+    await focusedIs(write);
+    await userEvent.keyboard("{Enter}");
     const editor = textbox(section, m.business.positioning.writeOwn);
     await focusedIs(editor);
     await expect(Math.abs(editor.getBoundingClientRect().left - column)).toBeLessThanOrEqual(0.5);
@@ -2217,6 +2284,21 @@ async function narrowControlsPlay(canvasElement: HTMLElement, m: Messages) {
       await expect(box.right).toBeLessThanOrEqual(region.getBoundingClientRect().right);
     }
     await expect(region.scrollWidth).toBeLessThanOrEqual(region.clientWidth);
+    // Type a statement, Tab once to Agree, Enter: the outcome of row 2 from the keyboard alone (QA-1).
+    await userEvent.paste(POSITIONING_STATEMENTS[lang]);
+    await userEvent.tab();
+    await focusedIs(choiceButton(section, "save"));
+    await userEvent.keyboard("{Enter}");
+    await waitFor(() =>
+      expect(statementOf(section)?.textContent).toBe(POSITIONING_STATEMENTS[lang]),
+    );
+    const by = (statementOf(section) as HTMLElement).nextElementSibling as HTMLElement;
+    await expect(textOf(by)).toBe(m.business.positioning.by.own);
+    await expect(textOf(stateLineOf(dialog))).toBe(m.business.state.agreed);
+    await expectChosenOnce({
+      kind: "written",
+      statement: POSITIONING_STATEMENTS[lang],
+    });
     await closeViewer(canvasElement, "positioning");
   });
 }
@@ -2260,4 +2342,651 @@ export const PositioningNarrowEnglish: Story = {
   play: async ({ canvasElement }) => {
     await narrowControlsPlay(canvasElement, en);
   },
+};
+
+/** `choose` was called once, with this choice. */
+async function expectChosenOnce(choice: Parameters<typeof choose>[0]) {
+  await expect(choose).toHaveBeenCalledTimes(1);
+  await expect(choose).toHaveBeenCalledWith(choice);
+}
+
+// ----- drafted options (ORV-292, PR 2): rows 15 to 19, 21, 23, 24 and 28 -----
+
+/** A wait sized for a CI runner, not for one story on the Mac. */
+const WAIT = { timeout: 5000 } as const;
+
+/** Story-only copy: the line `saved.errors.failed` gives (apps/web catalog), for the failed save at rest. */
+const FAILED = {
+  th: "ทำไม่สำเร็จ ลองอีกครั้ง",
+  en: "That did not work. Try again.",
+} as const;
+
+const optionName = (m: Messages, n: number) =>
+  fill(m.business.positioning.option, { n: String(n) });
+const optionItems = (section: HTMLElement) => [
+  ...section.querySelectorAll<HTMLElement>("li[data-option]"),
+];
+const wellOf = (section: HTMLElement) => section.querySelector<HTMLElement>('[role="group"]');
+/** C3, the status region of the controls: the stopped draft's line lives here (not a button's own status). */
+const statusOf = (section: HTMLElement) =>
+  section.querySelector('div[role="status"]') as HTMLElement;
+/** C4, the last alert of the section: the failed save's line (a field's own alert comes before it). */
+const failureLine = (section: HTMLElement) =>
+  [...section.querySelectorAll<HTMLElement>('[role="alert"]')].at(-1) as HTMLElement;
+const answerLabel = (m: Messages, answer: BusinessAnswerKey) =>
+  ({
+    idea: m.business.field.offer,
+    industry: m.business.field.industry,
+    customers: m.business.field.customers,
+    problem: m.business.field.problem,
+    competitors: m.business.field.alternatives,
+    value: m.business.field.value,
+  })[answer];
+
+/** The pieces of a line that holds `{model}`: what a screen must not show without a stored draft. */
+const labelPieces = (line: string) => line.split("{model}").filter((piece) => piece.length > 1);
+/** No line says AI drafted, picked or edited (`positioning-honest-1`, row 24). */
+async function expectNoAiLabel(text: string, m: Messages) {
+  await expect(text).not.toContain(m.strategy.draftedOptions);
+  for (const line of [
+    m.business.positioning.draftedBy,
+    m.business.positioning.by.picked,
+    m.business.positioning.by.edited,
+  ]) {
+    for (const piece of labelPieces(line)) await expect(text).not.toContain(piece);
+  }
+}
+
+/** Opens Positioning on the drafted fixture and reads the well, the options and what each says. */
+async function expectOptions(dialog: HTMLElement, section: HTMLElement, m: Messages) {
+  const lang = langOf(m);
+  const fixture = POSITIONING_DRAFTS[lang];
+  await expect(textOf(stateLineOf(dialog))).toBe(m.business.state.awaitingChoice);
+  await expect(dialog).toHaveAccessibleDescription(m.business.state.gate);
+  const well = wellOf(section) as HTMLElement;
+  await expect(well).not.toBeNull();
+  // The intro says a model drafted these, once, and the well is named by it.
+  await expect(within(dialog).getAllByText(m.strategy.draftedOptions)).toHaveLength(1);
+  await expect(well).toHaveAccessibleName(m.strategy.draftedOptions);
+  // P8: the well starts where the section heading starts and is as wide as the column.
+  const column = section.getBoundingClientRect();
+  const wellBox = well.getBoundingClientRect();
+  await expect(
+    Math.abs(
+      wellBox.left - (section.querySelector("h3") as HTMLElement).getBoundingClientRect().left,
+    ),
+  ).toBeLessThanOrEqual(0.5);
+  await expect(Math.abs(wellBox.width - column.width)).toBeLessThanOrEqual(0.5);
+  const items = optionItems(section);
+  await expect(items).toHaveLength(fixture.options.length);
+  let at = 0;
+  for (const item of items) {
+    const option = fixture.options[at] as (typeof fixture.options)[number];
+    at += 1;
+    await expect(textOf(item.querySelector("h4") as HTMLElement)).toBe(optionName(m, at));
+    await expect(item.querySelector("[data-option-statement]")?.textContent).toBe(option.statement);
+    await expect(textOf(item)).toContain(
+      fill(m.business.positioning.draftedBy, { model: DRAFT_MODEL_ID }),
+    );
+    await expect(within(item).getAllByText(m.business.positioning.restsOn)).toHaveLength(1);
+    const quotes = [...item.querySelectorAll<HTMLElement>("[data-quote]")];
+    await expect(quotes.map((q) => q.textContent)).toEqual(option.quotes.map((q) => q.text));
+    // Each quote carries the label of the field its answer sits on.
+    for (const [q, quote] of quotes.entries()) {
+      const answer = option.quotes[q] as (typeof option.quotes)[number];
+      await expect(textOf(quote.nextElementSibling as HTMLElement)).toBe(
+        answerLabel(m, answer.answer),
+      );
+    }
+    // The same weight for every option: two buttons, 40 tall, named by their option.
+    const use = within(item).getByRole("button", {
+      name: `${m.business.positioning.pick} ${optionName(m, at)}`,
+    });
+    const edit = within(item).getByRole("button", {
+      name: `${m.business.positioning.edit} ${optionName(m, at)}`,
+    });
+    await expect(use).toHaveAttribute("data-variant", "secondary");
+    expectSameHeight(use, edit);
+    await expect(use.getBoundingClientRect().height).toBeCloseTo(40, 0);
+  }
+  // No score, no rank, no recommendation: the only digits are the options' numbers and the model id.
+  const bare = textOf(well)
+    .replaceAll(DRAFT_MODEL_ID, "")
+    .replace(/(Option|ตัวเลือกที่) \d/g, "");
+  await expect(bare).not.toMatch(/\d|%|score|recommend|คะแนน|แนะนำ/i);
+  // No button of the view is the lit primary: the decision is among the options.
+  await expect(section.querySelector('[data-variant="primary"]')).toBeNull();
+  await expect(choiceButton(section, "writeOwn")).toHaveAttribute("data-variant", "secondary");
+  await expect(choiceButton(section, "draft")).toBeNull();
+  // Three options with their quotes are taller than the viewer at 900: a tall window shows all of it.
+  await atWindow(1440, 2000, async () => {
+    expectNoGlyphClip(within(dialog).getByRole("region", { name: nodeTitle(m, "positioning") }));
+  });
+}
+
+/** The agreed view of a picked or an edited option: its text, who drafted it, the gate passed. */
+async function expectAgreedFromDraft(
+  dialog: HTMLElement,
+  section: HTMLElement,
+  m: Messages,
+  statement: string,
+  by: "picked" | "edited",
+) {
+  await waitFor(() => expect(statementOf(section)?.textContent).toBe(statement), WAIT);
+  const line = (statementOf(section) as HTMLElement).nextElementSibling as HTMLElement;
+  await expect(textOf(line)).toBe(fill(m.business.positioning.by[by], { model: DRAFT_MODEL_ID }));
+  await expect(textOf(stateLineOf(dialog))).toBe(m.business.state.agreed);
+  await expect(dialog).toHaveAccessibleDescription(m.business.positioning.gatePassed);
+  await expect(wellOf(section)).toBeNull();
+  await expect(optionItems(section)).toHaveLength(0);
+  await expect(sectionButtons(section)).toHaveLength(0);
+  await focusedIs(section.querySelector("h3") as HTMLElement);
+}
+
+// ----- row 17 and 18: the options at rest, then "Use this one" on option 2 -----
+
+async function optionsPlay(canvasElement: HTMLElement, m: Messages) {
+  stubSaves();
+  const lang = langOf(m);
+  await boardReady(canvasElement);
+  // The card: waiting for the person's choice, with the gate line.
+  const card = nodeEl(canvasElement, "positioning").querySelector(".ds-node") as HTMLElement;
+  await expectStateLine(card, m, "awaitingChoice");
+  await expect([...card.querySelectorAll(".ds-node__body p")].map(textOf).at(-1)).toBe(
+    m.business.state.gate,
+  );
+  const dialog = await positioningOf(canvasElement, m);
+  const section = sectionOf(dialog);
+  await expectOptions(dialog, section, m);
+  // Row 18: option 2, copied on the server from the saved draft; the others leave with the well.
+  await userEvent.click(choiceButton(section, "pick", 2));
+  await expectAgreedFromDraft(
+    dialog,
+    section,
+    m,
+    POSITIONING_DRAFTS[lang].options[1]?.statement ?? "",
+    "picked",
+  );
+  await expectChosenOnce({
+    kind: "picked",
+    draftId: DRAFT_ID,
+    option: 2,
+  });
+  await expect(textOf(dialog)).not.toContain(POSITIONING_DRAFTS[lang].options[0]?.statement ?? "");
+  await expect(textOf(dialog)).not.toContain(POSITIONING_DRAFTS[lang].options[2]?.statement ?? "");
+}
+
+/** A draft of the newest intake stored, no choice: three options with their quotes, then one picked (rows 17 and 18). */
+export const PositioningOptions: Story = {
+  parameters: { fixtureDrafts: true },
+  render: hosted("th", POSITIONING_VIEWS.th.drafted),
+  play: ({ canvasElement }) => optionsPlay(canvasElement, th),
+};
+export const PositioningOptionsEnglish: Story = {
+  parameters: { fixtureDrafts: true },
+  render: hosted("en", POSITIONING_VIEWS.en.drafted),
+  decorators: [inEnglish],
+  play: ({ canvasElement }) => optionsPlay(canvasElement, en),
+};
+
+// ----- row 21: skip, then pick -----
+
+async function optionsSkippedPlay(canvasElement: HTMLElement, m: Messages) {
+  stubSaves();
+  const lang = langOf(m);
+  const dialog = await positioningOf(canvasElement, m);
+  const section = sectionOf(dialog);
+  await userEvent.click(buttonOf(section, m.strategy.skip));
+  // Skipped for now with the gate line; the three options stay with their labels and the intro once.
+  await waitFor(() => expect(textOf(stateLineOf(dialog))).toBe(m.business.state.skipped), WAIT);
+  await expect(dialog).toHaveAccessibleDescription(m.business.state.gate);
+  await expect(optionItems(section)).toHaveLength(3);
+  await expect(within(dialog).getAllByText(m.strategy.draftedOptions)).toHaveLength(1);
+  await expect(
+    within(dialog).getAllByText(fill(m.business.positioning.draftedBy, { model: DRAFT_MODEL_ID })),
+  ).toHaveLength(3);
+  await expect(within(section).queryByRole("button", { name: m.strategy.skip })).toBeNull();
+  await focusedIs(choiceButton(section, "writeOwn"));
+  // Then option 1: the agreed view of row 18.
+  await userEvent.click(choiceButton(section, "pick", 1));
+  await expectAgreedFromDraft(
+    dialog,
+    section,
+    m,
+    POSITIONING_DRAFTS[lang].options[0]?.statement ?? "",
+    "picked",
+  );
+  await expect(choose).toHaveBeenNthCalledWith(1, { kind: "skipped" });
+  await expect(choose).toHaveBeenNthCalledWith(2, { kind: "picked", draftId: DRAFT_ID, option: 1 });
+}
+
+export const PositioningOptionsSkipped: Story = {
+  parameters: { fixtureDrafts: true },
+  render: hosted("th", POSITIONING_VIEWS.th.drafted),
+  play: ({ canvasElement }) => optionsSkippedPlay(canvasElement, th),
+};
+export const PositioningOptionsSkippedEnglish: Story = {
+  parameters: { fixtureDrafts: true },
+  render: hosted("en", POSITIONING_VIEWS.en.drafted),
+  decorators: [inEnglish],
+  play: ({ canvasElement }) => optionsSkippedPlay(canvasElement, en),
+};
+
+// ----- row 19: edit this one (three fixtures, one story each) -----
+
+/** Opens the option editor on `n`: the field holds the option's saved statement, the caret at its end. */
+async function openOptionEditor(dialog: HTMLElement, section: HTMLElement, m: Messages, n: number) {
+  const fixture = POSITIONING_DRAFTS[langOf(m)].options[n - 1];
+  await userEvent.click(choiceButton(section, "edit", n));
+  const field = textbox(section, optionName(m, n));
+  await focusedIs(field);
+  await expect(field.value).toBe(fixture?.statement);
+  await expect(field.selectionStart).toBe(field.value.length);
+  await expect(field.selectionEnd).toBe(field.value.length);
+  // The other options lose their buttons, the controls row is gone, the editor's pair is there.
+  await expect(sectionButtons(section).map((b) => b.dataset["choice"])).toEqual(["save", "cancel"]);
+  await expect(section.querySelector('[data-choice="writeOwn"], [data-choice="skip"]')).toBeNull();
+  // The option's own source lines stay under the field.
+  const item = optionItems(section)[n - 1] as HTMLElement;
+  await expect(textOf(item)).toContain(
+    fill(m.business.positioning.draftedBy, { model: DRAFT_MODEL_ID }),
+  );
+  await expect(within(item).getAllByText(m.business.positioning.restsOn)).toHaveLength(1);
+  await expect(textOf(dialog)).not.toContain(m.strategy.skip);
+  return field;
+}
+
+async function editPlay(canvasElement: HTMLElement, m: Messages) {
+  stubSaves();
+  const lang = langOf(m);
+  const dialog = await positioningOf(canvasElement, m);
+  const section = sectionOf(dialog);
+  const field = await openOptionEditor(dialog, section, m, 1);
+  const typed = `${POSITIONING_STATEMENTS[lang]}`;
+  await userEvent.clear(field);
+  await userEvent.paste(`  ${typed}  `);
+  await userEvent.click(choiceButton(section, "save"));
+  // The edited text, trimmed, with the label that says AI drafted it and the person edited it.
+  await expectAgreedFromDraft(dialog, section, m, typed, "edited");
+  await expectChosenOnce({
+    kind: "edited",
+    draftId: DRAFT_ID,
+    option: 1,
+    statement: `  ${typed}  `,
+  });
+}
+
+/** Option 1 edited and agreed: kind `edited`, the trimmed text, "drafted by AI and edited by you" (row 19). */
+export const PositioningEdit: Story = {
+  parameters: { fixtureDrafts: true },
+  render: hosted("th", POSITIONING_VIEWS.th.drafted),
+  play: ({ canvasElement }) => editPlay(canvasElement, th),
+};
+export const PositioningEditEnglish: Story = {
+  parameters: { fixtureDrafts: true },
+  render: hosted("en", POSITIONING_VIEWS.en.drafted),
+  decorators: [inEnglish],
+  play: ({ canvasElement }) => editPlay(canvasElement, en),
+};
+
+async function editUnchangedPlay(canvasElement: HTMLElement, m: Messages) {
+  stubSaves();
+  const lang = langOf(m);
+  const dialog = await positioningOf(canvasElement, m);
+  const section = sectionOf(dialog);
+  await openOptionEditor(dialog, section, m, 1);
+  await userEvent.click(choiceButton(section, "save"));
+  // Agreed with no change: the label of a pick (W4), not of an edit.
+  await expectAgreedFromDraft(
+    dialog,
+    section,
+    m,
+    POSITIONING_DRAFTS[lang].options[0]?.statement ?? "",
+    "picked",
+  );
+}
+
+/** Option 1 agreed with no change: saved as `picked` (W4, row 19's second fixture). */
+export const PositioningEditUnchanged: Story = {
+  parameters: { fixtureDrafts: true },
+  render: hosted("th", POSITIONING_VIEWS.th.drafted),
+  play: ({ canvasElement }) => editUnchangedPlay(canvasElement, th),
+};
+export const PositioningEditUnchangedEnglish: Story = {
+  parameters: { fixtureDrafts: true },
+  render: hosted("en", POSITIONING_VIEWS.en.drafted),
+  decorators: [inEnglish],
+  play: ({ canvasElement }) => editUnchangedPlay(canvasElement, en),
+};
+
+async function editCancelPlay(canvasElement: HTMLElement, m: Messages) {
+  stubSaves();
+  const lang = langOf(m);
+  const dialog = await positioningOf(canvasElement, m);
+  const section = sectionOf(dialog);
+  const field = await openOptionEditor(dialog, section, m, 2);
+  await userEvent.clear(field);
+  await userEvent.paste(POSITIONING_STATEMENTS[lang]);
+  await userEvent.click(buttonOf(section, m.business.positioning.cancel));
+  // The view of row 17: option 2's saved statement, not the typed one, focus on its Edit this one, no call.
+  await expect(section.querySelector("textarea")).toBeNull();
+  await expect(optionItems(section)[1]?.querySelector("[data-option-statement]")?.textContent).toBe(
+    POSITIONING_DRAFTS[lang].options[1]?.statement,
+  );
+  await expect(textOf(dialog)).not.toContain(POSITIONING_STATEMENTS[lang]);
+  await focusedIs(choiceButton(section, "edit", 2));
+  await expect(optionItems(section)).toHaveLength(3);
+  await expect(choiceButton(section, "pick", 1)).not.toBeNull();
+  await expect(choose).not.toHaveBeenCalled();
+  await expect(textOf(stateLineOf(dialog))).toBe(m.business.state.awaitingChoice);
+}
+
+/** Option 2 edited, then Cancel: the saved statement and the focus back on its button (row 19's third fixture). */
+export const PositioningEditCancel: Story = {
+  parameters: { fixtureDrafts: true },
+  render: hosted("th", POSITIONING_VIEWS.th.drafted),
+  play: ({ canvasElement }) => editCancelPlay(canvasElement, th),
+};
+export const PositioningEditCancelEnglish: Story = {
+  parameters: { fixtureDrafts: true },
+  render: hosted("en", POSITIONING_VIEWS.en.drafted),
+  decorators: [inEnglish],
+  play: ({ canvasElement }) => editCancelPlay(canvasElement, en),
+};
+
+// ----- row 15: a draft request that stops, one case per reason -----
+
+const STOPPED = [
+  ["ai-not-configured", "aiNotConfigured"],
+  ["ai-failed", "aiFailed"],
+  ["ai-rate-limited", "aiRateLimited"],
+  ["ai-spend-cap", "aiSpendCap"],
+] as const;
+
+async function draftStoppedPlay(canvasElement: HTMLElement, m: Messages) {
+  stubSaves();
+  const dialog = await positioningOf(canvasElement, m);
+  const section = sectionOf(dialog);
+  const column = section.getBoundingClientRect().left;
+  let calls = 0;
+  for (const [reason, key] of STOPPED) {
+    let finish: (result: DraftResult) => void = () => {};
+    draft.mockImplementation(() => new Promise<DraftResult>((done) => (finish = done)));
+    const drafter = () => choiceButton(section, "draft");
+    await expect(drafter()).toHaveAttribute("data-variant", "intent");
+    await userEvent.click(drafter());
+    calls += 1;
+    // While the request runs: Draft is busy and keeps focus, the other two are inert.
+    await waitFor(() => expect(drafter()).toHaveAttribute("data-loading"), WAIT);
+    await focusedIs(drafter());
+    await expect(within(drafter()).getByRole("status")).toHaveTextContent(
+      m.business.positioning.drafting,
+    );
+    await expect(choiceButton(section, "writeOwn")).toHaveAttribute("aria-disabled", "true");
+    await expect(choiceButton(section, "skip")).toHaveAttribute("aria-disabled", "true");
+    finish({ ok: false, stopped: reason });
+    // After: the reason's line in the status region, focus still on Draft, no option and no AI label.
+    await waitFor(
+      () => expect(textOf(statusOf(section))).toBe(m.business.positioning.errors[key]),
+      WAIT,
+    );
+    await focusedIs(drafter());
+    await expect(drafter()).not.toHaveAttribute("data-loading");
+    await expect(wellOf(section)).toBeNull();
+    await expect(optionItems(section)).toHaveLength(0);
+    await expectNoAiLabel(textOf(dialog), m);
+    await expect(choiceButton(section, "writeOwn")).not.toHaveAttribute("aria-disabled");
+    await expect(choiceButton(section, "skip")).not.toHaveAttribute("aria-disabled");
+    // The Notice starts where the column starts.
+    const notice = statusOf(section).firstElementChild?.firstElementChild as HTMLElement;
+    // A stopped draft is information, never the red of a failed save (design 5, C3).
+    await expect(notice).toHaveAttribute("data-variant", "info");
+    await expect(Math.abs(notice.getBoundingClientRect().left - column)).toBeLessThanOrEqual(0.5);
+    await expect(draft).toHaveBeenCalledTimes(calls);
+    await expect(textOf(stateLineOf(dialog))).toBe(m.business.state.proposed);
+  }
+  await expect(choose).not.toHaveBeenCalled();
+  expectNoGlyphClip(within(dialog).getByRole("region", { name: nodeTitle(m, "positioning") }));
+}
+
+/** Each reason a draft request stops, in turn, on the one project (row 15). */
+export const PositioningDraftStopped: Story = {
+  render: hosted("th", POSITIONING_VIEWS.th.open),
+  play: ({ canvasElement }) => draftStoppedPlay(canvasElement, th),
+};
+export const PositioningDraftStoppedEnglish: Story = {
+  render: hosted("en", POSITIONING_VIEWS.en.open),
+  decorators: [inEnglish],
+  play: ({ canvasElement }) => draftStoppedPlay(canvasElement, en),
+};
+
+// ----- row 16: no value answer, no Draft -----
+
+async function needsValuePlay(canvasElement: HTMLElement, m: Messages) {
+  stubSaves();
+  const dialog = await positioningOf(canvasElement, m);
+  const section = sectionOf(dialog);
+  await expect(
+    within(section).queryByRole("button", { name: m.business.positioning.draft }),
+  ).toBeNull();
+  await expect(choiceButton(section, "draft")).toBeNull();
+  const line = within(section).getByText(m.business.positioning.needsValue);
+  await expect(line).toBeVisible();
+  await expect(textOf(stateLineOf(dialog))).toBe(m.business.state.skipped);
+  // No engine action is offered, so Write my own is the one lit button (design 5, S3).
+  await expect(choiceButton(section, "writeOwn")).toHaveAttribute("data-variant", "primary");
+  await expect(choiceButton(section, "skip")).not.toBeNull();
+  // P5: the line 4 under the heading, the controls 12 under the line.
+  const heading = (section.querySelector("h3") as HTMLElement).getBoundingClientRect();
+  const box = line.getBoundingClientRect();
+  await expect(Math.abs(box.top - heading.bottom - 4)).toBeLessThanOrEqual(0.5);
+  await expect(
+    Math.abs(choiceButton(section, "writeOwn").getBoundingClientRect().top - box.bottom - 12),
+  ).toBeLessThanOrEqual(0.5);
+  await expect(
+    Math.abs(inkLeft(line) - inkLeft(section.querySelector("h3") as HTMLElement)),
+  ).toBeLessThanOrEqual(0.5);
+  await expect(optionItems(section)).toHaveLength(0);
+  expectNoGlyphClip(within(dialog).getByRole("region", { name: nodeTitle(m, "positioning") }));
+}
+
+/** The value answer empty: the needs-value line, no Draft, Write my own and Skip (row 16). */
+export const PositioningNeedsValue: Story = {
+  render: hosted("th", POSITIONING_VIEWS.th.valueEmpty),
+  play: ({ canvasElement }) => needsValuePlay(canvasElement, th),
+};
+export const PositioningNeedsValueEnglish: Story = {
+  render: hosted("en", POSITIONING_VIEWS.en.valueEmpty),
+  decorators: [inEnglish],
+  play: ({ canvasElement }) => needsValuePlay(canvasElement, en),
+};
+
+// ----- row 23: a drafted option and a quote that are markup -----
+
+async function untrustedDraftPlay(canvasElement: HTMLElement, m: Messages) {
+  const dialog = await positioningOf(canvasElement, m);
+  const section = sectionOf(dialog);
+  const well = wellOf(section) as HTMLElement;
+  await expect(well).not.toBeNull();
+  // Both as literal text: the markup's characters, in `bdi`, with no element made from them.
+  await expect(well.querySelector("[data-option-statement]")?.textContent).toBe(HOSTILE_STATEMENT);
+  await expect(well.querySelector("[data-option-statement] bdi")?.textContent).toBe(
+    HOSTILE_STATEMENT,
+  );
+  await expect(well.querySelector("[data-quote]")?.textContent).toBe(HOSTILE_QUOTE);
+  await expect(well.querySelector("[data-quote] q bdi")?.textContent).toBe(HOSTILE_QUOTE);
+  await expect(well.querySelectorAll("img, script, a, b")).toHaveLength(0);
+  await expect(dialog.querySelectorAll("img, script, a")).toHaveLength(0);
+  await closeViewer(canvasElement, "positioning");
+  await expect(canvasElement.querySelector("img")).toBeNull();
+  await expect(canvasElement.querySelector("script")).toBeNull();
+}
+
+export const PositioningUntrustedDraft: Story = {
+  parameters: { fixtureDrafts: true },
+  render: hosted("th", POSITIONING_VIEWS.th.draftedHostile),
+  play: ({ canvasElement }) => untrustedDraftPlay(canvasElement, th),
+};
+export const PositioningUntrustedDraftEnglish: Story = {
+  parameters: { fixtureDrafts: true },
+  render: hosted("en", POSITIONING_VIEWS.en.draftedHostile),
+  decorators: [inEnglish],
+  play: ({ canvasElement }) => untrustedDraftPlay(canvasElement, en),
+};
+
+// ----- row 24: no draft, no AI label -----
+
+async function noDraftPlay(canvasElement: HTMLElement, m: Messages) {
+  stubSaves();
+  const lang = langOf(m);
+  let dialog = await positioningOf(canvasElement, m);
+  let section = sectionOf(dialog);
+  // No choice, no draft.
+  await expectNoAiLabel(textOf(dialog), m);
+  // A stopped request, then the viewer closed and opened again: the error is gone, still no AI label.
+  draft.mockImplementation(async () => ({ ok: false, stopped: "ai-failed" }));
+  await userEvent.click(choiceButton(section, "draft"));
+  await waitFor(
+    () => expect(textOf(statusOf(section))).toBe(m.business.positioning.errors.aiFailed),
+    WAIT,
+  );
+  await closeViewer(canvasElement, "positioning");
+  dialog = await positioningOf(canvasElement, m);
+  section = sectionOf(dialog);
+  await expect(textOf(statusOf(section))).toBe("");
+  await expect(textOf(dialog)).not.toContain(m.business.positioning.errors.aiFailed);
+  await expectNoAiLabel(textOf(dialog), m);
+  // A skipped choice.
+  await userEvent.click(buttonOf(section, m.strategy.skip));
+  await waitFor(() => expect(textOf(stateLineOf(dialog))).toBe(m.business.state.skipped), WAIT);
+  await expectNoAiLabel(textOf(dialog), m);
+  // A written choice: the person's own words, labelled as theirs, never as drafted.
+  await userEvent.click(choiceButton(section, "writeOwn"));
+  await userEvent.click(textbox(section, m.business.positioning.writeOwn));
+  await userEvent.paste(POSITIONING_STATEMENTS[lang]);
+  await userEvent.click(choiceButton(section, "save"));
+  await waitFor(() => expect(textOf(stateLineOf(dialog))).toBe(m.business.state.agreed), WAIT);
+  await expect(textOf(section)).toContain(m.business.positioning.by.own);
+  await expectNoAiLabel(textOf(dialog), m);
+}
+
+export const PositioningNoDraft: Story = {
+  render: hosted("th", POSITIONING_VIEWS.th.open),
+  play: ({ canvasElement }) => noDraftPlay(canvasElement, th),
+};
+export const PositioningNoDraftEnglish: Story = {
+  render: hosted("en", POSITIONING_VIEWS.en.open),
+  decorators: [inEnglish],
+  play: ({ canvasElement }) => noDraftPlay(canvasElement, en),
+};
+
+// ----- row 28: four states at rest, the viewer left open -----
+
+/** Opens Positioning and leaves the viewer open for the catalog to show (F3 of visual sign-off 1). */
+async function restDialog(canvasElement: HTMLElement, m: Messages) {
+  stubSaves();
+  const dialog = await positioningOf(canvasElement, m);
+  return { dialog, section: sectionOf(dialog) };
+}
+
+/** What each rest story ends on: the viewer open, nothing running, nothing left to press. */
+async function expectAtRest(dialog: HTMLElement, section: HTMLElement) {
+  await expect(document.body.querySelector('[role="dialog"]')).toBe(dialog);
+  await expect(section.querySelector('[data-loading], [aria-busy="true"]')).toBeNull();
+}
+
+async function restEditorPlay(canvasElement: HTMLElement, m: Messages) {
+  const { dialog, section } = await restDialog(canvasElement, m);
+  await userEvent.click(choiceButton(section, "writeOwn"));
+  const field = textbox(section, m.business.positioning.writeOwn);
+  await focusedIs(field);
+  await expect(field.value).toBe("");
+  await expect(buttonOf(section, m.business.positioning.save)).toBeVisible();
+  await expect(buttonOf(section, m.business.positioning.cancel)).toBeVisible();
+  await expectAtRest(dialog, section);
+}
+async function restFieldErrorPlay(canvasElement: HTMLElement, m: Messages) {
+  const { dialog, section } = await restDialog(canvasElement, m);
+  await userEvent.click(choiceButton(section, "writeOwn"));
+  await userEvent.click(choiceButton(section, "save"));
+  const field = textbox(section, m.business.positioning.writeOwn);
+  await waitFor(
+    () => expect(textOf(section)).toContain(m.business.positioning.statementRequired),
+    WAIT,
+  );
+  await expect(field).toHaveAttribute("aria-invalid", "true");
+  await focusedIs(field);
+  await expect(choose).not.toHaveBeenCalled();
+  await expectAtRest(dialog, section);
+}
+async function restSaveFailedPlay(canvasElement: HTMLElement, m: Messages) {
+  const lang = langOf(m);
+  const { dialog, section } = await restDialog(canvasElement, m);
+  choose.mockImplementation(async () => ({ ok: false, failure: FAILED[lang] }));
+  await userEvent.click(choiceButton(section, "writeOwn"));
+  await userEvent.click(textbox(section, m.business.positioning.writeOwn));
+  await userEvent.paste(POSITIONING_STATEMENTS[lang]);
+  await userEvent.click(choiceButton(section, "save"));
+  await waitFor(() => expect(textOf(failureLine(section))).toBe(FAILED[lang]), WAIT);
+  await expect(failureLine(section).querySelector('[data-variant="danger"]')).not.toBeNull();
+  // The typed text is kept and the line sits under the buttons.
+  await expect(textbox(section, m.business.positioning.writeOwn).value).toBe(
+    POSITIONING_STATEMENTS[lang],
+  );
+  await expect(failureLine(section).getBoundingClientRect().top).toBeGreaterThanOrEqual(
+    choiceButton(section, "save").getBoundingClientRect().bottom,
+  );
+  await expect(choose).toHaveBeenCalledTimes(1);
+  await expectAtRest(dialog, section);
+}
+async function restOptionEditorPlay(canvasElement: HTMLElement, m: Messages) {
+  const { dialog, section } = await restDialog(canvasElement, m);
+  const field = await openOptionEditor(dialog, section, m, 1);
+  await expect(field.value).toBe(POSITIONING_DRAFTS[langOf(m)].options[0]?.statement);
+  await expect(buttonOf(section, m.business.positioning.save)).toBeVisible();
+  await expect(buttonOf(section, m.business.positioning.cancel)).toBeVisible();
+  await expectAtRest(dialog, section);
+}
+
+/** The write-own editor open (S9), at rest. */
+export const PositioningRestEditor: Story = {
+  render: hosted("th", POSITIONING_VIEWS.th.open),
+  play: ({ canvasElement }) => restEditorPlay(canvasElement, th),
+};
+export const PositioningRestEditorEnglish: Story = {
+  render: hosted("en", POSITIONING_VIEWS.en.open),
+  decorators: [inEnglish],
+  play: ({ canvasElement }) => restEditorPlay(canvasElement, en),
+};
+/** A field error after Agree with the field empty (S11), at rest. */
+export const PositioningRestFieldError: Story = {
+  render: hosted("th", POSITIONING_VIEWS.th.open),
+  play: ({ canvasElement }) => restFieldErrorPlay(canvasElement, th),
+};
+export const PositioningRestFieldErrorEnglish: Story = {
+  render: hosted("en", POSITIONING_VIEWS.en.open),
+  decorators: [inEnglish],
+  play: ({ canvasElement }) => restFieldErrorPlay(canvasElement, en),
+};
+/** A failed save, the typed text kept and the failure under the buttons (S13), at rest. */
+export const PositioningRestSaveFailed: Story = {
+  render: hosted("th", POSITIONING_VIEWS.th.open),
+  play: ({ canvasElement }) => restSaveFailedPlay(canvasElement, th),
+};
+export const PositioningRestSaveFailedEnglish: Story = {
+  render: hosted("en", POSITIONING_VIEWS.en.open),
+  decorators: [inEnglish],
+  play: ({ canvasElement }) => restSaveFailedPlay(canvasElement, en),
+};
+/** The option editor open on option 1 of a drafted project (S10), at rest. */
+export const PositioningRestOptionEditor: Story = {
+  parameters: { fixtureDrafts: true },
+  render: hosted("th", POSITIONING_VIEWS.th.drafted),
+  play: ({ canvasElement }) => restOptionEditorPlay(canvasElement, th),
+};
+export const PositioningRestOptionEditorEnglish: Story = {
+  parameters: { fixtureDrafts: true },
+  render: hosted("en", POSITIONING_VIEWS.en.drafted),
+  decorators: [inEnglish],
+  play: ({ canvasElement }) => restOptionEditorPlay(canvasElement, en),
 };

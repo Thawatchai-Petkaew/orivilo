@@ -120,6 +120,12 @@ const text = (markup: string) => markup.replace(/<[^>]*>/g, "");
 const written = () => capture.lines.map((line) => expectLineShape(line));
 
 describe("the route", () => {
+  // T39 (ORV-292): the draft action takes the setting of the page that calls it, and a 20 s call
+  // with its two transactions needs more than the default.
+  it("sets maxDuration to 60", () => {
+    expect(page.maxDuration).toBe(60);
+  });
+
   it("is dynamic", () => {
     expect(page.dynamic).toBe("force-dynamic");
   });

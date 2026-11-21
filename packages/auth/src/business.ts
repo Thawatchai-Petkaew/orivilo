@@ -7,6 +7,7 @@ import {
   checkIntake,
   INTAKE_VERSION,
   type StoredChoice,
+  type StoredDraft,
   type StoredEntry,
   type StoredIntake,
   storedIntakeSchema,
@@ -34,8 +35,9 @@ export class BusinessError extends Error {
    * refused (a second one for the intake and job, an intake of another workspace); the message is
    * a closed word, so no driver text, which holds the record's answers, reaches a caller's log.
    * `gate-passed` (ORV-285) is a positioning choice made after the newest intake's positioning was
-   * agreed: the statement stays as it is. `out-of-order` (ORV-291) is a foundation entry its node's
-   * state does not allow now (`foundation-entry-1`, "Allowed when").
+   * agreed: the statement stays as it is. A draft the database refused is `not-saved` too.
+   * `out-of-order` (ORV-291) is a foundation entry its node's state does not allow now
+   * (`foundation-entry-1`, "Allowed when").
    */
   readonly reason:
     "invalid-input" | "not-found" | "invalid-stored" | "not-saved" | "gate-passed" | "out-of-order";
@@ -48,6 +50,25 @@ export class BusinessError extends Error {
 
 /** The most projects `list` returns; the bound is ours, paging waits until a workspace has more. */
 export const BUSINESS_LIST_LIMIT = 100;
+
+/**
+ * An intake row as its stored form, parsed again: a row changed outside the app fails as
+ * `invalid-stored` and never shows as unchecked text.
+ */
+export function storedIntakeOfRow(row: typeof businessIntake.$inferSelect): StoredIntake {
+  const intake = storedIntakeSchema.safeParse({
+    version: row.version,
+    idea: row.idea,
+    industry: row.industry ?? undefined,
+    customers: row.customers ?? undefined,
+    problem: row.problem ?? undefined,
+    competitors: row.competitors ?? undefined,
+    value: row.value ?? undefined,
+    website: row.website ?? undefined,
+  });
+  if (!intake.success) throw new BusinessError("invalid-stored");
+  return intake.data;
+}
 
 export interface ProjectSummary {
   id: string;
@@ -66,11 +87,12 @@ export interface OpenedProject {
   /** That intake's saved `business-read` record, parsed again, or null when none was saved. */
   reading: BusinessReading | null;
   /**
-   * The positioning choice (ORV-285): the newest intake's id, which a choice names, and the
-   * project's newest choice row, parsed again, or null when none was made. A draft is never read
-   * here: nothing a model proposed counts until a person acts.
+   * The positioning of the project (ORV-285): the newest intake's id, which a choice names, the
+   * project's newest choice row and the draft of the newest intake (with its row id), each parsed
+   * again, or null when there is none. A draft is a proposal: nothing a model proposed counts until a
+   * person acts.
    */
-  positioning: { intakeId: string; choice: StoredChoice | null };
+  positioning: { intakeId: string; choice: StoredChoice | null; draft: StoredDraft | null };
   /**
    * The project's brand foundation entries (ORV-291), newest first, parsed again. Marks and states
    * are computed from them and the positioning gate; none is stored.
@@ -167,11 +189,12 @@ export function businessService(deps: AccessDeps) {
     },
 
     /**
-     * One project with its newest intake, that intake's saved reading and the project's newest
-     * positioning choice and its foundation entries. Never calls a model: a project with no saved
-     * reading opens with `reading: null`. A saved reading that no longer parses opens the same way,
-     * with one `warn` step line (`orv287-unparsed-reading-1`); the row is left as it is. An intake
-     * that no longer parses is `invalid-stored`, and the project is not shown.
+     * One project with its newest intake, that intake's saved reading, the project's newest
+     * positioning choice, the draft of the newest intake and its foundation entries. Never calls a
+     * model: a project with no saved reading opens with `reading: null`, and one with no draft with
+     * `draft: null`. A saved reading that no longer parses opens the same way as no reading, with
+     * one `warn` step line (`orv287-unparsed-reading-1`); the row is left as it is. An intake that
+     * no longer parses is `invalid-stored`, and the project is not shown.
      */
     async open(headers: Headers, workspaceId: string, projectId: string): Promise<OpenedProject> {
       return withWorkspace(deps, headers, workspaceId, "member", async ({ tx }) => {
@@ -192,17 +215,7 @@ export function businessService(deps: AccessDeps) {
           .orderBy(desc(businessIntake.createdAt), desc(businessIntake.id))
           .limit(1);
         if (!row) throw new BusinessError("not-found");
-        const intake = storedIntakeSchema.safeParse({
-          version: row.version,
-          idea: row.idea,
-          industry: row.industry ?? undefined,
-          customers: row.customers ?? undefined,
-          problem: row.problem ?? undefined,
-          competitors: row.competitors ?? undefined,
-          value: row.value ?? undefined,
-          website: row.website ?? undefined,
-        });
-        if (!intake.success) throw new BusinessError("invalid-stored");
+        const intake = storedIntakeOfRow(row);
         const [saved] = await tx
           .select()
           .from(businessReading)
@@ -248,15 +261,18 @@ export function businessService(deps: AccessDeps) {
             });
           }
         }
-        const choice = await readPositioning(tx, workspaceId, found.id);
+        const positioning = await readPositioning(tx, workspaceId, found.id, {
+          id: row.id,
+          answers: intake,
+        });
         const foundation = await readFoundation(tx, workspaceId, found.id);
         return {
           project: found,
           intakeId: row.id,
-          intake: intake.data,
+          intake,
           savedAt: row.createdAt,
           reading,
-          positioning: { intakeId: row.id, choice },
+          positioning,
           foundation,
         };
       });

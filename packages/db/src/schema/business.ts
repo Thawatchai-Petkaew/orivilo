@@ -160,6 +160,65 @@ export const businessReading = pgTable(
 );
 
 /**
+ * What the `positioning-draft` job proposed for one intake (ORV-285 tech notes section 4.2, ORV-292):
+ * two or three options with the words of the owner each rests on, as checked JSON. One row per
+ * intake and job, so a second request for the same answers is a replay, never a second call. A stopped
+ * request stores nothing. A draft is never a value: only a choice row holds a statement the gate
+ * counts. Written and read only through `positioningService` in @orivilo/auth, inside
+ * `withWorkspace`; the engine's `positioningDraftSchema` parses the record before every insert and
+ * after every read. A row is never changed: the app role may insert and select, never update or
+ * delete (migration 0015).
+ */
+export const businessDraft = pgTable(
+  "business_draft",
+  {
+    id: text("id").primaryKey(),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    intakeId: text("intake_id").notNull(),
+    /** The app schema closes it to `positioning-draft`; the database keeps a short name. */
+    job: text("job").notNull(),
+    modelId: text("model_id").notNull(),
+    adapterId: text("adapter_id").notNull(),
+    adapterVersion: text("adapter_version").notNull(),
+    promptVersion: text("prompt_version").notNull(),
+    /** `[{ statement, quotes: [{ answer, start, end, text }] }]`, two or three, in the model's order. */
+    options: jsonb("options").notNull(),
+    // A plain id, not a foreign key: a record keeps who wrote it after they leave (as business_intake).
+    createdBy: text("created_by").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+  },
+  (t) => [
+    // The pair proves the draft sits in its intake's workspace.
+    foreignKey({
+      columns: [t.intakeId, t.workspaceId],
+      foreignColumns: [businessIntake.id, businessIntake.workspaceId],
+      name: "business_draft_intake_fk",
+    }).onDelete("cascade"),
+    index("business_draft_workspaceId_idx").on(t.workspaceId),
+    unique("business_draft_one_per_job").on(t.intakeId, t.job),
+    // Lets a choice's foreign key prove its draft is of the same intake and workspace.
+    unique("business_draft_id_intake_workspace_unique").on(t.id, t.intakeId, t.workspaceId),
+    check("business_draft_job_check", sql`char_length(${t.job}) between 1 and 40`),
+    check("business_draft_model_id_check", sql`char_length(${t.modelId}) between 1 and 200`),
+    check("business_draft_adapter_id_check", sql`char_length(${t.adapterId}) between 1 and 40`),
+    check(
+      "business_draft_adapter_version_check",
+      sql`char_length(${t.adapterVersion}) between 1 and 40`,
+    ),
+    check(
+      "business_draft_prompt_version_check",
+      sql`char_length(${t.promptVersion}) between 1 and 40`,
+    ),
+    check(
+      "business_draft_options_check",
+      sql`jsonb_typeof(${t.options}) = 'array' and jsonb_array_length(${t.options}) between 2 and 3`,
+    ),
+  ],
+);
+
+/**
  * What a person chose for the positioning statement of an intake (ORV-285, tech notes section 4.1):
  * one row per choice, insert only, keyed to the intake it was made on. The project is the intake's,
  * so there is no project column. The newest row of a project is its current choice. At most one row
@@ -179,7 +238,7 @@ export const businessPositioningChoice = pgTable(
     kind: text("kind").notNull(),
     /** The statement the person agreed; null for a skip. */
     statement: text("statement"),
-    /** A plain id in this table's first form; a later draft table adds its foreign key. */
+    /** The draft a `picked` or `edited` choice was made from; the three-column key proves it is of this intake. */
     draftId: text("draft_id"),
     option: smallint("option"),
     // A plain id, not a foreign key: a record keeps who wrote it after they leave (as business_intake).
@@ -192,6 +251,13 @@ export const businessPositioningChoice = pgTable(
       columns: [t.intakeId, t.workspaceId],
       foreignColumns: [businessIntake.id, businessIntake.workspaceId],
       name: "business_positioning_choice_intake_fk",
+    }).onDelete("cascade"),
+    // With a null draft id (MATCH SIMPLE) nothing is checked, so a written or skipped row passes; a
+    // picked or edited row can only name a draft of the intake it was made on.
+    foreignKey({
+      columns: [t.draftId, t.intakeId, t.workspaceId],
+      foreignColumns: [businessDraft.id, businessDraft.intakeId, businessDraft.workspaceId],
+      name: "business_positioning_choice_draft_fk",
     }).onDelete("cascade"),
     index("business_positioning_choice_workspaceId_idx").on(t.workspaceId),
     index("business_positioning_choice_intake_created_idx").on(t.intakeId, t.createdAt),

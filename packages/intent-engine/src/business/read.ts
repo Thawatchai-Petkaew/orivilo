@@ -16,6 +16,8 @@ import {
   BUSINESS_READ_FIELDS,
   BUSINESS_READ_JOB,
   type BusinessAnswerKey,
+  type BusinessAnswers,
+  givenAnswers,
   type BusinessReadField,
   type BusinessReadReason,
   type BusinessReading,
@@ -131,22 +133,10 @@ export type BusinessReadPorts = {
   model: string;
 };
 
-type Answers = Partial<Record<BusinessAnswerKey, string>>;
-
-/** The given answers among the six, in the order they are sent. */
-function answersOf(intake: IntakeAnswers): Answers {
-  const answers: Answers = {};
-  for (const key of BUSINESS_ANSWER_KEYS) {
-    const text = intake[key];
-    if (typeof text === "string" && text !== "") answers[key] = text;
-  }
-  return answers;
-}
-
 type Span = { key: BusinessAnswerKey; start: number; end: number; text: string };
 
 /** Checks 1 to 3 of tech notes section 8.2: the answer parses, the values fit, each quote is in its answer. */
-function parseAnswer(raw: string, answers: Answers) {
+function parseAnswer(raw: string, answers: BusinessAnswers) {
   let json: unknown;
   try {
     json = JSON.parse(raw);
@@ -194,7 +184,7 @@ export async function readBusiness(
   input: BusinessReadInput,
   ports: BusinessReadPorts,
 ): Promise<{ items: InputEvidence[] }> {
-  const answers = answersOf(input.intake);
+  const answers = givenAnswers(input.intake);
   const raw = await ports.complete({
     system: BUSINESS_SYSTEM_PROMPT,
     // JSON keeps each answer inside its own string, so an answer that writes a fake key stays in its value.
