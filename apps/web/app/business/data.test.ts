@@ -383,6 +383,9 @@ describe("foundation replay, all four", () => {
       ["architecture", "derived"],
       ["name", "given"],
       ["core-idea", "agreed"],
+      ["logo-type", "needsAnswer"],
+      ["color", "partly"],
+      ["typography", "needsAnswer"],
     ]);
     expect(first.view.foundation[3]).toMatchObject({
       id: "core-idea",
@@ -426,5 +429,222 @@ describe("foundation replay, all four", () => {
     expect(loaded.view.foundation[1]).toMatchObject({ state: "waiting" });
     expect(state.writes).toEqual([]);
     expect(state.limitsConsumed).toBe(0);
+  });
+});
+
+// ORV-298 T19, row 15: the colour is computed from the stored entries each time the project opens.
+// Opening stores no decision, writes nothing, counts no limit and calls no model.
+describe("expression replay", () => {
+  const agreed = {
+    id: "c-1",
+    intakeId: INTAKE,
+    kind: "written",
+    statement: "Fresh roasted coffee for office workers",
+    draftId: null,
+    option: null,
+    createdAt: "2026-11-18T04:00:00.000Z",
+  };
+  const personality = {
+    id: "e-1",
+    node: "identity-frame",
+    kind: "given",
+    payload: {
+      axes: { playful: 75, expressive: 75, structured: 75, warm: 75, premium: 75 },
+      person: "warm, plain, caring",
+    },
+    createdAt: "2026-11-18T05:00:00.000Z",
+  };
+  const lineup = [
+    { name: "Rival A", hex: "#5B3FD9" },
+    { name: "Rival B", hex: "#111111" },
+  ];
+  const lineupEntry = {
+    id: "e-2",
+    node: "competitive-frame",
+    kind: "lineup",
+    payload: { lineup },
+    createdAt: "2026-11-18T05:30:00.000Z",
+  };
+
+  it("colour loaded twice gives the same view and writes nothing", async () => {
+    state.choice = agreed;
+    state.foundation = [lineupEntry, personality];
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-19T03:00:00Z"));
+    const first = await loadProject(PROJECT);
+    vi.setSystemTime(new Date("2026-11-20T03:00:00Z"));
+    const second = await loadProject(PROJECT);
+    if (first.access !== "ready" || second.access !== "ready") throw new Error("not ready");
+    expect(second).toEqual(first);
+    const colour = first.view.foundation.find((node) => node.id === "color");
+    // The stored lineup and personality reached the view, and the decisions came from the rules.
+    expect(colour).toMatchObject({
+      id: "color",
+      lineup,
+      controls: [],
+      needsPersonality: false,
+      decisions: { neutral: expect.anything(), canvas: expect.anything() },
+    });
+    expect(state.writes).toEqual([]);
+    expect(state.limitsConsumed).toBe(0);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  // ORV-298 PR 2, T30, row 25.
+  it("typography loaded twice gives the same view and writes nothing", async () => {
+    const typed = {
+      id: "e-3",
+      node: "typography",
+      kind: "answered",
+      payload: { scripts: "thai-latin" },
+      createdAt: "2026-11-18T06:00:00.000Z",
+    };
+    state.choice = agreed;
+    state.foundation = [typed, personality];
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-19T03:00:00Z"));
+    const first = await loadProject(PROJECT);
+    vi.setSystemTime(new Date("2026-11-20T03:00:00Z"));
+    const second = await loadProject(PROJECT);
+    if (first.access !== "ready" || second.access !== "ready") throw new Error("not ready");
+    expect(second).toEqual(first);
+    const typography = first.view.foundation.find((node) => node.id === "typography");
+    // The stored answer reached the view, and the families came from the rule, not from a row.
+    expect(typography).toMatchObject({
+      id: "typography",
+      state: "derived",
+      scripts: "thai-latin",
+      controls: [],
+      faces: { pairing: true },
+    });
+    if (typography?.id !== "typography") throw new Error("typography");
+    expect(typography.faces?.reading.map((f) => f.id)).toEqual(["sarabun", "inter"]);
+    expect(state.writes).toEqual([]);
+    expect(state.limitsConsumed).toBe(0);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("gives the typography node the answer control while no answer is stored", async () => {
+    state.choice = agreed;
+    state.foundation = [personality];
+    const loaded = await loadProject(PROJECT);
+    if (loaded.access !== "ready") throw new Error("not ready");
+    expect(loaded.view.foundation.find((node) => node.id === "typography")).toMatchObject({
+      scripts: null,
+      faces: null,
+      state: "needsAnswer",
+      controls: ["answer"],
+    });
+  });
+
+  // ORV-298 PR 3, T38, row 38: all three expression nodes, from a lineup, a personality, a
+  // typography answer and a logo type answer; the working name and the architecture answer are the
+  // two entries the logo type rests on.
+  describe("expression replay, all three", () => {
+    const rows = [
+      personality,
+      lineupEntry,
+      {
+        id: "e-3",
+        node: "typography",
+        kind: "answered",
+        payload: { scripts: "thai-latin" },
+        createdAt: "2026-11-18T06:00:00.000Z",
+      },
+      {
+        id: "e-4",
+        node: "architecture",
+        kind: "answered",
+        payload: { subBrands: false },
+        createdAt: "2026-11-18T06:10:00.000Z",
+      },
+      {
+        id: "e-5",
+        node: "name",
+        kind: "given",
+        payload: { name: "ORIVILO" },
+        createdAt: "2026-11-18T06:20:00.000Z",
+      },
+      {
+        id: "e-6",
+        node: "logo-type",
+        kind: "answered",
+        payload: { appIcon: false },
+        createdAt: "2026-11-18T06:30:00.000Z",
+      },
+    ];
+
+    it("loaded twice a day apart gives the same view, decisions and marks, and writes nothing", async () => {
+      state.choice = agreed;
+      state.foundation = rows;
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date("2026-11-19T03:00:00Z"));
+      const first = await loadProject(PROJECT);
+      vi.setSystemTime(new Date("2026-11-20T03:00:00Z"));
+      const second = await loadProject(PROJECT);
+      if (first.access !== "ready" || second.access !== "ready") throw new Error("not ready");
+      expect(second).toEqual(first);
+      const byId = (id: string) => first.view.foundation.find((node) => node.id === id);
+      expect(byId("logo-type")).toMatchObject({
+        id: "logo-type",
+        state: "derived",
+        appIcon: false,
+        controls: [],
+        decision: { type: "wordmark", reasons: ["wordmark"], name: "ORIVILO", length: 7 },
+      });
+      expect(byId("color")).toMatchObject({ id: "color", state: "derived" });
+      expect(byId("typography")).toMatchObject({ id: "typography", state: "derived" });
+      // No decision is stored: opening writes nothing and counts no limit.
+      expect(state.writes).toEqual([]);
+      expect(state.limitsConsumed).toBe(0);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it("gives the logo type node the answer control while no answer is stored and the name is short", async () => {
+      state.choice = agreed;
+      state.foundation = rows.filter((r) => r.node !== "logo-type");
+      const loaded = await loadProject(PROJECT);
+      if (loaded.access !== "ready") throw new Error("not ready");
+      expect(loaded.view.foundation.find((node) => node.id === "logo-type")).toMatchObject({
+        appIcon: null,
+        decision: null,
+        state: "needsAnswer",
+        controls: ["answer"],
+      });
+    });
+
+    it("gives a long name its decision and no answer control", async () => {
+      state.choice = agreed;
+      state.foundation = rows
+        .filter((r) => r.node !== "logo-type")
+        .map((r) => (r.node === "name" ? { ...r, payload: { name: "Chase Manhattan Bank" } } : r));
+      const loaded = await loadProject(PROJECT);
+      if (loaded.access !== "ready") throw new Error("not ready");
+      expect(loaded.view.foundation.find((node) => node.id === "logo-type")).toMatchObject({
+        state: "derived",
+        controls: [],
+        decision: { type: "symbol-plus-name", reasons: ["longName"], length: 18, max: 12 },
+      });
+    });
+
+    it("loads the logo type with a stored answer in the view JSON as keys and the name as typed", async () => {
+      state.choice = agreed;
+      state.foundation = rows;
+      const loaded = await loadProject(PROJECT);
+      if (loaded.access !== "ready") throw new Error("not ready");
+      const node = loaded.view.foundation.find((n) => n.id === "logo-type");
+      expect(JSON.stringify(node)).not.toMatch(/Wordmark|Waits for|characters/);
+    });
+  });
+
+  it("gives the colour node the give control while no lineup is stored and the personality is", async () => {
+    state.choice = agreed;
+    state.foundation = [personality];
+    const loaded = await loadProject(PROJECT);
+    if (loaded.access !== "ready") throw new Error("not ready");
+    expect(loaded.view.foundation.find((node) => node.id === "color")).toMatchObject({
+      lineup: null,
+      controls: ["give"],
+    });
   });
 });

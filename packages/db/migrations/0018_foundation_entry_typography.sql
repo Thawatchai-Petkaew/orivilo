@@ -1,0 +1,2 @@
+ALTER TABLE "business_foundation_entry" DROP CONSTRAINT "business_foundation_entry_pair";--> statement-breakpoint
+ALTER TABLE "business_foundation_entry" ADD CONSTRAINT "business_foundation_entry_pair" CHECK (("business_foundation_entry"."node", "business_foundation_entry"."kind") in (('identity-frame', 'given'), ('identity-frame', 'skipped'), ('architecture', 'answered'), ('name', 'given'), ('core-idea', 'written'), ('core-idea', 'skipped'), ('competitive-frame', 'lineup'), ('typography', 'answered')));

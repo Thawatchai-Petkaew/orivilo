@@ -16,6 +16,13 @@ import { nodeTitle } from "./business-text";
  * (spec rows 9, 23 and 34): after PR 3 the board has nine nodes and thirteen edges, the new nodes and
  * their one edge per require (W2), and a node with several sources gets one input handle per source,
  * in the order of the design's table (2.2), which is not always the order of the engine's edge list.
+ * ORV-298 tech notes T20 (spec row 12): PR 1 adds Colour, one node and two edges, so the board has
+ * nine nodes and thirteen edges, and Brand personality moves up to y -340 (design 2.1).
+ * ORV-298 tech notes T31 (spec row 24): PR 2 adds Typography, one node and one edge more than PR 1's
+ * board, ten nodes and fourteen edges, the new edge exactly Brand personality to Typography.
+ * ORV-298 tech notes T39 (spec row 36): PR 3 adds Logo type, one node and two edges more than PR 2's
+ * board, with ORV-296 in the view twelve nodes and eighteen edges, the new edges exactly Brand
+ * architecture to Logo type and Name to Logo type, Name gaining its one output.
  */
 
 const W2 = [
@@ -37,12 +44,29 @@ const W2_PR3 = [
   "positioning>core-idea",
   "identity-frame>core-idea",
 ];
+/** PR 1 of ORV-298 adds the two edges of Colour (W2): one per require, in ORV-126 order. */
+const W2_PR1 = [...W2_PR3, "competitive-frame>color", "identity-frame>color"];
+/** PR 2 adds the one edge of Typography (W2): it reads Brand personality only. */
+const W2_PR2_TYPOGRAPHY = [...W2_PR1, "identity-frame>typography"];
+/** PR 3 adds the two edges of Logo type (W2): one per require, in ORV-126 order. */
+const LOGO_TYPE_EDGES = ["architecture>logo-type", "name>logo-type"];
+/**
+ * The edges of the PR 3 board in the engine's order: one run per node of `FOUNDATION_NODES`, which
+ * puts Logo type (ORV-126 number 13) before Colour (15) and Typography (16).
+ */
+const W2_PR3_LOGO = [
+  ...W2_PR3,
+  ...LOGO_TYPE_EDGES,
+  "competitive-frame>color",
+  "identity-frame>color",
+  "identity-frame>typography",
+];
 
 describe.each(["th", "en"] as const)("boardGraphOf in %s", (locale) => {
   const m = messagesFor(locale);
   const graph = boardGraphOf(THAI_VIEW, m);
 
-  it("has nine nodes in fill order, each titled by the catalog and opening with no count", () => {
+  it("has twelve nodes in fill order, each titled by the catalog and opening with no count", () => {
     const fill = [...BUSINESS_NODES, ...FOUNDATION_NODES];
     expect(graph.nodes.map((n) => n.id)).toEqual(fill);
     expect(graph.nodes.map((n) => n.data.title)).toEqual(fill.map((id) => nodeTitle(m, id)));
@@ -58,14 +82,106 @@ describe.each(["th", "en"] as const)("boardGraphOf in %s", (locale) => {
     }
   });
 
-  it("has exactly the thirteen edges of W2, each solid and with no label pill", () => {
-    expect(graph.edges.map((e) => `${e.source}>${e.target}`)).toEqual(W2_PR3);
+  it("has exactly the eighteen edges of W2, each solid and with no label pill", () => {
+    expect(graph.edges.map((e) => `${e.source}>${e.target}`)).toEqual(W2_PR3_LOGO);
+    // ORV-296's thirteen edges lead the list, as its own test pinned them.
+    expect(graph.edges.slice(0, 13).map((e) => `${e.source}>${e.target}`)).toEqual(W2_PR3);
     expect([...BUSINESS_EDGES].map(([a, b]) => `${a}>${b}`)).toEqual(W2);
-    expect(FOUNDATION_EDGES.map(([a, b]) => `${a}>${b}`)).toEqual(W2_PR3.slice(6));
+    expect(FOUNDATION_EDGES.map(([a, b]) => `${a}>${b}`)).toEqual(W2_PR3_LOGO.slice(6));
     for (const edge of graph.edges) {
       expect(edge.data).toEqual({ meaning: "input", label: false });
     }
-    expect(new Set(graph.edges.map((e) => e.id)).size).toBe(13);
+    expect(new Set(graph.edges.map((e) => e.id)).size).toBe(18);
+  });
+
+  it("adds Logo type with its two edges, one node and two edges more than PR 2's board", () => {
+    // PR 2's board is the PR 3 board without Logo type: twelve nodes and eighteen edges, here,
+    // against eleven and sixteen (T39, spec row 36).
+    expect(graph.nodes.length).toBe(BUSINESS_NODES.length + 4 + 1 + 1 + 1);
+    expect(graph.edges.length).toBe(W2_PR2_TYPOGRAPHY.length + 2);
+    expect(graph.nodes.filter((n) => n.id !== "logo-type")).toHaveLength(11);
+    expect(graph.edges.filter((e) => e.target !== "logo-type")).toHaveLength(16);
+    const added = graph.edges.filter((e) => !W2_PR2_TYPOGRAPHY.includes(`${e.source}>${e.target}`));
+    expect(added.map((e) => [e.source, e.sourceHandle, e.target, e.targetHandle])).toEqual([
+      ["architecture", "out", "logo-type", "from-architecture"],
+      ["name", "out", "logo-type", "from-name"],
+    ]);
+    const logo = graph.nodes.find((n) => n.id === "logo-type");
+    expect(logo?.data.title).toBe(nodeTitle(m, "logo-type"));
+    // The engine lists Brand architecture first (ORV-126 order); the design puts Name in the upper
+    // port, so neither edge crosses at the card (design 2.2).
+    expect(logo?.data.inputs.map((p) => [p.id, p.label])).toEqual([
+      ["from-name", nodeTitle(m, "name")],
+      ["from-architecture", nodeTitle(m, "architecture")],
+    ]);
+    expect(logo?.data.outputs).toEqual([]);
+    // Both sources give on: Name gains its one output, Brand architecture already fed Name.
+    expect(graph.nodes.find((n) => n.id === "name")?.data.outputs.map((p) => p.id)).toEqual([
+      "out",
+    ]);
+    expect(graph.nodes.find((n) => n.id === "architecture")?.data.outputs.map((p) => p.id)).toEqual(
+      ["out"],
+    );
+  });
+
+  it("adds Typography with its edge, one node and one edge more than PR 1's board", () => {
+    // Logo type (PR 3, T39) apart.
+    const withoutLogoType = graph.nodes.filter((n) => n.id !== "logo-type");
+    expect(withoutLogoType.length).toBe(BUSINESS_NODES.length + 4 + 1 + 1);
+    const edges = graph.edges.filter((e) => e.target !== "logo-type");
+    expect(edges.length).toBe(W2_PR1.length + 1);
+    const added = edges.filter((e) => !W2_PR1.includes(`${e.source}>${e.target}`));
+    expect(added.map((e) => [e.source, e.sourceHandle, e.target, e.targetHandle])).toEqual([
+      ["identity-frame", "out", "typography", "in"],
+    ]);
+    const typography = graph.nodes.find((n) => n.id === "typography");
+    expect(typography?.data.title).toBe(nodeTitle(m, "typography"));
+    // One source gives the single `in` port, labelled by Brand personality, and nothing leaves it.
+    expect(typography?.data.inputs.map((p) => [p.id, p.label])).toEqual([
+      ["in", nodeTitle(m, "identity-frame")],
+    ]);
+    expect(typography?.data.outputs).toEqual([]);
+    // Brand personality already gave on to Colour: its one output now feeds both.
+    expect(
+      graph.nodes.find((n) => n.id === "identity-frame")?.data.outputs.map((p) => p.id),
+    ).toEqual(["out"]);
+    expect(graph.edges.filter((e) => e.source === "identity-frame").map((e) => e.target)).toEqual([
+      "core-idea",
+      "color",
+      "typography",
+    ]);
+  });
+
+  it("adds Colour with its two edges, one input each, Brand personality above Competitive frame", () => {
+    // One node and two edges more than the base board of ORV-295 (T20, spec row 12), Typography
+    // (PR 2, T31) and Logo type (PR 3, T39) apart.
+    const withoutLater = graph.nodes.filter((n) => n.id !== "typography" && n.id !== "logo-type");
+    expect(withoutLater.length).toBe(BUSINESS_NODES.length + 4 + 1);
+    expect(
+      graph.edges.filter((e) => e.target !== "typography" && e.target !== "logo-type").length,
+    ).toBe(W2_PR3.length + 2);
+    const colour = graph.nodes.find((n) => n.id === "color");
+    expect(colour?.data.title).toBe(nodeTitle(m, "color"));
+    // The engine lists Competitive frame first (ORV-126 order); the design puts Brand personality in
+    // the upper port, so neither edge crosses at the card (design 2.2).
+    expect(colour?.data.inputs.map((p) => [p.id, p.label])).toEqual([
+      ["from-identity-frame", nodeTitle(m, "identity-frame")],
+      ["from-competitive-frame", nodeTitle(m, "competitive-frame")],
+    ]);
+    expect(colour?.data.outputs).toEqual([]);
+    expect(
+      graph.edges.filter((e) => e.target === "color").map((e) => [e.source, e.targetHandle]),
+    ).toEqual([
+      ["competitive-frame", "from-competitive-frame"],
+      ["identity-frame", "from-identity-frame"],
+    ]);
+    // Both sources now give on: Competitive frame already fed Positioning, Brand personality feeds Colour.
+    expect(
+      graph.nodes.find((n) => n.id === "identity-frame")?.data.outputs.map((p) => p.id),
+    ).toEqual(["out"]);
+    expect(
+      graph.nodes.find((n) => n.id === "competitive-frame")?.data.outputs.map((p) => p.id),
+    ).toEqual(["out"]);
   });
 
   it("joins every edge to a port that exists, of the same kind, on its two nodes", () => {
@@ -130,13 +246,14 @@ describe.each(["th", "en"] as const)("boardGraphOf in %s", (locale) => {
     ]);
   });
 
-  it("gives Name two inputs, Positioning above Brand architecture, and no output", () => {
+  it("gives Name two inputs, Positioning above Brand architecture, and one output, to Logo type", () => {
     const name = graph.nodes.find((n) => n.id === "name");
     expect(name?.data.inputs.map((p) => [p.id, p.label])).toEqual([
       ["from-positioning", nodeTitle(m, "positioning")],
       ["from-architecture", nodeTitle(m, "architecture")],
     ]);
-    expect(name?.data.outputs).toEqual([]);
+    // PR 3 (design 2.2): Name gains its out port, which feeds Logo type.
+    expect(name?.data.outputs.map((p) => [p.id, p.label])).toEqual([["out", nodeTitle(m, "name")]]);
   });
 
   it("joins each edge of the three new nodes to the port of its own source", () => {
@@ -154,9 +271,13 @@ describe.each(["th", "en"] as const)("boardGraphOf in %s", (locale) => {
       ["positioning", "from-positioning"],
       ["identity-frame", "from-identity-frame"],
     ]);
+    expect(into("logo-type")).toEqual([
+      ["architecture", "from-architecture"],
+      ["name", "from-name"],
+    ]);
   });
 
-  it("gives Brand personality one input from Positioning and one output to Core idea", () => {
+  it("gives Brand personality one input from Positioning and one output, to Core idea, Colour and Typography", () => {
     const identity = graph.nodes.find((n) => n.id === "identity-frame");
     expect(identity?.data.inputs.map((p) => [p.id, p.label])).toEqual([
       ["in", nodeTitle(m, "positioning")],
@@ -181,16 +302,22 @@ describe.each(["th", "en"] as const)("boardGraphOf in %s", (locale) => {
 
   it("sets the nodes where the design table puts them", () => {
     // Situation moves down from PR 2 (design 2.1), so its edge to Brand architecture clears Audience.
+    // Brand personality moves up 500 in ORV-298 PR 1 so its edge to Colour clears Name and Core idea.
     expect(graph.nodes.map((n) => [n.id, n.position.x, n.position.y])).toEqual([
       ["situation", 0, 447],
       ["business-core", 456, 28],
       ["audience", 456, 340],
       ["competitive-frame", 456, 652],
       ["positioning", 928, 326],
-      ["identity-frame", 1400, 160],
+      ["identity-frame", 1400, -340],
       ["architecture", 1400, 576],
       ["name", 1888, 473],
       ["core-idea", 1888, 212],
+      // Column 6, the lower lane (ORV-298 PR 3, design 2.1): right of Name, before Colour in fill order.
+      ["logo-type", 2376, 552],
+      ["color", 2376, -330],
+      // Column 7 (ORV-298 PR 2, design 2.1): right of Colour, in fill order.
+      ["typography", 2864, 0],
     ]);
     expect(Object.keys(BUSINESS_POSITIONS)).toEqual([...BUSINESS_NODES, ...FOUNDATION_NODES]);
   });
@@ -219,6 +346,9 @@ describe("boardGraphOf in two languages", () => {
       "Brand architecture",
       "Name",
       "Core idea",
+      "Logo type",
+      "Colour",
+      "Typography",
     ]);
     expect(th.nodes.map((n) => n.data.title)).toEqual([
       "สถานการณ์ตั้งต้น",
@@ -230,6 +360,9 @@ describe("boardGraphOf in two languages", () => {
       "โครงสร้างแบรนด์",
       "ชื่อแบรนด์",
       "แนวคิดหลัก",
+      "ประเภทโลโก้",
+      "สี",
+      "ตัวอักษร",
     ]);
   });
 });

@@ -2904,6 +2904,7 @@
 }
 .ds-node__label {
   --_label-gap: var(--ds-space-inline-sm);
+  container: ds-node-label / inline-size;
   position: absolute;
   inset-inline-start: 0;
   /* The card's own 1 px hairline sits between the padding box this is measured from and the top. */
@@ -2957,6 +2958,15 @@
 }
 .ds-node__label .ds-node__status > svg {
   flex: none;
+}
+/* A label narrower than 10rem on screen (a board zoomed out, under 0.503 for an md card) gives the
+ * whole line to the title: the kind glyph and the open glyph are not drawn, so a title as wide as the
+ * card stays whole (ORV-298-design-f1). The node keeps its accessible name and its zoom-in cursor. */
+@container ds-node-label (width < 10rem) {
+  .ds-node__label > svg:first-child,
+  .ds-node__label .ds-node__open {
+    display: none;
+  }
 }
 .ds-board[data-variant="present"]
   .react-flow__node:is(:hover, .selected, :focus-visible)

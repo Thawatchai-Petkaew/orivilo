@@ -11,6 +11,7 @@ import {
   expectPillsClear,
   inVitest,
 } from "../../testing/visual-asserts";
+import { atWindow } from "../../testing/window";
 import { Button } from "../button/Button";
 import { fixtureManyJobs, fixtures } from "../fixtures";
 import { Matrix, Narrow } from "../matrix";
@@ -898,25 +899,6 @@ export const LoadingRecipesAndModes: Story = {
 
 /** A window wide enough for the fixture board to fit at zoom 1 or more (ORV-280 D11). */
 const FIT_WINDOW = { width: 1920, height: 1200 };
-
-/** A window of `width` by `height` for `check`, restored after; the frame is the screenshot lock's. */
-async function atWindow(width: number, height: number, check: () => Promise<void>) {
-  const { page } = await import("vitest/browser");
-  const before = { width: window.innerWidth, height: window.innerHeight };
-  const resized = async (w: number, h: number) => {
-    await page.viewport(w, h);
-    await waitFor(() => expect([window.innerWidth, window.innerHeight]).toEqual([w, h]));
-    for (let i = 0; i < 2; i++) await new Promise((done) => requestAnimationFrame(done));
-  };
-  await navigator.locks.request("orivilo-screenshot", async () => {
-    await resized(width, height);
-    try {
-      await check();
-    } finally {
-      await resized(before.width, before.height);
-    }
-  });
-}
 
 /** Present: read-only, ports disabled, Delete and the editing shortcuts do nothing, Tab still moves (E4-2 AC 11, E4-3 AC 17). */
 export const Present: Story = {
@@ -1814,6 +1796,37 @@ export const LevelsOfDetailInEnglish: Story = {
   play: async ({ canvasElement }) => playLevelsOfDetail(canvasElement, "en"),
 };
 
+/** The window the label clause of the present matrix reads the fit in (ORV-298 design 2.6 row c). */
+const LABEL_WINDOW = { width: 1440, height: 900 };
+/** The least a card label's top may sit under the board's top at the fit, in px (row c, measured 25.5 to 29.5). */
+const LABEL_TOP_MIN = 16;
+
+/**
+ * Zoom to fit on one board, read once the viewport has stopped moving (the same transform on three
+ * reads, a frame apart), then the top of every card label against the board's top. A label above the
+ * board's top is clipped by it and a Thai title loses its tone marks (ORV-298 sign-off R1).
+ */
+async function expectLabelsUnderTop(cell: HTMLElement) {
+  const board = cell.querySelector<HTMLElement>(".ds-board") as HTMLElement;
+  await focusOn(() => board);
+  await userEvent.keyboard("{Shift>}1{/Shift}");
+  const transform = () =>
+    board.querySelector<HTMLElement>(".react-flow__viewport")?.style.transform ?? "";
+  const frame = () => new Promise((done) => requestAnimationFrame(done));
+  await waitFor(async () => {
+    const first = transform();
+    await frame();
+    const second = transform();
+    await frame();
+    expect(transform()).toBe(first);
+    expect(second).toBe(first);
+  });
+  for (const label of cell.querySelectorAll(".ds-node__label")) {
+    const top = label.getBoundingClientRect().top - board.getBoundingClientRect().top;
+    await expect(top).toBeGreaterThanOrEqual(LABEL_TOP_MIN);
+  }
+}
+
 /** The present board under three profiles in both modes, with one node that opens. */
 export const PresentRecipesAndModes: Story = {
   render: (args) => {
@@ -1842,6 +1855,14 @@ export const PresentRecipesAndModes: Story = {
         colourOf(cell, "--ds-border-subtle"),
       );
     }
+    // The fit leaves the top label whole (row c): read in a window wide enough for the matrix, as
+    // `Present` reads its fit; outside Vitest the window is the reader's own.
+    const readLabels = async () => {
+      for (const cell of cells) await expectLabelsUnderTop(cell);
+    };
+    if (inVitest) await atWindow(LABEL_WINDOW.width, LABEL_WINDOW.height, readLabels);
+    else if (window.innerWidth >= LABEL_WINDOW.width && window.innerHeight >= LABEL_WINDOW.height)
+      await readLabels();
   },
 };
 
