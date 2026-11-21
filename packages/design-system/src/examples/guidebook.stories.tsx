@@ -32,11 +32,16 @@ import {
 } from "./business-text";
 import { GuidebookScreen } from "./guidebook";
 import {
+  awaitingChoice,
+  DRAFT_MODEL,
   done,
+  draftTexts,
+  edited,
   everyState,
   long,
   open,
   openAsks,
+  picked,
   skipped,
   skippedSteps,
   stale,
@@ -1206,7 +1211,137 @@ export const GuidebookVisualNarrowDark: Story = {
   },
 };
 
-// ----- no AI, no claim (row 9, 23, P15) -----
+// ----- the drafted positioning (row 20, P22, P23) -----
+
+/** A statement the page must not show: none of the drafted options, the edited line or the model id. */
+async function expectNoDraftText(root: HTMLElement, locale: Locale, shown: readonly string[]) {
+  const { options, edited: editedText } = draftTexts(locale);
+  for (const text of [...options, editedText]) {
+    if (shown.includes(text)) continue;
+    await expect(textOf(root), `an option on the page: ${text}`).not.toContain(text);
+  }
+}
+
+/** P22: a draft that waits shows the state line only, with no option, no question and no AI label. */
+async function awaitingPlay(canvasElement: HTMLElement, m: Messages) {
+  const root = rootOf(canvasElement);
+  const locale = localeOf(m);
+  const g = awaitingChoice(locale);
+  await expectItemsMatchData(root, m, g);
+  await expectOpenQuiet(root);
+  const positioning = itemEl(root, "positioning");
+  await expect(positioning.dataset["done"]).toBe("false");
+  await expect([...positioning.querySelectorAll("h3, p")].map(textOf)).toEqual([
+    itemTitle(m, "positioning"),
+    m.business.state.awaitingChoice,
+  ]);
+  await expect(positioning.querySelectorAll("[data-ask]")).toHaveLength(0);
+  await expect(positioning.querySelectorAll("[data-value]")).toHaveLength(0);
+  await expectNoDraftText(root, locale, []);
+  await expect(textOf(root)).not.toContain(DRAFT_MODEL);
+  for (const line of AI_LABELS(m)) {
+    await expect(textOf(root), `the AI label "${line}"`).not.toContain(line);
+  }
+  // The foundation items that are not given wait for Positioning.
+  const waits = fill(m.business.state.waiting, { nodes: m.business.node.positioning });
+  for (const id of ["identity-frame", "architecture", "name", "core-idea"]) {
+    await expect(textOf(must(itemEl(root, id).querySelector("[data-state]"), "state"))).toBe(waits);
+  }
+  await expectSteps(root, m, g);
+  await expectOneStartEdge(root);
+}
+
+/** The colour of the `by.own` line of the done project, drawn beside the page so it resolves in the same boundary. */
+function ownLabelColour(root: HTMLElement, locale: Locale, m: Messages): string {
+  const host = document.createElement("div");
+  host.innerHTML = renderToStaticMarkup(
+    <LocaleProvider locale={locale}>{screen(done(locale))}</LocaleProvider>,
+  );
+  must(root.parentElement, "the story's boundary").append(host);
+  try {
+    const line = [...host.querySelectorAll("[data-item=positioning] p")].find(
+      (p) => textOf(p) === m.business.positioning.by.own,
+    );
+    return getComputedStyle(must(line ?? null, "the by.own line")).color;
+  } finally {
+    host.remove();
+  }
+}
+
+/**
+ * P23: a picked or edited positioning shows its statement, the board's label with the model id (14 px,
+ * the colour of `by.own`), then the agreed line; the other statements of the draft show nowhere.
+ */
+async function pickedPlay(canvasElement: HTMLElement, m: Messages, kind: "picked" | "edited") {
+  const root = rootOf(canvasElement);
+  const locale = localeOf(m);
+  const g = kind === "picked" ? picked(locale) : edited(locale);
+  const texts = draftTexts(locale);
+  const shown = kind === "picked" ? texts.options[1] : texts.edited;
+  await expectItemsMatchData(root, m, g);
+  const positioning = itemEl(root, "positioning");
+  await expect(textOf(must(positioning.querySelector("[data-state]"), "state"))).toBe(
+    m.business.state.agreed,
+  );
+  const value = must(positioning.querySelector<HTMLElement>("[data-value]"), "value");
+  const line = fill(m.business.positioning.by[kind], { model: DRAFT_MODEL });
+  const lines = [...value.querySelectorAll("p")];
+  await expect(lines.map(textOf)).toEqual([shown, line, m.business.positioning.gatePassed]);
+  await expect(px(must(lines[0] ?? null, "statement"))).toBe("20px");
+  const label = must(lines[1] ?? null, "label");
+  await expect(px(label)).toBe("14px");
+  await expect(getComputedStyle(label).color).toBe(ownLabelColour(root, locale, m));
+  // The label stands once on the page, with its model id, on Positioning.
+  await expect(textOf(root).split(line)).toHaveLength(2);
+  await expect(textOf(root).split(DRAFT_MODEL)).toHaveLength(2);
+  await expect(textOf(positioning)).not.toContain(m.business.positioning.by.own);
+  await expect(textOf(root).split(shown)).toHaveLength(2);
+  await expectNoDraftText(root, locale, [shown]);
+  await expectOneStartEdge(root);
+  await expectRhythm(root);
+}
+
+/** A stored draft of three options and no choice: waiting for the person (row 20, first project). */
+export const GuidebookAwaitingChoice: Story = {
+  args: { guidebook: awaitingChoice("th") },
+  play: async ({ canvasElement }) => {
+    await awaitingPlay(canvasElement, th);
+  },
+};
+
+export const GuidebookAwaitingChoiceEnglish: Story = {
+  args: { guidebook: awaitingChoice("en") },
+  decorators: [inEnglish],
+  play: async ({ canvasElement }) => {
+    await awaitingPlay(canvasElement, en);
+  },
+};
+
+/** Option 2 picked: the statement with the label the board shows and the saved model id (row 20, second project). */
+export const GuidebookPicked: Story = {
+  args: { guidebook: picked("th") },
+  play: async ({ canvasElement }) => {
+    await pickedPlay(canvasElement, th, "picked");
+  },
+};
+
+export const GuidebookPickedEnglish: Story = {
+  args: { guidebook: picked("en") },
+  decorators: [inEnglish],
+  play: async ({ canvasElement }) => {
+    await pickedPlay(canvasElement, en, "picked");
+  },
+};
+
+/** Option 2 edited by the person: the edited statement with `business.positioning.by.edited` (design 14, Edited). */
+export const GuidebookEdited: Story = {
+  args: { guidebook: edited("th") },
+  play: async ({ canvasElement }) => {
+    await pickedPlay(canvasElement, th, "edited");
+  },
+};
+
+// ----- no AI, no claim (row 9, 21, 23, P15) -----
 
 /** The lines `guidebook-honest-1` lists, where a claim word may stand because the line says a thing is not so. */
 const CLAIM_LINES = (m: Messages) => [
@@ -1232,7 +1367,7 @@ const AI_LABEL_PATHS = [
 
 /**
  * The six AI labels of `guidebook-honest-1`, as the catalog words them, cut at a placeholder. A
- * label the catalog does not hold yet (ORV-292's and ORV-126's, not in `develop`) adds nothing; the
+ * label the catalog does not hold yet (such as ORV-126's `logoMark.draftLabel`) adds nothing; the
  * test below fails on the first one that lands and shows on the page.
  */
 function AI_LABELS(m: Messages): string[] {
@@ -1257,8 +1392,26 @@ function pageOf(g: Guidebook, locale: Locale): HTMLElement {
   return host;
 }
 
-async function expectNoClaims(host: HTMLElement, m: Messages, label: string) {
+/**
+ * `allowed` is the one exception of `guidebook-honest-1` (open question 10): the board's label of a
+ * picked or edited positioning, with its model id, on the Positioning item only. It is taken out
+ * of the page first, so the same label anywhere else, or its model id's digits, still fails below.
+ */
+async function expectNoClaims(
+  host: HTMLElement,
+  m: Messages,
+  label: string,
+  allowed: "picked" | "edited" | null = null,
+) {
   const gb = m.business.guidebook;
+  if (allowed !== null) {
+    const line = fill(m.business.positioning.by[allowed], { model: DRAFT_MODEL });
+    const own = [...host.querySelectorAll("[data-item=positioning] p")].filter(
+      (p) => textOf(p) === line,
+    );
+    await expect(own, `${label}: the ${allowed} line on the positioning item`).toHaveLength(1);
+    must(own[0] ?? null, "the label line").textContent = "";
+  }
   // The honest line stands once; every other line, minus the ones that deny, holds no AI label.
   const lines = [...host.querySelectorAll("p, dd, li, dt, span, h1, h2, h3")].map(textOf);
   const text = textOf(host);
@@ -1288,13 +1441,20 @@ async function expectNoClaims(host: HTMLElement, m: Messages, label: string) {
   await expect(lines.length, label).toBeGreaterThan(0);
 }
 
-/** Every PR 1 state of rows 1, 2, 4 to 7 and 17 to 19: no AI label, no claim, no colour value, no extra number (rows 9, 23). */
+/** The states whose Positioning carries the board's label, by their name in `everyState`. */
+const DRAFT_LABELLED = { picked: "picked", edited: "edited" } as const;
+
+/**
+ * Every state of rows 1, 2, 4 to 7, 17 to 20: no AI label, no claim, no colour value, no extra number
+ * (rows 9, 21, 23). The picked and edited positioning hold the one exception, on Positioning only.
+ */
 export const GuidebookNoAi: Story = {
   play: async () => {
     for (const locale of ["th", "en"] as const) {
       const m = locale === "th" ? th : en;
       for (const [name, g] of everyState(locale)) {
-        await expectNoClaims(pageOf(g, locale), m, `${locale} ${name}`);
+        const allowed = name === "picked" || name === "edited" ? DRAFT_LABELLED[name] : null;
+        await expectNoClaims(pageOf(g, locale), m, `${locale} ${name}`, allowed);
       }
     }
   },
