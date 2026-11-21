@@ -710,6 +710,7 @@ export const en: Messages = {
       logoType: "Logo type",
       color: "Colour",
       typography: "Typography",
+      logoMark: "Logo mark",
     },
     field: {
       industry: "Business type",
@@ -924,6 +925,70 @@ export const en: Messages = {
       lede: "What you told us, placed on the first nodes of your board. Nothing here is confirmed yet.",
       savedAt: "Saved {date}",
       label: "Business board",
+      openGuidebook: "Open the brand guidebook",
+    },
+    guidebook: {
+      title: "Brand guidebook, draft",
+      byRule:
+        "ORIVILO put this guidebook together by fixed rules from what is on your board. No AI was used to put it together.",
+      draftNote:
+        "This version does not screen names or logos for trademarks and does not test the identity with people, so this guidebook stays a draft.",
+      backToBoard: "Back to the board",
+      section: {
+        business: "From your business answers",
+        foundation: "Brand foundation",
+        visual: "Visual identity",
+        unconfirmed: "Not yet confirmed",
+        notHeld: "Not in this guidebook",
+      },
+      businessNote:
+        "These steps are on your board with your own words. The guidebook names each one and its state only.",
+      unconfirmed: {
+        none: "You have skipped no step.",
+        restsOnIt: "What rests on it:",
+        nothing: "Nothing you gave or a rule worked out rests on it yet.",
+      },
+      notYet: {
+        logoMark: "Logo image drafts come in a later step that is not built yet.",
+      },
+      notHeld: {
+        audit: {
+          title: "Research and audits",
+          reason:
+            "Not in this version: the board starts from your answers, not from a study of an existing brand.",
+        },
+        verbal: {
+          title: "Verbal identity",
+          reason: "Not in this version: the brand's voice, tone and messages are a later step.",
+        },
+        "look-feel": {
+          title: "Look and feel",
+          reason:
+            "Not in this version: the colour, type and logo type here were worked out without it.",
+        },
+        "expression-kit": {
+          title: "Imagery, icons and graphic elements",
+          reason:
+            "Not in this version: imagery, icons, graphic elements, motion and sound are a later step.",
+        },
+        "ip-screen": {
+          title: "Trademark screening",
+          reason: "Not done: the working name and any logo are not screened for trademarks.",
+        },
+        touchpoints: {
+          title: "The brand in use",
+          reason:
+            "Not in this version: examples of the brand on the things your business uses are a later step.",
+        },
+        validation: {
+          title: "Tests with people",
+          reason: "Not done: the identity is not tested with people.",
+        },
+        launch: {
+          title: "Launch and upkeep",
+          reason: "Not in this version: launching and looking after the brand are a later step.",
+        },
+      },
     },
     signedOut: "Sign in to tell us about your business.",
     signInLink: "Go to sign in",

@@ -4,6 +4,9 @@ import {
   BUSINESS_READ_REASONS,
   CHROMATIC_FAMILIES,
   COLOR_DECISIONS,
+  GUIDEBOOK_HYPOTHESIS,
+  GUIDEBOOK_NOT_HELD,
+  GUIDEBOOK_QUESTIONS,
   INTAKE_FIELDS,
   PERSONALITY_AXES,
   PROXY_QUESTIONS,
@@ -261,13 +264,40 @@ const SPEC_KEYS = [
   "business.logoType.otherTypes",
 ];
 
+/**
+ * The keys ORV-302 PR 1 adds (its spec's Strings table). A list of its own, so the ORV-298 PR 3 block
+ * below keeps reading its slice of `SPEC_KEYS` to the end; the catalog test holds both lists.
+ */
+const GUIDEBOOK_KEYS = [
+  "business.board.openGuidebook",
+  "business.node.logoMark",
+  "business.guidebook.title",
+  "business.guidebook.byRule",
+  "business.guidebook.draftNote",
+  "business.guidebook.backToBoard",
+  "business.guidebook.section.business",
+  "business.guidebook.businessNote",
+  "business.guidebook.section.foundation",
+  "business.guidebook.section.visual",
+  "business.guidebook.section.unconfirmed",
+  "business.guidebook.unconfirmed.none",
+  "business.guidebook.unconfirmed.restsOnIt",
+  "business.guidebook.unconfirmed.nothing",
+  "business.guidebook.section.notHeld",
+  "business.guidebook.notYet.logoMark",
+  ...GUIDEBOOK_NOT_HELD.flatMap((id) => [
+    `business.guidebook.notHeld.${id}.title`,
+    `business.guidebook.notHeld.${id}.reason`,
+  ]),
+];
+
 describe("business catalog", () => {
   for (const locale of LOCALES) {
     const m = messagesFor(locale);
 
     it(`${locale}: holds the keys of the spec's Strings section and no other`, () => {
       const keys = leafKeys({ business: m.business });
-      expect([...keys].sort()).toEqual([...SPEC_KEYS].sort());
+      expect([...keys].sort()).toEqual([...SPEC_KEYS, ...GUIDEBOOK_KEYS].sort());
     });
 
     it(`${locale}: every business.question line is word for word the ORV-126 proxy question`, () => {
@@ -923,6 +953,91 @@ describe("core idea, strings", () => {
       for (const key of Object.keys(LINES[locale])) {
         expect(String(at(m, key)), key).not.toMatch(/[\u00b7\u2014]/);
       }
+    });
+  }
+});
+
+/**
+ * The lines of the guidebook (ORV-302 PR 1, spec "Strings"): every PR 1 row of the spec's table in
+ * both languages, word for word; `business.guidebook.section.unconfirmed` is ORV-126's copy for the
+ * guidebook section `unconfirmed`; every question key the engine's closed table names (the visual
+ * ones included, tech notes T13) and every hypothesis key resolve in both catalogs; no middot or em dash.
+ */
+describe("guidebook, strings", () => {
+  const read = (spec: string) =>
+    readFileSync(path.join(import.meta.dirname, `../../../../docs/specs/${spec}/spec.md`), "utf8");
+  const spec = read("ORV-302");
+  const table = spec.slice(spec.indexOf("\n## Strings"), spec.indexOf("\n## Acceptance criteria"));
+  const rows = table
+    .split("\n")
+    .filter((line) => line.startsWith("| `"))
+    .map((line) => line.slice(2, -2).split(" | "))
+    .filter((cells) => cells.length === 4 && cells[3] === "1")
+    .map(([key, en, th]) => ({
+      key: (key ?? "").replaceAll("`", ""),
+      en: en ?? "",
+      th: th ?? "",
+    }));
+  // ORV-126 "Missing strategy": the line `- guidebook section `unconfirmed`: en "..."; th "..."`.
+  const pinned = /- guidebook section `unconfirmed`: en "([^"]+)"; th "([^"]+)"/.exec(
+    read("ORV-126"),
+  );
+
+  it("reads the thirty-two PR 1 rows of the spec's Strings table", () => {
+    expect(rows).toHaveLength(32);
+    expect(new Set(rows.map((row) => row.key)).size).toBe(32);
+  });
+
+  it("is the whole set of this test file's guidebook key list", () => {
+    expect(rows.map((row) => row.key).sort()).toEqual([...GUIDEBOOK_KEYS].sort());
+  });
+
+  it("reads ORV-126's copy for the section it pins", () => {
+    expect(pinned?.slice(1, 3)).toEqual(["Not yet confirmed", "ยังไม่ได้ยืนยัน"]);
+  });
+
+  for (const locale of LOCALES) {
+    const m = messagesFor(locale);
+
+    it(`${locale}: each PR 1 line is the spec's, word for word`, () => {
+      for (const row of rows) expect(at(m, row.key), row.key).toBe(row[locale]);
+    });
+
+    it(`${locale}: the section title Not yet confirmed is ORV-126's copy`, () => {
+      expect(m.business.guidebook.section.unconfirmed).toBe(pinned?.[locale === "en" ? 1 : 2]);
+    });
+
+    it(`${locale}: no PR 1 line has a middot or an em dash`, () => {
+      // Built from the code points, so this file holds neither character itself (the copy check).
+      const banned = new RegExp(`[${String.fromCharCode(0xb7, 0x2014)}]`);
+      for (const row of rows) expect(String(at(m, row.key)), row.key).not.toMatch(banned);
+    });
+
+    it(`${locale}: every question key of the closed table resolves to a line`, () => {
+      const keys = new Set(Object.values(GUIDEBOOK_QUESTIONS).flat());
+      expect([...keys].sort()).toEqual(
+        [
+          "business.question.appIcon",
+          "business.question.lineup",
+          "business.question.never",
+          "business.question.only",
+          "business.question.person",
+          "business.question.remember",
+          "business.question.scripts",
+          "business.question.subBrands",
+        ].sort(),
+      );
+      for (const key of keys) {
+        expect(typeof at(m, key), key).toBe("string");
+        expect(String(at(m, key)), key).not.toBe("");
+      }
+    });
+
+    it(`${locale}: every hypothesis key resolves, and the not-held group is the closed list`, () => {
+      for (const key of Object.values(GUIDEBOOK_HYPOTHESIS)) {
+        expect(typeof at(m, key), key).toBe("string");
+      }
+      expect(Object.keys(m.business.guidebook.notHeld)).toEqual([...GUIDEBOOK_NOT_HELD]);
     });
   }
 });

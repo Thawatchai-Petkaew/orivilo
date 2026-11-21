@@ -59,6 +59,8 @@ export interface BusinessBoardScreenProps {
   signInHref: string;
   /** Where the project list is. */
   listHref: string;
+  /** The project's brand guidebook (ORV-302). Absent, the header has no link to it. */
+  guidebookHref?: string | undefined;
   /** The saved project. Required when `access` is `ready`, ignored otherwise. */
   view?: BusinessView | undefined;
   /**
@@ -85,6 +87,7 @@ export function BusinessBoardScreen(props: BusinessBoardScreenProps) {
     <ReadyBoard
       view={props.view}
       listHref={props.listHref}
+      guidebookHref={props.guidebookHref}
       positioning={props.positioning}
       foundation={props.foundation}
     />
@@ -94,11 +97,13 @@ export function BusinessBoardScreen(props: BusinessBoardScreenProps) {
 function ReadyBoard({
   view,
   listHref,
+  guidebookHref,
   positioning,
   foundation,
 }: {
   view: BusinessView;
   listHref: string;
+  guidebookHref: string | undefined;
   positioning: BusinessBoardScreenProps["positioning"];
   foundation: BusinessBoardScreenProps["foundation"];
 }) {
@@ -182,9 +187,16 @@ function ReadyBoard({
           </span>
         }
         actions={
-          <Button asChild variant="secondary">
-            <a href={listHref}>{m.business.list.heading}</a>
-          </Button>
+          <>
+            {guidebookHref === undefined ? null : (
+              <Button asChild variant="secondary">
+                <a href={guidebookHref}>{m.business.board.openGuidebook}</a>
+              </Button>
+            )}
+            <Button asChild variant="secondary">
+              <a href={listHref}>{m.business.list.heading}</a>
+            </Button>
+          </>
         }
       />
       {view.reading.status === "rule-based" ? (

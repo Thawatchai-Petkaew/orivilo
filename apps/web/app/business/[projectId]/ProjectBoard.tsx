@@ -143,10 +143,11 @@ function entryFailureOf(
 export function ProjectBoard({
   view,
   projectId,
+  guidebookHref,
   errors,
   wait,
   failure,
-}: Labels & { view: BusinessView; projectId: string }) {
+}: Labels & { view: BusinessView; projectId: string; guidebookHref: string }) {
   const m = useMessages();
   const router = useRouter();
   const [last, setLast] = useState<Last | null>(null);
@@ -191,6 +192,7 @@ export function ProjectBoard({
       view={view}
       signInHref="/account"
       listHref="/business"
+      guidebookHref={guidebookHref}
       positioning={{
         pending: pending ? "saving" : null,
         problem: problemOf(last),

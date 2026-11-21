@@ -98,7 +98,7 @@ export function crowdedLine(
  */
 export function colorReason(
   m: Messages,
-  node: ColorNode,
+  node: Pick<ColorNode, "points" | "decisions">,
   which: "signature" | "fallback" | "neutral" | "canvas",
 ): string {
   const { points, decisions } = node;
@@ -219,7 +219,7 @@ export function foundationStateLine(m: Messages, locale: Locale, node: Foundatio
 export function provisionalLines(
   m: Messages,
   locale: Locale,
-  node: FoundationNode,
+  node: Pick<FoundationNode, "restsOn">,
 ): { provisional: string; restsOn: string } | null {
   return node.restsOn.length === 0
     ? null
@@ -230,7 +230,11 @@ export function provisionalLines(
 }
 
 /** `business.marks.unchecked` with its nodes, or null when the node rests on nothing unchecked. */
-export function uncheckedLine(m: Messages, locale: Locale, node: FoundationNode): string | null {
+export function uncheckedLine(
+  m: Messages,
+  locale: Locale,
+  node: Pick<FoundationNode, "unchecked">,
+): string | null {
   return node.unchecked.length === 0
     ? null
     : fill(m.business.marks.unchecked, { nodes: listOfNodes(m, locale, node.unchecked) });
