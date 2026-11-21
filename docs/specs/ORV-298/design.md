@@ -223,6 +223,109 @@ As built (2026-11-20, rework 1): row a is built as written, in `BoardAt1440` (Th
 
 As built (2026-11-20, ORV-298-rework2): row b is built, replacing the sentence "Row b is not built" above. CI run 44730207174 on head 84bfdca failed `BoardAt1440English` on Brand architecture, `scrollWidth` 117 against `clientWidth` 116: Chromium on the Linux runner sets that title 1 to 2 px wider than this Mac does (115 in 115), so row a alone left it a cut. `firstFit` and the `board.zoom-to-fit` command of `CanvasBoard.tsx` now call `freePadding(0.15)`; the focus and selection fits (0.5, 0.3) are unchanged. Measured at 1440 on this Mac: zoom 0.3800 (the 0.3807 of the paragraph above was an estimate from a written transform), every label 120.84 px wide, and every title whole in both languages. The tightest English titles: Brand architecture 115 / 115 and Competitive frame 115 / 115, 5.8 px under the label (before, 0.64 px); Brand personality 110 / 110. Thai: Situation and Brand personality 92 / 92, Brand architecture 90 / 90. After two clicks on zoom in the zoom reads 0.5472 and every label is 174.0 px wide (English 174.02), both glyphs are drawn and every title is whole. This is a shared change: the fit of every board, edit and present, now leaves 90 px at the sides of a 1392 px board instead of 116.
 
+**Row c, the present label counted at the top of the fit (ORV-298-design-r1).** Answers finding R1 of the visual sign-off `ORV-298-signoff-2` (head 3b1fd54): since row b, the label of the top card of a short present board passes the board's top edge at the fit and the board clips it (`overflow: hidden`), so the Thai title โลโก้ loses its tone mark and the tops of its letters.
+
+_Cause._ xyflow fits the node boxes. A present card's label hangs above its box: the label box is 23.5 px (`label.sm` line, 19.5, plus its 4 px end padding), it sits on the card's 1 px hairline (`bottom: calc(100% + 1px)`), and its clip keeps 4 px above the box for a Thai mark (`clip-path: inset(calc(-1 * var(--ds-space-inline-sm)) 0 0 0)`): 28.5 screen px at every zoom up to 1, where the label keeps its screen size (`scale: max(1, 1 / zoom)`). `freePadding` counts the bottom panels but nothing for this, so only the base top padding `y` (floor((H - H / (1 + base)) / 2)) holds the label, and only when the fit is bound by the board's height. At 0.2 that took a board of 342 px or more (`y` at least 28.5); at 0.15 it takes 437 px. The two present matrix stories are 300 and 360 px tall, so row b took their last few pixels. Develop itself put the mark zone 2 px past the edge on the 300 px board (its tone mark happened to clear).
+
+_Measured at the fit_ (zoom to fit pressed; 1440 x 900 window; label top and ink top = the label box and its 4 px mark zone, from the board's top; margins = the node boxes to the board's edges; cell 1 of 6, the other five within 0.01 zoom and 0 px label top; light and dark the same, Thai and English the same):
+
+<!-- prettier-ignore -->
+| Story, board | develop (0.2) | head 3b1fd54 (0.15) | row c |
+| --- | --- | --- | --- |
+| Canvas controls `PresentRecipesAndModes`, 662 x 300 | zoom 0.2828; t 25.5, r 170.36, b 93.5, l 170.36; label 2, ink -2; 3 cut titles | zoom 0.3016; t 19.5, r 159.71, b 87.5, l 159.71; label -4, ink -8, letters cut; 2 cut | zoom 0.2563; t 49, r 185.45, b 87, l 185.45; label 25.5, ink 21.5; 3 cut |
+| Canvas board `PresentRecipesAndModes`, 662 x 360 | zoom 0.3609; t 30.5, r 125.99, b 98.5, l 125.99; label 7, ink 3; 2 cut | zoom 0.3828; t 23.5, r 113.56, b 91.5, l 113.56; label 0, ink -4; 2 cut | zoom 0.3375; t 53, r 139.3, b 91, l 139.3; label 29.5, ink 25.5; 2 cut |
+| the same two at a 360 window (zoom floor 0.25, width bound) | label 31.5 and 6.5 | label 37.5 and 13.5 | unchanged from head: 37.5 and 13.5 |
+| Canvas board `Present` and Canvas controls `Present`, 1440 x 900 | zoom 1.0546; t 81.54, r 121, b 143.54, l 121; label 56.75 | zoom 1.1021; t 68.32, r 94, b 126.32, l 94; label 42.42 | zoom 1.0688; t 90, r 112.95, b 126, l 112.95; label 64.88 |
+| the same at 360 | zoom 0.2623; t 316.06, r 31, b 316.06, l 31 | zoom 0.2746; t 312.11, r 24, b 312.11, l 24 | unchanged from head |
+| the same at a 1920 x 1200 window (the `Present` play's `FIT_WINDOW`) | | zoom 1.4683 | zoom 1.4578, so the play's zoom 1 or more holds |
+| Canvas board `LevelsOfDetail`, three boards 1440 x 240 | zoom 1.9967; t 56.11, r 121, b 56.11, l 121; label 9.19, ink 1.2 | zoom 2 (the maximum); t 56, r 120, b 56, l 120; label 9, ink 1 | zoom 1.9219; t 73.5, r 143.44, b 43.5, l 143.44; label 28.34, ink 20.65 |
+| the same at 360 | zoom 0.4967; label 80.61 | zoom 0.52; t 103.36, r 24, b 103.36, l 24; label 79.86 | unchanged from head |
+| Canvas board `Default` and `FitOneNode`, 1440 and 360 (edit boards) | 0.9024, 0.2641; 2, 1.25 | 0.9472, 0.2764; 2, 1.3083 | unchanged from head |
+| Business board `BoardAt1440`, `BoardAt1440English`, 1392 x 630 | zoom 0.3637; t 106.33, r 117, b 120.19, l 117; label 82.83 | zoom 0.38; t 99.28, r 91, b 109.13, l 91; label 75.78 | unchanged from head (width bound, 104 px of vertical slack each side, more than 41 plus 29) |
+| Business board `NarrowLight`, 360 | zoom 0.25, label 117.88 | zoom 0.25, label 117.88 | unchanged |
+| Prototype ORIVILO canvas `Default`, 1440 and 360 | zoom 0.25 | zoom 0.25 | unchanged |
+
+Titles of the business board at the 1440 fit with row c, `clientWidth` / `scrollWidth`, light and dark the same (label 120.84 px, the spare of row b's as-built note kept): Thai situation 92 / 92, business-core 52 / 52, audience 53 / 53, competitive-frame 82 / 82, positioning 31 / 31, identity-frame 92 / 92, architecture 90 / 90, name 54 / 54, core-idea 62 / 62, logo-type 68 / 68, color 8 / 8, typography 45 / 45; English situation 55 / 55, business-core 87 / 87, audience 59 / 59, competitive-frame 115 / 115, positioning 69 / 69, identity-frame 110 / 110, architecture 115 / 115, name 36 / 36, core-idea 60 / 60, logo-type 62 / 62, color 41 / 41, typography 75 / 75. No title is cut.
+
+_Choices weighed:_
+
+- **(1) Count the label's reach on the top side of the fit, on a present board (chosen).** The fit then pads what it shows: the top label's mark zone sits `y` from the board's top, as the last card sits `y` above the bottom panels, so a short board has one even frame. One added term on the top side of `freePadding`; no token, class or prop.
+- (1d) The same with a fixed 29 px: right up to zoom 1, short above it, where the label grows with the board (`LevelsOfDetail` at 1440, zoom 2, keeps its mark zone 1 px inside the edge, as develop does). Loses on a short board that fits above zoom 1; the scaled reach costs one bounds read.
+- (1b) The same on every board: an edit board draws no label above a card (its title is in the card header), so the reach would only shrink edit fits for nothing. Loses.
+- (1c) The same as a floor (`top = max(y, reach + 4)`): keeps develop's zoom on the 300 px board, but the label's ink then sits 4 px under the edge while the other sides keep 19 to 53 px, and the gap rests on a picked number. Loses on the look.
+- (2) The 0.2 base when the fit is height bound: develop at 0.2 already put the mark zone 2 px past the edge of the 300 px board; it only moves the cut to a board under 342 px. Loses.
+- (3) Back to 0.2 everywhere: brings back the 1 px cut of English Brand architecture on the Linux runner (CI run 44730207174), still clips under 342 px, and the other answers to that cut lose on 2.6 b to e. Loses.
+
+_The rule, in the words of the code._ `packages/design-system/src/components/canvas-board/CanvasBoard.tsx`, inside the component:
+
+1. A module constant `const MAX_ZOOM = 2;`, used by the `maxZoom` prop of `ReactFlow` (now `maxZoom={2}`) and by the rule below.
+2. Before `freePadding`:
+
+   ```ts
+   /**
+    * The screen height a present card's label takes above the card's box at the fit (ORV-298-design-r1):
+    * its box, the card's 1 px hairline and the 4 px its clip keeps above it for a Thai mark
+    * (`--_label-gap`). Up to zoom 1 the label keeps its screen size; above 1 it grows with the board, so
+    * the reach is scaled by the zoom the fit would reach, an upper bound of the zoom it does reach.
+    * xyflow fits the node boxes only. 0 on an edit board, which draws no label above a card.
+    */
+   const labelReach = (
+     rect: DOMRect,
+     x: number,
+     y: number,
+     bottom: number,
+     nodes: { id: string }[] | undefined,
+     maxZoom: number,
+   ) => {
+     const label = readOnly ? wrapper.current?.querySelector<HTMLElement>(".ds-node__label") : null;
+     if (!label) return 0;
+     const style = getComputedStyle(label);
+     const reach =
+       parseFloat(style.blockSize) + 1 + parseFloat(style.getPropertyValue("--_label-gap"));
+     const box = flow.getNodesBounds(nodes ?? flow.getNodes().filter((n) => !n.hidden));
+     const zoom = Math.min(
+       (rect.width - 2 * x) / box.width,
+       (rect.height - y - bottom - reach) / box.height,
+       maxZoom,
+     );
+     return Math.ceil(reach * Math.max(1, zoom));
+   };
+   ```
+
+3. `freePadding` becomes `(base: number, nodes?: { id: string }[], maxZoom = MAX_ZOOM)`; it names `const bottom = y + Math.ceil(cover);` and returns `{ top: px(y + labelReach(rect, x, y, bottom, nodes, maxZoom)), right: px(x), bottom: px(bottom), left: px(x) }`.
+4. The calls: `firstFit` and the `board.zoom-to-fit` command stay `freePadding(0.15)` (every shown node); `jumpToNode` passes `freePadding(0.5, [{ id }], 1)` (its fit stops at zoom 1); `board.zoom-to-selection` passes `freePadding(0.3, picked.map((n) => ({ id: n.id })))`.
+
+The reach reads 23.5 + 1 + 4 = 28.5, so 29 px up to zoom 1 (measured `blockSize` 23.5px, `--_label-gap` 4px), and 28.5 x zoom above it, rounded up. Right, bottom (with the bottom panels and the task bar) and left are unchanged. An edit board, or a present board with no node, adds 0. A label hidden by the far level of detail (`visibility: hidden`) still counts: the fit does not know the level it lands at. Why the zoom: on `LevelsOfDetail` at 1440 (three present boards 240 px tall, two cards each) the fit stops at the 2 maximum and the label is 57 px tall; develop and the head leave its mark zone 1 px inside the edge, a fixed 29 px would too (the fit is clamped there, so the top padding does not move it), and the scaled reach (28.5 x the zoom the fit would reach, at most 2) sets the fit at 1.9219 with the mark zone 20.65 px inside. When the whole graph does not fit even at the 0.25 floor (the 360 px matrix boards at a 360 window), xyflow splits the shortfall between top and bottom and the label keeps the head's place (13.5 px), inside the board and more than develop's 6.5.
+
+_What it costs and leaves._ On a height-bound present board the cards are smaller: 0.3016 to 0.2563 on the 300 px board (develop 0.2828) and 0.3828 to 0.3375 on the 360 px board (develop 0.3609); cut titles stay as develop had them (3 and 2). Width-bound fits do not move, so the business board's zoom (0.3800), its titles and its two-click 0.5472, the positions of 2.1, the clear edges of 2.3, row a and the 360 floor all stay. The read-only mode badge: it overlaps no card and no label in any story measured, before or after; the rule does not count it and R3-2 stays a follow-up (ORV-304). Bottom panels and the task bar keep their own padding, so no node goes under them.
+
+_Files a builder touches_ (no token, no recipe class, no public prop, no catalog entry):
+
+- `packages/design-system/src/components/canvas-board/CanvasBoard.tsx`: `labelReach` and the `top` of `freePadding`, as above; the doc comment of `freePadding` gains "plus, on a present board, the label's reach on the top".
+- `packages/design-system/src/components/canvas-board/story-shell.tsx`: `atWindow` (now local to `CanvasBoard.stories.tsx`) moves here, exported, so both matrix stories can read the fit at a 1440 x 900 window; `CanvasBoard.stories.tsx` imports it.
+- `packages/design-system/src/components/canvas-controls/CanvasControls.stories.tsx` and `CanvasBoard.stories.tsx`: the play clauses below.
+
+The builder runs every story of Application/Canvas board, Canvas controls, Canvas node, Canvas edge, Canvas context menu and Node port, and the Business board, Core idea and Prototype ORIVILO canvas examples, and changes no other play's bound.
+
+_Play clause and bound._ In `PresentRecipesAndModes` of Canvas controls and of Canvas board, after the existing checks, in Vitest inside `atWindow(1440, 900, ...)`, and outside Vitest only when the window is at least 1440 by 900 (as `Present` does with its `readFit`): in each of the six cells, focus the board, press Shift+1, wait until the viewport transform reads the same twice; then for every `.ds-node__label` of the cell, `label.getBoundingClientRect().top - board.getBoundingClientRect().top` is at least 16. Measured with row c: 25.5 (Canvas controls) and 29.5 (Canvas board) at 1440 x 900; at a 360 window, which the clause does not read, 37.5 and 13.5. The head reads -4 and 0 and develop 2 and 7 at 1440 x 900, so the clause fails on both. The business board plays of 2.5 keep their bounds: zoom 0.381 within 0.01 (measured 0.3800) and 0.547 within 0.01 after two clicks, every title whole. The `Present` play's `readFit` at 1920 x 1200 still reads zoom 1 or more (1.4578, head 1.4683).
+
+_Stories whose fit changes_ (head to row c, every present-board story swept at the Vitest window 414 x 896 and, for Canvas board and Canvas controls, at 1440 x 900 and 1920 x 1200; 134 stories, 158 story and window pairs, zoom to fit pressed on every board; zoom head to row c, top of the highest label's mark zone in px):
+
+<!-- prettier-ignore -->
+| Story | Window | Zoom | Mark zone top |
+| --- | --- | --- | --- |
+| Canvas controls `PresentRecipesAndModes` | 1440 x 900 and 1920 x 1200 | 0.3016 to 0.2563 (all six cells) | -8 to 21.5 |
+| Canvas controls `PresentRecipesAndModes` | 414 x 896 | 0.2658 to 0.2622 in 2 of 6 cells, the rest unchanged | 18.3 to 21.5 |
+| Canvas board `PresentRecipesAndModes` | 1440 x 900 and 1920 x 1200 | 0.3828 to 0.3375 (all six cells) | -4 to 25.5 |
+| Canvas board `Present`, Canvas controls `Present`, `WithChapters`, `WithChaptersInEnglish` | 1440 x 900 | 1.1021 to 1.0688 | 38.02 to 60.61 |
+| the same four | 1920 x 1200 | 1.4683 to 1.4578 | 73.76 to 80.41 |
+| Canvas board `LevelsOfDetail`, `LevelsOfDetailInEnglish` | 1440 x 900 and 1920 x 1200 | 2 to 1.9219 (all three boards) | 1 to 20.65 |
+| Canvas board `OpenNode`, `OpenNodeInEnglish` | 1440 x 900 and 1920 x 1200 | 2, unchanged (clamped at the maximum); the cards move 8 px down | 11 to 19 |
+
+Every other pair keeps its zoom and margins: Canvas node, Canvas edge, Canvas context menu, Node port, Node group and Node toolbar stories, every Business board, Core idea and Prototype ORIVILO canvas story at 414 x 896 (two Business board readings, `Board` and `BoardOtherLanguage`, read 0.2485 and 0.2489 in the sweep and 0.25 on a slower recheck, a reading taken mid-animation), and the edit boards. With row c no present label's mark zone is above a board's top in any pair (the lowest is 19 px, `OpenNode` at 1440 x 900, where the head had 11); on the head four pairs are (the two matrices at 1440 x 900 and 1920 x 1200). The read-only mode badge overlaps no card and no label in any pair, head or row c. At the Vitest window the head's matrices already read 18.3 and 30.3, so the play clause above runs at 1440 x 900, where the fault shows.
+
+As built (2026-11-21, ORV-298-rework3): row c is built as items 1 to 4 of "The rule, in the words of the code" state, in `CanvasBoard.tsx`: `MAX_ZOOM`, `labelReach` and the top of `freePadding`; `firstFit` and `board.zoom-to-fit` stay `freePadding(0.15)`, `jumpToNode` passes `freePadding(0.5, [{ id }], 1)` and `board.zoom-to-selection` passes the picked ids. One typing change: `getNodesBounds` takes ids, so `labelReach` passes `shown.map((n) => n.id)`. Measured on this Mac after the change: at 1440 x 900 cell 1 of the Canvas controls matrix reads zoom 0.25625 and label top 25.5, cell 1 of the Canvas board matrix 0.3375 and 29.5 (the other cells 0.25 to 0.2587 and 0.3293 to 0.3407, label top 25.5 and 29.5); `Present` at 1920 x 1200 reads 1.4578; `LevelsOfDetail` at 1440 x 900 reads 1.9219 on all three boards; the business board reads 0.3800 at the 1440 fit and 0.5472 after two clicks on zoom in. Head 59ee5bc, the clause went red on both matrices (label top 0 and, in Canvas controls, 10.47 on the first label read, the lowest being -4) and green on the fix. The play clause is added to `PresentRecipesAndModes` of Canvas board and of Canvas controls, in `atWindow(1440, 900, ...)`. Departure from the files list above: the shared `atWindow` of `packages/design-system/src/testing/window.ts` already existed, so both stories files import it, the local copy in `CanvasBoard.stories.tsx` is removed and `story-shell.tsx` is not touched. The edit-board condition and the scaling above zoom 1 have no play that goes red when dropped (no edit card draws a `.ds-node__label`, and `LevelsOfDetail` asserts no mark zone position); no play was added for them.
+
 ## 3. The card at rest
 
 `renderBody` for the three nodes is the foundation card body, unchanged (`div.flex.flex-col.gap-2` > `p.text-body-sm.text-text-secondary [data-node-state]` > `ul.flex.flex-col.gap-1.text-body-sm` of field names):
@@ -633,6 +736,7 @@ Only classes already in the catalog's views and in Tailwind's layout set: `flex`
 - ORV-296's board: Core idea keeps (1888, 212); its edge from Brand personality now arrives from above (2.3). Its design reading of "Core idea to the right of Brand personality" holds.
 - No token and no new shared component. Two shared changes, both from section 2.6: the present label of the ds-node recipe (next line) and the fit padding of CanvasBoard.
 - From ORV-298-design-f1 (section 2.6): the present label of `ds-node` in `recipes.css` gains a container and one container query, and the `canvas-node.yaml` present-board line says so; no token, class or prop. Row b, the margin step, is built (2026-11-20, ORV-298-rework2, after CI run 44730207174 cut English Brand architecture by 1 px): it changes the fit padding of `CanvasBoard` from 0.2 to 0.15 on every board, edit and present.
+- From ORV-298-design-r1 (section 2.6, row c): `freePadding` of `CanvasBoard` adds, on a present board only, the label's reach above the card (29 px up to zoom 1, read from the label, and scaled by the zoom the fit would reach above it) to the top side of every fit. Height-bound present fits get smaller (the two `PresentRecipesAndModes` matrices, Canvas board and Canvas controls `Present`, `WithChapters` and `WithChaptersInEnglish`, and `LevelsOfDetail`, at 1440 x 900 and 1920 x 1200; `OpenNode` keeps zoom 2 and its cards move 8 px down); edit boards and width-bound fits, the business board's among them, do not move. The local `atWindow` of `CanvasBoard.stories.tsx` is replaced by the shared one of `src/testing/window.ts`. No token, class, prop or catalog entry.
 
 ## 14. Strings
 
@@ -668,6 +772,7 @@ The board frames use fixture state lines and field names.
 
 - Board at each PR head, with and without Core idea, 1440 and 360.
 - Card titles at the 1440 fit (2.6): every title whole, no kind or open glyph; at 52 percent both glyphs back on every card; a focused card at the fit; the 360 board against `develop`.
+- The top card's label on a short present board at the fit (2.6 row c): Canvas controls and Canvas board `PresentRecipesAndModes` at 1440, all six cells, the Thai title whole with its tone mark and clear of the top edge.
 - Colour: C3, C5, C6 (20 rows, Thai, 360), C9, C10, C11.
 - Typography: T1, T2, T6, T9.
 - Logo type: L1, L6, L8 (60-character Thai name, 360), L12.
@@ -678,3 +783,5 @@ The board frames use fixture state lines and field names.
 - 2026-11-20, ORV-298-design-1: first version.
 - 2026-11-20, ORV-298-design-f1: section 2.6, card titles at the overview fit, answering finding F1 of the visual sign-off ORV-298-signoff-1 (the title holds the line on a label under 10rem; a fit padding margin step only if CI shows a cut); impact and visual QA lines added.
 - 2026-11-20, ORV-298-rework2: sections 2.4 and 2.6 gain as-built notes and the 2.5 zoom bounds and section 13 are updated: the margin step (row b) is built after CI run 44730207174 cut English Brand architecture by 1 px, the fit padding of CanvasBoard is 0.15, and section 13 names both shared changes (finding R2-1 of ORV-298-review-2).
+- 2026-11-20, ORV-298-design-r1: section 2.6 gains row c, answering finding R1 of the visual sign-off ORV-298-signoff-2: on a present board the fit counts the card label's reach (29 px up to zoom 1, scaled with the zoom above it) on its top side, so the top label of a short present board stays inside the board; sections 13 and 16 gain a line each.
+- 2026-11-21, ORV-298-rework3: section 2.6 gains the as-built note of row c (the rule built in `CanvasBoard.tsx`, the measured values, the two play clauses) and section 13 says the local `atWindow` of `CanvasBoard.stories.tsx` is replaced by the shared one of `src/testing/window.ts`, not moved to `story-shell.tsx`.
